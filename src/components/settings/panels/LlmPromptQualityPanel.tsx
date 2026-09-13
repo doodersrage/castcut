@@ -92,7 +92,7 @@ export default function LlmPromptQualityPanel({
           <input
             type="checkbox"
             checked={sharedSettings.alwaysIncludeClothing !== false}
-            disabled={!sharedMounted || sharedSettings.seedLlmWithIngredients === false}
+            disabled={!sharedMounted}
             onChange={event =>
               updateSharedSettings({ alwaysIncludeClothing: event.target.checked })
             }
@@ -103,8 +103,8 @@ export default function LlmPromptQualityPanel({
               Always include clothing / wardrobe in people prompts
             </span>
             <span className="block text-xs text-[var(--text-muted)]">
-              Generators inject wardrobe beats even when hints omit outfit details. Requires
-              ingredient seeding above.
+              Auto-rolls catalog outfits and appends clothing when hints omit outfit details.
+              Independent of ingredient seeding — turn both off for keyword-only prompts.
             </span>
           </span>
         </label>

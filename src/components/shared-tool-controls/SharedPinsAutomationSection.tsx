@@ -83,7 +83,6 @@ export default function SharedPinsAutomationSection({
               <input
                 type="checkbox"
                 checked={alwaysIncludeClothing}
-                disabled={onSeedLlmWithIngredientsChange ? !seedLlmWithIngredients : false}
                 onChange={e => onAlwaysIncludeClothingChange(e.target.checked)}
                 className={checkboxClass}
               />
@@ -91,7 +90,7 @@ export default function SharedPinsAutomationSection({
                 <span className="type-heading block">Always include wardrobe</span>
                 <span className="type-caption block">
                   {wardrobeHelp ??
-                    'Rolls catalog outfits for people in the prompt and appends assigned clothing if the model omits it.'}
+                    'When on, auto-rolls catalog outfits for people and appends clothing if the model omits it. Independent of Seed LLM above — turn both off for keyword-only prompts.'}
                 </span>
               </span>
             </label>
