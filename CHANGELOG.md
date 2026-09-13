@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v1.7.0] - 2026-09-13
+
 - Rename GitHub repo and npm package to **`castcut`** (docs, badges, GHCR/Docker Hub image names, Pages URL, release Docker `--name`). Local data dirs, plugin channel ids, and desktop bundle id stay on legacy Prompt Studio paths.
 - Dashboard: stop saying **Stalled at Moodboard** after a look pack is extracted — advance campaign on extract/save, and treat a staged look pack as Moodboard-complete for stall heuristics.
 - Moodboard / Comfy queue: ignore overlapping Queue clicks with a synchronous in-flight lock (React `busy` alone still allowed a second submit before re-render).
