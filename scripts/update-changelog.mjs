@@ -96,6 +96,26 @@ if (bullets.length === 0) {
   process.exit(0);
 }
 
+const versionHeading = `## [v${version}]`;
+if (changelog.includes(versionHeading)) {
+  // Already curated/promoted before the cut — keep that section; clear empty Unreleased only.
+  if (curated.length === 0 && unreleasedBody.trim() === '') {
+    console.log(
+      `update-changelog: ${versionHeading} already present — leaving CHANGELOG.md unchanged.`
+    );
+    process.exit(0);
+  }
+  const cleaned =
+    changelog.slice(0, afterHeading) +
+    '\n\n' +
+    (tail ? tail.replace(/^\n+/, '') : '');
+  writeFileSync(CHANGELOG_PATH, cleaned);
+  console.log(
+    `update-changelog: ${versionHeading} already present — cleared Unreleased body without duplicating.`
+  );
+  process.exit(0);
+}
+
 const date = new Date().toISOString().slice(0, 10);
 const newSection = `## [v${version}] - ${date}\n\n${bullets.map(b => `- ${b}`).join('\n')}\n`;
 
