@@ -11,6 +11,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v1.7.0] - 2026-09-13
 
+- Changelog: promote Unreleased notes to v1.7.0.
+- Prepare Castcut 1.7: repo rename, gallery nav, Moodboard funnel.
+- Rename display brand to Castcut.
+- Stop tracking local auth data and tighten repo hygiene.
+- Changelog: note Always include wardrobe unlock.
+- Let Always include wardrobe uncheck without Seed LLM on.
+- Docs: note Make/Control/Build and welcome goal chooser in features.
+- Reposition Prompt Studio around Make / Control / Build.
+- Stop Play create from inheriting the previous Cast look.
+- Make Play the place to create a Cast character.
+
+## [v1.7.0] - 2026-09-13
+
 - Rename GitHub repo and npm package to **`castcut`** (docs, badges, GHCR/Docker Hub image names, Pages URL, release Docker `--name`). Local data dirs, plugin channel ids, and desktop bundle id stay on legacy Prompt Studio paths.
 - Dashboard: stop saying **Stalled at Moodboard** after a look pack is extracted — advance campaign on extract/save, and treat a staged look pack as Moodboard-complete for stall heuristics.
 - Moodboard / Comfy queue: ignore overlapping Queue clicks with a synchronous in-flight lock (React `busy` alone still allowed a second submit before re-render).
