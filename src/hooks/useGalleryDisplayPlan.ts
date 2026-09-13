@@ -57,6 +57,8 @@ export type UseGalleryDisplayPlanResult = {
   totalPages: number;
   currentPage: number;
   totalFiltered: number;
+  pageRangeStart: number;
+  pageRangeEnd: number;
   effectivePageSize: number;
   showPagination: boolean;
   lineageGroups: ReturnType<typeof buildGalleryLineageGroups> | null;
@@ -105,20 +107,26 @@ export function useGalleryDisplayPlan({
   const pagination = useMemo(() => {
     if (!paginationEnabled) {
       const items = limit ? sortedSource.slice(0, limit) : sortedSource;
+      const count = items.length;
       return {
         items,
         page: 1,
         totalPages: 1,
         totalItems: sortedSource.length,
+        rangeStart: count === 0 ? 0 : 1,
+        rangeEnd: count,
       };
     }
 
     if (pageSize === GALLERY_PAGE_SIZE_ALL) {
+      const count = sortedSource.length;
       return {
         items: sortedSource,
         page: 1,
         totalPages: 1,
-        totalItems: sortedSource.length,
+        totalItems: count,
+        rangeStart: count === 0 ? 0 : 1,
+        rangeEnd: count,
       };
     }
 
@@ -134,13 +142,16 @@ export function useGalleryDisplayPlan({
   const visibleEntries = pagination.items;
   const totalPages = pagination.totalPages;
   const currentPage = pagination.page;
+  const pageRangeStart = pagination.rangeStart;
+  const pageRangeEnd = pagination.rangeEnd;
 
   useGalleryBrowsePageClamp(pageClamp, totalPages, sortedSource.length);
 
   const totalFiltered = pagination.totalItems;
   const effectivePageSize = resolveGalleryPageSize(pageSize, totalFiltered);
-  const showPagination =
-    paginationEnabled && pageSize !== GALLERY_PAGE_SIZE_ALL && totalFiltered > effectivePageSize;
+  // Entry count alone is not enough: one oversized experiment can fill a single page while
+  // still exceeding pageSize, which used to leave a dead Previous/Next dock on "Page 1 of 1".
+  const showPagination = paginationEnabled && pageSize !== GALLERY_PAGE_SIZE_ALL && totalPages > 1;
   const lineageGrouping = galleryLineageGroupingEnabled(filter);
   const lineageGroups = useMemo(
     () => (lineageGrouping ? buildGalleryLineageGroups(visibleEntries) : null),
@@ -195,6 +206,8 @@ export function useGalleryDisplayPlan({
     totalPages,
     currentPage,
     totalFiltered,
+    pageRangeStart,
+    pageRangeEnd,
     effectivePageSize,
     showPagination,
     lineageGroups,

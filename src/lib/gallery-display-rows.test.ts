@@ -5,6 +5,7 @@ import {
   buildGalleryDisplayRows,
   countGalleryDisplayEntries,
   normalizeExperimentGroupAnchors,
+  pageForGalleryEntryWithGroups,
   paginateGalleryEntriesWithGroups,
 } from "./gallery-display-rows";
 
@@ -93,6 +94,29 @@ describe("gallery-display-rows", () => {
       assert.equal(rows[0].entries.length, 2);
     }
     assert.ok(rows.some(row => row.kind === "cards"));
+  });
+
+  it("keeps experiment blocks at their anchor position instead of yanking them to the top", () => {
+    const solo = entry("solo");
+    const a = { ...entry("a"), prompt: "same prompt here" };
+    const b = { ...entry("b"), prompt: "same prompt here" };
+    const rows = buildGalleryDisplayRows(null, [solo, a, b], new Set(), 2, {
+      experimentGroups: [
+        {
+          id: "same-prompt",
+          label: "same prompt here",
+          parentPrompt: "same prompt here",
+          entries: [a, b],
+          variants: { seeds: ["1", "2"], cfgValues: [], stepValues: [] },
+        },
+      ],
+    });
+
+    assert.equal(rows[0]?.kind, "cards");
+    if (rows[0]?.kind === "cards") {
+      assert.deepEqual(rows[0].entries.map(item => item.id), ["solo"]);
+    }
+    assert.equal(rows[1]?.kind, "experiment");
   });
 
   it("anchors a group split across a pagination boundary to a single page", () => {
@@ -219,11 +243,17 @@ describe("paginateGalleryEntriesWithGroups", () => {
     assert.equal(page1.totalPages, 3);
     // Group A (15) gets its own page rather than bleeding into group B's territory.
     assert.deepEqual(page1.items.map(e => e.id).sort(), groupA.map(e => e.id).sort());
+    assert.equal(page1.rangeStart, 1);
+    assert.equal(page1.rangeEnd, 15);
     // Group B (33) is larger than one page but still renders whole, on its own page — not empty.
     assert.equal(page2.items.length, 33);
     assert.deepEqual(page2.items.map(e => e.id).sort(), groupB.map(e => e.id).sort());
+    assert.equal(page2.rangeStart, 16);
+    assert.equal(page2.rangeEnd, 48);
     // The unrelated normal entries still show up on the following page.
     assert.deepEqual(page3.items.map(e => e.id).sort(), normals.map(e => e.id).sort());
+    assert.equal(page3.rangeStart, 49);
+    assert.equal(page3.rangeEnd, 58);
 
     const allReturned = [...page1.items, ...page2.items, ...page3.items].map(e => e.id).sort();
     assert.deepEqual(allReturned, sortedSource.map(e => e.id).sort());
@@ -266,5 +296,32 @@ describe("paginateGalleryEntriesWithGroups", () => {
     }
 
     assert.equal(pagesWithAnchor, 1);
+  });
+
+  it("pageForGalleryEntryWithGroups returns the weighted page for experiment members", () => {
+    const groupA = Array.from({ length: 15 }, (_, index) => entry(`a${index}`));
+    const groupB = Array.from({ length: 33 }, (_, index) => entry(`b${index}`));
+    const normals = Array.from({ length: 10 }, (_, index) => entry(`c${index}`));
+    const sortedSource = [...groupA, ...groupB, ...normals];
+    const experimentGroups = [
+      {
+        id: "group-a",
+        label: "group a",
+        parentPrompt: "group a",
+        entries: groupA,
+        variants: { seeds: [], cfgValues: [], stepValues: [] },
+      },
+      {
+        id: "group-b",
+        label: "group b",
+        parentPrompt: "group b",
+        entries: groupB,
+        variants: { seeds: [], cfgValues: [], stepValues: [] },
+      },
+    ];
+
+    assert.equal(pageForGalleryEntryWithGroups(sortedSource, experimentGroups, "a0", 24), 1);
+    assert.equal(pageForGalleryEntryWithGroups(sortedSource, experimentGroups, "b10", 24), 2);
+    assert.equal(pageForGalleryEntryWithGroups(sortedSource, experimentGroups, "c0", 24), 3);
   });
 });

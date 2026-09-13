@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Prefer **Play film loop**, character consistency, Heal reliability, and first-run UX over new model/provider integrations for now. See [docs/limitations.md](https://github.com/doodersrage/llm-prompt-studio/blob/main/docs/limitations.md).
+        Prefer **Play film loop**, character consistency, Heal reliability, and first-run UX over new model/provider integrations for now. See [docs/limitations.md](https://github.com/doodersrage/castcut/blob/main/docs/limitations.md).
   - type: textarea
     id: problem
     attributes:

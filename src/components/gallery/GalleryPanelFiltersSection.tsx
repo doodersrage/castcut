@@ -59,6 +59,8 @@ type GalleryPanelFiltersSectionProps = {
   currentPage: number;
   totalPages: number;
   showPagination: boolean;
+  pageRangeStart: number;
+  pageRangeEnd: number;
   slideshowAvailable: boolean;
   startSlideshow: () => void;
   startFullscreenSlideshow: () => void;
@@ -66,7 +68,6 @@ type GalleryPanelFiltersSectionProps = {
   selectedEntries: ComfyGalleryEntry[];
   retryFailedEntries: (entries: ComfyGalleryEntry[], mode?: 'same' | 'new' | 'exact') => void;
   setPage: (page: number) => void;
-  effectivePageSize: number;
 };
 
 export default function GalleryPanelFiltersSection({
@@ -108,6 +109,8 @@ export default function GalleryPanelFiltersSection({
   currentPage,
   totalPages,
   showPagination,
+  pageRangeStart,
+  pageRangeEnd,
   slideshowAvailable,
   startSlideshow,
   startFullscreenSlideshow,
@@ -115,7 +118,6 @@ export default function GalleryPanelFiltersSection({
   selectedEntries,
   retryFailedEntries,
   setPage,
-  effectivePageSize,
 }: GalleryPanelFiltersSectionProps) {
   return (
     <>
@@ -209,7 +211,8 @@ export default function GalleryPanelFiltersSection({
           page={currentPage}
           totalPages={totalPages}
           totalItems={totalFiltered}
-          pageSize={effectivePageSize}
+          rangeStart={pageRangeStart}
+          rangeEnd={pageRangeEnd}
           onPageChange={setPage}
         />
       ) : null}

@@ -44,6 +44,7 @@ export function usePromptResultComfyUiQueueSingle(
     setComfyUiPreviewUrl,
     trackComfyUiJob,
   } = tracker;
+  const queueInFlightRef = useRef(false);
 
   const sendComfyUiRef = useRef<
     (
@@ -64,6 +65,12 @@ export function usePromptResultComfyUiQueueSingle(
       if (!prompt) {
         return;
       }
+      // Synchronous lock — UI busy flags lag one frame behind a double-click.
+      // Identity relocate clears this before re-entering so retries still work.
+      if (queueInFlightRef.current) {
+        return;
+      }
+      queueInFlightRef.current = true;
 
       previewGenerationRef.current += 1;
       setComfyUiPreviewUrl(null);
@@ -339,6 +346,8 @@ export function usePromptResultComfyUiQueueSingle(
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : 'ComfyUI failed.';
+        // Release before recursive retry so relocate can re-enter sendComfyUi.
+        queueInFlightRef.current = false;
         const relocated = await tryRelocateIdentityAndRetry({
           message,
           model: config.model,
@@ -359,6 +368,8 @@ export function usePromptResultComfyUiQueueSingle(
             identityRelocateAttemptRef.current = false;
           },
         });
+      } finally {
+        queueInFlightRef.current = false;
       }
     },
     [config.model, config.tool, config.hints, saveHistory, trackComfyUiJob, historySaved]

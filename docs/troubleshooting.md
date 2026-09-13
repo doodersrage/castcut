@@ -90,4 +90,4 @@ Studio backup v5 includes characters, campaigns, tool settings, and gallery poin
 
 1. **System tray** toasts often include a playbook link (VRAM, Workflow map, Queue, Inpaint).
 2. **Command palette** (`Ctrl+K` / `⌘K`) → Heal & ready, open failed queue, jump to tool.
-3. Open a [GitHub issue](https://github.com/doodersrage/llm-prompt-studio/issues) with the failed job `statusMessage` and ComfyUI version.
+3. Open a [GitHub issue](https://github.com/doodersrage/castcut/issues) with the failed job `statusMessage` and ComfyUI version.

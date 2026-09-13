@@ -7,6 +7,7 @@ import { recordCatalogBiasFromPrompt } from '@/lib/catalog-rating-bias';
 import { learnFromLowRatedPrompt } from '@/lib/negative-learner';
 import { markOnboardingGalleryReview } from '@/lib/onboarding-hooks';
 import { pushNotification } from '@/lib/notification-center';
+import { scrollGalleryEntryIntoView } from '@/lib/gallery-scroll';
 import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/comfyui-gallery';
 
 type UseGalleryReviewOptions = {
@@ -125,8 +126,7 @@ export function useGalleryReview({
       return;
     }
     const id = filter.focusEntryId.trim();
-    const node = document.querySelector(`[data-gallery-entry="${CSS.escape(id)}"]`);
-    node?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    scrollGalleryEntryIntoView(id);
     scheduleAfterCommit(() => {
       setSelectedIds(previous => (previous.includes(id) ? previous : [id]));
     });
@@ -136,8 +136,7 @@ export function useGalleryReview({
     if (!filter.reviewMode || !reviewFocusEntry) {
       return;
     }
-    const node = document.querySelector(`[data-gallery-entry="${reviewFocusEntry.id}"]`);
-    node?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    scrollGalleryEntryIntoView(reviewFocusEntry.id);
   }, [filter.reviewMode, reviewFocusEntry?.id, reviewFocusEntry]);
 
   useEffect(() => {

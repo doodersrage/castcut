@@ -126,6 +126,8 @@ export default function GalleryPanelBodyContent({
         currentPage={browse.currentPage}
         totalPages={browse.totalPages}
         showPagination={browse.showPagination}
+        pageRangeStart={browse.pageRangeStart}
+        pageRangeEnd={browse.pageRangeEnd}
         slideshowAvailable={lightbox.playlistLength > 1}
         startSlideshow={browse.startSlideshow}
         startFullscreenSlideshow={browse.startFullscreenSlideshow}
@@ -133,7 +135,6 @@ export default function GalleryPanelBodyContent({
         selectedEntries={selection.selectedEntries}
         retryFailedEntries={browse.retryFailedEntries}
         setPage={browse.setPage}
-        effectivePageSize={browse.effectivePageSize}
       />
 
       <GalleryPanelBulkSection
@@ -205,8 +206,10 @@ export default function GalleryPanelBodyContent({
         currentPage={browse.currentPage}
         totalPages={browse.totalPages}
         totalFiltered={browse.totalFiltered}
-        effectivePageSize={browse.effectivePageSize}
+        pageRangeStart={browse.pageRangeStart}
+        pageRangeEnd={browse.pageRangeEnd}
         setPage={browse.setPage}
+        scrollToEntryId={review.reviewFocusEntry?.id ?? browse.filter.focusEntryId?.trim() ?? null}
       />
 
       {browse.filter.reviewMode && review.reviewFocusEntry ? (

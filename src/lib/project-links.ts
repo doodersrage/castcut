@@ -1,4 +1,4 @@
-export const GITHUB_REPO_URL = 'https://github.com/doodersrage/llm-prompt-studio';
+export const GITHUB_REPO_URL = 'https://github.com/doodersrage/castcut';
 
 /** owner/repo slug, e.g. for the GitHub REST API. */
 export const GITHUB_REPO_SLUG = GITHUB_REPO_URL.replace(/^https:\/\/github\.com\//, '');

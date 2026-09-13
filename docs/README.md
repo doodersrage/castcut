@@ -8,12 +8,12 @@
   <div class="ps-hero__actions">
     <a class="ps-btn-primary" href="operator/">Operator guide</a>
     <a class="ps-btn-secondary" href="play-guide/">Play campaign</a>
-    <a class="ps-btn-secondary" href="https://github.com/doodersrage/llm-prompt-studio/releases/latest">Download latest</a>
+    <a class="ps-btn-secondary" href="https://github.com/doodersrage/castcut/releases/latest">Download latest</a>
   </div>
   <ul class="ps-hero__meta">
     <li><strong>Dev</strong> Node 22+ · <code>npm run dev</code> → :47832</li>
     <li><strong>Search</strong> Press <kbd>/</kbd> or use the header search</li>
-    <li><strong>Repo</strong> <a href="https://github.com/doodersrage/llm-prompt-studio">GitHub</a></li>
+    <li><strong>Repo</strong> <a href="https://github.com/doodersrage/castcut">GitHub</a></li>
   </ul>
 </div>
 
@@ -115,12 +115,12 @@
 
 | Doc | Contents |
 | --- | --- |
-| [Main README (GitHub)](https://github.com/doodersrage/llm-prompt-studio/blob/main/README.md) | What it is, quick start, tools table, supported models |
+| [Main README (GitHub)](https://github.com/doodersrage/castcut/blob/main/README.md) | What it is, quick start, tools table, supported models |
 | [Operator guide](operator.md) | Heal & ready, [10-minute loop](operator.md#10-minute-loop), second GPU, backup, invite + SMTP |
 | [Play campaign guide](play-guide.md) | Moodboard → Cut → Cast walkthrough, metrics, share/resume |
 | [Configuration & deployment](configuration.md) | `.env.local`, LLM, auth, security, production checklist, Docker |
 | [Desktop app](desktop.md) | Tauri installers (macOS / Windows / Linux) |
-| [ComfyUI custom nodes (GitHub)](https://github.com/doodersrage/llm-prompt-studio/blob/main/comfyui/comfyui_image_prompt_tools/README.md) | Install `PromptTools*` nodes into ComfyUI |
+| [ComfyUI custom nodes (GitHub)](https://github.com/doodersrage/castcut/blob/main/comfyui/comfyui_image_prompt_tools/README.md) | Install `PromptTools*` nodes into ComfyUI |
 
 ### Using the app
 
@@ -158,7 +158,7 @@ Quick jumps inside [features.md](features.md):
 | [Releases](releasing.md) | Cut `vX.Y.Z` GitHub Releases and GHCR images |
 | [Plugin iframe host](plugin-iframe-host.md) | postMessage protocol + example HTML |
 | [Performance & scripts](performance/guide.md) | npm scripts, build, Prettier, monitoring |
-| [Diffusers engine (GitHub)](https://github.com/doodersrage/llm-prompt-studio/blob/main/services/diffusers-engine/README.md) | Optional FastAPI stills sidecar |
+| [Diffusers engine (GitHub)](https://github.com/doodersrage/castcut/blob/main/services/diffusers-engine/README.md) | Optional FastAPI stills sidecar |
 
 ### Local preview
 

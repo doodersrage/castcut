@@ -89,6 +89,20 @@ describe('play-metrics', () => {
       funnel: { firstPlayCampaign: 1, campaignMaxStep: 2 },
     });
     assert.equal(moodboardStall?.stepId, 'moodboard');
+
+    const extractedLookStall = resolvePlayFunnelStall({
+      metrics: { version: 1, firstPlayCampaignAt: Date.now() - 60_000 },
+      funnel: { firstPlayCampaign: 1, campaignMaxStep: 2 },
+      campaign: { characterId: 'c1', stepIndex: 1 },
+      lookPack: {
+        version: 1,
+        source: 'moodboard',
+        characterId: 'c1',
+        vibePrompt: 'soft light',
+        savedAt: 1,
+      },
+    });
+    assert.equal(extractedLookStall?.stepId, 'fitting');
   });
 
   it('resolves funnel step hrefs with optional character id and look pack', () => {
@@ -125,6 +139,22 @@ describe('play-metrics', () => {
     });
     assert.match(resume.href, /from=look/);
     assert.match(resume.href, /wardrobe=kit-a/);
+  });
+
+  it('resume CTA advances to Fitting when look pack exists but campaign is still on Moodboard', () => {
+    const resume = resolveNextPlayAction({
+      campaign: { characterId: 'c1', stepIndex: 1 },
+      lookPack: {
+        version: 1,
+        source: 'moodboard',
+        characterId: 'c1',
+        wardrobeId: 'kit-a',
+        vibePrompt: 'vibe',
+        savedAt: 1,
+      },
+    });
+    assert.equal(resume.label, 'Continue Fitting');
+    assert.match(resume.href, /fitting/);
   });
 
   it('aligns stall CTA href with stall step (not bare next-action fallback)', () => {

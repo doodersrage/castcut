@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Docs
-    url: https://doodersrage.github.io/llm-prompt-studio/
+    url: https://doodersrage.github.io/castcut/
     about: Operator guide, Play campaign walkthrough, and configuration.
   - name: Discussions / questions
-    url: https://github.com/doodersrage/llm-prompt-studio/issues/new
+    url: https://github.com/doodersrage/castcut/issues/new
     about: Prefer a plain issue for now — no separate Discussions board yet.

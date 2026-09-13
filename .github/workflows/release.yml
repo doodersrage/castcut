@@ -129,7 +129,7 @@ jobs:
 
           \`\`\`bash
           docker pull ${IMAGE}:${VERSION}
-          docker run -d --name comfyui-prompt-studio -p 127.0.0.1:47832:47832 \\
+          docker run -d --name castcut -p 127.0.0.1:47832:47832 \\
             ${IMAGE}:${VERSION}
           \`\`\`
 
@@ -191,7 +191,7 @@ jobs:
           {
             echo "ghcr.io/${GITHUB_REPOSITORY,,}"
             if [ "${{ steps.hub.outcome }}" = "success" ]; then
-              echo "doodersrage/llm-prompt-studio"
+              echo "doodersrage/castcut"
             fi
           } > /tmp/docker-images.txt
           echo "list<<EOF" >> "$GITHUB_OUTPUT"
@@ -227,7 +227,7 @@ jobs:
       - name: GHCR write_package hint
         if: steps.push.outcome == 'failure'
         run: |
-          echo "::error::GHCR denied the image push (usually permission_denied: write_package). Open https://github.com/users/${GITHUB_REPOSITORY_OWNER}/packages/container/package/llm-prompt-studio/settings → Manage Actions access → add ${GITHUB_REPOSITORY} with Write. Or set repo secret GHCR_TOKEN to a classic PAT with write:packages. GitHub Release assets can still succeed."
+          echo "::error::GHCR denied the image push (usually permission_denied: write_package). Open https://github.com/users/${GITHUB_REPOSITORY_OWNER}/packages/container/package/castcut/settings → Manage Actions access → add ${GITHUB_REPOSITORY} with Write. Or set repo secret GHCR_TOKEN to a classic PAT with write:packages. GitHub Release assets can still succeed."
           exit 1
 
   desktop:

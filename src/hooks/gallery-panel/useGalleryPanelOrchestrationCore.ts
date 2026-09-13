@@ -142,11 +142,26 @@ export function useGalleryPanelOrchestrationCore({
     visionInboxSkipIds: ui.visionInboxSkipIds,
   });
 
+  const visibleEntryIds = useMemo(
+    () => new Set(displayPlan.visibleEntries.map(entry => entry.id)),
+    [displayPlan.visibleEntries]
+  );
+
   const lightboxState = useGalleryPanelLightbox({
     sortedSource: displayPlan.sortedSource,
     storeReady,
     entries,
     searchParams,
+    pagination: paginationEnabled
+      ? {
+          enabled: true,
+          page: displayPlan.currentPage,
+          pageSize: browse.pageSize,
+          experimentGroups: displayPlan.experimentGroups,
+          visibleEntryIds,
+          setPage: browse.setPage,
+        }
+      : undefined,
   });
 
   useEffect(() => {

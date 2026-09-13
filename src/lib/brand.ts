@@ -1,5 +1,5 @@
 /**
- * Product display brand. Package/repo stay `llm-prompt-studio` for installs and URLs.
+ * Product display brand. Package and GitHub repo are `castcut`.
  */
 export const PRODUCT_NAME = 'Castcut';
 

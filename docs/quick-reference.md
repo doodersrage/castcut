@@ -46,7 +46,7 @@ Toggle: sidebar footer or **Profile → Appearance**.
 
 Legacy: `/duo` → Character · `/random-scene` → Generate.
 
-Full table: [Tools (GitHub README)](https://github.com/doodersrage/llm-prompt-studio/blob/main/README.md#tools).
+Full table: [Tools (GitHub README)](https://github.com/doodersrage/castcut/blob/main/README.md#tools).
 
 ---
 
@@ -81,11 +81,11 @@ CI runs lint, test, build, Playwright on push — see [performance guide](perfor
 ## Docker (production)
 
 ```bash
-docker pull ghcr.io/doodersrage/llm-prompt-studio:latest
-docker run -d --name prompt-studio -p 127.0.0.1:47832:47832 \
+docker pull ghcr.io/doodersrage/castcut:latest
+docker run -d --name castcut -p 127.0.0.1:47832:47832 \
   -e COMFYUI_API_URL=http://host.docker.internal:8188 \
   -e LLM_MODEL=… -e LLM_VISION_MODEL=… \
-  ghcr.io/doodersrage/llm-prompt-studio:latest
+  ghcr.io/doodersrage/castcut:latest
 ```
 
 Exposed profile + auth: [configuration — Docker](configuration.md#docker).
@@ -96,8 +96,8 @@ Exposed profile + auth: [configuration — Docker](configuration.md#docker).
 
 | Channel | Link |
 | --- | --- |
-| Latest release | [GitHub Releases](https://github.com/doodersrage/llm-prompt-studio/releases/latest) |
-| Container | `ghcr.io/doodersrage/llm-prompt-studio:latest` |
+| Latest release | [GitHub Releases](https://github.com/doodersrage/castcut/releases/latest) |
+| Container | `ghcr.io/doodersrage/castcut:latest` |
 | Desktop | `.dmg` / `.exe` / `.deb` — [desktop.md](desktop.md) |
 
 Cut a release: [releasing.md](releasing.md).

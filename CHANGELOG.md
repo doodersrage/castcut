@@ -3,13 +3,17 @@
 All notable changes to Castcut, one section per release. Generated from git history
 (release boundaries are the repo's own `Release vX.Y.Z` commits, since not every tag is
 mirrored to every clone). Full release notes with installer/image links are on
-[GitHub Releases](https://github.com/doodersrage/llm-prompt-studio/releases).
+[GitHub Releases](https://github.com/doodersrage/castcut/releases).
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-- Rename display brand to **Castcut** (repo/package stay `llm-prompt-studio`). Comfy output prefixes and enrich meta titles use Castcut; legacy Prompt Studio enrich markers still recognized.
+- Rename GitHub repo and npm package to **`castcut`** (docs, badges, GHCR/Docker Hub image names, Pages URL, release Docker `--name`). Local data dirs, plugin channel ids, and desktop bundle id stay on legacy Prompt Studio paths.
+- Dashboard: stop saying **Stalled at Moodboard** after a look pack is extracted — advance campaign on extract/save, and treat a staged look pack as Moodboard-complete for stall heuristics.
+- Moodboard / Comfy queue: ignore overlapping Queue clicks with a synchronous in-flight lock (React `busy` alone still allowed a second submit before re-render).
+- Gallery: fix navigation around large / multiple experiment blocks — accurate page ranges for weighted pagination, hide dead pager when only one page, remasure virtualized rows when experiment blocks expand/collapse, keep blocks at anchor order for review N/P, scroll virtualized focus targets into range, virtualize cards inside large expanded experiments, and sync the gallery page when lightbox focuses an off-page entry.
+- Rename display brand to **Castcut**. Comfy output prefixes and enrich meta titles use Castcut; legacy Prompt Studio enrich markers still recognized.
 - Repo hygiene: stop tracking `.prompt-studio-data/auth/*.imported` (local admin password hash + usage leftovers); add GitHub issue templates; clarify Runway as partial (not in Settings picker).
 - Fix **Always include wardrobe** being locked when Seed LLM ingredients is off — the two toggles are independent again.
 - Product focus: README + docs reposition as local AI image/video studio; welcome **What do you want to make?** goals; Play/Studio/Full framed as Make/Control/Build; Generate goal model chips (Photoreal / Illustration / Edit / Video); Dashboard Heal & Mobile Studio CTAs; freeze new integrations for now.

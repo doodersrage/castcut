@@ -6,7 +6,10 @@ export type GalleryPaginatorProps = {
   page: number;
   totalPages: number;
   totalItems: number;
-  pageSize: number;
+  /** Inclusive 1-based index of the first item on this page (weighted pagination aware). */
+  rangeStart: number;
+  /** Inclusive 1-based index of the last item on this page (weighted pagination aware). */
+  rangeEnd: number;
   onPageChange: (page: number) => void;
 };
 
@@ -14,12 +17,10 @@ export default function GalleryPaginator({
   page,
   totalPages,
   totalItems,
-  pageSize,
+  rangeStart,
+  rangeEnd,
   onPageChange,
 }: GalleryPaginatorProps) {
-  const rangeStart = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
-  const rangeEnd = Math.min(page * pageSize, totalItems);
-
   return (
     <div className="ui-gallery-dock flex flex-wrap items-center justify-between gap-3 px-4 py-3">
       <p

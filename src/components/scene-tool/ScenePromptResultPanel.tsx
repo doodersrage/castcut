@@ -153,7 +153,7 @@ export default function ScenePromptResultPanel({
       />
       {includeStickyBar ? (
         <MobileStickyQueueBar
-          disabled={!output.trim()}
+          disabled={!output.trim() || Boolean(actions.comfyUiStatus?.startsWith('Queueing'))}
           label={queueLabel}
           status={actions.comfyUiStatus}
           primaryGenerate

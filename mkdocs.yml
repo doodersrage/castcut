@@ -1,8 +1,8 @@
 site_name: Castcut
 site_description: Documentation for Castcut — prompts, ComfyUI, Gallery, and the Play film loop
-site_url: https://doodersrage.github.io/llm-prompt-studio/
-repo_url: https://github.com/doodersrage/llm-prompt-studio
-repo_name: doodersrage/llm-prompt-studio
+site_url: https://doodersrage.github.io/castcut/
+repo_url: https://github.com/doodersrage/castcut
+repo_name: doodersrage/castcut
 edit_uri: edit/main/docs/
 copyright: Copyright &copy; 2026 Robert McDowell · MIT
 
@@ -100,12 +100,12 @@ nav:
       - Plugin iframe host: plugin-iframe-host.md
       - Performance & scripts: performance/guide.md
   - External:
-      - Main README (GitHub): https://github.com/doodersrage/llm-prompt-studio/blob/main/README.md
-      - ComfyUI nodes: https://github.com/doodersrage/llm-prompt-studio/blob/main/comfyui/comfyui_image_prompt_tools/README.md
-      - Diffusers engine: https://github.com/doodersrage/llm-prompt-studio/blob/main/services/diffusers-engine/README.md
+      - Main README (GitHub): https://github.com/doodersrage/castcut/blob/main/README.md
+      - ComfyUI nodes: https://github.com/doodersrage/castcut/blob/main/comfyui/comfyui_image_prompt_tools/README.md
+      - Diffusers engine: https://github.com/doodersrage/castcut/blob/main/services/diffusers-engine/README.md
 
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/doodersrage/llm-prompt-studio
+      link: https://github.com/doodersrage/castcut
   generator: false

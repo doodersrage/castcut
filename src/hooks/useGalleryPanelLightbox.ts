@@ -22,10 +22,15 @@ import {
   resolveGalleryLightboxEntry,
   resolveGalleryLightboxOpenIndex,
   saveGalleryViewPreferences,
+  GALLERY_PAGE_SIZE_ALL,
+  resolveGalleryPageSize,
   type ComfyGalleryEntry,
+  type GalleryPageSize,
   type GallerySlideshowIntervalMs,
   type GallerySlideshowTransition,
 } from '@/lib/comfyui-gallery';
+import { pageForGalleryEntryWithGroups } from '@/lib/gallery-display-rows';
+import type { ExperimentGroup } from '@/lib/experiment-groups';
 import { prefetchGalleryImageUrl } from '@/lib/gallery-image-prefetch';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
@@ -34,6 +39,15 @@ export type UseGalleryPanelLightboxOptions = {
   storeReady: boolean;
   entries: ComfyGalleryEntry[];
   searchParams: ReadonlyURLSearchParams;
+  /** When set, keep the gallery page on the lightbox's current entry. */
+  pagination?: {
+    enabled: boolean;
+    page: number;
+    pageSize: GalleryPageSize;
+    experimentGroups: ExperimentGroup[];
+    visibleEntryIds: ReadonlySet<string>;
+    setPage: (page: number) => void;
+  };
 };
 
 export type UseGalleryPanelLightboxResult = {
@@ -65,6 +79,7 @@ export function useGalleryPanelLightbox({
   storeReady,
   entries,
   searchParams,
+  pagination,
 }: UseGalleryPanelLightboxOptions): UseGalleryPanelLightboxResult {
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const [slideshowPlaying, setSlideshowPlaying] = useState(false);
@@ -283,6 +298,34 @@ export function useGalleryPanelLightbox({
     window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
     deepLinkOpenedRef.current = resolved.entry.id;
   }, [resolvedLightbox, lightboxEntries, storeReady, entries]);
+
+  // Keep the underlying gallery page on the lightbox entry so closing / focus scroll lands
+  // on a mounted card instead of an off-page ghost.
+  useEffect(() => {
+    if (!resolvedLightbox || !pagination?.enabled) {
+      return;
+    }
+    if (pagination.pageSize === GALLERY_PAGE_SIZE_ALL) {
+      return;
+    }
+    const resolved = resolveGalleryLightboxEntry(lightboxEntries, resolvedLightbox.index);
+    if (!resolved) {
+      return;
+    }
+    if (pagination.visibleEntryIds.has(resolved.entry.id)) {
+      return;
+    }
+    const effectivePageSize = resolveGalleryPageSize(pagination.pageSize, sortedSource.length);
+    const targetPage = pageForGalleryEntryWithGroups(
+      sortedSource,
+      pagination.experimentGroups,
+      resolved.entry.id,
+      effectivePageSize
+    );
+    if (targetPage !== pagination.page) {
+      pagination.setPage(targetPage);
+    }
+  }, [resolvedLightbox, lightboxEntries, sortedSource, pagination]);
 
   return {
     lightbox,

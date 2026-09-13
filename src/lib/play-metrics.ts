@@ -224,7 +224,11 @@ export function resolveNextPlayAction(input: {
   }
 
   if (campaign && !campaign.completedAt && characterId) {
-    const stepIndex = Math.max(0, Math.min(campaign.stepIndex, 4));
+    let stepIndex = Math.max(0, Math.min(campaign.stepIndex, 4));
+    // Extracted look pack means Moodboard is done even if stepIndex was never bumped.
+    if (pack && stepIndex < 2) {
+      stepIndex = 2;
+    }
     const stepIds = ['character', 'moodboard', 'fitting', 'day', 'roleplay'] as const;
     const id = stepIds[stepIndex] ?? 'moodboard';
     const labels: Record<(typeof stepIds)[number], string> = {
@@ -287,11 +291,14 @@ export function resolveNextPlayAction(input: {
 
 /**
  * Where the Play funnel is stuck before the first film cut — for dashboard stall callouts.
+ * A staged look pack for the active campaign means Moodboard is already done even if the
+ * durable step index was never bumped (older extract path).
  */
 export function resolvePlayFunnelStall(input: {
   metrics?: PlayMetrics;
   funnel?: FunnelLike | null;
   campaign?: CampaignLike;
+  lookPack?: LookPack | null;
 }): PlayFunnelStall | null {
   const metrics = input.metrics ?? { version: 1 };
   const funnel = input.funnel ?? {};
@@ -313,7 +320,16 @@ export function resolvePlayFunnelStall(input: {
       : null;
 
   const keeps = funnel.keepTryOn ?? 0;
-  const maxStep = Math.max(campaign?.stepIndex ?? -1, (funnel.campaignMaxStep ?? 0) - 1, 0);
+  let maxStep = Math.max(campaign?.stepIndex ?? -1, (funnel.campaignMaxStep ?? 0) - 1, 0);
+
+  const campaignCharacterId = campaign?.characterId?.trim() || '';
+  const packCharacterId = input.lookPack?.characterId?.trim() || '';
+  const moodboardDoneViaPack =
+    Boolean(input.lookPack) &&
+    (!campaignCharacterId || !packCharacterId || campaignCharacterId === packCharacterId);
+  if (moodboardDoneViaPack && maxStep < 2) {
+    maxStep = 2; // Fitting — next step after a ready look pack
+  }
 
   if (keeps > 0 || maxStep >= 3) {
     return {

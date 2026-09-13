@@ -169,6 +169,8 @@ export function useGalleryPanelOrchestrationPart2(
           currentPage: displayPlan.currentPage,
           totalPages: displayPlan.totalPages,
           showPagination: displayPlan.showPagination,
+          pageRangeStart: displayPlan.pageRangeStart,
+          pageRangeEnd: displayPlan.pageRangeEnd,
           startSlideshow: lightboxState.startSlideshow,
           startFullscreenSlideshow: lightboxState.startFullscreenSlideshow,
           retryFailedEntries,

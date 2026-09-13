@@ -4,7 +4,7 @@ Castcut can ship as a **Tauri** window on macOS, Windows, and Linux. The install
 
 ## Install
 
-[Latest GitHub Release](https://github.com/doodersrage/llm-prompt-studio/releases/latest) on `vX.Y.Z` tags attach:
+[Latest GitHub Release](https://github.com/doodersrage/castcut/releases/latest) on `vX.Y.Z` tags attach:
 
 | OS | Artifact |
 | --- | --- |

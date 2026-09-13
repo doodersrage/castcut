@@ -77,7 +77,7 @@ export function buildGalleryDisplayRows(
   const winners = options?.winners ?? {};
 
   const claimedByExperiment = new Set<string>();
-  const experimentRows: GalleryExperimentRow[] = [];
+  const experimentByAnchorId = new Map<string, GalleryExperimentRow>();
 
   if (experimentGroups?.length) {
     const visibleById = new Map(visibleEntries.map(entry => [entry.id, entry]));
@@ -102,7 +102,7 @@ export function buildGalleryDisplayRows(
       if (!anchor || !visibleById.has(anchor.id)) {
         continue;
       }
-      experimentRows.push({
+      experimentByAnchorId.set(anchor.id, {
         kind: 'experiment',
         groupId: group.id,
         label: group.label,
@@ -113,22 +113,22 @@ export function buildGalleryDisplayRows(
     }
   }
 
-  const filterUnclaimed = (entries: ComfyGalleryEntry[]) =>
-    entries.filter(entry => !claimedByExperiment.has(entry.id));
-
-  if (!lineageGroups) {
-    const rows: GalleryDisplayRow[] = [...experimentRows];
-    const remaining = filterUnclaimed(visibleEntries);
-    for (let index = 0; index < remaining.length; index += safeColumns) {
-      rows.push({
-        kind: 'cards',
-        entries: remaining.slice(index, index + safeColumns),
-      });
+  const lineageByRootId = new Map<string, GalleryLineageGroup>();
+  const claimedByLineage = new Set<string>();
+  if (lineageGroups) {
+    for (const group of lineageGroups) {
+      if (claimedByExperiment.has(group.root.id)) {
+        continue;
+      }
+      const derivatives = group.derivatives.filter(entry => !claimedByExperiment.has(entry.id));
+      lineageByRootId.set(group.root.id, { root: group.root, derivatives });
+      for (const derivative of derivatives) {
+        claimedByLineage.add(derivative.id);
+      }
     }
-    return rows;
   }
 
-  const rows: GalleryDisplayRow[] = [...experimentRows];
+  const rows: GalleryDisplayRow[] = [];
   const pending: ComfyGalleryEntry[] = [];
 
   const flushPending = () => {
@@ -140,27 +140,39 @@ export function buildGalleryDisplayRows(
     }
   };
 
-  for (const group of lineageGroups) {
-    if (claimedByExperiment.has(group.root.id)) {
+  // Walk visibleEntries in order so experiment blocks stay at their anchors (matching
+  // review N/P / lightbox focus order) instead of being yanked to the top of the page.
+  for (const entry of visibleEntries) {
+    const experimentRow = experimentByAnchorId.get(entry.id);
+    if (experimentRow) {
+      flushPending();
+      rows.push(experimentRow);
       continue;
     }
-    const derivatives = group.derivatives.filter(entry => !claimedByExperiment.has(entry.id));
-    if (derivatives.length === 0) {
-      pending.push(group.root);
-      if (pending.length >= safeColumns) {
-        flushPending();
-      }
+    if (claimedByExperiment.has(entry.id)) {
+      continue;
+    }
+    if (claimedByLineage.has(entry.id)) {
       continue;
     }
 
-    flushPending();
-    rows.push({
-      kind: 'lineage',
-      groupId: group.root.id,
-      root: group.root,
-      derivatives,
-      collapsed: collapsedLineageGroups.has(group.root.id),
-    });
+    const lineageGroup = lineageByRootId.get(entry.id);
+    if (lineageGroup && lineageGroup.derivatives.length > 0) {
+      flushPending();
+      rows.push({
+        kind: 'lineage',
+        groupId: lineageGroup.root.id,
+        root: lineageGroup.root,
+        derivatives: lineageGroup.derivatives,
+        collapsed: collapsedLineageGroups.has(lineageGroup.root.id),
+      });
+      continue;
+    }
+
+    pending.push(entry);
+    if (pending.length >= safeColumns) {
+      flushPending();
+    }
   }
 
   flushPending();
@@ -172,38 +184,23 @@ export type GalleryPaginationResult = {
   page: number;
   totalPages: number;
   totalItems: number;
+  /** 1-based inclusive index of the first item on this page in gallery order (0 when empty). */
+  rangeStart: number;
+  /** 1-based inclusive index of the last item on this page in gallery order (0 when empty). */
+  rangeEnd: number;
 };
 
-/**
- * Like a plain flat-index `entries.slice(...)` pagination, but treats each qualifying experiment
- * group as an indivisible unit anchored at its newest member's position (matching
- * `buildGalleryDisplayRows`'s own anchor rule) instead of letting a page boundary fall in the
- * middle of it.
- *
- * Without this, index-based pagination has no idea a group's other members are about to get
- * pulled onto a different page by `buildGalleryDisplayRows` — so once two or more sizeable
- * groups (say, 15+ entries each from a best-of-N burst) land near a page boundary, ALL of the
- * index range that would have belonged to the next page can end up "claimed" by those groups'
- * non-anchor members, leaving that page completely empty even though later pages still have
- * unclaimed content. This plans page boundaries around each group's true size up front so that
- * never happens: a page's budget accounts for a group as `group.entries.length` slots, and a
- * group that's larger than `pageSize` still gets a page entirely to itself rather than splitting.
- *
- * `sortedSource` is expected to contain each entry id at most once, but upstream merge/sync/poll
- * gaps have been known to hand this function the same id twice (e.g. a still-in-flight entry that
- * appears both in a cached page and in a freshly merged batch). If a group's anchor id shows up
- * more than once, the planning walk below would previously push a full-weight "slot" for it once
- * per occurrence — qualifying the SAME group for placement on multiple independent pages, so the
- * exact same experiment block would render again on every later page it happened to land on. We
- * dedupe by id up front (keeping each id's first occurrence, consistent with `sortedSource`'s
- * newest-first convention) so no id — and critically, no anchor — can ever be planned twice.
- */
-export function paginateGalleryEntriesWithGroups(
+type GalleryPagePlan = {
+  dedupedSource: ComfyGalleryEntry[];
+  pages: ComfyGalleryEntry[][];
+  anchorGroupEntries: Map<string, ComfyGalleryEntry[]>;
+};
+
+function planGalleryPagesWithGroups(
   sortedSource: readonly ComfyGalleryEntry[],
   experimentGroups: ExperimentGroup[] | null | undefined,
-  page: number,
   pageSize: number
-): GalleryPaginationResult {
+): GalleryPagePlan {
   const seenIds = new Set<string>();
   const dedupedSource: ComfyGalleryEntry[] = [];
   for (const entry of sortedSource) {
@@ -237,10 +234,6 @@ export function paginateGalleryEntriesWithGroups(
     }
   }
 
-  // Weighted planning pass, in original order: a normal entry (or a group's anchor) is one
-  // "slot"; an anchor's slot carries its group's full size as weight. Non-anchor members are
-  // skipped here entirely — they're accounted for via their anchor's weight and re-expanded
-  // into the page's actual `items` below.
   const planned: Array<{ slot: ComfyGalleryEntry; weight: number }> = [];
   for (const entry of dedupedSource) {
     if (nonAnchorMemberOf.has(entry.id)) {
@@ -253,8 +246,6 @@ export function paginateGalleryEntriesWithGroups(
   let current: ComfyGalleryEntry[] = [];
   let currentWeight = 0;
   for (const { slot, weight } of planned) {
-    // Always keep at least one slot on the current page before checking the budget, so a single
-    // oversized group still lands on a page of its own instead of never fitting anywhere.
     if (current.length > 0 && currentWeight + weight > pageSize) {
       pages.push(current);
       current = [];
@@ -267,10 +258,13 @@ export function paginateGalleryEntriesWithGroups(
     pages.push(current);
   }
 
-  const totalPages = pages.length;
-  const safePage = Math.min(Math.max(page, 1), totalPages);
-  const pageSlots = pages[safePage - 1] ?? [];
+  return { dedupedSource, pages, anchorGroupEntries };
+}
 
+function expandPageSlots(
+  pageSlots: readonly ComfyGalleryEntry[],
+  anchorGroupEntries: Map<string, ComfyGalleryEntry[]>
+): ComfyGalleryEntry[] {
   const items: ComfyGalleryEntry[] = [];
   for (const slot of pageSlots) {
     const expanded = anchorGroupEntries.get(slot.id);
@@ -280,13 +274,94 @@ export function paginateGalleryEntriesWithGroups(
       items.push(slot);
     }
   }
+  return items;
+}
+
+/**
+ * Like a plain flat-index `entries.slice(...)` pagination, but treats each qualifying experiment
+ * group as an indivisible unit anchored at its newest member's position (matching
+ * `buildGalleryDisplayRows`'s own anchor rule) instead of letting a page boundary fall in the
+ * middle of it.
+ *
+ * Without this, index-based pagination has no idea a group's other members are about to get
+ * pulled onto a different page by `buildGalleryDisplayRows` — so once two or more sizeable
+ * groups (say, 15+ entries each from a best-of-N burst) land near a page boundary, ALL of the
+ * index range that would have belonged to the next page can end up "claimed" by those groups'
+ * non-anchor members, leaving that page completely empty even though later pages still have
+ * unclaimed content. This plans page boundaries around each group's true size up front so that
+ * never happens: a page's budget accounts for a group as `group.entries.length` slots, and a
+ * group that's larger than `pageSize` still gets a page entirely to itself rather than splitting.
+ *
+ * `sortedSource` is expected to contain each entry id at most once, but upstream merge/sync/poll
+ * gaps have been known to hand this function the same id twice (e.g. a still-in-flight entry that
+ * appears both in a cached page and in a freshly merged batch). If a group's anchor id shows up
+ * more than once, the planning walk below would previously push a full-weight "slot" for it once
+ * per occurrence — qualifying the SAME group for placement on multiple independent pages, so the
+ * exact same experiment block would render again on every later page it happened to land on. We
+ * dedupe by id up front (keeping each id's first occurrence, consistent with `sortedSource`'s
+ * newest-first convention) so no id — and critically, no anchor — can ever be planned twice.
+ */
+export function paginateGalleryEntriesWithGroups(
+  sortedSource: readonly ComfyGalleryEntry[],
+  experimentGroups: ExperimentGroup[] | null | undefined,
+  page: number,
+  pageSize: number
+): GalleryPaginationResult {
+  const { dedupedSource, pages, anchorGroupEntries } = planGalleryPagesWithGroups(
+    sortedSource,
+    experimentGroups,
+    pageSize
+  );
+
+  const totalPages = pages.length;
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const pageSlots = pages[safePage - 1] ?? [];
+  const items = expandPageSlots(pageSlots, anchorGroupEntries);
+
+  // Weighted pages rarely hold `pageSize` entries (a 33-variant experiment is one page).
+  // Flat `(page-1)*pageSize` math lies in the paginator — count real expanded lengths instead.
+  const pageLengths = pages.map(slots => {
+    let length = 0;
+    for (const slot of slots) {
+      length += anchorGroupEntries.get(slot.id)?.length ?? 1;
+    }
+    return length;
+  });
+  let itemsBefore = 0;
+  for (let index = 0; index < safePage - 1; index += 1) {
+    itemsBefore += pageLengths[index] ?? 0;
+  }
+  const pageItemCount = pageLengths[safePage - 1] ?? 0;
 
   return {
     items,
     page: safePage,
     totalPages,
     totalItems: dedupedSource.length,
+    rangeStart: pageItemCount === 0 ? 0 : itemsBefore + 1,
+    rangeEnd: itemsBefore + pageItemCount,
   };
+}
+
+/** 1-based page that contains `entryId` under the same weighted experiment pagination rules. */
+export function pageForGalleryEntryWithGroups(
+  sortedSource: readonly ComfyGalleryEntry[],
+  experimentGroups: ExperimentGroup[] | null | undefined,
+  entryId: string,
+  pageSize: number
+): number {
+  const { pages, anchorGroupEntries } = planGalleryPagesWithGroups(
+    sortedSource,
+    experimentGroups,
+    pageSize
+  );
+  for (let index = 0; index < pages.length; index += 1) {
+    const items = expandPageSlots(pages[index] ?? [], anchorGroupEntries);
+    if (items.some(entry => entry.id === entryId)) {
+      return index + 1;
+    }
+  }
+  return 1;
 }
 
 export function countGalleryDisplayEntries(rows: readonly GalleryDisplayRow[]): number {

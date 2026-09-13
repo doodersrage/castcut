@@ -40,8 +40,10 @@ type GalleryPanelGridSectionProps = {
   currentPage: number;
   totalPages: number;
   totalFiltered: number;
-  effectivePageSize: number;
+  pageRangeStart: number;
+  pageRangeEnd: number;
   setPage: (page: number) => void;
+  scrollToEntryId?: string | null;
 };
 
 export default function GalleryPanelGridSection({
@@ -67,8 +69,10 @@ export default function GalleryPanelGridSection({
   currentPage,
   totalPages,
   totalFiltered,
-  effectivePageSize,
+  pageRangeStart,
+  pageRangeEnd,
   setPage,
+  scrollToEntryId = null,
 }: GalleryPanelGridSectionProps) {
   return (
     <>
@@ -100,6 +104,7 @@ export default function GalleryPanelGridSection({
           gridClassName={galleryCardGridClass}
           virtualGridClassName={galleryVirtualGridClass}
           renderCard={renderGalleryCard}
+          scrollToEntryId={scrollToEntryId}
         />
       )}
 
@@ -108,7 +113,8 @@ export default function GalleryPanelGridSection({
           page={currentPage}
           totalPages={totalPages}
           totalItems={totalFiltered}
-          pageSize={effectivePageSize}
+          rangeStart={pageRangeStart}
+          rangeEnd={pageRangeEnd}
           onPageChange={setPage}
         />
       ) : null}

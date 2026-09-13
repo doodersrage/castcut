@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, type CSSProperties, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
 import { formatExperimentParamDiffChips } from '@/lib/gallery-param-diff';
 import { Button } from '@/components/ui/Button';
+import GalleryExperimentCardGrid from '@/components/gallery/GalleryExperimentCardGrid';
 
 type GalleryExperimentBlockProps = {
   groupId: string;
@@ -41,10 +42,6 @@ export default function GalleryExperimentBlock({
   gridClassName,
   renderCard,
 }: GalleryExperimentBlockProps) {
-  const gridStyle: CSSProperties | undefined =
-    layout !== 'list' && columns
-      ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
-      : undefined;
   const collapsedPreview = entries.find(entry => entry.id === winnerEntryId) ?? entries[0];
   const shown = collapsed ? (collapsedPreview ? [collapsedPreview] : []) : entries;
   const paramDiffChips = useMemo(() => formatExperimentParamDiffChips(entries), [entries]);
@@ -137,27 +134,15 @@ export default function GalleryExperimentBlock({
           </button>
         </div>
       </div>
-      <div className={layout === 'list' ? 'space-y-3' : gridClassName} style={gridStyle}>
-        {shown.map(entry => (
-          <div key={entry.id} className="relative min-w-0">
-            {renderCard(entry)}
-            {onCrown ? (
-              <button
-                type="button"
-                onClick={() => onCrown(entry.id)}
-                className={`absolute left-2 top-2 z-20 rounded-full border px-2 py-0.5 text-[10px] font-medium backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
-                  winnerEntryId === entry.id
-                    ? 'border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] text-[var(--tint-warning-text)]'
-                    : 'border-[var(--border-subtle)] bg-[var(--bg-base)]/70 text-[var(--text-secondary)] hover:border-[var(--tint-warning-border)] hover:text-[var(--tint-warning-text)]'
-                }`}
-                title={winnerEntryId === entry.id ? 'Crowned winner' : 'Crown as winner'}
-              >
-                {winnerEntryId === entry.id ? '★ Winner' : 'Crown'}
-              </button>
-            ) : null}
-          </div>
-        ))}
-      </div>
+      <GalleryExperimentCardGrid
+        entries={shown}
+        winnerEntryId={winnerEntryId}
+        onCrown={onCrown}
+        layout={layout}
+        columns={columns}
+        gridClassName={gridClassName}
+        renderCard={renderCard}
+      />
     </div>
   );
 }

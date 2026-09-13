@@ -99,6 +99,7 @@ export default function PlayFilmMetricsCard() {
     metrics,
     funnel,
     campaign: campaignStep,
+    lookPack,
   });
 
   const characterId = campaignStep?.characterId?.trim() || '';

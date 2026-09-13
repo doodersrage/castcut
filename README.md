@@ -2,11 +2,11 @@
 
 **Local character films with ComfyUI.** Cast → Moodboard → Fitting → Day → **Cut film**.
 
-Formerly shipped as Prompt Studio. Package and GitHub repo remain [`llm-prompt-studio`](https://github.com/doodersrage/llm-prompt-studio).
+Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo are now [`castcut`](https://github.com/doodersrage/castcut).
 
-[![CI](https://github.com/doodersrage/llm-prompt-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/doodersrage/llm-prompt-studio/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/doodersrage/llm-prompt-studio)](https://github.com/doodersrage/llm-prompt-studio/releases)
-[![License: MIT](https://img.shields.io/github/license/doodersrage/llm-prompt-studio)](./LICENSE)
+[![CI](https://github.com/doodersrage/castcut/actions/workflows/ci.yml/badge.svg)](https://github.com/doodersrage/castcut/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/doodersrage/castcut)](https://github.com/doodersrage/castcut/releases)
+[![License: MIT](https://img.shields.io/github/license/doodersrage/castcut)](./LICENSE)
 
 **Create consistent characters, images, scenes, and short films locally with ComfyUI.**
 
@@ -27,13 +27,13 @@ Powered by ComfyUI · FLUX · Qwen · WAN · Hunyuan · LTX · and more — mode
 
 **Heal & ready** inspects ComfyUI so you spend less time on “why isn’t this workflow working?” **Mobile Studio** (`/m`) is the phone-first capture / review / Play companion.
 
-**Docs:** [doodersrage.github.io/llm-prompt-studio](https://doodersrage.github.io/llm-prompt-studio/) · [source](docs/README.md) · [Play guide](docs/play-guide.md)
+**Docs:** [doodersrage.github.io/castcut](https://doodersrage.github.io/castcut/) · [source](docs/README.md) · [Play guide](docs/play-guide.md)
 
-**Get it:** [GitHub Releases](https://github.com/doodersrage/llm-prompt-studio/releases) (macOS `.dmg`, Windows `.exe`, Linux `.deb` preferred / `.AppImage` portable) · `docker pull ghcr.io/doodersrage/llm-prompt-studio:latest` · [how to cut a release](docs/releasing.md)
+**Get it:** [GitHub Releases](https://github.com/doodersrage/castcut/releases) (macOS `.dmg`, Windows `.exe`, Linux `.deb` preferred / `.AppImage` portable) · `docker pull ghcr.io/doodersrage/castcut:latest` · [how to cut a release](docs/releasing.md)
 
 On Linux, prefer the **`.deb`** (system WebKit, snappier UI). The AppImage is portable but embeds Ubuntu’s WebKit, so it can feel sluggish on Arch/Fedora and similar rolling distros — details in [docs/desktop.md](docs/desktop.md).
 
-**Clone:** `git clone https://github.com/doodersrage/llm-prompt-studio.git` (canonical repo; `comfyui-prompt-studio` redirects here)
+**Clone:** `git clone https://github.com/doodersrage/castcut.git` (canonical; former `llm-prompt-studio` / `comfyui-prompt-studio` URLs redirect here)
 
 > **Product focus:** prefer workflow reliability, first-run UX, and character consistency over new model/provider integrations for a while. Optional engines (Diffusers stills, Fal / Replicate / Grok / Gemini / Runway / ChatGPT) stay available; we are not expanding that matrix right now.
 

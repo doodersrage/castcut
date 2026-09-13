@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { applyCharacterRecord, addCharacterLookPack } from '@/lib/character-os';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
@@ -27,6 +27,7 @@ const TOOL_ID = 'moodboard' as const;
 
 export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrationCore) {
   const router = useRouter();
+  const queueInFlightRef = useRef(false);
   const {
     shared,
     toolSettings,
@@ -65,6 +66,11 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
   ]);
 
   const queueScene = useCallback(async () => {
+    // Synchronous lock — React `busy` state alone still allows a second click before re-render.
+    if (queueInFlightRef.current) {
+      return;
+    }
+    queueInFlightRef.current = true;
     setBusy(true);
     setError(null);
     setCopied(false);
@@ -98,6 +104,7 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not queue that scene.');
     } finally {
+      queueInFlightRef.current = false;
       setBusy(false);
     }
   }, [
@@ -203,6 +210,12 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
       saveLookPack(pack);
       setOutput(vibePrompt);
       setLookStatus('Look pack ready — send it to Fitting or Day.');
+      // Moodboard is done once a look pack exists — advance resume past Moodboard even if the
+      // user stays on this page (dashboard was stuck on "Stalled at Moodboard" until handoff).
+      if (pack.characterId?.trim()) {
+        bumpPlayCampaignStep({ characterId: pack.characterId, stepId: 'fitting' });
+      }
+      markOnboardingFirstPlayCampaign();
       return pack;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not extract look pack.');
@@ -296,6 +309,7 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
         : defaultName;
     addCharacterLookPack(character.id, name, pack);
     setLookStatus(`Saved "${name}" on ${character.name}.`);
+    bumpPlayCampaignStep({ characterId: character.id, stepId: 'fitting' });
     markOnboardingFirstPlayCampaign();
   }, [character, ensureLookPackForHandoff, setError, setLookStatus]);
 

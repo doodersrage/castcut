@@ -1,11 +1,11 @@
 {
-  "name": "llm-prompt-studio",
+  "name": "castcut",
   "version": "1.6.2",
   "private": true,
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/doodersrage/llm-prompt-studio.git"
+    "url": "https://github.com/doodersrage/castcut.git"
   },
   "engines": {
     "node": ">=22"

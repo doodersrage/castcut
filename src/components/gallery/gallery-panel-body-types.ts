@@ -123,6 +123,8 @@ export type GalleryPanelBrowseProps = {
   currentPage: number;
   totalPages: number;
   showPagination: boolean;
+  pageRangeStart: number;
+  pageRangeEnd: number;
   startSlideshow: () => void;
   startFullscreenSlideshow: () => void;
   retryFailedEntries: (entries: ComfyGalleryEntry[], mode?: 'same' | 'new' | 'exact') => void;
