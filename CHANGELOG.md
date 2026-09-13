@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Repo hygiene: stop tracking `.prompt-studio-data/auth/*.imported` (local admin password hash + usage leftovers); add GitHub issue templates; clarify Runway as partial (not in Settings picker).
 - Fix **Always include wardrobe** being locked when Seed LLM ingredients is off — the two toggles are independent again.
 - Product focus: README + docs reposition as local AI image/video studio; welcome **What do you want to make?** goals; Play/Studio/Full framed as Make/Control/Build; Generate goal model chips (Photoreal / Illustration / Edit / Video); Dashboard Heal & Mobile Studio CTAs; freeze new integrations for now.
 - Play empty Cast: inline **Create character** (Create & continue to Moodboard); Cast roster empty CTA points at Play instead of Roleplay-first.

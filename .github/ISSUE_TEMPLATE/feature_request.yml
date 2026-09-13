@@ -1,0 +1,33 @@
+name: Feature request
+description: Idea that fits the product focus
+title: 'feat: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Prefer **Play film loop**, character consistency, Heal reliability, and first-run UX over new model/provider integrations for now. See [docs/limitations.md](https://github.com/doodersrage/llm-prompt-studio/blob/main/docs/limitations.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is hard or missing today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How should it work in the UI?
+    validations:
+      required: true
+  - type: dropdown
+    id: priority-fit
+    attributes:
+      label: Fits current focus?
+      options:
+        - Yes — Play / Cast / film / Heal / first-run
+        - Maybe — Studio power-user
+        - No — new provider/model (parked)
+    validations:
+      required: true

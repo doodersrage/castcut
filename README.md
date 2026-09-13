@@ -158,7 +158,7 @@ Legacy URLs `/duo` and `/random-scene` redirect to Character and Generate.
 - **Architecture** — [docs/architecture.md](docs/architecture.md)
 - **Operator guide** — [docs/operator.md](docs/operator.md)
 - **Optional Diffusers engine** — [services/diffusers-engine/README.md](services/diffusers-engine/README.md)
-- **Optional cloud engines** — Settings → Inference engine (Fal, Replicate, ChatGPT, Gemini, Grok); set the matching env key or a browser key, then queue a prompt (Image 1 becomes img2img). Fal/Replicate/Grok/Gemini can also queue clips; ChatGPT stays stills. Runway is not in Settings.
+- **Optional cloud engines** — Settings → Inference engine (Fal, Replicate, ChatGPT, Gemini, Grok). Set the matching env key or a browser key, then queue (Image 1 becomes img2img when present). Fal/Replicate/Grok/Gemini can queue clips; ChatGPT is stills-only. **Runway** can queue clips via documented API paths but is **not** exposed in the Settings inference picker yet (see [limitations](docs/limitations.md)).
 
 ## CLI & data scripts
 

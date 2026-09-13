@@ -1,0 +1,48 @@
+name: Bug report
+description: Something broken or unexpected
+title: 'bug: '
+labels: ['bug']
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected vs what you got.
+      placeholder: e.g. Create & continue to Moodboard reused the previous Cast look…
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Shortest path that fails.
+      placeholder: |
+        1. Open /play with no character
+        2. …
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Play / Cast / film loop
+        - Generate / prompts
+        - ComfyUI / queue / Heal
+        - Gallery / Video
+        - Auth / Settings
+        - Desktop / Docker
+        - Docs / other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / install
+      description: Release tag, commit, or `npm run dev` + OS.
+      placeholder: v1.6.2 · Linux · Docker
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Paste relevant console, Heal status, or queue errors (redact secrets).

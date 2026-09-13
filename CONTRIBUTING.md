@@ -82,13 +82,11 @@ the first time.
 
 ## Reporting issues and asking questions
 
-GitHub Issues is the place for both right now — there's no issue template yet, so a
-plain description works: what you expected, what happened, and (if it's
-generation-related) which model/engine and whether ComfyUI or a cloud engine was in
-play. Screenshots or a gallery/queue export help a lot for anything visual. If this
-repo starts getting enough traffic that open-ended questions are crowding out actual
-bug reports, GitHub Discussions is the natural next step — not turned on yet, just
-worth knowing it's the plan rather than defaulting to Issues forever.
+Use GitHub Issues with the **Bug report** or **Feature request** templates when
+they fit. A plain description still works: what you expected, what happened, and
+(if it's relevant) OS, install path (desktop / Docker / `npm run dev`), model/engine,
+and a redacted Heal or queue log. Screenshots or a gallery/queue export help for
+anything visual.
 
 ## License
 

@@ -21,7 +21,9 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
   VRAM, Boogu/GGUF, video, etc.) stay on Comfy.
 - **Cloud clip support varies by provider.** Fal, Replicate, Grok, Gemini, and
   Runway can queue clips (T2V/I2V/extend, provider-dependent); ChatGPT is stills
-  only. Check a provider's row in the model tables before assuming clip support.
+  only. Runway is wired for clip queue paths but **not** listed in Settings →
+  Inference engine yet — treat it as partial / advanced until that picker lands.
+  Check a provider's row in the model tables before assuming clip support.
 - **Cloud identity lock is not the same feature as local identity lock.** Local
   ComfyUI uses IP-Adapter / InstantID / PuLID for face consistency. Cloud engines
   never get Comfy IP-Adapter — they use either a documented multi-ref face
