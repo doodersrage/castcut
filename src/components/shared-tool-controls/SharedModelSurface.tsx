@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import type { DiffusersCheckpointOption } from '@/components/DiffusersCheckpointSelector';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
+import ModelGoalPicks from '@/components/ModelGoalPicks';
 import { Button } from '@/components/ui/Button';
 import { FieldLabel } from '@/components/ui/Field';
 import {
@@ -122,17 +123,30 @@ export default function SharedModelSurface({
           onChange={onDiffusersAssetChange}
         />
       ) : (
-        <ModelSelector
-          value={shared.model}
-          allowedModels={pickerModels.length < COMFY_IMAGE_MODELS.length ? pickerModels : undefined}
-          filterHint={modelFilterHint}
-          onShowAllModels={
-            categoryLocked || showAllModelsOverride || supportedModelsSource === 'disabled'
-              ? undefined
-              : onShowAllModels
-          }
-          onChange={onModelChange}
-        />
+        <>
+          {!roleplayVariant && !cloudEngine && (toolId === 'generate' || !toolId) ? (
+            <ModelGoalPicks
+              currentModel={shared.model}
+              allowedModels={
+                pickerModels.length < COMFY_IMAGE_MODELS.length ? pickerModels : undefined
+              }
+              onApplyModel={onModelChange}
+            />
+          ) : null}
+          <ModelSelector
+            value={shared.model}
+            allowedModels={
+              pickerModels.length < COMFY_IMAGE_MODELS.length ? pickerModels : undefined
+            }
+            filterHint={modelFilterHint}
+            onShowAllModels={
+              categoryLocked || showAllModelsOverride || supportedModelsSource === 'disabled'
+                ? undefined
+                : onShowAllModels
+            }
+            onChange={onModelChange}
+          />
+        </>
       )}
       {!roleplayVariant && toolId !== 'audio' && toolId !== 'mesh' ? (
         <CharacterOsPicker

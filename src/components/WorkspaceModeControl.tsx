@@ -47,6 +47,7 @@ export default function WorkspaceModeControl({
                 }`}
               >
                 {option.label}
+                <span className="ml-1 opacity-70">{option.shortTag}</span>
               </button>
             );
           })}
@@ -60,7 +61,7 @@ export default function WorkspaceModeControl({
       <div>
         <p className="type-heading">Workspace</p>
         <p className="type-caption mt-1 text-[var(--text-muted)]">
-          How much of the app shows in the sidebar and shared tool controls.
+          Make · Control · Build — how much of the app shows in the sidebar and shared controls.
         </p>
       </div>
       <div className="grid gap-2">
@@ -80,6 +81,9 @@ export default function WorkspaceModeControl({
             >
               <span className="block text-sm font-medium text-[var(--text-primary)]">
                 {option.label}
+                <span className="type-caption ml-2 font-normal text-[var(--text-muted)]">
+                  {option.shortTag}
+                </span>
               </span>
               <span className="type-caption mt-1 block text-[var(--text-muted)]">
                 {option.description}

@@ -1,4 +1,5 @@
 import { flattenAppNavLinks } from './app-nav-catalog';
+import { resolveFirstRunGoalCta } from './first-run-goal';
 import { loadLocalObservability } from './local-observability';
 import { loadNavFavorites } from './nav-favorites';
 import { loadOnboardingState } from './onboarding-store';
@@ -106,6 +107,11 @@ export function resolveWelcomeLandingCta(): EmptyCta {
     );
     const next = resolveNextPlayAction({ metrics, funnel, campaign, watchedFirstFilm });
     return { label: next.label, href: next.href };
+  }
+
+  const goalCta = resolveFirstRunGoalCta();
+  if (goalCta) {
+    return goalCta;
   }
 
   if (loadWorkspaceMode() === 'play') {

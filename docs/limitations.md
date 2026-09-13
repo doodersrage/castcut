@@ -5,6 +5,13 @@ comments, changelog entries), collected here in one place because "what does thi
 *not* do" tends to be exactly what a first-time visitor looks for before investing
 setup time, and it's easy to miss when it's scattered across a dozen feature bullets.
 
+## Product focus (near-term)
+
+- **Prefer reliability and UX over new integrations.** ComfyUI remains the core; Diffusers
+  stills and cloud engines (Fal / Replicate / Grok / Gemini / ChatGPT / Runway) stay
+  supported as optional paths. Expanding that provider/model matrix further is parked —
+  invest in Play first-run, character consistency, Heal & ready, and film assembly instead.
+
 ## Generation engines
 
 - **Diffusers is an optional stills sidecar — not the product bet.** txt2img/img2img

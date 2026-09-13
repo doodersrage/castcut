@@ -8,10 +8,9 @@ export async function dismissBlockingOverlays(page: Page): Promise<void> {
     await decideLater.click();
   }
 
-  // Multi-step welcome: Skip → setup → ready. "Skip — use Studio" alone leaves the
-  // dialog open on step 2. Keep timeouts short — CI builds with NEXT_PUBLIC_PLAYWRIGHT
-  // skip the welcome entirely; this path covers local/dev without that flag.
-  const skipWelcome = page.getByRole('button', { name: /Skip — use Studio/i });
+  // Multi-step welcome: Skip → setup → ready. Keep timeouts short — CI builds with
+  // NEXT_PUBLIC_PLAYWRIGHT skip the welcome entirely; this path covers local/dev.
+  const skipWelcome = page.getByRole('button', { name: /Skip — use Play/i });
   if (await skipWelcome.isVisible({ timeout: 800 }).catch(() => false)) {
     await skipWelcome.click();
   }

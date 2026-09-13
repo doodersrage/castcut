@@ -33,6 +33,8 @@ import ConnectionHealthChip from '@/components/ConnectionHealthChip';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import { resolveStudioEmptyCta } from '@/lib/empty-cta';
+import { loadPlayCampaignState } from '@/lib/play-campaign';
+import { loadPlayMetrics } from '@/lib/play-metrics';
 import {
   StatCard,
   ToolActionRow,
@@ -51,6 +53,10 @@ const OnboardingChecklist = dynamic(() => import('@/components/OnboardingCheckli
 
 const PlayFilmMetricsCard = dynamic(() => import('@/components/PlayFilmMetricsCard'), {
   loading: () => <ToolPageSkeleton label="Loading play metrics" />,
+});
+
+const FirstRunGoalChooser = dynamic(() => import('@/components/FirstRunGoalChooser'), {
+  loading: () => <ToolPageSkeleton label="Loading goals" />,
 });
 
 const ACCENT = 'neutral' as const;
@@ -77,6 +83,7 @@ export default function HomeDashboard() {
   const [projects, setProjects] = useState(loadPromptProjects());
   const [draft, setDraft] = useState<ToolDraftSummary | null>(null);
   const [lastRoute, setLastRoute] = useState<string | null>(null);
+  const [showGoalChooser, setShowGoalChooser] = useState(false);
 
   useEffect(() => {
     const refresh = () => {
@@ -86,6 +93,9 @@ export default function HomeDashboard() {
       setProjects(loadPromptProjects());
       setDraft(loadLastToolDraft());
       setLastRoute(loadLastToolRoute());
+      const metrics = loadPlayMetrics();
+      const campaign = loadPlayCampaignState();
+      setShowGoalChooser(!metrics.firstPlayCampaignAt && !campaign?.characterId);
     };
     void initGalleryStore().then(refresh);
     window.addEventListener('comfyui-gallery-updated', refresh);
@@ -129,6 +139,30 @@ export default function HomeDashboard() {
         <OnboardingChecklist />
         <PlayFilmMetricsCard />
       </div>
+
+      {showGoalChooser ? <FirstRunGoalChooser /> : null}
+
+      <ToolSection
+        title="Get ready"
+        description="Heal ComfyUI once, then use desk Play or phone Mobile Studio."
+      >
+        <ToolActionRow>
+          <ButtonLink
+            href="/settings?tab=overview"
+            variant="secondary"
+            size="sm"
+            data-testid="dashboard-heal-ready"
+          >
+            Heal & ready
+          </ButtonLink>
+          <ButtonLink href="/m" variant="secondary" size="sm" data-testid="dashboard-mobile-studio">
+            Mobile Studio
+          </ButtonLink>
+          <ButtonLink href="/play" size="sm" variant="ghost">
+            Play campaign
+          </ButtonLink>
+        </ToolActionRow>
+      </ToolSection>
 
       {showContinue ? (
         <ToolSection title="Pick up where you left off">

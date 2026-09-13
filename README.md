@@ -1,12 +1,31 @@
 # Prompt Studio
 
-**Flagship loop:** Cast → Moodboard → Fitting → Day → Roleplay → Gallery — still to clip to saved character, then **Cut film**.
+**Your local AI image & video production studio.**
+
+Generate. Refine. Animate. Build characters. Keep your workflow and assets on your machine.
 
 [![CI](https://github.com/doodersrage/llm-prompt-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/doodersrage/llm-prompt-studio/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/doodersrage/llm-prompt-studio)](https://github.com/doodersrage/llm-prompt-studio/releases)
 [![License: MIT](https://img.shields.io/github/license/doodersrage/llm-prompt-studio)](./LICENSE)
 
-Self-hosted Next.js studio for model-aware prompts and ComfyUI (primary) queueing. **Play** is the first-run workspace. Optional engines: Diffusers stills sidecar, Fal / Replicate / Grok / Gemini / Runway / ChatGPT. Specialty tools (Topics, Audio, Mesh, Logo, legacy Pet/Fantasy/Background pages) stay reachable but are parked under **Extras**.
+**Create consistent characters, images, scenes, and short films locally with ComfyUI.**
+
+Powered by ComfyUI · FLUX · Qwen · WAN · Hunyuan · LTX · and more — model support is the engine underneath; the product is the film loop.
+
+### From idea to film
+
+1. **Pick or create a character** on Play (Cast)
+2. **Set the look** — Moodboard → Fitting
+3. **Generate the stills** — Day slots (draft-fast on Play)
+4. **Animate** — I2V clips when you want motion
+5. **Cut film** — server ffmpeg or browser fallback
+6. **Save to Cast** — watch, keep, cut another
+
+**Flagship loop:** Cast → Moodboard → Fitting → Day → (optional Roleplay) → Gallery → **Cut film**.
+
+**Play** is the default workspace (**Make**). **Studio** is **Control**. **Full** is **Build**. Specialty tools sit under **Extras**.
+
+**Heal & ready** inspects ComfyUI so you spend less time on “why isn’t this workflow working?” **Mobile Studio** (`/m`) is the phone-first capture / review / Play companion.
 
 **Docs:** [doodersrage.github.io/llm-prompt-studio](https://doodersrage.github.io/llm-prompt-studio/) · [source](docs/README.md) · [Play guide](docs/play-guide.md)
 
@@ -15,6 +34,8 @@ Self-hosted Next.js studio for model-aware prompts and ComfyUI (primary) queuein
 On Linux, prefer the **`.deb`** (system WebKit, snappier UI). The AppImage is portable but embeds Ubuntu’s WebKit, so it can feel sluggish on Arch/Fedora and similar rolling distros — details in [docs/desktop.md](docs/desktop.md).
 
 **Clone:** `git clone https://github.com/doodersrage/llm-prompt-studio.git` (canonical repo; `comfyui-prompt-studio` redirects here)
+
+> **Product focus:** prefer workflow reliability, first-run UX, and character consistency over new model/provider integrations for a while. Optional engines (Diffusers stills, Fal / Replicate / Grok / Gemini / Runway / ChatGPT) stay available; we are not expanding that matrix right now.
 
 ## Quick start
 
@@ -30,36 +51,36 @@ Open [http://localhost:47832](http://localhost:47832).
 
 **Nothing else running yet?** The UI is still worth exploring: `ALLOW_TEMPLATE_FALLBACK`
 defaults to `true`, so Generate falls back to rule-based prompt templates when there's no
-reachable LLM, letting you click through model picking, prompt styles, Lint, and the rest
-of the tools with zero setup. Actually queuing a render needs a real backend — pick up at
-step 1 below when you're ready to point it at one.
+reachable LLM. Actually queuing a render needs a real backend — pick up at step 1 below.
 
 1. Set `COMFYUI_API_URL`, `LLM_MODEL`, and ideally `LLM_VISION_MODEL` in `.env.local`.
-2. Use **Heal & ready** on first launch (Settings → Overview).
-3. Generate a prompt on **Generate**, then **Send to ComfyUI**.
+2. Use **Heal & ready** on first launch (Welcome dialog or Settings → Overview).
+3. Choose **Character / Scene·Film / Image / Surprise** on first run, or open **Play campaign**.
 
-**10-minute film loop** (flagship): Heal & ready → **Play campaign** → Moodboard extract → Fitting Keep → Day stills/clips → **Cut film** → Save to Cast. Walkthrough: [Play guide](docs/play-guide.md) · [Operator guide — 10-minute loop](docs/operator.md#10-minute-loop).
+**10-minute film loop:** Heal & ready → **Play** → create character → Moodboard extract → Fitting Keep → Day stills/clips → **Cut film** → Save to Cast. Walkthrough: [Play guide](docs/play-guide.md) · [Operator guide — 10-minute loop](docs/operator.md#10-minute-loop).
 
 **Still → clip shortcut:** Generate or pick a gallery still → **Video** (I2V) → rate in **Gallery** → **Save to Cast**.
 
+**Phone:** [Mobile Studio](docs/play-guide.md#mobile-vs-desk) at `/m` — capture plates, rate stills, run Board / Fit / Day / Play.
+
 **Day-2 ops** (second GPU, move to a new machine, invite users): [Operator guide](docs/operator.md).
 
-See [Configuration & deployment](docs/configuration.md) for auth, production checklist, Docker, and the full env var table. Desktop installers (macOS / Windows / Linux): [docs/desktop.md](docs/desktop.md).
+See [Configuration & deployment](docs/configuration.md) for auth, production checklist, Docker, and the full env var table. Desktop installers: [docs/desktop.md](docs/desktop.md).
 
 ## Workspace modes
 
-Use **Simple / Studio / Full** from the sidebar footer or **Profile → Appearance**:
+| Mode | Framing | Sidebar | Shared controls |
+| --- | --- | --- | --- |
+| **Play** (default) | **Make** | Campaign, Moodboard, Fitting, Day, Roleplay, Gallery, Queue | Lean |
+| **Simple** | **Make** (lean) | Essentials + More tools | Advanced collapsed |
+| **Studio** | **Control** | Edit / Media / Library / Extras | Advanced collapsed |
+| **Full** | **Build** | Same as Studio, groups expanded | Advanced open |
 
-| Mode                 | Sidebar                         | Shared controls                  | Studio tabs                                     |
-| -------------------- | ------------------------------- | -------------------------------- | ----------------------------------------------- |
-| **Play** (default)   | Campaign, Moodboard, Fitting, Day, Roleplay, Gallery, Queue | Lean Roleplay rail               | Same as Simple                                  |
-| **Simple**           | Essentials + More tools         | Advanced collapsed               | History, Compare, Templates, Presets, Analytics |
-| **Studio**           | Edit / Media / Library / Extras | Collapsed advanced sections      | All tabs                                        |
-| **Full**             | Same as Studio, groups expanded | Quality sections open by default | All tabs                                        |
+On Generate, pick a **goal** (Photorealistic / Illustration / Editing / Video) before diving into the full model list.
 
 ## Supported models
 
-**40+ ComfyUI image model targets**, grouped by architecture family.
+**40+ ComfyUI image model targets**, grouped by architecture family. Prefer goal chips in the UI; this table is for operators.
 
 **Natively supported** (built-in scaffolds, Settings → ComfyUI asset downloads, system workflow path, and full tool coverage on Generate, Refine, Compose, and Image → Prompt):
 
@@ -155,7 +176,7 @@ Details: [docs/data-catalogs.md](docs/data-catalogs.md) and [docs/performance/gu
 
 Built solo, with heavy use of Claude Code for implementation and test-writing — the
 architecture, product direction, and review are mine; a lot of the line-by-line code and
-much of the ~550-test unit suite were written collaboratively with it. Mentioned here
+much of the unit suite were written collaboratively with it. Mentioned here
 upfront rather than left for someone to notice in the branch history.
 
 ## License

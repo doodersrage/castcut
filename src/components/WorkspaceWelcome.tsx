@@ -14,21 +14,26 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { runHealAndReady } from '@/lib/first-run-setup';
 import { markOnboardingSetWorkspace } from '@/lib/onboarding-hooks';
 import {
+  FIRST_RUN_GOAL_OPTIONS,
+  saveFirstRunGoal,
+  type FirstRunGoalId,
+} from '@/lib/first-run-goal';
+import {
   resolveWelcomeLandingCta,
   FIRST_RUN_QUEUE_HREF,
   FIRST_RUN_GENERATE_HREF,
 } from '@/lib/empty-cta';
 import { useAuth } from '@/hooks/useAuth';
 
-type WelcomePhase = 'workspace' | 'setup' | 'ready';
+type WelcomePhase = 'goal' | 'setup' | 'ready';
 
 const PHASE_STEP: Record<WelcomePhase, number> = {
-  workspace: 1,
+  goal: 1,
   setup: 2,
   ready: 3,
 };
 
-/** One-time welcome: workspace density → Heal & ready → Open Generate. */
+/** One-time welcome: what to make → Heal & ready → land on the chosen path. */
 export default function WorkspaceWelcome() {
   const auth = useAuth();
   const [phase, setPhase] = useState<WelcomePhase | null>(null);
@@ -48,7 +53,7 @@ export default function WorkspaceWelcome() {
     }
     scheduleAfterCommit(() => {
       if (!hasChosenWorkspaceMode()) {
-        setPhase('workspace');
+        setPhase('goal');
       }
     });
   }, [auth?.authEnabled, auth?.user]);
@@ -57,7 +62,14 @@ export default function WorkspaceWelcome() {
     return null;
   }
 
-  function choose(mode: WorkspaceMode) {
+  function chooseGoal(goal: FirstRunGoalId) {
+    saveFirstRunGoal(goal);
+    saveWorkspaceMode('play');
+    markOnboardingSetWorkspace();
+    setPhase('setup');
+  }
+
+  function chooseDensity(mode: WorkspaceMode) {
     saveWorkspaceMode(mode);
     markOnboardingSetWorkspace();
     setPhase('setup');
@@ -116,7 +128,7 @@ export default function WorkspaceWelcome() {
           </div>
         </div>
 
-        {phase === 'workspace' ? (
+        {phase === 'goal' ? (
           <>
             <div className="mb-4 flex justify-center">
               <BrandStudioIllustration size={112} className="opacity-90" />
@@ -126,19 +138,20 @@ export default function WorkspaceWelcome() {
               id="workspace-welcome-title"
               className="type-display mt-2 text-[1.5rem] text-[var(--text-primary)]"
             >
-              How do you want to work?
+              What do you want to make?
             </h2>
             <p className="type-body mt-2 text-[var(--text-secondary)]">
-              Prompt Studio has many tools. Pick a workspace density — change anytime in the sidebar
-              or Profile.
+              Prompt Studio is a local AI image &amp; video production studio. Pick a path — change
+              workspace density anytime (Make / Control / Build) in the sidebar.
             </p>
-            <div className="mt-5 grid gap-2">
-              {WORKSPACE_MODE_OPTIONS.map(option => (
+            <div className="mt-5 grid gap-2" data-testid="welcome-goal-chooser">
+              {FIRST_RUN_GOAL_OPTIONS.map(option => (
                 <button
                   key={option.id}
                   type="button"
-                  onClick={() => choose(option.id)}
+                  onClick={() => chooseGoal(option.id)}
                   className="ui-choice-card"
+                  data-testid={`welcome-goal-${option.id}`}
                 >
                   <span className="block text-sm font-medium text-[var(--text-primary)]">
                     {option.label}
@@ -149,8 +162,33 @@ export default function WorkspaceWelcome() {
                 </button>
               ))}
             </div>
+            <details className="mt-4">
+              <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+                Prefer density first? Play / Simple / Studio / Full
+              </summary>
+              <div className="mt-2 grid gap-2">
+                {WORKSPACE_MODE_OPTIONS.map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => chooseDensity(option.id)}
+                    className="ui-choice-card"
+                  >
+                    <span className="block text-sm font-medium text-[var(--text-primary)]">
+                      {option.label}
+                      <span className="type-caption ml-2 font-normal text-[var(--text-muted)]">
+                        {option.shortTag}
+                      </span>
+                    </span>
+                    <span className="type-caption mt-1 block text-[var(--text-muted)]">
+                      {option.description}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </details>
             <div className="mt-4 flex justify-end">
-              <Button type="button" variant="ghost" size="sm" onClick={() => choose('play')}>
+              <Button type="button" variant="ghost" size="sm" onClick={() => chooseGoal('film')}>
                 Skip — use Play
               </Button>
             </div>
@@ -164,11 +202,13 @@ export default function WorkspaceWelcome() {
               id="workspace-welcome-title"
               className="type-display mt-2 text-[1.5rem] text-[var(--text-primary)]"
             >
-              Connect & ready
+              ComfyUI without the headache
             </h2>
             <p className="type-body mt-2 text-[var(--text-secondary)]">
-              One click enables system workflows, adapts loader maps from ComfyUI when reachable,
-              and checks LLM + Comfy health. You can skip and finish later from Settings → Overview.
+              <strong className="font-medium text-[var(--text-primary)]">Heal &amp; ready</strong>{' '}
+              enables system workflows, adapts loader maps when Comfy is reachable, and checks LLM +
+              Comfy health — the usual “why isn’t this workflow working?” friction, handled once.
+              Skip and finish later from Settings → Overview.
             </p>
             {setupMessage ? (
               <p
@@ -210,15 +250,18 @@ export default function WorkspaceWelcome() {
                 (generateCta.href.includes('/play') ||
                 generateCta.href.includes('/day') ||
                 generateCta.href.includes('/characters')
-                  ? 'Pick up your Play film loop, or Generate anytime from All tools.'
+                  ? 'Create a Cast character on Play, then Moodboard → film. Phone? Open Mobile Studio (/m) to capture and review.'
                   : generateCta.href.startsWith('/roleplay')
                     ? 'Open Roleplay to start a story loop, or Generate anytime from All tools.'
-                    : 'Queue a first still (Random surprise needs no keywords), then start a Play campaign for Moodboard → film.')}
+                    : 'Queue a first still, then start a Play campaign for Moodboard → film. On a phone, use /m.')}
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
               <Button type="button" variant="ghost" size="sm" onClick={() => setPhase(null)}>
                 Close
               </Button>
+              <ButtonLink href="/m" variant="ghost" size="sm" onClick={() => setPhase(null)}>
+                Mobile Studio
+              </ButtonLink>
               {generateCta.href === FIRST_RUN_GENERATE_HREF ||
               generateCta.href.startsWith('/?source=random') ? (
                 <ButtonLink

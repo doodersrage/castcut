@@ -32,28 +32,35 @@ function persistWorkspaceModeCookie(mode: WorkspaceMode): void {
 export const WORKSPACE_MODE_OPTIONS: {
   id: WorkspaceMode;
   label: string;
+  /** Make / Control / Build framing for first-run and Profile copy. */
+  shortTag: 'Make' | 'Control' | 'Build';
   description: string;
 }[] = [
   {
     id: 'play',
     label: 'Play',
+    shortTag: 'Make',
     description:
-      'Campaign, Moodboard, Fitting, Day, Roleplay, Gallery, and Queue — the flagship film loop.',
+      'Make things — Campaign, Moodboard, Fitting, Day, Roleplay, Gallery, Queue. One character, one film.',
   },
   {
     id: 'simple',
     label: 'Simple',
-    description: 'Essentials in the sidebar; advanced tools under More. Lean shared controls.',
+    shortTag: 'Make',
+    description: 'Make with lean chrome — Essentials + More tools; advanced controls collapsed.',
   },
   {
     id: 'studio',
     label: 'Studio',
-    description: 'Full catalog in Edit / Media / Library / Extras. Collapsed advanced controls.',
+    shortTag: 'Control',
+    description:
+      'Control how they are made — full catalog in Edit / Media / Library / Extras. Advanced collapsed.',
   },
   {
     id: 'full',
     label: 'Full',
-    description: 'Everything visible — power-user layout with advanced controls ready.',
+    shortTag: 'Build',
+    description: 'Build the machinery — everything visible with advanced controls open.',
   },
 ];
 

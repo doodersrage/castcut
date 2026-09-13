@@ -10,11 +10,13 @@ Jump to: [When to use Play](#when-to-use-play) · [Step-by-step](#step-by-step) 
 
 | Workspace | Best for |
 | --- | --- |
-| **Simple** | First run — Generate, Gallery, Queue, Cast essentials |
-| **Play** | One character, one look, one day-in-the-life film |
-| **Studio / Full** | History, compare, templates, advanced queue controls |
+| **Play** (**Make**, default) | One character, one look, one day-in-the-life film |
+| **Simple** (**Make**, lean) | Essentials — Generate, Gallery, Queue, Cast |
+| **Studio / Full** (**Control** / **Build**) | History, compare, templates, advanced queue controls |
 
 Switch modes from the sidebar footer or **Profile → Appearance**. Play slimmed chrome hides draft-preview noise until you open it.
+
+First launch asks **What do you want to make?** (Character / Scene·Film / Image / Surprise), then **Heal & ready**. On a phone, use **Mobile Studio** (`/m`).
 
 !!! tip "First film in under an hour"
     Heal & ready → random Generate still → **Play campaign** → Moodboard extract → Fitting Keep → Day stills → **Cut film** → Save to Cast. The Dashboard **Play film loop** card tracks time from campaign start to first cut.

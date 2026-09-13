@@ -38,8 +38,9 @@ export default function MobileStudioOfferBanner() {
       className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[var(--accent-border)] bg-[var(--accent-muted)] px-4 py-2 text-xs text-[var(--accent-text)] lg:hidden"
     >
       <p className="min-w-0 leading-snug">
-        On a phone? <span className="font-medium">Mobile Studio</span> runs the full film loop —
-        Capture, Moodboard, Fitting, Day, Play, and Cut.
+        On a phone? <span className="font-medium">Mobile Studio</span> is a first-class film loop —
+        capture plates, rate stills, Board / Fit / Day / Play / Cut — while desk handles heavy
+        Generate.
       </p>
       <div className="flex shrink-0 items-center gap-2">
         <button

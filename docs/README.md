@@ -1,9 +1,9 @@
 <div class="ps-hero" markdown="0">
-  <p class="ps-hero__eyebrow">Prompt Studio · docs</p>
-  <h1 class="ps-hero__title">Prompt, queue, and ship films</h1>
+  <p class="ps-hero__eyebrow">Prompt Studio · local AI image &amp; video</p>
+  <h1 class="ps-hero__title">Create characters, stills, and short films</h1>
   <p class="ps-hero__lead">
-    Model-aware prompts, ComfyUI workflow takeover, Gallery, and the Play campaign loop —
-    from first still to Cut film and Save to Cast.
+    Play campaign loop — Cast → Moodboard → Fitting → Day → Cut film — with Heal &amp; ready
+    for ComfyUI and Mobile Studio on your phone.
   </p>
   <div class="ps-hero__actions">
     <a class="ps-btn-primary" href="operator/">Operator guide</a>
