@@ -169,7 +169,7 @@ const ADDITIONAL_ROUTES: Array<{ path: string; heading: RegExp; level?: 1 | 2 | 
   { path: '/moodboard', heading: /Moodboard/i },
   { path: '/plugins', heading: /^Plugins$/i },
   { path: '/profile', heading: /^Profile$/i, level: 1 as const },
-  { path: '/studio', heading: /Prompt Studio/i },
+  { path: '/studio', heading: /Castcut/i },
 ];
 
 for (const route of ADDITIONAL_ROUTES) {

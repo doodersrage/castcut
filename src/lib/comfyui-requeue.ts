@@ -384,8 +384,8 @@ export async function requeueUpscaleFromGalleryEntry(
       if (!libraryGraph || !libraryUpscaleWorkflowEnlarges(libraryGraph)) {
         options.onStatus?.(
           libraryWorkflow
-            ? `Library upscale “${libraryWorkflow.name}” is identity / unwired — using Prompt Studio scaffold…`
-            : 'Library upscale workflow invalid — using Prompt Studio scaffold…'
+            ? `Library upscale “${libraryWorkflow.name}” is identity / unwired — using Castcut scaffold…`
+            : 'Library upscale workflow invalid — using Castcut scaffold…'
         );
         libraryWorkflow = undefined;
         libraryGraph = undefined;

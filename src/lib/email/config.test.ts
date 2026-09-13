@@ -6,7 +6,7 @@ import type { EmailConfig } from "./types";
 
 const envBase = (): EmailConfig => ({
   enabled: false,
-  from: "Prompt Studio <noreply@localhost>",
+  from: "Castcut <noreply@localhost>",
   smtp: { host: "", port: 587, secure: false },
   notifyBatch: true,
   notifyPassword: true,
@@ -27,7 +27,7 @@ describe("email config", () => {
 
   it("enables when host and from are set", () => {
     process.env.PROMPT_SMTP_HOST = "smtp.example.com";
-    process.env.PROMPT_EMAIL_FROM = "Prompt Studio <noreply@example.com>";
+    process.env.PROMPT_EMAIL_FROM = "Castcut <noreply@example.com>";
     const config = getEmailConfig();
     assert.equal(config.enabled, true);
     assert.equal(config.smtp.host, "smtp.example.com");

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Prompt Studio, one section per release. Generated from git history
+All notable changes to Castcut, one section per release. Generated from git history
 (release boundaries are the repo's own `Release vX.Y.Z` commits, since not every tag is
 mirrored to every clone). Full release notes with installer/image links are on
 [GitHub Releases](https://github.com/doodersrage/llm-prompt-studio/releases).
@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Rename display brand to **Castcut** (repo/package stay `llm-prompt-studio`). Comfy output prefixes and enrich meta titles use Castcut; legacy Prompt Studio enrich markers still recognized.
 - Repo hygiene: stop tracking `.prompt-studio-data/auth/*.imported` (local admin password hash + usage leftovers); add GitHub issue templates; clarify Runway as partial (not in Settings picker).
 - Fix **Always include wardrobe** being locked when Seed LLM ingredients is off — the two toggles are independent again.
 - Product focus: README + docs reposition as local AI image/video studio; welcome **What do you want to make?** goals; Play/Studio/Full framed as Make/Control/Build; Generate goal model chips (Photoreal / Illustration / Edit / Video); Dashboard Heal & Mobile Studio CTAs; freeze new integrations for now.
@@ -103,7 +104,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Compose cloud identity: expanded multi-ref registry and honest face-ref vs prompt-identity paths.
 - Server plugins under `PROMPT_DATA_DIR/plugins` with privileged Comfy queue-preflight/post hooks and a richer iframe host protocol.
 - Fix gallery stitch CORS by resolving gallery/Comfy/cloud clip bytes in-process on the server.
-- Restyle and expand GitHub Pages docs for Prompt Studio.
+- Restyle and expand GitHub Pages docs for Castcut.
 - Broad unit-test coverage sweep across `src/lib` (auth, film, gallery, engines, and more).
 - Maintenance: static-import `listUsers` in server user maintenance so CI mocks stay consistent; consolidate shared helpers and mega-file decompositions.
 

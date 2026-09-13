@@ -20,7 +20,7 @@ Startup fail-closed signals (`src/lib/bind-exposure-check.ts`): `PROMPT_EXPOSED`
 
 ## Production checklist
 
-Before exposing Prompt Studio beyond a trusted LAN:
+Before exposing Castcut beyond a trusted LAN:
 
 - [ ] Do not publish compose ports without `--profile exposed` (auth + secrets + `PROMPT_EXPOSED` required)
 - [ ] Confirm Settings → Overview shows Auth = accounts on
@@ -148,7 +148,7 @@ The generator calls any **OpenAI-compatible** chat completions API. Configure vi
 | `PROMPT_SMTP_SECURE`                   | `false`                          | Use TLS directly (typical for port 465)                                                                                                                                                |
 | `PROMPT_SMTP_USER`                     | _(empty)_                        | SMTP auth username                                                                                                                                                                     |
 | `PROMPT_SMTP_PASS`                     | _(empty)_                        | SMTP auth password                                                                                                                                                                     |
-| `PROMPT_EMAIL_FROM`                    | _(empty)_                        | From header, e.g. `Prompt Studio <noreply@example.com>`                                                                                                                                |
+| `PROMPT_EMAIL_FROM`                    | _(empty)_                        | From header, e.g. `Castcut <noreply@example.com>`                                                                                                                                |
 | `PROMPT_ADMIN_EMAIL`                   | _(empty)_                        | Fallback recipient for server batches when users have no email                                                                                                                         |
 | `PROMPT_EMAIL_NOTIFY_BATCH`            | `true`                           | Send email when scheduled batches/campaigns finish                                                                                                                                     |
 | `PROMPT_EMAIL_NOTIFY_PASSWORD`         | `true`                           | Send email when a password is changed                                                                                                                                                  |

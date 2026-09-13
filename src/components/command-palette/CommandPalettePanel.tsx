@@ -48,7 +48,7 @@ export default function CommandPalettePanel({
           <BrandMark size={28} />
           <div className="min-w-0 flex-1">
             <p className="type-brand type-heading tracking-tight text-[var(--text-primary)]">
-              Prompt Studio
+              Castcut
             </p>
             <p className="ui-meta flex items-center gap-1.5">
               <BrandBars />

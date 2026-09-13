@@ -143,9 +143,9 @@ describe("workflow-queue-optimizer", () => {
       qualityProfile: "final",
     });
 
-    assert.doesNotMatch(result.workflowJson, /Prompt Studio — output upscale/);
-    assert.doesNotMatch(result.workflowJson, /Prompt Studio — Lightning upscale polish/);
-    assert.match(result.workflowJson, /Prompt Studio — Lightning decode polish/);
+    assert.doesNotMatch(result.workflowJson, /Castcut — output upscale/);
+    assert.doesNotMatch(result.workflowJson, /Castcut — Lightning upscale polish/);
+    assert.match(result.workflowJson, /Castcut — Lightning decode polish/);
     assert.match(result.workflowJson, /LoraLoaderModelOnly|LoraLoader/);
     assert.match(result.workflowJson, /ModelSamplingAuraFlow/);
     assert.ok(
@@ -194,7 +194,7 @@ describe("workflow-queue-optimizer", () => {
       qualityProfile: "draft",
     });
 
-    assert.doesNotMatch(result.workflowJson, /Prompt Studio — output upscale/);
+    assert.doesNotMatch(result.workflowJson, /Castcut — output upscale/);
     assert.match(
       result.changes.map((change) => change.message).join(" "),
       /skipped auto-bind\/enrich/i,
@@ -281,7 +281,7 @@ describe("workflow-queue-optimizer", () => {
     });
 
     assert.match(result.workflowJson, /EmptySD3LatentImage/);
-    assert.doesNotMatch(result.workflowJson, /Prompt Studio — output upscale/);
+    assert.doesNotMatch(result.workflowJson, /Castcut — output upscale/);
   });
 
   it("skips Lightning Lanczos for Edit-2511 T2I Final", () => {
@@ -295,7 +295,7 @@ describe("workflow-queue-optimizer", () => {
       qualityProfile: "final",
     });
 
-    assert.doesNotMatch(result.workflowJson, /Prompt Studio — output upscale/);
+    assert.doesNotMatch(result.workflowJson, /Castcut — output upscale/);
   });
 
   it("inserts model sampling on imported vanilla Qwen graphs without placeholders", () => {

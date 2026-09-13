@@ -74,13 +74,13 @@ describe("workflow-lightning-queue", () => {
     assert.deepEqual(result.strippedNodeIds.sort(), ["11", "12"]);
   });
 
-  it("strips leftover Prompt Studio Lanczos and community UltimateSD upscale", () => {
+  it("strips leftover Castcut Lanczos and community UltimateSD upscale", () => {
     const leftover = {
       "9": { class_type: "VAEDecode", inputs: { samples: ["8", 0], vae: ["3", 0] } },
       "11": {
         class_type: "ImageScaleBy",
         inputs: { image: ["9", 0], scale_by: 1.25, upscale_method: "lanczos" },
-        _meta: { title: "Prompt Studio — output upscale" },
+        _meta: { title: "Castcut — output upscale" },
       },
       "10": {
         class_type: "SaveImage",

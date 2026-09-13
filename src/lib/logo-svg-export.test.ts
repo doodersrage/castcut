@@ -18,7 +18,7 @@ describe('logo-svg-export', () => {
   });
 
   it('slugifies download filenames', () => {
-    assert.equal(logoSvgFilename('Prompt Studio'), 'prompt-studio-mark.svg');
+    assert.equal(logoSvgFilename('Castcut'), 'castcut-mark.svg');
     assert.equal(logoSvgFilename(''), 'logo-mark.svg');
   });
 });

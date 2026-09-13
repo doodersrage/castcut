@@ -131,7 +131,7 @@ export function auditLoraStackAtQueueTime(input: {
       issues.push({
         severity: 'warn',
         message:
-          'UltraReal Fine-Tune works best with Danrisi Realism Amplifier LoRA (~0.55, trigger d1g1cam) — install it under models/loras/, keep UltraRealPhoto off, then re-queue (Prompt Studio auto-maps Realistic Amplifier for UltraReal Fine-Tune.safetensors when present).',
+          'UltraReal Fine-Tune works best with Danrisi Realism Amplifier LoRA (~0.55, trigger d1g1cam) — install it under models/loras/, keep UltraRealPhoto off, then re-queue (Castcut auto-maps Realistic Amplifier for UltraReal Fine-Tune.safetensors when present).',
       });
     }
     return issues;

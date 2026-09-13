@@ -13,7 +13,7 @@ export function SettingsOverviewAboutSection() {
 
       <ToolSection title="Feedback">
         <p className="text-sm text-[var(--text-secondary)]">
-          File an issue on GitHub if something in Prompt Studio is broken or confusing.
+          File an issue on GitHub if something in Castcut is broken or confusing.
         </p>
         <div className="mt-3">
           <ReportBugLink variant="button" />

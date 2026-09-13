@@ -282,7 +282,7 @@ describe("workflow scaffold", () => {
       assert.equal(result.category, "hunyuan");
       assert.match(result.json, /CheckpointLoaderSimple/);
       assert.match(result.json, /EmptyLatentImage/);
-      assert.match(result.json, /PromptStudio-hunyuan/);
+      assert.match(result.json, /Castcut-hunyuan/);
       assert.doesNotMatch(result.json, /EmptyHunyuanLatentVideo/);
     }
   });

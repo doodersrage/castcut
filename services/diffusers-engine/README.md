@@ -1,6 +1,6 @@
-# Diffusers engine (Prompt Studio)
+# Diffusers engine (Castcut)
 
-Optional **stills-only** FastAPI companion for Prompt Studio (txt2img + limited img2img/inpaint). **ComfyUI is the primary generate path** (Lightning bf16, Dynamic VRAM, Final/Max enrich, Play film). Use this engine only when Settings → Inference engine is set to Diffusers, or `PROMPT_ENGINE=diffusers`.
+Optional **stills-only** FastAPI companion for Castcut (txt2img + limited img2img/inpaint). **ComfyUI is the primary generate path** (Lightning bf16, Dynamic VRAM, Final/Max enrich, Play film). Use this engine only when Settings → Inference engine is set to Diffusers, or `PROMPT_ENGINE=diffusers`.
 
 ### Scope / non-goals (parked)
 

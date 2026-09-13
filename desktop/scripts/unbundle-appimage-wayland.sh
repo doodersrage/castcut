@@ -70,7 +70,7 @@ for APP in "${APPIMAGES[@]}"; do
   HOOK="$EXTRACT_DIR/squashfs-root/apprun-hooks/linuxdeploy-plugin-gtk.sh"
   if [[ -f "$HOOK" ]] && grep -q '^export GDK_BACKEND=x11' "$HOOK"; then
     echo " patching $HOOK (drop forced GDK_BACKEND=x11)"
-    sed -i 's/^export GDK_BACKEND=x11/# export GDK_BACKEND=x11 # Prompt Studio: prefer session backend/' "$HOOK"
+    sed -i 's/^export GDK_BACKEND=x11/# export GDK_BACKEND=x11 # Castcut: prefer session backend/' "$HOOK"
   fi
 
   ARCH="$ARCH" APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" \

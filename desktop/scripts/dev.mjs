@@ -29,7 +29,7 @@ async function waitForHealth(timeoutMs = 120_000) {
     }
     await new Promise(resolve => setTimeout(resolve, 500));
   }
-  throw new Error(`Prompt Studio did not become ready at ${origin}`);
+  throw new Error(`Castcut did not become ready at ${origin}`);
 }
 
 async function main() {

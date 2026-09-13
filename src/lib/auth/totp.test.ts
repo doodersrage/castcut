@@ -53,17 +53,17 @@ describe('auth/totp', () => {
 
   describe('totpUri', () => {
     it('builds an otpauth URI with encoded label and issuer', () => {
-      const uri = totpUri('alice', 'JBSWY3DPEHPK3PXP', 'PromptStudio');
+      const uri = totpUri('alice', 'JBSWY3DPEHPK3PXP', 'Castcut');
       assert.equal(
         uri,
-        'otpauth://totp/PromptStudio%3Aalice?secret=JBSWY3DPEHPK3PXP&issuer=PromptStudio&algorithm=SHA1&digits=6&period=30'
+        'otpauth://totp/Castcut%3Aalice?secret=JBSWY3DPEHPK3PXP&issuer=Castcut&algorithm=SHA1&digits=6&period=30'
       );
     });
 
-    it('defaults the issuer to PromptStudio', () => {
+    it('defaults the issuer to Castcut', () => {
       const uri = totpUri('bob', 'ABCDEFGHIJKLMNOP');
-      assert.match(uri, /^otpauth:\/\/totp\/PromptStudio%3Abob\?/);
-      assert.match(uri, /issuer=PromptStudio/);
+      assert.match(uri, /^otpauth:\/\/totp\/Castcut%3Abob\?/);
+      assert.match(uri, /issuer=Castcut/);
     });
   });
 

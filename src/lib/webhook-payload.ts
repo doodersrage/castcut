@@ -36,10 +36,10 @@ function formatDiscordPayload(payload: WebhookJobPayload): Record<string, unknow
     embeds: [
       {
         title,
-        description: payload.prompt?.slice(0, 1800) || payload.message || 'Prompt Studio event',
+        description: payload.prompt?.slice(0, 1800) || payload.message || 'Castcut event',
         color: payload.event.includes('error') ? 0xef4444 : 0x8b5cf6,
         fields,
-        footer: { text: 'Prompt Studio' },
+        footer: { text: 'Castcut' },
         timestamp: new Date(payload.completedAt).toISOString(),
       },
     ],

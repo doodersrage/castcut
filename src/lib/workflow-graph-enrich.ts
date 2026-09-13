@@ -49,7 +49,8 @@ import { isUpscaleModelInstalled, pickUpscaleModelFromInventory } from './model-
 import { pickSdxlRefinerFromInventory } from './model-checkpoint-map';
 import type { WorkflowQueueOptimizeChange } from './workflow-queue-optimizer';
 import {
-  isPromptStudioOutputUpscaleNode,
+  isCastcutEnrichedNode,
+  isCastcutOutputUpscaleNode,
   PROMPT_STUDIO_META_PREFIX,
 } from './workflow-enrich-markers';
 
@@ -187,7 +188,7 @@ function shouldSkipUpscaleEnrich(
     if (!UPSCALE_NODE_TYPES.has(classType)) {
       continue;
     }
-    if (isPromptStudioOutputUpscaleNode(node)) {
+    if (isCastcutOutputUpscaleNode(node)) {
       return true;
     }
     // Community neural upscalers have no scale_by — still skip stacking another pass.
@@ -296,7 +297,7 @@ function countSamplerNodes(workflow: Record<string, WorkflowNode>): number {
   ).length;
 }
 
-/** Largest Prompt Studio LatentUpscale(By) factor already inserted (refiner / detail). */
+/** Largest Castcut LatentUpscale(By) factor already inserted (refiner / detail). */
 function promptStudioPriorLatentScale(workflow: Record<string, WorkflowNode>): number {
   let maxScale = 1;
   for (const node of Object.values(workflow)) {
@@ -304,7 +305,7 @@ function promptStudioPriorLatentScale(workflow: Record<string, WorkflowNode>): n
       continue;
     }
     const title = node._meta?.title?.toLowerCase() ?? '';
-    if (!title.includes('prompt studio')) {
+    if (!title.includes('prompt studio') && !title.includes('castcut')) {
       continue;
     }
     if (!/latent detail|sdxl latent|refiner/i.test(title)) {
@@ -417,7 +418,7 @@ function enrichLatentDetailPassNodes(input: {
         upscale_method: 'bislerp',
         scale_by: scaleBy,
       },
-      _meta: { title: 'Prompt Studio — latent detail upscale' },
+      _meta: { title: 'Castcut — latent detail upscale' },
     };
 
     const detailSamplerId = nextWorkflowNodeId(input.workflow);
@@ -433,7 +434,7 @@ function enrichLatentDetailPassNodes(input: {
         denoise,
         latent_image: [latentUpscaleId, 0],
       },
-      _meta: { title: 'Prompt Studio — latent detail pass' },
+      _meta: { title: 'Castcut — latent detail pass' },
     };
 
     const decodeNode = input.workflow[chain.vaeDecodeId];
@@ -607,7 +608,7 @@ function enrichSdxlRefinerNodes(input: {
     input.workflow[refinerLoaderId] = {
       class_type: 'CheckpointLoaderSimple',
       inputs: { ckpt_name: refinerCkpt },
-      _meta: { title: 'Prompt Studio — SDXL refiner' },
+      _meta: { title: 'Castcut — SDXL refiner' },
     };
 
     const refinerPositiveId = nextWorkflowNodeId(input.workflow);
@@ -617,7 +618,7 @@ function enrichSdxlRefinerNodes(input: {
         text: input.tokens.positive,
         clip: [refinerLoaderId, 1],
       },
-      _meta: { title: 'Prompt Studio — refiner positive' },
+      _meta: { title: 'Castcut — refiner positive' },
     };
 
     const refinerNegativeId = nextWorkflowNodeId(input.workflow);
@@ -627,7 +628,7 @@ function enrichSdxlRefinerNodes(input: {
         text: input.tokens.negative,
         clip: [refinerLoaderId, 1],
       },
-      _meta: { title: 'Prompt Studio — refiner negative' },
+      _meta: { title: 'Castcut — refiner negative' },
     };
 
     const latentUpscaleId = nextWorkflowNodeId(input.workflow);
@@ -638,7 +639,7 @@ function enrichSdxlRefinerNodes(input: {
         upscale_method: 'bislerp',
         scale_by: sdxlRefinerLatentScaleForProfile(input.qualityProfile),
       },
-      _meta: { title: 'Prompt Studio — SDXL latent upscale' },
+      _meta: { title: 'Castcut — SDXL latent upscale' },
     };
 
     const refinerSamplerId = nextWorkflowNodeId(input.workflow);
@@ -656,7 +657,7 @@ function enrichSdxlRefinerNodes(input: {
         negative: [refinerNegativeId, 0],
         latent_image: [latentUpscaleId, 0],
       },
-      _meta: { title: 'Prompt Studio — SDXL refiner pass' },
+      _meta: { title: 'Castcut — SDXL refiner pass' },
     };
 
     const decodeNode = input.workflow[chain.vaeDecodeId];
@@ -735,7 +736,7 @@ function maybeInsertSharpenAfterUpscale(input: {
       sigma: 0.45,
       alpha,
     },
-    _meta: { title: 'Prompt Studio — output sharpen' },
+    _meta: { title: 'Castcut — output sharpen' },
   };
   input.saveNode.inputs!.images = [sharpenNodeId, 0];
 
@@ -798,7 +799,7 @@ function enrichLanczosUpscaleNodes(input: {
         upscale_method: method,
         scale_by: scaleBy,
       },
-      _meta: { title: 'Prompt Studio — output upscale' },
+      _meta: { title: 'Castcut — output upscale' },
     };
     saveNode.inputs.images = [scaleNodeId, 0];
 
@@ -857,7 +858,7 @@ function enrichNeuralUpscaleNodes(input: {
       inputs: {
         model_name: modelName,
       },
-      _meta: { title: 'Prompt Studio — upscale model' },
+      _meta: { title: 'Castcut — upscale model' },
     };
 
     const upscaleNodeId = nextWorkflowNodeId(input.workflow);
@@ -875,7 +876,7 @@ function enrichNeuralUpscaleNodes(input: {
     input.workflow[upscaleNodeId] = {
       class_type: 'ImageUpscaleWithModel',
       inputs: upscaleInputs,
-      _meta: { title: 'Prompt Studio — neural upscale' },
+      _meta: { title: 'Castcut — neural upscale' },
     };
 
     let outputNodeId = upscaleNodeId;
@@ -901,7 +902,7 @@ function enrichNeuralUpscaleNodes(input: {
         sourceNodeId: outputNodeId,
         scaleBy: targetScale,
         method: 'area',
-        title: 'Prompt Studio — neural target upscale',
+        title: 'Castcut — neural target upscale',
       });
       changes.push({
         kind: 'binding',
@@ -916,7 +917,7 @@ function enrichNeuralUpscaleNodes(input: {
         saveNode,
         sourceNodeId: outputNodeId,
         scaleBy: polishScale,
-        title: 'Prompt Studio — Lanczos polish',
+        title: 'Castcut — Lanczos polish',
       });
       changes.push({
         kind: 'binding',
@@ -1142,7 +1143,7 @@ function enrichRapidAioMoirePolish(input: {
         blur_radius: blurRadius,
         sigma: blurSigma,
       },
-      _meta: { title: 'Prompt Studio — Rapid AIO moiré polish' },
+      _meta: { title: 'Castcut — Rapid AIO moiré polish' },
     };
     let outputNodeId = blurNodeId;
 
@@ -1155,7 +1156,7 @@ function enrichRapidAioMoirePolish(input: {
           upscale_method: downMethod,
           scale_by: downscale,
         },
-        _meta: { title: 'Prompt Studio — Rapid AIO moiré downscale' },
+        _meta: { title: 'Castcut — Rapid AIO moiré downscale' },
       };
 
       const restoreNodeId = nextWorkflowNodeId(input.workflow);
@@ -1166,7 +1167,7 @@ function enrichRapidAioMoirePolish(input: {
           upscale_method: 'lanczos',
           scale_by: restore,
         },
-        _meta: { title: 'Prompt Studio — Rapid AIO size restore' },
+        _meta: { title: 'Castcut — Rapid AIO size restore' },
       };
       outputNodeId = restoreNodeId;
 
@@ -1180,7 +1181,7 @@ function enrichRapidAioMoirePolish(input: {
             sigma: 0.6,
             alpha: sharpenAlpha,
           },
-          _meta: { title: 'Prompt Studio — Rapid AIO edge recovery' },
+          _meta: { title: 'Castcut — Rapid AIO edge recovery' },
         };
         outputNodeId = sharpenNodeId;
       }
@@ -1244,7 +1245,7 @@ function enrichLightningDecodePolish(input: {
         blur_radius: blurRadius,
         sigma: blurSigma,
       },
-      _meta: { title: 'Prompt Studio — Lightning decode polish' },
+      _meta: { title: 'Castcut — Lightning decode polish' },
     };
     saveNode.inputs.images = [blurNodeId, 0];
 
@@ -1284,8 +1285,7 @@ export function enrichVideoSavePolish(input: {
       touched = true;
     }
     if (touched) {
-      const title = node._meta?.title ?? '';
-      if (!title.includes(PROMPT_STUDIO_META_PREFIX)) {
+      if (!isCastcutEnrichedNode(node._meta)) {
         node._meta = {
           ...(node._meta ?? {}),
           title: `${PROMPT_STUDIO_META_PREFIX} video WEBP ${mode}`,

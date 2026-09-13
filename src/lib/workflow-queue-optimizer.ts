@@ -32,7 +32,7 @@ import {
   type QueueQualityProfile,
 } from './queue-quality-profile';
 import { normalizeEmptyLatentForModel } from './workflow-direct-patch';
-import { workflowHasPromptStudioQueueEnrich } from './workflow-enrich-markers';
+import { workflowHasCastcutQueueEnrich } from './workflow-enrich-markers';
 
 /** Match object hash (current) or legacy pretty-JSON hash from older Optimize all runs. */
 function workflowHashMatches(workflow: Record<string, unknown>, contentHash: string): boolean {
@@ -308,7 +308,7 @@ function filterMappingsForOptimize(
   });
 }
 
-function workflowUsesPromptStudioPlaceholders(
+function workflowUsesCastcutPlaceholders(
   workflowJson: string,
   tokens: WorkflowPlaceholderTokens
 ): boolean {
@@ -445,7 +445,7 @@ export function optimizeWorkflowForQueue(input: {
     if (wantsLightningGraphEnrich && input.skipIfUnchanged && input.contentHash) {
       if (
         workflowHashMatches(workflow, input.contentHash) &&
-        workflowHasPromptStudioQueueEnrich(workflow)
+        workflowHasCastcutQueueEnrich(workflow)
       ) {
         skipLightningGraphEnrich = true;
       }
@@ -470,7 +470,7 @@ export function optimizeWorkflowForQueue(input: {
         kind: 'audit',
         severity: 'info',
         message:
-          'Skipped Lightning output re-enrich — workflow hash unchanged and Prompt Studio polish markers present.',
+          'Skipped Lightning output re-enrich — workflow hash unchanged and Castcut polish markers present.',
       });
     }
 
@@ -519,10 +519,7 @@ export function optimizeWorkflowForQueue(input: {
   }
 
   let bindingChanges: WorkflowBindingChange[] = [];
-  const usesPromptStudioPlaceholders = workflowUsesPromptStudioPlaceholders(
-    workflowJson,
-    input.tokens
-  );
+  const usesCastcutPlaceholders = workflowUsesCastcutPlaceholders(workflowJson, input.tokens);
 
   if (enabled && !skipBinding) {
     const initialAudit = auditWorkflowStructure(workflowJson, input.tokens);
@@ -535,7 +532,7 @@ export function optimizeWorkflowForQueue(input: {
 
       if (mappings.length > 0) {
         const applied = applyWorkflowNodeBindings(workflowJson, mappings, input.tokens, {
-          loraBindTokens: usesPromptStudioPlaceholders ? loraBindTokens : [],
+          loraBindTokens: usesCastcutPlaceholders ? loraBindTokens : [],
         });
         if (applied.changes.length > 0) {
           workflowJson = applied.json;
@@ -560,8 +557,7 @@ export function optimizeWorkflowForQueue(input: {
   const skipEnrich =
     skipBinding &&
     input.skipIfUnchanged &&
-    (!profileUsesUpscaleEnrich(input.qualityProfile) ||
-      workflowHasPromptStudioQueueEnrich(workflow));
+    (!profileUsesUpscaleEnrich(input.qualityProfile) || workflowHasCastcutQueueEnrich(workflow));
 
   if (enabled && shouldEnrichGraph && !skipEnrich) {
     const enriched = enrichWorkflowGraph({
@@ -588,8 +584,7 @@ export function optimizeWorkflowForQueue(input: {
     changes.push({
       kind: 'audit',
       severity: 'info',
-      message:
-        'Skipped re-enrich — workflow hash unchanged and Prompt Studio enrich markers present.',
+      message: 'Skipped re-enrich — workflow hash unchanged and Castcut enrich markers present.',
     });
   }
 

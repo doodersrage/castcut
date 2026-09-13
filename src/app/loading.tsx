@@ -7,7 +7,7 @@ export default function Loading() {
       className="ui-view-state min-h-[70vh]"
       role="status"
       aria-live="polite"
-      aria-label="Loading Prompt Studio"
+      aria-label="Loading Castcut"
     >
       <div className="ui-loader-mark">
         <BrandMark size={40} />

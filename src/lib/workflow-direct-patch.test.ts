@@ -977,7 +977,7 @@ describe("video I2V auto-wiring (patchVideoImageToVideoWiringInWorkflow)", () =>
         inputs: { positive: ["2", 0], negative: ["3", 0], latent_image: ["4", 0] },
       },
       "6": { class_type: "VAEDecode", inputs: { samples: ["5", 0], vae: ["1", 2] } },
-      "7": { class_type: "SaveImage", inputs: { images: ["6", 0], filename_prefix: "PromptStudio" } },
+      "7": { class_type: "SaveImage", inputs: { images: ["6", 0], filename_prefix: "Castcut" } },
       "900": {
         class_type: "LoadImage",
         inputs: { image: "last-frame.jpg" },

@@ -36,7 +36,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# local Prompt Studio data (gallery, settings, auth)
+# local Castcut data (gallery, settings, auth)
 .prompt-studio-data/
 
 # vercel

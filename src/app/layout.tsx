@@ -15,6 +15,7 @@ import NsfwGeneratorPluginInit from '@/components/NsfwGeneratorPluginInit';
 import PluginRuntimeInit from '@/components/PluginRuntimeInit';
 import DeferredShellClient from '@/components/DeferredShellClient';
 import { normalizeWorkspaceMode, WORKSPACE_MODE_COOKIE } from '@/lib/workspace-mode';
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from '@/lib/brand';
 import './globals.css';
 
 const geistSans = Geist({
@@ -35,11 +36,11 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Prompt Studio',
-    template: '%s · Prompt Studio',
+    default: PRODUCT_NAME,
+    template: `%s · ${PRODUCT_NAME}`,
   },
-  description: 'Prompt, queue, and gallery studio for image, video, audio, and 3D workflows.',
-  applicationName: 'Prompt Studio',
+  description: PRODUCT_TAGLINE,
+  applicationName: PRODUCT_NAME,
   manifest: '/manifest.json',
   icons: {
     icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
@@ -47,15 +48,15 @@ export const metadata: Metadata = {
     shortcut: ['/icon.svg'],
   },
   openGraph: {
-    title: 'Prompt Studio',
-    description: 'Prompt, queue, and gallery studio for image, video, audio, and 3D workflows.',
-    siteName: 'Prompt Studio',
+    title: PRODUCT_NAME,
+    description: PRODUCT_TAGLINE,
+    siteName: PRODUCT_NAME,
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Prompt Studio',
-    description: 'Prompt, queue, and gallery studio for image, video, audio, and 3D workflows.',
+    title: PRODUCT_NAME,
+    description: PRODUCT_TAGLINE,
   },
 };
 

@@ -12,7 +12,7 @@ describe("buildEnvSnippet", async () => {
   it("starts with the header comment lines", () => {
     const snippet = buildEnvSnippet([]);
     const lines = snippet.split("\n");
-    assert.equal(lines[0], "# Prompt Studio — copy to .env.local and fill in secrets");
+    assert.equal(lines[0], "# Castcut — copy to .env.local and fill in secrets");
     assert.equal(lines[1], "# Restart the dev server or container after changes.");
   });
 
@@ -94,7 +94,7 @@ describe("buildEnvSnippet", async () => {
     const snippet = buildEnvSnippet([]);
     assert.equal(
       snippet,
-      "# Prompt Studio — copy to .env.local and fill in secrets\n# Restart the dev server or container after changes."
+      "# Castcut — copy to .env.local and fill in secrets\n# Restart the dev server or container after changes."
     );
   });
 });

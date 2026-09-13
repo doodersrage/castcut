@@ -1,7 +1,7 @@
 {
-  "name": "Prompt Studio",
-  "short_name": "Prompt Studio",
-  "description": "Prompt, queue, and gallery studio for image, video, audio, and 3D workflows.",
+  "name": "Castcut",
+  "short_name": "Castcut",
+  "description": "Local character films with ComfyUI — Cast → Moodboard → Day → Cut.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0c10",

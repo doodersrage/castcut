@@ -1,9 +1,6 @@
 import { isQwenLightningModel, patchModelSamplingInWorkflow } from './model-sampling-patch';
 import { ensureFluxGuidanceInWorkflow } from './flux-guidance-patch';
-import {
-  isPromptStudioProtectedSampler,
-  shouldSkipGlobalSamplerPatch,
-} from './workflow-enrich-markers';
+import { isCastcutProtectedSampler, shouldSkipGlobalSamplerPatch } from './workflow-enrich-markers';
 import {
   prepareLightningWorkflowForQueue,
   prepareBooguTurboWorkflowForQueue,
@@ -984,7 +981,7 @@ export function patchSamplerParamsInWorkflow(
       continue;
     }
 
-    if (isPromptStudioProtectedSampler(record)) {
+    if (isCastcutProtectedSampler(record)) {
       continue;
     }
 

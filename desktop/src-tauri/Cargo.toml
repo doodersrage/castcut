@@ -1,8 +1,8 @@
 [package]
 name = "prompt-studio"
 version = "0.3.4"
-description = "Prompt Studio desktop shell"
-authors = ["Prompt Studio"]
+description = "Castcut desktop shell"
+authors = ["Castcut"]
 edition = "2021"
 rust-version = "1.77"
 

@@ -9,8 +9,7 @@ function flag(value: string | undefined): boolean {
 
 export function getEmailConfig(): EmailConfig {
   const host = process.env.PROMPT_SMTP_HOST?.trim() ?? '';
-  const from =
-    process.env.PROMPT_EMAIL_FROM?.trim() || (host ? 'Prompt Studio <noreply@localhost>' : '');
+  const from = process.env.PROMPT_EMAIL_FROM?.trim() || (host ? 'Castcut <noreply@localhost>' : '');
   const enabled = flag(process.env.PROMPT_EMAIL_ENABLED) || (Boolean(host) && Boolean(from));
 
   const envConfig: EmailConfig = {

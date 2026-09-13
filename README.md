@@ -1,8 +1,8 @@
-# Prompt Studio
+# Castcut
 
-**Your local AI image & video production studio.**
+**Local character films with ComfyUI.** Cast → Moodboard → Fitting → Day → **Cut film**.
 
-Generate. Refine. Animate. Build characters. Keep your workflow and assets on your machine.
+Formerly shipped as Prompt Studio. Package and GitHub repo remain [`llm-prompt-studio`](https://github.com/doodersrage/llm-prompt-studio).
 
 [![CI](https://github.com/doodersrage/llm-prompt-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/doodersrage/llm-prompt-studio/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/doodersrage/llm-prompt-studio)](https://github.com/doodersrage/llm-prompt-studio/releases)

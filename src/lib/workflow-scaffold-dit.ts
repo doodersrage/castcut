@@ -108,7 +108,7 @@ export function sd3Scaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio-sd3' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut-sd3' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -166,7 +166,7 @@ export function instructPix2pixScaffold(
     },
     '7': {
       class_type: 'SaveImage',
-      inputs: { images: ['6', 0], filename_prefix: 'PromptStudio-ip2p' },
+      inputs: { images: ['6', 0], filename_prefix: 'Castcut-ip2p' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -242,7 +242,7 @@ export function omnigen2Scaffold(tokens: WorkflowPlaceholderTokens): Record<stri
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio-omnigen2' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut-omnigen2' },
       _meta: { title: 'Save Image' },
     },
     '11': {
@@ -300,7 +300,7 @@ export function pixartScaffold(tokens: WorkflowPlaceholderTokens): Record<string
     },
     '7': {
       class_type: 'SaveImage',
-      inputs: { images: ['6', 0], filename_prefix: 'PromptStudio-pixart' },
+      inputs: { images: ['6', 0], filename_prefix: 'Castcut-pixart' },
       _meta: { title: 'Save Image' },
     },
     '8': {
@@ -373,7 +373,7 @@ export function lumina2Scaffold(tokens: WorkflowPlaceholderTokens): Record<strin
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio-lumina2' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut-lumina2' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -424,7 +424,7 @@ export function sdxlScaffold(tokens: WorkflowPlaceholderTokens): Record<string, 
     },
     '7': {
       class_type: 'SaveImage',
-      inputs: { images: ['6', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['6', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -486,7 +486,7 @@ export function hunyuanImageScaffold(
     },
     '7': {
       class_type: 'SaveImage',
-      inputs: { images: ['6', 0], filename_prefix: 'PromptStudio-hunyuan' },
+      inputs: { images: ['6', 0], filename_prefix: 'Castcut-hunyuan' },
       _meta: { title: 'Save Image' },
     },
     '8': {
@@ -546,7 +546,7 @@ export function genericScaffold(tokens: WorkflowPlaceholderTokens): Record<strin
     },
     '7': {
       class_type: 'SaveImage',
-      inputs: { images: ['6', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['6', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -660,7 +660,7 @@ export function videoScaffold(
       class_type: 'SaveAnimatedWEBP',
       inputs: {
         images: ['6', 0],
-        filename_prefix: 'PromptStudio',
+        filename_prefix: 'Castcut',
         fps: tokens.videoFps,
         lossless: false,
         quality: 90,

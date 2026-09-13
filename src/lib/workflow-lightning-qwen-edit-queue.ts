@@ -353,7 +353,7 @@ export function scaleQwenEditReferenceImagesToLatentSize(
         // and EmptyLatent differ slightly (ladder snap).
         crop: 'center',
       },
-      _meta: { title: 'Prompt Studio — ref → latent size' },
+      _meta: { title: 'Castcut — ref → latent size' },
     };
     scaledLoaderIds.set(loaderId, scaleId);
     return scaleId;

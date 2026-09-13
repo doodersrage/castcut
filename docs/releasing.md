@@ -1,6 +1,6 @@
 # Releases
 
-Prompt Studio ships from **GitHub Releases** on `vX.Y.Z` tags. Each release publishes a container image to [GHCR](https://github.com/doodersrage/llm-prompt-studio/pkgs/container/llm-prompt-studio) and desktop installers (`.dmg`, `.exe`, `.deb`, `.AppImage`). See [Desktop app](desktop.md).
+Castcut ships from **GitHub Releases** on `vX.Y.Z` tags. Each release publishes a container image to [GHCR](https://github.com/doodersrage/llm-prompt-studio/pkgs/container/llm-prompt-studio) and desktop installers (`.dmg`, `.exe`, `.deb`, `.AppImage`). See [Desktop app](desktop.md).
 
 Linux day-to-day: recommend the **`.deb`** (links system WebKitGTK). Ship the AppImage as the portable option; it embeds Ubuntu WebKit and is a better match on Ubuntu/Debian than on Arch/Fedora.
 

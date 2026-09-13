@@ -229,7 +229,7 @@ describe("genericScaffold", () => {
     assert.equal(node(graph, "7").class_type, "SaveImage");
     assert.equal(
       (node(graph, "7").inputs as { filename_prefix?: string })?.filename_prefix,
-      "PromptStudio",
+      "Castcut",
     );
   });
 });

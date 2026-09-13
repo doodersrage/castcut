@@ -92,7 +92,7 @@ export const QWEN_EDIT_IMAGE_INPUT_KEYS = [
   'image4',
 ] as const;
 
-const QWEN_REF_LATENT_SCALE_TITLE = 'Prompt Studio — ref → latent size';
+const QWEN_REF_LATENT_SCALE_TITLE = 'Castcut — ref → latent size';
 
 const VAE_LOADER_TYPES = new Set(['VAELoader']);
 export const LOAD_IMAGE_TYPES = new Set(['LoadImage', 'LoadImageOutput']);
@@ -1034,7 +1034,7 @@ export function auditLightningWorkflowIssues(input: {
       issues.push({
         severity: 'warn',
         message:
-          'Workflow stacks non-Lightning LoRAs (style/NSFW) on a Lightning model — Prompt Studio disables them at queue time. Remove them in ComfyUI or use a Lightning-only workflow for clean output.',
+          'Workflow stacks non-Lightning LoRAs (style/NSFW) on a Lightning model — Castcut disables them at queue time. Remove them in ComfyUI or use a Lightning-only workflow for clean output.',
       });
       break;
     }
@@ -1141,7 +1141,7 @@ export function auditLightningWorkflowIssues(input: {
         issues.push({
           severity: 'warn',
           message:
-            'Workflow still references fp8 weights — Prompt Studio will prefer bf16 for Lightning at queue time to reduce banding.',
+            'Workflow still references fp8 weights — Castcut will prefer bf16 for Lightning at queue time to reduce banding.',
         });
         return issues;
       }

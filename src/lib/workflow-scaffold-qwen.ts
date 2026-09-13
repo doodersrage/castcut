@@ -82,7 +82,7 @@ export function qwenScaffold(tokens: WorkflowPlaceholderTokens): Record<string, 
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -142,7 +142,7 @@ export function qwenCheckpointScaffold(tokens: WorkflowPlaceholderTokens): Recor
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -223,7 +223,7 @@ export function qwenLightningScaffold(tokens: WorkflowPlaceholderTokens): Record
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -365,7 +365,7 @@ export function qwenEditLightningScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
     '900': {
@@ -475,7 +475,7 @@ export function qwenEditComposeScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
     '900': {
@@ -569,7 +569,7 @@ export function qwenEditImg2imgScaffold(
       },
       '10': {
         class_type: 'SaveImage',
-        inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+        inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
         _meta: { title: 'Save Image' },
       },
     };
@@ -638,7 +638,7 @@ export function qwenEditImg2imgScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };

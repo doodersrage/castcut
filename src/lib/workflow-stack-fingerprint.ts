@@ -394,7 +394,7 @@ export function auditWorkflowStackCompatibility(input: {
     issues.push({
       severity: 'warn',
       message:
-        'ModelSampling still has unresolved {{SHIFT}} or Flux shift placeholders — Prompt Studio resolves these when you queue; run Optimize all to save concrete values in the library.',
+        'ModelSampling still has unresolved {{SHIFT}} or Flux shift placeholders — Castcut resolves these when you queue; run Optimize all to save concrete values in the library.',
     });
   }
 

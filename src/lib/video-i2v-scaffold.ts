@@ -522,7 +522,7 @@ export function buildBuiltInVideoI2vWorkflow(model: string): Record<string, unkn
       class_type: 'SaveAnimatedWEBP',
       inputs: {
         images: ['6', 0],
-        filename_prefix: 'PromptStudio',
+        filename_prefix: 'Castcut',
         fps: '{{VIDEO_FPS}}',
         lossless: false,
         quality: 90,

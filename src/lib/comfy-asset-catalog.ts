@@ -467,7 +467,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'ae.safetensors',
     modelIds: ['flux-ultrareal-v4'],
     notes:
-      'UltraReal Fine-Tune v4 only in Prompt Studio. Gated on black-forest-labs/FLUX.1-dev — place manually or download with HF_TOKEN after accepting the license.',
+      'UltraReal Fine-Tune v4 only in Castcut. Gated on black-forest-labs/FLUX.1-dev — place manually or download with HF_TOKEN after accepting the license.',
     requiresHfToken: true,
   },
   {
@@ -556,7 +556,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     bytes: 23387046451,
     modelIds: [...WAN_MODELS],
     notes:
-      'Preferred Prompt Studio video checkpoint — model + CLIP + VAE in one file. CFG 1, 4–10 steps. Put this in checkpoints/, not diffusion_models/.',
+      'Preferred Castcut video checkpoint — model + CLIP + VAE in one file. CFG 1, 4–10 steps. Put this in checkpoints/, not diffusion_models/.',
   },
   {
     id: 'wan-video-rapid-aio-nsfw',

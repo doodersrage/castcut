@@ -1,1 +1,1 @@
-"""Diffusers txt2img engine for Prompt Studio."""
+"""Diffusers txt2img engine for Castcut."""

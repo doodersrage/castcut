@@ -36,18 +36,18 @@ export async function POST(request: Request) {
   const textLines = [
     `Hello ${greeting},`,
     '',
-    'This is a test message from your Prompt Studio server.',
+    'This is a test message from your Castcut server.',
     '',
     `Sent: ${new Date().toLocaleString()}`,
   ];
 
   const result = await sendEmail({
     to,
-    subject: 'Prompt Studio — test email',
+    subject: 'Castcut — test email',
     text: textLines.join('\n'),
     html: brandedEmailHtml({
       title: 'Test email',
-      preheader: 'Prompt Studio mail is configured correctly.',
+      preheader: 'Castcut mail is configured correctly.',
       footerUrl: origin,
       bodyHtml: emailParagraphs(textLines),
     }),

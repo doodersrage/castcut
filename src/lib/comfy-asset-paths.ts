@@ -40,7 +40,7 @@ export function isComfyUiRootConfigured(env: NodeJS.ProcessEnv = process.env): b
 
 /**
  * True when this process can create files under COMFYUI_ROOT/models
- * (Install buttons write here as the Prompt Studio OS user).
+ * (Install buttons write here as the Castcut OS user).
  */
 export function canWriteComfyModelsRoot(root: string | null = getComfyUiRoot()): boolean {
   if (!root || !fs.existsSync(root)) {
@@ -70,7 +70,7 @@ export function canWriteComfyModelsRoot(root: string | null = getComfyUiRoot()):
 export function comfyModelsWriteErrorMessage(root: string): string {
   return (
     `Permission denied writing under ${root}/models. ` +
-    `Prompt Studio runs as the app OS user and must be able to create files there ` +
+    `Castcut runs as the app OS user and must be able to create files there ` +
     `(COMFYUI_ROOT is often owned by a dedicated ComfyUI user). ` +
     `Grant write access, e.g. sudo setfacl -R -m u:$(whoami):rwx ${root}/models` +
     ` && sudo setfacl -R -d -m u:$(whoami):rwx ${root}/models`

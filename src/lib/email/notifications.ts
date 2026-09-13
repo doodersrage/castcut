@@ -30,7 +30,7 @@ export async function notifyUserInvite(input: {
   const textLines = [
     `Hello ${input.username},`,
     '',
-    `${input.adminUsername} invited you to Prompt Studio.`,
+    `${input.adminUsername} invited you to Castcut.`,
     '',
     'Set your password with this link (valid for 1 hour):',
     input.resetUrl,
@@ -42,11 +42,11 @@ export async function notifyUserInvite(input: {
 
   return sendEmail({
     to: input.to,
-    subject: 'Prompt Studio — you are invited',
+    subject: 'Castcut — you are invited',
     text: textLines.join('\n'),
     html: brandedEmailHtml({
       title: 'You are invited',
-      preheader: 'Set your Prompt Studio password to get started.',
+      preheader: 'Set your Castcut password to get started.',
       footerUrl: appOrigin(),
       bodyHtml: emailParagraphs(textLines),
     }),
@@ -94,11 +94,11 @@ export async function notifyPasswordChanged(input: {
 
   await sendEmail({
     to,
-    subject: 'Prompt Studio — password updated',
+    subject: 'Castcut — password updated',
     text: textLines.join('\n'),
     html: brandedEmailHtml({
       title: 'Password updated',
-      preheader: 'Your Prompt Studio password was changed.',
+      preheader: 'Your Castcut password was changed.',
       footerUrl: appOrigin(),
       bodyHtml: emailParagraphs(textLines),
     }),
@@ -163,11 +163,11 @@ export async function notifyBatchCompleted(input: {
 
   await sendEmail({
     to,
-    subject: `Prompt Studio — ${label} complete`,
+    subject: `Castcut — ${label} complete`,
     text: lines.join('\n'),
     html: brandedEmailHtml({
       title: `${label} complete`,
-      preheader: `${input.promptCount} prompts finished in Prompt Studio.`,
+      preheader: `${input.promptCount} prompts finished in Castcut.`,
       footerUrl: `${appOrigin()}/studio`,
       bodyHtml: emailParagraphs(lines),
     }),

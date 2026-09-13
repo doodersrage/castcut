@@ -426,7 +426,7 @@ function buildAuthHeaders(apiKey: string, baseUrl?: string): Record<string, stri
 
   if (baseUrl && /openrouter\.ai/i.test(baseUrl)) {
     headers['HTTP-Referer'] = 'https://github.com';
-    headers['X-Title'] = 'Prompt Studio';
+    headers['X-Title'] = 'Castcut';
   }
 
   return headers;

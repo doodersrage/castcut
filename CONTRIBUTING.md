@@ -1,6 +1,6 @@
-# Contributing to Prompt Studio
+# Contributing to Castcut
 
-Thanks for taking a look at Prompt Studio. This is a fast-moving, mostly solo-maintained
+Thanks for taking a look at Castcut. This is a fast-moving, mostly solo-maintained
 project, so the bar for contributions is less about process and more about not breaking
 the things CI already checks for you.
 

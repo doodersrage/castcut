@@ -141,7 +141,7 @@ export function buildAutoFaceDetailerWorkflow(
   workflow[loadId] = {
     class_type: 'LoadImage',
     inputs: { image: FACE_DETAIL_IMAGE_TOKEN },
-    _meta: { title: 'Prompt Studio — face detail source' },
+    _meta: { title: 'Castcut — face detail source' },
   };
 
   let imageLink: [string, number] = [loadId, 0];
@@ -166,7 +166,7 @@ export function buildAutoFaceDetailerWorkflow(
     workflow[bboxId] = {
       class_type: BBOX_DETECTOR,
       inputs: { model_name: 'bbox/face_yolov8m.pt' },
-      _meta: { title: 'Prompt Studio — face bbox detector' },
+      _meta: { title: 'Castcut — face bbox detector' },
     };
     const detailId = String(nextId++);
     workflow[detailId] = {
@@ -176,7 +176,7 @@ export function buildAutoFaceDetailerWorkflow(
         image: imageLink,
         bbox_detector: [bboxId, 0],
       },
-      _meta: { title: 'Prompt Studio — FaceDetailer' },
+      _meta: { title: 'Castcut — FaceDetailer' },
     };
     imageLink = [detailId, 0];
   } else {
@@ -187,7 +187,7 @@ export function buildAutoFaceDetailerWorkflow(
         ...detailInputs,
         image: imageLink,
       },
-      _meta: { title: 'Prompt Studio — FaceDetailer' },
+      _meta: { title: 'Castcut — FaceDetailer' },
     };
     imageLink = [detailId, 0];
   }
@@ -196,10 +196,10 @@ export function buildAutoFaceDetailerWorkflow(
   workflow[saveId] = {
     class_type: 'SaveImage',
     inputs: {
-      filename_prefix: 'PromptStudio-face-detail',
+      filename_prefix: 'Castcut-face-detail',
       images: imageLink,
     },
-    _meta: { title: 'Prompt Studio — face detail save' },
+    _meta: { title: 'Castcut — face detail save' },
   };
 
   return { workflow, inserted: true };

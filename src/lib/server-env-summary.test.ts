@@ -573,7 +573,7 @@ describe("server-env-summary", async () => {
         assert.equal(findField(fields, "PROMPT_EMAIL_ENABLED").configured, true);
         assert.equal(findField(fields, "PROMPT_SMTP_HOST").value, "smtp.example.test");
         // No explicit PROMPT_EMAIL_FROM: getEmailConfig() defaults it once a host is set.
-        assert.equal(findField(fields, "PROMPT_EMAIL_FROM").value, "Prompt Studio <noreply@localhost>");
+        assert.equal(findField(fields, "PROMPT_EMAIL_FROM").value, "Castcut <noreply@localhost>");
       });
       withCleanEnv({}, () => {
         const fields = findGroup(getServerEnvSummary(), "email").fields;

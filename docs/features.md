@@ -1,6 +1,6 @@
 # Features
 
-Full capability list for Prompt Studio, grouped by area. For a short overview, see the [main README](../README.md).
+Full capability list for Castcut, grouped by area. For a short overview, see the [main README](../README.md).
 
 Jump to: [Prompt generation](#prompt-generation) · [Scene tools](#scene-tools) · [Studio](#studio) · [Gallery](#gallery) · [Queue & ComfyUI](#queue-comfyui) · [Workflows](#workflows) · [Settings & data](#settings-storage) · [Auth & API](#auth-api) · [Automation](#automation) · [UI & UX](#ui-ux)
 

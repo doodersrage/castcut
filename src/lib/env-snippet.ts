@@ -2,7 +2,7 @@ import type { ServerEnvGroup } from './server-env-summary';
 
 export function buildEnvSnippet(groups: ServerEnvGroup[]): string {
   const lines = [
-    '# Prompt Studio — copy to .env.local and fill in secrets',
+    '# Castcut — copy to .env.local and fill in secrets',
     '# Restart the dev server or container after changes.',
     '',
   ];

@@ -601,7 +601,7 @@ export function neuralTargetScaleAfterUpscale(
 }
 
 /**
- * Lanczos (or soft) output scale after a Prompt Studio latent pass so net size
+ * Lanczos (or soft) output scale after a Castcut latent pass so net size
  * matches Final/Max target instead of compounding with refiner/detail.
  */
 export function outputUpscaleScaleAfterLatent(

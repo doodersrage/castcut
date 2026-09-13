@@ -146,12 +146,12 @@ function buildCheckpointGalleryRefineWorkflow(options?: {
     [modelNodeId]: {
       class_type: 'CheckpointLoaderSimple',
       inputs: { ckpt_name: '{{CHECKPOINT}}' },
-      _meta: { title: 'Prompt Studio — checkpoint' },
+      _meta: { title: 'Castcut — checkpoint' },
     },
     [loadImageId]: {
       class_type: 'LoadImage',
       inputs: { image: DEFAULT_INPUT_IMAGE_TOKEN },
-      _meta: { title: 'Prompt Studio — gallery output' },
+      _meta: { title: 'Castcut — gallery output' },
     },
     [vaeEncodeId]: {
       class_type: 'VAEEncode',
@@ -159,17 +159,17 @@ function buildCheckpointGalleryRefineWorkflow(options?: {
         pixels: [loadImageId, 0],
         vae: [modelNodeId, 2],
       },
-      _meta: { title: 'Prompt Studio — encode input' },
+      _meta: { title: 'Castcut — encode input' },
     },
     [positiveId]: {
       class_type: 'CLIPTextEncode',
       inputs: { text: DEFAULT_POSITIVE_TOKEN, clip: [modelNodeId, 1] },
-      _meta: { title: 'Prompt Studio — positive' },
+      _meta: { title: 'Castcut — positive' },
     },
     [negativeId]: {
       class_type: 'CLIPTextEncode',
       inputs: { text: DEFAULT_NEGATIVE_TOKEN, clip: [modelNodeId, 1] },
-      _meta: { title: 'Prompt Studio — negative' },
+      _meta: { title: 'Castcut — negative' },
     },
   };
 
@@ -178,7 +178,7 @@ function buildCheckpointGalleryRefineWorkflow(options?: {
         workflow[samplingId] = {
           class_type: 'ModelSamplingAuraFlow',
           inputs: { model: [modelNodeId, 0], shift: DEFAULT_SHIFT_TOKEN },
-          _meta: { title: 'Prompt Studio — sampling' },
+          _meta: { title: 'Castcut — sampling' },
         };
         return [samplingId, 0] as [string, number];
       })()
@@ -198,20 +198,20 @@ function buildCheckpointGalleryRefineWorkflow(options?: {
       negative: [negativeId, 0],
       latent_image: [vaeEncodeId, 0],
     },
-    _meta: { title: 'Prompt Studio — refine sampler' },
+    _meta: { title: 'Castcut — refine sampler' },
   };
   workflow[decodeId] = {
     class_type: 'VAEDecode',
     inputs: { samples: [samplerId, 0], vae: [modelNodeId, 2] },
-    _meta: { title: 'Prompt Studio — decode' },
+    _meta: { title: 'Castcut — decode' },
   };
   workflow[saveId] = {
     class_type: 'SaveImage',
     inputs: {
-      filename_prefix: 'PromptStudio-refine',
+      filename_prefix: 'Castcut-refine',
       images: [decodeId, 0],
     },
-    _meta: { title: 'Prompt Studio — save' },
+    _meta: { title: 'Castcut — save' },
   };
 
   return workflow;
@@ -224,7 +224,7 @@ function buildFluxKleinGalleryRefineWorkflow(model: string): Record<string, Work
     '1': {
       class_type: 'UNETLoader',
       inputs: { unet_name: DEFAULT_UNET_TOKEN, weight_dtype: 'default' },
-      _meta: { title: 'Prompt Studio — UNET' },
+      _meta: { title: 'Castcut — UNET' },
     },
     '2': {
       class_type: 'CLIPLoader',
@@ -232,32 +232,32 @@ function buildFluxKleinGalleryRefineWorkflow(model: string): Record<string, Work
         clip_name: clipName,
         type: 'flux2',
       },
-      _meta: { title: 'Prompt Studio — CLIP (FLUX.2 Klein)' },
+      _meta: { title: 'Castcut — CLIP (FLUX.2 Klein)' },
     },
     '3': {
       class_type: 'VAELoader',
       inputs: { vae_name: DEFAULT_VAE_TOKEN },
-      _meta: { title: 'Prompt Studio — VAE' },
+      _meta: { title: 'Castcut — VAE' },
     },
     '4': {
       class_type: 'LoadImage',
       inputs: { image: DEFAULT_INPUT_IMAGE_TOKEN },
-      _meta: { title: 'Prompt Studio — gallery output' },
+      _meta: { title: 'Castcut — gallery output' },
     },
     '5': {
       class_type: 'VAEEncode',
       inputs: { pixels: ['4', 0], vae: ['3', 0] },
-      _meta: { title: 'Prompt Studio — encode input' },
+      _meta: { title: 'Castcut — encode input' },
     },
     '6': {
       class_type: 'CLIPTextEncode',
       inputs: { text: DEFAULT_POSITIVE_TOKEN, clip: ['2', 0] },
-      _meta: { title: 'Prompt Studio — positive' },
+      _meta: { title: 'Castcut — positive' },
     },
     '7': {
       class_type: 'CLIPTextEncode',
       inputs: { text: DEFAULT_NEGATIVE_TOKEN, clip: ['2', 0] },
-      _meta: { title: 'Prompt Studio — negative' },
+      _meta: { title: 'Castcut — negative' },
     },
     '8': {
       class_type: 'ModelSamplingFlux',
@@ -268,7 +268,7 @@ function buildFluxKleinGalleryRefineWorkflow(model: string): Record<string, Work
         width: DEFAULT_WIDTH_TOKEN,
         height: DEFAULT_HEIGHT_TOKEN,
       },
-      _meta: { title: 'Prompt Studio — ModelSamplingFlux' },
+      _meta: { title: 'Castcut — ModelSamplingFlux' },
     },
     '9': {
       class_type: 'KSampler',
@@ -284,20 +284,20 @@ function buildFluxKleinGalleryRefineWorkflow(model: string): Record<string, Work
         negative: ['7', 0],
         latent_image: ['5', 0],
       },
-      _meta: { title: 'Prompt Studio — refine sampler' },
+      _meta: { title: 'Castcut — refine sampler' },
     },
     '10': {
       class_type: 'VAEDecode',
       inputs: { samples: ['9', 0], vae: ['3', 0] },
-      _meta: { title: 'Prompt Studio — decode' },
+      _meta: { title: 'Castcut — decode' },
     },
     '11': {
       class_type: 'SaveImage',
       inputs: {
-        filename_prefix: 'PromptStudio-refine',
+        filename_prefix: 'Castcut-refine',
         images: ['10', 0],
       },
-      _meta: { title: 'Prompt Studio — save' },
+      _meta: { title: 'Castcut — save' },
     },
   };
 }
@@ -310,7 +310,7 @@ function buildQwenGalleryRefineWorkflow(): Record<string, WorkflowNode> {
     '1': {
       class_type: 'UNETLoader',
       inputs: { unet_name: DEFAULT_UNET_TOKEN, weight_dtype: 'default' },
-      _meta: { title: 'Prompt Studio — UNET' },
+      _meta: { title: 'Castcut — UNET' },
     },
     '2': {
       class_type: 'CLIPLoader',
@@ -318,37 +318,37 @@ function buildQwenGalleryRefineWorkflow(): Record<string, WorkflowNode> {
         clip_name: clipName,
         type: 'qwen_image',
       },
-      _meta: { title: 'Prompt Studio — CLIP' },
+      _meta: { title: 'Castcut — CLIP' },
     },
     '3': {
       class_type: 'VAELoader',
       inputs: { vae_name: DEFAULT_VAE_TOKEN },
-      _meta: { title: 'Prompt Studio — VAE' },
+      _meta: { title: 'Castcut — VAE' },
     },
     '4': {
       class_type: 'LoadImage',
       inputs: { image: DEFAULT_INPUT_IMAGE_TOKEN },
-      _meta: { title: 'Prompt Studio — gallery output' },
+      _meta: { title: 'Castcut — gallery output' },
     },
     '5': {
       class_type: 'VAEEncode',
       inputs: { pixels: ['4', 0], vae: ['3', 0] },
-      _meta: { title: 'Prompt Studio — encode input' },
+      _meta: { title: 'Castcut — encode input' },
     },
     '6': {
       class_type: 'CLIPTextEncode',
       inputs: { text: DEFAULT_POSITIVE_TOKEN, clip: ['2', 0] },
-      _meta: { title: 'Prompt Studio — positive' },
+      _meta: { title: 'Castcut — positive' },
     },
     '7': {
       class_type: 'CLIPTextEncode',
       inputs: { text: DEFAULT_NEGATIVE_TOKEN, clip: ['2', 0] },
-      _meta: { title: 'Prompt Studio — negative' },
+      _meta: { title: 'Castcut — negative' },
     },
     '8': {
       class_type: 'ModelSamplingAuraFlow',
       inputs: { model: ['1', 0], shift: DEFAULT_SHIFT_TOKEN },
-      _meta: { title: 'Prompt Studio — sampling' },
+      _meta: { title: 'Castcut — sampling' },
     },
     '9': {
       class_type: 'KSampler',
@@ -364,20 +364,20 @@ function buildQwenGalleryRefineWorkflow(): Record<string, WorkflowNode> {
         negative: ['7', 0],
         latent_image: ['5', 0],
       },
-      _meta: { title: 'Prompt Studio — refine sampler' },
+      _meta: { title: 'Castcut — refine sampler' },
     },
     '10': {
       class_type: 'VAEDecode',
       inputs: { samples: ['9', 0], vae: ['3', 0] },
-      _meta: { title: 'Prompt Studio — decode' },
+      _meta: { title: 'Castcut — decode' },
     },
     '11': {
       class_type: 'SaveImage',
       inputs: {
-        filename_prefix: 'PromptStudio-refine',
+        filename_prefix: 'Castcut-refine',
         images: ['10', 0],
       },
-      _meta: { title: 'Prompt Studio — save' },
+      _meta: { title: 'Castcut — save' },
     },
   };
 }

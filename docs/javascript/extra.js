@@ -1,4 +1,4 @@
-/* Subtle polish for Prompt Studio docs */
+/* Subtle polish for Castcut docs */
 document.addEventListener('DOMContentLoaded', () => {
   const hero = document.querySelector('.ps-hero');
   if (!hero) {

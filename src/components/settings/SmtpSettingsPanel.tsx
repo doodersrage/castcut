@@ -99,7 +99,7 @@ export default function SmtpSettingsPanel({ isAdmin }: { isAdmin: boolean }) {
             value={from}
             onChange={event => setFrom(event.target.value)}
             className="ui-input w-full text-sm"
-            placeholder="Prompt Studio <noreply@localhost>"
+            placeholder="Castcut <noreply@localhost>"
           />
         </label>
         <label className="space-y-1 text-xs text-[var(--text-muted)] sm:col-span-2">

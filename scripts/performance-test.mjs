@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Performance Testing Script for Prompt Studio
+ * Performance Testing Script for Castcut
  * This script runs various performance tests to ensure application efficiency
  */
 

@@ -21,7 +21,7 @@ import {
 } from './model-resolution-defaults';
 import { isLightningModelId, shouldNeutralizeStyleLorasAtQueue } from './model-sampler-defaults';
 import { isLatentSizeNode, normalizeEmptyLatentForModel } from './workflow-direct-patch';
-import { isPromptStudioOutputUpscaleNode } from './workflow-enrich-markers';
+import { isCastcutOutputUpscaleNode } from './workflow-enrich-markers';
 import {
   isLoraLoaderClassType,
   loraFilenameImpliesLightning,
@@ -267,7 +267,7 @@ function insertLightningLoraNode(
       lora_name: lightningLoraName,
       strength_model: 1,
     },
-    _meta: { title: 'Prompt Studio — Lightning LoRA' },
+    _meta: { title: 'Castcut — Lightning LoRA' },
   };
   return loraId;
 }
@@ -295,7 +295,7 @@ function ensureAuraAndLightningLoraOnModelLink(
         model: [modelLink, 0],
         shift: QWEN_LIGHTNING_SHIFT_DEFAULT,
       },
-      _meta: { title: 'Prompt Studio — Lightning AuraFlow' },
+      _meta: { title: 'Castcut — Lightning AuraFlow' },
     };
     consumer.inputs.model = [auraId, 0];
     chainIds = walkModelChainIds(workflow, auraId);
@@ -426,7 +426,7 @@ export function ensureLightningModelChainInWorkflow(
             model: [loraId, 0],
             shift: QWEN_LIGHTNING_SHIFT_DEFAULT,
           },
-          _meta: { title: 'Prompt Studio — Lightning AuraFlow' },
+          _meta: { title: 'Castcut — Lightning AuraFlow' },
         };
         for (const { node } of consumers) {
           if (node.inputs) {
@@ -528,7 +528,7 @@ export function bypassMismatchedSaveImageScaleToLatent(
     if (
       !scaleNode?.inputs ||
       (scaleNode.class_type !== 'ImageScale' && scaleNode.class_type !== 'ResizeImage') ||
-      isPromptStudioOutputUpscaleNode(scaleNode)
+      isCastcutOutputUpscaleNode(scaleNode)
     ) {
       continue;
     }
@@ -557,7 +557,7 @@ export function bypassMismatchedSaveImageScaleToLatent(
 
 /**
  * Strip post-decode upscale/sharpen (community UltraSharp, UltimateSD, leftover
- * Prompt Studio Lanczos). 2512 Lightning CFG-1 already looks hard; enlarging it
+ * Castcut Lanczos). 2512 Lightning CFG-1 already looks hard; enlarging it
  * makes wet streets and skin crunch. Optimizer may re-insert a blur-only polish.
  */
 export function stripLightningOutputPostProcess(

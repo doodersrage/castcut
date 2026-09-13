@@ -48,11 +48,11 @@ export async function POST(request: Request) {
 
   await sendEmail({
     to,
-    subject: `Prompt Studio — ${completed} ComfyUI job(s) finished`,
+    subject: `Castcut — ${completed} ComfyUI job(s) finished`,
     text: textLines.join('\n'),
     html: brandedEmailHtml({
       title: 'Jobs finished',
-      preheader: `${completed} ComfyUI job(s) finished in Prompt Studio.`,
+      preheader: `${completed} ComfyUI job(s) finished in Castcut.`,
       footerUrl: `${origin}/gallery`,
       bodyHtml: emailParagraphs(textLines),
     }),

@@ -265,7 +265,7 @@ export function prepareWorkflowJsonImport(
       ok: false,
       error: 'This is a ComfyUI UI workflow export (nodes/links).',
       errorDetail:
-        'Prompt Studio needs API format JSON. In ComfyUI, open the workflow menu and choose Save (API Format), then import that file.',
+        'Castcut needs API format JSON. In ComfyUI, open the workflow menu and choose Save (API Format), then import that file.',
     };
   }
 

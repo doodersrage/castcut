@@ -1,6 +1,6 @@
 # Plugin iframe host protocol
 
-Same-origin (or allowlisted) plugin tools render inside `/plugins/[id]` and talk to Prompt Studio via `postMessage`.
+Same-origin (or allowlisted) plugin tools render inside `/plugins/[id]` and talk to Castcut via `postMessage`.
 
 Channel string (required on every message):
 

@@ -39,7 +39,7 @@ describe("workflow optimization v2", () => {
     const workflow = {
       "1": {
         class_type: "KSampler",
-        _meta: { title: "Prompt Studio — SDXL refiner pass" },
+        _meta: { title: "Castcut — SDXL refiner pass" },
         inputs: { seed: 1, steps: 20, cfg: 5.5, denoise: 0.35 },
       },
       "2": {

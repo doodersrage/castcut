@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 function civitaiSearchHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    'User-Agent': 'ComfyPromptStudio/1.0 (+local; LoRA search)',
+    'User-Agent': 'Castcut/1.0 (+local; LoRA search)',
   };
   const token = process.env.CIVITAI_API_TOKEN?.trim();
   if (token) {

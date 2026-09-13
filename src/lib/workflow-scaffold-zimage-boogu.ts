@@ -75,7 +75,7 @@ export function zImageScaffold(tokens: WorkflowPlaceholderTokens): Record<string
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -152,7 +152,7 @@ export function zImageImg2imgScaffold(tokens: WorkflowPlaceholderTokens): Record
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -234,7 +234,7 @@ export function booguImageScaffold(tokens: WorkflowPlaceholderTokens): Record<st
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -301,7 +301,7 @@ export function booguImageTurboScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -396,7 +396,7 @@ export function booguEditScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
     '900': {

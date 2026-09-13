@@ -1,3 +1,7 @@
+'use client';
+
+import { PRODUCT_NAME } from '@/lib/brand';
+
 type BrandMarkProps = {
   className?: string;
   size?: number;
@@ -6,7 +10,7 @@ type BrandMarkProps = {
   wordmarkClassName?: string;
 };
 
-/** Prompt Studio mark — teal → sky → warm sand, studio viewport + prompt bars. */
+/** Castcut mark — teal → sky → warm sand, studio viewport + prompt bars. */
 export default function BrandMark({
   className,
   size = 28,
@@ -26,10 +30,10 @@ export default function BrandMark({
       />
       {withWordmark ? (
         <span className={wordmarkClassName ?? 'type-brand type-title tracking-tight'}>
-          Prompt Studio
+          {PRODUCT_NAME}
         </span>
       ) : (
-        <span className="sr-only">Prompt Studio</span>
+        <span className="sr-only">{PRODUCT_NAME}</span>
       )}
     </span>
   );

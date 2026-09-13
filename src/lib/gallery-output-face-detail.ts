@@ -79,15 +79,15 @@ export function buildGalleryFaceDetailFallbackWorkflow(): Record<string, Workflo
     '1': {
       class_type: 'LoadImage',
       inputs: { image: DEFAULT_INPUT_IMAGE_TOKEN },
-      _meta: { title: 'Prompt Studio — gallery output' },
+      _meta: { title: 'Castcut — gallery output' },
     },
     '2': {
       class_type: 'SaveImage',
       inputs: {
-        filename_prefix: 'PromptStudio-face-detail',
+        filename_prefix: 'Castcut-face-detail',
         images: ['1', 0],
       },
-      _meta: { title: 'Prompt Studio — save (pass-through, no library face-detailer found)' },
+      _meta: { title: 'Castcut — save (pass-through, no library face-detailer found)' },
     },
   };
 }

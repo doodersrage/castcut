@@ -263,8 +263,8 @@ export function resolveSaveFilenamePrefix(
   qualityProfile?: QueueQualityProfile | string | null
 ): string {
   const profile = normalizeQueueQualityProfile(qualityProfile);
-  const raw = typeof current === 'string' && current.trim() ? current.trim() : 'PromptStudio';
-  const root = raw.replace(/-(draft|final|max)$/i, '') || 'PromptStudio';
+  const raw = typeof current === 'string' && current.trim() ? current.trim() : 'Castcut';
+  const root = raw.replace(/-(draft|final|max)$/i, '') || 'Castcut';
   if (profile === 'draft') {
     return `${root}-draft`;
   }

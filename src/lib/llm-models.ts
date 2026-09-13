@@ -54,7 +54,7 @@ function listHeaders(baseUrl: string, apiKey: string): Record<string, string> {
   }
   if (/openrouter\.ai/i.test(baseUrl)) {
     headers['HTTP-Referer'] = 'https://github.com';
-    headers['X-Title'] = 'Prompt Studio';
+    headers['X-Title'] = 'Castcut';
   }
   return headers;
 }

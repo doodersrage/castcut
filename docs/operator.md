@@ -1,6 +1,6 @@
 # Operator guide
 
-Stand up Prompt Studio, add a second ComfyUI box, move a studio to a new machine, and invite users. Product features live in [features.md](features.md); env names and production hardening live in [configuration.md](configuration.md).
+Stand up Castcut, add a second ComfyUI box, move a studio to a new machine, and invite users. Product features live in [features.md](features.md); env names and production hardening live in [configuration.md](configuration.md).
 
 Jump to: [First launch](#first-launch) · [10-minute loop](#10-minute-loop) · [Settings map](#settings-map) · [Second GPU](#second-gpu) · [New machine](#new-machine) · [Auth and mail](#auth-and-mail) · [Cluster behavior](#cluster-behavior) · [What stays in env](#what-stays-in-env)
 
@@ -96,7 +96,7 @@ Settings extras can _list_ another ComfyUI URL. They cannot change the SSRF allo
 2. Paste the new box, e.g. `http://192.168.1.20:8188`.
 3. **Test**. The server only fetches the host if it is already allowlisted.
 4. Copy the **New-box .env snippet** (`COMFYUI_POOL` + `COMFYUI_ALLOWED_HOSTS`).
-5. Paste into `.env.local`, restart the Prompt Studio process, then **Test** again.
+5. Paste into `.env.local`, restart the Castcut process, then **Test** again.
 6. Optionally **Add host** so Settings extras keep the URL if you have not put it in `COMFYUI_POOL` yet. Env pool members still win as the durable source after restart.
 
 If Test says the host is not on `COMFYUI_ALLOWED_HOSTS`, copy the snippet anyway — that is the expected first pass on a locked-down box.

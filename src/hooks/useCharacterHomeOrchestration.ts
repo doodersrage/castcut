@@ -197,7 +197,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
     }
     void parseLookPackFile(file).then(portable => {
       if (!portable) {
-        setLookPackStatus('That file is not a Prompt Studio look pack.');
+        setLookPackStatus('That file is not a Castcut look pack.');
         return;
       }
       addCharacterLookPack(character.id, portable.name || 'Imported look', portable.pack);

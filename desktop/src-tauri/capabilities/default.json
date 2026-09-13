@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "Default Prompt Studio desktop capability",
+  "description": "Default Castcut desktop capability",
   "windows": ["main"],
   "permissions": ["core:default"]
 }

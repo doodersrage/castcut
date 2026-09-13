@@ -165,7 +165,7 @@ def _aliases_for(model: str) -> list[str]:
     aliases = [raw, Path(raw).name]
     token = _normalize_token(raw)
 
-    # Common Prompt Studio model ids → local Comfy filenames.
+    # Common Castcut model ids → local Comfy filenames.
     alias_map: list[tuple[str, list[str]]] = [
         (
             "realvis",

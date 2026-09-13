@@ -1,4 +1,4 @@
-# Prompt Studio desktop
+# Castcut desktop
 
 Tauri 2 shell that starts the Next.js standalone server with a bundled Node 22 runtime, then opens `http://127.0.0.1:47832`.
 
@@ -32,7 +32,7 @@ On Linux, `desktop:build` also runs `scripts/unbundle-appimage-wayland.sh` after
 Arch/rolling install without clobbering system Node:
 
 ```bash
-sudo ./desktop/scripts/install-from-deb.sh /path/to/PromptStudio_*_amd64.deb
+sudo ./desktop/scripts/install-from-deb.sh /path/to/Castcut_*_amd64.deb
 ```
 
 ## Data

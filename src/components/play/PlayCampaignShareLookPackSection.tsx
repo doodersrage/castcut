@@ -66,7 +66,7 @@ export default function PlayCampaignShareLookPackSection({
           }
           void parseLookPackFile(file).then(portable => {
             if (!portable) {
-              setStatus('That file is not a Prompt Studio look pack.');
+              setStatus('That file is not a Castcut look pack.');
               return;
             }
             if (!character) {

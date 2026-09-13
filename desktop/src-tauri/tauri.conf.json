@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Prompt Studio",
+  "productName": "Castcut",
   "mainBinaryName": "prompt-studio",
   "version": "../../package.json",
   "identifier": "app.promptstudio.desktop",
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "Prompt Studio",
+        "title": "Castcut",
         "width": 1440,
         "height": 900,
         "minWidth": 960,
@@ -36,6 +36,6 @@
     "resources": ["resources/server"],
     "category": "GraphicsAndDesign",
     "shortDescription": "Prompt, queue, and gallery studio",
-    "longDescription": "Prompt Studio desktop app. Bundles the Next.js server and a Node runtime. Connect ComfyUI from Settings."
+    "longDescription": "Castcut desktop app. Bundles the Next.js server and a Node runtime. Connect ComfyUI from Settings."
   }
 }

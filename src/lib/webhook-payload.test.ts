@@ -40,7 +40,7 @@ describe("formatWebhookPayload - discord template", () => {
       { name: "Status", value: "done", inline: true },
       { name: "Images", value: "3", inline: true },
     ]);
-    assert.deepEqual(embed.footer, { text: "Prompt Studio" });
+    assert.deepEqual(embed.footer, { text: "Castcut" });
     assert.equal(embed.timestamp, new Date(1700000000000).toISOString());
   });
 
@@ -69,7 +69,7 @@ describe("formatWebhookPayload - discord template", () => {
     const result = formatWebhookPayload(p, "discord") as {
       embeds: Array<Record<string, unknown>>;
     };
-    assert.equal(result.embeds[0]!.description, "Prompt Studio event");
+    assert.equal(result.embeds[0]!.description, "Castcut event");
   });
 
   it("falls back to message when prompt is absent", () => {

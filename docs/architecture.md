@@ -1,6 +1,6 @@
 # Architecture
 
-Contributor map of how Prompt Studio is wired. Product setup and feature lists live in the [documentation hub](README.md) and [main README](../README.md).
+Contributor map of how Castcut is wired. Product setup and feature lists live in the [documentation hub](README.md) and [main README](../README.md).
 
 ## Shape
 
@@ -29,7 +29,7 @@ Durable browser writes listed in `src/lib/durable-sync-keys.ts` schedule a debou
 
 ### Server (optional SQLite)
 
-When `PROMPT_DATA_DIR` is set, Prompt Studio opens `{PROMPT_DATA_DIR}/studio.sqlite` (WAL) via `src/lib/sqlite/studio-db.ts`:
+When `PROMPT_DATA_DIR` is set, Castcut opens `{PROMPT_DATA_DIR}/studio.sqlite` (WAL) via `src/lib/sqlite/studio-db.ts`:
 
 - Namespaces (`src/lib/storage-namespaces.ts`) in a `kv` table, scoped `global` or `user:{userId}`
 - Gallery rows in `gallery_entries` (not one JSON blob); tombstones in `gallery_deleted_ids`

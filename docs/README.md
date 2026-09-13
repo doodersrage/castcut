@@ -1,5 +1,5 @@
 <div class="ps-hero" markdown="0">
-  <p class="ps-hero__eyebrow">Prompt Studio · local AI image &amp; video</p>
+  <p class="ps-hero__eyebrow">Castcut · local AI image &amp; video</p>
   <h1 class="ps-hero__title">Create characters, stills, and short films</h1>
   <p class="ps-hero__lead">
     Play campaign loop — Cast → Moodboard → Fitting → Day → Cut film — with Heal &amp; ready

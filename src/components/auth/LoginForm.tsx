@@ -161,7 +161,7 @@ export default function LoginForm() {
         ? 'Enter your username or email. If SMTP is configured, a reset link is sent when a match exists.'
         : mode === 'reset'
           ? 'Choose a new password for your account.'
-          : 'Use your Prompt Studio account to continue.';
+          : 'Use your Castcut account to continue.';
 
   return (
     <form onSubmit={onSubmit} className="ui-auth-card space-y-5">

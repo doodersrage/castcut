@@ -23,7 +23,7 @@ import {
 describe("comfyui outputs view paths", () => {
   const image = {
     filename: "out.png",
-    subfolder: "PromptStudio",
+    subfolder: "Castcut",
     type: "output",
   };
 
@@ -98,7 +98,7 @@ describe("comfyui output media kind resolution", () => {
     assert.equal(isHtmlVideoContainer({ filename: "clip.mp4", format: "image/png" }), true);
     assert.equal(isHtmlVideoContainer({ filename: "clip.webp", format: "image/webp" }), false);
     assert.equal(isGalleryMotionOutput({ filename: "clip.webp", format: "image/webp" }), true);
-    assert.equal(isGalleryMotionOutput({ filename: "PromptStudio_02188_.webp" }), true);
+    assert.equal(isGalleryMotionOutput({ filename: "Castcut_02188_.webp" }), true);
     assert.equal(isGalleryMotionOutput({ filename: "out.png" }), false);
     assert.equal(shouldSkipGalleryThumbProxy("clip.webp"), true);
     assert.equal(shouldSkipGalleryThumbProxy("out.png"), false);
@@ -123,13 +123,13 @@ describe("comfyui output media kind resolution", () => {
   it("extracts refs from both the images and gifs output keys", () => {
     const images = extractImagesFromOutputs({
       "6": {
-        images: [{ filename: "frame.png", subfolder: "PromptStudio", type: "output" }],
+        images: [{ filename: "frame.png", subfolder: "Castcut", type: "output" }],
       },
       "7": {
         gifs: [
           {
             filename: "clip.webp",
-            subfolder: "PromptStudio",
+            subfolder: "Castcut",
             type: "output",
             format: "image/webp",
           },
@@ -147,11 +147,11 @@ describe("comfyui output media kind resolution", () => {
   it("prefers mp4 clips over preview stills and reads videos[] outputs", () => {
     const images = extractImagesFromOutputs({
       "6": {
-        images: [{ filename: "preview.png", subfolder: "PromptStudio", type: "output" }],
+        images: [{ filename: "preview.png", subfolder: "Castcut", type: "output" }],
       },
       "9": {
         videos: [
-          { filename: "clip.mp4", subfolder: "PromptStudio", type: "output", format: "video/mp4" },
+          { filename: "clip.mp4", subfolder: "Castcut", type: "output", format: "video/mp4" },
         ],
       },
     });

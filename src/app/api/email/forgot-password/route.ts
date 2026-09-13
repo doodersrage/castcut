@@ -47,11 +47,11 @@ export async function POST(request: Request) {
 
   await sendEmail({
     to: user.email,
-    subject: 'Prompt Studio — password reset',
+    subject: 'Castcut — password reset',
     text: textLines.join('\n'),
     html: brandedEmailHtml({
       title: 'Password reset',
-      preheader: 'Reset your Prompt Studio password.',
+      preheader: 'Reset your Castcut password.',
       footerUrl: origin,
       bodyHtml: emailParagraphs(textLines),
     }),

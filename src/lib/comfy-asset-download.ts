@@ -210,7 +210,7 @@ function withDownloadQuery(urlString: string): string {
 function buildDownloadHeaders(urlString: string): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/octet-stream,*/*',
-    'User-Agent': 'ComfyPromptStudio/1.0 (+local; curated model install)',
+    'User-Agent': 'Castcut/1.0 (+local; curated model install)',
   };
   if (isCivitaiDownloadUrl(urlString)) {
     const token = process.env.CIVITAI_API_TOKEN?.trim();

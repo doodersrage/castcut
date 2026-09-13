@@ -182,7 +182,7 @@ export function insertControlNetChainIfMissing(
   next[loadImageId] = {
     class_type: 'LoadImage',
     inputs: { image: DEFAULT_CONTROL_IMAGE_TOKEN },
-    _meta: { title: 'Prompt Studio — Control image' },
+    _meta: { title: 'Castcut — Control image' },
   };
   insertedNodeIds.push(loadImageId);
 
@@ -200,7 +200,7 @@ export function insertControlNetChainIfMissing(
         // Common optional fields — unused keys are ignored by Comfy when absent on the node.
         resolution: 512,
       },
-      _meta: { title: `Prompt Studio — ${preprocessorClass}` },
+      _meta: { title: `Castcut — ${preprocessorClass}` },
     };
     insertedNodeIds.push(preprocessorId);
     imageSourceId = preprocessorId;
@@ -210,7 +210,7 @@ export function insertControlNetChainIfMissing(
   next[loaderId] = {
     class_type: 'ControlNetLoader',
     inputs: { control_net_name: DEFAULT_CONTROLNET_MODEL_TOKEN },
-    _meta: { title: 'Prompt Studio — ControlNet loader' },
+    _meta: { title: 'Castcut — ControlNet loader' },
   };
   insertedNodeIds.push(loaderId);
 
@@ -226,7 +226,7 @@ export function insertControlNetChainIfMissing(
       control_net: [loaderId, 0],
       image: [imageSourceId, 0],
     },
-    _meta: { title: 'Prompt Studio — ControlNet apply' },
+    _meta: { title: 'Castcut — ControlNet apply' },
   };
   insertedNodeIds.push(applyId);
 
@@ -321,7 +321,7 @@ export function insertControlNetStack(
       inputs: {
         image: entry.controlImageFilename ? entry.controlImageFilename : imageToken,
       },
-      _meta: { title: `Prompt Studio — Control image ${tokenSuffix}` },
+      _meta: { title: `Castcut — Control image ${tokenSuffix}` },
     };
     insertedNodeIds.push(loadImageId);
 
@@ -338,7 +338,7 @@ export function insertControlNetStack(
           image: [loadImageId, 0],
           resolution: 512,
         },
-        _meta: { title: `Prompt Studio — ${preprocessorClass}` },
+        _meta: { title: `Castcut — ${preprocessorClass}` },
       };
       insertedNodeIds.push(preprocessorId);
       imageSourceId = preprocessorId;
@@ -350,7 +350,7 @@ export function insertControlNetStack(
       inputs: {
         control_net_name: entry.controlNetModelFilename?.trim() || modelToken,
       },
-      _meta: { title: `Prompt Studio — ControlNet loader ${tokenSuffix}` },
+      _meta: { title: `Castcut — ControlNet loader ${tokenSuffix}` },
     };
     insertedNodeIds.push(loaderId);
 
@@ -370,7 +370,7 @@ export function insertControlNetStack(
         control_net: [loaderId, 0],
         image: [imageSourceId, 0],
       },
-      _meta: { title: `Prompt Studio — ControlNet apply ${tokenSuffix}` },
+      _meta: { title: `Castcut — ControlNet apply ${tokenSuffix}` },
     };
     insertedNodeIds.push(applyId);
 

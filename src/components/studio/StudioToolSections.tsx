@@ -23,7 +23,7 @@ export default function StudioToolSections({ description, ...vm }: StudioToolSec
         accent={ACCENT}
         width="wide"
         badge={<ToolBadge accent={ACCENT}>Studio</ToolBadge>}
-        title="Prompt Studio"
+        title="Castcut"
         description={description}
       >
         <StudioTabSkeleton />
@@ -36,7 +36,7 @@ export default function StudioToolSections({ description, ...vm }: StudioToolSec
       accent={ACCENT}
       width="wide"
       badge={<ToolBadge accent={ACCENT}>Studio</ToolBadge>}
-      title="Prompt Studio"
+      title="Castcut"
       description={description}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.studio} />

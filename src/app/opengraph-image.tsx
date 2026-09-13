@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'Prompt Studio';
+export const alt = 'Castcut';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -41,11 +41,9 @@ export default function OpenGraphImage() {
           <div style={{ height: 6, width: 32, background: '#f0ab7c', borderRadius: 3 }} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 48, fontWeight: 600, letterSpacing: '-0.03em' }}>
-            Prompt Studio
-          </div>
+          <div style={{ fontSize: 48, fontWeight: 600, letterSpacing: '-0.03em' }}>Castcut</div>
           <div style={{ fontSize: 22, color: '#9eb6e0', fontFamily: 'system-ui, sans-serif' }}>
-            ComfyUI prompt · queue · gallery
+            Cast → Moodboard → Day → Cut
           </div>
         </div>
       </div>
@@ -62,7 +60,7 @@ export default function OpenGraphImage() {
         <div style={{ width: 28, height: 4, borderRadius: 2, background: '#5eead4' }} />
         <div style={{ width: 20, height: 4, borderRadius: 2, background: '#38bdf8' }} />
         <div style={{ width: 24, height: 4, borderRadius: 2, background: '#f0ab7c' }} />
-        <span style={{ marginLeft: 8 }}>scene → queue → gallery</span>
+        <span style={{ marginLeft: 8 }}>local character films</span>
       </div>
     </div>,
     size

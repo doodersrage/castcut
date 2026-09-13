@@ -1,6 +1,6 @@
 # Workflow takeover
 
-How Prompt Studio patches ComfyUI workflows at queue time.
+How Castcut patches ComfyUI workflows at queue time.
 
 Community ComfyUI workflows rarely match this app’s model picker, sampler defaults, or edit/inpaint image inputs out of the box. **Workflow takeover** applies a consistent queue-time pipeline so imported JSON behaves like a first-class template:
 

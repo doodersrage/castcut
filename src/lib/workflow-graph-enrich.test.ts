@@ -93,7 +93,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -128,7 +128,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -174,7 +174,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -215,7 +215,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -253,7 +253,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -294,7 +294,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["9", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["9", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -329,7 +329,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -362,7 +362,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -394,7 +394,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -447,7 +447,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -475,7 +475,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -506,7 +506,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -551,7 +551,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -599,7 +599,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -655,7 +655,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -721,7 +721,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -779,7 +779,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -806,7 +806,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -851,7 +851,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -892,7 +892,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -939,7 +939,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -972,7 +972,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -1020,7 +1020,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -1078,7 +1078,7 @@ describe("workflow-graph-enrich", () => {
       },
       "7": {
         class_type: "SaveImage",
-        inputs: { images: ["6", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["6", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -1151,7 +1151,7 @@ describe("workflow-graph-enrich", () => {
       },
       "7": {
         class_type: "SaveImage",
-        inputs: { images: ["6", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["6", 0], filename_prefix: "Castcut" },
       },
     };
 
@@ -1184,7 +1184,7 @@ describe("workflow-graph-enrich", () => {
         class_type: "SaveAnimatedWEBP",
         inputs: {
           images: ["6", 0],
-          filename_prefix: "PromptStudio",
+          filename_prefix: "Castcut",
           fps: 16,
           lossless: false,
           quality: 90,
@@ -1226,7 +1226,7 @@ describe("workflow-graph-enrich", () => {
       },
       "8": {
         class_type: "SaveImage",
-        inputs: { images: ["7", 0], filename_prefix: "PromptStudio" },
+        inputs: { images: ["7", 0], filename_prefix: "Castcut" },
       },
     };
 

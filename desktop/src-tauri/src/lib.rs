@@ -239,7 +239,7 @@ pub fn run() {
                 let first_launch = claim_first_launch(&data_dir);
                 if port_open(port) {
                     append_log(&data_dir, &format!("Port {port} already open — reusing"));
-                    set_splash_status(&handle, "Opening Prompt Studio…");
+                    set_splash_status(&handle, "Opening Castcut…");
                     navigate_to_studio(&handle, port, first_launch);
                     return;
                 }
@@ -269,13 +269,13 @@ pub fn run() {
                     }
                 }
                 append_log(&data_dir, &format!("Server ready on {}", origin(port)));
-                set_splash_status(&handle, "Opening Prompt Studio…");
+                set_splash_status(&handle, "Opening Castcut…");
                 navigate_to_studio(&handle, port, first_launch);
             });
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while building Prompt Studio")
+        .expect("error while building Castcut")
         .run(|app, event| {
             if let RunEvent::Exit = event {
                 if let Some(state) = app.try_state::<ServerProcess>() {

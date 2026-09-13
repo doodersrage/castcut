@@ -27,7 +27,7 @@ describe("brandedHtmlSection", () => {
 describe("brandedHtmlDocument", () => {
   it("includes the escaped title in both the <title> tag and the <h1>", () => {
     const html = brandedHtmlDocument({ title: "A & B", bodyHtml: "<div>body</div>" });
-    assert.ok(html.includes("<title>A &amp; B · Prompt Studio</title>"));
+    assert.ok(html.includes("<title>A &amp; B · Castcut</title>"));
     assert.ok(html.includes("<h1"));
     assert.ok(html.includes(">A &amp; B</h1>"));
     assert.ok(html.includes("<div>body</div>"));

@@ -3,6 +3,8 @@
  * Uses inline styles + table layout for client compatibility.
  */
 
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from '@/lib/brand';
+
 const BRAND_MARK_SVG = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="40" height="40"><rect width="64" height="64" rx="16" fill="#0b0f14"/><rect x="14" y="14" width="36" height="36" rx="9" fill="#141b24" stroke="#5eead4" stroke-width="1.75"/><rect x="21" y="24" width="18" height="3.2" rx="1.6" fill="#5eead4"/><rect x="21" y="30.5" width="13" height="3.2" rx="1.6" fill="#38bdf8" opacity="0.85"/><rect x="21" y="37" width="16" height="3.2" rx="1.6" fill="#f0ab7c" opacity="0.75"/></svg>`
 );
@@ -32,8 +34,8 @@ ${preheader}
             <img src="data:image/svg+xml,${BRAND_MARK_SVG}" width="40" height="40" alt="" style="display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.08);" />
           </td>
           <td style="vertical-align:middle;">
-            <div style="font-family:Georgia,'Iowan Old Style','Palatino Linotype',serif;font-size:22px;font-weight:600;letter-spacing:-0.03em;color:#ececef;">Prompt Studio</div>
-            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:#9eb6e0;margin-top:2px;">ComfyUI prompt · queue · gallery</div>
+            <div style="font-family:Georgia,'Iowan Old Style','Palatino Linotype',serif;font-size:22px;font-weight:600;letter-spacing:-0.03em;color:#ececef;">${PRODUCT_NAME}</div>
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:#9eb6e0;margin-top:2px;">${escapeEmailHtml(PRODUCT_TAGLINE)}</div>
           </td>
         </tr></table>
       </td></tr>
@@ -49,7 +51,7 @@ ${preheader}
         ${input.bodyHtml}
       </td></tr>
       <tr><td style="padding:16px 28px 24px;border-top:1px solid rgba(255,255,255,0.06);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:#6b6f7a;">
-        <a href="${escapeEmailHtml(origin)}" style="color:#9eb6e0;text-decoration:none;">Open Prompt Studio</a>
+        <a href="${escapeEmailHtml(origin)}" style="color:#9eb6e0;text-decoration:none;">Open ${PRODUCT_NAME}</a>
       </td></tr>
     </table>
   </td></tr>

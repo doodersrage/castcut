@@ -157,7 +157,7 @@ export default function GenerateToolSections({
         <p className="ui-brand-tagline type-caption flex flex-wrap items-center gap-2 text-[var(--text-tertiary)]">
           <BrandBars />
           <span>
-            Prompt Studio
+            Castcut
             <span className="mx-1.5 text-[var(--border-strong)]">·</span>
             scene → queue → gallery — Random surprise skips the blank page
           </span>

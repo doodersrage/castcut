@@ -193,7 +193,7 @@ export function fluxScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -289,7 +289,7 @@ export function fluxInpaintScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -379,7 +379,7 @@ export function fluxImg2imgScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -477,7 +477,7 @@ export function fluxKleinEditScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };

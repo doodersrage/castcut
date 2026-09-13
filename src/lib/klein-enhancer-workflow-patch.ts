@@ -367,7 +367,7 @@ function insertTextEnhancerNode(
       skip_bos: true,
       debug: false,
     },
-    _meta: { title: 'Prompt Studio — Klein text enhancer' },
+    _meta: { title: 'Castcut — Klein text enhancer' },
   };
   return textEnhancerId;
 }
@@ -589,7 +589,7 @@ function wireKleinComposeEnhancerPack(
   next[multiRefId] = {
     class_type: KLEIN_MULTI_REF_NODE,
     inputs: multiInputs,
-    _meta: { title: 'Prompt Studio — Klein multi reference' },
+    _meta: { title: 'Castcut — Klein multi reference' },
   };
   insertedNodeIds.push(multiRefId);
 
@@ -628,7 +628,7 @@ function wireKleinComposeEnhancerPack(
     next[identityId] = {
       class_type: KLEIN_IDENTITY_FINAL_NODE,
       inputs: identityInputs,
-      _meta: { title: 'Prompt Studio — Klein identity transfer' },
+      _meta: { title: 'Castcut — Klein identity transfer' },
     };
     insertedNodeIds.push(identityId);
     modelOutputRef = [identityId, 0];
@@ -659,7 +659,7 @@ function wireKleinComposeEnhancerPack(
         channel_weights: 'by_variance',
         debug: false,
       },
-      _meta: { title: 'Prompt Studio — Klein color anchor' },
+      _meta: { title: 'Castcut — Klein color anchor' },
     };
     insertedNodeIds.push(colorAnchorId);
     modelOutputRef = [colorAnchorId, 0];

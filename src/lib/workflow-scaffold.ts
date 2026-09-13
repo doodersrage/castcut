@@ -266,7 +266,7 @@ function controlNetScaffold(tokens: WorkflowPlaceholderTokens): Record<string, u
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'PromptStudio' },
+      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
       _meta: { title: 'Save Image' },
     },
   };
@@ -323,7 +323,7 @@ export function buildFaceDetailerWorkflowScaffold(): WorkflowScaffoldResult {
     '5': {
       class_type: 'SaveImage',
       inputs: {
-        filename_prefix: 'PromptStudio-face-detail',
+        filename_prefix: 'Castcut-face-detail',
         images: ['4', 0],
       },
       _meta: {
@@ -433,7 +433,7 @@ export function buildIdentityWorkflowScaffold(
           '11': {
             class_type: 'SaveImage',
             inputs: {
-              filename_prefix: 'PromptStudio-pulid',
+              filename_prefix: 'Castcut-pulid',
               images: ['10', 0],
             },
             _meta: { title: 'Save Image' },
@@ -516,7 +516,7 @@ export function buildIdentityWorkflowScaffold(
           '11': {
             class_type: 'SaveImage',
             inputs: {
-              filename_prefix: 'PromptStudio-instantid',
+              filename_prefix: 'Castcut-instantid',
               images: ['10', 0],
             },
             _meta: { title: 'Save Image' },

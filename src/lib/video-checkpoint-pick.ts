@@ -36,7 +36,7 @@ export function scoreVideoWeightFilename(model: string, filename: string): numbe
   if (billions?.[1]) {
     score += Number.parseFloat(billions[1]);
   }
-  // Prompt Studio video scaffolds are I2V/AIO-oriented; prefer Rapid AIO packs
+  // Castcut video scaffolds are I2V/AIO-oriented; prefer Rapid AIO packs
   // over official dual-noise T2V weights when both are installed.
   if (/rapid|aio/i.test(filename)) score += 20;
   if (/i2v/i.test(filename)) score += 8;

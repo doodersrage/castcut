@@ -18,7 +18,7 @@ const CHECKPOINT_LOADER_TYPES = new Set(['CheckpointLoaderSimple', 'CheckpointLo
 const LOAD_IMAGE_TYPES = new Set(['LoadImage', 'LoadImageOutput']);
 const RESIZE_TYPES = new Set(['ImageScale', 'ResizeImage']);
 
-const KLEIN_REF_LATENT_SCALE_TITLE = 'Prompt Studio — ref → latent size';
+const KLEIN_REF_LATENT_SCALE_TITLE = 'Castcut — ref → latent size';
 
 function getLinkedNodeId(value: unknown): string | null {
   if (!Array.isArray(value) || value.length < 1) {

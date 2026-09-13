@@ -1,6 +1,6 @@
 # Desktop app
 
-Prompt Studio can ship as a **Tauri** window on macOS, Windows, and Linux. The installer bundles the Next.js standalone server and a Node 22 runtime. It does **not** bundle ComfyUI or model weights.
+Castcut can ship as a **Tauri** window on macOS, Windows, and Linux. The installer bundles the Next.js standalone server and a Node 22 runtime. It does **not** bundle ComfyUI or model weights.
 
 ## Install
 
@@ -12,7 +12,7 @@ Prompt Studio can ship as a **Tauri** window on macOS, Windows, and Linux. The i
 | Windows | `.exe` (NSIS) |
 | Linux | `.deb` (preferred), `.AppImage` |
 
-Linux installers use the name `PromptStudio` (no space). The window title stays **Prompt Studio**.
+Linux installers use the name `Castcut` (legacy releases used `PromptStudio`). The window title is **Castcut**. Binary CLI remains `prompt-studio`.
 
 On Arch/Fedora/other rolling distros, prefer the **`.deb`**: it links your system WebKitGTK (GPU Skia). The AppImage bundles an older Ubuntu WebKit that often falls back to CPU painting and feels sluggish even when it launches cleanly.
 
@@ -21,11 +21,11 @@ On Arch/Fedora/other rolling distros, prefer the **`.deb`**: it links your syste
 Stock Tauri `.deb` packages also drop a Node sidecar at `/usr/bin/node`. Prefer the in-repo installer:
 
 ```bash
-sudo ./desktop/scripts/install-from-deb.sh ~/Downloads/PromptStudio_*_amd64.deb
+sudo ./desktop/scripts/install-from-deb.sh ~/Downloads/Castcut_*_amd64.deb
 prompt-studio
 ```
 
-That installs under `/usr/lib/PromptStudio/` (binary + Node sidecar) and only symlinks `/usr/bin/prompt-studio`. Updates: Settings → Overview → Check for updates, then re-run the script with the new `.deb`.
+That installs under `/usr/lib/Castcut/` (binary + Node sidecar) and only symlinks `/usr/bin/prompt-studio`. Updates: Settings → Overview → Check for updates, then re-run the script with the new `.deb`.
 
 First desktop launch opens **Settings → ComfyUI → Connection** and auto-runs **Heal & ready** (`?heal=1`).
 
@@ -59,7 +59,7 @@ on rolling distros.
 If an older AppImage black-screens:
 
 ```bash
-WEBKIT_DISABLE_DMABUF_RENDERER=1 ./PromptStudio_*.AppImage
+WEBKIT_DISABLE_DMABUF_RENDERER=1 ./Castcut_*.AppImage
 ```
 
 ## Local build

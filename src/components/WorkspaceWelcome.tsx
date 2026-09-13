@@ -141,7 +141,7 @@ export default function WorkspaceWelcome() {
               What do you want to make?
             </h2>
             <p className="type-body mt-2 text-[var(--text-secondary)]">
-              Prompt Studio is a local AI image &amp; video production studio. Pick a path — change
+              Castcut is a local AI image &amp; video production studio. Pick a path — change
               workspace density anytime (Make / Control / Build) in the sidebar.
             </p>
             <div className="mt-5 grid gap-2" data-testid="welcome-goal-chooser">

@@ -161,7 +161,7 @@ describe("insertIpAdapterChainIfMissing", () => {
         },
       },
       "6": { class_type: "VAEDecode", inputs: { samples: ["5", 0], vae: ["1", 2] } },
-      "7": { class_type: "SaveImage", inputs: { images: ["6", 0], filename_prefix: "PromptStudio" } },
+      "7": { class_type: "SaveImage", inputs: { images: ["6", 0], filename_prefix: "Castcut" } },
     };
   }
 

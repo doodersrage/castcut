@@ -1,7 +1,7 @@
 {
   "name": "prompt-studio-desktop",
   "private": true,
-  "description": "Tauri shell for Prompt Studio",
+  "description": "Tauri shell for Castcut",
   "scripts": {
     "tauri": "tauri"
   },

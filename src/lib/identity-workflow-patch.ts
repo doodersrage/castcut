@@ -150,7 +150,7 @@ export function insertIdentityChainIfMissing(
   next[loadImageId] = {
     class_type: 'LoadImage',
     inputs: { image: DEFAULT_IDENTITY_IMAGE_TOKEN },
-    _meta: { title: 'Prompt Studio — identity reference' },
+    _meta: { title: 'Castcut — identity reference' },
   };
   insertedNodeIds.push(loadImageId);
 
@@ -159,7 +159,7 @@ export function insertIdentityChainIfMissing(
     next[faceId] = {
       class_type: INSTANTID_FACE,
       inputs: { provider: 'CPU' },
-      _meta: { title: 'Prompt Studio — InstantID face analysis' },
+      _meta: { title: 'Castcut — InstantID face analysis' },
     };
     insertedNodeIds.push(faceId);
 
@@ -167,7 +167,7 @@ export function insertIdentityChainIfMissing(
     next[loaderId] = {
       class_type: INSTANTID_LOADER,
       inputs: { instantid_file: 'ip-adapter.bin' },
-      _meta: { title: 'Prompt Studio — InstantID model' },
+      _meta: { title: 'Castcut — InstantID model' },
     };
     insertedNodeIds.push(loaderId);
 
@@ -183,7 +183,7 @@ export function insertIdentityChainIfMissing(
         start_at: 0,
         end_at: 1,
       },
-      _meta: { title: 'Prompt Studio — InstantID apply' },
+      _meta: { title: 'Castcut — InstantID apply' },
     };
     insertedNodeIds.push(applyId);
 
@@ -196,7 +196,7 @@ export function insertIdentityChainIfMissing(
     next[evaId] = {
       class_type: PULID_EVA,
       inputs: {},
-      _meta: { title: 'Prompt Studio — PuLID EVA CLIP' },
+      _meta: { title: 'Castcut — PuLID EVA CLIP' },
     };
     insertedNodeIds.push(evaId);
 
@@ -204,7 +204,7 @@ export function insertIdentityChainIfMissing(
     next[loaderId] = {
       class_type: PULID_LOADER,
       inputs: { pulid_file: 'pulid_v1.1.safetensors' },
-      _meta: { title: 'Prompt Studio — PuLID model' },
+      _meta: { title: 'Castcut — PuLID model' },
     };
     insertedNodeIds.push(loaderId);
 
@@ -224,7 +224,7 @@ export function insertIdentityChainIfMissing(
         start_at: 0,
         end_at: 1,
       },
-      _meta: { title: 'Prompt Studio — PuLID apply' },
+      _meta: { title: 'Castcut — PuLID apply' },
     };
     insertedNodeIds.push(applyId);
 

@@ -1,4 +1,4 @@
-/** Shared Prompt Studio header for HTML exports (compare, portfolio, etc.). */
+/** Shared Castcut header for HTML exports (compare, portfolio, etc.). */
 
 const SECTION_CARD =
   'margin-bottom:24px;padding:16px 18px;border:1px solid rgba(91,127,196,0.28);border-radius:14px;background:rgba(20,27,36,0.92);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);';
@@ -24,7 +24,7 @@ export function brandedHtmlDocument(input: {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeBrandedHtml(input.title)} · Prompt Studio</title>
+  <title>${escapeBrandedHtml(input.title)} · Castcut</title>
 </head>
 <body style="font-family:Georgia,'Times New Roman',serif;background:#0b0f14;color:#ececef;padding:32px 24px;max-width:960px;margin:0 auto;">
   <header style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
@@ -34,7 +34,7 @@ export function brandedHtmlDocument(input: {
       <div style="height:3px;width:16px;background:#f0ab7c;border-radius:2px;"></div>
     </div>
     <div>
-      <div style="font-size:22px;font-weight:600;letter-spacing:-0.03em;">Prompt Studio</div>
+      <div style="font-size:22px;font-weight:600;letter-spacing:-0.03em;">Castcut</div>
       ${subtitle}
     </div>
   </header>

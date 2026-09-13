@@ -86,15 +86,15 @@ export function buildLightningGalleryUpscaleWorkflow(): Record<string, WorkflowN
     '1': {
       class_type: 'LoadImage',
       inputs: { image: DEFAULT_INPUT_IMAGE_TOKEN },
-      _meta: { title: 'Prompt Studio — gallery output' },
+      _meta: { title: 'Castcut — gallery output' },
     },
     '2': {
       class_type: 'SaveImage',
       inputs: {
-        filename_prefix: 'PromptStudio-upscale',
+        filename_prefix: 'Castcut-upscale',
         images: ['1', 0],
       },
-      _meta: { title: 'Prompt Studio — save' },
+      _meta: { title: 'Castcut — save' },
     },
   };
 }
@@ -114,7 +114,7 @@ export function buildGalleryMoireCleanWorkflow(
     '1': {
       class_type: 'LoadImage',
       inputs: { image: DEFAULT_INPUT_IMAGE_TOKEN },
-      _meta: { title: 'Prompt Studio — gallery output' },
+      _meta: { title: 'Castcut — gallery output' },
     },
     '2': {
       class_type: 'ImageBlur',
@@ -123,7 +123,7 @@ export function buildGalleryMoireCleanWorkflow(
         blur_radius: blurRadius,
         sigma: blurSigma,
       },
-      _meta: { title: 'Prompt Studio — moiré polish' },
+      _meta: { title: 'Castcut — moiré polish' },
     },
   };
 
@@ -144,7 +144,7 @@ export function buildGalleryMoireCleanWorkflow(
         upscale_method: downMethod,
         scale_by: downscale,
       },
-      _meta: { title: 'Prompt Studio — moiré downscale' },
+      _meta: { title: 'Castcut — moiré downscale' },
     };
 
     const restoreId = String(nextId++);
@@ -155,7 +155,7 @@ export function buildGalleryMoireCleanWorkflow(
         upscale_method: 'lanczos',
         scale_by: restore,
       },
-      _meta: { title: 'Prompt Studio — moiré size restore' },
+      _meta: { title: 'Castcut — moiré size restore' },
     };
     outputId = restoreId;
 
@@ -169,7 +169,7 @@ export function buildGalleryMoireCleanWorkflow(
           sigma: 0.6,
           alpha: sharpenAlpha,
         },
-        _meta: { title: 'Prompt Studio — moiré edge recovery' },
+        _meta: { title: 'Castcut — moiré edge recovery' },
       };
       outputId = sharpenId;
     }
@@ -179,10 +179,10 @@ export function buildGalleryMoireCleanWorkflow(
   workflow[saveId] = {
     class_type: 'SaveImage',
     inputs: {
-      filename_prefix: 'PromptStudio-moire-clean',
+      filename_prefix: 'Castcut-moire-clean',
       images: [outputId, 0],
     },
-    _meta: { title: 'Prompt Studio — save' },
+    _meta: { title: 'Castcut — save' },
   };
 
   return workflow;
@@ -222,7 +222,7 @@ export function buildGalleryUpscaleWorkflow(
     [loadId]: {
       class_type: 'LoadImage',
       inputs: { image: DEFAULT_INPUT_IMAGE_TOKEN },
-      _meta: { title: 'Prompt Studio — gallery output' },
+      _meta: { title: 'Castcut — gallery output' },
     },
   };
 
@@ -238,7 +238,7 @@ export function buildGalleryUpscaleWorkflow(
     workflow[loaderId] = {
       class_type: 'UpscaleModelLoader',
       inputs: { model_name: modelName },
-      _meta: { title: 'Prompt Studio — upscale model' },
+      _meta: { title: 'Castcut — upscale model' },
     };
 
     const upscaleId = id();
@@ -256,7 +256,7 @@ export function buildGalleryUpscaleWorkflow(
     workflow[upscaleId] = {
       class_type: 'ImageUpscaleWithModel',
       inputs: upscaleInputs,
-      _meta: { title: 'Prompt Studio — neural upscale' },
+      _meta: { title: 'Castcut — neural upscale' },
     };
     outputNodeId = upscaleId;
 
@@ -279,7 +279,7 @@ export function buildGalleryUpscaleWorkflow(
           upscale_method: 'area',
           scale_by: targetScale,
         },
-        _meta: { title: 'Prompt Studio — neural target upscale' },
+        _meta: { title: 'Castcut — neural target upscale' },
       };
       outputNodeId = targetId;
     }
@@ -293,7 +293,7 @@ export function buildGalleryUpscaleWorkflow(
           upscale_method: 'lanczos',
           scale_by: polishScale,
         },
-        _meta: { title: 'Prompt Studio — Lanczos polish' },
+        _meta: { title: 'Castcut — Lanczos polish' },
       };
       outputNodeId = polishId;
     }
@@ -311,7 +311,7 @@ export function buildGalleryUpscaleWorkflow(
         upscale_method: 'lanczos',
         scale_by: scaleBy,
       },
-      _meta: { title: 'Prompt Studio — output upscale' },
+      _meta: { title: 'Castcut — output upscale' },
     };
     outputNodeId = scaleId;
   }
@@ -334,7 +334,7 @@ export function buildGalleryUpscaleWorkflow(
         sigma: 0.45,
         alpha: sharpenAlphaForProfile(input.qualityProfile, { model: input.model }),
       },
-      _meta: { title: 'Prompt Studio — output sharpen' },
+      _meta: { title: 'Castcut — output sharpen' },
     };
     outputNodeId = sharpenId;
   }
@@ -343,10 +343,10 @@ export function buildGalleryUpscaleWorkflow(
   workflow[saveId] = {
     class_type: 'SaveImage',
     inputs: {
-      filename_prefix: 'PromptStudio-upscale',
+      filename_prefix: 'Castcut-upscale',
       images: [outputNodeId, 0],
     },
-    _meta: { title: 'Prompt Studio — save' },
+    _meta: { title: 'Castcut — save' },
   };
 
   return workflow;

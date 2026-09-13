@@ -37,7 +37,7 @@ ENGINE_URL = os.environ.get("DIFFUSERS_ENGINE_URL", "http://127.0.0.1:8190").rst
 INPUT_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-app = FastAPI(title="Prompt Studio Diffusers Engine", version="0.2.0")
+app = FastAPI(title="Castcut Diffusers Engine", version="0.2.0")
 jobs = JobQueue(OUTPUT_DIR)
 
 

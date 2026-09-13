@@ -22,7 +22,7 @@ export default function AppUpdateWatcher() {
           return;
         }
         pushSystemTrayMessage({
-          text: `Prompt Studio ${result.latestVersion} is available — you're on ${result.currentVersion}.`,
+          text: `Castcut ${result.latestVersion} is available — you're on ${result.currentVersion}.`,
           tone: 'info',
           href: result.releaseUrl ?? undefined,
           ttlMs: 0,

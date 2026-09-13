@@ -304,7 +304,7 @@ export function insertIpAdapterChainIfMissing(
   next[loadImageId] = {
     class_type: 'LoadImage',
     inputs: { image: DEFAULT_IPADAPTER_IMAGE_TOKEN },
-    _meta: { title: 'Prompt Studio — IP-Adapter reference' },
+    _meta: { title: 'Castcut — IP-Adapter reference' },
   };
   insertedNodeIds.push(loadImageId);
 
@@ -314,7 +314,7 @@ export function insertIpAdapterChainIfMissing(
     next[clipVisionId] = {
       class_type: CLIP_VISION_LOADER_NODE_TYPE,
       inputs: { clip_name: DEFAULT_IPADAPTER_CLIP_VISION_FILENAME },
-      _meta: { title: 'Prompt Studio — IP-Adapter CLIP vision' },
+      _meta: { title: 'Castcut — IP-Adapter CLIP vision' },
     };
     insertedNodeIds.push(clipVisionId);
   }
@@ -323,7 +323,7 @@ export function insertIpAdapterChainIfMissing(
   next[loaderId] = {
     class_type: IPADAPTER_MODEL_LOADER_NODE_TYPE,
     inputs: { ipadapter_file: DEFAULT_IPADAPTER_MODEL_TOKEN },
-    _meta: { title: 'Prompt Studio — IP-Adapter model' },
+    _meta: { title: 'Castcut — IP-Adapter model' },
   };
   insertedNodeIds.push(loaderId);
 
@@ -345,7 +345,7 @@ export function insertIpAdapterChainIfMissing(
   next[applyId] = {
     class_type: IPADAPTER_ADVANCED_NODE_TYPE,
     inputs: applyInputs,
-    _meta: { title: 'Prompt Studio — IP-Adapter apply' },
+    _meta: { title: 'Castcut — IP-Adapter apply' },
   };
   insertedNodeIds.push(applyId);
 
@@ -432,7 +432,7 @@ export function insertIpAdapterStack(
       inputs: {
         image: entry.imageFilename ?? imageToken,
       },
-      _meta: { title: `Prompt Studio — IP-Adapter reference ${tokenSuffix}` },
+      _meta: { title: `Castcut — IP-Adapter reference ${tokenSuffix}` },
     };
     insertedNodeIds.push(loadImageId);
 
@@ -442,7 +442,7 @@ export function insertIpAdapterStack(
       next[clipVisionId] = {
         class_type: CLIP_VISION_LOADER_NODE_TYPE,
         inputs: { clip_name: DEFAULT_IPADAPTER_CLIP_VISION_FILENAME },
-        _meta: { title: `Prompt Studio — IP-Adapter CLIP vision ${tokenSuffix}` },
+        _meta: { title: `Castcut — IP-Adapter CLIP vision ${tokenSuffix}` },
       };
       insertedNodeIds.push(clipVisionId);
     }
@@ -453,7 +453,7 @@ export function insertIpAdapterStack(
       inputs: {
         ipadapter_file: entry.modelFilename?.trim() || DEFAULT_IPADAPTER_MODEL_TOKEN,
       },
-      _meta: { title: `Prompt Studio — IP-Adapter model ${tokenSuffix}` },
+      _meta: { title: `Castcut — IP-Adapter model ${tokenSuffix}` },
     };
     insertedNodeIds.push(loaderId);
 
@@ -479,7 +479,7 @@ export function insertIpAdapterStack(
     next[applyId] = {
       class_type: IPADAPTER_ADVANCED_NODE_TYPE,
       inputs: applyInputs,
-      _meta: { title: `Prompt Studio — IP-Adapter apply ${tokenSuffix}` },
+      _meta: { title: `Castcut — IP-Adapter apply ${tokenSuffix}` },
     };
     insertedNodeIds.push(applyId);
 

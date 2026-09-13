@@ -269,7 +269,7 @@ export default function LogoTool() {
               fields: [event.target.value, tagline, industry],
             });
           }}
-          placeholder="Prompt Studio"
+          placeholder="Castcut"
           className={accentFocusClass(ACCENT)}
         />
 

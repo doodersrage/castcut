@@ -17,9 +17,9 @@ describe("workflow save format", () => {
   });
 
   it("adds profile suffixes to filename prefixes", () => {
-    assert.equal(resolveSaveFilenamePrefix("PromptStudio", "draft"), "PromptStudio-draft");
-    assert.equal(resolveSaveFilenamePrefix("PromptStudio-draft", "final"), "PromptStudio");
-    assert.equal(resolveSaveFilenamePrefix("PromptStudio", "max"), "PromptStudio-max");
+    assert.equal(resolveSaveFilenamePrefix("Castcut", "draft"), "Castcut-draft");
+    assert.equal(resolveSaveFilenamePrefix("Castcut-draft", "final"), "Castcut");
+    assert.equal(resolveSaveFilenamePrefix("Castcut", "max"), "Castcut-max");
   });
 
   it("picks an installed WebP save adapter", () => {
@@ -35,7 +35,7 @@ describe("workflow save format", () => {
       workflow: {
         "9": {
           class_type: "SaveImage",
-          inputs: { images: ["8", 0], filename_prefix: "PromptStudio" },
+          inputs: { images: ["8", 0], filename_prefix: "Castcut" },
         },
       },
       qualityProfile: "draft",
@@ -46,7 +46,7 @@ describe("workflow save format", () => {
       inputs: Record<string, unknown>;
     };
     assert.equal(save.class_type, "SaveImageExtended");
-    assert.equal(save.inputs.filename_prefix, "PromptStudio-draft");
+    assert.equal(save.inputs.filename_prefix, "Castcut-draft");
     assert.equal(save.inputs.file_type, "WEBP (lossy)");
     assert.ok(changes.some((change) => /WebP/i.test(change.message)));
   });
@@ -58,7 +58,7 @@ describe("workflow save format", () => {
           class_type: "SaveImageExtended",
           inputs: {
             images: ["8", 0],
-            filename_prefix: "PromptStudio-draft",
+            filename_prefix: "Castcut-draft",
             file_type: "WEBP (lossy)",
           },
         },
@@ -71,7 +71,7 @@ describe("workflow save format", () => {
       inputs: Record<string, unknown>;
     };
     assert.equal(save.class_type, "SaveImage");
-    assert.equal(save.inputs.filename_prefix, "PromptStudio");
+    assert.equal(save.inputs.filename_prefix, "Castcut");
     assert.equal(save.inputs.file_type, undefined);
     assert.ok(changes.some((change) => /PNG/i.test(change.message)));
   });
@@ -106,7 +106,7 @@ describe("workflow save format", () => {
       workflow: {
         "9": {
           class_type: "SaveImage",
-          inputs: { images: ["8", 0], filename_prefix: "PromptStudio" },
+          inputs: { images: ["8", 0], filename_prefix: "Castcut" },
         },
       },
       qualityProfile: "draft",
@@ -154,7 +154,7 @@ describe("workflow save format", () => {
       workflow: {
         "10": {
           class_type: "SaveImageAdvanced",
-          inputs: { images: ["9", 0], filename_prefix: "PromptStudio" },
+          inputs: { images: ["9", 0], filename_prefix: "Castcut" },
         },
       },
       qualityProfile: "final",
@@ -167,7 +167,7 @@ describe("workflow save format", () => {
     assert.equal(save.inputs.format, "png");
     assert.equal(save.inputs.bit_depth, "8-bit");
     assert.equal(save.inputs.input_color_space, "sRGB");
-    assert.equal(save.inputs.filename_prefix, "PromptStudio");
+    assert.equal(save.inputs.filename_prefix, "Castcut");
     assert.ok(changes.some((change) => /SaveImageAdvanced format/i.test(change.message)));
   });
 
