@@ -285,8 +285,8 @@ Jump to: [Prompt generation](#prompt-generation) · [Scene tools](#scene-tools) 
 
 ## UI & UX {#ui-ux}
 
-- **Workspace modes** — Play (first-run default), Simple, Studio, or Full from the sidebar footer or Profile → Appearance; the saved mode is applied on first paint
-- **Unified first-run path** — Welcome, Settings Heal, and first-queue modal share dismiss state; onboarding leads with Comfy → workflows → Generate (`/?source=random`) before optional LLM
+- **Workspace modes** — Play (**Make**, first-run default), Simple (**Make** lean), Studio (**Control**), or Full (**Build**) from the sidebar footer or Profile → Appearance; the saved mode is applied on first paint
+- **Unified first-run path** — Welcome goal chooser → Heal & ready → landing CTA; Settings Heal and first-queue modal share dismiss state; Generate offers Photoreal / Illustration / Edit / Video goal chips before the full model list
 - **Post-Heal checklist** — Connection first-run card lists Generate → Queue → Gallery review after Heal succeeds
 - **Active jobs chip** — sidebar and mobile header show live queue count with a deep link to `/queue`
 - **Mobile Studio offer** — narrow viewports get a dismissible banner to open `/m`
