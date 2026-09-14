@@ -74,7 +74,11 @@ export function RoleplayCastToneSettingSection({
               </ChipButton>
             ))}
           </div>
-        ) : null}
+        ) : (
+          <p className="type-caption text-[var(--text-muted)]" data-testid="roleplay-adult-hint">
+            Adult heat tones stay off until the NSFW generator env flag is enabled.
+          </p>
+        )}
         <ChipButton
           active={toolSettings.allowGore === true}
           disabled={busy}

@@ -84,7 +84,7 @@ export function useMobilePlayToolOrchestrationCore() {
   const bio = toolSettings.bio;
   const story = toolSettings.story ?? EMPTY_STORY;
   const storyProgress = formatRoleplayStoryProgress(story);
-  const autoQueue = toolSettings.autoQueue !== false;
+  const autoQueue = toolSettings.autoQueue === true;
   const beatOutput = normalizeRoleplayBeatOutput(toolSettings.beatOutput);
   const storyRef = useRef(story);
   useEffect(() => {

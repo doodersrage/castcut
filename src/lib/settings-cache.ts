@@ -1376,7 +1376,7 @@ export const DEFAULT_ROLEPLAY_TOOL_CACHE: RoleplayToolCache = {
   content: 'pg13',
   playAs: 'text',
   isolateSubject: true,
-  autoQueue: true,
+  autoQueue: false,
   beatOutput: 'clip',
 };
 

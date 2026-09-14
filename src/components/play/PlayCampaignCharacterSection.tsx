@@ -51,15 +51,14 @@ export default function PlayCampaignCharacterSection({
       description={
         character
           ? 'The campaign stays tied to one Cast record.'
-          : 'Create a Cast character here — Roleplay is optional later, not a prerequisite.'
+          : 'Name a Cast lead for this film — Story is optional later.'
       }
       data-testid="play-campaign-character"
     >
       {!character ? (
         <div className="space-y-3" data-testid="play-campaign-create-character">
           <p className="type-caption text-[var(--text-muted)]">
-            Name the lead for this film loop, then continue to Moodboard. You can add a face plate
-            on Cast or Moodboard after.
+            Name the lead, then continue to Look. You can add a face plate on Cast or Look after.
           </p>
           <div className="space-y-2">
             <FieldLabel htmlFor="play-campaign-create-name">New character</FieldLabel>
@@ -85,7 +84,7 @@ export default function PlayCampaignCharacterSection({
                 data-testid="play-campaign-create-continue"
                 onClick={() => submitCreate(true)}
               >
-                Create & continue to Moodboard
+                Create & continue to Look
               </Button>
               <Button
                 size="sm"

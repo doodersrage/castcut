@@ -41,7 +41,7 @@ export const WORKSPACE_MODE_OPTIONS: {
     label: 'Play',
     shortTag: 'Make',
     description:
-      'Make things — Campaign, Moodboard, Fitting, Day, Roleplay, Gallery, Queue. One character, one film.',
+      'Make a film — Cast, Look, Outfit, Day, Gallery, Queue. One character, one day reel.',
   },
   {
     id: 'simple',

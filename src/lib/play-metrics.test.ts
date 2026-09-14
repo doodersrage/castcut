@@ -38,7 +38,7 @@ describe('play-metrics', () => {
     );
     assert.equal(
       resolveNextPlayAction({ funnel: { keepTryOn: 3, firstFilmCut: 0 } }).label,
-      'Continue in Day'
+      'Continue to Day'
     );
     assert.equal(
       resolveNextPlayAction({ funnel: { firstFilmCut: 1, saveToCast: 0 } }).href,
@@ -48,7 +48,7 @@ describe('play-metrics', () => {
       campaign: { characterId: 'c1', stepIndex: 2 },
     });
     assert.equal(resume.href, '/fitting?character=c1');
-    assert.match(resume.label, /Fitting/i);
+    assert.match(resume.label, /Outfit/i);
   });
 
   it('pushes Cast watch then another Day cut after campaign complete', () => {
@@ -141,7 +141,7 @@ describe('play-metrics', () => {
     assert.match(resume.href, /wardrobe=kit-a/);
   });
 
-  it('resume CTA advances to Fitting when look pack exists but campaign is still on Moodboard', () => {
+  it('resume CTA advances to Outfit when look pack exists but campaign is still on Look', () => {
     const resume = resolveNextPlayAction({
       campaign: { characterId: 'c1', stepIndex: 1 },
       lookPack: {
@@ -153,7 +153,7 @@ describe('play-metrics', () => {
         savedAt: 1,
       },
     });
-    assert.equal(resume.label, 'Continue Fitting');
+    assert.equal(resume.label, 'Continue to Outfit');
     assert.match(resume.href, /fitting/);
   });
 

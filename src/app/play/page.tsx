@@ -4,7 +4,7 @@ import { ToolPageSkeleton } from '@/components/ui/ViewState';
 
 export default function PlayCampaignPage() {
   return (
-    <Suspense fallback={<ToolPageSkeleton label="Loading Play campaign" />}>
+    <Suspense fallback={<ToolPageSkeleton label="Loading film" />}>
       <PlayCampaignWizard />
     </Suspense>
   );

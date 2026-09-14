@@ -55,6 +55,7 @@ export default function OnboardingChecklist() {
   const router = useRouter();
   const workspaceMode = useWorkspaceMode();
   const isSimple = workspaceMode === 'simple';
+  const isPlay = workspaceMode === 'play';
   const allowedFeatures = useAllowedFeatures();
   const [steps, setSteps] = useState<OnboardingStep[]>([]);
   const [hidden, setHidden] = useState(false);
@@ -93,8 +94,24 @@ export default function OnboardingChecklist() {
     return null;
   }
 
-  const core = accessibleSteps.filter(step => isOnboardingCoreStep(step.id));
-  const chrome = isSimple ? [] : accessibleSteps.filter(step => isOnboardingChromeStep(step.id));
+  const playFocusIds = new Set([
+    'first-play-campaign',
+    'first-film-cut',
+    'watch-first-film',
+    'comfy-health',
+    'system-workflows',
+  ]);
+  const core = accessibleSteps.filter(step => {
+    if (!isOnboardingCoreStep(step.id)) {
+      return false;
+    }
+    if (isPlay) {
+      return playFocusIds.has(step.id);
+    }
+    return true;
+  });
+  const chrome =
+    isSimple || isPlay ? [] : accessibleSteps.filter(step => isOnboardingChromeStep(step.id));
   const simpleTips = isSimple
     ? accessibleSteps.filter(step => step.id === 'discover-palette' || step.id === 'pin-tool')
     : [];
@@ -103,7 +120,9 @@ export default function OnboardingChecklist() {
   return (
     <div className="mx-auto mb-6 max-w-3xl rounded-[var(--radius-xl)] border border-[var(--accent-border)] bg-[var(--accent-muted)] p-4 shadow-[var(--shadow-surface)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium text-[var(--accent-text)]">Getting started</p>
+        <p className="text-sm font-medium text-[var(--accent-text)]">
+          {isPlay ? 'Finish your film' : 'Getting started'}
+        </p>
         <Button
           size="sm"
           variant="ghost"

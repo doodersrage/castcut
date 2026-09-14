@@ -188,9 +188,23 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         data-testid="moodboard-tiles"
       >
         {tiles.length === 0 ? (
-          <p className="type-caption text-[var(--text-muted)]">
-            No tiles yet — add one to start building the board.
-          </p>
+          <div className="space-y-2" data-testid="moodboard-empty">
+            <p className="type-caption text-[var(--text-muted)]">
+              No tiles yet — add refs, or extract a look from notes alone.
+            </p>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              data-testid="moodboard-seed-tiles"
+              onClick={() => {
+                addTile();
+                addTile();
+              }}
+            >
+              Add starter tiles
+            </Button>
+          </div>
         ) : (
           <div className="flex flex-wrap gap-2">
             {tiles.map((tile, index) => (
@@ -320,20 +334,9 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
       </ToolSection>
 
       <ToolActionRow>
-        <Button size="sm" variant="secondary" disabled={busy || extracting} onClick={previewPrompt}>
-          Preview prompt
-        </Button>
         <Button
           size="sm"
           variant="primary"
-          disabled={busy || extracting}
-          onClick={() => void queueScene()}
-        >
-          {busy ? 'Queueing…' : 'Queue scene'}
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
           disabled={busy || extracting}
           data-testid="moodboard-extract-look"
           onClick={() => void extractLookPack()}
@@ -346,7 +349,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
           disabled={busy || extracting}
           onClick={() => void sendLookToFitting()}
         >
-          Use in Fitting
+          Continue to Outfit
         </Button>
         <Button
           size="sm"
@@ -354,67 +357,90 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
           disabled={busy || extracting}
           onClick={() => void sendLookToDay()}
         >
-          Use in Day
+          Continue to Day
         </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={busy || extracting}
-          onClick={() => void sendLookToRoleplay()}
-        >
-          Use in Roleplay
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={busy || extracting || !character}
-          onClick={() => void saveLookPackToCast()}
-        >
-          Save on Cast
+        <Button size="sm" variant="ghost" disabled={busy || extracting} onClick={previewPrompt}>
+          Preview prompt
         </Button>
         <Button
           size="sm"
           variant="ghost"
           disabled={busy || extracting}
-          onClick={() => {
-            const pack = loadLookPack();
-            if (!pack) {
-              setLookStatus('Extract a look first.');
-              return;
-            }
-            downloadLookPackFile({
-              pack,
-              name: character?.name ? `${character.name} look` : 'look-pack',
-            });
-            setLookStatus('Downloaded look pack JSON.');
-          }}
+          onClick={() => void queueScene()}
         >
-          Export JSON
+          {busy ? 'Queueing…' : 'Queue scene'}
         </Button>
-        {character ? (
-          <>
-            <ButtonLink href={playCampaignHref(character.id)} size="sm" variant="ghost">
-              Play campaign
-            </ButtonLink>
-            <ButtonLink
-              href={`/day?character=${encodeURIComponent(character.id)}`}
+        <details className="w-full">
+          <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+            More · Roleplay, save, export
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy || extracting}
+              onClick={() => void sendLookToRoleplay()}
+            >
+              Use in Story
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy || extracting || !character}
+              onClick={() => void saveLookPackToCast()}
+            >
+              Save on Cast
+            </Button>
+            <Button
               size="sm"
               variant="ghost"
+              disabled={busy || extracting}
+              onClick={() => {
+                const pack = loadLookPack();
+                if (!pack) {
+                  setLookStatus('Extract a look first.');
+                  return;
+                }
+                downloadLookPackFile({
+                  pack,
+                  name: character?.name ? `${character.name} look` : 'look-pack',
+                });
+                setLookStatus('Downloaded look pack JSON.');
+              }}
             >
-              Plan a day
-            </ButtonLink>
-            <ButtonLink
-              href={`/fitting?character=${encodeURIComponent(character.id)}`}
+              Export JSON
+            </Button>
+            {character ? (
+              <>
+                <ButtonLink href={playCampaignHref(character.id)} size="sm" variant="ghost">
+                  Open Film
+                </ButtonLink>
+                <ButtonLink
+                  href={`/day?character=${encodeURIComponent(character.id)}`}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Plan a day
+                </ButtonLink>
+                <ButtonLink
+                  href={`/fitting?character=${encodeURIComponent(character.id)}`}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Try on Outfit
+                </ButtonLink>
+              </>
+            ) : null}
+            <Button
               size="sm"
-              variant="ghost"
+              variant="secondary"
+              disabled={busy || extracting}
+              onClick={goRoleplay}
             >
-              Try on in Fitting
-            </ButtonLink>
-          </>
-        ) : null}
-        <Button size="sm" variant="secondary" disabled={busy || extracting} onClick={goRoleplay}>
-          Continue in Roleplay
-        </Button>
+              Continue in Story
+            </Button>
+          </div>
+        </details>
       </ToolActionRow>
       {lookStatus ? <p className="type-caption text-[var(--text-muted)]">{lookStatus}</p> : null}
       {error ? <FieldError>{error}</FieldError> : null}

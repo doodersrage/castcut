@@ -143,7 +143,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       const still = stillsRef.current.find(entry => entry.slotId === slot.id);
       const imageUrl = still?.status === 'completed' ? still.imageUrl?.trim() : '';
       if (!imageUrl) {
-        setError(`Queue and wait for the ${slot.label.toLowerCase()} still before animating.`);
+        setError(
+          `${slot.label} still isn’t ready yet — queue it first, wait for the thumbnail here, then Animate.`
+        );
         return;
       }
       if (manageBusy) {

@@ -135,11 +135,11 @@ export default function PlayFilmMetricsCard() {
       {empty ? (
         <>
           <p className="type-caption text-[var(--text-muted)]" data-testid="play-metrics-empty">
-            No Play funnel events yet. Heal & ready, queue a still, then start a campaign.
+            No film events yet. Queue a still or start a film from Play.
           </p>
           <div className="mt-2">
             <ButtonLink href="/play" size="sm" variant="primary" data-testid="play-empty-start">
-              Open Play campaign
+              Start a film
             </ButtonLink>
           </div>
         </>
@@ -257,7 +257,7 @@ export default function PlayFilmMetricsCard() {
         </ButtonLink>
         {next.href !== '/play' ? (
           <ButtonLink href="/play" size="sm" variant="secondary">
-            Open Play campaign
+            Open Film
           </ButtonLink>
         ) : null}
         {empty ? (

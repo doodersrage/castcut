@@ -30,18 +30,18 @@ export const FIRST_RUN_GOAL_OPTIONS: FirstRunGoalOption[] = [
     id: 'character',
     label: 'Character',
     description: 'Create a Cast lead and keep using them across looks and films.',
-    cta: { label: 'Create on Play', href: '/play' },
+    cta: { label: 'Create on Film', href: '/play' },
   },
   {
     id: 'film',
     label: 'Scene / Film',
-    description: 'Moodboard → Fitting → Day → Cut film — stills to a short sequence.',
-    cta: { label: 'Start Play campaign', href: '/play' },
+    description: 'Look → Outfit → Day → Cut film — stills to a short sequence.',
+    cta: { label: 'Start a film', href: '/play' },
   },
   {
     id: 'image',
     label: 'Image',
-    description: 'Generate or edit a still. Switch models by goal under Advanced later.',
+    description: 'Generate or edit a still. Switch models under Advanced later.',
     cta: { label: 'Open Generate', href: GENERATE_HREF },
   },
   {

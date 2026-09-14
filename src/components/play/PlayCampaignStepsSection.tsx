@@ -1,6 +1,6 @@
 'use client';
 
-import { PLAY_CAMPAIGN_STEPS } from '@/lib/play-campaign';
+import { PLAY_CAMPAIGN_STEPS, PLAY_CORE_STEP_IDS } from '@/lib/play-campaign';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
@@ -8,7 +8,9 @@ import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaign
 type PlayCampaignStepsSectionProps = Pick<
   ReturnType<typeof usePlayCampaignWizardOrchestration>,
   'activeStep' | 'characterId' | 'activeLookPack' | 'setStepOverride' | 'goToStep' | 'router'
->;
+> & {
+  firstFilmDone?: boolean;
+};
 
 export default function PlayCampaignStepsSection({
   activeStep,
@@ -17,16 +19,20 @@ export default function PlayCampaignStepsSection({
   setStepOverride,
   goToStep,
   router,
+  firstFilmDone = false,
 }: PlayCampaignStepsSectionProps) {
+  const steps = PLAY_CAMPAIGN_STEPS;
+
   return (
     <ToolSection
       title="Steps"
-      description="Each step carries character + look pack when staged."
+      description="One primary path — open the next step when you are ready."
       data-testid="play-campaign-steps"
     >
       <ol className="space-y-2">
-        {PLAY_CAMPAIGN_STEPS.map((step, index) => {
+        {steps.map((step, index) => {
           const isActive = step.id === activeStep;
+          const isOptional = step.id === 'roleplay';
           return (
             <li
               key={step.id}
@@ -39,12 +45,14 @@ export default function PlayCampaignStepsSection({
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="type-overline mb-1 text-[var(--text-muted)]">Step {index + 1}</p>
+                  <p className="type-overline mb-1 text-[var(--text-muted)]">
+                    {isOptional ? 'Optional' : `Step ${index + 1}`}
+                  </p>
                   <p className="type-heading">
                     {step.label}
-                    {step.id === 'roleplay' ? (
+                    {isOptional ? (
                       <span className="type-caption ml-2 font-normal text-[var(--text-muted)]">
-                        optional
+                        after first film
                       </span>
                     ) : null}
                   </p>
@@ -63,7 +71,7 @@ export default function PlayCampaignStepsSection({
                     goToStep(step.id, activeLookPack);
                   }}
                 >
-                  Open
+                  {isActive ? 'Continue' : 'Open'}
                 </Button>
               </div>
             </li>

@@ -25,39 +25,62 @@ export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
   {
     id: 'character',
     label: 'Cast',
-    description: 'Create or pick the Cast character this campaign belongs to.',
+    description: 'Create or pick the lead for this film.',
     href: ({ characterId }) => `/characters/${encodeURIComponent(characterId)}`,
   },
   {
     id: 'moodboard',
-    label: 'Moodboard',
-    description: 'Stack refs and extract a look pack (or pick a saved one on Cast).',
+    label: 'Look',
+    description: 'Add refs and extract a look (or use a saved one).',
     href: ({ characterId }) => `/moodboard?character=${encodeURIComponent(characterId)}`,
   },
   {
     id: 'fitting',
-    label: 'Fitting',
-    description: 'Swipe wardrobe kits on the locked plate.',
+    label: 'Outfit',
+    description: 'Try wardrobe kits and Keep one for the day.',
     href: ({ characterId, pack }) =>
       pack ? lookPackFittingHref(pack) : `/fitting?character=${encodeURIComponent(characterId)}`,
   },
   {
     id: 'day',
     label: 'Day',
-    description: 'Plan morning → night, queue stills, animate slots, Cut film.',
+    description: 'Queue morning → night stills, then Cut film.',
     href: ({ characterId, pack }) =>
       pack ? lookPackDayHref(pack) : `/day?character=${encodeURIComponent(characterId)}`,
   },
   {
     id: 'roleplay',
-    label: 'Roleplay',
-    description: 'Optional — alternate ending with beats and clips, or skip after a Day cut.',
+    label: 'Story',
+    description: 'Optional — story beats after your first Day cut.',
     href: ({ characterId, pack }) =>
       pack ? lookPackRoleplayHref(pack) : `/roleplay?character=${encodeURIComponent(characterId)}`,
   },
 ];
 
+/** Core film steps shown before the first cut (Roleplay stays optional / unlocked later). */
+export const PLAY_CORE_STEP_IDS: PlayCampaignStepId[] = [
+  'character',
+  'moodboard',
+  'fitting',
+  'day',
+];
+
+export function playCampaignProgressLabel(state: PlayCampaignState | null): string {
+  if (!state) {
+    return 'Film · start';
+  }
+  if (state.completedAt) {
+    return 'Film · complete';
+  }
+  const step = PLAY_CAMPAIGN_STEPS[state.stepIndex];
+  const coreCount = PLAY_CORE_STEP_IDS.length;
+  const displayIndex = Math.min(state.stepIndex + 1, coreCount);
+  return `Film · ${displayIndex} of ${coreCount}${step ? ` · ${step.label}` : ''}`;
+}
+
 export const PLAY_CAMPAIGN_KEY = 'play-campaign-v1';
+
+export const PLAY_CAMPAIGN_UPDATED_EVENT = 'play-campaign-updated';
 
 export type PlayCampaignState = {
   version: 1;
@@ -104,6 +127,9 @@ export function savePlayCampaignState(state: PlayCampaignState): void {
     window.sessionStorage.setItem(PLAY_CAMPAIGN_KEY, JSON.stringify(normalized));
   } catch {
     /* private mode */
+  }
+  if (typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event(PLAY_CAMPAIGN_UPDATED_EVENT));
   }
 }
 
@@ -187,6 +213,9 @@ export function clearPlayCampaignState(): void {
     window.sessionStorage.removeItem(PLAY_CAMPAIGN_KEY);
   } catch {
     /* private mode */
+  }
+  if (typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event(PLAY_CAMPAIGN_UPDATED_EVENT));
   }
 }
 

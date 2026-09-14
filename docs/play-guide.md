@@ -1,6 +1,6 @@
-# Play campaign guide
+# Play film guide
 
-The **Play** workspace is a guided film loop on one Cast character: Moodboard → Fitting → Day → Roleplay → **Cut film** → **Save to Cast**. This page is the product walkthrough; ops and env vars live in the [operator guide](operator.md) and [configuration](configuration.md).
+The **Play** workspace is a guided film loop on one Cast character: **Look → Outfit → Day → Cut film** (Story optional after the first cut) → **Save to Cast**. This page is the product walkthrough; ops and env vars live in the [operator guide](operator.md) and [configuration](configuration.md).
 
 Jump to: [When to use Play](#when-to-use-play) · [Step-by-step](#step-by-step) · [Dashboard metrics](#dashboard-metrics) · [Share & resume](#share-and-resume) · [Mobile vs desk](#mobile-vs-desk)
 
@@ -10,69 +10,67 @@ Jump to: [When to use Play](#when-to-use-play) · [Step-by-step](#step-by-step) 
 
 | Workspace | Best for |
 | --- | --- |
-| **Play** (**Make**, default) | One character, one look, one day-in-the-life film |
-| **Simple** (**Make**, lean) | Essentials — Generate, Gallery, Queue, Cast |
-| **Studio / Full** (**Control** / **Build**) | History, compare, templates, advanced queue controls |
+| **Play** (default) | One character, one look, one day-in-the-life film |
+| **Simple** | Essentials — Generate, Gallery, Queue, Cast |
+| **Studio / Full** | History, compare, templates, advanced queue controls |
 
-Switch modes from the sidebar footer or **Profile → Appearance**. Play slimmed chrome hides draft-preview noise until you open it.
+Switch modes from **Profile → Appearance**. Play slimmed chrome hides draft-preview noise and optional Story until you cut your first film.
 
-First launch asks **What do you want to make?** (Character / Scene·Film / Image / Surprise), then **Heal & ready**. On a phone, use **Mobile Studio** (`/m`).
+First launch asks **What do you want to make?** (Character / Scene·Film / Image / Surprise). Image / Surprise land in Simple; film goals stay in Play. Optional engine setup can wait until you queue. On a phone, use **Mobile Studio** (`/m`) — same Look / Outfit / Day labels.
 
-!!! tip "First film in under an hour"
-    Heal & ready → random Generate still → **Play campaign** → Moodboard extract → Fitting Keep → Day stills → **Cut film** → Save to Cast. The Dashboard **Play film loop** card tracks time from campaign start to first cut.
+!!! tip "First film in minutes"
+    **Make a starter film** (welcome or Film page) seeds a Cast lead + Day slots, or: Heal later → Look extract → Outfit Keep (or skip) → Day stills → **Cut film** → Save to Cast. The Dashboard **Play film loop** card tracks time from start to first cut.
 
 ---
 
 ## Step-by-step {#step-by-step}
 
-### 1. Open Play (`/play`)
+### 1. Open Film (`/play`)
 
-**Create or pick** a Cast character on Play (name → **Create & continue to Moodboard**). You do not need Roleplay first. The campaign stepper shows: Cast → Moodboard → Fitting → Day → Roleplay (optional).
+**Create or pick** a Cast character (name → **Create & continue to Look**), or tap **Make a starter film**. You do not need Story first. The stepper shows: Cast → Look → Outfit → Day → Story (optional).
 
-### 2. Moodboard (`/moodboard`)
+### 2. Look (`/moodboard`)
 
-Stack up to four reference tiles (mood, lighting, location, style, palette). Optional gallery stills per tile.
+Stack reference tiles (mood, lighting, location, style, palette). Optional gallery stills per tile.
 
 - **Extract look** — builds a session look pack (vision merge when tiles have images).
-- **Use in Fitting / Day / Roleplay** — hand off vibe notes + optional wardrobe lock.
-- **Save on Cast** — named look packs on the character record.
-- **Export JSON** / **Copy share link** — portable handoff (`#lookpack=` on `/play`).
+- **Continue to Outfit / Day** — hand off vibe notes + optional wardrobe lock.
+- **Save on Cast** / **Export JSON** — under More (power users).
 
 Deep link: `/moodboard?character=<id>`.
 
-### 3. Fitting Room (`/fitting`)
+### 3. Outfit (`/fitting`)
 
 Lock a character plate, browse wardrobe kits, queue try-ons.
 
 - **Keep / Skip** on completed try-ons — Keep stamps a gallery keeper and maps kits onto Day slots.
-- **Continue in Day** — primary CTA after a keeper.
-- **Save kit to Cast** — writes `lockedWardrobeId`.
+- **Continue to Day** — primary CTA after a keeper. **Skip outfit · Day** if you want stills without a kit lock.
+- **Save kit to Cast** — under More.
 
 Deep links: `/fitting?character=<id>&wardrobe=<kit>`.
 
-### 4. Day Planner (`/day`)
+### 4. Day (`/day`)
 
 Four slots (Morning → Night) with wardrobe, setting, and beat per slot.
 
-- Queue stills per slot or **Queue all** (Play/Simple queues draft stills in parallel for a faster first film).
-- **Animate slot / Animate all** — I2V from completed stills (stays Final quality).
-- **Day reel** preview — clips preferred over stills; stills alone are enough to Cut.
-- **Cut film** — server ffmpeg assemble when available, browser MediaRecorder fallback.
-- After cut: **Watch / Save on Cast**, **Open in Gallery**, **Back to Play**. Roleplay is optional.
+- **Queue day** (Play queues draft stills in parallel for a faster first film).
+- **Animate** stays collapsed until you want I2V clips (Final quality).
+- **Cut film** — server ffmpeg when available, browser MediaRecorder fallback if the server encode fails.
+- After cut: **Watch / Save on Cast**. Story is optional.
 
-Deep links: `/day?character=<id>&wardrobe=<kit>` · Moodboard handoff: `?from=look`.
+Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 
-### 5. Roleplay (`/roleplay`)
+### 5. Story (`/roleplay`)
 
-**Optional** alternate ending: story beats, stills + clips, **Cut film**, Save to Cast. A Day cut already completes the campaign.
+**Optional** after the first Day cut: story beats, stills + clips, **Cut film**, Save to Cast.
 
 - **Play as** From bio or From photo (edit/img2img + identity lock).
 - Fal **extend-video** when parent is on Fal CDN; else last-frame I2V.
-- Tone and content rating controls (see [features — Roleplay](features.md#scene-tools)).
+- Tone and content rating controls (see [features — Roleplay](features.md#scene-tools)). Adult heat requires the NSFW generator env flag.
 
 ### 6. Close the loop
 
-1. **Cut film** in Day or Roleplay records `firstFilmCut` metrics.
+1. **Cut film** in Day or Story records `firstFilmCut` metrics.
 2. Dashboard **Save film to Cast** CTA opens Cast films tab.
 3. **Watch film on Cast**, then **Cut another Day film** for the habit loop.
 
@@ -100,7 +98,7 @@ Empty state: **Open Play campaign** + **Heal & ready** link.
 | **Resume** | Campaign state + `lookPackId` restore on Cast; **Continue** on Play |
 | **Share link** | Copy share link embeds pack in `/play#lookpack=…` (large packs → Export JSON) |
 | **Cross-machine** | Studio backup JSON or look pack export/import |
-| **Character mismatch** | **Switch to resume character** or restart at Moodboard |
+| **Character mismatch** | **Switch to that character** or restart at Look |
 
 Durable keys: `play-campaign-v1`, `comfy-play-metrics-v1`, look packs on Cast + session `moodboard-look-pack-v1`.
 
@@ -110,11 +108,11 @@ Durable keys: `play-campaign-v1`, `comfy-play-metrics-v1`, look packs on Cast + 
 
 | Surface | Role |
 | --- | --- |
-| **`/m` (Mobile Studio)** | First-class film loop: Capture → Rate → **Moodboard → Fitting → Day → Play** |
-| **`/m/moodboard` · `/m/fitting` · `/m/day` · `/m/play`** | Touch-first Board / Fit / Day / Play — stills + clips, Cut film, Save to Cast |
-| **Desk** | Optional large-screen handoff (Campaign stepper, full Roleplay chrome) |
+| **`/m` (Mobile Studio)** | First-class film loop: Cast → Gallery → **Look → Outfit → Day → Story** |
+| **`/m/moodboard` · `/m/fitting` · `/m/day` · `/m/play`** | Touch-first Look / Outfit / Day / Story — stills + clips, Cut film, Save to Cast |
+| **Desk** | Optional large-screen handoff (Film stepper, full Story chrome) |
 
-Phone is a first-class film loop. Desk Continue is optional when you prefer a large screen.
+Phone is a first-class film loop with the same vocabulary as desk.
 
 ---
 

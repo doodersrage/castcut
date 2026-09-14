@@ -44,7 +44,8 @@ export default function SetupReadinessBanner({
   deferUntilQueueIntent?: boolean;
 }) {
   const workspaceMode = useWorkspaceMode();
-  const deferUntilQueueIntent = deferUntilQueueIntentProp ?? workspaceMode === 'simple';
+  const deferUntilQueueIntent =
+    deferUntilQueueIntentProp ?? (workspaceMode === 'simple' || workspaceMode === 'play');
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [busy, setBusy] = useState(false);

@@ -112,7 +112,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Character"
-        description="Same Character OS id as Cast, Fitting, and Roleplay."
+        description="Same Cast lead as Look, Outfit, and Story."
         data-testid="day-character"
       >
         <CharacterOsPicker
@@ -274,13 +274,29 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           >
             {busy ? 'Queueing…' : `Queue ${activeSlot.label.toLowerCase()}`}
           </Button>
-          <Button size="sm" variant="secondary" disabled={busy} onClick={() => void queueAll()}>
-            Queue all slots
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            data-testid="day-queue-all"
+            onClick={() => void queueAll()}
+          >
+            Queue day
           </Button>
         </ToolActionRow>
+        {leanChrome ? (
+          <p className="type-caption text-[var(--text-muted)]" data-testid="day-draft-hint">
+            Play queues draft stills for a faster first film. Animate clips (Final quality) after
+            you&apos;ve cut once — open Animate below anytime.
+          </p>
+        ) : null}
         <CollapsibleSection
           title="Animate clips"
-          summary="Turn completed stills into I2V clips for the day reel."
+          summary={
+            leanChrome
+              ? 'Optional — turn completed stills into clips after your first cut.'
+              : 'Turn completed stills into I2V clips for the day reel.'
+          }
           defaultOpen={!leanChrome}
           persistKey="day-animate"
         >
@@ -322,12 +338,16 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Day reel"
-        description="Completed clips play first; otherwise stills. Cut film uses the same playlist."
+        description={
+          leanChrome
+            ? 'Stills are enough to Cut film. Clips play first when you animate later.'
+            : 'Completed clips play first; otherwise stills. Cut film uses the same playlist.'
+        }
         data-testid="day-reel"
       >
         <FilmWatchPlayer
           shots={watchPlaylist}
-          emptyLabel="Queue slot stills and wait for gallery completion to preview the day reel."
+          emptyLabel="Queue the day and wait here — Morning through Night fill in as jobs finish."
         />
         <ToolActionRow>
           <Button

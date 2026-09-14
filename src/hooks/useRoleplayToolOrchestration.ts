@@ -49,7 +49,7 @@ export function useRoleplayToolOrchestration() {
     () => toolSettings.rejectedScenes ?? [],
     [toolSettings.rejectedScenes]
   );
-  const autoQueue = toolSettings.autoQueue !== false;
+  const autoQueue = toolSettings.autoQueue === true;
   const beatOutput = normalizeRoleplayBeatOutput(toolSettings.beatOutput);
   const storyRef = useRef<RoleplayStoryBeat[]>(toolSettings.story ?? []);
   const scenesRef = useRef<RoleplayScene[]>([]);
@@ -65,7 +65,12 @@ export function useRoleplayToolOrchestration() {
   });
 
   useRoleplayLibraryPersist({ mounted, toolSettings, updateToolSettings });
-  useRoleplayLookPackDeepLink({ mounted, updateShared, updateToolSettings });
+  useRoleplayLookPackDeepLink({
+    mounted,
+    updateShared,
+    updateToolSettings,
+    onMessage: message => setError(message),
+  });
 
   const reference = useRoleplayReferenceImage({
     mounted,

@@ -44,7 +44,9 @@ export function savePlayMetrics(metrics: PlayMetrics): void {
     return;
   }
   writeBrowserValue(PLAY_METRICS_KEY, normalizePlayMetrics(metrics));
-  window.dispatchEvent(new Event(PLAY_METRICS_UPDATED_EVENT));
+  if (typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event(PLAY_METRICS_UPDATED_EVENT));
+  }
 }
 
 /** Returns true the first time campaign start is recorded. */
@@ -65,6 +67,11 @@ export function recordFirstFilmCut(at = Date.now()): boolean {
   }
   savePlayMetrics({ ...current, firstFilmCutAt: at });
   return true;
+}
+
+/** True once the user has cut at least one Play film (unlocks optional chrome). */
+export function hasCompletedFirstFilm(metrics: PlayMetrics = loadPlayMetrics()): boolean {
+  return typeof metrics.firstFilmCutAt === 'number' && metrics.firstFilmCutAt > 0;
 }
 
 /**
@@ -113,10 +120,10 @@ export type PlayFunnelStall = {
 
 const PLAY_FUNNEL_STEP_LABELS: Record<PlayFunnelStepId, string> = {
   character: 'Cast',
-  moodboard: 'Moodboard',
-  fitting: 'Fitting',
-  day: 'Day Planner',
-  roleplay: 'Roleplay',
+  moodboard: 'Look',
+  fitting: 'Outfit',
+  day: 'Day',
+  roleplay: 'Story',
   cut: 'Cut film',
 };
 
@@ -232,31 +239,33 @@ export function resolveNextPlayAction(input: {
     const stepIds = ['character', 'moodboard', 'fitting', 'day', 'roleplay'] as const;
     const id = stepIds[stepIndex] ?? 'moodboard';
     const labels: Record<(typeof stepIds)[number], string> = {
-      character: 'Open Cast',
-      moodboard: 'Continue Moodboard',
-      fitting: 'Continue Fitting',
-      day: 'Continue Day · Cut film',
-      roleplay: 'Optional Roleplay · or Cut in Day',
+      character: 'Continue to Cast',
+      moodboard: 'Continue to Look',
+      fitting: 'Continue to Outfit',
+      day: 'Continue to Day',
+      roleplay: 'Continue to Day',
     };
+    // Before first film, Roleplay is optional — steer to Day cut instead.
+    const resumeId = id === 'roleplay' ? 'day' : id;
     return {
       label: labels[id],
-      href: resolvePlayFunnelStepHref(id, characterId, pack),
-      reason: 'Resume your active Play campaign at the current step.',
+      href: resolvePlayFunnelStepHref(resumeId, characterId, pack),
+      reason: 'Resume your film at the current step.',
     };
   }
 
   if (starts > 0 && cuts === 0) {
     return {
-      label: 'Cut film in Day',
+      label: 'Continue to Day',
       href: resolvePlayFunnelStepHref('day', characterId || undefined, pack),
-      reason: 'Campaign started — Cut film in Day (Roleplay is optional).',
+      reason: 'Film started — queue Day stills and Cut film.',
     };
   }
   if (keeps > 0 && cuts === 0) {
     return {
-      label: 'Continue in Day',
+      label: 'Continue to Day',
       href: resolvePlayFunnelStepHref('day', characterId || undefined, pack),
-      reason: 'Keepers saved — Continue in Day and Cut film.',
+      reason: 'Outfit kept — queue Day stills and Cut film.',
     };
   }
   if (cuts > 0 && saves === 0) {
@@ -283,9 +292,9 @@ export function resolveNextPlayAction(input: {
   }
 
   return {
-    label: 'Open Play campaign',
+    label: 'Start a film',
     href: '/play',
-    reason: 'Start Moodboard → Fitting → Day → film.',
+    reason: 'Create a Cast lead, pick a look, plan a day, Cut film.',
   };
 }
 

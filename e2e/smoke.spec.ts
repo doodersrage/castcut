@@ -163,7 +163,7 @@ const ADDITIONAL_ROUTES: Array<{ path: string; heading: RegExp; level?: 1 | 2 | 
   { path: '/logo', heading: /^Logo$/i },
   { path: '/image-prompt', heading: /Image → Prompt/i },
   { path: '/inpaint', heading: /^Inpaint$/i },
-  { path: '/play', heading: /^Play campaign$/i },
+  { path: '/play', heading: /^Your film$/i },
   { path: '/fitting', heading: /^Fitting Room$/i },
   { path: '/day', heading: /^Day Planner$/i },
   { path: '/moodboard', heading: /Moodboard/i },

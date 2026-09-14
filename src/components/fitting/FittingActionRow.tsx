@@ -41,9 +41,17 @@ export default function FittingActionRow({
           variant="primary"
           data-testid="fitting-continue-day"
         >
-          Continue in Day
+          Continue to Day
         </ButtonLink>
       ) : null}
+      <Button
+        size="sm"
+        variant={continueDayHref ? 'secondary' : 'primary'}
+        disabled={queueBlocked}
+        onClick={onQueueTryOn}
+      >
+        {busy ? 'Queueing…' : 'Queue try-on'}
+      </Button>
       <Button
         size="sm"
         variant="secondary"
@@ -51,9 +59,6 @@ export default function FittingActionRow({
         onClick={onSkipKit}
       >
         Skip kit
-      </Button>
-      <Button size="sm" variant="primary" disabled={queueBlocked} onClick={onQueueTryOn}>
-        {busy ? 'Queueing…' : 'Queue try-on'}
       </Button>
       <Button
         size="sm"
@@ -63,43 +68,61 @@ export default function FittingActionRow({
       >
         Queue & next
       </Button>
-      <Button size="sm" variant="secondary" disabled={busy} onClick={onSaveKitToCast}>
-        Save kit to Cast
-      </Button>
-      <Button size="sm" variant="secondary" disabled={busy} onClick={onGoRoleplay}>
-        Continue in Roleplay
-      </Button>
-      {character ? (
-        <>
-          {!continueDayHref ? (
-            <ButtonLink
-              href={dayPlannerHref}
-              size="sm"
-              variant="secondary"
-              data-testid="fitting-plan-day"
-              onClick={() => {
-                bumpPlayCampaignStep({ characterId: character.id, stepId: 'day' });
-              }}
-            >
-              Plan a day
-            </ButtonLink>
-          ) : null}
-          <ButtonLink
-            href={`/moodboard?character=${encodeURIComponent(character.id)}`}
-            size="sm"
-            variant="secondary"
-          >
-            Set look (Moodboard)
-          </ButtonLink>
-          <ButtonLink
-            href={`/gallery?character=${encodeURIComponent(character.id)}`}
-            size="sm"
-            variant="ghost"
-          >
-            Open in Gallery
-          </ButtonLink>
-        </>
+      {character && !continueDayHref ? (
+        <ButtonLink
+          href={dayPlannerHref}
+          size="sm"
+          variant="secondary"
+          data-testid="fitting-skip-day"
+          onClick={() => {
+            bumpPlayCampaignStep({ characterId: character.id, stepId: 'day' });
+          }}
+        >
+          Skip outfit · Day
+        </ButtonLink>
       ) : null}
+      <details className="w-full">
+        <summary className="type-caption cursor-pointer text-[var(--text-muted)]">More</summary>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button size="sm" variant="ghost" disabled={busy} onClick={onSaveKitToCast}>
+            Save kit to Cast
+          </Button>
+          <Button size="sm" variant="ghost" disabled={busy} onClick={onGoRoleplay}>
+            Continue in Story
+          </Button>
+          {character ? (
+            <>
+              {!continueDayHref ? (
+                <ButtonLink
+                  href={dayPlannerHref}
+                  size="sm"
+                  variant="ghost"
+                  data-testid="fitting-plan-day"
+                  onClick={() => {
+                    bumpPlayCampaignStep({ characterId: character.id, stepId: 'day' });
+                  }}
+                >
+                  Plan a day
+                </ButtonLink>
+              ) : null}
+              <ButtonLink
+                href={`/moodboard?character=${encodeURIComponent(character.id)}`}
+                size="sm"
+                variant="ghost"
+              >
+                Back to Look
+              </ButtonLink>
+              <ButtonLink
+                href={`/gallery?character=${encodeURIComponent(character.id)}`}
+                size="sm"
+                variant="ghost"
+              >
+                Open in Gallery
+              </ButtonLink>
+            </>
+          ) : null}
+        </div>
+      </details>
     </ToolActionRow>
   );
 }

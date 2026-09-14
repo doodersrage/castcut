@@ -315,7 +315,6 @@ async function assembleFilmBlobOnServer(
   if (typeof window === 'undefined' || options?.preferServer === false) {
     return null;
   }
-  let serverAttempted = false;
   try {
     const availableRes = await fetch('/api/film/assemble', { method: 'GET' });
     if (!availableRes.ok) {
@@ -326,7 +325,6 @@ async function assembleFilmBlobOnServer(
       return null;
     }
 
-    serverAttempted = true;
     options?.onProgress?.({ ratio: 0.04, label: 'Starting server encode…' });
     const startRes = await fetch('/api/film/assemble', {
       method: 'POST',
@@ -396,8 +394,8 @@ async function assembleFilmBlobOnServer(
     }
     throw new Error('Server film encode timed out.');
   } catch (error) {
-    // Only fall back to browser when ffmpeg was never available / never attempted.
-    if (!serverAttempted) {
+    // Prefer browser MediaRecorder whenever server assemble fails or is unavailable.
+    if (typeof document !== 'undefined' && typeof MediaRecorder !== 'undefined') {
       return null;
     }
     throw error instanceof Error ? error : new Error('Server film encode failed.');

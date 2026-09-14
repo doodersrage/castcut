@@ -23,6 +23,7 @@ import {
   FIRST_RUN_QUEUE_HREF,
   FIRST_RUN_GENERATE_HREF,
 } from '@/lib/empty-cta';
+import { startStarterPlayFilm } from '@/lib/play-starter';
 import { useAuth } from '@/hooks/useAuth';
 
 type WelcomePhase = 'goal' | 'setup' | 'ready';
@@ -33,7 +34,7 @@ const PHASE_STEP: Record<WelcomePhase, number> = {
   ready: 3,
 };
 
-/** One-time welcome: what to make → Heal & ready → land on the chosen path. */
+/** One-time welcome: what to make → optional Heal → land on the chosen path. */
 export default function WorkspaceWelcome() {
   const auth = useAuth();
   const [phase, setPhase] = useState<WelcomePhase | null>(null);
@@ -43,6 +44,7 @@ export default function WorkspaceWelcome() {
     label: 'Open Generate',
     href: '/?source=random',
   });
+  const [chosenGoal, setChosenGoal] = useState<FirstRunGoalId | null>(null);
 
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_PLAYWRIGHT === '1') {
@@ -64,7 +66,13 @@ export default function WorkspaceWelcome() {
 
   function chooseGoal(goal: FirstRunGoalId) {
     saveFirstRunGoal(goal);
-    saveWorkspaceMode('play');
+    setChosenGoal(goal);
+    // Image / Surprise stay out of the film kiosk — lean Simple chrome.
+    if (goal === 'image' || goal === 'surprise') {
+      saveWorkspaceMode('simple');
+    } else {
+      saveWorkspaceMode('play');
+    }
     markOnboardingSetWorkspace();
     setPhase('setup');
   }
@@ -95,13 +103,16 @@ export default function WorkspaceWelcome() {
       }
       finishWelcome();
     } catch (err) {
-      setSetupMessage(err instanceof Error ? err.message : 'Heal failed.');
+      setSetupMessage(
+        err instanceof Error ? err.message : 'Setup failed — you can continue anyway.'
+      );
     } finally {
       setBusy(false);
     }
   }
 
   const step = PHASE_STEP[phase];
+  const filmGoal = chosenGoal === 'character' || chosenGoal === 'film' || chosenGoal == null;
 
   return (
     <div
@@ -141,9 +152,18 @@ export default function WorkspaceWelcome() {
               What do you want to make?
             </h2>
             <p className="type-body mt-2 text-[var(--text-secondary)]">
-              Castcut is a local AI image &amp; video production studio. Pick a path — change
-              workspace density anytime (Make / Control / Build) in the sidebar.
+              Castcut turns a Cast lead into a short day-in-the-life film — or a single still when
+              you just need an image.
             </p>
+            <div
+              className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-3 py-3"
+              data-testid="welcome-sample-film"
+            >
+              <p className="type-caption text-[var(--text-muted)]">What you&apos;re making</p>
+              <p className="type-body mt-1 text-[var(--text-secondary)]">
+                Four stills — morning to night — cut into a short reel you can watch on Cast.
+              </p>
+            </div>
             <div className="mt-5 grid gap-2" data-testid="welcome-goal-chooser">
               {FIRST_RUN_GOAL_OPTIONS.map(option => (
                 <button
@@ -176,9 +196,6 @@ export default function WorkspaceWelcome() {
                   >
                     <span className="block text-sm font-medium text-[var(--text-primary)]">
                       {option.label}
-                      <span className="type-caption ml-2 font-normal text-[var(--text-muted)]">
-                        {option.shortTag}
-                      </span>
                     </span>
                     <span className="type-caption mt-1 block text-[var(--text-muted)]">
                       {option.description}
@@ -189,7 +206,7 @@ export default function WorkspaceWelcome() {
             </details>
             <div className="mt-4 flex justify-end">
               <Button type="button" variant="ghost" size="sm" onClick={() => chooseGoal('film')}>
-                Skip — use Play
+                Skip — start a film
               </Button>
             </div>
           </>
@@ -202,13 +219,11 @@ export default function WorkspaceWelcome() {
               id="workspace-welcome-title"
               className="type-display mt-2 text-[1.5rem] text-[var(--text-primary)]"
             >
-              ComfyUI without the headache
+              Ready when you are
             </h2>
             <p className="type-body mt-2 text-[var(--text-secondary)]">
-              <strong className="font-medium text-[var(--text-primary)]">Heal &amp; ready</strong>{' '}
-              enables system workflows, adapts loader maps when Comfy is reachable, and checks LLM +
-              Comfy health — the usual “why isn’t this workflow working?” friction, handled once.
-              Skip and finish later from Settings → Overview.
+              Optional one-click setup enables system workflows and checks Comfy + LLM health. Skip
+              and explore — we&apos;ll nudge you when you queue.
             </p>
             {setupMessage ? (
               <p
@@ -219,18 +234,18 @@ export default function WorkspaceWelcome() {
               </p>
             ) : null}
             <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={finishWelcome}>
-                Skip for now
+              <Button type="button" variant="primary" size="sm" onClick={finishWelcome}>
+                Continue
               </Button>
               <Button
                 type="button"
                 size="sm"
-                variant="primary"
+                variant="secondary"
                 loading={busy}
-                loadingLabel="Healing…"
+                loadingLabel="Setting up…"
                 onClick={() => void heal()}
               >
-                Heal & ready
+                Set up engines
               </Button>
             </div>
           </>
@@ -247,13 +262,9 @@ export default function WorkspaceWelcome() {
             </h2>
             <p className="type-body mt-2 text-[var(--text-secondary)]">
               {setupMessage ??
-                (generateCta.href.includes('/play') ||
-                generateCta.href.includes('/day') ||
-                generateCta.href.includes('/characters')
-                  ? 'Create a Cast character on Play, then Moodboard → film. Phone? Open Mobile Studio (/m) to capture and review.'
-                  : generateCta.href.startsWith('/roleplay')
-                    ? 'Open Roleplay to start a story loop, or Generate anytime from All tools.'
-                    : 'Queue a first still, then start a Play campaign for Moodboard → film. On a phone, use /m.')}
+                (filmGoal
+                  ? 'Make a starter film in one tap, or create a Cast lead and walk Look → Outfit → Day.'
+                  : 'Queue a first still — you can start a film anytime from Play.')}
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
               <Button type="button" variant="ghost" size="sm" onClick={() => setPhase(null)}>
@@ -262,6 +273,22 @@ export default function WorkspaceWelcome() {
               <ButtonLink href="/m" variant="ghost" size="sm" onClick={() => setPhase(null)}>
                 Mobile Studio
               </ButtonLink>
+              {filmGoal ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  data-testid="welcome-starter-film"
+                  onClick={() => {
+                    saveWorkspaceMode('play');
+                    const result = startStarterPlayFilm();
+                    setPhase(null);
+                    window.location.assign(result.href);
+                  }}
+                >
+                  Make a starter film
+                </Button>
+              ) : null}
               {generateCta.href === FIRST_RUN_GENERATE_HREF ||
               generateCta.href.startsWith('/?source=random') ? (
                 <ButtonLink
@@ -273,7 +300,7 @@ export default function WorkspaceWelcome() {
                     setPhase(null);
                   }}
                 >
-                  Start Play campaign
+                  Open Film
                 </ButtonLink>
               ) : null}
               {generateCta.href.startsWith('/roleplay') ||

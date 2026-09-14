@@ -12,13 +12,13 @@ export type MobileStudioTab = {
 };
 
 export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
-  { id: 'capture', href: '/m', label: 'Capture', hint: 'Plate lock' },
+  { id: 'capture', href: '/m', label: 'Cast', hint: 'Plate lock' },
   { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'Watch jobs' },
-  { id: 'gallery', href: '/m/gallery', label: 'Rate', hint: 'Rate stills' },
-  { id: 'moodboard', href: '/m/moodboard', label: 'Board', hint: 'Look pack' },
-  { id: 'fitting', href: '/m/fitting', label: 'Fit', hint: 'Swipe kits · Keep' },
-  { id: 'day', href: '/m/day', label: 'Day', hint: 'Four slots · Cut' },
-  { id: 'play', href: '/m/play', label: 'Play', hint: 'Stills + clips · Cut' },
+  { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Rate stills' },
+  { id: 'moodboard', href: '/m/moodboard', label: 'Look', hint: 'Extract look' },
+  { id: 'fitting', href: '/m/fitting', label: 'Outfit', hint: 'Keep a kit' },
+  { id: 'day', href: '/m/day', label: 'Day', hint: 'Queue · Cut film' },
+  { id: 'play', href: '/m/play', label: 'Story', hint: 'Optional beats' },
 ];
 
 export type CharacterPlate = {

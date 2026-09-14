@@ -143,6 +143,14 @@ export function usePlayCampaignWizardOrchestration({
       if (!record) {
         return;
       }
+      const saved = loadPlayCampaignState();
+      if (saved && saved.characterId !== id) {
+        // Switching Cast starts a fresh film for the new lead.
+        clearPlayCampaignState();
+        clearLookPack();
+        setStepOverride(null);
+        setStatus(`Switched to ${record.name} — starting a new film.`);
+      }
       saveSharedSettings({
         ...loadSettingsCache().shared,
         ...applyCharacterRecord(record),
@@ -165,12 +173,7 @@ export function usePlayCampaignWizardOrchestration({
       if (!character) {
         const defaultName =
           portable.name?.trim() || portable.pack.characterId?.trim() || 'Imported look';
-        const name =
-          typeof window !== 'undefined'
-            ? window
-                .prompt('Name the new Cast character for this look pack', defaultName)
-                ?.trim() || defaultName
-            : defaultName;
+        const name = defaultName;
         const createdList = upsertCharacter(
           characterFromShared(loadSettingsCache().shared, { name })
         );
@@ -227,15 +230,25 @@ export function usePlayCampaignWizardOrchestration({
     if (!packId || queryLookPackId) {
       return;
     }
-    router.replace(playCampaignHref(characterId, packId));
     const characterRecord = getCharacter(characterId);
     if (!characterRecord) {
       return;
     }
     const saved = getCharacterLookPack(characterRecord.id, packId);
     if (!saved) {
+      // Drop stale lookPack id from the URL / durable campaign.
+      savePlayCampaignState({
+        ...savedCampaign,
+        lookPackId: undefined,
+        updatedAt: Date.now(),
+      });
+      router.replace(playCampaignHref(characterId));
+      scheduleAfterCommit(() => {
+        setStatus('Saved look was missing — continue without it.');
+      });
       return;
     }
+    router.replace(playCampaignHref(characterId, packId));
     saveLookPack({ ...saved.pack, characterId: characterRecord.id, source: 'saved' });
   }, [
     mounted,

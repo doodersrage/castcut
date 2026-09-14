@@ -115,7 +115,7 @@ export default function CharacterCastRoster() {
       {characters.length > 0 ? (
         <ToolSection title="Play loop" description="Guided Moodboard → Fitting → Day → Roleplay.">
           <ButtonLink href="/play" size="sm" variant="primary">
-            Start Play campaign
+            Start a film
           </ButtonLink>
         </ToolSection>
       ) : null}

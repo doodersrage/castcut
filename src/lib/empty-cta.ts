@@ -115,7 +115,7 @@ export function resolveWelcomeLandingCta(): EmptyCta {
   }
 
   if (loadWorkspaceMode() === 'play') {
-    return { label: 'Open Play campaign', href: '/play' };
+    return { label: 'Start a film', href: '/play' };
   }
   return { label: 'Open Generate', href: FIRST_RUN_GENERATE_HREF };
 }

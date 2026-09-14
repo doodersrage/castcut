@@ -6,8 +6,8 @@ import MoodboardToolSections from '@/components/moodboard/MoodboardToolSections'
 
 export default function MoodboardTool() {
   const description = useToolPageDescription(
-    'Stack reference tiles, extract a look pack for Fitting / Day, or queue one scene still.',
-    'Moodboard → look pack or scene still.'
+    'Add reference tiles, extract a look for Outfit / Day, or queue one scene still.',
+    'Look → extract for Outfit / Day, or queue a still.'
   );
   const vm = useMoodboardToolOrchestration();
   if (!vm.mounted) return null;

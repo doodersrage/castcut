@@ -1,3 +1,6 @@
+import { clearLookPack, LOOK_PACK_KEY } from './look-pack';
+import { clearPlayCampaignState, PLAY_CAMPAIGN_KEY } from './play-campaign';
+import { PLAY_METRICS_KEY, savePlayMetrics } from './play-metrics';
 import {
   LOCATION_BLOCKLIST_KEY,
   PROMPT_HISTORY_KEY,
@@ -23,6 +26,9 @@ export function clearAllLocalPromptData(): void {
   resetComfyUiSettings();
   clearComfyGallery();
   saveComfyWorkflowFiles([]);
+  clearPlayCampaignState();
+  clearLookPack();
+  savePlayMetrics({ version: 1 });
 }
 
 /** Legacy localStorage keys still referenced for diagnostics and reset UI copy. */
@@ -38,4 +44,7 @@ export const LOCAL_DATA_KEYS = [
   COMFY_WORKFLOW_PRESETS_KEY,
   AVOIDED_TOKENS_KEY,
   WEBHOOK_LOG_KEY,
+  PLAY_CAMPAIGN_KEY,
+  PLAY_METRICS_KEY,
+  LOOK_PACK_KEY,
 ] as const;

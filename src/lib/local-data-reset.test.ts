@@ -58,7 +58,21 @@ describe('local-data-reset', async () => {
     });
 
     it('clears the location blocklist, settings cache, comfy settings, gallery, and workflow files', () => {
-      Object.defineProperty(globalThis, 'window', { configurable: true, value: {} });
+      Object.defineProperty(globalThis, 'window', {
+        configurable: true,
+        value: {
+          sessionStorage: {
+            removeItem() {},
+            setItem() {},
+            getItem() {
+              return null;
+            },
+          },
+          dispatchEvent() {
+            return true;
+          },
+        },
+      });
       clearAllLocalPromptData();
       assert.deepEqual(saveLocationBlocklist.mock.calls[0]!.arguments, [[]]);
       assert.deepEqual(saveSettingsCache.mock.calls[0]!.arguments, [
@@ -84,6 +98,9 @@ describe('local-data-reset', async () => {
         'comfyui-workflow-presets-v1',
         'comfy-prompt-avoided-tokens-v1',
         'comfy-prompt-webhook-log-v1',
+        'play-campaign-v1',
+        'comfy-play-metrics-v1',
+        'moodboard-look-pack-v1',
       ]);
     });
 

@@ -246,7 +246,14 @@ export function lookPackRoleplayHref(pack: LookPack): string {
   if (pack.wardrobeId) {
     params.set('wardrobe', pack.wardrobeId);
   }
-  return `/roleplay?${params.toString()}`;
+  const desk = `/roleplay?${params.toString()}`;
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname;
+    if (path === '/m' || path.startsWith('/m/')) {
+      return `/m/play?${params.toString()}`;
+    }
+  }
+  return desk;
 }
 
 const TONE_FROM_MOOD: Array<{ pattern: RegExp; tone: RoleplayTone }> = [

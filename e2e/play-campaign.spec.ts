@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 test('play campaign wizard loads with steps and share controls', async ({ page }) => {
   await gotoStable(page, '/play');
   await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /^Play campaign$/i })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /^Your film$/i })).toBeVisible({
     timeout: 30_000,
   });
   await expect(page.getByTestId('play-campaign')).toBeVisible();
@@ -59,7 +59,7 @@ test('moodboard look extract controls load', async ({ page }) => {
   await expect(page.getByTestId('moodboard-character')).toBeVisible();
   await expect(page.getByTestId('moodboard-tiles')).toBeVisible();
   await expect(page.getByTestId('moodboard-extract-look')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Use in Fitting/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Continue to Outfit/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /Use in Day/i })).toBeVisible();
 });
 
@@ -877,13 +877,13 @@ test('play campaign empty cast offers create character CTA', async ({ page }) =>
   await expect(page.getByRole('link', { name: /Browse Cast/i })).toBeVisible();
 });
 
-test('dashboard elevates Open Play campaign as primary studio path', async ({ page }) => {
+test('dashboard elevates Start a film as primary studio path', async ({ page }) => {
   await gotoStable(page, '/dashboard');
   await dismissBlockingOverlays(page);
   await expect(page.getByRole('heading', { name: /^Dashboard$/i })).toBeVisible({
     timeout: 30_000,
   });
-  await expect(page.getByRole('link', { name: /Open Play campaign/i }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /Start a film/i }).first()).toBeVisible();
 });
 
 test('mobile studio first-class film loop tabs and desk bridge', async ({ page }) => {

@@ -16,7 +16,10 @@ type PlayCampaignActionsSectionProps = Pick<
   | 'activeLookPack'
   | 'goToStep'
   | 'startNewCampaign'
->;
+> & {
+  /** When true, hide the primary Continue (shown in the resume card above). */
+  compact?: boolean;
+};
 
 export default function PlayCampaignActionsSection({
   status,
@@ -29,6 +32,7 @@ export default function PlayCampaignActionsSection({
   activeLookPack,
   goToStep,
   startNewCampaign,
+  compact = false,
 }: PlayCampaignActionsSectionProps) {
   return (
     <>
@@ -39,15 +43,15 @@ export default function PlayCampaignActionsSection({
           className="type-caption text-[var(--text-muted)]"
           data-testid="play-campaign-resume-mismatch"
         >
-          Saved campaign is for another Cast character.{' '}
+          Saved film is for another Cast character.{' '}
           <ButtonLink
             href={playCampaignHref(durableCampaign.characterId, durableCampaign.lookPackId)}
             size="sm"
             variant="ghost"
           >
-            Switch to resume character
+            Switch to that character
           </ButtonLink>{' '}
-          or restart below.
+          or start a new film below.
         </p>
       ) : null}
 
@@ -59,11 +63,11 @@ export default function PlayCampaignActionsSection({
               data-testid="play-campaign-complete"
             >
               <p className="type-caption text-[var(--tint-success-text)]">
-                Campaign complete
+                Film complete
                 {savedCampaign?.completedAt
                   ? ` · ${new Date(savedCampaign.completedAt).toLocaleString()}`
                   : ''}{' '}
-                — film cut. Watch it on Cast, cut another Day film, or start another loop.
+                — watch it on Cast, cut another Day film, or start another loop.
               </p>
             </div>
             {characterId ? (
@@ -78,7 +82,7 @@ export default function PlayCampaignActionsSection({
                   });
                 }}
               >
-                Open film on Cast
+                Watch film on Cast
               </ButtonLink>
             ) : null}
             {characterId ? (
@@ -98,12 +102,12 @@ export default function PlayCampaignActionsSection({
               data-testid="play-campaign-start-new"
               onClick={startNewCampaign}
             >
-              Start new campaign
+              Start new film
             </Button>
           </>
         ) : (
           <>
-            {resumeStep ? (
+            {!compact && resumeStep ? (
               <Button
                 size="sm"
                 variant="primary"
@@ -111,17 +115,17 @@ export default function PlayCampaignActionsSection({
                 data-testid="play-campaign-continue"
                 onClick={() => goToStep(resumeStep.id, activeLookPack)}
               >
-                Continue at {resumeStep.label}
+                Continue to {resumeStep.label}
               </Button>
             ) : null}
             <Button
               size="sm"
-              variant={resumeStep ? 'secondary' : 'primary'}
+              variant={compact ? 'ghost' : resumeStep ? 'secondary' : 'primary'}
               disabled={!characterId}
               data-testid="play-campaign-start-moodboard"
               onClick={() => goToStep('moodboard', activeLookPack)}
             >
-              {resumeStep ? 'Restart at Moodboard' : 'Start at Moodboard'}
+              {resumeStep ? 'Restart at Look' : 'Start at Look'}
             </Button>
           </>
         )}

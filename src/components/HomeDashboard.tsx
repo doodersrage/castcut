@@ -144,7 +144,7 @@ export default function HomeDashboard() {
 
       <ToolSection
         title="Get ready"
-        description="Heal ComfyUI once, then use desk Play or phone Mobile Studio."
+        description="Set up engines once, then use desk Play or phone Mobile Studio."
       >
         <ToolActionRow>
           <ButtonLink
@@ -153,13 +153,13 @@ export default function HomeDashboard() {
             size="sm"
             data-testid="dashboard-heal-ready"
           >
-            Heal & ready
+            Set up engines
           </ButtonLink>
           <ButtonLink href="/m" variant="secondary" size="sm" data-testid="dashboard-mobile-studio">
             Mobile Studio
           </ButtonLink>
           <ButtonLink href="/play" size="sm" variant="ghost">
-            Play campaign
+            Start a film
           </ButtonLink>
         </ToolActionRow>
       </ToolSection>
@@ -210,7 +210,7 @@ export default function HomeDashboard() {
         </ToolSection>
       ) : null}
 
-      <ToolSection title="Studio" description="One primary path — Play campaign — then core tools.">
+      <ToolSection title="Studio" description="One primary path — Film — then core tools.">
         <ToolActionRow>
           <ButtonLink
             href="/play"
@@ -222,7 +222,7 @@ export default function HomeDashboard() {
               }
             }}
           >
-            Open Play campaign
+            Start a film
           </ButtonLink>
           <ButtonLink href="/" size="sm" variant="secondary">
             Generate

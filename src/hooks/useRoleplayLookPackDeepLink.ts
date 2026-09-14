@@ -9,12 +9,14 @@ type UseRoleplayLookPackDeepLinkOptions = {
   mounted: boolean;
   updateShared: (patch: Partial<SharedToolSettings>) => void;
   updateToolSettings: (patch: Partial<RoleplayToolCache>) => void;
+  onMessage?: (message: string) => void;
 };
 
 export function useRoleplayLookPackDeepLink({
   mounted,
   updateShared,
   updateToolSettings,
+  onMessage,
 }: UseRoleplayLookPackDeepLinkOptions) {
   const deepLinkHandled = useRef(false);
 
@@ -33,6 +35,10 @@ export function useRoleplayLookPackDeepLink({
       const record = getCharacter(characterId);
       if (record) {
         updateShared(applyCharacterRecord(record));
+      } else {
+        onMessage?.(
+          'That Cast character isn’t on this device — pick one here or open Film to create one.'
+        );
       }
     }
     if (wardrobeId) {
@@ -44,7 +50,12 @@ export function useRoleplayLookPackDeepLink({
       pack = getCharacterLookPack(characterId, lookPackId)?.pack ?? null;
       if (pack) {
         saveLookPack(pack);
+      } else {
+        onMessage?.('Look pack from the link wasn’t found — continue with defaults.');
       }
+    }
+    if (fromLook && !pack && !lookPackId) {
+      onMessage?.('No staged look found — extract one on Look, or continue with defaults.');
     }
     if (pack) {
       const applied = applyLookPackToRoleplaySettings(pack);
@@ -54,5 +65,5 @@ export function useRoleplayLookPackDeepLink({
         updateShared({ lockedWardrobeId: pack.wardrobeId.trim() });
       }
     }
-  }, [mounted, updateShared, updateToolSettings]);
+  }, [mounted, onMessage, updateShared, updateToolSettings]);
 }
