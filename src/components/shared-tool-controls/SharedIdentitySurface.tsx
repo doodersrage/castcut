@@ -27,7 +27,6 @@ export default function SharedIdentitySurface({
   shared,
   cloudEngine,
   toolId,
-  roleplayVariant,
   advancedOpenByDefault,
   onSharedSettingsChange,
 }: SharedIdentitySurfaceProps) {
@@ -55,11 +54,7 @@ export default function SharedIdentitySurface({
               ? `${shared.identityKind === 'instantid' ? 'InstantID' : shared.identityKind === 'pulid' ? 'PuLID' : shared.identityKind === 'auto' ? 'Auto' : 'IP-Adapter'} · ${shared.ipAdapterImageFilename}`
               : 'Lock a face or style reference'
           }
-          defaultOpen={
-            roleplayVariant ||
-            advancedOpenByDefault ||
-            Boolean(shared.ipAdapterImageFilename?.trim())
-          }
+          defaultOpen={advancedOpenByDefault || Boolean(shared.ipAdapterImageFilename?.trim())}
           persistKey="shared-identity-lock"
         >
           <IdentityLockSessionControl

@@ -15,6 +15,18 @@ export type RoleplayArchetype = {
   templateScenes: Array<{ title: string; blurb: string }>;
 };
 
+/** Shown first in Cast; full catalog stays behind “Show all”. */
+export const ROLEPLAY_ARCHETYPE_FEATURED_IDS = [
+  'raccoon-pirate',
+  'retail-vampire',
+  'hoodie-dragon',
+  'sentient-toaster',
+  'bad-ghost',
+  'disco-knight',
+  'anxious-detective',
+  'celebrity-cat',
+] as const;
+
 export const ROLEPLAY_ARCHETYPES: RoleplayArchetype[] = [
   {
     id: 'raccoon-pirate',

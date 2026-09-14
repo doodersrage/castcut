@@ -22,7 +22,7 @@ export function RoleplayCastPhotoSection({
   referenceImageFilename,
   referenceImageUrl,
   lastStill,
-  toolSettings,
+  toolSettings: _toolSettings,
   onUpdateToolSettings,
   onClearReference,
   onApplyReference,
@@ -56,7 +56,6 @@ export function RoleplayCastPhotoSection({
 >) {
   return (
     <div className="space-y-2">
-      <p className="type-caption text-[var(--text-muted)]">Play as</p>
       <div className="flex flex-wrap gap-1.5">
         {ROLEPLAY_PLAY_AS.map(entry => (
           <ChipButton
@@ -79,10 +78,8 @@ export function RoleplayCastPhotoSection({
       {playAs === 'photo' ? (
         <div className="space-y-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
           <p className="text-xs text-[var(--text-muted)]">
-            Every still queues img2img from this reference so you stay the same person. Isolate on
-            white (default) cuts the subject out so the model does not keep the photo&apos;s street
-            or room. Scene and part clothing replace the photo&apos;s outfit — face, hair, and body
-            stay. Pair with Setting to place them somewhere new.
+            Stills use this reference (img2img). Isolate on white keeps face/body and drops the
+            photo&apos;s room — pair with Setting for a new place.
           </p>
           <div className="flex flex-wrap gap-1.5">
             <ChipButton

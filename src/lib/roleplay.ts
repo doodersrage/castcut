@@ -318,7 +318,11 @@ export const CUSTOM_ROLEPLAY_PERSONA_ID = 'custom';
 
 // Built-in persona archetypes live in roleplay-archetypes.ts; re-exported
 // here unchanged so existing external imports from '@/lib/roleplay' keep working.
-export { ROLEPLAY_ARCHETYPES, type RoleplayArchetype } from './roleplay-archetypes';
+export {
+  ROLEPLAY_ARCHETYPES,
+  ROLEPLAY_ARCHETYPE_FEATURED_IDS,
+  type RoleplayArchetype,
+} from './roleplay-archetypes';
 
 export function normalizeRoleplayTone(value: string | null | undefined): RoleplayTone {
   const trimmed = String(value ?? '')

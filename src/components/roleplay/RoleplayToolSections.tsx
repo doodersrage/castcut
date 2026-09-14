@@ -11,7 +11,7 @@ import RoleplayStorySection from '@/components/roleplay/RoleplayStorySection';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import type { useRoleplayToolOrchestration } from '@/hooks/useRoleplayToolOrchestration';
 import { Button } from '@/components/ui/Button';
-import { ToolBadge, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
+import { CollapsibleSection, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 
 const ACCENT = 'amber' as const;
 const TOOL_ID = 'roleplay';
@@ -121,7 +121,12 @@ export default function RoleplayToolSections({
         onRestartStory={session.restartStory}
       />
 
-      <ToolSection title="Library">
+      <CollapsibleSection
+        title="Sessions"
+        summary="Saved roleplay runs — continue or start new"
+        defaultOpen={false}
+        persistKey="roleplay-library"
+      >
         <RoleplayLibraryPanel
           activeSessionId={toolSettings.activeSessionId}
           busy={busy}
@@ -133,7 +138,7 @@ export default function RoleplayToolSections({
             }
           }}
         />
-      </ToolSection>
+      </CollapsibleSection>
 
       {bio ? (
         <RoleplayBioSection

@@ -1,10 +1,12 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import { ChipButton, TextArea, TextInput } from '@/components/ui/Field';
 import { accentFocusClass } from '@/components/ui/ToolPageShell';
 import {
   CUSTOM_ROLEPLAY_PERSONA_ID,
+  ROLEPLAY_ARCHETYPE_FEATURED_IDS,
   ROLEPLAY_ARCHETYPES,
   applyRoleplayCharacterName,
   MAX_ROLEPLAY_CHARACTER_NAME,
@@ -12,6 +14,8 @@ import {
 import type { RoleplayCastSectionProps } from '@/components/roleplay/roleplay-cast-section-types';
 
 const ACCENT = 'amber' as const;
+
+const FEATURED_ID_SET = new Set<string>(ROLEPLAY_ARCHETYPE_FEATURED_IDS);
 
 export function RoleplayCastArchetypeSection({
   busy,
@@ -35,43 +39,109 @@ export function RoleplayCastArchetypeSection({
   | 'onApplyOwnBible'
   | 'onUpdateToolSettings'
 >) {
+  const [showAll, setShowAll] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const featured = useMemo(
+    () =>
+      ROLEPLAY_ARCHETYPE_FEATURED_IDS.map(id =>
+        ROLEPLAY_ARCHETYPES.find(entry => entry.id === id)
+      ).filter((entry): entry is (typeof ROLEPLAY_ARCHETYPES)[number] => Boolean(entry)),
+    []
+  );
+
+  const filteredAll = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) {
+      return ROLEPLAY_ARCHETYPES;
+    }
+    return ROLEPLAY_ARCHETYPES.filter(
+      entry =>
+        entry.label.toLowerCase().includes(needle) ||
+        entry.prompt.toLowerCase().includes(needle) ||
+        entry.id.includes(needle)
+    );
+  }, [query]);
+
+  const visible = useMemo(() => {
+    if (showAll) {
+      return filteredAll;
+    }
+    if (!personaId || personaId === CUSTOM_ROLEPLAY_PERSONA_ID || FEATURED_ID_SET.has(personaId)) {
+      return featured;
+    }
+    const selected = ROLEPLAY_ARCHETYPES.find(entry => entry.id === personaId);
+    return selected ? [...featured, selected] : featured;
+  }, [showAll, filteredAll, featured, personaId]);
+
   return (
     <>
-      <div className="flex flex-wrap gap-1.5">
-        {ROLEPLAY_ARCHETYPES.map(entry => (
-          <ChipButton
-            key={entry.id}
-            active={personaId === entry.id}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="type-caption text-[var(--text-muted)]">Part</p>
+          <button
+            type="button"
             disabled={busy}
+            className="type-caption text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-secondary)] hover:underline disabled:opacity-50"
             onClick={() => {
-              if (personaId === entry.id) {
-                return;
+              setShowAll(open => !open);
+              if (showAll) {
+                setQuery('');
               }
-              onShelfAndStartNew({ personaId: entry.id, customPersona: undefined });
             }}
           >
-            {entry.label}
+            {showAll ? 'Show fewer' : `Show all (${ROLEPLAY_ARCHETYPES.length})`}
+          </button>
+        </div>
+        {showAll ? (
+          <TextInput
+            value={query}
+            disabled={busy}
+            placeholder="Search parts…"
+            onChange={event => setQuery(event.target.value)}
+            className={accentFocusClass(ACCENT)}
+            aria-label="Search roleplay parts"
+          />
+        ) : null}
+        <div className="flex flex-wrap gap-1.5">
+          {visible.map(entry => (
+            <ChipButton
+              key={entry.id}
+              active={personaId === entry.id}
+              disabled={busy}
+              onClick={() => {
+                if (personaId === entry.id) {
+                  return;
+                }
+                onShelfAndStartNew({ personaId: entry.id, customPersona: undefined });
+              }}
+            >
+              {entry.label}
+            </ChipButton>
+          ))}
+          {showAll && filteredAll.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)]">No parts match that search.</p>
+          ) : null}
+          <ChipButton
+            active={personaId === CUSTOM_ROLEPLAY_PERSONA_ID}
+            disabled={busy}
+            onClick={() => {
+              if (personaId === CUSTOM_ROLEPLAY_PERSONA_ID) {
+                return;
+              }
+              onShelfAndStartNew({ personaId: CUSTOM_ROLEPLAY_PERSONA_ID });
+            }}
+          >
+            Custom…
           </ChipButton>
-        ))}
-        <ChipButton
-          active={personaId === CUSTOM_ROLEPLAY_PERSONA_ID}
-          disabled={busy}
-          onClick={() => {
-            if (personaId === CUSTOM_ROLEPLAY_PERSONA_ID) {
-              return;
-            }
-            onShelfAndStartNew({ personaId: CUSTOM_ROLEPLAY_PERSONA_ID });
-          }}
-        >
-          Custom…
-        </ChipButton>
-        <ChipButton
-          active={ownBibleOpen}
-          disabled={busy}
-          onClick={() => onOwnBibleOpenChange(open => !open)}
-        >
-          Your bible
-        </ChipButton>
+          <ChipButton
+            active={ownBibleOpen}
+            disabled={busy}
+            onClick={() => onOwnBibleOpenChange(open => !open)}
+          >
+            Your bible
+          </ChipButton>
+        </div>
       </div>
       {ownBibleOpen && !bio ? (
         <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-3">

@@ -94,8 +94,8 @@ export function RoleplayCastToneSettingSection({
         <p className="type-caption text-[var(--text-muted)]">Setting</p>
         <p className="text-xs text-[var(--text-muted)]">
           {playAs === 'photo'
-            ? 'Stills replace the photo background with this place. Leave blank to invent a new scene per beat. Write a new bio or roll scenes after changing it.'
-            : 'Opening beats and stills happen here. Leave blank to let the story pick places. Write a new bio or roll scenes after changing it.'}
+            ? 'Replaces the photo backdrop. Leave blank to invent a place per beat.'
+            : 'Where opening beats happen. Leave blank to let the story pick places.'}
         </p>
         <div className="flex flex-wrap gap-1.5">
           {ROLEPLAY_SETTING_PRESETS.map(entry => (
