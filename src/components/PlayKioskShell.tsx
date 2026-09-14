@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import BrandMark from '@/components/BrandMark';
 import ReportBugLink from '@/components/ReportBugLink';
+import PlayContinueChip from '@/components/PlayContinueChip';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
 import { featureForPath } from '@/lib/auth/features';
 import { APP_NAV_PROFILE_LINK, APP_NAV_SETTINGS_LINK } from '@/lib/app-nav-catalog';
@@ -20,16 +21,12 @@ import {
   hasCompletedFirstFilm,
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
-  resolveNextPlayAction,
 } from '@/lib/play-metrics';
-import { loadOnboardingState } from '@/lib/onboarding-store';
-import { loadLocalObservability } from '@/lib/local-observability';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 type KioskTab = {
   href: string;
   label: string;
-  /** Hide until the user has cut their first film. */
   requiresFirstFilm?: boolean;
 };
 
@@ -58,25 +55,13 @@ export default function PlayKioskShell() {
   const allowed = auth?.allowedFeatures ?? 'all';
   const [firstFilmDone, setFirstFilmDone] = useState(false);
   const [progressLabel, setProgressLabel] = useState('Film · start');
-  const [continueCta, setContinueCta] = useState<{ label: string; href: string } | null>(null);
 
   useEffect(() => {
     const refresh = () => {
       const metrics = loadPlayMetrics();
       const campaign = loadPlayCampaignState();
-      const funnel = loadLocalObservability();
-      const watched = loadOnboardingState().some(
-        step => step.id === 'watch-first-film' && step.done
-      );
       setFirstFilmDone(hasCompletedFirstFilm(metrics));
       setProgressLabel(playCampaignProgressLabel(campaign));
-      const next = resolveNextPlayAction({
-        metrics,
-        funnel,
-        campaign,
-        watchedFirstFilm: watched,
-      });
-      setContinueCta({ label: next.label, href: next.href });
     };
     scheduleAfterCommit(refresh);
     window.addEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
@@ -126,15 +111,7 @@ export default function PlayKioskShell() {
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          {continueCta ? (
-            <Link
-              href={continueCta.href}
-              className="ui-btn-primary px-3 py-2 text-xs"
-              data-testid="play-kiosk-continue"
-            >
-              {continueCta.label}
-            </Link>
-          ) : null}
+          <PlayContinueChip />
           {settingsVisible ? (
             <Link href={APP_NAV_SETTINGS_LINK.href} className="ui-btn-secondary px-3 py-2 text-xs">
               Settings

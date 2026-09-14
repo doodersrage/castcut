@@ -17,6 +17,7 @@ import {
   TextArea,
 } from '@/components/ui/Field';
 import {
+  CollapsibleSection,
   ToolActionRow,
   ToolBadge,
   ToolLayout,
@@ -128,7 +129,29 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
       title="Look"
       description={description}
       sidebar={
-        leanChrome ? undefined : (
+        leanChrome ? (
+          <CollapsibleSection
+            title="Engine"
+            summary="Model and workflow — optional for first look."
+            defaultOpen={false}
+            persistKey="moodboard-engine-lean"
+          >
+            <SharedToolControls
+              shared={shared}
+              onModelChange={model => updateShared({ model })}
+              onDetailChange={detail => updateShared({ detail })}
+              onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
+              showWardrobeOption={false}
+              seedLlmWithIngredients={false}
+              autoFixRules={shared.autoFixRules !== false}
+              onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
+              recommendFromText={output}
+              toolId={TOOL_ID}
+              onSharedSettingsChange={updateShared}
+              variant="roleplay"
+            />
+          </CollapsibleSection>
+        ) : (
           <SharedToolControls
             shared={shared}
             onModelChange={model => updateShared({ model })}
@@ -150,7 +173,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Look presets"
-        description="One tap to seed tiles and stage a look — skip the blank board."
+        description="One tap to seed tiles — or send straight to Day."
         data-testid="moodboard-presets"
       >
         <div className="flex flex-wrap gap-2">
@@ -175,6 +198,26 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
             </ChipButton>
           ))}
         </div>
+        <ToolActionRow className="mt-3">
+          {LOOK_PRESETS.map(preset => (
+            <Button
+              key={`day-${preset.id}`}
+              size="sm"
+              variant="ghost"
+              disabled={busy || extracting}
+              data-testid={`moodboard-preset-day-${preset.id}`}
+              onClick={() => {
+                const tilesNext = tilesFromLookPreset(preset);
+                updateToolSettings({ tiles: tilesNext });
+                const pack = lookPackFromPreset(preset, character?.id);
+                saveLookPack(pack);
+                void sendLookToDay();
+              }}
+            >
+              {preset.label} → Day
+            </Button>
+          ))}
+        </ToolActionRow>
       </ToolSection>
 
       <ToolSection

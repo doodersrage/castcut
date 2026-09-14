@@ -74,11 +74,17 @@ export default function WorkspaceWelcome() {
     // Image / Surprise stay out of the film kiosk — lean Simple chrome.
     if (goal === 'image' || goal === 'surprise') {
       saveWorkspaceMode('simple');
-    } else {
-      saveWorkspaceMode('play');
+      markOnboardingSetWorkspace();
+      setPhase('setup');
+      return;
     }
+    // Character / Film — skip setup, land on starter film immediately.
+    saveWorkspaceMode('play');
     markOnboardingSetWorkspace();
-    setPhase('setup');
+    noteWelcomeShownMetric();
+    const result = startStarterPlayFilm();
+    setPhase(null);
+    window.location.assign(result.href);
   }
 
   function chooseDensity(mode: WorkspaceMode) {

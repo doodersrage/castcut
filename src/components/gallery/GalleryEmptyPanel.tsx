@@ -2,6 +2,7 @@
 
 import BrandBars from '@/components/BrandBars';
 import BrandStudioIllustration from '@/components/BrandStudioIllustration';
+import PlayContinueChip from '@/components/PlayContinueChip';
 import { ButtonLink } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
 import { resolveStudioEmptyCta } from '@/lib/empty-cta';
@@ -81,6 +82,7 @@ export default function GalleryEmptyPanel({
           <ButtonLink href={filmCta.href} size="sm">
             {filmCta.label}
           </ButtonLink>
+          <PlayContinueChip variant="secondary" />
           <ButtonLink href="/day" variant="ghost" size="sm">
             Open Day
           </ButtonLink>

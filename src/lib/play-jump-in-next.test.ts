@@ -9,12 +9,14 @@ describe('welcome sample + look presets + funnel drop-off', () => {
     const shots = welcomeSampleFilmShots();
     assert.equal(shots.length, 4);
     assert.ok(shots.every(shot => shot.kind === 'still' && shot.url.startsWith('data:image/svg')));
+    assert.ok(decodeURIComponent(shots[0]!.url).includes('Sample reel'));
   });
 
   it('builds demo day stills for offline Cut practice', () => {
     const stills = buildDemoDayStills();
     assert.equal(stills.length, 4);
     assert.ok(stills.every(still => still.status === 'completed' && still.imageUrl));
+    assert.ok(stills.every(still => still.promptId?.startsWith('demo-')));
   });
 
   it('seeds moodboard tiles from look presets', () => {

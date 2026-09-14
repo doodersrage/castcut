@@ -117,7 +117,7 @@ export default function CharacterFilmStudio({
           data-testid="character-film-studio-empty"
         >
           <p className="type-caption text-[var(--text-muted)]">
-            No film cut yet. Queue Day slots or Roleplay beats, or open Day / Roleplay and Cut film.
+            No film cut yet. Queue Day slots or Story beats, or open Day / Story and Cut film.
           </p>
           <ToolActionRow>
             <ButtonLink
@@ -132,7 +132,7 @@ export default function CharacterFilmStudio({
               size="sm"
               variant="ghost"
             >
-              Open Roleplay
+              Open Story
             </ButtonLink>
           </ToolActionRow>
         </div>
@@ -191,7 +191,7 @@ export default function CharacterFilmStudio({
               variant="ghost"
               data-testid="character-film-new-campaign"
             >
-              New Play campaign
+              New film
             </ButtonLink>
           </ToolActionRow>
         </div>
@@ -219,8 +219,7 @@ export default function CharacterFilmStudio({
 
       {cut.items.length === 0 ? (
         <p className="type-caption text-[var(--text-muted)]">
-          No shots in the cut yet. Animate stills in Roleplay or Video, or add a still as a title
-          card.
+          No shots in the cut yet. Animate stills in Story or Video, or add a still as a title card.
         </p>
       ) : (
         <ol className="ui-list">

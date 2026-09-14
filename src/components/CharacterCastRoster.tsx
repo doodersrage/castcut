@@ -110,10 +110,10 @@ export default function CharacterCastRoster() {
       width="wide"
       badge={<ToolBadge accent="sky">Cast</ToolBadge>}
       title="Characters"
-      description="The character is the project. Open a home for looks, stills, clips, and LoRA — or run a Play campaign."
+      description="The character is the project. Open a home for looks, stills, clips, and LoRA — or start a film."
     >
       {characters.length > 0 ? (
-        <ToolSection title="Play loop" description="Guided Moodboard → Fitting → Day → Roleplay.">
+        <ToolSection title="Film loop" description="Guided Look → Outfit → Day → Story.">
           <ButtonLink href="/play" size="sm" variant="primary">
             Start a film
           </ButtonLink>
@@ -123,8 +123,8 @@ export default function CharacterCastRoster() {
         <EmptyState
           icon="catalog"
           title="No characters yet"
-          description="Create a character on Play to start the film loop. Roleplay Save to Cast and Generate looks remain optional paths; identity bundles migrate in automatically."
-          action={{ label: 'Create on Play', href: '/play' }}
+          description="Create a Cast lead on Film to start the loop. Story Save to Cast and Generate looks remain optional paths; identity bundles migrate in automatically."
+          action={{ label: 'Create on Film', href: '/play' }}
         />
       ) : (
         <ToolSection title="Roster" description={`${characters.length} saved`}>
@@ -156,7 +156,7 @@ export default function CharacterCastRoster() {
                       variant="secondary"
                       onClick={() => applyAndTryOn(character.id)}
                     >
-                      Try on
+                      Outfit
                     </Button>
                     <Button
                       size="sm"

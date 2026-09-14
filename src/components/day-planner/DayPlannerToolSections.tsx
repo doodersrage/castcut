@@ -92,7 +92,29 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       title="Day"
       description={description}
       sidebar={
-        leanChrome ? undefined : (
+        leanChrome ? (
+          <CollapsibleSection
+            title="Engine"
+            summary="Model, detail, and workflow — optional for first film."
+            defaultOpen={false}
+            persistKey="day-engine-lean"
+          >
+            <SharedToolControls
+              shared={shared}
+              onModelChange={model => updateShared({ model })}
+              onDetailChange={detail => updateShared({ detail })}
+              onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
+              showWardrobeOption={false}
+              seedLlmWithIngredients={false}
+              autoFixRules={shared.autoFixRules !== false}
+              onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
+              recommendFromText={output}
+              toolId={TOOL_ID}
+              onSharedSettingsChange={updateShared}
+              variant="roleplay"
+            />
+          </CollapsibleSection>
+        ) : (
           <SharedToolControls
             shared={shared}
             onModelChange={model => updateShared({ model })}
@@ -196,13 +218,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   : state === 'queued'
                     ? 'Queueing…'
                     : 'Waiting';
+            const thumb = still?.status === 'completed' ? still.imageUrl?.trim() : '';
             return (
               <li
                 key={slot.id}
                 data-testid={`day-progress-${slot.id}`}
                 data-state={state}
                 className={[
-                  'rounded-[var(--radius-md)] border px-3 py-2',
+                  'overflow-hidden rounded-[var(--radius-md)] border',
                   state === 'done'
                     ? 'border-[var(--tint-success-border)] bg-[var(--tint-success-bg)]'
                     : state === 'failed'
@@ -212,8 +235,18 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                         : 'border-[var(--border-subtle)]',
                 ].join(' ')}
               >
-                <p className="type-heading text-sm">{slot.label}</p>
-                <p className="type-caption text-[var(--text-muted)]">{label}</p>
+                {thumb ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={thumb}
+                    alt={`${slot.label} still`}
+                    className="aspect-video w-full object-cover"
+                  />
+                ) : null}
+                <div className="px-3 py-2">
+                  <p className="type-heading text-sm">{slot.label}</p>
+                  <p className="type-caption text-[var(--text-muted)]">{label}</p>
+                </div>
               </li>
             );
           })}

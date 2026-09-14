@@ -22,20 +22,20 @@ export default function CharacterHomeActionRow({
   return (
     <ToolActionRow>
       <Button size="sm" variant="primary" onClick={() => go(playCampaignHref(character.id))}>
-        Play campaign
+        Start a film
       </Button>
       <Button size="sm" variant="primary" onClick={() => go('/character')}>
         Generate
       </Button>
       <Button size="sm" variant="secondary" onClick={() => go('/roleplay')}>
-        Roleplay
+        Story
       </Button>
       <Button
         size="sm"
         variant="secondary"
         onClick={() => go(`/fitting?character=${character.id}`)}
       >
-        Try on
+        Outfit
       </Button>
       <Button size="sm" variant="secondary" onClick={() => go(`/day?character=${character.id}`)}>
         Plan a day

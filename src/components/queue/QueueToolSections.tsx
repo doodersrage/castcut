@@ -6,12 +6,14 @@ import { EmptyState, ErrorState } from '@/components/ui/ViewState';
 import { Button } from '@/components/ui/Button';
 import {
   CollapsibleSection,
+  ToolActionRow,
   ToolBadge,
   ToolLayout,
   ToolSection,
 } from '@/components/ui/ToolPageShell';
 import { formatPoolQueueStrip } from '@/lib/comfyui-host-ready';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
+import PlayContinueChip from '@/components/PlayContinueChip';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import QueueActiveJobRow from '@/components/queue/QueueActiveJobRow';
 import QueueCompletedRow from '@/components/queue/QueueCompletedRow';
@@ -59,6 +61,9 @@ export default function QueueToolSections({
       description={description}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.queue} />
+      <ToolActionRow>
+        <PlayContinueChip variant="secondary" />
+      </ToolActionRow>
       {queueHealth?.ok || poolQueue.anyOk ? (
         <div className="ui-queue-strip">
           <p className="text-sm text-[var(--text-muted)]">{formatPoolQueueStrip(poolQueue)}</p>

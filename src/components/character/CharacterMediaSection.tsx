@@ -68,7 +68,7 @@ export default function CharacterMediaSection({
         mediaTab === 'clips'
           ? 'Playable reel. Continue labels Extend / last-frame / Stitch by engine.'
           : mediaTab === 'films'
-            ? 'Assembled Day / Roleplay films stamped on this character.'
+            ? 'Assembled Day / Story films stamped on this character.'
             : 'Jobs stamped with this character.'
       }
       data-testid="cast-media"
@@ -125,7 +125,7 @@ export default function CharacterMediaSection({
             data-testid="cast-continue-roleplay"
             onClick={continueRoleplay}
           >
-            Continue in Roleplay
+            Continue in Story
           </Button>
         </ToolActionRow>
       ) : null}
@@ -135,7 +135,7 @@ export default function CharacterMediaSection({
           compact
           icon="inbox"
           title="Nothing stamped yet"
-          description="Queue from Generate, Roleplay, or Video with this character active. Older stills stay untagged."
+          description="Queue from Generate, Story, or Video with this character active. Older stills stay untagged."
           action={{ label: 'Generate as this character', onClick: () => go('/character') }}
         />
       ) : (

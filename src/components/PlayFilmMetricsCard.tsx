@@ -152,7 +152,7 @@ export default function PlayFilmMetricsCard() {
             detail={
               metrics.firstFilmCutAt
                 ? new Date(metrics.firstFilmCutAt).toLocaleString()
-                : 'Open Day or Roleplay and Cut film.'
+                : 'Open Day and Cut film.'
             }
           />
           <StatCard label="Cut rate" value={formatRate(rates.cutRate)} detail={rates.headline} />
@@ -161,13 +161,23 @@ export default function PlayFilmMetricsCard() {
             value={formatRate(rates.saveRate)}
             detail={`Keep→cut ${formatRate(rates.keepToCutRate)} · ${funnel?.saveToCast ?? 0} saves`}
           />
+          <StatCard
+            label="Welcome → starter"
+            value={formatRate(rates.welcomeToStarterRate)}
+            detail={`${funnel?.welcomeShown ?? 0} welcome · ${funnel?.starterFilm ?? 0} starters`}
+          />
+          <StatCard
+            label="Starter → cut"
+            value={formatRate(rates.starterToCutRate)}
+            detail={`${funnel?.starterDayQueue ?? 0} auto-queues · ${funnel?.demoDayStills ?? 0} demos`}
+          />
         </div>
       )}
 
       <ol
         className="mt-3 flex flex-wrap gap-2"
         data-testid="play-funnel-steps"
-        aria-label="Play campaign steps"
+        aria-label="Film steps"
       >
         {PLAY_CAMPAIGN_STEPS.map((step, index) => {
           const done = completed || index < currentIndex;

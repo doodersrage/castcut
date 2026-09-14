@@ -129,6 +129,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
 
   const [firstCutCelebrate, setFirstCutCelebrate] = useState(false);
   const starterAutoQueueRef = useRef(false);
+  const autoCutRef = useRef(false);
+  const pendingAutoCutRef = useRef(false);
 
   const queueAll = useCallback(async () => {
     setBusy(true);
@@ -388,8 +390,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     const demo = buildDemoDayStills();
     stillsRef.current = normalizeDaySlotStills(demo);
     updateToolSettings({ stills: stillsRef.current });
-    setFilmStatus('Demo stills loaded — Cut film anytime. Replace by queuing real jobs.');
+    setFilmStatus('Demo stills loaded — cutting film…');
     setError(null);
+    pendingAutoCutRef.current = true;
     void import('@/lib/local-observability').then(({ noteDemoDayStillsMetric }) => {
       noteDemoDayStillsMetric();
     });
@@ -409,10 +412,35 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     });
     void queueAll().finally(() => {
       params.delete('autoqueue');
+      // Keep starter=1 so auto-cut can fire when stills land; add autocut hint.
+      params.set('autocut', '1');
       const next = params.toString();
       router.replace(next ? `/day?${next}` : '/day');
     });
   }, [mounted, queueAll, router]);
+
+  // Auto-cut when all four Day stills complete (starter / demo / explicit autocut).
+  useEffect(() => {
+    if (!mounted || assemblingFilm || autoCutRef.current) {
+      return;
+    }
+    const completed = stills.filter(entry => entry.status === 'completed' && entry.imageUrl).length;
+    if (completed < 4) {
+      return;
+    }
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const shouldAutoCut =
+      pendingAutoCutRef.current || params.get('starter') === '1' || params.get('autocut') === '1';
+    if (!shouldAutoCut) {
+      return;
+    }
+    autoCutRef.current = true;
+    pendingAutoCutRef.current = false;
+    void cutDayFilm();
+  }, [assemblingFilm, cutDayFilm, mounted, stills]);
 
   const completedShotCount = watchPlaylist.length;
   const fittingWardrobe = (activeSlot.wardrobeId || shared.lockedWardrobeId || '').trim();

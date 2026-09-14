@@ -41,7 +41,7 @@ export default function CharacterLookPacksSection({
   return (
     <ToolSection
       title="Saved look packs"
-      description="Reuse Moodboard vibes without re-running vision extract. Export JSON to share a look."
+      description="Reuse Look vibes without re-running vision extract. Export JSON to share a look."
     >
       <input
         ref={lookPackFileRef}
@@ -61,7 +61,7 @@ export default function CharacterLookPacksSection({
           Import look pack
         </Button>
         <ButtonLink href={playCampaignHref(character.id)} size="sm" variant="ghost">
-          Play campaign
+          Start a film
         </ButtonLink>
       </div>
       {lookPackStatus ? (
@@ -69,7 +69,7 @@ export default function CharacterLookPacksSection({
       ) : null}
       {savedLookPacks.length === 0 ? (
         <p className="type-caption text-[var(--text-muted)]">
-          No saved packs yet — extract a look on Moodboard and Save on Cast, or import JSON.
+          No saved packs yet — extract a look on Look and Save on Cast, or import JSON.
         </p>
       ) : (
         <ul className="ui-list">
@@ -90,7 +90,7 @@ export default function CharacterLookPacksSection({
                     go(lookPackFittingHref(entry.pack));
                   }}
                 >
-                  Fitting
+                  Outfit
                 </Button>
                 <Button
                   size="sm"

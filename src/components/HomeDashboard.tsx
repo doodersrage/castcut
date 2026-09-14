@@ -30,6 +30,8 @@ import { useHubPageDescription, useToolSectionDescription } from '@/hooks/useToo
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { saveWorkspaceMode } from '@/lib/workspace-mode';
 import ConnectionHealthChip from '@/components/ConnectionHealthChip';
+import PlayContinueChip from '@/components/PlayContinueChip';
+import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import { resolveStudioEmptyCta } from '@/lib/empty-cta';
@@ -137,6 +139,10 @@ export default function HomeDashboard() {
           <ConnectionHealthChip />
         </div>
         <OnboardingChecklist />
+        <PlayHabitNudgeBanner />
+        <div className="flex flex-wrap items-center gap-2">
+          <PlayContinueChip hideWhenIdle={false} />
+        </div>
         <PlayFilmMetricsCard />
       </div>
 
