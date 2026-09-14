@@ -9,6 +9,7 @@ import {
   getCharacter,
   upsertCharacter,
 } from './character-os';
+import { pickCharacterSubject } from './variation-seed';
 import { DEFAULT_DAY_SLOTS, type DaySlot } from './day-planner';
 import { clearLookPack, saveLookPack, type LookPack } from './look-pack';
 import { bumpPlayCampaignStep, savePlayCampaignState } from './play-campaign';
@@ -89,6 +90,15 @@ export function startStarterPlayFilm(input?: {
     const blank = createBlankCharacter(name);
     upsertCharacter(blank);
     record = getCharacter(blank.id) ?? blank;
+  } else if (!record.descriptor?.trim()) {
+    // Older Cast leads created before identity seeding still need a face.
+    const withLook = {
+      ...record,
+      descriptor: pickCharacterSubject('any'),
+      updatedAt: Date.now(),
+    };
+    upsertCharacter(withLook);
+    record = getCharacter(withLook.id) ?? withLook;
   }
 
   clearLookPack();

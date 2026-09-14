@@ -104,13 +104,13 @@ describe('character-os', () => {
     const blank = createBlankCharacter('Kai');
     assert.equal(blank.name, 'Kai');
     assert.equal(blank.ipAdapter?.imageFilename, undefined);
-    assert.equal(blank.descriptor, undefined);
+    assert.ok(blank.descriptor && blank.descriptor.length > 8);
     assert.equal(blank.lockedWardrobeId, undefined);
     const fresh = applyCharacterRecordFresh(blank);
     assert.equal(fresh.activeCharacterId, blank.id);
     assert.equal(fresh.ipAdapterImageFilename, undefined);
     assert.equal(fresh.lockedWardrobeId, undefined);
-    assert.equal(fresh.activeCharacterDescriptor, undefined);
+    assert.equal(fresh.activeCharacterDescriptor, blank.descriptor);
     // Explicit clears so callers can overwrite a prior Cast session.
     assert.ok('ipAdapterImageFilename' in fresh);
     assert.ok('lockedWardrobeId' in fresh);

@@ -61,18 +61,26 @@ describe("parseCharacterHints", () => {
     assert.equal(result.mentionsAge, true);
   });
 
-  it("flags identity constraints for a long free-text hint even with no explicit markers", () => {
-    const result = parseCharacterHints("someone standing near the old oak tree by the lake");
-    assert.equal(result.raw.length >= 16, true);
-    assert.equal(result.hasIdentityConstraints, true);
+  it('flags identity constraints for age, hair, or face detail — not mere gender or scene length', () => {
+    assert.equal(parseCharacterHints('a woman at a café table').hasIdentityConstraints, false);
+    assert.equal(
+      parseCharacterHints('someone standing near the old oak tree by the lake')
+        .hasIdentityConstraints,
+      false
+    );
+    assert.equal(parseCharacterHints('a woman in her thirties').hasIdentityConstraints, true);
+    assert.equal(parseCharacterHints('curly hair').hasIdentityConstraints, true);
+    assert.equal(
+      parseCharacterHints('a young Black woman with high cheekbones').hasIdentityConstraints,
+      true
+    );
   });
 
-  it("does not flag identity constraints for a short unmarked hint", () => {
-    const result = parseCharacterHints("smiling");
+  it('does not flag identity constraints for a short unmarked hint', () => {
+    const result = parseCharacterHints('smiling');
     assert.equal(result.hasIdentityConstraints, false);
   });
 });
-
 describe("buildCharacterMandatoryBlock", () => {
   it("returns an empty string when there is no raw hint", () => {
     assert.equal(buildCharacterMandatoryBlock(parseCharacterHints()), "");
@@ -108,10 +116,16 @@ describe("pickCharacterIdentitySeed", () => {
     assert.equal(pickCharacterIdentitySeed(parsed), null);
   });
 
-  it("returns a non-empty seed when there are no identity constraints", () => {
+  it('returns a non-empty seed when there are no identity constraints', () => {
     const parsed = parseCharacterHints();
     const seed = pickCharacterIdentitySeed(parsed);
-    assert.equal(typeof seed, "string");
+    assert.equal(typeof seed, 'string');
+    assert.ok((seed as string).length > 0);
+  });
+
+  it('still seeds when only gender is named (stock face risk)', () => {
+    const seed = pickCharacterIdentitySeed(parseCharacterHints('a woman'));
+    assert.equal(typeof seed, 'string');
     assert.ok((seed as string).length > 0);
   });
 });

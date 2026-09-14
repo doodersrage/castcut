@@ -355,7 +355,7 @@ ${soloRules}
         mandatoryBlock
           ? null
           : identitySeed
-            ? `Optional identity inspiration (use only if compatible with mandatory direction): ${identitySeed}`
+            ? `MANDATORY identity seed (commit fully — specific face, age read, ancestry, hair, and body; do not substitute a generic stock model): ${identitySeed}`
             : null,
         `Environment and mood: ${environmentSeed}`,
         clothingDirective,

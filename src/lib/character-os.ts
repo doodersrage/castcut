@@ -19,6 +19,7 @@ import { normalizeComposeIdentityKind } from './compose-identity-lock';
 import type { RoleplayLibrarySession } from './roleplay-library';
 import type { RoleplayBio, RoleplayContentId, RoleplayPlayAs, RoleplayTone } from './roleplay';
 import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from './settings-cache';
+import { pickCharacterSubject } from './variation-seed';
 
 export const CHARACTERS_KEY = 'comfy-prompt-characters-v1';
 export const CHARACTERS_UPDATED_EVENT = 'prompt-studio-characters-updated';
@@ -460,7 +461,7 @@ export function characterFromShared(
   };
 }
 
-/** Fresh Cast record — name only; does not inherit the live session look. */
+/** Fresh Cast record — name plus a rolled face descriptor so Day/Generate are not blank. */
 export function createBlankCharacter(name: string): CharacterRecord {
   const trimmed = name.trim() || 'Untitled character';
   return {
@@ -469,6 +470,7 @@ export function createBlankCharacter(name: string): CharacterRecord {
     version: 1,
     updatedAt: Date.now(),
     characterName: trimmed,
+    descriptor: pickCharacterSubject('any'),
   };
 }
 

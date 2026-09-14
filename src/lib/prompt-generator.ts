@@ -1,4 +1,5 @@
 import { getSamplingBoost, pickFewShotExamples } from './variation-seed';
+import { parseCharacterHints, pickCharacterIdentitySeed } from './character-hints';
 import {
   buildClaritySystemAddendum,
   buildDetailUserDirective,
@@ -224,6 +225,17 @@ function buildUserMessage(
     });
     if (hint) {
       extras.push(hint);
+    }
+  }
+
+  // When the user did not name a face, inject a concrete identity so models
+  // do not collapse to the same stock man/woman prior.
+  if (!settings.distinctPeople && !isMultiPersonInput(trimmed)) {
+    const identitySeed = pickCharacterIdentitySeed(parseCharacterHints(trimmed));
+    if (identitySeed) {
+      extras.push(
+        `Subject identity (mandatory — specific face, age read, ancestry, hair, and body; do not use a generic stock model): ${identitySeed}`
+      );
     }
   }
 

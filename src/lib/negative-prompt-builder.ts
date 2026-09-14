@@ -1,7 +1,7 @@
 import type { AthleticSport } from './athletic-sport-profiles';
 
 const BASE_NEGATIVE =
-  'blurry, low quality, watermark, text, logo, deformed, bad anatomy, extra limbs, plastic skin, waxy skin, airbrushed, doll-like, oversharpened halos, nude, topless, bottomless, missing shorts, exposed buttocks, underwear visible, split screen, diptych, collage panels, side by side comparison, multiple unrelated subjects';
+  'blurry, low quality, watermark, text, logo, deformed, bad anatomy, extra limbs, plastic skin, waxy skin, airbrushed, doll-like, oversharpened halos, generic stock model face, beauty-filter face, identical default woman, identical default man, nude, topless, bottomless, missing shorts, exposed buttocks, underwear visible, split screen, diptych, collage panels, side by side comparison, multiple unrelated subjects';
 
 const SOLO_SUBJECT_NEGATIVE =
   'second person, extra face, crowd, duo, pair, twins, wrong gender, elderly man, split frame';

@@ -11,6 +11,8 @@ import {
   pickSportActionSetting,
 } from '../athletic-sport-actions';
 import { promptContainsAvoidedTokensFromList } from '../avoidance-options';
+import { parseCharacterHints, pickCharacterIdentitySeed } from '../character-hints';
+import { pickCharacterSubject } from '../variation-seed';
 
 const LOCATIONS = [
   'abandoned observatory on a windy cliff',
@@ -1228,9 +1230,21 @@ export function buildRandomCharacterSeed(
   if (!hints?.trim()) {
     parts.push(
       portraitStyle === 'action'
-        ? 'decisive mid-action instant with engaged muscles and expressive face'
-        : 'distinct face, clothing, posture, and expression'
+        ? `${pickCharacterSubject()}, decisive mid-action instant with engaged muscles and expressive face`
+        : pickCharacterSubject()
     );
+  } else {
+    // Scene keywords without face detail still need a concrete person.
+    const identity = pickCharacterIdentitySeed(parseCharacterHints(hints));
+    if (identity) {
+      parts.push(identity);
+    } else {
+      parts.push(
+        portraitStyle === 'action'
+          ? 'decisive mid-action instant with engaged muscles and expressive face'
+          : 'distinct face, clothing, posture, and expression'
+      );
+    }
   }
 
   return { seed: parts.join(', '), location };
