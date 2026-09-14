@@ -31,7 +31,7 @@ export default function GalleryEmptyPanel({
     );
   }
 
-  const generateCta = resolveStudioEmptyCta();
+  const filmCta = resolveStudioEmptyCta();
 
   return (
     <div className="ui-brand-empty relative space-y-4 overflow-hidden">
@@ -42,8 +42,8 @@ export default function GalleryEmptyPanel({
         branded
         icon="inbox"
         title="No gallery outputs yet"
-        description="Queue from Generate (ComfyUI or a cloud engine), upload your own stills, or import sidecars and ComfyUI history below."
-        action={generateCta}
+        description="Start a film to queue Day stills, generate a surprise still, or upload your own."
+        action={filmCta}
       />
       <div className="ui-panel-accent relative px-4 py-4">
         <p className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
@@ -52,21 +52,24 @@ export default function GalleryEmptyPanel({
         </p>
         <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-[var(--text-muted)]">
           <li>
-            Open <strong className="font-medium text-[var(--text-secondary)]">Generate</strong>,
-            create a prompt, and queue it on ComfyUI or the cloud engine in Settings.
+            Open <strong className="font-medium text-[var(--text-secondary)]">Film</strong> and tap{' '}
+            <strong className="font-medium text-[var(--text-secondary)]">
+              Make a starter film
+            </strong>{' '}
+            — Day will queue morning → night stills.
+          </li>
+          <li>
+            Or use <strong className="font-medium text-[var(--text-secondary)]">Generate</strong>{' '}
+            for a single still, then continue the film loop.
           </li>
           <li>
             Use <strong className="font-medium text-[var(--text-secondary)]">Upload images</strong>{' '}
-            to add stills from disk — they stay in the gallery for Play, Compose, and identity lock.
+            to add stills from disk for Look, Outfit, and identity lock.
           </li>
           <li>
-            Use <strong className="font-medium text-[var(--text-secondary)]">Review mode</strong> to
-            rate outputs with keyboard <kbd className="ui-kbd">1–5</kbd> and build avoided-token
-            feedback.
-          </li>
-          <li>
-            Select <strong className="font-medium text-[var(--text-secondary)]">2–4 cards</strong>{' '}
-            to compare variants, pick a winner, or queue follow-up experiments.
+            If Comfy is down, open Day and tap{' '}
+            <strong className="font-medium text-[var(--text-secondary)]">Use demo stills</strong> to
+            practice Cut film.
           </li>
         </ul>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -75,11 +78,11 @@ export default function GalleryEmptyPanel({
               Upload images
             </button>
           ) : null}
-          <ButtonLink href={generateCta.href} size="sm">
-            {generateCta.label}
+          <ButtonLink href={filmCta.href} size="sm">
+            {filmCta.label}
           </ButtonLink>
-          <ButtonLink href="/gallery?review=1" variant="ghost" size="sm">
-            Try review mode
+          <ButtonLink href="/day" variant="ghost" size="sm">
+            Open Day
           </ButtonLink>
         </div>
       </div>

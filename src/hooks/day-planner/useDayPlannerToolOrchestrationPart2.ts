@@ -57,6 +57,7 @@ import {
   saveLookPack,
 } from '@/lib/look-pack';
 import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play-campaign';
+import { buildDemoDayStills } from '@/lib/welcome-sample-film';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
@@ -125,6 +126,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     queueSlot,
     leanChrome,
   } = ctx;
+
+  const [firstCutCelebrate, setFirstCutCelebrate] = useState(false);
+  const starterAutoQueueRef = useRef(false);
 
   const queueAll = useCallback(async () => {
     setBusy(true);
@@ -285,7 +289,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         );
       }
       markOnboardingFirstPlayCampaign();
-      markOnboardingFirstFilmCut();
+      const firstCut = markOnboardingFirstFilmCut();
       void import('@/lib/local-observability').then(
         ({ noteFilmCutSourceMetric, noteSaveToCastMetric }) => {
           noteFilmCutSourceMetric('day');
@@ -296,6 +300,17 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       );
       if (character) {
         completePlayCampaign({ characterId: character.id, stepId: 'day' });
+      }
+      if (firstCut) {
+        void import('@/lib/system-tray-celebrate').then(({ celebrateSystemTray }) => {
+          celebrateSystemTray('job');
+        });
+        setFirstCutCelebrate(true);
+        setFilmStatus(
+          character
+            ? `First film cut — watch it on Cast, then cut another Day reel.`
+            : `First film cut — pick a Cast lead to save it, or download above.`
+        );
       }
     } catch (err) {
       const playbook = resolveFilmFailurePlaybook(
@@ -369,6 +384,36 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     router.push('/roleplay');
   }, [character, router]);
 
+  const seedDemoStills = useCallback(() => {
+    const demo = buildDemoDayStills();
+    stillsRef.current = normalizeDaySlotStills(demo);
+    updateToolSettings({ stills: stillsRef.current });
+    setFilmStatus('Demo stills loaded — Cut film anytime. Replace by queuing real jobs.');
+    setError(null);
+    void import('@/lib/local-observability').then(({ noteDemoDayStillsMetric }) => {
+      noteDemoDayStillsMetric();
+    });
+  }, [setError, setFilmStatus, updateToolSettings, stillsRef]);
+
+  useEffect(() => {
+    if (!mounted || starterAutoQueueRef.current || typeof window === 'undefined') {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('starter') !== '1' || params.get('autoqueue') !== '1') {
+      return;
+    }
+    starterAutoQueueRef.current = true;
+    void import('@/lib/local-observability').then(({ noteStarterDayQueueMetric }) => {
+      noteStarterDayQueueMetric();
+    });
+    void queueAll().finally(() => {
+      params.delete('autoqueue');
+      const next = params.toString();
+      router.replace(next ? `/day?${next}` : '/day');
+    });
+  }, [mounted, queueAll, router]);
+
   const completedShotCount = watchPlaylist.length;
   const fittingWardrobe = (activeSlot.wardrobeId || shared.lockedWardrobeId || '').trim();
 
@@ -379,6 +424,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     cutDayFilm,
     saveFilmToCast,
     goRoleplay,
+    seedDemoStills,
+    firstCutCelebrate,
     completedShotCount,
     fittingWardrobe,
   };

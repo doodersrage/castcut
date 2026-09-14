@@ -23,6 +23,9 @@ import {
   ToolSection,
   accentFocusClass,
 } from '@/components/ui/ToolPageShell';
+import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
+import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
+import { LOOK_PRESETS, lookPackFromPreset, tilesFromLookPreset } from '@/lib/look-presets';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
@@ -116,32 +119,63 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
     saveLookPackToCast,
     goRoleplay,
   } = vm;
+  const workspaceMode = useWorkspaceMode();
+  const leanChrome = isLeanWorkspaceMode(workspaceMode);
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={
-        <ToolBadge accent={ACCENT}>Moodboard · {selectedModel?.comfyNode ?? 'model'}</ToolBadge>
-      }
-      title="Moodboard → Scene"
+      badge={<ToolBadge accent={ACCENT}>Look · {selectedModel?.comfyNode ?? 'model'}</ToolBadge>}
+      title="Look"
       description={description}
       sidebar={
-        <SharedToolControls
-          shared={shared}
-          onModelChange={model => updateShared({ model })}
-          onDetailChange={detail => updateShared({ detail })}
-          onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-          showWardrobeOption={false}
-          seedLlmWithIngredients={false}
-          autoFixRules={shared.autoFixRules !== false}
-          onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
-          recommendFromText={output}
-          toolId={TOOL_ID}
-          onSharedSettingsChange={updateShared}
-          variant="roleplay"
-        />
+        leanChrome ? undefined : (
+          <SharedToolControls
+            shared={shared}
+            onModelChange={model => updateShared({ model })}
+            onDetailChange={detail => updateShared({ detail })}
+            onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
+            showWardrobeOption={false}
+            seedLlmWithIngredients={false}
+            autoFixRules={shared.autoFixRules !== false}
+            onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
+            recommendFromText={output}
+            toolId={TOOL_ID}
+            onSharedSettingsChange={updateShared}
+            variant="roleplay"
+          />
+        )
       }
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.moodboard} />
+
+      <ToolSection
+        title="Look presets"
+        description="One tap to seed tiles and stage a look — skip the blank board."
+        data-testid="moodboard-presets"
+      >
+        <div className="flex flex-wrap gap-2">
+          {LOOK_PRESETS.map(preset => (
+            <ChipButton
+              key={preset.id}
+              active={false}
+              disabled={busy || extracting}
+              title={preset.hint}
+              onClick={() => {
+                const tilesNext = tilesFromLookPreset(preset);
+                updateToolSettings({ tiles: tilesNext });
+                if (tilesNext[0]) {
+                  setActiveTileId(tilesNext[0].id);
+                }
+                const pack = lookPackFromPreset(preset, character?.id);
+                saveLookPack(pack);
+                setLookStatus(`Loaded ${preset.label} — Extract look or Continue to Outfit.`);
+              }}
+            >
+              {preset.label}
+            </ChipButton>
+          ))}
+        </div>
+      </ToolSection>
 
       <ToolSection
         title="Character (optional)"

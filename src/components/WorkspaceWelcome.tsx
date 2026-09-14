@@ -24,6 +24,9 @@ import {
   FIRST_RUN_GENERATE_HREF,
 } from '@/lib/empty-cta';
 import { startStarterPlayFilm } from '@/lib/play-starter';
+import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
+import { noteWelcomeShownMetric } from '@/lib/local-observability';
+import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import { useAuth } from '@/hooks/useAuth';
 
 type WelcomePhase = 'goal' | 'setup' | 'ready';
@@ -56,6 +59,7 @@ export default function WorkspaceWelcome() {
     scheduleAfterCommit(() => {
       if (!hasChosenWorkspaceMode()) {
         setPhase('goal');
+        noteWelcomeShownMetric();
       }
     });
   }, [auth?.authEnabled, auth?.user]);
@@ -160,9 +164,13 @@ export default function WorkspaceWelcome() {
               data-testid="welcome-sample-film"
             >
               <p className="type-caption text-[var(--text-muted)]">What you&apos;re making</p>
-              <p className="type-body mt-1 text-[var(--text-secondary)]">
+              <p className="type-body mt-1 mb-3 text-[var(--text-secondary)]">
                 Four stills — morning to night — cut into a short reel you can watch on Cast.
               </p>
+              <FilmWatchPlayer
+                shots={welcomeSampleFilmShots()}
+                emptyLabel="Sample reel unavailable."
+              />
             </div>
             <div className="mt-5 grid gap-2" data-testid="welcome-goal-chooser">
               {FIRST_RUN_GOAL_OPTIONS.map(option => (

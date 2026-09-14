@@ -1,6 +1,6 @@
 /**
  * One-tap starter film: create (or reuse) a Cast lead, stage a minimal look,
- * seed Day slots, and land on Day ready to queue.
+ * seed Day slots, skip Look/Outfit by default, and land on Day ready to auto-queue.
  */
 
 import {
@@ -13,6 +13,7 @@ import { DEFAULT_DAY_SLOTS, type DaySlot } from './day-planner';
 import { clearLookPack, saveLookPack, type LookPack } from './look-pack';
 import { bumpPlayCampaignStep, savePlayCampaignState } from './play-campaign';
 import { markOnboardingFirstPlayCampaign } from './onboarding-hooks';
+import { noteStarterFilmMetric } from './local-observability';
 import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_MOODBOARD_TOOL_CACHE,
@@ -74,10 +75,12 @@ function starterSlots(): DaySlot[] {
   });
 }
 
-/** Seed a starter film campaign and return the Day deep link. */
+/** Seed a starter film campaign and return the Day deep link (auto-queue). */
 export function startStarterPlayFilm(input?: {
   name?: string;
   existingCharacterId?: string;
+  /** When false, skip autoqueue query (default true). */
+  autoQueue?: boolean;
 }): PlayStarterResult {
   const existingId = input?.existingCharacterId?.trim();
   let record = existingId ? getCharacter(existingId) : undefined;
@@ -101,7 +104,7 @@ export function startStarterPlayFilm(input?: {
   const dayCache: DayToolCache = {
     ...DEFAULT_DAY_TOOL_CACHE,
     slots: starterSlots(),
-    notes: 'Starter day — queue stills, then Cut film. Outfit step is optional.',
+    notes: 'Starter day — Look & Outfit skipped. Queue stills (or use demo stills), then Cut film.',
   };
   saveToolSettings('day', dayCache);
 
@@ -111,10 +114,11 @@ export function startStarterPlayFilm(input?: {
     ...patch,
   });
 
+  // Jump straight to Day — Look/Outfit are optional polish after the first film.
   savePlayCampaignState({
     version: 1,
     characterId: record.id,
-    stepIndex: 3, // Day
+    stepIndex: 3,
     updatedAt: Date.now(),
   });
   bumpPlayCampaignStep({
@@ -123,11 +127,21 @@ export function startStarterPlayFilm(input?: {
     absolute: true,
   });
   markOnboardingFirstPlayCampaign();
+  noteStarterFilmMetric();
+
+  const autoQueue = input?.autoQueue !== false;
+  const params = new URLSearchParams();
+  params.set('character', record.id);
+  params.set('from', 'look');
+  params.set('starter', '1');
+  if (autoQueue) {
+    params.set('autoqueue', '1');
+  }
 
   return {
     characterId: record.id,
     characterName: record.name,
-    href: `/day?character=${encodeURIComponent(record.id)}&from=look&starter=1`,
+    href: `/day?${params.toString()}`,
   };
 }
 

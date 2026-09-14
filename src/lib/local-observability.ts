@@ -34,6 +34,14 @@ export type LocalObservabilityCounters = {
   filmCutDay: number;
   /** Cut film events from Roleplay / mobile play. */
   filmCutRoleplay: number;
+  /** Welcome overlay shown. */
+  welcomeShown: number;
+  /** One-tap starter film started. */
+  starterFilm: number;
+  /** Day starter auto-queue attempted. */
+  starterDayQueue: number;
+  /** Demo / offline stills seeded into Day. */
+  demoDayStills: number;
   firstQueueSetupStepFails: Partial<Record<FirstQueueSetupStepId, number>>;
   lastFailureMessage?: string;
   lastFailureHref?: string;
@@ -62,6 +70,10 @@ const DEFAULT_COUNTERS: LocalObservabilityCounters = {
   saveToCast: 0,
   filmCutDay: 0,
   filmCutRoleplay: 0,
+  welcomeShown: 0,
+  starterFilm: 0,
+  starterDayQueue: 0,
+  demoDayStills: 0,
   firstQueueSetupStepFails: {},
 };
 
@@ -101,6 +113,10 @@ export function loadLocalObservability(): LocalObservabilityCounters {
     saveToCast: Math.max(0, Number(raw?.saveToCast) || 0),
     filmCutDay: Math.max(0, Number(raw?.filmCutDay) || 0),
     filmCutRoleplay: Math.max(0, Number(raw?.filmCutRoleplay) || 0),
+    welcomeShown: Math.max(0, Number(raw?.welcomeShown) || 0),
+    starterFilm: Math.max(0, Number(raw?.starterFilm) || 0),
+    starterDayQueue: Math.max(0, Number(raw?.starterDayQueue) || 0),
+    demoDayStills: Math.max(0, Number(raw?.demoDayStills) || 0),
     firstQueueSetupStepFails: normalizeStepFails(raw?.firstQueueSetupStepFails),
     ...(typeof raw?.lastFailureMessage === 'string' && raw.lastFailureMessage.trim()
       ? { lastFailureMessage: raw.lastFailureMessage.trim().slice(0, 400) }
@@ -162,6 +178,10 @@ export function incrementLocalObservability(
     | 'saveToCast'
     | 'filmCutDay'
     | 'filmCutRoleplay'
+    | 'welcomeShown'
+    | 'starterFilm'
+    | 'starterDayQueue'
+    | 'demoDayStills'
   >
 ): LocalObservabilityCounters {
   if (typeof window === 'undefined') {
@@ -265,6 +285,22 @@ export function noteSaveToCastMetric(): void {
 
 export function noteFilmCutSourceMetric(source: 'day' | 'roleplay'): void {
   incrementLocalObservability(source === 'day' ? 'filmCutDay' : 'filmCutRoleplay');
+}
+
+export function noteWelcomeShownMetric(): void {
+  incrementLocalObservability('welcomeShown');
+}
+
+export function noteStarterFilmMetric(): void {
+  incrementLocalObservability('starterFilm');
+}
+
+export function noteStarterDayQueueMetric(): void {
+  incrementLocalObservability('starterDayQueue');
+}
+
+export function noteDemoDayStillsMetric(): void {
+  incrementLocalObservability('demoDayStills');
 }
 
 export function noteCampaignMaxStepMetric(stepIndex: number): void {
@@ -378,6 +414,8 @@ export function summarizePlayFunnel(counters = loadLocalObservability()): {
   dayShare: number | null;
   roleplayShare: number | null;
   maxStep: number;
+  welcomeToStarterRate: number | null;
+  starterToCutRate: number | null;
   headline: string;
 } {
   const starts = counters.firstPlayCampaign || 0;
@@ -386,28 +424,48 @@ export function summarizePlayFunnel(counters = loadLocalObservability()): {
   const saves = counters.saveToCast || 0;
   const dayCuts = counters.filmCutDay || 0;
   const roleplayCuts = counters.filmCutRoleplay || 0;
+  const welcome = counters.welcomeShown || 0;
+  const starter = counters.starterFilm || 0;
   const sourced = dayCuts + roleplayCuts;
   const cutRate = starts > 0 ? Math.min(1, cuts / starts) : null;
   const saveRate = cuts > 0 ? Math.min(1, saves / cuts) : null;
   const keepToCutRate = keeps > 0 ? Math.min(1, cuts / keeps) : null;
   const dayShare = sourced > 0 ? dayCuts / sourced : null;
   const roleplayShare = sourced > 0 ? roleplayCuts / sourced : null;
+  const welcomeToStarterRate = welcome > 0 ? Math.min(1, starter / welcome) : null;
+  const starterToCutRate = starter > 0 ? Math.min(1, cuts / starter) : null;
   const maxStep = Math.max(0, counters.campaignMaxStep || 0);
 
   let headline = 'No Play funnel events yet.';
-  if (cutRate != null && cutRate >= 0.5) {
+  if (starterToCutRate != null && starterToCutRate >= 0.4) {
+    headline = 'Strong starter → film conversion.';
+  } else if (cutRate != null && cutRate >= 0.5) {
     headline = 'Strong campaign → film conversion.';
   } else if (starts > 0 && cuts === 0) {
-    headline = 'Campaign started — Cut film in Day or Roleplay to close the loop.';
+    headline = 'Film started — Cut film in Day to close the loop.';
   } else if (cuts > 0 && saves === 0) {
     headline = 'Film cut — Save to Cast to stamp a studio copy.';
   } else if (keeps > 0 && cuts === 0) {
     headline = 'Keepers saved — Continue in Day and Cut film.';
   } else if (sourced > 0) {
-    headline = `${dayCuts} Day · ${roleplayCuts} Roleplay cuts · max step ${maxStep}.`;
+    headline = `${dayCuts} Day · ${roleplayCuts} Story cuts · max step ${maxStep}.`;
   } else if (cuts > 0) {
     headline = `${cuts} film cut${cuts === 1 ? '' : 's'} · ${saves} save${saves === 1 ? '' : 's'} to Cast.`;
+  } else if (starter > 0) {
+    headline = `${starter} starter film${starter === 1 ? '' : 's'} — queue Day stills next.`;
+  } else if (welcome > 0) {
+    headline = 'Welcome seen — try Make a starter film.';
   }
 
-  return { cutRate, saveRate, keepToCutRate, dayShare, roleplayShare, maxStep, headline };
+  return {
+    cutRate,
+    saveRate,
+    keepToCutRate,
+    dayShare,
+    roleplayShare,
+    maxStep,
+    welcomeToStarterRate,
+    starterToCutRate,
+    headline,
+  };
 }

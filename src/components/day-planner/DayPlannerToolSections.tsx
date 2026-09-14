@@ -82,33 +82,68 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     completedShotCount,
     fittingWardrobe,
     leanChrome,
+    seedDemoStills,
+    firstCutCelebrate,
   } = vm;
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={
-        <ToolBadge accent={ACCENT}>Day Planner · {selectedModel?.comfyNode ?? 'model'}</ToolBadge>
-      }
-      title="Day Planner"
+      badge={<ToolBadge accent={ACCENT}>Day · {selectedModel?.comfyNode ?? 'model'}</ToolBadge>}
+      title="Day"
       description={description}
       sidebar={
-        <SharedToolControls
-          shared={shared}
-          onModelChange={model => updateShared({ model })}
-          onDetailChange={detail => updateShared({ detail })}
-          onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-          showWardrobeOption={false}
-          seedLlmWithIngredients={false}
-          autoFixRules={shared.autoFixRules !== false}
-          onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
-          recommendFromText={output}
-          toolId={TOOL_ID}
-          onSharedSettingsChange={updateShared}
-          variant="roleplay"
-        />
+        leanChrome ? undefined : (
+          <SharedToolControls
+            shared={shared}
+            onModelChange={model => updateShared({ model })}
+            onDetailChange={detail => updateShared({ detail })}
+            onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
+            showWardrobeOption={false}
+            seedLlmWithIngredients={false}
+            autoFixRules={shared.autoFixRules !== false}
+            onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
+            recommendFromText={output}
+            toolId={TOOL_ID}
+            onSharedSettingsChange={updateShared}
+            variant="roleplay"
+          />
+        )
       }
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.day} />
+
+      {firstCutCelebrate ? (
+        <div
+          className="rounded-[var(--radius-lg)] border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-4 py-3"
+          data-testid="day-first-cut-celebrate"
+        >
+          <p className="type-overline text-[var(--tint-success-text)]">First film</p>
+          <p className="type-heading mt-1 text-[var(--text-primary)]">You cut your first reel</p>
+          <p className="type-caption mt-1 text-[var(--text-muted)]">
+            Watch it on Cast, save a studio copy, or queue another Day. Story unlocks in the Play
+            tabs.
+          </p>
+          <ToolActionRow className="mt-3">
+            {character ? (
+              <ButtonLink
+                href={`/characters/${encodeURIComponent(character.id)}?media=films`}
+                size="sm"
+                variant="primary"
+                onClick={() => {
+                  void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
+                    markOnboardingWatchFirstFilm();
+                  });
+                }}
+              >
+                Watch on Cast
+              </ButtonLink>
+            ) : null}
+            <ButtonLink href="/play" size="sm" variant="secondary">
+              Back to Film
+            </ButtonLink>
+          </ToolActionRow>
+        </div>
+      ) : null}
 
       <ToolSection
         title="Character"
@@ -132,10 +167,57 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           </p>
         ) : (
           <p className="type-caption mt-2 text-[var(--text-muted)]">
-            No Cast plate yet — stills queue as text scenes. Add a look in Cast or open Fitting
-            Room.
+            No Cast plate yet — stills queue as text scenes. Add a look in Cast or open Outfit.
           </p>
         )}
+      </ToolSection>
+
+      <ToolSection
+        title="Day progress"
+        description="Stay here while jobs run — slots fill as stills complete."
+        data-testid="day-progress"
+      >
+        <ol className="grid gap-2 sm:grid-cols-4">
+          {slots.map(slot => {
+            const still = stills.find(entry => entry.slotId === slot.id);
+            const state =
+              still?.status === 'completed'
+                ? 'done'
+                : still?.status === 'error'
+                  ? 'failed'
+                  : still?.status === 'queued' || still?.status === 'running'
+                    ? 'queued'
+                    : 'idle';
+            const label =
+              state === 'done'
+                ? 'Done'
+                : state === 'failed'
+                  ? 'Failed'
+                  : state === 'queued'
+                    ? 'Queueing…'
+                    : 'Waiting';
+            return (
+              <li
+                key={slot.id}
+                data-testid={`day-progress-${slot.id}`}
+                data-state={state}
+                className={[
+                  'rounded-[var(--radius-md)] border px-3 py-2',
+                  state === 'done'
+                    ? 'border-[var(--tint-success-border)] bg-[var(--tint-success-bg)]'
+                    : state === 'failed'
+                      ? 'border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)]'
+                      : state === 'queued'
+                        ? 'border-[var(--accent-border)] bg-[var(--accent-muted)]'
+                        : 'border-[var(--border-subtle)]',
+                ].join(' ')}
+              >
+                <p className="type-heading text-sm">{slot.label}</p>
+                <p className="type-caption text-[var(--text-muted)]">{label}</p>
+              </li>
+            );
+          })}
+        </ol>
       </ToolSection>
 
       <ToolSection
@@ -282,6 +364,15 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onClick={() => void queueAll()}
           >
             Queue day
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            data-testid="day-demo-stills"
+            onClick={seedDemoStills}
+          >
+            Use demo stills
           </Button>
         </ToolActionRow>
         {leanChrome ? (

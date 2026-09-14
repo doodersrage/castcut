@@ -19,7 +19,7 @@ Switch modes from **Profile → Appearance**. Play slimmed chrome hides draft-pr
 First launch asks **What do you want to make?** (Character / Scene·Film / Image / Surprise). Image / Surprise land in Simple; film goals stay in Play. Optional engine setup can wait until you queue. On a phone, use **Mobile Studio** (`/m`) — same Look / Outfit / Day labels.
 
 !!! tip "First film in minutes"
-    **Make a starter film** (welcome or Film page) seeds a Cast lead + Day slots, or: Heal later → Look extract → Outfit Keep (or skip) → Day stills → **Cut film** → Save to Cast. The Dashboard **Play film loop** card tracks time from start to first cut.
+    **Make a starter film** seeds a Cast lead, skips Look/Outfit, opens Day with **auto-queue**, and lands you on Cut. If Comfy is offline, tap **Use demo stills** to practice the cut. Welcome shows a sample morning→night reel so you know what you're making.
 
 ---
 

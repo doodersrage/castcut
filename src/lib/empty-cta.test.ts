@@ -23,10 +23,10 @@ describe('empty-cta', () => {
     });
   });
 
-  it('studio empty CTA defaults to Generate when SSR / no window', () => {
+  it('studio empty CTA defaults to Start a film when SSR / no window', () => {
     assert.deepEqual(resolveStudioEmptyCta(), {
-      label: 'Open Generate',
-      href: '/',
+      label: 'Start a film',
+      href: '/play',
     });
   });
 });

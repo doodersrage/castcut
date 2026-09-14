@@ -165,32 +165,34 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       accent={ACCENT}
       badge={
         <ToolBadge accent={ACCENT}>
-          Fitting Room · {selectedModel?.comfyNode ?? selectedModel?.label ?? 'model'}
+          Outfit · {selectedModel?.comfyNode ?? selectedModel?.label ?? 'model'}
         </ToolBadge>
       }
-      title="Fitting Room"
+      title="Outfit"
       description={description}
       sidebar={
-        <SharedToolControls
-          shared={shared}
-          onModelChange={model => updateShared({ model })}
-          onDetailChange={detail => updateShared({ detail })}
-          onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-          showWardrobeOption={false}
-          seedLlmWithIngredients={false}
-          lockedWardrobeId={shared.lockedWardrobeId}
-          lockedWardrobeLabel={
-            shared.lockedWardrobeId ? (lockedWardrobeLabel ?? shared.lockedWardrobeId) : undefined
-          }
-          onClearLockedWardrobe={() => updateShared({ lockedWardrobeId: undefined })}
-          autoFixRules={shared.autoFixRules !== false}
-          onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
-          recommendFromText={output}
-          toolId={TOOL_ID}
-          preferEditModels
-          onSharedSettingsChange={updateShared}
-          variant="roleplay"
-        />
+        leanChrome ? undefined : (
+          <SharedToolControls
+            shared={shared}
+            onModelChange={model => updateShared({ model })}
+            onDetailChange={detail => updateShared({ detail })}
+            onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
+            showWardrobeOption={false}
+            seedLlmWithIngredients={false}
+            lockedWardrobeId={shared.lockedWardrobeId}
+            lockedWardrobeLabel={
+              shared.lockedWardrobeId ? (lockedWardrobeLabel ?? shared.lockedWardrobeId) : undefined
+            }
+            onClearLockedWardrobe={() => updateShared({ lockedWardrobeId: undefined })}
+            autoFixRules={shared.autoFixRules !== false}
+            onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
+            recommendFromText={output}
+            toolId={TOOL_ID}
+            preferEditModels
+            onSharedSettingsChange={updateShared}
+            variant="roleplay"
+          />
+        )
       }
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.fitting} />

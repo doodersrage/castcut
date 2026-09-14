@@ -95,7 +95,7 @@ export default function QueueToolSections({
               branded
               icon="inbox"
               title="Queue is empty"
-              description="Send a prompt to ComfyUI from Generate. If nothing queues, use Settings → Heal & ready (system workflows + Comfy connection)."
+              description="Start a film and Queue day, or send a still from Generate. Engines can wait — try demo stills on Day if Comfy is offline."
               action={generateCta}
             />
           ) : (
@@ -103,7 +103,7 @@ export default function QueueToolSections({
               compact
               icon="inbox"
               title="No pending jobs"
-              description="Nothing is running right now. Queue another prompt or browse completed outputs."
+              description="Nothing running. Continue your film on Day, or queue another still."
               action={generateCta}
             />
           )

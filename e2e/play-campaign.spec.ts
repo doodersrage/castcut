@@ -28,7 +28,7 @@ test('play campaign wizard loads with steps and share controls', async ({ page }
 test('fitting room happy path chrome loads', async ({ page }) => {
   await gotoStable(page, '/fitting');
   await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /^Fitting Room$/i })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /^Outfit$/i })).toBeVisible({
     timeout: 30_000,
   });
   await expect(page.getByTestId('fitting-character')).toBeVisible();
@@ -40,7 +40,7 @@ test('fitting room happy path chrome loads', async ({ page }) => {
 test('day planner happy path chrome loads', async ({ page }) => {
   await gotoStable(page, '/day');
   await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /^Day Planner$/i })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /^Day$/i })).toBeVisible({
     timeout: 30_000,
   });
   await expect(page.getByTestId('day-character')).toBeVisible();
@@ -53,14 +53,14 @@ test('day planner happy path chrome loads', async ({ page }) => {
 test('moodboard look extract controls load', async ({ page }) => {
   await gotoStable(page, '/moodboard');
   await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /Moodboard/i })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /^Look$/i })).toBeVisible({
     timeout: 30_000,
   });
   await expect(page.getByTestId('moodboard-character')).toBeVisible();
   await expect(page.getByTestId('moodboard-tiles')).toBeVisible();
   await expect(page.getByTestId('moodboard-extract-look')).toBeVisible();
   await expect(page.getByRole('button', { name: /Continue to Outfit/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Use in Day/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Continue to Day/i })).toBeVisible();
 });
 
 test('look pack deep link stages Fitting from=look handoff', async ({ page }) => {
@@ -78,7 +78,7 @@ test('look pack deep link stages Fitting from=look handoff', async ({ page }) =>
   });
   await gotoStable(page, '/fitting?from=look&character=e2e-char&wardrobe=kit-linen');
   await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /^Fitting Room$/i })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /^Outfit$/i })).toBeVisible({
     timeout: 30_000,
   });
   await expect(page.getByTestId('fitting-kit-strip')).toBeVisible();
@@ -134,7 +134,7 @@ test('look pack from=look applies notes into Fitting', async ({ page }) => {
   });
   await gotoStable(page, '/fitting?from=look&character=e2e-char&wardrobe=kit-linen');
   await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /^Fitting Room$/i })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /^Outfit$/i })).toBeVisible({
     timeout: 30_000,
   });
   const notes = page.getByTestId('fitting-notes');
@@ -158,7 +158,7 @@ test('look pack from=look seeds Day slot location', async ({ page }) => {
   });
   await gotoStable(page, '/day?from=look&character=e2e-char&wardrobe=kit-linen');
   await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /^Day Planner$/i })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /^Day$/i })).toBeVisible({
     timeout: 30_000,
   });
   const location = page.getByTestId('day-slot-location');
@@ -351,7 +351,7 @@ test('fitting continue-in-day appears after Keep seeds day', async ({ page }) =>
   });
   await gotoStable(page, '/fitting?character=e2e-keep-char');
   await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /^Fitting Room$/i })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /^Outfit$/i })).toBeVisible({
     timeout: 30_000,
   });
   // Seed a compare try-on card via React state is hard; exercise Keep path through exposed

@@ -63,7 +63,7 @@ export function resolveGenerateEmptyCta(
  * has progress; otherwise fall back to Generate empty CTA.
  */
 export function resolveStudioEmptyCta(
-  fallback: EmptyCta = { label: 'Open Generate', href: '/' }
+  fallback: EmptyCta = { label: 'Start a film', href: '/play' }
 ): EmptyCta {
   if (typeof window === 'undefined') {
     return resolveGenerateEmptyCta(fallback);
@@ -75,9 +75,13 @@ export function resolveStudioEmptyCta(
     Boolean(metrics.firstPlayCampaignAt) ||
     Boolean(campaign?.characterId) ||
     (funnel.firstPlayCampaign || 0) > 0 ||
-    (funnel.firstFilmCut || 0) > 0;
+    (funnel.firstFilmCut || 0) > 0 ||
+    (funnel.starterFilm || 0) > 0;
   if (hasPlayProgress) {
     return resolveWelcomeLandingCta();
+  }
+  if (loadWorkspaceMode() === 'play' || loadWorkspaceMode() === 'simple') {
+    return { label: 'Start a film', href: '/play' };
   }
   return resolveGenerateEmptyCta(fallback);
 }
