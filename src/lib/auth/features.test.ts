@@ -78,6 +78,16 @@ describe('auth/features', () => {
       assert.equal(featureForPath('/api/collab'), 'studio');
     });
 
+    it('maps play film loop paths separately from story', () => {
+      assert.equal(featureForPath('/play'), 'play');
+      assert.equal(featureForPath('/day'), 'play');
+      assert.equal(featureForPath('/moodboard'), 'play');
+      assert.equal(featureForPath('/fitting'), 'play');
+      assert.equal(featureForPath('/roleplay'), 'roleplay');
+      assert.equal(featureForPath('/m/play'), 'roleplay');
+      assert.equal(featureForPath('/m/day'), 'play');
+    });
+
     it('returns null for a path that matches nothing', () => {
       assert.equal(featureForPath('/this-path-does-not-exist'), null);
       assert.equal(featureForPath('/api/this-route-does-not-exist'), null);

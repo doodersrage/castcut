@@ -1,9 +1,8 @@
 'use client';
 
-import CharacterOsPicker from '@/components/CharacterOsPicker';
-import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
+import PlayEngineToggle, { usePlayEngineSidebar } from '@/components/PlayEngineToggle';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import {
@@ -32,6 +31,10 @@ import {
   wardrobeCategoryFilterOptions,
 } from '@/lib/wardrobe-catalog-ui';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
+import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
+import { useMemo, useState } from 'react';
+import FilmWatchPlayer from '@/components/FilmWatchPlayer';
+import CharacterOsPicker from '@/components/CharacterOsPicker';
 const ACCENT = 'teal' as const;
 const TOOL_ID = 'day' as const;
 
@@ -85,55 +88,38 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     seedDemoStills,
     firstCutCelebrate,
   } = vm;
+  const { engineOpen, setEngineOpen } = usePlayEngineSidebar('day', false);
+  const [sampleWatch, setSampleWatch] = useState(false);
+  const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
+  const engineControls = (
+    <SharedToolControls
+      shared={shared}
+      onModelChange={model => updateShared({ model })}
+      onDetailChange={detail => updateShared({ detail })}
+      onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
+      showWardrobeOption={false}
+      seedLlmWithIngredients={false}
+      autoFixRules={shared.autoFixRules !== false}
+      onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
+      recommendFromText={output}
+      toolId={TOOL_ID}
+      onSharedSettingsChange={updateShared}
+      variant="roleplay"
+    />
+  );
   return (
     <ToolLayout
       accent={ACCENT}
       badge={<ToolBadge accent={ACCENT}>Day · {selectedModel?.comfyNode ?? 'model'}</ToolBadge>}
       title="Day"
       description={description}
-      sidebar={
-        leanChrome ? (
-          <CollapsibleSection
-            title="Engine"
-            summary="Model, detail, and workflow — optional for first film."
-            defaultOpen={false}
-            persistKey="day-engine-lean"
-          >
-            <SharedToolControls
-              shared={shared}
-              onModelChange={model => updateShared({ model })}
-              onDetailChange={detail => updateShared({ detail })}
-              onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-              showWardrobeOption={false}
-              seedLlmWithIngredients={false}
-              autoFixRules={shared.autoFixRules !== false}
-              onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
-              recommendFromText={output}
-              toolId={TOOL_ID}
-              onSharedSettingsChange={updateShared}
-              variant="roleplay"
-            />
-          </CollapsibleSection>
-        ) : (
-          <SharedToolControls
-            shared={shared}
-            onModelChange={model => updateShared({ model })}
-            onDetailChange={detail => updateShared({ detail })}
-            onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-            showWardrobeOption={false}
-            seedLlmWithIngredients={false}
-            autoFixRules={shared.autoFixRules !== false}
-            onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
-            recommendFromText={output}
-            toolId={TOOL_ID}
-            onSharedSettingsChange={updateShared}
-            variant="roleplay"
-          />
-        )
-      }
+      sidebar={engineOpen ? engineControls : undefined}
+      sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.day} />
-
+      <ToolActionRow>
+        <PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />
+      </ToolActionRow>
       {firstCutCelebrate ? (
         <div
           className="rounded-[var(--radius-lg)] border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-4 py-3"
@@ -491,9 +477,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         data-testid="day-reel"
       >
         <FilmWatchPlayer
-          shots={watchPlaylist}
+          shots={sampleWatch ? sampleShots : watchPlaylist}
           emptyLabel="Queue the day and wait here — Morning through Night fill in as jobs finish."
         />
+        {sampleWatch ? (
+          <p className="type-caption text-[var(--text-muted)]" data-testid="day-sample-cut-hint">
+            Sample reel — queue your own Day when Comfy is ready, or use demo stills to Cut offline.
+          </p>
+        ) : null}
         <ToolActionRow>
           <Button
             size="sm"
@@ -502,6 +493,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onClick={() => void cutDayFilm()}
           >
             {assemblingFilm ? 'Cutting…' : 'Cut film'}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            data-testid="day-watch-sample-cut"
+            onClick={() => setSampleWatch(prev => !prev)}
+          >
+            {sampleWatch ? 'Show my reel' : 'Watch sample cut'}
           </Button>
           {filmNeedsCast ? (
             <Button
@@ -604,6 +603,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               onClick={seedDemoStills}
             >
               Use demo stills
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              data-testid="day-error-watch-sample"
+              onClick={() => setSampleWatch(true)}
+            >
+              Watch sample cut
             </Button>
             <Button
               size="sm"

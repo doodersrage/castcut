@@ -13,6 +13,8 @@ export type RoleplayStorySectionProps = {
   assemblingFilm: boolean;
   busy: boolean;
   story: RoleplayStoryBeat[];
+  bioPresent?: boolean;
+  scenesLoading?: boolean;
   filmNeedsCast: boolean;
   filmCharacterId: string | null | undefined;
   filmStatus: string | null | undefined;
@@ -29,6 +31,8 @@ export type RoleplayStorySectionProps = {
   onSelectTake: (beat: RoleplayStoryBeat, index: number) => void;
   onSelectClipTake: (beat: RoleplayStoryBeat, index: number) => void;
   onCopy: (beat: RoleplayStoryBeat) => void;
+  onRollScenes?: () => void;
+  onWriteBio?: () => void;
 };
 
 export default function RoleplayStorySection({
@@ -37,6 +41,8 @@ export default function RoleplayStorySection({
   assemblingFilm,
   busy,
   story,
+  bioPresent = false,
+  scenesLoading = false,
   filmNeedsCast,
   filmCharacterId,
   filmStatus,
@@ -53,6 +59,8 @@ export default function RoleplayStorySection({
   onSelectTake,
   onSelectClipTake,
   onCopy,
+  onRollScenes,
+  onWriteBio,
 }: RoleplayStorySectionProps) {
   return (
     <ToolSection title="Story">
@@ -84,6 +92,8 @@ export default function RoleplayStorySection({
       <RoleplayStoryReel
         story={story}
         busy={busy}
+        bioPresent={bioPresent}
+        scenesLoading={scenesLoading}
         onQueue={onQueue}
         onRetry={onRetry}
         onRetryClip={onRetryClip}
@@ -92,6 +102,8 @@ export default function RoleplayStorySection({
         onSelectTake={onSelectTake}
         onSelectClipTake={onSelectClipTake}
         onCopy={onCopy}
+        onRollScenes={onRollScenes}
+        onWriteBio={onWriteBio}
       />
     </ToolSection>
   );

@@ -207,5 +207,12 @@ export function canAccessNavFeature(
   if (allowed === 'all') {
     return true;
   }
-  return allowed.includes(feature);
+  if (allowed.includes(feature)) {
+    return true;
+  }
+  // Legacy grants: Story (roleplay) included the Film loop before `play` split out.
+  if (feature === 'play' && allowed.includes('roleplay')) {
+    return true;
+  }
+  return false;
 }

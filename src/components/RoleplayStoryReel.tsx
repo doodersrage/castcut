@@ -18,6 +18,9 @@ import {
 } from '@/lib/roleplay';
 import { RoleplayStoryBeatCard } from '@/components/roleplay/sections/RoleplayStoryBeatCard';
 import { beatPreviewUrl } from '@/components/roleplay/roleplay-story-helpers';
+import { EmptyState } from '@/components/ui/ViewState';
+import { Button } from '@/components/ui/Button';
+import { ToolActionRow } from '@/components/ui/ToolPageShell';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
   ssr: false,
@@ -27,6 +30,8 @@ const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
 export default function RoleplayStoryReel({
   story,
   busy = false,
+  bioPresent = false,
+  scenesLoading = false,
   onQueue,
   onCopy,
   onRetry,
@@ -35,9 +40,13 @@ export default function RoleplayStoryReel({
   onExtend,
   onSelectTake,
   onSelectClipTake,
+  onRollScenes,
+  onWriteBio,
 }: {
   story: RoleplayStoryBeat[];
   busy?: boolean;
+  bioPresent?: boolean;
+  scenesLoading?: boolean;
   onQueue?: (beat: RoleplayStoryBeat) => void;
   onCopy?: (beat: RoleplayStoryBeat) => void;
   onRetry?: (beat: RoleplayStoryBeat) => void;
@@ -46,6 +55,8 @@ export default function RoleplayStoryReel({
   onExtend?: (beat: RoleplayStoryBeat) => void;
   onSelectTake?: (beat: RoleplayStoryBeat, index: number) => void;
   onSelectClipTake?: (beat: RoleplayStoryBeat, index: number) => void;
+  onRollScenes?: () => void;
+  onWriteBio?: () => void;
 }) {
   const promptIds = useMemo(() => roleplayStoryPromptIds(story), [story]);
   const promptKey = promptIds.join('|');
@@ -107,9 +118,44 @@ export default function RoleplayStoryReel({
 
   if (story.length === 0) {
     return (
-      <p className="type-caption text-[var(--text-muted)]">
-        No beats yet. The plot is a blank page.
-      </p>
+      <div className="space-y-3" data-testid="roleplay-story-empty">
+        <EmptyState
+          compact
+          branded
+          title="Story unlocks after your first film cut"
+          description={
+            bioPresent
+              ? 'Generate opening beats to continue the day as optional story scenes.'
+              : 'Write a cast bio, then generate opening beats — or jump straight to rolling scenes.'
+          }
+          action={
+            onRollScenes
+              ? {
+                  label: scenesLoading || busy ? 'Rolling…' : 'Generate opening',
+                  onClick: () => {
+                    if (busy || scenesLoading) {
+                      return;
+                    }
+                    onRollScenes();
+                  },
+                }
+              : undefined
+          }
+        />
+        {!bioPresent && onWriteBio ? (
+          <ToolActionRow>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              data-testid="roleplay-story-write-bio"
+              onClick={onWriteBio}
+            >
+              Write bio first
+            </Button>
+          </ToolActionRow>
+        ) : null}
+      </div>
     );
   }
 

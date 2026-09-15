@@ -3,6 +3,7 @@
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 
 import SharedToolControls from '@/components/SharedToolControls';
+import PlayEngineToggle, { usePlayEngineSidebar } from '@/components/PlayEngineToggle';
 import RoleplayLibraryPanel from '@/components/RoleplayLibraryPanel';
 import RoleplayBeatOutputSection from '@/components/roleplay/RoleplayBeatOutputSection';
 import RoleplayBioSection from '@/components/roleplay/RoleplayBioSection';
@@ -11,7 +12,14 @@ import RoleplayStorySection from '@/components/roleplay/RoleplayStorySection';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import type { useRoleplayToolOrchestration } from '@/hooks/useRoleplayToolOrchestration';
 import { Button } from '@/components/ui/Button';
-import { CollapsibleSection, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import {
+  CollapsibleSection,
+  ToolActionRow,
+  ToolBadge,
+  ToolLayout,
+} from '@/components/ui/ToolPageShell';
+import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
+import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 
 const ACCENT = 'amber' as const;
 const TOOL_ID = 'roleplay';
@@ -53,31 +61,39 @@ export default function RoleplayToolSections({
   session,
   extendBeat,
 }: RoleplayToolSectionsProps) {
+  const workspaceMode = useWorkspaceMode();
+  const leanChrome = isLeanWorkspaceMode(workspaceMode);
+  const { engineOpen, setEngineOpen } = usePlayEngineSidebar('roleplay', false);
+  const engineControls = (
+    <SharedToolControls
+      shared={shared}
+      onModelChange={model => updateShared({ model })}
+      onDetailChange={detail => updateShared({ detail })}
+      onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
+      showWardrobeOption={false}
+      seedLlmWithIngredients={false}
+      autoFixRules={shared.autoFixRules !== false}
+      onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
+      recommendFromText={lastPrompt || bio?.look}
+      toolId={TOOL_ID}
+      preferEditModels={playAsResolved === 'photo'}
+      onSharedSettingsChange={updateShared}
+      variant="roleplay"
+    />
+  );
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Roleplay · {selectedModel.comfyNode}</ToolBadge>}
-      title="Roleplay"
+      badge={<ToolBadge accent={ACCENT}>Story · {selectedModel.comfyNode}</ToolBadge>}
+      title="Story"
       description={description}
-      sidebar={
-        <SharedToolControls
-          shared={shared}
-          onModelChange={model => updateShared({ model })}
-          onDetailChange={detail => updateShared({ detail })}
-          onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-          showWardrobeOption={false}
-          seedLlmWithIngredients={false}
-          autoFixRules={shared.autoFixRules !== false}
-          onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
-          recommendFromText={lastPrompt || bio?.look}
-          toolId={TOOL_ID}
-          preferEditModels={playAsResolved === 'photo'}
-          onSharedSettingsChange={updateShared}
-          variant="roleplay"
-        />
-      }
+      sidebar={engineOpen ? engineControls : undefined}
+      sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.roleplay} />
+      <ToolActionRow>
+        <PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />
+      </ToolActionRow>
 
       <RoleplayCastSection
         busy={busy}
@@ -157,6 +173,8 @@ export default function RoleplayToolSections({
         assemblingFilm={film.assemblingFilm}
         busy={busy}
         story={story}
+        bioPresent={Boolean(bio)}
+        scenesLoading={sceneFlow.scenesLoading}
         filmNeedsCast={film.filmNeedsCast}
         filmCharacterId={film.filmCharacterId}
         filmStatus={film.filmStatus}
@@ -183,6 +201,8 @@ export default function RoleplayToolSections({
         onSelectTake={session.selectStillTake}
         onSelectClipTake={session.selectClipTake}
         onCopy={beat => void session.copyBeatPrompt(beat)}
+        onRollScenes={() => void sceneFlow.rollScenes()}
+        onWriteBio={() => void bioFlow.writeBio()}
       />
 
       <RoleplayBeatOutputSection

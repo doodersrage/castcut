@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
+import PlayEngineToggle, { usePlayEngineSidebar } from '@/components/PlayEngineToggle';
 import PlaySoftAdvanceBanner, {
   type PlaySoftAdvanceTarget,
 } from '@/components/PlaySoftAdvanceBanner';
@@ -20,7 +21,6 @@ import {
   TextArea,
 } from '@/components/ui/Field';
 import {
-  CollapsibleSection,
   ToolActionRow,
   ToolBadge,
   ToolLayout,
@@ -126,54 +126,36 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
   const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+  const { engineOpen, setEngineOpen } = usePlayEngineSidebar('moodboard', false);
+  const engineControls = (
+    <SharedToolControls
+      shared={shared}
+      onModelChange={model => updateShared({ model })}
+      onDetailChange={detail => updateShared({ detail })}
+      onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
+      showWardrobeOption={false}
+      seedLlmWithIngredients={false}
+      autoFixRules={shared.autoFixRules !== false}
+      onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
+      recommendFromText={output}
+      toolId={TOOL_ID}
+      onSharedSettingsChange={updateShared}
+      variant="roleplay"
+    />
+  );
   return (
     <ToolLayout
       accent={ACCENT}
       badge={<ToolBadge accent={ACCENT}>Look · {selectedModel?.comfyNode ?? 'model'}</ToolBadge>}
       title="Look"
       description={description}
-      sidebar={
-        leanChrome ? (
-          <CollapsibleSection
-            title="Engine"
-            summary="Model and workflow — optional for first look."
-            defaultOpen={false}
-            persistKey="moodboard-engine-lean"
-          >
-            <SharedToolControls
-              shared={shared}
-              onModelChange={model => updateShared({ model })}
-              onDetailChange={detail => updateShared({ detail })}
-              onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-              showWardrobeOption={false}
-              seedLlmWithIngredients={false}
-              autoFixRules={shared.autoFixRules !== false}
-              onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
-              recommendFromText={output}
-              toolId={TOOL_ID}
-              onSharedSettingsChange={updateShared}
-              variant="roleplay"
-            />
-          </CollapsibleSection>
-        ) : (
-          <SharedToolControls
-            shared={shared}
-            onModelChange={model => updateShared({ model })}
-            onDetailChange={detail => updateShared({ detail })}
-            onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-            showWardrobeOption={false}
-            seedLlmWithIngredients={false}
-            autoFixRules={shared.autoFixRules !== false}
-            onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
-            recommendFromText={output}
-            toolId={TOOL_ID}
-            onSharedSettingsChange={updateShared}
-            variant="roleplay"
-          />
-        )
-      }
+      sidebar={engineOpen ? engineControls : undefined}
+      sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.moodboard} />
+      <ToolActionRow>
+        <PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />
+      </ToolActionRow>
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}

@@ -12,7 +12,8 @@ import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { FieldError } from '@/components/ui/Field';
-import { CollapsibleSection, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import { ToolActionRow, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import PlayEngineToggle, { usePlayEngineSidebar } from '@/components/PlayEngineToggle';
 import PlaySoftAdvanceBanner, {
   type PlaySoftAdvanceTarget,
 } from '@/components/PlaySoftAdvanceBanner';
@@ -164,6 +165,29 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     setIsolateStatus,
   } = vm;
   const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+  const { engineOpen, setEngineOpen } = usePlayEngineSidebar('fitting', false);
+  const engineControls = (
+    <SharedToolControls
+      shared={shared}
+      onModelChange={model => updateShared({ model })}
+      onDetailChange={detail => updateShared({ detail })}
+      onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
+      showWardrobeOption={false}
+      seedLlmWithIngredients={false}
+      lockedWardrobeId={shared.lockedWardrobeId}
+      lockedWardrobeLabel={
+        shared.lockedWardrobeId ? (lockedWardrobeLabel ?? shared.lockedWardrobeId) : undefined
+      }
+      onClearLockedWardrobe={() => updateShared({ lockedWardrobeId: undefined })}
+      autoFixRules={shared.autoFixRules !== false}
+      onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
+      recommendFromText={output}
+      toolId={TOOL_ID}
+      preferEditModels
+      onSharedSettingsChange={updateShared}
+      variant="roleplay"
+    />
+  );
   return (
     <ToolLayout
       accent={ACCENT}
@@ -174,62 +198,13 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       }
       title="Outfit"
       description={description}
-      sidebar={
-        leanChrome ? (
-          <CollapsibleSection
-            title="Engine"
-            summary="Model and workflow — optional for first outfit."
-            defaultOpen={false}
-            persistKey="fitting-engine-lean"
-          >
-            <SharedToolControls
-              shared={shared}
-              onModelChange={model => updateShared({ model })}
-              onDetailChange={detail => updateShared({ detail })}
-              onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-              showWardrobeOption={false}
-              seedLlmWithIngredients={false}
-              lockedWardrobeId={shared.lockedWardrobeId}
-              lockedWardrobeLabel={
-                shared.lockedWardrobeId
-                  ? (lockedWardrobeLabel ?? shared.lockedWardrobeId)
-                  : undefined
-              }
-              onClearLockedWardrobe={() => updateShared({ lockedWardrobeId: undefined })}
-              autoFixRules={shared.autoFixRules !== false}
-              onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
-              recommendFromText={output}
-              toolId={TOOL_ID}
-              preferEditModels
-              onSharedSettingsChange={updateShared}
-              variant="roleplay"
-            />
-          </CollapsibleSection>
-        ) : (
-          <SharedToolControls
-            shared={shared}
-            onModelChange={model => updateShared({ model })}
-            onDetailChange={detail => updateShared({ detail })}
-            onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-            showWardrobeOption={false}
-            seedLlmWithIngredients={false}
-            lockedWardrobeId={shared.lockedWardrobeId}
-            lockedWardrobeLabel={
-              shared.lockedWardrobeId ? (lockedWardrobeLabel ?? shared.lockedWardrobeId) : undefined
-            }
-            onClearLockedWardrobe={() => updateShared({ lockedWardrobeId: undefined })}
-            autoFixRules={shared.autoFixRules !== false}
-            onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
-            recommendFromText={output}
-            toolId={TOOL_ID}
-            preferEditModels
-            onSharedSettingsChange={updateShared}
-            variant="roleplay"
-          />
-        )
-      }
+      sidebar={engineOpen ? engineControls : undefined}
+      sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.fitting} />
+      <ToolActionRow>
+        <PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />
+      </ToolActionRow>
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
