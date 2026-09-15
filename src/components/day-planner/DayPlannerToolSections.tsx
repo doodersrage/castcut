@@ -284,27 +284,30 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         summary="Cast lead for Look, Outfit, and Story."
         defaultOpen={!collapseEditors}
         persistKey="day-character-lean"
+        className="day-character-section"
       >
-        <CharacterOsPicker
-          shared={shared}
-          hints={character?.hints}
-          onApply={patch => {
-            try {
-              updateShared(patch);
-            } catch (err) {
-              setError(err instanceof Error ? err.message : 'Could not apply that character.');
-            }
-          }}
-        />
-        {hasPlate ? (
-          <p className="type-caption mt-2 text-[var(--text-muted)]">
-            Cast plate detected — queues use identity lock when available.
-          </p>
-        ) : (
-          <p className="type-caption mt-2 text-[var(--text-muted)]">
-            No Cast plate yet — stills queue as text scenes. Add a look in Cast or open Outfit.
-          </p>
-        )}
+        <div data-testid="day-character">
+          <CharacterOsPicker
+            shared={shared}
+            hints={character?.hints}
+            onApply={patch => {
+              try {
+                updateShared(patch);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'Could not apply that character.');
+              }
+            }}
+          />
+          {hasPlate ? (
+            <p className="type-caption mt-2 text-[var(--text-muted)]">
+              Cast plate detected — queues use identity lock when available.
+            </p>
+          ) : (
+            <p className="type-caption mt-2 text-[var(--text-muted)]">
+              No Cast plate yet — stills queue as text scenes. Add a look in Cast or open Outfit.
+            </p>
+          )}
+        </div>
       </CollapsibleSection>
 
       <ToolSection
@@ -384,191 +387,193 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         defaultOpen={!collapseEditors}
         persistKey="day-slots-lean"
       >
-        <div className="flex flex-wrap gap-2">
-          {slots.map(slot => {
-            const still = stills.find(entry => entry.slotId === slot.id);
-            const stillStatus =
-              still?.status === 'completed'
-                ? ' · still'
-                : still?.status === 'queued' || still?.status === 'running'
-                  ? ' · queued'
-                  : still?.status === 'error'
-                    ? ' · failed'
+        <div data-testid="day-slots">
+          <div className="flex flex-wrap gap-2">
+            {slots.map(slot => {
+              const still = stills.find(entry => entry.slotId === slot.id);
+              const stillStatus =
+                still?.status === 'completed'
+                  ? ' · still'
+                  : still?.status === 'queued' || still?.status === 'running'
+                    ? ' · queued'
+                    : still?.status === 'error'
+                      ? ' · failed'
+                      : '';
+              const clipStatus =
+                still?.clipStatus === 'completed'
+                  ? ' · clip'
+                  : still?.clipStatus === 'queued' || still?.clipStatus === 'running'
+                    ? ' · animating'
                     : '';
-            const clipStatus =
-              still?.clipStatus === 'completed'
-                ? ' · clip'
-                : still?.clipStatus === 'queued' || still?.clipStatus === 'running'
-                  ? ' · animating'
-                  : '';
-            const status = `${stillStatus}${clipStatus}`;
-            return (
-              <ChipButton
-                key={slot.id}
-                active={activeSlotId === slot.id}
-                disabled={busy}
-                onClick={() => setActiveSlotId(slot.id)}
-              >
-                {slot.label}
-                {status}
-              </ChipButton>
-            );
-          })}
-        </div>
-        <FieldDivider />
-        <label className="space-y-2">
-          <FieldLabel>Clothing type</FieldLabel>
-          <SelectInput
-            value={wardrobeCategoryFilter}
-            disabled={!wardrobeReady || busy}
-            className={accentFocusClass(ACCENT)}
-            onChange={event =>
-              updateToolSettings({
-                wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(event.target.value),
-              })
-            }
-          >
-            {wardrobeCategoryFilterOptions().map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-                {option.value !== 'all' && wardrobeReady
-                  ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
-                  : option.value === 'all' && wardrobeReady
-                    ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, 'all')})`
-                    : ''}
-              </option>
-            ))}
-          </SelectInput>
-          {wardrobeReady && wardrobeCategoryFilter !== 'all' ? (
-            <p className="type-caption text-[var(--text-muted)]">
-              Showing {wardrobeKitCount} kit{wardrobeKitCount === 1 ? '' : 's'} for{' '}
-              {activeSlot.label.toLowerCase()}.
-            </p>
-          ) : null}
-        </label>
-        <label className="mt-3 space-y-2">
-          <FieldLabel>Outfit kit</FieldLabel>
-          <SelectInput
-            value={activeSlot.wardrobeId ?? ''}
-            disabled={!wardrobeReady || busy}
-            className={accentFocusClass(ACCENT)}
-            onChange={event => {
-              const value = event.target.value.trim();
-              updateSlot(activeSlot.id, { wardrobeId: value || undefined });
-            }}
-          >
-            {filteredWardrobeOptions.map(option => (
-              <option key={option.value || 'default'} value={option.value}>
-                {option.group ? `${option.label} · ${option.group}` : option.label}
-              </option>
-            ))}
-          </SelectInput>
-        </label>
-        <label className="mt-3 space-y-2">
-          <FieldLabel>Setting</FieldLabel>
-          <SelectInput
-            value=""
-            disabled={busy}
-            className={accentFocusClass(ACCENT)}
-            onChange={event => {
-              const preset = ROLEPLAY_SETTING_PRESETS.find(
-                entry => entry.id === event.target.value
+              const status = `${stillStatus}${clipStatus}`;
+              return (
+                <ChipButton
+                  key={slot.id}
+                  active={activeSlotId === slot.id}
+                  disabled={busy}
+                  onClick={() => setActiveSlotId(slot.id)}
+                >
+                  {slot.label}
+                  {status}
+                </ChipButton>
               );
-              if (preset) {
-                updateSlot(activeSlot.id, { location: preset.setting });
+            })}
+          </div>
+          <FieldDivider />
+          <label className="space-y-2">
+            <FieldLabel>Clothing type</FieldLabel>
+            <SelectInput
+              value={wardrobeCategoryFilter}
+              disabled={!wardrobeReady || busy}
+              className={accentFocusClass(ACCENT)}
+              onChange={event =>
+                updateToolSettings({
+                  wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(event.target.value),
+                })
               }
-            }}
-          >
-            <option value="">Insert preset…</option>
-            {ROLEPLAY_SETTING_PRESETS.map(preset => (
-              <option key={preset.id} value={preset.id}>
-                {preset.label}
-              </option>
-            ))}
-          </SelectInput>
-          <TextArea
-            rows={2}
-            data-testid="day-slot-location"
-            value={activeSlot.location ?? ''}
-            className={accentFocusClass(ACCENT)}
-            placeholder="e.g. sunlit café terrace, rainy commute, rooftop at dusk"
-            onChange={event => updateSlot(activeSlot.id, { location: event.target.value })}
-          />
-        </label>
-        <label className="mt-3 space-y-2">
-          <FieldLabel>Beat</FieldLabel>
-          <TextArea
-            rows={3}
-            value={activeSlot.sceneHints ?? ''}
-            className={accentFocusClass(ACCENT)}
-            placeholder="What happens in this part of the day?"
-            onChange={event => updateSlot(activeSlot.id, { sceneHints: event.target.value })}
-          />
-        </label>
-        <ToolActionRow>
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={busy}
-            data-testid="day-slot-queue"
-            onClick={() => void queueSlot(activeSlot)}
-          >
-            {busy ? 'Queueing…' : `Queue ${activeSlot.label.toLowerCase()}`}
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy}
-            data-testid="day-queue-all"
-            onClick={() => void queueAll()}
-          >
-            Queue day
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            data-testid="day-demo-stills"
-            onClick={seedDemoStills}
-          >
-            Use demo stills
-          </Button>
-        </ToolActionRow>
-        {leanChrome ? (
-          <p className="type-caption text-[var(--text-muted)]" data-testid="day-draft-hint">
-            Play queues draft stills for a faster first film. Animate clips (Final quality) after
-            you&apos;ve cut once — open Animate below anytime.
-          </p>
-        ) : null}
-        <CollapsibleSection
-          title="Animate clips"
-          summary={
-            leanChrome
-              ? 'Optional — turn completed stills into clips after your first cut.'
-              : 'Turn completed stills into I2V clips for the day reel.'
-          }
-          defaultOpen={!leanChrome}
-          persistKey="day-animate"
-        >
+            >
+              {wardrobeCategoryFilterOptions().map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                  {option.value !== 'all' && wardrobeReady
+                    ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
+                    : option.value === 'all' && wardrobeReady
+                      ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, 'all')})`
+                      : ''}
+                </option>
+              ))}
+            </SelectInput>
+            {wardrobeReady && wardrobeCategoryFilter !== 'all' ? (
+              <p className="type-caption text-[var(--text-muted)]">
+                Showing {wardrobeKitCount} kit{wardrobeKitCount === 1 ? '' : 's'} for{' '}
+                {activeSlot.label.toLowerCase()}.
+              </p>
+            ) : null}
+          </label>
+          <label className="mt-3 space-y-2">
+            <FieldLabel>Outfit kit</FieldLabel>
+            <SelectInput
+              value={activeSlot.wardrobeId ?? ''}
+              disabled={!wardrobeReady || busy}
+              className={accentFocusClass(ACCENT)}
+              onChange={event => {
+                const value = event.target.value.trim();
+                updateSlot(activeSlot.id, { wardrobeId: value || undefined });
+              }}
+            >
+              {filteredWardrobeOptions.map(option => (
+                <option key={option.value || 'default'} value={option.value}>
+                  {option.group ? `${option.label} · ${option.group}` : option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </label>
+          <label className="mt-3 space-y-2">
+            <FieldLabel>Setting</FieldLabel>
+            <SelectInput
+              value=""
+              disabled={busy}
+              className={accentFocusClass(ACCENT)}
+              onChange={event => {
+                const preset = ROLEPLAY_SETTING_PRESETS.find(
+                  entry => entry.id === event.target.value
+                );
+                if (preset) {
+                  updateSlot(activeSlot.id, { location: preset.setting });
+                }
+              }}
+            >
+              <option value="">Insert preset…</option>
+              {ROLEPLAY_SETTING_PRESETS.map(preset => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.label}
+                </option>
+              ))}
+            </SelectInput>
+            <TextArea
+              rows={2}
+              data-testid="day-slot-location"
+              value={activeSlot.location ?? ''}
+              className={accentFocusClass(ACCENT)}
+              placeholder="e.g. sunlit café terrace, rainy commute, rooftop at dusk"
+              onChange={event => updateSlot(activeSlot.id, { location: event.target.value })}
+            />
+          </label>
+          <label className="mt-3 space-y-2">
+            <FieldLabel>Beat</FieldLabel>
+            <TextArea
+              rows={3}
+              value={activeSlot.sceneHints ?? ''}
+              className={accentFocusClass(ACCENT)}
+              placeholder="What happens in this part of the day?"
+              onChange={event => updateSlot(activeSlot.id, { sceneHints: event.target.value })}
+            />
+          </label>
           <ToolActionRow>
             <Button
               size="sm"
-              variant="secondary"
+              variant="primary"
               disabled={busy}
-              onClick={() => void animateSlot(activeSlot)}
+              data-testid="day-slot-queue"
+              onClick={() => void queueSlot(activeSlot)}
             >
-              Animate slot
+              {busy ? 'Queueing…' : `Queue ${activeSlot.label.toLowerCase()}`}
             </Button>
             <Button
               size="sm"
               variant="secondary"
               disabled={busy}
-              onClick={() => void animateAllClips()}
+              data-testid="day-queue-all"
+              onClick={() => void queueAll()}
             >
-              Animate all
+              Queue day
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              data-testid="day-demo-stills"
+              onClick={seedDemoStills}
+            >
+              Use demo stills
             </Button>
           </ToolActionRow>
-        </CollapsibleSection>
+          {leanChrome ? (
+            <p className="type-caption text-[var(--text-muted)]" data-testid="day-draft-hint">
+              Play queues draft stills for a faster first film. Animate clips (Final quality) after
+              you&apos;ve cut once — open Animate below anytime.
+            </p>
+          ) : null}
+          <CollapsibleSection
+            title="Animate clips"
+            summary={
+              leanChrome
+                ? 'Optional — turn completed stills into clips after your first cut.'
+                : 'Turn completed stills into I2V clips for the day reel.'
+            }
+            defaultOpen={!leanChrome}
+            persistKey="day-animate"
+          >
+            <ToolActionRow>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void animateSlot(activeSlot)}
+              >
+                Animate slot
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void animateAllClips()}
+              >
+                Animate all
+              </Button>
+            </ToolActionRow>
+          </CollapsibleSection>
+        </div>
       </CollapsibleSection>
 
       <CollapsibleSection
