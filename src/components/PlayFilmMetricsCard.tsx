@@ -225,7 +225,7 @@ export default function PlayFilmMetricsCard() {
 
       {(rates.dayShare != null || rates.roleplayShare != null || rates.maxStep > 0) && (
         <p className="mt-2 type-caption text-[var(--text-muted)]" data-testid="play-funnel-source">
-          Day {formatRate(rates.dayShare)} · Roleplay {formatRate(rates.roleplayShare)} · max step{' '}
+          Day {formatRate(rates.dayShare)} · Story {formatRate(rates.roleplayShare)} · max step{' '}
           {rates.maxStep}
         </p>
       )}

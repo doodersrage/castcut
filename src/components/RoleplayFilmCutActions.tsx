@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
+import { remixDayFilmHref } from '@/lib/play-starter';
 
 export type RoleplayFilmCutActionsProps = {
   assemblingFilm: boolean;
@@ -15,6 +16,8 @@ export type RoleplayFilmCutActionsProps = {
   filmError?: string | null;
   filmGuideHref?: string | null;
   canShareCut?: boolean;
+  /** While first-cut celebrate owns Watch/Share/Remix, hide duplicate Cast links. */
+  hidePostCutLinks?: boolean;
   onCutFilm: () => void;
   onSaveToCast: () => void;
   onShareCut?: () => void;
@@ -32,11 +35,16 @@ export default function RoleplayFilmCutActions({
   filmError,
   filmGuideHref,
   canShareCut = false,
+  hidePostCutLinks = false,
   onCutFilm,
   onSaveToCast,
   onShareCut,
   children,
 }: RoleplayFilmCutActionsProps) {
+  const showPostCut = Boolean(
+    filmCharacterId && filmStatus && !assemblingFilm && !hidePostCutLinks
+  );
+
   return (
     <>
       <div className="flex flex-wrap gap-2">
@@ -60,7 +68,7 @@ export default function RoleplayFilmCutActions({
             Share cut
           </Button>
         ) : null}
-        {filmNeedsCast ? (
+        {filmNeedsCast && !hidePostCutLinks ? (
           <Button
             variant="ghost"
             disabled={busy}
@@ -70,9 +78,9 @@ export default function RoleplayFilmCutActions({
             Save to Cast
           </Button>
         ) : null}
-        {filmCharacterId && filmStatus && !assemblingFilm ? (
+        {showPostCut ? (
           <ButtonLink
-            href={`/characters/${encodeURIComponent(filmCharacterId)}?media=films`}
+            href={`/characters/${encodeURIComponent(filmCharacterId!)}?media=films`}
             size="sm"
             variant="ghost"
             data-testid="roleplay-open-cast-film"
@@ -85,9 +93,9 @@ export default function RoleplayFilmCutActions({
             Open on Cast
           </ButtonLink>
         ) : null}
-        {filmCharacterId && filmStatus && !assemblingFilm ? (
+        {showPostCut ? (
           <ButtonLink
-            href={`/gallery?character=${encodeURIComponent(filmCharacterId)}&derivedKind=film`}
+            href={`/gallery?character=${encodeURIComponent(filmCharacterId!)}&derivedKind=film`}
             size="sm"
             variant="ghost"
             data-testid="roleplay-open-gallery"
@@ -95,14 +103,14 @@ export default function RoleplayFilmCutActions({
             Open in Gallery
           </ButtonLink>
         ) : null}
-        {filmCharacterId && filmStatus && !assemblingFilm ? (
+        {showPostCut ? (
           <ButtonLink
-            href={`/play?character=${encodeURIComponent(filmCharacterId)}`}
+            href={remixDayFilmHref(filmCharacterId!)}
             size="sm"
             variant="secondary"
-            data-testid="roleplay-campaign-complete"
+            data-testid="roleplay-remix-day"
           >
-            Campaign complete — Open Play
+            Same look, new Day
           </ButtonLink>
         ) : null}
       </div>

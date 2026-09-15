@@ -209,7 +209,7 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
       });
       saveLookPack(pack);
       setOutput(vibePrompt);
-      setLookStatus('Look pack ready — send it to Fitting or Day.');
+      setLookStatus('Look pack ready — send it to Outfit or Day.');
       // Moodboard is done once a look pack exists — advance resume past Moodboard even if the
       // user stays on this page (dashboard was stuck on "Stalled at Moodboard" until handoff).
       if (pack.characterId?.trim()) {

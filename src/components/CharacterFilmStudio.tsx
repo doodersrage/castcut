@@ -23,6 +23,7 @@ import {
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/character-film-assemble';
 import { saveCharacterFilmCut } from '@/lib/character-os';
 import type { FilmResolutionPreset } from '@/lib/film-server-encode';
+import { remixDayFilmHref } from '@/lib/play-starter';
 import {
   galleryEntryHeroPreviewUrl,
   galleryEntryPrimaryMediaKind,
@@ -121,6 +122,14 @@ export default function CharacterFilmStudio({
           </p>
           <ToolActionRow>
             <ButtonLink
+              href={remixDayFilmHref(characterId)}
+              size="sm"
+              variant="primary"
+              data-testid="character-film-empty-remix"
+            >
+              Same look, new Day
+            </ButtonLink>
+            <ButtonLink
               href={`/day?character=${encodeURIComponent(characterId)}`}
               size="sm"
               variant="secondary"
@@ -178,12 +187,12 @@ export default function CharacterFilmStudio({
               Open films in Gallery
             </ButtonLink>
             <ButtonLink
-              href={`/day?character=${encodeURIComponent(characterId)}`}
+              href={remixDayFilmHref(characterId)}
               size="sm"
               variant="secondary"
               data-testid="character-film-cut-another"
             >
-              Cut another Day film
+              Same look, new Day
             </ButtonLink>
             <ButtonLink
               href="/play"

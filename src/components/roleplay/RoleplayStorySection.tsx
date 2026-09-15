@@ -3,7 +3,9 @@
 import type { ReactNode } from 'react';
 import RoleplayFilmCutActions from '@/components/RoleplayFilmCutActions';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
-import { ToolSection } from '@/components/ui/ToolPageShell';
+import { Button, ButtonLink } from '@/components/ui/Button';
+import { ToolActionRow, ToolSection } from '@/components/ui/ToolPageShell';
+import { remixDayFilmHref } from '@/lib/play-starter';
 import type { RoleplayBeatOutput } from '@/lib/roleplay-film';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
 
@@ -20,6 +22,9 @@ export type RoleplayStorySectionProps = {
   filmStatus: string | null | undefined;
   filmError?: string | null;
   filmGuideHref?: string | null;
+  firstCutCelebrate?: boolean;
+  onClearFirstCutCelebrate?: () => void;
+  onCancelSoftAdvance?: () => void;
   downloadAction: ReactNode;
   onCutFilm: () => void;
   onSaveToCast: () => void;
@@ -50,6 +55,9 @@ export default function RoleplayStorySection({
   filmStatus,
   filmError,
   filmGuideHref,
+  firstCutCelebrate = false,
+  onClearFirstCutCelebrate,
+  onCancelSoftAdvance,
   downloadAction,
   onCutFilm,
   onSaveToCast,
@@ -79,6 +87,63 @@ export default function RoleplayStorySection({
           : ''}
         .
       </p>
+
+      {firstCutCelebrate ? (
+        <div
+          className="mb-3 rounded-[var(--radius-lg)] border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-4 py-3"
+          data-testid="story-first-cut-celebrate"
+        >
+          <p className="type-overline text-[var(--tint-success-text)]">First film</p>
+          <p className="type-heading mt-1 text-[var(--text-primary)]">You cut your first reel</p>
+          <p className="type-caption mt-1 text-[var(--text-muted)]">
+            Watch on Cast is next — share the cut or queue another Day with the same look.
+          </p>
+          <ToolActionRow className="mt-3">
+            {filmCharacterId ? (
+              <ButtonLink
+                href={`/characters/${encodeURIComponent(filmCharacterId)}?media=films`}
+                size="sm"
+                variant="primary"
+                data-testid="story-first-cut-watch"
+                onClick={() => {
+                  onCancelSoftAdvance?.();
+                  onClearFirstCutCelebrate?.();
+                  void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
+                    markOnboardingWatchFirstFilm();
+                  });
+                }}
+              >
+                Watch on Cast
+              </ButtonLink>
+            ) : null}
+            {onShareCut ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                data-testid="story-first-cut-share"
+                onClick={onShareCut}
+              >
+                Share cut
+              </Button>
+            ) : null}
+            {filmCharacterId ? (
+              <ButtonLink
+                href={remixDayFilmHref(filmCharacterId)}
+                size="sm"
+                variant="secondary"
+                data-testid="story-first-cut-remix"
+                onClick={() => {
+                  onCancelSoftAdvance?.();
+                  onClearFirstCutCelebrate?.();
+                }}
+              >
+                Same look, new Day
+              </ButtonLink>
+            ) : null}
+          </ToolActionRow>
+        </div>
+      ) : null}
+
       <RoleplayFilmCutActions
         assemblingFilm={assemblingFilm}
         busy={busy}
@@ -88,12 +153,13 @@ export default function RoleplayStorySection({
         filmStatus={filmStatus}
         filmError={filmError}
         filmGuideHref={filmGuideHref}
+        hidePostCutLinks={firstCutCelebrate}
         onCutFilm={onCutFilm}
         onSaveToCast={onSaveToCast}
         onShareCut={onShareCut}
-        canShareCut={canShareCut}
+        canShareCut={canShareCut && !firstCutCelebrate}
       >
-        {downloadAction}
+        {firstCutCelebrate ? null : downloadAction}
       </RoleplayFilmCutActions>
       <RoleplayStoryReel
         story={story}

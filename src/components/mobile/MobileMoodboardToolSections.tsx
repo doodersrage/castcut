@@ -20,6 +20,8 @@ import {
 } from '@/lib/moodboard-scene';
 import { toMobileStudioHref } from '@/lib/mobile-studio';
 import { galleryPickPath } from '@/lib/gallery-handoff';
+import { LOOK_PRESETS, lookPackFromPreset, tilesFromLookPreset } from '@/lib/look-presets';
+import { saveLookPack } from '@/lib/look-pack';
 
 type ViewModel = ReturnType<typeof useMoodboardToolOrchestration>;
 
@@ -51,6 +53,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
     queueScene,
     extractLookPack,
     saveLookPackToCast,
+    setLookStatus,
   } = vm;
 
   const handoff = async (target: 'fitting' | 'day' | 'play') => {
@@ -77,9 +80,9 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
   return (
     <div className="space-y-4" data-testid="mobile-moodboard">
       <div className="space-y-1">
-        <h1 className="type-display text-2xl tracking-tight">Moodboard</h1>
+        <h1 className="type-display text-2xl tracking-tight">Look</h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-          Stack look tiles, extract a pack, hand off to Fitting or Day.
+          Stack look tiles, extract a pack, continue to Outfit or Day.
         </p>
       </div>
 
@@ -88,6 +91,32 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         target={softAdvance}
         onCancel={() => setSoftAdvance(null)}
       />
+
+      <div className="space-y-2" data-testid="mobile-moodboard-presets">
+        <p className="type-caption text-[var(--text-muted)]">Look presets</p>
+        <div className="flex flex-wrap gap-2">
+          {LOOK_PRESETS.map(preset => (
+            <ChipButton
+              key={preset.id}
+              active={false}
+              disabled={busy || extracting}
+              title={preset.hint}
+              onClick={() => {
+                const tilesNext = tilesFromLookPreset(preset);
+                updateToolSettings({ tiles: tilesNext });
+                if (tilesNext[0]) {
+                  setActiveTileId(tilesNext[0].id);
+                }
+                const pack = lookPackFromPreset(preset, character?.id);
+                saveLookPack(pack);
+                setLookStatus(`Loaded ${preset.label} — Extract look or Continue to Outfit.`);
+              }}
+            >
+              {preset.label}
+            </ChipButton>
+          ))}
+        </div>
+      </div>
 
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
         <CharacterOsPicker
@@ -270,7 +299,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
           className="w-full justify-center"
           data-testid="mobile-moodboard-to-fitting"
         >
-          Use in Fitting
+          Use in Outfit
         </Button>
         <Button
           variant="secondary"
@@ -303,7 +332,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
           onClick={() => void handoff('play')}
           className="w-full justify-center"
         >
-          Continue in Play
+          Continue in Story
         </Button>
       </div>
 

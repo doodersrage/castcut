@@ -42,6 +42,7 @@ export function useRoleplayFilmActions(input: {
   const [filmStatus, setFilmStatus] = useState<string | null>(null);
   const [filmNeedsCast, setFilmNeedsCast] = useState(false);
   const [filmCharacterId, setFilmCharacterId] = useState<string | null>(null);
+  const [firstCutCelebrate, setFirstCutCelebrate] = useState(false);
   const assembledFilmRef = useRef<{ filename: string; data: Uint8Array } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filmGuideHref, setFilmGuideHref] = useState<string | null>(null);
@@ -101,7 +102,7 @@ export function useRoleplayFilmActions(input: {
         );
       }
       markOnboardingFirstPlayCampaign();
-      markOnboardingFirstFilmCut();
+      const firstCut = markOnboardingFirstFilmCut();
       void import('@/lib/local-observability').then(
         ({ noteFilmCutSourceMetric, noteSaveToCastMetric }) => {
           noteFilmCutSourceMetric('roleplay');
@@ -112,6 +113,17 @@ export function useRoleplayFilmActions(input: {
       );
       if (character) {
         completePlayCampaign({ characterId: character.id, stepId: 'roleplay' });
+      }
+      if (firstCut) {
+        void import('@/lib/system-tray-celebrate').then(({ celebrateSystemTray }) => {
+          celebrateSystemTray('job');
+        });
+        setFirstCutCelebrate(true);
+        setFilmStatus(
+          character
+            ? `First film cut — watch on Cast, share, or open Same look, new Day.`
+            : `First film cut — share or Save to Cast to attach it.`
+        );
       }
     } catch (err) {
       const playbook = resolveFilmFailurePlaybook(
@@ -193,6 +205,8 @@ export function useRoleplayFilmActions(input: {
     filmStatus,
     filmNeedsCast,
     filmCharacterId,
+    firstCutCelebrate,
+    clearFirstCutCelebrate: () => setFirstCutCelebrate(false),
     cutRoleplayFilm,
     saveFilmToCast,
     shareLastCut,

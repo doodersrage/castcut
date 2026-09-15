@@ -1,6 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import PlaySoftAdvanceBanner, {
+  type PlaySoftAdvanceTarget,
+} from '@/components/PlaySoftAdvanceBanner';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import RoleplayLibraryPanel from '@/components/RoleplayLibraryPanel';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
@@ -13,7 +17,9 @@ import {
   MAX_ROLEPLAY_CHARACTER_NAME,
 } from '@/lib/roleplay';
 import { roleplayPatchFromPlate, toMobileStudioHref } from '@/lib/mobile-studio';
+import { remixDayFilmHref } from '@/lib/play-starter';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
+import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
   loadToolSettings,
@@ -47,6 +53,8 @@ export default function MobilePlayToolSections({ description: _description, ...v
     filmStatus,
     filmNeedsCast,
     filmCharacterId,
+    firstCutCelebrate,
+    clearFirstCutCelebrate,
     cutRoleplayFilm,
     saveFilmToCast,
     shareLastCut,
@@ -69,14 +77,42 @@ export default function MobilePlayToolSections({ description: _description, ...v
     setActivePlate,
   } = vm;
 
+  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+
+  useEffect(() => {
+    if (!firstCutCelebrate || !filmCharacterId) {
+      return;
+    }
+    let cancelled = false;
+    scheduleAfterCommit(() => {
+      if (cancelled) {
+        return;
+      }
+      setSoftAdvance({
+        href: toMobileStudioHref(`/characters/${encodeURIComponent(filmCharacterId)}?media=films`),
+        label: 'Watch on Cast',
+        nonce: Date.now(),
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [firstCutCelebrate, filmCharacterId]);
+
   return (
     <div className="space-y-4" data-testid="mobile-play">
       <div className="space-y-1">
-        <h1 className="type-display text-2xl tracking-tight">Play</h1>
+        <h1 className="type-display text-2xl tracking-tight">Story</h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-          From photo — stills and clips (I2V / T2V / continue). Cut and Save to Cast on the phone.
+          Optional beats after Day — stills and clips, then Cut film.
         </p>
       </div>
+
+      <PlaySoftAdvanceBanner
+        key={softAdvance?.nonce ?? 'idle'}
+        target={softAdvance}
+        onCancel={() => setSoftAdvance(null)}
+      />
 
       {plateUrl ? (
         <div className="flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-2">
@@ -288,17 +324,74 @@ export default function MobilePlayToolSections({ description: _description, ...v
 
       <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-3">
         <p className="type-caption text-[var(--text-muted)]">Film</p>
-        <PrimaryButton
-          loading={assemblingFilm}
-          loadingLabel="Cutting film"
-          disabled={story.length === 0 || assemblingFilm || bioLoading}
-          onClick={() => void cutRoleplayFilm()}
-          className="w-full justify-center"
-          data-testid="mobile-play-cut"
-        >
-          Cut film
-        </PrimaryButton>
-        {filmStatus && !assemblingFilm ? (
+        {firstCutCelebrate ? (
+          <div
+            className="rounded-2xl border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-3 py-3"
+            data-testid="story-first-cut-celebrate"
+          >
+            <p className="type-overline text-[var(--tint-success-text)]">First film</p>
+            <p className="type-heading mt-1 text-[var(--text-primary)]">You cut your first reel</p>
+            <p className="type-caption mt-1 text-[var(--text-muted)]">
+              Watch on Cast is next — share or queue another Day with the same look.
+            </p>
+            <div className="mt-3 grid gap-2">
+              {filmCharacterId ? (
+                <Link
+                  href={toMobileStudioHref(
+                    `/characters/${encodeURIComponent(filmCharacterId)}?media=films`
+                  )}
+                  className="ui-btn-primary w-full justify-center text-center text-sm"
+                  data-testid="story-first-cut-watch"
+                  onClick={() => {
+                    setSoftAdvance(null);
+                    clearFirstCutCelebrate();
+                    void import('@/lib/onboarding-hooks').then(
+                      ({ markOnboardingWatchFirstFilm }) => {
+                        markOnboardingWatchFirstFilm();
+                      }
+                    );
+                  }}
+                >
+                  Watch on Cast
+                </Link>
+              ) : null}
+              <Button
+                variant="secondary"
+                className="w-full justify-center"
+                data-testid="story-first-cut-share"
+                onClick={() => void shareLastCut()}
+              >
+                Share cut
+              </Button>
+              {filmCharacterId ? (
+                <Link
+                  href={toMobileStudioHref(remixDayFilmHref(filmCharacterId))}
+                  className="ui-btn-secondary w-full justify-center text-center text-sm"
+                  data-testid="story-first-cut-remix"
+                  onClick={() => {
+                    setSoftAdvance(null);
+                    clearFirstCutCelebrate();
+                  }}
+                >
+                  Same look, new Day
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+        {!firstCutCelebrate ? (
+          <PrimaryButton
+            loading={assemblingFilm}
+            loadingLabel="Cutting film"
+            disabled={story.length === 0 || assemblingFilm || bioLoading}
+            onClick={() => void cutRoleplayFilm()}
+            className="w-full justify-center"
+            data-testid="mobile-play-cut"
+          >
+            Cut film
+          </PrimaryButton>
+        ) : null}
+        {filmStatus && !assemblingFilm && !firstCutCelebrate ? (
           <Button
             variant="secondary"
             disabled={bioLoading}
@@ -309,16 +402,18 @@ export default function MobilePlayToolSections({ description: _description, ...v
             Share cut
           </Button>
         ) : null}
-        <Button
-          variant="secondary"
-          disabled={bioLoading || assemblingFilm || (!filmNeedsCast && !filmStatus)}
-          onClick={saveFilmToCast}
-          className="w-full justify-center"
-          data-testid="roleplay-save-film-cast"
-        >
-          Save to Cast
-        </Button>
-        {filmCharacterId && filmStatus && !assemblingFilm ? (
+        {!firstCutCelebrate ? (
+          <Button
+            variant="secondary"
+            disabled={bioLoading || assemblingFilm || (!filmNeedsCast && !filmStatus)}
+            onClick={saveFilmToCast}
+            className="w-full justify-center"
+            data-testid="roleplay-save-film-cast"
+          >
+            Save to Cast
+          </Button>
+        ) : null}
+        {filmCharacterId && filmStatus && !assemblingFilm && !firstCutCelebrate ? (
           <Link
             href={toMobileStudioHref(
               `/characters/${encodeURIComponent(filmCharacterId)}?media=films`
@@ -334,7 +429,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
             Open on Cast
           </Link>
         ) : null}
-        {filmCharacterId && filmStatus && !assemblingFilm ? (
+        {filmCharacterId && filmStatus && !assemblingFilm && !firstCutCelebrate ? (
           <Link
             href={toMobileStudioHref(
               `/gallery?character=${encodeURIComponent(filmCharacterId)}&derivedKind=film`
@@ -345,13 +440,13 @@ export default function MobilePlayToolSections({ description: _description, ...v
             Open in Gallery
           </Link>
         ) : null}
-        {filmCharacterId && filmStatus && !assemblingFilm ? (
+        {filmCharacterId && filmStatus && !assemblingFilm && !firstCutCelebrate ? (
           <Link
-            href={`/play?character=${encodeURIComponent(filmCharacterId)}`}
+            href={toMobileStudioHref(remixDayFilmHref(filmCharacterId))}
             className="ui-btn-secondary w-full justify-center text-center text-sm"
-            data-testid="roleplay-campaign-complete"
+            data-testid="roleplay-remix-day"
           >
-            Campaign complete — Open Play
+            Same look, new Day
           </Link>
         ) : null}
         {filmStatus ? <p className="type-caption text-[var(--text-muted)]">{filmStatus}</p> : null}
@@ -371,14 +466,14 @@ export default function MobilePlayToolSections({ description: _description, ...v
           className="ui-btn-ghost w-full justify-center text-center text-sm"
           data-testid="mobile-continue-fitting"
         >
-          Open Fitting
+          Open Outfit
         </Link>
         <Link
           href="/m/moodboard"
           className="ui-btn-ghost w-full justify-center text-center text-sm"
           data-testid="mobile-continue-moodboard"
         >
-          Open Moodboard
+          Open Look
         </Link>
         <details className="rounded-xl border border-[var(--border-subtle)] px-3 py-2">
           <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
@@ -403,7 +498,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
               href="/roleplay"
               className="ui-btn-ghost w-full justify-center text-center text-sm"
             >
-              Full Roleplay on desk
+              Full Story on desk
             </Link>
           </div>
         </details>

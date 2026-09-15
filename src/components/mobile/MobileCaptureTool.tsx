@@ -228,11 +228,11 @@ export default function MobileCaptureTool() {
 
       {active ? (
         <div className="flex flex-col gap-2">
-          <Link href="/m/play" className="ui-btn-primary w-full justify-center text-center">
-            Play as {active.name}
+          <Link href="/m/moodboard" className="ui-btn-primary w-full justify-center text-center">
+            Start Look
           </Link>
-          <Link href="/m/moodboard" className="ui-btn-secondary w-full justify-center text-center">
-            Start Moodboard
+          <Link href="/m/play" className="ui-btn-secondary w-full justify-center text-center">
+            Optional: Story as {active.name}
           </Link>
           <Button
             variant="ghost"

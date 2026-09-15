@@ -76,7 +76,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
   return (
     <div className="space-y-4" data-testid="mobile-fitting">
       <div className="space-y-1">
-        <h1 className="type-display text-2xl tracking-tight">Fitting</h1>
+        <h1 className="type-display text-2xl tracking-tight">Outfit</h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
           Swipe kits on a locked plate. Keep a winner, then continue in Day.
         </p>
@@ -87,6 +87,19 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         target={softAdvance}
         onCancel={() => setSoftAdvance(null)}
       />
+
+      {compareTryOns.length > 0 && !softAdvance ? (
+        <div
+          className="rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-muted)] px-3 py-2"
+          data-testid="mobile-fitting-keep-coach"
+          role="status"
+        >
+          <p className="type-overline text-[var(--accent-text)]">Ready to keep</p>
+          <p className="type-caption text-[var(--text-muted)]">
+            Keep a winner to seed Day — soft-advance starts after Keep.
+          </p>
+        </div>
+      ) : null}
 
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
         <CharacterOsPicker

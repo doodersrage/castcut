@@ -392,7 +392,7 @@ export function resolvePlayFunnelStall(input: {
     return {
       stepId: 'cut',
       stepLabel: PLAY_FUNNEL_STEP_LABELS.cut,
-      reason: 'Try-ons saved — Cut film in Day to close the loop (Roleplay is optional).',
+      reason: 'Try-ons saved — Cut film in Day to close the loop (Story is optional).',
       daysSinceCampaignStart,
     };
   }
@@ -400,11 +400,11 @@ export function resolvePlayFunnelStall(input: {
   const stepIds = ['character', 'moodboard', 'fitting', 'day', 'roleplay'] as const;
   const stepId = stepIds[Math.min(maxStep, stepIds.length - 1)] ?? 'moodboard';
   const reasons: Record<(typeof stepIds)[number], string> = {
-    character: 'Pick a Cast character and start Moodboard.',
-    moodboard: 'Extract a look pack on Moodboard, then continue to Fitting.',
-    fitting: 'Queue try-ons in Fitting and Keep a plate before Day.',
+    character: 'Pick a Cast character and start Look.',
+    moodboard: 'Extract a look pack on Look, then continue to Outfit.',
+    fitting: 'Queue try-ons in Outfit and Keep a plate before Day.',
     day: 'Plan Day slots and queue stills before Cut film.',
-    roleplay: 'Optional — cut in Day instead, or run a Roleplay beat then Cut film.',
+    roleplay: 'Optional — cut in Day instead, or run a Story beat then Cut film.',
   };
 
   return {
