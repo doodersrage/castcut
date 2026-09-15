@@ -29,6 +29,15 @@ export function loadCollapsibleOpen(id: string, fallback: boolean): boolean {
   return fallback;
 }
 
+/** Returns stored open state when present; otherwise undefined. */
+export function peekCollapsibleOpen(id: string): boolean | undefined {
+  const map = loadMap();
+  if (Object.prototype.hasOwnProperty.call(map, id)) {
+    return Boolean(map[id]);
+  }
+  return undefined;
+}
+
 export function saveCollapsibleOpen(id: string, open: boolean): void {
   if (typeof window === 'undefined' || !id.trim()) {
     return;

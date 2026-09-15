@@ -137,6 +137,7 @@ export default function NegativeTool() {
       badge={<ToolBadge accent={ACCENT}>Negative / preserve</ToolBadge>}
       title="Negative"
       description={description}
+      sidebarPersistKey="negative"
       sidebar={
         <SharedToolControls
           shared={shared}

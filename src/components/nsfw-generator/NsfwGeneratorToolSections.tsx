@@ -35,6 +35,7 @@ export default function NsfwGeneratorToolSections({ description, ...vm }: Props)
       badge={<ToolBadge accent={ACCENT}>Adult scene · {selectedModel.comfyNode}</ToolBadge>}
       title="Adult generator"
       description={description}
+      sidebarPersistKey="nsfw-generator"
       sidebar={
         <SharedToolControls
           shared={shared}

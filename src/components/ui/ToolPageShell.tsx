@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { memo } from 'react';
 import BrandBars from '@/components/BrandBars';
-import { TOOL_SIDEBAR_DESCRIPTION, TOOL_SIDEBAR_TITLE } from '@/lib/tool-page-chrome';
 import { type ToolAccent } from '@/lib/tool-theme';
 
 export type ToolPageWidth = 'default' | 'wide' | 'full';
@@ -273,65 +272,7 @@ export const ToolPageShell = memo(function ToolPageShell({
   );
 });
 
-export const ToolLayout = memo(function ToolLayout({
-  accent: _accent = 'brand',
-  width = 'default',
-  badge,
-  title,
-  description,
-  headerActions,
-  sidebar,
-  sidebarTitle = TOOL_SIDEBAR_TITLE,
-  sidebarDescription = TOOL_SIDEBAR_DESCRIPTION,
-  children,
-}: {
-  accent?: ToolAccent;
-  width?: ToolPageWidth;
-  badge: ReactNode;
-  title: string;
-  description?: ReactNode;
-  /** Shown opposite the badge in the tool header (e.g. Engine toggle). */
-  headerActions?: ReactNode;
-  sidebar?: ReactNode;
-  sidebarTitle?: string | false;
-  sidebarDescription?: string;
-  children: ReactNode;
-}) {
-  void _accent;
-  return (
-    <ToolPageShell width={width}>
-      <ToolPageHeader
-        badge={badge}
-        title={title}
-        description={description}
-        actions={headerActions}
-      />
-
-      <div
-        className={
-          sidebar
-            ? 'grid items-start gap-[var(--block-gap)] xl:grid-cols-[minmax(0,1fr)_380px] xl:gap-8'
-            : 'ui-section-stack'
-        }
-      >
-        <div className="ui-section-stack min-w-0">{children}</div>
-
-        {sidebar ? (
-          <aside className="xl:sticky xl:top-24">
-            <ToolSection
-              variant="secondary"
-              title={sidebarTitle === false ? undefined : sidebarTitle}
-              description={sidebarTitle === false ? undefined : sidebarDescription}
-              className="sidebar-scroll xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto"
-            >
-              <div className="ui-sidebar-dense">{sidebar}</div>
-            </ToolSection>
-          </aside>
-        ) : null}
-      </div>
-    </ToolPageShell>
-  );
-});
+export { ToolLayout } from '@/components/ui/ToolLayout';
 
 export { accentButtonClass, accentFocusClass, accentRingClass } from '@/lib/tool-theme';
 

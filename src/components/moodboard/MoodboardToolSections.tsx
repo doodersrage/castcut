@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
-import PlayEngineToggle, { usePlayEngineSidebar } from '@/components/PlayEngineToggle';
 import PlaySoftAdvanceBanner, {
   type PlaySoftAdvanceTarget,
 } from '@/components/PlaySoftAdvanceBanner';
@@ -126,7 +125,6 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
   const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
-  const { engineOpen, setEngineOpen } = usePlayEngineSidebar('moodboard', false);
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -149,9 +147,9 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
       badge={<ToolBadge accent={ACCENT}>Look · {selectedModel?.comfyNode ?? 'model'}</ToolBadge>}
       title="Look"
       description={description}
-      sidebar={engineOpen ? engineControls : undefined}
-      sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
-      headerActions={<PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />}
+      sidebarPersistKey="moodboard"
+      sidebar={engineControls}
+      sidebarTitle={leanChrome ? false : undefined}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.moodboard} />
       <PlaySoftAdvanceBanner

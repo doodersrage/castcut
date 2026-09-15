@@ -54,6 +54,7 @@ export default function ImagePromptToolSections({
       }
       title="Image → Prompt"
       description={description}
+      sidebarPersistKey="image-prompt"
       sidebar={
         <SharedToolControls
           toolId="imagePrompt"

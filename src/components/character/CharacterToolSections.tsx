@@ -38,6 +38,7 @@ export default function CharacterToolSections({ description, ...vm }: CharacterT
       badge={<ToolBadge accent={accent}>Character · {selectedModel.comfyNode}</ToolBadge>}
       title="Character"
       description={description}
+      sidebarPersistKey="character"
       sidebar={
         <SharedToolControls
           toolId="character"

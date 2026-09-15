@@ -52,6 +52,7 @@ export default function ComposeToolSections({
       badge={<ToolBadge accent={ACCENT}>Compose · {selectedModel.comfyNode}</ToolBadge>}
       title="Compose"
       description={description}
+      sidebarPersistKey="compose"
       sidebar={
         <SharedToolControls
           toolId="compose"

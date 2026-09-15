@@ -77,6 +77,7 @@ export default function ControlNetToolSections({ description, ...vm }: Props) {
       badge={<ToolBadge accent={CONTROLNET_ACCENT}>ControlNet</ToolBadge>}
       title="ControlNet"
       description={description}
+      sidebarPersistKey="controlnet"
       sidebar={
         <SharedToolControls
           toolId="controlnet"

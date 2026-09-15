@@ -17,6 +17,7 @@ export default function TopicToolSections({ description, ...vm }: Props) {
       badge={<ToolBadge accent={ACCENT}>{TOOL_SETUP_LABELS.topics}</ToolBadge>}
       title="Topics"
       description={description}
+      sidebarPersistKey="topics"
       sidebar={<TopicToolSidebar {...vm} />}
     >
       <TopicToolInputSection {...vm} />

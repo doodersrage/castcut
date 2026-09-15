@@ -52,6 +52,7 @@ export default function RefineToolSections({
       badge={<ToolBadge accent={ACCENT}>Refine · {selectedModel.comfyNode}</ToolBadge>}
       title="Refine"
       description={description}
+      sidebarPersistKey="refine"
       sidebar={
         <SharedToolControls
           toolId="refine"

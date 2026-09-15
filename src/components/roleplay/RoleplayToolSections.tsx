@@ -3,7 +3,6 @@
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 
 import SharedToolControls from '@/components/SharedToolControls';
-import PlayEngineToggle, { usePlayEngineSidebar } from '@/components/PlayEngineToggle';
 import RoleplayLibraryPanel from '@/components/RoleplayLibraryPanel';
 import RoleplayBeatOutputSection from '@/components/roleplay/RoleplayBeatOutputSection';
 import RoleplayBioSection from '@/components/roleplay/RoleplayBioSection';
@@ -58,7 +57,6 @@ export default function RoleplayToolSections({
 }: RoleplayToolSectionsProps) {
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
-  const { engineOpen, setEngineOpen } = usePlayEngineSidebar('roleplay', false);
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -82,9 +80,9 @@ export default function RoleplayToolSections({
       badge={<ToolBadge accent={ACCENT}>Story · {selectedModel.comfyNode}</ToolBadge>}
       title="Story"
       description={description}
-      sidebar={engineOpen ? engineControls : undefined}
-      sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
-      headerActions={<PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />}
+      sidebarPersistKey="roleplay"
+      sidebar={engineControls}
+      sidebarTitle={leanChrome ? false : undefined}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.roleplay} />
 

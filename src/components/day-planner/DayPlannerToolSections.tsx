@@ -2,7 +2,6 @@
 
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
-import PlayEngineToggle, { usePlayEngineSidebar } from '@/components/PlayEngineToggle';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import {
@@ -88,7 +87,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     seedDemoStills,
     firstCutCelebrate,
   } = vm;
-  const { engineOpen, setEngineOpen } = usePlayEngineSidebar('day', false);
   const [sampleWatch, setSampleWatch] = useState(false);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const engineControls = (
@@ -113,9 +111,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       badge={<ToolBadge accent={ACCENT}>Day · {selectedModel?.comfyNode ?? 'model'}</ToolBadge>}
       title="Day"
       description={description}
-      sidebar={engineOpen ? engineControls : undefined}
-      sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
-      headerActions={<PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />}
+      sidebarPersistKey="day"
+      sidebar={engineControls}
+      sidebarTitle={leanChrome ? false : undefined}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.day} />
       {firstCutCelebrate ? (

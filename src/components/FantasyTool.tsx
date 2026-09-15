@@ -270,6 +270,7 @@ export default function FantasyTool() {
       badge={<ToolBadge accent={ACCENT}>Fantasy scene · {selectedModel.comfyNode}</ToolBadge>}
       title="Fantasy"
       description={description}
+      sidebarPersistKey="fantasy"
       sidebar={
         <SharedToolControls
           shared={shared}

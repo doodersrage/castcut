@@ -214,6 +214,7 @@ export default function LogoTool() {
       }
       title="Logo"
       description={description}
+      sidebarPersistKey="logo"
       sidebar={
         <SharedToolControls
           shared={shared}

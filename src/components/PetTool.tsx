@@ -209,6 +209,7 @@ export default function PetTool() {
       badge={<ToolBadge accent={ACCENT}>Pet scene · {selectedModel.comfyNode}</ToolBadge>}
       title="Pet"
       description={description}
+      sidebarPersistKey="pet"
       sidebar={
         <SharedToolControls
           shared={shared}

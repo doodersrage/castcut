@@ -13,7 +13,6 @@ import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { FieldError } from '@/components/ui/Field';
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
-import PlayEngineToggle, { usePlayEngineSidebar } from '@/components/PlayEngineToggle';
 import PlaySoftAdvanceBanner, {
   type PlaySoftAdvanceTarget,
 } from '@/components/PlaySoftAdvanceBanner';
@@ -165,7 +164,6 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     setIsolateStatus,
   } = vm;
   const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
-  const { engineOpen, setEngineOpen } = usePlayEngineSidebar('fitting', false);
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -198,9 +196,9 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       }
       title="Outfit"
       description={description}
-      sidebar={engineOpen ? engineControls : undefined}
-      sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
-      headerActions={<PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />}
+      sidebarPersistKey="fitting"
+      sidebar={engineControls}
+      sidebarTitle={leanChrome ? false : undefined}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.fitting} />
       <PlaySoftAdvanceBanner

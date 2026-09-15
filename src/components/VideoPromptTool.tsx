@@ -26,6 +26,7 @@ export default function VideoPromptTool() {
       badge={<ToolBadge accent={ACCENT}>Video · motion prompts</ToolBadge>}
       title="Video"
       description={description}
+      sidebarPersistKey="video"
       sidebar={
         <SharedToolControls
           shared={vm.controlsShared}

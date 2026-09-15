@@ -41,6 +41,7 @@ export default function VariationGridToolSections({
       badge={<ToolBadge accent={VARIATION_GRID_ACCENT}>Variation grid</ToolBadge>}
       title="Variations"
       description={description}
+      sidebarPersistKey="variations"
       sidebar={
         <SharedToolControls
           toolId="variations"

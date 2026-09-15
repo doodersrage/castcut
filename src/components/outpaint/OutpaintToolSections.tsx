@@ -21,6 +21,7 @@ export default function OutpaintToolSections({ description, ...vm }: Props) {
       badge={<ToolBadge accent={ACCENT}>Outpaint · {selectedModel.comfyNode}</ToolBadge>}
       title="Outpaint / expand"
       description={description}
+      sidebarPersistKey="outpaint"
       sidebar={
         <SharedToolControls
           toolId="outpaint"

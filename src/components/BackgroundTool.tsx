@@ -202,6 +202,7 @@ export default function BackgroundTool() {
       badge={<ToolBadge accent={ACCENT}>Background · {selectedModel.comfyNode}</ToolBadge>}
       title="Background"
       description={description}
+      sidebarPersistKey="background"
       sidebar={
         <SharedToolControls
           shared={shared}

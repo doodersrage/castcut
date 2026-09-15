@@ -111,6 +111,7 @@ export default function LintTool() {
       badge={<ToolBadge accent={ACCENT}>Lint · {selectedModel.comfyNode}</ToolBadge>}
       title="Lint"
       description={description}
+      sidebarPersistKey="lint"
       sidebar={
         <SharedToolControls
           toolId="lint"

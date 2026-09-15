@@ -158,6 +158,7 @@ export default function MeshPromptTool() {
       badge={<ToolBadge accent={ACCENT}>3D · {selectedModel.comfyNode}</ToolBadge>}
       title="Mesh / 3D prompt"
       description={description}
+      sidebarPersistKey="mesh"
       sidebar={
         <SharedToolControls
           toolId="mesh"

@@ -50,6 +50,7 @@ export default function InpaintToolSections({
       badge={<ToolBadge accent={ACCENT}>Inpaint · {selectedModel.comfyNode}</ToolBadge>}
       title="Inpaint"
       description={description}
+      sidebarPersistKey="inpaint"
       sidebar={
         <SharedToolControls
           toolId="inpaint"

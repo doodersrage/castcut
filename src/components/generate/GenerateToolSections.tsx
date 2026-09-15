@@ -127,6 +127,7 @@ export default function GenerateToolSections({
       }
       title="Generate"
       description={description}
+      sidebarPersistKey="generate"
       sidebar={
         <SharedToolControls
           toolId="generate"

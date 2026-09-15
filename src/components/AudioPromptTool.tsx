@@ -134,6 +134,7 @@ export default function AudioPromptTool() {
       badge={<ToolBadge accent={ACCENT}>Audio · {selectedModel.comfyNode}</ToolBadge>}
       title="Audio prompt"
       description={description}
+      sidebarPersistKey="audio"
       sidebar={
         <SharedToolControls
           toolId="audio"

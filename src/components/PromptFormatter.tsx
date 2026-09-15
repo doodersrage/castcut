@@ -200,6 +200,7 @@ export default function PromptFormatter() {
       badge={<ToolBadge accent={ACCENT}>{TOOL_SETUP_LABELS.format}</ToolBadge>}
       title="Format for your model"
       description={description}
+      sidebarPersistKey="format"
       sidebar={
         <SharedToolControls
           toolId="format"
