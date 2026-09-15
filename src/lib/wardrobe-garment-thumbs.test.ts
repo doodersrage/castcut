@@ -17,7 +17,8 @@ describe('wardrobe-garment-thumbs', () => {
     });
     assert.match(prompt, /cobalt monk robes/i);
     assert.match(prompt, /No person/i);
-    assert.match(prompt, /white studio/i);
+    assert.match(prompt, /ghost mannequin|flat lay/i);
+    assert.match(prompt, /match the description/i);
   });
 
   it('stride-samples curated outfit ids', () => {
@@ -33,7 +34,7 @@ describe('wardrobe-garment-thumbs', () => {
 
   it('resolves packaged thumbs from the curated manifest', () => {
     const url = resolveWardrobeGarmentThumbUrl('outfit-boxy-cobalt-monk-robes');
-    assert.equal(url, '/wardrobe-thumbs/outfit-boxy-cobalt-monk-robes.svg');
+    assert.match(url ?? '', /\/wardrobe-thumbs\/outfit-boxy-cobalt-monk-robes\.(webp|svg)$/);
     assert.equal(resolveWardrobeGarmentThumbUrl('not-a-real-kit'), null);
   });
 
@@ -45,13 +46,11 @@ describe('wardrobe-garment-thumbs', () => {
       }),
       'blob:person'
     );
-    assert.equal(
-      resolveWardrobeKitThumbUrl({
-        wardrobeId: 'outfit-boxy-cobalt-monk-robes',
-        personPreviewUrl: null,
-      }),
-      '/wardrobe-thumbs/outfit-boxy-cobalt-monk-robes.svg'
-    );
+    const packaged = resolveWardrobeKitThumbUrl({
+      wardrobeId: 'outfit-boxy-cobalt-monk-robes',
+      personPreviewUrl: null,
+    });
+    assert.match(packaged ?? '', /\/wardrobe-thumbs\/outfit-boxy-cobalt-monk-robes\.(webp|svg)$/);
   });
 
   it('keeps selection visible in picker deck', () => {

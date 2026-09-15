@@ -1,1006 +1,1406 @@
 {
-  "version": 1,
-  "generatedAt": "2026-09-15T14:17:40.886Z",
+  "version": 2,
+  "generatedAt": "2026-09-15T14:42:41.846Z",
   "thumbs": {
     "fantasy-outfit-amber-barbarian-furs": {
-      "file": "fantasy-outfit-amber-barbarian-furs.svg",
+      "file": "fantasy-outfit-amber-barbarian-furs.webp",
       "label": "amber barbarian furs and leather bracers",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "d32ffe2e-b9a4-45e9-bd4a-442a5a0e812e"
     },
     "fantasy-outfit-obsidian-witch-ritual-robes": {
-      "file": "fantasy-outfit-obsidian-witch-ritual-robes.svg",
+      "file": "fantasy-outfit-obsidian-witch-ritual-robes.webp",
       "label": "obsidian witch ritual robes with silver clasps",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2bf7ff16-a4bf-48a7-8951-89ff26daaed1"
     },
     "outfit-boxy-beige-knight-armor-cuirass-look": {
-      "file": "outfit-boxy-beige-knight-armor-cuirass-look.svg",
+      "file": "outfit-boxy-beige-knight-armor-cuirass-look.webp",
       "label": "boxy beige knight armor cuirass look",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "63a5edf8-6131-41af-a347-866b03713af7"
     },
     "outfit-boxy-burgundy-belly-dance-costume": {
-      "file": "outfit-boxy-burgundy-belly-dance-costume.svg",
+      "file": "outfit-boxy-burgundy-belly-dance-costume.webp",
       "label": "boxy burgundy belly dance costume",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e28d9c76-d09e-408f-a969-611a8885fed6"
     },
     "outfit-boxy-cobalt-monk-robes": {
-      "file": "outfit-boxy-cobalt-monk-robes.svg",
+      "file": "outfit-boxy-cobalt-monk-robes.webp",
       "label": "boxy cobalt monk robes",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b208d3c8-af2d-4352-a6ce-227c20d64cd9"
     },
     "outfit-boxy-denim-blue-karate-gi": {
-      "file": "outfit-boxy-denim-blue-karate-gi.svg",
+      "file": "outfit-boxy-denim-blue-karate-gi.webp",
       "label": "boxy denim blue karate gi",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "63b74ddf-3cdd-4874-bd3a-7283731efad7"
     },
     "outfit-boxy-forest-green-sweater-dress": {
-      "file": "outfit-boxy-forest-green-sweater-dress.svg",
+      "file": "outfit-boxy-forest-green-sweater-dress.webp",
       "label": "boxy forest green sweater dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "749a29f6-0729-443a-9d54-f2642e9d9dfd"
     },
     "outfit-boxy-gunmetal-hip-hop-oversized-fit": {
-      "file": "outfit-boxy-gunmetal-hip-hop-oversized-fit.svg",
+      "file": "outfit-boxy-gunmetal-hip-hop-oversized-fit.webp",
       "label": "boxy gunmetal hip-hop oversized fit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "cf300edd-bf02-4d7b-822d-27a6a757fa62"
     },
     "outfit-boxy-khaki-nautical-stripe-outfit": {
-      "file": "outfit-boxy-khaki-nautical-stripe-outfit.svg",
+      "file": "outfit-boxy-khaki-nautical-stripe-outfit.webp",
       "label": "boxy khaki nautical stripe outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "61eefd00-558b-43c4-9b28-a350429f33d2"
     },
     "outfit-boxy-lime-two-piece-linen-suit": {
-      "file": "outfit-boxy-lime-two-piece-linen-suit.svg",
+      "file": "outfit-boxy-lime-two-piece-linen-suit.webp",
       "label": "boxy lime two-piece linen suit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b63bd8d0-1114-49cd-a620-43534fb790a2"
     },
     "outfit-boxy-mustard-belly-dance-costume": {
-      "file": "outfit-boxy-mustard-belly-dance-costume.svg",
+      "file": "outfit-boxy-mustard-belly-dance-costume.webp",
       "label": "boxy mustard belly dance costume",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "18a5f87c-812d-447c-af01-fec95c872111"
     },
     "outfit-boxy-oatmeal-utility-jumpsuit": {
-      "file": "outfit-boxy-oatmeal-utility-jumpsuit.svg",
+      "file": "outfit-boxy-oatmeal-utility-jumpsuit.webp",
       "label": "boxy oatmeal utility jumpsuit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e8013555-7b5e-498b-9329-76e48fc3e08a"
     },
     "outfit-boxy-pine-cottagecore-dress-ensemble": {
-      "file": "outfit-boxy-pine-cottagecore-dress-ensemble.svg",
+      "file": "outfit-boxy-pine-cottagecore-dress-ensemble.webp",
       "label": "boxy pine cottagecore dress ensemble",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a7cb37cc-5f44-47ed-9e17-2dfcdd650d49"
     },
     "outfit-boxy-sage-hanbok-set": {
-      "file": "outfit-boxy-sage-hanbok-set.svg",
+      "file": "outfit-boxy-sage-hanbok-set.webp",
       "label": "boxy sage hanbok set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e12299e0-e4be-4e23-b985-adb18957ca60"
     },
     "outfit-boxy-silver-safari-explorer-outfit": {
-      "file": "outfit-boxy-silver-safari-explorer-outfit.svg",
+      "file": "outfit-boxy-silver-safari-explorer-outfit.webp",
       "label": "boxy silver safari explorer outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "c4bb6cf8-805f-420c-b1c5-626d05d66a62"
     },
     "outfit-boxy-snow-paramedic-uniform": {
-      "file": "outfit-boxy-snow-paramedic-uniform.svg",
+      "file": "outfit-boxy-snow-paramedic-uniform.webp",
       "label": "boxy snow paramedic uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "1eb0129f-da70-4620-bd85-7655d245f98c"
     },
     "outfit-boxy-terracotta-goth-layered-outfit": {
-      "file": "outfit-boxy-terracotta-goth-layered-outfit.svg",
+      "file": "outfit-boxy-terracotta-goth-layered-outfit.webp",
       "label": "boxy terracotta goth layered outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "aad33867-d2c2-4b2e-9211-a6d5760ad735"
     },
     "outfit-cropped-beige-techwear-ensemble": {
-      "file": "outfit-cropped-beige-techwear-ensemble.svg",
+      "file": "outfit-cropped-beige-techwear-ensemble.webp",
       "label": "cropped beige techwear ensemble",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e6e0b9cb-db2f-43fb-bb7b-621916e50bfe"
     },
     "outfit-cropped-burnt-orange-waiter-black-tie-service-outfit": {
-      "file": "outfit-cropped-burnt-orange-waiter-black-tie-service-outfit.svg",
+      "file": "outfit-cropped-burnt-orange-waiter-black-tie-service-outfit.webp",
       "label": "cropped burnt orange waiter black tie service outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e2dc2a3f-d245-48ae-bbe8-a37936c4e4a0"
     },
     "outfit-cropped-copper-climbing-harness-outfit": {
-      "file": "outfit-cropped-copper-climbing-harness-outfit.svg",
+      "file": "outfit-cropped-copper-climbing-harness-outfit.webp",
       "label": "cropped copper climbing harness outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "99b0bacf-c9eb-4d04-8302-a080ef2f9cf3"
     },
     "outfit-cropped-espresso-ballet-tutu-outfit": {
-      "file": "outfit-cropped-espresso-ballet-tutu-outfit.svg",
+      "file": "outfit-cropped-espresso-ballet-tutu-outfit.webp",
       "label": "cropped espresso ballet tutu outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9fbe491b-d884-484a-a64d-32e9e3a360a5"
     },
     "outfit-cropped-gold-firefighter-turnout-gear": {
-      "file": "outfit-cropped-gold-firefighter-turnout-gear.svg",
+      "file": "outfit-cropped-gold-firefighter-turnout-gear.webp",
       "label": "cropped gold firefighter turnout gear",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9be98289-25c3-42d2-bb33-37b607861a7c"
     },
     "outfit-cropped-ivory-cycling-kit": {
-      "file": "outfit-cropped-ivory-cycling-kit.svg",
+      "file": "outfit-cropped-ivory-cycling-kit.webp",
       "label": "cropped ivory cycling kit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "3356f4e0-6df9-4094-a369-04854182b2e0"
     },
     "outfit-cropped-lime-triathlon-kit": {
-      "file": "outfit-cropped-lime-triathlon-kit.svg",
+      "file": "outfit-cropped-lime-triathlon-kit.webp",
       "label": "cropped lime triathlon kit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "3f2cc0e0-e103-41c8-b422-861645ad1027"
     },
     "outfit-cropped-moss-barista-apron-outfit": {
-      "file": "outfit-cropped-moss-barista-apron-outfit.svg",
+      "file": "outfit-cropped-moss-barista-apron-outfit.webp",
       "label": "cropped moss barista apron outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "c97a578e-fffa-4a1a-acbb-a62704897ce2"
     },
     "outfit-cropped-obsidian-skater-outfit": {
-      "file": "outfit-cropped-obsidian-skater-outfit.svg",
+      "file": "outfit-cropped-obsidian-skater-outfit.webp",
       "label": "cropped obsidian skater outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9e7c8e24-06af-47b9-af8c-976da8850b3e"
     },
     "outfit-cropped-pewter-denim-overall-dress": {
-      "file": "outfit-cropped-pewter-denim-overall-dress.svg",
+      "file": "outfit-cropped-pewter-denim-overall-dress.webp",
       "label": "cropped pewter denim overall dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9d488c12-bd0b-474d-b111-dff66a353c6f"
     },
     "outfit-cropped-rose-fencing-uniform": {
-      "file": "outfit-cropped-rose-fencing-uniform.svg",
+      "file": "outfit-cropped-rose-fencing-uniform.webp",
       "label": "cropped rose fencing uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "eec76134-c764-417b-be98-c85982a7cf09"
     },
     "outfit-cropped-silver-beekeeper-suit": {
-      "file": "outfit-cropped-silver-beekeeper-suit.svg",
+      "file": "outfit-cropped-silver-beekeeper-suit.webp",
       "label": "cropped silver beekeeper suit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "81451da8-6520-432b-996b-407e74d82376"
     },
     "outfit-cropped-snow-sailor-deck-outfit": {
-      "file": "outfit-cropped-snow-sailor-deck-outfit.svg",
+      "file": "outfit-cropped-snow-sailor-deck-outfit.webp",
       "label": "cropped snow sailor deck outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "aab55003-4250-4fc9-835e-f04fde50d75c"
     },
     "outfit-cropped-tan-dark-academia-outfit": {
-      "file": "outfit-cropped-tan-dark-academia-outfit.svg",
+      "file": "outfit-cropped-tan-dark-academia-outfit.webp",
       "label": "cropped tan dark academia outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e56fd862-59c1-4604-a37e-18886cc1ff4b"
     },
     "outfit-cropped-white-taekwondo-dobok": {
-      "file": "outfit-cropped-white-taekwondo-dobok.svg",
+      "file": "outfit-cropped-white-taekwondo-dobok.webp",
       "label": "cropped white taekwondo dobok",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e62e43dd-41ec-4d8b-801f-3ed9fcc6794f"
     },
     "outfit-double-breasted-beige-three-piece-wool-suit": {
-      "file": "outfit-double-breasted-beige-three-piece-wool-suit.svg",
+      "file": "outfit-double-breasted-beige-three-piece-wool-suit.webp",
       "label": "double-breasted beige three-piece wool suit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "c7942027-97f0-4ffc-bb51-dc757ed62386"
     },
     "outfit-double-breasted-brown-paramedic-uniform": {
-      "file": "outfit-double-breasted-brown-paramedic-uniform.svg",
+      "file": "outfit-double-breasted-brown-paramedic-uniform.webp",
       "label": "double-breasted brown paramedic uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "d4b19018-dcb1-44af-9053-93893decffd3"
     },
     "outfit-double-breasted-camel-jumpsuit": {
-      "file": "outfit-double-breasted-camel-jumpsuit.svg",
+      "file": "outfit-double-breasted-camel-jumpsuit.webp",
       "label": "double-breasted camel jumpsuit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "6dcdda51-147b-4ff2-bc80-12f3dc98a0fe"
     },
     "outfit-double-breasted-clay-salwar-kameez-set": {
-      "file": "outfit-double-breasted-clay-salwar-kameez-set.svg",
+      "file": "outfit-double-breasted-clay-salwar-kameez-set.webp",
       "label": "double-breasted clay salwar kameez set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "48dd5c29-3c55-4380-922b-ce3c1048f65b"
     },
     "outfit-double-breasted-denim-blue-rain-ready-outfit": {
-      "file": "outfit-double-breasted-denim-blue-rain-ready-outfit.svg",
+      "file": "outfit-double-breasted-denim-blue-rain-ready-outfit.webp",
       "label": "double-breasted denim blue rain-ready outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "933b48fb-7c73-4963-a35c-5743c3d67874"
     },
     "outfit-double-breasted-fuchsia-sweater-dress": {
-      "file": "outfit-double-breasted-fuchsia-sweater-dress.svg",
+      "file": "outfit-double-breasted-fuchsia-sweater-dress.webp",
       "label": "double-breasted fuchsia sweater dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "f4fc252b-83ad-4d5d-acd0-d08db44ebd00"
     },
     "outfit-double-breasted-khaki-bellhop-uniform": {
-      "file": "outfit-double-breasted-khaki-bellhop-uniform.svg",
+      "file": "outfit-double-breasted-khaki-bellhop-uniform.webp",
       "label": "double-breasted khaki bellhop uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "7860bf07-0fc9-4e2b-9d6b-2cca5d6e70eb"
     },
     "outfit-double-breasted-maroon-farmer-chore-outfit": {
-      "file": "outfit-double-breasted-maroon-farmer-chore-outfit.svg",
+      "file": "outfit-double-breasted-maroon-farmer-chore-outfit.webp",
       "label": "double-breasted maroon farmer chore outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "ba3e33df-3b15-4f57-9a6f-7a6fee19b7b7"
     },
     "outfit-double-breasted-mint-judogi": {
-      "file": "outfit-double-breasted-mint-judogi.svg",
+      "file": "outfit-double-breasted-mint-judogi.webp",
       "label": "double-breasted mint judogi",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "3c71596e-0e5b-4479-badb-7f921f6d5ba1"
     },
     "outfit-double-breasted-oatmeal-monk-robes": {
-      "file": "outfit-double-breasted-oatmeal-monk-robes.svg",
+      "file": "outfit-double-breasted-oatmeal-monk-robes.webp",
       "label": "double-breasted oatmeal monk robes",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "d6cbad9e-e1a9-4ad3-9f08-e13767ba844b"
     },
     "outfit-double-breasted-pearl-triathlon-kit": {
-      "file": "outfit-double-breasted-pearl-triathlon-kit.svg",
+      "file": "outfit-double-breasted-pearl-triathlon-kit.webp",
       "label": "double-breasted pearl triathlon kit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "99f51a1d-1f0f-4cb8-8b0e-4945cd868ebc"
     },
     "outfit-double-breasted-sage-baseball-uniform": {
-      "file": "outfit-double-breasted-sage-baseball-uniform.svg",
+      "file": "outfit-double-breasted-sage-baseball-uniform.webp",
       "label": "double-breasted sage baseball uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "4bb33951-9e9c-4a90-8c26-92398628146b"
     },
     "outfit-double-breasted-salmon-utility-jumpsuit": {
-      "file": "outfit-double-breasted-salmon-utility-jumpsuit.svg",
+      "file": "outfit-double-breasted-salmon-utility-jumpsuit.webp",
       "label": "double-breasted salmon utility jumpsuit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "079943c1-8f98-4981-88e0-ae5dbec9721a"
     },
     "outfit-double-breasted-sky-blue-slip-dress": {
-      "file": "outfit-double-breasted-sky-blue-slip-dress.svg",
+      "file": "outfit-double-breasted-sky-blue-slip-dress.webp",
       "label": "double-breasted sky blue slip dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a5c5f24b-3f5b-4c6f-a9d6-200ce65b5323"
     },
     "outfit-double-breasted-stone-doctor-white-coat-outfit": {
-      "file": "outfit-double-breasted-stone-doctor-white-coat-outfit.svg",
+      "file": "outfit-double-breasted-stone-doctor-white-coat-outfit.webp",
       "label": "double-breasted stone doctor white coat outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b525a4a7-7fef-4015-bd1c-2829db7ecfa8"
     },
     "outfit-double-breasted-teal-tennis-whites": {
-      "file": "outfit-double-breasted-teal-tennis-whites.svg",
+      "file": "outfit-double-breasted-teal-tennis-whites.webp",
       "label": "double-breasted teal tennis whites",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "190e3ee4-1755-44ef-8eef-61e76d849729"
     },
     "outfit-high-waisted-beige-jumpsuit": {
-      "file": "outfit-high-waisted-beige-jumpsuit.svg",
+      "file": "outfit-high-waisted-beige-jumpsuit.webp",
       "label": "high-waisted beige jumpsuit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "5874669f-ae32-4b19-b5c3-bb24f16cbabb"
     },
     "outfit-high-waisted-burgundy-priest-cassock": {
-      "file": "outfit-high-waisted-burgundy-priest-cassock.svg",
+      "file": "outfit-high-waisted-burgundy-priest-cassock.webp",
       "label": "high-waisted burgundy priest cassock",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "7e8c6de0-5aae-42aa-a604-0c9802d7fdaa"
     },
     "outfit-high-waisted-copper-light-academia-outfit": {
-      "file": "outfit-high-waisted-copper-light-academia-outfit.svg",
+      "file": "outfit-high-waisted-copper-light-academia-outfit.webp",
       "label": "high-waisted copper light academia outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "99f5634a-6956-49a6-b93a-83be59dcfb73"
     },
     "outfit-high-waisted-denim-blue-slip-dress": {
-      "file": "outfit-high-waisted-denim-blue-slip-dress.svg",
+      "file": "outfit-high-waisted-denim-blue-slip-dress.webp",
       "label": "high-waisted denim blue slip dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "6ee4eef8-a156-4562-8fe9-eb437af6fd17"
     },
     "outfit-high-waisted-forest-green-denim-overall-dress": {
-      "file": "outfit-high-waisted-forest-green-denim-overall-dress.svg",
+      "file": "outfit-high-waisted-forest-green-denim-overall-dress.webp",
       "label": "high-waisted forest green denim overall dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "1ed76f16-83c9-4167-bacf-16d2afd1eaaf"
     },
     "outfit-high-waisted-gold-wizard-robe-outfit": {
-      "file": "outfit-high-waisted-gold-wizard-robe-outfit.svg",
+      "file": "outfit-high-waisted-gold-wizard-robe-outfit.webp",
       "label": "high-waisted gold wizard robe outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a1643ae9-8af1-4f8c-ab29-a2dee0046ed5"
     },
     "outfit-high-waisted-ink-wizard-robe-outfit": {
-      "file": "outfit-high-waisted-ink-wizard-robe-outfit.svg",
+      "file": "outfit-high-waisted-ink-wizard-robe-outfit.webp",
       "label": "high-waisted ink wizard robe outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b5b9a3f9-de3b-4214-bcf2-a4aa665945ad"
     },
     "outfit-high-waisted-lime-skater-outfit": {
-      "file": "outfit-high-waisted-lime-skater-outfit.svg",
+      "file": "outfit-high-waisted-lime-skater-outfit.webp",
       "label": "high-waisted lime skater outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9a32f992-3aa4-4ca7-8585-200a374111cc"
     },
     "outfit-high-waisted-mint-hotel-concierge-uniform": {
-      "file": "outfit-high-waisted-mint-hotel-concierge-uniform.svg",
+      "file": "outfit-high-waisted-mint-hotel-concierge-uniform.webp",
       "label": "high-waisted mint hotel concierge uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "95d119f5-16bf-4557-9c92-de74a32d0e66"
     },
     "outfit-high-waisted-obsidian-dirndl-dress": {
-      "file": "outfit-high-waisted-obsidian-dirndl-dress.svg",
+      "file": "outfit-high-waisted-obsidian-dirndl-dress.webp",
       "label": "high-waisted obsidian dirndl dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "ddc50eda-9ba2-4fcd-98a6-708876018236"
     },
     "outfit-high-waisted-pearl-skater-outfit": {
-      "file": "outfit-high-waisted-pearl-skater-outfit.svg",
+      "file": "outfit-high-waisted-pearl-skater-outfit.webp",
       "label": "high-waisted pearl skater outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "4854845c-1e8a-4910-a01c-b34c61c3322b"
     },
     "outfit-high-waisted-rose-wrap-dress": {
-      "file": "outfit-high-waisted-rose-wrap-dress.svg",
+      "file": "outfit-high-waisted-rose-wrap-dress.webp",
       "label": "high-waisted rose wrap dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "44d8f7e8-c058-4d4d-bea2-d892ee4e99ba"
     },
     "outfit-high-waisted-silver-safari-explorer-outfit": {
-      "file": "outfit-high-waisted-silver-safari-explorer-outfit.svg",
+      "file": "outfit-high-waisted-silver-safari-explorer-outfit.webp",
       "label": "high-waisted silver safari explorer outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "dc81757b-ebc8-4e8a-9907-f740ae8b962a"
     },
     "outfit-high-waisted-stone-keffiyeh-and-thobe": {
-      "file": "outfit-high-waisted-stone-keffiyeh-and-thobe.svg",
+      "file": "outfit-high-waisted-stone-keffiyeh-and-thobe.webp",
       "label": "high-waisted stone keffiyeh and thobe",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e6c3390a-2142-4578-9ac3-313e5b843b07"
     },
     "outfit-high-waisted-taupe-surfer-outfit": {
-      "file": "outfit-high-waisted-taupe-surfer-outfit.svg",
+      "file": "outfit-high-waisted-taupe-surfer-outfit.webp",
       "label": "high-waisted taupe surfer outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "3132d716-717f-4597-8d0c-c411608fbb85"
     },
     "outfit-low-rise-ash-light-academia-outfit": {
-      "file": "outfit-low-rise-ash-light-academia-outfit.svg",
+      "file": "outfit-low-rise-ash-light-academia-outfit.webp",
       "label": "low-rise ash light academia outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "1a4c048d-0557-4a65-91b1-b118006a8ac0"
     },
     "outfit-low-rise-burnt-orange-circus-ringmaster-coat-outfit": {
-      "file": "outfit-low-rise-burnt-orange-circus-ringmaster-coat-outfit.svg",
+      "file": "outfit-low-rise-burnt-orange-circus-ringmaster-coat-outfit.webp",
       "label": "low-rise burnt orange circus ringmaster coat outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "79b9ec51-51ab-49f3-89f2-2cb8d7b6a93a"
     },
     "outfit-low-rise-copper-taekwondo-dobok": {
-      "file": "outfit-low-rise-copper-taekwondo-dobok.svg",
+      "file": "outfit-low-rise-copper-taekwondo-dobok.webp",
       "label": "low-rise copper taekwondo dobok",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "430cf05b-1134-4a15-825a-f3ac50542290"
     },
     "outfit-low-rise-espresso-cycling-kit": {
-      "file": "outfit-low-rise-espresso-cycling-kit.svg",
+      "file": "outfit-low-rise-espresso-cycling-kit.webp",
       "label": "low-rise espresso cycling kit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "67f5af60-06bd-417f-b587-2f6ff5b96a15"
     },
     "outfit-low-rise-heather-gray-basketball-jersey-set": {
-      "file": "outfit-low-rise-heather-gray-basketball-jersey-set.svg",
+      "file": "outfit-low-rise-heather-gray-basketball-jersey-set.webp",
       "label": "low-rise heather gray basketball jersey set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "60e50c60-f526-4456-80ae-2fb5b0ad2bb6"
     },
     "outfit-low-rise-ivory-firefighter-turnout-gear": {
-      "file": "outfit-low-rise-ivory-firefighter-turnout-gear.svg",
+      "file": "outfit-low-rise-ivory-firefighter-turnout-gear.webp",
       "label": "low-rise ivory firefighter turnout gear",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "d208f944-0c21-4bb4-8bb8-e5c834d8369e"
     },
     "outfit-low-rise-midnight-blue-evening-gown": {
-      "file": "outfit-low-rise-midnight-blue-evening-gown.svg",
+      "file": "outfit-low-rise-midnight-blue-evening-gown.webp",
       "label": "low-rise midnight blue evening gown",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "69b52dea-f9cd-4144-a295-3e378686f4c1"
     },
     "outfit-low-rise-oatmeal-circus-ringmaster-coat-outfit": {
-      "file": "outfit-low-rise-oatmeal-circus-ringmaster-coat-outfit.svg",
+      "file": "outfit-low-rise-oatmeal-circus-ringmaster-coat-outfit.webp",
       "label": "low-rise oatmeal circus ringmaster coat outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "5016216d-39bc-4dd2-81c8-1e7c3be7acd8"
     },
     "outfit-low-rise-peach-flight-attendant-uniform": {
-      "file": "outfit-low-rise-peach-flight-attendant-uniform.svg",
+      "file": "outfit-low-rise-peach-flight-attendant-uniform.webp",
       "label": "low-rise peach flight attendant uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "49a6d5c9-1360-438a-ad01-5d01eeff97e3"
     },
     "outfit-low-rise-plum-farmer-chore-outfit": {
-      "file": "outfit-low-rise-plum-farmer-chore-outfit.svg",
+      "file": "outfit-low-rise-plum-farmer-chore-outfit.webp",
       "label": "low-rise plum farmer chore outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "901676f1-ba9c-48f7-b344-ff129cce6af2"
     },
     "outfit-low-rise-salmon-lederhosen-outfit": {
-      "file": "outfit-low-rise-salmon-lederhosen-outfit.svg",
+      "file": "outfit-low-rise-salmon-lederhosen-outfit.webp",
       "label": "low-rise salmon lederhosen outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "934a12ff-4574-4942-943c-dc64de40f78e"
     },
     "outfit-low-rise-sepia-slip-dress": {
-      "file": "outfit-low-rise-sepia-slip-dress.svg",
+      "file": "outfit-low-rise-sepia-slip-dress.webp",
       "label": "low-rise sepia slip dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "800bcfed-662c-4585-816f-8c9223584f65"
     },
     "outfit-low-rise-smoke-goth-layered-outfit": {
-      "file": "outfit-low-rise-smoke-goth-layered-outfit.svg",
+      "file": "outfit-low-rise-smoke-goth-layered-outfit.webp",
       "label": "low-rise smoke goth layered outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "06db89e2-ab14-4d9e-9dce-15b350dc2201"
     },
     "outfit-low-rise-stone-y2k-outfit": {
-      "file": "outfit-low-rise-stone-y2k-outfit.svg",
+      "file": "outfit-low-rise-stone-y2k-outfit.webp",
       "label": "low-rise stone y2k outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "ecfcb2a9-0005-4626-82d3-898d1bf8a4d0"
     },
     "outfit-low-rise-terracotta-evening-gown": {
-      "file": "outfit-low-rise-terracotta-evening-gown.svg",
+      "file": "outfit-low-rise-terracotta-evening-gown.webp",
       "label": "low-rise terracotta evening gown",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "74d5912f-f6f1-415f-874a-f004a7ff678d"
     },
     "outfit-oversized-ash-skater-outfit": {
-      "file": "outfit-oversized-ash-skater-outfit.svg",
+      "file": "outfit-oversized-ash-skater-outfit.webp",
       "label": "oversized ash skater outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "08feb13c-ac91-4883-babf-f867fbb4b6aa"
     },
     "outfit-oversized-bronze-doctor-white-coat-outfit": {
-      "file": "outfit-oversized-bronze-doctor-white-coat-outfit.svg",
+      "file": "outfit-oversized-bronze-doctor-white-coat-outfit.webp",
       "label": "oversized bronze doctor white coat outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a2e30968-4d77-4cc9-816a-d3db6f3ac7e8"
     },
     "outfit-oversized-chocolate-samurai-hakama-set": {
-      "file": "outfit-oversized-chocolate-samurai-hakama-set.svg",
+      "file": "outfit-oversized-chocolate-samurai-hakama-set.webp",
       "label": "oversized chocolate samurai hakama set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b50bfb1f-8407-48af-a70e-048aee533a61"
     },
     "outfit-oversized-coral-soccer-kit": {
-      "file": "outfit-oversized-coral-soccer-kit.svg",
+      "file": "outfit-oversized-coral-soccer-kit.webp",
       "label": "oversized coral soccer kit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "8131b9da-efd2-4360-b665-0454b4d96129"
     },
     "outfit-oversized-espresso-punk-leather-ensemble": {
-      "file": "outfit-oversized-espresso-punk-leather-ensemble.svg",
+      "file": "outfit-oversized-espresso-punk-leather-ensemble.webp",
       "label": "oversized espresso punk leather ensemble",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "3a2e5a2b-2c25-4a98-b128-2f8e8ca02531"
     },
     "outfit-oversized-gold-paramedic-uniform": {
-      "file": "outfit-oversized-gold-paramedic-uniform.svg",
+      "file": "outfit-oversized-gold-paramedic-uniform.webp",
       "label": "oversized gold paramedic uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "42c9e08e-b2aa-41e4-a363-c7b33ac0e15b"
     },
     "outfit-oversized-ivory-hazmat-suit": {
-      "file": "outfit-oversized-ivory-hazmat-suit.svg",
+      "file": "outfit-oversized-ivory-hazmat-suit.webp",
       "label": "oversized ivory hazmat suit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "471a2673-5661-43c4-82f6-f19ae554d7bc"
     },
     "outfit-oversized-magenta-monk-robes": {
-      "file": "outfit-oversized-magenta-monk-robes.svg",
+      "file": "outfit-oversized-magenta-monk-robes.webp",
       "label": "oversized magenta monk robes",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "30dff0de-a28c-4ead-a075-aee9e62718c9"
     },
     "outfit-oversized-mint-lederhosen-outfit": {
-      "file": "outfit-oversized-mint-lederhosen-outfit.svg",
+      "file": "outfit-oversized-mint-lederhosen-outfit.webp",
       "label": "oversized mint lederhosen outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "57acb2cc-90a6-4fb5-a6dd-7f4e5efa7547"
     },
     "outfit-oversized-oatmeal-tuxedo": {
-      "file": "outfit-oversized-oatmeal-tuxedo.svg",
+      "file": "outfit-oversized-oatmeal-tuxedo.webp",
       "label": "oversized oatmeal tuxedo",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "f018061b-9392-49a9-ba7a-165ed80faed5"
     },
     "outfit-oversized-olive-denim-overall-dress": {
-      "file": "outfit-oversized-olive-denim-overall-dress.svg",
+      "file": "outfit-oversized-olive-denim-overall-dress.webp",
       "label": "oversized olive denim overall dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e67bdedb-0b18-42bb-b215-10dc879cd85f"
     },
     "outfit-oversized-plum-mechanic-coveralls": {
-      "file": "outfit-oversized-plum-mechanic-coveralls.svg",
+      "file": "outfit-oversized-plum-mechanic-coveralls.webp",
       "label": "oversized plum mechanic coveralls",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2b6e02b9-71ec-48c1-b260-110cb70fac11"
     },
     "outfit-oversized-salmon-skater-outfit": {
-      "file": "outfit-oversized-salmon-skater-outfit.svg",
+      "file": "outfit-oversized-salmon-skater-outfit.webp",
       "label": "oversized salmon skater outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "bab3c156-0a31-4d47-b3c4-917b0e64720f"
     },
     "outfit-oversized-smoke-police-duty-uniform": {
-      "file": "outfit-oversized-smoke-police-duty-uniform.svg",
+      "file": "outfit-oversized-smoke-police-duty-uniform.webp",
       "label": "oversized smoke police duty uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "5d92d0a0-9419-45ce-83a3-945476536e8d"
     },
     "outfit-oversized-stone-paramedic-uniform": {
-      "file": "outfit-oversized-stone-paramedic-uniform.svg",
+      "file": "outfit-oversized-stone-paramedic-uniform.webp",
       "label": "oversized stone paramedic uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "8e530afe-de46-43cb-b4bb-4346b2facc40"
     },
     "outfit-oversized-teal-evening-gown": {
-      "file": "outfit-oversized-teal-evening-gown.svg",
+      "file": "outfit-oversized-teal-evening-gown.webp",
       "label": "oversized teal evening gown",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "16acae6c-2f5a-4ae7-adb8-ac2cc32c4706"
     },
     "outfit-relaxed-fit-aqua-sailor-deck-outfit": {
-      "file": "outfit-relaxed-fit-aqua-sailor-deck-outfit.svg",
+      "file": "outfit-relaxed-fit-aqua-sailor-deck-outfit.webp",
       "label": "relaxed-fit aqua sailor deck outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "37f422ea-e0ee-4149-a852-7a3762a808c5"
     },
     "outfit-relaxed-fit-blush-goth-layered-outfit": {
-      "file": "outfit-relaxed-fit-blush-goth-layered-outfit.svg",
+      "file": "outfit-relaxed-fit-blush-goth-layered-outfit.webp",
       "label": "relaxed-fit blush goth layered outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "f12c0e23-d603-4aca-897d-66dd67324df0"
     },
     "outfit-relaxed-fit-burgundy-sweater-dress": {
-      "file": "outfit-relaxed-fit-burgundy-sweater-dress.svg",
+      "file": "outfit-relaxed-fit-burgundy-sweater-dress.webp",
       "label": "relaxed-fit burgundy sweater dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "fe5b65d8-dbf0-454a-87c5-5f4df75278d0"
     },
     "outfit-relaxed-fit-charcoal-sailor-deck-outfit": {
-      "file": "outfit-relaxed-fit-charcoal-sailor-deck-outfit.svg",
+      "file": "outfit-relaxed-fit-charcoal-sailor-deck-outfit.webp",
       "label": "relaxed-fit charcoal sailor deck outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "5754a024-b805-47d5-8061-a63e6669a3fc"
     },
     "outfit-relaxed-fit-copper-hip-hop-oversized-fit": {
-      "file": "outfit-relaxed-fit-copper-hip-hop-oversized-fit.svg",
+      "file": "outfit-relaxed-fit-copper-hip-hop-oversized-fit.webp",
       "label": "relaxed-fit copper hip-hop oversized fit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "19608ecb-d5fd-4aa4-b5e6-b8dae03a1f98"
     },
     "outfit-relaxed-fit-espresso-magician-tailcoat": {
-      "file": "outfit-relaxed-fit-espresso-magician-tailcoat.svg",
+      "file": "outfit-relaxed-fit-espresso-magician-tailcoat.webp",
       "label": "relaxed-fit espresso magician tailcoat",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a2b63664-4dd2-4dee-bfcd-84be31b2dc48"
     },
     "outfit-relaxed-fit-gunmetal-hanbok-set": {
-      "file": "outfit-relaxed-fit-gunmetal-hanbok-set.svg",
+      "file": "outfit-relaxed-fit-gunmetal-hanbok-set.webp",
       "label": "relaxed-fit gunmetal hanbok set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "4f6baaca-70e4-4fc8-a359-421ea3112cd7"
     },
     "outfit-relaxed-fit-khaki-renaissance-faire-outfit": {
-      "file": "outfit-relaxed-fit-khaki-renaissance-faire-outfit.svg",
+      "file": "outfit-relaxed-fit-khaki-renaissance-faire-outfit.webp",
       "label": "relaxed-fit khaki Renaissance faire outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2e033449-2620-43e2-9a8f-d65789a2d9a5"
     },
     "outfit-relaxed-fit-magenta-farmer-chore-outfit": {
-      "file": "outfit-relaxed-fit-magenta-farmer-chore-outfit.svg",
+      "file": "outfit-relaxed-fit-magenta-farmer-chore-outfit.webp",
       "label": "relaxed-fit magenta farmer chore outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "7fe0fc25-7650-4c69-a84c-6f1f61217f56"
     },
     "outfit-relaxed-fit-mustard-salwar-kameez-set": {
-      "file": "outfit-relaxed-fit-mustard-salwar-kameez-set.svg",
+      "file": "outfit-relaxed-fit-mustard-salwar-kameez-set.webp",
       "label": "relaxed-fit mustard salwar kameez set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "8a6e0340-6e68-427e-b63c-8b5b6326a1ce"
     },
     "outfit-relaxed-fit-pearl-ballet-tutu-outfit": {
-      "file": "outfit-relaxed-fit-pearl-ballet-tutu-outfit.svg",
+      "file": "outfit-relaxed-fit-pearl-ballet-tutu-outfit.webp",
       "label": "relaxed-fit pearl ballet tutu outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "f406e885-b378-471e-ac36-bc8fb5bb9b77"
     },
     "outfit-relaxed-fit-rust-sailor-deck-outfit": {
-      "file": "outfit-relaxed-fit-rust-sailor-deck-outfit.svg",
+      "file": "outfit-relaxed-fit-rust-sailor-deck-outfit.webp",
       "label": "relaxed-fit rust sailor deck outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "8596605c-025a-41b8-b030-5d1fb9876b66"
     },
     "outfit-relaxed-fit-sand-samurai-hakama-set": {
-      "file": "outfit-relaxed-fit-sand-samurai-hakama-set.svg",
+      "file": "outfit-relaxed-fit-sand-samurai-hakama-set.webp",
       "label": "relaxed-fit sand samurai hakama set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "bdf16919-5f0f-4e1b-985f-9c2593d6377b"
     },
     "outfit-relaxed-fit-steel-gorpcore-outfit": {
-      "file": "outfit-relaxed-fit-steel-gorpcore-outfit.svg",
+      "file": "outfit-relaxed-fit-steel-gorpcore-outfit.webp",
       "label": "relaxed-fit steel gorpcore outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2950c173-b683-49fa-b368-294feaa97cd6"
     },
     "outfit-relaxed-fit-teal-hanbok-set": {
-      "file": "outfit-relaxed-fit-teal-hanbok-set.svg",
+      "file": "outfit-relaxed-fit-teal-hanbok-set.webp",
       "label": "relaxed-fit teal hanbok set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "5f8837e3-7f87-48c2-bfe0-1f685bebe067"
     },
     "outfit-single-breasted-aqua-paramedic-uniform": {
-      "file": "outfit-single-breasted-aqua-paramedic-uniform.svg",
+      "file": "outfit-single-breasted-aqua-paramedic-uniform.webp",
       "label": "single-breasted aqua paramedic uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "6e607b3d-a84e-4439-b2ad-1658e1895786"
     },
     "outfit-single-breasted-brick-red-salwar-kameez-set": {
-      "file": "outfit-single-breasted-brick-red-salwar-kameez-set.svg",
+      "file": "outfit-single-breasted-brick-red-salwar-kameez-set.webp",
       "label": "single-breasted brick red salwar kameez set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "370b679d-6356-44c2-a18c-cc7aa6bd4d7b"
     },
     "outfit-single-breasted-camel-tuxedo": {
-      "file": "outfit-single-breasted-camel-tuxedo.svg",
+      "file": "outfit-single-breasted-camel-tuxedo.webp",
       "label": "single-breasted camel tuxedo",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "8dc505e8-020e-4e51-81f1-225470eb3d3d"
     },
     "outfit-single-breasted-copper-police-duty-uniform": {
-      "file": "outfit-single-breasted-copper-police-duty-uniform.svg",
+      "file": "outfit-single-breasted-copper-police-duty-uniform.webp",
       "label": "single-breasted copper police duty uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "6ff07b8a-fddd-4dbb-be7e-e1082a439df7"
     },
     "outfit-single-breasted-denim-blue-wizard-robe-outfit": {
-      "file": "outfit-single-breasted-denim-blue-wizard-robe-outfit.svg",
+      "file": "outfit-single-breasted-denim-blue-wizard-robe-outfit.webp",
       "label": "single-breasted denim blue wizard robe outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "917e00e4-47e8-431d-b460-750e7b910152"
     },
     "outfit-single-breasted-frost-pilot-uniform": {
-      "file": "outfit-single-breasted-frost-pilot-uniform.svg",
+      "file": "outfit-single-breasted-frost-pilot-uniform.webp",
       "label": "single-breasted frost pilot uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "78b721ce-af00-4faa-ba47-305235d99506"
     },
     "outfit-single-breasted-gunmetal-doctor-white-coat-outfit": {
-      "file": "outfit-single-breasted-gunmetal-doctor-white-coat-outfit.svg",
+      "file": "outfit-single-breasted-gunmetal-doctor-white-coat-outfit.webp",
       "label": "single-breasted gunmetal doctor white coat outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "ede1ca0f-c253-4de6-9cdf-d07d915fc829"
     },
     "outfit-single-breasted-khaki-fencing-uniform": {
-      "file": "outfit-single-breasted-khaki-fencing-uniform.svg",
+      "file": "outfit-single-breasted-khaki-fencing-uniform.webp",
       "label": "single-breasted khaki fencing uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "472253a4-c85b-4baa-acae-d9af73e6c530"
     },
     "outfit-single-breasted-lilac-salwar-kameez-set": {
-      "file": "outfit-single-breasted-lilac-salwar-kameez-set.svg",
+      "file": "outfit-single-breasted-lilac-salwar-kameez-set.webp",
       "label": "single-breasted lilac salwar kameez set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "da730f34-d256-4013-bee5-472f524cfa73"
     },
     "outfit-single-breasted-mint-climbing-harness-outfit": {
-      "file": "outfit-single-breasted-mint-climbing-harness-outfit.svg",
+      "file": "outfit-single-breasted-mint-climbing-harness-outfit.webp",
       "label": "single-breasted mint climbing harness outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "f36fc380-d139-4dd8-8fa0-f33d7f6421ec"
     },
     "outfit-single-breasted-oatmeal-jumpsuit": {
-      "file": "outfit-single-breasted-oatmeal-jumpsuit.svg",
+      "file": "outfit-single-breasted-oatmeal-jumpsuit.webp",
       "label": "single-breasted oatmeal jumpsuit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "432672c3-0834-4ada-bd07-33d039e3bcf3"
     },
     "outfit-single-breasted-pewter-monk-robes": {
-      "file": "outfit-single-breasted-pewter-monk-robes.svg",
+      "file": "outfit-single-breasted-pewter-monk-robes.webp",
       "label": "single-breasted pewter monk robes",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2c261adc-54ea-4c71-a423-5e06d8d61f68"
     },
     "outfit-single-breasted-rust-barista-apron-outfit": {
-      "file": "outfit-single-breasted-rust-barista-apron-outfit.svg",
+      "file": "outfit-single-breasted-rust-barista-apron-outfit.webp",
       "label": "single-breasted rust barista apron outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2d0657a5-3029-48bf-aff4-0aa477be0c1b"
     },
     "outfit-single-breasted-sky-blue-nurse-scrubs-set": {
-      "file": "outfit-single-breasted-sky-blue-nurse-scrubs-set.svg",
+      "file": "outfit-single-breasted-sky-blue-nurse-scrubs-set.webp",
       "label": "single-breasted sky blue nurse scrubs set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "57b05b1e-5bbf-4ea9-a381-d5e8ea55c5ab"
     },
     "outfit-single-breasted-sunflower-yellow-salwar-kameez-set": {
-      "file": "outfit-single-breasted-sunflower-yellow-salwar-kameez-set.svg",
+      "file": "outfit-single-breasted-sunflower-yellow-salwar-kameez-set.webp",
       "label": "single-breasted sunflower yellow salwar kameez set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "df392b69-ffa6-49b1-bb90-9083d940f850"
     },
     "outfit-single-breasted-teal-karate-gi": {
-      "file": "outfit-single-breasted-teal-karate-gi.svg",
+      "file": "outfit-single-breasted-teal-karate-gi.webp",
       "label": "single-breasted teal karate gi",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e8f58817-c609-423a-ac40-add1bb47c10e"
     },
     "outfit-slim-fit-beige-priest-cassock": {
-      "file": "outfit-slim-fit-beige-priest-cassock.svg",
+      "file": "outfit-slim-fit-beige-priest-cassock.webp",
       "label": "slim-fit beige priest cassock",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "676afa79-6dbf-4b00-ac8d-c5dbc8ec6d33"
     },
     "outfit-slim-fit-brown-salwar-kameez-set": {
-      "file": "outfit-slim-fit-brown-salwar-kameez-set.svg",
+      "file": "outfit-slim-fit-brown-salwar-kameez-set.webp",
       "label": "slim-fit brown salwar kameez set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "418f960e-0fbd-4cdd-8d4f-35f8b47af6e7"
     },
     "outfit-slim-fit-chocolate-karate-gi": {
-      "file": "outfit-slim-fit-chocolate-karate-gi.svg",
+      "file": "outfit-slim-fit-chocolate-karate-gi.webp",
       "label": "slim-fit chocolate karate gi",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "4f6913d2-b419-4751-b025-568ae4c4dd08"
     },
     "outfit-slim-fit-crimson-flight-attendant-uniform": {
-      "file": "outfit-slim-fit-crimson-flight-attendant-uniform.svg",
+      "file": "outfit-slim-fit-crimson-flight-attendant-uniform.webp",
       "label": "slim-fit crimson flight attendant uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "80502506-e938-465c-92ba-d6432cedb5e9"
     },
     "outfit-slim-fit-frost-dark-academia-outfit": {
-      "file": "outfit-slim-fit-frost-dark-academia-outfit.svg",
+      "file": "outfit-slim-fit-frost-dark-academia-outfit.webp",
       "label": "slim-fit frost dark academia outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b7046584-3bba-48b2-b50c-d0653fc5df9c"
     },
     "outfit-slim-fit-indigo-warehouse-picker-vest-look": {
-      "file": "outfit-slim-fit-indigo-warehouse-picker-vest-look.svg",
+      "file": "outfit-slim-fit-indigo-warehouse-picker-vest-look.webp",
       "label": "slim-fit indigo warehouse picker vest look",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "11437870-4f48-43d3-991e-e6ed02f34bca"
     },
     "outfit-slim-fit-lilac-gorpcore-outfit": {
-      "file": "outfit-slim-fit-lilac-gorpcore-outfit.svg",
+      "file": "outfit-slim-fit-lilac-gorpcore-outfit.webp",
       "label": "slim-fit lilac gorpcore outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "3e71fe63-cd60-4b05-8a67-074b65ab254f"
     },
     "outfit-slim-fit-mint-shirt-dress": {
-      "file": "outfit-slim-fit-mint-shirt-dress.svg",
+      "file": "outfit-slim-fit-mint-shirt-dress.webp",
       "label": "slim-fit mint shirt dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2ea0ce82-9c43-4b80-8132-a9fc5af6edb9"
     },
     "outfit-slim-fit-off-white-tennis-whites": {
-      "file": "outfit-slim-fit-off-white-tennis-whites.svg",
+      "file": "outfit-slim-fit-off-white-tennis-whites.webp",
       "label": "slim-fit off-white tennis whites",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "d0d2d849-bfbe-4b06-bbeb-5f78c5b3ae74"
     },
     "outfit-slim-fit-pine-cottagecore-dress-ensemble": {
-      "file": "outfit-slim-fit-pine-cottagecore-dress-ensemble.svg",
+      "file": "outfit-slim-fit-pine-cottagecore-dress-ensemble.webp",
       "label": "slim-fit pine cottagecore dress ensemble",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "1cbd7257-6381-42b5-a9b9-4ae786a2105b"
     },
     "outfit-slim-fit-sand-bellhop-uniform": {
-      "file": "outfit-slim-fit-sand-bellhop-uniform.svg",
+      "file": "outfit-slim-fit-sand-bellhop-uniform.webp",
       "label": "slim-fit sand bellhop uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "4f24cb22-0fa1-46db-881a-e6c2415406e3"
     },
     "outfit-slim-fit-silver-hanbok-set": {
-      "file": "outfit-slim-fit-silver-hanbok-set.svg",
+      "file": "outfit-slim-fit-silver-hanbok-set.webp",
       "label": "slim-fit silver hanbok set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "7961197a-dabc-4a59-92da-28507e936145"
     },
     "outfit-slim-fit-snow-business-casual-outfit": {
-      "file": "outfit-slim-fit-snow-business-casual-outfit.svg",
+      "file": "outfit-slim-fit-snow-business-casual-outfit.webp",
       "label": "slim-fit snow business casual outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "db28fd26-3358-4243-b0a6-5ed5c562e0be"
     },
     "outfit-slim-fit-tan-nursing-friendly-outfit": {
-      "file": "outfit-slim-fit-tan-nursing-friendly-outfit.svg",
+      "file": "outfit-slim-fit-tan-nursing-friendly-outfit.webp",
       "label": "slim-fit tan nursing-friendly outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "f395221f-f330-4c0b-b805-b895b1457b75"
     },
     "outfit-tailored-aqua-evening-gown": {
-      "file": "outfit-tailored-aqua-evening-gown.svg",
+      "file": "outfit-tailored-aqua-evening-gown.webp",
       "label": "tailored aqua evening gown",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "51c01fe3-cf6c-4d99-a62c-bea39e218ed2"
     },
     "outfit-tailored-blush-warehouse-picker-vest-look": {
-      "file": "outfit-tailored-blush-warehouse-picker-vest-look.svg",
+      "file": "outfit-tailored-blush-warehouse-picker-vest-look.webp",
       "label": "tailored blush warehouse picker vest look",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a4a409cc-7ca1-49ac-b346-c37a2660bf75"
     },
     "outfit-tailored-camel-cottagecore-dress-ensemble": {
-      "file": "outfit-tailored-camel-cottagecore-dress-ensemble.svg",
+      "file": "outfit-tailored-camel-cottagecore-dress-ensemble.webp",
       "label": "tailored camel cottagecore dress ensemble",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b618ba82-59b4-47f2-8a3b-de152b025688"
     },
     "outfit-tailored-clay-sailor-deck-outfit": {
-      "file": "outfit-tailored-clay-sailor-deck-outfit.svg",
+      "file": "outfit-tailored-clay-sailor-deck-outfit.webp",
       "label": "tailored clay sailor deck outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "88c1c386-c93d-4199-8251-1a33c34270b1"
     },
     "outfit-tailored-crimson-barista-apron-outfit": {
-      "file": "outfit-tailored-crimson-barista-apron-outfit.svg",
+      "file": "outfit-tailored-crimson-barista-apron-outfit.webp",
       "label": "tailored crimson barista apron outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "cc50b8d2-ac47-4fc3-887f-2116c45d0e32"
     },
     "outfit-tailored-espresso-baseball-uniform": {
-      "file": "outfit-tailored-espresso-baseball-uniform.svg",
+      "file": "outfit-tailored-espresso-baseball-uniform.webp",
       "label": "tailored espresso baseball uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "6623c0c3-73a7-4aaf-abb4-384f0ee8b6ce"
     },
     "outfit-tailored-gunmetal-fisherman-rain-gear": {
-      "file": "outfit-tailored-gunmetal-fisherman-rain-gear.svg",
+      "file": "outfit-tailored-gunmetal-fisherman-rain-gear.webp",
       "label": "tailored gunmetal fisherman rain gear",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "3b6296d9-a6a1-4b98-9225-12c4f728c56c"
     },
     "outfit-tailored-ink-utility-jumpsuit": {
-      "file": "outfit-tailored-ink-utility-jumpsuit.svg",
+      "file": "outfit-tailored-ink-utility-jumpsuit.webp",
       "label": "tailored ink utility jumpsuit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "925ba875-d7ac-431a-88e1-20c944555e00"
     },
     "outfit-tailored-lime-tennis-whites": {
-      "file": "outfit-tailored-lime-tennis-whites.svg",
+      "file": "outfit-tailored-lime-tennis-whites.webp",
       "label": "tailored lime tennis whites",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "c076d7ca-cd7c-44ca-8c39-9d73ed6228da"
     },
     "outfit-tailored-mustard-hip-hop-oversized-fit": {
-      "file": "outfit-tailored-mustard-hip-hop-oversized-fit.svg",
+      "file": "outfit-tailored-mustard-hip-hop-oversized-fit.webp",
       "label": "tailored mustard hip-hop oversized fit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "badf2318-ea3c-4c7f-8807-287028d21979"
     },
     "outfit-tailored-off-white-pilot-uniform": {
-      "file": "outfit-tailored-off-white-pilot-uniform.svg",
+      "file": "outfit-tailored-off-white-pilot-uniform.webp",
       "label": "tailored off-white pilot uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e1d61e38-2ab9-46a7-937b-5d29ef85e13c"
     },
     "outfit-tailored-pewter-triathlon-kit": {
-      "file": "outfit-tailored-pewter-triathlon-kit.svg",
+      "file": "outfit-tailored-pewter-triathlon-kit.webp",
       "label": "tailored pewter triathlon kit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2a3057fd-d23c-4b3c-b1a7-4d350900a404"
     },
     "outfit-tailored-sand-bar-tender-vest-look": {
-      "file": "outfit-tailored-sand-bar-tender-vest-look.svg",
+      "file": "outfit-tailored-sand-bar-tender-vest-look.webp",
       "label": "tailored sand bar tender vest look",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b6bb9ce7-ade9-4666-8033-ef43a8d2e7e8"
     },
     "outfit-tailored-sky-blue-nun-habit": {
-      "file": "outfit-tailored-sky-blue-nun-habit.svg",
+      "file": "outfit-tailored-sky-blue-nun-habit.webp",
       "label": "tailored sky blue nun habit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "6c36b816-ad48-4501-9fc6-a3d390893ee6"
     },
     "outfit-tailored-sunflower-yellow-country-western-outfit": {
-      "file": "outfit-tailored-sunflower-yellow-country-western-outfit.svg",
+      "file": "outfit-tailored-sunflower-yellow-country-western-outfit.webp",
       "label": "tailored sunflower yellow country western outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "c4afefc5-6977-4612-a7f2-6bb4bc447fa1"
     },
     "outfit-tailored-wine-cycling-kit": {
-      "file": "outfit-tailored-wine-cycling-kit.svg",
+      "file": "outfit-tailored-wine-cycling-kit.webp",
       "label": "tailored wine cycling kit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "5385b31a-cd5a-461d-ac1f-59f336ee2502"
     },
     "outfit-tapered-blush-nun-habit": {
-      "file": "outfit-tapered-blush-nun-habit.svg",
+      "file": "outfit-tapered-blush-nun-habit.webp",
       "label": "tapered blush nun habit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9b6b85a5-f5b9-4a9e-95cc-24bcfb2c57bd"
     },
     "outfit-tapered-brown-two-piece-linen-suit": {
-      "file": "outfit-tapered-brown-two-piece-linen-suit.svg",
+      "file": "outfit-tapered-brown-two-piece-linen-suit.webp",
       "label": "tapered brown two-piece linen suit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a9283cf7-71e8-48bf-aecf-662fd9545cfe"
     },
     "outfit-tapered-charcoal-keffiyeh-and-thobe": {
-      "file": "outfit-tapered-charcoal-keffiyeh-and-thobe.svg",
+      "file": "outfit-tapered-charcoal-keffiyeh-and-thobe.webp",
       "label": "tapered charcoal keffiyeh and thobe",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "986b573c-4fb1-4e2c-8e15-b400400b3629"
     },
     "outfit-tapered-coral-construction-hi-vis-outfit": {
-      "file": "outfit-tapered-coral-construction-hi-vis-outfit.svg",
+      "file": "outfit-tapered-coral-construction-hi-vis-outfit.webp",
       "label": "tapered coral construction hi-vis outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "333c3f15-af73-4aca-ad16-a7f987134b95"
     },
     "outfit-tapered-forest-green-doctor-white-coat-outfit": {
-      "file": "outfit-tapered-forest-green-doctor-white-coat-outfit.svg",
+      "file": "outfit-tapered-forest-green-doctor-white-coat-outfit.webp",
       "label": "tapered forest green doctor white coat outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "eb230b03-e795-4cab-9cb3-8124625eac5e"
     },
     "outfit-tapered-indigo-techwear-ensemble": {
-      "file": "outfit-tapered-indigo-techwear-ensemble.svg",
+      "file": "outfit-tapered-indigo-techwear-ensemble.webp",
       "label": "tapered indigo techwear ensemble",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "c6aff235-33ad-41d1-8384-5f12e4d03f2c"
     },
     "outfit-tapered-maroon-flight-attendant-uniform": {
-      "file": "outfit-tapered-maroon-flight-attendant-uniform.svg",
+      "file": "outfit-tapered-maroon-flight-attendant-uniform.webp",
       "label": "tapered maroon flight attendant uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "30413a89-b0d7-4960-9886-6b9b5182f2a4"
     },
     "outfit-tapered-oatmeal-two-piece-linen-suit": {
-      "file": "outfit-tapered-oatmeal-two-piece-linen-suit.svg",
+      "file": "outfit-tapered-oatmeal-two-piece-linen-suit.webp",
       "label": "tapered oatmeal two-piece linen suit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2a2cc76b-c932-43b0-85cb-4cf6cc74ea5f"
     },
     "outfit-tapered-pewter-basketball-jersey-set": {
-      "file": "outfit-tapered-pewter-basketball-jersey-set.svg",
+      "file": "outfit-tapered-pewter-basketball-jersey-set.webp",
       "label": "tapered pewter basketball jersey set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "312e618a-d813-41ca-a88c-63ff92c142a1"
     },
     "outfit-tapered-plum-tuxedo": {
-      "file": "outfit-tapered-plum-tuxedo.svg",
+      "file": "outfit-tapered-plum-tuxedo.webp",
       "label": "tapered plum tuxedo",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9daebf14-7207-426d-8b9d-e854457fd8eb"
     },
     "outfit-tapered-salmon-light-academia-outfit": {
-      "file": "outfit-tapered-salmon-light-academia-outfit.svg",
+      "file": "outfit-tapered-salmon-light-academia-outfit.webp",
       "label": "tapered salmon light academia outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "dfd078a8-5c94-4d1a-97ee-d1488d22e1e0"
     },
     "outfit-tapered-silver-cycling-kit": {
-      "file": "outfit-tapered-silver-cycling-kit.svg",
+      "file": "outfit-tapered-silver-cycling-kit.webp",
       "label": "tapered silver cycling kit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b7d5a84d-ea30-482e-a590-e634bc6f0db6"
     },
     "outfit-tapered-steel-paramedic-uniform": {
-      "file": "outfit-tapered-steel-paramedic-uniform.svg",
+      "file": "outfit-tapered-steel-paramedic-uniform.webp",
       "label": "tapered steel paramedic uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "8bf2a71c-fbea-44ea-a67d-0878fd8e7dff"
     },
     "outfit-tapered-teal-circus-ringmaster-coat-outfit": {
-      "file": "outfit-tapered-teal-circus-ringmaster-coat-outfit.svg",
+      "file": "outfit-tapered-teal-circus-ringmaster-coat-outfit.webp",
       "label": "tapered teal circus ringmaster coat outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "11b085da-ea83-4b5e-a8ee-7a2a64c0775e"
     },
     "outfit-unstructured-aqua-goth-layered-outfit": {
-      "file": "outfit-unstructured-aqua-goth-layered-outfit.svg",
+      "file": "outfit-unstructured-aqua-goth-layered-outfit.webp",
       "label": "unstructured aqua goth layered outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "887a50c2-d595-459e-9e21-1c6097c6641e"
     },
     "outfit-unstructured-black-skater-outfit": {
-      "file": "outfit-unstructured-black-skater-outfit.svg",
+      "file": "outfit-unstructured-black-skater-outfit.webp",
       "label": "unstructured black skater outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "64fb729f-97d9-40d1-abd2-f8d39633c322"
     },
     "outfit-unstructured-brown-belly-dance-costume": {
-      "file": "outfit-unstructured-brown-belly-dance-costume.svg",
+      "file": "outfit-unstructured-brown-belly-dance-costume.webp",
       "label": "unstructured brown belly dance costume",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "7a9ab7d0-f2b2-4060-99ba-69a1e8b6949e"
     },
     "outfit-unstructured-charcoal-submariner-jumper": {
-      "file": "outfit-unstructured-charcoal-submariner-jumper.svg",
+      "file": "outfit-unstructured-charcoal-submariner-jumper.webp",
       "label": "unstructured charcoal submariner jumper",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "00a94181-c7bf-4e4b-8757-0d6ae0f586b3"
     },
     "outfit-unstructured-coral-knight-armor-cuirass-look": {
-      "file": "outfit-unstructured-coral-knight-armor-cuirass-look.svg",
+      "file": "outfit-unstructured-coral-knight-armor-cuirass-look.webp",
       "label": "unstructured coral knight armor cuirass look",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "f48bfb67-e333-491c-93f7-d74bf3e63d10"
     },
     "outfit-unstructured-forest-green-warehouse-picker-vest-look": {
-      "file": "outfit-unstructured-forest-green-warehouse-picker-vest-look.svg",
+      "file": "outfit-unstructured-forest-green-warehouse-picker-vest-look.webp",
       "label": "unstructured forest green warehouse picker vest look",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "99c3642b-b3c9-40fe-8836-e8d5d94020c3"
     },
     "outfit-unstructured-heather-gray-streetwear-fit": {
-      "file": "outfit-unstructured-heather-gray-streetwear-fit.svg",
+      "file": "outfit-unstructured-heather-gray-streetwear-fit.webp",
       "label": "unstructured heather gray streetwear fit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "f54c6ddf-26d9-451a-9f99-b8af614d492e"
     },
     "outfit-unstructured-lavender-warehouse-picker-vest-look": {
-      "file": "outfit-unstructured-lavender-warehouse-picker-vest-look.svg",
+      "file": "outfit-unstructured-lavender-warehouse-picker-vest-look.webp",
       "label": "unstructured lavender warehouse picker vest look",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "20d59ccb-828f-44a5-8d7d-f365866ba3fc"
     },
     "outfit-unstructured-mint-waiter-black-tie-service-outfit": {
-      "file": "outfit-unstructured-mint-waiter-black-tie-service-outfit.svg",
+      "file": "outfit-unstructured-mint-waiter-black-tie-service-outfit.webp",
       "label": "unstructured mint waiter black tie service outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "73842548-35b8-4091-874b-be80d7bf81f5"
     },
     "outfit-unstructured-obsidian-fisherman-rain-gear": {
-      "file": "outfit-unstructured-obsidian-fisherman-rain-gear.svg",
+      "file": "outfit-unstructured-obsidian-fisherman-rain-gear.webp",
       "label": "unstructured obsidian fisherman rain gear",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "1d73da73-d621-4ca0-bbe1-6047c46d6dc9"
     },
     "outfit-unstructured-pearl-firefighter-turnout-gear": {
-      "file": "outfit-unstructured-pearl-firefighter-turnout-gear.svg",
+      "file": "outfit-unstructured-pearl-firefighter-turnout-gear.webp",
       "label": "unstructured pearl firefighter turnout gear",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "7d57db68-090b-455e-9e94-09e06ae93203"
     },
     "outfit-unstructured-sage-goth-layered-outfit": {
-      "file": "outfit-unstructured-sage-goth-layered-outfit.svg",
+      "file": "outfit-unstructured-sage-goth-layered-outfit.webp",
       "label": "unstructured sage goth layered outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "56c588e4-8a0e-4067-9205-72074963303c"
     },
     "outfit-unstructured-sepia-paramedic-uniform": {
-      "file": "outfit-unstructured-sepia-paramedic-uniform.svg",
+      "file": "outfit-unstructured-sepia-paramedic-uniform.webp",
       "label": "unstructured sepia paramedic uniform",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "11756f29-5bfe-499c-9381-453c490a1e99"
     },
     "outfit-unstructured-smoke-surfer-outfit": {
-      "file": "outfit-unstructured-smoke-surfer-outfit.svg",
+      "file": "outfit-unstructured-smoke-surfer-outfit.webp",
       "label": "unstructured smoke surfer outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "600ac00f-0f52-44b0-a10a-b88f2ca9a7e5"
     },
     "outfit-unstructured-sunflower-yellow-grunge-layered-look": {
-      "file": "outfit-unstructured-sunflower-yellow-grunge-layered-look.svg",
+      "file": "outfit-unstructured-sunflower-yellow-grunge-layered-look.webp",
       "label": "unstructured sunflower yellow grunge layered look",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "fc9e8518-0674-4b2b-98bc-83fdb5fb6ce0"
     },
     "outfit-unstructured-white-nautical-stripe-outfit": {
-      "file": "outfit-unstructured-white-nautical-stripe-outfit.svg",
+      "file": "outfit-unstructured-white-nautical-stripe-outfit.webp",
       "label": "unstructured white nautical stripe outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "276f12a2-32d6-4fb9-b3d5-0833d4413557"
     },
     "outfit-wide-leg-black-dirndl-dress": {
-      "file": "outfit-wide-leg-black-dirndl-dress.svg",
+      "file": "outfit-wide-leg-black-dirndl-dress.webp",
       "label": "wide-leg black dirndl dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "eda4d897-1cef-4b86-8b4c-c4429bb1e820"
     },
     "outfit-wide-leg-brown-priest-cassock": {
-      "file": "outfit-wide-leg-brown-priest-cassock.svg",
+      "file": "outfit-wide-leg-brown-priest-cassock.webp",
       "label": "wide-leg brown priest cassock",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "573ea663-9029-45b3-81f6-28b11cc21c58"
     },
     "outfit-wide-leg-charcoal-cycling-kit": {
-      "file": "outfit-wide-leg-charcoal-cycling-kit.svg",
+      "file": "outfit-wide-leg-charcoal-cycling-kit.webp",
       "label": "wide-leg charcoal cycling kit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "d26f1f9e-3098-4b0b-b979-d9cf88336bb1"
     },
     "outfit-wide-leg-cobalt-y2k-outfit": {
-      "file": "outfit-wide-leg-cobalt-y2k-outfit.svg",
+      "file": "outfit-wide-leg-cobalt-y2k-outfit.webp",
       "label": "wide-leg cobalt y2k outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b2d7808a-af66-4e2f-b076-5ec18b441295"
     },
     "outfit-wide-leg-denim-blue-taekwondo-dobok": {
-      "file": "outfit-wide-leg-denim-blue-taekwondo-dobok.svg",
+      "file": "outfit-wide-leg-denim-blue-taekwondo-dobok.webp",
       "label": "wide-leg denim blue taekwondo dobok",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "68428996-4813-45cc-82d4-3e18852716f1"
     },
     "outfit-wide-leg-frost-firefighter-turnout-gear": {
-      "file": "outfit-wide-leg-frost-firefighter-turnout-gear.svg",
+      "file": "outfit-wide-leg-frost-firefighter-turnout-gear.webp",
       "label": "wide-leg frost firefighter turnout gear",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "c5cc013c-97f1-4e7d-afac-8cd8a2f4f26d"
     },
     "outfit-wide-leg-indigo-basketball-jersey-set": {
-      "file": "outfit-wide-leg-indigo-basketball-jersey-set.svg",
+      "file": "outfit-wide-leg-indigo-basketball-jersey-set.webp",
       "label": "wide-leg indigo basketball jersey set",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "53999a49-4e7c-4e41-a750-b4f8a7896b56"
     },
     "outfit-wide-leg-lavender-nun-habit": {
-      "file": "outfit-wide-leg-lavender-nun-habit.svg",
+      "file": "outfit-wide-leg-lavender-nun-habit.webp",
       "label": "wide-leg lavender nun habit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "27644305-a193-4983-a20e-73b7d4044b22"
     },
     "outfit-wide-leg-mint-shirt-dress": {
-      "file": "outfit-wide-leg-mint-shirt-dress.svg",
+      "file": "outfit-wide-leg-mint-shirt-dress.webp",
       "label": "wide-leg mint shirt dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a090daa7-150f-4db5-ba8b-6d9cc7f0646d"
     },
     "outfit-wide-leg-oatmeal-punk-leather-ensemble": {
-      "file": "outfit-wide-leg-oatmeal-punk-leather-ensemble.svg",
+      "file": "outfit-wide-leg-oatmeal-punk-leather-ensemble.webp",
       "label": "wide-leg oatmeal punk leather ensemble",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "18d95e1c-45bb-4da9-9d43-35dd3271d203"
     },
     "outfit-wide-leg-pearl-wizard-robe-outfit": {
-      "file": "outfit-wide-leg-pearl-wizard-robe-outfit.svg",
+      "file": "outfit-wide-leg-pearl-wizard-robe-outfit.webp",
       "label": "wide-leg pearl wizard robe outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "095e0037-39a5-4149-aae9-79b49ba42059"
     },
     "outfit-wide-leg-powder-blue-cycling-kit": {
-      "file": "outfit-wide-leg-powder-blue-cycling-kit.svg",
+      "file": "outfit-wide-leg-powder-blue-cycling-kit.webp",
       "label": "wide-leg powder blue cycling kit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "463b2e5e-611f-4eab-bb47-7442497e5cf2"
     },
     "outfit-wide-leg-sky-blue-sweater-dress": {
-      "file": "outfit-wide-leg-sky-blue-sweater-dress.svg",
+      "file": "outfit-wide-leg-sky-blue-sweater-dress.webp",
       "label": "wide-leg sky blue sweater dress",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9f4cc4c2-3c65-4cd7-85fa-07e719a2f5c5"
     },
     "outfit-wide-leg-stone-business-casual-outfit": {
-      "file": "outfit-wide-leg-stone-business-casual-outfit.svg",
+      "file": "outfit-wide-leg-stone-business-casual-outfit.webp",
       "label": "wide-leg stone business casual outfit",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "f67cbd1c-a7b9-4642-96f9-096490d6ccc5"
     },
     "outfit-wide-leg-taupe-bridal-gown": {
-      "file": "outfit-wide-leg-taupe-bridal-gown.svg",
+      "file": "outfit-wide-leg-taupe-bridal-gown.webp",
       "label": "wide-leg taupe bridal gown",
-      "category": "outfit"
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "45c88c20-42ea-4677-b5bd-7cab4a507684"
     }
   }
 }

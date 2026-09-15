@@ -2,26 +2,32 @@
 /**
  * Curate Full-outfit garment thumbs for the shared wardrobe picker.
  *
- * Ships SVG placeholders under public/wardrobe-thumbs (no Comfy required).
- * Optional --comfy later can replace files with real packshots.
+ * Default: SVG silhouette placeholders (type/color-aware).
+ * --comfy: Real packshots via local ComfyUI (RealVisXL), saved as WebP.
  *
  * Usage:
- *   node scripts/generate-wardrobe-thumbs.mjs
- *   node scripts/generate-wardrobe-thumbs.mjs --count 200
- *   node scripts/generate-wardrobe-thumbs.mjs --dry-run
- *   node scripts/generate-wardrobe-thumbs.mjs --list
+ *   node --import tsx scripts/generate-wardrobe-thumbs.mjs
+ *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy
+ *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --missing --count 200
+ *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --list
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import sharp from 'sharp';
 
 const ROOT = process.cwd();
 const PUBLIC_DIR = path.join(ROOT, 'public', 'wardrobe-thumbs');
 const MANIFEST_PATH = path.join(ROOT, 'src', 'data', 'wardrobe-garment-thumbs.manifest.json');
 const DEFAULT_COUNT = 200;
-const WIDTH = 128;
-const HEIGHT = 160;
+const OUT_WIDTH = 192;
+const OUT_HEIGHT = 240;
+const GEN_WIDTH = 576;
+const GEN_HEIGHT = 768;
+const DEFAULT_CKPT = 'RealVisXL_V5.0_fp16.safetensors';
+const NEGATIVE =
+  'person, human, man, woman, child, face, head, hands, fingers, arms, legs, body, skin, mannequin, model, selfie, portrait, text, watermark, logo, brand, busy background, clutter, room interior, outdoors, shoes on feet with legs';
 
 function parseArgs(argv) {
   const args = {
@@ -29,6 +35,14 @@ function parseArgs(argv) {
     dryRun: false,
     list: false,
     clean: false,
+    comfy: false,
+    missing: false,
+    comfyUrl: process.env.COMFYUI_API_URL?.trim() || 'http://127.0.0.1:8188',
+    ckpt: process.env.WARDROBE_THUMB_CKPT?.trim() || DEFAULT_CKPT,
+    steps: 16,
+    cfg: 5,
+    limit: null,
+    ids: [],
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -38,6 +52,16 @@ function parseArgs(argv) {
       args.list = true;
     } else if (arg === '--clean') {
       args.clean = true;
+    } else if (arg === '--comfy') {
+      args.comfy = true;
+    } else if (arg === '--missing') {
+      args.missing = true;
+    } else if (arg === '--id') {
+      const id = String(argv[index + 1] || '').trim();
+      if (id) {
+        args.ids.push(id);
+      }
+      index += 1;
     } else if (arg === '--count') {
       const next = Number(argv[index + 1]);
       if (Number.isFinite(next) && next > 0) {
@@ -49,9 +73,31 @@ function parseArgs(argv) {
       if (Number.isFinite(next) && next > 0) {
         args.count = Math.floor(next);
       }
+    } else if (arg === '--limit') {
+      const next = Number(argv[index + 1]);
+      if (Number.isFinite(next) && next > 0) {
+        args.limit = Math.floor(next);
+        index += 1;
+      }
+    } else if (arg === '--comfy-url') {
+      args.comfyUrl = String(argv[index + 1] || '').replace(/\/$/, '');
+      index += 1;
+    } else if (arg === '--ckpt') {
+      args.ckpt = String(argv[index + 1] || args.ckpt);
+      index += 1;
+    } else if (arg === '--steps') {
+      const next = Number(argv[index + 1]);
+      if (Number.isFinite(next) && next > 0) {
+        args.steps = Math.floor(next);
+        index += 1;
+      }
     }
   }
   return args;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function escapeSvg(value) {
@@ -71,6 +117,127 @@ function hueFromId(id) {
   return hash % 360;
 }
 
+function seedFromId(id) {
+  let hash = 2166136261;
+  for (let index = 0; index < id.length; index += 1) {
+    hash ^= id.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+const COLOR_WORDS = [
+  ['cobalt', 215],
+  ['navy', 220],
+  ['indigo', 245],
+  ['aqua', 185],
+  ['teal', 175],
+  ['emerald', 150],
+  ['forest', 140],
+  ['olive', 85],
+  ['lime', 100],
+  ['mustard', 48],
+  ['gold', 45],
+  ['bronze', 30],
+  ['copper', 20],
+  ['terracotta', 15],
+  ['rust', 12],
+  ['burgundy', 350],
+  ['wine', 345],
+  ['maroon', 355],
+  ['crimson', 0],
+  ['rose', 340],
+  ['fuchsia', 320],
+  ['magenta', 310],
+  ['lavender', 270],
+  ['lilac', 280],
+  ['violet', 275],
+  ['plum', 300],
+  ['obsidian', 220],
+  ['charcoal', 220],
+  ['gunmetal', 210],
+  ['pewter', 200],
+  ['silver', 210],
+  ['steel', 205],
+  ['smoke', 210],
+  ['ash', 210],
+  ['beige', 40],
+  ['khaki', 55],
+  ['tan', 35],
+  ['camel', 32],
+  ['oatmeal', 40],
+  ['ivory', 45],
+  ['cream', 45],
+  ['snow', 200],
+  ['white', 0],
+  ['black', 0],
+  ['denim', 215],
+  ['coral', 10],
+  ['peach', 20],
+  ['blush', 350],
+  ['sage', 130],
+  ['mint', 160],
+  ['pine', 145],
+  ['moss', 110],
+  ['sky', 200],
+  ['frost', 195],
+  ['pearl', 40],
+  ['espresso', 25],
+  ['chocolate', 25],
+  ['sepia', 30],
+  ['sand', 40],
+  ['stone', 35],
+  ['salmon', 8],
+  ['sunflower', 50],
+];
+
+function colorHueFromLabel(label, fallbackId) {
+  const lower = label.toLowerCase();
+  for (const [word, hue] of COLOR_WORDS) {
+    if (lower.includes(word)) {
+      return hue;
+    }
+  }
+  return hueFromId(fallbackId);
+}
+
+function garmentKindFromLabel(label) {
+  const lower = label.toLowerCase();
+  if (/armor|cuirass|plate/.test(lower)) return 'armor';
+  if (/gown|dress|tutu|dirndl|hanbok|slip dress|shirt dress|wrap dress|sweater dress/.test(lower))
+    return 'dress';
+  if (/robe|cassock|habit|kimono|thobe|ritual/.test(lower)) return 'robe';
+  if (/tuxedo|suit|blazer|tailcoat|three-piece/.test(lower)) return 'suit';
+  if (/jumpsuit|coveralls|overall|hazmat|utility/.test(lower)) return 'jumpsuit';
+  if (/gi|dobok|judogi|hakama|karate|taekwondo/.test(lower)) return 'martial';
+  if (/uniform|scrubs|turnout|vest look|kit/.test(lower)) return 'uniform';
+  return 'outfit';
+}
+
+function silhouettePath(kind, hue) {
+  const fill = `hsl(${hue} 48% 52%)`;
+  const dark = `hsl(${hue} 42% 38%)`;
+  const light = `hsl(${hue} 40% 68%)`;
+  switch (kind) {
+    case 'dress':
+      return `<path d="M48 28 L80 28 L86 48 L96 140 L32 140 L42 48 Z" fill="${fill}"/><path d="M48 28 Q64 22 80 28" fill="none" stroke="${dark}" stroke-width="3"/><path d="M54 48 L74 48 L78 140 L50 140 Z" fill="${light}" opacity="0.45"/>`;
+    case 'robe':
+      return `<path d="M44 24 L84 24 L92 44 L98 148 L30 148 L36 44 Z" fill="${fill}"/><path d="M64 24 V148" stroke="${dark}" stroke-width="2" opacity="0.55"/><path d="M44 24 Q64 14 84 24" fill="${dark}"/><rect x="58" y="70" width="12" height="8" rx="2" fill="${light}"/>`;
+    case 'suit':
+      return `<path d="M46 30 L82 30 L90 52 L86 148 L42 148 L38 52 Z" fill="${fill}"/><path d="M64 30 L64 148" stroke="${dark}" stroke-width="2"/><path d="M46 30 L64 55 L82 30" fill="none" stroke="${dark}" stroke-width="2"/><rect x="52" y="70" width="24" height="4" fill="${light}"/>`;
+    case 'jumpsuit':
+      return `<path d="M48 26 L80 26 L88 48 L84 90 L96 148 L72 148 L64 100 L56 148 L32 148 L44 90 L40 48 Z" fill="${fill}"/><circle cx="64" cy="58" r="3" fill="${light}"/>`;
+    case 'armor':
+      return `<path d="M44 34 L84 34 L92 58 L88 120 L40 120 L36 58 Z" fill="${fill}"/><path d="M50 34 Q64 18 78 34" fill="${dark}"/><rect x="54" y="58" width="20" height="36" rx="3" fill="${light}" opacity="0.55"/>`;
+    case 'martial':
+      return `<path d="M46 28 L82 28 L88 50 L84 148 L44 148 L40 50 Z" fill="${fill}"/><path d="M40 70 H88" stroke="${dark}" stroke-width="6"/><path d="M64 28 V148" stroke="${light}" stroke-width="2" opacity="0.5"/>`;
+    case 'uniform':
+      return `<path d="M46 28 L82 28 L90 50 L86 100 L96 148 L70 148 L64 110 L58 148 L32 148 L42 100 L38 50 Z" fill="${fill}"/><rect x="54" y="48" width="20" height="28" rx="2" fill="${light}" opacity="0.5"/><circle cx="64" cy="56" r="2.5" fill="${dark}"/>`;
+    default:
+      return `<path d="M48 30 L80 30 L88 52 L84 90 L92 148 L68 148 L64 100 L60 148 L36 148 L44 90 L40 52 Z" fill="${fill}"/><path d="M48 30 Q64 22 80 30" fill="${dark}"/>`;
+  }
+}
+
 function wrapLabel(label, maxChars) {
   const words = String(label).split(/\s+/).filter(Boolean);
   if (words.length === 0) {
@@ -83,37 +250,53 @@ function wrapLabel(label, maxChars) {
     if (next.length > maxChars && current) {
       lines.push(current);
       current = word;
-      if (lines.length >= 3) {
+      if (lines.length >= 2) {
         break;
       }
     } else {
       current = next;
     }
   }
-  if (current && lines.length < 3) {
+  if (current && lines.length < 2) {
     lines.push(current);
   }
   return lines;
 }
 
 function buildSvg({ id, label }) {
-  const hue = hueFromId(id);
-  const short = label.length > 42 ? `${label.slice(0, 40).trimEnd()}…` : label;
-  const lines = wrapLabel(short, 16);
+  const hue = colorHueFromLabel(label, id);
+  const kind = garmentKindFromLabel(label);
+  const short = label.length > 36 ? `${label.slice(0, 34).trimEnd()}…` : label;
+  const lines = wrapLabel(short, 18);
   const text = lines
     .map(
       (line, index) =>
-        `<text x="${WIDTH / 2}" y="${HEIGHT * 0.62 + index * 14}" text-anchor="middle" fill="#3f3f46" font-family="system-ui,sans-serif" font-size="11">${escapeSvg(line)}</text>`
+        `<text x="64" y="${168 + index * 12}" text-anchor="middle" fill="#3f3f46" font-family="system-ui,sans-serif" font-size="10">${escapeSvg(line)}</text>`
     )
     .join('');
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="${escapeSvg(label)}">
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="160" viewBox="0 0 128 192" role="img" aria-label="${escapeSvg(label)}">
   <rect width="100%" height="100%" fill="#f4f4f5"/>
-  <rect x="18" y="18" width="${WIDTH - 36}" height="${HEIGHT * 0.42}" rx="10" fill="hsl(${hue} 42% 72%)"/>
-  <path d="M${WIDTH / 2 - 22} ${HEIGHT * 0.22} h44 v8 h-10 v28 h-24 v-28 h-10 z" fill="hsl(${hue} 38% 58%)" opacity="0.85"/>
+  <g transform="translate(0,4)">${silhouettePath(kind, hue)}</g>
   ${text}
 </svg>
 `;
+}
+
+function buildPackshotPrompt(entry) {
+  const label = entry.label.trim() || entry.id;
+  const script = entry.script?.trim();
+  return [
+    `Ecommerce clothing product photograph of exactly this outfit: ${label}.`,
+    script ? `Fabric and construction details: ${script}.` : null,
+    'Show the real garments clearly — silhouette, color, and materials must match the description.',
+    'Ghost mannequin or neat flat lay on a seamless pure white studio background.',
+    'No person, no face, no skin, no hands, no head, no mannequin head.',
+    'Single centered outfit, catalog packshot, soft even lighting, sharp fabric detail.',
+    'No text, logos, hangers, props, or busy scenery.',
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function selectCuratedIds(entries, limit) {
@@ -174,10 +357,299 @@ async function loadCatalogEntries() {
     });
 }
 
+function loadExistingManifest() {
+  if (!fs.existsSync(MANIFEST_PATH)) {
+    return { version: 2, thumbs: {} };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
+  } catch {
+    return { version: 2, thumbs: {} };
+  }
+}
+
+function writeManifest(thumbs) {
+  const manifest = {
+    version: 2,
+    generatedAt: new Date().toISOString(),
+    thumbs,
+  };
+  fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+  fs.mkdirSync(path.dirname(MANIFEST_PATH), { recursive: true });
+  const text = `${JSON.stringify(manifest, null, 2)}\n`;
+  fs.writeFileSync(path.join(PUBLIC_DIR, 'manifest.json'), text);
+  fs.writeFileSync(MANIFEST_PATH, text);
+  return manifest;
+}
+
+function buildSdxlWorkflow({ prompt, negative, ckpt, seed, steps, cfg }) {
+  return {
+    '4': {
+      class_type: 'CheckpointLoaderSimple',
+      inputs: { ckpt_name: ckpt },
+    },
+    '5': {
+      class_type: 'EmptyLatentImage',
+      inputs: { width: GEN_WIDTH, height: GEN_HEIGHT, batch_size: 1 },
+    },
+    '6': {
+      class_type: 'CLIPTextEncode',
+      inputs: { text: prompt, clip: ['4', 1] },
+    },
+    '7': {
+      class_type: 'CLIPTextEncode',
+      inputs: { text: negative, clip: ['4', 1] },
+    },
+    '3': {
+      class_type: 'KSampler',
+      inputs: {
+        seed,
+        steps,
+        cfg,
+        sampler_name: 'dpmpp_2m',
+        scheduler: 'karras',
+        denoise: 1,
+        model: ['4', 0],
+        positive: ['6', 0],
+        negative: ['7', 0],
+        latent_image: ['5', 0],
+      },
+    },
+    '8': {
+      class_type: 'VAEDecode',
+      inputs: { samples: ['3', 0], vae: ['4', 2] },
+    },
+    '9': {
+      class_type: 'SaveImage',
+      inputs: { filename_prefix: 'wardrobe_garment', images: ['8', 0] },
+    },
+  };
+}
+
+async function queueComfyPrompt(comfyUrl, workflow) {
+  const response = await fetch(`${comfyUrl}/prompt`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: workflow }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || data.node_errors || `Comfy /prompt failed (${response.status})`);
+  }
+  const promptId = data.prompt_id || data.promptId;
+  if (!promptId) {
+    throw new Error('Comfy /prompt returned no prompt_id');
+  }
+  return promptId;
+}
+
+async function waitForHistory(comfyUrl, promptId, timeoutMs = 15 * 60 * 1000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const response = await fetch(`${comfyUrl}/history/${encodeURIComponent(promptId)}`);
+    if (response.ok) {
+      const history = await response.json();
+      if (history[promptId]) {
+        return history[promptId];
+      }
+    }
+    await sleep(1500);
+  }
+  throw new Error(`Timed out waiting for Comfy prompt ${promptId}`);
+}
+
+function extractOutputImages(historyEntry) {
+  const images = [];
+  for (const output of Object.values(historyEntry.outputs || {})) {
+    for (const image of output.images || []) {
+      if (image?.filename) {
+        images.push(image);
+      }
+    }
+  }
+  return images;
+}
+
+async function downloadComfyImage(comfyUrl, image) {
+  const params = new URLSearchParams({
+    filename: image.filename,
+    type: image.type || 'output',
+  });
+  if (image.subfolder) {
+    params.set('subfolder', image.subfolder);
+  }
+  const response = await fetch(`${comfyUrl}/view?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error(`Failed to download ${image.filename} (${response.status})`);
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function saveWebpThumb(buffer, destPath) {
+  await sharp(buffer)
+    .resize(OUT_WIDTH, OUT_HEIGHT, { fit: 'cover', position: 'centre' })
+    .webp({ quality: 82 })
+    .toFile(destPath);
+}
+
+function needsComfy(entry, existing) {
+  const current = existing[entry.id];
+  if (!current?.file) {
+    return true;
+  }
+  if (current.source === 'comfy' && current.file.endsWith('.webp')) {
+    const abs = path.join(PUBLIC_DIR, current.file);
+    if (fs.existsSync(abs)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+async function generateWithComfy(args, curated) {
+  const existing = loadExistingManifest().thumbs || {};
+  const thumbs = { ...existing };
+  let targets = curated;
+  if (args.missing) {
+    targets = curated.filter(entry => needsComfy(entry, existing));
+  }
+  if (args.limit != null) {
+    targets = targets.slice(0, args.limit);
+  }
+
+  console.log(
+    `${args.dryRun ? '[dry-run] ' : ''}Comfy packshots: ${targets.length} kits → ${args.comfyUrl} (${args.ckpt}, ${args.steps} steps)`
+  );
+
+  if (args.dryRun) {
+    for (const entry of targets.slice(0, 5)) {
+      console.log(`  would generate ${entry.id}`);
+      console.log(`    ${buildPackshotPrompt(entry).slice(0, 120)}…`);
+    }
+    return;
+  }
+
+  fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+  let done = 0;
+  for (const entry of targets) {
+    const prompt = buildPackshotPrompt(entry);
+    const seed = seedFromId(entry.id);
+    const workflow = buildSdxlWorkflow({
+      prompt,
+      negative: NEGATIVE,
+      ckpt: args.ckpt,
+      seed,
+      steps: args.steps,
+      cfg: args.cfg,
+    });
+    process.stdout.write(`[${done + 1}/${targets.length}] ${entry.id} … `);
+    try {
+      const promptId = await queueComfyPrompt(args.comfyUrl, workflow);
+      const history = await waitForHistory(args.comfyUrl, promptId);
+      const images = extractOutputImages(history);
+      if (images.length === 0) {
+        throw new Error('No output images');
+      }
+      const buffer = await downloadComfyImage(args.comfyUrl, images[0]);
+      const file = `${entry.id}.webp`;
+      const dest = path.join(PUBLIC_DIR, file);
+      await saveWebpThumb(buffer, dest);
+      const svgPath = path.join(PUBLIC_DIR, `${entry.id}.svg`);
+      if (fs.existsSync(svgPath)) {
+        fs.unlinkSync(svgPath);
+      }
+      thumbs[entry.id] = {
+        file,
+        label: entry.label,
+        category: entry.category,
+        source: 'comfy',
+        promptId,
+      };
+      done += 1;
+      writeManifest(thumbs);
+      console.log('ok');
+    } catch (error) {
+      console.log(`FAIL ${error instanceof Error ? error.message : String(error)}`);
+      // Keep SVG fallback if present / write one
+      if (!thumbs[entry.id]?.file?.endsWith('.webp')) {
+        const file = `${entry.id}.svg`;
+        fs.writeFileSync(path.join(PUBLIC_DIR, file), buildSvg(entry), 'utf8');
+        thumbs[entry.id] = {
+          file,
+          label: entry.label,
+          category: entry.category,
+          source: 'svg',
+        };
+        writeManifest(thumbs);
+      }
+    }
+  }
+  console.log(`Comfy packshots complete: ${done}/${targets.length}`);
+}
+
+async function writeSvgPlaceholders(args, curated) {
+  const existing = args.missing ? loadExistingManifest().thumbs || {} : {};
+  const thumbs = { ...existing };
+  console.log(
+    `${args.dryRun ? '[dry-run] ' : ''}Writing ${curated.length} silhouette SVG thumbs → public/wardrobe-thumbs`
+  );
+  if (!args.dryRun) {
+    fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+    if (args.clean) {
+      for (const name of fs.readdirSync(PUBLIC_DIR)) {
+        if (name.endsWith('.svg') || name.endsWith('.webp') || name === 'manifest.json') {
+          fs.unlinkSync(path.join(PUBLIC_DIR, name));
+        }
+      }
+    }
+  }
+  for (const entry of curated) {
+    if (args.missing && existing[entry.id]?.source === 'comfy' && existing[entry.id]?.file?.endsWith('.webp')) {
+      continue;
+    }
+    const file = `${entry.id}.svg`;
+    if (!args.dryRun) {
+      fs.writeFileSync(path.join(PUBLIC_DIR, file), buildSvg(entry), 'utf8');
+    }
+    if (!(thumbs[entry.id]?.source === 'comfy' && thumbs[entry.id]?.file?.endsWith('.webp'))) {
+      thumbs[entry.id] = {
+        file,
+        label: entry.label,
+        category: entry.category,
+        source: 'svg',
+      };
+    }
+  }
+  if (!args.dryRun) {
+    writeManifest(thumbs);
+  }
+  console.log(
+    args.dryRun
+      ? `Would write silhouette thumbs + manifest`
+      : `Wrote silhouette thumbs + ${path.relative(ROOT, MANIFEST_PATH)}`
+  );
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const entries = await loadCatalogEntries();
-  const curated = selectCuratedIds(entries, args.count);
+  let curated = selectCuratedIds(entries, args.count);
+  if (args.ids.length > 0) {
+    const wanted = new Set(args.ids);
+    const fromCatalog = entries
+      .filter(entry => wanted.has(entry.id))
+      .map(entry => ({
+        id: entry.id,
+        label: entry.label,
+        category: entry.category,
+        script: entry.script || '',
+      }));
+    const missing = args.ids.filter(id => !fromCatalog.some(entry => entry.id === id));
+    if (missing.length > 0) {
+      throw new Error(`Unknown wardrobe ids: ${missing.join(', ')}`);
+    }
+    curated = fromCatalog;
+  }
 
   if (args.list) {
     console.log(`curated ${curated.length} / catalog ${entries.length}`);
@@ -190,53 +662,12 @@ async function main() {
     return;
   }
 
-  console.log(
-    `${args.dryRun ? '[dry-run] ' : ''}Writing ${curated.length} garment thumbs → public/wardrobe-thumbs`
-  );
-
-  if (!args.dryRun) {
-    fs.mkdirSync(PUBLIC_DIR, { recursive: true });
-    if (args.clean) {
-      for (const name of fs.readdirSync(PUBLIC_DIR)) {
-        if (name.endsWith('.svg') || name === 'manifest.json') {
-          fs.unlinkSync(path.join(PUBLIC_DIR, name));
-        }
-      }
-    }
+  if (args.comfy) {
+    await generateWithComfy(args, curated);
+    return;
   }
 
-  const thumbs = {};
-  for (const entry of curated) {
-    const file = `${entry.id}.svg`;
-    const svg = buildSvg({ id: entry.id, label: entry.label });
-    if (!args.dryRun) {
-      fs.writeFileSync(path.join(PUBLIC_DIR, file), svg, 'utf8');
-    }
-    thumbs[entry.id] = {
-      file,
-      label: entry.label,
-      category: entry.category,
-    };
-  }
-
-  const manifest = {
-    version: 1,
-    generatedAt: new Date().toISOString(),
-    thumbs,
-  };
-
-  // Public copy for static hosting / debugging
-  if (!args.dryRun) {
-    fs.writeFileSync(path.join(PUBLIC_DIR, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-    fs.mkdirSync(path.dirname(MANIFEST_PATH), { recursive: true });
-    fs.writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
-  }
-
-  console.log(
-    args.dryRun
-      ? `Would write ${Object.keys(thumbs).length} thumbs + manifest`
-      : `Wrote ${Object.keys(thumbs).length} thumbs + ${path.relative(ROOT, MANIFEST_PATH)}`
-  );
+  await writeSvgPlaceholders(args, curated);
 }
 
 main().catch(error => {

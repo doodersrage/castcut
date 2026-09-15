@@ -17,6 +17,9 @@ export type WardrobeGarmentThumbManifestEntry = {
   file: string;
   label: string;
   category?: ClothingCategory | string;
+  /** `comfy` = RealVis packshot WebP; `svg` = silhouette placeholder. */
+  source?: 'comfy' | 'svg';
+  promptId?: string;
 };
 
 export type WardrobeGarmentThumbManifest = {
@@ -32,12 +35,13 @@ export function buildWardrobeGarmentThumbPrompt(input: { label: string; script?:
   const label = input.label.trim() || 'clothing kit';
   const script = input.script?.trim();
   return [
-    `Product packshot of clothing only: ${label}.`,
-    script ? `Details: ${script}.` : null,
-    'No person, no mannequin, no face, no hands, no body.',
-    'Flat lay or ghost mannequin on a plain seamless white studio background.',
-    'Single outfit or garment set, centered, catalog ecommerce style, soft even light.',
-    'No text overlays, no logos, no props unless part of the outfit description.',
+    `Ecommerce clothing product photograph of exactly this outfit: ${label}.`,
+    script ? `Fabric and construction details: ${script}.` : null,
+    'Show the real garments clearly — silhouette, color, and materials must match the description.',
+    'Ghost mannequin or neat flat lay on a seamless pure white studio background.',
+    'No person, no face, no skin, no hands, no head, no mannequin head.',
+    'Single centered outfit, catalog packshot, soft even lighting, sharp fabric detail.',
+    'No text, logos, hangers, props, or busy scenery.',
   ]
     .filter(Boolean)
     .join(' ');
