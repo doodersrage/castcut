@@ -1,12 +1,14 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import BrandBars from '@/components/BrandBars';
 import BrandStudioIllustration from '@/components/BrandStudioIllustration';
 import PlayContinueChip from '@/components/PlayContinueChip';
 import { ButtonLink } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
 import { resolveStudioEmptyCta } from '@/lib/empty-cta';
-import { remixDayFilmHref } from '@/lib/play-starter';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
+import { remixDayFilmHref, startStarterPlayFilm } from '@/lib/play-starter';
 
 type GalleryEmptyPanelProps = {
   filtered: boolean;
@@ -24,11 +26,14 @@ export default function GalleryEmptyPanel({
   derivedKind,
   characterId,
 }: GalleryEmptyPanelProps) {
+  const pathname = usePathname();
+  const mobile = isMobileStudioPath(pathname);
+  const href = (desk: string) => (mobile ? toMobileStudioHref(desk) : desk);
   const filmFilter = filtered && derivedKind === 'film';
   const castId = characterId?.trim() || '';
 
   if (filmFilter) {
-    const primaryHref = castId ? remixDayFilmHref(castId) : '/day';
+    const primaryHref = castId ? href(remixDayFilmHref(castId)) : href('/day');
     const primaryLabel = castId ? 'Same look, new Day' : 'Open Day';
     return (
       <div className="space-y-3" data-testid="gallery-film-empty">
@@ -86,7 +91,7 @@ export default function GalleryEmptyPanel({
         icon="inbox"
         title="No gallery outputs yet"
         description="Start a film to queue Day stills, generate a surprise still, or upload your own."
-        action={filmCta}
+        action={{ label: filmCta.label, href: href(filmCta.href) }}
       />
       <div className="ui-panel-accent relative px-4 py-4">
         <p className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
@@ -121,11 +126,23 @@ export default function GalleryEmptyPanel({
               Upload images
             </button>
           ) : null}
-          <ButtonLink href={filmCta.href} size="sm">
+          <ButtonLink
+            href={href(filmCta.href)}
+            size="sm"
+            data-testid="gallery-empty-starter"
+            onClick={event => {
+              if (!mobile || filmCta.href !== '/play') {
+                return;
+              }
+              event.preventDefault();
+              const result = startStarterPlayFilm();
+              window.location.assign(toMobileStudioHref(result.href));
+            }}
+          >
             {filmCta.label}
           </ButtonLink>
           <PlayContinueChip variant="secondary" />
-          <ButtonLink href="/day" variant="ghost" size="sm">
+          <ButtonLink href={href('/day')} variant="ghost" size="sm">
             Open Day
           </ButtonLink>
         </div>

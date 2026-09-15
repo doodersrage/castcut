@@ -1,9 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
+import PlaySoftAdvanceBanner, {
+  type PlaySoftAdvanceTarget,
+} from '@/components/PlaySoftAdvanceBanner';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
@@ -71,6 +74,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
   } = vm;
 
   const [sampleWatch, setSampleWatch] = useState(false);
+  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+  const softAdvanceArmedRef = useRef(false);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const wardrobeKitDeck = useMemo(
     () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, activeSlot.wardrobeId),
@@ -81,6 +86,18 @@ export default function MobileDayToolSections(vm: ViewModel) {
   const playbookHref =
     filmGuideHref ?? (error ? resolveFilmFailurePlaybook(error).href : undefined);
 
+  useEffect(() => {
+    if (!firstCutCelebrate || !character?.id || softAdvanceArmedRef.current) {
+      return;
+    }
+    softAdvanceArmedRef.current = true;
+    setSoftAdvance({
+      href: toMobileStudioHref(`/characters/${encodeURIComponent(character.id)}?media=films`),
+      label: 'Watch',
+      nonce: Date.now(),
+    });
+  }, [character?.id, firstCutCelebrate]);
+
   return (
     <div className="space-y-4" data-testid="mobile-day">
       <div className="space-y-1">
@@ -89,6 +106,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
           Four slots → stills → Cut film. Animate clips after your first cut.
         </p>
       </div>
+
+      <PlaySoftAdvanceBanner
+        key={softAdvance?.nonce ?? 'idle'}
+        target={softAdvance}
+        onCancel={() => setSoftAdvance(null)}
+      />
 
       {firstCutCelebrate ? (
         <div
@@ -108,11 +131,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
                 )}
                 className="ui-btn-primary w-full justify-center text-center text-sm"
                 data-testid="day-first-cut-watch"
-                onClick={() => {
-                  void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
-                    markOnboardingWatchFirstFilm();
-                  });
-                }}
+                onClick={() => setSoftAdvance(null)}
               >
                 Watch on Cast
               </Link>
@@ -548,13 +567,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
                   )}
                   className="ui-btn-primary w-full justify-center text-center text-sm"
                   data-testid="day-open-cast-film"
-                  onClick={() => {
-                    void import('@/lib/onboarding-hooks').then(
-                      ({ markOnboardingWatchFirstFilm }) => {
-                        markOnboardingWatchFirstFilm();
-                      }
-                    );
-                  }}
                 >
                   Watch on Cast
                 </Link>

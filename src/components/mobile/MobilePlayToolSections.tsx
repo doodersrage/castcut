@@ -311,11 +311,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
                   data-testid="story-first-cut-watch"
                   onClick={() => {
                     clearFirstCutCelebrate();
-                    void import('@/lib/onboarding-hooks').then(
-                      ({ markOnboardingWatchFirstFilm }) => {
-                        markOnboardingWatchFirstFilm();
-                      }
-                    );
                   }}
                 >
                   Watch on Cast
@@ -385,11 +380,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
             )}
             className="ui-btn-ghost w-full justify-center text-center text-sm"
             data-testid="roleplay-open-cast-film"
-            onClick={() => {
-              void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
-                markOnboardingWatchFirstFilm();
-              });
-            }}
           >
             Open on Cast
           </Link>

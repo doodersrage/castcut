@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import BrandMark from '@/components/BrandMark';
 import ReportBugLink from '@/components/ReportBugLink';
 import PlayContinueChip from '@/components/PlayContinueChip';
+import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
 import { featureForPath } from '@/lib/auth/features';
 import {
@@ -93,7 +94,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1" data-testid="mobile-desk-bridge">
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <PlayContinueChip variant="secondary" />
+            <PlayContinueChip variant="secondary" hideWhenHabit />
             <Link
               href="/dashboard"
               className="ui-btn-secondary shrink-0 px-3 py-2 text-xs"
@@ -138,6 +139,9 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
         </div>
       </header>
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+        <div className="mb-3">
+          <PlayHabitNudgeBanner />
+        </div>
         {children}
       </main>
       <nav

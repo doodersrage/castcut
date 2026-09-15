@@ -84,11 +84,6 @@ export default function RoleplayFilmCutActions({
             size="sm"
             variant="ghost"
             data-testid="roleplay-open-cast-film"
-            onClick={() => {
-              void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
-                markOnboardingWatchFirstFilm();
-              });
-            }}
           >
             Open on Cast
           </ButtonLink>

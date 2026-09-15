@@ -14,9 +14,11 @@ import {
   moodboardPatchFromPlate,
   newCharacterPlateId,
   roleplayPatchFromPlate,
+  toMobileStudioHref,
   upsertCharacterPlate,
   type CharacterPlate,
 } from '@/lib/mobile-studio';
+import { startStarterPlayFilm } from '@/lib/play-starter';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import {
   DEFAULT_FITTING_TOOL_CACHE,
@@ -261,6 +263,17 @@ export default function MobileCaptureTool() {
           >
             Start Look
           </button>
+          <Button
+            variant="secondary"
+            className="w-full justify-center"
+            data-testid="mobile-capture-starter-film"
+            onClick={() => {
+              const result = startStarterPlayFilm();
+              router.push(toMobileStudioHref(result.href));
+            }}
+          >
+            Make a starter film
+          </Button>
           <Link href="/m/play" className="ui-btn-secondary w-full justify-center text-center">
             Optional: Story as {active.name}
           </Link>
@@ -285,7 +298,21 @@ export default function MobileCaptureTool() {
             Open in Compose (desk)
           </Button>
         </div>
-      ) : null}
+      ) : (
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="secondary"
+            className="w-full justify-center"
+            data-testid="mobile-capture-starter-film"
+            onClick={() => {
+              const result = startStarterPlayFilm();
+              router.push(toMobileStudioHref(result.href));
+            }}
+          >
+            Make a starter film
+          </Button>
+        </div>
+      )}
 
       {plates.length > 1 ? (
         <div className="space-y-2">

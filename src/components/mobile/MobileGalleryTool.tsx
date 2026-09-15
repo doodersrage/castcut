@@ -1,12 +1,15 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { Button, ButtonLink } from '@/components/ui/Button';
+import GalleryEmptyPanel from '@/components/gallery/GalleryEmptyPanel';
 import GalleryUploadButton from '@/components/gallery/GalleryUploadButton';
+import MotionMedia from '@/components/ui/MotionMedia';
 import { useComfyUiGallery } from '@/hooks/useComfyUiGallery';
 import { recordCatalogBiasFromPrompt } from '@/lib/catalog-rating-bias';
 import {
+  filterComfyGalleryEntries,
   galleryEntryPrimaryThumbUrl,
   galleryEntryPrimaryViewUrl,
   type ComfyGalleryEntry,
@@ -15,8 +18,10 @@ import { buildGalleryHandoff, saveGalleryHandoff } from '@/lib/gallery-handoff';
 import {
   newCharacterPlateId,
   roleplayPatchFromPlate,
+  toMobileStudioHref,
   upsertCharacterPlate,
 } from '@/lib/mobile-studio';
+import { remixDayFilmHref } from '@/lib/play-starter';
 import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
   DEFAULT_ROLEPLAY_TOOL_CACHE,
@@ -28,16 +33,54 @@ const RATINGS = [1, 2, 3, 4, 5] as const;
 
 export default function MobileGalleryTool() {
   const router = useRouter();
-  const { storeReady, filteredEntries, setReviewRating } = useComfyUiGallery({
+  const searchParams = useSearchParams();
+  const characterId = searchParams.get('character')?.trim() || '';
+  const derivedKind = searchParams.get('derivedKind')?.trim() || '';
+  const filmMode = derivedKind === 'film';
+
+  const {
+    storeReady,
+    entries: allEntries,
+    setReviewRating,
+    setFilter,
+  } = useComfyUiGallery({
     status: 'completed',
+    ...(filmMode ? { derivedKind: 'film' as const } : {}),
+    ...(characterId ? { characterId } : {}),
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const entries = useMemo(
-    () => filteredEntries.filter(entry => galleryEntryPrimaryThumbUrl(entry)).slice(0, 48),
-    [filteredEntries]
-  );
-  const selected = entries.find(entry => entry.id === selectedId) ?? null;
+  useEffect(() => {
+    setFilter(previous => ({
+      ...previous,
+      status: 'completed',
+      derivedKind: filmMode ? 'film' : undefined,
+      characterId: characterId || undefined,
+    }));
+  }, [characterId, filmMode, setFilter]);
+
+  const entries = useMemo(() => {
+    const filtered = filterComfyGalleryEntries(allEntries, {
+      status: 'completed',
+      ...(filmMode ? { derivedKind: 'film' as const } : {}),
+      ...(characterId ? { characterId } : {}),
+    }).filter(entry => galleryEntryPrimaryThumbUrl(entry) || galleryEntryPrimaryViewUrl(entry));
+    return filtered.slice(0, filmMode ? 24 : 48);
+  }, [allEntries, characterId, filmMode]);
+
+  const selected = entries.find(entry => entry.id === selectedId) ?? entries[0] ?? null;
+  const selectedUrl = selected
+    ? galleryEntryPrimaryViewUrl(selected) || galleryEntryPrimaryThumbUrl(selected)
+    : null;
+
+  useEffect(() => {
+    if (!filmMode || entries.length === 0) {
+      return;
+    }
+    void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
+      markOnboardingWatchFirstFilm();
+    });
+  }, [entries.length, filmMode]);
 
   const openInPlay = (entry: ComfyGalleryEntry) => {
     const url = galleryEntryPrimaryViewUrl(entry) || galleryEntryPrimaryThumbUrl(entry);
@@ -73,86 +116,134 @@ export default function MobileGalleryTool() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid={filmMode ? 'mobile-gallery-films' : 'mobile-gallery'}>
       <div className="space-y-1">
-        <h1 className="type-display text-2xl tracking-tight">Gallery</h1>
+        <h1 className="type-display text-2xl tracking-tight">{filmMode ? 'Watch' : 'Gallery'}</h1>
         <p className="text-sm text-[var(--text-secondary)]">
-          Rate stills. Upload your own. Open one in Play or Compose.
+          {filmMode
+            ? 'Play your Day films. Remix the same look when you want another cut.'
+            : 'Rate stills. Upload your own. Open one in Play or Compose.'}
         </p>
-        <GalleryUploadButton className="ui-btn-secondary mt-2 px-3 py-2 text-xs" />
+        {!filmMode ? (
+          <GalleryUploadButton className="ui-btn-secondary mt-2 px-3 py-2 text-xs" />
+        ) : null}
+        {filmMode ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {characterId ? (
+              <ButtonLink
+                href={toMobileStudioHref(remixDayFilmHref(characterId))}
+                size="sm"
+                variant="secondary"
+                data-testid="mobile-gallery-remix-day"
+              >
+                Same look, new Day
+              </ButtonLink>
+            ) : (
+              <ButtonLink href="/m/day" size="sm" variant="secondary">
+                Open Day
+              </ButtonLink>
+            )}
+            <ButtonLink href="/m/gallery" size="sm" variant="ghost">
+              All stills
+            </ButtonLink>
+          </div>
+        ) : null}
       </div>
 
       {entries.length === 0 ? (
-        <p className="rounded-2xl border border-[var(--border-subtle)] px-4 py-10 text-center text-sm text-[var(--text-muted)]">
-          No completed stills yet. Upload a photo to start.
-        </p>
+        filmMode ? (
+          <GalleryEmptyPanel
+            filtered
+            derivedKind="film"
+            characterId={characterId || null}
+            onClearFilters={() => router.push('/m/gallery')}
+          />
+        ) : (
+          <GalleryEmptyPanel
+            filtered={false}
+            onClearFilters={() => undefined}
+            onUpload={() => undefined}
+          />
+        )
       ) : (
-        <div className="grid grid-cols-2 gap-2">
-          {entries.map(entry => {
-            const thumb = galleryEntryPrimaryThumbUrl(entry);
-            const active = entry.id === selectedId;
-            return (
-              <button
-                key={entry.id}
-                type="button"
-                onClick={() => setSelectedId(entry.id)}
-                className={[
-                  'overflow-hidden rounded-2xl border text-left',
-                  active
-                    ? 'border-[var(--accent-border)] ring-2 ring-[var(--accent-ring)]'
-                    : 'border-[var(--border-subtle)]',
-                ].join(' ')}
-              >
-                {thumb ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={thumb} alt="" className="aspect-square w-full object-cover" />
-                ) : null}
-                {entry.reviewRating ? (
-                  <p className="px-2 py-1 text-xs text-[var(--text-muted)]">
-                    {entry.reviewRating}★
-                  </p>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
+        <>
+          {filmMode && selectedUrl ? (
+            <div
+              className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-black"
+              data-testid="mobile-gallery-film-player"
+            >
+              <MotionMedia
+                src={selectedUrl}
+                className="mx-auto max-h-80 w-full object-contain"
+                controls
+                autoPlay
+              />
+            </div>
+          ) : null}
+          <div className="grid grid-cols-2 gap-2">
+            {entries.map(entry => {
+              const thumb = galleryEntryPrimaryThumbUrl(entry) || galleryEntryPrimaryViewUrl(entry);
+              const active = (selected?.id ?? selectedId) === entry.id;
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => setSelectedId(entry.id)}
+                  className={[
+                    'overflow-hidden rounded-2xl border text-left',
+                    active
+                      ? 'border-[var(--accent-border)] ring-2 ring-[var(--accent-ring)]'
+                      : 'border-[var(--border-subtle)]',
+                  ].join(' ')}
+                >
+                  {thumb ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={thumb}
+                      alt=""
+                      className={
+                        filmMode
+                          ? 'aspect-video w-full object-cover'
+                          : 'aspect-square w-full object-cover'
+                      }
+                    />
+                  ) : null}
+                  {entry.reviewRating ? (
+                    <p className="px-2 py-1 text-xs text-[var(--text-muted)]">
+                      {entry.reviewRating}★
+                    </p>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
 
-      {selected ? (
-        <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
-          <p className="line-clamp-3 text-sm text-[var(--text-secondary)]">{selected.prompt}</p>
-          <div className="flex flex-wrap gap-1.5">
+      {selected && !filmMode ? (
+        <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] p-3">
+          <p className="type-caption text-[var(--text-muted)]">Selected</p>
+          <div className="flex flex-wrap gap-1">
             {RATINGS.map(rating => (
-              <button
+              <Button
                 key={rating}
-                type="button"
-                data-active={selected.reviewRating === rating ? 'true' : 'false'}
-                className="ui-chip"
+                size="sm"
+                variant={selected.reviewRating === rating ? 'primary' : 'secondary'}
                 onClick={() => {
                   setReviewRating(selected.id, rating);
-                  recordCatalogBiasFromPrompt(selected.prompt, rating);
+                  recordCatalogBiasFromPrompt(selected.prompt || '', rating);
                 }}
               >
                 {rating}★
-              </button>
+              </Button>
             ))}
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              className="w-full justify-center"
-              onClick={() => openInPlay(selected)}
-            >
-              Use in Play
+            <Button variant="secondary" onClick={() => openInPlay(selected)}>
+              Open in Story
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="w-full justify-center"
-              onClick={() => openInCompose(selected)}
-            >
-              Compose
+            <Button variant="secondary" onClick={() => openInCompose(selected)}>
+              Open in Compose
             </Button>
           </div>
         </div>

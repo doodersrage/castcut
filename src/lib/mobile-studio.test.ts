@@ -8,6 +8,8 @@ import {
   moodboardPatchFromPlate,
   roleplayPatchFromPlate,
   toMobileStudioHref,
+  dayToolHref,
+  dayToolPathname,
   upsertCharacterPlate,
   type CharacterPlate,
 } from './mobile-studio';
@@ -57,6 +59,14 @@ describe('mobile studio paths', () => {
       '/m/gallery?character=c1&derivedKind=film'
     );
     assert.equal(toMobileStudioHref('/characters/c1'), '/m');
+  });
+
+  it('keeps Day rewrite on /m/day when already in Mobile Studio', () => {
+    assert.equal(dayToolPathname('/m/day'), '/m/day');
+    assert.equal(dayToolPathname('/day'), '/day');
+    assert.equal(dayToolHref('starter=1&autocut=1', '/m/day'), '/m/day?starter=1&autocut=1');
+    assert.equal(dayToolHref('', '/m/day'), '/m/day');
+    assert.equal(dayToolHref('remix=1', '/day'), '/day?remix=1');
   });
 });
 

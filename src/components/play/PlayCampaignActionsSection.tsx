@@ -77,11 +77,6 @@ export default function PlayCampaignActionsSection({
                 size="sm"
                 variant="primary"
                 data-testid="play-campaign-open-cast-film"
-                onClick={() => {
-                  void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
-                    markOnboardingWatchFirstFilm();
-                  });
-                }}
               >
                 Watch film on Cast
               </ButtonLink>

@@ -59,6 +59,7 @@ import {
 } from '@/lib/look-pack';
 import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play-campaign';
 import { applyRemixDayFilmState } from '@/lib/play-starter';
+import { dayToolHref } from '@/lib/mobile-studio';
 import { buildDemoDayStills } from '@/lib/welcome-sample-film';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
@@ -475,7 +476,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       params.delete('remix');
       params.set('autocut', '1');
       const nextQuery = params.toString();
-      router.replace(nextQuery ? `/day?${nextQuery}` : '/day');
+      router.replace(dayToolHref(nextQuery));
     });
     return () => {
       cancelled = true;
@@ -505,7 +506,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       params.delete('autoqueue');
       params.set('autocut', '1');
       const next = params.toString();
-      router.replace(next ? `/day?${next}` : '/day');
+      router.replace(dayToolHref(next));
     });
   }, [mounted, queueAll, router, stillsRef, updateToolSettings]);
 

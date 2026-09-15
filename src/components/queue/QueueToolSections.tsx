@@ -17,6 +17,7 @@ import PlayContinueChip from '@/components/PlayContinueChip';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import QueueActiveJobRow from '@/components/queue/QueueActiveJobRow';
 import QueueCompletedRow from '@/components/queue/QueueCompletedRow';
+import { resolveStudioEmptyCta } from '@/lib/empty-cta';
 import type { useQueueToolOrchestration } from '@/hooks/useQueueToolOrchestration';
 
 const ACCENT = 'brand' as const;
@@ -53,6 +54,7 @@ export default function QueueToolSections({
   retryFailed,
   retryEntry,
 }: QueueToolSectionsProps) {
+  const filmCta = resolveStudioEmptyCta(generateCta);
   return (
     <ToolLayout
       accent={ACCENT}
@@ -100,8 +102,8 @@ export default function QueueToolSections({
               branded
               icon="inbox"
               title="Queue is empty"
-              description="Start a film and Queue day, or send a still from Generate. Engines can wait — try demo stills on Day if Comfy is offline."
-              action={generateCta}
+              description="Continue your film on Day, or send a still from Generate. Engines can wait — try demo stills on Day if Comfy is offline."
+              action={filmCta}
             />
           ) : (
             <EmptyState
@@ -109,7 +111,7 @@ export default function QueueToolSections({
               icon="inbox"
               title="No pending jobs"
               description="Nothing running. Continue your film on Day, or queue another still."
-              action={generateCta}
+              action={filmCta}
             />
           )
         ) : (

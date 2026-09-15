@@ -103,6 +103,21 @@ export function toMobileStudioHref(href: string): string {
   return `${next}${query}${hash}`;
 }
 
+/** Keep Day autoqueue/remix rewrites on `/m/day` when already in Mobile Studio. */
+export function dayToolPathname(pathname?: string | null): '/day' | '/m/day' {
+  const path =
+    (pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '/day')).split(
+      '?'
+    )[0] || '/day';
+  return path === '/m/day' || path.startsWith('/m/day/') ? '/m/day' : '/day';
+}
+
+export function dayToolHref(searchParams: string, pathname?: string | null): string {
+  const base = dayToolPathname(pathname);
+  const query = searchParams.trim().replace(/^\?/, '');
+  return query ? `${base}?${query}` : base;
+}
+
 export function normalizeCharacterPlate(value: unknown): CharacterPlate | null {
   if (!value || typeof value !== 'object') {
     return null;

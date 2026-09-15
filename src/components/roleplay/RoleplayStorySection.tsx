@@ -105,9 +105,6 @@ export default function RoleplayStorySection({
                 data-testid="story-first-cut-watch"
                 onClick={() => {
                   onClearFirstCutCelebrate?.();
-                  void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
-                    markOnboardingWatchFirstFilm();
-                  });
                 }}
               >
                 Watch on Cast
