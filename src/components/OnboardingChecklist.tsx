@@ -94,13 +94,7 @@ export default function OnboardingChecklist() {
     return null;
   }
 
-  const playFocusIds = new Set([
-    'first-play-campaign',
-    'first-film-cut',
-    'watch-first-film',
-    'comfy-health',
-    'system-workflows',
-  ]);
+  const playFocusIds = new Set(['first-play-campaign', 'first-film-cut', 'watch-first-film']);
   const core = accessibleSteps.filter(step => {
     if (!isOnboardingCoreStep(step.id)) {
       return false;
@@ -154,7 +148,7 @@ export default function OnboardingChecklist() {
         nextOpen?.id === 'watch-first-film') ? (
         <div className="mt-3 flex flex-wrap items-center gap-2" data-testid="play-workspace-nudge">
           <p className="type-caption text-[var(--text-muted)]">
-            After your first still, switch to Play for Moodboard → Fitting → Day → film.
+            After your first still, switch to Play for Look → Outfit → Day → Cut film.
           </p>
           <Button
             size="sm"

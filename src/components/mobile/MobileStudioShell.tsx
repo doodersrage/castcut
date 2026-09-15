@@ -1,13 +1,24 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
 import BrandMark from '@/components/BrandMark';
 import ReportBugLink from '@/components/ReportBugLink';
+import PlayContinueChip from '@/components/PlayContinueChip';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
 import { featureForPath } from '@/lib/auth/features';
-import { MOBILE_STUDIO_TABS, mobileStudioTabFromPath } from '@/lib/mobile-studio';
+import {
+  MOBILE_STUDIO_TABS,
+  mobileStudioTabFromPath,
+  type MobileStudioTabId,
+} from '@/lib/mobile-studio';
+import {
+  hasCompletedFirstFilm,
+  loadPlayMetrics,
+  PLAY_METRICS_UPDATED_EVENT,
+} from '@/lib/play-metrics';
+import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { accentForPath } from '@/lib/tool-theme';
 
@@ -34,12 +45,34 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
   const accent = accentForPath(pathname);
   const auth = useAuth();
   const allowed = auth?.allowedFeatures ?? 'all';
-  const tabs = MOBILE_STUDIO_TABS.filter(entry =>
-    canAccessNavFeature(allowed, featureForPath(entry.href))
-  );
+  const [firstFilmDone, setFirstFilmDone] = useState(false);
+
+  useEffect(() => {
+    const refresh = () => setFirstFilmDone(hasCompletedFirstFilm(loadPlayMetrics()));
+    scheduleAfterCommit(refresh);
+    window.addEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
+    window.addEventListener('storage', refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      window.removeEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
+      window.removeEventListener('storage', refresh);
+      window.removeEventListener('focus', refresh);
+    };
+  }, []);
+
+  const tabs = useMemo(() => {
+    const gated = new Set<MobileStudioTabId>(firstFilmDone ? [] : ['play']);
+    return MOBILE_STUDIO_TABS.filter(entry => {
+      if (gated.has(entry.id)) {
+        return false;
+      }
+      return canAccessNavFeature(allowed, featureForPath(entry.href));
+    });
+  }, [allowed, firstFilmDone]);
+
   const desk = deskBridgeHrefs();
   const hint =
-    MOBILE_STUDIO_TABS.find(entry => entry.id === tab)?.hint ?? 'Capture → Board → Fit → Day → Cut';
+    MOBILE_STUDIO_TABS.find(entry => entry.id === tab)?.hint ?? 'Look → Outfit → Day → Cut';
 
   return (
     <div
@@ -59,20 +92,23 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1" data-testid="mobile-desk-bridge">
-          <Link
-            href="/dashboard"
-            className="ui-btn-secondary shrink-0 px-3 py-2 text-xs"
-            title="Optional desk handoff for large screens"
-          >
-            Desk
-          </Link>
-          <div className="flex max-w-[11rem] flex-wrap justify-end gap-1">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <PlayContinueChip variant="secondary" />
+            <Link
+              href="/dashboard"
+              className="ui-btn-secondary shrink-0 px-3 py-2 text-xs"
+              title="Optional desk handoff for large screens"
+            >
+              Desk
+            </Link>
+          </div>
+          <div className="flex max-w-[12rem] flex-wrap justify-end gap-1">
             <Link
               href={desk.play}
               className="type-caption text-[var(--text-muted)] underline-offset-2 transition hover:text-[var(--text-primary)] hover:underline"
               data-testid="mobile-desk-play"
             >
-              Campaign
+              Film
             </Link>
             <span className="type-caption text-[var(--border-strong)]">·</span>
             <Link
@@ -80,7 +116,15 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
               className="type-caption text-[var(--text-muted)] underline-offset-2 transition hover:text-[var(--text-primary)] hover:underline"
               data-testid="mobile-desk-moodboard"
             >
-              Board
+              Look
+            </Link>
+            <span className="type-caption text-[var(--border-strong)]">·</span>
+            <Link
+              href={desk.fitting}
+              className="type-caption text-[var(--text-muted)] underline-offset-2 transition hover:text-[var(--text-primary)] hover:underline"
+              data-testid="mobile-desk-fitting"
+            >
+              Outfit
             </Link>
             <span className="type-caption text-[var(--border-strong)]">·</span>
             <Link
@@ -89,14 +133,6 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
               data-testid="mobile-desk-day"
             >
               Day
-            </Link>
-            <span className="type-caption text-[var(--border-strong)]">·</span>
-            <Link
-              href={desk.fitting}
-              className="type-caption text-[var(--text-muted)] underline-offset-2 transition hover:text-[var(--text-primary)] hover:underline"
-              data-testid="mobile-desk-fitting"
-            >
-              Fitting
             </Link>
           </div>
         </div>

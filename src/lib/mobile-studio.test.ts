@@ -46,7 +46,10 @@ describe('mobile studio paths', () => {
     assert.equal(toMobileStudioHref('/day?from=look'), '/m/day?from=look');
     assert.equal(toMobileStudioHref('/moodboard'), '/m/moodboard');
     assert.equal(toMobileStudioHref('/roleplay?character=c1'), '/m/play?character=c1');
-    assert.equal(toMobileStudioHref('/gallery'), '/gallery');
+    assert.equal(toMobileStudioHref('/play'), '/m/day');
+    assert.equal(toMobileStudioHref('/gallery'), '/m/gallery');
+    assert.equal(toMobileStudioHref('/queue'), '/m/queue');
+    assert.equal(toMobileStudioHref('/characters'), '/m');
   });
 });
 

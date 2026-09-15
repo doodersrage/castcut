@@ -115,25 +115,57 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
           compact={!props.campaignComplete && Boolean(props.resumeStep)}
         />
 
-        <PlayCampaignCharacterSection
-          shared={props.shared}
-          updateShared={props.updateShared}
-          character={props.character}
-          activeLookPack={props.activeLookPack}
-          persistCharacter={props.persistCharacter}
-          createCharacter={props.createCharacter}
-          setStatus={props.setStatus}
-        />
-
-        <PlayCampaignStepsSection
-          activeStep={props.activeStep}
-          characterId={props.characterId}
-          activeLookPack={props.activeLookPack}
-          setStepOverride={props.setStepOverride}
-          goToStep={props.goToStep}
-          router={props.router}
-          firstFilmDone={firstFilmDone}
-        />
+        {props.resumeStep && props.characterId && !props.campaignComplete ? (
+          <details
+            className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2"
+            data-testid="play-campaign-edit-details"
+          >
+            <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+              Edit cast &amp; steps
+            </summary>
+            <div className="mt-3 space-y-4">
+              <PlayCampaignCharacterSection
+                shared={props.shared}
+                updateShared={props.updateShared}
+                character={props.character}
+                activeLookPack={props.activeLookPack}
+                persistCharacter={props.persistCharacter}
+                createCharacter={props.createCharacter}
+                setStatus={props.setStatus}
+              />
+              <PlayCampaignStepsSection
+                activeStep={props.activeStep}
+                characterId={props.characterId}
+                activeLookPack={props.activeLookPack}
+                setStepOverride={props.setStepOverride}
+                goToStep={props.goToStep}
+                router={props.router}
+                firstFilmDone={firstFilmDone}
+              />
+            </div>
+          </details>
+        ) : (
+          <>
+            <PlayCampaignCharacterSection
+              shared={props.shared}
+              updateShared={props.updateShared}
+              character={props.character}
+              activeLookPack={props.activeLookPack}
+              persistCharacter={props.persistCharacter}
+              createCharacter={props.createCharacter}
+              setStatus={props.setStatus}
+            />
+            <PlayCampaignStepsSection
+              activeStep={props.activeStep}
+              characterId={props.characterId}
+              activeLookPack={props.activeLookPack}
+              setStepOverride={props.setStepOverride}
+              goToStep={props.goToStep}
+              router={props.router}
+              firstFilmDone={firstFilmDone}
+            />
+          </>
+        )}
 
         {showAdvancedLooks ? (
           <details

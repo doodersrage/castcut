@@ -9,7 +9,8 @@ export type FittingCompareSectionProps = {
   leanChrome: boolean;
   busy: boolean;
   continueDayHref: string | null;
-  onKeepTryOn: (tryOn: FittingCompareTryOn) => void;
+  onKeepTryOn: (tryOn: FittingCompareTryOn) => string | null;
+  onSoftAdvance?: (href: string) => void;
   onSkipKit: () => void;
 };
 
@@ -19,6 +20,7 @@ export default function FittingCompareSection({
   busy,
   continueDayHref,
   onKeepTryOn,
+  onSoftAdvance,
   onSkipKit,
 }: FittingCompareSectionProps) {
   if (compareTryOns.length === 0) {
@@ -60,7 +62,12 @@ export default function FittingCompareSection({
                   variant="primary"
                   disabled={busy}
                   data-testid="fitting-keep"
-                  onClick={() => onKeepTryOn(tryOn)}
+                  onClick={() => {
+                    const href = onKeepTryOn(tryOn);
+                    if (href) {
+                      onSoftAdvance?.(href);
+                    }
+                  }}
                 >
                   Keep
                 </Button>

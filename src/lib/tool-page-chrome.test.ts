@@ -27,6 +27,10 @@ describe('tool-page-chrome', () => {
     assert.equal(TOOL_SETUP_LABELS.imagePrompt, 'Image → Prompt');
     assert.equal(TOOL_SETUP_LABELS.gallery, 'Gallery');
     assert.equal(TOOL_SETUP_LABELS.queue, 'Queue');
+    assert.equal(TOOL_SETUP_LABELS.moodboard, 'Look');
+    assert.equal(TOOL_SETUP_LABELS.fitting, 'Outfit');
+    assert.equal(TOOL_SETUP_LABELS.day, 'Day');
+    assert.equal(TOOL_SETUP_LABELS.roleplay, 'Story');
   });
 
   it('exposes hub page descriptions', () => {

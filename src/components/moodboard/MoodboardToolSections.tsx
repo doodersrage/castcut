@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
+import PlaySoftAdvanceBanner, {
+  type PlaySoftAdvanceTarget,
+} from '@/components/PlaySoftAdvanceBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import {
@@ -122,6 +125,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
   } = vm;
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
+  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
   return (
     <ToolLayout
       accent={ACCENT}
@@ -170,6 +174,11 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
       }
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.moodboard} />
+      <PlaySoftAdvanceBanner
+        key={softAdvance?.nonce ?? 'idle'}
+        target={softAdvance}
+        onCancel={() => setSoftAdvance(null)}
+      />
 
       <ToolSection
         title="Look presets"
@@ -416,7 +425,18 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
           variant="primary"
           disabled={busy || extracting}
           data-testid="moodboard-extract-look"
-          onClick={() => void extractLookPack()}
+          onClick={() => {
+            void extractLookPack().then(pack => {
+              if (!pack) {
+                return;
+              }
+              setSoftAdvance({
+                href: lookPackFittingHref(pack),
+                label: 'Outfit',
+                nonce: Date.now(),
+              });
+            });
+          }}
         >
           {extracting ? 'Extracting…' : 'Extract look'}
         </Button>

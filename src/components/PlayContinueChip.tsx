@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadPlayCampaignState, PLAY_CAMPAIGN_UPDATED_EVENT } from '@/lib/play-campaign';
 import {
@@ -11,6 +12,7 @@ import {
 } from '@/lib/play-metrics';
 import { loadLocalObservability } from '@/lib/local-observability';
 import { loadOnboardingState, ONBOARDING_UPDATED_EVENT } from '@/lib/onboarding-store';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 
 type PlayContinueChipProps = {
   className?: string;
@@ -20,12 +22,13 @@ type PlayContinueChipProps = {
   hideWhenIdle?: boolean;
 };
 
-/** Shared Continue CTA used by kiosk, Gallery, Queue, and Dashboard. */
+/** Shared Continue CTA used by kiosk, Gallery, Queue, Dashboard, and Mobile Studio. */
 export default function PlayContinueChip({
   className = '',
   variant = 'primary',
   hideWhenIdle = true,
 }: PlayContinueChipProps) {
+  const pathname = usePathname();
   const [cta, setCta] = useState<{ label: string; href: string } | null>(null);
 
   useEffect(() => {
@@ -52,7 +55,8 @@ export default function PlayContinueChip({
         campaign,
         watchedFirstFilm: watched,
       });
-      setCta({ label: next.label, href: next.href });
+      const href = isMobileStudioPath(pathname) ? toMobileStudioHref(next.href) : next.href;
+      setCta({ label: next.label, href });
     };
     scheduleAfterCommit(refresh);
     window.addEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
@@ -67,7 +71,7 @@ export default function PlayContinueChip({
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
     };
-  }, [hideWhenIdle]);
+  }, [hideWhenIdle, pathname]);
 
   if (!cta) {
     return null;

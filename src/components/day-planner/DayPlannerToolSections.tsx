@@ -142,8 +142,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           <p className="type-overline text-[var(--tint-success-text)]">First film</p>
           <p className="type-heading mt-1 text-[var(--text-primary)]">You cut your first reel</p>
           <p className="type-caption mt-1 text-[var(--text-muted)]">
-            Watch it on Cast, save a studio copy, or queue another Day. Story unlocks in the Play
-            tabs.
+            Watch it on Cast, open Story for optional beats, or queue another Day.
           </p>
           <ToolActionRow className="mt-3">
             {character ? (
@@ -160,7 +159,17 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 Watch on Cast
               </ButtonLink>
             ) : null}
-            <ButtonLink href="/play" size="sm" variant="secondary">
+            {character ? (
+              <ButtonLink
+                href={`/roleplay?character=${encodeURIComponent(character.id)}`}
+                size="sm"
+                variant="secondary"
+                data-testid="day-first-cut-story"
+              >
+                Open Story
+              </ButtonLink>
+            ) : null}
+            <ButtonLink href="/play" size="sm" variant="ghost">
               Back to Film
             </ButtonLink>
           </ToolActionRow>
@@ -246,6 +255,18 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 <div className="px-3 py-2">
                   <p className="type-heading text-sm">{slot.label}</p>
                   <p className="type-caption text-[var(--text-muted)]">{label}</p>
+                  {state === 'failed' ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="mt-2"
+                      disabled={busy}
+                      data-testid={`day-progress-retry-${slot.id}`}
+                      onClick={() => void queueSlot(slot)}
+                    >
+                      Retry {slot.label}
+                    </Button>
+                  ) : null}
                 </div>
               </li>
             );
@@ -568,22 +589,42 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           </>
         ) : null}
         <Button size="sm" variant="ghost" disabled={busy} onClick={goRoleplay}>
-          Optional: Roleplay
+          Optional: Story
         </Button>
       </ToolActionRow>
       {error ? (
         <div className="space-y-2">
           <FieldError>{error}</FieldError>
-          {filmGuideHref ? (
-            <ButtonLink
-              href={filmGuideHref}
+          <ToolActionRow>
+            <Button
               size="sm"
-              variant="ghost"
-              data-testid="film-failure-playbook-link"
+              variant="primary"
+              disabled={busy}
+              data-testid="day-error-demo-stills"
+              onClick={seedDemoStills}
             >
-              {resolveQueueFailureGuideLabel(filmGuideHref)}
-            </ButtonLink>
-          ) : null}
+              Use demo stills
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              data-testid="day-error-retry-queue"
+              onClick={() => void queueAll()}
+            >
+              Retry queue
+            </Button>
+            {filmGuideHref ? (
+              <ButtonLink
+                href={filmGuideHref}
+                size="sm"
+                variant="ghost"
+                data-testid="film-failure-playbook-link"
+              >
+                {resolveQueueFailureGuideLabel(filmGuideHref)}
+              </ButtonLink>
+            ) : null}
+          </ToolActionRow>
         </div>
       ) : null}
 

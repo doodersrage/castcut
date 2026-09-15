@@ -228,13 +228,13 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
   ]);
 
   const keepTryOn = useCallback(
-    (tryOn: FittingCompareTryOn) => {
+    (tryOn: FittingCompareTryOn): string | null => {
       const characterId = input.shared.activeCharacterId?.trim();
       const lookId = input.shared.activeLookId ?? input.character?.activeLookId;
       const entryId = tryOn.galleryEntryId?.trim();
       if (!characterId || !lookId || !entryId) {
         input.setError('Pick a Cast character with a look before keeping a try-on.');
-        return;
+        return null;
       }
       const updated = toggleLookKeeper(characterId, lookId, entryId);
       const wardrobeId = tryOn.wardrobeId?.trim();
@@ -306,6 +306,7 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
           : `Kept ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} as a Cast keeper · Day slots seeded.`
       );
       input.setError(null);
+      return dayHref;
     },
     [
       compareTryOns,

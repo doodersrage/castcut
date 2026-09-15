@@ -13,6 +13,9 @@ import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { FieldError } from '@/components/ui/Field';
 import { CollapsibleSection, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import PlaySoftAdvanceBanner, {
+  type PlaySoftAdvanceTarget,
+} from '@/components/PlaySoftAdvanceBanner';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { useFittingRoomQueue } from '@/hooks/useFittingRoomQueue';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
@@ -160,6 +163,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     leanChrome,
     setIsolateStatus,
   } = vm;
+  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
   return (
     <ToolLayout
       accent={ACCENT}
@@ -226,6 +230,11 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       }
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.fitting} />
+      <PlaySoftAdvanceBanner
+        key={softAdvance?.nonce ?? 'idle'}
+        target={softAdvance}
+        onCancel={() => setSoftAdvance(null)}
+      />
 
       <FittingCharacterSection
         shared={shared}
@@ -296,6 +305,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         busy={busy}
         continueDayHref={continueDayHref}
         onKeepTryOn={keepTryOn}
+        onSoftAdvance={href => setSoftAdvance({ href, label: 'Day', nonce: Date.now() })}
         onSkipKit={skipKit}
       />
 

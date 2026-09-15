@@ -12,7 +12,7 @@ export type MobileStudioTab = {
 };
 
 export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
-  { id: 'capture', href: '/m', label: 'Cast', hint: 'Plate lock' },
+  { id: 'capture', href: '/m', label: 'Cast', hint: 'Look → Outfit → Day → Cut' },
   { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'Watch jobs' },
   { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Rate stills' },
   { id: 'moodboard', href: '/m/moodboard', label: 'Look', hint: 'Extract look' },
@@ -73,10 +73,14 @@ export function toMobileStudioHref(href: string): string {
   const path = qIndex >= 0 ? withoutHash.slice(0, qIndex) : withoutHash;
   const query = qIndex >= 0 ? withoutHash.slice(qIndex) : '';
   const map: Record<string, string> = {
+    '/play': '/m/day',
     '/fitting': '/m/fitting',
     '/day': '/m/day',
     '/moodboard': '/m/moodboard',
     '/roleplay': '/m/play',
+    '/gallery': '/m/gallery',
+    '/queue': '/m/queue',
+    '/characters': '/m',
   };
   const next = map[path];
   if (!next) {

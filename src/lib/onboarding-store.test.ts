@@ -49,11 +49,15 @@ describe("onboarding-store", () => {
     );
     assert.equal(
       ONBOARDING_STEPS.find((step) => step.id === "first-film-cut")?.href,
-      "/play",
+      "/day",
     );
     assert.equal(
       ONBOARDING_STEPS.find((step) => step.id === "watch-first-film")?.href,
-      "/play",
+      "/characters",
+    );
+    assert.match(
+      ONBOARDING_STEPS.find((step) => step.id === "first-play-campaign")?.label ?? "",
+      /Start a film/,
     );
   });
 
