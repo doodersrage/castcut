@@ -981,6 +981,8 @@ export type FittingToolCache = {
   previewPlateFilename?: string;
   previewPlateUrl?: string;
   previewPlateSourceKey?: string;
+  /** Look→Outfit: await this Comfy still, then stamp it as the try-on plate. */
+  pendingOutfitPlatePromptId?: string;
 };
 
 /** Day Planner — time-of-day slots with wardrobe + scene beats for one character. */

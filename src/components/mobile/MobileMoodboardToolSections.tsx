@@ -149,7 +149,9 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
           }}
         />
         <p className="type-caption mt-2 text-[var(--text-muted)]">
-          {hasPlate ? 'Cast plate ready for Outfit.' : 'No Cast plate yet — stills still work.'}
+          {hasPlate
+            ? 'Cast plate ready for Outfit.'
+            : 'No Cast plate yet — Extract look will set or queue one for Outfit.'}
         </p>
       </div>
 

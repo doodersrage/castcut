@@ -20,6 +20,7 @@ describe('welcome sample + look presets + funnel drop-off', () => {
   });
 
   it('seeds moodboard tiles from look presets', () => {
+    assert.ok(LOOK_PRESETS.length >= 12);
     const cozy = LOOK_PRESETS.find(entry => entry.id === 'cozy');
     assert.ok(cozy);
     const tiles = tilesFromLookPreset(cozy!);
@@ -27,6 +28,10 @@ describe('welcome sample + look presets + funnel drop-off', () => {
     const pack = lookPackFromPreset(cozy!, 'c1');
     assert.equal(pack.characterId, 'c1');
     assert.match(pack.moodNotes ?? '', /cozy/i);
+
+    const coastal = LOOK_PRESETS.find(entry => entry.id === 'coastal');
+    assert.ok(coastal);
+    assert.match(lookPackFromPreset(coastal!, undefined).vibePrompt ?? '', /coastal/i);
   });
 
   it('summarizes welcome → starter → cut drop-off', () => {

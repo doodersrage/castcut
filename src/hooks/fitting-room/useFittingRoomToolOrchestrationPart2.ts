@@ -75,6 +75,10 @@ import {
   lookPackRoleplayHref,
   saveLookPack,
 } from '@/lib/look-pack';
+import {
+  COMFYUI_GALLERY_UPDATED_EVENT,
+  tryAttachPendingOutfitPlate,
+} from '@/lib/look-outfit-plate';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { getReformatTargetModel } from '@/lib/reformat-target';
@@ -169,6 +173,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       previewPlateFilename: undefined,
       previewPlateUrl: undefined,
       previewPlateSourceKey: undefined,
+      pendingOutfitPlatePromptId: undefined,
     });
   }, [clearReferencePreview, updateToolSettings]);
 
@@ -181,6 +186,51 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       setError(err instanceof Error ? err.message : 'Could not use that still.');
     });
   });
+
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+    const attachPending = () => {
+      const pendingId = toolSettings.pendingOutfitPlatePromptId?.trim();
+      if (!pendingId) {
+        return;
+      }
+      const attached = tryAttachPendingOutfitPlate(shared.activeCharacterId);
+      if (!attached) {
+        return;
+      }
+      const next = loadSettingsCache().tools?.fitting;
+      const imageUrl = next?.referenceImageUrl?.trim();
+      const filename = next?.referenceImageFilename?.trim();
+      if (!imageUrl && !filename) {
+        return;
+      }
+      scheduleAfterCommit(() => {
+        void applyReference({
+          imageUrl,
+          filename,
+          isolate: true,
+        })
+          .then(() => {
+            setSaveStatus('Applied Look Outfit plate.');
+          })
+          .catch(err => {
+            setError(err instanceof Error ? err.message : 'Could not load Look Outfit plate.');
+          });
+      });
+    };
+    window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, attachPending);
+    attachPending();
+    return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, attachPending);
+  }, [
+    applyReference,
+    mounted,
+    setError,
+    setSaveStatus,
+    shared.activeCharacterId,
+    toolSettings.pendingOutfitPlatePromptId,
+  ]);
 
   useEffect(() => {
     if (!mounted || typeof window === 'undefined' || deepLinkHandled.current) {

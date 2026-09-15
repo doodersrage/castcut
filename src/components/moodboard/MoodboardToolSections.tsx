@@ -158,7 +158,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Look presets"
-        description="One tap to seed tiles — then Extract look or Continue to Outfit."
+        description="One tap to seed tiles — then Extract look or Continue to Outfit (Look will set or queue an Outfit plate)."
         data-testid="moodboard-presets"
       >
         <div className="flex flex-wrap gap-2">
@@ -187,7 +187,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Character (optional)"
-        description="Attach a Cast character for subject notes and identity lock when a plate exists."
+        description="Attach a Cast character for subject notes. Extract look will set or queue an Outfit plate when none exists."
         data-testid="moodboard-character"
       >
         <CharacterOsPicker
@@ -201,6 +201,11 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
             }
           }}
         />
+        <p className="type-caption mt-2 text-[var(--text-muted)]">
+          {hasPlate
+            ? 'Cast plate ready for Outfit.'
+            : 'No Cast plate yet — Extract look will set or queue one for Outfit.'}
+        </p>
       </ToolSection>
 
       <ToolSection title="Template" description="How look cues merge into the scene prompt.">

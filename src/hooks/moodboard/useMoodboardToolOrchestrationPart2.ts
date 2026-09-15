@@ -15,6 +15,7 @@ import {
   lookPackRoleplayHref,
   saveLookPack,
 } from '@/lib/look-pack';
+import { ensureOutfitPlateAfterLook } from '@/lib/look-outfit-plate';
 import { markOnboardingFirstPlayCampaign } from '@/lib/onboarding-hooks';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
 import { synthesizeMoodboardPrompt } from '@/lib/moodboard-scene';
@@ -209,13 +210,32 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
       });
       saveLookPack(pack);
       setOutput(vibePrompt);
-      setLookStatus('Look pack ready — send it to Outfit or Day.');
       // Moodboard is done once a look pack exists — advance resume past Moodboard even if the
       // user stays on this page (dashboard was stuck on "Stalled at Moodboard" until handoff).
       if (pack.characterId?.trim()) {
         bumpPlayCampaignStep({ characterId: pack.characterId, stepId: 'fitting' });
       }
       markOnboardingFirstPlayCampaign();
+
+      const plateResult = await ensureOutfitPlateAfterLook({
+        characterId: pack.characterId,
+        tiles,
+        vibePrompt,
+        sendComfyUi: actions.sendComfyUi,
+      });
+      if (plateResult === 'ready') {
+        setLookStatus('Look pack ready — Outfit plate set from Look. Continue to Outfit or Day.');
+      } else if (plateResult === 'queued') {
+        setLookStatus(
+          'Look pack ready — queuing an Outfit plate still. Continue to Outfit while it finishes.'
+        );
+      } else if (plateResult === 'failed') {
+        setLookStatus(
+          'Look pack ready — could not auto-make an Outfit plate; upload one in Outfit or retry Extract.'
+        );
+      } else {
+        setLookStatus('Look pack ready — send it to Outfit or Day.');
+      }
       return pack;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not extract look pack.');
@@ -224,6 +244,7 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
       setExtracting(false);
     }
   }, [
+    actions.sendComfyUi,
     blobToDataUrl,
     character,
     setError,
@@ -247,16 +268,30 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
         wardrobeId: shared.lockedWardrobeId?.trim() || staged.wardrobeId,
       };
       saveLookPack(next);
-      setLookStatus('Using staged look pack — skipped re-reading tiles.');
+      const plateResult = await ensureOutfitPlateAfterLook({
+        characterId: next.characterId,
+        tiles,
+        vibePrompt: next.vibePrompt,
+        sendComfyUi: actions.sendComfyUi,
+      });
+      if (plateResult === 'ready') {
+        setLookStatus('Using staged look pack — Outfit plate set from Look.');
+      } else if (plateResult === 'queued') {
+        setLookStatus('Using staged look pack — queuing an Outfit plate still.');
+      } else {
+        setLookStatus('Using staged look pack — skipped re-reading tiles.');
+      }
       return next;
     }
     return extractLookPack();
   }, [
+    actions.sendComfyUi,
     character?.id,
     extractLookPack,
     setLookStatus,
     shared.activeCharacterId,
     shared.lockedWardrobeId,
+    tiles,
   ]);
 
   const sendLookToFitting = useCallback(async (): Promise<string | null> => {
