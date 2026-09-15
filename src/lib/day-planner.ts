@@ -93,14 +93,16 @@ export function buildDaySlotPrompt(input: {
 
   return [
     `Day planner still — ${slot.label.toLowerCase()}:`,
+    descriptor
+      ? `look (mandatory unique face and body — not a stock beauty face or default slim silhouette): ${descriptor}`
+      : null,
     name ? `subject: ${name}` : 'subject: the active Cast character',
-    descriptor ? `look: ${descriptor}` : null,
     outfit ? `outfit: ${outfit}` : 'outfit: catalog wardrobe kit for this slot',
     setting ? `setting: ${setting}` : 'setting: a coherent location that fits the time of day',
     hints ? `beat: ${hints}` : null,
     notes ? `notes: ${notes}` : null,
     'single cinematic still, full or three-quarter framing, natural lighting for the time of day',
-    'keep identity consistent across the day when a Cast character is active',
+    'keep the stated face geometry, body proportions, age read, and ancestry consistent; avoid generic model faces and default body types',
   ]
     .filter(Boolean)
     .join('\n');

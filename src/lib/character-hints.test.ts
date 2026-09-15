@@ -61,15 +61,15 @@ describe("parseCharacterHints", () => {
     assert.equal(result.mentionsAge, true);
   });
 
-  it('flags identity constraints for age, hair, or face detail — not mere gender or scene length', () => {
+  it('flags identity constraints only when face/ancestry detail is present', () => {
     assert.equal(parseCharacterHints('a woman at a café table').hasIdentityConstraints, false);
     assert.equal(
       parseCharacterHints('someone standing near the old oak tree by the lake')
         .hasIdentityConstraints,
       false
     );
-    assert.equal(parseCharacterHints('a woman in her thirties').hasIdentityConstraints, true);
-    assert.equal(parseCharacterHints('curly hair').hasIdentityConstraints, true);
+    assert.equal(parseCharacterHints('a woman in her thirties').hasIdentityConstraints, false);
+    assert.equal(parseCharacterHints('curly hair').hasIdentityConstraints, false);
     assert.equal(
       parseCharacterHints('a young Black woman with high cheekbones').hasIdentityConstraints,
       true
@@ -110,9 +110,9 @@ describe("buildCharacterMandatoryBlock", () => {
   });
 });
 
-describe("pickCharacterIdentitySeed", () => {
-  it("returns null when the parsed hints already have identity constraints", () => {
-    const parsed = parseCharacterHints("a woman in her thirties");
+describe('pickCharacterIdentitySeed', () => {
+  it('returns null when the parsed hints already name a concrete face', () => {
+    const parsed = parseCharacterHints('a young Black woman with high cheekbones');
     assert.equal(pickCharacterIdentitySeed(parsed), null);
   });
 
@@ -123,10 +123,13 @@ describe("pickCharacterIdentitySeed", () => {
     assert.ok((seed as string).length > 0);
   });
 
-  it('still seeds when only gender is named (stock face risk)', () => {
-    const seed = pickCharacterIdentitySeed(parseCharacterHints('a woman'));
-    assert.equal(typeof seed, 'string');
-    assert.ok((seed as string).length > 0);
+  it('still seeds when only gender or age is named (stock face risk)', () => {
+    const genderOnly = pickCharacterIdentitySeed(parseCharacterHints('a woman'));
+    assert.equal(typeof genderOnly, 'string');
+    assert.ok((genderOnly as string).length > 0);
+    const ageOnly = pickCharacterIdentitySeed(parseCharacterHints('a woman in her thirties'));
+    assert.equal(typeof ageOnly, 'string');
+    assert.ok((ageOnly as string).length > 0);
   });
 });
 

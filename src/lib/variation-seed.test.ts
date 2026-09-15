@@ -60,6 +60,21 @@ describe("pickCharacterSubject", () => {
       assert.ok(result.length > 0);
     }
   });
+
+  it("usually includes concrete body height/size language when composed", () => {
+    let withBody = 0;
+    for (let i = 0; i < 24; i += 1) {
+      const result = pickCharacterSubject("women");
+      if (
+        /\b(very short|petite|average height|tall|very tall|short and compact|slim|lean|soft|heavyset|plus-size|stocky|narrow-framed|barrel-chested|endurance-lean|body that is)\b/i.test(
+          result
+        )
+      ) {
+        withBody += 1;
+      }
+    }
+    assert.ok(withBody >= 18, `expected most rolls to name body detail, got ${withBody}/24`);
+  });
 });
 
 describe("buildVariationSeed", () => {

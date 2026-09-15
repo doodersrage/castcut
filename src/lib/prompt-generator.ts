@@ -211,6 +211,17 @@ function buildUserMessage(
   const extras: string[] = [buildDetailUserDirective(settings.detail, settings.model)];
   const peopleConstraint = parsePeopleConstraint(trimmed);
 
+  // Lead with a concrete face when the user did not name one — models otherwise
+  // collapse to the same stock man/woman prior.
+  if (!settings.distinctPeople && !isMultiPersonInput(trimmed)) {
+    const identitySeed = pickCharacterIdentitySeed(parseCharacterHints(trimmed));
+    if (identitySeed) {
+      extras.push(
+        `FACE AND BODY FIRST (mandatory): ${identitySeed}. Commit to this exact face geometry and this exact body (height, size, proportions, posture). Do not substitute a generic stock model face, fitness-model body, hourglass default, or beauty-standard silhouette.`
+      );
+    }
+  }
+
   if (isMultiPersonInput(trimmed)) {
     if (settings.distinctPeople) {
       extras.push(buildDistinctPeopleUserDirective(trimmed));
@@ -225,17 +236,6 @@ function buildUserMessage(
     });
     if (hint) {
       extras.push(hint);
-    }
-  }
-
-  // When the user did not name a face, inject a concrete identity so models
-  // do not collapse to the same stock man/woman prior.
-  if (!settings.distinctPeople && !isMultiPersonInput(trimmed)) {
-    const identitySeed = pickCharacterIdentitySeed(parseCharacterHints(trimmed));
-    if (identitySeed) {
-      extras.push(
-        `Subject identity (mandatory — specific face, age read, ancestry, hair, and body; do not use a generic stock model): ${identitySeed}`
-      );
     }
   }
 

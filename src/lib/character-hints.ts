@@ -14,9 +14,9 @@ const HAIR_WORDS =
   /\b(hair|bun|braids|locs|dreads|ponytail|bangs|curls|curly|straight hair|wavy hair|afro|undercut|pigtails|bob cut|fringe)\b/i;
 const AGE_WORDS =
   /\b(\d{1,2}\s*(?:years?\s*old|yo|y\.o\.)|in her (?:teens|twenties|thirties|forties|fifties|sixties|seventies)|in his (?:teens|twenties|thirties|forties|fifties|sixties|seventies)|teenage|teen|elderly|middle-aged|young (?:man|woman|person|lady|guy|boy|girl)|(?:an |the )?old (?:man|woman|person|lady|guy|boy|girl)|years?\s*old|aged (?:man|woman|person)|youthful|senior|child|kid|toddler|infant|twenties|thirties|forties|fifties|sixties)\b/i;
-/** Face / ancestry detail that already specifies who the person is — not mere gender or scene length. */
+/** Face / ancestry detail that already specifies who the person is — not mere gender, age, or hair. */
 const FACE_IDENTITY_WORDS =
-  /\b((?:black|white|latina|latino|asian|east asian|south asian|southeast asian|middle eastern|indigenous|polynesian|mediterranean|nordic|mixed[- ]race|biracial|african(?:[- ]american)?|caribbean|hispanic)\s+(?:woman|man|person|girl|boy|woman's|man's)|olive skin|dark skin|brown skin|fair skin|pale skin|freckles|cheekbones|jawline|square jaw|high cheekbones|amber eyes|brown eyes|blue eyes|green eyes|hazel eyes|complexion|skin tone|box braids|locs|cornrows|henna)\b/i;
+  /\b((?:black|white|latina|latino|asian|east asian|south asian|southeast asian|middle eastern|indigenous|polynesian|mediterranean|nordic|mixed[- ]race|biracial|african(?:[- ]american)?|caribbean|hispanic)\s+(?:woman|man|person|girl|boy|woman's|man's)|olive skin|dark skin|brown skin|fair skin|pale skin|freckles|cheekbones|jawline|square jaw|high cheekbones|amber eyes|brown eyes|blue eyes|green eyes|hazel eyes|complexion|skin tone|box braids|locs|cornrows|henna|aquiline|monolid|epicanthic|gap-toothed|scar at|deep-set eyes)\b/i;
 
 export type ParsedCharacterHints = {
   raw: string;
@@ -56,8 +56,9 @@ export function parseCharacterHints(hints?: string): ParsedCharacterHints {
   const mentionsAge = AGE_WORDS.test(raw);
   const mentionsFaceIdentity = FACE_IDENTITY_WORDS.test(raw);
   const explicitGender = woman || man;
-  // Gender or long scene text alone is not enough — models still default to a stock face.
-  const hasIdentityConstraints = mentionsAge || mentionsHair || mentionsFaceIdentity;
+  // Only a concrete face/ancestry block counts as "already specified."
+  // Gender, age, or hair alone still get a rolled face — otherwise models reuse stock beauty priors.
+  const hasIdentityConstraints = mentionsFaceIdentity;
 
   return {
     raw,

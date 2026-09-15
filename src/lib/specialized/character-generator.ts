@@ -355,7 +355,7 @@ ${soloRules}
         mandatoryBlock
           ? null
           : identitySeed
-            ? `MANDATORY identity seed (commit fully — specific face, age read, ancestry, hair, and body; do not substitute a generic stock model): ${identitySeed}`
+            ? `FACE AND BODY FIRST (mandatory — commit to this exact face geometry and this exact body height/size/proportions/posture; never a stock beauty face or default slim/fitness silhouette): ${identitySeed}`
             : null,
         `Environment and mood: ${environmentSeed}`,
         clothingDirective,

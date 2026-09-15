@@ -176,50 +176,284 @@ function shuffle<T>(items: T[]): T[] {
 export type SubjectGender = 'women' | 'men' | 'mixed' | 'any';
 
 const SUBJECTS_WOMEN = [
-  'a young Black woman with box braids, high cheekbones, and gold hoop earrings',
-  'a middle-aged Latina with gray-streaked hair, soft build, and laugh lines',
-  'a pale red-haired woman in her thirties, light freckles, and cropped copper hair',
-  'a slender elderly woman with white hair in a loose bun, reading glasses, and steady posture',
-  'an older South Asian woman in a bright sari, gentle eyes, and henna on her palms',
-  'a lithe dancer in her twenties, deep brown skin, locs tied back, and expressive hands',
-  'a pregnant woman in her late thirties, curly auburn hair, linen dress, and calm focus',
-  'a school-age girl with braids, a gap-toothed grin, and scuffed sneakers',
+  'a young Black woman with box braids, a wide nose bridge, warm brown eyes set slightly apart, and gold hoop earrings',
+  'a middle-aged Latina with gray-streaked waves, soft double chin, laugh lines, and a slightly crooked front tooth',
+  'a pale red-haired woman in her thirties with dense freckles across one cheek, cropped copper hair, and thin lips',
+  'a slender elderly East Asian woman with white hair in a loose bun, deep nasolabial folds, and reading glasses',
+  'an older South Asian woman with silver-streaked hair, a soft rounded jaw, gentle hooded eyes, and henna on her palms',
+  'a lithe Afro-Caribbean woman in her twenties with locs tied back, high cheekbones, and a gap between her front teeth',
+  'a woman in her late thirties with curly auburn hair, a strong Roman nose, focused green eyes, and a faint forehead crease',
+  'a woman in her forties with sharp cheekbones, dark tight curls, amber eyes, and a small mole beside her mouth',
+  'a Southeast Asian woman in her late twenties with a short dark bob, monolid eyes, a soft chin, and sun-warmed skin',
+  'a Middle Eastern woman in her thirties with olive skin, thick dark brows that nearly meet, and loosely pinned curls',
+  'an Indigenous woman in her forties with twin braids, a broad nose, deep-set eyes, and weathered laugh lines',
+  'a Nordic woman in her fifties with ice-blue eyes, fair weathered skin, a sharp jaw, and short ash-blonde hair',
+  'a mixed-race woman in her twenties with coily dark hair, freckles on deep brown skin, and an asymmetrical smile',
+  'a short stocky woman in her thirties with a buzzed undercut, round face, and bright hazel eyes',
+  'a tall thin woman in her forties with a long aquiline nose, pale skin, and a severe center-part bun',
+  'a Black woman in her fifties with close-cropped silver hair, bold cheekbones, and a calm heavy-lidded gaze',
+  'a Latina teenager with a soft baby face, braces, dark wavy bangs, and a constellation of acne scars healing on her cheeks',
+  'a white woman in her sixties with a soft jowl line, short steel-gray hair, and watery blue eyes',
+  'a South Asian woman in her early twenties with a long braid, a small bindi, almond eyes, and a pointed chin',
+  'a Polynesian woman in her thirties with sun-darkened skin, full cheeks, thick black hair in a low bun, and warm brown eyes',
+  'a middle-aged white woman with a shaved head, strong brow, and quiet pale eyes',
 ];
 
 const SUBJECTS_MEN = [
-  'an elderly man with a creased face, silver stubble, and work-worn hands',
-  'a teenage East Asian boy with messy hair, freckles, and a shy half-smile',
-  'a muscular Polynesian man with traditional arm tattoos and sun-darkened skin',
-  'a stocky Mediterranean man with olive skin, thick beard, and rolled shirtsleeves',
+  'an elderly white man with a creased face, silver stubble, a bulbous nose, and work-worn hands',
+  'a teenage East Asian man with messy hair, freckles across the nose, and a shy half-smile showing slightly uneven teeth',
+  'a muscular Polynesian man with traditional arm tattoos, a broad flat nose, and sun-darkened skin',
+  'a stocky Mediterranean man with olive skin, a thick beard, a square jaw, and deep-set brown eyes',
+  'a heavyset middle-aged Black man with a bald head, warm expression, and soft folds at the neck',
+  'a grizzled man with rope-scarred fingers, salt-and-pepper beard, squinting eyes, and a broken-capillary nose',
+  'a retired boxer with a flattened nose, gray temples, cauliflower ear, and quiet stillness',
+  'a man in his thirties with close-cropped hair, a sharp jawline, a thin scar through one eyebrow, and a steady gaze',
+  'a South Asian man in his forties with thick dark hair, a soft belly under a shirt, and tired kind eyes',
+  'a Latino man in his late twenties with dark curls, a soft rounded jaw, and a crooked smile',
+  'a Middle Eastern man in his early thirties with dark stubble, a strong arched nose, and intent hazel eyes',
+  'a Nordic man in his fifties with pale skin, cropped blond hair going thin, and a long angular face',
+  'a Southeast Asian man in his twenties with tan skin, short black hair, a narrow face, and bright alert eyes',
+  'a mixed-race man in his thirties with tight curls, freckled brown skin, and a wide easy mouth',
+  'an Indigenous man in his forties with long black hair tied back, high cheekbones, and a weathered brow',
+  'a thin elderly East Asian man with sparse white hair, deep wrinkles, and a small neat mustache',
+  'a short compact white man in his twenties with a ginger beard, pale lashes, and a snub nose',
+  'a tall lanky Black man in his forties with a salt-and-pepper goatee, narrow shoulders, and deep-set eyes',
+  'a Mediterranean teenager with olive skin, a soft mustache just starting, and oversized ears',
+  'a wheelchair-using man in his thirties with buzzed hair, sharp features, and a vintage bomber jacket',
   'a heavyset middle-aged man with a bald head, warm expression, and paint-stained apron',
-  'a grizzled fisherman with rope-scarred fingers, salt-and-pepper beard, and squinting eyes',
-  'a retired boxer with a flattened nose, gray temples, and quiet stillness',
   'a monk with a shaved head, deep brown robes, and ink-stained fingers',
 ];
 
 const MINIMAL_HAIR_PATTERN = /\b(bald|balding|shaved|buzzed|monk|tonsure|hairless)\b/i;
 
-const IDENTITY_WOMEN = [
-  'a young Black woman with box braids, high cheekbones, warm brown eyes, and gold hoop earrings',
-  'a middle-aged Latina with gray-streaked hair, soft build, and laugh lines',
-  'a pale red-haired woman in her thirties, light freckles, and cropped copper hair',
-  'a slender elderly woman with white hair in a loose bun, reading glasses, and steady posture',
-  'an older South Asian woman with silver-streaked hair, gentle eyes, and henna on her palms',
-  'a lithe woman in her twenties with deep brown skin, locs tied back, and expressive hands',
-  'a woman in her late thirties with curly auburn hair, focused eyes, and strong cheekbones',
-  'a woman in her forties with sharp cheekbones, dark curls, and amber eyes',
-];
+const IDENTITY_WOMEN = SUBJECTS_WOMEN;
+const IDENTITY_MEN = SUBJECTS_MEN;
 
-const IDENTITY_MEN = [
-  'an elderly man with a creased face, silver stubble, and work-worn hands',
-  'a teenage East Asian man with messy hair, freckles, and a shy half-smile',
-  'a muscular Polynesian man with traditional arm tattoos and sun-darkened skin',
-  'a stocky Mediterranean man with olive skin, thick beard, and square jaw',
-  'a heavyset middle-aged man with a bald head, warm expression, and laugh lines',
-  'a grizzled man with rope-scarred fingers, salt-and-pepper beard, and squinting eyes',
-  'a retired boxer with a flattened nose, gray temples, and quiet stillness',
-  'a man in his thirties with close-cropped hair, sharp jawline, and steady gaze',
-];
+/** Orthogonal face traits — composed into fresh identities so rolls do not cluster. */
+const COMPOSE_ANCESTRY = [
+  'Black',
+  'Latina',
+  'Latino',
+  'East Asian',
+  'South Asian',
+  'Southeast Asian',
+  'Middle Eastern',
+  'Indigenous',
+  'Polynesian',
+  'Mediterranean',
+  'Nordic',
+  'Caribbean',
+  'mixed-race',
+  'white',
+] as const;
+
+const COMPOSE_AGE_WOMEN = [
+  'in her early twenties',
+  'in her late twenties',
+  'in her early thirties',
+  'in her late thirties',
+  'in her forties',
+  'in her fifties',
+  'in her sixties',
+] as const;
+
+const COMPOSE_AGE_MEN = [
+  'in his early twenties',
+  'in his late twenties',
+  'in his early thirties',
+  'in his late thirties',
+  'in his forties',
+  'in his fifties',
+  'in his sixties',
+] as const;
+
+const COMPOSE_FACE = [
+  'a wide nose bridge and spaced-apart dark eyes',
+  'a narrow aquiline nose and close-set hazel eyes',
+  'asymmetric brows and a soft rounded jaw',
+  'a square jaw, deep-set eyes, and a faint scar at the temple',
+  'high cheekbones, monolid eyes, and a small mouth',
+  'full cheeks, a short upturned nose, and freckles clustered on one cheek only',
+  'a bulbous nose, thin lips, and heavy eyelids',
+  'a long face, a strong chin cleft, and pale lashes',
+  'a soft double chin, warm brown eyes, and a gentle crooked smile',
+  'a pointed chin and arched brows that nearly meet',
+  'a flattened boxer’s nose, gray at the temples, and quiet eyes',
+  'a gap between the front teeth, round cheeks, and bright alert eyes',
+  'deep nasolabial folds, watery blue eyes, and weather-creased skin',
+  'a broad flat nose, full lips, and a calm heavy-lidded gaze',
+  'a delicate jaw, sparse freckles, and slightly protruding ears',
+] as const;
+
+const COMPOSE_HAIR_WOMEN = [
+  'box braids past the shoulders',
+  'locs tied in a high bun',
+  'a short natural afro going silver at the temples',
+  'loose gray-streaked waves',
+  'a severe center-part bun',
+  'a cropped copper pixie',
+  'a long dark braid',
+  'a sleek black bob',
+  'twin braids with a few flyaways',
+  'thick curls pinned messily',
+  'a buzzed undercut with longer curls on top',
+  'straight black hair with blunt bangs',
+  'ash-blonde hair cut short and uneven',
+  'henna-red coils around the shoulders',
+] as const;
+
+const COMPOSE_HAIR_MEN = [
+  'close-cropped black hair',
+  'a salt-and-pepper beard and thinning crown',
+  'messy dark curls',
+  'a neat fade with a soft mustache',
+  'long black hair tied back',
+  'a ginger beard and pale brows',
+  'a bald head with gray stubble',
+  'thick dark hair swept back',
+  'a short ash-blonde cut going thin',
+  'tight coils kept short',
+  'a silver goatee and bare temples',
+  'an undercut with longer wavy top',
+] as const;
+
+const COMPOSE_BODY_ARCHETYPES = [
+  {
+    height: 'very short',
+    size: 'petite and slight',
+    proportions: 'narrow shoulders, a short torso, and small hands',
+    posture: 'an upright careful carriage',
+    mark: 'knobby wrists',
+  },
+  {
+    height: 'petite and short',
+    size: 'soft and lightly padded',
+    proportions: 'a soft belly, full upper arms, and short legs',
+    posture: 'weight favored on one hip',
+    mark: 'dimples at the lower back',
+  },
+  {
+    height: 'average height',
+    size: 'an everyday untrained build',
+    proportions: 'even shoulders and hips with little waist definition',
+    posture: 'a slight forward hunch from desk work',
+    mark: 'a small belly pouch above the waistband',
+  },
+  {
+    height: 'average height',
+    size: 'solid and thick-set',
+    proportions: 'a thick waist, sturdy calves, and heavy feet',
+    posture: 'a grounded planted stance',
+    mark: 'work-rough hands',
+  },
+  {
+    height: 'tall',
+    size: 'lean and rangy',
+    proportions: 'long limbs, a short torso, and narrow hips',
+    posture: 'an energetic forward lean',
+    mark: 'a visible collarbone shadow',
+  },
+  {
+    height: 'tall',
+    size: 'plus-size with full arms and hips',
+    proportions: 'wide hips, strong thighs, and a full bust or chest',
+    posture: 'a loose easy slouch',
+    mark: 'soft upper-arm fullness',
+  },
+  {
+    height: 'very tall',
+    size: 'narrow-framed and slight',
+    proportions: 'long legs, angular collarbones, and long fingers',
+    posture: 'a stiff straight spine',
+    mark: 'slightly uneven shoulder height',
+  },
+  {
+    height: 'average height',
+    size: 'barrel-chested and broad',
+    proportions: 'broad shoulders, a deep chest, and a thick neck',
+    posture: 'an upright confident carriage',
+    mark: 'defined forearm veins',
+  },
+  {
+    height: 'short and compact',
+    size: 'stocky and dense',
+    proportions: 'short limbs, a deep torso, and thick ankles',
+    posture: 'a careful cautious stance',
+    mark: 'sun-weathered forearms',
+  },
+  {
+    height: 'average height',
+    size: 'heavyset with a full midsection',
+    proportions: 'a soft double-chin tendency, full midsection, and heavy thighs',
+    posture: 'rounded shoulders and a tucked chin',
+    mark: 'a faded scar on one forearm',
+  },
+  {
+    height: 'tall',
+    size: 'endurance-lean without bulk',
+    proportions: 'long legs, flat stomach, and wiry forearms',
+    posture: 'a light ready stance',
+    mark: 'long elegant fingers',
+  },
+  {
+    height: 'petite and short',
+    size: 'slim with little soft tissue',
+    proportions: 'a flat chest, angular hips, and skinny calves',
+    posture: 'a quiet contained posture',
+    mark: 'knobby knees',
+  },
+] as const;
+
+const recentIdentitySeeds: string[] = [];
+const MAX_RECENT_IDENTITIES = 16;
+
+function rememberIdentitySeed(seed: string): void {
+  const trimmed = seed.trim();
+  if (!trimmed) {
+    return;
+  }
+  const next = [trimmed, ...recentIdentitySeeds.filter(entry => entry !== trimmed)];
+  recentIdentitySeeds.length = 0;
+  recentIdentitySeeds.push(...next.slice(0, MAX_RECENT_IDENTITIES));
+}
+
+function pickAvoidingRecent(candidates: readonly string[]): string {
+  const fresh = candidates.filter(entry => !recentIdentitySeeds.includes(entry));
+  const pool = fresh.length > 0 ? fresh : [...candidates];
+  const chosen = pick(pool.length > 0 ? pool : ['a distinctive original person']);
+  rememberIdentitySeed(chosen);
+  return chosen;
+}
+
+function composeBodyBlock(): string {
+  const body = pick([...COMPOSE_BODY_ARCHETYPES]);
+  return `${body.height}, ${body.size}, ${body.proportions}, ${body.posture}, and ${body.mark}`;
+}
+
+function articleFor(word: string): 'a' | 'an' {
+  return /^[aeiou]/i.test(word.trim()) ? 'an' : 'a';
+}
+
+function composeCharacterSubject(gender: SubjectGender, allowMinimalHair = false): string {
+  const women = gender === 'women' || (gender === 'any' && Math.random() < 0.5);
+  const noun = women ? 'woman' : 'man';
+  const ancestry = pick([...COMPOSE_ANCESTRY]);
+  // Avoid "Latina man" / "Latino woman" mismatches.
+  const ancestryWord =
+    ancestry === 'Latina' && !women
+      ? 'Latino'
+      : ancestry === 'Latino' && women
+        ? 'Latina'
+        : ancestry;
+  const age = pick([...(women ? COMPOSE_AGE_WOMEN : COMPOSE_AGE_MEN)]);
+  const face = pick([...COMPOSE_FACE]);
+  let hair = pick([...(women ? COMPOSE_HAIR_WOMEN : COMPOSE_HAIR_MEN)]);
+  if (!allowMinimalHair && MINIMAL_HAIR_PATTERN.test(hair)) {
+    hair = women ? 'loose gray-streaked waves' : 'thick dark hair swept back';
+  }
+  const body = composeBodyBlock();
+  return `${articleFor(ancestryWord)} ${ancestryWord} ${noun} ${age} with ${face}, ${hair}, and a body that is ${body}`;
+}
 
 const ATHLETIC_IDENTITY_EXCLUDE =
   /\b(?:pregnant|school-age|child|kid|toddler|infant|monk|nun|girl with|boy with|elderly|older|retired|teenage|teen\b|grizzled|reading glasses)\b/i;
@@ -324,13 +558,14 @@ function filterIdentityPool(
 
 export function pickDistinctSubjects(count: number, gender: SubjectGender = 'any'): string[] {
   if (gender === 'mixed' && count >= 2) {
-    return shuffle([pick(SUBJECTS_MEN), pick(SUBJECTS_WOMEN)]).slice(0, 2);
+    return [composeCharacterSubject('men'), composeCharacterSubject('women')];
   }
 
-  const pool =
-    gender === 'women' ? SUBJECTS_WOMEN : gender === 'men' ? SUBJECTS_MEN : POOLS.subjects;
-
-  return shuffle(pool).slice(0, Math.min(count, pool.length));
+  const out: string[] = [];
+  for (let i = 0; i < count; i += 1) {
+    out.push(composeCharacterSubject(gender === 'any' ? (i % 2 === 0 ? 'women' : 'men') : gender));
+  }
+  return out;
 }
 
 function filterHairPreference(pool: readonly string[], allowMinimalHair: boolean): string[] {
@@ -345,14 +580,34 @@ export function pickCharacterSubject(
   gender: SubjectGender = 'any',
   allowMinimalHair = false
 ): string {
+  // Prefer composed identities so consecutive rolls do not collapse to the same 8 faces.
+  if (Math.random() < 0.72) {
+    const composed = composeCharacterSubject(gender, allowMinimalHair);
+    rememberIdentitySeed(composed);
+    return composed;
+  }
+
   const pool =
-    gender === 'women' ? SUBJECTS_WOMEN : gender === 'men' ? SUBJECTS_MEN : POOLS.subjects;
+    gender === 'women'
+      ? SUBJECTS_WOMEN
+      : gender === 'men'
+        ? SUBJECTS_MEN
+        : [...SUBJECTS_WOMEN, ...SUBJECTS_MEN];
 
   const filtered = filterHairPreference(pool, allowMinimalHair);
-  const fallback = filterHairPreference(POOLS.subjects, allowMinimalHair);
+  const fallback = filterHairPreference([...SUBJECTS_WOMEN, ...SUBJECTS_MEN], allowMinimalHair);
   const candidates = filtered.length > 0 ? filtered : fallback;
 
-  return pick(candidates.length > 0 ? candidates : [...POOLS.subjects]);
+  const base = pickAvoidingRecent(
+    candidates.length > 0 ? candidates : [...SUBJECTS_WOMEN, ...SUBJECTS_MEN]
+  );
+  // Curated face lines are face-heavy — always attach a concrete body block.
+  if (/\b(body that is|very short|petite and short|average height|very tall)\b/i.test(base)) {
+    return base;
+  }
+  const withBody = `${base}, with a body that is ${composeBodyBlock()}`;
+  rememberIdentitySeed(withBody);
+  return withBody;
 }
 
 function sessionNonce(): string {
