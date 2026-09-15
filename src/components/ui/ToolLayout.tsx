@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { memo } from 'react';
-import ToolEngineToggle, { useToolEngineSidebar } from '@/components/ToolEngineToggle';
+import { ToolEnginePopover } from '@/components/ToolEngineToggle';
 import {
   ToolPageHeader,
   ToolPageShell,
@@ -21,11 +21,11 @@ type ToolLayoutProps = {
   headerActions?: ReactNode;
   sidebar?: ReactNode;
   /**
-   * When set with a sidebar, hide Engine/Settings by default and reopen from the
-   * header toggle. Preference is persisted per key.
+   * When set with a sidebar, show Engine as a header popover instead of a
+   * persistent right column. The key is reserved for future per-tool prefs.
    */
   sidebarPersistKey?: string;
-  /** Default open when using sidebarPersistKey (default false). */
+  /** @deprecated Popover open state is ephemeral; ignored. */
   sidebarDefaultOpen?: boolean;
   sidebarTitle?: string | false;
   sidebarDescription?: string;
@@ -78,23 +78,29 @@ function ToolLayoutFrame({
   );
 }
 
-function CollapsibleToolLayout({
-  sidebarPersistKey,
-  sidebarDefaultOpen = false,
+function EnginePopoverToolLayout({
   sidebar,
   headerActions,
   sidebarTitle = TOOL_SIDEBAR_TITLE,
+  sidebarDescription = TOOL_SIDEBAR_DESCRIPTION,
+  sidebarPersistKey: _persistKey,
+  sidebarDefaultOpen: _defaultOpen,
   ...rest
-}: ToolLayoutProps & { sidebarPersistKey: string; sidebar: ReactNode }) {
-  const { engineOpen, setEngineOpen } = useToolEngineSidebar(sidebarPersistKey, sidebarDefaultOpen);
+}: ToolLayoutProps & { sidebar: ReactNode }) {
+  void _persistKey;
+  void _defaultOpen;
+  const title = sidebarTitle === false ? 'Engine' : sidebarTitle;
+  const description =
+    sidebarTitle === false ? 'Model, detail, and workflow for this tool.' : sidebarDescription;
   return (
     <ToolLayoutFrame
       {...rest}
-      sidebarTitle={engineOpen ? sidebarTitle : false}
-      sidebar={engineOpen ? sidebar : undefined}
+      sidebar={undefined}
       headerActions={
         <>
-          <ToolEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />
+          <ToolEnginePopover title={title} description={description}>
+            {sidebar}
+          </ToolEnginePopover>
           {headerActions}
         </>
       }
@@ -102,17 +108,11 @@ function CollapsibleToolLayout({
   );
 }
 
-/** Tool page chrome with optional collapsible Engine/Settings column. */
+/** Tool page chrome with optional Engine popover for Settings controls. */
 export const ToolLayout = memo(function ToolLayout(props: ToolLayoutProps) {
   void props.accent;
   if (props.sidebarPersistKey && props.sidebar) {
-    return (
-      <CollapsibleToolLayout
-        {...props}
-        sidebarPersistKey={props.sidebarPersistKey}
-        sidebar={props.sidebar}
-      />
-    );
+    return <EnginePopoverToolLayout {...props} sidebar={props.sidebar} />;
   }
   const { accent: _accent, sidebarPersistKey: _key, sidebarDefaultOpen: _def, ...frame } = props;
   void _accent;

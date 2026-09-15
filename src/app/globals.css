@@ -1069,6 +1069,80 @@ html[data-theme='light'] .ui-media-card:hover {
   text-transform: uppercase;
 }
 
+.play-engine-popover-root {
+  position: relative;
+  z-index: 40;
+}
+
+.play-engine-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  width: min(22.5rem, calc(100vw - 1.5rem));
+  max-height: min(70vh, 36rem);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border-strong));
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.play-engine-popover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0.85rem 0.95rem 0.7rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-elevated));
+}
+
+.play-engine-popover-title {
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.play-engine-popover-desc {
+  margin-top: 0.15rem;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.play-engine-popover-close {
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-muted);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.play-engine-popover-close:hover {
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.play-engine-popover-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.play-engine-popover-body {
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0.85rem 0.95rem 1rem;
+  overscroll-behavior: contain;
+}
+
 .ui-tool-header-row {
   display: flex;
   flex-direction: column;

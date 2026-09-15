@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { peekCollapsibleOpen, saveCollapsibleOpen } from '@/lib/collapsible-persist';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
@@ -50,6 +50,7 @@ type ToolEngineToggleProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   className?: string;
+  panelId?: string;
 };
 
 function EngineGlyph({ open }: { open: boolean }) {
@@ -83,11 +84,12 @@ function EngineGlyph({ open }: { open: boolean }) {
   );
 }
 
-/** Prominent control to show/hide the Engine Settings column. */
+/** Prominent control to show/hide the Engine Settings popover. */
 export default function ToolEngineToggle({
   open,
   onOpenChange,
   className = '',
+  panelId,
 }: ToolEngineToggleProps) {
   return (
     <button
@@ -95,6 +97,8 @@ export default function ToolEngineToggle({
       data-testid="play-engine-toggle"
       aria-pressed={open}
       aria-expanded={open}
+      aria-haspopup="dialog"
+      aria-controls={panelId}
       title={open ? 'Hide model and workflow settings' : 'Show model and workflow settings'}
       onClick={() => onOpenChange(!open)}
       className={`play-engine-toggle ${open ? 'play-engine-toggle-open' : ''} ${className}`.trim()}
@@ -105,7 +109,7 @@ export default function ToolEngineToggle({
       <span className="play-engine-toggle-copy">
         <span className="play-engine-toggle-label">{open ? 'Hide Engine' : 'Engine'}</span>
         <span className="play-engine-toggle-hint">
-          {open ? 'Settings column open' : 'Model & workflow'}
+          {open ? 'Close when done' : 'Model & workflow'}
         </span>
       </span>
       {!open ? (
@@ -114,6 +118,78 @@ export default function ToolEngineToggle({
         </span>
       ) : null}
     </button>
+  );
+}
+
+type ToolEnginePopoverProps = {
+  children: ReactNode;
+  title?: string;
+  description?: string;
+  className?: string;
+};
+
+/** Header-anchored Engine panel — full page stays wide; settings open on demand. */
+export function ToolEnginePopover({
+  children,
+  title = 'Engine',
+  description = 'Model, detail, and workflow for this tool.',
+  className = '',
+}: ToolEnginePopoverProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const panelId = useId();
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className={`play-engine-popover-root ${className}`.trim()}>
+      <ToolEngineToggle open={open} onOpenChange={setOpen} panelId={panelId} />
+      {open ? (
+        <div
+          id={panelId}
+          role="dialog"
+          aria-modal="false"
+          aria-label={title}
+          data-testid="play-engine-popover"
+          className="play-engine-popover"
+        >
+          <div className="play-engine-popover-header">
+            <div className="min-w-0">
+              <p className="play-engine-popover-title">{title}</p>
+              <p className="play-engine-popover-desc">{description}</p>
+            </div>
+            <button
+              type="button"
+              className="play-engine-popover-close"
+              onClick={() => setOpen(false)}
+            >
+              Done
+            </button>
+          </div>
+          <div className="play-engine-popover-body ui-sidebar-dense">{children}</div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
