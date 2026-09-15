@@ -71,6 +71,33 @@ export function fittingHasSessionPlate(cache: FittingToolCache | null | undefine
   return Boolean(cache?.referenceImageFilename?.trim() || cache?.referenceImageUrl?.trim());
 }
 
+/** Drop the Cast look plate so Look Extract can queue a fresh Outfit plate. */
+export function clearCharacterLookPlate(characterId?: string | null): boolean {
+  const id = characterId?.trim();
+  if (!id) {
+    return false;
+  }
+  const character = getCharacter(id);
+  if (!character) {
+    return false;
+  }
+  const look = activeLook(character);
+  if (!look.reference && !character.reference) {
+    return false;
+  }
+  const looks = (character.looks ?? [look]).map(entry =>
+    entry.id === look.id ? { ...entry, reference: undefined } : entry
+  );
+  upsertCharacter({
+    ...character,
+    reference: undefined,
+    looks,
+    activeLookId: look.id,
+    updatedAt: Date.now(),
+  });
+  return true;
+}
+
 function resolveTileImageUrl(source: { imageUrl?: string; filename?: string }): string | undefined {
   const direct = source.imageUrl?.trim();
   if (direct) {
@@ -146,6 +173,7 @@ export function assignOutfitPlateToCastAndFitting(input: {
     referenceOriginalUrl: imageUrl,
     referenceOriginalFilename: filename,
     pendingOutfitPlatePromptId: undefined,
+    suppressAutoPlateSeed: false,
   });
 
   return getCharacter(characterId) ?? null;
@@ -216,31 +244,40 @@ export async function ensureOutfitPlateAfterLook(input: {
   }
 
   const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
-  if (fittingHasSessionPlate(fitting) && !fitting.pendingOutfitPlatePromptId?.trim()) {
+  const forceNewPlate = fitting.suppressAutoPlateSeed === true;
+
+  // Session plate already set — skip unless the user cleared it to force a new Look plate.
+  if (
+    !forceNewPlate &&
+    fittingHasSessionPlate(fitting) &&
+    !fitting.pendingOutfitPlatePromptId?.trim()
+  ) {
     return 'skipped';
   }
 
-  let castPlate;
-  try {
-    castPlate = resolveFittingPlateFromCharacter(character);
-  } catch {
-    castPlate = null;
-  }
-  if (castPlate?.imageUrl?.trim() || castPlate?.filename?.trim()) {
-    if (!fittingHasSessionPlate(fitting)) {
-      const imageUrl =
-        castPlate.imageUrl?.trim() || resolveTileImageUrl({ filename: castPlate.filename }) || '';
-      if (imageUrl) {
-        assignOutfitPlateToCastAndFitting({
-          characterId,
-          imageUrl,
-          filename: castPlate.filename,
-          isolated: castPlate.isolated,
-        });
-        return 'ready';
-      }
+  if (!forceNewPlate) {
+    let castPlate;
+    try {
+      castPlate = resolveFittingPlateFromCharacter(character);
+    } catch {
+      castPlate = null;
     }
-    return 'skipped';
+    if (castPlate?.imageUrl?.trim() || castPlate?.filename?.trim()) {
+      if (!fittingHasSessionPlate(fitting)) {
+        const imageUrl =
+          castPlate.imageUrl?.trim() || resolveTileImageUrl({ filename: castPlate.filename }) || '';
+        if (imageUrl) {
+          assignOutfitPlateToCastAndFitting({
+            characterId,
+            imageUrl,
+            filename: castPlate.filename,
+            isolated: castPlate.isolated,
+          });
+          return 'ready';
+        }
+      }
+      return 'skipped';
+    }
   }
 
   const source = pickMoodboardPlateSource(input.tiles);
@@ -271,6 +308,7 @@ export async function ensureOutfitPlateAfterLook(input: {
       return 'failed';
     }
     setPendingOutfitPlatePromptId(id);
+    // Keep suppressAutoPlateSeed until the queued still attaches (or user uploads).
     return 'queued';
   } catch {
     return 'failed';
@@ -307,6 +345,7 @@ export function tryAttachPendingOutfitPlate(characterId?: string): boolean {
     referenceOriginalUrl: still.imageUrl,
     referenceOriginalFilename: still.filename,
     pendingOutfitPlatePromptId: undefined,
+    suppressAutoPlateSeed: false,
   });
   return true;
 }

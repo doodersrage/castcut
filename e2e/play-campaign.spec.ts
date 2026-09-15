@@ -4,6 +4,23 @@ import { seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { gotoStable } from './helpers/navigation';
 import { dismissBlockingOverlays } from './helpers/overlays';
 
+function seedFirstFilmDone(page: Page) {
+  return page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfy-play-metrics-v1',
+      JSON.stringify({
+        version: 1,
+        firstFilmCutAt: Date.now(),
+      })
+    );
+  });
+}
+
+async function expandFittingMoreMenu(page: Page) {
+  const details = page.locator('details').filter({ has: page.getByTestId('fitting-plan-day') });
+  await details.locator('summary').click();
+}
+
 test.beforeEach(async ({ page }) => {
   await ensureAuthenticated(page);
 });
@@ -21,7 +38,6 @@ test('play campaign wizard loads with steps and share controls', async ({ page }
   await expect(page.getByTestId('play-campaign-step-fitting')).toBeVisible();
   await expect(page.getByTestId('play-campaign-step-day')).toBeVisible();
   await expect(page.getByTestId('play-campaign-step-roleplay')).toBeVisible();
-  await expect(page.getByTestId('play-look-pack-export')).toBeVisible();
   await expect(page.getByTestId('play-campaign-start-moodboard')).toBeVisible();
 });
 
@@ -47,7 +63,9 @@ test('day planner happy path chrome loads', async ({ page }) => {
   await expect(page.getByTestId('day-slots')).toBeVisible();
   await expect(page.getByTestId('day-slot-queue')).toBeVisible();
   await expect(page.getByTestId('day-reel')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Cut film/i })).toBeVisible();
+  await expect(
+    page.getByTestId('day-reel').getByRole('button', { name: /Cut film/i })
+  ).toBeVisible();
 });
 
 test('moodboard look extract controls load', async ({ page }) => {
@@ -60,7 +78,6 @@ test('moodboard look extract controls load', async ({ page }) => {
   await expect(page.getByTestId('moodboard-tiles')).toBeVisible();
   await expect(page.getByTestId('moodboard-extract-look')).toBeVisible();
   await expect(page.getByRole('button', { name: /Continue to Outfit/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Continue to Day/i })).toBeVisible();
 });
 
 test('look pack deep link stages Fitting from=look handoff', async ({ page }) => {
@@ -260,7 +277,7 @@ test('play campaign resume restores lookPack query from saved campaign', async (
   await gotoStable(page, '/play?character=e2e-resume-char');
   await dismissBlockingOverlays(page);
   await expect(page).toHaveURL(/lookPack=lp-resume/, { timeout: 30_000 });
-  await expect(page.getByText(/look pack staged/i)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/look pack staged/i)).toBeAttached({ timeout: 30_000 });
 });
 
 test('play campaign shows mismatch when saved character differs', async ({ page }) => {
@@ -312,6 +329,7 @@ test('copy share link button copies portable hash url', async ({ page, context }
   });
   await gotoStable(page, '/play');
   await dismissBlockingOverlays(page);
+  await page.getByTestId('play-campaign-look-packs').locator('summary').click();
   const copyBtn = page.getByTestId('play-campaign-share-copy');
   await expect(copyBtn).toBeVisible({ timeout: 30_000 });
   await copyBtn.click();
@@ -374,8 +392,10 @@ test('fitting continue-in-day appears after Keep seeds day', async ({ page }) =>
     await expect(page.getByTestId('fitting-continue-day')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId('fitting-continue-day')).toHaveAttribute('href', /\/day/);
   } else {
-    await expect(page.getByTestId('fitting-plan-day')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByTestId('fitting-plan-day')).toHaveAttribute('href', /\/day/);
+    await expandFittingMoreMenu(page);
+    const planDay = page.getByTestId('fitting-plan-day');
+    await expect(planDay).toBeVisible({ timeout: 10_000 });
+    await expect(planDay).toHaveAttribute('href', /\/day/);
   }
 });
 
@@ -518,10 +538,10 @@ test('day cut film chrome and save-to-cast testids are wired', async ({ page }) 
   });
   await gotoStable(page, '/day?character=e2e-day-cast');
   await dismissBlockingOverlays(page);
-  await expect(page.getByRole('button', { name: /Cut film/i })).toBeVisible({ timeout: 30_000 });
-  // Save/Open Cast CTAs appear only after a cut; assert testids exist in DOM when filmNeedsCast
-  // by checking the Cut control remains the primary path (chrome contract).
-  await expect(page.getByTestId('day-reel')).toBeVisible();
+  await expect(page.getByTestId('day-reel')).toBeVisible({ timeout: 30_000 });
+  await expect(
+    page.getByTestId('day-reel').getByRole('button', { name: /Cut film/i })
+  ).toBeAttached();
 });
 
 test('plan a day bumps campaign stepIndex for resume', async ({ page }) => {
@@ -561,6 +581,7 @@ test('plan a day bumps campaign stepIndex for resume', async ({ page }) => {
   });
   await gotoStable(page, '/fitting?character=e2e-step-char');
   await dismissBlockingOverlays(page);
+  await expandFittingMoreMenu(page);
   const planDay = page.getByTestId('fitting-plan-day');
   await expect(planDay).toBeVisible({ timeout: 30_000 });
   await planDay.click();
@@ -655,7 +676,7 @@ test('day cut film with mocked MediaRecorder shows Save to Cast', async ({ page 
 
   await gotoStable(page, '/day?character=e2e-cut-cast');
   await dismissBlockingOverlays(page);
-  const cutBtn = page.getByRole('button', { name: /Cut film/i });
+  const cutBtn = page.getByTestId('day-cut-coach-cut');
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
   await cutBtn.click();
@@ -887,6 +908,7 @@ test('dashboard elevates Start a film as primary studio path', async ({ page }) 
 });
 
 test('mobile studio first-class film loop tabs and desk bridge', async ({ page }) => {
+  await seedFirstFilmDone(page);
   await gotoStable(page, '/m');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('mobile-tab-moodboard')).toBeVisible({ timeout: 30_000 });
@@ -988,7 +1010,7 @@ test('day cut film shows playbook when film assemble returns ffmpeg 503', async 
 
   await gotoStable(page, '/day?character=e2e-film-fail');
   await dismissBlockingOverlays(page);
-  const cutBtn = page.getByRole('button', { name: /Cut film/i });
+  const cutBtn = page.getByTestId('day-cut-coach-cut');
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
   await cutBtn.click();

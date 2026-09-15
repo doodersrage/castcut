@@ -73,6 +73,7 @@ import {
 } from '@/lib/look-pack';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
+  clearCharacterLookPlate,
   tryAttachPendingOutfitPlate,
 } from '@/lib/look-outfit-plate';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
@@ -160,6 +161,8 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
   } = ctx;
 
   const clearReference = useCallback(() => {
+    // Abort in-flight isolate/upload so a late applyReference cannot restore the plate.
+    isolateGenRef.current += 1;
     clearReferencePreview();
     updateToolSettings({
       referenceImageUrl: '',
@@ -171,8 +174,11 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       previewPlateUrl: undefined,
       previewPlateSourceKey: undefined,
       pendingOutfitPlatePromptId: undefined,
+      // Stop Cast auto-reseed; Look Extract can queue a fresh plate.
+      suppressAutoPlateSeed: true,
     });
-  }, [clearReferencePreview, updateToolSettings]);
+    clearCharacterLookPlate(shared.activeCharacterId);
+  }, [clearReferencePreview, isolateGenRef, shared.activeCharacterId, updateToolSettings]);
 
   const [garmentUploading, setGarmentUploading] = useState(false);
   const [garmentScanStatus, setGarmentScanStatus] = useState<string | null>(null);
@@ -437,6 +443,10 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     if (!mounted || hasReference || !shared.activeCharacterId) {
       return;
     }
+    // User cleared the plate — do not pull Cast look back in.
+    if (toolSettings.suppressAutoPlateSeed === true) {
+      return;
+    }
     const record = getCharacter(shared.activeCharacterId);
     let resolvedPlate;
     try {
@@ -456,7 +466,13 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
         /* plate may be missing — user can upload */
       });
     });
-  }, [applyReference, hasReference, mounted, shared.activeCharacterId]);
+  }, [
+    applyReference,
+    hasReference,
+    mounted,
+    shared.activeCharacterId,
+    toolSettings.suppressAutoPlateSeed,
+  ]);
 
   useEffect(() => {
     let cancelled = false;

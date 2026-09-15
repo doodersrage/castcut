@@ -983,6 +983,11 @@ export type FittingToolCache = {
   previewPlateSourceKey?: string;
   /** Look→Outfit: await this Comfy still, then stamp it as the try-on plate. */
   pendingOutfitPlatePromptId?: string;
+  /**
+   * User cleared the Outfit plate — do not auto-reseed from Cast, and let Look
+   * Extract queue a fresh plate instead of reusing the old Cast look reference.
+   */
+  suppressAutoPlateSeed?: boolean;
   /** Bring-your-own clothing photo (Image 2) — overrides kit packshot when set. */
   customGarmentImageUrl?: string;
   customGarmentImageFilename?: string;

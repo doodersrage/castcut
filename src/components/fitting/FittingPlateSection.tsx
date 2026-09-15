@@ -126,7 +126,11 @@ export default function FittingPlateSection({
           <Button variant="ghost" size="sm" disabled={busy} onClick={onClearReference}>
             Clear
           </Button>
-        ) : null}
+        ) : (
+          <p className="type-caption w-full text-[var(--text-muted)]">
+            Plate cleared — Extract look in Look to queue a new one, or upload / pick from Gallery.
+          </p>
+        )}
       </div>
       {isolateStatus ? (
         <p className="type-caption mt-2 text-[var(--text-muted)]">{isolateStatus}</p>

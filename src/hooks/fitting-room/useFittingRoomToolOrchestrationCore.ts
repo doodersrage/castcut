@@ -370,6 +370,7 @@ export function useFittingRoomToolOrchestrationCore() {
           previewPlateFilename: undefined,
           previewPlateUrl: undefined,
           previewPlateSourceKey: undefined,
+          suppressAutoPlateSeed: false,
         });
         if (!isolated && !queueUrl.startsWith('blob:')) {
           setReferencePreviewUrl(cacheBustIdentityMediaUrl(queueUrl));
