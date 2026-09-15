@@ -7,6 +7,7 @@ import { loadPlayMetrics, type PlayMetrics } from './play-metrics';
 import { loadPlayCampaignState } from './play-campaign';
 import { getCharacter } from './character-os';
 import { remixDayFilmHref } from './play-starter';
+import { loadSettingsCache } from './settings-cache';
 
 export const PLAY_HABIT_NUDGE_KEY = 'comfy-play-habit-nudge-v1';
 
@@ -58,11 +59,18 @@ export function resolvePlayHabitNudge(
     return null;
   }
   const campaign = loadPlayCampaignState();
-  const characterId = campaign?.characterId?.trim() || '';
-  const character = characterId ? getCharacter(characterId) : undefined;
-  const name = character?.name?.trim() || 'your Cast lead';
+  const sharedCharacterId = loadSettingsCache().shared.activeCharacterId?.trim() || '';
+  const characterId = campaign?.characterId?.trim() || sharedCharacterId;
+  if (!characterId) {
+    return null;
+  }
+  const character = getCharacter(characterId);
+  if (!character) {
+    return null;
+  }
+  const name = character.name?.trim() || 'your Cast lead';
   return {
-    characterId: characterId || 'unknown',
+    characterId,
     characterName: name,
     href: remixDayFilmHref(characterId),
     hoursSinceCut: Math.floor(elapsed / (1000 * 60 * 60)),

@@ -94,10 +94,23 @@ export default function RoleplayStorySection({
           <p className="type-overline text-[var(--tint-success-text)]">First film</p>
           <p className="type-heading mt-1 text-[var(--text-primary)]">You cut your first reel</p>
           <p className="type-caption mt-1 text-[var(--text-muted)]">
-            Watch on Cast is next — share the cut or queue another Day with the same look.
+            {filmNeedsCast
+              ? 'Save the cut to Cast first — then Watch opens automatically.'
+              : 'Watch on Cast opens next — or share / cut another Story reel.'}
           </p>
           <ToolActionRow className="mt-3">
-            {filmCharacterId ? (
+            {filmNeedsCast && onSaveToCast ? (
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={busy || assemblingFilm}
+                onClick={onSaveToCast}
+                data-testid="story-save-film-cast"
+              >
+                Save film to Cast
+              </Button>
+            ) : null}
+            {filmCharacterId && !filmNeedsCast ? (
               <ButtonLink
                 href={`/characters/${encodeURIComponent(filmCharacterId)}?media=films`}
                 size="sm"

@@ -302,9 +302,6 @@ export function usePlayCampaignWizardOrchestration({
       setStatus('Pick a Cast character first.');
       return;
     }
-    void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
-      markOnboardingWatchFirstFilm();
-    });
     clearPlayCampaignState();
     setStepOverride(null);
     goToStep('moodboard', activeLookPack);

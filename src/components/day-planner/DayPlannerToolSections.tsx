@@ -113,16 +113,17 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const showCutCoach = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
 
   useEffect(() => {
-    if (!firstCutCelebrate || !character?.id || softAdvanceArmedRef.current) {
+    if (!firstCutCelebrate || !character?.id || filmNeedsCast || softAdvanceArmedRef.current) {
       return;
     }
     softAdvanceArmedRef.current = true;
     setSoftAdvance({
       href: `/characters/${encodeURIComponent(character.id)}?media=films`,
       label: 'Watch',
+      message: 'Opening Watch on Cast',
       nonce: Date.now(),
     });
-  }, [character?.id, firstCutCelebrate]);
+  }, [character?.id, filmNeedsCast, firstCutCelebrate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -186,10 +187,33 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           <p className="type-overline text-[var(--tint-success-text)]">First film</p>
           <p className="type-heading mt-1 text-[var(--text-primary)]">You cut your first reel</p>
           <p className="type-caption mt-1 text-[var(--text-muted)]">
-            Watch on Cast is next — share the cut or queue another Day with the same look.
+            {filmNeedsCast
+              ? 'Save the cut to Cast first — then Watch opens automatically.'
+              : 'Watch on Cast opens next — or stay here to replay / share / cut another Day.'}
           </p>
           <ToolActionRow className="mt-3">
-            {character ? (
+            {filmNeedsCast ? (
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={busy || assemblingFilm}
+                onClick={saveFilmToCast}
+                data-testid="day-save-film-cast"
+              >
+                Save film to Cast
+              </Button>
+            ) : null}
+            {filmNeedsCast && !character ? (
+              <ButtonLink
+                href="/characters"
+                size="sm"
+                variant="secondary"
+                data-testid="day-pick-cast"
+              >
+                Pick Cast character
+              </ButtonLink>
+            ) : null}
+            {character && !filmNeedsCast ? (
               <ButtonLink
                 href={`/characters/${encodeURIComponent(character.id)}?media=films`}
                 size="sm"
@@ -637,7 +661,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             className="type-caption text-[var(--text-muted)]"
             data-testid="day-reel-celebrate-hint"
           >
-            Use the celebration above for Watch / Share / next Day — the reel stays here to replay.
+            {softAdvance
+              ? 'Cancel the countdown above to stay and replay this reel.'
+              : 'Use Save / Watch above — the reel stays here to replay.'}
           </p>
         ) : (
           <ToolActionRow>

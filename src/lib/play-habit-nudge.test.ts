@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { resetBrowserStorageCache } from './browser-storage';
+import { upsertCharacter, createBlankCharacter } from './character-os';
+import { savePlayCampaignState } from './play-campaign';
 import {
   PLAY_HABIT_NUDGE_KEY,
   dismissPlayHabitNudge,
@@ -40,6 +42,19 @@ function installStorage() {
   return storage;
 }
 
+function seedCampaignCharacter(name = 'Nudge Lead') {
+  const record = createBlankCharacter(name);
+  upsertCharacter(record);
+  const saved = record;
+  savePlayCampaignState({
+    version: 1,
+    characterId: saved.id,
+    stepIndex: 3,
+    updatedAt: Date.now(),
+  });
+  return saved;
+}
+
 describe('play habit nudge', () => {
   it('returns null before first cut or within 24h', () => {
     installStorage();
@@ -51,14 +66,23 @@ describe('play habit nudge', () => {
     assert.equal(resolvePlayHabitNudge(recent), null);
   });
 
+  it('returns null after 24h when no Cast character is available', () => {
+    installStorage();
+    const cutAt = Date.now() - 1000 * 60 * 60 * 30;
+    assert.equal(resolvePlayHabitNudge({ version: 1, firstFilmCutAt: cutAt }), null);
+  });
+
   it('nudges after 24h and respects dismiss until next cut', () => {
     installStorage();
+    const character = seedCampaignCharacter();
     const cutAt = Date.now() - 1000 * 60 * 60 * 30;
     const metrics: PlayMetrics = { version: 1, firstFilmCutAt: cutAt };
     const nudge = resolvePlayHabitNudge(metrics);
     assert.ok(nudge);
+    assert.equal(nudge!.characterId, character.id);
     assert.ok(nudge!.hoursSinceCut >= 24);
     assert.match(nudge!.href, /\/day/);
+    assert.match(nudge!.href, new RegExp(`character=${encodeURIComponent(character.id)}`));
 
     dismissPlayHabitNudge(cutAt + 1000);
     assert.equal(resolvePlayHabitNudge(metrics), null);
@@ -68,7 +92,6 @@ describe('play habit nudge', () => {
       firstFilmCutAt: cutAt,
       lastFilmCutAt: cutAt + 1000 * 60 * 60 * 48,
     };
-    // Dismiss was before the later cut — nudge again after another 24h from later cut.
     assert.equal(
       resolvePlayHabitNudge(laterCut, laterCut.lastFilmCutAt! + 1000 * 60 * 60 * 12),
       null

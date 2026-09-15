@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   galleryEntryHeroPreviewUrl,
@@ -17,6 +17,8 @@ import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui-live-preview-store';
+import { resolveStudioEmptyCta } from '@/lib/empty-cta';
+import { toMobileStudioHref } from '@/lib/mobile-studio';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { subscribeSharedHealth, type RawHealthResponse } from '@/lib/shared-health-poll';
 
@@ -101,14 +103,18 @@ export default function MobileQueueTool() {
     }
   }, [active, refresh]);
 
+  const filmCta = useMemo(() => resolveStudioEmptyCta(), []);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="mobile-queue">
       <div className="space-y-1">
         <h1 className="type-display text-2xl tracking-tight">Queue</h1>
         <p className="text-sm text-[var(--text-secondary)]">
           {health?.ok
-            ? `${health.queueRunning ?? 0} running · ${health.queuePending ?? 0} pending`
-            : (health?.error ?? 'Checking ComfyUI…')}
+            ? `Comfy ready · ${health.queueRunning ?? 0} running · ${health.queuePending ?? 0} waiting`
+            : health?.error
+              ? `Comfy: ${health.error}`
+              : 'Watch jobs while Day stills render.'}
         </p>
       </div>
 
@@ -122,9 +128,33 @@ export default function MobileQueueTool() {
       </div>
 
       {active.length === 0 ? (
-        <p className="rounded-2xl border border-[var(--border-subtle)] px-4 py-8 text-center text-sm text-[var(--text-muted)]">
-          Nothing in flight. Capture a plate and Play a beat to queue a still.
-        </p>
+        <div
+          className="space-y-3 rounded-2xl border border-[var(--border-subtle)] px-4 py-8 text-center"
+          data-testid="mobile-queue-empty"
+        >
+          <p className="text-sm text-[var(--text-muted)]">
+            Nothing in flight. Continue your film on Day, or wait here while stills queue. Demo
+            stills work offline if Comfy is down.
+          </p>
+          <ButtonLink
+            href={toMobileStudioHref(filmCta.href)}
+            size="sm"
+            variant="primary"
+            className="justify-center"
+            data-testid="mobile-queue-empty-cta"
+          >
+            {filmCta.label}
+          </ButtonLink>
+          <ButtonLink
+            href="/m/day"
+            size="sm"
+            variant="secondary"
+            className="justify-center"
+            data-testid="mobile-queue-open-day"
+          >
+            Open Day
+          </ButtonLink>
+        </div>
       ) : (
         <ul className="space-y-2">
           {active.map(entry => {

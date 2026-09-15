@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 export type PlaySoftAdvanceTarget = {
   href: string;
   label: string;
+  /** Override countdown copy (defaults to “Continuing to {label}…”). */
+  message?: string;
   /** Bump to restart the countdown for the same href. */
   nonce: number;
 };
@@ -40,11 +42,13 @@ export default function PlaySoftAdvanceBanner({ target, onCancel }: PlaySoftAdva
     return () => {
       window.clearInterval(timer);
     };
-  }, [router, target?.href, target?.label, target?.nonce]);
+  }, [router, target?.href, target?.label, target?.message, target?.nonce]);
 
   if (!target?.href) {
     return null;
   }
+
+  const lead = target.message?.trim() || `Continuing to ${target.label}`;
 
   return (
     <div
@@ -53,7 +57,7 @@ export default function PlaySoftAdvanceBanner({ target, onCancel }: PlaySoftAdva
       role="status"
     >
       <p className="type-caption text-[var(--text-primary)]">
-        Continuing to {target.label} in {secondsLeft}s…
+        {lead} in {secondsLeft}s…
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         <Button

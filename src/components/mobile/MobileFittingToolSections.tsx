@@ -12,7 +12,7 @@ import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
-import { toMobileStudioHref } from '@/lib/mobile-studio';
+import { toMobileStudioHref, withCharacterQuery } from '@/lib/mobile-studio';
 import {
   countWardrobeOptionsForFilter,
   normalizeWardrobeCategoryFilter,
@@ -144,7 +144,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
             Capture one
           </Link>
           <Link
-            href="/m/moodboard"
+            href={withCharacterQuery('/m/moodboard', shared.activeCharacterId)}
             className="ui-btn-secondary mt-2 inline-flex w-full justify-center text-sm"
           >
             Or open Look

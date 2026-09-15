@@ -9,13 +9,17 @@ import { looksLikeVideoUrl } from '@/lib/roleplay-film';
 export default function FilmWatchPlayer({
   shots,
   emptyLabel = 'No playable shots yet.',
+  onWatchStart,
 }: {
   shots: FilmPlaylistShot[];
   emptyLabel?: string;
+  /** Fires once when the user starts watching (honest Watch-step proof). */
+  onWatchStart?: () => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const holdTimer = useRef<number>(0);
+  const watchStartedRef = useRef(false);
   const playlistKey = shots.map(item => `${item.entryId ?? ''}:${item.url}:${item.kind}`).join('|');
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -25,6 +29,9 @@ export default function FilmWatchPlayer({
     setIndex(0);
     setPlaying(false);
   }
+  useEffect(() => {
+    watchStartedRef.current = false;
+  }, [playlistKey]);
   const shot = shots[index];
   const htmlVideo = Boolean(shot?.kind === 'clip' && looksLikeVideoUrl(shot.url));
 
@@ -75,6 +82,10 @@ export default function FilmWatchPlayer({
       if (video && video.ended) {
         setIndex(0);
       }
+    }
+    if (!watchStartedRef.current) {
+      watchStartedRef.current = true;
+      onWatchStart?.();
     }
     setPlaying(true);
   };

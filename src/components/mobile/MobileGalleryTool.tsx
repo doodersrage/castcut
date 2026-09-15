@@ -20,6 +20,7 @@ import {
   roleplayPatchFromPlate,
   toMobileStudioHref,
   upsertCharacterPlate,
+  withCharacterQuery,
 } from '@/lib/mobile-studio';
 import { remixDayFilmHref } from '@/lib/play-starter';
 import {
@@ -74,13 +75,14 @@ export default function MobileGalleryTool() {
     : null;
 
   useEffect(() => {
-    if (!filmMode || entries.length === 0) {
+    if (!filmMode || entries.length === 0 || !selectedUrl) {
       return;
     }
+    // Honest Watch step — only when a film is actually on screen autoplaying.
     void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
       markOnboardingWatchFirstFilm();
     });
-  }, [entries.length, filmMode]);
+  }, [entries.length, filmMode, selectedUrl]);
 
   const openInPlay = (entry: ComfyGalleryEntry) => {
     const url = galleryEntryPrimaryViewUrl(entry) || galleryEntryPrimaryThumbUrl(entry);
@@ -139,7 +141,11 @@ export default function MobileGalleryTool() {
                 Same look, new Day
               </ButtonLink>
             ) : (
-              <ButtonLink href="/m/day" size="sm" variant="secondary">
+              <ButtonLink
+                href={withCharacterQuery('/m/day', characterId)}
+                size="sm"
+                variant="secondary"
+              >
                 Open Day
               </ButtonLink>
             )}

@@ -118,6 +118,24 @@ export function dayToolHref(searchParams: string, pathname?: string | null): str
   return query ? `${base}?${query}` : base;
 }
 
+/** Append `character=` when missing so mobile handoffs keep Cast context. */
+export function withCharacterQuery(href: string, characterId?: string | null): string {
+  const id = characterId?.trim();
+  if (!id) {
+    return href;
+  }
+  const hashIndex = href.indexOf('#');
+  const withoutHash = hashIndex >= 0 ? href.slice(0, hashIndex) : href;
+  const hash = hashIndex >= 0 ? href.slice(hashIndex) : '';
+  const [path, query = ''] = withoutHash.split('?');
+  const params = new URLSearchParams(query);
+  if (!params.get('character')?.trim()) {
+    params.set('character', id);
+  }
+  const next = params.toString();
+  return `${path}${next ? `?${next}` : ''}${hash}`;
+}
+
 export function normalizeCharacterPlate(value: unknown): CharacterPlate | null {
   if (!value || typeof value !== 'object') {
     return null;
