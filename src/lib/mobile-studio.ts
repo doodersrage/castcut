@@ -72,6 +72,18 @@ export function toMobileStudioHref(href: string): string {
   const qIndex = withoutHash.indexOf('?');
   const path = qIndex >= 0 ? withoutHash.slice(0, qIndex) : withoutHash;
   const query = qIndex >= 0 ? withoutHash.slice(qIndex) : '';
+
+  // Cast character detail → phone Gallery films (Watch on Cast soft-advance).
+  const characterMatch = path.match(/^\/characters\/([^/]+)\/?$/);
+  if (characterMatch) {
+    const characterId = decodeURIComponent(characterMatch[1]);
+    const params = new URLSearchParams(query.startsWith('?') ? query.slice(1) : '');
+    if (params.get('media') === 'films') {
+      return `/m/gallery?character=${encodeURIComponent(characterId)}&derivedKind=film${hash}`;
+    }
+    return `/m${hash}`;
+  }
+
   const map: Record<string, string> = {
     '/play': '/m/day',
     '/fitting': '/m/fitting',

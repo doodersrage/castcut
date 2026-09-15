@@ -4,6 +4,7 @@ import { useCallback, useRef, useState, type MutableRefObject } from 'react';
 import {
   assembleAndStampFilm,
   downloadFilmBlob,
+  shareFilmBlob,
   stampAssembledFilm,
 } from '@/lib/character-film-assemble';
 import { roleplayWatchPlaylist } from '@/lib/character-film';
@@ -171,6 +172,22 @@ export function useRoleplayFilmActions(input: {
     })();
   }, [input.toolSettings]);
 
+  const shareLastCut = useCallback(async () => {
+    const film = assembledFilmRef.current;
+    if (!film) {
+      setError('Cut a film first, then share or download.');
+      return;
+    }
+    const bytes = new Uint8Array(film.data);
+    const blob = new Blob([bytes], { type: 'video/mp4' });
+    try {
+      const shared = await shareFilmBlob(blob, film.filename);
+      setFilmStatus(shared ? `Shared ${film.filename}.` : `Downloaded ${film.filename}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not share the film.');
+    }
+  }, []);
+
   return {
     assemblingFilm,
     filmStatus,
@@ -178,6 +195,7 @@ export function useRoleplayFilmActions(input: {
     filmCharacterId,
     cutRoleplayFilm,
     saveFilmToCast,
+    shareLastCut,
     filmError: error,
     filmGuideHref,
     assembledFilmRef,

@@ -97,6 +97,7 @@ export function useMobilePlayToolOrchestrationCore() {
     filmCharacterId,
     cutRoleplayFilm,
     saveFilmToCast,
+    shareLastCut,
     filmError,
     filmGuideHref,
   } = useRoleplayFilmActions({
@@ -472,6 +473,7 @@ export function useMobilePlayToolOrchestrationCore() {
     filmCharacterId,
     cutRoleplayFilm,
     saveFilmToCast,
+    shareLastCut,
     filmError,
     filmGuideHref,
     actions,

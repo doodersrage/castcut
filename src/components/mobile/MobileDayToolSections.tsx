@@ -17,6 +17,7 @@ import {
   resolveQueueFailureGuideLabel,
 } from '@/lib/queue-failure-playbook';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { toMobileStudioHref } from '@/lib/mobile-studio';
 import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
 import {
   countWardrobeOptionsForFilter,
@@ -85,7 +86,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         return;
       }
       setSoftAdvance({
-        href: `/characters/${encodeURIComponent(character.id)}?media=films`,
+        href: toMobileStudioHref(`/characters/${encodeURIComponent(character.id)}?media=films`),
         label: 'Watch on Cast',
         nonce: Date.now(),
       });
@@ -123,7 +124,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
           <div className="mt-3 grid gap-2">
             {character ? (
               <Link
-                href={`/characters/${encodeURIComponent(character.id)}?media=films`}
+                href={toMobileStudioHref(
+                  `/characters/${encodeURIComponent(character.id)}?media=films`
+                )}
                 className="ui-btn-primary w-full justify-center text-center text-sm"
                 data-testid="day-first-cut-watch"
                 onClick={() => {
@@ -534,7 +537,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
                   Same look, new Day
                 </Button>
                 <Link
-                  href={`/characters/${encodeURIComponent(character.id)}?media=films`}
+                  href={toMobileStudioHref(
+                    `/characters/${encodeURIComponent(character.id)}?media=films`
+                  )}
                   className="ui-btn-primary w-full justify-center text-center text-sm"
                   data-testid="day-open-cast-film"
                   onClick={() => {

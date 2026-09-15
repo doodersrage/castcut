@@ -141,7 +141,7 @@ export default function HomeDashboard() {
         <OnboardingChecklist />
         <PlayHabitNudgeBanner />
         <div className="flex flex-wrap items-center gap-2">
-          <PlayContinueChip hideWhenIdle={false} />
+          <PlayContinueChip hideWhenIdle={false} hideWhenHabit />
         </div>
         <PlayFilmMetricsCard />
       </div>

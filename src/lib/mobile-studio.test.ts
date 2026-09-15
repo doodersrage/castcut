@@ -50,6 +50,11 @@ describe('mobile studio paths', () => {
     assert.equal(toMobileStudioHref('/gallery'), '/m/gallery');
     assert.equal(toMobileStudioHref('/queue'), '/m/queue');
     assert.equal(toMobileStudioHref('/characters'), '/m');
+    assert.equal(
+      toMobileStudioHref('/characters/c1?media=films'),
+      '/m/gallery?character=c1&derivedKind=film'
+    );
+    assert.equal(toMobileStudioHref('/characters/c1'), '/m');
   });
 });
 

@@ -1,8 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
+import PlaySoftAdvanceBanner, {
+  type PlaySoftAdvanceTarget,
+} from '@/components/PlaySoftAdvanceBanner';
 import { Button, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import type { useMoodboardToolOrchestration } from '@/hooks/useMoodboardToolOrchestration';
@@ -21,6 +25,7 @@ type ViewModel = ReturnType<typeof useMoodboardToolOrchestration>;
 
 export default function MobileMoodboardToolSections(vm: ViewModel) {
   const router = useRouter();
+  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
   const {
     shared,
     toolSettings,
@@ -77,6 +82,12 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
           Stack look tiles, extract a pack, hand off to Fitting or Day.
         </p>
       </div>
+
+      <PlaySoftAdvanceBanner
+        key={softAdvance?.nonce ?? 'idle'}
+        target={softAdvance}
+        onCancel={() => setSoftAdvance(null)}
+      />
 
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
         <CharacterOsPicker
@@ -228,7 +239,25 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         <PrimaryButton
           disabled={busy || extracting}
           loading={extracting}
-          onClick={() => void extractLookPack()}
+          onClick={() => {
+            void extractLookPack().then(pack => {
+              if (!pack) {
+                return;
+              }
+              markOnboardingFirstPlayCampaign();
+              if (pack.characterId) {
+                bumpPlayCampaignStep({
+                  characterId: pack.characterId,
+                  stepId: 'fitting',
+                });
+              }
+              setSoftAdvance({
+                href: toMobileStudioHref(lookPackFittingHref(pack)),
+                label: 'Outfit',
+                nonce: Date.now(),
+              });
+            });
+          }}
           className="w-full justify-center"
           data-testid="mobile-moodboard-extract"
         >

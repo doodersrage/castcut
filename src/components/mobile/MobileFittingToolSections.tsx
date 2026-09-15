@@ -1,8 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
+import PlaySoftAdvanceBanner, {
+  type PlaySoftAdvanceTarget,
+} from '@/components/PlaySoftAdvanceBanner';
 import { Button, PrimaryButton } from '@/components/ui/Button';
 import { FieldError, FieldLabel, SelectInput } from '@/components/ui/Field';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
@@ -18,6 +21,7 @@ import {
 type ViewModel = ReturnType<typeof useFittingRoomToolOrchestration>;
 
 export default function MobileFittingToolSections(vm: ViewModel) {
+  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
   const {
     shared,
     toolSettings,
@@ -77,6 +81,12 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           Swipe kits on a locked plate. Keep a winner, then continue in Day.
         </p>
       </div>
+
+      <PlaySoftAdvanceBanner
+        key={softAdvance?.nonce ?? 'idle'}
+        target={softAdvance}
+        onCancel={() => setSoftAdvance(null)}
+      />
 
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
         <CharacterOsPicker
@@ -294,7 +304,16 @@ export default function MobileFittingToolSections(vm: ViewModel) {
                     variant="primary"
                     disabled={busy}
                     data-testid="fitting-keep"
-                    onClick={() => keepTryOn(tryOn)}
+                    onClick={() => {
+                      const href = keepTryOn(tryOn);
+                      if (href) {
+                        setSoftAdvance({
+                          href: toMobileStudioHref(href),
+                          label: 'Day',
+                          nonce: Date.now(),
+                        });
+                      }
+                    }}
                     className="justify-center"
                   >
                     Keep

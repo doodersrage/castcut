@@ -12,7 +12,7 @@ import {
   formatRoleplayBio,
   MAX_ROLEPLAY_CHARACTER_NAME,
 } from '@/lib/roleplay';
-import { roleplayPatchFromPlate } from '@/lib/mobile-studio';
+import { roleplayPatchFromPlate, toMobileStudioHref } from '@/lib/mobile-studio';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
@@ -49,6 +49,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
     filmCharacterId,
     cutRoleplayFilm,
     saveFilmToCast,
+    shareLastCut,
     filmError,
     filmGuideHref,
     hasReferenceImage,
@@ -297,6 +298,17 @@ export default function MobilePlayToolSections({ description: _description, ...v
         >
           Cut film
         </PrimaryButton>
+        {filmStatus && !assemblingFilm ? (
+          <Button
+            variant="secondary"
+            disabled={bioLoading}
+            onClick={() => void shareLastCut()}
+            className="w-full justify-center"
+            data-testid="roleplay-share-cut"
+          >
+            Share cut
+          </Button>
+        ) : null}
         <Button
           variant="secondary"
           disabled={bioLoading || assemblingFilm || (!filmNeedsCast && !filmStatus)}
@@ -308,7 +320,9 @@ export default function MobilePlayToolSections({ description: _description, ...v
         </Button>
         {filmCharacterId && filmStatus && !assemblingFilm ? (
           <Link
-            href={`/characters/${encodeURIComponent(filmCharacterId)}?media=films`}
+            href={toMobileStudioHref(
+              `/characters/${encodeURIComponent(filmCharacterId)}?media=films`
+            )}
             className="ui-btn-ghost w-full justify-center text-center text-sm"
             data-testid="roleplay-open-cast-film"
             onClick={() => {
@@ -322,7 +336,9 @@ export default function MobilePlayToolSections({ description: _description, ...v
         ) : null}
         {filmCharacterId && filmStatus && !assemblingFilm ? (
           <Link
-            href={`/gallery?character=${encodeURIComponent(filmCharacterId)}&derivedKind=film`}
+            href={toMobileStudioHref(
+              `/gallery?character=${encodeURIComponent(filmCharacterId)}&derivedKind=film`
+            )}
             className="ui-btn-ghost w-full justify-center text-center text-sm"
             data-testid="roleplay-open-gallery"
           >

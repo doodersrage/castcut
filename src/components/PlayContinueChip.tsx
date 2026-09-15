@@ -13,6 +13,7 @@ import {
 import { loadLocalObservability } from '@/lib/local-observability';
 import { loadOnboardingState, ONBOARDING_UPDATED_EVENT } from '@/lib/onboarding-store';
 import { loadLookPack } from '@/lib/look-pack';
+import { resolvePlayHabitNudge } from '@/lib/play-habit-nudge';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 
 type PlayContinueChipProps = {
@@ -21,6 +22,8 @@ type PlayContinueChipProps = {
   variant?: 'primary' | 'secondary' | 'ghost';
   /** Hide when there is no campaign/funnel progress. */
   hideWhenIdle?: boolean;
+  /** Hide when the 24h habit nudge is showing (Dashboard owns that voice). */
+  hideWhenHabit?: boolean;
 };
 
 /** Shared Continue CTA used by kiosk, Gallery, Queue, Dashboard, and Mobile Studio. */
@@ -28,12 +31,18 @@ export default function PlayContinueChip({
   className = '',
   variant = 'primary',
   hideWhenIdle = true,
+  /** When habit owns the 24h remix voice (Dashboard), hide this chip. */
+  hideWhenHabit = false,
 }: PlayContinueChipProps) {
   const pathname = usePathname();
   const [cta, setCta] = useState<{ label: string; href: string } | null>(null);
 
   useEffect(() => {
     const refresh = () => {
+      if (hideWhenHabit && resolvePlayHabitNudge()) {
+        setCta(null);
+        return;
+      }
       const metrics = loadPlayMetrics();
       const campaign = loadPlayCampaignState();
       const funnel = loadLocalObservability();
@@ -73,7 +82,7 @@ export default function PlayContinueChip({
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
     };
-  }, [hideWhenIdle, pathname]);
+  }, [hideWhenHabit, hideWhenIdle, pathname]);
 
   if (!cta) {
     return null;

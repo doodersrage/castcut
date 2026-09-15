@@ -14,8 +14,10 @@ export type RoleplayFilmCutActionsProps = {
   filmStatus: string | null | undefined;
   filmError?: string | null;
   filmGuideHref?: string | null;
+  canShareCut?: boolean;
   onCutFilm: () => void;
   onSaveToCast: () => void;
+  onShareCut?: () => void;
   /** Optional leading controls (e.g. Download story) kept in the same flex row. */
   children?: ReactNode;
 };
@@ -29,8 +31,10 @@ export default function RoleplayFilmCutActions({
   filmStatus,
   filmError,
   filmGuideHref,
+  canShareCut = false,
   onCutFilm,
   onSaveToCast,
+  onShareCut,
   children,
 }: RoleplayFilmCutActionsProps) {
   return (
@@ -46,6 +50,16 @@ export default function RoleplayFilmCutActions({
         >
           Cut film
         </Button>
+        {canShareCut && onShareCut && filmStatus && !assemblingFilm ? (
+          <Button
+            variant="ghost"
+            disabled={busy}
+            onClick={onShareCut}
+            data-testid="roleplay-share-cut"
+          >
+            Share cut
+          </Button>
+        ) : null}
         {filmNeedsCast ? (
           <Button
             variant="ghost"

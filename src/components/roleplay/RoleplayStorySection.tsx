@@ -23,6 +23,8 @@ export type RoleplayStorySectionProps = {
   downloadAction: ReactNode;
   onCutFilm: () => void;
   onSaveToCast: () => void;
+  onShareCut?: () => void;
+  canShareCut?: boolean;
   onQueue: (beat: RoleplayStoryBeat) => void;
   onRetry: (beat: RoleplayStoryBeat) => void;
   onRetryClip: (beat: RoleplayStoryBeat) => void;
@@ -51,6 +53,8 @@ export default function RoleplayStorySection({
   downloadAction,
   onCutFilm,
   onSaveToCast,
+  onShareCut,
+  canShareCut = false,
   onQueue,
   onRetry,
   onRetryClip,
@@ -86,6 +90,8 @@ export default function RoleplayStorySection({
         filmGuideHref={filmGuideHref}
         onCutFilm={onCutFilm}
         onSaveToCast={onSaveToCast}
+        onShareCut={onShareCut}
+        canShareCut={canShareCut}
       >
         {downloadAction}
       </RoleplayFilmCutActions>
