@@ -27,8 +27,6 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
     () => false
   );
 
-  const showAdvancedLooks = true;
-
   return (
     <div data-testid="play-campaign">
       <ToolLayout
@@ -167,10 +165,10 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
           </>
         )}
 
-        {showAdvancedLooks ? (
+        {firstFilmDone || props.savedLookPacks.length > 0 || props.activeLookPack ? (
           <details
             className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2"
-            open={firstFilmDone || Boolean(props.activeLookPack) || props.savedLookPacks.length > 0}
+            data-testid="play-campaign-look-packs"
           >
             <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
               Look packs · share &amp; import

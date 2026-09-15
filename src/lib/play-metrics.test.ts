@@ -66,7 +66,7 @@ describe('play-metrics', () => {
       watchedFirstFilm: true,
     });
     assert.equal(again.label, 'Cut another Day film');
-    assert.equal(again.href, '/day?character=c1');
+    assert.equal(again.href, '/day?character=c1&from=look&remix=1&autoqueue=1');
   });
 
   it('detects funnel stall before first film cut', () => {

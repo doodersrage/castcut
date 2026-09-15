@@ -11,6 +11,7 @@ import { parseCharacterHints } from '@/lib/character-hints';
 import {
   assembleAndStampFilm,
   downloadFilmBlob,
+  shareFilmBlob,
   stampAssembledFilm,
 } from '@/lib/character-film-assemble';
 import { filmDownloadFilename } from '@/lib/character-film';
@@ -57,6 +58,7 @@ import {
   saveLookPack,
 } from '@/lib/look-pack';
 import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play-campaign';
+import { applyRemixDayFilmState } from '@/lib/play-starter';
 import { buildDemoDayStills } from '@/lib/welcome-sample-film';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
@@ -129,6 +131,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
 
   const [firstCutCelebrate, setFirstCutCelebrate] = useState(false);
   const starterAutoQueueRef = useRef(false);
+  const remixAppliedRef = useRef(false);
   const autoCutRef = useRef(false);
   const pendingAutoCutRef = useRef(false);
 
@@ -398,12 +401,89 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     });
   }, [setError, setFilmStatus, updateToolSettings, stillsRef]);
 
+  const shareLastCut = useCallback(async () => {
+    const film = assembledFilmRef.current;
+    if (!film) {
+      setError('Cut a film first, then share or download.');
+      return;
+    }
+    const bytes = new Uint8Array(film.data);
+    const blob = new Blob([bytes], { type: 'video/mp4' });
+    try {
+      const shared = await shareFilmBlob(blob, film.filename);
+      setFilmStatus(shared ? `Shared ${film.filename}.` : `Downloaded ${film.filename}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not share the film.');
+    }
+  }, [assembledFilmRef, setError, setFilmStatus]);
+
+  const remixSameLookDay = useCallback(() => {
+    if (!character?.id) {
+      setError('Pick a Cast character before starting a new Day.');
+      return;
+    }
+    applyRemixDayFilmState();
+    const next = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+    stillsRef.current = [];
+    updateToolSettings({
+      slots: next.slots,
+      stills: [],
+      notes: next.notes,
+    });
+    setFirstCutCelebrate(false);
+    setFilmStatus('Same look · new Day — queueing fresh stills…');
+    setError(null);
+    autoCutRef.current = false;
+    pendingAutoCutRef.current = false;
+    starterAutoQueueRef.current = false;
+    void queueAll().finally(() => {
+      pendingAutoCutRef.current = true;
+    });
+  }, [character?.id, queueAll, setError, setFilmStatus, stillsRef, updateToolSettings]);
+
+  useEffect(() => {
+    if (!mounted || remixAppliedRef.current || typeof window === 'undefined') {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('remix') !== '1') {
+      return;
+    }
+    remixAppliedRef.current = true;
+    let cancelled = false;
+    scheduleAfterCommit(() => {
+      if (cancelled) {
+        return;
+      }
+      applyRemixDayFilmState();
+      const next = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+      stillsRef.current = [];
+      updateToolSettings({
+        slots: next.slots,
+        stills: [],
+        notes: next.notes,
+      });
+      setFirstCutCelebrate(false);
+      setFilmStatus('Same look · new Day — ready for fresh stills.');
+      autoCutRef.current = false;
+      params.delete('remix');
+      params.set('autocut', '1');
+      const nextQuery = params.toString();
+      router.replace(nextQuery ? `/day?${nextQuery}` : '/day');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, router, setFilmStatus, stillsRef, updateToolSettings]);
+
   useEffect(() => {
     if (!mounted || starterAutoQueueRef.current || typeof window === 'undefined') {
       return;
     }
     const params = new URLSearchParams(window.location.search);
-    if (params.get('starter') !== '1' || params.get('autoqueue') !== '1') {
+    const jumpIn =
+      params.get('starter') === '1' || params.get('remix') === '1' || params.get('autocut') === '1';
+    if (!jumpIn || params.get('autoqueue') !== '1') {
       return;
     }
     starterAutoQueueRef.current = true;
@@ -412,14 +492,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     });
     void queueAll().finally(() => {
       params.delete('autoqueue');
-      // Keep starter=1 so auto-cut can fire when stills land; add autocut hint.
       params.set('autocut', '1');
       const next = params.toString();
       router.replace(next ? `/day?${next}` : '/day');
     });
   }, [mounted, queueAll, router]);
 
-  // Auto-cut when all four Day stills complete (starter / demo / explicit autocut).
+  // Auto-cut when all four Day stills complete (starter / demo / remix / explicit autocut).
   useEffect(() => {
     if (!mounted || assemblingFilm || autoCutRef.current) {
       return;
@@ -433,7 +512,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     }
     const params = new URLSearchParams(window.location.search);
     const shouldAutoCut =
-      pendingAutoCutRef.current || params.get('starter') === '1' || params.get('autocut') === '1';
+      pendingAutoCutRef.current ||
+      params.get('starter') === '1' ||
+      params.get('autocut') === '1' ||
+      params.get('remix') === '1';
     if (!shouldAutoCut) {
       return;
     }
@@ -451,6 +533,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     animateAllClips,
     cutDayFilm,
     saveFilmToCast,
+    shareLastCut,
+    remixSameLookDay,
     goRoleplay,
     seedDemoStills,
     firstCutCelebrate,

@@ -5,6 +5,7 @@ import { loadNavFavorites } from './nav-favorites';
 import { loadOnboardingState } from './onboarding-store';
 import { loadPlayCampaignState } from './play-campaign';
 import { loadPlayMetrics, resolveNextPlayAction } from './play-metrics';
+import { loadLookPack } from './look-pack';
 import { loadWorkspaceMode } from './workspace-mode';
 
 export type EmptyCta = {
@@ -109,7 +110,13 @@ export function resolveWelcomeLandingCta(): EmptyCta {
     const watchedFirstFilm = loadOnboardingState().some(
       step => step.id === 'watch-first-film' && step.done
     );
-    const next = resolveNextPlayAction({ metrics, funnel, campaign, watchedFirstFilm });
+    const next = resolveNextPlayAction({
+      metrics,
+      funnel,
+      campaign,
+      watchedFirstFilm,
+      lookPack: loadLookPack(),
+    });
     return { label: next.label, href: next.href };
   }
 

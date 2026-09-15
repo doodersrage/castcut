@@ -6,6 +6,7 @@
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import type { LookPack } from './look-pack';
 import { lookPackDayHref, lookPackFittingHref, lookPackRoleplayHref } from './look-pack';
+import { countCachedCompletedDayStills, remixDayFilmHref } from './play-starter';
 
 export const PLAY_METRICS_KEY = 'comfy-play-metrics-v1';
 
@@ -225,8 +226,8 @@ export function resolveNextPlayAction(input: {
     }
     return {
       label: 'Cut another Day film',
-      href: resolvePlayFunnelStepHref('day', characterId, pack),
-      reason: 'Loop closed — cut another Day film or start a new campaign from Play.',
+      href: remixDayFilmHref(characterId),
+      reason: 'Same look, new Day — clear stills and queue a fresh reel.',
     };
   }
 
@@ -247,6 +248,21 @@ export function resolveNextPlayAction(input: {
     };
     // Before first film, Roleplay is optional — steer to Day cut instead.
     const resumeId = id === 'roleplay' ? 'day' : id;
+    const dayProgress = resumeId === 'day' ? countCachedCompletedDayStills() : 0;
+    if (resumeId === 'day' && dayProgress > 0 && dayProgress < 4) {
+      return {
+        label: `Finish Day · ${dayProgress} of 4`,
+        href: resolvePlayFunnelStepHref('day', characterId, pack),
+        reason: `${dayProgress} stills ready — Cut film or wait for the rest.`,
+      };
+    }
+    if (resumeId === 'day' && dayProgress >= 4) {
+      return {
+        label: 'Cut film · 4 of 4',
+        href: resolvePlayFunnelStepHref('day', characterId, pack),
+        reason: 'All Day stills ready — Cut film.',
+      };
+    }
     return {
       label: labels[id],
       href: resolvePlayFunnelStepHref(resumeId, characterId, pack),
@@ -255,16 +271,41 @@ export function resolveNextPlayAction(input: {
   }
 
   if (starts > 0 && cuts === 0) {
+    const dayProgress = countCachedCompletedDayStills();
+    const dayHref = resolvePlayFunnelStepHref('day', characterId || undefined, pack);
+    if (dayProgress > 0 && dayProgress < 4) {
+      return {
+        label: `Finish Day · ${dayProgress} of 4`,
+        href: dayHref,
+        reason: `${dayProgress} stills ready — Cut film or wait for the rest.`,
+      };
+    }
+    if (dayProgress >= 4) {
+      return {
+        label: 'Cut film · 4 of 4',
+        href: dayHref,
+        reason: 'All Day stills ready — Cut film.',
+      };
+    }
     return {
       label: 'Continue to Day',
-      href: resolvePlayFunnelStepHref('day', characterId || undefined, pack),
+      href: dayHref,
       reason: 'Film started — queue Day stills and Cut film.',
     };
   }
   if (keeps > 0 && cuts === 0) {
+    const dayProgress = countCachedCompletedDayStills();
+    const dayHref = resolvePlayFunnelStepHref('day', characterId || undefined, pack);
+    if (dayProgress > 0 && dayProgress < 4) {
+      return {
+        label: `Finish Day · ${dayProgress} of 4`,
+        href: dayHref,
+        reason: `${dayProgress} stills ready — Cut film or wait for the rest.`,
+      };
+    }
     return {
       label: 'Continue to Day',
-      href: resolvePlayFunnelStepHref('day', characterId || undefined, pack),
+      href: dayHref,
       reason: 'Outfit kept — queue Day stills and Cut film.',
     };
   }
@@ -281,12 +322,14 @@ export function resolveNextPlayAction(input: {
     return {
       label: watched ? 'Cut another Day film' : 'Watch film on Cast',
       href: watched
-        ? resolvePlayFunnelStepHref('day', characterId || undefined, pack)
+        ? characterId
+          ? remixDayFilmHref(characterId)
+          : '/day'
         : characterId
           ? `/characters/${encodeURIComponent(characterId)}?media=films`
           : '/characters',
       reason: watched
-        ? 'Habit loop — queue another Day reel or open Play for a new campaign.'
+        ? 'Same look, new Day — queue a fresh reel.'
         : 'Film saved — open Cast to watch, then cut another.',
     };
   }

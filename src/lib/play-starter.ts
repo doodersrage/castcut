@@ -19,6 +19,7 @@ import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_MOODBOARD_TOOL_CACHE,
   loadSettingsCache,
+  loadToolSettings,
   saveSharedSettings,
   saveToolSettings,
   type DayToolCache,
@@ -153,6 +154,50 @@ export function startStarterPlayFilm(input?: {
     characterName: record.name,
     href: `/day?${params.toString()}`,
   };
+}
+
+/**
+ * Clear Day stills and reseed slot beats while keeping Cast + wardrobe.
+ * Call before navigating to {@link remixDayFilmHref}, or from Day when `?remix=1`.
+ */
+export function applyRemixDayFilmState(): void {
+  const existing = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  const previousSlots = Array.isArray(existing.slots) ? existing.slots : DEFAULT_DAY_SLOTS;
+  const reseeds = starterSlots().map(slot => {
+    const prior = previousSlots.find(entry => entry.id === slot.id);
+    return {
+      ...slot,
+      wardrobeId: prior?.wardrobeId?.trim() || slot.wardrobeId,
+    };
+  });
+  saveToolSettings('day', {
+    ...existing,
+    slots: reseeds,
+    stills: [],
+    notes: 'Same look · new Day — queue fresh stills, then Cut film.',
+  });
+}
+
+/** Deep link for same-look / new-Day remix (clears stills on Day mount). */
+export function remixDayFilmHref(characterId: string, options?: { autoQueue?: boolean }): string {
+  const id = characterId.trim();
+  const params = new URLSearchParams();
+  if (id) {
+    params.set('character', id);
+  }
+  params.set('from', 'look');
+  params.set('remix', '1');
+  if (options?.autoQueue !== false) {
+    params.set('autoqueue', '1');
+  }
+  return `/day?${params.toString()}`;
+}
+
+/** Completed Day stills currently in the tool cache (survives navigation). */
+export function countCachedCompletedDayStills(): number {
+  const stills = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE).stills ?? [];
+  return stills.filter(entry => entry.status === 'completed' && Boolean(entry.imageUrl?.trim()))
+    .length;
 }
 
 /** Build a portable starter look without persisting (for previews / tests). */

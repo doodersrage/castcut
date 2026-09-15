@@ -31,9 +31,13 @@ import {
 } from '@/lib/wardrobe-catalog-ui';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
-import { useMemo, useState } from 'react';
+import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { useEffect, useMemo, useState } from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
+import PlaySoftAdvanceBanner, {
+  type PlaySoftAdvanceTarget,
+} from '@/components/PlaySoftAdvanceBanner';
 const ACCENT = 'teal' as const;
 const TOOL_ID = 'day' as const;
 
@@ -86,9 +90,60 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     leanChrome,
     seedDemoStills,
     firstCutCelebrate,
+    shareLastCut,
+    remixSameLookDay,
   } = vm;
   const [sampleWatch, setSampleWatch] = useState(false);
+  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+  const [jumpInMode, setJumpInMode] = useState(false);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
+  const slotTotal = slots.length || 4;
+  const collapseEditors =
+    leanChrome && (jumpInMode || busy || assemblingFilm || completedShotCount > 0);
+  const showCutCoach = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    let cancelled = false;
+    scheduleAfterCommit(() => {
+      if (cancelled) {
+        return;
+      }
+      const params = new URLSearchParams(window.location.search);
+      setJumpInMode(
+        params.get('starter') === '1' ||
+          params.get('remix') === '1' ||
+          params.get('autocut') === '1' ||
+          params.get('autoqueue') === '1'
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!firstCutCelebrate || !character?.id) {
+      return;
+    }
+    let cancelled = false;
+    scheduleAfterCommit(() => {
+      if (cancelled) {
+        return;
+      }
+      setSoftAdvance({
+        href: `/characters/${encodeURIComponent(character.id)}?media=films`,
+        label: 'Watch on Cast',
+        nonce: Date.now(),
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [firstCutCelebrate, character?.id]);
+
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -116,6 +171,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       sidebarTitle={leanChrome ? false : undefined}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.day} />
+      <PlaySoftAdvanceBanner
+        key={softAdvance?.nonce ?? 'idle'}
+        target={softAdvance}
+        onCancel={() => setSoftAdvance(null)}
+      />
       {firstCutCelebrate ? (
         <div
           className="rounded-[var(--radius-lg)] border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-4 py-3"
@@ -124,7 +184,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           <p className="type-overline text-[var(--tint-success-text)]">First film</p>
           <p className="type-heading mt-1 text-[var(--text-primary)]">You cut your first reel</p>
           <p className="type-caption mt-1 text-[var(--text-muted)]">
-            Watch it on Cast, open Story for optional beats, or queue another Day.
+            Watch on Cast is next — share the cut or queue another Day with the same look.
           </p>
           <ToolActionRow className="mt-3">
             {character ? (
@@ -132,7 +192,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 href={`/characters/${encodeURIComponent(character.id)}?media=films`}
                 size="sm"
                 variant="primary"
+                data-testid="day-first-cut-watch"
                 onClick={() => {
+                  setSoftAdvance(null);
                   void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
                     markOnboardingWatchFirstFilm();
                   });
@@ -141,27 +203,87 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 Watch on Cast
               </ButtonLink>
             ) : null}
+            <Button
+              size="sm"
+              variant="secondary"
+              data-testid="day-first-cut-share"
+              onClick={() => void shareLastCut()}
+            >
+              Share cut
+            </Button>
+            {character ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                data-testid="day-first-cut-remix"
+                onClick={remixSameLookDay}
+              >
+                Same look, new Day
+              </Button>
+            ) : null}
             {character ? (
               <ButtonLink
                 href={`/roleplay?character=${encodeURIComponent(character.id)}`}
                 size="sm"
-                variant="secondary"
+                variant="ghost"
                 data-testid="day-first-cut-story"
               >
-                Open Story
+                Optional: Story
               </ButtonLink>
             ) : null}
-            <ButtonLink href="/play" size="sm" variant="ghost">
-              Back to Film
-            </ButtonLink>
           </ToolActionRow>
         </div>
       ) : null}
 
-      <ToolSection
+      {showCutCoach ? (
+        <div
+          className="sticky top-20 z-30 rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--bg-elevated)] px-4 py-3 shadow-[var(--shadow-card)]"
+          data-testid="day-cut-coach"
+          role="status"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="type-overline text-[var(--accent-text)]">Ready to cut</p>
+              <p className="type-heading text-[var(--text-primary)]">
+                Cut film · {completedShotCount} of {slotTotal}
+              </p>
+              <p className="type-caption text-[var(--text-muted)]">
+                {completedShotCount < slotTotal
+                  ? 'Cut with what you have, or wait for the rest of the day.'
+                  : 'All stills ready — cut the reel.'}
+              </p>
+            </div>
+            <ToolActionRow>
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={busy || assemblingFilm}
+                data-testid="day-cut-coach-cut"
+                onClick={() => void cutDayFilm()}
+              >
+                {assemblingFilm ? 'Cutting…' : 'Cut film'}
+              </Button>
+              {completedShotCount < slotTotal ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  data-testid="day-cut-coach-queue"
+                  onClick={() => void queueAll()}
+                >
+                  Queue rest
+                </Button>
+              ) : null}
+            </ToolActionRow>
+          </div>
+        </div>
+      ) : null}
+
+      <CollapsibleSection
         title="Character"
-        description="Same Cast lead as Look, Outfit, and Story."
-        data-testid="day-character"
+        summary="Cast lead for Look, Outfit, and Story."
+        defaultOpen={!collapseEditors}
+        persistKey="day-character-lean"
       >
         <CharacterOsPicker
           shared={shared}
@@ -183,7 +305,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             No Cast plate yet — stills queue as text scenes. Add a look in Cast or open Outfit.
           </p>
         )}
-      </ToolSection>
+      </CollapsibleSection>
 
       <ToolSection
         title="Day progress"
@@ -256,10 +378,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         </ol>
       </ToolSection>
 
-      <ToolSection
+      <CollapsibleSection
         title="Day slots"
-        description="Morning → night. Pick kit, setting, and beat per slot."
-        data-testid="day-slots"
+        summary="Morning → night. Kit, setting, and beat per slot."
+        defaultOpen={!collapseEditors}
+        persistKey="day-slots-lean"
       >
         <div className="flex flex-wrap gap-2">
           {slots.map(slot => {
@@ -446,7 +569,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             </Button>
           </ToolActionRow>
         </CollapsibleSection>
-      </ToolSection>
+      </CollapsibleSection>
 
       <CollapsibleSection
         title="Day notes"
@@ -518,6 +641,26 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             >
               Pick Cast character
             </ButtonLink>
+          ) : null}
+          {character && filmStatus && !assemblingFilm ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              data-testid="day-share-cut"
+              onClick={() => void shareLastCut()}
+            >
+              Share cut
+            </Button>
+          ) : null}
+          {character && filmStatus && !assemblingFilm ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              data-testid="day-remix-day"
+              onClick={remixSameLookDay}
+            >
+              Same look, new Day
+            </Button>
           ) : null}
           {character && filmStatus && !assemblingFilm ? (
             <ButtonLink

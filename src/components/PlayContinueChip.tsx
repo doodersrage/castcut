@@ -12,6 +12,7 @@ import {
 } from '@/lib/play-metrics';
 import { loadLocalObservability } from '@/lib/local-observability';
 import { loadOnboardingState, ONBOARDING_UPDATED_EVENT } from '@/lib/onboarding-store';
+import { loadLookPack } from '@/lib/look-pack';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 
 type PlayContinueChipProps = {
@@ -54,6 +55,7 @@ export default function PlayContinueChip({
         funnel,
         campaign,
         watchedFirstFilm: watched,
+        lookPack: loadLookPack(),
       });
       const href = isMobileStudioPath(pathname) ? toMobileStudioHref(next.href) : next.href;
       setCta({ label: next.label, href });
