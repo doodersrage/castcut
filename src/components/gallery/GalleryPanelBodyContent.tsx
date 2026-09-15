@@ -210,6 +210,8 @@ export default function GalleryPanelBodyContent({
         pageRangeEnd={browse.pageRangeEnd}
         setPage={browse.setPage}
         scrollToEntryId={review.reviewFocusEntry?.id ?? browse.filter.focusEntryId?.trim() ?? null}
+        derivedKind={browse.filter.derivedKind}
+        characterId={browse.filter.characterId}
       />
 
       {browse.filter.reviewMode && review.reviewFocusEntry ? (

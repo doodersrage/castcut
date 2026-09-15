@@ -83,6 +83,7 @@ type ViewModel = ReturnType<typeof useMoodboardToolOrchestration>;
 type Props = ViewModel & { description: string };
 
 export default function MoodboardToolSections({ description, ...vm }: Props) {
+  const router = useRouter();
   const {
     mounted,
     shared,
@@ -198,7 +199,11 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
                 updateToolSettings({ tiles: tilesNext });
                 const pack = lookPackFromPreset(preset, character?.id);
                 saveLookPack(pack);
-                void sendLookToDay();
+                void sendLookToDay().then(href => {
+                  if (href) {
+                    router.push(href);
+                  }
+                });
               }}
             >
               {preset.label} → Day
@@ -422,17 +427,20 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
           size="sm"
           variant="secondary"
           disabled={busy || extracting}
-          onClick={() => void sendLookToFitting()}
+          onClick={() => {
+            void sendLookToFitting().then(href => {
+              if (!href) {
+                return;
+              }
+              setSoftAdvance({
+                href,
+                label: 'Outfit',
+                nonce: Date.now(),
+              });
+            });
+          }}
         >
           Continue to Outfit
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={busy || extracting}
-          onClick={() => void sendLookToDay()}
-        >
-          Continue to Day
         </Button>
         <Button size="sm" variant="ghost" disabled={busy || extracting} onClick={previewPrompt}>
           Preview prompt
@@ -447,9 +455,23 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         </Button>
         <details className="w-full">
           <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-            More · Roleplay, save, export
+            More · Day skip, Story, save, export
           </summary>
           <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy || extracting}
+              onClick={() => {
+                void sendLookToDay().then(href => {
+                  if (href) {
+                    router.push(href);
+                  }
+                });
+              }}
+            >
+              Continue to Day
+            </Button>
             <Button
               size="sm"
               variant="secondary"

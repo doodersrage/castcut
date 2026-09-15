@@ -80,7 +80,7 @@ export default function FittingCompareSection({
         </div>
         {continueDayHref ? (
           <div className="mt-3">
-            <ButtonLink href={continueDayHref} size="sm" variant="primary">
+            <ButtonLink href={continueDayHref} size="sm" variant="ghost">
               Continue in Day
             </ButtonLink>
           </div>

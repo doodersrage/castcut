@@ -720,29 +720,31 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       </ToolSection>
 
       <ToolActionRow>
-        {character ? (
+        {!firstCutCelebrate && character ? (
           <>
             <ButtonLink
               href={`/fitting?character=${encodeURIComponent(character.id)}${
                 fittingWardrobe ? `&wardrobe=${encodeURIComponent(fittingWardrobe)}` : ''
               }`}
               size="sm"
-              variant="secondary"
+              variant="ghost"
             >
-              Try on in Fitting
+              Open Outfit
             </ButtonLink>
             <ButtonLink
               href={`/moodboard?character=${encodeURIComponent(character.id)}`}
               size="sm"
-              variant="secondary"
+              variant="ghost"
             >
-              Set look (Moodboard)
+              Open Look
             </ButtonLink>
           </>
         ) : null}
-        <Button size="sm" variant="ghost" disabled={busy} onClick={goRoleplay}>
-          Optional: Story
-        </Button>
+        {!firstCutCelebrate ? (
+          <Button size="sm" variant="ghost" disabled={busy} onClick={goRoleplay}>
+            Optional: Story
+          </Button>
+        ) : null}
       </ToolActionRow>
       {error ? (
         <div className="space-y-2">

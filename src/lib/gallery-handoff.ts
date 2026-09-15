@@ -332,13 +332,13 @@ export function galleryPickPurposeLabel(target: GalleryHandoffPayload['target'])
     case 'mesh':
       return 'Mesh reference';
     case 'roleplay':
-      return 'Roleplay character';
+      return 'Story character';
     case 'fitting':
-      return 'Fitting Room plate';
+      return 'Outfit plate';
     case 'day':
-      return 'Day Planner reference';
+      return 'Day reference';
     case 'moodboard':
-      return 'Moodboard tile';
+      return 'Look tile';
     default:
       return 'tool reference';
   }
@@ -367,13 +367,13 @@ export function galleryPickActionLabel(target: GalleryHandoffPayload['target']):
     case 'promptEditor':
       return 'Use for Prompt Editor';
     case 'roleplay':
-      return 'Use for Roleplay';
+      return 'Use for Story';
     case 'fitting':
-      return 'Use for Fitting Room';
+      return 'Use for Outfit';
     case 'day':
-      return 'Use for Day Planner';
+      return 'Use for Day';
     case 'moodboard':
-      return 'Use for Moodboard';
+      return 'Use for Look';
     default:
       return 'Use this image';
   }

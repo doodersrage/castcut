@@ -128,7 +128,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
       input.setOutput(finalized);
       rememberDraftFields({
         toolKey: TOOL_ID,
-        label: 'Fitting Room',
+        label: 'Outfit',
         href: '/fitting',
         fields: [input.character?.name ?? '', input.shared.lockedWardrobeId ?? '', finalized],
       });

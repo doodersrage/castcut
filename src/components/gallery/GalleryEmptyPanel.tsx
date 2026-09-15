@@ -6,18 +6,78 @@ import PlayContinueChip from '@/components/PlayContinueChip';
 import { ButtonLink } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
 import { resolveStudioEmptyCta } from '@/lib/empty-cta';
+import { remixDayFilmHref } from '@/lib/play-starter';
 
 type GalleryEmptyPanelProps = {
   filtered: boolean;
   onClearFilters: () => void;
   onUpload?: () => void;
+  /** When Gallery is filtered to films, offer Cut/Remix instead of only Clear. */
+  derivedKind?: string | null;
+  characterId?: string | null;
 };
 
 export default function GalleryEmptyPanel({
   filtered,
   onClearFilters,
   onUpload,
+  derivedKind,
+  characterId,
 }: GalleryEmptyPanelProps) {
+  const filmFilter = filtered && derivedKind === 'film';
+  const castId = characterId?.trim() || '';
+
+  if (filmFilter) {
+    return (
+      <div className="space-y-3" data-testid="gallery-film-empty">
+        <EmptyState
+          icon="inbox"
+          title="No films yet"
+          description={
+            castId
+              ? 'Cut a Day film for this cast, or remix the same look with fresh stills.'
+              : 'Cut a Day film, then open Cast or Gallery to watch it.'
+          }
+          action={{
+            label: 'Clear film filter',
+            onClick: onClearFilters,
+          }}
+        />
+        <div className="flex flex-wrap gap-2">
+          {castId ? (
+            <ButtonLink
+              href={remixDayFilmHref(castId)}
+              size="sm"
+              variant="primary"
+              data-testid="gallery-film-empty-remix"
+            >
+              Same look, new Day
+            </ButtonLink>
+          ) : (
+            <ButtonLink
+              href="/day"
+              size="sm"
+              variant="primary"
+              data-testid="gallery-film-empty-day"
+            >
+              Open Day
+            </ButtonLink>
+          )}
+          {castId ? (
+            <ButtonLink
+              href={`/day?character=${encodeURIComponent(castId)}`}
+              size="sm"
+              variant="secondary"
+            >
+              Plan a day
+            </ButtonLink>
+          ) : null}
+          <PlayContinueChip variant="secondary" />
+        </div>
+      </div>
+    );
+  }
+
   if (filtered) {
     return (
       <EmptyState

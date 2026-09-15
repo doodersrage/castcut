@@ -194,7 +194,7 @@ export function useFittingRoomToolOrchestrationCore() {
 
   useSeedToolDraft(mounted, {
     toolKey: TOOL_ID,
-    label: 'Fitting Room',
+    label: 'Outfit',
     href: '/fitting',
     fields: [shared.lockedWardrobeId, toolSettings.notes, character?.name],
   });

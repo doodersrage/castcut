@@ -207,6 +207,19 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onCancel={() => setSoftAdvance(null)}
       />
 
+      {compareTryOns.length > 0 && !softAdvance ? (
+        <div
+          className="rounded-[var(--radius-md)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-3 py-2"
+          data-testid="fitting-keep-coach"
+          role="status"
+        >
+          <p className="type-overline text-[var(--accent-text)]">Ready to keep</p>
+          <p className="type-caption text-[var(--text-muted)]">
+            Keep a winner to seed Day — continuing starts after Keep.
+          </p>
+        </div>
+      ) : null}
+
       <FittingCharacterSection
         shared={shared}
         characterHints={character?.hints}
@@ -274,14 +287,14 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         compareTryOns={compareTryOns}
         leanChrome={leanChrome}
         busy={busy}
-        continueDayHref={continueDayHref}
+        continueDayHref={softAdvance ? null : continueDayHref}
         onKeepTryOn={keepTryOn}
         onSoftAdvance={href => setSoftAdvance({ href, label: 'Day', nonce: Date.now() })}
         onSkipKit={skipKit}
       />
 
       <FittingActionRow
-        continueDayHref={continueDayHref}
+        continueDayHref={softAdvance ? null : continueDayHref}
         dayPlannerHref={dayPlannerHref}
         queueBlocked={queueBlocked}
         swipeDeckLength={swipeDeck.length}

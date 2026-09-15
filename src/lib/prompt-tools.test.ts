@@ -2063,9 +2063,11 @@ describe("gallery handoff", () => {
     assert.equal(parseGalleryPickTarget("video"), "video");
     assert.equal(parseGalleryPickTarget("bogus"), null);
     assert.equal(galleryHandoffHomePath("roleplay"), "/roleplay");
-    assert.equal(galleryPickActionLabel("roleplay"), "Use for Roleplay");
+    assert.equal(galleryPickActionLabel("roleplay"), "Use for Story");
     assert.equal(galleryHandoffHomePath("video"), "/video");
     assert.equal(galleryPickActionLabel("video"), "Use for Video");
+    assert.equal(galleryPickActionLabel("fitting"), "Use for Outfit");
+    assert.equal(galleryPickActionLabel("moodboard"), "Use for Look");
   });
 });
 

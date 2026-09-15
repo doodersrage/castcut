@@ -259,29 +259,29 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
     shared.lockedWardrobeId,
   ]);
 
-  const sendLookToFitting = useCallback(async () => {
+  const sendLookToFitting = useCallback(async (): Promise<string | null> => {
     const pack = await ensureLookPackForHandoff();
     if (!pack) {
-      return;
+      return null;
     }
     markOnboardingFirstPlayCampaign();
     if (pack.characterId) {
       bumpPlayCampaignStep({ characterId: pack.characterId, stepId: 'fitting' });
     }
-    router.push(lookPackFittingHref(pack));
-  }, [ensureLookPackForHandoff, router]);
+    return lookPackFittingHref(pack);
+  }, [ensureLookPackForHandoff]);
 
-  const sendLookToDay = useCallback(async () => {
+  const sendLookToDay = useCallback(async (): Promise<string | null> => {
     const pack = await ensureLookPackForHandoff();
     if (!pack) {
-      return;
+      return null;
     }
     markOnboardingFirstPlayCampaign();
     if (pack.characterId) {
       bumpPlayCampaignStep({ characterId: pack.characterId, stepId: 'day' });
     }
-    router.push(lookPackDayHref(pack));
-  }, [ensureLookPackForHandoff, router]);
+    return lookPackDayHref(pack);
+  }, [ensureLookPackForHandoff]);
 
   const sendLookToRoleplay = useCallback(async () => {
     const pack = await ensureLookPackForHandoff();

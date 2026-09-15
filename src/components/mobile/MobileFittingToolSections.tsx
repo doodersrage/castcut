@@ -138,7 +138,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
             href="/m/moodboard"
             className="ui-btn-secondary mt-2 inline-flex w-full justify-center text-sm"
           >
-            Or set look on Moodboard
+            Or open Look
           </Link>
         </div>
       )}
@@ -348,7 +348,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
       ) : null}
 
       <div className="grid gap-2">
-        {mobileContinueDay ? (
+        {mobileContinueDay && !softAdvance ? (
           <Link
             href={mobileContinueDay}
             className="ui-btn-primary w-full justify-center text-center"

@@ -44,6 +44,8 @@ type GalleryPanelGridSectionProps = {
   pageRangeEnd: number;
   setPage: (page: number) => void;
   scrollToEntryId?: string | null;
+  derivedKind?: string | null;
+  characterId?: string | null;
 };
 
 export default function GalleryPanelGridSection({
@@ -73,6 +75,8 @@ export default function GalleryPanelGridSection({
   pageRangeEnd,
   setPage,
   scrollToEntryId = null,
+  derivedKind = null,
+  characterId = null,
 }: GalleryPanelGridSectionProps) {
   return (
     <>
@@ -81,6 +85,8 @@ export default function GalleryPanelGridSection({
           filtered={entriesLength > 0}
           onClearFilters={clearGalleryFilters}
           onUpload={onUpload}
+          derivedKind={derivedKind}
+          characterId={characterId}
         />
       ) : (
         <GalleryDisplayGrid

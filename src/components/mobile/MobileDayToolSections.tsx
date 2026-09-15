@@ -559,29 +559,34 @@ export default function MobileDayToolSections(vm: ViewModel) {
         {filmStatus ? <p className="type-caption text-[var(--text-muted)]">{filmStatus}</p> : null}
       </div>
 
-      <div className="grid gap-2">
-        {character ? (
-          <>
-            <Link
-              href={`/m/fitting?character=${encodeURIComponent(character.id)}${
-                fittingWardrobe ? `&wardrobe=${encodeURIComponent(fittingWardrobe)}` : ''
-              }`}
-              className="ui-btn-ghost w-full justify-center text-center text-sm"
-            >
-              Try on in Fitting
-            </Link>
-            <Link
-              href={`/m/moodboard?character=${encodeURIComponent(character.id)}`}
-              className="ui-btn-ghost w-full justify-center text-center text-sm"
-            >
-              Set look (Moodboard)
-            </Link>
-            <Link href="/m/play" className="ui-btn-ghost w-full justify-center text-center text-sm">
-              Continue in Play
-            </Link>
-          </>
-        ) : null}
-      </div>
+      {!firstCutCelebrate && !softAdvance ? (
+        <div className="grid gap-2">
+          {character ? (
+            <>
+              <Link
+                href={`/m/fitting?character=${encodeURIComponent(character.id)}${
+                  fittingWardrobe ? `&wardrobe=${encodeURIComponent(fittingWardrobe)}` : ''
+                }`}
+                className="ui-btn-ghost w-full justify-center text-center text-sm"
+              >
+                Open Outfit
+              </Link>
+              <Link
+                href={`/m/moodboard?character=${encodeURIComponent(character.id)}`}
+                className="ui-btn-ghost w-full justify-center text-center text-sm"
+              >
+                Open Look
+              </Link>
+              <Link
+                href="/m/play"
+                className="ui-btn-ghost w-full justify-center text-center text-sm"
+              >
+                Optional: Story
+              </Link>
+            </>
+          ) : null}
+        </div>
+      ) : null}
 
       {error ? (
         <div className="space-y-2">
