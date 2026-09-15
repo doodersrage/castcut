@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   COMFY_IMAGE_MODELS,
   COMFY_MODEL_CATEGORIES,
@@ -16,6 +16,8 @@ type ModelSelectorProps = {
   allowedModels?: readonly ComfyImageModel[];
   filterHint?: string | null;
   onShowAllModels?: () => void;
+  /** When true, start expanded (default is collapsed summary). */
+  defaultExpanded?: boolean;
 };
 
 export default function ModelSelector({
@@ -25,9 +27,12 @@ export default function ModelSelector({
   allowedModels,
   filterHint,
   onShowAllModels,
+  defaultExpanded = false,
 }: ModelSelectorProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<ComfyModelCategory | 'all'>('all');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const catalog = useMemo(() => {
     if (!allowedModels?.length) {
@@ -81,6 +86,18 @@ export default function ModelSelector({
   const filteringActive =
     Boolean(allowedModels?.length) && allowedModels!.length < COMFY_IMAGE_MODELS.length;
 
+  useEffect(() => {
+    if (expanded) {
+      searchRef.current?.focus();
+    }
+  }, [expanded]);
+
+  const selectModel = (model: ComfyImageModel) => {
+    onChange(model);
+    setExpanded(false);
+    setQuery('');
+  };
+
   return (
     <div className="space-y-3" id={id}>
       {filteringActive && filterHint ? (
@@ -97,82 +114,120 @@ export default function ModelSelector({
           ) : null}
         </div>
       ) : null}
-      <div className="flex flex-col gap-3">
-        <input
-          type="search"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search models by name, id, or node…"
-          aria-label="Search ComfyUI models"
-          className="ui-input min-h-11 w-full px-(--input-padding-x) py-(--input-padding-y) type-body-lg"
-        />
-        <select
-          value={effectiveCategory}
-          onChange={e => setCategory(e.target.value as ComfyModelCategory | 'all')}
-          aria-label="Filter by model family"
-          className="ui-input min-h-11 w-full px-3 py-(--input-padding-y) type-body"
-        >
-          <option value="all">All families ({catalog.length})</option>
-          {visibleCategories.map(entry => (
-            <option key={entry.id} value={entry.id}>
-              {entry.label} ({modelsByCategory.get(entry.id) ?? 0})
-            </option>
-          ))}
-        </select>
+
+      <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-base)]/50 px-3 py-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="type-overline text-[var(--text-muted)]">Selected model</p>
+            <p className="type-heading mt-0.5 truncate text-[var(--text-primary)]">
+              {selected.label}
+            </p>
+            <p className="type-caption mt-0.5 font-mono text-[var(--text-muted)]">
+              {selected.comfyNode}
+            </p>
+          </div>
+          <button
+            type="button"
+            data-testid="model-selector-toggle"
+            aria-expanded={expanded}
+            className="ui-btn-secondary ui-btn-sm shrink-0"
+            onClick={() => setExpanded(prev => !prev)}
+          >
+            {expanded ? 'Done' : 'Change'}
+          </button>
+        </div>
+        {!expanded ? (
+          <p className="type-caption mt-2 line-clamp-2 text-[var(--text-muted)]">
+            {selected.description}
+          </p>
+        ) : null}
       </div>
 
-      <p className="type-caption">
-        {filteredModels.length} model{filteredModels.length === 1 ? '' : 's'}
-        {effectiveCategory !== 'all' &&
-          ` in ${visibleCategories.find(entry => entry.id === effectiveCategory)?.label ?? effectiveCategory}`}
-        {query.trim() ? ` matching “${query.trim()}”` : ''}
-        {' · '}
-        Selected: <span className="text-[var(--text-secondary)]">{selected.label}</span>
-      </p>
-
-      <div className="ui-scroll-region sidebar-scroll max-h-80 space-y-2 overflow-y-auto pr-1">
-        {filteredModels.length === 0 ? (
-          <EmptyState
-            compact
-            icon="search"
-            title="No models match"
-            description="Try a shorter search term or switch back to All categories."
-            action={{
-              label: 'Clear search',
-              onClick: () => {
-                setQuery('');
-                setCategory('all');
-              },
-            }}
-          />
-        ) : (
-          filteredModels.map(entry => (
-            <button
-              key={entry.id}
-              type="button"
-              onClick={() => onChange(entry.id)}
-              data-active={value === entry.id ? 'true' : 'false'}
-              className={`ui-chip w-full px-4 py-3 text-left ${
-                value === entry.id ? '' : '!items-start'
-              }`}
+      {expanded ? (
+        <>
+          <div className="flex flex-col gap-3">
+            <input
+              ref={searchRef}
+              id={`${id ?? 'model-selector'}-search`}
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search models by name, id, or node…"
+              aria-label="Search ComfyUI models"
+              className="ui-input min-h-11 w-full px-(--input-padding-x) py-(--input-padding-y) type-body-lg"
+            />
+            <select
+              value={effectiveCategory}
+              onChange={e => setCategory(e.target.value as ComfyModelCategory | 'all')}
+              aria-label="Filter by model family"
+              className="ui-input min-h-11 w-full px-3 py-(--input-padding-y) type-body"
             >
-              <div className="flex w-full flex-wrap items-center justify-between gap-2">
-                <span
-                  className={`type-heading ${
-                    value === entry.id ? 'text-[var(--accent-text)]' : 'text-[var(--text-primary)]'
+              <option value="all">All families ({catalog.length})</option>
+              {visibleCategories.map(entry => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.label} ({modelsByCategory.get(entry.id) ?? 0})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p className="type-caption">
+            {filteredModels.length} model{filteredModels.length === 1 ? '' : 's'}
+            {effectiveCategory !== 'all' &&
+              ` in ${visibleCategories.find(entry => entry.id === effectiveCategory)?.label ?? effectiveCategory}`}
+            {query.trim() ? ` matching “${query.trim()}”` : ''}
+          </p>
+
+          <div
+            className="ui-scroll-region sidebar-scroll max-h-52 space-y-2 overflow-y-auto overscroll-contain pr-1"
+            onWheel={event => event.stopPropagation()}
+          >
+            {filteredModels.length === 0 ? (
+              <EmptyState
+                compact
+                icon="search"
+                title="No models match"
+                description="Try a shorter search term or switch back to All categories."
+                action={{
+                  label: 'Clear search',
+                  onClick: () => {
+                    setQuery('');
+                    setCategory('all');
+                  },
+                }}
+              />
+            ) : (
+              filteredModels.map(entry => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => selectModel(entry.id)}
+                  data-active={value === entry.id ? 'true' : 'false'}
+                  className={`ui-chip w-full px-4 py-3 text-left ${
+                    value === entry.id ? '' : '!items-start'
                   }`}
                 >
-                  {entry.label}
-                </span>
-                <span className="type-overline !normal-case !tracking-normal font-mono">
-                  {entry.comfyNode}
-                </span>
-              </div>
-              <p className="type-caption mt-1 w-full">{entry.description}</p>
-            </button>
-          ))
-        )}
-      </div>
+                  <div className="flex w-full flex-wrap items-center justify-between gap-2">
+                    <span
+                      className={`type-heading ${
+                        value === entry.id
+                          ? 'text-[var(--accent-text)]'
+                          : 'text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {entry.label}
+                    </span>
+                    <span className="type-overline !normal-case !tracking-normal font-mono">
+                      {entry.comfyNode}
+                    </span>
+                  </div>
+                  <p className="type-caption mt-1 w-full">{entry.description}</p>
+                </button>
+              ))
+            )}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

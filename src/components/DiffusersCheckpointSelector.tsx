@@ -127,6 +127,7 @@ export default function DiffusersCheckpointSelector({
 }: DiffusersCheckpointSelectorProps) {
   const [query, setQuery] = useState('');
   const [family, setFamily] = useState<DiffusersAssetFamilyFilter>('qwen');
+  const [expanded, setExpanded] = useState(false);
   const [models, setModels] = useState<DiffusersCheckpointOption[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -250,6 +251,12 @@ export default function DiffusersCheckpointSelector({
   const countFor = (fam: DiffusersAssetFamilyFilter) =>
     fam === 'all' ? models.length : models.filter(item => item.family === fam).length;
 
+  const pickAsset = (asset: DiffusersCheckpointOption) => {
+    onChange(asset);
+    setExpanded(false);
+    setQuery('');
+  };
+
   return (
     <div className="space-y-3" id={id}>
       <div className="rounded-[var(--radius-md)] border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)]/40 px-3 py-2.5">
@@ -260,96 +267,123 @@ export default function DiffusersCheckpointSelector({
         </p>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <input
-          type="search"
-          value={query}
-          onChange={event => setQuery(event.target.value)}
-          placeholder="Search Qwen / Flux weights…"
-          aria-label="Search Diffusers model inventory"
-          className="ui-input min-h-11 w-full px-(--input-padding-x) py-(--input-padding-y) type-body-lg"
-        />
-        <select
-          value={family}
-          onChange={event => setFamily(event.target.value as DiffusersAssetFamilyFilter)}
-          aria-label="Filter by model family"
-          className="ui-input min-h-11 w-full px-3 py-(--input-padding-y) type-body"
-        >
-          <option value="qwen">Qwen ({countFor('qwen')})</option>
-          <option value="flux">Flux ({countFor('flux')})</option>
-          <option value="all">All families ({countFor('all')})</option>
-          <option value="sdxl">SDXL ({countFor('sdxl')})</option>
-          <option value="sd15">SD1.5 ({countFor('sd15')})</option>
-          <option value="other">Other ({countFor('other')})</option>
-        </select>
+      <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-base)]/50 px-3 py-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="type-overline text-[var(--text-muted)]">Selected weight</p>
+            <p className="type-heading mt-0.5 truncate text-[var(--text-primary)]">
+              {selected?.label ?? (loading ? 'Loading…' : value || 'None')}
+            </p>
+            <p className="type-caption mt-0.5 font-mono text-[var(--text-muted)]">
+              {selected
+                ? `${selected.family.toUpperCase()}${selected.bucket ? ` · ${selected.bucket}` : ''}`
+                : 'Diffusers inventory'}
+            </p>
+          </div>
+          <button
+            type="button"
+            data-testid="diffusers-selector-toggle"
+            aria-expanded={expanded}
+            className="ui-btn-secondary ui-btn-sm shrink-0"
+            onClick={() => setExpanded(prev => !prev)}
+          >
+            {expanded ? 'Done' : 'Change'}
+          </button>
+        </div>
       </div>
 
-      <p className="type-caption">
-        {loading
-          ? 'Loading inventory…'
-          : `${filtered.length} weight${filtered.length === 1 ? '' : 's'}`}
-        {selected ? (
-          <>
-            {' · '}
-            Selected: <span className="text-[var(--text-secondary)]">{selected.label}</span>
-            {selected.bucket ? (
-              <span className="text-[var(--text-tertiary)]"> · {selected.bucket}</span>
-            ) : null}
-          </>
-        ) : null}
-      </p>
-
-      {error ? (
-        <EmptyState compact icon="alert" title="Diffusers unreachable" description={error} />
-      ) : (
-        <div className="ui-scroll-region sidebar-scroll max-h-80 space-y-2 overflow-y-auto pr-1">
-          {!loading && filtered.length === 0 ? (
-            <EmptyState
-              compact
-              icon="search"
-              title="No weights found"
-              description="Drop Qwen/Flux UNETs into models/diffusion_models (or Rapid-AIO into models/checkpoints)."
+      {expanded ? (
+        <>
+          <div className="flex flex-col gap-3">
+            <input
+              type="search"
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder="Search Qwen / Flux weights…"
+              aria-label="Search Diffusers model inventory"
+              className="ui-input min-h-11 w-full px-(--input-padding-x) py-(--input-padding-y) type-body-lg"
             />
+            <select
+              value={family}
+              onChange={event => setFamily(event.target.value as DiffusersAssetFamilyFilter)}
+              aria-label="Filter by model family"
+              className="ui-input min-h-11 w-full px-3 py-(--input-padding-y) type-body"
+            >
+              <option value="qwen">Qwen ({countFor('qwen')})</option>
+              <option value="flux">Flux ({countFor('flux')})</option>
+              <option value="all">All families ({countFor('all')})</option>
+              <option value="sdxl">SDXL ({countFor('sdxl')})</option>
+              <option value="sd15">SD1.5 ({countFor('sd15')})</option>
+              <option value="other">Other ({countFor('other')})</option>
+            </select>
+          </div>
+
+          <p className="type-caption">
+            {loading
+              ? 'Loading inventory…'
+              : `${filtered.length} weight${filtered.length === 1 ? '' : 's'}`}
+          </p>
+
+          {error ? (
+            <EmptyState compact icon="alert" title="Diffusers unreachable" description={error} />
           ) : (
-            filtered.map(entry => (
-              <button
-                key={`${entry.bucket ?? 'asset'}:${entry.id}`}
-                type="button"
-                onClick={() => onChange(entry)}
-                data-active={isActive(entry) ? 'true' : 'false'}
-                className={`ui-chip w-full px-4 py-3 text-left ${
-                  isActive(entry) ? '' : '!items-start'
-                }`}
-              >
-                <div className="flex w-full flex-wrap items-center justify-between gap-2">
-                  <span
-                    className={`type-heading ${
-                      isActive(entry) ? 'text-[var(--accent-text)]' : 'text-[var(--text-primary)]'
+            <div
+              className="ui-scroll-region sidebar-scroll max-h-52 space-y-2 overflow-y-auto overscroll-contain pr-1"
+              onWheel={event => event.stopPropagation()}
+            >
+              {!loading && filtered.length === 0 ? (
+                <EmptyState
+                  compact
+                  icon="search"
+                  title="No weights found"
+                  description="Drop Qwen/Flux UNETs into models/diffusion_models (or Rapid-AIO into models/checkpoints)."
+                />
+              ) : (
+                filtered.map(entry => (
+                  <button
+                    key={`${entry.bucket ?? 'asset'}:${entry.id}`}
+                    type="button"
+                    onClick={() => pickAsset(entry)}
+                    data-active={isActive(entry) ? 'true' : 'false'}
+                    className={`ui-chip w-full px-4 py-3 text-left ${
+                      isActive(entry) ? '' : '!items-start'
                     }`}
                   >
-                    {entry.label}
-                    {entry.variant?.startsWith('lightning') ? (
-                      <span className="ml-2 type-overline !normal-case">lightning</span>
-                    ) : null}
-                    {entry.default ? (
-                      <span className="ml-2 type-overline !normal-case">default</span>
-                    ) : null}
-                  </span>
-                  <span className="type-overline !normal-case !tracking-normal font-mono">
-                    {entry.family.toUpperCase()}
-                    {entry.bucket === 'preset'
-                      ? ' · PRESET'
-                      : entry.bucket === 'diffusion_models'
-                        ? ' · UNET'
-                        : ''}
-                  </span>
-                </div>
-                <p className="type-caption mt-1 w-full font-mono">{entry.weightId ?? entry.id}</p>
-              </button>
-            ))
+                    <div className="flex w-full flex-wrap items-center justify-between gap-2">
+                      <span
+                        className={`type-heading ${
+                          isActive(entry)
+                            ? 'text-[var(--accent-text)]'
+                            : 'text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {entry.label}
+                        {entry.variant?.startsWith('lightning') ? (
+                          <span className="ml-2 type-overline !normal-case">lightning</span>
+                        ) : null}
+                        {entry.default ? (
+                          <span className="ml-2 type-overline !normal-case">default</span>
+                        ) : null}
+                      </span>
+                      <span className="type-overline !normal-case !tracking-normal font-mono">
+                        {entry.family.toUpperCase()}
+                        {entry.bucket === 'preset'
+                          ? ' · PRESET'
+                          : entry.bucket === 'diffusion_models'
+                            ? ' · UNET'
+                            : ''}
+                      </span>
+                    </div>
+                    <p className="type-caption mt-1 w-full font-mono">
+                      {entry.weightId ?? entry.id}
+                    </p>
+                  </button>
+                ))
+              )}
+            </div>
           )}
-        </div>
-      )}
+        </>
+      ) : null}
     </div>
   );
 }
