@@ -49,6 +49,26 @@ function readEditableText(value: unknown, max: number): string {
   return typeof value === 'string' ? value.slice(0, max) : '';
 }
 
+/** True when cached Day stills belong to the active Cast character. */
+export function dayStillsBelongToCharacter(
+  stillsCharacterId: string | undefined | null,
+  activeCharacterId: string | undefined | null
+): boolean {
+  return (stillsCharacterId?.trim() || '') === (activeCharacterId?.trim() || '');
+}
+
+/** Persist Day stills with Cast ownership so off-page character changes can invalidate them. */
+export function dayStillsCachePatch(
+  stills: DaySlotStill[],
+  characterId?: string | null
+): { stills: DaySlotStill[]; stillsCharacterId: string | undefined } {
+  if (!stills.length) {
+    return { stills: [], stillsCharacterId: undefined };
+  }
+  const id = characterId?.trim() || undefined;
+  return { stills, stillsCharacterId: id };
+}
+
 /** Merge persisted slots with defaults so all four day parts always exist. */
 export function normalizeDaySlots(input?: DaySlot[] | null): DaySlot[] {
   const byId = new Map<DaySlotId, DaySlot>();

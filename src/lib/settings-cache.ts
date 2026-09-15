@@ -988,6 +988,8 @@ export type DayToolCache = {
   slots?: import('./day-planner').DaySlot[];
   /** Completed / in-flight stills for the day reel and Cut film. */
   stills?: import('./day-planner').DaySlotStill[];
+  /** Cast character that owns {@link stills}; cleared when Cast changes. */
+  stillsCharacterId?: string;
   notes?: string;
   /** Filter slot wardrobe kits by clothing type. */
   wardrobeCategoryFilter?: import('./wardrobe-catalog-ui').WardrobeCategoryFilter;
@@ -1781,7 +1783,27 @@ export function saveSharedSettings(
       });
   const merged: SharedToolSettings = { ...shared };
   applySystemWorkflowsSidecar(merged);
-  saveSettingsCache({ ...cache, shared: merged }, options);
+
+  // Day stills are global (slot-keyed only). Drop them when Cast changes so
+  // progress / play metrics never keep another character's face after leaving Day.
+  const prevCharacterId = cache.shared.activeCharacterId?.trim() || '';
+  const nextCharacterId = merged.activeCharacterId?.trim() || '';
+  let tools = cache.tools;
+  if (prevCharacterId !== nextCharacterId) {
+    const day = tools.day;
+    if (day && ((day.stills?.length ?? 0) > 0 || day.stillsCharacterId)) {
+      tools = {
+        ...tools,
+        day: {
+          ...day,
+          stills: [],
+          stillsCharacterId: undefined,
+        },
+      };
+    }
+  }
+
+  saveSettingsCache({ ...cache, shared: merged, tools }, options);
 }
 
 /** Persist LoRA stack picks and await storage flush — survives immediate page reload. */

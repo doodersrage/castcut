@@ -35,6 +35,8 @@ import {
 import {
   buildDaySlotMotionSubject,
   buildDaySlotPrompt,
+  dayStillsBelongToCharacter,
+  dayStillsCachePatch,
   dayWatchPlaylist,
   mergeDaySlotStills,
   normalizeDaySlotStills,
@@ -135,6 +137,49 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   const remixAppliedRef = useRef(false);
   const autoCutRef = useRef(false);
   const pendingAutoCutRef = useRef(false);
+  const prevCharacterIdRef = useRef<string | undefined>(undefined);
+
+  // Day stills are cached by slot only — drop them when Cast changes (on this
+  // page or elsewhere) so progress never keeps the previous character's face.
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+    const nextId = shared.activeCharacterId?.trim() || '';
+    const owner = toolSettings.stillsCharacterId?.trim() || '';
+    const prevId = prevCharacterIdRef.current;
+    const clearStills = () => {
+      stillsRef.current = [];
+      updateToolSettings(dayStillsCachePatch([], undefined));
+      assembledFilmRef.current = null;
+      setFirstCutCelebrate(false);
+      setFilmStatus(null);
+      autoCutRef.current = false;
+      pendingAutoCutRef.current = false;
+    };
+
+    if (prevId === undefined) {
+      prevCharacterIdRef.current = nextId;
+      // Returning to Day after Cast changed off-page (or legacy unowned stills).
+      if (stillsRef.current.length > 0 && !dayStillsBelongToCharacter(owner, nextId)) {
+        clearStills();
+      }
+      return;
+    }
+    if (prevId === nextId) {
+      return;
+    }
+    prevCharacterIdRef.current = nextId;
+    clearStills();
+  }, [
+    assembledFilmRef,
+    mounted,
+    setFilmStatus,
+    shared.activeCharacterId,
+    stillsRef,
+    toolSettings.stillsCharacterId,
+    updateToolSettings,
+  ]);
 
   const queueAll = useCallback(async () => {
     setBusy(true);
@@ -214,7 +259,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           clipUrl: undefined,
         });
         stillsRef.current = nextStills;
-        updateToolSettings({ stills: nextStills });
+        updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
         if (promptId) {
           setFilmStatus(
             `Queued ${slot.label.toLowerCase()} clip — motion reel prefers clips when ready.`
@@ -227,7 +272,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           clipStatus: 'error',
         });
         stillsRef.current = nextStills;
-        updateToolSettings({ stills: nextStills });
+        updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
       } finally {
         if (manageBusy) {
           setBusy(false);
@@ -399,14 +444,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   const seedDemoStills = useCallback(() => {
     const demo = buildDemoDayStills();
     stillsRef.current = normalizeDaySlotStills(demo);
-    updateToolSettings({ stills: stillsRef.current });
+    updateToolSettings(dayStillsCachePatch(stillsRef.current, shared.activeCharacterId));
     setFilmStatus('Demo stills loaded — cutting film…');
     setError(null);
     pendingAutoCutRef.current = true;
     void import('@/lib/local-observability').then(({ noteDemoDayStillsMetric }) => {
       noteDemoDayStillsMetric();
     });
-  }, [setError, setFilmStatus, updateToolSettings, stillsRef]);
+  }, [setError, setFilmStatus, shared.activeCharacterId, updateToolSettings, stillsRef]);
 
   const shareLastCut = useCallback(async () => {
     const film = assembledFilmRef.current;
@@ -434,7 +479,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     stillsRef.current = [];
     updateToolSettings({
       slots: next.slots,
-      stills: [],
+      ...dayStillsCachePatch([], undefined),
       notes: next.notes,
     });
     setFirstCutCelebrate(false);
@@ -467,7 +512,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       stillsRef.current = [];
       updateToolSettings({
         slots: next.slots,
-        stills: [],
+        ...dayStillsCachePatch([], undefined),
         notes: next.notes,
       });
       setFirstCutCelebrate(false);
@@ -496,7 +541,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     starterAutoQueueRef.current = true;
     // Drop cached stills/clips before queueing so auto-cut cannot fire on the last film.
     stillsRef.current = [];
-    updateToolSettings({ stills: [] });
+    updateToolSettings(dayStillsCachePatch([], undefined));
     autoCutRef.current = false;
     pendingAutoCutRef.current = false;
     void import('@/lib/local-observability').then(({ noteStarterDayQueueMetric }) => {

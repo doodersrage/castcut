@@ -467,21 +467,29 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 })}
               />
             ) : null}
-            <SelectInput
-              value={activeSlot.wardrobeId ?? ''}
-              disabled={!wardrobeReady || busy}
-              className={accentFocusClass(ACCENT)}
-              onChange={event => {
-                const value = event.target.value.trim();
-                updateSlot(activeSlot.id, { wardrobeId: value || undefined });
-              }}
+            <CollapsibleSection
+              title="List picker"
+              summary="Plain dropdown of the same filtered kits — use when you know the exact name."
+              defaultOpen={false}
+              persistKey="day-wardrobe-list-picker"
+              className="mt-3"
             >
-              {filteredWardrobeOptions.map(option => (
-                <option key={option.value || 'default'} value={option.value}>
-                  {option.group ? `${option.label} · ${option.group}` : option.label}
-                </option>
-              ))}
-            </SelectInput>
+              <SelectInput
+                value={activeSlot.wardrobeId ?? ''}
+                disabled={!wardrobeReady || busy}
+                className={accentFocusClass(ACCENT)}
+                onChange={event => {
+                  const value = event.target.value.trim();
+                  updateSlot(activeSlot.id, { wardrobeId: value || undefined });
+                }}
+              >
+                {filteredWardrobeOptions.map(option => (
+                  <option key={option.value || 'default'} value={option.value}>
+                    {option.group ? `${option.label} · ${option.group}` : option.label}
+                  </option>
+                ))}
+              </SelectInput>
+            </CollapsibleSection>
           </label>
           <label className="mt-3 space-y-2">
             <FieldLabel>Setting</FieldLabel>

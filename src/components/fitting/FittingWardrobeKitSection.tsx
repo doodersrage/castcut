@@ -150,8 +150,8 @@ export default function FittingWardrobeKitSection({
             }}
           />
           <CollapsibleSection
-            title="Draft previews & catalog"
-            summary="Auto draft thumbs, full catalog pick, and optional notes."
+            title="Draft previews & list"
+            summary="Auto draft thumbs, optional list picker, and notes."
             defaultOpen={!leanChrome}
             persistKey="fitting-kit-advanced"
           >
@@ -199,7 +199,7 @@ export default function FittingWardrobeKitSection({
               </p>
             ) : null}
             <label className="mt-3 space-y-2">
-              <FieldLabel>Full catalog</FieldLabel>
+              <FieldLabel>List picker</FieldLabel>
               <SelectInput
                 value={lockedWardrobeId ?? ''}
                 disabled={!wardrobeReady || busy}
@@ -243,7 +243,7 @@ export default function FittingWardrobeKitSection({
       {swipeDeck.length === 0 ? (
         <>
           <label className="mt-3 space-y-2">
-            <FieldLabel>Full catalog</FieldLabel>
+            <FieldLabel>List picker</FieldLabel>
             <SelectInput
               value={lockedWardrobeId ?? ''}
               disabled={!wardrobeReady || busy}

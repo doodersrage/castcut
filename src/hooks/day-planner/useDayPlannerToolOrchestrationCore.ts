@@ -34,6 +34,7 @@ import {
 import {
   buildDaySlotMotionSubject,
   buildDaySlotPrompt,
+  dayStillsCachePatch,
   dayWatchPlaylist,
   mergeDaySlotStills,
   normalizeDaySlotStills,
@@ -283,13 +284,13 @@ export function useDayPlannerToolOrchestrationCore() {
         }));
       const merged = mergeDaySlotStills(current, gallery);
       if (merged.changed) {
-        updateToolSettings({ stills: merged.stills });
+        updateToolSettings(dayStillsCachePatch(merged.stills, shared.activeCharacterId));
       }
     };
     window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, sync);
     sync();
     return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, sync);
-  }, [updateToolSettings]);
+  }, [shared.activeCharacterId, updateToolSettings]);
 
   const wardrobeLabelFor = useCallback(
     (wardrobeId?: string) => {
@@ -374,7 +375,7 @@ export function useDayPlannerToolOrchestrationCore() {
           clipStatus: undefined,
         });
         stillsRef.current = nextStills;
-        updateToolSettings({ stills: nextStills });
+        updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not queue that slot.');
         const nextStills = upsertDaySlotStill(stillsRef.current, {
@@ -382,7 +383,7 @@ export function useDayPlannerToolOrchestrationCore() {
           status: 'error',
         });
         stillsRef.current = nextStills;
-        updateToolSettings({ stills: nextStills });
+        updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
       } finally {
         if (manageBusy) {
           setBusy(false);

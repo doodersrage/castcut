@@ -115,16 +115,15 @@ export function resolveWardrobeKitThumbUrl(input: {
   return resolveWardrobeGarmentThumbUrl(input.wardrobeId);
 }
 
-export const WARDROBE_KIT_PICKER_DECK_LIMIT = 64;
-
 /**
- * Compact kit deck for shared picker thumbs — keeps selection visible when it falls
- * outside the curated/limit window.
+ * Kit deck for shared picker thumbs. Defaults to the full filtered catalog
+ * (same as Fitting swipe). Pass `limit` only when a caller needs a short window.
+ * Keeps the current selection visible when it would otherwise fall outside a limit.
  */
 export function buildWardrobeKitPickerDeck(
   options: Array<{ value: string; label: string; group?: string }>,
   selectedId?: string,
-  limit = WARDROBE_KIT_PICKER_DECK_LIMIT
+  limit?: number
 ): FittingSwipeKit[] {
   const base = buildFittingSwipeDeck(options, limit);
   const id = selectedId?.trim();
@@ -135,14 +134,18 @@ export function buildWardrobeKitPickerDeck(
   if (!match?.value?.trim()) {
     return base;
   }
-  return [
+  const withSelection: FittingSwipeKit[] = [
     {
       id,
       label: match.label?.trim() || id,
       group: match.group?.trim() || undefined,
     },
     ...base,
-  ].slice(0, Math.max(limit, 1));
+  ];
+  if (limit && limit > 0) {
+    return withSelection.slice(0, Math.max(limit, 1));
+  }
+  return withSelection;
 }
 
 /** Deterministic pastel fill for SVG placeholders from a kit id. */

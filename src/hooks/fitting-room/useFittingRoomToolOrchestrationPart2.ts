@@ -390,14 +390,6 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     }
   }, [shared.lockedWardrobeId, swipeDeck, updateShared, wardrobeCategoryFilter, wardrobeReady]);
 
-  useEffect(() => {
-    activeThumbRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'nearest',
-    });
-  }, [deckSelectionId]);
-
   const skipKit = useCallback(() => {
     swipeKit(1);
     setSaveStatus('Skipped to next kit.');

@@ -117,6 +117,7 @@ export function startStarterPlayFilm(input?: {
     slots: starterSlots(),
     // Clear prior Day stills/clips so auto-cut cannot reuse the last run's film.
     stills: [],
+    stillsCharacterId: undefined,
     notes: 'Starter day — Look & Outfit skipped. Queue stills (or use demo stills), then Cut film.',
   };
   saveToolSettings('day', dayCache);
@@ -176,6 +177,7 @@ export function applyRemixDayFilmState(): void {
     ...existing,
     slots: reseeds,
     stills: [],
+    stillsCharacterId: undefined,
     notes: 'Same look · new Day — queue fresh stills, then Cut film.',
   });
 }
@@ -197,7 +199,14 @@ export function remixDayFilmHref(characterId: string, options?: { autoQueue?: bo
 
 /** Completed Day stills currently in the tool cache (survives navigation). */
 export function countCachedCompletedDayStills(): number {
-  const stills = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE).stills ?? [];
+  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  const activeCharacterId = loadSettingsCache().shared.activeCharacterId?.trim() || '';
+  const owner = day.stillsCharacterId?.trim() || '';
+  // Unowned legacy stills still count for the current session; owned stills must match Cast.
+  if (owner && owner !== activeCharacterId) {
+    return 0;
+  }
+  const stills = day.stills ?? [];
   return stills.filter(entry => entry.status === 'completed' && Boolean(entry.imageUrl?.trim()))
     .length;
 }

@@ -379,20 +379,28 @@ export default function MobileDayToolSections(vm: ViewModel) {
               })}
             />
           ) : null}
-          <SelectInput
-            value={activeSlot.wardrobeId ?? ''}
-            disabled={!wardrobeReady || busy}
-            onChange={event => {
-              const value = event.target.value.trim();
-              updateSlot(activeSlot.id, { wardrobeId: value || undefined });
-            }}
+          <CollapsibleSection
+            title="List picker"
+            summary="Dropdown of the same filtered kits."
+            defaultOpen={false}
+            persistKey="mobile-day-wardrobe-list-picker"
+            className="mt-2"
           >
-            {filteredWardrobeOptions.map(option => (
-              <option key={option.value || 'default'} value={option.value}>
-                {option.group ? `${option.label} · ${option.group}` : option.label}
-              </option>
-            ))}
-          </SelectInput>
+            <SelectInput
+              value={activeSlot.wardrobeId ?? ''}
+              disabled={!wardrobeReady || busy}
+              onChange={event => {
+                const value = event.target.value.trim();
+                updateSlot(activeSlot.id, { wardrobeId: value || undefined });
+              }}
+            >
+              {filteredWardrobeOptions.map(option => (
+                <option key={option.value || 'default'} value={option.value}>
+                  {option.group ? `${option.label} · ${option.group}` : option.label}
+                </option>
+              ))}
+            </SelectInput>
+          </CollapsibleSection>
         </label>
 
         <label className="block space-y-1.5 text-sm">

@@ -3,6 +3,8 @@ import { describe, it } from 'node:test';
 import {
   buildDaySlotMotionSubject,
   buildDaySlotPrompt,
+  dayStillsBelongToCharacter,
+  dayStillsCachePatch,
   dayWatchPlaylist,
   DEFAULT_DAY_SLOTS,
   mergeDaySlotStills,
@@ -13,6 +15,25 @@ import {
 } from './day-planner';
 
 describe('day-planner', () => {
+  it('dayStillsBelongToCharacter matches Cast ownership', () => {
+    assert.equal(dayStillsBelongToCharacter('char-a', 'char-a'), true);
+    assert.equal(dayStillsBelongToCharacter('char-a', 'char-b'), false);
+    assert.equal(dayStillsBelongToCharacter(undefined, 'char-a'), false);
+    assert.equal(dayStillsBelongToCharacter('', ''), true);
+  });
+
+  it('dayStillsCachePatch stamps ownership and clears it when empty', () => {
+    assert.deepEqual(dayStillsCachePatch([], 'char-a'), {
+      stills: [],
+      stillsCharacterId: undefined,
+    });
+    const stills = [{ slotId: 'morning' as const, status: 'queued' as const }];
+    assert.deepEqual(dayStillsCachePatch(stills, ' char-a '), {
+      stills,
+      stillsCharacterId: 'char-a',
+    });
+  });
+
   it('normalizeDaySlots always returns four slots', () => {
     const slots = normalizeDaySlots([{ id: 'morning', label: 'Morning', sceneHints: 'coffee run' }]);
     assert.equal(slots.length, 4);

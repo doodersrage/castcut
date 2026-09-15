@@ -64,6 +64,17 @@ describe('wardrobe-garment-thumbs', () => {
     assert.ok(deck.length <= 5);
   });
 
+  it('buildWardrobeKitPickerDeck returns the full filtered catalog by default', () => {
+    const options = Array.from({ length: 80 }, (_, index) => ({
+      value: `kit-${index}`,
+      label: `Kit ${index}`,
+      group: 'Full outfits',
+    }));
+    const deck = buildWardrobeKitPickerDeck(options, 'kit-70');
+    assert.equal(deck.length, 80);
+    assert.ok(deck.some(kit => kit.id === 'kit-70'));
+  });
+
   it('hashes placeholder hues stably', () => {
     assert.equal(
       wardrobeGarmentThumbPlaceholderHue('outfit-a'),
