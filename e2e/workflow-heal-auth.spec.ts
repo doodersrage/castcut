@@ -371,6 +371,7 @@ test.describe('Play dogfood glue', () => {
             tools: {
               day: {
                 notes: '',
+                stillsCharacterId: id,
                 stills: [{ slotId: 'morning', status: 'completed', imageUrl: png }],
               },
             },
@@ -383,6 +384,7 @@ test.describe('Play dogfood glue', () => {
             tools: {
               day: {
                 notes: '',
+                stillsCharacterId: id,
                 stills: [{ slotId: 'morning', status: 'completed', imageUrl: png }],
               },
             },
@@ -462,17 +464,27 @@ test.describe('Play dogfood glue', () => {
     await metrics.getByTestId('play-stall-cta').click();
     await expect(page).toHaveURL(/\/day/, { timeout: 30_000 });
 
-    const cutBtn = page.getByRole('button', { name: /Cut film/i });
+    const cutBtn = page.getByTestId('day-cut-coach-cut');
     await expect(cutBtn).toBeVisible({ timeout: 30_000 });
     await expect(cutBtn).toBeEnabled({ timeout: 10_000 });
     await cutBtn.click();
-    const castFilm = page.getByTestId('day-open-cast-film');
+    // First cut celebrate owns Watch; post-celebrate falls back to day-open-cast-film.
+    const castFilm = page
+      .getByTestId('day-first-cut-watch')
+      .or(page.getByTestId('day-save-film-cast'))
+      .or(page.getByTestId('day-open-cast-film'));
     const cutSucceeded = await castFilm
+      .first()
       .waitFor({ state: 'visible', timeout: 45_000 })
       .then(() => true)
       .catch(() => false);
     if (cutSucceeded) {
-      await expect(castFilm).toHaveAttribute('href', /media=films/);
+      const watch = page.getByTestId('day-first-cut-watch');
+      if ((await watch.count()) > 0) {
+        await expect(watch).toHaveAttribute('href', /media=films/);
+      } else if ((await page.getByTestId('day-open-cast-film').count()) > 0) {
+        await expect(page.getByTestId('day-open-cast-film')).toHaveAttribute('href', /media=films/);
+      }
       const cutRecorded = await page.evaluate(() => {
         try {
           const raw = window.localStorage.getItem('comfy-play-metrics-v1');
