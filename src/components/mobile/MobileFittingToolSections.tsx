@@ -8,6 +8,7 @@ import PlaySoftAdvanceBanner, {
 } from '@/components/PlaySoftAdvanceBanner';
 import { Button } from '@/components/ui/Button';
 import { FieldError, FieldLabel, SelectInput } from '@/components/ui/Field';
+import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
@@ -17,6 +18,10 @@ import {
   normalizeWardrobeCategoryFilter,
   wardrobeCategoryFilterOptions,
 } from '@/lib/wardrobe-catalog-ui';
+import {
+  resolveWardrobeGarmentThumbUrl,
+  resolveWardrobeKitThumbUrl,
+} from '@/lib/wardrobe-garment-thumbs';
 
 type ViewModel = ReturnType<typeof useFittingRoomToolOrchestration>;
 
@@ -72,6 +77,10 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     ? getFittingKitPreview(kitPreviews, activeSwipeKit.id, activeLookId)
     : undefined;
   const activeThumb = activePreview?.status === 'completed' ? activePreview.imageUrl?.trim() : '';
+  const activeHeroUrl =
+    activeThumb ||
+    (activeSwipeKit ? resolveWardrobeGarmentThumbUrl(activeSwipeKit.id) : null) ||
+    plateUrl;
 
   return (
     <div className="space-y-4" data-testid="mobile-fitting">
@@ -194,10 +203,10 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           }}
         >
           <div className="relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40">
-            {activeThumb || plateUrl ? (
+            {activeHeroUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={activeThumb || plateUrl}
+                src={activeHeroUrl}
                 alt={activeSwipeKit?.label || 'Kit'}
                 className="mx-auto max-h-72 w-full object-contain"
               />
@@ -217,65 +226,32 @@ export default function MobileFittingToolSections(vm: ViewModel) {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              disabled={busy || swipeDeck.length < 2}
-              onClick={() => swipeKit(-1)}
-              className="flex-1 justify-center"
-            >
-              Prev
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={busy || swipeDeck.length < 2}
-              onClick={() => swipeKit(1)}
-              className="flex-1 justify-center"
-            >
-              Next
-            </Button>
-          </div>
-
-          <div
-            className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
-            data-testid="mobile-fitting-thumbs"
-          >
-            {swipeDeck.map(kit => {
+          <WardrobeKitPicker
+            kits={swipeDeck}
+            selectedId={deckSelectionId}
+            disabled={busy}
+            size="sm"
+            activeThumbRef={activeThumbRef}
+            testId="mobile-fitting-thumbs"
+            onSelect={selectKit}
+            onSwipe={delta => swipeKit(delta)}
+            resolveThumb={kit => {
               const preview = activeLookId
                 ? getFittingKitPreview(kitPreviews, kit.id, activeLookId)
                 : undefined;
-              const thumb = preview?.status === 'completed' ? preview.imageUrl?.trim() : '';
+              const personUrl =
+                preview?.status === 'completed' ? preview.imageUrl?.trim() || null : null;
               const pending = preview?.status === 'queued' || preview?.status === 'running';
-              const selected = deckSelectionId === kit.id;
-              return (
-                <button
-                  key={kit.id}
-                  ref={selected ? activeThumbRef : undefined}
-                  type="button"
-                  disabled={busy}
-                  title={kit.label}
-                  aria-label={kit.label}
-                  aria-current={selected ? 'true' : undefined}
-                  onClick={() => selectKit(kit.id)}
-                  className={[
-                    'h-16 w-14 shrink-0 overflow-hidden rounded-lg border bg-white',
-                    selected
-                      ? 'border-[var(--accent-border)] ring-2 ring-[var(--accent-ring)]'
-                      : 'border-[var(--border-subtle)]',
-                  ].join(' ')}
-                >
-                  {thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={thumb} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="flex h-full items-center justify-center type-caption text-[var(--text-muted)]">
-                      {pending ? '…' : '—'}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+              return {
+                url: resolveWardrobeKitThumbUrl({
+                  wardrobeId: kit.id,
+                  personPreviewUrl: personUrl,
+                }),
+                pending: Boolean(pending && !personUrl),
+              };
+            }}
+          />
+
           {previewStatus || completedPreviewCount > 0 || inFlightPreviewCount > 0 ? (
             <p className="type-caption text-[var(--text-muted)]">
               {previewStatus ||

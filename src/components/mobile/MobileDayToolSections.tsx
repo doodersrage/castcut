@@ -7,7 +7,9 @@ import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
+import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
+import { fittingSwipeNeighbor } from '@/lib/fitting-room';
 import { ROLEPLAY_SETTING_PRESETS } from '@/lib/roleplay';
 import {
   resolveFilmFailurePlaybook,
@@ -20,6 +22,10 @@ import {
   normalizeWardrobeCategoryFilter,
   wardrobeCategoryFilterOptions,
 } from '@/lib/wardrobe-catalog-ui';
+import {
+  buildWardrobeKitPickerDeck,
+  resolveWardrobeGarmentThumbUrl,
+} from '@/lib/wardrobe-garment-thumbs';
 
 type ViewModel = ReturnType<typeof useDayPlannerToolOrchestration>;
 
@@ -66,6 +72,10 @@ export default function MobileDayToolSections(vm: ViewModel) {
 
   const [sampleWatch, setSampleWatch] = useState(false);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
+  const wardrobeKitDeck = useMemo(
+    () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, activeSlot.wardrobeId),
+    [activeSlot.wardrobeId, filteredWardrobeOptions]
+  );
   const slotTotal = slots.length || 4;
   const showCutCoach = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
   const playbookHref =
@@ -331,6 +341,25 @@ export default function MobileDayToolSections(vm: ViewModel) {
 
         <label className="block space-y-1.5 text-sm">
           <FieldLabel>Outfit kit</FieldLabel>
+          {wardrobeKitDeck.length > 0 ? (
+            <WardrobeKitPicker
+              kits={wardrobeKitDeck}
+              selectedId={activeSlot.wardrobeId}
+              disabled={!wardrobeReady || busy}
+              size="sm"
+              testId="mobile-day-wardrobe-kit-picker"
+              onSelect={wardrobeId => updateSlot(activeSlot.id, { wardrobeId })}
+              onSwipe={delta => {
+                const next = fittingSwipeNeighbor(wardrobeKitDeck, activeSlot.wardrobeId, delta);
+                if (next) {
+                  updateSlot(activeSlot.id, { wardrobeId: next.id });
+                }
+              }}
+              resolveThumb={kit => ({
+                url: resolveWardrobeGarmentThumbUrl(kit.id),
+              })}
+            />
+          ) : null}
           <SelectInput
             value={activeSlot.wardrobeId ?? ''}
             disabled={!wardrobeReady || busy}

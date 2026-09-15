@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="160" viewBox="0 0 128 160" role="img" aria-label="relaxed-fit teal hanbok set">
+  <rect width="100%" height="100%" fill="#f4f4f5"/>
+  <rect x="18" y="18" width="92" height="67.2" rx="10" fill="hsl(75 42% 72%)"/>
+  <path d="M42 35.2 h44 v8 h-10 v28 h-24 v-28 h-10 z" fill="hsl(75 38% 58%)" opacity="0.85"/>
+  <text x="64" y="99.2" text-anchor="middle" fill="#3f3f46" font-family="system-ui,sans-serif" font-size="11">relaxed-fit teal</text><text x="64" y="113.2" text-anchor="middle" fill="#3f3f46" font-family="system-ui,sans-serif" font-size="11">hanbok set</text>
+</svg>

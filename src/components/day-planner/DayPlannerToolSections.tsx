@@ -20,15 +20,20 @@ import {
   ToolSection,
   accentFocusClass,
 } from '@/components/ui/ToolPageShell';
+import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import { ROLEPLAY_SETTING_PRESETS } from '@/lib/roleplay';
 import {
   countWardrobeOptionsForFilter,
-  filterWardrobeSelectOptions,
   normalizeWardrobeCategoryFilter,
   wardrobeCategoryFilterOptions,
 } from '@/lib/wardrobe-catalog-ui';
+import {
+  buildWardrobeKitPickerDeck,
+  resolveWardrobeGarmentThumbUrl,
+} from '@/lib/wardrobe-garment-thumbs';
+import { fittingSwipeNeighbor } from '@/lib/fitting-room';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
@@ -93,6 +98,10 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const [sampleWatch, setSampleWatch] = useState(false);
   const [jumpInMode, setJumpInMode] = useState(false);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
+  const wardrobeKitDeck = useMemo(
+    () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, activeSlot.wardrobeId),
+    [activeSlot.wardrobeId, filteredWardrobeOptions]
+  );
   const slotTotal = slots.length || 4;
   const collapseEditors =
     leanChrome && (jumpInMode || busy || assemblingFilm || completedShotCount > 0);
@@ -422,6 +431,24 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           </label>
           <label className="mt-3 space-y-2">
             <FieldLabel>Outfit kit</FieldLabel>
+            {wardrobeKitDeck.length > 0 ? (
+              <WardrobeKitPicker
+                kits={wardrobeKitDeck}
+                selectedId={activeSlot.wardrobeId}
+                disabled={!wardrobeReady || busy}
+                testId="day-wardrobe-kit-picker"
+                onSelect={wardrobeId => updateSlot(activeSlot.id, { wardrobeId })}
+                onSwipe={delta => {
+                  const next = fittingSwipeNeighbor(wardrobeKitDeck, activeSlot.wardrobeId, delta);
+                  if (next) {
+                    updateSlot(activeSlot.id, { wardrobeId: next.id });
+                  }
+                }}
+                resolveThumb={kit => ({
+                  url: resolveWardrobeGarmentThumbUrl(kit.id),
+                })}
+              />
+            ) : null}
             <SelectInput
               value={activeSlot.wardrobeId ?? ''}
               disabled={!wardrobeReady || busy}

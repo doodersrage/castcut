@@ -1,0 +1,1006 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-15T14:17:40.886Z",
+  "thumbs": {
+    "fantasy-outfit-amber-barbarian-furs": {
+      "file": "fantasy-outfit-amber-barbarian-furs.svg",
+      "label": "amber barbarian furs and leather bracers",
+      "category": "outfit"
+    },
+    "fantasy-outfit-obsidian-witch-ritual-robes": {
+      "file": "fantasy-outfit-obsidian-witch-ritual-robes.svg",
+      "label": "obsidian witch ritual robes with silver clasps",
+      "category": "outfit"
+    },
+    "outfit-boxy-beige-knight-armor-cuirass-look": {
+      "file": "outfit-boxy-beige-knight-armor-cuirass-look.svg",
+      "label": "boxy beige knight armor cuirass look",
+      "category": "outfit"
+    },
+    "outfit-boxy-burgundy-belly-dance-costume": {
+      "file": "outfit-boxy-burgundy-belly-dance-costume.svg",
+      "label": "boxy burgundy belly dance costume",
+      "category": "outfit"
+    },
+    "outfit-boxy-cobalt-monk-robes": {
+      "file": "outfit-boxy-cobalt-monk-robes.svg",
+      "label": "boxy cobalt monk robes",
+      "category": "outfit"
+    },
+    "outfit-boxy-denim-blue-karate-gi": {
+      "file": "outfit-boxy-denim-blue-karate-gi.svg",
+      "label": "boxy denim blue karate gi",
+      "category": "outfit"
+    },
+    "outfit-boxy-forest-green-sweater-dress": {
+      "file": "outfit-boxy-forest-green-sweater-dress.svg",
+      "label": "boxy forest green sweater dress",
+      "category": "outfit"
+    },
+    "outfit-boxy-gunmetal-hip-hop-oversized-fit": {
+      "file": "outfit-boxy-gunmetal-hip-hop-oversized-fit.svg",
+      "label": "boxy gunmetal hip-hop oversized fit",
+      "category": "outfit"
+    },
+    "outfit-boxy-khaki-nautical-stripe-outfit": {
+      "file": "outfit-boxy-khaki-nautical-stripe-outfit.svg",
+      "label": "boxy khaki nautical stripe outfit",
+      "category": "outfit"
+    },
+    "outfit-boxy-lime-two-piece-linen-suit": {
+      "file": "outfit-boxy-lime-two-piece-linen-suit.svg",
+      "label": "boxy lime two-piece linen suit",
+      "category": "outfit"
+    },
+    "outfit-boxy-mustard-belly-dance-costume": {
+      "file": "outfit-boxy-mustard-belly-dance-costume.svg",
+      "label": "boxy mustard belly dance costume",
+      "category": "outfit"
+    },
+    "outfit-boxy-oatmeal-utility-jumpsuit": {
+      "file": "outfit-boxy-oatmeal-utility-jumpsuit.svg",
+      "label": "boxy oatmeal utility jumpsuit",
+      "category": "outfit"
+    },
+    "outfit-boxy-pine-cottagecore-dress-ensemble": {
+      "file": "outfit-boxy-pine-cottagecore-dress-ensemble.svg",
+      "label": "boxy pine cottagecore dress ensemble",
+      "category": "outfit"
+    },
+    "outfit-boxy-sage-hanbok-set": {
+      "file": "outfit-boxy-sage-hanbok-set.svg",
+      "label": "boxy sage hanbok set",
+      "category": "outfit"
+    },
+    "outfit-boxy-silver-safari-explorer-outfit": {
+      "file": "outfit-boxy-silver-safari-explorer-outfit.svg",
+      "label": "boxy silver safari explorer outfit",
+      "category": "outfit"
+    },
+    "outfit-boxy-snow-paramedic-uniform": {
+      "file": "outfit-boxy-snow-paramedic-uniform.svg",
+      "label": "boxy snow paramedic uniform",
+      "category": "outfit"
+    },
+    "outfit-boxy-terracotta-goth-layered-outfit": {
+      "file": "outfit-boxy-terracotta-goth-layered-outfit.svg",
+      "label": "boxy terracotta goth layered outfit",
+      "category": "outfit"
+    },
+    "outfit-cropped-beige-techwear-ensemble": {
+      "file": "outfit-cropped-beige-techwear-ensemble.svg",
+      "label": "cropped beige techwear ensemble",
+      "category": "outfit"
+    },
+    "outfit-cropped-burnt-orange-waiter-black-tie-service-outfit": {
+      "file": "outfit-cropped-burnt-orange-waiter-black-tie-service-outfit.svg",
+      "label": "cropped burnt orange waiter black tie service outfit",
+      "category": "outfit"
+    },
+    "outfit-cropped-copper-climbing-harness-outfit": {
+      "file": "outfit-cropped-copper-climbing-harness-outfit.svg",
+      "label": "cropped copper climbing harness outfit",
+      "category": "outfit"
+    },
+    "outfit-cropped-espresso-ballet-tutu-outfit": {
+      "file": "outfit-cropped-espresso-ballet-tutu-outfit.svg",
+      "label": "cropped espresso ballet tutu outfit",
+      "category": "outfit"
+    },
+    "outfit-cropped-gold-firefighter-turnout-gear": {
+      "file": "outfit-cropped-gold-firefighter-turnout-gear.svg",
+      "label": "cropped gold firefighter turnout gear",
+      "category": "outfit"
+    },
+    "outfit-cropped-ivory-cycling-kit": {
+      "file": "outfit-cropped-ivory-cycling-kit.svg",
+      "label": "cropped ivory cycling kit",
+      "category": "outfit"
+    },
+    "outfit-cropped-lime-triathlon-kit": {
+      "file": "outfit-cropped-lime-triathlon-kit.svg",
+      "label": "cropped lime triathlon kit",
+      "category": "outfit"
+    },
+    "outfit-cropped-moss-barista-apron-outfit": {
+      "file": "outfit-cropped-moss-barista-apron-outfit.svg",
+      "label": "cropped moss barista apron outfit",
+      "category": "outfit"
+    },
+    "outfit-cropped-obsidian-skater-outfit": {
+      "file": "outfit-cropped-obsidian-skater-outfit.svg",
+      "label": "cropped obsidian skater outfit",
+      "category": "outfit"
+    },
+    "outfit-cropped-pewter-denim-overall-dress": {
+      "file": "outfit-cropped-pewter-denim-overall-dress.svg",
+      "label": "cropped pewter denim overall dress",
+      "category": "outfit"
+    },
+    "outfit-cropped-rose-fencing-uniform": {
+      "file": "outfit-cropped-rose-fencing-uniform.svg",
+      "label": "cropped rose fencing uniform",
+      "category": "outfit"
+    },
+    "outfit-cropped-silver-beekeeper-suit": {
+      "file": "outfit-cropped-silver-beekeeper-suit.svg",
+      "label": "cropped silver beekeeper suit",
+      "category": "outfit"
+    },
+    "outfit-cropped-snow-sailor-deck-outfit": {
+      "file": "outfit-cropped-snow-sailor-deck-outfit.svg",
+      "label": "cropped snow sailor deck outfit",
+      "category": "outfit"
+    },
+    "outfit-cropped-tan-dark-academia-outfit": {
+      "file": "outfit-cropped-tan-dark-academia-outfit.svg",
+      "label": "cropped tan dark academia outfit",
+      "category": "outfit"
+    },
+    "outfit-cropped-white-taekwondo-dobok": {
+      "file": "outfit-cropped-white-taekwondo-dobok.svg",
+      "label": "cropped white taekwondo dobok",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-beige-three-piece-wool-suit": {
+      "file": "outfit-double-breasted-beige-three-piece-wool-suit.svg",
+      "label": "double-breasted beige three-piece wool suit",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-brown-paramedic-uniform": {
+      "file": "outfit-double-breasted-brown-paramedic-uniform.svg",
+      "label": "double-breasted brown paramedic uniform",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-camel-jumpsuit": {
+      "file": "outfit-double-breasted-camel-jumpsuit.svg",
+      "label": "double-breasted camel jumpsuit",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-clay-salwar-kameez-set": {
+      "file": "outfit-double-breasted-clay-salwar-kameez-set.svg",
+      "label": "double-breasted clay salwar kameez set",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-denim-blue-rain-ready-outfit": {
+      "file": "outfit-double-breasted-denim-blue-rain-ready-outfit.svg",
+      "label": "double-breasted denim blue rain-ready outfit",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-fuchsia-sweater-dress": {
+      "file": "outfit-double-breasted-fuchsia-sweater-dress.svg",
+      "label": "double-breasted fuchsia sweater dress",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-khaki-bellhop-uniform": {
+      "file": "outfit-double-breasted-khaki-bellhop-uniform.svg",
+      "label": "double-breasted khaki bellhop uniform",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-maroon-farmer-chore-outfit": {
+      "file": "outfit-double-breasted-maroon-farmer-chore-outfit.svg",
+      "label": "double-breasted maroon farmer chore outfit",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-mint-judogi": {
+      "file": "outfit-double-breasted-mint-judogi.svg",
+      "label": "double-breasted mint judogi",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-oatmeal-monk-robes": {
+      "file": "outfit-double-breasted-oatmeal-monk-robes.svg",
+      "label": "double-breasted oatmeal monk robes",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-pearl-triathlon-kit": {
+      "file": "outfit-double-breasted-pearl-triathlon-kit.svg",
+      "label": "double-breasted pearl triathlon kit",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-sage-baseball-uniform": {
+      "file": "outfit-double-breasted-sage-baseball-uniform.svg",
+      "label": "double-breasted sage baseball uniform",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-salmon-utility-jumpsuit": {
+      "file": "outfit-double-breasted-salmon-utility-jumpsuit.svg",
+      "label": "double-breasted salmon utility jumpsuit",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-sky-blue-slip-dress": {
+      "file": "outfit-double-breasted-sky-blue-slip-dress.svg",
+      "label": "double-breasted sky blue slip dress",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-stone-doctor-white-coat-outfit": {
+      "file": "outfit-double-breasted-stone-doctor-white-coat-outfit.svg",
+      "label": "double-breasted stone doctor white coat outfit",
+      "category": "outfit"
+    },
+    "outfit-double-breasted-teal-tennis-whites": {
+      "file": "outfit-double-breasted-teal-tennis-whites.svg",
+      "label": "double-breasted teal tennis whites",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-beige-jumpsuit": {
+      "file": "outfit-high-waisted-beige-jumpsuit.svg",
+      "label": "high-waisted beige jumpsuit",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-burgundy-priest-cassock": {
+      "file": "outfit-high-waisted-burgundy-priest-cassock.svg",
+      "label": "high-waisted burgundy priest cassock",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-copper-light-academia-outfit": {
+      "file": "outfit-high-waisted-copper-light-academia-outfit.svg",
+      "label": "high-waisted copper light academia outfit",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-denim-blue-slip-dress": {
+      "file": "outfit-high-waisted-denim-blue-slip-dress.svg",
+      "label": "high-waisted denim blue slip dress",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-forest-green-denim-overall-dress": {
+      "file": "outfit-high-waisted-forest-green-denim-overall-dress.svg",
+      "label": "high-waisted forest green denim overall dress",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-gold-wizard-robe-outfit": {
+      "file": "outfit-high-waisted-gold-wizard-robe-outfit.svg",
+      "label": "high-waisted gold wizard robe outfit",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-ink-wizard-robe-outfit": {
+      "file": "outfit-high-waisted-ink-wizard-robe-outfit.svg",
+      "label": "high-waisted ink wizard robe outfit",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-lime-skater-outfit": {
+      "file": "outfit-high-waisted-lime-skater-outfit.svg",
+      "label": "high-waisted lime skater outfit",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-mint-hotel-concierge-uniform": {
+      "file": "outfit-high-waisted-mint-hotel-concierge-uniform.svg",
+      "label": "high-waisted mint hotel concierge uniform",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-obsidian-dirndl-dress": {
+      "file": "outfit-high-waisted-obsidian-dirndl-dress.svg",
+      "label": "high-waisted obsidian dirndl dress",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-pearl-skater-outfit": {
+      "file": "outfit-high-waisted-pearl-skater-outfit.svg",
+      "label": "high-waisted pearl skater outfit",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-rose-wrap-dress": {
+      "file": "outfit-high-waisted-rose-wrap-dress.svg",
+      "label": "high-waisted rose wrap dress",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-silver-safari-explorer-outfit": {
+      "file": "outfit-high-waisted-silver-safari-explorer-outfit.svg",
+      "label": "high-waisted silver safari explorer outfit",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-stone-keffiyeh-and-thobe": {
+      "file": "outfit-high-waisted-stone-keffiyeh-and-thobe.svg",
+      "label": "high-waisted stone keffiyeh and thobe",
+      "category": "outfit"
+    },
+    "outfit-high-waisted-taupe-surfer-outfit": {
+      "file": "outfit-high-waisted-taupe-surfer-outfit.svg",
+      "label": "high-waisted taupe surfer outfit",
+      "category": "outfit"
+    },
+    "outfit-low-rise-ash-light-academia-outfit": {
+      "file": "outfit-low-rise-ash-light-academia-outfit.svg",
+      "label": "low-rise ash light academia outfit",
+      "category": "outfit"
+    },
+    "outfit-low-rise-burnt-orange-circus-ringmaster-coat-outfit": {
+      "file": "outfit-low-rise-burnt-orange-circus-ringmaster-coat-outfit.svg",
+      "label": "low-rise burnt orange circus ringmaster coat outfit",
+      "category": "outfit"
+    },
+    "outfit-low-rise-copper-taekwondo-dobok": {
+      "file": "outfit-low-rise-copper-taekwondo-dobok.svg",
+      "label": "low-rise copper taekwondo dobok",
+      "category": "outfit"
+    },
+    "outfit-low-rise-espresso-cycling-kit": {
+      "file": "outfit-low-rise-espresso-cycling-kit.svg",
+      "label": "low-rise espresso cycling kit",
+      "category": "outfit"
+    },
+    "outfit-low-rise-heather-gray-basketball-jersey-set": {
+      "file": "outfit-low-rise-heather-gray-basketball-jersey-set.svg",
+      "label": "low-rise heather gray basketball jersey set",
+      "category": "outfit"
+    },
+    "outfit-low-rise-ivory-firefighter-turnout-gear": {
+      "file": "outfit-low-rise-ivory-firefighter-turnout-gear.svg",
+      "label": "low-rise ivory firefighter turnout gear",
+      "category": "outfit"
+    },
+    "outfit-low-rise-midnight-blue-evening-gown": {
+      "file": "outfit-low-rise-midnight-blue-evening-gown.svg",
+      "label": "low-rise midnight blue evening gown",
+      "category": "outfit"
+    },
+    "outfit-low-rise-oatmeal-circus-ringmaster-coat-outfit": {
+      "file": "outfit-low-rise-oatmeal-circus-ringmaster-coat-outfit.svg",
+      "label": "low-rise oatmeal circus ringmaster coat outfit",
+      "category": "outfit"
+    },
+    "outfit-low-rise-peach-flight-attendant-uniform": {
+      "file": "outfit-low-rise-peach-flight-attendant-uniform.svg",
+      "label": "low-rise peach flight attendant uniform",
+      "category": "outfit"
+    },
+    "outfit-low-rise-plum-farmer-chore-outfit": {
+      "file": "outfit-low-rise-plum-farmer-chore-outfit.svg",
+      "label": "low-rise plum farmer chore outfit",
+      "category": "outfit"
+    },
+    "outfit-low-rise-salmon-lederhosen-outfit": {
+      "file": "outfit-low-rise-salmon-lederhosen-outfit.svg",
+      "label": "low-rise salmon lederhosen outfit",
+      "category": "outfit"
+    },
+    "outfit-low-rise-sepia-slip-dress": {
+      "file": "outfit-low-rise-sepia-slip-dress.svg",
+      "label": "low-rise sepia slip dress",
+      "category": "outfit"
+    },
+    "outfit-low-rise-smoke-goth-layered-outfit": {
+      "file": "outfit-low-rise-smoke-goth-layered-outfit.svg",
+      "label": "low-rise smoke goth layered outfit",
+      "category": "outfit"
+    },
+    "outfit-low-rise-stone-y2k-outfit": {
+      "file": "outfit-low-rise-stone-y2k-outfit.svg",
+      "label": "low-rise stone y2k outfit",
+      "category": "outfit"
+    },
+    "outfit-low-rise-terracotta-evening-gown": {
+      "file": "outfit-low-rise-terracotta-evening-gown.svg",
+      "label": "low-rise terracotta evening gown",
+      "category": "outfit"
+    },
+    "outfit-oversized-ash-skater-outfit": {
+      "file": "outfit-oversized-ash-skater-outfit.svg",
+      "label": "oversized ash skater outfit",
+      "category": "outfit"
+    },
+    "outfit-oversized-bronze-doctor-white-coat-outfit": {
+      "file": "outfit-oversized-bronze-doctor-white-coat-outfit.svg",
+      "label": "oversized bronze doctor white coat outfit",
+      "category": "outfit"
+    },
+    "outfit-oversized-chocolate-samurai-hakama-set": {
+      "file": "outfit-oversized-chocolate-samurai-hakama-set.svg",
+      "label": "oversized chocolate samurai hakama set",
+      "category": "outfit"
+    },
+    "outfit-oversized-coral-soccer-kit": {
+      "file": "outfit-oversized-coral-soccer-kit.svg",
+      "label": "oversized coral soccer kit",
+      "category": "outfit"
+    },
+    "outfit-oversized-espresso-punk-leather-ensemble": {
+      "file": "outfit-oversized-espresso-punk-leather-ensemble.svg",
+      "label": "oversized espresso punk leather ensemble",
+      "category": "outfit"
+    },
+    "outfit-oversized-gold-paramedic-uniform": {
+      "file": "outfit-oversized-gold-paramedic-uniform.svg",
+      "label": "oversized gold paramedic uniform",
+      "category": "outfit"
+    },
+    "outfit-oversized-ivory-hazmat-suit": {
+      "file": "outfit-oversized-ivory-hazmat-suit.svg",
+      "label": "oversized ivory hazmat suit",
+      "category": "outfit"
+    },
+    "outfit-oversized-magenta-monk-robes": {
+      "file": "outfit-oversized-magenta-monk-robes.svg",
+      "label": "oversized magenta monk robes",
+      "category": "outfit"
+    },
+    "outfit-oversized-mint-lederhosen-outfit": {
+      "file": "outfit-oversized-mint-lederhosen-outfit.svg",
+      "label": "oversized mint lederhosen outfit",
+      "category": "outfit"
+    },
+    "outfit-oversized-oatmeal-tuxedo": {
+      "file": "outfit-oversized-oatmeal-tuxedo.svg",
+      "label": "oversized oatmeal tuxedo",
+      "category": "outfit"
+    },
+    "outfit-oversized-olive-denim-overall-dress": {
+      "file": "outfit-oversized-olive-denim-overall-dress.svg",
+      "label": "oversized olive denim overall dress",
+      "category": "outfit"
+    },
+    "outfit-oversized-plum-mechanic-coveralls": {
+      "file": "outfit-oversized-plum-mechanic-coveralls.svg",
+      "label": "oversized plum mechanic coveralls",
+      "category": "outfit"
+    },
+    "outfit-oversized-salmon-skater-outfit": {
+      "file": "outfit-oversized-salmon-skater-outfit.svg",
+      "label": "oversized salmon skater outfit",
+      "category": "outfit"
+    },
+    "outfit-oversized-smoke-police-duty-uniform": {
+      "file": "outfit-oversized-smoke-police-duty-uniform.svg",
+      "label": "oversized smoke police duty uniform",
+      "category": "outfit"
+    },
+    "outfit-oversized-stone-paramedic-uniform": {
+      "file": "outfit-oversized-stone-paramedic-uniform.svg",
+      "label": "oversized stone paramedic uniform",
+      "category": "outfit"
+    },
+    "outfit-oversized-teal-evening-gown": {
+      "file": "outfit-oversized-teal-evening-gown.svg",
+      "label": "oversized teal evening gown",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-aqua-sailor-deck-outfit": {
+      "file": "outfit-relaxed-fit-aqua-sailor-deck-outfit.svg",
+      "label": "relaxed-fit aqua sailor deck outfit",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-blush-goth-layered-outfit": {
+      "file": "outfit-relaxed-fit-blush-goth-layered-outfit.svg",
+      "label": "relaxed-fit blush goth layered outfit",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-burgundy-sweater-dress": {
+      "file": "outfit-relaxed-fit-burgundy-sweater-dress.svg",
+      "label": "relaxed-fit burgundy sweater dress",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-charcoal-sailor-deck-outfit": {
+      "file": "outfit-relaxed-fit-charcoal-sailor-deck-outfit.svg",
+      "label": "relaxed-fit charcoal sailor deck outfit",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-copper-hip-hop-oversized-fit": {
+      "file": "outfit-relaxed-fit-copper-hip-hop-oversized-fit.svg",
+      "label": "relaxed-fit copper hip-hop oversized fit",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-espresso-magician-tailcoat": {
+      "file": "outfit-relaxed-fit-espresso-magician-tailcoat.svg",
+      "label": "relaxed-fit espresso magician tailcoat",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-gunmetal-hanbok-set": {
+      "file": "outfit-relaxed-fit-gunmetal-hanbok-set.svg",
+      "label": "relaxed-fit gunmetal hanbok set",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-khaki-renaissance-faire-outfit": {
+      "file": "outfit-relaxed-fit-khaki-renaissance-faire-outfit.svg",
+      "label": "relaxed-fit khaki Renaissance faire outfit",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-magenta-farmer-chore-outfit": {
+      "file": "outfit-relaxed-fit-magenta-farmer-chore-outfit.svg",
+      "label": "relaxed-fit magenta farmer chore outfit",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-mustard-salwar-kameez-set": {
+      "file": "outfit-relaxed-fit-mustard-salwar-kameez-set.svg",
+      "label": "relaxed-fit mustard salwar kameez set",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-pearl-ballet-tutu-outfit": {
+      "file": "outfit-relaxed-fit-pearl-ballet-tutu-outfit.svg",
+      "label": "relaxed-fit pearl ballet tutu outfit",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-rust-sailor-deck-outfit": {
+      "file": "outfit-relaxed-fit-rust-sailor-deck-outfit.svg",
+      "label": "relaxed-fit rust sailor deck outfit",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-sand-samurai-hakama-set": {
+      "file": "outfit-relaxed-fit-sand-samurai-hakama-set.svg",
+      "label": "relaxed-fit sand samurai hakama set",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-steel-gorpcore-outfit": {
+      "file": "outfit-relaxed-fit-steel-gorpcore-outfit.svg",
+      "label": "relaxed-fit steel gorpcore outfit",
+      "category": "outfit"
+    },
+    "outfit-relaxed-fit-teal-hanbok-set": {
+      "file": "outfit-relaxed-fit-teal-hanbok-set.svg",
+      "label": "relaxed-fit teal hanbok set",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-aqua-paramedic-uniform": {
+      "file": "outfit-single-breasted-aqua-paramedic-uniform.svg",
+      "label": "single-breasted aqua paramedic uniform",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-brick-red-salwar-kameez-set": {
+      "file": "outfit-single-breasted-brick-red-salwar-kameez-set.svg",
+      "label": "single-breasted brick red salwar kameez set",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-camel-tuxedo": {
+      "file": "outfit-single-breasted-camel-tuxedo.svg",
+      "label": "single-breasted camel tuxedo",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-copper-police-duty-uniform": {
+      "file": "outfit-single-breasted-copper-police-duty-uniform.svg",
+      "label": "single-breasted copper police duty uniform",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-denim-blue-wizard-robe-outfit": {
+      "file": "outfit-single-breasted-denim-blue-wizard-robe-outfit.svg",
+      "label": "single-breasted denim blue wizard robe outfit",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-frost-pilot-uniform": {
+      "file": "outfit-single-breasted-frost-pilot-uniform.svg",
+      "label": "single-breasted frost pilot uniform",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-gunmetal-doctor-white-coat-outfit": {
+      "file": "outfit-single-breasted-gunmetal-doctor-white-coat-outfit.svg",
+      "label": "single-breasted gunmetal doctor white coat outfit",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-khaki-fencing-uniform": {
+      "file": "outfit-single-breasted-khaki-fencing-uniform.svg",
+      "label": "single-breasted khaki fencing uniform",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-lilac-salwar-kameez-set": {
+      "file": "outfit-single-breasted-lilac-salwar-kameez-set.svg",
+      "label": "single-breasted lilac salwar kameez set",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-mint-climbing-harness-outfit": {
+      "file": "outfit-single-breasted-mint-climbing-harness-outfit.svg",
+      "label": "single-breasted mint climbing harness outfit",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-oatmeal-jumpsuit": {
+      "file": "outfit-single-breasted-oatmeal-jumpsuit.svg",
+      "label": "single-breasted oatmeal jumpsuit",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-pewter-monk-robes": {
+      "file": "outfit-single-breasted-pewter-monk-robes.svg",
+      "label": "single-breasted pewter monk robes",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-rust-barista-apron-outfit": {
+      "file": "outfit-single-breasted-rust-barista-apron-outfit.svg",
+      "label": "single-breasted rust barista apron outfit",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-sky-blue-nurse-scrubs-set": {
+      "file": "outfit-single-breasted-sky-blue-nurse-scrubs-set.svg",
+      "label": "single-breasted sky blue nurse scrubs set",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-sunflower-yellow-salwar-kameez-set": {
+      "file": "outfit-single-breasted-sunflower-yellow-salwar-kameez-set.svg",
+      "label": "single-breasted sunflower yellow salwar kameez set",
+      "category": "outfit"
+    },
+    "outfit-single-breasted-teal-karate-gi": {
+      "file": "outfit-single-breasted-teal-karate-gi.svg",
+      "label": "single-breasted teal karate gi",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-beige-priest-cassock": {
+      "file": "outfit-slim-fit-beige-priest-cassock.svg",
+      "label": "slim-fit beige priest cassock",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-brown-salwar-kameez-set": {
+      "file": "outfit-slim-fit-brown-salwar-kameez-set.svg",
+      "label": "slim-fit brown salwar kameez set",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-chocolate-karate-gi": {
+      "file": "outfit-slim-fit-chocolate-karate-gi.svg",
+      "label": "slim-fit chocolate karate gi",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-crimson-flight-attendant-uniform": {
+      "file": "outfit-slim-fit-crimson-flight-attendant-uniform.svg",
+      "label": "slim-fit crimson flight attendant uniform",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-frost-dark-academia-outfit": {
+      "file": "outfit-slim-fit-frost-dark-academia-outfit.svg",
+      "label": "slim-fit frost dark academia outfit",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-indigo-warehouse-picker-vest-look": {
+      "file": "outfit-slim-fit-indigo-warehouse-picker-vest-look.svg",
+      "label": "slim-fit indigo warehouse picker vest look",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-lilac-gorpcore-outfit": {
+      "file": "outfit-slim-fit-lilac-gorpcore-outfit.svg",
+      "label": "slim-fit lilac gorpcore outfit",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-mint-shirt-dress": {
+      "file": "outfit-slim-fit-mint-shirt-dress.svg",
+      "label": "slim-fit mint shirt dress",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-off-white-tennis-whites": {
+      "file": "outfit-slim-fit-off-white-tennis-whites.svg",
+      "label": "slim-fit off-white tennis whites",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-pine-cottagecore-dress-ensemble": {
+      "file": "outfit-slim-fit-pine-cottagecore-dress-ensemble.svg",
+      "label": "slim-fit pine cottagecore dress ensemble",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-sand-bellhop-uniform": {
+      "file": "outfit-slim-fit-sand-bellhop-uniform.svg",
+      "label": "slim-fit sand bellhop uniform",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-silver-hanbok-set": {
+      "file": "outfit-slim-fit-silver-hanbok-set.svg",
+      "label": "slim-fit silver hanbok set",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-snow-business-casual-outfit": {
+      "file": "outfit-slim-fit-snow-business-casual-outfit.svg",
+      "label": "slim-fit snow business casual outfit",
+      "category": "outfit"
+    },
+    "outfit-slim-fit-tan-nursing-friendly-outfit": {
+      "file": "outfit-slim-fit-tan-nursing-friendly-outfit.svg",
+      "label": "slim-fit tan nursing-friendly outfit",
+      "category": "outfit"
+    },
+    "outfit-tailored-aqua-evening-gown": {
+      "file": "outfit-tailored-aqua-evening-gown.svg",
+      "label": "tailored aqua evening gown",
+      "category": "outfit"
+    },
+    "outfit-tailored-blush-warehouse-picker-vest-look": {
+      "file": "outfit-tailored-blush-warehouse-picker-vest-look.svg",
+      "label": "tailored blush warehouse picker vest look",
+      "category": "outfit"
+    },
+    "outfit-tailored-camel-cottagecore-dress-ensemble": {
+      "file": "outfit-tailored-camel-cottagecore-dress-ensemble.svg",
+      "label": "tailored camel cottagecore dress ensemble",
+      "category": "outfit"
+    },
+    "outfit-tailored-clay-sailor-deck-outfit": {
+      "file": "outfit-tailored-clay-sailor-deck-outfit.svg",
+      "label": "tailored clay sailor deck outfit",
+      "category": "outfit"
+    },
+    "outfit-tailored-crimson-barista-apron-outfit": {
+      "file": "outfit-tailored-crimson-barista-apron-outfit.svg",
+      "label": "tailored crimson barista apron outfit",
+      "category": "outfit"
+    },
+    "outfit-tailored-espresso-baseball-uniform": {
+      "file": "outfit-tailored-espresso-baseball-uniform.svg",
+      "label": "tailored espresso baseball uniform",
+      "category": "outfit"
+    },
+    "outfit-tailored-gunmetal-fisherman-rain-gear": {
+      "file": "outfit-tailored-gunmetal-fisherman-rain-gear.svg",
+      "label": "tailored gunmetal fisherman rain gear",
+      "category": "outfit"
+    },
+    "outfit-tailored-ink-utility-jumpsuit": {
+      "file": "outfit-tailored-ink-utility-jumpsuit.svg",
+      "label": "tailored ink utility jumpsuit",
+      "category": "outfit"
+    },
+    "outfit-tailored-lime-tennis-whites": {
+      "file": "outfit-tailored-lime-tennis-whites.svg",
+      "label": "tailored lime tennis whites",
+      "category": "outfit"
+    },
+    "outfit-tailored-mustard-hip-hop-oversized-fit": {
+      "file": "outfit-tailored-mustard-hip-hop-oversized-fit.svg",
+      "label": "tailored mustard hip-hop oversized fit",
+      "category": "outfit"
+    },
+    "outfit-tailored-off-white-pilot-uniform": {
+      "file": "outfit-tailored-off-white-pilot-uniform.svg",
+      "label": "tailored off-white pilot uniform",
+      "category": "outfit"
+    },
+    "outfit-tailored-pewter-triathlon-kit": {
+      "file": "outfit-tailored-pewter-triathlon-kit.svg",
+      "label": "tailored pewter triathlon kit",
+      "category": "outfit"
+    },
+    "outfit-tailored-sand-bar-tender-vest-look": {
+      "file": "outfit-tailored-sand-bar-tender-vest-look.svg",
+      "label": "tailored sand bar tender vest look",
+      "category": "outfit"
+    },
+    "outfit-tailored-sky-blue-nun-habit": {
+      "file": "outfit-tailored-sky-blue-nun-habit.svg",
+      "label": "tailored sky blue nun habit",
+      "category": "outfit"
+    },
+    "outfit-tailored-sunflower-yellow-country-western-outfit": {
+      "file": "outfit-tailored-sunflower-yellow-country-western-outfit.svg",
+      "label": "tailored sunflower yellow country western outfit",
+      "category": "outfit"
+    },
+    "outfit-tailored-wine-cycling-kit": {
+      "file": "outfit-tailored-wine-cycling-kit.svg",
+      "label": "tailored wine cycling kit",
+      "category": "outfit"
+    },
+    "outfit-tapered-blush-nun-habit": {
+      "file": "outfit-tapered-blush-nun-habit.svg",
+      "label": "tapered blush nun habit",
+      "category": "outfit"
+    },
+    "outfit-tapered-brown-two-piece-linen-suit": {
+      "file": "outfit-tapered-brown-two-piece-linen-suit.svg",
+      "label": "tapered brown two-piece linen suit",
+      "category": "outfit"
+    },
+    "outfit-tapered-charcoal-keffiyeh-and-thobe": {
+      "file": "outfit-tapered-charcoal-keffiyeh-and-thobe.svg",
+      "label": "tapered charcoal keffiyeh and thobe",
+      "category": "outfit"
+    },
+    "outfit-tapered-coral-construction-hi-vis-outfit": {
+      "file": "outfit-tapered-coral-construction-hi-vis-outfit.svg",
+      "label": "tapered coral construction hi-vis outfit",
+      "category": "outfit"
+    },
+    "outfit-tapered-forest-green-doctor-white-coat-outfit": {
+      "file": "outfit-tapered-forest-green-doctor-white-coat-outfit.svg",
+      "label": "tapered forest green doctor white coat outfit",
+      "category": "outfit"
+    },
+    "outfit-tapered-indigo-techwear-ensemble": {
+      "file": "outfit-tapered-indigo-techwear-ensemble.svg",
+      "label": "tapered indigo techwear ensemble",
+      "category": "outfit"
+    },
+    "outfit-tapered-maroon-flight-attendant-uniform": {
+      "file": "outfit-tapered-maroon-flight-attendant-uniform.svg",
+      "label": "tapered maroon flight attendant uniform",
+      "category": "outfit"
+    },
+    "outfit-tapered-oatmeal-two-piece-linen-suit": {
+      "file": "outfit-tapered-oatmeal-two-piece-linen-suit.svg",
+      "label": "tapered oatmeal two-piece linen suit",
+      "category": "outfit"
+    },
+    "outfit-tapered-pewter-basketball-jersey-set": {
+      "file": "outfit-tapered-pewter-basketball-jersey-set.svg",
+      "label": "tapered pewter basketball jersey set",
+      "category": "outfit"
+    },
+    "outfit-tapered-plum-tuxedo": {
+      "file": "outfit-tapered-plum-tuxedo.svg",
+      "label": "tapered plum tuxedo",
+      "category": "outfit"
+    },
+    "outfit-tapered-salmon-light-academia-outfit": {
+      "file": "outfit-tapered-salmon-light-academia-outfit.svg",
+      "label": "tapered salmon light academia outfit",
+      "category": "outfit"
+    },
+    "outfit-tapered-silver-cycling-kit": {
+      "file": "outfit-tapered-silver-cycling-kit.svg",
+      "label": "tapered silver cycling kit",
+      "category": "outfit"
+    },
+    "outfit-tapered-steel-paramedic-uniform": {
+      "file": "outfit-tapered-steel-paramedic-uniform.svg",
+      "label": "tapered steel paramedic uniform",
+      "category": "outfit"
+    },
+    "outfit-tapered-teal-circus-ringmaster-coat-outfit": {
+      "file": "outfit-tapered-teal-circus-ringmaster-coat-outfit.svg",
+      "label": "tapered teal circus ringmaster coat outfit",
+      "category": "outfit"
+    },
+    "outfit-unstructured-aqua-goth-layered-outfit": {
+      "file": "outfit-unstructured-aqua-goth-layered-outfit.svg",
+      "label": "unstructured aqua goth layered outfit",
+      "category": "outfit"
+    },
+    "outfit-unstructured-black-skater-outfit": {
+      "file": "outfit-unstructured-black-skater-outfit.svg",
+      "label": "unstructured black skater outfit",
+      "category": "outfit"
+    },
+    "outfit-unstructured-brown-belly-dance-costume": {
+      "file": "outfit-unstructured-brown-belly-dance-costume.svg",
+      "label": "unstructured brown belly dance costume",
+      "category": "outfit"
+    },
+    "outfit-unstructured-charcoal-submariner-jumper": {
+      "file": "outfit-unstructured-charcoal-submariner-jumper.svg",
+      "label": "unstructured charcoal submariner jumper",
+      "category": "outfit"
+    },
+    "outfit-unstructured-coral-knight-armor-cuirass-look": {
+      "file": "outfit-unstructured-coral-knight-armor-cuirass-look.svg",
+      "label": "unstructured coral knight armor cuirass look",
+      "category": "outfit"
+    },
+    "outfit-unstructured-forest-green-warehouse-picker-vest-look": {
+      "file": "outfit-unstructured-forest-green-warehouse-picker-vest-look.svg",
+      "label": "unstructured forest green warehouse picker vest look",
+      "category": "outfit"
+    },
+    "outfit-unstructured-heather-gray-streetwear-fit": {
+      "file": "outfit-unstructured-heather-gray-streetwear-fit.svg",
+      "label": "unstructured heather gray streetwear fit",
+      "category": "outfit"
+    },
+    "outfit-unstructured-lavender-warehouse-picker-vest-look": {
+      "file": "outfit-unstructured-lavender-warehouse-picker-vest-look.svg",
+      "label": "unstructured lavender warehouse picker vest look",
+      "category": "outfit"
+    },
+    "outfit-unstructured-mint-waiter-black-tie-service-outfit": {
+      "file": "outfit-unstructured-mint-waiter-black-tie-service-outfit.svg",
+      "label": "unstructured mint waiter black tie service outfit",
+      "category": "outfit"
+    },
+    "outfit-unstructured-obsidian-fisherman-rain-gear": {
+      "file": "outfit-unstructured-obsidian-fisherman-rain-gear.svg",
+      "label": "unstructured obsidian fisherman rain gear",
+      "category": "outfit"
+    },
+    "outfit-unstructured-pearl-firefighter-turnout-gear": {
+      "file": "outfit-unstructured-pearl-firefighter-turnout-gear.svg",
+      "label": "unstructured pearl firefighter turnout gear",
+      "category": "outfit"
+    },
+    "outfit-unstructured-sage-goth-layered-outfit": {
+      "file": "outfit-unstructured-sage-goth-layered-outfit.svg",
+      "label": "unstructured sage goth layered outfit",
+      "category": "outfit"
+    },
+    "outfit-unstructured-sepia-paramedic-uniform": {
+      "file": "outfit-unstructured-sepia-paramedic-uniform.svg",
+      "label": "unstructured sepia paramedic uniform",
+      "category": "outfit"
+    },
+    "outfit-unstructured-smoke-surfer-outfit": {
+      "file": "outfit-unstructured-smoke-surfer-outfit.svg",
+      "label": "unstructured smoke surfer outfit",
+      "category": "outfit"
+    },
+    "outfit-unstructured-sunflower-yellow-grunge-layered-look": {
+      "file": "outfit-unstructured-sunflower-yellow-grunge-layered-look.svg",
+      "label": "unstructured sunflower yellow grunge layered look",
+      "category": "outfit"
+    },
+    "outfit-unstructured-white-nautical-stripe-outfit": {
+      "file": "outfit-unstructured-white-nautical-stripe-outfit.svg",
+      "label": "unstructured white nautical stripe outfit",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-black-dirndl-dress": {
+      "file": "outfit-wide-leg-black-dirndl-dress.svg",
+      "label": "wide-leg black dirndl dress",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-brown-priest-cassock": {
+      "file": "outfit-wide-leg-brown-priest-cassock.svg",
+      "label": "wide-leg brown priest cassock",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-charcoal-cycling-kit": {
+      "file": "outfit-wide-leg-charcoal-cycling-kit.svg",
+      "label": "wide-leg charcoal cycling kit",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-cobalt-y2k-outfit": {
+      "file": "outfit-wide-leg-cobalt-y2k-outfit.svg",
+      "label": "wide-leg cobalt y2k outfit",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-denim-blue-taekwondo-dobok": {
+      "file": "outfit-wide-leg-denim-blue-taekwondo-dobok.svg",
+      "label": "wide-leg denim blue taekwondo dobok",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-frost-firefighter-turnout-gear": {
+      "file": "outfit-wide-leg-frost-firefighter-turnout-gear.svg",
+      "label": "wide-leg frost firefighter turnout gear",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-indigo-basketball-jersey-set": {
+      "file": "outfit-wide-leg-indigo-basketball-jersey-set.svg",
+      "label": "wide-leg indigo basketball jersey set",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-lavender-nun-habit": {
+      "file": "outfit-wide-leg-lavender-nun-habit.svg",
+      "label": "wide-leg lavender nun habit",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-mint-shirt-dress": {
+      "file": "outfit-wide-leg-mint-shirt-dress.svg",
+      "label": "wide-leg mint shirt dress",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-oatmeal-punk-leather-ensemble": {
+      "file": "outfit-wide-leg-oatmeal-punk-leather-ensemble.svg",
+      "label": "wide-leg oatmeal punk leather ensemble",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-pearl-wizard-robe-outfit": {
+      "file": "outfit-wide-leg-pearl-wizard-robe-outfit.svg",
+      "label": "wide-leg pearl wizard robe outfit",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-powder-blue-cycling-kit": {
+      "file": "outfit-wide-leg-powder-blue-cycling-kit.svg",
+      "label": "wide-leg powder blue cycling kit",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-sky-blue-sweater-dress": {
+      "file": "outfit-wide-leg-sky-blue-sweater-dress.svg",
+      "label": "wide-leg sky blue sweater dress",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-stone-business-casual-outfit": {
+      "file": "outfit-wide-leg-stone-business-casual-outfit.svg",
+      "label": "wide-leg stone business casual outfit",
+      "category": "outfit"
+    },
+    "outfit-wide-leg-taupe-bridal-gown": {
+      "file": "outfit-wide-leg-taupe-bridal-gown.svg",
+      "label": "wide-leg taupe bridal gown",
+      "category": "outfit"
+    }
+  }
+}

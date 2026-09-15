@@ -4,6 +4,7 @@ import type { RefObject } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipButton, FieldDivider, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { CollapsibleSection, ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
+import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
 import type { FittingClothingOption } from '@/lib/fitting-clothing-options';
 import type { FittingKitPreview } from '@/lib/fitting-kit-previews';
 import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
@@ -14,6 +15,7 @@ import {
   wardrobeCategoryFilterOptions,
   type WardrobeCategoryFilter,
 } from '@/lib/wardrobe-catalog-ui';
+import { resolveWardrobeKitThumbUrl } from '@/lib/wardrobe-garment-thumbs';
 
 const ACCENT = 'rose' as const;
 
@@ -64,9 +66,7 @@ export default function FittingWardrobeKitSection({
   filteredWardrobeOptions,
   wardrobeGroups,
   swipeDeck,
-  activeSwipeKit,
   deckSelectionId,
-  deckSelectionIndex,
   activeThumbRef,
   activeLookId,
   kitPreviews,
@@ -126,82 +126,29 @@ export default function FittingWardrobeKitSection({
       <FieldDivider />
       {swipeDeck.length > 0 ? (
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={!wardrobeReady || busy || swipeDeck.length < 2}
-              onClick={() => onSwipeKit(-1)}
-            >
-              Prev
-            </Button>
-            <span className="type-caption min-w-0 flex-1 text-center text-[var(--text-muted)]">
-              {activeSwipeKit ? (
-                <>
-                  <span className="block truncate">
-                    {activeSwipeKit.label}
-                    {activeSwipeKit.group ? ` · ${activeSwipeKit.group}` : ''}
-                  </span>
-                  {swipeDeck.length > 1 ? (
-                    <span className="mt-0.5 block text-[var(--text-muted)]">
-                      {deckSelectionIndex + 1} / {swipeDeck.length}
-                    </span>
-                  ) : null}
-                </>
-              ) : (
-                'Pick a kit to swipe'
-              )}
-            </span>
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={!wardrobeReady || busy || swipeDeck.length < 2}
-              onClick={() => onSwipeKit(1)}
-            >
-              Next
-            </Button>
-          </div>
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-            {swipeDeck.map(kit => {
+          <WardrobeKitPicker
+            kits={swipeDeck}
+            selectedId={deckSelectionId}
+            disabled={!wardrobeReady || busy}
+            activeThumbRef={activeThumbRef}
+            onSelect={onSelectKit}
+            onSwipe={delta => onSwipeKit(delta)}
+            resolveThumb={kit => {
               const preview = activeLookId
                 ? getFittingKitPreview(kitPreviews, kit.id, activeLookId)
                 : undefined;
-              const thumb = preview?.status === 'completed' ? preview.imageUrl?.trim() : '';
+              const personUrl =
+                preview?.status === 'completed' ? preview.imageUrl?.trim() || null : null;
               const pending = preview?.status === 'queued' || preview?.status === 'running';
-              const selected = deckSelectionId === kit.id;
-              return (
-                <button
-                  key={kit.id}
-                  ref={selected ? activeThumbRef : undefined}
-                  type="button"
-                  data-active={selected ? 'true' : 'false'}
-                  disabled={busy}
-                  title={kit.label}
-                  aria-label={kit.label}
-                  aria-current={selected ? 'true' : undefined}
-                  onClick={() => onSelectKit(kit.id)}
-                  className={`shrink-0 rounded-md border p-1 transition ${
-                    selected
-                      ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] shadow-[0_0_0_1px_var(--accent-border)]'
-                      : 'border-[var(--border-default)] bg-transparent hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]'
-                  }`}
-                >
-                  {thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={thumb} alt="" className="block h-20 w-16 rounded object-cover" />
-                  ) : (
-                    <span
-                      className={`flex h-20 w-16 items-center justify-center rounded border border-[var(--border-subtle)] type-caption ${
-                        pending ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)]'
-                      }`}
-                    >
-                      {pending ? '…' : '—'}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+              return {
+                url: resolveWardrobeKitThumbUrl({
+                  wardrobeId: kit.id,
+                  personPreviewUrl: personUrl,
+                }),
+                pending: Boolean(pending && !personUrl),
+              };
+            }}
+          />
           <CollapsibleSection
             title="Draft previews & catalog"
             summary="Auto draft thumbs, full catalog pick, and optional notes."
