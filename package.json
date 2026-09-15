@@ -42,6 +42,7 @@
     "clothing:generate:dry": "node scripts/generate-clothing.mjs --add 500 --dry-run",
     "wardrobe:thumbs": "node --import tsx scripts/generate-wardrobe-thumbs.mjs",
     "wardrobe:thumbs:list": "node --import tsx scripts/generate-wardrobe-thumbs.mjs --list",
+    "wardrobe:thumbs:rebuild": "node --import tsx scripts/generate-wardrobe-thumbs.mjs --rebuild-manifest",
     "wardrobe:thumbs:dry": "node --import tsx scripts/generate-wardrobe-thumbs.mjs --dry-run",
     "wardrobe:thumbs:comfy": "node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --add 100",
     "wardrobe:thumbs:comfy:fill": "node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --missing",

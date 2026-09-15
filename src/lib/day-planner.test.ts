@@ -118,6 +118,51 @@ describe('day-planner', () => {
     assert.match(prompt, /linen set/);
     assert.match(prompt, /quiet breakfast/);
     assert.match(prompt, /cozy autumn/);
+    assert.doesNotMatch(prompt, /Edit instruction/i);
+  });
+
+  it('buildDaySlotPrompt with keeper plate keeps outfit and restages the scene', () => {
+    const slot = DEFAULT_DAY_SLOTS[0]!;
+    const prompt = buildDaySlotPrompt({
+      slot: { ...slot, sceneHints: 'coffee on the porch', location: 'front porch' },
+      wardrobeLabel: 'navy trench',
+      characterName: 'Rin',
+      hasPlate: true,
+      plateSource: 'keeper',
+    });
+    assert.match(prompt, /worn outfit/i);
+    assert.match(prompt, /Outfit Keep try-on/i);
+    assert.match(prompt, /aggressively refactor/i);
+    assert.match(prompt, /navy trench/);
+    assert.match(prompt, /mandatory new pose/i);
+    assert.match(prompt, /same kept outfit, different pose/i);
+  });
+
+  it('buildDaySlotPrompt with keeper plate invents a default pose when beat is empty', () => {
+    const slot = DEFAULT_DAY_SLOTS[0]!;
+    const prompt = buildDaySlotPrompt({
+      slot,
+      wardrobeLabel: 'navy trench',
+      hasPlate: true,
+      plateSource: 'keeper',
+    });
+    assert.match(prompt, /mandatory new pose:/i);
+    assert.match(prompt, /kitchen counter|pouring/i);
+    assert.match(prompt, /keep the clothing/i);
+  });
+
+  it('buildDaySlotPrompt with cast plate swaps wardrobe into a new scene', () => {
+    const slot = DEFAULT_DAY_SLOTS[1]!;
+    const prompt = buildDaySlotPrompt({
+      slot: { ...slot, location: 'city park' },
+      wardrobeLabel: 'linen set',
+      hasPlate: true,
+      plateSource: 'cast',
+    });
+    assert.match(prompt, /facial identity and likeness only/i);
+    assert.match(prompt, /linen set/);
+    assert.match(prompt, /aggressively refactor/i);
+    assert.match(prompt, /mandatory new pose/i);
   });
 
   it('dayWatchPlaylist builds Morning→Night still shots', () => {
@@ -186,6 +231,16 @@ describe('day-planner', () => {
     assert.equal(seeded[1]?.wardrobeId, 'new-kit');
   });
 
+  it('seedDaySlotsWardrobe force overwrites existing kits', () => {
+    const seeded = seedDaySlotsWardrobe(
+      [{ id: 'morning', label: 'Morning', wardrobeId: 'keep-me' }],
+      'new-kit',
+      { force: true }
+    );
+    assert.equal(seeded[0]?.wardrobeId, 'new-kit');
+    assert.equal(seeded[1]?.wardrobeId, 'new-kit');
+  });
+
   it('seedDaySlotsFromKeeperWardrobes maps kits onto morning→night', () => {
     const seeded = seedDaySlotsFromKeeperWardrobes(DEFAULT_DAY_SLOTS, [
       'kit-a',
@@ -196,5 +251,27 @@ describe('day-planner', () => {
     assert.equal(seeded[1]?.wardrobeId, 'kit-b');
     assert.equal(seeded[2]?.wardrobeId, 'kit-c');
     assert.equal(seeded[3]?.wardrobeId, 'kit-c');
+  });
+
+  it('seedDaySlotsFromKeeperWardrobes overwrites prior Day kits on Keep', () => {
+    const prior = DEFAULT_DAY_SLOTS.map(slot => ({ ...slot, wardrobeId: 'old-kit' }));
+    const seeded = seedDaySlotsFromKeeperWardrobes(prior, ['kept-kit']);
+    assert.equal(seeded[0]?.wardrobeId, 'kept-kit');
+    assert.equal(seeded[3]?.wardrobeId, 'kept-kit');
+  });
+
+  it('buildDaySlotPrompt with garment reinforce keeps Keep as Image 1', () => {
+    const slot = DEFAULT_DAY_SLOTS[0]!;
+    const prompt = buildDaySlotPrompt({
+      slot: { ...slot, wardrobeId: 'kit-linen' },
+      wardrobeLabel: 'linen set',
+      hasPlate: true,
+      plateSource: 'keeper',
+      garmentReinforce: true,
+    });
+    assert.match(prompt, /Image 1 is the Outfit Keep try-on/i);
+    assert.match(prompt, /Image 2 is a wardrobe packshot/i);
+    assert.match(prompt, /linen set/);
+    assert.match(prompt, /mandatory new pose/i);
   });
 });

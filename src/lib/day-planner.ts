@@ -3,6 +3,7 @@ import {
   DEFAULT_STILL_HOLD_SEC,
   type FilmPlaylistShot,
 } from '@/lib/character-film';
+import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/compose-prompt';
 import { resolveRoleplaySetting } from '@/lib/roleplay';
 
 export type DaySlotId = 'morning' | 'afternoon' | 'evening' | 'night';
@@ -94,6 +95,31 @@ export function normalizeDaySlots(input?: DaySlot[] | null): DaySlot[] {
   }));
 }
 
+/** Soft img2img denoise for Day+plate — high enough to restage, not polish the plate. */
+export const DAY_PLATE_SCENE_DENOISE = 0.82;
+
+/** Cap IP-Adapter strength so pose/environment can change when a plate is locked. */
+export const DAY_PLATE_IDENTITY_LOCK_CAP = 0.4;
+
+/** Day Keep→scene: hold face + worn kit from Image 1; unlock pose/camera/background. */
+export const DAY_KEEP_OUTFIT_POSE_UNLOCK_PREFIX =
+  'Edit Image 1. Keep facial likeness AND the worn outfit, garments, colors, fabric, and clothing silhouette from Image 1. Do not preserve body pose, standing/sitting stance, arm or hand positions, camera angle, or background — aggressively refactor into a new pose and scene as described. Keep facial likeness only for who they are; keep the clothing; replace everything else.';
+
+/**
+ * Default activity poses when the slot beat is empty.
+ * Edit models copy the plate stance unless the prompt names a different pose.
+ */
+export const DEFAULT_DAY_SLOT_POSES: Record<DaySlotId, string> = {
+  morning:
+    'standing at a kitchen counter or sink, pouring a drink or reaching for a mug, casual weight shift, looking toward morning light',
+  afternoon:
+    'walking outdoors mid-stride, relaxed shoulders, arms in a natural swing, glancing ahead',
+  evening:
+    'seated at a table or couch edge, torso angled slightly, one forearm resting, engaged mid-conversation',
+  night:
+    'standing near a window or doorway at night, weight on one leg, quiet pause, hands at sides or in pockets',
+};
+
 /** Scene prompt for one time-of-day still. */
 export function buildDaySlotPrompt(input: {
   slot: DaySlot;
@@ -102,6 +128,15 @@ export function buildDaySlotPrompt(input: {
   characterDescriptor?: string;
   lockedLocation?: string;
   notes?: string;
+  /** When true, prompt is an img2img edit brief (plate is Image 1). */
+  hasPlate?: boolean;
+  /** keeper = Image 1 is Outfit Keep (outfit fidelity); cast = face plate only. */
+  plateSource?: 'keeper' | 'cast';
+  /**
+   * Keep stays Image 1. Optional wardrobe packshot as Image 2 reinforces garments
+   * (Fitting pattern) without swapping Cast onto Image 1.
+   */
+  garmentReinforce?: boolean;
 }): string {
   const slot = input.slot;
   const name = input.characterName?.trim();
@@ -110,16 +145,80 @@ export function buildDaySlotPrompt(input: {
   const setting = resolveRoleplaySetting(slot.location, input.lockedLocation);
   const hints = slot.sceneHints?.trim();
   const notes = input.notes?.trim();
+  const timeOfDay = slot.label.toLowerCase();
+  const defaultPose = DEFAULT_DAY_SLOT_POSES[slot.id];
+  const keepAsImage1 = input.plateSource === 'keeper';
+  const garmentReinforce = keepAsImage1 && input.garmentReinforce === true;
+
+  if (input.hasPlate) {
+    const poseLine = hints
+      ? `mandatory new pose from the beat: ${hints}`
+      : `mandatory new pose: ${defaultPose}`;
+    if (keepAsImage1) {
+      return [
+        DAY_KEEP_OUTFIT_POSE_UNLOCK_PREFIX,
+        `Edit instruction for a Day planner still — ${timeOfDay}:`,
+        'Image 1 is the Outfit Keep try-on (face + worn kit).',
+        garmentReinforce
+          ? 'Image 2 is a wardrobe packshot — use it only to reinforce garment cut, colors, and fabric from Image 1; ignore Image 2 layout.'
+          : null,
+        'keep facial likeness only for identity; keep the clothing from Image 1; aggressively refactor pose, camera, lighting, and environment',
+        descriptor
+          ? `look (mandatory unique face and body — not a stock beauty face or default slim silhouette): ${descriptor}`
+          : null,
+        name ? `subject: ${name}` : 'subject: the active Cast character',
+        outfit
+          ? `outfit continuity: stay in ${outfit} (same kit as Image 1) in the new pose`
+          : 'outfit continuity: same garments and colors as Image 1 in the new pose',
+        poseLine,
+        setting
+          ? `setting: ${setting} — place them there for ${timeOfDay}`
+          : `setting: a coherent real-world location that fits ${timeOfDay}`,
+        hints ? `beat: ${hints}` : null,
+        notes ? `notes: ${notes}` : null,
+        'replace everything else: pose, stance, limbs, hands, framing, lighting, and background',
+        `output: a new cinematic ${timeOfDay} scene — same face, same kept outfit, different pose — not a cleaned-up copy of Image 1`,
+        'single full or three-quarter framing, natural lighting for the time of day',
+      ]
+        .filter(Boolean)
+        .join('\n');
+    }
+
+    return [
+      QWEN_POSE_UNLOCK_MODIFY_PREFIX,
+      `Edit instruction for a Day planner still — ${timeOfDay}:`,
+      'Image 1 is the Cast identity plate.',
+      'keep facial likeness only from Image 1; aggressively refactor pose, camera, lighting, and environment',
+      descriptor
+        ? `look (mandatory unique face and body — not a stock beauty face or default slim silhouette): ${descriptor}`
+        : null,
+      name ? `subject: ${name}` : 'subject: the active Cast character',
+      outfit
+        ? `replace clothing with this slot's outfit: ${outfit}`
+        : "replace clothing with this slot's catalog wardrobe kit",
+      poseLine,
+      setting
+        ? `setting: ${setting} — place them there for ${timeOfDay}`
+        : `setting: a coherent real-world location that fits ${timeOfDay}`,
+      hints ? `beat: ${hints}` : null,
+      notes ? `notes: ${notes}` : null,
+      'replace everything else: pose, stance, limbs, hands, framing, lighting, and background',
+      `output: a new cinematic ${timeOfDay} scene — same face, different pose — not a cleaned-up copy of Image 1`,
+      'single full or three-quarter framing, natural lighting for the time of day',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
 
   return [
-    `Day planner still — ${slot.label.toLowerCase()}:`,
+    `Day planner still — ${timeOfDay}:`,
     descriptor
       ? `look (mandatory unique face and body — not a stock beauty face or default slim silhouette): ${descriptor}`
       : null,
     name ? `subject: ${name}` : 'subject: the active Cast character',
     outfit ? `outfit: ${outfit}` : 'outfit: catalog wardrobe kit for this slot',
     setting ? `setting: ${setting}` : 'setting: a coherent location that fits the time of day',
-    hints ? `beat: ${hints}` : null,
+    hints ? `beat: ${hints}` : `pose: ${defaultPose}`,
     notes ? `notes: ${notes}` : null,
     'single cinematic still, full or three-quarter framing, natural lighting for the time of day',
     'keep the stated face geometry, body proportions, age read, and ancestry consistent; avoid generic model faces and default body types',
@@ -296,24 +395,26 @@ export function buildDaySlotMotionSubject(slot: DaySlot, characterName?: string)
     .slice(0, 320);
 }
 
-/** Seed empty slot wardrobe ids from a Fitting / look-pack wardrobe lock. */
+/** Seed slot wardrobe ids from a Fitting / look-pack wardrobe lock. */
 export function seedDaySlotsWardrobe(
   slots: DaySlot[] | null | undefined,
-  wardrobeId?: string
+  wardrobeId?: string,
+  options?: { force?: boolean }
 ): DaySlot[] {
   const id = wardrobeId?.trim();
   if (!id) {
     return normalizeDaySlots(slots);
   }
+  const force = options?.force === true;
   return normalizeDaySlots(slots).map(slot => ({
     ...slot,
-    wardrobeId: slot.wardrobeId?.trim() || id,
+    wardrobeId: force ? id : slot.wardrobeId?.trim() || id,
   }));
 }
 
 /**
- * Map multiple Fitting keeper kits onto morning→night.
- * First N keepers fill slots in order; remaining empty slots inherit the last keeper.
+ * Map Fitting keeper kits onto morning→night (overwrites existing slot kits).
+ * First N keepers fill slots in order; remaining slots inherit the last keeper.
  */
 export function seedDaySlotsFromKeeperWardrobes(
   slots: DaySlot[] | null | undefined,
@@ -325,11 +426,11 @@ export function seedDaySlotsFromKeeperWardrobes(
     return normalized;
   }
   if (ids.length === 1) {
-    return seedDaySlotsWardrobe(normalized, ids[0]);
+    return seedDaySlotsWardrobe(normalized, ids[0], { force: true });
   }
   const last = ids[ids.length - 1]!;
   return normalized.map((slot, index) => ({
     ...slot,
-    wardrobeId: ids[index] ?? slot.wardrobeId?.trim() ?? last,
+    wardrobeId: ids[index] ?? last,
   }));
 }

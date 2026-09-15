@@ -54,6 +54,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     activeSlot,
     character,
     hasPlate,
+    plate,
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,
@@ -346,9 +347,19 @@ export default function MobileDayToolSections(vm: ViewModel) {
           />
           <p className="type-caption mt-2 text-[var(--text-muted)]">
             {hasPlate
-              ? 'Cast plate detected — identity lock when available.'
-              : 'No Cast plate — stills queue as text scenes.'}
+              ? 'Plate ready — identity lock when available.'
+              : 'No plate — Keep in Outfit or add a Cast look.'}
           </p>
+          {plate?.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={plate.imageUrl}
+              alt="Day plate"
+              className="mt-3 max-h-48 w-full rounded-xl border border-[var(--border-subtle)] object-contain"
+              data-testid="mobile-day-plate-preview"
+              data-source={plate.source}
+            />
+          ) : null}
         </div>
       </CollapsibleSection>
 

@@ -1,15 +1,18 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import PlaySoftAdvanceBanner, {
   type PlaySoftAdvanceTarget,
 } from '@/components/PlaySoftAdvanceBanner';
 import { Button } from '@/components/ui/Button';
 import { FieldError, FieldLabel, SelectInput } from '@/components/ui/Field';
+import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
+import { buildFittingCompareLightboxState } from '@/lib/fitting-room';
 import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import { toMobileStudioHref, withCharacterQuery } from '@/lib/mobile-studio';
@@ -23,10 +26,16 @@ import {
   resolveWardrobeKitThumbUrl,
 } from '@/lib/wardrobe-garment-thumbs';
 
+const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
+  ssr: false,
+  loading: () => null,
+});
+
 type ViewModel = ReturnType<typeof useFittingRoomToolOrchestration>;
 
 export default function MobileFittingToolSections(vm: ViewModel) {
   const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+  const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const {
     shared,
     toolSettings,
@@ -67,6 +76,12 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     selectKit,
     queueBlocked,
     dayPlannerHref,
+    garmentUploading,
+    garmentScanStatus,
+    applyCustomGarment,
+    clearCustomGarment,
+    rescanCustomGarment,
+    clearKit,
   } = vm;
 
   const touchStartX = useRef<number | null>(null);
@@ -81,6 +96,23 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     activeThumb ||
     (activeSwipeKit ? resolveWardrobeGarmentThumbUrl(activeSwipeKit.id) : null) ||
     plateUrl;
+
+  const openCompareLightbox = useCallback(
+    (promptId: string) => {
+      const next = buildFittingCompareLightboxState(compareTryOns, promptId);
+      if (!next) {
+        return;
+      }
+      setLightbox({
+        images: next.images,
+        titles: next.titles,
+        originalImages: next.images,
+        index: next.index,
+        title: next.title,
+      });
+    },
+    [compareTryOns]
+  );
 
   return (
     <div className="space-y-4" data-testid="mobile-fitting">
@@ -181,6 +213,78 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         ) : null}
       </label>
 
+      <div className="space-y-2" data-testid="mobile-fitting-custom-garment">
+        <FieldLabel>Your clothing photo</FieldLabel>
+        <p className="type-caption text-[var(--text-muted)]">
+          Optional — vision describes the garments for try-on (clears catalog kit).
+        </p>
+        <input
+          type="file"
+          accept="image/*"
+          disabled={busy || garmentUploading}
+          className="ui-file-input block w-full"
+          onChange={event => {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (!file) {
+              return;
+            }
+            void applyCustomGarment({ file }).catch(err => {
+              setError(
+                err instanceof Error ? err.message : 'Could not upload that clothing photo.'
+              );
+            });
+          }}
+        />
+        {garmentUploading || garmentScanStatus ? (
+          <p className="type-caption text-[var(--text-muted)]">
+            {garmentScanStatus || 'Uploading…'}
+          </p>
+        ) : null}
+        {toolSettings.customGarmentImageUrl?.trim() ? (
+          <div className="space-y-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={toolSettings.customGarmentImageUrl}
+              alt="Custom clothing"
+              className="max-h-40 w-full rounded-xl border border-[var(--border-subtle)] object-contain"
+            />
+            {toolSettings.customGarmentDescription?.trim() ? (
+              <p className="type-caption text-[var(--text-secondary)]">
+                {toolSettings.customGarmentDescription}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy || garmentUploading}
+                onClick={() => {
+                  void rescanCustomGarment().catch(err => {
+                    setError(err instanceof Error ? err.message : 'Vision scan failed.');
+                  });
+                }}
+              >
+                Rescan
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || garmentUploading}
+                onClick={clearCustomGarment}
+              >
+                Clear photo
+              </Button>
+            </div>
+          </div>
+        ) : null}
+        {shared.lockedWardrobeId?.trim() ? (
+          <Button size="sm" variant="ghost" disabled={busy} onClick={clearKit}>
+            Clear kit
+          </Button>
+        ) : null}
+      </div>
+
       {swipeDeck.length > 0 ? (
         <div
           className="space-y-3"
@@ -229,7 +333,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           <WardrobeKitPicker
             kits={swipeDeck}
             selectedId={deckSelectionId}
-            disabled={busy}
+            disabled={busy || Boolean(toolSettings.customGarmentImageUrl?.trim())}
             size="sm"
             activeThumbRef={activeThumbRef}
             testId="mobile-fitting-thumbs"
@@ -269,7 +373,9 @@ export default function MobileFittingToolSections(vm: ViewModel) {
 
       {compareTryOns.length > 0 ? (
         <div className="space-y-2" data-testid="mobile-fitting-compare">
-          <p className="type-caption text-[var(--text-muted)]">Compare try-ons</p>
+          <p className="type-caption text-[var(--text-muted)]">
+            Compare try-ons · tap for full size
+          </p>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {compareTryOns.map(tryOn => (
               <figure
@@ -277,12 +383,19 @@ export default function MobileFittingToolSections(vm: ViewModel) {
                 className="min-w-[8rem] shrink-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-2"
               >
                 {tryOn.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={tryOn.imageUrl}
-                    alt={tryOn.wardrobeLabel || 'Try-on'}
-                    className="mb-2 h-32 w-full rounded-xl object-cover"
-                  />
+                  <button
+                    type="button"
+                    className="mb-2 block w-full cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    aria-label={`View ${tryOn.wardrobeLabel || 'try-on'} larger`}
+                    onClick={() => openCompareLightbox(tryOn.promptId)}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={tryOn.imageUrl}
+                      alt={tryOn.wardrobeLabel || 'Try-on'}
+                      className="h-32 w-full rounded-xl object-cover"
+                    />
+                  </button>
                 ) : null}
                 <figcaption className="type-caption truncate text-[var(--text-muted)]">
                   {tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on'}
@@ -322,6 +435,22 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           </div>
         </div>
       ) : null}
+
+      <ImageLightbox
+        state={lightbox}
+        onClose={() => setLightbox(null)}
+        onIndexChange={index =>
+          setLightbox(previous =>
+            previous
+              ? {
+                  ...previous,
+                  index,
+                  title: previous.titles?.[index] ?? previous.title,
+                }
+              : previous
+          )
+        }
+      />
 
       <div className="grid gap-2">
         {mobileContinueDay && !softAdvance ? (

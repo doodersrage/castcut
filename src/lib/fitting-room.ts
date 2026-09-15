@@ -12,6 +12,53 @@ export type FittingCompareTryOn = {
 
 export const FITTING_COMPARE_LIMIT = 4;
 
+/** Short outfit label for queue chrome / confirm-match line. */
+export function clipFittingGarmentLabel(description: string, max = 96): string {
+  const trimmed = description.replace(/\s+/g, ' ').trim();
+  if (!trimmed) {
+    return 'uploaded clothing reference';
+  }
+  if (trimmed.length <= max) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
+}
+
+/** Build ImageLightbox state for the compare strip (newest-first order preserved). */
+export function buildFittingCompareLightboxState(
+  tryOns: FittingCompareTryOn[],
+  openPromptId: string
+): {
+  images: string[];
+  titles: string[];
+  index: number;
+  title: string;
+} | null {
+  const slides = tryOns
+    .map(tryOn => {
+      const url = tryOn.imageUrl?.trim();
+      if (!url) {
+        return null;
+      }
+      const title = tryOn.wardrobeLabel?.trim() || tryOn.wardrobeId?.trim() || 'Try-on';
+      return { promptId: tryOn.promptId, url, title };
+    })
+    .filter((slide): slide is { promptId: string; url: string; title: string } => slide != null);
+  if (slides.length === 0) {
+    return null;
+  }
+  const index = Math.max(
+    0,
+    slides.findIndex(slide => slide.promptId === openPromptId)
+  );
+  return {
+    images: slides.map(slide => slide.url),
+    titles: slides.map(slide => slide.title),
+    index,
+    title: slides[index]?.title ?? 'Try-on',
+  };
+}
+
 /** Append a try-on to the compare strip (newest first, capped). */
 export function pushFittingCompareTryOn(
   current: FittingCompareTryOn[] | undefined,
@@ -213,17 +260,31 @@ export function buildFittingOutfitPrompt(input: {
   characterDescriptor?: string;
   notes?: string;
   isolated?: boolean;
+  /** When a garment packshot is queued as Image 2. */
+  hasGarmentReference?: boolean;
+  /** Vision (or manual) description of the BYO clothing photo. */
+  garmentDescription?: string;
 }): string {
   const outfit = input.outfitLabel.trim();
   const name = input.characterName?.trim();
   const descriptor = input.characterDescriptor?.trim();
   const notes = input.notes?.trim();
+  const garmentDescription = input.garmentDescription?.trim();
+  const garmentLine = input.hasGarmentReference
+    ? garmentDescription
+      ? `Apply the exact outfit from Image 2 (clothing reference). Match silhouette, color, fabric, and accessories. Visible garments: ${garmentDescription}. Keep face, hair, body, and pose from Image 1.`
+      : 'Apply the exact outfit from Image 2 (garment packshot). Match silhouette, color, fabric, and accessories. Keep face, hair, body, and pose from Image 1.'
+    : `replace: all clothing and footwear with this outfit — ${outfit}`;
   return [
     'Edit instruction for an outfit try-on:',
+    input.hasGarmentReference
+      ? 'Image 1 is the person plate; Image 2 is the clothing example'
+      : null,
     'keep: face, hair, body identity, skin tone, and likeness from the reference plate',
     name ? `subject: ${name}` : null,
     descriptor ? `look notes: ${descriptor}` : null,
-    `replace: all clothing and footwear with this outfit — ${outfit}`,
+    garmentLine,
+    input.hasGarmentReference ? `outfit name (confirm match): ${outfit}` : null,
     'do not keep the reference photo street clothes, uniform, or shoes unless the outfit explicitly includes them',
     input.isolated
       ? 'background: clean plain studio / white seamless; no scene from the original photo'
@@ -239,14 +300,23 @@ export function buildFittingOutfitPrompt(input: {
  * Tighter instruction for draft swipe thumbs — identity comes from the plate only;
  * no character hints, notes, or scene flavor that can spawn weapons/props/backgrounds.
  */
-export function buildFittingKitPreviewPrompt(input: { outfitLabel: string }): string {
+export function buildFittingKitPreviewPrompt(input: {
+  outfitLabel: string;
+  hasGarmentReference?: boolean;
+}): string {
   const outfit = input.outfitLabel.trim();
+  const garmentLine = input.hasGarmentReference
+    ? 'Apply the exact outfit from Image 2 (garment packshot). Match silhouette, color, and fabric. Keep face, hair, body, and pose from Image 1.'
+    : `Replace all clothing, armor, footwear, and accessories with: ${outfit}.`;
   return [
     buildSinglePersonUserDirective(),
-    `Replace all clothing, armor, footwear, and accessories with: ${outfit}.`,
+    garmentLine,
+    input.hasGarmentReference ? `Outfit name (confirm match): ${outfit}.` : null,
     'Remove every garment, weapon, prop, mask, and handheld item from the reference photo unless the new outfit explicitly includes them.',
     'Same person, face, hair, skin tone, body shape, and pose as the reference photo.',
     'Plain white studio background. One person only — no duplicates, panels, or extra figures.',
     'Empty hands unless the new outfit explicitly includes handheld items.',
-  ].join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 }

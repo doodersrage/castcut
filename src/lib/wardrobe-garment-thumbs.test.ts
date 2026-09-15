@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   buildWardrobeGarmentThumbPrompt,
+  buildFittingGarmentReferenceExtras,
   buildWardrobeKitPickerDeck,
   resolveWardrobeGarmentThumbUrl,
   resolveWardrobeKitThumbUrl,
@@ -36,6 +37,37 @@ describe('wardrobe-garment-thumbs', () => {
     const url = resolveWardrobeGarmentThumbUrl('outfit-boxy-cobalt-monk-robes');
     assert.match(url ?? '', /\/wardrobe-thumbs\/outfit-boxy-cobalt-monk-robes\.(webp|svg)$/);
     assert.equal(resolveWardrobeGarmentThumbUrl('not-a-real-kit'), null);
+  });
+
+  it('buildFittingGarmentReferenceExtras queues Image 2 when a packshot exists', () => {
+    const extras = buildFittingGarmentReferenceExtras({
+      wardrobeId: 'outfit-boxy-cobalt-monk-robes',
+    });
+    assert.ok(extras);
+    assert.equal(extras!.hasGarmentReference, true);
+    assert.equal(extras!.source, 'packshot');
+    assert.match(extras!.inputImageUrls?.[1] ?? '', /wardrobe-thumbs\/outfit-boxy-cobalt-monk-robes/);
+    assert.equal(buildFittingGarmentReferenceExtras({ wardrobeId: 'not-a-real-kit' }), null);
+  });
+
+  it('buildFittingGarmentReferenceExtras prefers a custom clothing photo over packshot', () => {
+    const extras = buildFittingGarmentReferenceExtras({
+      wardrobeId: 'outfit-boxy-cobalt-monk-robes',
+      customGarmentUrl: 'https://example.com/my-jacket.png',
+    });
+    assert.ok(extras);
+    assert.equal(extras!.source, 'custom');
+    assert.equal(extras!.inputImageUrls?.[1], 'https://example.com/my-jacket.png');
+  });
+
+  it('buildFittingGarmentReferenceExtras can use Comfy filename only for Image 2', () => {
+    const extras = buildFittingGarmentReferenceExtras({
+      customGarmentFilename: 'my-jacket.png',
+    });
+    assert.ok(extras);
+    assert.equal(extras!.source, 'custom');
+    assert.equal(extras!.inputImageFilenames?.[1], 'my-jacket.png');
+    assert.equal(extras!.inputImageUrls, undefined);
   });
 
   it('prefers person draft over garment thumb', () => {

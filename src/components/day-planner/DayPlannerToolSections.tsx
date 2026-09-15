@@ -40,6 +40,7 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
+import DayPlateSection from '@/components/day-planner/DayPlateSection';
 import PlaySoftAdvanceBanner, {
   type PlaySoftAdvanceTarget,
 } from '@/components/PlaySoftAdvanceBanner';
@@ -51,7 +52,6 @@ type Props = ViewModel & { description: string };
 
 export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const {
-    mounted,
     shared,
     toolSettings,
     updateShared,
@@ -75,6 +75,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     activeSlot,
     character,
     selectedModel,
+    plate,
     hasPlate,
     wardrobeOptions,
     wardrobeReady,
@@ -159,6 +160,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
       recommendFromText={output}
       toolId={TOOL_ID}
+      preferEditModels={hasPlate}
       onSharedSettingsChange={updateShared}
       variant="roleplay"
     />
@@ -321,15 +323,21 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           />
           {hasPlate ? (
             <p className="type-caption mt-2 text-[var(--text-muted)]">
-              Cast plate detected — queues use identity lock when available.
+              Plate ready — Day queues use identity lock when available.
             </p>
           ) : (
             <p className="type-caption mt-2 text-[var(--text-muted)]">
-              No Cast plate yet — stills queue as text scenes. Add a look in Cast or open Outfit.
+              No plate yet — Keep in Outfit or add a look in Cast.
             </p>
           )}
         </div>
       </CollapsibleSection>
+
+      <DayPlateSection
+        plate={plate}
+        characterId={shared.activeCharacterId}
+        lockedWardrobeId={activeSlot.wardrobeId || shared.lockedWardrobeId}
+      />
 
       <ToolSection
         title="Day progress"

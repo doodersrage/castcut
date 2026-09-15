@@ -14,7 +14,7 @@ export const FITTING_KIT_PREVIEW_MAX = 16;
 export const FITTING_KIT_PREVIEW_WIDTH = 256;
 export const FITTING_KIT_PREVIEW_HEIGHT = 384;
 /** Bump when preview queue wiring changes so stale thumbs re-queue. */
-export const FITTING_KIT_PREVIEW_PROMPT_VERSION = 11;
+export const FITTING_KIT_PREVIEW_PROMPT_VERSION = 12;
 
 /** Fast edit stacks for swipe thumbs — never the sidebar keeper model. */
 const FITTING_KIT_PREVIEW_MODEL_CANDIDATES: ComfyImageModel[] = [

@@ -983,6 +983,11 @@ export type FittingToolCache = {
   previewPlateSourceKey?: string;
   /** Look→Outfit: await this Comfy still, then stamp it as the try-on plate. */
   pendingOutfitPlatePromptId?: string;
+  /** Bring-your-own clothing photo (Image 2) — overrides kit packshot when set. */
+  customGarmentImageUrl?: string;
+  customGarmentImageFilename?: string;
+  /** Vision scan of the BYO clothing photo — text cue for try-on. */
+  customGarmentDescription?: string;
 };
 
 /** Day Planner — time-of-day slots with wardrobe + scene beats for one character. */

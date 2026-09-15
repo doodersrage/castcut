@@ -103,6 +103,82 @@ export function resolveWardrobeGarmentThumbUrl(
   return `${WARDROBE_GARMENT_THUMB_PUBLIC_DIR}/${file.replace(/^\//, '')}`;
 }
 
+/**
+ * Absolute URL for queue upload (same-origin fetch). Null when no packshot exists.
+ * Prefer Comfy packshots; skip SVG placeholders which are weak clothing references.
+ */
+export function resolveWardrobeGarmentThumbQueueUrl(
+  wardrobeId: string | null | undefined
+): string | null {
+  const id = wardrobeId?.trim();
+  if (!id) {
+    return null;
+  }
+  const entry = getWardrobeGarmentThumbManifest().thumbs[id];
+  if (!entry?.file?.trim()) {
+    return null;
+  }
+  if (entry.source === 'svg') {
+    return null;
+  }
+  const path = resolveWardrobeGarmentThumbUrl(id);
+  if (!path) {
+    return null;
+  }
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}${path.startsWith('/') ? path : `/${path}`}`;
+  }
+  return path;
+}
+
+/** Queue extras: custom clothing photo or kit packshot as Figure 2 (never Image 1). */
+export function buildFittingGarmentReferenceExtras(input: {
+  wardrobeId?: string | null;
+  customGarmentUrl?: string | null;
+  customGarmentFilename?: string | null;
+}): {
+  /** Sparse: slot 0 left empty so plate stays Image 1 via inputImageUrl/Filename. */
+  inputImageUrls?: [undefined, string];
+  inputImageFilenames?: [undefined, string];
+  hasGarmentReference: true;
+  source: 'custom' | 'packshot';
+} | null {
+  const customFilename = input.customGarmentFilename?.trim();
+  const custom = input.customGarmentUrl?.trim();
+  if (custom || customFilename) {
+    const url = !custom
+      ? ''
+      : custom.startsWith('http://') || custom.startsWith('https://') || custom.startsWith('blob:')
+        ? custom
+        : typeof window !== 'undefined' && window.location?.origin && custom.startsWith('/')
+          ? `${window.location.origin}${custom}`
+          : custom;
+    if (!url && !customFilename) {
+      return null;
+    }
+    return {
+      ...(url ? { inputImageUrls: [undefined, url] as [undefined, string] } : {}),
+      ...(customFilename
+        ? { inputImageFilenames: [undefined, customFilename] as [undefined, string] }
+        : {}),
+      hasGarmentReference: true,
+      source: 'custom',
+    };
+  }
+  const packshot = resolveWardrobeGarmentThumbQueueUrl(input.wardrobeId);
+  if (!packshot) {
+    return null;
+  }
+  return {
+    inputImageUrls: [undefined, packshot],
+    hasGarmentReference: true,
+    source: 'packshot',
+  };
+}
+
 /** Prefer person draft when ready; otherwise packaged garment thumb. */
 export function resolveWardrobeKitThumbUrl(input: {
   wardrobeId: string;

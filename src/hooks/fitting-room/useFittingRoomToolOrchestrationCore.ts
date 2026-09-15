@@ -39,7 +39,6 @@ import {
   buildFittingSwipeDeck,
   fittingSwipeIndex,
   fittingSwipeNeighbor,
-  resolveFittingDeckWardrobeId,
   resolveFittingPlateFromCharacter,
 } from '@/lib/fitting-room';
 import {
@@ -155,15 +154,18 @@ export function useFittingRoomToolOrchestrationCore() {
     () => buildFittingSwipeDeck(filteredWardrobeOptions),
     [filteredWardrobeOptions]
   );
-  const deckSelectionId = useMemo(
-    () => resolveFittingDeckWardrobeId(swipeDeck, shared.lockedWardrobeId),
-    [swipeDeck, shared.lockedWardrobeId]
-  );
+  const deckSelectionId = useMemo(() => {
+    const id = shared.lockedWardrobeId?.trim();
+    if (id && swipeDeck.some(kit => kit.id === id)) {
+      return id;
+    }
+    return undefined;
+  }, [swipeDeck, shared.lockedWardrobeId]);
   const activeSwipeKit = useMemo(() => {
     if (!deckSelectionId) {
-      return swipeDeck[0] ?? null;
+      return null;
     }
-    return swipeDeck.find(kit => kit.id === deckSelectionId) ?? swipeDeck[0] ?? null;
+    return swipeDeck.find(kit => kit.id === deckSelectionId) ?? null;
   }, [deckSelectionId, swipeDeck]);
   const deckSelectionIndex = useMemo(
     () => fittingSwipeIndex(swipeDeck, deckSelectionId),

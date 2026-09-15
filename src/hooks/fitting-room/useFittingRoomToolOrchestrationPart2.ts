@@ -57,11 +57,7 @@ import {
 } from '@/lib/wardrobe-catalog-ui';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import {
-  cacheBustIdentityMediaUrl,
-  isIdentityMediaUrl,
-  persistIdentityImage,
-} from '@/lib/gallery-media-client';
+import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
 import {
   collectIsolateSourceUrls,
   isolateSubjectOnWhite,
@@ -89,6 +85,7 @@ import {
   saveSharedSettings,
 } from '@/lib/settings-cache';
 import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting-clothing-options';
+import { scanStillWithVision, resolveLocalImageFile } from '@/lib/vision-still-scan-client';
 
 const ACCENT = 'rose' as const;
 const TOOL_ID = 'fitting' as const;
@@ -176,6 +173,148 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       pendingOutfitPlatePromptId: undefined,
     });
   }, [clearReferencePreview, updateToolSettings]);
+
+  const [garmentUploading, setGarmentUploading] = useState(false);
+  const [garmentScanStatus, setGarmentScanStatus] = useState<string | null>(null);
+
+  const scanCustomGarmentDescription = useCallback(
+    async (image: File): Promise<string | null> => {
+      setGarmentScanStatus('Scanning clothing with vision…');
+      try {
+        const description = await scanStillWithVision({
+          image,
+          purpose: 'fitting-garment',
+          model: shared.model,
+          detail: shared.detail,
+          shared,
+        });
+        setGarmentScanStatus(null);
+        return description;
+      } catch (err) {
+        setGarmentScanStatus(null);
+        throw err;
+      }
+    },
+    [shared]
+  );
+
+  const applyCustomGarment = useCallback(
+    async (input: { file?: File | null; imageUrl?: string; filename?: string }) => {
+      const file = input.file ?? null;
+      const imageUrl = input.imageUrl?.trim() || '';
+      if (!file && !imageUrl) {
+        throw new Error('Choose a clothing photo first.');
+      }
+      setGarmentUploading(true);
+      setGarmentScanStatus(null);
+      setError(null);
+      try {
+        const originalName = input.filename || file?.name || `fitting-garment-${Date.now()}.png`;
+        const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+        const sourceFile =
+          file ??
+          (await (async () => {
+            const blob = await loadImageBlobFromUrls(
+              collectIsolateSourceUrls({
+                imageUrl,
+                filename: originalName,
+                comfyUrl,
+              })
+            );
+            return new File([blob], originalName, {
+              type: blob.type || 'image/png',
+              lastModified: Date.now(),
+            });
+          })());
+        const uploaded = await resolveQueueInputImage({
+          file: sourceFile,
+          filename: originalName,
+          model: shared.model,
+        });
+        const filename = uploaded?.filename?.trim();
+        if (!filename) {
+          throw new Error('Upload did not return a filename.');
+        }
+        // Do NOT persistIdentityImage — that overwrites the shared face/plate lock file.
+        const viewUrl =
+          collectIsolateSourceUrls({
+            filename,
+            comfyUrl,
+          }).find(url => url.includes('/api/comfyui/view?')) ?? '';
+        const previewUrl =
+          viewUrl ||
+          (imageUrl && !imageUrl.startsWith('blob:') ? imageUrl : '') ||
+          (file ? URL.createObjectURL(file) : '');
+        updateToolSettings({
+          customGarmentImageFilename: filename,
+          customGarmentImageUrl: previewUrl,
+          customGarmentDescription: undefined,
+        });
+        // BYO clothing and catalog kit are mutually exclusive.
+        updateShared({ lockedWardrobeId: undefined });
+
+        try {
+          const description = await scanCustomGarmentDescription(sourceFile);
+          if (description?.trim()) {
+            updateToolSettings({ customGarmentDescription: description.trim() });
+          }
+        } catch (err) {
+          setError(
+            err instanceof Error
+              ? `${err.message} Clothing photo kept — try-on will rely on Image 2 until you rescan.`
+              : 'Vision scan failed. Clothing photo kept — try-on will rely on Image 2 until you rescan.'
+          );
+        }
+      } finally {
+        setGarmentUploading(false);
+        setGarmentScanStatus(null);
+      }
+    },
+    [scanCustomGarmentDescription, setError, shared.model, updateShared, updateToolSettings]
+  );
+
+  const rescanCustomGarment = useCallback(async () => {
+    const preview = toolSettings.customGarmentImageUrl?.trim();
+    const filename = toolSettings.customGarmentImageFilename?.trim();
+    if (!preview && !filename) {
+      throw new Error('Upload a clothing photo first.');
+    }
+    setGarmentUploading(true);
+    setError(null);
+    try {
+      const image = await resolveLocalImageFile(null, preview, filename || 'fitting-garment.png');
+      const description = await scanCustomGarmentDescription(image);
+      if (description?.trim()) {
+        updateToolSettings({ customGarmentDescription: description.trim() });
+      }
+    } finally {
+      setGarmentUploading(false);
+      setGarmentScanStatus(null);
+    }
+  }, [
+    scanCustomGarmentDescription,
+    setError,
+    toolSettings.customGarmentImageFilename,
+    toolSettings.customGarmentImageUrl,
+    updateToolSettings,
+  ]);
+
+  const clearCustomGarment = useCallback(() => {
+    const previousUrl = toolSettings.customGarmentImageUrl?.trim();
+    if (previousUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(previousUrl);
+    }
+    updateToolSettings({
+      customGarmentImageUrl: undefined,
+      customGarmentImageFilename: undefined,
+      customGarmentDescription: undefined,
+    });
+    setGarmentScanStatus(null);
+  }, [toolSettings.customGarmentImageUrl, updateToolSettings]);
+
+  const clearKit = useCallback(() => {
+    updateShared({ lockedWardrobeId: undefined });
+  }, [updateShared]);
 
   useGalleryHandoff('fitting', handoff => {
     void applyReference({
@@ -369,9 +508,21 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
 
   const selectKit = useCallback(
     (wardrobeId: string) => {
-      updateShared({ lockedWardrobeId: wardrobeId.trim() || undefined });
+      const nextId = wardrobeId.trim() || undefined;
+      updateShared({ lockedWardrobeId: nextId });
+      if (nextId) {
+        const previousUrl = toolSettings.customGarmentImageUrl?.trim();
+        if (previousUrl?.startsWith('blob:')) {
+          URL.revokeObjectURL(previousUrl);
+        }
+        updateToolSettings({
+          customGarmentImageUrl: undefined,
+          customGarmentImageFilename: undefined,
+          customGarmentDescription: undefined,
+        });
+      }
     },
-    [updateShared]
+    [toolSettings.customGarmentImageUrl, updateShared, updateToolSettings]
   );
 
   const swipeKit = useCallback(
@@ -431,9 +582,14 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       return;
     }
     const locked = shared.lockedWardrobeId?.trim();
-    if (locked && swipeDeck.some(kit => kit.id === locked)) {
+    // Unlocked (BYO clothing or cleared) — never force a kit back on.
+    if (!locked) {
       return;
     }
+    if (swipeDeck.some(kit => kit.id === locked)) {
+      return;
+    }
+    // Locked kit left the filtered deck — move to the first visible kit.
     const first = swipeDeck[0]?.id;
     if (first) {
       updateShared({ lockedWardrobeId: first });
@@ -490,6 +646,12 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     keepTryOn,
     queueTryOnAndSwipe,
     clearReference,
+    garmentUploading,
+    garmentScanStatus,
+    applyCustomGarment,
+    rescanCustomGarment,
+    clearCustomGarment,
+    clearKit,
     selectKit,
     swipeKit,
     skipKit,

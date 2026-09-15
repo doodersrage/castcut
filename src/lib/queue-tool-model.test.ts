@@ -175,6 +175,24 @@ describe("queue-tool-model", () => {
     ]);
   });
 
+  it("filters Day with preferEditModels to img2img/edit models", () => {
+    const filtered = filterModelsForQueueTool(
+      [
+        "qwen-image-2512-lightning-8",
+        "qwen-image-edit-2511-lightning-8",
+        "flux-2-klein",
+        "z-image-turbo",
+      ],
+      "day",
+      { preferEditModels: true },
+    );
+    assert.deepEqual(filtered, [
+      "qwen-image-edit-2511-lightning-8",
+      "flux-2-klein",
+      "z-image-turbo",
+    ]);
+  });
+
   it("keeps Roleplay From bio on the T2I catalog", () => {
     const filtered = filterModelsForQueueTool(
       [

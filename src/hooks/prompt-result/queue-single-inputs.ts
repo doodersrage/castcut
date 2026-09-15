@@ -1,5 +1,4 @@
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { engineDisplayName } from '@/lib/engine/capabilities';
 import type { EngineAdapter } from '@/lib/engine/types';
@@ -103,7 +102,11 @@ export async function resolveQueueSingleInputs(input: {
     const file = options?.inputImages?.[i];
     const imageUrl = options?.inputImageUrls?.[i];
     const existing = uploadedFilenames[i]?.trim();
+    if (!file && !imageUrl?.trim() && !existing) {
+      continue;
+    }
     if (!file && !imageUrl?.trim()) {
+      // Filename already on Comfy — keep slot without re-upload.
       continue;
     }
     setComfyUiStatus(

@@ -30,6 +30,7 @@ import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
+  type ComfyGalleryEntry,
 } from '@/lib/comfyui-gallery';
 import {
   buildDaySlotMotionSubject,
@@ -44,7 +45,8 @@ import {
   type DaySlot,
   type DaySlotId,
 } from '@/lib/day-planner';
-import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
+import { resolveDayGarmentReinforce, resolveDayPlate } from '@/lib/day-plate';
+import { resolveWardrobeGarmentThumbQueueUrl } from '@/lib/wardrobe-garment-thumbs';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,
@@ -60,7 +62,6 @@ import {
 import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play-campaign';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
-import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
@@ -105,8 +106,28 @@ export function useDayPlannerToolOrchestrationCore() {
   const activeSlot = slots.find(slot => slot.id === activeSlotId) ?? slots[0]!;
   const character = getCharacter(shared.activeCharacterId);
   const selectedModel = getComfyModelDefinition(shared.model);
-  const plate = useMemo(() => resolveFittingPlateFromCharacter(character), [character]);
-  const hasPlate = Boolean(plate?.filename || plate?.imageUrl);
+  const [galleryEntries, setGalleryEntries] = useState<ComfyGalleryEntry[]>([]);
+  const plate = useMemo(
+    () => resolveDayPlate({ character, gallery: galleryEntries }),
+    [character, galleryEntries]
+  );
+  // Display Keep when present. Queue Keep as Image 1 (outfit); packshot may reinforce as Image 2.
+  const queuePlate = plate;
+  const hasPlate = Boolean(queuePlate?.filename || queuePlate?.imageUrl);
+
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') {
+      return;
+    }
+    const refresh = () => {
+      setGalleryEntries(loadComfyGallery());
+    };
+    refresh();
+    window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, refresh);
+    return () => {
+      window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, refresh);
+    };
+  }, [mounted]);
 
   const clothingGender = useMemo(
     () =>
@@ -189,7 +210,7 @@ export function useDayPlannerToolOrchestrationCore() {
     if (wardrobeId) {
       updateShared({ lockedWardrobeId: wardrobeId });
       updateToolSettings({
-        slots: seedDaySlotsWardrobe(toolSettings.slots, wardrobeId),
+        slots: seedDaySlotsWardrobe(toolSettings.slots, wardrobeId, { force: true }),
       });
     }
     if (fromLook) {
@@ -199,8 +220,9 @@ export function useDayPlannerToolOrchestrationCore() {
         if (pack.wardrobeId?.trim() && !wardrobeId) {
           updateShared({ lockedWardrobeId: pack.wardrobeId.trim() });
         }
+        const packWardrobe = pack.wardrobeId?.trim() || wardrobeId;
         const nextSlots = applyLookPackToDaySlots(
-          seedDaySlotsWardrobe(toolSettings.slots, pack.wardrobeId || wardrobeId),
+          seedDaySlotsWardrobe(toolSettings.slots, packWardrobe, { force: Boolean(packWardrobe) }),
           pack
         );
         const notes = lookPackNotes(pack);
@@ -304,20 +326,36 @@ export function useDayPlannerToolOrchestrationCore() {
   );
 
   const buildSlotPrompt = useCallback(
-    (slot: DaySlot) =>
-      buildDaySlotPrompt({
+    (slot: DaySlot) => {
+      const wardrobeId = slot.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
+      const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
+      const garmentReinforce = Boolean(
+        resolveDayGarmentReinforce({
+          plateSource: plate?.source,
+          packshotUrl,
+        })
+      );
+      return buildDaySlotPrompt({
         slot,
         wardrobeLabel: wardrobeLabelFor(slot.wardrobeId),
         characterName: character?.name,
         characterDescriptor: character?.descriptor || character?.hints,
         lockedLocation: shared.lockedLocation,
         notes: toolSettings.notes,
-      }),
+        hasPlate,
+        plateSource: queuePlate?.source,
+        garmentReinforce,
+      });
+    },
     [
       character?.descriptor,
       character?.hints,
       character?.name,
+      hasPlate,
+      plate?.source,
+      queuePlate?.source,
       shared.lockedLocation,
+      shared.lockedWardrobeId,
       toolSettings.notes,
       wardrobeLabelFor,
     ]
@@ -334,6 +372,12 @@ export function useDayPlannerToolOrchestrationCore() {
       setActiveSlotId(slot.id);
       actions.resetStatuses();
       try {
+        const wardrobeId = slot.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
+        const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
+        const garmentReinforce = resolveDayGarmentReinforce({
+          plateSource: plate?.source,
+          packshotUrl,
+        });
         const prompt = buildSlotPrompt(slot);
         // Play/Simple: skip lint round-trip — Day stills are draft-speed first film.
         const finalized = leanChrome
@@ -346,22 +390,33 @@ export function useDayPlannerToolOrchestrationCore() {
           href: '/day',
           fields: [character?.name ?? '', slot.label, finalized],
         });
-        const queueOptions = hasPlate
-          ? buildRoleplayQueueStillOptions({
-              photoMode: true,
-              isolateSubject: false,
-              referenceIsolated: true,
-              filename: plate?.filename,
-              imageUrl: plate?.imageUrl,
-              identityLockStrength: shared.ipAdapterStrength,
-              identityKind: shared.identityKind,
-            })
-          : undefined;
+        // Keep as Image 1 for worn-kit fidelity on Qwen 2511. Optional packshot Image 2.
+        // Never put Cast on Image 1 when Keep exists — that drops the outfit.
+        const queueOptions = !hasPlate
+          ? undefined
+          : queuePlate?.filename?.trim() || queuePlate?.imageUrl?.trim()
+            ? {
+                inputImageFilename: queuePlate?.filename?.trim() || undefined,
+                inputImageUrl: queuePlate?.imageUrl?.trim() || undefined,
+                ...(garmentReinforce
+                  ? {
+                      inputImageUrls: [undefined, garmentReinforce.imageUrl] as Array<
+                        string | undefined
+                      >,
+                    }
+                  : {}),
+              }
+            : undefined;
         const promptId = await actions.sendComfyUi(finalized, undefined, undefined, {
           ...(queueOptions ?? {}),
+          ...(hasPlate
+            ? {
+                queueTool: 'image-prompt',
+                turboEditStrength: 'strong',
+              }
+            : {}),
           characterId: shared.activeCharacterId,
           lookId: shared.activeLookId ?? character?.activeLookId,
-          // Play/Simple first-film path: draft stills; I2V animate stays Final.
           ...(leanChrome ? { qualityProfile: 'draft' as const } : {}),
         });
         const nextStills = upsertDaySlotStill(stillsRef.current, {
@@ -369,7 +424,6 @@ export function useDayPlannerToolOrchestrationCore() {
           promptId: typeof promptId === 'string' ? promptId : undefined,
           status: promptId ? 'queued' : 'error',
           imageUrl: undefined,
-          // Fresh still queue must not keep prior-run clips (Cut prefers clips).
           clipPromptId: undefined,
           clipUrl: undefined,
           clipStatus: undefined,
@@ -396,11 +450,11 @@ export function useDayPlannerToolOrchestrationCore() {
       character,
       hasPlate,
       leanChrome,
-      plate,
+      plate?.source,
+      queuePlate,
       shared.activeCharacterId,
       shared.activeLookId,
-      shared.identityKind,
-      shared.ipAdapterStrength,
+      shared.lockedWardrobeId,
       updateToolSettings,
     ]
   );

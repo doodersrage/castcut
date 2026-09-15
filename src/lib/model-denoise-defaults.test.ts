@@ -30,6 +30,33 @@ describe("model denoise defaults", () => {
     assert.equal(isEditQueueTool("image-prompt"), true);
     assert.equal(isEditQueueTool("imagePrompt"), true);
     assert.equal(isEditQueueTool("generate"), false);
+    assert.equal(isEditQueueTool("day"), false);
+  });
+
+  it("Day plate queues via image-prompt get instruction-edit denoise 1", () => {
+    assert.equal(
+      resolveQueueDenoise("qwen-image-edit-2511-lightning-8", {
+        tool: "image-prompt",
+        hasInputImage: true,
+        handoffDenoise: "0.82",
+      }),
+      1
+    );
+    assert.equal(
+      isInstructionEditDenoiseContext("qwen-image-edit-2511-lightning-8", {
+        tool: "image-prompt",
+        hasInputImage: true,
+      }),
+      true
+    );
+    assert.equal(
+      resolveQueueDenoise("flux-2-klein", {
+        tool: "image-prompt",
+        hasInputImage: true,
+        handoffDenoise: "0.82",
+      }),
+      1
+    );
   });
 
   it("detects Z-Image img2img edit tools and soft-denoise context", () => {

@@ -10,10 +10,12 @@ import {
 } from '@/lib/comfyui-gallery';
 import {
   buildFittingOutfitPrompt,
+  clipFittingGarmentLabel,
   pushFittingCompareTryOn,
   type FittingCompareTryOn,
   type FittingSwipeKit,
 } from '@/lib/fitting-room';
+import { buildFittingGarmentReferenceExtras } from '@/lib/wardrobe-garment-thumbs';
 import {
   countInFlightFittingKitPreviews,
   FITTING_KIT_PREVIEW_CONCURRENCY,
@@ -88,20 +90,36 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
   }, [input.kitPreviews]);
 
   const buildPrompt = useCallback(() => {
-    const outfitLabel =
-      input.lockedWardrobeLabel?.trim() || input.shared.lockedWardrobeId?.trim() || '';
+    const customGarmentUrl = input.toolSettings.customGarmentImageUrl?.trim();
+    const customGarmentFilename = input.toolSettings.customGarmentImageFilename?.trim();
+    const garmentDescription = input.toolSettings.customGarmentDescription?.trim();
+    const hasCustomGarment = Boolean(customGarmentUrl || customGarmentFilename);
+    const outfitLabel = hasCustomGarment
+      ? garmentDescription || 'uploaded clothing reference'
+      : input.lockedWardrobeLabel?.trim() || input.shared.lockedWardrobeId?.trim() || '';
     if (!outfitLabel) {
-      throw new Error('Pick a wardrobe kit first.');
+      throw new Error('Pick a wardrobe kit or upload a clothing photo first.');
     }
     if (!input.hasReference) {
       throw new Error('Add a plate — Cast look, upload, or Gallery still.');
     }
+    const garmentExtras = buildFittingGarmentReferenceExtras({
+      wardrobeId: hasCustomGarment ? undefined : input.shared.lockedWardrobeId,
+      customGarmentUrl,
+      customGarmentFilename,
+    });
     return buildFittingOutfitPrompt({
-      outfitLabel,
+      outfitLabel: hasCustomGarment
+        ? garmentDescription
+          ? clipFittingGarmentLabel(garmentDescription)
+          : 'uploaded clothing reference'
+        : outfitLabel,
       characterName: input.character?.name,
       characterDescriptor: input.character?.descriptor || input.character?.hints,
       notes: input.toolSettings.notes,
       isolated: input.toolSettings.referenceIsolated === true,
+      hasGarmentReference: Boolean(garmentExtras),
+      garmentDescription: hasCustomGarment ? garmentDescription : undefined,
     });
   }, [
     input.character?.descriptor,
@@ -110,6 +128,9 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
     input.hasReference,
     input.lockedWardrobeLabel,
     input.shared.lockedWardrobeId,
+    input.toolSettings.customGarmentDescription,
+    input.toolSettings.customGarmentImageFilename,
+    input.toolSettings.customGarmentImageUrl,
     input.toolSettings.notes,
     input.toolSettings.referenceIsolated,
   ]);
@@ -120,6 +141,15 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
     input.setCopied(false);
     input.actions.resetStatuses();
     try {
+      const customGarmentUrl = input.toolSettings.customGarmentImageUrl?.trim();
+      const customGarmentFilename = input.toolSettings.customGarmentImageFilename?.trim();
+      const garmentDescription = input.toolSettings.customGarmentDescription?.trim();
+      const hasCustomGarment = Boolean(customGarmentUrl || customGarmentFilename);
+      const garmentExtras = buildFittingGarmentReferenceExtras({
+        wardrobeId: hasCustomGarment ? undefined : input.shared.lockedWardrobeId,
+        customGarmentUrl,
+        customGarmentFilename,
+      });
       const prompt = buildPrompt();
       const finalized = await input.actions.finalizePrompt(
         prompt,
@@ -130,7 +160,11 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
         toolKey: TOOL_ID,
         label: 'Outfit',
         href: '/fitting',
-        fields: [input.character?.name ?? '', input.shared.lockedWardrobeId ?? '', finalized],
+        fields: [
+          input.character?.name ?? '',
+          hasCustomGarment ? 'custom-garment' : (input.shared.lockedWardrobeId ?? ''),
+          finalized,
+        ],
       });
       const queueOptions = buildRoleplayQueueStillOptions({
         photoMode: true,
@@ -143,14 +177,32 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
       });
       const promptId = await input.actions.sendComfyUi(finalized, undefined, undefined, {
         ...(queueOptions ?? {}),
+        ...(garmentExtras
+          ? {
+              ...(garmentExtras.inputImageUrls
+                ? { inputImageUrls: [...garmentExtras.inputImageUrls] }
+                : {}),
+              ...(garmentExtras.inputImageFilenames
+                ? {
+                    inputImageFilenames: garmentExtras.inputImageFilenames.map(
+                      name => name?.trim() || ''
+                    ),
+                  }
+                : {}),
+            }
+          : {}),
         characterId: input.shared.activeCharacterId,
         lookId: input.shared.activeLookId ?? input.character?.activeLookId,
       });
       if (typeof promptId === 'string' && promptId.trim()) {
         pendingTryOnRef.current = {
           promptId: promptId.trim(),
-          wardrobeId: input.shared.lockedWardrobeId?.trim() || '',
-          wardrobeLabel: input.lockedWardrobeLabel,
+          wardrobeId: hasCustomGarment
+            ? 'custom-garment'
+            : input.shared.lockedWardrobeId?.trim() || '',
+          wardrobeLabel: hasCustomGarment
+            ? clipFittingGarmentLabel(garmentDescription || 'Uploaded clothing')
+            : input.lockedWardrobeLabel,
         };
       }
       return true;
@@ -176,6 +228,9 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
     input.shared.identityKind,
     input.shared.ipAdapterStrength,
     input.shared.lockedWardrobeId,
+    input.toolSettings.customGarmentDescription,
+    input.toolSettings.customGarmentImageFilename,
+    input.toolSettings.customGarmentImageUrl,
     input.toolSettings.referenceIsolated,
   ]);
 

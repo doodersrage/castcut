@@ -48,12 +48,22 @@ export type FittingWardrobeKitSectionProps = {
   completedPreviewCount: number;
   inFlightPreviewCount: number;
   previewStatus: string | null;
+  customGarmentImageUrl?: string;
+  customGarmentDescription?: string;
+  garmentUploading: boolean;
+  garmentScanStatus?: string | null;
   onCategoryFilterChange: (filter: WardrobeCategoryFilter) => void;
   onSwipeKit: (delta: number) => void;
   onSelectKit: (wardrobeId: string) => void;
+  onClearKit: () => void;
   onToggleAutoKitPreviews: () => void;
   onFillKitPreviews: () => void;
   onNotesChange: (notes: string) => void;
+  onApplyCustomGarment: (input: { file: File }) => Promise<void>;
+  onClearCustomGarment: () => void;
+  onRescanCustomGarment: () => Promise<void>;
+  onCustomGarmentDescriptionChange: (description: string) => void;
+  onError: (message: string) => void;
 };
 
 export default function FittingWardrobeKitSection({
@@ -83,17 +93,29 @@ export default function FittingWardrobeKitSection({
   completedPreviewCount,
   inFlightPreviewCount,
   previewStatus,
+  customGarmentImageUrl,
+  customGarmentDescription,
+  garmentUploading,
+  garmentScanStatus,
   onCategoryFilterChange,
   onSwipeKit,
   onSelectKit,
+  onClearKit,
   onToggleAutoKitPreviews,
   onFillKitPreviews,
   onNotesChange,
+  onApplyCustomGarment,
+  onClearCustomGarment,
+  onRescanCustomGarment,
+  onCustomGarmentDescriptionChange,
+  onError,
 }: FittingWardrobeKitSectionProps) {
+  const hasCustomGarment = Boolean(customGarmentImageUrl?.trim());
+  const hasKit = Boolean(lockedWardrobeId?.trim());
   return (
     <ToolSection
       title="Wardrobe kit"
-      description="Filter by clothing type, swipe kits on the locked plate, or pick from the catalog."
+      description="Upload your own clothing photo (vision-scanned), or pick a catalog kit — not both."
       data-testid="fitting-kit-strip"
     >
       <label className="space-y-2">
@@ -124,12 +146,112 @@ export default function FittingWardrobeKitSection({
         ) : null}
       </label>
       <FieldDivider />
+      <div className="space-y-2" data-testid="fitting-custom-garment">
+        <FieldLabel>Your clothing photo</FieldLabel>
+        <p className="type-caption text-[var(--text-muted)]">
+          Packshot or product shot — uploaded as Image 2, then vision describes the garments for the
+          try-on prompt
+          {hasCustomGarment ? ' · catalog kit cleared' : ''}.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="file"
+            accept="image/*"
+            disabled={busy || garmentUploading}
+            className="ui-file-input block min-w-0 flex-1"
+            onChange={event => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (!file) {
+                return;
+              }
+              void onApplyCustomGarment({ file }).catch(err => {
+                onError(
+                  err instanceof Error ? err.message : 'Could not upload that clothing photo.'
+                );
+              });
+            }}
+          />
+          {hasCustomGarment ? (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={busy || garmentUploading}
+                onClick={() => {
+                  void onRescanCustomGarment().catch(err => {
+                    onError(err instanceof Error ? err.message : 'Vision scan failed.');
+                  });
+                }}
+              >
+                Rescan
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy || garmentUploading}
+                onClick={onClearCustomGarment}
+              >
+                Clear photo
+              </Button>
+            </>
+          ) : null}
+        </div>
+        {garmentUploading || garmentScanStatus ? (
+          <p className="type-caption text-[var(--text-muted)]">
+            {garmentScanStatus || 'Uploading clothing photo…'}
+          </p>
+        ) : null}
+        {hasCustomGarment && customGarmentImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={customGarmentImageUrl}
+            alt="Custom clothing reference"
+            className="max-h-40 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
+          />
+        ) : null}
+        {hasCustomGarment ? (
+          <label className="mt-2 block space-y-2">
+            <FieldLabel>Garment description</FieldLabel>
+            <TextArea
+              data-testid="fitting-garment-description"
+              rows={3}
+              value={customGarmentDescription ?? ''}
+              disabled={busy || garmentUploading}
+              className={accentFocusClass(ACCENT)}
+              placeholder="Vision fills this from your photo — edit if needed"
+              onChange={event => onCustomGarmentDescriptionChange(event.target.value)}
+            />
+          </label>
+        ) : null}
+      </div>
+      <FieldDivider />
+      {hasCustomGarment ? (
+        <p className="type-caption text-[var(--text-muted)]" data-testid="fitting-byo-active">
+          Using your clothing photo. Clear it below to pick a catalog kit again.
+        </p>
+      ) : null}
       {swipeDeck.length > 0 ? (
         <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {hasKit ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || hasCustomGarment}
+                data-testid="fitting-clear-kit"
+                onClick={onClearKit}
+              >
+                Clear kit
+              </Button>
+            ) : (
+              <span className="type-caption text-[var(--text-muted)]">No kit selected</span>
+            )}
+          </div>
           <WardrobeKitPicker
             kits={swipeDeck}
             selectedId={deckSelectionId}
-            disabled={!wardrobeReady || busy}
+            disabled={!wardrobeReady || busy || hasCustomGarment}
             activeThumbRef={activeThumbRef}
             onSelect={onSelectKit}
             onSwipe={delta => onSwipeKit(delta)}
@@ -202,7 +324,7 @@ export default function FittingWardrobeKitSection({
               <FieldLabel>List picker</FieldLabel>
               <SelectInput
                 value={lockedWardrobeId ?? ''}
-                disabled={!wardrobeReady || busy}
+                disabled={!wardrobeReady || busy || hasCustomGarment}
                 className={accentFocusClass(ACCENT)}
                 onChange={event => {
                   onSelectKit(event.target.value);
@@ -242,11 +364,24 @@ export default function FittingWardrobeKitSection({
       ) : null}
       {swipeDeck.length === 0 ? (
         <>
+          {hasKit ? (
+            <div className="mb-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || hasCustomGarment}
+                data-testid="fitting-clear-kit"
+                onClick={onClearKit}
+              >
+                Clear kit
+              </Button>
+            </div>
+          ) : null}
           <label className="mt-3 space-y-2">
             <FieldLabel>List picker</FieldLabel>
             <SelectInput
               value={lockedWardrobeId ?? ''}
-              disabled={!wardrobeReady || busy}
+              disabled={!wardrobeReady || busy || hasCustomGarment}
               className={accentFocusClass(ACCENT)}
               onChange={event => {
                 onSelectKit(event.target.value);

@@ -35,8 +35,12 @@ const Z_IMAGE_MODIFY_PRESERVE_PREFIX = `Edit Image 1 via img2img. ${Z_IMAGE_IDEN
 export const QWEN_EDIT_IMAGE_REF_PREFIX = 'Image' as const;
 
 /** Qwen ReferenceLatent + VL image1 anchor pose — override in prompt when refactoring. */
-const QWEN_POSE_UNLOCK_MODIFY_PREFIX =
+export const QWEN_POSE_UNLOCK_MODIFY_PREFIX =
   'Use Image 1 for facial identity and likeness only. Do not preserve the original body pose, sitting/standing framing, camera angle, or background — generate a new pose and scene as described.';
+
+/** Day / transfer: face from Image 1, wardrobe from Image 2+, pose from the text (not Image 2). */
+export const QWEN_POSE_UNLOCK_OUTFIT_TRANSFER_PREFIX =
+  'Use Image 1 for facial identity and likeness only — ignore Image 1 body pose, framing, and background. Use Image 2 only for clothing, garments, colors, and fabric — ignore Image 2 pose, stance, limbs, hands, and camera. Aggressively refactor into a new pose and scene as described; keep facial likeness only from Image 1.';
 
 const QWEN_POSE_UNLOCK_TRANSFER_PREFIX =
   'Image 1 is facial identity only — ignore Image 1 body pose and framing. Image 2 supplies the target pose, action, and body energy; use additional images for wardrobe, environment, or mood as described.';

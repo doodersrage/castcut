@@ -46,7 +46,6 @@ import {
   type DaySlot,
   type DaySlotId,
 } from '@/lib/day-planner';
-import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,

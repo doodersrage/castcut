@@ -167,6 +167,10 @@ export function useFittingRoomToolOrchestrationPart3(
     keepTryOn,
     queueTryOnAndSwipe,
     clearReference,
+    garmentUploading,
+    applyCustomGarment,
+    clearCustomGarment,
+    clearKit,
     selectKit,
     swipeKit,
     skipKit,
@@ -230,10 +234,16 @@ export function useFittingRoomToolOrchestrationPart3(
     return groups;
   }, [filteredWardrobeOptions]);
 
+  const hasGarmentSource = Boolean(
+    shared.lockedWardrobeId?.trim() ||
+    toolSettings.customGarmentImageUrl?.trim() ||
+    toolSettings.customGarmentImageFilename?.trim()
+  );
   const queueBlocked =
     !hasReference ||
-    !shared.lockedWardrobeId?.trim() ||
+    !hasGarmentSource ||
     referenceUploading ||
+    garmentUploading ||
     busy ||
     (isolateSubject && toolSettings.referenceIsolated !== true && !error);
 

@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  buildFittingCompareLightboxState,
   buildFittingKitPreviewPrompt,
+  buildFittingOutfitPrompt,
   buildFittingSwipeDeck,
   fittingSwipeIndex,
   fittingSwipeNeighbor,
@@ -78,8 +80,44 @@ describe('fitting outfit prompts', () => {
     assert.match(prompt, /SOLO SUBJECT/i);
     assert.match(prompt, /One person only/i);
     assert.doesNotMatch(prompt, /look notes/i);
+    assert.doesNotMatch(prompt, /Image 2/i);
   });
 
+  it('buildFittingKitPreviewPrompt references Image 2 when a garment packshot is present', () => {
+    const prompt = buildFittingKitPreviewPrompt({
+      outfitLabel: 'Silver two-piece swimsuit',
+      hasGarmentReference: true,
+    });
+    assert.match(prompt, /Image 2/i);
+    assert.match(prompt, /garment packshot/i);
+    assert.match(prompt, /Silver two-piece swimsuit/);
+    assert.doesNotMatch(prompt, /Replace all clothing, armor/i);
+  });
+
+  it('buildFittingOutfitPrompt references Image 2 when a garment packshot is present', () => {
+    const prompt = buildFittingOutfitPrompt({
+      outfitLabel: 'Cobalt monk robes',
+      hasGarmentReference: true,
+      isolated: true,
+    });
+    assert.match(prompt, /Image 2/i);
+    assert.match(prompt, /garment packshot/i);
+    assert.match(prompt, /Cobalt monk robes/);
+    assert.match(prompt, /white seamless/i);
+  });
+
+  it('buildFittingOutfitPrompt includes a vision garment description', () => {
+    const prompt = buildFittingOutfitPrompt({
+      outfitLabel: 'navy blazer look',
+      hasGarmentReference: true,
+      garmentDescription: 'navy double-breasted blazer over ivory trousers',
+    });
+    assert.match(prompt, /Visible garments: navy double-breasted blazer/i);
+    assert.match(prompt, /Image 2/i);
+  });
+});
+
+describe('fitting kit preview plate sidecar', () => {
   it('resolveFittingKitPreviewPlate uses cached preview sidecar when source matches', () => {
     const plate = resolveFittingKitPreviewPlate({
       previewPlateFilename: 'white.png',
@@ -97,6 +135,41 @@ describe('fitting outfit prompts', () => {
         previewPlateSourceKey: 'old-key',
         sourceKey: 'new-key',
       }),
+      null
+    );
+  });
+});
+
+describe('fitting compare lightbox', () => {
+  it('buildFittingCompareLightboxState opens on the tapped try-on', () => {
+    const state = buildFittingCompareLightboxState(
+      [
+        {
+          promptId: 'a',
+          wardrobeId: 'kit-a',
+          wardrobeLabel: 'Linen',
+          imageUrl: 'https://example.com/a.png',
+        },
+        {
+          promptId: 'b',
+          wardrobeId: 'kit-b',
+          wardrobeLabel: 'Rain',
+          imageUrl: 'https://example.com/b.png',
+        },
+        { promptId: 'c', wardrobeId: 'kit-c' },
+      ],
+      'b'
+    );
+    assert.ok(state);
+    assert.equal(state!.index, 1);
+    assert.equal(state!.images.length, 2);
+    assert.equal(state!.title, 'Rain');
+    assert.deepEqual(state!.titles, ['Linen', 'Rain']);
+  });
+
+  it('buildFittingCompareLightboxState returns null when no images', () => {
+    assert.equal(
+      buildFittingCompareLightboxState([{ promptId: 'x', wardrobeId: 'kit-x' }], 'x'),
       null
     );
   });

@@ -16,6 +16,7 @@ export const STILL_SCAN_PURPOSES = [
   'compose',
   'controlnet',
   'roleplay-photo',
+  'fitting-garment',
 ] as const;
 
 export type StillScanPurpose = (typeof STILL_SCAN_PURPOSES)[number];
@@ -61,6 +62,14 @@ Return ONLY JSON: {"prompt":""}
 - prompt: visible look only — hair, face, body, current clothes. This becomes character notes, not a new identity.
 - Do not invent a name, job, or backstory. No markdown, no commentary.`,
     user: 'Describe the visible look in this reference photo.',
+  },
+  'fitting-garment': {
+    system: `You read a clothing packshot, flat lay, product photo, or worn-garment still for Outfit try-on.
+Return ONLY JSON: {"prompt":""}
+- prompt: a dense fashion description of the garments only — silhouette, fit, colors, fabrics, patterns, layers, footwear, and accessories.
+- Ignore face, body, pose, and background. Do not invent garments that are not visible.
+- Prefer concrete nouns (blazer, chino, chelsea boot) over brand names. No markdown, no commentary.`,
+    user: 'Describe the clothing in this reference for an outfit try-on.',
   },
 };
 

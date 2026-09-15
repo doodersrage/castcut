@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Curate Full-outfit garment thumbs for the shared wardrobe picker.
+ * Curate wardrobe garment thumbs for the shared kit picker.
  *
  * Default: SVG silhouette placeholders (type/color-aware).
  * --comfy: Real packshots via local ComfyUI (RealVisXL), saved as WebP.
@@ -10,18 +10,22 @@
  *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --missing
  *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --add 100
  *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --add all
+ *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --add all --category top
  *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --all-missing
+ *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --rebuild-manifest
  *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --list
  *
  * Notes:
- *   --missing only fills gaps inside the curated --count window (default 200).
- *   --add N packs N more Full outfits not yet on disk.
- *   --add all / --all-missing packs every Full outfit still missing a Comfy WebP.
+ *   --missing only fills gaps inside the curated --count window (default 200 Full outfits).
+ *   --add N packs N more wardrobe kits not yet on disk (all clothing types by default).
+ *   --add all / --all-missing packs every wardrobe kit (outfits, tops, bottoms, …) still missing a Comfy WebP.
+ *   --category / --categories limits which clothing types to pack (e.g. outfit,top,outerwear).
+ *   --rebuild-manifest re-registers every .webp/.svg already in public/wardrobe-thumbs.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import sharp from 'sharp';
 
 const ROOT = process.cwd();
@@ -34,6 +38,19 @@ const OUT_HEIGHT = 240;
 const GEN_WIDTH = 576;
 const GEN_HEIGHT = 768;
 const DEFAULT_CKPT = 'RealVisXL_V5.0_fp16.safetensors';
+/** Clothing types shown in Outfit / Day wardrobe filters (matches WARDROBE_CATEGORIES). */
+const DEFAULT_PACK_CATEGORIES = [
+  'outfit',
+  'top',
+  'bottom',
+  'outerwear',
+  'swimwear',
+  'intimate',
+  'formalwear',
+  'sleepwear',
+  'underwear',
+  'traditional',
+];
 const NEGATIVE =
   'person, human, man, woman, child, face, head, hands, fingers, arms, legs, body, skin, mannequin, model, selfie, portrait, text, watermark, logo, brand, busy background, clutter, room interior, outdoors, shoes on feet with legs';
 
@@ -45,8 +62,11 @@ function parseArgs(argv) {
     clean: false,
     comfy: false,
     missing: false,
-    /** When set, pick this many additional outfits not already packed as Comfy WebPs. */
+    /** When set, pick this many additional kits not already packed as Comfy WebPs. */
     add: null,
+    rebuildManifest: false,
+    /** Limit packshots to these clothing categories. */
+    categories: [],
     comfyUrl: process.env.COMFYUI_API_URL?.trim() || 'http://127.0.0.1:8188',
     ckpt: process.env.WARDROBE_THUMB_CKPT?.trim() || DEFAULT_CKPT,
     steps: 16,
@@ -66,8 +86,29 @@ function parseArgs(argv) {
       args.comfy = true;
     } else if (arg === '--missing') {
       args.missing = true;
+    } else if (arg === '--rebuild-manifest') {
+      args.rebuildManifest = true;
     } else if (arg === '--all-missing') {
       args.add = Number.POSITIVE_INFINITY;
+    } else if (arg === '--category' || arg === '--categories') {
+      const raw = String(argv[index + 1] ?? '').trim();
+      if (raw) {
+        for (const part of raw.split(',')) {
+          const id = part.trim().toLowerCase();
+          if (id && !args.categories.includes(id)) {
+            args.categories.push(id);
+          }
+        }
+        index += 1;
+      }
+    } else if (arg?.startsWith('--category=') || arg?.startsWith('--categories=')) {
+      const raw = arg.slice(arg.indexOf('=') + 1).trim();
+      for (const part of raw.split(',')) {
+        const id = part.trim().toLowerCase();
+        if (id && !args.categories.includes(id)) {
+          args.categories.push(id);
+        }
+      }
     } else if (arg === '--add') {
       const raw = String(argv[index + 1] ?? '').trim().toLowerCase();
       if (raw === 'all' || raw === '*') {
@@ -406,6 +447,43 @@ function loadExistingManifest() {
   }
 }
 
+/**
+ * Rebuild the manifest from WebPs already on disk (+ optional SVG leftovers).
+ * Recovers after an SVG-only run overwrote the Comfy manifest without deleting packshots.
+ */
+function rebuildManifestFromDisk(entries) {
+  const byId = new Map(
+    entries
+      .filter(entry => entry.id?.trim())
+      .map(entry => [entry.id.trim(), entry])
+  );
+  const thumbs = {};
+  if (!fs.existsSync(PUBLIC_DIR)) {
+    writeManifest(thumbs);
+    return thumbs;
+  }
+  for (const name of fs.readdirSync(PUBLIC_DIR)) {
+    if (!name.endsWith('.webp') && !name.endsWith('.svg')) {
+      continue;
+    }
+    const id = name.replace(/\.(webp|svg)$/i, '');
+    const entry = byId.get(id);
+    const isWebp = name.endsWith('.webp');
+    // Prefer WebP over SVG when both exist.
+    if (!isWebp && thumbs[id]?.source === 'comfy') {
+      continue;
+    }
+    thumbs[id] = {
+      file: name,
+      label: entry?.label || id,
+      category: entry?.category || 'outfit',
+      source: isWebp ? 'comfy' : 'svg',
+    };
+  }
+  writeManifest(thumbs);
+  return thumbs;
+}
+
 function writeManifest(thumbs) {
   const manifest = {
     version: 2,
@@ -544,10 +622,11 @@ function needsComfy(entry, existing) {
   return true;
 }
 
-/** Next N Full-outfits that do not already have a Comfy WebP on disk (`Infinity` = all). */
-function selectAdditionalOutfits(entries, existing, addCount) {
-  const outfits = entries
-    .filter(entry => entry.category === 'outfit' && entry.id?.trim())
+/** Next N wardrobe kits that do not already have a Comfy WebP on disk (`Infinity` = all). */
+function selectAdditionalKits(entries, existing, addCount, categories) {
+  const allowed = new Set(categories);
+  const kits = entries
+    .filter(entry => allowed.has(entry.category) && entry.id?.trim())
     .map(entry => ({
       id: entry.id.trim(),
       label: entry.label?.trim() || entry.id.trim(),
@@ -555,7 +634,7 @@ function selectAdditionalOutfits(entries, existing, addCount) {
       script: entry.script?.trim() || '',
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
-  const missing = outfits.filter(entry => needsComfy(entry, existing));
+  const missing = kits.filter(entry => needsComfy(entry, existing));
   if (!Number.isFinite(addCount) || addCount === Number.POSITIVE_INFINITY) {
     return missing;
   }
@@ -569,21 +648,36 @@ function countPackedComfy(existing) {
   ).length;
 }
 
-function countOutfitEntries(entries) {
-  return entries.filter(entry => entry.category === 'outfit' && entry.id?.trim()).length;
+function countEntriesInCategories(entries, categories) {
+  const allowed = new Set(categories);
+  return entries.filter(entry => allowed.has(entry.category) && entry.id?.trim()).length;
+}
+
+function resolvePackCategories(args) {
+  if (args.categories.length > 0) {
+    return args.categories;
+  }
+  // --add targets the full wardrobe picker; curated / --missing stays Full outfits.
+  if (args.add != null) {
+    return DEFAULT_PACK_CATEGORIES;
+  }
+  return ['outfit'];
 }
 
 async function generateWithComfy(args, curated, allEntries) {
   const existing = loadExistingManifest().thumbs || {};
   const thumbs = { ...existing };
+  const packCategories = resolvePackCategories(args);
   const packed = countPackedComfy(existing);
-  const outfitTotal = countOutfitEntries(allEntries);
+  const wardrobeTotal = countEntriesInCategories(allEntries, packCategories);
   let targets = curated;
   let mode = 'curated';
 
   if (args.add != null) {
-    targets = selectAdditionalOutfits(allEntries, existing, args.add);
-    mode = Number.isFinite(args.add) ? `add ${args.add}` : 'all missing';
+    targets = selectAdditionalKits(allEntries, existing, args.add, packCategories);
+    mode = Number.isFinite(args.add)
+      ? `add ${args.add} (${packCategories.join(',')})`
+      : `all missing (${packCategories.join(',')})`;
   } else if (args.missing) {
     targets = curated.filter(entry => needsComfy(entry, existing));
     mode = 'missing curated';
@@ -596,11 +690,13 @@ async function generateWithComfy(args, curated, allEntries) {
   console.log(
     `${args.dryRun ? '[dry-run] ' : ''}Comfy packshots (${mode}): ${targets.length} kits → ${args.comfyUrl} (${args.ckpt}, ${args.steps} steps)`
   );
-  console.log(`Packed ${packed}/${outfitTotal} Full outfits`);
+  console.log(`Packed ${packed}/${wardrobeTotal} wardrobe kits in scope`);
 
   if (targets.length === 0) {
     if (args.add != null) {
-      console.log('Nothing left to add — every Full outfit already has a Comfy WebP.');
+      console.log(
+        `Nothing left to add — every kit in [${packCategories.join(', ')}] already has a Comfy WebP.`
+      );
     } else if (args.missing) {
       console.log(
         `Curated set is complete (${curated.length}). Generate more with:\n  npm run wardrobe:thumbs:comfy -- --add 100\n  npm run wardrobe:thumbs:comfy:all`
@@ -678,14 +774,33 @@ async function generateWithComfy(args, curated, allEntries) {
     }
   }
   console.log(`Comfy packshots complete: ${done}/${targets.length}`);
-  console.log(`Packed ${countPackedComfy(thumbs)}/${outfitTotal} Full outfits`);
+  console.log(
+    `Packed ${countPackedComfy(thumbs)}/${countEntriesInCategories(allEntries, packCategories)} wardrobe kits in scope`
+  );
 }
 
 async function writeSvgPlaceholders(args, curated) {
-  const existing = args.missing ? loadExistingManifest().thumbs || {} : {};
+  const existing = loadExistingManifest().thumbs || {};
+  // Preserve every Comfy WebP already on disk so SVG mode cannot truncate the packshot set.
+  if (fs.existsSync(PUBLIC_DIR)) {
+    for (const name of fs.readdirSync(PUBLIC_DIR)) {
+      if (!name.endsWith('.webp')) {
+        continue;
+      }
+      const id = name.replace(/\.webp$/i, '');
+      const curatedHit = curated.find(entry => entry.id === id);
+      existing[id] = {
+        file: name,
+        label: curatedHit?.label || existing[id]?.label || id,
+        category: curatedHit?.category || existing[id]?.category || 'outfit',
+        source: 'comfy',
+        ...(existing[id]?.promptId ? { promptId: existing[id].promptId } : {}),
+      };
+    }
+  }
   const thumbs = { ...existing };
   console.log(
-    `${args.dryRun ? '[dry-run] ' : ''}Writing ${curated.length} silhouette SVG thumbs → public/wardrobe-thumbs`
+    `${args.dryRun ? '[dry-run] ' : ''}Writing ${curated.length} silhouette SVG thumbs → public/wardrobe-thumbs (preserving ${countPackedComfy(thumbs)} Comfy WebPs)`
   );
   if (!args.dryRun) {
     fs.mkdirSync(PUBLIC_DIR, { recursive: true });
@@ -695,10 +810,23 @@ async function writeSvgPlaceholders(args, curated) {
           fs.unlinkSync(path.join(PUBLIC_DIR, name));
         }
       }
+      for (const key of Object.keys(thumbs)) {
+        delete thumbs[key];
+      }
     }
   }
   for (const entry of curated) {
-    if (args.missing && existing[entry.id]?.source === 'comfy' && existing[entry.id]?.file?.endsWith('.webp')) {
+    if (thumbs[entry.id]?.source === 'comfy' && thumbs[entry.id]?.file?.endsWith('.webp')) {
+      const abs = path.join(PUBLIC_DIR, thumbs[entry.id].file);
+      if (fs.existsSync(abs)) {
+        continue;
+      }
+    }
+    if (
+      args.missing &&
+      existing[entry.id]?.source === 'comfy' &&
+      existing[entry.id]?.file?.endsWith('.webp')
+    ) {
       continue;
     }
     const file = `${entry.id}.svg`;
@@ -720,7 +848,7 @@ async function writeSvgPlaceholders(args, curated) {
   console.log(
     args.dryRun
       ? `Would write silhouette thumbs + manifest`
-      : `Wrote silhouette thumbs + ${path.relative(ROOT, MANIFEST_PATH)}`
+      : `Wrote silhouette thumbs + ${path.relative(ROOT, MANIFEST_PATH)} (${countPackedComfy(thumbs)} Comfy WebPs kept)`
   );
 }
 
@@ -748,15 +876,41 @@ async function main() {
   if (args.list) {
     const existing = loadExistingManifest().thumbs || {};
     const packed = countPackedComfy(existing);
-    const outfitTotal = countOutfitEntries(entries);
+    const packCategories =
+      args.categories.length > 0 ? args.categories : DEFAULT_PACK_CATEGORIES;
+    const wardrobeTotal = countEntriesInCategories(entries, packCategories);
+    const missing = selectAdditionalKits(
+      entries,
+      existing,
+      Number.POSITIVE_INFINITY,
+      packCategories
+    );
     console.log(`curated ${curated.length} / catalog ${entries.length}`);
-    console.log(`packed Comfy WebPs ${packed}/${outfitTotal} Full outfits`);
+    console.log(`packed Comfy WebPs ${packed}/${wardrobeTotal} wardrobe kits (${packCategories.join(',')})`);
+    console.log(`missing packshots ${missing.length}`);
+    const byCat = {};
+    for (const entry of missing) {
+      byCat[entry.category] = (byCat[entry.category] || 0) + 1;
+    }
+    for (const [category, count] of Object.entries(byCat).sort((a, b) => b[1] - a[1])) {
+      console.log(`  missing ${category}: ${count}`);
+    }
     for (const entry of curated.slice(0, 20)) {
       console.log(`  ${entry.id}`);
     }
     if (curated.length > 20) {
       console.log(`  … +${curated.length - 20} more`);
     }
+    return;
+  }
+
+  if (args.rebuildManifest) {
+    const thumbs = rebuildManifestFromDisk(entries);
+    const packed = countPackedComfy(thumbs);
+    const wardrobeTotal = countEntriesInCategories(entries, DEFAULT_PACK_CATEGORIES);
+    console.log(
+      `Rebuilt manifest from disk: ${Object.keys(thumbs).length} thumbs (${packed} Comfy WebPs / ${wardrobeTotal} wardrobe kits)`
+    );
     return;
   }
 
@@ -768,7 +922,13 @@ async function main() {
   await writeSvgPlaceholders(args, curated);
 }
 
-main().catch(error => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const isDirectRun =
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+
+if (isDirectRun) {
+  main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

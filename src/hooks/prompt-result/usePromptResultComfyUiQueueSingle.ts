@@ -170,7 +170,7 @@ export function usePromptResultComfyUiQueueSingle(
           positive: injectLoraTriggers(workingPrompt),
           hints: options?.queueHints ?? config.hints,
           sport,
-          tool: config.tool,
+          tool: effectiveTool,
           explicitNegative: options?.explicitNegative ?? pluginNegative,
           embeddingTokens: loadSettingsCache().shared.sessionEmbeddingTokens,
           turboEditStrength:
@@ -180,7 +180,7 @@ export function usePromptResultComfyUiQueueSingle(
           prompt: preparedPrompt,
           negativePrompt,
           model: queueModel,
-          tool: config.tool,
+          tool: effectiveTool,
           workflowJson: runtime?.workflowJson,
         };
 
@@ -190,7 +190,7 @@ export function usePromptResultComfyUiQueueSingle(
             model: queueModel,
             prompts: [preparedPrompt],
             negativePrompt,
-            tool: config.tool,
+            tool: effectiveTool,
             queueParams: options?.queueParamsBase,
             hasInputImage: Boolean(
               options?.inputImage ||

@@ -567,7 +567,7 @@ export function clearLookPackShareHash(): void {
   window.history.replaceState(null, '', `${pathname}${search}`);
 }
 
-/** Seed every Day slot location / beat from a look pack (wardrobe only when empty). */
+/** Seed every Day slot location / beat / wardrobe from a look pack (pack wardrobe wins). */
 export function applyLookPackToDaySlots(slots: DaySlot[], pack: LookPack): DaySlot[] {
   const location = pack.locationNotes?.trim();
   const beatParts = [
@@ -586,6 +586,6 @@ export function applyLookPackToDaySlots(slots: DaySlot[], pack: LookPack): DaySl
     ...slot,
     location: location || slot.location,
     sceneHints: beat || slot.sceneHints,
-    wardrobeId: slot.wardrobeId?.trim() || wardrobeId || undefined,
+    wardrobeId: wardrobeId || slot.wardrobeId?.trim() || undefined,
   }));
 }

@@ -1,8 +1,7 @@
 'use client';
 
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
 import FittingCompareSection from '@/components/fitting/FittingCompareSection';
 import FittingActionRow from '@/components/fitting/FittingActionRow';
@@ -16,83 +15,11 @@ import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import PlaySoftAdvanceBanner, {
   type PlaySoftAdvanceTarget,
 } from '@/components/PlaySoftAdvanceBanner';
-import { useCachedSettings } from '@/hooks/useCachedSettings';
-import { useFittingRoomQueue } from '@/hooks/useFittingRoomQueue';
-import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
-import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
-import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
-import { useToolPageDescription } from '@/hooks/useToolPageDescription';
-import { parseCharacterHints } from '@/lib/character-hints';
-import {
-  activeLook,
-  applyCharacterRecord,
-  characterFromShared,
-  getCharacter,
-  upsertCharacter,
-} from '@/lib/character-os';
-import { subjectGenderToClothingGender } from '@/lib/clothing-gender';
-import {
-  fetchClothingLabels,
-  fetchClothingSelectOptions,
-  getCachedClothingLabel,
-} from '@/lib/clothing-catalog-client';
-import {
-  buildFittingSwipeDeck,
-  fittingSwipeIndex,
-  fittingSwipeNeighbor,
-  resolveFittingDeckWardrobeId,
-  resolveFittingPlateFromCharacter,
-} from '@/lib/fitting-room';
-import {
-  countInFlightFittingKitPreviews,
-  fittingKitPreviewQueueParams,
-  fittingKitPreviewQueueResolveOptions,
-  getFittingKitPreview,
-  normalizeFittingKitPreviews,
-  resolveFittingKitPreviewModel,
-} from '@/lib/fitting-kit-previews';
-import {
-  countWardrobeOptionsForFilter,
-  filterWardrobeSelectOptions,
-  normalizeWardrobeCategoryFilter,
-} from '@/lib/wardrobe-catalog-ui';
-import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import {
-  cacheBustIdentityMediaUrl,
-  isIdentityMediaUrl,
-  persistIdentityImage,
-} from '@/lib/gallery-media-client';
-import {
-  collectIsolateSourceUrls,
-  isolateSubjectOnWhite,
-  ISOLATE_QUEUE_BLOCKED_MESSAGE,
-  loadImageBlobFromUrls,
-} from '@/lib/isolate-subject';
-import {
-  applyLookPackToFittingState,
-  loadLookPack,
-  lookPackDayHref,
-  lookPackRoleplayHref,
-  saveLookPack,
-} from '@/lib/look-pack';
-import { bumpPlayCampaignStep } from '@/lib/play-campaign';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import { getReformatTargetModel } from '@/lib/reformat-target';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import {
-  DEFAULT_FITTING_TOOL_CACHE,
-  loadSettingsCache,
-  saveSharedSettings,
-} from '@/lib/settings-cache';
-import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting-clothing-options';
+import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
+import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 
 const ACCENT = 'rose' as const;
 const TOOL_ID = 'fitting' as const;
-
-import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 
 type ViewModel = ReturnType<typeof useFittingRoomToolOrchestration>;
 type Props = ViewModel & { description: string };
@@ -146,6 +73,12 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     actions,
     applyReference,
     clearReference,
+    garmentUploading,
+    garmentScanStatus,
+    applyCustomGarment,
+    clearCustomGarment,
+    rescanCustomGarment,
+    clearKit,
     selectKit,
     swipeKit,
     busy,
@@ -275,12 +208,24 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         completedPreviewCount={completedPreviewCount}
         inFlightPreviewCount={inFlightPreviewCount}
         previewStatus={previewStatus}
+        customGarmentImageUrl={toolSettings.customGarmentImageUrl}
+        customGarmentDescription={toolSettings.customGarmentDescription}
+        garmentUploading={garmentUploading}
+        garmentScanStatus={garmentScanStatus}
         onCategoryFilterChange={filter => updateToolSettings({ wardrobeCategoryFilter: filter })}
         onSwipeKit={swipeKit}
         onSelectKit={selectKit}
+        onClearKit={clearKit}
         onToggleAutoKitPreviews={() => updateToolSettings({ autoKitPreviews: !autoKitPreviews })}
         onFillKitPreviews={() => void fillKitPreviews()}
         onNotesChange={value => updateToolSettings({ notes: value })}
+        onApplyCustomGarment={applyCustomGarment}
+        onClearCustomGarment={clearCustomGarment}
+        onRescanCustomGarment={rescanCustomGarment}
+        onCustomGarmentDescriptionChange={value =>
+          updateToolSettings({ customGarmentDescription: value })
+        }
+        onError={message => setError(message)}
       />
 
       <FittingCompareSection

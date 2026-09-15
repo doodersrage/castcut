@@ -18,6 +18,7 @@ describe('vision still scan', () => {
   it('normalizes known purposes and rejects unknown', () => {
     assert.equal(normalizeStillScanPurpose('Inpaint'), 'inpaint');
     assert.equal(normalizeStillScanPurpose('roleplay-photo'), 'roleplay-photo');
+    assert.equal(normalizeStillScanPurpose('fitting-garment'), 'fitting-garment');
     assert.equal(normalizeStillScanPurpose('video'), null);
   });
 });

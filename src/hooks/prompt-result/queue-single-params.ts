@@ -21,7 +21,6 @@ export async function buildQueueSingleParams(input: {
   pluginCfg?: string | number;
 }): Promise<WorkflowParamValues> {
   const {
-    config,
     options,
     queueModel,
     effectiveTool,
@@ -36,6 +35,7 @@ export async function buildQueueSingleParams(input: {
     pluginDenoise,
     pluginCfg,
   } = input;
+  void input.config;
 
   const queueParams = resolveQueueParams({
     model: queueModel,
@@ -84,7 +84,7 @@ export async function buildQueueSingleParams(input: {
         loadSettingsCache().shared.modelSamplerOverrides
       );
       const resolvedDenoise = resolveDistilledQueueDenoise(queueModel, {
-        tool: config.tool,
+        tool: effectiveTool,
         hasInputImage: Boolean(inputImageFilename),
         hasMaskImage: Boolean(maskImageFilename),
         paramsDenoise: queueParams.denoise,
@@ -96,7 +96,7 @@ export async function buildQueueSingleParams(input: {
     }
   }
 
-  if (config.tool === 'compose') {
+  if (effectiveTool === 'compose') {
     const { isFluxKleinModel, isZImageModel } = await import('@/lib/model-denoise-defaults');
     const { isCloudEngine } = await import('@/lib/engine/capabilities');
     const cloudEngine = isCloudEngine(loadSettingsCache().shared.inferenceEngine);
