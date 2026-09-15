@@ -609,104 +609,113 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             Sample reel — queue your own Day when Comfy is ready, or use demo stills to Cut offline.
           </p>
         ) : null}
-        <ToolActionRow>
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={busy || assemblingFilm || completedShotCount === 0}
-            onClick={() => void cutDayFilm()}
+        {firstCutCelebrate ? (
+          <p
+            className="type-caption text-[var(--text-muted)]"
+            data-testid="day-reel-celebrate-hint"
           >
-            {assemblingFilm ? 'Cutting…' : 'Cut film'}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            data-testid="day-watch-sample-cut"
-            onClick={() => setSampleWatch(prev => !prev)}
-          >
-            {sampleWatch ? 'Show my reel' : 'Watch sample cut'}
-          </Button>
-          {filmNeedsCast ? (
+            Use the celebration above for Watch / Share / next Day — the reel stays here to replay.
+          </p>
+        ) : (
+          <ToolActionRow>
             <Button
-              size="sm"
-              variant="secondary"
-              disabled={busy || assemblingFilm}
-              onClick={saveFilmToCast}
-              data-testid="day-save-film-cast"
-            >
-              Save film to Cast
-            </Button>
-          ) : null}
-          {filmNeedsCast && !character ? (
-            <ButtonLink
-              href="/characters"
-              size="sm"
-              variant="secondary"
-              data-testid="day-pick-cast"
-            >
-              Pick Cast character
-            </ButtonLink>
-          ) : null}
-          {character && filmStatus && !assemblingFilm ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              data-testid="day-share-cut"
-              onClick={() => void shareLastCut()}
-            >
-              Share cut
-            </Button>
-          ) : null}
-          {character && filmStatus && !assemblingFilm ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              data-testid="day-remix-day"
-              onClick={remixSameLookDay}
-            >
-              Same look, new Day
-            </Button>
-          ) : null}
-          {character && filmStatus && !assemblingFilm ? (
-            <ButtonLink
-              href={`/characters/${encodeURIComponent(character.id)}?media=films`}
               size="sm"
               variant="primary"
-              data-testid="day-open-cast-film"
-              onClick={() => {
-                void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
-                  markOnboardingWatchFirstFilm();
-                });
-              }}
+              disabled={busy || assemblingFilm || completedShotCount === 0}
+              onClick={() => void cutDayFilm()}
             >
-              Watch / Save on Cast
-            </ButtonLink>
-          ) : null}
-          {character && completedShotCount > 0 ? (
-            <ButtonLink
-              href={
-                filmStatus
-                  ? `/gallery?character=${encodeURIComponent(character.id)}&derivedKind=film`
-                  : `/gallery?character=${encodeURIComponent(character.id)}`
-              }
+              {assemblingFilm ? 'Cutting…' : 'Cut film'}
+            </Button>
+            <Button
               size="sm"
               variant="ghost"
-              data-testid="day-open-gallery"
+              data-testid="day-watch-sample-cut"
+              onClick={() => setSampleWatch(prev => !prev)}
             >
-              Open in Gallery
-            </ButtonLink>
-          ) : null}
-          {character && filmStatus && !assemblingFilm ? (
-            <ButtonLink
-              href={`/play?character=${encodeURIComponent(character.id)}`}
-              size="sm"
-              variant="ghost"
-              data-testid="day-campaign-complete"
-            >
-              Back to Play
-            </ButtonLink>
-          ) : null}
-        </ToolActionRow>
+              {sampleWatch ? 'Show my reel' : 'Watch sample cut'}
+            </Button>
+            {filmNeedsCast ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy || assemblingFilm}
+                onClick={saveFilmToCast}
+                data-testid="day-save-film-cast"
+              >
+                Save film to Cast
+              </Button>
+            ) : null}
+            {filmNeedsCast && !character ? (
+              <ButtonLink
+                href="/characters"
+                size="sm"
+                variant="secondary"
+                data-testid="day-pick-cast"
+              >
+                Pick Cast character
+              </ButtonLink>
+            ) : null}
+            {character && filmStatus && !assemblingFilm ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                data-testid="day-share-cut"
+                onClick={() => void shareLastCut()}
+              >
+                Share cut
+              </Button>
+            ) : null}
+            {character && filmStatus && !assemblingFilm ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                data-testid="day-remix-day"
+                onClick={remixSameLookDay}
+              >
+                Same look, new Day
+              </Button>
+            ) : null}
+            {character && filmStatus && !assemblingFilm ? (
+              <ButtonLink
+                href={`/characters/${encodeURIComponent(character.id)}?media=films`}
+                size="sm"
+                variant="primary"
+                data-testid="day-open-cast-film"
+                onClick={() => {
+                  void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
+                    markOnboardingWatchFirstFilm();
+                  });
+                }}
+              >
+                Watch / Save on Cast
+              </ButtonLink>
+            ) : null}
+            {character && completedShotCount > 0 ? (
+              <ButtonLink
+                href={
+                  filmStatus
+                    ? `/gallery?character=${encodeURIComponent(character.id)}&derivedKind=film`
+                    : `/gallery?character=${encodeURIComponent(character.id)}`
+                }
+                size="sm"
+                variant="ghost"
+                data-testid="day-open-gallery"
+              >
+                Open in Gallery
+              </ButtonLink>
+            ) : null}
+            {character && filmStatus && !assemblingFilm ? (
+              <ButtonLink
+                href={`/play?character=${encodeURIComponent(character.id)}`}
+                size="sm"
+                variant="ghost"
+                data-testid="day-campaign-complete"
+              >
+                Back to Play
+              </ButtonLink>
+            ) : null}
+          </ToolActionRow>
+        )}
         {filmStatus ? <p className="type-caption text-[var(--text-muted)]">{filmStatus}</p> : null}
       </ToolSection>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { playCampaignHref } from '@/lib/play-campaign';
+import { remixDayFilmHref } from '@/lib/play-starter';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
 
@@ -87,12 +88,12 @@ export default function PlayCampaignActionsSection({
             ) : null}
             {characterId ? (
               <ButtonLink
-                href={`/day?character=${encodeURIComponent(characterId)}`}
+                href={remixDayFilmHref(characterId)}
                 size="sm"
                 variant="secondary"
                 data-testid="play-campaign-cut-another"
               >
-                Cut another Day film
+                Same look, new Day
               </ButtonLink>
             ) : null}
             <Button

@@ -65,19 +65,20 @@ describe('play habit nudge', () => {
 
     const laterCut: PlayMetrics = {
       version: 1,
-      firstFilmCutAt: cutAt + 1000 * 60 * 60 * 48,
+      firstFilmCutAt: cutAt,
+      lastFilmCutAt: cutAt + 1000 * 60 * 60 * 48,
     };
     // Dismiss was before the later cut — nudge again after another 24h from later cut.
     assert.equal(
-      resolvePlayHabitNudge(laterCut, laterCut.firstFilmCutAt! + 1000 * 60 * 60 * 12),
+      resolvePlayHabitNudge(laterCut, laterCut.lastFilmCutAt! + 1000 * 60 * 60 * 12),
       null
     );
     const again = resolvePlayHabitNudge(
       laterCut,
-      laterCut.firstFilmCutAt! + 1000 * 60 * 60 * 25
+      laterCut.lastFilmCutAt! + 1000 * 60 * 60 * 25
     );
     assert.ok(again);
-    assert.equal(again!.href, '/day');
+    assert.match(again!.href, /remix=1/);
   });
 
   it('persists dismiss under PLAY_HABIT_NUDGE_KEY', () => {

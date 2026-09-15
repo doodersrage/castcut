@@ -18,6 +18,8 @@ export type PlayMetrics = {
   firstPlayCampaignAt?: number;
   /** First successful Cut film (Day or Roleplay). */
   firstFilmCutAt?: number;
+  /** Most recent successful Cut film — drives the 24h habit nudge. */
+  lastFilmCutAt?: number;
 };
 
 function normalizePlayMetrics(value: unknown): PlayMetrics {
@@ -30,6 +32,7 @@ function normalizePlayMetrics(value: unknown): PlayMetrics {
     firstPlayCampaignAt:
       typeof raw.firstPlayCampaignAt === 'number' ? raw.firstPlayCampaignAt : undefined,
     firstFilmCutAt: typeof raw.firstFilmCutAt === 'number' ? raw.firstFilmCutAt : undefined,
+    lastFilmCutAt: typeof raw.lastFilmCutAt === 'number' ? raw.lastFilmCutAt : undefined,
   };
 }
 
@@ -60,14 +63,16 @@ export function recordFirstPlayCampaignStart(at = Date.now()): boolean {
   return true;
 }
 
-/** Returns true the first time a film cut is recorded. */
+/** Records a film cut. Returns true the first time ever. Always bumps lastFilmCutAt. */
 export function recordFirstFilmCut(at = Date.now()): boolean {
   const current = loadPlayMetrics();
-  if (current.firstFilmCutAt) {
-    return false;
-  }
-  savePlayMetrics({ ...current, firstFilmCutAt: at });
-  return true;
+  const isFirst = !current.firstFilmCutAt;
+  savePlayMetrics({
+    ...current,
+    firstFilmCutAt: current.firstFilmCutAt ?? at,
+    lastFilmCutAt: at,
+  });
+  return isFirst;
 }
 
 /** True once the user has cut at least one Play film (unlocks optional chrome). */

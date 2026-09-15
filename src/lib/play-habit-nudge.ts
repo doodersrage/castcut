@@ -1,11 +1,12 @@
 /**
- * Habit loop — soft nudge to cut another Day film ~24h after the first cut.
+ * Habit loop — soft nudge to cut another Day film ~24h after the latest cut.
  */
 
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import { loadPlayMetrics, type PlayMetrics } from './play-metrics';
 import { loadPlayCampaignState } from './play-campaign';
 import { getCharacter } from './character-os';
+import { remixDayFilmHref } from './play-starter';
 
 export const PLAY_HABIT_NUDGE_KEY = 'comfy-play-habit-nudge-v1';
 
@@ -39,12 +40,12 @@ export function dismissPlayHabitNudge(at = Date.now()): void {
   } satisfies PlayHabitNudgeState);
 }
 
-/** True when first cut is ≥24h ago and nudge not dismissed after that cut. */
+/** True when latest cut is ≥24h ago and nudge not dismissed after that cut. */
 export function resolvePlayHabitNudge(
   metrics: PlayMetrics = loadPlayMetrics(),
   now = Date.now()
 ): PlayHabitNudge | null {
-  const cutAt = metrics.firstFilmCutAt;
+  const cutAt = metrics.lastFilmCutAt ?? metrics.firstFilmCutAt;
   if (typeof cutAt !== 'number' || cutAt <= 0) {
     return null;
   }
@@ -63,7 +64,7 @@ export function resolvePlayHabitNudge(
   return {
     characterId: characterId || 'unknown',
     characterName: name,
-    href: characterId ? `/day?character=${encodeURIComponent(characterId)}` : '/day',
+    href: remixDayFilmHref(characterId),
     hoursSinceCut: Math.floor(elapsed / (1000 * 60 * 60)),
   };
 }
