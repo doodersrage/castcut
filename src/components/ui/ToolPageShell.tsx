@@ -38,14 +38,22 @@ export const ToolPageHeader = memo(function ToolPageHeader({
   badge,
   title,
   description,
+  actions,
 }: {
   badge?: ReactNode;
   title: string;
   description?: ReactNode;
+  /** Optional controls aligned with the badge row (e.g. Engine toggle). */
+  actions?: ReactNode;
 }) {
   return (
     <header className="ui-tool-header">
-      {badge ? <div className="ui-tool-header-badge">{badge}</div> : null}
+      {badge || actions ? (
+        <div className="ui-tool-header-top">
+          {badge ? <div className="ui-tool-header-badge">{badge}</div> : <span />}
+          {actions ? <div className="ui-tool-header-actions">{actions}</div> : null}
+        </div>
+      ) : null}
       <div className="ui-tool-header-row">
         <h1 className="type-display min-w-0">{title}</h1>
         {description ? (
@@ -271,6 +279,7 @@ export const ToolLayout = memo(function ToolLayout({
   badge,
   title,
   description,
+  headerActions,
   sidebar,
   sidebarTitle = TOOL_SIDEBAR_TITLE,
   sidebarDescription = TOOL_SIDEBAR_DESCRIPTION,
@@ -281,6 +290,8 @@ export const ToolLayout = memo(function ToolLayout({
   badge: ReactNode;
   title: string;
   description?: ReactNode;
+  /** Shown opposite the badge in the tool header (e.g. Engine toggle). */
+  headerActions?: ReactNode;
   sidebar?: ReactNode;
   sidebarTitle?: string | false;
   sidebarDescription?: string;
@@ -289,7 +300,12 @@ export const ToolLayout = memo(function ToolLayout({
   void _accent;
   return (
     <ToolPageShell width={width}>
-      <ToolPageHeader badge={badge} title={title} description={description} />
+      <ToolPageHeader
+        badge={badge}
+        title={title}
+        description={description}
+        actions={headerActions}
+      />
 
       <div
         className={

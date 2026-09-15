@@ -12,12 +12,7 @@ import RoleplayStorySection from '@/components/roleplay/RoleplayStorySection';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import type { useRoleplayToolOrchestration } from '@/hooks/useRoleplayToolOrchestration';
 import { Button } from '@/components/ui/Button';
-import {
-  CollapsibleSection,
-  ToolActionRow,
-  ToolBadge,
-  ToolLayout,
-} from '@/components/ui/ToolPageShell';
+import { CollapsibleSection, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 
@@ -89,11 +84,9 @@ export default function RoleplayToolSections({
       description={description}
       sidebar={engineOpen ? engineControls : undefined}
       sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
+      headerActions={<PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.roleplay} />
-      <ToolActionRow>
-        <PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />
-      </ToolActionRow>
 
       <RoleplayCastSection
         busy={busy}

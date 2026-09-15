@@ -215,6 +215,7 @@ body {
   .ui-btn-danger,
   .ui-btn-info,
   .ui-btn-accent-outline,
+  .play-engine-toggle,
   .ui-chip,
   .ui-nav-link,
   .ui-collapsible > summary,
@@ -230,6 +231,7 @@ body {
   .ui-btn-danger:hover:not(:disabled),
   .ui-btn-info:hover:not(:disabled),
   .ui-btn-accent-outline:hover:not(:disabled),
+  .play-engine-toggle:hover,
   .ui-chip:hover:not(:disabled) {
     transform: none !important;
   }
@@ -958,11 +960,113 @@ html[data-theme='light'] .ui-media-card:hover {
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.ui-tool-header-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .ui-tool-header-badge {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   margin-bottom: 0.1rem;
+}
+
+.ui-tool-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.play-engine-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.85rem 0.45rem 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border-strong));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-elevated));
+  color: var(--text-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.play-engine-toggle:hover {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-elevated));
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--border-strong));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+  transform: translateY(-1px);
+}
+
+.play-engine-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.play-engine-toggle-open {
+  border-color: var(--border-strong);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.play-engine-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.play-engine-toggle-open .play-engine-toggle-icon {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+.play-engine-toggle-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.05rem;
+  line-height: 1.2;
+}
+
+.play-engine-toggle-label {
+  font-size: 0.875rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.play-engine-toggle-hint {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.play-engine-toggle-cta {
+  margin-left: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .ui-tool-header-row {

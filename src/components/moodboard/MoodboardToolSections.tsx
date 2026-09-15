@@ -151,11 +151,9 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
       description={description}
       sidebar={engineOpen ? engineControls : undefined}
       sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
+      headerActions={<PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.moodboard} />
-      <ToolActionRow>
-        <PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />
-      </ToolActionRow>
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}

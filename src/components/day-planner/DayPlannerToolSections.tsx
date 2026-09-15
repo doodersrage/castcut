@@ -115,11 +115,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       description={description}
       sidebar={engineOpen ? engineControls : undefined}
       sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
+      headerActions={<PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.day} />
-      <ToolActionRow>
-        <PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />
-      </ToolActionRow>
       {firstCutCelebrate ? (
         <div
           className="rounded-[var(--radius-lg)] border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-4 py-3"

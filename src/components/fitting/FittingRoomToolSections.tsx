@@ -12,7 +12,7 @@ import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { FieldError } from '@/components/ui/Field';
-import { ToolActionRow, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import PlayEngineToggle, { usePlayEngineSidebar } from '@/components/PlayEngineToggle';
 import PlaySoftAdvanceBanner, {
   type PlaySoftAdvanceTarget,
@@ -200,11 +200,9 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       description={description}
       sidebar={engineOpen ? engineControls : undefined}
       sidebarTitle={engineOpen ? (leanChrome ? false : undefined) : false}
+      headerActions={<PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.fitting} />
-      <ToolActionRow>
-        <PlayEngineToggle open={engineOpen} onOpenChange={setEngineOpen} />
-      </ToolActionRow>
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
