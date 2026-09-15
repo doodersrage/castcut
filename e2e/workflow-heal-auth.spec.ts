@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { e2eCredentials, ensureAuthenticated } from './helpers/auth';
 import { seedGalleryFixture } from './helpers/gallery';
-import { putAppKv } from './helpers/idb';
+import { putAppKv, seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { gotoStable, openComfyUiSettingsTab } from './helpers/navigation';
 import { dismissBlockingOverlays } from './helpers/overlays';
 
@@ -449,6 +449,31 @@ test.describe('Play dogfood glue', () => {
       },
       { id: characterId, packId: lookPackId, png: tinyPng }
     );
+
+    // IDB tools sidecar wins over main-blob localStorage on hydrate — seed ownership here too.
+    await seedSettingsCacheOnNextLoad(page, {
+      shared: { activeCharacterId: characterId },
+      characters: {
+        version: 1,
+        characters: [
+          {
+            id: characterId,
+            name: 'First Film',
+            version: 1,
+            updatedAt: Date.now(),
+            descriptor: 'sunlit kitchen coat',
+          },
+        ],
+        removedIds: [],
+      },
+      tools: {
+        day: {
+          notes: '',
+          stillsCharacterId: characterId,
+          stills: [{ slotId: 'morning', status: 'completed', imageUrl: tinyPng }],
+        },
+      },
+    });
 
     page.on('download', download => {
       void download.cancel().catch(() => undefined);
