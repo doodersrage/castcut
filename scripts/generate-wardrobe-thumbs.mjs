@@ -7,9 +7,14 @@
  *
  * Usage:
  *   node --import tsx scripts/generate-wardrobe-thumbs.mjs
- *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy
- *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --missing --count 200
+ *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --missing
+ *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --add 100
+ *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --add 100 --dry-run
  *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --list
+ *
+ * Notes:
+ *   --missing only fills gaps inside the curated --count window (default 200).
+ *   Once that set is complete, use --add N to generate N more outfits not yet packed.
  */
 
 import fs from 'node:fs';
@@ -21,6 +26,7 @@ const ROOT = process.cwd();
 const PUBLIC_DIR = path.join(ROOT, 'public', 'wardrobe-thumbs');
 const MANIFEST_PATH = path.join(ROOT, 'src', 'data', 'wardrobe-garment-thumbs.manifest.json');
 const DEFAULT_COUNT = 200;
+const DEFAULT_ADD = 100;
 const OUT_WIDTH = 192;
 const OUT_HEIGHT = 240;
 const GEN_WIDTH = 576;
@@ -37,6 +43,8 @@ function parseArgs(argv) {
     clean: false,
     comfy: false,
     missing: false,
+    /** When set, pick this many additional outfits not already packed as Comfy WebPs. */
+    add: null,
     comfyUrl: process.env.COMFYUI_API_URL?.trim() || 'http://127.0.0.1:8188',
     ckpt: process.env.WARDROBE_THUMB_CKPT?.trim() || DEFAULT_CKPT,
     steps: 16,
@@ -56,6 +64,21 @@ function parseArgs(argv) {
       args.comfy = true;
     } else if (arg === '--missing') {
       args.missing = true;
+    } else if (arg === '--add') {
+      const next = Number(argv[index + 1]);
+      if (Number.isFinite(next) && next > 0) {
+        args.add = Math.floor(next);
+        index += 1;
+      } else {
+        args.add = DEFAULT_ADD;
+      }
+    } else if (arg?.startsWith('--add=')) {
+      const next = Number(arg.slice('--add='.length));
+      if (Number.isFinite(next) && next > 0) {
+        args.add = Math.floor(next);
+      } else {
+        args.add = DEFAULT_ADD;
+      }
     } else if (arg === '--id') {
       const id = String(argv[index + 1] || '').trim();
       if (id) {
@@ -506,25 +529,76 @@ function needsComfy(entry, existing) {
   return true;
 }
 
-async function generateWithComfy(args, curated) {
+/** Next N Full-outfits that do not already have a Comfy WebP on disk. */
+function selectAdditionalOutfits(entries, existing, addCount) {
+  const outfits = entries
+    .filter(entry => entry.category === 'outfit' && entry.id?.trim())
+    .map(entry => ({
+      id: entry.id.trim(),
+      label: entry.label?.trim() || entry.id.trim(),
+      category: entry.category,
+      script: entry.script?.trim() || '',
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+  return outfits.filter(entry => needsComfy(entry, existing)).slice(0, Math.max(0, addCount));
+}
+
+function countPackedComfy(existing) {
+  return Object.values(existing).filter(
+    entry =>
+      entry?.source === 'comfy' && typeof entry.file === 'string' && entry.file.endsWith('.webp')
+  ).length;
+}
+
+function countOutfitEntries(entries) {
+  return entries.filter(entry => entry.category === 'outfit' && entry.id?.trim()).length;
+}
+
+async function generateWithComfy(args, curated, allEntries) {
   const existing = loadExistingManifest().thumbs || {};
   const thumbs = { ...existing };
+  const packed = countPackedComfy(existing);
+  const outfitTotal = countOutfitEntries(allEntries);
   let targets = curated;
-  if (args.missing) {
+  let mode = 'curated';
+
+  if (args.add != null) {
+    targets = selectAdditionalOutfits(allEntries, existing, args.add);
+    mode = `add ${args.add}`;
+  } else if (args.missing) {
     targets = curated.filter(entry => needsComfy(entry, existing));
+    mode = 'missing curated';
   }
+
   if (args.limit != null) {
     targets = targets.slice(0, args.limit);
   }
 
   console.log(
-    `${args.dryRun ? '[dry-run] ' : ''}Comfy packshots: ${targets.length} kits → ${args.comfyUrl} (${args.ckpt}, ${args.steps} steps)`
+    `${args.dryRun ? '[dry-run] ' : ''}Comfy packshots (${mode}): ${targets.length} kits → ${args.comfyUrl} (${args.ckpt}, ${args.steps} steps)`
   );
+  console.log(`Packed ${packed}/${outfitTotal} Full outfits`);
+
+  if (targets.length === 0) {
+    if (args.add != null) {
+      console.log('Nothing left to add — every Full outfit already has a Comfy WebP.');
+    } else if (args.missing) {
+      console.log(
+        `Curated set is complete (${curated.length}). Generate more with:\n  npm run wardrobe:thumbs:comfy -- --add 100`
+      );
+    } else {
+      console.log('No kits selected. Pass --add 100 or --missing.');
+    }
+    return;
+  }
 
   if (args.dryRun) {
     for (const entry of targets.slice(0, 5)) {
       console.log(`  would generate ${entry.id}`);
       console.log(`    ${buildPackshotPrompt(entry).slice(0, 120)}…`);
+    }
+    if (targets.length > 5) {
+      console.log(`  … +${targets.length - 5} more`);
     }
     return;
   }
@@ -585,6 +659,7 @@ async function generateWithComfy(args, curated) {
     }
   }
   console.log(`Comfy packshots complete: ${done}/${targets.length}`);
+  console.log(`Packed ${countPackedComfy(thumbs)}/${outfitTotal} Full outfits`);
 }
 
 async function writeSvgPlaceholders(args, curated) {
@@ -652,7 +727,11 @@ async function main() {
   }
 
   if (args.list) {
+    const existing = loadExistingManifest().thumbs || {};
+    const packed = countPackedComfy(existing);
+    const outfitTotal = countOutfitEntries(entries);
     console.log(`curated ${curated.length} / catalog ${entries.length}`);
+    console.log(`packed Comfy WebPs ${packed}/${outfitTotal} Full outfits`);
     for (const entry of curated.slice(0, 20)) {
       console.log(`  ${entry.id}`);
     }
@@ -663,7 +742,7 @@ async function main() {
   }
 
   if (args.comfy) {
-    await generateWithComfy(args, curated);
+    await generateWithComfy(args, curated, entries);
     return;
   }
 
