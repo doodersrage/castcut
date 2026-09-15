@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-09-15T14:42:41.846Z",
+  "generatedAt": "2026-09-15T15:02:58.869Z",
   "thumbs": {
     "fantasy-outfit-amber-barbarian-furs": {
       "file": "fantasy-outfit-amber-barbarian-furs.webp",
@@ -1401,6 +1401,706 @@
       "category": "outfit",
       "source": "comfy",
       "promptId": "45c88c20-42ea-4677-b5bd-7cab4a507684"
+    },
+    "fantasy-outfit-ash-necromancer-robes": {
+      "file": "fantasy-outfit-ash-necromancer-robes.webp",
+      "label": "ash necromancer robes with bone clasps",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "56b54008-d214-4f0f-a1d0-7f02138723e7"
+    },
+    "fantasy-outfit-bronze-dwarven-mail": {
+      "file": "fantasy-outfit-bronze-dwarven-mail.webp",
+      "label": "bronze dwarven mail hauberk with leather belt",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "4795feef-d70a-48b6-bd2c-3716ba93518c"
+    },
+    "fantasy-outfit-charcoal-rogue-leathers": {
+      "file": "fantasy-outfit-charcoal-rogue-leathers.webp",
+      "label": "charcoal rogue leather armor with hooded cloak",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "bf9b8fb1-6df7-4f1c-afdb-65497456243e"
+    },
+    "fantasy-outfit-crimson-battle-mage-robes": {
+      "file": "fantasy-outfit-crimson-battle-mage-robes.webp",
+      "label": "crimson battle mage robes over light mail",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "acfe911c-862a-480f-8df2-f693ea550be3"
+    },
+    "fantasy-outfit-emerald-elven-ranger-leathers": {
+      "file": "fantasy-outfit-emerald-elven-ranger-leathers.webp",
+      "label": "emerald elven ranger leather armor and travel cloak",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9a26901d-e5b8-482e-8f07-3c717b4432b2"
+    },
+    "fantasy-outfit-forest-druid-woven-vestments": {
+      "file": "fantasy-outfit-forest-druid-woven-vestments.webp",
+      "label": "forest druid woven vestments and vine sash",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e875a2d2-74ef-4c51-96ac-8a4b987cf4f5"
+    },
+    "fantasy-outfit-frost-elven-gown": {
+      "file": "fantasy-outfit-frost-elven-gown.webp",
+      "label": "frost-pale elven gown with silver embroidery",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b67ffb0e-dc42-4f33-a61f-6a3608af3e2e"
+    },
+    "fantasy-outfit-gilded-knight-plate-armor": {
+      "file": "fantasy-outfit-gilded-knight-plate-armor.webp",
+      "label": "gilded knight plate armor with heraldic tabard",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "4b539159-49b5-44ca-9a6d-64ac783c1e06"
+    },
+    "fantasy-outfit-ivory-oracle-vestments": {
+      "file": "fantasy-outfit-ivory-oracle-vestments.webp",
+      "label": "ivory oracle ceremonial vestments and shawl",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "ad4c7c96-5620-4bb2-8f93-fa82740d134f"
+    },
+    "fantasy-outfit-moonlit-wizard-robes": {
+      "file": "fantasy-outfit-moonlit-wizard-robes.webp",
+      "label": "moonlit indigo wizard robes with arcane trim",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2cca790b-5a9f-47af-ba19-fb1f55362be2"
+    },
+    "fantasy-outfit-sage-cleric-vestments": {
+      "file": "fantasy-outfit-sage-cleric-vestments.webp",
+      "label": "sage cleric vestments with holy symbol sash",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "0e9a1e85-5901-409d-ad44-6a2a2bad4da7"
+    },
+    "fantasy-outfit-silver-enchanted-sorceress-gown": {
+      "file": "fantasy-outfit-silver-enchanted-sorceress-gown.webp",
+      "label": "silver enchanted sorceress gown with starlight trim",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "287160d4-4e64-4146-b936-4a56a147acd2"
+    },
+    "fantasy-outfit-steel-paladin-cuirass": {
+      "file": "fantasy-outfit-steel-paladin-cuirass.webp",
+      "label": "steel paladin cuirass with white mantle",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "6bc4859f-be26-44c1-be87-6b9d61a3bfa5"
+    },
+    "outfit-boxy-aqua-sweater-dress": {
+      "file": "outfit-boxy-aqua-sweater-dress.webp",
+      "label": "boxy aqua sweater dress",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "03874a4f-d700-4520-8e15-b88664833d43"
+    },
+    "outfit-boxy-ash-chef-whites-set": {
+      "file": "outfit-boxy-ash-chef-whites-set.webp",
+      "label": "boxy ash chef whites set",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "65673e9d-e3cb-41df-a272-d71cecf81fe4"
+    },
+    "outfit-boxy-ash-cottagecore-dress-ensemble": {
+      "file": "outfit-boxy-ash-cottagecore-dress-ensemble.webp",
+      "label": "boxy ash cottagecore dress ensemble",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "3a8286b9-69bb-4184-b209-e59d3c6cb7f6"
+    },
+    "outfit-boxy-ash-hazmat-suit": {
+      "file": "outfit-boxy-ash-hazmat-suit.webp",
+      "label": "boxy ash hazmat suit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "35963fb7-8497-4363-8288-9a9923ad7843"
+    },
+    "outfit-boxy-ash-mechanic-coveralls": {
+      "file": "outfit-boxy-ash-mechanic-coveralls.webp",
+      "label": "boxy ash mechanic coveralls",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "5ed77315-7ce5-4916-b1f0-5a7b72d5a2eb"
+    },
+    "outfit-boxy-ash-submariner-jumper": {
+      "file": "outfit-boxy-ash-submariner-jumper.webp",
+      "label": "boxy ash submariner jumper",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "ad12bf8b-e673-47bc-816b-e0ad10d89325"
+    },
+    "outfit-boxy-ash-tuxedo": {
+      "file": "outfit-boxy-ash-tuxedo.webp",
+      "label": "boxy ash tuxedo",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "30f4e9f1-3126-4246-9eec-cec9da6d0a25"
+    },
+    "outfit-boxy-beige-ballroom-dance-dress": {
+      "file": "outfit-boxy-beige-ballroom-dance-dress.webp",
+      "label": "boxy beige ballroom dance dress",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e5fc84d6-f649-40c0-bc69-c7270af6626d"
+    },
+    "outfit-boxy-beige-streetwear-fit": {
+      "file": "outfit-boxy-beige-streetwear-fit.webp",
+      "label": "boxy beige streetwear fit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "c8a26e98-ff44-4b48-85c2-737594ed3908"
+    },
+    "outfit-boxy-black-barista-apron-outfit": {
+      "file": "outfit-boxy-black-barista-apron-outfit.webp",
+      "label": "boxy black barista apron outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "ca01e31a-4a59-42be-ad44-2e3830bcae1a"
+    },
+    "outfit-boxy-black-boiler-suit": {
+      "file": "outfit-boxy-black-boiler-suit.webp",
+      "label": "boxy black boiler suit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "09bef7c4-6b43-4dc6-be68-9ef0d6ac3f01"
+    },
+    "outfit-boxy-black-streetwear-fit": {
+      "file": "outfit-boxy-black-streetwear-fit.webp",
+      "label": "boxy black streetwear fit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "cad6d632-6bef-4b9b-9e0a-b0000862e97d"
+    },
+    "outfit-boxy-blush-climbing-harness-outfit": {
+      "file": "outfit-boxy-blush-climbing-harness-outfit.webp",
+      "label": "boxy blush climbing harness outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "51ad8ff0-117d-4f84-8181-f4dbec6374e9"
+    },
+    "outfit-boxy-blush-soccer-kit": {
+      "file": "outfit-boxy-blush-soccer-kit.webp",
+      "label": "boxy blush soccer kit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a6ea4ed0-5ff4-4323-bb73-32d61ecf5786"
+    },
+    "outfit-boxy-brick-red-academic-regalia": {
+      "file": "outfit-boxy-brick-red-academic-regalia.webp",
+      "label": "boxy brick red academic regalia",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e6f944de-d19e-4305-8d2c-8f4258e26404"
+    },
+    "outfit-boxy-brick-red-belly-dance-costume": {
+      "file": "outfit-boxy-brick-red-belly-dance-costume.webp",
+      "label": "boxy brick red belly dance costume",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "6e6454e1-aa7c-4334-8d14-95ce1ab23bb4"
+    },
+    "outfit-boxy-brick-red-slip-dress": {
+      "file": "outfit-boxy-brick-red-slip-dress.webp",
+      "label": "boxy brick red slip dress",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a366a84d-04c1-4e58-a468-c52ec6a7c71d"
+    },
+    "outfit-boxy-bronze-soccer-kit": {
+      "file": "outfit-boxy-bronze-soccer-kit.webp",
+      "label": "boxy bronze soccer kit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "c05c4236-4959-4111-9f47-5910dc840fc3"
+    },
+    "outfit-boxy-brown-hotel-concierge-uniform": {
+      "file": "outfit-boxy-brown-hotel-concierge-uniform.webp",
+      "label": "boxy brown hotel concierge uniform",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "5a6729f7-0539-4176-946d-efc1544c33a8"
+    },
+    "outfit-boxy-burgundy-salwar-kameez-set": {
+      "file": "outfit-boxy-burgundy-salwar-kameez-set.webp",
+      "label": "boxy burgundy salwar kameez set",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b12815d1-a52a-4f30-acd0-a6faac39c6d0"
+    },
+    "outfit-boxy-burnt-orange-bar-tender-vest-look": {
+      "file": "outfit-boxy-burnt-orange-bar-tender-vest-look.webp",
+      "label": "boxy burnt orange bar tender vest look",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "5cf4bb41-8c48-4edb-b095-bb409b67a352"
+    },
+    "outfit-boxy-camel-hanbok-set": {
+      "file": "outfit-boxy-camel-hanbok-set.webp",
+      "label": "boxy camel hanbok set",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "207ada8c-fa2a-4306-bde8-6ad41169c014"
+    },
+    "outfit-boxy-camel-soccer-kit": {
+      "file": "outfit-boxy-camel-soccer-kit.webp",
+      "label": "boxy camel soccer kit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "43836077-d442-4691-a6b2-333604e4f9e8"
+    },
+    "outfit-boxy-charcoal-sari-with-draped-blouse": {
+      "file": "outfit-boxy-charcoal-sari-with-draped-blouse.webp",
+      "label": "boxy charcoal sari with draped blouse",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "fb27d033-b061-4d10-ba7f-8a80bd0a47c3"
+    },
+    "outfit-boxy-charcoal-y2k-outfit": {
+      "file": "outfit-boxy-charcoal-y2k-outfit.webp",
+      "label": "boxy charcoal y2k outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "c27c6c5d-b427-4c51-b7b0-a4998d01f0c6"
+    },
+    "outfit-boxy-chocolate-nun-habit": {
+      "file": "outfit-boxy-chocolate-nun-habit.webp",
+      "label": "boxy chocolate nun habit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "dbc819da-7306-4ada-adf6-824870b90b90"
+    },
+    "outfit-boxy-clay-submariner-jumper": {
+      "file": "outfit-boxy-clay-submariner-jumper.webp",
+      "label": "boxy clay submariner jumper",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "eace42b3-3150-41ad-b47f-6b2fe57238a0"
+    },
+    "outfit-boxy-cobalt-ballroom-dance-dress": {
+      "file": "outfit-boxy-cobalt-ballroom-dance-dress.webp",
+      "label": "boxy cobalt ballroom dance dress",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b8d4d668-ba8c-422e-9460-569564061241"
+    },
+    "outfit-boxy-cobalt-fencing-uniform": {
+      "file": "outfit-boxy-cobalt-fencing-uniform.webp",
+      "label": "boxy cobalt fencing uniform",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "be8a4bc1-fb7d-4c76-b84a-e0dc337c9495"
+    },
+    "outfit-boxy-cobalt-hockey-jersey-outfit": {
+      "file": "outfit-boxy-cobalt-hockey-jersey-outfit.webp",
+      "label": "boxy cobalt hockey jersey outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "5b3c7bc8-cf5d-4983-8ac6-63fe3eda8393"
+    },
+    "outfit-boxy-cobalt-streetwear-fit": {
+      "file": "outfit-boxy-cobalt-streetwear-fit.webp",
+      "label": "boxy cobalt streetwear fit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "46d58a5a-cb87-4c48-9720-d579cc8dcff5"
+    },
+    "outfit-boxy-cobalt-waiter-black-tie-service-outfit": {
+      "file": "outfit-boxy-cobalt-waiter-black-tie-service-outfit.webp",
+      "label": "boxy cobalt waiter black tie service outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "cfac39f3-fa03-4251-bb63-2c105866be3f"
+    },
+    "outfit-boxy-cobalt-wrap-dress": {
+      "file": "outfit-boxy-cobalt-wrap-dress.webp",
+      "label": "boxy cobalt wrap dress",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "38d55608-f616-4ac2-af14-a91160b88f5c"
+    },
+    "outfit-boxy-copper-bar-tender-vest-look": {
+      "file": "outfit-boxy-copper-bar-tender-vest-look.webp",
+      "label": "boxy copper bar tender vest look",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9e61c1b2-6e3d-4ece-af4e-a35d13800c7f"
+    },
+    "outfit-boxy-copper-triathlon-kit": {
+      "file": "outfit-boxy-copper-triathlon-kit.webp",
+      "label": "boxy copper triathlon kit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "fa79d3f9-ed3f-4c7a-b164-00655b4c388e"
+    },
+    "outfit-boxy-coral-climbing-harness-outfit": {
+      "file": "outfit-boxy-coral-climbing-harness-outfit.webp",
+      "label": "boxy coral climbing harness outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "6b195bef-57c1-42c7-ac5c-9aeb3764c1ea"
+    },
+    "outfit-boxy-cream-construction-hi-vis-outfit": {
+      "file": "outfit-boxy-cream-construction-hi-vis-outfit.webp",
+      "label": "boxy cream construction hi-vis outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "872e15d2-2c2c-4aac-842a-183e27b4cb2d"
+    },
+    "outfit-boxy-crimson-business-casual-outfit": {
+      "file": "outfit-boxy-crimson-business-casual-outfit.webp",
+      "label": "boxy crimson business casual outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b6be8e5f-4602-4133-a4f8-3e3a009bada2"
+    },
+    "outfit-boxy-crimson-flight-attendant-uniform": {
+      "file": "outfit-boxy-crimson-flight-attendant-uniform.webp",
+      "label": "boxy crimson flight attendant uniform",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9d1e8f1d-7d84-47a8-a797-c07f450ea91d"
+    },
+    "outfit-boxy-denim-blue-denim-overall-dress": {
+      "file": "outfit-boxy-denim-blue-denim-overall-dress.webp",
+      "label": "boxy denim blue denim overall dress",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "0de71ac3-f6a7-4a9d-8311-91196966a453"
+    },
+    "outfit-boxy-emerald-circus-ringmaster-coat-outfit": {
+      "file": "outfit-boxy-emerald-circus-ringmaster-coat-outfit.webp",
+      "label": "boxy emerald circus ringmaster coat outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "3ff13f82-c978-44cb-a4ba-511f63b1e297"
+    },
+    "outfit-boxy-emerald-shirt-dress": {
+      "file": "outfit-boxy-emerald-shirt-dress.webp",
+      "label": "boxy emerald shirt dress",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "3d90987d-f824-45f9-8033-aca3c01fc56a"
+    },
+    "outfit-boxy-espresso-bellhop-uniform": {
+      "file": "outfit-boxy-espresso-bellhop-uniform.webp",
+      "label": "boxy espresso bellhop uniform",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "46ee0206-44a9-42ad-a21d-643c24dcdaaf"
+    },
+    "outfit-boxy-espresso-climbing-harness-outfit": {
+      "file": "outfit-boxy-espresso-climbing-harness-outfit.webp",
+      "label": "boxy espresso climbing harness outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "07abef92-407e-424f-a052-29b6bb53fec1"
+    },
+    "outfit-boxy-espresso-farmer-chore-outfit": {
+      "file": "outfit-boxy-espresso-farmer-chore-outfit.webp",
+      "label": "boxy espresso farmer chore outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "369f4f6b-b4f5-448f-9d23-9584a4d7f4ce"
+    },
+    "outfit-boxy-espresso-firefighter-turnout-gear": {
+      "file": "outfit-boxy-espresso-firefighter-turnout-gear.webp",
+      "label": "boxy espresso firefighter turnout gear",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "71898fe3-dc1e-4815-8ef3-ec67eea7f1d4"
+    },
+    "outfit-boxy-espresso-fisherman-rain-gear": {
+      "file": "outfit-boxy-espresso-fisherman-rain-gear.webp",
+      "label": "boxy espresso fisherman rain gear",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "418b1806-dcc8-4600-b6fd-63b22e18ff9f"
+    },
+    "outfit-boxy-espresso-samurai-hakama-set": {
+      "file": "outfit-boxy-espresso-samurai-hakama-set.webp",
+      "label": "boxy espresso samurai hakama set",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b50ac948-424a-42f4-bff7-60c8ed91d91c"
+    },
+    "outfit-boxy-espresso-wrap-dress": {
+      "file": "outfit-boxy-espresso-wrap-dress.webp",
+      "label": "boxy espresso wrap dress",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "fffc92f7-e47a-4c7e-a8a1-da7640039ffb"
+    },
+    "outfit-boxy-forest-green-fencing-uniform": {
+      "file": "outfit-boxy-forest-green-fencing-uniform.webp",
+      "label": "boxy forest green fencing uniform",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2458232b-8654-4967-b25c-ad8b1eddca5d"
+    },
+    "outfit-boxy-forest-green-nun-habit": {
+      "file": "outfit-boxy-forest-green-nun-habit.webp",
+      "label": "boxy forest green nun habit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "80b26cf2-7b59-46bf-8be2-74ae323aa0a8"
+    },
+    "outfit-boxy-frost-belly-dance-costume": {
+      "file": "outfit-boxy-frost-belly-dance-costume.webp",
+      "label": "boxy frost belly dance costume",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "de89ecfa-1cb4-4194-aefc-42afa2744bac"
+    },
+    "outfit-boxy-frost-cocktail-dress": {
+      "file": "outfit-boxy-frost-cocktail-dress.webp",
+      "label": "boxy frost cocktail dress",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "9dff6fa8-307c-4371-bd9e-215156ff356b"
+    },
+    "outfit-boxy-frost-taekwondo-dobok": {
+      "file": "outfit-boxy-frost-taekwondo-dobok.webp",
+      "label": "boxy frost taekwondo dobok",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "01b09ed4-5c9f-4233-8f14-6326f52257f9"
+    },
+    "outfit-boxy-fuchsia-judogi": {
+      "file": "outfit-boxy-fuchsia-judogi.webp",
+      "label": "boxy fuchsia judogi",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "920cbbc6-1434-4a02-b9f2-3144246f53cf"
+    },
+    "outfit-boxy-fuchsia-streetwear-fit": {
+      "file": "outfit-boxy-fuchsia-streetwear-fit.webp",
+      "label": "boxy fuchsia streetwear fit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "77b09fef-b8e6-47f1-a9b6-bc1f8c464eb6"
+    },
+    "outfit-boxy-fuchsia-utility-jumpsuit": {
+      "file": "outfit-boxy-fuchsia-utility-jumpsuit.webp",
+      "label": "boxy fuchsia utility jumpsuit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "5be9e442-0ad2-412a-a6dc-f9475bfdee3b"
+    },
+    "outfit-boxy-fuchsia-wrap-dress": {
+      "file": "outfit-boxy-fuchsia-wrap-dress.webp",
+      "label": "boxy fuchsia wrap dress",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e97564aa-c9a9-4ddf-970f-87e85c354249"
+    },
+    "outfit-boxy-gold-boiler-suit": {
+      "file": "outfit-boxy-gold-boiler-suit.webp",
+      "label": "boxy gold boiler suit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "bd91e344-c2fd-40c7-af26-62fa12934794"
+    },
+    "outfit-boxy-gold-dirndl-dress": {
+      "file": "outfit-boxy-gold-dirndl-dress.webp",
+      "label": "boxy gold dirndl dress",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "1911160b-da9b-4295-aa2a-1f2a9fd0fd39"
+    },
+    "outfit-boxy-gold-police-duty-uniform": {
+      "file": "outfit-boxy-gold-police-duty-uniform.webp",
+      "label": "boxy gold police duty uniform",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "85bd9050-882d-43b7-89fc-f9fc4f103581"
+    },
+    "outfit-boxy-gold-renaissance-faire-outfit": {
+      "file": "outfit-boxy-gold-renaissance-faire-outfit.webp",
+      "label": "boxy gold Renaissance faire outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "240f8319-106d-4f13-8d00-ce9ce5bce41d"
+    },
+    "outfit-boxy-gunmetal-y2k-outfit": {
+      "file": "outfit-boxy-gunmetal-y2k-outfit.webp",
+      "label": "boxy gunmetal y2k outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "3b9d2fc5-bccb-4196-b583-8c53bc4df644"
+    },
+    "outfit-boxy-heather-gray-bellhop-uniform": {
+      "file": "outfit-boxy-heather-gray-bellhop-uniform.webp",
+      "label": "boxy heather gray bellhop uniform",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "4cb1470e-2064-4921-bef9-428f93e42e6c"
+    },
+    "outfit-boxy-heather-gray-safari-explorer-outfit": {
+      "file": "outfit-boxy-heather-gray-safari-explorer-outfit.webp",
+      "label": "boxy heather gray safari explorer outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "1ca0ff4d-12d6-4ad4-a52d-4e654ce3a723"
+    },
+    "outfit-boxy-heather-gray-samurai-hakama-set": {
+      "file": "outfit-boxy-heather-gray-samurai-hakama-set.webp",
+      "label": "boxy heather gray samurai hakama set",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "1e4b19f9-89a3-44a6-bf9e-80c1944ee6cd"
+    },
+    "outfit-boxy-indigo-light-academia-outfit": {
+      "file": "outfit-boxy-indigo-light-academia-outfit.webp",
+      "label": "boxy indigo light academia outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "70260954-2d28-4006-b67f-7fb1f72f3b85"
+    },
+    "outfit-boxy-indigo-nautical-stripe-outfit": {
+      "file": "outfit-boxy-indigo-nautical-stripe-outfit.webp",
+      "label": "boxy indigo nautical stripe outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "ef35ed23-f485-44a7-942f-4c1c990f0a14"
+    },
+    "outfit-boxy-ink-bar-tender-vest-look": {
+      "file": "outfit-boxy-ink-bar-tender-vest-look.webp",
+      "label": "boxy ink bar tender vest look",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "d31bf5b9-8c84-413d-b292-b2aba289b1e5"
+    },
+    "outfit-boxy-ink-triathlon-kit": {
+      "file": "outfit-boxy-ink-triathlon-kit.webp",
+      "label": "boxy ink triathlon kit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "eae043d5-b2bd-45e1-8433-4c9c8f5a06a2"
+    },
+    "outfit-boxy-ivory-festival-rave-outfit": {
+      "file": "outfit-boxy-ivory-festival-rave-outfit.webp",
+      "label": "boxy ivory festival rave outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a6eba519-22d3-4993-8b58-50211730be44"
+    },
+    "outfit-boxy-khaki-hip-hop-oversized-fit": {
+      "file": "outfit-boxy-khaki-hip-hop-oversized-fit.webp",
+      "label": "boxy khaki hip-hop oversized fit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "c1a1feee-c94f-450a-8955-83ff4d2d24fe"
+    },
+    "outfit-boxy-khaki-magician-tailcoat": {
+      "file": "outfit-boxy-khaki-magician-tailcoat.webp",
+      "label": "boxy khaki magician tailcoat",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b5240020-aa68-4c22-bc07-0b07fa6607f1"
+    },
+    "outfit-boxy-khaki-streetwear-fit": {
+      "file": "outfit-boxy-khaki-streetwear-fit.webp",
+      "label": "boxy khaki streetwear fit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "b73d1046-a2b3-460b-bd9e-d88ae161cf45"
+    },
+    "outfit-boxy-khaki-three-piece-wool-suit": {
+      "file": "outfit-boxy-khaki-three-piece-wool-suit.webp",
+      "label": "boxy khaki three-piece wool suit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "7f6c2be8-3c68-493f-99c3-a8806ad85127"
+    },
+    "outfit-boxy-lavender-cycling-kit": {
+      "file": "outfit-boxy-lavender-cycling-kit.webp",
+      "label": "boxy lavender cycling kit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "38312792-1936-4fc5-8178-9fb4b0a283ae"
+    },
+    "outfit-boxy-lavender-hanbok-set": {
+      "file": "outfit-boxy-lavender-hanbok-set.webp",
+      "label": "boxy lavender hanbok set",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "f7acd53e-143a-459b-8fe6-aa5345d2a473"
+    },
+    "outfit-boxy-lavender-streetwear-fit": {
+      "file": "outfit-boxy-lavender-streetwear-fit.webp",
+      "label": "boxy lavender streetwear fit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "2735a57b-ef28-436d-86f4-3c1cbefb0a2f"
+    },
+    "outfit-boxy-lavender-two-piece-linen-suit": {
+      "file": "outfit-boxy-lavender-two-piece-linen-suit.webp",
+      "label": "boxy lavender two-piece linen suit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a80a8599-5989-44ab-918d-1ed84fd35aea"
+    },
+    "outfit-boxy-lilac-bar-tender-vest-look": {
+      "file": "outfit-boxy-lilac-bar-tender-vest-look.webp",
+      "label": "boxy lilac bar tender vest look",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "a0839eb3-51cf-49eb-8c27-1a70b678c387"
+    },
+    "outfit-boxy-lilac-magician-tailcoat": {
+      "file": "outfit-boxy-lilac-magician-tailcoat.webp",
+      "label": "boxy lilac magician tailcoat",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "d7bc9f01-a2b4-49da-913d-e439a42da6f1"
+    },
+    "outfit-boxy-lilac-triathlon-kit": {
+      "file": "outfit-boxy-lilac-triathlon-kit.webp",
+      "label": "boxy lilac triathlon kit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "f9e67843-61b3-4e46-999b-3cb49e9348f5"
+    },
+    "outfit-boxy-lime-circus-ringmaster-coat-outfit": {
+      "file": "outfit-boxy-lime-circus-ringmaster-coat-outfit.webp",
+      "label": "boxy lime circus ringmaster coat outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "4432cb1e-a000-4893-bcb5-433aecb03eaf"
+    },
+    "outfit-boxy-lime-sailor-deck-outfit": {
+      "file": "outfit-boxy-lime-sailor-deck-outfit.webp",
+      "label": "boxy lime sailor deck outfit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "e1b400b9-9163-4008-ab62-59c6ccf0db97"
+    },
+    "outfit-boxy-maroon-nun-habit": {
+      "file": "outfit-boxy-maroon-nun-habit.webp",
+      "label": "boxy maroon nun habit",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "687a3356-cfb5-4faf-a92d-a8067013e000"
+    },
+    "outfit-boxy-maroon-paramedic-uniform": {
+      "file": "outfit-boxy-maroon-paramedic-uniform.webp",
+      "label": "boxy maroon paramedic uniform",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "300a0a44-a6a1-4dbe-9fb2-2575c97545e1"
+    },
+    "outfit-boxy-midnight-blue-techwear-ensemble": {
+      "file": "outfit-boxy-midnight-blue-techwear-ensemble.webp",
+      "label": "boxy midnight blue techwear ensemble",
+      "category": "outfit",
+      "source": "comfy",
+      "promptId": "ed575a4d-654a-4e2c-8a32-355a4ffb8e0b"
     }
   }
 }
