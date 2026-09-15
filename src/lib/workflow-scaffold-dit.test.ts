@@ -161,12 +161,14 @@ describe("hidreamScaffold", () => {
 });
 
 describe("resolveVideoLatentClass", () => {
-  it("routes LTX, Mochi, and everything else (WAN/Hunyuan) to their respective latent classes", () => {
+  it("routes LTX, Mochi, Hunyuan 1.5, and everything else (WAN/Hunyuan) to their respective latent classes", () => {
     assert.equal(resolveVideoLatentClass("ltx-video"), "EmptyLTXVLatentVideo");
+    assert.equal(resolveVideoLatentClass("ltx-video-2"), "EmptyLTXVLatentVideo");
     assert.equal(resolveVideoLatentClass("some-ltx-variant"), "EmptyLTXVLatentVideo");
     assert.equal(resolveVideoLatentClass("mochi-1"), "EmptyMochiLatentVideo");
     assert.equal(resolveVideoLatentClass("wan-video"), "EmptyHunyuanLatentVideo");
     assert.equal(resolveVideoLatentClass("hunyuan-video"), "EmptyHunyuanLatentVideo");
+    assert.equal(resolveVideoLatentClass("hunyuan-video-1.5"), "EmptyHunyuanVideo15Latent");
   });
 });
 

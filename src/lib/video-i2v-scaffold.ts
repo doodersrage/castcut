@@ -130,7 +130,9 @@ export function workflowNeedsLtxTextEncoder(
     const classType = (node as { class_type?: string }).class_type ?? '';
     if (
       classType === 'EmptyLTXVLatentVideo' ||
+      classType === 'EmptyHunyuanVideo15Latent' ||
       classType === 'LTXVImgToVideo' ||
+      classType === 'HunyuanVideo15ImageToVideo' ||
       classType === 'LTXVConditioning'
     ) {
       return true;
@@ -460,10 +462,17 @@ export function rewriteCheckpointLoadersToVideoSplit(
 export function buildBuiltInVideoI2vWorkflow(model: string): Record<string, unknown> {
   const id = String(model ?? '');
   const isLtx = /ltx/i.test(id);
-  const latentClass = isLtx ? 'EmptyLTXVLatentVideo' : 'EmptyHunyuanLatentVideo';
+  const isHunyuan15 = /hunyuan-video-1\.5|hunyuanvideo1\.5/i.test(id);
+  const latentClass = isLtx
+    ? 'EmptyLTXVLatentVideo'
+    : isHunyuan15
+      ? 'EmptyHunyuanVideo15Latent'
+      : 'EmptyHunyuanLatentVideo';
   const i2vHint = isLtx
     ? 'Init Image (optional — auto-wired into LTXVImgToVideo at queue time)'
-    : 'Init Image (optional — auto-wired into WanImageToVideo/HunyuanImageToVideo at queue time)';
+    : isHunyuan15
+      ? 'Init Image (optional — auto-wired into HunyuanVideo15ImageToVideo at queue time)'
+      : 'Init Image (optional — auto-wired into WanImageToVideo/HunyuanImageToVideo at queue time)';
   const clipRef: [string, number] = isLtx ? ['10', 0] : ['1', 1];
 
   const graph: Record<string, unknown> = {

@@ -122,7 +122,9 @@ describe('video-checkpoint-pick', async () => {
         'wan-video-rapid-aio',
         'wan-video-lightning-4',
         'hunyuan-video',
+        'hunyuan-video-1.5',
         'ltx-video',
+        'ltx-video-2',
       ]) {
         assert.equal(isVideoCheckpointMapKey(model), true);
       }

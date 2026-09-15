@@ -34,6 +34,11 @@ const MODEL_WORKFLOW_KEYWORDS: Partial<Record<ComfyImageModel, string[]>> = {
   'flux-2-klein-4b-distilled': ['klein', '4b', 'distilled', 'klein-4b'],
   'flux-2-klein-9b': ['klein', '9b', 'base', 'klein-base', 'klein-9b'],
   'flux-2-klein-9b-distilled': ['klein', '9b', 'distilled', 'klein-9b'],
+  'flux-2-klein-9b-kv': ['klein', '9b', 'kv', 'klein-9b-kv', 'kv-cache'],
+  'hunyuan-video': ['hunyuan', 'hyvideo', 'video', 'i2v', 't2v'],
+  'hunyuan-video-1.5': ['hunyuan', '1.5', 'hunyuanvideo1.5', 'hyvideo', 'video', 'i2v', 't2v'],
+  'ltx-video': ['ltx', 'ltxv', '0.9', 'video', 'i2v', 't2v'],
+  'ltx-video-2': ['ltx', 'ltx-2', 'ltx-2.3', '2.3', '22b', 'video', 'i2v', 't2v', 'audio'],
   'flux-inpaint': ['inpaint', 'flux-inpaint', 'mask', 'fill'],
   'flux-ultrareal-v4': [
     'ultrareal',

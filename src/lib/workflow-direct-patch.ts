@@ -160,7 +160,7 @@ export type WorkflowDirectPatchCounts = {
 };
 
 const VIDEO_I2V_WIRE_ERROR =
-  'Init image was set for a video model, but I2V could not be wired even with the built-in WAN/Hunyuan/LTX scaffold. Import a pack with WanImageToVideo, HunyuanImageToVideo, or LTXVImgToVideo, or clear the init image for text-to-video.';
+  'Init image was set for a video model, but I2V could not be wired even with the built-in WAN/Hunyuan/LTX scaffold. Import a pack with WanImageToVideo, HunyuanImageToVideo, HunyuanVideo15ImageToVideo, or LTXVImgToVideo, or clear the init image for text-to-video.';
 
 function videoI2vWireError(detail: string): string {
   return `${VIDEO_I2V_WIRE_ERROR} (${detail})`;
@@ -1256,6 +1256,7 @@ const VIDEO_IMAGE_TO_VIDEO_NODE_TYPES = new Set([
   'WanImageToVideo',
   'WanCameraImageToVideo',
   'HunyuanImageToVideo',
+  'HunyuanVideo15ImageToVideo',
   'LTXVImgToVideo',
 ]);
 
@@ -1486,12 +1487,13 @@ export function patchVideoImageToVideoWiringInWorkflow(
     };
   }
 
+  const isHunyuan15 = /hunyuan-video-1\.5|hunyuanvideo1\.5/i.test(input.model);
   const isHunyuan = /hunyuan/i.test(input.model);
   const width = resolveNumericLikeField(latentInputs.width, Number(input.params?.width) || 832);
   const height = resolveNumericLikeField(latentInputs.height, Number(input.params?.height) || 480);
   const length = resolveNumericLikeField(
     latentInputs.length,
-    Number(input.params?.videoFrames) || (isHunyuan ? 53 : isLtx ? 97 : 81)
+    Number(input.params?.videoFrames) || (isHunyuan15 ? 33 : isHunyuan ? 53 : isLtx ? 97 : 81)
   );
   const batchSize = resolveNumericLikeField(latentInputs.batch_size, 1);
 
@@ -1513,6 +1515,24 @@ export function patchVideoImageToVideoWiringInWorkflow(
         strength: 1,
       },
       _meta: { title: 'LTX Image → Video (auto-wired I2V)' },
+    };
+    samplerInputs.positive = [newNodeId, 0];
+    samplerInputs.negative = [newNodeId, 1];
+    samplerInputs.latent_image = [newNodeId, 2];
+  } else if (isHunyuan15) {
+    next[newNodeId] = {
+      class_type: 'HunyuanVideo15ImageToVideo',
+      inputs: {
+        positive: positiveRef,
+        negative: negativeRef ?? positiveRef,
+        vae: vaeRef,
+        width,
+        height,
+        length,
+        batch_size: batchSize,
+        start_image: startImageRef,
+      },
+      _meta: { title: 'Hunyuan Video 1.5 Image → Video (auto-wired I2V)' },
     };
     samplerInputs.positive = [newNodeId, 0];
     samplerInputs.negative = [newNodeId, 1];

@@ -76,11 +76,18 @@ const KLEIN_MODELS = [
   'flux-2-klein-4b-distilled',
   'flux-2-klein-9b',
   'flux-2-klein-9b-distilled',
+  'flux-2-klein-9b-kv',
 ] as const;
 
 const WAN_MODELS = ['wan-video', 'wan-video-rapid-aio', 'wan-video-lightning-4'] as const;
 
-export const NATIVE_VIDEO_MODEL_IDS = [...WAN_MODELS, 'hunyuan-video', 'ltx-video'] as const;
+export const NATIVE_VIDEO_MODEL_IDS = [
+  ...WAN_MODELS,
+  'hunyuan-video',
+  'hunyuan-video-1.5',
+  'ltx-video',
+  'ltx-video-2',
+] as const;
 
 export const NATIVE_AUDIO_MODEL_IDS = ['stable-audio'] as const;
 
@@ -538,11 +545,22 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     requiresHfToken: true,
   },
   {
+    id: 'flux2-klein-9b-kv',
+    label: 'FLUX.2 Klein 9B KV UNET',
+    kind: 'unet',
+    filename: 'flux-2-klein-9b-kv.safetensors',
+    url: 'https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-kv/resolve/main/flux-2-klein-9b-kv.safetensors',
+    bytes: 18157185168,
+    modelIds: ['flux-2-klein-9b-kv'],
+    notes: 'KV-cache variant — best multi-ref edit latency. Place under diffusion_models/.',
+    requiresHfToken: true,
+  },
+  {
     id: 'flux2-klein-qwen3-8b',
     label: 'Klein Qwen3-8B text encoder (fp8mixed)',
     kind: 'clip',
     filename: 'qwen_3_8b_fp8mixed.safetensors',
-    modelIds: ['flux-2-klein-9b', 'flux-2-klein-9b-distilled'],
+    modelIds: ['flux-2-klein-9b', 'flux-2-klein-9b-distilled', 'flux-2-klein-9b-kv'],
     notes: 'Expected DualCLIP for Klein 9B — place under text_encoders.',
   },
 
@@ -711,6 +729,46 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     notes: 'DualCLIP clip_name2 — pair with clip_l.safetensors.',
   },
 
+  // ── Hunyuan Video 1.5 ─────────────────────────────────────────────
+  {
+    id: 'hunyuan-video-1.5-t2v-720p',
+    label: 'Hunyuan Video 1.5 T2V 720p',
+    kind: 'unet',
+    filename: 'hunyuanvideo1.5_720p_t2v_fp16.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/diffusion_models/hunyuanvideo1.5_720p_t2v_fp16.safetensors',
+    bytes: 16653368128,
+    modelIds: ['hunyuan-video-1.5'],
+  },
+  {
+    id: 'hunyuan-video-1.5-i2v-720p',
+    label: 'Hunyuan Video 1.5 I2V 720p',
+    kind: 'unet',
+    filename: 'hunyuanvideo1.5_720p_i2v_fp16.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/diffusion_models/hunyuanvideo1.5_720p_i2v_fp16.safetensors',
+    bytes: 16653368128,
+    modelIds: ['hunyuan-video-1.5'],
+    notes: 'Still → clip path for HunyuanVideo 1.5.',
+  },
+  {
+    id: 'hunyuan-video-1.5-vae',
+    label: 'Hunyuan Video 1.5 VAE',
+    kind: 'vae',
+    filename: 'hunyuanvideo15_vae_fp16.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/vae/hunyuanvideo15_vae_fp16.safetensors',
+    bytes: 2521292758,
+    modelIds: ['hunyuan-video-1.5'],
+  },
+  {
+    id: 'hunyuan-video-1.5-qwen',
+    label: 'Hunyuan Video 1.5 Qwen 2.5-VL 7B (fp8)',
+    kind: 'clip',
+    filename: 'qwen_2.5_vl_7b_fp8_scaled.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors',
+    bytes: 9384670680,
+    modelIds: ['hunyuan-video-1.5'],
+    notes: 'Text encoder for HunyuanVideo 1.5 — place under text_encoders/.',
+  },
+
   // ── LTX Video ─────────────────────────────────────────────────────
   {
     id: 'ltx-video-2b-098-distilled',
@@ -771,7 +829,40 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     url: 'https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors',
     bytes: 9787841024,
     modelIds: ['ltx-video'],
-    notes: 'Required companion for LTX checkpoints — place under text_encoders.',
+    notes: 'Required companion for LTX 0.9.x checkpoints — place under text_encoders.',
+  },
+
+  // ── LTX Video 2.3 ─────────────────────────────────────────────────
+  {
+    id: 'ltx-video-2-distilled',
+    label: 'LTX-2.3 22B distilled',
+    kind: 'checkpoint',
+    filename: 'ltx-2.3-22b-distilled.safetensors',
+    url: 'https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-22b-distilled.safetensors',
+    bytes: 46149345038,
+    modelIds: ['ltx-video-2'],
+    notes:
+      'Primary LTX-2.3 distilled checkpoint (~43 GB). Prefer a library pack for audio-synced graphs.',
+  },
+  {
+    id: 'ltx-video-2-distilled-1.1',
+    label: 'LTX-2.3 22B distilled 1.1',
+    kind: 'checkpoint',
+    filename: 'ltx-2.3-22b-distilled-1.1.safetensors',
+    url: 'https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-22b-distilled-1.1.safetensors',
+    bytes: 46149345334,
+    modelIds: ['ltx-video-2'],
+    notes: 'Updated distilled 1.1 weights when available.',
+  },
+  {
+    id: 'ltx-video-2-gemma',
+    label: 'Gemma 3 12B (fp8) for LTX-2.3',
+    kind: 'clip',
+    filename: 'gemma_3_12B_it_fp8_scaled.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/ltx-2.3/resolve/main/split_files/text_encoders/gemma_3_12B_it_fp8_scaled.safetensors',
+    bytes: 13205434827,
+    modelIds: ['ltx-video-2'],
+    notes: 'LTX-2.3 text encoder — place under text_encoders/.',
   },
 
   // ── Stable Audio ──────────────────────────────────────────────────

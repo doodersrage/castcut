@@ -64,6 +64,7 @@ export const SUGGESTED_MODEL_CHECKPOINT_MAP: ModelCheckpointMap = {
   'flux-2-klein-4b-distilled': 'flux-2-klein-4b.safetensors',
   'flux-2-klein-9b': 'flux-2-klein-base-9b.safetensors',
   'flux-2-klein-9b-distilled': 'flux-2-klein-9b-distilled.safetensors',
+  'flux-2-klein-9b-kv': 'flux-2-klein-9b-kv.safetensors',
   'flux-dev': 'flux1-dev.safetensors',
   'flux-ultrareal-v4': 'ultrarealFineTune_v4.safetensors',
   sdxl: 'sd_xl_base_1.0.safetensors',
@@ -83,7 +84,9 @@ export const SUGGESTED_MODEL_CHECKPOINT_MAP: ModelCheckpointMap = {
   'wan-video-rapid-aio': 'wan2.2-i2v-rapid-aio-v10-nsfw.safetensors',
   'wan-video-lightning-4': 'wan2.2-i2v-rapid-aio-v10-nsfw.safetensors',
   'hunyuan-video': 'hunyuan_video_t2v_720p_bf16.safetensors',
-  'ltx-video': 'ltx-video-2b-v0.9.safetensors',
+  'hunyuan-video-1.5': 'hunyuanvideo1.5_720p_t2v_fp16.safetensors',
+  'ltx-video': 'ltxv-2b-0.9.8-distilled.safetensors',
+  'ltx-video-2': 'ltx-2.3-22b-distilled.safetensors',
   'stable-audio': 'stable-audio-open-1.0.safetensors',
   'hunyuan-3d': 'hunyuan3d-dit-v2.safetensors',
   'z-image': 'z_image_bf16.safetensors',
@@ -100,6 +103,7 @@ export const SUGGESTED_MODEL_VAE_MAP: ModelVaeMap = {
   'flux-2-klein-4b-distilled': 'flux2-vae.safetensors',
   'flux-2-klein-9b': 'flux2-vae.safetensors',
   'flux-2-klein-9b-distilled': 'flux2-vae.safetensors',
+  'flux-2-klein-9b-kv': 'flux2-vae.safetensors',
   // Keep UltraReal in the sticky Settings map. FLUX.1 Dev/Schnell get ae via
   // suggestedVaeFilenameForModel() (not this map) so Settings merge won't leak
   // ae onto Qwen Edit as a default sticky VAE.
@@ -111,6 +115,7 @@ export const SUGGESTED_MODEL_VAE_MAP: ModelVaeMap = {
   'qwen-image-edit-2511-lightning-4': 'qwen_image_vae.safetensors',
   'qwen-image-edit-2511-lightning-8': 'qwen_image_vae.safetensors',
   'qwen-image-edit-2509': 'qwen_image_vae.safetensors',
+  'hunyuan-video-1.5': 'hunyuanvideo15_vae_fp16.safetensors',
   'z-image': 'ae.safetensors',
   'z-image-turbo': 'ae.safetensors',
   'boogu-image': 'flux1_vae_bf16.safetensors',
@@ -481,6 +486,13 @@ export function pickBooguVaeFromInventory(
  */
 function inferKleinLoaderHints(modelId: string): ModelLoaderFilenames {
   const id = modelId.toLowerCase();
+  if (id.includes('flux-2-klein-9b-kv') || id.includes('klein-9b-kv')) {
+    return {
+      checkpoint: 'flux-2-klein-9b-kv.safetensors',
+      unet: 'flux-2-klein-9b-kv.safetensors',
+      dualClip: 'qwen_3_8b_fp8mixed.safetensors',
+    };
+  }
   if (id.includes('flux-2-klein-9b-distilled') || id.includes('flux-2-klein-9b-distill')) {
     return {
       checkpoint: 'flux-2-klein-9b-distilled.safetensors',

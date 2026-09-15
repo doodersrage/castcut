@@ -267,6 +267,20 @@ describe("workflow scaffold", () => {
     assert.match(result.json, /"900"/);
   });
 
+  it("builds Hunyuan Video 1.5 scaffold with EmptyHunyuanVideo15Latent", () => {
+    const result = buildWorkflowScaffoldForModel("hunyuan-video-1.5");
+    assert.equal(result.category, "video");
+    assert.match(result.json, /EmptyHunyuanVideo15Latent/);
+    assert.match(result.json, /"900"/);
+  });
+
+  it("builds LTX Video 2.3 scaffold with EmptyLTXVLatentVideo", () => {
+    const result = buildWorkflowScaffoldForModel("ltx-video-2");
+    assert.equal(result.category, "video");
+    assert.match(result.json, /EmptyLTXVLatentVideo/);
+    assert.match(result.json, /CLIPLoader/);
+  });
+
   it("builds SDXL scaffold for sdxl models", () => {
     const result = buildWorkflowScaffoldForModel("sdxl");
     assert.equal(result.category, "sdxl");

@@ -160,10 +160,15 @@ describe("comfy asset catalog", () => {
     assert.equal(assetIsDownloadable(getCatalogAsset("hunyuan-video")!), true);
     assert.equal(assetIsDownloadable(getCatalogAsset("hunyuan-video-vae")!), true);
     assert.equal(assetIsDownloadable(getCatalogAsset("hunyuan-video-llava")!), true);
+    assert.equal(assetIsDownloadable(getCatalogAsset("hunyuan-video-1.5-t2v-720p")!), true);
+    assert.equal(assetIsDownloadable(getCatalogAsset("hunyuan-video-1.5-vae")!), true);
     assert.equal(assetIsDownloadable(getCatalogAsset("ltx-video")!), true);
     assert.equal(assetIsDownloadable(getCatalogAsset("ltx-video-2b-098-distilled")!), true);
     assert.equal(assetIsDownloadable(getCatalogAsset("ltx-video-13b-098-distilled-fp8")!), true);
     assert.equal(assetIsDownloadable(getCatalogAsset("ltx-video-t5xxl")!), true);
+    assert.equal(assetIsDownloadable(getCatalogAsset("ltx-video-2-distilled")!), true);
+    assert.equal(assetIsDownloadable(getCatalogAsset("ltx-video-2-gemma")!), true);
+    assert.equal(assetIsDownloadable(getCatalogAsset("flux2-klein-9b-kv")!), true);
   });
 
   it("exposes downloadable core files for native audio and mesh models", () => {

@@ -112,8 +112,8 @@ export function applyVideoSamplerQualityFloor(
     /^wan-video$/i.test(id) ||
     /wan.*rapid[\s_-]*aio/i.test(id) ||
     id === 'wan-video-rapid-aio' ||
-    /^hunyuan-video$/i.test(id) ||
-    /^ltx-video$/i.test(id)
+    /^hunyuan-video/i.test(id) ||
+    /^ltx-video/i.test(id)
   ) {
     return 'optimized';
   }

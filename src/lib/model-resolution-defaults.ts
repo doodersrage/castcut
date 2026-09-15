@@ -669,6 +669,23 @@ const MODEL_RESOLUTION_PRESETS: ModelResolutionPresetMap = {
       max: { width: 720, height: 1280 },
     },
   },
+  'hunyuan-video-1.5': {
+    square: {
+      small: { width: 512, height: 512 },
+      medium: { width: 720, height: 720 },
+      max: { width: 848, height: 848 },
+    },
+    landscape: {
+      small: { width: 768, height: 432 },
+      medium: { width: 848, height: 480 },
+      max: { width: 1280, height: 720 },
+    },
+    portrait: {
+      small: { width: 432, height: 768 },
+      medium: { width: 480, height: 848 },
+      max: { width: 720, height: 1280 },
+    },
+  },
   'ltx-video': {
     square: {
       small: { width: 512, height: 512 },
@@ -684,6 +701,23 @@ const MODEL_RESOLUTION_PRESETS: ModelResolutionPresetMap = {
       small: { width: 512, height: 768 },
       medium: { width: 512, height: 768 },
       max: { width: 720, height: 1280 },
+    },
+  },
+  'ltx-video-2': {
+    square: {
+      small: { width: 512, height: 512 },
+      medium: { width: 768, height: 768 },
+      max: { width: 1024, height: 1024 },
+    },
+    landscape: {
+      small: { width: 768, height: 512 },
+      medium: { width: 1280, height: 720 },
+      max: { width: 1920, height: 1080 },
+    },
+    portrait: {
+      small: { width: 512, height: 768 },
+      medium: { width: 720, height: 1280 },
+      max: { width: 1080, height: 1920 },
     },
   },
 };

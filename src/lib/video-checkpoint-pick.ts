@@ -17,14 +17,31 @@ function exactInventoryMatch(
   return inventory.find(entry => entry.toLowerCase() === lower);
 }
 
-/** Score WAN/Hunyuan/LTX candidates so 2.2 / Rapid AIO beat older 2.1 defaults. */
+function isHunyuanVideoModel(model: string): boolean {
+  return /^hunyuan-video/i.test(model);
+}
+
+function isLtxVideoFamily(model: string): boolean {
+  return /^ltx-video/i.test(model) || /ltx/i.test(model);
+}
+
+/** Score WAN/Hunyuan/LTX candidates so newer versions / Rapid AIO beat older defaults. */
 export function scoreVideoWeightFilename(model: string, filename: string): number {
   const lower = filename.toLowerCase();
   let score = 0;
-  if (model === 'hunyuan-video') {
+  if (isHunyuanVideoModel(model)) {
     if (/hunyuan|hy[-_]?video/.test(lower)) score += 100;
-  } else if (model === 'ltx-video') {
+    if (/1\.5|hunyuanvideo1\.5/.test(lower)) {
+      score += model.includes('1.5') ? 40 : -20;
+    }
+  } else if (isLtxVideoFamily(model)) {
     if (/ltx/.test(lower)) score += 100;
+    if (/2\.(3|5)|ltx-2/.test(lower)) {
+      score += model === 'ltx-video-2' || /ltx-video-2/.test(model) ? 40 : -10;
+    }
+    if (/0\.9/.test(lower) && (model === 'ltx-video-2' || /ltx-video-2/.test(model))) {
+      score -= 30;
+    }
   } else if (/wan/.test(lower)) {
     score += 100;
   }
@@ -56,12 +73,11 @@ export function pickVideoCheckpointFromInventory(
   }
   // Same family only — a Hunyuan UNET is not a WAN Rapid AIO stand-in, and
   // CheckpointLoaderSimple cannot load diffusion_models files.
-  const preferredPatterns =
-    model === 'hunyuan-video'
-      ? [/hunyuan/i, /hy[-_]?video/i]
-      : model === 'ltx-video'
-        ? [/ltx/i]
-        : [/wan/i];
+  const preferredPatterns = isHunyuanVideoModel(model)
+    ? [/hunyuan/i, /hy[-_]?video/i]
+    : isLtxVideoFamily(model)
+      ? [/ltx/i]
+      : [/wan/i];
 
   const matched = inventory.filter(name => preferredPatterns.some(pattern => pattern.test(name)));
   if (matched.length > 0) {
@@ -82,6 +98,8 @@ export function isVideoCheckpointMapKey(model: string): boolean {
     model === 'wan-video-rapid-aio' ||
     model === 'wan-video-lightning-4' ||
     model === 'hunyuan-video' ||
-    model === 'ltx-video'
+    model === 'hunyuan-video-1.5' ||
+    model === 'ltx-video' ||
+    model === 'ltx-video-2'
   );
 }

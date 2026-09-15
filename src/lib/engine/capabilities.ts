@@ -35,6 +35,13 @@ export const FAL_MODEL_PRESETS = [
   { id: 'fal-ai/flux/schnell', label: 'FLUX Schnell (fast txt2img)' },
   { id: 'fal-ai/flux/dev', label: 'FLUX Dev (quality txt2img)' },
   { id: 'fal-ai/flux-pro/v1.1', label: 'FLUX Pro 1.1' },
+  { id: 'fal-ai/flux-2', label: 'FLUX.2 txt2img' },
+  { id: 'fal-ai/flux-2/flash', label: 'FLUX.2 Flash (fast txt2img)' },
+  { id: 'fal-ai/flux-2-pro', label: 'FLUX.2 Pro txt2img' },
+  { id: 'fal-ai/flux-2/klein/4b', label: 'FLUX.2 Klein 4B distilled txt2img' },
+  { id: 'fal-ai/flux-2/klein/4b/base', label: 'FLUX.2 Klein 4B Base txt2img' },
+  { id: 'fal-ai/flux-2/klein/9b', label: 'FLUX.2 Klein 9B distilled txt2img' },
+  { id: 'fal-ai/flux-2/klein/9b/base', label: 'FLUX.2 Klein 9B Base txt2img' },
   { id: 'fal-ai/flux/dev/image-to-image', label: 'FLUX Dev image-to-image' },
   { id: 'fal-ai/flux-pro/kontext/multi', label: 'FLUX Kontext multi-ref edit' },
   { id: 'fal-ai/flux-pro/kontext/max/multi', label: 'FLUX Kontext Max multi-ref edit' },
@@ -54,6 +61,8 @@ export const FAL_I2V_MODEL_PRESETS = [
   { id: 'fal-ai/wan/v2.2-a14b/image-to-video', label: 'WAN 2.2 image-to-video' },
   { id: 'fal-ai/wan/v2.7/image-to-video', label: 'WAN 2.7 image-to-video' },
   { id: 'fal-ai/ltx-2.3/image-to-video', label: 'LTX 2.3 image-to-video' },
+  { id: 'bytedance/seedance-2.0/image-to-video', label: 'Seedance 2.0 image-to-video' },
+  { id: 'bytedance/seedance-2.5/image-to-video', label: 'Seedance 2.5 image-to-video' },
   { id: 'xai/grok-imagine-video/v1.5/image-to-video', label: 'Grok Imagine 1.5 image-to-video' },
   { id: 'fal-ai/veo3.1/image-to-video', label: 'Veo 3.1 image-to-video' },
 ] as const;
@@ -65,6 +74,8 @@ export const FAL_T2V_MODEL_PRESETS = [
   { id: 'fal-ai/wan/v2.2-a14b/text-to-video', label: 'WAN 2.2 text-to-video' },
   { id: 'fal-ai/wan/v2.7/text-to-video', label: 'WAN 2.7 text-to-video' },
   { id: 'fal-ai/ltx-2.3/text-to-video', label: 'LTX 2.3 text-to-video' },
+  { id: 'bytedance/seedance-2.0/text-to-video', label: 'Seedance 2.0 text-to-video' },
+  { id: 'bytedance/seedance-2.5/text-to-video', label: 'Seedance 2.5 text-to-video' },
   { id: 'xai/grok-imagine-video/v1.5/text-to-video', label: 'Grok Imagine 1.5 text-to-video' },
   { id: 'fal-ai/veo3.1', label: 'Veo 3.1 text-to-video' },
 ] as const;
@@ -77,6 +88,8 @@ export const REPLICATE_MODEL_PRESETS = [
   { id: 'black-forest-labs/flux-schnell', label: 'FLUX Schnell (fast txt2img)' },
   { id: 'black-forest-labs/flux-dev', label: 'FLUX Dev (txt2img / img2img)' },
   { id: 'black-forest-labs/flux-1.1-pro', label: 'FLUX 1.1 Pro' },
+  { id: 'black-forest-labs/flux-2-dev', label: 'FLUX.2 Dev txt2img' },
+  { id: 'black-forest-labs/flux-2-klein-9b', label: 'FLUX.2 Klein 9B txt2img' },
   { id: 'stability-ai/sdxl', label: 'Stable Diffusion XL' },
   {
     id: 'flux-kontext-apps/multi-image-kontext-pro',
@@ -94,6 +107,7 @@ export const REPLICATE_I2V_MODEL_PRESETS = [
   { id: 'wan-video/wan-2.2-i2v-a14b', label: 'WAN 2.2 image-to-video A14B' },
   { id: 'wan-video/wan-2.5-i2v-fast', label: 'WAN 2.5 image-to-video (fast)' },
   { id: 'lightricks/ltx-2.3-fast', label: 'LTX 2.3 image-to-video (fast)' },
+  { id: 'bytedance/seedance-2.0', label: 'Seedance 2.0 (T2V / I2V)' },
 ] as const;
 
 export const REPLICATE_T2V_MODEL_PRESETS = [
@@ -101,6 +115,7 @@ export const REPLICATE_T2V_MODEL_PRESETS = [
   { id: 'wan-video/wan-2.2-t2v-fast', label: 'WAN 2.2 text-to-video (fast)' },
   { id: 'wan-video/wan-2.5-t2v-fast', label: 'WAN 2.5 text-to-video (fast)' },
   { id: 'lightricks/ltx-2.3-fast', label: 'LTX 2.3 text-to-video (fast)' },
+  { id: 'bytedance/seedance-2.0', label: 'Seedance 2.0 (T2V / I2V)' },
 ] as const;
 
 export const OPENAI_MODEL_PRESETS = [

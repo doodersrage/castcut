@@ -573,7 +573,10 @@ export function hidreamScaffold(
 }
 
 type VideoLatentClass =
-  'EmptyHunyuanLatentVideo' | 'EmptyLTXVLatentVideo' | 'EmptyMochiLatentVideo';
+  | 'EmptyHunyuanLatentVideo'
+  | 'EmptyHunyuanVideo15Latent'
+  | 'EmptyLTXVLatentVideo'
+  | 'EmptyMochiLatentVideo';
 
 export function resolveVideoLatentClass(model: ComfyImageModel | string): VideoLatentClass {
   if (model === 'ltx-video' || /ltx/i.test(String(model))) {
@@ -582,7 +585,10 @@ export function resolveVideoLatentClass(model: ComfyImageModel | string): VideoL
   if (/mochi/i.test(String(model))) {
     return 'EmptyMochiLatentVideo';
   }
-  // WAN and Hunyuan both commonly use EmptyHunyuanLatentVideo in stock Comfy graphs.
+  if (/hunyuan-video-1\.5|hunyuanvideo1\.5/i.test(String(model))) {
+    return 'EmptyHunyuanVideo15Latent';
+  }
+  // WAN and classic Hunyuan both commonly use EmptyHunyuanLatentVideo in stock Comfy graphs.
   return 'EmptyHunyuanLatentVideo';
 }
 
@@ -599,10 +605,13 @@ export function videoScaffold(
   const latentClass = resolveVideoLatentClass(model);
   const useLightning = isWanLightningModel(model);
   const isLtx = latentClass === 'EmptyLTXVLatentVideo';
+  const isHunyuan15 = latentClass === 'EmptyHunyuanVideo15Latent';
   const clipRef: [string, number] = isLtx ? ['10', 0] : ['1', 1];
   const i2vHint = isLtx
     ? 'Init Image (optional — auto-wired into LTXVImgToVideo at queue time)'
-    : 'Init Image (optional — auto-wired into WanImageToVideo/HunyuanImageToVideo at queue time)';
+    : isHunyuan15
+      ? 'Init Image (optional — auto-wired into HunyuanVideo15ImageToVideo at queue time)'
+      : 'Init Image (optional — auto-wired into WanImageToVideo/HunyuanImageToVideo at queue time)';
 
   const graph: Record<string, unknown> = {
     '1': {

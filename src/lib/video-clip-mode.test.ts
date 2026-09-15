@@ -8,6 +8,7 @@ import {
   DEFAULT_REPLICATE_T2V_MODEL,
   FAL_EXTEND_MODEL_PRESETS,
   FAL_I2V_MODEL_PRESETS,
+  FAL_MODEL_PRESETS,
   FAL_T2V_MODEL_PRESETS,
   REPLICATE_I2V_MODEL_PRESETS,
   REPLICATE_T2V_MODEL_PRESETS,
@@ -119,11 +120,15 @@ describe('video clip mode', () => {
     assert.equal(falVideoDurationPayload('fal-ai/ltx-2.3/extend-video', 10), 10);
   });
 
-  it('lists documented Fal LTX, Grok Imagine, and Veo clip presets', () => {
+  it('lists documented Fal LTX, Seedance, Grok Imagine, and Veo clip presets', () => {
     const i2v = FAL_I2V_MODEL_PRESETS.map(preset => preset.id);
     const t2v = FAL_T2V_MODEL_PRESETS.map(preset => preset.id);
     assert.ok(i2v.includes('fal-ai/ltx-2.3/image-to-video'));
     assert.ok(t2v.includes('fal-ai/ltx-2.3/text-to-video'));
+    assert.ok(i2v.includes('bytedance/seedance-2.0/image-to-video'));
+    assert.ok(t2v.includes('bytedance/seedance-2.0/text-to-video'));
+    assert.ok(i2v.includes('bytedance/seedance-2.5/image-to-video'));
+    assert.ok(t2v.includes('bytedance/seedance-2.5/text-to-video'));
     assert.ok(i2v.includes('xai/grok-imagine-video/v1.5/image-to-video'));
     assert.ok(t2v.includes('xai/grok-imagine-video/v1.5/text-to-video'));
     assert.ok(i2v.includes('fal-ai/kling-video/o3/standard/image-to-video'));
@@ -133,6 +138,9 @@ describe('video clip mode', () => {
     assert.ok(FAL_EXTEND_MODEL_PRESETS.some(preset => preset.id === DEFAULT_FAL_EXTEND_MODEL));
     assert.ok(REPLICATE_I2V_MODEL_PRESETS.some(preset => preset.id === 'lightricks/ltx-2.3-fast'));
     assert.ok(REPLICATE_T2V_MODEL_PRESETS.some(preset => preset.id === 'lightricks/ltx-2.3-fast'));
+    assert.ok(REPLICATE_I2V_MODEL_PRESETS.some(preset => preset.id === 'bytedance/seedance-2.0'));
+    assert.ok(FAL_MODEL_PRESETS.some(preset => preset.id === 'fal-ai/flux-2/klein/9b'));
+    assert.ok(FAL_MODEL_PRESETS.some(preset => preset.id === 'fal-ai/flux-2-pro'));
   });
 
   it('builds the documented Fal LTX extend-video payload', () => {

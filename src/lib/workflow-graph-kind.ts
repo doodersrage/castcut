@@ -12,11 +12,11 @@ import {
 export type WorkflowGraphKind = 'image' | 'video' | 'audio' | 'mesh' | 'unknown';
 
 const VIDEO_CLASS_HINTS =
-  /EmptyHunyuanLatentVideo|EmptyLTXVLatentVideo|EmptyMochiLatentVideo|WanImageToVideo|HunyuanImageToVideo|LTXVImgToVideo|SaveAnimatedWEBP|VHS_VideoCombine|CreateVideo|WanVideo|HunyuanVideoTextEncode|LTXVConditioning|LTXVScheduler|ImageOnlyCheckpointLoader/i;
+  /EmptyHunyuanLatentVideo|EmptyHunyuanVideo15Latent|EmptyLTXVLatentVideo|EmptyMochiLatentVideo|WanImageToVideo|HunyuanImageToVideo|HunyuanVideo15ImageToVideo|LTXVImgToVideo|SaveAnimatedWEBP|VHS_VideoCombine|CreateVideo|WanVideo|HunyuanVideoTextEncode|LTXVConditioning|LTXVScheduler|ImageOnlyCheckpointLoader/i;
 
 /** Unparseable graphs: match video nodes in the raw JSON string. */
 const VIDEO_GRAPH_FALLBACK_HINTS =
-  /EmptyHunyuanLatentVideo|EmptyLTXVLatentVideo|EmptyMochiLatentVideo|WanImageToVideo|HunyuanImageToVideo|LTXVImgToVideo|SaveAnimatedWEBP|VHS_VideoCombine|CreateVideo|HunyuanVideoTextEncode|LTXVConditioning|WanVideo|LTXVScheduler|LTXVAddGuide/i;
+  /EmptyHunyuanLatentVideo|EmptyHunyuanVideo15Latent|EmptyLTXVLatentVideo|EmptyMochiLatentVideo|WanImageToVideo|HunyuanImageToVideo|HunyuanVideo15ImageToVideo|LTXVImgToVideo|SaveAnimatedWEBP|VHS_VideoCombine|CreateVideo|HunyuanVideoTextEncode|LTXVConditioning|WanVideo|LTXVScheduler|LTXVAddGuide/i;
 
 const AUDIO_CLASS_HINTS =
   /SaveAudio|PreviewAudio|StableAudio|EmptyLatentAudio|AudioEncoder|LoadAudio|VAEDecodeAudio|CLIPTextEncodeAudio/i;
@@ -98,7 +98,9 @@ export function defaultModelsForGraphKind(kind: WorkflowGraphKind): ComfyImageMo
         'wan-video-rapid-aio',
         'wan-video-lightning-4',
         'hunyuan-video',
+        'hunyuan-video-1.5',
         'ltx-video',
+        'ltx-video-2',
       ];
     case 'audio':
       return ['stable-audio'];

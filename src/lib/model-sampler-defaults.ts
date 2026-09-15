@@ -445,9 +445,21 @@ const MODEL_SAMPLER_PRESETS: ModelSamplerPresetMap = {
     maxCompatible: { steps: 30, cfg: 5.5, samplerName: 'dpmpp_2m', scheduler: 'simple' },
     max: { steps: 40, cfg: 5, samplerName: 'dpmpp_2m', scheduler: 'simple' },
   },
+  'hunyuan-video-1.5': {
+    base: { steps: 20, cfg: 6, samplerName: 'euler', scheduler: 'simple' },
+    optimized: { steps: 30, cfg: 6, samplerName: 'euler', scheduler: 'simple' },
+    maxCompatible: { steps: 30, cfg: 5.5, samplerName: 'dpmpp_2m', scheduler: 'simple' },
+    max: { steps: 40, cfg: 5, samplerName: 'dpmpp_2m', scheduler: 'simple' },
+  },
   'ltx-video': {
     base: { steps: 20, cfg: 3, samplerName: 'euler', scheduler: 'simple' },
     optimized: { steps: 30, cfg: 3, samplerName: 'euler', scheduler: 'simple' },
+    maxCompatible: { steps: 30, cfg: 2.5, samplerName: 'euler', scheduler: 'simple' },
+    max: { steps: 40, cfg: 2.5, samplerName: 'euler', scheduler: 'simple' },
+  },
+  'ltx-video-2': {
+    base: { steps: 20, cfg: 3, samplerName: 'euler', scheduler: 'simple' },
+    optimized: { steps: 28, cfg: 3, samplerName: 'euler', scheduler: 'simple' },
     maxCompatible: { steps: 30, cfg: 2.5, samplerName: 'euler', scheduler: 'simple' },
     max: { steps: 40, cfg: 2.5, samplerName: 'euler', scheduler: 'simple' },
   },

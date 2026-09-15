@@ -33,9 +33,11 @@ function looksLikeVideoScaffold(file: ComfyWorkflowFile): boolean {
   const json = file.workflowJson ?? '';
   if (
     json.includes('EmptyHunyuanLatentVideo') ||
+    json.includes('EmptyHunyuanVideo15Latent') ||
     json.includes('EmptyLTXVLatentVideo') ||
     json.includes('WanImageToVideo') ||
-    json.includes('HunyuanImageToVideo')
+    json.includes('HunyuanImageToVideo') ||
+    json.includes('HunyuanVideo15ImageToVideo')
   ) {
     return true;
   }
