@@ -157,7 +157,7 @@ export function upsertDaySlotStill(
           clipPromptId:
             'clipPromptId' in patch ? patch.clipPromptId?.trim() || undefined : still.clipPromptId,
           clipUrl: 'clipUrl' in patch ? patch.clipUrl?.trim() || undefined : still.clipUrl,
-          clipStatus: patch.clipStatus ?? still.clipStatus,
+          clipStatus: 'clipStatus' in patch ? patch.clipStatus : still.clipStatus,
         }
       : still
   );

@@ -55,6 +55,35 @@ describe('day-planner', () => {
     assert.equal(queued[0]?.status, 'queued');
   });
 
+  it('upsertDaySlotStill clears prior clips when still is re-queued', () => {
+    const queued = upsertDaySlotStill(
+      [
+        {
+          slotId: 'morning',
+          promptId: 'old',
+          status: 'completed',
+          imageUrl: 'https://example.com/old.jpg',
+          clipPromptId: 'clip-old',
+          clipStatus: 'completed',
+          clipUrl: 'https://example.com/old.mp4',
+        },
+      ],
+      {
+        slotId: 'morning',
+        promptId: 'new',
+        status: 'queued',
+        imageUrl: undefined,
+        clipPromptId: undefined,
+        clipUrl: undefined,
+        clipStatus: undefined,
+      }
+    );
+    assert.equal(queued[0]?.promptId, 'new');
+    assert.equal(queued[0]?.clipPromptId, undefined);
+    assert.equal(queued[0]?.clipUrl, undefined);
+    assert.equal(queued[0]?.clipStatus, undefined);
+  });
+
   it('buildDaySlotPrompt includes slot label and beat', () => {
     const slot = DEFAULT_DAY_SLOTS[0]!;
     const prompt = buildDaySlotPrompt({

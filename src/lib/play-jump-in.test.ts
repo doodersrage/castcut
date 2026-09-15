@@ -1,8 +1,36 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { resetBrowserStorageCache } from './browser-storage';
 import { hasCompletedFirstFilm } from './play-metrics';
 import { playCampaignProgressLabel, type PlayCampaignState } from './play-campaign';
-import { buildStarterLookPack } from './play-starter';
+import { buildStarterLookPack, startStarterPlayFilm } from './play-starter';
+import {
+  DEFAULT_DAY_TOOL_CACHE,
+  loadToolSettings,
+  saveToolSettings,
+} from './settings-cache';
+
+function installFakeWindow() {
+  const storage = new Map<string, string>();
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+        removeItem: (key: string) => storage.delete(key),
+      },
+      sessionStorage: {
+        getItem: (key: string) => storage.get(`s:${key}`) ?? null,
+        setItem: (key: string, value: string) => storage.set(`s:${key}`, value),
+        removeItem: (key: string) => storage.delete(`s:${key}`),
+      },
+      dispatchEvent: () => true,
+    },
+  });
+  resetBrowserStorageCache();
+  return storage;
+}
 
 describe('play jump-in helpers', () => {
   it('hasCompletedFirstFilm requires a cut timestamp', () => {
@@ -30,5 +58,27 @@ describe('play jump-in helpers', () => {
     assert.equal(pack.version, 1);
     assert.ok(pack.moodNotes);
     assert.ok(pack.vibePrompt);
+  });
+
+  it('startStarterPlayFilm clears prior Day stills and clips', () => {
+    installFakeWindow();
+    saveToolSettings('day', {
+      ...DEFAULT_DAY_TOOL_CACHE,
+      stills: [
+        {
+          slotId: 'morning',
+          promptId: 'old',
+          status: 'completed',
+          imageUrl: 'https://example.com/m.jpg',
+          clipStatus: 'completed',
+          clipUrl: 'https://example.com/m.mp4',
+        },
+      ],
+    });
+    const result = startStarterPlayFilm({ name: 'Nova', autoQueue: true });
+    assert.match(result.href, /starter=1/);
+    assert.match(result.href, /autoqueue=1/);
+    const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+    assert.deepEqual(day.stills, []);
   });
 });

@@ -139,8 +139,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     setBusy(true);
     setError(null);
     try {
-      // Parallel submit — each slot updates stillsRef synchronously after await.
-      await Promise.all(slots.map(slot => queueSlot(slot, { manageBusy: false })));
+      // Sequential submit — sendComfyUi is single-flight; Promise.all only queues morning
+      // and marks the other Day slots as error.
+      for (const slot of slots) {
+        await queueSlot(slot, { manageBusy: false });
+      }
     } finally {
       setBusy(false);
     }
@@ -248,7 +251,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         const still = stillsRef.current.find(entry => entry.slotId === slot.id);
         return still?.status === 'completed' && still.clipStatus !== 'completed';
       });
-      await Promise.all(pending.map(slot => animateSlot(slot, { manageBusy: false })));
+      // Sequential — same single-flight Comfy lock as queueAll.
+      for (const slot of pending) {
+        await animateSlot(slot, { manageBusy: false });
+      }
     } finally {
       setBusy(false);
     }
@@ -487,6 +493,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       return;
     }
     starterAutoQueueRef.current = true;
+    // Drop cached stills/clips before queueing so auto-cut cannot fire on the last film.
+    stillsRef.current = [];
+    updateToolSettings({ stills: [] });
+    autoCutRef.current = false;
+    pendingAutoCutRef.current = false;
     void import('@/lib/local-observability').then(({ noteStarterDayQueueMetric }) => {
       noteStarterDayQueueMetric();
     });
@@ -496,7 +507,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       const next = params.toString();
       router.replace(next ? `/day?${next}` : '/day');
     });
-  }, [mounted, queueAll, router]);
+  }, [mounted, queueAll, router, stillsRef, updateToolSettings]);
 
   // Auto-cut when all four Day stills complete (starter / demo / remix / explicit autocut).
   useEffect(() => {

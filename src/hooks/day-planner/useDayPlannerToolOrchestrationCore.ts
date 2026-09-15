@@ -368,6 +368,10 @@ export function useDayPlannerToolOrchestrationCore() {
           promptId: typeof promptId === 'string' ? promptId : undefined,
           status: promptId ? 'queued' : 'error',
           imageUrl: undefined,
+          // Fresh still queue must not keep prior-run clips (Cut prefers clips).
+          clipPromptId: undefined,
+          clipUrl: undefined,
+          clipStatus: undefined,
         });
         stillsRef.current = nextStills;
         updateToolSettings({ stills: nextStills });

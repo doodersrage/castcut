@@ -115,6 +115,8 @@ export function startStarterPlayFilm(input?: {
   const dayCache: DayToolCache = {
     ...DEFAULT_DAY_TOOL_CACHE,
     slots: starterSlots(),
+    // Clear prior Day stills/clips so auto-cut cannot reuse the last run's film.
+    stills: [],
     notes: 'Starter day — Look & Outfit skipped. Queue stills (or use demo stills), then Cut film.',
   };
   saveToolSettings('day', dayCache);
