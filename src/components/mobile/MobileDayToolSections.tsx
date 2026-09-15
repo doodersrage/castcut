@@ -1,12 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
@@ -16,7 +13,6 @@ import {
   resolveFilmFailurePlaybook,
   resolveQueueFailureGuideLabel,
 } from '@/lib/queue-failure-playbook';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { toMobileStudioHref } from '@/lib/mobile-studio';
 import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
 import {
@@ -69,32 +65,11 @@ export default function MobileDayToolSections(vm: ViewModel) {
   } = vm;
 
   const [sampleWatch, setSampleWatch] = useState(false);
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const slotTotal = slots.length || 4;
   const showCutCoach = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
   const playbookHref =
     filmGuideHref ?? (error ? resolveFilmFailurePlaybook(error).href : undefined);
-
-  useEffect(() => {
-    if (!firstCutCelebrate || !character?.id) {
-      return;
-    }
-    let cancelled = false;
-    scheduleAfterCommit(() => {
-      if (cancelled) {
-        return;
-      }
-      setSoftAdvance({
-        href: toMobileStudioHref(`/characters/${encodeURIComponent(character.id)}?media=films`),
-        label: 'Watch on Cast',
-        nonce: Date.now(),
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [firstCutCelebrate, character?.id]);
 
   return (
     <div className="space-y-4" data-testid="mobile-day">
@@ -104,12 +79,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
           Four slots → stills → Cut film. Animate clips after your first cut.
         </p>
       </div>
-
-      <PlaySoftAdvanceBanner
-        key={softAdvance?.nonce ?? 'idle'}
-        target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
-      />
 
       {firstCutCelebrate ? (
         <div
@@ -130,7 +99,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
                 className="ui-btn-primary w-full justify-center text-center text-sm"
                 data-testid="day-first-cut-watch"
                 onClick={() => {
-                  setSoftAdvance(null);
                   void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
                     markOnboardingWatchFirstFilm();
                   });
@@ -156,6 +124,15 @@ export default function MobileDayToolSections(vm: ViewModel) {
               >
                 Same look, new Day
               </Button>
+            ) : null}
+            {character ? (
+              <Link
+                href="/m/play"
+                className="ui-btn-ghost w-full justify-center text-center text-sm"
+                data-testid="day-first-cut-story"
+              >
+                Optional: Story
+              </Link>
             ) : null}
           </div>
         </div>
@@ -559,7 +536,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         {filmStatus ? <p className="type-caption text-[var(--text-muted)]">{filmStatus}</p> : null}
       </div>
 
-      {!firstCutCelebrate && !softAdvance ? (
+      {!firstCutCelebrate ? (
         <div className="grid gap-2">
           {character ? (
             <>

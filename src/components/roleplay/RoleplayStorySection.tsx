@@ -24,7 +24,6 @@ export type RoleplayStorySectionProps = {
   filmGuideHref?: string | null;
   firstCutCelebrate?: boolean;
   onClearFirstCutCelebrate?: () => void;
-  onCancelSoftAdvance?: () => void;
   downloadAction: ReactNode;
   onCutFilm: () => void;
   onSaveToCast: () => void;
@@ -57,7 +56,6 @@ export default function RoleplayStorySection({
   filmGuideHref,
   firstCutCelebrate = false,
   onClearFirstCutCelebrate,
-  onCancelSoftAdvance,
   downloadAction,
   onCutFilm,
   onSaveToCast,
@@ -106,7 +104,6 @@ export default function RoleplayStorySection({
                 variant="primary"
                 data-testid="story-first-cut-watch"
                 onClick={() => {
-                  onCancelSoftAdvance?.();
                   onClearFirstCutCelebrate?.();
                   void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
                     markOnboardingWatchFirstFilm();
@@ -133,7 +130,6 @@ export default function RoleplayStorySection({
                 variant="secondary"
                 data-testid="story-first-cut-remix"
                 onClick={() => {
-                  onCancelSoftAdvance?.();
                   onClearFirstCutCelebrate?.();
                 }}
               >

@@ -1,10 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import RoleplayLibraryPanel from '@/components/RoleplayLibraryPanel';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
@@ -19,7 +15,6 @@ import {
 import { roleplayPatchFromPlate, toMobileStudioHref } from '@/lib/mobile-studio';
 import { remixDayFilmHref } from '@/lib/play-starter';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
   loadToolSettings,
@@ -77,28 +72,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
     setActivePlate,
   } = vm;
 
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
-
-  useEffect(() => {
-    if (!firstCutCelebrate || !filmCharacterId) {
-      return;
-    }
-    let cancelled = false;
-    scheduleAfterCommit(() => {
-      if (cancelled) {
-        return;
-      }
-      setSoftAdvance({
-        href: toMobileStudioHref(`/characters/${encodeURIComponent(filmCharacterId)}?media=films`),
-        label: 'Watch on Cast',
-        nonce: Date.now(),
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [firstCutCelebrate, filmCharacterId]);
-
   return (
     <div className="space-y-4" data-testid="mobile-play">
       <div className="space-y-1">
@@ -107,12 +80,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
           Optional beats after Day — stills and clips, then Cut film.
         </p>
       </div>
-
-      <PlaySoftAdvanceBanner
-        key={softAdvance?.nonce ?? 'idle'}
-        target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
-      />
 
       {plateUrl ? (
         <div className="flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-2">
@@ -343,7 +310,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
                   className="ui-btn-primary w-full justify-center text-center text-sm"
                   data-testid="story-first-cut-watch"
                   onClick={() => {
-                    setSoftAdvance(null);
                     clearFirstCutCelebrate();
                     void import('@/lib/onboarding-hooks').then(
                       ({ markOnboardingWatchFirstFilm }) => {
@@ -369,7 +335,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
                   className="ui-btn-secondary w-full justify-center text-center text-sm"
                   data-testid="story-first-cut-remix"
                   onClick={() => {
-                    setSoftAdvance(null);
                     clearFirstCutCelebrate();
                   }}
                 >

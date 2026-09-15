@@ -96,7 +96,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         >
           <p className="type-overline text-[var(--accent-text)]">Ready to keep</p>
           <p className="type-caption text-[var(--text-muted)]">
-            Keep a winner to seed Day — soft-advance starts after Keep.
+            Keep a winner to seed Day — continuing starts after Keep.
           </p>
         </div>
       ) : null}

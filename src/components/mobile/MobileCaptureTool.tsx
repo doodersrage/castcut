@@ -10,6 +10,8 @@ import { persistIdentityImage } from '@/lib/gallery-media-client';
 import { saveGalleryHandoff } from '@/lib/gallery-handoff';
 import { isolateSubjectOnWhite } from '@/lib/isolate-subject';
 import {
+  fittingPatchFromPlate,
+  moodboardPatchFromPlate,
   newCharacterPlateId,
   roleplayPatchFromPlate,
   upsertCharacterPlate,
@@ -17,7 +19,9 @@ import {
 } from '@/lib/mobile-studio';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import {
+  DEFAULT_FITTING_TOOL_CACHE,
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
+  DEFAULT_MOODBOARD_TOOL_CACHE,
   DEFAULT_ROLEPLAY_TOOL_CACHE,
   loadToolSettings,
   saveToolSettings,
@@ -40,13 +44,34 @@ export default function MobileCaptureTool() {
   const plates = useMemo(() => toolSettings.plates ?? [], [toolSettings.plates]);
   const active = plates.find(plate => plate.id === toolSettings.activePlateId) ?? plates[0] ?? null;
 
-  const applyPlateToRoleplay = useCallback((plate: CharacterPlate) => {
-    const current = loadToolSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
+  const applyPlateToFilmLoop = useCallback((plate: CharacterPlate) => {
+    const roleplay = loadToolSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
     saveToolSettings('roleplay', {
-      ...current,
+      ...roleplay,
       ...roleplayPatchFromPlate(plate),
     });
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    saveToolSettings('fitting', {
+      ...fitting,
+      ...fittingPatchFromPlate(plate),
+    });
+    const moodboard = loadToolSettings('moodboard', DEFAULT_MOODBOARD_TOOL_CACHE);
+    const seeded = moodboardPatchFromPlate(plate);
+    const existingTiles = moodboard.tiles ?? [];
+    const hasPlateTile = existingTiles.some(tile => tile.imageUrl === seeded.tiles[0]?.imageUrl);
+    saveToolSettings('moodboard', {
+      ...moodboard,
+      tiles: hasPlateTile ? existingTiles : [...seeded.tiles, ...existingTiles],
+    });
   }, []);
+
+  const openLook = useCallback(
+    (plate: CharacterPlate) => {
+      applyPlateToFilmLoop(plate);
+      router.push('/m/moodboard');
+    },
+    [applyPlateToFilmLoop, router]
+  );
 
   const captureFile = useCallback(
     async (file: File | null) => {
@@ -126,8 +151,8 @@ export default function MobileCaptureTool() {
           plates: nextPlates,
           activePlateId: plate.id,
         });
-        applyPlateToRoleplay(plate);
-        setStatus(isolated ? 'Plate ready — subject on white.' : 'Plate saved.');
+        applyPlateToFilmLoop(plate);
+        setStatus(isolated ? 'Plate ready — Start Look next.' : 'Plate saved — Start Look next.');
         if (originalUrl && localPreview.startsWith('blob:') && originalUrl !== localPreview) {
           URL.revokeObjectURL(localPreview);
         }
@@ -138,7 +163,7 @@ export default function MobileCaptureTool() {
         setBusy(false);
       }
     },
-    [applyPlateToRoleplay, name, plates, shared.model, updateToolSettings]
+    [applyPlateToFilmLoop, name, plates, shared.model, updateToolSettings]
   );
 
   if (!mounted) {
@@ -152,8 +177,8 @@ export default function MobileCaptureTool() {
       <div className="space-y-1">
         <h1 className="type-display text-2xl tracking-tight">Capture a plate</h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-          Shoot or pick a photo. Isolate on white (default) so Roleplay and Compose cannot lock onto
-          the street or room. First use downloads a small on-device model.
+          Shoot or pick a photo. Isolate on white so Look, Outfit, and Day lock onto the subject —
+          not the room. First use downloads a small on-device model.
         </p>
       </div>
 
@@ -193,18 +218,19 @@ export default function MobileCaptureTool() {
         />
         <PrimaryButton
           disabled={busy}
-          onClick={() => cameraRef.current?.click()}
+          loading={busy}
           className="w-full justify-center"
+          onClick={() => cameraRef.current?.click()}
         >
-          Take photo
+          Camera
         </PrimaryButton>
         <Button
           variant="secondary"
           disabled={busy}
-          onClick={() => libraryRef.current?.click()}
           className="w-full justify-center"
+          onClick={() => libraryRef.current?.click()}
         >
-          Choose photo
+          Library
         </Button>
       </div>
 
@@ -228,9 +254,13 @@ export default function MobileCaptureTool() {
 
       {active ? (
         <div className="flex flex-col gap-2">
-          <Link href="/m/moodboard" className="ui-btn-primary w-full justify-center text-center">
+          <button
+            type="button"
+            className="ui-btn-primary w-full justify-center text-center"
+            onClick={() => openLook(active)}
+          >
             Start Look
-          </Link>
+          </button>
           <Link href="/m/play" className="ui-btn-secondary w-full justify-center text-center">
             Optional: Story as {active.name}
           </Link>
@@ -259,29 +289,27 @@ export default function MobileCaptureTool() {
 
       {plates.length > 1 ? (
         <div className="space-y-2">
-          <p className="type-caption text-[var(--text-muted)]">Saved plates</p>
+          <p className="type-caption text-[var(--text-muted)]">Recent plates</p>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {plates.map(plate => (
               <button
                 key={plate.id}
                 type="button"
+                className={`min-w-[4.5rem] shrink-0 overflow-hidden rounded-xl border ${
+                  plate.id === active?.id
+                    ? 'border-[var(--accent-border)]'
+                    : 'border-[var(--border-subtle)]'
+                }`}
                 onClick={() => {
                   updateToolSettings({ activePlateId: plate.id });
-                  applyPlateToRoleplay(plate);
-                  setPreviewUrl(plate.isolated ? plate.isolatedUrl : plate.originalUrl);
+                  applyPlateToFilmLoop(plate);
                 }}
-                className={[
-                  'h-16 w-16 shrink-0 overflow-hidden rounded-xl border',
-                  plate.id === active?.id
-                    ? 'border-[var(--accent-border)] ring-2 ring-[var(--accent-ring)]'
-                    : 'border-[var(--border-subtle)]',
-                ].join(' ')}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={plate.isolated ? plate.isolatedUrl : plate.originalUrl}
                   alt={plate.name}
-                  className="h-full w-full bg-white object-cover"
+                  className="h-16 w-full object-cover"
                 />
               </button>
             ))}

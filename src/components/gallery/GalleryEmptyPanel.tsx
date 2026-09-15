@@ -63,15 +63,6 @@ export default function GalleryEmptyPanel({
               Open Day
             </ButtonLink>
           )}
-          {castId ? (
-            <ButtonLink
-              href={`/day?character=${encodeURIComponent(castId)}`}
-              size="sm"
-              variant="secondary"
-            >
-              Plan a day
-            </ButtonLink>
-          ) : null}
           <PlayContinueChip variant="secondary" />
         </div>
       </div>

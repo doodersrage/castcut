@@ -161,7 +161,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Look presets"
-        description="One tap to seed tiles — or send straight to Day."
+        description="One tap to seed tiles — then Extract look or Continue to Outfit."
         data-testid="moodboard-presets"
       >
         <div className="flex flex-wrap gap-2">
@@ -186,30 +186,6 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
             </ChipButton>
           ))}
         </div>
-        <ToolActionRow className="mt-3">
-          {LOOK_PRESETS.map(preset => (
-            <Button
-              key={`day-${preset.id}`}
-              size="sm"
-              variant="ghost"
-              disabled={busy || extracting}
-              data-testid={`moodboard-preset-day-${preset.id}`}
-              onClick={() => {
-                const tilesNext = tilesFromLookPreset(preset);
-                updateToolSettings({ tiles: tilesNext });
-                const pack = lookPackFromPreset(preset, character?.id);
-                saveLookPack(pack);
-                void sendLookToDay().then(href => {
-                  if (href) {
-                    router.push(href);
-                  }
-                });
-              }}
-            >
-              {preset.label} → Day
-            </Button>
-          ))}
-        </ToolActionRow>
       </ToolSection>
 
       <ToolSection
@@ -230,10 +206,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         />
       </ToolSection>
 
-      <ToolSection
-        title="Template"
-        description="How the moodboard cues merge into the scene prompt."
-      >
+      <ToolSection title="Template" description="How look cues merge into the scene prompt.">
         <div className="flex flex-wrap gap-2">
           {MOODBOARD_TEMPLATE_OPTIONS.map(option => (
             <ChipButton
@@ -376,7 +349,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={activeTile.imageUrl}
-                alt={activeTile.label || 'Moodboard reference'}
+                alt={activeTile.label || 'Look reference'}
                 className="mt-3 max-h-48 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
               />
             ) : (
@@ -458,6 +431,28 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
             More · Day skip, Story, save, export
           </summary>
           <div className="mt-2 flex flex-wrap gap-2">
+            {LOOK_PRESETS.map(preset => (
+              <Button
+                key={`day-${preset.id}`}
+                size="sm"
+                variant="ghost"
+                disabled={busy || extracting}
+                data-testid={`moodboard-preset-day-${preset.id}`}
+                onClick={() => {
+                  const tilesNext = tilesFromLookPreset(preset);
+                  updateToolSettings({ tiles: tilesNext });
+                  const pack = lookPackFromPreset(preset, character?.id);
+                  saveLookPack(pack);
+                  void sendLookToDay().then(href => {
+                    if (href) {
+                      router.push(href);
+                    }
+                  });
+                }}
+              >
+                {preset.label} → Day
+              </Button>
+            ))}
             <Button
               size="sm"
               variant="secondary"

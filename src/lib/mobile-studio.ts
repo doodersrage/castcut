@@ -1,3 +1,5 @@
+import { newMoodboardTileId } from './moodboard-scene';
+
 export const MOBILE_STUDIO_HOME = '/m' as const;
 export const MAX_CHARACTER_PLATES = 24;
 
@@ -187,6 +189,50 @@ export function roleplayPatchFromPlate(plate: CharacterPlate): {
     referenceImageFilename: queueFilename,
     referenceOriginalUrl: plate.originalUrl,
     referenceOriginalFilename: plate.originalFilename,
+  };
+}
+
+/** Outfit try-on plate fields from a Capture plate. */
+export function fittingPatchFromPlate(plate: CharacterPlate): {
+  isolateSubject?: boolean;
+  referenceIsolated: boolean;
+  referenceImageUrl: string;
+  referenceImageFilename?: string;
+  referenceOriginalUrl: string;
+  referenceOriginalFilename?: string;
+} {
+  const patch = roleplayPatchFromPlate(plate);
+  const { playAs: _playAs, ...fitting } = patch;
+  return fitting;
+}
+
+/** Seed Look with a subject tile from a Capture plate. */
+export function moodboardPatchFromPlate(plate: CharacterPlate): {
+  tiles: Array<{
+    id: string;
+    role: 'other';
+    label: string;
+    notes: string;
+    imageUrl: string;
+    imageFilename?: string;
+  }>;
+} {
+  const isolated = plate.isolated === true;
+  const imageUrl = isolated ? plate.isolatedUrl || plate.originalUrl : plate.originalUrl;
+  const imageFilename = isolated
+    ? plate.isolatedFilename || plate.originalFilename
+    : plate.originalFilename;
+  return {
+    tiles: [
+      {
+        id: newMoodboardTileId(),
+        role: 'other',
+        label: plate.name || 'Plate',
+        notes: 'Captured plate',
+        imageUrl,
+        imageFilename,
+      },
+    ],
   };
 }
 

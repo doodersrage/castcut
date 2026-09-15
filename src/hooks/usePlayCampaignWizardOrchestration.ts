@@ -342,12 +342,12 @@ export function usePlayCampaignWizardOrchestration({
           }
         );
         setStepOverride('moodboard');
-        setStatus(`Created "${saved.name}" — opening Moodboard.`);
+        setStatus(`Created "${saved.name}" — opening Look.`);
         router.push(`/moodboard?character=${encodeURIComponent(saved.id)}`);
         return;
       }
       setStepOverride('character');
-      setStatus(`Created "${saved.name}". Continue to Moodboard when ready.`);
+      setStatus(`Created "${saved.name}". Continue to Look when ready.`);
       router.replace(`/play?character=${encodeURIComponent(saved.id)}`);
     },
     [router, updateShared]
@@ -364,7 +364,7 @@ export function usePlayCampaignWizardOrchestration({
         return;
       }
       saveLookPack(saved.pack);
-      scheduleAfterCommit(() => setStatus(`Loaded "${saved.name}" — continue to Fitting or Day.`));
+      scheduleAfterCommit(() => setStatus(`Loaded "${saved.name}" — continue to Outfit or Day.`));
       router.replace(
         `/play?character=${encodeURIComponent(character.id)}&lookPack=${encodeURIComponent(saved.id)}`
       );

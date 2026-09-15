@@ -35,9 +35,6 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { useEffect, useMemo, useState } from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
 const ACCENT = 'teal' as const;
 const TOOL_ID = 'day' as const;
 
@@ -94,7 +91,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     remixSameLookDay,
   } = vm;
   const [sampleWatch, setSampleWatch] = useState(false);
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
   const [jumpInMode, setJumpInMode] = useState(false);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const slotTotal = slots.length || 4;
@@ -124,26 +120,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!firstCutCelebrate || !character?.id) {
-      return;
-    }
-    let cancelled = false;
-    scheduleAfterCommit(() => {
-      if (cancelled) {
-        return;
-      }
-      setSoftAdvance({
-        href: `/characters/${encodeURIComponent(character.id)}?media=films`,
-        label: 'Watch on Cast',
-        nonce: Date.now(),
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [firstCutCelebrate, character?.id]);
-
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -171,11 +147,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       sidebarTitle={leanChrome ? false : undefined}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.day} />
-      <PlaySoftAdvanceBanner
-        key={softAdvance?.nonce ?? 'idle'}
-        target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
-      />
       {firstCutCelebrate ? (
         <div
           className="rounded-[var(--radius-lg)] border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-4 py-3"
@@ -194,7 +165,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 variant="primary"
                 data-testid="day-first-cut-watch"
                 onClick={() => {
-                  setSoftAdvance(null);
                   void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
                     markOnboardingWatchFirstFilm();
                   });

@@ -39,7 +39,7 @@ export default function MobileStudioOfferBanner() {
     >
       <p className="min-w-0 leading-snug">
         On a phone? <span className="font-medium">Mobile Studio</span> is a first-class film loop —
-        capture plates, rate stills, Board / Fit / Day / Play / Cut — while desk handles heavy
+        capture plates, rate stills, Look / Outfit / Day / Story / Cut — while desk handles heavy
         Generate.
       </p>
       <div className="flex shrink-0 items-center gap-2">

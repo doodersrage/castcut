@@ -207,7 +207,7 @@ export function useDayPlannerToolOrchestrationCore() {
           slots: nextSlots,
           notes: notes || toolSettings.notes,
         });
-        scheduleAfterCommit(() => setFilmStatus('Applied Moodboard look pack to day slots.'));
+        scheduleAfterCommit(() => setFilmStatus('Applied Look pack to day slots.'));
       }
     }
   }, [mounted, toolSettings.notes, toolSettings.slots, updateShared, updateToolSettings]);

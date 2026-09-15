@@ -4,6 +4,8 @@ import {
   isMobileStudioPath,
   mobileStudioTabFromPath,
   normalizeCharacterPlates,
+  fittingPatchFromPlate,
+  moodboardPatchFromPlate,
   roleplayPatchFromPlate,
   toMobileStudioHref,
   upsertCharacterPlate,
@@ -88,5 +90,15 @@ describe('character plates', () => {
     assert.equal(patch.referenceIsolated, false);
     assert.equal(patch.isolateSubject, undefined);
     assert.equal(patch.referenceImageUrl, plate().originalUrl);
+  });
+
+  it('seeds Look and Outfit patches from a Capture plate', () => {
+    const fitting = fittingPatchFromPlate(plate());
+    assert.equal(fitting.referenceImageUrl, '/api/gallery/media/identity?id=cut');
+    assert.equal(fitting.referenceIsolated, true);
+    const look = moodboardPatchFromPlate(plate());
+    assert.equal(look.tiles.length, 1);
+    assert.equal(look.tiles[0]?.imageUrl, '/api/gallery/media/identity?id=cut');
+    assert.equal(look.tiles[0]?.label, 'Sam');
   });
 });
