@@ -1,12 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
@@ -74,12 +71,11 @@ export default function MobileDayToolSections(vm: ViewModel) {
     remixSameLookDay,
     seedDemoStills,
     leanChrome,
+    goRoleplay,
   } = vm;
 
   const [sampleWatch, setSampleWatch] = useState(false);
   const [jumpInMode, setJumpInMode] = useState(false);
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
-  const softAdvanceArmedRef = useRef(false);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const wardrobeKitDeck = useMemo(
     () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, activeSlot.wardrobeId),
@@ -91,19 +87,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
   const showCutCoach = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
   const playbookHref =
     filmGuideHref ?? (error ? resolveFilmFailurePlaybook(error).href : undefined);
-
-  useEffect(() => {
-    if (!firstCutCelebrate || !character?.id || filmNeedsCast || softAdvanceArmedRef.current) {
-      return;
-    }
-    softAdvanceArmedRef.current = true;
-    setSoftAdvance({
-      href: toMobileStudioHref(`/characters/${encodeURIComponent(character.id)}?media=films`),
-      label: 'Watch',
-      message: 'Opening Watch on Cast',
-      nonce: Date.now(),
-    });
-  }, [character?.id, filmNeedsCast, firstCutCelebrate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -136,12 +119,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
         </p>
       </div>
 
-      <PlaySoftAdvanceBanner
-        key={softAdvance?.nonce ?? 'idle'}
-        target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
-      />
-
       {firstCutCelebrate ? (
         <div
           className="rounded-2xl border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-4 py-3"
@@ -151,8 +128,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
           <p className="type-heading mt-1 text-[var(--text-primary)]">You cut your first reel</p>
           <p className="type-caption mt-1 text-[var(--text-muted)]">
             {filmNeedsCast
-              ? 'Save the cut to Cast first — then Watch opens automatically.'
-              : 'Watch on Cast opens next — or stay here to replay / share / cut another Day.'}
+              ? 'Save the cut to Cast first — then tap Watch on Cast.'
+              : 'Tap Watch on Cast when you are ready — or stay here to replay / share / cut another Day.'}
           </p>
           <div className="mt-3 grid gap-2">
             {filmNeedsCast ? (
@@ -182,7 +159,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
                 )}
                 className="ui-btn-primary w-full justify-center text-center text-sm"
                 data-testid="day-first-cut-watch"
-                onClick={() => setSoftAdvance(null)}
               >
                 Watch on Cast
               </Link>
@@ -206,13 +182,14 @@ export default function MobileDayToolSections(vm: ViewModel) {
               </Button>
             ) : null}
             {character ? (
-              <Link
-                href={`/m/play?character=${encodeURIComponent(character.id)}`}
-                className="ui-btn-ghost w-full justify-center text-center text-sm"
+              <Button
+                variant="ghost"
+                className="w-full justify-center"
                 data-testid="day-first-cut-story"
+                onClick={goRoleplay}
               >
                 Optional: Story
-              </Link>
+              </Button>
             ) : null}
           </div>
         </div>
@@ -595,18 +572,28 @@ export default function MobileDayToolSections(vm: ViewModel) {
             Sample reel — use demo stills or queue when Comfy is ready.
           </p>
         ) : null}
+        {firstCutCelebrate ? (
+          <p
+            className="type-caption text-[var(--text-muted)]"
+            data-testid="day-reel-celebrate-hint"
+          >
+            Use Save / Watch above when you are ready — the reel stays here to replay.
+          </p>
+        ) : null}
         {!firstCutCelebrate ? (
           <div className="grid gap-2">
-            <PrimaryButton
-              disabled={busy || assemblingFilm || completedShotCount === 0}
-              loading={assemblingFilm}
-              loadingLabel="Cutting film"
-              onClick={() => void cutDayFilm()}
-              className="w-full justify-center"
-              data-testid="mobile-day-cut"
-            >
-              Cut film
-            </PrimaryButton>
+            {!showCutCoach ? (
+              <PrimaryButton
+                disabled={busy || assemblingFilm || completedShotCount === 0}
+                loading={assemblingFilm}
+                loadingLabel="Cutting film"
+                onClick={() => void cutDayFilm()}
+                className="w-full justify-center"
+                data-testid="mobile-day-cut"
+              >
+                Cut film
+              </PrimaryButton>
+            ) : null}
             <Button
               variant="ghost"
               className="w-full justify-center"

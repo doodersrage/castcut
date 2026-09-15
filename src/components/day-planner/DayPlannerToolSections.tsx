@@ -37,13 +37,10 @@ import { fittingSwipeNeighbor } from '@/lib/fitting-room';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import DayPlateSection from '@/components/day-planner/DayPlateSection';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
 const ACCENT = 'teal' as const;
 const TOOL_ID = 'day' as const;
 
@@ -101,8 +98,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   } = vm;
   const [sampleWatch, setSampleWatch] = useState(false);
   const [jumpInMode, setJumpInMode] = useState(false);
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
-  const softAdvanceArmedRef = useRef(false);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const wardrobeKitDeck = useMemo(
     () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, activeSlot.wardrobeId),
@@ -112,19 +107,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const collapseEditors =
     leanChrome && (jumpInMode || busy || assemblingFilm || completedShotCount > 0);
   const showCutCoach = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
-
-  useEffect(() => {
-    if (!firstCutCelebrate || !character?.id || filmNeedsCast || softAdvanceArmedRef.current) {
-      return;
-    }
-    softAdvanceArmedRef.current = true;
-    setSoftAdvance({
-      href: `/characters/${encodeURIComponent(character.id)}?media=films`,
-      label: 'Watch',
-      message: 'Opening Watch on Cast',
-      nonce: Date.now(),
-    });
-  }, [character?.id, filmNeedsCast, firstCutCelebrate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -176,11 +158,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       sidebarTitle={leanChrome ? false : undefined}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.day} />
-      <PlaySoftAdvanceBanner
-        key={softAdvance?.nonce ?? 'idle'}
-        target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
-      />
       {firstCutCelebrate ? (
         <div
           className="rounded-[var(--radius-lg)] border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-4 py-3"
@@ -190,8 +167,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           <p className="type-heading mt-1 text-[var(--text-primary)]">You cut your first reel</p>
           <p className="type-caption mt-1 text-[var(--text-muted)]">
             {filmNeedsCast
-              ? 'Save the cut to Cast first — then Watch opens automatically.'
-              : 'Watch on Cast opens next — or stay here to replay / share / cut another Day.'}
+              ? 'Save the cut to Cast first — then tap Watch on Cast.'
+              : 'Tap Watch on Cast when you are ready — or stay here to replay / share / cut another Day.'}
           </p>
           <ToolActionRow className="mt-3">
             {filmNeedsCast ? (
@@ -221,7 +198,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 size="sm"
                 variant="primary"
                 data-testid="day-first-cut-watch"
-                onClick={() => setSoftAdvance(null)}
               >
                 Watch on Cast
               </ButtonLink>
@@ -245,14 +221,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               </Button>
             ) : null}
             {character ? (
-              <ButtonLink
-                href={`/roleplay?character=${encodeURIComponent(character.id)}`}
+              <Button
                 size="sm"
                 variant="ghost"
                 data-testid="day-first-cut-story"
+                onClick={goRoleplay}
               >
                 Optional: Story
-              </ButtonLink>
+              </Button>
             ) : null}
           </ToolActionRow>
         </div>
@@ -669,9 +645,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             className="type-caption text-[var(--text-muted)]"
             data-testid="day-reel-celebrate-hint"
           >
-            {softAdvance
-              ? 'Cancel the countdown above to stay and replay this reel.'
-              : 'Use Save / Watch above — the reel stays here to replay.'}
+            Use Save / Watch above when you are ready — the reel stays here to replay.
           </p>
         ) : (
           <ToolActionRow>

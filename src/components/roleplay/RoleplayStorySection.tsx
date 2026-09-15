@@ -95,8 +95,8 @@ export default function RoleplayStorySection({
           <p className="type-heading mt-1 text-[var(--text-primary)]">You cut your first reel</p>
           <p className="type-caption mt-1 text-[var(--text-muted)]">
             {filmNeedsCast
-              ? 'Save the cut to Cast first — then Watch opens automatically.'
-              : 'Watch on Cast opens next — or share / cut another Story reel.'}
+              ? 'Save the cut to Cast first — then tap Watch on Cast.'
+              : 'Tap Watch on Cast when you are ready — or share / cut another Story reel.'}
           </p>
           <ToolActionRow className="mt-3">
             {filmNeedsCast && onSaveToCast ? (

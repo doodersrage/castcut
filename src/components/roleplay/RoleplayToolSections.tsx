@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 
 import SharedToolControls from '@/components/SharedToolControls';
@@ -9,9 +8,6 @@ import RoleplayBeatOutputSection from '@/components/roleplay/RoleplayBeatOutputS
 import RoleplayBioSection from '@/components/roleplay/RoleplayBioSection';
 import RoleplayCastSection from '@/components/roleplay/RoleplayCastSection';
 import RoleplayStorySection from '@/components/roleplay/RoleplayStorySection';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import type { useRoleplayToolOrchestration } from '@/hooks/useRoleplayToolOrchestration';
 import { Button } from '@/components/ui/Button';
@@ -61,27 +57,6 @@ export default function RoleplayToolSections({
 }: RoleplayToolSectionsProps) {
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
-  const softAdvanceArmedRef = useRef(false);
-
-  useEffect(() => {
-    const characterId = film.filmCharacterId?.trim();
-    if (
-      !film.firstCutCelebrate ||
-      !characterId ||
-      film.filmNeedsCast ||
-      softAdvanceArmedRef.current
-    ) {
-      return;
-    }
-    softAdvanceArmedRef.current = true;
-    setSoftAdvance({
-      href: `/characters/${encodeURIComponent(characterId)}?media=films`,
-      label: 'Watch',
-      message: 'Opening Watch on Cast',
-      nonce: Date.now(),
-    });
-  }, [film.filmCharacterId, film.filmNeedsCast, film.firstCutCelebrate]);
 
   const engineControls = (
     <SharedToolControls
@@ -111,11 +86,6 @@ export default function RoleplayToolSections({
       sidebarTitle={leanChrome ? false : undefined}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.roleplay} />
-      <PlaySoftAdvanceBanner
-        key={softAdvance?.nonce ?? 'idle'}
-        target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
-      />
 
       <RoleplayCastSection
         busy={busy}
@@ -204,7 +174,6 @@ export default function RoleplayToolSections({
         filmGuideHref={film.filmGuideHref}
         firstCutCelebrate={film.firstCutCelebrate}
         onClearFirstCutCelebrate={() => {
-          setSoftAdvance(null);
           film.clearFirstCutCelebrate();
         }}
         downloadAction={

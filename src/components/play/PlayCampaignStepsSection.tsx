@@ -1,6 +1,6 @@
 'use client';
 
-import { PLAY_CAMPAIGN_STEPS, PLAY_CORE_STEP_IDS } from '@/lib/play-campaign';
+import { PLAY_CAMPAIGN_STEPS } from '@/lib/play-campaign';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
@@ -33,6 +33,8 @@ export default function PlayCampaignStepsSection({
         {steps.map((step, index) => {
           const isActive = step.id === activeStep;
           const isOptional = step.id === 'roleplay';
+          const storyLocked = isOptional && !firstFilmDone;
+          const openDisabled = (!characterId && step.id !== 'character') || storyLocked;
           return (
             <li
               key={step.id}
@@ -52,17 +54,25 @@ export default function PlayCampaignStepsSection({
                     {step.label}
                     {isOptional ? (
                       <span className="type-caption ml-2 font-normal text-[var(--text-muted)]">
-                        after first film
+                        {firstFilmDone ? 'unlocked' : 'after first film'}
                       </span>
                     ) : null}
                   </p>
-                  <p className="type-caption text-[var(--text-muted)]">{step.description}</p>
+                  <p className="type-caption text-[var(--text-muted)]">
+                    {storyLocked
+                      ? 'Cut your first Day film first — Story stays optional after that.'
+                      : step.description}
+                  </p>
                 </div>
                 <Button
                   size="sm"
                   variant={isActive ? 'primary' : 'secondary'}
-                  disabled={!characterId && step.id !== 'character'}
+                  disabled={openDisabled}
+                  data-testid={storyLocked ? 'play-campaign-step-roleplay-locked' : undefined}
                   onClick={() => {
+                    if (openDisabled) {
+                      return;
+                    }
                     setStepOverride(step.id);
                     if (step.id === 'character' && characterId) {
                       router.push(`/characters/${encodeURIComponent(characterId)}`);
@@ -71,7 +81,7 @@ export default function PlayCampaignStepsSection({
                     goToStep(step.id, activeLookPack);
                   }}
                 >
-                  {isActive ? 'Continue' : 'Open'}
+                  {storyLocked ? 'Locked' : isActive ? 'Continue' : 'Open'}
                 </Button>
               </div>
             </li>

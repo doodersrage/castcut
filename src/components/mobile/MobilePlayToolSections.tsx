@@ -1,13 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import RoleplayLibraryPanel from '@/components/RoleplayLibraryPanel';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
 import type { useMobilePlayToolOrchestration } from '@/hooks/useMobilePlayToolOrchestration';
@@ -80,22 +76,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
     setActivePlate,
   } = vm;
 
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
-  const softAdvanceArmedRef = useRef(false);
   const castId = filmCharacterId?.trim() || '';
-
-  useEffect(() => {
-    if (!firstCutCelebrate || !castId || filmNeedsCast || softAdvanceArmedRef.current) {
-      return;
-    }
-    softAdvanceArmedRef.current = true;
-    setSoftAdvance({
-      href: toMobileStudioHref(`/characters/${encodeURIComponent(castId)}?media=films`),
-      label: 'Watch',
-      message: 'Opening Watch on Cast',
-      nonce: Date.now(),
-    });
-  }, [castId, filmNeedsCast, firstCutCelebrate]);
 
   return (
     <div className="space-y-4" data-testid="mobile-play">
@@ -105,12 +86,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
           Optional beats after Day — stills and clips, then Cut film.
         </p>
       </div>
-
-      <PlaySoftAdvanceBanner
-        key={softAdvance?.nonce ?? 'idle'}
-        target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
-      />
 
       {plateUrl ? (
         <div className="flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-2">
@@ -331,8 +306,8 @@ export default function MobilePlayToolSections({ description: _description, ...v
             <p className="type-heading mt-1 text-[var(--text-primary)]">You cut your first reel</p>
             <p className="type-caption mt-1 text-[var(--text-muted)]">
               {filmNeedsCast
-                ? 'Save the cut to Cast first — then Watch opens automatically.'
-                : 'Watch on Cast opens next — or share / cut another Story reel.'}
+                ? 'Save the cut to Cast first — then tap Watch on Cast.'
+                : 'Tap Watch on Cast when you are ready — or share / cut another Story reel.'}
             </p>
             <div className="mt-3 grid gap-2">
               {filmNeedsCast ? (
@@ -354,7 +329,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
                   className="ui-btn-primary w-full justify-center text-center text-sm"
                   data-testid="story-first-cut-watch"
                   onClick={() => {
-                    setSoftAdvance(null);
                     clearFirstCutCelebrate();
                   }}
                 >
@@ -375,7 +349,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
                   className="ui-btn-secondary w-full justify-center text-center text-sm"
                   data-testid="story-first-cut-remix"
                   onClick={() => {
-                    setSoftAdvance(null);
                     clearFirstCutCelebrate();
                   }}
                 >

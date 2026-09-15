@@ -52,6 +52,13 @@ describe('play-metrics', () => {
   });
 
   it('pushes Cast watch then another Day cut after campaign complete', () => {
+    const save = resolveNextPlayAction({
+      funnel: { firstFilmCut: 1, saveToCast: 0 },
+      campaign: { characterId: 'c1', stepIndex: 4, completedAt: Date.now() },
+    });
+    assert.equal(save.label, 'Save film to Cast');
+    assert.equal(save.href, '/day?character=c1');
+
     const watch = resolveNextPlayAction({
       funnel: { firstFilmCut: 1, saveToCast: 1 },
       campaign: { characterId: 'c1', stepIndex: 4, completedAt: Date.now() },

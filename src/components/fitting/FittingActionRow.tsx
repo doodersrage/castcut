@@ -1,9 +1,15 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import type { CharacterRecord } from '@/lib/character-os';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
+import {
+  hasCompletedFirstFilm,
+  loadPlayMetrics,
+  PLAY_METRICS_UPDATED_EVENT,
+} from '@/lib/play-metrics';
 
 export type FittingActionRowProps = {
   continueDayHref: string | null;
@@ -23,6 +29,18 @@ export type FittingActionRowProps = {
   onGoRoleplay: () => void;
 };
 
+function subscribePlayMetrics(onStoreChange: () => void) {
+  if (typeof window === 'undefined') {
+    return () => undefined;
+  }
+  window.addEventListener(PLAY_METRICS_UPDATED_EVENT, onStoreChange);
+  window.addEventListener('storage', onStoreChange);
+  return () => {
+    window.removeEventListener(PLAY_METRICS_UPDATED_EVENT, onStoreChange);
+    window.removeEventListener('storage', onStoreChange);
+  };
+}
+
 export default function FittingActionRow({
   continueDayHref,
   dayPlannerHref,
@@ -38,6 +56,11 @@ export default function FittingActionRow({
   onSaveKitToCast,
   onGoRoleplay,
 }: FittingActionRowProps) {
+  const firstFilmDone = useSyncExternalStore(
+    subscribePlayMetrics,
+    () => hasCompletedFirstFilm(loadPlayMetrics()),
+    () => false
+  );
   const demoteQueue = compareActive || softAdvanceActive || Boolean(continueDayHref);
   return (
     <ToolActionRow>
@@ -94,9 +117,27 @@ export default function FittingActionRow({
           <Button size="sm" variant="ghost" disabled={busy} onClick={onSaveKitToCast}>
             Save kit to Cast
           </Button>
-          <Button size="sm" variant="ghost" disabled={busy} onClick={onGoRoleplay}>
-            Continue in Story
-          </Button>
+          {firstFilmDone ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={onGoRoleplay}
+              data-testid="fitting-continue-story"
+            >
+              Continue in Story
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled
+              data-testid="fitting-continue-story-locked"
+              title="Cut your first Day film first"
+            >
+              Story · after first film
+            </Button>
+          )}
           {character ? (
             <>
               {!continueDayHref ? (

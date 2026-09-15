@@ -26,7 +26,7 @@ export default function DayPlateSection({
   });
   const sourceLabel =
     plate?.source === 'keeper'
-      ? 'Outfit Keep as Image 1 (kit lock). Packshot may reinforce as Image 2. Qwen 2511 still tends to hold Keep pose.'
+      ? 'Kept from Outfit — locks the worn kit for Day stills. Pose may still drift on some models.'
       : plate
         ? 'Cast look plate — identity for Day stills'
         : null;
@@ -34,7 +34,7 @@ export default function DayPlateSection({
   return (
     <ToolSection
       title="Plate"
-      description="Identity still for Day queues. Keep in Outfit to lock the worn kit here."
+      description="Identity still for Day queues. Keep a try-on in Outfit to lock the worn kit here."
       data-testid="day-plate"
     >
       {previewUrl ? (

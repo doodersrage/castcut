@@ -216,8 +216,8 @@ export function resolveNextPlayAction(input: {
   if (campaign?.completedAt && cuts > 0 && saves === 0 && characterId) {
     return {
       label: 'Save film to Cast',
-      href: `/characters/${encodeURIComponent(characterId)}?media=films`,
-      reason: 'Film cut — stamp a Cast copy to close the loop.',
+      href: `/day?character=${encodeURIComponent(characterId)}`,
+      reason: 'Open Day and Save film to Cast to stamp a studio copy.',
     };
   }
 

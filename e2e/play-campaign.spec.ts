@@ -38,6 +38,7 @@ test('play campaign wizard loads with steps and share controls', async ({ page }
   await expect(page.getByTestId('play-campaign-step-fitting')).toBeVisible();
   await expect(page.getByTestId('play-campaign-step-day')).toBeVisible();
   await expect(page.getByTestId('play-campaign-step-roleplay')).toBeVisible();
+  await expect(page.getByTestId('play-campaign-step-roleplay-locked')).toBeVisible();
   await expect(page.getByTestId('play-campaign-start-moodboard')).toBeVisible();
 });
 
