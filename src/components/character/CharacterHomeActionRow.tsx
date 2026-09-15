@@ -38,14 +38,14 @@ export default function CharacterHomeActionRow({
         Outfit
       </Button>
       <Button size="sm" variant="secondary" onClick={() => go(`/day?character=${character.id}`)}>
-        Plan a day
+        Open Day
       </Button>
       <Button
         size="sm"
         variant="secondary"
         onClick={() => go(`/moodboard?character=${character.id}`)}
       >
-        Set look
+        Open Look
       </Button>
       <Button size="sm" variant="secondary" onClick={() => go('/video')}>
         Video

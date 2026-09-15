@@ -657,7 +657,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   });
                 }}
               >
-                Watch / Save on Cast
+                Watch on Cast
               </ButtonLink>
             ) : null}
             {character && completedShotCount > 0 ? (

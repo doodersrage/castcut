@@ -134,7 +134,7 @@ export default function CharacterFilmStudio({
               size="sm"
               variant="secondary"
             >
-              Plan a day
+              Open Day
             </ButtonLink>
             <ButtonLink
               href={`/roleplay?character=${encodeURIComponent(characterId)}`}

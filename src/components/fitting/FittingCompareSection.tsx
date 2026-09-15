@@ -1,14 +1,12 @@
 'use client';
 
-import { Button, ButtonLink } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
 import type { FittingCompareTryOn } from '@/lib/fitting-room';
 
 export type FittingCompareSectionProps = {
   compareTryOns: FittingCompareTryOn[];
-  leanChrome: boolean;
   busy: boolean;
-  continueDayHref: string | null;
   onKeepTryOn: (tryOn: FittingCompareTryOn) => string | null;
   onSoftAdvance?: (href: string) => void;
   onSkipKit: () => void;
@@ -16,9 +14,7 @@ export type FittingCompareSectionProps = {
 
 export default function FittingCompareSection({
   compareTryOns,
-  leanChrome,
   busy,
-  continueDayHref,
   onKeepTryOn,
   onSoftAdvance,
   onSkipKit,
@@ -35,9 +31,8 @@ export default function FittingCompareSection({
     >
       <CollapsibleSection
         title="Recent try-ons"
-        summary="Side-by-side Keep / Skip for the last completed kits."
-        defaultOpen={!leanChrome}
-        persistKey="fitting-compare"
+        summary="Keep a winner — Day continues after Keep."
+        defaultOpen
       >
         <div className="flex gap-3 overflow-x-auto pb-1">
           {compareTryOns.map(tryOn => (
@@ -78,13 +73,6 @@ export default function FittingCompareSection({
             </figure>
           ))}
         </div>
-        {continueDayHref ? (
-          <div className="mt-3">
-            <ButtonLink href={continueDayHref} size="sm" variant="ghost">
-              Continue in Day
-            </ButtonLink>
-          </div>
-        ) : null}
       </CollapsibleSection>
     </ToolSection>
   );

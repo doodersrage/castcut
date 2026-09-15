@@ -207,7 +207,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onCancel={() => setSoftAdvance(null)}
       />
 
-      {compareTryOns.length > 0 && !softAdvance ? (
+      {compareTryOns.length > 0 && !softAdvance && !continueDayHref ? (
         <div
           className="rounded-[var(--radius-md)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-3 py-2"
           data-testid="fitting-keep-coach"
@@ -285,9 +285,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
 
       <FittingCompareSection
         compareTryOns={compareTryOns}
-        leanChrome={leanChrome}
         busy={busy}
-        continueDayHref={softAdvance ? null : continueDayHref}
         onKeepTryOn={keepTryOn}
         onSoftAdvance={href => setSoftAdvance({ href, label: 'Day', nonce: Date.now() })}
         onSkipKit={skipKit}

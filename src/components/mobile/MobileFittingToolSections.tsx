@@ -88,7 +88,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         onCancel={() => setSoftAdvance(null)}
       />
 
-      {compareTryOns.length > 0 && !softAdvance ? (
+      {compareTryOns.length > 0 && !softAdvance && !continueDayHref ? (
         <div
           className="rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-muted)] px-3 py-2"
           data-testid="mobile-fitting-keep-coach"
@@ -395,7 +395,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
             className="ui-btn-ghost w-full justify-center text-center text-sm"
             data-testid="fitting-plan-day"
           >
-            Plan a day
+            Open Day
           </Link>
         ) : null}
       </div>

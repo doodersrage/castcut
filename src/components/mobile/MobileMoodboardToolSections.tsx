@@ -131,7 +131,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
           }}
         />
         <p className="type-caption mt-2 text-[var(--text-muted)]">
-          {hasPlate ? 'Cast plate ready for Fitting.' : 'No Cast plate yet — stills still work.'}
+          {hasPlate ? 'Cast plate ready for Outfit.' : 'No Cast plate yet — stills still work.'}
         </p>
       </div>
 
@@ -247,7 +247,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={activeTile.imageUrl}
-              alt={activeTile.label || 'Moodboard reference'}
+              alt={activeTile.label || 'Look reference'}
               className="max-h-44 w-full rounded-xl border border-[var(--border-subtle)] object-contain"
             />
           ) : null}
@@ -295,20 +295,29 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         <Button
           variant="secondary"
           disabled={busy || extracting}
-          onClick={() => void handoff('fitting')}
+          onClick={() => {
+            void extractLookPack().then(pack => {
+              if (!pack) {
+                return;
+              }
+              markOnboardingFirstPlayCampaign();
+              if (pack.characterId) {
+                bumpPlayCampaignStep({
+                  characterId: pack.characterId,
+                  stepId: 'fitting',
+                });
+              }
+              setSoftAdvance({
+                href: toMobileStudioHref(lookPackFittingHref(pack)),
+                label: 'Outfit',
+                nonce: Date.now(),
+              });
+            });
+          }}
           className="w-full justify-center"
           data-testid="mobile-moodboard-to-fitting"
         >
-          Use in Outfit
-        </Button>
-        <Button
-          variant="secondary"
-          disabled={busy || extracting}
-          onClick={() => void handoff('day')}
-          className="w-full justify-center"
-          data-testid="mobile-moodboard-to-day"
-        >
-          Use in Day
+          Continue to Outfit
         </Button>
         <Button
           variant="ghost"
@@ -318,22 +327,56 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         >
           {busy ? 'Queueing…' : 'Queue scene still'}
         </Button>
-        <Button
-          variant="ghost"
-          disabled={busy || extracting || !character}
-          onClick={() => void saveLookPackToCast()}
-          className="w-full justify-center"
-        >
-          Save on Cast
-        </Button>
-        <Button
-          variant="ghost"
-          disabled={busy || extracting}
-          onClick={() => void handoff('play')}
-          className="w-full justify-center"
-        >
-          Continue in Story
-        </Button>
+        <details className="rounded-xl border border-[var(--border-subtle)] px-3 py-2">
+          <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+            More · Day skip, Story, save
+          </summary>
+          <div className="mt-2 grid gap-2">
+            {LOOK_PRESETS.map(preset => (
+              <Button
+                key={`day-${preset.id}`}
+                variant="ghost"
+                disabled={busy || extracting}
+                data-testid={`moodboard-preset-day-${preset.id}`}
+                onClick={() => {
+                  const tilesNext = tilesFromLookPreset(preset);
+                  updateToolSettings({ tiles: tilesNext });
+                  const pack = lookPackFromPreset(preset, character?.id);
+                  saveLookPack(pack);
+                  void handoff('day');
+                }}
+                className="w-full justify-center"
+              >
+                {preset.label} → Day
+              </Button>
+            ))}
+            <Button
+              variant="secondary"
+              disabled={busy || extracting}
+              onClick={() => void handoff('day')}
+              className="w-full justify-center"
+              data-testid="mobile-moodboard-to-day"
+            >
+              Continue to Day
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={busy || extracting || !character}
+              onClick={() => void saveLookPackToCast()}
+              className="w-full justify-center"
+            >
+              Save on Cast
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={busy || extracting}
+              onClick={() => void handoff('play')}
+              className="w-full justify-center"
+            >
+              Continue in Story
+            </Button>
+          </div>
+        </details>
       </div>
 
       {lookStatus ? (

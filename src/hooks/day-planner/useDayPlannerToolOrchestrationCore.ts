@@ -140,7 +140,7 @@ export function useDayPlannerToolOrchestrationCore() {
 
   useSeedToolDraft(mounted, {
     toolKey: TOOL_ID,
-    label: 'Day Planner',
+    label: 'Day',
     href: '/day',
     fields: [character?.name, activeSlot.sceneHints, toolSettings.notes],
   });
@@ -341,7 +341,7 @@ export function useDayPlannerToolOrchestrationCore() {
         setOutput(finalized);
         rememberDraftFields({
           toolKey: TOOL_ID,
-          label: 'Day Planner',
+          label: 'Day',
           href: '/day',
           fields: [character?.name ?? '', slot.label, finalized],
         });

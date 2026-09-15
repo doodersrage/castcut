@@ -527,7 +527,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
                     );
                   }}
                 >
-                  Watch / Save on Cast
+                  Watch on Cast
                 </Link>
               </>
             ) : null}

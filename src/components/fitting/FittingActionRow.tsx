@@ -102,7 +102,7 @@ export default function FittingActionRow({
                     bumpPlayCampaignStep({ characterId: character.id, stepId: 'day' });
                   }}
                 >
-                  Plan a day
+                  Open Day
                 </ButtonLink>
               ) : null}
               <ButtonLink

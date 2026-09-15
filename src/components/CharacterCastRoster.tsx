@@ -163,7 +163,7 @@ export default function CharacterCastRoster() {
                       variant="secondary"
                       onClick={() => applyAndPlanDay(character.id)}
                     >
-                      Plan a day
+                      Open Day
                     </Button>
                     <ButtonLink href="/character" size="sm" variant="secondary">
                       Generate

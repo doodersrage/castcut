@@ -121,7 +121,6 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
     sendLookToDay,
     sendLookToRoleplay,
     saveLookPackToCast,
-    goRoleplay,
   } = vm;
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
@@ -473,11 +472,11 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               disabled={busy || extracting}
               onClick={() => void sendLookToRoleplay()}
             >
-              Use in Story
+              Continue in Story
             </Button>
             <Button
               size="sm"
-              variant="secondary"
+              variant="ghost"
               disabled={busy || extracting || !character}
               onClick={() => void saveLookPackToCast()}
             >
@@ -503,34 +502,10 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               Export JSON
             </Button>
             {character ? (
-              <>
-                <ButtonLink href={playCampaignHref(character.id)} size="sm" variant="ghost">
-                  Open Film
-                </ButtonLink>
-                <ButtonLink
-                  href={`/day?character=${encodeURIComponent(character.id)}`}
-                  size="sm"
-                  variant="ghost"
-                >
-                  Plan a day
-                </ButtonLink>
-                <ButtonLink
-                  href={`/fitting?character=${encodeURIComponent(character.id)}`}
-                  size="sm"
-                  variant="ghost"
-                >
-                  Try on Outfit
-                </ButtonLink>
-              </>
+              <ButtonLink href={playCampaignHref(character.id)} size="sm" variant="ghost">
+                Open Film
+              </ButtonLink>
             ) : null}
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={busy || extracting}
-              onClick={goRoleplay}
-            >
-              Continue in Story
-            </Button>
           </div>
         </details>
       </ToolActionRow>

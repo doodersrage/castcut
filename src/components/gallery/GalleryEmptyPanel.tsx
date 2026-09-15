@@ -28,6 +28,8 @@ export default function GalleryEmptyPanel({
   const castId = characterId?.trim() || '';
 
   if (filmFilter) {
+    const primaryHref = castId ? remixDayFilmHref(castId) : '/day';
+    const primaryLabel = castId ? 'Same look, new Day' : 'Open Day';
     return (
       <div className="space-y-3" data-testid="gallery-film-empty">
         <EmptyState
@@ -39,30 +41,19 @@ export default function GalleryEmptyPanel({
               : 'Cut a Day film, then open Cast or Gallery to watch it.'
           }
           action={{
-            label: 'Clear film filter',
-            onClick: onClearFilters,
+            label: primaryLabel,
+            href: primaryHref,
           }}
         />
         <div className="flex flex-wrap gap-2">
-          {castId ? (
-            <ButtonLink
-              href={remixDayFilmHref(castId)}
-              size="sm"
-              variant="primary"
-              data-testid="gallery-film-empty-remix"
-            >
-              Same look, new Day
-            </ButtonLink>
-          ) : (
-            <ButtonLink
-              href="/day"
-              size="sm"
-              variant="primary"
-              data-testid="gallery-film-empty-day"
-            >
-              Open Day
-            </ButtonLink>
-          )}
+          <button
+            type="button"
+            className="ui-btn-ghost ui-btn-sm"
+            onClick={onClearFilters}
+            data-testid="gallery-film-empty-clear"
+          >
+            Clear film filter
+          </button>
           <PlayContinueChip variant="secondary" />
         </div>
       </div>
