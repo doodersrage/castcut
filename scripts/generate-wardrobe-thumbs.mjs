@@ -9,12 +9,14 @@
  *   node --import tsx scripts/generate-wardrobe-thumbs.mjs
  *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --missing
  *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --add 100
- *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --add 100 --dry-run
+ *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --add all
+ *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --comfy --all-missing
  *   node --import tsx scripts/generate-wardrobe-thumbs.mjs --list
  *
  * Notes:
  *   --missing only fills gaps inside the curated --count window (default 200).
- *   Once that set is complete, use --add N to generate N more outfits not yet packed.
+ *   --add N packs N more Full outfits not yet on disk.
+ *   --add all / --all-missing packs every Full outfit still missing a Comfy WebP.
  */
 
 import fs from 'node:fs';
@@ -64,20 +66,33 @@ function parseArgs(argv) {
       args.comfy = true;
     } else if (arg === '--missing') {
       args.missing = true;
+    } else if (arg === '--all-missing') {
+      args.add = Number.POSITIVE_INFINITY;
     } else if (arg === '--add') {
-      const next = Number(argv[index + 1]);
-      if (Number.isFinite(next) && next > 0) {
-        args.add = Math.floor(next);
+      const raw = String(argv[index + 1] ?? '').trim().toLowerCase();
+      if (raw === 'all' || raw === '*') {
+        args.add = Number.POSITIVE_INFINITY;
         index += 1;
       } else {
-        args.add = DEFAULT_ADD;
+        const next = Number(argv[index + 1]);
+        if (Number.isFinite(next) && next > 0) {
+          args.add = Math.floor(next);
+          index += 1;
+        } else {
+          args.add = DEFAULT_ADD;
+        }
       }
     } else if (arg?.startsWith('--add=')) {
-      const next = Number(arg.slice('--add='.length));
-      if (Number.isFinite(next) && next > 0) {
-        args.add = Math.floor(next);
+      const raw = arg.slice('--add='.length).trim().toLowerCase();
+      if (raw === 'all' || raw === '*') {
+        args.add = Number.POSITIVE_INFINITY;
       } else {
-        args.add = DEFAULT_ADD;
+        const next = Number(raw);
+        if (Number.isFinite(next) && next > 0) {
+          args.add = Math.floor(next);
+        } else {
+          args.add = DEFAULT_ADD;
+        }
       }
     } else if (arg === '--id') {
       const id = String(argv[index + 1] || '').trim();
@@ -529,7 +544,7 @@ function needsComfy(entry, existing) {
   return true;
 }
 
-/** Next N Full-outfits that do not already have a Comfy WebP on disk. */
+/** Next N Full-outfits that do not already have a Comfy WebP on disk (`Infinity` = all). */
 function selectAdditionalOutfits(entries, existing, addCount) {
   const outfits = entries
     .filter(entry => entry.category === 'outfit' && entry.id?.trim())
@@ -540,7 +555,11 @@ function selectAdditionalOutfits(entries, existing, addCount) {
       script: entry.script?.trim() || '',
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
-  return outfits.filter(entry => needsComfy(entry, existing)).slice(0, Math.max(0, addCount));
+  const missing = outfits.filter(entry => needsComfy(entry, existing));
+  if (!Number.isFinite(addCount) || addCount === Number.POSITIVE_INFINITY) {
+    return missing;
+  }
+  return missing.slice(0, Math.max(0, addCount));
 }
 
 function countPackedComfy(existing) {
@@ -564,7 +583,7 @@ async function generateWithComfy(args, curated, allEntries) {
 
   if (args.add != null) {
     targets = selectAdditionalOutfits(allEntries, existing, args.add);
-    mode = `add ${args.add}`;
+    mode = Number.isFinite(args.add) ? `add ${args.add}` : 'all missing';
   } else if (args.missing) {
     targets = curated.filter(entry => needsComfy(entry, existing));
     mode = 'missing curated';
@@ -584,10 +603,10 @@ async function generateWithComfy(args, curated, allEntries) {
       console.log('Nothing left to add — every Full outfit already has a Comfy WebP.');
     } else if (args.missing) {
       console.log(
-        `Curated set is complete (${curated.length}). Generate more with:\n  npm run wardrobe:thumbs:comfy -- --add 100`
+        `Curated set is complete (${curated.length}). Generate more with:\n  npm run wardrobe:thumbs:comfy -- --add 100\n  npm run wardrobe:thumbs:comfy:all`
       );
     } else {
-      console.log('No kits selected. Pass --add 100 or --missing.');
+      console.log('No kits selected. Pass --add 100, --add all, or --missing.');
     }
     return;
   }
