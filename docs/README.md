@@ -2,7 +2,7 @@
   <p class="ps-hero__eyebrow">Castcut · local AI image &amp; video</p>
   <h1 class="ps-hero__title">Create characters, stills, and short films</h1>
   <p class="ps-hero__lead">
-    Play campaign loop — Cast → Moodboard → Fitting → Day → Cut film — with Heal &amp; ready
+    Play campaign loop — Cast → Look → Outfit → Day → Cut film — with Heal &amp; ready
     for ComfyUI and Mobile Studio on your phone.
   </p>
   <div class="ps-hero__actions">
@@ -33,7 +33,7 @@
 
     ---
 
-    Moodboard → Fitting → Day → Cut → Cast with stall metrics on the Dashboard.
+    Look → Outfit → Day → Cut → Cast with stall metrics on the Dashboard.
 
     [:octicons-arrow-right-24: Play guide](play-guide.md)
 
@@ -117,7 +117,7 @@
 | --- | --- |
 | [Main README (GitHub)](https://github.com/doodersrage/castcut/blob/main/README.md) | What it is, quick start, tools table, supported models |
 | [Operator guide](operator.md) | Heal & ready, [10-minute loop](operator.md#10-minute-loop), second GPU, backup, invite + SMTP |
-| [Play campaign guide](play-guide.md) | Moodboard → Cut → Cast walkthrough, metrics, share/resume |
+| [Play campaign guide](play-guide.md) | Look → Cut → Cast walkthrough, metrics, share/resume |
 | [Configuration & deployment](configuration.md) | `.env.local`, LLM, auth, security, production checklist, Docker |
 | [Desktop app](desktop.md) | Tauri installers (macOS / Windows / Linux) |
 | [ComfyUI custom nodes (GitHub)](https://github.com/doodersrage/castcut/blob/main/comfyui/comfyui_image_prompt_tools/README.md) | Install `PromptTools*` nodes into ComfyUI |

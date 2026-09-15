@@ -967,6 +967,13 @@ test('day cut film shows playbook when film assemble returns ffmpeg 503', async 
   const tinyPng =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
+  // Server POST fails with ffmpeg missing; without MediaRecorder the error surfaces
+  // instead of silently falling back to a browser encode.
+  await page.addInitScript(() => {
+    // @ts-expect-error test shim — force film playbook path
+    delete window.MediaRecorder;
+  });
+
   await page.route('**/api/film/assemble**', async route => {
     const method = route.request().method();
     if (method === 'GET') {

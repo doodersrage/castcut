@@ -80,7 +80,7 @@ Turbopack may warn about dynamic `fs` access in ComfyUI cache routes — expecte
 | Full Prettier pass | &lt; ~2s with warm cache |
 | JS bundle budget | ~150 KB gzip guidance per route chunk (`npm run analyze`); `npm run size` watches aggregate `.next/static/chunks/**/*.js` (gzip, 3 MB ceiling after build) |
 
-Clothing UI labels live in `clothing-catalog-fields.ts` so Fitting/Day (`wardrobe-catalog-ui`) do not pull the multi‑MB catalog batches into the client graph. Full catalog remains server/API via `clothing-catalog.ts` + `/api/catalog`.
+Clothing UI labels live in `clothing-catalog-fields.ts` so Outfit/Day (`wardrobe-catalog-ui`) do not pull the multi‑MB catalog batches into the client graph. Full catalog remains server/API via `clothing-catalog.ts` + `/api/catalog`.
 
 ---
 

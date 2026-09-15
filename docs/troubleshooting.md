@@ -63,8 +63,8 @@ See [configuration — production checklist](configuration.md#production-checkli
 
 | Symptom | Fix |
 | --- | --- |
-| Dashboard stall at **Fitting** | Open Fitting from stall CTA; Keep a try-on plate |
-| Stall at **Cut** | Complete Day stills or Roleplay beats; open Day → **Cut film** |
+| Dashboard stall at **Outfit** | Open Outfit from stall CTA; Keep a try-on plate |
+| Stall at **Cut** | Complete Day stills or Story beats; open Day → **Cut film** |
 | **Cut film** disabled | Need at least one completed still in Day reel playlist |
 | Metrics empty | Start Play campaign (`/play`); metrics update on campaign start / first cut |
 | Resume wrong character | **Switch to resume character** on Play or re-import look pack |

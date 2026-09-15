@@ -1,6 +1,6 @@
 # Castcut
 
-**Local character films with ComfyUI.** Cast → Moodboard → Fitting → Day → **Cut film**.
+**Local character films with ComfyUI.** Cast → Look → Outfit → Day → **Cut film**.
 
 Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo are now [`castcut`](https://github.com/doodersrage/castcut).
 
@@ -15,13 +15,13 @@ Powered by ComfyUI · FLUX · Qwen · WAN · Hunyuan · LTX · and more — mode
 ### From idea to film
 
 1. **Pick or create a character** on Play (Cast)
-2. **Set the look** — Moodboard → Fitting
+2. **Set the look** — Look → Outfit
 3. **Generate the stills** — Day slots (draft-fast on Play)
 4. **Animate** — I2V clips when you want motion
 5. **Cut film** — server ffmpeg or browser fallback
 6. **Save to Cast** — watch, keep, cut another
 
-**Flagship loop:** Cast → Moodboard → Fitting → Day → (optional Roleplay) → Gallery → **Cut film**.
+**Flagship loop:** Cast → Look → Outfit → Day → (optional Story) → Gallery → **Cut film**.
 
 **Play** is the default workspace (**Make**). **Studio** is **Control**. **Full** is **Build**. Specialty tools sit under **Extras**.
 
@@ -57,11 +57,11 @@ reachable LLM. Actually queuing a render needs a real backend — pick up at ste
 2. Use **Heal & ready** on first launch (Welcome dialog or Settings → Overview).
 3. Choose **Character / Scene·Film / Image / Surprise** on first run, or open **Play campaign**.
 
-**10-minute film loop:** Heal & ready → **Play** → create character → Moodboard extract → Fitting Keep → Day stills/clips → **Cut film** → Save to Cast. Walkthrough: [Play guide](docs/play-guide.md) · [Operator guide — 10-minute loop](docs/operator.md#10-minute-loop).
+**10-minute film loop:** Heal & ready → **Play** → create character → Look extract → Outfit Keep → Day stills/clips → **Cut film** → Save to Cast. Walkthrough: [Play guide](docs/play-guide.md) · [Operator guide — 10-minute loop](docs/operator.md#10-minute-loop).
 
 **Still → clip shortcut:** Generate or pick a gallery still → **Video** (I2V) → rate in **Gallery** → **Save to Cast**.
 
-**Phone:** [Mobile Studio](docs/play-guide.md#mobile-vs-desk) at `/m` — capture plates, rate stills, run Board / Fit / Day / Play.
+**Phone:** [Mobile Studio](docs/play-guide.md#mobile-vs-desk) at `/m` — capture plates, rate stills, run Look / Outfit / Day / Story.
 
 **Day-2 ops** (second GPU, move to a new machine, invite users): [Operator guide](docs/operator.md).
 
@@ -71,7 +71,7 @@ See [Configuration & deployment](docs/configuration.md) for auth, production che
 
 | Mode | Framing | Sidebar | Shared controls |
 | --- | --- | --- | --- |
-| **Play** (default) | **Make** | Campaign, Moodboard, Fitting, Day, Roleplay, Gallery, Queue | Lean |
+| **Play** (default) | **Make** | Campaign, Look, Outfit, Day, Story, Gallery, Queue | Lean |
 | **Simple** | **Make** (lean) | Essentials + More tools | Advanced collapsed |
 | **Studio** | **Control** | Edit / Media / Library / Extras | Advanced collapsed |
 | **Full** | **Build** | Same as Studio, groups expanded | Advanced open |
@@ -123,13 +123,13 @@ Audio and 3D live under **Extras** (`/audio`, `/mesh`) — parked specialty tool
 | **Character**       | `/character`       | Solo person, duo/sport, or subject + background compose                                                                                                                                                     |
 | **Pet**             | `/pet`             | Pet-focused prompts with scene pools                                                                                                                                                                        |
 | **Fantasy**         | `/fantasy`         | Fantasy character/scene prompts                                                                                                                                                                             |
-| **Roleplay**        | `/roleplay`        | Cast a character, pick a beat, queue a still or clip. Continue is Fal extend-video when the parent uploads (or is already Fal); otherwise last-frame I2V. Cut encodes a film; Save to Cast reuses that blob |
+| **Story**           | `/roleplay`        | Optional after first Day cut: beats, stills/clips, Cut film, Save to Cast. Continue is Fal extend-video when the parent uploads (or is already Fal); otherwise last-frame I2V |
 | **Topics**          | `/topics`          | Topic lists for batch prompt builds                                                                                                                                                                         |
 | **Background**      | `/background`      | Environment-only prompt with no people                                                                                                                                                                      |
 | **Image → Prompt**  | `/image-prompt`    | Upload an image; vision LLM writes the prompt                                                                                                                                                               |
 | **Inpaint**         | `/inpaint`         | Mask a region and queue FLUX/Qwen inpaint with `{{INPUT_IMAGE}}` / `{{MASK_IMAGE}}`                                                                                                                         |
 | **Outpaint**        | `/outpaint`        | Expand canvas borders (pad + mask) and queue through the inpaint path with Final quality recipes                                                                                                            |
-| **Mobile Studio**   | `/m`               | Phone companion: capture a character plate (isolate on white), watch the queue, rate gallery stills, Play Roleplay from photo (stills)                                                                      |
+| **Mobile Studio**   | `/m`               | Phone companion: capture a character plate (isolate on white), watch the queue, rate gallery stills, Look → Outfit → Day → Story |
 | **Compose**         | `/compose`         | Multi-image transfer / edit with optional identity lock, Isolate on white for Image 1, regional edit, and gallery re-edit handoffs                                                                          |
 | **Workflow editor** | `/workflow-editor` | Edit Comfy API graphs (React Flow), save to library, queue                                                                                                                                                  |
 | **Audio**           | `/audio`           | Stable Audio prompts + `{{AUDIO_SECONDS}}`                                                                                                                                                                  |

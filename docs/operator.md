@@ -35,9 +35,9 @@ The shortest path from a blank install to a character reel:
 1. **Still** — Generate (`/?source=random`) or queue from Heal’s first-scene link. Wait for Gallery.
 2. **Clip** — Open the still → **Continue in Video** (or `/video` with the still as first frame). Set I2V, add a short motion line, queue.
 3. **Rate** — In Gallery, favorite or rate the still/clip so avoidance and recommender learn.
-4. **Cast** — Create a character on **Play** (or save a look from Generate / Character home / Roleplay). Continue the reel with Fitting / Day / Roleplay as needed.
+4. **Cast** — Create a character on **Play** (or save a look from Generate / Character home / Story). Continue the reel with Outfit / Day / Story as needed.
 
-Stay in **Simple** for Essentials (Dashboard, Generate, Cast, Roleplay, Gallery, Queue). Studio history, Video, Refine, and specialty Scene tools sit under **More tools** / ⌘K.
+Stay in **Simple** for Essentials (Dashboard, Generate, Cast, Story, Gallery, Queue). Studio history, Video, Refine, and specialty Scene tools sit under **More tools** / ⌘K.
 
 ### UX updates (1.3.x+)
 
@@ -48,24 +48,24 @@ Recent releases tightened first-run and day-to-day polish:
 - **Dashboard outputs** — recent stills expose Re-queue, Refine, Roleplay, Edit, and Hints on hover.
 - **Command palette** (`Ctrl+K`) — Continue section lists active project, recent gallery outputs, and **Heal & ready**.
 - **Mobile gallery** — layout, density, and min-rating filters collapse to selects on narrow viewports; Mobile Studio header/tab bar uses solid surfaces instead of glass blur.
-- **Phone film loop** — `/m` is a first-class Capture → Moodboard → Fitting → Day → Play path (stills + clips, Cut on phone). Header desk bridge is optional large-screen handoff (Campaign / Board / Day / Fitting). Add to Home Screen via the mobile manifest when you want a phone-sized dock.
+- **Phone film loop** — `/m` is a first-class Capture → Look → Outfit → Day → Story path (stills + clips, Cut on phone). Header desk bridge is optional large-screen handoff (Campaign / Look / Day / Outfit). Add to Home Screen via the mobile manifest when you want a phone-sized dock.
 - **Vision uploads** — Scan with vision and Image → Prompt send JSON data URLs (avoids intermittent multipart FormData parse failures).
-- **Simple Essentials** — Studio history moved under More; Fitting / Day / Moodboard preferred near the top of More.
-- **Play happy path** — Play workspace sidebar lists Campaign + Moodboard before Fitting/Day; lean chrome collapses draft-preview and animate extras until you open them.
+- **Simple Essentials** — Studio history moved under More; Outfit / Day / Look preferred near the top of More.
+- **Play happy path** — Play workspace sidebar lists Campaign + Look before Outfit/Day; lean chrome collapses draft-preview and animate extras until you open them.
 
 ### Play campaign walkthrough
 
-See the dedicated **[Play campaign guide](play-guide.md)** for step-by-step Moodboard → Cut → Cast, metrics, and share/resume.
+See the dedicated **[Play campaign guide](play-guide.md)** for step-by-step Look → Cut → Cast, metrics, and share/resume.
 
 Use **Play campaign** (`/play`) for a guided film loop on one Cast character:
 
 1. Pick or create a Cast character on `/play`.
-2. **Moodboard** — extract a look pack, or import/share JSON or a `#lookpack=` portable link.
-3. **Fitting → Day → Roleplay** — each step carries the staged look pack; **Continue** resumes where you left off (step + saved look pack id sync with studio backup).
-4. **Cut film** in Day or Roleplay closes the loop; the Dashboard **Play film loop** card shows time from first campaign start to first cut.
+2. **Look** (`/moodboard`) — extract a look pack, or import/share JSON or a `#lookpack=` portable link.
+3. **Outfit → Day → Story** — each step carries the staged look pack; **Continue** resumes where you left off (step + saved look pack id sync with studio backup). Story unlocks after the first Day cut.
+4. **Cut film** in Day or Story closes the loop; the Dashboard **Play film loop** card shows time from first campaign start to first cut.
 5. **Share** — **Copy share link** for cross-machine handoff; large packs should use **Export JSON** instead.
 
-If resume shows a character mismatch, use **Switch to resume character** or restart at Moodboard.
+If resume shows a character mismatch, use **Switch to resume character** or restart at Look.
 
 If vision tools fail, `LLM_VISION_MODEL` is unset or the model is text-only. Settings → LLM can override the session text model; the vision model still comes from env (or the LLM panel override when present).
 

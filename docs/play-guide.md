@@ -71,7 +71,7 @@ Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 ### 6. Close the loop
 
 1. **Cut film** in Day or Story records `firstFilmCut` metrics.
-2. Dashboard **Save film to Cast** CTA opens Cast films tab.
+2. Dashboard **Save film to Cast** CTA opens **Day** when the cut is not stamped yet (then Watch on Cast).
 3. **Watch film on Cast**, then **Cut another Day film** for the habit loop.
 
 ---
@@ -84,7 +84,7 @@ The **Play film loop** card on `/dashboard` shows:
 | --- | --- |
 | Campaign → first film | Days from first Play campaign to first Cut |
 | Cut rate / Save-to-Cast rate | Local observability funnel |
-| Funnel step chips | Deep-links to resume Moodboard, Fitting, Day, etc. |
+| Funnel step chips | Deep-links to resume Look, Outfit, Day, etc. |
 | Stall banner | Where you are stuck before first cut + CTA to that step |
 
 Empty state: **Open Play campaign** + **Heal & ready** link.

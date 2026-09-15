@@ -9,6 +9,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Castcut 1.8 — First Cut (tag when wardrobe thumb catalog finishes)
+
+- **Play honesty:** first Cut celebrates with manual Watch (no auto soft-advance); Story stays locked until first film on `/play` and Outfit More; unstamped Save CTA deep-links Day instead of empty Cast Films.
+- **Look → Outfit → Day:** Outfit Keep seeds Day plate (kit lock); Look Extract can clear/regenerate Outfit plate; campaign/UI vocabulary uses Look / Outfit / Day / Story (routes stay `/moodboard`, `/fitting`, `/roleplay`).
+- **Quieter chrome:** Engine / Settings behind header popover; model pickers behind Change.
+- **Starter / jump-in:** sample reel, demo stills, auto-queue Day for first film.
+- **Mobile Studio:** soft-advance, Day parity, celebrate / cut-coach alignment with desk.
+- **Wardrobe:** RealVis garment thumbs + shared kit picker (full catalog generation still running — include finished set in the 1.8 tag).
+- **Secondary:** LTX-2.3, HunyuanVideo 1.5, Klein 9B KV, and Seedance cloud presets landed on main (not the release theme).
+- **CI:** play e2e aligned to Outfit rename, Day stills ownership (`stillsCharacterId`), first-cut celebrate, and ffmpeg-503 playbook when browser encode is unavailable.
+
 ## [v1.7.0] - 2026-09-13
 
 - Rename GitHub repo and npm package to **`castcut`** (docs, badges, GHCR/Docker Hub image names, Pages URL, release Docker `--name`). Local data dirs, plugin channel ids, and desktop bundle id stay on legacy Prompt Studio paths.
