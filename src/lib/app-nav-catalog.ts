@@ -23,7 +23,7 @@ export const APP_NAV_GROUPS: AppNavGroup[] = [
       {
         href: '/m',
         label: 'Mobile Studio',
-        description: 'Phone film loop — Capture, Board, Fit, Day, Play + Cut',
+        description: 'Phone film loop — Capture, Look, Outfit, Day, Story + Cut',
       },
     ],
   },

@@ -43,7 +43,7 @@ const TOOL_LABEL: Record<string, string> = {
   background: 'Background',
   pet: 'Pet',
   fantasy: 'Fantasy',
-  roleplay: 'Roleplay',
+  roleplay: 'Story',
   refine: 'Refine',
   inpaint: 'Inpaint',
   outpaint: 'Outpaint',

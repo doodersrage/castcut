@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/ui/ViewState';
 import { SegmentedControl, ToolActionRow, ToolSection } from '@/components/ui/ToolPageShell';
 import { FieldError } from '@/components/ui/Field';
 import { galleryEntryPrimaryMediaKind } from '@/lib/comfyui-gallery';
+import { remixDayFilmHref } from '@/lib/play-starter';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
 import CharacterMediaTile from '@/components/character/CharacterMediaTile';
 import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrchestration';
@@ -131,13 +132,40 @@ export default function CharacterMediaSection({
       ) : null}
       {continueError ? <FieldError>{continueError}</FieldError> : null}
       {visible.length === 0 ? (
-        <EmptyState
-          compact
-          icon="inbox"
-          title="Nothing stamped yet"
-          description="Queue from Generate, Story, or Video with this character active. Older stills stay untagged."
-          action={{ label: 'Generate as this character', onClick: () => go('/character') }}
-        />
+        mediaTab === 'films' ? (
+          <div className="space-y-3" data-testid="cast-films-empty">
+            <EmptyState
+              compact
+              icon="inbox"
+              title="No films yet"
+              description="Cut a Day film for this cast, or remix the same look with fresh stills."
+              action={{
+                label: 'Same look, new Day',
+                href: remixDayFilmHref(character.id),
+              }}
+            />
+            <ToolActionRow>
+              <ButtonLink
+                href={`/day?character=${encodeURIComponent(character.id)}`}
+                size="sm"
+                variant="secondary"
+              >
+                Open Day
+              </ButtonLink>
+              <ButtonLink href="#character-film-studio" size="sm" variant="ghost">
+                Open Film studio
+              </ButtonLink>
+            </ToolActionRow>
+          </div>
+        ) : (
+          <EmptyState
+            compact
+            icon="inbox"
+            title="Nothing stamped yet"
+            description="Queue from Generate, Story, or Video with this character active. Older stills stay untagged."
+            action={{ label: 'Generate as this character', onClick: () => go('/character') }}
+          />
+        )
       ) : (
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           {visible.map(entry => (

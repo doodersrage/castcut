@@ -12,7 +12,7 @@ import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/com
 import type { useMoodboardToolOrchestration } from '@/hooks/useMoodboardToolOrchestration';
 import { markOnboardingFirstPlayCampaign } from '@/lib/onboarding-hooks';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
-import { lookPackDayHref, lookPackFittingHref, lookPackRoleplayHref } from '@/lib/look-pack';
+import { lookPackFittingHref, lookPackRoleplayHref } from '@/lib/look-pack';
 import {
   MOODBOARD_TEMPLATE_OPTIONS,
   MOODBOARD_TILE_ROLES,
@@ -52,11 +52,35 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
     applyImageToTile,
     queueScene,
     extractLookPack,
+    sendLookToFitting,
+    sendLookToDay,
     saveLookPackToCast,
     setLookStatus,
   } = vm;
 
+  const softAdvanceTo = (href: string, label: string) => {
+    setSoftAdvance({
+      href: toMobileStudioHref(href),
+      label,
+      nonce: Date.now(),
+    });
+  };
+
   const handoff = async (target: 'fitting' | 'day' | 'play') => {
+    if (target === 'fitting') {
+      const href = await sendLookToFitting();
+      if (href) {
+        softAdvanceTo(href, 'Outfit');
+      }
+      return;
+    }
+    if (target === 'day') {
+      const href = await sendLookToDay();
+      if (href) {
+        softAdvanceTo(href, 'Day');
+      }
+      return;
+    }
     const pack = await extractLookPack();
     if (!pack) {
       return;
@@ -65,16 +89,10 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
     if (pack.characterId) {
       bumpPlayCampaignStep({
         characterId: pack.characterId,
-        stepId: target === 'play' ? 'roleplay' : target,
+        stepId: 'roleplay',
       });
     }
-    const href =
-      target === 'fitting'
-        ? lookPackFittingHref(pack)
-        : target === 'day'
-          ? lookPackDayHref(pack)
-          : lookPackRoleplayHref(pack);
-    router.push(toMobileStudioHref(href));
+    router.push(toMobileStudioHref(lookPackRoleplayHref(pack)));
   };
 
   return (
@@ -295,25 +313,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         <Button
           variant="secondary"
           disabled={busy || extracting}
-          onClick={() => {
-            void extractLookPack().then(pack => {
-              if (!pack) {
-                return;
-              }
-              markOnboardingFirstPlayCampaign();
-              if (pack.characterId) {
-                bumpPlayCampaignStep({
-                  characterId: pack.characterId,
-                  stepId: 'fitting',
-                });
-              }
-              setSoftAdvance({
-                href: toMobileStudioHref(lookPackFittingHref(pack)),
-                label: 'Outfit',
-                nonce: Date.now(),
-              });
-            });
-          }}
+          onClick={() => void handoff('fitting')}
           className="w-full justify-center"
           data-testid="mobile-moodboard-to-fitting"
         >

@@ -12,6 +12,10 @@ export type FittingActionRowProps = {
   swipeDeckLength: number;
   busy: boolean;
   character: CharacterRecord | undefined;
+  /** Try-ons waiting for Keep — demote Queue. */
+  compareActive?: boolean;
+  /** Soft-advance countdown owns Day — demote Queue. */
+  softAdvanceActive?: boolean;
   onSkipKit: () => void;
   onQueueTryOn: () => void;
   onQueueTryOnAndSwipe: () => void;
@@ -26,15 +30,18 @@ export default function FittingActionRow({
   swipeDeckLength,
   busy,
   character,
+  compareActive = false,
+  softAdvanceActive = false,
   onSkipKit,
   onQueueTryOn,
   onQueueTryOnAndSwipe,
   onSaveKitToCast,
   onGoRoleplay,
 }: FittingActionRowProps) {
+  const demoteQueue = compareActive || softAdvanceActive || Boolean(continueDayHref);
   return (
     <ToolActionRow>
-      {continueDayHref ? (
+      {continueDayHref && !softAdvanceActive ? (
         <ButtonLink
           href={continueDayHref}
           size="sm"
@@ -46,7 +53,7 @@ export default function FittingActionRow({
       ) : null}
       <Button
         size="sm"
-        variant={continueDayHref ? 'secondary' : 'primary'}
+        variant={demoteQueue ? 'secondary' : 'primary'}
         disabled={queueBlocked}
         onClick={onQueueTryOn}
       >

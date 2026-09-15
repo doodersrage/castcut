@@ -6,7 +6,7 @@ import CharacterOsPicker from '@/components/CharacterOsPicker';
 import PlaySoftAdvanceBanner, {
   type PlaySoftAdvanceTarget,
 } from '@/components/PlaySoftAdvanceBanner';
-import { Button, PrimaryButton } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import { FieldError, FieldLabel, SelectInput } from '@/components/ui/Field';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
@@ -354,17 +354,22 @@ export default function MobileFittingToolSections(vm: ViewModel) {
             className="ui-btn-primary w-full justify-center text-center"
             data-testid="fitting-continue-day"
           >
-            Continue in Day
+            Continue to Day
           </Link>
         ) : null}
-        <PrimaryButton
+        <Button
+          variant={
+            softAdvance || (compareTryOns.length > 0 && !continueDayHref) || mobileContinueDay
+              ? 'secondary'
+              : 'primary'
+          }
           disabled={queueBlocked}
           loading={busy}
           onClick={() => void queueTryOn()}
           className="w-full justify-center"
         >
           Queue try-on
-        </PrimaryButton>
+        </Button>
         <Button
           variant="secondary"
           disabled={queueBlocked || swipeDeck.length < 2}

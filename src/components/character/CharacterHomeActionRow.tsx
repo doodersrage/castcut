@@ -24,11 +24,15 @@ export default function CharacterHomeActionRow({
       <Button size="sm" variant="primary" onClick={() => go(playCampaignHref(character.id))}>
         Start a film
       </Button>
-      <Button size="sm" variant="primary" onClick={() => go('/character')}>
+      <Button size="sm" variant="secondary" onClick={() => go('/character')}>
         Generate
       </Button>
-      <Button size="sm" variant="secondary" onClick={() => go('/roleplay')}>
-        Story
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={() => go(`/moodboard?character=${character.id}`)}
+      >
+        Open Look
       </Button>
       <Button
         size="sm"
@@ -40,25 +44,26 @@ export default function CharacterHomeActionRow({
       <Button size="sm" variant="secondary" onClick={() => go(`/day?character=${character.id}`)}>
         Open Day
       </Button>
-      <Button
-        size="sm"
-        variant="secondary"
-        onClick={() => go(`/moodboard?character=${character.id}`)}
-      >
-        Open Look
+      <Button size="sm" variant="secondary" onClick={() => go('/roleplay')}>
+        Story
       </Button>
-      <Button size="sm" variant="secondary" onClick={() => go('/video')}>
-        Video
-      </Button>
-      <ButtonLink href={`/gallery?character=${encodeURIComponent(character.id)}`} size="sm">
-        Open in Gallery
-      </ButtonLink>
-      <ButtonLink href="/characters" size="sm" variant="ghost">
-        All characters
-      </ButtonLink>
-      <Button size="sm" variant="ghost" onClick={removeFromCast}>
-        Remove from cast
-      </Button>
+      <details>
+        <summary className="type-caption cursor-pointer text-[var(--text-muted)]">More</summary>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button size="sm" variant="ghost" onClick={() => go('/video')}>
+            Video
+          </Button>
+          <ButtonLink href={`/gallery?character=${encodeURIComponent(character.id)}`} size="sm">
+            Open in Gallery
+          </ButtonLink>
+          <ButtonLink href="/characters" size="sm" variant="ghost">
+            All characters
+          </ButtonLink>
+          <Button size="sm" variant="ghost" onClick={removeFromCast}>
+            Remove from cast
+          </Button>
+        </div>
+      </details>
     </ToolActionRow>
   );
 }

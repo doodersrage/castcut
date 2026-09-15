@@ -2,7 +2,6 @@
 
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
@@ -83,7 +82,6 @@ type ViewModel = ReturnType<typeof useMoodboardToolOrchestration>;
 type Props = ViewModel & { description: string };
 
 export default function MoodboardToolSections({ description, ...vm }: Props) {
-  const router = useRouter();
   const {
     mounted,
     shared,
@@ -444,7 +442,11 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
                   saveLookPack(pack);
                   void sendLookToDay().then(href => {
                     if (href) {
-                      router.push(href);
+                      setSoftAdvance({
+                        href,
+                        label: 'Day',
+                        nonce: Date.now(),
+                      });
                     }
                   });
                 }}
@@ -459,7 +461,11 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               onClick={() => {
                 void sendLookToDay().then(href => {
                   if (href) {
-                    router.push(href);
+                    setSoftAdvance({
+                      href,
+                      label: 'Day',
+                      nonce: Date.now(),
+                    });
                   }
                 });
               }}

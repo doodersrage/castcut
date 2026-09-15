@@ -20,7 +20,7 @@ export default function FittingCharacterSection({
   return (
     <ToolSection
       title="Character"
-      description="Same Character OS id as Cast and Roleplay — try-ons stamp that record."
+      description="Same Character OS id as Cast and Story — try-ons stamp that record."
       data-testid="fitting-character"
     >
       <CharacterOsPicker

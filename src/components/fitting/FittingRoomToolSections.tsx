@@ -298,6 +298,8 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         swipeDeckLength={swipeDeck.length}
         busy={busy}
         character={character}
+        compareActive={compareTryOns.length > 0 && !continueDayHref}
+        softAdvanceActive={Boolean(softAdvance)}
         onSkipKit={skipKit}
         onQueueTryOn={() => void queueTryOn()}
         onQueueTryOnAndSwipe={() => void queueTryOnAndSwipe()}

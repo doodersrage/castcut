@@ -21,7 +21,7 @@ export default function PlayCampaignSavedLookPacksSection({
   return (
     <ToolSection
       title="Saved look packs"
-      description="Reuse a vibe without re-running Moodboard vision."
+      description="Reuse a vibe without re-running Look vision."
       data-testid="play-campaign-look-packs"
     >
       <ul className="ui-list">
