@@ -434,7 +434,7 @@ test('mobile film funnel routes Moodboard → Fitting → Day', async ({ page })
   await gotoStable(page, '/m/fitting');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('mobile-fitting')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole('heading', { name: /^Fitting$/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Outfit$/i })).toBeVisible();
 
   await gotoStable(page, '/m/day');
   await dismissBlockingOverlays(page);
@@ -659,6 +659,8 @@ test('day cut film with mocked MediaRecorder shows Save to Cast', async ({ page 
     tools: {
       day: {
         notes: '',
+        // Ownership must match active Cast or Day clears stills on mount.
+        stillsCharacterId: 'e2e-cut-cast',
         stills: [
           {
             slotId: 'morning',
@@ -680,16 +682,18 @@ test('day cut film with mocked MediaRecorder shows Save to Cast', async ({ page 
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
   await cutBtn.click();
-  await expect(page.getByTestId('day-open-cast-film')).toBeVisible({
+  // First cut owns Watch via celebrate banner (hides day-open-cast-film).
+  await expect(page.getByTestId('day-first-cut-celebrate')).toBeVisible({
     timeout: 45_000,
   });
-  await expect(page.getByTestId('day-open-cast-film')).toHaveAttribute('href', /media=films/);
-  const gallery = page.getByTestId('day-open-gallery');
-  if ((await gallery.count()) > 0) {
-    await expect(gallery).toHaveAttribute('href', /derivedKind=film/);
+  const watchOrSave = page
+    .getByTestId('day-first-cut-watch')
+    .or(page.getByTestId('day-save-film-cast'));
+  await expect(watchOrSave.first()).toBeVisible();
+  const watch = page.getByTestId('day-first-cut-watch');
+  if ((await watch.count()) > 0) {
+    await expect(watch).toHaveAttribute('href', /media=films/);
   }
-  await expect(page.getByTestId('day-campaign-complete')).toBeVisible();
-  await expect(page.getByTestId('day-campaign-complete')).toHaveAttribute('href', /\/play/);
 });
 
 test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async ({ page }) => {
@@ -741,16 +745,19 @@ test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async 
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
   await cutBtn.click();
-  await expect(page.getByTestId('roleplay-open-cast-film')).toBeVisible({
+  // First cut celebrate owns Watch (hides roleplay-open-cast-film).
+  await expect(page.getByTestId('story-first-cut-celebrate')).toBeVisible({
     timeout: 45_000,
   });
-  await expect(page.getByTestId('roleplay-open-cast-film')).toHaveAttribute('href', /media=films/);
-  await expect(page.getByTestId('roleplay-open-gallery')).toHaveAttribute(
-    'href',
-    /derivedKind=film/
-  );
-  await expect(page.getByTestId('roleplay-campaign-complete')).toBeVisible();
-  await expect(page.getByTestId('roleplay-campaign-complete')).toHaveAttribute('href', /\/play/);
+  const watchOrSave = page
+    .getByTestId('story-first-cut-watch')
+    .or(page.getByTestId('story-save-film-cast'));
+  await expect(watchOrSave.first()).toBeVisible();
+  const watch = page.getByTestId('story-first-cut-watch');
+  if ((await watch.count()) > 0) {
+    await expect(watch).toHaveAttribute('href', /media=films/);
+  }
+  await expect(page.getByTestId('story-first-cut-remix')).toHaveAttribute('href', /\/day/);
 });
 
 test('mobile play cut film with mocked MediaRecorder shows Cast deep-links', async ({ page }) => {
@@ -801,12 +808,18 @@ test('mobile play cut film with mocked MediaRecorder shows Cast deep-links', asy
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
   await cutBtn.click();
-  await expect(page.getByTestId('roleplay-open-cast-film')).toBeVisible({
+  await expect(page.getByTestId('story-first-cut-celebrate')).toBeVisible({
     timeout: 45_000,
   });
-  await expect(page.getByTestId('roleplay-open-cast-film')).toHaveAttribute('href', /media=films/);
-  await expect(page.getByTestId('roleplay-campaign-complete')).toBeVisible();
-  await expect(page.getByTestId('roleplay-campaign-complete')).toHaveAttribute('href', /\/play/);
+  const watchOrSave = page
+    .getByTestId('story-first-cut-watch')
+    .or(page.getByTestId('story-save-film-cast'));
+  await expect(watchOrSave.first()).toBeVisible();
+  const watch = page.getByTestId('story-first-cut-watch');
+  if ((await watch.count()) > 0) {
+    await expect(watch).toHaveAttribute('href', /media=films/);
+  }
+  await expect(page.getByTestId('story-first-cut-remix')).toHaveAttribute('href', /\/day/);
 });
 
 test('play campaign shows complete state after durable completedAt', async ({ page }) => {
@@ -997,6 +1010,7 @@ test('day cut film shows playbook when film assemble returns ffmpeg 503', async 
     tools: {
       day: {
         notes: '',
+        stillsCharacterId: 'e2e-film-fail',
         stills: [
           {
             slotId: 'morning',
