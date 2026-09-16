@@ -174,10 +174,9 @@ Details: [docs/data-catalogs.md](docs/data-catalogs.md) and [docs/performance/gu
 
 ## Development
 
-Built solo, with heavy use of Claude Code for implementation and test-writing — the
-architecture, product direction, and review are mine; a lot of the line-by-line code and
-much of the unit suite were written collaboratively with it. Mentioned here
-upfront rather than left for someone to notice in the branch history.
+Built solo. Claude (Cursor / Claude Code) helped mostly with tests and CI — architecture,
+product direction, and the bulk of implementation are mine. Noted here upfront rather than
+left for someone to dig out of the branch history.
 
 ## License
 
