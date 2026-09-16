@@ -22,8 +22,12 @@ describe("pickDistinctIdentitySeeds", () => {
   });
 
   it("includes minimal-hair descriptions when allowMinimalHair is true", () => {
-    const result = pickDistinctIdentitySeeds(20, "any", { allowMinimalHair: true });
-    assert.ok(result.some((entry) => MINIMAL_HAIR.test(entry)));
+    // Request more than the pool size so we get the full filtered set (not a random sample).
+    const withMinimal = pickDistinctIdentitySeeds(10_000, "any", { allowMinimalHair: true });
+    const without = pickDistinctIdentitySeeds(10_000, "any");
+    assert.ok(withMinimal.some(entry => MINIMAL_HAIR.test(entry)));
+    assert.ok(without.every(entry => !MINIMAL_HAIR.test(entry)));
+    assert.ok(withMinimal.length > without.length);
   });
 
   it("always returns at most 2 entries for gender 'mixed' regardless of requested count", () => {
