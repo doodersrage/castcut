@@ -73,7 +73,7 @@ export default function RoleplayStorySection({
   onWriteBio,
 }: RoleplayStorySectionProps) {
   return (
-    <ToolSection title="Story">
+    <ToolSection title="Story reel">
       <p className="text-sm text-[var(--text-muted)]">
         {beatOutput === 'clip'
           ? 'Clips land here as they render'

@@ -16,7 +16,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Quieter chrome:** Engine / Settings behind header popover; model pickers behind Change.
 - **Starter / jump-in:** sample reel, demo stills, auto-queue Day for first film.
 - **Mobile Studio:** soft-advance, Day parity, celebrate / cut-coach alignment with desk.
-- **Wardrobe:** RealVis garment thumbs + shared kit picker (full catalog generation still running — include finished set in the 1.8 tag).
+- **Wardrobe:** RealVis garment thumbs + shared kit picker — full catalog packshots generated (commit with 1.8 tag).
 - **Secondary:** LTX-2.3, HunyuanVideo 1.5, Klein 9B KV, and Seedance cloud presets landed on main (not the release theme).
 - **CI:** play e2e aligned to Outfit rename, Day stills ownership (`stillsCharacterId`), first-cut celebrate, and ffmpeg-503 playbook when browser encode is unavailable.
 

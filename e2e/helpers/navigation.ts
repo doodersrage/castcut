@@ -37,18 +37,32 @@ export async function revealFullSettings(page: Page): Promise<void> {
   } else {
     await expect(heading).toBeVisible({ timeout: 30_000 });
   }
+  // Deep-linked ComfyUI sections may already be mounted — don't fight the chrome.
+  const alreadyOpen = page
+    .locator(
+      [
+        '#settings-comfyui-connection',
+        '#settings-comfyui-inference-engine',
+        '#settings-comfyui-workflow-library',
+        '#settings-comfyui-workflow-patching',
+      ].join(', ')
+    )
+    .first();
+  if (await alreadyOpen.isVisible({ timeout: 1_500 }).catch(() => false)) {
+    return;
+  }
   // Sidebar control is in the parent Settings shell (available before the ComfyUI tab hydrates).
   const sidebar = page.getByRole('button', { name: /All settings/i });
   if (await sidebar.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await sidebar.click({ force: true }).catch(async () => {
-      await sidebar.click();
+    await sidebar.click({ force: true, timeout: 5_000 }).catch(async () => {
+      await sidebar.click({ timeout: 5_000 }).catch(() => undefined);
     });
     return;
   }
   const comfy = page.getByRole('button', { name: /Show all ComfyUI settings/i });
   if (await comfy.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await comfy.click({ force: true }).catch(async () => {
-      await comfy.click();
+    await comfy.click({ force: true, timeout: 5_000 }).catch(async () => {
+      await comfy.click({ timeout: 5_000 }).catch(() => undefined);
     });
   }
 }
