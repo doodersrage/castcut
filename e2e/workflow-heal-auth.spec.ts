@@ -554,7 +554,7 @@ test.describe('Play dogfood glue', () => {
     await expect(page.getByTestId('play-next-cta')).toContainText(/Save film to Cast/i);
     await expect(page.getByTestId('play-next-cta')).toHaveAttribute(
       'href',
-      `/characters/${characterId}?media=films`
+      `/day?character=${characterId}`
     );
   });
 });
