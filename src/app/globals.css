@@ -24,10 +24,10 @@
   --accent: #4568a8;
   --accent-hover: #5476b6;
   --accent-active: #3a5a96;
-  --accent-muted: rgb(91 127 196 / 0.12);
-  --accent-soft: rgb(91 127 196 / 0.18);
-  --accent-border: rgb(91 127 196 / 0.3);
-  --accent-ring: rgb(91 127 196 / 0.24);
+  --accent-muted: rgb(69 104 168 / 0.12);
+  --accent-soft: rgb(69 104 168 / 0.18);
+  --accent-border: rgb(69 104 168 / 0.3);
+  --accent-ring: rgb(69 104 168 / 0.24);
   --accent-text: #9eb6e0;
 
   /* Functional tints — badges, status, secondary semantics */
