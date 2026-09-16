@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/Button';
 import {
-  daySlotProgressLabel,
+  daySlotBoardCaption,
+  daySlotClipProgressState,
   daySlotProgressState,
   type DaySlot,
   type DaySlotId,
@@ -19,6 +20,7 @@ export type DaySlotBoardProps = {
   onSelectSlot: (slotId: DaySlotId) => void;
   onOpenStill?: (slotId: DaySlotId) => void;
   onRetrySlot?: (slot: DaySlot) => void;
+  onAnimateSlot?: (slot: DaySlot) => void;
 };
 
 /**
@@ -35,6 +37,7 @@ export default function DaySlotBoard({
   onSelectSlot,
   onOpenStill,
   onRetrySlot,
+  onAnimateSlot,
 }: DaySlotBoardProps) {
   return (
     <ol
@@ -45,14 +48,18 @@ export default function DaySlotBoard({
       {slots.map(slot => {
         const still = stills.find(entry => entry.slotId === slot.id);
         const state = daySlotProgressState(still);
-        const label = daySlotProgressLabel(state);
+        const clipState = daySlotClipProgressState(still);
+        const label = daySlotBoardCaption(still);
         const thumb = state === 'done' ? still?.imageUrl?.trim() : '';
         const selected = activeSlotId === slot.id;
+        const canAnimate =
+          state === 'done' && clipState === 'idle' && Boolean(onAnimateSlot) && !queueBlocked;
         return (
           <li key={slot.id} className="min-w-0">
             <div
               data-testid={`day-progress-${slot.id}`}
               data-state={state}
+              data-clip={clipState}
               data-selected={selected ? 'true' : 'false'}
               className={[
                 'overflow-hidden rounded-[var(--radius-md)] border transition-[box-shadow,border-color,transform]',
@@ -115,6 +122,28 @@ export default function DaySlotBoard({
                     ) : null}
                   </div>
                   <p className="type-caption text-[var(--text-muted)]">{label}</p>
+                  {clipState === 'done' ? (
+                    <p
+                      className="type-overline mt-1 text-[var(--tint-success-text)]"
+                      data-testid={`day-progress-clip-${slot.id}`}
+                    >
+                      Motion
+                    </p>
+                  ) : clipState === 'queued' ? (
+                    <p
+                      className="type-overline mt-1 text-[var(--accent-text)]"
+                      data-testid={`day-progress-clip-${slot.id}`}
+                    >
+                      Animating…
+                    </p>
+                  ) : clipState === 'failed' ? (
+                    <p
+                      className="type-overline mt-1 text-[var(--tint-danger-text)]"
+                      data-testid={`day-progress-clip-${slot.id}`}
+                    >
+                      Clip failed
+                    </p>
+                  ) : null}
                 </div>
               </button>
               {thumb && onOpenStill ? (
@@ -127,6 +156,20 @@ export default function DaySlotBoard({
                     onClick={() => onOpenStill(slot.id)}
                   >
                     View larger
+                  </Button>
+                </div>
+              ) : null}
+              {canAnimate ? (
+                <div className={compact ? 'px-2.5 pb-2' : 'px-3 pb-2.5'}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-full justify-center"
+                    disabled={busy}
+                    data-testid={`day-progress-animate-${slot.id}`}
+                    onClick={() => onAnimateSlot?.(slot)}
+                  >
+                    Animate
                   </Button>
                 </div>
               ) : null}

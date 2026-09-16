@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import BrandMark from '@/components/BrandMark';
 import ReportBugLink from '@/components/ReportBugLink';
 import PlayContinueChip from '@/components/PlayContinueChip';
+import PlayFunnelStrip from '@/components/PlayFunnelStrip';
 import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
 import { featureForPath } from '@/lib/auth/features';
@@ -139,8 +140,9 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
         </div>
       </header>
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-        <div className="mb-3">
+        <div className="mb-3 space-y-3">
           <PlayHabitNudgeBanner />
+          <PlayFunnelStrip compact />
         </div>
         {children}
       </main>

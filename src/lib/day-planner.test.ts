@@ -6,6 +6,8 @@ import {
   buildDaySlotPrompt,
   DAY_SLOT_BEAT_PRESETS,
   DAY_SLOT_SETTING_PRESETS,
+  daySlotBoardCaption,
+  daySlotClipProgressState,
   daySlotProgressState,
   dayStillsBelongToCharacter,
   dayStillsCachePatch,
@@ -121,6 +123,27 @@ describe('day-planner', () => {
     assert.equal(forced.changed, true);
     assert.notEqual(forced.slots[0]?.location, 'custom 0');
     assert.ok(DAY_SLOT_SETTING_PRESETS.morning.includes(forced.slots[0]!.location!));
+  });
+
+  it('daySlotBoardCaption surfaces clip progress on completed stills', () => {
+    assert.equal(daySlotClipProgressState({ slotId: 'morning', status: 'completed' }), 'idle');
+    assert.equal(
+      daySlotBoardCaption({
+        slotId: 'morning',
+        status: 'completed',
+        clipStatus: 'queued',
+      }),
+      'Animating…'
+    );
+    assert.equal(
+      daySlotBoardCaption({
+        slotId: 'morning',
+        status: 'completed',
+        clipStatus: 'completed',
+        clipUrl: '/clip.mp4',
+      }),
+      'Clip ready'
+    );
   });
 
   it('normalizeDaySlots keeps spaces in Setting and Beat while typing', () => {

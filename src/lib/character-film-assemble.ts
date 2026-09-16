@@ -632,9 +632,9 @@ export async function stampAssembledFilm(input: {
   userTags?: string[];
   serverEncoded?: boolean;
   onProgress?: (progress: AssembleFilmProgress) => void;
-}): Promise<{ persisted: boolean; entryId?: string }> {
+}): Promise<{ persisted: boolean; entryId?: string; reason?: 'too-large' | 'storage' }> {
   if (!canStampAssembledFilm(input.blob.size, { serverEncoded: input.serverEncoded })) {
-    return { persisted: false };
+    return { persisted: false, reason: 'too-large' };
   }
   const id = crypto.randomUUID();
   const mimeType = input.mimeType || input.blob.type || 'video/webm';
@@ -642,7 +642,7 @@ export async function stampAssembledFilm(input: {
   input.onProgress?.({ ratio: 1, label: 'Saving film to gallery' });
   const persisted = await persistGalleryOriginal(id, file);
   if (!persisted || persisted.skipped || !persisted.originalPath || !persisted.originalUrl) {
-    return { persisted: false };
+    return { persisted: false, reason: 'storage' };
   }
 
   const settings = loadComfyUiSettings();

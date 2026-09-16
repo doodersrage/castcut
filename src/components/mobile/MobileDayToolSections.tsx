@@ -8,6 +8,7 @@ import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import PlaySoftAdvanceBanner, {
   type PlaySoftAdvanceTarget,
 } from '@/components/PlaySoftAdvanceBanner';
+import SharedToolControls from '@/components/SharedToolControls';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
@@ -284,12 +285,15 @@ export default function MobileDayToolSections(vm: ViewModel) {
             ) : null}
             {character ? (
               <Button
-                variant="ghost"
+                variant="secondary"
                 className="w-full justify-center"
                 data-testid="day-first-cut-story"
-                onClick={goRoleplay}
+                onClick={() => {
+                  setSoftAdvance(null);
+                  goRoleplay();
+                }}
               >
-                Optional: Story
+                Story unlocked
               </Button>
             ) : null}
           </div>
@@ -352,8 +356,33 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onSelectSlot={setActiveSlotId}
           onOpenStill={openProgressLightbox}
           onRetrySlot={slot => void queueSlot(slot)}
+          onAnimateSlot={slot => void animateSlot(slot)}
         />
       </div>
+
+      {completedShotCount > 0 && !firstCutCelebrate ? (
+        <div className="space-y-2" data-testid="day-animate">
+          <p className="type-caption text-[var(--text-muted)]">
+            Motion — animate stills before Cut for a clip reel.
+          </p>
+          <Button
+            variant="secondary"
+            disabled={busy}
+            onClick={() => void animateSlot(activeSlot)}
+            className="w-full justify-center"
+          >
+            Animate {activeSlot.label.toLowerCase()}
+          </Button>
+          <Button
+            variant="ghost"
+            disabled={busy}
+            onClick={() => void animateAllClips()}
+            className="w-full justify-center"
+          >
+            Animate all ready stills
+          </Button>
+        </div>
+      ) : null}
 
       <CollapsibleSection
         title={`Edit · ${activeSlot.label}`}
@@ -573,36 +602,43 @@ export default function MobileDayToolSections(vm: ViewModel) {
 
       <CollapsibleSection
         title="Advanced"
-        summary="Animate clips and notes."
+        summary="Day-wide notes."
         defaultOpen={false}
         persistKey="mobile-day-advanced"
       >
-        <div className="grid gap-2" data-testid="day-animate">
-          <Button
-            variant="secondary"
-            disabled={busy}
-            onClick={() => void animateSlot(activeSlot)}
-            className="w-full justify-center"
-          >
-            Animate {activeSlot.label.toLowerCase()}
-          </Button>
-          <Button
-            variant="ghost"
-            disabled={busy}
-            onClick={() => void animateAllClips()}
-            className="w-full justify-center"
-          >
-            Animate all
-          </Button>
-          <label className="block space-y-1.5 text-sm">
-            <FieldLabel>Day notes</FieldLabel>
-            <TextArea
-              rows={2}
-              value={toolSettings.notes ?? ''}
-              placeholder="Optional notes for every slot"
-              onChange={event => updateToolSettings({ notes: event.target.value })}
-            />
-          </label>
+        <label className="block space-y-1.5 text-sm">
+          <FieldLabel>Day notes</FieldLabel>
+          <TextArea
+            rows={2}
+            value={toolSettings.notes ?? ''}
+            placeholder="Optional notes for every slot"
+            onChange={event => updateToolSettings({ notes: event.target.value })}
+          />
+        </label>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Engine"
+        summary="Model, detail, and workflow."
+        defaultOpen={false}
+        persistKey="mobile-day-engine"
+      >
+        <div data-testid="mobile-day-engine">
+          <SharedToolControls
+            shared={shared}
+            onModelChange={model => updateShared({ model })}
+            onDetailChange={detail => updateShared({ detail })}
+            onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
+            showWardrobeOption={false}
+            seedLlmWithIngredients={false}
+            autoFixRules={shared.autoFixRules !== false}
+            onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
+            recommendFromText=""
+            toolId="day"
+            preferEditModels={hasPlate}
+            onSharedSettingsChange={updateShared}
+            variant="roleplay"
+          />
         </div>
       </CollapsibleSection>
 
@@ -733,12 +769,13 @@ export default function MobileDayToolSections(vm: ViewModel) {
                 </>
               ) : null}
               <Button
-                variant="ghost"
+                variant="secondary"
                 className="w-full justify-center"
                 disabled={busy}
+                data-testid="day-after-cut-story"
                 onClick={goRoleplay}
               >
-                Optional: Story
+                Story unlocked
               </Button>
             </div>
           </CollapsibleSection>
@@ -760,12 +797,16 @@ export default function MobileDayToolSections(vm: ViewModel) {
                 >
                   Open Look
                 </Link>
-                <Link
-                  href="/m/play"
-                  className="ui-btn-ghost w-full justify-center text-center text-sm"
-                >
-                  Optional: Story
-                </Link>
+                {firstFilmDone ? (
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-center"
+                    onClick={goRoleplay}
+                    data-testid="mobile-day-story"
+                  >
+                    Story unlocked
+                  </Button>
+                ) : null}
               </>
             ) : null}
           </div>

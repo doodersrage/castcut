@@ -60,6 +60,7 @@ import {
   saveLookPack,
 } from '@/lib/look-pack';
 import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play-campaign';
+import { hasCompletedFirstFilm, loadPlayMetrics } from '@/lib/play-metrics';
 import { applyRemixDayFilmState } from '@/lib/play-starter';
 import { dayToolHref } from '@/lib/mobile-studio';
 import { markComfyQueueIntent } from '@/lib/comfy-setup-intent';
@@ -372,6 +373,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             ? `Downloaded ${result.filename} (${result.encodePath} encode). Save to Cast to stamp a studio copy.`
             : `Downloaded ${result.filename} (${result.encodePath} encode) unstamped. Save to Cast to attach this film.`
         );
+        if (character && !result.persisted) {
+          setError('Film downloaded — Save film to Cast to stamp it into Gallery.');
+        }
       }
       markOnboardingFirstPlayCampaign();
       const firstCut = markOnboardingFirstFilmCut();
@@ -427,29 +431,41 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     void import('@/lib/local-observability').then(({ noteSaveToCastMetric }) => {
       noteSaveToCastMetric();
     });
-    if (!film) {
-      setFilmNeedsCast(false);
-      setFilmStatus(`Saved ${next.name} to Cast.`);
+    if (!film?.data?.length) {
+      setFilmNeedsCast(true);
+      setError('Cut film again — the assembled reel is no longer in memory to stamp.');
+      setFilmStatus(`Saved ${next.name} to Cast. Film stamp still needed.`);
       return;
     }
     void (async () => {
       const stamped = await stampAssembledFilm({
-        blob: new Blob([film.data.slice()]),
+        blob: new Blob([film.data.slice()], { type: 'video/mp4' }),
         filename: film.filename || filmDownloadFilename(next.name),
         characterId: next.id,
         characterName: next.name,
         lookId: next.activeLookId,
       });
+      if (!stamped.persisted) {
+        setFilmNeedsCast(true);
+        setError(
+          stamped.reason === 'too-large'
+            ? 'Film is too large for Gallery storage — download Share cut, or free space and Save again.'
+            : 'Could not stamp the film into Gallery — try Save film to Cast again.'
+        );
+        setFilmStatus(`Saved ${next.name} to Cast. Film stamp pending.`);
+        return;
+      }
       setFilmNeedsCast(false);
-      setFilmStatus(
-        stamped.persisted
-          ? `Saved ${next.name} to Cast and stamped ${film.filename}.`
-          : `Saved ${next.name} to Cast. Studio storage could not keep the film.`
-      );
+      setError(null);
+      setFilmStatus(`Saved ${next.name} to Cast and stamped ${film.filename}.`);
     })();
-  }, [character]);
+  }, [character, setError, setFilmNeedsCast, setFilmStatus]);
 
   const goRoleplay = useCallback(() => {
+    if (!hasCompletedFirstFilm(loadPlayMetrics())) {
+      setError('Cut your first Day film before opening Story.');
+      return;
+    }
     if (character) {
       saveSharedSettings({
         ...loadSettingsCache().shared,
@@ -467,7 +483,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       return;
     }
     router.push('/roleplay');
-  }, [character, router]);
+  }, [character, router, setError]);
 
   const seedDemoStills = useCallback(() => {
     const demo = buildDemoDayStills();

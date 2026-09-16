@@ -1,10 +1,13 @@
 /**
  * Bundled sample day-in-the-life reel for welcome / offline demo.
- * Richer photographic SVG stills — no binary assets required.
+ * Prefers a real mute MP4 in public/; falls back to photographic SVG stills.
  */
 
 import type { FilmPlaylistShot } from './character-film';
 import type { DaySlotId, DaySlotStill } from './day-planner';
+
+/** Mute morning→night sample cut (ffmpeg-generated, checked into public/). */
+export const WELCOME_SAMPLE_REEL_URL = '/samples/day-sample-reel.mp4';
 
 function svgDataUrl(input: {
   label: string;
@@ -118,8 +121,20 @@ function frameUrl(frame: (typeof SAMPLE_FRAMES)[number]): string {
   });
 }
 
-/** Four stills representing a finished Day cut — for welcome preview. */
+/** One mute clip representing a finished Day cut — for welcome / Watch sample. */
 export function welcomeSampleFilmShots(): FilmPlaylistShot[] {
+  return [
+    {
+      entryId: 'sample-day-reel',
+      title: 'Sample Day',
+      url: WELCOME_SAMPLE_REEL_URL,
+      kind: 'clip',
+    },
+  ];
+}
+
+/** Fallback still playlist when the MP4 cannot play (tests / older clients). */
+export function welcomeSampleStillShots(): FilmPlaylistShot[] {
   return SAMPLE_FRAMES.map(frame => ({
     entryId: `sample-${frame.id}`,
     title: frame.title,

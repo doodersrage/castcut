@@ -324,11 +324,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               {character ? (
                 <Button
                   size="sm"
-                  variant="ghost"
+                  variant="secondary"
                   data-testid="day-first-cut-story"
-                  onClick={goRoleplay}
+                  onClick={() => {
+                    setSoftAdvance(null);
+                    goRoleplay();
+                  }}
                 >
-                  Optional: Story
+                  Story unlocked
                 </Button>
               ) : null}
             </ToolActionRow>
@@ -393,8 +396,39 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onSelectSlot={setActiveSlotId}
             onOpenStill={openProgressLightbox}
             onRetrySlot={slot => void queueSlot(slot)}
+            onAnimateSlot={slot => void animateSlot(slot)}
           />
         </ToolSection>
+
+        {completedShotCount > 0 && !firstCutCelebrate ? (
+          <ToolSection
+            title="Motion"
+            description="Animate stills into clips before Cut — motion reels prefer clips."
+            data-testid="day-animate"
+          >
+            <ToolActionRow>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void animateSlot(activeSlot)}
+              >
+                Animate {activeSlot.label.toLowerCase()}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void animateAllClips()}
+              >
+                Animate all ready stills
+              </Button>
+            </ToolActionRow>
+            <p className="type-caption mt-2 text-[var(--text-muted)]">
+              Queue stills first, then Animate — Cut after clips land for a motion reel.
+            </p>
+          </ToolSection>
+        ) : null}
 
         <CollapsibleSection
           title={`Edit · ${activeSlot.label}`}
@@ -631,34 +665,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
 
         <CollapsibleSection
           title="Advanced"
-          summary="Animate clips and day-wide notes."
+          summary="Day-wide notes."
           defaultOpen={false}
           persistKey="day-advanced"
         >
-          {leanChrome ? (
-            <p className="type-caption mb-3 text-[var(--text-muted)]">
-              Animate after you cut if you want motion clips.
-            </p>
-          ) : null}
-          <div data-testid="day-animate" className="space-y-3">
-            <ToolActionRow>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => void animateSlot(activeSlot)}
-              >
-                Animate {activeSlot.label.toLowerCase()}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => void animateAllClips()}
-              >
-                Animate all
-              </Button>
-            </ToolActionRow>
+          <div className="space-y-3">
             <label className="block space-y-2">
               <FieldLabel>Day notes</FieldLabel>
               <TextArea

@@ -138,6 +138,50 @@ export function daySlotProgressLabel(state: ReturnType<typeof daySlotProgressSta
   return 'Waiting';
 }
 
+/** Clip (i2v) progress for a Day slot — independent of still status. */
+export function daySlotClipProgressState(
+  still: DaySlotStill | undefined
+): 'done' | 'failed' | 'queued' | 'idle' {
+  if (still?.clipStatus === 'completed' && Boolean(still.clipUrl?.trim())) {
+    return 'done';
+  }
+  if (still?.clipStatus === 'error') {
+    return 'failed';
+  }
+  if (still?.clipStatus === 'queued' || still?.clipStatus === 'running') {
+    return 'queued';
+  }
+  return 'idle';
+}
+
+export function daySlotClipProgressLabel(
+  state: ReturnType<typeof daySlotClipProgressState>
+): string {
+  if (state === 'done') {
+    return 'Clip ready';
+  }
+  if (state === 'failed') {
+    return 'Clip failed';
+  }
+  if (state === 'queued') {
+    return 'Animating…';
+  }
+  return '';
+}
+
+/** Combined board caption: still state + optional clip line. */
+export function daySlotBoardCaption(still: DaySlotStill | undefined): string {
+  const stillLabel = daySlotProgressLabel(daySlotProgressState(still));
+  const clipLabel = daySlotClipProgressLabel(daySlotClipProgressState(still));
+  if (!clipLabel) {
+    return stillLabel;
+  }
+  if (daySlotProgressState(still) === 'done') {
+    return clipLabel;
+  }
+  return `${stillLabel} · ${clipLabel}`;
+}
+
 function readText(value: unknown, max = 240): string {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }

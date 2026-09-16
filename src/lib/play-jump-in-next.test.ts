@@ -5,11 +5,11 @@ import { LOOK_PRESETS, lookPackFromPreset, tilesFromLookPreset } from './look-pr
 import { summarizePlayFunnel, type LocalObservabilityCounters } from './local-observability';
 
 describe('welcome sample + look presets + funnel drop-off', () => {
-  it('builds four sample film stills', () => {
+  it('builds a mute sample Day reel clip', () => {
     const shots = welcomeSampleFilmShots();
-    assert.equal(shots.length, 4);
-    assert.ok(shots.every(shot => shot.kind === 'still' && shot.url.startsWith('data:image/svg')));
-    assert.ok(decodeURIComponent(shots[0]!.url).includes('Sample reel'));
+    assert.equal(shots.length, 1);
+    assert.equal(shots[0]?.kind, 'clip');
+    assert.match(shots[0]?.url ?? '', /day-sample-reel\.mp4/);
   });
 
   it('builds demo day stills for offline Cut practice', () => {
