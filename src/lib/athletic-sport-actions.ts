@@ -478,6 +478,16 @@ export function inferCyclingDiscipline(hints?: string): CyclingDiscipline {
 const CYCLING_HELMET_IN_TEXT =
   /\b(?:cycling helmet|bike helmet|aero helmet|gravel helmet|mountain bike helmet|track cycling helmet|helmet visor|fastened helmet)\b/i;
 
+/**
+ * True when the text describes an actual bicycle / riding — not just cycling kit
+ * wardrobe (jersey, bibs) that often appears in studio try-ons and portraits.
+ */
+export function promptMentionsBicycleOrRiding(text: string): boolean {
+  return /\b(?:cyclists?|bicyclists?|bicycles?|(?:road|gravel|mountain|racing|track|cross)\s+bikes?|bike\s+(?:race|leg|lane|path)|bicycle\s+race|on\s+(?:a|the|her|his|their)\s+(?:bike|bicycle)|handlebars?|pedall?ing|pedals\b|peloton|velodrome|cycling\s+race|criterium|cyclocross|bikepacking|out-of-saddle|drafting\s+wheel|leaning\s+forward\s+on\s+the\s+bike)\b/i.test(
+    text
+  );
+}
+
 export function cyclingHelmetLabel(hints?: string): string {
   switch (inferCyclingDiscipline(hints)) {
     case 'gravel':
@@ -508,21 +518,26 @@ export function appendCyclingHelmetToSummary(summary: string, hints?: string): s
 }
 
 export function ensureCyclingHelmetInPrompt(prompt: string, hints?: string): string {
-  if (CYCLING_HELMET_IN_TEXT.test(prompt)) {
+  const corpus = [hints, prompt].filter(Boolean).join(' ');
+  // Kit-only / studio wardrobe scenes should not force helmets.
+  if (!promptMentionsBicycleOrRiding(corpus)) {
+    return prompt;
+  }
+  if (CYCLING_HELMET_IN_TEXT.test(prompt) || /\bhelmet\b/i.test(prompt)) {
     return prompt;
   }
 
   const helmet = cyclingHelmetLabel(hints);
+  const corpusHasRiding = promptMentionsBicycleOrRiding(corpus);
   const sentences = prompt.split(/(?<=[.!?])\s+/);
   let changed = false;
 
   const updated = sentences.map(sentence => {
-    const mentionsCyclist =
-      /\b(?:cyclist|cyclists|cycling kit|cycling shoes|bib shorts|cycling jersey|handlebars|pedaling|on (?:a |the )?(?:bike|bicycle))\b/i.test(
-        sentence
-      ) || /\bon the (?:left|right)\b/i.test(sentence);
-
-    if (!mentionsCyclist || /\bhelmet\b/i.test(sentence)) {
+    const mentionsRiderOrBike =
+      promptMentionsBicycleOrRiding(sentence) ||
+      // Duo race prompts often only say "on the left/right" while hints name cyclists.
+      (corpusHasRiding && /\bon the (?:left|right)\b/i.test(sentence));
+    if (!mentionsRiderOrBike || /\bhelmet\b/i.test(sentence)) {
       return sentence;
     }
 
@@ -542,7 +557,9 @@ export function ensureCyclingHelmetInPrompt(prompt: string, hints?: string): str
       .trim();
   }
 
-  return `${prompt.replace(/\.$/, '')}, each wearing a ${helmet}.`;
+  // Bicycle/riding was only in hints — leave the prompt alone rather than
+  // appending "each wearing a helmet" to an unrelated scene sentence.
+  return prompt;
 }
 
 const BOTTOM_LAYER_PRESENT =

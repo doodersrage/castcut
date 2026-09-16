@@ -118,9 +118,15 @@ describe('ensureCyclingHelmetInPrompt', () => {
     assert.equal(result, 'A cyclist speeds down the road, wearing a aero cycling helmet.');
   });
 
-  it('appends a trailing helmet clause when no sentence mentions a cyclist at all', () => {
-    const result = ensureCyclingHelmetInPrompt('A person walks through a park.');
-    assert.equal(result, 'A person walks through a park, each wearing a aero cycling helmet.');
+  it('does not force a helmet onto kit-only or non-riding scenes', () => {
+    assert.equal(
+      ensureCyclingHelmetInPrompt('A person walks through a park.'),
+      'A person walks through a park.'
+    );
+    assert.equal(
+      ensureCyclingHelmetInPrompt('A woman in a cycling jersey and bib shorts poses in a studio.'),
+      'A woman in a cycling jersey and bib shorts poses in a studio.'
+    );
   });
 
   it('uses the discipline-specific helmet label from hints', () => {

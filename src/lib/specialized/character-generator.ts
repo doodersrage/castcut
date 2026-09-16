@@ -49,6 +49,7 @@ import {
   stripIncompatibleSportActionsFromPrompt,
   ensureCyclingHelmetInPrompt,
   ensureAthleticBottomInPrompt,
+  promptMentionsBicycleOrRiding,
 } from '../athletic-sport-actions';
 import { DEFAULT_GENERATION_SETTINGS } from '../generation-settings';
 import { hasWardrobeCatalogSelection, shouldPickRandomCharacterOutfit } from '../clothing-catalog';
@@ -167,8 +168,9 @@ export async function generateCharacterPrompt(
         )
       ));
   const cyclingHelmetRequired =
-    intentSport === 'cycling' ||
-    Boolean(wardrobeAssignments?.some(a => a.filters.athleticSport === 'cycling'));
+    (intentSport === 'cycling' ||
+      Boolean(wardrobeAssignments?.some(a => a.filters.athleticSport === 'cycling'))) &&
+    promptMentionsBicycleOrRiding(intentCorpus);
   const identitySeed = duoMode ? null : pickCharacterIdentitySeed(parsed);
   const duoIdentitySeeds = duoMode
     ? pickDuoCharacterIdentitySeeds(

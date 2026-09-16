@@ -1,6 +1,7 @@
 import {
   inferCyclingDiscipline,
   promptContainsForeignSportActions,
+  promptMentionsBicycleOrRiding,
   promptMissingAthleticBottom,
   type CyclingDiscipline,
 } from './athletic-sport-actions';
@@ -34,8 +35,6 @@ export type PromptDiagnostics = {
 const STREET_CLOTHING_ON_ATHLETE =
   /\b(?:linen dress|evening gown|bright sari|paint-stained apron|bomber jacket|wearing (?:a )?(?:linen )?dress)\b/i;
 
-const BARE_HEAD_CYCLIST = /\b(?:cyclist|cyclists|cycling kit|on (?:a |the )?bike)\b/i;
-
 const HELMET_PRESENT =
   /\b(?:cycling helmet|bike helmet|aero helmet|gravel helmet|mountain bike helmet|track cycling helmet|helmet)\b/i;
 
@@ -67,11 +66,17 @@ export function analyzePromptDiagnostics(corpus: string, prompt?: string): Promp
         message: 'Prompt describes street clothes on a cyclist—use cycling kit only.',
       });
     }
-    if (BARE_HEAD_CYCLIST.test(prompt) && !HELMET_PRESENT.test(prompt)) {
+    // Only require a helmet when a bicycle / riding is actually in the scene —
+    // cycling kit portraits and studio try-ons should not force helmets.
+    if (
+      promptMentionsBicycleOrRiding(text) &&
+      !HELMET_PRESENT.test(prompt) &&
+      !HELMET_PRESENT.test(hintText)
+    ) {
       issues.push({
-        severity: 'error',
+        severity: 'warn',
         code: 'cycling.missing_helmet',
-        message: 'Cyclists should wear a fastened helmet.',
+        message: 'Bicycle scene has no helmet — add one if riders are on the bike.',
       });
       suggestions.push('Add a gravel/road/aero cycling helmet for each rider.');
     }

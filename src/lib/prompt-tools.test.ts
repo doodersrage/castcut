@@ -101,13 +101,24 @@ describe("lintPrompt", () => {
     );
   });
 
-  it("flags missing cycling helmets", () => {
+  it("flags missing cycling helmets when a rider is on a bike", () => {
     const result = lintPrompt({
       hints: "road cyclist criterium",
       prompt: "A cyclist in white kit sprints through a wet corner.",
     });
     assert.ok(
       result.issues.some((issue) => issue.code === "cycling.missing_helmet"),
+    );
+  });
+
+  it("does not flag missing helmets for cycling-kit studio scenes without a bike", () => {
+    const result = lintPrompt({
+      hints: "cycling jersey bib shorts",
+      prompt: "A woman in a cycling jersey and bib shorts poses against a white seamless backdrop.",
+    });
+    assert.equal(
+      result.issues.some((issue) => issue.code === "cycling.missing_helmet"),
+      false,
     );
   });
 
