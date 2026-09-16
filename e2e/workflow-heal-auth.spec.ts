@@ -264,7 +264,8 @@ test.describe('Play dogfood glue', () => {
       .or(metrics.getByTestId('play-next-cta'));
     await expect(emptyPlayCta.first()).toBeVisible();
     await expect(emptyPlayCta.first()).toHaveAttribute('href', '/play');
-    await expect(metrics.getByTestId('play-funnel-steps')).toBeVisible();
+    // Funnel chips only render once a campaign/funnel event exists.
+    await expect(metrics.getByTestId('play-funnel-steps')).toHaveCount(0);
     await expect(metrics.getByTestId('play-metrics-heal')).toBeVisible();
   });
 
@@ -567,9 +568,10 @@ test.describe('Play dogfood glue', () => {
     await dismissBlockingOverlays(page);
     await expect(page.getByTestId('play-next-cta')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('play-next-cta')).toContainText(/Save film to Cast/i);
+    // Look pack deep-links enrich Day with from=look + wardrobe when a pack is staged.
     await expect(page.getByTestId('play-next-cta')).toHaveAttribute(
       'href',
-      `/day?character=${characterId}`
+      new RegExp(`/day\\?.*character=${characterId}`)
     );
   });
 });
