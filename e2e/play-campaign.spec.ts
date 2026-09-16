@@ -400,16 +400,15 @@ test('fitting continue-in-day appears after Keep seeds day', async ({ page }) =>
   }
 });
 
-test('mobile desk bridge links to Play campaign and Day', async ({ page }) => {
+test('mobile desk bridge links to Film on desk', async ({ page }) => {
   await gotoStable(page, '/m');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('mobile-desk-bridge')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('mobile-desk-play')).toHaveAttribute('href', /\/play/);
-  await expect(page.getByTestId('mobile-desk-day')).toHaveAttribute('href', /\/day/);
-  await expect(page.getByTestId('mobile-desk-moodboard')).toHaveAttribute('href', /\/moodboard/);
   await expect(page.getByTestId('mobile-tab-moodboard')).toBeVisible();
   await expect(page.getByTestId('mobile-tab-fitting')).toBeVisible();
   await expect(page.getByTestId('mobile-tab-day')).toBeVisible();
+  await expect(page.getByTestId('mobile-tab-film')).toBeVisible();
 });
 
 test('mobile play page exposes phone Day/Fitting and optional desk handoff', async ({ page }) => {
@@ -928,7 +927,7 @@ test('mobile studio first-class film loop tabs and desk bridge', async ({ page }
   await expect(page.getByTestId('mobile-tab-moodboard')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('mobile-tab-fitting')).toBeVisible();
   await expect(page.getByTestId('mobile-tab-day')).toBeVisible();
-  await expect(page.getByTestId('mobile-tab-play')).toBeVisible();
+  await expect(page.getByTestId('mobile-tab-story')).toBeVisible();
   await expect(page.getByTestId('mobile-desk-bridge')).toBeVisible();
   await expect(page.getByRole('link', { name: /^Desk$/i })).toBeVisible();
 });
@@ -1041,4 +1040,97 @@ test('day cut film shows playbook when film assemble returns ffmpeg 503', async 
   await expect(playbook).toBeVisible();
   await expect(playbook).toHaveAttribute('href', /\/settings/);
   await expect(playbook).toContainText(/settings|Heal|overview/i);
+});
+
+test('play persistence triad is visible on Film hub', async ({ page }) => {
+  await gotoStable(page, '/play');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('play-persistence-triad')).toBeVisible({ timeout: 30_000 });
+});
+
+test('play habit nudge appears after a day-old cut', async ({ page }) => {
+  const dayAgo = Date.now() - 1000 * 60 * 60 * 25;
+  await page.addInitScript(
+    ({ cutAt }) => {
+      try {
+        localStorage.setItem('comfy-workspace-mode-v1', 'play');
+        localStorage.setItem('comfy-workspace-mode-chosen-v1', '1');
+        localStorage.setItem(
+          'comfy-play-metrics-v1',
+          JSON.stringify({
+            version: 1,
+            firstFilmCutAt: cutAt,
+            lastFilmCutAt: cutAt,
+          })
+        );
+        localStorage.setItem(
+          'play-campaign-v1',
+          JSON.stringify({
+            version: 1,
+            characterId: 'e2e-habit',
+            stepIndex: 3,
+            completedAt: cutAt,
+            updatedAt: cutAt,
+          })
+        );
+      } catch {
+        // ignore
+      }
+    },
+    { cutAt: dayAgo }
+  );
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-habit' },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-habit',
+          name: 'Habit Hero',
+          version: 1,
+          updatedAt: Date.now(),
+          descriptor: 'habit look',
+        },
+      ],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, '/play');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('play-habit-nudge')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('play-habit-nudge-open')).toBeVisible();
+});
+
+test('play film engine banner shows for non-Comfy engines', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { inferenceEngine: 'fal' },
+  });
+  await gotoStable(page, '/play');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('play-film-engine-banner')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('play-film-engine-switch')).toBeVisible();
+});
+
+test('story without Cast shows Open Film gate', async ({ page }) => {
+  await seedFirstFilmDone(page);
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: '' },
+    characters: { version: 1, characters: [], removedIds: [] },
+  });
+  await gotoStable(page, '/story');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('story-needs-cast')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('story-open-film')).toBeVisible();
+});
+
+test('film create includes Part and From photo cast identity', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: '' },
+    characters: { version: 1, characters: [], removedIds: [] },
+  });
+  await gotoStable(page, '/play');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('play-campaign-create-character')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('play-campaign-create-persona')).toBeVisible();
+  await expect(page.getByTestId('play-campaign-create-from-photo')).toBeVisible();
 });

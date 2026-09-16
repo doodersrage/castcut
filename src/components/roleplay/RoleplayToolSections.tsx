@@ -3,7 +3,6 @@
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 
 import SharedToolControls from '@/components/SharedToolControls';
-import RoleplayLibraryPanel from '@/components/RoleplayLibraryPanel';
 import RoleplayBeatOutputSection from '@/components/roleplay/RoleplayBeatOutputSection';
 import RoleplayBioSection from '@/components/roleplay/RoleplayBioSection';
 import RoleplayCastSection from '@/components/roleplay/RoleplayCastSection';
@@ -15,10 +14,12 @@ import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useRoleplayToolOrchestration } from '@/hooks/useRoleplayToolOrchestration';
 import { Button } from '@/components/ui/Button';
-import { CollapsibleSection, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
+import { getCharacter } from '@/lib/character-os';
+import { playCampaignHref } from '@/lib/play-campaign';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
-import { useEffect, useRef } from 'react';
+import { useMemo } from 'react';
 
 const ACCENT = 'amber' as const;
 const TOOL_ID = 'roleplay';
@@ -62,35 +63,17 @@ export default function RoleplayToolSections({
 }: RoleplayToolSectionsProps) {
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
-  const { softAdvance, cancelSoftAdvance, softAdvanceTo } = usePlaySoftAdvance();
-  const postCutAdvanceRef = useRef(false);
-  const watchCastHref = film.filmCharacterId
-    ? `/characters/${encodeURIComponent(film.filmCharacterId)}?media=films`
+  const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance();
+  const activeCharacterId = shared.activeCharacterId?.trim() || '';
+  const castCharacter = useMemo(
+    () => (activeCharacterId ? getCharacter(activeCharacterId) : undefined),
+    [activeCharacterId]
+  );
+  const castCharacterName = castCharacter?.name?.trim() || '';
+  const castHomeHref = activeCharacterId
+    ? `/characters/${encodeURIComponent(activeCharacterId)}`
     : '/characters';
-
-  useEffect(() => {
-    if (!film.firstCutCelebrate || film.filmNeedsCast || !film.filmCharacterId) {
-      if (!film.firstCutCelebrate) {
-        postCutAdvanceRef.current = false;
-      }
-      return;
-    }
-    if (postCutAdvanceRef.current) {
-      return;
-    }
-    postCutAdvanceRef.current = true;
-    softAdvanceTo('watch', {
-      characterId: film.filmCharacterId,
-      href: watchCastHref,
-      message: 'Opening your Story film on Cast',
-    });
-  }, [
-    film.firstCutCelebrate,
-    film.filmNeedsCast,
-    film.filmCharacterId,
-    softAdvanceTo,
-    watchCastHref,
-  ]);
+  const filmHref = activeCharacterId ? playCampaignHref(activeCharacterId) : '/play';
 
   const engineControls = (
     <SharedToolControls
@@ -144,6 +127,10 @@ export default function RoleplayToolSections({
         photoReady={reference.photoReady}
         ownBibleOpen={ownBibleOpen}
         toolSettings={toolSettings}
+        activeCharacterId={activeCharacterId}
+        castCharacterName={castCharacterName}
+        castHomeHref={castHomeHref}
+        filmHref={filmHref}
         isolateSubject={reference.isolateSubject}
         hasReferenceImage={reference.hasReferenceImage}
         scanning={reference.scanning}
@@ -157,7 +144,7 @@ export default function RoleplayToolSections({
         lastStill={reference.lastStill}
         onOwnBibleOpenChange={setOwnBibleOpen}
         onUpdateToolSettings={updateToolSettings}
-        onShelfAndStartNew={session.shelfAndStartNew}
+        onClearBio={session.clearBio}
         onApplyOwnBible={nextBio => void bioFlow.applyOwnBible(nextBio)}
         onClearReference={reference.clearReference}
         onApplyReference={reference.applyReference}
@@ -166,28 +153,8 @@ export default function RoleplayToolSections({
         onError={setError}
         onScanWithVision={() => void reference.scanWithVision()}
         onWriteBio={() => void bioFlow.writeBio()}
-        onSurpriseCast={session.surpriseCast}
         onRestartStory={session.restartStory}
       />
-
-      <CollapsibleSection
-        title="Sessions"
-        summary="Saved Story sessions — continue or start new"
-        defaultOpen={false}
-        persistKey="roleplay-library"
-      >
-        <RoleplayLibraryPanel
-          activeSessionId={toolSettings.activeSessionId}
-          busy={busy}
-          onContinue={session.continueLibrarySession}
-          onNew={session.startLibrarySession}
-          onDeleted={id => {
-            if (id === toolSettings.activeSessionId) {
-              updateToolSettings({ activeSessionId: undefined });
-            }
-          }}
-        />
-      </CollapsibleSection>
 
       {bio ? (
         <RoleplayBioSection

@@ -2,7 +2,7 @@
 
 The **Play** workspace is a guided film loop on one Cast character: **Look → Outfit → Day → Cut film** (Story optional after the first cut) → **Save to Cast**. This page is the product walkthrough; ops and env vars live in the [operator guide](operator.md) and [configuration](configuration.md).
 
-Jump to: [When to use Play](#when-to-use-play) · [Step-by-step](#step-by-step) · [Dashboard metrics](#dashboard-metrics) · [Share & resume](#share-and-resume) · [Mobile vs desk](#mobile-vs-desk)
+Jump to: [When to use Play](#when-to-use-play) · [Step-by-step](#step-by-step) · [Dashboard metrics](#dashboard-metrics) · [Share & resume](#share-and-resume) · [Play chrome & habits](#play-chrome-and-habits) · [Mobile vs desk](#mobile-vs-desk)
 
 ---
 
@@ -27,7 +27,7 @@ First launch asks **What do you want to make?** (Character / Scene·Film / Image
 
 ### 1. Open Film (`/play`)
 
-**Create or pick** a Cast character (name → **Create & continue to Look**), or tap **Make a starter film**. You do not need Story first. The stepper shows: Cast → Look → Outfit → Day → Story (optional).
+**Create or pick** a Cast character (name → optional **Part** and **From photo** → **Create & continue to Look**), or tap **Make a starter film**. Part and From photo live on Film / Cast — Story only continues that lead. The stepper shows: Cast → Look → Outfit → Day → Story (optional).
 
 ### 2. Look (`/moodboard`)
 
@@ -56,17 +56,18 @@ Four slots (Morning → Night) with wardrobe, setting, and beat per slot.
 - **Queue day** (Play queues draft stills in parallel for a faster first film).
 - **Animate** stays collapsed until you want I2V clips (Final quality).
 - **Cut film** — server ffmpeg when available, browser MediaRecorder fallback if the server encode fails.
-- After cut: **Watch / Save on Cast**. Story is optional.
+- After cut: celebrate with **Watch / Save on Cast** (manual — no auto-advance). Story is optional.
 
 Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 
 ### 5. Story (`/story`)
 
-**Optional** after the first Day cut: story beats, stills + clips, **Cut film**, Save to Cast.
+**Optional** after the first Day cut: continues the Cast lead you started on Film. Write a bio, roll beats, stills + clips, **Cut film**, Save to Cast.
 
-- **Play as** From bio or From photo (edit/img2img + identity lock).
+- Needs an active Cast character — empty Story sends you to Film / Cast (Part and From photo are set there).
+- **Continue as {name}** — mood, setting, and bio for this story; identity stays on Cast.
 - Fal **extend-video** when parent is on Fal CDN; else last-frame I2V.
-- Tone and content rating controls (see [features — Roleplay](features.md#scene-tools)). Adult heat requires the NSFW generator env flag.
+- Tone and content rating controls (see [features — Story](features.md#scene-tools)). Adult heat requires the NSFW generator env flag.
 
 ### 6. Close the loop
 
@@ -82,12 +83,12 @@ The **Play film loop** card on `/dashboard` shows:
 
 | Metric | Meaning |
 | --- | --- |
-| Campaign → first film | Days from first Play campaign to first Cut |
+| Film start → first cut | Days from first Film start to first Cut |
 | Cut rate / Save-to-Cast rate | Local observability funnel |
 | Funnel step chips | Deep-links to resume Look, Outfit, Day, etc. |
 | Stall banner | Where you are stuck before first cut + CTA to that step |
 
-Empty state: **Open Play campaign** + **Heal & ready** link.
+Empty state: **Open Film** + **Heal & ready** link.
 
 ---
 
@@ -95,12 +96,26 @@ Empty state: **Open Play campaign** + **Heal & ready** link.
 
 | Action | How |
 | --- | --- |
-| **Resume** | Campaign state + `lookPackId` restore on Cast; **Continue** on Play |
+| **Resume** | Film resume state + `lookPackId` restore on Cast; **Continue** on Play |
 | **Share link** | Copy share link embeds pack in `/play#lookpack=…` (large packs → Export JSON) |
 | **Cross-machine** | Studio backup JSON or look pack export/import |
 | **Character mismatch** | **Switch to that character** or restart at Look |
 
-Durable keys: `play-campaign-v1`, `comfy-play-metrics-v1`, look packs on Cast + session `moodboard-look-pack-v1`.
+Durable keys: `play-campaign-v1` (Film resume), `comfy-play-metrics-v1`, look packs on Cast + session `moodboard-look-pack-v1`.
+
+---
+
+## Play chrome & habits {#play-chrome-and-habits}
+
+| Chrome | Where | Behavior |
+| --- | --- | --- |
+| **Habit nudge** | Dashboard, Film hub, Mobile Studio | ~24h after latest cut → “Tomorrow’s Day” / same-look remix; dismiss stores `comfy-play-habit-nudge-v1` |
+| **Persistence triad** | Film hub (full), Look after extract (compact, desk + phone) | This session’s look · saved on Cast · resume step |
+| **Soft-advance** | Look → Outfit/Day/Story, Outfit → Day | 3s cancellable countdown — Go now / Stay here |
+| **Celebrate · manual Watch** | Day / Story after first Cut | Celebrate owns Watch / Save — no auto soft-advance to Cast |
+| **Engine banner** | Film tools when engine ≠ ComfyUI | Warns that film stills queue on Comfy; Heal & ready + Engine settings |
+
+Desk Film dock keeps **Film · Look · Outfit · Day** (+ Story after first cut). Cast, Gallery, Queue, Settings, Profile, and All tools live under **More**.
 
 ---
 
@@ -108,12 +123,12 @@ Durable keys: `play-campaign-v1`, `comfy-play-metrics-v1`, look packs on Cast + 
 
 | Surface | Role |
 | --- | --- |
-| **`/m` (Mobile Studio)** | First-class film loop: Cast → Gallery → **Look → Outfit → Day → Story** |
-| **`/m/film`** | Phone Film hub — same campaign resume / starter as desk `/play` |
+| **`/m` (Mobile Studio)** | First-class film loop: Cast → **Look → Outfit → Day → Story** |
+| **`/m/film`** | Phone Film hub — same Film resume / starter as desk `/play` |
 | **`/m/moodboard` · `/m/fitting` · `/m/day` · `/m/story`** | Touch-first Look / Outfit / Day / Story — stills + clips, Cut film, Save to Cast |
 | **Desk** | Optional large-screen handoff (Film stepper, full Story chrome) |
 
-Phone is a first-class film loop with the same vocabulary as desk.
+Phone is a first-class film loop with the same vocabulary as desk. Queue and Gallery sit under **More** on the phone dock.
 
 ---
 

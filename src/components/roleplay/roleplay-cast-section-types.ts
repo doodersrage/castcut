@@ -32,6 +32,11 @@ export type RoleplayCastSectionProps = {
   photoReady: boolean;
   ownBibleOpen: boolean;
   toolSettings: RoleplayToolCache;
+  /** Active Cast character — Story continues this; empty gates creation. */
+  activeCharacterId?: string | null;
+  castCharacterName?: string | null;
+  castHomeHref: string;
+  filmHref: string;
   isolateSubject: boolean;
   hasReferenceImage: boolean;
   scanning: boolean;
@@ -45,7 +50,7 @@ export type RoleplayCastSectionProps = {
   lastStill: { url: string; title: string } | null;
   onOwnBibleOpenChange: (open: boolean | ((prev: boolean) => boolean)) => void;
   onUpdateToolSettings: (partial: Partial<RoleplayToolCache>) => void;
-  onShelfAndStartNew: (patch?: Partial<RoleplayToolCache>) => void;
+  onClearBio: () => void;
   onApplyOwnBible: (nextBio: RoleplayBio) => void;
   onClearReference: () => void;
   onApplyReference: (input: RoleplayCastApplyReferenceInput) => Promise<void>;
@@ -56,6 +61,5 @@ export type RoleplayCastSectionProps = {
   onError: (message: string) => void;
   onScanWithVision: () => void;
   onWriteBio: () => void;
-  onSurpriseCast: () => void;
   onRestartStory: () => void;
 };

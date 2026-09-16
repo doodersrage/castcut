@@ -66,11 +66,11 @@ See [configuration — production checklist](configuration.md#production-checkli
 | Dashboard stall at **Outfit** | Open Outfit from stall CTA; Keep a try-on plate |
 | Stall at **Cut** | Complete Day stills or Story beats; open Day → **Cut film** |
 | **Cut film** disabled | Need at least one completed still in Day reel playlist |
-| Metrics empty | Start Play campaign (`/play`); metrics update on campaign start / first cut |
+| Metrics empty | Start Film (`/play`); metrics update on Film start / first cut |
 | Resume wrong character | **Switch to resume character** on Play or re-import look pack |
 | Share link too long | **Export JSON** instead of hash link |
 
-Full walkthrough: [Play campaign guide](play-guide.md).
+Full walkthrough: [Play film guide](play-guide.md).
 
 ---
 

@@ -11,6 +11,7 @@ import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
 import { featureForPath } from '@/lib/auth/features';
 import {
+  MOBILE_STUDIO_PRIMARY_TAB_IDS,
   MOBILE_STUDIO_TABS,
   mobileStudioTabFromPath,
   type MobileStudioTabId,
@@ -25,20 +26,10 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { accentForPath } from '@/lib/tool-theme';
 
-function deskBridgeHrefs(): {
-  play: string;
-  day: string;
-  fitting: string;
-  moodboard: string;
-} {
+function deskBridgeHref(): string {
   const characterId =
     typeof window !== 'undefined' ? loadSettingsCache().shared.activeCharacterId?.trim() || '' : '';
-  return {
-    play: resolvePlayLoopNavHref('/play', characterId),
-    day: resolvePlayLoopNavHref('/day', characterId),
-    fitting: resolvePlayLoopNavHref('/fitting', characterId),
-    moodboard: resolvePlayLoopNavHref('/moodboard', characterId),
-  };
+  return resolvePlayLoopNavHref('/play', characterId);
 }
 
 export default function MobileStudioShell({ children }: { children: ReactNode }) {
@@ -71,12 +62,21 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
       return canAccessNavFeature(allowed, featureForPath(entry.href));
     });
   }, [allowed, firstFilmDone]);
+  const primaryTabs = useMemo(
+    () => tabs.filter(entry => MOBILE_STUDIO_PRIMARY_TAB_IDS.includes(entry.id)),
+    [tabs]
+  );
+  const moreTabs = useMemo(
+    () => tabs.filter(entry => !MOBILE_STUDIO_PRIMARY_TAB_IDS.includes(entry.id)),
+    [tabs]
+  );
 
-  const desk = deskBridgeHrefs();
+  const deskHref = deskBridgeHref();
   const activeCharacterId =
     typeof window !== 'undefined' ? loadSettingsCache().shared.activeCharacterId?.trim() || '' : '';
   const hint =
     MOBILE_STUDIO_TABS.find(entry => entry.id === tab)?.hint ?? 'Look → Outfit → Day → Cut';
+  const moreActive = moreTabs.some(entry => entry.id === tab);
 
   return (
     <div
@@ -95,50 +95,16 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1" data-testid="mobile-desk-bridge">
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <PlayContinueChip variant="secondary" hideWhenHabit />
-            <Link
-              href="/dashboard"
-              className="ui-btn-secondary shrink-0 px-3 py-2 text-xs"
-              title="Optional desk handoff for large screens"
-            >
-              Desk
-            </Link>
-          </div>
-          <div className="flex max-w-[12rem] flex-wrap justify-end gap-1">
-            <Link
-              href={desk.play}
-              className="type-caption text-[var(--text-muted)] underline-offset-2 transition hover:text-[var(--text-primary)] hover:underline"
-              data-testid="mobile-desk-play"
-            >
-              Film
-            </Link>
-            <span className="type-caption text-[var(--border-strong)]">·</span>
-            <Link
-              href={desk.moodboard}
-              className="type-caption text-[var(--text-muted)] underline-offset-2 transition hover:text-[var(--text-primary)] hover:underline"
-              data-testid="mobile-desk-moodboard"
-            >
-              Look
-            </Link>
-            <span className="type-caption text-[var(--border-strong)]">·</span>
-            <Link
-              href={desk.fitting}
-              className="type-caption text-[var(--text-muted)] underline-offset-2 transition hover:text-[var(--text-primary)] hover:underline"
-              data-testid="mobile-desk-fitting"
-            >
-              Outfit
-            </Link>
-            <span className="type-caption text-[var(--border-strong)]">·</span>
-            <Link
-              href={desk.day}
-              className="type-caption text-[var(--text-muted)] underline-offset-2 transition hover:text-[var(--text-primary)] hover:underline"
-              data-testid="mobile-desk-day"
-            >
-              Day
-            </Link>
-          </div>
+        <div className="flex shrink-0 items-center gap-2" data-testid="mobile-desk-bridge">
+          <PlayContinueChip variant="secondary" hideWhenHabit />
+          <Link
+            href={deskHref}
+            className="ui-btn-secondary shrink-0 px-3 py-2 text-xs"
+            title="Optional desk handoff for large screens"
+            data-testid="mobile-desk-play"
+          >
+            Desk
+          </Link>
         </div>
       </header>
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -153,7 +119,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
         className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border-subtle)] bg-[var(--bg-muted)] pb-[env(safe-area-inset-bottom)]"
       >
         <ul className="mx-auto flex max-w-lg gap-0.5 overflow-x-auto px-2 py-2">
-          {tabs.map(entry => {
+          {primaryTabs.map(entry => {
             const active = entry.id === tab;
             const href = resolvePlayLoopNavHref(entry.href, activeCharacterId);
             return (
@@ -175,6 +141,43 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
               </li>
             );
           })}
+          {moreTabs.length > 0 ? (
+            <li className="min-w-[3.25rem] flex-1">
+              <details className="relative">
+                <summary
+                  data-active={moreActive ? 'true' : 'false'}
+                  data-testid="mobile-tab-more"
+                  className={[
+                    'flex list-none flex-col items-center rounded-[var(--radius-md)] px-1.5 py-2 text-center transition',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
+                    moreActive
+                      ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
+                      : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
+                  ].join(' ')}
+                >
+                  <span className="text-xs font-medium leading-tight">More</span>
+                </summary>
+                <div
+                  className="absolute bottom-full right-0 mb-2 min-w-[8rem] rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] py-1 shadow-lg"
+                  data-testid="mobile-more-menu"
+                >
+                  {moreTabs.map(entry => {
+                    const href = resolvePlayLoopNavHref(entry.href, activeCharacterId);
+                    return (
+                      <Link
+                        key={entry.id}
+                        href={href}
+                        data-testid={`mobile-tab-${entry.id}`}
+                        className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                      >
+                        {entry.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </details>
+            </li>
+          ) : null}
         </ul>
       </nav>
     </div>

@@ -30,6 +30,9 @@ const ROUTES: Array<{ path: string; label: string }> = [
   { path: '/compose', label: 'Compose' },
   { path: '/inpaint', label: 'Inpaint' },
   { path: '/workflow-editor', label: 'Workflow editor' },
+  { path: '/play', label: 'Film' },
+  { path: '/day', label: 'Day' },
+  { path: '/m/day', label: 'Mobile Day' },
 ];
 
 test.beforeEach(async ({ page }) => {

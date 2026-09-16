@@ -16,12 +16,22 @@ export type MobileStudioTab = {
 export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
   { id: 'capture', href: '/m', label: 'Cast', hint: 'Look → Outfit → Day → Cut' },
   { id: 'film', href: '/m/film', label: 'Film', hint: 'Resume or start a film' },
-  { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'Watch jobs' },
-  { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Rate stills' },
   { id: 'moodboard', href: '/m/moodboard', label: 'Look', hint: 'Extract look' },
   { id: 'fitting', href: '/m/fitting', label: 'Outfit', hint: 'Keep a kit' },
   { id: 'day', href: '/m/day', label: 'Day', hint: 'Queue · Cut film' },
   { id: 'story', href: '/m/story', label: 'Story', hint: 'Extend this character’s film' },
+  { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'Watch jobs' },
+  { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Rate stills' },
+];
+
+/** Primary dock tabs — Queue / Gallery live under More on the phone shell. */
+export const MOBILE_STUDIO_PRIMARY_TAB_IDS: MobileStudioTabId[] = [
+  'capture',
+  'film',
+  'moodboard',
+  'fitting',
+  'day',
+  'story',
 ];
 
 export type CharacterPlate = {

@@ -326,15 +326,42 @@ export function usePlayCampaignWizardOrchestration({
   }, [activeLookPack, characterId, goToStep]);
 
   const createCharacter = useCallback(
-    (input: {
+    async (input: {
       name: string;
       continueToMoodboard?: boolean;
       appearance?: CharacterAppearanceDraft | CharacterAppearanceFormDraft;
+      personaId?: string;
+      customPersona?: string;
+      referenceFile?: File | null;
     }) => {
       const name = input.name.trim() || 'Untitled character';
-      const record = createBlankCharacter(name, input.appearance);
+      const playAs = input.referenceFile ? ('photo' as const) : undefined;
+      const record = createBlankCharacter(name, input.appearance, {
+        personaId: input.personaId,
+        customPersona: input.customPersona,
+        playAs,
+      });
       upsertCharacter(record);
-      const saved = getCharacter(record.id) ?? record;
+      let saved = getCharacter(record.id) ?? record;
+      if (input.referenceFile) {
+        try {
+          const { applyCastLookPlateFromSource } = await import('@/lib/look-outfit-plate');
+          const plate = await applyCastLookPlateFromSource({
+            characterId: saved.id,
+            file: input.referenceFile,
+            isolate: true,
+          });
+          saved = plate.character;
+          upsertCharacter({ ...saved, playAs: 'photo' });
+          saved = getCharacter(saved.id) ?? saved;
+        } catch (err) {
+          setStatus(
+            err instanceof Error
+              ? `Created "${saved.name}" but look plate failed: ${err.message}`
+              : `Created "${saved.name}" but look plate failed.`
+          );
+        }
+      }
       // Drop the previous Cast's face lock / wardrobe / look pack / Moodboard tiles.
       clearLookPack();
       saveToolSettings('moodboard', { ...DEFAULT_MOODBOARD_TOOL_CACHE });

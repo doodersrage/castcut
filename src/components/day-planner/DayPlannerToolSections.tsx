@@ -34,7 +34,7 @@ import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGa
 import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import DayPlateSection from '@/components/day-planner/DayPlateSection';
@@ -131,7 +131,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const [jumpInMode, setJumpInMode] = useState(false);
   const [progressLightbox, setProgressLightbox] = useState<ImageLightboxState | null>(null);
   const { softAdvance, cancelSoftAdvance, softAdvanceTo } = usePlaySoftAdvance();
-  const postCutAdvanceRef = useRef(false);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const wardrobeKitDeck = useMemo(
     () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, activeSlot.wardrobeId),
@@ -172,24 +171,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const watchCastHref = character
     ? `/characters/${encodeURIComponent(character.id)}?media=films`
     : '/characters';
-
-  useEffect(() => {
-    if (!firstCutCelebrate || filmNeedsCast || !character) {
-      if (!firstCutCelebrate) {
-        postCutAdvanceRef.current = false;
-      }
-      return;
-    }
-    if (postCutAdvanceRef.current) {
-      return;
-    }
-    postCutAdvanceRef.current = true;
-    softAdvanceTo('watch', {
-      characterId: character.id,
-      href: watchCastHref,
-      message: 'Opening your film on Cast',
-    });
-  }, [character, filmNeedsCast, firstCutCelebrate, softAdvanceTo, watchCastHref]);
 
   const openProgressLightbox = useCallback(
     (slotId: string) => {

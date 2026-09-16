@@ -4,6 +4,7 @@ import Link from 'next/link';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
+import PlayPersistenceTriad from '@/components/PlayPersistenceTriad';
 import { Button, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
@@ -423,6 +424,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
           {lookStatus}
         </p>
       ) : null}
+      {lookStatus ? <PlayPersistenceTriad compact /> : null}
       <FieldError>{error}</FieldError>
     </div>
   );

@@ -55,7 +55,7 @@ reachable LLM. Actually queuing a render needs a real backend — pick up at ste
 
 1. Set `COMFYUI_API_URL`, `LLM_MODEL`, and ideally `LLM_VISION_MODEL` in `.env.local`.
 2. Use **Heal & ready** on first launch (Welcome dialog or Settings → Overview).
-3. Choose **Character / Scene·Film / Image / Surprise** on first run, or open **Play campaign**.
+3. Choose **Character / Scene·Film / Image / Surprise** on first run, or open **Film** (`/play`).
 
 **10-minute film loop:** Heal & ready → **Play** → create character → Look extract → Outfit Keep → Day stills/clips → **Cut film** → Save to Cast. Walkthrough: [Play guide](docs/play-guide.md) · [Operator guide — 10-minute loop](docs/operator.md#10-minute-loop).
 
@@ -71,7 +71,7 @@ See [Configuration & deployment](docs/configuration.md) for auth, production che
 
 | Mode | Framing | Sidebar | Shared controls |
 | --- | --- | --- | --- |
-| **Play** (default) | **Make** | Campaign, Look, Outfit, Day, Story, Gallery, Queue | Lean |
+| **Play** (default) | **Make** | Film, Look, Outfit, Day, Story, Gallery, Queue | Lean |
 | **Simple** | **Make** (lean) | Essentials + More tools | Advanced collapsed |
 | **Studio** | **Control** | Edit / Media / Library / Extras | Advanced collapsed |
 | **Full** | **Build** | Same as Studio, groups expanded | Advanced open |

@@ -14,6 +14,7 @@ export default function CharacterMediaTile({
   entry,
   characterId,
   kept,
+  onOpen,
   onToggleKeeper,
   onAnimateStill,
   onRemoveFromCharacter,
@@ -21,6 +22,7 @@ export default function CharacterMediaTile({
   entry: ComfyGalleryEntry;
   characterId: string;
   kept?: boolean;
+  onOpen?: () => void;
   onToggleKeeper?: () => void;
   onAnimateStill?: () => void;
   onRemoveFromCharacter?: () => void;
@@ -30,40 +32,39 @@ export default function CharacterMediaTile({
     ...entry,
     mediaKind: galleryEntryPrimaryMediaKind(entry),
   });
-  const href = `/gallery?character=${encodeURIComponent(characterId)}&focus=${encodeURIComponent(entry.id)}`;
+  const galleryHref = `/gallery?character=${encodeURIComponent(characterId)}&focus=${encodeURIComponent(entry.id)}`;
+  const kindLabel = isAssembledFilmEntry(entry) ? 'Film' : clip ? 'Clip' : 'Still';
+  const canOpen = Boolean(previewSrc && onOpen);
+
   return (
     <li>
       <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]">
-        {clip && previewSrc ? (
-          <GalleryEntryPreview
-            entry={entry}
-            className="aspect-square w-full object-cover"
-            controls
-          />
+        {canOpen ? (
+          <button
+            type="button"
+            className="block w-full cursor-zoom-in border-0 bg-transparent p-0 text-left"
+            data-testid="cast-media-open"
+            aria-label={`Open ${kindLabel} in lightbox`}
+            onClick={onOpen}
+          >
+            <GalleryEntryPreview entry={entry} className="aspect-square w-full object-cover" />
+          </button>
+        ) : previewSrc ? (
+          <GalleryEntryPreview entry={entry} className="aspect-square w-full object-cover" />
         ) : (
-          <Link href={href} className="block">
-            {previewSrc ? (
-              <GalleryEntryPreview entry={entry} className="aspect-square w-full object-cover" />
-            ) : (
-              <div className="flex aspect-square items-center justify-center type-caption text-[var(--text-muted)]">
-                {entry.status}
-              </div>
-            )}
-          </Link>
+          <div className="flex aspect-square items-center justify-center type-caption text-[var(--text-muted)]">
+            {entry.status}
+          </div>
         )}
         <p className="type-caption truncate px-2 py-1 text-[var(--text-muted)]">
-          {isAssembledFilmEntry(entry) ? 'Film' : clip ? 'Clip' : 'Still'}
+          {kindLabel}
           {kept ? ' · keeper' : ''}
           {entry.reviewRating ? ` · ${entry.reviewRating}★` : ''}
           {entry.favorite ? ' · fav' : ''}
-          {clip ? (
-            <>
-              {' · '}
-              <Link href={href} className="underline-offset-2 hover:underline">
-                Open
-              </Link>
-            </>
-          ) : null}
+          {' · '}
+          <Link href={galleryHref} className="underline-offset-2 hover:underline">
+            Gallery
+          </Link>
           {!clip && onAnimateStill ? (
             <>
               {' · '}

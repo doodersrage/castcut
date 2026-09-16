@@ -29,15 +29,17 @@ type KioskTab = {
   href: string;
   label: string;
   requiresFirstFilm?: boolean;
+  /** Primary film-loop dock vs More overflow. */
+  primary?: boolean;
 };
 
 const PLAY_KIOSK_TABS: KioskTab[] = [
+  { href: '/play', label: 'Film', primary: true },
+  { href: '/moodboard', label: 'Look', primary: true },
+  { href: '/fitting', label: 'Outfit', primary: true },
+  { href: '/day', label: 'Day', primary: true },
+  { href: '/story', label: 'Story', requiresFirstFilm: true, primary: true },
   { href: '/characters', label: 'Cast' },
-  { href: '/play', label: 'Film' },
-  { href: '/moodboard', label: 'Look' },
-  { href: '/fitting', label: 'Outfit' },
-  { href: '/day', label: 'Day' },
-  { href: '/story', label: 'Story', requiresFirstFilm: true },
   { href: '/gallery', label: 'Gallery' },
   { href: '/queue', label: 'Queue' },
 ];
@@ -67,10 +69,7 @@ function gridColsClass(count: number): string {
   if (count === 6) {
     return 'grid-cols-6';
   }
-  if (count === 7) {
-    return 'grid-cols-7';
-  }
-  return 'grid-cols-4 sm:grid-cols-8';
+  return 'grid-cols-4 sm:grid-cols-5';
 }
 
 export default function PlayKioskShell() {
@@ -81,6 +80,7 @@ export default function PlayKioskShell() {
   const allowed = auth?.allowedFeatures ?? 'all';
   const [firstFilmDone, setFirstFilmDone] = useState(false);
   const [progressLabel, setProgressLabel] = useState('Film · start');
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     const refresh = () => {
@@ -102,7 +102,7 @@ export default function PlayKioskShell() {
     };
   }, []);
 
-  const tabs = useMemo(
+  const visibleTabs = useMemo(
     () =>
       PLAY_KIOSK_TABS.filter(entry => {
         if (entry.requiresFirstFilm && !firstFilmDone) {
@@ -112,8 +112,11 @@ export default function PlayKioskShell() {
       }),
     [allowed, firstFilmDone]
   );
+  const primaryTabs = useMemo(() => visibleTabs.filter(entry => entry.primary), [visibleTabs]);
+  const moreTabs = useMemo(() => visibleTabs.filter(entry => !entry.primary), [visibleTabs]);
   const settingsVisible = canAccessNavFeature(allowed, 'settings');
-  const colClass = gridColsClass(tabs.length);
+  const colClass = gridColsClass(primaryTabs.length);
+  const moreActive = moreTabs.some(entry => tabIsActive(entry.href, pathname));
 
   return (
     <div data-accent={accent}>
@@ -129,20 +132,69 @@ export default function PlayKioskShell() {
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="relative flex shrink-0 flex-wrap items-center justify-end gap-2">
           <ConnectionHealthChip compact />
           <PlayContinueChip />
-          {settingsVisible ? (
-            <Link href={APP_NAV_SETTINGS_LINK.href} className="ui-btn-secondary px-3 py-2 text-xs">
-              Settings
-            </Link>
-          ) : null}
-          <Link href={APP_NAV_PROFILE_LINK.href} className="ui-btn-secondary px-3 py-2 text-xs">
-            Profile
-          </Link>
-          <Link href={ROLEPLAY_FOCUS_ESCAPE_HREF} className="ui-btn-secondary px-3 py-2 text-xs">
-            All tools
-          </Link>
+          <div className="relative">
+            <button
+              type="button"
+              className="ui-btn-secondary px-3 py-2 text-xs"
+              data-testid="play-kiosk-more"
+              aria-expanded={moreOpen}
+              aria-haspopup="menu"
+              onClick={() => setMoreOpen(open => !open)}
+            >
+              More
+            </button>
+            {moreOpen ? (
+              <div
+                role="menu"
+                className="absolute right-0 top-full z-50 mt-1 min-w-[10rem] rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] py-1 shadow-lg"
+                data-testid="play-kiosk-more-menu"
+              >
+                {moreTabs.map(entry => {
+                  const href = entry.href === '/gallery' ? galleryHref : entry.href;
+                  return (
+                    <Link
+                      key={entry.href}
+                      href={href}
+                      role="menuitem"
+                      className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                      onClick={() => setMoreOpen(false)}
+                    >
+                      {entry.label}
+                    </Link>
+                  );
+                })}
+                {settingsVisible ? (
+                  <Link
+                    href={APP_NAV_SETTINGS_LINK.href}
+                    role="menuitem"
+                    className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                    onClick={() => setMoreOpen(false)}
+                  >
+                    Settings
+                  </Link>
+                ) : null}
+                <Link
+                  href={APP_NAV_PROFILE_LINK.href}
+                  role="menuitem"
+                  className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                  onClick={() => setMoreOpen(false)}
+                >
+                  Profile
+                </Link>
+                <Link
+                  href={ROLEPLAY_FOCUS_ESCAPE_HREF}
+                  role="menuitem"
+                  className="block border-t border-[var(--border-subtle)] px-3 py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                  onClick={() => setMoreOpen(false)}
+                >
+                  All tools
+                </Link>
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
       <nav
@@ -150,7 +202,7 @@ export default function PlayKioskShell() {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--bg-base)_92%,transparent)] pb-[env(safe-area-inset-bottom)] backdrop-blur-md"
       >
         <ul className={`mx-auto grid max-w-4xl ${colClass} gap-0.5 px-2 py-2`}>
-          {tabs.map(entry => {
+          {primaryTabs.map(entry => {
             const active = tabIsActive(entry.href, pathname);
             const href = entry.href === '/gallery' ? galleryHref : entry.href;
             return (
@@ -171,6 +223,24 @@ export default function PlayKioskShell() {
               </li>
             );
           })}
+          {moreTabs.length > 0 ? (
+            <li className="sm:hidden">
+              <button
+                type="button"
+                data-active={moreActive ? 'true' : 'false'}
+                className={[
+                  'flex w-full flex-col items-center rounded-[var(--radius-md)] px-2 py-2 text-center transition',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
+                  moreActive
+                    ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
+                    : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
+                ].join(' ')}
+                onClick={() => setMoreOpen(true)}
+              >
+                <span className="text-sm font-medium">More</span>
+              </button>
+            </li>
+          ) : null}
         </ul>
       </nav>
     </div>

@@ -1,9 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef } from 'react';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
-import RoleplayLibraryPanel from '@/components/RoleplayLibraryPanel';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
@@ -73,37 +71,12 @@ export default function MobilePlayToolSections({ description: _description, ...v
     animateBeat,
     retryClip,
     extendBeat,
-    continueLibrarySession,
-    startLibrarySession,
     plateUrl,
     autoIsolateAttemptedRef,
     setActivePlate,
   } = vm;
 
-  const { softAdvance, cancelSoftAdvance, softAdvanceTo } = usePlaySoftAdvance({ mobile: true });
-  const postCutAdvanceRef = useRef(false);
-  const watchCastHref = filmCharacterId
-    ? toMobileStudioHref(`/characters/${encodeURIComponent(filmCharacterId)}?media=films`)
-    : toMobileStudioHref('/characters');
-
-  useEffect(() => {
-    if (!firstCutCelebrate || filmNeedsCast || !filmCharacterId) {
-      if (!firstCutCelebrate) {
-        postCutAdvanceRef.current = false;
-      }
-      return;
-    }
-    if (postCutAdvanceRef.current) {
-      return;
-    }
-    postCutAdvanceRef.current = true;
-    softAdvanceTo('watch', {
-      characterId: filmCharacterId,
-      href: watchCastHref,
-      message: 'Opening your Story film on Cast',
-    });
-  }, [firstCutCelebrate, filmNeedsCast, filmCharacterId, softAdvanceTo, watchCastHref]);
-
+  const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance({ mobile: true });
   const castId = filmCharacterId?.trim() || '';
 
   return (
@@ -111,7 +84,8 @@ export default function MobilePlayToolSections({ description: _description, ...v
       <div className="space-y-1">
         <h1 className="type-display text-2xl tracking-tight">Story</h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-          Optional beats after Day — stills and clips, then Cut film.
+          Optional beats after Day — continues your Cast lead. Part and From photo live on Film /
+          Cast.
         </p>
       </div>
 
@@ -122,7 +96,21 @@ export default function MobilePlayToolSections({ description: _description, ...v
         onCancel={cancelSoftAdvance}
       />
 
-      {plateUrl ? (
+      {!castId ? (
+        <div
+          className="rounded-2xl border border-dashed border-[var(--border-subtle)] px-4 py-8 text-center"
+          data-testid="story-needs-cast"
+        >
+          <p className="text-sm text-[var(--text-muted)]">
+            Story needs a Cast lead — create one on Film first.
+          </p>
+          <Link href="/m/film" className="ui-btn-primary mt-3 inline-flex justify-center">
+            Open Film
+          </Link>
+        </div>
+      ) : null}
+
+      {castId && plateUrl ? (
         <div className="flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-2">
           <div className="h-16 w-16 overflow-hidden rounded-xl bg-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -133,7 +121,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
               {activePlate?.name || bio?.name || 'Plate'}
             </p>
             <p className="type-caption text-[var(--text-muted)]">
-              {playAs === 'photo' ? 'From photo' : 'Switching to From photo'}
+              {playAs === 'photo' ? 'From photo' : 'From bio'}
               {toolSettings.referenceIsolated === true
                 ? ' · isolated'
                 : isolating
@@ -144,14 +132,17 @@ export default function MobilePlayToolSections({ description: _description, ...v
             </p>
           </div>
         </div>
-      ) : (
+      ) : castId ? (
         <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] px-4 py-8 text-center">
-          <p className="text-sm text-[var(--text-muted)]">No plate yet.</p>
-          <Link href="/m" className="ui-btn-primary mt-3 inline-flex justify-center">
-            Capture one
+          <p className="text-sm text-[var(--text-muted)]">No look plate yet — set one on Cast.</p>
+          <Link
+            href={`/characters/${encodeURIComponent(castId)}`}
+            className="ui-btn-secondary mt-3 inline-flex justify-center"
+          >
+            Open Cast
           </Link>
         </div>
-      )}
+      ) : null}
 
       {plates.length > 1 ? (
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -261,21 +252,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
           {formatRoleplayBio(bio)}
         </pre>
       ) : null}
-
-      <div className="space-y-2">
-        <p className="type-caption text-[var(--text-muted)]">Library</p>
-        <RoleplayLibraryPanel
-          activeSessionId={toolSettings.activeSessionId}
-          busy={bioLoading || playingId !== null}
-          onContinue={continueLibrarySession}
-          onNew={startLibrarySession}
-          onDeleted={id => {
-            if (id === toolSettings.activeSessionId) {
-              updateToolSettings({ activeSessionId: undefined });
-            }
-          }}
-        />
-      </div>
 
       {scenes.length > 0 ? (
         <div className="space-y-2">

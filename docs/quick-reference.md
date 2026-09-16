@@ -9,7 +9,7 @@ Routes, workspace modes, keyboard shortcuts, and common npm commands. For narrat
 | Mode | Sidebar | Advanced UI |
 | --- | --- | --- |
 | **Simple** (default) | Essentials + More tools | Collapsed |
-| **Play** | Campaign, Look, Outfit, Day, Story, Gallery, Queue | Lean Story rail |
+| **Play** | Film, Look, Outfit, Day, Story, Gallery, Queue | Lean Story rail |
 | **Studio** | Edit / Media / Library groups | Collapsed sections |
 | **Full** | Same as Studio, expanded | Quality sections open |
 
@@ -21,7 +21,7 @@ Toggle: sidebar footer or **Profile → Appearance**.
 
 | Step | Route | Deep link |
 | --- | --- | --- |
-| Campaign | `/play` | `?character=` · `#lookpack=` |
+| Film | `/play` | `?character=` · `#lookpack=` |
 | Look | `/moodboard` | `?character=` |
 | Outfit | `/fitting` | `?character=&wardrobe=` |
 | Day | `/day` | `?character=` · `?from=look` |

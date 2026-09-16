@@ -5,11 +5,13 @@ import CharacterLoraFlywheel from '@/components/CharacterLoraFlywheel';
 import { ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import CharacterBibleSection from '@/components/character/CharacterBibleSection';
 import CharacterHomeActionRow from '@/components/character/CharacterHomeActionRow';
 import CharacterLookPacksSection from '@/components/character/CharacterLookPacksSection';
 import CharacterLookPlateSection from '@/components/character/CharacterLookPlateSection';
 import CharacterLooksSection from '@/components/character/CharacterLooksSection';
 import CharacterMediaSection from '@/components/character/CharacterMediaSection';
+import CharacterPersonaSection from '@/components/character/CharacterPersonaSection';
 import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrchestration';
 
 type CharacterHomeViewModel = ReturnType<typeof useCharacterHomeOrchestration>;
@@ -76,6 +78,8 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
         addLookFromShared={props.addLookFromShared}
         loadSettingsCache={props.loadSettingsCache}
       />
+      <CharacterPersonaSection character={character} onUpdated={props.persistApply} />
+      <CharacterBibleSection character={character} onUpdated={props.persistApply} />
       <CharacterLookPlateSection
         characterId={character.id}
         plate={props.lookPlate}

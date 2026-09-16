@@ -15,7 +15,7 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
 ## Generation engines
 
 - **Diffusers is an optional stills sidecar — not the product bet.** txt2img/img2img
-  through Diffusers works for stills, but Play film (Day, Roleplay clips, Cast video)
+  through Diffusers works for stills, but Play film (Day, Story clips, Cast video)
   always routes through ComfyUI or a cloud engine. Further Diffusers parity beyond the
   documented stills surface is **parked**; hard non-goals (PuLID, FaceDetailer, Dynamic
   VRAM, Boogu/GGUF, video, etc.) stay on Comfy.

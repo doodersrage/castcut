@@ -13,9 +13,8 @@ export function RoleplayCastActionsSection({
   beatOutput,
   photoReady,
   onWriteBio,
-  onSurpriseCast,
   onOwnBibleOpenChange,
-  onShelfAndStartNew,
+  onClearBio,
   onRestartStory,
 }: Pick<
   RoleplayCastSectionProps,
@@ -28,9 +27,8 @@ export function RoleplayCastActionsSection({
   | 'beatOutput'
   | 'photoReady'
   | 'onWriteBio'
-  | 'onSurpriseCast'
   | 'onOwnBibleOpenChange'
-  | 'onShelfAndStartNew'
+  | 'onClearBio'
   | 'onRestartStory'
 >) {
   return (
@@ -48,10 +46,7 @@ export function RoleplayCastActionsSection({
         disabled={(busy && !bioLoading) || !photoReady}
         onClick={() => void onWriteBio()}
       >
-        Write my bio
-      </Button>
-      <Button variant="secondary" disabled={busy} onClick={onSurpriseCast}>
-        Surprise cast
+        {bio ? 'Rewrite bio' : 'Write my bio'}
       </Button>
       <Button
         variant="secondary"
@@ -61,7 +56,7 @@ export function RoleplayCastActionsSection({
         {bio ? 'Edit bible' : 'Use my own bible'}
       </Button>
       {bio ? (
-        <Button variant="ghost" disabled={busy} onClick={() => onShelfAndStartNew()}>
+        <Button variant="ghost" disabled={busy} onClick={onClearBio}>
           Clear bio
         </Button>
       ) : null}

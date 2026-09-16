@@ -87,6 +87,7 @@ export function ChipButton({
   className = '',
   disabled = false,
   title,
+  'data-testid': dataTestId,
 }: {
   active: boolean;
   onClick: () => void;
@@ -94,6 +95,7 @@ export function ChipButton({
   className?: string;
   disabled?: boolean;
   title?: string;
+  'data-testid'?: string;
 }) {
   return (
     <button
@@ -101,6 +103,7 @@ export function ChipButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
+      data-testid={dataTestId}
       data-active={active ? 'true' : 'false'}
       className={`ui-chip ${className}`.trim()}
     >

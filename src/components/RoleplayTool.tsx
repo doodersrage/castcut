@@ -6,8 +6,8 @@ import RoleplayToolSections from '@/components/roleplay/RoleplayToolSections';
 
 export default function RoleplayTool() {
   const description = useToolPageDescription(
-    'Cast yourself as someone (or something). Clip mode turns each beat into motion — still, then I2V, then Extend / last-frame / Stitch continue by engine.',
-    'Pick a character, write a bio, tap a scene — Extend, last-frame, or Stitch continue by engine.'
+    'Continue your Cast lead with story beats — stills and clips, then Cut film. Part and From photo live on Film / Cast.',
+    'Continue this Cast character — write a bio, tap a scene, Cut film.'
   );
   const vm = useRoleplayToolOrchestration();
 

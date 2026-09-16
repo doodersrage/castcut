@@ -151,6 +151,17 @@ export function useRoleplaySessionActions({
     [setOwnBibleOpen, setScenes, toolSettings, updateToolSettings]
   );
 
+  /** Clear bio/story for the current Cast lead without shelving a separate session. */
+  const clearBio = useCallback(() => {
+    updateToolSettings({
+      bio: undefined,
+      story: [],
+      rejectedScenes: [],
+    });
+    setScenes([]);
+    setOwnBibleOpen(false);
+  }, [setOwnBibleOpen, setScenes, updateToolSettings]);
+
   const restartStory = useCallback(() => {
     updateToolSettings({ story: [], rejectedScenes: [] });
     setScenes([]);
@@ -183,6 +194,7 @@ export function useRoleplaySessionActions({
     copyBeatPrompt,
     downloadStory,
     shelfAndStartNew,
+    clearBio,
     restartStory,
     surpriseCast,
     continueLibrarySession,

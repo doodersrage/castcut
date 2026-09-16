@@ -100,6 +100,15 @@ describe('character-os', () => {
     assert.equal(record.lockedLocation, 'neon alley');
   });
 
+  it('createBlankCharacter stores optional Part and From photo playAs', () => {
+    const blank = createBlankCharacter('Rin', undefined, {
+      personaId: 'raccoon-pirate',
+      playAs: 'photo',
+    });
+    assert.equal(blank.personaId, 'raccoon-pirate');
+    assert.equal(blank.playAs, 'photo');
+  });
+
   it('createBlankCharacter does not inherit session face lock or wardrobe', () => {
     const blank = createBlankCharacter('Kai', {
       sex: 'man',

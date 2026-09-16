@@ -1,14 +1,27 @@
 'use client';
 
+import dynamic from 'next/dynamic';
+import { useCallback, useMemo, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
 import { SegmentedControl, ToolActionRow, ToolSection } from '@/components/ui/ToolPageShell';
 import { FieldError } from '@/components/ui/Field';
-import { galleryEntryPrimaryMediaKind } from '@/lib/comfyui-gallery';
+import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
+import {
+  buildGalleryLightboxPlaylist,
+  galleryEntryHeroPreviewUrl,
+  galleryEntryPrimaryMediaKind,
+  resolveGalleryLightboxOpenIndex,
+} from '@/lib/comfyui-gallery';
+import { buildLightboxStateFromPlaylist } from '@/lib/gallery-lightbox-state';
 import { remixDayFilmHref } from '@/lib/play-starter';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
 import CharacterMediaTile from '@/components/character/CharacterMediaTile';
 import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrchestration';
+
+const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
+  ssr: false,
+});
 
 type CharacterMediaSectionProps = Pick<
   ReturnType<typeof useCharacterHomeOrchestration>,
@@ -58,6 +71,25 @@ export default function CharacterMediaSection({
   loadEngineSettings,
   galleryEntryPrimaryViewUrl,
 }: CharacterMediaSectionProps) {
+  const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
+
+  const lightboxEntries = useMemo(
+    () => visible.filter(entry => Boolean(galleryEntryHeroPreviewUrl(entry))),
+    [visible]
+  );
+
+  const openEntry = useCallback(
+    (entryId: string) => {
+      const playlist = buildGalleryLightboxPlaylist(lightboxEntries);
+      const index = resolveGalleryLightboxOpenIndex(lightboxEntries, entryId);
+      const next = buildLightboxStateFromPlaylist(playlist, index);
+      if (next) {
+        setLightbox(next);
+      }
+    },
+    [lightboxEntries]
+  );
+
   if (!character) {
     return null;
   }
@@ -70,7 +102,7 @@ export default function CharacterMediaSection({
           ? 'Playable reel. Continue labels Extend / last-frame / Stitch by engine.'
           : mediaTab === 'films'
             ? 'Assembled Day / Story films stamped on this character.'
-            : 'Jobs stamped with this character.'
+            : 'Jobs stamped with this character. Click a still or clip to open it here.'
       }
       data-testid="cast-media"
     >
@@ -174,6 +206,7 @@ export default function CharacterMediaSection({
               entry={entry}
               characterId={character.id}
               kept={keepers.some(keeper => keeper.id === entry.id)}
+              onOpen={galleryEntryHeroPreviewUrl(entry) ? () => openEntry(entry.id) : undefined}
               onToggleKeeper={currentLook ? () => toggleKeeper(entry.id) : undefined}
               onAnimateStill={
                 !isGalleryClipEntry({
@@ -188,6 +221,13 @@ export default function CharacterMediaSection({
           ))}
         </ul>
       )}
+      <ImageLightbox
+        state={lightbox}
+        onClose={() => setLightbox(null)}
+        onIndexChange={index =>
+          setLightbox(previous => (previous ? { ...previous, index } : previous))
+        }
+      />
     </ToolSection>
   );
 }

@@ -477,13 +477,22 @@ export function characterFromShared(
   };
 }
 
+export type CreateBlankCharacterOptions = {
+  personaId?: string;
+  customPersona?: string;
+  playAs?: RoleplayPlayAs;
+};
+
 /** Fresh Cast record — name plus a rolled (or chosen) face descriptor so Day/Generate are not blank. */
 export function createBlankCharacter(
   name: string,
-  appearance?: CharacterAppearanceDraft | CharacterAppearanceFormDraft
+  appearance?: CharacterAppearanceDraft | CharacterAppearanceFormDraft,
+  options?: CreateBlankCharacterOptions
 ): CharacterRecord {
   const trimmed = name.trim() || 'Untitled character';
   const draft = resolveCharacterAppearance(appearance ?? {});
+  const personaId = options?.personaId?.trim() || undefined;
+  const customPersona = options?.customPersona?.trim() || undefined;
   return {
     id: newCharacterId(),
     name: trimmed,
@@ -492,6 +501,9 @@ export function createBlankCharacter(
     characterName: trimmed,
     descriptor: composeCharacterAppearanceDescriptor(draft),
     hints: characterAppearanceHints(draft),
+    ...(personaId ? { personaId } : {}),
+    ...(customPersona ? { customPersona } : {}),
+    ...(options?.playAs ? { playAs: options.playAs } : {}),
   };
 }
 

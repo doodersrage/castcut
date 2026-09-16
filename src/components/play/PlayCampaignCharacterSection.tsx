@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useSyncExternalStore } from 'react';
+import CastPersonaPartChips from '@/components/cast/CastPersonaPartChips';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldLabel, SelectInput } from '@/components/ui/Field';
@@ -52,6 +53,10 @@ export default function PlayCampaignCharacterSection({
   const [appearance, setAppearance] = useState<CharacterAppearanceFormDraft>(() =>
     defaultCharacterAppearanceForm()
   );
+  const [personaId, setPersonaId] = useState('');
+  const [customPersona, setCustomPersona] = useState('');
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [creating, setCreating] = useState(false);
   const characters = useSyncExternalStore(
     subscribeCharacters,
     getCharactersSnapshot,
@@ -65,11 +70,30 @@ export default function PlayCampaignCharacterSection({
     setAppearance(current => ({ ...current, [key]: value }));
   };
 
-  const submitCreate = (continueToMoodboard: boolean) => {
-    const name = draftName.trim() || 'Untitled character';
-    createCharacter({ name, continueToMoodboard, appearance });
+  const resetDraft = () => {
     setDraftName('');
     setAppearance(defaultCharacterAppearanceForm());
+    setPersonaId('');
+    setCustomPersona('');
+    setReferenceFile(null);
+  };
+
+  const submitCreate = async (continueToMoodboard: boolean) => {
+    const name = draftName.trim() || 'Untitled character';
+    setCreating(true);
+    try {
+      await createCharacter({
+        name,
+        continueToMoodboard,
+        appearance,
+        personaId: personaId || undefined,
+        customPersona: personaId ? customPersona : undefined,
+        referenceFile,
+      });
+      resetDraft();
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -77,8 +101,8 @@ export default function PlayCampaignCharacterSection({
       title="Character"
       description={
         character
-          ? 'The campaign stays tied to one Cast record.'
-          : 'Name a Cast lead and set look traits — Story is optional later.'
+          ? 'This film stays tied to one Cast record. Story continues this lead.'
+          : 'Name a Cast lead, optional Part and From photo — Story continues whatever you start here.'
       }
       data-testid="play-campaign-character"
     >
@@ -97,7 +121,7 @@ export default function PlayCampaignCharacterSection({
               onKeyDown={event => {
                 if (event.key === 'Enter') {
                   event.preventDefault();
-                  submitCreate(true);
+                  void submitCreate(true);
                 }
               }}
               placeholder="e.g. Nova"
@@ -216,12 +240,57 @@ export default function PlayCampaignCharacterSection({
             {summarizeCharacterAppearanceForm(appearance)}
           </p>
 
+          <CastPersonaPartChips
+            personaId={personaId}
+            customPersona={customPersona}
+            disabled={creating}
+            testIdPrefix="play-campaign-create-persona"
+            onChange={next => {
+              setPersonaId(next.personaId);
+              setCustomPersona(next.customPersona ?? '');
+            }}
+          />
+
+          <div className="space-y-2" data-testid="play-campaign-create-from-photo">
+            <FieldLabel htmlFor="play-campaign-create-photo">From photo (optional)</FieldLabel>
+            <p className="type-caption text-[var(--text-muted)]">
+              Sets the Cast look plate so Outfit, Day, and Story share the same identity.
+            </p>
+            <input
+              id="play-campaign-create-photo"
+              type="file"
+              accept="image/*"
+              disabled={creating}
+              className="ui-file-input block w-full"
+              data-testid="play-campaign-create-photo"
+              onChange={event => {
+                const file = event.target.files?.[0] ?? null;
+                event.target.value = '';
+                setReferenceFile(file);
+              }}
+            />
+            {referenceFile ? (
+              <p className="type-caption text-[var(--text-secondary)]">
+                Selected: {referenceFile.name}{' '}
+                <button
+                  type="button"
+                  className="underline underline-offset-2"
+                  onClick={() => setReferenceFile(null)}
+                >
+                  Clear
+                </button>
+              </p>
+            ) : null}
+          </div>
+
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
               variant="primary"
               data-testid="play-campaign-create-continue"
-              onClick={() => submitCreate(true)}
+              loading={creating}
+              disabled={creating}
+              onClick={() => void submitCreate(true)}
             >
               Create & continue to Look
             </Button>
@@ -229,7 +298,9 @@ export default function PlayCampaignCharacterSection({
               size="sm"
               variant="secondary"
               data-testid="play-campaign-create-only"
-              onClick={() => submitCreate(false)}
+              loading={creating}
+              disabled={creating}
+              onClick={() => void submitCreate(false)}
             >
               Create only
             </Button>
@@ -237,7 +308,13 @@ export default function PlayCampaignCharacterSection({
               size="sm"
               variant="ghost"
               data-testid="play-campaign-create-reset-random"
-              onClick={() => setAppearance(defaultCharacterAppearanceForm())}
+              disabled={creating}
+              onClick={() => {
+                setAppearance(defaultCharacterAppearanceForm());
+                setPersonaId('');
+                setCustomPersona('');
+                setReferenceFile(null);
+              }}
             >
               Reset to Random
             </Button>
@@ -287,6 +364,7 @@ export default function PlayCampaignCharacterSection({
           />
           <p className="type-caption mt-2 text-[var(--text-muted)]">
             Active: {character.name}
+            {character.personaId ? ' · Part set' : ''}
             {activeLookPack ? ' · look pack staged' : ''}
           </p>
         </>

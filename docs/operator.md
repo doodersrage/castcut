@@ -45,24 +45,24 @@ Recent releases tightened first-run and day-to-day polish:
 
 - **Calm chrome** — flatter shadows, solid gallery docks, quieter card overlays (secondary chips on hover).
 - **First-run funnel** — post-Heal checklist links to `/?source=random&autogen=1&autoqueue=1` for a one-click random generate + ComfyUI queue; Welcome and palette **Heal & ready** mirror Settings.
-- **Dashboard outputs** — recent stills expose Re-queue, Refine, Roleplay, Edit, and Hints on hover.
+- **Dashboard outputs** — recent stills expose Re-queue, Refine, Story, Edit, and Hints on hover.
 - **Command palette** (`Ctrl+K`) — Continue section lists active project, recent gallery outputs, and **Heal & ready**.
 - **Mobile gallery** — layout, density, and min-rating filters collapse to selects on narrow viewports; Mobile Studio header/tab bar uses solid surfaces instead of glass blur.
-- **Phone film loop** — `/m` is a first-class Capture → Look → Outfit → Day → Story path (stills + clips, Cut on phone). Header desk bridge is optional large-screen handoff (Campaign / Look / Day / Outfit). Add to Home Screen via the mobile manifest when you want a phone-sized dock.
+- **Phone film loop** — `/m` is a first-class Cast → Look → Outfit → Day → Story path (stills + clips, Cut on phone). Header **Desk** bridge is optional large-screen handoff to Film. Add to Home Screen via the mobile manifest when you want a phone-sized dock.
 - **Vision uploads** — Scan with vision and Image → Prompt send JSON data URLs (avoids intermittent multipart FormData parse failures).
 - **Simple Essentials** — Studio history moved under More; Outfit / Day / Look preferred near the top of More.
-- **Play happy path** — Play workspace sidebar lists Campaign + Look before Outfit/Day; lean chrome collapses draft-preview and animate extras until you open them.
+- **Play happy path** — Play workspace sidebar lists Film + Look before Outfit/Day; lean chrome collapses draft-preview and animate extras until you open them.
 
-### Play campaign walkthrough
+### Play / Film walkthrough
 
-See the dedicated **[Play campaign guide](play-guide.md)** for step-by-step Look → Cut → Cast, metrics, and share/resume.
+See the dedicated **[Play film guide](play-guide.md)** for step-by-step Look → Cut → Cast, metrics, and share/resume.
 
-Use **Play campaign** (`/play`) for a guided film loop on one Cast character:
+Use **Film** (`/play`) for a guided film loop on one Cast character:
 
-1. Pick or create a Cast character on `/play`.
+1. Pick or create a Cast character on `/play` (optional Part + From photo).
 2. **Look** (`/moodboard`) — extract a look pack, or import/share JSON or a `#lookpack=` portable link.
-3. **Outfit → Day → Story** — each step carries the staged look pack; **Continue** resumes where you left off (step + saved look pack id sync with studio backup). Story unlocks after the first Day cut.
-4. **Cut film** in Day or Story closes the loop; the Dashboard **Play film loop** card shows time from first campaign start to first cut.
+3. **Outfit → Day → Story** — each step carries the staged look pack; **Continue** resumes where you left off (step + saved look pack id sync with studio backup). Story unlocks after the first Day cut and continues the Cast lead.
+4. **Cut film** in Day or Story closes the loop; the Dashboard **Play film loop** card shows time from first Film start to first cut.
 5. **Share** — **Copy share link** for cross-machine handoff; large packs should use **Export JSON** instead.
 
 If resume shows a character mismatch, use **Switch to resume character** or restart at Look.

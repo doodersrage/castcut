@@ -1,9 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError, FieldLabel } from '@/components/ui/Field';
 import { ToolActionRow, ToolSection } from '@/components/ui/ToolPageShell';
+import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import {
   addStillToFilmCut,
@@ -25,12 +27,19 @@ import { saveCharacterFilmCut } from '@/lib/character-os';
 import type { FilmResolutionPreset } from '@/lib/film-server-encode';
 import { remixDayFilmHref } from '@/lib/play-starter';
 import {
+  buildGalleryLightboxPlaylist,
   galleryEntryHeroPreviewUrl,
   galleryEntryPrimaryMediaKind,
   galleryEntryPrimaryViewUrl,
+  resolveGalleryLightboxOpenIndex,
   type ComfyGalleryEntry,
 } from '@/lib/comfyui-gallery';
+import { buildLightboxStateFromPlaylist } from '@/lib/gallery-lightbox-state';
 import GalleryEntryPreview from '@/components/ui/GalleryEntryPreview';
+
+const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
+  ssr: false,
+});
 
 function toMediaRef(entry: ComfyGalleryEntry): FilmMediaRef {
   return {
@@ -83,9 +92,24 @@ export default function CharacterFilmStudio({
   const [resolution, setResolution] = useState<FilmResolutionPreset>('720p');
   const [crossfadeSec, setCrossfadeSec] = useState(0);
   const [audioBedUrl, setAudioBedUrl] = useState('');
+  const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
 
   const persistCut = (next: CharacterFilmCut) => {
     saveCharacterFilmCut(characterId, normalizeFilmCut(next, refs));
+  };
+
+  const openCutShot = (entryId: string) => {
+    const cutEntries = cut.items
+      .map(item => entries.find(entry => entry.id === item.entryId))
+      .filter((entry): entry is ComfyGalleryEntry =>
+        Boolean(entry && galleryEntryHeroPreviewUrl(entry))
+      );
+    const playlist = buildGalleryLightboxPlaylist(cutEntries);
+    const index = resolveGalleryLightboxOpenIndex(cutEntries, entryId);
+    const next = buildLightboxStateFromPlaylist(playlist, index);
+    if (next) {
+      setLightbox(next);
+    }
   };
 
   const latestFilm = films[0];
@@ -236,10 +260,18 @@ export default function CharacterFilmStudio({
             return (
               <li key={item.entryId} className="ui-list-row items-center gap-3">
                 {gallery && galleryEntryHeroPreviewUrl(gallery) ? (
-                  <GalleryEntryPreview
-                    entry={gallery}
-                    className="h-12 w-12 shrink-0 rounded-[var(--radius-sm)] object-cover"
-                  />
+                  <button
+                    type="button"
+                    className="shrink-0 cursor-zoom-in border-0 bg-transparent p-0"
+                    aria-label={`Open shot ${index + 1} in lightbox`}
+                    data-testid="character-film-shot-open"
+                    onClick={() => openCutShot(item.entryId)}
+                  >
+                    <GalleryEntryPreview
+                      entry={gallery}
+                      className="h-12 w-12 rounded-[var(--radius-sm)] object-cover"
+                    />
+                  </button>
                 ) : (
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--bg-muted)] type-caption">
                     {index + 1}
@@ -431,6 +463,13 @@ export default function CharacterFilmStudio({
           <FieldError>{error}</FieldError>
         </div>
       ) : null}
+      <ImageLightbox
+        state={lightbox}
+        onClose={() => setLightbox(null)}
+        onIndexChange={index =>
+          setLightbox(previous => (previous ? { ...previous, index } : previous))
+        }
+      />
     </ToolSection>
   );
 }

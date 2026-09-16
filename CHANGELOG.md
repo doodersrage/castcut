@@ -9,6 +9,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Cast owns identity:** Film create + Cast home set Part / From photo / look plate; Story continues that Cast lead (no separate “Cast yourself” island).
+- **Play polish:** quieter Film/Mobile docks (More menus), persistence triad on phone Look, celebrate no longer auto soft-advances to Watch, docs vocabulary Cast/Film/Look/Outfit/Story, habit/persistence/engine e2e + Play a11y routes.
+
 ## [v1.8.0] - 2026-09-16
 
 - **Play honesty:** first Cut celebrates with manual Watch (no auto soft-advance); Story stays locked until first film on `/play` and Outfit More; unstamped Save CTA deep-links Day instead of empty Cast Films.
