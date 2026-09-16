@@ -18,7 +18,8 @@ import {
   type ToolSettingsCache,
 } from '@/lib/settings-cache';
 import { loadToolContext, saveToolContext } from '@/lib/tool-context-memory';
-import { COMFY_MODEL_IDS } from '@/lib/comfy-models/client';
+import { COMFY_MODEL_IDS, type ComfyImageModel } from '@/lib/comfy-models/client';
+import { sanitizePreferEditToolModel } from '@/lib/queue-tool-model';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 /** Skip cache→React reloads briefly after local edits so typing is not clobbered. */
@@ -29,9 +30,17 @@ function applyToolContext(shared: SharedToolSettings, toolKey: string): SharedTo
   if (!memory?.model && !memory?.selectedWorkflowFileId) {
     return shared;
   }
+  const remembered = memory.model ? sanitizePreferEditToolModel(toolKey, memory.model) : undefined;
+  // Migrate stale Outfit/Day T2I memory (e.g. 2512) so it cannot keep winning over Edit 2511.
+  if (memory.model && remembered && remembered !== memory.model) {
+    saveToolContext(toolKey, {
+      model: remembered,
+      selectedWorkflowFileId: memory.selectedWorkflowFileId,
+    });
+  }
   return {
     ...shared,
-    ...(memory.model && COMFY_MODEL_IDS.has(memory.model) ? { model: memory.model } : {}),
+    ...(remembered && COMFY_MODEL_IDS.has(remembered) ? { model: remembered } : {}),
     ...(memory.selectedWorkflowFileId
       ? { selectedWorkflowFileId: memory.selectedWorkflowFileId }
       : {}),
@@ -98,8 +107,9 @@ export function useCachedSettings<K extends keyof ToolSettingsCache>(
       void flushBrowserStorageNow();
     }
     if ('model' in batch || 'selectedWorkflowFileId' in batch) {
+      const sanitizedModel = sanitizePreferEditToolModel(String(toolKey), next.model) ?? next.model;
       saveToolContext(String(toolKey), {
-        model: next.model,
+        model: sanitizedModel as ComfyImageModel,
         selectedWorkflowFileId: next.selectedWorkflowFileId,
       });
     }
@@ -183,8 +193,10 @@ export function useCachedSettings<K extends keyof ToolSettingsCache>(
         scheduleAfterCommit(() => {
           saveSharedSettings(nextShared, { notify: false });
           if ('model' in pendingShared || 'selectedWorkflowFileId' in pendingShared) {
+            const sanitizedModel =
+              sanitizePreferEditToolModel(String(toolKey), nextShared.model) ?? nextShared.model;
             saveToolContext(String(toolKey), {
-              model: nextShared.model,
+              model: sanitizedModel as ComfyImageModel,
               selectedWorkflowFileId: nextShared.selectedWorkflowFileId,
             });
           }

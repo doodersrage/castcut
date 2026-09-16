@@ -124,7 +124,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       accent={ACCENT}
       badge={
         <ToolBadge accent={ACCENT}>
-          Outfit · {selectedModel?.comfyNode ?? selectedModel?.label ?? 'model'}
+          Outfit · {selectedModel?.label ?? selectedModel?.comfyNode ?? 'model'}
         </ToolBadge>
       }
       title="Outfit"

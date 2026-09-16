@@ -2,7 +2,6 @@
 
 import { useCallback } from 'react';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import { persistRoleplayLibraryFromCache } from '@/lib/roleplay-library';
 import { type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 import {
   appendRoleplayStoryBeat,
@@ -20,16 +19,10 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import { lastRoleplayMotionSource } from '@/lib/roleplay-film';
-import {
-  applyRoleplayLibrarySession,
-  archiveAndStartNewRoleplaySession,
-  type RoleplayLibrarySession,
-} from '@/lib/roleplay-library';
 import type { MobilePlayToolOrchestrationCore } from '@/hooks/mobile-play/useMobilePlayToolOrchestrationCore';
 
 export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestrationCore) {
   const {
-    toolSettings,
     updateToolSettings,
     setScenes,
     setError,
@@ -274,23 +267,6 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     [beatQueue, storyRef]
   );
 
-  const continueLibrarySession = useCallback(
-    (session: RoleplayLibrarySession) => {
-      persistRoleplayLibraryFromCache(toolSettings);
-      updateToolSettings(applyRoleplayLibrarySession(session));
-      setScenes([]);
-      setOwnBibleOpen(false);
-    },
-    [setOwnBibleOpen, setScenes, toolSettings, updateToolSettings]
-  );
-
-  const startLibrarySession = useCallback(() => {
-    const { next } = archiveAndStartNewRoleplaySession(toolSettings);
-    updateToolSettings(next);
-    setScenes([]);
-    setOwnBibleOpen(false);
-  }, [setOwnBibleOpen, setScenes, toolSettings, updateToolSettings]);
-
   const plateUrl =
     (activePlate?.isolated ? activePlate.isolatedUrl : activePlate?.originalUrl) ||
     referenceImageUrl;
@@ -304,8 +280,6 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     animateBeat,
     retryClip,
     extendBeat,
-    continueLibrarySession,
-    startLibrarySession,
     plateUrl,
   };
 }

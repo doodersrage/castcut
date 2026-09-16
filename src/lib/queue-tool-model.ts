@@ -34,6 +34,25 @@ const TXT2I_TO_EDIT: Partial<Record<ComfyImageModel, ComfyImageModel>> = {
 
 const DEFAULT_IMG2IMG_MODEL: ComfyImageModel = 'qwen-image-edit-2511-lightning-8';
 
+/** Client-safe basename match — do not import comfy-asset-status (pulls node:fs). */
+function inventoryListHasFilename(list: string[], filename: string): boolean {
+  const trimmed = filename.trim();
+  if (!trimmed) {
+    return false;
+  }
+  const base = trimmed.split(/[/\\]/).pop() ?? trimmed;
+  return list.some(entry => {
+    const item = entry.trim();
+    if (!item) {
+      return false;
+    }
+    if (item === trimmed || item === base) {
+      return true;
+    }
+    return item.endsWith(`/${base}`) || item.endsWith(`\\${base}`);
+  });
+}
+
 function inferTxt2iCounterpart(model: ComfyImageModel | string): ComfyImageModel {
   const mapped = EDIT_TO_TXT2I[model as ComfyImageModel];
   if (mapped) {
@@ -83,6 +102,56 @@ export function resolvePreferredVideoModel(input: {
     return shared as ComfyImageModel;
   }
   return input.fallback ?? DEFAULT_VIDEO_MODEL;
+}
+
+/** Preferred Look (Moodboard) checkpoint — UltraReal Fine-Tune v4 when installed. */
+export const LOOK_PREFERRED_MODEL: ComfyImageModel = 'flux-ultrareal-v4';
+
+/** Registry / checkpoint-map weight for UltraReal Fine-Tune v4 (client-safe constant). */
+const LOOK_PREFERRED_WEIGHT = 'ultrarealFineTune_v4.safetensors';
+
+export function isUltraRealFineTuneAvailable(
+  inventory?: { checkpoints?: string[]; unets?: string[] } | null
+): boolean {
+  if (!inventory) {
+    return false;
+  }
+  return (
+    inventoryListHasFilename(inventory.unets ?? [], LOOK_PREFERRED_WEIGHT) ||
+    inventoryListHasFilename(inventory.checkpoints ?? [], LOOK_PREFERRED_WEIGHT)
+  );
+}
+
+/**
+ * Look defaults to UltraReal Fine-Tune v4 when that weight is in Comfy inventory.
+ * Returns null when unavailable so callers keep the current shared model.
+ */
+export function resolvePreferredLookModel(input?: {
+  inventory?: { checkpoints?: string[]; unets?: string[] } | null;
+}): ComfyImageModel | null {
+  return isUltraRealFineTuneAvailable(input?.inventory) ? LOOK_PREFERRED_MODEL : null;
+}
+
+/**
+ * Outfit / Day remember the last model per tool. Stale T2I defaults (2512) must
+ * not clobber an Edit-2511 pick when re-opening those tools.
+ */
+export function sanitizePreferEditToolModel(
+  toolKey: string | undefined,
+  model: ComfyImageModel | string | null | undefined
+): ComfyImageModel | undefined {
+  const id = String(model ?? '').trim();
+  if (!id || !COMFY_MODEL_IDS.has(id)) {
+    return undefined;
+  }
+  const key = (toolKey ?? '').trim();
+  if (key !== 'fitting' && key !== 'day') {
+    return id as ComfyImageModel;
+  }
+  if (isImg2imgCapableModel(id)) {
+    return id as ComfyImageModel;
+  }
+  return resolvePreferredImg2imgModel({ current: id });
 }
 
 export function isAudioModel(model: ComfyImageModel | string): boolean {
@@ -306,8 +375,9 @@ export function filterModelsForQueueTool(
   }
 
   if (options?.preferEditModels && !options?.includeEditModels) {
-    const img2img = models.filter(model => isImg2imgCapableModel(model));
-    return img2img.length > 0 ? img2img : models;
+    // Never fall back to T2I/scene models — empty lets the picker rebuild from
+    // the full edit-capable registry (Outfit/Day/From-photo first-run).
+    return models.filter(model => isImg2imgCapableModel(model));
   }
 
   if (!shouldUseSceneGenerationModel(tool)) {

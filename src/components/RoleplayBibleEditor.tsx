@@ -115,7 +115,7 @@ export default function RoleplayBibleEditor({
           />
         </label>
       </div>
-      <Button variant="secondary" disabled={disabled} onClick={applyFromFields}>
+      <Button type="button" variant="secondary" disabled={disabled} onClick={applyFromFields}>
         {applyLabel}
       </Button>
       <label className="block space-y-1.5 text-sm">
@@ -131,7 +131,12 @@ export default function RoleplayBibleEditor({
           className={accentClass}
         />
       </label>
-      <Button variant="ghost" disabled={disabled || !paste.trim()} onClick={applyFromPaste}>
+      <Button
+        type="button"
+        variant="ghost"
+        disabled={disabled || !paste.trim()}
+        onClick={applyFromPaste}
+      >
         Use pasted bible
       </Button>
       {error ? <p className="text-xs text-[var(--danger-text)]">{error}</p> : null}

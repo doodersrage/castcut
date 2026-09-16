@@ -18,6 +18,8 @@ import {
   subscribeCharacters,
   type CharacterRecord,
 } from '@/lib/character-os';
+import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
+import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
 import {
   listSavedIdentityBundles,
   loadSettingsCache,
@@ -33,6 +35,23 @@ function applyCharacter(character: CharacterRecord) {
     ...loadSettingsCache().shared,
     ...applyCharacterRecord(character),
   });
+}
+
+function rosterPlateUrl(character: CharacterRecord): string {
+  const plate = resolveFittingPlateFromCharacter(character);
+  // Roster thumbs are look plates only — skip face-lock IP fallback.
+  const hasLookPlate = Boolean(
+    character.reference?.originalUrl?.trim() ||
+    character.reference?.isolatedUrl?.trim() ||
+    character.looks?.some(
+      look => look.reference?.originalUrl?.trim() || look.reference?.isolatedUrl?.trim()
+    )
+  );
+  if (!hasLookPlate) {
+    return '';
+  }
+  const url = plate?.imageUrl?.trim();
+  return url ? cacheBustIdentityMediaUrl(url) : '';
 }
 
 export default function CharacterCastRoster() {
@@ -144,20 +163,36 @@ export default function CharacterCastRoster() {
               const looks = looksOf(character);
               const trigger = loraTriggerFromCharacter(character);
               const detailsOpen = detailsId === character.id;
+              const plateUrl = rosterPlateUrl(character);
               return (
                 <li key={character.id} className="ui-card space-y-3 p-[var(--card-padding)]">
-                  <div className="space-y-1">
-                    <p className="type-heading">{character.name}</p>
-                    <p className="type-caption text-[var(--text-muted)]">
-                      {looks.length} look{looks.length === 1 ? '' : 's'}
-                      {trigger ? ` · ${trigger}` : ''}
-                      {character.loraLibraryIds?.length
-                        ? ` · ${character.loraLibraryIds.length} LoRA`
-                        : ''}
-                    </p>
-                    {character.descriptor && !detailsOpen ? (
-                      <p className="type-caption line-clamp-2">{character.descriptor}</p>
+                  <div className="flex gap-3">
+                    {plateUrl ? (
+                      <div
+                        className="h-20 w-16 shrink-0 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40"
+                        data-testid={`cast-roster-plate-${character.id}`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- cast identity plate preview */}
+                        <img
+                          src={plateUrl}
+                          alt=""
+                          className="h-full w-full object-cover object-top"
+                        />
+                      </div>
                     ) : null}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="type-heading">{character.name}</p>
+                      <p className="type-caption text-[var(--text-muted)]">
+                        {looks.length} look{looks.length === 1 ? '' : 's'}
+                        {trigger ? ` · ${trigger}` : ''}
+                        {character.loraLibraryIds?.length
+                          ? ` · ${character.loraLibraryIds.length} LoRA`
+                          : ''}
+                      </p>
+                      {character.descriptor && !detailsOpen ? (
+                        <p className="type-caption line-clamp-2">{character.descriptor}</p>
+                      ) : null}
+                    </div>
                   </div>
                   {detailsOpen ? (
                     <div

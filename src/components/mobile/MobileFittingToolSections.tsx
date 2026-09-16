@@ -219,7 +219,8 @@ export default function MobileFittingToolSections(vm: ViewModel) {
       <div className="space-y-2" data-testid="mobile-fitting-custom-garment">
         <FieldLabel>Your clothing photo</FieldLabel>
         <p className="type-caption text-[var(--text-muted)]">
-          Optional — vision describes the garments for try-on (clears catalog kit).
+          Optional — cut to white, then build a clothing-only packshot for Image 2 (clears catalog
+          kit).
         </p>
         <input
           type="file"

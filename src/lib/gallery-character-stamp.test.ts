@@ -36,6 +36,25 @@ describe('gallery-character-stamp', () => {
     );
   });
 
+  it('keeps Look / Outfit / Day stamps on Cast media (not foreign)', () => {
+    for (const tool of ['moodboard', 'fitting', 'day', 'image-prompt'] as const) {
+      assert.equal(inheritsActiveCharacterStamp(tool), true);
+      assert.equal(isForeignCharacterStamp({ tool }), false);
+      assert.equal(
+        resolveGalleryCharacterStamp({
+          tool,
+          activeCharacterId: 'char-rin',
+        }),
+        'char-rin'
+      );
+    }
+  });
+
+  it('still treats compose leftovers as foreign', () => {
+    assert.equal(isForeignCharacterStamp({ tool: 'compose' }), true);
+    assert.equal(isForeignCharacterStamp({ tool: 'refine' }), true);
+  });
+
   it('lets an explicit id win, then a parent on derived work', () => {
     assert.equal(
       resolveGalleryCharacterStamp({

@@ -3,11 +3,14 @@ import { describe, it } from "node:test";
 import {
   filterModelsForQueueTool,
   isSceneGenerationModel,
+  isUltraRealFineTuneAvailable,
   isVideoModel,
+  LOOK_PREFERRED_MODEL,
   resolveEditCounterpartForImg2img,
   resolveModelForPromptGeneration,
   resolveModelForQueueTool,
   resolvePreferredImg2imgModel,
+  resolvePreferredLookModel,
   resolveTxt2iCounterpartForGenerate,
   stripEditInstructionLead,
   toolIgnoresSystemWorkflowSnap,
@@ -193,6 +196,25 @@ describe("queue-tool-model", () => {
     ]);
   });
 
+  it("does not fall back to T2I when preferEditModels finds no img2img models", () => {
+    const filtered = filterModelsForQueueTool(
+      ["qwen-image-2512", "qwen-image-2512-lightning-8", "flux-dev"],
+      "fitting",
+      { preferEditModels: true },
+    );
+    assert.deepEqual(filtered, []);
+  });
+
+  it("maps first-run Outfit shared T2I default onto Edit 2511", () => {
+    assert.equal(
+      resolvePreferredImg2imgModel({
+        current: "qwen-image-2512",
+        allowed: ["qwen-image-edit-2511", "qwen-image-edit-2511-lightning-8"],
+      }),
+      "qwen-image-edit-2511",
+    );
+  });
+
   it("keeps Roleplay From bio on the T2I catalog", () => {
     const filtered = filterModelsForQueueTool(
       [
@@ -373,6 +395,46 @@ describe("queue-tool-model", () => {
         sharedModel: "flux-dev",
       }),
       "wan-video",
+    );
+  });
+
+  it("defaults Look to UltraReal Fine-Tune v4 only when the weight is installed", () => {
+    assert.equal(LOOK_PREFERRED_MODEL, "flux-ultrareal-v4");
+    assert.equal(isUltraRealFineTuneAvailable(null), false);
+    assert.equal(isUltraRealFineTuneAvailable({ checkpoints: [], unets: [] }), false);
+    assert.equal(resolvePreferredLookModel({ inventory: null }), null);
+    assert.equal(
+      resolvePreferredLookModel({
+        inventory: { unets: ["ultrarealFineTune_v4.safetensors"] },
+      }),
+      "flux-ultrareal-v4",
+    );
+    assert.equal(
+      isUltraRealFineTuneAvailable({
+        checkpoints: ["models/checkpoints/ultrarealFineTune_v4.safetensors"],
+        unets: [],
+      }),
+      true,
+    );
+  });
+
+  it("sanitizes Outfit/Day tool memory away from stale Qwen 2512", async () => {
+    const { sanitizePreferEditToolModel } = await import("./queue-tool-model");
+    assert.equal(
+      sanitizePreferEditToolModel("fitting", "qwen-image-2512"),
+      "qwen-image-edit-2511",
+    );
+    assert.equal(
+      sanitizePreferEditToolModel("day", "qwen-image-2512-lightning-8"),
+      "qwen-image-edit-2511-lightning-8",
+    );
+    assert.equal(
+      sanitizePreferEditToolModel("fitting", "qwen-image-edit-2511"),
+      "qwen-image-edit-2511",
+    );
+    assert.equal(
+      sanitizePreferEditToolModel("moodboard", "qwen-image-2512"),
+      "qwen-image-2512",
     );
   });
 });

@@ -18,9 +18,11 @@ import {
   type MoodboardTile,
 } from '@/lib/moodboard-scene';
 import { resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
+import { resolvePreferredLookModel } from '@/lib/queue-tool-model';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { DEFAULT_MOODBOARD_TOOL_CACHE } from '@/lib/settings-cache';
+import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
 
 const TOOL_ID = 'moodboard' as const;
 const MAX_TILES = 4;
@@ -40,6 +42,7 @@ export function useMoodboardToolOrchestrationCore() {
   const [activeTileId, setActiveTileId] = useState<string | null>(null);
   const [uploadingTileId, setUploadingTileId] = useState<string | null>(null);
   const deepLinkHandled = useRef(false);
+  const lookModelDefaultApplied = useRef(false);
 
   const tiles = useMemo(() => normalizeMoodboardTiles(toolSettings.tiles), [toolSettings.tiles]);
   const templateId = normalizeMoodboardTemplateId(toolSettings.templateId);
@@ -159,6 +162,44 @@ export function useMoodboardToolOrchestrationCore() {
     },
     [shared.model, updateTile]
   );
+
+  useEffect(() => {
+    if (!mounted || lookModelDefaultApplied.current) {
+      return;
+    }
+    let cancelled = false;
+    const tryApply = (): boolean => {
+      if (cancelled || lookModelDefaultApplied.current) {
+        return lookModelDefaultApplied.current;
+      }
+      const preferred = resolvePreferredLookModel({
+        inventory: readCachedComfyObjectInfoModels(),
+      });
+      if (!preferred) {
+        return false;
+      }
+      lookModelDefaultApplied.current = true;
+      if (shared.model !== preferred) {
+        updateShared({ model: preferred });
+      }
+      return true;
+    };
+    if (tryApply()) {
+      return;
+    }
+    // Object-info inventory often arrives after first paint — retry briefly.
+    const timers = [400, 1200, 3500].map(ms =>
+      window.setTimeout(() => {
+        void tryApply();
+      }, ms)
+    );
+    return () => {
+      cancelled = true;
+      for (const id of timers) {
+        window.clearTimeout(id);
+      }
+    };
+  }, [mounted, shared.model, updateShared]);
 
   useEffect(() => {
     if (!mounted || typeof window === 'undefined' || deepLinkHandled.current) {

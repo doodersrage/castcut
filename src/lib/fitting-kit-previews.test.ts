@@ -10,6 +10,7 @@ import {
   fittingKitPreviewQueueResolveOptions,
   fittingKitsNeedingPreview,
   mergeFittingKitPreviewsFromGallery,
+  resolveFittingGarmentPackshotModel,
   resolveFittingKitPreviewModel,
   upsertFittingKitPreview,
 } from './fitting-kit-previews';
@@ -108,6 +109,26 @@ describe('fitting-kit-previews', () => {
     const model = resolveFittingKitPreviewModel('qwen-image-edit-2511-lightning-8');
     if (model) {
       assert.match(model, /boogu-image-edit-turbo|qwen-image-edit-2511-lightning-(4|8)/);
+    }
+  });
+
+  it('resolveFittingGarmentPackshotModel prefers Lightning over full 2511', () => {
+    const fromBase = resolveFittingGarmentPackshotModel('qwen-image-edit-2511');
+    if (fromBase) {
+      assert.match(fromBase, /lightning|boogu-image-edit-turbo/);
+      assert.notEqual(fromBase, 'qwen-image-edit-2511');
+    }
+    const preferred = resolveFittingGarmentPackshotModel('qwen-image-edit-2511-lightning-8');
+    if (preferred) {
+      assert.equal(preferred, 'qwen-image-edit-2511-lightning-8');
+    }
+    const fallback = resolveFittingGarmentPackshotModel('ultra-real-fine-tune');
+    if (fallback) {
+      assert.match(
+        fallback,
+        /qwen-image-edit-2511|boogu-image-edit-turbo|qwen-image-edit-2511-lightning-(4|8)/
+      );
+      assert.notEqual(fallback, 'ultra-real-fine-tune');
     }
   });
 

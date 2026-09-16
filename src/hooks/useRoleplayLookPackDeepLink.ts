@@ -12,9 +12,15 @@ import { applyLookPackToRoleplaySettings, loadLookPack, saveLookPack } from '@/l
 import {
   resolveRoleplayContinueFromCharacter,
   shouldSyncRoleplaySessionToCharacter,
+  withRoleplayCacheFromCastCharacter,
 } from '@/lib/roleplay-library';
 import { resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
-import type { SharedToolSettings, RoleplayToolCache } from '@/lib/settings-cache';
+import {
+  DEFAULT_ROLEPLAY_TOOL_CACHE,
+  loadToolSettings,
+  type SharedToolSettings,
+  type RoleplayToolCache,
+} from '@/lib/settings-cache';
 
 type UseRoleplayLookPackDeepLinkOptions = {
   mounted: boolean;
@@ -45,6 +51,7 @@ export function useRoleplayLookPackDeepLink({
     const wardrobeId = params.get('wardrobe')?.trim();
     const lookPackId = params.get('lookPack')?.trim();
     const fromLook = params.get('from')?.trim() === 'look';
+    const liveStory = loadToolSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
 
     const characterId = resolvePlayLoopEntryCharacterId({
       queryCharacterId,
@@ -67,12 +74,16 @@ export function useRoleplayLookPackDeepLink({
         } else if (queryCharacterId) {
           onMessage?.(result.message);
           updateShared(applyCharacterRecord(record));
+          updateToolSettings(withRoleplayCacheFromCastCharacter(liveStory, record));
         } else {
           // Nav entry: still bind shared Cast identity even if Story bio can’t synthesize yet.
           updateShared(applyCharacterRecordFresh(record));
+          updateToolSettings(withRoleplayCacheFromCastCharacter(liveStory, record));
         }
-      } else if (queryCharacterId) {
+      } else {
+        // Same Cast session — still refresh bible/persona from Cast (source of truth).
         updateShared(applyCharacterRecord(record));
+        updateToolSettings(withRoleplayCacheFromCastCharacter(liveStory, record));
       }
     }
 

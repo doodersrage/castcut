@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldLabel } from '@/components/ui/Field';
 import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import {
@@ -157,27 +156,37 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
           ))}
         </select>
         {activeId ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              removeCharacter(activeId);
-              onApply({
-                activeCharacterId: undefined,
-                activeLookId: undefined,
-                activeCharacterDescriptor: undefined,
-                ipAdapterImageFilename: undefined,
-                ipAdapterImageFilenames: undefined,
-                ipAdapterImageUrl: undefined,
-                ipAdapterComfyUrl: undefined,
-                ipAdapterStrength: undefined,
-                ipAdapterModelFilename: undefined,
-                identityKind: undefined,
-              });
-            }}
-          >
-            Forget
-          </Button>
+          <>
+            <ButtonLink
+              href={characterHomeHref(activeId)}
+              size="sm"
+              variant="secondary"
+              data-testid="cast-picker-open-home"
+            >
+              Go to home
+            </ButtonLink>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                removeCharacter(activeId);
+                onApply({
+                  activeCharacterId: undefined,
+                  activeLookId: undefined,
+                  activeCharacterDescriptor: undefined,
+                  ipAdapterImageFilename: undefined,
+                  ipAdapterImageFilenames: undefined,
+                  ipAdapterImageUrl: undefined,
+                  ipAdapterComfyUrl: undefined,
+                  ipAdapterStrength: undefined,
+                  ipAdapterModelFilename: undefined,
+                  identityKind: undefined,
+                });
+              }}
+            >
+              Forget
+            </Button>
+          </>
         ) : null}
       </div>
       {active && looks.length > 0 ? (
@@ -211,21 +220,12 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
           </Button>
         ) : null}
       </div>
-      {activeId ? (
-        <p className="type-caption">
-          <Link
-            href={characterHomeHref(activeId)}
-            className="text-[var(--accent-text)] underline-offset-2 hover:underline"
-          >
-            Open character home
-          </Link>
-        </p>
-      ) : (
+      {!activeId ? (
         <p className="type-caption text-[var(--text-muted)]">
           One record for face lock, wardrobe, looks, and LoRA. Generate, Story, Video, and gallery
           all stamp the active character.
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

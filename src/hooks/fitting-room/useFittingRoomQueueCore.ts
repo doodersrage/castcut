@@ -118,15 +118,13 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           : 'uploaded clothing reference'
         : outfitLabel,
       characterName: input.character?.name,
-      characterDescriptor: input.character?.descriptor || input.character?.hints,
+      // Deliberately omit Cast descriptor/hints — clothing in look notes fights the kit.
       notes: input.toolSettings.notes,
       isolated: input.toolSettings.referenceIsolated === true,
       hasGarmentReference: Boolean(garmentExtras),
       garmentDescription: hasCustomGarment ? garmentDescription : undefined,
     });
   }, [
-    input.character?.descriptor,
-    input.character?.hints,
     input.character?.name,
     input.hasReference,
     input.lockedWardrobeLabel,

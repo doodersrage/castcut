@@ -1,5 +1,9 @@
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
-import { getCharacter, upsertCharacterFromRoleplaySession } from './character-os';
+import {
+  getCharacter,
+  upsertCharacterFromRoleplaySession,
+  type CharacterRecord,
+} from './character-os';
 import { withRoleplayLookPlateFromCast } from './fitting-room';
 import { resolvePlayLoopEntryCharacterId } from './play-campaign';
 import {
@@ -10,6 +14,7 @@ import {
 import {
   CUSTOM_ROLEPLAY_PERSONA_ID,
   getRoleplayArchetype,
+  isRoleplayBioComplete,
   lastRoleplayStillImage,
   MAX_ROLEPLAY_CLIP_TAKES,
   MAX_ROLEPLAY_REJECTED_SCENES,
@@ -26,7 +31,6 @@ import {
   type RoleplayBio,
   type RoleplayStoryBeat,
 } from './roleplay';
-
 export const ROLEPLAY_LIBRARY_KEY = 'comfy-prompt-roleplay-library-v1';
 export const ROLEPLAY_LIBRARY_UPDATED_EVENT = 'roleplay-library-updated';
 export const MAX_ROLEPLAY_LIBRARY_SESSIONS = 24;
@@ -478,6 +482,70 @@ export function synthesizeRoleplaySessionFromCharacter(
   });
 }
 
+/** Overlay Cast bible / persona onto a Story cache so Cast remains the source of truth. */
+export function withRoleplayCacheFromCastCharacter(
+  cache: RoleplayToolCache,
+  character: CharacterRecord | null | undefined
+): RoleplayToolCache {
+  if (!character) {
+    return cache;
+  }
+  const next: RoleplayToolCache = { ...cache };
+  if (character.bio && isRoleplayBioComplete(character.bio)) {
+    next.bio = character.bio;
+    next.characterName = character.bio.name;
+  } else if (character.characterName?.trim() || character.name?.trim()) {
+    next.characterName =
+      character.characterName?.trim() || character.name.trim() || cache.characterName;
+  }
+  if (character.personaId?.trim()) {
+    next.personaId = character.personaId.trim();
+  }
+  if (character.customPersona?.trim()) {
+    next.customPersona = character.customPersona.trim();
+  } else if (character.personaId?.trim() && character.personaId !== CUSTOM_ROLEPLAY_PERSONA_ID) {
+    next.customPersona = undefined;
+  }
+  if (character.tone) {
+    next.tone = character.tone;
+  }
+  if (character.content) {
+    next.content = character.content;
+  }
+  if (character.setting?.trim()) {
+    next.setting = character.setting.trim();
+  }
+  if (character.playAs) {
+    next.playAs = character.playAs;
+  }
+  return next;
+}
+
+/** Keep the Cast-linked Story library session in sync after a Cast bible edit. */
+export function syncRoleplayLibraryBioFromCharacter(character: CharacterRecord): void {
+  const sessionId = roleplayLibraryIdForCharacter(character.id);
+  if (!sessionId || !character.bio || !isRoleplayBioComplete(character.bio)) {
+    return;
+  }
+  const existing = getRoleplayLibrarySession(sessionId);
+  if (!existing) {
+    return;
+  }
+  upsertRoleplayLibrarySession({
+    ...existing,
+    updatedAt: Date.now(),
+    title: character.bio.name,
+    snapshot: {
+      ...existing.snapshot,
+      bio: character.bio,
+      characterName: character.bio.name,
+      personaId: character.personaId ?? existing.snapshot.personaId,
+      customPersona: character.customPersona ?? existing.snapshot.customPersona,
+      activeSessionId: sessionId,
+    },
+  });
+}
+
 /** Continue in Roleplay from any Cast character — synthesize from Cast when the library session is gone. */
 export function resolveRoleplayContinueFromCharacter(
   characterId: string
@@ -503,26 +571,28 @@ export function resolveRoleplayContinueFromCharacter(
   if (sessionId) {
     const session = getRoleplayLibrarySession(sessionId);
     if (session) {
+      const cache = withRoleplayCacheFromCastCharacter(
+        { ...applyRoleplayLibrarySession(session), autoQueue: true },
+        character
+      );
       return {
         ok: true,
         session,
-        cache: withRoleplayLookPlateFromCast(
-          { ...applyRoleplayLibrarySession(session), autoQueue: true },
-          character
-        ),
+        cache: withRoleplayLookPlateFromCast(cache, character),
       };
     }
   }
   const synthesized = synthesizeRoleplaySessionFromCharacter(key);
   if (synthesized) {
     const saved = upsertRoleplayLibrarySession(synthesized);
+    const cache = withRoleplayCacheFromCastCharacter(
+      { ...applyRoleplayLibrarySession(saved), autoQueue: true },
+      character
+    );
     return {
       ok: true,
       session: saved,
-      cache: withRoleplayLookPlateFromCast(
-        { ...applyRoleplayLibrarySession(saved), autoQueue: true },
-        character
-      ),
+      cache: withRoleplayLookPlateFromCast(cache, character),
     };
   }
   return {

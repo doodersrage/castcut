@@ -4,7 +4,8 @@ import { useState } from 'react';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import { Button } from '@/components/ui/Button';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
-import { getCharacter, upsertCharacter, type CharacterRecord } from '@/lib/character-os';
+import { saveCharacterBio, type CharacterRecord } from '@/lib/character-os';
+import { syncRoleplayLibraryBioFromCharacter } from '@/lib/roleplay-library';
 import { formatRoleplayBio, type RoleplayBio } from '@/lib/roleplay';
 
 const ACCENT = 'sky' as const;
@@ -21,23 +22,29 @@ export default function CharacterBibleSection({
   character,
   onUpdated,
 }: CharacterBibleSectionProps) {
-  const bio = character.bio;
-  const [editorOpen, setEditorOpen] = useState(!bio);
+  const [editorOpen, setEditorOpen] = useState(!character.bio);
   const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  /** Optimistic preview so a successful save is visible even if the parent re-renders late. */
+  const [savedBio, setSavedBio] = useState<RoleplayBio | undefined>(character.bio);
+  const [syncedKey, setSyncedKey] = useState(`${character.id}:${character.updatedAt}`);
+  const nextKey = `${character.id}:${character.updatedAt}`;
+  if (nextKey !== syncedKey) {
+    setSyncedKey(nextKey);
+    setSavedBio(character.bio);
+  }
+  const bio = savedBio ?? character.bio;
 
   const persistBio = (nextBio: RoleplayBio) => {
-    const name = nextBio.name.trim() || character.name;
-    upsertCharacter({
-      ...character,
-      name,
-      characterName: name,
-      bio: nextBio,
-      descriptor: nextBio.look.trim() || character.descriptor,
-    });
-    const saved = getCharacter(character.id);
-    if (saved) {
-      onUpdated?.(saved);
+    setError(null);
+    const saved = saveCharacterBio(character.id, nextBio);
+    if (!saved?.bio) {
+      setError('Could not save the bible on Cast — try again.');
+      return;
     }
+    syncRoleplayLibraryBioFromCharacter(saved);
+    setSavedBio(saved.bio);
+    onUpdated?.(saved);
     setEditorOpen(false);
     setStatus('Bible saved on Cast — Story will continue from this.');
   };
@@ -58,11 +65,13 @@ export default function CharacterBibleSection({
           </p>
           <div className="mt-3">
             <Button
+              type="button"
               variant="secondary"
               size="sm"
               data-testid="cast-bible-edit"
               onClick={() => {
                 setStatus(null);
+                setError(null);
                 setEditorOpen(true);
               }}
             >
@@ -87,6 +96,7 @@ export default function CharacterBibleSection({
       {bio && editorOpen ? (
         <div className="mt-2">
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             data-testid="cast-bible-cancel"
@@ -95,6 +105,11 @@ export default function CharacterBibleSection({
             Cancel
           </Button>
         </div>
+      ) : null}
+      {error ? (
+        <p className="type-caption mt-2 text-[var(--danger-text)]" data-testid="cast-bible-error">
+          {error}
+        </p>
       ) : null}
       {status ? (
         <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="cast-bible-status">

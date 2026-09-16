@@ -5,8 +5,10 @@ import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { supportedModelsFilterHint } from '@/lib/model-workflow-map';
 import {
   resolvePreferredImg2imgModel,
+  resolvePreferredLookModel,
   toolIgnoresSystemWorkflowSnap,
 } from '@/lib/queue-tool-model';
+import { isImg2imgCapableModel } from '@/lib/model-denoise-defaults';
 import { formatQueueQualityProfileHint } from '@/lib/queue-quality-profile';
 import {
   DEFAULT_VIDEO_TOOL_CACHE,
@@ -161,7 +163,9 @@ export function useSharedToolModelWorkflowPart2(ctx: SharedToolModelWorkflowCore
     if (pickerModels.length === 0) {
       return;
     }
-    if (pickerModels.includes(shared.model)) {
+    // Always leave T2I defaults (e.g. qwen-image-2512) even if a stale catalog
+    // briefly listed them — Outfit/Day need an edit/img2img checkpoint.
+    if (pickerModels.includes(shared.model) && isImg2imgCapableModel(shared.model)) {
       return;
     }
     const fallback = resolvePreferredImg2imgModel({
@@ -169,10 +173,10 @@ export function useSharedToolModelWorkflowPart2(ctx: SharedToolModelWorkflowCore
       allowed: pickerModels,
     });
     if (fallback !== shared.model) {
-      onModelChange(fallback);
+      handleModelChange(fallback);
     }
   }, [
-    onModelChange,
+    handleModelChange,
     pickerModels,
     preferEditModels,
     shared.model,
@@ -208,6 +212,24 @@ export function useSharedToolModelWorkflowPart2(ctx: SharedToolModelWorkflowCore
     storageReady,
     toolId,
   ]);
+
+  const lookModelDefaultApplied = useRef(false);
+  useEffect(() => {
+    if (!storageReady || toolId !== 'moodboard' || lookModelDefaultApplied.current) {
+      return;
+    }
+    const preferred = resolvePreferredLookModel({
+      inventory: readCachedComfyObjectInfoModels(),
+    });
+    if (!preferred) {
+      return;
+    }
+    lookModelDefaultApplied.current = true;
+    if (shared.model !== preferred) {
+      // Use handleModelChange so UltraReal companion LoRAs / workflow map apply.
+      handleModelChange(preferred);
+    }
+  }, [handleModelChange, inventoryTick, shared.model, storageReady, toolId]);
 
   useEffect(() => {
     if (!storageReady) {

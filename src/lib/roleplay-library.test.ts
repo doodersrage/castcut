@@ -13,6 +13,8 @@ import {
   roleplaySessionTitle,
   saveRoleplayLibrary,
   shouldSyncRoleplaySessionToCharacter,
+  syncRoleplayLibraryBioFromCharacter,
+  withRoleplayCacheFromCastCharacter,
   archiveAndStartNewRoleplaySession,
   startNewRoleplaySession,
   upsertRoleplayLibrarySession,
@@ -337,6 +339,93 @@ describe('roleplay library', () => {
         assert.equal(ok.cache.playAs, 'photo');
       }
     });
+  });
+
+  it('overlays Cast bible onto a stale Story library session', () => {
+    withMockLocalStorage(() => {
+      const saved = persistRoleplayLibraryFromCache(
+        sampleCache({
+          activeSessionId: 'stale-bio',
+          bio: {
+            name: 'Old Library Name',
+            look: 'stale library look',
+            personality: 'stale library personality',
+          },
+          characterName: 'Old Library Name',
+        })
+      );
+      assert.ok(saved);
+      // Cast bible is source of truth after library persist (which may stamp Cast).
+      upsertCharacter({
+        id: 'char-rp-stale-bio',
+        name: 'Cast Lead',
+        version: 1,
+        updatedAt: Date.now(),
+        characterName: 'Cast Lead',
+        bio: {
+          name: 'Cast Lead',
+          look: 'fresh Cast look — ink coat',
+          personality: 'updated on Cast',
+        },
+      });
+      const ok = resolveRoleplayContinueFromCharacter('char-rp-stale-bio');
+      assert.equal(ok.ok, true);
+      if (ok.ok) {
+        assert.equal(ok.cache.bio?.name, 'Cast Lead');
+        assert.match(ok.cache.bio?.look ?? '', /ink coat/);
+        assert.equal(ok.cache.bio?.personality, 'updated on Cast');
+        assert.equal(ok.cache.characterName, 'Cast Lead');
+      }
+    });
+  });
+
+  it('syncRoleplayLibraryBioFromCharacter updates the linked library snapshot', () => {
+    withMockLocalStorage(() => {
+      const saved = persistRoleplayLibraryFromCache(
+        sampleCache({
+          activeSessionId: 'sync-bio',
+          bio: { name: 'Before', look: 'before look', personality: 'before' },
+        })
+      );
+      assert.ok(saved);
+      upsertCharacter({
+        id: 'char-rp-sync-bio',
+        name: 'After',
+        version: 1,
+        updatedAt: Date.now(),
+        characterName: 'After',
+        bio: { name: 'After', look: 'after look', personality: 'after' },
+      });
+      syncRoleplayLibraryBioFromCharacter({
+        id: 'char-rp-sync-bio',
+        name: 'After',
+        version: 1,
+        updatedAt: Date.now(),
+        characterName: 'After',
+        bio: { name: 'After', look: 'after look', personality: 'after' },
+      });
+      const session = loadRoleplayLibrary().find(entry => entry.id === 'sync-bio');
+      assert.equal(session?.snapshot.bio?.name, 'After');
+      assert.equal(session?.snapshot.bio?.look, 'after look');
+      assert.equal(session?.title, 'After');
+    });
+  });
+
+  it('withRoleplayCacheFromCastCharacter prefers complete Cast bio', () => {
+    const cache = sampleCache({
+      bio: { name: 'Story', look: 'story look', personality: 'story' },
+      characterName: 'Story',
+    });
+    const next = withRoleplayCacheFromCastCharacter(cache, {
+      id: 'char-x',
+      name: 'Cast',
+      version: 1,
+      updatedAt: 1,
+      bio: { name: 'Cast', look: 'cast look', personality: 'cast' },
+    });
+    assert.equal(next.bio?.name, 'Cast');
+    assert.equal(next.bio?.look, 'cast look');
+    assert.equal(next.characterName, 'Cast');
   });
 
   it('resolves Story entry Cast from query or active Cast', () => {

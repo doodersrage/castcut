@@ -10,17 +10,47 @@ import {
   characterFromShared,
   createBlankCharacter,
   activeLook,
+  getCharacter,
   lookFromAppearance,
   looksOf,
   mergeMigratedCharacters,
   normalizeCharacterRecord,
   roleplayLibraryIdFromCharacter,
+  saveCharacterBio,
   slugCharacterName,
+  upsertCharacter,
   type CharacterRecord,
 } from './character-os';
 import type { CharacterIdentityBundle } from './character-identity-bundle';
 import type { RoleplayLibrarySession } from './roleplay-library';
 import type { SharedToolSettings } from './settings-cache';
+import { resetBrowserStorageCache } from './browser-storage';
+
+function withMockLocalStorage(run: () => void): void {
+  const storage = new Map<string, string>();
+  const originalWindow = globalThis.window;
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+        removeItem: (key: string) => storage.delete(key),
+      },
+      dispatchEvent: () => true,
+    },
+  });
+  resetBrowserStorageCache();
+  try {
+    run();
+  } finally {
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: originalWindow,
+    });
+    resetBrowserStorageCache();
+  }
+}
 
 const bundle: CharacterIdentityBundle = {
   version: 1,
@@ -107,6 +137,32 @@ describe('character-os', () => {
     });
     assert.equal(blank.personaId, 'raccoon-pirate');
     assert.equal(blank.playAs, 'photo');
+  });
+
+  it('saveCharacterBio persists bible and active look descriptor', () => {
+    withMockLocalStorage(() => {
+      const blank = createBlankCharacter('Nova', {
+        sex: 'woman',
+        ethnicity: 'mediterranean',
+        ageBand: 'early-20s',
+        height: 'average',
+        bodyBuild: 'average',
+      });
+      upsertCharacter(blank);
+      const saved = saveCharacterBio(blank.id, {
+        name: 'Nova',
+        look: 'ink coat, gold glasses, satchel',
+        personality: 'dry, loyal, always late',
+        catchphrase: 'notes first',
+      });
+      assert.ok(saved?.bio);
+      assert.equal(saved?.bio?.look, 'ink coat, gold glasses, satchel');
+      assert.equal(saved?.descriptor, 'ink coat, gold glasses, satchel');
+      assert.equal(saved?.looks?.[0]?.descriptor, 'ink coat, gold glasses, satchel');
+      const reloaded = getCharacter(blank.id);
+      assert.equal(reloaded?.bio?.personality, 'dry, loyal, always late');
+      assert.equal(reloaded?.bio?.catchphrase, 'notes first');
+    });
   });
 
   it('createBlankCharacter does not inherit session face lock or wardrobe', () => {

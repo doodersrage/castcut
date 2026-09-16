@@ -3,7 +3,6 @@
 import { useCallback, useState, type MutableRefObject } from 'react';
 import {
   CUSTOM_ROLEPLAY_PERSONA_ID,
-  ROLEPLAY_ARCHETYPES,
   ROLEPLAY_CONTENT,
   ROLEPLAY_TONES,
   getRoleplayArchetype,
@@ -16,12 +15,6 @@ import {
   type RoleplayTone,
 } from '@/lib/roleplay';
 import { downloadRoleplayStoryBundle } from '@/lib/roleplay-export';
-import {
-  applyRoleplayLibrarySession,
-  archiveAndStartNewRoleplaySession,
-  persistRoleplayLibraryFromCache,
-  type RoleplayLibrarySession,
-} from '@/lib/roleplay-library';
 import type { RoleplayScene } from '@/lib/roleplay';
 import type { RoleplayToolCache } from '@/lib/settings-cache';
 
@@ -36,7 +29,6 @@ type UseRoleplaySessionActionsOptions = {
   tone: RoleplayTone;
   content: RoleplayContentId;
   assembledFilmRef: AssembledFilmRef;
-  stampRoleplayCharacter: (patch: Partial<RoleplayToolCache>) => void;
   setScenes: (scenes: RoleplayScene[]) => void;
   setOwnBibleOpen: (open: boolean) => void;
   setError: (value: string | null) => void;
@@ -51,7 +43,6 @@ export function useRoleplaySessionActions({
   tone,
   content,
   assembledFilmRef,
-  stampRoleplayCharacter,
   setScenes,
   setOwnBibleOpen,
   setError,
@@ -141,16 +132,6 @@ export function useRoleplaySessionActions({
     toolSettings.customPersona,
   ]);
 
-  const shelfAndStartNew = useCallback(
-    (patch?: Partial<RoleplayToolCache>) => {
-      const { next } = archiveAndStartNewRoleplaySession(toolSettings);
-      updateToolSettings({ ...next, ...patch });
-      setScenes([]);
-      setOwnBibleOpen(false);
-    },
-    [setOwnBibleOpen, setScenes, toolSettings, updateToolSettings]
-  );
-
   /** Clear bio/story for the current Cast lead without shelving a separate session. */
   const clearBio = useCallback(() => {
     updateToolSettings({
@@ -167,37 +148,13 @@ export function useRoleplaySessionActions({
     setScenes([]);
   }, [setScenes, updateToolSettings]);
 
-  const surpriseCast = useCallback(() => {
-    const pick = ROLEPLAY_ARCHETYPES[Math.floor(Math.random() * ROLEPLAY_ARCHETYPES.length)];
-    shelfAndStartNew({ personaId: pick.id, customPersona: undefined });
-  }, [shelfAndStartNew]);
-
-  const continueLibrarySession = useCallback(
-    (session: RoleplayLibrarySession) => {
-      persistRoleplayLibraryFromCache(toolSettings);
-      updateToolSettings(applyRoleplayLibrarySession(session));
-      stampRoleplayCharacter(applyRoleplayLibrarySession(session));
-      setScenes([]);
-      setOwnBibleOpen(false);
-    },
-    [setOwnBibleOpen, setScenes, stampRoleplayCharacter, toolSettings, updateToolSettings]
-  );
-
-  const startLibrarySession = useCallback(() => {
-    shelfAndStartNew();
-  }, [shelfAndStartNew]);
-
   return {
     exporting,
     selectStillTake,
     selectClipTake,
     copyBeatPrompt,
     downloadStory,
-    shelfAndStartNew,
     clearBio,
     restartStory,
-    surpriseCast,
-    continueLibrarySession,
-    startLibrarySession,
   };
 }

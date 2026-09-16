@@ -841,6 +841,46 @@ export function upsertCharacter(record: CharacterRecord): CharacterRecord[] {
   return saveCharacters([nextRecord, ...without]);
 }
 
+/**
+ * Persist a Story bible onto a Cast lead — updates bio, display name, and active look
+ * descriptor so normalize/applyLookFields cannot clobber the bible look.
+ */
+export function saveCharacterBio(
+  characterId: string,
+  bio: RoleplayBio
+): CharacterRecord | undefined {
+  const id = characterId.trim();
+  if (!id) {
+    return undefined;
+  }
+  const character = getCharacter(id);
+  if (!character) {
+    return undefined;
+  }
+  const name = bio.name.trim() || character.name;
+  const look = bio.look.trim();
+  const looks = looksOf(character);
+  const current = looks.find(entry => entry.id === character.activeLookId) ?? looks[0]!;
+  const nextLooks = look
+    ? looks.map(entry => (entry.id === current.id ? { ...entry, descriptor: look } : entry))
+    : looks;
+  upsertCharacter({
+    ...character,
+    name,
+    characterName: name,
+    bio: {
+      name,
+      look: look || character.bio?.look || character.descriptor || name,
+      personality: bio.personality.trim(),
+      ...(bio.catchphrase?.trim() ? { catchphrase: bio.catchphrase.trim() } : {}),
+    },
+    descriptor: look || character.descriptor,
+    looks: nextLooks,
+    activeLookId: current.id,
+  });
+  return getCharacter(id);
+}
+
 export function addLookFromShared(
   characterId: string,
   shared: SharedToolSettings,

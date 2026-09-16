@@ -23,6 +23,22 @@ const FITTING_KIT_PREVIEW_MODEL_CANDIDATES: ComfyImageModel[] = [
   'qwen-image-edit-2511-lightning-8',
 ];
 
+/**
+ * BYO clothing → ghost-mannequin packshot extract.
+ * Always prefer distilled stacks — full 2511 is too slow for this intermediate step,
+ * and 4-step draft-lite thumbs collapse into pattern walls.
+ */
+const FITTING_GARMENT_PACKSHOT_MODEL_CANDIDATES: ComfyImageModel[] = [
+  'qwen-image-edit-2511-lightning-8',
+  'boogu-image-edit-turbo',
+  'qwen-image-edit-2511-lightning-4',
+  'qwen-image-edit-2511',
+];
+
+/** Portrait packshot size — larger than swipe thumbs, smaller than final try-on. */
+export const FITTING_GARMENT_PACKSHOT_WIDTH = 576;
+export const FITTING_GARMENT_PACKSHOT_HEIGHT = 768;
+
 export function resolveFittingKitPreviewModel(
   fallbackModel?: ComfyImageModel | string
 ): ComfyImageModel | undefined {
@@ -36,6 +52,52 @@ export function resolveFittingKitPreviewModel(
     return fallback as ComfyImageModel;
   }
   return undefined;
+}
+
+/** Distilled / turbo stacks that finish packshot extract quickly. */
+export function isFastFittingGarmentPackshotModel(model?: string | null): boolean {
+  const id = String(model ?? '').trim();
+  return Boolean(id) && (/lightning|turbo|rapid/i.test(id) || /^boogu-image-edit-turbo$/i.test(id));
+}
+
+/**
+ * Edit model for clothing packshot extract.
+ * Prefer Lightning-8 / Boogu even when the sidebar keeper is full 2511 —
+ * try-on still uses the sidebar model; this step is only Image 2 prep.
+ */
+export function resolveFittingGarmentPackshotModel(
+  preferredModel?: ComfyImageModel | string
+): ComfyImageModel | undefined {
+  const preferred = String(preferredModel ?? '').trim();
+  // Keep an already-fast sidebar pick (Lightning-8, Boogu Turbo, etc.).
+  // Skip Lightning-4 here — candidates prefer 8-step when installed.
+  if (
+    preferred &&
+    isEditCapableModel(preferred) &&
+    isFastFittingGarmentPackshotModel(preferred) &&
+    !/lightning-4$/i.test(preferred)
+  ) {
+    return preferred as ComfyImageModel;
+  }
+  for (const id of FITTING_GARMENT_PACKSHOT_MODEL_CANDIDATES) {
+    if (isSystemWorkflowSupportedModel(id)) {
+      return id;
+    }
+  }
+  if (preferred && isEditCapableModel(preferred)) {
+    return preferred as ComfyImageModel;
+  }
+  return resolveFittingKitPreviewModel(preferredModel);
+}
+
+/** Moderate latent for packshot extract — not swipe-thumb tiny, not final try-on. */
+export function fittingGarmentPackshotQueueParams(): WorkflowParamValues {
+  return {
+    width: String(FITTING_GARMENT_PACKSHOT_WIDTH),
+    height: String(FITTING_GARMENT_PACKSHOT_HEIGHT),
+    lockLatentSize: 'true',
+    preserveInputAspect: 'false',
+  };
 }
 
 export function fittingKitPreviewQueueParams(): WorkflowParamValues {

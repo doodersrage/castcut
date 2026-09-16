@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   buildFittingCompareLightboxState,
+  buildFittingGarmentPackshotExtractPrompt,
   buildFittingKitPreviewPrompt,
   buildFittingOutfitPrompt,
   buildFittingSwipeDeck,
   fittingSwipeIndex,
   fittingSwipeNeighbor,
+  isPlausibleFittingGarmentDescription,
   resolveFittingDeckWardrobeId,
   resolveFittingKitPreviewPlate,
   resolveFittingPlateFromCharacter,
@@ -106,7 +108,7 @@ describe('fitting outfit prompts', () => {
       isolated: true,
     });
     assert.match(prompt, /Image 2/i);
-    assert.match(prompt, /garment packshot/i);
+    assert.match(prompt, /ghost-mannequin \/ flat-lay clothing packshot/i);
     assert.match(prompt, /Cobalt monk robes/);
     assert.match(prompt, /white seamless/i);
   });
@@ -118,7 +120,53 @@ describe('fitting outfit prompts', () => {
       garmentDescription: 'navy double-breasted blazer over ivory trousers',
     });
     assert.match(prompt, /Visible garments: navy double-breasted blazer/i);
+    assert.match(prompt, /ghost-mannequin \/ flat-lay clothing packshot/i);
     assert.match(prompt, /Image 2/i);
+  });
+
+  it('buildFittingOutfitPrompt ignores Cast look notes so bible clothing cannot stick', () => {
+    const prompt = buildFittingOutfitPrompt({
+      outfitLabel: 'silver evening gown',
+      characterName: 'Mira',
+      characterDescriptor: 'wearing a navy blazer and jeans, brown hair',
+      notes: 'slightly oversized sleeves',
+    });
+    assert.doesNotMatch(prompt, /^look notes:/im);
+    assert.doesNotMatch(prompt, /navy blazer and jeans/i);
+    assert.match(prompt, /ignore Cast look notes/i);
+    assert.match(prompt, /discard every garment/i);
+    assert.match(prompt, /styling tweaks for the new outfit only/i);
+    assert.match(prompt, /slightly oversized sleeves/);
+    assert.match(prompt, /silver evening gown/);
+  });
+
+  it('buildFittingGarmentPackshotExtractPrompt asks for clothing-only ghost mannequin', () => {
+    const prompt = buildFittingGarmentPackshotExtractPrompt({
+      garmentDescription: 'red leather jacket over black jeans',
+    });
+    assert.match(prompt, /photoreal ecommerce clothing product photograph/i);
+    assert.match(prompt, /red leather jacket over black jeans/);
+    assert.match(prompt, /Ghost mannequin/i);
+    assert.match(prompt, /No person/i);
+    assert.match(prompt, /pure white studio/i);
+    assert.match(prompt, /not a pattern/i);
+    assert.doesNotMatch(prompt, /keep: face/i);
+  });
+
+  it('buildFittingGarmentPackshotExtractPrompt works without a garment description', () => {
+    const prompt = buildFittingGarmentPackshotExtractPrompt();
+    assert.match(prompt, /Keep the exact garments, colors, fabrics/i);
+    assert.match(prompt, /flat lay/i);
+  });
+
+  it('isPlausibleFittingGarmentDescription accepts real garments and rejects collapses', () => {
+    assert.equal(
+      isPlausibleFittingGarmentDescription('navy double-breasted blazer over ivory trousers'),
+      true
+    );
+    assert.equal(isPlausibleFittingGarmentDescription('repeating orange pattern tiles'), false);
+    assert.equal(isPlausibleFittingGarmentDescription('abstract geometric glyph wall'), false);
+    assert.equal(isPlausibleFittingGarmentDescription(''), false);
   });
 });
 

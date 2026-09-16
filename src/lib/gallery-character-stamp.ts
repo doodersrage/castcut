@@ -13,6 +13,12 @@ const CHARACTER_QUEUE_TOOLS = new Set([
   'video',
   'generate',
   'lora-validation',
+  // Film loop — Look / Outfit / Day stamp Cast media; must not be stripped on Cast home.
+  'moodboard',
+  'fitting',
+  'day',
+  'image-prompt',
+  'play',
 ]);
 
 const CHARACTER_DERIVED_KINDS = new Set<NonNullable<ComfyGalleryEntry['derivedKind']>>([

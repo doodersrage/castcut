@@ -176,7 +176,6 @@ export function useRoleplayToolOrchestration() {
     tone,
     content,
     assembledFilmRef: film.assembledFilmRef,
-    stampRoleplayCharacter: beatQueue.stampRoleplayCharacter,
     setScenes: sceneFlow.setScenes,
     setOwnBibleOpen,
     setError,

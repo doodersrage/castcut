@@ -297,10 +297,58 @@ export function resolveFittingKitPreviewPlate(input: {
   return null;
 }
 
+/**
+ * Edit instruction: turn a worn still or messy clothing photo into a clean
+ * ghost-mannequin / flat-lay packshot (no person) for Outfit Image 2.
+ * Keep this short — distilled edit stacks (4-step CFG 1) collapse long essays
+ * into repeating patterns / glyph walls.
+ */
+export function buildFittingGarmentPackshotExtractPrompt(input?: {
+  garmentDescription?: string;
+}): string {
+  const description = input?.garmentDescription?.trim();
+  return [
+    'Replace Image 1 with a photoreal ecommerce clothing product photograph of the same garments only.',
+    description
+      ? `Keep these garments exactly: ${description}.`
+      : 'Keep the exact garments, colors, fabrics, and accessories from Image 1.',
+    'Ghost mannequin or neat flat lay on a seamless pure white studio background.',
+    'No person, no face, no skin, no hands, no head.',
+    'One centered outfit, soft even studio light, sharp fabric detail.',
+    'Real clothing photo — not a pattern, texture, grid, wallpaper, or text.',
+  ].join(' ');
+}
+
+/** Negatives for the packshot extract edit — fights the tiled/glyph collapse mode. */
+export const FITTING_GARMENT_PACKSHOT_EXTRACT_NEGATIVE =
+  'repeating pattern, tiled texture, seamless wallpaper, abstract geometry, glyph wall, illegible text, hieroglyphs, noise field, grid of icons, procedural texture, kaleidoscope, no clothing, empty frame';
+
+const FITTING_GARMENT_NOUN_RE =
+  /\b(shirt|dress|jacket|coat|pants|jeans|skirt|blouse|sweater|hoodie|suit|gown|boot|shoes?|sneakers?|blazer|trousers?|top|bottom|outfit|garment|fabric|sleeve|collar|hem|knit|denim|leather|silk|cotton|wool|vest|shorts|romper|jumpsuit|lingerie|bra|underwear|socks?|hat|scarf|bag|belt|tee|t-shirt|cardigan|parka|raincoat|kimono|robe|uniform|armor|corset|bodysuit|leggings|chino|loafer|heel|sandal|mitten|glove|tie|bow)\b/i;
+
+const FITTING_GARMENT_COLLAPSE_RE =
+  /\b(abstract|repeating pattern|tiled|glyph|wallpaper|texture map|geometric pattern|noise field|hieroglyph|illegible text|no clothing|empty frame)\b/i;
+
+/** True when a vision scan reads as real garments (not a collapsed pattern dump). */
+export function isPlausibleFittingGarmentDescription(text: string | null | undefined): boolean {
+  const trimmed = text?.replace(/\s+/g, ' ').trim() ?? '';
+  if (trimmed.length < 8) {
+    return false;
+  }
+  if (FITTING_GARMENT_COLLAPSE_RE.test(trimmed)) {
+    return false;
+  }
+  return FITTING_GARMENT_NOUN_RE.test(trimmed);
+}
+
 /** Img2img instruction: keep identity, swap wardrobe to the locked kit. */
 export function buildFittingOutfitPrompt(input: {
   outfitLabel: string;
   characterName?: string;
+  /**
+   * @deprecated Ignored — Cast look / bible clothing fights the try-on kit.
+   * Identity comes from the plate image only.
+   */
   characterDescriptor?: string;
   notes?: string;
   isolated?: boolean;
@@ -311,29 +359,33 @@ export function buildFittingOutfitPrompt(input: {
 }): string {
   const outfit = input.outfitLabel.trim();
   const name = input.characterName?.trim();
-  const descriptor = input.characterDescriptor?.trim();
   const notes = input.notes?.trim();
   const garmentDescription = input.garmentDescription?.trim();
   const garmentLine = input.hasGarmentReference
     ? garmentDescription
-      ? `Apply the exact outfit from Image 2 (clothing reference). Match silhouette, color, fabric, and accessories. Visible garments: ${garmentDescription}. Keep face, hair, body, and pose from Image 1.`
-      : 'Apply the exact outfit from Image 2 (garment packshot). Match silhouette, color, fabric, and accessories. Keep face, hair, body, and pose from Image 1.'
+      ? `Apply the exact outfit from Image 2 (ghost-mannequin / flat-lay clothing packshot). Match silhouette, color, fabric, and accessories. Visible garments: ${garmentDescription}. Keep face, hair, body, and pose from Image 1.`
+      : 'Apply the exact outfit from Image 2 (ghost-mannequin / flat-lay clothing packshot). Match silhouette, color, fabric, and accessories. Keep face, hair, body, and pose from Image 1.'
     : `replace: all clothing and footwear with this outfit — ${outfit}`;
   return [
     'Edit instruction for an outfit try-on:',
     input.hasGarmentReference
-      ? 'Image 1 is the person plate; Image 2 is the clothing example'
+      ? 'Image 1 is the person plate; Image 2 is the clothing-only packshot (no person)'
       : null,
-    'keep: face, hair, body identity, skin tone, and likeness from the reference plate',
+    'keep: face, hair, body identity, skin tone, and likeness from the reference plate only',
     name ? `subject: ${name}` : null,
-    descriptor ? `look notes: ${descriptor}` : null,
+    // Never inject Cast look / bible notes — they often name the plate's clothes and
+    // the edit model will "keep" them. Wardrobe authority is outfit / Image 2 only.
+    'ignore Cast look notes, character bible clothing, and any wardrobe described on the character record',
     garmentLine,
     input.hasGarmentReference ? `outfit name (confirm match): ${outfit}` : null,
-    'do not keep the reference photo street clothes, uniform, or shoes unless the outfit explicitly includes them',
+    'discard every garment, uniform, shoe, bag, hat, and accessory from Image 1 unless the new outfit explicitly includes them',
+    'do not restore the reference photo street clothes even if they match older look notes',
     input.isolated
       ? 'background: clean plain studio / white seamless; no scene from the original photo'
       : 'background: keep a simple neutral setting; do not invent a busy location',
-    notes ? `extra: ${notes}` : null,
+    notes
+      ? `styling tweaks for the new outfit only (never restore Image 1 clothes): ${notes}`
+      : null,
     'output: single full-body or three-quarter fashion still of the same person in the new kit',
   ]
     .filter(Boolean)

@@ -151,8 +151,8 @@ export default function FittingWardrobeKitSection({
       <div className="space-y-2" data-testid="fitting-custom-garment">
         <FieldLabel>Your clothing photo</FieldLabel>
         <p className="type-caption text-[var(--text-muted)]">
-          Packshot or product shot — uploaded as Image 2, then vision describes the garments for the
-          try-on prompt
+          Packshot, flat lay, or worn still — we cut to white, then build a clothing-only ghost
+          mannequin / flat-lay packshot for Image 2 (vision names the garments)
           {hasCustomGarment ? ' · catalog kit cleared' : ''}.
         </p>
         <div className="flex flex-wrap items-center gap-2">
