@@ -13,6 +13,7 @@ import {
   lookPackDayHref,
   lookPackFittingHref,
   lookPackNotes,
+  lookPackNotesForCharacter,
   lookPackPlayCampaignHref,
   lookPackPortableShareHref,
   LOOK_PACK_SHARE_MAX_TOKEN_CHARS,
@@ -135,6 +136,9 @@ describe('look-pack', () => {
     const fitting = applyLookPackToFittingState(pack);
     assert.equal(fitting.shared.lockedWardrobeId, 'kit-linen');
     assert.match(fitting.tool.notes ?? '', /golden hour|cozy morning|rim light/);
+    assert.equal(lookPackNotesForCharacter(pack, 'char-1'), fitting.tool.notes);
+    assert.equal(lookPackNotesForCharacter(pack, 'char-other'), '');
+    assert.equal(lookPackNotesForCharacter(null, 'char-1'), '');
 
     const slots = applyLookPackToDaySlots(DEFAULT_DAY_SLOTS, pack);
     assert.equal(slots[0]?.location, 'sunlit kitchen');

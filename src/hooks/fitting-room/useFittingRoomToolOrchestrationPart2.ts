@@ -73,6 +73,7 @@ import {
   applyLookPackToFittingState,
   loadLookPack,
   lookPackDayHref,
+  lookPackNotesForCharacter,
   lookPackRoleplayHref,
   saveLookPack,
 } from '@/lib/look-pack';
@@ -608,6 +609,31 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     shared.activeCharacterId,
     toolSettings.suppressAutoPlateSeed,
   ]);
+
+  // Outfit notes are a single tool field — reset them when Cast changes so Char A's
+  // styling cues never stick on Char B. Re-seed from a matching look pack when present.
+  const prevNotesCharacterIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+    const nextId = shared.activeCharacterId?.trim() || '';
+    const prevId = prevNotesCharacterIdRef.current;
+    if (prevId === undefined) {
+      prevNotesCharacterIdRef.current = nextId;
+      return;
+    }
+    if (prevId === nextId) {
+      return;
+    }
+    prevNotesCharacterIdRef.current = nextId;
+    const nextNotes = lookPackNotesForCharacter(loadLookPack(), nextId);
+    const currentNotes = toolSettings.notes ?? '';
+    if (currentNotes === nextNotes) {
+      return;
+    }
+    updateToolSettings({ notes: nextNotes });
+  }, [mounted, shared.activeCharacterId, toolSettings.notes, updateToolSettings]);
 
   useEffect(() => {
     let cancelled = false;

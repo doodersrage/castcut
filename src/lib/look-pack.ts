@@ -197,6 +197,22 @@ export function lookPackNotes(pack: LookPack): string {
     .slice(0, 1200);
 }
 
+/**
+ * Outfit / Day notes for the active Cast lead.
+ * Only reuse a staged look pack when it belongs to this character — otherwise clear
+ * so Char A's styling notes never stick on Char B.
+ */
+export function lookPackNotesForCharacter(
+  pack: LookPack | null | undefined,
+  characterId: string | undefined
+): string {
+  const id = characterId?.trim() || '';
+  if (!pack || !id || pack.characterId?.trim() !== id) {
+    return '';
+  }
+  return lookPackNotes(pack).slice(0, 1200);
+}
+
 /** Seed Fitting shared + tool notes from a look pack (`?from=look` handoff). */
 export function applyLookPackToFittingState(pack: LookPack): {
   shared: { lockedWardrobeId?: string };
