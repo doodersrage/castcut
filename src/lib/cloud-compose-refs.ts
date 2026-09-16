@@ -13,6 +13,8 @@ export const FAL_MULTI_REF_EDIT_MODELS = [
   'fal-ai/nano-banana/edit',
   'fal-ai/nano-banana-pro/edit',
   'fal-ai/nano-banana-2/edit',
+  'fal-ai/bytedance/seedream/v4/edit',
+  'fal-ai/qwen-image-edit',
 ] as const;
 
 /**

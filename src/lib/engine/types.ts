@@ -5,7 +5,7 @@
  */
 
 export type EngineId =
-  'comfyui' | 'diffusers' | 'fal' | 'replicate' | 'openai' | 'gemini' | 'grok' | 'runway';
+  'comfyui' | 'diffusers' | 'fal' | 'replicate' | 'openai' | 'gemini' | 'grok' | 'runway' | 'luma';
 
 export type EngineJobStatus = 'pending' | 'running' | 'completed' | 'error' | 'unknown';
 

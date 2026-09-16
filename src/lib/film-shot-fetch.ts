@@ -117,6 +117,19 @@ async function fetchNamedEngineViewBytes(
     }
     return { buffer: file.bytes, contentType: file.mimeType, filenameHint: filename };
   }
+  if (engine === 'luma') {
+    const file = await (
+      await import('./luma-client')
+    ).ensureLumaOutput({
+      promptId: searchParams.get('promptId') ?? undefined,
+      filename,
+      subfolder,
+    });
+    if (!file) {
+      throw new Error('Luma output not found for stitch.');
+    }
+    return { buffer: file.bytes, contentType: file.mimeType, filenameHint: filename };
+  }
 
   throw new Error(`Direct ${engine} view resolve is not wired; use a durable gallery original.`);
 }
@@ -207,7 +220,7 @@ export async function fetchFilmShotBytes(input: {
   }
 
   const engineView = parsed.pathname.match(
-    /^\/api\/(fal|replicate|runway|diffusers|grok|gemini|openai)\/view\/?$/
+    /^\/api\/(fal|replicate|runway|luma|diffusers|grok|gemini|openai)\/view\/?$/
   );
   if (engineView?.[1]) {
     try {

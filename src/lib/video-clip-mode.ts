@@ -4,6 +4,8 @@ import {
   DEFAULT_FAL_T2V_MODEL,
   DEFAULT_REPLICATE_I2V_MODEL,
   DEFAULT_REPLICATE_T2V_MODEL,
+  DEFAULT_LUMA_I2V_MODEL,
+  DEFAULT_LUMA_T2V_MODEL,
   DEFAULT_RUNWAY_EXTEND_MODEL,
   DEFAULT_RUNWAY_I2V_MODEL,
   DEFAULT_RUNWAY_T2V_MODEL,
@@ -76,6 +78,18 @@ export function resolveReplicateVideoModel(input: {
     return input.i2vModel?.trim() || DEFAULT_REPLICATE_I2V_MODEL;
   }
   return input.t2vModel?.trim() || DEFAULT_REPLICATE_T2V_MODEL;
+}
+
+/** Luma Ray 2 T2V/I2V; extend falls back to last-frame I2V in the studio. */
+export function resolveLumaVideoModel(input: {
+  clipMode: VideoClipMode;
+  i2vModel?: string | null;
+  t2vModel?: string | null;
+}): string {
+  if (input.clipMode === 'i2v' || input.clipMode === 'extend') {
+    return input.i2vModel?.trim() || DEFAULT_LUMA_I2V_MODEL;
+  }
+  return input.t2vModel?.trim() || DEFAULT_LUMA_T2V_MODEL;
 }
 
 /** Runway Gen-4.5 T2V/I2V; extend uses Aleph video-to-video. */
@@ -194,7 +208,8 @@ export function engineCanQueueClips(engine: string | undefined | null): boolean 
     engine === 'replicate' ||
     engine === 'grok' ||
     engine === 'gemini' ||
-    engine === 'runway'
+    engine === 'runway' ||
+    engine === 'luma'
   );
 }
 

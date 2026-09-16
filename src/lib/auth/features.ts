@@ -136,6 +136,7 @@ const API_FEATURE_MAP: Array<{ prefix: string; feature: AppFeatureId }> = [
   { prefix: '/api/lora-train', feature: 'settings' },
   { prefix: '/api/film', feature: 'gallery' },
   { prefix: '/api/runway', feature: 'comfyui-api' },
+  { prefix: '/api/luma', feature: 'comfyui-api' },
   { prefix: '/api/plugins/server', feature: 'plugins' },
   // Previously unmapped ⇒ any signed-in user. Gate to settings/studio so viewers stay read-only.
   { prefix: '/api/webhooks', feature: 'settings' },

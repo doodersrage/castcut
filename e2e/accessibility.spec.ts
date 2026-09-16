@@ -31,8 +31,16 @@ const ROUTES: Array<{ path: string; label: string }> = [
   { path: '/inpaint', label: 'Inpaint' },
   { path: '/workflow-editor', label: 'Workflow editor' },
   { path: '/play', label: 'Film' },
+  { path: '/moodboard', label: 'Look' },
+  { path: '/fitting', label: 'Outfit' },
   { path: '/day', label: 'Day' },
+  { path: '/story', label: 'Story' },
+  { path: '/characters', label: 'Cast' },
+  { path: '/m', label: 'Mobile Studio' },
   { path: '/m/day', label: 'Mobile Day' },
+  { path: '/m/fitting', label: 'Mobile Outfit' },
+  { path: '/m/moodboard', label: 'Mobile Look' },
+  { path: '/m/story', label: 'Mobile Story' },
 ];
 
 test.beforeEach(async ({ page }) => {

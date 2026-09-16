@@ -459,6 +459,16 @@ export type SharedToolSettings = {
   runwayExtendModel?: string;
   /** Session Runway API key. Stored in this browser only; server `RUNWAY_API_KEY` is the fallback. */
   sessionRunwayApiKey?: string;
+  /** Luma Photon stills model id (video is primary; stills return a clear error today). */
+  lumaModel?: string;
+  /** Luma image-to-image model when a reference photo is queued. */
+  lumaImg2ImgModel?: string;
+  /** Luma Ray image-to-video model. */
+  lumaI2vModel?: string;
+  /** Luma Ray text-to-video model. */
+  lumaT2vModel?: string;
+  /** Session Luma API key. Stored in this browser only; server `LUMA_API_KEY` is the fallback. */
+  sessionLumaApiKey?: string;
   /**
    * Diffusers workshop crop: auto-detect craft roles, always hide hands,
    * or never force the head-and-shoulders crop.

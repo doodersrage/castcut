@@ -3,6 +3,7 @@ import { comfyEngineAdapter } from './comfy-adapter';
 import { diffusersEngineAdapter } from './diffusers-adapter';
 import { falEngineAdapter } from './fal-adapter';
 import { replicateEngineAdapter } from './replicate-adapter';
+import { lumaEngineAdapter } from './luma-adapter';
 import { runwayEngineAdapter } from './runway-adapter';
 import { geminiEngineAdapter, grokEngineAdapter, openaiEngineAdapter } from './cloud-adapter';
 import type { EngineAdapter, EngineId } from './types';
@@ -36,11 +37,19 @@ export {
   DEFAULT_OPENAI_TXT2IMG_MODEL,
   DEFAULT_REPLICATE_IMG2IMG_MODEL,
   DEFAULT_REPLICATE_TXT2IMG_MODEL,
+  DEFAULT_LUMA_I2V_MODEL,
+  DEFAULT_LUMA_IMG2IMG_MODEL,
+  DEFAULT_LUMA_T2V_MODEL,
+  DEFAULT_LUMA_TXT2IMG_MODEL,
   DEFAULT_RUNWAY_EXTEND_MODEL,
   DEFAULT_RUNWAY_I2V_MODEL,
   DEFAULT_RUNWAY_IMG2IMG_MODEL,
   DEFAULT_RUNWAY_T2V_MODEL,
   DEFAULT_RUNWAY_TXT2IMG_MODEL,
+  LUMA_API_HOST,
+  LUMA_I2V_MODEL_PRESETS,
+  LUMA_MODEL_PRESETS,
+  LUMA_T2V_MODEL_PRESETS,
   FAL_EXTEND_MODEL_PRESETS,
   FAL_I2V_MODEL_PRESETS,
   FAL_MODEL_PRESETS,
@@ -70,6 +79,7 @@ export { comfyEngineAdapter } from './comfy-adapter';
 export { diffusersEngineAdapter } from './diffusers-adapter';
 export { falEngineAdapter } from './fal-adapter';
 export { replicateEngineAdapter } from './replicate-adapter';
+export { lumaEngineAdapter } from './luma-adapter';
 export { runwayEngineAdapter } from './runway-adapter';
 export { geminiEngineAdapter, grokEngineAdapter, openaiEngineAdapter } from './cloud-adapter';
 export {
@@ -101,6 +111,9 @@ export function getEngineAdapterById(id: EngineId | undefined): EngineAdapter {
   }
   if (id === 'runway') {
     return runwayEngineAdapter;
+  }
+  if (id === 'luma') {
+    return lumaEngineAdapter;
   }
   return comfyEngineAdapter;
 }

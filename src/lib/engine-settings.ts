@@ -10,6 +10,8 @@ import {
   DEFAULT_FAL_T2V_MODEL,
   DEFAULT_REPLICATE_I2V_MODEL,
   DEFAULT_REPLICATE_T2V_MODEL,
+  DEFAULT_LUMA_I2V_MODEL,
+  DEFAULT_LUMA_T2V_MODEL,
   DEFAULT_RUNWAY_EXTEND_MODEL,
   DEFAULT_RUNWAY_I2V_MODEL,
   DEFAULT_RUNWAY_T2V_MODEL,
@@ -26,6 +28,7 @@ import {
   inferVideoClipMode,
   resolveFalVideoModel,
   resolveReplicateVideoModel,
+  resolveLumaVideoModel,
   resolveRunwayVideoModel,
   type VideoClipMode,
 } from './video-clip-mode';
@@ -60,6 +63,10 @@ export type EngineSettings = {
   runwayI2vModel: string;
   runwayT2vModel: string;
   runwayExtendModel: string;
+  lumaModel: string;
+  lumaImg2ImgModel: string;
+  lumaI2vModel: string;
+  lumaT2vModel: string;
 };
 
 function envDefaultEngine(): EngineId {
@@ -134,6 +141,10 @@ function cloudModelsFromEnv(): Pick<
   | 'runwayI2vModel'
   | 'runwayT2vModel'
   | 'runwayExtendModel'
+  | 'lumaModel'
+  | 'lumaImg2ImgModel'
+  | 'lumaI2vModel'
+  | 'lumaT2vModel'
 > {
   return {
     falModel: envCloudTxt2Img('fal'),
@@ -174,6 +185,10 @@ function cloudModelsFromEnv(): Pick<
       ['NEXT_PUBLIC_RUNWAY_EXTEND_MODEL', 'RUNWAY_EXTEND_MODEL'],
       DEFAULT_RUNWAY_EXTEND_MODEL
     ),
+    lumaModel: envCloudTxt2Img('luma'),
+    lumaImg2ImgModel: envCloudImg2Img('luma'),
+    lumaI2vModel: envOr(['NEXT_PUBLIC_LUMA_I2V_MODEL', 'LUMA_I2V_MODEL'], DEFAULT_LUMA_I2V_MODEL),
+    lumaT2vModel: envOr(['NEXT_PUBLIC_LUMA_T2V_MODEL', 'LUMA_T2V_MODEL'], DEFAULT_LUMA_T2V_MODEL),
   };
 }
 
@@ -200,6 +215,10 @@ function cloudModelsFromShared(shared: SharedToolSettings): ReturnType<typeof cl
     runwayI2vModel: shared.runwayI2vModel?.trim() || fromEnv.runwayI2vModel,
     runwayT2vModel: shared.runwayT2vModel?.trim() || fromEnv.runwayT2vModel,
     runwayExtendModel: shared.runwayExtendModel?.trim() || fromEnv.runwayExtendModel,
+    lumaModel: shared.lumaModel?.trim() || fromEnv.lumaModel,
+    lumaImg2ImgModel: shared.lumaImg2ImgModel?.trim() || fromEnv.lumaImg2ImgModel,
+    lumaI2vModel: shared.lumaI2vModel?.trim() || fromEnv.lumaI2vModel,
+    lumaT2vModel: shared.lumaT2vModel?.trim() || fromEnv.lumaT2vModel,
   };
 }
 
@@ -263,6 +282,10 @@ export function saveEngineSettings(patch: Partial<EngineSettings>): EngineSettin
     runwayI2vModel: next.runwayI2vModel,
     runwayT2vModel: next.runwayT2vModel,
     runwayExtendModel: next.runwayExtendModel,
+    lumaModel: next.lumaModel,
+    lumaImg2ImgModel: next.lumaImg2ImgModel,
+    lumaI2vModel: next.lumaI2vModel,
+    lumaT2vModel: next.lumaT2vModel,
   };
   saveSharedSettings(shared);
   return next;
@@ -292,7 +315,10 @@ export function resolveCloudQueueModel(
   if (tool === 'video' && engine === 'gemini') {
     return DEFAULT_GEMINI_VIDEO_MODEL;
   }
-  if ((engine === 'fal' || engine === 'replicate' || engine === 'runway') && tool === 'video') {
+  if (
+    (engine === 'fal' || engine === 'replicate' || engine === 'runway' || engine === 'luma') &&
+    tool === 'video'
+  ) {
     const settings = loadEngineSettings();
     const clipMode = inferVideoClipMode({
       clipMode: extras?.clipMode,
@@ -311,6 +337,13 @@ export function resolveCloudQueueModel(
         i2vModel: settings.runwayI2vModel,
         t2vModel: settings.runwayT2vModel,
         extendModel: settings.runwayExtendModel,
+      });
+    }
+    if (engine === 'luma') {
+      return resolveLumaVideoModel({
+        clipMode,
+        i2vModel: settings.lumaI2vModel,
+        t2vModel: settings.lumaT2vModel,
       });
     }
     return resolveFalVideoModel({
@@ -343,7 +376,8 @@ export function resolveCloudQueueExtras(
       engine === 'replicate' ||
       engine === 'grok' ||
       engine === 'gemini' ||
-      engine === 'runway')
+      engine === 'runway' ||
+      engine === 'luma')
       ? inferVideoClipMode({
           clipMode: input.clipMode,
           hasInitImage: input.hasInputImage,
@@ -384,6 +418,12 @@ export function resolveCloudQueueExtras(
           i2vModel: settings.runwayI2vModel || DEFAULT_RUNWAY_I2V_MODEL,
           t2vModel: settings.runwayT2vModel || DEFAULT_RUNWAY_T2V_MODEL,
           extendModel: settings.runwayExtendModel || DEFAULT_RUNWAY_EXTEND_MODEL,
+        }
+      : {}),
+    ...(engine === 'luma'
+      ? {
+          i2vModel: settings.lumaI2vModel || DEFAULT_LUMA_I2V_MODEL,
+          t2vModel: settings.lumaT2vModel || DEFAULT_LUMA_T2V_MODEL,
         }
       : {}),
   };

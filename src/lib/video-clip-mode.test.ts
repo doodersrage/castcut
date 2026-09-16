@@ -243,6 +243,7 @@ describe('video clip mode', () => {
     assert.equal(engineCanQueueClips('grok'), true);
     assert.equal(engineCanQueueClips('gemini'), true);
     assert.equal(engineCanQueueClips('runway'), true);
+    assert.equal(engineCanQueueClips('luma'), true);
     assert.equal(engineCanQueueClips('openai'), false);
     assert.equal(engineCanQueueClips('comfyui'), false);
   });

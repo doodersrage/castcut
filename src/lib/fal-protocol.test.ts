@@ -28,6 +28,7 @@ describe('engine capabilities', () => {
     assert.equal(parseEngineId('grok'), 'grok');
     assert.equal(parseEngineId('replicate'), 'replicate');
     assert.equal(parseEngineId('runway'), 'runway');
+    assert.equal(parseEngineId('luma'), 'luma');
     assert.equal(parseEngineId('diffusers'), 'diffusers');
     assert.equal(parseEngineId('nope'), undefined);
     assert.equal(normalizeEngineId('fal'), 'fal');
@@ -44,6 +45,7 @@ describe('engine capabilities', () => {
     assert.equal(isCloudEngine('gemini'), true);
     assert.equal(isCloudEngine('grok'), true);
     assert.equal(isCloudEngine('runway'), true);
+    assert.equal(isCloudEngine('luma'), true);
     assert.equal(isCloudEngine('comfyui'), false);
     assert.equal(engineUsesComfyGraph('fal'), false);
     assert.equal(engineUsesComfyGraph('runway'), false);
@@ -55,6 +57,7 @@ describe('engine capabilities', () => {
     assert.equal(engineDisplayName('gemini'), 'Gemini');
     assert.equal(engineDisplayName('grok'), 'Grok');
     assert.equal(engineDisplayName('runway'), 'Runway');
+    assert.equal(engineDisplayName('luma'), 'Luma');
   });
 
   it('keeps OpenAI, Gemini, and Grok still presets image-only', () => {

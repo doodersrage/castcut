@@ -2,15 +2,16 @@
 
 Facts that are each documented somewhere already (feature pages, `.env.example`
 comments, changelog entries), collected here in one place because "what does this
-*not* do" tends to be exactly what a first-time visitor looks for before investing
+_not_ do" tends to be exactly what a first-time visitor looks for before investing
 setup time, and it's easy to miss when it's scattered across a dozen feature bullets.
 
 ## Product focus (near-term)
 
-- **Prefer reliability and UX over new integrations.** ComfyUI remains the core; Diffusers
-  stills and cloud engines (Fal / Replicate / Grok / Gemini / ChatGPT / Runway) stay
-  supported as optional paths. Expanding that provider/model matrix further is parked —
-  invest in Play first-run, character consistency, Heal & ready, and film assembly instead.
+- **ComfyUI remains the core**; Diffusers stills and cloud engines (Fal / Replicate /
+  Grok / Gemini / ChatGPT / Runway / Luma when configured) stay supported as optional
+  paths. Prefer reliability and UX for Play first-run, character consistency, Heal &
+  ready, and film assembly — but the cloud model matrix is actively maintained in
+  Settings → Inference engine (new presets and providers land there).
 
 ## Generation engines
 
@@ -19,11 +20,13 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
   always routes through ComfyUI or a cloud engine. Further Diffusers parity beyond the
   documented stills surface is **parked**; hard non-goals (PuLID, FaceDetailer, Dynamic
   VRAM, Boogu/GGUF, video, etc.) stay on Comfy.
-- **Cloud clip support varies by provider.** Fal, Replicate, Grok, Gemini, and
-  Runway can queue clips (T2V/I2V/extend, provider-dependent); ChatGPT is stills
-  only. Runway is wired for clip queue paths but **not** listed in Settings →
-  Inference engine yet — treat it as partial / advanced until that picker lands.
-  Check a provider's row in the model tables before assuming clip support.
+- **Cloud clip support varies by provider.** Fal, Replicate, Grok, Gemini, Runway,
+  and Luma can queue clips (T2V/I2V/extend, provider-dependent); ChatGPT is stills
+  only. Luma is **clips only** (Ray 2 / Ray Flash) — stills queue returns a clear
+  error so you switch engines. Every cloud engine above is listed in Settings →
+  Inference engine with model datalists — pick an engine, paste a key (or use the
+  server env key), then choose stills / clip models from the suggestions. Check a
+  provider's row before assuming clip or extend support.
 - **Cloud identity lock is not the same feature as local identity lock.** Local
   ComfyUI uses IP-Adapter / InstantID / PuLID for face consistency. Cloud engines
   never get Comfy IP-Adapter — they use either a documented multi-ref face
@@ -70,13 +73,14 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
 
 ## Testing and platform
 
-- **The accessibility check only covers five pages, and only two severities.**
-  `npm run test:e2e:a11y` (`e2e/accessibility.spec.ts`) checks Generate, Gallery,
-  Compose, Inpaint, and the Workflow editor for `critical`/`serious` axe-core
+- **The accessibility check covers the Play loop plus high-traffic tools, and only
+  two severities.** `npm run test:e2e:a11y` (`e2e/accessibility.spec.ts`) checks
+  Generate, Gallery, Compose, Inpaint, Workflow editor, Film, Look, Outfit, Day,
+  Story, Cast, and Mobile Studio routes for `critical`/`serious` axe-core
   violations — it does ride along in CI (the catch-all `npm run test:e2e` step
   at the end of the `e2e` job scans all of `e2e/`), but not as its own named,
-  isolated gate, and a clean run says nothing about pages outside those five or
-  about `moderate`/`minor` findings, which are logged rather than failed.
+  isolated gate, and a clean run says nothing about `moderate`/`minor` findings,
+  which are logged rather than failed.
 - **Linux AppImage is slower than the `.deb` on non-Ubuntu distros.** The
   AppImage embeds Ubuntu's WebKit; on Arch/Fedora and similar rolling distros it
   can feel sluggish compared to the `.deb`, which uses the system WebKit. See

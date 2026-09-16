@@ -9,9 +9,13 @@ import {
   DEFAULT_FAL_T2V_MODEL,
   DEFAULT_REPLICATE_I2V_MODEL,
   DEFAULT_REPLICATE_T2V_MODEL,
+  DEFAULT_LUMA_I2V_MODEL,
+  DEFAULT_LUMA_T2V_MODEL,
   DEFAULT_RUNWAY_EXTEND_MODEL,
   DEFAULT_RUNWAY_I2V_MODEL,
   DEFAULT_RUNWAY_T2V_MODEL,
+  LUMA_I2V_MODEL_PRESETS,
+  LUMA_T2V_MODEL_PRESETS,
   FAL_EXTEND_MODEL_PRESETS,
   FAL_I2V_MODEL_PRESETS,
   FAL_T2V_MODEL_PRESETS,
@@ -490,6 +494,60 @@ export default function SettingsInferenceEnginePanel({
                   </datalist>
                 </div>
               ) : null}
+              {option.id === 'luma' ? (
+                <div className="space-y-1 sm:col-span-2">
+                  <label htmlFor="luma-i2v-model" className="text-xs text-[var(--text-secondary)]">
+                    Luma image-to-video model
+                  </label>
+                  <input
+                    id="luma-i2v-model"
+                    list="luma-i2v-model-presets"
+                    value={sharedSettings.lumaI2vModel ?? ''}
+                    onChange={event =>
+                      updateSharedSettings({
+                        lumaI2vModel: event.target.value,
+                      })
+                    }
+                    placeholder={DEFAULT_LUMA_I2V_MODEL}
+                    disabled={!active}
+                    className="w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-muted)] px-3 py-2 text-sm text-[var(--text-primary)] shadow-inner transition focus-visible:border-[var(--border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <datalist id="luma-i2v-model-presets">
+                    {LUMA_I2V_MODEL_PRESETS.map(preset => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.label}
+                      </option>
+                    ))}
+                  </datalist>
+                </div>
+              ) : null}
+              {option.id === 'luma' ? (
+                <div className="space-y-1 sm:col-span-2">
+                  <label htmlFor="luma-t2v-model" className="text-xs text-[var(--text-secondary)]">
+                    Luma text-to-video model
+                  </label>
+                  <input
+                    id="luma-t2v-model"
+                    list="luma-t2v-model-presets"
+                    value={sharedSettings.lumaT2vModel ?? ''}
+                    onChange={event =>
+                      updateSharedSettings({
+                        lumaT2vModel: event.target.value,
+                      })
+                    }
+                    placeholder={DEFAULT_LUMA_T2V_MODEL}
+                    disabled={!active}
+                    className="w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-muted)] px-3 py-2 text-sm text-[var(--text-primary)] shadow-inner transition focus-visible:border-[var(--border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <datalist id="luma-t2v-model-presets">
+                    {LUMA_T2V_MODEL_PRESETS.map(preset => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.label}
+                      </option>
+                    ))}
+                  </datalist>
+                </div>
+              ) : null}
             </Fragment>
           );
         })}
@@ -529,9 +587,13 @@ export default function SettingsInferenceEnginePanel({
         <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
           /api/grok
         </code>
-        , and{' '}
+        ,{' '}
         <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
           /api/runway
+        </code>
+        , and{' '}
+        <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
+          /api/luma
         </code>
         ; keys from Settings or{' '}
         <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
@@ -556,6 +618,10 @@ export default function SettingsInferenceEnginePanel({
         {' / '}
         <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
           RUNWAY_API_KEY
+        </code>
+        {' / '}
+        <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
+          LUMA_API_KEY
         </code>
         . Server proxy uses{' '}
         <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
