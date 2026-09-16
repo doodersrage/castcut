@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('roleplay still/clip toggle is visible', async ({ page }) => {
-  await gotoStable(page, '/roleplay');
+  await gotoStable(page, '/story');
   await expect(page.getByRole('heading', { name: /^Story$/i, level: 1 })).toBeVisible({
     timeout: 30_000,
   });

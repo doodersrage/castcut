@@ -19,6 +19,58 @@ import {
 export type { PlayCampaignStep, PlayCampaignStepId };
 export { PLAY_CAMPAIGN_STEPS, PLAY_CORE_STEP_IDS };
 
+/**
+ * Play-loop entry Cast: explicit `?character=` wins; otherwise the shared active Cast
+ * (so nav between Film / Look / Outfit / Day / Story matches Cast profile CTAs).
+ */
+export function resolvePlayLoopEntryCharacterId(options: {
+  queryCharacterId?: string | null;
+  activeCharacterId?: string | null;
+}): string | null {
+  const fromQuery = options.queryCharacterId?.trim() || '';
+  if (fromQuery) {
+    return fromQuery;
+  }
+  const fromActive = options.activeCharacterId?.trim() || '';
+  return fromActive || null;
+}
+
+const PLAY_LOOP_NAV_PATHS = new Set([
+  '/play',
+  '/moodboard',
+  '/fitting',
+  '/day',
+  '/story',
+  '/roleplay',
+  '/m/film',
+  '/m/moodboard',
+  '/m/fitting',
+  '/m/day',
+  '/m/story',
+]);
+
+/** Append active Cast to Film-loop nav hrefs when the link has no `character=` yet. */
+export function resolvePlayLoopNavHref(href: string, activeCharacterId?: string | null): string {
+  const hashIndex = href.indexOf('#');
+  const withoutHash = hashIndex >= 0 ? href.slice(0, hashIndex) : href;
+  const hash = hashIndex >= 0 ? href.slice(hashIndex) : '';
+  const [path] = withoutHash.split('?');
+  if (!PLAY_LOOP_NAV_PATHS.has(path || '')) {
+    return href;
+  }
+  const id = activeCharacterId?.trim();
+  if (!id) {
+    return href;
+  }
+  const params = new URLSearchParams(withoutHash.split('?')[1] || '');
+  if (params.get('character')?.trim()) {
+    return href;
+  }
+  params.set('character', id);
+  const next = params.toString();
+  return `${path}${next ? `?${next}` : ''}${hash}`;
+}
+
 export function playCampaignProgressLabel(state: PlayCampaignState | null): string {
   if (!state) {
     return 'Film · start';

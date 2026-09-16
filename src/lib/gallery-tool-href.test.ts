@@ -10,7 +10,7 @@ describe('galleryToolHref', () => {
     assert.equal(galleryToolHref('compose'), '/compose');
     assert.equal(galleryToolHref('imagePrompt'), '/image-prompt');
     assert.equal(galleryToolHref('nsfw-generator'), '/plugins/nsfw-generator');
-    assert.equal(galleryToolHref('roleplay'), '/roleplay');
+    assert.equal(galleryToolHref('roleplay'), '/story');
     assert.equal(galleryToolLabel('roleplay'), 'Story');
     assert.equal(galleryToolHref('upload'), '/gallery');
     assert.equal(galleryToolLabel('upload'), 'Upload');

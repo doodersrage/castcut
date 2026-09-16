@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { resolveAppNavLinkHref } from '@/lib/gallery-session-state';
+import { resolvePlayLoopNavHref } from '@/lib/play-campaign';
 import { prefetchGalleryPage } from '@/lib/gallery-warmup';
+import { loadSettingsCache } from '@/lib/settings-cache';
 import type { AppNavLink } from '@/lib/app-nav-catalog';
 
 export function AppNavSidebarLink({
@@ -16,7 +18,9 @@ export function AppNavSidebarLink({
   favorited?: boolean;
   onToggleFavorite?: () => void;
 }) {
-  const navHref = resolveAppNavLinkHref(link.href);
+  const characterId =
+    typeof window !== 'undefined' ? loadSettingsCache().shared.activeCharacterId?.trim() || '' : '';
+  const navHref = resolvePlayLoopNavHref(resolveAppNavLinkHref(link.href), characterId);
   const galleryPath = link.href.split('?')[0] ?? link.href;
   const isGalleryLink = galleryPath === '/gallery' || galleryPath === '/m/gallery';
 

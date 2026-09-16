@@ -7,6 +7,7 @@ import {
   defaultCharacterAppearanceForm,
   resolveCharacterAppearance,
   rollCharacterAppearance,
+  sanitizeCharacterAppearanceDescriptor,
   summarizeCharacterAppearance,
   summarizeCharacterAppearanceForm,
 } from './character-appearance';
@@ -111,5 +112,48 @@ describe('character-appearance', () => {
     assert.match(characterAppearanceHints(draft), /Nordic/);
     assert.match(summarizeCharacterAppearance(draft), /Woman/);
     assert.match(summarizeCharacterAppearance(draft), /Nordic/);
+  });
+
+  it('composes ethnicity-matched skin, and keeps white descriptors free of afro-textured hair stereotypes', () => {
+    for (let i = 0; i < 20; i += 1) {
+      const descriptor = composeCharacterAppearanceDescriptor(
+        resolveCharacterAppearance({
+          sex: 'woman',
+          ethnicity: 'white',
+          ageBand: '30s',
+          height: 'average',
+          bodyBuild: 'slender',
+        })
+      );
+      assert.match(descriptor, /White woman/i);
+      assert.match(descriptor, /fair to light Caucasian skin/i);
+      assert.doesNotMatch(descriptor, /\b(afro|box braids|locs)\b/i);
+    }
+  });
+
+  it('composes Black descriptors with matching skin and without Nordic blonde hair', () => {
+    for (let i = 0; i < 20; i += 1) {
+      const descriptor = composeCharacterAppearanceDescriptor(
+        resolveCharacterAppearance({
+          sex: 'woman',
+          ethnicity: 'black',
+          ageBand: '30s',
+          height: 'average',
+          bodyBuild: 'athletic',
+        })
+      );
+      assert.match(descriptor, /Black woman/i);
+      assert.match(descriptor, /deep rich brown/i);
+      assert.doesNotMatch(descriptor, /ash-blonde|pale blonde/i);
+    }
+  });
+
+  it('sanitizeCharacterAppearanceDescriptor replaces locs on a white woman descriptor', () => {
+    const raw =
+      'a white woman in her late twenties with a delicate jaw, sparse freckles, and slightly protruding ears, locs tied in a high bun, and a body that is average height, slender and lean with long limbs and little soft tissue';
+    const next = sanitizeCharacterAppearanceDescriptor(raw);
+    assert.match(next, /white woman/i);
+    assert.doesNotMatch(next, /\blocs\b/i);
+    assert.match(next, /fair to light Caucasian skin|waves|pixie|bun|blonde/i);
   });
 });

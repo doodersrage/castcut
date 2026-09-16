@@ -5,6 +5,7 @@ import { useRoleplayFilmActions } from '@/hooks/useRoleplayFilmActions';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useRoleplayBeatQueue } from '@/hooks/useRoleplayBeatQueue';
+import { useRoleplayLookPackDeepLink } from '@/hooks/useRoleplayLookPackDeepLink';
 import { useRoleplayStorySync } from '@/hooks/useRoleplayStorySync';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { IDENTITY_MEDIA_URL, persistIdentityImage } from '@/lib/gallery-media-client';
@@ -63,7 +64,7 @@ function loadActivePlate(): CharacterPlate | null {
 }
 
 export function useMobilePlayToolOrchestrationCore() {
-  const { mounted, shared, toolSettings, updateToolSettings } = useCachedSettings(
+  const { mounted, shared, toolSettings, updateShared, updateToolSettings } = useCachedSettings(
     'roleplay',
     DEFAULT_ROLEPLAY_TOOL_CACHE
   );
@@ -76,6 +77,15 @@ export function useMobilePlayToolOrchestrationCore() {
   const [isolating, setIsolating] = useState(false);
   const [ownBibleOpen, setOwnBibleOpen] = useState(false);
   const autoIsolateAttemptedRef = useRef(false);
+
+  useRoleplayLookPackDeepLink({
+    mounted,
+    activeCharacterId: shared.activeCharacterId,
+    activeSessionId: toolSettings.activeSessionId,
+    updateShared,
+    updateToolSettings,
+    onMessage: message => setError(message),
+  });
 
   const personaId = toolSettings.personaId ?? 'raccoon-pirate';
   const { tone, content } = resolveRoleplayToneAndContent(toolSettings.tone, toolSettings.content);
@@ -332,8 +342,8 @@ export function useMobilePlayToolOrchestrationCore() {
       const prompt = await actions.finalizePrompt(data.prompt, beat.title);
       rememberDraftFields({
         toolKey: TOOL_ID,
-        label: 'Roleplay',
-        href: '/m/play',
+        label: 'Story',
+        href: '/m/story',
         fields: [nextBio.name, beat.title, prompt],
       });
       void dispatchWebhook({

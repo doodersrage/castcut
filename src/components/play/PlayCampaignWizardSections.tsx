@@ -8,6 +8,8 @@ import PlayCampaignSavedLookPacksSection from '@/components/play/PlayCampaignSav
 import PlayCampaignStepsSection from '@/components/play/PlayCampaignStepsSection';
 import PlayCampaignActionsSection from '@/components/play/PlayCampaignActionsSection';
 import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
+import PlayPersistenceTriad from '@/components/PlayPersistenceTriad';
+import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
 import { startStarterPlayFilm } from '@/lib/play-starter';
 import { hasCompletedFirstFilm, loadPlayMetrics } from '@/lib/play-metrics';
@@ -37,6 +39,8 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
         description="Create a Cast lead, then Look → Outfit → Day → Cut. Or jump straight to a starter Day film."
       >
         <PlayHabitNudgeBanner />
+        <PlayFilmEngineBanner />
+        <PlayPersistenceTriad />
         {props.resumeStep && props.characterId && !props.campaignComplete ? (
           <div
             className="rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-4 py-4"

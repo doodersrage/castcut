@@ -83,7 +83,7 @@ export default function StudioCampaignTab({
   onGalleryRevision,
 }: StudioCampaignTabProps) {
   return (
-    <ToolSection title="Prompt campaign runner">
+    <ToolSection title="Prompt batch runner">
       <p className="text-sm text-[var(--text-secondary)]">
         Generate a series of prompts (random scenes or topic list) and optionally queue each to
         ComfyUI under the active project.
@@ -185,7 +185,7 @@ export default function StudioCampaignTab({
           onClick={() => {
             void (async () => {
               onCampaignLoadingChange(true);
-              onCampaignStatusChange('Running campaign…');
+              onCampaignStatusChange('Running batch…');
               try {
                 const topics =
                   campaignTarget === 'topics'
@@ -213,7 +213,7 @@ export default function StudioCampaignTab({
                 const errors = results.filter(step => step.error).length;
                 onCampaignStatusChange(
                   [
-                    `Campaign finished · ${queued}/${results.length} queued`,
+                    `Batch finished · ${queued}/${results.length} queued`,
                     held > 0 ? `${held} held Max` : null,
                     errors > 0 ? `${errors} errors` : null,
                   ]
@@ -228,7 +228,7 @@ export default function StudioCampaignTab({
                 }
                 onGalleryRevision();
               } catch (err) {
-                onCampaignStatusChange(err instanceof Error ? err.message : 'Campaign failed.');
+                onCampaignStatusChange(err instanceof Error ? err.message : 'Batch failed.');
               } finally {
                 onCampaignLoadingChange(false);
               }
@@ -263,7 +263,7 @@ export default function StudioCampaignTab({
       ) : null}
 
       <div className="ui-surface-inset mt-6 space-y-3">
-        <p className="text-sm font-medium text-[var(--text-primary)]">Campaign templates</p>
+        <p className="text-sm font-medium text-[var(--text-primary)]">Batch templates</p>
         <p className="text-xs text-[var(--text-muted)]">
           Save the current campaign settings as a reusable recipe.
         </p>
@@ -325,7 +325,7 @@ export default function StudioCampaignTab({
           <EmptyState
             compact
             icon="template"
-            title="No campaign templates yet"
+            title="No batch templates yet"
             description="Name the current campaign settings above and save them as a reusable recipe for later batches."
             action={{
               label: 'Name a template',

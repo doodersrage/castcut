@@ -483,7 +483,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       router.push(resolvePlayStepHref('roleplay', character.id, pack));
       return;
     }
-    router.push('/roleplay');
+    router.push('/story');
   }, [character, router, setError]);
 
   const seedDemoStills = useCallback(() => {

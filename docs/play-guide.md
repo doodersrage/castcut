@@ -33,9 +33,9 @@ First launch asks **What do you want to make?** (Character / Scene·Film / Image
 
 Stack reference tiles (mood, lighting, location, style, palette). Optional gallery stills per tile.
 
-- **Extract look** — builds a session look pack (vision merge when tiles have images).
+- **Extract look** — builds a session look pack (vision merge when tiles have images), then queues a **full-body Outfit plate** in minimal base clothing so try-on / Day have a clean body ref.
 - **Continue to Outfit / Day** — hand off vibe notes + optional wardrobe lock.
-- **Save on Cast** / **Export JSON** — under More (power users).
+- **Save on Cast** / **Export JSON** / **Share this look** — under actions (power users).
 
 Deep link: `/moodboard?character=<id>`.
 
@@ -60,7 +60,7 @@ Four slots (Morning → Night) with wardrobe, setting, and beat per slot.
 
 Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 
-### 5. Story (`/roleplay`)
+### 5. Story (`/story`)
 
 **Optional** after the first Day cut: story beats, stills + clips, **Cut film**, Save to Cast.
 
@@ -109,7 +109,8 @@ Durable keys: `play-campaign-v1`, `comfy-play-metrics-v1`, look packs on Cast + 
 | Surface | Role |
 | --- | --- |
 | **`/m` (Mobile Studio)** | First-class film loop: Cast → Gallery → **Look → Outfit → Day → Story** |
-| **`/m/moodboard` · `/m/fitting` · `/m/day` · `/m/play`** | Touch-first Look / Outfit / Day / Story — stills + clips, Cut film, Save to Cast |
+| **`/m/film`** | Phone Film hub — same campaign resume / starter as desk `/play` |
+| **`/m/moodboard` · `/m/fitting` · `/m/day` · `/m/story`** | Touch-first Look / Outfit / Day / Story — stills + clips, Cut film, Save to Cast |
 | **Desk** | Optional large-screen handoff (Film stepper, full Story chrome) |
 
 Phone is a first-class film loop with the same vocabulary as desk.

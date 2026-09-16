@@ -40,7 +40,7 @@ export default function SettingsInferenceEnginePanel({
     <ToolSection
       id="settings-comfyui-inference-engine"
       title="Inference engine"
-      description="ComfyUI is the default generate path (Qwen Lightning bf16, Final/Max enrich, specialty graphs, Play film). Diffusers is optional local stills (txt2img/img2img, native inpaint, Canny/OpenPose/depth ControlNet for SDXL/Flux/Qwen). Fal, Replicate, and Runway queue stills and clips. Grok and Gemini queue stills plus native video. ChatGPT stays stills. Cloud engines have no workflows, LoRAs, or live latents."
+      description="ComfyUI is the default generate path (Qwen Lightning bf16, Final/Max enrich, specialty graphs, Film loop). Diffusers is optional local stills (txt2img/img2img, native inpaint, Canny/OpenPose/depth ControlNet for SDXL/Flux/Qwen). Fal, Replicate, and Runway queue stills and clips. Grok and Gemini queue stills plus native video. ChatGPT stays stills. Cloud engines have no workflows, LoRAs, or live latents."
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1">
@@ -495,7 +495,7 @@ export default function SettingsInferenceEnginePanel({
         })}
       </div>
       <p className="text-xs text-[var(--text-muted)]">
-        Default Generate uses ComfyUI (Dynamic VRAM / bf16 Lightning, Play film). Diffusers remains
+        Default Generate uses ComfyUI (Dynamic VRAM / bf16 Lightning, Film loop). Diffusers remains
         available for stills only — run{' '}
         <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
           cd services/diffusers-engine && ./run.sh
@@ -508,8 +508,8 @@ export default function SettingsInferenceEnginePanel({
         (Kling, WAN, LTX 2.3), Runway (Gen-4.5 / Aleph), Grok native video, Gemini Veo, or local
         WAN/LTX. Continue paths: Fal LTX extend-video (or CDN upload → extend; soft-fail →
         last-frame I2V), Grok `/v1/videos/extensions`, Runway `/v1/video_to_video`, Replicate
-        last-frame I2V, Gemini last-frame I2V + server stitch. Roleplay and Video label which path
-        ran. ChatGPT stays stills (Sora is deprecated). Stills go through{' '}
+        last-frame I2V, Gemini last-frame I2V + server stitch. Story and Video label which path ran.
+        ChatGPT stays stills (Sora is deprecated). Stills go through{' '}
         <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
           /api/fal
         </code>

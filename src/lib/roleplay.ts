@@ -580,7 +580,7 @@ export function formatRoleplayStoryMarkdown(input: {
   clipFilenames?: Array<string | null | undefined>;
   filmFilename?: string | null;
 }): string {
-  const name = input.bio?.name.trim() || 'Untitled roleplay';
+  const name = input.bio?.name.trim() || 'Untitled story';
   const tone = input.tone?.trim();
   const content = input.content?.trim();
   const persona = input.personaLabel?.trim();

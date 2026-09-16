@@ -8,7 +8,7 @@ export type HistoryEntryNavigation = {
 const TOOL_PATHS: Record<string, string> = {
   pet: '/pet',
   fantasy: '/fantasy',
-  roleplay: '/roleplay',
+  roleplay: '/story',
   'nsfw-generator': '/plugins/nsfw-generator',
   background: '/background',
   character: '/character',

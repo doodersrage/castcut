@@ -85,7 +85,7 @@ export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
     description: 'Optional — story beats after your first Day cut.',
     optional: true,
     href: ({ characterId, pack }) =>
-      pack ? lookPackRoleplayHref(pack) : `/roleplay?character=${encodeURIComponent(characterId)}`,
+      pack ? lookPackRoleplayHref(pack) : `/story?character=${encodeURIComponent(characterId)}`,
   },
 ];
 
@@ -286,7 +286,7 @@ export function resolvePlayStepHref(
       return '/day';
     }
     if (campaignId === 'roleplay') {
-      return '/roleplay';
+      return '/story';
     }
     return '/play';
   }

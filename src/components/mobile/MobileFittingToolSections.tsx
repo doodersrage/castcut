@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
+import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button } from '@/components/ui/Button';
 import { FieldError, FieldLabel, SelectInput } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
@@ -124,6 +125,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         </p>
       </div>
 
+      <PlayFilmEngineBanner />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}

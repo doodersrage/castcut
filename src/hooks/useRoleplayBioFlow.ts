@@ -75,8 +75,8 @@ export function useRoleplayBioFlow({
       });
       rememberDraftFields({
         toolKey: TOOL_ID,
-        label: 'Roleplay',
-        href: '/roleplay',
+        label: 'Story',
+        href: '/story',
         fields: [nextBio.name, nextBio.look],
       });
       if (!introBeat) {

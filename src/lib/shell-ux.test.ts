@@ -404,10 +404,10 @@ describe("reset ui chrome", () => {
 describe("project links", () => {
   it("builds a GitHub new-issue URL with the current page", async () => {
     const { githubBugReportUrl, GITHUB_REPO_URL } = await import("./project-links");
-    const href = githubBugReportUrl({ pathname: "/roleplay" });
+    const href = githubBugReportUrl({ pathname: "/story" });
     assert.equal(href.startsWith(`${GITHUB_REPO_URL}/issues/new?`), true);
     const parsed = new URL(href);
-    assert.match(parsed.searchParams.get("body") ?? "", /\/roleplay/);
+    assert.match(parsed.searchParams.get("body") ?? "", /\/story/);
     assert.match(parsed.searchParams.get("body") ?? "", /What happened/);
   });
 });

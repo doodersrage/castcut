@@ -150,7 +150,7 @@ export default function HomeDashboard() {
 
       <ToolSection
         title="Get ready"
-        description="Set up engines once, then use desk Play or phone Mobile Studio."
+        description="Heal & ready once, then use desk Film or phone Castcut Film."
       >
         <ToolActionRow>
           <ButtonLink
@@ -159,10 +159,15 @@ export default function HomeDashboard() {
             size="sm"
             data-testid="dashboard-heal-ready"
           >
-            Set up engines
+            Heal & ready
           </ButtonLink>
-          <ButtonLink href="/m" variant="secondary" size="sm" data-testid="dashboard-mobile-studio">
-            Mobile Studio
+          <ButtonLink
+            href="/m/film"
+            variant="secondary"
+            size="sm"
+            data-testid="dashboard-mobile-studio"
+          >
+            Film on phone
           </ButtonLink>
           <ButtonLink href="/play" size="sm" variant="ghost">
             Start a film
@@ -216,7 +221,7 @@ export default function HomeDashboard() {
         </ToolSection>
       ) : null}
 
-      <ToolSection title="Studio" description="One primary path — Film — then core tools.">
+      <ToolSection title="Make a film" description="One primary path — Film — then core tools.">
         <ToolActionRow>
           <ButtonLink
             href="/play"
@@ -246,7 +251,7 @@ export default function HomeDashboard() {
           ) : (
             <>
               <ButtonLink href="/studio" size="sm" variant="ghost">
-                Studio
+                Prompt studio
               </ButtonLink>
               <ButtonLink href="/settings" size="sm" variant="ghost">
                 Settings
@@ -376,7 +381,7 @@ export default function HomeDashboard() {
                       className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                       onClick={() => startRoleplayFromGalleryEntry(entry)}
                     >
-                      Roleplay
+                      Story
                     </button>
                     <button
                       type="button"

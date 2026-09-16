@@ -12,7 +12,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [v1.8.0] - 2026-09-16
 
 - **Play honesty:** first Cut celebrates with manual Watch (no auto soft-advance); Story stays locked until first film on `/play` and Outfit More; unstamped Save CTA deep-links Day instead of empty Cast Films.
-- **Look → Outfit → Day:** Outfit Keep seeds Day plate (kit lock); Look Extract can clear/regenerate Outfit plate; campaign/UI vocabulary uses Look / Outfit / Day / Story (routes stay `/moodboard`, `/fitting`, `/roleplay`).
+- **Look → Outfit → Day:** Outfit Keep seeds Day plate (kit lock); Look Extract can clear/regenerate Outfit plate; campaign/UI vocabulary uses Look / Outfit / Day / Story (routes stay `/moodboard`, `/fitting`, `/story`).
 - **Quieter chrome:** Engine / Settings behind header popover; model pickers behind Change.
 - **Starter / jump-in:** sample reel, demo stills, auto-queue Day for first film.
 - **Mobile Studio:** soft-advance, Day parity, celebrate / cut-coach alignment with desk.

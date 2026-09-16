@@ -63,7 +63,7 @@ export default function PromptResultPanel({
           )}
         </div>
         <Button variant="secondary" onClick={onCopy} disabled={!output.trim()}>
-          {copied ? 'Copied!' : 'Copy for ComfyUI'}
+          {copied ? 'Copied!' : 'Copy'}
         </Button>
       </div>
 

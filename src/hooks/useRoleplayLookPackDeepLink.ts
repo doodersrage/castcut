@@ -1,13 +1,25 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { applyCharacterRecord, getCharacter, getCharacterLookPack } from '@/lib/character-os';
+import {
+  applyCharacterRecord,
+  applyCharacterRecordFresh,
+  getCharacter,
+  getCharacterLookPack,
+} from '@/lib/character-os';
 import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
 import { applyLookPackToRoleplaySettings, loadLookPack, saveLookPack } from '@/lib/look-pack';
+import {
+  resolveRoleplayContinueFromCharacter,
+  shouldSyncRoleplaySessionToCharacter,
+} from '@/lib/roleplay-library';
+import { resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
 import type { SharedToolSettings, RoleplayToolCache } from '@/lib/settings-cache';
 
 type UseRoleplayLookPackDeepLinkOptions = {
   mounted: boolean;
+  activeCharacterId?: string | null;
+  activeSessionId?: string | null;
   updateShared: (patch: Partial<SharedToolSettings>) => void;
   updateToolSettings: (patch: Partial<RoleplayToolCache>) => void;
   onMessage?: (message: string) => void;
@@ -15,6 +27,8 @@ type UseRoleplayLookPackDeepLinkOptions = {
 
 export function useRoleplayLookPackDeepLink({
   mounted,
+  activeCharacterId,
+  activeSessionId,
   updateShared,
   updateToolSettings,
   onMessage,
@@ -27,21 +41,41 @@ export function useRoleplayLookPackDeepLink({
     }
     deepLinkHandled.current = true;
     const params = new URLSearchParams(window.location.search);
-    const characterId = params.get('character')?.trim();
+    const queryCharacterId = params.get('character')?.trim() || '';
     const wardrobeId = params.get('wardrobe')?.trim();
     const lookPackId = params.get('lookPack')?.trim();
     const fromLook = params.get('from')?.trim() === 'look';
 
+    const characterId = resolvePlayLoopEntryCharacterId({
+      queryCharacterId,
+      activeCharacterId,
+    });
+
     if (characterId) {
       const record = getCharacter(characterId);
-      if (record) {
+      if (!record) {
+        if (queryCharacterId) {
+          onMessage?.(
+            'That Cast character isn’t on this device — pick one here or open Film to create one.'
+          );
+        }
+      } else if (shouldSyncRoleplaySessionToCharacter(characterId, activeSessionId)) {
+        const result = resolveRoleplayContinueFromCharacter(characterId);
+        if (result.ok) {
+          updateToolSettings(result.cache);
+          updateShared(applyCharacterRecordFresh(record));
+        } else if (queryCharacterId) {
+          onMessage?.(result.message);
+          updateShared(applyCharacterRecord(record));
+        } else {
+          // Nav entry: still bind shared Cast identity even if Story bio can’t synthesize yet.
+          updateShared(applyCharacterRecordFresh(record));
+        }
+      } else if (queryCharacterId) {
         updateShared(applyCharacterRecord(record));
-      } else {
-        onMessage?.(
-          'That Cast character isn’t on this device — pick one here or open Film to create one.'
-        );
       }
     }
+
     if (wardrobeId) {
       updateShared({ lockedWardrobeId: wardrobeId });
     }
@@ -77,5 +111,5 @@ export function useRoleplayLookPackDeepLink({
         }
       }
     }
-  }, [mounted, onMessage, updateShared, updateToolSettings]);
+  }, [mounted, activeCharacterId, activeSessionId, onMessage, updateShared, updateToolSettings]);
 }

@@ -246,11 +246,11 @@ export function lookPackRoleplayHref(pack: LookPack): string {
   if (pack.wardrobeId) {
     params.set('wardrobe', pack.wardrobeId);
   }
-  const desk = `/roleplay?${params.toString()}`;
+  const desk = `/story?${params.toString()}`;
   if (typeof window !== 'undefined') {
     const path = window.location.pathname;
     if (path === '/m' || path.startsWith('/m/')) {
-      return `/m/play?${params.toString()}`;
+      return `/m/story?${params.toString()}`;
     }
   }
   return desk;

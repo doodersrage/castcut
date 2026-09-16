@@ -66,7 +66,11 @@ import {
   lookPackRoleplayHref,
   saveLookPack,
 } from '@/lib/look-pack';
-import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play-campaign';
+import {
+  bumpPlayCampaignStep,
+  completePlayCampaign,
+  resolvePlayLoopEntryCharacterId,
+} from '@/lib/play-campaign';
 import { hasCompletedFirstFilm, loadPlayMetrics } from '@/lib/play-metrics';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
@@ -241,9 +245,13 @@ export function useDayPlannerToolOrchestrationCore() {
     }
     deepLinkHandled.current = true;
     const params = new URLSearchParams(window.location.search);
-    const characterId = params.get('character')?.trim();
+    const queryCharacterId = params.get('character')?.trim() || '';
     const wardrobeId = params.get('wardrobe')?.trim();
     const fromLook = params.get('from')?.trim() === 'look';
+    const characterId = resolvePlayLoopEntryCharacterId({
+      queryCharacterId,
+      activeCharacterId: shared.activeCharacterId,
+    });
 
     if (characterId) {
       const record = getCharacter(characterId);
@@ -283,7 +291,14 @@ export function useDayPlannerToolOrchestrationCore() {
         scheduleAfterCommit(() => setFilmStatus('Applied Look pack to day slots.'));
       }
     }
-  }, [mounted, toolSettings.notes, toolSettings.slots, updateShared, updateToolSettings]);
+  }, [
+    mounted,
+    shared.activeCharacterId,
+    toolSettings.notes,
+    toolSettings.slots,
+    updateShared,
+    updateToolSettings,
+  ]);
 
   useEffect(() => {
     let cancelled = false;

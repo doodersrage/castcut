@@ -1,9 +1,11 @@
 import {
   activeLook,
+  applyCharacterRecordFresh,
   getCharacter,
   upsertCharacter,
   type CharacterRecord,
 } from '@/lib/character-os';
+import { sanitizeCharacterAppearanceDescriptor } from '@/lib/character-appearance';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
 import {
   collectIsolateSourceUrls,
@@ -11,6 +13,7 @@ import {
   loadImageBlobFromUrls,
 } from '@/lib/isolate-subject';
 import type { MoodboardTile } from '@/lib/moodboard-scene';
+import type { LookPack } from '@/lib/look-pack';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
@@ -22,10 +25,13 @@ import { persistIdentityImage } from '@/lib/gallery-media-client';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import {
   DEFAULT_FITTING_TOOL_CACHE,
+  loadSettingsCache,
   loadToolSettings,
+  saveSharedSettings,
   saveToolSettings,
   type FittingToolCache,
 } from '@/lib/settings-cache';
+import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 
 export type OutfitPlateEnsureResult = 'ready' | 'queued' | 'skipped' | 'failed';
 
@@ -50,24 +56,250 @@ export function pickMoodboardPlateSource(
   };
 }
 
-/** Portrait still prompt used as the Outfit try-on plate when Look has no tile photo. */
+/** Resolve Cast appearance text for a body plate — active look wins over session vibe. */
+export function resolveCharacterAppearanceForPlate(character: CharacterRecord | null | undefined): {
+  name: string;
+  appearance: string;
+  loraTriggers: string[];
+} {
+  const shared = typeof window !== 'undefined' ? loadSettingsCache().shared : undefined;
+  let look;
+  try {
+    look = character ? activeLook(character) : undefined;
+  } catch {
+    look = undefined;
+  }
+  const lookDescriptorRaw = look?.descriptor?.trim() || character?.descriptor?.trim() || '';
+  const sharedDescriptor = shared?.activeCharacterDescriptor?.trim() || '';
+  const hints = look?.hints?.trim() || character?.hints?.trim() || '';
+  const bioLook = character?.bio?.look?.trim() || '';
+  const lookDescriptor = lookDescriptorRaw
+    ? sanitizeCharacterAppearanceDescriptor(lookDescriptorRaw)
+    : '';
+  const sharedSanitized = sharedDescriptor
+    ? sanitizeCharacterAppearanceDescriptor(sharedDescriptor)
+    : '';
+  // Look/character descriptor is authoritative. Shared is fallback only — never let a
+  // stale session descriptor fight the active look (e.g. vibe-adjacent leftovers).
+  const parts = [lookDescriptor || sharedSanitized || null, hints || null, bioLook || null]
+    .filter((part): part is string => Boolean(part && part.trim()))
+    .map(part => part.trim());
+  // Dedupe while preserving order.
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const part of parts) {
+    const key = part.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    unique.push(part);
+  }
+  const triggers = [
+    ...(character?.loraTriggerPhrases ?? []),
+    ...((shared as { loraTriggerPhrases?: string[] } | undefined)?.loraTriggerPhrases ?? []),
+  ]
+    .map(entry => entry?.trim())
+    .filter((entry): entry is string => Boolean(entry));
+  const triggerUnique = [...new Set(triggers)];
+  return {
+    name: character?.name?.trim() || 'the Cast lead',
+    appearance: unique.join(', '),
+    loraTriggers: triggerUnique,
+  };
+}
+
+type PlateEthnicityKey =
+  | 'black'
+  | 'white'
+  | 'east-asian'
+  | 'south-asian'
+  | 'southeast-asian'
+  | 'latina'
+  | 'middle-eastern'
+  | 'nordic'
+  | 'mediterranean'
+  | 'indigenous'
+  | 'polynesian'
+  | 'caribbean'
+  | 'mixed';
+
+const PLATE_ETHNICITY_PATTERNS: Array<{ key: PlateEthnicityKey; re: RegExp }> = [
+  { key: 'east-asian', re: /\b(east[\s-]?asian|chinese|japanese|korean|monolid)\b/i },
+  { key: 'south-asian', re: /\b(south[\s-]?asian|indian|pakistani|bangladeshi)\b/i },
+  {
+    key: 'southeast-asian',
+    re: /\b(southeast[\s-]?asian|filipina|filipino|vietnamese|thai|indonesian)\b/i,
+  },
+  { key: 'middle-eastern', re: /\b(middle[\s-]?eastern|arab|persian|iranian|turkish)\b/i },
+  { key: 'latina', re: /\b(latina|latino|latine|hispanic|mexican|brazilian)\b/i },
+  { key: 'nordic', re: /\b(nordic|scandinavian)\b/i },
+  { key: 'mediterranean', re: /\b(mediterranean|greek|italian|spanish)\b/i },
+  { key: 'indigenous', re: /\b(indigenous|native[\s-]?american|first[\s-]?nations)\b/i },
+  { key: 'polynesian', re: /\b(polynesian|samoan|hawaiian|maori|pasifika)\b/i },
+  { key: 'caribbean', re: /\b(caribbean|afro[\s-]?caribbean|jamaican|haitian)\b/i },
+  { key: 'mixed', re: /\b(mixed[\s-]?race|biracial|multiracial)\b/i },
+  { key: 'black', re: /\b(black|african[\s-]?american|dark[\s-]?skinned)\b/i },
+  { key: 'white', re: /\b(white|caucasian|fair[\s-]?skinned|pale[\s-]?skinned)\b/i },
+];
+
+/** Infer ethnicity family from Cast appearance / hints text. */
+export function inferPlateEthnicityKey(appearance: string): PlateEthnicityKey | null {
+  const text = appearance.trim();
+  if (!text) {
+    return null;
+  }
+  // Prefer explicit Cast hints labels ("White", "East Asian") before weaker adjectives.
+  for (const entry of PLATE_ETHNICITY_PATTERNS) {
+    if (entry.re.test(text)) {
+      return entry.key;
+    }
+  }
+  return null;
+}
+
+const PLATE_SKIN_LOCK: Record<PlateEthnicityKey, string> = {
+  black: 'Black presentation with deep rich brown to dark brown skin',
+  white: 'White Caucasian presentation with fair to light skin (not brown, not deep dark)',
+  'east-asian': 'East Asian presentation with light-to-medium East Asian skin tone',
+  'south-asian': 'South Asian presentation with warm medium-to-deep South Asian skin tone',
+  'southeast-asian': 'Southeast Asian presentation with warm light-to-medium skin tone',
+  latina: 'Latina/Latino presentation with warm olive to medium-brown skin',
+  'middle-eastern': 'Middle Eastern presentation with olive to warm medium skin',
+  nordic: 'Nordic presentation with very fair light skin and cool undertones',
+  mediterranean: 'Mediterranean presentation with olive to light-tan skin',
+  indigenous: 'Indigenous presentation with warm medium-to-deep skin',
+  polynesian: 'Polynesian presentation with warm medium-to-deep brown skin',
+  caribbean: 'Caribbean presentation with warm medium-to-deep brown skin',
+  mixed: 'mixed-race presentation matching the Cast look skin tone exactly',
+};
+
+const PLATE_ETHNICITY_NEGATIVES: Record<PlateEthnicityKey, string> = {
+  black:
+    'pale white skin, fair Caucasian skin, East Asian features, monolid eyes, blonde Nordic look',
+  white:
+    'dark brown skin, deep Black skin, African features, East Asian monolid, South Asian features',
+  'east-asian':
+    'dark Black skin, fair Nordic blonde Caucasian, heavy African features, South Asian features',
+  'south-asian': 'fair Nordic white skin, deep Black skin, East Asian monolid, pale Caucasian',
+  'southeast-asian': 'fair Nordic white skin, deep Black skin, African features',
+  latina: 'fair Nordic pale skin, deep Black skin, East Asian monolid',
+  'middle-eastern': 'fair Nordic pale skin, deep Black skin, East Asian monolid',
+  nordic: 'dark brown skin, deep Black skin, East Asian monolid, South Asian features',
+  mediterranean: 'fair Nordic pale skin, deep Black skin, East Asian monolid',
+  indigenous: 'fair Nordic pale skin, East Asian monolid',
+  polynesian: 'fair Nordic pale skin, East Asian monolid',
+  caribbean: 'fair Nordic pale skin, East Asian monolid',
+  mixed: 'wrong race for the Cast look, swapped ethnicity, incorrect skin tone',
+};
+
+/** Amplify ethnicity / skin tone so models cannot “nearly” match body type while swapping race. */
+export function reinforceAppearanceForPlate(appearance: string): string {
+  const trimmed = appearance.trim();
+  if (!trimmed) {
+    return '';
+  }
+  const key = inferPlateEthnicityKey(trimmed);
+  if (!key) {
+    return trimmed;
+  }
+  const lock = PLATE_SKIN_LOCK[key];
+  if (trimmed.toLowerCase().includes(lock.slice(0, 24).toLowerCase())) {
+    return trimmed;
+  }
+  return `${lock}. ${trimmed}`;
+}
+
+/** Negative prompt terms that fight the Cast ethnicity when generating a body plate. */
+export function buildLookCastPlateNegative(appearance: string): string {
+  const key = inferPlateEthnicityKey(appearance);
+  const ethnicityNeg = key ? PLATE_ETHNICITY_NEGATIVES[key] : 'wrong race, incorrect skin tone';
+  return [
+    ethnicityNeg,
+    'different person, race swap, ethnicity swap, skin tone change',
+    '3D render, CGI, clay sculpt, grey clay, monochrome sculpture, base mesh, ZBrush, Blender viewport, untextured, albedo only, plastic mannequin, statue, doll, blank eyes, no pupils, featureless face, video-game character',
+    'cartoon, anime, illustration, painting',
+    'crowd, multiple people, busy wardrobe, outerwear, text overlay',
+  ].join(', ');
+}
+
+/** Drop people / race / body cues from Look vibe so style notes cannot redefine the subject. */
+export function stripDemographicCuesFromStyle(text: string): string {
+  let next = text.trim();
+  if (!next) {
+    return '';
+  }
+  // Remove common person-description phrases (keep lighting/palette words around them).
+  next = next
+    .replace(
+      /\b(a|an|the)?\s*(young|old|tall|short|slim|skinny|slender|petite|curvy|large|plus[\s-]?size|heavyset|athletic)?\s*(black|white|asian|east[\s-]?asian|south[\s-]?asian|latina|latino|african|caucasian|mixed[\s-]?race)?\s*(woman|man|girl|boy|person|model|figure|subject)s?\b/gi,
+      ' '
+    )
+    .replace(/\b(dark|deep|fair|light|pale|brown|olive)\s+skin(ned| tone)?\b/gi, ' ')
+    .replace(/\b(african[\s-]?american|caucasian|monolid|afro|box braids|locs)\b/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s([,.;:])/g, '$1')
+    .replace(/^[,.;:\s]+|[,.;:\s]+$/g, '')
+    .trim();
+  return next.slice(0, 280);
+}
+
+/** Style-only cues for the plate — never let Look vibe redefine the person. */
+export function styleNotesForLookPlate(input: {
+  lookPack?: LookPack | null;
+  vibePrompt?: string;
+}): string {
+  const pack = input.lookPack;
+  const structured = [
+    pack?.lightingNotes?.trim() ? `lighting: ${pack.lightingNotes.trim()}` : null,
+    pack?.paletteNotes?.trim() ? `palette: ${pack.paletteNotes.trim()}` : null,
+    pack?.moodNotes?.trim() ? `mood: ${pack.moodNotes.trim()}` : null,
+    pack?.styleNotes?.trim() ? `style: ${pack.styleNotes.trim()}` : null,
+  ].filter(Boolean);
+  if (structured.length > 0) {
+    return stripDemographicCuesFromStyle(structured.join(' · ')).slice(0, 360);
+  }
+  const vibe = input.vibePrompt?.trim();
+  if (!vibe) {
+    return '';
+  }
+  return stripDemographicCuesFromStyle(vibe);
+}
+
+/** Full-body try-on reference photo queued after Look extract for Outfit / Day. */
 export function buildLookCastPlatePrompt(input: {
   characterName?: string;
   descriptor?: string;
+  /** LoRA / identity trigger phrases that must appear in the positive prompt. */
+  loraTriggers?: string[];
+  /** Lighting / palette / mood only — must not redefine the person. */
+  styleNotes?: string;
+  /** @deprecated Prefer styleNotes — vibe often describes tile people and fights Cast. */
   vibePrompt?: string;
 }): string {
   const name = input.characterName?.trim() || 'the Cast lead';
-  const descriptor = input.descriptor?.trim();
-  const vibe = input.vibePrompt?.trim();
+  const appearance = reinforceAppearanceForPlate(
+    input.descriptor?.trim() ? sanitizeCharacterAppearanceDescriptor(input.descriptor.trim()) : ''
+  );
+  const triggers = (input.loraTriggers ?? []).map(entry => entry.trim()).filter(Boolean);
+  const styleRaw =
+    input.styleNotes?.trim() ||
+    (input.vibePrompt?.trim() ? styleNotesForLookPlate({ vibePrompt: input.vibePrompt }) : '');
+  const style = stripDemographicCuesFromStyle(styleRaw);
+  // Lead with photo language — "body plate" / grey seamless alone steers some models into clay CGI.
   return [
-    `Cast plate still for outfit try-on — ${name}:`,
-    descriptor
-      ? `look (mandatory unique face and body — not a stock beauty face): ${descriptor}`
-      : 'look: keep a distinct, consistent face and body',
-    vibe ? `style vibe from Look: ${vibe.slice(0, 480)}` : null,
-    'single person, three-quarter portrait or standing full/three-quarter framing',
-    'plain soft seamless backdrop, even studio lighting, clear silhouette for wardrobe try-on',
-    'no crowd, no heavy props, no text overlays',
+    `Color photograph of ${name}, a real living person, full-body standing pose for wardrobe try-on:`,
+    appearance
+      ? `SUBJECT (mandatory — exact Cast person; race, ethnicity, and skin tone locked; do not swap race): ${appearance}`
+      : 'SUBJECT: distinct consistent face and body matching the Cast lead — do not invent a different race or body type',
+    triggers.length > 0 ? `identity triggers: ${triggers.join(', ')}` : null,
+    'shot on a DSLR, natural skin with visible pores and subsurface color, real eyes with irises and pupils, real hair strands, lifelike soft shadows',
+    style
+      ? `STYLE ONLY (lighting / palette / mood — ignore any people or race if still present): ${style}`
+      : 'even soft studio beauty light, clean seamless backdrop',
+    'single person, head-to-toe in frame, feet visible, arms slightly away from torso',
+    'wearing plain light underwear or a form-fitting neutral base layer only — no outerwear, no accessories, no busy patterns',
+    'not a 3D model, not clay, not grey sculpt, not a mannequin, not CGI, not a statue, not blank-eyed',
   ]
     .filter(Boolean)
     .join('\n');
@@ -77,7 +309,101 @@ export function fittingHasSessionPlate(cache: FittingToolCache | null | undefine
   return Boolean(cache?.referenceImageFilename?.trim() || cache?.referenceImageUrl?.trim());
 }
 
-/** Drop the Cast look plate so Look Extract can queue a fresh Outfit plate. */
+/** Cast face ref for IP-Adapter — look/character only (never session shared; that can be stale). */
+export function resolveCastFaceForPlate(character: CharacterRecord | null | undefined): {
+  filename?: string;
+  imageUrl?: string;
+} | null {
+  if (!character) {
+    return null;
+  }
+  let look;
+  try {
+    look = activeLook(character);
+  } catch {
+    look = undefined;
+  }
+  const ip = look?.ipAdapter ?? character.ipAdapter;
+  const filename = ip?.imageFilename?.trim() || undefined;
+  const imageUrl = ip?.imageUrl?.trim() || ip?.comfyUrl?.trim() || undefined;
+  if (!filename && !imageUrl) {
+    return null;
+  }
+  return { filename, imageUrl };
+}
+
+/** Pin session identity to this Cast and clear any prior Cast face (quiet — no broadcast). */
+export function syncSharedIdentityToCast(character: CharacterRecord): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  saveSharedSettings(
+    {
+      ...loadSettingsCache().shared,
+      ...applyCharacterRecordFresh(character),
+    },
+    { notify: false }
+  );
+}
+
+/** Drop the Cast body plate so Look Extract can queue a fresh Outfit plate (keep face lock). */
+export function clearCharacterBodyPlate(characterId?: string | null): boolean {
+  const id = characterId?.trim();
+  if (!id) {
+    return false;
+  }
+  const character = getCharacter(id);
+  if (!character) {
+    return false;
+  }
+  const look = activeLook(character);
+  const hasBodyPlate = Boolean(look.reference || character.reference);
+  if (!hasBodyPlate) {
+    const previous = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    if (!fittingHasSessionPlate(previous) && !previous.pendingOutfitPlatePromptId?.trim()) {
+      return false;
+    }
+    saveToolSettings('fitting', {
+      ...previous,
+      referenceImageUrl: undefined,
+      referenceImageFilename: undefined,
+      referenceOriginalUrl: undefined,
+      referenceOriginalFilename: undefined,
+      referenceIsolated: false,
+      pendingOutfitPlatePromptId: undefined,
+      suppressAutoPlateSeed: true,
+    });
+    return true;
+  }
+  const looks = (character.looks ?? [look]).map(entry =>
+    entry.id === look.id ? { ...entry, reference: undefined } : entry
+  );
+  upsertCharacter({
+    ...character,
+    reference: undefined,
+    looks,
+    activeLookId: look.id,
+    updatedAt: Date.now(),
+  });
+
+  const previous = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+  saveToolSettings('fitting', {
+    ...previous,
+    referenceImageUrl: undefined,
+    referenceImageFilename: undefined,
+    referenceOriginalUrl: undefined,
+    referenceOriginalFilename: undefined,
+    referenceIsolated: false,
+    pendingOutfitPlatePromptId: undefined,
+    suppressAutoPlateSeed: true,
+  });
+  return true;
+}
+
+/**
+ * User-facing Cast home clear — remove whatever shows as the look plate
+ * (body reference and/or face IP on the active look).
+ */
 export function clearCharacterLookPlate(characterId?: string | null): boolean {
   const id = characterId?.trim();
   if (!id) {
@@ -88,17 +414,23 @@ export function clearCharacterLookPlate(characterId?: string | null): boolean {
     return false;
   }
   const look = activeLook(character);
-  const hasPlate = Boolean(
-    look.reference ||
-    character.reference ||
-    look.ipAdapter?.imageUrl ||
-    look.ipAdapter?.imageFilename ||
-    character.ipAdapter?.imageUrl ||
-    character.ipAdapter?.imageFilename
+  const hasReference = Boolean(look.reference || character.reference);
+  const hasFace = Boolean(
+    look.ipAdapter?.imageFilename?.trim() ||
+    look.ipAdapter?.imageUrl?.trim() ||
+    look.ipAdapter?.comfyUrl?.trim() ||
+    character.ipAdapter?.imageFilename?.trim() ||
+    character.ipAdapter?.imageUrl?.trim() ||
+    character.ipAdapter?.comfyUrl?.trim()
   );
-  if (!hasPlate) {
+  const previous = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+  const hasFitting =
+    fittingHasSessionPlate(previous) || Boolean(previous.pendingOutfitPlatePromptId?.trim());
+
+  if (!hasReference && !hasFace && !hasFitting) {
     return false;
   }
+
   const looks = (character.looks ?? [look]).map(entry =>
     entry.id === look.id ? { ...entry, reference: undefined, ipAdapter: undefined } : entry
   );
@@ -111,8 +443,6 @@ export function clearCharacterLookPlate(characterId?: string | null): boolean {
     updatedAt: Date.now(),
   });
 
-  // Keep Outfit in sync and block auto-seed until the user sets a new plate.
-  const previous = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
   saveToolSettings('fitting', {
     ...previous,
     referenceImageUrl: undefined,
@@ -170,7 +500,16 @@ export function assignOutfitPlateToCastAndFitting(input: {
     isolated: input.isolated === true,
     isolateSubject: true,
   };
-  const ipAdapter = filename
+  const look = activeLook(character);
+  // Keep an existing Cast face lock — Outfit body plate goes on reference only.
+  // Only seed ipAdapter from the plate when this look has no face yet.
+  const existingFace = look.ipAdapter ?? character.ipAdapter;
+  const hasFace = Boolean(
+    existingFace?.imageFilename?.trim() ||
+    existingFace?.imageUrl?.trim() ||
+    existingFace?.comfyUrl?.trim()
+  );
+  const plateAsFace = filename
     ? {
         imageFilename: filename,
         imageUrl,
@@ -178,7 +517,7 @@ export function assignOutfitPlateToCastAndFitting(input: {
     : {
         imageUrl,
       };
-  const look = activeLook(character);
+  const ipAdapter = hasFace ? existingFace : plateAsFace;
   const looks = (character.looks ?? [look]).map(entry =>
     entry.id === look.id ? { ...entry, reference, ipAdapter } : entry
   );
@@ -246,25 +585,37 @@ export function findCompletedOutfitPlateStill(promptId: string): {
 
 /**
  * After Look extract/handoff: reuse Cast/session plate, promote a Moodboard tile,
- * or queue a Cast plate still so Outfit is not blocked.
+ * or queue a full-body Cast plate still so Outfit / Day are not blocked.
  *
  * Pass `forceReplace: true` from Extract look so an existing Outfit plate is cleared
- * and replaced (tile stamp or new Comfy still). Handoffs keep the default ensure path.
+ * and a new full-body minimal-clothing still is queued (moodboard tiles stay vibe refs).
+ * Handoffs keep the default ensure path (reuse plate or stamp a subject tile).
  */
 export async function ensureOutfitPlateAfterLook(input: {
   characterId?: string;
   tiles: MoodboardTile[];
   vibePrompt?: string;
+  /** Prefer structured Look pack notes over raw vision vibe for style. */
+  lookPack?: LookPack | null;
   /** Extract look — replace any existing Outfit / Cast plate. */
   forceReplace?: boolean;
   sendComfyUi: (
     prompt: string,
     sport?: null,
     historyId?: undefined,
-    options?: {
-      characterId?: string;
-      lookId?: string;
-    }
+    options?: Pick<
+      SendComfyUiOptions,
+      | 'characterId'
+      | 'lookId'
+      | 'identityLock'
+      | 'identityLockStrength'
+      | 'identityKind'
+      | 'inputImageFilename'
+      | 'inputImageUrl'
+      | 'queueHints'
+      | 'explicitNegative'
+      | 'queueParamsBase'
+    >
   ) => Promise<string | undefined>;
 }): Promise<OutfitPlateEnsureResult> {
   const characterId = input.characterId?.trim();
@@ -276,11 +627,16 @@ export async function ensureOutfitPlateAfterLook(input: {
     return 'skipped';
   }
 
+  // Snapshot Cast appearance + face BEFORE clear.
+  const appearance = resolveCharacterAppearanceForPlate(character);
+  const face = resolveCastFaceForPlate(character);
+  const faceFilename = face?.filename;
+
   let fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
   const forceReplace = input.forceReplace === true;
 
   if (forceReplace) {
-    clearCharacterLookPlate(characterId);
+    clearCharacterBodyPlate(characterId);
     fitting = {
       ...fitting,
       isolateSubject: true,
@@ -290,7 +646,7 @@ export async function ensureOutfitPlateAfterLook(input: {
       referenceOriginalUrl: undefined,
       referenceOriginalFilename: undefined,
       pendingOutfitPlatePromptId: undefined,
-      // Block Fitting auto-seed from a stale Cast plate until tile/queue attaches.
+      // Block Fitting auto-seed from a stale Cast plate until the queued still attaches.
       suppressAutoPlateSeed: true,
     };
     saveToolSettings('fitting', fitting);
@@ -332,37 +688,62 @@ export async function ensureOutfitPlateAfterLook(input: {
     }
   }
 
-  const source = pickMoodboardPlateSource(input.tiles);
-  if (source) {
-    const imageUrl = resolveTileImageUrl(source);
-    if (imageUrl) {
-      assignOutfitPlateToCastAndFitting({
-        characterId,
-        imageUrl,
-        filename: source.filename,
-      });
-      return 'ready';
+  // Handoff / ensure: a Capture subject tile can seed Outfit immediately.
+  // Extract (forceReplace) skips this — mood tiles are often clothed style refs;
+  // queue a dedicated full-body minimal-clothing plate instead.
+  if (!forceReplace) {
+    const source = pickMoodboardPlateSource(input.tiles);
+    if (source) {
+      const imageUrl = resolveTileImageUrl(source);
+      if (imageUrl) {
+        assignOutfitPlateToCastAndFitting({
+          characterId,
+          imageUrl,
+          filename: source.filename,
+        });
+        return 'ready';
+      }
     }
   }
 
-  // Re-read character after clear — queue uses active look id.
+  // Re-read character after clear — face should still be on the look when present.
   const fresh = getCharacter(characterId) ?? character;
+  // Fresh sync clears any prior Cast's session face before this plate job.
+  syncSharedIdentityToCast(fresh);
+  const shared = loadSettingsCache().shared;
+
+  // Subject + clothing only — Look vibe must not redefine the person.
   const prompt = buildLookCastPlatePrompt({
-    characterName: fresh.name,
-    descriptor: fresh.descriptor || fresh.hints,
-    vibePrompt: input.vibePrompt,
+    characterName: appearance.name || fresh.name,
+    descriptor: appearance.appearance || undefined,
+    loraTriggers: appearance.loraTriggers,
   });
+  const explicitNegative = buildLookCastPlateNegative(appearance.appearance);
+  const strength = shared.ipAdapterStrength ?? 0.75;
   try {
     const promptId = await input.sendComfyUi(prompt, null, undefined, {
       characterId,
-      lookId: fresh.activeLookId,
+      lookId: fresh.activeLookId ?? shared.activeLookId,
+      identityLock: false,
+      queueHints: '',
+      explicitNegative,
+      // Pin this Cast's face when it has one; otherwise Fresh sync already cleared
+      // shared IP so a previous character cannot race-swap the plate.
+      ...(faceFilename
+        ? {
+            queueParamsBase: {
+              ipAdapterImageFilename: faceFilename,
+              ipAdapterImageFilenames: [faceFilename],
+              ipAdapterStrength: strength,
+            },
+          }
+        : {}),
     });
     const id = typeof promptId === 'string' ? promptId.trim() : '';
     if (!id) {
       return 'failed';
     }
     setPendingOutfitPlatePromptId(id);
-    // Keep suppressAutoPlateSeed until the queued still attaches (or user uploads).
     return 'queued';
   } catch {
     return 'failed';

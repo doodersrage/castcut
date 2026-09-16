@@ -8,6 +8,7 @@ import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
+import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import SharedToolControls from '@/components/SharedToolControls';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
@@ -221,6 +222,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         </p>
       </div>
 
+      <PlayFilmEngineBanner />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
@@ -246,7 +248,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           <p className="type-caption mt-1 text-[var(--text-muted)]">
             {filmNeedsCast
               ? 'Save the cut to Cast first — then Watch or open Gallery.'
-              : 'Watch on Cast, browse Gallery, or stay here to share / cut another Day.'}
+              : 'Watch on Cast, browse Gallery, or extend this character’s film with Story.'}
           </p>
           <div className="mt-3 grid gap-2">
             {filmNeedsCast ? (

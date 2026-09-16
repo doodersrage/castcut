@@ -15,8 +15,8 @@ const ACCENT = 'brand' as const;
 
 export default function VideoPromptTool() {
   const description = useToolPageDescription(
-    'Motion and camera prompts for WAN / Hunyuan, or Fal / Replicate / Grok cloud T2V / I2V / extend. Pick a mode, then queue.',
-    'Video motion prompts — T2V, I2V from a first frame, or extend a parent clip.'
+    'Specialty motion prompts (T2V / I2V / extend). Day and Story Animate are the Film path for character reels — use Video when you need a standalone motion prompt.',
+    'Specialty motion prompts. For character films, animate in Day or Story, then Cut.'
   );
   const vm = useVideoPromptOrchestration();
 
@@ -42,6 +42,17 @@ export default function VideoPromptTool() {
       }
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.video} />
+      <p className="mb-3 type-caption text-[var(--text-muted)]" data-testid="video-film-park-note">
+        Film path: animate stills in{' '}
+        <a href="/day" className="text-[var(--accent-text)] underline-offset-2 hover:underline">
+          Day
+        </a>{' '}
+        or{' '}
+        <a href="/story" className="text-[var(--accent-text)] underline-offset-2 hover:underline">
+          Story
+        </a>
+        , then Cut. Video is for specialty motion prompts outside that loop.
+      </p>
       <EditToolRecipeStrip
         toolId="video"
         shared={vm.shared}

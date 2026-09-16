@@ -1,15 +1,6 @@
-import dynamic from 'next/dynamic';
-import PageCanvas from '@/components/ui/PageCanvas';
-import { ToolPageSkeleton } from '@/components/ui/ViewState';
+import { permanentRedirect } from 'next/navigation';
 
-const RoleplayTool = dynamic(() => import('@/components/RoleplayTool'), {
-  loading: () => <ToolPageSkeleton label="Loading roleplay" />,
-});
-
-export default function RoleplayPage() {
-  return (
-    <PageCanvas accent="amber">
-      <RoleplayTool />
-    </PageCanvas>
-  );
+/** Legacy path — canonical Story UI lives at `/story`. */
+export default function RoleplayRedirectPage() {
+  permanentRedirect('/story');
 }

@@ -134,7 +134,7 @@ export default function CharacterFilmStudio({
               Open Day
             </ButtonLink>
             <ButtonLink
-              href={`/roleplay?character=${encodeURIComponent(characterId)}`}
+              href={`/story?character=${encodeURIComponent(characterId)}`}
               size="sm"
               variant="ghost"
             >
@@ -225,7 +225,7 @@ export default function CharacterFilmStudio({
 
       {cut.items.length === 0 ? (
         <p className="type-caption text-[var(--text-muted)]">
-          No shots in the cut yet. Animate stills in Story or Video, or add a still as a title card.
+          No shots in the cut yet. Animate stills in Day or Story, or add a still as a title card.
         </p>
       ) : (
         <ol className="ui-list">

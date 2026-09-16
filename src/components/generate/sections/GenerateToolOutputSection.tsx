@@ -126,7 +126,7 @@ export function GenerateToolOutputSection({
               <span />
             )}
             <Button variant="secondary" size="sm" onClick={() => void copyOutput()}>
-              {copied ? 'Copied!' : 'Copy for ComfyUI'}
+              {copied ? 'Copied!' : 'Copy'}
             </Button>
           </div>
           <CodeBlock>{output}</CodeBlock>

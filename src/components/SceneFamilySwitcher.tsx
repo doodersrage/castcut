@@ -8,7 +8,7 @@ export const SCENE_FAMILY_OPTIONS = [
   { href: '/pet', label: 'Pet' },
   { href: '/fantasy', label: 'Fantasy' },
   { href: '/background', label: 'Background' },
-  { href: '/roleplay', label: 'Story' },
+  { href: '/story', label: 'Story' },
 ] as const;
 
 export default function SceneFamilySwitcher() {

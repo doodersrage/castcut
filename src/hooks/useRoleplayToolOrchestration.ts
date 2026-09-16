@@ -67,6 +67,8 @@ export function useRoleplayToolOrchestration() {
   useRoleplayLibraryPersist({ mounted, toolSettings, updateToolSettings });
   useRoleplayLookPackDeepLink({
     mounted,
+    activeCharacterId: shared.activeCharacterId,
+    activeSessionId: toolSettings.activeSessionId,
     updateShared,
     updateToolSettings,
     onMessage: message => setError(message),
@@ -83,8 +85,8 @@ export function useRoleplayToolOrchestration() {
 
   useSeedToolDraft(mounted, {
     toolKey: TOOL_ID,
-    label: 'Roleplay',
-    href: '/roleplay',
+    label: 'Story',
+    href: '/story',
     fields: [bio?.name, toolSettings.customPersona, toolSettings.extraHints, toolSettings.setting],
   });
 

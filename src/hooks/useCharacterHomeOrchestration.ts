@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/browser-storage';
+import { BROWSER_STORAGE_HEALTH_EVENT, whenBrowserStorageReady } from '@/lib/browser-storage';
 import { isAssembledFilmEntry } from '@/lib/character-film';
 import {
   activateLook,
@@ -10,6 +10,7 @@ import {
   addLookFromShared,
   addCharacterLookPack,
   applyCharacterRecord,
+  applyCharacterRecordFresh,
   getCharacter,
   getCharactersSnapshot,
   getServerCharactersSnapshot,
@@ -102,6 +103,31 @@ export function useCharacterHomeOrchestration(characterId: string) {
   }, [searchParams]);
 
   const character = characters.find(entry => entry.id === characterId) ?? getCharacter(characterId);
+
+  // Opening a Cast profile activates that Cast so nav → Story/Film/Outfit matches profile CTAs.
+  useEffect(() => {
+    const id = characterId.trim();
+    if (!id) {
+      return;
+    }
+    let cancelled = false;
+    void whenBrowserStorageReady().then(() => {
+      if (cancelled) {
+        return;
+      }
+      const record = getCharacter(id);
+      if (!record) {
+        return;
+      }
+      saveSharedSettings({
+        ...loadSettingsCache().shared,
+        ...applyCharacterRecord(record),
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [characterId]);
 
   useEffect(() => {
     unstampForeignCharacterGalleryEntries();
@@ -224,7 +250,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
     }
     setContinueError(null);
     saveToolSettings('roleplay', result.cache);
-    go(`/roleplay?character=${encodeURIComponent(character.id)}`);
+    go(`/story?character=${encodeURIComponent(character.id)}`);
   };
 
   const extendReel = () => {
@@ -305,9 +331,16 @@ export function useCharacterHomeOrchestration(characterId: string) {
     const cleared = clearCharacterLookPlate(character.id);
     if (cleared) {
       const next = getCharacter(character.id);
-      persistApply(next ?? character);
+      if (next) {
+        saveSharedSettings({
+          ...loadSettingsCache().shared,
+          ...applyCharacterRecordFresh(next),
+        });
+      }
       setPlateStatus('Look plate removed.');
       setPlateError(null);
+    } else {
+      setPlateError('Nothing to remove — no look plate on this Cast.');
     }
   }, [character]);
 

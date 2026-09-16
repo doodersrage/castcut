@@ -1,6 +1,7 @@
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import { getCharacter, upsertCharacterFromRoleplaySession } from './character-os';
 import { withRoleplayLookPlateFromCast } from './fitting-room';
+import { resolvePlayLoopEntryCharacterId } from './play-campaign';
 import {
   DEFAULT_ROLEPLAY_TOOL_CACHE,
   loadToolSettings,
@@ -149,7 +150,7 @@ export function roleplaySessionTitle(snapshot: RoleplayToolCache): string {
   if (snapshot.personaId === CUSTOM_ROLEPLAY_PERSONA_ID) {
     return snapshot.customPersona?.trim().slice(0, 40) || 'Custom roleplay';
   }
-  return getRoleplayArchetype(snapshot.personaId)?.label ?? 'Untitled roleplay';
+  return getRoleplayArchetype(snapshot.personaId)?.label ?? 'Untitled story';
 }
 
 export function roleplaySessionBeatCount(story: RoleplayStoryBeat[] | undefined): number {
@@ -392,6 +393,28 @@ export function roleplayLibraryIdForCharacter(characterId: string): string | nul
   return `cast-${key}`;
 }
 
+/**
+ * Story entry Cast: same as play-loop entry (query wins, else active Cast).
+ */
+export function resolveStoryEntryCharacterId(options: {
+  queryCharacterId?: string | null;
+  activeCharacterId?: string | null;
+}): string | null {
+  return resolvePlayLoopEntryCharacterId(options);
+}
+
+/** True when the live Story draft is not already the Cast-linked library session. */
+export function shouldSyncRoleplaySessionToCharacter(
+  characterId: string,
+  activeSessionId?: string | null
+): boolean {
+  const expected = roleplayLibraryIdForCharacter(characterId);
+  if (!expected) {
+    return false;
+  }
+  return (activeSessionId?.trim() || '') !== expected;
+}
+
 /** Rebuild a Roleplay library session from Cast fields when the library entry aged out. */
 export function synthesizeRoleplaySessionFromCharacter(
   characterId: string
@@ -473,7 +496,7 @@ export function resolveRoleplayContinueFromCharacter(
       ok: false,
       reason: 'session-missing',
       message:
-        'That Cast character is not in this browser. Open Cast to pick another, or start Roleplay fresh.',
+        'That Cast character is not in this browser. Open Cast to pick another, or start Story fresh.',
     };
   }
   const sessionId = roleplayLibraryIdForCharacter(key);
@@ -506,7 +529,7 @@ export function resolveRoleplayContinueFromCharacter(
     ok: false,
     reason: 'session-missing',
     message:
-      'Not enough Cast bio to continue in Roleplay. Add a look or descriptor on Cast, or open Roleplay and write a bio.',
+      'Not enough Cast bio to continue in Story. Add a look or descriptor on Cast, or open Story and write a bio.',
   };
 }
 

@@ -25,7 +25,7 @@ Powered by ComfyUI · FLUX · Qwen · WAN · Hunyuan · LTX · and more — mode
 
 **Play** is the default workspace (**Make**). **Studio** is **Control**. **Full** is **Build**. Specialty tools sit under **Extras**.
 
-**Heal & ready** inspects ComfyUI so you spend less time on “why isn’t this workflow working?” **Mobile Studio** (`/m`) is the phone-first capture / review / Play companion.
+**Heal & ready** inspects ComfyUI so you spend less time on “why isn’t this workflow working?” **Mobile Studio** (`/m`) is the phone-first Film companion (Cast, Film hub, Look → Cut).
 
 **Docs:** [doodersrage.github.io/castcut](https://doodersrage.github.io/castcut/) · [source](docs/README.md) · [Play guide](docs/play-guide.md)
 
@@ -61,7 +61,7 @@ reachable LLM. Actually queuing a render needs a real backend — pick up at ste
 
 **Still → clip shortcut:** Generate or pick a gallery still → **Video** (I2V) → rate in **Gallery** → **Save to Cast**.
 
-**Phone:** [Mobile Studio](docs/play-guide.md#mobile-vs-desk) at `/m` — capture plates, rate stills, run Look / Outfit / Day / Story.
+**Phone:** [Mobile Studio](docs/play-guide.md#mobile-vs-desk) at `/m` — Film hub, capture plates, rate stills, run Look / Outfit / Day / Story.
 
 **Day-2 ops** (second GPU, move to a new machine, invite users): [Operator guide](docs/operator.md).
 
@@ -123,7 +123,7 @@ Audio and 3D live under **Extras** (`/audio`, `/mesh`) — parked specialty tool
 | **Character**       | `/character`       | Solo person, duo/sport, or subject + background compose                                                                                                                                                     |
 | **Pet**             | `/pet`             | Pet-focused prompts with scene pools                                                                                                                                                                        |
 | **Fantasy**         | `/fantasy`         | Fantasy character/scene prompts                                                                                                                                                                             |
-| **Story**           | `/roleplay`        | Optional after first Day cut: beats, stills/clips, Cut film, Save to Cast. Continue is Fal extend-video when the parent uploads (or is already Fal); otherwise last-frame I2V |
+| **Story**           | `/story`        | Optional after first Day cut: beats, stills/clips, Cut film, Save to Cast. Continue is Fal extend-video when the parent uploads (or is already Fal); otherwise last-frame I2V |
 | **Topics**          | `/topics`          | Topic lists for batch prompt builds                                                                                                                                                                         |
 | **Background**      | `/background`      | Environment-only prompt with no people                                                                                                                                                                      |
 | **Image → Prompt**  | `/image-prompt`    | Upload an image; vision LLM writes the prompt                                                                                                                                                               |

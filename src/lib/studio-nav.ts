@@ -75,9 +75,9 @@ export const STUDIO_TABS: StudioTabDefinition[] = [
   },
   {
     id: 'campaign',
-    label: 'Campaign',
+    label: 'Batch',
     group: 'Analyze',
-    description: 'Campaign batches and reviews',
+    description: 'Prompt batch runner and reviews',
   },
   {
     id: 'analytics',

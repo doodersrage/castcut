@@ -70,7 +70,7 @@ export const SIMPLE_NAV_HREFS = [
   '/',
   '/play',
   '/characters',
-  '/roleplay',
+  '/story',
   '/gallery',
   '/queue',
 ] as const;
@@ -97,7 +97,7 @@ export const SIMPLE_MORE_NAV_HREFS = [
  */
 export const ROLEPLAY_FOCUS_HREFS = [
   '/play',
-  '/roleplay',
+  '/story',
   '/fitting',
   '/day',
   '/moodboard',
@@ -111,7 +111,7 @@ export const ROLEPLAY_FOCUS_NAV_HREFS = [
   '/moodboard',
   '/fitting',
   '/day',
-  '/roleplay',
+  '/story',
   '/gallery',
   '/queue',
 ] as const;
@@ -126,6 +126,7 @@ export function isRoleplayFocusPath(pathname: string | null | undefined): boolea
   const path = pathname.split('?')[0] || '/';
   return (
     path === '/play' ||
+    path === '/story' ||
     path === '/roleplay' ||
     path === '/fitting' ||
     path === '/day' ||
@@ -314,8 +315,15 @@ export function isRoleplayFocusNavHref(href: string): boolean {
 
 /** Default expanded group labels for a workspace mode when the user has no saved prefs. */
 export function defaultExpandedNavGroups(mode: WorkspaceMode, groups: AppNavGroup[]): string[] {
-  if (groups.some(group => group.label === 'Roleplay') || mode === 'play') {
-    return ['Roleplay'];
+  if (mode === 'play') {
+    // Play kiosk catalog uses a single "Play" group; full catalog expands Scene (Film loop).
+    if (groups.some(group => group.label === 'Play')) {
+      return ['Play'];
+    }
+    if (groups.some(group => group.label === 'Scene')) {
+      return ['Scene'];
+    }
+    return groups.slice(0, 1).map(group => group.label);
   }
   if (mode === 'simple') {
     return ['Essentials'];

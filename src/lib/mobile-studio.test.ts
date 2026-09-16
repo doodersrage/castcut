@@ -29,9 +29,9 @@ const plate = (overrides: Partial<CharacterPlate> = {}): CharacterPlate => ({
 describe('mobile studio paths', () => {
   it('treats /m and nested routes as mobile studio', () => {
     assert.equal(isMobileStudioPath('/m'), true);
-    assert.equal(isMobileStudioPath('/m/play'), true);
+    assert.equal(isMobileStudioPath('/m/story'), true);
     assert.equal(isMobileStudioPath('/m/queue?x=1'), true);
-    assert.equal(isMobileStudioPath('/roleplay'), false);
+    assert.equal(isMobileStudioPath('/story'), false);
     assert.equal(isMobileStudioPath('/'), false);
   });
 
@@ -42,15 +42,17 @@ describe('mobile studio paths', () => {
     assert.equal(mobileStudioTabFromPath('/m/moodboard'), 'moodboard');
     assert.equal(mobileStudioTabFromPath('/m/fitting'), 'fitting');
     assert.equal(mobileStudioTabFromPath('/m/day'), 'day');
-    assert.equal(mobileStudioTabFromPath('/m/play'), 'play');
+    assert.equal(mobileStudioTabFromPath('/m/story'), 'story');
+    assert.equal(mobileStudioTabFromPath('/m/film'), 'film');
   });
 
   it('remaps desk film paths onto /m', () => {
     assert.equal(toMobileStudioHref('/fitting?character=c1'), '/m/fitting?character=c1');
     assert.equal(toMobileStudioHref('/day?from=look'), '/m/day?from=look');
     assert.equal(toMobileStudioHref('/moodboard'), '/m/moodboard');
-    assert.equal(toMobileStudioHref('/roleplay?character=c1'), '/m/play?character=c1');
-    assert.equal(toMobileStudioHref('/play'), '/m/day');
+    assert.equal(toMobileStudioHref('/story?character=c1'), '/m/story?character=c1');
+    assert.equal(toMobileStudioHref('/roleplay?character=c1'), '/m/story?character=c1');
+    assert.equal(toMobileStudioHref('/play'), '/m/film');
     assert.equal(toMobileStudioHref('/gallery'), '/m/gallery');
     assert.equal(toMobileStudioHref('/queue'), '/m/queue');
     assert.equal(toMobileStudioHref('/characters'), '/m');

@@ -136,8 +136,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       const prompt = await actions.finalizePrompt(data.prompt, beat.title);
       rememberDraftFields({
         toolKey: TOOL_ID,
-        label: 'Roleplay',
-        href: '/roleplay',
+        label: 'Story',
+        href: '/story',
         fields: [nextBio.name, beat.title, prompt],
       });
       void dispatchWebhook({

@@ -21,7 +21,7 @@ describe("auth features", () => {
     assert.equal(featureForPath("/api/openai"), "comfyui-api");
     assert.equal(featureForPath("/api/gemini/status"), "comfyui-api");
     assert.equal(featureForPath("/api/grok"), "comfyui-api");
-    assert.equal(featureForPath("/roleplay"), "roleplay");
+    assert.equal(featureForPath("/story"), "roleplay");
     assert.equal(featureForPath("/play"), "play");
     assert.equal(featureForPath("/fitting"), "play");
     assert.equal(featureForPath("/day"), "play");
@@ -33,7 +33,8 @@ describe("auth features", () => {
     assert.equal(featureForPath("/m/capture"), "gallery");
     assert.equal(featureForPath("/m/queue"), "queue");
     assert.equal(featureForPath("/m/gallery"), "gallery");
-    assert.equal(featureForPath("/m/play"), "roleplay");
+    assert.equal(featureForPath("/m/story"), "roleplay");
+    assert.equal(featureForPath("/m/film"), "play");
     assert.equal(featureForPath("/m/moodboard"), "play");
     assert.equal(featureForPath("/m/fitting"), "play");
     assert.equal(featureForPath("/m/day"), "play");

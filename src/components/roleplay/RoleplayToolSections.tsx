@@ -9,11 +9,16 @@ import RoleplayBioSection from '@/components/roleplay/RoleplayBioSection';
 import RoleplayCastSection from '@/components/roleplay/RoleplayCastSection';
 import RoleplayStorySection from '@/components/roleplay/RoleplayStorySection';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
+import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
+import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
+import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
+import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useRoleplayToolOrchestration } from '@/hooks/useRoleplayToolOrchestration';
 import { Button } from '@/components/ui/Button';
 import { CollapsibleSection, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
+import { useEffect, useRef } from 'react';
 
 const ACCENT = 'amber' as const;
 const TOOL_ID = 'roleplay';
@@ -57,6 +62,35 @@ export default function RoleplayToolSections({
 }: RoleplayToolSectionsProps) {
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
+  const { softAdvance, cancelSoftAdvance, softAdvanceTo } = usePlaySoftAdvance();
+  const postCutAdvanceRef = useRef(false);
+  const watchCastHref = film.filmCharacterId
+    ? `/characters/${encodeURIComponent(film.filmCharacterId)}?media=films`
+    : '/characters';
+
+  useEffect(() => {
+    if (!film.firstCutCelebrate || film.filmNeedsCast || !film.filmCharacterId) {
+      if (!film.firstCutCelebrate) {
+        postCutAdvanceRef.current = false;
+      }
+      return;
+    }
+    if (postCutAdvanceRef.current) {
+      return;
+    }
+    postCutAdvanceRef.current = true;
+    softAdvanceTo('watch', {
+      characterId: film.filmCharacterId,
+      href: watchCastHref,
+      message: 'Opening your Story film on Cast',
+    });
+  }, [
+    film.firstCutCelebrate,
+    film.filmNeedsCast,
+    film.filmCharacterId,
+    softAdvanceTo,
+    watchCastHref,
+  ]);
 
   const engineControls = (
     <SharedToolControls
@@ -86,6 +120,13 @@ export default function RoleplayToolSections({
       sidebarTitle={leanChrome ? false : undefined}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.roleplay} />
+      <PlayFilmEngineBanner />
+      <PlayFilmFunnelChrome />
+      <PlaySoftAdvanceBanner
+        key={softAdvance?.nonce ?? 'idle'}
+        target={softAdvance}
+        onCancel={cancelSoftAdvance}
+      />
 
       <RoleplayCastSection
         busy={busy}
@@ -131,7 +172,7 @@ export default function RoleplayToolSections({
 
       <CollapsibleSection
         title="Sessions"
-        summary="Saved roleplay runs — continue or start new"
+        summary="Saved Story sessions — continue or start new"
         defaultOpen={false}
         persistKey="roleplay-library"
       >

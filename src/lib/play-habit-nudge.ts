@@ -1,10 +1,10 @@
 /**
- * Habit loop — soft nudge to cut another Day film ~24h after the latest cut.
+ * Soft nudge to cut another Day film ~24h after the latest cut.
  */
 
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import { loadPlayMetrics, type PlayMetrics } from './play-metrics';
-import { loadPlayCampaignState } from './play-campaign';
+import { loadPlayCampaignState, PLAY_CAMPAIGN_STEPS } from './play-campaign';
 import { getCharacter } from './character-os';
 import { remixDayFilmHref } from './play-starter';
 import { loadSettingsCache } from './settings-cache';
@@ -24,6 +24,8 @@ export type PlayHabitNudge = {
   characterName: string;
   href: string;
   hoursSinceCut: number;
+  /** True when the latest campaign close was a Story cut. */
+  fromStory?: boolean;
 };
 
 function loadNudgeState(): PlayHabitNudgeState {
@@ -69,10 +71,16 @@ export function resolvePlayHabitNudge(
     return null;
   }
   const name = character.name?.trim() || 'your Cast lead';
+  const stepId =
+    typeof campaign?.stepIndex === 'number'
+      ? PLAY_CAMPAIGN_STEPS[campaign.stepIndex]?.id
+      : undefined;
+  const fromStory = stepId === 'roleplay';
   return {
     characterId,
     characterName: name,
     href: remixDayFilmHref(characterId),
     hoursSinceCut: Math.floor(elapsed / (1000 * 60 * 60)),
+    fromStory,
   };
 }

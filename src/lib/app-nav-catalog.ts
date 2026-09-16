@@ -22,8 +22,8 @@ export const APP_NAV_GROUPS: AppNavGroup[] = [
       { href: '/queue', label: 'Queue', description: 'Central ComfyUI job queue' },
       {
         href: '/m',
-        label: 'Mobile Studio',
-        description: 'Phone film loop — Capture, Look, Outfit, Day, Story + Cut',
+        label: 'Castcut phone',
+        description: 'Phone film loop — Film hub, Look, Outfit, Day, Story + Cut',
       },
     ],
   },
@@ -55,7 +55,7 @@ export const APP_NAV_GROUPS: AppNavGroup[] = [
         description: 'Guided Look → Outfit → Day → Cut film loop',
       },
       {
-        href: '/roleplay',
+        href: '/story',
         label: 'Story',
         description: 'Be someone. Pick a scene. Get a still or clip.',
       },
@@ -120,7 +120,7 @@ export const APP_NAV_GROUPS: AppNavGroup[] = [
       {
         href: '/topics',
         label: 'Topics',
-        description: 'Idea list — parked specialty; prefer Generate / Play',
+        description: 'Idea list — parked specialty; prefer Generate / Film',
       },
       {
         href: '/audio',

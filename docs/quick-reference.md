@@ -25,8 +25,9 @@ Toggle: sidebar footer or **Profile → Appearance**.
 | Look | `/moodboard` | `?character=` |
 | Outfit | `/fitting` | `?character=&wardrobe=` |
 | Day | `/day` | `?character=` · `?from=look` |
-| Story | `/roleplay` | `?character=` · `?from=look` |
+| Story | `/story` | `?character=` · `?from=look` |
 | Cast films | `/characters/<id>` | `?media=films` |
+| Phone Film hub | `/m/film` | Same campaign as `/play` |
 
 ---
 

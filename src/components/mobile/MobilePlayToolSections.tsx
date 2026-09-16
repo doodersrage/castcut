@@ -1,11 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import RoleplayLibraryPanel from '@/components/RoleplayLibraryPanel';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
+import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
+import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
+import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useMobilePlayToolOrchestration } from '@/hooks/useMobilePlayToolOrchestration';
 import {
   applyRoleplayCharacterName,
@@ -76,6 +80,30 @@ export default function MobilePlayToolSections({ description: _description, ...v
     setActivePlate,
   } = vm;
 
+  const { softAdvance, cancelSoftAdvance, softAdvanceTo } = usePlaySoftAdvance({ mobile: true });
+  const postCutAdvanceRef = useRef(false);
+  const watchCastHref = filmCharacterId
+    ? toMobileStudioHref(`/characters/${encodeURIComponent(filmCharacterId)}?media=films`)
+    : toMobileStudioHref('/characters');
+
+  useEffect(() => {
+    if (!firstCutCelebrate || filmNeedsCast || !filmCharacterId) {
+      if (!firstCutCelebrate) {
+        postCutAdvanceRef.current = false;
+      }
+      return;
+    }
+    if (postCutAdvanceRef.current) {
+      return;
+    }
+    postCutAdvanceRef.current = true;
+    softAdvanceTo('watch', {
+      characterId: filmCharacterId,
+      href: watchCastHref,
+      message: 'Opening your Story film on Cast',
+    });
+  }, [firstCutCelebrate, filmNeedsCast, filmCharacterId, softAdvanceTo, watchCastHref]);
+
   const castId = filmCharacterId?.trim() || '';
 
   return (
@@ -86,6 +114,13 @@ export default function MobilePlayToolSections({ description: _description, ...v
           Optional beats after Day — stills and clips, then Cut film.
         </p>
       </div>
+
+      <PlayFilmEngineBanner />
+      <PlaySoftAdvanceBanner
+        key={softAdvance?.nonce ?? 'idle'}
+        target={softAdvance}
+        onCancel={cancelSoftAdvance}
+      />
 
       {plateUrl ? (
         <div className="flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-2">
@@ -466,12 +501,9 @@ export default function MobilePlayToolSections({ description: _description, ...v
               className="ui-btn-ghost w-full justify-center text-center text-sm"
               data-testid="mobile-continue-desk-play"
             >
-              Campaign on desk
+              Film on desk
             </Link>
-            <Link
-              href="/roleplay"
-              className="ui-btn-ghost w-full justify-center text-center text-sm"
-            >
+            <Link href="/story" className="ui-btn-ghost w-full justify-center text-center text-sm">
               Full Story on desk
             </Link>
           </div>

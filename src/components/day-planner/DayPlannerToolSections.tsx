@@ -41,6 +41,8 @@ import DayPlateSection from '@/components/day-planner/DayPlateSection';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
+import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
+import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import {
@@ -257,6 +259,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         sidebarTitle={leanChrome ? false : undefined}
       >
         <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.day} />
+        <PlayFilmEngineBanner />
+        <PlayFilmFunnelChrome />
         <PlaySoftAdvanceBanner
           key={softAdvance?.nonce ?? 'idle'}
           target={softAdvance}
@@ -282,7 +286,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             <p className="type-caption mt-1 text-[var(--text-muted)]">
               {filmNeedsCast
                 ? 'Save the cut to Cast first — then Watch or open Gallery.'
-                : 'Watch on Cast, browse Gallery, or stay here to share / cut another Day.'}
+                : 'Watch on Cast, browse Gallery, or extend this character’s film with Story.'}
             </p>
             <ToolActionRow className="mt-3">
               {filmNeedsCast ? (
@@ -358,6 +362,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 </Button>
               ) : null}
             </ToolActionRow>
+            {character ? (
+              <p
+                className="type-caption mt-2 text-[var(--text-muted)]"
+                data-testid="day-story-unlock-hint"
+              >
+                Story is unlocked — optional beats that continue this character’s film.
+              </p>
+            ) : null}
           </div>
         ) : null}
 

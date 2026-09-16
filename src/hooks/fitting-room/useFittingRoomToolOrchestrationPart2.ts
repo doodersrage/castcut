@@ -76,7 +76,7 @@ import {
   clearCharacterLookPlate,
   tryAttachPendingOutfitPlate,
 } from '@/lib/look-outfit-plate';
-import { bumpPlayCampaignStep } from '@/lib/play-campaign';
+import { bumpPlayCampaignStep, resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
@@ -397,9 +397,13 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     }
     deepLinkHandled.current = true;
     const params = new URLSearchParams(window.location.search);
-    const characterId = params.get('character')?.trim();
+    const queryCharacterId = params.get('character')?.trim() || '';
     const wardrobeId = params.get('wardrobe')?.trim();
     const fromLook = params.get('from')?.trim() === 'look';
+    const characterId = resolvePlayLoopEntryCharacterId({
+      queryCharacterId,
+      activeCharacterId: shared.activeCharacterId,
+    });
 
     if (characterId) {
       const record = getCharacter(characterId);
@@ -451,7 +455,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
         scheduleAfterCommit(() => setSaveStatus('Applied Moodboard look pack.'));
       }
     }
-  }, [applyReference, mounted, updateShared, updateToolSettings]);
+  }, [applyReference, mounted, shared.activeCharacterId, updateShared, updateToolSettings]);
 
   useEffect(() => {
     if (!mounted || hasReference || !shared.activeCharacterId) {

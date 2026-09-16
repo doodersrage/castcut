@@ -350,7 +350,7 @@ export default function PromptFormatter() {
               accentClassName={accentButtonClass(ACCENT)}
               onClick={() => void copyOutput()}
             >
-              {copied ? 'Copied!' : 'Copy for ComfyUI'}
+              {copied ? 'Copied!' : 'Copy'}
             </PrimaryButton>
           </div>
           <pre className="ui-scroll-region overflow-x-auto whitespace-pre-wrap rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--bg-muted)] p-5 font-mono text-sm leading-relaxed text-[var(--tint-success-text)]">

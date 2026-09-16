@@ -320,7 +320,7 @@ export function buildApiCatalog(baseUrl: string) {
       },
       {
         id: 'roleplay',
-        name: 'Roleplay',
+        name: 'Story',
         description: 'Cast a character, roll story beats, and write still prompts.',
         method: 'POST',
         path: '/api/roleplay',

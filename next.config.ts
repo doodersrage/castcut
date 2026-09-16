@@ -76,6 +76,26 @@ const baseConfig: NextConfig = {
         destination: '/?source=random',
         permanent: true,
       },
+      {
+        source: '/roleplay',
+        destination: '/story',
+        permanent: true,
+      },
+      {
+        source: '/roleplay/:path*',
+        destination: '/story/:path*',
+        permanent: true,
+      },
+      {
+        source: '/m/play',
+        destination: '/m/story',
+        permanent: true,
+      },
+      {
+        source: '/m/play/:path*',
+        destination: '/m/story/:path*',
+        permanent: true,
+      },
     ];
   },
 

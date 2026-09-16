@@ -24,10 +24,10 @@ export const TOOL_QUEUE_QUALITY_OPTIONS: ToolQueueQualityOption[] = [
   { id: 'duo', label: 'Duo' },
   { id: 'pet', label: 'Pet' },
   { id: 'fantasy', label: 'Fantasy' },
-  { id: 'roleplay', label: 'Roleplay' },
+  { id: 'roleplay', label: 'Story' },
   { id: 'background', label: 'Background' },
   { id: 'recipe', label: 'Prompt recipes' },
-  { id: 'campaign', label: 'Campaign' },
+  { id: 'campaign', label: 'Prompt batch' },
 ];
 
 export function toolQueueQualityLabel(toolId: string): string {

@@ -7,10 +7,12 @@ import {
   loadRoleplayLibrary,
   persistRoleplayLibraryFromCache,
   resolveRoleplayContinueFromCharacter,
+  resolveStoryEntryCharacterId,
   ROLEPLAY_LIBRARY_KEY,
   roleplaySessionHasProgress,
   roleplaySessionTitle,
   saveRoleplayLibrary,
+  shouldSyncRoleplaySessionToCharacter,
   archiveAndStartNewRoleplaySession,
   startNewRoleplaySession,
   upsertRoleplayLibrarySession,
@@ -335,5 +337,24 @@ describe('roleplay library', () => {
         assert.equal(ok.cache.playAs, 'photo');
       }
     });
+  });
+
+  it('resolves Story entry Cast from query or active Cast', () => {
+    assert.equal(
+      resolveStoryEntryCharacterId({ queryCharacterId: 'char-q', activeCharacterId: 'char-a' }),
+      'char-q'
+    );
+    assert.equal(
+      resolveStoryEntryCharacterId({ queryCharacterId: '', activeCharacterId: 'char-a' }),
+      'char-a'
+    );
+    assert.equal(resolveStoryEntryCharacterId({ queryCharacterId: null, activeCharacterId: null }), null);
+  });
+
+  it('syncs Story when the live session is not the Cast library id', () => {
+    assert.equal(shouldSyncRoleplaySessionToCharacter('char-play', 'cast-char-play'), false);
+    assert.equal(shouldSyncRoleplaySessionToCharacter('char-play', 'cast-other'), true);
+    assert.equal(shouldSyncRoleplaySessionToCharacter('char-play', undefined), true);
+    assert.equal(shouldSyncRoleplaySessionToCharacter('', 'cast-x'), false);
   });
 });

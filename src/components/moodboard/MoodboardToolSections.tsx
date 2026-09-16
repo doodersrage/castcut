@@ -6,6 +6,9 @@ import CharacterOsPicker from '@/components/CharacterOsPicker';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
+import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
+import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
+import PlayPersistenceTriad from '@/components/PlayPersistenceTriad';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { Button, ButtonLink } from '@/components/ui/Button';
@@ -41,6 +44,7 @@ import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-s
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import {
   buildLookPackFromMoodboard,
+  copyPortableLookPackShareLink,
   downloadLookPackFile,
   loadLookPack,
   lookPackDayHref,
@@ -122,6 +126,10 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
   const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance();
+  const stagedLookPack = useMemo(() => {
+    void lookStatus;
+    return loadLookPack();
+  }, [lookStatus, tiles, character?.id]);
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -149,6 +157,8 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
       sidebarTitle={leanChrome ? false : undefined}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.moodboard} />
+      <PlayFilmEngineBanner />
+      <PlayFilmFunnelChrome />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
@@ -214,7 +224,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Character (optional)"
-        description="Attach a Cast character for subject notes. Extract look replaces the Outfit plate (or queues a new one)."
+        description="Attach a Cast character for subject notes. Extract look queues a full-body Outfit plate (minimal base clothing) for try-on."
         data-testid="moodboard-character"
       >
         <CharacterOsPicker
@@ -230,8 +240,8 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         />
         <p className="type-caption mt-2 text-[var(--text-muted)]">
           {hasPlate
-            ? 'Cast plate ready — Extract look will replace it for Outfit.'
-            : 'No Cast plate yet — Extract look will set or queue one for Outfit.'}
+            ? 'Cast plate ready — Extract look will replace it with a full-body try-on still.'
+            : 'No Cast plate yet — Extract look will queue a full-body try-on still for Outfit.'}
         </p>
       </ToolSection>
 
@@ -436,6 +446,28 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         >
           Continue to Outfit
         </Button>
+        {stagedLookPack ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy || extracting}
+            data-testid="moodboard-share-look"
+            onClick={() => {
+              void copyPortableLookPackShareLink({
+                pack: stagedLookPack,
+                name: character?.name ? `${character.name} look` : 'Look pack',
+              }).then(result => {
+                setLookStatus(
+                  result.ok
+                    ? 'Share link copied — send this look to another Castcut.'
+                    : result.error || 'Could not copy share link.'
+                );
+              });
+            }}
+          >
+            Share this look
+          </Button>
+        ) : null}
         <Button size="sm" variant="ghost" disabled={busy || extracting} onClick={previewPrompt}>
           Preview prompt
         </Button>
@@ -470,7 +502,13 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               size="sm"
               variant="secondary"
               disabled={busy || extracting}
-              onClick={() => void sendLookToRoleplay()}
+              onClick={() => {
+                void sendLookToRoleplay().then(href => {
+                  if (href) {
+                    softAdvanceHref(href, 'Story');
+                  }
+                });
+              }}
             >
               Continue in Story
             </Button>
@@ -510,6 +548,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         </details>
       </ToolActionRow>
       {lookStatus ? <p className="type-caption text-[var(--text-muted)]">{lookStatus}</p> : null}
+      {lookStatus ? <PlayPersistenceTriad compact /> : null}
       {error ? <FieldError>{error}</FieldError> : null}
 
       <ScenePromptResultPanel

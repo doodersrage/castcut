@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import BrandMark from '@/components/BrandMark';
+import ConnectionHealthChip from '@/components/ConnectionHealthChip';
 import ReportBugLink from '@/components/ReportBugLink';
 import PlayContinueChip from '@/components/PlayContinueChip';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
@@ -36,15 +37,40 @@ const PLAY_KIOSK_TABS: KioskTab[] = [
   { href: '/moodboard', label: 'Look' },
   { href: '/fitting', label: 'Outfit' },
   { href: '/day', label: 'Day' },
-  { href: '/roleplay', label: 'Story', requiresFirstFilm: true },
+  { href: '/story', label: 'Story', requiresFirstFilm: true },
   { href: '/gallery', label: 'Gallery' },
+  { href: '/queue', label: 'Queue' },
 ];
 
 function tabIsActive(href: string, pathname: string): boolean {
   if (href === '/characters') {
     return pathname === '/characters' || pathname.startsWith('/characters/');
   }
+  if (href === '/story') {
+    return (
+      pathname === '/story' ||
+      pathname.startsWith('/story/') ||
+      pathname === '/roleplay' ||
+      pathname.startsWith('/roleplay/')
+    );
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function gridColsClass(count: number): string {
+  if (count <= 4) {
+    return 'grid-cols-4';
+  }
+  if (count === 5) {
+    return 'grid-cols-5';
+  }
+  if (count === 6) {
+    return 'grid-cols-6';
+  }
+  if (count === 7) {
+    return 'grid-cols-7';
+  }
+  return 'grid-cols-4 sm:grid-cols-8';
 }
 
 export default function PlayKioskShell() {
@@ -87,14 +113,7 @@ export default function PlayKioskShell() {
     [allowed, firstFilmDone]
   );
   const settingsVisible = canAccessNavFeature(allowed, 'settings');
-  const colClass =
-    tabs.length <= 4
-      ? 'grid-cols-4'
-      : tabs.length === 5
-        ? 'grid-cols-5'
-        : tabs.length === 6
-          ? 'grid-cols-6'
-          : 'grid-cols-7';
+  const colClass = gridColsClass(tabs.length);
 
   return (
     <div data-accent={accent}>
@@ -102,7 +121,7 @@ export default function PlayKioskShell() {
         <div className="flex min-w-0 items-center gap-2">
           <BrandMark size={28} />
           <div className="min-w-0">
-            <p className="type-brand type-heading truncate tracking-tight">Play</p>
+            <p className="type-brand type-heading truncate tracking-tight">Castcut</p>
             <p className="type-caption text-[var(--text-muted)]" data-testid="play-kiosk-progress">
               {progressLabel}
               <span className="mx-1 text-[var(--border-strong)]">·</span>
@@ -111,6 +130,7 @@ export default function PlayKioskShell() {
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <ConnectionHealthChip compact />
           <PlayContinueChip />
           {settingsVisible ? (
             <Link href={APP_NAV_SETTINGS_LINK.href} className="ui-btn-secondary px-3 py-2 text-xs">
@@ -120,18 +140,16 @@ export default function PlayKioskShell() {
           <Link href={APP_NAV_PROFILE_LINK.href} className="ui-btn-secondary px-3 py-2 text-xs">
             Profile
           </Link>
-          {firstFilmDone ? (
-            <Link href={ROLEPLAY_FOCUS_ESCAPE_HREF} className="ui-btn-secondary px-3 py-2 text-xs">
-              All tools
-            </Link>
-          ) : null}
+          <Link href={ROLEPLAY_FOCUS_ESCAPE_HREF} className="ui-btn-secondary px-3 py-2 text-xs">
+            All tools
+          </Link>
         </div>
       </header>
       <nav
-        aria-label="Play"
+        aria-label="Film"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--bg-base)_92%,transparent)] pb-[env(safe-area-inset-bottom)] backdrop-blur-md"
       >
-        <ul className={`mx-auto grid max-w-3xl ${colClass} gap-0.5 px-2 py-2`}>
+        <ul className={`mx-auto grid max-w-4xl ${colClass} gap-0.5 px-2 py-2`}>
           {tabs.map(entry => {
             const active = tabIsActive(entry.href, pathname);
             const href = entry.href === '/gallery' ? galleryHref : entry.href;

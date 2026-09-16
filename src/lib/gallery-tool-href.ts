@@ -12,7 +12,7 @@ const TOOL_HREF: Record<string, string> = {
   background: '/background',
   pet: '/pet',
   fantasy: '/fantasy',
-  roleplay: '/roleplay',
+  roleplay: '/story',
   refine: '/refine',
   inpaint: '/inpaint',
   outpaint: '/outpaint',

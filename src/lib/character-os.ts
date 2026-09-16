@@ -23,6 +23,7 @@ import {
   composeCharacterAppearanceDescriptor,
   characterAppearanceHints,
   resolveCharacterAppearance,
+  sanitizeCharacterAppearanceDescriptor,
   type CharacterAppearanceDraft,
   type CharacterAppearanceFormDraft,
 } from './character-appearance';
@@ -361,11 +362,20 @@ export function activeLook(character: CharacterRecord): CharacterLook {
 }
 
 export function normalizeCharacterRecord(character: CharacterRecord): CharacterRecord {
-  const looks = looksOf(character);
+  const looks = looksOf(character).map(look => {
+    const descriptor = look.descriptor?.trim()
+      ? sanitizeCharacterAppearanceDescriptor(look.descriptor)
+      : look.descriptor;
+    return descriptor === look.descriptor ? look : { ...look, descriptor };
+  });
   const current = looks.find(look => look.id === character.activeLookId) ?? looks[0]!;
+  const rootDescriptor = character.descriptor?.trim()
+    ? sanitizeCharacterAppearanceDescriptor(character.descriptor)
+    : character.descriptor;
   return applyLookFields(
     {
       ...character,
+      descriptor: rootDescriptor,
       loraLibraryIds: uniqueIds(character.loraLibraryIds),
       looks,
       lookPacks: normalizeLookPacks(character.lookPacks),

@@ -191,10 +191,10 @@ export function useFittingRoomToolOrchestrationPart3(
         router.push(lookPackRoleplayHref(staged));
         return;
       }
-      router.push(`/roleplay?character=${encodeURIComponent(character.id)}`);
+      router.push(`/story?character=${encodeURIComponent(character.id)}`);
       return;
     }
-    router.push('/roleplay');
+    router.push('/story');
   }, [character, router]);
 
   const dayPlannerHref = (() => {

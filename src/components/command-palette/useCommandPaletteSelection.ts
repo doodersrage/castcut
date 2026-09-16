@@ -9,6 +9,8 @@ import {
   filterCommandPaletteItems,
   type useCommandPaletteOpenState,
 } from '@/components/command-palette/useCommandPaletteData';
+import { resolvePlayLoopNavHref } from '@/lib/play-campaign';
+import { loadSettingsCache } from '@/lib/settings-cache';
 type OpenState = ReturnType<typeof useCommandPaletteOpenState>;
 
 function createApplyLastLookHandler(router: AppRouterInstance) {
@@ -145,7 +147,8 @@ export function useCommandPaletteSelection({
       }
       setOpen(false);
       if (item.href) {
-        router.push(item.href);
+        const characterId = loadSettingsCache().shared.activeCharacterId;
+        router.push(resolvePlayLoopNavHref(item.href, characterId));
       }
     },
     [router, setOpen]

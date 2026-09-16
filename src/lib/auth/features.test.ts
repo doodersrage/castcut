@@ -83,8 +83,10 @@ describe('auth/features', () => {
       assert.equal(featureForPath('/day'), 'play');
       assert.equal(featureForPath('/moodboard'), 'play');
       assert.equal(featureForPath('/fitting'), 'play');
+      assert.equal(featureForPath('/m/film'), 'play');
+      assert.equal(featureForPath('/story'), 'roleplay');
+      assert.equal(featureForPath('/m/story'), 'roleplay');
       assert.equal(featureForPath('/roleplay'), 'roleplay');
-      assert.equal(featureForPath('/m/play'), 'roleplay');
       assert.equal(featureForPath('/m/day'), 'play');
     });
 

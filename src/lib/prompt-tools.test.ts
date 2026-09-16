@@ -2067,7 +2067,7 @@ describe("gallery handoff", () => {
     assert.equal(parseGalleryPickTarget("cast"), "cast");
     assert.equal(parseGalleryPickTarget("video"), "video");
     assert.equal(parseGalleryPickTarget("bogus"), null);
-    assert.equal(galleryHandoffHomePath("roleplay"), "/roleplay");
+    assert.equal(galleryHandoffHomePath("roleplay"), "/story");
     assert.equal(galleryPickActionLabel("roleplay"), "Use for Story");
     assert.equal(galleryHandoffHomePath("video"), "/video");
     assert.equal(galleryPickActionLabel("video"), "Use for Video");

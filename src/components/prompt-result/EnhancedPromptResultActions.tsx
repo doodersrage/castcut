@@ -164,7 +164,7 @@ export default function EnhancedPromptResultActions({
         >
           <ToolActionRow>
             <Button variant="secondary" onClick={onCopy} data-action="copy-prompt">
-              {copied ? 'Copied!' : 'Copy for ComfyUI'}
+              {copied ? 'Copied!' : 'Copy'}
             </Button>
             {onSaveHistory ? (
               <Button variant="secondary" onClick={onSaveHistory}>

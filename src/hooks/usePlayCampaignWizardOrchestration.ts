@@ -164,6 +164,20 @@ export function usePlayCampaignWizardOrchestration({
     [updateShared]
   );
 
+  const castEntrySynced = useRef(false);
+  useEffect(() => {
+    if (!mounted || !characterId || castEntrySynced.current) {
+      return;
+    }
+    castEntrySynced.current = true;
+    if (!queryCharacterId && shared.activeCharacterId?.trim() === characterId) {
+      return;
+    }
+    scheduleAfterCommit(() => {
+      persistCharacter(characterId);
+    });
+  }, [characterId, mounted, persistCharacter, queryCharacterId, shared.activeCharacterId]);
+
   useEffect(() => {
     if (!mounted) {
       return;

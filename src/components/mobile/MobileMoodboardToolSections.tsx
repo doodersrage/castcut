@@ -1,30 +1,32 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
+import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useMoodboardToolOrchestration } from '@/hooks/useMoodboardToolOrchestration';
 import { markOnboardingFirstPlayCampaign } from '@/lib/onboarding-hooks';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
-import { lookPackFittingHref, lookPackRoleplayHref } from '@/lib/look-pack';
+import {
+  copyPortableLookPackShareLink,
+  lookPackFittingHref,
+  loadLookPack,
+  saveLookPack,
+} from '@/lib/look-pack';
 import {
   MOODBOARD_TEMPLATE_OPTIONS,
   MOODBOARD_TILE_ROLES,
   type MoodboardTileRole,
 } from '@/lib/moodboard-scene';
-import { toMobileStudioHref } from '@/lib/mobile-studio';
 import { galleryPickPath } from '@/lib/gallery-handoff';
 import { LOOK_PRESETS, lookPackFromPreset, tilesFromLookPreset } from '@/lib/look-presets';
-import { saveLookPack } from '@/lib/look-pack';
 
 type ViewModel = ReturnType<typeof useMoodboardToolOrchestration>;
 
 export default function MobileMoodboardToolSections(vm: ViewModel) {
-  const router = useRouter();
   const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance({ mobile: true });
   const {
     shared,
@@ -52,6 +54,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
     extractLookPack,
     sendLookToFitting,
     sendLookToDay,
+    sendLookToRoleplay,
     saveLookPackToCast,
     setLookStatus,
   } = vm;
@@ -71,18 +74,10 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
       }
       return;
     }
-    const pack = await extractLookPack();
-    if (!pack) {
-      return;
+    const href = await sendLookToRoleplay();
+    if (href) {
+      softAdvanceHref(href, 'Story');
     }
-    markOnboardingFirstPlayCampaign();
-    if (pack.characterId) {
-      bumpPlayCampaignStep({
-        characterId: pack.characterId,
-        stepId: 'roleplay',
-      });
-    }
-    router.push(toMobileStudioHref(lookPackRoleplayHref(pack)));
   };
 
   return (
@@ -94,6 +89,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         </p>
       </div>
 
+      <PlayFilmEngineBanner />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
@@ -168,8 +164,8 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         />
         <p className="type-caption mt-2 text-[var(--text-muted)]">
           {hasPlate
-            ? 'Cast plate ready — Extract look will replace it for Outfit.'
-            : 'No Cast plate yet — Extract look will set or queue one for Outfit.'}
+            ? 'Cast plate ready — Extract look will replace it with a full-body try-on still.'
+            : 'No Cast plate yet — Extract look will queue a full-body try-on still for Outfit.'}
         </p>
       </div>
 
@@ -335,6 +331,33 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         >
           Continue to Outfit
         </Button>
+        {loadLookPack() ? (
+          <Button
+            variant="secondary"
+            disabled={busy || extracting}
+            className="w-full justify-center"
+            data-testid="mobile-moodboard-share-look"
+            onClick={() => {
+              const pack = loadLookPack();
+              if (!pack) {
+                setLookStatus('Extract a look first.');
+                return;
+              }
+              void copyPortableLookPackShareLink({
+                pack,
+                name: character?.name ? `${character.name} look` : 'Look pack',
+              }).then(result => {
+                setLookStatus(
+                  result.ok
+                    ? 'Share link copied — send this look to another Castcut.'
+                    : result.error || 'Could not copy share link.'
+                );
+              });
+            }}
+          >
+            Share this look
+          </Button>
+        ) : null}
         <Button
           variant="ghost"
           disabled={busy || extracting}

@@ -207,7 +207,7 @@ export default function WorkspaceWelcome() {
             </div>
             <details className="mt-4">
               <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-                Prefer density first? Play / Simple / Studio / Full
+                Prefer density first? Play (Film focus) / Simple / Studio / Full
               </summary>
               <div className="mt-2 grid gap-2">
                 {WORKSPACE_MODE_OPTIONS.map(option => (
@@ -268,7 +268,7 @@ export default function WorkspaceWelcome() {
                 loadingLabel="Setting up…"
                 onClick={() => void heal()}
               >
-                Set up engines
+                Heal & ready
               </Button>
             </div>
           </>
@@ -287,14 +287,14 @@ export default function WorkspaceWelcome() {
               {setupMessage ??
                 (filmGoal
                   ? 'Make a starter film in one tap, or create a Cast lead and walk Look → Outfit → Day.'
-                  : 'Queue a first still — you can start a film anytime from Play.')}
+                  : 'Queue a first still — you can start a film anytime from Film.')}
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
               <Button type="button" variant="ghost" size="sm" onClick={() => setPhase(null)}>
                 Close
               </Button>
-              <ButtonLink href="/m" variant="ghost" size="sm" onClick={() => setPhase(null)}>
-                Mobile Studio
+              <ButtonLink href="/m/film" variant="ghost" size="sm" onClick={() => setPhase(null)}>
+                Film on phone
               </ButtonLink>
               {filmGoal ? (
                 <Button
@@ -326,7 +326,7 @@ export default function WorkspaceWelcome() {
                   Open Film
                 </ButtonLink>
               ) : null}
-              {generateCta.href.startsWith('/roleplay') ||
+              {generateCta.href.startsWith('/story') ||
               generateCta.href.includes('/play') ||
               generateCta.href.includes('/day') ||
               generateCta.href.includes('/characters') ||
@@ -343,7 +343,7 @@ export default function WorkspaceWelcome() {
               )}
               <ButtonLink
                 href={
-                  generateCta.href.startsWith('/roleplay') ||
+                  generateCta.href.startsWith('/story') ||
                   generateCta.href.includes('/play') ||
                   generateCta.href.includes('/day') ||
                   generateCta.href.includes('/characters') ||
@@ -356,7 +356,7 @@ export default function WorkspaceWelcome() {
                 size="sm"
                 onClick={() => setPhase(null)}
               >
-                {generateCta.href.startsWith('/roleplay') ||
+                {generateCta.href.startsWith('/story') ||
                 generateCta.href.includes('/play') ||
                 generateCta.href.includes('/day') ||
                 generateCta.href.includes('/characters') ||

@@ -15,6 +15,7 @@ import {
   mobileStudioTabFromPath,
   type MobileStudioTabId,
 } from '@/lib/mobile-studio';
+import { resolvePlayLoopNavHref } from '@/lib/play-campaign';
 import {
   hasCompletedFirstFilm,
   loadPlayMetrics,
@@ -32,12 +33,11 @@ function deskBridgeHrefs(): {
 } {
   const characterId =
     typeof window !== 'undefined' ? loadSettingsCache().shared.activeCharacterId?.trim() || '' : '';
-  const q = characterId ? `?character=${encodeURIComponent(characterId)}` : '';
   return {
-    play: characterId ? `/play${q}` : '/play',
-    day: characterId ? `/day${q}` : '/day',
-    fitting: characterId ? `/fitting${q}` : '/fitting',
-    moodboard: characterId ? `/moodboard${q}` : '/moodboard',
+    play: resolvePlayLoopNavHref('/play', characterId),
+    day: resolvePlayLoopNavHref('/day', characterId),
+    fitting: resolvePlayLoopNavHref('/fitting', characterId),
+    moodboard: resolvePlayLoopNavHref('/moodboard', characterId),
   };
 }
 
@@ -63,7 +63,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
   }, []);
 
   const tabs = useMemo(() => {
-    const gated = new Set<MobileStudioTabId>(firstFilmDone ? [] : ['play']);
+    const gated = new Set<MobileStudioTabId>(firstFilmDone ? [] : ['story']);
     return MOBILE_STUDIO_TABS.filter(entry => {
       if (gated.has(entry.id)) {
         return false;
@@ -73,6 +73,8 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
   }, [allowed, firstFilmDone]);
 
   const desk = deskBridgeHrefs();
+  const activeCharacterId =
+    typeof window !== 'undefined' ? loadSettingsCache().shared.activeCharacterId?.trim() || '' : '';
   const hint =
     MOBILE_STUDIO_TABS.find(entry => entry.id === tab)?.hint ?? 'Look → Outfit → Day → Cut';
 
@@ -85,9 +87,9 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
         <div className="flex min-w-0 items-center gap-2">
           <BrandMark size={28} />
           <div className="min-w-0">
-            <p className="type-brand type-heading truncate tracking-tight">Mobile Studio</p>
+            <p className="type-brand type-heading truncate tracking-tight">Castcut</p>
             <p className="type-caption text-[var(--text-muted)]">
-              {hint}
+              Film · {hint}
               <span className="mx-1 text-[var(--border-strong)]">·</span>
               <ReportBugLink className="text-[var(--text-muted)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]" />
             </p>
@@ -147,16 +149,17 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
         {children}
       </main>
       <nav
-        aria-label="Mobile Studio"
+        aria-label="Film"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border-subtle)] bg-[var(--bg-muted)] pb-[env(safe-area-inset-bottom)]"
       >
         <ul className="mx-auto flex max-w-lg gap-0.5 overflow-x-auto px-2 py-2">
           {tabs.map(entry => {
             const active = entry.id === tab;
+            const href = resolvePlayLoopNavHref(entry.href, activeCharacterId);
             return (
               <li key={entry.id} className="min-w-[3.25rem] flex-1">
                 <Link
-                  href={entry.href}
+                  href={href}
                   data-active={active ? 'true' : 'false'}
                   data-testid={`mobile-tab-${entry.id}`}
                   className={[

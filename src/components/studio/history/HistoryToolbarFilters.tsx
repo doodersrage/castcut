@@ -211,7 +211,7 @@ export default function HistoryToolbarFilters({
             id="history-saved-view-name"
             value={viewNameDraft}
             onChange={event => onViewNameDraftChange(event.target.value)}
-            placeholder="Campaign keepers, video drafts…"
+            placeholder="Batch keepers, video drafts…"
             className="ui-input px-[var(--input-padding-x)] py-[var(--input-padding-y)] type-body"
           />
         </div>
@@ -266,7 +266,7 @@ export default function HistoryToolbarFilters({
               id="history-bulk-tag"
               value={bulkTagDraft}
               onChange={event => onBulkTagDraftChange(event.target.value)}
-              placeholder="campaign, keeper, …"
+              placeholder="batch, keeper, …"
               className="ui-input px-[var(--input-padding-x)] py-[var(--input-padding-y)] type-body"
             />
           </div>

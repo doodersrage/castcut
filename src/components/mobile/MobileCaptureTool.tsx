@@ -274,7 +274,7 @@ export default function MobileCaptureTool() {
           >
             Make a starter film
           </Button>
-          <Link href="/m/play" className="ui-btn-secondary w-full justify-center text-center">
+          <Link href="/m/story" className="ui-btn-secondary w-full justify-center text-center">
             Optional: Story as {active.name}
           </Link>
           <Button

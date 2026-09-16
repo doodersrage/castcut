@@ -39,13 +39,14 @@ export default function PlayHabitNudgeBanner() {
       className="rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-4 py-3"
       data-testid="play-habit-nudge"
     >
-      <p className="type-overline text-[var(--accent-text)]">Habit loop</p>
+      <p className="type-overline text-[var(--accent-text)]">Tomorrow’s Day</p>
       <p className="type-heading mt-1 text-[var(--text-primary)]">
         Cut another Day film for {nudge.characterName}?
       </p>
       <p className="type-caption mt-1 text-[var(--text-muted)]">
-        It&apos;s been about {nudge.hoursSinceCut} hours since your last cut — same look, fresh
-        stills.
+        {nudge.fromStory
+          ? `It's been about ${nudge.hoursSinceCut} hours since your Story cut — same look, fresh Day stills.`
+          : `It's been about ${nudge.hoursSinceCut} hours since your last cut — same look, fresh stills.`}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <ButtonLink href={href} size="sm" variant="primary" data-testid="play-habit-nudge-open">

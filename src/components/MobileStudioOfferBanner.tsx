@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   dismissMobileStudioOffer,
-  MOBILE_STUDIO_HOME,
   MOBILE_STUDIO_OFFER_MQ,
   shouldOfferMobileStudio,
 } from '@/lib/mobile-studio-offer';
@@ -38,9 +37,8 @@ export default function MobileStudioOfferBanner() {
       className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[var(--accent-border)] bg-[var(--accent-muted)] px-4 py-2 text-xs text-[var(--accent-text)] lg:hidden"
     >
       <p className="min-w-0 leading-snug">
-        On a phone? <span className="font-medium">Mobile Studio</span> is a first-class film loop —
-        capture plates, rate stills, Look / Outfit / Day / Story / Cut — while desk handles heavy
-        Generate.
+        On a phone? <span className="font-medium">Castcut Film</span> is a first-class loop — Film
+        hub, Look / Outfit / Day / Story / Cut — while desk handles heavy Generate.
       </p>
       <div className="flex shrink-0 items-center gap-2">
         <button
@@ -54,11 +52,11 @@ export default function MobileStudioOfferBanner() {
           Not now
         </button>
         <Link
-          href={MOBILE_STUDIO_HOME}
+          href="/m/film"
           className="rounded-lg border border-[var(--accent-border)] bg-[var(--bg-base)]/50 px-2.5 py-1 font-medium transition hover:brightness-110"
           onClick={() => dismissMobileStudioOffer()}
         >
-          Open
+          Open Film
         </Link>
       </div>
     </div>

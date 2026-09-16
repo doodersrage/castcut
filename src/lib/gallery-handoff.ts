@@ -265,7 +265,7 @@ export function galleryHandoffPath(
     return '/mesh?from=gallery';
   }
   if (target === 'roleplay') {
-    return '/roleplay?from=gallery';
+    return '/story?from=gallery';
   }
   if (target === 'fitting') {
     return '/fitting?from=gallery';

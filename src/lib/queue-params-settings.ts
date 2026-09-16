@@ -392,6 +392,19 @@ export function resolveQueueParams(
       merged.identityKind = normalizeComposeIdentityKind(shared.identityKind);
     }
 
+    // Job-pinned face from queueParamsBase wins over session shared (Look Outfit plate, etc.).
+    if (base?.ipAdapterImageFilename?.trim()) {
+      const pinned = base.ipAdapterImageFilename.trim();
+      merged.ipAdapterImageFilename = pinned;
+      const pinnedStack = (base.ipAdapterImageFilenames ?? [])
+        .map(name => name?.trim())
+        .filter(Boolean) as string[];
+      merged.ipAdapterImageFilenames = pinnedStack.length > 0 ? pinnedStack : [pinned];
+      if (base.ipAdapterStrength != null) {
+        merged.ipAdapterStrength = base.ipAdapterStrength;
+      }
+    }
+
     const resolvedFilenames = (() => {
       const fromArg = (inputImageFilenames ?? []).map(entry => entry?.trim() ?? '').filter(Boolean);
       const fromBase = (base?.inputImageFilenames ?? [])

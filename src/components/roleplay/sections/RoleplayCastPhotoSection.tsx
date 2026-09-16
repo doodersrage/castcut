@@ -174,7 +174,7 @@ export function RoleplayCastPhotoSection({
             <img
               key={displayReferenceUrl}
               src={displayReferenceUrl}
-              alt="Roleplay reference"
+              alt="Story reference"
               className="h-24 w-24 rounded-lg border border-[var(--border-subtle)] bg-white object-contain"
             />
           ) : null}

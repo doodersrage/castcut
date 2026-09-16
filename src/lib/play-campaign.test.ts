@@ -7,6 +7,8 @@ import {
   loadPlayCampaignState,
   PLAY_CAMPAIGN_KEY,
   resolveCampaignLookPackId,
+  resolvePlayLoopEntryCharacterId,
+  resolvePlayLoopNavHref,
 } from './play-campaign';
 
 describe('play campaign helpers', () => {
@@ -31,6 +33,35 @@ describe('play campaign helpers', () => {
       resolveCampaignLookPackId({ queryLookPackId: '  ', savedLookPackId: '' }),
       undefined
     );
+  });
+
+  it('resolvePlayLoopEntryCharacterId prefers query over active Cast', () => {
+    assert.equal(
+      resolvePlayLoopEntryCharacterId({ queryCharacterId: 'char-q', activeCharacterId: 'char-a' }),
+      'char-q'
+    );
+    assert.equal(
+      resolvePlayLoopEntryCharacterId({ queryCharacterId: '', activeCharacterId: 'char-a' }),
+      'char-a'
+    );
+    assert.equal(
+      resolvePlayLoopEntryCharacterId({ queryCharacterId: null, activeCharacterId: null }),
+      null
+    );
+  });
+
+  it('resolvePlayLoopNavHref appends active Cast to Film-loop paths', () => {
+    assert.equal(resolvePlayLoopNavHref('/story', 'char-a'), '/story?character=char-a');
+    assert.equal(
+      resolvePlayLoopNavHref('/fitting?from=look', 'char-b'),
+      '/fitting?from=look&character=char-b'
+    );
+    assert.equal(
+      resolvePlayLoopNavHref('/story?character=keep', 'char-a'),
+      '/story?character=keep'
+    );
+    assert.equal(resolvePlayLoopNavHref('/dashboard', 'char-a'), '/dashboard');
+    assert.equal(resolvePlayLoopNavHref('/m/day', 'char-c'), '/m/day?character=char-c');
   });
 
   it('bumpPlayCampaignStep advances monotonically and skips other characters', () => {

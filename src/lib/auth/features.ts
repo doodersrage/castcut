@@ -50,7 +50,9 @@ export type AppFeatureId = (typeof APP_FEATURES)[number]['id'];
 export const ALL_FEATURE_IDS = APP_FEATURES.map(feature => feature.id) as AppFeatureId[];
 
 const PAGE_FEATURE_MAP: Array<{ prefix: string; feature: AppFeatureId }> = [
+  { prefix: '/m/story', feature: 'roleplay' },
   { prefix: '/m/play', feature: 'roleplay' },
+  { prefix: '/m/film', feature: 'play' },
   { prefix: '/m/moodboard', feature: 'play' },
   { prefix: '/m/fitting', feature: 'play' },
   { prefix: '/m/day', feature: 'play' },
@@ -69,6 +71,7 @@ const PAGE_FEATURE_MAP: Array<{ prefix: string; feature: AppFeatureId }> = [
   { prefix: '/pet', feature: 'pet' },
   { prefix: '/fantasy', feature: 'fantasy' },
   { prefix: '/play', feature: 'play' },
+  { prefix: '/story', feature: 'roleplay' },
   { prefix: '/roleplay', feature: 'roleplay' },
   { prefix: '/fitting', feature: 'play' },
   { prefix: '/day', feature: 'play' },

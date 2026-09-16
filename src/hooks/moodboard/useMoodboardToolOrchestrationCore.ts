@@ -5,7 +5,7 @@ import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
-import { applyCharacterRecord, getCharacter } from '@/lib/character-os';
+import { applyCharacterRecordFresh, getCharacter } from '@/lib/character-os';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
@@ -17,6 +17,7 @@ import {
   normalizeMoodboardTiles,
   type MoodboardTile,
 } from '@/lib/moodboard-scene';
+import { resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { DEFAULT_MOODBOARD_TOOL_CACHE } from '@/lib/settings-cache';
@@ -164,7 +165,12 @@ export function useMoodboardToolOrchestrationCore() {
       return;
     }
     deepLinkHandled.current = true;
-    const characterId = new URLSearchParams(window.location.search).get('character')?.trim();
+    const queryCharacterId =
+      new URLSearchParams(window.location.search).get('character')?.trim() || '';
+    const characterId = resolvePlayLoopEntryCharacterId({
+      queryCharacterId,
+      activeCharacterId: shared.activeCharacterId,
+    });
     if (!characterId) {
       return;
     }
@@ -172,14 +178,18 @@ export function useMoodboardToolOrchestrationCore() {
     if (!record) {
       return;
     }
+    const alreadyActive = shared.activeCharacterId?.trim() === characterId;
+    if (!queryCharacterId && alreadyActive) {
+      return;
+    }
     try {
-      updateShared(applyCharacterRecord(record));
+      updateShared(applyCharacterRecordFresh(record));
     } catch (err) {
       scheduleAfterCommit(() =>
         setError(err instanceof Error ? err.message : 'Could not apply that character.')
       );
     }
-  }, [mounted, updateShared]);
+  }, [mounted, shared.activeCharacterId, updateShared]);
 
   useGalleryHandoff('moodboard', handoff => {
     const tileId = activeTileId ?? tiles[0]?.id;

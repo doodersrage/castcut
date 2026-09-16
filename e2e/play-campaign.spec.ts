@@ -413,7 +413,7 @@ test('mobile desk bridge links to Play campaign and Day', async ({ page }) => {
 });
 
 test('mobile play page exposes phone Day/Fitting and optional desk handoff', async ({ page }) => {
-  await gotoStable(page, '/m/play');
+  await gotoStable(page, '/m/story');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('mobile-play')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('mobile-continue-day')).toHaveAttribute('href', /\/m\/day/);
@@ -509,7 +509,7 @@ test('cast films tab and continue roleplay work for Play characters', async ({ p
   await page.getByRole('tab', { name: /Films/i }).click();
   await expect(page.getByTestId('cast-continue-roleplay')).toBeVisible();
   await page.getByTestId('cast-continue-roleplay').click();
-  await expect(page).toHaveURL(/\/roleplay/, { timeout: 30_000 });
+  await expect(page).toHaveURL(/\/story/, { timeout: 30_000 });
 });
 
 test('day cut film chrome and save-to-cast testids are wired', async ({ page }) => {
@@ -740,7 +740,7 @@ test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async 
     void download.cancel().catch(() => undefined);
   });
 
-  await gotoStable(page, '/roleplay?character=e2e-rp-cut');
+  await gotoStable(page, '/story?character=e2e-rp-cut');
   await dismissBlockingOverlays(page);
   const cutBtn = page.getByRole('button', { name: /Cut film/i });
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
@@ -803,7 +803,7 @@ test('mobile play cut film with mocked MediaRecorder shows Cast deep-links', asy
     void download.cancel().catch(() => undefined);
   });
 
-  await gotoStable(page, '/m/play');
+  await gotoStable(page, '/m/story');
   await dismissBlockingOverlays(page);
   const cutBtn = page.getByRole('button', { name: /Cut film/i });
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });

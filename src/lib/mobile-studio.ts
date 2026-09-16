@@ -4,7 +4,7 @@ export const MOBILE_STUDIO_HOME = '/m' as const;
 export const MAX_CHARACTER_PLATES = 24;
 
 export type MobileStudioTabId =
-  'capture' | 'queue' | 'gallery' | 'moodboard' | 'fitting' | 'day' | 'play';
+  'capture' | 'film' | 'queue' | 'gallery' | 'moodboard' | 'fitting' | 'day' | 'story';
 
 export type MobileStudioTab = {
   id: MobileStudioTabId;
@@ -15,12 +15,13 @@ export type MobileStudioTab = {
 
 export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
   { id: 'capture', href: '/m', label: 'Cast', hint: 'Look → Outfit → Day → Cut' },
+  { id: 'film', href: '/m/film', label: 'Film', hint: 'Resume or start a film' },
   { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'Watch jobs' },
   { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Rate stills' },
   { id: 'moodboard', href: '/m/moodboard', label: 'Look', hint: 'Extract look' },
   { id: 'fitting', href: '/m/fitting', label: 'Outfit', hint: 'Keep a kit' },
   { id: 'day', href: '/m/day', label: 'Day', hint: 'Queue · Cut film' },
-  { id: 'play', href: '/m/play', label: 'Story', hint: 'Optional beats' },
+  { id: 'story', href: '/m/story', label: 'Story', hint: 'Extend this character’s film' },
 ];
 
 export type CharacterPlate = {
@@ -41,6 +42,9 @@ export function isMobileStudioPath(pathname: string | null | undefined): boolean
 
 export function mobileStudioTabFromPath(pathname: string | null | undefined): MobileStudioTabId {
   const path = (pathname ?? '').split('?')[0] || '';
+  if (path === '/m/film' || path.startsWith('/m/film/')) {
+    return 'film';
+  }
   if (path === '/m/queue' || path.startsWith('/m/queue/')) {
     return 'queue';
   }
@@ -56,8 +60,13 @@ export function mobileStudioTabFromPath(pathname: string | null | undefined): Mo
   if (path === '/m/day' || path.startsWith('/m/day/')) {
     return 'day';
   }
-  if (path === '/m/play' || path.startsWith('/m/play/')) {
-    return 'play';
+  if (
+    path === '/m/story' ||
+    path.startsWith('/m/story/') ||
+    path === '/m/play' ||
+    path.startsWith('/m/play/')
+  ) {
+    return 'story';
   }
   return 'capture';
 }
@@ -87,11 +96,12 @@ export function toMobileStudioHref(href: string): string {
   }
 
   const map: Record<string, string> = {
-    '/play': '/m/day',
+    '/play': '/m/film',
     '/fitting': '/m/fitting',
     '/day': '/m/day',
     '/moodboard': '/m/moodboard',
-    '/roleplay': '/m/play',
+    '/story': '/m/story',
+    '/roleplay': '/m/story',
     '/gallery': '/m/gallery',
     '/queue': '/m/queue',
     '/characters': '/m',

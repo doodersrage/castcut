@@ -12,6 +12,8 @@ import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPan
 import { FieldError } from '@/components/ui/Field';
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
+import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
+import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
@@ -132,6 +134,8 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       sidebarTitle={leanChrome ? false : undefined}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.fitting} />
+      <PlayFilmEngineBanner />
+      <PlayFilmFunnelChrome />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}

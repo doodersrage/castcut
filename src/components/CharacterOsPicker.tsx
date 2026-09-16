@@ -8,7 +8,7 @@ import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import {
   activateLook,
   addLookFromShared,
-  applyCharacterRecord,
+  applyCharacterRecordFresh,
   characterFromShared,
   characterHomeHref,
   getCharacter,
@@ -62,14 +62,35 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
   const applyId = (id: string) => {
     const character = characters.find(entry => entry.id === id);
     if (!character) {
-      onApply({ activeCharacterId: undefined, activeLookId: undefined });
+      onApply({
+        activeCharacterId: undefined,
+        activeLookId: undefined,
+        activeCharacterDescriptor: undefined,
+        ipAdapterImageFilename: undefined,
+        ipAdapterImageFilenames: undefined,
+        ipAdapterImageUrl: undefined,
+        ipAdapterComfyUrl: undefined,
+        ipAdapterStrength: undefined,
+        ipAdapterModelFilename: undefined,
+        identityKind: undefined,
+      });
       return;
     }
     try {
-      onApply(applyCharacterRecord(character));
+      // Fresh clears prior Cast face/wardrobe so Look/Extract cannot keep a stale IP lock.
+      onApply(applyCharacterRecordFresh(character));
     } catch (error) {
       console.error('CharacterOsPicker: failed to apply character', error);
-      onApply({ activeCharacterId: character.id });
+      onApply({
+        activeCharacterId: character.id,
+        activeLookId: undefined,
+        activeCharacterDescriptor: character.descriptor,
+        ipAdapterImageFilename: undefined,
+        ipAdapterImageFilenames: undefined,
+        ipAdapterImageUrl: undefined,
+        ipAdapterComfyUrl: undefined,
+        identityKind: undefined,
+      });
     }
   };
 
@@ -80,7 +101,7 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
     try {
       const next = activateLook(activeId, lookId);
       if (next) {
-        onApply(applyCharacterRecord(next));
+        onApply(applyCharacterRecordFresh(next));
       }
     } catch (error) {
       console.error('CharacterOsPicker: failed to apply look', error);
@@ -99,7 +120,7 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
     }
     upsertCharacter(record);
     const saved = getCharacter(record.id);
-    onApply(saved ? applyCharacterRecord(saved) : { activeCharacterId: record.id });
+    onApply(saved ? applyCharacterRecordFresh(saved) : applyCharacterRecordFresh(record));
     setName('');
   };
 
@@ -110,7 +131,7 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
     }
     const next = addLookFromShared(activeId, shared, name.trim() || 'New look');
     if (next) {
-      onApply(applyCharacterRecord(next));
+      onApply(applyCharacterRecordFresh(next));
     }
     setName('');
   };
@@ -141,7 +162,18 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
             variant="ghost"
             onClick={() => {
               removeCharacter(activeId);
-              onApply({ activeCharacterId: undefined, activeLookId: undefined });
+              onApply({
+                activeCharacterId: undefined,
+                activeLookId: undefined,
+                activeCharacterDescriptor: undefined,
+                ipAdapterImageFilename: undefined,
+                ipAdapterImageFilenames: undefined,
+                ipAdapterImageUrl: undefined,
+                ipAdapterComfyUrl: undefined,
+                ipAdapterStrength: undefined,
+                ipAdapterModelFilename: undefined,
+                identityKind: undefined,
+              });
             }}
           >
             Forget
@@ -190,8 +222,8 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
         </p>
       ) : (
         <p className="type-caption text-[var(--text-muted)]">
-          One record for face lock, wardrobe, looks, and LoRA. Generate, Roleplay, Video, and
-          gallery all stamp the active character.
+          One record for face lock, wardrobe, looks, and LoRA. Generate, Story, Video, and gallery
+          all stamp the active character.
         </p>
       )}
     </div>

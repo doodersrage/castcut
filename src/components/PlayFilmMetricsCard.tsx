@@ -103,19 +103,19 @@ export default function PlayFilmMetricsCard() {
     days === null
       ? next.reason
       : withinWeek
-        ? 'First film cut within a week of starting Play.'
-        : 'First film cut after the first Play campaign.';
+        ? 'First film cut within a week of starting the film campaign.'
+        : 'First film cut after the first film campaign.';
 
   return (
     <ToolSection
-      title="Play film loop"
-      description="Time and conversion from campaign start to Cut film / Save to Cast."
+      title="Film loop"
+      description="Time and conversion from film campaign start to Cut film / Save to Cast."
       data-testid="play-film-metrics"
     >
       {empty ? (
         <>
           <p className="type-caption text-[var(--text-muted)]" data-testid="play-metrics-empty">
-            No film events yet. Queue a still or start a film from Play.
+            No film events yet. Queue a still or start a film from Film.
           </p>
           <div className="mt-2">
             <ButtonLink href="/play" size="sm" variant="primary" data-testid="play-empty-start">
@@ -125,7 +125,7 @@ export default function PlayFilmMetricsCard() {
         </>
       ) : (
         <div className="grid gap-[var(--group-gap)] sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Campaign → first film" value={value} detail={detail} />
+          <StatCard label="Film campaign → first cut" value={value} detail={detail} />
           <StatCard
             label="First film cut"
             value={metrics.firstFilmCutAt ? 'Done' : 'Not yet'}

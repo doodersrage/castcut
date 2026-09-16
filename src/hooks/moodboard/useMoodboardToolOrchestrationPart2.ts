@@ -2,7 +2,8 @@
 
 import { useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { applyCharacterRecord, addCharacterLookPack } from '@/lib/character-os';
+import { applyCharacterRecordFresh, addCharacterLookPack } from '@/lib/character-os';
+import { sanitizeCharacterAppearanceDescriptor } from '@/lib/character-appearance';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
@@ -50,11 +51,12 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
   } = ctx;
 
   const buildPrompt = useCallback(() => {
+    const raw = character?.descriptor || character?.hints || '';
     return synthesizeMoodboardPrompt({
       tiles,
       templateId,
       characterName: character?.name,
-      characterDescriptor: character?.descriptor || character?.hints,
+      characterDescriptor: raw ? sanitizeCharacterAppearanceDescriptor(raw) : undefined,
       instruction: toolSettings.instruction,
     });
   }, [
@@ -173,6 +175,13 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
             };
           })
         );
+        const styleOnlyHints = [
+          'Describe lighting, palette, mood, location, wardrobe style, and atmosphere only.',
+          'Do not describe people, faces, race, ethnicity, skin tone, body type, age, or gender — Cast supplies the subject.',
+          toolSettings.instruction?.trim() || '',
+        ]
+          .filter(Boolean)
+          .join(' ');
         const response = await fetch('/api/image-prompt/multi', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -181,7 +190,7 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
             model: shared.model,
             detail: shared.detail,
             descriptionPreset: 'standard',
-            extraHints: toolSettings.instruction?.trim() || undefined,
+            extraHints: styleOnlyHints,
             ...sharedLlmRequestBody(shared),
           }),
         });
@@ -195,7 +204,10 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
           tiles,
           templateId,
           characterName: character?.name,
-          characterDescriptor: character?.descriptor || character?.hints,
+          characterDescriptor: (() => {
+            const raw = character?.descriptor || character?.hints || '';
+            return raw ? sanitizeCharacterAppearanceDescriptor(raw) : undefined;
+          })(),
           instruction: toolSettings.instruction,
         });
       }
@@ -221,6 +233,7 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
         characterId: pack.characterId,
         tiles,
         vibePrompt,
+        lookPack: pack,
         forceReplace: true,
         sendComfyUi: actions.sendComfyUi,
       });
@@ -230,11 +243,11 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
         );
       } else if (plateResult === 'queued') {
         setLookStatus(
-          'Look pack ready — queuing a new Outfit plate still. Continue to Outfit while it finishes.'
+          'Look pack ready — queuing a full-body Outfit plate. Continue to Outfit while it finishes.'
         );
       } else if (plateResult === 'failed') {
         setLookStatus(
-          'Look pack ready — could not auto-make an Outfit plate; upload one in Outfit or retry Extract.'
+          'Look pack ready — could not auto-make a full-body Outfit plate; upload one in Outfit or retry Extract.'
         );
       } else {
         setLookStatus('Look pack ready — send it to Outfit or Day.');
@@ -275,12 +288,13 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
         characterId: next.characterId,
         tiles,
         vibePrompt: next.vibePrompt,
+        lookPack: next,
         sendComfyUi: actions.sendComfyUi,
       });
       if (plateResult === 'ready') {
         setLookStatus('Using staged look pack — Outfit plate set from Look.');
       } else if (plateResult === 'queued') {
-        setLookStatus('Using staged look pack — queuing an Outfit plate still.');
+        setLookStatus('Using staged look pack — queuing a full-body Outfit plate.');
       } else {
         setLookStatus('Using staged look pack — skipped re-reading tiles.');
       }
@@ -321,16 +335,16 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
     return lookPackDayHref(pack);
   }, [ensureLookPackForHandoff]);
 
-  const sendLookToRoleplay = useCallback(async () => {
+  const sendLookToRoleplay = useCallback(async (): Promise<string | null> => {
     const pack = await ensureLookPackForHandoff();
     if (!pack) {
-      return;
+      return null;
     }
     if (pack.characterId) {
       bumpPlayCampaignStep({ characterId: pack.characterId, stepId: 'roleplay' });
     }
-    router.push(lookPackRoleplayHref(pack));
-  }, [ensureLookPackForHandoff, router]);
+    return lookPackRoleplayHref(pack);
+  }, [ensureLookPackForHandoff]);
 
   const saveLookPackToCast = useCallback(async () => {
     const pack = await ensureLookPackForHandoff();
@@ -355,17 +369,17 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
     if (character) {
       saveSharedSettings({
         ...loadSettingsCache().shared,
-        ...applyCharacterRecord(character),
+        ...applyCharacterRecordFresh(character),
       });
       const staged = loadLookPack();
       if (staged) {
         router.push(lookPackRoleplayHref({ ...staged, characterId: character.id }));
         return;
       }
-      router.push(`/roleplay?character=${encodeURIComponent(character.id)}`);
+      router.push(`/story?character=${encodeURIComponent(character.id)}`);
       return;
     }
-    router.push('/roleplay');
+    router.push('/story');
   }, [character, router]);
 
   return {

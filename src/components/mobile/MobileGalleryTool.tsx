@@ -105,7 +105,7 @@ export default function MobileGalleryTool() {
     });
     const roleplay = loadToolSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
     saveToolSettings('roleplay', { ...roleplay, ...roleplayPatchFromPlate(plate) });
-    router.push('/m/play');
+    router.push('/m/story');
   };
 
   const openInCompose = (entry: ComfyGalleryEntry) => {

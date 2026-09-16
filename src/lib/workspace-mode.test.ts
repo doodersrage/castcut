@@ -163,7 +163,7 @@ describe("workspace-mode", () => {
   });
 
   it("treats Cast and Roleplay routes as Play focus, not Generate Character", () => {
-    assert.equal(isRoleplayFocusPath("/roleplay"), true);
+    assert.equal(isRoleplayFocusPath("/story"), true);
     assert.equal(isRoleplayFocusPath("/fitting"), true);
     assert.equal(isRoleplayFocusPath("/day"), true);
     assert.equal(isRoleplayFocusPath("/moodboard"), true);
@@ -173,12 +173,12 @@ describe("workspace-mode", () => {
     assert.equal(isRoleplayFocusPath("/character"), false);
     assert.equal(isRoleplayFocusPath("/gallery"), false);
     assert.equal(isRoleplayFocusPath("/"), false);
-    assert.equal(isRoleplayFocusPath("/m/play"), false);
+    assert.equal(isRoleplayFocusPath("/m/story"), false);
   });
 
   it("slims Cast/Roleplay chrome to Play destinations plus All tools", () => {
     for (const mode of ["simple", "studio", "full"] as const) {
-      for (const path of ["/roleplay", "/fitting", "/day", "/characters", "/characters/kai"]) {
+      for (const path of ["/story", "/fitting", "/day", "/characters", "/characters/kai"]) {
         const groups = navGroupsForPath(mode, path, APP_NAV_GROUPS);
         assert.deepEqual(
           groups.map((group) => group.label),
@@ -191,7 +191,7 @@ describe("workspace-mode", () => {
           "/moodboard",
           "/fitting",
           "/day",
-          "/roleplay",
+          "/story",
           "/gallery",
           "/queue",
           "/",
@@ -217,7 +217,7 @@ describe("workspace-mode", () => {
       "/moodboard",
       "/fitting",
       "/day",
-      "/roleplay",
+      "/story",
       "/gallery",
       "/queue",
       "/",
@@ -230,17 +230,17 @@ describe("workspace-mode", () => {
   });
 
   it("leaves Generate and other studio routes on the full workspace catalog", () => {
-    const focused = navGroupsForPath("simple", "/roleplay", APP_NAV_GROUPS);
+    const focused = navGroupsForPath("simple", "/story", APP_NAV_GROUPS);
     const generate = navGroupsForPath("simple", "/", APP_NAV_GROUPS);
     assert.equal(focused[0]?.label, "Play");
     assert.equal(generate[0]?.label, "Essentials");
-    assert.ok(generate[0]!.links.some((link) => link.href === "/roleplay"));
+    assert.ok(generate[0]!.links.some((link) => link.href === "/story"));
     const studio = navGroupsForPath("studio", "/video", APP_NAV_GROUPS);
     assert.ok(studio.some((group) => group.label === "Edit"));
   });
 
   it("expands Roleplay by default and allows footer Settings/Profile hrefs", () => {
-    const play = navGroupsForPath("studio", "/roleplay", APP_NAV_GROUPS);
+    const play = navGroupsForPath("studio", "/story", APP_NAV_GROUPS);
     assert.deepEqual(defaultExpandedNavGroups("studio", play), ["Play"]);
     assert.equal(isRoleplayFocusNavHref("/characters"), true);
     assert.equal(isRoleplayFocusNavHref("/settings"), true);
