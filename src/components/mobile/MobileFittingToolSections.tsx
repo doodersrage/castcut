@@ -237,8 +237,11 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           }}
         />
         {garmentUploading || garmentScanStatus ? (
-          <p className="type-caption text-[var(--text-muted)]">
-            {garmentScanStatus || 'Uploading…'}
+          <p
+            className="type-caption text-[var(--text-muted)]"
+            data-testid="fitting-garment-scan-status"
+          >
+            {garmentScanStatus || 'Working on clothing photo…'}
           </p>
         ) : null}
         {toolSettings.customGarmentImageUrl?.trim() ? (

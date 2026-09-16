@@ -86,7 +86,8 @@ import {
   saveSharedSettings,
 } from '@/lib/settings-cache';
 import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting-clothing-options';
-import { scanStillWithVision, resolveLocalImageFile } from '@/lib/vision-still-scan-client';
+import { scanStillWithVision } from '@/lib/vision-still-scan-client';
+import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
 
 const ACCENT = 'rose' as const;
 const TOOL_ID = 'fitting' as const;
@@ -286,13 +287,26 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       throw new Error('Upload a clothing photo first.');
     }
     setGarmentUploading(true);
+    setGarmentScanStatus('Loading clothing photo…');
     setError(null);
     try {
-      const image = await resolveLocalImageFile(null, preview, filename || 'fitting-garment.png');
+      const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+      // Prefer preview URL, then Comfy input/output view URLs from the uploaded filename.
+      // Preview is often a relative `/api/comfyui/view?…` after upload — that must resolve.
+      const urls = collectIsolateSourceUrls({
+        imageUrl: preview,
+        filename,
+        comfyUrl,
+      });
+      const image = await resolveStillFileForVisionScan({
+        urls,
+        fallbackName: filename || 'fitting-garment.png',
+      });
       const description = await scanCustomGarmentDescription(image);
-      if (description?.trim()) {
-        updateToolSettings({ customGarmentDescription: description.trim() });
+      if (!description?.trim()) {
+        throw new Error('Vision returned an empty garment description. Try Rescan again.');
       }
+      updateToolSettings({ customGarmentDescription: description.trim() });
     } finally {
       setGarmentUploading(false);
       setGarmentScanStatus(null);

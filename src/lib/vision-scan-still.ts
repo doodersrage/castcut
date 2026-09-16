@@ -88,7 +88,8 @@ export async function resolveStillFileForVisionScan({
     if (looksLikeVideoUrl(url)) {
       return compressImageForEngineUpload(await stillFileFromVideoUrl(url, fallbackName));
     }
-    if (/^(?:https?:|blob:|data:)/i.test(url)) {
+    // Absolute http(s)/blob/data, or same-origin relative paths (e.g. /api/comfyui/view?…).
+    if (/^(?:https?:|blob:|data:|\/)/i.test(url)) {
       return compressImageForEngineUpload(await stillFileFromImageUrl(url, fallbackName));
     }
   }

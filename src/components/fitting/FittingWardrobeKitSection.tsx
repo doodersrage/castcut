@@ -198,8 +198,11 @@ export default function FittingWardrobeKitSection({
           ) : null}
         </div>
         {garmentUploading || garmentScanStatus ? (
-          <p className="type-caption text-[var(--text-muted)]">
-            {garmentScanStatus || 'Uploading clothing photo…'}
+          <p
+            className="type-caption text-[var(--text-muted)]"
+            data-testid="fitting-garment-scan-status"
+          >
+            {garmentScanStatus || 'Working on clothing photo…'}
           </p>
         ) : null}
         {hasCustomGarment && customGarmentImageUrl ? (
