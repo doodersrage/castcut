@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { roleplayWatchPlaylist } from '@/lib/character-film';
 import {
   applyCharacterRecord,
   applyCharacterRecordFresh,
@@ -11,6 +12,7 @@ import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
 import { applyLookPackToRoleplaySettings, loadLookPack, saveLookPack } from '@/lib/look-pack';
 import {
   resolveRoleplayContinueFromCharacter,
+  roleplayLibraryIdForCharacter,
   shouldSyncRoleplaySessionToCharacter,
   withRoleplayCacheFromCastCharacter,
 } from '@/lib/roleplay-library';
@@ -69,7 +71,21 @@ export function useRoleplayLookPackDeepLink({
       } else if (shouldSyncRoleplaySessionToCharacter(characterId, activeSessionId)) {
         const result = resolveRoleplayContinueFromCharacter(characterId);
         if (result.ok) {
-          updateToolSettings(result.cache);
+          // Don't wipe an in-progress Story reel when binding Cast identity —
+          // synthesize-from-Cast returns bio-only with an empty story.
+          const liveHasReel = roleplayWatchPlaylist(liveStory.story ?? []).length > 0;
+          if (liveHasReel) {
+            const sessionId =
+              result.cache.activeSessionId ??
+              roleplayLibraryIdForCharacter(characterId) ??
+              liveStory.activeSessionId;
+            updateToolSettings({
+              ...withRoleplayCacheFromCastCharacter(liveStory, record),
+              activeSessionId: sessionId,
+            });
+          } else {
+            updateToolSettings(result.cache);
+          }
           updateShared(applyCharacterRecordFresh(record));
         } else if (queryCharacterId) {
           onMessage?.(result.message);
