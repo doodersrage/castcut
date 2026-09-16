@@ -9,10 +9,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-- **Cast owns identity:** Film create + Cast home set Part / From photo / look plate; Story continues that Cast lead (no separate “Cast yourself” island).
-- **Play polish:** quieter Film/Mobile docks (More menus), persistence triad on phone Look, celebrate no longer auto soft-advances to Watch, docs vocabulary Cast/Film/Look/Outfit/Story, habit/persistence/engine e2e + Play a11y routes.
-- **Cloud engines:** expanded Fal / Replicate / Gemini / Grok / Runway model presets (FLUX.2 Flex/Max, Seedream, HiDream, Ideogram, Recraft, Imagen, Kling/WAN/Hailuo/Veo variants); Runway listed in Settings → Inference engine; Luma Dream Machine (Ray) as an optional clip engine when configured.
-- **Outfit BYO clothing:** ghost-mannequin packshot extract (Lightning, not full 2511); Cast look notes no longer fight try-on kits; cycling helmet lint only when a bicycle/riding cue is present.
+## [v1.9.0] - 2026-09-16
+
+- **Cast owns identity:** Film create + Cast home set Part / From photo / look plate; Story continues that Cast lead (no separate “Cast yourself” island). Active Cast sticks across Film-loop nav.
+- **Play film loop closed:** Motion before Cut, diversified Day stills, quieter Film/Mobile docks (More menus), persistence triad on phone Look, celebrate stays manual Watch (no auto soft-advance), habit/persistence/engine e2e + Play a11y routes.
+- **Outfit BYO clothing:** ghost-mannequin packshot extract (Lightning mid-size, not full 2511); Cast look notes no longer fight try-on kits; cycling helmet lint only when a bicycle/riding cue is present.
+- **Cloud engines:** expanded Fal / Replicate / Gemini / Grok / Runway model presets (FLUX.2 Flex/Max, Seedream, HiDream, Ideogram, Recraft, Imagen, Kling/WAN/Hailuo/Veo variants); Runway listed in Settings → Inference engine; Luma Dream Machine (Ray) as an optional clip-only engine when configured.
+- **A11y / CI:** light-theme contrast tokens for Film mobile chrome; Outfit file inputs labeled; Play dogfood + Day heading + settings remount flakes hardened.
 
 ## [v1.8.0] - 2026-09-16
 
