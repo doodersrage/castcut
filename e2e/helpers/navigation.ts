@@ -69,35 +69,41 @@ export async function revealFullSettings(page: Page): Promise<void> {
 
 /** Open the ComfyUI settings tab after essentials may have hidden it. */
 export async function openComfyUiSettingsTab(page: Page): Promise<void> {
-  await revealFullSettings(page);
-  const tab = page
-    .getByRole('navigation', { name: /Settings sections/i })
-    .locator('button.ui-settings-tab')
-    .filter({ hasText: /^ComfyUI/ });
-  if (await tab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    // Clicking an already-active tab rewrites the URL without `section` and can
-    // collapse essentials, hiding Checkpoint map again.
-    if ((await tab.getAttribute('aria-current')) !== 'page') {
-      await tab.click({ force: true }).catch(async () => {
-        await tab.click();
-      });
-      // Tab remount can detach the button mid-click — wait for shell to settle.
-      await expect(page.getByRole('navigation', { name: /Settings sections/i })).toBeVisible({
-        timeout: 15_000,
-      });
+  const landmarkSelector = [
+    '#settings-comfyui-connection',
+    '#settings-comfyui-inference-engine',
+    '#settings-comfyui-workflow-library',
+    '#settings-comfyui-workflow-patching',
+  ].join(', ');
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await revealFullSettings(page);
+    const tab = page
+      .getByRole('navigation', { name: /Settings sections/i })
+      .locator('button.ui-settings-tab')
+      .filter({ hasText: /^ComfyUI/ });
+    if (await tab.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      // Clicking an already-active tab rewrites the URL without `section` and can
+      // collapse essentials, hiding Checkpoint map again.
+      if ((await tab.getAttribute('aria-current')) !== 'page') {
+        await tab.click({ force: true }).catch(async () => {
+          await tab.click();
+        });
+        // Tab remount can detach the button mid-click — wait for shell to settle.
+        await expect(page.getByRole('navigation', { name: /Settings sections/i })).toBeVisible({
+          timeout: 15_000,
+        });
+      }
     }
+    // Connection is essentials; advanced deep-links still mount it, but Strict Mode /
+    // tab remounts can delay any single hub. Accept any ComfyUI panel landmark.
+    const landmark = page.locator(landmarkSelector).first();
+    if (await landmark.isVisible({ timeout: attempt === 0 ? 20_000 : 15_000 }).catch(() => false)) {
+      return;
+    }
+    // Settings chrome occasionally drops the ComfyUI panel mid-hydrate — reload the deep link.
+    await gotoStable(page, '/settings?tab=comfyui&section=connection');
   }
-  // Connection is essentials; advanced deep-links still mount it, but Strict Mode /
-  // tab remounts can delay any single hub. Accept any ComfyUI panel landmark.
-  const landmark = page
-    .locator(
-      [
-        '#settings-comfyui-connection',
-        '#settings-comfyui-inference-engine',
-        '#settings-comfyui-workflow-library',
-        '#settings-comfyui-workflow-patching',
-      ].join(', ')
-    )
-    .first();
-  await expect(landmark).toBeVisible({ timeout: 45_000 });
+
+  await expect(page.locator(landmarkSelector).first()).toBeVisible({ timeout: 45_000 });
 }

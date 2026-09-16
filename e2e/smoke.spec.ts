@@ -38,32 +38,35 @@ test('settings connection first-run hub loads', async ({ page }) => {
   await gotoStable(page, '/settings?tab=comfyui&section=connection');
   await openComfyUiSettingsTab(page);
   // Settings shell remounts while ComfyUI connection hydrates — always re-query the section.
-  const connection = () => page.locator('#settings-comfyui-connection').first();
-  await expect(connection()).toBeVisible({ timeout: 30_000 });
-  await connection()
-    .scrollIntoViewIfNeeded()
-    .catch(async () => {
-      await expect(connection()).toBeVisible({ timeout: 10_000 });
-      await connection().scrollIntoViewIfNeeded();
-    });
+  const connection = page.locator('#settings-comfyui-connection').first();
+  await expect(connection).toBeVisible({ timeout: 30_000 });
+  // Skip scroll when the node remounts mid-call; heal/CTA waits below re-query live locators.
+  await connection.scrollIntoViewIfNeeded().catch(() => undefined);
   // Dynamic ComfyUI tab can finish after the shell — wait for the first-run CTA.
-  const heal = connection()
+  const heal = page
+    .locator('#settings-comfyui-connection')
     .getByTestId('heal-and-ready')
-    .or(connection().getByRole('button', { name: /Heal & ready|Healing/i }));
+    .or(
+      page
+        .locator('#settings-comfyui-connection')
+        .getByRole('button', { name: /Heal & ready|Healing/i })
+    );
   await expect(heal.first()).toBeVisible({ timeout: 45_000 });
-  await expect(connection().getByRole('link', { name: 'Open Generate', exact: true })).toHaveAttribute(
-    'href',
-    '/?source=random',
-    { timeout: 30_000 }
-  );
-  const queueLink = connection().getByRole('link', { name: /Generate & queue first scene/i });
+  await expect(
+    page.locator('#settings-comfyui-connection').getByRole('link', { name: 'Open Generate', exact: true })
+  ).toHaveAttribute('href', '/?source=random', { timeout: 30_000 });
+  const queueLink = page
+    .locator('#settings-comfyui-connection')
+    .getByRole('link', { name: /Generate & queue first scene/i });
   if (await queueLink.isVisible({ timeout: 3_000 }).catch(() => false)) {
     await expect(queueLink).toHaveAttribute(
       'href',
       '/?source=random&autogen=1&autoqueue=1'
     );
   }
-  await expect(connection().getByRole('button', { name: /Test connection/i })).toBeVisible({
+  await expect(
+    page.locator('#settings-comfyui-connection').getByRole('button', { name: /Test connection/i })
+  ).toBeVisible({
     timeout: 30_000,
   });
 });
