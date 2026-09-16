@@ -113,9 +113,9 @@ test('settings comfyui loader maps section loads', async ({ page }) => {
   // (that can drop `section` and hide Checkpoint map).
   await gotoStable(page, '/settings?tab=comfyui&section=workflow-patching');
   await revealFullSettings(page);
+  // Reveal can remount the ComfyUI panel — re-resolve before scroll/assert.
   const patching = page.locator('#settings-comfyui-workflow-patching').first();
   await expect(patching).toBeVisible({ timeout: 45_000 });
-  await patching.scrollIntoViewIfNeeded();
   await expect(patching.getByText(/Checkpoint map/i)).toBeVisible({ timeout: 30_000 });
   await expect(patching.getByRole('button', { name: /Merge suggested loader maps/i })).toBeVisible({
     timeout: 30_000,
