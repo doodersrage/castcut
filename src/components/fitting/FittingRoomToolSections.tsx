@@ -1,7 +1,6 @@
 'use client';
 
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
-import { useState } from 'react';
 import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
 import FittingCompareSection from '@/components/fitting/FittingCompareSection';
 import FittingActionRow from '@/components/fitting/FittingActionRow';
@@ -12,9 +11,8 @@ import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { FieldError } from '@/components/ui/Field';
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
+import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
+import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 
@@ -96,7 +94,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     leanChrome,
     setIsolateStatus,
   } = vm;
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+  const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance();
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -137,7 +135,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
+        onCancel={cancelSoftAdvance}
       />
 
       {compareTryOns.length > 0 && !softAdvance && !continueDayHref ? (
@@ -232,7 +230,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         compareTryOns={compareTryOns}
         busy={busy}
         onKeepTryOn={keepTryOn}
-        onSoftAdvance={href => setSoftAdvance({ href, label: 'Day', nonce: Date.now() })}
+        onSoftAdvance={href => softAdvanceHref(href, 'Day')}
         onSkipKit={skipKit}
       />
 

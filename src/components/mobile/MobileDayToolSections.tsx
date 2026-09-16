@@ -5,16 +5,16 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
+import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
+import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
+import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import SharedToolControls from '@/components/SharedToolControls';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
-import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
+import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import { buildDayProgressLightboxState } from '@/lib/day-planner';
 import { fittingSwipeNeighbor } from '@/lib/fitting-room';
@@ -40,6 +40,7 @@ import {
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
 } from '@/lib/play-metrics';
+import { deriveDayPhase } from '@/lib/play-step-machine';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
@@ -110,7 +111,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
   const [sampleWatch, setSampleWatch] = useState(false);
   const [jumpInMode, setJumpInMode] = useState(false);
   const [progressLightbox, setProgressLightbox] = useState<ImageLightboxState | null>(null);
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+  const { softAdvance, cancelSoftAdvance, softAdvanceTo } = usePlaySoftAdvance({ mobile: true });
   const postCutAdvanceRef = useRef(false);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const wardrobeKitDeck = useMemo(
@@ -118,6 +119,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
     [activeSlot.wardrobeId, filteredWardrobeOptions]
   );
   const slotTotal = slots.length || 4;
+  const completedClipCount = useMemo(
+    () =>
+      stills.filter(entry => entry.clipStatus === 'completed' && Boolean(entry.clipUrl?.trim()))
+        .length,
+    [stills]
+  );
   const collapseEditors =
     leanChrome && (jumpInMode || busy || assemblingFilm || completedShotCount > 0);
   const showCutCoach = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
@@ -133,6 +140,13 @@ export default function MobileDayToolSections(vm: ViewModel) {
     () => hasCompletedFirstFilm(loadPlayMetrics()),
     () => false
   );
+  const dayPhase = deriveDayPhase({
+    completedStills: completedShotCount,
+    completedClips: completedClipCount,
+    firstFilmDone,
+    filmNeedsCast,
+    campaignCompleted: firstCutCelebrate || firstFilmDone,
+  });
   const showFinalPass = leanChrome;
   const galleryFilmHref = character
     ? toMobileStudioHref(`/gallery?character=${encodeURIComponent(character.id)}&derivedKind=film`)
@@ -152,13 +166,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
       return;
     }
     postCutAdvanceRef.current = true;
-    setSoftAdvance({
+    softAdvanceTo('watch', {
+      characterId: character.id,
       href: watchCastHref,
-      label: 'Watch',
       message: 'Opening your film on Cast',
-      nonce: Date.now(),
     });
-  }, [character, filmNeedsCast, firstCutCelebrate, watchCastHref]);
+  }, [character, filmNeedsCast, firstCutCelebrate, softAdvanceTo, watchCastHref]);
 
   const openProgressLightbox = useCallback(
     (slotId: string) => {
@@ -211,8 +224,17 @@ export default function MobileDayToolSections(vm: ViewModel) {
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
+        onCancel={cancelSoftAdvance}
       />
+
+      {!firstCutCelebrate ? (
+        <DayPlayPhaseStrip
+          activePhase={dayPhase ?? 'queue'}
+          completedStills={completedShotCount}
+          completedClips={completedClipCount}
+          slotTotal={slotTotal}
+        />
+      ) : null}
 
       {firstCutCelebrate ? (
         <div
@@ -289,7 +311,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
                 className="w-full justify-center"
                 data-testid="day-first-cut-story"
                 onClick={() => {
-                  setSoftAdvance(null);
+                  cancelSoftAdvance();
                   goRoleplay();
                 }}
               >

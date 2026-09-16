@@ -158,6 +158,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           prompt,
           ...roleplayStillQueueResultPatch({ ...beat, prompt }, promptId),
         };
+      } else {
+        // Prompt is ready — clear writing so the reel does not say "Queueing…" with no Comfy job.
+        stillPatch = { prompt, stillStatus: undefined };
       }
       const nextStory = patchRoleplayStoryBeat(currentStory, beat, stillPatch);
       updateToolSettings({ bio: nextBio, story: nextStory });

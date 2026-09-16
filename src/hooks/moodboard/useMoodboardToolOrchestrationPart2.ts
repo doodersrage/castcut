@@ -221,13 +221,16 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
         characterId: pack.characterId,
         tiles,
         vibePrompt,
+        forceReplace: true,
         sendComfyUi: actions.sendComfyUi,
       });
       if (plateResult === 'ready') {
-        setLookStatus('Look pack ready — Outfit plate set from Look. Continue to Outfit or Day.');
+        setLookStatus(
+          'Look pack ready — Outfit plate updated from Look. Continue to Outfit or Day.'
+        );
       } else if (plateResult === 'queued') {
         setLookStatus(
-          'Look pack ready — queuing an Outfit plate still. Continue to Outfit while it finishes.'
+          'Look pack ready — queuing a new Outfit plate still. Continue to Outfit while it finishes.'
         );
       } else if (plateResult === 'failed') {
         setLookStatus(

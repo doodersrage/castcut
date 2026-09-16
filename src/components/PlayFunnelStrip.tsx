@@ -14,6 +14,7 @@ import {
   resolvePlayFunnelStepHref,
   type PlayMetrics,
 } from '@/lib/play-metrics';
+import { derivePlayProgress } from '@/lib/play-step-machine';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 
 function formatDays(days: number): string {
@@ -88,11 +89,13 @@ export default function PlayFunnelStrip({ compact = false }: PlayFunnelStripProp
       ? { ...lookPack, characterId: lookPack.characterId || characterId }
       : lookPack;
 
-  const currentIndex = Math.max(
-    campaignStep?.stepIndex ?? -1,
-    (funnel?.campaignMaxStep || 0) > 0 ? (funnel?.campaignMaxStep || 1) - 1 : -1,
-    0
-  );
+  const progress = derivePlayProgress({
+    metrics,
+    funnel,
+    campaign: campaignStep,
+    lookPack: packForLinks,
+  });
+  const currentIndex = progress.effectiveStepIndex;
   const completed = Boolean(campaignStep?.completedAt);
   const mobile = isMobileStudioPath(pathname);
 

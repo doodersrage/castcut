@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import {
   daySlotBoardCaption,
@@ -9,6 +10,10 @@ import {
   type DaySlotId,
   type DaySlotStill,
 } from '@/lib/day-planner';
+import {
+  COMFY_LIVE_PREVIEW_UPDATED_EVENT,
+  getComfyLivePreviewUrl,
+} from '@/lib/comfyui-live-preview-store';
 
 export type DaySlotBoardProps = {
   slots: DaySlot[];
@@ -26,6 +31,7 @@ export type DaySlotBoardProps = {
 /**
  * Morning → night board: primary way to pick which Day slot you are editing.
  * Completed thumbs stay tappable for a larger view via View / second select.
+ * In-flight Comfy stills show the live render preview in that time-of-day card.
  */
 export default function DaySlotBoard({
   slots,
@@ -39,6 +45,33 @@ export default function DaySlotBoard({
   onRetrySlot,
   onAnimateSlot,
 }: DaySlotBoardProps) {
+  const promptKey = useMemo(
+    () =>
+      stills
+        .flatMap(entry => [entry.promptId, entry.clipPromptId])
+        .map(id => id?.trim())
+        .filter((id): id is string => Boolean(id))
+        .join('|'),
+    [stills]
+  );
+  const [liveByPrompt, setLiveByPrompt] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    const refresh = () => {
+      const next: Record<string, string | null> = {};
+      for (const id of promptKey.split('|').filter(Boolean)) {
+        next[id] = getComfyLivePreviewUrl(id);
+      }
+      setLiveByPrompt(next);
+    };
+    refresh();
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.addEventListener(COMFY_LIVE_PREVIEW_UPDATED_EVENT, refresh);
+    return () => window.removeEventListener(COMFY_LIVE_PREVIEW_UPDATED_EVENT, refresh);
+  }, [promptKey]);
+
   return (
     <ol
       className={compact ? 'grid grid-cols-2 gap-2' : 'grid gap-2 sm:grid-cols-4'}
@@ -49,17 +82,33 @@ export default function DaySlotBoard({
         const still = stills.find(entry => entry.slotId === slot.id);
         const state = daySlotProgressState(still);
         const clipState = daySlotClipProgressState(still);
-        const label = daySlotBoardCaption(still);
-        const thumb = state === 'done' ? still?.imageUrl?.trim() : '';
+        const stillPromptId = still?.promptId?.trim() || '';
+        const clipPromptId = still?.clipPromptId?.trim() || '';
+        const stillLive =
+          stillPromptId && state === 'queued' ? liveByPrompt[stillPromptId]?.trim() || '' : '';
+        const clipLive =
+          clipPromptId && clipState === 'queued' ? liveByPrompt[clipPromptId]?.trim() || '' : '';
+        const doneThumb = state === 'done' ? still?.imageUrl?.trim() || '' : '';
+        const showStillLive = Boolean(stillLive);
+        const showClipLive = Boolean(clipLive);
+        const thumb = doneThumb || stillLive || (!doneThumb && clipLive) || '';
+        const baseCaption = daySlotBoardCaption(still);
+        const label = showStillLive
+          ? baseCaption === 'Queueing…'
+            ? 'Rendering…'
+            : baseCaption.replace('Queueing…', 'Rendering…')
+          : baseCaption;
         const selected = activeSlotId === slot.id;
         const canAnimate =
           state === 'done' && clipState === 'idle' && Boolean(onAnimateSlot) && !queueBlocked;
+        const openable = Boolean(doneThumb);
         return (
           <li key={slot.id} className="min-w-0">
             <div
               data-testid={`day-progress-${slot.id}`}
               data-state={state}
               data-clip={clipState}
+              data-live={showStillLive || showClipLive ? 'true' : 'false'}
               data-selected={selected ? 'true' : 'false'}
               className={[
                 'overflow-hidden rounded-[var(--radius-md)] border transition-[box-shadow,border-color,transform]',
@@ -85,7 +134,7 @@ export default function DaySlotBoard({
                 }
                 data-testid={`day-slot-select-${slot.id}`}
                 onClick={() => {
-                  if (selected && thumb && onOpenStill) {
+                  if (selected && openable && onOpenStill) {
                     onOpenStill(slot.id);
                     return;
                   }
@@ -93,16 +142,40 @@ export default function DaySlotBoard({
                 }}
               >
                 {thumb ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={thumb}
-                    alt=""
-                    className={
-                      compact
-                        ? 'aspect-video w-full object-cover'
-                        : 'aspect-[4/3] w-full object-cover'
-                    }
-                  />
+                  <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={thumb}
+                      alt=""
+                      data-testid={
+                        showStillLive || (showClipLive && !doneThumb)
+                          ? `day-progress-live-${slot.id}`
+                          : undefined
+                      }
+                      className={[
+                        compact
+                          ? 'aspect-video w-full object-cover'
+                          : 'aspect-[4/3] w-full object-cover',
+                        showStillLive || (showClipLive && !doneThumb) ? 'opacity-80' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    />
+                    {doneThumb && showClipLive ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={clipLive}
+                        alt=""
+                        data-testid={`day-progress-live-${slot.id}`}
+                        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-70"
+                      />
+                    ) : null}
+                    {showStillLive || showClipLive ? (
+                      <span className="type-overline absolute bottom-1.5 left-1.5 rounded-[var(--radius-sm)] bg-[var(--bg-elevated)]/85 px-1.5 py-0.5 text-[var(--accent-text)]">
+                        Live
+                      </span>
+                    ) : null}
+                  </div>
                 ) : (
                   <div
                     className={[
@@ -146,7 +219,7 @@ export default function DaySlotBoard({
                   ) : null}
                 </div>
               </button>
-              {thumb && onOpenStill ? (
+              {openable && onOpenStill ? (
                 <div className={compact ? 'px-2.5 pb-2' : 'px-3 pb-2.5'}>
                   <Button
                     size="sm"

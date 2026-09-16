@@ -19,7 +19,13 @@ import { normalizeComposeIdentityKind } from './compose-identity-lock';
 import type { RoleplayLibrarySession } from './roleplay-library';
 import type { RoleplayBio, RoleplayContentId, RoleplayPlayAs, RoleplayTone } from './roleplay';
 import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from './settings-cache';
-import { pickCharacterSubject } from './variation-seed';
+import {
+  composeCharacterAppearanceDescriptor,
+  characterAppearanceHints,
+  resolveCharacterAppearance,
+  type CharacterAppearanceDraft,
+  type CharacterAppearanceFormDraft,
+} from './character-appearance';
 
 export const CHARACTERS_KEY = 'comfy-prompt-characters-v1';
 export const CHARACTERS_UPDATED_EVENT = 'prompt-studio-characters-updated';
@@ -461,16 +467,21 @@ export function characterFromShared(
   };
 }
 
-/** Fresh Cast record — name plus a rolled face descriptor so Day/Generate are not blank. */
-export function createBlankCharacter(name: string): CharacterRecord {
+/** Fresh Cast record — name plus a rolled (or chosen) face descriptor so Day/Generate are not blank. */
+export function createBlankCharacter(
+  name: string,
+  appearance?: CharacterAppearanceDraft | CharacterAppearanceFormDraft
+): CharacterRecord {
   const trimmed = name.trim() || 'Untitled character';
+  const draft = resolveCharacterAppearance(appearance ?? {});
   return {
     id: newCharacterId(),
     name: trimmed,
     version: 1,
     updatedAt: Date.now(),
     characterName: trimmed,
-    descriptor: pickCharacterSubject('any'),
+    descriptor: composeCharacterAppearanceDescriptor(draft),
+    hints: characterAppearanceHints(draft),
   };
 }
 

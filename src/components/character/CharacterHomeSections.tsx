@@ -3,9 +3,11 @@
 import CharacterFilmStudio from '@/components/CharacterFilmStudio';
 import CharacterLoraFlywheel from '@/components/CharacterLoraFlywheel';
 import { ButtonLink } from '@/components/ui/Button';
+import { FieldError } from '@/components/ui/Field';
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import CharacterHomeActionRow from '@/components/character/CharacterHomeActionRow';
 import CharacterLookPacksSection from '@/components/character/CharacterLookPacksSection';
+import CharacterLookPlateSection from '@/components/character/CharacterLookPlateSection';
 import CharacterLooksSection from '@/components/character/CharacterLooksSection';
 import CharacterMediaSection from '@/components/character/CharacterMediaSection';
 import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrchestration';
@@ -46,7 +48,9 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
         go={props.go}
         playCampaignHref={props.playCampaignHref}
         removeFromCast={props.removeFromCast}
+        continueRoleplay={props.continueRoleplay}
       />
+      {props.continueError ? <FieldError>{props.continueError}</FieldError> : null}
       <CharacterLookPacksSection
         character={character}
         savedLookPacks={props.savedLookPacks}
@@ -71,6 +75,17 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
         removeLook={props.removeLook}
         addLookFromShared={props.addLookFromShared}
         loadSettingsCache={props.loadSettingsCache}
+      />
+      <CharacterLookPlateSection
+        characterId={character.id}
+        plate={props.lookPlate}
+        uploading={props.plateUploading}
+        status={props.plateStatus}
+        error={props.plateError}
+        onClear={props.clearLookPlate}
+        onUpload={file => {
+          void props.applyLookPlate({ file });
+        }}
       />
       {props.currentLook ? (
         <CharacterLoraFlywheel

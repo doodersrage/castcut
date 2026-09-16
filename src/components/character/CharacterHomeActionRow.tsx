@@ -6,7 +6,7 @@ import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrch
 
 type CharacterHomeActionRowProps = Pick<
   ReturnType<typeof useCharacterHomeOrchestration>,
-  'character' | 'go' | 'playCampaignHref' | 'removeFromCast'
+  'character' | 'go' | 'playCampaignHref' | 'removeFromCast' | 'continueRoleplay'
 >;
 
 export default function CharacterHomeActionRow({
@@ -14,6 +14,7 @@ export default function CharacterHomeActionRow({
   go,
   playCampaignHref,
   removeFromCast,
+  continueRoleplay,
 }: CharacterHomeActionRowProps) {
   if (!character) {
     return null;
@@ -44,7 +45,12 @@ export default function CharacterHomeActionRow({
       <Button size="sm" variant="secondary" onClick={() => go(`/day?character=${character.id}`)}>
         Open Day
       </Button>
-      <Button size="sm" variant="secondary" onClick={() => go('/roleplay')}>
+      <Button
+        size="sm"
+        variant="secondary"
+        data-testid="character-home-story"
+        onClick={continueRoleplay}
+      >
         Story
       </Button>
       <details>

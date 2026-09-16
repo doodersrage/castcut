@@ -5,7 +5,11 @@ import {
   type CharacterRecord,
 } from '@/lib/character-os';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
-import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
+import {
+  collectIsolateSourceUrls,
+  isolateSubjectOnWhite,
+  loadImageBlobFromUrls,
+} from '@/lib/isolate-subject';
 import type { MoodboardTile } from '@/lib/moodboard-scene';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import {
@@ -14,6 +18,8 @@ import {
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
 } from '@/lib/comfyui-gallery';
+import { persistIdentityImage } from '@/lib/gallery-media-client';
+import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import {
   DEFAULT_FITTING_TOOL_CACHE,
   loadToolSettings,
@@ -82,18 +88,40 @@ export function clearCharacterLookPlate(characterId?: string | null): boolean {
     return false;
   }
   const look = activeLook(character);
-  if (!look.reference && !character.reference) {
+  const hasPlate = Boolean(
+    look.reference ||
+    character.reference ||
+    look.ipAdapter?.imageUrl ||
+    look.ipAdapter?.imageFilename ||
+    character.ipAdapter?.imageUrl ||
+    character.ipAdapter?.imageFilename
+  );
+  if (!hasPlate) {
     return false;
   }
   const looks = (character.looks ?? [look]).map(entry =>
-    entry.id === look.id ? { ...entry, reference: undefined } : entry
+    entry.id === look.id ? { ...entry, reference: undefined, ipAdapter: undefined } : entry
   );
   upsertCharacter({
     ...character,
     reference: undefined,
+    ipAdapter: undefined,
     looks,
     activeLookId: look.id,
     updatedAt: Date.now(),
+  });
+
+  // Keep Outfit in sync and block auto-seed until the user sets a new plate.
+  const previous = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+  saveToolSettings('fitting', {
+    ...previous,
+    referenceImageUrl: undefined,
+    referenceImageFilename: undefined,
+    referenceOriginalUrl: undefined,
+    referenceOriginalFilename: undefined,
+    referenceIsolated: false,
+    pendingOutfitPlatePromptId: undefined,
+    suppressAutoPlateSeed: true,
   });
   return true;
 }
@@ -219,11 +247,16 @@ export function findCompletedOutfitPlateStill(promptId: string): {
 /**
  * After Look extract/handoff: reuse Cast/session plate, promote a Moodboard tile,
  * or queue a Cast plate still so Outfit is not blocked.
+ *
+ * Pass `forceReplace: true` from Extract look so an existing Outfit plate is cleared
+ * and replaced (tile stamp or new Comfy still). Handoffs keep the default ensure path.
  */
 export async function ensureOutfitPlateAfterLook(input: {
   characterId?: string;
   tiles: MoodboardTile[];
   vibePrompt?: string;
+  /** Extract look — replace any existing Outfit / Cast plate. */
+  forceReplace?: boolean;
   sendComfyUi: (
     prompt: string,
     sport?: null,
@@ -243,10 +276,29 @@ export async function ensureOutfitPlateAfterLook(input: {
     return 'skipped';
   }
 
-  const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
-  const forceNewPlate = fitting.suppressAutoPlateSeed === true;
+  let fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+  const forceReplace = input.forceReplace === true;
 
-  // Session plate already set — skip unless the user cleared it to force a new Look plate.
+  if (forceReplace) {
+    clearCharacterLookPlate(characterId);
+    fitting = {
+      ...fitting,
+      isolateSubject: true,
+      referenceIsolated: false,
+      referenceImageUrl: undefined,
+      referenceImageFilename: undefined,
+      referenceOriginalUrl: undefined,
+      referenceOriginalFilename: undefined,
+      pendingOutfitPlatePromptId: undefined,
+      // Block Fitting auto-seed from a stale Cast plate until tile/queue attaches.
+      suppressAutoPlateSeed: true,
+    };
+    saveToolSettings('fitting', fitting);
+  }
+
+  const forceNewPlate = forceReplace || fitting.suppressAutoPlateSeed === true;
+
+  // Session plate already set — skip unless the user cleared it / Extract force-replace.
   if (
     !forceNewPlate &&
     fittingHasSessionPlate(fitting) &&
@@ -293,15 +345,17 @@ export async function ensureOutfitPlateAfterLook(input: {
     }
   }
 
+  // Re-read character after clear — queue uses active look id.
+  const fresh = getCharacter(characterId) ?? character;
   const prompt = buildLookCastPlatePrompt({
-    characterName: character.name,
-    descriptor: character.descriptor || character.hints,
+    characterName: fresh.name,
+    descriptor: fresh.descriptor || fresh.hints,
     vibePrompt: input.vibePrompt,
   });
   try {
     const promptId = await input.sendComfyUi(prompt, null, undefined, {
       characterId,
-      lookId: character.activeLookId,
+      lookId: fresh.activeLookId,
     });
     const id = typeof promptId === 'string' ? promptId.trim() : '';
     if (!id) {
@@ -313,6 +367,126 @@ export async function ensureOutfitPlateAfterLook(input: {
   } catch {
     return 'failed';
   }
+}
+
+export type ApplyCastLookPlateInput = {
+  characterId: string;
+  file?: File | null;
+  imageUrl?: string;
+  filename?: string;
+  /** Default true — isolate on white like Outfit. */
+  isolate?: boolean;
+  model?: string;
+};
+
+/**
+ * Upload / gallery still → Cast look plate (+ Outfit session mirror).
+ * Used from character home for replace.
+ */
+export async function applyCastLookPlateFromSource(
+  input: ApplyCastLookPlateInput
+): Promise<{ character: CharacterRecord; imageUrl: string; filename?: string; isolated: boolean }> {
+  const characterId = input.characterId.trim();
+  if (!characterId) {
+    throw new Error('Pick a Cast character first.');
+  }
+  if (!getCharacter(characterId)) {
+    throw new Error('That Cast character is not on this device.');
+  }
+  const file = input.file ?? null;
+  const imageUrl = input.imageUrl?.trim() || '';
+  if (!file && !imageUrl && !input.filename?.trim()) {
+    throw new Error('Choose a photo or a gallery still first.');
+  }
+  const shouldIsolate = input.isolate !== false;
+  const originalName = input.filename?.trim() || file?.name || `cast-plate-${Date.now()}.png`;
+  const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+  const sourceFile =
+    file ??
+    (await (async () => {
+      const blob = await loadImageBlobFromUrls(
+        collectIsolateSourceUrls({
+          imageUrl,
+          filename: originalName,
+          comfyUrl,
+        })
+      );
+      return new File([blob], originalName, {
+        type: blob.type || 'image/png',
+        lastModified: Date.now(),
+      });
+    })());
+
+  const originalUploaded = await resolveQueueInputImage({
+    file: sourceFile,
+    filename: originalName,
+    model: input.model,
+  });
+  const originalFilename = originalUploaded?.filename?.trim();
+  if (!originalFilename) {
+    throw new Error('Upload did not return a filename.');
+  }
+  const incomingDurable = imageUrl && !imageUrl.startsWith('blob:') ? imageUrl : '';
+  const originalViewUrl =
+    collectIsolateSourceUrls({
+      filename: originalFilename,
+      comfyUrl,
+    }).find(url => url.includes('/api/comfyui/view?')) ?? '';
+  const originalUrl = incomingDurable || originalViewUrl || imageUrl;
+
+  let queueFilename = originalFilename;
+  let queueUrl = originalUrl;
+  let isolated = false;
+
+  if (!shouldIsolate) {
+    const durable = await persistIdentityImage({
+      file: sourceFile,
+      filename: originalFilename,
+    });
+    queueUrl = durable || originalUrl;
+  } else {
+    try {
+      const cutout = await isolateSubjectOnWhite(sourceFile, originalName);
+      const cutoutUploaded = await resolveQueueInputImage({
+        file: cutout,
+        filename: cutout.name,
+        model: input.model,
+      });
+      const cutoutFilename = cutoutUploaded?.filename?.trim();
+      if (!cutoutFilename) {
+        throw new Error('Cut-out upload did not return a filename.');
+      }
+      const cutoutDurable = await persistIdentityImage({
+        file: cutout,
+        filename: cutoutFilename,
+      });
+      queueFilename = cutoutFilename;
+      queueUrl = cutoutDurable || URL.createObjectURL(cutout);
+      isolated = true;
+    } catch {
+      const durable = await persistIdentityImage({
+        file: sourceFile,
+        filename: originalFilename,
+      });
+      queueUrl = durable || originalUrl;
+      isolated = false;
+    }
+  }
+
+  if (!queueUrl.trim()) {
+    throw new Error('Could not resolve a plate image URL.');
+  }
+
+  const character = assignOutfitPlateToCastAndFitting({
+    characterId,
+    imageUrl: queueUrl,
+    filename: queueFilename,
+    isolated,
+  });
+  if (!character) {
+    throw new Error('Could not save the look plate to Cast.');
+  }
+  return { character, imageUrl: queueUrl, filename: queueFilename, isolated };
 }
 
 /** Attach a completed Look→Outfit plate still when Fitting mounts or gallery updates. */

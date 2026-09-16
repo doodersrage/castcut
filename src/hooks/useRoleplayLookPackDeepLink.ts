@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { applyCharacterRecord, getCharacter, getCharacterLookPack } from '@/lib/character-os';
+import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
 import { applyLookPackToRoleplaySettings, loadLookPack, saveLookPack } from '@/lib/look-pack';
 import type { SharedToolSettings, RoleplayToolCache } from '@/lib/settings-cache';
 
@@ -63,6 +64,17 @@ export function useRoleplayLookPackDeepLink({
       updateToolSettings(applied.tool);
       if (pack.wardrobeId?.trim() && !wardrobeId) {
         updateShared({ lockedWardrobeId: pack.wardrobeId.trim() });
+      }
+    }
+
+    // Look → Story: seed Cast look/outfit plate as From photo (not Look tiles).
+    if (fromLook) {
+      const plateCharacterId = characterId || pack?.characterId?.trim();
+      if (plateCharacterId) {
+        const plate = roleplayLookPlateFieldsFromCharacter(getCharacter(plateCharacterId));
+        if (plate) {
+          updateToolSettings(plate);
+        }
       }
     }
   }, [mounted, onMessage, updateShared, updateToolSettings]);

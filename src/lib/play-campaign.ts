@@ -1,69 +1,23 @@
 /**
- * Guided Play loop: Moodboard → Fitting → Day → Roleplay.
- * State travels via session look pack + query params.
+ * Guided Play loop durable state: Moodboard → Fitting → Day → Roleplay.
+ * Step graph lives in play-step-machine; this module owns persistence + bumps.
  */
 
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import type { LookPack } from './look-pack';
+import { saveLookPack } from './look-pack';
 import {
-  lookPackDayHref,
-  lookPackFittingHref,
-  lookPackRoleplayHref,
-  saveLookPack,
-} from './look-pack';
+  canEnterPlayStep,
+  PLAY_CAMPAIGN_STEPS,
+  PLAY_CORE_STEP_IDS,
+  type PlayArtifacts,
+  type PlayCampaignStep,
+  type PlayCampaignStepId,
+  type PlayGateResult,
+} from './play-step-machine';
 
-export type PlayCampaignStepId = 'character' | 'moodboard' | 'fitting' | 'day' | 'roleplay';
-
-export type PlayCampaignStep = {
-  id: PlayCampaignStepId;
-  label: string;
-  description: string;
-  href: (input: { characterId: string; pack?: LookPack | null }) => string;
-};
-
-export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
-  {
-    id: 'character',
-    label: 'Cast',
-    description: 'Create or pick the lead for this film.',
-    href: ({ characterId }) => `/characters/${encodeURIComponent(characterId)}`,
-  },
-  {
-    id: 'moodboard',
-    label: 'Look',
-    description: 'Add refs and extract a look (or use a saved one).',
-    href: ({ characterId }) => `/moodboard?character=${encodeURIComponent(characterId)}`,
-  },
-  {
-    id: 'fitting',
-    label: 'Outfit',
-    description: 'Try wardrobe kits and Keep one for the day.',
-    href: ({ characterId, pack }) =>
-      pack ? lookPackFittingHref(pack) : `/fitting?character=${encodeURIComponent(characterId)}`,
-  },
-  {
-    id: 'day',
-    label: 'Day',
-    description: 'Queue morning → night stills, then Cut film.',
-    href: ({ characterId, pack }) =>
-      pack ? lookPackDayHref(pack) : `/day?character=${encodeURIComponent(characterId)}`,
-  },
-  {
-    id: 'roleplay',
-    label: 'Story',
-    description: 'Optional — story beats after your first Day cut.',
-    href: ({ characterId, pack }) =>
-      pack ? lookPackRoleplayHref(pack) : `/roleplay?character=${encodeURIComponent(characterId)}`,
-  },
-];
-
-/** Core film steps shown before the first cut (Roleplay stays optional / unlocked later). */
-export const PLAY_CORE_STEP_IDS: PlayCampaignStepId[] = [
-  'character',
-  'moodboard',
-  'fitting',
-  'day',
-];
+export type { PlayCampaignStep, PlayCampaignStepId };
+export { PLAY_CAMPAIGN_STEPS, PLAY_CORE_STEP_IDS };
 
 export function playCampaignProgressLabel(state: PlayCampaignState | null): string {
   if (!state) {
@@ -273,6 +227,29 @@ export function bumpPlayCampaignStep(input: {
     }
   );
   return next;
+}
+
+/**
+ * Advance to a step after gate check (Story lock, etc.).
+ * Returns null state when blocked or character mismatch.
+ */
+export function advancePlayTo(
+  input: {
+    characterId: string;
+    stepId: PlayCampaignStepId;
+    lookPackId?: string;
+    absolute?: boolean;
+  },
+  artifacts?: PlayArtifacts
+): { state: PlayCampaignState | null; gate: PlayGateResult } {
+  const gate = canEnterPlayStep(input.stepId, {
+    ...artifacts,
+    campaign: artifacts?.campaign ?? loadPlayCampaignState(),
+  });
+  if (!gate.ok) {
+    return { state: null, gate };
+  }
+  return { state: bumpPlayCampaignStep(input), gate };
 }
 
 /** Mark the Play campaign loop complete after a successful Cut film. */

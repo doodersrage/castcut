@@ -5,11 +5,8 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import type { CharacterRecord } from '@/lib/character-os';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
-import {
-  hasCompletedFirstFilm,
-  loadPlayMetrics,
-  PLAY_METRICS_UPDATED_EVENT,
-} from '@/lib/play-metrics';
+import { isPlayStoryLocked } from '@/lib/play-step-machine';
+import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play-metrics';
 
 export type FittingActionRowProps = {
   continueDayHref: string | null;
@@ -56,10 +53,10 @@ export default function FittingActionRow({
   onSaveKitToCast,
   onGoRoleplay,
 }: FittingActionRowProps) {
-  const firstFilmDone = useSyncExternalStore(
+  const storyLocked = useSyncExternalStore(
     subscribePlayMetrics,
-    () => hasCompletedFirstFilm(loadPlayMetrics()),
-    () => false
+    () => isPlayStoryLocked(loadPlayMetrics()),
+    () => true
   );
   const demoteQueue = compareActive || softAdvanceActive || Boolean(continueDayHref);
   return (
@@ -117,7 +114,7 @@ export default function FittingActionRow({
           <Button size="sm" variant="ghost" disabled={busy} onClick={onSaveKitToCast}>
             Save kit to Cast
           </Button>
-          {firstFilmDone ? (
+          {!storyLocked ? (
             <Button
               size="sm"
               variant="ghost"

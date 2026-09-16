@@ -1,6 +1,7 @@
 import type { CharacterRecord } from '@/lib/character-os';
 import { activeLook } from '@/lib/character-os';
 import { buildSinglePersonUserDirective } from '@/lib/single-person';
+import type { RoleplayToolCache } from '@/lib/settings-cache';
 
 export type FittingCompareTryOn = {
   promptId: string;
@@ -131,6 +132,49 @@ export function resolveFittingPlateFromCharacter(
     isolated: false,
     isolateSubject: true,
   };
+}
+
+/** Cast look/outfit plate → Story From-photo fields (no Day keepers / Look tiles). */
+export function roleplayLookPlateFieldsFromCharacter(
+  character: CharacterRecord | null | undefined
+): Partial<RoleplayToolCache> | null {
+  const plate = resolveFittingPlateFromCharacter(character);
+  if (!plate) {
+    return null;
+  }
+  const imageUrl = plate.imageUrl?.trim() || undefined;
+  const filename = plate.filename?.trim() || undefined;
+  if (!imageUrl && !filename) {
+    return null;
+  }
+  return {
+    playAs: 'photo',
+    referenceImageUrl: imageUrl,
+    referenceImageFilename: filename,
+    referenceOriginalUrl: plate.originalUrl?.trim() || imageUrl,
+    referenceOriginalFilename: plate.originalFilename?.trim() || filename,
+    isolateSubject: plate.isolateSubject !== false,
+    referenceIsolated: plate.isolated === true,
+  };
+}
+
+/**
+ * Seed Story with the Cast look plate when the session has no reference yet.
+ * Keeps an existing Story photo; turns on From photo so identity locks.
+ */
+export function withRoleplayLookPlateFromCast(
+  cache: RoleplayToolCache,
+  character: CharacterRecord | null | undefined
+): RoleplayToolCache {
+  const fields = roleplayLookPlateFieldsFromCharacter(character);
+  if (!fields) {
+    return cache;
+  }
+  const hasRef = Boolean(cache.referenceImageUrl?.trim() || cache.referenceImageFilename?.trim());
+  if (hasRef) {
+    return { ...cache, playAs: 'photo' };
+  }
+  return { ...cache, ...fields };
 }
 
 export type FittingSwipeKit = {

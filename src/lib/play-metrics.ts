@@ -1,12 +1,23 @@
 /**
  * Local Play-loop success metrics (timestamps).
  * Complements boolean onboarding steps with funnel timing.
+ * Next-action / stall / href resolution delegates to play-step-machine.
  */
 
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import type { LookPack } from './look-pack';
-import { lookPackDayHref, lookPackFittingHref, lookPackRoleplayHref } from './look-pack';
-import { countCachedCompletedDayStills, remixDayFilmHref } from './play-starter';
+import {
+  resolvePlayStall,
+  resolvePlayStepHref,
+  resumePlayAction,
+  type PlayCampaignLike,
+  type PlayFunnelLike,
+  type PlayFunnelStall,
+  type PlayFunnelStepId,
+  type PlayNextAction,
+} from './play-step-machine';
+
+export type { PlayFunnelStall, PlayFunnelStepId, PlayNextAction };
 
 export const PLAY_METRICS_KEY = 'comfy-play-metrics-v1';
 
@@ -108,85 +119,14 @@ export function firstFilmCutWithinDays(
   return days <= withinDays;
 }
 
-export type PlayNextAction = {
-  label: string;
-  href: string;
-  reason: string;
-};
-
-export type PlayFunnelStepId = 'character' | 'moodboard' | 'fitting' | 'day' | 'roleplay' | 'cut';
-
-export type PlayFunnelStall = {
-  stepId: PlayFunnelStepId;
-  stepLabel: string;
-  reason: string;
-  /** Days since first campaign start; null when start time is unknown. */
-  daysSinceCampaignStart: number | null;
-};
-
-const PLAY_FUNNEL_STEP_LABELS: Record<PlayFunnelStepId, string> = {
-  character: 'Cast',
-  moodboard: 'Look',
-  fitting: 'Outfit',
-  day: 'Day',
-  roleplay: 'Story',
-  cut: 'Cut film',
-};
-
-/** Deep-link for a Play funnel step chip or stall CTA. */
+/** Deep-link for a Play funnel step chip or stall CTA — wraps the step machine. */
 export function resolvePlayFunnelStepHref(
   stepId: PlayFunnelStepId,
   characterId?: string,
   pack?: LookPack | null
 ): string {
-  const id = characterId?.trim() || pack?.characterId?.trim() || '';
-  const staged =
-    pack &&
-    ({
-      ...pack,
-      characterId: id || pack.characterId,
-    } satisfies LookPack);
-
-  switch (stepId) {
-    case 'character':
-      return id ? `/characters/${encodeURIComponent(id)}` : '/characters';
-    case 'moodboard':
-      return id ? `/moodboard?character=${encodeURIComponent(id)}` : '/moodboard';
-    case 'fitting':
-      if (staged) {
-        return lookPackFittingHref(staged);
-      }
-      return id ? `/fitting?character=${encodeURIComponent(id)}` : '/fitting';
-    case 'day':
-    case 'cut':
-      if (staged) {
-        return lookPackDayHref(staged);
-      }
-      return id ? `/day?character=${encodeURIComponent(id)}` : '/day';
-    case 'roleplay':
-      if (staged) {
-        return lookPackRoleplayHref(staged);
-      }
-      return id ? `/roleplay?character=${encodeURIComponent(id)}` : '/roleplay';
-    default:
-      return '/play';
-  }
+  return resolvePlayStepHref(stepId, characterId, pack);
 }
-
-type FunnelLike = {
-  firstPlayCampaign?: number;
-  firstFilmCut?: number;
-  keepTryOn?: number;
-  saveToCast?: number;
-  campaignMaxStep?: number;
-};
-
-type CampaignLike = {
-  characterId: string;
-  lookPackId?: string;
-  stepIndex: number;
-  completedAt?: number;
-} | null;
 
 /**
  * Next CTA for Dashboard Play metrics — prefers live campaign step, then funnel stall heuristics.
@@ -194,156 +134,16 @@ type CampaignLike = {
  */
 export function resolveNextPlayAction(input: {
   metrics?: PlayMetrics;
-  funnel?: FunnelLike | null;
-  campaign?: CampaignLike;
+  funnel?: PlayFunnelLike | null;
+  campaign?: PlayCampaignLike;
   watchedFirstFilm?: boolean;
   /** Session look pack when available — enriches Fitting/Day resume deep-links. */
   lookPack?: LookPack | null;
+  completedStills?: number;
+  completedClips?: number;
+  filmNeedsCast?: boolean;
 }): PlayNextAction {
-  const funnel = input.funnel ?? {};
-  const campaign = input.campaign ?? null;
-  const starts = funnel.firstPlayCampaign || 0;
-  const cuts = funnel.firstFilmCut || 0;
-  const keeps = funnel.keepTryOn || 0;
-  const saves = funnel.saveToCast || 0;
-  const watched = input.watchedFirstFilm === true;
-  const characterId = campaign?.characterId?.trim() || '';
-  const pack =
-    input.lookPack && characterId
-      ? { ...input.lookPack, characterId: input.lookPack.characterId || characterId }
-      : input.lookPack;
-
-  if (campaign?.completedAt && cuts > 0 && saves === 0 && characterId) {
-    return {
-      label: 'Save film to Cast',
-      href: `/day?character=${encodeURIComponent(characterId)}`,
-      reason: 'Open Day and Save film to Cast to stamp a studio copy.',
-    };
-  }
-
-  if (campaign?.completedAt && cuts > 0 && characterId) {
-    if (!watched) {
-      return {
-        label: 'Watch film on Cast',
-        href: `/characters/${encodeURIComponent(characterId)}?media=films`,
-        reason: 'Rewatch the cut on Cast, then queue another Day reel.',
-      };
-    }
-    return {
-      label: 'Cut another Day film',
-      href: remixDayFilmHref(characterId),
-      reason: 'Same look, new Day — clear stills and queue a fresh reel.',
-    };
-  }
-
-  if (campaign && !campaign.completedAt && characterId) {
-    let stepIndex = Math.max(0, Math.min(campaign.stepIndex, 4));
-    // Extracted look pack means Moodboard is done even if stepIndex was never bumped.
-    if (pack && stepIndex < 2) {
-      stepIndex = 2;
-    }
-    const stepIds = ['character', 'moodboard', 'fitting', 'day', 'roleplay'] as const;
-    const id = stepIds[stepIndex] ?? 'moodboard';
-    const labels: Record<(typeof stepIds)[number], string> = {
-      character: 'Continue to Cast',
-      moodboard: 'Continue to Look',
-      fitting: 'Continue to Outfit',
-      day: 'Continue to Day',
-      roleplay: 'Continue to Day',
-    };
-    // Before first film, Roleplay is optional — steer to Day cut instead.
-    const resumeId = id === 'roleplay' ? 'day' : id;
-    const dayProgress = resumeId === 'day' ? countCachedCompletedDayStills() : 0;
-    if (resumeId === 'day' && dayProgress > 0 && dayProgress < 4) {
-      return {
-        label: `Finish Day · ${dayProgress} of 4`,
-        href: resolvePlayFunnelStepHref('day', characterId, pack),
-        reason: `${dayProgress} stills ready — Cut film or wait for the rest.`,
-      };
-    }
-    if (resumeId === 'day' && dayProgress >= 4) {
-      return {
-        label: 'Cut film · 4 of 4',
-        href: resolvePlayFunnelStepHref('day', characterId, pack),
-        reason: 'All Day stills ready — Cut film.',
-      };
-    }
-    return {
-      label: labels[id],
-      href: resolvePlayFunnelStepHref(resumeId, characterId, pack),
-      reason: 'Resume your film at the current step.',
-    };
-  }
-
-  if (starts > 0 && cuts === 0) {
-    const dayProgress = countCachedCompletedDayStills();
-    const dayHref = resolvePlayFunnelStepHref('day', characterId || undefined, pack);
-    if (dayProgress > 0 && dayProgress < 4) {
-      return {
-        label: `Finish Day · ${dayProgress} of 4`,
-        href: dayHref,
-        reason: `${dayProgress} stills ready — Cut film or wait for the rest.`,
-      };
-    }
-    if (dayProgress >= 4) {
-      return {
-        label: 'Cut film · 4 of 4',
-        href: dayHref,
-        reason: 'All Day stills ready — Cut film.',
-      };
-    }
-    return {
-      label: 'Continue to Day',
-      href: dayHref,
-      reason: 'Film started — queue Day stills and Cut film.',
-    };
-  }
-  if (keeps > 0 && cuts === 0) {
-    const dayProgress = countCachedCompletedDayStills();
-    const dayHref = resolvePlayFunnelStepHref('day', characterId || undefined, pack);
-    if (dayProgress > 0 && dayProgress < 4) {
-      return {
-        label: `Finish Day · ${dayProgress} of 4`,
-        href: dayHref,
-        reason: `${dayProgress} stills ready — Cut film or wait for the rest.`,
-      };
-    }
-    return {
-      label: 'Continue to Day',
-      href: dayHref,
-      reason: 'Outfit kept — queue Day stills and Cut film.',
-    };
-  }
-  if (cuts > 0 && saves === 0) {
-    return {
-      label: 'Open Cast films',
-      href: characterId
-        ? `/characters/${encodeURIComponent(characterId)}?media=films`
-        : '/characters',
-      reason: 'Film cut — Save to Cast to stamp a studio copy.',
-    };
-  }
-  if (cuts > 0 && saves > 0) {
-    return {
-      label: watched ? 'Cut another Day film' : 'Watch film on Cast',
-      href: watched
-        ? characterId
-          ? remixDayFilmHref(characterId)
-          : '/day'
-        : characterId
-          ? `/characters/${encodeURIComponent(characterId)}?media=films`
-          : '/characters',
-      reason: watched
-        ? 'Same look, new Day — queue a fresh reel.'
-        : 'Film saved — open Cast to watch, then cut another.',
-    };
-  }
-
-  return {
-    label: 'Start a film',
-    href: '/play',
-    reason: 'Create a Cast lead, pick a look, plan a day, Cut film.',
-  };
+  return resumePlayAction(input);
 }
 
 /**
@@ -353,64 +153,11 @@ export function resolveNextPlayAction(input: {
  */
 export function resolvePlayFunnelStall(input: {
   metrics?: PlayMetrics;
-  funnel?: FunnelLike | null;
-  campaign?: CampaignLike;
+  funnel?: PlayFunnelLike | null;
+  campaign?: PlayCampaignLike;
   lookPack?: LookPack | null;
+  completedStills?: number;
+  completedClips?: number;
 }): PlayFunnelStall | null {
-  const metrics = input.metrics ?? { version: 1 };
-  const funnel = input.funnel ?? {};
-  const campaign = input.campaign ?? null;
-
-  const hasCut = Boolean(metrics.firstFilmCutAt) || (funnel.firstFilmCut ?? 0) > 0;
-  if (hasCut) {
-    return null;
-  }
-
-  const started = Boolean(metrics.firstPlayCampaignAt) || (funnel.firstPlayCampaign ?? 0) > 0;
-  if (!started) {
-    return null;
-  }
-
-  const daysSinceCampaignStart =
-    typeof metrics.firstPlayCampaignAt === 'number'
-      ? Math.max(0, (Date.now() - metrics.firstPlayCampaignAt) / (1000 * 60 * 60 * 24))
-      : null;
-
-  const keeps = funnel.keepTryOn ?? 0;
-  let maxStep = Math.max(campaign?.stepIndex ?? -1, (funnel.campaignMaxStep ?? 0) - 1, 0);
-
-  const campaignCharacterId = campaign?.characterId?.trim() || '';
-  const packCharacterId = input.lookPack?.characterId?.trim() || '';
-  const moodboardDoneViaPack =
-    Boolean(input.lookPack) &&
-    (!campaignCharacterId || !packCharacterId || campaignCharacterId === packCharacterId);
-  if (moodboardDoneViaPack && maxStep < 2) {
-    maxStep = 2; // Fitting — next step after a ready look pack
-  }
-
-  if (keeps > 0 || maxStep >= 3) {
-    return {
-      stepId: 'cut',
-      stepLabel: PLAY_FUNNEL_STEP_LABELS.cut,
-      reason: 'Try-ons saved — Cut film in Day to close the loop (Story is optional).',
-      daysSinceCampaignStart,
-    };
-  }
-
-  const stepIds = ['character', 'moodboard', 'fitting', 'day', 'roleplay'] as const;
-  const stepId = stepIds[Math.min(maxStep, stepIds.length - 1)] ?? 'moodboard';
-  const reasons: Record<(typeof stepIds)[number], string> = {
-    character: 'Pick a Cast character and start Look.',
-    moodboard: 'Extract a look pack on Look, then continue to Outfit.',
-    fitting: 'Queue try-ons in Outfit and Keep a plate before Day.',
-    day: 'Plan Day slots and queue stills before Cut film.',
-    roleplay: 'Optional — cut in Day instead, or run a Story beat then Cut film.',
-  };
-
-  return {
-    stepId,
-    stepLabel: PLAY_FUNNEL_STEP_LABELS[stepId],
-    reason: reasons[stepId],
-    daysSinceCampaignStart,
-  };
+  return resolvePlayStall(input);
 }

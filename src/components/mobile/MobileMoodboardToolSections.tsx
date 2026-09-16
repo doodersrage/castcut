@@ -1,14 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
+import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { Button, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
+import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useMoodboardToolOrchestration } from '@/hooks/useMoodboardToolOrchestration';
 import { markOnboardingFirstPlayCampaign } from '@/lib/onboarding-hooks';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
@@ -27,7 +25,7 @@ type ViewModel = ReturnType<typeof useMoodboardToolOrchestration>;
 
 export default function MobileMoodboardToolSections(vm: ViewModel) {
   const router = useRouter();
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+  const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance({ mobile: true });
   const {
     shared,
     toolSettings,
@@ -58,26 +56,18 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
     setLookStatus,
   } = vm;
 
-  const softAdvanceTo = (href: string, label: string) => {
-    setSoftAdvance({
-      href: toMobileStudioHref(href),
-      label,
-      nonce: Date.now(),
-    });
-  };
-
   const handoff = async (target: 'fitting' | 'day' | 'play') => {
     if (target === 'fitting') {
       const href = await sendLookToFitting();
       if (href) {
-        softAdvanceTo(href, 'Outfit');
+        softAdvanceHref(href, 'Outfit');
       }
       return;
     }
     if (target === 'day') {
       const href = await sendLookToDay();
       if (href) {
-        softAdvanceTo(href, 'Day');
+        softAdvanceHref(href, 'Day');
       }
       return;
     }
@@ -107,7 +97,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
+        onCancel={cancelSoftAdvance}
       />
 
       <div className="space-y-2" data-testid="mobile-moodboard-presets">
@@ -153,12 +143,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
                 saveLookPack(pack);
                 void sendLookToDay().then(href => {
                   if (href) {
-                    setSoftAdvance({
-                      href: toMobileStudioHref(href),
-                      label: 'Day',
-                      message: `Using ${preset.label} for today`,
-                      nonce: Date.now(),
-                    });
+                    softAdvanceHref(href, 'Day', `Using ${preset.label} for today`);
                   }
                 });
               }}
@@ -183,7 +168,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         />
         <p className="type-caption mt-2 text-[var(--text-muted)]">
           {hasPlate
-            ? 'Cast plate ready for Outfit.'
+            ? 'Cast plate ready — Extract look will replace it for Outfit.'
             : 'No Cast plate yet — Extract look will set or queue one for Outfit.'}
         </p>
       </div>
@@ -333,11 +318,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
                   stepId: 'fitting',
                 });
               }
-              setSoftAdvance({
-                href: toMobileStudioHref(lookPackFittingHref(pack)),
-                label: 'Outfit',
-                nonce: Date.now(),
-              });
+              softAdvanceHref(lookPackFittingHref(pack), 'Outfit');
             });
           }}
           className="w-full justify-center"

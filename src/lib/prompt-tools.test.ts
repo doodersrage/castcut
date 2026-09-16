@@ -2059,7 +2059,12 @@ describe("gallery handoff", () => {
       galleryPickActionLabel,
     } = await import("./gallery-handoff");
     assert.equal(galleryPickPath("roleplay"), "/gallery?pickFor=roleplay");
+    assert.equal(
+      galleryPickPath("cast", { characterId: "char-1" }),
+      "/gallery?pickFor=cast&character=char-1"
+    );
     assert.equal(parseGalleryPickTarget("roleplay"), "roleplay");
+    assert.equal(parseGalleryPickTarget("cast"), "cast");
     assert.equal(parseGalleryPickTarget("video"), "video");
     assert.equal(parseGalleryPickTarget("bogus"), null);
     assert.equal(galleryHandoffHomePath("roleplay"), "/roleplay");

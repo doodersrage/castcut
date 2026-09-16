@@ -219,6 +219,7 @@ describe('roleplay library', () => {
       if (ok.ok) {
         assert.equal(ok.session.id, saved.session.id);
         assert.equal(ok.cache.bio?.name, 'Alex Quill');
+        assert.equal(ok.cache.autoQueue, true);
       }
     });
   });
@@ -240,6 +241,7 @@ describe('roleplay library', () => {
         assert.equal(recovered.session.id, 'gone');
         assert.equal(recovered.cache.bio?.name, 'Gone Session');
         assert.match(recovered.cache.bio?.look ?? '', /silver/);
+        assert.equal(recovered.cache.autoQueue, true);
       }
 
       const stillMissing = resolveRoleplayContinueFromCharacter('char-rp-no-cast');
@@ -266,6 +268,71 @@ describe('roleplay library', () => {
         assert.equal(ok.session.id, 'cast-char-play-manual');
         assert.equal(ok.cache.bio?.name, 'Play Cast');
         assert.match(ok.cache.bio?.look ?? '', /linen/);
+        assert.equal(ok.cache.autoQueue, true);
+      }
+    });
+  });
+
+  it('seeds Cast look plate as Story From photo when continuing', () => {
+    withMockLocalStorage(() => {
+      upsertCharacter({
+        id: 'char-plate-story',
+        name: 'Plate Lead',
+        version: 1,
+        updatedAt: Date.now(),
+        characterName: 'Plate Lead',
+        bio: { name: 'Plate Lead', look: 'short dark hair', personality: 'sharp' },
+        reference: {
+          originalUrl: 'https://example.com/plate-original.jpg',
+          originalFilename: 'plate-original.jpg',
+          isolatedUrl: 'https://example.com/plate-cut.jpg',
+          isolatedFilename: 'plate-cut.jpg',
+          isolated: true,
+          isolateSubject: true,
+        },
+      });
+      const ok = resolveRoleplayContinueFromCharacter('char-plate-story');
+      assert.equal(ok.ok, true);
+      if (ok.ok) {
+        assert.equal(ok.cache.playAs, 'photo');
+        assert.equal(ok.cache.referenceImageUrl, 'https://example.com/plate-cut.jpg');
+        assert.equal(ok.cache.referenceImageFilename, 'plate-cut.jpg');
+        assert.equal(ok.cache.referenceIsolated, true);
+        assert.equal(ok.cache.autoQueue, true);
+      }
+    });
+  });
+
+  it('keeps an existing Story photo and only enables From photo', () => {
+    withMockLocalStorage(() => {
+      upsertCharacter({
+        id: 'char-rp-keep-photo',
+        name: 'Keep Photo',
+        version: 1,
+        updatedAt: Date.now(),
+        characterName: 'Keep Photo',
+        bio: { name: 'Keep Photo', look: 'a look', personality: 'calm' },
+        reference: {
+          originalUrl: 'https://example.com/cast-plate.jpg',
+          isolatedUrl: 'https://example.com/cast-plate.jpg',
+          isolated: true,
+        },
+      });
+      const saved = persistRoleplayLibraryFromCache(
+        sampleCache({
+          playAs: 'text',
+          referenceImageUrl: 'https://example.com/user-story.jpg',
+          referenceImageFilename: 'user-story.jpg',
+          activeSessionId: 'keep-photo',
+        })
+      );
+      assert.ok(saved);
+      assert.equal(saved.session.id, 'keep-photo');
+      const ok = resolveRoleplayContinueFromCharacter('char-rp-keep-photo');
+      assert.equal(ok.ok, true);
+      if (ok.ok) {
+        assert.equal(ok.cache.referenceImageUrl, 'https://example.com/user-story.jpg');
+        assert.equal(ok.cache.playAs, 'photo');
       }
     });
   });

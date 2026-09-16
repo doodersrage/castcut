@@ -452,6 +452,20 @@ export function useGalleryCardActions({
           setRequeueStatus('Only still images can be picked in this mode.');
           return;
         }
+        if (target === 'cast') {
+          const characterId =
+            typeof window !== 'undefined'
+              ? new URLSearchParams(window.location.search).get('character')?.trim() || undefined
+              : undefined;
+          if (characterId) {
+            saveGalleryHandoff({
+              ...buildGalleryHandoff(entry, target),
+              characterId,
+            });
+            router.push(galleryHandoffPath(target, { characterId }));
+            return;
+          }
+        }
         saveGalleryHandoff(buildGalleryHandoff(entry, target));
         router.push(galleryHandoffPath(target));
       },

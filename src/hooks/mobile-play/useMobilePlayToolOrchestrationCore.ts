@@ -355,6 +355,8 @@ export function useMobilePlayToolOrchestrationCore() {
           prompt,
           ...roleplayStillQueueResultPatch({ ...beat, prompt }, promptId),
         };
+      } else {
+        stillPatch = { prompt, stillStatus: undefined };
       }
       const nextStory = patchRoleplayStoryBeat(currentStory, beat, stillPatch);
       updateToolSettings({ bio: nextBio, story: nextStory });

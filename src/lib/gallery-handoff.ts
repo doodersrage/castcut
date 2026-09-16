@@ -40,7 +40,10 @@ export type GalleryHandoffPayload = {
     | 'roleplay'
     | 'fitting'
     | 'day'
-    | 'moodboard';
+    | 'moodboard'
+    | 'cast';
+  /** Cast home gallery pick — which character receives the plate. */
+  characterId?: string;
   improveIntent?: string;
   /** Gallery → Anatomy repair opens Inpaint with pre-filled limb-fix prompts. */
   anatomyRepair?: boolean;
@@ -230,7 +233,10 @@ export async function fetchHandoffImageFile(payload: GalleryHandoffPayload): Pro
   return new File([blob], filename, { type: blob.type || 'image/png' });
 }
 
-export function galleryHandoffPath(target: GalleryHandoffPayload['target']): string {
+export function galleryHandoffPath(
+  target: GalleryHandoffPayload['target'],
+  options?: { characterId?: string }
+): string {
   if (target === 'refine') {
     return '/refine?from=gallery';
   }
@@ -270,15 +276,37 @@ export function galleryHandoffPath(target: GalleryHandoffPayload['target']): str
   if (target === 'moodboard') {
     return '/moodboard?from=gallery';
   }
+  if (target === 'cast') {
+    const id = options?.characterId?.trim();
+    if (id) {
+      return `/characters/${encodeURIComponent(id)}?from=gallery`;
+    }
+    return '/characters';
+  }
   return '/image-prompt?from=gallery';
 }
 
 /** Open Gallery in pick mode — click an image to hand off back to the tool. */
-export function galleryPickPath(target: GalleryHandoffPayload['target']): string {
-  return `/gallery?pickFor=${encodeURIComponent(target)}`;
+export function galleryPickPath(
+  target: GalleryHandoffPayload['target'],
+  options?: { characterId?: string }
+): string {
+  const params = new URLSearchParams();
+  params.set('pickFor', target);
+  if (options?.characterId?.trim()) {
+    params.set('character', options.characterId.trim());
+  }
+  return `/gallery?${params.toString()}`;
 }
 
 export function galleryHandoffHomePath(target: GalleryHandoffPayload['target']): string {
+  if (target === 'cast' && typeof window !== 'undefined') {
+    const id = new URLSearchParams(window.location.search).get('character')?.trim();
+    if (id) {
+      return `/characters/${encodeURIComponent(id)}`;
+    }
+    return '/characters';
+  }
   return galleryHandoffPath(target).split('?')[0] || '/';
 }
 
@@ -297,6 +325,7 @@ const GALLERY_PICK_TARGETS = new Set<GalleryHandoffPayload['target']>([
   'fitting',
   'day',
   'moodboard',
+  'cast',
 ]);
 
 export function parseGalleryPickTarget(
@@ -339,6 +368,8 @@ export function galleryPickPurposeLabel(target: GalleryHandoffPayload['target'])
       return 'Day reference';
     case 'moodboard':
       return 'Look tile';
+    case 'cast':
+      return 'Cast look plate';
     default:
       return 'tool reference';
   }
@@ -374,6 +405,8 @@ export function galleryPickActionLabel(target: GalleryHandoffPayload['target']):
       return 'Use for Day';
     case 'moodboard':
       return 'Use for Look';
+    case 'cast':
+      return 'Use as look plate';
     default:
       return 'Use this image';
   }

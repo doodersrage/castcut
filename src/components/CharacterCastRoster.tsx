@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useSyncExternalStore } from 'react';
-import Link from 'next/link';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
@@ -17,6 +16,7 @@ import {
   forgetCharacterRecord,
   migrateCharactersFromLegacy,
   subscribeCharacters,
+  type CharacterRecord,
 } from '@/lib/character-os';
 import {
   listSavedIdentityBundles,
@@ -28,8 +28,16 @@ import {
   roleplaySessionsForCharacterSync,
 } from '@/lib/roleplay-library';
 
+function applyCharacter(character: CharacterRecord) {
+  saveSharedSettings({
+    ...loadSettingsCache().shared,
+    ...applyCharacterRecord(character),
+  });
+}
+
 export default function CharacterCastRoster() {
   const router = useRouter();
+  const [detailsId, setDetailsId] = useState<string | null>(null);
   const characters = useSyncExternalStore(
     subscribeCharacters,
     getCharactersSnapshot,
@@ -66,17 +74,17 @@ export default function CharacterCastRoster() {
     if (roleplaySessionId) {
       deleteRoleplayLibrarySession(roleplaySessionId);
     }
+    if (detailsId === id) {
+      setDetailsId(null);
+    }
   };
 
-  const applyAndOpen = (id: string) => {
+  const applyAndOpenHome = (id: string) => {
     const character = characters.find(entry => entry.id === id);
     if (!character) {
       return;
     }
-    saveSharedSettings({
-      ...loadSettingsCache().shared,
-      ...applyCharacterRecord(character),
-    });
+    applyCharacter(character);
     router.push(characterHomeHref(id));
   };
 
@@ -85,10 +93,7 @@ export default function CharacterCastRoster() {
     if (!character) {
       return;
     }
-    saveSharedSettings({
-      ...loadSettingsCache().shared,
-      ...applyCharacterRecord(character),
-    });
+    applyCharacter(character);
     router.push(`/fitting?character=${encodeURIComponent(id)}`);
   };
 
@@ -97,11 +102,17 @@ export default function CharacterCastRoster() {
     if (!character) {
       return;
     }
-    saveSharedSettings({
-      ...loadSettingsCache().shared,
-      ...applyCharacterRecord(character),
-    });
+    applyCharacter(character);
     router.push(`/day?character=${encodeURIComponent(id)}`);
+  };
+
+  const applyAndGenerate = (id: string) => {
+    const character = characters.find(entry => entry.id === id);
+    if (!character) {
+      return;
+    }
+    applyCharacter(character);
+    router.push('/character');
   };
 
   return (
@@ -132,6 +143,7 @@ export default function CharacterCastRoster() {
             {characters.map(character => {
               const looks = looksOf(character);
               const trigger = loraTriggerFromCharacter(character);
+              const detailsOpen = detailsId === character.id;
               return (
                 <li key={character.id} className="ui-card space-y-3 p-[var(--card-padding)]">
                   <div className="space-y-1">
@@ -143,12 +155,64 @@ export default function CharacterCastRoster() {
                         ? ` · ${character.loraLibraryIds.length} LoRA`
                         : ''}
                     </p>
-                    {character.descriptor ? (
+                    {character.descriptor && !detailsOpen ? (
                       <p className="type-caption line-clamp-2">{character.descriptor}</p>
                     ) : null}
                   </div>
+                  {detailsOpen ? (
+                    <div
+                      className="space-y-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-3 py-2"
+                      data-testid={`cast-roster-details-${character.id}`}
+                    >
+                      {character.descriptor ? (
+                        <div>
+                          <p className="type-overline text-[var(--text-muted)]">Look</p>
+                          <p className="type-caption text-[var(--text-secondary)]">
+                            {character.descriptor}
+                          </p>
+                        </div>
+                      ) : null}
+                      {character.hints?.trim() ? (
+                        <div>
+                          <p className="type-overline text-[var(--text-muted)]">Hints</p>
+                          <p className="type-caption text-[var(--text-secondary)]">
+                            {character.hints.trim()}
+                          </p>
+                        </div>
+                      ) : null}
+                      {character.bio?.personality?.trim() || character.bio?.look?.trim() ? (
+                        <div>
+                          <p className="type-overline text-[var(--text-muted)]">Story bio</p>
+                          <p className="type-caption text-[var(--text-secondary)]">
+                            {[character.bio?.look?.trim(), character.bio?.personality?.trim()]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </p>
+                        </div>
+                      ) : null}
+                      {character.lockedWardrobeId?.trim() ? (
+                        <p className="type-caption text-[var(--text-muted)]">
+                          Wardrobe lock · {character.lockedWardrobeId.trim()}
+                        </p>
+                      ) : null}
+                      {!character.descriptor &&
+                      !character.hints?.trim() &&
+                      !character.bio?.personality?.trim() &&
+                      !character.bio?.look?.trim() &&
+                      !character.lockedWardrobeId?.trim() ? (
+                        <p className="type-caption text-[var(--text-muted)]">
+                          No identity notes yet — open home to add looks and plates.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="primary" onClick={() => applyAndOpen(character.id)}>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      data-testid={`cast-roster-open-home-${character.id}`}
+                      onClick={() => applyAndOpenHome(character.id)}
+                    >
                       Open home
                     </Button>
                     <Button
@@ -165,15 +229,24 @@ export default function CharacterCastRoster() {
                     >
                       Open Day
                     </Button>
-                    <ButtonLink href="/character" size="sm" variant="secondary">
-                      Generate
-                    </ButtonLink>
-                    <Link
-                      href={characterHomeHref(character.id)}
-                      className="type-caption self-center text-[var(--accent-text)] underline-offset-2 hover:underline"
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => applyAndGenerate(character.id)}
                     >
-                      Details
-                    </Link>
+                      Generate
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      data-testid={`cast-roster-details-toggle-${character.id}`}
+                      aria-expanded={detailsOpen}
+                      onClick={() =>
+                        setDetailsId(current => (current === character.id ? null : character.id))
+                      }
+                    >
+                      {detailsOpen ? 'Hide details' : 'Details'}
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => forgetCharacter(character.id)}>
                       Remove
                     </Button>

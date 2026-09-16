@@ -4,13 +4,12 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
+import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { Button } from '@/components/ui/Button';
 import { FieldError, FieldLabel, SelectInput } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
+import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 import { buildFittingCompareLightboxState } from '@/lib/fitting-room';
 import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
@@ -36,7 +35,7 @@ type ViewModel = ReturnType<typeof useFittingRoomToolOrchestration>;
 
 export default function MobileFittingToolSections(vm: ViewModel) {
   useWardrobeGarmentThumbManifestGeneration();
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+  const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance({ mobile: true });
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const {
     shared,
@@ -128,7 +127,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
+        onCancel={cancelSoftAdvance}
       />
 
       {compareTryOns.length > 0 && !softAdvance && !continueDayHref ? (
@@ -414,11 +413,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
                     onClick={() => {
                       const href = keepTryOn(tryOn);
                       if (href) {
-                        setSoftAdvance({
-                          href: toMobileStudioHref(href),
-                          label: 'Day',
-                          nonce: Date.now(),
-                        });
+                        softAdvanceHref(href, 'Day');
                       }
                     }}
                     className="justify-center"

@@ -157,34 +157,8 @@ export function applyRemixDayFilmState(): void {
   });
 }
 
-/** Deep link for same-look / new-Day remix (clears stills on Day mount). */
-export function remixDayFilmHref(characterId: string, options?: { autoQueue?: boolean }): string {
-  const id = characterId.trim();
-  const params = new URLSearchParams();
-  if (id) {
-    params.set('character', id);
-  }
-  params.set('from', 'look');
-  params.set('remix', '1');
-  if (options?.autoQueue !== false) {
-    params.set('autoqueue', '1');
-  }
-  return `/day?${params.toString()}`;
-}
-
-/** Completed Day stills currently in the tool cache (survives navigation). */
-export function countCachedCompletedDayStills(): number {
-  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
-  const activeCharacterId = loadSettingsCache().shared.activeCharacterId?.trim() || '';
-  const owner = day.stillsCharacterId?.trim() || '';
-  // Unowned legacy stills still count for the current session; owned stills must match Cast.
-  if (owner && owner !== activeCharacterId) {
-    return 0;
-  }
-  const stills = day.stills ?? [];
-  return stills.filter(entry => entry.status === 'completed' && Boolean(entry.imageUrl?.trim()))
-    .length;
-}
+export { remixDayFilmHref } from './play-step-machine';
+export { countCachedCompletedDayClips, countCachedCompletedDayStills } from './play-day-cache';
 
 /** Build a portable starter look without persisting (for previews / tests). */
 export function buildStarterLookPack(characterId: string): LookPack {

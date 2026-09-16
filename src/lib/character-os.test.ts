@@ -101,10 +101,18 @@ describe('character-os', () => {
   });
 
   it('createBlankCharacter does not inherit session face lock or wardrobe', () => {
-    const blank = createBlankCharacter('Kai');
+    const blank = createBlankCharacter('Kai', {
+      sex: 'man',
+      ethnicity: 'mediterranean',
+      ageBand: '30s',
+      height: 'average',
+      bodyBuild: 'stocky',
+    });
     assert.equal(blank.name, 'Kai');
     assert.equal(blank.ipAdapter?.imageFilename, undefined);
     assert.ok(blank.descriptor && blank.descriptor.length > 8);
+    assert.match(blank.descriptor, /Mediterranean/);
+    assert.match(blank.hints ?? '', /man/);
     assert.equal(blank.lockedWardrobeId, undefined);
     const fresh = applyCharacterRecordFresh(blank);
     assert.equal(fresh.activeCharacterId, blank.id);

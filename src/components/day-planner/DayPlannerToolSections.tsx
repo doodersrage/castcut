@@ -38,16 +38,17 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import DayPlateSection from '@/components/day-planner/DayPlateSection';
+import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
+import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
+import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import {
   hasCompletedFirstFilm,
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
 } from '@/lib/play-metrics';
+import { deriveDayPhase } from '@/lib/play-step-machine';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
   ssr: false,
@@ -127,7 +128,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const [sampleWatch, setSampleWatch] = useState(false);
   const [jumpInMode, setJumpInMode] = useState(false);
   const [progressLightbox, setProgressLightbox] = useState<ImageLightboxState | null>(null);
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+  const { softAdvance, cancelSoftAdvance, softAdvanceTo } = usePlaySoftAdvance();
   const postCutAdvanceRef = useRef(false);
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const wardrobeKitDeck = useMemo(
@@ -135,6 +136,12 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     [activeSlot.wardrobeId, filteredWardrobeOptions]
   );
   const slotTotal = slots.length || 4;
+  const completedClipCount = useMemo(
+    () =>
+      stills.filter(entry => entry.clipStatus === 'completed' && Boolean(entry.clipUrl?.trim()))
+        .length,
+    [stills]
+  );
   const collapseEditors =
     leanChrome && (jumpInMode || busy || assemblingFilm || completedShotCount > 0);
   const showCutCoach = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
@@ -149,6 +156,13 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     () => hasCompletedFirstFilm(loadPlayMetrics()),
     () => false
   );
+  const dayPhase = deriveDayPhase({
+    completedStills: completedShotCount,
+    completedClips: completedClipCount,
+    firstFilmDone,
+    filmNeedsCast,
+    campaignCompleted: firstCutCelebrate || firstFilmDone,
+  });
   const showFinalPass = leanChrome;
   const galleryFilmHref = character
     ? `/gallery?character=${encodeURIComponent(character.id)}&derivedKind=film`
@@ -168,13 +182,12 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       return;
     }
     postCutAdvanceRef.current = true;
-    setSoftAdvance({
+    softAdvanceTo('watch', {
+      characterId: character.id,
       href: watchCastHref,
-      label: 'Watch',
       message: 'Opening your film on Cast',
-      nonce: Date.now(),
     });
-  }, [character, filmNeedsCast, firstCutCelebrate, watchCastHref]);
+  }, [character, filmNeedsCast, firstCutCelebrate, softAdvanceTo, watchCastHref]);
 
   const openProgressLightbox = useCallback(
     (slotId: string) => {
@@ -247,8 +260,18 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         <PlaySoftAdvanceBanner
           key={softAdvance?.nonce ?? 'idle'}
           target={softAdvance}
-          onCancel={() => setSoftAdvance(null)}
+          onCancel={cancelSoftAdvance}
         />
+        {!firstCutCelebrate ? (
+          <div className="mb-3">
+            <DayPlayPhaseStrip
+              activePhase={dayPhase ?? 'queue'}
+              completedStills={completedShotCount}
+              completedClips={completedClipCount}
+              slotTotal={slotTotal}
+            />
+          </div>
+        ) : null}
         {firstCutCelebrate ? (
           <div
             className="rounded-[var(--radius-lg)] border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-4 py-3"
@@ -327,7 +350,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   variant="secondary"
                   data-testid="day-first-cut-story"
                   onClick={() => {
-                    setSoftAdvance(null);
+                    cancelSoftAdvance();
                     goRoleplay();
                   }}
                 >

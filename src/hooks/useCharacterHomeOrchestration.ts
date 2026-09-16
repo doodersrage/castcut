@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/browser-storage';
 import { isAssembledFilmEntry } from '@/lib/character-film';
@@ -31,6 +31,7 @@ import {
 } from '@/lib/comfyui-gallery';
 import { unstampForeignCharacterGalleryEntries } from '@/lib/gallery-character-stamp';
 import { buildGalleryHandoff, galleryHandoffPath, saveGalleryHandoff } from '@/lib/gallery-handoff';
+import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { selectCharacterKeepers } from '@/lib/gallery-lora-dataset-export';
@@ -46,6 +47,8 @@ import {
   parseLookPackFile,
   saveLookPack,
 } from '@/lib/look-pack';
+import { applyCastLookPlateFromSource, clearCharacterLookPlate } from '@/lib/look-outfit-plate';
+import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
 import { playCampaignHref } from '@/lib/play-campaign';
 import { continueClipActionLabel } from '@/lib/video-clip-mode';
 import { loadEngineSettings } from '@/lib/engine-settings';
@@ -80,6 +83,9 @@ export function useCharacterHomeOrchestration(characterId: string) {
   const [mediaTab, setMediaTab] = useState<MediaTab>('all');
   const [continueError, setContinueError] = useState<string | null>(null);
   const [lookPackStatus, setLookPackStatus] = useState<string | null>(null);
+  const [plateUploading, setPlateUploading] = useState(false);
+  const [plateStatus, setPlateStatus] = useState<string | null>(null);
+  const [plateError, setPlateError] = useState<string | null>(null);
   const lookPackFileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -104,6 +110,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
   const looks = character ? looksOf(character) : [];
   const savedLookPacks = character ? lookPacksOf(character) : [];
   const currentLook = character ? activeLook(character) : undefined;
+  const lookPlate = resolveFittingPlateFromCharacter(character);
   const entries = useMemo(
     () => filterComfyGalleryEntries(gallery, { characterId }),
     [gallery, characterId]
@@ -217,7 +224,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
     }
     setContinueError(null);
     saveToolSettings('roleplay', result.cache);
-    go('/roleplay');
+    go(`/roleplay?character=${encodeURIComponent(character.id)}`);
   };
 
   const extendReel = () => {
@@ -253,6 +260,77 @@ export function useCharacterHomeOrchestration(characterId: string) {
     clearGalleryCharacterStamp([entry.id]);
   };
 
+  const applyLookPlate = useCallback(
+    async (input: { file?: File | null; imageUrl?: string; filename?: string }) => {
+      if (!character) {
+        return;
+      }
+      setPlateUploading(true);
+      setPlateError(null);
+      setPlateStatus(input.file ? 'Uploading look plate…' : 'Applying look plate…');
+      try {
+        const result = await applyCastLookPlateFromSource({
+          characterId: character.id,
+          file: input.file,
+          imageUrl: input.imageUrl,
+          filename: input.filename,
+          isolate: true,
+          model: loadSettingsCache().shared.model,
+        });
+        persistApply(result.character);
+        setPlateStatus(
+          result.isolated ? 'Look plate saved (isolated on white).' : 'Look plate saved.'
+        );
+      } catch (err) {
+        setPlateStatus(null);
+        setPlateError(err instanceof Error ? err.message : 'Could not update the look plate.');
+      } finally {
+        setPlateUploading(false);
+      }
+    },
+    [character]
+  );
+
+  const clearLookPlate = useCallback(() => {
+    if (!character) {
+      return;
+    }
+    if (
+      !window.confirm(
+        `Remove the look plate for ${character.name}? Outfit and Day will need a new plate.`
+      )
+    ) {
+      return;
+    }
+    const cleared = clearCharacterLookPlate(character.id);
+    if (cleared) {
+      const next = getCharacter(character.id);
+      persistApply(next ?? character);
+      setPlateStatus('Look plate removed.');
+      setPlateError(null);
+    }
+  }, [character]);
+
+  const onGalleryPlateHandoff = useCallback(
+    (handoff: {
+      file: File | null;
+      previewUrl: string | null;
+      payload: { imageUrl?: string; imageFilename?: string; characterId?: string };
+    }) => {
+      if (handoff.payload.characterId && handoff.payload.characterId !== characterId) {
+        return;
+      }
+      void applyLookPlate({
+        file: handoff.file,
+        imageUrl: handoff.payload.imageUrl || handoff.previewUrl || undefined,
+        filename: handoff.payload.imageFilename,
+      });
+    },
+    [applyLookPlate, characterId]
+  );
+
+  useGalleryHandoff('cast', onGalleryPlateHandoff);
+
   return {
     character,
     router,
@@ -266,6 +344,12 @@ export function useCharacterHomeOrchestration(characterId: string) {
     looks,
     savedLookPacks,
     currentLook,
+    lookPlate,
+    plateUploading,
+    plateStatus,
+    plateError,
+    applyLookPlate,
+    clearLookPlate,
     entries,
     keepers,
     fallbackKeeperIds,

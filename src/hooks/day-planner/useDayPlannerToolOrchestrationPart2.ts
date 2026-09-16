@@ -56,11 +56,11 @@ import {
   applyLookPackToDaySlots,
   loadLookPack,
   lookPackNotes,
-  lookPackRoleplayHref,
   saveLookPack,
 } from '@/lib/look-pack';
 import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play-campaign';
-import { hasCompletedFirstFilm, loadPlayMetrics } from '@/lib/play-metrics';
+import { loadPlayMetrics } from '@/lib/play-metrics';
+import { canEnterPlayStep, resolvePlayStepHref } from '@/lib/play-step-machine';
 import { applyRemixDayFilmState } from '@/lib/play-starter';
 import { dayToolHref } from '@/lib/mobile-studio';
 import { markComfyQueueIntent } from '@/lib/comfy-setup-intent';
@@ -462,8 +462,12 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   }, [character, setError, setFilmNeedsCast, setFilmStatus]);
 
   const goRoleplay = useCallback(() => {
-    if (!hasCompletedFirstFilm(loadPlayMetrics())) {
-      setError('Cut your first Day film before opening Story.');
+    const gate = canEnterPlayStep('roleplay', {
+      metrics: loadPlayMetrics(),
+      campaign: character ? { characterId: character.id, stepIndex: 3 } : null,
+    });
+    if (!gate.ok) {
+      setError(gate.reason ?? 'Cut your first Day film before opening Story.');
       return;
     }
     if (character) {
@@ -474,12 +478,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       bumpPlayCampaignStep({ characterId: character.id, stepId: 'roleplay' });
       const pack = loadLookPack();
       if (pack) {
-        const staged = { ...pack, characterId: character.id };
-        saveLookPack(staged);
-        router.push(lookPackRoleplayHref(staged));
-        return;
+        saveLookPack({ ...pack, characterId: character.id });
       }
-      router.push(`/roleplay?character=${encodeURIComponent(character.id)}`);
+      router.push(resolvePlayStepHref('roleplay', character.id, pack));
       return;
     }
     router.push('/roleplay');

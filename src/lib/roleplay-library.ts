@@ -1,5 +1,6 @@
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import { getCharacter, upsertCharacterFromRoleplaySession } from './character-os';
+import { withRoleplayLookPlateFromCast } from './fitting-room';
 import {
   DEFAULT_ROLEPLAY_TOOL_CACHE,
   loadToolSettings,
@@ -427,6 +428,8 @@ export function synthesizeRoleplaySessionFromCharacter(
   };
   const cache: RoleplayToolCache = {
     ...DEFAULT_ROLEPLAY_TOOL_CACHE,
+    // Cast → Story should queue stills/clips; Play Make defaults autoQueue off elsewhere.
+    autoQueue: true,
     activeSessionId: sessionId,
     characterName: name,
     bio,
@@ -436,18 +439,9 @@ export function synthesizeRoleplaySessionFromCharacter(
     tone: character.tone ?? DEFAULT_ROLEPLAY_TOOL_CACHE.tone,
     content: character.content ?? DEFAULT_ROLEPLAY_TOOL_CACHE.content,
     playAs: character.playAs ?? DEFAULT_ROLEPLAY_TOOL_CACHE.playAs,
-    referenceImageUrl:
-      character.reference?.isolatedUrl ||
-      character.ipAdapter?.imageUrl ||
-      character.reference?.originalUrl,
-    referenceImageFilename:
-      character.reference?.isolatedFilename || character.ipAdapter?.imageFilename,
-    referenceOriginalUrl: character.reference?.originalUrl,
-    referenceOriginalFilename: character.reference?.originalFilename,
-    isolateSubject: character.reference?.isolateSubject,
-    referenceIsolated: character.reference?.isolated,
   };
-  const snapshot = normalizeRoleplayLibrarySnapshot(cache);
+  const withPlate = withRoleplayLookPlateFromCast(cache, character);
+  const snapshot = normalizeRoleplayLibrarySnapshot(withPlate);
   if (!snapshot || !roleplaySessionHasProgress(snapshot)) {
     return null;
   }
@@ -486,13 +480,27 @@ export function resolveRoleplayContinueFromCharacter(
   if (sessionId) {
     const session = getRoleplayLibrarySession(sessionId);
     if (session) {
-      return { ok: true, session, cache: applyRoleplayLibrarySession(session) };
+      return {
+        ok: true,
+        session,
+        cache: withRoleplayLookPlateFromCast(
+          { ...applyRoleplayLibrarySession(session), autoQueue: true },
+          character
+        ),
+      };
     }
   }
   const synthesized = synthesizeRoleplaySessionFromCharacter(key);
   if (synthesized) {
     const saved = upsertRoleplayLibrarySession(synthesized);
-    return { ok: true, session: saved, cache: applyRoleplayLibrarySession(saved) };
+    return {
+      ok: true,
+      session: saved,
+      cache: withRoleplayLookPlateFromCast(
+        { ...applyRoleplayLibrarySession(saved), autoQueue: true },
+        character
+      ),
+    };
   }
   return {
     ok: false,

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { useRoleplayBeatQueue, useRoleplayPhotoModelGuard } from '@/hooks/useRoleplayBeatQueue';
+import { useRoleplayBeatQueue } from '@/hooks/useRoleplayBeatQueue';
 import { useRoleplayLookPackDeepLink } from '@/hooks/useRoleplayLookPackDeepLink';
 import { useRoleplayReferenceImage } from '@/hooks/useRoleplayReferenceImage';
 import { useRoleplayStorySync } from '@/hooks/useRoleplayStorySync';
@@ -81,21 +81,14 @@ export function useRoleplayToolOrchestration() {
     setError,
   });
 
-  useRoleplayPhotoModelGuard({
-    mounted,
-    playAs: reference.playAs,
-    sharedModel: shared.model,
-    updateShared,
-  });
-
-  const playAsResolved = reference.playAs;
-
   useSeedToolDraft(mounted, {
     toolKey: TOOL_ID,
     label: 'Roleplay',
     href: '/roleplay',
     fields: [bio?.name, toolSettings.customPersona, toolSettings.extraHints, toolSettings.setting],
   });
+
+  const playAsResolved = reference.playAs;
 
   const actions = usePromptResultActions({
     tool: TOOL_ID,

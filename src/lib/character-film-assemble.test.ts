@@ -31,7 +31,7 @@ describe("character-film-assemble", () => {
     it("skips persisting an empty (zero-byte) blob without touching the gallery/storage APIs", async () => {
       const blob = new Blob([], { type: "video/webm" });
       const result = await stampAssembledFilm({ blob, filename: "cut.webm" });
-      assert.deepEqual(result, { persisted: false });
+      assert.deepEqual(result, { persisted: false, reason: "too-large" });
     });
   });
 

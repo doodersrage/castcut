@@ -1,13 +1,12 @@
 'use client';
 
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
-import PlaySoftAdvanceBanner, {
-  type PlaySoftAdvanceTarget,
-} from '@/components/PlaySoftAdvanceBanner';
+import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
+import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import {
@@ -122,7 +121,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
   } = vm;
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
-  const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
+  const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance();
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -153,7 +152,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
-        onCancel={() => setSoftAdvance(null)}
+        onCancel={cancelSoftAdvance}
       />
 
       <ToolSection
@@ -202,12 +201,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
                 saveLookPack(pack);
                 void sendLookToDay().then(href => {
                   if (href) {
-                    setSoftAdvance({
-                      href,
-                      label: 'Day',
-                      message: `Using ${preset.label} for today`,
-                      nonce: Date.now(),
-                    });
+                    softAdvanceHref(href, 'Day', `Using ${preset.label} for today`);
                   }
                 });
               }}
@@ -220,7 +214,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Character (optional)"
-        description="Attach a Cast character for subject notes. Extract look will set or queue an Outfit plate when none exists."
+        description="Attach a Cast character for subject notes. Extract look replaces the Outfit plate (or queues a new one)."
         data-testid="moodboard-character"
       >
         <CharacterOsPicker
@@ -236,7 +230,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         />
         <p className="type-caption mt-2 text-[var(--text-muted)]">
           {hasPlate
-            ? 'Cast plate ready for Outfit.'
+            ? 'Cast plate ready — Extract look will replace it for Outfit.'
             : 'No Cast plate yet — Extract look will set or queue one for Outfit.'}
         </p>
       </ToolSection>
@@ -421,11 +415,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               if (!pack) {
                 return;
               }
-              setSoftAdvance({
-                href: lookPackFittingHref(pack),
-                label: 'Outfit',
-                nonce: Date.now(),
-              });
+              softAdvanceHref(lookPackFittingHref(pack), 'Outfit');
             });
           }}
         >
@@ -440,11 +430,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               if (!href) {
                 return;
               }
-              setSoftAdvance({
-                href,
-                label: 'Outfit',
-                nonce: Date.now(),
-              });
+              softAdvanceHref(href, 'Outfit');
             });
           }}
         >
@@ -473,11 +459,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               onClick={() => {
                 void sendLookToDay().then(href => {
                   if (href) {
-                    setSoftAdvance({
-                      href,
-                      label: 'Day',
-                      nonce: Date.now(),
-                    });
+                    softAdvanceHref(href, 'Day');
                   }
                 });
               }}

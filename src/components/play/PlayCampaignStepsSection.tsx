@@ -1,6 +1,7 @@
 'use client';
 
 import { PLAY_CAMPAIGN_STEPS } from '@/lib/play-campaign';
+import { canEnterPlayStep } from '@/lib/play-step-machine';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
@@ -32,9 +33,14 @@ export default function PlayCampaignStepsSection({
       <ol className="space-y-2">
         {steps.map((step, index) => {
           const isActive = step.id === activeStep;
-          const isOptional = step.id === 'roleplay';
-          const storyLocked = isOptional && !firstFilmDone;
-          const openDisabled = (!characterId && step.id !== 'character') || storyLocked;
+          const isOptional = Boolean(step.optional);
+          const gate = canEnterPlayStep(step.id, {
+            metrics: firstFilmDone ? { version: 1, firstFilmCutAt: 1 } : { version: 1 },
+            campaign: characterId ? { characterId, stepIndex: 0 } : null,
+            lookPack: activeLookPack,
+          });
+          const storyLocked = isOptional && !gate.ok;
+          const openDisabled = (!characterId && step.id !== 'character') || !gate.ok;
           return (
             <li
               key={step.id}
@@ -60,7 +66,8 @@ export default function PlayCampaignStepsSection({
                   </p>
                   <p className="type-caption text-[var(--text-muted)]">
                     {storyLocked
-                      ? 'Cut your first Day film first — Story stays optional after that.'
+                      ? (gate.reason ??
+                        'Cut your first Day film first — Story stays optional after that.')
                       : step.description}
                   </p>
                 </div>

@@ -14,6 +14,10 @@ import {
   lookPacksOf,
   upsertCharacter,
 } from '@/lib/character-os';
+import type {
+  CharacterAppearanceDraft,
+  CharacterAppearanceFormDraft,
+} from '@/lib/character-appearance';
 import {
   clearLookPack,
   clearLookPackShareHash,
@@ -308,9 +312,13 @@ export function usePlayCampaignWizardOrchestration({
   }, [activeLookPack, characterId, goToStep]);
 
   const createCharacter = useCallback(
-    (input: { name: string; continueToMoodboard?: boolean }) => {
+    (input: {
+      name: string;
+      continueToMoodboard?: boolean;
+      appearance?: CharacterAppearanceDraft | CharacterAppearanceFormDraft;
+    }) => {
       const name = input.name.trim() || 'Untitled character';
-      const record = createBlankCharacter(name);
+      const record = createBlankCharacter(name, input.appearance);
       upsertCharacter(record);
       const saved = getCharacter(record.id) ?? record;
       // Drop the previous Cast's face lock / wardrobe / look pack / Moodboard tiles.

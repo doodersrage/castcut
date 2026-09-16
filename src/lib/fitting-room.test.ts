@@ -9,7 +9,12 @@ import {
   fittingSwipeNeighbor,
   resolveFittingDeckWardrobeId,
   resolveFittingKitPreviewPlate,
+  resolveFittingPlateFromCharacter,
+  roleplayLookPlateFieldsFromCharacter,
+  withRoleplayLookPlateFromCast,
 } from './fitting-room';
+import type { CharacterRecord } from './character-os';
+import type { RoleplayToolCache } from './settings-cache';
 
 describe('fitting-room swipe deck', () => {
   const options = [
@@ -172,5 +177,50 @@ describe('fitting compare lightbox', () => {
       buildFittingCompareLightboxState([{ promptId: 'x', wardrobeId: 'kit-x' }], 'x'),
       null
     );
+  });
+});
+
+describe('Story look plate from Cast', () => {
+  const character = {
+    id: 'c1',
+    name: 'Lead',
+    version: 1,
+    updatedAt: 1,
+    reference: {
+      originalUrl: 'https://example.com/orig.jpg',
+      originalFilename: 'orig.jpg',
+      isolatedUrl: 'https://example.com/cut.jpg',
+      isolatedFilename: 'cut.jpg',
+      isolated: true,
+      isolateSubject: true,
+    },
+  } as CharacterRecord;
+
+  it('roleplayLookPlateFieldsFromCharacter maps Cast plate to From photo', () => {
+    assert.equal(roleplayLookPlateFieldsFromCharacter(null), null);
+    assert.equal(roleplayLookPlateFieldsFromCharacter({ ...character, reference: undefined }), null);
+    const fields = roleplayLookPlateFieldsFromCharacter(character);
+    assert.equal(fields?.playAs, 'photo');
+    assert.equal(fields?.referenceImageUrl, 'https://example.com/cut.jpg');
+    assert.equal(fields?.referenceImageFilename, 'cut.jpg');
+    assert.equal(fields?.referenceIsolated, true);
+    assert.equal(resolveFittingPlateFromCharacter(character)?.imageUrl, 'https://example.com/cut.jpg');
+  });
+
+  it('withRoleplayLookPlateFromCast seeds missing refs and keeps existing photos', () => {
+    const seeded = withRoleplayLookPlateFromCast({ personaId: 'x' } as RoleplayToolCache, character);
+    assert.equal(seeded.playAs, 'photo');
+    assert.equal(seeded.referenceImageUrl, 'https://example.com/cut.jpg');
+
+    const kept = withRoleplayLookPlateFromCast(
+      {
+        personaId: 'x',
+        playAs: 'text',
+        referenceImageUrl: 'https://example.com/mine.jpg',
+      } as RoleplayToolCache,
+      character
+    );
+    assert.equal(kept.referenceImageUrl, 'https://example.com/mine.jpg');
+    assert.equal(kept.playAs, 'photo');
   });
 });
