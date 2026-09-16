@@ -106,6 +106,7 @@ export default function FittingPlateSection({
         <input
           type="file"
           accept="image/*"
+          aria-label="Upload Cast plate photo"
           disabled={busy || referenceUploading}
           className="ui-file-input block min-w-0 flex-1"
           onChange={event => {

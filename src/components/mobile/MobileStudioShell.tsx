@@ -133,7 +133,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
                     active
                       ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
-                      : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
                   ].join(' ')}
                 >
                   <span className="text-xs font-medium leading-tight">{entry.label}</span>
@@ -152,7 +152,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
                     moreActive
                       ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
-                      : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
                   ].join(' ')}
                 >
                   <span className="text-xs font-medium leading-tight">More</span>

@@ -33,7 +33,7 @@ export default function DayPlayPhaseStrip({
             ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
             : done
               ? 'border-[var(--tint-success-border)] text-[var(--tint-success-text)]'
-              : 'border-[var(--border-subtle)] text-[var(--text-muted)]'
+              : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
         }`;
         let detail = '';
         if (phase.id === 'queue') {

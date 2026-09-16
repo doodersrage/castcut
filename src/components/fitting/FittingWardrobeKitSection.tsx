@@ -159,6 +159,7 @@ export default function FittingWardrobeKitSection({
           <input
             type="file"
             accept="image/*"
+            aria-label="Upload your clothing photo"
             disabled={busy || garmentUploading}
             className="ui-file-input block min-w-0 flex-1"
             onChange={event => {

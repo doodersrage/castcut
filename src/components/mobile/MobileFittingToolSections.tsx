@@ -225,6 +225,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         <input
           type="file"
           accept="image/*"
+          aria-label="Upload your clothing photo"
           disabled={busy || garmentUploading}
           className="ui-file-input block w-full"
           onChange={event => {

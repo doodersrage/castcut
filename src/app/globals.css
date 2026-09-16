@@ -20,10 +20,10 @@
   --border-default: rgb(255 255 255 / 0.1);
   --border-strong: rgb(255 255 255 / 0.14);
 
-  /* Single brand accent — sky-indigo, aligned with brand mark teal→sky */
-  --accent: #5b7fc4;
-  --accent-hover: #6d8fd0;
-  --accent-active: #4a6cb0;
+  /* Single brand accent — sky-indigo; dark enough for white label text (WCAG AA) */
+  --accent: #4568a8;
+  --accent-hover: #5476b6;
+  --accent-active: #3a5a96;
   --accent-muted: rgb(91 127 196 / 0.12);
   --accent-soft: rgb(91 127 196 / 0.18);
   --accent-border: rgb(91 127 196 / 0.3);
@@ -677,16 +677,17 @@ html[data-theme='light'] {
   --bg-active: rgb(15 23 42 / 0.08);
   --text-primary: #18181f;
   --text-secondary: #4b5563;
-  --text-tertiary: #6b7280;
-  --text-muted: #9ca3af;
+  /* Keep ≥4.5:1 on --bg-base (#f3f4f8) and white for caption/tab chrome */
+  --text-tertiary: #5a6170;
+  --text-muted: #5a6170;
   --border-subtle: rgb(15 23 42 / 0.07);
   --border-default: rgb(15 23 42 / 0.11);
   --border-strong: rgb(15 23 42 / 0.16);
-  --accent-muted: rgb(91 127 196 / 0.1);
-  --accent-soft: rgb(91 127 196 / 0.14);
-  --accent-border: rgb(91 127 196 / 0.28);
-  --accent-ring: rgb(91 127 196 / 0.2);
-  --accent-text: #3d5f9a;
+  --accent-muted: rgb(69 104 168 / 0.12);
+  --accent-soft: rgb(69 104 168 / 0.16);
+  --accent-border: rgb(69 104 168 / 0.3);
+  --accent-ring: rgb(69 104 168 / 0.22);
+  --accent-text: #2f4d80;
   --tint-success-bg: rgb(16 185 129 / 0.1);
   --tint-success-border: rgb(16 185 129 / 0.28);
   --tint-success-text: #047857;
