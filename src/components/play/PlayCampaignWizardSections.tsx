@@ -7,6 +7,7 @@ import PlayCampaignShareLookPackSection from '@/components/play/PlayCampaignShar
 import PlayCampaignSavedLookPacksSection from '@/components/play/PlayCampaignSavedLookPacksSection';
 import PlayCampaignStepsSection from '@/components/play/PlayCampaignStepsSection';
 import PlayCampaignActionsSection from '@/components/play/PlayCampaignActionsSection';
+import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
 import { startStarterPlayFilm } from '@/lib/play-starter';
 import { hasCompletedFirstFilm, loadPlayMetrics } from '@/lib/play-metrics';
@@ -33,8 +34,9 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
         accent={ACCENT}
         badge={<ToolBadge accent={ACCENT}>Film</ToolBadge>}
         title="Your film"
-        description="Create a Cast lead, then Look → Outfit → Day → Cut film. Story is optional after your first cut."
+        description="Create a Cast lead, then Look → Outfit → Day → Cut. Or jump straight to a starter Day film."
       >
+        <PlayHabitNudgeBanner />
         {props.resumeStep && props.characterId && !props.campaignComplete ? (
           <div
             className="rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-4 py-4"

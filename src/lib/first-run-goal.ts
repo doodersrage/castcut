@@ -29,14 +29,14 @@ export const FIRST_RUN_GOAL_OPTIONS: FirstRunGoalOption[] = [
   {
     id: 'character',
     label: 'Character',
-    description: 'Create a Cast lead and keep using them across looks and films.',
-    cta: { label: 'Create on Film', href: '/play' },
+    description: 'Create a Cast lead, then walk Look → Outfit → Day at your own pace.',
+    cta: { label: 'Open Film', href: '/play' },
   },
   {
     id: 'film',
     label: 'Scene / Film',
-    description: 'Look → Outfit → Day → Cut film — stills to a short sequence.',
-    cta: { label: 'Start a film', href: '/play' },
+    description: 'One-tap Day film — morning→night stills auto-queue, then Cut.',
+    cta: { label: 'Make a starter film', href: '/play' },
   },
   {
     id: 'image',

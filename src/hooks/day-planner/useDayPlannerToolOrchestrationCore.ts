@@ -37,7 +37,9 @@ import {
   buildDaySlotPrompt,
   dayStillsCachePatch,
   dayWatchPlaylist,
+  diversifyDaySlotScenes,
   mergeDaySlotStills,
+  nextDaySlotToEdit,
   normalizeDaySlotStills,
   normalizeDaySlots,
   seedDaySlotsWardrobe,
@@ -46,6 +48,8 @@ import {
   type DaySlotId,
 } from '@/lib/day-planner';
 import { resolveDayGarmentReinforce, resolveDayPlate } from '@/lib/day-plate';
+import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
+import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import {
   loadWardrobeGarmentThumbManifest,
   resolveWardrobeGarmentThumbQueueUrl,
@@ -63,6 +67,7 @@ import {
   saveLookPack,
 } from '@/lib/look-pack';
 import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play-campaign';
+import { hasCompletedFirstFilm, loadPlayMetrics } from '@/lib/play-metrics';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
@@ -101,22 +106,64 @@ export function useDayPlannerToolOrchestrationCore() {
   const assembledFilmRef = useRef<{ filename: string; data: Uint8Array } | null>(null);
   const deepLinkHandled = useRef(false);
   const stillsRef = useRef(normalizeDaySlotStills(toolSettings.stills));
+  const slotStatusRef = useRef<Partial<Record<DaySlotId, string>>>({});
 
   const slots = useMemo(() => normalizeDaySlots(toolSettings.slots), [toolSettings.slots]);
   const stills = useMemo(() => normalizeDaySlotStills(toolSettings.stills), [toolSettings.stills]);
   stillsRef.current = stills;
   const watchPlaylist = useMemo(() => dayWatchPlaylist(stills, slots), [slots, stills]);
   const activeSlot = slots.find(slot => slot.id === activeSlotId) ?? slots[0]!;
+
+  // When a still finishes, jump the editor to the next time-of-day that still needs work.
+  useEffect(() => {
+    let advancedFrom: DaySlotId | null = null;
+    for (const slot of slots) {
+      const status = stills.find(entry => entry.slotId === slot.id)?.status ?? 'idle';
+      const previous = slotStatusRef.current[slot.id] ?? 'idle';
+      if (
+        previous !== 'completed' &&
+        status === 'completed' &&
+        (previous === 'queued' || previous === 'running' || activeSlotId === slot.id)
+      ) {
+        advancedFrom = slot.id;
+      }
+      slotStatusRef.current[slot.id] = status;
+    }
+    if (!advancedFrom) {
+      return;
+    }
+    const nextId = nextDaySlotToEdit(slots, stills, advancedFrom);
+    if (nextId && nextId !== activeSlotId) {
+      setActiveSlotId(nextId);
+    }
+  }, [activeSlotId, slots, stills]);
+
   const character = getCharacter(shared.activeCharacterId);
   const selectedModel = getComfyModelDefinition(shared.model);
   const [galleryEntries, setGalleryEntries] = useState<ComfyGalleryEntry[]>([]);
-  const plate = useMemo(
+  const basePlate = useMemo(
     () => resolveDayPlate({ character, gallery: galleryEntries }),
     [character, galleryEntries]
   );
-  // Display Keep when present. Queue Keep as Image 1 (outfit); packshot may reinforce as Image 2.
+  const {
+    plate,
+    hasPlate,
+    isolateSubject,
+    isolatePending,
+    isolateBusy,
+    isolateStatus,
+    platePreviewUrl,
+    setIsolateSubject,
+  } = useDayPlateIsolate({
+    mounted,
+    model: shared.model,
+    basePlate,
+    toolSettings,
+    updateToolSettings,
+    setError,
+  });
+  // Display Keep when present. Queue isolated Keep as Image 1 (outfit); packshot may reinforce as Image 2.
   const queuePlate = plate;
-  const hasPlate = Boolean(queuePlate?.filename || queuePlate?.imageUrl);
 
   useEffect(() => {
     if (!mounted || typeof window === 'undefined') {
@@ -365,7 +412,10 @@ export function useDayPlannerToolOrchestrationCore() {
   );
 
   const queueSlot = useCallback(
-    async (slot: DaySlot, options?: { manageBusy?: boolean }) => {
+    async (
+      slot: DaySlot,
+      options?: { manageBusy?: boolean; qualityProfile?: 'draft' | 'final' | 'max' }
+    ) => {
       const manageBusy = options?.manageBusy !== false;
       if (manageBusy) {
         setBusy(true);
@@ -375,14 +425,29 @@ export function useDayPlannerToolOrchestrationCore() {
       setActiveSlotId(slot.id);
       actions.resetStatuses();
       try {
-        const wardrobeId = slot.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
+        if (isolateSubject && isolatePending) {
+          throw new Error(ISOLATE_QUEUE_BLOCKED_MESSAGE);
+        }
+        // Fill blank Setting/Beat so a single Queue doesn't fall back to a generic time-of-day line.
+        let queueTarget = slot;
+        const needsScene = !slot.location?.trim() || !slot.sceneHints?.trim();
+        if (needsScene) {
+          const diversified = diversifyDaySlotScenes(
+            slots.map(entry => (entry.id === slot.id ? slot : entry))
+          );
+          if (diversified.changed) {
+            updateToolSettings({ slots: diversified.slots });
+            queueTarget = diversified.slots.find(entry => entry.id === slot.id) ?? slot;
+          }
+        }
+        const wardrobeId = queueTarget.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
         await loadWardrobeGarmentThumbManifest();
         const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
         const garmentReinforce = resolveDayGarmentReinforce({
           plateSource: plate?.source,
           packshotUrl,
         });
-        const prompt = buildSlotPrompt(slot);
+        const prompt = buildSlotPrompt(queueTarget);
         // Play/Simple: skip lint round-trip — Day stills are draft-speed first film.
         const finalized = leanChrome
           ? prompt
@@ -392,7 +457,7 @@ export function useDayPlannerToolOrchestrationCore() {
           toolKey: TOOL_ID,
           label: 'Day',
           href: '/day',
-          fields: [character?.name ?? '', slot.label, finalized],
+          fields: [character?.name ?? '', queueTarget.label, finalized],
         });
         // Keep as Image 1 for worn-kit fidelity on Qwen 2511. Optional packshot Image 2.
         // Never put Cast on Image 1 when Keep exists — that drops the outfit.
@@ -411,6 +476,14 @@ export function useDayPlannerToolOrchestrationCore() {
                   : {}),
               }
             : undefined;
+        const leanQuality: 'draft' | 'final' =
+          options?.qualityProfile === 'final' || options?.qualityProfile === 'max'
+            ? 'final'
+            : options?.qualityProfile === 'draft'
+              ? 'draft'
+              : hasCompletedFirstFilm(loadPlayMetrics())
+                ? 'final'
+                : 'draft';
         const promptId = await actions.sendComfyUi(finalized, undefined, undefined, {
           ...(queueOptions ?? {}),
           ...(hasPlate
@@ -421,10 +494,13 @@ export function useDayPlannerToolOrchestrationCore() {
             : {}),
           characterId: shared.activeCharacterId,
           lookId: shared.activeLookId ?? character?.activeLookId,
-          ...(leanChrome ? { qualityProfile: 'draft' as const } : {}),
+          ...(leanChrome ? { qualityProfile: leanQuality } : {}),
+          ...(options?.qualityProfile && !leanChrome
+            ? { qualityProfile: options.qualityProfile }
+            : {}),
         });
         const nextStills = upsertDaySlotStill(stillsRef.current, {
-          slotId: slot.id,
+          slotId: queueTarget.id,
           promptId: typeof promptId === 'string' ? promptId : undefined,
           status: promptId ? 'queued' : 'error',
           imageUrl: undefined,
@@ -453,12 +529,15 @@ export function useDayPlannerToolOrchestrationCore() {
       buildSlotPrompt,
       character,
       hasPlate,
+      isolatePending,
+      isolateSubject,
       leanChrome,
       plate?.source,
       queuePlate,
       shared.activeCharacterId,
       shared.activeLookId,
       shared.lockedWardrobeId,
+      slots,
       updateToolSettings,
     ]
   );
@@ -499,6 +578,12 @@ export function useDayPlannerToolOrchestrationCore() {
     selectedModel,
     plate,
     hasPlate,
+    isolateSubject,
+    isolatePending,
+    isolateBusy,
+    isolateStatus,
+    platePreviewUrl,
+    setIsolateSubject,
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,

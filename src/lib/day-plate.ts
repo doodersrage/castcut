@@ -111,3 +111,99 @@ export function resolveDayQueueIdentityPlate(input: {
   }
   return input.displayPlate ?? null;
 }
+
+/** Stable key for the resolved Day plate so isolate overrides invalidate on change. */
+export function dayPlateSourceKey(plate: DayPlate | null | undefined): string {
+  if (!plate) {
+    return '';
+  }
+  const url = plate.originalUrl?.trim() || plate.imageUrl?.trim() || '';
+  const filename = plate.originalFilename?.trim() || plate.filename?.trim() || '';
+  return `${plate.source}:${filename || url}`;
+}
+
+export type DayPlateIsolateCache = {
+  isolateSubject?: boolean;
+  referenceIsolated?: boolean;
+  plateIsolateSourceKey?: string;
+  plateImageUrl?: string;
+  plateImageFilename?: string;
+  plateOriginalUrl?: string;
+  plateOriginalFilename?: string;
+};
+
+/**
+ * Plate shown / queued for Day — applies isolate-on-white override when it matches
+ * the current source plate, or falls back to the Cast original when isolate is off.
+ */
+export function resolveDayPlateForIsolate(input: {
+  basePlate: DayPlate | null;
+  isolateSubject: boolean;
+  cache: DayPlateIsolateCache;
+}): DayPlate | null {
+  const base = input.basePlate;
+  if (!base) {
+    return null;
+  }
+  const sourceKey = dayPlateSourceKey(base);
+  if (!input.isolateSubject) {
+    const originalUrl = base.originalUrl?.trim() || base.imageUrl?.trim() || '';
+    const originalFilename = base.originalFilename?.trim() || base.filename?.trim() || '';
+    return {
+      ...base,
+      imageUrl: originalUrl || undefined,
+      filename: originalFilename || undefined,
+      isolated: false,
+      isolateSubject: false,
+    };
+  }
+  const overrideKey = input.cache.plateIsolateSourceKey?.trim() || '';
+  const overrideUrl = input.cache.plateImageUrl?.trim() || '';
+  const overrideFilename = input.cache.plateImageFilename?.trim() || '';
+  if (
+    input.cache.referenceIsolated === true &&
+    overrideKey === sourceKey &&
+    (overrideUrl || overrideFilename)
+  ) {
+    return {
+      ...base,
+      imageUrl: overrideUrl || base.imageUrl,
+      filename: overrideFilename || base.filename,
+      originalUrl: input.cache.plateOriginalUrl?.trim() || base.originalUrl || base.imageUrl,
+      originalFilename:
+        input.cache.plateOriginalFilename?.trim() || base.originalFilename || base.filename,
+      isolated: true,
+      isolateSubject: true,
+    };
+  }
+  if (base.isolated === true) {
+    return { ...base, isolateSubject: true };
+  }
+  return {
+    ...base,
+    imageUrl: base.originalUrl?.trim() || base.imageUrl,
+    filename: base.originalFilename?.trim() || base.filename,
+    isolated: false,
+    isolateSubject: true,
+  };
+}
+
+/** True when isolate is on but the cutout for this plate is not ready yet. */
+export function dayPlateIsolatePending(input: {
+  basePlate: DayPlate | null;
+  isolateSubject: boolean;
+  cache: DayPlateIsolateCache;
+}): boolean {
+  if (!input.isolateSubject || !input.basePlate) {
+    return false;
+  }
+  if (input.basePlate.isolated === true) {
+    return false;
+  }
+  const sourceKey = dayPlateSourceKey(input.basePlate);
+  return !(
+    input.cache.referenceIsolated === true &&
+    (input.cache.plateIsolateSourceKey?.trim() || '') === sourceKey &&
+    Boolean(input.cache.plateImageUrl?.trim() || input.cache.plateImageFilename?.trim())
+  );
+}

@@ -207,7 +207,7 @@ describe('roleplay parsers', () => {
     assert.equal(resolveRoleplaySetting('  neon alley  ', 'studio lock'), 'neon alley');
     assert.equal(resolveRoleplaySetting('', 'locked tavern'), 'locked tavern');
     assert.equal(resolveRoleplaySetting('', ''), '');
-    assert.ok(ROLEPLAY_SETTING_PRESETS.length >= 4);
+    assert.ok(ROLEPLAY_SETTING_PRESETS.length >= 16);
     const rolled = rollRoleplaySetting();
     assert.ok(ROLEPLAY_SETTING_PRESETS.some(entry => entry.setting === rolled));
     assert.match(

@@ -194,6 +194,56 @@ export const ROLEPLAY_SETTING_PRESETS: Array<{ id: string; label: string; settin
     label: 'Orbit',
     setting: 'orbital station observation deck above Earth',
   },
+  {
+    id: 'cafe',
+    label: 'Café',
+    setting: 'busy sidewalk café terrace with chalkboard menus and passing traffic',
+  },
+  {
+    id: 'library',
+    label: 'Library',
+    setting: 'quiet public library reading room with tall windows and oak tables',
+  },
+  {
+    id: 'market',
+    label: 'Market',
+    setting: 'open-air farmers market with produce stalls and striped awnings',
+  },
+  {
+    id: 'park',
+    label: 'Park',
+    setting: 'leafy city park path with benches and distant playground noise',
+  },
+  {
+    id: 'bookstore',
+    label: 'Bookstore',
+    setting: 'independent bookstore aisle with warm lamps and crowded shelves',
+  },
+  {
+    id: 'diner',
+    label: 'Diner',
+    setting: 'chrome late-night diner booth with neon sign glow through the window',
+  },
+  {
+    id: 'gym',
+    label: 'Gym',
+    setting: 'bright neighborhood gym floor with mirrors and free weights',
+  },
+  {
+    id: 'subway',
+    label: 'Subway',
+    setting: 'underground subway platform with tiled walls and approaching train lights',
+  },
+  {
+    id: 'balcony',
+    label: 'Balcony',
+    setting: 'small apartment balcony overlooking quiet residential streets',
+  },
+  {
+    id: 'office',
+    label: 'Office',
+    setting: 'open-plan office corner desk with monitors and afternoon window light',
+  },
 ];
 
 export function resolveRoleplaySetting(

@@ -158,7 +158,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Look presets"
-        description="One tap to seed tiles — then Extract look or Continue to Outfit (Look will set or queue an Outfit plate)."
+        description="Load tiles, or jump straight to Day with a look."
         data-testid="moodboard-presets"
       >
         <div className="flex flex-wrap gap-2">
@@ -181,6 +181,39 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
             >
               {preset.label}
             </ChipButton>
+          ))}
+        </div>
+        <p className="type-caption mt-3 text-[var(--text-muted)]">Use for today — skip Outfit</p>
+        <div className="mt-2 flex flex-wrap gap-2" data-testid="moodboard-use-for-today">
+          {LOOK_PRESETS.slice(0, 6).map(preset => (
+            <Button
+              key={`today-${preset.id}`}
+              size="sm"
+              variant="secondary"
+              disabled={busy || extracting}
+              data-testid={`moodboard-preset-day-${preset.id}`}
+              onClick={() => {
+                const tilesNext = tilesFromLookPreset(preset);
+                updateToolSettings({ tiles: tilesNext });
+                if (tilesNext[0]) {
+                  setActiveTileId(tilesNext[0].id);
+                }
+                const pack = lookPackFromPreset(preset, character?.id);
+                saveLookPack(pack);
+                void sendLookToDay().then(href => {
+                  if (href) {
+                    setSoftAdvance({
+                      href,
+                      label: 'Day',
+                      message: `Using ${preset.label} for today`,
+                      nonce: Date.now(),
+                    });
+                  }
+                });
+              }}
+            >
+              Use {preset.label} for today
+            </Button>
           ))}
         </div>
       </ToolSection>
@@ -430,35 +463,9 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         </Button>
         <details className="w-full">
           <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-            More · Day skip, Story, save, export
+            More · Story, save, export
           </summary>
           <div className="mt-2 flex flex-wrap gap-2">
-            {LOOK_PRESETS.map(preset => (
-              <Button
-                key={`day-${preset.id}`}
-                size="sm"
-                variant="ghost"
-                disabled={busy || extracting}
-                data-testid={`moodboard-preset-day-${preset.id}`}
-                onClick={() => {
-                  const tilesNext = tilesFromLookPreset(preset);
-                  updateToolSettings({ tiles: tilesNext });
-                  const pack = lookPackFromPreset(preset, character?.id);
-                  saveLookPack(pack);
-                  void sendLookToDay().then(href => {
-                    if (href) {
-                      setSoftAdvance({
-                        href,
-                        label: 'Day',
-                        nonce: Date.now(),
-                      });
-                    }
-                  });
-                }}
-              >
-                {preset.label} → Day
-              </Button>
-            ))}
             <Button
               size="sm"
               variant="secondary"

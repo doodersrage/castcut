@@ -3,9 +3,12 @@ import { describe, it } from 'node:test';
 import type { CharacterRecord } from '@/lib/character-os';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import {
+  dayPlateIsolatePending,
+  dayPlateSourceKey,
   isQwenEdit2511PoseStickyModel,
   resolveDayGarmentReinforce,
   resolveDayPlate,
+  resolveDayPlateForIsolate,
   resolveDayQueueIdentityPlate,
 } from '@/lib/day-plate';
 
@@ -73,6 +76,74 @@ describe('resolveDayPlate', () => {
       looks: [{ id: 'look-1', name: 'Main', createdAt: 1 }],
     };
     assert.equal(resolveDayPlate({ character, gallery: [] }), null);
+  });
+});
+
+describe('resolveDayPlateForIsolate', () => {
+  it('applies a matching isolate override', () => {
+    const base = {
+      source: 'keeper' as const,
+      imageUrl: 'https://example.com/keep.png',
+      filename: 'keep.png',
+      isolated: false,
+    };
+    const resolved = resolveDayPlateForIsolate({
+      basePlate: base,
+      isolateSubject: true,
+      cache: {
+        referenceIsolated: true,
+        plateIsolateSourceKey: dayPlateSourceKey(base),
+        plateImageUrl: 'https://example.com/cutout.png',
+        plateImageFilename: 'cutout.png',
+      },
+    });
+    assert.equal(resolved?.imageUrl, 'https://example.com/cutout.png');
+    assert.equal(resolved?.isolated, true);
+  });
+
+  it('falls back to original when isolate is off', () => {
+    const base = {
+      source: 'cast' as const,
+      imageUrl: 'https://example.com/iso.png',
+      originalUrl: 'https://example.com/orig.png',
+      filename: 'iso.png',
+      originalFilename: 'orig.png',
+      isolated: true,
+    };
+    const resolved = resolveDayPlateForIsolate({
+      basePlate: base,
+      isolateSubject: false,
+      cache: {},
+    });
+    assert.equal(resolved?.imageUrl, 'https://example.com/orig.png');
+    assert.equal(resolved?.isolated, false);
+  });
+
+  it('dayPlateIsolatePending is false for already-isolated cast plates', () => {
+    assert.equal(
+      dayPlateIsolatePending({
+        basePlate: {
+          source: 'cast',
+          imageUrl: 'https://example.com/iso.png',
+          isolated: true,
+        },
+        isolateSubject: true,
+        cache: {},
+      }),
+      false
+    );
+    assert.equal(
+      dayPlateIsolatePending({
+        basePlate: {
+          source: 'keeper',
+          imageUrl: 'https://example.com/keep.png',
+          isolated: false,
+        },
+        isolateSubject: true,
+        cache: {},
+      }),
+      true
+    );
   });
 });
 

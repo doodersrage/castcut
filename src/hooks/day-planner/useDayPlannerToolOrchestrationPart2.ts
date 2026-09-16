@@ -38,6 +38,7 @@ import {
   dayStillsBelongToCharacter,
   dayStillsCachePatch,
   dayWatchPlaylist,
+  diversifyDaySlotScenes,
   mergeDaySlotStills,
   normalizeDaySlotStills,
   normalizeDaySlots,
@@ -61,6 +62,7 @@ import {
 import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play-campaign';
 import { applyRemixDayFilmState } from '@/lib/play-starter';
 import { dayToolHref } from '@/lib/mobile-studio';
+import { markComfyQueueIntent } from '@/lib/comfy-setup-intent';
 import { buildDemoDayStills } from '@/lib/welcome-sample-film';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
@@ -119,6 +121,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     selectedModel,
     plate,
     hasPlate,
+    isolatePending,
+    isolateSubject,
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,
@@ -149,7 +153,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     const prevId = prevCharacterIdRef.current;
     const clearStills = () => {
       stillsRef.current = [];
-      updateToolSettings(dayStillsCachePatch([], undefined));
+      updateToolSettings({
+        ...dayStillsCachePatch([], undefined),
+        referenceIsolated: false,
+        plateIsolateSourceKey: undefined,
+        plateImageUrl: undefined,
+        plateImageFilename: undefined,
+        plateOriginalUrl: undefined,
+        plateOriginalFilename: undefined,
+      });
       assembledFilmRef.current = null;
       setFirstCutCelebrate(false);
       setFilmStatus(null);
@@ -180,19 +192,36 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     updateToolSettings,
   ]);
 
-  const queueAll = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      // Sequential submit — sendComfyUi is single-flight; Promise.all only queues morning
-      // and marks the other Day slots as error.
-      for (const slot of slots) {
-        await queueSlot(slot, { manageBusy: false });
+  const queueAll = useCallback(
+    async (options?: { qualityProfile?: 'draft' | 'final' | 'max' }) => {
+      setBusy(true);
+      setError(null);
+      try {
+        // Fresh distinct Setting/Beat per daypart — Queue day is the variety pass.
+        // Per-slot Queue keeps the current fields (and only fills blanks).
+        const diversified = diversifyDaySlotScenes(slots, {
+          forceLocations: true,
+          forceBeats: true,
+          fillBeats: true,
+        });
+        const queueSlots = diversified.slots;
+        if (diversified.changed) {
+          updateToolSettings({ slots: queueSlots });
+        }
+        // Sequential submit — sendComfyUi is single-flight; Promise.all only queues morning
+        // and marks the other Day slots as error.
+        for (const slot of queueSlots) {
+          await queueSlot(slot, {
+            manageBusy: false,
+            qualityProfile: options?.qualityProfile,
+          });
+        }
+      } finally {
+        setBusy(false);
       }
-    } finally {
-      setBusy(false);
-    }
-  }, [queueSlot, slots]);
+    },
+    [queueSlot, slots, updateToolSettings]
+  );
 
   const animateSlot = useCallback(
     async (slot: DaySlot, options?: { manageBusy?: boolean }) => {
@@ -537,22 +566,55 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     if (!jumpIn || params.get('autoqueue') !== '1') {
       return;
     }
+    // Wait for isolate-on-white so Image 1 is the cutout, not the busy Keep.
+    if (isolateSubject && isolatePending) {
+      return;
+    }
     starterAutoQueueRef.current = true;
     // Drop cached stills/clips before queueing so auto-cut cannot fire on the last film.
     stillsRef.current = [];
     updateToolSettings(dayStillsCachePatch([], undefined));
     autoCutRef.current = false;
     pendingAutoCutRef.current = false;
-    void import('@/lib/local-observability').then(({ noteStarterDayQueueMetric }) => {
-      noteStarterDayQueueMetric();
-    });
-    void queueAll().finally(() => {
-      params.delete('autoqueue');
-      params.set('autocut', '1');
-      const next = params.toString();
-      router.replace(dayToolHref(next));
-    });
-  }, [mounted, queueAll, router, stillsRef, updateToolSettings]);
+    markComfyQueueIntent();
+    void (async () => {
+      let comfyOk = false;
+      try {
+        const response = await fetch('/api/health');
+        const health = (await response.json()) as { comfyui?: { ok?: boolean } };
+        comfyOk = Boolean(health.comfyui?.ok);
+      } catch {
+        comfyOk = false;
+      }
+      if (!comfyOk) {
+        setFilmStatus(
+          'ComfyUI is offline — tap Demo stills to practice Cut, or Heal from the banner.'
+        );
+        params.delete('autoqueue');
+        const next = params.toString();
+        router.replace(dayToolHref(next));
+        return;
+      }
+      void import('@/lib/local-observability').then(({ noteStarterDayQueueMetric }) => {
+        noteStarterDayQueueMetric();
+      });
+      await queueAll().finally(() => {
+        params.delete('autoqueue');
+        params.set('autocut', '1');
+        const next = params.toString();
+        router.replace(dayToolHref(next));
+      });
+    })();
+  }, [
+    isolatePending,
+    isolateSubject,
+    mounted,
+    queueAll,
+    router,
+    setFilmStatus,
+    stillsRef,
+    updateToolSettings,
+  ]);
 
   // Auto-cut when all four Day stills complete (starter / demo / remix / explicit autocut).
   useEffect(() => {

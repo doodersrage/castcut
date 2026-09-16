@@ -1005,6 +1005,16 @@ export type DayToolCache = {
   notes?: string;
   /** Filter slot wardrobe kits by clothing type. */
   wardrobeCategoryFilter?: import('./wardrobe-catalog-ui').WardrobeCategoryFilter;
+  /** Default on — isolate the Day plate on white before queueing stills. */
+  isolateSubject?: boolean;
+  /** True when {@link plateImageUrl} is the isolated cutout for {@link plateIsolateSourceKey}. */
+  referenceIsolated?: boolean;
+  /** Fingerprint of the source plate the isolate override was built from. */
+  plateIsolateSourceKey?: string;
+  plateImageUrl?: string;
+  plateImageFilename?: string;
+  plateOriginalUrl?: string;
+  plateOriginalFilename?: string;
 };
 
 /** Moodboard → Scene — reference tiles merged into one scene prompt. */
@@ -1404,6 +1414,7 @@ export const DEFAULT_FITTING_TOOL_CACHE: FittingToolCache = {
 export const DEFAULT_DAY_TOOL_CACHE: DayToolCache = {
   slots: undefined,
   notes: '',
+  isolateSubject: true,
 };
 
 export const DEFAULT_MOODBOARD_TOOL_CACHE: MoodboardToolCache = {

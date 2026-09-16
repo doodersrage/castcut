@@ -10,7 +10,7 @@ import {
   upsertCharacter,
 } from './character-os';
 import { pickCharacterSubject } from './variation-seed';
-import { DEFAULT_DAY_SLOTS, type DaySlot } from './day-planner';
+import { DEFAULT_DAY_SLOTS, diversifyDaySlotScenes, type DaySlot } from './day-planner';
 import { clearLookPack, saveLookPack, type LookPack } from './look-pack';
 import { bumpPlayCampaignStep, savePlayCampaignState } from './play-campaign';
 import { markOnboardingFirstPlayCampaign } from './onboarding-hooks';
@@ -37,44 +37,19 @@ const STARTER_LOOK_BASE: Omit<LookPack, 'characterId' | 'savedAt'> = {
   instruction: 'natural candid framing, subject clear, environment readable',
 };
 
-const STARTER_SLOT_BEATS: Array<{ id: DaySlot['id']; location: string; sceneHints: string }> = [
-  {
-    id: 'morning',
-    location: 'sunlit kitchen window',
-    sceneHints: 'waking up, soft light, quiet start',
-  },
-  {
-    id: 'afternoon',
-    location: 'busy café terrace',
-    sceneHints: 'coffee, people-watching, midday energy',
-  },
-  {
-    id: 'evening',
-    location: 'golden-hour rooftop',
-    sceneHints: 'pause at the end of the work day',
-  },
-  {
-    id: 'night',
-    location: 'city street at night',
-    sceneHints: 'walking home, neon reflections',
-  },
-];
-
 export type PlayStarterResult = {
   characterId: string;
   characterName: string;
   href: string;
 };
 
+/** Fresh distinct Setting + Beat per daypart from the Day preset pools. */
 function starterSlots(): DaySlot[] {
-  return DEFAULT_DAY_SLOTS.map(slot => {
-    const beat = STARTER_SLOT_BEATS.find(entry => entry.id === slot.id);
-    return {
-      ...slot,
-      location: beat?.location ?? slot.location,
-      sceneHints: beat?.sceneHints ?? slot.sceneHints,
-    };
-  });
+  return diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+    forceLocations: true,
+    forceBeats: true,
+    fillBeats: true,
+  }).slots;
 }
 
 /** Seed a starter film campaign and return the Day deep link (auto-queue). */

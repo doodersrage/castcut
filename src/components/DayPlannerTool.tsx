@@ -6,8 +6,8 @@ import DayPlannerToolSections from '@/components/day-planner/DayPlannerToolSecti
 
 export default function DayPlannerTool() {
   const description = useToolPageDescription(
-    'Queue morning through night, watch progress here, then Cut film.',
-    'Day slots → stills → Cut film. Demo stills if Comfy is offline.'
+    'Pick a time of day, queue stills, then Cut film. Finished slots open the next one.',
+    'Four times of day → stills → Cut film. Tap a card to edit that slot.'
   );
   const vm = useDayPlannerToolOrchestration();
   if (!vm.mounted) return null;

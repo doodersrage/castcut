@@ -1,13 +1,19 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  buildDayProgressLightboxState,
   buildDaySlotMotionSubject,
   buildDaySlotPrompt,
+  DAY_SLOT_BEAT_PRESETS,
+  DAY_SLOT_SETTING_PRESETS,
+  daySlotProgressState,
   dayStillsBelongToCharacter,
   dayStillsCachePatch,
   dayWatchPlaylist,
+  diversifyDaySlotScenes,
   DEFAULT_DAY_SLOTS,
   mergeDaySlotStills,
+  nextDaySlotToEdit,
   normalizeDaySlots,
   seedDaySlotsFromKeeperWardrobes,
   seedDaySlotsWardrobe,
@@ -15,6 +21,46 @@ import {
 } from './day-planner';
 
 describe('day-planner', () => {
+  it('nextDaySlotToEdit advances past completed slots', () => {
+    const stills = [
+      { slotId: 'morning' as const, status: 'completed' as const, imageUrl: '/a.webp' },
+      { slotId: 'afternoon' as const, status: 'queued' as const },
+    ];
+    assert.equal(nextDaySlotToEdit(DEFAULT_DAY_SLOTS, stills, 'morning'), 'afternoon');
+    assert.equal(
+      nextDaySlotToEdit(
+        DEFAULT_DAY_SLOTS,
+        [
+          { slotId: 'morning', status: 'completed', imageUrl: '/a.webp' },
+          { slotId: 'afternoon', status: 'completed', imageUrl: '/b.webp' },
+          { slotId: 'evening', status: 'completed', imageUrl: '/c.webp' },
+          { slotId: 'night', status: 'completed', imageUrl: '/d.webp' },
+        ],
+        'evening'
+      ),
+      null
+    );
+    assert.equal(daySlotProgressState({ slotId: 'morning', status: 'running' }), 'queued');
+  });
+
+  it('buildDayProgressLightboxState opens completed stills in slot order', () => {
+    const state = buildDayProgressLightboxState(
+      DEFAULT_DAY_SLOTS,
+      [
+        { slotId: 'morning', status: 'completed', imageUrl: '/morning.webp' },
+        { slotId: 'evening', status: 'completed', imageUrl: ' /evening.webp ' },
+        { slotId: 'afternoon', status: 'queued', imageUrl: '/skip.webp' },
+      ],
+      'evening'
+    );
+    assert.ok(state);
+    assert.deepEqual(state!.images, ['/morning.webp', '/evening.webp']);
+    assert.deepEqual(state!.titles, ['Morning', 'Evening']);
+    assert.equal(state!.index, 1);
+    assert.equal(state!.title, 'Evening');
+    assert.equal(buildDayProgressLightboxState(DEFAULT_DAY_SLOTS, [], 'morning'), null);
+  });
+
   it('dayStillsBelongToCharacter matches Cast ownership', () => {
     assert.equal(dayStillsBelongToCharacter('char-a', 'char-a'), true);
     assert.equal(dayStillsBelongToCharacter('char-a', 'char-b'), false);
@@ -39,6 +85,42 @@ describe('day-planner', () => {
     assert.equal(slots.length, 4);
     assert.equal(slots[0]?.sceneHints, 'coffee run');
     assert.equal(slots[1]?.id, 'afternoon');
+  });
+
+  it('diversifyDaySlotScenes fills blank settings with distinct daypart presets', () => {
+    let cursor = 0;
+    const sequence = [0.1, 0.3, 0.5, 0.7, 0.2, 0.4, 0.6, 0.8];
+    const { slots, changed } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+      random: () => sequence[cursor++ % sequence.length]!,
+    });
+    assert.equal(changed, true);
+    const locations = slots.map(slot => slot.location?.trim() || '');
+    assert.ok(locations.every(Boolean));
+    assert.equal(new Set(locations).size, 4);
+    for (const slot of slots) {
+      assert.ok(DAY_SLOT_SETTING_PRESETS[slot.id].includes(slot.location!));
+      assert.ok(DAY_SLOT_BEAT_PRESETS[slot.id].includes(slot.sceneHints!));
+    }
+  });
+
+  it('diversifyDaySlotScenes keeps filled settings unless forced', () => {
+    const seeded = DEFAULT_DAY_SLOTS.map((slot, index) => ({
+      ...slot,
+      location: `custom ${index}`,
+      sceneHints: `beat ${index}`,
+    }));
+    const kept = diversifyDaySlotScenes(seeded);
+    assert.equal(kept.changed, false);
+    assert.equal(kept.slots[0]?.location, 'custom 0');
+
+    const forced = diversifyDaySlotScenes(seeded, {
+      forceLocations: true,
+      forceBeats: true,
+      random: () => 0,
+    });
+    assert.equal(forced.changed, true);
+    assert.notEqual(forced.slots[0]?.location, 'custom 0');
+    assert.ok(DAY_SLOT_SETTING_PRESETS.morning.includes(forced.slots[0]!.location!));
   });
 
   it('normalizeDaySlots keeps spaces in Setting and Beat while typing', () => {

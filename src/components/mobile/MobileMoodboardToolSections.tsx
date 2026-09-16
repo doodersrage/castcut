@@ -134,6 +134,39 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
             </ChipButton>
           ))}
         </div>
+        <p className="type-caption text-[var(--text-muted)]">Use for today — skip Outfit</p>
+        <div className="grid gap-2" data-testid="moodboard-use-for-today">
+          {LOOK_PRESETS.slice(0, 4).map(preset => (
+            <Button
+              key={`today-${preset.id}`}
+              variant="secondary"
+              disabled={busy || extracting}
+              data-testid={`moodboard-preset-day-${preset.id}`}
+              className="w-full justify-center"
+              onClick={() => {
+                const tilesNext = tilesFromLookPreset(preset);
+                updateToolSettings({ tiles: tilesNext });
+                if (tilesNext[0]) {
+                  setActiveTileId(tilesNext[0].id);
+                }
+                const pack = lookPackFromPreset(preset, character?.id);
+                saveLookPack(pack);
+                void sendLookToDay().then(href => {
+                  if (href) {
+                    setSoftAdvance({
+                      href: toMobileStudioHref(href),
+                      label: 'Day',
+                      message: `Using ${preset.label} for today`,
+                      nonce: Date.now(),
+                    });
+                  }
+                });
+              }}
+            >
+              Use {preset.label} for today
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">

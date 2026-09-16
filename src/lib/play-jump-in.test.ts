@@ -80,5 +80,8 @@ describe('play jump-in helpers', () => {
     assert.match(result.href, /autoqueue=1/);
     const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
     assert.deepEqual(day.stills, []);
+    const locations = (day.slots ?? []).map(slot => slot.location?.trim() || '');
+    assert.equal(locations.filter(Boolean).length, 4);
+    assert.equal(new Set(locations).size, 4);
   });
 });

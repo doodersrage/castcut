@@ -25,4 +25,12 @@ describe('first-run-goal', () => {
       href: '/?source=random&autogen=1&autoqueue=1',
     });
   });
+
+  it('describes film as one-tap Day and character as paced loop', () => {
+    const film = FIRST_RUN_GOAL_OPTIONS.find(entry => entry.id === 'film');
+    const character = FIRST_RUN_GOAL_OPTIONS.find(entry => entry.id === 'character');
+    assert.match(film?.description ?? '', /One-tap Day/i);
+    assert.match(character?.description ?? '', /Look → Outfit → Day/i);
+    assert.equal(character?.cta.href, '/play');
+  });
 });

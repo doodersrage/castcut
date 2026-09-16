@@ -41,6 +41,103 @@ export const DEFAULT_DAY_SLOTS: DaySlot[] = [
 
 const SLOT_IDS = new Set<DaySlotId>(['morning', 'afternoon', 'evening', 'night']);
 
+/**
+ * Lightbox slides for completed Day progress stills (slot order).
+ * `openSlotId` selects the starting slide when that still has an image.
+ */
+export function buildDayProgressLightboxState(
+  slots: DaySlot[],
+  stills: DaySlotStill[],
+  openSlotId: DaySlotId | string
+): {
+  images: string[];
+  titles: string[];
+  index: number;
+  title: string;
+} | null {
+  const bySlot = new Map(
+    stills
+      .filter(still => still.status === 'completed' && Boolean(still.imageUrl?.trim()))
+      .map(still => [still.slotId, still] as const)
+  );
+  const slides = slots
+    .map(slot => {
+      const url = bySlot.get(slot.id)?.imageUrl?.trim();
+      if (!url) {
+        return null;
+      }
+      return { slotId: slot.id, url, title: slot.label.trim() || slot.id };
+    })
+    .filter((slide): slide is { slotId: DaySlotId; url: string; title: string } => slide != null);
+  if (slides.length === 0) {
+    return null;
+  }
+  const openId = typeof openSlotId === 'string' ? openSlotId.trim() : '';
+  const index = Math.max(
+    0,
+    slides.findIndex(slide => slide.slotId === openId)
+  );
+  return {
+    images: slides.map(slide => slide.url),
+    titles: slides.map(slide => slide.title),
+    index,
+    title: slides[index]?.title ?? 'Day still',
+  };
+}
+
+/**
+ * After a slot finishes, pick the next morning→night slot that still needs work
+ * (not completed). Returns null when the day is fully done.
+ */
+export function nextDaySlotToEdit(
+  slots: DaySlot[],
+  stills: DaySlotStill[],
+  fromSlotId: DaySlotId | string
+): DaySlotId | null {
+  const order = slots.map(slot => slot.id);
+  if (order.length === 0) {
+    return null;
+  }
+  const fromId = typeof fromSlotId === 'string' ? fromSlotId.trim() : '';
+  const fromIndex = Math.max(0, order.indexOf(fromId as DaySlotId));
+  for (let step = 1; step <= order.length; step += 1) {
+    const id = order[(fromIndex + step) % order.length]!;
+    const still = stills.find(entry => entry.slotId === id);
+    if (still?.status !== 'completed') {
+      return id;
+    }
+  }
+  return null;
+}
+
+export function daySlotProgressState(
+  still: DaySlotStill | undefined
+): 'done' | 'failed' | 'queued' | 'idle' {
+  if (still?.status === 'completed') {
+    return 'done';
+  }
+  if (still?.status === 'error') {
+    return 'failed';
+  }
+  if (still?.status === 'queued' || still?.status === 'running') {
+    return 'queued';
+  }
+  return 'idle';
+}
+
+export function daySlotProgressLabel(state: ReturnType<typeof daySlotProgressState>): string {
+  if (state === 'done') {
+    return 'Done';
+  }
+  if (state === 'failed') {
+    return 'Failed';
+  }
+  if (state === 'queued') {
+    return 'Queueing…';
+  }
+  return 'Waiting';
+}
+
 function readText(value: unknown, max = 240): string {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
@@ -119,6 +216,175 @@ export const DEFAULT_DAY_SLOT_POSES: Record<DaySlotId, string> = {
   night:
     'standing near a window or doorway at night, weight on one leg, quiet pause, hands at sides or in pockets',
 };
+
+/**
+ * Time-of-day setting pools for Queue day diversification.
+ * Empty slot locations pick a unique entry so morning→night do not share one backdrop.
+ */
+export const DAY_SLOT_SETTING_PRESETS: Record<DaySlotId, string[]> = {
+  morning: [
+    'sunlit kitchen window with breakfast clutter on the counters',
+    'quiet neighborhood sidewalk at sunrise with long soft shadows',
+    'steamy bathroom mirror after a shower, towel over one shoulder',
+    'corner café counter with a fresh pour-over and morning newspapers',
+    'apartment balcony overlooking quiet residential streets at dawn',
+    'grocery store produce aisle under cool fluorescent light',
+    'train platform in early light with commuters and coffee cups',
+    'yoga studio with mats rolled and east-facing windows',
+  ],
+  afternoon: [
+    'busy sidewalk café terrace with chalkboard menus and passing traffic',
+    'leafy city park path with benches and distant playground noise',
+    'open-air farmers market with produce stalls and striped awnings',
+    'independent bookstore aisle with warm lamps and crowded shelves',
+    'open-plan office corner desk with monitors and afternoon window light',
+    'bright neighborhood gym floor with mirrors and free weights',
+    'sunlit museum gallery with pale walls and soft skylight',
+    'riverside boardwalk with bikes and midday glare on the water',
+  ],
+  evening: [
+    'golden-hour rooftop garden overlooking a sprawling city',
+    'cozy living-room couch edge with warm lamp light',
+    'neighborhood wine bar booth with candlelight and low chatter',
+    'rain-damp sidewalk outside a lit restaurant window',
+    'sunset pier railing with long shadows and cool wind',
+    'kitchen table set for dinner with steam rising from plates',
+    'bookstore reading nook as daylight fades to warm lamps',
+    'park bench under amber streetlights at blue hour',
+  ],
+  night: [
+    'city street at night with neon reflections on wet asphalt',
+    'chrome late-night diner booth with neon sign glow through the window',
+    'underground subway platform with tiled walls and approaching train lights',
+    'quiet apartment hallway with a single warm wall sconce',
+    'rooftop edge overlooking a glittering skyline after dark',
+    'corner convenience store exterior under harsh sodium light',
+    'rain-slick bridge walkway with car headlights streaking past',
+    'hotel lobby lounge with low music and polished marble floors',
+  ],
+};
+
+/** Optional beat seeds when the slot beat field is empty. */
+export const DAY_SLOT_BEAT_PRESETS: Record<DaySlotId, string[]> = {
+  morning: [
+    'waking up, soft light, quiet start',
+    'making coffee, still half-asleep',
+    'checking the phone by the window',
+    'stretching before heading out',
+  ],
+  afternoon: [
+    'coffee, people-watching, midday energy',
+    'errands between meetings, purposeful walk',
+    'pausing to people-watch from a bench',
+    'browsing casually, unhurried curiosity',
+  ],
+  evening: [
+    'pause at the end of the work day',
+    'catching up with a friend, relaxed posture',
+    'unwinding with a drink, soft conversation',
+    'watching the light change, quiet moment',
+  ],
+  night: [
+    'walking home, neon reflections',
+    'late quiet pause before sleep',
+    'heading somewhere after dark, alert calm',
+    'lingering under a streetlamp, end of day',
+  ],
+};
+
+function pickUnusedPreset(
+  pool: string[],
+  used: Set<string>,
+  random: () => number
+): string | undefined {
+  const available = pool.filter(entry => !used.has(entry.trim().toLowerCase()));
+  const pickFrom = available.length > 0 ? available : pool;
+  if (pickFrom.length === 0) {
+    return undefined;
+  }
+  return pickFrom[Math.floor(random() * pickFrom.length)]!;
+}
+
+/**
+ * Fill empty Day slot settings (and optional beats) with distinct time-of-day presets
+ * so Queue day does not repeat one vague backdrop across morning→night.
+ */
+export function diversifyDaySlotScenes(
+  slots: DaySlot[] | null | undefined,
+  options?: {
+    /** Overwrite existing locations (default: only fill blanks). */
+    forceLocations?: boolean;
+    /** Also fill empty beat/sceneHints fields. */
+    fillBeats?: boolean;
+    /** Overwrite existing beats when fillBeats is true. */
+    forceBeats?: boolean;
+    random?: () => number;
+  }
+): { slots: DaySlot[]; changed: boolean } {
+  const random = options?.random ?? Math.random;
+  const forceLocations = options?.forceLocations === true;
+  const fillBeats = options?.fillBeats !== false;
+  const forceBeats = options?.forceBeats === true;
+  const usedLocations = new Set<string>();
+  const usedBeats = new Set<string>();
+  let changed = false;
+
+  const normalized = normalizeDaySlots(slots);
+  for (const slot of normalized) {
+    const location = slot.location?.trim();
+    if (location && !forceLocations) {
+      usedLocations.add(location.toLowerCase());
+    }
+    const beat = slot.sceneHints?.trim();
+    if (beat && !forceBeats) {
+      usedBeats.add(beat.toLowerCase());
+    }
+  }
+
+  const next = normalized.map(slot => {
+    let location = slot.location?.trim() || '';
+    let sceneHints = slot.sceneHints?.trim() || '';
+    let slotChanged = false;
+
+    if (!location || forceLocations) {
+      const picked = pickUnusedPreset(
+        DAY_SLOT_SETTING_PRESETS[slot.id] ?? [],
+        usedLocations,
+        random
+      );
+      if (picked && picked !== location) {
+        location = picked;
+        slotChanged = true;
+      }
+    }
+    if (location) {
+      usedLocations.add(location.toLowerCase());
+    }
+
+    if (fillBeats && (!sceneHints || forceBeats)) {
+      const picked = pickUnusedPreset(DAY_SLOT_BEAT_PRESETS[slot.id] ?? [], usedBeats, random);
+      if (picked && picked !== sceneHints) {
+        sceneHints = picked;
+        slotChanged = true;
+      }
+    }
+    if (sceneHints) {
+      usedBeats.add(sceneHints.toLowerCase());
+    }
+
+    if (!slotChanged) {
+      return slot;
+    }
+    changed = true;
+    return {
+      ...slot,
+      location: location || undefined,
+      sceneHints: sceneHints || undefined,
+    };
+  });
+
+  return { slots: next, changed };
+}
 
 /** Scene prompt for one time-of-day still. */
 export function buildDaySlotPrompt(input: {

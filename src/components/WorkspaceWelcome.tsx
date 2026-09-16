@@ -78,7 +78,16 @@ export default function WorkspaceWelcome() {
       setPhase('setup');
       return;
     }
-    // Character / Film — skip setup, land on starter film immediately.
+    // Character — Film campaign at your own pace (Look → Outfit → Day).
+    if (goal === 'character') {
+      saveWorkspaceMode('play');
+      markOnboardingSetWorkspace();
+      noteWelcomeShownMetric();
+      setPhase(null);
+      window.location.assign('/play');
+      return;
+    }
+    // Film — skip setup, land on starter Day with auto-queue.
     saveWorkspaceMode('play');
     markOnboardingSetWorkspace();
     noteWelcomeShownMetric();
