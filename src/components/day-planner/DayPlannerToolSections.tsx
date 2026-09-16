@@ -35,6 +35,7 @@ import {
 } from '@/lib/wardrobe-garment-thumbs';
 import { fittingSwipeNeighbor } from '@/lib/fitting-room';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
+import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { useEffect, useMemo, useState } from 'react';
@@ -48,6 +49,7 @@ type ViewModel = ReturnType<typeof useDayPlannerToolOrchestration>;
 type Props = ViewModel & { description: string };
 
 export default function DayPlannerToolSections({ description, ...vm }: Props) {
+  useWardrobeGarmentThumbManifestGeneration();
   const {
     shared,
     toolSettings,

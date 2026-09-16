@@ -4,7 +4,10 @@ import { useCallback, useEffect } from 'react';
 import { activeLook, toggleLookKeeper } from '@/lib/character-os';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
 import { buildFittingKitPreviewPrompt, type FittingCompareTryOn } from '@/lib/fitting-room';
-import { buildFittingGarmentReferenceExtras } from '@/lib/wardrobe-garment-thumbs';
+import {
+  buildFittingGarmentReferenceExtras,
+  loadWardrobeGarmentThumbManifest,
+} from '@/lib/wardrobe-garment-thumbs';
 import {
   countInFlightFittingKitPreviews,
   FITTING_KIT_PREVIEW_CONCURRENCY,
@@ -71,6 +74,7 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
         }
         // Kit drafts keep packshot-only Image 2 so swipe thumbs stay kit-specific.
         // Full try-on prefers a bring-your-own clothing photo when set.
+        await loadWardrobeGarmentThumbManifest();
         const garmentExtras = buildFittingGarmentReferenceExtras({
           wardrobeId,
         });

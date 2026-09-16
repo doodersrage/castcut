@@ -46,7 +46,10 @@ import {
   type DaySlotId,
 } from '@/lib/day-planner';
 import { resolveDayGarmentReinforce, resolveDayPlate } from '@/lib/day-plate';
-import { resolveWardrobeGarmentThumbQueueUrl } from '@/lib/wardrobe-garment-thumbs';
+import {
+  loadWardrobeGarmentThumbManifest,
+  resolveWardrobeGarmentThumbQueueUrl,
+} from '@/lib/wardrobe-garment-thumbs';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,
@@ -373,6 +376,7 @@ export function useDayPlannerToolOrchestrationCore() {
       actions.resetStatuses();
       try {
         const wardrobeId = slot.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
+        await loadWardrobeGarmentThumbManifest();
         const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
         const garmentReinforce = resolveDayGarmentReinforce({
           plateSource: plate?.source,

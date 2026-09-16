@@ -30,7 +30,7 @@ import sharp from 'sharp';
 
 const ROOT = process.cwd();
 const PUBLIC_DIR = path.join(ROOT, 'public', 'wardrobe-thumbs');
-const MANIFEST_PATH = path.join(ROOT, 'src', 'data', 'wardrobe-garment-thumbs.manifest.json');
+const MANIFEST_PATH = path.join(PUBLIC_DIR, 'manifest.json');
 const DEFAULT_COUNT = 200;
 const DEFAULT_ADD = 100;
 const OUT_WIDTH = 192;
@@ -491,9 +491,7 @@ function writeManifest(thumbs) {
     thumbs,
   };
   fs.mkdirSync(PUBLIC_DIR, { recursive: true });
-  fs.mkdirSync(path.dirname(MANIFEST_PATH), { recursive: true });
   const text = `${JSON.stringify(manifest, null, 2)}\n`;
-  fs.writeFileSync(path.join(PUBLIC_DIR, 'manifest.json'), text);
   fs.writeFileSync(MANIFEST_PATH, text);
   return manifest;
 }

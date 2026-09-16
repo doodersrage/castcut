@@ -1,14 +1,15 @@
 /**
  * Garment-only wardrobe kit thumbs — keyed by wardrobeId (no person / look).
- * Packaged SVGs under /wardrobe-thumbs ship with the app; Fitting person drafts stay separate.
+ * Packaged WebPs under /wardrobe-thumbs ship with the app; the index lives at
+ * /wardrobe-thumbs/manifest.json and is fetched on demand (not bundled into JS).
  */
 
 import type { ClothingCategory } from './clothing-catalog-fields';
 import type { FittingSwipeKit } from './fitting-room';
 import { buildFittingSwipeDeck } from './fitting-room';
-import wardrobeGarmentThumbManifest from '../data/wardrobe-garment-thumbs.manifest.json';
 
 export const WARDROBE_GARMENT_THUMB_PUBLIC_DIR = '/wardrobe-thumbs';
+export const WARDROBE_GARMENT_THUMB_MANIFEST_PATH = `${WARDROBE_GARMENT_THUMB_PUBLIC_DIR}/manifest.json`;
 export const WARDROBE_GARMENT_THUMB_CURATED_LIMIT = 200;
 export const WARDROBE_GARMENT_THUMB_WIDTH = 128;
 export const WARDROBE_GARMENT_THUMB_HEIGHT = 160;
@@ -28,7 +29,86 @@ export type WardrobeGarmentThumbManifest = {
   thumbs: Record<string, WardrobeGarmentThumbManifestEntry>;
 };
 
-const MANIFEST = wardrobeGarmentThumbManifest as WardrobeGarmentThumbManifest;
+const EMPTY_MANIFEST: WardrobeGarmentThumbManifest = { version: 1, thumbs: {} };
+
+let cachedManifest: WardrobeGarmentThumbManifest | null = null;
+let loadPromise: Promise<WardrobeGarmentThumbManifest> | null = null;
+const manifestListeners = new Set<() => void>();
+
+function normalizeManifest(raw: unknown): WardrobeGarmentThumbManifest {
+  const data =
+    raw && typeof raw === 'object' ? (raw as WardrobeGarmentThumbManifest) : EMPTY_MANIFEST;
+  return {
+    version: typeof data.version === 'number' ? data.version : 1,
+    generatedAt: typeof data.generatedAt === 'string' ? data.generatedAt : undefined,
+    thumbs: data.thumbs && typeof data.thumbs === 'object' ? data.thumbs : {},
+  };
+}
+
+function notifyManifestListeners(): void {
+  for (const listener of manifestListeners) {
+    listener();
+  }
+}
+
+function manifestHref(): string {
+  return WARDROBE_GARMENT_THUMB_MANIFEST_PATH;
+}
+
+async function readManifestPayload(): Promise<unknown> {
+  if (typeof window === 'undefined') {
+    const { readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const text = await readFile(
+      join(process.cwd(), 'public/wardrobe-thumbs/manifest.json'),
+      'utf8'
+    );
+    return JSON.parse(text) as unknown;
+  }
+  const response = await fetch(manifestHref());
+  if (!response.ok) {
+    throw new Error(`Wardrobe thumb manifest failed (${response.status})`);
+  }
+  return response.json();
+}
+
+/** Load (or return cached) garment-thumb index. Safe to call from client and Node. */
+export function loadWardrobeGarmentThumbManifest(): Promise<WardrobeGarmentThumbManifest> {
+  if (cachedManifest) {
+    return Promise.resolve(cachedManifest);
+  }
+  if (!loadPromise) {
+    loadPromise = (async () => {
+      cachedManifest = normalizeManifest(await readManifestPayload());
+      notifyManifestListeners();
+      return cachedManifest;
+    })().catch(error => {
+      loadPromise = null;
+      throw error;
+    });
+  }
+  return loadPromise;
+}
+
+/** Subscribe to cache updates (e.g. after the first fetch). Starts a load if needed. */
+export function subscribeWardrobeGarmentThumbManifest(listener: () => void): () => void {
+  manifestListeners.add(listener);
+  void loadWardrobeGarmentThumbManifest().catch(() => {
+    /* UI keeps placeholders until a later retry */
+  });
+  return () => {
+    manifestListeners.delete(listener);
+  };
+}
+
+/** Test helper — inject a manifest without hitting the network. */
+export function setWardrobeGarmentThumbManifestForTests(
+  manifest: WardrobeGarmentThumbManifest | null
+): void {
+  cachedManifest = manifest ? normalizeManifest(manifest) : null;
+  loadPromise = null;
+  notifyManifestListeners();
+}
 
 /** Prompt for T2I / offline Comfy garment packshots (no person). */
 export function buildWardrobeGarmentThumbPrompt(input: { label: string; script?: string }): string {
@@ -77,11 +157,7 @@ export function selectCuratedWardrobeGarmentThumbIds(
 }
 
 export function getWardrobeGarmentThumbManifest(): WardrobeGarmentThumbManifest {
-  return {
-    version: typeof MANIFEST.version === 'number' ? MANIFEST.version : 1,
-    generatedAt: typeof MANIFEST.generatedAt === 'string' ? MANIFEST.generatedAt : undefined,
-    thumbs: MANIFEST.thumbs && typeof MANIFEST.thumbs === 'object' ? MANIFEST.thumbs : {},
-  };
+  return cachedManifest ?? EMPTY_MANIFEST;
 }
 
 /** Public URL for a packaged garment thumb, or null when not in the manifest. */

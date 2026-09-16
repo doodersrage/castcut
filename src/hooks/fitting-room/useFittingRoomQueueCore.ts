@@ -15,7 +15,10 @@ import {
   type FittingCompareTryOn,
   type FittingSwipeKit,
 } from '@/lib/fitting-room';
-import { buildFittingGarmentReferenceExtras } from '@/lib/wardrobe-garment-thumbs';
+import {
+  buildFittingGarmentReferenceExtras,
+  loadWardrobeGarmentThumbManifest,
+} from '@/lib/wardrobe-garment-thumbs';
 import {
   countInFlightFittingKitPreviews,
   FITTING_KIT_PREVIEW_CONCURRENCY,
@@ -145,6 +148,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
       const customGarmentFilename = input.toolSettings.customGarmentImageFilename?.trim();
       const garmentDescription = input.toolSettings.customGarmentDescription?.trim();
       const hasCustomGarment = Boolean(customGarmentUrl || customGarmentFilename);
+      await loadWardrobeGarmentThumbManifest();
       const garmentExtras = buildFittingGarmentReferenceExtras({
         wardrobeId: hasCustomGarment ? undefined : input.shared.lockedWardrobeId,
         customGarmentUrl,

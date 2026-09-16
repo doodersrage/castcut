@@ -21,6 +21,7 @@ import {
   normalizeWardrobeCategoryFilter,
   wardrobeCategoryFilterOptions,
 } from '@/lib/wardrobe-catalog-ui';
+import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import {
   resolveWardrobeGarmentThumbUrl,
   resolveWardrobeKitThumbUrl,
@@ -34,6 +35,7 @@ const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
 type ViewModel = ReturnType<typeof useFittingRoomToolOrchestration>;
 
 export default function MobileFittingToolSections(vm: ViewModel) {
+  useWardrobeGarmentThumbManifestGeneration();
   const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const {

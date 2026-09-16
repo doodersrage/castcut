@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { FieldLabel, TextInput } from '@/components/ui/Field';
 import type { FittingSwipeKit } from '@/lib/fitting-room';
 import { filterWardrobeKitsByQuery, WARDROBE_KIT_BROWSER_PAGE } from '@/lib/wardrobe-kit-picker';
+import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe-garment-thumbs';
 import type { WardrobeKitThumbState } from '@/components/wardrobe/WardrobeKitPicker';
 
@@ -37,6 +38,7 @@ function WardrobeKitBrowserDialog({
   onSelect,
   onClose,
 }: Omit<WardrobeKitBrowserProps, 'open'>) {
+  useWardrobeGarmentThumbManifestGeneration();
   const titleId = useId();
   const searchId = useId();
   const [query, setQuery] = useState(initialQuery);

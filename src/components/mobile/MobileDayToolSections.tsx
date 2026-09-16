@@ -22,6 +22,7 @@ import {
   normalizeWardrobeCategoryFilter,
   wardrobeCategoryFilterOptions,
 } from '@/lib/wardrobe-catalog-ui';
+import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import {
   buildWardrobeKitPickerDeck,
   resolveWardrobeGarmentThumbUrl,
@@ -31,6 +32,7 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 type ViewModel = ReturnType<typeof useDayPlannerToolOrchestration>;
 
 export default function MobileDayToolSections(vm: ViewModel) {
+  useWardrobeGarmentThumbManifestGeneration();
   const {
     shared,
     toolSettings,

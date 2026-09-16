@@ -6,6 +6,7 @@ import WardrobeKitBrowser from '@/components/wardrobe/WardrobeKitBrowser';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import type { FittingSwipeKit } from '@/lib/fitting-room';
+import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe-garment-thumbs';
 import {
   buildWardrobeKitStrip,
@@ -77,6 +78,7 @@ export default function WardrobeKitPicker({
   emptyLabel = 'Pick a kit to swipe',
   testId,
 }: WardrobeKitPickerProps) {
+  useWardrobeGarmentThumbManifestGeneration();
   const internalActiveRef = useRef<HTMLButtonElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState('');

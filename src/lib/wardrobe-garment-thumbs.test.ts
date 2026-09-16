@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { before, describe, it } from 'node:test';
 import {
   buildWardrobeGarmentThumbPrompt,
   buildFittingGarmentReferenceExtras,
   buildWardrobeKitPickerDeck,
+  loadWardrobeGarmentThumbManifest,
   resolveWardrobeGarmentThumbUrl,
   resolveWardrobeKitThumbUrl,
   selectCuratedWardrobeGarmentThumbIds,
@@ -11,6 +12,10 @@ import {
 } from './wardrobe-garment-thumbs';
 
 describe('wardrobe-garment-thumbs', () => {
+  before(async () => {
+    await loadWardrobeGarmentThumbManifest();
+  });
+
   it('builds a person-free garment packshot prompt', () => {
     const prompt = buildWardrobeGarmentThumbPrompt({
       label: 'cobalt monk robes',

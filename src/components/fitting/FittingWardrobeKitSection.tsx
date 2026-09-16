@@ -15,6 +15,7 @@ import {
   wardrobeCategoryFilterOptions,
   type WardrobeCategoryFilter,
 } from '@/lib/wardrobe-catalog-ui';
+import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import { resolveWardrobeKitThumbUrl } from '@/lib/wardrobe-garment-thumbs';
 
 const ACCENT = 'rose' as const;
@@ -110,6 +111,7 @@ export default function FittingWardrobeKitSection({
   onCustomGarmentDescriptionChange,
   onError,
 }: FittingWardrobeKitSectionProps) {
+  useWardrobeGarmentThumbManifestGeneration();
   const hasCustomGarment = Boolean(customGarmentImageUrl?.trim());
   const hasKit = Boolean(lockedWardrobeId?.trim());
   return (
