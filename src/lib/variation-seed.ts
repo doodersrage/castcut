@@ -562,8 +562,18 @@ export function pickDistinctSubjects(count: number, gender: SubjectGender = 'any
   }
 
   const out: string[] = [];
-  for (let i = 0; i < count; i += 1) {
-    out.push(composeCharacterSubject(gender === 'any' ? (i % 2 === 0 ? 'women' : 'men') : gender));
+  const seen = new Set<string>();
+  // Composed subjects can collide; retry rather than returning duplicates.
+  const maxAttempts = Math.max(count * 24, 120);
+  for (let attempt = 0; attempt < maxAttempts && out.length < count; attempt += 1) {
+    const next = composeCharacterSubject(
+      gender === 'any' ? (attempt % 2 === 0 ? 'women' : 'men') : gender
+    );
+    if (seen.has(next)) {
+      continue;
+    }
+    seen.add(next);
+    out.push(next);
   }
   return out;
 }

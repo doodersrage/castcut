@@ -44,9 +44,10 @@ describe("pickDistinctIdentitySeeds", () => {
 });
 
 describe("pickDistinctSubjects", () => {
-  it("caps the result at the pool size for a single-gender pool", () => {
+  it("returns unique composed subjects up to the requested count", () => {
     const result = pickDistinctSubjects(50, "women");
     assert.ok(result.length > 0);
+    assert.ok(result.length <= 50);
     assert.equal(new Set(result).size, result.length);
   });
 
