@@ -48,6 +48,10 @@ import {
   formatRoleplayWardrobeCue,
   formatRoleplayPoseGuideCue,
   withRoleplayPoseGuidePrompt,
+  storyBeatOmitsGarmentPackshot,
+  storyIdentityLockStrengthForBeat,
+  storyStillPromptSource,
+  storyStillRetryQueueParamsBase,
   rollRoleplaySetting,
   ROLEPLAY_SETTING_PRESETS,
   roleplayIntroScene,
@@ -326,6 +330,40 @@ describe('roleplay parsers', () => {
     assert.equal(formatRoleplayWardrobeCue({ phase: 'prompt' }), '');
     assert.equal(normalizeRoleplayIsolateSubject(undefined), true);
     assert.equal(normalizeRoleplayIsolateSubject(false), false);
+    const oralBlurb =
+      "She's kneeling on a lacquered piano bench as he kneels beside her—his tongue laps at her inner thigh while his fingers curl around her clit.";
+    assert.equal(storyBeatOmitsGarmentPackshot({ blurb: oralBlurb }), true);
+    assert.equal(
+      storyBeatOmitsGarmentPackshot({
+        blurb: 'Oral sex on the bench, she still in lingerie.',
+      }),
+      false
+    );
+    assert.equal(storyBeatOmitsGarmentPackshot({ blurb: 'Clothes coming off, lingerie unzip.' }), false);
+    const sourced = storyStillPromptSource({
+      llmPrompt: 'A woman stands in lingerie by a piano.',
+      blurb: oralBlurb,
+      title: 'Crystal lamp',
+    });
+    assert.match(sourced, /kneeling|oral|clit/i);
+    assert.match(sourced, /standing fashion portrait|Change pose|distinct/i);
+    assert.equal(
+      storyIdentityLockStrengthForBeat(0.75, {
+        beat: { blurb: oralBlurb },
+        hasPoseGuide: true,
+      }),
+      0.45
+    );
+    assert.equal(
+      storyIdentityLockStrengthForBeat(0.75, {
+        beat: { blurb: 'Walking down the pier at dusk.' },
+        hasPoseGuide: true,
+      }),
+      0.75
+    );
+    const retry = storyStillRetryQueueParamsBase();
+    assert.match(retry.seed, /^\d+$/);
+    assert.ok(retry.denoise >= 0.94 && retry.denoise <= 1);
   });
 
   it('closes the episode at 12 panels (first look, ten plot beats, ending)', () => {

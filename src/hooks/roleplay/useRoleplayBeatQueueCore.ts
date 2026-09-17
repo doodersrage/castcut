@@ -20,6 +20,10 @@ import {
   patchRoleplayStoryBeat,
   roleplayStillQueueResultPatch,
   roleplayStillTakes,
+  storyBeatOmitsGarmentPackshot,
+  storyIdentityLockStrengthForBeat,
+  storyStillPromptSource,
+  storyStillRetryQueueParamsBase,
   withRoleplayPoseGuidePrompt,
   type RoleplayBio,
   type RoleplayStoryBeat,
@@ -96,18 +100,22 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
   );
 
   const roleplayCharacterQueueFields = useCallback(
-    (cache?: Partial<RoleplayToolCache>, queueParamsBase?: Record<string, unknown>) => {
+    (
+      cache?: Partial<RoleplayToolCache>,
+      queueParamsBase?: Record<string, unknown>,
+      options?: { beat?: RoleplayStoryBeat; hasPoseGuide?: boolean }
+    ) => {
       const character = stampRoleplayCharacter(cache);
+      const identityStrength = storyIdentityLockStrengthForBeat(shared.ipAdapterStrength ?? 0.75, {
+        beat: options?.beat,
+        hasPoseGuide: options?.hasPoseGuide,
+      });
       if (!character) {
         return queueParamsBase ? { queueParamsBase } : {};
       }
       // 2.0: pin Cast face + LoRAs on Story stills/clips so identity survives session drift.
       syncSharedIdentityToCast(character);
-      const merged = withCastFaceQueueParams(
-        queueParamsBase,
-        character,
-        shared.ipAdapterStrength ?? 0.75
-      );
+      const merged = withCastFaceQueueParams(queueParamsBase, character, identityStrength);
       const castLoras = castLoraSessionIds(character);
       return {
         characterId: character.id,
@@ -120,20 +128,24 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
   );
 
   const queueStillOptions = useCallback(
-    (poseGuide?: { filename?: string; imageUrl?: string }) =>
+    (poseGuide?: { filename?: string; imageUrl?: string }, beat?: RoleplayStoryBeat) =>
       buildRoleplayQueueStillOptions({
         photoMode: playAs === 'photo',
         isolateSubject,
         referenceIsolated: toolSettings.referenceIsolated === true,
         filename: referenceImageFilename,
         imageUrl: referenceImageUrl,
-        identityLockStrength: shared.ipAdapterStrength,
+        identityLockStrength: storyIdentityLockStrengthForBeat(shared.ipAdapterStrength, {
+          beat,
+          hasPoseGuide: Boolean(poseGuide?.filename || poseGuide?.imageUrl),
+        }),
         identityKind: shared.identityKind,
         wardrobeId: toolSettings.wardrobeId || shared.lockedWardrobeId,
         customGarmentUrl: toolSettings.customGarmentImageUrl,
         customGarmentFilename: toolSettings.customGarmentImageFilename,
         poseGuideFilename: poseGuide?.filename,
         poseGuideUrl: poseGuide?.imageUrl,
+        omitGarment: storyBeatOmitsGarmentPackshot(beat),
       }),
     [
       isolateSubject,
@@ -206,9 +218,13 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       const queueStill = options?.queueStill ?? autoQueue;
       const poseGuide =
         queueStill && playAs === 'photo' ? await resolvePoseGuideForBeat(beat) : undefined;
-      // When saving prompt only, still name Image 3 — Queue later attaches the stick figure.
+      const promptSource = storyStillPromptSource({
+        llmPrompt: data.prompt,
+        blurb: beat.blurb,
+        title: beat.title,
+      });
       const promptWithPose = withRoleplayPoseGuidePrompt(
-        data.prompt,
+        promptSource,
         Boolean(poseGuide) || (!queueStill && playAs === 'photo'),
         shared.renderRealismMode
       );
@@ -230,8 +246,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       if (queueStill) {
         await loadWardrobeGarmentThumbManifest();
         const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
-          ...(queueStillOptions(poseGuide) ?? {}),
-          ...roleplayCharacterQueueFields({ bio: nextBio, story: currentStory }),
+          ...(queueStillOptions(poseGuide, beat) ?? {}),
+          ...roleplayCharacterQueueFields({ bio: nextBio, story: currentStory }, undefined, {
+            beat,
+            hasPoseGuide: Boolean(poseGuide),
+          }),
         });
         stillPatch = {
           prompt,
@@ -287,14 +306,23 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       try {
         await loadWardrobeGarmentThumbManifest();
         const poseGuide = await resolvePoseGuideForBeat(latest);
+        const promptSource = storyStillPromptSource({
+          llmPrompt: prompt,
+          blurb: latest.blurb,
+          title: latest.title,
+        });
         const queuePrompt = withRoleplayPoseGuidePrompt(
-          prompt,
+          promptSource,
           Boolean(poseGuide),
           shared.renderRealismMode
         );
         promptId = await actions.sendComfyUi(queuePrompt, undefined, undefined, {
-          ...(queueStillOptions(poseGuide) ?? {}),
-          ...roleplayCharacterQueueFields(),
+          ...(queueStillOptions(poseGuide, latest) ?? {}),
+          ...roleplayCharacterQueueFields(
+            undefined,
+            retry ? storyStillRetryQueueParamsBase() : undefined,
+            { beat: latest, hasPoseGuide: Boolean(poseGuide) }
+          ),
           ...(retry
             ? {
                 derivedKind: 'variation' as const,

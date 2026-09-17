@@ -34,6 +34,9 @@ export type RoleplayQueueStillOptions = {
   identityLock: true;
   identityLockStrength?: number;
   identityKind?: SharedToolSettings['identityKind'];
+  /** Match Day stills: strong Qwen edit so Image 3 pose can beat the standing Cast plate. */
+  queueTool?: 'image-prompt';
+  turboEditStrength?: 'strong';
 };
 
 export function buildRoleplayRequestBody(input: {
@@ -145,6 +148,8 @@ export function buildRoleplayQueueStillOptions(input: {
   /** Crude stick-figure pose guide as Image 3. */
   poseGuideFilename?: string | null;
   poseGuideUrl?: string | null;
+  /** Drop Image 2 clothing packshot (intimate nude/sex beats). */
+  omitGarment?: boolean;
 }): RoleplayQueueStillOptions | undefined {
   if (!input.photoMode) {
     return undefined;
@@ -157,14 +162,21 @@ export function buildRoleplayQueueStillOptions(input: {
   if (!filename && !imageUrl) {
     return undefined;
   }
-  const wardrobe = resolveRoleplayWardrobeFields({
-    wardrobeId: input.wardrobeId,
-    customGarmentUrl: input.customGarmentUrl,
-    customGarmentFilename: input.customGarmentFilename,
-  });
-  // Explicit garmentFilename/Url win when callers already resolved extras.
-  const garmentFilename = input.garmentFilename?.trim() || wardrobe.garmentFilename || '';
-  const garmentUrl = input.garmentUrl?.trim() || wardrobe.garmentUrl || '';
+  const wardrobe = input.omitGarment
+    ? {
+        garmentFilename: undefined as string | undefined,
+        garmentUrl: undefined as string | undefined,
+      }
+    : resolveRoleplayWardrobeFields({
+        wardrobeId: input.wardrobeId,
+        customGarmentUrl: input.customGarmentUrl,
+        customGarmentFilename: input.customGarmentFilename,
+      });
+  // Explicit garmentFilename/Url win when callers already resolved extras (unless omitted).
+  const garmentFilename = input.omitGarment
+    ? ''
+    : input.garmentFilename?.trim() || wardrobe.garmentFilename || '';
+  const garmentUrl = input.omitGarment ? '' : input.garmentUrl?.trim() || wardrobe.garmentUrl || '';
   const poseGuideFilename = input.poseGuideFilename?.trim() || '';
   const poseGuideUrl = input.poseGuideUrl?.trim() || '';
   const hasGarment = Boolean(garmentFilename || garmentUrl);
@@ -196,6 +208,9 @@ export function buildRoleplayQueueStillOptions(input: {
     identityLock: true,
     identityLockStrength: input.identityLockStrength,
     identityKind: input.identityKind,
+    // Soft roleplay denoise (~0.65) keeps Image 1 standing pose; Day uses image-prompt + strong.
+    queueTool: 'image-prompt',
+    turboEditStrength: 'strong',
   };
 }
 

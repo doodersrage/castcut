@@ -204,8 +204,20 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
 
   // ——— Oral / sex acts ———
   {
+    pattern: /\blaps?\s+at\s+(?:her|his|their)\s+(?:inner\s+)?thigh\b/gi,
+    replace: 'licking her inner thigh during oral sex',
+  },
+  {
+    pattern: /\b(?:tongue|mouth)\s+laps?\s+at\b/gi,
+    replace: 'tongue licking',
+  },
+  {
+    pattern: /\bfingers?\s+curl(?:s|ing)?\s+around\s+(her|his|their)\s+clit\b/gi,
+    replace: (_m, p: string) => `fingers rubbing ${p} clit`,
+  },
+  {
     pattern: new RegExp(
-      String.raw`\b(?:tasting|devouring|feasting\s+on|lapping\s+(?:at|up)|mouthing)\s+${OBJ}\b`,
+      String.raw`\b(?:tasting|devouring|feasting\s+on|lapping\s+(?:at|up)|laps?\s+at|mouthing)\s+${OBJ}\b`,
       'gi'
     ),
     replace: (_m, obj: string) => `performing oral sex on ${obj}`,
@@ -279,8 +291,15 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
   },
   // Meta beat-template phrasing that confuses image models (legacy adult forks)
   {
+    pattern:
+      /\bbent\s+over\s+after\s+[^,—.]{1,48},?\s*taken\s+from\s+behind\s*[—-]\s*doggy\s+or\s+bent-over\s+sex,?\s*explicit\s+and\s+readable\.?/gi,
+    replace:
+      'on hands and knees with a distinct adult partner behind her in doggy-style sex, nude, mid-thrust, camera behind them',
+  },
+  {
     pattern: /\s*[—-]\s*doggy\s+or\s+bent-over\s+sex,?\s*explicit\s+and\s+readable\.?/gi,
-    replace: ' — doggy-style sex, nude, mid-thrust',
+    replace:
+      ' — doggy-style sex with a distinct adult partner, nude, mid-thrust, camera behind them',
   },
   {
     pattern: /\bdoggy\s+or\s+bent-over\s+sex\b/gi,
@@ -322,9 +341,19 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
     pattern: /\bCredits\s+on\b/gi,
     replace: 'Camera on',
   },
+  // "after <poetic prior title>" is continuity, not set dressing — drop before sex cues
   {
-    pattern: /\b(?:bent\s+over|taken\s+from\s+behind).{0,60}(?:doggy|sex|fuck|partner|thrust)/gi,
-    replace: 'on hands and knees in doggy-style sex',
+    pattern:
+      /\bafter\s+[^,—.]{1,48},?\s*(?=(?:taken\s+from\s+behind|bent\s+over|on\s+hands\s+and\s+knees|partner\s+behind|doggy|camera\s+from\s+behind))/gi,
+    replace: '',
+  },
+  {
+    pattern: /\btaken\s+from\s+behind\b/gi,
+    replace: 'camera from behind',
+  },
+  {
+    pattern: /\bbent\s+over\b(?=.{0,80}(?:doggy|sex|fuck|partner|thrust|camera\s+from\s+behind))/gi,
+    replace: 'on hands and knees',
   },
 ];
 
@@ -363,4 +392,85 @@ export function promptHasIntimateEuphemisms(prompt: string): boolean {
     rule.pattern.lastIndex = 0;
     return rule.pattern.test(sample);
   });
+}
+
+/** Legacy adult fork blurbs that models misread as decor / mirrors / twins. */
+export function isLegacyAdultMetaBlurb(text: string | null | undefined): boolean {
+  return /explicit and readable|doggy or bent-over|pose you can photograph|as the still|fade-to-black/i.test(
+    text?.trim() || ''
+  );
+}
+
+const INTIMATE_ACT_CUE =
+  /\b(doggy(?:[- ]style)?|hands\s+and\s+knees|partner\s+behind|camera\s+from\s+behind|oral\s+sex|cunnilingus|fellatio|licking|tongue|clit|kneeling|barefoot|mid-thrust|penetration|fingering|missionary|cowgirl|straddl|grab(?:s|bing)?|grip(?:s|ping)?|clutch(?:es|ing)?|hands?\s+on|pin(?:s|ned|ning)?|hold(?:s|ing)?\s+(?:her|him|their|his|hips|waist))\b/i;
+
+const INTIMATE_WARDROBE_CUE =
+  /\b(lingerie|bra|panties|underwear|stockings|garter|corset|dress|skirt|shirt|blouse|outfit|clothes|clothing|wardrobe|wearing|half[- ]dressed|unzip|garment|bodysuit|teddy|chemise|robe|boots|heels)\b/i;
+
+const INTIMATE_NUDE_CUE =
+  /\b(nude|naked|fully\s+nude|bare\s+bodies?|unclothed|nothing\s+(?:on|worn)|no\s+clothes)\b/i;
+
+const INTIMATE_DUO_LOCK =
+  'Two adults: Cast lead (Image 1 face) in the lead role + distinct partner — no twins/mirrors; show the sex act, not a standing lingerie portrait.';
+
+const INTIMATE_POSE_LOCK =
+  'Match the named pose (kneeling, bent, oral, hands on genitals as written) — not a standing fashion pose.';
+
+const INTIMATE_CONTACT_LOCK =
+  'Cross-person touch only (hands/mouth on the other body); two separate people — no self-grab, no fused silhouette.';
+
+const INTIMATE_NUDE_DEFAULT =
+  'Fully nude — nothing worn; replace reference clothing with bare skin.';
+
+/** True when copy names garments / lingerie (packshot + clothed intimate stills stay valid). */
+export function intimateTextMentionsWardrobe(text: string | null | undefined): boolean {
+  return INTIMATE_WARDROBE_CUE.test(text?.trim() || '');
+}
+
+/** Sex/oral/etc. beat with no wardrobe words → default to nude (and skip Image 2 kits). */
+export function intimateTextDefaultsToNude(text: string | null | undefined): boolean {
+  const sample = text?.trim() || '';
+  if (!sample) {
+    return false;
+  }
+  if (!INTIMATE_ACT_CUE.test(sample) && !/\b(sex|fuck|nude\s+sex)\b/i.test(sample)) {
+    return false;
+  }
+  if (intimateTextMentionsWardrobe(sample)) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Clarify euphemisms/meta, then lock duo sex poses so models do not invent twin stands.
+ */
+export function reinforceIntimateStillPrompt(prompt: string): string {
+  const clarified = clarifyIntimateImageLanguage(prompt);
+  if (!clarified) {
+    return clarified;
+  }
+  if (!INTIMATE_ACT_CUE.test(clarified) && !/\b(sex|fuck|nude\s+sex)\b/i.test(clarified)) {
+    return clarified;
+  }
+  let next = clarified;
+  if (
+    /\b(doggy|hands\s+and\s+knees|partner\s+behind|camera\s+from\s+behind)\b/i.test(next) &&
+    !/\b(partner|second\s+(?:person|adult)|behind\s+(?:her|him|them))\b/i.test(next)
+  ) {
+    next = `${next}, distinct adult partner behind the lead in doggy-style sex`;
+  }
+  if (intimateTextDefaultsToNude(next) && !INTIMATE_NUDE_CUE.test(next)) {
+    next = `${next}. ${INTIMATE_NUDE_DEFAULT}`;
+  }
+  if (!/never twins|Two adults: Cast lead/i.test(next)) {
+    next = `${next}. ${INTIMATE_DUO_LOCK}`;
+  }
+  if (!/Match the named pose|Bodies must match the described pose/i.test(next)) {
+    next = `${next} ${INTIMATE_POSE_LOCK}`;
+  }
+  if (!/Cross-person touch/i.test(next)) {
+    next = `${next} ${INTIMATE_CONTACT_LOCK}`;
+  }
+  return next.replace(/[ \t]{2,}/g, ' ').trim();
 }

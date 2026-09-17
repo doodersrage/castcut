@@ -6,7 +6,10 @@ import {
   resolveRequestTemplateFallback,
 } from '../llm-request-options';
 import { stripPromptArtifacts } from '../prompt-cleanup';
-import { clarifyIntimateImageLanguage } from '../intimate-prompt-clarify';
+import {
+  clarifyIntimateImageLanguage,
+  reinforceIntimateStillPrompt,
+} from '../intimate-prompt-clarify';
 import {
   extractJsonValue,
   applyRoleplayCharacterName,
@@ -112,13 +115,13 @@ function sceneGuard(content: RoleplayContentId, allowGore: boolean): string {
     rating = 'Suggestive is ok; no explicit sex or full nudity.';
   } else if (content === 'sultry') {
     rating =
-      'Every option should be erotic: undress, skin, making out, grinding, a fuck-me look in a readable pose. Do not offer a tame fully-clothed branch.';
+      'Every option should be erotic: undress, skin, making out, grinding, a fuck-me look in a readable pose. Do not offer a tame fully-clothed branch. Partners must be distinct adults — never twins or mirror doubles of the lead.';
   } else if (content === 'explicit') {
     rating =
-      'Every option should be sexually explicit: sex in progress, oral, nude posing, hands on genitals — named in the blurb so the still can show it.';
+      'Every option should be sexually explicit: sex in progress, oral, nude posing, hands on genitals — named in the blurb so the still can show it. Partners must be distinct adults with different faces — never twins, clones, or mirror doubles.';
   } else if (content === 'raunchy') {
     rating =
-      'Every option should be a crude sexual visual gag, not a clean joke with a dirty title.';
+      'Every option should be a crude sexual visual gag, not a clean joke with a dirty title. Partners must be distinct adults — never twins or mirror doubles of the lead.';
   }
   return `Do not repeat earlier story titles or near-duplicate blurbs. ${rating} ${gore} No sexual content involving minors.`;
 }
@@ -188,6 +191,15 @@ function templatePromptFallback(
     : `${lead}${core}, ${tone} storybook lighting, expressive pose, readable scene`;
 }
 
+function adultStillGuard(content: RoleplayContentId): string {
+  if (!isRoleplayAdultContent(content)) {
+    return '';
+  }
+  return `- Sex or undress beats: if a partner is implied, they must be a DISTINCT second adult (different face, hair, and body from the lead) — never a twin, clone, mirror reflection, or duplicate of the lead.
+- Name the sex act and body positions literally (hands and knees, penetration, oral). "From behind" means doggy-style sex with the camera behind them — not mirrors showing someone's back, and not a standing twin portrait.
+- Prior beat titles in the blurb are continuity labels only — do not turn them into curtains, props, signage, or room theme.`;
+}
+
 function adultLookHint(content: RoleplayContentId): string {
   if (content === 'explicit') {
     return ' For look: include body and sexual presentation (nude or mid-sex wardrobe), not just an outfit.';
@@ -220,6 +232,14 @@ function stampFinaleScenes(scenes: RoleplayScene[], finale: boolean): RoleplaySc
     return scenes;
   }
   return scenes.map(scene => ({ ...scene, kind: 'ending' as const }));
+}
+
+/** Clarify intimate euphemisms/meta on option cards before the player picks a beat. */
+function clarifyRoleplaySceneBlurbs(scenes: RoleplayScene[]): RoleplayScene[] {
+  return scenes.map(scene => ({
+    ...scene,
+    blurb: clarifyIntimateImageLanguage(scene.blurb),
+  }));
 }
 
 async function llmJson(options: {
@@ -429,13 +449,16 @@ ${
       .join('\n\n'),
   });
   if (!raw) {
-    return { scenes: stampFinaleScenes(fallback, finale), provider: 'template' };
+    return {
+      scenes: clarifyRoleplaySceneBlurbs(stampFinaleScenes(fallback, finale)),
+      provider: 'template',
+    };
   }
   const parsed = parseRoleplayScenes(extractJsonValue(raw));
   const scenes = mergeRoleplaySceneOptions(parsed, fallback, options.story, 4, rejectedScenes);
   const next = stampFinaleScenes(scenes.length > 0 ? scenes : fallback, finale);
   return {
-    scenes: next,
+    scenes: clarifyRoleplaySceneBlurbs(next),
     provider: parsed.length > 0 ? 'llm' : 'template',
   };
 }
@@ -477,6 +500,7 @@ export async function generateRoleplayPrompt(
     phase: 'prompt',
   });
 
+  const clarifiedBlurb = clarifyIntimateImageLanguage(situation.blurb);
   return runSpecializedPrompt({
     model: options.model,
     detail: options.detail,
@@ -488,6 +512,7 @@ ${referenceLine(hasReferenceImage, isolatedSubject)}
 ${settingCue}
 ${wardrobeCue}
 ${poseGuideCue}
+${adultStillGuard(content)}
 - The SAME character must appear (face, hair, body): ${lookLock}
 - Name (${bio.name}) can appear once; do not invent a new cast unless the beat requires one extra figure.
 - Describe the chosen situation as a readable tableau: pose, props, setting, light, bodies, and what they are wearing.${
@@ -510,7 +535,7 @@ ${
     userMessage: [
       formatRoleplayBio(bio),
       formatRoleplayStoryDigest(options.story),
-      `This beat: ${situation.title} — ${situation.blurb}`,
+      `This beat: ${situation.title} — ${clarifiedBlurb}`,
       setting
         ? `Seeded setting: ${setting}. Put this still there.`
         : 'Keep continuity with the last chosen beats: same character, and the same setting/props unless this beat clearly moves.',
@@ -530,10 +555,10 @@ ${
     llmProvider: options.llm?.llmProvider,
     llmApiKey: options.llm?.llmApiKey,
     templateFallback: () =>
-      clarifyIntimateImageLanguage(
+      reinforceIntimateStillPrompt(
         templatePromptFallback(
           lookLock,
-          situation.blurb,
+          clarifiedBlurb,
           tone,
           content,
           allowGore,
@@ -541,7 +566,7 @@ ${
           hasReferenceImage
         )
       ),
-    postProcessPrompt: clarifyIntimateImageLanguage,
+    postProcessPrompt: reinforceIntimateStillPrompt,
     metadata: {
       tool: 'roleplay',
       personaId: options.personaId ?? null,

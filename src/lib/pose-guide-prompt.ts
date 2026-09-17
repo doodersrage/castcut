@@ -13,9 +13,28 @@ import {
 export const POSE_GUIDE_EDIT_PROMPT_LINE =
   'Image 3 is a crude stick-figure pose wireframe on white — use it ONLY for body pose, stance, limb placement, and the number and relative positions of every stick figure. Completely ignore Image 3 style, line art, diagram look, white void background, face, and clothing; never draw stick figures, wireframes, schematics, or pose sketches in the output. When Image 3 shows more than one stick figure (often different line colors), each figure is one complete separate person with their own head, torso, arms, and legs.';
 
+/** Compact duo/lead/contact/anti-merge lock (keeps prompts short for Qwen Edit). */
+export const POSE_GUIDE_COMPACT_LOCK =
+  'Black thick stick = Image 1 Cast face/body and lead pose; blue/red sticks = other adults with different faces. Match Image 3 stances and headcount — not Image 1 standing portrait. Hands that grab belong on the other person. Two separate bodies (touch OK); no merge, no stick art in the output.';
+
+/** Force edit to follow Image 3 stance instead of Image 1 standing plate. */
+export const POSE_GUIDE_ACTION_LOCK =
+  'Match Image 3 body positions and headcount exactly — do not keep Image 1 standing portrait pose.';
+
+/**
+ * Map Cast identity to the lead stick only (black / first figure).
+ * Prevents swapping the reference face onto the partner body.
+ */
+export const POSE_GUIDE_LEAD_IDENTITY_LOCK =
+  'Image 1 Cast face/body ONLY on the black (first/thick) stick; blue/red = other adults — do not swap.';
+
 /** Blocks fused/merged bodies on duo+ pose guides (safe no-op for solo). */
 export const POSE_GUIDE_MULTI_PERSON_LOCK =
-  'If Image 3 shows two or more stick figures, keep that exact headcount as fully separate people — distinct faces and bodies may touch or embrace, but must not merge, fuse, morph, share one torso, or collapse into a couple-blob.';
+  'Keep Image 3 headcount as fully separate people — may touch, must not merge or share one torso.';
+
+/** Duo intimate contact: wrists reach the other body; keep two clear separate people. */
+export const POSE_GUIDE_CONTACT_LOCK =
+  'Cross-person touch as the beat says (hands on the other body); no self-grab; two separate silhouettes.';
 
 /** Default realism lock when Settings realism is realistic / hyper (or unset). */
 export const POSE_GUIDE_PHOTO_REALISM_LOCK =
@@ -31,7 +50,7 @@ export const POSE_GUIDE_NO_DIAGRAM_LOCK =
 
 /** Extra negatives when Image 3 pose guide is attached. */
 export const POSE_GUIDE_NEGATIVE_EXTRA =
-  'stick figure, stickman, wireframe, pose diagram, schematic, skeleton line art, white void background, flat diagram, pose sketch, controlnet stickman, merged bodies, fused people, conjoined couple, shared torso, one body two heads, couple blob, morphing bodies, glued figures, siamese twin';
+  'stick figure, stickman, wireframe, pose diagram, schematic, skeleton line art, white void background, flat diagram, pose sketch, controlnet stickman, merged bodies, fused people, conjoined couple, shared torso, one body two heads, couple blob, morphing bodies, glued figures, siamese twin, identical twins, clone pair, mirror doppelganger, duplicate face, swapped faces, identity swap, face on wrong body, standing fashion portrait, arms at sides portrait, solo centerframe when duo posed, partner as window reflection, thigh-high boots when barefoot, self-grab, grabbing own body, hands on own hips only, masturbating alone when duo posed, floating hands, no physical contact, distant couple, polite gap between bodies, hovering touch';
 
 const POSE_GUIDE_CUE_RE = /Image 3 is a crude stick-figure/i;
 
@@ -52,11 +71,11 @@ export function poseGuideStyleLockLine(
   return POSE_GUIDE_PHOTO_REALISM_LOCK;
 }
 
-/** Full Image 3 block: pose reference + style lock + multi-person anti-merge. */
+/** Full Image 3 block for LLM scene cues (compact). */
 export function poseGuidePromptBlock(
   mode: RenderRealismMode = DEFAULT_RENDER_REALISM_MODE
 ): string {
-  return `${POSE_GUIDE_EDIT_PROMPT_LINE} ${poseGuideStyleLockLine(mode)} ${POSE_GUIDE_MULTI_PERSON_LOCK}`;
+  return `${POSE_GUIDE_EDIT_PROMPT_LINE} ${poseGuideStyleLockLine(mode)} ${POSE_GUIDE_COMPACT_LOCK}`;
 }
 
 /**
@@ -79,8 +98,8 @@ export function withPoseGuideEditPrompt(
   if (!next.includes(lock.slice(0, 48))) {
     next = `${next}\n${lock}`;
   }
-  if (!/fully separate people/i.test(next)) {
-    next = `${next}\n${POSE_GUIDE_MULTI_PERSON_LOCK}`;
+  if (!/Black thick stick = Image 1 Cast/i.test(next)) {
+    next = `${next}\n${POSE_GUIDE_COMPACT_LOCK}`;
   }
   return next;
 }
@@ -109,8 +128,17 @@ export function ensurePoseGuideStyleLock(
     }
     next = `${next}\n${lock}`;
   }
-  if (!/fully separate people/i.test(next)) {
-    next = `${next}\n${POSE_GUIDE_MULTI_PERSON_LOCK}`;
+  if (!/Black thick stick = Image 1 Cast/i.test(next)) {
+    // Drop verbose legacy lock stack if present, then attach compact.
+    next = next
+      .replace(/\nMatch Image 3 body positions[^\n]*/gi, '')
+      .replace(/\nImage 1 is the Cast lead:[^\n]*/gi, '')
+      .replace(/\nImage 1 Cast face\/body ONLY[^\n]*/gi, '')
+      .replace(/\nWhen Image 3 shows two figures[^\n]*/gi, '')
+      .replace(/\nIf Image 3 shows two or more stick figures[^\n]*/gi, '')
+      .replace(/\nKeep Image 3 headcount[^\n]*/gi, '')
+      .replace(/\nCross-person touch as the beat[^\n]*/gi, '');
+    next = `${next}\n${POSE_GUIDE_COMPACT_LOCK}`;
   }
   return next;
 }

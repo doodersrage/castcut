@@ -18,6 +18,7 @@ import {
   roleplayClipTakes,
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
+import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
 import {
   looksLikeVideoUrl,
   nextRoleplayMotionKind,
@@ -190,21 +191,21 @@ export function useRoleplayBeatQueuePart2(
       if (!pathNote) {
         setError(null);
       }
-      let prompt = latest.prompt?.trim() || latest.blurb;
+      let prompt = reinforceIntimateStillPrompt(latest.prompt?.trim() || latest.blurb || '');
       try {
         const response = await fetch('/api/video-prompt', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             subject: latest.title,
-            motion: latest.prompt?.trim() || latest.blurb,
+            motion: prompt,
             model: videoModel,
             durationSec: 4,
           }),
         });
         const data = (await response.json()) as { prompt?: string };
         if (data.prompt?.trim()) {
-          prompt = data.prompt.trim();
+          prompt = reinforceIntimateStillPrompt(data.prompt.trim());
         }
       } catch {
         /* use beat prompt */

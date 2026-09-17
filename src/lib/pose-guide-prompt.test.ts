@@ -20,7 +20,8 @@ describe('pose-guide-prompt', () => {
     const once = withPoseGuideEditPrompt('a pier scene', true, 'realistic');
     assert.match(once, /Image 3 is a crude stick-figure/i);
     assert.match(once, /photorealistic live-action photograph/i);
-    assert.match(once, /fully separate people/i);
+    assert.match(once, /Black thick stick = Image 1 Cast/i);
+    assert.match(once, /Two separate bodies|no merge/i);
     const twice = withPoseGuideEditPrompt(once, true, 'realistic');
     assert.equal(twice, once);
   });
@@ -31,7 +32,7 @@ describe('pose-guide-prompt', () => {
     const next = ensurePoseGuideStyleLock(legacy, 'realistic');
     assert.match(next, /never draw stick figures/i);
     assert.match(next, /photorealistic live-action photograph/i);
-    assert.match(next, /fully separate people/i);
+    assert.match(next, /Black thick stick = Image 1 Cast/i);
     assert.equal(promptHasPoseGuideCue(next), true);
   });
 

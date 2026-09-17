@@ -4,10 +4,12 @@ import {
   countPoseGuidePeople,
   dayPoseGuideSize,
   drawDayPoseGuide,
+  intimateLeadPrefersSecondRole,
   parsePoseGuideIntent,
   resolvePoseGuideKeyFromScene,
   resolveStoryPoseGuideKey,
   resolveStoryPoseGuideKeyFromBeat,
+  synthesizeIntimateStickFigures,
   synthesizeSceneStickFigures,
   synthesizeStickSkeleton,
 } from './day-pose-guide';
@@ -80,6 +82,18 @@ describe('day-pose-guide', () => {
     assert.equal(parseIntimateLayout('Standing sex in the shower.'), 'standing');
     assert.equal(parseIntimateLayout('Lifted up while fucking.'), 'lift');
     assert.equal(parseIntimateLayout('On their knees for oral.'), 'oral');
+    assert.equal(
+      parseIntimateLayout(
+        "She's kneeling on a lacquered piano bench, barefoot and back bent as he kneels beside her—his tongue laps at her inner thigh while his fingers curl around her clit."
+      ),
+      'oral'
+    );
+    assert.equal(
+      countPoseGuidePeople(
+        "She's kneeling on a lacquered piano bench as he kneels beside her, tongue on her thigh, fingers on her clit."
+      ),
+      2
+    );
     assert.equal(parseIntimateLayout('Sixty-nine on the bed.'), 'sixty_nine');
     assert.equal(parseIntimateLayout('Facesitting in the loft.'), 'facesit');
     assert.equal(parseIntimateLayout('Sitting on his lap, lotus position.'), 'lap');
@@ -101,6 +115,33 @@ describe('day-pose-guide', () => {
         figures[0]!.head.y - figures[1]!.head.y
       ) >= 0.12,
       'intimate heads stay separated enough to resist merges'
+    );
+
+    assert.equal(
+      intimateLeadPrefersSecondRole('She goes down on him, licking his cock.', 'oral'),
+      true
+    );
+    assert.equal(
+      intimateLeadPrefersSecondRole('He goes down on her, tongue on her clit.', 'oral'),
+      false
+    );
+    assert.equal(
+      intimateLeadPrefersSecondRole('She takes him from behind, doggy style.', 'bent'),
+      true
+    );
+    const sheGives = parsePoseGuideIntent(
+      'She goes down on him, kneeling and licking his cock.',
+      0
+    );
+    assert.equal(sheGives.intimate, 'oral');
+    const sheGivesFigs = synthesizeIntimateStickFigures(sheGives);
+    const defaultOral = synthesizeIntimateStickFigures(
+      parsePoseGuideIntent('He goes down on her, tongue on her clit.', 0)
+    );
+    // Lead (index 0) should sit on the giver side when she gives oral.
+    assert.notEqual(
+      sheGivesFigs[0]!.pelvis.x.toFixed(3),
+      defaultOral[0]!.pelvis.x.toFixed(3)
     );
 
     const wall = parsePoseGuideIntent('Pinned against the wall mid-fuck.', 0);

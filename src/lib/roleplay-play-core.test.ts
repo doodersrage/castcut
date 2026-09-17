@@ -34,6 +34,8 @@ describe('roleplay-play-core', () => {
       identityLock: true,
       identityLockStrength: 0.7,
       identityKind: 'ipadapter',
+      queueTool: 'image-prompt',
+      turboEditStrength: 'strong',
     });
   });
 
@@ -94,6 +96,27 @@ describe('roleplay-play-core', () => {
       imageUrl: '/media/face.png',
       poseGuideFilename: 'pose.png',
       poseGuideUrl: 'https://example.com/pose.png',
+    });
+    assert.deepEqual(options?.inputImageUrls, [
+      undefined,
+      undefined,
+      'https://example.com/pose.png',
+    ]);
+    assert.deepEqual(options?.inputImageFilenames, ['', '', 'pose.png']);
+  });
+
+  it('omits Image 2 garment packshot when intimate nude/sex beats request it', () => {
+    const options = buildRoleplayQueueStillOptions({
+      photoMode: true,
+      isolateSubject: false,
+      referenceIsolated: false,
+      filename: 'face.png',
+      imageUrl: '/media/face.png',
+      customGarmentUrl: 'https://example.com/lingerie.png',
+      customGarmentFilename: 'lingerie.png',
+      poseGuideFilename: 'pose.png',
+      poseGuideUrl: 'https://example.com/pose.png',
+      omitGarment: true,
     });
     assert.deepEqual(options?.inputImageUrls, [
       undefined,

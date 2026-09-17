@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   clarifyIntimateImageLanguage,
   promptHasIntimateEuphemisms,
+  reinforceIntimateStillPrompt,
 } from './intimate-prompt-clarify';
 
 describe('intimate-prompt-clarify', () => {
@@ -77,13 +78,36 @@ describe('intimate-prompt-clarify', () => {
   });
 
   it('rewrites legacy adult-fork meta phrasing into a concrete pose', () => {
-    const out = clarifyIntimateImageLanguage(
+    const out = reinforceIntimateStillPrompt(
       'Amber Office bent over after velvet lullaby, taken from behind — doggy or bent-over sex, explicit and readable.'
     );
     assert.match(out, /doggy-style sex/i);
+    assert.match(out, /partner/i);
+    assert.match(out, /hands and knees/i);
     assert.doesNotMatch(out, /explicit and readable/i);
     assert.doesNotMatch(out, /doggy or bent-over/i);
-    assert.match(out, /hands and knees|doggy-style/i);
+    assert.doesNotMatch(out, /velvet lullaby/i);
+    assert.doesNotMatch(out, /taken from behind/i);
+    assert.match(out, /never twins|Two adults: Cast lead|different face/i);
+  });
+
+  it('clarifies tongue/clit oral blurbs and locks the act over a standing portrait', () => {
+    const out = reinforceIntimateStillPrompt(
+      "She's kneeling on a lacquered piano bench, barefoot and back bent as he kneels beside her—his tongue laps at her inner thigh while his fingers curl around her clit, hands trembling under the glow of a single crystal lamp."
+    );
+    assert.match(out, /oral sex|licking|clit/i);
+    assert.match(out, /Fully nude|nothing worn/i);
+    assert.match(out, /Cross-person touch|no self-grab|no fused silhouette/i);
+    assert.match(out, /named pose|Match the named pose|standing fashion pose/i);
+    assert.doesNotMatch(out, /laps at her inner thigh/i);
+  });
+
+  it('keeps wardrobe when the beat names lingerie instead of forcing nude', () => {
+    const out = reinforceIntimateStillPrompt(
+      'She straddles him in black lingerie, riding cowgirl on the couch.'
+    );
+    assert.match(out, /lingerie/i);
+    assert.doesNotMatch(out, /Fully nude — nothing worn/i);
   });
 
   it('is idempotent on already-direct language', () => {

@@ -28,7 +28,16 @@ v1.9 closed the Play loop; 2.0 makes the film recognizably that Cast lead on Com
 - **Pose guide realism lock:** Image 3 stick figures unlock pose only — prompts + negatives force photoreal (or anime when Settings says so) so wireframes don’t bleed into stills.
 - **Pose guide anti-merge:** duo+ Image 3 figures use distinct colors, clearer head spacing, and “fully separate people” prompt/negative locks so intimate stills don’t fuse into one body.
 - **Intimate language clarify:** Story stills auto-rewrite literary euphemisms (“slick/wet core”, “manhood”, “pearl”, stacked adjectives, oral/finish phrasing) into direct anatomy models parse before queue.
-- **Story adult beats:** sultry/explicit/raunchy template forks stay sexual with concrete poses (hands-and-knees doggy, wall sex, oral…) — no “explicit and readable” / “you can photograph” meta that confuses gens; clarify also rewrites leftover meta from older forks.
+- **Story adult beats:** sultry/explicit/raunchy template forks stay sexual with concrete poses (hands-and-knees doggy, wall sex, oral…) — no “after &lt;prior title&gt;” set-dressing bait, no “explicit and readable” meta; clarify + still writer lock distinct partners (no twin/mirror doubles).
+- **Story still edit strength:** photo Story queues use Day’s strong `image-prompt` edit so Image 3 pose can override the standing Cast plate; oral/tongue/clit blurbs map to duo oral wireframes.
+- **Story intimate parity:** clip/motion prompts get the same intimate reinforce as stills; choose-your-path scene blurbs are clarified before they hit the cards.
+- **Story intimate plate fight:** sex/oral beats lead with the beat action and negative standing-fashion / reflection-partner cues; when the beat names no clothes, stills default to “fully nude, nothing worn” and skip Image 2 kits — lingerie/packshot kits still attach when wardrobe is mentioned.
+- **Story lead pose lock:** Image 1 Cast identity maps only to the black (first) Image 3 stick; blue/red sticks are partners — reduces face/body swaps on duo intimate stills.
+- **Story duo contact:** intimate prompts lock cross-person grab/touch (no self-grab); Image 3 reaches wrists toward the partner without collapsing pelvis centers, and contact copy insists on two separate bodies (anti-merge).
+- **Story intimate prompt trim:** stacked pose/lead/contact locks collapse into one compact Image 3 block so Qwen Edit isn’t drowned in repeated instructions.
+- **Story intimate IP dip:** face-lock strength auto-caps (~0.45) when Image 3 intimate layouts attach so stance can change without losing Cast likeness.
+- **Story role-from-pronouns:** intimate Image 3 flips lead/partner order from beat pronouns (e.g. she gives oral → Cast on the giver stick).
+- **Story still retry diversity:** retries roll a new seed + slight strong-band denoise jitter so soft/merge takes don’t repeat.
 - **LoRA stack stay put:** film-loop identity sync no longer wipes session LoRAs when the Cast has no pinned library ids (Fresh Cast create also leaves custom stacks alone).
 - **Story outfit kit + BYO:** same Day/Outfit clothing strip on Story (desk + phone) — kit or packshot as Image 2 so stills reinforce wardrobe instead of keeping street clothes from the Cast plate.
 - **Out of scope for 2.0:** Diffusers video / Play-on-Diffusers, Extras unpark, SSO, cloud IP-Adapter parity.

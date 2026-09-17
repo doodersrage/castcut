@@ -1,11 +1,17 @@
 import { ROLEPLAY_ARCHETYPES, type RoleplayArchetype } from './roleplay-archetypes';
 import { lastCompletedRoleplayStillUrl } from './roleplay-gallery-takes';
 import {
+  POSE_GUIDE_ACTION_LOCK,
   POSE_GUIDE_EDIT_PROMPT_LINE,
   poseGuidePromptBlock,
   withPoseGuideEditPrompt,
 } from '@/lib/pose-guide-prompt';
-import { clarifyIntimateImageLanguage } from '@/lib/intimate-prompt-clarify';
+import {
+  isLegacyAdultMetaBlurb,
+  intimateTextDefaultsToNude,
+  reinforceIntimateStillPrompt,
+} from '@/lib/intimate-prompt-clarify';
+import { parseIntimateLayout, type IntimateLayout } from '@/lib/day-pose-guide';
 import {
   DEFAULT_RENDER_REALISM_MODE,
   normalizeRenderRealismMode,
@@ -406,7 +412,19 @@ export function withRoleplayPoseGuidePrompt(
   enabled: boolean,
   realismMode: RenderRealismMode = DEFAULT_RENDER_REALISM_MODE
 ): string {
-  return withPoseGuideEditPrompt(clarifyIntimateImageLanguage(prompt), enabled, realismMode);
+  const reinforced = reinforceIntimateStillPrompt(prompt);
+  const withPose = withPoseGuideEditPrompt(reinforced, enabled, realismMode);
+  if (!enabled || !withPose) {
+    return withPose;
+  }
+  // Lead with action lock so instruction-edit models don't preserve Image 1 standing pose.
+  if (
+    parseIntimateLayout(reinforced) &&
+    !withPose.startsWith(POSE_GUIDE_ACTION_LOCK.slice(0, 24))
+  ) {
+    return `${POSE_GUIDE_ACTION_LOCK}\n${withPose}`;
+  }
+  return withPose;
 }
 
 /** Clarify euphemisms then optionally attach Image 3 pose cues (Story stills). */
@@ -414,15 +432,104 @@ export function prepareRoleplayStillPrompt(
   prompt: string,
   options?: { poseGuide?: boolean; realismMode?: RenderRealismMode }
 ): string {
-  const clarified = clarifyIntimateImageLanguage(prompt);
+  const reinforced = reinforceIntimateStillPrompt(prompt);
   if (options?.poseGuide) {
-    return withPoseGuideEditPrompt(
-      clarified,
+    return withRoleplayPoseGuidePrompt(
+      reinforced,
       true,
       options.realismMode ?? DEFAULT_RENDER_REALISM_MODE
     );
   }
-  return clarified;
+  return reinforced;
+}
+
+const KEEP_GARMENT_INTIMATE_LAYOUTS: ReadonlySet<IntimateLayout> = new Set(['undress']);
+
+/**
+ * Drop Image 2 when an intimate beat implies nude (no wardrobe words).
+ * Lingerie / half-dressed / kit packshots still attach when the beat names clothes.
+ */
+export function storyBeatOmitsGarmentPackshot(
+  beat: { title?: string; blurb?: string; prompt?: string } | null | undefined
+): boolean {
+  const haystack = [beat?.title, beat?.blurb, beat?.prompt].filter(Boolean).join(' · ');
+  const layout = parseIntimateLayout(haystack);
+  if (!layout || KEEP_GARMENT_INTIMATE_LAYOUTS.has(layout)) {
+    return false;
+  }
+  return intimateTextDefaultsToNude(haystack);
+}
+
+/** Cap IP-Adapter when Image 3 intimate layouts need body freedom (face stays). */
+export const STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP = 0.45;
+
+/**
+ * Soften face-lock strength on intimate + Image 3 stills so stance can change
+ * without losing Cast likeness. Non-intimate / no-pose paths keep the base strength.
+ */
+export function storyIdentityLockStrengthForBeat(
+  base: number | null | undefined,
+  options: {
+    beat?: { title?: string; blurb?: string; prompt?: string } | null;
+    hasPoseGuide?: boolean;
+  }
+): number | undefined {
+  const strength =
+    typeof base === 'number' && Number.isFinite(base) ? Math.max(0, Math.min(1, base)) : undefined;
+  if (!options.hasPoseGuide || !options.beat) {
+    return strength;
+  }
+  const haystack = [options.beat.title, options.beat.blurb, options.beat.prompt]
+    .filter(Boolean)
+    .join(' · ');
+  if (!parseIntimateLayout(haystack)) {
+    return strength;
+  }
+  const effective = strength ?? 0.75;
+  return Math.min(effective, STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP);
+}
+
+/**
+ * Still retry: new seed + slight denoise jitter so merges/soft takes don't repeat.
+ * Keeps denoise in the strong-edit band (≥0.94) so Image 3 pose still wins.
+ */
+export function storyStillRetryQueueParamsBase(): {
+  seed: string;
+  denoise: number;
+} {
+  return {
+    seed: String(Math.floor(Math.random() * 2 ** 32)),
+    denoise: Number((0.94 + Math.random() * 0.06).toFixed(3)),
+  };
+}
+
+/**
+ * Prefer the beat's intimate action over a soft LLM standing tableau.
+ * Puts reinforced blurb first so Qwen Edit changes pose instead of decorating the Cast plate.
+ */
+export function storyStillPromptSource(input: {
+  llmPrompt: string;
+  blurb?: string | null;
+  title?: string | null;
+}): string {
+  const llm = input.llmPrompt.trim();
+  const blurb = input.blurb?.trim() || '';
+  const haystack = [input.title, blurb, llm].filter(Boolean).join(' · ');
+  const intimate = Boolean(parseIntimateLayout(haystack));
+  if (intimate && blurb) {
+    const action = reinforceIntimateStillPrompt(blurb);
+    // Avoid duplicating if LLM already echoed the blurb.
+    if (llm.toLowerCase().includes(blurb.slice(0, 40).toLowerCase())) {
+      return reinforceIntimateStillPrompt(`${action}\n${llm}`);
+    }
+    return reinforceIntimateStillPrompt(
+      `${action}\nKeep face identity from the reference. Change pose and wardrobe to match this beat — not a standing fashion portrait.\n${llm}`
+    );
+  }
+  if (isLegacyAdultMetaBlurb(blurb)) {
+    return `${llm}\n${blurb}`;
+  }
+  return llm;
 }
 
 export function normalizeRoleplayIsolateSubject(value: unknown): boolean {
@@ -1243,53 +1350,53 @@ const ROLEPLAY_CONTINUATION_FORKS: RoleplayContinuationFork[] = [
 const ROLEPLAY_ADULT_CONTINUATION_FORKS: RoleplayContinuationFork[] = [
   {
     titlePrefix: 'Clothes off',
-    blurb: (name, last) =>
-      `${name} peeling clothes off with a partner after ${last.title.toLowerCase()} — bare skin, hands on zippers, lingerie half on.`,
+    blurb: (name, _last) =>
+      `${name} peeling clothes off with a distinct adult partner — bare skin, hands on zippers, lingerie half on.`,
   },
   {
     titlePrefix: 'Against the wall',
-    blurb: (name, last) =>
-      `${name} pinned to a wall by a partner after ${last.title.toLowerCase()} — standing sex, one leg hooked, clothes shoved aside.`,
+    blurb: (name, _last) =>
+      `${name} pinned to a wall by a distinct adult partner — standing sex, one leg hooked, clothes shoved aside.`,
   },
   {
     titlePrefix: 'On the bed',
-    blurb: (name, last) =>
-      `${name} and a partner naked on a bed after ${last.title.toLowerCase()} — missionary sex, sheets kicked down, faces clear.`,
+    blurb: (name, _last) =>
+      `${name} and a distinct adult partner naked on a bed — missionary sex, sheets kicked down, two different faces clear.`,
   },
   {
     titlePrefix: 'Oral interruption',
-    blurb: (name, last) =>
-      `A partner kneeling for oral sex on ${name} after ${last.title.toLowerCase()} — head between thighs, nude bodies, close framing.`,
+    blurb: (name, _last) =>
+      `A distinct adult partner kneeling for oral sex on ${name} — head between thighs, nude bodies, close framing.`,
   },
   {
     titlePrefix: 'From behind',
-    blurb: (name, last) =>
-      `${name} on hands and knees, partner behind in doggy-style sex after ${last.title.toLowerCase()} — gripping hips, mid-thrust, bedroom light.`,
+    blurb: (name, _last) =>
+      `${name} on hands and knees with a distinct adult partner behind her in doggy-style sex — gripping hips, nude, mid-thrust, camera behind them.`,
   },
   {
     titlePrefix: 'Straddle',
-    blurb: (name, last) =>
-      `${name} straddling a partner cowgirl-style after ${last.title.toLowerCase()} — nude, riding, hands on chest, face toward camera.`,
+    blurb: (name, _last) =>
+      `${name} straddling a distinct adult partner cowgirl-style — nude, riding, hands on chest, face toward camera.`,
   },
   {
     titlePrefix: 'Caught mid-sex',
-    blurb: (name, last) =>
-      `${name} mid-fuck with a partner when a door opens after ${last.title.toLowerCase()} — bodies still joined, startled faces, sheets tangled.`,
+    blurb: (name, _last) =>
+      `${name} mid-fuck with a distinct adult partner when a door opens — bodies still joined, startled faces, sheets tangled.`,
   },
   {
     titlePrefix: 'Threesome offer',
-    blurb: (name, last) =>
-      `${name} with two adult partners after ${last.title.toLowerCase()} — three nude bodies on a bed, hands and mouths, clear separate faces.`,
+    blurb: (name, _last) =>
+      `${name} with two distinct adult partners — three nude bodies on a bed, hands and mouths, three different faces.`,
   },
   {
     titlePrefix: 'Morning after heat',
-    blurb: (name, last) =>
-      `Morning window light on ${name} naked in bed with a partner after ${last.title.toLowerCase()} — another round starting, soft sheets.`,
+    blurb: (name, _last) =>
+      `Morning window light on ${name} naked in bed with a distinct adult partner — another round starting, soft sheets.`,
   },
   {
     titlePrefix: 'Public risk',
-    blurb: (name, last) =>
-      `${name} having quick standing sex in a half-hidden public spot after ${last.title.toLowerCase()} — clothes open, risk of being seen.`,
+    blurb: (name, _last) =>
+      `${name} having quick standing sex with a distinct adult partner in a half-hidden public spot — clothes open, risk of being seen.`,
   },
 ];
 
@@ -1329,33 +1436,33 @@ const ROLEPLAY_ENDING_FORKS: RoleplayContinuationFork[] = [
 const ROLEPLAY_ADULT_ENDING_FORKS: RoleplayContinuationFork[] = [
   {
     titlePrefix: 'Spent together',
-    blurb: (name, last) =>
-      `${name} and a partner sweaty and naked in bed after ${last.title.toLowerCase()} — soft afterglow, limbs tangled, quiet light.`,
+    blurb: (name, _last) =>
+      `${name} and a distinct adult partner sweaty and naked in bed — soft afterglow, limbs tangled, quiet light.`,
   },
   {
     titlePrefix: 'One more round',
-    blurb: (name, last) =>
-      `${name} starting one last round of sex with a partner after ${last.title.toLowerCase()} — climax pose, nude, close and intense.`,
+    blurb: (name, _last) =>
+      `${name} starting one last round of sex with a distinct adult partner — climax pose, nude, close and intense.`,
   },
   {
     titlePrefix: 'Walk of shame glow',
-    blurb: (name, last) =>
-      `${name} leaving after ${last.title.toLowerCase()} — mussed hair, flushed skin, clothes half on, satisfied expression.`,
+    blurb: (name, _last) =>
+      `${name} leaving after sex — mussed hair, flushed skin, clothes half on, satisfied expression.`,
   },
   {
     titlePrefix: 'Tangled sheets',
-    blurb: (name, last) =>
-      `Tangled sheets and ${name}'s bare body after ${last.title.toLowerCase()} — empty room, morning light, no new plot.`,
+    blurb: (name, _last) =>
+      `Tangled sheets and ${name}'s bare body — empty room, morning light, no new plot.`,
   },
   {
     titlePrefix: 'Kiss goodbye',
-    blurb: (name, last) =>
-      `${name} in a deep nude kiss with a partner closing ${last.title.toLowerCase()} — bodies pressed close, then fade.`,
+    blurb: (name, _last) =>
+      `${name} in a deep nude kiss with a distinct adult partner — bodies pressed close, then fade.`,
   },
   {
     titlePrefix: 'Alone and glowing',
-    blurb: (name, last) =>
-      `${name} alone and nude after the sex of ${last.title.toLowerCase()} — flushed, quiet bedroom, soft erotic portrait.`,
+    blurb: (name, _last) =>
+      `${name} alone and nude after sex — flushed, quiet bedroom, soft erotic portrait.`,
   },
 ];
 
