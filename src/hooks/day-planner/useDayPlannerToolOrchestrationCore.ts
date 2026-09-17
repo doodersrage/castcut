@@ -14,7 +14,12 @@ import {
   stampAssembledFilm,
 } from '@/lib/character-film-assemble';
 import { filmDownloadFilename } from '@/lib/character-film';
-import { applyCharacterRecord, getCharacter, upsertCharacter } from '@/lib/character-os';
+import {
+  applyCharacterRecord,
+  castLoraSessionIds,
+  getCharacter,
+  upsertCharacter,
+} from '@/lib/character-os';
 import {
   markOnboardingFirstFilmCut,
   markOnboardingFirstPlayCampaign,
@@ -509,6 +514,7 @@ export function useDayPlannerToolOrchestrationCore() {
           character,
           shared.ipAdapterStrength ?? 0.75
         );
+        const castLoras = castLoraSessionIds(character);
         const promptId = await actions.sendComfyUi(finalized, undefined, undefined, {
           ...(queueOptions ?? {}),
           ...(hasPlate
@@ -520,6 +526,7 @@ export function useDayPlannerToolOrchestrationCore() {
           characterId: shared.activeCharacterId,
           lookId: shared.activeLookId ?? character?.activeLookId,
           ...(faceQueueParams ? { queueParamsBase: faceQueueParams } : {}),
+          ...(castLoras ? { sessionActiveLoraIds: castLoras } : {}),
           ...(leanChrome ? { qualityProfile: leanQuality } : {}),
           ...(options?.qualityProfile && !leanChrome
             ? { qualityProfile: options.qualityProfile }

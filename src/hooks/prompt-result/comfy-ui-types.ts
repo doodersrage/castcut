@@ -69,6 +69,11 @@ export type SendComfyUiOptions = {
   turboEditStrength?: import('@/lib/turbo-edit-strength').TurboEditStrength;
   /** Override hook hints for this queue — pass '' to skip tool notes on previews. */
   queueHints?: string;
+  /**
+   * Job-pinned session LoRA stack (e.g. Cast loraLibraryIds on Day).
+   * When set, overrides Shared session / by-model picks for this queue only.
+   */
+  sessionActiveLoraIds?: string[];
 };
 
 export type TrackComfyUiJobInput = {

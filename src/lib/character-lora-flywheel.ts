@@ -228,12 +228,6 @@ export async function registerCharacterLookLora(input: {
       ...settings,
       loraLibrary: data.library,
     });
-    if (prefs.activateOnRegister !== false && data.sessionActiveLoraIds) {
-      saveSharedSettings({
-        ...loadSettingsCache().shared,
-        sessionActiveLoraIds: data.sessionActiveLoraIds,
-      });
-    }
   } else {
     const registered = registerTrainJobLora(
       settings.loraLibrary,
@@ -248,12 +242,6 @@ export async function registerCharacterLookLora(input: {
       ...settings,
       loraLibrary: registered.library,
     });
-    if (prefs.activateOnRegister !== false && registered.sessionActiveLoraIds) {
-      saveSharedSettings({
-        ...loadSettingsCache().shared,
-        sessionActiveLoraIds: registered.sessionActiveLoraIds,
-      });
-    }
     nextJob = registered.job;
   }
 
@@ -270,6 +258,30 @@ export async function registerCharacterLookLora(input: {
   }
   if (nextJob.trigger.trim()) {
     setCharacterTrigger(input.characterId, nextJob.trigger);
+  }
+
+  // 2.0: activate pinned Cast LoRAs into session + byModel (not legacy session-only).
+  if (prefs.activateOnRegister !== false) {
+    const { getCharacter } = await import('./character-os');
+    const character = getCharacter(input.characterId);
+    if (character) {
+      saveSharedSettings({
+        ...loadSettingsCache().shared,
+        ...applyCharacterRecord(character),
+      });
+    } else if (data.sessionActiveLoraIds) {
+      const current = loadSettingsCache().shared;
+      const { setSessionLoraIdsForModel } = await import('./model-lora-map');
+      saveSharedSettings({
+        ...current,
+        sessionActiveLoraIds: data.sessionActiveLoraIds,
+        sessionActiveLoraIdsByModel: setSessionLoraIdsForModel(
+          current.sessionActiveLoraIdsByModel,
+          current.model,
+          data.sessionActiveLoraIds
+        ),
+      });
+    }
   }
 
   let message = data.entry

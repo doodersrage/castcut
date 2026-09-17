@@ -5,6 +5,7 @@ import {
   applyCharacterRecordFresh,
   applyRemovedCharacterIds,
   bundleFromCharacter,
+  castLoraSessionIds,
   characterFromBundle,
   characterFromRoleplaySession,
   characterFromShared,
@@ -23,7 +24,7 @@ import {
 } from './character-os';
 import type { CharacterIdentityBundle } from './character-identity-bundle';
 import type { RoleplayLibrarySession } from './roleplay-library';
-import type { SharedToolSettings } from './settings-cache';
+import { loadSettingsCache, saveSettingsCache, type SharedToolSettings } from './settings-cache';
 import { resetBrowserStorageCache } from './browser-storage';
 
 function withMockLocalStorage(run: () => void): void {
@@ -338,14 +339,36 @@ describe('character-os', () => {
     assert.equal(roleplayLibraryIdFromCharacter('char-rin'), undefined);
   });
 
-  it('applies pinned LoRA ids onto the session', () => {
-    const record = normalizeCharacterRecord({
-      ...characterFromBundle(bundle, 'char-lora'),
-      loraLibraryIds: ['lora-rin'],
+  it('applies pinned LoRA ids onto the session and by-model map', () => {
+    withMockLocalStorage(() => {
+      saveSettingsCache({
+        ...loadSettingsCache(),
+        shared: {
+          ...loadSettingsCache().shared,
+          model: 'qwen-image-2512',
+          sessionActiveLoraIdsByModel: { 'qwen-image-2512': ['other-lora'] },
+        },
+      });
+      const record = normalizeCharacterRecord({
+        ...characterFromBundle(bundle, 'char-lora'),
+        loraLibraryIds: ['lora-rin'],
+      });
+      const patch = applyCharacterRecord(record);
+      assert.ok(patch.sessionActiveLoraIds?.includes('lora-rin'));
+      assert.deepEqual(patch.sessionActiveLoraIdsByModel?.['qwen-image-2512'], ['lora-rin']);
+      assert.equal(patch.activeLookId, record.activeLookId);
     });
-    const patch = applyCharacterRecord(record);
-    assert.ok(patch.sessionActiveLoraIds?.includes('lora-rin'));
-    assert.equal(patch.activeLookId, record.activeLookId);
+  });
+
+  it('castLoraSessionIds returns pinned ids for Day job pin', () => {
+    assert.equal(castLoraSessionIds(null), undefined);
+    const blank = normalizeCharacterRecord(characterFromBundle(bundle, 'char-blank'));
+    assert.equal(castLoraSessionIds(blank), undefined);
+    const withLora = normalizeCharacterRecord({
+      ...blank,
+      loraLibraryIds: ['lora-a', 'lora-a', '  lora-b  '],
+    });
+    assert.deepEqual(castLoraSessionIds(withLora), ['lora-a', 'lora-b']);
   });
 
   it('does not wipe session model when character has no model, and survives empty looks', () => {

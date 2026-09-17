@@ -27,6 +27,7 @@ import {
   type CharacterAppearanceDraft,
   type CharacterAppearanceFormDraft,
 } from './character-appearance';
+import { setSessionLoraIdsForModel } from './model-lora-map';
 
 export const CHARACTERS_KEY = 'comfy-prompt-characters-v1';
 export const CHARACTERS_UPDATED_EVENT = 'prompt-studio-characters-updated';
@@ -522,6 +523,20 @@ function omitUndefinedSettings(
 export function applyCharacterRecord(character: CharacterRecord): Partial<SharedToolSettings> {
   const normalized = normalizeCharacterRecord(character);
   const bundlePatch = applyCharacterIdentityBundle(bundleFromCharacter(normalized));
+  const shared = loadSettingsCache().shared;
+  const loraIds = normalized.loraLibraryIds?.length ? [...normalized.loraLibraryIds] : undefined;
+  // Per-model session picks win at queue time — write byModel or Cast pins are ignored.
+  const modelForLoras = (normalized.model ?? shared.model)?.trim();
+  const byModelPatch =
+    loraIds !== undefined && modelForLoras
+      ? {
+          sessionActiveLoraIdsByModel: setSessionLoraIdsForModel(
+            shared.sessionActiveLoraIdsByModel,
+            modelForLoras,
+            loraIds
+          ),
+        }
+      : {};
   return omitUndefinedSettings({
     ...bundlePatch,
     activeCharacterId: normalized.id,
@@ -532,9 +547,8 @@ export function applyCharacterRecord(character: CharacterRecord): Partial<Shared
     identityKind: normalized.ipAdapter?.kind
       ? normalizeComposeIdentityKind(normalized.ipAdapter.kind)
       : undefined,
-    ...(normalized.loraLibraryIds?.length
-      ? { sessionActiveLoraIds: [...normalized.loraLibraryIds] }
-      : {}),
+    ...(loraIds ? { sessionActiveLoraIds: loraIds } : {}),
+    ...byModelPatch,
   });
 }
 
@@ -544,6 +558,10 @@ export function applyCharacterRecord(character: CharacterRecord): Partial<Shared
  * previous character's look does not stick to the session.
  */
 export function applyCharacterRecordFresh(character: CharacterRecord): Partial<SharedToolSettings> {
+  const shared = loadSettingsCache().shared;
+  const applied = applyCharacterRecord(character);
+  const modelForLoras = (character.model ?? applied.model ?? shared.model)?.trim();
+  const clearLoras = !applied.sessionActiveLoraIds?.length;
   return {
     activeLookId: undefined,
     activeCharacterDescriptor: undefined,
@@ -559,8 +577,24 @@ export function applyCharacterRecordFresh(character: CharacterRecord): Partial<S
     lockedVariationSeed: undefined,
     alwaysIncludeClothing: undefined,
     sessionActiveLoraIds: undefined,
-    ...applyCharacterRecord(character),
+    ...applied,
+    ...(clearLoras && modelForLoras
+      ? {
+          sessionActiveLoraIdsByModel: setSessionLoraIdsForModel(
+            applied.sessionActiveLoraIdsByModel ?? shared.sessionActiveLoraIdsByModel,
+            modelForLoras,
+            []
+          ),
+        }
+      : {}),
   };
+}
+
+/** Job-pinned Cast LoRA ids for Day/Story queues (mirrors face queueParamsBase). */
+export function castLoraSessionIds(
+  character: CharacterRecord | null | undefined
+): string[] | undefined {
+  return uniqueIds(character?.loraLibraryIds);
 }
 
 export function characterFromRoleplaySession(

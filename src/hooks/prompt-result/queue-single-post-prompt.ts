@@ -217,7 +217,8 @@ export async function postQueueSinglePrompt(input: {
             clipMode,
           })
         : queueModel,
-      sessionActiveLoraIds: resolveSharedEffectiveSessionLoraIds(queueModel),
+      sessionActiveLoraIds:
+        options?.sessionActiveLoraIds ?? resolveSharedEffectiveSessionLoraIds(queueModel),
       sessionLoraStrengthOverrides: resolveSharedEffectiveSessionLoraStrengthOverrides(queueModel),
       engineId: actualEngineId,
     };

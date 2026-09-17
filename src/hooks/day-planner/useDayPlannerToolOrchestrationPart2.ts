@@ -15,7 +15,12 @@ import {
   stampAssembledFilm,
 } from '@/lib/character-film-assemble';
 import { filmDownloadFilename } from '@/lib/character-film';
-import { applyCharacterRecord, getCharacter, upsertCharacter } from '@/lib/character-os';
+import {
+  applyCharacterRecord,
+  castLoraSessionIds,
+  getCharacter,
+  upsertCharacter,
+} from '@/lib/character-os';
 import {
   markOnboardingFirstFilmCut,
   markOnboardingFirstPlayCampaign,
@@ -270,10 +275,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         } catch {
           /* use subject */
         }
-        // 2.0: keep Cast face on Animate — I2V init still is Image 1; pin IP-Adapter too.
+        // 2.0: keep Cast face + pinned LoRAs on Animate — I2V init still is Image 1.
         if (character) {
           syncSharedIdentityToCast(character);
         }
+        const castLoras = castLoraSessionIds(character);
         const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
           queueTool: 'video',
           queueModel: videoModel,
@@ -287,6 +293,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             character,
             shared.ipAdapterStrength ?? 0.75
           ),
+          ...(castLoras ? { sessionActiveLoraIds: castLoras } : {}),
           characterId: shared.activeCharacterId,
           lookId: shared.activeLookId ?? character?.activeLookId,
         });

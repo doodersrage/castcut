@@ -128,7 +128,11 @@ export function usePromptResultComfyUiQueueSingle(
 
         if (!cloudEngine) {
           const { resolveRuntimeForQueueAsync } = await import('@/lib/comfyui-runtime-for-model');
-          const baseRuntime = await resolveRuntimeForQueueAsync(queueModel, effectiveTool);
+          const baseRuntime = await resolveRuntimeForQueueAsync(queueModel, effectiveTool, {
+            ...(options?.sessionActiveLoraIds
+              ? { sessionActiveLoraIds: options.sessionActiveLoraIds }
+              : {}),
+          });
           vramGuard = await guardQueueQualityForVram({
             profile: options?.qualityProfile ?? baseRuntime.queueQualityProfile,
             runtime: baseRuntime,

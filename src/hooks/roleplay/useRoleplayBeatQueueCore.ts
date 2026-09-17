@@ -2,7 +2,11 @@
 
 import { useCallback } from 'react';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import { applyCharacterRecord, upsertCharacterFromRoleplaySession } from '@/lib/character-os';
+import {
+  applyCharacterRecord,
+  castLoraSessionIds,
+  upsertCharacterFromRoleplaySession,
+} from '@/lib/character-os';
 import { buildRoleplayQueueStillOptions, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 import {
   loadSettingsCache,
@@ -91,17 +95,19 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       if (!character) {
         return queueParamsBase ? { queueParamsBase } : {};
       }
-      // 2.0: pin Cast face on Story stills/clips so identity survives session shared drift.
+      // 2.0: pin Cast face + LoRAs on Story stills/clips so identity survives session drift.
       syncSharedIdentityToCast(character);
       const merged = withCastFaceQueueParams(
         queueParamsBase,
         character,
         shared.ipAdapterStrength ?? 0.75
       );
+      const castLoras = castLoraSessionIds(character);
       return {
         characterId: character.id,
         lookId: character.activeLookId,
         ...(merged ? { queueParamsBase: merged } : {}),
+        ...(castLoras ? { sessionActiveLoraIds: castLoras } : {}),
       };
     },
     [shared.ipAdapterStrength, stampRoleplayCharacter]
