@@ -9,6 +9,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Castcut 2.0 — local character lock across the film
+
+v1.9 closed the Play loop; 2.0 makes the film recognizably that Cast lead on ComfyUI without Settings fiddling.
+
+- **In progress:** pin Cast look-plate IP-Adapter onto every Day still queue when a face lock exists (same contract Outfit plate already uses).
+- **Next:** identity-aware Day/Story Animate (I2V); Cast LoRA flywheel Keep → train → pin → auto-apply on Day.
+- **Out of scope for 2.0:** Diffusers video / Play-on-Diffusers, Extras unpark, SSO, cloud IP-Adapter parity.
+
 ## [v1.9.0] - 2026-09-16
 
 - **Cast owns identity:** Film create + Cast home set Part / From photo / look plate; Story continues that Cast lead (no separate “Cast yourself” island). Active Cast sticks across Film-loop nav.

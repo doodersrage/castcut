@@ -71,6 +71,7 @@ import {
   completePlayCampaign,
   resolvePlayLoopEntryCharacterId,
 } from '@/lib/play-campaign';
+import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/look-outfit-plate';
 import { hasCompletedFirstFilm, loadPlayMetrics } from '@/lib/play-metrics';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
@@ -499,6 +500,15 @@ export function useDayPlannerToolOrchestrationCore() {
               : hasCompletedFirstFilm(loadPlayMetrics())
                 ? 'final'
                 : 'draft';
+        // 2.0: pin Cast face onto Day stills the same way Outfit plates already do —
+        // don't rely on whatever leftover session IP-Adapter shared happens to hold.
+        if (character) {
+          syncSharedIdentityToCast(character);
+        }
+        const faceQueueParams = castFaceQueueParamsBase(
+          character,
+          shared.ipAdapterStrength ?? 0.75
+        );
         const promptId = await actions.sendComfyUi(finalized, undefined, undefined, {
           ...(queueOptions ?? {}),
           ...(hasPlate
@@ -509,6 +519,7 @@ export function useDayPlannerToolOrchestrationCore() {
             : {}),
           characterId: shared.activeCharacterId,
           lookId: shared.activeLookId ?? character?.activeLookId,
+          ...(faceQueueParams ? { queueParamsBase: faceQueueParams } : {}),
           ...(leanChrome ? { qualityProfile: leanQuality } : {}),
           ...(options?.qualityProfile && !leanChrome
             ? { qualityProfile: options.qualityProfile }
@@ -551,6 +562,7 @@ export function useDayPlannerToolOrchestrationCore() {
       queuePlate,
       shared.activeCharacterId,
       shared.activeLookId,
+      shared.ipAdapterStrength,
       shared.lockedWardrobeId,
       slots,
       updateToolSettings,

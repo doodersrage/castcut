@@ -12,6 +12,8 @@ import {
   inferPlateEthnicityKey,
   pickMoodboardPlateSource,
   reinforceAppearanceForPlate,
+  resolveCastFaceForPlate,
+  castFaceQueueParamsBase,
   resolveCharacterAppearanceForPlate,
   stripDemographicCuesFromStyle,
   styleNotesForLookPlate,
@@ -47,6 +49,23 @@ function installMemoryWindow() {
 }
 
 describe('look-outfit-plate', () => {
+  it('castFaceQueueParamsBase pins Cast look face for Day/Outfit queueParamsBase', () => {
+    assert.equal(castFaceQueueParamsBase(null), undefined);
+    const blank = createBlankCharacter('Face Pin');
+    assert.equal(castFaceQueueParamsBase(blank), undefined);
+
+    const withFace = {
+      ...blank,
+      ipAdapter: { imageFilename: 'lead-face.png', imageUrl: 'https://example.com/face.png' },
+    };
+    assert.deepEqual(castFaceQueueParamsBase(withFace, 0.8), {
+      ipAdapterImageFilename: 'lead-face.png',
+      ipAdapterImageFilenames: ['lead-face.png'],
+      ipAdapterStrength: 0.8,
+    });
+    assert.equal(resolveCastFaceForPlate(withFace)?.filename, 'lead-face.png');
+  });
+
   it('pickMoodboardPlateSource prefers subject/other tiles with images', () => {
     assert.equal(pickMoodboardPlateSource([]), null);
     assert.equal(pickMoodboardPlateSource([{ id: 'a', role: 'mood', notes: 'no image' }]), null);

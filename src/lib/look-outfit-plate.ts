@@ -332,6 +332,33 @@ export function resolveCastFaceForPlate(character: CharacterRecord | null | unde
   return { filename, imageUrl };
 }
 
+/**
+ * Job-pinned IP-Adapter params from the Cast look/face lock.
+ * Use as `queueParamsBase` so Day/Outfit queues keep identity even when session shared is stale.
+ */
+export function castFaceQueueParamsBase(
+  character: CharacterRecord | null | undefined,
+  strength?: number
+):
+  | {
+      ipAdapterImageFilename: string;
+      ipAdapterImageFilenames: string[];
+      ipAdapterStrength?: number;
+    }
+  | undefined {
+  const filename = resolveCastFaceForPlate(character)?.filename?.trim();
+  if (!filename) {
+    return undefined;
+  }
+  return {
+    ipAdapterImageFilename: filename,
+    ipAdapterImageFilenames: [filename],
+    ...(typeof strength === 'number' && Number.isFinite(strength)
+      ? { ipAdapterStrength: strength }
+      : {}),
+  };
+}
+
 /** Pin session identity to this Cast and clear any prior Cast face (quiet — no broadcast). */
 export function syncSharedIdentityToCast(character: CharacterRecord): void {
   if (typeof window === 'undefined') {
@@ -627,10 +654,8 @@ export async function ensureOutfitPlateAfterLook(input: {
     return 'skipped';
   }
 
-  // Snapshot Cast appearance + face BEFORE clear.
+  // Snapshot Cast appearance BEFORE clear (face is re-read from fresh after sync).
   const appearance = resolveCharacterAppearanceForPlate(character);
-  const face = resolveCastFaceForPlate(character);
-  const faceFilename = face?.filename;
 
   let fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
   const forceReplace = input.forceReplace === true;
@@ -721,6 +746,7 @@ export async function ensureOutfitPlateAfterLook(input: {
   const explicitNegative = buildLookCastPlateNegative(appearance.appearance);
   const strength = shared.ipAdapterStrength ?? 0.75;
   try {
+    const faceQueueParams = castFaceQueueParamsBase(fresh, strength);
     const promptId = await input.sendComfyUi(prompt, null, undefined, {
       characterId,
       lookId: fresh.activeLookId ?? shared.activeLookId,
@@ -729,15 +755,7 @@ export async function ensureOutfitPlateAfterLook(input: {
       explicitNegative,
       // Pin this Cast's face when it has one; otherwise Fresh sync already cleared
       // shared IP so a previous character cannot race-swap the plate.
-      ...(faceFilename
-        ? {
-            queueParamsBase: {
-              ipAdapterImageFilename: faceFilename,
-              ipAdapterImageFilenames: [faceFilename],
-              ipAdapterStrength: strength,
-            },
-          }
-        : {}),
+      ...(faceQueueParams ? { queueParamsBase: faceQueueParams } : {}),
     });
     const id = typeof promptId === 'string' ? promptId.trim() : '';
     if (!id) {
