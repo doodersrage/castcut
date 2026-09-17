@@ -20,6 +20,7 @@ import {
   patchRoleplayStoryBeat,
   roleplayStillQueueResultPatch,
   roleplayStillTakes,
+  withRoleplayPoseGuidePrompt,
   type RoleplayBio,
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
@@ -28,6 +29,11 @@ import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { dispatchWebhook } from '@/lib/webhook-settings';
 import { snapshotRoleplaySession } from '@/lib/roleplay-library';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
+import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs';
+import { buildStoryPoseGuideFile } from '@/lib/day-pose-guide';
+import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
+import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { MutableRefObject } from 'react';
 
@@ -114,7 +120,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
   );
 
   const queueStillOptions = useCallback(
-    () =>
+    (poseGuide?: { filename?: string; imageUrl?: string }) =>
       buildRoleplayQueueStillOptions({
         photoMode: playAs === 'photo',
         isolateSubject,
@@ -123,6 +129,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         imageUrl: referenceImageUrl,
         identityLockStrength: shared.ipAdapterStrength,
         identityKind: shared.identityKind,
+        wardrobeId: toolSettings.wardrobeId || shared.lockedWardrobeId,
+        customGarmentUrl: toolSettings.customGarmentImageUrl,
+        customGarmentFilename: toolSettings.customGarmentImageFilename,
+        poseGuideFilename: poseGuide?.filename,
+        poseGuideUrl: poseGuide?.imageUrl,
       }),
     [
       isolateSubject,
@@ -131,8 +142,52 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       referenceImageUrl,
       shared.identityKind,
       shared.ipAdapterStrength,
+      shared.lockedWardrobeId,
+      toolSettings.customGarmentImageFilename,
+      toolSettings.customGarmentImageUrl,
       toolSettings.referenceIsolated,
+      toolSettings.wardrobeId,
     ]
+  );
+
+  const resolvePoseGuideForBeat = useCallback(
+    async (beat: RoleplayStoryBeat) => {
+      if (playAs !== 'photo') {
+        return undefined;
+      }
+      try {
+        const storyIndex = Math.max(
+          0,
+          storyRef.current.findIndex(entry => entry.id === beat.id && entry.at === beat.at)
+        );
+        const poseFile = await buildStoryPoseGuideFile({
+          title: beat.title,
+          blurb: beat.blurb,
+          prompt: beat.prompt,
+          storyIndex: storyIndex >= 0 ? storyIndex : 0,
+        });
+        const uploaded = await resolveQueueInputImage({
+          file: poseFile,
+          filename: poseFile.name,
+          model: shared.model,
+        });
+        const poseGuideFilename = uploaded?.filename?.trim() || undefined;
+        if (!poseGuideFilename) {
+          return undefined;
+        }
+        const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+        const poseGuideUrl =
+          collectIsolateSourceUrls({
+            filename: poseGuideFilename,
+            comfyUrl,
+          }).find(url => url.includes('/api/comfyui/view?')) || undefined;
+        return { filename: poseGuideFilename, imageUrl: poseGuideUrl };
+      } catch {
+        // Pose guide is best-effort — Story still queues without Image 3.
+        return undefined;
+      }
+    },
+    [playAs, shared.model, storyRef]
   );
 
   const skipStillForClip = beatOutput === 'clip' && autoQueue;
@@ -148,7 +203,16 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       if (!data.prompt?.trim()) {
         throw new Error(data.error ?? 'Could not write a still.');
       }
-      const prompt = await actions.finalizePrompt(data.prompt, beat.title);
+      const queueStill = options?.queueStill ?? autoQueue;
+      const poseGuide =
+        queueStill && playAs === 'photo' ? await resolvePoseGuideForBeat(beat) : undefined;
+      // When saving prompt only, still name Image 3 — Queue later attaches the stick figure.
+      const promptWithPose = withRoleplayPoseGuidePrompt(
+        data.prompt,
+        Boolean(poseGuide) || (!queueStill && playAs === 'photo'),
+        shared.renderRealismMode
+      );
+      const prompt = await actions.finalizePrompt(promptWithPose, beat.title);
       rememberDraftFields({
         toolKey: TOOL_ID,
         label: 'Story',
@@ -163,10 +227,10 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         completedAt: Date.now(),
       });
       let stillPatch: Partial<RoleplayStoryBeat> = { prompt };
-      const queueStill = options?.queueStill ?? autoQueue;
       if (queueStill) {
+        await loadWardrobeGarmentThumbManifest();
         const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
-          ...(queueStillOptions() ?? {}),
+          ...(queueStillOptions(poseGuide) ?? {}),
           ...roleplayCharacterQueueFields({ bio: nextBio, story: currentStory }),
         });
         stillPatch = {
@@ -184,9 +248,12 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     [
       actions,
       autoQueue,
+      playAs,
       queueStillOptions,
+      resolvePoseGuideForBeat,
       roleplayCharacterQueueFields,
       shared.model,
+      shared.renderRealismMode,
       updateToolSettings,
     ]
   );
@@ -218,8 +285,15 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         : undefined;
       let promptId: string | undefined;
       try {
-        promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
-          ...(queueStillOptions() ?? {}),
+        await loadWardrobeGarmentThumbManifest();
+        const poseGuide = await resolvePoseGuideForBeat(latest);
+        const queuePrompt = withRoleplayPoseGuidePrompt(
+          prompt,
+          Boolean(poseGuide),
+          shared.renderRealismMode
+        );
+        promptId = await actions.sendComfyUi(queuePrompt, undefined, undefined, {
+          ...(queueStillOptions(poseGuide) ?? {}),
           ...roleplayCharacterQueueFields(),
           ...(retry
             ? {
@@ -248,8 +322,10 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     [
       actions,
       queueStillOptions,
+      resolvePoseGuideForBeat,
       roleplayCharacterQueueFields,
       setError,
+      shared.renderRealismMode,
       storyRef,
       updateToolSettings,
     ]

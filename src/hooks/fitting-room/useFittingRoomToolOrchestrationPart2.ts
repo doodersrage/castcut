@@ -37,21 +37,17 @@ import {
 } from '@/lib/clothing-catalog-client';
 import {
   countInFlightFittingKitPreviews,
-  fittingGarmentPackshotQueueParams,
   fittingKitPreviewQueueParams,
   fittingKitPreviewQueueResolveOptions,
   getFittingKitPreview,
   normalizeFittingKitPreviews,
-  resolveFittingGarmentPackshotModel,
   resolveFittingKitPreviewModel,
 } from '@/lib/fitting-kit-previews';
+import { applyCustomGarmentUpload } from '@/lib/fitting-custom-garment-apply';
 import {
   buildFittingSwipeDeck,
-  buildFittingGarmentPackshotExtractPrompt,
-  FITTING_GARMENT_PACKSHOT_EXTRACT_NEGATIVE,
   fittingSwipeIndex,
   fittingSwipeNeighbor,
-  isPlausibleFittingGarmentDescription,
   resolveFittingDeckWardrobeId,
   resolveFittingPlateFromCharacter,
 } from '@/lib/fitting-room';
@@ -63,12 +59,7 @@ import {
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
-import {
-  collectIsolateSourceUrls,
-  isolateSubjectOnWhite,
-  ISOLATE_QUEUE_BLOCKED_MESSAGE,
-  loadImageBlobFromUrls,
-} from '@/lib/isolate-subject';
+import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import {
   applyLookPackToFittingState,
   loadLookPack,
@@ -85,10 +76,12 @@ import {
   clearCharacterLookPlate,
   tryAttachPendingOutfitPlate,
 } from '@/lib/look-outfit-plate';
+import {
+  loadSavedFittingGarments,
+  removeSavedFittingGarment,
+  saveFittingGarment,
+} from '@/lib/fitting-saved-garments';
 import { bumpPlayCampaignStep, resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
-import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
@@ -217,172 +210,32 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
   );
 
   const applyCustomGarment = useCallback(
-    async (input: { file?: File | null; imageUrl?: string; filename?: string }) => {
-      const file = input.file ?? null;
-      const imageUrl = input.imageUrl?.trim() || '';
-      if (!file && !imageUrl) {
-        throw new Error('Choose a clothing photo first.');
-      }
+    async (input: {
+      file?: File | null;
+      imageUrl?: string;
+      filename?: string;
+      asPackshot?: boolean;
+    }) => {
       setGarmentUploading(true);
       setGarmentScanStatus(null);
       setError(null);
       try {
-        const originalName = input.filename || file?.name || `fitting-garment-${Date.now()}.png`;
-        const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
-        const sourceFile =
-          file ??
-          (await (async () => {
-            const blob = await loadImageBlobFromUrls(
-              collectIsolateSourceUrls({
-                imageUrl,
-                filename: originalName,
-                comfyUrl,
-              })
-            );
-            return new File([blob], originalName, {
-              type: blob.type || 'image/png',
-              lastModified: Date.now(),
-            });
-          })());
-
-        // 1) White cutout first (helps the edit model ignore busy scenes).
-        let garmentFile = sourceFile;
-        setGarmentScanStatus('Extracting clothing onto white…');
-        try {
-          garmentFile = await isolateSubjectOnWhite(sourceFile, originalName);
-        } catch {
-          garmentFile = sourceFile;
-        }
-
-        const uploadName = garmentFile.name || originalName.replace(/\.[^.]+$/, '') + '-cutout.png';
-        let uploaded = await resolveQueueInputImage({
-          file: garmentFile,
-          filename: uploadName,
+        const result = await applyCustomGarmentUpload(input, {
           model: shared.model,
+          characterId: shared.activeCharacterId,
+          lookId: shared.activeLookId ?? character?.activeLookId,
+          sendComfyUi: (prompt, _a, _b, options) =>
+            actions.sendComfyUi(prompt, undefined, undefined, options),
+          scanDescription: scanCustomGarmentDescription,
+          onStatus: setGarmentScanStatus,
+          onSoftError: setError,
         });
-        let filename = uploaded?.filename?.trim();
-        if (!filename) {
-          throw new Error('Upload did not return a filename.');
-        }
-        // Do NOT persistIdentityImage — that overwrites the shared face/plate lock file.
-        let previewUrl =
-          collectIsolateSourceUrls({
-            filename,
-            comfyUrl,
-          }).find(url => url.includes('/api/comfyui/view?')) ||
-          (imageUrl && !imageUrl.startsWith('blob:') ? imageUrl : '') ||
-          URL.createObjectURL(garmentFile);
-
-        // Snapshot the white cutout — packshot edit can collapse into pattern walls;
-        // we fall back to this when the result fails a garment plausibility check.
-        const cutoutFile = garmentFile;
-        const cutoutFilename = filename;
-        const cutoutPreviewUrl = previewUrl;
-
-        // 2) Ghost-mannequin / flat-lay packshot via a real edit pass (not swipe-thumb draft-lite).
-        const packshotModel = resolveFittingGarmentPackshotModel(shared.model);
-        if (packshotModel) {
-          setGarmentScanStatus('Building clothing-only packshot…');
-          try {
-            const promptId = await actions.sendComfyUi(
-              buildFittingGarmentPackshotExtractPrompt(),
-              undefined,
-              undefined,
-              {
-                inputImageFilename: filename,
-                inputImageUrl: previewUrl,
-                identityLock: false,
-                queueModel: packshotModel,
-                qualityProfile: 'draft',
-                turboEditStrength: 'strong',
-                explicitNegative: FITTING_GARMENT_PACKSHOT_EXTRACT_NEGATIVE,
-                queueParamsBase: fittingGarmentPackshotQueueParams(),
-                queueHints: '',
-                characterId: shared.activeCharacterId,
-                lookId: shared.activeLookId ?? character?.activeLookId,
-              }
-            );
-            const id = typeof promptId === 'string' ? promptId.trim() : '';
-            if (id) {
-              const completed = await waitForGalleryPromptIds([id], {
-                timeoutMs: 3 * 60_000,
-                pollMs: 2_500,
-              });
-              const entry = completed[0];
-              const packshotUrl = entry ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
-              if (packshotUrl) {
-                const packshotBlob = await loadImageBlobFromUrls([packshotUrl]);
-                const packshotFile = new File(
-                  [packshotBlob],
-                  `fitting-garment-packshot-${Date.now()}.png`,
-                  {
-                    type: packshotBlob.type || 'image/png',
-                    lastModified: Date.now(),
-                  }
-                );
-                // Reject tiled/glyph collapses before they become Image 2.
-                const probeDescription = await scanCustomGarmentDescription(packshotFile).catch(
-                  () => null
-                );
-                if (!isPlausibleFittingGarmentDescription(probeDescription)) {
-                  throw new Error('Packshot edit collapsed — keeping clothing cutout.');
-                }
-                uploaded = await resolveQueueInputImage({
-                  file: packshotFile,
-                  filename: packshotFile.name,
-                  model: shared.model,
-                });
-                const packshotFilename = uploaded?.filename?.trim();
-                if (packshotFilename) {
-                  filename = packshotFilename;
-                  garmentFile = packshotFile;
-                  previewUrl =
-                    collectIsolateSourceUrls({
-                      filename: packshotFilename,
-                      comfyUrl,
-                    }).find(url => url.includes('/api/comfyui/view?')) ?? packshotUrl;
-                  // Reuse the probe scan as the description when it looks good.
-                  if (probeDescription?.trim()) {
-                    updateToolSettings({
-                      customGarmentImageFilename: filename,
-                      customGarmentImageUrl: previewUrl,
-                      customGarmentDescription: probeDescription.trim(),
-                    });
-                    updateShared({ lockedWardrobeId: undefined });
-                    return;
-                  }
-                }
-              }
-            }
-          } catch {
-            // Keep the white cutout / original — try-on still works.
-            garmentFile = cutoutFile;
-            filename = cutoutFilename;
-            previewUrl = cutoutPreviewUrl;
-          }
-        }
-
         updateToolSettings({
-          customGarmentImageFilename: filename,
-          customGarmentImageUrl: previewUrl,
-          customGarmentDescription: undefined,
+          customGarmentImageFilename: result.filename,
+          customGarmentImageUrl: result.previewUrl,
+          customGarmentDescription: result.description,
         });
-        // BYO clothing and catalog kit are mutually exclusive.
         updateShared({ lockedWardrobeId: undefined });
-
-        try {
-          setGarmentScanStatus('Scanning clothing packshot with vision…');
-          const description = await scanCustomGarmentDescription(garmentFile);
-          if (description?.trim()) {
-            updateToolSettings({ customGarmentDescription: description.trim() });
-          }
-        } catch (err) {
-          setError(
-            err instanceof Error
-              ? `${err.message} Clothing photo kept — try-on will rely on Image 2 until you rescan.`
-              : 'Vision scan failed. Clothing photo kept — try-on will rely on Image 2 until you rescan.'
-          );
-        }
       } finally {
         setGarmentUploading(false);
         setGarmentScanStatus(null);
@@ -452,6 +305,57 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     });
     setGarmentScanStatus(null);
   }, [toolSettings.customGarmentImageUrl, updateToolSettings]);
+
+  const saveCurrentCustomGarment = useCallback(() => {
+    const filename = toolSettings.customGarmentImageFilename?.trim();
+    if (!filename) {
+      throw new Error('Upload a clothing photo first.');
+    }
+    const entry = saveFittingGarment({
+      imageFilename: filename,
+      imageUrl: toolSettings.customGarmentImageUrl,
+      description: toolSettings.customGarmentDescription,
+    });
+    setSaveStatus(`Saved “${entry.label}” for later.`);
+    return entry;
+  }, [
+    toolSettings.customGarmentDescription,
+    toolSettings.customGarmentImageFilename,
+    toolSettings.customGarmentImageUrl,
+  ]);
+
+  const applySavedCustomGarment = useCallback(
+    (garmentId: string) => {
+      const id = garmentId.trim();
+      const entry = loadSavedFittingGarments().find(item => item.id === id);
+      if (!entry) {
+        throw new Error('That saved clothing photo is gone.');
+      }
+      const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+      const previewUrl =
+        entry.imageUrl?.trim() ||
+        collectIsolateSourceUrls({
+          filename: entry.imageFilename,
+          comfyUrl,
+        }).find(url => url.includes('/api/comfyui/view?')) ||
+        '';
+      if (!previewUrl) {
+        throw new Error('Could not resolve that saved clothing photo — re-upload it.');
+      }
+      updateToolSettings({
+        customGarmentImageFilename: entry.imageFilename,
+        customGarmentImageUrl: previewUrl,
+        customGarmentDescription: entry.description,
+      });
+      updateShared({ lockedWardrobeId: undefined });
+      setSaveStatus(`Using saved “${entry.label}”.`);
+    },
+    [updateShared, updateToolSettings]
+  );
+
+  const removeSavedCustomGarment = useCallback((garmentId: string) => {
+    removeSavedFittingGarment(garmentId);
+  }, []);
 
   const clearKit = useCallback(() => {
     updateShared({ lockedWardrobeId: undefined });
@@ -845,6 +749,9 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     applyCustomGarment,
     rescanCustomGarment,
     clearCustomGarment,
+    saveCurrentCustomGarment,
+    applySavedCustomGarment,
+    removeSavedCustomGarment,
     clearKit,
     selectKit,
     swipeKit,

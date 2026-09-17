@@ -1,4 +1,5 @@
 import { avoidedTokensRequestBody } from './avoided-tokens';
+import { getCachedClothingLabel } from './clothing-catalog-client';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from './isolate-subject';
 import { sharedLlmRequestBody } from './llm-request-options';
 import {
@@ -12,6 +13,7 @@ import {
 } from './roleplay';
 import type { SharedToolSettings } from './settings-cache';
 import type { EnrichedToolGenerateResult } from './specialized/types';
+import { buildFittingGarmentReferenceExtras } from './wardrobe-garment-thumbs';
 
 export type RoleplayApiPayload = EnrichedToolGenerateResult & {
   error?: string;
@@ -23,6 +25,12 @@ export type RoleplayApiPayload = EnrichedToolGenerateResult & {
 export type RoleplayQueueStillOptions = {
   inputImageFilename?: string;
   inputImageUrl?: string;
+  /**
+   * Sparse extras: slot 0 empty so plate stays Image 1;
+   * slot 1 = garment packshot; slot 2 = crude pose stick figure.
+   */
+  inputImageUrls?: Array<string | undefined>;
+  inputImageFilenames?: string[];
   identityLock: true;
   identityLockStrength?: number;
   identityKind?: SharedToolSettings['identityKind'];
@@ -45,6 +53,12 @@ export function buildRoleplayRequestBody(input: {
   bio?: RoleplayBio;
   story?: RoleplayStoryBeat[];
   rejectedScenes?: RoleplayScene[];
+  /** Catalog kit label or id for wardrobe cues. */
+  wardrobeLabel?: string;
+  /** Vision / manual description of a BYO clothing packshot. */
+  garmentDescription?: string;
+  /** True when Image 2 will carry a packshot / BYO garment. */
+  hasGarmentReference?: boolean;
 }): Record<string, unknown> {
   const nameLock = resolveRoleplayLockedCharacterName(input.characterName);
   const writingBio = input.action === 'bio';
@@ -65,12 +79,52 @@ export function buildRoleplayRequestBody(input: {
     content: input.content,
     allowGore: input.allowGore === true,
     hasReferenceImage: input.hasReferenceImage,
+    wardrobeLabel: input.wardrobeLabel?.trim() || undefined,
+    garmentDescription: input.garmentDescription?.trim() || undefined,
+    hasGarmentReference: input.hasGarmentReference === true,
     bio: writingBio ? undefined : input.bio,
     story: writingBio ? [] : input.story,
     rejectedScenes: input.action === 'scenes' ? input.rejectedScenes : undefined,
     situation: input.situation,
     ...avoidedTokensRequestBody(),
     ...sharedLlmRequestBody(input.shared),
+  };
+}
+
+/** Resolve kit / BYO fields for Story LLM cues and queue Image 2. */
+export function resolveRoleplayWardrobeFields(input: {
+  wardrobeId?: string | null;
+  lockedWardrobeId?: string | null;
+  wardrobeLabel?: string | null;
+  customGarmentUrl?: string | null;
+  customGarmentFilename?: string | null;
+  customGarmentDescription?: string | null;
+}): {
+  wardrobeId?: string;
+  wardrobeLabel?: string;
+  garmentDescription?: string;
+  hasGarmentReference: boolean;
+  garmentFilename?: string;
+  garmentUrl?: string;
+} {
+  const wardrobeId = input.wardrobeId?.trim() || input.lockedWardrobeId?.trim() || undefined;
+  const extras = buildFittingGarmentReferenceExtras({
+    wardrobeId,
+    customGarmentUrl: input.customGarmentUrl,
+    customGarmentFilename: input.customGarmentFilename,
+  });
+  const label =
+    input.wardrobeLabel?.trim() ||
+    (wardrobeId ? getCachedClothingLabel(wardrobeId) || wardrobeId : undefined);
+  return {
+    ...(wardrobeId ? { wardrobeId } : {}),
+    ...(label ? { wardrobeLabel: label } : {}),
+    ...(input.customGarmentDescription?.trim()
+      ? { garmentDescription: input.customGarmentDescription.trim() }
+      : {}),
+    hasGarmentReference: Boolean(extras),
+    ...(extras?.inputImageFilenames?.[1] ? { garmentFilename: extras.inputImageFilenames[1] } : {}),
+    ...(extras?.inputImageUrls?.[1] ? { garmentUrl: extras.inputImageUrls[1] } : {}),
   };
 }
 
@@ -82,6 +136,15 @@ export function buildRoleplayQueueStillOptions(input: {
   imageUrl?: string;
   identityLockStrength?: SharedToolSettings['ipAdapterStrength'];
   identityKind?: SharedToolSettings['identityKind'];
+  /** Clothing packshot / BYO as Image 2. */
+  garmentFilename?: string | null;
+  garmentUrl?: string | null;
+  wardrobeId?: string | null;
+  customGarmentUrl?: string | null;
+  customGarmentFilename?: string | null;
+  /** Crude stick-figure pose guide as Image 3. */
+  poseGuideFilename?: string | null;
+  poseGuideUrl?: string | null;
 }): RoleplayQueueStillOptions | undefined {
   if (!input.photoMode) {
     return undefined;
@@ -94,9 +157,42 @@ export function buildRoleplayQueueStillOptions(input: {
   if (!filename && !imageUrl) {
     return undefined;
   }
+  const wardrobe = resolveRoleplayWardrobeFields({
+    wardrobeId: input.wardrobeId,
+    customGarmentUrl: input.customGarmentUrl,
+    customGarmentFilename: input.customGarmentFilename,
+  });
+  // Explicit garmentFilename/Url win when callers already resolved extras.
+  const garmentFilename = input.garmentFilename?.trim() || wardrobe.garmentFilename || '';
+  const garmentUrl = input.garmentUrl?.trim() || wardrobe.garmentUrl || '';
+  const poseGuideFilename = input.poseGuideFilename?.trim() || '';
+  const poseGuideUrl = input.poseGuideUrl?.trim() || '';
+  const hasGarment = Boolean(garmentFilename || garmentUrl);
+  const hasPoseGuide = Boolean(poseGuideFilename || poseGuideUrl);
+  const extraUrls: Array<string | undefined> = [undefined];
+  const extraFilenames: string[] = [''];
+  if (hasGarment || hasPoseGuide) {
+    extraUrls[1] = hasGarment ? garmentUrl || undefined : undefined;
+    extraFilenames[1] = hasGarment ? garmentFilename : '';
+  }
+  if (hasPoseGuide) {
+    extraUrls[2] = poseGuideUrl || undefined;
+    extraFilenames[2] = poseGuideFilename;
+  }
+  const hasExtras =
+    extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
+    extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
   return {
     inputImageFilename: filename || undefined,
     inputImageUrl: imageUrl || undefined,
+    ...(hasExtras
+      ? {
+          ...(extraUrls.some(url => Boolean(url)) ? { inputImageUrls: extraUrls } : {}),
+          ...(extraFilenames.some(name => Boolean(name.trim()))
+            ? { inputImageFilenames: extraFilenames }
+            : {}),
+        }
+      : {}),
     identityLock: true,
     identityLockStrength: input.identityLockStrength,
     identityKind: input.identityKind,

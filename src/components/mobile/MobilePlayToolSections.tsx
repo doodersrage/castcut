@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
+import RoleplayWardrobeSection from '@/components/roleplay/RoleplayWardrobeSection';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
@@ -65,11 +66,15 @@ export default function MobilePlayToolSections({ description: _description, ...v
     plateUrl,
     autoIsolateAttemptedRef,
     setActivePlate,
+    wardrobe,
+    setError,
   } = vm;
 
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance({ mobile: true });
   const castId = filmCharacterId?.trim() || '';
   const castBibleHref = castId ? `/characters/${encodeURIComponent(castId)}` : '/characters';
+  const busy =
+    bioLoading || Boolean(playingId) || isolating || assemblingFilm || wardrobe.garmentUploading;
 
   return (
     <div className="space-y-4" data-testid="mobile-play">
@@ -134,6 +139,16 @@ export default function MobilePlayToolSections({ description: _description, ...v
             Open Cast
           </Link>
         </div>
+      ) : null}
+
+      {castId ? (
+        <RoleplayWardrobeSection
+          busy={busy}
+          toolSettings={toolSettings}
+          onUpdateToolSettings={updateToolSettings}
+          onError={message => setError(message)}
+          wardrobe={wardrobe}
+        />
       ) : null}
 
       {plates.length > 1 ? (

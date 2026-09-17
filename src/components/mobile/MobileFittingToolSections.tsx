@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
@@ -14,6 +14,12 @@ import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 import { buildFittingCompareLightboxState } from '@/lib/fitting-room';
 import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
+import {
+  findSavedFittingGarmentByFilename,
+  loadSavedFittingGarments,
+  subscribeSavedFittingGarments,
+  type SavedFittingGarment,
+} from '@/lib/fitting-saved-garments';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import { toMobileStudioHref, withCharacterQuery } from '@/lib/mobile-studio';
 import {
@@ -31,6 +37,15 @@ const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
   ssr: false,
   loading: () => null,
 });
+
+function useSavedFittingGarments(): SavedFittingGarment[] {
+  const json = useSyncExternalStore(
+    subscribeSavedFittingGarments,
+    () => JSON.stringify(loadSavedFittingGarments()),
+    () => '[]'
+  );
+  return useMemo(() => JSON.parse(json) as SavedFittingGarment[], [json]);
+}
 
 type ViewModel = ReturnType<typeof useFittingRoomToolOrchestration>;
 
@@ -83,9 +98,16 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     applyCustomGarment,
     clearCustomGarment,
     rescanCustomGarment,
+    saveCurrentCustomGarment,
+    applySavedCustomGarment,
+    removeSavedCustomGarment,
     clearKit,
   } = vm;
 
+  const savedGarments = useSavedFittingGarments();
+  const alreadySavedGarment = Boolean(
+    findSavedFittingGarmentByFilename(toolSettings.customGarmentImageFilename)?.id
+  );
   const touchStartX = useRef<number | null>(null);
   const mobileContinueDay = continueDayHref ? toMobileStudioHref(continueDayHref) : null;
   const mobileDayHref = toMobileStudioHref(dayPlannerHref);
@@ -219,28 +241,51 @@ export default function MobileFittingToolSections(vm: ViewModel) {
       <div className="space-y-2" data-testid="mobile-fitting-custom-garment">
         <FieldLabel>Your clothing photo</FieldLabel>
         <p className="type-caption text-[var(--text-muted)]">
-          Optional — cut to white, then build a clothing-only packshot for Image 2 (clears catalog
-          kit).
+          Extract from a worn still, or upload a ready packshot (skips the edit pass).
         </p>
-        <input
-          type="file"
-          accept="image/*"
-          aria-label="Upload your clothing photo"
-          disabled={busy || garmentUploading}
-          className="ui-file-input block w-full"
-          onChange={event => {
-            const file = event.target.files?.[0];
-            event.target.value = '';
-            if (!file) {
-              return;
-            }
-            void applyCustomGarment({ file }).catch(err => {
-              setError(
-                err instanceof Error ? err.message : 'Could not upload that clothing photo.'
-              );
-            });
-          }}
-        />
+        <label className="block space-y-1">
+          <span className="type-caption text-[var(--text-muted)]">Extract from photo</span>
+          <input
+            type="file"
+            accept="image/*"
+            aria-label="Upload clothing photo to extract a packshot"
+            disabled={busy || garmentUploading}
+            className="ui-file-input block w-full"
+            onChange={event => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (!file) {
+                return;
+              }
+              void applyCustomGarment({ file }).catch(err => {
+                setError(
+                  err instanceof Error ? err.message : 'Could not upload that clothing photo.'
+                );
+              });
+            }}
+          />
+        </label>
+        <label className="block space-y-1">
+          <span className="type-caption text-[var(--text-muted)]">Ready packshot</span>
+          <input
+            type="file"
+            accept="image/*"
+            aria-label="Upload a ready clothing packshot"
+            data-testid="fitting-upload-ready-packshot"
+            disabled={busy || garmentUploading}
+            className="ui-file-input block w-full"
+            onChange={event => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (!file) {
+                return;
+              }
+              void applyCustomGarment({ file, asPackshot: true }).catch(err => {
+                setError(err instanceof Error ? err.message : 'Could not upload that packshot.');
+              });
+            }}
+          />
+        </label>
         {garmentUploading || garmentScanStatus ? (
           <p
             className="type-caption text-[var(--text-muted)]"
@@ -266,6 +311,23 @@ export default function MobileFittingToolSections(vm: ViewModel) {
               <Button
                 size="sm"
                 variant="secondary"
+                disabled={busy || garmentUploading || alreadySavedGarment}
+                data-testid="fitting-save-garment"
+                onClick={() => {
+                  try {
+                    saveCurrentCustomGarment();
+                  } catch (err) {
+                    setError(
+                      err instanceof Error ? err.message : 'Could not save that clothing photo.'
+                    );
+                  }
+                }}
+              >
+                {alreadySavedGarment ? 'Saved' : 'Save for later'}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
                 disabled={busy || garmentUploading}
                 onClick={() => {
                   void rescanCustomGarment().catch(err => {
@@ -283,6 +345,69 @@ export default function MobileFittingToolSections(vm: ViewModel) {
               >
                 Clear photo
               </Button>
+            </div>
+          </div>
+        ) : null}
+        {savedGarments.length > 0 ? (
+          <div className="space-y-2" data-testid="fitting-saved-garments">
+            <FieldLabel>Saved clothing</FieldLabel>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {savedGarments.map(entry => {
+                const active =
+                  toolSettings.customGarmentImageFilename?.trim() === entry.imageFilename ||
+                  toolSettings.customGarmentImageUrl?.trim() === entry.imageUrl;
+                return (
+                  <div
+                    key={entry.id}
+                    className={`relative shrink-0 rounded-xl border ${
+                      active ? 'border-[var(--accent-rose)]' : 'border-[var(--border-subtle)]'
+                    } bg-[var(--bg-muted)]/40`}
+                  >
+                    <button
+                      type="button"
+                      disabled={busy || garmentUploading}
+                      className="block w-24 space-y-1 p-1.5 text-left"
+                      title={entry.description || entry.label}
+                      onClick={() => {
+                        try {
+                          applySavedCustomGarment(entry.id);
+                        } catch (err) {
+                          setError(
+                            err instanceof Error
+                              ? err.message
+                              : 'Could not use that saved clothing photo.'
+                          );
+                        }
+                      }}
+                    >
+                      {entry.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={entry.imageUrl}
+                          alt=""
+                          className="h-20 w-full rounded-lg object-contain"
+                        />
+                      ) : (
+                        <div className="flex h-20 items-center justify-center type-caption text-[var(--text-muted)]">
+                          Packshot
+                        </div>
+                      )}
+                      <span className="line-clamp-2 type-caption text-[var(--text-secondary)]">
+                        {entry.label}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${entry.label}`}
+                      disabled={busy || garmentUploading}
+                      className="absolute right-1 top-1 rounded-full bg-[var(--bg-elevated)]/90 px-1.5 type-caption text-[var(--text-muted)]"
+                      onClick={() => removeSavedCustomGarment(entry.id)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ) : null}

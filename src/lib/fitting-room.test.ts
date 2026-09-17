@@ -8,6 +8,7 @@ import {
   buildFittingSwipeDeck,
   fittingSwipeIndex,
   fittingSwipeNeighbor,
+  isCollapsedFittingGarmentDescription,
   isPlausibleFittingGarmentDescription,
   resolveFittingDeckWardrobeId,
   resolveFittingKitPreviewPlate,
@@ -164,9 +165,24 @@ describe('fitting outfit prompts', () => {
       isPlausibleFittingGarmentDescription('navy double-breasted blazer over ivory trousers'),
       true
     );
+    assert.equal(
+      isPlausibleFittingGarmentDescription('ecommerce clothing product photo on white'),
+      true
+    );
     assert.equal(isPlausibleFittingGarmentDescription('repeating orange pattern tiles'), false);
     assert.equal(isPlausibleFittingGarmentDescription('abstract geometric glyph wall'), false);
     assert.equal(isPlausibleFittingGarmentDescription(''), false);
+  });
+
+  it('isCollapsedFittingGarmentDescription only hard-rejects pattern dumps', () => {
+    assert.equal(isCollapsedFittingGarmentDescription(null), false);
+    assert.equal(isCollapsedFittingGarmentDescription(''), false);
+    assert.equal(
+      isCollapsedFittingGarmentDescription('soft studio garment on seamless backdrop'),
+      false
+    );
+    assert.equal(isCollapsedFittingGarmentDescription('repeating pattern wallpaper tiles'), true);
+    assert.equal(isCollapsedFittingGarmentDescription('empty frame, no clothing'), true);
   });
 });
 

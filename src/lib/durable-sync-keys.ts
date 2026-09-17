@@ -32,6 +32,7 @@ export const DURABLE_BROWSER_SYNC_KEYS = new Set([
   'comfy-prompt-nsfw-preset-prefs-v1',
   'comfy-prompt-user-scene-starter-presets-v1',
   'comfy-prompt-roleplay-library-v1',
+  'fitting-saved-garments',
   'comfy-prompt-characters-v1',
   'comfy-prompt-recipes-v1',
   'prompt-campaign-templates-v1',

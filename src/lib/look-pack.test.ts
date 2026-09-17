@@ -107,6 +107,7 @@ describe('look-pack', () => {
     assert.match(lookPackRoleplayHref(pack), /character=char-1/);
     const applied = applyLookPackToRoleplaySettings(pack);
     assert.equal(applied.tool.setting, 'rainy street');
+    assert.equal(applied.tool.wardrobeId, 'kit-a');
     assert.equal(applied.shared.lockedWardrobeId, 'kit-a');
     assert.equal(inferRoleplayToneFromLookPack(pack), 'noir');
   });

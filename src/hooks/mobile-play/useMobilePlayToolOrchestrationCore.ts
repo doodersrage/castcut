@@ -7,6 +7,7 @@ import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useRoleplayBeatQueue } from '@/hooks/useRoleplayBeatQueue';
 import { useRoleplayLookPackDeepLink } from '@/hooks/useRoleplayLookPackDeepLink';
 import { useRoleplayStorySync } from '@/hooks/useRoleplayStorySync';
+import { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { IDENTITY_MEDIA_URL, persistIdentityImage } from '@/lib/gallery-media-client';
 import {
@@ -39,7 +40,12 @@ import {
   loadToolSettings,
   SETTINGS_CACHE_UPDATED_EVENT,
 } from '@/lib/settings-cache';
-import { buildRoleplayRequestBody, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
+import {
+  buildRoleplayRequestBody,
+  resolveRoleplayWardrobeFields,
+  type RoleplayApiPayload,
+} from '@/lib/roleplay-play-core';
+import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
 
 const TOOL_ID = 'roleplay';
 const EMPTY_STORY: RoleplayStoryBeat[] = [];
@@ -257,9 +263,28 @@ export function useMobilePlayToolOrchestrationCore() {
     setError,
   });
 
+  const wardrobe = useRoleplayWardrobe({
+    shared,
+    toolSettings,
+    updateShared,
+    updateToolSettings,
+    actions,
+    setError,
+  });
+
   const requestBody = useCallback(
-    (action: 'bio' | 'scenes' | 'prompt', situation?: RoleplayScene) =>
-      buildRoleplayRequestBody({
+    (action: 'bio' | 'scenes' | 'prompt', situation?: RoleplayScene) => {
+      const wardrobeFields = resolveRoleplayWardrobeFields({
+        wardrobeId: toolSettings.wardrobeId,
+        lockedWardrobeId: shared.lockedWardrobeId,
+        wardrobeLabel: toolSettings.wardrobeId
+          ? getCachedClothingLabel(toolSettings.wardrobeId) || undefined
+          : undefined,
+        customGarmentUrl: toolSettings.customGarmentImageUrl,
+        customGarmentFilename: toolSettings.customGarmentImageFilename,
+        customGarmentDescription: toolSettings.customGarmentDescription,
+      });
+      return buildRoleplayRequestBody({
         action,
         situation,
         shared,
@@ -277,7 +302,11 @@ export function useMobilePlayToolOrchestrationCore() {
         bio,
         story: toolSettings.story,
         rejectedScenes: mergeRoleplayRejectedScenes(toolSettings.rejectedScenes, scenes),
-      }),
+        wardrobeLabel: wardrobeFields.wardrobeLabel,
+        garmentDescription: wardrobeFields.garmentDescription,
+        hasGarmentReference: wardrobeFields.hasGarmentReference,
+      });
+    },
     [
       bio,
       content,
@@ -287,6 +316,9 @@ export function useMobilePlayToolOrchestrationCore() {
       shared,
       tone,
       toolSettings.allowGore,
+      toolSettings.customGarmentDescription,
+      toolSettings.customGarmentImageFilename,
+      toolSettings.customGarmentImageUrl,
       toolSettings.customPersona,
       toolSettings.characterName,
       toolSettings.extraHints,
@@ -294,6 +326,7 @@ export function useMobilePlayToolOrchestrationCore() {
       toolSettings.setting,
       toolSettings.story,
       toolSettings.rejectedScenes,
+      toolSettings.wardrobeId,
       scenes,
     ]
   );
@@ -424,6 +457,7 @@ export function useMobilePlayToolOrchestrationCore() {
     filmGuideHref,
     actions,
     beatQueue,
+    wardrobe,
     requestBody,
     queueStillOptions,
     commitStill,

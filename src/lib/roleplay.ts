@@ -1,5 +1,16 @@
 import { ROLEPLAY_ARCHETYPES, type RoleplayArchetype } from './roleplay-archetypes';
 import { lastCompletedRoleplayStillUrl } from './roleplay-gallery-takes';
+import {
+  POSE_GUIDE_EDIT_PROMPT_LINE,
+  poseGuidePromptBlock,
+  withPoseGuideEditPrompt,
+} from '@/lib/pose-guide-prompt';
+import { clarifyIntimateImageLanguage } from '@/lib/intimate-prompt-clarify';
+import {
+  DEFAULT_RENDER_REALISM_MODE,
+  normalizeRenderRealismMode,
+  type RenderRealismMode,
+} from '@/lib/render-realism';
 
 export type RoleplayTone =
   | 'silly'
@@ -320,17 +331,98 @@ export function formatRoleplaySettingCue(input: {
 export function formatRoleplayWardrobeCue(input: {
   hasReferenceImage?: boolean;
   phase: 'bio' | 'scenes' | 'prompt';
+  wardrobeLabel?: string;
+  garmentDescription?: string;
+  hasGarmentReference?: boolean;
 }): string {
   if (!input.hasReferenceImage) {
     return '';
   }
+  const kit = input.wardrobeLabel?.trim();
+  const garment = input.garmentDescription?.trim();
+  const hasPackshot = input.hasGarmentReference === true;
   if (input.phase === 'bio') {
     return `Clothes in look come from the part and setting, not the photo. Keep face, hair, and body from the reference; wardrobe is the role (coat, armor, gown, kit) — do not copy the photo's shirt, jacket, jeans, shoes, or uniform.`;
   }
   if (input.phase === 'scenes') {
+    if (hasPackshot || kit || garment) {
+      return [
+        "When a beat's outfit matters, name the garments in the blurb so the still can replace the photo's clothes.",
+        kit ? `Locked kit: ${kit}.` : null,
+        garment ? `Clothing packshot shows: ${garment}.` : null,
+      ]
+        .filter(Boolean)
+        .join(' ');
+    }
     return `When a beat's outfit matters, name the garments in the blurb so the still can replace the photo's clothes.`;
   }
-  return `Replace the reference photo's clothing with the outfit in this beat (and the character look if the beat does not name clothes). Keep face, hair, and body identity only. Do not keep the photo's street clothes, uniform, or shoes unless this beat explicitly keeps them. If the beat names different clothes than the look, the beat's clothes win.`;
+  if (hasPackshot) {
+    return [
+      'Image 2 is a clothing-only packshot — apply that exact outfit (silhouette, color, fabric, accessories) to the subject.',
+      'Keep face, hair, and body identity from Image 1 only.',
+      garment ? `Visible garments: ${garment}.` : null,
+      kit ? `Kit label: ${kit}.` : null,
+      "Ignore Image 2 layout; do not keep the photo's street clothes unless this beat explicitly keeps them.",
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }
+  return [
+    `Replace the reference photo's clothing with the outfit in this beat (and the character look if the beat does not name clothes).`,
+    kit ? `Prefer this locked kit when the beat is vague: ${kit}.` : null,
+    garment ? `Garment cue: ${garment}.` : null,
+    `Keep face, hair, and body identity only. Do not keep the photo's street clothes, uniform, or shoes unless this beat explicitly keeps them. If the beat names different clothes than the look, the beat's clothes win.`,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/** Image 3 stick-figure line — same wording Day uses for pose unlock. */
+export const ROLEPLAY_POSE_GUIDE_PROMPT_LINE = POSE_GUIDE_EDIT_PROMPT_LINE;
+
+/** From photo: crude Image 3 pose guide (Day parity). */
+export function formatRoleplayPoseGuideCue(input: {
+  hasReferenceImage?: boolean;
+  phase: 'bio' | 'scenes' | 'prompt';
+  hasPoseGuide?: boolean;
+  realismMode?: RenderRealismMode;
+}): string {
+  if (!input.hasReferenceImage || input.hasPoseGuide === false) {
+    return '';
+  }
+  if (input.phase === 'prompt') {
+    const mode = normalizeRenderRealismMode(input.realismMode ?? DEFAULT_RENDER_REALISM_MODE);
+    return `${poseGuidePromptBlock(mode)} Describe the beat's action (and any second person) so the still can match that stance.`;
+  }
+  if (input.phase === 'scenes') {
+    return 'Vary pose and stance between options — stills get a stick-figure pose guide on Image 3 (two figures when the beat is a duo).';
+  }
+  return '';
+}
+
+/** Append Image 3 pose cue + realism lock when queueing a photo still (idempotent). */
+export function withRoleplayPoseGuidePrompt(
+  prompt: string,
+  enabled: boolean,
+  realismMode: RenderRealismMode = DEFAULT_RENDER_REALISM_MODE
+): string {
+  return withPoseGuideEditPrompt(clarifyIntimateImageLanguage(prompt), enabled, realismMode);
+}
+
+/** Clarify euphemisms then optionally attach Image 3 pose cues (Story stills). */
+export function prepareRoleplayStillPrompt(
+  prompt: string,
+  options?: { poseGuide?: boolean; realismMode?: RenderRealismMode }
+): string {
+  const clarified = clarifyIntimateImageLanguage(prompt);
+  if (options?.poseGuide) {
+    return withPoseGuideEditPrompt(
+      clarified,
+      true,
+      options.realismMode ?? DEFAULT_RENDER_REALISM_MODE
+    );
+  }
+  return clarified;
 }
 
 export function normalizeRoleplayIsolateSubject(value: unknown): boolean {
@@ -1147,6 +1239,60 @@ const ROLEPLAY_CONTINUATION_FORKS: RoleplayContinuationFork[] = [
   },
 ];
 
+/** Adult template forks — used when rating is sultry/explicit/raunchy so fallbacks stay sexual. */
+const ROLEPLAY_ADULT_CONTINUATION_FORKS: RoleplayContinuationFork[] = [
+  {
+    titlePrefix: 'Clothes off',
+    blurb: (name, last) =>
+      `After ${last.title.toLowerCase()}, ${name} is half-undressed — skin, hands, and heat readable in one still.`,
+  },
+  {
+    titlePrefix: 'Against the wall',
+    blurb: (name, last) =>
+      `${name} gets pinned against a wall after ${last.title.toLowerCase()}, bodies close, sex starting or in progress.`,
+  },
+  {
+    titlePrefix: 'On the bed',
+    blurb: (name, last) =>
+      `${name} and a partner on a bed after ${last.title.toLowerCase()} — nude or nearly, an explicit pose you can photograph.`,
+  },
+  {
+    titlePrefix: 'Oral interruption',
+    blurb: (name, last) =>
+      `Someone goes down on ${name} (or the reverse) mid-fallout from ${last.title.toLowerCase()} — oral sex as the still.`,
+  },
+  {
+    titlePrefix: 'From behind',
+    blurb: (name, last) =>
+      `${name} bent over after ${last.title.toLowerCase()}, taken from behind — doggy or bent-over sex, explicit and readable.`,
+  },
+  {
+    titlePrefix: 'Straddle',
+    blurb: (name, last) =>
+      `${name} straddles a partner after ${last.title.toLowerCase()} — cowgirl/riding, skin and motion clear.`,
+  },
+  {
+    titlePrefix: 'Caught mid-sex',
+    blurb: (name, last) =>
+      `A door opens on ${name} mid-fuck after ${last.title.toLowerCase()} — caught in the act, bodies still joined.`,
+  },
+  {
+    titlePrefix: 'Threesome offer',
+    blurb: (name, last) =>
+      `A third adult joins ${name} after ${last.title.toLowerCase()} — three bodies, hands and mouths, explicit tableau.`,
+  },
+  {
+    titlePrefix: 'Morning after heat',
+    blurb: (name, last) =>
+      `Morning light on ${name} still naked after ${last.title.toLowerCase()} — another round starting, sheets and skin.`,
+  },
+  {
+    titlePrefix: 'Public risk',
+    blurb: (name, last) =>
+      `${name} keeps the sex going somewhere they could be seen after ${last.title.toLowerCase()} — exhibition heat, not fade-to-black.`,
+  },
+];
+
 const ROLEPLAY_ENDING_FORKS: RoleplayContinuationFork[] = [
   {
     titlePrefix: 'Last light',
@@ -1180,6 +1326,71 @@ const ROLEPLAY_ENDING_FORKS: RoleplayContinuationFork[] = [
   },
 ];
 
+const ROLEPLAY_ADULT_ENDING_FORKS: RoleplayContinuationFork[] = [
+  {
+    titlePrefix: 'Spent together',
+    blurb: (name, last) =>
+      `${name} and a partner after ${last.title.toLowerCase()} — sweaty, naked, soft afterglow as the last still.`,
+  },
+  {
+    titlePrefix: 'One more round',
+    blurb: (name, last) =>
+      `Final beat: ${name} starts one last explicit round after ${last.title.toLowerCase()}, then the story ends on that climax pose.`,
+  },
+  {
+    titlePrefix: 'Walk of shame glow',
+    blurb: (name, last) =>
+      `${name} leaves after ${last.title.toLowerCase()} — mussed hair, sex-marked skin, clothes half on, ending satisfied.`,
+  },
+  {
+    titlePrefix: 'Tangled sheets',
+    blurb: (name, last) =>
+      `Credits on tangled sheets and ${name}'s bare body after ${last.title.toLowerCase()} — no new plot, just the landing.`,
+  },
+  {
+    titlePrefix: 'Kiss goodbye',
+    blurb: (name, last) =>
+      `A last deep kiss (or more) that closes ${last.title.toLowerCase()} — intimate, explicit enough to photograph, then fade.`,
+  },
+  {
+    titlePrefix: 'Alone and glowing',
+    blurb: (name, last) =>
+      `${name} alone after the sex of ${last.title.toLowerCase()} — nude, flushed, story over on a quiet erotic still.`,
+  },
+];
+
+const ROLEPLAY_ADULT_OPENING_SCENES: Array<{ title: string; blurb: string }> = [
+  {
+    title: 'Heat at the door',
+    blurb:
+      'Someone attractive is already undressing them with a look — the still is about skin, distance, and consenting adults.',
+  },
+  {
+    title: 'Wrong bed, right night',
+    blurb:
+      'They wake (or arrive) in a bed that is not theirs, half-naked, with a second adult and obvious sexual heat.',
+  },
+  {
+    title: 'Strip the costume',
+    blurb:
+      'The outfit comes off mid-scene — lingerie, bare chest, hands on zippers — erotic still, not a polite portrait.',
+  },
+  {
+    title: 'Private demonstration',
+    blurb:
+      'A closed-door lesson turns sexual: nude posing, touching, or sex starting in a readable tableau.',
+  },
+];
+
+function roleplayForksForContent(
+  content: RoleplayContentId | undefined,
+  kind: 'continue' | 'ending'
+): RoleplayContinuationFork[] {
+  if (content && isRoleplayAdultContent(content)) {
+    return kind === 'ending' ? ROLEPLAY_ADULT_ENDING_FORKS : ROLEPLAY_ADULT_CONTINUATION_FORKS;
+  }
+  return kind === 'ending' ? ROLEPLAY_ENDING_FORKS : ROLEPLAY_CONTINUATION_FORKS;
+}
 function uniqueRoleplayTitle(title: string, used: Set<string>): string {
   const base = clipRoleplayTitle(title);
   if (!used.has(roleplaySceneTitleKey(base))) {
@@ -1199,15 +1410,14 @@ export function continueRoleplayScenes(
   last: RoleplayStoryBeat,
   story?: RoleplayStoryBeat[],
   characterName?: string,
-  avoid?: Array<{ title: string; blurb?: string }>
+  avoid?: Array<{ title: string; blurb?: string }>,
+  content?: RoleplayContentId
 ): RoleplayScene[] {
   const name = characterName?.trim() || 'You';
   const used = usedRoleplaySceneTitles([...(story ?? []), ...(avoid ?? [])]);
-  const start = ((story?.length ?? 0) + (avoid?.length ?? 0)) % ROLEPLAY_CONTINUATION_FORKS.length;
-  const rotated = [
-    ...ROLEPLAY_CONTINUATION_FORKS.slice(start),
-    ...ROLEPLAY_CONTINUATION_FORKS.slice(0, start),
-  ];
+  const forks = roleplayForksForContent(content, 'continue');
+  const start = ((story?.length ?? 0) + (avoid?.length ?? 0)) % forks.length;
+  const rotated = [...forks.slice(start), ...forks.slice(0, start)];
   const scenes: RoleplayScene[] = [];
   for (const fork of rotated) {
     if (scenes.length >= 4) {
@@ -1237,12 +1447,14 @@ export function continueRoleplayEndings(
   last: RoleplayStoryBeat,
   story?: RoleplayStoryBeat[],
   characterName?: string,
-  avoid?: Array<{ title: string; blurb?: string }>
+  avoid?: Array<{ title: string; blurb?: string }>,
+  content?: RoleplayContentId
 ): RoleplayScene[] {
   const name = characterName?.trim() || 'You';
   const used = usedRoleplaySceneTitles([...(story ?? []), ...(avoid ?? [])]);
-  const start = ((story?.length ?? 0) + (avoid?.length ?? 0)) % ROLEPLAY_ENDING_FORKS.length;
-  const rotated = [...ROLEPLAY_ENDING_FORKS.slice(start), ...ROLEPLAY_ENDING_FORKS.slice(0, start)];
+  const forks = roleplayForksForContent(content, 'ending');
+  const start = ((story?.length ?? 0) + (avoid?.length ?? 0)) % forks.length;
+  const rotated = [...forks.slice(start), ...forks.slice(0, start)];
   const scenes: RoleplayScene[] = [];
   for (const fork of rotated) {
     if (scenes.length >= 4) {
@@ -1340,7 +1552,8 @@ export function templateRoleplayScenes(
   customPersona?: string,
   story?: RoleplayStoryBeat[],
   characterName?: string,
-  avoid?: Array<{ title: string; blurb?: string }>
+  avoid?: Array<{ title: string; blurb?: string }>,
+  content?: RoleplayContentId
 ): RoleplayScene[] {
   const phase = roleplayStoryPhase(story);
   if (phase === 'complete') {
@@ -1348,10 +1561,21 @@ export function templateRoleplayScenes(
   }
   const lastPlot = lastRoleplayPlotBeat(story);
   if (phase === 'finale' && lastPlot) {
-    return continueRoleplayEndings(lastPlot, story, characterName, avoid);
+    return continueRoleplayEndings(lastPlot, story, characterName, avoid, content);
   }
   if (lastPlot) {
-    return continueRoleplayScenes(lastPlot, story, characterName, avoid);
+    return continueRoleplayScenes(lastPlot, story, characterName, avoid, content);
+  }
+  if (content && isRoleplayAdultContent(content)) {
+    return filterFreshRoleplayScenes(
+      ROLEPLAY_ADULT_OPENING_SCENES.map((row, index) => ({
+        id: slugId(row.title, index),
+        title: row.title,
+        blurb: row.blurb,
+      })),
+      story,
+      avoid
+    );
   }
   const archetype = getRoleplayArchetype(personaId);
   const rows = archetype?.templateScenes ?? [

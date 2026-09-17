@@ -45,11 +45,11 @@ const REALISM_POSITIVE_SUFFIX: Record<Exclude<RenderRealismMode, 'off'>, string>
 
 const REALISM_NEGATIVE_EXTRA: Record<Exclude<RenderRealismMode, 'off'>, string> = {
   realistic:
-    'cartoon, anime, illustration, painting, CGI look, plastic skin, oversaturated, doll-like, blurry, low quality, watermark, text, deformed anatomy, extra limbs, extra fingers',
+    'cartoon, anime, illustration, painting, CGI look, plastic skin, oversaturated, doll-like, blurry, low quality, watermark, text, deformed anatomy, extra limbs, extra fingers, stick figure, stickman, wireframe, pose diagram, schematic, skeleton line art',
   'hyper-realistic':
-    'cartoon, anime, illustration, painting, 3D render, CGI, plastic skin, waxy skin, airbrushed, oversharpened halos, uncanny valley, blurry, low quality, watermark, text, deformed anatomy, extra fingers',
+    'cartoon, anime, illustration, painting, 3D render, CGI, plastic skin, waxy skin, airbrushed, oversharpened halos, uncanny valley, blurry, low quality, watermark, text, deformed anatomy, extra fingers, stick figure, stickman, wireframe, pose diagram, schematic, skeleton line art',
   anime:
-    'photorealistic, realistic photo, live action, 3D render, CGI, plastic skin, waxy skin, oversaturated, blurry, low quality, watermark, text, western cartoon, bad anatomy, extra limbs',
+    'photorealistic, realistic photo, live action, 3D render, CGI, plastic skin, waxy skin, oversaturated, blurry, low quality, watermark, text, western cartoon, bad anatomy, extra limbs, stick figure, stickman, wireframe, pose diagram, schematic',
 };
 
 const FLUX_REALISM_AVOID: Record<Exclude<RenderRealismMode, 'off'>, string> = {

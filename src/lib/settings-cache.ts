@@ -969,6 +969,15 @@ export type RoleplayToolCache = {
   beatOutput?: 'still' | 'clip';
   allowGore?: boolean;
   activeSessionId?: string;
+  /** Filter catalog kits on Story (same strip as Day/Outfit). */
+  wardrobeCategoryFilter?: import('./wardrobe-catalog-ui').WardrobeCategoryFilter;
+  /** Locked outfit kit for Story stills (Image 2 packshot when no BYO). */
+  wardrobeId?: string;
+  /** Bring-your-own clothing packshot (Image 2) — overrides kit packshot when set. */
+  customGarmentImageUrl?: string;
+  customGarmentImageFilename?: string;
+  /** Vision scan of the BYO clothing photo — text cue for Story stills. */
+  customGarmentDescription?: string;
 };
 
 /** Fitting Room — outfit try-on from a Cast plate + locked wardrobe kit. */
@@ -1027,6 +1036,11 @@ export type DayToolCache = {
   plateImageFilename?: string;
   plateOriginalUrl?: string;
   plateOriginalFilename?: string;
+  /** Bring-your-own clothing packshot (Image 2) — overrides catalog kit packshot when set. */
+  customGarmentImageUrl?: string;
+  customGarmentImageFilename?: string;
+  /** Vision scan of the BYO clothing photo — text cue for Day stills. */
+  customGarmentDescription?: string;
 };
 
 /** Moodboard → Scene — reference tiles merged into one scene prompt. */

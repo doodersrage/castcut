@@ -105,6 +105,7 @@ export function useRoleplayLookPackDeepLink({
 
     if (wardrobeId) {
       updateShared({ lockedWardrobeId: wardrobeId });
+      updateToolSettings({ wardrobeId });
     }
 
     let pack = fromLook ? loadLookPack({ clear: true }) : null;

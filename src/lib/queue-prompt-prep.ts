@@ -16,6 +16,11 @@ import {
   type RenderRealismMode,
 } from './render-realism';
 import { loadRenderRealismMode } from './render-realism-settings';
+import {
+  ensurePoseGuideStyleLock,
+  mergePoseGuideNegatives,
+  promptHasPoseGuideCue,
+} from './pose-guide-prompt';
 import { inferAthleticSport, type AthleticSport } from './athletic-sport-profiles';
 import { resolveQueueNegativePromptRaw } from './queue-negative';
 import { isQwenLightningModel, isWanLightningModel } from './model-sampling-patch';
@@ -190,6 +195,12 @@ export function applyQueuePromptSteering(input: {
   const realismMode = input.realismMode ?? loadRenderRealismMode();
   const anatomyMode = input.anatomyMode ?? loadAnatomyGuardMode();
   const turboEditStrength = normalizeTurboEditStrength(input.turboEditStrength);
+  // Pose-guide Image 3: lock finished-scene realism and block stick-figure bleed.
+  const poseGuideAttached = promptHasPoseGuideCue(input.positive);
+  const steeredPositive = poseGuideAttached
+    ? ensurePoseGuideStyleLock(input.positive, realismMode)
+    : input.positive;
+  const steeredNegative = mergePoseGuideNegatives(input.negative, poseGuideAttached);
   const finish = (result: { positive: string; negative?: string }) => {
     if (!usesTurboEditStrengthUi(String(input.model), input.tool)) {
       return result;
@@ -206,22 +217,25 @@ export function applyQueuePromptSteering(input: {
 
   if (isQwenLightningModel(input.model)) {
     // CFG-1: skip long realism/anatomy suffixes — keep a short photo pack instead.
-    const explicit = input.negative?.trim();
+    const explicit = steeredNegative?.trim();
     const shortExplicit =
       explicit && explicit.length <= LIGHTNING_MAX_EXPLICIT_NEGATIVE_CHARS ? explicit : undefined;
     if (realismMode === 'realistic' || realismMode === 'hyper-realistic') {
       return finish({
         positive: appendUniqueCsv(
-          input.positive,
+          steeredPositive,
           realismMode === 'hyper-realistic'
             ? QWEN_LIGHTNING_HYPER_PHOTO_POSITIVE
             : QWEN_LIGHTNING_PHOTO_POSITIVE
         ),
-        negative: appendUniqueCsv(shortExplicit, QWEN_LIGHTNING_PHOTO_NEGATIVE),
+        negative: appendUniqueCsv(
+          shortExplicit,
+          appendUniqueCsv(QWEN_LIGHTNING_PHOTO_NEGATIVE, 'stick figure, wireframe, pose diagram')
+        ),
       });
     }
     return finish({
-      positive: input.positive,
+      positive: steeredPositive,
       negative: shortExplicit,
     });
   }
@@ -229,11 +243,11 @@ export function applyQueuePromptSteering(input: {
   // WAN Lightning / Rapid AIO are CFG-1 distilled — long video-motion + anatomy lists fight them.
   // Keep short temporal/limb cues instead of full still-image steering.
   if (isWanLightningModel(input.model) || isWanRapidAioModel(input.model)) {
-    const explicit = input.negative?.trim();
+    const explicit = steeredNegative?.trim();
     const shortExplicit =
       explicit && explicit.length <= LIGHTNING_MAX_EXPLICIT_NEGATIVE_CHARS ? explicit : undefined;
     return finish({
-      positive: appendUniqueCsv(input.positive, WAN_LIGHTNING_ARTIFACT_POSITIVE),
+      positive: appendUniqueCsv(steeredPositive, WAN_LIGHTNING_ARTIFACT_POSITIVE),
       negative: appendUniqueCsv(shortExplicit, WAN_LIGHTNING_ARTIFACT_NEGATIVE),
     });
   }
@@ -241,11 +255,11 @@ export function applyQueuePromptSteering(input: {
   // Rapid AIO is CFG-1 distilled (Lightning baked in) — skip long auto-negatives
   // and long realism/anatomy positives; keep short anti-moiré cues only.
   if (isQwenRapidAioModel(input.model)) {
-    const explicit = input.negative?.trim();
+    const explicit = steeredNegative?.trim();
     const shortExplicit =
       explicit && explicit.length <= LIGHTNING_MAX_EXPLICIT_NEGATIVE_CHARS ? explicit : undefined;
     return finish({
-      positive: appendUniqueCsv(input.positive, RAPID_AIO_MOIRE_POSITIVE),
+      positive: appendUniqueCsv(steeredPositive, RAPID_AIO_MOIRE_POSITIVE),
       negative: appendUniqueCsv(shortExplicit, RAPID_AIO_MOIRE_NEGATIVE),
     });
   }
@@ -253,8 +267,8 @@ export function applyQueuePromptSteering(input: {
   if (isCfg1DistilledStillImageModel(input.model)) {
     return finish(
       steeringForCfg1DistilledStillImage({
-        positive: input.positive,
-        negative: input.negative,
+        positive: steeredPositive,
+        negative: steeredNegative,
         model: input.model,
         realismMode,
         anatomyMode,
@@ -265,20 +279,20 @@ export function applyQueuePromptSteering(input: {
   }
 
   const suffixBudget = maxQueuePositiveSuffixChars(input.model);
-  const baseLength = input.positive.trim().length;
+  const baseLength = steeredPositive.trim().length;
 
   // Klein Distilled (CFG-1): anatomy/hand cues first — realism often ate the budget.
   // Edit tools skip those T2I suffixes — they fight ReferenceLatent and rewrite the frame.
   if (isKleinDistilledModel(input.model)) {
     if (skipsCfg1T2iSteeringForTurboEdit(String(input.model), input.tool)) {
       return finish({
-        positive: input.positive,
-        negative: input.negative,
+        positive: steeredPositive,
+        negative: steeredNegative,
       });
     }
     const withAnatomy = applyAnatomyGuardForModel({
-      positive: input.positive,
-      negative: input.negative,
+      positive: steeredPositive,
+      negative: steeredNegative,
       model: input.model,
       mode: anatomyMode,
       maxPositiveAppendChars: suffixBudget,
@@ -298,8 +312,8 @@ export function applyQueuePromptSteering(input: {
   // UltraReal: anatomy/hand cues first — soft decode + fragile hands need the budget.
   if (isFluxFineTuneCheckpointModel(input.model)) {
     const withAnatomy = applyAnatomyGuardForModel({
-      positive: input.positive,
-      negative: input.negative,
+      positive: steeredPositive,
+      negative: steeredNegative,
       model: input.model,
       mode: anatomyMode,
       maxPositiveAppendChars: suffixBudget,
@@ -319,8 +333,8 @@ export function applyQueuePromptSteering(input: {
   }
 
   const withRealism = applyRenderRealismForModel({
-    positive: input.positive,
-    negative: input.negative,
+    positive: steeredPositive,
+    negative: steeredNegative,
     model: input.model,
     mode: realismMode,
     maxPositiveAppendChars: suffixBudget,
@@ -460,10 +474,9 @@ export function preparePositiveForQueue(
     anatomyMode?: AnatomyGuardMode;
   }
 ): string {
-  const withRealism = applyRenderRealismToPositive(
-    positive,
-    options?.realismMode ?? loadRenderRealismMode()
-  );
+  const realismMode = options?.realismMode ?? loadRenderRealismMode();
+  const withPoseLock = ensurePoseGuideStyleLock(positive, realismMode);
+  const withRealism = applyRenderRealismToPositive(withPoseLock, realismMode);
   return applyAnatomyGuardToPositive(withRealism, options?.anatomyMode ?? loadAnatomyGuardMode());
 }
 
@@ -472,10 +485,13 @@ export function prepareNegativeForQueue(
   options?: {
     realismMode?: RenderRealismMode;
     anatomyMode?: AnatomyGuardMode;
+    /** When true, or when pairing with a pose-guide positive, block stick-figure bleed. */
+    poseGuide?: boolean;
   }
 ): string | undefined {
+  const withPoseNeg = mergePoseGuideNegatives(negative, options?.poseGuide === true);
   const withRealism = applyRenderRealismToNegative(
-    negative,
+    withPoseNeg,
     options?.realismMode ?? loadRenderRealismMode()
   );
   return applyAnatomyGuardToNegative(withRealism, options?.anatomyMode ?? loadAnatomyGuardMode());

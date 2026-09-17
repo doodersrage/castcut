@@ -181,7 +181,7 @@ describe('Day plate pose / garment reinforce', () => {
         plateSource: 'keeper',
         packshotUrl: 'https://example.com/pack.webp',
       }),
-      { imageUrl: 'https://example.com/pack.webp' }
+      { imageUrl: 'https://example.com/pack.webp', source: 'packshot' }
     );
     assert.equal(
       resolveDayGarmentReinforce({
@@ -196,6 +196,29 @@ describe('Day plate pose / garment reinforce', () => {
         packshotUrl: null,
       }),
       null
+    );
+  });
+
+  it('resolveDayGarmentReinforce prefers custom BYO for Keep and Cast', () => {
+    assert.deepEqual(
+      resolveDayGarmentReinforce({
+        plateSource: 'keeper',
+        packshotUrl: 'https://example.com/pack.webp',
+        customGarmentUrl: 'https://example.com/byo.png',
+        customGarmentFilename: 'byo.png',
+      }),
+      {
+        imageUrl: 'https://example.com/byo.png',
+        imageFilename: 'byo.png',
+        source: 'custom',
+      }
+    );
+    assert.deepEqual(
+      resolveDayGarmentReinforce({
+        plateSource: 'cast',
+        customGarmentUrl: 'https://example.com/byo.png',
+      }),
+      { imageUrl: 'https://example.com/byo.png', source: 'custom' }
     );
   });
 });

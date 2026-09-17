@@ -18,6 +18,18 @@ v1.9 closed the Play loop; 2.0 makes the film recognizably that Cast lead on Com
 - **LoRA flywheel climax:** Keep → Train → Register → Prove ritual on Cast with phase CTAs and Open prove still after register.
 - **Cinematic Cut:** Day/Story Cut expose crossfade + audio bed (same encode path as Cast Film studio).
 - **Also:** Outfit notes Cast ownership; Story bible rewrite/edit/clear live on Cast (Story deep-links only).
+- **Outfit BYO packshot:** keep the clothing-only extract as Image 2 unless vision confirms a collapse — vision failures no longer revert to the white cutout.
+- **Outfit saved clothing:** Save for later stores BYO packshots in durable browser KV (survives hard refresh; shared strip on desk + mobile).
+- **Outfit ready packshot:** upload an already-made clothing packshot as Image 2 without the isolate / extract edit pass.
+- **Day BYO clothing:** same extract / ready packshot / save-for-later strip on Day’s Outfit kit area (shared library with Outfit).
+- **Day pose guide:** crude stick-figure on Image 3 (Keep = Image 1, clothes = Image 2) so Qwen Edit can unlock stance without ControlNet.
+- **Story intimate wireframes:** full adult layout set on Image 3 (missionary, mating press, straddle/reverse, bent, prone, spoon, scissors, wall, standing, lift, oral, 69, facesit, lap, kneeling, afterglow, undress, solo) — pose-only sticks, no anatomy.
+- **Story social wireframes:** dedicated non-intimate Image 3 layouts for hug, dance, fight/spar, climb, phone, and look-back (not just stand + arms).
+- **Pose guide realism lock:** Image 3 stick figures unlock pose only — prompts + negatives force photoreal (or anime when Settings says so) so wireframes don’t bleed into stills.
+- **Pose guide anti-merge:** duo+ Image 3 figures use distinct colors, clearer head spacing, and “fully separate people” prompt/negative locks so intimate stills don’t fuse into one body.
+- **Intimate language clarify:** Story stills auto-rewrite literary euphemisms (“slick/wet core”, “manhood”, “pearl”, stacked adjectives, oral/finish phrasing) into direct anatomy models parse before queue.
+- **Story adult beats:** sultry/explicit/raunchy template forks stay sexual (undress, wall, bed, oral, threesome…) instead of falling back to tame “Next room” cards.
+- **Story outfit kit + BYO:** same Day/Outfit clothing strip on Story (desk + phone) — kit or packshot as Image 2 so stills reinforce wardrobe instead of keeping street clothes from the Cast plate.
 - **Out of scope for 2.0:** Diffusers video / Play-on-Diffusers, Extras unpark, SSO, cloud IP-Adapter parity.
 
 ## [v1.9.0] - 2026-09-16

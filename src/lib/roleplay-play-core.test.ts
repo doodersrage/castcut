@@ -69,4 +69,55 @@ describe('roleplay-play-core', () => {
     assert.equal(body.hasReferenceImage, true);
     assert.equal(body.isolatedSubject, true);
   });
+
+  it('attaches wardrobe kit + Image 2 garment on photo stills', () => {
+    const options = buildRoleplayQueueStillOptions({
+      photoMode: true,
+      isolateSubject: false,
+      referenceIsolated: false,
+      filename: 'face.png',
+      imageUrl: '/media/face.png',
+      customGarmentUrl: 'https://example.com/coat.png',
+      customGarmentFilename: 'coat.png',
+    });
+    assert.equal(options?.inputImageFilename, 'face.png');
+    assert.deepEqual(options?.inputImageUrls, [undefined, 'https://example.com/coat.png']);
+    assert.deepEqual(options?.inputImageFilenames, ['', 'coat.png']);
+  });
+
+  it('attaches Image 3 pose guide with a sparse Image 2 slot', () => {
+    const options = buildRoleplayQueueStillOptions({
+      photoMode: true,
+      isolateSubject: false,
+      referenceIsolated: false,
+      filename: 'face.png',
+      imageUrl: '/media/face.png',
+      poseGuideFilename: 'pose.png',
+      poseGuideUrl: 'https://example.com/pose.png',
+    });
+    assert.deepEqual(options?.inputImageUrls, [
+      undefined,
+      undefined,
+      'https://example.com/pose.png',
+    ]);
+    assert.deepEqual(options?.inputImageFilenames, ['', '', 'pose.png']);
+  });
+
+  it('passes wardrobe cues on prompt requests', () => {
+    const body = buildRoleplayRequestBody({
+      action: 'prompt',
+      shared: DEFAULT_SHARED_SETTINGS,
+      personaId: 'raccoon-pirate',
+      tone: 'silly',
+      content: 'pg13',
+      hasReferenceImage: true,
+      isolatedSubject: true,
+      wardrobeLabel: 'linen set',
+      garmentDescription: 'cream linen shirt',
+      hasGarmentReference: true,
+    });
+    assert.equal(body.wardrobeLabel, 'linen set');
+    assert.equal(body.garmentDescription, 'cream linen shirt');
+    assert.equal(body.hasGarmentReference, true);
+  });
 });

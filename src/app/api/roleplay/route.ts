@@ -54,6 +54,9 @@ type RoleplayRequestBody = {
   llmEnabled?: boolean;
   llmProvider?: string;
   llmApiKey?: string;
+  wardrobeLabel?: string;
+  garmentDescription?: string;
+  hasGarmentReference?: boolean;
 };
 
 function parseAction(value: unknown): RoleplayAction {
@@ -116,6 +119,9 @@ export async function POST(request: Request) {
       allowGore: parseRoleplayAllowGore(body.allowGore),
       hasReferenceImage: body.hasReferenceImage === true,
       isolatedSubject: body.hasReferenceImage === true && body.isolatedSubject === true,
+      wardrobeLabel: body.wardrobeLabel?.trim(),
+      garmentDescription: body.garmentDescription?.trim(),
+      hasGarmentReference: body.hasGarmentReference === true,
       bio: body.bio ? parseRoleplayBio(body.bio) : undefined,
       story: parseStory(body.story),
       rejectedScenes: parseRoleplayScenes(body.rejectedScenes),

@@ -6,6 +6,7 @@ import SharedToolControls from '@/components/SharedToolControls';
 import RoleplayBeatOutputSection from '@/components/roleplay/RoleplayBeatOutputSection';
 import RoleplayCastSection from '@/components/roleplay/RoleplayCastSection';
 import RoleplayStorySection from '@/components/roleplay/RoleplayStorySection';
+import RoleplayWardrobeSection from '@/components/roleplay/RoleplayWardrobeSection';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
@@ -56,6 +57,7 @@ export default function RoleplayToolSections({
   sceneFlow,
   session,
   extendBeat,
+  wardrobe,
 }: RoleplayToolSectionsProps) {
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
@@ -145,6 +147,16 @@ export default function RoleplayToolSections({
         onScanWithVision={() => void reference.scanWithVision()}
         onRestartStory={session.restartStory}
       />
+
+      {activeCharacterId ? (
+        <RoleplayWardrobeSection
+          busy={busy}
+          toolSettings={toolSettings}
+          onUpdateToolSettings={updateToolSettings}
+          onError={message => setError(message)}
+          wardrobe={wardrobe}
+        />
+      ) : null}
 
       <RoleplayStorySection
         beatOutput={beatOutput}

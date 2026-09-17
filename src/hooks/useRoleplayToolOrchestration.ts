@@ -14,6 +14,7 @@ import { useRoleplayBioFlow } from '@/hooks/useRoleplayBioFlow';
 import { useRoleplaySceneFlow } from '@/hooks/useRoleplaySceneFlow';
 import { useRoleplaySessionActions } from '@/hooks/useRoleplaySessionActions';
 import { useRoleplayRequestBody } from '@/hooks/useRoleplayRequestBody';
+import { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/settings-cache';
@@ -132,6 +133,15 @@ export function useRoleplayToolOrchestration() {
     setError,
   });
 
+  const wardrobe = useRoleplayWardrobe({
+    shared,
+    toolSettings,
+    updateShared,
+    updateToolSettings,
+    actions,
+    setError,
+  });
+
   useRoleplayStorySync(storyRef, patch => updateToolSettings(patch));
 
   const sceneFlow = useRoleplaySceneFlow({
@@ -203,7 +213,8 @@ export function useRoleplayToolOrchestration() {
     session.exporting ||
     film.assemblingFilm ||
     reference.scanning ||
-    reference.referenceUploading;
+    reference.referenceUploading ||
+    wardrobe.garmentUploading;
 
   return {
     mounted,
@@ -236,5 +247,6 @@ export function useRoleplayToolOrchestration() {
     bioFlow,
     session,
     extendBeat,
+    wardrobe,
   };
 }

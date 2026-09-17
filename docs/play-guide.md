@@ -44,6 +44,7 @@ Deep link: `/moodboard?character=<id>`.
 Lock a character plate, browse wardrobe kits, queue try-ons.
 
 - **Keep / Skip** on completed try-ons — Keep stamps a gallery keeper and maps kits onto Day slots.
+- **BYO clothing** — upload a clothing photo (extract to packshot) or a ready packshot; **Save for later** keeps it in durable browser storage (desk + phone).
 - **Continue to Day** — primary CTA after a keeper. **Skip outfit · Day** if you want stills without a kit lock.
 - **Save kit to Cast** — under More.
 
@@ -54,8 +55,9 @@ Deep links: `/fitting?character=<id>&wardrobe=<kit>`.
 Four slots (Morning → Night) with wardrobe, setting, and beat per slot.
 
 - **Queue day** (Play queues draft stills in parallel for a faster first film).
+- **Outfit kit + BYO** — same clothing strip as Outfit (Image 2); optional **pose stick-figure** on Image 3 so Edit can unlock stance without ControlNet.
 - **Animate** stays collapsed until you want I2V clips (Final quality).
-- **Cut film** — server ffmpeg when available, browser MediaRecorder fallback if the server encode fails.
+- **Cut film** — server ffmpeg when available, browser MediaRecorder fallback if the server encode fails; optional crossfade + audio bed.
 - After cut: celebrate with **Watch / Save on Cast** (manual — no auto-advance). Story is optional.
 
 Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
@@ -66,6 +68,8 @@ Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 
 - Needs an active Cast character — empty Story sends you to Film / Cast (Part and From photo are set there).
 - **Continue as {name}** — mood, setting, and bio for this story; identity stays on Cast.
+- **Outfit for stills** — kit or BYO packshot as Image 2 (desk + phone); photo stills also get an Image 3 pose wireframe from the beat text (intimate + social layouts).
+- Literary adult euphemisms in still prompts are rewritten to direct anatomy before queue; Settings **Render realism** defaults to photoreal so wireframes don’t turn stills drawn.
 - Fal **extend-video** when parent is on Fal CDN; else last-frame I2V.
 - Tone and content rating controls (see [features — Story](features.md#scene-tools)). Adult heat requires the NSFW generator env flag.
 

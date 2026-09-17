@@ -324,10 +324,22 @@ export const FITTING_GARMENT_PACKSHOT_EXTRACT_NEGATIVE =
   'repeating pattern, tiled texture, seamless wallpaper, abstract geometry, glyph wall, illegible text, hieroglyphs, noise field, grid of icons, procedural texture, kaleidoscope, no clothing, empty frame';
 
 const FITTING_GARMENT_NOUN_RE =
-  /\b(shirt|dress|jacket|coat|pants|jeans|skirt|blouse|sweater|hoodie|suit|gown|boot|shoes?|sneakers?|blazer|trousers?|top|bottom|outfit|garment|fabric|sleeve|collar|hem|knit|denim|leather|silk|cotton|wool|vest|shorts|romper|jumpsuit|lingerie|bra|underwear|socks?|hat|scarf|bag|belt|tee|t-shirt|cardigan|parka|raincoat|kimono|robe|uniform|armor|corset|bodysuit|leggings|chino|loafer|heel|sandal|mitten|glove|tie|bow)\b/i;
+  /\b(shirt|dress|jacket|coat|pants|jeans|skirt|blouse|sweater|hoodie|suit|gown|boot|shoes?|sneakers?|blazer|trousers?|top|bottom|outfit|garment|fabric|sleeve|collar|hem|knit|denim|leather|silk|cotton|wool|vest|shorts|romper|jumpsuit|lingerie|bra|underwear|socks?|hat|scarf|bag|belt|tee|t-shirt|cardigan|parka|raincoat|kimono|robe|uniform|armor|corset|bodysuit|leggings|chino|loafer|heel|sandal|mitten|glove|tie|bow|clothing|apparel|wardrobe|fashion|ecommerce|product\s*photo|packshot|flat\s*lay|ghost\s*mannequin)\b/i;
 
 const FITTING_GARMENT_COLLAPSE_RE =
   /\b(abstract|repeating pattern|tiled|glyph|wallpaper|texture map|geometric pattern|noise field|hieroglyph|illegible text|no clothing|empty frame)\b/i;
+
+/**
+ * True when vision (or a probe) clearly describes a collapsed packshot edit
+ * (pattern wall / empty / glyph dump) — the only hard reject for Image 2.
+ */
+export function isCollapsedFittingGarmentDescription(text: string | null | undefined): boolean {
+  const trimmed = text?.replace(/\s+/g, ' ').trim() ?? '';
+  if (!trimmed) {
+    return false;
+  }
+  return FITTING_GARMENT_COLLAPSE_RE.test(trimmed);
+}
 
 /** True when a vision scan reads as real garments (not a collapsed pattern dump). */
 export function isPlausibleFittingGarmentDescription(text: string | null | undefined): boolean {
@@ -335,7 +347,7 @@ export function isPlausibleFittingGarmentDescription(text: string | null | undef
   if (trimmed.length < 8) {
     return false;
   }
-  if (FITTING_GARMENT_COLLAPSE_RE.test(trimmed)) {
+  if (isCollapsedFittingGarmentDescription(trimmed)) {
     return false;
   }
   return FITTING_GARMENT_NOUN_RE.test(trimmed);

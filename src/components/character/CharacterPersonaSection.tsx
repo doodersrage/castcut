@@ -23,14 +23,12 @@ export default function CharacterPersonaSection({
 
   const persist = (next: { personaId: string; customPersona?: string }) => {
     const personaIdNext = next.personaId.trim();
-    const customNext =
-      personaIdNext === CUSTOM_ROLEPLAY_PERSONA_ID
-        ? next.customPersona?.trim() || undefined
-        : undefined;
+    // Do not trim customPersona on each keystroke — that eats Space mid-edit.
     upsertCharacter({
       ...character,
       personaId: personaIdNext || undefined,
-      customPersona: customNext,
+      customPersona:
+        personaIdNext === CUSTOM_ROLEPLAY_PERSONA_ID ? next.customPersona || undefined : undefined,
     });
     const saved = getCharacter(character.id);
     if (saved) {

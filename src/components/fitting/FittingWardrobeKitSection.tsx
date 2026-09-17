@@ -4,6 +4,7 @@ import type { RefObject } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipButton, FieldDivider, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { CollapsibleSection, ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
+import CustomGarmentPhotoControls from '@/components/fitting/CustomGarmentPhotoControls';
 import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
 import type { FittingClothingOption } from '@/lib/fitting-clothing-options';
 import type { FittingKitPreview } from '@/lib/fitting-kit-previews';
@@ -50,6 +51,7 @@ export type FittingWardrobeKitSectionProps = {
   inFlightPreviewCount: number;
   previewStatus: string | null;
   customGarmentImageUrl?: string;
+  customGarmentImageFilename?: string;
   customGarmentDescription?: string;
   garmentUploading: boolean;
   garmentScanStatus?: string | null;
@@ -60,9 +62,12 @@ export type FittingWardrobeKitSectionProps = {
   onToggleAutoKitPreviews: () => void;
   onFillKitPreviews: () => void;
   onNotesChange: (notes: string) => void;
-  onApplyCustomGarment: (input: { file: File }) => Promise<void>;
+  onApplyCustomGarment: (input: { file: File; asPackshot?: boolean }) => Promise<void>;
   onClearCustomGarment: () => void;
   onRescanCustomGarment: () => Promise<void>;
+  onSaveCustomGarment: () => void;
+  onApplySavedCustomGarment: (garmentId: string) => void;
+  onRemoveSavedCustomGarment: (garmentId: string) => void;
   onCustomGarmentDescriptionChange: (description: string) => void;
   onError: (message: string) => void;
 };
@@ -95,6 +100,7 @@ export default function FittingWardrobeKitSection({
   inFlightPreviewCount,
   previewStatus,
   customGarmentImageUrl,
+  customGarmentImageFilename,
   customGarmentDescription,
   garmentUploading,
   garmentScanStatus,
@@ -108,6 +114,9 @@ export default function FittingWardrobeKitSection({
   onApplyCustomGarment,
   onClearCustomGarment,
   onRescanCustomGarment,
+  onSaveCustomGarment,
+  onApplySavedCustomGarment,
+  onRemoveSavedCustomGarment,
   onCustomGarmentDescriptionChange,
   onError,
 }: FittingWardrobeKitSectionProps) {
@@ -148,89 +157,23 @@ export default function FittingWardrobeKitSection({
         ) : null}
       </label>
       <FieldDivider />
-      <div className="space-y-2" data-testid="fitting-custom-garment">
-        <FieldLabel>Your clothing photo</FieldLabel>
-        <p className="type-caption text-[var(--text-muted)]">
-          Packshot, flat lay, or worn still — we cut to white, then build a clothing-only ghost
-          mannequin / flat-lay packshot for Image 2 (vision names the garments)
-          {hasCustomGarment ? ' · catalog kit cleared' : ''}.
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="file"
-            accept="image/*"
-            aria-label="Upload your clothing photo"
-            disabled={busy || garmentUploading}
-            className="ui-file-input block min-w-0 flex-1"
-            onChange={event => {
-              const file = event.target.files?.[0];
-              event.target.value = '';
-              if (!file) {
-                return;
-              }
-              void onApplyCustomGarment({ file }).catch(err => {
-                onError(
-                  err instanceof Error ? err.message : 'Could not upload that clothing photo.'
-                );
-              });
-            }}
-          />
-          {hasCustomGarment ? (
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={busy || garmentUploading}
-                onClick={() => {
-                  void onRescanCustomGarment().catch(err => {
-                    onError(err instanceof Error ? err.message : 'Vision scan failed.');
-                  });
-                }}
-              >
-                Rescan
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={busy || garmentUploading}
-                onClick={onClearCustomGarment}
-              >
-                Clear photo
-              </Button>
-            </>
-          ) : null}
-        </div>
-        {garmentUploading || garmentScanStatus ? (
-          <p
-            className="type-caption text-[var(--text-muted)]"
-            data-testid="fitting-garment-scan-status"
-          >
-            {garmentScanStatus || 'Working on clothing photo…'}
-          </p>
-        ) : null}
-        {hasCustomGarment && customGarmentImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={customGarmentImageUrl}
-            alt="Custom clothing reference"
-            className="max-h-40 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
-          />
-        ) : null}
-        {hasCustomGarment ? (
-          <label className="mt-2 block space-y-2">
-            <FieldLabel>Garment description</FieldLabel>
-            <TextArea
-              data-testid="fitting-garment-description"
-              rows={3}
-              value={customGarmentDescription ?? ''}
-              disabled={busy || garmentUploading}
-              className={accentFocusClass(ACCENT)}
-              placeholder="Vision fills this from your photo — edit if needed"
-              onChange={event => onCustomGarmentDescriptionChange(event.target.value)}
-            />
-          </label>
-        ) : null}
-      </div>
+      <CustomGarmentPhotoControls
+        accent={ACCENT}
+        busy={busy}
+        garmentUploading={garmentUploading}
+        garmentScanStatus={garmentScanStatus}
+        customGarmentImageUrl={customGarmentImageUrl}
+        customGarmentImageFilename={customGarmentImageFilename}
+        customGarmentDescription={customGarmentDescription}
+        onApplyCustomGarment={onApplyCustomGarment}
+        onClearCustomGarment={onClearCustomGarment}
+        onRescanCustomGarment={onRescanCustomGarment}
+        onSaveCustomGarment={onSaveCustomGarment}
+        onApplySavedCustomGarment={onApplySavedCustomGarment}
+        onRemoveSavedCustomGarment={onRemoveSavedCustomGarment}
+        onCustomGarmentDescriptionChange={onCustomGarmentDescriptionChange}
+        onError={onError}
+      />
       <FieldDivider />
       {hasCustomGarment ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="fitting-byo-active">

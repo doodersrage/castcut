@@ -24,16 +24,31 @@ export function isQwenEdit2511PoseStickyModel(model?: string | null): boolean {
 /**
  * Optional Image 2 packshot while Keep stays Image 1 — same garment-reinforce
  * pattern Outfit/Fitting uses. Never put Cast on Image 1 for Day Keep restages.
+ * Custom BYO clothing attaches for Keep (reinforce) and Cast (try-on Image 2).
  */
 export function resolveDayGarmentReinforce(input: {
   plateSource?: DayPlateSource | null;
   packshotUrl?: string | null;
-}): { imageUrl: string } | null {
+  customGarmentUrl?: string | null;
+  customGarmentFilename?: string | null;
+}): { imageUrl?: string; imageFilename?: string; source: 'custom' | 'packshot' } | null {
+  const customFilename = input.customGarmentFilename?.trim();
+  const customUrl = input.customGarmentUrl?.trim();
+  if (customUrl || customFilename) {
+    if (input.plateSource !== 'keeper' && input.plateSource !== 'cast') {
+      return null;
+    }
+    return {
+      ...(customUrl ? { imageUrl: customUrl } : {}),
+      ...(customFilename ? { imageFilename: customFilename } : {}),
+      source: 'custom',
+    };
+  }
   if (input.plateSource !== 'keeper') {
     return null;
   }
   const url = input.packshotUrl?.trim();
-  return url ? { imageUrl: url } : null;
+  return url ? { imageUrl: url, source: 'packshot' } : null;
 }
 
 /**

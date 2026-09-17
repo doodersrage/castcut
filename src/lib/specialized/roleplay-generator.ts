@@ -6,6 +6,7 @@ import {
   resolveRequestTemplateFallback,
 } from '../llm-request-options';
 import { stripPromptArtifacts } from '../prompt-cleanup';
+import { clarifyIntimateImageLanguage } from '../intimate-prompt-clarify';
 import {
   extractJsonValue,
   applyRoleplayCharacterName,
@@ -13,6 +14,7 @@ import {
   formatRoleplayBio,
   formatRoleplaySettingCue,
   formatRoleplayStoryDigest,
+  formatRoleplayPoseGuideCue,
   formatRoleplayWardrobeCue,
   isRoleplayAdultContent,
   lastRoleplayPlotBeat,
@@ -56,6 +58,9 @@ export type RoleplaySharedOptions = SharedGenerationOptions & {
   situation?: RoleplayScene;
   hasReferenceImage?: boolean;
   isolatedSubject?: boolean;
+  wardrobeLabel?: string;
+  garmentDescription?: string;
+  hasGarmentReference?: boolean;
 };
 
 function toneLine(tone: RoleplayTone): string {
@@ -126,13 +131,13 @@ function promptStyleLine(content: RoleplayContentId, allowGore: boolean): string
     return 'Specific, visual. Gore may appear as a readable horror tableau.';
   }
   if (content === 'explicit') {
-    return 'Pornographic, anatomical, specific, visual. Show the sex.';
+    return 'Pornographic, anatomical, specific, visual. Show the sex. Use direct words models understand (pussy, cock, breasts, ass, penetration, fingering, oral) — never literary euphemisms like core, folds, manhood, pearl, member, or mounds.';
   }
   if (content === 'sultry') {
-    return 'Erotic, skin-forward, specific, visual. Heat is the subject.';
+    return 'Erotic, skin-forward, specific, visual. Heat is the subject. Prefer direct body words over soft euphemisms.';
   }
   if (content === 'raunchy') {
-    return 'Vulgar sexual comedy, graphic, specific, visual.';
+    return 'Vulgar sexual comedy, graphic, specific, visual. Crude direct anatomy — no polite euphemisms.';
   }
   if (content === 'suggestive') {
     return 'Charged but not explicit, specific, visual.';
@@ -273,6 +278,9 @@ export async function generateRoleplayBio(
   const wardrobeCue = formatRoleplayWardrobeCue({
     hasReferenceImage,
     phase: 'bio',
+    wardrobeLabel: options.wardrobeLabel,
+    garmentDescription: options.garmentDescription,
+    hasGarmentReference: options.hasGarmentReference,
   });
   const raw = await llmJson({
     llm: options.llm,
@@ -355,7 +363,8 @@ export async function generateRoleplayScenes(
     options.customPersona,
     options.story,
     bio.name,
-    rejectedScenes
+    rejectedScenes,
+    content
   );
   const settingCue = formatRoleplaySettingCue({
     setting,
@@ -365,6 +374,13 @@ export async function generateRoleplayScenes(
     continuing,
   });
   const wardrobeCue = formatRoleplayWardrobeCue({
+    hasReferenceImage,
+    phase: 'scenes',
+    wardrobeLabel: options.wardrobeLabel,
+    garmentDescription: options.garmentDescription,
+    hasGarmentReference: options.hasGarmentReference,
+  });
+  const poseGuideCue = formatRoleplayPoseGuideCue({
     hasReferenceImage,
     phase: 'scenes',
   });
@@ -377,6 +393,7 @@ ${toneLine(tone)}
 ${uncensoredAdultLine(content)}
 ${settingCue}
 ${wardrobeCue}
+${poseGuideCue}
 Return ONLY JSON: {"scenes":[{"title":"","blurb":""${finale ? ',"kind":"ending"' : ''}}]}
 - Exactly 4 scenes. Titles 2–6 words. Blurbs one sentence, visual, actionable.
 ${
@@ -451,6 +468,13 @@ export async function generateRoleplayPrompt(
   const wardrobeCue = formatRoleplayWardrobeCue({
     hasReferenceImage,
     phase: 'prompt',
+    wardrobeLabel: options.wardrobeLabel,
+    garmentDescription: options.garmentDescription,
+    hasGarmentReference: options.hasGarmentReference,
+  });
+  const poseGuideCue = formatRoleplayPoseGuideCue({
+    hasReferenceImage,
+    phase: 'prompt',
   });
 
   return runSpecializedPrompt({
@@ -463,6 +487,7 @@ ${contentLine(content, allowGore)}
 ${referenceLine(hasReferenceImage, isolatedSubject)}
 ${settingCue}
 ${wardrobeCue}
+${poseGuideCue}
 - The SAME character must appear (face, hair, body): ${lookLock}
 - Name (${bio.name}) can appear once; do not invent a new cast unless the beat requires one extra figure.
 - Describe the chosen situation as a readable tableau: pose, props, setting, light, bodies, and what they are wearing.${
@@ -505,15 +530,18 @@ ${
     llmProvider: options.llm?.llmProvider,
     llmApiKey: options.llm?.llmApiKey,
     templateFallback: () =>
-      templatePromptFallback(
-        lookLock,
-        situation.blurb,
-        tone,
-        content,
-        allowGore,
-        setting,
-        hasReferenceImage
+      clarifyIntimateImageLanguage(
+        templatePromptFallback(
+          lookLock,
+          situation.blurb,
+          tone,
+          content,
+          allowGore,
+          setting,
+          hasReferenceImage
+        )
       ),
+    postProcessPrompt: clarifyIntimateImageLanguage,
     metadata: {
       tool: 'roleplay',
       personaId: options.personaId ?? null,

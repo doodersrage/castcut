@@ -379,4 +379,30 @@ describe('day-planner', () => {
     assert.match(prompt, /linen set/);
     assert.match(prompt, /mandatory new pose/i);
   });
+
+  it('buildDaySlotPrompt with poseGuide names Image 3 wireframe', () => {
+    const slot = DEFAULT_DAY_SLOTS[1]!;
+    const prompt = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+    });
+    assert.match(prompt, /Image 3 is a crude stick-figure pose wireframe/i);
+    assert.match(prompt, /never draw stick figures/i);
+    assert.match(prompt, /photorealistic live-action photograph/i);
+  });
+
+  it('buildDaySlotPrompt poseGuide respects anime realism mode', () => {
+    const slot = DEFAULT_DAY_SLOTS[1]!;
+    const prompt = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      realismMode: 'anime',
+    });
+    assert.match(prompt, /finished anime\/illustration scene/i);
+    assert.doesNotMatch(prompt, /photorealistic live-action photograph/i);
+  });
 });

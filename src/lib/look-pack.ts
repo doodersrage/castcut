@@ -358,14 +358,16 @@ export function applyLookPackToRoleplaySettings(pack: LookPack): {
     undefined;
   const extraHints = lookPackNotes(pack).slice(0, 1200) || undefined;
   const tone = inferRoleplayToneFromLookPack(pack);
+  const wardrobeId = pack.wardrobeId?.trim();
   return {
     tool: {
       ...(setting ? { setting } : {}),
       ...(extraHints ? { extraHints } : {}),
       ...(tone ? { tone: normalizeRoleplayTone(tone) } : {}),
+      ...(wardrobeId ? { wardrobeId } : {}),
     },
     shared: {
-      ...(pack.wardrobeId?.trim() ? { lockedWardrobeId: pack.wardrobeId.trim() } : {}),
+      ...(wardrobeId ? { lockedWardrobeId: wardrobeId } : {}),
       ...(pack.locationNotes?.trim() ? { lockedLocation: pack.locationNotes.trim() } : {}),
     },
   };

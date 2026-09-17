@@ -46,6 +46,8 @@ import {
   resolveRoleplaySetting,
   formatRoleplaySettingCue,
   formatRoleplayWardrobeCue,
+  formatRoleplayPoseGuideCue,
+  withRoleplayPoseGuidePrompt,
   rollRoleplaySetting,
   ROLEPLAY_SETTING_PRESETS,
   roleplayIntroScene,
@@ -269,9 +271,57 @@ describe('roleplay parsers', () => {
     assert.match(
       formatRoleplayWardrobeCue({
         hasReferenceImage: true,
+        phase: 'prompt',
+        hasGarmentReference: true,
+        garmentDescription: 'navy trench over ivory trousers',
+        wardrobeLabel: 'navy trench',
+      }),
+      /Image 2 is a clothing-only packshot/i
+    );
+    assert.match(
+      formatRoleplayWardrobeCue({
+        hasReferenceImage: true,
+        phase: 'scenes',
+        wardrobeLabel: 'linen set',
+      }),
+      /Locked kit: linen set/i
+    );
+    assert.match(
+      formatRoleplayWardrobeCue({
+        hasReferenceImage: true,
         phase: 'bio',
       }),
       /not the photo/i
+    );
+    assert.match(
+      formatRoleplayPoseGuideCue({
+        hasReferenceImage: true,
+        phase: 'prompt',
+      }),
+      /Image 3 is a crude stick-figure/i
+    );
+    assert.match(
+      formatRoleplayPoseGuideCue({
+        hasReferenceImage: true,
+        phase: 'prompt',
+      }),
+      /photorealistic live-action photograph/i
+    );
+    assert.equal(
+      formatRoleplayPoseGuideCue({
+        hasReferenceImage: false,
+        phase: 'prompt',
+      }),
+      ''
+    );
+    assert.match(
+      withRoleplayPoseGuidePrompt('a raccoon on a pier', true),
+      /photorealistic live-action photograph/i
+    );
+    assert.equal(withRoleplayPoseGuidePrompt('a raccoon on a pier', false), 'a raccoon on a pier');
+    assert.match(
+      withRoleplayPoseGuidePrompt('fingers into her slick core on the bed', false),
+      /fingers penetrating her vagina/i
     );
     assert.equal(formatRoleplayWardrobeCue({ phase: 'prompt' }), '');
     assert.equal(normalizeRoleplayIsolateSubject(undefined), true);
@@ -406,6 +456,33 @@ describe('roleplay parsers', () => {
     );
     assert.equal(merged.length, 4);
     assert.ok(merged.every(scene => scene.title.toLowerCase() !== 'mutiny at brunch'));
+  });
+
+  it('uses adult template forks when content is explicit', () => {
+    const story = [
+      {
+        id: 's1',
+        at: 1,
+        title: 'First kiss',
+        blurb: 'They almost undress in the doorway.',
+      },
+    ];
+    const next = continueRoleplayScenes(story[0]!, story, 'Rin', undefined, 'explicit');
+    assert.equal(next.length, 4);
+    assert.ok(
+      next.some(scene => /sex|nude|fuck|oral|bed|wall|straddl|behind|threesome|undress/i.test(scene.blurb)),
+      'adult forks should name sexual action'
+    );
+    const openings = templateRoleplayScenes(
+      'custom',
+      'a sultry lead',
+      [],
+      'Rin',
+      undefined,
+      'sultry'
+    );
+    assert.equal(openings.length, 4);
+    assert.ok(openings.every(scene => /skin|naked|sexual|erotic|undress|lingerie|heat/i.test(scene.blurb)));
   });
 
   it('remembers unpicked cards across rolls without keeping the chosen beat', () => {

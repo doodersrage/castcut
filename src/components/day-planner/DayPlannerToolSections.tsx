@@ -4,7 +4,7 @@ import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { Button, ButtonLink } from '@/components/ui/Button';
-import { FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
+import { FieldDivider, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import {
   CollapsibleSection,
@@ -15,6 +15,7 @@ import {
   accentFocusClass,
 } from '@/components/ui/ToolPageShell';
 import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
+import CustomGarmentPhotoControls from '@/components/fitting/CustomGarmentPhotoControls';
 import FilmCutOptionsControls from '@/components/FilmCutOptionsControls';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
@@ -129,7 +130,17 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     remixSameLookDay,
     filmCutOptions,
     setFilmCutOptions,
+    garmentUploading,
+    garmentScanStatus,
+    applyCustomGarment,
+    clearCustomGarment,
+    rescanCustomGarment,
+    saveCurrentCustomGarment,
+    applySavedCustomGarment,
+    removeSavedCustomGarment,
+    selectSlotWardrobe,
   } = vm;
+  const hasCustomGarment = Boolean(toolSettings.customGarmentImageUrl?.trim());
   const [sampleWatch, setSampleWatch] = useState(false);
   const [jumpInMode, setJumpInMode] = useState(false);
   const [progressLightbox, setProgressLightbox] = useState<ImageLightboxState | null>(null);
@@ -464,15 +475,41 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           persistKey="day-slots-lean"
         >
           <div data-testid="day-slots">
-            <label className="space-y-2">
+            <CustomGarmentPhotoControls
+              accent={ACCENT}
+              busy={busy}
+              garmentUploading={garmentUploading}
+              garmentScanStatus={garmentScanStatus}
+              customGarmentImageUrl={toolSettings.customGarmentImageUrl}
+              customGarmentImageFilename={toolSettings.customGarmentImageFilename}
+              customGarmentDescription={toolSettings.customGarmentDescription}
+              testIdPrefix="day"
+              onApplyCustomGarment={applyCustomGarment}
+              onClearCustomGarment={clearCustomGarment}
+              onRescanCustomGarment={rescanCustomGarment}
+              onSaveCustomGarment={saveCurrentCustomGarment}
+              onApplySavedCustomGarment={applySavedCustomGarment}
+              onRemoveSavedCustomGarment={removeSavedCustomGarment}
+              onCustomGarmentDescriptionChange={value =>
+                updateToolSettings({ customGarmentDescription: value })
+              }
+              onError={message => setError(message)}
+            />
+            <FieldDivider />
+            <label className="mt-3 space-y-2">
               <FieldLabel>Outfit kit</FieldLabel>
+              {hasCustomGarment ? (
+                <p className="type-caption text-[var(--text-muted)]" data-testid="day-byo-active">
+                  Using your clothing photo. Clear it above to pick a catalog kit again.
+                </p>
+              ) : null}
               {wardrobeKitDeck.length > 0 ? (
                 <WardrobeKitPicker
                   kits={wardrobeKitDeck}
                   selectedId={activeSlot.wardrobeId}
-                  disabled={!wardrobeReady || busy}
+                  disabled={!wardrobeReady || busy || hasCustomGarment}
                   testId="day-wardrobe-kit-picker"
-                  onSelect={wardrobeId => updateSlot(activeSlot.id, { wardrobeId })}
+                  onSelect={wardrobeId => selectSlotWardrobe(activeSlot.id, wardrobeId)}
                   onSwipe={delta => {
                     const next = fittingSwipeNeighbor(
                       wardrobeKitDeck,
@@ -480,7 +517,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                       delta
                     );
                     if (next) {
-                      updateSlot(activeSlot.id, { wardrobeId: next.id });
+                      selectSlotWardrobe(activeSlot.id, next.id);
                     }
                   }}
                   resolveThumb={kit => ({
@@ -529,11 +566,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   <FieldLabel>List picker</FieldLabel>
                   <SelectInput
                     value={activeSlot.wardrobeId ?? ''}
-                    disabled={!wardrobeReady || busy}
+                    disabled={!wardrobeReady || busy || hasCustomGarment}
                     className={accentFocusClass(ACCENT)}
                     onChange={event => {
                       const value = event.target.value.trim();
-                      updateSlot(activeSlot.id, { wardrobeId: value || undefined });
+                      selectSlotWardrobe(activeSlot.id, value || undefined);
                     }}
                   >
                     {filteredWardrobeOptions.map(option => (

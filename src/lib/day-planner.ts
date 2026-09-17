@@ -4,7 +4,13 @@ import {
   type FilmPlaylistShot,
 } from '@/lib/character-film';
 import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/compose-prompt';
+import { poseGuidePromptBlock } from '@/lib/pose-guide-prompt';
 import { resolveRoleplaySetting } from '@/lib/roleplay';
+import {
+  DEFAULT_RENDER_REALISM_MODE,
+  normalizeRenderRealismMode,
+  type RenderRealismMode,
+} from '@/lib/render-realism';
 
 export type DaySlotId = 'morning' | 'afternoon' | 'evening' | 'night';
 
@@ -447,6 +453,12 @@ export function buildDaySlotPrompt(input: {
    * (Fitting pattern) without swapping Cast onto Image 1.
    */
   garmentReinforce?: boolean;
+  /** Vision (or manual) description of a BYO clothing packshot on Image 2. */
+  garmentDescription?: string;
+  /** Crude stick-figure / wireframe on Image 3 for pose unlock. */
+  poseGuide?: boolean;
+  /** Settings realism mode — pose guide locks photoreal unless anime/off. */
+  realismMode?: RenderRealismMode;
 }): string {
   const slot = input.slot;
   const name = input.characterName?.trim();
@@ -455,10 +467,16 @@ export function buildDaySlotPrompt(input: {
   const setting = resolveRoleplaySetting(slot.location, input.lockedLocation);
   const hints = slot.sceneHints?.trim();
   const notes = input.notes?.trim();
+  const garmentDescription = input.garmentDescription?.trim();
   const timeOfDay = slot.label.toLowerCase();
   const defaultPose = DEFAULT_DAY_SLOT_POSES[slot.id];
   const keepAsImage1 = input.plateSource === 'keeper';
-  const garmentReinforce = keepAsImage1 && input.garmentReinforce === true;
+  const garmentReinforce = input.garmentReinforce === true;
+  const poseGuide = input.poseGuide === true;
+  const realismMode = normalizeRenderRealismMode(input.realismMode ?? DEFAULT_RENDER_REALISM_MODE);
+  const poseGuideLine = poseGuide ? poseGuidePromptBlock(realismMode) : null;
+  const photorealOutput =
+    poseGuide && (realismMode === 'realistic' || realismMode === 'hyper-realistic');
 
   if (input.hasPlate) {
     const poseLine = hints
@@ -470,8 +488,11 @@ export function buildDaySlotPrompt(input: {
         `Edit instruction for a Day planner still — ${timeOfDay}:`,
         'Image 1 is the Outfit Keep try-on (face + worn kit).',
         garmentReinforce
-          ? 'Image 2 is a wardrobe packshot — use it only to reinforce garment cut, colors, and fabric from Image 1; ignore Image 2 layout.'
+          ? garmentDescription
+            ? `Image 2 is a clothing-only packshot — reinforce garment cut, colors, and fabric from Image 1 using Image 2 (${garmentDescription}); ignore Image 2 layout.`
+            : 'Image 2 is a wardrobe packshot — use it only to reinforce garment cut, colors, and fabric from Image 1; ignore Image 2 layout.'
           : null,
+        poseGuideLine,
         'keep facial likeness only for identity; keep the clothing from Image 1; aggressively refactor pose, camera, lighting, and environment',
         descriptor
           ? `look (mandatory unique face and body — not a stock beauty face or default slim silhouette): ${descriptor}`
@@ -487,7 +508,9 @@ export function buildDaySlotPrompt(input: {
         hints ? `beat: ${hints}` : null,
         notes ? `notes: ${notes}` : null,
         'replace everything else: pose, stance, limbs, hands, framing, lighting, and background',
-        `output: a new cinematic ${timeOfDay} scene — same face, same kept outfit, different pose — not a cleaned-up copy of Image 1`,
+        photorealOutput
+          ? `output: a new photorealistic live-action ${timeOfDay} photograph — same face, same kept outfit, different pose — not a cleaned-up copy of Image 1 and not a stick-figure or diagram`
+          : `output: a new cinematic ${timeOfDay} scene — same face, same kept outfit, different pose — not a cleaned-up copy of Image 1`,
         'single full or three-quarter framing, natural lighting for the time of day',
       ]
         .filter(Boolean)
@@ -498,14 +521,22 @@ export function buildDaySlotPrompt(input: {
       QWEN_POSE_UNLOCK_MODIFY_PREFIX,
       `Edit instruction for a Day planner still — ${timeOfDay}:`,
       'Image 1 is the Cast identity plate.',
+      garmentReinforce
+        ? garmentDescription
+          ? `Image 2 is a clothing-only packshot — apply that outfit to the subject (${garmentDescription}).`
+          : 'Image 2 is a clothing-only packshot — apply that outfit to the subject.'
+        : null,
+      poseGuideLine,
       'keep facial likeness only from Image 1; aggressively refactor pose, camera, lighting, and environment',
       descriptor
         ? `look (mandatory unique face and body — not a stock beauty face or default slim silhouette): ${descriptor}`
         : null,
       name ? `subject: ${name}` : 'subject: the active Cast character',
-      outfit
-        ? `replace clothing with this slot's outfit: ${outfit}`
-        : "replace clothing with this slot's catalog wardrobe kit",
+      garmentReinforce
+        ? 'replace clothing with the garments from Image 2'
+        : outfit
+          ? `replace clothing with this slot's outfit: ${outfit}`
+          : "replace clothing with this slot's catalog wardrobe kit",
       poseLine,
       setting
         ? `setting: ${setting} — place them there for ${timeOfDay}`
@@ -513,7 +544,9 @@ export function buildDaySlotPrompt(input: {
       hints ? `beat: ${hints}` : null,
       notes ? `notes: ${notes}` : null,
       'replace everything else: pose, stance, limbs, hands, framing, lighting, and background',
-      `output: a new cinematic ${timeOfDay} scene — same face, different pose — not a cleaned-up copy of Image 1`,
+      photorealOutput
+        ? `output: a new photorealistic live-action ${timeOfDay} photograph — same face from Image 1, new pose and scene — never stick figures, wireframes, or diagram art`
+        : `output: a new cinematic ${timeOfDay} scene — same face, different pose — not a cleaned-up copy of Image 1`,
       'single full or three-quarter framing, natural lighting for the time of day',
     ]
       .filter(Boolean)

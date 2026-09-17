@@ -53,12 +53,15 @@ import {
   type DaySlotId,
 } from '@/lib/day-planner';
 import { resolveDayGarmentReinforce, resolveDayPlate } from '@/lib/day-plate';
+import { buildDayPoseGuideFile } from '@/lib/day-pose-guide';
 import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
-import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
+import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
+import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import {
   loadWardrobeGarmentThumbManifest,
   resolveWardrobeGarmentThumbQueueUrl,
 } from '@/lib/wardrobe-garment-thumbs';
+import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,
@@ -398,15 +401,18 @@ export function useDayPlannerToolOrchestrationCore() {
   );
 
   const buildSlotPrompt = useCallback(
-    (slot: DaySlot) => {
+    (slot: DaySlot, options?: { poseGuide?: boolean }) => {
       const wardrobeId = slot.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
       const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
       const garmentReinforce = Boolean(
         resolveDayGarmentReinforce({
           plateSource: plate?.source,
           packshotUrl,
+          customGarmentUrl: toolSettings.customGarmentImageUrl,
+          customGarmentFilename: toolSettings.customGarmentImageFilename,
         })
       );
+      const poseGuide = options?.poseGuide !== false && Boolean(hasPlate);
       return buildDaySlotPrompt({
         slot,
         wardrobeLabel: wardrobeLabelFor(slot.wardrobeId),
@@ -417,6 +423,9 @@ export function useDayPlannerToolOrchestrationCore() {
         hasPlate,
         plateSource: queuePlate?.source,
         garmentReinforce,
+        garmentDescription: toolSettings.customGarmentDescription,
+        poseGuide,
+        realismMode: shared.renderRealismMode,
       });
     },
     [
@@ -428,6 +437,10 @@ export function useDayPlannerToolOrchestrationCore() {
       queuePlate?.source,
       shared.lockedLocation,
       shared.lockedWardrobeId,
+      shared.renderRealismMode,
+      toolSettings.customGarmentDescription,
+      toolSettings.customGarmentImageFilename,
+      toolSettings.customGarmentImageUrl,
       toolSettings.notes,
       wardrobeLabelFor,
     ]
@@ -468,8 +481,36 @@ export function useDayPlannerToolOrchestrationCore() {
         const garmentReinforce = resolveDayGarmentReinforce({
           plateSource: plate?.source,
           packshotUrl,
+          customGarmentUrl: toolSettings.customGarmentImageUrl,
+          customGarmentFilename: toolSettings.customGarmentImageFilename,
         });
-        const prompt = buildSlotPrompt(queueTarget);
+
+        // Image 3: crude stick-figure pose guide (Keep / Cast stay Image 1).
+        let poseGuideUrl: string | undefined;
+        let poseGuideFilename: string | undefined;
+        if (hasPlate) {
+          try {
+            const poseFile = await buildDayPoseGuideFile(queueTarget.id);
+            const uploaded = await resolveQueueInputImage({
+              file: poseFile,
+              filename: poseFile.name,
+              model: shared.model,
+            });
+            poseGuideFilename = uploaded?.filename?.trim() || undefined;
+            if (poseGuideFilename) {
+              const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+              poseGuideUrl =
+                collectIsolateSourceUrls({
+                  filename: poseGuideFilename,
+                  comfyUrl,
+                }).find(url => url.includes('/api/comfyui/view?')) || undefined;
+            }
+          } catch {
+            // Pose guide is best-effort — Day still queues without Image 3.
+          }
+        }
+
+        const prompt = buildSlotPrompt(queueTarget, { poseGuide: Boolean(poseGuideFilename) });
         // Play/Simple: skip lint round-trip — Day stills are draft-speed first film.
         const finalized = leanChrome
           ? prompt
@@ -481,19 +522,37 @@ export function useDayPlannerToolOrchestrationCore() {
           href: '/day',
           fields: [character?.name ?? '', queueTarget.label, finalized],
         });
-        // Keep as Image 1 for worn-kit fidelity on Qwen 2511. Optional packshot Image 2.
+        // Keep as Image 1 for worn-kit fidelity on Qwen 2511.
+        // Image 2 = optional garment packshot; Image 3 = crude pose wireframe.
         // Never put Cast on Image 1 when Keep exists — that drops the outfit.
+        const extraUrls: Array<string | undefined> = [undefined];
+        const extraFilenames: string[] = [''];
+        if (garmentReinforce?.imageUrl || garmentReinforce?.imageFilename) {
+          extraUrls[1] = garmentReinforce.imageUrl;
+          extraFilenames[1] = garmentReinforce.imageFilename?.trim() || '';
+        } else {
+          extraUrls[1] = undefined;
+          extraFilenames[1] = '';
+        }
+        if (poseGuideUrl || poseGuideFilename) {
+          extraUrls[2] = poseGuideUrl;
+          extraFilenames[2] = poseGuideFilename || '';
+        }
+        const hasExtras =
+          extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
+          extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
         const queueOptions = !hasPlate
           ? undefined
           : queuePlate?.filename?.trim() || queuePlate?.imageUrl?.trim()
             ? {
                 inputImageFilename: queuePlate?.filename?.trim() || undefined,
                 inputImageUrl: queuePlate?.imageUrl?.trim() || undefined,
-                ...(garmentReinforce
+                ...(hasExtras
                   ? {
-                      inputImageUrls: [undefined, garmentReinforce.imageUrl] as Array<
-                        string | undefined
-                      >,
+                      ...(extraUrls.some(url => Boolean(url)) ? { inputImageUrls: extraUrls } : {}),
+                      ...(extraFilenames.some(name => Boolean(name.trim()))
+                        ? { inputImageFilenames: extraFilenames }
+                        : {}),
                     }
                   : {}),
               }
@@ -573,6 +632,9 @@ export function useDayPlannerToolOrchestrationCore() {
       shared.ipAdapterStrength,
       shared.lockedWardrobeId,
       slots,
+      toolSettings.customGarmentImageFilename,
+      toolSettings.customGarmentImageUrl,
+      shared.model,
       updateToolSettings,
     ]
   );

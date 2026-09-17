@@ -14,8 +14,9 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
   Settings → Inference engine (new presets and providers land there).
 - **2.0:** local Cast face lock + pinned Cast LoRAs across the full film loop (Look,
   Outfit, Day/Story desk + mobile, Video continue-reel, Prove-it), Heal seeds identity
-  packs, Film chrome Identity ready, cinematic Cut options on Day/Story. Diffusers
-  video stays parked.
+  packs, Film chrome Identity ready, cinematic Cut options on Day/Story. Outfit/Day/Story
+  share BYO clothing packshots (durable browser KV) and Image 3 pose stick-figures with a
+  photoreal lock (anime when Settings says so). Diffusers video stays parked.
 
 ## Generation engines
 

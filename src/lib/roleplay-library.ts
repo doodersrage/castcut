@@ -213,6 +213,14 @@ export function normalizeRoleplayLibrarySnapshot(value: unknown): RoleplayToolCa
     autoQueue: record.autoQueue !== false,
     allowGore: parseRoleplayAllowGore(record.allowGore),
     activeSessionId: readString(record.activeSessionId, 80) || undefined,
+    wardrobeId: readString(record.wardrobeId, 120) || undefined,
+    wardrobeCategoryFilter:
+      typeof record.wardrobeCategoryFilter === 'string'
+        ? (record.wardrobeCategoryFilter as RoleplayToolCache['wardrobeCategoryFilter'])
+        : undefined,
+    customGarmentImageUrl: readString(record.customGarmentImageUrl, 2000) || undefined,
+    customGarmentImageFilename: readString(record.customGarmentImageFilename, 240) || undefined,
+    customGarmentDescription: readString(record.customGarmentDescription, 800) || undefined,
   };
 }
 

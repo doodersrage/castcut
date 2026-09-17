@@ -78,6 +78,16 @@ import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
+import { applyCustomGarmentUpload } from '@/lib/fitting-custom-garment-apply';
+import {
+  loadSavedFittingGarments,
+  removeSavedFittingGarment,
+  saveFittingGarment,
+} from '@/lib/fitting-saved-garments';
+import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
+import { scanStillWithVision } from '@/lib/vision-still-scan-client';
+import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
 import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_VIDEO_TOOL_CACHE,
@@ -683,6 +693,205 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   const completedShotCount = watchPlaylist.length;
   const fittingWardrobe = (activeSlot.wardrobeId || shared.lockedWardrobeId || '').trim();
 
+  const [garmentUploading, setGarmentUploading] = useState(false);
+  const [garmentScanStatus, setGarmentScanStatus] = useState<string | null>(null);
+
+  const scanCustomGarmentDescription = useCallback(
+    async (image: File) => {
+      setGarmentScanStatus('Scanning clothing with vision…');
+      try {
+        return await scanStillWithVision({
+          image,
+          purpose: 'fitting-garment',
+          model: shared.model,
+          detail: shared.detail,
+          shared,
+        });
+      } finally {
+        setGarmentScanStatus(null);
+      }
+    },
+    [shared]
+  );
+
+  const clearDayKitLocks = useCallback(() => {
+    updateShared({ lockedWardrobeId: undefined });
+    updateToolSettings({
+      slots: slots.map(slot => ({ ...slot, wardrobeId: undefined })),
+    });
+  }, [slots, updateShared, updateToolSettings]);
+
+  const applyCustomGarment = useCallback(
+    async (input: {
+      file?: File | null;
+      imageUrl?: string;
+      filename?: string;
+      asPackshot?: boolean;
+    }) => {
+      setGarmentUploading(true);
+      setGarmentScanStatus(null);
+      setError(null);
+      try {
+        const result = await applyCustomGarmentUpload(input, {
+          model: shared.model,
+          characterId: shared.activeCharacterId,
+          lookId: shared.activeLookId ?? character?.activeLookId,
+          sendComfyUi: (prompt, _a, _b, options) =>
+            actions.sendComfyUi(prompt, undefined, undefined, options),
+          scanDescription: scanCustomGarmentDescription,
+          onStatus: setGarmentScanStatus,
+          onSoftError: setError,
+        });
+        updateToolSettings({
+          customGarmentImageFilename: result.filename,
+          customGarmentImageUrl: result.previewUrl,
+          customGarmentDescription: result.description,
+          slots: slots.map(slot => ({ ...slot, wardrobeId: undefined })),
+        });
+        updateShared({ lockedWardrobeId: undefined });
+        setFilmStatus(`Using clothing photo for Day stills.`);
+      } finally {
+        setGarmentUploading(false);
+        setGarmentScanStatus(null);
+      }
+    },
+    [
+      actions,
+      character?.activeLookId,
+      scanCustomGarmentDescription,
+      setError,
+      setFilmStatus,
+      shared.activeCharacterId,
+      shared.activeLookId,
+      shared.model,
+      slots,
+      updateShared,
+      updateToolSettings,
+    ]
+  );
+
+  const clearCustomGarment = useCallback(() => {
+    const previousUrl = toolSettings.customGarmentImageUrl?.trim();
+    if (previousUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(previousUrl);
+    }
+    updateToolSettings({
+      customGarmentImageUrl: undefined,
+      customGarmentImageFilename: undefined,
+      customGarmentDescription: undefined,
+    });
+    setGarmentScanStatus(null);
+  }, [toolSettings.customGarmentImageUrl, updateToolSettings]);
+
+  const rescanCustomGarment = useCallback(async () => {
+    const preview = toolSettings.customGarmentImageUrl?.trim();
+    const filename = toolSettings.customGarmentImageFilename?.trim();
+    if (!preview && !filename) {
+      throw new Error('Upload a clothing photo first.');
+    }
+    setGarmentUploading(true);
+    setGarmentScanStatus('Loading clothing photo…');
+    setError(null);
+    try {
+      const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+      const urls = collectIsolateSourceUrls({
+        imageUrl: preview,
+        filename,
+        comfyUrl,
+      });
+      const file = await resolveStillFileForVisionScan({
+        urls,
+        fallbackName: filename || 'day-garment.png',
+      });
+      const description = await scanCustomGarmentDescription(file);
+      if (!description?.trim()) {
+        throw new Error('Vision returned an empty garment description. Try Rescan again.');
+      }
+      updateToolSettings({ customGarmentDescription: description.trim() });
+    } finally {
+      setGarmentUploading(false);
+      setGarmentScanStatus(null);
+    }
+  }, [
+    scanCustomGarmentDescription,
+    setError,
+    toolSettings.customGarmentImageFilename,
+    toolSettings.customGarmentImageUrl,
+    updateToolSettings,
+  ]);
+
+  const saveCurrentCustomGarment = useCallback(() => {
+    const filename = toolSettings.customGarmentImageFilename?.trim();
+    if (!filename) {
+      throw new Error('Upload a clothing photo first.');
+    }
+    const entry = saveFittingGarment({
+      imageFilename: filename,
+      imageUrl: toolSettings.customGarmentImageUrl,
+      description: toolSettings.customGarmentDescription,
+    });
+    setFilmStatus(`Saved “${entry.label}” for later.`);
+    return entry;
+  }, [
+    setFilmStatus,
+    toolSettings.customGarmentDescription,
+    toolSettings.customGarmentImageFilename,
+    toolSettings.customGarmentImageUrl,
+  ]);
+
+  const applySavedCustomGarment = useCallback(
+    (garmentId: string) => {
+      const id = garmentId.trim();
+      const entry = loadSavedFittingGarments().find(item => item.id === id);
+      if (!entry) {
+        throw new Error('That saved clothing photo is gone.');
+      }
+      const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+      const previewUrl =
+        entry.imageUrl?.trim() ||
+        collectIsolateSourceUrls({
+          filename: entry.imageFilename,
+          comfyUrl,
+        }).find(url => url.includes('/api/comfyui/view?')) ||
+        '';
+      if (!previewUrl) {
+        throw new Error('Could not resolve that saved clothing photo — re-upload it.');
+      }
+      updateToolSettings({
+        customGarmentImageFilename: entry.imageFilename,
+        customGarmentImageUrl: previewUrl,
+        customGarmentDescription: entry.description,
+        slots: slots.map(slot => ({ ...slot, wardrobeId: undefined })),
+      });
+      updateShared({ lockedWardrobeId: undefined });
+      setFilmStatus(`Using saved “${entry.label}”.`);
+    },
+    [setFilmStatus, slots, updateShared, updateToolSettings]
+  );
+
+  const removeSavedCustomGarment = useCallback((garmentId: string) => {
+    removeSavedFittingGarment(garmentId);
+  }, []);
+
+  const selectSlotWardrobe = useCallback(
+    (slotId: DaySlotId, wardrobeId: string | undefined) => {
+      const id = wardrobeId?.trim() || undefined;
+      updateSlot(slotId, { wardrobeId: id });
+      if (id) {
+        const previousUrl = toolSettings.customGarmentImageUrl?.trim();
+        if (previousUrl?.startsWith('blob:')) {
+          URL.revokeObjectURL(previousUrl);
+        }
+        updateToolSettings({
+          customGarmentImageUrl: undefined,
+          customGarmentImageFilename: undefined,
+          customGarmentDescription: undefined,
+        });
+      }
+    },
+    [toolSettings.customGarmentImageUrl, updateSlot, updateToolSettings]
+  );
+
   return {
     queueAll,
     animateSlot,
@@ -698,5 +907,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     fittingWardrobe,
     filmCutOptions,
     setFilmCutOptions,
+    garmentUploading,
+    garmentScanStatus,
+    applyCustomGarment,
+    clearCustomGarment,
+    rescanCustomGarment,
+    saveCurrentCustomGarment,
+    applySavedCustomGarment,
+    removeSavedCustomGarment,
+    selectSlotWardrobe,
+    clearDayKitLocks,
   };
 }

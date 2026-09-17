@@ -79,6 +79,9 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     applyCustomGarment,
     clearCustomGarment,
     rescanCustomGarment,
+    saveCurrentCustomGarment,
+    applySavedCustomGarment,
+    removeSavedCustomGarment,
     clearKit,
     selectKit,
     swipeKit,
@@ -212,6 +215,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         inFlightPreviewCount={inFlightPreviewCount}
         previewStatus={previewStatus}
         customGarmentImageUrl={toolSettings.customGarmentImageUrl}
+        customGarmentImageFilename={toolSettings.customGarmentImageFilename}
         customGarmentDescription={toolSettings.customGarmentDescription}
         garmentUploading={garmentUploading}
         garmentScanStatus={garmentScanStatus}
@@ -227,6 +231,9 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onApplyCustomGarment={applyCustomGarment}
         onClearCustomGarment={clearCustomGarment}
         onRescanCustomGarment={rescanCustomGarment}
+        onSaveCustomGarment={saveCurrentCustomGarment}
+        onApplySavedCustomGarment={applySavedCustomGarment}
+        onRemoveSavedCustomGarment={removeSavedCustomGarment}
         onCustomGarmentDescriptionChange={value =>
           updateToolSettings({ customGarmentDescription: value })
         }
