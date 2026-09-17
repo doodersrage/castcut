@@ -375,7 +375,7 @@ describe('character-os', () => {
     assert.deepEqual(castLoraSessionIds(withLora), ['lora-a', 'lora-b']);
   });
 
-  it('applyCharacterRecordFresh clears prior by-model LoRAs when Cast has none', () => {
+  it('applyCharacterRecordFresh leaves session LoRAs alone when Cast has none', () => {
     withMockLocalStorage(() => {
       saveSettingsCache({
         ...loadSettingsCache(),
@@ -389,7 +389,10 @@ describe('character-os', () => {
       const blank = createBlankCharacter('Fresh Clear');
       const fresh = applyCharacterRecordFresh(blank);
       assert.equal(fresh.sessionActiveLoraIds, undefined);
-      assert.deepEqual(fresh.sessionActiveLoraIdsByModel?.['qwen-image-2512'], []);
+      assert.equal(fresh.sessionActiveLoraIdsByModel, undefined);
+      // Face/wardrobe still cleared for blank Cast create.
+      assert.ok('ipAdapterImageFilename' in fresh);
+      assert.ok('lockedWardrobeId' in fresh);
     });
   });
 

@@ -16,6 +16,7 @@ import {
   castFaceQueueParamsBase,
   withCastFaceQueueParams,
   withCastIdentityQueueFields,
+  syncSharedIdentityToCast,
   resolveCharacterAppearanceForPlate,
   stripDemographicCuesFromStyle,
   styleNotesForLookPlate,
@@ -107,6 +108,31 @@ describe('look-outfit-plate', () => {
       },
       sessionActiveLoraIds: ['lora-rin'],
     });
+  });
+
+  it('syncSharedIdentityToCast keeps session LoRAs when Cast has no pins', () => {
+    installMemoryWindow();
+    resetBrowserStorageCache();
+    saveSettingsCache({
+      ...loadSettingsCache(),
+      shared: {
+        ...loadSettingsCache().shared,
+        model: 'qwen-image-2512',
+        sessionActiveLoraIds: ['detail-lora', 'skin-lora'],
+        sessionActiveLoraIdsByModel: {
+          'qwen-image-2512': ['detail-lora', 'skin-lora'],
+        },
+      },
+    });
+    const blank = createBlankCharacter('No Pins');
+    syncSharedIdentityToCast(blank);
+    const shared = loadSettingsCache().shared;
+    assert.deepEqual(shared.sessionActiveLoraIds, ['detail-lora', 'skin-lora']);
+    assert.deepEqual(shared.sessionActiveLoraIdsByModel?.['qwen-image-2512'], [
+      'detail-lora',
+      'skin-lora',
+    ]);
+    assert.equal(shared.activeCharacterId, blank.id);
   });
 
   it('pickMoodboardPlateSource prefers subject/other tiles with images', () => {

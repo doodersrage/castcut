@@ -470,9 +470,22 @@ describe('roleplay parsers', () => {
     const next = continueRoleplayScenes(story[0]!, story, 'Rin', undefined, 'explicit');
     assert.equal(next.length, 4);
     assert.ok(
-      next.some(scene => /sex|nude|fuck|oral|bed|wall|straddl|behind|threesome|undress/i.test(scene.blurb)),
+      next.some(scene =>
+        /sex|nude|fuck|oral|bed|wall|straddl|doggy|threesome|undress|lingerie|naked/i.test(
+          scene.blurb
+        )
+      ),
       'adult forks should name sexual action'
     );
+    assert.ok(
+      next.every(scene => !/explicit and readable|you can photograph|as the still|fade-to-black/i.test(scene.blurb)),
+      'adult forks should not use meta still-language'
+    );
+    const fromBehind = next.find(scene => /from behind/i.test(scene.title));
+    if (fromBehind) {
+      assert.match(fromBehind.blurb, /hands and knees|doggy-style/i);
+      assert.doesNotMatch(fromBehind.blurb, /doggy or bent-over/i);
+    }
     const openings = templateRoleplayScenes(
       'custom',
       'a sultry lead',

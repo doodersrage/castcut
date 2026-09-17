@@ -90,10 +90,10 @@ function contentLine(content: RoleplayContentId, allowGore: boolean): string {
     return `Suggestive but not explicit: heat, lingering looks, implied, fade to black. No explicit nudity or sex. ${gore} ${adults}`;
   }
   if (content === 'sultry') {
-    return `Erotic NSFW. The still is about desire: skin, undress, lingerie or clothes coming off, body heat, sexual tension you can photograph. Describe cleavage, thighs, bare back, wet fabric, flushed skin, intimate distance. Not a polite portrait with a wink. ${gore} ${adults}`;
+    return `Erotic NSFW. Show desire on camera: skin, undress, lingerie or clothes coming off, body heat, sexual tension. Describe cleavage, thighs, bare back, wet fabric, flushed skin, intimate distance. Not a polite portrait with a wink. ${gore} ${adults}`;
   }
   if (content === 'explicit') {
-    return `Full explicit NSFW. Name nudity and sex as a readable tableau: genitals, breasts, ass, penetration, oral, hands on bodies, fluids, explicit pose. Be anatomical and specific — do not euphemize or cut away. ${gore} ${adults}`;
+    return `Full explicit NSFW. Name nudity and sex as a concrete scene: genitals, breasts, ass, penetration, oral, hands on bodies, fluids, explicit pose. Be anatomical and specific — do not euphemize or cut away. ${gore} ${adults}`;
   }
   if (content === 'raunchy') {
     return `Raunchy sexual comedy. Crude, vulgar, graphic. The joke is sexual and on-camera (wardrobe malfunction, horny slapstick, explicit visual gag) — not a dirty one-liner over a clothed still. ${gore} ${adults}`;

@@ -1,6 +1,6 @@
 import {
   activeLook,
-  applyCharacterRecordFresh,
+  applyCharacterRecord,
   castLoraSessionIds,
   getCharacter,
   upsertCharacter,
@@ -396,7 +396,7 @@ export function withCastIdentityQueueFields(
   };
 }
 
-/** Pin session identity to this Cast and clear any prior Cast face (quiet — no broadcast). */
+/** Pin session identity to this Cast without wiping wardrobe or custom session LoRAs. */
 export function syncSharedIdentityToCast(character: CharacterRecord): void {
   if (typeof window === 'undefined') {
     return;
@@ -404,7 +404,7 @@ export function syncSharedIdentityToCast(character: CharacterRecord): void {
   saveSharedSettings(
     {
       ...loadSettingsCache().shared,
-      ...applyCharacterRecordFresh(character),
+      ...applyCharacterRecord(character),
     },
     { notify: false }
   );

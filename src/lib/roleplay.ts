@@ -1244,52 +1244,52 @@ const ROLEPLAY_ADULT_CONTINUATION_FORKS: RoleplayContinuationFork[] = [
   {
     titlePrefix: 'Clothes off',
     blurb: (name, last) =>
-      `After ${last.title.toLowerCase()}, ${name} is half-undressed — skin, hands, and heat readable in one still.`,
+      `${name} peeling clothes off with a partner after ${last.title.toLowerCase()} — bare skin, hands on zippers, lingerie half on.`,
   },
   {
     titlePrefix: 'Against the wall',
     blurb: (name, last) =>
-      `${name} gets pinned against a wall after ${last.title.toLowerCase()}, bodies close, sex starting or in progress.`,
+      `${name} pinned to a wall by a partner after ${last.title.toLowerCase()} — standing sex, one leg hooked, clothes shoved aside.`,
   },
   {
     titlePrefix: 'On the bed',
     blurb: (name, last) =>
-      `${name} and a partner on a bed after ${last.title.toLowerCase()} — nude or nearly, an explicit pose you can photograph.`,
+      `${name} and a partner naked on a bed after ${last.title.toLowerCase()} — missionary sex, sheets kicked down, faces clear.`,
   },
   {
     titlePrefix: 'Oral interruption',
     blurb: (name, last) =>
-      `Someone goes down on ${name} (or the reverse) mid-fallout from ${last.title.toLowerCase()} — oral sex as the still.`,
+      `A partner kneeling for oral sex on ${name} after ${last.title.toLowerCase()} — head between thighs, nude bodies, close framing.`,
   },
   {
     titlePrefix: 'From behind',
     blurb: (name, last) =>
-      `${name} bent over after ${last.title.toLowerCase()}, taken from behind — doggy or bent-over sex, explicit and readable.`,
+      `${name} on hands and knees, partner behind in doggy-style sex after ${last.title.toLowerCase()} — gripping hips, mid-thrust, bedroom light.`,
   },
   {
     titlePrefix: 'Straddle',
     blurb: (name, last) =>
-      `${name} straddles a partner after ${last.title.toLowerCase()} — cowgirl/riding, skin and motion clear.`,
+      `${name} straddling a partner cowgirl-style after ${last.title.toLowerCase()} — nude, riding, hands on chest, face toward camera.`,
   },
   {
     titlePrefix: 'Caught mid-sex',
     blurb: (name, last) =>
-      `A door opens on ${name} mid-fuck after ${last.title.toLowerCase()} — caught in the act, bodies still joined.`,
+      `${name} mid-fuck with a partner when a door opens after ${last.title.toLowerCase()} — bodies still joined, startled faces, sheets tangled.`,
   },
   {
     titlePrefix: 'Threesome offer',
     blurb: (name, last) =>
-      `A third adult joins ${name} after ${last.title.toLowerCase()} — three bodies, hands and mouths, explicit tableau.`,
+      `${name} with two adult partners after ${last.title.toLowerCase()} — three nude bodies on a bed, hands and mouths, clear separate faces.`,
   },
   {
     titlePrefix: 'Morning after heat',
     blurb: (name, last) =>
-      `Morning light on ${name} still naked after ${last.title.toLowerCase()} — another round starting, sheets and skin.`,
+      `Morning window light on ${name} naked in bed with a partner after ${last.title.toLowerCase()} — another round starting, soft sheets.`,
   },
   {
     titlePrefix: 'Public risk',
     blurb: (name, last) =>
-      `${name} keeps the sex going somewhere they could be seen after ${last.title.toLowerCase()} — exhibition heat, not fade-to-black.`,
+      `${name} having quick standing sex in a half-hidden public spot after ${last.title.toLowerCase()} — clothes open, risk of being seen.`,
   },
 ];
 
@@ -1330,32 +1330,32 @@ const ROLEPLAY_ADULT_ENDING_FORKS: RoleplayContinuationFork[] = [
   {
     titlePrefix: 'Spent together',
     blurb: (name, last) =>
-      `${name} and a partner after ${last.title.toLowerCase()} — sweaty, naked, soft afterglow as the last still.`,
+      `${name} and a partner sweaty and naked in bed after ${last.title.toLowerCase()} — soft afterglow, limbs tangled, quiet light.`,
   },
   {
     titlePrefix: 'One more round',
     blurb: (name, last) =>
-      `Final beat: ${name} starts one last explicit round after ${last.title.toLowerCase()}, then the story ends on that climax pose.`,
+      `${name} starting one last round of sex with a partner after ${last.title.toLowerCase()} — climax pose, nude, close and intense.`,
   },
   {
     titlePrefix: 'Walk of shame glow',
     blurb: (name, last) =>
-      `${name} leaves after ${last.title.toLowerCase()} — mussed hair, sex-marked skin, clothes half on, ending satisfied.`,
+      `${name} leaving after ${last.title.toLowerCase()} — mussed hair, flushed skin, clothes half on, satisfied expression.`,
   },
   {
     titlePrefix: 'Tangled sheets',
     blurb: (name, last) =>
-      `Credits on tangled sheets and ${name}'s bare body after ${last.title.toLowerCase()} — no new plot, just the landing.`,
+      `Tangled sheets and ${name}'s bare body after ${last.title.toLowerCase()} — empty room, morning light, no new plot.`,
   },
   {
     titlePrefix: 'Kiss goodbye',
     blurb: (name, last) =>
-      `A last deep kiss (or more) that closes ${last.title.toLowerCase()} — intimate, explicit enough to photograph, then fade.`,
+      `${name} in a deep nude kiss with a partner closing ${last.title.toLowerCase()} — bodies pressed close, then fade.`,
   },
   {
     titlePrefix: 'Alone and glowing',
     blurb: (name, last) =>
-      `${name} alone after the sex of ${last.title.toLowerCase()} — nude, flushed, story over on a quiet erotic still.`,
+      `${name} alone and nude after the sex of ${last.title.toLowerCase()} — flushed, quiet bedroom, soft erotic portrait.`,
   },
 ];
 
@@ -1363,22 +1363,22 @@ const ROLEPLAY_ADULT_OPENING_SCENES: Array<{ title: string; blurb: string }> = [
   {
     title: 'Heat at the door',
     blurb:
-      'Someone attractive is already undressing them with a look — the still is about skin, distance, and consenting adults.',
+      'Two consenting adults in a doorway — charged eye contact, jackets coming off, skin showing, close enough to kiss.',
   },
   {
     title: 'Wrong bed, right night',
     blurb:
-      'They wake (or arrive) in a bed that is not theirs, half-naked, with a second adult and obvious sexual heat.',
+      'Two adults half-naked in a bed that is not theirs — sheets low, morning or night light, obvious sexual heat.',
   },
   {
     title: 'Strip the costume',
     blurb:
-      'The outfit comes off mid-scene — lingerie, bare chest, hands on zippers — erotic still, not a polite portrait.',
+      'Clothes coming off mid-scene — lingerie, bare chest, hands on zippers, erotic undressing not a polite portrait.',
   },
   {
     title: 'Private demonstration',
     blurb:
-      'A closed-door lesson turns sexual: nude posing, touching, or sex starting in a readable tableau.',
+      'A closed-door lesson turning sexual — nude posing, touching, or sex starting, two adults, readable bodies.',
   },
 ];
 

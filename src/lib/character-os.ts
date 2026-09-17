@@ -554,14 +554,12 @@ export function applyCharacterRecord(character: CharacterRecord): Partial<Shared
 
 /**
  * Activate a character and drop prior Cast identity that the record does not define
- * (face lock, wardrobe, look, session LoRAs). Use when creating a blank Cast so the
- * previous character's look does not stick to the session.
+ * (face lock, wardrobe, look). Session LoRAs are left alone unless the Cast has
+ * pinned `loraLibraryIds` (those still replace the stack via applyCharacterRecord).
+ * Use when creating a blank Cast so the previous character's look does not stick.
  */
 export function applyCharacterRecordFresh(character: CharacterRecord): Partial<SharedToolSettings> {
-  const shared = loadSettingsCache().shared;
   const applied = applyCharacterRecord(character);
-  const modelForLoras = (character.model ?? applied.model ?? shared.model)?.trim();
-  const clearLoras = !applied.sessionActiveLoraIds?.length;
   return {
     activeLookId: undefined,
     activeCharacterDescriptor: undefined,
@@ -576,17 +574,7 @@ export function applyCharacterRecordFresh(character: CharacterRecord): Partial<S
     lockedLocation: undefined,
     lockedVariationSeed: undefined,
     alwaysIncludeClothing: undefined,
-    sessionActiveLoraIds: undefined,
     ...applied,
-    ...(clearLoras && modelForLoras
-      ? {
-          sessionActiveLoraIdsByModel: setSessionLoraIdsForModel(
-            applied.sessionActiveLoraIdsByModel ?? shared.sessionActiveLoraIdsByModel,
-            modelForLoras,
-            []
-          ),
-        }
-      : {}),
   };
 }
 

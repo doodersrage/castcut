@@ -277,9 +277,54 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
     pattern: /\b(?:straddled|straddling|mounted|mounting|rode|riding)\s+(him|her|them)\b/gi,
     replace: (_m, obj: string) => `straddling ${obj} in sex`,
   },
+  // Meta beat-template phrasing that confuses image models (legacy adult forks)
   {
-    pattern: /\b(?:bent\s+over|from\s+behind|taken\s+from\s+behind)\b/gi,
-    replace: 'sex from behind',
+    pattern: /\s*[—-]\s*doggy\s+or\s+bent-over\s+sex,?\s*explicit\s+and\s+readable\.?/gi,
+    replace: ' — doggy-style sex, nude, mid-thrust',
+  },
+  {
+    pattern: /\bdoggy\s+or\s+bent-over\s+sex\b/gi,
+    replace: 'doggy-style sex',
+  },
+  {
+    pattern: /\bexplicit\s+and\s+readable\.?\b/gi,
+    replace: 'clear nude bodies',
+  },
+  {
+    pattern: /\ban?\s+explicit\s+pose\s+you\s+can\s+photograph\.?\b/gi,
+    replace: 'nude sex pose',
+  },
+  {
+    pattern: /\boral\s+sex\s+as\s+the\s+still\.?\b/gi,
+    replace: 'oral sex in progress',
+  },
+  {
+    pattern: /\b(?:skin\s+and\s+motion\s+clear|exhibition\s+heat,?\s*not\s+fade-to-black)\.?\b/gi,
+    replace: 'nude bodies clear',
+  },
+  {
+    pattern: /\bthe\s+still\s+is\s+about\b/gi,
+    replace: 'showing',
+  },
+  {
+    pattern: /\bas\s+the\s+last\s+still\.?\b/gi,
+    replace: '',
+  },
+  {
+    pattern: /\bstory\s+over\s+on\s+a\s+quiet\s+erotic\s+still\.?\b/gi,
+    replace: 'quiet erotic portrait',
+  },
+  {
+    pattern: /\bFinal\s+beat:\s*/gi,
+    replace: '',
+  },
+  {
+    pattern: /\bCredits\s+on\b/gi,
+    replace: 'Camera on',
+  },
+  {
+    pattern: /\b(?:bent\s+over|taken\s+from\s+behind).{0,60}(?:doggy|sex|fuck|partner|thrust)/gi,
+    replace: 'on hands and knees in doggy-style sex',
   },
 ];
 

@@ -76,6 +76,16 @@ describe('intimate-prompt-clarify', () => {
     assert.match(out, /cumming inside her/i);
   });
 
+  it('rewrites legacy adult-fork meta phrasing into a concrete pose', () => {
+    const out = clarifyIntimateImageLanguage(
+      'Amber Office bent over after velvet lullaby, taken from behind — doggy or bent-over sex, explicit and readable.'
+    );
+    assert.match(out, /doggy-style sex/i);
+    assert.doesNotMatch(out, /explicit and readable/i);
+    assert.doesNotMatch(out, /doggy or bent-over/i);
+    assert.match(out, /hands and knees|doggy-style/i);
+  });
+
   it('is idempotent on already-direct language', () => {
     const direct =
       'Fingers penetrating her vagina, erect penis, breasts, ass, cum on skin.';

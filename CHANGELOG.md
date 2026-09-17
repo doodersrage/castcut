@@ -28,7 +28,8 @@ v1.9 closed the Play loop; 2.0 makes the film recognizably that Cast lead on Com
 - **Pose guide realism lock:** Image 3 stick figures unlock pose only — prompts + negatives force photoreal (or anime when Settings says so) so wireframes don’t bleed into stills.
 - **Pose guide anti-merge:** duo+ Image 3 figures use distinct colors, clearer head spacing, and “fully separate people” prompt/negative locks so intimate stills don’t fuse into one body.
 - **Intimate language clarify:** Story stills auto-rewrite literary euphemisms (“slick/wet core”, “manhood”, “pearl”, stacked adjectives, oral/finish phrasing) into direct anatomy models parse before queue.
-- **Story adult beats:** sultry/explicit/raunchy template forks stay sexual (undress, wall, bed, oral, threesome…) instead of falling back to tame “Next room” cards.
+- **Story adult beats:** sultry/explicit/raunchy template forks stay sexual with concrete poses (hands-and-knees doggy, wall sex, oral…) — no “explicit and readable” / “you can photograph” meta that confuses gens; clarify also rewrites leftover meta from older forks.
+- **LoRA stack stay put:** film-loop identity sync no longer wipes session LoRAs when the Cast has no pinned library ids (Fresh Cast create also leaves custom stacks alone).
 - **Story outfit kit + BYO:** same Day/Outfit clothing strip on Story (desk + phone) — kit or packshot as Image 2 so stills reinforce wardrobe instead of keeping street clothes from the Cast plate.
 - **Out of scope for 2.0:** Diffusers video / Play-on-Diffusers, Extras unpark, SSO, cloud IP-Adapter parity.
 
