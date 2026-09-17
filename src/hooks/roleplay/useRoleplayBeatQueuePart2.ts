@@ -238,8 +238,7 @@ export function useRoleplayBeatQueuePart2(
           clipMode: queueClipMode,
           videoUrl: useNativeExtend ? extendUrl : undefined,
           qualityProfile: 'final',
-          queueParamsBase: { videoFrames: 64, videoFps: 16 },
-          ...roleplayCharacterQueueFields(),
+          ...roleplayCharacterQueueFields(undefined, { videoFrames: 64, videoFps: 16 }),
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not queue that clip.');

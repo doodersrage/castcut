@@ -14,6 +14,7 @@ import {
   reinforceAppearanceForPlate,
   resolveCastFaceForPlate,
   castFaceQueueParamsBase,
+  withCastFaceQueueParams,
   resolveCharacterAppearanceForPlate,
   stripDemographicCuesFromStyle,
   styleNotesForLookPlate,
@@ -64,6 +65,27 @@ describe('look-outfit-plate', () => {
       ipAdapterStrength: 0.8,
     });
     assert.equal(resolveCastFaceForPlate(withFace)?.filename, 'lead-face.png');
+  });
+
+  it('withCastFaceQueueParams merges face pin into Animate video params', () => {
+    const blank = createBlankCharacter('Animate Face');
+    assert.deepEqual(withCastFaceQueueParams({ videoFrames: 64, videoFps: 16 }, blank), {
+      videoFrames: 64,
+      videoFps: 16,
+    });
+    assert.equal(withCastFaceQueueParams(undefined, blank), undefined);
+
+    const withFace = {
+      ...blank,
+      ipAdapter: { imageFilename: 'lead-face.png', imageUrl: 'https://example.com/face.png' },
+    };
+    assert.deepEqual(withCastFaceQueueParams({ videoFrames: 64, videoFps: 16 }, withFace, 0.7), {
+      videoFrames: 64,
+      videoFps: 16,
+      ipAdapterImageFilename: 'lead-face.png',
+      ipAdapterImageFilenames: ['lead-face.png'],
+      ipAdapterStrength: 0.7,
+    });
   });
 
   it('pickMoodboardPlateSource prefers subject/other tiles with images', () => {

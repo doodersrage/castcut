@@ -359,6 +359,19 @@ export function castFaceQueueParamsBase(
   };
 }
 
+/** Merge Cast face IP-Adapter into an existing queueParamsBase (e.g. videoFrames for Animate). */
+export function withCastFaceQueueParams<T extends Record<string, unknown>>(
+  base: T | undefined,
+  character: CharacterRecord | null | undefined,
+  strength?: number
+): (T & ReturnType<typeof castFaceQueueParamsBase>) | T | undefined {
+  const face = castFaceQueueParamsBase(character, strength);
+  if (!base && !face) {
+    return undefined;
+  }
+  return { ...(base ?? ({} as T)), ...face };
+}
+
 /** Pin session identity to this Cast and clear any prior Cast face (quiet — no broadcast). */
 export function syncSharedIdentityToCast(character: CharacterRecord): void {
   if (typeof window === 'undefined') {

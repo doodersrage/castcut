@@ -23,6 +23,7 @@ import type { RoleplayBeatOutput } from '@/lib/roleplay-film';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { dispatchWebhook } from '@/lib/webhook-settings';
 import { snapshotRoleplaySession } from '@/lib/roleplay-library';
+import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { MutableRefObject } from 'react';
 
@@ -85,17 +86,25 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
   );
 
   const roleplayCharacterQueueFields = useCallback(
-    (cache?: Partial<RoleplayToolCache>) => {
+    (cache?: Partial<RoleplayToolCache>, queueParamsBase?: Record<string, unknown>) => {
       const character = stampRoleplayCharacter(cache);
       if (!character) {
-        return {};
+        return queueParamsBase ? { queueParamsBase } : {};
       }
+      // 2.0: pin Cast face on Story stills/clips so identity survives session shared drift.
+      syncSharedIdentityToCast(character);
+      const merged = withCastFaceQueueParams(
+        queueParamsBase,
+        character,
+        shared.ipAdapterStrength ?? 0.75
+      );
       return {
         characterId: character.id,
         lookId: character.activeLookId,
+        ...(merged ? { queueParamsBase: merged } : {}),
       };
     },
-    [stampRoleplayCharacter]
+    [shared.ipAdapterStrength, stampRoleplayCharacter]
   );
 
   const queueStillOptions = useCallback(

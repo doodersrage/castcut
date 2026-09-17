@@ -72,6 +72,7 @@ import { isGalleryClipEntry } from '@/lib/roleplay-film';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
+import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
 import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_VIDEO_TOOL_CACHE,
@@ -269,6 +270,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         } catch {
           /* use subject */
         }
+        // 2.0: keep Cast face on Animate — I2V init still is Image 1; pin IP-Adapter too.
+        if (character) {
+          syncSharedIdentityToCast(character);
+        }
         const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
           queueTool: 'video',
           queueModel: videoModel,
@@ -277,7 +282,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           derivedKind: 'i2v',
           clipMode: 'i2v',
           qualityProfile: 'final',
-          queueParamsBase: { videoFrames: 64, videoFps: 16 },
+          queueParamsBase: withCastFaceQueueParams(
+            { videoFrames: 64, videoFps: 16 },
+            character,
+            shared.ipAdapterStrength ?? 0.75
+          ),
           characterId: shared.activeCharacterId,
           lookId: shared.activeLookId ?? character?.activeLookId,
         });
@@ -313,6 +322,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       character,
       shared.activeCharacterId,
       shared.activeLookId,
+      shared.ipAdapterStrength,
       shared.model,
       updateToolSettings,
     ]
