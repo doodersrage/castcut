@@ -14,6 +14,8 @@ import {
   lookPackFittingHref,
   lookPackNotes,
   lookPackNotesForCharacter,
+  fittingNotesBelongToCharacter,
+  fittingNotesCachePatch,
   lookPackPlayCampaignHref,
   lookPackPortableShareHref,
   LOOK_PACK_SHARE_MAX_TOKEN_CHARS,
@@ -139,6 +141,19 @@ describe('look-pack', () => {
     assert.equal(lookPackNotesForCharacter(pack, 'char-1'), fitting.tool.notes);
     assert.equal(lookPackNotesForCharacter(pack, 'char-other'), '');
     assert.equal(lookPackNotesForCharacter(null, 'char-1'), '');
+    assert.equal(fittingNotesBelongToCharacter('char-1', 'char-1'), true);
+    assert.equal(fittingNotesBelongToCharacter('char-1', 'char-2'), false);
+    assert.equal(fittingNotesBelongToCharacter(undefined, 'char-1', 'leftover'), false);
+    assert.equal(fittingNotesBelongToCharacter(undefined, undefined, 'leftover'), false);
+    assert.equal(fittingNotesBelongToCharacter(undefined, undefined, ''), true);
+    assert.deepEqual(fittingNotesCachePatch('oversized', 'char-1'), {
+      notes: 'oversized',
+      notesCharacterId: 'char-1',
+    });
+    assert.deepEqual(fittingNotesCachePatch('', null), {
+      notes: '',
+      notesCharacterId: undefined,
+    });
 
     const slots = applyLookPackToDaySlots(DEFAULT_DAY_SLOTS, pack);
     assert.equal(slots[0]?.location, 'sunlit kitchen');

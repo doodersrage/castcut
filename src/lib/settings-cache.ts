@@ -981,6 +981,8 @@ export type FittingToolCache = {
   referenceOriginalFilename?: string;
   /** Optional freeform notes layered onto the outfit edit instruction. */
   notes?: string;
+  /** Cast character that owns {@link notes}; reset when Cast changes (incl. remount). */
+  notesCharacterId?: string;
   /** Filter full-catalog wardrobe kits by clothing type. */
   wardrobeCategoryFilter?: import('./wardrobe-catalog-ui').WardrobeCategoryFilter;
   /** Lazy draft try-on thumbs keyed by wardrobeId::lookId. */
@@ -1417,6 +1419,7 @@ export const DEFAULT_ROLEPLAY_TOOL_CACHE: RoleplayToolCache = {
 export const DEFAULT_FITTING_TOOL_CACHE: FittingToolCache = {
   isolateSubject: true,
   notes: '',
+  notesCharacterId: undefined,
   autoKitPreviews: false,
   kitPreviews: {},
 };

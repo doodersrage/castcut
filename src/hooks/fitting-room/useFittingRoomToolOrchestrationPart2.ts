@@ -74,6 +74,8 @@ import {
   loadLookPack,
   lookPackDayHref,
   lookPackNotesForCharacter,
+  fittingNotesBelongToCharacter,
+  fittingNotesCachePatch,
   lookPackRoleplayHref,
   saveLookPack,
 } from '@/lib/look-pack';
@@ -568,7 +570,9 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
           updateShared({ lockedWardrobeId: applied.shared.lockedWardrobeId });
         }
         if (applied.tool.notes) {
-          updateToolSettings({ notes: applied.tool.notes });
+          updateToolSettings(
+            fittingNotesCachePatch(applied.tool.notes, characterId || pack.characterId)
+          );
         }
         scheduleAfterCommit(() => setSaveStatus('Applied Moodboard look pack.'));
       }
@@ -610,30 +614,25 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     toolSettings.suppressAutoPlateSeed,
   ]);
 
-  // Outfit notes are a single tool field — reset them when Cast changes so Char A's
-  // styling cues never stick on Char B. Re-seed from a matching look pack when present.
-  const prevNotesCharacterIdRef = useRef<string | undefined>(undefined);
+  // Outfit notes are tool-session state with Cast ownership. Remount + Cast swap both
+  // must re-seed (in-memory prev-id refs miss remounts after switching Cast elsewhere).
   useEffect(() => {
     if (!mounted) {
       return;
     }
     const nextId = shared.activeCharacterId?.trim() || '';
-    const prevId = prevNotesCharacterIdRef.current;
-    if (prevId === undefined) {
-      prevNotesCharacterIdRef.current = nextId;
+    if (fittingNotesBelongToCharacter(toolSettings.notesCharacterId, nextId, toolSettings.notes)) {
       return;
     }
-    if (prevId === nextId) {
-      return;
-    }
-    prevNotesCharacterIdRef.current = nextId;
     const nextNotes = lookPackNotesForCharacter(loadLookPack(), nextId);
-    const currentNotes = toolSettings.notes ?? '';
-    if (currentNotes === nextNotes) {
-      return;
-    }
-    updateToolSettings({ notes: nextNotes });
-  }, [mounted, shared.activeCharacterId, toolSettings.notes, updateToolSettings]);
+    updateToolSettings(fittingNotesCachePatch(nextNotes, nextId));
+  }, [
+    mounted,
+    shared.activeCharacterId,
+    toolSettings.notes,
+    toolSettings.notesCharacterId,
+    updateToolSettings,
+  ]);
 
   useEffect(() => {
     let cancelled = false;

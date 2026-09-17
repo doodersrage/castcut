@@ -16,6 +16,7 @@ import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
+import { fittingNotesCachePatch } from '@/lib/look-pack';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 
 const ACCENT = 'rose' as const;
@@ -220,7 +221,9 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onClearKit={clearKit}
         onToggleAutoKitPreviews={() => updateToolSettings({ autoKitPreviews: !autoKitPreviews })}
         onFillKitPreviews={() => void fillKitPreviews()}
-        onNotesChange={value => updateToolSettings({ notes: value })}
+        onNotesChange={value =>
+          updateToolSettings(fittingNotesCachePatch(value, shared.activeCharacterId))
+        }
         onApplyCustomGarment={applyCustomGarment}
         onClearCustomGarment={clearCustomGarment}
         onRescanCustomGarment={rescanCustomGarment}

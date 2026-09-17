@@ -213,6 +213,33 @@ export function lookPackNotesForCharacter(
   return lookPackNotes(pack).slice(0, 1200);
 }
 
+/** Persist Outfit notes with Cast ownership (same idea as Day stillsCharacterId). */
+export function fittingNotesCachePatch(
+  notes: string,
+  characterId: string | undefined | null
+): { notes: string; notesCharacterId: string | undefined } {
+  const id = characterId?.trim() || undefined;
+  return {
+    notes,
+    notesCharacterId: id,
+  };
+}
+
+/** True when Outfit notes belong to the active Cast. */
+export function fittingNotesBelongToCharacter(
+  notesCharacterId: string | undefined | null,
+  activeCharacterId: string | undefined | null,
+  notes?: string | null
+): boolean {
+  const owner = notesCharacterId?.trim() || '';
+  const active = activeCharacterId?.trim() || '';
+  if (!owner) {
+    // Legacy unowned notes never match once a Cast is active or leftover text exists.
+    return !active && !notes?.trim();
+  }
+  return owner === active;
+}
+
 /** Seed Fitting shared + tool notes from a look pack (`?from=look` handoff). */
 export function applyLookPackToFittingState(pack: LookPack): {
   shared: { lockedWardrobeId?: string };
