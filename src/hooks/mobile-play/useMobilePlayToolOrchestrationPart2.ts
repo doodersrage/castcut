@@ -1,15 +1,10 @@
 'use client';
 
 import { useCallback } from 'react';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 import {
   appendRoleplayStoryBeat,
-  beginRoleplayStillRetryPatch,
-  canRetryRoleplayStill,
   patchRoleplayStoryBeat,
-  roleplayStillQueueResultPatch,
-  roleplayStillTakes,
   selectRoleplayClipTakePatch,
   selectRoleplayStillTakePatch,
   lastRoleplayPlotBeat,
@@ -32,9 +27,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     bio,
     storyRef,
     beatQueue,
-    actions,
     requestBody,
-    queueStillOptions,
     commitStill,
     beginStoryFromBio,
     hasReferenceImage,
@@ -152,61 +145,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     ]
   );
 
-  const queueBeat = useCallback(
-    async (beat: RoleplayStoryBeat, options?: { retry?: boolean }) => {
-      const prompt = beat.prompt?.trim();
-      if (!prompt) {
-        return;
-      }
-      const latest =
-        storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at) ?? beat;
-      const retry = options?.retry === true || canRetryRoleplayStill(latest);
-      setError(null);
-      const startPatch = retry
-        ? beginRoleplayStillRetryPatch(latest)
-        : { stillStatus: 'writing' as const };
-      updateToolSettings({
-        story: patchRoleplayStoryBeat(storyRef.current, latest, startPatch),
-      });
-      const parentPromptId = retry
-        ? roleplayStillTakes(latest)
-            .map(take => take.promptId?.trim())
-            .filter((id): id is string => Boolean(id))
-            .at(-1)
-        : undefined;
-      const parentEntry = parentPromptId
-        ? loadComfyGallery().find(entry => entry.promptId === parentPromptId)
-        : undefined;
-      let promptId: string | undefined;
-      try {
-        promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
-          ...(queueStillOptions() ?? {}),
-          ...(retry
-            ? {
-                derivedKind: 'variation' as const,
-                parentGalleryEntryId: parentEntry?.id,
-              }
-            : {}),
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not queue a still.');
-      }
-      const after = storyRef.current.find(
-        entry => entry.id === latest.id && entry.at === latest.at
-      ) ?? {
-        ...latest,
-        ...startPatch,
-      };
-      updateToolSettings({
-        story: patchRoleplayStoryBeat(
-          storyRef.current,
-          latest,
-          roleplayStillQueueResultPatch(after, promptId)
-        ),
-      });
-    },
-    [actions, queueStillOptions, setError, storyRef, updateToolSettings]
-  );
+  const queueBeat = beatQueue.queueBeat;
 
   const selectStillTake = useCallback(
     (beat: RoleplayStoryBeat, index: number) => {

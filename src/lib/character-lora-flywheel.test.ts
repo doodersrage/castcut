@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { applyLoraTriggerToPrompt } from './lora-prompt-injection';
-import { suggestedLoraOutputPath, trainJobsForCharacter } from './character-lora-flywheel';
+import {
+  characterLookValidationQueuePins,
+  suggestedLoraOutputPath,
+  trainJobsForCharacter,
+} from './character-lora-flywheel';
+import { createBlankCharacter, normalizeCharacterRecord } from './character-os';
 import { createTrainJob } from './lora-train-job';
 import { isLoraDatasetStill, selectCharacterKeepers } from './gallery-lora-dataset-export';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
@@ -61,5 +66,26 @@ describe('character-lora-flywheel', () => {
     assert.equal(applyLoraTriggerToPrompt('standing portrait', 'rinstyle'), 'rinstyle, standing portrait');
     assert.equal(applyLoraTriggerToPrompt('rinstyle, alley', 'rinstyle'), 'rinstyle, alley');
     assert.equal(applyLoraTriggerToPrompt('  ', ''), '');
+  });
+
+  it('pins Cast face and LoRAs for Prove-it validation queues', () => {
+    const blank = createBlankCharacter('Prove');
+    assert.deepEqual(characterLookValidationQueuePins(blank), {
+      faceBase: undefined,
+      sessionActiveLoraIds: undefined,
+    });
+    const locked = normalizeCharacterRecord({
+      ...blank,
+      ipAdapter: { imageFilename: 'face.png', imageUrl: 'https://example.com/face.png' },
+      loraLibraryIds: ['lora-rin'],
+    });
+    assert.deepEqual(characterLookValidationQueuePins(locked, 0.8), {
+      faceBase: {
+        ipAdapterImageFilename: 'face.png',
+        ipAdapterImageFilenames: ['face.png'],
+        ipAdapterStrength: 0.8,
+      },
+      sessionActiveLoraIds: ['lora-rin'],
+    });
   });
 });

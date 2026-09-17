@@ -16,7 +16,6 @@ import {
   loadImageBlobFromUrls,
 } from '@/lib/isolate-subject';
 import { normalizeCharacterPlates, type CharacterPlate } from '@/lib/mobile-studio';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import {
@@ -28,7 +27,6 @@ import {
   patchRoleplayStoryBeat,
   resolveRoleplayToneAndContent,
   roleplayIntroScene,
-  roleplayStillQueueResultPatch,
   type RoleplayBio,
   type RoleplayScene,
   type RoleplayStoryBeat,
@@ -41,12 +39,7 @@ import {
   loadToolSettings,
   SETTINGS_CACHE_UPDATED_EVENT,
 } from '@/lib/settings-cache';
-import {
-  buildRoleplayQueueStillOptions,
-  buildRoleplayRequestBody,
-  type RoleplayApiPayload,
-} from '@/lib/roleplay-play-core';
-import { dispatchWebhook } from '@/lib/webhook-settings';
+import { buildRoleplayRequestBody, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 
 const TOOL_ID = 'roleplay';
 const EMPTY_STORY: RoleplayStoryBeat[] = [];
@@ -305,75 +298,12 @@ export function useMobilePlayToolOrchestrationCore() {
     ]
   );
 
-  const queueStillOptions = useCallback(
-    () =>
-      buildRoleplayQueueStillOptions({
-        photoMode: hasReferenceImage,
-        isolateSubject,
-        referenceIsolated: toolSettings.referenceIsolated === true,
-        filename: referenceImageFilename,
-        imageUrl: referenceImageUrl,
-        identityLockStrength: shared.ipAdapterStrength,
-        identityKind: shared.identityKind,
-      }),
-    [
-      hasReferenceImage,
-      isolateSubject,
-      referenceImageFilename,
-      referenceImageUrl,
-      shared.identityKind,
-      shared.ipAdapterStrength,
-      toolSettings.referenceIsolated,
-    ]
-  );
+  const queueStillOptions = beatQueue.queueStillOptions;
 
   useRoleplayStorySync(storyRef, patch => updateToolSettings(patch));
 
-  const commitStill = useCallback(
-    async (
-      data: RoleplayApiPayload,
-      beat: RoleplayStoryBeat,
-      nextBio: RoleplayBio,
-      currentStory: RoleplayStoryBeat[]
-    ) => {
-      if (!data.prompt?.trim()) {
-        throw new Error(data.error ?? 'Could not write a still.');
-      }
-      const prompt = await actions.finalizePrompt(data.prompt, beat.title);
-      rememberDraftFields({
-        toolKey: TOOL_ID,
-        label: 'Story',
-        href: '/m/story',
-        fields: [nextBio.name, beat.title, prompt],
-      });
-      void dispatchWebhook({
-        event: 'prompt.generated',
-        tool: TOOL_ID,
-        model: shared.model,
-        prompt: prompt.slice(0, 500),
-        completedAt: Date.now(),
-      });
-      let stillPatch: Partial<RoleplayStoryBeat> = { prompt };
-      if (autoQueue) {
-        const promptId = await actions.sendComfyUi(
-          prompt,
-          undefined,
-          undefined,
-          queueStillOptions()
-        );
-        stillPatch = {
-          prompt,
-          ...roleplayStillQueueResultPatch({ ...beat, prompt }, promptId),
-        };
-      } else {
-        stillPatch = { prompt, stillStatus: undefined };
-      }
-      const nextStory = patchRoleplayStoryBeat(currentStory, beat, stillPatch);
-      updateToolSettings({ bio: nextBio, story: nextStory });
-      return nextStory;
-    },
-    [actions, autoQueue, queueStillOptions, shared.model, updateToolSettings]
-  );
+  // 2.0: reuse desk Story beat queue so mobile stills get Cast face + LoRA pins.
+  const commitStill = beatQueue.commitStill;
 
   const beginStoryFromBio = useCallback(
     async (nextBio: RoleplayBio) => {

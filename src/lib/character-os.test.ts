@@ -371,6 +371,24 @@ describe('character-os', () => {
     assert.deepEqual(castLoraSessionIds(withLora), ['lora-a', 'lora-b']);
   });
 
+  it('applyCharacterRecordFresh clears prior by-model LoRAs when Cast has none', () => {
+    withMockLocalStorage(() => {
+      saveSettingsCache({
+        ...loadSettingsCache(),
+        shared: {
+          ...loadSettingsCache().shared,
+          model: 'qwen-image-2512',
+          sessionActiveLoraIds: ['stale-lora'],
+          sessionActiveLoraIdsByModel: { 'qwen-image-2512': ['stale-lora'] },
+        },
+      });
+      const blank = createBlankCharacter('Fresh Clear');
+      const fresh = applyCharacterRecordFresh(blank);
+      assert.equal(fresh.sessionActiveLoraIds, undefined);
+      assert.deepEqual(fresh.sessionActiveLoraIdsByModel?.['qwen-image-2512'], []);
+    });
+  });
+
   it('does not wipe session model when character has no model, and survives empty looks', () => {
     const corrupt = {
       id: 'char-empty-looks',

@@ -4,6 +4,7 @@
 
 import {
   applyCharacterRecord,
+  castLoraSessionIds,
   loraTriggerFromCharacter,
   pinLoraOnCharacter,
   setCharacterTrigger,
@@ -19,6 +20,7 @@ import {
   upsertTrainJob,
   type TrainJob,
 } from './lora-train-job';
+import { castFaceQueueParamsBase, syncSharedIdentityToCast } from './look-outfit-plate';
 import { loadSettingsCache, saveSharedSettings } from './settings-cache';
 
 export function mergeTrainJobs(local: TrainJob[], remote: TrainJob[]): TrainJob[] {
@@ -62,6 +64,20 @@ export function suggestedLoraOutputPath(character: CharacterRecord, lookName?: s
       .replace(/^-+|-+$/g, '')
       .slice(0, 24) || 'look';
   return `${who}-${look}-v1.safetensors`;
+}
+
+/** Face + LoRA pins Prove-it should pass into resolveQueueParams / runtime. */
+export function characterLookValidationQueuePins(
+  character: CharacterRecord,
+  strength?: number
+): {
+  faceBase: ReturnType<typeof castFaceQueueParamsBase>;
+  sessionActiveLoraIds: ReturnType<typeof castLoraSessionIds>;
+} {
+  return {
+    faceBase: castFaceQueueParamsBase(character, strength),
+    sessionActiveLoraIds: castLoraSessionIds(character),
+  };
 }
 
 export async function startCharacterLookTrain(input: {
@@ -315,6 +331,8 @@ export async function queueCharacterLookValidation(input: {
 }): Promise<{ prompt: string; queued: boolean; promptId: string | null }> {
   const trigger = input.trigger?.trim() || loraTriggerFromCharacter(input.character) || 'subject';
   const prompt = buildLoraTrainValidationPrompt(trigger);
+  // 2.0: pin Cast face + LoRAs on Prove-it the same way Day/Story do.
+  syncSharedIdentityToCast(input.character);
   saveSharedSettings({
     ...loadSettingsCache().shared,
     ...applyCharacterRecord(input.character),
@@ -326,16 +344,24 @@ export async function queueCharacterLookValidation(input: {
   const { resolveRuntimeForQueue } = await import('./comfyui-runtime-for-model');
   const { registerComfyGalleryJob } = await import('./comfyui-gallery-client');
   const { scheduleComfyGalleryPoll } = await import('./comfyui-gallery-poller');
+  const { resolveSharedEffectiveSessionLoraIds } = await import('./comfyui-settings');
 
   const shared = loadSettingsCache().shared;
+  const { faceBase, sessionActiveLoraIds: castLoras } = characterLookValidationQueuePins(
+    input.character,
+    shared.ipAdapterStrength ?? 0.75
+  );
   const negativePrompt = await resolveQueueNegativePrompt({
     model: shared.model,
     tool: 'generate',
   });
-  const runtime = resolveRuntimeForQueue(shared.model, 'generate');
+  const runtime = resolveRuntimeForQueue(shared.model, 'generate', {
+    ...(castLoras ? { sessionActiveLoraIds: castLoras } : {}),
+  });
   const params = resolveQueueParams({
     model: shared.model,
     tool: 'generate',
+    ...(faceBase ? { base: faceBase } : {}),
   });
   const queued = await postComfyUiPrompt({
     prompts: [prompt],
@@ -361,7 +387,7 @@ export async function queueCharacterLookValidation(input: {
       queueParams: params,
       characterId: input.character.id,
       lookId: input.character.activeLookId,
-      sessionActiveLoraIds: shared.sessionActiveLoraIds,
+      sessionActiveLoraIds: castLoras ?? resolveSharedEffectiveSessionLoraIds(shared.model),
     });
     void scheduleComfyGalleryPoll(result.promptId, {
       comfyUrl: result.comfyUrl ?? data.comfyUrl ?? queued.comfyUrl ?? 'http://127.0.0.1:8188',
