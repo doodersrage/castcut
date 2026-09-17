@@ -15,6 +15,7 @@ import {
   accentFocusClass,
 } from '@/components/ui/ToolPageShell';
 import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
+import FilmCutOptionsControls from '@/components/FilmCutOptionsControls';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import { ROLEPLAY_SETTING_PRESETS } from '@/lib/roleplay';
@@ -126,6 +127,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     firstCutCelebrate,
     shareLastCut,
     remixSameLookDay,
+    filmCutOptions,
+    setFilmCutOptions,
   } = vm;
   const [sampleWatch, setSampleWatch] = useState(false);
   const [jumpInMode, setJumpInMode] = useState(false);
@@ -371,6 +374,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     ? 'Cut with what you have, or wait for the rest of the day.'
                     : 'All stills ready — cut the reel.'}
                 </p>
+                <div className="mt-2">
+                  <FilmCutOptionsControls
+                    value={filmCutOptions}
+                    onChange={setFilmCutOptions}
+                    disabled={assemblingFilm}
+                    testIdPrefix="day-cut"
+                  />
+                </div>
               </div>
               <ToolActionRow>
                 <Button

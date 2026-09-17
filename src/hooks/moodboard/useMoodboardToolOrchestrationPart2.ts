@@ -16,7 +16,7 @@ import {
   lookPackRoleplayHref,
   saveLookPack,
 } from '@/lib/look-pack';
-import { ensureOutfitPlateAfterLook } from '@/lib/look-outfit-plate';
+import { ensureOutfitPlateAfterLook, withCastIdentityQueueFields } from '@/lib/look-outfit-plate';
 import { markOnboardingFirstPlayCampaign } from '@/lib/onboarding-hooks';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
 import { synthesizeMoodboardPrompt } from '@/lib/moodboard-scene';
@@ -99,8 +99,13 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
             identityKind: shared.identityKind,
           })
         : undefined;
+      const identityFields = withCastIdentityQueueFields(
+        character,
+        shared.ipAdapterStrength ?? 0.75
+      );
       await actions.sendComfyUi(finalized, undefined, undefined, {
         ...(queueOptions ?? {}),
+        ...identityFields,
         characterId: shared.activeCharacterId,
         lookId: shared.activeLookId ?? character?.activeLookId,
       });

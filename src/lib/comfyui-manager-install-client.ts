@@ -26,6 +26,16 @@ const emptyInstall = (): ManagerInstallClientResult => ({
   message: '',
 });
 
+/** Always seed these into Heal so Cast face lock works after first-run, not only when a workflow already references them. */
+export const IDENTITY_HEAL_NODE_TYPES = [
+  'IPAdapterModelLoader',
+  'IPAdapterApply',
+  'IPAdapterUnifiedLoader',
+  'ApplyInstantID',
+  'InstantIDModelLoader',
+  'InstantIDFaceAnalysis',
+] as const;
+
 export async function requestComfyManagerInstall(input: {
   nodeTypes: string[];
   comfyUrl?: string;
@@ -129,10 +139,14 @@ export async function installMissingWorkflowNodePacks(
       };
     }
     const missing = collectMissingWorkflowNodeTypes(loadComfyWorkflowFiles(), objectInfo.nodeTypes);
-    if (missing.length === 0) {
+    const identityMissing = IDENTITY_HEAL_NODE_TYPES.filter(
+      type => !objectInfo.nodeTypes!.has(type)
+    );
+    const toInstall = [...new Set([...missing, ...identityMissing])];
+    if (toInstall.length === 0) {
       return emptyInstall();
     }
-    return requestComfyManagerInstall({ nodeTypes: missing, comfyUrl, restart: true });
+    return requestComfyManagerInstall({ nodeTypes: toInstall, comfyUrl, restart: true });
   } catch (error) {
     const host = comfyUrl?.trim() || 'ComfyUI';
     return {

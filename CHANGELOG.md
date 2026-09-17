@@ -13,8 +13,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 v1.9 closed the Play loop; 2.0 makes the film recognizably that Cast lead on ComfyUI without Settings fiddling.
 
-- **Shipped:** Cast look-plate IP-Adapter + pinned Cast LoRAs on Day/Story (desk + mobile) stills and Animate, plus Prove-it validation; Outfit notes stay owned by Cast id across swaps; Story bible rewrite/edit/clear live on Cast (Story deep-links only).
-- **Optional dogfood:** Cast LoRA train UX gaps only if they show up in practice.
+- **Full-loop identity:** Cast face IP-Adapter + pinned LoRAs on Look, Outfit try-on, Day/Story (desk + mobile) stills & Animate, Video/Cast continue-reel, and Prove-it.
+- **Heal → Identity ready:** Heal seeds IP-Adapter / InstantID nodes; Film chrome shows Identity ready / warn when face is locked without packs.
+- **LoRA flywheel climax:** Keep → Train → Register → Prove ritual on Cast with phase CTAs and Open prove still after register.
+- **Cinematic Cut:** Day/Story Cut expose crossfade + audio bed (same encode path as Cast Film studio).
+- **Also:** Outfit notes Cast ownership; Story bible rewrite/edit/clear live on Cast (Story deep-links only).
 - **Out of scope for 2.0:** Diffusers video / Play-on-Diffusers, Extras unpark, SSO, cloud IP-Adapter parity.
 
 ## [v1.9.0] - 2026-09-16

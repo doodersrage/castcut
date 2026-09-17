@@ -35,6 +35,7 @@ import {
 } from '@/lib/fitting-kit-previews';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
+import { withCastIdentityQueueFields } from '@/lib/look-outfit-plate';
 import type { FittingToolCache, SharedToolSettings } from '@/lib/settings-cache';
 import type { WorkflowParamValues } from '@/lib/comfyui-config';
 import type { CharacterRecord } from '@/lib/character-os';
@@ -177,8 +178,13 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
         identityLockStrength: input.shared.ipAdapterStrength,
         identityKind: input.shared.identityKind,
       });
+      const identityFields = withCastIdentityQueueFields(
+        input.character,
+        input.shared.ipAdapterStrength ?? 0.75
+      );
       const promptId = await input.actions.sendComfyUi(finalized, undefined, undefined, {
         ...(queueOptions ?? {}),
+        ...identityFields,
         ...(garmentExtras
           ? {
               ...(garmentExtras.inputImageUrls

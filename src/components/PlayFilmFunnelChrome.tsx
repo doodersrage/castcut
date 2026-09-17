@@ -2,6 +2,7 @@
 
 import PlayContinueChip from '@/components/PlayContinueChip';
 import PlayFunnelStrip from '@/components/PlayFunnelStrip';
+import PlayIdentityReadyBanner from '@/components/PlayIdentityReadyBanner';
 
 type PlayFilmFunnelChromeProps = {
   /** Compact strip for dense mobile headers. */
@@ -11,7 +12,7 @@ type PlayFilmFunnelChromeProps = {
 };
 
 /**
- * Persistent Film session chrome: step chips + Continue CTA.
+ * Persistent Film session chrome: step chips + Continue CTA + Identity ready.
  * Mount on Look / Outfit / Day / Story (desk + phone).
  */
 export default function PlayFilmFunnelChrome({
@@ -35,6 +36,7 @@ export default function PlayFilmFunnelChrome({
         />
       </div>
       <PlayFunnelStrip compact />
+      <PlayIdentityReadyBanner />
     </div>
   );
 }

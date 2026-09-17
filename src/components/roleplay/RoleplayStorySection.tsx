@@ -40,6 +40,10 @@ export type RoleplayStorySectionProps = {
   onRollScenes?: () => void;
   /** Cast home where bible rewrite/edit/clear live. */
   castBibleHref?: string;
+  filmCutOptions?: import('@/components/FilmCutOptionsControls').FilmCutOptionsValue;
+  onFilmCutOptionsChange?: (
+    next: import('@/components/FilmCutOptionsControls').FilmCutOptionsValue
+  ) => void;
 };
 
 export default function RoleplayStorySection({
@@ -72,6 +76,8 @@ export default function RoleplayStorySection({
   onCopy,
   onRollScenes,
   castBibleHref,
+  filmCutOptions,
+  onFilmCutOptionsChange,
 }: RoleplayStorySectionProps) {
   return (
     <ToolSection title="Story reel">
@@ -161,6 +167,8 @@ export default function RoleplayStorySection({
         filmError={filmError}
         filmGuideHref={filmGuideHref}
         hidePostCutLinks={firstCutCelebrate}
+        filmCutOptions={filmCutOptions}
+        onFilmCutOptionsChange={onFilmCutOptionsChange}
         onCutFilm={onCutFilm}
         onSaveToCast={onSaveToCast}
         onShareCut={onShareCut}

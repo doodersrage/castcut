@@ -18,6 +18,8 @@ import { loadEngineSettings } from '@/lib/engine-settings';
 import { extractVideoLastFrame } from '@/lib/video-last-frame';
 import { registerContinueStitch } from '@/lib/video-continue-stitch';
 import { isFetchableImageRef, LOCAL_INIT_IMAGE_MARKER } from '@/hooks/useVideoPromptInitImage';
+import { getCharacter } from '@/lib/character-os';
+import { withCastIdentityQueueFields } from '@/lib/look-outfit-plate';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 
@@ -89,6 +91,17 @@ export function useVideoPromptQueue({
 
       const useInit = effectiveClipMode === 'i2v' || Boolean(overrides?.inputImage);
       const lastFrameFile = overrides?.inputImage;
+      const character = shared.activeCharacterId?.trim()
+        ? getCharacter(shared.activeCharacterId)
+        : undefined;
+      const identityFields = withCastIdentityQueueFields(
+        character,
+        shared.ipAdapterStrength ?? 0.75,
+        {
+          videoFrames: resolvedFrames,
+          videoFps: resolvedFps,
+        }
+      );
       return {
         inputImage: useInit ? lastFrameFile || file : undefined,
         inputImageUrl:
@@ -111,11 +124,10 @@ export function useVideoPromptQueue({
           initImage !== LOCAL_INIT_IMAGE_MARKER
             ? initImage
             : undefined,
-        queueParamsBase: {
-          videoFrames: resolvedFrames,
-          videoFps: resolvedFps,
-        },
+        ...identityFields,
         parentGalleryEntryId,
+        characterId: shared.activeCharacterId,
+        lookId: shared.activeLookId ?? character?.activeLookId,
         derivedKind:
           effectiveClipMode === 'extend' || overrides?.clearInit === false
             ? ('extend' as const)
@@ -143,6 +155,9 @@ export function useVideoPromptQueue({
       parentGalleryEntryId,
       parentVideoUrl,
       previewUrl,
+      shared.activeCharacterId,
+      shared.activeLookId,
+      shared.ipAdapterStrength,
     ]
   );
 

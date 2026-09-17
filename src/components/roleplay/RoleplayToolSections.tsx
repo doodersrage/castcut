@@ -179,6 +179,8 @@ export default function RoleplayToolSections({
         onSaveToCast={film.saveFilmToCast}
         onShareCut={() => void film.shareLastCut()}
         canShareCut={Boolean(film.filmStatus && !film.assemblingFilm)}
+        filmCutOptions={film.filmCutOptions}
+        onFilmCutOptionsChange={film.setFilmCutOptions}
         onQueue={beat => void beatQueue.queueBeat(beat)}
         onRetry={beat => void beatQueue.queueBeat(beat, { retry: true })}
         onRetryClip={beat => void beatQueue.queueBeatMotion(beat, { retry: true })}

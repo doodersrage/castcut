@@ -12,8 +12,10 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
   paths. Prefer reliability and UX for Play first-run, character consistency, Heal &
   ready, and film assembly — but the cloud model matrix is actively maintained in
   Settings → Inference engine (new presets and providers land there).
-- **2.0:** local Cast face lock + pinned Cast LoRAs across the film loop (Day/Story
-  desk + mobile stills and Animate, plus Prove-it). Diffusers video stays parked.
+- **2.0:** local Cast face lock + pinned Cast LoRAs across the full film loop (Look,
+  Outfit, Day/Story desk + mobile, Video continue-reel, Prove-it), Heal seeds identity
+  packs, Film chrome Identity ready, cinematic Cut options on Day/Story. Diffusers
+  video stays parked.
 
 ## Generation engines
 

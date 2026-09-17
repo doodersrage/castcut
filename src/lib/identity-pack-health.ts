@@ -1,7 +1,7 @@
 import { loadComfyWorkflowFiles } from './comfyui-workflow-files';
 import { readCachedComfyObjectInfo } from './comfyui-object-info-cache';
 
-export type IdentityPackKind = 'instantid' | 'pulid';
+export type IdentityPackKind = 'ipadapter' | 'instantid' | 'pulid';
 
 export type IdentityPackHealthStatus = 'ready' | 'detected' | 'missing';
 
@@ -12,10 +12,34 @@ export type IdentityPackHealth = {
   detail?: string;
 };
 
+const IPADAPTER_NODE_PATTERN =
+  /ipadapter(model)?loader|ipadapterapply|ipadapterunifiedloader|ipadapteradvanced/i;
 const INSTANTID_NODE_PATTERN = /applyinstantid|instantidmodelloader|instantidfaceanalysis/i;
 const PULID_NODE_PATTERN = /applypulid|pulidmodelloader|pulidevacliploader/i;
+const IPADAPTER_SCAFFOLD_PATTERN = /ip[-_]?adapter/i;
 const INSTANTID_SCAFFOLD_PATTERN = /instantid/i;
 const PULID_SCAFFOLD_PATTERN = /pulid/i;
+
+const KIND_META: Record<
+  IdentityPackKind,
+  { label: string; nodePattern: RegExp; scaffoldPattern: RegExp }
+> = {
+  ipadapter: {
+    label: 'IP-Adapter',
+    nodePattern: IPADAPTER_NODE_PATTERN,
+    scaffoldPattern: IPADAPTER_SCAFFOLD_PATTERN,
+  },
+  instantid: {
+    label: 'InstantID',
+    nodePattern: INSTANTID_NODE_PATTERN,
+    scaffoldPattern: INSTANTID_SCAFFOLD_PATTERN,
+  },
+  pulid: {
+    label: 'PuLID',
+    nodePattern: PULID_NODE_PATTERN,
+    scaffoldPattern: PULID_SCAFFOLD_PATTERN,
+  },
+};
 
 function hasNodeMatch(nodeTypes: Iterable<string> | null | undefined, pattern: RegExp): boolean {
   if (!nodeTypes) {
@@ -30,14 +54,14 @@ function hasNodeMatch(nodeTypes: Iterable<string> | null | undefined, pattern: R
 }
 
 function findScaffoldName(kind: IdentityPackKind): string | undefined {
-  const pattern = kind === 'pulid' ? PULID_SCAFFOLD_PATTERN : INSTANTID_SCAFFOLD_PATTERN;
+  const pattern = KIND_META[kind].scaffoldPattern;
   const files = loadComfyWorkflowFiles();
   const match = files.find(file => pattern.test(`${file.name} ${file.filename ?? ''}`));
   return match?.name;
 }
 
 /**
- * InstantID / PuLID health for Settings chips.
+ * IP-Adapter / InstantID / PuLID health for Settings chips + Play Identity ready.
  * Prefers live ComfyUI object_info inventory when cached; otherwise scaffold
  * presence in the workflow library.
  */
@@ -45,17 +69,15 @@ export function getIdentityPackHealth(
   kind: IdentityPackKind,
   availableNodeTypes?: Iterable<string> | null
 ): IdentityPackHealth {
-  const nodePattern = kind === 'pulid' ? PULID_NODE_PATTERN : INSTANTID_NODE_PATTERN;
-  const labelName = kind === 'pulid' ? 'PuLID' : 'InstantID';
-
+  const meta = KIND_META[kind];
   const inventory = availableNodeTypes ?? readCachedComfyObjectInfo()?.nodeTypes ?? null;
 
-  if (inventory && hasNodeMatch(inventory, nodePattern)) {
+  if (inventory && hasNodeMatch(inventory, meta.nodePattern)) {
     return {
       kind,
       status: 'ready',
       label: 'Ready',
-      detail: `${labelName} nodes installed`,
+      detail: `${meta.label} nodes installed`,
     };
   }
 
@@ -75,9 +97,15 @@ export function getIdentityPackHealth(
     label: 'Missing',
     detail:
       inventory == null
-        ? `No ${labelName} scaffold in library (and Comfy inventory unavailable)`
-        : `${labelName} nodes not in ComfyUI inventory`,
+        ? `No ${meta.label} scaffold in library (and Comfy inventory unavailable)`
+        : `${meta.label} nodes not in ComfyUI inventory`,
   };
+}
+
+export function getIpAdapterHealth(
+  availableNodeTypes?: Iterable<string> | null
+): IdentityPackHealth {
+  return getIdentityPackHealth('ipadapter', availableNodeTypes);
 }
 
 export function getInstantIdHealth(
@@ -88,4 +116,21 @@ export function getInstantIdHealth(
 
 export function getPulidHealth(availableNodeTypes?: Iterable<string> | null): IdentityPackHealth {
   return getIdentityPackHealth('pulid', availableNodeTypes);
+}
+
+/** True when at least one local identity pack can lock a Cast face. */
+export function isIdentityPackReady(availableNodeTypes?: Iterable<string> | null): boolean {
+  return (
+    getIpAdapterHealth(availableNodeTypes).status === 'ready' ||
+    getInstantIdHealth(availableNodeTypes).status === 'ready' ||
+    getPulidHealth(availableNodeTypes).status === 'ready'
+  );
+}
+
+/** Face lock present but no identity pack Ready — warn before queueing. */
+export function shouldWarnIdentityPackMissing(input: {
+  hasFaceLock: boolean;
+  availableNodeTypes?: Iterable<string> | null;
+}): boolean {
+  return input.hasFaceLock && !isIdentityPackReady(input.availableNodeTypes);
 }

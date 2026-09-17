@@ -1,6 +1,7 @@
 import {
   activeLook,
   applyCharacterRecordFresh,
+  castLoraSessionIds,
   getCharacter,
   upsertCharacter,
   type CharacterRecord,
@@ -370,6 +371,29 @@ export function withCastFaceQueueParams<T extends Record<string, unknown>>(
     return undefined;
   }
   return { ...(base ?? ({} as T)), ...face };
+}
+
+/**
+ * 2.0 full-loop identity — sync Cast session, pin face via queueParamsBase, pin LoRAs.
+ * Use on Outfit / Look / Day / Story / Video queues.
+ */
+export function withCastIdentityQueueFields(
+  character: CharacterRecord | null | undefined,
+  strength?: number,
+  queueParamsBase?: Record<string, unknown>
+): {
+  queueParamsBase?: Record<string, unknown>;
+  sessionActiveLoraIds?: string[];
+} {
+  if (character) {
+    syncSharedIdentityToCast(character);
+  }
+  const merged = withCastFaceQueueParams(queueParamsBase, character, strength);
+  const castLoras = castLoraSessionIds(character);
+  return {
+    ...(merged ? { queueParamsBase: merged } : {}),
+    ...(castLoras ? { sessionActiveLoraIds: castLoras } : {}),
+  };
 }
 
 /** Pin session identity to this Cast and clear any prior Cast face (quiet — no broadcast). */

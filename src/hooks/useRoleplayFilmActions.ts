@@ -43,6 +43,7 @@ export function useRoleplayFilmActions(input: {
   const [filmNeedsCast, setFilmNeedsCast] = useState(false);
   const [filmCharacterId, setFilmCharacterId] = useState<string | null>(null);
   const [firstCutCelebrate, setFirstCutCelebrate] = useState(false);
+  const [filmCutOptions, setFilmCutOptions] = useState({ crossfadeSec: 0, audioBedUrl: '' });
   const assembledFilmRef = useRef<{ filename: string; data: Uint8Array } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filmGuideHref, setFilmGuideHref] = useState<string | null>(null);
@@ -78,6 +79,8 @@ export function useRoleplayFilmActions(input: {
         characterId: character?.id ?? '',
         characterName: name,
         lookId: character?.activeLookId,
+        crossfadeSec: filmCutOptions.crossfadeSec,
+        audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
         onProgress: progress => setFilmStatus(progress.label),
       });
       downloadFilmBlob(result.blob, result.filename);
@@ -135,7 +138,7 @@ export function useRoleplayFilmActions(input: {
     } finally {
       setAssemblingFilm(false);
     }
-  }, [input.bioName, input.storyRef, input.toolSettings]);
+  }, [filmCutOptions, input.bioName, input.storyRef, input.toolSettings]);
 
   const saveFilmToCast = useCallback(() => {
     const persisted = persistRoleplayLibraryFromCache(input.toolSettings);
@@ -213,6 +216,8 @@ export function useRoleplayFilmActions(input: {
     filmError: error,
     filmGuideHref,
     assembledFilmRef,
+    filmCutOptions,
+    setFilmCutOptions,
     clearFilmError: () => {
       setError(null);
       setFilmGuideHref(null);

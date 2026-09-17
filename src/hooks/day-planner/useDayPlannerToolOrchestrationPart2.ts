@@ -119,6 +119,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     wardrobeLabels,
     assemblingFilm,
     filmStatus,
+    filmCutOptions,
+    setFilmCutOptions,
     filmNeedsCast,
     slots,
     stills,
@@ -371,6 +373,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         characterId: character?.id ?? '',
         characterName: name,
         lookId: character?.activeLookId ?? shared.activeLookId,
+        crossfadeSec: filmCutOptions.crossfadeSec,
+        audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
         onProgress: progress => setFilmStatus(progress.label),
       });
       downloadFilmBlob(result.blob, result.filename);
@@ -428,7 +432,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     } finally {
       setAssemblingFilm(false);
     }
-  }, [character, shared.activeLookId, setFilmGuideHref, slots]);
+  }, [character, filmCutOptions, shared.activeLookId, setFilmGuideHref, slots]);
 
   const saveFilmToCast = useCallback(() => {
     if (!character) {
@@ -692,5 +696,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     firstCutCelebrate,
     completedShotCount,
     fittingWardrobe,
+    filmCutOptions,
+    setFilmCutOptions,
   };
 }

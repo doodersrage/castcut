@@ -112,6 +112,7 @@ export function useDayPlannerToolOrchestrationCore() {
   const [wardrobeLabels, setWardrobeLabels] = useState<Record<string, string>>({});
   const [assemblingFilm, setAssemblingFilm] = useState(false);
   const [filmStatus, setFilmStatus] = useState<string | null>(null);
+  const [filmCutOptions, setFilmCutOptions] = useState({ crossfadeSec: 0, audioBedUrl: '' });
   const [filmNeedsCast, setFilmNeedsCast] = useState(false);
   const assembledFilmRef = useRef<{ filename: string; data: Uint8Array } | null>(null);
   const deepLinkHandled = useRef(false);
@@ -603,6 +604,8 @@ export function useDayPlannerToolOrchestrationCore() {
     wardrobeLabels,
     assemblingFilm,
     filmStatus,
+    filmCutOptions,
+    setFilmCutOptions,
     filmNeedsCast,
     slots,
     stills,

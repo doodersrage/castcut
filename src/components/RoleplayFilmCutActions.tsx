@@ -1,6 +1,9 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import FilmCutOptionsControls, {
+  type FilmCutOptionsValue,
+} from '@/components/FilmCutOptionsControls';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
@@ -18,6 +21,8 @@ export type RoleplayFilmCutActionsProps = {
   canShareCut?: boolean;
   /** While first-cut celebrate owns Watch/Share/Remix, hide duplicate Cast links. */
   hidePostCutLinks?: boolean;
+  filmCutOptions?: FilmCutOptionsValue;
+  onFilmCutOptionsChange?: (next: FilmCutOptionsValue) => void;
   onCutFilm: () => void;
   onSaveToCast: () => void;
   onShareCut?: () => void;
@@ -36,6 +41,8 @@ export default function RoleplayFilmCutActions({
   filmGuideHref,
   canShareCut = false,
   hidePostCutLinks = false,
+  filmCutOptions,
+  onFilmCutOptionsChange,
   onCutFilm,
   onSaveToCast,
   onShareCut,
@@ -47,6 +54,16 @@ export default function RoleplayFilmCutActions({
 
   return (
     <>
+      {filmCutOptions && onFilmCutOptionsChange ? (
+        <div className="mb-2">
+          <FilmCutOptionsControls
+            value={filmCutOptions}
+            onChange={onFilmCutOptionsChange}
+            disabled={assemblingFilm}
+            testIdPrefix="story-cut"
+          />
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         {children}
         <Button

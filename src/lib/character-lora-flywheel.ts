@@ -200,7 +200,12 @@ export async function registerCharacterLookLora(input: {
   characterId: string;
   trigger?: string;
   outputPath?: string;
-}): Promise<{ job: TrainJob; jobs: TrainJob[]; message: string }> {
+}): Promise<{
+  job: TrainJob;
+  jobs: TrainJob[];
+  message: string;
+  provePromptId?: string | null;
+}> {
   const settings = loadComfyUiSettings();
   const shared = loadSettingsCache().shared;
   const prefs = normalizeLoraTrainTrainerPrefs(shared.loraTrainTrainerPrefs);
@@ -304,6 +309,7 @@ export async function registerCharacterLookLora(input: {
     ? `Pinned “${data.entry.label || data.entry.id}” on this character with trigger “${data.entry.triggerPhrase || nextJob.trigger}”.`
     : `Train job ${nextJob.id} marked complete.`;
 
+  let provePromptId: string | null = null;
   if (prefs.autoQueueValidation) {
     const { getCharacter } = await import('./character-os');
     const character = getCharacter(input.characterId);
@@ -313,7 +319,10 @@ export async function registerCharacterLookLora(input: {
         trigger: nextJob.trigger || trigger,
       });
       if (validation.queued) {
-        message = `${message} Validation still queued (Prove).`;
+        provePromptId = validation.promptId;
+        message = provePromptId
+          ? `${message} Prove still queued (${provePromptId.slice(0, 8)}…).`
+          : `${message} Validation still queued (Prove).`;
       }
     }
   }
@@ -322,6 +331,7 @@ export async function registerCharacterLookLora(input: {
     job: nextJob,
     jobs,
     message,
+    provePromptId,
   };
 }
 

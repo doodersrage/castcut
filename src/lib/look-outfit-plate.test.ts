@@ -15,6 +15,7 @@ import {
   resolveCastFaceForPlate,
   castFaceQueueParamsBase,
   withCastFaceQueueParams,
+  withCastIdentityQueueFields,
   resolveCharacterAppearanceForPlate,
   stripDemographicCuesFromStyle,
   styleNotesForLookPlate,
@@ -85,6 +86,26 @@ describe('look-outfit-plate', () => {
       ipAdapterImageFilename: 'lead-face.png',
       ipAdapterImageFilenames: ['lead-face.png'],
       ipAdapterStrength: 0.7,
+    });
+  });
+
+  it('withCastIdentityQueueFields pins face and LoRAs together', () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Loop Pin');
+    assert.deepEqual(withCastIdentityQueueFields(blank), {});
+    const locked = {
+      ...blank,
+      ipAdapter: { imageFilename: 'lead-face.png', imageUrl: 'https://example.com/face.png' },
+      loraLibraryIds: ['lora-rin'],
+    };
+    assert.deepEqual(withCastIdentityQueueFields(locked, 0.6, { videoFrames: 32 }), {
+      queueParamsBase: {
+        videoFrames: 32,
+        ipAdapterImageFilename: 'lead-face.png',
+        ipAdapterImageFilenames: ['lead-face.png'],
+        ipAdapterStrength: 0.6,
+      },
+      sessionActiveLoraIds: ['lora-rin'],
     });
   });
 

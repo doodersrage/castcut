@@ -58,6 +58,10 @@ export default function CharacterLoraFlywheel({
   const trigger = triggerDraft ?? loraTriggerFromCharacter(character) ?? '';
   const explicit = look.keeperEntryIds !== undefined;
   const activeJob = jobs.find(job => job.status === 'running') ?? jobs[0];
+  const registerJob = jobs.find(job => job.status === 'completed' && !job.loraLibraryId);
+  const hasPinned = Boolean(character.loraLibraryIds?.length);
+  const phase: 'keepers' | 'train' | 'register' | 'prove' =
+    keepers.length === 0 ? 'keepers' : registerJob ? 'register' : hasPinned ? 'prove' : 'train';
 
   const refreshJobs = useCallback(async () => {
     try {
@@ -110,8 +114,15 @@ export default function CharacterLoraFlywheel({
   return (
     <ToolSection
       title="LoRA flywheel"
-      description="Keepers on this look become the dataset. Export → Train → Prove: write keepers under PROMPT_DATA_DIR, start the trainer with datasetPath, then validate after register."
+      description="Keep → Train → Register → Prove. Keepers on this look become the dataset; after pin, Day and Story auto-apply the LoRA."
+      data-testid="lora-flywheel"
     >
+      <p className="type-caption text-[var(--text-muted)]" data-testid="lora-flywheel-phase">
+        Next: {phase === 'keepers' && 'Keep stills on this look (Gallery Keep or Outfit Keep)'}
+        {phase === 'train' && 'Export → Train with a trigger word'}
+        {phase === 'register' && 'Register & pin the finished weight'}
+        {phase === 'prove' && 'Prove it with a validation still'}
+      </p>
       {keepers.length > 0 ? (
         <div className="space-y-2" data-testid="lora-flywheel-keepers">
           <FieldLabel>Keepers ({keepers.length})</FieldLabel>
@@ -140,7 +151,15 @@ export default function CharacterLoraFlywheel({
             <p className="type-caption text-[var(--text-muted)]">+{keepers.length - 12} more</p>
           ) : null}
         </div>
-      ) : null}
+      ) : (
+        <p
+          className="type-caption text-[var(--text-muted)]"
+          data-testid="lora-flywheel-keepers-empty"
+        >
+          No keepers yet — mark Gallery favorites or Outfit Keep stills for {look.name}, then come
+          back.
+        </p>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">
           <FieldLabel>Trigger</FieldLabel>
@@ -200,10 +219,11 @@ export default function CharacterLoraFlywheel({
       <ToolActionRow>
         <Button
           size="sm"
-          variant="primary"
-          loading={busy}
+          variant={phase === 'train' ? 'primary' : 'secondary'}
+          loading={busy && phase === 'train'}
           loadingLabel="Training"
           disabled={keepers.length === 0 || !trigger.trim() || busy}
+          data-testid="lora-flywheel-train"
           onClick={() => {
             persistTrigger();
             setBusy(true);
@@ -242,10 +262,43 @@ export default function CharacterLoraFlywheel({
         >
           Export ZIP
         </Button>
+        {registerJob ? (
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={busy}
+            data-testid="lora-flywheel-register"
+            onClick={() => {
+              setBusy(true);
+              void registerCharacterLookLora({
+                job: registerJob,
+                characterId: character.id,
+                trigger: trigger.trim(),
+              })
+                .then(result => {
+                  setJobs(trainJobsForCharacter(result.jobs, character.id));
+                  onApplied();
+                  setStatus(result.message);
+                  if (result.provePromptId) {
+                    setProvePromptId(result.provePromptId);
+                  }
+                })
+                .catch(error => {
+                  setStatus(
+                    error instanceof Error ? error.message : 'Could not register that LoRA.'
+                  );
+                })
+                .finally(() => setBusy(false));
+            }}
+          >
+            Register & pin
+          </Button>
+        ) : null}
         <Button
           size="sm"
-          variant="secondary"
+          variant={phase === 'prove' ? 'primary' : 'secondary'}
           disabled={!trigger.trim() || busy}
+          data-testid="lora-flywheel-prove"
           onClick={() => {
             persistTrigger();
             onApplied(character);
