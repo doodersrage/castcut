@@ -76,6 +76,7 @@ import {
   lookPackNotesForCharacter,
   fittingNotesBelongToCharacter,
   fittingNotesCachePatch,
+  shouldRetainFittingNotesForLookPack,
   lookPackRoleplayHref,
   saveLookPack,
 } from '@/lib/look-pack';
@@ -556,6 +557,10 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
         if (record.lockedWardrobeId?.trim() && !wardrobeId) {
           updateShared({ lockedWardrobeId: record.lockedWardrobeId.trim() });
         }
+      } else {
+        // Deep-link Cast id without a roster row — still pin active so notes ownership
+        // matches the look pack (e2e / first-run handoffs).
+        updateShared({ activeCharacterId: characterId });
       }
     }
     if (wardrobeId) {
@@ -569,10 +574,12 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
         if (applied.shared.lockedWardrobeId && !wardrobeId) {
           updateShared({ lockedWardrobeId: applied.shared.lockedWardrobeId });
         }
+        const notesOwner = characterId || pack.characterId?.trim() || '';
+        if (notesOwner && !shared.activeCharacterId?.trim() && !characterId) {
+          updateShared({ activeCharacterId: notesOwner });
+        }
         if (applied.tool.notes) {
-          updateToolSettings(
-            fittingNotesCachePatch(applied.tool.notes, characterId || pack.characterId)
-          );
+          updateToolSettings(fittingNotesCachePatch(applied.tool.notes, notesOwner || null));
         }
         scheduleAfterCommit(() => setSaveStatus('Applied Moodboard look pack.'));
       }
@@ -622,6 +629,17 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     }
     const nextId = shared.activeCharacterId?.trim() || '';
     if (fittingNotesBelongToCharacter(toolSettings.notesCharacterId, nextId, toolSettings.notes)) {
+      return;
+    }
+    // Deep-link apply can stamp notes before activeCharacterId commits — keep pack-owned
+    // notes instead of wiping them on the empty-Cast frame.
+    if (
+      shouldRetainFittingNotesForLookPack(
+        toolSettings.notesCharacterId,
+        nextId,
+        loadLookPack()?.characterId
+      )
+    ) {
       return;
     }
     const nextNotes = lookPackNotesForCharacter(loadLookPack(), nextId);

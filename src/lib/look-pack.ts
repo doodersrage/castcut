@@ -240,6 +240,24 @@ export function fittingNotesBelongToCharacter(
   return owner === active;
 }
 
+/**
+ * Deep-link `from=look` can stamp notes before activeCharacterId commits.
+ * Keep pack-owned notes on that empty-Cast frame instead of wiping them.
+ */
+export function shouldRetainFittingNotesForLookPack(
+  notesCharacterId: string | undefined | null,
+  activeCharacterId: string | undefined | null,
+  packCharacterId: string | undefined | null
+): boolean {
+  const owner = notesCharacterId?.trim() || '';
+  const active = activeCharacterId?.trim() || '';
+  const packOwner = packCharacterId?.trim() || '';
+  if (active || !owner || !packOwner) {
+    return false;
+  }
+  return owner === packOwner;
+}
+
 /** Seed Fitting shared + tool notes from a look pack (`?from=look` handoff). */
 export function applyLookPackToFittingState(pack: LookPack): {
   shared: { lockedWardrobeId?: string };

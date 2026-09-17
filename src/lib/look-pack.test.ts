@@ -16,6 +16,7 @@ import {
   lookPackNotesForCharacter,
   fittingNotesBelongToCharacter,
   fittingNotesCachePatch,
+  shouldRetainFittingNotesForLookPack,
   lookPackPlayCampaignHref,
   lookPackPortableShareHref,
   LOOK_PACK_SHARE_MAX_TOKEN_CHARS,
@@ -146,6 +147,10 @@ describe('look-pack', () => {
     assert.equal(fittingNotesBelongToCharacter(undefined, 'char-1', 'leftover'), false);
     assert.equal(fittingNotesBelongToCharacter(undefined, undefined, 'leftover'), false);
     assert.equal(fittingNotesBelongToCharacter(undefined, undefined, ''), true);
+    assert.equal(shouldRetainFittingNotesForLookPack('char-1', '', 'char-1'), true);
+    assert.equal(shouldRetainFittingNotesForLookPack('char-1', 'char-1', 'char-1'), false);
+    assert.equal(shouldRetainFittingNotesForLookPack('char-1', '', 'char-other'), false);
+    assert.equal(shouldRetainFittingNotesForLookPack('char-1', '', ''), false);
     assert.deepEqual(fittingNotesCachePatch('oversized', 'char-1'), {
       notes: 'oversized',
       notesCharacterId: 'char-1',
