@@ -19,7 +19,7 @@ import {
 import { RoleplayStoryBeatCard } from '@/components/roleplay/sections/RoleplayStoryBeatCard';
 import { beatPreviewUrl } from '@/components/roleplay/roleplay-story-helpers';
 import { EmptyState } from '@/components/ui/ViewState';
-import { Button } from '@/components/ui/Button';
+import { ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
@@ -41,7 +41,7 @@ export default function RoleplayStoryReel({
   onSelectTake,
   onSelectClipTake,
   onRollScenes,
-  onWriteBio,
+  castBibleHref,
 }: {
   story: RoleplayStoryBeat[];
   busy?: boolean;
@@ -56,7 +56,8 @@ export default function RoleplayStoryReel({
   onSelectTake?: (beat: RoleplayStoryBeat, index: number) => void;
   onSelectClipTake?: (beat: RoleplayStoryBeat, index: number) => void;
   onRollScenes?: () => void;
-  onWriteBio?: () => void;
+  /** Cast home — bible rewrite/edit/clear live there. */
+  castBibleHref?: string;
 }) {
   const promptIds = useMemo(() => roleplayStoryPromptIds(story), [story]);
   const promptKey = promptIds.join('|');
@@ -126,7 +127,7 @@ export default function RoleplayStoryReel({
           description={
             bioPresent
               ? 'Generate opening beats to continue the day as optional story scenes.'
-              : 'Write a cast bio, then generate opening beats — or jump straight to rolling scenes.'
+              : 'Set the character bible on Cast, then generate opening beats — or jump straight to rolling scenes.'
           }
           action={
             onRollScenes
@@ -142,17 +143,16 @@ export default function RoleplayStoryReel({
               : undefined
           }
         />
-        {!bioPresent && onWriteBio ? (
+        {!bioPresent && castBibleHref ? (
           <ToolActionRow>
-            <Button
+            <ButtonLink
+              href={castBibleHref}
               size="sm"
               variant="secondary"
-              disabled={busy}
               data-testid="roleplay-story-write-bio"
-              onClick={onWriteBio}
             >
-              Write bio first
-            </Button>
+              Set bible on Cast
+            </ButtonLink>
           </ToolActionRow>
         ) : null}
       </div>

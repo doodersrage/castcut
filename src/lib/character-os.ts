@@ -915,6 +915,25 @@ export function saveCharacterBio(
   return getCharacter(id);
 }
 
+/** Drop the Cast bible (and linked Story session bio) so rewrite starts clean. */
+export function clearCharacterBio(characterId: string): CharacterRecord | undefined {
+  const id = characterId.trim();
+  if (!id) {
+    return undefined;
+  }
+  const character = getCharacter(id);
+  if (!character) {
+    return undefined;
+  }
+  upsertCharacter({
+    ...character,
+    bio: undefined,
+    looks: looksOf(character),
+    updatedAt: Date.now(),
+  });
+  return getCharacter(id);
+}
+
 export function addLookFromShared(
   characterId: string,
   shared: SharedToolSettings,

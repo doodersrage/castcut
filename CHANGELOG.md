@@ -13,7 +13,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 v1.9 closed the Play loop; 2.0 makes the film recognizably that Cast lead on ComfyUI without Settings fiddling.
 
-- **Shipped:** Cast look-plate IP-Adapter + pinned Cast LoRAs on Day/Story (desk + mobile) stills and Animate, plus Prove-it validation; Outfit notes stay owned by Cast id across swaps.
+- **Shipped:** Cast look-plate IP-Adapter + pinned Cast LoRAs on Day/Story (desk + mobile) stills and Animate, plus Prove-it validation; Outfit notes stay owned by Cast id across swaps; Story bible rewrite/edit/clear live on Cast (Story deep-links only).
 - **Optional dogfood:** Cast LoRA train UX gaps only if they show up in practice.
 - **Out of scope for 2.0:** Diffusers video / Play-on-Diffusers, Extras unpark, SSO, cloud IP-Adapter parity.
 

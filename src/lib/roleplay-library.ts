@@ -546,6 +546,26 @@ export function syncRoleplayLibraryBioFromCharacter(character: CharacterRecord):
   });
 }
 
+/** Clear bible on the Cast-linked Story library session after Cast Clear bible. */
+export function clearRoleplayLibraryBioFromCharacter(character: CharacterRecord): void {
+  const sessionId = roleplayLibraryIdForCharacter(character.id);
+  if (!sessionId) {
+    return;
+  }
+  const existing = getRoleplayLibrarySession(sessionId);
+  if (!existing) {
+    return;
+  }
+  upsertRoleplayLibrarySession({
+    ...existing,
+    updatedAt: Date.now(),
+    snapshot: {
+      ...existing.snapshot,
+      bio: undefined,
+    },
+  });
+}
+
 /** Continue in Roleplay from any Cast character — synthesize from Cast when the library session is gone. */
 export function resolveRoleplayContinueFromCharacter(
   characterId: string

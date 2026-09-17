@@ -3,68 +3,21 @@
 import { Button } from '@/components/ui/Button';
 import type { RoleplayCastSectionProps } from '@/components/roleplay/roleplay-cast-section-types';
 
+/** Story actions that stay on Story — bible rewrite/edit/clear live on Cast. */
 export function RoleplayCastActionsSection({
   busy,
-  bioLoading,
-  bio,
   story,
   storyPhase,
-  autoQueue,
-  beatOutput,
-  photoReady,
-  onWriteBio,
-  onOwnBibleOpenChange,
-  onClearBio,
   onRestartStory,
-}: Pick<
-  RoleplayCastSectionProps,
-  | 'busy'
-  | 'bioLoading'
-  | 'bio'
-  | 'story'
-  | 'storyPhase'
-  | 'autoQueue'
-  | 'beatOutput'
-  | 'photoReady'
-  | 'onWriteBio'
-  | 'onOwnBibleOpenChange'
-  | 'onClearBio'
-  | 'onRestartStory'
->) {
+}: Pick<RoleplayCastSectionProps, 'busy' | 'story' | 'storyPhase' | 'onRestartStory'>) {
+  if (story.length === 0 || storyPhase === 'complete') {
+    return null;
+  }
   return (
     <div className="flex flex-wrap gap-2">
-      <Button
-        variant="primary"
-        loading={bioLoading}
-        loadingLabel={
-          autoQueue
-            ? beatOutput === 'clip'
-              ? 'Writing bio and queueing clip'
-              : 'Writing bio and queueing still'
-            : 'Writing bio and still'
-        }
-        disabled={(busy && !bioLoading) || !photoReady}
-        onClick={() => void onWriteBio()}
-      >
-        {bio ? 'Rewrite bio' : 'Write my bio'}
+      <Button variant="ghost" disabled={busy} onClick={onRestartStory}>
+        Restart story
       </Button>
-      <Button
-        variant="secondary"
-        disabled={busy}
-        onClick={() => onOwnBibleOpenChange(open => !open)}
-      >
-        {bio ? 'Edit bible' : 'Use my own bible'}
-      </Button>
-      {bio ? (
-        <Button variant="ghost" disabled={busy} onClick={onClearBio}>
-          Clear bio
-        </Button>
-      ) : null}
-      {story.length > 0 && storyPhase !== 'complete' ? (
-        <Button variant="ghost" disabled={busy} onClick={onRestartStory}>
-          Restart story
-        </Button>
-      ) : null}
     </div>
   );
 }

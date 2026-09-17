@@ -102,12 +102,12 @@ export default function RoleplayCastSection(props: RoleplayCastSectionProps) {
     <ToolSection title={`Continue as ${displayName}`} data-testid="story-continue-cast">
       <p className="text-sm text-[var(--text-muted)]">
         Story continues this Cast lead
-        {part ? ` · Part: ${part}` : ''}. Change Part or look plate on Cast; set mood and write a
-        bio here when you want beats.
+        {part ? ` · Part: ${part}` : ''}. Bible, Part, and look plate live on Cast — edit them
+        there, then continue beats here.
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         <ButtonLink href={castHomeHref} variant="secondary" size="sm" data-testid="story-edit-cast">
-          Edit on Cast
+          Edit bible on Cast
         </ButtonLink>
         <ButtonLink href={filmHref} variant="ghost" size="sm" data-testid="story-back-film">
           Back to Film

@@ -18,6 +18,7 @@ import {
   normalizeCharacterRecord,
   roleplayLibraryIdFromCharacter,
   saveCharacterBio,
+  clearCharacterBio,
   slugCharacterName,
   upsertCharacter,
   type CharacterRecord,
@@ -163,6 +164,9 @@ describe('character-os', () => {
       const reloaded = getCharacter(blank.id);
       assert.equal(reloaded?.bio?.personality, 'dry, loyal, always late');
       assert.equal(reloaded?.bio?.catchphrase, 'notes first');
+      const cleared = clearCharacterBio(blank.id);
+      assert.equal(cleared?.bio, undefined);
+      assert.equal(getCharacter(blank.id)?.bio, undefined);
     });
   });
 

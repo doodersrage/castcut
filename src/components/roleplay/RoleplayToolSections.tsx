@@ -4,7 +4,6 @@ import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 
 import SharedToolControls from '@/components/SharedToolControls';
 import RoleplayBeatOutputSection from '@/components/roleplay/RoleplayBeatOutputSection';
-import RoleplayBioSection from '@/components/roleplay/RoleplayBioSection';
 import RoleplayCastSection from '@/components/roleplay/RoleplayCastSection';
 import RoleplayStorySection from '@/components/roleplay/RoleplayStorySection';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
@@ -37,8 +36,6 @@ export default function RoleplayToolSections({
   updateShared,
   updateToolSettings,
   error,
-  ownBibleOpen,
-  setOwnBibleOpen,
   setError,
   personaId,
   adultEnabled,
@@ -57,7 +54,6 @@ export default function RoleplayToolSections({
   film,
   beatQueue,
   sceneFlow,
-  bioFlow,
   session,
   extendBeat,
 }: RoleplayToolSectionsProps) {
@@ -113,7 +109,6 @@ export default function RoleplayToolSections({
 
       <RoleplayCastSection
         busy={busy}
-        bioLoading={bioFlow.bioLoading}
         bio={bio}
         story={story}
         storyPhase={storyProgress.phase}
@@ -125,7 +120,6 @@ export default function RoleplayToolSections({
         autoQueue={autoQueue}
         beatOutput={beatOutput}
         photoReady={reference.photoReady}
-        ownBibleOpen={ownBibleOpen}
         toolSettings={toolSettings}
         activeCharacterId={activeCharacterId}
         castCharacterName={castCharacterName}
@@ -142,30 +136,15 @@ export default function RoleplayToolSections({
         referenceImageFilename={reference.referenceImageFilename}
         referenceImageUrl={reference.referenceImageUrl}
         lastStill={reference.lastStill}
-        onOwnBibleOpenChange={setOwnBibleOpen}
         onUpdateToolSettings={updateToolSettings}
-        onClearBio={session.clearBio}
-        onApplyOwnBible={nextBio => void bioFlow.applyOwnBible(nextBio)}
         onClearReference={reference.clearReference}
         onApplyReference={reference.applyReference}
         onReferencePreviewUrlChange={reference.setReferencePreviewUrl}
         onIsolateStatusChange={reference.setIsolateStatus}
         onError={setError}
         onScanWithVision={() => void reference.scanWithVision()}
-        onWriteBio={() => void bioFlow.writeBio()}
         onRestartStory={session.restartStory}
       />
-
-      {bio ? (
-        <RoleplayBioSection
-          bio={bio}
-          ownBibleOpen={ownBibleOpen}
-          characterName={toolSettings.characterName}
-          busy={busy}
-          onOpenEditor={() => setOwnBibleOpen(true)}
-          onApplyBible={nextBio => void bioFlow.applyOwnBible(nextBio)}
-        />
-      ) : null}
 
       <RoleplayStorySection
         beatOutput={beatOutput}
@@ -174,6 +153,7 @@ export default function RoleplayToolSections({
         busy={busy}
         story={story}
         bioPresent={Boolean(bio)}
+        castBibleHref={castHomeHref}
         scenesLoading={sceneFlow.scenesLoading}
         filmNeedsCast={film.filmNeedsCast}
         filmCharacterId={film.filmCharacterId}
@@ -208,7 +188,6 @@ export default function RoleplayToolSections({
         onSelectClipTake={session.selectClipTake}
         onCopy={beat => void session.copyBeatPrompt(beat)}
         onRollScenes={() => void sceneFlow.rollScenes()}
-        onWriteBio={() => void bioFlow.writeBio()}
       />
 
       <RoleplayBeatOutputSection

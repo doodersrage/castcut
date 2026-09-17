@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
@@ -9,11 +8,7 @@ import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useMobilePlayToolOrchestration } from '@/hooks/useMobilePlayToolOrchestration';
-import {
-  applyRoleplayCharacterName,
-  formatRoleplayBio,
-  MAX_ROLEPLAY_CHARACTER_NAME,
-} from '@/lib/roleplay';
+import { applyRoleplayCharacterName, MAX_ROLEPLAY_CHARACTER_NAME } from '@/lib/roleplay';
 import {
   roleplayPatchFromPlate,
   toMobileStudioHref,
@@ -42,8 +37,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
     bioLoading,
     playingId,
     isolating,
-    ownBibleOpen,
-    setOwnBibleOpen,
     playAs,
     isolateSubject,
     bio,
@@ -62,8 +55,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
     filmError,
     filmGuideHref,
     hasReferenceImage,
-    writeBio,
-    applyOwnBible,
     playScene,
     queueBeat,
     selectStillTake,
@@ -78,6 +69,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
 
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance({ mobile: true });
   const castId = filmCharacterId?.trim() || '';
+  const castBibleHref = castId ? `/characters/${encodeURIComponent(castId)}` : '/characters';
 
   return (
     <div className="space-y-4" data-testid="mobile-play">
@@ -217,40 +209,19 @@ export default function MobilePlayToolSections({ description: _description, ...v
         </ChipButton>
       </div>
 
-      <PrimaryButton
-        disabled={!hasReferenceImage || bioLoading || isolating}
-        loading={bioLoading}
-        onClick={() => void writeBio()}
-        className="w-full justify-center"
-      >
-        {bio ? 'Rewrite bio + first look' : 'Write my bio'}
-      </PrimaryButton>
-      <Button
+      <ButtonLink
+        href={castBibleHref}
         variant="secondary"
-        disabled={bioLoading || isolating}
-        onClick={() => setOwnBibleOpen(open => !open)}
         className="w-full justify-center"
+        data-testid="mobile-story-edit-cast-bible"
       >
-        {bio ? 'Edit bible' : 'Use my own bible'}
-      </Button>
+        {bio ? 'Edit bible on Cast' : 'Set bible on Cast'}
+      </ButtonLink>
 
-      {ownBibleOpen ? (
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-3">
-          <RoleplayBibleEditor
-            key={bio ? `${bio.name}-${bio.look}` : 'new-bible'}
-            initial={bio}
-            characterName={toolSettings.characterName}
-            disabled={bioLoading || isolating}
-            applyLabel={bio ? 'Update bible' : 'Use this bible'}
-            onApply={nextBio => void applyOwnBible(nextBio)}
-          />
-        </div>
-      ) : null}
-
-      {bio && !ownBibleOpen ? (
-        <pre className="whitespace-pre-wrap rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-          {formatRoleplayBio(bio)}
-        </pre>
+      {bio ? (
+        <p className="text-xs text-[var(--text-muted)]">
+          Continuing as {bio.name} — rewrite or clear the bible on Cast.
+        </p>
       ) : null}
 
       {scenes.length > 0 ? (
@@ -297,6 +268,8 @@ export default function MobilePlayToolSections({ description: _description, ...v
       <RoleplayStoryReel
         story={story}
         busy={bioLoading || playingId !== null || assemblingFilm}
+        bioPresent={Boolean(bio)}
+        castBibleHref={castBibleHref}
         onQueue={beat => void queueBeat(beat)}
         onRetry={beat => void queueBeat(beat, { retry: true })}
         onRetryClip={retryClip}

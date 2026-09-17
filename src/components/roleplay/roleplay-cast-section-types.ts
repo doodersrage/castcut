@@ -18,7 +18,6 @@ export type RoleplayCastApplyReferenceInput = {
 
 export type RoleplayCastSectionProps = {
   busy: boolean;
-  bioLoading: boolean;
   bio: RoleplayBio | undefined;
   story: RoleplayStoryBeat[];
   storyPhase: RoleplayStoryPhase;
@@ -30,7 +29,6 @@ export type RoleplayCastSectionProps = {
   autoQueue: boolean;
   beatOutput: RoleplayBeatOutput;
   photoReady: boolean;
-  ownBibleOpen: boolean;
   toolSettings: RoleplayToolCache;
   /** Active Cast character — Story continues this; empty gates creation. */
   activeCharacterId?: string | null;
@@ -48,10 +46,7 @@ export type RoleplayCastSectionProps = {
   referenceImageFilename: string;
   referenceImageUrl: string;
   lastStill: { url: string; title: string } | null;
-  onOwnBibleOpenChange: (open: boolean | ((prev: boolean) => boolean)) => void;
   onUpdateToolSettings: (partial: Partial<RoleplayToolCache>) => void;
-  onClearBio: () => void;
-  onApplyOwnBible: (nextBio: RoleplayBio) => void;
   onClearReference: () => void;
   onApplyReference: (input: RoleplayCastApplyReferenceInput) => Promise<void>;
   onReferencePreviewUrlChange: (
@@ -60,6 +55,5 @@ export type RoleplayCastSectionProps = {
   onIsolateStatusChange: (status: string | null) => void;
   onError: (message: string) => void;
   onScanWithVision: () => void;
-  onWriteBio: () => void;
   onRestartStory: () => void;
 };

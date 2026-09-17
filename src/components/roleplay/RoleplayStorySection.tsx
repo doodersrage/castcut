@@ -38,7 +38,8 @@ export type RoleplayStorySectionProps = {
   onSelectClipTake: (beat: RoleplayStoryBeat, index: number) => void;
   onCopy: (beat: RoleplayStoryBeat) => void;
   onRollScenes?: () => void;
-  onWriteBio?: () => void;
+  /** Cast home where bible rewrite/edit/clear live. */
+  castBibleHref?: string;
 };
 
 export default function RoleplayStorySection({
@@ -70,7 +71,7 @@ export default function RoleplayStorySection({
   onSelectClipTake,
   onCopy,
   onRollScenes,
-  onWriteBio,
+  castBibleHref,
 }: RoleplayStorySectionProps) {
   return (
     <ToolSection title="Story reel">
@@ -171,6 +172,7 @@ export default function RoleplayStorySection({
         story={story}
         busy={busy}
         bioPresent={bioPresent}
+        castBibleHref={castBibleHref}
         scenesLoading={scenesLoading}
         onQueue={onQueue}
         onRetry={onRetry}
@@ -181,7 +183,6 @@ export default function RoleplayStorySection({
         onSelectClipTake={onSelectClipTake}
         onCopy={onCopy}
         onRollScenes={onRollScenes}
-        onWriteBio={onWriteBio}
       />
     </ToolSection>
   );
