@@ -36,6 +36,12 @@ export const IDENTITY_HEAL_NODE_TYPES = [
   'InstantIDFaceAnalysis',
 ] as const;
 
+/** Seed Impact Pack FaceDetailer so Gallery → Face detail can auto-insert. */
+export const FACE_DETAILER_HEAL_NODE_TYPES = [
+  'FaceDetailer',
+  'UltralyticsDetectorProvider',
+] as const;
+
 export async function requestComfyManagerInstall(input: {
   nodeTypes: string[];
   comfyUrl?: string;
@@ -142,7 +148,10 @@ export async function installMissingWorkflowNodePacks(
     const identityMissing = IDENTITY_HEAL_NODE_TYPES.filter(
       type => !objectInfo.nodeTypes!.has(type)
     );
-    const toInstall = [...new Set([...missing, ...identityMissing])];
+    const faceDetailerMissing = FACE_DETAILER_HEAL_NODE_TYPES.filter(
+      type => !objectInfo.nodeTypes!.has(type)
+    );
+    const toInstall = [...new Set([...missing, ...identityMissing, ...faceDetailerMissing])];
     if (toInstall.length === 0) {
       return emptyInstall();
     }

@@ -30,4 +30,23 @@ describe("model-controlnet-map", () => {
     });
     assert.equal(fromToken, "cnet.safetensors");
   });
+
+  it("auto-picks InstantX from inventory for Qwen when unmapped", () => {
+    assert.equal(
+      resolveControlNetModelFilename("qwen-image-edit-2511-lightning-8", {
+        controlNetMap: {},
+        controlNetInventory: [
+          "control_v11p_sd15_canny.pth",
+          "Qwen-Image-InstantX-ControlNet-Union.safetensors",
+        ],
+      }),
+      "Qwen-Image-InstantX-ControlNet-Union.safetensors",
+    );
+    assert.equal(
+      resolveControlNetModelFilename("flux-dev", {
+        controlNetInventory: ["Qwen-Image-InstantX-ControlNet-Union.safetensors"],
+      }),
+      undefined,
+    );
+  });
 });

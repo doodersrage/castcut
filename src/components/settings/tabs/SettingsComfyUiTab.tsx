@@ -28,7 +28,7 @@ import {
   SETTINGS_TOOL_ACCENT,
   type HealthResponse,
 } from '@/components/settings/tabs/settings-tool-shared';
-import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
+import { ToolSection, accentFocusClass, CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
 
 const ComfyWorkflowLibraryPanel = dynamic(() => import('@/components/ComfyWorkflowLibraryPanel'), {
@@ -169,8 +169,8 @@ export default function SettingsComfyUiTab({
       {slimSettings ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_90%,transparent)] px-4 py-3 shadow-[inset_0_1px_0_rgb(255_255_255_/0.03)]">
           <p className="type-caption text-[var(--text-secondary)]">
-            Essentials view — engines, ComfyUI connection, workflow map, model downloads, and queue
-            basics.
+            Essentials view — inference engine, ComfyUI connection, model downloads, and queue
+            basics. Heal &amp; ready on Overview fills maps automatically.
           </p>
           {onShowAllSettings ? (
             <Button type="button" variant="secondary" size="sm" onClick={onShowAllSettings}>
@@ -195,19 +195,21 @@ export default function SettingsComfyUiTab({
         />
       ) : null}
 
-      <SettingsWorkflowMapPanel
-        sharedSettings={sharedSettings}
-        sharedMounted={sharedMounted}
-        updateSharedSettings={updateSharedSettings}
-        settings={settings}
-        modelWorkflowMapText={modelWorkflowMapText}
-        setModelWorkflowMapText={setModelWorkflowMapText}
-        setModelCheckpointMapText={setModelCheckpointMapText}
-        setModelVaeMapText={setModelVaeMapText}
-        setModelUpscaleMapText={setModelUpscaleMapText}
-        setWorkflowHealthRefresh={setWorkflowHealthRefresh}
-        setStatus={setStatus}
-      />
+      {showAdvanced ? (
+        <SettingsWorkflowMapPanel
+          sharedSettings={sharedSettings}
+          sharedMounted={sharedMounted}
+          updateSharedSettings={updateSharedSettings}
+          settings={settings}
+          modelWorkflowMapText={modelWorkflowMapText}
+          setModelWorkflowMapText={setModelWorkflowMapText}
+          setModelCheckpointMapText={setModelCheckpointMapText}
+          setModelVaeMapText={setModelVaeMapText}
+          setModelUpscaleMapText={setModelUpscaleMapText}
+          setWorkflowHealthRefresh={setWorkflowHealthRefresh}
+          setStatus={setStatus}
+        />
+      ) : null}
 
       <SettingsModelAssetsPanel
         setStatus={setStatus}
@@ -248,7 +250,12 @@ export default function SettingsComfyUiTab({
             setIpAdapterUploadStatus={setIpAdapterUploadStatus}
           />
 
-          <ToolSection id="settings-comfyui-wildcards" title="Custom wildcard lists">
+          <CollapsibleSection
+            title="Custom wildcard lists"
+            summary="Named lists for {wildcard} tokens in prompts"
+            defaultOpen={false}
+            persistKey="settings-wildcards-advanced"
+          >
             <WildcardListsEditor
               lists={sharedSettings.wildcardLists}
               disabled={!sharedMounted}
@@ -259,7 +266,7 @@ export default function SettingsComfyUiTab({
                 })
               }
             />
-          </ToolSection>
+          </CollapsibleSection>
 
           <div id="settings-comfyui-workflow-library" className="scroll-mt-28 space-y-6">
             <ComfyWorkflowLibraryPanel
@@ -284,13 +291,16 @@ export default function SettingsComfyUiTab({
             />
           </ToolSection>
 
-          <ToolSection
-            id="settings-comfyui-lora-train"
-            title="LoRA train loop"
-            description="External trainer jobs — webhook or command — then register weights into the library."
-          >
-            <LoraTrainPanel onStatus={setStatus} />
-          </ToolSection>
+          <div id="settings-comfyui-lora-train" className="scroll-mt-28">
+            <CollapsibleSection
+              title="LoRA train loop"
+              summary="External trainer jobs — webhook or command — then register weights"
+              defaultOpen={false}
+              persistKey="settings-lora-train-advanced"
+            >
+              <LoraTrainPanel onStatus={setStatus} />
+            </CollapsibleSection>
+          </div>
         </>
       ) : null}
 
@@ -334,30 +344,34 @@ export default function SettingsComfyUiTab({
 
       <SettingsQueueParamsPanel />
 
-      <SettingsPromptQualityPanel
-        sharedSettings={sharedSettings}
-        sharedMounted={sharedMounted}
-        updateSharedSettings={updateSharedSettings}
-        freeVramGb={
-          typeof health?.comfyui.vram?.free === 'number' ? health.comfyui.vram.free / 1e9 : null
-        }
-        totalVramGb={
-          typeof health?.comfyui.vram?.total === 'number' ? health.comfyui.vram.total / 1e9 : null
-        }
-      />
-
-      <SettingsHoldMaxPanel
-        sharedSettings={sharedSettings}
-        updateSharedSettings={updateSharedSettings}
-        setStatus={setStatus}
-      />
-
       {showAdvanced ? (
-        <SettingsSamplerMemoryPanel
-          sharedSettings={sharedSettings}
-          updateSharedSettings={updateSharedSettings}
-          setStatus={setStatus}
-        />
+        <>
+          <SettingsPromptQualityPanel
+            sharedSettings={sharedSettings}
+            sharedMounted={sharedMounted}
+            updateSharedSettings={updateSharedSettings}
+            freeVramGb={
+              typeof health?.comfyui.vram?.free === 'number' ? health.comfyui.vram.free / 1e9 : null
+            }
+            totalVramGb={
+              typeof health?.comfyui.vram?.total === 'number'
+                ? health.comfyui.vram.total / 1e9
+                : null
+            }
+          />
+
+          <SettingsHoldMaxPanel
+            sharedSettings={sharedSettings}
+            updateSharedSettings={updateSharedSettings}
+            setStatus={setStatus}
+          />
+
+          <SettingsSamplerMemoryPanel
+            sharedSettings={sharedSettings}
+            updateSharedSettings={updateSharedSettings}
+            setStatus={setStatus}
+          />
+        </>
       ) : null}
     </>
   );

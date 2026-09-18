@@ -34,6 +34,8 @@ export default function ComfyModelAssetsPanel(props: ComfyModelAssetsPanelProps)
         setFilterCurrentModel={vm.setFilterCurrentModel}
         missingOnly={vm.missingOnly}
         setMissingOnly={vm.setMissingOnly}
+        searchQuery={vm.searchQuery}
+        setSearchQuery={vm.setSearchQuery}
         loading={vm.loading}
         load={vm.load}
         rootConfigured={vm.rootConfigured}

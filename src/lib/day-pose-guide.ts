@@ -1,18 +1,23 @@
 /**
- * Crude stick-figure pose guides for Day / Story Image 3.
+ * Flat mannequin pose guides for Day / Story Image 3.
  * Qwen Edit Plus already encodes image1–4; Image 3 supplies layout without
  * fighting Keep/Cast (Image 1) or the clothing packshot (Image 2).
  *
- * Day keeps canned slot skeletons. Story synthesizes a fresh stick stance from
+ * Day keeps canned slot skeletons. Story synthesizes a fresh stance from
  * the beat title/blurb/prompt (stable hash → same beat redraws the same pose).
+ * Figures are drawn as filled limb capsules (mannequin mass) so duo overlap and
+ * contact read clearly — still face-free / clothing-free.
  */
 
 import type { DaySlotId } from '@/lib/day-planner';
-import { clarifyIntimateImageLanguage } from '@/lib/intimate-prompt-clarify';
+import {
+  clarifyIntimateImageLanguage,
+  intimateTextImpliesSurfaceBent,
+} from '@/lib/intimate-prompt-clarify';
 
 type Point = { x: number; y: number };
 
-/** Normalized 0–1 skeleton joints for a full-body stick figure. */
+/** Normalized 0–1 skeleton joints for a full-body pose figure. */
 export type StickSkeleton = {
   head: Point;
   neck: Point;
@@ -153,21 +158,22 @@ const SLOT_SKELETONS: Record<PoseGuideKey, StickSkeleton> = {
     rAnkle: { x: 0.74, y: 0.78 },
   },
   night: {
-    head: { x: 0.5, y: 0.12 },
-    neck: { x: 0.5, y: 0.2 },
-    pelvis: { x: 0.5, y: 0.48 },
-    lShoulder: { x: 0.38, y: 0.24 },
-    rShoulder: { x: 0.62, y: 0.24 },
-    lElbow: { x: 0.32, y: 0.36 },
-    rElbow: { x: 0.68, y: 0.36 },
-    lWrist: { x: 0.3, y: 0.48 },
-    rWrist: { x: 0.7, y: 0.48 },
-    lHip: { x: 0.44, y: 0.48 },
-    rHip: { x: 0.56, y: 0.48 },
-    lKnee: { x: 0.46, y: 0.66 },
-    rKnee: { x: 0.62, y: 0.64 },
-    lAnkle: { x: 0.46, y: 0.86 },
-    rAnkle: { x: 0.7, y: 0.82 },
+    // Lean / window pause — not arms-at-sides fashion stand (that freezes Keep).
+    head: { x: 0.54, y: 0.14 },
+    neck: { x: 0.52, y: 0.22 },
+    pelvis: { x: 0.48, y: 0.5 },
+    lShoulder: { x: 0.4, y: 0.26 },
+    rShoulder: { x: 0.64, y: 0.24 },
+    lElbow: { x: 0.34, y: 0.38 },
+    rElbow: { x: 0.74, y: 0.34 },
+    lWrist: { x: 0.32, y: 0.5 },
+    rWrist: { x: 0.82, y: 0.3 },
+    lHip: { x: 0.42, y: 0.5 },
+    rHip: { x: 0.54, y: 0.5 },
+    lKnee: { x: 0.44, y: 0.68 },
+    rKnee: { x: 0.62, y: 0.66 },
+    lAnkle: { x: 0.44, y: 0.88 },
+    rAnkle: { x: 0.72, y: 0.84 },
   },
 };
 
@@ -312,7 +318,7 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
     return 'prone';
   }
   if (
-    /\b(doggy(?:[- ]style)?|from\s+behind|bent\s+over|bend(?:s|ing)?\s+over|ass[- ]up|over\s+the\s+(?:desk|table|counter|edge))\b/i.test(
+    /\b(doggy(?:[- ]style)?|from\s+behind|bent\s+over|bend(?:s|ing)?\s+over|curled?\s+over|ass[- ]up|over\s+the\s+(?:desk|table|counter|edge|ledgers?|stack))\b/i.test(
       haystack
     )
   ) {
@@ -329,14 +335,14 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
     return 'scissors';
   }
   if (
-    /\b(against\s+the\s+wall|up\s+against\s+(?:the\s+)?wall|wall\s+(?:sex|fuck|pin)|pinned\s+against)\b/i.test(
+    /\b(against\s+(?:the\s+)?(?:[\w'-]+\s+){0,4}wall|up\s+against\s+(?:the\s+)?(?:[\w'-]+\s+){0,4}wall|wall\s+(?:sex|fuck|pin)|rear\s+wall\s+press|wall\s+press|pinned\s+against|press(?:es|ed|ing)?\s+(?:her|him|them)\s+(?:back|against)|lean(?:s|ing)?\s+against.{0,48}wall|elevator\s+(?:sex|fuck|wall)|glass\s+elevator)\b/i.test(
       haystack
     )
   ) {
     return 'wall';
   }
   if (
-    /\b(lift(?:ed|ing)?\s+(?:(?:them|her|him)\s+)?(?:up\s+)?(?:while\s+)?(?:fuck(?:s|ing|ed)?|screw(?:s|ing|ed)?|sex)|carry(?:ing)?\s+(?:(?:them|her|him)\s+)?(?:while\s+)?(?:fuck(?:s|ing|ed)?|screw(?:s|ing|ed)?|sex)|held\s+(?:up|aloft)|legs?\s+wrapped\s+around|picked\s+up\s+(?:and\s+)?(?:fuck|screw))\b/i.test(
+    /\b(lift(?:ed|ing)?\s+(?:(?:them|her|him)\s+)?(?:up\s+)?(?:while\s+)?(?:fuck(?:s|ing|ed)?|screw(?:s|ing|ed)?|sex)|carry(?:ing)?\s+(?:(?:them|her|him)\s+)?(?:while\s+)?(?:fuck(?:s|ing|ed)?|screw(?:s|ing|ed)?|sex)|held\s+(?:up|aloft)|legs?\s+wrapped\s+around|picked\s+up\s+(?:and\s+)?(?:fuck|screw)|hangs?\s+suspended|suspend(?:ed|ing)|lower(?:s|ing)\s+(?:her|him|them)\s+(?:slowly\s+)?(?:into|onto)|into\s+a\s+(?:velvet\s+)?chaise|onto\s+a\s+(?:velvet\s+)?chaise)\b/i.test(
       haystack
     )
   ) {
@@ -458,9 +464,11 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
     return 'hug';
   }
   if (
-    /\b(danc(?:e|es|ing)|waltz(?:es|ing)?|twirl(?:s|ing)?|spin(?:s|ning)?\s+(?:together|with)|slow\s+dance|ballroom)\b/i.test(
+    /\b(danc(?:e|es|ing)|waltz(?:es|ing)?|twirl(?:s|ing)?|spin(?:s|ning)?\s+(?:together|with)|slow\s+dance)\b/i.test(
       haystack
-    )
+    ) ||
+    (/\bballroom\b/i.test(haystack) &&
+      !/\b(chaise|clit|sex|fuck|nude|naked|suspend|lower(?:s|ing)|alcove)\b/i.test(haystack))
   ) {
     return 'dance';
   }
@@ -966,23 +974,24 @@ function uprightFigure(
 }
 
 function bentForwardFigure(seed: number, cx: number, salt: number): StickSkeleton {
-  const j = (n: number) => (seededUnit(seed, salt + n) - 0.5) * 0.025;
+  // Clear all-fours: hands planted forward, knees under hips, torso level.
+  const j = (n: number) => (seededUnit(seed, salt + n) - 0.5) * 0.02;
   return {
-    head: point(cx - 0.18 + j(1), 0.42 + j(2)),
-    neck: point(cx - 0.1 + j(3), 0.44 + j(4)),
-    pelvis: point(cx + 0.06 + j(5), 0.52 + j(6)),
-    lShoulder: point(cx - 0.08 + j(7), 0.38 + j(8)),
-    rShoulder: point(cx - 0.08 + j(9), 0.48 + j(10)),
-    lElbow: point(cx - 0.18 + j(11), 0.5 + j(12)),
-    rElbow: point(cx - 0.16 + j(13), 0.54 + j(14)),
-    lWrist: point(cx - 0.22 + j(15), 0.62 + j(16)),
-    rWrist: point(cx - 0.2 + j(17), 0.64 + j(18)),
-    lHip: point(cx + 0.04 + j(19), 0.5 + j(20)),
-    rHip: point(cx + 0.08 + j(21), 0.54 + j(22)),
-    lKnee: point(cx + 0.04 + j(23), 0.7 + j(24)),
-    rKnee: point(cx + 0.1 + j(25), 0.72 + j(26)),
-    lAnkle: point(cx + 0.02 + j(27), 0.88 + j(28)),
-    rAnkle: point(cx + 0.12 + j(29), 0.88 + j(30)),
+    head: point(cx - 0.22 + j(1), 0.48 + j(2)),
+    neck: point(cx - 0.14 + j(3), 0.46 + j(4)),
+    pelvis: point(cx + 0.08 + j(5), 0.48 + j(6)),
+    lShoulder: point(cx - 0.12 + j(7), 0.4 + j(8)),
+    rShoulder: point(cx - 0.1 + j(9), 0.44 + j(10)),
+    lElbow: point(cx - 0.2 + j(11), 0.52 + j(12)),
+    rElbow: point(cx - 0.18 + j(13), 0.54 + j(14)),
+    lWrist: point(cx - 0.26 + j(15), 0.68 + j(16)),
+    rWrist: point(cx - 0.24 + j(17), 0.7 + j(18)),
+    lHip: point(cx + 0.06 + j(19), 0.46 + j(20)),
+    rHip: point(cx + 0.1 + j(21), 0.5 + j(22)),
+    lKnee: point(cx + 0.06 + j(23), 0.68 + j(24)),
+    rKnee: point(cx + 0.12 + j(25), 0.7 + j(26)),
+    lAnkle: point(cx + 0.04 + j(27), 0.86 + j(28)),
+    rAnkle: point(cx + 0.14 + j(29), 0.86 + j(30)),
   };
 }
 
@@ -1202,6 +1211,208 @@ function withLeadFirst(pair: [StickSkeleton, StickSkeleton], swap: boolean): Sti
   return swap ? [pair[1], pair[0]] : [pair[0], pair[1]];
 }
 
+/**
+ * Lowering onto a chaise: partner stands holding her mid-air (legs dangling) —
+ * wrapped-leg lift silhouettes read as cowgirl couch straddles.
+ */
+function chaiseLowerFigures(): StickSkeleton[] {
+  // Side carry-lower: both facing right toward the chaise — not a face-to-face kiss cling.
+  const carrier: StickSkeleton = {
+    head: point(0.32, 0.1),
+    neck: point(0.34, 0.18),
+    pelvis: point(0.36, 0.5),
+    lShoulder: point(0.28, 0.22),
+    rShoulder: point(0.4, 0.2),
+    lElbow: point(0.34, 0.36),
+    rElbow: point(0.46, 0.34),
+    lWrist: point(0.42, 0.48),
+    rWrist: point(0.5, 0.44),
+    lHip: point(0.33, 0.5),
+    rHip: point(0.39, 0.5),
+    lKnee: point(0.34, 0.7),
+    rKnee: point(0.4, 0.7),
+    lAnkle: point(0.34, 0.92),
+    rAnkle: point(0.4, 0.92),
+  };
+  const lifted: StickSkeleton = {
+    // Head at his shoulder height, offset forward — cheek to shoulder, not lip-aligned.
+    head: point(0.44, 0.14),
+    neck: point(0.46, 0.22),
+    pelvis: point(0.52, 0.48),
+    lShoulder: point(0.42, 0.24),
+    rShoulder: point(0.54, 0.26),
+    // Arms around his neck from the side.
+    lElbow: point(0.38, 0.18),
+    rElbow: point(0.4, 0.16),
+    lWrist: point(0.34, 0.12),
+    rWrist: point(0.36, 0.1),
+    lHip: point(0.48, 0.48),
+    rHip: point(0.56, 0.48),
+    // Legs dangling toward the chaise — not a third limb between his.
+    lKnee: point(0.5, 0.66),
+    rKnee: point(0.6, 0.64),
+    lAnkle: point(0.52, 0.84),
+    rAnkle: point(0.64, 0.82),
+  };
+  return separateIntimateFigures([lifted, carrier]);
+}
+
+/**
+ * Standing bent over chair back: hands plant forward on the chair (like desk bent).
+ * Arms-reaching-back-to-neck mannequins made Edit sit + twist 180°.
+ */
+function chairBentFigures(): StickSkeleton[] {
+  const bent: StickSkeleton = {
+    head: point(0.18, 0.34),
+    neck: point(0.24, 0.36),
+    pelvis: point(0.44, 0.46),
+    lShoulder: point(0.26, 0.38),
+    rShoulder: point(0.32, 0.4),
+    // Hands planted forward on chair — not reaching back to partner neck.
+    lElbow: point(0.16, 0.44),
+    rElbow: point(0.18, 0.46),
+    lWrist: point(0.1, 0.5),
+    rWrist: point(0.12, 0.52),
+    lHip: point(0.41, 0.46),
+    rHip: point(0.47, 0.46),
+    lKnee: point(0.42, 0.7),
+    rKnee: point(0.48, 0.7),
+    lAnkle: point(0.42, 0.92),
+    rAnkle: point(0.48, 0.92),
+  };
+  const rear: StickSkeleton = {
+    head: point(0.62, 0.12),
+    neck: point(0.62, 0.2),
+    pelvis: point(0.58, 0.5),
+    lShoulder: point(0.52, 0.24),
+    rShoulder: point(0.7, 0.24),
+    lElbow: point(0.5, 0.38),
+    rElbow: point(0.52, 0.42),
+    lWrist: point(0.48, 0.48),
+    rWrist: point(0.44, 0.54),
+    lHip: point(0.55, 0.5),
+    rHip: point(0.61, 0.5),
+    lKnee: point(0.56, 0.7),
+    rKnee: point(0.62, 0.7),
+    lAnkle: point(0.56, 0.92),
+    rAnkle: point(0.62, 0.92),
+  };
+  return separateIntimateFigures([bent, rear]);
+}
+
+/**
+ * Desk / ledger / table bent: standing lean over a surface — not carpet all-fours.
+ * Optional throat+core hands when the beat names a throat grab.
+ */
+function deskBentFigures(options?: { throatGrab?: boolean }): StickSkeleton[] {
+  const bent: StickSkeleton = {
+    head: point(0.22, 0.32),
+    neck: point(0.28, 0.34),
+    pelvis: point(0.44, 0.48),
+    lShoulder: point(0.26, 0.36),
+    rShoulder: point(0.32, 0.38),
+    // Hands planted on desk surface ahead.
+    lElbow: point(0.18, 0.42),
+    rElbow: point(0.2, 0.44),
+    lWrist: point(0.12, 0.46),
+    rWrist: point(0.14, 0.48),
+    lHip: point(0.41, 0.48),
+    rHip: point(0.47, 0.48),
+    lKnee: point(0.42, 0.7),
+    rKnee: point(0.48, 0.7),
+    lAnkle: point(0.42, 0.92),
+    rAnkle: point(0.48, 0.92),
+  };
+  const rear: StickSkeleton = {
+    head: point(0.6, 0.12),
+    neck: point(0.6, 0.2),
+    pelvis: point(0.58, 0.5),
+    lShoulder: point(0.52, 0.24),
+    rShoulder: point(0.68, 0.24),
+    lElbow: point(0.48, 0.38),
+    rElbow: point(0.54, 0.36),
+    // Default: both hands on hips.
+    lWrist: point(0.46, 0.48),
+    rWrist: point(0.5, 0.46),
+    lHip: point(0.55, 0.5),
+    rHip: point(0.61, 0.5),
+    lKnee: point(0.56, 0.7),
+    rKnee: point(0.62, 0.7),
+    lAnkle: point(0.56, 0.92),
+    rAnkle: point(0.62, 0.92),
+  };
+  if (options?.throatGrab) {
+    // Upper hand toward lead neck/throat; lower toward pelvis/crotch (wall-press pattern).
+    rear.lElbow = point(0.42, 0.32);
+    rear.lWrist = point(0.32, 0.34);
+    rear.rElbow = point(0.5, 0.42);
+    rear.rWrist = point(0.42, 0.5);
+  }
+  return separateIntimateFigures([bent, rear]);
+}
+
+/**
+ * Standing wall sex: lead's back to the left wall, partner behind (same facing),
+ * both full height with feet on the floor — never a face-to-face floor kneel.
+ * Head at collarbone height + throat/core hands so Edit doesn't invent a mouth kiss.
+ */
+function wallPressStandingFigures(): StickSkeleton[] {
+  // Pressed to the left wall bar — not center-cab facing camera with a front rail.
+  const against: StickSkeleton = {
+    head: point(0.22, 0.1),
+    neck: point(0.22, 0.18),
+    pelvis: point(0.24, 0.5),
+    lShoulder: point(0.14, 0.22),
+    rShoulder: point(0.3, 0.22),
+    // Palms on the wall ahead/left — not a forward handrail grip.
+    lElbow: point(0.1, 0.3),
+    rElbow: point(0.12, 0.34),
+    lWrist: point(0.06, 0.28),
+    rWrist: point(0.08, 0.36),
+    lHip: point(0.21, 0.5),
+    rHip: point(0.27, 0.5),
+    lKnee: point(0.22, 0.7),
+    rKnee: point(0.28, 0.7),
+    lAnkle: point(0.22, 0.92),
+    rAnkle: point(0.28, 0.92),
+  };
+  const press: StickSkeleton = {
+    // Head clearly visible over her shoulder in camera (not buried / reflection-only).
+    head: point(0.38, 0.16),
+    neck: point(0.38, 0.26),
+    pelvis: point(0.38, 0.5),
+    lShoulder: point(0.3, 0.3),
+    rShoulder: point(0.46, 0.28),
+    lElbow: point(0.26, 0.48),
+    rElbow: point(0.26, 0.26),
+    // Placeholders — overwritten after separateIntimateFigures.
+    lWrist: point(0.25, 0.62),
+    rWrist: point(0.23, 0.12),
+    lHip: point(0.35, 0.5),
+    rHip: point(0.41, 0.5),
+    lKnee: point(0.36, 0.7),
+    rKnee: point(0.42, 0.7),
+    lAnkle: point(0.36, 0.92),
+    rAnkle: point(0.42, 0.92),
+  };
+  const [lead, partner] = separateIntimateFigures([against, press]) as [
+    StickSkeleton,
+    StickSkeleton,
+  ];
+  // Re-pin contact after torso separation so Edit doesn't read a butt/hip grab.
+  partner.rWrist = point(lead.neck.x + 0.02, lead.neck.y + 0.01);
+  partner.lWrist = point(lead.pelvis.x + 0.01, Math.min(0.72, lead.pelvis.y + 0.12));
+  partner.rElbow = point(
+    (partner.rShoulder.x + partner.rWrist.x) / 2,
+    (partner.rShoulder.y + partner.rWrist.y) / 2
+  );
+  partner.lElbow = point(
+    (partner.lShoulder.x + partner.lWrist.x) / 2,
+    (partner.lShoulder.y + partner.lWrist.y) / 2
+  );
+  return [lead, partner];
+}
+
 /** Dedicated intimate solo/duo/trio layouts — wireframe silhouettes only. */
 export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSkeleton[] {
   const layout = intent.intimate ?? 'generic';
@@ -1308,13 +1519,30 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   }
 
   if (layout === 'bent') {
-    const bent = bentForwardFigure(seed, 0.38, 50);
+    const scene = intent.sceneText || '';
+    if (
+      /\b(chair|ergonomic)\b/i.test(scene) &&
+      /\b(hunch(?:ed|ing)?|bent\s+over|lean(?:s|ing)?\s+over|over\s+the|arms?\s+locked\s+around)\b/i.test(
+        scene
+      )
+    ) {
+      return pairOrTrio(chairBentFigures());
+    }
+    if (intimateTextImpliesSurfaceBent(scene)) {
+      return pairOrTrio(
+        deskBentFigures({
+          throatGrab: /\bthroat\b/i.test(scene),
+        })
+      );
+    }
+    // Wider gap + kneeling rear partner so Edit doesn't invent standing extra limbs.
+    const bent = bentForwardFigure(seed, 0.3, 50);
     let rear = uprightFigure(seed, {
-      cx: 0.62,
-      base: 'stand',
+      cx: 0.72,
+      base: 'kneel',
       salt: 2,
       arms: 'hold',
-      lean: -0.2,
+      lean: -0.12,
     });
     // Reach toward hips without collapsing pelvis centers (merge risk).
     rear = plantHandsOnPartner(rear, bent, { toward: 'hips' });
@@ -1342,33 +1570,48 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   }
 
   if (layout === 'oral') {
-    // Both kneeling: receiver upright on knees; giver kneeling lower toward pelvis
-    // (covers tongue/thigh/clit scenes — not just standing fellatio).
+    // Both kneeling: receiver upright on knees (optionally elevated on a bench);
+    // giver kneeling lower BESIDE toward pelvis — never behind bent-over.
+    const scene = intent.sceneText || '';
+    const onBench = /\b(piano\s+bench|piano\s+stool|bench)\b/i.test(scene);
     const receiver = uprightFigure(seed, {
       cx: 0.58,
       base: 'kneel',
       salt: 1,
       arms: 'hold',
-      lean: -0.1,
+      lean: -0.08,
     });
-    receiver.lKnee = point(0.52, 0.72);
-    receiver.rKnee = point(0.64, 0.72);
-    receiver.lAnkle = point(0.5, 0.88);
-    receiver.rAnkle = point(0.66, 0.88);
+    if (onBench) {
+      // Knees up on cushion height; torso stays upright (not draped over a lid).
+      receiver.head = point(0.58, 0.22);
+      receiver.neck = point(0.58, 0.28);
+      receiver.pelvis = point(0.58, 0.48);
+      receiver.lHip = point(0.52, 0.48);
+      receiver.rHip = point(0.64, 0.48);
+      receiver.lKnee = point(0.5, 0.58);
+      receiver.rKnee = point(0.66, 0.58);
+      receiver.lAnkle = point(0.48, 0.7);
+      receiver.rAnkle = point(0.68, 0.7);
+    } else {
+      receiver.lKnee = point(0.52, 0.72);
+      receiver.rKnee = point(0.64, 0.72);
+      receiver.lAnkle = point(0.5, 0.88);
+      receiver.rAnkle = point(0.66, 0.88);
+    }
     let giver = uprightFigure(seed, {
-      cx: 0.38,
+      cx: 0.36,
       base: 'kneel',
       salt: 2,
       arms: 'forward',
-      lean: 0.35,
+      lean: 0.4,
     });
-    giver.head = point(0.48, 0.5);
-    giver.neck = point(0.46, 0.56);
-    giver.pelvis = point(0.36, 0.7);
-    giver.lKnee = point(0.3, 0.78);
-    giver.rKnee = point(0.4, 0.78);
-    giver.lAnkle = point(0.28, 0.9);
-    giver.rAnkle = point(0.42, 0.9);
+    giver.head = point(onBench ? 0.5 : 0.48, onBench ? 0.42 : 0.5);
+    giver.neck = point(onBench ? 0.48 : 0.46, onBench ? 0.48 : 0.56);
+    giver.pelvis = point(0.34, onBench ? 0.72 : 0.7);
+    giver.lKnee = point(0.28, onBench ? 0.8 : 0.78);
+    giver.rKnee = point(0.38, onBench ? 0.8 : 0.78);
+    giver.lAnkle = point(0.26, onBench ? 0.92 : 0.9);
+    giver.rAnkle = point(0.4, onBench ? 0.92 : 0.9);
     giver = plantHandsOnPartner(giver, receiver, { toward: 'hips' });
     return pairOrTrio([receiver, giver]);
   }
@@ -1419,28 +1662,16 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   }
 
   if (layout === 'wall') {
-    // Back figure pressed to the left "wall"; partner leans in.
-    const against = uprightFigure(seed, {
-      cx: 0.34,
-      base: 'stand',
-      salt: 1,
-      arms: 'up',
-      lean: -0.05,
-    });
-    against.lWrist = point(0.22, 0.28);
-    against.rWrist = point(0.24, 0.32);
-    let press = uprightFigure(seed, {
-      cx: 0.48,
-      base: 'stand',
-      salt: 2,
-      arms: 'hold',
-      lean: 0.2,
-    });
-    press = plantHandsOnPartner(press, against, { toward: 'hips' });
-    return pairOrTrio([against, press]);
+    // Hard-coded full-height standing wall press — uprightFigure reads too soft/crouched
+    // and face-close heads were getting interpreted as a floor kneel kiss.
+    return pairOrTrio(wallPressStandingFigures());
   }
 
   if (layout === 'lift') {
+    const scene = intent.sceneText || '';
+    if (/\b(chaise|daybed|fainting\s+couch)\b/i.test(scene)) {
+      return pairOrTrio(chaiseLowerFigures());
+    }
     const carrier = uprightFigure(seed, {
       cx: 0.48,
       base: 'stand',
@@ -1455,7 +1686,7 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
       arms: 'hold',
       lean: -0.1,
     });
-    // Elevate and wrap legs around carrier.
+    // Elevate and wrap legs around carrier; arms around his neck.
     lifted.head = point(0.54, 0.1);
     lifted.neck = point(0.53, 0.18);
     lifted.pelvis = point(0.52, 0.4);
@@ -1465,8 +1696,15 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
     lifted.rKnee = point(0.62, 0.48);
     lifted.lAnkle = point(0.4, 0.38);
     lifted.rAnkle = point(0.64, 0.38);
-    carrier.lWrist = point(0.48, 0.42);
-    carrier.rWrist = point(0.56, 0.42);
+    lifted.lWrist = point(0.5, 0.14);
+    lifted.rWrist = point(0.56, 0.14);
+    lifted.lElbow = point(0.48, 0.22);
+    lifted.rElbow = point(0.58, 0.22);
+    // Carrier: hip grip + clit/hand at her front pelvis — not parked on chair arms.
+    carrier.lWrist = point(0.5, 0.44);
+    carrier.rWrist = point(0.54, 0.36);
+    carrier.lElbow = point(0.46, 0.36);
+    carrier.rElbow = point(0.54, 0.3);
     // Lead is the lifted body (black / Image 1) when the beat lifts the named character.
     return pairOrTrio([lifted, carrier]);
   }
@@ -1846,64 +2084,122 @@ export function resolvePoseGuideKeyFromScene(
   }
 }
 
-function drawBone(ctx: CanvasRenderingContext2D, a: Point, b: Point, width = 6): void {
+function drawCapsule(
+  ctx: CanvasRenderingContext2D,
+  a: Point,
+  b: Point,
+  radius: number,
+  fill: string
+): void {
   const from = px(a);
   const to = px(b);
-  ctx.lineWidth = width;
+  ctx.strokeStyle = fill;
+  ctx.lineWidth = Math.max(4, radius * 2);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   ctx.beginPath();
   ctx.moveTo(from.x, from.y);
   ctx.lineTo(to.x, to.y);
   ctx.stroke();
 }
 
-/** Draw a stick skeleton on white — OpenPose-ish crude guide. */
+function drawJointBlob(
+  ctx: CanvasRenderingContext2D,
+  joint: Point,
+  radius: number,
+  fill: string
+): void {
+  const at = px(joint);
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.arc(at.x, at.y, Math.max(3, radius), 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** Distinct schematic fills — never near-black (Edit paints black capsules as morphsuits).
+ * Index 0 (magenta) is always the Cast lead — Image 1 identity maps to this figure.
+ * Index 1 (cyan) / 2 (orange) are partners with different faces.
+ */
+const MULTI_FIGURE_PALETTE = [
+  { fill: '#c026d3', stroke: '#86198f' },
+  { fill: '#0891b2', stroke: '#155e75' },
+  { fill: '#ea580c', stroke: '#9a3412' },
+] as const;
+
+/** Draw a filled mannequin from skeleton joints — body mass, no face/clothes. */
 export function drawStickSkeleton(
   ctx: CanvasRenderingContext2D,
   skeleton: StickSkeleton,
-  options?: { clear?: boolean; strokeStyle?: string; headRadius?: number; lineWidth?: number }
+  options?: {
+    clear?: boolean;
+    strokeStyle?: string;
+    fillStyle?: string;
+    headRadius?: number;
+    lineWidth?: number;
+  }
 ): void {
   if (options?.clear !== false) {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
   }
-  ctx.strokeStyle = options?.strokeStyle ?? '#111111';
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
 
   const scale = (options?.lineWidth ?? 5) / 5;
-  const w = (n: number) => Math.max(3, Math.round(n * scale));
-  const head = px(skeleton.head);
-  const headRadius = options?.headRadius ?? 28;
-  ctx.lineWidth = w(5);
+  const r = (n: number) => Math.max(3, Math.round(n * scale));
+  const fill = options?.fillStyle ?? options?.strokeStyle ?? '#c026d3';
+  const outline = options?.strokeStyle ?? '#86198f';
+  const headRadius = options?.headRadius ?? 30;
+
+  // Thin outline so overlapping duo figures stay separable without blob joints.
+  const outlineBoost = 1.08;
+  const drawOutlineLimb = (a: Point, b: Point, radius: number) =>
+    drawCapsule(ctx, a, b, radius * outlineBoost, outline);
+  drawOutlineLimb(skeleton.lShoulder, skeleton.rShoulder, r(11));
+  drawOutlineLimb(skeleton.neck, skeleton.pelvis, r(15));
+  drawOutlineLimb(skeleton.lHip, skeleton.rHip, r(12));
+  drawOutlineLimb(skeleton.lShoulder, skeleton.lElbow, r(9));
+  drawOutlineLimb(skeleton.lElbow, skeleton.lWrist, r(8));
+  drawOutlineLimb(skeleton.rShoulder, skeleton.rElbow, r(9));
+  drawOutlineLimb(skeleton.rElbow, skeleton.rWrist, r(8));
+  drawOutlineLimb(skeleton.lHip, skeleton.lKnee, r(10));
+  drawOutlineLimb(skeleton.lKnee, skeleton.lAnkle, r(8));
+  drawOutlineLimb(skeleton.rHip, skeleton.rKnee, r(10));
+  drawOutlineLimb(skeleton.rKnee, skeleton.rAnkle, r(8));
+
+  // Body-mass fill — tapered limbs; avoid oversized chest/hand blobs (those bleed as ball joints).
+  drawCapsule(ctx, skeleton.lShoulder, skeleton.rShoulder, r(11), fill);
+  drawCapsule(ctx, skeleton.neck, skeleton.pelvis, r(15), fill);
+  drawCapsule(ctx, skeleton.lHip, skeleton.rHip, r(12), fill);
+  drawCapsule(ctx, skeleton.pelvis, skeleton.lHip, r(9), fill);
+  drawCapsule(ctx, skeleton.pelvis, skeleton.rHip, r(9), fill);
+  drawCapsule(ctx, skeleton.neck, skeleton.lShoulder, r(8), fill);
+  drawCapsule(ctx, skeleton.neck, skeleton.rShoulder, r(8), fill);
+  drawCapsule(ctx, skeleton.head, skeleton.neck, r(7), fill);
+
+  drawCapsule(ctx, skeleton.lShoulder, skeleton.lElbow, r(9), fill);
+  drawCapsule(ctx, skeleton.lElbow, skeleton.lWrist, r(8), fill);
+  drawCapsule(ctx, skeleton.rShoulder, skeleton.rElbow, r(9), fill);
+  drawCapsule(ctx, skeleton.rElbow, skeleton.rWrist, r(8), fill);
+  drawCapsule(ctx, skeleton.lHip, skeleton.lKnee, r(10), fill);
+  drawCapsule(ctx, skeleton.lKnee, skeleton.lAnkle, r(8), fill);
+  drawCapsule(ctx, skeleton.rHip, skeleton.rKnee, r(10), fill);
+  drawCapsule(ctx, skeleton.rKnee, skeleton.rAnkle, r(8), fill);
+
+  // Head only (no face). Small wrist/ankle tips — not sphere joints.
+  drawJointBlob(ctx, skeleton.head, headRadius, fill);
+  const headPx = px(skeleton.head);
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = Math.max(2, r(2));
   ctx.beginPath();
-  ctx.arc(head.x, head.y, headRadius, 0, Math.PI * 2);
+  ctx.arc(headPx.x, headPx.y, headRadius, 0, Math.PI * 2);
   ctx.stroke();
 
-  drawBone(ctx, skeleton.head, skeleton.neck, w(5));
-  drawBone(ctx, skeleton.neck, skeleton.pelvis, w(8));
-  drawBone(ctx, skeleton.lShoulder, skeleton.rShoulder, w(6));
-  drawBone(ctx, skeleton.neck, skeleton.lShoulder, w(5));
-  drawBone(ctx, skeleton.neck, skeleton.rShoulder, w(5));
-  drawBone(ctx, skeleton.lShoulder, skeleton.lElbow, w(6));
-  drawBone(ctx, skeleton.lElbow, skeleton.lWrist, w(6));
-  drawBone(ctx, skeleton.rShoulder, skeleton.rElbow, w(6));
-  drawBone(ctx, skeleton.rElbow, skeleton.rWrist, w(6));
-  drawBone(ctx, skeleton.lHip, skeleton.rHip, w(6));
-  drawBone(ctx, skeleton.pelvis, skeleton.lHip, w(5));
-  drawBone(ctx, skeleton.pelvis, skeleton.rHip, w(5));
-  drawBone(ctx, skeleton.lHip, skeleton.lKnee, w(6));
-  drawBone(ctx, skeleton.lKnee, skeleton.lAnkle, w(6));
-  drawBone(ctx, skeleton.rHip, skeleton.rKnee, w(6));
-  drawBone(ctx, skeleton.rKnee, skeleton.rAnkle, w(6));
+  drawJointBlob(ctx, skeleton.lWrist, r(5), fill);
+  drawJointBlob(ctx, skeleton.rWrist, r(5), fill);
+  drawJointBlob(ctx, skeleton.lAnkle, r(6), fill);
+  drawJointBlob(ctx, skeleton.rAnkle, r(6), fill);
 }
 
-/** Distinct stroke colors so multi-person guides read as separate bodies.
- * Index 0 (black) is always the Cast lead — Image 1 identity maps to this figure.
- * Index 1 (blue) / 2 (red) are partners with different faces.
- */
-const MULTI_FIGURE_STROKES = ['#111111', '#1a4d8c', '#8b1a1a'] as const;
-
-/** Draw a black stick figure on white — OpenPose-ish crude guide. */
+/** Draw a Day slot mannequin on white. */
 export function drawDayPoseGuide(
   ctx: CanvasRenderingContext2D,
   slotId: DaySlotId | PoseGuideKey | string
@@ -1912,22 +2208,60 @@ export function drawDayPoseGuide(
   drawStickSkeleton(ctx, skeleton);
 }
 
-/** Draw freshly synthesized stick stance(s) from scene text (1–3 figures). */
+/** Draw freshly synthesized mannequin stance(s) from scene text (1–3 figures). */
 export function drawPoseGuideFromScene(
   ctx: CanvasRenderingContext2D,
   text: string | null | undefined,
   fallbackIndex = 0
 ): PoseGuideIntent {
   const { intent, figures } = synthesizeSceneStickFigures(text, fallbackIndex);
+  if (intent.intimate === 'wall') {
+    // Visual wall cue so Edit doesn't invent a center-floor kneel.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = '#d0d0d0';
+    ctx.fillRect(0, 0, Math.round(WIDTH * 0.1), HEIGHT);
+    ctx.strokeStyle = '#555555';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(Math.round(WIDTH * 0.1), 0);
+    ctx.lineTo(Math.round(WIDTH * 0.1), HEIGHT);
+    ctx.stroke();
+  } else if (
+    intent.intimate === 'lift' &&
+    /\b(chaise|daybed|fainting\s+couch)\b/i.test(text || '')
+  ) {
+    // Long chaise silhouette so Edit doesn't invent a short couch lap-sit.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = '#c8c8c8';
+    const chaiseY = Math.round(HEIGHT * 0.62);
+    ctx.fillRect(
+      Math.round(WIDTH * 0.2),
+      chaiseY,
+      Math.round(WIDTH * 0.65),
+      Math.round(HEIGHT * 0.12)
+    );
+    ctx.fillRect(
+      Math.round(WIDTH * 0.72),
+      Math.round(HEIGHT * 0.48),
+      Math.round(WIDTH * 0.1),
+      Math.round(HEIGHT * 0.26)
+    );
+  }
   figures.forEach((figure, index) => {
     const isLead = index === 0;
+    const palette = MULTI_FIGURE_PALETTE[index % MULTI_FIGURE_PALETTE.length]!;
     drawStickSkeleton(ctx, figure, {
-      clear: index === 0,
-      strokeStyle:
-        figures.length > 1 ? MULTI_FIGURE_STROKES[index % MULTI_FIGURE_STROKES.length] : '#111111',
-      // Thicker lead so models can tell which body gets Image 1 identity.
-      headRadius: figures.length > 1 ? (isLead ? 34 : 28) : 28,
-      lineWidth: figures.length > 1 ? (isLead ? 7 : 5) : 5,
+      clear:
+        intent.intimate === 'wall' || (intent.intimate === 'lift' && /\bchaise\b/i.test(text || ''))
+          ? false
+          : index === 0,
+      fillStyle: palette.fill,
+      strokeStyle: palette.stroke,
+      // Larger lead so models can tell which body gets Image 1 identity.
+      headRadius: figures.length > 1 ? (isLead ? 36 : 30) : 30,
+      lineWidth: figures.length > 1 ? (isLead ? 5.5 : 5) : 5,
     });
   });
   return intent;
@@ -1978,8 +2312,19 @@ async function buildPoseGuideFile(poseKey: PoseGuideKey, filenamePrefix: string)
   }, filenamePrefix);
 }
 
-/** Browser-only: rasterize the stick figure to a PNG File for Comfy Image 3. */
-export async function buildDayPoseGuideFile(slotId: DaySlotId): Promise<File> {
+/** Browser-only: rasterize the mannequin to a PNG File for Comfy Image 3. */
+export async function buildDayPoseGuideFile(
+  slotId: DaySlotId,
+  sceneText?: string | null
+): Promise<File> {
+  const trimmed = sceneText?.trim() || '';
+  if (trimmed) {
+    const fallbackIndex = Math.max(0, POSE_KEYS.indexOf(normalizePoseKey(slotId)));
+    return canvasToPoseGuideFile(ctx => {
+      const intent = drawPoseGuideFromScene(ctx, trimmed, fallbackIndex);
+      return intent.label;
+    }, 'day-pose-guide');
+  }
   return buildPoseGuideFile(normalizePoseKey(slotId), 'day-pose-guide');
 }
 

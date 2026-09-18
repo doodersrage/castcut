@@ -74,6 +74,8 @@ export type SendComfyUiOptions = {
    * When set, overrides Shared session / by-model picks for this queue only.
    */
   sessionActiveLoraIds?: string[];
+  /** Job-pinned LoRA strength tweaks for this queue only. */
+  sessionLoraStrengthOverrides?: import('@/lib/lora-stack').SessionLoraStrengthOverrides;
 };
 
 export type TrackComfyUiJobInput = {

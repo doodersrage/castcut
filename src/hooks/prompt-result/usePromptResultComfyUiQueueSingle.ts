@@ -132,6 +132,9 @@ export function usePromptResultComfyUiQueueSingle(
             ...(options?.sessionActiveLoraIds
               ? { sessionActiveLoraIds: options.sessionActiveLoraIds }
               : {}),
+            ...(options?.sessionLoraStrengthOverrides
+              ? { sessionLoraStrengthOverrides: options.sessionLoraStrengthOverrides }
+              : {}),
           });
           vramGuard = await guardQueueQualityForVram({
             profile: options?.qualityProfile ?? baseRuntime.queueQualityProfile,

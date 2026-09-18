@@ -122,10 +122,9 @@ export default function SettingsComfyConnectionPanel(props: SettingsComfyConnect
         </>
       ) : null}
 
-      <QueueExportSettingsPanel />
-
       {showAdvanced ? (
         <>
+          <QueueExportSettingsPanel />
           <SettingsComfyConnectionAutoImproveSection
             settings={settings}
             updateSettings={updateSettings}

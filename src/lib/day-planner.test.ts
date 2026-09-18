@@ -239,8 +239,12 @@ describe('day-planner', () => {
     assert.match(prompt, /Outfit Keep try-on/i);
     assert.match(prompt, /aggressively refactor/i);
     assert.match(prompt, /navy trench/);
-    assert.match(prompt, /mandatory new pose/i);
-    assert.match(prompt, /same kept outfit, different pose/i);
+    assert.match(prompt, /mandatory new body pose/i);
+    assert.match(prompt, /SETTING \(mandatory/i);
+    assert.match(prompt, /front porch/i);
+    assert.match(prompt, /kitchen counter|pouring/i);
+    assert.match(prompt, /coffee on the porch/i);
+    assert.match(prompt, /same kept outfit, different pose and location/i);
   });
 
   it('buildDaySlotPrompt with keeper plate invents a default pose when beat is empty', () => {
@@ -251,7 +255,7 @@ describe('day-planner', () => {
       hasPlate: true,
       plateSource: 'keeper',
     });
-    assert.match(prompt, /mandatory new pose:/i);
+    assert.match(prompt, /mandatory new body pose:/i);
     assert.match(prompt, /kitchen counter|pouring/i);
     assert.match(prompt, /keep the clothing/i);
   });
@@ -267,7 +271,26 @@ describe('day-planner', () => {
     assert.match(prompt, /facial identity and likeness only/i);
     assert.match(prompt, /linen set/);
     assert.match(prompt, /aggressively refactor/i);
-    assert.match(prompt, /mandatory new pose/i);
+    assert.match(prompt, /mandatory new body pose/i);
+    assert.match(prompt, /SETTING \(mandatory/i);
+    assert.match(prompt, /city park/i);
+  });
+
+  it('buildDaySlotPrompt with isolated plate forces white backdrop replacement', () => {
+    const slot = DEFAULT_DAY_SLOTS[1]!;
+    const prompt = buildDaySlotPrompt({
+      slot: { ...slot, location: 'city park', sceneHints: 'mid-stride on the path' },
+      wardrobeLabel: 'linen set',
+      hasPlate: true,
+      plateSource: 'keeper',
+      plateIsolated: true,
+      garmentReinforce: true,
+      poseGuide: true,
+    });
+    assert.match(prompt, /isolated on a blank white backdrop/i);
+    assert.match(prompt, /never leave a white background|never a blank white backdrop/i);
+    assert.match(prompt, /Image 2 white is packshot only|Image 3 white is pose-guide only/i);
+    assert.match(prompt, /city park/i);
   });
 
   it('dayWatchPlaylist builds Morning→Night still shots', () => {
@@ -377,7 +400,7 @@ describe('day-planner', () => {
     assert.match(prompt, /Image 1 is the Outfit Keep try-on/i);
     assert.match(prompt, /Image 2 is a wardrobe packshot/i);
     assert.match(prompt, /linen set/);
-    assert.match(prompt, /mandatory new pose/i);
+    assert.match(prompt, /mandatory new body pose/i);
   });
 
   it('buildDaySlotPrompt with poseGuide names Image 3 wireframe', () => {
@@ -388,8 +411,8 @@ describe('day-planner', () => {
       plateSource: 'keeper',
       poseGuide: true,
     });
-    assert.match(prompt, /Image 3 is a crude stick-figure pose wireframe/i);
-    assert.match(prompt, /never draw stick figures/i);
+    assert.match(prompt, /Image 3 is a flat SCHEMATIC|Image 3 is a flat mannequin|Image 3 is a crude stick-figure/i);
+    assert.match(prompt, /never draw (?:stick figures|mannequins)/i);
     assert.match(prompt, /photorealistic live-action photograph/i);
   });
 

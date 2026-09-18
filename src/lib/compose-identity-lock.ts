@@ -140,9 +140,13 @@ export function formatComposeIdentityLockHint(input: {
   const identityKind = normalizeComposeIdentityKind(input.identityKind);
   const face = getFaceDetailerHealth();
   const faceNote =
-    face.status === 'ready' || face.status === 'detected'
-      ? `FaceDetailer ${face.label.toLowerCase()} — optional gallery Face detail after queue.`
-      : 'FaceDetailer not configured.';
+    face.status === 'ready'
+      ? `FaceDetailer ready — optional gallery Face detail after queue.`
+      : face.status === 'partial'
+        ? `FaceDetailer scaffold pinned — install Impact Pack for gallery Face detail.`
+        : face.status === 'detected'
+          ? `FaceDetailer detected — optional gallery Face detail after queue.`
+          : 'FaceDetailer not configured.';
 
   if (identityKind === 'instantid') {
     return `Lock Figure 1 via InstantID @ ${strength.toFixed(2)}. ${faceNote}`;

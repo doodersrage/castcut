@@ -30,9 +30,17 @@ function workflowFile(overrides: Partial<ComfyWorkflowFile>): ComfyWorkflowFile 
 describe("getFaceDetailerHealth", async () => {
   const { getFaceDetailerHealth } = await import("./face-detailer-health");
 
-  it("reports 'ready' when a pinned workflow id resolves to an existing file", () => {
+  it("reports 'ready' when a pinned workflow includes Impact FaceDetailer nodes", () => {
     sharedSettings = { modelWorkflowMap: { faceDetailer: "wf-pinned" } } as unknown as SettingsCache["shared"];
-    files = [workflowFile({ id: "wf-pinned", name: "Pinned Face Fixer" })];
+    files = [
+      workflowFile({
+        id: "wf-pinned",
+        name: "Pinned Face Fixer",
+        workflowJson: JSON.stringify({
+          "1": { class_type: "FaceDetailer", inputs: {} },
+        }),
+      }),
+    ];
     resolvedFile = undefined;
 
     const health = getFaceDetailerHealth();
@@ -41,7 +49,28 @@ describe("getFaceDetailerHealth", async () => {
       label: "Ready",
       workflowName: "Pinned Face Fixer",
       pinnedId: "wf-pinned",
+      hasImpactNodes: true,
     });
+  });
+
+  it("reports 'partial' when the pin is only the LoadImage→SaveImage scaffold", () => {
+    sharedSettings = { modelWorkflowMap: { faceDetailer: "wf-scaffold" } } as unknown as SettingsCache["shared"];
+    files = [
+      workflowFile({
+        id: "wf-scaffold",
+        name: "FaceDetailer scaffold",
+        workflowJson: JSON.stringify({
+          "1": { class_type: "LoadImage", inputs: { image: "{{FACE_DETAIL_IMAGE}}" } },
+          "2": { class_type: "SaveImage", inputs: { images: ["1", 0] } },
+        }),
+      }),
+    ];
+    resolvedFile = undefined;
+
+    const health = getFaceDetailerHealth();
+    assert.equal(health.status, "partial");
+    assert.match(health.label, /Impact Pack/i);
+    assert.equal(health.hasImpactNodes, false);
   });
 
   it("reports 'missing' with a 'Missing pin' label when the pinned id has no matching file", () => {
@@ -53,22 +82,32 @@ describe("getFaceDetailerHealth", async () => {
     assert.deepEqual(health, { status: "missing", label: "Missing pin", pinnedId: "wf-gone" });
   });
 
-  it("trims a blank pinned id and falls through to heuristic detection", () => {
-    sharedSettings = { modelWorkflowMap: { faceDetailer: "   " } } as unknown as SettingsCache["shared"];
-    files = [];
-    resolvedFile = workflowFile({ id: "wf-detected", name: "Detected Fixer" });
-
-    const health = getFaceDetailerHealth();
-    assert.deepEqual(health, { status: "detected", label: "Detected", workflowName: "Detected Fixer" });
-  });
-
   it("reports 'detected' when no pin exists but a workflow is heuristically resolved", () => {
     sharedSettings = {} as SettingsCache["shared"];
     files = [];
     resolvedFile = workflowFile({ id: "wf-x", name: "Auto Face Fixer" });
 
     const health = getFaceDetailerHealth();
-    assert.deepEqual(health, { status: "detected", label: "Detected", workflowName: "Auto Face Fixer" });
+    assert.deepEqual(health, {
+      status: "detected",
+      label: "Detected",
+      workflowName: "Auto Face Fixer",
+      hasImpactNodes: false,
+    });
+  });
+
+  it("trims a blank pinned id and falls through to heuristic detection", () => {
+    sharedSettings = { modelWorkflowMap: { faceDetailer: "   " } } as unknown as SettingsCache["shared"];
+    files = [];
+    resolvedFile = workflowFile({ id: "wf-detected", name: "Detected Fixer" });
+
+    const health = getFaceDetailerHealth();
+    assert.deepEqual(health, {
+      status: "detected",
+      label: "Detected",
+      workflowName: "Detected Fixer",
+      hasImpactNodes: false,
+    });
   });
 
   it("reports 'missing' with a plain 'Missing' label when there is no pin and no heuristic match", () => {

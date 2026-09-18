@@ -30,6 +30,7 @@ import {
 } from './workflow-prompt-encode';
 import {
   forceResolveLoaderPlaceholders,
+  patchControlNetInWorkflow,
   patchImageResizeNodesInWorkflow,
   patchLoadImageMaskNodesInWorkflow,
   patchLoadImageNodesInWorkflow,
@@ -175,6 +176,11 @@ export type WorkflowParamValues = {
   controlNetStrengths?: Array<number | string>;
   /** Optional per-slot preprocessor modes when stacking ControlNets. */
   controlNetModes?: string[];
+  /**
+   * When true, auto-inserted ControlNet chains skip OpenPose/Canny/etc. and feed
+   * the control image raw (Day/Story filled mannequin pose guides).
+   */
+  controlNetSkipPreprocessor?: boolean | string;
   /** {{IPADAPTER_IMAGE}} — filename of the identity/style reference image on a LoadImage node. */
   ipAdapterImageFilename?: string;
   /** Extra IP-Adapter refs for stacked apply chains (index 0 mirrors ipAdapterImageFilename). */
@@ -1564,6 +1570,35 @@ export function injectPromptsWithFallbacks(
         Object.entries(loraStackPatch.patched).filter(([, count]) => (count ?? 0) > 0)
       ),
     };
+
+    // Lightning skips patchWorkflowDirectParams — still splice ControlNet when a
+    // control image is queued (Story/Day pose guides). Soft no-op when the graph
+    // has no sampler cond links or ControlNetApply is unavailable.
+    const hasControlImage = Boolean(
+      input.params?.controlImageFilename?.toString().trim() ||
+      input.params?.controlImageFilenames?.some(name => Boolean(name?.toString().trim()))
+    );
+    if (hasControlImage) {
+      const controlPatch = patchControlNetInWorkflow(nextWorkflow, {
+        controlNetModelFilename: input.params?.controlNetModelFilename,
+        controlImageFilename: input.params?.controlImageFilename,
+        controlImageFilenames: input.params?.controlImageFilenames,
+        availableNodeTypes: options?.availableNodeTypes,
+        controlNetMode: input.params?.controlNetMode,
+        controlNetModes: input.params?.controlNetModes,
+        controlNetStrengths: input.params?.controlNetStrengths,
+        skipPreprocessor:
+          input.params?.controlNetSkipPreprocessor === true ||
+          String(input.params?.controlNetSkipPreprocessor ?? '').trim() === 'true',
+      });
+      nextWorkflow = controlPatch.workflow;
+      directPatchCounts = {
+        ...directPatchCounts,
+        ...Object.fromEntries(
+          Object.entries(controlPatch.patched).filter(([, count]) => (count ?? 0) > 0)
+        ),
+      };
+    }
   }
 
   // Non-Lightning edit packs/scaffolds still need Figure→encode wiring.

@@ -49,11 +49,13 @@ import {
   normalizeDaySlots,
   seedDaySlotsWardrobe,
   upsertDaySlotStill,
+  DAY_PLATE_IDENTITY_LOCK_CAP,
   type DaySlot,
   type DaySlotId,
 } from '@/lib/day-planner';
 import { resolveDayGarmentReinforce, resolveDayPlate } from '@/lib/day-plate';
 import { buildDayPoseGuideFile } from '@/lib/day-pose-guide';
+import { resolvePoseGuideControlNetExtras } from '@/lib/pose-guide-controlnet';
 import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
 import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
@@ -422,6 +424,7 @@ export function useDayPlannerToolOrchestrationCore() {
         notes: toolSettings.notes,
         hasPlate,
         plateSource: queuePlate?.source,
+        plateIsolated: queuePlate?.isolated === true,
         garmentReinforce,
         garmentDescription: toolSettings.customGarmentDescription,
         poseGuide,
@@ -434,6 +437,7 @@ export function useDayPlannerToolOrchestrationCore() {
       character?.name,
       hasPlate,
       plate?.source,
+      queuePlate?.isolated,
       queuePlate?.source,
       shared.lockedLocation,
       shared.lockedWardrobeId,
@@ -485,12 +489,16 @@ export function useDayPlannerToolOrchestrationCore() {
           customGarmentFilename: toolSettings.customGarmentImageFilename,
         });
 
-        // Image 3: crude stick-figure pose guide (Keep / Cast stay Image 1).
+        // Image 3: mannequin pose guide from Setting+Beat (Keep / Cast stay Image 1).
         let poseGuideUrl: string | undefined;
         let poseGuideFilename: string | undefined;
         if (hasPlate) {
           try {
-            const poseFile = await buildDayPoseGuideFile(queueTarget.id);
+            const poseScene = [queueTarget.location, queueTarget.sceneHints]
+              .map(part => part?.trim())
+              .filter(Boolean)
+              .join(' · ');
+            const poseFile = await buildDayPoseGuideFile(queueTarget.id, poseScene || undefined);
             const uploaded = await resolveQueueInputImage({
               file: poseFile,
               filename: poseFile.name,
@@ -541,6 +549,11 @@ export function useDayPlannerToolOrchestrationCore() {
         const hasExtras =
           extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
           extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
+        const poseControlNet = resolvePoseGuideControlNetExtras({
+          poseGuideFilename,
+          poseGuideUrl,
+          model: shared.model,
+        });
         const queueOptions = !hasPlate
           ? undefined
           : queuePlate?.filename?.trim() || queuePlate?.imageUrl?.trim()
@@ -554,6 +567,12 @@ export function useDayPlannerToolOrchestrationCore() {
                         ? { inputImageFilenames: extraFilenames }
                         : {}),
                     }
+                  : {}),
+                ...(poseControlNet?.controlImageFilename
+                  ? { controlImageFilename: poseControlNet.controlImageFilename }
+                  : {}),
+                ...(poseControlNet?.controlImageUrl
+                  ? { controlImageUrl: poseControlNet.controlImageUrl }
                   : {}),
               }
             : undefined;
@@ -570,10 +589,11 @@ export function useDayPlannerToolOrchestrationCore() {
         if (character) {
           syncSharedIdentityToCast(character);
         }
-        const faceQueueParams = castFaceQueueParamsBase(
-          character,
-          shared.ipAdapterStrength ?? 0.75
+        const identityStrength = Math.min(
+          shared.ipAdapterStrength ?? 0.75,
+          DAY_PLATE_IDENTITY_LOCK_CAP
         );
+        const faceQueueParams = castFaceQueueParamsBase(character, identityStrength);
         const castLoras = castLoraSessionIds(character);
         const promptId = await actions.sendComfyUi(finalized, undefined, undefined, {
           ...(queueOptions ?? {}),
@@ -581,11 +601,20 @@ export function useDayPlannerToolOrchestrationCore() {
             ? {
                 queueTool: 'image-prompt',
                 turboEditStrength: 'strong',
+                identityLock: true,
+                identityLockStrength: identityStrength,
               }
             : {}),
           characterId: shared.activeCharacterId,
           lookId: shared.activeLookId ?? character?.activeLookId,
-          ...(faceQueueParams ? { queueParamsBase: faceQueueParams } : {}),
+          ...(faceQueueParams || poseControlNet
+            ? {
+                queueParamsBase: {
+                  ...poseControlNet?.queueParamsBase,
+                  ...faceQueueParams,
+                },
+              }
+            : {}),
           ...(castLoras ? { sessionActiveLoraIds: castLoras } : {}),
           ...(leanChrome ? { qualityProfile: leanQuality } : {}),
           ...(options?.qualityProfile && !leanChrome

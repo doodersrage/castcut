@@ -96,6 +96,8 @@ describe('roleplay-play-core', () => {
       imageUrl: '/media/face.png',
       poseGuideFilename: 'pose.png',
       poseGuideUrl: 'https://example.com/pose.png',
+      model: 'qwen-image-edit-2511-lightning-8',
+      controlNetMap: {},
     });
     assert.deepEqual(options?.inputImageUrls, [
       undefined,
@@ -103,6 +105,49 @@ describe('roleplay-play-core', () => {
       'https://example.com/pose.png',
     ]);
     assert.deepEqual(options?.inputImageFilenames, ['', '', 'pose.png']);
+    assert.equal(options?.controlImageFilename, undefined);
+  });
+
+  it('also queues the pose guide as ControlNet when a safe CN weight is mapped', () => {
+    const options = buildRoleplayQueueStillOptions({
+      photoMode: true,
+      isolateSubject: false,
+      referenceIsolated: false,
+      filename: 'face.png',
+      imageUrl: '/media/face.png',
+      poseGuideFilename: 'pose.png',
+      poseGuideUrl: 'https://example.com/pose.png',
+      model: 'flux-dev',
+      controlNetMap: {
+        'flux-dev': 'flux-controlnet-pose.safetensors',
+      },
+    });
+    assert.equal(options?.controlImageFilename, 'pose.png');
+    assert.equal(options?.controlImageUrl, 'https://example.com/pose.png');
+    assert.equal(options?.queueParamsBase?.controlNetMode, 'pose');
+    assert.equal(options?.queueParamsBase?.controlNetSkipPreprocessor, true);
+    assert.equal(
+      options?.queueParamsBase?.controlNetModelFilename,
+      'flux-controlnet-pose.safetensors'
+    );
+  });
+
+  it('does not attach InstantX ControlNet for mannequin pose guides', () => {
+    const options = buildRoleplayQueueStillOptions({
+      photoMode: true,
+      isolateSubject: false,
+      referenceIsolated: false,
+      filename: 'face.png',
+      imageUrl: '/media/face.png',
+      poseGuideFilename: 'pose.png',
+      poseGuideUrl: 'https://example.com/pose.png',
+      model: 'qwen-image-edit-2511-lightning-8',
+      controlNetMap: {
+        'qwen-image-edit-2511-lightning-8': 'Qwen-Image-InstantX-ControlNet-Union.safetensors',
+      },
+    });
+    assert.equal(options?.controlImageFilename, undefined);
+    assert.equal(options?.queueParamsBase?.controlNetModelFilename, undefined);
   });
 
   it('omits Image 2 garment packshot when intimate nude/sex beats request it', () => {
@@ -117,6 +162,7 @@ describe('roleplay-play-core', () => {
       poseGuideFilename: 'pose.png',
       poseGuideUrl: 'https://example.com/pose.png',
       omitGarment: true,
+      controlNetMap: {},
     });
     assert.deepEqual(options?.inputImageUrls, [
       undefined,

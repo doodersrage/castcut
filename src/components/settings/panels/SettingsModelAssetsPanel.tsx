@@ -17,7 +17,10 @@ export default function SettingsModelAssetsPanel({
       <ComfyModelAssetsPanel
         onStatus={setStatus}
         onInstalled={() => {
-          void syncLoaderMapsFromComfyInventory();
+          setStatus('Weight installed — syncing loader maps from Comfy inventory…');
+          void Promise.resolve(syncLoaderMapsFromComfyInventory()).then(() => {
+            setStatus('Loader maps synced from ComfyUI inventory after install.');
+          });
         }}
       />
     </ToolSection>

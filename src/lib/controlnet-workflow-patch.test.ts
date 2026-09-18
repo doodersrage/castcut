@@ -111,6 +111,61 @@ describe("insertControlNetChainIfMissing", () => {
     });
     assert.equal(result.inserted, false);
   });
+  it("skips the preprocessor when skipPreprocessor is set (mannequin pose guides)", () => {
+    const workflow = {
+      "1": {
+        class_type: "CLIPTextEncode",
+        inputs: { text: "pos", clip: ["0", 1] },
+      },
+      "2": {
+        class_type: "CLIPTextEncode",
+        inputs: { text: "neg", clip: ["0", 1] },
+      },
+      "3": {
+        class_type: "KSampler",
+        inputs: {
+          seed: 1,
+          steps: 20,
+          cfg: 7,
+          model: ["0", 0],
+          positive: ["1", 0],
+          negative: ["2", 0],
+          latent_image: ["4", 0],
+        },
+      },
+    };
+    const result = insertControlNetChainIfMissing(workflow, {
+      controlImageFilename: "mannequin.png",
+      controlNetMode: "pose",
+      skipPreprocessor: true,
+      strength: 0.6,
+      availableNodeTypes: [
+        "ControlNetApply",
+        "ControlNetLoader",
+        "LoadImage",
+        "DWPreprocessor",
+        "OpenposePreprocessor",
+      ],
+    });
+    assert.equal(result.inserted, true);
+    assert.equal(result.preprocessorClass, undefined);
+    assert.equal(result.insertedNodeIds.length, 3);
+    const applyNode = Object.values(result.workflow).find(
+      (node) =>
+        node &&
+        typeof node === "object" &&
+        (node as { class_type?: string }).class_type === "ControlNetApply",
+    ) as { inputs: { strength: number } };
+    assert.equal(applyNode.inputs.strength, 0.6);
+    assert.ok(
+      !Object.values(result.workflow).some(
+        (node) =>
+          node &&
+          typeof node === "object" &&
+          /Preprocessor/i.test((node as { class_type?: string }).class_type ?? ""),
+      ),
+    );
+  });
 });
 
 describe("patchControlNetInWorkflow", () => {

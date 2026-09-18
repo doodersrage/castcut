@@ -31,6 +31,7 @@ export function useComfyModelAssets({
   const [filterCurrentModel, setFilterCurrentModel] = useState(Boolean(forcedModelId));
   const [kindFilter, setKindFilter] = useState<'all' | ComfyAssetKind>('all');
   const [missingOnly, setMissingOnly] = useState(compact);
+  const [searchQuery, setSearchQuery] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -283,6 +284,7 @@ export function useComfyModelAssets({
   }, [forcedModelId]);
 
   const visibleRows = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return rows.filter(row => {
       if (compact && (row.kind === 'controlnet' || row.kind === 'upscale')) {
         return false;
@@ -293,9 +295,17 @@ export function useComfyModelAssets({
       if (missingOnly && row.status === 'installed') {
         return false;
       }
+      if (query) {
+        const haystack = [row.label, row.filename, row.id, row.notes ?? '', row.kind]
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(query)) {
+          return false;
+        }
+      }
       return true;
     });
-  }, [compact, rows, kindFilter, missingOnly]);
+  }, [compact, rows, kindFilter, missingOnly, searchQuery]);
 
   const groupedRows = useMemo(() => {
     const groups: Array<{ kind: ComfyAssetKind | string; rows: AssetRow[] }> = [];
@@ -377,6 +387,8 @@ export function useComfyModelAssets({
     setKindFilter,
     missingOnly,
     setMissingOnly,
+    searchQuery,
+    setSearchQuery,
     busyId,
     visibleRows,
     groupedRows,

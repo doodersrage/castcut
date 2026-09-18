@@ -78,6 +78,8 @@ export type ResolveRuntimeOptions = {
    * stack recorded on the original entry).
    */
   sessionActiveLoraIds?: string[];
+  /** Job-pinned strength tweaks (e.g. Story dips SNOFS when Image 3 pose must win). */
+  sessionLoraStrengthOverrides?: import('./lora-stack').SessionLoraStrengthOverrides;
 };
 
 /**
@@ -319,6 +321,7 @@ export function resolveRuntimeForModel(
       loadComfyUiSettingsForModel(model, inventory),
       {
         sessionActiveLoraIds: options?.sessionActiveLoraIds,
+        sessionLoraStrengthOverrides: options?.sessionLoraStrengthOverrides,
         model,
       }
     );
@@ -409,6 +412,7 @@ export function resolveRuntimeForModel(
   // and Lightning cannot fall back to {{LORA_*}} custom-token injection.
   const settingsRuntime = comfyUiSettingsToRuntime(loadComfyUiSettingsForModel(model, inventory), {
     sessionActiveLoraIds: options?.sessionActiveLoraIds,
+    sessionLoraStrengthOverrides: options?.sessionLoraStrengthOverrides,
     model,
   });
 

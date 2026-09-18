@@ -1,14 +1,16 @@
 'use client';
 
+import Link from 'next/link';
 import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
 import {
   DEFAULT_IPADAPTER_IMAGE_TOKEN,
   DEFAULT_IPADAPTER_MODEL_TOKEN,
   DEFAULT_IPADAPTER_STRENGTH_TOKEN,
 } from '@/lib/ipadapter-workflow-patch';
+import { getCharacter } from '@/lib/character-os';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import { SETTINGS_TOOL_ACCENT } from '@/components/settings/tabs/settings-tool-shared';
-import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
+import { CollapsibleSection, ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { FieldLabel } from '@/components/ui/Field';
 
 const ACCENT = SETTINGS_TOOL_ACCENT;
@@ -32,8 +34,16 @@ export default function SettingsIpAdapterPanel({
   setIpAdapterUploading,
   setIpAdapterUploadStatus,
 }: SettingsIpAdapterPanelProps) {
-  return (
-    <ToolSection id="settings-comfyui-ipadapter" title="IP-Adapter identity reference">
+  const activeCharacterId = sharedSettings.activeCharacterId?.trim() || '';
+  const activeCharacter = getCharacter(activeCharacterId);
+  const castFace =
+    activeCharacter?.ipAdapter?.imageFilename?.trim() ||
+    sharedSettings.ipAdapterImageFilename?.trim() ||
+    '';
+  const castOwnsIdentity = Boolean(activeCharacter && castFace);
+
+  const form = (
+    <>
       <p className="text-sm text-[var(--text-secondary)]">
         Session-wide identity/style reference (not Image → Prompt&apos;s text multi-ref). At queue
         time, with a reference image set, the app updates existing{' '}
@@ -46,8 +56,7 @@ export default function SettingsIpAdapterPanel({
         minimal LoadImage → IPAdapterModelLoader → IPAdapterAdvanced chain when none exist. Requires
         ComfyUI-IPAdapter-Plus-class nodes installed. Extra reference filenames stack additional
         Apply nodes. When IP-Adapter Plus is missing but InstantID/PuLID nodes are installed, Studio
-        falls back to auto-inserting those instead. You can also import a BYO InstantID / PuLID
-        scaffold from the Workflow library.
+        falls back to auto-inserting those instead.
       </p>
 
       <div className="space-y-2">
@@ -116,10 +125,6 @@ export default function SettingsIpAdapterPanel({
           disabled={!sharedMounted}
           className={`ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body ${accentFocusClass(ACCENT)}`}
         />
-        <p className="text-xs text-[var(--text-muted)]">
-          Two or more filenames stack additional IPAdapterAdvanced nodes onto the sampler model
-          chain at queue time.
-        </p>
       </div>
 
       <label className="mt-4 block space-y-2">
@@ -153,6 +158,45 @@ export default function SettingsIpAdapterPanel({
           className={`ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body ${accentFocusClass(ACCENT)}`}
         />
       </div>
+    </>
+  );
+
+  return (
+    <ToolSection id="settings-comfyui-ipadapter" title="IP-Adapter identity reference">
+      {castOwnsIdentity ? (
+        <>
+          <div className="mb-3 rounded-xl border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-4 py-3 text-sm text-[var(--tint-success-text)]">
+            Cast identity is active for{' '}
+            <strong className="font-medium">{activeCharacter?.name ?? 'Cast'}</strong>
+            {castFace ? (
+              <>
+                {' '}
+                (<code className="ui-inline-code">{castFace}</code>)
+              </>
+            ) : null}
+            . Prefer Film / Cast Look for face lock — this panel is a global override for Studio
+            Compose.
+            <div className="mt-2">
+              <Link
+                href="/cast"
+                className="text-sm font-medium underline underline-offset-2 hover:opacity-90"
+              >
+                Open Cast →
+              </Link>
+            </div>
+          </div>
+          <CollapsibleSection
+            title="Session IP-Adapter override"
+            summary="Upload / strength / model filename for Studio tools without Cast"
+            defaultOpen={false}
+            persistKey="settings-ipadapter-cast-override"
+          >
+            {form}
+          </CollapsibleSection>
+        </>
+      ) : (
+        form
+      )}
     </ToolSection>
   );
 }

@@ -16,6 +16,8 @@ type Props = Pick<
   | 'setFilterCurrentModel'
   | 'missingOnly'
   | 'setMissingOnly'
+  | 'searchQuery'
+  | 'setSearchQuery'
   | 'loading'
   | 'load'
   | 'rootConfigured'
@@ -33,6 +35,8 @@ export function ComfyModelAssetsFiltersBar({
   setFilterCurrentModel,
   missingOnly,
   setMissingOnly,
+  searchQuery,
+  setSearchQuery,
   loading,
   load,
   rootConfigured,
@@ -64,6 +68,13 @@ export function ComfyModelAssetsFiltersBar({
           />
           Missing / manual only
         </label>
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={event => setSearchQuery(event.target.value)}
+          placeholder="Search InstantX, ControlNet…"
+          className="min-w-[12rem] flex-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-muted)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] shadow-inner transition focus-visible:border-[var(--border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+        />
         <Button
           type="button"
           variant="secondary"

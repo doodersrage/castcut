@@ -22,6 +22,7 @@ import {
   roleplayStillTakes,
   storyBeatOmitsGarmentPackshot,
   storyIdentityLockStrengthForBeat,
+  storyIntimateSnofsStrengthOverrides,
   storyStillPromptSource,
   storyStillRetryQueueParamsBase,
   withRoleplayPoseGuidePrompt,
@@ -117,14 +118,20 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       syncSharedIdentityToCast(character);
       const merged = withCastFaceQueueParams(queueParamsBase, character, identityStrength);
       const castLoras = castLoraSessionIds(character);
+      const snofsOverrides = storyIntimateSnofsStrengthOverrides({
+        beat: options?.beat,
+        hasPoseGuide: options?.hasPoseGuide,
+        sessionActiveLoraIds: castLoras ?? shared.sessionActiveLoraIds,
+      });
       return {
         characterId: character.id,
         lookId: character.activeLookId,
         ...(merged ? { queueParamsBase: merged } : {}),
         ...(castLoras ? { sessionActiveLoraIds: castLoras } : {}),
+        ...(snofsOverrides ? { sessionLoraStrengthOverrides: snofsOverrides } : {}),
       };
     },
-    [shared.ipAdapterStrength, stampRoleplayCharacter]
+    [shared.ipAdapterStrength, shared.sessionActiveLoraIds, stampRoleplayCharacter]
   );
 
   const queueStillOptions = useCallback(
@@ -146,6 +153,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         poseGuideFilename: poseGuide?.filename,
         poseGuideUrl: poseGuide?.imageUrl,
         omitGarment: storyBeatOmitsGarmentPackshot(beat),
+        model: shared.model,
       }),
     [
       isolateSubject,
@@ -155,6 +163,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       shared.identityKind,
       shared.ipAdapterStrength,
       shared.lockedWardrobeId,
+      shared.model,
       toolSettings.customGarmentImageFilename,
       toolSettings.customGarmentImageUrl,
       toolSettings.referenceIsolated,
@@ -245,12 +254,26 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       let stillPatch: Partial<RoleplayStoryBeat> = { prompt };
       if (queueStill) {
         await loadWardrobeGarmentThumbManifest();
-        const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
-          ...(queueStillOptions(poseGuide, beat) ?? {}),
-          ...roleplayCharacterQueueFields({ bio: nextBio, story: currentStory }, undefined, {
+        const stillOpts = queueStillOptions(poseGuide, beat);
+        const charOpts = roleplayCharacterQueueFields(
+          { bio: nextBio, story: currentStory },
+          stillOpts?.queueParamsBase,
+          {
             beat,
             hasPoseGuide: Boolean(poseGuide),
-          }),
+          }
+        );
+        const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
+          ...(stillOpts ?? {}),
+          ...charOpts,
+          ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
+            ? {
+                queueParamsBase: {
+                  ...stillOpts?.queueParamsBase,
+                  ...charOpts.queueParamsBase,
+                },
+              }
+            : {}),
         });
         stillPatch = {
           prompt,
@@ -316,13 +339,26 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           Boolean(poseGuide),
           shared.renderRealismMode
         );
+        const stillOpts = queueStillOptions(poseGuide, latest);
+        const charOpts = roleplayCharacterQueueFields(
+          undefined,
+          {
+            ...stillOpts?.queueParamsBase,
+            ...(retry ? storyStillRetryQueueParamsBase() : {}),
+          },
+          { beat: latest, hasPoseGuide: Boolean(poseGuide) }
+        );
         promptId = await actions.sendComfyUi(queuePrompt, undefined, undefined, {
-          ...(queueStillOptions(poseGuide, latest) ?? {}),
-          ...roleplayCharacterQueueFields(
-            undefined,
-            retry ? storyStillRetryQueueParamsBase() : undefined,
-            { beat: latest, hasPoseGuide: Boolean(poseGuide) }
-          ),
+          ...(stillOpts ?? {}),
+          ...charOpts,
+          ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
+            ? {
+                queueParamsBase: {
+                  ...stillOpts?.queueParamsBase,
+                  ...charOpts.queueParamsBase,
+                },
+              }
+            : {}),
           ...(retry
             ? {
                 derivedKind: 'variation' as const,

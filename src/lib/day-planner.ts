@@ -252,9 +252,13 @@ export const DAY_PLATE_IDENTITY_LOCK_CAP = 0.4;
 export const DAY_KEEP_OUTFIT_POSE_UNLOCK_PREFIX =
   'Edit Image 1. Keep facial likeness AND the worn outfit, garments, colors, fabric, and clothing silhouette from Image 1. Do not preserve body pose, standing/sitting stance, arm or hand positions, camera angle, or background — aggressively refactor into a new pose and scene as described. Keep facial likeness only for who they are; keep the clothing; replace everything else.';
 
+/** Isolate-on-white plates must not survive as ecommerce cutouts. */
+export const DAY_ISOLATE_WHITE_REPLACE =
+  'Image 1 is the subject isolated on a blank white backdrop. Replace every white/studio void with the SETTING below — never leave a white background, ecommerce void, or cutout plate.';
+
 /**
- * Default activity poses when the slot beat is empty.
- * Edit models copy the plate stance unless the prompt names a different pose.
+ * Default activity poses when the slot beat is empty — and always as a body-stance
+ * baseline when a beat is present (vague mood beats alone leave Keep standing).
  */
 export const DEFAULT_DAY_SLOT_POSES: Record<DaySlotId, string> = {
   morning:
@@ -264,7 +268,7 @@ export const DEFAULT_DAY_SLOT_POSES: Record<DaySlotId, string> = {
   evening:
     'seated at a table or couch edge, torso angled slightly, one forearm resting, engaged mid-conversation',
   night:
-    'standing near a window or doorway at night, weight on one leg, quiet pause, hands at sides or in pockets',
+    'leaning on a windowsill or doorway at night, weight on one leg, one hand on the frame, quiet pause looking out',
 };
 
 /**
@@ -288,8 +292,8 @@ export const DAY_SLOT_SETTING_PRESETS: Record<DaySlotId, string[]> = {
     'open-air farmers market with produce stalls and striped awnings',
     'independent bookstore aisle with warm lamps and crowded shelves',
     'open-plan office corner desk with monitors and afternoon window light',
-    'bright neighborhood gym floor with mirrors and free weights',
-    'sunlit museum gallery with pale walls and soft skylight',
+    'bright neighborhood gym floor with rubber mats, free weights, and wall mirrors reflecting the room',
+    'sunlit museum lobby with a large colorful mural, ticket desk, and skylight shadows',
     'riverside boardwalk with bikes and midday glare on the water',
   ],
   evening: [
@@ -314,31 +318,34 @@ export const DAY_SLOT_SETTING_PRESETS: Record<DaySlotId, string[]> = {
   ],
 };
 
-/** Optional beat seeds when the slot beat field is empty. */
+/**
+ * Beat seeds for Queue day — must name a concrete stance/activity, not mood alone.
+ * Vague lines ("quiet start") let Keep's standing fashion pose win.
+ */
 export const DAY_SLOT_BEAT_PRESETS: Record<DaySlotId, string[]> = {
   morning: [
-    'waking up, soft light, quiet start',
-    'making coffee, still half-asleep',
-    'checking the phone by the window',
-    'stretching before heading out',
+    'reaching for a mug at the counter, weight on one hip, soft morning stretch',
+    'pouring coffee by the window, torso turned toward the light',
+    'checking the phone while leaning on the sill, one elbow propped',
+    'stretching arms overhead mid-yawn before heading out',
   ],
   afternoon: [
-    'coffee, people-watching, midday energy',
-    'errands between meetings, purposeful walk',
-    'pausing to people-watch from a bench',
-    'browsing casually, unhurried curiosity',
+    'mid-stride on the sidewalk, coffee in one hand, glancing sideways',
+    'walking with purpose between errands, natural arm swing',
+    'sitting on a park bench mid-people-watch, one leg crossed',
+    'browsing a shelf, reaching for a book, weight shifted forward',
   ],
   evening: [
-    'pause at the end of the work day',
-    'catching up with a friend, relaxed posture',
-    'unwinding with a drink, soft conversation',
-    'watching the light change, quiet moment',
+    'seated at a table edge, one forearm resting, soft end-of-day pause',
+    'leaning into conversation on a couch, torso angled toward a friend',
+    'holding a glass at a bar rail, elbows lightly propped',
+    'standing at a railing watching the light change, hands on the rail',
   ],
   night: [
-    'walking home, neon reflections',
-    'late quiet pause before sleep',
-    'heading somewhere after dark, alert calm',
-    'lingering under a streetlamp, end of day',
+    'walking home mid-stride under neon, coat shifting with the step',
+    'leaning in a doorway before sleep, one shoulder on the frame',
+    'pausing under a streetlamp, hands in pockets, looking down the block',
+    'sitting in a diner booth after dark, elbows on the table',
   ],
 };
 
@@ -448,6 +455,8 @@ export function buildDaySlotPrompt(input: {
   hasPlate?: boolean;
   /** keeper = Image 1 is Outfit Keep (outfit fidelity); cast = face plate only. */
   plateSource?: 'keeper' | 'cast';
+  /** Image 1 is isolate-on-white — must fill the void with SETTING. */
+  plateIsolated?: boolean;
   /**
    * Keep stays Image 1. Optional wardrobe packshot as Image 2 reinforces garments
    * (Fitting pattern) without swapping Cast onto Image 1.
@@ -471,6 +480,7 @@ export function buildDaySlotPrompt(input: {
   const timeOfDay = slot.label.toLowerCase();
   const defaultPose = DEFAULT_DAY_SLOT_POSES[slot.id];
   const keepAsImage1 = input.plateSource === 'keeper';
+  const plateIsolated = input.plateIsolated === true;
   const garmentReinforce = input.garmentReinforce === true;
   const poseGuide = input.poseGuide === true;
   const realismMode = normalizeRenderRealismMode(input.realismMode ?? DEFAULT_RENDER_REALISM_MODE);
@@ -479,12 +489,24 @@ export function buildDaySlotPrompt(input: {
     poseGuide && (realismMode === 'realistic' || realismMode === 'hyper-realistic');
 
   if (input.hasPlate) {
+    const settingLine = setting
+      ? `SETTING (mandatory — replace Image 1 background entirely${plateIsolated ? ', including every white/studio void' : ''}): ${setting} — put them in this real location for ${timeOfDay}, with matching props, depth, and lighting — never a blank white backdrop`
+      : `SETTING (mandatory — replace Image 1 background entirely${plateIsolated ? ', including every white/studio void' : ''}): a coherent real-world location that fits ${timeOfDay}, with matching props and lighting — never a blank white backdrop`;
+    // Always name a concrete body stance. Vague mood beats alone freeze Keep's standing plate.
     const poseLine = hints
-      ? `mandatory new pose from the beat: ${hints}`
-      : `mandatory new pose: ${defaultPose}`;
+      ? `mandatory new body pose: ${defaultPose}. Also follow the beat action: ${hints}`
+      : `mandatory new body pose: ${defaultPose}`;
+    const isolateLine = plateIsolated ? DAY_ISOLATE_WHITE_REPLACE : null;
+    const packshotWhiteLine =
+      plateIsolated && garmentReinforce
+        ? 'Image 2 white is packshot only — do not use Image 2 or Image 3 white as the scene background.'
+        : plateIsolated && poseGuide
+          ? 'Image 3 white is pose-guide only — fill Image 1 white with the SETTING, not a studio void.'
+          : null;
     if (keepAsImage1) {
       return [
         DAY_KEEP_OUTFIT_POSE_UNLOCK_PREFIX,
+        isolateLine,
         `Edit instruction for a Day planner still — ${timeOfDay}:`,
         'Image 1 is the Outfit Keep try-on (face + worn kit).',
         garmentReinforce
@@ -492,6 +514,10 @@ export function buildDaySlotPrompt(input: {
             ? `Image 2 is a clothing-only packshot — reinforce garment cut, colors, and fabric from Image 1 using Image 2 (${garmentDescription}); ignore Image 2 layout.`
             : 'Image 2 is a wardrobe packshot — use it only to reinforce garment cut, colors, and fabric from Image 1; ignore Image 2 layout.'
           : null,
+        packshotWhiteLine,
+        // Setting + body pose first so Image 3 instructions don't bury the scene.
+        settingLine,
+        poseLine,
         poseGuideLine,
         'keep facial likeness only for identity; keep the clothing from Image 1; aggressively refactor pose, camera, lighting, and environment',
         descriptor
@@ -501,16 +527,12 @@ export function buildDaySlotPrompt(input: {
         outfit
           ? `outfit continuity: stay in ${outfit} (same kit as Image 1) in the new pose`
           : 'outfit continuity: same garments and colors as Image 1 in the new pose',
-        poseLine,
-        setting
-          ? `setting: ${setting} — place them there for ${timeOfDay}`
-          : `setting: a coherent real-world location that fits ${timeOfDay}`,
         hints ? `beat: ${hints}` : null,
         notes ? `notes: ${notes}` : null,
-        'replace everything else: pose, stance, limbs, hands, framing, lighting, and background',
+        'replace everything else: pose, stance, limbs, hands, framing, lighting, and background — not a standing fashion plate in a void',
         photorealOutput
-          ? `output: a new photorealistic live-action ${timeOfDay} photograph — same face, same kept outfit, different pose — not a cleaned-up copy of Image 1 and not a stick-figure or diagram`
-          : `output: a new cinematic ${timeOfDay} scene — same face, same kept outfit, different pose — not a cleaned-up copy of Image 1`,
+          ? `output: a new photorealistic live-action ${timeOfDay} photograph — same face, same kept outfit, different pose and location — not a cleaned-up copy of Image 1 and not a mannequin, stick-figure, diagram, or white-backdrop cutout`
+          : `output: a new cinematic ${timeOfDay} scene — same face, same kept outfit, different pose and location — not a cleaned-up copy of Image 1 or a white studio void`,
         'single full or three-quarter framing, natural lighting for the time of day',
       ]
         .filter(Boolean)
@@ -519,6 +541,7 @@ export function buildDaySlotPrompt(input: {
 
     return [
       QWEN_POSE_UNLOCK_MODIFY_PREFIX,
+      isolateLine,
       `Edit instruction for a Day planner still — ${timeOfDay}:`,
       'Image 1 is the Cast identity plate.',
       garmentReinforce
@@ -526,6 +549,9 @@ export function buildDaySlotPrompt(input: {
           ? `Image 2 is a clothing-only packshot — apply that outfit to the subject (${garmentDescription}).`
           : 'Image 2 is a clothing-only packshot — apply that outfit to the subject.'
         : null,
+      packshotWhiteLine,
+      settingLine,
+      poseLine,
       poseGuideLine,
       'keep facial likeness only from Image 1; aggressively refactor pose, camera, lighting, and environment',
       descriptor
@@ -537,16 +563,12 @@ export function buildDaySlotPrompt(input: {
         : outfit
           ? `replace clothing with this slot's outfit: ${outfit}`
           : "replace clothing with this slot's catalog wardrobe kit",
-      poseLine,
-      setting
-        ? `setting: ${setting} — place them there for ${timeOfDay}`
-        : `setting: a coherent real-world location that fits ${timeOfDay}`,
       hints ? `beat: ${hints}` : null,
       notes ? `notes: ${notes}` : null,
-      'replace everything else: pose, stance, limbs, hands, framing, lighting, and background',
+      'replace everything else: pose, stance, limbs, hands, framing, lighting, and background — not a standing fashion plate in a void',
       photorealOutput
-        ? `output: a new photorealistic live-action ${timeOfDay} photograph — same face from Image 1, new pose and scene — never stick figures, wireframes, or diagram art`
-        : `output: a new cinematic ${timeOfDay} scene — same face, different pose — not a cleaned-up copy of Image 1`,
+        ? `output: a new photorealistic live-action ${timeOfDay} photograph — same face from Image 1, new pose and scene — never mannequins, stick figures, wireframes, diagram art, or a white-backdrop cutout`
+        : `output: a new cinematic ${timeOfDay} scene — same face, different pose and location — not a cleaned-up copy of Image 1 or a white studio void`,
       'single full or three-quarter framing, natural lighting for the time of day',
     ]
       .filter(Boolean)

@@ -10,23 +10,23 @@ export const ESSENTIAL_TASKS: Array<{
 }> = [
   {
     title: 'Inference engine',
-    description: 'ComfyUI, Diffusers, Fal, Replicate, ChatGPT, Gemini, or Grok.',
+    description: 'Usually ComfyUI for Play; cloud engines only if you need them.',
     section: 'inference-engine',
   },
   {
     title: 'Connection',
-    description: 'ComfyUI URL, tokens, and save settings.',
+    description: 'ComfyUI URL, Heal & ready, then Soft Refresh.',
     section: 'connection',
   },
   {
-    title: 'Workflow map',
-    description: 'Assign models to workflows.',
-    section: 'workflow-map',
+    title: 'Model assets',
+    description: 'Download curated checkpoints and helpers (maps sync after install).',
+    section: 'model-assets',
   },
   {
-    title: 'Model assets',
-    description: 'Download curated checkpoints and helpers.',
-    section: 'model-assets',
+    title: 'Queue parameters',
+    description: 'Default seed, size, CFG, and steps.',
+    section: 'queue-params',
   },
   {
     title: 'LLM',

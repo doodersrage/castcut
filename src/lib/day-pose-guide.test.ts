@@ -75,10 +75,38 @@ describe('day-pose-guide', () => {
     assert.equal(parseIntimateLayout('Cowgirl, riding him hard.'), 'straddle');
     assert.equal(parseIntimateLayout('Reverse cowgirl facing away.'), 'reverse_straddle');
     assert.equal(parseIntimateLayout('Bent over the desk from behind.'), 'bent');
+    assert.equal(
+      parseIntimateLayout(
+        "She's curled over a stack of ledgers in the dim archive room as he fucks her from behind."
+      ),
+      'bent'
+    );
     assert.equal(parseIntimateLayout('Prone bone, face-down sex.'), 'prone');
     assert.equal(parseIntimateLayout('Spooning in the dark.'), 'spoon');
     assert.equal(parseIntimateLayout('Scissoring on the floor.'), 'scissors');
     assert.equal(parseIntimateLayout('Fucking against the wall.'), 'wall');
+    assert.equal(
+      parseIntimateLayout(
+        'She leans against the mirrored elevator wall as he presses her back, tongue on her collarbone, hand cups her throat.'
+      ),
+      'wall'
+    );
+    assert.equal(parseIntimateLayout('Rear wall press in a glass elevator with city neon.'), 'wall');
+    assert.equal(
+      parseIntimateLayout(
+        "She hangs suspended in the ballroom's shadowed alcove as he lowers her into a velvet chaise, thumb on her clit."
+      ),
+      'lift'
+    );
+    const chaiseFigs = synthesizeIntimateStickFigures(
+      parsePoseGuideIntent(
+        "She hangs suspended in the ballroom's shadowed alcove as he lowers her into a velvet chaise, thumb on her clit.",
+        0
+      )
+    );
+    assert.equal(chaiseFigs.length, 2);
+    // Dangling legs (ankles below pelvis) — not wrapped cowgirl knees above the hips.
+    assert.ok(chaiseFigs[0]!.lAnkle.y > chaiseFigs[0]!.pelvis.y + 0.2);
     assert.equal(parseIntimateLayout('Standing sex in the shower.'), 'standing');
     assert.equal(parseIntimateLayout('Lifted up while fucking.'), 'lift');
     assert.equal(parseIntimateLayout('On their knees for oral.'), 'oral');
@@ -87,6 +115,22 @@ describe('day-pose-guide', () => {
         "She's kneeling on a lacquered piano bench, barefoot and back bent as he kneels beside her—his tongue laps at her inner thigh while his fingers curl around her clit."
       ),
       'oral'
+    );
+    const pianoOral = parsePoseGuideIntent(
+      "She's kneeling on a lacquered piano bench as he kneels beside her, tongue on her thigh, fingers on her clit.",
+      0
+    );
+    assert.equal(pianoOral.intimate, 'oral');
+    const pianoFigures = synthesizeIntimateStickFigures(pianoOral);
+    assert.equal(pianoFigures.length, 2);
+    // Receiver (first) sits higher on the bench; giver's head is lower toward the pelvis.
+    assert.ok(
+      pianoFigures[0]!.pelvis.y < pianoFigures[1]!.pelvis.y,
+      'piano-bench receiver pelvis stays above giver'
+    );
+    assert.ok(
+      pianoFigures[1]!.head.y > pianoFigures[0]!.pelvis.y - 0.12,
+      'giver head stays near receiver pelvis for oral'
     );
     assert.equal(
       countPoseGuidePeople(
@@ -146,7 +190,24 @@ describe('day-pose-guide', () => {
 
     const wall = parsePoseGuideIntent('Pinned against the wall mid-fuck.', 0);
     assert.equal(wall.intimate, 'wall');
-    assert.equal(synthesizeIntimateStickFigures(wall).length, 2);
+    const wallFigs = synthesizeIntimateStickFigures(wall);
+    assert.equal(wallFigs.length, 2);
+    // Full standing height — ankles near the floor, not a kneel.
+    assert.ok(wallFigs[0]!.lAnkle.y > 0.85 && wallFigs[1]!.lAnkle.y > 0.85);
+    assert.ok(wallFigs[0]!.head.y < 0.2);
+    // Partner head sits lower toward collarbone, not face-aligned for a kiss.
+    assert.ok(wallFigs[1]!.head.y > wallFigs[0]!.head.y + 0.05);
+    assert.ok(wallFigs[1]!.head.y < 0.3);
+    // Lead hands on the glass ahead — not raised beside her head (kiss/hug bait).
+    assert.ok(wallFigs[0]!.lWrist.y > wallFigs[0]!.head.y + 0.15);
+    assert.ok(wallFigs[0]!.rWrist.y > wallFigs[0]!.head.y + 0.15);
+    // Partner stays to the right / behind the lead (not face-to-face collapse).
+    assert.ok(wallFigs[1]!.pelvis.x - wallFigs[0]!.pelvis.x > 0.1);
+    // Lead stays against the left wall (not center-cab / handrail composition).
+    assert.ok(wallFigs[0]!.pelvis.x < 0.35);
+    // Partner contact wrists: one near lead neck (throat), one below pelvis (front crotch).
+    assert.ok(Math.abs(wallFigs[1]!.rWrist.y - wallFigs[0]!.neck.y) < 0.08);
+    assert.ok(wallFigs[1]!.lWrist.y > wallFigs[0]!.pelvis.y + 0.05);
 
     const solo = parsePoseGuideIntent('Alone masturbating, erotic climax.', 0);
     assert.equal(solo.intimate, 'solo');
@@ -240,6 +301,18 @@ describe('day-pose-guide', () => {
       await import('./day-pose-guide');
     assert.equal(parseSocialLayout('They hug in the rain.'), 'hug');
     assert.equal(parseSocialLayout('A slow dance under neon.'), 'dance');
+    assert.equal(parseSocialLayout('They waltz across the ballroom.'), 'dance');
+    // Intimate chaise/alcove copy mentioning "ballroom" must not become a dance wireframe.
+    assert.equal(
+      parseSocialLayout(
+        "She hangs suspended in the ballroom's shadowed alcove as he lowers her into a velvet chaise."
+      ),
+      null
+    );
+    assert.equal(parsePoseGuideIntent(
+      "She hangs suspended in the ballroom's shadowed alcove as he lowers her into a velvet chaise, thumb on her clit.",
+      0
+    ).intimate, 'lift');
     assert.equal(parseSocialLayout('Sparring in the alley.'), 'fight');
     assert.equal(parseSocialLayout('Climbing the fire escape.'), 'climb');
     assert.equal(parseSocialLayout('Looking at a phone on the stoop.'), 'phone');
@@ -317,6 +390,9 @@ describe('day-pose-guide', () => {
       stroke: () => {
         ops.push('stroke');
       },
+      fill: () => {
+        ops.push('fill');
+      },
     } as unknown as CanvasRenderingContext2D;
 
     for (const slotId of ['morning', 'afternoon', 'evening', 'night'] as const) {
@@ -324,6 +400,7 @@ describe('day-pose-guide', () => {
       drawDayPoseGuide(ctx, slotId);
       assert.ok(ops.some(op => op.startsWith('fillRect')));
       assert.ok(ops.includes('arc'));
+      assert.ok(ops.includes('fill'), 'mannequin head/hand blobs use fill');
       assert.ok(ops.filter(op => op === 'stroke').length > 5);
     }
   });

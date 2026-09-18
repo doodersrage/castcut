@@ -16,7 +16,9 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
   Outfit, Day/Story desk + mobile, Video continue-reel, Prove-it), Heal seeds identity
   packs, Film chrome Identity ready, cinematic Cut options on Day/Story. Outfit/Day/Story
   share BYO clothing packshots (durable browser KV) and Image 3 pose stick-figures with a
-  photoreal lock (anime when Settings says so). Diffusers video stays parked.
+  photoreal lock (anime when Settings says so). Day/Story pose uses Image 3 Edit only for
+  Qwen — InstantX is not fed filled mannequins (that leaked cyan/ghost overlays). Diffusers
+  video stays parked.
 
 ## Generation engines
 

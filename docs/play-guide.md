@@ -55,7 +55,7 @@ Deep links: `/fitting?character=<id>&wardrobe=<kit>`.
 Four slots (Morning → Night) with wardrobe, setting, and beat per slot.
 
 - **Queue day** (Play queues draft stills in parallel for a faster first film).
-- **Outfit kit + BYO** — same clothing strip as Outfit (Image 2); optional **pose stick-figure** on Image 3 so Edit can unlock stance without ControlNet.
+- **Outfit kit + BYO** — same clothing strip as Outfit (Image 2); optional **pose stick-figure** on Image 3 so Edit can unlock stance (ControlNet pose auto-attaches InstantX from Comfy inventory when present, or when Settings maps a CN weight).
 - **Animate** stays collapsed until you want I2V clips (Final quality).
 - **Cut film** — server ffmpeg when available, browser MediaRecorder fallback if the server encode fails; optional crossfade + audio bed.
 - After cut: celebrate with **Watch / Save on Cast** (manual — no auto-advance). Story is optional.

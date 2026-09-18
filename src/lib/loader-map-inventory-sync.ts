@@ -6,9 +6,26 @@ import {
   type ModelVaeMap,
 } from './model-checkpoint-map';
 import type { ModelControlNetMap } from './model-controlnet-map';
+import { pickQwenPoseControlNetFilename } from './model-controlnet-map';
 import { qwenUnetFamiliesCompatible } from './model-loader-precision';
 import { SUGGESTED_MODEL_UPSCALE_MAP, type ModelUpscaleMap } from './model-upscale-map';
 import { isVideoCheckpointMapKey, pickVideoCheckpointFromInventory } from './video-checkpoint-pick';
+
+function buildSuggestedControlNetMap(controlNets: string[]): ModelControlNetMap {
+  const qwenCn = pickQwenPoseControlNetFilename(controlNets);
+  const suggested: ModelControlNetMap = {};
+  if (qwenCn) {
+    suggested.default = qwenCn;
+    for (const key of Object.keys(SUGGESTED_MODEL_CHECKPOINT_MAP)) {
+      if (/^qwen-/i.test(key)) {
+        suggested[key] = qwenCn;
+      }
+    }
+  } else if (controlNets[0]) {
+    suggested.default = controlNets[0];
+  }
+  return suggested;
+}
 
 export type LoaderMapInventorySyncInput = {
   models: ComfyUiModelLists;
@@ -257,9 +274,7 @@ export function syncLoaderMapsFromInventory(
     clearWhenEmpty: healMissing,
   });
 
-  const controlNetSuggested: ModelControlNetMap = {
-    default: input.models.controlNets[0],
-  };
+  const controlNetSuggested = buildSuggestedControlNetMap(input.models.controlNets);
   const controlNet = fillAndHealMapKeys({
     current: input.controlNetMap,
     suggested: controlNetSuggested,

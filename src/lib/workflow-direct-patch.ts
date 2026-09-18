@@ -647,6 +647,8 @@ export function patchControlNetInWorkflow(
     controlNetMode?: string;
     controlNetModes?: string[];
     controlNetStrengths?: Array<number | string>;
+    /** Skip preprocessors (OpenPose/Canny/…) — feed control image raw. */
+    skipPreprocessor?: boolean;
   }
 ): { workflow: Record<string, unknown>; patched: WorkflowDirectPatchCounts } {
   const stackEntries = (() => {
@@ -671,6 +673,7 @@ export function patchControlNetInWorkflow(
         controlNetModelFilename: index === 0 ? input.controlNetModelFilename : undefined,
         controlNetMode: modes[index] || input.controlNetMode,
         strength: parseStrength(strengths[index]),
+        skipPreprocessor: input.skipPreprocessor,
       }));
     }
     const primary = input.controlImageFilename?.trim();
@@ -681,6 +684,7 @@ export function patchControlNetInWorkflow(
             controlNetModelFilename: input.controlNetModelFilename,
             controlNetMode: modes[0] || input.controlNetMode,
             strength: parseStrength(strengths[0]),
+            skipPreprocessor: input.skipPreprocessor,
           },
         ]
       : [];
@@ -696,6 +700,8 @@ export function patchControlNetInWorkflow(
             controlImageFilename: stackEntries[0]?.controlImageFilename,
             availableNodeTypes: input.availableNodeTypes,
             controlNetMode: input.controlNetMode,
+            skipPreprocessor: stackEntries[0]?.skipPreprocessor ?? input.skipPreprocessor,
+            strength: stackEntries[0]?.strength,
           });
           return {
             workflow: single.workflow,
@@ -1799,6 +1805,9 @@ export function patchWorkflowDirectParams(
     controlNetMode: input.params?.controlNetMode,
     controlNetModes: input.params?.controlNetModes,
     controlNetStrengths: input.params?.controlNetStrengths,
+    skipPreprocessor:
+      input.params?.controlNetSkipPreprocessor === true ||
+      String(input.params?.controlNetSkipPreprocessor ?? '').trim() === 'true',
   });
   const ipAdapterPatch = patchIpAdapterInWorkflow(controlPatch.workflow, {
     ipAdapterImageFilename: willUseKleinEnhancerIdentity ? undefined : input.ipAdapterImageFilename,

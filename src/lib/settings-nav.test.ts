@@ -27,6 +27,9 @@ describe('settings-nav', () => {
     assert.equal(view.section, 'connection');
     assert.equal(view.showAll, false);
     assert.equal(isSimpleSettingsTab('comfyui'), true);
+    assert.equal(isSimpleSettingsTab('llm'), true);
+    assert.equal(isSimpleSettingsTab('data'), true);
+    assert.equal(isSimpleSettingsTab('automation'), false);
   });
 
   it('expands essentials for non-simple tabs', () => {

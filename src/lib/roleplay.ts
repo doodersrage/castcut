@@ -2,16 +2,26 @@ import { ROLEPLAY_ARCHETYPES, type RoleplayArchetype } from './roleplay-archetyp
 import { lastCompletedRoleplayStillUrl } from './roleplay-gallery-takes';
 import {
   POSE_GUIDE_ACTION_LOCK,
+  POSE_GUIDE_ARCHIVE_BENT_LOCK,
+  POSE_GUIDE_CHAIR_BENT_LOCK,
+  POSE_GUIDE_DOGGY_LOCK,
   POSE_GUIDE_EDIT_PROMPT_LINE,
+  POSE_GUIDE_PIANO_ORAL_LOCK,
+  POSE_GUIDE_WALL_CONTACT_LOCK,
+  POSE_GUIDE_WALL_STANDING_LOCK,
   poseGuidePromptBlock,
   withPoseGuideEditPrompt,
 } from '@/lib/pose-guide-prompt';
 import {
   isLegacyAdultMetaBlurb,
   intimateTextDefaultsToNude,
+  intimateTextImpliesAct,
+  intimateTextImpliesSurfaceBent,
   reinforceIntimateStillPrompt,
 } from '@/lib/intimate-prompt-clarify';
 import { parseIntimateLayout, type IntimateLayout } from '@/lib/day-pose-guide';
+import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
+import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import {
   DEFAULT_RENDER_REALISM_MODE,
   normalizeRenderRealismMode,
@@ -401,7 +411,7 @@ export function formatRoleplayPoseGuideCue(input: {
     return `${poseGuidePromptBlock(mode)} Describe the beat's action (and any second person) so the still can match that stance.`;
   }
   if (input.phase === 'scenes') {
-    return 'Vary pose and stance between options — stills get a stick-figure pose guide on Image 3 (two figures when the beat is a duo).';
+    return 'Vary pose and stance between options — stills get a mannequin pose guide on Image 3 (two figures when the beat is a duo).';
   }
   return '';
 }
@@ -417,14 +427,58 @@ export function withRoleplayPoseGuidePrompt(
   if (!enabled || !withPose) {
     return withPose;
   }
+  const layout = parseIntimateLayout(reinforced);
   // Lead with action lock so instruction-edit models don't preserve Image 1 standing pose.
-  if (
-    parseIntimateLayout(reinforced) &&
-    !withPose.startsWith(POSE_GUIDE_ACTION_LOCK.slice(0, 24))
-  ) {
-    return `${POSE_GUIDE_ACTION_LOCK}\n${withPose}`;
+  let next = withPose;
+  if (layout && !withPose.startsWith(POSE_GUIDE_ACTION_LOCK.slice(0, 24))) {
+    next = `${POSE_GUIDE_ACTION_LOCK}\n${withPose}`;
   }
-  return withPose;
+  if (
+    layout === 'wall' &&
+    !/STANDING upright with feet flat|STANDING upright sex against the wall|Wall duo: exactly two|Rear wall press/i.test(
+      next
+    )
+  ) {
+    next = `${POSE_GUIDE_WALL_STANDING_LOCK}\n${next}`;
+  }
+  if (
+    layout === 'wall' &&
+    /\b(throat|collarbone|vagina|core|nape)\b/i.test(reinforced) &&
+    !/Same facing, partner strictly behind|Partner behind only:|Both standing upright, feet on the floor|Partner stands behind the lead|Rear wall press|hand at her throat/i.test(
+      next
+    )
+  ) {
+    next = `${POSE_GUIDE_WALL_CONTACT_LOCK}\n${next}`;
+  }
+  if (
+    (layout === 'oral' || /^Piano oral:/i.test(reinforced)) &&
+    /\bpiano\b/i.test(reinforced) &&
+    !/Piano oral:|kneels BESIDE|kneeling ON the piano bench/i.test(next)
+  ) {
+    next = `${POSE_GUIDE_PIANO_ORAL_LOCK}\n${next}`;
+  }
+  if (
+    layout === 'bent' &&
+    /Chair bent:/i.test(reinforced) &&
+    !/Chair bent: two adults standing|folded over chair/i.test(next)
+  ) {
+    next = `${POSE_GUIDE_CHAIR_BENT_LOCK}\n${next}`;
+  } else if (
+    layout === 'bent' &&
+    intimateTextImpliesSurfaceBent(reinforced) &&
+    (/\bthroat\b/i.test(reinforced) || /\bledger|archive\b/i.test(reinforced)) &&
+    !/Archive bent:/i.test(next)
+  ) {
+    next = `${POSE_GUIDE_ARCHIVE_BENT_LOCK}\n${next}`;
+  } else if (
+    layout === 'bent' &&
+    !/Behind duo:|Archive bent:|Doggy duo:|gripping her hips only|Chair bent:|^Behind:|^Doggy:/im.test(
+      next
+    )
+  ) {
+    next = `${POSE_GUIDE_DOGGY_LOCK}\n${next}`;
+  }
+  return next;
 }
 
 /** Clarify euphemisms then optionally attach Image 3 pose cues (Story stills). */
@@ -464,6 +518,69 @@ export function storyBeatOmitsGarmentPackshot(
 export const STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP = 0.45;
 
 /**
+ * Cap SNOFS / NSFW sex-LoRA strength on intimate + Image 3 stills so pose-guide
+ * layouts can vary. Bare high SNOFS + "sex" collapses every beat to one pose.
+ */
+export const STORY_INTIMATE_SNOFS_STRENGTH_CAP = 0.45;
+
+const SNOFS_LORA_ID_RE = /snofs|sex.?nudes|other.?fun.?stuff/i;
+
+/** True when a LoRA library id/label/filename looks like Qwen_SNOFS (or cousins). */
+export function loraEntryLooksLikeSnofs(entry: {
+  id?: string;
+  label?: string;
+  tokenValue?: string;
+  filename?: string;
+}): boolean {
+  return SNOFS_LORA_ID_RE.test(
+    [entry.id, entry.label, entry.tokenValue, entry.filename].filter(Boolean).join(' ')
+  );
+}
+
+/**
+ * Dip SNOFS-like LoRAs on intimate Image 3 stills so pose-guide layouts can vary
+ * instead of every beat collapsing to the LoRA's default sex pose.
+ */
+export function storyIntimateSnofsStrengthOverrides(options: {
+  beat?: { title?: string; blurb?: string; prompt?: string } | null;
+  hasPoseGuide?: boolean;
+  sessionActiveLoraIds?: string[] | null;
+  library?: Array<{ id: string; label?: string; tokenValue?: string }> | null;
+}): SessionLoraStrengthOverrides | undefined {
+  if (!options.hasPoseGuide || !options.beat) {
+    return undefined;
+  }
+  const haystack = [options.beat.title, options.beat.blurb, options.beat.prompt]
+    .filter(Boolean)
+    .join(' · ');
+  if (!parseIntimateLayout(haystack) && !intimateTextImpliesAct(haystack)) {
+    return undefined;
+  }
+  const ids = (options.sessionActiveLoraIds ?? []).map(id => id.trim()).filter(Boolean);
+  if (!ids.length) {
+    return undefined;
+  }
+  const library: Array<{ id: string; label?: string; tokenValue?: string }> =
+    options.library ??
+    (loadComfyUiSettings().loraLibrary ?? []).map(entry => ({
+      id: entry.id,
+      label: entry.label,
+      tokenValue: entry.tokenValue,
+    }));
+  const overrides: SessionLoraStrengthOverrides = {};
+  for (const id of ids) {
+    const entry = library.find(item => item.id === id);
+    if ((entry && loraEntryLooksLikeSnofs(entry)) || SNOFS_LORA_ID_RE.test(id)) {
+      overrides[id] = {
+        strengthModel: STORY_INTIMATE_SNOFS_STRENGTH_CAP,
+        strengthClip: STORY_INTIMATE_SNOFS_STRENGTH_CAP,
+      };
+    }
+  }
+  return Object.keys(overrides).length ? overrides : undefined;
+}
+
+/**
  * Soften face-lock strength on intimate + Image 3 stills so stance can change
  * without losing Cast likeness. Non-intimate / no-pose paths keep the base strength.
  */
@@ -482,7 +599,7 @@ export function storyIdentityLockStrengthForBeat(
   const haystack = [options.beat.title, options.beat.blurb, options.beat.prompt]
     .filter(Boolean)
     .join(' · ');
-  if (!parseIntimateLayout(haystack)) {
+  if (!parseIntimateLayout(haystack) && !intimateTextImpliesAct(haystack)) {
     return strength;
   }
   const effective = strength ?? 0.75;
@@ -515,9 +632,21 @@ export function storyStillPromptSource(input: {
   const llm = input.llmPrompt.trim();
   const blurb = input.blurb?.trim() || '';
   const haystack = [input.title, blurb, llm].filter(Boolean).join(' · ');
-  const intimate = Boolean(parseIntimateLayout(haystack));
+  const intimate = Boolean(parseIntimateLayout(haystack)) || intimateTextImpliesAct(haystack);
   if (intimate && blurb) {
     const action = reinforceIntimateStillPrompt(blurb);
+    // Compact wall/chaise/chair/doggy recipes already encode the full beat — appending the LLM
+    // standing tableau reintroduces literary bait and prompt bloat.
+    if (
+      (/Rear wall press/i.test(action) ||
+        /Chaise lower:/i.test(action) ||
+        /^Chair bent:/i.test(action) ||
+        /^Behind:/i.test(action) ||
+        /^Doggy:/i.test(action)) &&
+      /Exactly two adults/i.test(action)
+    ) {
+      return action;
+    }
     // Avoid duplicating if LLM already echoed the blurb.
     if (llm.toLowerCase().includes(blurb.slice(0, 40).toLowerCase())) {
       return reinforceIntimateStillPrompt(`${action}\n${llm}`);
@@ -1371,7 +1500,7 @@ const ROLEPLAY_ADULT_CONTINUATION_FORKS: RoleplayContinuationFork[] = [
   {
     titlePrefix: 'From behind',
     blurb: (name, _last) =>
-      `${name} on hands and knees with a distinct adult partner behind her in doggy-style sex — gripping hips, nude, mid-thrust, camera behind them.`,
+      `${name} on hands and knees with a distinct adult partner behind her in rear-entry sex — gripping hips, nude, mid-thrust, camera behind them.`,
   },
   {
     titlePrefix: 'Straddle',

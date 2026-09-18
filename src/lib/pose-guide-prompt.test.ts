@@ -18,10 +18,10 @@ describe('pose-guide-prompt', () => {
 
   it('withPoseGuideEditPrompt is idempotent and adds realism lock', () => {
     const once = withPoseGuideEditPrompt('a pier scene', true, 'realistic');
-    assert.match(once, /Image 3 is a crude stick-figure/i);
+    assert.match(once, /flat SCHEMATIC|never draw (?:stick figures|mannequins|black morphsuits)/i);
     assert.match(once, /photorealistic live-action photograph/i);
-    assert.match(once, /Black thick stick = Image 1 Cast/i);
-    assert.match(once, /Two separate bodies|no merge/i);
+    assert.match(once, /Magenta schematic = Image 1 Cast/i);
+    assert.match(once, /black morphsuit|solid opaque humans|no third black|Magenta schematic/i);
     const twice = withPoseGuideEditPrompt(once, true, 'realistic');
     assert.equal(twice, once);
   });
@@ -30,14 +30,16 @@ describe('pose-guide-prompt', () => {
     const legacy =
       'Edit the plate.\nImage 3 is a crude stick-figure pose wireframe on white — match body pose from Image 3 only; ignore Image 3 style, face, and clothing.';
     const next = ensurePoseGuideStyleLock(legacy, 'realistic');
-    assert.match(next, /never draw stick figures/i);
+    assert.match(next, /flat SCHEMATIC|never draw (?:stick figures|mannequins|black morphsuits)/i);
     assert.match(next, /photorealistic live-action photograph/i);
-    assert.match(next, /Black thick stick = Image 1 Cast/i);
+    assert.match(next, /Magenta schematic = Image 1 Cast/i);
     assert.equal(promptHasPoseGuideCue(next), true);
   });
 
-  it('mergePoseGuideNegatives blocks stick figures and fused bodies', () => {
+  it('mergePoseGuideNegatives blocks mannequins, stick figures and fused bodies', () => {
     const merged = mergePoseGuideNegatives('blurry', true);
+    assert.match(merged ?? '', /mannequin/i);
+    assert.match(merged ?? '', /ball joints|sausage limbs/i);
     assert.match(merged ?? '', /stick figure/i);
     assert.match(merged ?? '', /wireframe/i);
     assert.match(merged ?? '', /merged bodies/i);
@@ -47,13 +49,13 @@ describe('pose-guide-prompt', () => {
 
   it('applyQueuePromptSteering hardens pose-guide prompts for Qwen Lightning', () => {
     const positive =
-      'Keep the face.\nImage 3 is a crude stick-figure pose wireframe on white — use it ONLY for body pose.';
+      'Keep the face.\nImage 3 is a flat mannequin pose guide on white (simple filled limbs, no face or clothes) — use it ONLY for body pose.';
     const result = applyQueuePromptSteering({
       positive,
       model: 'qwen-image-edit-2511-lightning-8',
       realismMode: 'realistic',
     });
     assert.match(result.positive, /photorealistic live-action photograph/i);
-    assert.match(result.negative ?? '', /stick figure/i);
+    assert.match(result.negative ?? '', /mannequin|stick figure/i);
   });
 });

@@ -50,6 +50,7 @@ import {
   withRoleplayPoseGuidePrompt,
   storyBeatOmitsGarmentPackshot,
   storyIdentityLockStrengthForBeat,
+  storyIntimateSnofsStrengthOverrides,
   storyStillPromptSource,
   storyStillRetryQueueParamsBase,
   rollRoleplaySetting,
@@ -302,7 +303,7 @@ describe('roleplay parsers', () => {
         hasReferenceImage: true,
         phase: 'prompt',
       }),
-      /Image 3 is a crude stick-figure/i
+      /Image 3 is a flat SCHEMATIC|Image 3 is a flat mannequin|Image 3 is a crude stick-figure/i
     );
     assert.match(
       formatRoleplayPoseGuideCue({
@@ -345,14 +346,62 @@ describe('roleplay parsers', () => {
       blurb: oralBlurb,
       title: 'Crystal lamp',
     });
-    assert.match(sourced, /kneeling|oral|clit/i);
-    assert.match(sourced, /standing fashion portrait|Change pose|distinct/i);
+    assert.match(sourced, /Piano oral:|kneeling ON the piano bench|kneels BESIDE|clit/i);
+    assert.doesNotMatch(sourced, /A woman stands in lingerie by a piano/i);
+    const elevatorBlurb =
+      'She leans against the mirrored elevator wall as he presses her back, tongue sliding slow across her collarbone while one hand cups her throat and the other sinks into her wet core—glass doors reflect their sweat-drenched bodies as the city’s neon bleeds through.';
+    const elevatorSourced = storyStillPromptSource({
+      llmPrompt: 'A soft romantic elevator portrait with city lights.',
+      blurb: elevatorBlurb,
+      title: 'Elevator neon',
+    });
+    assert.match(elevatorSourced, /Rear wall press|Exactly TWO adults/i);
+    assert.doesNotMatch(elevatorSourced, /soft romantic elevator portrait|tongue sliding|sweat-drenched/i);
+    assert.ok(elevatorSourced.length < 1100, `elevator still source too long (${elevatorSourced.length})`);
+    const doggyBlurb =
+      'Amber Office bent over after velvet lullaby, taken from behind — doggy or bent-over sex, explicit and readable.';
+    const doggySourced = storyStillPromptSource({
+      llmPrompt: 'A soft bedroom portrait of two people standing apart.',
+      blurb: doggyBlurb,
+      title: 'Amber Office',
+    });
+    assert.match(doggySourced, /^Behind:\s*rear-entry sex|Exactly two adults/i);
+    assert.match(doggySourced, /office|desk/i);
+    assert.match(doggySourced, /bent OVER the desk|never a dog|humans only|two faces/i);
+    assert.doesNotMatch(doggySourced, /doggy|doggystyle/i);
+    assert.doesNotMatch(doggySourced, /soft bedroom portrait|velvet lullaby|Amber Office bent|on hands and knees/i);
+    assert.ok(doggySourced.length < 900, `behind still source too long (${doggySourced.length})`);
+    const chairBlurb =
+      "She's hunched over the ergonomic chair, arms locked around his neck as he thrusts from behind—her thighs clamp tight, fingers digging into his shoulders while his hand slides down to stroke her clit through damp silk pajama bottoms.";
+    const chairSourced = storyStillPromptSource({
+      llmPrompt: 'Candlelit velvet bench with three people in lingerie.',
+      blurb: chairBlurb,
+      title: 'Ergonomic chair',
+    });
+    assert.match(chairSourced, /^Chair bent:|Exactly two adults/i);
+    assert.doesNotMatch(chairSourced, /Candlelit velvet bench|three people|^Behind:|^Doggy:/i);
     assert.equal(
       storyIdentityLockStrengthForBeat(0.75, {
         beat: { blurb: oralBlurb },
         hasPoseGuide: true,
       }),
       0.45
+    );
+    const snofsDip = storyIntimateSnofsStrengthOverrides({
+      beat: { blurb: doggyBlurb },
+      hasPoseGuide: true,
+      sessionActiveLoraIds: ['qwen-snofs'],
+      library: [{ id: 'qwen-snofs', label: 'Qwen SNOFS', tokenValue: 'qwen_snofs.safetensors' }],
+    });
+    assert.equal(snofsDip?.['qwen-snofs']?.strengthModel, 0.45);
+    assert.equal(
+      storyIntimateSnofsStrengthOverrides({
+        beat: { blurb: 'Walking down the pier at dusk.' },
+        hasPoseGuide: true,
+        sessionActiveLoraIds: ['qwen-snofs'],
+        library: [{ id: 'qwen-snofs', label: 'Qwen SNOFS' }],
+      }),
+      undefined
     );
     assert.equal(
       storyIdentityLockStrengthForBeat(0.75, {
@@ -521,7 +570,7 @@ describe('roleplay parsers', () => {
     );
     const fromBehind = next.find(scene => /from behind/i.test(scene.title));
     if (fromBehind) {
-      assert.match(fromBehind.blurb, /hands and knees|doggy-style/i);
+      assert.match(fromBehind.blurb, /hands and knees|rear-entry|from behind/i);
       assert.doesNotMatch(fromBehind.blurb, /doggy or bent-over/i);
     }
     const openings = templateRoleplayScenes(

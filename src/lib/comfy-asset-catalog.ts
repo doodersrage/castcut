@@ -59,9 +59,12 @@ const QWEN_T2I_MODELS = [
   'qwen-image-2512-lightning-4',
   'qwen-image-2512-lightning-8',
   'qwen-image-2.0',
+  'qwen-rapid-aio-sfw',
+  'qwen-rapid-aio-nsfw',
 ] as const;
 
 const QWEN_EDIT_MODELS = [
+  'qwen-image-edit',
   'qwen-image-edit-2511',
   'qwen-image-edit-2511-lightning-4',
   'qwen-image-edit-2511-lightning-8',
@@ -961,6 +964,18 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     modelIds: ['sdxl'],
     notes: 'Saved as controlnet-union-sdxl-1.0.safetensors under models/controlnet.',
   },
+  {
+    id: 'controlnet-qwen-instantx-union',
+    label: 'Qwen Image InstantX ControlNet Union',
+    kind: 'controlnet',
+    filename: 'Qwen-Image-InstantX-ControlNet-Union.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/Qwen-Image-InstantX-ControlNets/resolve/main/split_files/controlnet/Qwen-Image-InstantX-ControlNet-Union.safetensors',
+    bytes: 3543348019,
+    sha256: 'd51dca0073366a675108d5b83c3b7ef941cf2214c9a1c95c23f1e9a228ddbdb0',
+    modelIds: [...QWEN_SHARED_MODELS],
+    notes:
+      'Day/Story pose ControlNet for Qwen Edit / Lightning. Auto-picked from Comfy inventory when installed; optional map e.g. qwen-image-edit-2511-lightning-8=Qwen-Image-InstantX-ControlNet-Union.safetensors',
+  },
 ];
 
 export function getCatalogAsset(id: string): ComfyCatalogAsset | undefined {
@@ -972,10 +987,17 @@ export function catalogAssetsForModel(modelId: string): ComfyCatalogAsset[] {
   if (!needle) {
     return [];
   }
-  // Exact id only — prefix match would pull wan-video 14B splits onto
-  // wan-video-rapid-aio / wan-video-lightning-4.
+  // Exact id only for most families — prefix match would pull wan-video 14B splits onto
+  // wan-video-rapid-aio / wan-video-lightning-4. Qwen is one shared ControlNet/VAE family:
+  // any qwen-* model may use assets tagged with any qwen-* id.
   return COMFY_ASSET_CATALOG.filter(entry =>
-    entry.modelIds.some(id => String(id) === needle || String(id) === 'default')
+    entry.modelIds.some(id => {
+      const tagged = String(id);
+      if (tagged === needle || tagged === 'default') {
+        return true;
+      }
+      return /^qwen-/i.test(needle) && /^qwen-/i.test(tagged);
+    })
   );
 }
 

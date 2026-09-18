@@ -2,6 +2,7 @@ import { avoidedTokensRequestBody } from './avoided-tokens';
 import { getCachedClothingLabel } from './clothing-catalog-client';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from './isolate-subject';
 import { sharedLlmRequestBody } from './llm-request-options';
+import { resolvePoseGuideControlNetExtras } from './pose-guide-controlnet';
 import {
   normalizeAvoidedRoleplayNames,
   resolveRoleplayLockedCharacterName,
@@ -31,6 +32,10 @@ export type RoleplayQueueStillOptions = {
    */
   inputImageUrls?: Array<string | undefined>;
   inputImageFilenames?: string[];
+  /** Same mannequin as Image 3 when Settings has a ControlNet model mapped. */
+  controlImageFilename?: string;
+  controlImageUrl?: string;
+  queueParamsBase?: import('./comfyui-config').WorkflowParamValues;
   identityLock: true;
   identityLockStrength?: number;
   identityKind?: SharedToolSettings['identityKind'];
@@ -150,6 +155,10 @@ export function buildRoleplayQueueStillOptions(input: {
   poseGuideUrl?: string | null;
   /** Drop Image 2 clothing packshot (intimate nude/sex beats). */
   omitGarment?: boolean;
+  /** Active Comfy model — gates ControlNet attach when a CN weight is mapped. */
+  model?: string | null;
+  /** Optional ControlNet map override (tests / callers with a pinned map). */
+  controlNetMap?: import('./model-controlnet-map').ModelControlNetMap;
 }): RoleplayQueueStillOptions | undefined {
   if (!input.photoMode) {
     return undefined;
@@ -194,6 +203,14 @@ export function buildRoleplayQueueStillOptions(input: {
   const hasExtras =
     extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
     extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
+  const poseControlNet = hasPoseGuide
+    ? resolvePoseGuideControlNetExtras({
+        poseGuideFilename,
+        poseGuideUrl,
+        model: input.model,
+        controlNetMap: input.controlNetMap,
+      })
+    : undefined;
   return {
     inputImageFilename: filename || undefined,
     inputImageUrl: imageUrl || undefined,
@@ -205,6 +222,11 @@ export function buildRoleplayQueueStillOptions(input: {
             : {}),
         }
       : {}),
+    ...(poseControlNet?.controlImageFilename
+      ? { controlImageFilename: poseControlNet.controlImageFilename }
+      : {}),
+    ...(poseControlNet?.controlImageUrl ? { controlImageUrl: poseControlNet.controlImageUrl } : {}),
+    ...(poseControlNet ? { queueParamsBase: poseControlNet.queueParamsBase } : {}),
     identityLock: true,
     identityLockStrength: input.identityLockStrength,
     identityKind: input.identityKind,

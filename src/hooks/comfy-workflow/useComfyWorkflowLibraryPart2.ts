@@ -32,16 +32,17 @@ import { suggestWorkflowNodeMappings } from '@/lib/workflow-node-mapper';
 import { applyWorkflowNodeBindings, summarizeBindingChanges } from '@/lib/workflow-apply-bindings';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { markOnboardingWorkflowImported } from '@/lib/onboarding-hooks';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings-cache';
 import { resolveQueueParams } from '@/lib/queue-params-settings';
 import { loadComfyUiSettings, syncLightningLoraLibraryEntry } from '@/lib/comfyui-settings';
 import {
   buildControlNetWorkflowScaffold,
-  buildFaceDetailerWorkflowScaffold,
   buildIdentityWorkflowScaffold,
   scaffoldWorkflowForModel,
   suggestedScaffoldName,
 } from '@/lib/workflow-scaffold';
+import { ensureFaceDetailerLibraryPin } from '@/lib/face-detailer-setup';
+import { fetchComfyObjectInfoCached } from '@/lib/comfyui-object-info-cache';
 import { inspectWorkflowGraphJson } from '@/lib/workflow-graph-inspect';
 import { inferModelsFromWorkflowLabel } from '@/lib/workflow-category-defaults';
 import { assignWorkflowToInferredModels } from '@/lib/model-workflow-map';
@@ -168,26 +169,23 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
   }, [newName, onStatus, placeholderTokens, refresh, startEdit]);
 
   const createFaceDetailerScaffold = useCallback(() => {
-    const result = buildFaceDetailerWorkflowScaffold();
-    const saved = upsertComfyWorkflowFile({
-      name: newName.trim() || 'FaceDetailer scaffold',
-      workflowJson: result.json,
-    });
-    const shared = loadSettingsCache().shared;
-    saveSharedSettings({
-      ...shared,
-      modelWorkflowMap: {
-        ...(shared.modelWorkflowMap ?? {}),
-        faceDetailer: saved.id,
-      },
-    });
-    refresh();
-    setNewName('');
-    startEdit(saved);
-    onStatus?.(
-      `Created FaceDetailer scaffold and pinned faceDetailer=${saved.id}. ${result.notes[0] ?? ''}`.trim()
-    );
-  }, [newName, onStatus, refresh, startEdit]);
+    void (async () => {
+      const objectInfo = await fetchComfyObjectInfoCached({ forceRefresh: true }).catch(() => null);
+      const result = ensureFaceDetailerLibraryPin({
+        availableNodeTypes: objectInfo?.nodeTypes,
+        model: loadSettingsCache().shared.model,
+      });
+      refresh();
+      setNewName('');
+      if (result.workflowId) {
+        const saved = loadComfyWorkflowFiles().find(file => file.id === result.workflowId);
+        if (saved) {
+          startEdit(saved);
+        }
+      }
+      onStatus?.(result.message);
+    })();
+  }, [onStatus, refresh, startEdit]);
 
   const createIdentityScaffold = useCallback(
     (kind: 'instantid' | 'pulid') => {

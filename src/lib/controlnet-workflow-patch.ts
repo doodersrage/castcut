@@ -46,6 +46,13 @@ export type ControlNetChainInsertOptions = {
   availableNodeTypes?: Iterable<string> | null;
   /** When set, insert a matching preprocessor between LoadImage and ControlNetApply. */
   controlNetMode?: ControlNetMode | string;
+  /**
+   * Skip OpenPose/Canny/etc. — use the control image as-is (Story/Day filled
+   * mannequins already encode pose; OpenPose often fails on flat capsules).
+   */
+  skipPreprocessor?: boolean;
+  /** ControlNetApply strength (default 1). */
+  strength?: number;
 };
 
 export type ControlNetChainInsertResult = {
@@ -186,10 +193,9 @@ export function insertControlNetChainIfMissing(
   };
   insertedNodeIds.push(loadImageId);
 
-  const preprocessorClass = resolveControlNetPreprocessorClass(
-    options.controlNetMode,
-    availableTypes
-  );
+  const preprocessorClass = options.skipPreprocessor
+    ? undefined
+    : resolveControlNetPreprocessorClass(options.controlNetMode, availableTypes);
   let imageSourceId = loadImageId;
   if (preprocessorClass) {
     const preprocessorId = nextWorkflowNodeId(next);
@@ -214,11 +220,15 @@ export function insertControlNetChainIfMissing(
   };
   insertedNodeIds.push(loaderId);
 
+  const strength =
+    typeof options.strength === 'number' && Number.isFinite(options.strength)
+      ? Math.min(2, Math.max(0, options.strength))
+      : 1;
   const applyId = nextWorkflowNodeId(next);
   next[applyId] = {
     class_type: 'ControlNetApply',
     inputs: {
-      strength: 1,
+      strength,
       start_percent: 0,
       end_percent: 1,
       positive: [chain.positiveLinkId, 0],
@@ -249,6 +259,7 @@ export type ControlNetStackEntry = {
   controlNetModelFilename?: string;
   controlNetMode?: ControlNetMode | string;
   strength?: number;
+  skipPreprocessor?: boolean;
 };
 
 /**
@@ -284,6 +295,8 @@ export function insertControlNetStack(
     controlImageFilename: usable[0]!.controlImageFilename,
     controlNetMode: usable[0]!.controlNetMode,
     availableNodeTypes: options?.availableNodeTypes,
+    skipPreprocessor: usable[0]!.skipPreprocessor,
+    strength: usable[0]!.strength,
   });
   current = first.workflow;
   if (first.inserted) {
@@ -325,10 +338,9 @@ export function insertControlNetStack(
     };
     insertedNodeIds.push(loadImageId);
 
-    const preprocessorClass = resolveControlNetPreprocessorClass(
-      entry.controlNetMode,
-      availableTypes
-    );
+    const preprocessorClass = entry.skipPreprocessor
+      ? undefined
+      : resolveControlNetPreprocessorClass(entry.controlNetMode, availableTypes);
     let imageSourceId = loadImageId;
     if (preprocessorClass) {
       const preprocessorId = nextWorkflowNodeId(next);

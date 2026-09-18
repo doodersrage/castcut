@@ -9,7 +9,7 @@ export type SettingsTab =
   'overview' | 'llm' | 'comfyui' | 'automation' | 'advanced' | 'data' | 'users';
 
 /** Settings tabs shown by default in Simple workspace. */
-export const SIMPLE_SETTINGS_TAB_IDS: SettingsTab[] = ['overview', 'comfyui'];
+export const SIMPLE_SETTINGS_TAB_IDS: SettingsTab[] = ['overview', 'comfyui', 'llm', 'data'];
 
 export type SettingsTabDefinition = {
   id: SettingsTab;
@@ -31,17 +31,17 @@ export const SETTINGS_TABS: SettingsTabDefinition[] = [
   {
     id: 'comfyui',
     label: 'ComfyUI',
-    description: 'Inference engines, ComfyUI connection, workflows, and queue.',
+    description: 'Engine, connection, assets, and queue (essentials by default).',
   },
   {
     id: 'automation',
     label: 'Automation',
-    description: 'Webhooks, scheduled batch, and avoided tokens.',
+    description: 'Power tools — webhooks, scheduled batch, avoided tokens.',
   },
   {
     id: 'advanced',
     label: 'Advanced',
-    description: 'Recipes, negative learner, shootout, usage, and storage sync.',
+    description: 'Power tools — recipes, learner, shootout, usage, storage sync.',
   },
   {
     id: 'data',

@@ -103,6 +103,34 @@ describe("syncLoaderMapsFromInventory", () => {
     assert.match(formatInventorySyncMessage(result), /filled \d+/i);
   });
 
+  it("prefers InstantX ControlNet for Qwen keys when present in inventory", () => {
+    const result = syncLoaderMapsFromInventory({
+      models: {
+        checkpoints: [],
+        unets: [],
+        vaes: [],
+        upscaleModels: [],
+        clips: [],
+        dualClipTypes: [],
+        clipLoaderTypes: [],
+        loras: [],
+        controlNets: [
+          "control_v11p_sd15_openpose.pth",
+          "Qwen-Image-InstantX-ControlNet-Union.safetensors",
+        ],
+      },
+      controlNetMap: {},
+    });
+    assert.equal(
+      result.modelControlNetMap.default,
+      "Qwen-Image-InstantX-ControlNet-Union.safetensors",
+    );
+    assert.equal(
+      result.modelControlNetMap["qwen-image-edit-2511-lightning-8"],
+      "Qwen-Image-InstantX-ControlNet-Union.safetensors",
+    );
+  });
+
   it("heals missing map filenames to near-miss inventory entries", () => {
     const result = syncLoaderMapsFromInventory({
       models: {
