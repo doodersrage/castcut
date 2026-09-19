@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import { GALLERY_CAP_KEEPER_MIN_RATING } from '@/lib/gallery-cap';
 import {
   downloadGalleryImagesSequential,
@@ -9,6 +9,7 @@ import {
 import { toastBulkQueueSummary } from '@/lib/app-toast';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import { loadCharacters } from '@/lib/character-os';
+import { ARCHIVE_PURGE_BATCH_SIZE } from '@/lib/gallery-archive-purge';
 import { partitionGalleryForArchivePurge } from '@/lib/gallery-protected-ids';
 
 export type UseGalleryPanelRecoveryOptions = {
@@ -28,6 +29,8 @@ export function useGalleryPanelRecovery({
   setRequeueStatus,
   removeEntries,
 }: UseGalleryPanelRecoveryOptions): UseGalleryPanelRecoveryResult {
+  const archiveBusyRef = useRef(false);
+
   const retryFailedEntries = useCallback(
     (targets: ComfyGalleryEntry[], mode: 'same' | 'new' | 'exact' = 'same') => {
       const failed = targets.filter(entry => entry.status === 'error');
@@ -84,6 +87,10 @@ export function useGalleryPanelRecovery({
   }, [entries, setRequeueStatus]);
 
   const archiveThenPurgeRest = useCallback(() => {
+    if (archiveBusyRef.current) {
+      setRequeueStatus('Archive & purge already running — let the ZIP downloads finish.');
+      return;
+    }
     const characters = loadCharacters();
     const { protected: kept, purgeable } = partitionGalleryForArchivePurge(entries, characters);
     if (purgeable.length === 0) {
@@ -94,19 +101,38 @@ export function useGalleryPanelRecovery({
       );
       return;
     }
+    const zipParts = Math.max(1, Math.ceil(purgeable.length / ARCHIVE_PURGE_BATCH_SIZE));
+    const largeHint =
+      purgeable.length > ARCHIVE_PURGE_BATCH_SIZE
+        ? `\n\nLarge gallery: this downloads ${zipParts} ZIP parts (~${ARCHIVE_PURGE_BATCH_SIZE} entries each). Stay on this tab — do not refresh.`
+        : '';
     if (
       !window.confirm(
-        `Download a ZIP of ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'}, then remove them from this device?\n\nFavorites, 4–5★, Cast look plates, and look keepers stay (${kept.length} kept).`
+        `Download a ZIP of ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'}, then remove them from this device?\n\nFavorites, 4–5★, Cast look plates, and look keepers stay (${kept.length} kept).${largeHint}`
       )
     ) {
       return;
     }
-    setRequeueStatus(`Archiving ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'}…`);
+    archiveBusyRef.current = true;
+    setRequeueStatus(
+      `Archiving ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'}${
+        zipParts > 1 ? ` in ${zipParts} ZIP parts` : ''
+      }…`
+    );
     void import('@/lib/gallery-archive-purge')
       .then(({ archiveThenPurgeGalleryEntries }) =>
         archiveThenPurgeGalleryEntries(entries, {
           removeEntries,
           characters,
+          onProgress: progress => {
+            if (progress.phase === 'purge') {
+              setRequeueStatus(`Purging ${progress.purgeableTotal} archived entries…`);
+              return;
+            }
+            setRequeueStatus(
+              `Archiving ZIP ${progress.batchIndex}/${progress.batchCount} (${progress.archivedSoFar}/${progress.purgeableTotal} ready)…`
+            );
+          },
         })
       )
       .then(result => {
@@ -114,6 +140,9 @@ export function useGalleryPanelRecovery({
       })
       .catch(() => {
         setRequeueStatus('Archive & purge failed — nothing was deleted.');
+      })
+      .finally(() => {
+        archiveBusyRef.current = false;
       });
   }, [entries, removeEntries, setRequeueStatus]);
 

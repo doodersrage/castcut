@@ -171,7 +171,9 @@ export async function downloadGalleryZipBundle(
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = options?.filename?.trim() || `gallery-export-${Date.now()}.zip`;
+  // Keep the object URL alive long enough for the browser to start the download.
+  // Revoking immediately after click() cancels many large ZIP saves.
   anchor.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
   return { entryCount: entries.length, imageCount };
 }
