@@ -747,7 +747,8 @@ test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async 
 
   await gotoStable(page, '/story?character=e2e-rp-cut');
   await dismissBlockingOverlays(page);
-  const cutBtn = page.getByRole('button', { name: /Cut film/i });
+  // Exact name — "Skip to Cut film" (story-animate-cut) also matches /Cut film/i.
+  const cutBtn = page.getByRole('button', { name: 'Cut film', exact: true });
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
   await cutBtn.click();
@@ -816,7 +817,8 @@ test('mobile play cut film with mocked MediaRecorder shows Cast deep-links', asy
 
   await gotoStable(page, '/m/story');
   await dismissBlockingOverlays(page);
-  const cutBtn = page.getByRole('button', { name: /Cut film/i });
+  // Exact name — "Skip to Cut film" (story-animate-cut) also matches /Cut film/i.
+  const cutBtn = page.getByRole('button', { name: 'Cut film', exact: true });
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
   await cutBtn.click();
@@ -1056,6 +1058,23 @@ test('day cut film shows playbook when film assemble returns ffmpeg 503', async 
 });
 
 test('play persistence triad is visible on Film hub', async ({ page }) => {
+  // Empty hub hides persistence; seed a Cast so the compact triad mounts.
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-persist' },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-persist',
+          name: 'Persist Hero',
+          version: 1,
+          updatedAt: Date.now(),
+          descriptor: 'persist look',
+        },
+      ],
+      removedIds: [],
+    },
+  });
   await gotoStable(page, '/play');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('play-persistence-triad')).toBeVisible({ timeout: 30_000 });
@@ -1068,27 +1087,46 @@ test('play habit nudge appears after a day-old cut', async ({ page }) => {
       try {
         localStorage.setItem('comfy-workspace-mode-v1', 'play');
         localStorage.setItem('comfy-workspace-mode-chosen-v1', '1');
-        localStorage.setItem(
-          'comfy-play-metrics-v1',
-          JSON.stringify({
-            version: 1,
-            firstFilmCutAt: cutAt,
-            lastFilmCutAt: cutAt,
-          })
-        );
-        localStorage.setItem(
-          'play-campaign-v1',
-          JSON.stringify({
-            version: 1,
-            characterId: 'e2e-habit',
-            stepIndex: 3,
-            completedAt: cutAt,
-            updatedAt: cutAt,
-          })
-        );
       } catch {
         // ignore
       }
+      // Metrics / campaign are IDB-authoritative — localStorage alone is overwritten on hydrate.
+      const kv: Record<string, unknown> = {
+        'comfy-play-metrics-v1': {
+          version: 1,
+          firstFilmCutAt: cutAt,
+          lastFilmCutAt: cutAt,
+        },
+        'play-campaign-v1': {
+          version: 1,
+          characterId: 'e2e-habit',
+          stepIndex: 3,
+          completedAt: cutAt,
+          updatedAt: cutAt,
+        },
+      };
+      return new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open('comfy-prompt-studio-v1');
+        request.onerror = () => reject(request.error ?? new Error('idb open failed'));
+        request.onsuccess = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains('kv')) {
+            db.close();
+            resolve();
+            return;
+          }
+          const tx = db.transaction('kv', 'readwrite');
+          const store = tx.objectStore('kv');
+          for (const [key, value] of Object.entries(kv)) {
+            store.put({ key, value });
+          }
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error ?? new Error('idb kv put failed'));
+        };
+      });
     },
     { cutAt: dayAgo }
   );
@@ -1144,6 +1182,8 @@ test('film create includes Part and From photo cast identity', async ({ page }) 
   await gotoStable(page, '/play');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('play-campaign-create-character')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('play-campaign-create-persona')).toBeVisible();
   await expect(page.getByTestId('play-campaign-create-from-photo')).toBeVisible();
+  // Part chips live under collapsed "More traits" — open before asserting.
+  await page.getByTestId('play-campaign-create-more-traits').locator('summary').click();
+  await expect(page.getByTestId('play-campaign-create-persona')).toBeVisible();
 });
