@@ -560,6 +560,38 @@ export function buildDaySuggestivePoseLock(beat: string | null | undefined): str
   );
 }
 
+/**
+ * Beat-specific adult pose lock — Rapid NSFW collapses all-fours / doggy / wall
+ * into softcore kneel / cowgirl / peace-sign pin-ups without an explicit stance ban.
+ */
+export function buildDayAdultBeatPoseLock(
+  beat: string | null | undefined,
+  mode: 'solo' | 'duo'
+): string | null {
+  const hay = beat?.trim() || '';
+  if (!hay) {
+    return null;
+  }
+  if (/\ball\s+fours\b|\bhands\s+and\s+knees\b/i.test(hay)) {
+    return mode === 'solo'
+      ? 'POSE LOCK: ALL FOURS looking back — hips high, weight on knees and hands/forearms, face turned over one shoulder (or looking down at her hands); never kneeling upright facing the lens, never a front softcore pin-up with hands covering the crotch, never peace/rock-on/V-sign gestures.'
+      : 'POSE LOCK: ALL FOURS / DOGGY — Cast on hands and knees hips high, partner behind mid-sex; never kneeling upright facing the lens together, never peace signs, never cowgirl astride facing the camera.';
+  }
+  if (
+    /\bdoggy\b|\bdoggystyle\b|\bfrom\s+behind\b|\bpartner\s+behind\b|\brear[- ]entry\b/i.test(hay)
+  ) {
+    return 'POSE LOCK: DOGGY / REAR-ENTRY — Cast bent or on all fours, partner behind mid-thrust; both adults mid-sex; never cowgirl astride facing the lens, never peace-sign softcore kneel, never both staring at camera posing.';
+  }
+  if (
+    /\b(?:against|pressed\s+against)\s+(?:the\s+)?(?:bedroom\s+)?wall\b|\bwall\s+(?:sex|press|fuck)\b|\bwindow\s+wall\b|\bpressed\s+against\b/i.test(
+      hay
+    )
+  ) {
+    return 'POSE LOCK: STANDING WALL PRESS — both adults STANDING upright mid-sex with Casts back flat against a solid bedroom WALL (not the bed, not kneeling on sheets); partner behind or chest-to-back; feet on the floor; never cowgirl on the bed, never front softcore kneel facing the lens, never seated astride on the mattress.';
+  }
+  return null;
+}
+
 /** Isolate-on-white plates must not survive as ecommerce cutouts. */
 export const DAY_ISOLATE_WHITE_REPLACE =
   'Image 1 is the subject isolated on a blank white backdrop. Replace every white/studio void with the SETTING below — never leave a white background, ecommerce void, or cutout plate.';
@@ -900,7 +932,7 @@ export const DAY_SLOT_RAUNCHY_BEAT_PRESETS: Record<DaySlotId, string[]> = {
     'pressed against the fridge mid-sex with a partner when the ice maker dumps cubes on both of them — two heads in frame',
   ],
   afternoon: [
-    'solo on the couch naked with one ankle on the backrest — thighs wide, both hands between her thighs rubbing her clit hard, blinds half-open comedy, Cast alone fully nude, eyes not at the lens',
+    'solo on the couch naked with one ankle on the backrest — thighs wide, both hands between her thighs rubbing her clit hard, lamp-only comedy, Cast alone fully nude, eyes not at the lens',
     'alone pressed to the hallway wall fully nude one leg hiked — both hands buried between her thighs fingering, laughing mid-act, clothes in a pile, Cast alone',
     'solo reclining naked on the couch knees flopped open — remote slips, both hands between her thighs spreading and fingering, Cast alone, head tipped',
     'alone on all fours naked on the bed looking back over a shoulder — hips high, both hands reaching under between her thighs fingering her vulva hard, afternoon light, one adult only, fully nude',
@@ -936,23 +968,23 @@ export const DAY_SLOT_RAUNCHY_BEAT_PRESETS: Record<DaySlotId, string[]> = {
 /** Soft bedroom / hotel settings mixed in when mood is suggestive, intimate, or raunchy. */
 export const DAY_SLOT_HEAT_SETTING_PRESETS: Record<DaySlotId, string[]> = {
   morning: [
-    'sunlit bedroom with rumpled sheets and an open window',
-    'steamy bathroom with fogged glass and warm tile',
-    'bedroom doorway with morning light — rumpled sheets visible behind',
+    'sunlit bedroom with rumpled sheets and closed blinds — opaque walls only',
+    'steamy bathroom with fogged glass and warm tile — indoor only',
+    'bedroom doorway with warm lamp light — rumpled sheets visible behind, blinds closed',
   ],
   afternoon: [
-    'apartment bedroom with blinds half-drawn and warm dust light',
-    'hotel room with white sheets and afternoon sun',
-    'quiet bedroom couch with soft daylight — no kitchen clutter',
+    'apartment bedroom with blinds fully drawn and warm lamp light — opaque walls only',
+    'hotel room with white sheets and drawn curtains — lamp only, opaque walls',
+    'quiet bedroom couch with soft lamp light — blinds closed, no kitchen clutter',
   ],
   evening: [
-    'dim hotel suite with city glow through sheer curtains',
-    'bedroom with warm lamp light and unmade bed',
-    'candlelit bedroom corner at blue hour — bare nightstand only',
+    'dim hotel suite with warm lamp light and drawn curtains — opaque walls only',
+    'bedroom with warm lamp light and unmade bed — curtains closed',
+    'candlelit bedroom corner at blue hour — bare nightstand only, blinds closed',
   ],
   night: [
-    'dark bedroom with a single warm lamp — bare nightstand only',
-    'hotel room after dark with a single lamp',
+    'dark bedroom with a single warm lamp — bare nightstand only, curtains closed',
+    'hotel room after dark with a single lamp — curtains closed, opaque walls',
     'bedroom after dark with warm lamp on bare nightstand — curtains closed',
   ],
 };
@@ -966,7 +998,42 @@ const DAY_DUO_UNSAFE_SETTING_RE =
  * when these nouns appear in the positive SETTING line.
  */
 export const DAY_ADULT_UNSAFE_OUTDOOR_SETTING_RE =
-  /\b(beach|shore(?:line)?|ocean|seaside|pier|boardwalk|marina|coast|wet\s+sand|\bsand\b|night\s+beach|city\s+lights?\s+on\s+(?:the\s+)?horizon|rooftop\s+edge|glittering\s+skyline|riverside\s+boardwalk|sunset\s+pier)\b/i;
+  /\b(beach|shore(?:line)?|ocean|sea(?:side)?|harbor|harbour|waterfront|pier|boardwalk|marina|coast(?:al)?|wet\s+sand|\bsand\b|night\s+beach|city\s+lights?\s+on\s+(?:the\s+)?horizon|rooftop\s+edge|glittering\s+skyline|riverside\s+boardwalk|sunset\s+pier|ocean\s+vista|coastal\s+vista|water\s+outside|ocean\s+(?:view|visible)|sea\s+(?:view|visible)|balcony\s+(?:rail|railing|door)|glass\s+(?:balcony|sliding)\s+door|sliding\s+glass|outdoor\s+railing)\b/i;
+
+/** Softcore prior: open/vista windows invent ocean/city-horizon pin-ups on Rapid NSFW. */
+const DAY_ADULT_UNSAFE_WINDOW_VISTA_RE =
+  /\b(open\s+windows?|afternoon\s+sun|city\s+(?:lights?|glow)|(?:ocean|sea|harbor|harbour|coast|water|horizon)\s+(?:through|outside|beyond|visible)|(?:through|beyond)\s+(?:an?\s+|the\s+)?(?:open\s+)?windows?\b.*\b(?:ocean|sea|water|coast|harbor|harbour|horizon|city)|vista\s+through|glass\s+(?:balcony|sliding)|sliding\s+glass|balcony\s+(?:rail|railing))\b/i;
+
+/**
+ * Rewrite open/vista windows to closed blinds so adult SETTING never invites
+ * ocean-through-window softcore (Rapid NSFW LoRA prior).
+ */
+export function sanitizeDayAdultIndoorSetting(setting: string): string {
+  let next = setting.trim();
+  if (!next) {
+    return next;
+  }
+  next = next.replace(/\bopen\s+windows?\b/gi, 'closed blinds');
+  next = next.replace(/\bafternoon\s+sun\b/gi, 'drawn curtains and lamp light');
+  next = next.replace(
+    /\bcity\s+(?:lights?|glow)(?:\s+through\s+(?:sheer\s+)?curtains?)?\b/gi,
+    'warm lamp light'
+  );
+  next = next.replace(
+    /\b(?:ocean|sea|harbor|harbour|coast(?:al)?|water)\s+(?:view|visible|outside|through\s+(?:an?\s+|the\s+)?windows?)\b/gi,
+    'closed curtains'
+  );
+  next = next.replace(/\b(?:glass\s+)?(?:balcony|sliding)\s+doors?\b/gi, 'closed blinds');
+  next = next.replace(/\bsliding\s+glass\b/gi, 'closed blinds');
+  next = next.replace(/\bbalcony\s+(?:rail|railing)s?\b/gi, 'bare wall');
+  if (
+    /\bwindows?\b/i.test(next) &&
+    !/\b(blinds|curtains|closed|drawn|sheer|fogged)\b/i.test(next)
+  ) {
+    next = next.replace(/\bwindows?\b/gi, 'closed blinds');
+  }
+  return next;
+}
 
 /**
  * Indoor Setting for adult nude Day stills — never pass raw pier/beach/boardwalk
@@ -986,17 +1053,20 @@ export function resolveDayAdultIndoorSetting(input: {
   if (DAY_ADULT_UNSAFE_OUTDOOR_SETTING_RE.test(raw) || DAY_STALE_EVERYDAY_PROP_RE.test(raw)) {
     return fallback;
   }
-  // Softcore prior: "city lights through the window" → night-beach horizon.
-  if (/city\s+lights?/i.test(raw)) {
+  // Softcore prior: open window / city lights / ocean vista → night-beach invent.
+  if (DAY_ADULT_UNSAFE_WINDOW_VISTA_RE.test(raw) || /city\s+lights?/i.test(raw)) {
     return fallback;
   }
-  if (heat.includes(raw)) {
-    return raw;
+  const sanitized = sanitizeDayAdultIndoorSetting(raw);
+  if (heat.includes(sanitized) || heat.includes(raw)) {
+    return sanitized;
   }
   if (
-    /\b(bedroom|hotel|bathroom|apartment|sheets|lamp|nightstand|blinds|curtains|suite)\b/i.test(raw)
+    /\b(bedroom|hotel|bathroom|apartment|sheets|lamp|nightstand|blinds|curtains|suite)\b/i.test(
+      sanitized
+    )
   ) {
-    return raw;
+    return sanitized;
   }
   return fallback;
 }
@@ -1986,6 +2056,9 @@ export function buildDaySlotPrompt(input: {
           : (vacationLocks?.moodLine ?? sportLocks?.moodLine ?? null);
   const suggestiveClothingLock =
     dayMood === 'suggestive' ? buildDaySuggestivePoseLock(hints) : null;
+  const adultBeatPoseLock = isDayAdultMood(dayMood)
+    ? buildDayAdultBeatPoseLock(hints, soloSubject ? 'solo' : 'duo')
+    : null;
   const vacationPoseLock = dayMood === 'vacation' ? (vacationLocks?.poseLock ?? null) : null;
   const sportKitLock = sportLocks?.wardrobeLock ?? null;
   /** Lead empty-bed composition first — naming banned props in positives summons them on Rapid AIO. */
@@ -1993,10 +2066,10 @@ export function buildDaySlotPrompt(input: {
     ? soloSubject
       ? dayMood === 'raunchy'
         ? soloToy
-          ? `FOREGROUND: match the beat pose — rumpled sheets and bare skin; ${SOLO_DILDO_INSERTION_CUE}; bare breasts with nipples visible uncovered; never invent a man; never books or phones on the bed.`
-          : 'FOREGROUND: match the beat pose — rumpled sheets and bare skin; fingers on her vulva mid-act as written; bare breasts with nipples visible uncovered; nothing held; never books or phones on the bed.'
-        : 'FOREGROUND: empty rumpled sheets only between the knees and in front of the body — bare fabric, empty lap, nothing held, nothing open on the bed; both hands on her own skin only (breasts/hips/vulva).'
-      : 'FOREGROUND: bare sheets and bodies only — empty bed surface around the couple; hands on bodies only; nothing open or held in the foreground.'
+          ? `FOREGROUND: match the beat pose — rumpled sheets and bare skin; closed blinds on every window (no glass balcony door, no ocean vista); ${SOLO_DILDO_INSERTION_CUE}; bare breasts with nipples visible uncovered; never invent a man; never books or phones on the bed.`
+          : 'FOREGROUND: match the beat pose — rumpled sheets and bare skin; closed blinds on every window (no glass balcony door, no ocean vista); fingers on her vulva mid-act as written; bare breasts with nipples visible uncovered; nothing held; never books or phones on the bed.'
+        : 'FOREGROUND: empty rumpled sheets only between the knees and in front of the body — bare fabric, empty lap, nothing held, nothing open on the bed; closed blinds (no outdoor vista); both hands on her own skin only (breasts/hips/vulva).'
+      : 'FOREGROUND: bare sheets and bodies only — empty bed surface around the couple; closed blinds on every window (no glass balcony door, no ocean or water visible outside); hands on bodies only; nothing open or held in the foreground.'
     : null;
   const adultPropsLock = isDayAdultMood(dayMood)
     ? intimateMix === 'duo' || poseHeadcount >= 2
@@ -2060,8 +2133,8 @@ export function buildDaySlotPrompt(input: {
     const settingLine = setting
       ? isDayAdultMood(dayMood)
         ? soloSubject
-          ? `SETTING (backdrop only — lighting and empty room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — window/lamp light and sheets only behind the beat pose; bare nightstand; nothing on the bed except sheets and the subject; never invent beach, sand, ocean, shoreline, wet sand, pier softcore, or night-beach city-light pin-up`
-          : `SETTING (backdrop only — lighting and room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — environment for ${timeOfDay} behind the beat pose; never invent walking, grocery, reading, drinking, or fashion-pin-up stances from the scene; never invent beach, sand, ocean, shoreline, or night-beach softcore`
+          ? `SETTING (backdrop only — lighting and empty room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — lamp light and closed blinds only behind the beat pose; bare nightstand; opaque walls; nothing on the bed except sheets and the subject; never invent beach, sand, ocean, shoreline, wet sand, pier softcore, night-beach city-light pin-up, glass balcony door, sliding glass, outdoor railing, ocean through a window, coastal vista, or water outside the glass`
+          : `SETTING (backdrop only — lighting and room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — environment for ${timeOfDay} behind the beat pose; closed blinds / drawn curtains; never invent walking, grocery, reading, drinking, or fashion-pin-up stances from the scene; never invent beach, sand, ocean, shoreline, night-beach softcore, glass balcony door, ocean through a window, or coastal vista`
         : dayMood === 'suggestive'
           ? `SETTING (backdrop only — lighting and room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — environment for ${timeOfDay} behind the beat pose; never invent walking, grocery, reading, or bland fashion-portrait stances from the scene`
           : dayMood === 'sport'
@@ -2071,8 +2144,8 @@ export function buildDaySlotPrompt(input: {
               : `SETTING (mandatory — replace Image 1 background entirely${plateIsolated ? ', including every white/studio void' : ''}): ${setting} — put them in this real location for ${timeOfDay}, with matching props, depth, and lighting — never a blank white backdrop`
       : isDayAdultMood(dayMood)
         ? soloSubject
-          ? `SETTING (backdrop only — lighting and empty room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): bedroom sheets and window/lamp light for ${timeOfDay} — bare nightstand; nothing on the bed except sheets and the subject; never invent beach, sand, ocean, shoreline, or night-beach softcore`
-          : `SETTING (backdrop only — lighting and room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): a coherent location for ${timeOfDay} behind the beat pose — never a blank white backdrop; bare sheets only in the action area; never invent beach, sand, ocean, shoreline, or night-beach softcore`
+          ? `SETTING (backdrop only — lighting and empty room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): bedroom sheets and lamp light with closed blinds for ${timeOfDay} — bare nightstand; opaque walls; nothing on the bed except sheets and the subject; never invent beach, sand, ocean, shoreline, night-beach softcore, glass balcony door, ocean through a window, or coastal vista`
+          : `SETTING (backdrop only — lighting and room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): a coherent indoor location for ${timeOfDay} behind the beat pose — closed blinds; never a blank white backdrop; bare sheets only in the action area; never invent beach, sand, ocean, shoreline, night-beach softcore, glass balcony door, ocean through a window, or coastal vista`
         : dayMood === 'suggestive'
           ? `SETTING (backdrop only — lighting and room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): a coherent location for ${timeOfDay} behind the beat pose — never a blank white backdrop`
           : dayMood === 'sport'
@@ -2181,6 +2254,7 @@ export function buildDaySlotPrompt(input: {
               cameraLine,
               moodLine,
               suggestiveClothingLock,
+              adultBeatPoseLock,
               vacationPoseLock,
               sportKitLock,
               settingLine,
@@ -2191,6 +2265,7 @@ export function buildDaySlotPrompt(input: {
               cameraLine,
               moodLine,
               suggestiveClothingLock,
+              adultBeatPoseLock,
               vacationPoseLock,
               sportKitLock,
             ]),
@@ -2283,6 +2358,7 @@ export function buildDaySlotPrompt(input: {
             cameraLine,
             moodLine,
             suggestiveClothingLock,
+            adultBeatPoseLock,
             vacationPoseLock,
             sportKitLock,
             settingLine,
@@ -2293,6 +2369,7 @@ export function buildDaySlotPrompt(input: {
             cameraLine,
             moodLine,
             suggestiveClothingLock,
+            adultBeatPoseLock,
             vacationPoseLock,
             sportKitLock,
           ]),
@@ -2360,6 +2437,7 @@ export function buildDaySlotPrompt(input: {
     cameraLine,
     moodLine,
     suggestiveClothingLock,
+    adultBeatPoseLock,
     vacationPoseLock,
     sportKitLock,
     adultForegroundLock,

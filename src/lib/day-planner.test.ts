@@ -3,8 +3,11 @@ import { describe, it } from 'node:test';
 import { resolveSoloMasturbationPoseKind } from '@/lib/day-pose-guide';
 import {
   buildDayProgressLightboxState,
+  buildDayAdultBeatPoseLock,
   buildDaySlotMotionSubject,
   buildDaySlotPrompt,
+  buildDaySuggestiveKeepPoseUnlock,
+  buildDaySuggestivePoseLock,
   dayBeatOmitsGarmentPackshot,
   dayBeatUsesSoloSexToy,
   daySlotMatchesAdultMix,
@@ -32,6 +35,7 @@ import {
   isDayHeatMood,
   isDayIntimateSoloBeat,
   resolveDayAdultIndoorSetting,
+  sanitizeDayAdultIndoorSetting,
   isDayRaunchySoloBeat,
   mergeDaySlotStills,
   nextDaySlotToEdit,
@@ -46,8 +50,6 @@ import {
   seedDaySlotsFromKeeperWardrobes,
   seedDaySlotsWardrobe,
   upsertDaySlotStill,
-  buildDaySuggestivePoseLock,
-  buildDaySuggestiveKeepPoseUnlock,
 } from './day-planner';
 
 describe('day-planner', () => {
@@ -1223,6 +1225,76 @@ describe('day-planner', () => {
       }),
       /city lights/i
     );
+    assert.doesNotMatch(
+      resolveDayAdultIndoorSetting({
+        setting: 'sunlit bedroom with rumpled sheets and an open window',
+        slotId: 'morning',
+      }),
+      /open window/i
+    );
+    assert.match(
+      resolveDayAdultIndoorSetting({
+        setting: 'hotel room with white sheets and drawn curtains — lamp only, opaque walls',
+        slotId: 'afternoon',
+      }),
+      /hotel room with white sheets/i
+    );
+    assert.match(sanitizeDayAdultIndoorSetting('bedroom with an open window'), /closed blinds/i);
+  });
+
+  it('buildDayAdultBeatPoseLock locks all-fours doggy and wall vs softcore kneel', () => {
+    const allFours = buildDayAdultBeatPoseLock(
+      'alone on all fours naked on the bed looking back over a shoulder — hips high',
+      'solo'
+    );
+    assert.match(allFours ?? '', /POSE LOCK: ALL FOURS/i);
+    assert.match(allFours ?? '', /never kneeling upright facing the lens/i);
+
+    const doggy = buildDayAdultBeatPoseLock(
+      'bent over the foot of the bed from behind — partner still in frame mid-doggy',
+      'duo'
+    );
+    assert.match(doggy ?? '', /POSE LOCK: DOGGY/i);
+    assert.match(doggy ?? '', /never cowgirl astride facing the lens/i);
+
+    const wall = buildDayAdultBeatPoseLock(
+      'against the bedroom wall mid-sex with a partner when the smoke alarm goes off',
+      'duo'
+    );
+    assert.match(wall ?? '', /POSE LOCK: STANDING WALL PRESS/i);
+    assert.match(wall ?? '', /never cowgirl on the bed|feet on the floor/i);
+
+    assert.equal(buildDayAdultBeatPoseLock('missionary under neon', 'duo'), null);
+  });
+
+  it('buildDaySlotPrompt raunchy all-fours embeds POSE LOCK and bans ocean window', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'apartment bedroom with blinds fully drawn and warm lamp light — opaque walls only',
+        sceneHints:
+          'alone on all fours naked on the bed looking back over a shoulder — hips high, both hands reaching under between her thighs fingering her vulva hard, afternoon light, one adult only, fully nude',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'raunchy',
+      intimateMix: 'solo',
+      omitGarment: true,
+    });
+    assert.match(prompt, /POSE LOCK: ALL FOURS/i);
+    assert.match(prompt, /ocean through a window|coastal vista|never invent beach|glass balcony/i);
+    assert.doesNotMatch(prompt, /open window/i);
+  });
+
+  it('resolveDayAdultIndoorSetting rejects afternoon-sun hotel that summons ocean vista', () => {
+    assert.doesNotMatch(
+      resolveDayAdultIndoorSetting({
+        setting: 'hotel room with white sheets and afternoon sun',
+        slotId: 'afternoon',
+      }),
+      /afternoon sun/i
+    );
   });
 
   it('daySlotSceneSummary joins setting and beat', async () => {
@@ -1659,7 +1731,7 @@ describe('day-planner', () => {
     const prompt = buildDaySlotPrompt({
       slot: {
         ...DEFAULT_DAY_SLOTS[0]!,
-        location: 'sunlit bedroom with rumpled sheets and an open window',
+        location: 'sunlit bedroom with rumpled sheets and closed blinds',
         sceneHints,
       },
       hasPlate: true,
@@ -1803,7 +1875,7 @@ describe('day-planner', () => {
     const prompt = buildDaySlotPrompt({
       slot: {
         ...DEFAULT_DAY_SLOTS[0]!,
-        location: 'sunlit bedroom with rumpled sheets and an open window',
+        location: 'sunlit bedroom with rumpled sheets and closed blinds',
         sceneHints: 'straddling a partner on a kitchen chair mid-slapstick sex, coffee cup tipping',
       },
       hasPlate: true,
@@ -1954,7 +2026,7 @@ describe('day-planner', () => {
     const prompt = buildDaySlotPrompt({
       slot: {
         ...DEFAULT_DAY_SLOTS[0]!,
-        location: 'sunlit bedroom with rumpled sheets and an open window',
+        location: 'sunlit bedroom with rumpled sheets and closed blinds',
         sceneHints:
           'bent over the foot of the bed from behind when a partner slips and face-plants laughing',
       },

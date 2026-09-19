@@ -28,7 +28,7 @@ describe('softenQwenRapidNudeSafetyTriggers', () => {
 describe('buildQwenRapidNudeEditLead', () => {
   it('grounds the slot SETTING indoors before bare-skin / hands instructions', () => {
     const lead = buildQwenRapidNudeEditLead(
-      'sunlit bedroom with rumpled sheets and an open window'
+      'sunlit bedroom with rumpled sheets and closed blinds'
     );
     assert.match(lead, /indoors at sunlit bedroom with rumpled sheets/i);
     assert.match(lead, /No beach, sand, ocean/i);
