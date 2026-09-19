@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.0.1] - 2026-09-19
+
 - **Lightning Vacation identity:** Edit-2511 Lightning Day Vacation pins the active Cast/Keep plate with ReferenceLatent (text pose, no Image 3 overlay) so faces and hair stay consistent across slots.
 - **Gallery archive jobs:** Archive & purge stages a server-side ZIP with progress so large galleries no longer OOM the tab.
 
