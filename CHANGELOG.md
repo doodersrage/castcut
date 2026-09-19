@@ -9,9 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Castcut 2.0 — local character lock across the film
-
-v1.9 closed the Play loop; 2.0 makes the film recognizably that Cast lead on ComfyUI without Settings fiddling.
+## [v2.0.0] - 2026-09-19
 
 - **Full-loop identity:** Cast face IP-Adapter + pinned LoRAs on Look, Outfit try-on, Day/Story (desk + mobile) stills & Animate, Video/Cast continue-reel, and Prove-it.
 - **Heal → Identity ready:** Heal seeds IP-Adapter / InstantID nodes; Film chrome shows Identity ready / warn when face is locked without packs.
