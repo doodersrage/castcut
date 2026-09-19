@@ -103,9 +103,9 @@ export function useWorkflowEditorToolOrchestration() {
 
   const onLoadJson = useCallback(() => {
     try {
-      // Prefer the live textarea value over React state — Playwright (and fast paste+click)
-      // can fire Parse before the controlled onChange commit lands, which used to surface
-      // "JSON parsed to empty." despite the textarea already holding a valid graph.
+      // Prefer a non-empty live textarea over React state — Playwright (and fast paste+click)
+      // can fire Parse before the controlled onChange commit lands, or a remount can briefly
+      // clear the DOM while rawJsonRef still holds the last paste.
       const live =
         typeof document !== 'undefined'
           ? (
@@ -114,9 +114,12 @@ export function useWorkflowEditorToolOrchestration() {
               ) as HTMLTextAreaElement | null
             )?.value
           : undefined;
-      const source = live ?? rawJsonRef.current;
-      if (live != null && live !== rawJsonRef.current) {
-        setRawJson(live);
+      const source =
+        (live && live.trim() ? live : null) ??
+        (rawJsonRef.current.trim() ? rawJsonRef.current : null) ??
+        '';
+      if (source && source !== rawJsonRef.current) {
+        setRawJson(source);
       }
       const parsed = parseWorkflowJson(source);
       if (!parsed) {

@@ -118,17 +118,22 @@ test('studio analytics tab loads', async ({ page }) => {
 
 test('settings comfyui loader maps section loads', async ({ page }) => {
   // Loader maps live under workflow-patching (not the top of the ComfyUI tab).
-  // Deep link already expands essentials; avoid re-clicking the ComfyUI tab
-  // (that can drop `section` and hide Checkpoint map).
+  // Deep link expands essentials; requireAdvanced waits for the patching panel itself.
   await gotoStable(page, '/settings?tab=comfyui&section=workflow-patching');
-  await revealFullSettings(page);
+  await revealFullSettings(page, { requireAdvanced: true });
   // Reveal can remount the ComfyUI panel — re-resolve before scroll/assert.
   const patching = page.locator('#settings-comfyui-workflow-patching').first();
   await expect(patching).toBeVisible({ timeout: 45_000 });
-  await expect(patching.getByText(/Checkpoint map/i)).toBeVisible({ timeout: 30_000 });
   await expect(patching.getByRole('button', { name: /Merge suggested loader maps/i })).toBeVisible({
     timeout: 30_000,
   });
+  // Checkpoint map copy lives inside the collapsed "Expert loader maps" details.
+  const expertMaps = patching.locator('details').filter({ hasText: /Expert loader maps/i }).first();
+  await expect(expertMaps).toBeVisible({ timeout: 15_000 });
+  if (!(await expertMaps.getAttribute('open'))) {
+    await expertMaps.locator('summary').click();
+  }
+  await expect(patching.getByText(/Checkpoint map/i)).toBeVisible({ timeout: 30_000 });
 });
 
 test('settings workflow health panel loads', async ({ page }) => {

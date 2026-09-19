@@ -38,14 +38,24 @@ test.describe('Workflow editor', () => {
     const jsonField = page.getByTestId('workflow-editor-json');
     await jsonField.fill(sampleWorkflow);
     await expect(jsonField).toHaveValue(sampleWorkflow);
-    await jsonField.evaluate((el, value) => {
-      const ta = el as HTMLTextAreaElement;
+    // Set DOM value and click Parse in the same turn so a controlled remount cannot
+    // clear the textarea between fill and the click handler.
+    await page.evaluate(value => {
+      const ta = document.querySelector(
+        '[data-testid="workflow-editor-json"]'
+      ) as HTMLTextAreaElement | null;
+      if (!ta) {
+        return;
+      }
       const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
       setter?.call(ta, value);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
       ta.dispatchEvent(new Event('change', { bubbles: true }));
+      const parseBtn = Array.from(document.querySelectorAll('button')).find(button =>
+        /Parse JSON/i.test(button.textContent ?? '')
+      );
+      parseBtn?.click();
     }, sampleWorkflow);
-    await page.getByRole('button', { name: /Parse JSON/i }).click();
     await expect(page.getByTestId('workflow-editor-status')).toContainText(/Loaded|nodes/i, {
       timeout: 15_000,
     });
@@ -90,15 +100,24 @@ test.describe('Workflow editor', () => {
     const jsonField = page.getByTestId('workflow-editor-json');
     await jsonField.fill(sampleWorkflow);
     await expect(jsonField).toHaveValue(sampleWorkflow);
-    // Controlled textarea can clear between fill and click — re-seed from the live DOM path.
-    await jsonField.evaluate((el, value) => {
-      const ta = el as HTMLTextAreaElement;
+    // Set DOM value and click Parse in the same turn so a controlled remount cannot
+    // clear the textarea between fill and the click handler.
+    await page.evaluate(value => {
+      const ta = document.querySelector(
+        '[data-testid="workflow-editor-json"]'
+      ) as HTMLTextAreaElement | null;
+      if (!ta) {
+        return;
+      }
       const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
       setter?.call(ta, value);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
       ta.dispatchEvent(new Event('change', { bubbles: true }));
+      const parseBtn = Array.from(document.querySelectorAll('button')).find(button =>
+        /Parse JSON/i.test(button.textContent ?? '')
+      );
+      parseBtn?.click();
     }, sampleWorkflow);
-    await page.getByRole('button', { name: /Parse JSON/i }).click();
     await expect(page.getByTestId('workflow-editor-status')).toContainText(/Loaded|nodes/i, {
       timeout: 15_000,
     });
