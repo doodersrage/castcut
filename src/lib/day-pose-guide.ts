@@ -1781,40 +1781,18 @@ export function synthesizeStickSkeleton(
     rKnee = point(rHip.x + 0.08 + j(19), rHip.y + 0.14 + j(20));
     lAnkle = point(lKnee.x - 0.08 + j(21), 0.88 + j(22));
     rAnkle = point(rKnee.x + 0.04 + j(23), 0.86 + j(24));
-  } else if (intent.base === 'jump') {
-    lKnee = point(lHip.x - 0.06 * flip + j(17), lHip.y + 0.12 + j(18));
-    rKnee = point(rHip.x + 0.06 * flip + j(19), rHip.y + 0.14 + j(20));
-    lAnkle = point(lKnee.x - 0.04 * flip + j(21), lKnee.y + 0.14 + j(22));
-    rAnkle = point(rKnee.x + 0.04 * flip + j(23), rKnee.y + 0.12 + j(24));
-  } else if (intent.base === 'reach') {
-    // Tiptoe weight shift — one heel lifted, not parallel fashion feet.
-    lKnee = point(lHip.x - 0.04 * flip + j(17), lHip.y + 0.16 + j(18));
-    rKnee = point(rHip.x + 0.08 * flip + j(19), rHip.y + 0.14 + j(20));
-    lAnkle = point(lKnee.x - 0.02 * flip + j(21), 0.86 + j(22) * 0.02);
-    rAnkle = point(rKnee.x + 0.04 * flip + j(23), 0.78 + j(24) * 0.02);
   } else {
-    // Standing / lean — modest stagger only.
+    // Standing / lean only — jump/reach/walk/run return earlier in this function.
     lKnee = point(lHip.x - front * 0.2 * flip + j(17), lHip.y + 0.18 + j(18));
     rKnee = point(rHip.x + front * 0.22 * flip + j(19), rHip.y + 0.16 + j(20));
     lAnkle = point(lKnee.x - front * 0.18 * flip + j(21), 0.86 + j(22));
     rAnkle = point(rKnee.x + front * 0.2 * flip + j(23), 0.84 + j(24));
   }
 
-  // Reach: force one wrist clearly above the head so Edit cannot keep arms-at-sides.
-  let lElbow = leftArm.elbow;
-  let rElbow = rightArm.elbow;
-  let lWrist = leftArm.wrist;
-  let rWrist = rightArm.wrist;
-  if (intent.base === 'reach') {
-    if (intent.armRight === 'up' || intent.armRight === 'out') {
-      rElbow = point(rShoulder.x + 0.04 + j(31), rShoulder.y - 0.12 + j(32));
-      rWrist = point(rShoulder.x + 0.05 + j(33), Math.max(0.02, head.y - 0.08) + j(34));
-    }
-    if (intent.armLeft === 'up') {
-      lElbow = point(lShoulder.x - 0.04 + j(35), lShoulder.y - 0.12 + j(36));
-      lWrist = point(lShoulder.x - 0.05 + j(37), Math.max(0.02, head.y - 0.08) + j(38));
-    }
-  }
+  const lElbow = leftArm.elbow;
+  const rElbow = rightArm.elbow;
+  const lWrist = leftArm.wrist;
+  const rWrist = rightArm.wrist;
 
   return {
     head,

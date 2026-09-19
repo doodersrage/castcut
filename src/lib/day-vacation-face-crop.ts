@@ -17,8 +17,8 @@ export async function uploadDayOutfitVlPlate(input: {
 }): Promise<DayPlate | null> {
   const comfyUrl = input.comfyUrl?.trim() || undefined;
   const urls = collectIsolateSourceUrls({
-    imageUrl: input.imageUrl,
-    filename: input.filename,
+    imageUrl: input.imageUrl?.trim() || undefined,
+    filename: input.filename?.trim() || undefined,
     comfyUrl,
   });
   if (urls.length === 0) {
@@ -78,8 +78,8 @@ export async function resolveDayVacationFaceBreakPlate(input: {
   try {
     const comfyUrl = input.comfyUrl?.trim() || undefined;
     const urls = collectIsolateSourceUrls({
-      imageUrl: body.imageUrl ?? body.originalUrl,
-      filename: body.filename ?? body.originalFilename,
+      imageUrl: body.imageUrl?.trim() || body.originalUrl?.trim() || undefined,
+      filename: body.filename?.trim() || body.originalFilename?.trim() || undefined,
       comfyUrl,
     });
     const blob = await loadImageBlobFromUrls(urls);

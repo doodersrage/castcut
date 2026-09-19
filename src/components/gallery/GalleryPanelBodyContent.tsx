@@ -65,8 +65,10 @@ export default function GalleryPanelBodyContent({
         setCapWizardOpen={cap.setCapWizardOpen}
         capEvictionPreview={cap.capEvictionPreview}
         entriesLength={browse.entries.length}
+        filter={browse.filter}
         setFilter={browse.setFilter}
         exportCapKeepers={cap.exportCapKeepers}
+        archiveThenPurgeRest={cap.archiveThenPurgeRest}
         removeEntries={removeEntries}
         setFavorites={setFavorites}
       />

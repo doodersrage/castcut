@@ -191,9 +191,10 @@ export function useGalleryPanelOrchestrationCore({
     };
   }, [storeReady, entries.length, setGalleryEntriesSettled]);
 
-  const { retryFailedEntries, exportCapKeepers } = useGalleryPanelRecovery({
+  const { retryFailedEntries, exportCapKeepers, archiveThenPurgeRest } = useGalleryPanelRecovery({
     entries,
     setRequeueStatus: ui.setRequeueStatus,
+    removeEntries,
   });
 
   const selection = useGallerySelection(displayPlan.visibleEntries);
@@ -358,6 +359,7 @@ export function useGalleryPanelOrchestrationCore({
     renderGalleryCard,
     retryFailedEntries,
     exportCapKeepers,
+    archiveThenPurgeRest,
     showSkeleton,
     embeddingSearchActive,
     similarSearchActive,

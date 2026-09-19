@@ -118,7 +118,7 @@ export function buildZipBlob(files: ZipFileEntry[]): Blob {
 export async function downloadGalleryZipBundle(
   entries: ComfyGalleryEntry[],
   options?: { filename?: string }
-): Promise<number> {
+): Promise<{ entryCount: number; imageCount: number }> {
   // Per-entry sidecar.json is synchronous; only the /view image fetch is
   // async, so mapWithConcurrency parallelizes just that instead of
   // serializing every entry's fetch behind the last one (was a plain
@@ -161,8 +161,10 @@ export async function downloadGalleryZipBundle(
   const files: ZipFileEntry[] = perEntryFiles.flat();
 
   if (files.length === 0) {
-    return 0;
+    return { entryCount: 0, imageCount: 0 };
   }
+
+  const imageCount = files.filter(file => !file.filename.endsWith('/sidecar.json')).length;
 
   const blob = buildZipBlob(files);
   const url = URL.createObjectURL(blob);
@@ -171,5 +173,5 @@ export async function downloadGalleryZipBundle(
   anchor.download = options?.filename?.trim() || `gallery-export-${Date.now()}.zip`;
   anchor.click();
   URL.revokeObjectURL(url);
-  return entries.length;
+  return { entryCount: entries.length, imageCount };
 }

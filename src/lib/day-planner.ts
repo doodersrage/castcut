@@ -597,6 +597,14 @@ export const DAY_ISOLATE_WHITE_REPLACE =
   'Image 1 is the subject isolated on a blank white backdrop. Replace every white/studio void with the SETTING below — never leave a white background, ecommerce void, or cutout plate.';
 
 /**
+ * Face-break / Keep packshot / Image 3 pose-guide are often on white even when
+ * Image 1 is a face crop. Ban those voids AFTER pose unlock — never as a
+ * "fill the entire frame" lead that steals CFG-1 from Image 3 stance.
+ */
+export const DAY_REFERENCE_WHITE_VOID_FILL =
+  'Never leave Image 2 or Image 3 white as the scene background — keep the SETTING behind the posed subject (no ecommerce void, seamless studio sweep, or cutout plate).';
+
+/**
  * Default activity poses when the slot beat is empty — and always as a body-stance
  * baseline when a beat is present (vague mood beats alone leave Keep standing).
  */
@@ -2136,32 +2144,44 @@ export function buildDaySlotPrompt(input: {
           ? `SETTING (backdrop only — lighting and empty room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — lamp light and closed blinds only behind the beat pose; bare nightstand; opaque walls; nothing on the bed except sheets and the subject; never invent beach, sand, ocean, shoreline, wet sand, pier softcore, night-beach city-light pin-up, glass balcony door, sliding glass, outdoor railing, ocean through a window, coastal vista, or water outside the glass`
           : `SETTING (backdrop only — lighting and room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — environment for ${timeOfDay} behind the beat pose; closed blinds / drawn curtains; never invent walking, grocery, reading, drinking, or fashion-pin-up stances from the scene; never invent beach, sand, ocean, shoreline, night-beach softcore, glass balcony door, ocean through a window, or coastal vista`
         : dayMood === 'suggestive'
-          ? `SETTING (backdrop only — lighting and room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — environment for ${timeOfDay} behind the beat pose; never invent walking, grocery, reading, or bland fashion-portrait stances from the scene`
+          ? `SETTING (backdrop only — lighting and room; never override the beat body pose): ${setting} — environment for ${timeOfDay} behind the beat pose; never a blank white backdrop or ecommerce void; never invent walking, grocery, reading, or bland fashion-portrait stances from the scene`
           : dayMood === 'sport'
             ? `SETTING (venue/lighting only — never override the athletic beat pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — sport venue for ${timeOfDay} behind the mid-play pose; never invent café walks, grocery, or soft fashion-portrait stances from the scene`
             : dayMood === 'vacation'
-              ? `SETTING (venue/lighting only — never override the vacation beat pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — travel venue for ${timeOfDay} behind the pose; never invent office, grocery, bookstore, or stiff catalog stances from the scene`
+              ? `SETTING (venue/lighting only — never override the vacation beat pose): ${setting} — travel venue for ${timeOfDay} behind the pose; never a blank white backdrop or ecommerce void; never invent office, grocery, bookstore, or stiff catalog stances from the scene`
               : `SETTING (mandatory — replace Image 1 background entirely${plateIsolated ? ', including every white/studio void' : ''}): ${setting} — put them in this real location for ${timeOfDay}, with matching props, depth, and lighting — never a blank white backdrop`
       : isDayAdultMood(dayMood)
         ? soloSubject
           ? `SETTING (backdrop only — lighting and empty room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): bedroom sheets and lamp light with closed blinds for ${timeOfDay} — bare nightstand; opaque walls; nothing on the bed except sheets and the subject; never invent beach, sand, ocean, shoreline, night-beach softcore, glass balcony door, ocean through a window, or coastal vista`
           : `SETTING (backdrop only — lighting and room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): a coherent indoor location for ${timeOfDay} behind the beat pose — closed blinds; never a blank white backdrop; bare sheets only in the action area; never invent beach, sand, ocean, shoreline, night-beach softcore, glass balcony door, ocean through a window, or coastal vista`
         : dayMood === 'suggestive'
-          ? `SETTING (backdrop only — lighting and room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): a coherent location for ${timeOfDay} behind the beat pose — never a blank white backdrop`
+          ? `SETTING (backdrop only — lighting and room; never override the beat body pose): a coherent location for ${timeOfDay} behind the beat pose — never a blank white backdrop or ecommerce void`
           : dayMood === 'sport'
             ? `SETTING (venue/lighting only — never override the athletic beat pose${plateIsolated ? '; replace every white/studio void' : ''}): a coherent sport venue for ${timeOfDay} behind the mid-play pose — never a blank white backdrop`
             : dayMood === 'vacation'
-              ? `SETTING (venue/lighting only — never override the vacation beat pose${plateIsolated ? '; replace every white/studio void' : ''}): a coherent travel venue for ${timeOfDay} behind the pose — never a blank white backdrop`
+              ? `SETTING (venue/lighting only — never override the vacation beat pose): a coherent travel venue for ${timeOfDay} behind the pose — never a blank white backdrop or ecommerce void`
               : `SETTING (mandatory — replace Image 1 background entirely${plateIsolated ? ', including every white/studio void' : ''}): a coherent real-world location that fits ${timeOfDay}, with matching props and lighting — never a blank white backdrop`;
     // Always name a concrete body stance. Vague mood beats alone freeze Keep's standing plate.
     // Heat moods: beat owns the stance — setting must not fight the pose.
     const isolateLine = plateIsolated ? DAY_ISOLATE_WHITE_REPLACE : null;
-    const packshotWhiteLine =
-      plateIsolated && garmentReinforce
+    // Face-break Image 1 is a face crop (not isolated), but Image 2 Keep + Image 3
+    // pose-guide still sit on white. Keep early isolate tips short; put the clothed
+    // white-void ban AFTER pose unlock so CFG-1 does not fill SETTING instead of posing.
+    const referenceWhiteVoid =
+      !plateIsolated &&
+      (garmentReinforce || poseGuide || faceOnlyIdentity) &&
+      (dayMood === 'suggestive' ||
+        dayMood === 'vacation' ||
+        dayMood === 'sport' ||
+        isDayAdultMood(dayMood));
+    const earlyWhiteVoidLine = plateIsolated
+      ? garmentReinforce
         ? 'Image 2 white is packshot only — do not use Image 2 or Image 3 white as the scene background.'
-        : plateIsolated && poseGuide
+        : poseGuide
           ? 'Image 3 white is pose-guide only — fill Image 1 white with the SETTING, not a studio void.'
-          : null;
+          : null
+      : null;
+    const lateWhiteVoidLine = referenceWhiteVoid ? DAY_REFERENCE_WHITE_VOID_FILL : null;
     const heatPoseBeforeSetting = isDayHeatMood(dayMood) && !omitGarment;
     const nudeEditLead = omitGarment
       ? buildQwenRapidNudeEditLead(setting, {
@@ -2246,7 +2266,7 @@ export function buildDaySlotPrompt(input: {
                 : 'Image 2 is the Outfit Keep full-body try-on (or wardrobe packshot) — copy garment cut, colors, and fabric ONLY onto the new Image 3 pose; ignore Image 2 standing stance, arms, sofa, room, floor, and white void — never restage that indoor plate.'
               : 'Image 2 is a wardrobe packshot — use it only to reinforce garment cut, colors, and fabric from Image 1; ignore Image 2 layout.'
           : null,
-        packshotWhiteLine,
+        earlyWhiteVoidLine,
         adultForegroundLock,
         ...(heatPoseBeforeSetting
           ? [
@@ -2258,6 +2278,7 @@ export function buildDaySlotPrompt(input: {
               vacationPoseLock,
               sportKitLock,
               settingLine,
+              lateWhiteVoidLine,
             ]
           : [
               settingLine,
@@ -2268,6 +2289,7 @@ export function buildDaySlotPrompt(input: {
               adultBeatPoseLock,
               vacationPoseLock,
               sportKitLock,
+              lateWhiteVoidLine,
             ]),
         adultPropsLock,
         adultSoloActLock,
@@ -2350,7 +2372,7 @@ export function buildDaySlotPrompt(input: {
               : 'Image 2 is outfit color/cut reference only — copy garments onto the Image 3 pose; ignore Image 2 standing stance, room, and white void.'
             : 'Image 2 is a clothing-only packshot — apply that outfit to the subject.'
         : null,
-      packshotWhiteLine,
+      earlyWhiteVoidLine,
       adultForegroundLock,
       ...(heatPoseBeforeSetting
         ? [
@@ -2362,6 +2384,7 @@ export function buildDaySlotPrompt(input: {
             vacationPoseLock,
             sportKitLock,
             settingLine,
+            lateWhiteVoidLine,
           ]
         : [
             settingLine,
@@ -2372,6 +2395,7 @@ export function buildDaySlotPrompt(input: {
             adultBeatPoseLock,
             vacationPoseLock,
             sportKitLock,
+            lateWhiteVoidLine,
           ]),
       adultPropsLock,
       adultSoloActLock,

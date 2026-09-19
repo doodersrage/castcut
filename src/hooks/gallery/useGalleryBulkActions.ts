@@ -120,8 +120,10 @@ export function useGalleryBulkActions({
         setRequeueStatus('Building ZIP export…');
         void import('@/lib/gallery-zip-export')
           .then(({ downloadGalleryZipBundle }) => downloadGalleryZipBundle(selectedEntries))
-          .then(count => {
-            setRequeueStatus(`ZIP export prepared for ${count} entries.`);
+          .then(zip => {
+            setRequeueStatus(
+              `ZIP export prepared for ${zip.entryCount} entries (${zip.imageCount} image${zip.imageCount === 1 ? '' : 's'}).`
+            );
           });
       },
       onStitchVideos: () => {

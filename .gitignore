@@ -70,3 +70,6 @@ services/**/.venv/
 
 # Scratch cleanup folder from Claude's device-bridge git lock/tmp-object sweeps
 /_to_delete/
+
+# Local generation scratch (prompts / PNGs) — never commit
+/tmp-adult/

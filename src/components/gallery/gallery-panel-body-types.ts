@@ -68,7 +68,7 @@ export type GalleryPanelHeaderSlotProps = {
   entriesLength: number;
   uploadingImages: boolean;
   onRefreshPending: () => void;
-  onClearAll: () => void;
+  onArchiveThenPurge: () => void;
 };
 
 export type GalleryPanelCapProps = {
@@ -77,6 +77,7 @@ export type GalleryPanelCapProps = {
   setCapWizardOpen: (open: boolean) => void;
   capEvictionPreview: ComfyGalleryEntry[];
   exportCapKeepers: () => void;
+  archiveThenPurgeRest: () => void;
 };
 
 export type GalleryPanelAuxiliaryProps = {

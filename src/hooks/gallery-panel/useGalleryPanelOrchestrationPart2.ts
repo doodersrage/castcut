@@ -38,7 +38,6 @@ export function useGalleryPanelOrchestrationPart2(
     setReviewRatings,
     setReviewRating,
     refreshPending,
-    clearAll,
     activeJobs,
     galleryCapWarning,
     galleryStats,
@@ -60,6 +59,7 @@ export function useGalleryPanelOrchestrationPart2(
     renderGalleryCard,
     retryFailedEntries,
     exportCapKeepers,
+    archiveThenPurgeRest,
     showSkeleton,
     embeddingSearchActive,
     similarSearchActive,
@@ -116,7 +116,7 @@ export function useGalleryPanelOrchestrationPart2(
           entriesLength: entries.length,
           uploadingImages: ui.uploadingImages,
           onRefreshPending: () => void refreshPending(),
-          onClearAll: clearAll,
+          onArchiveThenPurge: archiveThenPurgeRest,
         },
         requeueStatus: ui.requeueStatus,
         cap: {
@@ -125,6 +125,7 @@ export function useGalleryPanelOrchestrationPart2(
           setCapWizardOpen: ui.setCapWizardOpen,
           capEvictionPreview: displayPlan.capEvictionPreview,
           exportCapKeepers,
+          archiveThenPurgeRest,
         },
         auxiliary: {
           duplicateClusters: displayPlan.duplicateClusters,

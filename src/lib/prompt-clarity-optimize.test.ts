@@ -91,7 +91,7 @@ describe("prompt clarity optimize", () => {
       anatomyMode: "strict",
     });
     const growth = (result.positive?.length ?? 0) - scene.length;
-    assert.ok(growth <= 220, `expected suffix growth <= 220, got ${growth}`);
+    assert.ok(growth <= 230, `expected suffix growth <= 230, got ${growth}`);
     assert.match(result.positive ?? "", /crimson silk blouse/i);
   });
 

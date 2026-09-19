@@ -15,7 +15,7 @@ export function GalleryPanelHeader({
   compact,
   limit,
   onRefreshPending,
-  onClearAll,
+  onArchiveThenPurge,
   onUpload,
   uploading = false,
 }: {
@@ -25,7 +25,7 @@ export function GalleryPanelHeader({
   compact: boolean;
   limit?: number;
   onRefreshPending: () => void;
-  onClearAll: () => void;
+  onArchiveThenPurge: () => void;
   onUpload?: () => void;
   uploading?: boolean;
 }) {
@@ -61,14 +61,11 @@ export function GalleryPanelHeader({
         {entriesLength > 0 ? (
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm('Clear all gallery entries?')) {
-                onClearAll();
-              }
-            }}
+            onClick={onArchiveThenPurge}
             className="ui-btn-ghost ui-btn-sm text-xs text-[var(--text-muted)] hover:text-[var(--tint-danger-text)]"
+            data-testid="gallery-archive-purge"
           >
-            Clear all
+            Archive & purge
           </button>
         ) : null}
         {!compact && limit && entriesLength > limit ? (

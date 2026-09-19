@@ -3,6 +3,8 @@
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { pullNamespaceFromServer, syncNamespaceToServer } from './storage-sync';
 import { capGalleryEntriesForLocalStorage } from './gallery-cap';
+import { loadCharacters } from './character-os';
+import { collectGalleryProtectedEntryIds } from './gallery-protected-ids';
 import { MAX_GALLERY_ENTRIES } from './comfyui-gallery-storage-meta';
 import {
   filterOutDeletedGalleryEntries,
@@ -168,7 +170,8 @@ export async function pullAndMergeGalleryFromServer(): Promise<GalleryServerPull
     };
   }
 
-  const capped = capGalleryEntriesForLocalStorage(merged, MAX_GALLERY_ENTRIES);
+  const protectedIds = collectGalleryProtectedEntryIds(merged, loadCharacters());
+  const capped = capGalleryEntriesForLocalStorage(merged, MAX_GALLERY_ENTRIES, protectedIds);
   await saveComfyGalleryAsync(capped.kept);
 
   if (skippedDeleted > 0 || droppedLocalDeleted > 0 || capped.evicted.length > 0) {

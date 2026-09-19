@@ -34,6 +34,8 @@ import { initGalleryStore } from './app-db-init';
 import { getActiveUserId } from './user-scope';
 import { scheduleUserAnalyticsSync } from './user-analytics-sync';
 import { capGalleryEntriesForLocalStorage } from './gallery-cap';
+import { loadCharacters } from './character-os';
+import { collectGalleryProtectedEntryIds } from './gallery-protected-ids';
 import { rememberGalleryDeletedIds } from './gallery-deleted-ids';
 import { galleryEntryCorpus } from './embedding-rank';
 import {
@@ -310,7 +312,12 @@ export function saveComfyGallery(
     agePruned,
     shared.galleryWorkflowMaxBytes ?? 8 * 1024 * 1024
   );
-  const { kept, evicted } = capGalleryEntriesForLocalStorage(pruned, MAX_GALLERY_ENTRIES);
+  const protectedIds = collectGalleryProtectedEntryIds(pruned, loadCharacters());
+  const { kept, evicted } = capGalleryEntriesForLocalStorage(
+    pruned,
+    MAX_GALLERY_ENTRIES,
+    protectedIds
+  );
   setGalleryCache(kept);
   notifyGalleryUpdated();
   scheduleUserAnalyticsSync();
@@ -346,7 +353,8 @@ export async function saveComfyGalleryAsync(entries: ComfyGalleryEntry[]): Promi
     return;
   }
 
-  const { kept } = capGalleryEntriesForLocalStorage(entries, MAX_GALLERY_ENTRIES);
+  const protectedIds = collectGalleryProtectedEntryIds(entries, loadCharacters());
+  const { kept } = capGalleryEntriesForLocalStorage(entries, MAX_GALLERY_ENTRIES, protectedIds);
   setGalleryCache(kept);
   await initGalleryStore();
   await persistGalleryCache();

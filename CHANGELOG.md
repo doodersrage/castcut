@@ -45,6 +45,8 @@ v1.9 closed the Play loop; 2.0 makes the film recognizably that Cast lead on Com
 - **Cut audio bed upload:** Day/Story/Cast Cut accept a local audio file (MP3/WAV/FLAC/OGG/M4A) via Upload; URL paste remains as a fallback.
 - **Setting presets:** Day / Story location dropdown expanded (~70 places) — home, city, travel, leisure, and a few cinematic picks.
 - **Clean skin lock:** Day/Outfit/Story I2I queues push anti-tattoo negatives + a short “unmarked skin” cue (skipped when Cast appearance names tattoos).
+- **Day clothed white-void lock:** Suggestive/Vacation ban Image 2/3 white voids *after* pose unlock (not a front-loaded “fill the frame” BACKGROUND LOCK that stole CFG-1 stance). Rapid negatives still block blank studio/ecommerce cutouts.
+- **Gallery Archive & purge:** Gallery header and Cap cleanup ZIP then remove non-keepers; favorites, 4–5★, Cast look plates, and look keepers stay.
 - **Gallery skin refine:** Soft-pass from Gallery card / compare — default **Klein 9B Base** (denoise 1). Model in Settings → Auto-improve. Auto-after Day/Story stills removed (Gallery-only).
 - **Intimate Solo heat:** solo masturbation beat pool rewritten with more explicit stances (knees up, hips high, wall lean, pillow grind, shower ledge); Image 3 solo wireframes open the thighs / arch the back; SOLO ACT copy demands readable arousal instead of polite pin-ups.
 - **Cast plate sync:** switching Cast clears Outfit try-on, Day isolate plate, and Story From-photo refs (then reseeds from the new Cast). Day/Outfit deep links use Fresh apply so old IP/plates cannot stick.

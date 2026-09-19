@@ -8,20 +8,25 @@ import {
 } from '@/lib/comfyui-gallery-export';
 import { toastBulkQueueSummary } from '@/lib/app-toast';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import { loadCharacters } from '@/lib/character-os';
+import { partitionGalleryForArchivePurge } from '@/lib/gallery-protected-ids';
 
 export type UseGalleryPanelRecoveryOptions = {
   entries: ComfyGalleryEntry[];
   setRequeueStatus: Dispatch<SetStateAction<string | null>>;
+  removeEntries: (ids: string[]) => void;
 };
 
 export type UseGalleryPanelRecoveryResult = {
   retryFailedEntries: (targets: ComfyGalleryEntry[], mode?: 'same' | 'new' | 'exact') => void;
   exportCapKeepers: () => void;
+  archiveThenPurgeRest: () => void;
 };
 
 export function useGalleryPanelRecovery({
   entries,
   setRequeueStatus,
+  removeEntries,
 }: UseGalleryPanelRecoveryOptions): UseGalleryPanelRecoveryResult {
   const retryFailedEntries = useCallback(
     (targets: ComfyGalleryEntry[], mode: 'same' | 'new' | 'exact' = 'same') => {
@@ -78,8 +83,43 @@ export function useGalleryPanelRecovery({
     });
   }, [entries, setRequeueStatus]);
 
+  const archiveThenPurgeRest = useCallback(() => {
+    const characters = loadCharacters();
+    const { protected: kept, purgeable } = partitionGalleryForArchivePurge(entries, characters);
+    if (purgeable.length === 0) {
+      setRequeueStatus(
+        kept.length > 0
+          ? `Nothing to purge — ${kept.length} keeper(s) / Cast look plate(s) stay.`
+          : 'Gallery is empty.'
+      );
+      return;
+    }
+    if (
+      !window.confirm(
+        `Download a ZIP of ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'}, then remove them from this device?\n\nFavorites, 4–5★, Cast look plates, and look keepers stay (${kept.length} kept).`
+      )
+    ) {
+      return;
+    }
+    setRequeueStatus(`Archiving ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'}…`);
+    void import('@/lib/gallery-archive-purge')
+      .then(({ archiveThenPurgeGalleryEntries }) =>
+        archiveThenPurgeGalleryEntries(entries, {
+          removeEntries,
+          characters,
+        })
+      )
+      .then(result => {
+        setRequeueStatus(result.message);
+      })
+      .catch(() => {
+        setRequeueStatus('Archive & purge failed — nothing was deleted.');
+      });
+  }, [entries, removeEntries, setRequeueStatus]);
+
   return {
     retryFailedEntries,
     exportCapKeepers,
+    archiveThenPurgeRest,
   };
 }

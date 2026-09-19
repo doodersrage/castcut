@@ -626,6 +626,56 @@ describe('day-planner', () => {
     assert.match(zip, /standing try-on/i);
   });
 
+  it('buildDaySlotPrompt suggestive dance face-break keeps CRITICAL pose before white-void ban', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[2]!,
+        location: 'soft-lit bedroom with rumpled sheets',
+        sceneHints:
+          'dancing with both arms raised high overhead and one knee lifted mid-step, hips mid-sway',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'suggestive',
+      faceOnlyIdentity: true,
+      garmentReinforce: true,
+    });
+    assert.match(prompt, /BOTH arms raised high overhead|both arms overhead/i);
+    assert.match(prompt, /one knee lifted/i);
+    assert.match(prompt, /fashion stand.*FAILED|FAILED.*fashion stand|planted fashion stand/i);
+    assert.match(prompt, /POSE FIRST/i);
+    assert.match(prompt, /Never leave Image 2 or Image 3 white/i);
+    assert.doesNotMatch(prompt, /fill the entire frame with the SETTING|BACKGROUND LOCK/i);
+    const danceIdx = prompt.search(/Invent a FULL BODY mid-dance|BOTH arms raised/i);
+    const poseFirstIdx = prompt.search(/POSE FIRST/i);
+    const voidIdx = prompt.search(/Never leave Image 2 or Image 3 white/i);
+    assert.ok(danceIdx >= 0 && poseFirstIdx > danceIdx && voidIdx > poseFirstIdx);
+  });
+
+  it('buildDaySlotPrompt suggestive setting bans blank white backdrop even without isolate', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[2]!,
+        location: 'soft-lit bedroom with rumpled sheets',
+        sceneHints: 'leaning in a doorway with one shoulder on the frame, hip cocked',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      garmentReinforce: true,
+      dayMood: 'suggestive',
+      plateIsolated: false,
+    });
+    assert.match(prompt, /never a blank white backdrop/i);
+    assert.match(prompt, /Never leave Image 2 or Image 3 white|Image 2 white is packshot|Image 3 white is pose-guide/i);
+    const poseIdx = prompt.search(/POSE FIRST|Invent a FULL BODY|standing try-on plate/i);
+    const voidIdx = prompt.search(/Never leave Image 2 or Image 3 white|BACKGROUND LOCK|fill the entire frame/i);
+    assert.ok(poseIdx >= 0, 'pose unlock present');
+    assert.ok(voidIdx < 0 || poseIdx < voidIdx, 'pose unlock must precede white-void ban');
+    assert.doesNotMatch(prompt, /fill the entire frame with the SETTING/i);
+  });
+
   it('buildDaySlotPrompt suggestive zip face-break locks exact Keep garment not bikini', () => {
     const prompt = buildDaySlotPrompt({
       slot: {
@@ -646,6 +696,12 @@ describe('day-planner', () => {
     assert.match(prompt, /EXACT Outfit Keep garment|exact Image 2 garment|never invent a bikini/i);
     assert.match(prompt, /zip-twist|LOOK_BACK|hands on zipper/i);
     assert.match(prompt, /navy floral mini dress/i);
+    assert.match(prompt, /Never leave Image 2 or Image 3 white|never a blank white backdrop/i);
+    assert.match(prompt, /fashion stand means the edit FAILED|planted fashion stand/i);
+    const poseIdx = prompt.search(/Invent a FULL BODY look-back|zip-twist/i);
+    const voidIdx = prompt.search(/Never leave Image 2 or Image 3 white/i);
+    assert.ok(poseIdx >= 0 && voidIdx > poseIdx, 'face-break pose before white-void ban');
+    assert.doesNotMatch(prompt, /fill the entire frame with the SETTING/i);
   });
 
   it('buildDaySlotPrompt vacation mid-stride face-break invents body from Image 3', () => {
@@ -667,6 +723,11 @@ describe('day-planner', () => {
     assert.match(prompt, /Image 2 is the Outfit Keep|Image 2 is the Outfit Keep full-body|outfit color\/cut/i);
     assert.match(prompt, /Image 3/i);
     assert.doesNotMatch(prompt, /Image 1 is the Outfit Keep try-on \(face \+ worn kit\)/i);
+    assert.match(prompt, /Never leave Image 2 or Image 3 white|never a blank white backdrop/i);
+    const poseIdx = prompt.search(/Invent a FULL BODY mid-stride|MID-STRIDE/i);
+    const voidIdx = prompt.search(/Never leave Image 2 or Image 3 white/i);
+    assert.ok(poseIdx >= 0 && voidIdx > poseIdx, 'vacation pose before white-void ban');
+    assert.doesNotMatch(prompt, /fill the entire frame with the SETTING/i);
   });
 
   it('buildDaySlotPrompt vacation mid-stride face-break works on Cast plate source', () => {

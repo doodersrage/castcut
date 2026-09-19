@@ -10,27 +10,34 @@ function entryTimestamp(entry: GalleryCapEntry): number {
   return entry.completedAt ?? entry.queuedAt ?? 0;
 }
 
-export function isGalleryCapKeeper(entry: GalleryCapEntry): boolean {
+export function isGalleryCapKeeper(
+  entry: GalleryCapEntry,
+  protectedIds?: ReadonlySet<string>
+): boolean {
+  if (protectedIds?.has(entry.id)) {
+    return true;
+  }
   return Boolean(entry.favorite) || (entry.reviewRating ?? 0) >= GALLERY_CAP_KEEPER_MIN_RATING;
 }
 
 /** Entries that would be dropped if the local cap were applied now (or next trim). */
 export function previewGalleryCapEviction<T extends GalleryCapEntry>(
   entries: T[],
-  max: number
+  max: number,
+  protectedIds?: ReadonlySet<string>
 ): T[] {
   if (max <= 0) {
     return [];
   }
   if (entries.length > max) {
-    return capGalleryEntriesForLocalStorage(entries, max).evicted;
+    return capGalleryEntriesForLocalStorage(entries, max, protectedIds).evicted;
   }
   const headroom = Math.max(8, Math.ceil(max * 0.05));
   const projectedMax = Math.max(1, max - headroom);
   if (entries.length <= projectedMax) {
     return [];
   }
-  return capGalleryEntriesForLocalStorage(entries, projectedMax).evicted;
+  return capGalleryEntriesForLocalStorage(entries, projectedMax, protectedIds).evicted;
 }
 
 export type GalleryCapResult<T extends GalleryCapEntry> = {
@@ -68,7 +75,8 @@ export function assessGalleryCapWarning(
  */
 export function capGalleryEntriesForLocalStorage<T extends GalleryCapEntry>(
   entries: T[],
-  max: number
+  max: number,
+  protectedIds?: ReadonlySet<string>
 ): GalleryCapResult<T> {
   if (entries.length <= max || max < 0) {
     return { kept: entries, evicted: [] };
@@ -77,7 +85,7 @@ export function capGalleryEntriesForLocalStorage<T extends GalleryCapEntry>(
   const keepers: T[] = [];
   const rest: T[] = [];
   for (const entry of entries) {
-    if (isGalleryCapKeeper(entry)) {
+    if (isGalleryCapKeeper(entry, protectedIds)) {
       keepers.push(entry);
     } else {
       rest.push(entry);

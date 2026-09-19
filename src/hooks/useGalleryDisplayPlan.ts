@@ -6,6 +6,8 @@ import {
   type GalleryBrowsePageClampContext,
 } from '@/hooks/useGalleryBrowseState';
 import { previewGalleryCapEviction } from '@/lib/gallery-cap';
+import { loadCharacters } from '@/lib/character-os';
+import { collectGalleryProtectedEntryIds } from '@/lib/gallery-protected-ids';
 import { clusterGalleryDuplicates } from '@/lib/gallery-duplicate-clusters';
 import {
   buildGalleryLineageGroups,
@@ -30,6 +32,22 @@ import {
 } from '@/lib/comfyui-gallery';
 import type { GalleryDensity } from '@/lib/gallery-density';
 import type { ExperimentGroup } from '@/lib/experiment-groups';
+
+/**
+ * Compact embeds (Settings Data) set showFilters=false so URL/filter chrome stays
+ * off — but cap actions like atRiskOnly must still reshape the grid.
+ */
+export function resolveGalleryDisplaySource(input: {
+  showFilters: boolean;
+  filter: Pick<ComfyGalleryFilter, 'atRiskOnly'>;
+  filteredEntries: ComfyGalleryEntry[];
+  entries: ComfyGalleryEntry[];
+}): ComfyGalleryEntry[] {
+  if (input.showFilters || input.filter.atRiskOnly) {
+    return input.filteredEntries;
+  }
+  return input.entries;
+}
 
 export type UseGalleryDisplayPlanOptions = {
   showFilters: boolean;
@@ -89,7 +107,12 @@ export function useGalleryDisplayPlan({
   visionInboxOpen,
   visionInboxSkipIds,
 }: UseGalleryDisplayPlanOptions): UseGalleryDisplayPlanResult {
-  const filteredSource = showFilters ? filteredEntries : entries;
+  const filteredSource = resolveGalleryDisplaySource({
+    showFilters,
+    filter,
+    filteredEntries,
+    entries,
+  });
   const sortedSource = useMemo(
     () => (paginationEnabled ? sortGalleryEntries(filteredSource, sort) : filteredSource),
     [filteredSource, paginationEnabled, sort]
@@ -168,10 +191,13 @@ export function useGalleryDisplayPlan({
         : null,
     [entries, filter.duplicatesOnly, showFilters, duplicateClusters.length]
   );
-  const capEvictionPreview = useMemo(
-    () => (capWizardOpen ? previewGalleryCapEviction(entries, MAX_GALLERY_ENTRIES) : []),
-    [capWizardOpen, entries]
-  );
+  const capEvictionPreview = useMemo(() => {
+    if (!capWizardOpen) {
+      return [];
+    }
+    const protectedIds = collectGalleryProtectedEntryIds(entries, loadCharacters());
+    return previewGalleryCapEviction(entries, MAX_GALLERY_ENTRIES, protectedIds);
+  }, [capWizardOpen, entries]);
   const showVisionInbox = showFilters && (filter.needsVisionReview || visionInboxOpen);
   const visionInboxQueue = useMemo(
     () =>

@@ -15,6 +15,17 @@ function entry(
 }
 
 describe("capGalleryEntriesForLocalStorage", () => {
+  it("keeps Cast look plate ids when protectedIds are provided", () => {
+    const entries = [
+      entry("old-plate", { queuedAt: 1 }),
+      entry("new-1", { queuedAt: 3 }),
+      entry("new-2", { queuedAt: 4 }),
+    ];
+    const result = capGalleryEntriesForLocalStorage(entries, 2, new Set(["old-plate"]));
+    assert.ok(result.kept.some(e => e.id === "old-plate"));
+    assert.equal(result.evicted.some(e => e.id === "old-plate"), false);
+  });
+
   it("returns entries unchanged when under the cap", () => {
     const entries = [entry("a"), entry("b")];
     const result = capGalleryEntriesForLocalStorage(entries, 5);
