@@ -114,6 +114,8 @@ describe('day-vacation', () => {
     assert.match(locks.moodLine, /standing catalog|standing fashion/i);
     assert.match(locks.poseLock, /POSE LOCK/i);
     assert.match(locks.keepUnlock, /standing try-on plate/i);
+    assert.match(locks.keepUnlock, /IDENTITY CRITICAL|same face|exact hair color/i);
+    assert.doesNotMatch(locks.keepUnlock, /matching Image 3/i);
     assert.equal(locks.poseClass, 'SEATED');
     assert.doesNotMatch(locks.moodLine, /\b(doggy|mid-sex|missionary|oral)\b/i);
 
@@ -240,6 +242,31 @@ describe('day-vacation', () => {
     assert.equal(
       dayClothedHeatPoseNeedsBodyUnlock('leaning in a doorway', 'everyday'),
       false
+    );
+    // Edit-2511 pose-sticky: sit/lounge also needs face-break (Keep stand + white void).
+    assert.equal(
+      dayClothedHeatPoseNeedsBodyUnlock(
+        'RELAXING on a spa chaise in a robe',
+        'vacation',
+        { poseStickyModel: true }
+      ),
+      true
+    );
+    assert.equal(
+      dayClothedHeatPoseNeedsBodyUnlock(
+        'RELAXING on a spa chaise in a robe',
+        'vacation',
+        { poseStickyModel: false }
+      ),
+      false
+    );
+    assert.equal(
+      dayClothedHeatPoseNeedsBodyUnlock(
+        'reclining on a sunlit couch, short hem riding up',
+        'suggestive',
+        { poseStickyModel: true }
+      ),
+      true
     );
   });
 });

@@ -16,6 +16,8 @@ export function GalleryPanelHeader({
   limit,
   onRefreshPending,
   onArchiveThenPurge,
+  onFinishPendingPurge,
+  onPurgeRestOnly,
   onUpload,
   uploading = false,
 }: {
@@ -26,6 +28,8 @@ export function GalleryPanelHeader({
   limit?: number;
   onRefreshPending: () => void;
   onArchiveThenPurge: () => void;
+  onFinishPendingPurge: () => void;
+  onPurgeRestOnly: () => void;
   onUpload?: () => void;
   uploading?: boolean;
 }) {
@@ -59,14 +63,32 @@ export function GalleryPanelHeader({
           </span>
         ) : null}
         {entriesLength > 0 ? (
-          <button
-            type="button"
-            onClick={onArchiveThenPurge}
-            className="ui-btn-ghost ui-btn-sm text-xs text-[var(--text-muted)] hover:text-[var(--tint-danger-text)]"
-            data-testid="gallery-archive-purge"
-          >
-            Archive & purge
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={onArchiveThenPurge}
+              className="ui-btn-ghost ui-btn-sm text-xs text-[var(--text-muted)] hover:text-[var(--tint-danger-text)]"
+              data-testid="gallery-archive-purge"
+            >
+              Archive & purge
+            </button>
+            <button
+              type="button"
+              onClick={onFinishPendingPurge}
+              className="ui-btn-ghost ui-btn-sm text-xs text-[var(--text-muted)] hover:text-[var(--tint-danger-text)]"
+              data-testid="gallery-finish-purge"
+            >
+              Finish purge
+            </button>
+            <button
+              type="button"
+              onClick={onPurgeRestOnly}
+              className="ui-btn-ghost ui-btn-sm text-xs text-[var(--tint-danger-text)]"
+              data-testid="gallery-purge-rest"
+            >
+              Purge rest
+            </button>
+          </>
         ) : null}
         {!compact && limit && entriesLength > limit ? (
           <ButtonLink href="/gallery" size="sm">

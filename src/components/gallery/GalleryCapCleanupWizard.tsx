@@ -10,6 +10,8 @@ type GalleryCapCleanupWizardProps = {
   onShowAtRisk: () => void;
   onExportKeepers: () => void;
   onArchiveThenPurge: () => void;
+  onFinishPendingPurge: () => void;
+  onPurgeRestOnly: () => void;
   onDeleteEvicted: () => void;
   onFavoriteEvicted: () => void;
   onClose: () => void;
@@ -22,6 +24,8 @@ export default function GalleryCapCleanupWizard({
   onShowAtRisk,
   onExportKeepers,
   onArchiveThenPurge,
+  onFinishPendingPurge,
+  onPurgeRestOnly,
   onDeleteEvicted,
   onFavoriteEvicted,
   onClose,
@@ -72,6 +76,22 @@ export default function GalleryCapCleanupWizard({
           data-testid="gallery-cap-archive-purge"
         >
           Archive & purge rest
+        </button>
+        <button
+          type="button"
+          className="ui-btn-ghost ui-btn-sm text-xs"
+          onClick={onFinishPendingPurge}
+          data-testid="gallery-cap-finish-purge"
+        >
+          Finish purge
+        </button>
+        <button
+          type="button"
+          className="ui-btn-ghost ui-btn-sm text-xs text-[var(--tint-danger-text)]"
+          onClick={onPurgeRestOnly}
+          data-testid="gallery-cap-purge-rest"
+        >
+          Purge rest
         </button>
         <button
           type="button"

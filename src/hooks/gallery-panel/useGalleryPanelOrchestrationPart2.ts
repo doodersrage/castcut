@@ -60,6 +60,8 @@ export function useGalleryPanelOrchestrationPart2(
     retryFailedEntries,
     exportCapKeepers,
     archiveThenPurgeRest,
+    purgeRestOnly,
+    finishPendingArchivePurge,
     showSkeleton,
     embeddingSearchActive,
     similarSearchActive,
@@ -117,6 +119,8 @@ export function useGalleryPanelOrchestrationPart2(
           uploadingImages: ui.uploadingImages,
           onRefreshPending: () => void refreshPending(),
           onArchiveThenPurge: archiveThenPurgeRest,
+          onFinishPendingPurge: finishPendingArchivePurge,
+          onPurgeRestOnly: purgeRestOnly,
         },
         requeueStatus: ui.requeueStatus,
         cap: {
@@ -126,6 +130,8 @@ export function useGalleryPanelOrchestrationPart2(
           capEvictionPreview: displayPlan.capEvictionPreview,
           exportCapKeepers,
           archiveThenPurgeRest,
+          finishPendingArchivePurge,
+          purgeRestOnly,
         },
         auxiliary: {
           duplicateClusters: displayPlan.duplicateClusters,

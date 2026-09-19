@@ -50,7 +50,7 @@ describe("queue-prompt-prep Rapid AIO / Lightning", () => {
     assert.match(result.negative ?? "", /moire|moiré/i);
     assert.match(result.negative ?? "", /neon capsule|pose guide leak|stick figure/i);
     // Neon magenta/cyan cue language is rewritten to gray-outline (Image 3 stays).
-    assert.match(result.positive ?? "", /flat gray OUTLINE/i);
+    assert.match(result.positive ?? "", /gray OUTLINE pose guide on white/i);
     assert.equal(/bright magenta\/cyan/i.test(result.positive ?? ""), false);
     assert.match(result.positive ?? "", /never paint Image 3|finished photograph only/i);
     // Full pose-guide negative dump must not blow past CFG-1 (spot-check a long unique term).
@@ -109,9 +109,50 @@ describe("queue-prompt-prep Rapid AIO / Lightning", () => {
       anatomyMode: "standard",
       tool: "day",
     });
-    assert.match(result.positive ?? "", /vacation travel still|one woman alone|clothes or swimsuit stay on|beat stance matching Image 3|relaxing or reclining/i);
+    assert.match(result.positive ?? "", /vacation travel still|one woman alone|clothes or swimsuit stay on|same face and hair as Image 1|relaxing or reclining/i);
     assert.doesNotMatch(result.positive ?? "", /upright travel pose|mid-self-touch with fingers on vulva|exactly TWO adults mid-sex|\bdoggy\b/i);
     assert.match(result.negative ?? "", /doggy style|man behind her|muscular man|mid-sex|hands and knees|stiff standing fashion plate|arms at sides standing still/i);
+  });
+
+  it('applies Vacation clothed-heat packs on Edit-2511 Lightning (not Rapid-only)', () => {
+    const result = applyQueuePromptSteering({
+      positive:
+        "MOOD: vacation travel day — pool\nPOSE FIRST: MID-STRIDE collecting shells\nImage 3 is a neon magenta/cyan pose guide on white",
+      negative: "blurry",
+      model: "qwen-image-edit-2511-lightning-8",
+      realismMode: "realistic",
+      anatomyMode: "standard",
+      tool: "day",
+    });
+    assert.match(result.positive ?? "", /vacation travel still|clothes or swimsuit stay on|one woman alone/i);
+    assert.match(result.positive ?? "", /full body walking mid-step|one foot clearly ahead/i);
+    assert.match(result.positive ?? "", /finished photograph only|natural photograph|continuous arms|gray OUTLINE pose guide on white/i);
+    assert.match(result.negative ?? "", /stiff standing fashion plate|white void background|doggy style|floating limb|magenta|neon capsule|purple/i);
+  });
+
+  it('applies Suggestive clothed-heat packs on Edit-2511 Lightning', () => {
+    const result = applyQueuePromptSteering({
+      positive: "MOOD: suggestive heat — clothed flirt\nPOSE FIRST: leaning in a doorway in lingerie",
+      negative: "blurry",
+      model: "qwen-image-edit-2511-lightning-8",
+      realismMode: "realistic",
+      anatomyMode: "standard",
+      tool: "day",
+    });
+    assert.match(result.positive ?? "", /clothed suggestive heat|bottoms on/i);
+    assert.match(result.negative ?? "", /bikini|white void background|doggy style/i);
+  });
+
+  it('leaves plain Lightning T2I prompts without Vacation packs', () => {
+    const result = applyQueuePromptSteering({
+      positive: "a cyclist on a mountain trail",
+      negative: "blurry",
+      model: "qwen-image-2512-lightning-8",
+      realismMode: "realistic",
+      anatomyMode: "standard",
+    });
+    assert.doesNotMatch(result.positive ?? "", /vacation travel still|clothed suggestive heat/i);
+    assert.doesNotMatch(result.negative ?? "", /stiff standing fashion plate|white void background/i);
   });
 
   it("uses duo adult prop pack on Rapid AIO instead of solo self-touch", () => {

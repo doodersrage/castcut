@@ -886,6 +886,24 @@ export function requeueSkinRefineFromGalleryEntry(
 }
 
 /**
+ * Disabled. Denoise-1 Edit rewrites of Lightning Day stills produced clones,
+ * mesh artifacts, and crushed lighting. Identity stays on the first pass.
+ */
+export async function requeueDayVacationFaceRestoreFromGalleryEntry(
+  _entry: ComfyGalleryEntry,
+  _options?: {
+    qualityProfile?: Extract<QueueQualityProfile, 'final' | 'max'>;
+    onStatus?: (message: string) => void;
+    force?: boolean;
+  }
+): Promise<RequeueComfyJobResult> {
+  return {
+    ok: false,
+    error: 'Auto face restore is disabled — it was rewriting whole Lightning stills.',
+  };
+}
+
+/**
  * Requeues the gallery output through a face-detailer / ReActor-style workflow.
  *
  * Requires a dedicated library workflow (Settings → workflow library, pinned

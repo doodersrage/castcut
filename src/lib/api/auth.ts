@@ -48,6 +48,17 @@ export function isTrustedSameOriginRequest(request: Request): boolean {
     return true;
   }
 
+  // Embedded browsers / automation often omit Origin + Sec-Fetch-Site but still
+  // send Referer for same-tab fetches (e.g. Cursor IDE browser login).
+  const referer = request.headers.get('referer');
+  if (referer) {
+    try {
+      return new URL(referer).origin === requestUrl.origin;
+    } catch {
+      return false;
+    }
+  }
+
   // Non-browser clients (curl, ComfyUI nodes) omit Origin/Sec-Fetch-Site.
   // Those must authenticate when a token is configured.
   return false;

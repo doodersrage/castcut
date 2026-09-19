@@ -23,6 +23,15 @@ export function isQwenEdit2511PoseStickyModel(model?: string | null): boolean {
 }
 
 /**
+ * Lightning 2511 cannot hold a face crop as identity (no IP/InstantID) and
+ * pose-guide Image 3 leaks as a color overlay. Use the full Keep/Cast plate
+ * as Image 1 with ReferenceLatent and drive pose from text.
+ */
+export function isDayVacationLightningIdentityVlModel(model?: string | null): boolean {
+  return isQwenEdit2511PoseStickyModel(model) && /lightning/i.test(String(model ?? ''));
+}
+
+/**
  * Optional Image 2 packshot while Keep stays Image 1 — same garment-reinforce
  * pattern Outfit/Fitting uses. Never put Cast on Image 1 for Day Keep restages.
  * Custom BYO clothing attaches for Keep (reinforce) and Cast (try-on Image 2).

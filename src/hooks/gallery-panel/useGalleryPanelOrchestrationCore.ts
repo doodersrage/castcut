@@ -191,7 +191,13 @@ export function useGalleryPanelOrchestrationCore({
     };
   }, [storeReady, entries.length, setGalleryEntriesSettled]);
 
-  const { retryFailedEntries, exportCapKeepers, archiveThenPurgeRest } = useGalleryPanelRecovery({
+  const {
+    retryFailedEntries,
+    exportCapKeepers,
+    archiveThenPurgeRest,
+    purgeRestOnly,
+    finishPendingArchivePurge,
+  } = useGalleryPanelRecovery({
     entries,
     setRequeueStatus: ui.setRequeueStatus,
     removeEntries,
@@ -360,6 +366,8 @@ export function useGalleryPanelOrchestrationCore({
     retryFailedEntries,
     exportCapKeepers,
     archiveThenPurgeRest,
+    purgeRestOnly,
+    finishPendingArchivePurge,
     showSkeleton,
     embeddingSearchActive,
     similarSearchActive,

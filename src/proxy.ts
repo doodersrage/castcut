@@ -45,7 +45,19 @@ function isTrustedSameOrigin(request: NextRequest): boolean {
     }
   }
   const site = request.headers.get('sec-fetch-site');
-  return site === 'same-origin' || site === 'none';
+  if (site === 'same-origin' || site === 'none') {
+    return true;
+  }
+  // Embedded browsers (Cursor IDE) often omit Origin + Sec-Fetch-Site on fetch.
+  const referer = request.headers.get('referer');
+  if (referer) {
+    try {
+      return new URL(referer).origin === request.nextUrl.origin;
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 // Matches ONLY the shared PROMPT_API_TOKEN secret. This gate decides whether

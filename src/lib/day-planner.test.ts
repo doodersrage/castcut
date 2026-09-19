@@ -406,6 +406,38 @@ describe('day-planner', () => {
     assert.equal(evening?.status, 'completed');
   });
 
+  it('promoteDayStillsToSoftPassChildren skips auto face-restore children', () => {
+    const stills = upsertDaySlotStill(undefined, {
+      slotId: 'evening',
+      promptId: 'parent-job',
+      status: 'completed',
+      imageUrl: 'https://example.com/parent.jpg',
+    });
+    const { stills: next, changed } = promoteDayStillsToSoftPassChildren(stills, [
+      {
+        id: 'parent-entry',
+        promptId: 'parent-job',
+        status: 'completed',
+        imageUrl: 'https://example.com/parent.jpg',
+        queuedAt: 1,
+      },
+      {
+        id: 'child-entry',
+        promptId: 'restore-job',
+        parentGalleryEntryId: 'parent-entry',
+        derivedKind: 'soft-pass',
+        status: 'completed',
+        imageUrl: 'https://example.com/wrecked.jpg',
+        queuedAt: 2,
+        prompt: 'Change only the face of the person in Image 1 to match the person in Image 2.',
+      },
+    ]);
+    assert.equal(changed, false);
+    const evening = next.find(s => s.slotId === 'evening');
+    assert.equal(evening?.promptId, 'parent-job');
+    assert.equal(evening?.imageUrl, 'https://example.com/parent.jpg');
+  });
+
   it('dayWatchPlaylist prefers clips over stills', () => {
     const stills = upsertDaySlotStill(undefined, {
       slotId: 'morning',
@@ -645,11 +677,10 @@ describe('day-planner', () => {
     assert.match(prompt, /one knee lifted/i);
     assert.match(prompt, /fashion stand.*FAILED|FAILED.*fashion stand|planted fashion stand/i);
     assert.match(prompt, /POSE FIRST/i);
-    assert.match(prompt, /Never leave Image 2 or Image 3 white/i);
-    assert.doesNotMatch(prompt, /fill the entire frame with the SETTING|BACKGROUND LOCK/i);
+    assert.match(prompt, /BACKGROUND CRITICAL|fill the entire frame behind her with the SETTING|Never leave Image 2 or Image 3 white/i);
     const danceIdx = prompt.search(/Invent a FULL BODY mid-dance|BOTH arms raised/i);
     const poseFirstIdx = prompt.search(/POSE FIRST/i);
-    const voidIdx = prompt.search(/Never leave Image 2 or Image 3 white/i);
+    const voidIdx = prompt.search(/BACKGROUND CRITICAL|Never leave Image 2 or Image 3 white/i);
     assert.ok(danceIdx >= 0 && poseFirstIdx > danceIdx && voidIdx > poseFirstIdx);
   });
 
@@ -696,12 +727,12 @@ describe('day-planner', () => {
     assert.match(prompt, /EXACT Outfit Keep garment|exact Image 2 garment|never invent a bikini/i);
     assert.match(prompt, /zip-twist|LOOK_BACK|hands on zipper/i);
     assert.match(prompt, /navy floral mini dress/i);
-    assert.match(prompt, /Never leave Image 2 or Image 3 white|never a blank white backdrop/i);
+    assert.match(prompt, /BACKGROUND CRITICAL|fill the entire frame behind her with the SETTING|Never leave Image 2 or Image 3 white/i);
     assert.match(prompt, /fashion stand means the edit FAILED|planted fashion stand/i);
     const poseIdx = prompt.search(/Invent a FULL BODY look-back|zip-twist/i);
-    const voidIdx = prompt.search(/Never leave Image 2 or Image 3 white/i);
+    const voidIdx = prompt.search(/BACKGROUND CRITICAL|Never leave Image 2 or Image 3 white/i);
     assert.ok(poseIdx >= 0 && voidIdx > poseIdx, 'face-break pose before white-void ban');
-    assert.doesNotMatch(prompt, /fill the entire frame with the SETTING/i);
+    assert.match(prompt, /BACKGROUND CRITICAL|blank white.*edit FAILED|missing background means the edit FAILED/i);
   });
 
   it('buildDaySlotPrompt vacation mid-stride face-break invents body from Image 3', () => {
@@ -720,14 +751,36 @@ describe('day-planner', () => {
       garmentReinforce: true,
     });
     assert.match(prompt, /FACE CROP only|face likeness only/i);
-    assert.match(prompt, /Image 2 is the Outfit Keep|Image 2 is the Outfit Keep full-body|outfit color\/cut/i);
+    assert.match(prompt, /Image 2 is a clothing-only packshot|outfit colors from Image 2|Dress the Outfit Keep kit from Image 2/i);
     assert.match(prompt, /Image 3/i);
     assert.doesNotMatch(prompt, /Image 1 is the Outfit Keep try-on \(face \+ worn kit\)/i);
-    assert.match(prompt, /Never leave Image 2 or Image 3 white|never a blank white backdrop/i);
+    assert.match(prompt, /BACKGROUND CRITICAL|fill the entire frame behind her with the SETTING|Never leave Image 2 or Image 3 white/i);
     const poseIdx = prompt.search(/Invent a FULL BODY mid-stride|MID-STRIDE/i);
-    const voidIdx = prompt.search(/Never leave Image 2 or Image 3 white/i);
+    const voidIdx = prompt.search(/BACKGROUND CRITICAL|Never leave Image 2 or Image 3 white/i);
     assert.ok(poseIdx >= 0 && voidIdx > poseIdx, 'vacation pose before white-void ban');
-    assert.doesNotMatch(prompt, /fill the entire frame with the SETTING/i);
+    assert.match(prompt, /BACKGROUND CRITICAL|blank white.*edit FAILED|missing background means the edit FAILED/i);
+  });
+
+  it('buildDaySlotPrompt vacation face-break without Image 2 dresses from garment text', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'quiet morning shoreline',
+        sceneHints:
+          'MID-STRIDE barefoot on wet sand swinging a tote — one foot clearly ahead, opposite arm swing',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'vacation',
+      faceOnlyIdentity: true,
+      garmentReinforce: false,
+      garmentDescription: 'navy floral mini dress with spaghetti straps',
+    });
+    assert.match(prompt, /FACE CROP only|face likeness only/i);
+    assert.match(prompt, /navy floral mini dress|Dress her in this outfit only/i);
+    assert.doesNotMatch(prompt, /Image 2 is the Outfit Keep|Image 2 is a clothing-only packshot/i);
+    assert.match(prompt, /BACKGROUND CRITICAL|blank white.*edit FAILED/i);
   });
 
   it('buildDaySlotPrompt vacation mid-stride face-break works on Cast plate source', () => {
@@ -1135,11 +1188,32 @@ describe('day-planner', () => {
     assert.match(prompt, /RELAXING =|lying or deeply reclined|body ON the towel/i);
     assert.doesNotMatch(prompt, /SPORT KIT|ATHLETIC KIT ONLY/i);
     assert.doesNotMatch(prompt, /\b(doggy|mid-sex|missionary)\b/i);
-    assert.match(prompt, /keep the clothing from Image 1|outfit continuity|DAY_KEEP|keep facial likeness only for identity; keep the clothing/i);
+    assert.match(prompt, /keep the clothing from Image 1|outfit continuity|DAY_KEEP|keep facial likeness only for identity; keep the clothing|keep this exact woman from Image 1/i);
     assert.doesNotMatch(prompt, /mandatory new body pose:.*Also follow the beat/i);
     const poseIdx = prompt.indexOf('POSE FIRST:');
     const settingIdx = prompt.indexOf('SETTING (venue/lighting only');
     assert.ok(poseIdx >= 0 && settingIdx > poseIdx, 'pose should precede setting');
+  });
+
+  it('buildDaySlotPrompt Lightning vacation without pose guide locks identity and hair', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'night balcony over the sea with string lights',
+        sceneHints:
+          'WAVING from a water-taxi rail — one arm high overhead mid-wave, sundress hem lifting',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: false,
+      dayMood: 'vacation',
+      model: 'qwen-image-edit-2511-lightning-8',
+    });
+    assert.match(prompt, /IDENTITY CRITICAL|same woman|exact hair color/i);
+    assert.match(prompt, /same woman, same hair color and length|Inventing a different face/i);
+    assert.match(prompt, /keep this exact woman from Image 1/i);
+    assert.doesNotMatch(prompt, /match Image 3 and the beat stance/i);
+    assert.doesNotMatch(prompt, /FACE CROP only|face likeness only — invent FULL BODY/i);
   });
 
   it('ensureDaySlotsMatchMood rerolls office boards under vacation', () => {

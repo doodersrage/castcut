@@ -563,17 +563,23 @@ export function daySuggestivePoseNeedsBodyUnlock(beat?: string | null): boolean 
   return dayVacationPoseNeedsBodyUnlock(cls) || cls === 'LOOK_BACK' || cls === 'LEAN';
 }
 
-/** Vacation or Suggestive clothed-heat upright unlock. */
+/**
+ * Vacation or Suggestive clothed-heat upright unlock.
+ * On Edit-2511 (pose-sticky VL), Keep as Image 1 freezes sit/lounge beats as a
+ * standing white-void plate too — face-break every clothed-heat beat on those stacks.
+ */
 export function dayClothedHeatPoseNeedsBodyUnlock(
   beat: string | null | undefined,
-  mood: string | null | undefined
+  mood: string | null | undefined,
+  options?: { poseStickyModel?: boolean }
 ): boolean {
   const m = (mood ?? '').trim().toLowerCase();
+  if (m !== 'suggestive' && m !== 'vacation') return false;
+  // Edit-2511 VL anchors body pose from Image 1 — horizontal RELAXING/SEATED still
+  // copy the Keep stand + white void unless face-crop Image 1 unlocks Image 3.
+  if (options?.poseStickyModel) return true;
   if (m === 'suggestive') return daySuggestivePoseNeedsBodyUnlock(beat);
-  if (m === 'vacation') {
-    return dayVacationPoseNeedsBodyUnlock(vacationPoseClassFromBeat(beat));
-  }
-  return false;
+  return dayVacationPoseNeedsBodyUnlock(vacationPoseClassFromBeat(beat));
 }
 
 /**
@@ -708,12 +714,12 @@ export function buildDayVacationKeepPoseUnlock(poseClass?: string | null): strin
                         ? 'CRITICAL: Image 1 is a standing fashion plate — the output MUST show an arm stretched high with clear weight shift. Arms hanging at her sides means the edit FAILED. '
                         : '';
   return (
-    'Edit Image 1. Keep facial likeness AND the worn outfit, garments, colors, fabric, and clothing silhouette from Image 1. ' +
+    'Edit Image 1. IDENTITY CRITICAL: keep the SAME woman as Image 1 — same face, bone structure, eyes, nose, mouth, and exact hair color and length. Inventing a different beauty face or restyling her hair means the edit FAILED. Keep the worn outfit, garments, colors, fabric, and clothing silhouette from Image 1. ' +
     critical +
     'Image 1 is a standing try-on plate — discard that standing fashion stance entirely. ' +
     `Mandatory new stance: ${stance}. ` +
-    'Do not preserve body pose, standing stance, arm or hand positions, camera angle, or background — aggressively refactor into the beat pose matching Image 3. ' +
-    'Keep facial likeness only for who they are; keep the clothing; replace everything else.'
+    'Do not preserve body pose, standing stance, arm or hand positions, camera angle, or background — aggressively refactor into the beat pose. ' +
+    'Keep who she is and what she is wearing from Image 1; replace pose and scene only.'
   );
 }
 
@@ -725,26 +731,49 @@ export function buildDayVacationKeepPoseUnlock(poseClass?: string | null): strin
 export function buildDayVacationClothedFaceBreakLeads(
   poseClass: string | null | undefined,
   platePath: 'keep' | 'cast',
-  mood?: string | null
+  mood?: string | null,
+  options?: { garmentDescription?: string | null; hasOutfitImage?: boolean }
 ): { preamble: string; image1: string } {
   const cls = (poseClass ?? '').toUpperCase();
   const suggestive = (mood ?? '').trim().toLowerCase() === 'suggestive';
-  // Suggestive heat otherwise invents bikini/beachwear — lock the Keep/Image 2
-  // garment exactly while still inventing pose from Image 3.
-  const outfitFrom = suggestive
-    ? platePath === 'keep'
-      ? 'CLOTHING LOCK CRITICAL: wear the EXACT Outfit Keep garment from Image 2 — same cut, colors, print, fabric, and coverage (if Image 2 is a dress/robe/lingerie set, she wears that). NEVER invent a bikini, swimsuit, nude, bare midriff, or a different outfit. Ignore Image 2 pose, room, and background only.'
-      : 'CLOTHING LOCK CRITICAL: wear the EXACT Image 2 garment — same cut, colors, print, fabric, and coverage. NEVER invent a bikini, swimsuit, nude, bare midriff, or a different outfit. Ignore Image 2 standing pose and room only.'
-    : platePath === 'keep'
-      ? 'Dress the Outfit Keep kit from Image 2 (garment colors/cut only — ignore Image 2 pose, room, and background).'
-      : 'Dress her from Image 2 garment colors/cut only; ignore Image 2 standing pose and room.';
-  const outfitImage1 = suggestive
-    ? 'exact Image 2 garment (same print/cut/coverage) — inventing a bikini, swimsuit, or stripping her means the edit FAILED'
-    : 'outfit colors from Image 2 only';
+  const garmentDesc = options?.garmentDescription?.trim() || '';
+  const hasOutfitImage = options?.hasOutfitImage === true;
+  // When Image 2 is attached, lock from that plate. Otherwise dress from garment
+  // text — full-body Keep cutouts teach studio voids on Edit-2511.
+  const outfitFrom = hasOutfitImage
+    ? suggestive
+      ? platePath === 'keep'
+        ? 'CLOTHING LOCK CRITICAL: wear the EXACT Outfit Keep garment from Image 2 — same cut, colors, print, fabric, and coverage (if Image 2 is a dress/robe/lingerie set, she wears that). NEVER invent a bikini, swimsuit, nude, bare midriff, or a different outfit. Ignore Image 2 pose, room, and background only.'
+        : 'CLOTHING LOCK CRITICAL: wear the EXACT Image 2 garment — same cut, colors, print, fabric, and coverage. NEVER invent a bikini, swimsuit, nude, bare midriff, or a different outfit. Ignore Image 2 standing pose and room only.'
+      : platePath === 'keep'
+        ? 'Dress the Outfit Keep kit from Image 2 (garment colors/cut only — ignore Image 2 pose, room, and background).'
+        : 'Dress her from Image 2 garment colors/cut only; ignore Image 2 standing pose and room.'
+    : garmentDesc
+      ? suggestive
+        ? `CLOTHING LOCK CRITICAL: wear this EXACT outfit — ${garmentDesc} — same cut, colors, print, fabric, and coverage. NEVER invent a bikini, swimsuit, nude, bare midriff, or a different outfit.`
+        : `Dress her in this outfit only — ${garmentDesc} (exact cut, colors, print, fabric).`
+      : suggestive
+        ? 'CLOTHING LOCK CRITICAL: keep her fully clothed in the day outfit described in the beat/notes — NEVER invent a bikini, swimsuit, nude, or bare midriff.'
+        : 'Dress her in the day outfit described in the beat/notes (clothes stay on).';
+  const outfitImage1 = hasOutfitImage
+    ? suggestive
+      ? 'exact Image 2 garment (same print/cut/coverage) — inventing a bikini, swimsuit, or stripping her means the edit FAILED'
+      : 'outfit colors from Image 2 only'
+    : garmentDesc
+      ? suggestive
+        ? `exact outfit (${garmentDesc}) — inventing a bikini, swimsuit, or stripping her means the edit FAILED`
+        : `wearing ${garmentDesc}`
+      : suggestive
+        ? 'exact clothed day outfit from the beat — inventing a bikini or stripping her means the edit FAILED'
+        : 'clothed day outfit from the beat';
+  const identityLock =
+    'IDENTITY CRITICAL: the finished still must show the SAME woman as the Image 1 face crop — identical face shape, hair color and length, eye color, nose, and mouth; inventing a different beauty face means the edit FAILED. Exactly one woman in frame — never a second person. ';
   if (cls === 'MID-STRIDE') {
     return {
       preamble:
-        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. Invent a FULL BODY mid-stride walk from Image 3: one foot clearly ahead, opposite arm swing, both feet visible in frame, torso in motion. CRITICAL: never a mid-thigh square-on fashion stand with arms at her sides staring at the lens. ' +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        'Invent a FULL BODY mid-stride walk from Image 3: one foot clearly ahead, opposite arm swing, both feet visible in frame, torso in motion. CRITICAL: never a mid-thigh square-on fashion stand with arms at her sides staring at the lens. ' +
         outfitFrom +
         ' Follow the beat action and SETTING (looking down at sand/shells, tote, straw hat when written).',
       image1: `Image 1 = face likeness only — invent FULL BODY mid-stride matching Image 3 (feet visible, one foot ahead, arm swing); never a mid-thigh catalog portrait; ${outfitImage1}.`,
@@ -753,7 +782,9 @@ export function buildDayVacationClothedFaceBreakLeads(
   if (cls === 'DANCING') {
     return {
       preamble:
-        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. Invent a FULL BODY mid-dance from Image 3: BOTH arms raised high overhead, one knee lifted mid-step, hips mid-sway, torso twisted — never arms hanging at her sides. CRITICAL: a square-on fashion stand with both feet planted and arms at her sides means the edit FAILED. ' +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        'Invent a FULL BODY mid-dance from Image 3: BOTH arms raised high overhead, one knee lifted mid-step, hips mid-sway, torso twisted — never arms hanging at her sides. CRITICAL: a square-on fashion stand with both feet planted and arms at her sides means the edit FAILED. ' +
         outfitFrom +
         ' Follow the beat action and SETTING (terrace, string lights, evening wear when written).',
       image1: `Image 1 = face likeness only — invent FULL BODY dancing matching Image 3 (both arms overhead, one knee lifted, hip sway); never a planted fashion stand; ${outfitImage1}.`,
@@ -762,7 +793,9 @@ export function buildDayVacationClothedFaceBreakLeads(
   if (cls === 'WAVING') {
     return {
       preamble:
-        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. Invent a FULL BODY wave from Image 3: one arm raised HIGH overhead mid-wave, clear weight shift onto one leg, torso half-turned — never both arms hanging at her sides. CRITICAL: a square-on fashion stand means the edit FAILED. ' +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        'Invent a FULL BODY wave from Image 3: one arm raised HIGH overhead mid-wave, clear weight shift onto one leg, torso half-turned — never both arms hanging at her sides. CRITICAL: a square-on fashion stand means the edit FAILED. ' +
         outfitFrom +
         ' Follow the beat action and SETTING.',
       image1: `Image 1 = face likeness only — invent FULL BODY waving matching Image 3 (one arm high overhead, weight shift); never a planted fashion stand; ${outfitImage1}.`,
@@ -771,7 +804,9 @@ export function buildDayVacationClothedFaceBreakLeads(
   if (cls === 'LOOK_BACK') {
     return {
       preamble:
-        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. Invent a FULL BODY look-back / zip-twist from Image 3: torso twisted three-quarter, looking over a shoulder, back arched, both hands on her own dress zipper behind her back (or adjusting straps) — NEVER square-on facing the lens with arms at her sides. CRITICAL: a planted fashion stand means the edit FAILED. ' +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        'Invent a FULL BODY look-back / zip-twist from Image 3: torso twisted three-quarter, looking over a shoulder, back arched, both hands on her own dress zipper behind her back (or adjusting straps) — NEVER square-on facing the lens with arms at her sides. CRITICAL: a planted fashion stand means the edit FAILED. ' +
         outfitFrom +
         ' Follow the beat action and SETTING (mirror, dress zipper/straps when written — never invent a bikini).',
       image1: `Image 1 = face likeness only — invent FULL BODY zip-twist / look-back matching Image 3 (torso twisted, over-shoulder glance, hands on zipper behind her); never a planted fashion stand; ${outfitImage1}.`,
@@ -780,7 +815,9 @@ export function buildDayVacationClothedFaceBreakLeads(
   if (cls === 'LEAN') {
     return {
       preamble:
-        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. Invent a FULL BODY lean from Image 3: weight into a doorway/rail/sill, hip cocked, asymmetric arms, three-quarter body angle — NEVER a square-on planted catalog stand with arms at her sides. CRITICAL: a fashion stand means the edit FAILED. ' +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        'Invent a FULL BODY lean from Image 3: weight into a doorway/rail/sill, hip cocked, asymmetric arms, three-quarter body angle — NEVER a square-on planted catalog stand with arms at her sides. CRITICAL: a fashion stand means the edit FAILED. ' +
         outfitFrom +
         ' Follow the beat action and SETTING (doorway, balcony rail, lingerie/robe when written).',
       image1: `Image 1 = face likeness only — invent FULL BODY leaning matching Image 3 (hip cocked into doorway/rail, asymmetric arms); never a planted fashion stand; ${outfitImage1}.`,
@@ -789,7 +826,9 @@ export function buildDayVacationClothedFaceBreakLeads(
   if (cls === 'REACHING') {
     return {
       preamble:
-        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. Invent a FULL BODY reach from Image 3: one arm stretched HIGH overhead or out, torso elongated with clear weight shift — never both arms hanging at her sides. CRITICAL: a square-on fashion stand means the edit FAILED. ' +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        'Invent a FULL BODY reach from Image 3: one arm stretched HIGH overhead or out, torso elongated with clear weight shift — never both arms hanging at her sides. CRITICAL: a square-on fashion stand means the edit FAILED. ' +
         outfitFrom +
         ' Follow the beat action and SETTING.',
       image1: `Image 1 = face likeness only — invent FULL BODY reaching matching Image 3 (one arm high, weight shift); never a planted fashion stand; ${outfitImage1}.`,
@@ -798,7 +837,9 @@ export function buildDayVacationClothedFaceBreakLeads(
   if (cls === 'STRETCHING') {
     return {
       preamble:
-        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. Invent a FULL BODY stretch from Image 3: BOTH arms raised overhead, arched torso, weight on one hip — never arms at her sides. CRITICAL: a square-on fashion stand means the edit FAILED. ' +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        'Invent a FULL BODY stretch from Image 3: BOTH arms raised overhead, arched torso, weight on one hip — never arms at her sides. CRITICAL: a square-on fashion stand means the edit FAILED. ' +
         outfitFrom +
         ' Follow the beat action and SETTING.',
       image1: `Image 1 = face likeness only — invent FULL BODY stretching matching Image 3 (both arms overhead, arched torso); never a planted fashion stand; ${outfitImage1}.`,
@@ -807,7 +848,9 @@ export function buildDayVacationClothedFaceBreakLeads(
   if (cls === 'CLIMBING') {
     return {
       preamble:
-        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. Invent a FULL BODY climb from Image 3: one foot up on a step, hands on the rail or steps — never flat-footed square-on. CRITICAL: a square-on fashion stand means the edit FAILED. ' +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        'Invent a FULL BODY climb from Image 3: one foot up on a step, hands on the rail or steps — never flat-footed square-on. CRITICAL: a square-on fashion stand means the edit FAILED. ' +
         outfitFrom +
         ' Follow the beat action and SETTING.',
       image1: `Image 1 = face likeness only — invent FULL BODY climbing matching Image 3 (one foot up, hands on rail); never a planted fashion stand; ${outfitImage1}.`,
@@ -816,7 +859,9 @@ export function buildDayVacationClothedFaceBreakLeads(
   if (cls === 'JUMPING') {
     return {
       preamble:
-        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. Invent a FULL BODY jump from Image 3: BOTH FEET CLEARLY OFF THE GROUND mid-air with knees tucked, BOTH arms raised overhead (not a T-pose), sand/water BELOW her soles with a clear empty gap — her shadow on the ground must sit BELOW her feet. CRITICAL: any planted foot on sand/deck/pool ledge means the edit FAILED — float her higher. ' +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        'Invent a FULL BODY jump from Image 3: BOTH FEET CLEARLY OFF THE GROUND mid-air with knees tucked, BOTH arms raised overhead (not a T-pose), sand/water BELOW her soles with a clear empty gap — her shadow on the ground must sit BELOW her feet. CRITICAL: any planted foot on sand/deck/pool ledge means the edit FAILED — float her higher. ' +
         outfitFrom +
         ' Follow the beat action and SETTING.',
       image1: `Image 1 = face likeness only — invent FULL BODY jumping matching Image 3 (both feet off the ground, knees tucked, arms overhead, air under soles); never a planted T-pose or fashion stand; ${outfitImage1}.`,
@@ -825,7 +870,9 @@ export function buildDayVacationClothedFaceBreakLeads(
   if (cls === 'KICKING') {
     return {
       preamble:
-        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. Invent a FULL BODY roundhouse/side kick from Image 3: kicking leg locked STRAIGHT and nearly HORIZONTAL at hip height with toes pointed out toward the horizon, support leg planted, BOTH arms flung wide for balance — NEVER a yoga tree-pose with the foot tucked against the calf, NEVER a hand resting on the bent knee, NEVER both feet planted fashion-stand. CRITICAL: a square-on fashion stand or tree pose means the edit FAILED. ' +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        'Invent a FULL BODY roundhouse/side kick from Image 3: kicking leg locked STRAIGHT and nearly HORIZONTAL at hip height with toes pointed out toward the horizon, support leg planted, BOTH arms flung wide for balance — NEVER a yoga tree-pose with the foot tucked against the calf, NEVER a hand resting on the bent knee, NEVER both feet planted fashion-stand. CRITICAL: a square-on fashion stand or tree pose means the edit FAILED. ' +
         outfitFrom +
         ' Follow the beat action and SETTING.',
       image1: `Image 1 = face likeness only — invent FULL BODY kicking matching Image 3 (straight horizontal kicking leg, other planted, arms wide); never a planted fashion stand or yoga tree pose; ${outfitImage1}.`,
@@ -834,7 +881,9 @@ export function buildDayVacationClothedFaceBreakLeads(
   if (cls === 'TOSSING') {
     return {
       preamble:
-        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. Invent a FULL BODY toss from Image 3: throwing arm cocked BEHIND her head or in follow-through with a beach ball/frisbee leaving her hand, opposite arm forward, clear weight shift onto the back foot — never arms-at-sides stand and never a hand casually resting on her hip. CRITICAL: a square-on fashion stand means the edit FAILED. ' +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        'Invent a FULL BODY toss from Image 3: throwing arm cocked BEHIND her head or in follow-through with a beach ball/frisbee leaving her hand, opposite arm forward, clear weight shift onto the back foot — never arms-at-sides stand and never a hand casually resting on her hip. CRITICAL: a square-on fashion stand means the edit FAILED. ' +
         outfitFrom +
         ' Follow the beat action and SETTING.',
       image1: `Image 1 = face likeness only — invent FULL BODY tossing matching Image 3 (throwing arm cocked behind head, object in flight, weight shift); never a planted fashion stand; ${outfitImage1}.`,
@@ -842,15 +891,12 @@ export function buildDayVacationClothedFaceBreakLeads(
   }
   return {
     preamble:
-      'Edit Image 1. Image 1 is a FACE CROP only (head/shoulders) — keep facial likeness only. Invent the full body pose from Image 3 and the beat. CRITICAL: Image 1 has no standing body — do not invent a square-on fashion stand with arms at her sides. ' +
+      'Edit Image 1. Image 1 is a FACE CROP only (head/shoulders) — keep facial likeness only. ' +
+      identityLock +
+      'Invent the full body pose from Image 3 and the beat. CRITICAL: Image 1 has no standing body — do not invent a square-on fashion stand with arms at her sides. ' +
       outfitFrom +
-      ' Aggressively match Image 3 stance and the SETTING backdrop.',
-    image1:
-      platePath === 'keep'
-        ? suggestive
-          ? `Image 1 = face likeness only (cropped head/shoulders) — invent full body matching Image 3; never copy a standing fashion plate; ${outfitImage1} — never Image 2 indoor room or planted stance.`
-          : 'Image 1 = face likeness only (cropped head/shoulders) — invent full body matching Image 3 mid-stride/wave/dance; never copy a standing fashion plate; outfit colors from Image 2 Keep kit only — never Image 2 indoor room or planted stance.'
-        : `Image 1 = face likeness only (cropped head/shoulders) — invent full body matching Image 3; never copy a standing fashion plate; ${outfitImage1}.`,
+      ' BACKGROUND CRITICAL: invent the full SETTING venue behind her (depth, props, lighting) — blank white or a missing background means the edit FAILED. Aggressively match Image 3 stance and the SETTING backdrop.',
+    image1: `Image 1 = face likeness only (cropped head/shoulders) — invent full body matching Image 3 plus the SETTING venue behind her; never a white void or standing fashion plate; ${outfitImage1}.`,
   };
 }
 

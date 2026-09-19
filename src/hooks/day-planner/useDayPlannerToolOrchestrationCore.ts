@@ -69,6 +69,7 @@ import {
   upsertDaySlotStill,
   DAY_PLATE_IDENTITY_LOCK_CAP,
   DAY_VACATION_POSE_IDENTITY_LOCK_CAP,
+  DAY_VACATION_FACE_BREAK_IDENTITY_LOCK_CAP,
   DAY_VACATION_UPRIGHT_FACE_IDENTITY_LOCK_CAP,
   DAY_VACATION_POSE_DENOISE,
   DAY_VACATION_UPRIGHT_FACE_DENOISE,
@@ -79,6 +80,8 @@ import {
 } from '@/lib/day-planner';
 import {
   castFaceDuplicatesBodyPlate,
+  isDayVacationLightningIdentityVlModel,
+  isQwenEdit2511PoseStickyModel,
   resolveDayFaceOnlyPlate,
   resolveDayGarmentReinforce,
   resolveDayPlate,
@@ -87,10 +90,12 @@ import {
 import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day-nude-face-crop';
 import {
   resolveDayVacationFaceBreakPlate,
+  resolveDayVacationIdentityVlPlate,
   uploadDayOutfitVlPlate,
 } from '@/lib/day-vacation-face-crop';
 import {
   dayClothedHeatPoseNeedsBodyUnlock,
+  dayVacationPoseNeedsBodyUnlock,
   clothedHeatUnlockPoseClass,
   vacationStanceDirective,
 } from '@/lib/day-vacation';
@@ -437,6 +442,7 @@ export function useDayPlannerToolOrchestrationCore() {
           status: entry.status,
           imageUrl: galleryEntryPrimaryViewUrl(entry),
           queuedAt: entry.queuedAt,
+          prompt: entry.prompt,
         }))
       );
       const baseStills = promoted.changed ? promoted.stills : current;
@@ -625,7 +631,7 @@ export function useDayPlannerToolOrchestrationCore() {
         });
         let nudeFaceAutoCropped = false;
         let vacationFaceBreak = false;
-        let vacationKeepBodyPlate: typeof identityPlate = null;
+        let skipPoseGuideImage = false;
         if (omitGarment && character) {
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const nudeIdentity = await resolveDayNudeIdentityPlateWithFaceCrop({
@@ -640,31 +646,48 @@ export function useDayPlannerToolOrchestrationCore() {
         } else if (
           (normalizeDayMood(toolSettings.dayMood) === 'vacation' ||
             normalizeDayMood(toolSettings.dayMood) === 'suggestive') &&
-          dayClothedHeatPoseNeedsBodyUnlock(queueTarget.sceneHints, toolSettings.dayMood) &&
+          dayClothedHeatPoseNeedsBodyUnlock(queueTarget.sceneHints, toolSettings.dayMood, {
+            poseStickyModel: isQwenEdit2511PoseStickyModel(shared.model),
+          }) &&
           (identityPlate ?? queuePlate)
         ) {
           // Upright MID-STRIDE / WAVING / DANCING: full Keep as Image 1 freezes stand.
+          // On Edit-2511, sit/lounge freezes the same way — face-break every clothed-heat beat.
           // Face-crop Image 1; full Keep rides Image 2 for outfit (no re-suggest needed).
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const bodyPlate = identityPlate ?? queuePlate;
-          const faceBreak = await resolveDayVacationFaceBreakPlate({
-            bodyPlate,
-            model: shared.model,
-            comfyUrl,
-          });
-          if (faceBreak.facePlate) {
-            vacationKeepBodyPlate = faceBreak.outfitVlPlate ?? faceBreak.bodyPlate;
-            identityPlate = faceBreak.facePlate;
-            vacationFaceBreak = true;
+          if (isDayVacationLightningIdentityVlModel(shared.model)) {
+            // Face-crop Image 1 invents a new person every slot. Pose-guide Image 3
+            // paints a color overlay. Full Keep/Cast as Image 1 with ReferenceLatent.
+            skipPoseGuideImage = true;
+            const identityVl = await resolveDayVacationIdentityVlPlate({
+              bodyPlate,
+              character,
+              model: shared.model,
+              comfyUrl,
+            });
+            if (identityVl) {
+              identityPlate = identityVl;
+            }
+          } else {
+            const faceBreak = await resolveDayVacationFaceBreakPlate({
+              bodyPlate,
+              character,
+              model: shared.model,
+              comfyUrl,
+            });
+            if (faceBreak.facePlate) {
+              identityPlate = faceBreak.facePlate;
+              vacationFaceBreak = true;
+            }
           }
         }
         // Distinct Cast face lock OR auto crop → face-only Image 1 language + IP pin.
         const faceOnlyIdentity =
           (omitGarment && (nudeFaceAutoCropped || Boolean(resolveDayFaceOnlyPlate(character)))) ||
           vacationFaceBreak;
-        // Prefer Day Clothing BYO / wardrobe packshot over Keep body on Image 2.
-        // Face-break used to always attach Keep — when Keep is lingerie and BYO is a
-        // floral dress, CLOTHING LOCK text fought lingerie pixels → bikini invent.
+        // Face-break: clothing-only packshot Image 2 is OK (no standing body silhouette).
+        // Full-body Keep / BYO worn stills teach studio voids — dress from garment text.
         const byoOrPackGarment = resolveDayGarmentReinforce({
           plateSource: plate?.source,
           packshotUrl,
@@ -674,26 +697,26 @@ export function useDayPlannerToolOrchestrationCore() {
         let garmentReinforce =
           omitGarment || replaceKeepOutfit
             ? null
-            : vacationFaceBreak && vacationKeepBodyPlate
-              ? {
-                  imageUrl: vacationKeepBodyPlate.imageUrl?.trim() || undefined,
-                  imageFilename: vacationKeepBodyPlate.filename?.trim() || undefined,
-                  source: 'packshot' as const,
-                }
+            : vacationFaceBreak
+              ? byoOrPackGarment?.source === 'packshot'
+                ? byoOrPackGarment
+                : null
               : byoOrPackGarment;
         if (
           !omitGarment &&
           !replaceKeepOutfit &&
           vacationFaceBreak &&
-          byoOrPackGarment &&
+          byoOrPackGarment?.source === 'packshot' &&
           (byoOrPackGarment.imageUrl || byoOrPackGarment.imageFilename)
         ) {
+          // Re-upload as VL Image 2 without gray full-body cutout (already clothing-only).
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const byoVl = await uploadDayOutfitVlPlate({
             imageUrl: byoOrPackGarment.imageUrl,
             filename: byoOrPackGarment.imageFilename,
             model: shared.model,
             comfyUrl,
+            neutralBackdrop: false,
           });
           if (byoVl?.filename) {
             garmentReinforce = {
@@ -701,8 +724,6 @@ export function useDayPlannerToolOrchestrationCore() {
               imageFilename: byoVl.filename,
               source: byoOrPackGarment.source,
             };
-          } else {
-            garmentReinforce = byoOrPackGarment;
           }
         }
 
@@ -710,7 +731,7 @@ export function useDayPlannerToolOrchestrationCore() {
         // Heat moods: beat only — Setting location text must not rewrite Image 3 stance.
         let poseGuideUrl: string | undefined;
         let poseGuideFilename: string | undefined;
-        if (hasPlate) {
+        if (hasPlate && !skipPoseGuideImage) {
           try {
             const dayMood = normalizeDayMood(
               isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
@@ -734,7 +755,9 @@ export function useDayPlannerToolOrchestrationCore() {
             const vacationPoseClass = clothedHeatUnlockPoseClass(beatOnly, dayMood);
             const poseSceneReinforced =
               (dayMood === 'vacation' || dayMood === 'suggestive') &&
-              dayClothedHeatPoseNeedsBodyUnlock(beatOnly, dayMood) &&
+              dayClothedHeatPoseNeedsBodyUnlock(beatOnly, dayMood, {
+                poseStickyModel: isQwenEdit2511PoseStickyModel(shared.model),
+              }) &&
               poseSceneBase
                 ? `${poseSceneBase} · ${vacationStanceDirective(vacationPoseClass)} · nuclear Image 3 silhouette — never planted fashion stand`
                 : poseSceneBase;
@@ -784,7 +807,10 @@ export function useDayPlannerToolOrchestrationCore() {
         const prompt = buildSlotPrompt(queueTarget, {
           poseGuide: Boolean(poseGuideFilename),
           faceOnlyIdentity,
-          forceGarmentReinforce: vacationFaceBreak,
+          // Only force Image 2 language when a clothing-only packshot is actually attached.
+          forceGarmentReinforce:
+            vacationFaceBreak &&
+            Boolean(garmentReinforce?.imageUrl || garmentReinforce?.imageFilename),
         });
         // Play/Simple: skip lint round-trip — Day stills are draft-speed first film.
         const drafted = leanChrome
@@ -871,6 +897,11 @@ export function useDayPlannerToolOrchestrationCore() {
         }
         const dayMood = normalizeDayMood(toolSettings.dayMood);
         const intimateMix = normalizeDayIntimateMix(toolSettings.intimateMix);
+        const clothedUnlockClass = clothedHeatUnlockPoseClass(queueTarget.sceneHints, dayMood);
+        // Soft sit/lounge face-breaks need firmer face lock; hard upright stays softer
+        // so Image 3 stance still wins. Blanket 0.06 on every slot caused identity float.
+        const uprightHardFaceBreak =
+          vacationFaceBreak && dayVacationPoseNeedsBodyUnlock(clothedUnlockClass);
         // Nude Solo: always soft-cap identity even without Image 3 — high IP + lingerie
         // face crop is how beige bras win over FULLY NUDE.
         const identityCap =
@@ -880,14 +911,16 @@ export function useDayPlannerToolOrchestrationCore() {
               ? intimateMix === 'duo'
                 ? DAY_ADULT_DUO_IDENTITY_LOCK_CAP
                 : Math.min(DAY_PLATE_IDENTITY_LOCK_CAP, STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP)
-              : vacationFaceBreak
+              : uprightHardFaceBreak
                 ? DAY_VACATION_UPRIGHT_FACE_IDENTITY_LOCK_CAP
-                : (dayMood === 'vacation' || dayMood === 'suggestive') && Boolean(poseGuideFilename)
-                  ? DAY_VACATION_POSE_IDENTITY_LOCK_CAP
-                  : DAY_PLATE_IDENTITY_LOCK_CAP;
+                : vacationFaceBreak
+                  ? DAY_VACATION_FACE_BREAK_IDENTITY_LOCK_CAP
+                  : (dayMood === 'vacation' || dayMood === 'suggestive') &&
+                      Boolean(poseGuideFilename)
+                    ? DAY_VACATION_POSE_IDENTITY_LOCK_CAP
+                    : DAY_PLATE_IDENTITY_LOCK_CAP;
         const identityStrength = Math.min(shared.ipAdapterStrength ?? 0.75, identityCap);
-        // Never pin Cast lingerie plate as IP when we auto-cropped a face window —
-        // that was how beige bras re-entered after soft Identity Lock.
+        // Pin the shared face-crop filename on the job (Lightning does not splice IP).
         const croppedFaceFilename =
           nudeFaceAutoCropped || vacationFaceBreak
             ? identityPlate?.filename?.trim() || undefined
@@ -902,11 +935,13 @@ export function useDayPlannerToolOrchestrationCore() {
             ? undefined
             : castFaceQueueParamsBase(character, identityStrength);
         const castLoras = castLoraSessionIds(character);
-        const vacationPoseDenoise = vacationFaceBreak
+        const vacationPoseDenoise = uprightHardFaceBreak
           ? DAY_VACATION_UPRIGHT_FACE_DENOISE
-          : (dayMood === 'vacation' || dayMood === 'suggestive') && Boolean(poseGuideFilename)
+          : vacationFaceBreak
             ? DAY_VACATION_POSE_DENOISE
-            : undefined;
+            : (dayMood === 'vacation' || dayMood === 'suggestive') && Boolean(poseGuideFilename)
+              ? DAY_VACATION_POSE_DENOISE
+              : undefined;
         // Plate + pose Image 3 need an Edit-capable model. Adult nude + Rapid AIO
         // must use Edit NSFW — SFW Edit soft-censors into beige lingerie.
         const plateQueueModel = hasPlate
@@ -922,9 +957,11 @@ export function useDayPlannerToolOrchestrationCore() {
           ...(hasPlate
             ? {
                 queueTool: 'image-prompt',
-                turboEditStrength: 'strong',
+                // Strong turbo rewrite fights face lock on Edit-2511 face-break Day.
+                turboEditStrength: vacationFaceBreak || skipPoseGuideImage ? 'balanced' : 'strong',
                 identityLock: true,
                 identityLockStrength: identityStrength,
+                // Lightning skips IP/InstantID insert; InstantID is wrong for Qwen UNET.
                 ...(plateQueueModel ? { queueModel: plateQueueModel } : {}),
               }
             : {}),

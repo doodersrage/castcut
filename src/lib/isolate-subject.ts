@@ -2,6 +2,37 @@ import { IDENTITY_MEDIA_URL } from './gallery-media-client';
 
 export const ISOLATE_FILL_WHITE = { r: 255, g: 255, b: 255 } as const;
 
+/** Mid blue-gray used for Vacation/Suggestive face-break plates (not studio white). */
+export const ISOLATE_FILL_NEUTRAL = { r: 197, g: 208, b: 220 } as const;
+
+export type IsolateFillRgb = { r: number; g: number; b: number };
+
+/** Parse `#rrggbb` / `rrggbb` / `r,g,b` into an opaque fill. */
+export function parseIsolateFill(value: unknown): IsolateFillRgb | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const hex = trimmed.match(/^#?([0-9a-f]{6})$/i);
+  if (hex) {
+    const n = Number.parseInt(hex[1]!, 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+  const rgb = trimmed.match(/^(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})$/);
+  if (rgb) {
+    const r = Number(rgb[1]);
+    const g = Number(rgb[2]);
+    const b = Number(rgb[3]);
+    if ([r, g, b].every(channel => Number.isFinite(channel) && channel >= 0 && channel <= 255)) {
+      return { r, g, b };
+    }
+  }
+  return null;
+}
+
 function comfyViewUrl(filename: string, type: 'input' | 'output', comfyUrl?: string): string {
   const params = new URLSearchParams({
     filename,
@@ -118,9 +149,21 @@ export function cutoutLooksIsolated(data: Uint8ClampedArray): boolean {
  * (Node MODNet — browser ONNX cannot load inside Next).
  */
 export async function isolateSubjectOnWhite(source: Blob, filename: string): Promise<File> {
+  return isolateSubjectOnFill(source, filename, ISOLATE_FILL_WHITE);
+}
+
+/**
+ * Cut the subject out and flatten onto an opaque fill (white or mid-gray).
+ */
+export async function isolateSubjectOnFill(
+  source: Blob,
+  filename: string,
+  fill: IsolateFillRgb = ISOLATE_FILL_WHITE
+): Promise<File> {
   const body = new FormData();
   const uploadName = filename.trim() || 'isolate.png';
   body.append('image', source, uploadName);
+  body.append('fill', `${fill.r},${fill.g},${fill.b}`);
   const response = await fetch('/api/isolate-subject', {
     method: 'POST',
     credentials: 'same-origin',

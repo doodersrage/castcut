@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiMethodNotAllowed } from '@/lib/api/response';
-import { isolateSubjectOnWhiteBuffer } from '@/lib/isolate-subject-server';
+import { parseIsolateFill } from '@/lib/isolate-subject';
+import { isolateSubjectOnFillBuffer } from '@/lib/isolate-subject-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -27,7 +28,8 @@ export async function POST(request: Request) {
     if (file.size === 0) {
       return apiError('Image file is empty.', 400);
     }
-    const png = await isolateSubjectOnWhiteBuffer(file);
+    const fill = parseIsolateFill(form.get('fill')) ?? { r: 255, g: 255, b: 255 };
+    const png = await isolateSubjectOnFillBuffer(file, fill);
     const body = new Uint8Array(png.byteLength);
     body.set(png);
     return new NextResponse(body, {

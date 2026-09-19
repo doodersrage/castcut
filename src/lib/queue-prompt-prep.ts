@@ -21,6 +21,7 @@ import {
   mergePoseGuideNegatives,
   promptHasPoseGuideCue,
   rewritePoseGuideCueForRapidAio,
+  usesOutlineGrayPoseGuide,
 } from './pose-guide-prompt';
 import { appendCleanSkinPositive, mergeCleanSkinNegatives } from './clean-skin';
 import { inferAthleticSport, type AthleticSport } from './athletic-sport-profiles';
@@ -110,18 +111,24 @@ export const RAPID_AIO_ADULT_DUO_PROP_NEGATIVE =
   'solo Cast nude portrait, one woman alone, solo nude pin-up, empty sheets beside her, partner cropped out, missing partner, Cast alone on bed, leg against wall solo posing, softcore solo nude, self-touch when duo, masturbation when duo, fingering herself when duo, second person missing, only one head in frame, peace sign hands, V sign fingers, cowgirl when doggy, kneeling softcore facing camera when doggy, glass balcony door, ocean balcony, sliding glass ocean view';
 
 export const RAPID_AIO_SUGGESTIVE_PROP_POSITIVE =
-  'clothed suggestive heat only, lingerie or dress with bottoms on, charged pose matching the beat (dancing with both arms raised and one knee lifted mid-kick, zip-twist look-back, leaning, seated, stretching, reclining — never a stiff square-on standing catalog pose with arms at sides), one woman alone, soft lamp light, rumpled sheets as backdrop only';
+  'clothed suggestive heat only, lingerie or dress with bottoms on, charged pose matching the beat (dancing with both arms raised and one knee lifted mid-kick, zip-twist look-back, leaning, seated, stretching, reclining — never a stiff square-on standing catalog pose with arms at sides), one woman alone, continuous arms and legs attached to her torso, soft lamp light, rumpled sheets as backdrop only';
 
 export const RAPID_AIO_SUGGESTIVE_PROP_NEGATIVE =
-  'nude, fully nude, bottomless, pants pulled down, panties off, bare vulva, genitals, scrotum, penis, mid-sex, mid-thrust, doggy style, doggystyle, all fours, hands and knees, rear-entry, missionary, cowgirl, oral sex, partner behind, man behind her, muscular man, male partner, boyfriend, second adult, second person, all fours sex, sex from behind, bare buttocks sex pose, hands on her hips from behind, looking back over shoulder sex pose, stiff standing fashion plate, square-on catalog pose, arms at sides standing still, polite standing portrait, bland standing model, bikini, swimsuit, swimwear, string bikini, tan bikini, beige bikini, beach sand, ocean shoreline, tropical beach, wet sand, pier softcore, white void background, blank white backdrop, seamless white studio, pure white studio background, ecommerce cutout, product photo void, cutout plate on white';
+  'nude, fully nude, bottomless, pants pulled down, panties off, bare vulva, genitals, scrotum, penis, mid-sex, mid-thrust, doggy style, doggystyle, all fours, hands and knees, rear-entry, missionary, cowgirl, oral sex, partner behind, man behind her, muscular man, male partner, boyfriend, second adult, second person, all fours sex, sex from behind, bare buttocks sex pose, hands on her hips from behind, looking back over shoulder sex pose, stiff standing fashion plate, square-on catalog pose, arms at sides standing still, polite standing portrait, bland standing model, bikini, swimsuit, swimwear, string bikini, tan bikini, beige bikini, beach sand, ocean shoreline, tropical beach, wet sand, pier softcore, white void background, blank white backdrop, seamless white studio, pure white studio background, ecommerce cutout, product photo void, cutout plate on white, floating limb, floating arm, floating leg, disembodied arm, disembodied hand, ghost limb, detached limb, extra arm, third arm, extra limbs';
 
 /** Vacation / travel Day — keep clothed solo; fight leftover NSFW Edit doggy priors AND standing try-on freeze. */
 export const RAPID_AIO_VACATION_PROP_POSITIVE =
-  'vacation travel still, clothes or swimsuit stay on, one woman alone, beat stance matching Image 3 (relaxing or reclining lying down on a towel or lounge with hips down, seated with knees bent, mid-stride walking with one foot ahead, dancing with both arms raised and one knee lifted, reaching with an arm high, perched, leaning — never a square-on standing catalog pose with arms at sides, never rear-presenting), resort hotel pool market balcony beach energy';
+  'vacation travel still, clothes or swimsuit stay on, one woman alone, same face and hair as Image 1, beat stance (relaxing or reclining lying down on a towel or lounge with hips down, seated with knees bent, mid-stride walking with one foot ahead, dancing with both arms raised and one knee lifted, reaching with an arm high, perched, leaning — never a square-on standing catalog pose with arms at sides, never rear-presenting), continuous arms and legs attached to her torso, full SETTING venue with depth behind her never blank white or missing background, resort hotel pool market balcony beach energy';
 
 export const RAPID_AIO_VACATION_PROP_NEGATIVE =
-  'nude sex, fully nude, mid-sex, mid-thrust, doggy style, doggystyle, all fours, hands and knees, rear-entry, missionary, cowgirl, oral sex, partner behind, man behind her, muscular man, male partner, boyfriend, second adult, second person, sex from behind, hands on her hips from behind, genitals, scrotum, penis, looking back over shoulder sex pose, kneeling on bed presenting, stiff standing fashion plate, square-on catalog pose, arms at sides standing still, planted fashion stand, upright travel pose freeze, polite standing portrait, bland standing model, office desk, grocery, bookstore, cubicle, white void background, blank white backdrop, seamless white studio, pure white studio background, ecommerce cutout, product photo void, cutout plate on white';
+  'nude sex, fully nude, mid-sex, mid-thrust, doggy style, doggystyle, all fours, hands and knees, rear-entry, missionary, cowgirl, oral sex, partner behind, man behind her, muscular man, male partner, boyfriend, second adult, second person, sex from behind, hands on her hips from behind, genitals, scrotum, penis, looking back over shoulder sex pose, kneeling on bed presenting, stiff standing fashion plate, square-on catalog pose, arms at sides standing still, planted fashion stand, upright travel pose freeze, polite standing portrait, bland standing model, office desk, grocery, bookstore, cubicle, white void background, blank white backdrop, seamless white studio, pure white studio background, mid-gray void, blue-gray studio plate, ecommerce cutout, product photo void, cutout plate on white, floating limb, floating arm, floating leg, disembodied arm, disembodied hand, ghost limb, detached limb, extra arm, third arm, extra limbs';
 
+/** Compact anti-float pack when Image 3 is attached on Lightning clothed-heat Day. */
+export const CLOTHED_HEAT_POSE_LIMB_NEGATIVE =
+  'floating limb, floating arm, floating leg, disembodied arm, disembodied hand, ghost limb, detached limb, extra arm, third arm, extra limbs, pose guide limb leak';
+
+export const CLOTHED_HEAT_POSE_LIMB_POSITIVE =
+  'two continuous arms and two continuous legs attached to her torso, natural limb count, no floating body parts';
 /** When the beat names a dildo / vibrator — allow the held toy in positives. */
 export const RAPID_AIO_ADULT_TOY_PROP_POSITIVE =
   'rumpled indoor sheets in the foreground, bare bed surface, lamp and closed blinds only, opaque walls, no beach sand or ocean, no glass balcony door, no ocean through window, no coastal vista, body pose matches the beat, one woman alone, realistic penis-shaped silicone dildo with the tip of the penis pushed deep into her vaginal opening, shaft entering her vagina, tip buried inside, both hands on the base thrusting deeper, each hand on a continuous forearm from her shoulder, bare breasts uncovered with nipples visible, clothes are now gone, bare vulva, zero fabric on the body, matte skin';
@@ -188,6 +195,78 @@ function appendUniqueCsv(base: string | undefined, extra: string): string {
     return existing;
   }
   return `${existing}, ${missing.join(', ')}`;
+}
+
+function dayPromptHasSuggestiveHeat(positive: string): boolean {
+  return /\bMOOD:\s*suggestive\b/i.test(positive);
+}
+
+function dayPromptHasVacationHeat(positive: string): boolean {
+  return /\bMOOD:\s*vacation\b/i.test(positive);
+}
+
+/**
+ * Suggestive / Vacation CFG-1 packs — shared by Rapid AIO and Qwen Lightning Edit.
+ * Lightning used to skip these (early photo-pack return), so Vacation pose/outfit/white-void
+ * locks were Rapid-only and Edit-2511 Lightning felt inconsistent after switching back.
+ */
+function applyDayClothedHeatSteering(input: {
+  positive: string;
+  negative?: string;
+  steeredPositive: string;
+}): { positive: string; negative?: string; applied: boolean } {
+  const suggestiveHeat = dayPromptHasSuggestiveHeat(input.steeredPositive);
+  const vacationHeat = dayPromptHasVacationHeat(input.steeredPositive);
+  if (!suggestiveHeat && !vacationHeat) {
+    return { positive: input.positive, negative: input.negative, applied: false };
+  }
+
+  let positive = input.positive;
+  let negative = input.negative;
+  if (suggestiveHeat) {
+    positive = appendUniqueCsv(positive, RAPID_AIO_SUGGESTIVE_PROP_POSITIVE);
+    negative = appendUniqueCsv(negative, RAPID_AIO_SUGGESTIVE_PROP_NEGATIVE);
+    // Only when the beat names DANCING — camera templates mention "dance" as an example.
+    if (
+      /\bDANCING\b/.test(input.steeredPositive) ||
+      /\bbeat:\s*[^\n]*\bdanc(?:e|es|ing)\b/i.test(input.steeredPositive)
+    ) {
+      positive = appendUniqueCsv(
+        positive,
+        'mid-dance both arms raised overhead one knee lifted mid-kick hips swaying never arms at sides standing catalog pose'
+      );
+    }
+  } else {
+    positive = appendUniqueCsv(positive, RAPID_AIO_VACATION_PROP_POSITIVE);
+    negative = appendUniqueCsv(negative, RAPID_AIO_VACATION_PROP_NEGATIVE);
+    if (/\bDANCING\b/i.test(input.steeredPositive)) {
+      positive = appendUniqueCsv(
+        positive,
+        'mid-dance both arms raised overhead one knee lifted mid-kick hips swaying never arms at sides standing catalog pose'
+      );
+    } else if (/\bMID-STRIDE\b/i.test(input.steeredPositive)) {
+      positive = appendUniqueCsv(
+        positive,
+        'full body walking mid-step one foot clearly ahead opposite arm swing both feet visible never mid-thigh catalog portrait arms at sides staring at lens'
+      );
+    } else if (/\bWAVING\b/i.test(input.steeredPositive)) {
+      positive = appendUniqueCsv(
+        positive,
+        'waving one arm raised high overhead weight shifted one foot stepped never arms at sides standing catalog pose'
+      );
+    } else if (/\b(RELAXING|RECLINING)\b/i.test(input.steeredPositive)) {
+      positive = appendUniqueCsv(
+        positive,
+        'lying down on lounge or towel hips and back on the surface knees drawn up never standing beside it'
+      );
+    } else if (/\b(SEATED|PERCHED)\b/i.test(input.steeredPositive)) {
+      positive = appendUniqueCsv(
+        positive,
+        'seated hips on seat knees bent never standing with arms at sides'
+      );
+    }
+  }
+  return { positive, negative, applied: true };
 }
 
 function isCfg1DistilledStillImageModel(model: ComfyImageModel | string): boolean {
@@ -265,7 +344,7 @@ export function applyQueuePromptSteering(input: {
   let steeredPositive = poseGuideAttached
     ? ensurePoseGuideStyleLock(input.positive, realismMode)
     : input.positive;
-  if (poseGuideAttached && isQwenRapidAioModel(input.model)) {
+  if (poseGuideAttached && usesOutlineGrayPoseGuide(input.model)) {
     steeredPositive = rewritePoseGuideCueForRapidAio(steeredPositive, realismMode);
   }
   const steeredNegative = mergePoseGuideNegatives(input.negative, poseGuideAttached);
@@ -318,31 +397,48 @@ export function applyQueuePromptSteering(input: {
   if (isQwenLightningModel(input.model)) {
     // CFG-1: skip long realism/anatomy suffixes — keep a short photo pack instead.
     // Gate on the *user* negative; pose-guide merge exceeds the length cap.
+    // Vacation/Suggestive Day stills also need the clothed-heat packs (same as Rapid) —
+    // Edit-2511 Lightning is pose-sticky and otherwise drifts to stand/white-void.
     const userExplicit = input.negative?.trim();
     const shortExplicit =
       userExplicit && userExplicit.length <= LIGHTNING_MAX_EXPLICIT_NEGATIVE_CHARS
         ? userExplicit
         : undefined;
+    const clothedHeat = applyDayClothedHeatSteering({
+      positive: steeredPositive,
+      negative: shortExplicit,
+      steeredPositive,
+    });
+    let positive = clothedHeat.positive;
+    let negative = clothedHeat.negative;
+    if (poseGuideAttached && clothedHeat.applied) {
+      positive = appendUniqueCsv(positive, RAPID_AIO_POSE_LEAK_POSITIVE_BASE);
+      positive = appendUniqueCsv(positive, CLOTHED_HEAT_POSE_LIMB_POSITIVE);
+      negative = appendUniqueCsv(negative, CLOTHED_HEAT_POSE_LIMB_NEGATIVE);
+      // Full Rapid anti-leak — Lightning was only getting a short stick-figure line,
+      // so magenta/purple Image 3 capsules painted into the finished still.
+      negative = appendUniqueCsv(negative, RAPID_AIO_POSE_LEAK_NEGATIVE);
+    }
     const poseLeakNeg = poseGuideAttached
-      ? 'stick figure, wireframe, pose diagram, cyan pose outline, pose guide leak, Image 3 drawn into scene'
+      ? 'stick figure, wireframe, pose diagram, cyan pose outline, magenta pose outline, purple squiggle, neon capsule, pose guide leak, Image 3 drawn into scene'
       : 'stick figure, wireframe, pose diagram';
     if (realismMode === 'realistic' || realismMode === 'hyper-realistic') {
       return finish({
         positive: appendUniqueCsv(
-          steeredPositive,
+          positive,
           realismMode === 'hyper-realistic'
             ? QWEN_LIGHTNING_HYPER_PHOTO_POSITIVE
             : QWEN_LIGHTNING_PHOTO_POSITIVE
         ),
         negative: appendUniqueCsv(
-          shortExplicit,
+          negative,
           appendUniqueCsv(QWEN_LIGHTNING_PHOTO_NEGATIVE, poseLeakNeg)
         ),
       });
     }
     return finish({
-      positive: steeredPositive,
-      negative: poseGuideAttached ? appendUniqueCsv(shortExplicit, poseLeakNeg) : shortExplicit,
+      positive,
+      negative: poseGuideAttached ? appendUniqueCsv(negative, poseLeakNeg) : negative,
     });
   }
 
@@ -376,61 +472,24 @@ export function applyQueuePromptSteering(input: {
       /\b(MOOD:\s*(?:intimate|raunchy)|POSE FIRST: mandatory body pose and sex|masturbat|self[- ]touch|mid-sex|PARTNERS:|SOLO ACT:|FULLY NUDE|fingering|oral sex|missionary|doggy)\b/i.test(
         steeredPositive
       );
-    const suggestiveHeat = /\bMOOD:\s*suggestive\b/i.test(steeredPositive);
-    const vacationHeat = /\bMOOD:\s*vacation\b/i.test(steeredPositive);
+    const clothedHeat = applyDayClothedHeatSteering({
+      positive,
+      negative,
+      steeredPositive,
+    });
+    positive = clothedHeat.positive;
+    negative = clothedHeat.negative;
     if (poseGuideAttached) {
       // Nude solo/duo pose-leak fights CLOTHING LOCK on Suggestive/Vacation — base only.
       positive = appendUniqueCsv(
         positive,
-        suggestiveHeat || vacationHeat || !adultHeat
+        clothedHeat.applied || !adultHeat
           ? RAPID_AIO_POSE_LEAK_POSITIVE_BASE
           : RAPID_AIO_POSE_LEAK_POSITIVE
       );
       negative = appendUniqueCsv(negative, RAPID_AIO_POSE_LEAK_NEGATIVE);
     }
-    if (suggestiveHeat) {
-      positive = appendUniqueCsv(positive, RAPID_AIO_SUGGESTIVE_PROP_POSITIVE);
-      negative = appendUniqueCsv(negative, RAPID_AIO_SUGGESTIVE_PROP_NEGATIVE);
-      // Only when the beat names DANCING — camera templates mention "dance" as an example.
-      if (
-        /\bDANCING\b/.test(steeredPositive) ||
-        /\bbeat:\s*[^\n]*\bdanc(?:e|es|ing)\b/i.test(steeredPositive)
-      ) {
-        positive = appendUniqueCsv(
-          positive,
-          'mid-dance both arms raised overhead one knee lifted mid-kick hips swaying never arms at sides standing catalog pose'
-        );
-      }
-    } else if (vacationHeat) {
-      positive = appendUniqueCsv(positive, RAPID_AIO_VACATION_PROP_POSITIVE);
-      negative = appendUniqueCsv(negative, RAPID_AIO_VACATION_PROP_NEGATIVE);
-      if (/\bDANCING\b/i.test(steeredPositive)) {
-        positive = appendUniqueCsv(
-          positive,
-          'mid-dance both arms raised overhead one knee lifted mid-kick hips swaying never arms at sides standing catalog pose'
-        );
-      } else if (/\bMID-STRIDE\b/i.test(steeredPositive)) {
-        positive = appendUniqueCsv(
-          positive,
-          'full body walking mid-step one foot clearly ahead opposite arm swing both feet visible never mid-thigh catalog portrait arms at sides staring at lens'
-        );
-      } else if (/\bWAVING\b/i.test(steeredPositive)) {
-        positive = appendUniqueCsv(
-          positive,
-          'waving one arm raised high overhead weight shifted one foot stepped never arms at sides standing catalog pose'
-        );
-      } else if (/\b(RELAXING|RECLINING)\b/i.test(steeredPositive)) {
-        positive = appendUniqueCsv(
-          positive,
-          'lying down on lounge or towel hips and back on the surface knees drawn up never standing beside it'
-        );
-      } else if (/\b(SEATED|PERCHED)\b/i.test(steeredPositive)) {
-        positive = appendUniqueCsv(
-          positive,
-          'seated hips on seat knees bent never standing with arms at sides'
-        );
-      }
-    } else if (adultHeat) {
+    if (!clothedHeat.applied && adultHeat) {
       const duoBeat =
         /\b(MOOD:\s*(?:intimate|raunchy)\s+duo|PARTNERS:|HEADCOUNT LOCK:|exactly TWO adults|DUO VISIBLE)\b/i.test(
           steeredPositive

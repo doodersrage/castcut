@@ -59,7 +59,9 @@ describe('pose-guide-prompt', () => {
       model: 'qwen-image-edit-2511-lightning-8',
       realismMode: 'realistic',
     });
-    assert.match(result.positive, /photorealistic live-action photograph/i);
-    assert.match(result.negative ?? '', /mannequin|stick figure/i);
+    assert.match(result.positive, /photorealistic live-action photograph|gray OUTLINE pose guide on white/i);
+    assert.match(result.positive, /gray OUTLINE pose guide on white/i);
+    assert.doesNotMatch(result.positive, /magenta schematic|filled limbs|dark charcoal/i);
+    assert.match(result.negative ?? '', /mannequin|stick figure|magenta|neon capsule/i);
   });
 });

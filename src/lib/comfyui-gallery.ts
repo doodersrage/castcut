@@ -863,6 +863,10 @@ export function updateComfyGalleryByPromptId(
 
   if (patch.status === 'completed' && prior && prior.status !== 'completed') {
     celebrateSystemTray('job');
+    // Lightning Day face-break → auto Edit face-restore (deduped inside helper).
+    void import('./day-vacation-face-restore').then(({ maybeScheduleDayVacationFaceRestore }) => {
+      maybeScheduleDayVacationFaceRestore(updated!);
+    });
   }
 
   const ephemeral = galleryPatchIsEphemeralProgress(patch);

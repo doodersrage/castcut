@@ -18,6 +18,8 @@ type GalleryPanelStatusSectionProps = {
     uploadingImages: boolean;
     onRefreshPending: () => void;
     onArchiveThenPurge: () => void;
+    onFinishPendingPurge: () => void;
+    onPurgeRestOnly: () => void;
   };
   requeueStatus: string | null;
   pickFor: GalleryHandoffPayload['target'] | null;
@@ -44,6 +46,8 @@ export default function GalleryPanelStatusSection({
           limit={limit}
           onRefreshPending={header.onRefreshPending}
           onArchiveThenPurge={header.onArchiveThenPurge}
+          onFinishPendingPurge={header.onFinishPendingPurge}
+          onPurgeRestOnly={header.onPurgeRestOnly}
           onUpload={() => uploadInputRef.current?.click()}
           uploading={header.uploadingImages}
         />

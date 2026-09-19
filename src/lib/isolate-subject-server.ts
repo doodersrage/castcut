@@ -76,15 +76,18 @@ async function getSegmenter(): Promise<(source: Blob) => Promise<CutoutRaw>> {
   return segmenterPromise;
 }
 
-/** Node MODNet cutout flattened onto an opaque white PNG. */
-export async function isolateSubjectOnWhiteBuffer(source: Blob): Promise<Buffer> {
+/** Node MODNet cutout flattened onto an opaque fill PNG (default white). */
+export async function isolateSubjectOnFillBuffer(
+  source: Blob,
+  fill: { r: number; g: number; b: number } = { r: 255, g: 255, b: 255 }
+): Promise<Buffer> {
   const segment = await getSegmenter();
   const raw = await segment(source);
   const cutout = rgbaFromCutout(raw);
   if (!cutoutLooksIsolated(cutout.data)) {
     throw new Error('Could not cut the subject out of that photo.');
   }
-  const flattened = compositeRgbaOnFill(cutout.data);
+  const flattened = compositeRgbaOnFill(cutout.data, fill);
   return sharp(Buffer.from(flattened), {
     raw: {
       width: cutout.width,
@@ -94,4 +97,9 @@ export async function isolateSubjectOnWhiteBuffer(source: Blob): Promise<Buffer>
   })
     .png()
     .toBuffer();
+}
+
+/** Node MODNet cutout flattened onto an opaque white PNG. */
+export async function isolateSubjectOnWhiteBuffer(source: Blob): Promise<Buffer> {
+  return isolateSubjectOnFillBuffer(source, { r: 255, g: 255, b: 255 });
 }

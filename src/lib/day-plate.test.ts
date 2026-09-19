@@ -6,6 +6,7 @@ import {
   dayNudeNeedsAutoFaceCrop,
   dayPlateIsolatePending,
   dayPlateSourceKey,
+  isDayVacationLightningIdentityVlModel,
   isQwenEdit2511PoseStickyModel,
   resolveDayGarmentReinforce,
   resolveDayPlate,
@@ -324,6 +325,15 @@ describe('Day plate pose / garment reinforce', () => {
     assert.equal(isQwenEdit2511PoseStickyModel('qwen-image-edit-2511-lightning-8'), true);
     assert.equal(isQwenEdit2511PoseStickyModel('qwen-image-edit-2511'), true);
     assert.equal(isQwenEdit2511PoseStickyModel('boogu-image-edit-turbo'), false);
+  });
+
+  it('uses Keep Image 1 + ReferenceLatent and skips pose-guide image on Lightning 2511 Vacation', () => {
+    assert.equal(
+      isDayVacationLightningIdentityVlModel('qwen-image-edit-2511-lightning-8'),
+      true
+    );
+    assert.equal(isDayVacationLightningIdentityVlModel('qwen-image-edit-2511'), false);
+    assert.equal(isDayVacationLightningIdentityVlModel('qwen-image-2512-lightning-8'), false);
   });
 
   it('resolveDayGarmentReinforce only attaches packshot for Keep plates', () => {

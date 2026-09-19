@@ -20,6 +20,8 @@ type GalleryPanelCapSectionProps = {
   ) => void;
   exportCapKeepers: () => void;
   archiveThenPurgeRest: () => void;
+  finishPendingArchivePurge: () => void;
+  purgeRestOnly: () => void;
   removeEntries: (ids: string[]) => void;
   setFavorites: (ids: string[], favorite: boolean) => void;
 };
@@ -35,6 +37,8 @@ export default function GalleryPanelCapSection({
   setFilter,
   exportCapKeepers,
   archiveThenPurgeRest,
+  finishPendingArchivePurge,
+  purgeRestOnly,
   removeEntries,
   setFavorites,
 }: GalleryPanelCapSectionProps) {
@@ -105,6 +109,14 @@ export default function GalleryPanelCapSection({
           onExportKeepers={exportCapKeepers}
           onArchiveThenPurge={() => {
             archiveThenPurgeRest();
+            setCapWizardOpen(false);
+          }}
+          onFinishPendingPurge={() => {
+            finishPendingArchivePurge();
+            setCapWizardOpen(false);
+          }}
+          onPurgeRestOnly={() => {
+            purgeRestOnly();
             setCapWizardOpen(false);
           }}
           onDeleteEvicted={() => {

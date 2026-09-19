@@ -470,7 +470,8 @@ function findLoadImageForFigure(
  * Outfit VL Keep (Image 2 after face-break): RL re-pins the standing fashion plate
  * even when Image 1 is a face crop — MID-STRIDE/WAVING freeze as catalog stands.
  * Face crop (Image 1): RL still biases toward a mid-thigh catalog portrait for
- * extreme beats (DANCING) — keep face VL + IP only so Image 3 can win.
+ * extreme beats (DANCING) — keep face VL-only so Image 3 can win. (IP/InstantID
+ * do not splice on Lightning Qwen — identity is VL face crop + Cast LoRA.)
  */
 export function isPoseGuideReferenceFilename(filename: string | null | undefined): boolean {
   const name = String(filename ?? '')
@@ -483,7 +484,8 @@ export function isPoseGuideReferenceFilename(filename: string | null | undefined
   return (
     /^(?:day|story)-pose-guide/i.test(name) ||
     /^day-outfit-vl[-_]/i.test(name) ||
-    /^day-vacation-face[-_]/i.test(name)
+    /^day-vacation-face[-_]/i.test(name) ||
+    /^day-vacation-id-vl[-_]/i.test(name)
   );
 }
 

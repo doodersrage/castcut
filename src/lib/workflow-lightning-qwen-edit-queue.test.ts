@@ -481,6 +481,8 @@ describe('ensureQwenReferenceLatentWiringInWorkflow', () => {
     assert.equal(isPoseGuideReferenceFilename('story-pose-guide-wall-2.png'), true);
     assert.equal(isPoseGuideReferenceFilename('day-outfit-vl-123.png'), true);
     assert.equal(isPoseGuideReferenceFilename('day-vacation-face-1.png'), true);
+    assert.equal(isPoseGuideReferenceFilename('day-vacation-id-vl-day-shared.png'), true);
+    assert.equal(isPoseGuideReferenceFilename('day-vacation-keep-day-shared.png'), false);
     assert.equal(isPoseGuideReferenceFilename('plate.png'), false);
 
     const workflow = {
@@ -565,7 +567,7 @@ describe('ensureQwenReferenceLatentWiringInWorkflow', () => {
     assert.equal(result.wired, true);
     const nodes = Object.values(result.workflow) as NodeShape[];
     const refLatents = nodes.filter(node => node.class_type === 'ReferenceLatent');
-    // Face crop + outfit VL + pose guide are all VL-only — IP carries face lock.
+    // Face crop + outfit VL + pose guide are all VL-only (pose unlock on Lightning).
     assert.equal(refLatents.length, 0);
     const loaders = nodes.filter(node => node.class_type === 'LoadImage');
     assert.ok(loaders.some(node => node.inputs.image === 'day-vacation-face-1.png'));

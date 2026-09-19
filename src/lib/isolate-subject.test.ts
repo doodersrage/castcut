@@ -4,8 +4,10 @@ import {
   collectIsolateSourceUrls,
   compositeRgbaOnFill,
   cutoutLooksIsolated,
+  ISOLATE_FILL_NEUTRAL,
   ISOLATE_FILL_WHITE,
   normalizeIsolateSubject,
+  parseIsolateFill,
 } from './isolate-subject';
 
 describe('isolate-subject', () => {
@@ -22,6 +24,20 @@ describe('isolate-subject', () => {
     assert.equal(out[5], ISOLATE_FILL_WHITE.g);
     assert.equal(out[6], ISOLATE_FILL_WHITE.b);
     assert.equal(out[7], 255);
+  });
+
+  it('parseIsolateFill reads hex and rgb fills', () => {
+    assert.deepEqual(parseIsolateFill('#c5d0dc'), ISOLATE_FILL_NEUTRAL);
+    assert.deepEqual(parseIsolateFill('197,208,220'), ISOLATE_FILL_NEUTRAL);
+    assert.equal(parseIsolateFill('nope'), null);
+  });
+
+  it('compositeRgbaOnFill accepts a custom mid-gray fill', () => {
+    const src = new Uint8ClampedArray([0, 0, 0, 0]);
+    const out = compositeRgbaOnFill(src, ISOLATE_FILL_NEUTRAL);
+    assert.equal(out[0], ISOLATE_FILL_NEUTRAL.r);
+    assert.equal(out[1], ISOLATE_FILL_NEUTRAL.g);
+    assert.equal(out[2], ISOLATE_FILL_NEUTRAL.b);
   });
 
   it('blends semi-transparent pixels onto white', () => {

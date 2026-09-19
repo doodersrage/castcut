@@ -11,6 +11,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v2.0.0] - 2026-09-19
 
+- **Lightning Vacation identity:** Edit-2511 Lightning Day Vacation pins the active Cast/Keep plate with ReferenceLatent (text pose, no Image 3 overlay) so faces and hair stay consistent across slots.
+- **Gallery archive jobs:** Archive & purge stages a server-side ZIP with progress so large galleries no longer OOM the tab.
 - **Full-loop identity:** Cast face IP-Adapter + pinned LoRAs on Look, Outfit try-on, Day/Story (desk + mobile) stills & Animate, Video/Cast continue-reel, and Prove-it.
 - **Heal → Identity ready:** Heal seeds IP-Adapter / InstantID nodes; Film chrome shows Identity ready / warn when face is locked without packs.
 - **LoRA flywheel climax:** Keep → Train → Register → Prove ritual on Cast with phase CTAs and Open prove still after register.

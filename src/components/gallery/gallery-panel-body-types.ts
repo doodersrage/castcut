@@ -69,6 +69,8 @@ export type GalleryPanelHeaderSlotProps = {
   uploadingImages: boolean;
   onRefreshPending: () => void;
   onArchiveThenPurge: () => void;
+  onFinishPendingPurge: () => void;
+  onPurgeRestOnly: () => void;
 };
 
 export type GalleryPanelCapProps = {
@@ -78,6 +80,8 @@ export type GalleryPanelCapProps = {
   capEvictionPreview: ComfyGalleryEntry[];
   exportCapKeepers: () => void;
   archiveThenPurgeRest: () => void;
+  finishPendingArchivePurge: () => void;
+  purgeRestOnly: () => void;
 };
 
 export type GalleryPanelAuxiliaryProps = {

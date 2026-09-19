@@ -80,6 +80,7 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
 import { applyCustomGarmentUpload } from '@/lib/fitting-custom-garment-apply';
+import { clearDayVacationFaceBreakCache } from '@/lib/day-vacation-face-crop';
 import {
   loadSavedFittingGarments,
   removeSavedFittingGarment,
@@ -228,6 +229,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     async (options?: { qualityProfile?: 'draft' | 'final' | 'max' }) => {
       setBusy(true);
       setError(null);
+      // One shared face crop for the whole Day — prevents per-slot identity float.
+      clearDayVacationFaceBreakCache();
       try {
         // Fill blank Setting/Beat only — Suggest day (or manual edit) owns the plan.
         // Adult Solo/Duo still force-rerolls stale everyday leftover boards.

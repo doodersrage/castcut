@@ -38,6 +38,7 @@ import {
   SOLO_DILDO_INSERTION_CUE,
   SOLO_DILDO_NO_EXTERNAL_HOLD_CUE,
 } from '@/lib/qwen-rapid-nude-edit';
+import { isDayVacationFaceRestorePrompt } from '@/lib/day-vacation-face-restore';
 
 export type DaySlotId = 'morning' | 'afternoon' | 'evening' | 'night';
 
@@ -479,16 +480,29 @@ export const DAY_PLATE_IDENTITY_LOCK_CAP = 0.4;
 export const DAY_VACATION_POSE_IDENTITY_LOCK_CAP = 0.12;
 
 /**
- * Upright pose breaks (MID-STRIDE / WAVING / DANCING) with face-only Image 1 —
- * keep face lock very soft so Image 3 stance wins.
+ * Soft sit/lounge face-break — Edit-2511 needs a firm face pin or every slot invents
+ * a new beauty face. Pose still unlocks via face-only Image 1 + Image 3.
  */
-export const DAY_VACATION_UPRIGHT_FACE_IDENTITY_LOCK_CAP = 0.06;
+export const DAY_VACATION_FACE_BREAK_IDENTITY_LOCK_CAP = 0.62;
+
+/**
+ * Hard upright pose breaks (MID-STRIDE / WAVING / DANCING) with face-only Image 1.
+ * Still below full Day plate lock so Image 3 stance can win.
+ */
+export const DAY_VACATION_UPRIGHT_FACE_IDENTITY_LOCK_CAP = 0.55;
 
 /** Denoise floor when Vacation/Suggestive attaches Image 3 — soft denoise keeps Keep stand. */
-export const DAY_VACATION_POSE_DENOISE = 0.96;
+export const DAY_VACATION_POSE_DENOISE = 0.78;
 
 /** Denoise when upright vacation poses use face-only Image 1. */
-export const DAY_VACATION_UPRIGHT_FACE_DENOISE = 0.98;
+export const DAY_VACATION_UPRIGHT_FACE_DENOISE = 0.8;
+
+/**
+ * Face-crop Image 1 + white Image 2/3: pose unlocks but SETTING must still fill the frame.
+ * Blank / missing background is a failed edit — not an optional backdrop tip.
+ */
+export const DAY_FACE_BREAK_SETTING_FILL =
+  'BACKGROUND CRITICAL: fill the entire frame behind her with the SETTING venue (depth, props, lighting) — a blank white, seamless studio, missing background, mid-gray void, charcoal diagram void, or ecommerce cutout means the edit FAILED. Image 3 is a thin gray outline on white paper only — never the scene, never a dark color overlay. Invent the SETTING behind her.';
 
 /** Adult duo + Image 3: lower face lock so Edit can separate bodies / drop Keep lingerie. */
 export const DAY_ADULT_DUO_IDENTITY_LOCK_CAP = 0.22;
@@ -527,7 +541,7 @@ export function buildDaySuggestiveKeepPoseUnlock(beat: string | null | undefined
 
 /** Fallback when beat class is unknown — prefer buildDayVacationPromptLocks().keepUnlock. */
 export const DAY_VACATION_KEEP_POSE_UNLOCK_PREFIX =
-  'Edit Image 1. Keep facial likeness AND the worn outfit, garments, colors, fabric, and clothing silhouette from Image 1. Image 1 is a standing try-on plate — discard that standing fashion stance entirely. Do not preserve body pose, standing stance, arm or hand positions, camera angle, or background — aggressively refactor into the beat pose matching Image 3 (seated, mid-stride walking with one foot ahead, reclining, relaxing, reaching with an arm high, dancing, climbing, waving as written). Keep facial likeness only for who they are; keep the clothing; replace everything else.';
+  'Edit Image 1. IDENTITY CRITICAL: keep the SAME woman as Image 1 — same face, bone structure, eyes, nose, mouth, and exact hair color and length. Inventing a different beauty face or restyling her hair means the edit FAILED. Keep the worn outfit, garments, colors, fabric, and clothing silhouette from Image 1. Image 1 is a standing try-on plate — discard that standing fashion stance entirely. Do not preserve body pose, standing stance, arm or hand positions, camera angle, or background — aggressively refactor into the beat pose. Keep who she is and what she is wearing from Image 1; replace pose and scene only.';
 
 /** Beat-aware suggestive stance lock — names dance/sway so Keep cannot freeze arms-at-sides. */
 export function buildDaySuggestivePoseLock(beat: string | null | undefined): string {
@@ -602,7 +616,7 @@ export const DAY_ISOLATE_WHITE_REPLACE =
  * "fill the entire frame" lead that steals CFG-1 from Image 3 stance.
  */
 export const DAY_REFERENCE_WHITE_VOID_FILL =
-  'Never leave Image 2 or Image 3 white as the scene background — keep the SETTING behind the posed subject (no ecommerce void, seamless studio sweep, or cutout plate).';
+  'Never leave Image 2 or Image 3 white as the scene background — keep the SETTING behind the posed subject (no ecommerce void, seamless studio sweep, cutout plate, or missing background).';
 
 /**
  * Default activity poses when the slot beat is empty — and always as a body-stance
@@ -2117,7 +2131,7 @@ export function buildDaySlotPrompt(input: {
   const photorealOutput =
     poseGuide && (realismMode === 'realistic' || realismMode === 'hyper-realistic');
   const keepOutfitLine =
-    !omitGarment && !replaceKeepOutfit && keepAsImage1
+    !omitGarment && !replaceKeepOutfit && keepAsImage1 && !clothedFaceBreak
       ? outfit
         ? `outfit continuity: stay in ${outfit} (same kit as Image 1) in the new pose`
         : 'outfit continuity: same garments and colors as Image 1 in the new pose'
@@ -2181,7 +2195,11 @@ export function buildDaySlotPrompt(input: {
           ? 'Image 3 white is pose-guide only — fill Image 1 white with the SETTING, not a studio void.'
           : null
       : null;
-    const lateWhiteVoidLine = referenceWhiteVoid ? DAY_REFERENCE_WHITE_VOID_FILL : null;
+    const lateWhiteVoidLine = referenceWhiteVoid
+      ? faceOnlyIdentity
+        ? DAY_FACE_BREAK_SETTING_FILL
+        : DAY_REFERENCE_WHITE_VOID_FILL
+      : null;
     const heatPoseBeforeSetting = isDayHeatMood(dayMood) && !omitGarment;
     const nudeEditLead = omitGarment
       ? buildQwenRapidNudeEditLead(setting, {
@@ -2225,7 +2243,11 @@ export function buildDaySlotPrompt(input: {
         ? buildDayVacationClothedFaceBreakLeads(
             heatUnlockClass ?? vacationLocks?.poseClass,
             'keep',
-            dayMood
+            dayMood,
+            {
+              garmentDescription,
+              hasOutfitImage: Boolean(garmentReinforce),
+            }
           )
         : null;
       const clothedFaceBreakPreamble = faceBreakLeads?.preamble ?? null;
@@ -2249,7 +2271,9 @@ export function buildDaySlotPrompt(input: {
             : dayMood === 'suggestive'
               ? 'Image 1 is the Outfit Keep try-on (face + worn kit) — a standing plate; match Image 3 and the beat stance (dance with both arms raised and one knee lifted, zip-twist, lean, sit) instead of freezing that stand.'
               : dayMood === 'vacation'
-                ? `Image 1 is the Outfit Keep try-on (face + worn kit) — a standing plate; match Image 3 and the beat stance (${vacationLocks?.poseClass ?? 'travel pose'}) instead of freezing that stand.`
+                ? poseGuide
+                  ? `Image 1 is the Outfit Keep try-on (face + worn kit) — a standing plate; match Image 3 and the beat stance (${vacationLocks?.poseClass ?? 'travel pose'}) instead of freezing that stand.`
+                  : `Image 1 is the Outfit Keep try-on (same woman, same hair color and length, worn kit) — a standing plate; change only pose and SETTING to the beat (${vacationLocks?.poseClass ?? 'travel pose'}) instead of freezing that stand. Inventing a different face or restyling her hair means the edit FAILED.`
                 : 'Image 1 is the Outfit Keep try-on (face + worn kit).'),
         nudeOutfitLine,
         sportOutfitLine,
@@ -2257,15 +2281,19 @@ export function buildDaySlotPrompt(input: {
           ? garmentDescription
             ? clothedFaceBreak
               ? dayMood === 'suggestive'
-                ? `Image 2 is the Outfit Keep full-body try-on — copy this EXACT garment (cut, colors, print, fabric, coverage) onto the new Image 3 pose (${garmentDescription}); inventing a bikini, swimsuit, or stripping her means the edit FAILED; ignore Image 2 standing stance and white void.`
-                : `Image 2 is the Outfit Keep full-body try-on (or packshot) — copy garment cut, colors, and fabric onto the new Image 3 pose (${garmentDescription}); ignore Image 2 standing stance and white void.`
+                ? `Image 2 is a clothing-only packshot — copy this EXACT garment (cut, colors, print, fabric, coverage) onto the new Image 3 pose (${garmentDescription}); inventing a bikini, swimsuit, or stripping her means the edit FAILED; ignore Image 2 layout and any white/gray void.`
+                : `Image 2 is a clothing-only packshot — copy garment cut, colors, and fabric onto the new Image 3 pose (${garmentDescription}); ignore Image 2 layout and any white/gray void.`
               : `Image 2 is a clothing-only packshot — reinforce garment cut, colors, and fabric from Image 1 using Image 2 (${garmentDescription}); ignore Image 2 layout.`
             : clothedFaceBreak
               ? dayMood === 'suggestive'
-                ? 'Image 2 is the Outfit Keep full-body try-on — copy this EXACT garment onto the new Image 3 pose (same print/cut/coverage); inventing a bikini, swimsuit, or stripping her means the edit FAILED; ignore Image 2 standing stance, arms, sofa, room, floor, and white void.'
-                : 'Image 2 is the Outfit Keep full-body try-on (or wardrobe packshot) — copy garment cut, colors, and fabric ONLY onto the new Image 3 pose; ignore Image 2 standing stance, arms, sofa, room, floor, and white void — never restage that indoor plate.'
+                ? 'Image 2 is a clothing-only packshot — copy this EXACT garment onto the new Image 3 pose (same print/cut/coverage); inventing a bikini, swimsuit, or stripping her means the edit FAILED; ignore Image 2 layout and any white/gray void.'
+                : 'Image 2 is a clothing-only packshot — copy garment cut, colors, and fabric ONLY onto the new Image 3 pose; ignore Image 2 layout and any white/gray void.'
               : 'Image 2 is a wardrobe packshot — use it only to reinforce garment cut, colors, and fabric from Image 1; ignore Image 2 layout.'
-          : null,
+          : clothedFaceBreak && garmentDescription
+            ? dayMood === 'suggestive'
+              ? `CLOTHING LOCK: wear this EXACT outfit — ${garmentDescription} — inventing a bikini, swimsuit, or stripping her means the edit FAILED.`
+              : `Outfit: wear ${garmentDescription} (exact cut, colors, print, fabric).`
+            : null,
         earlyWhiteVoidLine,
         adultForegroundLock,
         ...(heatPoseBeforeSetting
@@ -2303,7 +2331,11 @@ export function buildDaySlotPrompt(input: {
         duoHeadcountLock,
         omitGarment || replaceKeepOutfit
           ? 'keep facial likeness only for identity; aggressively refactor pose, camera, lighting, environment, and clothing — zero fabric when the beat is nude'
-          : 'keep facial likeness only for identity; keep the clothing from Image 1; aggressively refactor pose, camera, lighting, and environment',
+          : clothedFaceBreak
+            ? 'keep facial likeness only for identity — Image 1 is face only, invent body and clothes for the beat; aggressively refactor pose, camera, lighting, and environment'
+            : dayMood === 'vacation'
+              ? 'keep this exact woman from Image 1 (face, bone structure, hair color and length) and the clothing from Image 1; aggressively refactor pose, camera, lighting, and environment'
+              : 'keep facial likeness only for identity; keep the clothing from Image 1; aggressively refactor pose, camera, lighting, and environment',
         descriptor
           ? `look (mandatory unique face and body — not a stock beauty face or default slim silhouette): ${descriptor}`
           : null,
@@ -2341,7 +2373,11 @@ export function buildDaySlotPrompt(input: {
             ? clothedHeatUnlockPoseClass(hints, dayMood)
             : vacationLocks?.poseClass,
           'cast',
-          dayMood
+          dayMood,
+          {
+            garmentDescription,
+            hasOutfitImage: Boolean(garmentReinforce),
+          }
         )
       : null;
     return [
@@ -2363,15 +2399,19 @@ export function buildDaySlotPrompt(input: {
         ? garmentDescription
           ? clothedFaceBreak
             ? dayMood === 'suggestive'
-              ? `Image 2 is the Outfit Keep full-body try-on — copy this EXACT garment (cut, colors, print, fabric, coverage) onto the Image 3 pose (${garmentDescription}); inventing a bikini, swimsuit, or stripping her means the edit FAILED; ignore Image 2 standing stance, room, and white void.`
-              : `Image 2 is outfit color/cut reference only (Keep try-on or packshot) — copy garments onto the Image 3 pose (${garmentDescription}); ignore Image 2 standing stance, room, and white void.`
+              ? `Image 2 is a clothing-only packshot — copy this EXACT garment (cut, colors, print, fabric, coverage) onto the Image 3 pose (${garmentDescription}); inventing a bikini, swimsuit, or stripping her means the edit FAILED; ignore Image 2 layout and any white/gray void.`
+              : `Image 2 is a clothing-only packshot — copy garments onto the Image 3 pose (${garmentDescription}); ignore Image 2 layout and any white/gray void.`
             : `Image 2 is a clothing-only packshot — apply that outfit to the subject (${garmentDescription}).`
           : clothedFaceBreak
             ? dayMood === 'suggestive'
-              ? 'Image 2 is the Outfit Keep full-body try-on — copy this EXACT garment onto the Image 3 pose (same print/cut/coverage); inventing a bikini, swimsuit, or stripping her means the edit FAILED; ignore Image 2 standing stance, room, and white void.'
-              : 'Image 2 is outfit color/cut reference only — copy garments onto the Image 3 pose; ignore Image 2 standing stance, room, and white void.'
+              ? 'Image 2 is a clothing-only packshot — copy this EXACT garment onto the Image 3 pose (same print/cut/coverage); inventing a bikini, swimsuit, or stripping her means the edit FAILED; ignore Image 2 layout and any white/gray void.'
+              : 'Image 2 is a clothing-only packshot — copy garments onto the Image 3 pose; ignore Image 2 layout and any white/gray void.'
             : 'Image 2 is a clothing-only packshot — apply that outfit to the subject.'
-        : null,
+        : clothedFaceBreak && garmentDescription
+          ? dayMood === 'suggestive'
+            ? `CLOTHING LOCK: wear this EXACT outfit — ${garmentDescription} — inventing a bikini, swimsuit, or stripping her means the edit FAILED.`
+            : `Outfit: wear ${garmentDescription} (exact cut, colors, print, fabric).`
+          : null,
       earlyWhiteVoidLine,
       adultForegroundLock,
       ...(heatPoseBeforeSetting
@@ -2613,6 +2653,7 @@ export function promoteDayStillsToSoftPassChildren(
     status?: string;
     imageUrl?: string | null;
     queuedAt?: number;
+    prompt?: string | null;
   }>
 ): { stills: DaySlotStill[]; changed: boolean } {
   const byPromptId = new Map(
@@ -2622,6 +2663,10 @@ export function promoteDayStillsToSoftPassChildren(
   for (const entry of gallery) {
     const parentId = entry.parentGalleryEntryId?.trim();
     if (!parentId || entry.derivedKind !== 'soft-pass') {
+      continue;
+    }
+    // Face-restore children wrecked Lightning Day stills — never adopt them.
+    if (isDayVacationFaceRestorePrompt(entry.prompt)) {
       continue;
     }
     const list = childrenByParentId.get(parentId) ?? [];

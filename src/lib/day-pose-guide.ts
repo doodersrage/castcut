@@ -15,6 +15,7 @@ import {
   intimateTextImpliesCabinetDrawer,
   intimateTextImpliesSurfaceBent,
 } from '@/lib/intimate-prompt-clarify';
+import { usesOutlineGrayPoseGuide } from '@/lib/pose-guide-prompt';
 
 type Point = { x: number; y: number };
 
@@ -4142,20 +4143,25 @@ const MULTI_FIGURE_PALETTE = [
 ] as const;
 
 /**
- * Rapid AIO: muted gray outlines (no neon fills) — filled magenta/cyan capsules
- * leak into glass/window reflections on Phr00t Rapid AIO Edit.
+ * Rapid AIO + Edit-2511: muted gray outlines (no neon fills).
+ * Filled magenta/cyan capsules leak into the finished still on these stacks
+ * (Rapid glass reflections; Edit-2511 Lightning paints purple squiggles into the scene).
  */
-/** Mid/light gray only — dark strokes still get painted as black morphsuits. */
+/** Mid slate outlines on white — dark charcoal paper was copying into Lightning stills. */
 const RAPID_AIO_OUTLINE_PALETTE = [
-  { stroke: '#9ca3af', lineWidth: 5.2 },
-  { stroke: '#a8b0bb', lineWidth: 4.4 },
-  { stroke: '#b8c0cc', lineWidth: 4.0 },
+  { stroke: '#64748b', lineWidth: 4.6 },
+  { stroke: '#788396', lineWidth: 4.0 },
+  { stroke: '#8b95a5', lineWidth: 3.6 },
 ] as const;
+
+const OUTLINE_GRAY_PAPER = '#ffffff';
 
 export type PoseGuideVisualStyle = 'filled' | 'outline-gray';
 
+export { usesOutlineGrayPoseGuide };
+
 export function resolvePoseGuideVisualStyle(model?: string | null): PoseGuideVisualStyle {
-  return /^qwen-rapid-aio-/i.test(String(model ?? '').trim()) ? 'outline-gray' : 'filled';
+  return usesOutlineGrayPoseGuide(model) ? 'outline-gray' : 'filled';
 }
 
 function drawStickLimbStroke(
@@ -4191,12 +4197,13 @@ export function drawStickSkeleton(
     visualStyle?: PoseGuideVisualStyle;
   }
 ): void {
+  const visualStyle = options?.visualStyle ?? 'filled';
   if (options?.clear !== false) {
-    ctx.fillStyle = '#ffffff';
+    // White paper — charcoal plates leaked as a dark color overlay on Lightning.
+    ctx.fillStyle = visualStyle === 'outline-gray' ? OUTLINE_GRAY_PAPER : '#ffffff';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
   }
 
-  const visualStyle = options?.visualStyle ?? 'filled';
   if (visualStyle === 'outline-gray') {
     const stroke = options?.strokeStyle ?? '#9ca3af';
     const lineWidth = options?.lineWidth ?? 3;
@@ -4309,7 +4316,7 @@ export function drawPoseGuideFromScene(
   const { intent, figures } = synthesizeSceneStickFigures(text, fallbackIndex, options);
   if (intent.intimate === 'wall') {
     // Visual wall cue so Edit doesn't invent a center-floor kneel.
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = visualStyle === 'outline-gray' ? OUTLINE_GRAY_PAPER : '#ffffff';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
     ctx.fillStyle = '#d0d0d0';
     ctx.fillRect(0, 0, Math.round(WIDTH * 0.1), HEIGHT);
@@ -4324,7 +4331,7 @@ export function drawPoseGuideFromScene(
     /\b(chaise|daybed|fainting\s+couch)\b/i.test(text || '')
   ) {
     // Long chaise silhouette so Edit doesn't invent a short couch lap-sit.
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = visualStyle === 'outline-gray' ? OUTLINE_GRAY_PAPER : '#ffffff';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
     ctx.fillStyle = '#c8c8c8';
     const chaiseY = Math.round(HEIGHT * 0.62);

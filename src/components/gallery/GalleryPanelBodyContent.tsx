@@ -69,6 +69,8 @@ export default function GalleryPanelBodyContent({
         setFilter={browse.setFilter}
         exportCapKeepers={cap.exportCapKeepers}
         archiveThenPurgeRest={cap.archiveThenPurgeRest}
+        finishPendingArchivePurge={cap.finishPendingArchivePurge}
+        purgeRestOnly={cap.purgeRestOnly}
         removeEntries={removeEntries}
         setFavorites={setFavorites}
       />

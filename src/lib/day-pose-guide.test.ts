@@ -7,6 +7,7 @@ import {
   intimateLeadPrefersSecondRole,
   parsePoseGuideIntent,
   resolvePoseGuideKeyFromScene,
+  resolvePoseGuideVisualStyle,
   resolveStoryPoseGuideKey,
   resolveStoryPoseGuideKeyFromBeat,
   synthesizeIntimateStickFigures,
@@ -19,6 +20,15 @@ describe('day-pose-guide', () => {
     const size = dayPoseGuideSize();
     assert.equal(size.width, 512);
     assert.equal(size.height, 768);
+  });
+
+  it('resolvePoseGuideVisualStyle uses gray outlines for Rapid and Edit-2511', () => {
+    assert.equal(resolvePoseGuideVisualStyle('qwen-rapid-aio-edit'), 'outline-gray');
+    assert.equal(resolvePoseGuideVisualStyle('qwen-rapid-aio-nsfw'), 'outline-gray');
+    assert.equal(resolvePoseGuideVisualStyle('qwen-image-edit-2511-lightning-8'), 'outline-gray');
+    assert.equal(resolvePoseGuideVisualStyle('qwen-image-edit-2511'), 'outline-gray');
+    assert.equal(resolvePoseGuideVisualStyle('qwen-image-2512-lightning-8'), 'filled');
+    assert.equal(resolvePoseGuideVisualStyle('boogu-image-edit-turbo'), 'filled');
   });
 
   it('resolveStoryPoseGuideKey cycles four stances', () => {
@@ -1054,5 +1064,27 @@ describe('day-pose-guide', () => {
       assert.ok(ops.includes('fill'), 'mannequin head/hand blobs use fill');
       assert.ok(ops.filter(op => op === 'stroke').length > 5);
     }
+  });
+
+  it('outline-gray pose guides paint white paper not charcoal', () => {
+    let paper = '';
+    const ctx = {
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 0,
+      lineCap: '',
+      lineJoin: '',
+      fillRect() {
+        paper = String((this as { fillStyle: string }).fillStyle);
+      },
+      beginPath() {},
+      arc() {},
+      moveTo() {},
+      lineTo() {},
+      stroke() {},
+      fill() {},
+    } as unknown as CanvasRenderingContext2D;
+    drawDayPoseGuide(ctx, 'morning', 'outline-gray');
+    assert.equal(paper.toLowerCase(), '#ffffff');
   });
 });

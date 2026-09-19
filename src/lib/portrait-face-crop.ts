@@ -143,3 +143,61 @@ export async function cropPortraitFaceRegionFromBlob(
     bitmap.close();
   }
 }
+
+/**
+ * Soft non-white plate behind a face crop / Cast face lock.
+ * Pure white Image 1 + white Image 2/3 teaches Edit-2511 a studio void.
+ */
+export const DAY_FACE_BREAK_NEUTRAL_BACKDROP = '#c5d0dc';
+
+/**
+ * Browser: paint an opaque mid blue-gray behind a portrait blob so VL Image 1
+ * does not encode a blank white studio.
+ */
+export async function compositePortraitOnNeutralBackdrop(
+  blob: Blob,
+  filename = 'day-face-neutral.png',
+  options?: { fill?: string; coverRatio?: number }
+): Promise<File> {
+  if (typeof createImageBitmap !== 'function') {
+    throw new Error('Neutral backdrop needs createImageBitmap in this browser.');
+  }
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const fill = options?.fill?.trim() || DAY_FACE_BREAK_NEUTRAL_BACKDROP;
+    const coverRatio = clamp(options?.coverRatio ?? 0.92, 0.6, 1);
+    const outW = Math.max(512, bitmap.width);
+    const outH = Math.max(512, bitmap.height);
+    const canvas = document.createElement('canvas');
+    canvas.width = outW;
+    canvas.height = outH;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Could not composite face on neutral backdrop.');
+    }
+    ctx.fillStyle = fill;
+    ctx.fillRect(0, 0, outW, outH);
+    const scale = Math.min((outW * coverRatio) / bitmap.width, (outH * coverRatio) / bitmap.height);
+    const dw = Math.max(1, Math.round(bitmap.width * scale));
+    const dh = Math.max(1, Math.round(bitmap.height * scale));
+    const dx = Math.round((outW - dw) / 2);
+    const dy = Math.round((outH - dh) / 2);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bitmap, dx, dy, dw, dh);
+    const out = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(result => {
+        if (!result) {
+          reject(new Error('Could not encode neutral face plate.'));
+          return;
+        }
+        resolve(result);
+      }, 'image/png');
+    });
+    const safeName = filename.trim() || 'day-face-neutral.png';
+    const withExt = /\.png$/i.test(safeName) ? safeName : `${safeName}.png`;
+    return new File([out], withExt, { type: 'image/png' });
+  } finally {
+    bitmap.close();
+  }
+}
