@@ -478,7 +478,7 @@ export function applyQueuePromptSteering(input: {
       steeredPositive,
     });
     positive = clothedHeat.positive;
-    negative = clothedHeat.negative;
+    negative = clothedHeat.negative ?? negative;
     if (poseGuideAttached) {
       // Nude solo/duo pose-leak fights CLOTHING LOCK on Suggestive/Vacation — base only.
       positive = appendUniqueCsv(
