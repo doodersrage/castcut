@@ -5,8 +5,11 @@ import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import SharedToolControls from '@/components/SharedToolControls';
 import RoleplayBeatOutputSection from '@/components/roleplay/RoleplayBeatOutputSection';
 import RoleplayCastSection from '@/components/roleplay/RoleplayCastSection';
+import { RoleplayCastToneSettingSection } from '@/components/roleplay/sections/RoleplayCastToneSettingSection';
 import RoleplayStorySection from '@/components/roleplay/RoleplayStorySection';
 import RoleplayWardrobeSection from '@/components/roleplay/RoleplayWardrobeSection';
+import StoryPlayPhaseStrip from '@/components/roleplay/StoryPlayPhaseStrip';
+import StoryStatusStrip from '@/components/roleplay/StoryStatusStrip';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
@@ -14,12 +17,26 @@ import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useRoleplayToolOrchestration } from '@/hooks/useRoleplayToolOrchestration';
 import { Button } from '@/components/ui/Button';
-import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import {
+  CollapsibleSection,
+  ToolActionRow,
+  ToolBadge,
+  ToolLayout,
+  ToolSection,
+} from '@/components/ui/ToolPageShell';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { getCharacter } from '@/lib/character-os';
+import { normalizeDayIntimateMix } from '@/lib/day-planner';
 import { playCampaignHref } from '@/lib/play-campaign';
+import { deriveStoryPhase } from '@/lib/play-step-machine';
+import {
+  countRoleplayCompletedClips,
+  countRoleplayCompletedStills,
+  roleplayQueueBlockReason,
+  storySessionStatusLine,
+} from '@/lib/roleplay';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 const ACCENT = 'amber' as const;
 const TOOL_ID = 'roleplay';
@@ -73,6 +90,115 @@ export default function RoleplayToolSections({
     : '/characters';
   const filmHref = activeCharacterId ? playCampaignHref(activeCharacterId) : '/play';
 
+  const completedShotCount = useMemo(() => countRoleplayCompletedStills(story), [story]);
+  const completedClipCount = useMemo(() => countRoleplayCompletedClips(story), [story]);
+  const storyPhase = useMemo(
+    () =>
+      deriveStoryPhase({
+        completedStills: completedShotCount,
+        completedClips: completedClipCount,
+        beatCount: story.length,
+      }),
+    [completedClipCount, completedShotCount, story.length]
+  );
+  const collapseEditors =
+    leanChrome && (busy || film.assemblingFilm || story.length > 0 || completedShotCount > 0);
+  const showAnimateCoach =
+    completedShotCount > 0 &&
+    completedClipCount < completedShotCount &&
+    !film.firstCutCelebrate &&
+    !film.assemblingFilm;
+
+  const queueBlockReason = useMemo(
+    () =>
+      roleplayQueueBlockReason({
+        hasCharacter: Boolean(activeCharacterId),
+        hasBio: Boolean(bio),
+        playAsPhoto: playAsResolved === 'photo',
+        hasPlate: reference.hasReferenceImage,
+        isolateSubject: reference.isolateSubject,
+        isolatePending:
+          reference.isolateSubject &&
+          reference.hasReferenceImage &&
+          toolSettings.referenceIsolated !== true &&
+          (Boolean(reference.isolateStatus) || reference.referenceUploading),
+      }),
+    [
+      activeCharacterId,
+      bio,
+      playAsResolved,
+      reference.hasReferenceImage,
+      reference.isolateStatus,
+      reference.isolateSubject,
+      reference.referenceUploading,
+      toolSettings.referenceIsolated,
+    ]
+  );
+
+  const storyStatusLine = storySessionStatusLine({
+    hasCharacter: Boolean(activeCharacterId),
+    characterName: castCharacterName,
+    hasPlate: reference.hasReferenceImage,
+    hasWardrobe: Boolean(
+      toolSettings.wardrobeId?.trim() || toolSettings.customGarmentImageUrl?.trim()
+    ),
+    completedStills: completedShotCount,
+    completedClips: completedClipCount,
+    beatTotal: story.length,
+  });
+
+  const animateAllReady = useCallback(async () => {
+    for (const beat of story) {
+      if (
+        beat.stillStatus === 'completed' &&
+        beat.imageUrl?.trim() &&
+        beat.clipStatus !== 'completed'
+      ) {
+        await beatQueue.queueBeatMotion(beat);
+      }
+    }
+  }, [beatQueue, story]);
+
+  const castProps = {
+    busy,
+    bio,
+    story,
+    storyPhase: storyProgress.phase,
+    personaId,
+    playAs: playAsResolved,
+    tone,
+    content,
+    adultEnabled,
+    autoQueue,
+    beatOutput,
+    photoReady: reference.photoReady,
+    toolSettings,
+    activeCharacterId,
+    castCharacterName,
+    castHomeHref,
+    filmHref,
+    isolateSubject: reference.isolateSubject,
+    hasReferenceImage: reference.hasReferenceImage,
+    scanning: reference.scanning,
+    referenceUploading: reference.referenceUploading,
+    isolateStatus: reference.isolateStatus,
+    displayReferenceUrl: reference.displayReferenceUrl,
+    referenceOriginalFilename: reference.referenceOriginalFilename,
+    referenceOriginalUrl: reference.referenceOriginalUrl,
+    referenceImageFilename: reference.referenceImageFilename,
+    referenceImageUrl: reference.referenceImageUrl,
+    lastStill: reference.lastStill,
+    onUpdateToolSettings: updateToolSettings,
+    onClearReference: reference.clearReference,
+    onApplyReference: reference.applyReference,
+    onReferencePreviewUrlChange: reference.setReferencePreviewUrl,
+    onIsolateStatusChange: reference.setIsolateStatus,
+    onError: setError,
+    onScanWithVision: () => void reference.scanWithVision(),
+    onRestartStory: session.restartStory,
+    hideMoodSection: true as const,
+  };
+
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -109,44 +235,30 @@ export default function RoleplayToolSections({
         onCancel={cancelSoftAdvance}
       />
 
-      <RoleplayCastSection
-        busy={busy}
-        bio={bio}
-        story={story}
-        storyPhase={storyProgress.phase}
-        personaId={personaId}
-        playAs={playAsResolved}
-        tone={tone}
-        content={content}
-        adultEnabled={adultEnabled}
-        autoQueue={autoQueue}
-        beatOutput={beatOutput}
-        photoReady={reference.photoReady}
-        toolSettings={toolSettings}
-        activeCharacterId={activeCharacterId}
-        castCharacterName={castCharacterName}
-        castHomeHref={castHomeHref}
-        filmHref={filmHref}
-        isolateSubject={reference.isolateSubject}
-        hasReferenceImage={reference.hasReferenceImage}
-        scanning={reference.scanning}
-        referenceUploading={reference.referenceUploading}
-        isolateStatus={reference.isolateStatus}
-        displayReferenceUrl={reference.displayReferenceUrl}
-        referenceOriginalFilename={reference.referenceOriginalFilename}
-        referenceOriginalUrl={reference.referenceOriginalUrl}
-        referenceImageFilename={reference.referenceImageFilename}
-        referenceImageUrl={reference.referenceImageUrl}
-        lastStill={reference.lastStill}
-        onUpdateToolSettings={updateToolSettings}
-        onClearReference={reference.clearReference}
-        onApplyReference={reference.applyReference}
-        onReferencePreviewUrlChange={reference.setReferencePreviewUrl}
-        onIsolateStatusChange={reference.setIsolateStatus}
-        onError={setError}
-        onScanWithVision={() => void reference.scanWithVision()}
-        onRestartStory={session.restartStory}
-      />
+      {!film.firstCutCelebrate ? (
+        <div className="mb-3 space-y-2">
+          <StoryPlayPhaseStrip
+            activePhase={storyPhase}
+            completedStills={completedShotCount}
+            completedClips={completedClipCount}
+            beatTotal={story.length}
+          />
+          <StoryStatusStrip statusLine={storyStatusLine} queueBlockReason={queueBlockReason} />
+        </div>
+      ) : null}
+
+      {collapseEditors ? (
+        <CollapsibleSection
+          title={`Cast · ${castCharacterName || 'lead'}`}
+          summary={bio ? 'Bible set' : 'Needs bible'}
+          defaultOpen={false}
+          persistKey="story-cast-lean"
+        >
+          <RoleplayCastSection {...castProps} embedded />
+        </CollapsibleSection>
+      ) : (
+        <RoleplayCastSection {...castProps} />
+      )}
 
       {activeCharacterId ? (
         <RoleplayWardrobeSection
@@ -156,6 +268,69 @@ export default function RoleplayToolSections({
           onError={message => setError(message)}
           wardrobe={wardrobe}
         />
+      ) : null}
+
+      <RoleplayBeatOutputSection
+        storyProgress={storyProgress}
+        beatOutput={beatOutput}
+        autoQueue={autoQueue}
+        busy={busy}
+        bioPresent={Boolean(bio)}
+        scenesLoading={sceneFlow.scenesLoading}
+        scenes={sceneFlow.scenes}
+        playingId={sceneFlow.playingId}
+        error={error}
+        filmError={film.filmError}
+        filmGuideHref={film.filmGuideHref}
+        queueBlockReason={queueBlockReason}
+        content={content}
+        intimateMix={normalizeDayIntimateMix(toolSettings.intimateMix)}
+        onIntimateMixChange={next =>
+          updateToolSettings({ intimateMix: normalizeDayIntimateMix(next) })
+        }
+        onRestartStory={session.restartStory}
+        onBeatOutputChange={next => updateToolSettings({ beatOutput: next })}
+        onAutoQueueChange={next => updateToolSettings({ autoQueue: next })}
+        onRollScenes={() => void sceneFlow.rollScenes()}
+        onPlayScene={scene => void sceneFlow.playScene(scene)}
+        moodControls={
+          <RoleplayCastToneSettingSection
+            busy={busy}
+            playAs={playAsResolved}
+            tone={tone}
+            content={content}
+            adultEnabled={adultEnabled}
+            toolSettings={toolSettings}
+            onUpdateToolSettings={updateToolSettings}
+          />
+        }
+      />
+
+      {showAnimateCoach ? (
+        <ToolSection
+          title="Next · Animate → Cut"
+          description="Stills are ready — animate into clips, then Cut film for a motion reel."
+          data-testid="story-animate"
+        >
+          <ToolActionRow>
+            <Button
+              variant="primary"
+              disabled={busy || film.assemblingFilm}
+              data-testid="story-animate-all"
+              onClick={() => void animateAllReady()}
+            >
+              Animate all ready stills
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={busy || film.assemblingFilm || story.length === 0}
+              data-testid="story-animate-cut"
+              onClick={() => void film.cutRoleplayFilm()}
+            >
+              Skip to Cut film
+            </Button>
+          </ToolActionRow>
+        </ToolSection>
       ) : null}
 
       <RoleplayStorySection
@@ -202,25 +377,6 @@ export default function RoleplayToolSections({
         onSelectClipTake={session.selectClipTake}
         onCopy={beat => void session.copyBeatPrompt(beat)}
         onRollScenes={() => void sceneFlow.rollScenes()}
-      />
-
-      <RoleplayBeatOutputSection
-        storyProgress={storyProgress}
-        beatOutput={beatOutput}
-        autoQueue={autoQueue}
-        busy={busy}
-        bioPresent={Boolean(bio)}
-        scenesLoading={sceneFlow.scenesLoading}
-        scenes={sceneFlow.scenes}
-        playingId={sceneFlow.playingId}
-        error={error}
-        filmError={film.filmError}
-        filmGuideHref={film.filmGuideHref}
-        onRestartStory={session.restartStory}
-        onBeatOutputChange={next => updateToolSettings({ beatOutput: next })}
-        onAutoQueueChange={next => updateToolSettings({ autoQueue: next })}
-        onRollScenes={() => void sceneFlow.rollScenes()}
-        onPlayScene={scene => void sceneFlow.playScene(scene)}
       />
     </ToolLayout>
   );

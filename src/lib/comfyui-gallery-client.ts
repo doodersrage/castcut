@@ -22,7 +22,10 @@ import { noteJobCompletionEmail } from './job-completion-email';
 import { autoTagGalleryEntry } from './gallery-auto-vision-tags';
 import { backfillHistoryGalleryLink } from './prompt-lineage';
 import { mapWithConcurrency } from './concurrency';
-import { consumePendingRefineAfterUpscale } from './gallery-pending-actions';
+import {
+  consumePendingRefineAfterUpscale,
+  consumePendingSkinRefineAfterStill,
+} from './gallery-pending-actions';
 import type { WorkflowParamValues } from './comfyui-config';
 import { buildGalleryImageUrlsFromQueueParams } from './queue-requeue-images';
 import { freeComfyUiMemory } from './comfyui-queue-control';
@@ -799,6 +802,17 @@ function applyComfyJobStatus(
       void import('./comfyui-requeue').then(({ requeueRefineFromGalleryEntry }) =>
         requeueRefineFromGalleryEntry(entry, {
           qualityProfile: pendingRefine.qualityProfile,
+          onStatus,
+        })
+      );
+    }
+
+    const pendingSkin = consumePendingSkinRefineAfterStill(promptId);
+    if (pendingSkin) {
+      void import('./comfyui-requeue').then(({ requeueSkinRefineFromGalleryEntry }) =>
+        requeueSkinRefineFromGalleryEntry(entry, {
+          model: pendingSkin.model,
+          qualityProfile: 'final',
           onStatus,
         })
       );

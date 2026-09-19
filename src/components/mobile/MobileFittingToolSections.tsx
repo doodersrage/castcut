@@ -12,7 +12,11 @@ import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
-import { buildFittingCompareLightboxState } from '@/lib/fitting-room';
+import {
+  buildFittingCompareLightboxState,
+  fittingSessionStatusLine,
+  resolveFittingOutfitPhase,
+} from '@/lib/fitting-room';
 import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
 import {
   findSavedFittingGarmentByFilename,
@@ -20,8 +24,12 @@ import {
   subscribeSavedFittingGarments,
   type SavedFittingGarment,
 } from '@/lib/fitting-saved-garments';
-import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
+import { galleryPickPath } from '@/lib/gallery-handoff';
 import { toMobileStudioHref, withCharacterQuery } from '@/lib/mobile-studio';
+import { bumpPlayCampaignStep } from '@/lib/play-campaign';
+import OutfitPlayPhaseStrip from '@/components/fitting/OutfitPlayPhaseStrip';
+import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
+import type { ImageLightboxSlideChrome } from '@/components/ui/ImageLightbox';
 import {
   countWardrobeOptionsForFilter,
   normalizeWardrobeCategoryFilter,
@@ -92,6 +100,9 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     swipeKit,
     selectKit,
     queueBlocked,
+    queueBlockReason,
+    dismissTryOn,
+    requeueTryOn,
     dayPlannerHref,
     garmentUploading,
     garmentScanStatus,
@@ -102,6 +113,9 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     applySavedCustomGarment,
     removeSavedCustomGarment,
     clearKit,
+    applyReference,
+    clearReference,
+    referenceUploading,
   } = vm;
 
   const savedGarments = useSavedFittingGarments();
@@ -138,6 +152,63 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     [compareTryOns]
   );
 
+  const outfitPhase = resolveFittingOutfitPhase({
+    hasPlate: hasReference,
+    compareCount: compareTryOns.length,
+    continueDayReady: Boolean(continueDayHref || softAdvance),
+  });
+  const statusLine = fittingSessionStatusLine({
+    hasPlate: hasReference,
+    kitLabel: lockedWardrobeLabel || shared.lockedWardrobeId,
+    hasByo: Boolean(
+      toolSettings.customGarmentImageUrl?.trim() || toolSettings.customGarmentImageFilename?.trim()
+    ),
+    byoLabel: toolSettings.customGarmentDescription,
+  });
+
+  const activeLightboxTryOn = useMemo(() => {
+    if (!lightbox || compareTryOns.length === 0) {
+      return null;
+    }
+    const url = lightbox.images[lightbox.index];
+    return (
+      compareTryOns.find(tryOn => tryOn.imageUrl === url) || compareTryOns[lightbox.index] || null
+    );
+  }, [compareTryOns, lightbox]);
+
+  const compareSlideChrome = useMemo((): ImageLightboxSlideChrome | null => {
+    if (!activeLightboxTryOn) {
+      return null;
+    }
+    return {
+      showKeep: true,
+      showPass: true,
+      showRequeue: true,
+      showSeedVariation: false,
+      showImprove: false,
+      showCompose: false,
+      showInpaint: false,
+      showUseStack: false,
+      showUsePromptStack: false,
+      showUseFace: false,
+      onKeep: () => {
+        const href = keepTryOn(activeLightboxTryOn);
+        setLightbox(null);
+        if (href) {
+          softAdvanceHref(href, 'Day');
+        }
+      },
+      onPass: () => {
+        dismissTryOn(activeLightboxTryOn);
+        setLightbox(null);
+      },
+      onRequeue: () => {
+        void requeueTryOn(activeLightboxTryOn);
+        setLightbox(null);
+      },
+    };
+  }, [activeLightboxTryOn, dismissTryOn, keepTryOn, requeueTryOn, softAdvanceHref]);
+
   return (
     <div className="space-y-4" data-testid="mobile-fitting">
       <div className="space-y-1">
@@ -148,10 +219,17 @@ export default function MobileFittingToolSections(vm: ViewModel) {
       </div>
 
       <PlayFilmEngineBanner />
+      <OutfitPlayPhaseStrip activePhase={outfitPhase} compareCount={compareTryOns.length} />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
         onCancel={cancelSoftAdvance}
+      />
+
+      <FittingStatusStrip
+        statusLine={statusLine}
+        queueBlockReason={queueBlocked ? queueBlockReason : null}
+        previewHint="Draft thumbs when available · Queue try-on = full quality for Keep → Day"
       />
 
       {compareTryOns.length > 0 && !softAdvance && !continueDayHref ? (
@@ -193,16 +271,76 @@ export default function MobileFittingToolSections(vm: ViewModel) {
               : 'Plate locked'}
             {lockedWardrobeLabel ? ` · ${lockedWardrobeLabel}` : ''}
           </p>
+          <div className="flex flex-wrap gap-2 border-t border-[var(--border-subtle)] px-3 py-2">
+            <label className="ui-btn-secondary inline-flex cursor-pointer items-center justify-center px-3 py-1.5 text-sm">
+              Upload
+              <input
+                type="file"
+                accept="image/*"
+                aria-label="Upload Cast plate photo"
+                disabled={busy || referenceUploading}
+                className="sr-only"
+                onChange={event => {
+                  const file = event.target.files?.[0];
+                  event.target.value = '';
+                  if (!file) {
+                    return;
+                  }
+                  void applyReference({ file }).catch(err => {
+                    setError(err instanceof Error ? err.message : 'Could not upload that photo.');
+                  });
+                }}
+              />
+            </label>
+            <Link
+              href={toMobileStudioHref(
+                galleryPickPath('fitting', { characterId: shared.activeCharacterId })
+              )}
+              className="ui-btn-secondary inline-flex items-center justify-center px-3 py-1.5 text-sm"
+            >
+              Gallery
+            </Link>
+            {hasReference ? (
+              <Button size="sm" variant="ghost" disabled={busy} onClick={clearReference}>
+                Clear
+              </Button>
+            ) : null}
+          </div>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] px-4 py-8 text-center">
           <p className="text-sm text-[var(--text-muted)]">No plate yet.</p>
-          <Link href="/m" className="ui-btn-primary mt-3 inline-flex justify-center">
-            Capture one
+          <label className="ui-btn-primary mt-3 inline-flex cursor-pointer justify-center px-4 py-2">
+            Upload plate
+            <input
+              type="file"
+              accept="image/*"
+              aria-label="Upload Cast plate photo"
+              disabled={busy || referenceUploading}
+              className="sr-only"
+              onChange={event => {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                if (!file) {
+                  return;
+                }
+                void applyReference({ file }).catch(err => {
+                  setError(err instanceof Error ? err.message : 'Could not upload that photo.');
+                });
+              }}
+            />
+          </label>
+          <Link
+            href={toMobileStudioHref(
+              galleryPickPath('fitting', { characterId: shared.activeCharacterId })
+            )}
+            className="ui-btn-secondary mt-2 inline-flex w-full justify-center text-sm"
+          >
+            Choose from Gallery
           </Link>
           <Link
             href={withCharacterQuery('/m/moodboard', shared.activeCharacterId)}
-            className="ui-btn-secondary mt-2 inline-flex w-full justify-center text-sm"
+            className="ui-btn-ghost mt-2 inline-flex w-full justify-center text-sm"
           >
             Or open Look
           </Link>
@@ -235,6 +373,30 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           <p className="type-caption text-[var(--text-muted)]">
             {wardrobeKitCount} kit{wardrobeKitCount === 1 ? '' : 's'} in this type.
           </p>
+        ) : null}
+        {wardrobeReady && wardrobeCategoryFilter !== 'all' && wardrobeKitCount === 0 ? (
+          <div
+            className="rounded-2xl border border-dashed border-[var(--border-subtle)] px-3 py-3"
+            data-testid="fitting-empty-filter"
+          >
+            <p className="type-caption text-[var(--text-muted)]">No kits in this clothing type.</p>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="mt-2"
+              disabled={busy}
+              onClick={() =>
+                updateToolSettings({
+                  wardrobeCategoryFilter: normalizeWardrobeCategoryFilter('all'),
+                })
+              }
+            >
+              Show all types
+            </Button>
+            <p className="type-caption mt-2 text-[var(--text-muted)]">
+              Or upload a clothing photo below.
+            </p>
+          </div>
         ) : null}
       </label>
 
@@ -504,10 +666,14 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         </p>
       )}
 
+      <p className="type-caption text-[var(--text-muted)]" data-testid="fitting-preview-vs-queue">
+        Draft thumbs when available · Queue try-on = full quality for Keep → Day.
+      </p>
+
       {compareTryOns.length > 0 ? (
         <div className="space-y-2" data-testid="mobile-fitting-compare">
           <p className="type-caption text-[var(--text-muted)]">
-            Compare try-ons · tap for full size
+            Compare try-ons · tap for full size · Keep / Pass / requeue
           </p>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {compareTryOns.map(tryOn => (
@@ -533,7 +699,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
                 <figcaption className="type-caption truncate text-[var(--text-muted)]">
                   {tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on'}
                 </figcaption>
-                <div className="mt-2 grid grid-cols-2 gap-1">
+                <div className="mt-2 grid grid-cols-3 gap-1">
                   <Button
                     size="sm"
                     variant="primary"
@@ -553,10 +719,23 @@ export default function MobileFittingToolSections(vm: ViewModel) {
                     size="sm"
                     variant="ghost"
                     disabled={busy}
-                    onClick={skipKit}
+                    title="Dismiss this try-on"
+                    data-testid="fitting-pass-try-on"
+                    onClick={() => dismissTryOn(tryOn)}
                     className="justify-center"
                   >
-                    Skip
+                    Pass
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
+                    title="Queue this kit again"
+                    data-testid="fitting-requeue-try-on"
+                    onClick={() => void requeueTryOn(tryOn)}
+                    className="justify-center"
+                  >
+                    ↻
                   </Button>
                 </div>
               </figure>
@@ -568,6 +747,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
       <ImageLightbox
         state={lightbox}
         onClose={() => setLightbox(null)}
+        slideChrome={compareSlideChrome}
         onIndexChange={index =>
           setLightbox(previous =>
             previous
@@ -599,11 +779,21 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           }
           disabled={queueBlocked}
           loading={busy}
+          title={queueBlockReason || undefined}
+          data-testid="fitting-queue-try-on"
           onClick={() => void queueTryOn()}
           className="w-full justify-center"
         >
           Queue try-on
         </Button>
+        {queueBlockReason ? (
+          <p
+            className="type-caption text-[var(--text-muted)]"
+            data-testid="fitting-queue-block-reason"
+          >
+            {queueBlockReason}
+          </p>
+        ) : null}
         <Button
           variant="secondary"
           disabled={queueBlocked || swipeDeck.length < 2}
@@ -614,12 +804,26 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         </Button>
         <Button
           variant="secondary"
-          disabled={queueBlocked || swipeDeck.length < 2}
+          disabled={swipeDeck.length < 2 || busy}
+          title="Advance to the next wardrobe kit"
+          data-testid="fitting-skip-kit"
           onClick={skipKit}
           className="w-full justify-center"
         >
           Skip kit
         </Button>
+        {character && !mobileContinueDay ? (
+          <Link
+            href={mobileDayHref}
+            className="ui-btn-secondary w-full justify-center text-center text-sm"
+            data-testid="fitting-skip-day"
+            onClick={() => {
+              bumpPlayCampaignStep({ characterId: character.id, stepId: 'day' });
+            }}
+          >
+            Skip outfit · Day
+          </Link>
+        ) : null}
         <Button
           variant="ghost"
           disabled={busy}
@@ -641,9 +845,6 @@ export default function MobileFittingToolSections(vm: ViewModel) {
 
       {saveStatus ? <p className="type-caption text-[var(--text-muted)]">{saveStatus}</p> : null}
       <FieldError>{error}</FieldError>
-      {isolateSubject && hasReference && toolSettings.referenceIsolated !== true && !error ? (
-        <p className="type-caption text-[var(--text-muted)]">{ISOLATE_QUEUE_BLOCKED_MESSAGE}</p>
-      ) : null}
     </div>
   );
 }

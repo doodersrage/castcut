@@ -19,9 +19,12 @@ import {
   galleryEntrySupportsMoireClean,
   galleryEntrySupportsRefine,
   galleryEntrySupportsSoftSecondPass,
+  canSkinRefineGalleryEntry,
   galleryEntrySupportsUpscale,
 } from '@/lib/gallery-entry-actions';
 import { buildGalleryParamDiff } from '@/lib/gallery-param-diff';
+import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { resolvePlaySkinRefineModel } from '@/lib/play-skin-refine';
 
 export type GalleryComparePanelProps = {
   entries: ComfyGalleryEntry[];
@@ -39,6 +42,7 @@ export type GalleryComparePanelProps = {
   onMoireClean?: (entry: ComfyGalleryEntry, qualityProfile: 'final' | 'max') => void;
   onRefine?: (entry: ComfyGalleryEntry) => void;
   onSoftSecondPass?: (entry: ComfyGalleryEntry) => void;
+  onSkinRefine?: (entry: ComfyGalleryEntry) => void;
   /** Open the shared image lightbox for a compare entry. */
   onOpenPreview?: (entry: ComfyGalleryEntry) => void;
   status?: string | null;
@@ -54,6 +58,7 @@ function entryEnhanceCapabilities(entry: ComfyGalleryEntry) {
     !galleryEntryAlreadyEnrichedForUpscale(entry, 'final');
   const canMoireMax =
     isRapid && entry.status === 'completed' && !galleryEntryAlreadyEnrichedForUpscale(entry, 'max');
+  const skinModel = resolvePlaySkinRefineModel(loadComfyUiSettings());
   return {
     isRapid,
     canUpscaleFinal,
@@ -63,6 +68,7 @@ function entryEnhanceCapabilities(entry: ComfyGalleryEntry) {
     canRefine: galleryEntrySupportsRefine(entry.model) && entry.status === 'completed',
     canSoftSecondPass:
       galleryEntrySupportsSoftSecondPass(entry.model) && entry.status === 'completed',
+    canSkinRefine: canSkinRefineGalleryEntry(entry, skinModel),
     supportsUpscaleModel: galleryEntrySupportsUpscale(entry.model),
   };
 }
@@ -82,6 +88,7 @@ export default function GalleryComparePanel({
   onMoireClean,
   onRefine,
   onSoftSecondPass,
+  onSkinRefine,
   onOpenPreview,
   status,
 }: GalleryComparePanelProps) {
@@ -437,6 +444,16 @@ export default function GalleryComparePanel({
                     className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--tint-info-text)]"
                   >
                     Soft pass
+                  </button>
+                ) : null}
+                {onSkinRefine && caps.canSkinRefine ? (
+                  <button
+                    type="button"
+                    onClick={() => onSkinRefine(entry)}
+                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--tint-info-text)]"
+                    data-testid="compare-skin-refine"
+                  >
+                    Skin refine
                   </button>
                 ) : null}
                 {onRefine && caps.canRefine ? (

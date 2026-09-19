@@ -1,9 +1,6 @@
 import {
   DEFAULT_CFG_TOKEN,
   DEFAULT_DENOISE_TOKEN,
-  DEFAULT_FLUX_BASE_SHIFT_TOKEN,
-  DEFAULT_FLUX_MAX_SHIFT_TOKEN,
-  DEFAULT_HEIGHT_TOKEN,
   DEFAULT_INPUT_IMAGE_TOKEN,
   DEFAULT_NEGATIVE_TOKEN,
   DEFAULT_POSITIVE_TOKEN,
@@ -14,13 +11,24 @@ import {
   DEFAULT_STEPS_TOKEN,
   DEFAULT_UNET_TOKEN,
   DEFAULT_VAE_TOKEN,
-  DEFAULT_WIDTH_TOKEN,
+  resolvePlaceholderTokens,
 } from './comfyui-config';
 import { getComfyModelDefinition, normalizeComfyModel, type ComfyImageModel } from './comfy-models';
-import { isQwenRapidAioModel } from './model-denoise-defaults';
+import {
+  isFlux1FamilyModel,
+  isFluxKleinModel,
+  isQwenEditModel,
+  isQwenRapidAioModel,
+} from './model-denoise-defaults';
 import { defaultLoaderPrecisionTier, qwenDualClipFilename } from './model-loader-precision';
+import { suggestedVaeFilenameForModel } from './model-checkpoint-map';
 import type { QueueQualityProfile } from './queue-quality-profile';
-import { fluxKleinDualClipFilename } from './workflow-scaffold-flux';
+import { fluxImg2imgScaffold, fluxKleinEditScaffold } from './workflow-scaffold-flux';
+import { qwenEditComposeScaffold } from './workflow-scaffold-qwen';
+
+/** Classic FLUX.1 DualCLIP defaults — soft-bound from Comfy inventory at queue time. */
+const FLUX1_REFINE_CLIP_L = 'clip_l.safetensors';
+const FLUX1_REFINE_CLIP_T5 = 't5xxl_fp16.safetensors';
 
 export const GALLERY_REFINE_DENOISE: Record<'final' | 'max', number> = {
   final: 0.22,
@@ -41,6 +49,20 @@ export const GALLERY_SOFT_PASS_DENOISE: Record<'final' | 'max', number> = {
 export const GALLERY_SOFT_PASS_PORTRAIT_DENOISE: Record<'final' | 'max', number> = {
   final: 0.1,
   max: 0.12,
+};
+
+/**
+ * Skin-refine soft pass — stronger than generic soft pass so pores/matte skin
+ * actually read; still below full refine so pose/wardrobe stay locked.
+ */
+export const GALLERY_SKIN_PASS_DENOISE: Record<'final' | 'max', number> = {
+  final: 0.38,
+  max: 0.45,
+};
+
+export const GALLERY_SKIN_PASS_PORTRAIT_DENOISE: Record<'final' | 'max', number> = {
+  final: 0.34,
+  max: 0.4,
 };
 
 export type GalleryRefineMode = 'refine' | 'soft';
@@ -76,13 +98,41 @@ export function softSecondPassDenoiseCap(model?: string): number {
   return 0.13;
 }
 
+/** Higher cap for dedicated skin refine — generic soft-pass caps were a visual no-op. */
+export function softSkinPassDenoiseCap(model?: string): number {
+  const id = String(model ?? '').toLowerCase();
+  if (/lightning|schnell|turbo|distill|rapid-aio-(sfw|nsfw)/.test(id)) {
+    return 0.22;
+  }
+  if (/qwen/.test(id)) {
+    return 0.35;
+  }
+  if (/klein.*distill|distilled/.test(id)) {
+    return 0.32;
+  }
+  if (/^flux|klein/.test(id)) {
+    return 0.48;
+  }
+  if (/sdxl|sd3|stable-diffusion/.test(id)) {
+    return 0.4;
+  }
+  return 0.38;
+}
+
 export function galleryRefineDenoiseForProfile(
   profile: Extract<QueueQualityProfile, 'final' | 'max'> | undefined,
   prompt?: string,
-  mode: GalleryRefineMode = 'refine'
+  mode: GalleryRefineMode = 'refine',
+  options?: { skinPass?: boolean }
 ): number {
   const key = profile === 'max' ? 'max' : 'final';
   if (mode === 'soft') {
+    if (options?.skinPass) {
+      const table = isPortraitRefinePrompt(prompt)
+        ? GALLERY_SKIN_PASS_PORTRAIT_DENOISE
+        : GALLERY_SKIN_PASS_DENOISE;
+      return table[key];
+    }
     const table = isPortraitRefinePrompt(prompt)
       ? GALLERY_SOFT_PASS_PORTRAIT_DENOISE
       : GALLERY_SOFT_PASS_DENOISE;
@@ -97,13 +147,23 @@ export function galleryRefineDenoiseForProfile(
 export function galleryRefineDenoiseForEntry(
   entry: { prompt?: string; model?: string },
   profile: Extract<QueueQualityProfile, 'final' | 'max'> | undefined,
-  mode: GalleryRefineMode = 'refine'
+  mode: GalleryRefineMode = 'refine',
+  options?: { skinPass?: boolean }
 ): number {
-  const base = galleryRefineDenoiseForProfile(profile, entry.prompt, mode);
+  // Instruction-edit stacks need denoise 1. Soft VAEEncode denoise on Klein gets
+  // rewritten to EmptyFlux2Latent at queue time — denoise 0.38 on empty noise
+  // decodes as a solid brown mush field.
+  if (isQwenEditModel(entry.model ?? '') || isFluxKleinModel(entry.model ?? '')) {
+    return 1;
+  }
+  const base = galleryRefineDenoiseForProfile(profile, entry.prompt, mode, options);
   if (mode !== 'soft') {
     return base;
   }
-  return Math.min(base, softSecondPassDenoiseCap(entry.model));
+  const cap = options?.skinPass
+    ? softSkinPassDenoiseCap(entry.model)
+    : softSecondPassDenoiseCap(entry.model);
+  return Math.min(base, cap);
 }
 
 type WorkflowNode = {
@@ -219,87 +279,64 @@ function buildCheckpointGalleryRefineWorkflow(options?: {
 
 /** Klein uses UNET + CLIPLoader (flux2) + VAE + ModelSamplingFlux — not CheckpointLoaderSimple. */
 function buildFluxKleinGalleryRefineWorkflow(model: string): Record<string, WorkflowNode> {
-  const clipName = fluxKleinDualClipFilename(model);
-  return {
-    '1': {
-      class_type: 'UNETLoader',
-      inputs: { unet_name: DEFAULT_UNET_TOKEN, weight_dtype: 'default' },
-      _meta: { title: 'Castcut — UNET' },
-    },
-    '2': {
-      class_type: 'CLIPLoader',
-      inputs: {
-        clip_name: clipName,
-        type: 'flux2',
-      },
-      _meta: { title: 'Castcut — CLIP (FLUX.2 Klein)' },
-    },
-    '3': {
-      class_type: 'VAELoader',
-      inputs: { vae_name: DEFAULT_VAE_TOKEN },
-      _meta: { title: 'Castcut — VAE' },
-    },
-    '4': {
-      class_type: 'LoadImage',
-      inputs: { image: DEFAULT_INPUT_IMAGE_TOKEN },
-      _meta: { title: 'Castcut — gallery output' },
-    },
-    '5': {
-      class_type: 'VAEEncode',
-      inputs: { pixels: ['4', 0], vae: ['3', 0] },
-      _meta: { title: 'Castcut — encode input' },
-    },
-    '6': {
-      class_type: 'CLIPTextEncode',
-      inputs: { text: DEFAULT_POSITIVE_TOKEN, clip: ['2', 0] },
-      _meta: { title: 'Castcut — positive' },
-    },
-    '7': {
-      class_type: 'CLIPTextEncode',
-      inputs: { text: DEFAULT_NEGATIVE_TOKEN, clip: ['2', 0] },
-      _meta: { title: 'Castcut — negative' },
-    },
-    '8': {
-      class_type: 'ModelSamplingFlux',
-      inputs: {
-        model: ['1', 0],
-        max_shift: DEFAULT_FLUX_MAX_SHIFT_TOKEN,
-        base_shift: DEFAULT_FLUX_BASE_SHIFT_TOKEN,
-        width: DEFAULT_WIDTH_TOKEN,
-        height: DEFAULT_HEIGHT_TOKEN,
-      },
-      _meta: { title: 'Castcut — ModelSamplingFlux' },
-    },
-    '9': {
-      class_type: 'KSampler',
-      inputs: {
-        seed: DEFAULT_SEED_TOKEN,
-        steps: DEFAULT_STEPS_TOKEN,
-        cfg: DEFAULT_CFG_TOKEN,
-        sampler_name: DEFAULT_SAMPLER_TOKEN,
-        scheduler: DEFAULT_SCHEDULER_TOKEN,
-        denoise: DEFAULT_DENOISE_TOKEN,
-        model: ['8', 0],
-        positive: ['6', 0],
-        negative: ['7', 0],
-        latent_image: ['5', 0],
-      },
-      _meta: { title: 'Castcut — refine sampler' },
-    },
-    '10': {
-      class_type: 'VAEDecode',
-      inputs: { samples: ['9', 0], vae: ['3', 0] },
-      _meta: { title: 'Castcut — decode' },
-    },
-    '11': {
-      class_type: 'SaveImage',
-      inputs: {
-        filename_prefix: 'Castcut-refine',
-        images: ['10', 0],
-      },
-      _meta: { title: 'Castcut — save' },
-    },
-  };
+  // Soft VAEEncode img2img is rewritten to EmptyFlux2 at queue time; pairing that
+  // with soft denoise yields solid brown mush. Use the official ReferenceLatent
+  // edit scaffold (denoise 1) — same pattern as Qwen Edit gallery refine.
+  const tokens = resolvePlaceholderTokens();
+  const scaffold = fluxKleinEditScaffold(tokens, model) as Record<string, WorkflowNode>;
+  for (const node of Object.values(scaffold)) {
+    if (node?.class_type === 'SaveImage' && node.inputs) {
+      node.inputs.filename_prefix = 'Castcut-refine';
+    }
+  }
+  return scaffold;
+}
+
+/**
+ * FLUX.1 / UltraReal img2img refine — reuse the production fluxImg2imgScaffold.
+ * Hand-rolled DualCLIP graphs drifted from sampler/guidance wiring and surfaced
+ * Comfy errors like "too many values to unpack (expected 4)" on Flux forward.
+ */
+function buildFlux1GalleryRefineWorkflow(model: string): Record<string, WorkflowNode> {
+  const tokens = resolvePlaceholderTokens();
+  const scaffold = fluxImg2imgScaffold(tokens, model) as Record<string, WorkflowNode>;
+  // Prefer concrete ae VAE so sticky Rapid/Qwen VAEs cannot leak into soft refine.
+  const vaeName = suggestedVaeFilenameForModel(model) || 'ae.safetensors';
+  for (const node of Object.values(scaffold)) {
+    if (node?.class_type === 'VAELoader' && node.inputs) {
+      node.inputs.vae_name = vaeName;
+    }
+    if (node?.class_type === 'DualCLIPLoader' && node.inputs) {
+      if (!String(node.inputs.clip_name1 ?? '').trim()) {
+        node.inputs.clip_name1 = FLUX1_REFINE_CLIP_L;
+      }
+      if (!String(node.inputs.clip_name2 ?? '').trim()) {
+        node.inputs.clip_name2 = FLUX1_REFINE_CLIP_T5;
+      }
+      node.inputs.type = 'flux';
+    }
+    if (node?.class_type === 'SaveImage' && node.inputs) {
+      node.inputs.filename_prefix = 'Castcut-refine';
+    }
+  }
+  return scaffold;
+}
+
+/**
+ * Qwen Edit skin/soft refine — use the Compose Edit scaffold (separate pos/neg
+ * TextEncode + EmptySD3 + ReferenceLatent path). The classic VAEEncode img2img
+ * scaffold shares one encode for pos+neg; at denoise 1 / CFG that collapses
+ * to unconditioned noise and decodes as olive garbage.
+ */
+function buildQwenEditGalleryRefineWorkflow(model: string): Record<string, WorkflowNode> {
+  const tokens = resolvePlaceholderTokens();
+  const scaffold = qwenEditComposeScaffold(tokens, model) as Record<string, WorkflowNode>;
+  for (const node of Object.values(scaffold)) {
+    if (node?.class_type === 'SaveImage' && node.inputs) {
+      node.inputs.filename_prefix = 'Castcut-refine';
+    }
+  }
+  return scaffold;
 }
 
 function buildQwenGalleryRefineWorkflow(): Record<string, WorkflowNode> {
@@ -389,6 +426,14 @@ export function buildGalleryRefineWorkflow(
   if (/^flux-2-klein/i.test(String(normalized))) {
     return buildFluxKleinGalleryRefineWorkflow(String(normalized));
   }
+  // UltraReal / flux-dev / Schnell — UNET-only weights; CheckpointLoader leaves CLIP=None.
+  if (isFlux1FamilyModel(normalized)) {
+    return buildFlux1GalleryRefineWorkflow(String(normalized));
+  }
+  // Edit models need TextEncodeQwenImageEdit(Plus) — never plain CLIPTextEncode.
+  if (isQwenEditModel(normalized)) {
+    return buildQwenEditGalleryRefineWorkflow(String(normalized));
+  }
   const definition = getComfyModelDefinition(normalized);
   if (definition.category === 'qwen') {
     // Rapid AIO is a single-file checkpoint — do not use UNET+CLIP+VAE refine.
@@ -398,7 +443,8 @@ export function buildGalleryRefineWorkflow(
     return buildQwenGalleryRefineWorkflow();
   }
   if (definition.category === 'flux') {
-    return buildCheckpointGalleryRefineWorkflow({ useAuraFlow: true });
+    // Remaining flux (e.g. flux2) — still prefer DualCLIP UNET path over checkpoint.
+    return buildFlux1GalleryRefineWorkflow(String(normalized));
   }
   return buildCheckpointGalleryRefineWorkflow();
 }
@@ -411,18 +457,22 @@ export function galleryRefineQueueParams(input: {
   prompt?: string;
   model?: string;
   mode?: GalleryRefineMode;
+  /** Dedicated skin refine — higher denoise than generic soft pass. */
+  skinPass?: boolean;
   queueParams?: Pick<
     WorkflowParamValues,
     'seed' | 'width' | 'height' | 'cfg' | 'steps' | 'samplerName' | 'scheduler'
   >;
 }): Record<string, string> {
   const mode = input.mode ?? 'refine';
+  const skinPass = input.skinPass === true;
   const denoise =
     mode === 'soft'
       ? galleryRefineDenoiseForEntry(
           { prompt: input.prompt, model: input.model },
           input.profile,
-          'soft'
+          'soft',
+          { skinPass }
         )
       : galleryRefineDenoiseForProfile(input.profile, input.prompt, mode);
   const params: Record<string, string> = {

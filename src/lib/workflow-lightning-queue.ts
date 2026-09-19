@@ -206,7 +206,15 @@ export function wireQwenEditEncodeVisionImages(
     } else {
       for (let i = 0; i < loaderIds.length && i < encodeImageKeys.length; i += 1) {
         const key = encodeImageKeys[i]!;
-        node.inputs[key] = [loaderIds[i]!, 0];
+        const loadId = loaderIds[i];
+        if (!loadId) {
+          if (key in node.inputs) {
+            delete node.inputs[key];
+            changed = true;
+          }
+          continue;
+        }
+        node.inputs[key] = [loadId, 0];
         changed = true;
       }
       for (let i = loaderIds.length; i < encodeImageKeys.length; i += 1) {
@@ -622,6 +630,7 @@ export {
   ensureQwenEditReferenceImagesForImg2Img,
   scaleQwenEditReferenceImagesToLatentSize,
   ensureQwenReferenceLatentWiringInWorkflow,
+  isPoseGuideReferenceFilename,
   pruneUnresolvedQwenEditFigureLoaders,
   prepareQwenEditReferenceImagesForQueue,
 } from './workflow-lightning-qwen-edit-queue';

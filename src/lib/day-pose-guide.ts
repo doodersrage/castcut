@@ -12,6 +12,7 @@
 import type { DaySlotId } from '@/lib/day-planner';
 import {
   clarifyIntimateImageLanguage,
+  intimateTextImpliesCabinetDrawer,
   intimateTextImpliesSurfaceBent,
 } from '@/lib/intimate-prompt-clarify';
 
@@ -75,11 +76,98 @@ const INTIMATE_SOLO_LAYOUTS: ReadonlySet<IntimateLayout> = new Set(['solo']);
 
 /**
  * Non-intimate duo/solo layouts that need more than base+arms
- * (close embrace, dance frame, spar, climb, phone, look-back).
+ * (close embrace, dance frame, spar, climb, phone, look-back, everyday Day stances,
+ * Day Sport mid-action athletic silhouettes).
  */
-export type SocialLayout = 'hug' | 'dance' | 'fight' | 'climb' | 'phone' | 'look_back';
+export type SocialLayout =
+  | 'hug'
+  | 'dance'
+  | 'fight'
+  | 'climb'
+  | 'phone'
+  | 'look_back'
+  | 'wave'
+  | 'cross_arms'
+  | 'pockets'
+  | 'stretch'
+  | 'drink'
+  | 'carry'
+  | 'read'
+  | 'rail'
+  | 'point'
+  | 'sport_sprint'
+  | 'sport_yoga_warrior'
+  | 'sport_yoga_dog'
+  | 'sport_cycle'
+  | 'sport_swing'
+  | 'sport_serve'
+  | 'sport_forehand'
+  | 'sport_jump_shot'
+  | 'sport_kick'
+  | 'sport_throw'
+  | 'sport_lunge'
+  | 'sport_handstand'
+  | 'sport_pitch'
+  | 'sport_stick'
+  | 'sport_block'
+  | 'sport_hurdle'
+  | 'sport_slide'
+  | 'sport_dunk'
+  | 'sport_ski'
+  | 'sport_putt'
+  | 'sport_overhead'
+  | 'sport_swim'
+  | 'sport_spike'
+  | 'sport_box'
+  | 'sport_surf';
 
-const SOCIAL_SOLO_LAYOUTS: ReadonlySet<SocialLayout> = new Set(['climb', 'phone', 'look_back']);
+const SPORT_SOLO_LAYOUTS: readonly SocialLayout[] = [
+  'sport_sprint',
+  'sport_yoga_warrior',
+  'sport_yoga_dog',
+  'sport_cycle',
+  'sport_swing',
+  'sport_serve',
+  'sport_forehand',
+  'sport_jump_shot',
+  'sport_kick',
+  'sport_throw',
+  'sport_lunge',
+  'sport_handstand',
+  'sport_pitch',
+  'sport_stick',
+  'sport_block',
+  'sport_hurdle',
+  'sport_slide',
+  'sport_dunk',
+  'sport_ski',
+  'sport_putt',
+  'sport_overhead',
+  'sport_swim',
+  'sport_spike',
+  'sport_box',
+  'sport_surf',
+];
+
+const SOCIAL_SOLO_LAYOUTS: ReadonlySet<SocialLayout> = new Set([
+  'climb',
+  'phone',
+  'look_back',
+  'wave',
+  'cross_arms',
+  'pockets',
+  'stretch',
+  'drink',
+  'carry',
+  'read',
+  'rail',
+  'point',
+  ...SPORT_SOLO_LAYOUTS,
+]);
+
+function isSportSocialLayout(layout: SocialLayout): boolean {
+  return layout.startsWith('sport_');
+}
 
 export type PoseGuideArm = 'down' | 'out' | 'up' | 'forward' | 'hold' | 'crossed';
 
@@ -98,7 +186,7 @@ export type PoseGuideIntent = {
   people: number;
   /** Sex-scene layout when the beat is intimate. */
   intimate?: IntimateLayout | null;
-  /** Non-intimate dedicated layout (hug/dance/fight/climb/phone/look-back). */
+  /** Non-intimate dedicated layout (hug/dance/everyday Day stances). */
   social?: SocialLayout | null;
   /** Original scene copy for pronoun/role ordering. */
   sceneText?: string;
@@ -107,15 +195,16 @@ export type PoseGuideIntent = {
 /** Slot-default stick poses — crude but distinct stances for morning→night. */
 const SLOT_SKELETONS: Record<PoseGuideKey, StickSkeleton> = {
   morning: {
-    head: { x: 0.5, y: 0.12 },
-    neck: { x: 0.5, y: 0.2 },
+    // Stretch / reach — arms overhead (not a fashion stand).
+    head: { x: 0.5, y: 0.1 },
+    neck: { x: 0.5, y: 0.18 },
     pelvis: { x: 0.5, y: 0.48 },
-    lShoulder: { x: 0.38, y: 0.24 },
-    rShoulder: { x: 0.62, y: 0.24 },
-    lElbow: { x: 0.28, y: 0.34 },
-    rElbow: { x: 0.72, y: 0.32 },
-    lWrist: { x: 0.22, y: 0.42 },
-    rWrist: { x: 0.78, y: 0.28 },
+    lShoulder: { x: 0.38, y: 0.22 },
+    rShoulder: { x: 0.62, y: 0.22 },
+    lElbow: { x: 0.34, y: 0.14 },
+    rElbow: { x: 0.66, y: 0.12 },
+    lWrist: { x: 0.36, y: 0.06 },
+    rWrist: { x: 0.64, y: 0.05 },
     lHip: { x: 0.44, y: 0.48 },
     rHip: { x: 0.56, y: 0.48 },
     lKnee: { x: 0.42, y: 0.66 },
@@ -124,15 +213,16 @@ const SLOT_SKELETONS: Record<PoseGuideKey, StickSkeleton> = {
     rAnkle: { x: 0.6, y: 0.84 },
   },
   afternoon: {
+    // Carry / walk — mid-stride with one arm lower (bag side).
     head: { x: 0.52, y: 0.11 },
     neck: { x: 0.5, y: 0.19 },
     pelvis: { x: 0.48, y: 0.47 },
     lShoulder: { x: 0.4, y: 0.23 },
     rShoulder: { x: 0.62, y: 0.22 },
-    lElbow: { x: 0.34, y: 0.36 },
-    rElbow: { x: 0.72, y: 0.34 },
-    lWrist: { x: 0.3, y: 0.48 },
-    rWrist: { x: 0.78, y: 0.44 },
+    lElbow: { x: 0.32, y: 0.38 },
+    rElbow: { x: 0.7, y: 0.34 },
+    lWrist: { x: 0.28, y: 0.52 },
+    rWrist: { x: 0.76, y: 0.44 },
     lHip: { x: 0.44, y: 0.47 },
     rHip: { x: 0.54, y: 0.47 },
     lKnee: { x: 0.36, y: 0.64 },
@@ -141,15 +231,16 @@ const SLOT_SKELETONS: Record<PoseGuideKey, StickSkeleton> = {
     rAnkle: { x: 0.7, y: 0.86 },
   },
   evening: {
+    // Drink / seated lean — higher pelvis, glass toward face.
     head: { x: 0.48, y: 0.22 },
     neck: { x: 0.48, y: 0.3 },
     pelvis: { x: 0.5, y: 0.58 },
     lShoulder: { x: 0.36, y: 0.34 },
     rShoulder: { x: 0.6, y: 0.32 },
-    lElbow: { x: 0.28, y: 0.44 },
-    rElbow: { x: 0.7, y: 0.42 },
-    lWrist: { x: 0.34, y: 0.54 },
-    rWrist: { x: 0.74, y: 0.52 },
+    lElbow: { x: 0.3, y: 0.46 },
+    rElbow: { x: 0.64, y: 0.4 },
+    lWrist: { x: 0.36, y: 0.56 },
+    rWrist: { x: 0.58, y: 0.34 },
     lHip: { x: 0.44, y: 0.58 },
     rHip: { x: 0.56, y: 0.58 },
     lKnee: { x: 0.4, y: 0.72 },
@@ -158,16 +249,16 @@ const SLOT_SKELETONS: Record<PoseGuideKey, StickSkeleton> = {
     rAnkle: { x: 0.74, y: 0.78 },
   },
   night: {
-    // Lean / window pause — not arms-at-sides fashion stand (that freezes Keep).
+    // Pockets / lean pause — weight on one leg, hands at hip pockets.
     head: { x: 0.54, y: 0.14 },
     neck: { x: 0.52, y: 0.22 },
     pelvis: { x: 0.48, y: 0.5 },
     lShoulder: { x: 0.4, y: 0.26 },
     rShoulder: { x: 0.64, y: 0.24 },
-    lElbow: { x: 0.34, y: 0.38 },
-    rElbow: { x: 0.74, y: 0.34 },
-    lWrist: { x: 0.32, y: 0.5 },
-    rWrist: { x: 0.82, y: 0.3 },
+    lElbow: { x: 0.36, y: 0.4 },
+    rElbow: { x: 0.68, y: 0.38 },
+    lWrist: { x: 0.42, y: 0.5 },
+    rWrist: { x: 0.58, y: 0.5 },
     lHip: { x: 0.42, y: 0.5 },
     rHip: { x: 0.54, y: 0.5 },
     lKnee: { x: 0.44, y: 0.68 },
@@ -220,14 +311,22 @@ export function countPoseGuidePeople(text: string | null | undefined): number {
     return 3;
   }
   if (
-    /\b(duo|pair|couple|both of (?:you|them)|the two|two (?:people|persons|figures|strangers|friends|lovers)|knee[- ]to[- ]knee|face[- ]to[- ]face|side by side|arm in arm|hand in hand|each other|one another)\b/i.test(
+    /\b(duo|pair|couple|both of (?:you|them)|the two|two (?:people|persons|figures|strangers|friends|lovers|adults)|knee[- ]to[- ]knee|face[- ]to[- ]face|side by side|arm in arm|hand in hand|each other|one another)\b/i.test(
       haystack
     )
   ) {
     return 2;
   }
   if (
-    /\bwith (?:a |an |the )?(?:stranger|friend|partner|rival|enemy|lover|guest|newcomer|companion|second person|other (?:person|figure)|someone(?: else)?)\b/i.test(
+    /\bwith (?:a |an |the )?(?:stranger|friend|partner|rival|enemy|lover|guest|newcomer|companion|roommate|second person|other (?:person|figure)|someone(?: else)?)\b/i.test(
+      haystack
+    )
+  ) {
+    return 2;
+  }
+  // Bare partner / second adult without requiring "with a …"
+  if (
+    /\b(?:a |an |the )?(?:partner|lover|stranger|companion|roommate|second (?:person|adult)|other (?:person|figure))\b/i.test(
       haystack
     )
   ) {
@@ -241,7 +340,7 @@ export function countPoseGuidePeople(text: string | null | undefined): number {
     return 2;
   }
   if (
-    /\b(sex|sexual|intercourse|make\s+love|lovemaking|hook(?:ing)?\s+up|get(?:ting)?\s+it\s+on|climax|orgasm|penetrat|thrust|grind(?:ing)?|mount(?:s|ing|ed)?|straddl|cowgirl|missionary|doggy|from\s+behind|on\s+top|underneath|oral|cunnilingus|fellatio|clit|fingering)\b/i.test(
+    /\b(sex|sexual|intercourse|make\s+love|lovemaking|hook(?:ing)?\s+up|get(?:ting)?\s+it\s+on|climax|orgasm|penetrat(?:e|es|ed|ing|ion)?|thrust(?:s|ing)?|grind(?:s|ing)?|mount(?:s|ing|ed)?|straddl(?:e|es|ed|ing)?|cowgirl|missionary|doggy|from\s+behind|on\s+top|underneath|oral|cunnilingus|fellatio|clit|fingering)\b/i.test(
       haystack
     )
   ) {
@@ -296,10 +395,32 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
   ) {
     return 'reverse_straddle';
   }
+  // Solo / masturbation BEFORE missionary — "alone on her back touching herself"
+  // used to match "on her back" and paint a duo Image 3 wireframe.
   if (
-    /\b(missionary|on\s+(?:their|her|his)\s+back|pinned\s+(?:down|beneath|under)|underneath|lying\s+under|on\s+top\s+of\s+(?:them|her|him))\b/i.test(
+    /\b(masturbat(?:e|es|ing|ion)?|self[- ]pleasur|self[- ]touch|toy\s+play|vibrator|dildo|magic\s*wand)\b/i.test(
       haystack
     )
+  ) {
+    return 'solo';
+  }
+  if (
+    /\b(solo|alone)\b/i.test(haystack) &&
+    /\b(touch(?:ing)?\s+(?:themselves|herself|himself)|hands?\s+on\s+(?:her|his|their)\s+own|finger(?:ing)?|rub(?:bing)?\s+(?:herself|himself|themselves)|between\s+(?:her|his|their)\s+thighs|sex|sexual|naked|nude|erotic|intimate|climax|orgasm|pleasure|bare\s+skin|self[- ]pleasur|masturbat)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'solo';
+  }
+  if (
+    /\b(missionary|pinned\s+(?:down|beneath|under)|underneath|lying\s+under|on\s+top\s+of\s+(?:them|her|him))\b/i.test(
+      haystack
+    ) ||
+    (/\bon\s+(?:their|her|his)\s+back\b/i.test(haystack) &&
+      !/\b(solo|alone|masturbat|self[- ]pleasur|touch(?:ing)?\s+(?:herself|himself|themselves))\b/i.test(
+        haystack
+      ) &&
+      /\b(partner|missionary|sex|fuck|mid-sex|lover|thrust)\b/i.test(haystack))
   ) {
     return 'missionary';
   }
@@ -318,9 +439,11 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
     return 'prone';
   }
   if (
-    /\b(doggy(?:[- ]style)?|from\s+behind|bent\s+over|bend(?:s|ing)?\s+over|curled?\s+over|ass[- ]up|over\s+the\s+(?:desk|table|counter|edge|ledgers?|stack))\b/i.test(
+    /\b(doggy(?:[- ]style)?|from\s+behind|bent\s+over|bend(?:s|ing)?\s+over|curled?\s+over|ass[- ]up)\b/i.test(
       haystack
-    )
+    ) ||
+    (/\bover\s+the\s+(?:desk|table|counter|edge|ledgers?|stack)\b/i.test(haystack) &&
+      /\b(sex|fuck|doggy|from\s+behind|partner|mid-sex|thrust)\b/i.test(haystack))
   ) {
     return 'bent';
   }
@@ -366,6 +489,9 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
     /\b(on\s+(?:their|her|his)\s+knees|kneeling)\b/i.test(haystack) &&
     /\b(sex|fuck|lover|naked|nude|intimate|climax|orgasm|thrust|grind|clit|thigh|barefoot|bent)\b/i.test(
       haystack
+    ) &&
+    !/\b(solo|alone|masturbat|self[- ]pleasur|touch(?:ing)?\s+(?:herself|himself|themselves))\b/i.test(
+      haystack
     )
   ) {
     return 'kneeling';
@@ -373,7 +499,12 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
   if (
     /\b(afterglow|tangled\s+sheets|spent\s+together|soft\s+after|post[- ]?coital|lying\s+together\s+(?:naked|after)|cuddle(?:s|ing)?\s+naked)\b/i.test(
       haystack
-    )
+    ) ||
+    /\b(lies?\s+still|eyes?\s+closed).{0,100}\b(withdraw|afterglow|scent of (?:him|her|them))\b/i.test(
+      haystack
+    ) ||
+    /\bwithdraw(?:s|ing)?\s+slowly\b/i.test(haystack) ||
+    /^Drawer afterglow:/i.test(haystack)
   ) {
     return 'afterglow';
   }
@@ -392,11 +523,19 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
   ) {
     return 'standing';
   }
+  // Residual solo cues (after duo layouts) — keep for blurbs that skip earlier masturbation words.
   if (
-    /\b(solo|alone|masturbat(?:e|es|ing|ion)?|self[- ]pleasur|touch(?:ing)?\s+(?:themselves|herself|himself))\b/i.test(
+    /\b(masturbat(?:e|es|ing|ion)?|self[- ]pleasur|self[- ]touch|toy\s+play|vibrator|dildo|magic\s*wand)\b/i.test(
       haystack
-    ) &&
-    /\b(sex|sexual|naked|nude|erotic|intimate|climax|orgasm|pleasure)\b/i.test(haystack)
+    )
+  ) {
+    return 'solo';
+  }
+  if (
+    /\b(solo|alone)\b/i.test(haystack) &&
+    /\b(touch(?:ing)?\s+(?:themselves|herself|himself)|hands?\s+on\s+(?:her|his|their)\s+own|finger(?:ing)?|between\s+(?:her|his|their)\s+thighs|sex|sexual|naked|nude|erotic|intimate|climax|orgasm|pleasure|bare\s+skin)\b/i.test(
+      haystack
+    )
   ) {
     return 'solo';
   }
@@ -407,7 +546,7 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
     return 'spoon';
   }
   if (
-    /\b(sex|sexual|intercourse|make\s+love|lovemaking|fuck(?:s|ing|ed)?|screw(?:s|ing|ed)?|rail(?:s|ing|ed)?|breed(?:s|ing|ed)?|hook(?:ing)?\s+up|get(?:ting)?\s+it\s+on|climax|orgasm|penetrat|thrust(?:s|ing)?|grind(?:s|ing)?|naked\s+together|in\s+bed\s+together|threesome|three[- ]way|mid[- ]?fuck|mid[- ]?sex|bodies?\s+(?:joined|close)|explicit\s+pose)\b/i.test(
+    /\b(sex|sexual|intercourse|make\s+love|lovemaking|fuck(?:s|ing|ed)?|screw(?:s|ing|ed)?|rail(?:s|ed|ing)?\s+(?:her|him|them)|breed(?:s|ing|ed)?|hook(?:ing)?\s+up|get(?:ting)?\s+it\s+on|climax|orgasm|penetrat|thrust(?:s|ing)?|grind(?:s|ing)?|naked\s+together|in\s+bed\s+together|threesome|three[- ]way|mid[- ]?fuck|mid[- ]?sex|bodies?\s+(?:joined|close)|explicit\s+pose)\b/i.test(
       haystack
     )
   ) {
@@ -448,13 +587,248 @@ function intimateBaseForLayout(layout: IntimateLayout): PoseGuideBase {
 }
 
 /**
+ * Map Day Sport / athletic beat copy to a dedicated solo mid-action wireframe.
+ * Checked before everyday social layouts so "martial arts" does not become duo fight
+ * and "golf swing" does not fall through to a standing Keep pin-up.
+ */
+export function parseSportLayout(text: string | null | undefined): SocialLayout | null {
+  const haystack = text?.trim() || '';
+  if (!haystack) {
+    return null;
+  }
+
+  if (/\b(downward\s+dog|down[- ]dog)\b/i.test(haystack)) {
+    return 'sport_yoga_dog';
+  }
+  if (
+    /\b(crow\s+pose|side\s+plank|forward\s+fold|warrior\s+(?:two|2|ii)|tree\s+pose|yoga\s+athletic|pilates)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_yoga_warrior';
+  }
+  if (
+    /\b(handstand|tumbling\s+pass|split\s+leap|floor\s+exercise|cartwheel|roundoff|giant\s+on|dismount|gymnastics\s+athletic)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_handstand';
+  }
+  if (/\b(dunk(?:ing)?|two-handed\s+through\s+the\s+rim)\b/i.test(haystack)) {
+    return 'sport_dunk';
+  }
+  if (
+    /\b(spik(?:e|ing)|jump[- ]serv(?:e|ing)|jump[- ]set(?:ting)?|digging\s+a\s+hard|blocking\s+at\s+the\s+net|volleyball\s+athletic)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_spike';
+  }
+  if (
+    /\b(freestyle\s+stroke|flip\s+turn|starting\s+block|butterfly\s+stroke|backstroke|streamline|swim(?:ming)?\s+athletic|lap\s+swim)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_swim';
+  }
+  if (
+    /\b(jab(?:bing)?|uppercut|heavy\s+bag|shadowbox|boxing\s+stance|boxing\s+athletic|rear\s+hook|slip(?:ping)?\s+a\s+punch)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_box';
+  }
+  if (
+    /\b(popping\s+up|carving\s+down|paddling\s+out|bottom\s+turn|surf(?:ing)?\s+athletic|drop(?:ping)?\s+in|cut(?:ting)?\s+back)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_surf';
+  }
+  if (
+    /\b(jump\s+shot|step-back\s+jumper|elevating\s+into\s+a\s+jump|driving\s+hard\s+to\s+the\s+rim|contested\s+rebound|basketball\s+athletic)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_jump_shot';
+  }
+  if (
+    /\b(smashing\s+an\s+overhead|overhead\s+with\s+racket|racket\s+high\s+and\s+torso)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_overhead';
+  }
+  if (
+    /\b(tossing\s+into\s+a\s+serve|tennis\s+serve|upward\s+extension|serve\s+with\s+knee)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_serve';
+  }
+  if (
+    /\b(forehand|backhand|racket\s+head|volley\s+at\s+the\s+net|tennis\s+athletic)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_forehand';
+  }
+  if (
+    /\b(foil|fencing|en\s+garde|parry(?:ing)?|riposte|flech|balestra|piste|fencing\s+athletic)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_lunge';
+  }
+  if (
+    /\b(roundhouse|martial\s+arts|blocking\s+a\s+strike|forearm\s+chambered|controlled\s+throw\s+on\s+the\s+tatami|front\s+kick|reverse\s+punch|spinning\s+sweep)\b/i.test(
+      haystack
+    )
+  ) {
+    return /\b(block(?:ing)?|chambered|parry)\b/i.test(haystack) ? 'sport_block' : 'sport_kick';
+  }
+  if (/\b(sliding\s+into|slide\s+tackle|sliding\s+into\s+base|dirt\s+kicking)\b/i.test(haystack)) {
+    return 'sport_slide';
+  }
+  if (
+    /\b(striking\s+the\s+ball|soccer\s+athletic|dribbling\s+at\s+pace|header|planted\s+foot|volleying|rugby\s+athletic|fending\s+with|try\s+line|lineout)\b/i.test(
+      haystack
+    )
+  ) {
+    return /\b(dribbling|fending|try\s+line|tucked|lineout)\b/i.test(haystack)
+      ? 'sport_sprint'
+      : 'sport_kick';
+  }
+  if (
+    /\b(javelin|discus|shot\s+put|hurling|high\s+jump|fosbury|pole\s+vault|field\s+event|track\s+and\s+field\s+athletic)\b/i.test(
+      haystack
+    )
+  ) {
+    return /\b(high\s+jump|fosbury|pole\s+vault)\b/i.test(haystack)
+      ? 'sport_hurdle'
+      : 'sport_throw';
+  }
+  if (/\b(delivering\s+a\s+pitch|windup|leg\s+kick\s+high|pitch\s+from\s+the)\b/i.test(haystack)) {
+    return 'sport_pitch';
+  }
+  if (/\b(rolling\s+a\s+putt|putting\s+green|quiet\s+shoulders)\b/i.test(haystack)) {
+    return 'sport_putt';
+  }
+  if (
+    /\b(driver\s+swing|golf\s+athletic|unloading\s+into\s+a\s+swing|baseball\s+swing|bunker\s+shot|iron\s+approach|addressing\s+a\s+tee)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_swing';
+  }
+  if (
+    /\b(wrist\s+shot|stickhandling|hockey\s+athletic|back\s+skate|butterfly\s+save|slap\s+shot|hard\s+stop)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_stick';
+  }
+  if (
+    /\b(slalom|moguls|ski(?:ing)?\s+athletic|carving\s+through|kicker|GS\s+turn|aero\s+race\s+position|ski\s+athletic)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_ski';
+  }
+  if (
+    /\b(out\s+of\s+the\s+saddle|aero\s+tuck|pedal(?:ing|s)?|road\s+bike|racing\s+bicycle|cycling\s+athletic|bike\s+leg|criterium|power\s+climb)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_cycle';
+  }
+  if (
+    /\b(dyno(?:ing)?|heel\s+hook(?:ing)?|crimp|climbing\s+athletic|overhang|boulder|campus\s+board|mantling)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'climb';
+  }
+  if (/\b(clearing\s+a\s+hurdle|hurdle\s+with\s+lead|long[- ]jump\s+takeoff)\b/i.test(haystack)) {
+    return 'sport_hurdle';
+  }
+  if (
+    /\b(starting\s+blocks|mid[- ]sprint|high\s+knee|pumping\s+arms|running\s+athletic|triathlon\s+athletic|exploding\s+out\s+of|leaning\s+through\s+a\s+curve)\b/i.test(
+      haystack
+    ) ||
+    (/\bmid[- ]stride\b/i.test(haystack) &&
+      /\b(sprint|running|athletic|track|kit|mid-play)\b/i.test(haystack))
+  ) {
+    return 'sport_sprint';
+  }
+
+  // Named sport in Day preset format ("— basketball athletic action") without a pose verb.
+  if (/\bbasketball\s+athletic\b/i.test(haystack)) {
+    return 'sport_jump_shot';
+  }
+  if (/\b(?:tennis|golf|baseball)\s+athletic\b/i.test(haystack)) {
+    return /\bgolf\b/i.test(haystack) || /\bbaseball\b/i.test(haystack)
+      ? 'sport_swing'
+      : 'sport_forehand';
+  }
+  if (/\b(?:soccer|rugby)\s+athletic\b/i.test(haystack)) {
+    return 'sport_kick';
+  }
+  if (/\b(?:hockey)\s+athletic\b/i.test(haystack)) {
+    return 'sport_stick';
+  }
+  if (/\b(?:fencing)\s+athletic\b/i.test(haystack)) {
+    return 'sport_lunge';
+  }
+  if (/\b(?:yoga)\s+athletic\b/i.test(haystack)) {
+    return 'sport_yoga_warrior';
+  }
+  if (/\b(?:cycling|triathlon)\s+athletic\b/i.test(haystack)) {
+    return 'sport_cycle';
+  }
+  if (/\b(?:running|track\s+and\s+field)\s+athletic\b/i.test(haystack)) {
+    return 'sport_sprint';
+  }
+  if (/\b(?:gymnastics)\s+athletic\b/i.test(haystack)) {
+    return 'sport_handstand';
+  }
+  if (/\b(?:climbing)\s+athletic\b/i.test(haystack)) {
+    return 'climb';
+  }
+  if (/\b(?:martial\s+arts)\s+athletic\b/i.test(haystack)) {
+    return 'sport_kick';
+  }
+  if (/\b(?:ski)\s+athletic\b/i.test(haystack)) {
+    return 'sport_ski';
+  }
+  if (/\b(?:swimming)\s+athletic\b/i.test(haystack)) {
+    return 'sport_swim';
+  }
+  if (/\b(?:volleyball)\s+athletic\b/i.test(haystack)) {
+    return 'sport_spike';
+  }
+  if (/\b(?:boxing)\s+athletic\b/i.test(haystack)) {
+    return 'sport_box';
+  }
+  if (/\b(?:surfing)\s+athletic\b/i.test(haystack)) {
+    return 'sport_surf';
+  }
+
+  return null;
+}
+
+/**
  * Map non-intimate scene copy to a dedicated social/action wireframe layout.
- * Intimate layouts win first; these catch hug/dance/fight/climb/phone/look-back.
+ * Intimate layouts win first; these catch sport, hug/dance/fight/climb/phone/look-back.
  */
 export function parseSocialLayout(text: string | null | undefined): SocialLayout | null {
   const haystack = text?.trim() || '';
   if (!haystack) {
     return null;
+  }
+  const sport = parseSportLayout(haystack);
+  if (sport) {
+    return sport;
   }
   if (
     /\b(hug(?:s|ging|ged)?|embrace(?:s|d|ing)?|hold(?:s|ing)?\s+(?:them|her|him|each other)\s+close|wrapped\s+(?:in\s+)?(?:arms?|an embrace)|bear[- ]hug)\b/i.test(
@@ -494,11 +868,66 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
     return 'phone';
   }
   if (
-    /\b(look(?:s|ing)?\s+(?:back|over\s+(?:the\s+)?shoulder)|over\s+(?:the\s+)?shoulder|glance(?:s|ing)?\s+back|turns?\s+(?:to\s+)?look\s+back|half[- ]turned)\b/i.test(
+    /\b(look(?:s|ing)?\s+(?:back|over\s+(?:an?\s+|the\s+)?shoulder)|over\s+(?:an?\s+|the\s+)?shoulder|glance(?:s|ing)?\s+back|turns?\s+(?:to\s+)?look\s+back|half[- ]turned|twist(?:ing|s)?\s+to\s+zip|zip(?:ping|s|ped)?\s+(?:up\s+)?(?:a\s+)?dress|unzip(?:ping|s|ped)?|back\s+arch(?:ed)?)\b/i.test(
       haystack
     )
   ) {
     return 'look_back';
+  }
+  if (
+    /\b(stretch(?:es|ing)?|arms?\s+overhead|overhead\s+stretch|mid[- ]yawn|yawn(?:s|ing)?)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'stretch';
+  }
+  if (
+    /\b(wave(?:s|ing)?|waving|raises?\s+(?:a\s+)?hand|hello\s+wave|hand\s+raised\s+(?:in\s+)?(?:a\s+)?greeting)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'wave';
+  }
+  if (/\b(arms?\s+crossed|cross(?:ed)?\s+arms?|folded\s+arms)\b/i.test(haystack)) {
+    return 'cross_arms';
+  }
+  if (/\b(hands?\s+in\s+(?:the\s+)?pockets?|both\s+hands\s+in\s+pockets)\b/i.test(haystack)) {
+    return 'pockets';
+  }
+  if (
+    /\b(sip(?:s|ping)?|drink(?:s|ing)?\s+(?:coffee|tea|from)|coffee\s+in\s+(?:one\s+)?hand|mug\s+in\s+hand|holding\s+(?:a\s+)?(?:cup|mug|glass)|glass\s+at\s+(?:a\s+)?bar|pour(?:s|ing)?\s+coffee)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'drink';
+  }
+  if (
+    /\b(carry(?:ing|ies)?\s+(?:a\s+)?(?:bag|tote|backpack|grocer)|bag\s+over\s+(?:one\s+)?shoulder|tote\s+on\s+(?:one\s+)?arm|backpack\s+strap|holding\s+a\s+(?:shopping\s+)?bag)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'carry';
+  }
+  if (
+    /\b(read(?:s|ing)?\s+(?:a\s+)?(?:book|page|paper|menu)|book\s+in\s+hand|browsing\s+a\s+(?:book|shelf)|newspaper\s+open|looking\s+down\s+at\s+(?:a\s+)?(?:book|page|paper|menu))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'read';
+  }
+  if (
+    /\b(hands?\s+on\s+(?:the\s+)?rail|leaning\s+on\s+(?:a\s+)?(?:rail|railing|balustrade)|balcony\s+rail|rail(?:ing)?\s+watch|standing\s+at\s+a\s+rail)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'rail';
+  }
+  if (
+    /\b(point(?:s|ing)?\s+(?:at|toward|towards|out|ahead)|points?\s+out|gestur(?:e|es|ing)\s+(?:toward|towards|ahead))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'point';
   }
   return null;
 }
@@ -506,13 +935,51 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
 function socialBaseForLayout(layout: SocialLayout): PoseGuideBase {
   switch (layout) {
     case 'climb':
+    case 'stretch':
+    case 'sport_jump_shot':
+    case 'sport_dunk':
+    case 'sport_serve':
+    case 'sport_throw':
+    case 'sport_overhead':
+    case 'sport_spike':
       return 'reach';
+    case 'sport_sprint':
+    case 'sport_kick':
+    case 'sport_lunge':
+    case 'sport_hurdle':
+    case 'sport_box':
+      return 'run';
+    case 'sport_cycle':
+    case 'sport_yoga_dog':
+    case 'sport_putt':
+    case 'sport_slide':
+    case 'sport_surf':
+    case 'sport_swim':
+      return 'crouch';
+    case 'sport_handstand':
+      return 'jump';
     case 'fight':
     case 'dance':
+    case 'carry':
+    case 'sport_forehand':
+    case 'sport_swing':
+    case 'sport_stick':
+    case 'sport_pitch':
+    case 'sport_block':
+    case 'sport_yoga_warrior':
+    case 'sport_ski':
       return 'walk';
+    case 'rail':
+      return 'lean';
     case 'hug':
     case 'phone':
     case 'look_back':
+    case 'wave':
+    case 'cross_arms':
+    case 'pockets':
+    case 'drink':
+    case 'point':
+    case 'read':
     default:
       return 'stand';
   }
@@ -575,7 +1042,8 @@ function armChain(
  */
 export function parsePoseGuideIntent(
   text: string | null | undefined,
-  fallbackIndex = 0
+  fallbackIndex = 0,
+  options?: { forcePeople?: number; clothedUprightOnly?: boolean }
 ): PoseGuideIntent {
   const haystack = text?.trim() || '';
   const seed = hashString(`${haystack}::${fallbackIndex}`) || 1;
@@ -590,8 +1058,152 @@ export function parsePoseGuideIntent(
   let armRight: PoseGuideArm = 'down';
   let lean = (jitterA - 0.5) * 0.2;
   let stride = 0.25 + jitterB * 0.2;
-  const intimate = parseIntimateLayout(haystack);
-  const social = intimate ? null : parseSocialLayout(haystack);
+  let intimate = options?.clothedUprightOnly ? null : parseIntimateLayout(haystack);
+  let social = intimate ? null : parseSocialLayout(haystack);
+
+  // Vacation pose-class leads (MID-STRIDE, SEATED, RELAXING, …) must win over prop/glance
+  // socials — otherwise "half-turned" → look_back→stand and "sipping coffee" → drink→stand.
+  // ALL-CAPS only: Sport beats like "mid-stride sprint drive — … athletic action" must keep
+  // sport_* layouts and must not be stolen by a case-insensitive MID-STRIDE lead.
+  const vacationPoseLead = haystack
+    .trim()
+    .match(
+      /^(SEATED|MID-STRIDE|RECLINING|RELAXING|DANCING|CLIMBING|WAVING|PERCHED|STRETCHING|KICKING|PADDLING|PEDALING|TOSSING|JUMPING|REACHING|SWIMMING)\b/
+    );
+  if (vacationPoseLead && social) {
+    const cls = vacationPoseLead[1]!.toUpperCase();
+    const keepSocial =
+      (cls === 'WAVING' && social === 'wave') ||
+      (cls === 'DANCING' && social === 'dance') ||
+      (cls === 'CLIMBING' && social === 'climb') ||
+      (cls === 'STRETCHING' && social === 'stretch');
+    if (
+      !keepSocial &&
+      (social === 'look_back' ||
+        social === 'carry' ||
+        social === 'drink' ||
+        social === 'phone' ||
+        social === 'read' ||
+        social === 'wave' ||
+        social === 'point' ||
+        social === 'pockets' ||
+        social === 'cross_arms' ||
+        social === 'rail' ||
+        social === 'hug')
+    ) {
+      social = null;
+    }
+  }
+
+  // Pose-class lead owns base/arms — beat props like "jog" / "after a run" must not steal walk.
+  if (vacationPoseLead) {
+    const cls = vacationPoseLead[1]!.toUpperCase();
+    if (cls === 'CLIMBING') {
+      social = 'climb';
+    } else if (cls === 'STRETCHING') {
+      social = 'stretch';
+    } else if (cls === 'DANCING') {
+      social = 'dance';
+    } else if (cls === 'WAVING') {
+      social = 'wave';
+    } else if (cls === 'REACHING') {
+      social = null;
+      base = 'reach';
+      armLeft = 'out';
+      armRight = 'up';
+      lean = jitterA > 0.5 ? 0.28 : -0.28;
+      stride = 0.4;
+      matched = true;
+    } else if (cls === 'JUMPING') {
+      social = null;
+      base = 'jump';
+      armLeft = 'up';
+      armRight = 'up';
+      stride = 0.5;
+      matched = true;
+    } else if (cls === 'KICKING') {
+      // Dedicated sport_kick wireframe — nuclear walk-kick still collapses to yoga-tree in Qwen.
+      social = 'sport_kick';
+      base = 'run';
+      armLeft = 'out';
+      armRight = 'out';
+      stride = 0.95;
+      lean = 0.28;
+      matched = true;
+    } else if (cls === 'TOSSING') {
+      // Dedicated sport_throw — cocked arm + weight shift beat arms-at-sides freeze.
+      social = 'sport_throw';
+      base = 'reach';
+      armLeft = 'forward';
+      armRight = 'up';
+      lean = 0.3;
+      stride = 0.55;
+      matched = true;
+    } else if (cls === 'MID-STRIDE') {
+      social = null;
+      base = 'walk';
+      armLeft = 'forward';
+      armRight = 'out';
+      stride = 0.75;
+      lean = (jitterA - 0.5) * 0.25;
+      matched = true;
+    }
+  }
+
+  const forcedPeople =
+    options?.forcePeople != null && Number.isFinite(options.forcePeople)
+      ? Math.min(3, Math.max(1, Math.round(options.forcePeople)))
+      : null;
+  // Duo chip / forced pair: never a solo masturbation wireframe; default a readable pair stance.
+  if (forcedPeople != null && forcedPeople >= 2 && !options?.clothedUprightOnly) {
+    if (intimate && INTIMATE_SOLO_LAYOUTS.has(intimate)) {
+      intimate = 'missionary';
+    }
+    if (!intimate && !social) {
+      intimate = 'missionary';
+    }
+    social = intimate ? null : social;
+  }
+
+  // Vacation / Suggestive: no intimate duo wireframes; kneel/lie flatten to sit.
+  // Standing look-back / dance / wave stay — those are upright solo travel energy —
+  // unless a vacation pose-class lead already cleared social above.
+  if (options?.clothedUprightOnly) {
+    intimate = null;
+    if (social === 'hug' || social === 'fight') {
+      social = null;
+      base = 'lean';
+      matched = true;
+      armLeft = 'down';
+      armRight = 'hold';
+      lean = jitterA > 0.5 ? 0.28 : -0.28;
+      stride = 0.22;
+    } else if (social === 'look_back' || social === 'dance' || social === 'wave') {
+      matched = true;
+      base = socialBaseForLayout(social);
+      if (social === 'look_back') {
+        stride = 0.28;
+        armLeft = 'up';
+        armRight = 'hold';
+        lean = jitterA > 0.5 ? 0.35 : -0.35;
+        if (/\b(zip|unzip|twist(?:ing)?)\b/i.test(haystack)) {
+          armLeft = 'up';
+          armRight = 'up';
+          lean = 0.35;
+        }
+      } else if (social === 'dance') {
+        stride = 0.4;
+        armLeft = 'out';
+        armRight = 'hold';
+        lean = jitterA > 0.5 ? 0.15 : -0.15;
+      } else {
+        stride = 0.22;
+        armLeft = 'down';
+        armRight = 'up';
+        lean = (jitterA - 0.5) * 0.15;
+      }
+    }
+  }
 
   // Intimate beats win over generic sit/lie/stand so sex scenes get dedicated layouts.
   if (intimate) {
@@ -630,14 +1242,46 @@ export function parsePoseGuideIntent(
       armRight = 'forward';
       lean = -0.08;
     } else if (social === 'look_back') {
-      stride = 0.25;
-      armLeft = 'down';
+      stride = 0.28;
+      armLeft = 'up';
       armRight = 'hold';
       lean = jitterA > 0.5 ? 0.35 : -0.35;
+      if (/\b(zip|unzip|twist(?:ing)?)\b/i.test(haystack)) {
+        armLeft = 'up';
+        armRight = 'up';
+        lean = 0.35;
+      }
+    } else if (social === 'stretch') {
+      stride = 0.35;
+      armLeft = 'up';
+      armRight = 'up';
+      lean = (jitterA - 0.5) * 0.12;
     }
+  } else if (matched) {
+    // Vacation pose-class lead already forced base/arms — skip keyword overrides
+    // (e.g. REACHING … "jog" must not become walk).
   } else if (/\b(lie|lying|sprawl|prone|on\s+the\s+(?:floor|ground|bed))\b/i.test(haystack)) {
     base = 'lie';
     stride = 0.55;
+    matched = true;
+  } else if (
+    // RECLINING lead is always a lounge lie — "upright on elbows" still means on the surface.
+    /^RECLINING\b/i.test(haystack.trim()) ||
+    (!/\b(upright\s+against|headboard|wine-?bar\s+counter|chin\s+on\s+hand)\b/i.test(haystack) &&
+      ((/^(RELAXING)\b/i.test(haystack.trim()) &&
+        /\b(towel|lounge|daybed|hammock|float|chaise|cabana|knees?\s+drawn|sunbath|sofa|couch)\b/i.test(
+          haystack
+        )) ||
+        /\b(relax(?:es|ed|ing)?|reclin(?:e|es|ed|ing)?)\b[\s\S]{0,80}\b(towel|lounge|daybed|hammock|float|chaise|cabana|sofa|couch)\b/i.test(
+          haystack
+        ) ||
+        /\b(on\s+a\s+(?:beach\s+)?towel|sunbathing|knees?\s+drawn\s+up)\b/i.test(haystack)))
+  ) {
+    // Beach-towel / lounge relax must be horizontal — sit silhouettes still read as stand to Edit.
+    base = 'lie';
+    stride = 0.6;
+    armLeft = 'hold';
+    armRight = 'hold';
     matched = true;
   } else if (/\b(jump(?:ing|s)?|leap(?:ing|s)?|vault(?:ing)?)\b/i.test(haystack)) {
     base = 'jump';
@@ -654,7 +1298,7 @@ export function parsePoseGuideIntent(
     stride = 0.4;
     matched = true;
   } else if (
-    /\b(sit(?:ting|s)?|seated|couch|sofa|chair|bench|perch(?:ed|ing)?|lounge(?:s|ing)?|cross-legged)\b/i.test(
+    /\b(sit(?:ting|s)?|seated|couch|sofa|chair|bench|perch(?:ed|ing)?|lounge(?:s|ing)?|cross-legged|reclin(?:e|es|ed|ing)?|relax(?:es|ed|ing)?|on\s+a\s+(?:towel|lounge|stool|hammock|float|chaise|ledge|piling|saddle|gate|daybed)|in\s+a\s+(?:convertible|hammock|cabana|tub))\b/i.test(
       haystack
     )
   ) {
@@ -662,6 +1306,30 @@ export function parsePoseGuideIntent(
     stride = 0.35;
     armLeft = 'hold';
     armRight = 'hold';
+    matched = true;
+  } else if (/\b(kick(?:s|ing)?|kicking\s+through)\b/i.test(haystack)) {
+    base = 'walk';
+    stride = 0.7;
+    armLeft = 'out';
+    armRight = 'out';
+    matched = true;
+  } else if (/\b(paddl(?:e|es|ing)|kayak)\b/i.test(haystack)) {
+    base = 'sit';
+    stride = 0.4;
+    armLeft = 'forward';
+    armRight = 'forward';
+    matched = true;
+  } else if (/\b(pedal(?:s|ing)?|bik(?:e|ing)|cycling)\b/i.test(haystack)) {
+    base = 'sit';
+    stride = 0.55;
+    armLeft = 'forward';
+    armRight = 'forward';
+    matched = true;
+  } else if (/\b(toss(?:es|ing)?|throw(?:s|ing)?|frisbee|beach\s+ball)\b/i.test(haystack)) {
+    base = 'reach';
+    stride = 0.45;
+    armRight = 'up';
+    armLeft = 'out';
     matched = true;
   } else if (
     /\b(run(?:ning|s)?|sprint(?:ing|s)?|dash(?:ing|es)?|flee(?:ing|s)?|chase(?:s|ing)?)\b/i.test(
@@ -679,11 +1347,16 @@ export function parsePoseGuideIntent(
     )
   ) {
     base = 'walk';
-    stride = 0.55 + jitterA * 0.25;
+    // Wide stride + opposite arm swing so Image 3 cannot read as a planted stand.
+    stride = 0.72 + jitterA * 0.2;
     armLeft = 'forward';
-    armRight = 'forward';
+    armRight = 'out';
+    lean = (jitterA - 0.5) * 0.25;
     matched = true;
   } else if (
+    !/\b(masturbat|fingering|finger(?:s|ed)?\s+(?:herself|himself|themselves|in|inside|on)|between\s+her\s+thighs|vulva|clit)\b/i.test(
+      haystack
+    ) &&
     /\b(reach(?:ing|es|ed)?|grab(?:bing|s|bed)?|pour(?:ing|s|ed)?|wave(?:s|ing|d)?|point(?:ing|s|ed)?|gesture(?:s|ing)?|raise(?:s|d|ing)?|arms?\s+(?:up|out|raised)|lift(?:ing|s|ed)?|toss(?:ing|es)?|throw(?:ing|s)?|offer(?:ing|s)?)\b/i.test(
       haystack
     )
@@ -734,8 +1407,39 @@ export function parsePoseGuideIntent(
     lean = 0.25;
   }
 
+  // Clothed Day moods: flatten kneel/crouch into sit after verb matching.
+  // Keep standing look-back / wave / dance — only floor kneel was the doggy prior.
+  // Keep lie for RELAXING/RECLINING towel-lounge (horizontal, not all-fours).
+  if (options?.clothedUprightOnly) {
+    intimate = null;
+    if (base === 'kneel' || base === 'crouch') {
+      base = 'sit';
+      stride = 0.35;
+      armLeft = 'hold';
+      armRight = 'hold';
+      lean = clamp(lean, -0.2, 0.2);
+      matched = true;
+    } else if (base === 'lie') {
+      const keepLounge =
+        /^(RELAXING|RECLINING)\b/i.test(haystack.trim()) ||
+        /\b(relax(?:es|ed|ing)?|reclin(?:e|es|ed|ing)?|towel|lounge|hammock|daybed|float|chaise|sunbath|sofa|couch)\b/i.test(
+          haystack
+        );
+      if (!keepLounge) {
+        base = 'sit';
+        stride = 0.35;
+        armLeft = 'hold';
+        armRight = 'hold';
+        lean = clamp(lean, -0.2, 0.2);
+        matched = true;
+      }
+    }
+  }
+
   let people = countPoseGuidePeople(haystack);
-  if (intimate && INTIMATE_SOLO_LAYOUTS.has(intimate)) {
+  if (options?.clothedUprightOnly) {
+    people = forcedPeople != null && forcedPeople >= 2 ? forcedPeople : 1;
+  } else if (intimate && INTIMATE_SOLO_LAYOUTS.has(intimate)) {
     people = 1;
   } else if (intimate && people < 2) {
     if (intimate === 'generic' && /\b(solo|alone|masturbat)\b/i.test(haystack)) {
@@ -747,19 +1451,26 @@ export function parsePoseGuideIntent(
     }
   }
   if (
+    !options?.clothedUprightOnly &&
     intimate &&
     !INTIMATE_SOLO_LAYOUTS.has(intimate) &&
     /\b(threesome|three[- ]way|mmf|ffm|spit[- ]?roast)\b/i.test(haystack)
   ) {
     people = 3;
   }
-  if (social && SOCIAL_SOLO_LAYOUTS.has(social)) {
-    // Solo action layouts stay solo unless the copy clearly names a duo/crowd.
-    if (people < 2) {
-      people = 1;
+  if (!options?.clothedUprightOnly) {
+    if (social && SOCIAL_SOLO_LAYOUTS.has(social)) {
+      // Solo action layouts stay solo unless the copy clearly names a duo/crowd.
+      if (people < 2) {
+        people = 1;
+      }
+    } else if (social && people < 2) {
+      people = 2;
     }
-  } else if (social && people < 2) {
-    people = 2;
+  }
+  // Caller force wins last (Day Intimate Duo chip → always two Image 3 figures).
+  if (forcedPeople != null) {
+    people = forcedPeople;
   }
 
   return {
@@ -796,10 +1507,47 @@ export function synthesizeStickSkeleton(
   let pelvisY = 0.48;
   let headY = 0.12;
   let torsoScale = 1;
+  const scene = intent.sceneText ?? '';
+  const reclinedSit =
+    intent.base === 'sit' &&
+    /\b(relax(?:es|ed|ing)?|reclin(?:e|es|ed|ing)?|lounge(?:s|ing)?|hammock|daybed|towel|float|chaise)\b/i.test(
+      scene
+    );
+  const perchedSit =
+    intent.base === 'sit' && /\b(perch(?:ed|ing)?|piling|ledge|stool|wall|gate)\b/i.test(scene);
+  const chairSit =
+    intent.base === 'sit' &&
+    (/^(SEATED|PERCHED)\b/i.test(scene.trim()) ||
+      /\b(sit(?:ting|s)?|seated|chair|bench|stool|saddle|steps|carpet|vanity|table)\b/i.test(
+        scene
+      ));
+  if (intent.base === 'sit' && (chairSit || perchedSit) && !reclinedSit) {
+    // Deep chair sit — Keep try-ons are standing; Image 3 must read as hips-on-seat, not a short stand.
+    const ox = centerX - 0.5;
+    const oneKneeUp = /\b(one\s+knee|knee\s+up|cross(?:ed)?-?legged|legs?\s+cross)\b/i.test(scene);
+    return {
+      head: point(0.5 + ox + lean * 0.04 + j(1), 0.3 + j(2)),
+      neck: point(0.5 + ox + j(3), 0.38 + j(4)),
+      pelvis: point(0.5 + ox - lean * 0.02 + j(5), 0.72 + j(6)),
+      lShoulder: point(0.38 + ox + j(7), 0.4 + j(8)),
+      rShoulder: point(0.62 + ox + j(9), 0.39 + j(10)),
+      lElbow: point(0.34 + ox + j(11), 0.52 + j(12)),
+      rElbow: point(0.66 + ox + j(13), 0.5 + j(14)),
+      lWrist: point(0.4 + ox + j(15), 0.62 + j(16)),
+      rWrist: point(0.6 + ox + j(17), 0.6 + j(18)),
+      lHip: point(0.44 + ox + j(19), 0.72 + j(20)),
+      rHip: point(0.56 + ox + j(21), 0.72 + j(22)),
+      lKnee: point(0.42 + ox + j(23), oneKneeUp ? 0.58 : 0.72 + j(24)),
+      rKnee: point(0.68 + ox + j(25), 0.7 + j(26)),
+      lAnkle: point(0.4 + ox + j(27), oneKneeUp ? 0.7 : 0.92 + j(28)),
+      rAnkle: point(0.74 + ox + j(29), 0.9 + j(30)),
+    };
+  }
   if (intent.base === 'sit') {
-    pelvisY = 0.58;
-    headY = 0.22;
-    torsoScale = 0.92;
+    // Exaggerate seated silhouette — Keep try-ons are standing; Image 3 must read as sit.
+    pelvisY = reclinedSit ? 0.68 : perchedSit ? 0.62 : 0.64;
+    headY = reclinedSit ? 0.3 : 0.26;
+    torsoScale = reclinedSit ? 0.85 : 0.9;
   } else if (intent.base === 'crouch') {
     pelvisY = 0.55;
     headY = 0.2;
@@ -808,8 +1556,34 @@ export function synthesizeStickSkeleton(
     pelvisY = 0.56;
     headY = 0.18;
   } else if (intent.base === 'lie') {
-    // Horizontal-ish figure — still readable as a wireframe cue.
     const ox = centerX - 0.5;
+    const lounge =
+      /^(RELAXING|RECLINING)\b/i.test(scene.trim()) ||
+      /\b(relax(?:es|ed|ing)?|reclin(?:e|es|ed|ing)?|towel|lounge|hammock|daybed|float|chaise|knees?\s+drawn|sunbath|sofa|couch)\b/i.test(
+        scene
+      );
+    if (lounge) {
+      // Side-view supine — long horizontal body, knees drawn toward chest. Edit must not
+      // read this as an upright stand (head≈pelvis Y with short limb span failed before).
+      return {
+        head: point(0.14 + ox + j(1), 0.58 + j(2)),
+        neck: point(0.22 + ox + j(3), 0.56 + j(4)),
+        pelvis: point(0.52 + ox + j(5), 0.6 + j(6)),
+        lShoulder: point(0.24 + ox + j(7), 0.5 + j(8)),
+        rShoulder: point(0.26 + ox + j(9), 0.62 + j(10)),
+        lElbow: point(0.34 + ox + j(11), 0.44 + j(12)),
+        rElbow: point(0.36 + ox + j(13), 0.66 + j(14)),
+        lWrist: point(0.42 + ox + j(15), 0.4 + j(16)),
+        rWrist: point(0.44 + ox + j(17), 0.68 + j(18)),
+        lHip: point(0.5 + ox + j(19), 0.56 + j(20)),
+        rHip: point(0.54 + ox + j(21), 0.62 + j(22)),
+        lKnee: point(0.64 + ox + j(23), 0.34 + j(24)),
+        rKnee: point(0.7 + ox + j(25), 0.38 + j(26)),
+        lAnkle: point(0.58 + ox + j(27), 0.22 + j(28)),
+        rAnkle: point(0.64 + ox + j(29), 0.24 + j(30)),
+      };
+    }
+    // Horizontal-ish figure — still readable as a wireframe cue.
     return {
       head: point(0.22 + ox + j(1), 0.42 + j(2)),
       neck: point(0.3 + ox + j(3), 0.44 + j(4)),
@@ -828,8 +1602,139 @@ export function synthesizeStickSkeleton(
       rAnkle: point(0.86 + ox + j(29), 0.58 + j(30)),
     };
   } else if (intent.base === 'jump') {
-    pelvisY = 0.4;
-    headY = 0.08;
+    // Nuclear mid-air jump — figure floated high, knees tucked under hips, arms UP (not T-pose).
+    // Prior ankles ~0.5 still read as planted beach stands to Qwen Edit.
+    const ox = centerX - 0.5;
+    const hard: StickSkeleton = {
+      head: point(0.5 + ox + j(1), 0.02 + j(2)),
+      neck: point(0.5 + ox + j(3), 0.08 + j(4)),
+      pelvis: point(0.48 + ox + j(5), 0.22 + j(6)),
+      lShoulder: point(0.34 + ox + j(7), 0.1 + j(8)),
+      rShoulder: point(0.66 + ox + j(9), 0.1 + j(10)),
+      // Arms raised overhead — T-pose outs collapse to fashion stands.
+      lElbow: point(0.28 + ox + j(11), 0.02 + j(12)),
+      rElbow: point(0.72 + ox + j(13), 0.02 + j(14)),
+      lWrist: point(0.24 + ox + j(15), 0.0 + j(16)),
+      rWrist: point(0.76 + ox + j(17), 0.0 + j(18)),
+      lHip: point(0.4 + ox + j(19), 0.22 + j(20)),
+      rHip: point(0.56 + ox + j(21), 0.22 + j(22)),
+      // Knees tucked up toward hips — clear mid-air crouch.
+      lKnee: point(0.34 + ox + j(23), 0.3 + j(24)),
+      rKnee: point(0.64 + ox + j(25), 0.28 + j(26)),
+      // Ankles high with empty ground below (~0.35–0.38).
+      lAnkle: point(0.3 + ox + j(27), 0.36 + j(28)),
+      rAnkle: point(0.68 + ox + j(29), 0.34 + j(30)),
+    };
+    return seededUnit(seed, 20) > 0.5 ? mirrorStickSkeleton(hard, centerX) : hard;
+  } else if (intent.base === 'reach') {
+    const tossLead =
+      /^TOSSING\b/i.test(scene) ||
+      /\b(toss(?:es|ing)?|throw(?:s|ing)?|frisbee|beach\s+ball)\b/i.test(scene);
+    const ox = centerX - 0.5;
+    if (tossLead) {
+      // Nuclear toss — throwing arm cocked behind head, opposite arm forward, staggered stance.
+      const hard: StickSkeleton = {
+        head: point(0.52 + ox + j(1), 0.1 + j(2)),
+        neck: point(0.5 + ox + j(3), 0.18 + j(4)),
+        pelvis: point(0.46 + ox + j(5), 0.5 + j(6)),
+        lShoulder: point(0.34 + ox + j(7), 0.2 + j(8)),
+        rShoulder: point(0.64 + ox + j(9), 0.16 + j(10)),
+        // Forward balance arm.
+        lElbow: point(0.18 + ox + j(11), 0.32 + j(12)),
+        lWrist: point(0.08 + ox + j(13), 0.28 + j(14)),
+        // Cocked throw arm — elbow high behind, wrist back with ball.
+        rElbow: point(0.78 + ox + j(15), 0.08 + j(16)),
+        rWrist: point(0.88 + ox + j(17), 0.14 + j(18)),
+        lHip: point(0.38 + ox + j(19), 0.5 + j(20)),
+        rHip: point(0.54 + ox + j(21), 0.5 + j(22)),
+        lKnee: point(0.28 + ox + j(23), 0.7 + j(24)),
+        rKnee: point(0.66 + ox + j(25), 0.66 + j(26)),
+        lAnkle: point(0.2 + ox + j(27), 0.9 + j(28)),
+        rAnkle: point(0.74 + ox + j(29), 0.82 + j(30)),
+      };
+      return seededUnit(seed, 20) > 0.5 ? mirrorStickSkeleton(hard, centerX) : hard;
+    }
+    // Nuclear reach / stretch arm — one wrist overhead + weight shift, not arms-at-sides.
+    const bothUp = intent.armLeft === 'up' && intent.armRight === 'up';
+    const hard: StickSkeleton = {
+      head: point(0.48 + ox + j(1), 0.08 + j(2)),
+      neck: point(0.48 + ox + j(3), 0.16 + j(4)),
+      pelvis: point(0.46 + ox + j(5), 0.5 + j(6)),
+      lShoulder: point(0.34 + ox + j(7), 0.2 + j(8)),
+      rShoulder: point(0.62 + ox + j(9), 0.18 + j(10)),
+      lElbow: point(
+        bothUp ? 0.26 + ox + j(11) : 0.22 + ox + j(11),
+        bothUp ? 0.08 + j(12) : 0.36 + j(12)
+      ),
+      rElbow: point(0.72 + ox + j(13), 0.06 + j(14)),
+      lWrist: point(
+        bothUp ? 0.22 + ox + j(15) : 0.18 + ox + j(15),
+        bothUp ? 0.02 + j(16) : 0.48 + j(16)
+      ),
+      rWrist: point(0.8 + ox + j(17), 0.02 + j(18)),
+      lHip: point(0.38 + ox + j(19), 0.5 + j(20)),
+      rHip: point(0.54 + ox + j(21), 0.48 + j(22)),
+      lKnee: point(0.3 + ox + j(23), 0.7 + j(24)),
+      rKnee: point(0.62 + ox + j(25), 0.62 + j(26)),
+      lAnkle: point(0.24 + ox + j(27), 0.9 + j(28)),
+      rAnkle: point(0.7 + ox + j(29), 0.78 + j(30)),
+    };
+    return seededUnit(seed, 20) > 0.5 ? mirrorStickSkeleton(hard, centerX) : hard;
+  } else if (intent.base === 'walk' || intent.base === 'run') {
+    const kickLead =
+      /^KICKING\b/i.test(scene) || /\b(kick(?:s|ing)?|kicking\s+through)\b/i.test(scene);
+    if (kickLead && intent.base === 'walk') {
+      // Nuclear kick — support leg planted, opposite leg kicked nearly horizontal at hip height.
+      const ox = centerX - 0.5;
+      const hard: StickSkeleton = {
+        head: point(0.46 + ox + j(1), 0.08 + j(2)),
+        neck: point(0.46 + ox + j(3), 0.16 + j(4)),
+        pelvis: point(0.44 + ox + j(5), 0.46 + j(6)),
+        lShoulder: point(0.3 + ox + j(7), 0.18 + j(8)),
+        rShoulder: point(0.62 + ox + j(9), 0.16 + j(10)),
+        lElbow: point(0.12 + ox + j(11), 0.26 + j(12)),
+        rElbow: point(0.82 + ox + j(13), 0.24 + j(14)),
+        lWrist: point(0.02 + ox + j(15), 0.3 + j(16)),
+        rWrist: point(0.95 + ox + j(17), 0.26 + j(18)),
+        lHip: point(0.38 + ox + j(19), 0.46 + j(20)),
+        rHip: point(0.52 + ox + j(21), 0.46 + j(22)),
+        // Support leg straight down.
+        lKnee: point(0.36 + ox + j(23), 0.7 + j(24)),
+        lAnkle: point(0.34 + ox + j(25), 0.92 + j(26)),
+        // Kicked leg nearly horizontal — ankle at hip height, far out.
+        rKnee: point(0.78 + ox + j(27), 0.44 + j(28)),
+        rAnkle: point(0.96 + ox + j(29), 0.4 + j(30)),
+      };
+      return seededUnit(seed, 20) > 0.5 ? mirrorStickSkeleton(hard, centerX) : hard;
+    }
+    // Nuclear mid-stride — must read as walking even when Keep Edit fights for a stand.
+    // Wide ankle span + lifted forward foot + opposite arm swing + optional head-down.
+    const ox = centerX - 0.5;
+    const lookDown =
+      /\b(look(?:ing)?\s+down|at\s+(?:the\s+)?(?:wet\s+)?sand|shells?|collect(?:ing)?|ground|feet|sparkle)\b/i.test(
+        scene
+      );
+    const hard: StickSkeleton = {
+      // Head forward/down when collecting — not a camera-facing catalog portrait.
+      head: point(0.54 + ox + j(1), lookDown ? 0.22 + j(2) : 0.1 + j(2)),
+      neck: point(0.5 + ox + j(3), lookDown ? 0.28 + j(4) : 0.18 + j(4)),
+      pelvis: point(0.44 + ox + j(5), intent.base === 'run' ? 0.44 + j(6) : 0.5 + j(6)),
+      lShoulder: point(0.34 + ox + j(7), lookDown ? 0.3 + j(8) : 0.22 + j(8)),
+      rShoulder: point(0.66 + ox + j(9), lookDown ? 0.28 + j(10) : 0.2 + j(10)),
+      // Opposite arm swing — back arm trails low (tote side), forward arm reaches ahead.
+      lElbow: point(0.18 + ox + j(11), 0.42 + j(12)),
+      rElbow: point(0.8 + ox + j(13), 0.26 + j(14)),
+      lWrist: point(0.12 + ox + j(15), 0.58 + j(16)),
+      rWrist: point(0.92 + ox + j(17), 0.18 + j(18)),
+      lHip: point(0.38 + ox + j(19), 0.5 + j(20)),
+      rHip: point(0.52 + ox + j(21), 0.5 + j(22)),
+      lKnee: point(0.16 + ox + j(23), 0.68 + j(24)),
+      rKnee: point(0.76 + ox + j(25), 0.52 + j(26)),
+      // Planted rear foot + forward foot mid-air — never parallel planted stand.
+      lAnkle: point(0.06 + ox + j(27), 0.92 + j(28)),
+      rAnkle: point(0.9 + ox + j(29), 0.62 + j(30)),
+    };
+    return seededUnit(seed, 20) > 0.5 ? mirrorStickSkeleton(hard, centerX) : hard;
   }
 
   const cx = centerX + lean * 0.08;
@@ -846,7 +1751,7 @@ export function synthesizeStickSkeleton(
   const lHip = point(pelvis.x - hipSpread + j(13), pelvis.y + j(14));
   const rHip = point(pelvis.x + hipSpread + j(15), pelvis.y + j(16));
 
-  const walkPhase = intent.base === 'run' ? 0.9 : intent.base === 'walk' ? 0.7 : 0.35;
+  const walkPhase = 0.35;
   const front = stride * walkPhase;
   const flip = seededUnit(seed, 20) > 0.5 ? 1 : -1;
 
@@ -856,10 +1761,21 @@ export function synthesizeStickSkeleton(
   let rAnkle: Point;
 
   if (intent.base === 'sit' || intent.base === 'crouch') {
-    lKnee = point(lHip.x - 0.04 + j(17), lHip.y + 0.14 + j(18));
-    rKnee = point(rHip.x + 0.12 + j(19), rHip.y + 0.12 + j(20));
-    lAnkle = point(lKnee.x - 0.02 + j(21), 0.88 + j(22));
-    rAnkle = point(rKnee.x + 0.06 + j(23), 0.86 + j(24));
+    // Chair-like L: knees forward of hips, ankles under/near knees — not a short stand.
+    const kneeDrop = reclinedSit ? 0.08 : 0.1;
+    const forward = reclinedSit ? 0.16 : perchedSit ? 0.12 : 0.14;
+    lKnee = point(lHip.x - 0.02 + forward * 0.4 + j(17), lHip.y + kneeDrop + j(18));
+    rKnee = point(rHip.x + forward + j(19), rHip.y + kneeDrop - 0.02 + j(20));
+    lAnkle = point(lKnee.x - 0.02 + j(21), reclinedSit ? 0.86 : 0.9 + j(22) * 0.02);
+    rAnkle = point(
+      rKnee.x + (reclinedSit ? 0.1 : 0.04) + j(23),
+      reclinedSit ? 0.82 : 0.88 + j(24) * 0.02
+    );
+    if (reclinedSit) {
+      // One knee raised lounge cue.
+      rKnee = point(rHip.x + 0.1 + j(19), rHip.y - 0.02 + j(20));
+      rAnkle = point(rKnee.x + 0.06 + j(23), rKnee.y + 0.12 + j(24));
+    }
   } else if (intent.base === 'kneel') {
     lKnee = point(lHip.x - 0.02 + j(17), 0.72 + j(18));
     rKnee = point(rHip.x + 0.08 + j(19), rHip.y + 0.14 + j(20));
@@ -870,12 +1786,34 @@ export function synthesizeStickSkeleton(
     rKnee = point(rHip.x + 0.06 * flip + j(19), rHip.y + 0.14 + j(20));
     lAnkle = point(lKnee.x - 0.04 * flip + j(21), lKnee.y + 0.14 + j(22));
     rAnkle = point(rKnee.x + 0.04 * flip + j(23), rKnee.y + 0.12 + j(24));
+  } else if (intent.base === 'reach') {
+    // Tiptoe weight shift — one heel lifted, not parallel fashion feet.
+    lKnee = point(lHip.x - 0.04 * flip + j(17), lHip.y + 0.16 + j(18));
+    rKnee = point(rHip.x + 0.08 * flip + j(19), rHip.y + 0.14 + j(20));
+    lAnkle = point(lKnee.x - 0.02 * flip + j(21), 0.86 + j(22) * 0.02);
+    rAnkle = point(rKnee.x + 0.04 * flip + j(23), 0.78 + j(24) * 0.02);
   } else {
-    // Standing / walk / run / lean / reach — staggered legs from stride.
+    // Standing / lean — modest stagger only.
     lKnee = point(lHip.x - front * 0.2 * flip + j(17), lHip.y + 0.18 + j(18));
     rKnee = point(rHip.x + front * 0.22 * flip + j(19), rHip.y + 0.16 + j(20));
     lAnkle = point(lKnee.x - front * 0.18 * flip + j(21), 0.86 + j(22));
     rAnkle = point(rKnee.x + front * 0.2 * flip + j(23), 0.84 + j(24));
+  }
+
+  // Reach: force one wrist clearly above the head so Edit cannot keep arms-at-sides.
+  let lElbow = leftArm.elbow;
+  let rElbow = rightArm.elbow;
+  let lWrist = leftArm.wrist;
+  let rWrist = rightArm.wrist;
+  if (intent.base === 'reach') {
+    if (intent.armRight === 'up' || intent.armRight === 'out') {
+      rElbow = point(rShoulder.x + 0.04 + j(31), rShoulder.y - 0.12 + j(32));
+      rWrist = point(rShoulder.x + 0.05 + j(33), Math.max(0.02, head.y - 0.08) + j(34));
+    }
+    if (intent.armLeft === 'up') {
+      lElbow = point(lShoulder.x - 0.04 + j(35), lShoulder.y - 0.12 + j(36));
+      lWrist = point(lShoulder.x - 0.05 + j(37), Math.max(0.02, head.y - 0.08) + j(38));
+    }
   }
 
   return {
@@ -884,10 +1822,10 @@ export function synthesizeStickSkeleton(
     pelvis,
     lShoulder,
     rShoulder,
-    lElbow: leftArm.elbow,
-    rElbow: rightArm.elbow,
-    lWrist: leftArm.wrist,
-    rWrist: rightArm.wrist,
+    lElbow,
+    rElbow,
+    lWrist,
+    rWrist,
     lHip,
     rHip,
     lKnee,
@@ -1086,8 +2024,9 @@ function separateIntimateFigures(figures: StickSkeleton[]): StickSkeleton[] {
     }
   };
   for (let i = 1; i < next.length; i += 1) {
-    pushPair(next[i - 1]!, next[i]!, 0.16, 'head');
-    pushPair(next[i - 1]!, next[i]!, 0.12, 'pelvis');
+    // Wider gaps — tight pelvis/head spacing still collapses into flesh blobs on Edit.
+    pushPair(next[i - 1]!, next[i]!, 0.22, 'head');
+    pushPair(next[i - 1]!, next[i]!, 0.18, 'pelvis');
   }
   // Third figure: pull farther right so they don't sit on the pair.
   if (next.length >= 3) {
@@ -1352,6 +2291,52 @@ function deskBentFigures(options?: { throatGrab?: boolean }): StickSkeleton[] {
 }
 
 /**
+ * Filing-cabinet open drawer: lead slumped sideways at drawer height;
+ * partner stands behind — not desk lean, not carpet all-fours.
+ */
+function cabinetDrawerFigures(): StickSkeleton[] {
+  // Sideways collapse into a low open drawer (hips mid-height, torso along the drawer).
+  const slumped: StickSkeleton = {
+    head: point(0.16, 0.42),
+    neck: point(0.22, 0.44),
+    pelvis: point(0.4, 0.56),
+    lShoulder: point(0.22, 0.48),
+    rShoulder: point(0.28, 0.46),
+    // Arms bracing the drawer / cabinet face.
+    lElbow: point(0.14, 0.54),
+    rElbow: point(0.18, 0.52),
+    lWrist: point(0.08, 0.58),
+    rWrist: point(0.12, 0.56),
+    lHip: point(0.37, 0.56),
+    rHip: point(0.43, 0.56),
+    // Thighs parted — one leg forward, one back.
+    lKnee: point(0.36, 0.74),
+    rKnee: point(0.5, 0.72),
+    lAnkle: point(0.34, 0.92),
+    rAnkle: point(0.54, 0.9),
+  };
+  const rear: StickSkeleton = {
+    head: point(0.66, 0.1),
+    neck: point(0.66, 0.18),
+    pelvis: point(0.58, 0.52),
+    lShoulder: point(0.56, 0.22),
+    rShoulder: point(0.74, 0.22),
+    lElbow: point(0.5, 0.38),
+    rElbow: point(0.54, 0.4),
+    // Waist + between-thighs reach.
+    lWrist: point(0.44, 0.52),
+    rWrist: point(0.42, 0.58),
+    lHip: point(0.55, 0.52),
+    rHip: point(0.61, 0.52),
+    lKnee: point(0.56, 0.72),
+    rKnee: point(0.64, 0.72),
+    lAnkle: point(0.56, 0.92),
+    rAnkle: point(0.64, 0.92),
+  };
+  return separateIntimateFigures([slumped, rear]);
+}
+
+/**
  * Standing wall sex: lead's back to the left wall, partner behind (same facing),
  * both full height with feet on the floor — never a face-to-face floor kneel.
  * Head at collarbone height + throat/core hands so Edit doesn't invent a mouth kiss.
@@ -1399,9 +2384,9 @@ function wallPressStandingFigures(): StickSkeleton[] {
     StickSkeleton,
     StickSkeleton,
   ];
-  // Re-pin contact after torso separation so Edit doesn't read a butt/hip grab.
+  // Re-pin contact after torso separation — one contact wrist only (ghost-hand risk).
   partner.rWrist = point(lead.neck.x + 0.02, lead.neck.y + 0.01);
-  partner.lWrist = point(lead.pelvis.x + 0.01, Math.min(0.72, lead.pelvis.y + 0.12));
+  partner.lWrist = point(partner.lHip.x - 0.04, partner.lHip.y + 0.02);
   partner.rElbow = point(
     (partner.rShoulder.x + partner.rWrist.x) / 2,
     (partner.rShoulder.y + partner.rWrist.y) / 2
@@ -1411,6 +2396,210 @@ function wallPressStandingFigures(): StickSkeleton[] {
     (partner.lShoulder.y + partner.lWrist.y) / 2
   );
   return [lead, partner];
+}
+
+/** Solo masturbation Image 3 stance kinds — one adult, hand toward pelvis. */
+export type SoloMasturbationPoseKind =
+  'on_back' | 'side_lying' | 'prone' | 'kneeling' | 'all_fours' | 'standing' | 'lean' | 'seated';
+
+/**
+ * Classify solo self-touch stance from beat/scene text.
+ * Used for Image 3 wireframes so every common masturbation pose has a dedicated layout.
+ */
+export function resolveSoloMasturbationPoseKind(
+  sceneText: string | null | undefined
+): SoloMasturbationPoseKind {
+  const text = sceneText?.trim() || '';
+  if (
+    /\b(all\s+fours|on\s+(?:her|his|their)\s+hands\s+and\s+knees|bent\s+over|ass[- ]up|hips\s+high|looking\s+back)\b/i.test(
+      text
+    )
+  ) {
+    return 'all_fours';
+  }
+  if (
+    /\b(face[- ]down|prone|on\s+(?:her|his|their)\s+stomach|lying\s+on\s+(?:her|his|their)\s+front|grinding\s+into\s+the\s+mattress)\b/i.test(
+      text
+    )
+  ) {
+    return 'prone';
+  }
+  if (
+    /\b(side[- ]lying|on\s+(?:her|his|their)\s+side|curled\s+on\s+(?:her|his|their)\s+side|top\s+knee)\b/i.test(
+      text
+    )
+  ) {
+    return 'side_lying';
+  }
+  if (
+    (/\bon\s+(?:her|his|their)\s+back\b|\blying\b|\breclin|\bsupine\b|\bankles?\s+near\s+(?:her|his|their)\s+shoulders\b/i.test(
+      text
+    ) ||
+      /\bknees\s+pulled\s+up\b/i.test(text)) &&
+    !/\bkneel|sit(?:ting)?\s+on\s+the\s+(?:bed\s+)?edge|lean|side|stomach|prone|all\s+fours|windowsill|pillow/i.test(
+      text
+    )
+  ) {
+    return 'on_back';
+  }
+  if (/\bkneel|riding\s+her\s+own\s+hand\b/i.test(text)) {
+    return 'kneeling';
+  }
+  if (
+    /\b(sink|counter|lean(?:ing)?\s+(?:on|against)|against\s+the\s+(?:sink|counter|wall)|windowsill|straddl(?:e|ing)\s+(?:a\s+)?(?:bathroom\s+)?sink|minibar)\b/i.test(
+      text
+    )
+  ) {
+    return 'lean';
+  }
+  if (
+    /\b(standing|shower|pressed\s+to\s+the\s+wall|hallway\s+wall|upright)\b/i.test(text) &&
+    !/\bsit|kneel|couch|chair|bed\s+edge|pillow|windowsill\b/i.test(text)
+  ) {
+    return 'standing';
+  }
+  if (
+    /\b(astride|straddl(?:e|ing)\s+(?:a\s+)?pillow|bed\s+edge|couch|reclining|stool)\b/i.test(text)
+  ) {
+    return 'seated';
+  }
+  return 'seated';
+}
+
+function plantSoloSelfTouchHands(body: StickSkeleton): StickSkeleton {
+  // One fingering wrist on the vulva midline; the other rests low on the hip with
+  // a clear shoulder→elbow→wrist chain. Two mid-vulva wrists often spawn a ghost
+  // covering pair on the chest in Rapid Edit (four-hand softcore).
+  body.rWrist = point(body.pelvis.x + 0.01, body.pelvis.y + 0.15);
+  body.lWrist = point(body.pelvis.x - 0.14, body.pelvis.y + 0.06);
+  body.rElbow = point(body.pelvis.x + 0.07, body.pelvis.y + 0.06);
+  body.lElbow = point(body.pelvis.x - 0.12, body.pelvis.y - 0.02);
+  body.lShoulder = point(body.lShoulder.x, Math.min(body.lShoulder.y + 0.03, body.pelvis.y - 0.06));
+  body.rShoulder = point(body.rShoulder.x, Math.min(body.rShoulder.y + 0.03, body.pelvis.y - 0.06));
+  return body;
+}
+
+/** One-adult self-touch wireframes — expressive stances, not polite pin-ups. */
+function synthesizeSoloMasturbationFigure(
+  seed: number,
+  sceneText: string | null | undefined
+): StickSkeleton {
+  const kind = resolveSoloMasturbationPoseKind(sceneText);
+  const text = sceneText?.trim() || '';
+
+  if (kind === 'on_back') {
+    const body = lyingFigure(seed, { cx: 0.5, cy: 0.54, facing: 1, salt: 11 });
+    // Knees up / ankles high so Edit reads open thighs, not a flat nap.
+    const legsHigh = /\bankles?\s+near|knees\s+pulled\s+up|shoulders\b/i.test(text);
+    body.lKnee = point(body.pelvis.x - 0.12, body.pelvis.y - (legsHigh ? 0.22 : 0.14));
+    body.rKnee = point(body.pelvis.x + 0.14, body.pelvis.y - (legsHigh ? 0.2 : 0.12));
+    body.lAnkle = point(body.pelvis.x - 0.08, body.pelvis.y - (legsHigh ? 0.32 : 0.18));
+    body.rAnkle = point(body.pelvis.x + 0.16, body.pelvis.y - (legsHigh ? 0.3 : 0.16));
+    body.head = point(body.head.x, body.head.y + 0.03);
+    return plantSoloSelfTouchHands(body);
+  }
+
+  if (kind === 'side_lying') {
+    const body = lyingFigure(seed, { cx: 0.48, cy: 0.5, facing: 1, salt: 51 });
+    body.lKnee = point(body.pelvis.x + 0.14, body.pelvis.y - 0.08);
+    body.rKnee = point(body.pelvis.x + 0.22, body.pelvis.y + 0.06);
+    body.lAnkle = point(body.pelvis.x + 0.28, body.pelvis.y - 0.06);
+    body.rAnkle = point(body.pelvis.x + 0.34, body.pelvis.y + 0.08);
+    body.head = point(body.head.x - 0.02, body.head.y + 0.02);
+    return plantSoloSelfTouchHands(body);
+  }
+
+  if (kind === 'prone') {
+    const body = lyingFigure(seed, { cx: 0.5, cy: 0.48, facing: -1, salt: 61 });
+    body.head = point(body.head.x + 0.04, body.head.y + 0.02);
+    body.pelvis = point(body.pelvis.x, body.pelvis.y - 0.04);
+    body.lKnee = point(body.pelvis.x - 0.06, body.pelvis.y + 0.12);
+    body.rKnee = point(body.pelvis.x + 0.1, body.pelvis.y + 0.14);
+    return plantSoloSelfTouchHands(body);
+  }
+
+  if (kind === 'kneeling') {
+    const body = uprightFigure(seed, {
+      cx: 0.5,
+      base: 'kneel',
+      salt: 21,
+      // Forward/down arms before plant — 'hold' leaves shoulders reading as a raised gesture.
+      arms: 'forward',
+      lean: 0.18,
+    });
+    // Head tipped back / down — never a polite camera-facing pin-up with raised hands.
+    body.head = point(body.head.x + 0.05, body.head.y - 0.08);
+    body.neck = point(body.neck.x + 0.03, body.neck.y - 0.03);
+    body.lKnee = point(body.lKnee.x - 0.1, body.lKnee.y);
+    body.rKnee = point(body.rKnee.x + 0.1, body.rKnee.y);
+    body.pelvis = point(body.pelvis.x, body.pelvis.y + 0.03);
+    // One fingering wrist deep on the vulva; other on the hip (clear arm chains).
+    const planted = plantSoloSelfTouchHands(body);
+    planted.lShoulder = point(
+      planted.lShoulder.x,
+      Math.min(planted.lShoulder.y + 0.04, planted.pelvis.y - 0.08)
+    );
+    planted.rShoulder = point(
+      planted.rShoulder.x,
+      Math.min(planted.rShoulder.y + 0.04, planted.pelvis.y - 0.08)
+    );
+    planted.rWrist = point(planted.pelvis.x + 0.01, planted.pelvis.y + 0.17);
+    planted.lWrist = point(planted.pelvis.x - 0.15, planted.pelvis.y + 0.07);
+    planted.rElbow = point(planted.pelvis.x + 0.06, planted.pelvis.y + 0.07);
+    planted.lElbow = point(planted.pelvis.x - 0.13, planted.pelvis.y - 0.01);
+    return planted;
+  }
+
+  if (kind === 'all_fours') {
+    const body = bentForwardFigure(seed, 0.5, 71);
+    body.head = point(body.head.x - 0.04, body.head.y - 0.02);
+    body.pelvis = point(body.pelvis.x + 0.02, body.pelvis.y - 0.04);
+    return plantSoloSelfTouchHands(body);
+  }
+
+  if (kind === 'lean') {
+    return plantSoloSelfTouchHands(
+      uprightFigure(seed, {
+        cx: 0.48,
+        base: 'stand',
+        salt: 31,
+        arms: 'forward',
+        lean: 0.28,
+      })
+    );
+  }
+
+  if (kind === 'standing') {
+    const body = uprightFigure(seed, {
+      cx: 0.5,
+      base: 'stand',
+      salt: 81,
+      arms: 'forward',
+      lean: 0.1,
+    });
+    body.lKnee = point(body.lKnee.x - 0.06, body.lKnee.y - 0.04);
+    body.lAnkle = point(body.lAnkle.x - 0.04, body.lAnkle.y);
+    return plantSoloSelfTouchHands(body);
+  }
+
+  // Seated / couch / bed edge / windowsill / pillow — open thighs, lean back.
+  const bedEdge =
+    /\bbed\s+edge|edge\s+of\s+the\s+bed|sitting\s+on\s+the\s+edge|leaning\s+back\b/i.test(text);
+  const body = uprightFigure(seed, {
+    cx: 0.5,
+    base: 'sit',
+    salt: bedEdge ? 41 : 1,
+    arms: 'forward',
+    lean: bedEdge ? -0.12 : 0.08,
+  });
+  body.lKnee = point(body.lKnee.x - 0.07, body.lKnee.y);
+  body.rKnee = point(body.rKnee.x + 0.08, body.rKnee.y);
+  body.lAnkle = point(body.lAnkle.x - 0.05, body.lAnkle.y);
+  body.rAnkle = point(body.rAnkle.x + 0.06, body.rAnkle.y);
+  // Tip the head back / away from the lens — seated softcore defaults to camera stare.
+  body.head = point(body.head.x + 0.03, body.head.y - (bedEdge ? 0.04 : 0.05));
+  body.neck = point(body.neck.x + 0.01, body.neck.y - 0.02);
+  return plantSoloSelfTouchHands(body);
 }
 
 /** Dedicated intimate solo/duo/trio layouts — wireframe silhouettes only. */
@@ -1428,15 +2617,7 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   };
 
   if (layout === 'solo') {
-    return [
-      uprightFigure(seed, {
-        cx: 0.5,
-        base: 'sit',
-        salt: 1,
-        arms: 'forward',
-        lean: 0.05,
-      }),
-    ];
+    return [synthesizeSoloMasturbationFigure(seed, intent.sceneText)];
   }
 
   if (layout === 'missionary') {
@@ -1462,20 +2643,29 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
 
   if (layout === 'straddle') {
     // Lead (black / Image 1) is the rider when the beat is "name straddles partner".
-    const bottom = lyingFigure(seed, { cx: 0.44, cy: 0.6, facing: 1, salt: 40 });
-    let top = riderOnPelvis(seed, { cx: 0.54, salt: 2 });
-    top.head = point(0.56, 0.16);
-    top.neck = point(0.55, 0.24);
-    top = plantHandsOnPartner(top, bottom, { toward: 'chest' });
+    // Keep pelvis centers farther apart so Edit doesn't fuse into one hip mass.
+    // One contact wrist only — two planted wrists often become ghost hands on Edit.
+    const bottom = lyingFigure(seed, { cx: 0.34, cy: 0.64, facing: 1, salt: 40 });
+    const top = riderOnPelvis(seed, { cx: 0.64, salt: 2 });
+    top.head = point(0.66, 0.12);
+    top.neck = point(0.64, 0.2);
+    top.rWrist = point(bottom.neck.x + 0.04, (bottom.neck.y + bottom.pelvis.y) / 2);
+    top.lWrist = point(top.lHip.x - 0.05, top.lHip.y - 0.02);
+    top.rElbow = point((top.rShoulder.x + top.rWrist.x) / 2, (top.rShoulder.y + top.rWrist.y) / 2);
+    top.lElbow = point((top.lShoulder.x + top.lWrist.x) / 2, (top.lShoulder.y + top.lWrist.y) / 2);
     return pairOrTrio([top, bottom]);
   }
 
   if (layout === 'reverse_straddle') {
-    const bottom = lyingFigure(seed, { cx: 0.44, cy: 0.6, facing: 1, salt: 40 });
-    let top = riderOnPelvis(seed, { cx: 0.54, facingAway: true, salt: 2 });
-    top.head = point(0.6, 0.16);
-    top.neck = point(0.58, 0.24);
-    top = plantHandsOnPartner(top, bottom, { toward: 'hips' });
+    const bottom = lyingFigure(seed, { cx: 0.34, cy: 0.64, facing: 1, salt: 40 });
+    const top = riderOnPelvis(seed, { cx: 0.64, facingAway: true, salt: 2 });
+    top.head = point(0.68, 0.12);
+    top.neck = point(0.66, 0.2);
+    // One contact wrist only (same ghost-hand risk as face-to-face straddle).
+    top.lWrist = point(bottom.pelvis.x + 0.02, bottom.pelvis.y - 0.04);
+    top.rWrist = point(top.rHip.x + 0.05, top.rHip.y - 0.02);
+    top.lElbow = point((top.lShoulder.x + top.lWrist.x) / 2, (top.lShoulder.y + top.lWrist.y) / 2);
+    top.rElbow = point((top.rShoulder.x + top.rWrist.x) / 2, (top.rShoulder.y + top.rWrist.y) / 2);
     return pairOrTrio([top, bottom]);
   }
 
@@ -1528,6 +2718,9 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
     ) {
       return pairOrTrio(chairBentFigures());
     }
+    if (intimateTextImpliesCabinetDrawer(scene)) {
+      return pairOrTrio(cabinetDrawerFigures());
+    }
     if (intimateTextImpliesSurfaceBent(scene)) {
       return pairOrTrio(
         deskBentFigures({
@@ -1536,9 +2729,9 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
       );
     }
     // Wider gap + kneeling rear partner so Edit doesn't invent standing extra limbs.
-    const bent = bentForwardFigure(seed, 0.3, 50);
+    const bent = bentForwardFigure(seed, 0.28, 50);
     let rear = uprightFigure(seed, {
-      cx: 0.72,
+      cx: 0.76,
       base: 'kneel',
       salt: 2,
       arms: 'hold',
@@ -1546,6 +2739,9 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
     });
     // Reach toward hips without collapsing pelvis centers (merge risk).
     rear = plantHandsOnPartner(rear, bent, { toward: 'hips' });
+    // Keep rear head higher in frame so Edit doesn't crop the partner.
+    rear.head = point(rear.head.x, Math.min(rear.head.y, 0.22));
+    rear.neck = point(rear.neck.x, Math.min(rear.neck.y, 0.3));
     return pairOrTrio([bent, rear]);
   }
 
@@ -1598,7 +2794,7 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
       receiver.lAnkle = point(0.5, 0.88);
       receiver.rAnkle = point(0.66, 0.88);
     }
-    let giver = uprightFigure(seed, {
+    const giver = uprightFigure(seed, {
       cx: 0.36,
       base: 'kneel',
       salt: 2,
@@ -1612,7 +2808,18 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
     giver.rKnee = point(0.38, onBench ? 0.8 : 0.78);
     giver.lAnkle = point(0.26, onBench ? 0.92 : 0.9);
     giver.rAnkle = point(0.4, onBench ? 0.92 : 0.9);
-    giver = plantHandsOnPartner(giver, receiver, { toward: 'hips' });
+    // Wrists on outer thighs — never near the giver's own mouth (Edit reads that as hand-in-mouth).
+    const thighY = receiver.pelvis.y + 0.06;
+    giver.lWrist = point(receiver.lHip.x - 0.05, thighY);
+    giver.rWrist = point(receiver.rHip.x + 0.05, thighY);
+    giver.lElbow = point(
+      (giver.lShoulder.x + giver.lWrist.x) / 2,
+      (giver.lShoulder.y + giver.lWrist.y) / 2
+    );
+    giver.rElbow = point(
+      (giver.rShoulder.x + giver.rWrist.x) / 2,
+      (giver.rShoulder.y + giver.rWrist.y) / 2
+    );
     return pairOrTrio([receiver, giver]);
   }
 
@@ -1772,10 +2979,512 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   return pairOrTrio([a, b]);
 }
 
+/**
+ * Solo mid-action athletic silhouettes for Day Sport Image 3.
+ * Joints are exaggerated so Edit reads sprint / swing / kick — not a standing pin-up.
+ */
+function synthesizeSportStickFigure(layout: SocialLayout, seed: number): StickSkeleton {
+  switch (layout) {
+    case 'sport_sprint': {
+      const fig = uprightFigure(seed, {
+        cx: 0.48,
+        base: 'run',
+        salt: 1,
+        arms: 'forward',
+        lean: 0.28,
+      });
+      fig.head = point(0.56, 0.12);
+      fig.neck = point(0.52, 0.2);
+      fig.lShoulder = point(0.4, 0.26);
+      fig.rShoulder = point(0.58, 0.24);
+      fig.lElbow = point(0.62, 0.3);
+      fig.lWrist = point(0.7, 0.28);
+      fig.rElbow = point(0.36, 0.36);
+      fig.rWrist = point(0.3, 0.42);
+      fig.pelvis = point(0.46, 0.48);
+      fig.lHip = point(0.42, 0.48);
+      fig.rHip = point(0.5, 0.48);
+      fig.lKnee = point(0.34, 0.6);
+      fig.rKnee = point(0.62, 0.58);
+      fig.lAnkle = point(0.22, 0.84);
+      fig.rAnkle = point(0.74, 0.8);
+      return fig;
+    }
+    case 'sport_yoga_warrior': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'stand',
+        salt: 2,
+        arms: 'out',
+        lean: 0,
+      });
+      fig.lAnkle = point(0.22, 0.88);
+      fig.rAnkle = point(0.78, 0.88);
+      fig.lKnee = point(0.3, 0.68);
+      fig.rKnee = point(0.7, 0.66);
+      fig.lElbow = point(0.22, 0.34);
+      fig.lWrist = point(0.1, 0.34);
+      fig.rElbow = point(0.78, 0.34);
+      fig.rWrist = point(0.9, 0.34);
+      return fig;
+    }
+    case 'sport_yoga_dog': {
+      // Inverted-V: hips high, hands and feet planted.
+      return {
+        head: point(0.28, 0.58),
+        neck: point(0.32, 0.52),
+        pelvis: point(0.55, 0.28),
+        lShoulder: point(0.34, 0.48),
+        rShoulder: point(0.38, 0.5),
+        lElbow: point(0.28, 0.62),
+        rElbow: point(0.32, 0.64),
+        lWrist: point(0.22, 0.82),
+        rWrist: point(0.28, 0.84),
+        lHip: point(0.52, 0.3),
+        rHip: point(0.58, 0.3),
+        lKnee: point(0.62, 0.52),
+        rKnee: point(0.68, 0.54),
+        lAnkle: point(0.7, 0.86),
+        rAnkle: point(0.78, 0.86),
+      };
+    }
+    case 'sport_cycle': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'sit',
+        salt: 3,
+        arms: 'forward',
+        lean: 0.35,
+      });
+      fig.head = point(0.62, 0.18);
+      fig.neck = point(0.56, 0.26);
+      fig.pelvis = point(0.42, 0.52);
+      fig.lShoulder = point(0.48, 0.3);
+      fig.rShoulder = point(0.58, 0.32);
+      fig.lElbow = point(0.62, 0.4);
+      fig.rElbow = point(0.68, 0.42);
+      fig.lWrist = point(0.72, 0.48);
+      fig.rWrist = point(0.76, 0.5);
+      fig.lKnee = point(0.36, 0.68);
+      fig.rKnee = point(0.52, 0.7);
+      fig.lAnkle = point(0.28, 0.86);
+      fig.rAnkle = point(0.58, 0.88);
+      return fig;
+    }
+    case 'sport_swing': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'walk',
+        salt: 4,
+        arms: 'out',
+        lean: -0.15,
+      });
+      fig.lAnkle = point(0.38, 0.88);
+      fig.rAnkle = point(0.62, 0.86);
+      fig.lKnee = point(0.42, 0.66);
+      fig.rKnee = point(0.58, 0.64);
+      // Follow-through: arms across body high → low.
+      fig.lElbow = point(0.58, 0.28);
+      fig.lWrist = point(0.78, 0.22);
+      fig.rElbow = point(0.52, 0.4);
+      fig.rWrist = point(0.68, 0.48);
+      return fig;
+    }
+    case 'sport_serve': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'reach',
+        salt: 5,
+        arms: 'up',
+        lean: -0.08,
+      });
+      fig.lAnkle = point(0.4, 0.88);
+      fig.rAnkle = point(0.6, 0.86);
+      fig.lKnee = point(0.42, 0.7);
+      fig.rKnee = point(0.58, 0.62);
+      fig.rElbow = point(0.62, 0.18);
+      fig.rWrist = point(0.64, 0.06);
+      fig.lElbow = point(0.36, 0.36);
+      fig.lWrist = point(0.32, 0.48);
+      return fig;
+    }
+    case 'sport_forehand': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'walk',
+        salt: 6,
+        arms: 'out',
+        lean: 0.2,
+      });
+      fig.lAnkle = point(0.32, 0.86);
+      fig.rAnkle = point(0.64, 0.88);
+      fig.lKnee = point(0.36, 0.64);
+      fig.rKnee = point(0.58, 0.68);
+      fig.rElbow = point(0.72, 0.32);
+      fig.rWrist = point(0.88, 0.28);
+      fig.lElbow = point(0.4, 0.4);
+      fig.lWrist = point(0.36, 0.52);
+      return fig;
+    }
+    case 'sport_jump_shot': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'jump',
+        salt: 7,
+        arms: 'up',
+        lean: -0.05,
+      });
+      fig.pelvis = point(0.5, 0.42);
+      fig.lAnkle = point(0.42, 0.72);
+      fig.rAnkle = point(0.58, 0.7);
+      fig.lKnee = point(0.44, 0.56);
+      fig.rKnee = point(0.56, 0.54);
+      fig.rElbow = point(0.58, 0.16);
+      fig.rWrist = point(0.6, 0.04);
+      fig.lElbow = point(0.42, 0.22);
+      fig.lWrist = point(0.44, 0.12);
+      return fig;
+    }
+    case 'sport_kick': {
+      const fig = uprightFigure(seed, {
+        cx: 0.42,
+        base: 'run',
+        salt: 8,
+        arms: 'out',
+        lean: -0.18,
+      });
+      // Support leg planted; kicking leg locked nearly horizontal — never a yoga-tree tuck.
+      fig.lHip = point(0.36, 0.48);
+      fig.lKnee = point(0.34, 0.7);
+      fig.lAnkle = point(0.32, 0.92);
+      fig.rHip = point(0.48, 0.46);
+      fig.rKnee = point(0.78, 0.4);
+      fig.rAnkle = point(0.98, 0.32);
+      // Arms flung wide for balance — not resting on the bent knee.
+      fig.lElbow = point(0.14, 0.28);
+      fig.lWrist = point(0.02, 0.22);
+      fig.rElbow = point(0.72, 0.22);
+      fig.rWrist = point(0.9, 0.16);
+      return fig;
+    }
+    case 'sport_throw': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'reach',
+        salt: 9,
+        arms: 'up',
+        lean: 0.22,
+      });
+      fig.lAnkle = point(0.34, 0.88);
+      fig.rAnkle = point(0.62, 0.84);
+      fig.lKnee = point(0.38, 0.66);
+      fig.rKnee = point(0.56, 0.6);
+      fig.rElbow = point(0.7, 0.2);
+      fig.rWrist = point(0.84, 0.1);
+      fig.lElbow = point(0.36, 0.4);
+      fig.lWrist = point(0.28, 0.5);
+      return fig;
+    }
+    case 'sport_lunge': {
+      const fig = uprightFigure(seed, {
+        cx: 0.48,
+        base: 'run',
+        salt: 10,
+        arms: 'forward',
+        lean: 0.3,
+      });
+      fig.lAnkle = point(0.28, 0.88);
+      fig.rAnkle = point(0.72, 0.86);
+      fig.lKnee = point(0.34, 0.62);
+      fig.rKnee = point(0.64, 0.7);
+      // Blade arm extended long.
+      fig.rElbow = point(0.7, 0.32);
+      fig.rWrist = point(0.92, 0.3);
+      fig.lElbow = point(0.36, 0.36);
+      fig.lWrist = point(0.3, 0.28);
+      return fig;
+    }
+    case 'sport_handstand': {
+      // Vertical inversion: hands down, feet up.
+      return {
+        head: point(0.5, 0.72),
+        neck: point(0.5, 0.64),
+        pelvis: point(0.5, 0.32),
+        lShoulder: point(0.42, 0.58),
+        rShoulder: point(0.58, 0.58),
+        lElbow: point(0.4, 0.72),
+        rElbow: point(0.6, 0.72),
+        lWrist: point(0.38, 0.88),
+        rWrist: point(0.62, 0.88),
+        lHip: point(0.46, 0.34),
+        rHip: point(0.54, 0.34),
+        lKnee: point(0.44, 0.18),
+        rKnee: point(0.56, 0.18),
+        lAnkle: point(0.42, 0.06),
+        rAnkle: point(0.58, 0.06),
+      };
+    }
+    case 'sport_pitch': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'walk',
+        salt: 11,
+        arms: 'up',
+        lean: 0.18,
+      });
+      fig.lAnkle = point(0.4, 0.88);
+      fig.rAnkle = point(0.58, 0.7);
+      fig.rKnee = point(0.6, 0.48);
+      fig.lKnee = point(0.42, 0.66);
+      fig.rElbow = point(0.62, 0.2);
+      fig.rWrist = point(0.66, 0.08);
+      fig.lElbow = point(0.34, 0.42);
+      fig.lWrist = point(0.28, 0.52);
+      return fig;
+    }
+    case 'sport_stick': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'walk',
+        salt: 12,
+        arms: 'hold',
+        lean: 0.15,
+      });
+      fig.lAnkle = point(0.36, 0.88);
+      fig.rAnkle = point(0.64, 0.86);
+      fig.lKnee = point(0.4, 0.68);
+      fig.rKnee = point(0.6, 0.66);
+      fig.lElbow = point(0.42, 0.4);
+      fig.lWrist = point(0.48, 0.52);
+      fig.rElbow = point(0.6, 0.38);
+      fig.rWrist = point(0.7, 0.55);
+      return fig;
+    }
+    case 'sport_block': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'walk',
+        salt: 13,
+        arms: 'forward',
+        lean: -0.1,
+      });
+      fig.lAnkle = point(0.34, 0.88);
+      fig.rAnkle = point(0.66, 0.88);
+      fig.lKnee = point(0.38, 0.66);
+      fig.rKnee = point(0.62, 0.66);
+      fig.lElbow = point(0.36, 0.34);
+      fig.lWrist = point(0.32, 0.26);
+      fig.rElbow = point(0.58, 0.36);
+      fig.rWrist = point(0.54, 0.28);
+      return fig;
+    }
+    case 'sport_hurdle': {
+      const fig = uprightFigure(seed, {
+        cx: 0.48,
+        base: 'run',
+        salt: 14,
+        arms: 'forward',
+        lean: 0.22,
+      });
+      fig.lAnkle = point(0.28, 0.88);
+      fig.lKnee = point(0.34, 0.66);
+      // Lead leg high over the bar.
+      fig.rHip = point(0.52, 0.44);
+      fig.rKnee = point(0.7, 0.36);
+      fig.rAnkle = point(0.86, 0.28);
+      fig.lElbow = point(0.58, 0.3);
+      fig.lWrist = point(0.68, 0.24);
+      fig.rElbow = point(0.34, 0.38);
+      fig.rWrist = point(0.28, 0.46);
+      return fig;
+    }
+    case 'sport_slide': {
+      // Low sideways slide — torso near ground, lead leg extended.
+      return {
+        head: point(0.62, 0.42),
+        neck: point(0.56, 0.48),
+        pelvis: point(0.4, 0.62),
+        lShoulder: point(0.5, 0.5),
+        rShoulder: point(0.58, 0.52),
+        lElbow: point(0.42, 0.6),
+        rElbow: point(0.64, 0.58),
+        lWrist: point(0.36, 0.72),
+        rWrist: point(0.72, 0.62),
+        lHip: point(0.38, 0.62),
+        rHip: point(0.44, 0.62),
+        lKnee: point(0.28, 0.72),
+        rKnee: point(0.62, 0.7),
+        lAnkle: point(0.18, 0.86),
+        rAnkle: point(0.84, 0.78),
+      };
+    }
+    case 'sport_dunk': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'jump',
+        salt: 15,
+        arms: 'up',
+        lean: -0.08,
+      });
+      fig.pelvis = point(0.5, 0.38);
+      fig.lAnkle = point(0.44, 0.68);
+      fig.rAnkle = point(0.56, 0.66);
+      fig.lKnee = point(0.46, 0.52);
+      fig.rKnee = point(0.54, 0.5);
+      // Both arms fully overhead at the rim.
+      fig.lElbow = point(0.44, 0.12);
+      fig.lWrist = point(0.46, 0.02);
+      fig.rElbow = point(0.56, 0.12);
+      fig.rWrist = point(0.58, 0.02);
+      return fig;
+    }
+    case 'sport_ski': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'walk',
+        salt: 16,
+        arms: 'out',
+        lean: 0.35,
+      });
+      fig.lAnkle = point(0.3, 0.88);
+      fig.rAnkle = point(0.58, 0.86);
+      fig.lKnee = point(0.36, 0.68);
+      fig.rKnee = point(0.52, 0.64);
+      fig.pelvis = point(0.44, 0.5);
+      fig.lElbow = point(0.32, 0.4);
+      fig.lWrist = point(0.22, 0.52);
+      fig.rElbow = point(0.62, 0.36);
+      fig.rWrist = point(0.74, 0.44);
+      return fig;
+    }
+    case 'sport_putt': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'crouch',
+        salt: 17,
+        arms: 'hold',
+        lean: 0.12,
+      });
+      fig.lAnkle = point(0.4, 0.88);
+      fig.rAnkle = point(0.6, 0.88);
+      fig.lKnee = point(0.42, 0.7);
+      fig.rKnee = point(0.58, 0.7);
+      fig.pelvis = point(0.5, 0.56);
+      fig.lElbow = point(0.44, 0.48);
+      fig.lWrist = point(0.46, 0.58);
+      fig.rElbow = point(0.56, 0.48);
+      fig.rWrist = point(0.54, 0.58);
+      return fig;
+    }
+    case 'sport_overhead': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'reach',
+        salt: 18,
+        arms: 'up',
+        lean: -0.15,
+      });
+      fig.lAnkle = point(0.38, 0.88);
+      fig.rAnkle = point(0.62, 0.86);
+      fig.lKnee = point(0.4, 0.68);
+      fig.rKnee = point(0.58, 0.64);
+      fig.rElbow = point(0.58, 0.14);
+      fig.rWrist = point(0.6, 0.02);
+      fig.lElbow = point(0.36, 0.28);
+      fig.lWrist = point(0.3, 0.2);
+      return fig;
+    }
+    case 'sport_swim': {
+      // Horizontal freestyle: head low, leading arm extended, trail arm recovering.
+      return {
+        head: point(0.72, 0.36),
+        neck: point(0.66, 0.4),
+        pelvis: point(0.38, 0.48),
+        lShoulder: point(0.58, 0.38),
+        rShoulder: point(0.62, 0.42),
+        lElbow: point(0.78, 0.34),
+        rElbow: point(0.48, 0.28),
+        lWrist: point(0.9, 0.36),
+        rWrist: point(0.4, 0.18),
+        lHip: point(0.36, 0.46),
+        rHip: point(0.4, 0.5),
+        lKnee: point(0.28, 0.52),
+        rKnee: point(0.24, 0.58),
+        lAnkle: point(0.16, 0.5),
+        rAnkle: point(0.12, 0.62),
+      };
+    }
+    case 'sport_spike': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'jump',
+        salt: 19,
+        arms: 'up',
+        lean: -0.1,
+      });
+      fig.pelvis = point(0.5, 0.4);
+      fig.lAnkle = point(0.44, 0.7);
+      fig.rAnkle = point(0.56, 0.68);
+      fig.lKnee = point(0.46, 0.54);
+      fig.rKnee = point(0.54, 0.52);
+      // Hitting arm cocked high; guide hand out front.
+      fig.rElbow = point(0.62, 0.12);
+      fig.rWrist = point(0.68, 0.02);
+      fig.lElbow = point(0.4, 0.22);
+      fig.lWrist = point(0.36, 0.14);
+      return fig;
+    }
+    case 'sport_box': {
+      const fig = uprightFigure(seed, {
+        cx: 0.48,
+        base: 'run',
+        salt: 20,
+        arms: 'forward',
+        lean: 0.12,
+      });
+      fig.lAnkle = point(0.36, 0.88);
+      fig.rAnkle = point(0.58, 0.86);
+      fig.lKnee = point(0.4, 0.68);
+      fig.rKnee = point(0.54, 0.66);
+      // Guard up — fists near chin/cheek.
+      fig.lElbow = point(0.4, 0.36);
+      fig.lWrist = point(0.46, 0.28);
+      fig.rElbow = point(0.58, 0.34);
+      fig.rWrist = point(0.62, 0.26);
+      return fig;
+    }
+    case 'sport_surf': {
+      const fig = uprightFigure(seed, {
+        cx: 0.5,
+        base: 'crouch',
+        salt: 21,
+        arms: 'out',
+        lean: 0.28,
+      });
+      fig.pelvis = point(0.48, 0.52);
+      fig.lAnkle = point(0.34, 0.86);
+      fig.rAnkle = point(0.62, 0.84);
+      fig.lKnee = point(0.4, 0.66);
+      fig.rKnee = point(0.56, 0.64);
+      fig.lElbow = point(0.32, 0.4);
+      fig.lWrist = point(0.22, 0.46);
+      fig.rElbow = point(0.68, 0.38);
+      fig.rWrist = point(0.8, 0.42);
+      return fig;
+    }
+    default: {
+      return uprightFigure(seed, { cx: 0.5, base: 'run', salt: 1, arms: 'forward', lean: 0.2 });
+    }
+  }
+}
+
 /** Dedicated non-intimate social/action layouts — wireframe silhouettes only. */
 export function synthesizeSocialStickFigures(intent: PoseGuideIntent): StickSkeleton[] {
   const layout = intent.social ?? 'hug';
   const seed = intent.seed;
+  if (isSportSocialLayout(layout)) {
+    return [synthesizeSportStickFigure(layout, seed)];
+  }
   const wantTrio = intent.people >= 3;
   const pairOrTrio = (pair: StickSkeleton[]) =>
     wantTrio
@@ -1783,6 +3492,28 @@ export function synthesizeSocialStickFigures(intent: PoseGuideIntent): StickSkel
       : pair;
 
   if (layout === 'climb') {
+    // Nuclear climb — one foot up on a step, both hands high on rail.
+    if (intent.people <= 1) {
+      return [
+        {
+          head: point(0.5, 0.08),
+          neck: point(0.48, 0.16),
+          pelvis: point(0.46, 0.48),
+          lShoulder: point(0.34, 0.2),
+          rShoulder: point(0.62, 0.18),
+          lElbow: point(0.3, 0.12),
+          rElbow: point(0.68, 0.1),
+          lWrist: point(0.28, 0.04),
+          rWrist: point(0.72, 0.04),
+          lHip: point(0.4, 0.48),
+          rHip: point(0.54, 0.48),
+          lKnee: point(0.42, 0.58),
+          rKnee: point(0.6, 0.7),
+          lAnkle: point(0.4, 0.68),
+          rAnkle: point(0.62, 0.9),
+        },
+      ];
+    }
     const climber = uprightFigure(seed, {
       cx: 0.5,
       base: 'reach',
@@ -1798,9 +3529,6 @@ export function synthesizeSocialStickFigures(intent: PoseGuideIntent): StickSkel
     climber.rKnee = point(0.58, 0.62);
     climber.lAnkle = point(0.42, 0.72);
     climber.rAnkle = point(0.6, 0.86);
-    if (intent.people <= 1) {
-      return [climber];
-    }
     return pairOrTrio([
       climber,
       uprightFigure(seed, { cx: 0.72, base: 'stand', salt: 2, arms: 'up', lean: -0.1 }),
@@ -1830,26 +3558,307 @@ export function synthesizeSocialStickFigures(intent: PoseGuideIntent): StickSkel
   }
 
   if (layout === 'look_back') {
+    const scene = intent.sceneText || '';
+    const zipping = /\b(zip|unzip|twist(?:ing)?)\b/i.test(scene);
     const figure = uprightFigure(seed, {
       cx: 0.5,
       base: 'stand',
       salt: 1,
-      arms: 'hold',
-      lean: 0.28,
+      arms: zipping ? 'up' : 'hold',
+      lean: 0.32,
     });
-    // Twist: head and near shoulder pull opposite the lean.
-    figure.head = point(0.42, 0.12);
+    // Twist: head toward camera over near shoulder; torso angled away from square-on.
+    figure.head = point(0.4, 0.11);
     figure.neck = point(0.46, 0.2);
-    figure.lShoulder = point(0.38, 0.26);
-    figure.rShoulder = point(0.58, 0.24);
-    figure.lWrist = point(0.36, 0.48);
-    figure.rWrist = point(0.62, 0.46);
+    figure.pelvis = point(0.54, 0.5);
+    figure.lHip = point(0.48, 0.5);
+    figure.rHip = point(0.58, 0.48);
+    figure.lShoulder = point(0.36, 0.26);
+    figure.rShoulder = point(0.58, 0.22);
+    figure.lKnee = point(0.44, 0.66);
+    figure.rKnee = point(0.6, 0.64);
+    figure.lAnkle = point(0.4, 0.86);
+    figure.rAnkle = point(0.66, 0.84);
+    if (zipping) {
+      // Both hands at mid-back zipper — not arms hanging at sides.
+      figure.lElbow = point(0.42, 0.34);
+      figure.rElbow = point(0.54, 0.32);
+      figure.lWrist = point(0.46, 0.4);
+      figure.rWrist = point(0.52, 0.38);
+    } else {
+      figure.lElbow = point(0.34, 0.38);
+      figure.rElbow = point(0.62, 0.36);
+      figure.lWrist = point(0.36, 0.48);
+      figure.rWrist = point(0.6, 0.44);
+    }
     if (intent.people <= 1) {
       return [figure];
     }
     return pairOrTrio([
       figure,
       uprightFigure(seed, { cx: 0.72, base: 'stand', salt: 2, arms: 'down', lean: -0.1 }),
+    ]);
+  }
+
+  if (layout === 'stretch') {
+    // Nuclear stretch — both wrists overhead + clear weight shift (narrow ankles read as stand).
+    if (intent.people <= 1) {
+      return [
+        {
+          head: point(0.5, 0.08),
+          neck: point(0.48, 0.16),
+          pelvis: point(0.46, 0.5),
+          lShoulder: point(0.34, 0.2),
+          rShoulder: point(0.62, 0.18),
+          lElbow: point(0.26, 0.08),
+          rElbow: point(0.72, 0.06),
+          lWrist: point(0.22, 0.02),
+          rWrist: point(0.78, 0.02),
+          lHip: point(0.38, 0.5),
+          rHip: point(0.54, 0.48),
+          lKnee: point(0.3, 0.7),
+          rKnee: point(0.64, 0.62),
+          lAnkle: point(0.24, 0.9),
+          rAnkle: point(0.72, 0.78),
+        },
+      ];
+    }
+    const figure = uprightFigure(seed, {
+      cx: 0.5,
+      base: 'reach',
+      salt: 1,
+      arms: 'up',
+      lean: -0.04,
+    });
+    figure.lWrist = point(0.4, 0.08);
+    figure.rWrist = point(0.6, 0.06);
+    figure.lElbow = point(0.38, 0.2);
+    figure.rElbow = point(0.62, 0.18);
+    return pairOrTrio([
+      figure,
+      uprightFigure(seed, { cx: 0.72, base: 'stand', salt: 2, arms: 'down', lean: -0.08 }),
+    ]);
+  }
+
+  if (layout === 'wave') {
+    // Nuclear solo wave — mild arm-raise on a stand still reads as Keep fashion plate.
+    // High overhead wave + stepped weight + torso twist so Edit cannot freeze arms-at-sides.
+    if (intent.people <= 1) {
+      const seatedWave = /\b(seated|sit(?:ting)?|perch(?:ed)?|rail\s+ledge|hip\s+against)\b/i.test(
+        intent.sceneText || ''
+      );
+      if (seatedWave) {
+        return [
+          {
+            head: point(0.52, 0.28),
+            neck: point(0.5, 0.36),
+            pelvis: point(0.48, 0.7),
+            lShoulder: point(0.38, 0.38),
+            rShoulder: point(0.62, 0.36),
+            lElbow: point(0.34, 0.5),
+            rElbow: point(0.72, 0.18),
+            lWrist: point(0.4, 0.6),
+            rWrist: point(0.8, 0.04),
+            lHip: point(0.42, 0.7),
+            rHip: point(0.54, 0.7),
+            lKnee: point(0.4, 0.82),
+            rKnee: point(0.66, 0.78),
+            lAnkle: point(0.38, 0.92),
+            rAnkle: point(0.72, 0.9),
+          },
+        ];
+      }
+      return [
+        {
+          head: point(0.5, 0.1),
+          neck: point(0.48, 0.18),
+          pelvis: point(0.46, 0.5),
+          lShoulder: point(0.34, 0.22),
+          rShoulder: point(0.62, 0.2),
+          lElbow: point(0.28, 0.4),
+          rElbow: point(0.74, 0.08),
+          lWrist: point(0.32, 0.54),
+          rWrist: point(0.82, 0.02),
+          lHip: point(0.4, 0.5),
+          rHip: point(0.54, 0.5),
+          lKnee: point(0.34, 0.7),
+          rKnee: point(0.64, 0.62),
+          lAnkle: point(0.28, 0.9),
+          rAnkle: point(0.72, 0.78),
+        },
+      ];
+    }
+    const figure = uprightFigure(seed, {
+      cx: 0.5,
+      base: 'stand',
+      salt: 1,
+      arms: 'up',
+      lean: 0.06,
+    });
+    figure.rElbow = point(0.66, 0.22);
+    figure.rWrist = point(0.72, 0.1);
+    figure.lElbow = point(0.4, 0.4);
+    figure.lWrist = point(0.38, 0.52);
+    return pairOrTrio([
+      figure,
+      uprightFigure(seed, { cx: 0.72, base: 'stand', salt: 2, arms: 'down', lean: -0.08 }),
+    ]);
+  }
+
+  if (layout === 'cross_arms') {
+    const figure = uprightFigure(seed, {
+      cx: 0.5,
+      base: 'stand',
+      salt: 1,
+      arms: 'crossed',
+      lean: 0.04,
+    });
+    figure.lElbow = point(0.42, 0.36);
+    figure.rElbow = point(0.58, 0.36);
+    figure.lWrist = point(0.56, 0.4);
+    figure.rWrist = point(0.44, 0.4);
+    if (intent.people <= 1) {
+      return [figure];
+    }
+    return pairOrTrio([
+      figure,
+      uprightFigure(seed, { cx: 0.72, base: 'stand', salt: 2, arms: 'down', lean: -0.08 }),
+    ]);
+  }
+
+  if (layout === 'pockets') {
+    const figure = uprightFigure(seed, {
+      cx: 0.5,
+      base: 'stand',
+      salt: 1,
+      arms: 'hold',
+      lean: 0.12,
+    });
+    figure.lElbow = point(0.4, 0.4);
+    figure.rElbow = point(0.6, 0.4);
+    figure.lWrist = point(0.44, 0.5);
+    figure.rWrist = point(0.56, 0.5);
+    figure.rAnkle = point(0.62, 0.86);
+    if (intent.people <= 1) {
+      return [figure];
+    }
+    return pairOrTrio([
+      figure,
+      uprightFigure(seed, { cx: 0.72, base: 'stand', salt: 2, arms: 'down', lean: -0.08 }),
+    ]);
+  }
+
+  if (layout === 'drink') {
+    const figure = uprightFigure(seed, {
+      cx: 0.5,
+      base: 'stand',
+      salt: 1,
+      arms: 'hold',
+      lean: -0.06,
+    });
+    // Mug / glass raised toward face.
+    figure.rElbow = point(0.6, 0.34);
+    figure.rWrist = point(0.56, 0.24);
+    figure.lElbow = point(0.4, 0.42);
+    figure.lWrist = point(0.38, 0.52);
+    if (intent.people <= 1) {
+      return [figure];
+    }
+    return pairOrTrio([
+      figure,
+      uprightFigure(seed, { cx: 0.72, base: 'stand', salt: 2, arms: 'down', lean: -0.08 }),
+    ]);
+  }
+
+  if (layout === 'carry') {
+    const figure = uprightFigure(seed, {
+      cx: 0.48,
+      base: 'walk',
+      salt: 1,
+      arms: 'hold',
+      lean: 0.1,
+    });
+    // Bag on one side / shoulder strap pull.
+    figure.lElbow = point(0.34, 0.4);
+    figure.lWrist = point(0.32, 0.54);
+    figure.rElbow = point(0.62, 0.36);
+    figure.rWrist = point(0.66, 0.48);
+    figure.lAnkle = point(0.34, 0.86);
+    figure.rAnkle = point(0.6, 0.84);
+    if (intent.people <= 1) {
+      return [figure];
+    }
+    return pairOrTrio([
+      figure,
+      uprightFigure(seed, { cx: 0.74, base: 'stand', salt: 2, arms: 'down', lean: -0.08 }),
+    ]);
+  }
+
+  if (layout === 'read') {
+    const seated = /\b(sit|seated|bench|couch|chair|booth)\b/i.test(intent.sceneText || '');
+    const figure = uprightFigure(seed, {
+      cx: 0.5,
+      base: seated ? 'sit' : 'stand',
+      salt: 1,
+      arms: 'hold',
+      lean: 0.08,
+    });
+    // Head down toward book/page in hands.
+    figure.head = point(0.48, seated ? 0.26 : 0.16);
+    figure.neck = point(0.49, seated ? 0.34 : 0.24);
+    figure.lElbow = point(0.4, seated ? 0.48 : 0.4);
+    figure.rElbow = point(0.6, seated ? 0.48 : 0.4);
+    figure.lWrist = point(0.46, seated ? 0.54 : 0.46);
+    figure.rWrist = point(0.54, seated ? 0.54 : 0.46);
+    if (intent.people <= 1) {
+      return [figure];
+    }
+    return pairOrTrio([
+      figure,
+      uprightFigure(seed, { cx: 0.72, base: 'stand', salt: 2, arms: 'down', lean: -0.08 }),
+    ]);
+  }
+
+  if (layout === 'rail') {
+    const figure = uprightFigure(seed, {
+      cx: 0.48,
+      base: 'lean',
+      salt: 1,
+      arms: 'forward',
+      lean: 0.18,
+    });
+    figure.lElbow = point(0.36, 0.36);
+    figure.rElbow = point(0.58, 0.34);
+    figure.lWrist = point(0.28, 0.4);
+    figure.rWrist = point(0.7, 0.38);
+    figure.rAnkle = point(0.58, 0.86);
+    if (intent.people <= 1) {
+      return [figure];
+    }
+    return pairOrTrio([
+      figure,
+      uprightFigure(seed, { cx: 0.74, base: 'stand', salt: 2, arms: 'down', lean: -0.1 }),
+    ]);
+  }
+
+  if (layout === 'point') {
+    const figure = uprightFigure(seed, {
+      cx: 0.48,
+      base: 'stand',
+      salt: 1,
+      arms: 'forward',
+      lean: 0.1,
+    });
+    figure.rElbow = point(0.62, 0.32);
+    figure.rWrist = point(0.74, 0.26);
+    figure.lElbow = point(0.4, 0.42);
+    figure.lWrist = point(0.38, 0.52);
+    if (intent.people <= 1) {
+      return [figure];
+    }
+    return pairOrTrio([
+      figure,
+      uprightFigure(seed, { cx: 0.74, base: 'stand', salt: 2, arms: 'down', lean: -0.08 }),
     ]);
   }
 
@@ -1881,6 +3890,33 @@ export function synthesizeSocialStickFigures(intent: PoseGuideIntent): StickSkel
   }
 
   if (layout === 'dance') {
+    // Solo suggestive/vacation "dancing alone" must NOT draw a ballroom pair —
+    // a second stick figure fights SOLO LOCK and Edit collapses to the Keep stand.
+    if (intent.people <= 1) {
+      // Nuclear solo dance — both arms overhead + one knee lifted mid-step.
+      // Gravity-defying kicks (ankle above hip) make Qwen Edit abandon Image 3 and
+      // freeze the Outfit Keep fashion stand; keep the lift readable but human.
+      return [
+        {
+          head: point(0.5, 0.08),
+          neck: point(0.48, 0.16),
+          pelvis: point(0.44, 0.5),
+          lShoulder: point(0.34, 0.2),
+          rShoulder: point(0.62, 0.18),
+          lElbow: point(0.26, 0.08),
+          rElbow: point(0.72, 0.06),
+          lWrist: point(0.22, 0.02),
+          rWrist: point(0.78, 0.02),
+          lHip: point(0.38, 0.5),
+          rHip: point(0.52, 0.48),
+          // Planted support leg + opposite knee lifted to mid-thigh (not above hip).
+          lKnee: point(0.3, 0.72),
+          rKnee: point(0.66, 0.4),
+          lAnkle: point(0.26, 0.92),
+          rAnkle: point(0.7, 0.52),
+        },
+      ];
+    }
     const lead = uprightFigure(seed, {
       cx: 0.42,
       base: 'walk',
@@ -1945,9 +3981,10 @@ export function synthesizeSocialStickFigures(intent: PoseGuideIntent): StickSkel
 /** Synthesize 1–3 stick figures laid out for the scene. */
 export function synthesizeSceneStickFigures(
   text: string | null | undefined,
-  fallbackIndex = 0
+  fallbackIndex = 0,
+  options?: { forcePeople?: number; clothedUprightOnly?: boolean }
 ): { intent: PoseGuideIntent; figures: StickSkeleton[] } {
-  const intent = parsePoseGuideIntent(text, fallbackIndex);
+  const intent = parsePoseGuideIntent(text, fallbackIndex, options);
   if (intent.intimate) {
     const figures = synthesizeIntimateStickFigures(intent);
     return {
@@ -2126,6 +4163,42 @@ const MULTI_FIGURE_PALETTE = [
   { fill: '#ea580c', stroke: '#9a3412' },
 ] as const;
 
+/**
+ * Rapid AIO: muted gray outlines (no neon fills) — filled magenta/cyan capsules
+ * leak into glass/window reflections on Phr00t Rapid AIO Edit.
+ */
+/** Mid/light gray only — dark strokes still get painted as black morphsuits. */
+const RAPID_AIO_OUTLINE_PALETTE = [
+  { stroke: '#9ca3af', lineWidth: 5.2 },
+  { stroke: '#a8b0bb', lineWidth: 4.4 },
+  { stroke: '#b8c0cc', lineWidth: 4.0 },
+] as const;
+
+export type PoseGuideVisualStyle = 'filled' | 'outline-gray';
+
+export function resolvePoseGuideVisualStyle(model?: string | null): PoseGuideVisualStyle {
+  return /^qwen-rapid-aio-/i.test(String(model ?? '').trim()) ? 'outline-gray' : 'filled';
+}
+
+function drawStickLimbStroke(
+  ctx: CanvasRenderingContext2D,
+  a: Point,
+  b: Point,
+  lineWidth: number,
+  stroke: string
+): void {
+  const from = px(a);
+  const to = px(b);
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = Math.max(1.5, lineWidth);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+}
+
 /** Draw a filled mannequin from skeleton joints — body mass, no face/clothes. */
 export function drawStickSkeleton(
   ctx: CanvasRenderingContext2D,
@@ -2136,11 +4209,43 @@ export function drawStickSkeleton(
     fillStyle?: string;
     headRadius?: number;
     lineWidth?: number;
+    /** Rapid AIO: outline-only gray limbs (no neon capsule fills). */
+    visualStyle?: PoseGuideVisualStyle;
   }
 ): void {
   if (options?.clear !== false) {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  }
+
+  const visualStyle = options?.visualStyle ?? 'filled';
+  if (visualStyle === 'outline-gray') {
+    const stroke = options?.strokeStyle ?? '#9ca3af';
+    const lineWidth = options?.lineWidth ?? 3;
+    const headRadius = options?.headRadius ?? 22;
+    const limb = (a: Point, b: Point, width = lineWidth) =>
+      drawStickLimbStroke(ctx, a, b, width, stroke);
+    limb(skeleton.lShoulder, skeleton.rShoulder);
+    limb(skeleton.neck, skeleton.pelvis, lineWidth * 1.15);
+    limb(skeleton.lHip, skeleton.rHip);
+    limb(skeleton.lShoulder, skeleton.lElbow);
+    limb(skeleton.lElbow, skeleton.lWrist);
+    limb(skeleton.rShoulder, skeleton.rElbow);
+    limb(skeleton.rElbow, skeleton.rWrist);
+    limb(skeleton.lHip, skeleton.lKnee);
+    limb(skeleton.lKnee, skeleton.lAnkle);
+    limb(skeleton.rHip, skeleton.rKnee);
+    limb(skeleton.rKnee, skeleton.rAnkle);
+    limb(skeleton.head, skeleton.neck, lineWidth * 0.9);
+    limb(skeleton.neck, skeleton.lShoulder, lineWidth * 0.85);
+    limb(skeleton.neck, skeleton.rShoulder, lineWidth * 0.85);
+    const headPx = px(skeleton.head);
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = Math.max(1.5, lineWidth * 0.9);
+    ctx.beginPath();
+    ctx.arc(headPx.x, headPx.y, headRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    return;
   }
 
   const scale = (options?.lineWidth ?? 5) / 5;
@@ -2202,19 +4307,28 @@ export function drawStickSkeleton(
 /** Draw a Day slot mannequin on white. */
 export function drawDayPoseGuide(
   ctx: CanvasRenderingContext2D,
-  slotId: DaySlotId | PoseGuideKey | string
+  slotId: DaySlotId | PoseGuideKey | string,
+  visualStyle: PoseGuideVisualStyle = 'filled'
 ): void {
   const skeleton = SLOT_SKELETONS[normalizePoseKey(slotId)] ?? SLOT_SKELETONS.afternoon;
-  drawStickSkeleton(ctx, skeleton);
+  const outline = RAPID_AIO_OUTLINE_PALETTE[0]!;
+  drawStickSkeleton(ctx, skeleton, {
+    visualStyle,
+    strokeStyle: visualStyle === 'outline-gray' ? outline.stroke : undefined,
+    lineWidth: visualStyle === 'outline-gray' ? outline.lineWidth : undefined,
+    headRadius: visualStyle === 'outline-gray' ? 24 : undefined,
+  });
 }
 
 /** Draw freshly synthesized mannequin stance(s) from scene text (1–3 figures). */
 export function drawPoseGuideFromScene(
   ctx: CanvasRenderingContext2D,
   text: string | null | undefined,
-  fallbackIndex = 0
+  fallbackIndex = 0,
+  visualStyle: PoseGuideVisualStyle = 'filled',
+  options?: { forcePeople?: number; clothedUprightOnly?: boolean }
 ): PoseGuideIntent {
-  const { intent, figures } = synthesizeSceneStickFigures(text, fallbackIndex);
+  const { intent, figures } = synthesizeSceneStickFigures(text, fallbackIndex, options);
   if (intent.intimate === 'wall') {
     // Visual wall cue so Edit doesn't invent a center-floor kneel.
     ctx.fillStyle = '#ffffff';
@@ -2251,6 +4365,23 @@ export function drawPoseGuideFromScene(
   }
   figures.forEach((figure, index) => {
     const isLead = index === 0;
+    if (visualStyle === 'outline-gray') {
+      const outline = RAPID_AIO_OUTLINE_PALETTE[index % RAPID_AIO_OUTLINE_PALETTE.length]!;
+      // Duo+: keep partner nearly as thick as lead — thin partner outlines get dropped by Edit.
+      const duoBoost = figures.length > 1;
+      drawStickSkeleton(ctx, figure, {
+        clear:
+          intent.intimate === 'wall' ||
+          (intent.intimate === 'lift' && /\bchaise\b/i.test(text || ''))
+            ? false
+            : index === 0,
+        visualStyle: 'outline-gray',
+        strokeStyle: outline.stroke,
+        lineWidth: duoBoost ? (isLead ? 3.8 : 3.5) : outline.lineWidth,
+        headRadius: duoBoost ? (isLead ? 28 : 25) : 24,
+      });
+      return;
+    }
     const palette = MULTI_FIGURE_PALETTE[index % MULTI_FIGURE_PALETTE.length]!;
     drawStickSkeleton(ctx, figure, {
       clear:
@@ -2305,9 +4436,13 @@ async function canvasToPoseGuideFile(
   });
 }
 
-async function buildPoseGuideFile(poseKey: PoseGuideKey, filenamePrefix: string): Promise<File> {
+async function buildPoseGuideFile(
+  poseKey: PoseGuideKey,
+  filenamePrefix: string,
+  visualStyle: PoseGuideVisualStyle = 'filled'
+): Promise<File> {
   return canvasToPoseGuideFile(ctx => {
-    drawDayPoseGuide(ctx, poseKey);
+    drawDayPoseGuide(ctx, poseKey, visualStyle);
     return poseKey;
   }, filenamePrefix);
 }
@@ -2315,17 +4450,23 @@ async function buildPoseGuideFile(poseKey: PoseGuideKey, filenamePrefix: string)
 /** Browser-only: rasterize the mannequin to a PNG File for Comfy Image 3. */
 export async function buildDayPoseGuideFile(
   slotId: DaySlotId,
-  sceneText?: string | null
+  sceneText?: string | null,
+  model?: string | null,
+  options?: { forcePeople?: number; clothedUprightOnly?: boolean }
 ): Promise<File> {
+  const visualStyle = resolvePoseGuideVisualStyle(model);
   const trimmed = sceneText?.trim() || '';
   if (trimmed) {
     const fallbackIndex = Math.max(0, POSE_KEYS.indexOf(normalizePoseKey(slotId)));
     return canvasToPoseGuideFile(ctx => {
-      const intent = drawPoseGuideFromScene(ctx, trimmed, fallbackIndex);
+      const intent = drawPoseGuideFromScene(ctx, trimmed, fallbackIndex, visualStyle, {
+        ...(options?.forcePeople != null ? { forcePeople: options.forcePeople } : {}),
+        ...(options?.clothedUprightOnly ? { clothedUprightOnly: true } : {}),
+      });
       return intent.label;
     }, 'day-pose-guide');
   }
-  return buildPoseGuideFile(normalizePoseKey(slotId), 'day-pose-guide');
+  return buildPoseGuideFile(normalizePoseKey(slotId), 'day-pose-guide', visualStyle);
 }
 
 export type StoryPoseGuideInput = {
@@ -2334,6 +4475,8 @@ export type StoryPoseGuideInput = {
   prompt?: string | null;
   /** Fallback cycle index when the scene text has no stance cue. */
   storyIndex?: number;
+  /** Active Comfy model — Rapid AIO gets outline-gray guides. */
+  model?: string | null;
 };
 
 /** Prefer scene text stance; otherwise cycle by story index. */
@@ -2360,10 +4503,11 @@ export async function buildStoryPoseGuideFile(input: number | StoryPoseGuideInpu
   if (typeof input === 'number') {
     return buildPoseGuideFile(resolveStoryPoseGuideKey(input), 'story-pose-guide');
   }
+  const visualStyle = resolvePoseGuideVisualStyle(input.model);
   const sceneText = sceneTextFromStoryPoseInput(input);
   const fallbackIndex = input.storyIndex ?? 0;
   return canvasToPoseGuideFile(ctx => {
-    const intent = drawPoseGuideFromScene(ctx, sceneText, fallbackIndex);
+    const intent = drawPoseGuideFromScene(ctx, sceneText, fallbackIndex, visualStyle);
     return intent.label;
   }, 'story-pose-guide');
 }

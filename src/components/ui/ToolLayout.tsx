@@ -21,7 +21,7 @@ type ToolLayoutProps = {
   headerActions?: ReactNode;
   sidebar?: ReactNode;
   /**
-   * When set with a sidebar, show Engine as a header popover instead of a
+   * When set with a sidebar, show Engine as a fixed floating dock instead of a
    * persistent right column. The key is reserved for future per-tool prefs.
    */
   sidebarPersistKey?: string;
@@ -108,7 +108,7 @@ function EnginePopoverToolLayout({
   );
 }
 
-/** Tool page chrome with optional Engine popover for Settings controls. */
+/** Tool page chrome with optional floating Engine dock for Settings controls. */
 export const ToolLayout = memo(function ToolLayout(props: ToolLayoutProps) {
   void props.accent;
   if (props.sidebarPersistKey && props.sidebar) {

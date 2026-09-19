@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { peekCollapsibleOpen, saveCollapsibleOpen } from '@/lib/collapsible-persist';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
@@ -51,6 +52,8 @@ type ToolEngineToggleProps = {
   onOpenChange: (open: boolean) => void;
   className?: string;
   panelId?: string;
+  /** Compact floating dock — icon + short label only. */
+  compact?: boolean;
 };
 
 function EngineGlyph({ open }: { open: boolean }) {
@@ -90,6 +93,7 @@ export default function ToolEngineToggle({
   onOpenChange,
   className = '',
   panelId,
+  compact = false,
 }: ToolEngineToggleProps) {
   return (
     <button
@@ -101,18 +105,20 @@ export default function ToolEngineToggle({
       aria-controls={panelId}
       title={open ? 'Hide model and workflow settings' : 'Show model and workflow settings'}
       onClick={() => onOpenChange(!open)}
-      className={`play-engine-toggle ${open ? 'play-engine-toggle-open' : ''} ${className}`.trim()}
+      className={`play-engine-toggle ${compact ? 'play-engine-toggle-compact' : ''} ${open ? 'play-engine-toggle-open' : ''} ${className}`.trim()}
     >
       <span className="play-engine-toggle-icon" aria-hidden>
         <EngineGlyph open={open} />
       </span>
       <span className="play-engine-toggle-copy">
-        <span className="play-engine-toggle-label">{open ? 'Hide Engine' : 'Engine'}</span>
-        <span className="play-engine-toggle-hint">
-          {open ? 'Close when done' : 'Model & workflow'}
-        </span>
+        <span className="play-engine-toggle-label">{open ? 'Hide' : 'Engine'}</span>
+        {!compact ? (
+          <span className="play-engine-toggle-hint">
+            {open ? 'Close when done' : 'Model & workflow'}
+          </span>
+        ) : null}
       </span>
-      {!open ? (
+      {!open && !compact ? (
         <span className="play-engine-toggle-cta" aria-hidden>
           Show
         </span>
@@ -128,7 +134,10 @@ type ToolEnginePopoverProps = {
   className?: string;
 };
 
-/** Header-anchored Engine panel — full page stays wide; settings open on demand. */
+/**
+ * Fixed floating Engine panel — stays reachable while scrolling the tool page
+ * (portal to body so header/tool transforms can't pin it).
+ */
 export function ToolEnginePopover({
   children,
   title = 'Engine',
@@ -136,8 +145,15 @@ export function ToolEnginePopover({
   className = '',
 }: ToolEnginePopoverProps) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
+
+  useEffect(() => {
+    scheduleAfterCommit(() => {
+      setMounted(true);
+    });
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -161,9 +177,16 @@ export function ToolEnginePopover({
     };
   }, [open]);
 
-  return (
-    <div ref={rootRef} className={`play-engine-popover-root ${className}`.trim()}>
-      <ToolEngineToggle open={open} onOpenChange={setOpen} panelId={panelId} />
+  if (!mounted) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      ref={rootRef}
+      className={`play-engine-popover-root play-engine-popover-float ${className}`.trim()}
+    >
+      <ToolEngineToggle open={open} onOpenChange={setOpen} panelId={panelId} compact />
       {open ? (
         <div
           id={panelId}
@@ -189,7 +212,8 @@ export function ToolEnginePopover({
           <div className="play-engine-popover-body ui-sidebar-dense">{children}</div>
         </div>
       ) : null}
-    </div>
+    </div>,
+    document.body
   );
 }
 

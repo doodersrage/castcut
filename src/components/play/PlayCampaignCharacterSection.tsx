@@ -102,15 +102,12 @@ export default function PlayCampaignCharacterSection({
       description={
         character
           ? 'This film stays tied to one Cast record. Story continues this lead.'
-          : 'Name a Cast lead, optional Part and From photo — Story continues whatever you start here.'
+          : 'Name a Cast lead (+ optional From photo). More traits stay under the fold — Story continues whatever you start here.'
       }
       data-testid="play-campaign-character"
     >
       {!character ? (
         <div className="space-y-3" data-testid="play-campaign-create-character">
-          <p className="type-caption text-[var(--text-muted)]">
-            Each trait defaults to Random — pick specifics only when you want them locked in.
-          </p>
           <div className="space-y-2">
             <FieldLabel htmlFor="play-campaign-create-name">New character</FieldLabel>
             <input
@@ -129,127 +126,6 @@ export default function PlayCampaignCharacterSection({
               aria-label="New character name"
             />
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-2" data-testid="play-campaign-create-appearance">
-            <label className="block space-y-1.5">
-              <FieldLabel htmlFor="play-campaign-create-sex">Sex</FieldLabel>
-              <SelectInput
-                id="play-campaign-create-sex"
-                data-testid="play-campaign-create-sex"
-                value={appearance.sex}
-                onChange={event =>
-                  patchAppearance(
-                    'sex',
-                    event.target.value as CharacterAppearancePick<CharacterSex>
-                  )
-                }
-              >
-                {CHARACTER_SEX_SELECT_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectInput>
-            </label>
-            <label className="block space-y-1.5">
-              <FieldLabel htmlFor="play-campaign-create-ethnicity">Ethnicity</FieldLabel>
-              <SelectInput
-                id="play-campaign-create-ethnicity"
-                data-testid="play-campaign-create-ethnicity"
-                value={appearance.ethnicity}
-                onChange={event =>
-                  patchAppearance(
-                    'ethnicity',
-                    event.target.value as CharacterAppearancePick<CharacterEthnicity>
-                  )
-                }
-              >
-                {CHARACTER_ETHNICITY_SELECT_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectInput>
-            </label>
-            <label className="block space-y-1.5">
-              <FieldLabel htmlFor="play-campaign-create-age">Age</FieldLabel>
-              <SelectInput
-                id="play-campaign-create-age"
-                data-testid="play-campaign-create-age"
-                value={appearance.ageBand}
-                onChange={event =>
-                  patchAppearance(
-                    'ageBand',
-                    event.target.value as CharacterAppearancePick<CharacterAgeBand>
-                  )
-                }
-              >
-                {CHARACTER_AGE_BAND_SELECT_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectInput>
-            </label>
-            <label className="block space-y-1.5">
-              <FieldLabel htmlFor="play-campaign-create-height">Height</FieldLabel>
-              <SelectInput
-                id="play-campaign-create-height"
-                data-testid="play-campaign-create-height"
-                value={appearance.height}
-                onChange={event =>
-                  patchAppearance(
-                    'height',
-                    event.target.value as CharacterAppearancePick<CharacterHeight>
-                  )
-                }
-              >
-                {CHARACTER_HEIGHT_SELECT_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectInput>
-            </label>
-            <label className="block space-y-1.5 sm:col-span-2">
-              <FieldLabel htmlFor="play-campaign-create-body">Body type</FieldLabel>
-              <SelectInput
-                id="play-campaign-create-body"
-                data-testid="play-campaign-create-body"
-                value={appearance.bodyBuild}
-                onChange={event =>
-                  patchAppearance(
-                    'bodyBuild',
-                    event.target.value as CharacterAppearancePick<CharacterBodyBuild>
-                  )
-                }
-              >
-                {CHARACTER_BODY_BUILD_SELECT_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectInput>
-            </label>
-          </div>
-
-          <p
-            className="type-caption text-[var(--text-muted)]"
-            data-testid="play-campaign-create-appearance-summary"
-          >
-            {summarizeCharacterAppearanceForm(appearance)}
-          </p>
-
-          <CastPersonaPartChips
-            personaId={personaId}
-            customPersona={customPersona}
-            disabled={creating}
-            testIdPrefix="play-campaign-create-persona"
-            onChange={next => {
-              setPersonaId(next.personaId);
-              setCustomPersona(next.customPersona ?? '');
-            }}
-          />
 
           <div className="space-y-2" data-testid="play-campaign-create-from-photo">
             <FieldLabel htmlFor="play-campaign-create-photo">From photo (optional)</FieldLabel>
@@ -304,21 +180,159 @@ export default function PlayCampaignCharacterSection({
             >
               Create only
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              data-testid="play-campaign-create-reset-random"
-              disabled={creating}
-              onClick={() => {
-                setAppearance(defaultCharacterAppearanceForm());
-                setPersonaId('');
-                setCustomPersona('');
-                setReferenceFile(null);
-              }}
-            >
-              Reset to Random
-            </Button>
           </div>
+
+          <details
+            className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2"
+            data-testid="play-campaign-create-more-traits"
+          >
+            <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+              More traits · Part, look, body
+            </summary>
+            <div className="mt-3 space-y-3">
+              <p className="type-caption text-[var(--text-muted)]">
+                Each trait defaults to Random — pick specifics only when you want them locked in.
+              </p>
+              <div
+                className="grid gap-3 sm:grid-cols-2"
+                data-testid="play-campaign-create-appearance"
+              >
+                <label className="block space-y-1.5">
+                  <FieldLabel htmlFor="play-campaign-create-sex">Sex</FieldLabel>
+                  <SelectInput
+                    id="play-campaign-create-sex"
+                    data-testid="play-campaign-create-sex"
+                    value={appearance.sex}
+                    onChange={event =>
+                      patchAppearance(
+                        'sex',
+                        event.target.value as CharacterAppearancePick<CharacterSex>
+                      )
+                    }
+                  >
+                    {CHARACTER_SEX_SELECT_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </label>
+                <label className="block space-y-1.5">
+                  <FieldLabel htmlFor="play-campaign-create-ethnicity">Ethnicity</FieldLabel>
+                  <SelectInput
+                    id="play-campaign-create-ethnicity"
+                    data-testid="play-campaign-create-ethnicity"
+                    value={appearance.ethnicity}
+                    onChange={event =>
+                      patchAppearance(
+                        'ethnicity',
+                        event.target.value as CharacterAppearancePick<CharacterEthnicity>
+                      )
+                    }
+                  >
+                    {CHARACTER_ETHNICITY_SELECT_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </label>
+                <label className="block space-y-1.5">
+                  <FieldLabel htmlFor="play-campaign-create-age">Age</FieldLabel>
+                  <SelectInput
+                    id="play-campaign-create-age"
+                    data-testid="play-campaign-create-age"
+                    value={appearance.ageBand}
+                    onChange={event =>
+                      patchAppearance(
+                        'ageBand',
+                        event.target.value as CharacterAppearancePick<CharacterAgeBand>
+                      )
+                    }
+                  >
+                    {CHARACTER_AGE_BAND_SELECT_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </label>
+                <label className="block space-y-1.5">
+                  <FieldLabel htmlFor="play-campaign-create-height">Height</FieldLabel>
+                  <SelectInput
+                    id="play-campaign-create-height"
+                    data-testid="play-campaign-create-height"
+                    value={appearance.height}
+                    onChange={event =>
+                      patchAppearance(
+                        'height',
+                        event.target.value as CharacterAppearancePick<CharacterHeight>
+                      )
+                    }
+                  >
+                    {CHARACTER_HEIGHT_SELECT_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </label>
+                <label className="block space-y-1.5 sm:col-span-2">
+                  <FieldLabel htmlFor="play-campaign-create-body">Body type</FieldLabel>
+                  <SelectInput
+                    id="play-campaign-create-body"
+                    data-testid="play-campaign-create-body"
+                    value={appearance.bodyBuild}
+                    onChange={event =>
+                      patchAppearance(
+                        'bodyBuild',
+                        event.target.value as CharacterAppearancePick<CharacterBodyBuild>
+                      )
+                    }
+                  >
+                    {CHARACTER_BODY_BUILD_SELECT_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </label>
+              </div>
+
+              <p
+                className="type-caption text-[var(--text-muted)]"
+                data-testid="play-campaign-create-appearance-summary"
+              >
+                {summarizeCharacterAppearanceForm(appearance)}
+              </p>
+
+              <CastPersonaPartChips
+                personaId={personaId}
+                customPersona={customPersona}
+                disabled={creating}
+                testIdPrefix="play-campaign-create-persona"
+                onChange={next => {
+                  setPersonaId(next.personaId);
+                  setCustomPersona(next.customPersona ?? '');
+                }}
+              />
+
+              <Button
+                size="sm"
+                variant="ghost"
+                data-testid="play-campaign-create-reset-random"
+                disabled={creating}
+                onClick={() => {
+                  setAppearance(defaultCharacterAppearanceForm());
+                  setPersonaId('');
+                  setCustomPersona('');
+                }}
+              >
+                Reset traits to Random
+              </Button>
+            </div>
+          </details>
+
           {characters.length > 0 ? (
             <div className="space-y-2 border-t border-[var(--border-subtle)] pt-3">
               <p className="type-caption text-[var(--text-muted)]">

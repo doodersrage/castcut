@@ -58,6 +58,10 @@ describe('inferAthleticSport', () => {
 
   it('infers running from a marathon hint', () => {
     assert.equal(inferAthleticSport('a marathon runner pushing through mile 20'), 'running');
+    assert.equal(inferAthleticSport('exploding off the starting block into a streamline dive'), 'swimming');
+    assert.equal(inferAthleticSport('spiking the ball at the volleyball net'), 'volleyball');
+    assert.equal(inferAthleticSport('working the heavy bag in the boxing gym'), 'boxing');
+    assert.equal(inferAthleticSport('paddling out hard over a whitewater set'), 'surfing');
   });
 
   it('infers triathlon before cycling when both hints appear', () => {

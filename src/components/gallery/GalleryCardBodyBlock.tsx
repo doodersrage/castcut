@@ -27,6 +27,7 @@ export type GalleryCardBodyBlockProps = {
   onUpscale: (qualityProfile: 'final' | 'max', options?: { force?: boolean }) => void;
   onRefine: () => void;
   onSoftSecondPass?: () => void;
+  onSkinRefine?: () => void;
   onFaceDetail?: () => void;
   onAnatomyRepair?: () => void;
   onMoireClean?: (qualityProfile: 'final' | 'max', options?: { force?: boolean }) => void;
@@ -36,6 +37,7 @@ export type GalleryCardBodyBlockProps = {
   showForceUpscaleMax?: boolean;
   showRefineAction?: boolean;
   showSoftSecondPassAction?: boolean;
+  showSkinRefineAction?: boolean;
   showFaceDetailAction?: boolean;
   showAnatomyRepairAction?: boolean;
   showMoireCleanActions?: boolean;
@@ -93,6 +95,7 @@ export default function GalleryCardBodyBlock({
   onUpscale,
   onRefine,
   onSoftSecondPass,
+  onSkinRefine,
   onFaceDetail,
   onAnatomyRepair,
   onMoireClean,
@@ -102,6 +105,7 @@ export default function GalleryCardBodyBlock({
   showForceUpscaleMax = false,
   showRefineAction = true,
   showSoftSecondPassAction = true,
+  showSkinRefineAction = true,
   showFaceDetailAction = false,
   showAnatomyRepairAction = false,
   showMoireCleanActions = true,
@@ -434,6 +438,7 @@ export default function GalleryCardBodyBlock({
           onUpscale={onUpscale}
           onRefine={onRefine}
           onSoftSecondPass={onSoftSecondPass}
+          onSkinRefine={onSkinRefine}
           onFaceDetail={onFaceDetail}
           onAnatomyRepair={onAnatomyRepair}
           onMoireClean={onMoireClean}
@@ -443,6 +448,7 @@ export default function GalleryCardBodyBlock({
           showForceUpscaleMax={showForceUpscaleMax}
           showRefineAction={showRefineAction}
           showSoftSecondPassAction={showSoftSecondPassAction}
+          showSkinRefineAction={showSkinRefineAction}
           showFaceDetailAction={showFaceDetailAction}
           showAnatomyRepairAction={showAnatomyRepairAction}
           showMoireCleanActions={showMoireCleanActions}

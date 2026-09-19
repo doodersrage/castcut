@@ -24,6 +24,12 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 /** Skip cache→React reloads briefly after local edits so typing is not clobbered. */
 const LOCAL_EDIT_REFRESH_GUARD_MS = 500;
+/** Mood/mix chip flips must win disk races (HMR remount / soft-advance Day handoff). */
+const DAY_MOOD_FLUSH_KEYS = new Set(['dayMood', 'intimateMix']);
+
+function toolPersistNeedsSyncFlush(partial: Record<string, unknown>): boolean {
+  return Object.keys(partial).some(key => DAY_MOOD_FLUSH_KEYS.has(key));
+}
 
 function applyToolContext(shared: SharedToolSettings, toolKey: string): SharedToolSettings {
   const memory = loadToolContext(toolKey);
@@ -158,6 +164,14 @@ export function useCachedSettings<K extends keyof ToolSettingsCache>(
         ...(pendingPersistToolRef.current ?? {}),
         ...partial,
       };
+      // dayMood / intimateMix: flush now so HMR remount / Outfit→Day soft-advance
+      // hydrate the chip the user just clicked — not a stale Vacation board on disk.
+      if (toolPersistNeedsSyncFlush(partial as Record<string, unknown>)) {
+        toolPersistScheduledRef.current = false;
+        flushPendingToolPersist();
+        suppressExternalRefreshUntilRef.current = Date.now() + LOCAL_EDIT_REFRESH_GUARD_MS * 4;
+        return;
+      }
       if (toolPersistScheduledRef.current) {
         return;
       }

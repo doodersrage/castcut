@@ -20,6 +20,7 @@ describe("model denoise defaults", () => {
     assert.equal(isEditCapableModel("qwen-image-edit-2511"), true);
     assert.equal(isEditCapableModel("qwen-rapid-aio-sfw"), false);
     assert.equal(isEditCapableModel("qwen-rapid-aio-edit"), true);
+    assert.equal(isEditCapableModel("qwen-rapid-aio-edit-nsfw"), true);
     assert.equal(isEditCapableModel("flux-inpaint"), true);
     assert.equal(isEditCapableModel("qwen-image-2512"), false);
     assert.equal(isEditCapableModel("boogu-image-edit"), true);
@@ -113,6 +114,7 @@ describe("model denoise defaults", () => {
   it("detects qwen edit models for wired scaffolds", () => {
     assert.equal(isQwenEditModel("qwen-image-edit-2511"), true);
     assert.equal(isQwenEditModel("qwen-rapid-aio-edit"), true);
+    assert.equal(isQwenEditModel("qwen-rapid-aio-edit-nsfw"), true);
     assert.equal(isQwenEditModel("qwen-rapid-aio-sfw"), false);
     assert.equal(isQwenEditModel("qwen-image-2512"), false);
   });
@@ -142,6 +144,7 @@ describe("model denoise defaults", () => {
   it("treats edit, Klein, Z-Image, and Boogu Edit as img2img-capable", () => {
     assert.equal(isImg2imgCapableModel("qwen-image-edit-2511-lightning-8"), true);
     assert.equal(isImg2imgCapableModel("qwen-rapid-aio-edit"), true);
+    assert.equal(isImg2imgCapableModel("qwen-rapid-aio-edit-nsfw"), true);
     assert.equal(isImg2imgCapableModel("flux-2-klein"), true);
     assert.equal(isImg2imgCapableModel("z-image-turbo"), true);
     assert.equal(isImg2imgCapableModel("boogu-image-edit"), true);

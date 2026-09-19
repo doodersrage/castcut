@@ -213,14 +213,19 @@ const QWEN_2512_SAMPLER: Pick<ModelSamplerDefaults, 'samplerName' | 'scheduler'>
   scheduler: 'beta',
 };
 
+/**
+ * Phr00t Qwen Rapid AIO KSampler (baked Lightning/Hyper LoRAs in the AIO file):
+ * CFG must stay 1.0; steps 4–8; euler or euler_ancestral; simple or sgm_uniform.
+ * Higher CFG over-burns; standard 20+ step / CFG 3.5–7 settings cause artifacts.
+ */
 const QWEN_RAPID_AIO_EDIT_SAMPLER: Pick<ModelSamplerDefaults, 'samplerName' | 'scheduler'> = {
   samplerName: 'euler_ancestral',
-  scheduler: 'beta',
+  scheduler: 'simple',
 };
 
 const QWEN_RAPID_AIO_SFW_SAMPLER: Pick<ModelSamplerDefaults, 'samplerName' | 'scheduler'> = {
   samplerName: 'euler',
-  scheduler: 'beta',
+  scheduler: 'simple',
 };
 
 const QWEN_RAPID_AIO_NSFW_SAMPLER: Pick<ModelSamplerDefaults, 'samplerName' | 'scheduler'> = {
@@ -231,16 +236,16 @@ const QWEN_RAPID_AIO_NSFW_SAMPLER: Pick<ModelSamplerDefaults, 'samplerName' | 's
 function rapidAioPresets(
   sampler: Pick<ModelSamplerDefaults, 'samplerName' | 'scheduler'>
 ): Record<ModelSamplerPresetTier, ModelSamplerDefaults> {
-  // Max adds two steps + sgm_uniform — sampling-side anti-moiré before blur polish.
+  // Phr00t: 4 steps default speed; up to 8 for finer detail/quality. Never leave CFG 1.
   return {
     base: { steps: 4, cfg: 1, ...sampler },
     optimized: { steps: 6, cfg: 1, ...sampler },
     maxCompatible: { steps: 8, cfg: 1, ...sampler },
     max: {
-      steps: 10,
+      steps: 8,
       cfg: 1,
       samplerName: sampler.samplerName,
-      scheduler: 'sgm_uniform',
+      scheduler: sampler.scheduler,
     },
   };
 }
@@ -389,6 +394,8 @@ const MODEL_SAMPLER_PRESETS: ModelSamplerPresetMap = {
     ...QWEN_LIGHTNING_SAMPLER,
   }),
   'qwen-rapid-aio-edit': rapidAioPresets(QWEN_RAPID_AIO_EDIT_SAMPLER),
+  // Edit NSFW: same euler_a + simple as SFW Edit (Phr00t community baseline).
+  'qwen-rapid-aio-edit-nsfw': rapidAioPresets(QWEN_RAPID_AIO_EDIT_SAMPLER),
   'qwen-rapid-aio-sfw': rapidAioPresets(QWEN_RAPID_AIO_SFW_SAMPLER),
   'qwen-rapid-aio-nsfw': rapidAioPresets(QWEN_RAPID_AIO_NSFW_SAMPLER),
   'qwen-image-2.0': {
@@ -555,8 +562,8 @@ const RAPID_AIO_TIER_ORDER: ModelSamplerPresetTier[] = [
 ];
 
 /**
- * Prefer an exact Rapid step-count match over the caller tier so Max (10) /
- * maxCompatible (8) survive inject/server paths that still pass "base".
+ * Prefer an exact Rapid step-count match over the caller tier so Max (8) /
+ * optimized (6) survive inject/server paths that still pass "base".
  */
 function resolveRapidAioForceTier(
   model: string,
@@ -587,7 +594,7 @@ function resolveRapidAioForceTier(
 /**
  * Rapid AIO is CFG-1 distilled (Lightning baked in). Force sampler defaults so
  * Advanced/stale CFG>1 cannot plasticize output — same idea as Lightning.
- * Never downgrades a higher Rapid tier already present in params (e.g. Max 10).
+ * Never downgrades a higher Rapid tier already present in params (e.g. Max 8).
  */
 export function ensureRapidAioSamplerParams(
   params: WorkflowParamValues,

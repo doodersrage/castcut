@@ -18,6 +18,7 @@ import {
   subscribeCharacters,
   type CharacterRecord,
 } from '@/lib/character-os';
+import { castRosterReadinessLine } from '@/lib/cast-home-status';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
 import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
 import {
@@ -164,6 +165,12 @@ export default function CharacterCastRoster() {
               const trigger = loraTriggerFromCharacter(character);
               const detailsOpen = detailsId === character.id;
               const plateUrl = rosterPlateUrl(character);
+              const readiness = castRosterReadinessLine({
+                lookCount: looks.length,
+                hasPlate: Boolean(plateUrl),
+                trigger,
+                loraCount: character.loraLibraryIds?.length ?? 0,
+              });
               return (
                 <li key={character.id} className="ui-card space-y-3 p-[var(--card-padding)]">
                   <div className="flex gap-3">
@@ -179,15 +186,27 @@ export default function CharacterCastRoster() {
                           className="h-full w-full object-cover object-top"
                         />
                       </div>
-                    ) : null}
+                    ) : (
+                      <div
+                        className="flex h-20 w-16 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-dashed border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-1 text-center"
+                        data-testid={`cast-roster-no-plate-${character.id}`}
+                      >
+                        <span className="type-caption text-[var(--tint-warning-text,var(--text-muted))]">
+                          No plate
+                        </span>
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="type-heading">{character.name}</p>
-                      <p className="type-caption text-[var(--text-muted)]">
-                        {looks.length} look{looks.length === 1 ? '' : 's'}
-                        {trigger ? ` · ${trigger}` : ''}
-                        {character.loraLibraryIds?.length
-                          ? ` · ${character.loraLibraryIds.length} LoRA`
-                          : ''}
+                      <p
+                        className={
+                          readiness.noPlate
+                            ? 'type-caption text-[var(--tint-warning-text,var(--text-muted))]'
+                            : 'type-caption text-[var(--text-muted)]'
+                        }
+                        data-testid={`cast-roster-readiness-${character.id}`}
+                      >
+                        {readiness.line}
                       </p>
                       {character.descriptor && !detailsOpen ? (
                         <p className="type-caption line-clamp-2">{character.descriptor}</p>

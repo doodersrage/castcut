@@ -12,6 +12,7 @@ export type FittingActionRowProps = {
   continueDayHref: string | null;
   dayPlannerHref: string;
   queueBlocked: boolean;
+  queueBlockReason?: string | null;
   swipeDeckLength: number;
   busy: boolean;
   character: CharacterRecord | undefined;
@@ -42,6 +43,7 @@ export default function FittingActionRow({
   continueDayHref,
   dayPlannerHref,
   queueBlocked,
+  queueBlockReason = null,
   swipeDeckLength,
   busy,
   character,
@@ -60,114 +62,129 @@ export default function FittingActionRow({
   );
   const demoteQueue = compareActive || softAdvanceActive || Boolean(continueDayHref);
   return (
-    <ToolActionRow>
-      {continueDayHref && !softAdvanceActive ? (
-        <ButtonLink
-          href={continueDayHref}
+    <div className="space-y-2">
+      <ToolActionRow>
+        {continueDayHref && !softAdvanceActive ? (
+          <ButtonLink
+            href={continueDayHref}
+            size="sm"
+            variant="primary"
+            data-testid="fitting-continue-day"
+          >
+            Continue to Day
+          </ButtonLink>
+        ) : null}
+        <Button
           size="sm"
-          variant="primary"
-          data-testid="fitting-continue-day"
+          variant={demoteQueue ? 'secondary' : 'primary'}
+          disabled={queueBlocked}
+          title={queueBlockReason || undefined}
+          data-testid="fitting-queue-try-on"
+          onClick={onQueueTryOn}
         >
-          Continue to Day
-        </ButtonLink>
-      ) : null}
-      <Button
-        size="sm"
-        variant={demoteQueue ? 'secondary' : 'primary'}
-        disabled={queueBlocked}
-        onClick={onQueueTryOn}
-      >
-        {busy ? 'Queueing…' : 'Queue try-on'}
-      </Button>
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={queueBlocked || swipeDeckLength < 2}
-        onClick={onSkipKit}
-      >
-        Skip kit
-      </Button>
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={queueBlocked || swipeDeckLength < 2}
-        onClick={onQueueTryOnAndSwipe}
-      >
-        Queue & next
-      </Button>
-      {character && !continueDayHref ? (
-        <ButtonLink
-          href={dayPlannerHref}
+          {busy ? 'Queueing…' : 'Queue try-on'}
+        </Button>
+        <Button
           size="sm"
           variant="secondary"
-          data-testid="fitting-skip-day"
-          onClick={() => {
-            bumpPlayCampaignStep({ characterId: character.id, stepId: 'day' });
-          }}
+          disabled={swipeDeckLength < 2 || busy}
+          title="Advance to the next wardrobe kit (does not dismiss try-ons)"
+          data-testid="fitting-skip-kit"
+          onClick={onSkipKit}
         >
-          Skip outfit · Day
-        </ButtonLink>
-      ) : null}
-      <details className="w-full">
-        <summary className="type-caption cursor-pointer text-[var(--text-muted)]">More</summary>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Button size="sm" variant="ghost" disabled={busy} onClick={onSaveKitToCast}>
-            Save kit to Cast
-          </Button>
-          {!storyLocked ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={onGoRoleplay}
-              data-testid="fitting-continue-story"
-            >
-              Continue in Story
+          Skip kit
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={queueBlocked || swipeDeckLength < 2}
+          title={queueBlockReason || 'Queue this kit, then advance to the next'}
+          onClick={onQueueTryOnAndSwipe}
+        >
+          Queue & next
+        </Button>
+        {character && !continueDayHref ? (
+          <ButtonLink
+            href={dayPlannerHref}
+            size="sm"
+            variant="secondary"
+            data-testid="fitting-skip-day"
+            onClick={() => {
+              bumpPlayCampaignStep({ characterId: character.id, stepId: 'day' });
+            }}
+          >
+            Skip outfit · Day
+          </ButtonLink>
+        ) : null}
+        <details className="w-full">
+          <summary className="type-caption cursor-pointer text-[var(--text-muted)]">More</summary>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button size="sm" variant="ghost" disabled={busy} onClick={onSaveKitToCast}>
+              Save kit to Cast
             </Button>
-          ) : (
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled
-              data-testid="fitting-continue-story-locked"
-              title="Cut your first Day film first"
-            >
-              Story · after first film
-            </Button>
-          )}
-          {character ? (
-            <>
-              {!continueDayHref ? (
+            {!storyLocked ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy}
+                onClick={onGoRoleplay}
+                data-testid="fitting-continue-story"
+              >
+                Continue in Story
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled
+                data-testid="fitting-continue-story-locked"
+                title="Cut your first Day film first"
+              >
+                Story · after first film
+              </Button>
+            )}
+            {character ? (
+              <>
+                {!continueDayHref ? (
+                  <ButtonLink
+                    href={dayPlannerHref}
+                    size="sm"
+                    variant="ghost"
+                    data-testid="fitting-plan-day"
+                    onClick={() => {
+                      bumpPlayCampaignStep({ characterId: character.id, stepId: 'day' });
+                    }}
+                  >
+                    Open Day
+                  </ButtonLink>
+                ) : null}
                 <ButtonLink
-                  href={dayPlannerHref}
+                  href={`/moodboard?character=${encodeURIComponent(character.id)}`}
                   size="sm"
                   variant="ghost"
-                  data-testid="fitting-plan-day"
-                  onClick={() => {
-                    bumpPlayCampaignStep({ characterId: character.id, stepId: 'day' });
-                  }}
                 >
-                  Open Day
+                  Back to Look
                 </ButtonLink>
-              ) : null}
-              <ButtonLink
-                href={`/moodboard?character=${encodeURIComponent(character.id)}`}
-                size="sm"
-                variant="ghost"
-              >
-                Back to Look
-              </ButtonLink>
-              <ButtonLink
-                href={`/gallery?character=${encodeURIComponent(character.id)}`}
-                size="sm"
-                variant="ghost"
-              >
-                Open in Gallery
-              </ButtonLink>
-            </>
-          ) : null}
-        </div>
-      </details>
-    </ToolActionRow>
+                <ButtonLink
+                  href={`/gallery?character=${encodeURIComponent(character.id)}`}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Open in Gallery
+                </ButtonLink>
+              </>
+            ) : null}
+          </div>
+        </details>
+      </ToolActionRow>
+      {queueBlockReason ? (
+        <p
+          className="type-caption text-[var(--text-muted)]"
+          data-testid="fitting-queue-block-reason"
+        >
+          {queueBlockReason}
+        </p>
+      ) : null}
+    </div>
   );
 }

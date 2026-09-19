@@ -1023,6 +1023,24 @@ html[data-theme='light'] .ui-media-card:hover {
   box-shadow: none;
 }
 
+.play-engine-toggle-compact {
+  gap: 0.45rem;
+  min-height: 2.5rem;
+  padding: 0.35rem 0.7rem 0.35rem 0.45rem;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent),
+    var(--shadow-card);
+}
+
+.play-engine-toggle-compact .play-engine-toggle-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.play-engine-toggle-compact .play-engine-toggle-label {
+  font-size: 0.8125rem;
+}
+
 .play-engine-toggle-icon {
   display: inline-flex;
   align-items: center;
@@ -1075,6 +1093,19 @@ html[data-theme='light'] .ui-media-card:hover {
   z-index: 40;
 }
 
+/** Fixed dock — reachable without scrolling back to the tool header. */
+.play-engine-popover-float {
+  position: fixed;
+  z-index: 45;
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
+  bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* Clear Play film bottom tabs (and similar bottom chrome). */
+html[data-workspace='play'] .play-engine-popover-float {
+  bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+}
+
 .play-engine-popover {
   position: absolute;
   top: calc(100% + 0.5rem);
@@ -1089,6 +1120,16 @@ html[data-theme='light'] .ui-media-card:hover {
   border-radius: var(--radius-lg);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-card-hover);
+}
+
+/* Floating dock opens upward so the panel stays on-screen. */
+.play-engine-popover-float .play-engine-popover {
+  top: auto;
+  bottom: calc(100% + 0.5rem);
+  max-height: min(
+    70vh,
+    calc(100vh - 7.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
+  );
 }
 
 .play-engine-popover-header {

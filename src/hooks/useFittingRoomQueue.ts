@@ -12,6 +12,7 @@ export function useFittingRoomQueue(input: FittingRoomQueueInput) {
   return {
     busy: core.busy,
     compareTryOns: core.compareTryOns,
+    setCompareTryOns: core.setCompareTryOns,
     previewStatus: part2.previewStatus,
     queueTryOn: core.queueTryOn,
     queueKitPreview: part2.queueKitPreview,

@@ -38,6 +38,8 @@ export type ScenePromptResultPanelProps = {
   includeEditPrompt?: boolean;
   includeVariationSeed?: boolean;
   includeStickyBar?: boolean;
+  /** When false, hide the Comfy Queue button (Outfit uses the action-row Queue instead). */
+  showQueueButton?: boolean;
   extraMeta?: string;
   compactActions?: boolean;
   preDiagnostics?: PromptResultActions['preDiagnostics'];
@@ -67,6 +69,7 @@ export default function ScenePromptResultPanel({
   includeEditPrompt = true,
   includeVariationSeed = true,
   includeStickyBar = true,
+  showQueueButton = true,
   extraMeta,
   compactActions,
   preDiagnostics,
@@ -77,7 +80,9 @@ export default function ScenePromptResultPanel({
   reformatTargetLabel,
   resultExtras,
 }: ScenePromptResultPanelProps) {
-  const queue = onSendComfyUi ?? (() => void actions.sendComfyUi(output));
+  const queue = showQueueButton
+    ? (onSendComfyUi ?? (() => void actions.sendComfyUi(output)))
+    : undefined;
 
   return (
     <>
@@ -151,7 +156,7 @@ export default function ScenePromptResultPanel({
         pairCopied={actions.pairCopied}
         {...(resultExtras ?? {})}
       />
-      {includeStickyBar ? (
+      {includeStickyBar && queue ? (
         <MobileStickyQueueBar
           disabled={!output.trim() || Boolean(actions.comfyUiStatus?.startsWith('Queueing'))}
           label={queueLabel}

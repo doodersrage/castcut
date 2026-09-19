@@ -11,6 +11,9 @@ import {
   resolveModelForQueueTool,
   resolvePreferredImg2imgModel,
   resolvePreferredLookModel,
+  resolveRapidAioEditModel,
+  resolveDayAdultPlateQueueModel,
+  resolveAdultNudePlateQueueModel,
   resolveTxt2iCounterpartForGenerate,
   stripEditInstructionLead,
   toolIgnoresSystemWorkflowSnap,
@@ -25,6 +28,26 @@ describe("queue-tool-model", () => {
     assert.equal(
       resolveModelForQueueTool("qwen-image-edit-2511-lightning-4", "generate"),
       "qwen-image-edit-2511-lightning-4",
+    );
+  });
+
+  it("snaps Qwen 2512 T2I to Edit on Day/Outfit image-prompt queues", () => {
+    assert.equal(
+      resolveModelForQueueTool("qwen-image-2512", "image-prompt"),
+      "qwen-image-edit-2511",
+    );
+    assert.equal(
+      resolveModelForQueueTool("qwen-image-2512-lightning-8", "image-prompt"),
+      "qwen-image-edit-2511-lightning-8",
+    );
+    assert.equal(
+      resolveModelForQueueTool("qwen-image-edit-2511-lightning-8", "image-prompt"),
+      "qwen-image-edit-2511-lightning-8",
+    );
+    // Generate must not remap Edit → 2512 (breaks Lightning LoRA stacks).
+    assert.equal(
+      resolveModelForQueueTool("qwen-image-edit-2511-lightning-8", "generate"),
+      "qwen-image-edit-2511-lightning-8",
     );
   });
 
@@ -247,6 +270,10 @@ describe("queue-tool-model", () => {
     );
     assert.equal(
       resolveEditCounterpartForImg2img("qwen-rapid-aio-nsfw"),
+      "qwen-rapid-aio-edit-nsfw",
+    );
+    assert.equal(
+      resolveEditCounterpartForImg2img("qwen-rapid-aio-sfw"),
       "qwen-rapid-aio-edit",
     );
     assert.equal(
@@ -274,6 +301,13 @@ describe("queue-tool-model", () => {
     assert.equal(
       resolvePreferredImg2imgModel({
         current: "qwen-rapid-aio-nsfw",
+        allowed: ["qwen-image-edit-2511", "qwen-rapid-aio-edit", "qwen-rapid-aio-edit-nsfw"],
+      }),
+      "qwen-rapid-aio-edit-nsfw",
+    );
+    assert.equal(
+      resolvePreferredImg2imgModel({
+        current: "qwen-rapid-aio-nsfw",
         allowed: ["qwen-image-edit-2511", "qwen-rapid-aio-edit"],
       }),
       "qwen-rapid-aio-edit",
@@ -291,6 +325,48 @@ describe("queue-tool-model", () => {
     assert.equal(
       resolveModelForQueueTool("qwen-rapid-aio-nsfw", "generate"),
       "qwen-rapid-aio-nsfw",
+    );
+  });
+
+  it("forces Rapid AIO Edit NSFW on adult nude Day plate queues", () => {
+    assert.equal(
+      resolveAdultNudePlateQueueModel("qwen-rapid-aio-sfw", { adultNude: true }),
+      "qwen-rapid-aio-edit-nsfw",
+    );
+    assert.equal(
+      resolveAdultNudePlateQueueModel("qwen-rapid-aio-edit", { adultNude: true }),
+      "qwen-rapid-aio-edit-nsfw",
+    );
+    assert.equal(
+      resolveAdultNudePlateQueueModel("qwen-rapid-aio-nsfw", { adultNude: true }),
+      "qwen-rapid-aio-edit-nsfw",
+    );
+    // Alias keeps Day call sites working.
+    assert.equal(
+      resolveDayAdultPlateQueueModel("qwen-rapid-aio-edit", { adultNude: true }),
+      "qwen-rapid-aio-edit-nsfw",
+    );
+    // Non-adult / non-Rapid leave the normal Edit snap alone.
+    assert.equal(
+      resolveAdultNudePlateQueueModel("qwen-rapid-aio-sfw", { adultNude: false }),
+      "qwen-rapid-aio-edit",
+    );
+    // Leftover Edit NSFW must not stick on Suggestive / Vacation / Everyday.
+    assert.equal(
+      resolveAdultNudePlateQueueModel("qwen-rapid-aio-edit-nsfw", { adultNude: false }),
+      "qwen-rapid-aio-edit",
+    );
+    assert.equal(
+      resolveAdultNudePlateQueueModel("qwen-rapid-aio-nsfw", { adultNude: false }),
+      "qwen-rapid-aio-edit",
+    );
+    assert.equal(
+      resolveAdultNudePlateQueueModel("qwen-image-2512-lightning-8", { adultNude: true }),
+      "qwen-image-edit-2511-lightning-8",
+    );
+    assert.equal(
+      resolveRapidAioEditModel({ nsfw: true, current: "qwen-rapid-aio-edit" }),
+      "qwen-rapid-aio-edit-nsfw",
     );
   });
 

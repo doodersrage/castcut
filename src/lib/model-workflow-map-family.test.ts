@@ -12,7 +12,11 @@ describe("modelsInSameFamily", () => {
 
   it("returns Rapid AIO siblings", () => {
     const family = modelsInSameFamily("qwen-rapid-aio-nsfw");
-    assert.equal(family.length, 3);
+    assert.equal(family.length, 4);
+    assert.ok(family.includes("qwen-rapid-aio-edit"));
+    assert.ok(family.includes("qwen-rapid-aio-edit-nsfw"));
+    assert.ok(family.includes("qwen-rapid-aio-sfw"));
+    assert.ok(family.includes("qwen-rapid-aio-nsfw"));
   });
 
   it("returns WAN Video siblings including Rapid AIO and Lightning", () => {

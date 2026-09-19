@@ -1,9 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
+import type { ImageLightboxState, ImageLightboxSlideChrome } from '@/components/ui/ImageLightbox';
 import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
 import { buildFittingCompareLightboxState, type FittingCompareTryOn } from '@/lib/fitting-room';
 
@@ -17,7 +17,10 @@ export type FittingCompareSectionProps = {
   busy: boolean;
   onKeepTryOn: (tryOn: FittingCompareTryOn) => string | null;
   onSoftAdvance?: (href: string) => void;
-  onSkipKit: () => void;
+  /** Remove this try-on from compare without advancing the kit deck. */
+  onDismissTryOn: (tryOn: FittingCompareTryOn) => void;
+  /** Requeue this kit / BYO from the card or lightbox. */
+  onRequeueTryOn: (tryOn: FittingCompareTryOn) => void;
 };
 
 export default function FittingCompareSection({
@@ -25,7 +28,8 @@ export default function FittingCompareSection({
   busy,
   onKeepTryOn,
   onSoftAdvance,
-  onSkipKit,
+  onDismissTryOn,
+  onRequeueTryOn,
 }: FittingCompareSectionProps) {
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
 
@@ -46,6 +50,53 @@ export default function FittingCompareSection({
     [compareTryOns]
   );
 
+  const activeTryOn = useMemo(() => {
+    if (!lightbox || compareTryOns.length === 0) {
+      return null;
+    }
+    const title = lightbox.titles?.[lightbox.index] ?? lightbox.title;
+    const url = lightbox.images[lightbox.index];
+    return (
+      compareTryOns.find(tryOn => tryOn.imageUrl === url) ||
+      compareTryOns.find(tryOn => (tryOn.wardrobeLabel || tryOn.wardrobeId) === title) ||
+      compareTryOns[lightbox.index] ||
+      null
+    );
+  }, [compareTryOns, lightbox]);
+
+  const slideChrome = useMemo((): ImageLightboxSlideChrome | null => {
+    if (!activeTryOn) {
+      return null;
+    }
+    return {
+      showKeep: true,
+      showPass: true,
+      showRequeue: true,
+      showSeedVariation: false,
+      showImprove: false,
+      showCompose: false,
+      showInpaint: false,
+      showUseStack: false,
+      showUsePromptStack: false,
+      showUseFace: false,
+      onKeep: () => {
+        const href = onKeepTryOn(activeTryOn);
+        setLightbox(null);
+        if (href) {
+          onSoftAdvance?.(href);
+        }
+      },
+      onPass: () => {
+        onDismissTryOn(activeTryOn);
+        setLightbox(null);
+      },
+      onRequeue: () => {
+        void onRequeueTryOn(activeTryOn);
+        setLightbox(null);
+      },
+    };
+  }, [activeTryOn, onDismissTryOn, onKeepTryOn, onRequeueTryOn, onSoftAdvance]);
+
   if (compareTryOns.length === 0) {
     return null;
   }
@@ -54,7 +105,7 @@ export default function FittingCompareSection({
     <>
       <ToolSection
         title="Compare try-ons"
-        description="Tap a thumb for full size, then Keep a winner or skip to the next kit."
+        description="Tap a thumb for full size — Keep, Pass, or requeue from the lightbox."
         data-testid="fitting-compare"
       >
         <CollapsibleSection
@@ -101,19 +152,40 @@ export default function FittingCompareSection({
                   >
                     Keep
                   </Button>
-                  <Button size="sm" variant="ghost" disabled={busy} onClick={onSkipKit}>
-                    Skip
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
+                    title="Dismiss this try-on (stay on the current kit)"
+                    data-testid="fitting-pass-try-on"
+                    onClick={() => onDismissTryOn(tryOn)}
+                  >
+                    Pass
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
+                    title="Queue this kit again"
+                    data-testid="fitting-requeue-try-on"
+                    onClick={() => void onRequeueTryOn(tryOn)}
+                  >
+                    ↻
                   </Button>
                 </div>
               </figure>
             ))}
           </div>
+          <p className="type-caption mt-2 text-[var(--text-muted)]">
+            Pass dismisses a try-on. Skip kit (below) advances the wardrobe deck.
+          </p>
         </CollapsibleSection>
       </ToolSection>
 
       <ImageLightbox
         state={lightbox}
         onClose={() => setLightbox(null)}
+        slideChrome={slideChrome}
         onIndexChange={index =>
           setLightbox(previous =>
             previous

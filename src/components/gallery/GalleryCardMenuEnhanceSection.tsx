@@ -5,6 +5,7 @@ export function GalleryEnhanceSection({
   onUpscale,
   onRefine,
   onSoftSecondPass,
+  onSkinRefine,
   onFaceDetail,
   onMoireClean,
   showUpscaleActions = true,
@@ -13,6 +14,7 @@ export function GalleryEnhanceSection({
   showForceUpscaleMax = false,
   showRefineAction = true,
   showSoftSecondPassAction = true,
+  showSkinRefineAction = true,
   showFaceDetailAction = false,
   showMoireCleanActions = true,
   showMoireCleanFinal,
@@ -29,6 +31,7 @@ export function GalleryEnhanceSection({
   const shouldShowUpscaleMax = canUpscaleMax;
   const shouldShowForceUpscaleMax = showForceUpscaleMax;
   const shouldShowSoftSecondPass = onSoftSecondPass && showSoftSecondPassAction;
+  const shouldShowSkinRefine = onSkinRefine && showSkinRefineAction;
   const shouldShowRefine = showRefineAction;
   const shouldShowFaceDetail = onFaceDetail && showFaceDetailAction;
   const shouldShowMoireFinal = onMoireClean && canMoireFinal;
@@ -40,6 +43,7 @@ export function GalleryEnhanceSection({
     shouldShowUpscaleMax ||
     shouldShowForceUpscaleMax ||
     shouldShowSoftSecondPass ||
+    shouldShowSkinRefine ||
     shouldShowRefine ||
     shouldShowFaceDetail ||
     shouldShowMoireFinal ||
@@ -93,6 +97,15 @@ export function GalleryEnhanceSection({
           label="Soft second pass → gentler denoise"
           onClick={() => {
             onSoftSecondPass();
+            setMenuOpen(false);
+          }}
+        />
+      ) : null}
+      {shouldShowSkinRefine ? (
+        <GalleryMenuButton
+          label="Skin refine → natural texture (Edit/Klein)"
+          onClick={() => {
+            onSkinRefine();
             setMenuOpen(false);
           }}
         />

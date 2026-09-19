@@ -305,6 +305,7 @@ export function useMobilePlayToolOrchestrationCore() {
         wardrobeLabel: wardrobeFields.wardrobeLabel,
         garmentDescription: wardrobeFields.garmentDescription,
         hasGarmentReference: wardrobeFields.hasGarmentReference,
+        intimateMix: toolSettings.intimateMix,
       });
     },
     [
@@ -322,6 +323,7 @@ export function useMobilePlayToolOrchestrationCore() {
       toolSettings.customPersona,
       toolSettings.characterName,
       toolSettings.extraHints,
+      toolSettings.intimateMix,
       toolSettings.referenceIsolated,
       toolSettings.setting,
       toolSettings.story,

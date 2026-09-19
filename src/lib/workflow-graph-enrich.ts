@@ -268,6 +268,8 @@ function enrichSamplingPatchNodes(input: {
     if (patchClassType === MODEL_SAMPLING_FLUX_NODE_TYPE) {
       patchInputs.max_shift = input.tokens.fluxMaxShift;
       patchInputs.base_shift = input.tokens.fluxBaseShift;
+      patchInputs.width = input.tokens.width;
+      patchInputs.height = input.tokens.height;
     } else {
       patchInputs.shift = input.tokens.shift;
     }

@@ -3,7 +3,6 @@
  * TRAINER_URL / TRAINER_COMMAND remain the power-user escape hatch.
  */
 
-import path from 'node:path';
 import { clampTrainProgress } from './lora-train-job';
 
 export type LoraTrainTemplateId = 'kohya-sdxl' | 'kohya-sd15' | 'kohya-flux';
@@ -198,7 +197,8 @@ export function parseKohyaTrainProgress(line: string): number | null {
 
 /** Basename stem for kohya --output_name from a path or filename. */
 export function loraOutputStem(outputPath: string): string {
-  const base = path.basename(outputPath.trim() || 'lora');
+  const trimmed = outputPath.trim() || 'lora';
+  const base = trimmed.split(/[/\\]/).pop() || 'lora';
   return base.replace(/\.safetensors$/i, '') || 'lora';
 }
 

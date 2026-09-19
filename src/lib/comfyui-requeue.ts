@@ -660,6 +660,10 @@ export async function requeueRefineFromGalleryEntry(
   options?: {
     qualityProfile?: Extract<QueueQualityProfile, 'final' | 'max'>;
     mode?: GalleryRefineMode;
+    /** Soft skin-fix pass — locked pose + natural-skin prompt on {@link modelOverride}. */
+    skinPass?: boolean;
+    /** Queue refine on a different model than the parent still (skin-fix stacks). */
+    modelOverride?: string;
     onStatus?: (message: string) => void;
     force?: boolean;
   }
@@ -669,13 +673,23 @@ export async function requeueRefineFromGalleryEntry(
     return { ok: false, error: 'No gallery output image available to refine.' };
   }
 
-  const mode: GalleryRefineMode = options?.mode === 'soft' ? 'soft' : 'refine';
-  const softLabel = mode === 'soft' ? 'soft second pass' : 'low-denoise refine';
+  const skinPass = options?.skinPass === true;
+  const mode: GalleryRefineMode = skinPass || options?.mode === 'soft' ? 'soft' : 'refine';
+  const softLabel = skinPass
+    ? 'skin refine pass'
+    : mode === 'soft'
+      ? 'soft second pass'
+      : 'low-denoise refine';
   options?.onStatus?.(
-    mode === 'soft' ? 'Uploading gallery output for soft second pass…' : 'Uploading gallery output…'
+    skinPass
+      ? 'Uploading gallery output for skin refine…'
+      : mode === 'soft'
+        ? 'Uploading gallery output for soft second pass…'
+        : 'Uploading gallery output…'
   );
 
-  const model = (entry.model ?? 'qwen-image-2512') as ComfyImageModel;
+  const overrideModel = options?.modelOverride?.trim();
+  const model = (overrideModel || entry.model || 'qwen-image-2512') as ComfyImageModel;
   if (isQwenLightningModel(model)) {
     return {
       ok: false,
@@ -683,6 +697,13 @@ export async function requeueRefineFromGalleryEntry(
         mode === 'soft'
           ? 'Soft second pass is disabled for Lightning — requeue a new seed or use Final/Max Lanczos polish instead.'
           : 'Img2img refine is disabled for Lightning models — use Final/Max Lanczos polish (or requeue a new seed) instead.',
+    };
+  }
+  if (/^qwen-rapid-aio-(sfw|nsfw)$/i.test(String(model))) {
+    return {
+      ok: false,
+      error:
+        'Soft/skin refine needs an Edit or photoreal model — pick UltraReal, Klein, or Qwen Edit in Settings → Auto-improve → Gallery skin refine model.',
     };
   }
 
@@ -724,6 +745,7 @@ export async function requeueRefineFromGalleryEntry(
     prompt: entry.prompt,
     model,
     mode,
+    skinPass,
     queueParams: entry.queueParams,
   });
   const params = {
@@ -737,13 +759,19 @@ export async function requeueRefineFromGalleryEntry(
     ...refineParams,
   };
 
+  // Skin / Flux.1 soft refine: pin loaders, skip queue-optimize enrich (extra
+  // ModelSamplingFlux without width/height), and skip style LoRAs (UltraReal
+  // amplifier) so img2img stays a plain ae + DualCLIP pass.
+  const flux1Skin = skinPass || /^flux-ultrareal|^flux-dev|^flux-schnell$/i.test(String(model));
   const runtime: ComfyUiRuntimeConfig = {
     ...baseRuntime,
     workflowJson: JSON.stringify(workflow),
-    workflowQueueOptimize: true,
+    workflowQueueOptimize: flux1Skin ? false : true,
     workflowGraphEnrich: false,
     directWorkflowPatching: true,
+    syncWorkflowLoadersToModel: true,
     queueQualityProfile: profile,
+    ...(skinPass ? { loraLibrary: [] } : {}),
   };
 
   options?.onStatus?.(
@@ -752,10 +780,27 @@ export async function requeueRefineFromGalleryEntry(
       : `Queueing ${softLabel}…`
   );
 
-  const refineNegative = appendPortraitRefineNegative(entry.negativePrompt, entry.prompt);
+  const { PLAY_SKIN_REFINE_NEGATIVE, PLAY_SKIN_REFINE_POSITIVE } =
+    await import('./play-skin-refine');
+  const { applyTurboEditStrengthToPrompt } = await import('./turbo-edit-strength');
+  const { isQwenEditModel } = await import('./model-denoise-defaults');
+  let refinePrompt = skinPass
+    ? PLAY_SKIN_REFINE_POSITIVE
+    : entry.prompt.trim() || (mode === 'soft' ? 'soft-pass' : 'refine');
+  // Instruction-edit stays at denoise 1. Gentle wrap locks pose/hands/crotch —
+  // Strong ("keep facial likeness only") was morphing ambiguous pelvis regions.
+  if (skinPass && (isQwenEditModel(model) || /^flux-2-klein/i.test(String(model)))) {
+    refinePrompt = applyTurboEditStrengthToPrompt(refinePrompt, model, 'gentle');
+  }
+  const refineNegative = skinPass
+    ? (() => {
+        const base = entry.negativePrompt?.trim() ?? '';
+        return base ? `${base}, ${PLAY_SKIN_REFINE_NEGATIVE}` : PLAY_SKIN_REFINE_NEGATIVE;
+      })()
+    : appendPortraitRefineNegative(entry.negativePrompt, entry.prompt);
 
   const queued = await getEngineAdapter().postPrompt({
-    prompt: entry.prompt.trim() || (mode === 'soft' ? 'soft-pass' : 'refine'),
+    prompt: refinePrompt,
     negativePrompt: refineNegative,
     model,
     params,
@@ -774,10 +819,10 @@ export async function requeueRefineFromGalleryEntry(
 
   registerComfyGalleryJob({
     promptId: queued.promptId,
-    prompt: entry.prompt.trim() || (mode === 'soft' ? 'soft-pass' : 'refine'),
-    negativePrompt: entry.negativePrompt,
+    prompt: refinePrompt,
+    negativePrompt: refineNegative,
     tool: 'refine',
-    model: entry.model,
+    model,
     comfyUrl: queued.engineUrl ?? entry.comfyUrl ?? 'http://127.0.0.1:8188',
     clientId: queued.clientId,
     queueParams: params,
@@ -785,7 +830,7 @@ export async function requeueRefineFromGalleryEntry(
     sourceImageUrl: outputUrl,
     queueQualityProfile: profile,
     parentGalleryEntryId: entry.id,
-    derivedKind: mode === 'soft' ? 'soft-pass' : 'refine',
+    derivedKind: skinPass || mode === 'soft' ? 'soft-pass' : 'refine',
     ...inheritGallerySessionFields(entry),
   });
   void scheduleComfyGalleryPoll(queued.promptId, {
@@ -816,6 +861,28 @@ export function requeueSoftSecondPassFromGalleryEntry(
     ...options,
     mode: 'soft',
   });
+}
+
+/** Soft skin-fix pass on a different model (Play Day/Story plastic-skin cleanup). */
+export function requeueSkinRefineFromGalleryEntry(
+  entry: ComfyGalleryEntry,
+  options?: {
+    model?: string;
+    qualityProfile?: Extract<QueueQualityProfile, 'final' | 'max'>;
+    onStatus?: (message: string) => void;
+    force?: boolean;
+  }
+): Promise<RequeueComfyJobResult> {
+  return import('./play-skin-refine').then(({ resolveSkinRefineQueueModel }) =>
+    requeueRefineFromGalleryEntry(entry, {
+      qualityProfile: options?.qualityProfile,
+      onStatus: options?.onStatus,
+      force: options?.force,
+      skinPass: true,
+      modelOverride: resolveSkinRefineQueueModel(options?.model),
+      mode: 'soft',
+    })
+  );
 }
 
 /**

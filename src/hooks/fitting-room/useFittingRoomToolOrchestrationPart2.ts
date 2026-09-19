@@ -25,6 +25,7 @@ import { parseCharacterHints } from '@/lib/character-hints';
 import {
   activeLook,
   applyCharacterRecord,
+  applyCharacterRecordFresh,
   characterFromShared,
   getCharacter,
   upsertCharacter,
@@ -434,7 +435,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       const record = getCharacter(characterId);
       if (record) {
         try {
-          updateShared(applyCharacterRecord(record));
+          updateShared(applyCharacterRecordFresh(record));
         } catch (err) {
           scheduleAfterCommit(() =>
             setError(err instanceof Error ? err.message : 'Could not apply that character.')
@@ -636,6 +637,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
   const {
     busy,
     compareTryOns,
+    setCompareTryOns,
     previewStatus,
     queueTryOn,
     fillKitPreviews,
@@ -699,6 +701,32 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     setSaveStatus('Skipped to next kit.');
   }, [swipeKit]);
 
+  /** Pass this try-on — remove from compare; does not advance the kit deck. */
+  const dismissTryOn = useCallback(
+    (tryOn: { promptId: string }) => {
+      const id = tryOn.promptId.trim();
+      if (!id) {
+        return;
+      }
+      setCompareTryOns(current => current.filter(item => item.promptId !== id));
+      setSaveStatus('Passed this try-on.');
+    },
+    [setCompareTryOns]
+  );
+
+  /** Requeue the same kit (or current BYO) from a compare card / lightbox. */
+  const requeueTryOn = useCallback(
+    async (tryOn: { promptId: string; wardrobeId: string }) => {
+      const wardrobeId = tryOn.wardrobeId.trim();
+      if (wardrobeId && wardrobeId !== 'custom-garment') {
+        await queueTryOn({ wardrobeId });
+        return;
+      }
+      await queueTryOn();
+    },
+    [queueTryOn]
+  );
+
   const saveKitToCast = useCallback(() => {
     setSaveStatus(null);
     const wardrobeId = shared.lockedWardrobeId?.trim();
@@ -756,6 +784,8 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     selectKit,
     swipeKit,
     skipKit,
+    dismissTryOn,
+    requeueTryOn,
     saveKitToCast,
   };
 }

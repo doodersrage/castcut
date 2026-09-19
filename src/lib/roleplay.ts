@@ -3,8 +3,10 @@ import { lastCompletedRoleplayStillUrl } from './roleplay-gallery-takes';
 import {
   POSE_GUIDE_ACTION_LOCK,
   POSE_GUIDE_ARCHIVE_BENT_LOCK,
+  POSE_GUIDE_CABINET_DRAWER_LOCK,
   POSE_GUIDE_CHAIR_BENT_LOCK,
   POSE_GUIDE_DOGGY_LOCK,
+  POSE_GUIDE_DRAWER_AFTERGLOW_LOCK,
   POSE_GUIDE_EDIT_PROMPT_LINE,
   POSE_GUIDE_PIANO_ORAL_LOCK,
   POSE_GUIDE_WALL_CONTACT_LOCK,
@@ -16,6 +18,7 @@ import {
   isLegacyAdultMetaBlurb,
   intimateTextDefaultsToNude,
   intimateTextImpliesAct,
+  intimateTextImpliesCabinetDrawer,
   intimateTextImpliesSurfaceBent,
   reinforceIntimateStillPrompt,
 } from '@/lib/intimate-prompt-clarify';
@@ -271,6 +274,276 @@ export const ROLEPLAY_SETTING_PRESETS: Array<{ id: string; label: string; settin
     label: 'Office',
     setting: 'open-plan office corner desk with monitors and afternoon window light',
   },
+  {
+    id: 'bathroom',
+    label: 'Bathroom',
+    setting: 'steamy bathroom after a shower with fogged mirror and towel rail',
+  },
+  {
+    id: 'bedroom',
+    label: 'Bedroom',
+    setting: 'sunlit bedroom with rumpled sheets and morning light through sheer curtains',
+  },
+  {
+    id: 'living-room',
+    label: 'Living room',
+    setting: 'cozy living-room couch edge with warm lamp light and a low coffee table',
+  },
+  {
+    id: 'hallway',
+    label: 'Hallway',
+    setting: 'quiet apartment hallway with a single warm wall sconce',
+  },
+  {
+    id: 'laundry',
+    label: 'Laundry',
+    setting: 'basement laundry room with humming machines and folding table clutter',
+  },
+  {
+    id: 'garage',
+    label: 'Garage',
+    setting: 'residential garage with a half-open door and oil-stained concrete',
+  },
+  {
+    id: 'museum',
+    label: 'Museum',
+    setting: 'sunlit museum lobby with a large colorful mural, ticket desk, and skylight shadows',
+  },
+  {
+    id: 'gallery',
+    label: 'Art gallery',
+    setting: 'white-wall art gallery with spotlit canvases and polished concrete floors',
+  },
+  {
+    id: 'theater',
+    label: 'Theater lobby',
+    setting: 'velvet-curtained theater lobby with brass fixtures and soft house lights',
+  },
+  {
+    id: 'cinema',
+    label: 'Cinema',
+    setting: 'empty cinema aisle with glowing exit signs and silver screen glow',
+  },
+  {
+    id: 'hotel-lobby',
+    label: 'Hotel lobby',
+    setting: 'hotel lobby lounge with low music and polished marble floors',
+  },
+  {
+    id: 'hotel-room',
+    label: 'Hotel room',
+    setting: 'high-floor hotel room with city view windows and crisp white bedding',
+  },
+  {
+    id: 'wine-bar',
+    label: 'Wine bar',
+    setting: 'neighborhood wine bar booth with candlelight and low chatter',
+  },
+  {
+    id: 'cocktail-bar',
+    label: 'Cocktail bar',
+    setting: 'dim cocktail bar with mirrored back bar and amber bottle glow',
+  },
+  {
+    id: 'restaurant',
+    label: 'Restaurant',
+    setting: 'rain-damp sidewalk outside a lit restaurant window at dinner hour',
+  },
+  {
+    id: 'bakery',
+    label: 'Bakery',
+    setting: 'corner bakery with glass pastry cases and warm bread smell in the air',
+  },
+  {
+    id: 'grocery',
+    label: 'Grocery',
+    setting: 'grocery store produce aisle under cool fluorescent light',
+  },
+  {
+    id: 'convenience',
+    label: 'Convenience store',
+    setting: 'corner convenience store exterior under harsh sodium light',
+  },
+  {
+    id: 'pharmacy',
+    label: 'Pharmacy',
+    setting: 'bright pharmacy aisle with fluorescent lights and glass-front coolers',
+  },
+  {
+    id: 'salon',
+    label: 'Salon',
+    setting: 'hair salon chair facing a mirror wall with soft vanity bulbs',
+  },
+  {
+    id: 'yoga',
+    label: 'Yoga studio',
+    setting: 'yoga studio with mats rolled and east-facing windows',
+  },
+  {
+    id: 'pool',
+    label: 'Pool',
+    setting: 'outdoor hotel pool deck with loungers and shimmering blue water',
+  },
+  {
+    id: 'spa',
+    label: 'Spa',
+    setting: 'quiet spa lounge with stone floors, towels, and soft steam haze',
+  },
+  {
+    id: 'pier',
+    label: 'Pier',
+    setting: 'sunset pier railing with long shadows and cool wind off the water',
+  },
+  {
+    id: 'boardwalk',
+    label: 'Boardwalk',
+    setting: 'riverside boardwalk with bikes and midday glare on the water',
+  },
+  {
+    id: 'bridge',
+    label: 'Bridge',
+    setting: 'rain-slick bridge walkway with car headlights streaking past',
+  },
+  {
+    id: 'marina',
+    label: 'Marina',
+    setting: 'quiet marina dock with bobbing sailboats and gulls overhead',
+  },
+  {
+    id: 'lake',
+    label: 'Lakeside',
+    setting: 'still lakeside dock at blue hour with pine silhouettes across the water',
+  },
+  {
+    id: 'mountain',
+    label: 'Mountain trail',
+    setting: 'rocky mountain trail overlook with wind and distant ridgelines',
+  },
+  {
+    id: 'desert',
+    label: 'Desert',
+    setting: 'sun-bleached desert highway pull-off with heat shimmer and sparse scrub',
+  },
+  {
+    id: 'greenhouse',
+    label: 'Greenhouse',
+    setting: 'glass greenhouse aisle with humid air and hanging ferns',
+  },
+  {
+    id: 'garden',
+    label: 'Garden',
+    setting: 'walled courtyard garden with climbing vines and a stone bench',
+  },
+  {
+    id: 'campus',
+    label: 'Campus',
+    setting: 'college campus quad with brick buildings and autumn trees',
+  },
+  {
+    id: 'classroom',
+    label: 'Classroom',
+    setting: 'empty classroom with afternoon light across desks and a chalkboard',
+  },
+  {
+    id: 'studio-loft',
+    label: 'Studio loft',
+    setting: 'industrial loft studio with tall windows, exposed brick, and a worktable',
+  },
+  {
+    id: 'recording',
+    label: 'Recording booth',
+    setting: 'padded recording booth with a mic stand and soft LED meter glow',
+  },
+  {
+    id: 'photo-studio',
+    label: 'Photo studio',
+    setting: 'photo studio seamless backdrop with softbox light and cable clutter',
+  },
+  {
+    id: 'warehouse',
+    label: 'Warehouse',
+    setting: 'abandoned warehouse interior with dusty shafts of light through broken glass',
+  },
+  {
+    id: 'parking',
+    label: 'Parking garage',
+    setting: 'concrete parking garage level with fluorescent strips and painted columns',
+  },
+  {
+    id: 'elevator',
+    label: 'Elevator',
+    setting: 'mirrored elevator interior with brushed steel panels and soft overhead light',
+  },
+  {
+    id: 'airport',
+    label: 'Airport',
+    setting: 'airport departure lounge with floor-to-ceiling windows and taxiing planes',
+  },
+  {
+    id: 'bus-stop',
+    label: 'Bus stop',
+    setting: 'rainy bus stop shelter with a glowing timetable and wet pavement',
+  },
+  {
+    id: 'tram',
+    label: 'Tram',
+    setting: 'vintage tram car interior with wooden seats and city blur through windows',
+  },
+  {
+    id: 'ferry',
+    label: 'Ferry deck',
+    setting: 'open ferry deck railing with harbor wind and distant skyline',
+  },
+  {
+    id: 'arcade',
+    label: 'Arcade',
+    setting: 'neon arcade floor with blinking cabinets and carpet patterns',
+  },
+  {
+    id: 'bowling',
+    label: 'Bowling alley',
+    setting: 'bowling alley lane approach with glowing pins and scored overhead screens',
+  },
+  {
+    id: 'carnival',
+    label: 'Carnival',
+    setting: 'night carnival midway with string lights, rides, and popcorn carts',
+  },
+  {
+    id: 'stadium',
+    label: 'Stadium',
+    setting: 'empty stadium concourse with team colors and distant field lights',
+  },
+  {
+    id: 'church',
+    label: 'Chapel',
+    setting: 'quiet stone chapel aisle with stained glass light and wooden pews',
+  },
+  {
+    id: 'cemetery',
+    label: 'Cemetery',
+    setting: 'foggy cemetery path with iron gates and weathered headstones',
+  },
+  {
+    id: 'fire-escape',
+    label: 'Fire escape',
+    setting: 'metal fire escape landing overlooking a narrow brick alley',
+  },
+  {
+    id: 'penthouse',
+    label: 'Penthouse',
+    setting: 'glass-walled penthouse living room overlooking a glittering night skyline',
+  },
+  {
+    id: 'cabin',
+    label: 'Cabin',
+    setting: 'wood cabin interior with a stone fireplace and snow visible through the panes',
+  },
+  {
+    id: 'motel',
+    label: 'Motel',
+    setting: 'roadside motel room with patterned curtains and a buzzing neon vacancy sign outside',
+  },
 ];
 
 export function resolveRoleplaySetting(
@@ -420,14 +693,23 @@ export function formatRoleplayPoseGuideCue(input: {
 export function withRoleplayPoseGuidePrompt(
   prompt: string,
   enabled: boolean,
-  realismMode: RenderRealismMode = DEFAULT_RENDER_REALISM_MODE
+  realismMode: RenderRealismMode = DEFAULT_RENDER_REALISM_MODE,
+  model?: string | null
 ): string {
   const reinforced = reinforceIntimateStillPrompt(prompt);
-  const withPose = withPoseGuideEditPrompt(reinforced, enabled, realismMode);
+  const withPose = withPoseGuideEditPrompt(reinforced, enabled, realismMode, { model });
   if (!enabled || !withPose) {
     return withPose;
   }
-  const layout = parseIntimateLayout(reinforced);
+  // Prefer literary/compact beat text — lock boilerplate must not retarget layout.
+  const layout =
+    parseIntimateLayout(
+      /^(Behind|Doggy|Chair bent|Piano oral|Cabinet drawer|Drawer afterglow):|Rear wall press|Chaise lower:/i.test(
+        reinforced
+      )
+        ? reinforced
+        : prompt
+    ) ?? parseIntimateLayout(reinforced);
   // Lead with action lock so instruction-edit models don't preserve Image 1 standing pose.
   let next = withPose;
   if (layout && !withPose.startsWith(POSE_GUIDE_ACTION_LOCK.slice(0, 24))) {
@@ -458,6 +740,18 @@ export function withRoleplayPoseGuidePrompt(
     next = `${POSE_GUIDE_PIANO_ORAL_LOCK}\n${next}`;
   }
   if (
+    (layout === 'afterglow' || /^Drawer afterglow:/i.test(reinforced)) &&
+    /\bdrawer\b/i.test(reinforced) &&
+    !/Drawer afterglow: exactly TWO nude adults/i.test(next)
+  ) {
+    next = `${POSE_GUIDE_DRAWER_AFTERGLOW_LOCK}\n${next}`;
+  } else if (
+    layout === 'bent' &&
+    (intimateTextImpliesCabinetDrawer(reinforced) || /^Cabinet drawer:/i.test(reinforced)) &&
+    !/Cabinet drawer: exactly TWO nude adults/i.test(next)
+  ) {
+    next = `${POSE_GUIDE_CABINET_DRAWER_LOCK}\n${next}`;
+  } else if (
     layout === 'bent' &&
     /Chair bent:/i.test(reinforced) &&
     !/Chair bent: two adults standing|folded over chair/i.test(next)
@@ -472,7 +766,9 @@ export function withRoleplayPoseGuidePrompt(
     next = `${POSE_GUIDE_ARCHIVE_BENT_LOCK}\n${next}`;
   } else if (
     layout === 'bent' &&
-    !/Behind duo:|Archive bent:|Doggy duo:|gripping her hips only|Chair bent:|^Behind:|^Doggy:/im.test(
+    !intimateTextImpliesCabinetDrawer(reinforced) &&
+    !/^Cabinet drawer:/i.test(reinforced) &&
+    !/Behind duo:|Archive bent:|Cabinet drawer:|Doggy duo:|gripping her hips only|Chair bent:|^Behind:|^Doggy:/im.test(
       next
     )
   ) {
@@ -516,6 +812,12 @@ export function storyBeatOmitsGarmentPackshot(
 
 /** Cap IP-Adapter when Image 3 intimate layouts need body freedom (face stays). */
 export const STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP = 0.45;
+
+/**
+ * Soften face lock further on nude/sex beats that drop the garment packshot —
+ * high IP + lingerie-tinted reference invents beige bras over FULLY NUDE.
+ */
+export const STORY_ADULT_NUDE_IDENTITY_LOCK_CAP = 0.12;
 
 /**
  * Cap SNOFS / NSFW sex-LoRA strength on intimate + Image 3 stills so pose-guide
@@ -581,18 +883,27 @@ export function storyIntimateSnofsStrengthOverrides(options: {
 }
 
 /**
- * Soften face-lock strength on intimate + Image 3 stills so stance can change
- * without losing Cast likeness. Non-intimate / no-pose paths keep the base strength.
+ * Soften face-lock strength on intimate stills so stance can change without
+ * losing Cast likeness. Nude beats (omit garment) get a harder soft-cap even
+ * without Image 3 — lingerie-tinted refs otherwise win over FULLY NUDE.
  */
 export function storyIdentityLockStrengthForBeat(
   base: number | null | undefined,
   options: {
     beat?: { title?: string; blurb?: string; prompt?: string } | null;
     hasPoseGuide?: boolean;
+    omitGarment?: boolean;
   }
 ): number | undefined {
   const strength =
     typeof base === 'number' && Number.isFinite(base) ? Math.max(0, Math.min(1, base)) : undefined;
+  const effective = strength ?? 0.75;
+  const omitGarment =
+    options.omitGarment === true ||
+    (options.beat ? storyBeatOmitsGarmentPackshot(options.beat) : false);
+  if (omitGarment) {
+    return Math.min(effective, STORY_ADULT_NUDE_IDENTITY_LOCK_CAP);
+  }
   if (!options.hasPoseGuide || !options.beat) {
     return strength;
   }
@@ -602,7 +913,6 @@ export function storyIdentityLockStrengthForBeat(
   if (!parseIntimateLayout(haystack) && !intimateTextImpliesAct(haystack)) {
     return strength;
   }
-  const effective = strength ?? 0.75;
   return Math.min(effective, STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP);
 }
 
@@ -1923,6 +2233,136 @@ export function formatRoleplayStoryProgress(story: RoleplayStoryBeat[] | undefin
     rollLabel: 'Roll four scenes',
     rerollLabel: 'Reroll four scenes',
   };
+}
+
+/** Short user-facing reason Story Roll / queue is blocked, or null when ready. */
+export function roleplayQueueBlockReason(input: {
+  hasCharacter: boolean;
+  hasBio: boolean;
+  playAsPhoto?: boolean;
+  hasPlate?: boolean;
+  isolateSubject?: boolean;
+  isolatePending?: boolean;
+}): string | null {
+  if (!input.hasCharacter) {
+    return 'Pick a Cast lead on Film first.';
+  }
+  if (!input.hasBio) {
+    return 'Set a character bible on Cast before rolling scenes.';
+  }
+  if (input.playAsPhoto && !input.hasPlate) {
+    return 'Add a look plate on Cast (From photo) before queuing stills.';
+  }
+  if (input.playAsPhoto && input.isolateSubject && input.isolatePending) {
+    return 'Wait for plate isolate on white to finish.';
+  }
+  return null;
+}
+
+/** Short status line for Cast · plate · beats/clips chrome. */
+export function storySessionStatusLine(input: {
+  characterName?: string | null;
+  hasCharacter: boolean;
+  hasPlate: boolean;
+  hasWardrobe?: boolean;
+  completedStills?: number;
+  completedClips?: number;
+  beatTotal?: number;
+}): string {
+  const lead = input.hasCharacter ? input.characterName?.trim() || 'Cast lead' : 'No Cast lead';
+  const plate = input.hasPlate ? 'plate ready' : 'no plate';
+  const wardrobe = input.hasWardrobe ? 'kit' : null;
+  const stills = Math.max(0, input.completedStills ?? 0);
+  const clips = Math.max(0, input.completedClips ?? 0);
+  const beats = Math.max(0, input.beatTotal ?? 0);
+  const progress =
+    beats > 0
+      ? `${stills}/${beats} stills · ${clips} clip${clips === 1 ? '' : 's'}`
+      : `${stills} stills · ${clips} clip${clips === 1 ? '' : 's'}`;
+  return [lead, plate, wardrobe, progress].filter(Boolean).join(' · ');
+}
+
+export function countRoleplayCompletedStills(story: RoleplayStoryBeat[] | undefined): number {
+  return (story ?? []).filter(
+    beat => beat.stillStatus === 'completed' && Boolean(beat.imageUrl?.trim())
+  ).length;
+}
+
+export function countRoleplayCompletedClips(story: RoleplayStoryBeat[] | undefined): number {
+  return (story ?? []).filter(
+    beat => beat.clipStatus === 'completed' && Boolean(beat.clipUrl?.trim())
+  ).length;
+}
+
+/**
+ * Lightbox slides for Story reel stills/clips with a preview URL (beat order).
+ * `openBeatId` selects the starting slide when that beat has a preview.
+ */
+export function buildStoryProgressLightboxState(
+  story: RoleplayStoryBeat[],
+  openBeatId: string,
+  previewUrlForBeat: (beat: RoleplayStoryBeat) => string | null | undefined
+): {
+  images: string[];
+  titles: string[];
+  beatIds: string[];
+  prompts: Array<string | undefined>;
+  index: number;
+  title: string;
+} | null {
+  const slides = story
+    .map(beat => {
+      const url = previewUrlForBeat(beat)?.trim();
+      if (!url) {
+        return null;
+      }
+      return {
+        beatId: beat.id,
+        url,
+        title: beat.title.trim() || beat.id,
+        prompt: beat.prompt?.trim() || undefined,
+      };
+    })
+    .filter(
+      (
+        slide
+      ): slide is { beatId: string; url: string; title: string; prompt: string | undefined } =>
+        slide != null
+    );
+  if (slides.length === 0) {
+    return null;
+  }
+  const openId = openBeatId.trim();
+  const index = Math.max(
+    0,
+    slides.findIndex(slide => slide.beatId === openId)
+  );
+  return {
+    images: slides.map(slide => slide.url),
+    titles: slides.map(slide => slide.title),
+    beatIds: slides.map(slide => slide.beatId),
+    prompts: slides.map(slide => slide.prompt),
+    index,
+    title: slides[index]?.title ?? 'Story still',
+  };
+}
+
+/** LLM cue when adult content + Solo/Duo/Mixed mix is set (mirrors Day intimateMix). */
+export function roleplayIntimateMixLine(
+  content: RoleplayContentId,
+  intimateMix: import('./day-planner').DayIntimateMix | string | null | undefined
+): string {
+  if (!isRoleplayAdultContent(content)) {
+    return '';
+  }
+  const mix = typeof intimateMix === 'string' ? intimateMix.trim().toLowerCase() : '';
+  if (mix === 'solo') {
+    return 'Intimate mix: SOLO only — exactly one adult on camera (self-touch, undress, solo heat). Never invent a partner.';
+  }
+  if (mix === 'duo') {
+    return 'Intimate mix: DUO only — partner scenes with a distinct second adult (different face from the Cast lead). Never solo-only options.';
+  }
+  return 'Intimate mix: MIXED — include both solo and duo options across the four cards.';
 }
 
 export function capRoleplayStoryBeats(story: RoleplayStoryBeat[] | undefined): RoleplayStoryBeat[] {

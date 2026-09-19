@@ -76,6 +76,7 @@ export function useRoleplayRequestBody({
         wardrobeLabel: wardrobe.wardrobeLabel,
         garmentDescription: wardrobe.garmentDescription,
         hasGarmentReference: wardrobe.hasGarmentReference,
+        intimateMix: toolSettings.intimateMix,
       });
     },
     [
@@ -95,6 +96,7 @@ export function useRoleplayRequestBody({
       toolSettings.customGarmentImageUrl,
       toolSettings.customPersona,
       toolSettings.extraHints,
+      toolSettings.intimateMix,
       toolSettings.referenceIsolated,
       toolSettings.setting,
       toolSettings.story,

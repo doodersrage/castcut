@@ -45,18 +45,18 @@ const REALISM_POSITIVE_SUFFIX: Record<Exclude<RenderRealismMode, 'off'>, string>
 
 const REALISM_NEGATIVE_EXTRA: Record<Exclude<RenderRealismMode, 'off'>, string> = {
   realistic:
-    'cartoon, anime, illustration, painting, CGI look, plastic skin, oversaturated, doll-like, blurry, low quality, watermark, text, deformed anatomy, extra limbs, extra fingers, stick figure, stickman, wireframe, pose diagram, schematic, skeleton line art',
+    'cartoon, anime, illustration, painting, CGI look, plastic skin, oversaturated, doll-like, blurry, low quality, watermark, text, deformed anatomy, extra limbs, extra fingers, stick figure, stickman, wireframe, pose diagram, schematic, skeleton line art, tattoo, tattoos, tattoo sleeve, inked skin, body ink',
   'hyper-realistic':
-    'cartoon, anime, illustration, painting, 3D render, CGI, plastic skin, waxy skin, airbrushed, oversharpened halos, uncanny valley, blurry, low quality, watermark, text, deformed anatomy, extra fingers, stick figure, stickman, wireframe, pose diagram, schematic, skeleton line art',
+    'cartoon, anime, illustration, painting, 3D render, CGI, plastic skin, waxy skin, airbrushed, oversharpened halos, uncanny valley, blurry, low quality, watermark, text, deformed anatomy, extra fingers, stick figure, stickman, wireframe, pose diagram, schematic, skeleton line art, tattoo, tattoos, tattoo sleeve, inked skin, body ink',
   anime:
-    'photorealistic, realistic photo, live action, 3D render, CGI, plastic skin, waxy skin, oversaturated, blurry, low quality, watermark, text, western cartoon, bad anatomy, extra limbs, stick figure, stickman, wireframe, pose diagram, schematic',
+    'photorealistic, realistic photo, live action, 3D render, CGI, plastic skin, waxy skin, oversaturated, blurry, low quality, watermark, text, western cartoon, bad anatomy, extra limbs, stick figure, stickman, wireframe, pose diagram, schematic, tattoo, tattoos, tattoo sleeve, inked skin',
 };
 
 const FLUX_REALISM_AVOID: Record<Exclude<RenderRealismMode, 'off'>, string> = {
   realistic:
-    'Avoid cartoon, illustration, and obvious CGI artifacts. Keep natural skin texture and believable lighting.',
+    'Avoid cartoon, illustration, obvious CGI artifacts, and random tattoos or ink on skin. Keep natural unmarked skin texture and believable lighting.',
   'hyper-realistic':
-    'Avoid cartoon, illustration, CGI, plastic or waxy skin, and uncanny artifacts. Preserve lifelike micro-detail and clean optics.',
+    'Avoid cartoon, illustration, CGI, plastic or waxy skin, uncanny artifacts, and random tattoos or ink on skin. Preserve lifelike micro-detail and clean optics.',
   anime:
     'Avoid photorealistic, photographic, and live-action looks. Keep stylized anime and animation aesthetics with clean cel shading.',
 };
@@ -74,9 +74,9 @@ const KLEIN_BASE_FLUX_PHOTO_POSITIVE: Record<
 /** Klein Base uses KSampler CFG — plastic/CGI/scene-fake terms belong in the negative slot. */
 const KLEIN_BASE_PLASTIC_NEGATIVE: Record<Exclude<RenderRealismMode, 'off' | 'anime'>, string> = {
   realistic:
-    'plastic skin, waxy skin, shiny doll skin, porcelain skin, airbrushed beauty skin, oversmoothed skin, CGI, 3D render, luxury product render, illustration, video-game art, ornamental floral frame, decorative graphic border, circular vignette, fisheye distortion, barrel distortion, extra fingers, fused fingers, malformed hands, monochromatic pink wash, dreamcore glow, beauty filter, studio softbox beauty lighting, flat even outdoor lighting, perfect texture-mapped sand, glossy helmet hair, identical clone flowers, puffy identical blob clouds, repeating foam lines, procedural tiled textures, perfect clean CGI architecture, surreal prop artifacts',
+    'plastic skin, waxy skin, shiny doll skin, porcelain skin, airbrushed beauty skin, oversmoothed skin, CGI, 3D render, luxury product render, illustration, video-game art, ornamental floral frame, decorative graphic border, circular vignette, fisheye distortion, barrel distortion, extra fingers, fused fingers, malformed hands, monochromatic pink wash, dreamcore glow, beauty filter, studio softbox beauty lighting, flat even outdoor lighting, perfect texture-mapped sand, glossy helmet hair, identical clone flowers, puffy identical blob clouds, repeating foam lines, procedural tiled textures, perfect clean CGI architecture, surreal prop artifacts, tattoo, tattoos, tattoo sleeve, inked skin, body ink',
   'hyper-realistic':
-    'plastic skin, waxy skin, shiny doll skin, porcelain skin, airbrushed beauty skin, oversmoothed skin, CGI, 3D render, luxury product render, illustration, painting, video-game art, ornamental floral frame, decorative graphic border, circular vignette, fisheye distortion, barrel distortion, extra fingers, fused fingers, malformed hands, monochromatic pink wash, dreamcore glow, beauty filter, editorial fashion CGI, studio softbox beauty lighting, flat even outdoor lighting, perfect texture-mapped sand, glossy helmet hair, identical clone flowers, puffy identical blob clouds, repeating foam lines, procedural tiled textures, perfect clean CGI architecture, surreal prop artifacts',
+    'plastic skin, waxy skin, shiny doll skin, porcelain skin, airbrushed beauty skin, oversmoothed skin, CGI, 3D render, luxury product render, illustration, painting, video-game art, ornamental floral frame, decorative graphic border, circular vignette, fisheye distortion, barrel distortion, extra fingers, fused fingers, malformed hands, monochromatic pink wash, dreamcore glow, beauty filter, editorial fashion CGI, studio softbox beauty lighting, flat even outdoor lighting, perfect texture-mapped sand, glossy helmet hair, identical clone flowers, puffy identical blob clouds, repeating foam lines, procedural tiled textures, perfect clean CGI architecture, surreal prop artifacts, tattoo, tattoos, tattoo sleeve, inked skin, body ink',
 };
 
 /** Skin harden alone still leaves CGI skies/water — require scene material cues too. */

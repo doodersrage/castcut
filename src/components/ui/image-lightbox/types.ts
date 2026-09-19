@@ -67,6 +67,8 @@ export type ImageLightboxSlideChrome = {
   onUsePromptStack?: () => void;
   onUseFace?: () => void;
   onSaveLook?: () => void;
+  onKeep?: () => void;
+  onPass?: () => void;
   onRequeue?: () => void;
   onRequeueNewSeed?: () => void;
   onRequeueSeedPlusOne?: () => void;
@@ -79,6 +81,8 @@ export type ImageLightboxSlideChrome = {
   showUsePromptStack?: boolean;
   showUseFace?: boolean;
   showSaveLook?: boolean;
+  showKeep?: boolean;
+  showPass?: boolean;
   showRequeue?: boolean;
   showSeedVariation?: boolean;
   /** Seed / model / prompt details for the Details (M) panel. */

@@ -157,20 +157,25 @@ export function useSharedToolModelWorkflowPart2(ctx: SharedToolModelWorkflowCore
   ]);
 
   useEffect(() => {
-    if (!storageReady || !preferEditModels || showAllModelsOverride) {
-      return;
-    }
-    if (pickerModels.length === 0) {
+    if (!storageReady || !preferEditModels) {
       return;
     }
     // Always leave T2I defaults (e.g. qwen-image-2512) even if a stale catalog
     // briefly listed them — Outfit/Day need an edit/img2img checkpoint.
-    if (pickerModels.includes(shared.model) && isImg2imgCapableModel(shared.model)) {
-      return;
+    // Snap even under "Show all" so Day/Outfit cannot stay on 2512 and dump
+    // magenta Image 3 pose guides as the still.
+    if (isImg2imgCapableModel(shared.model)) {
+      if (
+        showAllModelsOverride ||
+        pickerModels.length === 0 ||
+        pickerModels.includes(shared.model)
+      ) {
+        return;
+      }
     }
     const fallback = resolvePreferredImg2imgModel({
       current: shared.model,
-      allowed: pickerModels,
+      allowed: showAllModelsOverride || pickerModels.length === 0 ? undefined : pickerModels,
     });
     if (fallback !== shared.model) {
       handleModelChange(fallback);

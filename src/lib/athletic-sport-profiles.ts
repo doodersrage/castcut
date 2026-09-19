@@ -15,7 +15,11 @@ export type AthleticSport =
   | 'soccer'
   | 'ski'
   | 'golf'
-  | 'running';
+  | 'running'
+  | 'swimming'
+  | 'volleyball'
+  | 'boxing'
+  | 'surfing';
 
 export type AthleticSportProfile = {
   id: AthleticSport;
@@ -299,6 +303,72 @@ export const ATHLETIC_SPORT_PROFILES: readonly AthleticSportProfile[] = [
     excludeLabels: [WRONG_CYCLING, WRONG_SOCCER, /\b(?:soccer cleats|cycling shoes)\b/i],
     guardrail:
       'Running activity—use a running singlet or top with visible running shorts or track pants and running shoes. Never a topless, bottomless, or sports-bra-only look. No cycling bibs, soccer cleats, or formalwear.',
+  },
+  {
+    id: 'swimming',
+    hint: /\b(?:swimmer|swimming|freestyle|butterfly stroke|breaststroke|backstroke|lap swim|pool lane|swim cap|goggles|starting block|streamline dive|flip turn)\b/i,
+    outfitLabels: [/\b(?:swimsuit|racing suit|swim skin)\b/i],
+    footwearLabels: [/\b(?:barefoot|swim fins)\b/i],
+    excludeLabels: [
+      WRONG_CYCLING,
+      WRONG_SOCCER,
+      WRONG_RUNNING,
+      WRONG_TRACK_OR_CASUAL,
+      /\b(?:cleats|boots|sneakers)\b/i,
+    ],
+    guardrail:
+      'Swimming—use a racing swimsuit or swim skin, barefoot or fins. No cycling kit, track pants, cleats, or street clothes.',
+    outfitPickRate: 80,
+  },
+  {
+    id: 'volleyball',
+    hint: /\b(?:volleyball|spike(?:ing)?|setter|libero|beach volleyball|volleyball court)\b/i,
+    outfitLabels: [],
+    topLabels: [/\b(?:jersey|tank|sports bra)\b/i],
+    bottomLabels: [/\b(?:volleyball shorts|shorts|spandex)\b/i],
+    footwearLabels: [/\b(?:court shoes|sneaker|trainer|barefoot)\b/i],
+    excludeLabels: [
+      WRONG_CYCLING,
+      WRONG_SOCCER,
+      WRONG_TRACK_OR_CASUAL,
+      /\b(?:cleats|cycling shoes)\b/i,
+    ],
+    guardrail:
+      'Volleyball—use a jersey or tank with volleyball shorts and court shoes (or barefoot for beach). No cycling kit, track pants, or soccer cleats.',
+    outfitPickRate: 65,
+  },
+  {
+    id: 'boxing',
+    hint: /\b(?:boxer|boxing|punching bag|sparring|heavy bag|jab(?:bing)?|hook punch|uppercut|boxing ring|gloves up)\b/i,
+    outfitLabels: [],
+    topLabels: [/\b(?:tank|singlet|sports bra)\b/i],
+    bottomLabels: [/\b(?:boxing shorts|trunks|shorts)\b/i],
+    footwearLabels: [/\b(?:boxing shoes|high-top|sneaker|barefoot)\b/i],
+    excludeLabels: [
+      WRONG_CYCLING,
+      WRONG_SOCCER,
+      WRONG_TRACK_OR_CASUAL,
+      /\b(?:cycling shoes|soccer cleats)\b/i,
+    ],
+    guardrail:
+      'Boxing—use boxing shorts or trunks with a fitted top or tank and boxing shoes or high-tops. No cycling kit, track pants, or soccer cleats.',
+    outfitPickRate: 70,
+  },
+  {
+    id: 'surfing',
+    hint: /\b(?:surfer|surfing|surfboard|paddling out|catching a wave|barrel ride|shortboard|longboard)\b/i,
+    outfitLabels: [/\b(?:wetsuit|rash guard|boardshorts)\b/i],
+    footwearLabels: [/\b(?:barefoot|booties)\b/i],
+    excludeLabels: [
+      WRONG_CYCLING,
+      WRONG_SOCCER,
+      WRONG_RUNNING,
+      WRONG_TRACK_OR_CASUAL,
+      /\b(?:cleats|sneakers|boots)\b/i,
+    ],
+    guardrail:
+      'Surfing—use a wetsuit, rash guard with boardshorts, or swimwear with bare feet. No cycling kit, track pants, or cleats.',
+    outfitPickRate: 75,
   },
 ];
 

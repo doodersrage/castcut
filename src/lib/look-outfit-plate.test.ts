@@ -335,6 +335,76 @@ describe('look-outfit-plate', () => {
     assert.equal(activeLook(next!).ipAdapter, undefined);
   });
 
+  it('clearCharacterLookPlate clears face/reference on every look, not only active', () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Multi Look');
+    upsertCharacter(blank);
+    const stored = getCharacter(blank.id)!;
+    const lookA = activeLook(stored);
+    const lookB = {
+      ...lookA,
+      id: 'look-b',
+      name: 'Alt',
+      ipAdapter: { imageFilename: 'alt-face.png', imageUrl: 'https://example.com/alt-face.png' },
+      reference: {
+        originalUrl: 'https://example.com/alt-plate.jpg',
+        originalFilename: 'alt-plate.jpg',
+        isolated: false,
+        isolateSubject: true,
+      },
+    };
+    upsertCharacter({
+      ...stored,
+      ipAdapter: { imageFilename: 'main-face.png', imageUrl: 'https://example.com/main-face.png' },
+      looks: [
+        {
+          ...lookA,
+          ipAdapter: { imageFilename: 'main-face.png', imageUrl: 'https://example.com/main-face.png' },
+        },
+        lookB,
+      ],
+      activeLookId: lookA.id,
+    });
+
+    assert.equal(clearCharacterLookPlate(blank.id), true);
+    const next = getCharacter(blank.id)!;
+    assert.equal(next.ipAdapter, undefined);
+    assert.equal(next.looks?.every(entry => !entry.ipAdapter && !entry.reference), true);
+  });
+
+  it('assignOutfitPlateToCastAndFitting syncFace replaces a stale Cast face lock', () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Sync Face');
+    upsertCharacter(blank);
+    const stored = getCharacter(blank.id)!;
+    const look = activeLook(stored);
+    upsertCharacter({
+      ...stored,
+      ipAdapter: { imageFilename: 'old-face.png', imageUrl: 'https://example.com/old-face.png' },
+      looks: [
+        {
+          ...look,
+          ipAdapter: { imageFilename: 'old-face.png', imageUrl: 'https://example.com/old-face.png' },
+        },
+      ],
+      activeLookId: look.id,
+    });
+
+    assignOutfitPlateToCastAndFitting({
+      characterId: blank.id,
+      imageUrl: 'https://example.com/gallery-plate.jpg',
+      filename: 'gallery-plate.jpg',
+      syncFace: true,
+    });
+    const next = getCharacter(blank.id)!;
+    assert.equal(next.reference?.originalUrl, 'https://example.com/gallery-plate.jpg');
+    assert.equal(next.ipAdapter?.imageFilename, 'gallery-plate.jpg');
+    assert.equal(activeLook(next).ipAdapter?.imageFilename, 'gallery-plate.jpg');
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(fitting.pendingOutfitPlatePromptId, undefined);
+    assert.equal(fitting.suppressAutoPlateSeed, false);
+  });
+
   it('ensureOutfitPlateAfterLook skips an existing session plate unless forceReplace', async () => {
     installMemoryWindow();
     const blank = createBlankCharacter('Ava');

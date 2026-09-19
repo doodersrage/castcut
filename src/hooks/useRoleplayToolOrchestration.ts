@@ -16,6 +16,8 @@ import { useRoleplaySessionActions } from '@/hooks/useRoleplaySessionActions';
 import { useRoleplayRequestBody } from '@/hooks/useRoleplayRequestBody';
 import { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
+import { getCharacter } from '@/lib/character-os';
+import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/settings-cache';
 import {
@@ -83,6 +85,31 @@ export function useRoleplayToolOrchestration() {
     updateToolSettings,
     setError,
   });
+
+  // After Cast switch, Play scrub clears Story refs — reseed From-photo from the new Cast.
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+    const characterId = shared.activeCharacterId?.trim();
+    if (!characterId) {
+      return;
+    }
+    if (toolSettings.referenceImageUrl?.trim() || toolSettings.referenceImageFilename?.trim()) {
+      return;
+    }
+    const fields = roleplayLookPlateFieldsFromCharacter(getCharacter(characterId));
+    if (!fields) {
+      return;
+    }
+    updateToolSettings(fields);
+  }, [
+    mounted,
+    shared.activeCharacterId,
+    toolSettings.referenceImageFilename,
+    toolSettings.referenceImageUrl,
+    updateToolSettings,
+  ]);
 
   useSeedToolDraft(mounted, {
     toolKey: TOOL_ID,

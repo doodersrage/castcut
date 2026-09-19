@@ -2,9 +2,11 @@
 
 import CharacterFilmStudio from '@/components/CharacterFilmStudio';
 import CharacterLoraFlywheel from '@/components/CharacterLoraFlywheel';
+import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import CastStatusStrip from '@/components/character/CastStatusStrip';
 import CharacterBibleSection from '@/components/character/CharacterBibleSection';
 import CharacterHomeActionRow from '@/components/character/CharacterHomeActionRow';
 import CharacterLookPacksSection from '@/components/character/CharacterLookPacksSection';
@@ -45,6 +47,17 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
         'Looks, stills, clips, the film cut, and the LoRA flywheel for this character.'
       }
     >
+      <CastStatusStrip
+        statusLine={props.castStatus.statusLine}
+        plateHint={props.castStatus.plateHint}
+        plateStatus={props.plateStatus}
+        plateError={props.castStatus.plateError}
+      />
+      <PlaySoftAdvanceBanner
+        key={props.softAdvance?.nonce ?? 'idle'}
+        target={props.softAdvance}
+        onCancel={props.cancelSoftAdvance}
+      />
       <CharacterHomeActionRow
         character={character}
         go={props.go}

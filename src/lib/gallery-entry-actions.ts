@@ -127,6 +127,30 @@ export function canSoftSecondPassGalleryEntry(
   return Boolean(resolveGalleryOutputImageUrl(entry));
 }
 
+/**
+ * Soft skin-fix on a Settings skin model (UltraReal / Klein / Edit).
+ * Parent may be Rapid AIO — eligibility follows the refine model, not the parent.
+ */
+export function canSkinRefineGalleryEntry(
+  entry: Pick<
+    ComfyGalleryEntry,
+    'status' | 'images' | 'sourceImageUrl' | 'comfyUrl' | 'derivedKind'
+  >,
+  refineModel?: string | null
+): boolean {
+  if (entry.status !== 'completed') {
+    return false;
+  }
+  if (entry.derivedKind === 'i2v') {
+    return false;
+  }
+  if (!resolveGalleryOutputImageUrl(entry)) {
+    return false;
+  }
+  const model = String(refineModel ?? 'flux-2-klein-9b').trim() || 'flux-2-klein-9b';
+  return galleryEntrySupportsRefine(model);
+}
+
 export function canRefineGalleryEntry(
   entry: Pick<ComfyGalleryEntry, 'status' | 'images' | 'sourceImageUrl' | 'comfyUrl' | 'model'>
 ): boolean {

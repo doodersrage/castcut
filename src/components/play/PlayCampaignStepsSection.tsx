@@ -8,7 +8,7 @@ import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaign
 
 type PlayCampaignStepsSectionProps = Pick<
   ReturnType<typeof usePlayCampaignWizardOrchestration>,
-  'activeStep' | 'characterId' | 'activeLookPack' | 'setStepOverride' | 'goToStep' | 'router'
+  'activeStep' | 'characterId' | 'activeLookPack' | 'setStepOverride' | 'goToStep' | 'pushPlay'
 > & {
   firstFilmDone?: boolean;
 };
@@ -19,7 +19,7 @@ export default function PlayCampaignStepsSection({
   activeLookPack,
   setStepOverride,
   goToStep,
-  router,
+  pushPlay,
   firstFilmDone = false,
 }: PlayCampaignStepsSectionProps) {
   const steps = PLAY_CAMPAIGN_STEPS;
@@ -27,7 +27,7 @@ export default function PlayCampaignStepsSection({
   return (
     <ToolSection
       title="Steps"
-      description="One primary path — open the next step when you are ready."
+      description="Open any film step — primary path stays the Continue card above."
       data-testid="play-campaign-steps"
     >
       <ol className="space-y-2">
@@ -82,7 +82,7 @@ export default function PlayCampaignStepsSection({
                     }
                     setStepOverride(step.id);
                     if (step.id === 'character' && characterId) {
-                      router.push(`/characters/${encodeURIComponent(characterId)}`);
+                      pushPlay(`/characters/${encodeURIComponent(characterId)}`);
                       return;
                     }
                     goToStep(step.id, activeLookPack);

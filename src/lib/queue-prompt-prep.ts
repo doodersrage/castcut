@@ -20,7 +20,9 @@ import {
   ensurePoseGuideStyleLock,
   mergePoseGuideNegatives,
   promptHasPoseGuideCue,
+  rewritePoseGuideCueForRapidAio,
 } from './pose-guide-prompt';
+import { appendCleanSkinPositive, mergeCleanSkinNegatives } from './clean-skin';
 import { inferAthleticSport, type AthleticSport } from './athletic-sport-profiles';
 import { resolveQueueNegativePromptRaw } from './queue-negative';
 import { isQwenLightningModel, isWanLightningModel } from './model-sampling-patch';
@@ -82,6 +84,54 @@ const RAPID_AIO_MOIRE_NEGATIVE =
 const RAPID_AIO_MOIRE_POSITIVE =
   'clean continuous tones, smooth natural skin texture, even gradients';
 
+/**
+ * Compact Image 3 anti-leak pack for Rapid AIO (CFG-1).
+ * Full POSE_GUIDE_NEGATIVE_EXTRA is far over the Lightning length gate and gets dropped —
+ * these high-signal terms still block magenta/cyan schematic bleed while keeping pose usable.
+ */
+export const RAPID_AIO_POSE_LEAK_NEGATIVE =
+  'neon capsule, magenta stick figure, cyan pose outline, stick figure overlay, pose diagram, openpose lines, controlnet overlay, pose guide leak, Image 3 drawn into scene, translucent ghost person, flat filled figure, black morphsuit, black bodysuit, latex void suit, spandex partner, zentai, black catsuit, full body black suit, face and hands only suit, black rubber partner, black blob between bodies, open book, open notebook, lined pages, diary, journal on bed, planner, day planner, schedule grid, clipboard, notepad, hardcover, paperback, book between knees, reading in bed, pen on bed, hands on book, tablet, spreadsheet, sketchbook, diagram pad, reading prop, fused bodies, flesh blob, merged torso, extra hands, four hands, three hands, duplicate hands, ghost hand, floating hand, third arm, fourth arm, arms from behind back, disembodied hands, hands emerging from torso, six fingers, seven fingers, extra fingers, malformed fingers, claw hands, splayed fingers on thighs, hands framing crotch, hands on inner thighs posing, heart hands, V fingers toward crotch, resting hands on thighs, softcore thigh frame, rock on gesture, devil horns hand, peace sign hands, jazz hands, raised gesture hands, hands on bra cups, grabbing bra, hands covering breasts posing, hands on chest covering, modest covering pose, softcore breast cover, lingerie when nude, beige panties when nude, beige bra when nude, nude lingerie set, nude-tone bra, tan bikini top when nude, matching bra and panties softcore, hands covering crotch posing, hands flat on windowsill posing, duplicate genitals, futa, hermaphrodite, penis on woman, phallus, fleshy crotch protrusion, cowboy hat, missing partner head, solo portrait when duo posed, oily plastic skin, wet plastic shine, floating smoke, floating steam, vapor wisp, cyan chest glow, magenta rim light, neon gel lighting, holding vibrator as crotch cover, egg vibrator prop, wooden bar between thighs, softcore toy prop';
+
+/** Anti-diagram / anti-morphsuit only — safe for Suggestive / Vacation clothed pose unlock. */
+export const RAPID_AIO_POSE_LEAK_POSITIVE_BASE =
+  'finished photograph only — do not paint Image 3 outlines, stick figures, neon overlays, cyan/magenta lights, or black morphsuits into the scene';
+
+/** Adult nude/duo pose unlock — never append on Suggestive / Vacation (fights CLOTHING LOCK). */
+export const RAPID_AIO_POSE_LEAK_POSITIVE = `${RAPID_AIO_POSE_LEAK_POSITIVE_BASE}; duo partners are fully bare-skinned humans both fully visible mid-contact; solo adult: rumpled indoor sheets and lamp light in the foreground, no beach sand or ocean, clothes are now gone — bare breasts with nipples visible and bare vulva, zero fabric on the body, body pose matches the beat and Image 3 exactly, exactly two hands mid-self-touch as the beat says (fingers on vulva or a penis-shaped silicone dildo with the tip of the penis pushed deep into her vaginal opening), each on a continuous forearm from her own shoulder, one woman alone never invent a man, eyes half-lidded looking down not at the lens, five natural fingers each, natural matte pores, warm lamp light, bare sheets only`;
+
+export const RAPID_AIO_ADULT_PROP_POSITIVE =
+  'rumpled indoor sheets in the foreground, bare bed surface, lamp or window light only, no beach sand or ocean, body pose matches the beat, exactly two hands mid-self-touch with fingers on vulva as written, each on a continuous forearm from her shoulder, bare breasts uncovered with nipples visible, clothes are now gone, bare vulva, zero fabric on the body, matte skin';
+
+/** Duo adult Rapid pack — never inject solo self-touch (that collapses partner scenes). */
+export const RAPID_AIO_ADULT_DUO_PROP_POSITIVE =
+  'rumpled indoor sheets in the foreground, bare bed surface, lamp or window light only, no beach sand or ocean, exactly TWO adults mid-sex both fully visible, partner head and torso in frame with Cast, four hands on bodies, bare skin and sheets only, clothes are now gone, matte skin — never a solo Cast nude portrait with empty sheets beside her';
+
+export const RAPID_AIO_ADULT_DUO_PROP_NEGATIVE =
+  'solo Cast nude portrait, one woman alone, solo nude pin-up, empty sheets beside her, partner cropped out, missing partner, Cast alone on bed, leg against wall solo posing, softcore solo nude, self-touch when duo, masturbation when duo, fingering herself when duo, second person missing, only one head in frame';
+
+export const RAPID_AIO_SUGGESTIVE_PROP_POSITIVE =
+  'clothed suggestive heat only, lingerie or dress with bottoms on, charged pose matching the beat (dancing with both arms raised and one knee lifted mid-kick, zip-twist look-back, leaning, seated, stretching, reclining — never a stiff square-on standing catalog pose with arms at sides), one woman alone, soft lamp light, rumpled sheets as backdrop only';
+
+export const RAPID_AIO_SUGGESTIVE_PROP_NEGATIVE =
+  'nude, fully nude, bottomless, pants pulled down, panties off, bare vulva, genitals, scrotum, penis, mid-sex, mid-thrust, doggy style, doggystyle, all fours, hands and knees, rear-entry, missionary, cowgirl, oral sex, partner behind, man behind her, muscular man, male partner, boyfriend, second adult, second person, all fours sex, sex from behind, bare buttocks sex pose, hands on her hips from behind, looking back over shoulder sex pose, stiff standing fashion plate, square-on catalog pose, arms at sides standing still, polite standing portrait, bland standing model, bikini, swimsuit, swimwear, string bikini, tan bikini, beige bikini, beach sand, ocean shoreline, tropical beach, wet sand, pier softcore';
+
+/** Vacation / travel Day — keep clothed solo; fight leftover NSFW Edit doggy priors AND standing try-on freeze. */
+export const RAPID_AIO_VACATION_PROP_POSITIVE =
+  'vacation travel still, clothes or swimsuit stay on, one woman alone, beat stance matching Image 3 (relaxing or reclining lying down on a towel or lounge with hips down, seated with knees bent, mid-stride walking with one foot ahead, dancing with both arms raised and one knee lifted, reaching with an arm high, perched, leaning — never a square-on standing catalog pose with arms at sides, never rear-presenting), resort hotel pool market balcony beach energy';
+
+export const RAPID_AIO_VACATION_PROP_NEGATIVE =
+  'nude sex, fully nude, mid-sex, mid-thrust, doggy style, doggystyle, all fours, hands and knees, rear-entry, missionary, cowgirl, oral sex, partner behind, man behind her, muscular man, male partner, boyfriend, second adult, second person, sex from behind, hands on her hips from behind, genitals, scrotum, penis, looking back over shoulder sex pose, kneeling on bed presenting, stiff standing fashion plate, square-on catalog pose, arms at sides standing still, planted fashion stand, upright travel pose freeze, polite standing portrait, bland standing model, office desk, grocery, bookstore, cubicle';
+
+/** When the beat names a dildo / vibrator — allow the held toy in positives. */
+export const RAPID_AIO_ADULT_TOY_PROP_POSITIVE =
+  'rumpled indoor sheets in the foreground, bare bed surface, lamp or window light only, no beach sand or ocean, body pose matches the beat, one woman alone, realistic penis-shaped silicone dildo with the tip of the penis pushed deep into her vaginal opening, shaft entering her vagina, tip buried inside, both hands on the base thrusting deeper, each hand on a continuous forearm from her shoulder, bare breasts uncovered with nipples visible, clothes are now gone, bare vulva, zero fabric on the body, matte skin';
+
+export const RAPID_AIO_ADULT_PROP_NEGATIVE =
+  'open book, open notebook, lined pages, diary, journal, planner, day planner, schedule, clipboard, notepad, hardcover, paperback, book between knees, reading in bed, pen on sheets, tablet, spreadsheet, magazine, menu, reading prop, beach sand, wet sand, ocean shoreline, night beach, seaside softcore, pier softcore, city lights on horizon beach, outdoor sand pin-up, beige lingerie, flesh-colored underwear, skin-toned clothing, nude-tone bra, nude-tone panties, beige bra, beige panties, tan bikini, tan string bikini, beige bikini, bikini top only, bikini bottom only, bra only, panties only, thong only, straps across chest, string between cheeks, topless with panties, bottomless with bra, half dressed softcore, one garment left on, translucent fabric, sheer lingerie, matching bra and panties softcore, underwear when bare skin intended, bra, panties, hands on bra cups, hands covering breasts, hands on chest covering, four hands, three hands, duplicate hands, third arm, fourth arm, arms from behind back, disembodied hands, hands emerging from torso, modest covering pose, softcore breast cover, middle finger, flip off, raised middle finger, fingers pointing up, index finger pointing up, pointing at camera, hands raised to shoulders, hands above waist, hands at head height, arms raised, rock on gesture, devil horns hand, peace sign hands, jazz hands, raised gesture hands, claw hands, splayed fingers on thighs, hands framing crotch, hands on inner thighs posing, heart hands, V fingers toward crotch, resting hands on thighs, softcore thigh frame, camera stare softcore pin-up, oily plastic skin, wet plastic shine, vibrator, egg vibrator, wand vibrator, dildo, sex toy, wooden bar between thighs, colorful toy between thighs, object held at crotch';
+
+/** Toy-beat negatives — keep softcore toy covers banned, but allow a real held dildo. */
+export const RAPID_AIO_ADULT_TOY_PROP_NEGATIVE =
+  'open book, open notebook, lined pages, diary, journal, planner, day planner, schedule, clipboard, notepad, hardcover, paperback, book between knees, reading in bed, pen on sheets, tablet, spreadsheet, magazine, menu, reading prop, beach sand, wet sand, ocean shoreline, night beach, seaside softcore, pier softcore, city lights on horizon beach, outdoor sand pin-up, beige lingerie, flesh-colored underwear, skin-toned clothing, nude-tone bra, nude-tone panties, beige bra, beige panties, tan bikini, tan string bikini, beige bikini, bikini top only, bikini bottom only, bra only, panties only, thong only, straps across chest, string between cheeks, topless with panties, bottomless with bra, half dressed softcore, one garment left on, translucent fabric, sheer lingerie, matching bra and panties softcore, underwear when bare skin intended, bra, panties, hands on bra cups, hands covering breasts, hands on chest covering, four hands, three hands, duplicate hands, third arm, fourth arm, arms from behind back, disembodied hands, hands emerging from torso, modest covering pose, softcore breast cover, middle finger, flip off, raised middle finger, fingers pointing up, index finger pointing up, pointing at camera, hands raised to shoulders, hands above waist, hands at head height, arms raised, rock on gesture, devil horns hand, peace sign hands, jazz hands, raised gesture hands, claw hands, splayed fingers on thighs, hands framing crotch, hands on inner thighs posing, heart hands, V fingers toward crotch, resting hands on thighs, softcore thigh frame, camera stare softcore pin-up, oily plastic skin, wet plastic shine, holding vibrator as crotch cover, egg vibrator prop, wooden bar between thighs, softcore toy prop, dildo held outside body, dildo only against thighs, dildo upright against belly, dildo tip pointing at chest, dildo pressed to pubic mound, no penetration, toy outside vaginal opening, second person, male partner, boyfriend, man in frame, duo when solo, penis attached to man, futa, hermaphrodite, penis growing from crotch';
 /** Short CFG-1-friendly temporal / anatomy cues for WAN Lightning 4-step. */
 export const WAN_LIGHTNING_ARTIFACT_NEGATIVE =
   'flicker, morphing, identity drift, abrupt cuts, extra limbs, warped hands, duplicate subjects, floating props';
@@ -98,7 +148,7 @@ export const QWEN_LIGHTNING_PHOTO_POSITIVE =
   'natural photograph, realistic skin texture, soft natural light, lifelike materials';
 
 export const QWEN_LIGHTNING_PHOTO_NEGATIVE =
-  'illustration, drawing, cartoon, anime, painting, CGI, plastic skin, airbrushed, painterly';
+  'illustration, drawing, cartoon, anime, painting, CGI, plastic skin, airbrushed, painterly, tattoo, tattoos, tattoo sleeve, inked skin';
 
 /** CFG-1 T2I (Boogu/Z-Image Turbo, Schnell): short anatomy + anti-halo cues — not long auto-neg lists. */
 export const CFG1_T2I_ANATOMY_POSITIVE =
@@ -196,19 +246,55 @@ export function applyQueuePromptSteering(input: {
   const anatomyMode = input.anatomyMode ?? loadAnatomyGuardMode();
   const turboEditStrength = normalizeTurboEditStrength(input.turboEditStrength);
   // Pose-guide Image 3: lock finished-scene realism and block stick-figure bleed.
+  // Rapid AIO keeps Image 3 but rewrites neon magenta/cyan cue language to gray-outline.
   const poseGuideAttached = promptHasPoseGuideCue(input.positive);
-  const steeredPositive = poseGuideAttached
+  let steeredPositive = poseGuideAttached
     ? ensurePoseGuideStyleLock(input.positive, realismMode)
     : input.positive;
+  if (poseGuideAttached && isQwenRapidAioModel(input.model)) {
+    steeredPositive = rewritePoseGuideCueForRapidAio(steeredPositive, realismMode);
+  }
   const steeredNegative = mergePoseGuideNegatives(input.negative, poseGuideAttached);
   const finish = (result: { positive: string; negative?: string }) => {
+    // Boogu zeros the negative encode; WAN Lightning keeps a tiny artifact pack only.
+    const skipNegativeSkin =
+      isBooguTurboModel(input.model) ||
+      isWanLightningModel(input.model) ||
+      isWanRapidAioModel(input.model);
+    const usesNegative = modelUsesNegativePrompt(input.model) && !skipNegativeSkin;
+    // Prefer person / Play stills — don't decorate every landscape or animal clip.
+    const shouldCleanSkin =
+      poseGuideAttached ||
+      input.tool === 'image-prompt' ||
+      input.tool === 'fitting' ||
+      input.tool === 'day' ||
+      input.tool === 'roleplay' ||
+      input.tool === 'moodboard' ||
+      input.tool === 'compose' ||
+      input.tool === 'refine' ||
+      /\b(woman|man|girl|boy|person|portrait|character|cast|skin|edit image)\b/i.test(
+        result.positive
+      );
+    const withSkin = {
+      positive:
+        shouldCleanSkin && !isWanLightningModel(input.model) && !isWanRapidAioModel(input.model)
+          ? appendCleanSkinPositive(result.positive)
+          : result.positive,
+      negative: usesNegative
+        ? shouldCleanSkin
+          ? mergeCleanSkinNegatives(result.negative, result.positive)
+          : result.negative
+        : skipNegativeSkin
+          ? result.negative
+          : undefined,
+    };
     if (!usesTurboEditStrengthUi(String(input.model), input.tool)) {
-      return result;
+      return withSkin;
     }
     return {
-      ...result,
+      ...withSkin,
       positive: applyTurboEditStrengthToPrompt(
-        result.positive,
+        withSkin.positive,
         String(input.model),
         turboEditStrength
       ),
@@ -217,9 +303,15 @@ export function applyQueuePromptSteering(input: {
 
   if (isQwenLightningModel(input.model)) {
     // CFG-1: skip long realism/anatomy suffixes — keep a short photo pack instead.
-    const explicit = steeredNegative?.trim();
+    // Gate on the *user* negative; pose-guide merge exceeds the length cap.
+    const userExplicit = input.negative?.trim();
     const shortExplicit =
-      explicit && explicit.length <= LIGHTNING_MAX_EXPLICIT_NEGATIVE_CHARS ? explicit : undefined;
+      userExplicit && userExplicit.length <= LIGHTNING_MAX_EXPLICIT_NEGATIVE_CHARS
+        ? userExplicit
+        : undefined;
+    const poseLeakNeg = poseGuideAttached
+      ? 'stick figure, wireframe, pose diagram, cyan pose outline, pose guide leak, Image 3 drawn into scene'
+      : 'stick figure, wireframe, pose diagram';
     if (realismMode === 'realistic' || realismMode === 'hyper-realistic') {
       return finish({
         positive: appendUniqueCsv(
@@ -230,13 +322,13 @@ export function applyQueuePromptSteering(input: {
         ),
         negative: appendUniqueCsv(
           shortExplicit,
-          appendUniqueCsv(QWEN_LIGHTNING_PHOTO_NEGATIVE, 'stick figure, wireframe, pose diagram')
+          appendUniqueCsv(QWEN_LIGHTNING_PHOTO_NEGATIVE, poseLeakNeg)
         ),
       });
     }
     return finish({
       positive: steeredPositive,
-      negative: shortExplicit,
+      negative: poseGuideAttached ? appendUniqueCsv(shortExplicit, poseLeakNeg) : shortExplicit,
     });
   }
 
@@ -254,14 +346,99 @@ export function applyQueuePromptSteering(input: {
 
   // Rapid AIO is CFG-1 distilled (Lightning baked in) — skip long auto-negatives
   // and long realism/anatomy positives; keep short anti-moiré cues only.
+  // Pose-guide merge is huge and would always fail the length gate — use the
+  // user negative + a compact anti-leak pack so Image 3 still unlocks pose.
   if (isQwenRapidAioModel(input.model)) {
-    const explicit = steeredNegative?.trim();
+    const userExplicit = input.negative?.trim();
     const shortExplicit =
-      explicit && explicit.length <= LIGHTNING_MAX_EXPLICIT_NEGATIVE_CHARS ? explicit : undefined;
-    return finish({
-      positive: appendUniqueCsv(steeredPositive, RAPID_AIO_MOIRE_POSITIVE),
-      negative: appendUniqueCsv(shortExplicit, RAPID_AIO_MOIRE_NEGATIVE),
-    });
+      userExplicit && userExplicit.length <= LIGHTNING_MAX_EXPLICIT_NEGATIVE_CHARS
+        ? userExplicit
+        : undefined;
+    let positive = appendUniqueCsv(steeredPositive, RAPID_AIO_MOIRE_POSITIVE);
+    let negative = appendUniqueCsv(shortExplicit, RAPID_AIO_MOIRE_NEGATIVE);
+    // Adult Day/Story: empty-bed positives + prop bans in negatives (saying "planner"
+    // in the long positive tends to summon lined notebooks on CFG-1 stacks).
+    const adultHeat =
+      /\b(MOOD:\s*(?:intimate|raunchy)|POSE FIRST: mandatory body pose and sex|masturbat|self[- ]touch|mid-sex|PARTNERS:|SOLO ACT:|FULLY NUDE|fingering|oral sex|missionary|doggy)\b/i.test(
+        steeredPositive
+      );
+    const suggestiveHeat = /\bMOOD:\s*suggestive\b/i.test(steeredPositive);
+    const vacationHeat = /\bMOOD:\s*vacation\b/i.test(steeredPositive);
+    if (poseGuideAttached) {
+      // Nude solo/duo pose-leak fights CLOTHING LOCK on Suggestive/Vacation — base only.
+      positive = appendUniqueCsv(
+        positive,
+        suggestiveHeat || vacationHeat || !adultHeat
+          ? RAPID_AIO_POSE_LEAK_POSITIVE_BASE
+          : RAPID_AIO_POSE_LEAK_POSITIVE
+      );
+      negative = appendUniqueCsv(negative, RAPID_AIO_POSE_LEAK_NEGATIVE);
+    }
+    if (suggestiveHeat) {
+      positive = appendUniqueCsv(positive, RAPID_AIO_SUGGESTIVE_PROP_POSITIVE);
+      negative = appendUniqueCsv(negative, RAPID_AIO_SUGGESTIVE_PROP_NEGATIVE);
+      // Only when the beat names DANCING — camera templates mention "dance" as an example.
+      if (
+        /\bDANCING\b/.test(steeredPositive) ||
+        /\bbeat:\s*[^\n]*\bdanc(?:e|es|ing)\b/i.test(steeredPositive)
+      ) {
+        positive = appendUniqueCsv(
+          positive,
+          'mid-dance both arms raised overhead one knee lifted mid-kick hips swaying never arms at sides standing catalog pose'
+        );
+      }
+    } else if (vacationHeat) {
+      positive = appendUniqueCsv(positive, RAPID_AIO_VACATION_PROP_POSITIVE);
+      negative = appendUniqueCsv(negative, RAPID_AIO_VACATION_PROP_NEGATIVE);
+      if (/\bDANCING\b/i.test(steeredPositive)) {
+        positive = appendUniqueCsv(
+          positive,
+          'mid-dance both arms raised overhead one knee lifted mid-kick hips swaying never arms at sides standing catalog pose'
+        );
+      } else if (/\bMID-STRIDE\b/i.test(steeredPositive)) {
+        positive = appendUniqueCsv(
+          positive,
+          'full body walking mid-step one foot clearly ahead opposite arm swing both feet visible never mid-thigh catalog portrait arms at sides staring at lens'
+        );
+      } else if (/\bWAVING\b/i.test(steeredPositive)) {
+        positive = appendUniqueCsv(
+          positive,
+          'waving one arm raised high overhead weight shifted one foot stepped never arms at sides standing catalog pose'
+        );
+      } else if (/\b(RELAXING|RECLINING)\b/i.test(steeredPositive)) {
+        positive = appendUniqueCsv(
+          positive,
+          'lying down on lounge or towel hips and back on the surface knees drawn up never standing beside it'
+        );
+      } else if (/\b(SEATED|PERCHED)\b/i.test(steeredPositive)) {
+        positive = appendUniqueCsv(
+          positive,
+          'seated hips on seat knees bent never standing with arms at sides'
+        );
+      }
+    } else if (adultHeat) {
+      const duoBeat =
+        /\b(MOOD:\s*(?:intimate|raunchy)\s+duo|PARTNERS:|HEADCOUNT LOCK:|exactly TWO adults|DUO VISIBLE)\b/i.test(
+          steeredPositive
+        );
+      const soloToyBeat =
+        !duoBeat &&
+        /\b(dildo|vibrator|wand\s+vibrator|magic\s*wand|rabbit\s+vibe|sex\s*toy|toy\s+play)\b/i.test(
+          steeredPositive
+        );
+      if (duoBeat) {
+        positive = appendUniqueCsv(positive, RAPID_AIO_ADULT_DUO_PROP_POSITIVE);
+        negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_DUO_PROP_NEGATIVE);
+        negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_PROP_NEGATIVE);
+      } else if (soloToyBeat) {
+        positive = appendUniqueCsv(positive, RAPID_AIO_ADULT_TOY_PROP_POSITIVE);
+        negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_TOY_PROP_NEGATIVE);
+      } else {
+        positive = appendUniqueCsv(positive, RAPID_AIO_ADULT_PROP_POSITIVE);
+        negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_PROP_NEGATIVE);
+      }
+    }
+    return finish({ positive, negative });
   }
 
   if (isCfg1DistilledStillImageModel(input.model)) {
@@ -477,7 +654,11 @@ export function preparePositiveForQueue(
   const realismMode = options?.realismMode ?? loadRenderRealismMode();
   const withPoseLock = ensurePoseGuideStyleLock(positive, realismMode);
   const withRealism = applyRenderRealismToPositive(withPoseLock, realismMode);
-  return applyAnatomyGuardToPositive(withRealism, options?.anatomyMode ?? loadAnatomyGuardMode());
+  const withAnatomy = applyAnatomyGuardToPositive(
+    withRealism,
+    options?.anatomyMode ?? loadAnatomyGuardMode()
+  );
+  return appendCleanSkinPositive(withAnatomy);
 }
 
 export function prepareNegativeForQueue(
@@ -494,5 +675,9 @@ export function prepareNegativeForQueue(
     withPoseNeg,
     options?.realismMode ?? loadRenderRealismMode()
   );
-  return applyAnatomyGuardToNegative(withRealism, options?.anatomyMode ?? loadAnatomyGuardMode());
+  const withAnatomy = applyAnatomyGuardToNegative(
+    withRealism,
+    options?.anatomyMode ?? loadAnatomyGuardMode()
+  );
+  return mergeCleanSkinNegatives(withAnatomy, negative);
 }

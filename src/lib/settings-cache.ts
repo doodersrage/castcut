@@ -978,6 +978,8 @@ export type RoleplayToolCache = {
   customGarmentImageFilename?: string;
   /** Vision scan of the BYO clothing photo — text cue for Story stills. */
   customGarmentDescription?: string;
+  /** Adult roll mix: solo / duo / mixed (same chips as Day Intimate). */
+  intimateMix?: import('./day-planner').DayIntimateMix;
 };
 
 /** Fitting Room — outfit try-on from a Cast plate + locked wardrobe kit. */
@@ -1028,6 +1030,15 @@ export type DayToolCache = {
   wardrobeCategoryFilter?: import('./wardrobe-catalog-ui').WardrobeCategoryFilter;
   /** Default on — isolate the Day plate on white before queueing stills. */
   isolateSubject?: boolean;
+  /**
+   * When true, Day may invent a second adult (friend / selfie companion) —
+   * skips the hard solo lock and can diversify into duo beats.
+   */
+  allowCompanions?: boolean;
+  /** Everyday / suggestive / intimate heat for Day stills (intimate is NSFW-gated). */
+  dayMood?: import('./day-planner').DayMood;
+  /** Solo / duo / mixed beat filter when dayMood is intimate or raunchy. */
+  intimateMix?: import('./day-planner').DayIntimateMix;
   /** True when {@link plateImageUrl} is the isolated cutout for {@link plateIsolateSourceKey}. */
   referenceIsolated?: boolean;
   /** Fingerprint of the source plate the isolate override was built from. */
@@ -1041,6 +1052,11 @@ export type DayToolCache = {
   customGarmentImageFilename?: string;
   /** Vision scan of the BYO clothing photo — text cue for Day stills. */
   customGarmentDescription?: string;
+  /**
+   * When true, hide the sticky “Ready to cut” coach so it doesn’t cover the
+   * board on scroll. Cut film stays available on the Day reel section.
+   */
+  hideStickyCutCoach?: boolean;
 };
 
 /** Moodboard → Scene — reference tiles merged into one scene prompt. */
@@ -1428,6 +1444,7 @@ export const DEFAULT_ROLEPLAY_TOOL_CACHE: RoleplayToolCache = {
   isolateSubject: true,
   autoQueue: false,
   beatOutput: 'clip',
+  intimateMix: 'mixed',
 };
 
 export const DEFAULT_FITTING_TOOL_CACHE: FittingToolCache = {
@@ -1442,6 +1459,10 @@ export const DEFAULT_DAY_TOOL_CACHE: DayToolCache = {
   slots: undefined,
   notes: '',
   isolateSubject: true,
+  allowCompanions: false,
+  dayMood: 'everyday',
+  intimateMix: 'mixed',
+  hideStickyCutCoach: false,
 };
 
 export const DEFAULT_MOODBOARD_TOOL_CACHE: MoodboardToolCache = {
@@ -1816,6 +1837,67 @@ export function saveSettingsCache(cache: SettingsCache, options?: SaveSettingsOp
   }
 }
 
+/**
+ * Clear Cast-bound Play tool plates when activeCharacterId changes.
+ * Outfit/Day/Story otherwise keep the previous look plate or isolate cutout.
+ */
+export function scrubPlayToolCachesOnCastChange(tools: ToolSettingsCache): ToolSettingsCache {
+  let next: ToolSettingsCache = { ...tools };
+
+  if (next.day) {
+    next = {
+      ...next,
+      day: {
+        ...next.day,
+        stills: [],
+        stillsCharacterId: undefined,
+        referenceIsolated: false,
+        plateIsolateSourceKey: undefined,
+        plateImageUrl: undefined,
+        plateImageFilename: undefined,
+        plateOriginalUrl: undefined,
+        plateOriginalFilename: undefined,
+      },
+    };
+  }
+
+  if (next.fitting) {
+    next = {
+      ...next,
+      fitting: {
+        ...next.fitting,
+        referenceIsolated: false,
+        referenceImageUrl: undefined,
+        referenceImageFilename: undefined,
+        referenceOriginalUrl: undefined,
+        referenceOriginalFilename: undefined,
+        previewPlateFilename: undefined,
+        previewPlateUrl: undefined,
+        previewPlateSourceKey: undefined,
+        pendingOutfitPlatePromptId: undefined,
+        // Allow Cast look reseed after switch (user clear still sets this true).
+        suppressAutoPlateSeed: false,
+      },
+    };
+  }
+
+  if (next.roleplay) {
+    next = {
+      ...next,
+      roleplay: {
+        ...next.roleplay,
+        referenceIsolated: false,
+        referenceImageUrl: undefined,
+        referenceImageFilename: undefined,
+        referenceOriginalUrl: undefined,
+        referenceOriginalFilename: undefined,
+      },
+    };
+  }
+
+  return next;
+}
+
 export function saveSharedSettings(
   shared: SharedToolSettings,
   options?: SaveSettingsOptions
@@ -1834,23 +1916,14 @@ export function saveSharedSettings(
   const merged: SharedToolSettings = { ...shared };
   applySystemWorkflowsSidecar(merged);
 
-  // Day stills are global (slot-keyed only). Drop them when Cast changes so
-  // progress / play metrics never keep another character's face after leaving Day.
+  // Play plates/stills are Cast-owned. Drop Day stills + isolate overrides, Outfit
+  // try-on refs, and Story From-photo refs when Cast changes so Look plates cannot
+  // stick to the previous character across Outfit / Day / Story.
   const prevCharacterId = cache.shared.activeCharacterId?.trim() || '';
   const nextCharacterId = merged.activeCharacterId?.trim() || '';
   let tools = cache.tools;
   if (prevCharacterId !== nextCharacterId) {
-    const day = tools.day;
-    if (day && ((day.stills?.length ?? 0) > 0 || day.stillsCharacterId)) {
-      tools = {
-        ...tools,
-        day: {
-          ...day,
-          stills: [],
-          stillsCharacterId: undefined,
-        },
-      };
-    }
+    tools = scrubPlayToolCachesOnCastChange(tools);
   }
 
   saveSettingsCache({ ...cache, shared: merged, tools }, options);

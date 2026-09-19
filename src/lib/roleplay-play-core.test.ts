@@ -108,7 +108,7 @@ describe('roleplay-play-core', () => {
     assert.equal(options?.controlImageFilename, undefined);
   });
 
-  it('also queues the pose guide as ControlNet when a safe CN weight is mapped', () => {
+  it('does not attach ControlNet for mannequin pose guides (Image 3 Edit only)', () => {
     const options = buildRoleplayQueueStillOptions({
       photoMode: true,
       isolateSubject: false,
@@ -122,14 +122,9 @@ describe('roleplay-play-core', () => {
         'flux-dev': 'flux-controlnet-pose.safetensors',
       },
     });
-    assert.equal(options?.controlImageFilename, 'pose.png');
-    assert.equal(options?.controlImageUrl, 'https://example.com/pose.png');
-    assert.equal(options?.queueParamsBase?.controlNetMode, 'pose');
-    assert.equal(options?.queueParamsBase?.controlNetSkipPreprocessor, true);
-    assert.equal(
-      options?.queueParamsBase?.controlNetModelFilename,
-      'flux-controlnet-pose.safetensors'
-    );
+    assert.equal(options?.controlImageFilename, undefined);
+    assert.equal(options?.queueParamsBase?.controlNetModelFilename, undefined);
+    assert.deepEqual(options?.inputImageFilenames, ['', '', 'pose.png']);
   });
 
   it('does not attach InstantX ControlNet for mannequin pose guides', () => {
@@ -170,6 +165,21 @@ describe('roleplay-play-core', () => {
       'https://example.com/pose.png',
     ]);
     assert.deepEqual(options?.inputImageFilenames, ['', '', 'pose.png']);
+  });
+
+  it('forces Rapid AIO Edit NSFW queueModel on nude Story stills', () => {
+    const options = buildRoleplayQueueStillOptions({
+      photoMode: true,
+      isolateSubject: false,
+      referenceIsolated: false,
+      filename: 'face.png',
+      imageUrl: '/media/face.png',
+      omitGarment: true,
+      model: 'qwen-rapid-aio-sfw',
+      controlNetMap: {},
+    });
+    assert.equal(options?.queueModel, 'qwen-rapid-aio-edit-nsfw');
+    assert.equal(options?.queueTool, 'image-prompt');
   });
 
   it('passes wardrobe cues on prompt requests', () => {

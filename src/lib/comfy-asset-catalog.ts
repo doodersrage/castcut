@@ -70,6 +70,7 @@ const QWEN_EDIT_MODELS = [
   'qwen-image-edit-2511-lightning-8',
   'qwen-image-edit-2509',
   'qwen-rapid-aio-edit',
+  'qwen-rapid-aio-edit-nsfw',
 ] as const;
 
 const QWEN_SHARED_MODELS = [...QWEN_T2I_MODELS, ...QWEN_EDIT_MODELS] as const;
@@ -420,34 +421,26 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
 
   // ── Qwen Rapid AIO (Phr00t checkpoint merges) ─────────────────────
   {
-    id: 'qwen-rapid-aio-edit-checkpoint',
-    label: 'Qwen Rapid AIO Edit (v21 checkpoint)',
-    kind: 'checkpoint',
-    filename: 'Qwen-Rapid-AIO-v21.safetensors',
-    url: 'https://huggingface.co/Phr00t/Qwen-Image-Edit-Rapid-AIO/resolve/main/v21/Qwen-Rapid-AIO-v21.safetensors',
-    bytes: 28400000000,
-    modelIds: ['qwen-rapid-aio-edit'],
-    notes: 'Phr00t community merge — place under models/checkpoints/.',
-  },
-  {
     id: 'qwen-rapid-aio-sfw-checkpoint',
-    label: 'Qwen Rapid AIO SFW (v23 checkpoint)',
+    label: 'Qwen Rapid AIO SFW / Edit (v23)',
     kind: 'checkpoint',
     filename: 'Qwen-Rapid-AIO-SFW-v23.safetensors',
     url: 'https://huggingface.co/Phr00t/Qwen-Image-Edit-Rapid-AIO/resolve/main/v23/Qwen-Rapid-AIO-SFW-v23.safetensors',
     bytes: 28400000000,
-    modelIds: ['qwen-rapid-aio-sfw'],
-    notes: 'Phr00t SFW dual-purpose T2I/edit merge.',
+    modelIds: ['qwen-rapid-aio-sfw', 'qwen-rapid-aio-edit'],
+    notes:
+      'Phr00t SFW dual-purpose merge — Day/Story Edit + Generate T2I. Map to v21 in Settings if that weight is preferred.',
   },
   {
     id: 'qwen-rapid-aio-nsfw-checkpoint',
-    label: 'Qwen Rapid AIO NSFW (v23 checkpoint)',
+    label: 'Qwen Rapid AIO NSFW / Edit NSFW (v23)',
     kind: 'checkpoint',
     filename: 'Qwen-Rapid-AIO-NSFW-v23.safetensors',
     url: 'https://huggingface.co/Phr00t/Qwen-Image-Edit-Rapid-AIO/resolve/main/v23/Qwen-Rapid-AIO-NSFW-v23.safetensors',
     bytes: 28400000000,
-    modelIds: ['qwen-rapid-aio-nsfw'],
-    notes: 'Phr00t NSFW dual-purpose T2I/edit merge — default Adult generator draft recipe target.',
+    modelIds: ['qwen-rapid-aio-nsfw', 'qwen-rapid-aio-edit-nsfw'],
+    notes:
+      'Phr00t NSFW dual-purpose merge — Day/Story intimate Edit + Adult generator T2I. Map to v21 in Settings if that weight is preferred.',
   },
 
   // ── FLUX.1 ────────────────────────────────────────────────────────

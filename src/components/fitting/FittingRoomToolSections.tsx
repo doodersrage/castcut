@@ -6,16 +6,18 @@ import FittingCompareSection from '@/components/fitting/FittingCompareSection';
 import FittingActionRow from '@/components/fitting/FittingActionRow';
 import FittingPlateSection from '@/components/fitting/FittingPlateSection';
 import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
+import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
+import OutfitPlayPhaseStrip from '@/components/fitting/OutfitPlayPhaseStrip';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { FieldError } from '@/components/ui/Field';
-import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import { CollapsibleSection, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
-import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
+import { fittingSessionStatusLine, resolveFittingOutfitPhase } from '@/lib/fitting-room';
 import { fittingNotesCachePatch } from '@/lib/look-pack';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 
@@ -97,10 +99,26 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     goRoleplay,
     dayPlannerHref,
     queueBlocked,
+    queueBlockReason,
+    dismissTryOn,
+    requeueTryOn,
     leanChrome,
     setIsolateStatus,
   } = vm;
   const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance();
+  const outfitPhase = resolveFittingOutfitPhase({
+    hasPlate: hasReference,
+    compareCount: compareTryOns.length,
+    continueDayReady: Boolean(continueDayHref || softAdvance),
+  });
+  const statusLine = fittingSessionStatusLine({
+    hasPlate: hasReference,
+    kitLabel: lockedWardrobeLabel || shared.lockedWardrobeId,
+    hasByo: Boolean(
+      toolSettings.customGarmentImageUrl?.trim() || toolSettings.customGarmentImageFilename?.trim()
+    ),
+    byoLabel: toolSettings.customGarmentDescription,
+  });
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -140,10 +158,18 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.fitting} />
       <PlayFilmEngineBanner />
       <PlayFilmFunnelChrome />
+      <OutfitPlayPhaseStrip activePhase={outfitPhase} compareCount={compareTryOns.length} />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
         onCancel={cancelSoftAdvance}
+      />
+
+      <FittingStatusStrip
+        className="mt-2"
+        statusLine={statusLine}
+        queueBlockReason={queueBlocked ? queueBlockReason : null}
+        previewHint="Preview kits = draft thumbs · Queue try-on = full quality for Keep → Day"
       />
 
       {compareTryOns.length > 0 && !softAdvance && !continueDayHref ? (
@@ -245,13 +271,15 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         busy={busy}
         onKeepTryOn={keepTryOn}
         onSoftAdvance={href => softAdvanceHref(href, 'Day')}
-        onSkipKit={skipKit}
+        onDismissTryOn={dismissTryOn}
+        onRequeueTryOn={tryOn => void requeueTryOn(tryOn)}
       />
 
       <FittingActionRow
         continueDayHref={softAdvance ? null : continueDayHref}
         dayPlannerHref={dayPlannerHref}
         queueBlocked={queueBlocked}
+        queueBlockReason={queueBlockReason}
         swipeDeckLength={swipeDeck.length}
         busy={busy}
         character={character}
@@ -265,31 +293,36 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       />
       {saveStatus ? <p className="type-caption text-[var(--text-muted)]">{saveStatus}</p> : null}
       {error ? <FieldError>{error}</FieldError> : null}
-      {isolateSubject && hasReference && toolSettings.referenceIsolated !== true && !error ? (
-        <p className="type-caption text-[var(--text-muted)]">{ISOLATE_QUEUE_BLOCKED_MESSAGE}</p>
-      ) : null}
 
-      <ScenePromptResultPanel
-        output={output}
-        onOutputChange={setOutput}
-        result={null}
-        copied={copied}
-        onCopy={() => {
-          if (!output) {
-            return;
-          }
-          void navigator.clipboard.writeText(output).then(() => {
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 2000);
-          });
-        }}
-        actions={actions}
-        shared={shared}
-        selectedComfyNode={selectedModel?.comfyNode ?? 'model'}
-        hints={toolSettings.notes}
-        queueLabel="Queue try-on"
-        onSendComfyUi={() => void queueTryOn()}
-      />
+      <CollapsibleSection
+        title="Prompt (advanced)"
+        summary="Edit the try-on prompt — Queue lives in the action row above."
+        defaultOpen={false}
+        persistKey="fitting-prompt-advanced"
+      >
+        <ScenePromptResultPanel
+          output={output}
+          onOutputChange={setOutput}
+          result={null}
+          copied={copied}
+          onCopy={() => {
+            if (!output) {
+              return;
+            }
+            void navigator.clipboard.writeText(output).then(() => {
+              setCopied(true);
+              window.setTimeout(() => setCopied(false), 2000);
+            });
+          }}
+          actions={actions}
+          shared={shared}
+          selectedComfyNode={selectedModel?.comfyNode ?? 'model'}
+          hints={toolSettings.notes}
+          queueLabel="Queue try-on"
+          includeStickyBar={false}
+          showQueueButton={false}
+        />
+      </CollapsibleSection>
     </ToolLayout>
   );
 }

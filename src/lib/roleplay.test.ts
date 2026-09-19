@@ -74,6 +74,12 @@ import {
   slugRoleplayExportPart,
   templateRoleplayBio,
   templateRoleplayScenes,
+  roleplayQueueBlockReason,
+  storySessionStatusLine,
+  buildStoryProgressLightboxState,
+  countRoleplayCompletedStills,
+  countRoleplayCompletedClips,
+  roleplayIntimateMixLine,
 } from './roleplay';
 
 describe('roleplay parsers', () => {
@@ -214,7 +220,7 @@ describe('roleplay parsers', () => {
     assert.equal(resolveRoleplaySetting('  neon alley  ', 'studio lock'), 'neon alley');
     assert.equal(resolveRoleplaySetting('', 'locked tavern'), 'locked tavern');
     assert.equal(resolveRoleplaySetting('', ''), '');
-    assert.ok(ROLEPLAY_SETTING_PRESETS.length >= 16);
+    assert.ok(ROLEPLAY_SETTING_PRESETS.length >= 60);
     const rolled = rollRoleplaySetting();
     assert.ok(ROLEPLAY_SETTING_PRESETS.some(entry => entry.setting === rolled));
     assert.match(
@@ -371,6 +377,19 @@ describe('roleplay parsers', () => {
     assert.doesNotMatch(doggySourced, /doggy|doggystyle/i);
     assert.doesNotMatch(doggySourced, /soft bedroom portrait|velvet lullaby|Amber Office bent|on hands and knees/i);
     assert.ok(doggySourced.length < 900, `behind still source too long (${doggySourced.length})`);
+    const cabinetBlurb =
+      "She's slumped sideways in the steel cabinet’s open drawer, thighs parted as he thrusts from behind—his hand grips her waist while the other sinks deep into her vagina, office lights casting long shadows over her bare calves and his sweat-slicked back.";
+    const cabinetGuided = withRoleplayPoseGuidePrompt(cabinetBlurb, true);
+    assert.match(cabinetGuided, /Cabinet drawer: exactly TWO nude adults/i);
+    assert.match(cabinetGuided, /^Cabinet drawer:|Cabinet drawer: rear-entry/im);
+    assert.match(cabinetGuided, /Image 1 face only|clothed third|discard Image 1 standing clothes/i);
+    assert.doesNotMatch(cabinetGuided, /Behind duo: exactly TWO solid humans — lead bent over desk/i);
+    const drawerAfterglowBlurb =
+      "She lies still in the drawer's dim glow, eyes closed as he withdraws slowly—his thumb smears her clit one last time before his hand slips free, leaving only the scent of him on her thighs.";
+    const drawerAfterglowGuided = withRoleplayPoseGuidePrompt(drawerAfterglowBlurb, true);
+    assert.match(drawerAfterglowGuided, /Drawer afterglow: exactly TWO nude adults/i);
+    assert.match(drawerAfterglowGuided, /^Drawer afterglow:/im);
+    assert.doesNotMatch(drawerAfterglowGuided, /Wall duo:|Cabinet drawer: exactly TWO nude adults — lead slumped/i);
     const chairBlurb =
       "She's hunched over the ergonomic chair, arms locked around his neck as he thrusts from behind—her thighs clamp tight, fingers digging into his shoulders while his hand slides down to stroke her clit through damp silk pajama bottoms.";
     const chairSourced = storyStillPromptSource({
@@ -385,7 +404,15 @@ describe('roleplay parsers', () => {
         beat: { blurb: oralBlurb },
         hasPoseGuide: true,
       }),
-      0.45
+      0.12
+    );
+    assert.equal(
+      storyIdentityLockStrengthForBeat(0.75, {
+        beat: { blurb: oralBlurb },
+        hasPoseGuide: false,
+        omitGarment: true,
+      }),
+      0.12
     );
     const snofsDip = storyIntimateSnofsStrengthOverrides({
       beat: { blurb: doggyBlurb },
@@ -903,5 +930,115 @@ describe('roleplay parsers', () => {
     assert.match(markdown, /Clip: `clips\/01-first-look.mp4`/);
     assert.match(markdown, /Assembled: `crisp-film-2026-08-16.webm`/);
     assert.match(markdown, /a toaster/);
+  });
+});
+
+describe('roleplay Story UX helpers', () => {
+  it('roleplayQueueBlockReason returns user-facing block strings', () => {
+    assert.equal(
+      roleplayQueueBlockReason({ hasCharacter: false, hasBio: true }),
+      'Pick a Cast lead on Film first.'
+    );
+    assert.equal(
+      roleplayQueueBlockReason({ hasCharacter: true, hasBio: false }),
+      'Set a character bible on Cast before rolling scenes.'
+    );
+    assert.equal(
+      roleplayQueueBlockReason({
+        hasCharacter: true,
+        hasBio: true,
+        playAsPhoto: true,
+        hasPlate: false,
+      }),
+      'Add a look plate on Cast (From photo) before queuing stills.'
+    );
+    assert.equal(
+      roleplayQueueBlockReason({ hasCharacter: true, hasBio: true }),
+      null
+    );
+  });
+
+  it('storySessionStatusLine names Cast · plate · progress', () => {
+    assert.match(
+      storySessionStatusLine({
+        hasCharacter: false,
+        hasPlate: false,
+        completedStills: 0,
+        completedClips: 0,
+        beatTotal: 0,
+      }),
+      /No Cast lead · no plate/
+    );
+    assert.match(
+      storySessionStatusLine({
+        hasCharacter: true,
+        characterName: 'Sam',
+        hasPlate: true,
+        hasWardrobe: true,
+        completedStills: 2,
+        completedClips: 1,
+        beatTotal: 4,
+      }),
+      /Sam · plate ready · kit · 2\/4 stills · 1 clip/
+    );
+  });
+
+  it('buildStoryProgressLightboxState opens beats in order', () => {
+    const story = [
+      {
+        id: 'a',
+        title: 'First',
+        blurb: 'One',
+        at: 1,
+        prompt: 'p1',
+        stillStatus: 'completed' as const,
+        imageUrl: 'https://example.com/a.png',
+      },
+      {
+        id: 'b',
+        title: 'Second',
+        blurb: 'Two',
+        at: 2,
+        prompt: 'p2',
+        stillStatus: 'completed' as const,
+        imageUrl: 'https://example.com/b.png',
+      },
+    ];
+    const state = buildStoryProgressLightboxState(story, 'b', beat => beat.imageUrl);
+    assert.ok(state);
+    assert.equal(state!.index, 1);
+    assert.deepEqual(state!.beatIds, ['a', 'b']);
+    assert.equal(state!.title, 'Second');
+  });
+
+  it('counts completed stills and clips', () => {
+    const story = [
+      {
+        id: 'a',
+        title: 'A',
+        blurb: '',
+        at: 1,
+        stillStatus: 'completed' as const,
+        imageUrl: 'https://x/a.png',
+        clipStatus: 'completed' as const,
+        clipUrl: 'https://x/a.mp4',
+      },
+      {
+        id: 'b',
+        title: 'B',
+        blurb: '',
+        at: 2,
+        stillStatus: 'completed' as const,
+        imageUrl: 'https://x/b.png',
+      },
+    ];
+    assert.equal(countRoleplayCompletedStills(story), 2);
+    assert.equal(countRoleplayCompletedClips(story), 1);
+  });
+
+  it('roleplayIntimateMixLine only applies to adult content', () => {
+    assert.equal(roleplayIntimateMixLine('pg13', 'solo'), '');
+    assert.match(roleplayIntimateMixLine('explicit', 'solo'), /SOLO only/i);
+    assert.match(roleplayIntimateMixLine('sultry', 'duo'), /DUO only/i);
   });
 });

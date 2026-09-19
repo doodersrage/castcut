@@ -582,6 +582,9 @@ const MODEL_RESOLUTION_PRESETS: ModelResolutionPresetMap = {
   'qwen-image-edit-2511-lightning-4': QWEN_LIGHTNING_ARS,
   'qwen-image-edit-2511-lightning-8': QWEN_LIGHTNING_ARS,
   'qwen-rapid-aio-edit': QWEN_OFFICIAL_ARS,
+  'qwen-rapid-aio-edit-nsfw': {
+    square: QWEN_OFFICIAL_ARS.square,
+  },
   'qwen-rapid-aio-sfw': {
     square: QWEN_OFFICIAL_ARS.square,
   },

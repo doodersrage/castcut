@@ -1,7 +1,6 @@
 'use client';
 
-import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
@@ -9,7 +8,8 @@ import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import PlayPersistenceTriad from '@/components/PlayPersistenceTriad';
-import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
+import LookPlayPhaseStrip from '@/components/moodboard/LookPlayPhaseStrip';
+import LookStatusStrip from '@/components/moodboard/LookStatusStrip';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import {
@@ -27,66 +27,45 @@ import {
   ToolSection,
   accentFocusClass,
 } from '@/components/ui/ToolPageShell';
+import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
-import { LOOK_PRESETS, lookPackFromPreset, tilesFromLookPreset } from '@/lib/look-presets';
-import { useCachedSettings } from '@/hooks/useCachedSettings';
-import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
-import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
-import { useToolPageDescription } from '@/hooks/useToolPageDescription';
-import { applyCharacterRecord, addCharacterLookPack, getCharacter } from '@/lib/character-os';
-import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
 import { galleryPickPath } from '@/lib/gallery-handoff';
-import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
-import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
-import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import {
-  buildLookPackFromMoodboard,
   copyPortableLookPackShareLink,
   downloadLookPackFile,
   loadLookPack,
   lookPackDayHref,
   lookPackFittingHref,
-  lookPackRoleplayHref,
   saveLookPack,
 } from '@/lib/look-pack';
-import { markOnboardingFirstPlayCampaign } from '@/lib/onboarding-hooks';
-import { bumpPlayCampaignStep, playCampaignHref } from '@/lib/play-campaign';
+import { LOOK_PRESETS, lookPackFromPreset, tilesFromLookPreset } from '@/lib/look-presets';
 import {
+  LOOK_PREVIEW_HINT,
   MOODBOARD_TEMPLATE_OPTIONS,
   MOODBOARD_TILE_ROLES,
-  newMoodboardTileId,
-  normalizeMoodboardTemplateId,
-  normalizeMoodboardTiles,
-  synthesizeMoodboardPrompt,
-  type MoodboardTile,
+  markMoodboardGalleryPlatePick,
+  moodboardExtractBlockReason,
+  moodboardQueueBlockReason,
+  moodboardSessionStatusLine,
+  resolveLookPlayPhase,
   type MoodboardTileRole,
 } from '@/lib/moodboard-scene';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import { getReformatTargetModel } from '@/lib/reformat-target';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
-import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import {
-  DEFAULT_MOODBOARD_TOOL_CACHE,
-  loadSettingsCache,
-  saveSharedSettings,
-} from '@/lib/settings-cache';
+import { bumpPlayCampaignStep, playCampaignHref } from '@/lib/play-campaign';
+import { resolvePlayStepHref } from '@/lib/play-step-machine';
+import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
+import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
+import type { useMoodboardToolOrchestration } from '@/hooks/useMoodboardToolOrchestration';
 
 const ACCENT = 'cyan' as const;
 const TOOL_ID = 'moodboard' as const;
 const MAX_TILES = 4;
-
-import type { useMoodboardToolOrchestration } from '@/hooks/useMoodboardToolOrchestration';
 
 type ViewModel = ReturnType<typeof useMoodboardToolOrchestration>;
 type Props = ViewModel & { description: string };
 
 export default function MoodboardToolSections({ description, ...vm }: Props) {
   const {
-    mounted,
     shared,
     toolSettings,
     updateShared,
@@ -104,10 +83,12 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
     activeTileId,
     setActiveTileId,
     uploadingTileId,
+    plateUploading,
     tiles,
     templateId,
     character,
     selectedModel,
+    plate,
     hasPlate,
     activeTile,
     actions,
@@ -115,6 +96,9 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
     addTile,
     removeTile,
     applyImageToTile,
+    applyLookPlate,
+    clearLookPlate,
+    keepSceneAsLookPlate,
     queueScene,
     previewPrompt,
     extractLookPack,
@@ -130,6 +114,56 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
     void lookStatus;
     return loadLookPack();
   }, [lookStatus, tiles, character?.id]);
+  const hasInstruction = Boolean(toolSettings.instruction?.trim());
+  const extractBlocked = moodboardExtractBlockReason({
+    hasTiles: tiles.length > 0,
+    hasInstruction,
+    tileUploading: Boolean(uploadingTileId),
+    extracting,
+    busy,
+  });
+  const queueBlocked = moodboardQueueBlockReason({
+    hasTiles: tiles.length > 0,
+    hasInstruction,
+    tileUploading: Boolean(uploadingTileId),
+    busy,
+  });
+  const statusLine = moodboardSessionStatusLine({
+    tileCount: tiles.length,
+    hasPlate,
+    hasLookPack: Boolean(stagedLookPack),
+  });
+  const lookPhase = resolveLookPlayPhase({
+    tileCount: tiles.length,
+    hasInstruction,
+    hasLookPack: Boolean(stagedLookPack),
+    hasPlate,
+    softAdvanceActive: Boolean(softAdvance),
+  });
+  const daySkipHref = character ? resolvePlayStepHref('day', character.id) : '/day';
+  const platePreviewUrl = plate?.imageUrl?.trim()
+    ? cacheBustIdentityMediaUrl(plate.imageUrl.trim())
+    : '';
+  const scenePreviewUrl = actions.comfyUiPreviewUrl?.trim() || '';
+  const demoteQueue = Boolean(softAdvance || stagedLookPack);
+
+  const startExtractSoftAdvance = (pack: NonNullable<ReturnType<typeof loadLookPack>>) => {
+    const fittingHref = lookPackFittingHref(pack);
+    const dayHref = lookPackDayHref(pack);
+    softAdvanceHref(fittingHref, 'Outfit', 'Look ready — continuing to Outfit (or go to Day)', [
+      {
+        href: dayHref,
+        label: 'Go to Day instead',
+        onNavigate: () => {
+          const characterId = pack.characterId?.trim();
+          if (characterId) {
+            bumpPlayCampaignStep({ characterId, stepId: 'day' });
+          }
+        },
+      },
+    ]);
+  };
+
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -146,6 +180,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
       variant="roleplay"
     />
   );
+
   return (
     <ToolLayout
       accent={ACCENT}
@@ -164,6 +199,21 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         target={softAdvance}
         onCancel={cancelSoftAdvance}
       />
+
+      <LookPlayPhaseStrip activePhase={lookPhase} />
+      <LookStatusStrip
+        className="mt-2"
+        statusLine={statusLine}
+        extractBlockReason={extractBlocked}
+        queueBlockReason={!extractBlocked ? queueBlocked : null}
+        previewHint={LOOK_PREVIEW_HINT}
+        lookStatus={lookStatus}
+      />
+      {lookStatus ? (
+        <div className="mt-2">
+          <PlayPersistenceTriad compact />
+        </div>
+      ) : null}
 
       <ToolSection
         title="Look presets"
@@ -224,7 +274,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Character (optional)"
-        description="Attach a Cast character for subject notes. Extract look queues a full-body Outfit plate (minimal base clothing) for try-on."
+        description="Attach a Cast character for subject notes. Upload or pick a look plate here, or let Extract queue a full-body plate."
         data-testid="moodboard-character"
       >
         <CharacterOsPicker
@@ -238,11 +288,63 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
             }
           }}
         />
-        <p className="type-caption mt-2 text-[var(--text-muted)]">
-          {hasPlate
-            ? 'Cast plate ready — Extract look will replace it with a full-body try-on still.'
-            : 'No Cast plate yet — Extract look will queue a full-body try-on still for Outfit.'}
-        </p>
+        {character ? (
+          <div className="mt-3 space-y-2" data-testid="moodboard-look-plate">
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                disabled={busy || plateUploading}
+                className="ui-file-input block min-w-0 flex-1"
+                data-testid="moodboard-look-plate-upload"
+                onChange={event => {
+                  const file = event.target.files?.[0];
+                  event.target.value = '';
+                  if (file) {
+                    void applyLookPlate({ file });
+                  }
+                }}
+              />
+              <ButtonLink
+                href={galleryPickPath('moodboard', { characterId: character.id })}
+                variant="secondary"
+                size="sm"
+                data-testid="moodboard-look-plate-gallery"
+                onClick={() => markMoodboardGalleryPlatePick()}
+              >
+                Choose from Gallery
+              </ButtonLink>
+              {hasPlate ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy || plateUploading}
+                  data-testid="moodboard-look-plate-clear"
+                  onClick={clearLookPlate}
+                >
+                  Remove
+                </Button>
+              ) : null}
+            </div>
+            {platePreviewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={platePreviewUrl}
+                alt="Look plate"
+                className="max-h-40 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
+                data-testid="moodboard-look-plate-preview"
+              />
+            ) : (
+              <p className="type-caption text-[var(--text-muted)]">
+                No Cast plate yet — upload, Gallery, or Extract look.
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="type-caption mt-2 text-[var(--text-muted)]">
+            Pick a Cast character to upload a look plate in place.
+          </p>
+        )}
       </ToolSection>
 
       <ToolSection title="Template" description="How look cues merge into the scene prompt.">
@@ -418,14 +520,15 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         <Button
           size="sm"
           variant="primary"
-          disabled={busy || extracting}
+          disabled={Boolean(extractBlocked) || busy || extracting}
+          title={extractBlocked || undefined}
           data-testid="moodboard-extract-look"
           onClick={() => {
             void extractLookPack().then(pack => {
               if (!pack) {
                 return;
               }
-              softAdvanceHref(lookPackFittingHref(pack), 'Outfit');
+              startExtractSoftAdvance(pack);
             });
           }}
         >
@@ -446,35 +549,35 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         >
           Continue to Outfit
         </Button>
-        {stagedLookPack ? (
-          <Button
+        {character && !softAdvance ? (
+          <ButtonLink
+            href={daySkipHref}
             size="sm"
             variant="secondary"
-            disabled={busy || extracting}
-            data-testid="moodboard-share-look"
+            data-testid="moodboard-skip-day"
             onClick={() => {
-              void copyPortableLookPackShareLink({
-                pack: stagedLookPack,
-                name: character?.name ? `${character.name} look` : 'Look pack',
-              }).then(result => {
-                setLookStatus(
-                  result.ok
-                    ? 'Share link copied — send this look to another Castcut.'
-                    : result.error || 'Could not copy share link.'
-                );
-              });
+              bumpPlayCampaignStep({ characterId: character.id, stepId: 'day' });
             }}
           >
-            Share this look
-          </Button>
+            Skip look · Day
+          </ButtonLink>
         ) : null}
-        <Button size="sm" variant="ghost" disabled={busy || extracting} onClick={previewPrompt}>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={Boolean(queueBlocked) || extracting}
+          title={queueBlocked || LOOK_PREVIEW_HINT}
+          data-testid="moodboard-preview-prompt"
+          onClick={previewPrompt}
+        >
           Preview prompt
         </Button>
         <Button
           size="sm"
-          variant="ghost"
-          disabled={busy || extracting}
+          variant={demoteQueue ? 'ghost' : 'secondary'}
+          disabled={Boolean(queueBlocked) || extracting}
+          title={queueBlocked || undefined}
+          data-testid="moodboard-queue-scene"
           onClick={() => void queueScene()}
         >
           {busy ? 'Queueing…' : 'Queue scene'}
@@ -498,6 +601,28 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
             >
               Continue to Day
             </Button>
+            {stagedLookPack ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy || extracting}
+                data-testid="moodboard-share-look"
+                onClick={() => {
+                  void copyPortableLookPackShareLink({
+                    pack: stagedLookPack,
+                    name: character?.name ? `${character.name} look` : 'Look pack',
+                  }).then(result => {
+                    setLookStatus(
+                      result.ok
+                        ? 'Share link copied — send this look to another Castcut.'
+                        : result.error || 'Could not copy share link.'
+                    );
+                  });
+                }}
+              >
+                Share this look
+              </Button>
+            ) : null}
             <Button
               size="sm"
               variant="secondary"
@@ -547,9 +672,46 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
           </div>
         </details>
       </ToolActionRow>
-      {lookStatus ? <p className="type-caption text-[var(--text-muted)]">{lookStatus}</p> : null}
-      {lookStatus ? <PlayPersistenceTriad compact /> : null}
       {error ? <FieldError>{error}</FieldError> : null}
+
+      {scenePreviewUrl ? (
+        <div
+          className="mt-3 flex flex-wrap items-start gap-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-3"
+          data-testid="moodboard-scene-preview"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={scenePreviewUrl}
+            alt="Queued scene still"
+            className="max-h-40 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
+          />
+          <div className="space-y-2">
+            <p className="type-caption text-[var(--text-muted)]">
+              Scene still ready — Keep as Cast look plate, or requeue.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={!character || plateUploading || busy}
+                data-testid="moodboard-keep-as-plate"
+                onClick={() => void keepSceneAsLookPlate()}
+              >
+                Keep as plate
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={Boolean(queueBlocked) || extracting}
+                data-testid="moodboard-requeue-scene"
+                onClick={() => void queueScene()}
+              >
+                Requeue scene
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <ScenePromptResultPanel
         output={output}
@@ -570,6 +732,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         selectedComfyNode={selectedModel?.comfyNode ?? 'model'}
         hints={toolSettings.instruction}
         queueLabel="Queue scene"
+        showQueueButton={false}
         onSendComfyUi={() => void queueScene()}
       />
     </ToolLayout>

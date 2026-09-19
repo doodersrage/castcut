@@ -17,9 +17,13 @@ type PlayCampaignActionsSectionProps = Pick<
   | 'activeLookPack'
   | 'goToStep'
   | 'startNewCampaign'
+  | 'mapHref'
 > & {
   /** When true, hide the primary Continue (shown in the resume card above). */
   compact?: boolean;
+  /** Post-cut habit home: Watch / remix / Story primary. */
+  firstFilmDone?: boolean;
+  onOpenStory?: () => void;
 };
 
 export default function PlayCampaignActionsSection({
@@ -33,7 +37,10 @@ export default function PlayCampaignActionsSection({
   activeLookPack,
   goToStep,
   startNewCampaign,
+  mapHref,
   compact = false,
+  firstFilmDone = false,
+  onOpenStory,
 }: PlayCampaignActionsSectionProps) {
   return (
     <>
@@ -46,7 +53,9 @@ export default function PlayCampaignActionsSection({
         >
           Saved film is for another Cast character.{' '}
           <ButtonLink
-            href={playCampaignHref(durableCampaign.characterId, durableCampaign.lookPackId)}
+            href={mapHref(
+              playCampaignHref(durableCampaign.characterId, durableCampaign.lookPackId)
+            )}
             size="sm"
             variant="ghost"
           >
@@ -56,7 +65,7 @@ export default function PlayCampaignActionsSection({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" data-testid="play-campaign-actions">
         {campaignComplete ? (
           <>
             <div
@@ -68,12 +77,12 @@ export default function PlayCampaignActionsSection({
                 {savedCampaign?.completedAt
                   ? ` · ${new Date(savedCampaign.completedAt).toLocaleString()}`
                   : ''}{' '}
-                — watch it on Cast, cut another Day film, or start another loop.
+                — watch it, cut another Day, or unlock Story.
               </p>
             </div>
             {characterId ? (
               <ButtonLink
-                href={`/characters/${encodeURIComponent(characterId)}?media=films`}
+                href={mapHref(`/characters/${encodeURIComponent(characterId)}?media=films`)}
                 size="sm"
                 variant="primary"
                 data-testid="play-campaign-open-cast-film"
@@ -83,13 +92,23 @@ export default function PlayCampaignActionsSection({
             ) : null}
             {characterId ? (
               <ButtonLink
-                href={remixDayFilmHref(characterId)}
+                href={mapHref(remixDayFilmHref(characterId))}
                 size="sm"
                 variant="secondary"
                 data-testid="play-campaign-cut-another"
               >
                 Same look, new Day
               </ButtonLink>
+            ) : null}
+            {firstFilmDone && characterId && onOpenStory ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                data-testid="play-campaign-open-story"
+                onClick={onOpenStory}
+              >
+                Continue in Story
+              </Button>
             ) : null}
             <Button
               size="sm"
@@ -114,18 +133,20 @@ export default function PlayCampaignActionsSection({
                 Continue to {resumeStep.label}
               </Button>
             ) : null}
-            <Button
-              size="sm"
-              variant={compact ? 'ghost' : resumeStep ? 'secondary' : 'primary'}
-              disabled={!characterId}
-              data-testid="play-campaign-start-moodboard"
-              onClick={() => goToStep('moodboard', activeLookPack)}
-            >
-              {resumeStep ? 'Restart at Look' : 'Start at Look'}
-            </Button>
+            {!compact || !resumeStep ? (
+              <Button
+                size="sm"
+                variant={resumeStep ? 'secondary' : 'primary'}
+                disabled={!characterId}
+                data-testid="play-campaign-start-moodboard"
+                onClick={() => goToStep('moodboard', activeLookPack)}
+              >
+                {resumeStep ? 'Restart at Look' : 'Start at Look'}
+              </Button>
+            ) : null}
           </>
         )}
-        <ButtonLink href="/characters" size="sm" variant="ghost">
+        <ButtonLink href={mapHref('/characters')} size="sm" variant="ghost">
           Cast roster
         </ButtonLink>
       </div>

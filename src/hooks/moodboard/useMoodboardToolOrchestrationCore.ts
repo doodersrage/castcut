@@ -10,8 +10,10 @@ import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
 import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
+import { applyCastLookPlateFromSource, clearCharacterLookPlate } from '@/lib/look-outfit-plate';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import {
+  consumeMoodboardGalleryPlatePick,
   newMoodboardTileId,
   normalizeMoodboardTemplateId,
   normalizeMoodboardTiles,
@@ -21,7 +23,11 @@ import { resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
 import { resolvePreferredLookModel } from '@/lib/queue-tool-model';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { DEFAULT_MOODBOARD_TOOL_CACHE } from '@/lib/settings-cache';
+import {
+  DEFAULT_MOODBOARD_TOOL_CACHE,
+  loadSettingsCache,
+  saveSharedSettings,
+} from '@/lib/settings-cache';
 import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
 
 const TOOL_ID = 'moodboard' as const;
@@ -41,6 +47,7 @@ export function useMoodboardToolOrchestrationCore() {
   const [lookStatus, setLookStatus] = useState<string | null>(null);
   const [activeTileId, setActiveTileId] = useState<string | null>(null);
   const [uploadingTileId, setUploadingTileId] = useState<string | null>(null);
+  const [plateUploading, setPlateUploading] = useState(false);
   const deepLinkHandled = useRef(false);
   const lookModelDefaultApplied = useRef(false);
 
@@ -163,6 +170,82 @@ export function useMoodboardToolOrchestrationCore() {
     [shared.model, updateTile]
   );
 
+  const applyLookPlate = useCallback(
+    async (input: { file?: File | null; imageUrl?: string; filename?: string }) => {
+      if (!character) {
+        setError('Pick a Cast character before setting a look plate.');
+        return false;
+      }
+      setPlateUploading(true);
+      setError(null);
+      setLookStatus(input.file ? 'Uploading look plate…' : 'Applying look plate…');
+      try {
+        const result = await applyCastLookPlateFromSource({
+          characterId: character.id,
+          file: input.file,
+          imageUrl: input.imageUrl,
+          filename: input.filename,
+          isolate: true,
+          model: loadSettingsCache().shared.model,
+        });
+        saveSharedSettings({
+          ...loadSettingsCache().shared,
+          ...applyCharacterRecordFresh(result.character),
+        });
+        updateShared(applyCharacterRecordFresh(result.character));
+        setLookStatus(
+          result.isolated ? 'Look plate saved (isolated on white).' : 'Look plate saved.'
+        );
+        return true;
+      } catch (err) {
+        setLookStatus(null);
+        setError(err instanceof Error ? err.message : 'Could not update the look plate.');
+        return false;
+      } finally {
+        setPlateUploading(false);
+      }
+    },
+    [character, updateShared]
+  );
+
+  const clearLookPlate = useCallback(() => {
+    if (!character) {
+      return;
+    }
+    if (
+      !window.confirm(
+        `Remove the look plate for ${character.name}? Outfit and Day will need a new plate.`
+      )
+    ) {
+      return;
+    }
+    const cleared = clearCharacterLookPlate(character.id);
+    if (cleared) {
+      const next = getCharacter(character.id);
+      if (next) {
+        const patch = applyCharacterRecordFresh(next);
+        saveSharedSettings({
+          ...loadSettingsCache().shared,
+          ...patch,
+        });
+        updateShared(patch);
+      }
+      setLookStatus('Look plate removed.');
+      setError(null);
+    } else {
+      setError('Nothing to remove — no look plate on this Cast.');
+    }
+  }, [character, updateShared]);
+
+  const keepSceneAsLookPlate = useCallback(async () => {
+    const previewUrl = actions.comfyUiPreviewUrl?.trim();
+    if (!previewUrl) {
+      setError('Queue a scene still first, then Keep as plate.');
+      return false;
+    }
+    return applyLookPlate({ imageUrl: previewUrl });
+  }, [actions.comfyUiPreviewUrl, applyLookPlate]);
+
   useEffect(() => {
     if (!mounted || lookModelDefaultApplied.current) {
       return;
@@ -233,6 +316,14 @@ export function useMoodboardToolOrchestrationCore() {
   }, [mounted, shared.activeCharacterId, updateShared]);
 
   useGalleryHandoff('moodboard', handoff => {
+    if (consumeMoodboardGalleryPlatePick()) {
+      void applyLookPlate({
+        file: handoff.file,
+        imageUrl: handoff.previewUrl ?? handoff.payload.imageUrl,
+        filename: handoff.payload.imageFilename,
+      });
+      return;
+    }
     const tileId = activeTileId ?? tiles[0]?.id;
     if (!tileId) {
       const id = newMoodboardTileId();
@@ -275,6 +366,7 @@ export function useMoodboardToolOrchestrationCore() {
     activeTileId,
     setActiveTileId,
     uploadingTileId,
+    plateUploading,
     tiles,
     templateId,
     character,
@@ -287,6 +379,9 @@ export function useMoodboardToolOrchestrationCore() {
     addTile,
     removeTile,
     applyImageToTile,
+    applyLookPlate,
+    clearLookPlate,
+    keepSceneAsLookPlate,
   };
 }
 

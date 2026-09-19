@@ -333,7 +333,19 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     comfyNode: 'Load Checkpoint',
     comfyClass: 'QwenImage',
     description:
-      'Phr00t Rapid AIO merge (2511 + Lightning baked in). Load Checkpoint + TextEncodeQwenImageEditPlus — 4 steps, cfg 1, optional refs for edit or T2I.',
+      'Phr00t Rapid AIO SFW edit merge (v23). Load Checkpoint + TextEncodeQwenImageEditPlus — euler_a/simple, 4–8 steps, cfg 1 (baked Lightning LoRAs — never raise CFG). Day/Story plate + Image 3 pose guides.',
+    profile: 'qwen_edit_instruction',
+    referenceTokenLimit: 512,
+    limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
+  },
+  {
+    id: 'qwen-rapid-aio-edit-nsfw',
+    label: 'Qwen Rapid AIO (Edit NSFW)',
+    category: 'qwen',
+    comfyNode: 'Load Checkpoint',
+    comfyClass: 'QwenImage',
+    description:
+      'Phr00t Rapid AIO NSFW edit merge (v23). Checkpoint Edit path — euler_a/simple, 4–8 steps, cfg 1 (baked Lightning LoRAs — never raise CFG). Prefer structural “clothes are now gone” over naked/strip (safety snaps to lingerie).',
     profile: 'qwen_edit_instruction',
     referenceTokenLimit: 512,
     limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
@@ -345,7 +357,7 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     comfyNode: 'Load Checkpoint',
     comfyClass: 'QwenImage',
     description:
-      'Phr00t Rapid AIO SFW checkpoint. Dual-purpose T2I/edit merge — euler/beta, 4–8 steps, cfg 1. Generate uses scene prose; Refine can still edit.',
+      'Phr00t Rapid AIO SFW checkpoint. Dual-purpose T2I/edit merge — euler/simple, 4–8 steps, cfg 1 (baked Lightning LoRAs — never raise CFG). Generate uses scene prose; plate tools snap to Rapid AIO Edit.',
     profile: 'qwen_t2i_factual',
     referenceTokenLimit: 512,
     limitsByDetail: QWEN_T2I_DISTILLED_LIMITS,
@@ -357,7 +369,7 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     comfyNode: 'Load Checkpoint',
     comfyClass: 'QwenImage',
     description:
-      'Phr00t Rapid AIO NSFW checkpoint. Dual-purpose T2I/edit merge — euler_ancestral/sgm_uniform, 4–8 steps, cfg 1. Generate uses scene prose; Refine can still edit.',
+      'Phr00t Rapid AIO NSFW checkpoint. Dual-purpose T2I/edit merge — euler_ancestral/sgm_uniform, 4–8 steps, cfg 1 (baked Lightning LoRAs — never raise CFG). Generate uses scene prose; plate tools snap to Rapid AIO Edit NSFW.',
     profile: 'qwen_t2i_factual',
     referenceTokenLimit: 512,
     limitsByDetail: QWEN_T2I_DISTILLED_LIMITS,

@@ -16,9 +16,14 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
   Outfit, Day/Story desk + mobile, Video continue-reel, Prove-it), Heal seeds identity
   packs, Film chrome Identity ready, cinematic Cut options on Day/Story. Outfit/Day/Story
   share BYO clothing packshots (durable browser KV) and Image 3 pose stick-figures with a
-  photoreal lock (anime when Settings says so). Day/Story pose uses Image 3 Edit only for
-  Qwen — InstantX is not fed filled mannequins (that leaked cyan/ghost overlays). Diffusers
-  video stays parked.
+  photoreal lock (anime when Settings says so). Day/Story pose uses Image 3 Edit only —
+  pose guides never attach ControlNet (CN locked Cast clothes onto nude stills). Intimate
+  Duo stills can still merge limbs or invent ghost hands on hard close-contact beats —
+  queues bias toward clearer stances and HANDS locks, but Edit models are not perfect.
+  Rapid AIO stills can look plastic — enable **Skin refine** on Day/Story (or Settings →
+  Comfy → Auto-improve) for an automatic UltraReal/Klein soft-pass; the refine model must
+  be installed/mapped like any other queue model.
+  Diffusers video stays parked.
 
 ## Generation engines
 

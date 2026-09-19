@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
+import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import { roleplayWatchPlaylist } from '@/lib/character-film';
 import { looksLikeMotionUrl } from '@/lib/roleplay-film';
@@ -12,6 +13,7 @@ import {
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui-live-preview-store';
 import {
+  buildStoryProgressLightboxState,
   roleplayStillBasename,
   roleplayStoryPromptIds,
   type RoleplayStoryBeat,
@@ -63,6 +65,7 @@ export default function RoleplayStoryReel({
   const promptKey = promptIds.join('|');
   const [liveUrls, setLiveUrls] = useState<Record<string, string | null>>({});
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
+  const [lightboxBeatIds, setLightboxBeatIds] = useState<string[]>([]);
 
   useEffect(() => {
     const refresh = () => {
@@ -88,6 +91,7 @@ export default function RoleplayStoryReel({
       }
       return [
         {
+          beatId: beat.id,
           url,
           title: beat.title,
           prompt: beat.prompt,
@@ -99,23 +103,68 @@ export default function RoleplayStoryReel({
 
   const openStill = useCallback(
     (beat: RoleplayStoryBeat) => {
-      const liveUrl = beat.promptId ? (liveUrls[beat.promptId] ?? null) : null;
-      const url = beatPreviewUrl(beat, liveUrl);
-      if (!url) {
+      const state = buildStoryProgressLightboxState(story, beat.id, entry => {
+        const liveUrl = entry.promptId ? (liveUrls[entry.promptId] ?? null) : null;
+        return beatPreviewUrl(entry, liveUrl);
+      });
+      if (!state) {
         return;
       }
-      const index = playlist.findIndex(slide => slide.url === url && slide.title === beat.title);
+      setLightboxBeatIds(state.beatIds);
       setLightbox({
-        images: playlist.map(slide => slide.url),
-        titles: playlist.map(slide => slide.title),
-        originalImages: playlist.map(slide => slide.url),
-        mediaKinds: playlist.map(slide => slide.kind),
-        index: index >= 0 ? index : 0,
-        title: beat.title,
+        images: state.images,
+        titles: state.titles,
+        originalImages: state.images,
+        mediaKinds: state.images.map((url, index) => {
+          const slide = playlist.find(
+            entry => entry.url === url && entry.title === state.titles[index]
+          );
+          return slide?.kind ?? (looksLikeMotionUrl(url) ? 'video' : 'image');
+        }),
+        index: state.index,
+        title: state.title,
       });
     },
-    [liveUrls, playlist]
+    [liveUrls, playlist, story]
   );
+
+  const activeBeatId =
+    lightbox && lightboxBeatIds.length > 0 ? lightboxBeatIds[lightbox.index] : undefined;
+  const activeBeat = activeBeatId ? story.find(entry => entry.id === activeBeatId) : undefined;
+  const activeSlide = lightbox ? playlist[lightbox.index] : undefined;
+
+  const slideChrome = useMemo((): ImageLightboxSlideChrome | null => {
+    if (!activeBeat && !activeSlide?.prompt) {
+      return null;
+    }
+    return {
+      meta: activeSlide?.prompt
+        ? { tool: 'roleplay', prompt: activeSlide.prompt }
+        : activeBeat?.prompt
+          ? { tool: 'roleplay', prompt: activeBeat.prompt }
+          : undefined,
+      showRequeue: Boolean(onRetry && activeBeat),
+      showSeedVariation: false,
+      showImprove: false,
+      showCompose: false,
+      showInpaint: false,
+      showUseStack: false,
+      showUsePromptStack: false,
+      showUseFace: false,
+      onRequeue:
+        onRetry && activeBeat
+          ? () => {
+              onRetry(activeBeat);
+            }
+          : undefined,
+      onCopyPrompt:
+        onCopy && activeBeat
+          ? () => {
+              onCopy(activeBeat);
+            }
+          : undefined,
+    };
+  }, [activeBeat, activeSlide, onCopy, onRetry]);
 
   if (story.length === 0) {
     return (
@@ -123,16 +172,16 @@ export default function RoleplayStoryReel({
         <EmptyState
           compact
           branded
-          title="Story unlocks after your first film cut"
+          title="Roll scenes to start the reel"
           description={
             bioPresent
-              ? 'Generate opening beats to continue the day as optional story scenes.'
-              : 'Set the character bible on Cast, then generate opening beats — or jump straight to rolling scenes.'
+              ? 'Pick a beat above — stills and clips land here as they render.'
+              : 'Set the character bible on Cast, then Roll four scenes above.'
           }
           action={
             onRollScenes
               ? {
-                  label: scenesLoading || busy ? 'Rolling…' : 'Generate opening',
+                  label: scenesLoading || busy ? 'Rolling…' : 'Roll four scenes',
                   onClick: () => {
                     if (busy || scenesLoading) {
                       return;
@@ -159,13 +208,14 @@ export default function RoleplayStoryReel({
     );
   }
 
-  const activeSlide = lightbox ? playlist[lightbox.index] : undefined;
-
   return (
     <>
       <ImageLightbox
         state={lightbox}
-        onClose={() => setLightbox(null)}
+        onClose={() => {
+          setLightbox(null);
+          setLightboxBeatIds([]);
+        }}
         onIndexChange={index =>
           setLightbox(previous =>
             previous
@@ -194,24 +244,7 @@ export default function RoleplayStoryReel({
             // Lightbox download is best-effort; the zip export is the full bundle.
           }
         }}
-        slideChrome={
-          activeSlide?.prompt
-            ? {
-                meta: { tool: 'roleplay', prompt: activeSlide.prompt },
-                onCopyPrompt: onCopy
-                  ? () => {
-                      const beat = story.find(
-                        entry =>
-                          entry.title === activeSlide.title && entry.prompt === activeSlide.prompt
-                      );
-                      if (beat) {
-                        onCopy(beat);
-                      }
-                    }
-                  : undefined,
-              }
-            : null
-        }
+        slideChrome={slideChrome}
       />
       {watchPlaylist.length > 0 ? (
         <div className="space-y-2">

@@ -37,6 +37,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'running through transition with cycling shoes and race number',
       'aero tuck on the bike leg with focused forward lean',
       'sprinting off the bike toward the run segment',
+      'diving into open water with a long freestyle pull and splash',
+      'mounting the bike in transition with a flying leap onto the saddle',
+      'leaning into a wet corner on the bike leg with race number flapping',
     ],
     settings: [
       'a triathlon transition zone with racks and race tape',
@@ -53,6 +56,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'hurling a javelin with full body rotation at release',
       'spinning into a discus throw with coiled torque',
       'exploding out of starting blocks on the track',
+      'releasing a shot put with a powerful reverse and low crouch',
+      'clearing the high jump bar in a Fosbury flop arc',
+      'planting the pole and rising into a vault over the bar',
     ],
     settings: [
       'an empty stadium track lane under floodlights',
@@ -70,6 +76,8 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'leaning hard into a wet corner on a racing bicycle, tires spraying water',
       'driving the pedals in a fierce criterium sprint shoulder to shoulder',
       'charging through a cobblestone sector with mud spray flying from tires',
+      'seated power climb grinding big gears with elbows in and head down',
+      'diving into an aero tuck on a fast descent with hands in the drops',
     ],
     settings: [
       'a rain-soaked city circuit with wet pavement and neon reflections',
@@ -96,6 +104,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'throwing a high roundhouse kick with hips fully rotated',
       'blocking a strike with forearm chambered and rooted stance',
       'sweeping into a controlled throw on the tatami',
+      'snapping a front kick from a deep fighting stance',
+      'driving a reverse punch with hips squared and rear heel planted',
+      'dropping into a low spinning sweep with supporting hand on the mat',
     ],
     settings: [
       'a dojo floor with tatami mats and soft side light',
@@ -112,6 +123,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'lunging into an attack with foil extended and back foot anchored',
       'parrying with blade engaged and en garde stance low',
       'recovering from a riposte with quick footwork on the piste',
+      'fleching forward in a flying attack with blade tip locked on target',
+      'holding en garde with both knees bent and weapon arm extended',
+      'balestra hop into a deep lunge with the rear arm counterbalancing',
     ],
     settings: [
       'a fencing piste under cool overhead sport lights',
@@ -128,6 +142,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'launching into a tumbling pass with tight body alignment',
       'holding a handstand line on the floor exercise mat',
       'extending through a split leap with toes pointed',
+      'swinging into a giant on the uneven bars with hollow body',
+      'sticking a dismount landing with arms raised for presentation',
+      'cartwheeling into a roundoff with snap-down power',
     ],
     settings: [
       'a competition floor exercise mat under arena lights',
@@ -144,6 +161,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'dynoing to a hold on an overhang with hips driving upward',
       'heel hooking on a steep boulder with chalk dust in the air',
       'reaching for a crimp on a competition wall',
+      'campus boarding with locked-off elbows and swinging hips',
+      'mantling over a boulder lip with chest pressed to the rock',
+      'flagging a heel on a steep overhang while matching a small crimp',
     ],
     settings: [
       'an indoor climbing wall with colored holds and dramatic shadows',
@@ -160,6 +180,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'holding warrior two with arms extended and grounded stance',
       'transitioning through downward dog with long spine',
       'balancing in tree pose on a studio mat',
+      'folding into a deep forward fold with palms flat beside the feet',
+      'lifting into a crow pose balance with knees on the upper arms',
+      'opening into a side plank with the top arm reaching skyward',
     ],
     settings: [
       'a quiet yoga studio with warm morning light',
@@ -176,6 +199,11 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'uncoiling into a forehand with racket head lagging then whipping through',
       'tossing into a serve with knee bend and upward extension',
       'split-stepping before a volley at the net',
+      'stretching into a wide backhand slice with low knee bend',
+      'lunging for a wide forehand on the run with racket extended',
+      'smashing an overhead with racket high and torso arched back',
+      'sprinting wide to chase a drop shot with racket trailing',
+      'sliding into a defensive get on clay with the racket low',
     ],
     settings: [
       'a hard court with crisp white lines and afternoon sun',
@@ -192,6 +220,11 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'elevating into a jump shot with elbow aligned and wrist snapping',
       'driving hard to the rim with defender trailing',
       'planting for a crossover dribble with low center of gravity',
+      'dunking two-handed through the rim with knees tucked',
+      'rising for a contested rebound with both arms fully extended',
+      'pulling up into a step-back jumper with weight on the back foot',
+      'finishing a reverse layup with the off-hand high off the glass',
+      'closing out hard on a shooter with one hand high and knees bent',
     ],
     settings: [
       'a polished indoor court under bright gymnasium lights',
@@ -208,6 +241,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'winding up for a wrist shot with weight on the back skate',
       'stickhandling through a defender with low knee bend',
       'accelerating with powerful skating strides on the ice',
+      'digging in for a hard stop with ice spray kicking up from the blades',
+      'dropping into a butterfly save crouch with pads flared wide',
+      'one-timing a slap shot with full torso rotation through the puck',
     ],
     settings: [
       'an ice rink with scuffed surface and arena boards',
@@ -224,6 +260,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'unloading into a swing with hips rotating through the zone',
       'delivering a pitch from the windup with leg kick high',
       'sliding into base with dirt kicking up',
+      'snagging a line drive with glove stretched fully to the side',
+      'throwing from shortstop with a crow-hop and sidearm release',
+      'squatting behind the plate framing a pitch with mitt soft',
     ],
     settings: [
       'a sunlit infield diamond with chalked baselines',
@@ -240,6 +279,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'sprinting with the ball tucked and fending with a stiff arm',
       'diving to ground the ball over the try line',
       'driving low into a tackle with shoulder engagement',
+      'spinning out of a tackle with the ball locked under one arm',
+      'passing off the back foot while being dragged sideways',
+      'lifting into a lineout jump with arms reaching for the ball',
     ],
     settings: [
       'a muddy rugby pitch under overcast skies',
@@ -256,6 +298,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'striking the ball with full follow-through and planted foot',
       'dribbling at pace with close touches and low center of gravity',
       'rising for a header with eyes on the ball',
+      'sliding into a tackle with one leg extended and studs up clear of the ball',
+      'cutting inside off the wing with a sharp plant-and-go',
+      'volleying a bouncing ball mid-air with body leaning back',
     ],
     settings: [
       'a rain-soaked pitch with reflected floodlights',
@@ -272,6 +317,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'carving through a slalom turn with snow spraying from the edge',
       'absorbing moguls with knees compressed and poles planted',
       'launching off a small kicker with skis parallel',
+      'leaning hard into a carved GS turn with inside edge biting',
+      'tucking into an aero race position with poles tucked under the arms',
+      'popping a small ollie over a park box with skis level',
     ],
     settings: [
       'a groomed ski slope with blue shadows in the troughs',
@@ -288,6 +336,9 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'unwinding through a driver swing with balanced finish',
       'rolling a putt with quiet shoulders and steady head',
       'chipping from rough with wrists firm through contact',
+      'blasting a bunker shot with sand exploding around the ball',
+      'holding a full finish after an iron approach with belt buckle to target',
+      'addressing a tee shot with clubhead hovering and weight loaded',
     ],
     settings: [
       'a fairway at golden hour with long grass fringe',
@@ -304,6 +355,11 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'exploding out of starting blocks with forward drive',
       'mid-sprint with high knee lift and pumping arms',
       'clearing a hurdle with lead leg extended',
+      'leaning through a curve with inside lean and wide stride',
+      'driving the final meters of a sprint with chest thrust forward',
+      'bounding into a long-jump takeoff with arms swinging high',
+      'kicking through the final stride of a steeplechase water jump',
+      'leaning at the finish tape with arms thrown wide',
     ],
     settings: [
       'a stadium track lane with rubber surface and lane numbers',
@@ -325,6 +381,106 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'golf swing',
       'climbing dyno',
     ],
+  },
+  swimming: {
+    instructions:
+      'Show swimming race action: freestyle pull, butterfly, flip turn, or dive start in a pool lane. Athlete in water or on the block—no bikes, balls, or street clothes.',
+    rewriteDefault: 'driving a freestyle stroke with a high elbow catch',
+    poses: [
+      'driving a freestyle stroke with a high elbow catch and splash trail',
+      'exploding off the starting block into a streamline dive',
+      'tucking into a flip turn with feet planting hard on the wall',
+      'pulling through a butterfly stroke with undulating hips',
+      'gliding underwater in a tight streamline after the dive',
+      'breathing to the side mid-freestyle with one arm recovering',
+      'kicking hard in a backstroke lane with arms windmilling',
+      'surging into the final wall touch with fingertips first',
+    ],
+    settings: [
+      'an indoor competition pool with lane lines and starting blocks',
+      'an outdoor lap pool with sun on the water surface',
+      'a race pool under cool overhead arena lights with wet deck reflections',
+    ],
+    foreignTokens: [
+      'cyclist',
+      'pedaling',
+      'dunk',
+      'golf swing',
+      'soccer',
+      'ski slope',
+      'surfboard',
+    ],
+  },
+  volleyball: {
+    instructions:
+      'Show volleyball action: spike, set, dig, or jump serve on a court. Athlete mid-play with readable jump or arm swing—no bikes or unrelated sports.',
+    rewriteDefault: 'spiking the ball with a full overhead arm swing',
+    poses: [
+      'spiking the ball with a full overhead arm swing at the net',
+      'jump-setting with soft hands high above the forehead',
+      'digging a hard-driven ball with arms platformed low',
+      'launching into a jump serve with the tossing arm high',
+      'blocking at the net with both hands reaching over the tape',
+      'approaching the spike with a three-step plant and swing',
+      'tipping the ball over the block with soft fingertips',
+      'shuffling into a defensive ready stance with knees bent',
+    ],
+    settings: [
+      'an indoor volleyball court with polished wood and arena lights',
+      'an outdoor sand court with net poles and clear sky',
+      'a gymnasium court with bleachers and overhead fluorescents',
+    ],
+    foreignTokens: ['cyclist', 'javelin', 'dunk', 'golf swing', 'fencing', 'ski slope'],
+  },
+  boxing: {
+    instructions:
+      'Show boxing action: jab, hook, uppercut, or defensive slip in the ring or on the bag. Gloves up, committed footwork—no bikes, balls, or fashion poses.',
+    rewriteDefault: 'snapping a jab with the lead hand from a boxing stance',
+    poses: [
+      'snapping a jab with the lead hand from a tight boxing stance',
+      'driving a rear hook with hips rotated and chin tucked',
+      'slipping a punch with the head off the center line',
+      'throwing an uppercut from a crouch with gloves up',
+      'working the heavy bag with a rapid one-two combination',
+      'shadowboxing with bouncing footwork and high guard',
+      'clinching briefly then resetting with gloves on the opponent shoulders',
+      'planting for a cross with the rear heel lifting',
+    ],
+    settings: [
+      'a boxing ring under warm overhead spotlights',
+      'a gym corner with a heavy bag and chalked floor',
+      'a sparring ring with ropes and mirrored walls',
+    ],
+    foreignTokens: [
+      'cyclist',
+      'javelin',
+      'dunk',
+      'golf swing',
+      'soccer cleats',
+      'ski slope',
+      'racket',
+    ],
+  },
+  surfing: {
+    instructions:
+      'Show surfing action: paddling out, popping up, carving a turn, or riding a wave face. Athlete on a board in the ocean—no bikes, courts, or street clothes.',
+    rewriteDefault: 'carving down the face of a clean wave',
+    poses: [
+      'popping up on the board with weight centered over the midpoint',
+      'carving down the face of a clean wave with knees bent',
+      'paddling out hard with long strokes over a whitewater set',
+      'crouching into a bottom turn with the trailing hand trailing spray',
+      'riding a trim line along the wave face with arms out for balance',
+      'cutting back hard with the board reversing up the face',
+      'dropping in late with a committed lean and eyes down the line',
+      'kneeling on the board after a wipeout reset with hands on the rails',
+    ],
+    settings: [
+      'an ocean break with clean lines and morning side light',
+      'a reef break with turquoise water and white spray',
+      'a point break with long peeling waves and distant cliffs',
+    ],
+    foreignTokens: ['cyclist', 'javelin', 'dunk', 'golf swing', 'indoor court', 'dojo', 'piste'],
   },
 };
 
@@ -475,6 +631,66 @@ export function inferCyclingDiscipline(hints?: string): CyclingDiscipline {
   return 'road';
 }
 
+export const CYCLING_DISCIPLINES: readonly CyclingDiscipline[] = [
+  'road',
+  'gravel',
+  'mountain',
+  'cyclocross',
+  'track',
+];
+
+const CYCLING_DISCIPLINE_DAY_LABEL: Record<CyclingDiscipline, string> = {
+  road: 'road cycling',
+  gravel: 'gravel cycling',
+  mountain: 'mountain biking',
+  cyclocross: 'cyclocross',
+  track: 'track cycling',
+};
+
+export function dayCyclingDisciplineLabel(discipline: CyclingDiscipline): string {
+  return CYCLING_DISCIPLINE_DAY_LABEL[discipline];
+}
+
+export function listCyclingDisciplinePoses(discipline: CyclingDiscipline): readonly string[] {
+  return CYCLING_DISCIPLINE_OVERLAYS[discipline].poses;
+}
+
+export function listCyclingDisciplineSettings(discipline: CyclingDiscipline): readonly string[] {
+  return CYCLING_DISCIPLINE_OVERLAYS[discipline].settings;
+}
+
+/** All cycling discipline poses (Day Sport variety across road/gravel/MTB/CX/track). */
+export function listAllCyclingDisciplinePoses(): readonly string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const discipline of CYCLING_DISCIPLINES) {
+    for (const pose of CYCLING_DISCIPLINE_OVERLAYS[discipline].poses) {
+      if (seen.has(pose)) {
+        continue;
+      }
+      seen.add(pose);
+      out.push(pose);
+    }
+  }
+  return out;
+}
+
+export function listAllCyclingDisciplineSettings(): readonly string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const discipline of CYCLING_DISCIPLINES) {
+    for (const setting of CYCLING_DISCIPLINE_OVERLAYS[discipline].settings) {
+      const key = setting.trim().toLowerCase();
+      if (!key || seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      out.push(setting);
+    }
+  }
+  return out;
+}
+
 const CYCLING_HELMET_IN_TEXT =
   /\b(?:cycling helmet|bike helmet|aero helmet|gravel helmet|mountain bike helmet|track cycling helmet|helmet visor|fastened helmet)\b/i;
 
@@ -563,7 +779,7 @@ export function ensureCyclingHelmetInPrompt(prompt: string, hints?: string): str
 }
 
 const BOTTOM_LAYER_PRESENT =
-  /\b(?:running shorts|track pants|shorts|pants|trousers|skirt|bib shorts|yoga pants|leggings|leotard|unitard|breeches|chinos|golf pants|soccer shorts|basketball shorts|rugby shorts|tennis skirt)\b/i;
+  /\b(?:running shorts|track pants|shorts|pants|trousers|skirt|bib shorts|yoga pants|leggings|leotard|unitard|breeches|chinos|golf pants|soccer shorts|basketball shorts|rugby shorts|tennis skirt|volleyball shorts|boxing shorts|trunks|boardshorts|swimsuit|racing suit|wetsuit)\b/i;
 
 const TOP_ONLY_ATHLETIC =
   /\b(?:running singlet|singlet|mesh jersey|sports bra|tank top|jersey|running top)\b/i;
@@ -579,6 +795,10 @@ const DEFAULT_BOTTOM_BY_SPORT: Partial<Record<AthleticSport, string>> = {
   fencing: 'fencing breeches',
   rugby: 'rugby shorts',
   yoga: 'yoga pants',
+  volleyball: 'volleyball shorts',
+  boxing: 'boxing shorts',
+  swimming: 'racing swimsuit',
+  surfing: 'boardshorts',
 };
 
 const SPORTS_REQUIRING_BOTTOM: AthleticSport[] = [
@@ -592,6 +812,10 @@ const SPORTS_REQUIRING_BOTTOM: AthleticSport[] = [
   'fencing',
   'rugby',
   'yoga',
+  'volleyball',
+  'boxing',
+  'swimming',
+  'surfing',
 ];
 
 function bottomLabelFromSummary(summary: string, sport: AthleticSport): string | null {
@@ -810,6 +1034,10 @@ const DUO_COMPETITION_LINES: Partial<Record<AthleticSport, string>> = {
   fencing: 'two fencers in fierce en garde competition',
   triathlon: 'two triathletes in fierce race competition',
   track_field: 'two athletes in fierce track competition',
+  volleyball: 'two volleyball players in fierce net competition',
+  boxing: 'two boxers in fierce ring competition',
+  swimming: 'two swimmers in fierce lane competition',
+  surfing: 'two surfers competing for the same peak',
 };
 
 export function getSportDuoCompetitionLine(sport: AthleticSport, hints: string): string | null {
@@ -831,6 +1059,20 @@ export function pickSportActionPose(sport: AthleticSport, hints?: string): strin
     return 'committed mid-action with readable momentum';
   }
   return poses[Math.floor(Math.random() * poses.length)]!;
+}
+
+export function listSportActionPoses(sport: AthleticSport): readonly string[] {
+  if (sport === 'cycling') {
+    return listAllCyclingDisciplinePoses();
+  }
+  return SPORT_ACTION_BUNDLES[sport]?.poses ?? [];
+}
+
+export function listSportActionSettings(sport: AthleticSport): readonly string[] {
+  if (sport === 'cycling') {
+    return listAllCyclingDisciplineSettings();
+  }
+  return SPORT_ACTION_BUNDLES[sport]?.settings ?? [];
 }
 
 export function pickSportActionSetting(sport: AthleticSport, hints?: string): string {

@@ -1,13 +1,19 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import GalleryEmptyPanel from '@/components/gallery/GalleryEmptyPanel';
 import GalleryUploadButton from '@/components/gallery/GalleryUploadButton';
 import MotionMedia from '@/components/ui/MotionMedia';
 import { useComfyUiGallery } from '@/hooks/useComfyUiGallery';
 import { recordCatalogBiasFromPrompt } from '@/lib/catalog-rating-bias';
+import {
+  getCharacter,
+  getCharactersSnapshot,
+  getServerCharactersSnapshot,
+  subscribeCharacters,
+} from '@/lib/character-os';
 import {
   filterComfyGalleryEntries,
   galleryEntryPrimaryThumbUrl,
@@ -38,6 +44,15 @@ export default function MobileGalleryTool() {
   const characterId = searchParams.get('character')?.trim() || '';
   const derivedKind = searchParams.get('derivedKind')?.trim() || '';
   const filmMode = derivedKind === 'film';
+  const characters = useSyncExternalStore(
+    subscribeCharacters,
+    getCharactersSnapshot,
+    getServerCharactersSnapshot
+  );
+  const watchCharacter =
+    (characterId ? characters.find(entry => entry.id === characterId) : null) ??
+    (characterId ? getCharacter(characterId) : null) ??
+    null;
 
   const {
     storeReady,
@@ -123,35 +138,67 @@ export default function MobileGalleryTool() {
         <h1 className="type-display text-2xl tracking-tight">{filmMode ? 'Watch' : 'Gallery'}</h1>
         <p className="text-sm text-[var(--text-secondary)]">
           {filmMode
-            ? 'Play your Day films. Remix the same look when you want another cut.'
+            ? watchCharacter
+              ? `${watchCharacter.name} — play Day films, then jump back into the reel.`
+              : 'Play your Day films. Remix the same look when you want another cut.'
             : 'Rate stills. Upload your own. Open one in Play or Compose.'}
         </p>
         {!filmMode ? (
           <GalleryUploadButton className="ui-btn-secondary mt-2 px-3 py-2 text-xs" />
         ) : null}
         {filmMode ? (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {characterId ? (
-              <ButtonLink
-                href={toMobileStudioHref(remixDayFilmHref(characterId))}
-                size="sm"
-                variant="secondary"
-                data-testid="mobile-gallery-remix-day"
+          <div className="mt-2 space-y-2" data-testid="mobile-watch-cast-strip">
+            {watchCharacter ? (
+              <p
+                className="type-caption text-[var(--text-muted)]"
+                data-testid="mobile-watch-cast-name"
               >
-                Same look, new Day
+                Cast · {watchCharacter.name}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              {characterId ? (
+                <ButtonLink
+                  href={toMobileStudioHref(remixDayFilmHref(characterId))}
+                  size="sm"
+                  variant="secondary"
+                  data-testid="mobile-gallery-remix-day"
+                >
+                  Same look, new Day
+                </ButtonLink>
+              ) : (
+                <ButtonLink
+                  href={withCharacterQuery('/m/day', characterId)}
+                  size="sm"
+                  variant="secondary"
+                >
+                  Open Day
+                </ButtonLink>
+              )}
+              {characterId ? (
+                <>
+                  <ButtonLink
+                    href={withCharacterQuery('/m/story', characterId)}
+                    size="sm"
+                    variant="secondary"
+                    data-testid="mobile-watch-open-story"
+                  >
+                    Open Story
+                  </ButtonLink>
+                  <ButtonLink
+                    href={withCharacterQuery('/m/fitting', characterId)}
+                    size="sm"
+                    variant="ghost"
+                    data-testid="mobile-watch-open-outfit"
+                  >
+                    Outfit
+                  </ButtonLink>
+                </>
+              ) : null}
+              <ButtonLink href="/m/gallery" size="sm" variant="ghost">
+                All stills
               </ButtonLink>
-            ) : (
-              <ButtonLink
-                href={withCharacterQuery('/m/day', characterId)}
-                size="sm"
-                variant="secondary"
-              >
-                Open Day
-              </ButtonLink>
-            )}
-            <ButtonLink href="/m/gallery" size="sm" variant="ghost">
-              All stills
-            </ButtonLink>
+            </div>
           </div>
         ) : null}
       </div>

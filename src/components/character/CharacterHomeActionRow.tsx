@@ -21,41 +21,60 @@ export default function CharacterHomeActionRow({
   }
 
   return (
-    <ToolActionRow>
-      <Button size="sm" variant="primary" onClick={() => go(playCampaignHref(character.id))}>
-        Start a film
-      </Button>
-      <Button size="sm" variant="secondary" onClick={() => go('/character')}>
-        Generate
-      </Button>
-      <Button
-        size="sm"
-        variant="secondary"
-        onClick={() => go(`/moodboard?character=${character.id}`)}
-      >
-        Open Look
-      </Button>
-      <Button
-        size="sm"
-        variant="secondary"
-        onClick={() => go(`/fitting?character=${character.id}`)}
-      >
-        Outfit
-      </Button>
-      <Button size="sm" variant="secondary" onClick={() => go(`/day?character=${character.id}`)}>
-        Open Day
-      </Button>
-      <Button
-        size="sm"
-        variant="secondary"
-        data-testid="character-home-story"
-        onClick={continueRoleplay}
-      >
-        Story
-      </Button>
+    <div className="space-y-3" data-testid="character-home-actions">
+      <ToolActionRow>
+        <Button
+          size="sm"
+          variant="primary"
+          data-testid="character-home-start-film"
+          onClick={() => go(playCampaignHref(character.id))}
+        >
+          Start a film
+        </Button>
+      </ToolActionRow>
+      <div data-testid="character-home-continue">
+        <p className="type-caption mb-2 text-[var(--text-muted)]">Continue reel</p>
+        <ToolActionRow>
+          <Button
+            size="sm"
+            variant="secondary"
+            data-testid="character-home-look"
+            onClick={() => go(`/moodboard?character=${character.id}`)}
+          >
+            Open Look
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            data-testid="character-home-outfit"
+            onClick={() => go(`/fitting?character=${character.id}`)}
+          >
+            Outfit
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            data-testid="character-home-day"
+            onClick={() => go(`/day?character=${character.id}`)}
+          >
+            Open Day
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            data-testid="character-home-story"
+            onClick={continueRoleplay}
+          >
+            Story
+          </Button>
+        </ToolActionRow>
+      </div>
       <details>
         <summary className="type-caption cursor-pointer text-[var(--text-muted)]">More</summary>
         <div className="mt-2 flex flex-wrap gap-2">
+          <Button size="sm" variant="ghost" onClick={() => go('/character')}>
+            Generate
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => go('/video')}>
             Video
           </Button>
@@ -70,6 +89,6 @@ export default function CharacterHomeActionRow({
           </Button>
         </div>
       </details>
-    </ToolActionRow>
+    </div>
   );
 }

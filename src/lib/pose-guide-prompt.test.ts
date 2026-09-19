@@ -14,6 +14,8 @@ describe('pose-guide-prompt', () => {
     assert.match(poseGuidePromptBlock('realistic'), /photorealistic live-action photograph/i);
     assert.match(poseGuidePromptBlock('anime'), /finished anime\/illustration scene/i);
     assert.match(poseGuidePromptBlock('off'), /finished rendered scene/i);
+    assert.match(poseGuidePromptBlock('realistic'), /cyan\/orange = other adults/i);
+    assert.match(poseGuidePromptBlock('realistic', { headcount: 1 }), /flesh-colored blob|pose-guide leak/i);
   });
 
   it('withPoseGuideEditPrompt is idempotent and adds realism lock', () => {
@@ -22,6 +24,7 @@ describe('pose-guide-prompt', () => {
     assert.match(once, /photorealistic live-action photograph/i);
     assert.match(once, /Magenta schematic = Image 1 Cast/i);
     assert.match(once, /black morphsuit|solid opaque humans|no third black|Magenta schematic/i);
+    assert.match(once, /discard Image 1 standing clothes|never keep a clothed Image 1 ghost/i);
     const twice = withPoseGuideEditPrompt(once, true, 'realistic');
     assert.equal(twice, once);
   });
@@ -44,6 +47,7 @@ describe('pose-guide-prompt', () => {
     assert.match(merged ?? '', /wireframe/i);
     assert.match(merged ?? '', /merged bodies/i);
     assert.match(merged ?? '', /couple blob/i);
+    assert.match(merged ?? '', /tattoo/i);
     assert.equal(mergePoseGuideNegatives('blurry', false), 'blurry');
   });
 

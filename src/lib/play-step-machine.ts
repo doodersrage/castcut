@@ -38,6 +38,9 @@ export type PlayFunnelStepId = PlayCampaignStepId | 'cut';
 
 export type PlayDayPhaseId = 'queue' | 'animate' | 'cut' | 'save';
 
+/** Story micro-funnel (no Save chip — Save lives on Cut celebrate / Cast). */
+export type PlayStoryPhaseId = 'queue' | 'animate' | 'cut';
+
 export type PlayCampaignStep = {
   id: PlayCampaignStepId;
   label: string;
@@ -121,6 +124,28 @@ export const PLAY_DAY_PHASES: Array<{
     id: 'save',
     label: 'Save',
     description: 'Stamp the reel into Cast / Gallery.',
+  },
+];
+
+export const PLAY_STORY_PHASES: Array<{
+  id: PlayStoryPhaseId;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: 'queue',
+    label: 'Queue',
+    description: 'Roll scenes and queue stills.',
+  },
+  {
+    id: 'animate',
+    label: 'Animate',
+    description: 'Turn stills into motion clips (preferred before Cut).',
+  },
+  {
+    id: 'cut',
+    label: 'Cut',
+    description: 'Assemble the Story reel.',
   },
 ];
 
@@ -351,6 +376,23 @@ export function deriveDayPhase(input: {
     return 'animate';
   }
   return 'queue';
+}
+
+/** Story micro-phase from stills / clips (Animate preferred, never blocks Cut). */
+export function deriveStoryPhase(input: {
+  completedStills: number;
+  completedClips: number;
+  beatCount?: number;
+}): PlayStoryPhaseId {
+  const stills = input.completedStills;
+  const clips = input.completedClips;
+  if (stills <= 0) {
+    return 'queue';
+  }
+  if (clips < stills) {
+    return 'animate';
+  }
+  return 'cut';
 }
 
 /**

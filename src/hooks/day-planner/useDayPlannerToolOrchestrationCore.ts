@@ -15,7 +15,7 @@ import {
 } from '@/lib/character-film-assemble';
 import { filmDownloadFilename } from '@/lib/character-film';
 import {
-  applyCharacterRecord,
+  applyCharacterRecordFresh,
   castLoraSessionIds,
   getCharacter,
   upsertCharacter,
@@ -37,23 +37,63 @@ import {
   loadComfyGallery,
   type ComfyGalleryEntry,
 } from '@/lib/comfyui-gallery';
+import { resolveAdultNudePlateQueueModel } from '@/lib/queue-tool-model';
+import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
+import {
+  clarifyIntimateImageLanguage,
+  reinforceIntimateStillPrompt,
+} from '@/lib/intimate-prompt-clarify';
+import { STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP } from '@/lib/roleplay';
 import {
   buildDaySlotMotionSubject,
   buildDaySlotPrompt,
+  dayBeatOmitsGarmentPackshot,
+  dayMoodReplacesKeepOutfit,
+  dayQueueBlockReason,
   dayStillsCachePatch,
   dayWatchPlaylist,
   diversifyDaySlotScenes,
+  ensureDaySlotsMatchMood,
+  isDayAdultMood,
+  isDayHeatMood,
   mergeDaySlotStills,
   nextDaySlotToEdit,
+  normalizeDayIntimateMix,
+  normalizeDayMood,
   normalizeDaySlotStills,
   normalizeDaySlots,
+  promoteDayStillsToSoftPassChildren,
+  resolveDayPoseHeadcount,
+  rerollDaySlotScene,
   seedDaySlotsWardrobe,
   upsertDaySlotStill,
   DAY_PLATE_IDENTITY_LOCK_CAP,
+  DAY_VACATION_POSE_IDENTITY_LOCK_CAP,
+  DAY_VACATION_UPRIGHT_FACE_IDENTITY_LOCK_CAP,
+  DAY_VACATION_POSE_DENOISE,
+  DAY_VACATION_UPRIGHT_FACE_DENOISE,
+  DAY_ADULT_DUO_IDENTITY_LOCK_CAP,
+  DAY_ADULT_SOLO_NUDE_IDENTITY_LOCK_CAP,
   type DaySlot,
   type DaySlotId,
 } from '@/lib/day-planner';
-import { resolveDayGarmentReinforce, resolveDayPlate } from '@/lib/day-plate';
+import {
+  castFaceDuplicatesBodyPlate,
+  resolveDayFaceOnlyPlate,
+  resolveDayGarmentReinforce,
+  resolveDayPlate,
+  resolveDayQueueIdentityPlate,
+} from '@/lib/day-plate';
+import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day-nude-face-crop';
+import {
+  resolveDayVacationFaceBreakPlate,
+  uploadDayOutfitVlPlate,
+} from '@/lib/day-vacation-face-crop';
+import {
+  dayClothedHeatPoseNeedsBodyUnlock,
+  clothedHeatUnlockPoseClass,
+  vacationStanceDirective,
+} from '@/lib/day-vacation';
 import { buildDayPoseGuideFile } from '@/lib/day-pose-guide';
 import { resolvePoseGuideControlNetExtras } from '@/lib/pose-guide-controlnet';
 import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
@@ -103,6 +143,7 @@ export function useDayPlannerToolOrchestrationCore() {
   const router = useRouter();
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
+  const intimateEnabled = useNsfwGeneratorEnabled();
   const { mounted, shared, toolSettings, updateShared, updateToolSettings } = useCachedSettings(
     'day',
     DEFAULT_DAY_TOOL_CACHE
@@ -178,8 +219,18 @@ export function useDayPlannerToolOrchestrationCore() {
     updateToolSettings,
     setError,
   });
-  // Display Keep when present. Queue isolated Keep as Image 1 (outfit); packshot may reinforce as Image 2.
-  const queuePlate = plate;
+  // Display Keep when present. Everyday queues Keep as Image 1; Sport uses Cast so
+  // Outfit Keep floral/street try-ons cannot win over athletic kit.
+  const preferCastPlate = dayMoodReplacesKeepOutfit(toolSettings.dayMood);
+  const queuePlate = useMemo(
+    () =>
+      resolveDayQueueIdentityPlate({
+        character,
+        displayPlate: plate,
+        preferCastPlate,
+      }),
+    [character, plate, preferCastPlate]
+  );
 
   useEffect(() => {
     if (!mounted || typeof window === 'undefined') {
@@ -269,7 +320,7 @@ export function useDayPlannerToolOrchestrationCore() {
       const record = getCharacter(characterId);
       if (record) {
         try {
-          updateShared(applyCharacterRecord(record));
+          updateShared(applyCharacterRecordFresh(record));
         } catch (err) {
           scheduleAfterCommit(() =>
             setError(err instanceof Error ? err.message : 'Could not apply that character.')
@@ -296,11 +347,22 @@ export function useDayPlannerToolOrchestrationCore() {
           pack
         );
         const notes = lookPackNotes(pack);
+        const moodAligned = ensureDaySlotsMatchMood(nextSlots, {
+          dayMood: toolSettings.dayMood,
+          intimateMix: toolSettings.intimateMix,
+          allowCompanions: toolSettings.allowCompanions === true,
+        });
         updateToolSettings({
-          slots: nextSlots,
+          slots: moodAligned.slots,
           notes: notes || toolSettings.notes,
         });
-        scheduleAfterCommit(() => setFilmStatus('Applied Look pack to day slots.'));
+        scheduleAfterCommit(() =>
+          setFilmStatus(
+            moodAligned.changed
+              ? 'Applied Look pack to day slots · refreshed adult Setting/Beat.'
+              : 'Applied Look pack to day slots.'
+          )
+        );
       }
     }
   }, [
@@ -364,16 +426,30 @@ export function useDayPlannerToolOrchestrationCore() {
   useEffect(() => {
     const sync = () => {
       const current = stillsRef.current;
+      const galleryEntries = loadComfyGallery();
+      const promoted = promoteDayStillsToSoftPassChildren(
+        current,
+        galleryEntries.map(entry => ({
+          id: entry.id,
+          promptId: entry.promptId,
+          parentGalleryEntryId: entry.parentGalleryEntryId,
+          derivedKind: entry.derivedKind,
+          status: entry.status,
+          imageUrl: galleryEntryPrimaryViewUrl(entry),
+          queuedAt: entry.queuedAt,
+        }))
+      );
+      const baseStills = promoted.changed ? promoted.stills : current;
       const wanted = new Set(
-        current.map(still => still.promptId?.trim()).filter(Boolean) as string[]
+        baseStills.map(still => still.promptId?.trim()).filter(Boolean) as string[]
       );
       const clipWanted = new Set(
-        current.map(still => still.clipPromptId?.trim()).filter(Boolean) as string[]
+        baseStills.map(still => still.clipPromptId?.trim()).filter(Boolean) as string[]
       );
-      if (wanted.size === 0 && clipWanted.size === 0) {
+      if (wanted.size === 0 && clipWanted.size === 0 && !promoted.changed) {
         return;
       }
-      const gallery = loadComfyGallery()
+      const gallery = galleryEntries
         .filter(entry => wanted.has(entry.promptId) || clipWanted.has(entry.promptId))
         .map(entry => ({
           promptId: entry.promptId,
@@ -381,9 +457,11 @@ export function useDayPlannerToolOrchestrationCore() {
           imageUrl: galleryEntryPrimaryViewUrl(entry),
           isClip: isGalleryClipEntry(entry) || clipWanted.has(entry.promptId),
         }));
-      const merged = mergeDaySlotStills(current, gallery);
-      if (merged.changed) {
-        updateToolSettings(dayStillsCachePatch(merged.stills, shared.activeCharacterId));
+      const merged = mergeDaySlotStills(baseStills, gallery);
+      if (promoted.changed || merged.changed) {
+        const next = merged.changed ? merged.stills : baseStills;
+        stillsRef.current = next;
+        updateToolSettings(dayStillsCachePatch(next, shared.activeCharacterId));
       }
     };
     window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, sync);
@@ -403,10 +481,14 @@ export function useDayPlannerToolOrchestrationCore() {
   );
 
   const buildSlotPrompt = useCallback(
-    (slot: DaySlot, options?: { poseGuide?: boolean }) => {
+    (
+      slot: DaySlot,
+      options?: { poseGuide?: boolean; faceOnlyIdentity?: boolean; forceGarmentReinforce?: boolean }
+    ) => {
       const wardrobeId = slot.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
       const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
       const garmentReinforce = Boolean(
+        options?.forceGarmentReinforce ||
         resolveDayGarmentReinforce({
           plateSource: plate?.source,
           packshotUrl,
@@ -414,6 +496,25 @@ export function useDayPlannerToolOrchestrationCore() {
           customGarmentFilename: toolSettings.customGarmentImageFilename,
         })
       );
+      const dayMood = normalizeDayMood(
+        isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
+      );
+      const omitGarment = dayBeatOmitsGarmentPackshot({
+        blurb: slot.sceneHints,
+        prompt: [slot.location, slot.sceneHints].filter(Boolean).join(' · '),
+        dayMood,
+        intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
+      });
+      const replaceKeepOutfit = dayMoodReplacesKeepOutfit(dayMood);
+      const preferCastPlate = replaceKeepOutfit || omitGarment;
+      const identityPlate = preferCastPlate
+        ? resolveDayQueueIdentityPlate({
+            character,
+            displayPlate: plate,
+            preferCastPlate: true,
+            preferFaceOnlyPlate: omitGarment,
+          })
+        : queuePlate;
       const poseGuide = options?.poseGuide !== false && Boolean(hasPlate);
       return buildDaySlotPrompt({
         slot,
@@ -423,29 +524,38 @@ export function useDayPlannerToolOrchestrationCore() {
         lockedLocation: shared.lockedLocation,
         notes: toolSettings.notes,
         hasPlate,
-        plateSource: queuePlate?.source,
-        plateIsolated: queuePlate?.isolated === true,
-        garmentReinforce,
+        plateSource: identityPlate?.source,
+        plateIsolated: identityPlate?.isolated === true,
+        garmentReinforce: garmentReinforce && !omitGarment && !replaceKeepOutfit,
         garmentDescription: toolSettings.customGarmentDescription,
         poseGuide,
+        model: shared.model,
         realismMode: shared.renderRealismMode,
+        allowCompanions: toolSettings.allowCompanions === true,
+        dayMood,
+        intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
+        omitGarment,
+        faceOnlyIdentity: options?.faceOnlyIdentity === true,
+        replaceKeepOutfit,
       });
     },
     [
-      character?.descriptor,
-      character?.hints,
-      character?.name,
+      character,
       hasPlate,
-      plate?.source,
-      queuePlate?.isolated,
-      queuePlate?.source,
+      plate,
+      queuePlate,
       shared.lockedLocation,
       shared.lockedWardrobeId,
+      shared.model,
       shared.renderRealismMode,
+      toolSettings.allowCompanions,
       toolSettings.customGarmentDescription,
       toolSettings.customGarmentImageFilename,
       toolSettings.customGarmentImageUrl,
+      toolSettings.dayMood,
+      toolSettings.intimateMix,
       toolSettings.notes,
+      intimateEnabled,
       wardrobeLabelFor,
     ]
   );
@@ -468,37 +578,190 @@ export function useDayPlannerToolOrchestrationCore() {
           throw new Error(ISOLATE_QUEUE_BLOCKED_MESSAGE);
         }
         // Fill blank Setting/Beat so a single Queue doesn't fall back to a generic time-of-day line.
-        let queueTarget = slot;
-        const needsScene = !slot.location?.trim() || !slot.sceneHints?.trim();
+        // Adult Solo/Duo: also replace stale everyday notebook/bookstore beats left from prior mood.
+        let workingSlots = slots;
+        const moodAligned = ensureDaySlotsMatchMood(slots, {
+          dayMood: toolSettings.dayMood,
+          intimateMix: toolSettings.intimateMix,
+          allowCompanions: toolSettings.allowCompanions === true,
+        });
+        if (moodAligned.changed) {
+          workingSlots = moodAligned.slots;
+          updateToolSettings({ slots: moodAligned.slots });
+        }
+        let queueTarget = workingSlots.find(entry => entry.id === slot.id) ?? slot;
+        const needsScene = !queueTarget.location?.trim() || !queueTarget.sceneHints?.trim();
         if (needsScene) {
           const diversified = diversifyDaySlotScenes(
-            slots.map(entry => (entry.id === slot.id ? slot : entry))
+            workingSlots.map(entry => (entry.id === queueTarget.id ? queueTarget : entry)),
+            {
+              allowCompanions: toolSettings.allowCompanions === true,
+              dayMood: toolSettings.dayMood,
+              intimateMix: toolSettings.intimateMix,
+            }
           );
           if (diversified.changed) {
+            workingSlots = diversified.slots;
             updateToolSettings({ slots: diversified.slots });
-            queueTarget = diversified.slots.find(entry => entry.id === slot.id) ?? slot;
+            queueTarget =
+              diversified.slots.find(entry => entry.id === queueTarget.id) ?? queueTarget;
           }
         }
         const wardrobeId = queueTarget.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
         await loadWardrobeGarmentThumbManifest();
         const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
-        const garmentReinforce = resolveDayGarmentReinforce({
+        const omitGarment = dayBeatOmitsGarmentPackshot({
+          blurb: queueTarget.sceneHints,
+          prompt: [queueTarget.location, queueTarget.sceneHints].filter(Boolean).join(' · '),
+          dayMood: toolSettings.dayMood,
+          intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
+        });
+        const replaceKeepOutfit = dayMoodReplacesKeepOutfit(toolSettings.dayMood);
+        let identityPlate = resolveDayQueueIdentityPlate({
+          character,
+          displayPlate: plate,
+          preferCastPlate: replaceKeepOutfit || omitGarment,
+          preferFaceOnlyPlate: omitGarment,
+        });
+        let nudeFaceAutoCropped = false;
+        let vacationFaceBreak = false;
+        let vacationKeepBodyPlate: typeof identityPlate = null;
+        if (omitGarment && character) {
+          const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+          const nudeIdentity = await resolveDayNudeIdentityPlateWithFaceCrop({
+            character,
+            model: shared.model,
+            comfyUrl,
+          });
+          if (nudeIdentity.plate) {
+            identityPlate = nudeIdentity.plate;
+            nudeFaceAutoCropped = nudeIdentity.autoCropped;
+          }
+        } else if (
+          (normalizeDayMood(toolSettings.dayMood) === 'vacation' ||
+            normalizeDayMood(toolSettings.dayMood) === 'suggestive') &&
+          dayClothedHeatPoseNeedsBodyUnlock(queueTarget.sceneHints, toolSettings.dayMood) &&
+          (identityPlate ?? queuePlate)
+        ) {
+          // Upright MID-STRIDE / WAVING / DANCING: full Keep as Image 1 freezes stand.
+          // Face-crop Image 1; full Keep rides Image 2 for outfit (no re-suggest needed).
+          const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+          const bodyPlate = identityPlate ?? queuePlate;
+          const faceBreak = await resolveDayVacationFaceBreakPlate({
+            bodyPlate,
+            model: shared.model,
+            comfyUrl,
+          });
+          if (faceBreak.facePlate) {
+            vacationKeepBodyPlate = faceBreak.outfitVlPlate ?? faceBreak.bodyPlate;
+            identityPlate = faceBreak.facePlate;
+            vacationFaceBreak = true;
+          }
+        }
+        // Distinct Cast face lock OR auto crop → face-only Image 1 language + IP pin.
+        const faceOnlyIdentity =
+          (omitGarment && (nudeFaceAutoCropped || Boolean(resolveDayFaceOnlyPlate(character)))) ||
+          vacationFaceBreak;
+        // Prefer Day Clothing BYO / wardrobe packshot over Keep body on Image 2.
+        // Face-break used to always attach Keep — when Keep is lingerie and BYO is a
+        // floral dress, CLOTHING LOCK text fought lingerie pixels → bikini invent.
+        const byoOrPackGarment = resolveDayGarmentReinforce({
           plateSource: plate?.source,
           packshotUrl,
           customGarmentUrl: toolSettings.customGarmentImageUrl,
           customGarmentFilename: toolSettings.customGarmentImageFilename,
         });
+        let garmentReinforce =
+          omitGarment || replaceKeepOutfit
+            ? null
+            : vacationFaceBreak && vacationKeepBodyPlate
+              ? {
+                  imageUrl: vacationKeepBodyPlate.imageUrl?.trim() || undefined,
+                  imageFilename: vacationKeepBodyPlate.filename?.trim() || undefined,
+                  source: 'packshot' as const,
+                }
+              : byoOrPackGarment;
+        if (
+          !omitGarment &&
+          !replaceKeepOutfit &&
+          vacationFaceBreak &&
+          byoOrPackGarment &&
+          (byoOrPackGarment.imageUrl || byoOrPackGarment.imageFilename)
+        ) {
+          const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+          const byoVl = await uploadDayOutfitVlPlate({
+            imageUrl: byoOrPackGarment.imageUrl,
+            filename: byoOrPackGarment.imageFilename,
+            model: shared.model,
+            comfyUrl,
+          });
+          if (byoVl?.filename) {
+            garmentReinforce = {
+              imageUrl: byoVl.imageUrl?.trim() || undefined,
+              imageFilename: byoVl.filename,
+              source: byoOrPackGarment.source,
+            };
+          } else {
+            garmentReinforce = byoOrPackGarment;
+          }
+        }
 
-        // Image 3: mannequin pose guide from Setting+Beat (Keep / Cast stay Image 1).
+        // Image 3: mannequin pose guide from Beat (Keep / Cast stay Image 1).
+        // Heat moods: beat only — Setting location text must not rewrite Image 3 stance.
         let poseGuideUrl: string | undefined;
         let poseGuideFilename: string | undefined;
         if (hasPlate) {
           try {
-            const poseScene = [queueTarget.location, queueTarget.sceneHints]
+            const dayMood = normalizeDayMood(
+              isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+                ? 'everyday'
+                : toolSettings.dayMood
+            );
+            const beatOnly = queueTarget.sceneHints?.trim() || '';
+            const rawPoseScene = (
+              isDayHeatMood(dayMood) ? [beatOnly] : [queueTarget.location, queueTarget.sceneHints]
+            )
               .map(part => part?.trim())
               .filter(Boolean)
               .join(' · ');
-            const poseFile = await buildDayPoseGuideFile(queueTarget.id, poseScene || undefined);
+            // Adult moods only: intimate clarify rewrites euphemisms into sex-act
+            // language. Running it on Vacation/Suggestive injects rear-entry priors.
+            const clarifiedPose =
+              isDayAdultMood(dayMood) && rawPoseScene
+                ? clarifyIntimateImageLanguage(rawPoseScene)
+                : undefined;
+            const poseSceneBase = clarifiedPose || rawPoseScene || beatOnly;
+            const vacationPoseClass = clothedHeatUnlockPoseClass(beatOnly, dayMood);
+            const poseSceneReinforced =
+              (dayMood === 'vacation' || dayMood === 'suggestive') &&
+              dayClothedHeatPoseNeedsBodyUnlock(beatOnly, dayMood) &&
+              poseSceneBase
+                ? `${poseSceneBase} · ${vacationStanceDirective(vacationPoseClass)} · nuclear Image 3 silhouette — never planted fashion stand`
+                : poseSceneBase;
+            const intimateMix = normalizeDayIntimateMix(toolSettings.intimateMix);
+            const poseHeadcount = resolveDayPoseHeadcount({
+              haystack: poseSceneReinforced,
+              beat: queueTarget.sceneHints,
+              dayMood,
+              intimateMix,
+              allowCompanions: toolSettings.allowCompanions === true,
+            });
+            // Duo mix must draw exactly two figures — never inflate to a trio.
+            const poseScene =
+              poseHeadcount === 2
+                ? `${poseSceneReinforced || 'intimate duo mid-sex on the bed'} · exactly two adults only: Cast lead in the beat pose plus one distinct partner — both fully visible mid-contact in frame; never solo Cast; no third person`
+                : poseHeadcount >= 3 && poseSceneReinforced
+                  ? poseSceneReinforced
+                  : poseSceneReinforced || undefined;
+            const poseFile = await buildDayPoseGuideFile(
+              queueTarget.id,
+              poseScene || undefined,
+              shared.model,
+              {
+                forcePeople: poseHeadcount,
+                clothedUprightOnly: dayMood === 'vacation' || dayMood === 'suggestive',
+              }
+            );
             const uploaded = await resolveQueueInputImage({
               file: poseFile,
               filename: poseFile.name,
@@ -518,11 +781,26 @@ export function useDayPlannerToolOrchestrationCore() {
           }
         }
 
-        const prompt = buildSlotPrompt(queueTarget, { poseGuide: Boolean(poseGuideFilename) });
+        const prompt = buildSlotPrompt(queueTarget, {
+          poseGuide: Boolean(poseGuideFilename),
+          faceOnlyIdentity,
+          forceGarmentReinforce: vacationFaceBreak,
+        });
         // Play/Simple: skip lint round-trip — Day stills are draft-speed first film.
-        const finalized = leanChrome
+        const drafted = leanChrome
           ? prompt
           : await actions.finalizePrompt(prompt, character?.name || slot.label);
+        // Adult moods only — reinforceIntimateStillPrompt false-positives on Suggestive/
+        // Vacation ("hands on" zipper, "sex contact" bans) and injects nude/duo locks
+        // that fight CLOTHING LOCK → bikini/beach drift.
+        const dayMoodForPrompt = normalizeDayMood(
+          isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+            ? 'everyday'
+            : toolSettings.dayMood
+        );
+        const finalized = isDayAdultMood(dayMoodForPrompt)
+          ? reinforceIntimateStillPrompt(drafted)
+          : drafted;
         setOutput(finalized);
         rememberDraftFields({
           toolKey: TOOL_ID,
@@ -530,9 +808,10 @@ export function useDayPlannerToolOrchestrationCore() {
           href: '/day',
           fields: [character?.name ?? '', queueTarget.label, finalized],
         });
-        // Keep as Image 1 for worn-kit fidelity on Qwen 2511.
+        // Everyday: Keep as Image 1 for worn-kit fidelity on Qwen 2511.
+        // Sport / nude adult beats: Cast as Image 1 so Keep lingerie cannot stick.
+        // Upright vacation face-break: face crop Image 1; full Keep on Image 2.
         // Image 2 = optional garment packshot; Image 3 = crude pose wireframe.
-        // Never put Cast on Image 1 when Keep exists — that drops the outfit.
         const extraUrls: Array<string | undefined> = [undefined];
         const extraFilenames: string[] = [''];
         if (garmentReinforce?.imageUrl || garmentReinforce?.imageFilename) {
@@ -554,12 +833,13 @@ export function useDayPlannerToolOrchestrationCore() {
           poseGuideUrl,
           model: shared.model,
         });
+        const queueImagePlate = omitGarment ? identityPlate : (identityPlate ?? queuePlate);
         const queueOptions = !hasPlate
           ? undefined
-          : queuePlate?.filename?.trim() || queuePlate?.imageUrl?.trim()
+          : queueImagePlate?.filename?.trim() || queueImagePlate?.imageUrl?.trim()
             ? {
-                inputImageFilename: queuePlate?.filename?.trim() || undefined,
-                inputImageUrl: queuePlate?.imageUrl?.trim() || undefined,
+                inputImageFilename: queueImagePlate?.filename?.trim() || undefined,
+                inputImageUrl: queueImagePlate?.imageUrl?.trim() || undefined,
                 ...(hasExtras
                   ? {
                       ...(extraUrls.some(url => Boolean(url)) ? { inputImageUrls: extraUrls } : {}),
@@ -589,12 +869,54 @@ export function useDayPlannerToolOrchestrationCore() {
         if (character) {
           syncSharedIdentityToCast(character);
         }
-        const identityStrength = Math.min(
-          shared.ipAdapterStrength ?? 0.75,
-          DAY_PLATE_IDENTITY_LOCK_CAP
-        );
-        const faceQueueParams = castFaceQueueParamsBase(character, identityStrength);
+        const dayMood = normalizeDayMood(toolSettings.dayMood);
+        const intimateMix = normalizeDayIntimateMix(toolSettings.intimateMix);
+        // Nude Solo: always soft-cap identity even without Image 3 — high IP + lingerie
+        // face crop is how beige bras win over FULLY NUDE.
+        const identityCap =
+          isDayAdultMood(dayMood) && omitGarment && intimateMix !== 'duo'
+            ? DAY_ADULT_SOLO_NUDE_IDENTITY_LOCK_CAP
+            : isDayAdultMood(dayMood) && Boolean(poseGuideFilename)
+              ? intimateMix === 'duo'
+                ? DAY_ADULT_DUO_IDENTITY_LOCK_CAP
+                : Math.min(DAY_PLATE_IDENTITY_LOCK_CAP, STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP)
+              : vacationFaceBreak
+                ? DAY_VACATION_UPRIGHT_FACE_IDENTITY_LOCK_CAP
+                : (dayMood === 'vacation' || dayMood === 'suggestive') && Boolean(poseGuideFilename)
+                  ? DAY_VACATION_POSE_IDENTITY_LOCK_CAP
+                  : DAY_PLATE_IDENTITY_LOCK_CAP;
+        const identityStrength = Math.min(shared.ipAdapterStrength ?? 0.75, identityCap);
+        // Never pin Cast lingerie plate as IP when we auto-cropped a face window —
+        // that was how beige bras re-entered after soft Identity Lock.
+        const croppedFaceFilename =
+          nudeFaceAutoCropped || vacationFaceBreak
+            ? identityPlate?.filename?.trim() || undefined
+            : undefined;
+        const faceQueueParams = croppedFaceFilename
+          ? {
+              ipAdapterImageFilename: croppedFaceFilename,
+              ipAdapterImageFilenames: [croppedFaceFilename],
+              ipAdapterStrength: identityStrength,
+            }
+          : omitGarment && castFaceDuplicatesBodyPlate(character)
+            ? undefined
+            : castFaceQueueParamsBase(character, identityStrength);
         const castLoras = castLoraSessionIds(character);
+        const vacationPoseDenoise = vacationFaceBreak
+          ? DAY_VACATION_UPRIGHT_FACE_DENOISE
+          : (dayMood === 'vacation' || dayMood === 'suggestive') && Boolean(poseGuideFilename)
+            ? DAY_VACATION_POSE_DENOISE
+            : undefined;
+        // Plate + pose Image 3 need an Edit-capable model. Adult nude + Rapid AIO
+        // must use Edit NSFW — SFW Edit soft-censors into beige lingerie.
+        const plateQueueModel = hasPlate
+          ? resolveAdultNudePlateQueueModel(shared.model, {
+              adultNude: isDayAdultMood(dayMood) && omitGarment,
+            })
+          : undefined;
+        if (plateQueueModel && plateQueueModel !== shared.model) {
+          updateShared({ model: plateQueueModel });
+        }
         const promptId = await actions.sendComfyUi(finalized, undefined, undefined, {
           ...(queueOptions ?? {}),
           ...(hasPlate
@@ -603,15 +925,17 @@ export function useDayPlannerToolOrchestrationCore() {
                 turboEditStrength: 'strong',
                 identityLock: true,
                 identityLockStrength: identityStrength,
+                ...(plateQueueModel ? { queueModel: plateQueueModel } : {}),
               }
             : {}),
           characterId: shared.activeCharacterId,
           lookId: shared.activeLookId ?? character?.activeLookId,
-          ...(faceQueueParams || poseControlNet
+          ...(faceQueueParams || poseControlNet || vacationPoseDenoise != null
             ? {
                 queueParamsBase: {
                   ...poseControlNet?.queueParamsBase,
                   ...faceQueueParams,
+                  ...(vacationPoseDenoise != null ? { denoise: vacationPoseDenoise } : {}),
                 },
               }
             : {}),
@@ -661,12 +985,77 @@ export function useDayPlannerToolOrchestrationCore() {
       shared.ipAdapterStrength,
       shared.lockedWardrobeId,
       slots,
+      toolSettings.allowCompanions,
       toolSettings.customGarmentImageFilename,
       toolSettings.customGarmentImageUrl,
+      toolSettings.dayMood,
+      toolSettings.intimateMix,
+      intimateEnabled,
       shared.model,
+      updateShared,
       updateToolSettings,
     ]
   );
+  const suggestDayScenes = useCallback(() => {
+    const diversified = diversifyDaySlotScenes(slots, {
+      forceLocations: true,
+      forceBeats: true,
+      fillBeats: true,
+      allowCompanions: toolSettings.allowCompanions === true,
+      dayMood: toolSettings.dayMood,
+      intimateMix: toolSettings.intimateMix,
+    });
+    if (diversified.changed) {
+      updateToolSettings({ slots: diversified.slots });
+    }
+    return diversified.changed;
+  }, [
+    slots,
+    toolSettings.allowCompanions,
+    toolSettings.dayMood,
+    toolSettings.intimateMix,
+    updateToolSettings,
+  ]);
+
+  const rerollActiveSlotScene = useCallback(
+    (options?: {
+      slotId?: import('@/lib/day-planner').DaySlotId;
+      rerollLocation?: boolean;
+      rerollBeat?: boolean;
+    }) => {
+      const slotId = options?.slotId ?? activeSlotId;
+      const next = rerollDaySlotScene(slots, slotId, {
+        rerollLocation: options?.rerollLocation !== false,
+        rerollBeat: options?.rerollBeat !== false,
+        allowCompanions: toolSettings.allowCompanions === true,
+        dayMood: toolSettings.dayMood,
+        intimateMix: toolSettings.intimateMix,
+      });
+      if (next.changed) {
+        if (slotId !== activeSlotId) {
+          setActiveSlotId(slotId);
+        }
+        updateToolSettings({ slots: next.slots });
+      }
+      return next.changed;
+    },
+    [
+      activeSlotId,
+      slots,
+      toolSettings.allowCompanions,
+      toolSettings.dayMood,
+      toolSettings.intimateMix,
+      updateToolSettings,
+    ]
+  );
+
+  const queueBlockReason = dayQueueBlockReason({
+    hasCharacter: Boolean(character),
+    hasPlate,
+    isolateSubject,
+    isolatePending,
+  });
+
   return {
     router,
     setBusy,
@@ -712,6 +1101,46 @@ export function useDayPlannerToolOrchestrationCore() {
     isolateStatus,
     platePreviewUrl,
     setIsolateSubject,
+    allowCompanions: toolSettings.allowCompanions === true,
+    setAllowCompanions: (next: boolean) => updateToolSettings({ allowCompanions: next }),
+    hideStickyCutCoach: toolSettings.hideStickyCutCoach === true,
+    setHideStickyCutCoach: (next: boolean) => updateToolSettings({ hideStickyCutCoach: next }),
+    dayMood: normalizeDayMood(
+      isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
+    ),
+    setDayMood: (next: import('@/lib/day-planner').DayMood) => {
+      const mood = isDayAdultMood(next) && !intimateEnabled ? 'everyday' : normalizeDayMood(next);
+      const mix = normalizeDayIntimateMix(toolSettings.intimateMix);
+      const aligned = ensureDaySlotsMatchMood(slots, {
+        dayMood: mood,
+        intimateMix: mix,
+        allowCompanions: toolSettings.allowCompanions === true,
+      });
+      updateToolSettings({
+        dayMood: mood,
+        ...(aligned.changed ? { slots: aligned.slots } : {}),
+      });
+    },
+    intimateEnabled,
+    intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
+    setIntimateMix: (next: import('@/lib/day-planner').DayIntimateMix) => {
+      const mix = normalizeDayIntimateMix(next);
+      const mood = normalizeDayMood(
+        isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
+      );
+      const aligned = ensureDaySlotsMatchMood(slots, {
+        dayMood: mood,
+        intimateMix: mix,
+        allowCompanions: toolSettings.allowCompanions === true,
+      });
+      updateToolSettings({
+        intimateMix: mix,
+        ...(aligned.changed ? { slots: aligned.slots } : {}),
+      });
+    },
+    suggestDayScenes,
+    rerollActiveSlotScene,
+    queueBlockReason,
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,

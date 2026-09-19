@@ -96,7 +96,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2" data-testid="mobile-desk-bridge">
-          <PlayContinueChip variant="secondary" hideWhenHabit />
+          {tab !== 'film' ? <PlayContinueChip variant="secondary" hideWhenHabit /> : null}
           <Link
             href={deskHref}
             className="ui-btn-secondary shrink-0 px-3 py-2 text-xs"
@@ -110,7 +110,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         <div className="mb-3 space-y-3">
           <PlayHabitNudgeBanner />
-          <PlayFunnelStrip compact />
+          {tab !== 'film' ? <PlayFunnelStrip compact /> : null}
         </div>
         {children}
       </main>

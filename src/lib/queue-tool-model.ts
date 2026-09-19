@@ -19,6 +19,7 @@ const EDIT_TO_TXT2I: Partial<Record<ComfyImageModel, ComfyImageModel>> = {
   'qwen-image-edit-2511-lightning-4': 'qwen-image-2512-lightning-4',
   'qwen-image-edit-2511-lightning-8': 'qwen-image-2512-lightning-8',
   'qwen-rapid-aio-edit': 'qwen-image-2512-lightning-8',
+  'qwen-rapid-aio-edit-nsfw': 'qwen-rapid-aio-nsfw',
   'flux-inpaint': 'flux-dev',
 };
 
@@ -27,7 +28,7 @@ const TXT2I_TO_EDIT: Partial<Record<ComfyImageModel, ComfyImageModel>> = {
   'qwen-image-2512-lightning-4': 'qwen-image-edit-2511-lightning-4',
   'qwen-image-2512-lightning-8': 'qwen-image-edit-2511-lightning-8',
   'qwen-rapid-aio-sfw': 'qwen-rapid-aio-edit',
-  'qwen-rapid-aio-nsfw': 'qwen-rapid-aio-edit',
+  'qwen-rapid-aio-nsfw': 'qwen-rapid-aio-edit-nsfw',
   'boogu-image': 'boogu-image-edit',
   'boogu-image-turbo': 'boogu-image-edit-turbo',
 };
@@ -216,7 +217,10 @@ function sameImg2imgFamily(current: string, candidate: string): boolean {
   if (id.includes('flux')) {
     return other.includes('flux-2-klein') || other.includes('klein');
   }
-  if (id.includes('qwen') || id.includes('rapid-aio')) {
+  if (id.includes('rapid-aio')) {
+    return other.includes('rapid-aio');
+  }
+  if (id.includes('qwen')) {
     return other.includes('qwen') || other.includes('rapid-aio');
   }
   return false;
@@ -241,6 +245,9 @@ function inferEditCounterpart(model: ComfyImageModel | string): ComfyImageModel 
     return 'qwen-image-edit-2511-lightning-8';
   }
   if (id.includes('rapid-aio')) {
+    if (id.includes('nsfw')) {
+      return 'qwen-rapid-aio-edit-nsfw';
+    }
     return 'qwen-rapid-aio-edit';
   }
   if (id.includes('boogu') && id.includes('turbo')) {
@@ -290,22 +297,81 @@ export function resolvePreferredImg2imgModel(input: {
   return pool?.[0] ?? input.fallback ?? mapped ?? DEFAULT_IMG2IMG_MODEL;
 }
 
+/** Prefer Rapid AIO Edit NSFW when Day/Story heat needs the NSFW merge. */
+export function resolveRapidAioEditModel(options?: {
+  nsfw?: boolean;
+  current?: string | null;
+}): ComfyImageModel {
+  const current = options?.current?.trim().toLowerCase() ?? '';
+  if (options?.nsfw) {
+    if (current === 'qwen-rapid-aio-edit-nsfw' || current === 'qwen-rapid-aio-nsfw') {
+      return 'qwen-rapid-aio-edit-nsfw';
+    }
+    if (current.includes('rapid-aio')) {
+      return 'qwen-rapid-aio-edit-nsfw';
+    }
+    return 'qwen-rapid-aio-edit-nsfw';
+  }
+  if (current === 'qwen-rapid-aio-edit' || current === 'qwen-rapid-aio-sfw') {
+    return 'qwen-rapid-aio-edit';
+  }
+  if (current.includes('rapid-aio') && !current.includes('nsfw')) {
+    return 'qwen-rapid-aio-edit';
+  }
+  return 'qwen-rapid-aio-edit';
+}
+
+/**
+ * Day/Story plate queues: snap T2I → Edit, then force Rapid AIO **Edit NSFW**
+ * on adult nude beats (SFW cannot deliver NSFW bare-skin stills). Beach bias from
+ * NSFW merges is fought with indoor SETTING-first edit leads + 4–6 step caps —
+ * not by swapping to SFW.
+ *
+ * Clothed moods (Suggestive / Vacation / Sport / Everyday) must snap **off**
+ * leftover Edit NSFW — that merge invents mid-sex duo doggy from kneeling /
+ * look-back stills even when the prompt bans partners.
+ */
+export function resolveAdultNudePlateQueueModel(
+  model: ComfyImageModel | string,
+  options?: { adultNude?: boolean }
+): ComfyImageModel {
+  const resolved = resolveModelForQueueTool(model, 'image-prompt');
+  const haystack = `${String(model)} ${resolved}`.toLowerCase();
+  if (!options?.adultNude) {
+    if (haystack.includes('rapid-aio') && haystack.includes('nsfw')) {
+      return resolveRapidAioEditModel({ nsfw: false, current: resolved });
+    }
+    return resolved;
+  }
+  if (!haystack.includes('rapid-aio')) {
+    return resolved;
+  }
+  return resolveRapidAioEditModel({ nsfw: true, current: resolved });
+}
+
+/** @deprecated Prefer resolveAdultNudePlateQueueModel — same behavior. */
+export const resolveDayAdultPlateQueueModel = resolveAdultNudePlateQueueModel;
+
 /** Edit/img2img counterpart for a T2I preset (e.g. 2512 Lightning → Edit-2511 Lightning). */
 export function resolveEditCounterpartForImg2img(model: ComfyImageModel | string): ComfyImageModel {
   return inferEditCounterpart(normalizeModel(model));
 }
 
 /**
- * Queue uses the selected model as-is. Edit-2511 Lightning stays on its own
- * stack (and {{LORA_LIGHTNING}} overrides) — remapping Generate → 2512 broke
- * LoRA resolution when only the Edit LightX2V file is installed.
+ * Queue uses the selected model as-is for Generate / T2I tools.
+ * Edit queue tools (Day/Outfit/Story photo, Refine, Compose, …) snap T2I
+ * picks (e.g. Qwen 2512) onto their Edit counterpart — otherwise Image 1–3
+ * never apply and stills can dump the magenta pose-guide schematic.
  */
 export function resolveModelForQueueTool(
   model: ComfyImageModel | string,
-  _tool?: string
+  tool?: string
 ): ComfyImageModel {
-  void _tool;
-  return normalizeModel(model);
+  const normalized = normalizeModel(model);
+  if (isEditQueueTool(tool) && !isImg2imgCapableModel(normalized)) {
+    return inferEditCounterpart(normalized);
+  }
+  return normalized;
 }
 
 /**

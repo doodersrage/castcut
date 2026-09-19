@@ -20,7 +20,7 @@ const ALL_MODELS = COMFY_IMAGE_MODELS.map(entry => entry.id);
 export const MODEL_FAMILY_GROUPS: readonly (readonly ComfyImageModel[])[] = [
   ['qwen-image-2512', 'qwen-image-2512-lightning-4', 'qwen-image-2512-lightning-8'],
   ['qwen-image-edit-2511', 'qwen-image-edit-2511-lightning-4', 'qwen-image-edit-2511-lightning-8'],
-  ['qwen-rapid-aio-edit', 'qwen-rapid-aio-sfw', 'qwen-rapid-aio-nsfw'],
+  ['qwen-rapid-aio-edit', 'qwen-rapid-aio-edit-nsfw', 'qwen-rapid-aio-sfw', 'qwen-rapid-aio-nsfw'],
   [
     'flux-2-klein',
     'flux-2-klein-4b-distilled',

@@ -1,9 +1,16 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  LOOK_PREVIEW_HINT,
+  consumeMoodboardGalleryPlatePick,
+  markMoodboardGalleryPlatePick,
+  moodboardExtractBlockReason,
+  moodboardQueueBlockReason,
+  moodboardSessionStatusLine,
   newMoodboardTileId,
   normalizeMoodboardTemplateId,
   normalizeMoodboardTiles,
+  resolveLookPlayPhase,
   synthesizeMoodboardPrompt,
 } from './moodboard-scene';
 
@@ -60,5 +67,100 @@ describe('moodboard-scene', () => {
       () => synthesizeMoodboardPrompt({ tiles: [] }),
       /Add at least one moodboard tile/
     );
+  });
+
+  it('moodboardExtractBlockReason and moodboardQueueBlockReason mirror Outfit-style copy', () => {
+    assert.match(
+      moodboardExtractBlockReason({
+        hasTiles: false,
+        hasInstruction: false,
+      }) ?? '',
+      /tile or scene direction/i
+    );
+    assert.equal(
+      moodboardExtractBlockReason({
+        hasTiles: true,
+        hasInstruction: false,
+      }),
+      null
+    );
+    assert.match(
+      moodboardQueueBlockReason({
+        hasTiles: false,
+        hasInstruction: false,
+        busy: true,
+      }) ?? '',
+      /Already queueing/i
+    );
+    assert.match(
+      moodboardQueueBlockReason({
+        hasTiles: true,
+        hasInstruction: false,
+        tileUploading: true,
+      }) ?? '',
+      /tile upload/i
+    );
+  });
+
+  it('resolveLookPlayPhase walks Tiles → Extract → Plate → Continue', () => {
+    assert.equal(
+      resolveLookPlayPhase({
+        tileCount: 0,
+        hasLookPack: false,
+        hasPlate: false,
+      }),
+      'tiles'
+    );
+    assert.equal(
+      resolveLookPlayPhase({
+        tileCount: 2,
+        hasLookPack: false,
+        hasPlate: false,
+      }),
+      'extract'
+    );
+    assert.equal(
+      resolveLookPlayPhase({
+        tileCount: 2,
+        hasLookPack: true,
+        hasPlate: false,
+      }),
+      'plate'
+    );
+    assert.equal(
+      resolveLookPlayPhase({
+        tileCount: 2,
+        hasLookPack: true,
+        hasPlate: true,
+      }),
+      'continue'
+    );
+    assert.equal(
+      resolveLookPlayPhase({
+        tileCount: 0,
+        hasLookPack: false,
+        hasPlate: false,
+        softAdvanceActive: true,
+      }),
+      'continue'
+    );
+  });
+
+  it('moodboardSessionStatusLine names tiles · plate · pack', () => {
+    assert.match(
+      moodboardSessionStatusLine({ tileCount: 0, hasPlate: false, hasLookPack: false }),
+      /No tiles/
+    );
+    assert.match(
+      moodboardSessionStatusLine({ tileCount: 2, hasPlate: true, hasLookPack: true }),
+      /2 tiles · Plate ready · Pack ready/
+    );
+    assert.match(LOOK_PREVIEW_HINT, /Preview prompt/);
+  });
+
+  it('mark/consumeMoodboardGalleryPlatePick round-trips in sessionStorage', () => {
+    markMoodboardGalleryPlatePick();
+    assert.equal(consumeMoodboardGalleryPlatePick(), true);
+    assert.equal(consumeMoodboardGalleryPlatePick(), false);
   });
 });

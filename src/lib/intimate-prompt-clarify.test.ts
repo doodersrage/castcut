@@ -77,6 +77,41 @@ describe('intimate-prompt-clarify', () => {
     assert.match(out, /cumming inside her/i);
   });
 
+  it('locks Day oral beats against hand-in-mouth collapse', () => {
+    const out = reinforceIntimateStillPrompt(
+      'MOOD: intimate adult still. mandatory new body pose: sitting. Also follow the beat action: oral sex: partner kneeling between her thighs, mouth on her vulva'
+    );
+    assert.match(out, /ORAL:/i);
+    assert.match(out, /never hand or fingers in own mouth/i);
+    assert.match(out, /no book, phone, or wine prop/i);
+  });
+
+  it('does not inject nude/duo locks onto Suggestive Day clothing-lock prompts', () => {
+    const input =
+      'MOOD: suggestive heat — clothed flirt only\n' +
+      'CLOTHING LOCK CRITICAL: wear the EXACT Image 2 garment\n' +
+      'SOLO SUBJECT (mandatory): exactly one person in frame\n' +
+      'beat: twisting to zip a dress — both hands on the zipper behind her back, looking over a shoulder\n' +
+      'never genitals or sex contact';
+    const out = reinforceIntimateStillPrompt(input);
+    assert.doesNotMatch(out, /Two adults: Cast lead|FOREGROUND: empty rumpled sheets|clothes are now gone|Cross-person touch/i);
+    assert.match(out, /CLOTHING LOCK CRITICAL|suggestive heat/i);
+  });
+
+  it('locks adult Day stills against invented book/reading props', () => {
+    const out = reinforceIntimateStillPrompt(
+      'MOOD: intimate duo sex still\nPARTNERS: Exactly TWO adults\nbeat: missionary on a rumpled bed with afternoon light through blinds'
+    );
+    assert.match(out, /FOREGROUND:|PROPS \+ FRAME:|PROPS: empty hands|bare nightstand/i);
+    assert.match(out, /empty rumpled sheets|bare sheets|nothing open on the bed|empty lap/i);
+    assert.match(out, /BODIES: exactly two fully separate/i);
+    assert.match(out, /two pelvises|never double genitals/i);
+    assert.match(out, /HANDS: exactly four hands|never a floating\/ghost hand/i);
+    assert.match(out, /SKIN:.*black morphsuit|never a black morphsuit|zentai|face and hands/i);
+    assert.match(out, /DUO VISIBLE|never a solo Cast nude portrait|partner head and torso share/i);
+    assert.equal(reinforceIntimateStillPrompt(out), out);
+  });
+
   it('rewrites legacy adult-fork meta phrasing into a concrete pose', () => {
     const out = reinforceIntimateStillPrompt(
       'Amber Office bent over after velvet lullaby, taken from behind — doggy or bent-over sex, explicit and readable.'
@@ -145,7 +180,19 @@ describe('intimate-prompt-clarify', () => {
     assert.match(out, /^Cabinet drawer:/i);
     assert.match(out, /open drawer|filing cabinet/i);
     assert.match(out, /sinks into her vagina|four hands only/i);
+    assert.match(out, /both fully nude|Image 1 face only|clothed third/i);
     assert.doesNotMatch(out, /bent OVER the desk|^Behind:/i);
+    assert.equal(reinforceIntimateStillPrompt(out), out);
+  });
+
+  it('rewrites drawer withdrawal afterglow away from coffin crops and wall locks', () => {
+    const out = reinforceIntimateStillPrompt(
+      "She lies still in the drawer's dim glow, eyes closed as he withdraws slowly—his thumb smears her clit one last time before his hand slips free, leaving only the scent of him on her thighs."
+    );
+    assert.match(out, /^Drawer afterglow:/i);
+    assert.match(out, /OPEN steel filing-cabinet drawer|clit between|fully nude/i);
+    assert.match(out, /never a finger in her mouth|not sealed|coffin/i);
+    assert.doesNotMatch(out, /Wall duo:|^Cabinet drawer:|bent OVER the desk|standing wall press/i);
     assert.equal(reinforceIntimateStillPrompt(out), out);
   });
 
@@ -171,8 +218,9 @@ describe('intimate-prompt-clarify', () => {
     assert.match(out, /STANDS on the floor|not sitting|lowers her|side profile|same facing/i);
     assert.match(out, /Mouths apart|no kiss|cheek at his shoulder/i);
     assert.match(out, /four legs total|no flesh blob|thigh and hip only/i);
+    assert.match(out, /both fully nude|nothing worn|discard reference clothes/i);
     assert.doesNotMatch(out, /gilded frame of her bare legs|STANDING upright sex against the wall|between her thighs/i);
-    assert.ok(out.length < 700, `chaise recipe still too long (${out.length})`);
+    assert.ok(out.length < 800, `chaise recipe still too long (${out.length})`);
   });
 
   it('keeps wardrobe when the beat names lingerie instead of forcing nude', () => {

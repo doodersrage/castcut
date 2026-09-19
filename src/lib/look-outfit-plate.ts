@@ -218,6 +218,7 @@ export function buildLookCastPlateNegative(appearance: string): string {
   return [
     ethnicityNeg,
     'different person, race swap, ethnicity swap, skin tone change',
+    'tattoo, tattoos, tattoo sleeve, inked skin, body ink',
     '3D render, CGI, clay sculpt, grey clay, monochrome sculpture, base mesh, ZBrush, Blender viewport, untextured, albedo only, plastic mannequin, statue, doll, blank eyes, no pupils, featureless face, video-game character',
     'cartoon, anime, illustration, painting',
     'crowd, multiple people, busy wardrobe, outerwear, text overlay',
@@ -466,7 +467,7 @@ export function clearCharacterBodyPlate(characterId?: string | null): boolean {
 
 /**
  * User-facing Cast home clear — remove whatever shows as the look plate
- * (body reference and/or face IP on the active look).
+ * (body reference and face IP on every look, plus Outfit session plate).
  */
 export function clearCharacterLookPlate(characterId?: string | null): boolean {
   const id = characterId?.trim();
@@ -478,14 +479,22 @@ export function clearCharacterLookPlate(characterId?: string | null): boolean {
     return false;
   }
   const look = activeLook(character);
-  const hasReference = Boolean(look.reference || character.reference);
+  const hasReference = Boolean(
+    look.reference || character.reference || (character.looks ?? []).some(entry => entry.reference)
+  );
   const hasFace = Boolean(
     look.ipAdapter?.imageFilename?.trim() ||
     look.ipAdapter?.imageUrl?.trim() ||
     look.ipAdapter?.comfyUrl?.trim() ||
     character.ipAdapter?.imageFilename?.trim() ||
     character.ipAdapter?.imageUrl?.trim() ||
-    character.ipAdapter?.comfyUrl?.trim()
+    character.ipAdapter?.comfyUrl?.trim() ||
+    (character.looks ?? []).some(
+      entry =>
+        entry.ipAdapter?.imageFilename?.trim() ||
+        entry.ipAdapter?.imageUrl?.trim() ||
+        entry.ipAdapter?.comfyUrl?.trim()
+    )
   );
   const previous = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
   const hasFitting =
@@ -495,9 +504,12 @@ export function clearCharacterLookPlate(characterId?: string | null): boolean {
     return false;
   }
 
-  const looks = (character.looks ?? [look]).map(entry =>
-    entry.id === look.id ? { ...entry, reference: undefined, ipAdapter: undefined } : entry
-  );
+  // Clear every look — active-only left secondary looks showing the old face as the plate.
+  const looks = (character.looks ?? [look]).map(entry => ({
+    ...entry,
+    reference: undefined,
+    ipAdapter: undefined,
+  }));
   upsertCharacter({
     ...character,
     reference: undefined,
@@ -545,6 +557,11 @@ export function assignOutfitPlateToCastAndFitting(input: {
   imageUrl: string;
   filename?: string;
   isolated?: boolean;
+  /**
+   * Cast gallery/upload replace — also refresh the face lock so a stale IP
+   * Adapter thumbnail cannot keep showing as the look plate.
+   */
+  syncFace?: boolean;
 }): CharacterRecord | null {
   const characterId = input.characterId.trim();
   const imageUrl = input.imageUrl.trim();
@@ -565,8 +582,8 @@ export function assignOutfitPlateToCastAndFitting(input: {
     isolateSubject: true,
   };
   const look = activeLook(character);
-  // Keep an existing Cast face lock — Outfit body plate goes on reference only.
-  // Only seed ipAdapter from the plate when this look has no face yet.
+  // Outfit body-only attach keeps an existing face lock. Cast gallery/upload
+  // replaces face so the new still is identity end-to-end.
   const existingFace = look.ipAdapter ?? character.ipAdapter;
   const hasFace = Boolean(
     existingFace?.imageFilename?.trim() ||
@@ -581,7 +598,7 @@ export function assignOutfitPlateToCastAndFitting(input: {
     : {
         imageUrl,
       };
-  const ipAdapter = hasFace ? existingFace : plateAsFace;
+  const ipAdapter = input.syncFace === true || !hasFace ? plateAsFace : existingFace;
   const looks = (character.looks ?? [look]).map(entry =>
     entry.id === look.id ? { ...entry, reference, ipAdapter } : entry
   );
@@ -603,6 +620,7 @@ export function assignOutfitPlateToCastAndFitting(input: {
     referenceImageFilename: filename,
     referenceOriginalUrl: imageUrl,
     referenceOriginalFilename: filename,
+    // Cancel in-flight Look→Outfit extract so a late still cannot clobber this plate.
     pendingOutfitPlatePromptId: undefined,
     suppressAutoPlateSeed: false,
   });
@@ -818,6 +836,9 @@ export type ApplyCastLookPlateInput = {
 /**
  * Upload / gallery still → Cast look plate (+ Outfit session mirror).
  * Used from character home for replace.
+ *
+ * Gallery picks must work without Comfy — durable URL + identity persist are
+ * enough; Comfy upload / isolate are best-effort for Outfit queue filenames.
  */
 export async function applyCastLookPlateFromSource(
   input: ApplyCastLookPlateInput
@@ -837,6 +858,8 @@ export async function applyCastLookPlateFromSource(
   const shouldIsolate = input.isolate !== false;
   const originalName = input.filename?.trim() || file?.name || `cast-plate-${Date.now()}.png`;
   const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+  const incomingDurable = imageUrl && !imageUrl.startsWith('blob:') ? imageUrl : '';
+
   const sourceFile =
     file ??
     (await (async () => {
@@ -853,63 +876,73 @@ export async function applyCastLookPlateFromSource(
       });
     })());
 
-  const originalUploaded = await resolveQueueInputImage({
-    file: sourceFile,
-    filename: originalName,
-    model: input.model,
-  });
-  const originalFilename = originalUploaded?.filename?.trim();
-  if (!originalFilename) {
-    throw new Error('Upload did not return a filename.');
+  // Best-effort Comfy input upload — never block saving the Cast plate on it.
+  let comfyFilename: string | undefined;
+  try {
+    const originalUploaded = await resolveQueueInputImage({
+      file: sourceFile,
+      filename: originalName,
+      model: input.model,
+    });
+    comfyFilename = originalUploaded?.filename?.trim() || undefined;
+  } catch {
+    comfyFilename = undefined;
   }
-  const incomingDurable = imageUrl && !imageUrl.startsWith('blob:') ? imageUrl : '';
-  const originalViewUrl =
-    collectIsolateSourceUrls({
-      filename: originalFilename,
-      comfyUrl,
-    }).find(url => url.includes('/api/comfyui/view?')) ?? '';
+
+  const originalViewUrl = comfyFilename
+    ? (collectIsolateSourceUrls({
+        filename: comfyFilename,
+        comfyUrl,
+      }).find(url => url.includes('/api/comfyui/view?')) ?? '')
+    : '';
   const originalUrl = incomingDurable || originalViewUrl || imageUrl;
 
-  let queueFilename = originalFilename;
-  let queueUrl = originalUrl;
+  let queueFilename = comfyFilename || originalName;
+  let queueUrl = originalUrl || incomingDurable;
   let isolated = false;
 
   if (!shouldIsolate) {
     const durable = await persistIdentityImage({
       file: sourceFile,
-      filename: originalFilename,
+      filename: queueFilename,
     });
-    queueUrl = durable || originalUrl;
+    queueUrl = durable || originalUrl || incomingDurable;
   } else {
     try {
       const cutout = await isolateSubjectOnWhite(sourceFile, originalName);
-      const cutoutUploaded = await resolveQueueInputImage({
-        file: cutout,
-        filename: cutout.name,
-        model: input.model,
-      });
-      const cutoutFilename = cutoutUploaded?.filename?.trim();
-      if (!cutoutFilename) {
-        throw new Error('Cut-out upload did not return a filename.');
+      let cutoutFilename = cutout.name;
+      try {
+        const cutoutUploaded = await resolveQueueInputImage({
+          file: cutout,
+          filename: cutout.name,
+          model: input.model,
+        });
+        cutoutFilename = cutoutUploaded?.filename?.trim() || cutout.name;
+      } catch {
+        // Keep local cutout name when Comfy is down.
       }
       const cutoutDurable = await persistIdentityImage({
         file: cutout,
         filename: cutoutFilename,
       });
       queueFilename = cutoutFilename;
-      queueUrl = cutoutDurable || URL.createObjectURL(cutout);
+      queueUrl = cutoutDurable || incomingDurable || originalUrl;
+      if (!queueUrl) {
+        // Last resort — blob URL only lives for this session.
+        queueUrl = URL.createObjectURL(cutout);
+      }
       isolated = true;
     } catch {
       const durable = await persistIdentityImage({
         file: sourceFile,
-        filename: originalFilename,
+        filename: queueFilename,
       });
-      queueUrl = durable || originalUrl;
+      queueUrl = durable || originalUrl || incomingDurable;
       isolated = false;
     }
   }
 
-  if (!queueUrl.trim()) {
+  if (!queueUrl?.trim()) {
     throw new Error('Could not resolve a plate image URL.');
   }
 
@@ -918,6 +951,7 @@ export async function applyCastLookPlateFromSource(
     imageUrl: queueUrl,
     filename: queueFilename,
     isolated,
+    syncFace: true,
   });
   if (!character) {
     throw new Error('Could not save the look plate to Cast.');

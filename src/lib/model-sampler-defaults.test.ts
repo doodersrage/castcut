@@ -224,17 +224,18 @@ describe("model sampler defaults", () => {
   it("preserves Rapid AIO Max steps when inject passes base tier", () => {
     const preserved = ensureDistilledSamplerParams(
       {
-        steps: 10,
+        steps: 6,
         cfg: 1,
         samplerName: "euler",
-        scheduler: "sgm_uniform",
+        scheduler: "beta",
       },
       "qwen-rapid-aio-sfw",
       "base",
     );
-    assert.equal(preserved.steps, 10);
+    assert.equal(preserved.steps, 6);
     assert.equal(preserved.cfg, 1);
-    assert.equal(preserved.scheduler, "sgm_uniform");
+    // Stale beta from older presets is rewritten to Phr00t simple.
+    assert.equal(preserved.scheduler, "simple");
   });
 
   it("returns klein distilled and base sampler presets", () => {
@@ -293,13 +294,25 @@ describe("model sampler defaults", () => {
       steps: 4,
       cfg: 1,
       samplerName: "euler_ancestral",
-      scheduler: "beta",
+      scheduler: "simple",
+    });
+    assert.deepEqual(getModelSamplerDefaults("qwen-rapid-aio-edit-nsfw", "base"), {
+      steps: 4,
+      cfg: 1,
+      samplerName: "euler_ancestral",
+      scheduler: "simple",
+    });
+    assert.deepEqual(getModelSamplerDefaults("qwen-rapid-aio-edit-nsfw", "optimized"), {
+      steps: 6,
+      cfg: 1,
+      samplerName: "euler_ancestral",
+      scheduler: "simple",
     });
     assert.deepEqual(getModelSamplerDefaults("qwen-rapid-aio-sfw", "maxCompatible"), {
       steps: 8,
       cfg: 1,
       samplerName: "euler",
-      scheduler: "beta",
+      scheduler: "simple",
     });
     assert.deepEqual(getModelSamplerDefaults("qwen-rapid-aio-nsfw", "optimized"), {
       steps: 6,
@@ -308,10 +321,16 @@ describe("model sampler defaults", () => {
       scheduler: "sgm_uniform",
     });
     assert.deepEqual(getModelSamplerDefaults("qwen-rapid-aio-sfw", "max"), {
-      steps: 10,
+      steps: 8,
       cfg: 1,
       samplerName: "euler",
-      scheduler: "sgm_uniform",
+      scheduler: "simple",
+    });
+    assert.deepEqual(getModelSamplerDefaults("qwen-rapid-aio-edit-nsfw", "max"), {
+      steps: 8,
+      cfg: 1,
+      samplerName: "euler_ancestral",
+      scheduler: "simple",
     });
   });
 

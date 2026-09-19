@@ -30,8 +30,13 @@ import {
   resolveWardrobeGarmentThumbUrl,
 } from '@/lib/wardrobe-garment-thumbs';
 import { fittingSwipeNeighbor } from '@/lib/fitting-room';
-import { buildDayProgressLightboxState } from '@/lib/day-planner';
+import {
+  buildDayProgressLightboxState,
+  daySessionStatusLine,
+  type DaySlotId,
+} from '@/lib/day-planner';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
+import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
@@ -39,14 +44,15 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
+import DayMoodStrip from '@/components/day-planner/DayMoodStrip';
 import DayPlateSection from '@/components/day-planner/DayPlateSection';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
+import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
-import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import {
   hasCompletedFirstFilm,
   loadPlayMetrics,
@@ -107,6 +113,18 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     isolateStatus,
     platePreviewUrl,
     setIsolateSubject,
+    allowCompanions,
+    setAllowCompanions,
+    hideStickyCutCoach,
+    setHideStickyCutCoach,
+    dayMood,
+    setDayMood,
+    intimateEnabled,
+    intimateMix,
+    setIntimateMix,
+    suggestDayScenes,
+    rerollActiveSlotScene,
+    queueBlockReason,
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,
@@ -114,6 +132,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     wardrobeKitCount,
     actions,
     updateSlot,
+    wardrobeLabelFor,
     queueSlot,
     queueAll,
     animateSlot,
@@ -144,7 +163,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const [sampleWatch, setSampleWatch] = useState(false);
   const [jumpInMode, setJumpInMode] = useState(false);
   const [progressLightbox, setProgressLightbox] = useState<ImageLightboxState | null>(null);
-  const { softAdvance, cancelSoftAdvance, softAdvanceTo } = usePlaySoftAdvance();
+  const [progressLightboxSlotIds, setProgressLightboxSlotIds] = useState<DaySlotId[]>([]);
+  const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance();
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const wardrobeKitDeck = useMemo(
     () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, activeSlot.wardrobeId),
@@ -157,15 +177,30 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         .length,
     [stills]
   );
+  const dayStatusLine = daySessionStatusLine({
+    hasPlate,
+    dayMood,
+    intimateMix,
+    completedStills: completedShotCount,
+    completedClips: completedClipCount,
+    slotTotal,
+    kitLabel: wardrobeLabelFor(activeSlot.wardrobeId),
+  });
   const collapseEditors =
     leanChrome && (jumpInMode || busy || assemblingFilm || completedShotCount > 0);
-  const showCutCoach = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
-  const queueBlocked = isolateSubject && isolatePending && hasPlate;
+  const cutCoachEligible = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
+  const showCutCoach = cutCoachEligible && !hideStickyCutCoach;
+  const queueBlocked = Boolean(queueBlockReason);
+  const showAnimateCoach =
+    completedShotCount > 0 &&
+    completedClipCount < completedShotCount &&
+    !firstCutCelebrate &&
+    !assemblingFilm;
   const showReelCut = !showCutCoach && !firstCutCelebrate;
   const showDemoEscape = completedShotCount === 0;
   const showSampleEscape = watchPlaylist.length === 0;
   const setupDefaultOpen = !character || !hasPlate;
-  const editDefaultOpen = !collapseEditors;
+  const editDefaultOpen = true;
   const firstFilmDone = useSyncExternalStore(
     subscribePlayMetrics,
     () => hasCompletedFirstFilm(loadPlayMetrics()),
@@ -192,6 +227,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       if (!next) {
         return;
       }
+      setProgressLightboxSlotIds(next.slotIds);
       setProgressLightbox({
         images: next.images,
         titles: next.titles,
@@ -202,6 +238,30 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     },
     [slots, stills]
   );
+
+  const progressLightboxSlideChrome = useMemo((): ImageLightboxSlideChrome | null => {
+    if (!progressLightbox || progressLightboxSlotIds.length === 0) {
+      return null;
+    }
+    const slotId = progressLightboxSlotIds[progressLightbox.index];
+    const slot = slotId ? slots.find(entry => entry.id === slotId) : undefined;
+    if (!slot) {
+      return null;
+    }
+    return {
+      showRequeue: true,
+      showSeedVariation: false,
+      showImprove: false,
+      showCompose: false,
+      showInpaint: false,
+      showUseStack: false,
+      showUsePromptStack: false,
+      showUseFace: false,
+      onRequeue: () => {
+        void queueSlot(slot);
+      },
+    };
+  }, [progressLightbox, progressLightboxSlotIds, queueSlot, slots]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -262,13 +322,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           onCancel={cancelSoftAdvance}
         />
         {!firstCutCelebrate ? (
-          <div className="mb-3">
+          <div className="mb-3 space-y-2">
             <DayPlayPhaseStrip
               activePhase={dayPhase ?? 'queue'}
               completedStills={completedShotCount}
               completedClips={completedClipCount}
               slotTotal={slotTotal}
             />
+            <DayStatusStrip statusLine={dayStatusLine} queueBlockReason={queueBlockReason} />
           </div>
         ) : null}
         {firstCutCelebrate ? (
@@ -415,6 +476,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     Queue rest
                   </Button>
                 ) : null}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  data-testid="day-cut-coach-hide"
+                  onClick={() => setHideStickyCutCoach(true)}
+                >
+                  Hide
+                </Button>
               </ToolActionRow>
             </div>
           </div>
@@ -422,7 +491,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
 
         <ToolSection
           title="Day"
-          description="Tap a time of day to edit it. Finished stills open the next slot."
+          description="Tap a time of day to edit Setting & Beat. Suggest day fills a morning→night plan before you Queue."
           data-testid="day-slot-board"
         >
           <DaySlotBoard
@@ -435,155 +504,24 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onOpenStill={openProgressLightbox}
             onRetrySlot={slot => void queueSlot(slot)}
             onAnimateSlot={slot => void animateSlot(slot)}
+            onRerollSlot={slot => {
+              rerollActiveSlotScene({ slotId: slot.id });
+            }}
           />
-        </ToolSection>
-
-        {completedShotCount > 0 && !firstCutCelebrate ? (
-          <ToolSection
-            title="Motion"
-            description="Animate stills into clips before Cut — motion reels prefer clips."
-            data-testid="day-animate"
-          >
-            <ToolActionRow>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => void animateSlot(activeSlot)}
-              >
-                Animate {activeSlot.label.toLowerCase()}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => void animateAllClips()}
-              >
-                Animate all ready stills
-              </Button>
-            </ToolActionRow>
-            <p className="type-caption mt-2 text-[var(--text-muted)]">
-              Queue stills first, then Animate — Cut after clips land for a motion reel.
-            </p>
-          </ToolSection>
-        ) : null}
-
-        <CollapsibleSection
-          title={`Edit · ${activeSlot.label}`}
-          summary="Kit, setting, and beat — then Queue day."
-          defaultOpen={editDefaultOpen}
-          persistKey="day-slots-lean"
-        >
-          <div data-testid="day-slots">
-            <CustomGarmentPhotoControls
-              accent={ACCENT}
-              busy={busy}
-              garmentUploading={garmentUploading}
-              garmentScanStatus={garmentScanStatus}
-              customGarmentImageUrl={toolSettings.customGarmentImageUrl}
-              customGarmentImageFilename={toolSettings.customGarmentImageFilename}
-              customGarmentDescription={toolSettings.customGarmentDescription}
-              testIdPrefix="day"
-              onApplyCustomGarment={applyCustomGarment}
-              onClearCustomGarment={clearCustomGarment}
-              onRescanCustomGarment={rescanCustomGarment}
-              onSaveCustomGarment={saveCurrentCustomGarment}
-              onApplySavedCustomGarment={applySavedCustomGarment}
-              onRemoveSavedCustomGarment={removeSavedCustomGarment}
-              onCustomGarmentDescriptionChange={value =>
-                updateToolSettings({ customGarmentDescription: value })
-              }
-              onError={message => setError(message)}
-            />
-            <FieldDivider />
-            <label className="mt-3 space-y-2">
-              <FieldLabel>Outfit kit</FieldLabel>
-              {hasCustomGarment ? (
-                <p className="type-caption text-[var(--text-muted)]" data-testid="day-byo-active">
-                  Using your clothing photo. Clear it above to pick a catalog kit again.
-                </p>
-              ) : null}
-              {wardrobeKitDeck.length > 0 ? (
-                <WardrobeKitPicker
-                  kits={wardrobeKitDeck}
-                  selectedId={activeSlot.wardrobeId}
-                  disabled={!wardrobeReady || busy || hasCustomGarment}
-                  testId="day-wardrobe-kit-picker"
-                  onSelect={wardrobeId => selectSlotWardrobe(activeSlot.id, wardrobeId)}
-                  onSwipe={delta => {
-                    const next = fittingSwipeNeighbor(
-                      wardrobeKitDeck,
-                      activeSlot.wardrobeId,
-                      delta
-                    );
-                    if (next) {
-                      selectSlotWardrobe(activeSlot.id, next.id);
-                    }
-                  }}
-                  resolveThumb={kit => ({
-                    url: resolveWardrobeGarmentThumbUrl(kit.id),
-                  })}
-                />
-              ) : null}
-              <CollapsibleSection
-                title="Kit filters"
-                summary="Clothing type and list picker."
-                defaultOpen={false}
-                persistKey="day-kit-filters"
-                className="mt-3"
-              >
-                <label className="space-y-2">
-                  <FieldLabel>Clothing type</FieldLabel>
-                  <SelectInput
-                    value={wardrobeCategoryFilter}
-                    disabled={!wardrobeReady || busy}
-                    className={accentFocusClass(ACCENT)}
-                    onChange={event =>
-                      updateToolSettings({
-                        wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(event.target.value),
-                      })
-                    }
-                  >
-                    {wardrobeCategoryFilterOptions().map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                        {option.value !== 'all' && wardrobeReady
-                          ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
-                          : option.value === 'all' && wardrobeReady
-                            ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, 'all')})`
-                            : ''}
-                      </option>
-                    ))}
-                  </SelectInput>
-                  {wardrobeReady && wardrobeCategoryFilter !== 'all' ? (
-                    <p className="type-caption text-[var(--text-muted)]">
-                      Showing {wardrobeKitCount} kit{wardrobeKitCount === 1 ? '' : 's'} for{' '}
-                      {activeSlot.label.toLowerCase()}.
-                    </p>
-                  ) : null}
-                </label>
-                <label className="mt-3 space-y-2">
-                  <FieldLabel>List picker</FieldLabel>
-                  <SelectInput
-                    value={activeSlot.wardrobeId ?? ''}
-                    disabled={!wardrobeReady || busy || hasCustomGarment}
-                    className={accentFocusClass(ACCENT)}
-                    onChange={event => {
-                      const value = event.target.value.trim();
-                      selectSlotWardrobe(activeSlot.id, value || undefined);
-                    }}
-                  >
-                    {filteredWardrobeOptions.map(option => (
-                      <option key={option.value || 'default'} value={option.value}>
-                        {option.group ? `${option.label} · ${option.group}` : option.label}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </label>
-              </CollapsibleSection>
-            </label>
-            <label className="mt-3 space-y-2">
-              <FieldLabel>Setting</FieldLabel>
+          <DayMoodStrip
+            className="mt-3"
+            busy={busy}
+            allowCompanions={allowCompanions}
+            onAllowCompanionsChange={setAllowCompanions}
+            dayMood={dayMood}
+            onDayMoodChange={setDayMood}
+            intimateMix={intimateMix}
+            onIntimateMixChange={setIntimateMix}
+            intimateEnabled={intimateEnabled}
+          />
+          <div className="mt-3 grid gap-3 sm:grid-cols-2" data-testid="day-active-plan">
+            <label className="space-y-2">
+              <FieldLabel>Setting · {activeSlot.label}</FieldLabel>
               <TextArea
                 rows={2}
                 data-testid="day-slot-location"
@@ -592,167 +530,98 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 placeholder="e.g. sunlit café terrace, rainy commute, rooftop at dusk"
                 onChange={event => updateSlot(activeSlot.id, { location: event.target.value })}
               />
-              <CollapsibleSection
-                title="Setting presets"
-                summary="Insert a canned location."
-                defaultOpen={false}
-                persistKey="day-setting-presets"
-              >
-                <SelectInput
-                  value=""
-                  disabled={busy}
-                  className={accentFocusClass(ACCENT)}
-                  onChange={event => {
-                    const preset = ROLEPLAY_SETTING_PRESETS.find(
-                      entry => entry.id === event.target.value
-                    );
-                    if (preset) {
-                      updateSlot(activeSlot.id, { location: preset.setting });
-                    }
-                  }}
-                >
-                  <option value="">Insert preset…</option>
-                  {ROLEPLAY_SETTING_PRESETS.map(preset => (
-                    <option key={preset.id} value={preset.id}>
-                      {preset.label}
-                    </option>
-                  ))}
-                </SelectInput>
-              </CollapsibleSection>
             </label>
-            <label className="mt-3 space-y-2">
-              <FieldLabel>Beat</FieldLabel>
+            <label className="space-y-2">
+              <FieldLabel>Beat · {activeSlot.label}</FieldLabel>
               <TextArea
                 rows={2}
+                data-testid="day-slot-beat"
                 value={activeSlot.sceneHints ?? ''}
                 className={accentFocusClass(ACCENT)}
                 placeholder="What happens in this part of the day?"
                 onChange={event => updateSlot(activeSlot.id, { sceneHints: event.target.value })}
               />
             </label>
-            <ToolActionRow>
+          </div>
+          <ToolActionRow className="mt-3">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              data-testid="day-suggest"
+              title="Fill Setting & Beat for all four slots — edit before Queue day"
+              onClick={() => suggestDayScenes()}
+            >
+              Suggest day
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={busy || queueBlocked}
+              data-testid="day-queue-all"
+              onClick={() => void queueAll()}
+            >
+              {busy
+                ? 'Queueing…'
+                : leanChrome && !firstFilmDone && !firstCutCelebrate
+                  ? 'Queue day · draft'
+                  : 'Queue day'}
+            </Button>
+            {showFinalPass ? (
               <Button
                 size="sm"
-                variant="primary"
+                variant="secondary"
                 disabled={busy || queueBlocked}
-                data-testid="day-queue-all"
-                onClick={() => void queueAll()}
+                data-testid="day-queue-final"
+                onClick={() => void queueAll({ qualityProfile: 'final' })}
               >
-                {busy
-                  ? 'Queueing…'
-                  : leanChrome && !firstFilmDone && !firstCutCelebrate
-                    ? 'Queue day · draft'
-                    : 'Queue day'}
+                Final pass
               </Button>
-              {showFinalPass ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={busy || queueBlocked}
-                  data-testid="day-queue-final"
-                  onClick={() => void queueAll({ qualityProfile: 'final' })}
-                >
-                  Final pass
-                </Button>
-              ) : null}
+            ) : null}
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy || queueBlocked}
+              data-testid="day-slot-queue"
+              onClick={() => void queueSlot(activeSlot)}
+            >
+              Queue {activeSlot.label.toLowerCase()} only
+            </Button>
+            {showDemoEscape ? (
               <Button
                 size="sm"
                 variant="ghost"
-                disabled={busy || queueBlocked}
-                data-testid="day-slot-queue"
-                onClick={() => void queueSlot(activeSlot)}
+                disabled={busy}
+                data-testid="day-demo-stills"
+                onClick={seedDemoStills}
               >
-                Queue {activeSlot.label.toLowerCase()} only
+                Demo stills
               </Button>
-              {showDemoEscape ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busy}
-                  data-testid="day-demo-stills"
-                  onClick={seedDemoStills}
-                >
-                  Demo stills
-                </Button>
-              ) : null}
-            </ToolActionRow>
-            {leanChrome ? (
-              <p
-                className="type-caption mt-2 text-[var(--text-muted)]"
-                data-testid="day-draft-hint"
-              >
-                {firstFilmDone || firstCutCelebrate
-                  ? 'Queue day uses final quality after your first cut — Final pass re-queues all four. Model & workflow live in Engine.'
-                  : 'First film queues as draft for speed — or tap Final pass. Model & workflow live in Engine.'}
-              </p>
             ) : null}
-          </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Setup"
-          summary={
-            hasPlate
-              ? `${character?.name?.trim() || 'Cast'} · plate ready`
-              : 'Character and plate for identity.'
-          }
-          defaultOpen={setupDefaultOpen}
-          persistKey="day-setup-lean"
-          className="day-character-section"
-        >
-          <div data-testid="day-character" className="space-y-4">
-            <CharacterOsPicker
-              shared={shared}
-              hints={character?.hints}
-              onApply={patch => {
-                try {
-                  updateShared(patch);
-                } catch (err) {
-                  setError(err instanceof Error ? err.message : 'Could not apply that character.');
-                }
-              }}
-            />
-            <DayPlateSection
-              plate={plate}
-              platePreviewUrl={platePreviewUrl}
-              characterId={shared.activeCharacterId}
-              lockedWardrobeId={activeSlot.wardrobeId || shared.lockedWardrobeId}
-              busy={busy}
-              isolateSubject={isolateSubject}
-              isolateBusy={isolateBusy}
-              isolateStatus={isolateStatus}
-              isolatePending={isolatePending}
-              onIsolateSubjectChange={setIsolateSubject}
-            />
-          </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Advanced"
-          summary="Day-wide notes."
-          defaultOpen={false}
-          persistKey="day-advanced"
-        >
-          <div className="space-y-3">
-            <label className="block space-y-2">
-              <FieldLabel>Day notes</FieldLabel>
-              <TextArea
-                rows={2}
-                value={toolSettings.notes ?? ''}
-                className={accentFocusClass(ACCENT)}
-                placeholder="e.g. cozy autumn day, light rain in the evening"
-                onChange={event => updateToolSettings({ notes: event.target.value })}
-              />
-            </label>
-          </div>
-        </CollapsibleSection>
+          </ToolActionRow>
+          {queueBlockReason ? (
+            <p
+              className="type-caption mt-2 text-[var(--tint-warning-text,var(--accent-text))]"
+              data-testid="day-queue-block-reason"
+            >
+              {queueBlockReason}
+            </p>
+          ) : null}
+          {leanChrome ? (
+            <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-draft-hint">
+              {firstFilmDone || firstCutCelebrate
+                ? 'Queue day uses final quality after your first cut — Final pass re-queues all four. Model & workflow live in Engine.'
+                : 'First film queues as draft for speed — or tap Final pass. Model & workflow live in Engine.'}
+            </p>
+          ) : null}
+        </ToolSection>
 
         <ToolSection
           title="Day reel"
           description={
             showCutCoach
               ? 'Cut from the banner above when you are ready.'
-              : 'Preview stills here, then Cut film.'
+              : 'Stills and clips land here as you Queue — then Cut film.'
           }
           data-testid="day-reel"
         >
@@ -780,9 +649,20 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 variant="primary"
                 disabled={busy || assemblingFilm || completedShotCount === 0}
                 onClick={() => void cutDayFilm()}
+                data-testid="day-reel-cut"
               >
                 {assemblingFilm ? 'Cutting…' : 'Cut film'}
               </Button>
+              {cutCoachEligible && hideStickyCutCoach ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  data-testid="day-cut-coach-show"
+                  onClick={() => setHideStickyCutCoach(false)}
+                >
+                  Show cut banner
+                </Button>
+              ) : null}
               {showSampleEscape ? (
                 <Button
                   size="sm"
@@ -886,6 +766,293 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             <p className="type-caption text-[var(--text-muted)]">{filmStatus}</p>
           ) : null}
         </ToolSection>
+        {showAnimateCoach ? (
+          <ToolSection
+            title="Next · Animate → Cut"
+            description="Stills are ready — animate into clips, then Cut film for a motion reel."
+            data-testid="day-animate"
+          >
+            <ToolActionRow>
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={busy}
+                data-testid="day-animate-all"
+                onClick={() => void animateAllClips()}
+              >
+                Animate all ready stills
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                data-testid="day-animate-active"
+                onClick={() => void animateSlot(activeSlot)}
+              >
+                Animate {activeSlot.label.toLowerCase()}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || assemblingFilm}
+                data-testid="day-animate-cut"
+                onClick={() => void cutDayFilm()}
+              >
+                Skip to Cut film
+              </Button>
+            </ToolActionRow>
+            <p className="type-caption mt-2 text-[var(--text-muted)]">
+              Clips optional but preferred — Cut still works from stills alone.
+            </p>
+          </ToolSection>
+        ) : completedShotCount > 0 && !firstCutCelebrate ? (
+          <ToolSection
+            title="Motion"
+            description="Re-animate or Cut when clips are ready."
+            data-testid="day-animate"
+          >
+            <ToolActionRow>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void animateSlot(activeSlot)}
+              >
+                Animate {activeSlot.label.toLowerCase()}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void animateAllClips()}
+              >
+                Animate all ready stills
+              </Button>
+            </ToolActionRow>
+          </ToolSection>
+        ) : null}
+
+        <CollapsibleSection
+          title={`Edit · ${activeSlot.label}`}
+          summary="Presets, clothing, and notes for this time of day."
+          defaultOpen={editDefaultOpen && !collapseEditors}
+          persistKey="day-slots-lean"
+        >
+          <div data-testid="day-slots">
+            <CollapsibleSection
+              title="Setting presets"
+              summary="Insert a canned location into Setting above."
+              defaultOpen={false}
+              persistKey="day-setting-presets"
+            >
+              <SelectInput
+                value=""
+                disabled={busy}
+                className={accentFocusClass(ACCENT)}
+                data-testid="day-setting-preset"
+                onChange={event => {
+                  const preset = ROLEPLAY_SETTING_PRESETS.find(
+                    entry => entry.id === event.target.value
+                  );
+                  if (preset) {
+                    updateSlot(activeSlot.id, { location: preset.setting });
+                  }
+                }}
+              >
+                <option value="">Insert preset…</option>
+                {ROLEPLAY_SETTING_PRESETS.map(preset => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </SelectInput>
+            </CollapsibleSection>
+            <CollapsibleSection
+              title="Clothing"
+              summary={
+                hasCustomGarment
+                  ? 'BYO clothing photo'
+                  : wardrobeLabelFor(activeSlot.wardrobeId) || 'Outfit kit for this slot'
+              }
+              defaultOpen={false}
+              persistKey="day-clothing"
+              className="mt-3"
+            >
+              <div data-testid="day-clothing">
+                <CustomGarmentPhotoControls
+                  accent={ACCENT}
+                  busy={busy}
+                  garmentUploading={garmentUploading}
+                  garmentScanStatus={garmentScanStatus}
+                  customGarmentImageUrl={toolSettings.customGarmentImageUrl}
+                  customGarmentImageFilename={toolSettings.customGarmentImageFilename}
+                  customGarmentDescription={toolSettings.customGarmentDescription}
+                  testIdPrefix="day"
+                  onApplyCustomGarment={applyCustomGarment}
+                  onClearCustomGarment={clearCustomGarment}
+                  onRescanCustomGarment={rescanCustomGarment}
+                  onSaveCustomGarment={saveCurrentCustomGarment}
+                  onApplySavedCustomGarment={applySavedCustomGarment}
+                  onRemoveSavedCustomGarment={removeSavedCustomGarment}
+                  onCustomGarmentDescriptionChange={value =>
+                    updateToolSettings({ customGarmentDescription: value })
+                  }
+                  onError={message => setError(message)}
+                />
+                <FieldDivider />
+                <label className="mt-3 space-y-2">
+                  <FieldLabel>Outfit kit</FieldLabel>
+                  {hasCustomGarment ? (
+                    <p
+                      className="type-caption text-[var(--text-muted)]"
+                      data-testid="day-byo-active"
+                    >
+                      Using your clothing photo. Clear it above to pick a catalog kit again.
+                    </p>
+                  ) : null}
+                  {wardrobeKitDeck.length > 0 ? (
+                    <WardrobeKitPicker
+                      kits={wardrobeKitDeck}
+                      selectedId={activeSlot.wardrobeId}
+                      disabled={!wardrobeReady || busy || hasCustomGarment}
+                      testId="day-wardrobe-kit-picker"
+                      onSelect={wardrobeId => selectSlotWardrobe(activeSlot.id, wardrobeId)}
+                      onSwipe={delta => {
+                        const next = fittingSwipeNeighbor(
+                          wardrobeKitDeck,
+                          activeSlot.wardrobeId,
+                          delta
+                        );
+                        if (next) {
+                          selectSlotWardrobe(activeSlot.id, next.id);
+                        }
+                      }}
+                      resolveThumb={kit => ({
+                        url: resolveWardrobeGarmentThumbUrl(kit.id),
+                      })}
+                    />
+                  ) : null}
+                  <CollapsibleSection
+                    title="Kit filters"
+                    summary="Clothing type and list picker."
+                    defaultOpen={false}
+                    persistKey="day-kit-filters"
+                    className="mt-3"
+                  >
+                    <label className="space-y-2">
+                      <FieldLabel>Clothing type</FieldLabel>
+                      <SelectInput
+                        value={wardrobeCategoryFilter}
+                        disabled={!wardrobeReady || busy}
+                        className={accentFocusClass(ACCENT)}
+                        onChange={event =>
+                          updateToolSettings({
+                            wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(
+                              event.target.value
+                            ),
+                          })
+                        }
+                      >
+                        {wardrobeCategoryFilterOptions().map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                            {option.value !== 'all' && wardrobeReady
+                              ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
+                              : option.value === 'all' && wardrobeReady
+                                ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, 'all')})`
+                                : ''}
+                          </option>
+                        ))}
+                      </SelectInput>
+                      {wardrobeReady && wardrobeCategoryFilter !== 'all' ? (
+                        <p className="type-caption text-[var(--text-muted)]">
+                          Showing {wardrobeKitCount} kit{wardrobeKitCount === 1 ? '' : 's'} for{' '}
+                          {activeSlot.label.toLowerCase()}.
+                        </p>
+                      ) : null}
+                    </label>
+                    <label className="mt-3 space-y-2">
+                      <FieldLabel>List picker</FieldLabel>
+                      <SelectInput
+                        value={activeSlot.wardrobeId ?? ''}
+                        disabled={!wardrobeReady || busy || hasCustomGarment}
+                        className={accentFocusClass(ACCENT)}
+                        onChange={event => {
+                          const value = event.target.value.trim();
+                          selectSlotWardrobe(activeSlot.id, value || undefined);
+                        }}
+                      >
+                        {filteredWardrobeOptions.map(option => (
+                          <option key={option.value || 'default'} value={option.value}>
+                            {option.group ? `${option.label} · ${option.group}` : option.label}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </label>
+                  </CollapsibleSection>
+                </label>
+              </div>
+            </CollapsibleSection>
+          </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Setup"
+          summary={
+            hasPlate
+              ? `${character?.name?.trim() || 'Cast'} · plate ready`
+              : 'Character and plate for identity.'
+          }
+          defaultOpen={setupDefaultOpen}
+          persistKey="day-setup-lean"
+          className="day-character-section"
+        >
+          <div data-testid="day-character" className="space-y-4">
+            <CharacterOsPicker
+              shared={shared}
+              hints={character?.hints}
+              onApply={patch => {
+                try {
+                  updateShared(patch);
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Could not apply that character.');
+                }
+              }}
+            />
+            <DayPlateSection
+              plate={plate}
+              platePreviewUrl={platePreviewUrl}
+              characterId={shared.activeCharacterId}
+              lockedWardrobeId={activeSlot.wardrobeId || shared.lockedWardrobeId}
+              busy={busy}
+              isolateSubject={isolateSubject}
+              isolateBusy={isolateBusy}
+              isolateStatus={isolateStatus}
+              isolatePending={isolatePending}
+              onIsolateSubjectChange={setIsolateSubject}
+            />
+          </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Advanced"
+          summary="Day-wide notes."
+          defaultOpen={false}
+          persistKey="day-advanced"
+        >
+          <div className="space-y-3">
+            <label className="block space-y-2">
+              <FieldLabel>Day notes</FieldLabel>
+              <TextArea
+                rows={2}
+                value={toolSettings.notes ?? ''}
+                className={accentFocusClass(ACCENT)}
+                placeholder="e.g. cozy autumn day, light rain in the evening"
+                onChange={event => updateToolSettings({ notes: event.target.value })}
+              />
+            </label>
+          </div>
+        </CollapsibleSection>
 
         {!firstCutCelebrate ? (
           leanChrome ? (
@@ -948,11 +1115,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               </Button>
             </ToolActionRow>
           )
-        ) : null}
-        {queueBlocked && !error ? (
-          <p className="type-caption text-[var(--text-muted)]" data-testid="day-isolate-blocked">
-            {ISOLATE_QUEUE_BLOCKED_MESSAGE}
-          </p>
         ) : null}
         {error ? (
           <div className="space-y-2">
@@ -1024,8 +1186,15 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       </ToolLayout>
       <ImageLightbox
         state={progressLightbox}
-        onClose={() => setProgressLightbox(null)}
-        onIndexChange={index =>
+        onClose={() => {
+          setProgressLightbox(null);
+          setProgressLightboxSlotIds([]);
+        }}
+        onIndexChange={index => {
+          const slotId = progressLightboxSlotIds[index];
+          if (slotId) {
+            setActiveSlotId(slotId);
+          }
           setProgressLightbox(previous =>
             previous
               ? {
@@ -1034,8 +1203,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   title: previous.titles?.[index] ?? previous.title,
                 }
               : previous
-          )
-        }
+          );
+        }}
+        slideChrome={progressLightboxSlideChrome}
       />
     </>
   );

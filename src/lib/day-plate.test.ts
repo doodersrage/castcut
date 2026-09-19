@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import type { CharacterRecord } from '@/lib/character-os';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import {
+  dayNudeNeedsAutoFaceCrop,
   dayPlateIsolatePending,
   dayPlateSourceKey,
   isQwenEdit2511PoseStickyModel,
@@ -165,6 +166,156 @@ describe('resolveDayQueueIdentityPlate', () => {
     const queue = resolveDayQueueIdentityPlate({ character, displayPlate: display });
     assert.equal(queue?.source, 'cast');
     assert.equal(queue?.imageUrl, 'https://example.com/face.png');
+  });
+
+  it('preferCastPlate skips Outfit Keep so Sport can dress athletic kit', () => {
+    const character = characterWithKeepers(['keep-floral']);
+    const display = resolveDayPlate({
+      character,
+      gallery: [galleryStill('keep-floral')],
+    });
+    assert.equal(display?.source, 'keeper');
+    const queue = resolveDayQueueIdentityPlate({
+      character,
+      displayPlate: display,
+      preferCastPlate: true,
+    });
+    assert.equal(queue?.source, 'cast');
+    assert.equal(queue?.imageUrl, 'https://example.com/face.png');
+  });
+
+  it('preferFaceOnlyPlate prefers Cast face/IP over full-body Cast underwear plate', () => {
+    const character: CharacterRecord = {
+      id: 'char-1',
+      name: 'Rin',
+      version: 1,
+      updatedAt: 1,
+      activeLookId: 'look-1',
+      looks: [
+        {
+          id: 'look-1',
+          name: 'Main',
+          createdAt: 1,
+          reference: {
+            originalFilename: 'underwear-body.png',
+            originalUrl: 'https://example.com/underwear-body.png',
+            isolateSubject: true,
+          },
+          ipAdapter: {
+            imageFilename: 'face-crop.png',
+            imageUrl: 'https://example.com/face-crop.png',
+          },
+        },
+      ],
+    };
+    const display = resolveDayPlate({ character, gallery: [] });
+    assert.match(display?.imageUrl ?? '', /underwear-body/);
+    const queue = resolveDayQueueIdentityPlate({
+      character,
+      displayPlate: display,
+      preferFaceOnlyPlate: true,
+    });
+    assert.equal(queue?.source, 'cast');
+    assert.match(queue?.imageUrl ?? '', /face-crop/);
+    assert.doesNotMatch(queue?.imageUrl ?? '', /underwear/);
+  });
+
+  it('preferFaceOnlyPlate falls back to Cast body sync (queue may auto-crop)', () => {
+    const character: CharacterRecord = {
+      id: 'char-1',
+      name: 'Rin',
+      version: 1,
+      updatedAt: 1,
+      activeLookId: 'look-1',
+      looks: [
+        {
+          id: 'look-1',
+          name: 'Main',
+          createdAt: 1,
+          reference: {
+            originalFilename: 'underwear-body.png',
+            originalUrl: 'https://example.com/underwear-body.png',
+            isolateSubject: true,
+          },
+        },
+      ],
+    };
+    const display = resolveDayPlate({ character, gallery: [] });
+    assert.match(display?.imageUrl ?? '', /underwear-body/);
+    const queue = resolveDayQueueIdentityPlate({
+      character,
+      displayPlate: display,
+      preferFaceOnlyPlate: true,
+    });
+    // Sync fallback keeps Cast body; Day queue replaces with a geometric face crop.
+    assert.match(queue?.imageUrl ?? '', /underwear-body/);
+  });
+
+  it('preferFaceOnlyPlate keeps Cast body sync when face lock is the same lingerie plate', async () => {
+    const { castFaceDuplicatesBodyPlate } = await import('./day-plate');
+    const character: CharacterRecord = {
+      id: 'char-1',
+      name: 'Rin',
+      version: 1,
+      updatedAt: 1,
+      activeLookId: 'look-1',
+      ipAdapter: {
+        imageFilename: 'beige-lingerie-plate.png',
+        imageUrl: 'https://example.com/beige-lingerie-plate.png',
+      },
+      looks: [
+        {
+          id: 'look-1',
+          name: 'Main',
+          createdAt: 1,
+          reference: {
+            originalFilename: 'beige-lingerie-plate.png',
+            originalUrl: 'https://example.com/beige-lingerie-plate.png',
+            isolateSubject: true,
+          },
+          ipAdapter: {
+            imageFilename: 'beige-lingerie-plate.png',
+            imageUrl: 'https://example.com/beige-lingerie-plate.png',
+          },
+        },
+      ],
+    };
+    assert.equal(castFaceDuplicatesBodyPlate(character), true);
+    assert.equal(dayNudeNeedsAutoFaceCrop(character), true);
+    const queue = resolveDayQueueIdentityPlate({
+      character,
+      displayPlate: resolveDayPlate({ character, gallery: [] }),
+      preferFaceOnlyPlate: true,
+    });
+    assert.match(queue?.imageUrl ?? '', /beige-lingerie-plate/);
+    assert.equal(queue?.source, 'cast');
+  });
+
+  it('dayNudeNeedsAutoFaceCrop is false when a distinct face crop exists', () => {
+    const character: CharacterRecord = {
+      id: 'char-1',
+      name: 'Rin',
+      version: 1,
+      updatedAt: 1,
+      activeLookId: 'look-1',
+      looks: [
+        {
+          id: 'look-1',
+          name: 'Main',
+          createdAt: 1,
+          reference: {
+            originalFilename: 'underwear-body.png',
+            originalUrl: 'https://example.com/underwear-body.png',
+            isolateSubject: true,
+          },
+          ipAdapter: {
+            imageFilename: 'face-crop.png',
+            imageUrl: 'https://example.com/face-crop.png',
+          },
+        },
+      ],
+    };
+    assert.equal(dayNudeNeedsAutoFaceCrop(character), false);
   });
 });
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 import {
   appendRoleplayStoryBeat,
@@ -26,6 +26,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     setOwnBibleOpen,
     bio,
     storyRef,
+    story,
     beatQueue,
     requestBody,
     commitStill,
@@ -68,6 +69,49 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
       updateToolSettings,
     ]
   );
+
+  const [scenesLoading, setScenesLoading] = useState(false);
+
+  const rollScenes = useCallback(async () => {
+    if (!bio) {
+      setError('Write a bio first — the scenes need someone to happen to.');
+      return;
+    }
+    if (roleplayStoryPhase(storyRef.current) === 'complete') {
+      setScenes([]);
+      return;
+    }
+    setScenesLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/roleplay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody('scenes')),
+      });
+      const data = (await response.json()) as RoleplayApiPayload;
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Could not roll scenes.');
+      }
+      setScenes(Array.isArray(data.scenes) ? data.scenes : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not roll scenes.');
+    } finally {
+      setScenesLoading(false);
+    }
+  }, [bio, requestBody, setError, setScenes, storyRef]);
+
+  const animateAllReady = useCallback(async () => {
+    for (const beat of story) {
+      if (
+        beat.stillStatus === 'completed' &&
+        beat.imageUrl?.trim() &&
+        beat.clipStatus !== 'completed'
+      ) {
+        await beatQueue.queueBeatMotion(beat);
+      }
+    }
+  }, [beatQueue, story]);
 
   const playScene = useCallback(
     async (scene: RoleplayScene) => {
@@ -212,6 +256,9 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
 
   return {
     applyOwnBible,
+    rollScenes,
+    scenesLoading,
+    animateAllReady,
     playScene,
     queueBeat,
     selectStillTake,

@@ -5,6 +5,7 @@ import {
   type ComfyGalleryEntry,
 } from '@/lib/comfyui-gallery';
 import { resolveFittingPlateFromCharacter, type FittingPlate } from '@/lib/fitting-room';
+import { resolveCastFaceForPlate } from '@/lib/look-outfit-plate';
 
 export type DayPlateSource = 'keeper' | 'cast';
 
@@ -96,6 +97,16 @@ export function resolveDayPlate(input: {
     }
   }
 
+  return resolveDayCastPlate(character);
+}
+
+/** Cast look plate only — no Outfit Keep garments (Sport kit replace). */
+export function resolveDayCastPlate(
+  character: CharacterRecord | null | undefined
+): DayPlate | null {
+  if (!character) {
+    return null;
+  }
   const cast = resolveFittingPlateFromCharacter(character);
   if (!cast?.filename?.trim() && !cast?.imageUrl?.trim()) {
     return null;
@@ -107,24 +118,101 @@ export function resolveDayPlate(input: {
 }
 
 /**
- * Display/queue plate helper. Prefer Keep for Image 1 when present; Cast only
- * when there is no Keep (face plate alone — no worn kit to preserve).
+ * Face / IP crop when it is a real face-only asset. Returns null when the
+ * “face” lock is the same file as the Cast body plate (Cast sync often copies
+ * the underwear plate into ipAdapter) — callers should fall back to the body
+ * plate and discard clothing in the prompt instead of dropping Image 1.
+ */
+export function resolveDayFaceOnlyPlate(
+  character: CharacterRecord | null | undefined
+): DayPlate | null {
+  const face = resolveCastFaceForPlate(character);
+  if (!face?.filename?.trim() && !face?.imageUrl?.trim()) {
+    return null;
+  }
+  if (castFaceDuplicatesBodyPlate(character)) {
+    return null;
+  }
+  return {
+    filename: face.filename?.trim() || undefined,
+    imageUrl: face.imageUrl?.trim() || undefined,
+    isolated: false,
+    isolateSubject: false,
+    source: 'cast',
+  };
+}
+
+/**
+ * True when Cast IP/face lock points at the same asset as the Cast body plate.
+ */
+export function castFaceDuplicatesBodyPlate(
+  character: CharacterRecord | null | undefined
+): boolean {
+  const face = resolveCastFaceForPlate(character);
+  if (!face) {
+    return false;
+  }
+  const body = resolveDayCastPlate(character);
+  if (!body) {
+    return false;
+  }
+  const faceFile = (face.filename ?? '').trim().toLowerCase();
+  const bodyFile = (body.filename ?? body.originalFilename ?? '').trim().toLowerCase();
+  if (faceFile && bodyFile && faceFile === bodyFile) {
+    return true;
+  }
+  const faceUrl = (face.imageUrl ?? '').trim().toLowerCase();
+  const bodyUrl = (body.imageUrl ?? body.originalUrl ?? '').trim().toLowerCase();
+  if (faceUrl && bodyUrl && faceUrl === bodyUrl) {
+    return true;
+  }
+  const faceBase = faceFile.split(/[/\\]/).pop() || '';
+  const bodyBase = bodyFile.split(/[/\\]/).pop() || '';
+  if (faceBase && bodyBase && faceBase === bodyBase) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * True when nude Day should auto-crop a face window from the Cast body plate
+ * (no distinct face lock, or face lock is the same lingerie file).
+ */
+export function dayNudeNeedsAutoFaceCrop(character: CharacterRecord | null | undefined): boolean {
+  if (!character) {
+    return false;
+  }
+  if (resolveDayFaceOnlyPlate(character)) {
+    return false;
+  }
+  return Boolean(resolveDayCastPlate(character));
+}
+
+/**
+ * Nude adult Day: prefer a distinct face crop; otherwise Cast body plate as a
+ * sync fallback (queue path auto-crops a top-center face window when needed).
  */
 export function resolveDayQueueIdentityPlate(input: {
   character: CharacterRecord | null | undefined;
   displayPlate?: DayPlate | null;
+  /** When true, never queue Outfit Keep as Image 1. */
+  preferCastPlate?: boolean;
+  /**
+   * When true (nude omit-garment): use a distinct face crop if available,
+   * else Cast body plate (queue may replace with an auto face crop).
+   */
+  preferFaceOnlyPlate?: boolean;
 }): DayPlate | null {
+  if (input.preferFaceOnlyPlate) {
+    return resolveDayFaceOnlyPlate(input.character) ?? resolveDayCastPlate(input.character) ?? null;
+  }
+  if (input.preferCastPlate) {
+    return resolveDayCastPlate(input.character) ?? input.displayPlate ?? null;
+  }
   if (input.displayPlate?.source === 'keeper') {
     return input.displayPlate;
   }
-  const cast = resolveFittingPlateFromCharacter(input.character);
-  if (cast?.filename?.trim() || cast?.imageUrl?.trim()) {
-    return {
-      ...cast,
-      source: 'cast',
-    };
-  }
-  return input.displayPlate ?? null;
+  return resolveDayCastPlate(input.character) ?? input.displayPlate ?? null;
 }
 
 /** Stable key for the resolved Day plate so isolate overrides invalidate on change. */

@@ -44,6 +44,7 @@ import {
   dayStillsCachePatch,
   dayWatchPlaylist,
   diversifyDaySlotScenes,
+  ensureDaySlotsMatchMood,
   mergeDaySlotStills,
   normalizeDaySlotStills,
   normalizeDaySlots,
@@ -190,8 +191,17 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
 
     if (prevId === undefined) {
       prevCharacterIdRef.current = nextId;
-      // Returning to Day after Cast changed off-page (or legacy unowned stills).
-      if (stillsRef.current.length > 0 && !dayStillsBelongToCharacter(owner, nextId)) {
+      // Returning to Day after Cast changed off-page (or legacy unowned stills/plates).
+      const hasStalePlate = Boolean(
+        toolSettings.plateImageUrl?.trim() ||
+        toolSettings.plateImageFilename?.trim() ||
+        toolSettings.plateIsolateSourceKey?.trim()
+      );
+      const stillsMismatch =
+        stillsRef.current.length > 0 && !dayStillsBelongToCharacter(owner, nextId);
+      const plateMismatch =
+        hasStalePlate && ((owner && owner !== nextId) || (!owner && Boolean(nextId)));
+      if (stillsMismatch || plateMismatch) {
         clearStills();
       }
       return;
@@ -207,6 +217,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     setFilmStatus,
     shared.activeCharacterId,
     stillsRef,
+    toolSettings.plateImageFilename,
+    toolSettings.plateImageUrl,
+    toolSettings.plateIsolateSourceKey,
     toolSettings.stillsCharacterId,
     updateToolSettings,
   ]);
@@ -216,15 +229,23 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       setBusy(true);
       setError(null);
       try {
-        // Fresh distinct Setting/Beat per daypart — Queue day is the variety pass.
-        // Per-slot Queue keeps the current fields (and only fills blanks).
-        const diversified = diversifyDaySlotScenes(slots, {
-          forceLocations: true,
-          forceBeats: true,
+        // Fill blank Setting/Beat only — Suggest day (or manual edit) owns the plan.
+        // Adult Solo/Duo still force-rerolls stale everyday leftover boards.
+        const moodAligned = ensureDaySlotsMatchMood(slots, {
+          dayMood: toolSettings.dayMood,
+          intimateMix: toolSettings.intimateMix,
+          allowCompanions: toolSettings.allowCompanions === true,
+        });
+        const diversified = diversifyDaySlotScenes(moodAligned.slots, {
+          forceLocations: false,
+          forceBeats: false,
           fillBeats: true,
+          allowCompanions: toolSettings.allowCompanions === true,
+          dayMood: toolSettings.dayMood,
+          intimateMix: toolSettings.intimateMix,
         });
         const queueSlots = diversified.slots;
-        if (diversified.changed) {
+        if (moodAligned.changed || diversified.changed) {
           updateToolSettings({ slots: queueSlots });
         }
         // Sequential submit — sendComfyUi is single-flight; Promise.all only queues morning
@@ -239,7 +260,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         setBusy(false);
       }
     },
-    [queueSlot, slots, updateToolSettings]
+    [
+      queueSlot,
+      slots,
+      toolSettings.allowCompanions,
+      toolSettings.dayMood,
+      toolSettings.intimateMix,
+      updateToolSettings,
+    ]
   );
 
   const animateSlot = useCallback(

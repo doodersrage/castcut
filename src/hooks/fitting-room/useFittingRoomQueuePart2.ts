@@ -27,7 +27,7 @@ import {
   saveLookPack,
 } from '@/lib/look-pack';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
-import { seedDaySlotsFromKeeperWardrobes } from '@/lib/day-planner';
+import { ensureDaySlotsMatchMood, seedDaySlotsFromKeeperWardrobes } from '@/lib/day-planner';
 import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
 import { DEFAULT_DAY_TOOL_CACHE, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
 import type {
@@ -292,9 +292,16 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
         ),
         nextPack
       );
+      const moodAligned = ensureDaySlotsMatchMood(seededSlots, {
+        dayMood: daySettings.dayMood,
+        intimateMix: daySettings.intimateMix,
+        allowCompanions: daySettings.allowCompanions === true,
+      });
+      // Preserve dayMood/intimateMix from disk — never reset chips on Keep→Day.
+      // Soft-advance remount hydrates these; rewriting only slots/notes.
       saveToolSettings('day', {
         ...daySettings,
-        slots: seededSlots,
+        slots: moodAligned.slots,
         notes:
           daySettings.notes?.trim() ||
           input.toolSettings.notes?.trim() ||

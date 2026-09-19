@@ -1,7 +1,10 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { PlaySoftAdvanceTarget } from '@/components/PlaySoftAdvanceBanner';
+import type {
+  PlaySoftAdvanceAlternative,
+  PlaySoftAdvanceTarget,
+} from '@/components/PlaySoftAdvanceBanner';
 import { buildPlaySoftAdvance, type PlayCampaignStepId } from '@/lib/play-step-machine';
 import type { LookPack } from '@/lib/look-pack';
 import { toMobileStudioHref } from '@/lib/mobile-studio';
@@ -18,6 +21,11 @@ export function usePlaySoftAdvance(options: UsePlaySoftAdvanceOptions = {}) {
   const [softAdvance, setSoftAdvance] = useState<PlaySoftAdvanceTarget | null>(null);
   const mobile = options.mobile === true;
 
+  const mapHref = useCallback(
+    (href: string) => (mobile ? toMobileStudioHref(href) : href),
+    [mobile]
+  );
+
   const cancelSoftAdvance = useCallback(() => {
     setSoftAdvance(null);
   }, []);
@@ -31,34 +39,48 @@ export function usePlaySoftAdvance(options: UsePlaySoftAdvanceOptions = {}) {
         href?: string;
         label?: string;
         message?: string;
+        alternatives?: PlaySoftAdvanceAlternative[];
       } = {}
     ) => {
       const spec = buildPlaySoftAdvance(stepId, input);
       const href = input.href?.trim() || spec.href;
       setSoftAdvance({
-        href: mobile ? toMobileStudioHref(href) : href,
+        href: mapHref(href),
         label: input.label?.trim() || spec.label,
         message: input.message ?? spec.message,
         nonce: Date.now(),
+        alternatives: input.alternatives?.map(alt => ({
+          ...alt,
+          href: mapHref(alt.href),
+        })),
       });
     },
-    [mobile]
+    [mapHref]
   );
 
   const softAdvanceHref = useCallback(
-    (href: string, label: string, message?: string) => {
+    (
+      href: string,
+      label: string,
+      message?: string,
+      alternatives?: PlaySoftAdvanceAlternative[]
+    ) => {
       const next = href.trim();
       if (!next) {
         return;
       }
       setSoftAdvance({
-        href: mobile ? toMobileStudioHref(next) : next,
+        href: mapHref(next),
         label,
         message,
         nonce: Date.now(),
+        alternatives: alternatives?.map(alt => ({
+          ...alt,
+          href: mapHref(alt.href),
+        })),
       });
     },
-    [mobile]
+    [mapHref]
   );
 
   return {

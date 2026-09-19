@@ -7,6 +7,7 @@ import { toastHeldMax, toastQueueOutcome } from '@/lib/app-toast';
 import { buildGalleryHandoff, galleryHandoffPath, saveGalleryHandoff } from '@/lib/gallery-handoff';
 import { cancelComfyGalleryJob } from '@/lib/comfyui-queue-cancel';
 import { galleryEntryPrimaryMediaKind, type ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import { loadSettingsCache } from '@/lib/settings-cache';
 import type { UseGalleryPanelActionsInput } from '@/hooks/gallery/gallery-panel-actions-types';
 
 const loadGalleryRequeue = () => import('@/lib/comfyui-requeue');
@@ -20,6 +21,7 @@ export const EMPTY_GALLERY_CARD_ACTIONS: GalleryCardActions = {
   upscale: () => undefined,
   refine: () => undefined,
   softSecondPass: () => undefined,
+  skinRefine: () => undefined,
   faceDetail: () => undefined,
   anatomyRepair: () => undefined,
   moireClean: () => undefined,
@@ -271,6 +273,52 @@ export function useGalleryCardActions({
             toastQueueOutcome({ ok: true, text: message });
           });
       },
+      skinRefine: (id: string) => {
+        const entry = entriesRef.current.find(item => item.id === id);
+        if (!entry) {
+          return;
+        }
+        setRequeueStatus('Queueing skin refine…');
+        void Promise.all([
+          loadGalleryRequeue(),
+          import('@/lib/comfyui-settings'),
+          import('@/lib/play-skin-refine'),
+        ])
+          .then(([{ requeueSkinRefineFromGalleryEntry }, { loadComfyUiSettings }, skin]) => {
+            const settings = loadComfyUiSettings();
+            const model = skin.resolvePlaySkinRefineQueueModel(settings);
+            return requeueSkinRefineFromGalleryEntry(entry, {
+              model,
+              onStatus: setRequeueStatus,
+            });
+          })
+          .then(result => {
+            if (!result.ok) {
+              setRequeueStatus(result.error ?? 'Skin refine failed.');
+              toastQueueOutcome({
+                ok: false,
+                text: result.error ?? 'Skin refine failed.',
+              });
+              return;
+            }
+            if (result.held) {
+              const message = 'Skin refine held until ComfyUI queue is idle';
+              setRequeueStatus(message);
+              toastHeldMax({ text: message });
+              return;
+            }
+            const message = [
+              'skin refine queued',
+              result.vramDowngraded ? 'Max → Final (VRAM)' : 'natural skin · pose locked',
+              result.promptId ? `prompt_id ${result.promptId}` : null,
+              result.comfyUrl,
+            ]
+              .filter(Boolean)
+              .join(' · ');
+            setRequeueStatus(message);
+            toastQueueOutcome({ ok: true, text: message });
+          });
+      },
       faceDetail: (id: string) => {
         const entry = entriesRef.current.find(item => item.id === id);
         if (!entry) {
@@ -453,10 +501,15 @@ export function useGalleryCardActions({
           return;
         }
         if (target === 'cast') {
-          const characterId =
+          const fromQuery =
             typeof window !== 'undefined'
-              ? new URLSearchParams(window.location.search).get('character')?.trim() || undefined
-              : undefined;
+              ? new URLSearchParams(window.location.search).get('character')?.trim() || ''
+              : '';
+          const characterId =
+            fromQuery ||
+            (typeof window !== 'undefined'
+              ? loadSettingsCache().shared.activeCharacterId?.trim() || ''
+              : '');
           if (characterId) {
             saveGalleryHandoff({
               ...buildGalleryHandoff(entry, target),
@@ -465,6 +518,8 @@ export function useGalleryCardActions({
             router.push(galleryHandoffPath(target, { characterId }));
             return;
           }
+          setRequeueStatus('Open Cast look plate → Choose from Gallery so the character is known.');
+          return;
         }
         saveGalleryHandoff(buildGalleryHandoff(entry, target));
         router.push(galleryHandoffPath(target));

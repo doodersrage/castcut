@@ -1,15 +1,29 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo } from 'react';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
 import RoleplayWardrobeSection from '@/components/roleplay/RoleplayWardrobeSection';
+import StoryPlayPhaseStrip from '@/components/roleplay/StoryPlayPhaseStrip';
+import StoryStatusStrip from '@/components/roleplay/StoryStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useMobilePlayToolOrchestration } from '@/hooks/useMobilePlayToolOrchestration';
-import { applyRoleplayCharacterName, MAX_ROLEPLAY_CHARACTER_NAME } from '@/lib/roleplay';
+import { DAY_INTIMATE_MIX_OPTIONS, normalizeDayIntimateMix } from '@/lib/day-planner';
+import { isNsfwGeneratorEnabledClient } from '@/lib/nsfw-generator-env';
+import { deriveStoryPhase } from '@/lib/play-step-machine';
+import {
+  applyRoleplayCharacterName,
+  countRoleplayCompletedClips,
+  countRoleplayCompletedStills,
+  isRoleplayAdultContent,
+  MAX_ROLEPLAY_CHARACTER_NAME,
+  roleplayQueueBlockReason,
+  storySessionStatusLine,
+} from '@/lib/roleplay';
 import {
   roleplayPatchFromPlate,
   toMobileStudioHref,
@@ -44,6 +58,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
     story,
     storyProgress,
     beatOutput,
+    content,
     assemblingFilm,
     filmStatus,
     filmNeedsCast,
@@ -57,6 +72,9 @@ export default function MobilePlayToolSections({ description: _description, ...v
     filmGuideHref,
     hasReferenceImage,
     playScene,
+    rollScenes,
+    scenesLoading,
+    animateAllReady,
     queueBeat,
     selectStillTake,
     selectClipTake,
@@ -74,7 +92,55 @@ export default function MobilePlayToolSections({ description: _description, ...v
   const castId = filmCharacterId?.trim() || '';
   const castBibleHref = castId ? `/characters/${encodeURIComponent(castId)}` : '/characters';
   const busy =
-    bioLoading || Boolean(playingId) || isolating || assemblingFilm || wardrobe.garmentUploading;
+    bioLoading ||
+    Boolean(playingId) ||
+    isolating ||
+    assemblingFilm ||
+    wardrobe.garmentUploading ||
+    scenesLoading;
+  const adultEnabled = isNsfwGeneratorEnabledClient();
+  const completedShotCount = useMemo(() => countRoleplayCompletedStills(story), [story]);
+  const completedClipCount = useMemo(() => countRoleplayCompletedClips(story), [story]);
+  const storyPhase = useMemo(
+    () =>
+      deriveStoryPhase({
+        completedStills: completedShotCount,
+        completedClips: completedClipCount,
+        beatCount: story.length,
+      }),
+    [completedClipCount, completedShotCount, story.length]
+  );
+  const showAnimateCoach =
+    completedShotCount > 0 &&
+    completedClipCount < completedShotCount &&
+    !firstCutCelebrate &&
+    !assemblingFilm;
+  const queueBlockReason = useMemo(
+    () =>
+      roleplayQueueBlockReason({
+        hasCharacter: Boolean(castId),
+        hasBio: Boolean(bio),
+        playAsPhoto: playAs === 'photo',
+        hasPlate: hasReferenceImage,
+        isolateSubject,
+        isolatePending:
+          isolateSubject && hasReferenceImage && toolSettings.referenceIsolated !== true,
+      }),
+    [bio, castId, hasReferenceImage, isolateSubject, playAs, toolSettings.referenceIsolated]
+  );
+  const storyStatusLine = storySessionStatusLine({
+    hasCharacter: Boolean(castId),
+    characterName: bio?.name,
+    hasPlate: hasReferenceImage,
+    hasWardrobe: Boolean(
+      toolSettings.wardrobeId?.trim() || toolSettings.customGarmentImageUrl?.trim()
+    ),
+    completedStills: completedShotCount,
+    completedClips: completedClipCount,
+    beatTotal: story.length,
+  });
+  const intimateMix = normalizeDayIntimateMix(toolSettings.intimateMix);
+  const showIntimateMix = adultEnabled && isRoleplayAdultContent(content);
 
   return (
     <div className="space-y-4" data-testid="mobile-play">
@@ -92,6 +158,18 @@ export default function MobilePlayToolSections({ description: _description, ...v
         target={softAdvance}
         onCancel={cancelSoftAdvance}
       />
+
+      {!firstCutCelebrate ? (
+        <div className="space-y-2">
+          <StoryPlayPhaseStrip
+            activePhase={storyPhase}
+            completedStills={completedShotCount}
+            completedClips={completedClipCount}
+            beatTotal={story.length}
+          />
+          <StoryStatusStrip statusLine={storyStatusLine} queueBlockReason={queueBlockReason} />
+        </div>
+      ) : null}
 
       {!castId ? (
         <div
@@ -239,27 +317,70 @@ export default function MobilePlayToolSections({ description: _description, ...v
         </p>
       ) : null}
 
-      {scenes.length > 0 ? (
-        <div className="space-y-2">
-          <p className="type-caption text-[var(--text-muted)]">{storyProgress.heading}</p>
-          <p className="text-xs text-[var(--text-muted)]">{storyProgress.hint}</p>
-          <div className="grid gap-2">
-            {scenes.map(scene => (
-              <button
-                key={scene.id}
-                type="button"
-                disabled={playingId !== null}
-                onClick={() => void playScene(scene)}
-                className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-3 py-3 text-left transition hover:border-[var(--accent-border)] disabled:opacity-50"
+      {showIntimateMix ? (
+        <div className="space-y-2" data-testid="story-intimate-mix">
+          <p className="type-caption text-[var(--text-muted)]">Intimate mix</p>
+          <div className="flex flex-wrap gap-2">
+            {DAY_INTIMATE_MIX_OPTIONS.map(option => (
+              <ChipButton
+                key={option.id}
+                active={intimateMix === option.id}
+                disabled={busy}
+                data-testid={`story-intimate-mix-${option.id}`}
+                title={option.hint}
+                onClick={() =>
+                  updateToolSettings({ intimateMix: normalizeDayIntimateMix(option.id) })
+                }
               >
-                <p className="text-sm font-medium">{scene.title}</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">{scene.blurb}</p>
-                {playingId === scene.id ? (
-                  <p className="mt-1 type-caption text-[var(--accent-text)]">Writing still…</p>
-                ) : null}
-              </button>
+                {option.label}
+              </ChipButton>
             ))}
           </div>
+        </div>
+      ) : null}
+
+      {storyProgress.phase !== 'complete' ? (
+        <div className="space-y-2" data-testid="story-beat-picker">
+          <p className="type-caption text-[var(--text-muted)]">{storyProgress.heading}</p>
+          <p className="text-xs text-[var(--text-muted)]">{storyProgress.hint}</p>
+          <Button
+            variant="secondary"
+            loading={scenesLoading}
+            loadingLabel="Rolling scenes"
+            disabled={Boolean(queueBlockReason) || busy}
+            data-testid="story-roll-scenes"
+            onClick={() => void rollScenes()}
+            className="w-full justify-center"
+          >
+            {scenes.length > 0 ? storyProgress.rerollLabel : storyProgress.rollLabel}
+          </Button>
+          {queueBlockReason ? (
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              data-testid="story-queue-block-reason"
+            >
+              {queueBlockReason}
+            </p>
+          ) : null}
+          {scenes.length > 0 ? (
+            <div className="grid gap-2">
+              {scenes.map(scene => (
+                <button
+                  key={scene.id}
+                  type="button"
+                  disabled={playingId !== null || busy}
+                  onClick={() => void playScene(scene)}
+                  className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-3 py-3 text-left transition hover:border-[var(--accent-border)] disabled:opacity-50"
+                >
+                  <p className="text-sm font-medium">{scene.title}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">{scene.blurb}</p>
+                  {playingId === scene.id ? (
+                    <p className="mt-1 type-caption text-[var(--accent-text)]">Writing still…</p>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -268,7 +389,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
           <p className="text-sm text-[var(--text-secondary)]">{storyProgress.hint}</p>
           <Button
             variant="secondary"
-            disabled={bioLoading || playingId !== null}
+            disabled={busy}
             onClick={() => {
               updateToolSettings({ story: [], rejectedScenes: [] });
               setScenes([]);
@@ -280,10 +401,41 @@ export default function MobilePlayToolSections({ description: _description, ...v
         </div>
       ) : null}
 
+      {showAnimateCoach ? (
+        <div
+          className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-3"
+          data-testid="story-animate"
+        >
+          <p className="type-caption text-[var(--text-muted)]">Next · Animate → Cut</p>
+          <p className="text-xs text-[var(--text-muted)]">
+            Stills are ready — animate into clips, then Cut film.
+          </p>
+          <Button
+            variant="primary"
+            disabled={busy}
+            data-testid="story-animate-all"
+            onClick={() => void animateAllReady()}
+            className="w-full justify-center"
+          >
+            Animate all ready stills
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={busy || story.length === 0}
+            data-testid="story-animate-cut"
+            onClick={() => void cutRoleplayFilm()}
+            className="w-full justify-center"
+          >
+            Skip to Cut film
+          </Button>
+        </div>
+      ) : null}
+
       <RoleplayStoryReel
         story={story}
-        busy={bioLoading || playingId !== null || assemblingFilm}
+        busy={busy}
         bioPresent={Boolean(bio)}
+        scenesLoading={scenesLoading}
         castBibleHref={castBibleHref}
         onQueue={beat => void queueBeat(beat)}
         onRetry={beat => void queueBeat(beat, { retry: true })}
@@ -292,6 +444,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
         onExtend={extendBeat}
         onSelectTake={selectStillTake}
         onSelectClipTake={selectClipTake}
+        onRollScenes={() => void rollScenes()}
       />
 
       <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-3">

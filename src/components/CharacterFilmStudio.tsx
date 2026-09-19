@@ -7,6 +7,9 @@ import { FieldError, FieldLabel } from '@/components/ui/Field';
 import { ToolActionRow, ToolSection } from '@/components/ui/ToolPageShell';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
+import FilmCutOptionsControls, {
+  type FilmCutOptionsValue,
+} from '@/components/FilmCutOptionsControls';
 import {
   addStillToFilmCut,
   clampStillHoldSec,
@@ -90,8 +93,10 @@ export default function CharacterFilmStudio({
   const [error, setError] = useState<string | null>(null);
   const [assembling, setAssembling] = useState(false);
   const [resolution, setResolution] = useState<FilmResolutionPreset>('720p');
-  const [crossfadeSec, setCrossfadeSec] = useState(0);
-  const [audioBedUrl, setAudioBedUrl] = useState('');
+  const [filmCutOptions, setFilmCutOptions] = useState<FilmCutOptionsValue>({
+    crossfadeSec: 0,
+    audioBedUrl: '',
+  });
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
 
   const persistCut = (next: CharacterFilmCut) => {
@@ -386,32 +391,15 @@ export default function CharacterFilmStudio({
             <option value="1080p">1080p MP4</option>
           </select>
         </label>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <span>Crossfade</span>
-          <input
-            type="number"
-            min={0}
-            max={2}
-            step={0.1}
-            className="w-16 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
-            value={crossfadeSec}
-            onChange={event => setCrossfadeSec(Number(event.target.value) || 0)}
-            data-testid="character-film-crossfade"
-          />
-          <span>s</span>
-        </label>
       </ToolActionRow>
-      <label className="mt-2 flex flex-col gap-1 type-caption text-[var(--text-muted)]">
-        <span>Audio bed URL (optional)</span>
-        <input
-          type="url"
-          placeholder="https://… or /api/gallery/media/…"
-          className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1.5 text-[var(--text-primary)]"
-          value={audioBedUrl}
-          onChange={event => setAudioBedUrl(event.target.value)}
-          data-testid="character-film-audio-bed"
+      <div className="mt-2">
+        <FilmCutOptionsControls
+          value={filmCutOptions}
+          onChange={setFilmCutOptions}
+          disabled={assembling}
+          testIdPrefix="character-film"
         />
-      </label>
+      </div>
 
       <ToolActionRow>
         <Button
@@ -431,8 +419,8 @@ export default function CharacterFilmStudio({
               characterName,
               lookId,
               resolution,
-              crossfadeSec,
-              audioBedUrl: audioBedUrl.trim() || undefined,
+              crossfadeSec: filmCutOptions.crossfadeSec,
+              audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
               onProgress: progress => setStatus(progress.label),
             })
               .then(result => {

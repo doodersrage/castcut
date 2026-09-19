@@ -156,6 +156,27 @@ export default function FittingWardrobeKitSection({
           </p>
         ) : null}
       </label>
+      {wardrobeReady && wardrobeCategoryFilter !== 'all' && wardrobeKitCount === 0 ? (
+        <div
+          className="rounded-[var(--radius-md)] border border-dashed border-[var(--border-subtle)] px-3 py-3"
+          data-testid="fitting-empty-filter"
+        >
+          <p className="type-caption text-[var(--text-muted)]">No kits in this clothing type.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => onCategoryFilterChange('all')}
+            >
+              Show all types
+            </Button>
+          </div>
+          <p className="type-caption mt-2 text-[var(--text-muted)]">
+            Or upload a clothing photo above.
+          </p>
+        </div>
+      ) : null}
       <FieldDivider />
       <CustomGarmentPhotoControls
         accent={ACCENT}
@@ -180,6 +201,9 @@ export default function FittingWardrobeKitSection({
           Using your clothing photo. Clear it below to pick a catalog kit again.
         </p>
       ) : null}
+      <p className="type-caption text-[var(--text-muted)]" data-testid="fitting-preview-vs-queue">
+        Preview kits = draft thumbs. Queue try-on = full-quality still for Keep → Day.
+      </p>
       {swipeDeck.length > 0 ? (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">

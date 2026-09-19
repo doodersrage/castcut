@@ -13,6 +13,104 @@ export type FittingCompareTryOn = {
 
 export const FITTING_COMPARE_LIMIT = 4;
 
+/** Outfit micro-funnel chips: Look plate → try-on → Keep → Day. */
+export type FittingOutfitPhaseId = 'plate' | 'tryon' | 'keep' | 'day';
+
+export const FITTING_OUTFIT_PHASES: Array<{
+  id: FittingOutfitPhaseId;
+  label: string;
+  description: string;
+}> = [
+  { id: 'plate', label: 'Plate', description: 'Lock a Cast look plate' },
+  { id: 'tryon', label: 'Try-on', description: 'Queue a kit or BYO clothing' },
+  { id: 'keep', label: 'Keep', description: 'Pick a winner for Day' },
+  { id: 'day', label: 'Day', description: 'Continue to the day film' },
+];
+
+/** Active Outfit phase for the phase strip. */
+export function resolveFittingOutfitPhase(input: {
+  hasPlate: boolean;
+  compareCount: number;
+  continueDayReady?: boolean;
+}): FittingOutfitPhaseId {
+  if (input.continueDayReady) {
+    return 'day';
+  }
+  if (input.compareCount > 0) {
+    return 'keep';
+  }
+  if (input.hasPlate) {
+    return 'tryon';
+  }
+  return 'plate';
+}
+
+/** Short user-facing reason Outfit queue is blocked, or null when ready. */
+export function fittingQueueBlockReason(input: {
+  hasCharacter: boolean;
+  hasPlate: boolean;
+  hasGarmentSource: boolean;
+  referenceUploading?: boolean;
+  garmentUploading?: boolean;
+  isolateSubject?: boolean;
+  isolatePending?: boolean;
+  busy?: boolean;
+}): string | null {
+  if (!input.hasCharacter) {
+    return 'Pick a Cast character first.';
+  }
+  if (!input.hasPlate) {
+    return 'Add a look plate (upload, Gallery, or Extract look) before Queue try-on.';
+  }
+  if (input.referenceUploading) {
+    return 'Wait for the plate upload to finish.';
+  }
+  if (input.isolateSubject && input.isolatePending) {
+    return 'Wait for plate isolate on white to finish.';
+  }
+  if (input.garmentUploading) {
+    return 'Wait for the clothing upload to finish.';
+  }
+  if (!input.hasGarmentSource) {
+    return 'Pick a wardrobe kit or upload a clothing photo.';
+  }
+  if (input.busy) {
+    return 'Already queueing a try-on…';
+  }
+  return null;
+}
+
+/** Remove one try-on from the compare strip (Pass / dismiss). */
+export function dismissFittingCompareTryOn(
+  current: FittingCompareTryOn[] | undefined,
+  promptId: string
+): FittingCompareTryOn[] {
+  const id = promptId.trim();
+  if (!id) {
+    return current ?? [];
+  }
+  return (current ?? []).filter(item => item.promptId !== id);
+}
+
+/** Short status line for plate · kit/BYO chrome. */
+export function fittingSessionStatusLine(input: {
+  hasPlate: boolean;
+  kitLabel?: string | null;
+  hasByo?: boolean;
+  byoLabel?: string | null;
+}): string {
+  const plate = input.hasPlate ? 'Plate ready' : 'No plate';
+  if (input.hasByo) {
+    const byo = input.byoLabel?.trim() || 'Your clothing photo';
+    return `${plate} · ${byo}`;
+  }
+  const kit = input.kitLabel?.trim();
+  if (kit) {
+    return `${plate} · ${kit}`;
+  }
+  return `${plate} · No kit selected`;
+}
+
 /** Short outfit label for queue chrome / confirm-match line. */
 export function clipFittingGarmentLabel(description: string, max = 96): string {
   const trimmed = description.replace(/\s+/g, ' ').trim();
@@ -160,18 +258,19 @@ export function roleplayLookPlateFieldsFromCharacter(
 
 /**
  * Seed Story with the Cast look plate when the session has no reference yet.
- * Keeps an existing Story photo; turns on From photo so identity locks.
+ * Pass `force: true` after a Cast switch so a prior character's photo cannot stick.
  */
 export function withRoleplayLookPlateFromCast(
   cache: RoleplayToolCache,
-  character: CharacterRecord | null | undefined
+  character: CharacterRecord | null | undefined,
+  options?: { force?: boolean }
 ): RoleplayToolCache {
   const fields = roleplayLookPlateFieldsFromCharacter(character);
   if (!fields) {
     return cache;
   }
   const hasRef = Boolean(cache.referenceImageUrl?.trim() || cache.referenceImageFilename?.trim());
-  if (hasRef) {
+  if (hasRef && options?.force !== true) {
     return { ...cache, playAs: 'photo' };
   }
   return { ...cache, ...fields };

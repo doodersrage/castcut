@@ -98,6 +98,13 @@ export type ComfyUiSettings = {
   autoRequeueMaxOnFiveStar?: boolean;
   /** After 5★ upscale, also queue a low-denoise img2img refine (experimental). */
   autoImg2imgRefineOnFiveStar?: boolean;
+  /**
+   * @deprecated Auto-after-still skin refine removed — Gallery Skin refine only.
+   * Kept so older localStorage settings still parse.
+   */
+  autoSkinRefineOnPlayStill?: boolean;
+  /** Model used when queueing Skin refine from Gallery (default Klein 9B Base). */
+  autoSkinRefineModel?: string;
   /** Prefer ComfyUI WebSocket progress updates over polling-only status. */
   useWebSocketProgress?: boolean;
   /** Saved negative presets for queue / copy pair. */
@@ -130,6 +137,8 @@ export const DEFAULT_COMFYUI_SETTINGS: ComfyUiSettings = {
   autoRequeueFinalOnHighRating: true,
   autoRequeueMaxOnFiveStar: true,
   autoImg2imgRefineOnFiveStar: false,
+  autoSkinRefineOnPlayStill: false,
+  autoSkinRefineModel: 'flux-2-klein-9b',
   useWebSocketProgress: true,
   negativeProfiles: [],
   selectedNegativeProfileId: 'general-sd',

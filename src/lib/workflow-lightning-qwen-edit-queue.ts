@@ -300,7 +300,9 @@ export function nextLightningWorkflowNodeId(workflow: Record<string, WorkflowNod
 }
 
 /**
- * Match reference pixels to EmptyLatent W×H before TextEncodeQwenImageEditPlus.
+ * Match reference pixels to EmptyLatent W×H with a separate ImageScale node
+ * before TextEncodeQwenImageEditPlus / TextEncoderQwenEditPlus.
+ * Do not scale inside the text-encoder node (cropping/zooming bugs).
  * Uploads stay ≤2048 while Lightning EmptyLatent snaps to ~1328 — wiring full-res
  * refs straight into encode mosaics CFG-1 Edit Lightning.
  */
@@ -461,9 +463,41 @@ function findLoadImageForFigure(
 }
 
 /**
+ * Day/Story pose guides AND Day outfit VL-only Keep plates — keep on VL encode
+ * (imageN) but skip ReferenceLatent.
+ *
+ * Pose guides: RL grafts neon/outline color into the still.
+ * Outfit VL Keep (Image 2 after face-break): RL re-pins the standing fashion plate
+ * even when Image 1 is a face crop — MID-STRIDE/WAVING freeze as catalog stands.
+ * Face crop (Image 1): RL still biases toward a mid-thigh catalog portrait for
+ * extreme beats (DANCING) — keep face VL + IP only so Image 3 can win.
+ */
+export function isPoseGuideReferenceFilename(filename: string | null | undefined): boolean {
+  const name = String(filename ?? '')
+    .trim()
+    .split(/[/\\]/)
+    .pop();
+  if (!name) {
+    return false;
+  }
+  return (
+    /^(?:day|story)-pose-guide/i.test(name) ||
+    /^day-outfit-vl[-_]/i.test(name) ||
+    /^day-vacation-face[-_]/i.test(name)
+  );
+}
+
+/** @deprecated Prefer {@link isPoseGuideReferenceFilename} — same VL-only skip set. */
+export function shouldSkipQwenEditReferenceLatent(filename: string | null | undefined): boolean {
+  return isPoseGuideReferenceFilename(filename);
+}
+
+/**
  * Qwen Edit Compose: disconnect VAE from TextEncodeQwenImageEditPlus (keep image1–4
  * for VL prompt referencing), attach appearance refs via chained ReferenceLatent
  * nodes (LoadImage → ImageScale → VAEEncode). Avoids encode-node auto downscaling.
+ *
+ * Pose-guide figures stay LoadImage + imageN vision only (no ReferenceLatent).
  */
 export function ensureQwenReferenceLatentWiringInWorkflow(
   workflow: Record<string, unknown>,
@@ -525,19 +559,35 @@ export function ensureQwenReferenceLatentWiringInWorkflow(
   for (let index = 0; index < filenames.length; index += 1) {
     const filename = filenames[index]!;
     const figureIndex = index + 1;
+    // Sparse slots (e.g. no garment on Image 2) stay empty — keep index alignment for image3.
+    if (!filename.trim()) {
+      loaderIds.push('');
+      continue;
+    }
     let loadId = findLoadImageForFigure(next, figureIndex);
     if (!loadId) {
       loadId = nextLightningWorkflowNodeId(next);
       next[loadId] = {
         class_type: 'LoadImage',
         inputs: { image: filename },
-        _meta: { title: figureIndex === 1 ? 'Figure 1' : `Figure ${figureIndex}` },
+        _meta: {
+          title: isPoseGuideReferenceFilename(filename)
+            ? `Pose guide (Image ${figureIndex})`
+            : figureIndex === 1
+              ? 'Figure 1'
+              : `Figure ${figureIndex}`,
+        },
       };
       insertedNodeIds.push(loadId);
     } else if (next[loadId]?.inputs) {
       next[loadId]!.inputs!.image = filename;
     }
     loaderIds.push(loadId);
+
+    // VL-only refs (pose guides, Day outfit Keep after face-break): no ReferenceLatent.
+    if (isPoseGuideReferenceFilename(filename)) {
+      continue;
+    }
 
     const scaleId = ensureRefImageScaleNode(next, loadId, width, height, insertedNodeIds);
     const encodeId = nextLightningWorkflowNodeId(next);
@@ -565,7 +615,7 @@ export function ensureQwenReferenceLatentWiringInWorkflow(
   }
 
   samplerNode.inputs.positive = currentCond;
-  // VL path: figures stay on encode image slots (384×384 internal) for "Figure N" prompts.
+  // VL path: figures stay on encode image slots (384×384 internal) for "Figure N" / Image 3 prompts.
   wireQwenEditEncodeVisionImages(next, loaderIds);
   return { workflow: next, wired: true, insertedNodeIds };
 }

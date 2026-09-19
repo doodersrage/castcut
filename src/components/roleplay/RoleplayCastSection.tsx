@@ -61,6 +61,8 @@ export default function RoleplayCastSection(props: RoleplayCastSectionProps) {
     castCharacterName,
     castHomeHref,
     filmHref,
+    hideMoodSection = false,
+    embedded = false,
   } = props;
   const mood = useMemo(
     () => moodSummary(tone, content, toolSettings.setting, toolSettings.allowGore),
@@ -98,8 +100,8 @@ export default function RoleplayCastSection(props: RoleplayCastSectionProps) {
     );
   }
 
-  return (
-    <ToolSection title={`Continue as ${displayName}`} data-testid="story-continue-cast">
+  const body = (
+    <>
       <p className="text-sm text-[var(--text-muted)]">
         Story continues this Cast lead
         {part ? ` · Part: ${part}` : ''}. Bible, Part, and look plate live on Cast — edit them
@@ -116,14 +118,16 @@ export default function RoleplayCastSection(props: RoleplayCastSectionProps) {
       <div className="mt-3">
         <RoleplayCastActionsSection {...props} />
       </div>
-      <CollapsibleSection
-        title="Mood & world"
-        summary={mood}
-        defaultOpen={false}
-        persistKey="roleplay-cast-mood"
-      >
-        <RoleplayCastToneSettingSection {...props} />
-      </CollapsibleSection>
+      {hideMoodSection ? null : (
+        <CollapsibleSection
+          title="Mood & world"
+          summary={mood}
+          defaultOpen={false}
+          persistKey="roleplay-cast-mood"
+        >
+          <RoleplayCastToneSettingSection {...props} />
+        </CollapsibleSection>
+      )}
       <CollapsibleSection
         key={playAs}
         title="Identity for this story"
@@ -132,6 +136,16 @@ export default function RoleplayCastSection(props: RoleplayCastSectionProps) {
       >
         <RoleplayCastPhotoSection {...props} />
       </CollapsibleSection>
+    </>
+  );
+
+  if (embedded) {
+    return <div data-testid="story-continue-cast">{body}</div>;
+  }
+
+  return (
+    <ToolSection title={`Continue as ${displayName}`} data-testid="story-continue-cast">
+      {body}
     </ToolSection>
   );
 }

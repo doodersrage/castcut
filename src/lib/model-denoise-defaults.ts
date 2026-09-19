@@ -110,7 +110,11 @@ export function isEditCapableModel(model: ComfyImageModel | string): boolean {
   if (def.profile === 'qwen_edit' || def.profile === 'qwen_edit_instruction') {
     return true;
   }
-  if (model === 'flux-inpaint' || model === 'qwen-rapid-aio-edit') {
+  if (
+    model === 'flux-inpaint' ||
+    model === 'qwen-rapid-aio-edit' ||
+    model === 'qwen-rapid-aio-edit-nsfw'
+  ) {
     return true;
   }
   // Rapid AIO SFW/NSFW are T2I-first dual-purpose checkpoints — not edit-primary.
@@ -123,6 +127,14 @@ export function isEditCapableModel(model: ComfyImageModel | string): boolean {
 /** Phr00t Rapid AIO single-file checkpoints (SFW / NSFW / Edit). */
 export function isQwenRapidAioModel(model?: string): boolean {
   return /^qwen-rapid-aio-/i.test(String(model ?? '').trim());
+}
+
+/**
+ * Rapid AIO still uses Image 3 for pose unlock — keep attaching the guide PNG.
+ * Leak fixes live in outline draw style + skipping ReferenceLatent for that slot.
+ */
+export function modelAttachesPoseGuideImage(_model?: string | null): boolean {
+  return true;
 }
 
 /** Phr00t WAN Rapid All-In-One — CFG-1 distilled video checkpoint (no Lightning LoRA). */

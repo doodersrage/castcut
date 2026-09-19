@@ -5,25 +5,36 @@ import CharacterOsPicker from '@/components/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import PlayPersistenceTriad from '@/components/PlayPersistenceTriad';
+import LookPlayPhaseStrip from '@/components/moodboard/LookPlayPhaseStrip';
+import LookStatusStrip from '@/components/moodboard/LookStatusStrip';
 import { Button, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useMoodboardToolOrchestration } from '@/hooks/useMoodboardToolOrchestration';
-import { markOnboardingFirstPlayCampaign } from '@/lib/onboarding-hooks';
-import { bumpPlayCampaignStep } from '@/lib/play-campaign';
+import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
+import { galleryPickPath } from '@/lib/gallery-handoff';
 import {
   copyPortableLookPackShareLink,
+  lookPackDayHref,
   lookPackFittingHref,
   loadLookPack,
   saveLookPack,
 } from '@/lib/look-pack';
+import { LOOK_PRESETS, lookPackFromPreset, tilesFromLookPreset } from '@/lib/look-presets';
 import {
+  LOOK_PREVIEW_HINT,
   MOODBOARD_TEMPLATE_OPTIONS,
   MOODBOARD_TILE_ROLES,
+  markMoodboardGalleryPlatePick,
+  moodboardExtractBlockReason,
+  moodboardQueueBlockReason,
+  moodboardSessionStatusLine,
+  resolveLookPlayPhase,
   type MoodboardTileRole,
 } from '@/lib/moodboard-scene';
-import { galleryPickPath } from '@/lib/gallery-handoff';
-import { LOOK_PRESETS, lookPackFromPreset, tilesFromLookPreset } from '@/lib/look-presets';
+import { toMobileStudioHref } from '@/lib/mobile-studio';
+import { bumpPlayCampaignStep } from '@/lib/play-campaign';
+import { resolvePlayStepHref } from '@/lib/play-step-machine';
 
 type ViewModel = ReturnType<typeof useMoodboardToolOrchestration>;
 
@@ -42,16 +53,23 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
     activeTileId,
     setActiveTileId,
     uploadingTileId,
+    plateUploading,
     tiles,
     templateId,
     character,
+    plate,
     hasPlate,
     activeTile,
+    actions,
     updateTile,
     addTile,
     removeTile,
     applyImageToTile,
+    applyLookPlate,
+    clearLookPlate,
+    keepSceneAsLookPlate,
     queueScene,
+    previewPrompt,
     extractLookPack,
     sendLookToFitting,
     sendLookToDay,
@@ -59,6 +77,42 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
     saveLookPackToCast,
     setLookStatus,
   } = vm;
+
+  const stagedLookPack = loadLookPack();
+  const hasInstruction = Boolean(toolSettings.instruction?.trim());
+  const extractBlocked = moodboardExtractBlockReason({
+    hasTiles: tiles.length > 0,
+    hasInstruction,
+    tileUploading: Boolean(uploadingTileId),
+    extracting,
+    busy,
+  });
+  const queueBlocked = moodboardQueueBlockReason({
+    hasTiles: tiles.length > 0,
+    hasInstruction,
+    tileUploading: Boolean(uploadingTileId),
+    busy,
+  });
+  const statusLine = moodboardSessionStatusLine({
+    tileCount: tiles.length,
+    hasPlate,
+    hasLookPack: Boolean(stagedLookPack),
+  });
+  const lookPhase = resolveLookPlayPhase({
+    tileCount: tiles.length,
+    hasInstruction,
+    hasLookPack: Boolean(stagedLookPack),
+    hasPlate,
+    softAdvanceActive: Boolean(softAdvance),
+  });
+  const daySkipHref = toMobileStudioHref(
+    character ? resolvePlayStepHref('day', character.id) : '/day'
+  );
+  const platePreviewUrl = plate?.imageUrl?.trim()
+    ? cacheBustIdentityMediaUrl(plate.imageUrl.trim())
+    : '';
+  const scenePreviewUrl = actions.comfyUiPreviewUrl?.trim() || '';
+  const demoteQueue = Boolean(softAdvance || stagedLookPack);
 
   const handoff = async (target: 'fitting' | 'day' | 'play') => {
     if (target === 'fitting') {
@@ -95,6 +149,15 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
         onCancel={cancelSoftAdvance}
+      />
+
+      <LookPlayPhaseStrip activePhase={lookPhase} />
+      <LookStatusStrip
+        statusLine={statusLine}
+        extractBlockReason={extractBlocked}
+        queueBlockReason={!extractBlocked ? queueBlocked : null}
+        previewHint={LOOK_PREVIEW_HINT}
+        lookStatus={lookStatus}
       />
 
       <div className="space-y-2" data-testid="mobile-moodboard-presets">
@@ -163,11 +226,68 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
             }
           }}
         />
-        <p className="type-caption mt-2 text-[var(--text-muted)]">
-          {hasPlate
-            ? 'Cast plate ready — Extract look will replace it with a full-body try-on still.'
-            : 'No Cast plate yet — Extract look will queue a full-body try-on still for Outfit.'}
-        </p>
+        {character ? (
+          <div className="mt-3 space-y-2" data-testid="mobile-moodboard-look-plate">
+            <div className="flex flex-wrap gap-2">
+              <label className="ui-btn-secondary inline-flex flex-1 cursor-pointer items-center justify-center px-3 py-1.5 text-sm">
+                Upload plate
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  aria-label="Upload Cast look plate"
+                  disabled={busy || plateUploading}
+                  className="sr-only"
+                  data-testid="mobile-moodboard-look-plate-upload"
+                  onChange={event => {
+                    const file = event.target.files?.[0];
+                    event.target.value = '';
+                    if (file) {
+                      void applyLookPlate({ file });
+                    }
+                  }}
+                />
+              </label>
+              <Link
+                href={toMobileStudioHref(
+                  galleryPickPath('moodboard', { characterId: character.id })
+                )}
+                className="ui-btn-secondary inline-flex flex-1 items-center justify-center px-3 py-1.5 text-sm"
+                data-testid="mobile-moodboard-look-plate-gallery"
+                onClick={() => markMoodboardGalleryPlatePick()}
+              >
+                Gallery
+              </Link>
+              {hasPlate ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy || plateUploading}
+                  onClick={clearLookPlate}
+                  className="flex-1 justify-center"
+                >
+                  Remove
+                </Button>
+              ) : null}
+            </div>
+            {platePreviewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={platePreviewUrl}
+                alt="Look plate"
+                className="max-h-36 w-full rounded-xl border border-[var(--border-subtle)] object-contain"
+              />
+            ) : (
+              <p className="type-caption text-[var(--text-muted)]">
+                No plate yet — upload, Gallery, or Extract look.
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="type-caption mt-2 text-[var(--text-muted)]">
+            Pick a Cast character to set a look plate here.
+          </p>
+        )}
       </div>
 
       <label className="block space-y-1.5 text-sm">
@@ -189,21 +309,41 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         </SelectInput>
       </label>
 
-      <div className="space-y-2">
-        <div className="flex flex-wrap gap-2">
-          {tiles.map((tile, index) => (
-            <ChipButton
-              key={tile.id}
-              active={activeTileId === tile.id}
+      <div className="space-y-2" data-testid="mobile-moodboard-tiles">
+        {tiles.length === 0 ? (
+          <div className="space-y-2" data-testid="mobile-moodboard-empty">
+            <p className="type-caption text-[var(--text-muted)]">
+              No tiles yet — add starter refs, or extract from notes alone.
+            </p>
+            <Button
+              variant="secondary"
               disabled={busy}
-              onClick={() => setActiveTileId(tile.id)}
+              data-testid="mobile-moodboard-seed-tiles"
+              className="w-full justify-center"
+              onClick={() => {
+                addTile();
+                addTile();
+              }}
             >
-              {tile.label?.trim() ||
-                MOODBOARD_TILE_ROLES.find(entry => entry.id === tile.role)?.label ||
-                `Tile ${index + 1}`}
-            </ChipButton>
-          ))}
-        </div>
+              Add starter tiles
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {tiles.map((tile, index) => (
+              <ChipButton
+                key={tile.id}
+                active={activeTileId === tile.id}
+                disabled={busy}
+                onClick={() => setActiveTileId(tile.id)}
+              >
+                {tile.label?.trim() ||
+                  MOODBOARD_TILE_ROLES.find(entry => entry.id === tile.role)?.label ||
+                  `Tile ${index + 1}`}
+              </ChipButton>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
           <Button
             size="sm"
@@ -273,7 +413,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
             }}
           />
           <Link
-            href={galleryPickPath('moodboard')}
+            href={toMobileStudioHref(galleryPickPath('moodboard'))}
             className="ui-btn-secondary inline-flex w-full justify-center text-sm"
           >
             Choose from Gallery
@@ -301,21 +441,31 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
 
       <div className="grid gap-2">
         <PrimaryButton
-          disabled={busy || extracting}
+          disabled={Boolean(extractBlocked) || busy || extracting}
           loading={extracting}
+          title={extractBlocked || undefined}
           onClick={() => {
             void extractLookPack().then(pack => {
               if (!pack) {
                 return;
               }
-              markOnboardingFirstPlayCampaign();
-              if (pack.characterId) {
-                bumpPlayCampaignStep({
-                  characterId: pack.characterId,
-                  stepId: 'fitting',
-                });
-              }
-              softAdvanceHref(lookPackFittingHref(pack), 'Outfit');
+              softAdvanceHref(
+                lookPackFittingHref(pack),
+                'Outfit',
+                'Look ready — continuing to Outfit (or go to Day)',
+                [
+                  {
+                    href: lookPackDayHref(pack),
+                    label: 'Go to Day instead',
+                    onNavigate: () => {
+                      const characterId = pack.characterId?.trim();
+                      if (characterId) {
+                        bumpPlayCampaignStep({ characterId, stepId: 'day' });
+                      }
+                    },
+                  },
+                ]
+              );
             });
           }}
           className="w-full justify-center"
@@ -332,7 +482,69 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         >
           Continue to Outfit
         </Button>
-        {loadLookPack() ? (
+        {character && !softAdvance ? (
+          <Link
+            href={daySkipHref}
+            className="ui-btn-secondary inline-flex w-full justify-center text-sm"
+            data-testid="mobile-moodboard-skip-day"
+            onClick={() => {
+              bumpPlayCampaignStep({ characterId: character.id, stepId: 'day' });
+            }}
+          >
+            Skip look · Day
+          </Link>
+        ) : null}
+        <Button
+          variant="ghost"
+          disabled={Boolean(queueBlocked) || extracting}
+          title={queueBlocked || LOOK_PREVIEW_HINT}
+          onClick={previewPrompt}
+          className="w-full justify-center"
+          data-testid="mobile-moodboard-preview"
+        >
+          Preview prompt
+        </Button>
+        <Button
+          variant={demoteQueue ? 'ghost' : 'secondary'}
+          disabled={Boolean(queueBlocked) || extracting}
+          title={queueBlocked || undefined}
+          onClick={() => void queueScene()}
+          className="w-full justify-center"
+          data-testid="mobile-moodboard-queue"
+        >
+          {busy ? 'Queueing…' : 'Queue scene still'}
+        </Button>
+        {scenePreviewUrl ? (
+          <div
+            className="space-y-2 rounded-2xl border border-[var(--border-subtle)] p-3"
+            data-testid="mobile-moodboard-scene-preview"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={scenePreviewUrl}
+              alt="Queued scene still"
+              className="max-h-40 w-full rounded-xl object-contain"
+            />
+            <Button
+              variant="primary"
+              disabled={!character || plateUploading || busy}
+              className="w-full justify-center"
+              data-testid="mobile-moodboard-keep-as-plate"
+              onClick={() => void keepSceneAsLookPlate()}
+            >
+              Keep as plate
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={Boolean(queueBlocked) || extracting}
+              className="w-full justify-center"
+              onClick={() => void queueScene()}
+            >
+              Requeue scene
+            </Button>
+          </div>
+        ) : null}
+        {stagedLookPack ? (
           <Button
             variant="secondary"
             disabled={busy || extracting}
@@ -359,37 +571,11 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
             Share this look
           </Button>
         ) : null}
-        <Button
-          variant="ghost"
-          disabled={busy || extracting}
-          onClick={() => void queueScene()}
-          className="w-full justify-center"
-        >
-          {busy ? 'Queueing…' : 'Queue scene still'}
-        </Button>
         <details className="rounded-xl border border-[var(--border-subtle)] px-3 py-2">
           <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-            More · Day skip, Story, save
+            More · Day, Story, save
           </summary>
           <div className="mt-2 grid gap-2">
-            {LOOK_PRESETS.map(preset => (
-              <Button
-                key={`day-${preset.id}`}
-                variant="ghost"
-                disabled={busy || extracting}
-                data-testid={`moodboard-preset-day-${preset.id}`}
-                onClick={() => {
-                  const tilesNext = tilesFromLookPreset(preset);
-                  updateToolSettings({ tiles: tilesNext });
-                  const pack = lookPackFromPreset(preset, character?.id);
-                  saveLookPack(pack);
-                  void handoff('day');
-                }}
-                className="w-full justify-center"
-              >
-                {preset.label} → Day
-              </Button>
-            ))}
             <Button
               variant="secondary"
               disabled={busy || extracting}
@@ -419,11 +605,6 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         </details>
       </div>
 
-      {lookStatus ? (
-        <p className="type-caption text-[var(--text-muted)]" data-testid="mobile-moodboard-status">
-          {lookStatus}
-        </p>
-      ) : null}
       {lookStatus ? <PlayPersistenceTriad compact /> : null}
       <FieldError>{error}</FieldError>
     </div>

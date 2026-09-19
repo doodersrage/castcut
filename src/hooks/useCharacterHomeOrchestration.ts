@@ -54,6 +54,8 @@ import { playCampaignHref } from '@/lib/play-campaign';
 import { continueClipActionLabel } from '@/lib/video-clip-mode';
 import { loadEngineSettings } from '@/lib/engine-settings';
 import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
+import { buildCastHomeStatus } from '@/lib/cast-home-status';
+import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 
 export type MediaTab = 'all' | 'stills' | 'clips' | 'films' | 'keepers';
 
@@ -88,6 +90,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
   const [plateStatus, setPlateStatus] = useState<string | null>(null);
   const [plateError, setPlateError] = useState<string | null>(null);
   const lookPackFileRef = useRef<HTMLInputElement | null>(null);
+  const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance();
 
   useEffect(() => {
     const media = searchParams.get('media')?.trim().toLowerCase();
@@ -289,7 +292,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
   const applyLookPlate = useCallback(
     async (input: { file?: File | null; imageUrl?: string; filename?: string }) => {
       if (!character) {
-        return;
+        return false;
       }
       setPlateUploading(true);
       setPlateError(null);
@@ -307,30 +310,47 @@ export function useCharacterHomeOrchestration(characterId: string) {
         setPlateStatus(
           result.isolated ? 'Look plate saved (isolated on white).' : 'Look plate saved.'
         );
+        softAdvanceHref(
+          `/fitting?character=${encodeURIComponent(character.id)}`,
+          'Outfit',
+          'Look plate ready — continuing to Outfit (or stay on Cast)',
+          [
+            {
+              href: `/day?character=${encodeURIComponent(character.id)}`,
+              label: 'Go to Day instead',
+            },
+          ]
+        );
+        return true;
       } catch (err) {
         setPlateStatus(null);
         setPlateError(err instanceof Error ? err.message : 'Could not update the look plate.');
+        return false;
       } finally {
         setPlateUploading(false);
       }
     },
-    [character]
+    [character, softAdvanceHref]
   );
 
   const clearLookPlate = useCallback(() => {
-    if (!character) {
+    if (!characterId) {
+      return;
+    }
+    const record = getCharacter(characterId);
+    if (!record) {
       return;
     }
     if (
       !window.confirm(
-        `Remove the look plate for ${character.name}? Outfit and Day will need a new plate.`
+        `Remove the look plate for ${record.name}? Outfit and Day will need a new plate.`
       )
     ) {
       return;
     }
-    const cleared = clearCharacterLookPlate(character.id);
+    const cleared = clearCharacterLookPlate(characterId);
     if (cleared) {
-      const next = getCharacter(character.id);
+      const next = getCharacter(characterId);
       if (next) {
         saveSharedSettings({
           ...loadSettingsCache().shared,
@@ -342,18 +362,22 @@ export function useCharacterHomeOrchestration(characterId: string) {
     } else {
       setPlateError('Nothing to remove — no look plate on this Cast.');
     }
-  }, [character]);
+  }, [characterId]);
 
   const onGalleryPlateHandoff = useCallback(
-    (handoff: {
+    async (handoff: {
       file: File | null;
       previewUrl: string | null;
       payload: { imageUrl?: string; imageFilename?: string; characterId?: string };
     }) => {
+      // Wrong Cast page — consume so we do not retry forever.
       if (handoff.payload.characterId && handoff.payload.characterId !== characterId) {
-        return;
+        return true;
       }
-      void applyLookPlate({
+      if (!characterId || !getCharacter(characterId)) {
+        return false;
+      }
+      return applyLookPlate({
         file: handoff.file,
         imageUrl: handoff.payload.imageUrl || handoff.previewUrl || undefined,
         filename: handoff.payload.imageFilename,
@@ -362,7 +386,24 @@ export function useCharacterHomeOrchestration(characterId: string) {
     [applyLookPlate, characterId]
   );
 
-  useGalleryHandoff('cast', onGalleryPlateHandoff);
+  useGalleryHandoff('cast', onGalleryPlateHandoff, { ready: Boolean(characterId) });
+
+  const hasLookPlate = Boolean(
+    lookPlate?.imageUrl?.trim() ||
+    lookPlate?.filename?.trim() ||
+    character?.reference?.originalUrl?.trim() ||
+    character?.reference?.isolatedUrl?.trim()
+  );
+  const castStatus = buildCastHomeStatus({
+    hasPlate: hasLookPlate,
+    personaId: character?.personaId,
+    customPersona: character?.customPersona,
+    lookCount: looks.length,
+    filmCount: filmEntries.length,
+    stillCount: stillEntries.length,
+    plateStatus,
+    plateError,
+  });
 
   return {
     character,
@@ -378,6 +419,10 @@ export function useCharacterHomeOrchestration(characterId: string) {
     savedLookPacks,
     currentLook,
     lookPlate,
+    hasLookPlate,
+    castStatus,
+    softAdvance,
+    cancelSoftAdvance,
     plateUploading,
     plateStatus,
     plateError,

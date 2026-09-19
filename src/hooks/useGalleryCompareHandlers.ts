@@ -271,6 +271,33 @@ export function useGalleryCompareHandlers({
     []
   );
 
+  const onSkinRefine = useCallback<NonNullable<GalleryComparePanelProps['onSkinRefine']>>(entry => {
+    setCompareStatus('Queueing skin refine…');
+    void Promise.all([
+      loadGalleryRequeue(),
+      import('@/lib/comfyui-settings'),
+      import('@/lib/play-skin-refine'),
+    ])
+      .then(([{ requeueSkinRefineFromGalleryEntry }, { loadComfyUiSettings }, skin]) => {
+        const model = skin.resolvePlaySkinRefineQueueModel(loadComfyUiSettings());
+        return requeueSkinRefineFromGalleryEntry(entry, {
+          model,
+          onStatus: setCompareStatus,
+        });
+      })
+      .then(result => {
+        if (!result.ok) {
+          setCompareStatus(result.error ?? 'Skin refine failed.');
+          return;
+        }
+        if (result.held) {
+          const message = 'Skin refine held until ComfyUI queue is idle';
+          setCompareStatus(message);
+          toastHeldMax({ text: message });
+        }
+      });
+  }, []);
+
   const onUpscaleWinner = useCallback<NonNullable<GalleryComparePanelProps['onUpscaleWinner']>>(
     entry => {
       setCompareStatus('Upscaling compare winner at Max…');
@@ -310,6 +337,7 @@ export function useGalleryCompareHandlers({
       onMoireClean,
       onRefine,
       onSoftSecondPass,
+      onSkinRefine,
       onUpscaleWinner,
       onImprove: startImproveFromGalleryEntry,
       status: compareStatus,

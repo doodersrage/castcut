@@ -30,6 +30,7 @@ import {
   resolveRoleplayPersonaPrompt,
   resolveRoleplaySetting,
   resolveRoleplayToneAndContent,
+  roleplayIntimateMixLine,
   roleplayStoryPhase,
   roleplayToneLine,
   roleplayToneTemperature,
@@ -64,6 +65,7 @@ export type RoleplaySharedOptions = SharedGenerationOptions & {
   wardrobeLabel?: string;
   garmentDescription?: string;
   hasGarmentReference?: boolean;
+  intimateMix?: string | null;
 };
 
 function toneLine(tone: RoleplayTone): string {
@@ -404,6 +406,7 @@ export async function generateRoleplayScenes(
     hasReferenceImage,
     phase: 'scenes',
   });
+  const intimateMixCue = roleplayIntimateMixLine(content, options.intimateMix);
   const raw = await llmJson({
     llm: options.llm,
     maxTokens: 700,
@@ -414,6 +417,7 @@ ${uncensoredAdultLine(content)}
 ${settingCue}
 ${wardrobeCue}
 ${poseGuideCue}
+${intimateMixCue}
 Return ONLY JSON: {"scenes":[{"title":"","blurb":""${finale ? ',"kind":"ending"' : ''}}]}
 - Exactly 4 scenes. Titles 2–6 words. Blurbs one sentence, visual, actionable.
 ${

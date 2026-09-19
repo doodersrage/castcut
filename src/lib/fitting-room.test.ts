@@ -6,12 +6,16 @@ import {
   buildFittingKitPreviewPrompt,
   buildFittingOutfitPrompt,
   buildFittingSwipeDeck,
+  dismissFittingCompareTryOn,
+  fittingQueueBlockReason,
+  fittingSessionStatusLine,
   fittingSwipeIndex,
   fittingSwipeNeighbor,
   isCollapsedFittingGarmentDescription,
   isPlausibleFittingGarmentDescription,
   resolveFittingDeckWardrobeId,
   resolveFittingKitPreviewPlate,
+  resolveFittingOutfitPhase,
   resolveFittingPlateFromCharacter,
   roleplayLookPlateFieldsFromCharacter,
   withRoleplayLookPlateFromCast,
@@ -242,6 +246,85 @@ describe('fitting compare lightbox', () => {
       null
     );
   });
+
+  it('fittingQueueBlockReason mirrors Day-style block copy', () => {
+    assert.equal(
+      fittingQueueBlockReason({
+        hasCharacter: false,
+        hasPlate: true,
+        hasGarmentSource: true,
+      }),
+      'Pick a Cast character first.'
+    );
+    assert.equal(
+      fittingQueueBlockReason({
+        hasCharacter: true,
+        hasPlate: false,
+        hasGarmentSource: true,
+      }),
+      'Add a look plate (upload, Gallery, or Extract look) before Queue try-on.'
+    );
+    assert.equal(
+      fittingQueueBlockReason({
+        hasCharacter: true,
+        hasPlate: true,
+        hasGarmentSource: false,
+      }),
+      'Pick a wardrobe kit or upload a clothing photo.'
+    );
+    assert.equal(
+      fittingQueueBlockReason({
+        hasCharacter: true,
+        hasPlate: true,
+        hasGarmentSource: true,
+        isolateSubject: true,
+        isolatePending: true,
+      }),
+      'Wait for plate isolate on white to finish.'
+    );
+    assert.equal(
+      fittingQueueBlockReason({
+        hasCharacter: true,
+        hasPlate: true,
+        hasGarmentSource: true,
+      }),
+      null
+    );
+  });
+
+  it('dismissFittingCompareTryOn removes one card', () => {
+    const next = dismissFittingCompareTryOn(
+      [
+        { promptId: 'a', wardrobeId: 'kit-a' },
+        { promptId: 'b', wardrobeId: 'kit-b' },
+      ],
+      'a'
+    );
+    assert.equal(next.length, 1);
+    assert.equal(next[0]?.promptId, 'b');
+  });
+
+  it('resolveFittingOutfitPhase walks Plate → Try-on → Keep → Day', () => {
+    assert.equal(resolveFittingOutfitPhase({ hasPlate: false, compareCount: 0 }), 'plate');
+    assert.equal(resolveFittingOutfitPhase({ hasPlate: true, compareCount: 0 }), 'tryon');
+    assert.equal(resolveFittingOutfitPhase({ hasPlate: true, compareCount: 2 }), 'keep');
+    assert.equal(
+      resolveFittingOutfitPhase({ hasPlate: true, compareCount: 1, continueDayReady: true }),
+      'day'
+    );
+  });
+
+  it('fittingSessionStatusLine names plate and kit/BYO', () => {
+    assert.match(fittingSessionStatusLine({ hasPlate: false }), /No plate/);
+    assert.match(
+      fittingSessionStatusLine({ hasPlate: true, kitLabel: 'Linen set' }),
+      /Plate ready · Linen set/
+    );
+    assert.match(
+      fittingSessionStatusLine({ hasPlate: true, hasByo: true, byoLabel: 'Red coat' }),
+      /Red coat/
+    );
+  });
 });
 
 describe('Story look plate from Cast', () => {
@@ -286,5 +369,17 @@ describe('Story look plate from Cast', () => {
     );
     assert.equal(kept.referenceImageUrl, 'https://example.com/mine.jpg');
     assert.equal(kept.playAs, 'photo');
+
+    const forced = withRoleplayLookPlateFromCast(
+      {
+        personaId: 'x',
+        playAs: 'text',
+        referenceImageUrl: 'https://example.com/mine.jpg',
+      } as RoleplayToolCache,
+      character,
+      { force: true }
+    );
+    assert.equal(forced.referenceImageUrl, 'https://example.com/cut.jpg');
+    assert.equal(forced.playAs, 'photo');
   });
 });

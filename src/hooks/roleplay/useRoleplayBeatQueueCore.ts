@@ -186,6 +186,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           blurb: beat.blurb,
           prompt: beat.prompt,
           storyIndex: storyIndex >= 0 ? storyIndex : 0,
+          model: shared.model,
         });
         const uploaded = await resolveQueueInputImage({
           file: poseFile,
@@ -235,7 +236,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       const promptWithPose = withRoleplayPoseGuidePrompt(
         promptSource,
         Boolean(poseGuide) || (!queueStill && playAs === 'photo'),
-        shared.renderRealismMode
+        shared.renderRealismMode,
+        shared.model
       );
       const prompt = await actions.finalizePrompt(promptWithPose, beat.title);
       rememberDraftFields({
@@ -337,7 +339,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         const queuePrompt = withRoleplayPoseGuidePrompt(
           promptSource,
           Boolean(poseGuide),
-          shared.renderRealismMode
+          shared.renderRealismMode,
+          shared.model
         );
         const stillOpts = queueStillOptions(poseGuide, latest);
         const charOpts = roleplayCharacterQueueFields(

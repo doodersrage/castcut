@@ -157,3 +157,141 @@ export function synthesizeMoodboardPrompt(input: {
 export function newMoodboardTileId(): string {
   return `mb-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
+
+/** Look micro-funnel chips: Tiles → Extract → Plate → Continue. */
+export type LookPlayPhaseId = 'tiles' | 'extract' | 'plate' | 'continue';
+
+export const LOOK_PLAY_PHASES: Array<{
+  id: LookPlayPhaseId;
+  label: string;
+  description: string;
+}> = [
+  { id: 'tiles', label: 'Tiles', description: 'Stack look references or notes' },
+  { id: 'extract', label: 'Extract', description: 'Build a session look pack' },
+  { id: 'plate', label: 'Plate', description: 'Lock a Cast look plate for Outfit' },
+  { id: 'continue', label: 'Continue', description: 'Hand off to Outfit or Day' },
+];
+
+/** Active Look phase for the phase strip. */
+export function resolveLookPlayPhase(input: {
+  tileCount: number;
+  hasInstruction?: boolean;
+  hasLookPack: boolean;
+  hasPlate: boolean;
+  softAdvanceActive?: boolean;
+}): LookPlayPhaseId {
+  if (input.softAdvanceActive) {
+    return 'continue';
+  }
+  if (input.hasLookPack && input.hasPlate) {
+    return 'continue';
+  }
+  if (input.hasLookPack) {
+    return 'plate';
+  }
+  if (input.tileCount > 0 || input.hasInstruction) {
+    return 'extract';
+  }
+  return 'tiles';
+}
+
+/** Short user-facing reason Extract is blocked, or null when ready. */
+export function moodboardExtractBlockReason(input: {
+  hasTiles: boolean;
+  hasInstruction: boolean;
+  tileUploading?: boolean;
+  extracting?: boolean;
+  busy?: boolean;
+}): string | null {
+  if (input.extracting) {
+    return 'Extracting look…';
+  }
+  if (input.busy) {
+    return 'Wait for the current queue to finish.';
+  }
+  if (input.tileUploading) {
+    return 'Wait for the tile upload to finish.';
+  }
+  if (!input.hasTiles && !input.hasInstruction) {
+    return 'Add a tile or scene direction before Extract.';
+  }
+  return null;
+}
+
+/** Short user-facing reason Queue scene is blocked, or null when ready. */
+export function moodboardQueueBlockReason(input: {
+  hasTiles: boolean;
+  hasInstruction: boolean;
+  tileUploading?: boolean;
+  busy?: boolean;
+}): string | null {
+  if (input.busy) {
+    return 'Already queueing a scene…';
+  }
+  if (input.tileUploading) {
+    return 'Wait for the tile upload to finish.';
+  }
+  if (!input.hasTiles && !input.hasInstruction) {
+    return 'Add a tile or scene direction before Queue.';
+  }
+  return null;
+}
+
+/** Short status line for tiles · plate · pack chrome. */
+export function moodboardSessionStatusLine(input: {
+  tileCount: number;
+  hasPlate: boolean;
+  hasLookPack: boolean;
+}): string {
+  const tiles =
+    input.tileCount === 0
+      ? 'No tiles'
+      : `${input.tileCount} tile${input.tileCount === 1 ? '' : 's'}`;
+  const plate = input.hasPlate ? 'Plate ready' : 'No plate';
+  const pack = input.hasLookPack ? 'Pack ready' : 'No pack';
+  return `${tiles} · ${plate} · ${pack}`;
+}
+
+/** Caption clarifying Preview vs Queue on Look. */
+export const LOOK_PREVIEW_HINT =
+  'Preview prompt = text only · Queue scene = optional still · Extract look = film path';
+
+/** Session flag: Gallery pick returns a Cast look plate instead of a tile still. */
+export const MOODBOARD_GALLERY_PLATE_SLOT_KEY = 'moodboard-gallery-slot-v1';
+
+let moodboardGalleryPlatePickMemory = false;
+
+function writeMoodboardGalleryPlatePick(active: boolean): void {
+  moodboardGalleryPlatePickMemory = active;
+  if (typeof sessionStorage === 'undefined') {
+    return;
+  }
+  try {
+    if (active) {
+      sessionStorage.setItem(MOODBOARD_GALLERY_PLATE_SLOT_KEY, 'plate');
+    } else {
+      sessionStorage.removeItem(MOODBOARD_GALLERY_PLATE_SLOT_KEY);
+    }
+  } catch {
+    // Private mode / quota — memory flag still works for this tab turn.
+  }
+}
+
+export function markMoodboardGalleryPlatePick(): void {
+  writeMoodboardGalleryPlatePick(true);
+}
+
+export function consumeMoodboardGalleryPlatePick(): boolean {
+  let fromStorage = false;
+  if (typeof sessionStorage !== 'undefined') {
+    try {
+      fromStorage = sessionStorage.getItem(MOODBOARD_GALLERY_PLATE_SLOT_KEY) === 'plate';
+      sessionStorage.removeItem(MOODBOARD_GALLERY_PLATE_SLOT_KEY);
+    } catch {
+      fromStorage = false;
+    }
+  }
+  const fromMemory = moodboardGalleryPlatePickMemory;
+  moodboardGalleryPlatePickMemory = false;
+  return fromStorage || fromMemory;
+}

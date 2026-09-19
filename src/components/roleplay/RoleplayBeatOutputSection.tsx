@@ -1,11 +1,22 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton, FieldError } from '@/components/ui/Field';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
+import {
+  DAY_INTIMATE_MIX_OPTIONS,
+  normalizeDayIntimateMix,
+  type DayIntimateMix,
+} from '@/lib/day-planner';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
+import {
+  isRoleplayAdultContent,
+  type RoleplayContentId,
+  type RoleplayScene,
+  type RoleplayStoryPhase,
+} from '@/lib/roleplay';
 import type { RoleplayBeatOutput } from '@/lib/roleplay-film';
-import type { RoleplayScene, RoleplayStoryPhase } from '@/lib/roleplay';
 
 const ACCENT = 'amber' as const;
 
@@ -29,11 +40,17 @@ export type RoleplayBeatOutputSectionProps = {
   error: string | null;
   filmError: string | null | undefined;
   filmGuideHref?: string | null;
+  queueBlockReason?: string | null;
+  content?: RoleplayContentId;
+  intimateMix?: DayIntimateMix;
+  onIntimateMixChange?: (next: DayIntimateMix) => void;
   onRestartStory: () => void;
   onBeatOutputChange: (beatOutput: RoleplayBeatOutput) => void;
   onAutoQueueChange: (autoQueue: boolean) => void;
   onRollScenes: () => void;
   onPlayScene: (scene: RoleplayScene) => void;
+  /** Pinned Setting / Tone / Content controls (Day-style plan strip). */
+  moodControls?: ReactNode;
 };
 
 export default function RoleplayBeatOutputSection({
@@ -48,15 +65,56 @@ export default function RoleplayBeatOutputSection({
   error,
   filmError,
   filmGuideHref,
+  queueBlockReason = null,
+  content,
+  intimateMix = 'mixed',
+  onIntimateMixChange,
   onRestartStory,
   onBeatOutputChange,
   onAutoQueueChange,
   onRollScenes,
   onPlayScene,
+  moodControls,
 }: RoleplayBeatOutputSectionProps) {
+  const rollBlocked = Boolean(queueBlockReason) || !bioPresent;
+  const showIntimateMix =
+    Boolean(onIntimateMixChange) && content != null && isRoleplayAdultContent(content);
+  const mix = normalizeDayIntimateMix(intimateMix);
+
   return (
-    <ToolSection title={storyProgress.heading}>
+    <ToolSection title={storyProgress.heading} data-testid="story-beat-picker">
       <p className="text-sm text-[var(--text-muted)]">{storyProgress.hint}</p>
+      {moodControls ? (
+        <div className="space-y-3" data-testid="story-active-plan">
+          {moodControls}
+        </div>
+      ) : null}
+      {showIntimateMix ? (
+        <div className="space-y-2" data-testid="story-intimate-mix">
+          <p className="type-caption text-[var(--text-muted)]">Intimate mix</p>
+          <div className="flex flex-wrap gap-2">
+            {DAY_INTIMATE_MIX_OPTIONS.map(option => (
+              <ChipButton
+                key={option.id}
+                active={mix === option.id}
+                disabled={busy}
+                data-testid={`story-intimate-mix-${option.id}`}
+                title={option.hint}
+                onClick={() => onIntimateMixChange?.(option.id)}
+              >
+                {option.label}
+              </ChipButton>
+            ))}
+          </div>
+          <p className="type-caption text-[var(--text-muted)]">
+            {mix === 'solo'
+              ? 'Solo — one adult; self-touch / undress beats.'
+              : mix === 'duo'
+                ? 'Duo — partner scenes; partners get different faces from Cast.'
+                : 'Mixed — solo and duo beats across the four cards.'}
+          </p>
+        </div>
+      ) : null}
       {storyProgress.phase === 'complete' ? (
         <Button variant="secondary" disabled={busy} onClick={onRestartStory}>
           Restart story
@@ -100,11 +158,20 @@ export default function RoleplayBeatOutputSection({
             variant="secondary"
             loading={scenesLoading}
             loadingLabel="Rolling scenes"
-            disabled={!bioPresent || busy}
+            disabled={rollBlocked || busy}
+            data-testid="story-roll-scenes"
             onClick={onRollScenes}
           >
             {scenes.length > 0 ? storyProgress.rerollLabel : storyProgress.rollLabel}
           </Button>
+          {queueBlockReason ? (
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              data-testid="story-queue-block-reason"
+            >
+              {queueBlockReason}
+            </p>
+          ) : null}
           {scenes.length > 0 ? (
             <div className="grid gap-2 sm:grid-cols-2">
               {scenes.map(scene => (

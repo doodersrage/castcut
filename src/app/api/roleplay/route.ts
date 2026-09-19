@@ -39,6 +39,7 @@ type RoleplayRequestBody = {
   tone?: string;
   content?: string;
   allowGore?: boolean;
+  intimateMix?: string;
   hasReferenceImage?: boolean;
   isolatedSubject?: boolean;
   bio?: RoleplayBio;
@@ -117,6 +118,7 @@ export async function POST(request: Request) {
       tone,
       content,
       allowGore: parseRoleplayAllowGore(body.allowGore),
+      intimateMix: typeof body.intimateMix === 'string' ? body.intimateMix.trim() : undefined,
       hasReferenceImage: body.hasReferenceImage === true,
       isolatedSubject: body.hasReferenceImage === true && body.isolatedSubject === true,
       wardrobeLabel: body.wardrobeLabel?.trim(),

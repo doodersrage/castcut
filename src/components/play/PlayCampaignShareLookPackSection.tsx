@@ -31,7 +31,7 @@ type PlayCampaignShareLookPackSectionProps = Pick<
   | 'setShareCopyStatus'
   | 'setStatus'
   | 'persistCharacter'
-  | 'router'
+  | 'replacePlay'
 >;
 
 export default function PlayCampaignShareLookPackSection({
@@ -45,7 +45,7 @@ export default function PlayCampaignShareLookPackSection({
   setShareCopyStatus,
   setStatus,
   persistCharacter,
-  router,
+  replacePlay,
 }: PlayCampaignShareLookPackSectionProps) {
   return (
     <ToolSection
@@ -100,11 +100,11 @@ export default function PlayCampaignShareLookPackSection({
                 source: 'saved',
               });
               if (entry) {
-                router.replace(
+                replacePlay(
                   `/play?character=${encodeURIComponent(record.id)}&lookPack=${encodeURIComponent(entry.id)}`
                 );
               } else {
-                router.replace(`/play?character=${encodeURIComponent(record.id)}`);
+                replacePlay(`/play?character=${encodeURIComponent(record.id)}`);
               }
               setStatus(`Created Cast "${record.name}" and imported the look pack.`);
               return;
@@ -117,7 +117,7 @@ export default function PlayCampaignShareLookPackSection({
             const entry = saved ? lookPacksOf(saved)[0] : undefined;
             saveLookPack({ ...portable.pack, characterId: character.id, source: 'saved' });
             if (entry) {
-              router.replace(
+              replacePlay(
                 `/play?character=${encodeURIComponent(character.id)}&lookPack=${encodeURIComponent(entry.id)}`
               );
             }

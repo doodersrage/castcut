@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import {
   addCharacterLookPack,
@@ -39,6 +39,7 @@ import {
   type PlayCampaignStepId,
 } from '@/lib/play-campaign';
 import { CHARACTERS_UPDATED_EVENT } from '@/lib/character-os';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 import {
   loadSettingsCache,
   saveSharedSettings,
@@ -56,6 +57,7 @@ export function usePlayCampaignWizardOrchestration({
   initialCharacterId,
 }: PlayCampaignWizardProps = {}) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { mounted, shared, updateShared } = useCachedSettings(
     'roleplay',
@@ -66,6 +68,24 @@ export function usePlayCampaignWizardOrchestration({
   const [stepOverride, setStepOverride] = useState<PlayCampaignStepId | null>(null);
   const lookPackFileRef = useRef<HTMLInputElement | null>(null);
   const [charactersRevision, setCharactersRevision] = useState(0);
+
+  const mobileStudio = isMobileStudioPath(pathname);
+  const mapHref = useCallback(
+    (href: string) => (mobileStudio ? toMobileStudioHref(href) : href),
+    [mobileStudio]
+  );
+  const pushPlay = useCallback(
+    (href: string) => {
+      router.push(mapHref(href));
+    },
+    [mapHref, router]
+  );
+  const replacePlay = useCallback(
+    (href: string) => {
+      router.replace(mapHref(href));
+    },
+    [mapHref, router]
+  );
 
   useEffect(() => {
     const onCharactersUpdated = () => setCharactersRevision(revision => revision + 1);
@@ -214,11 +234,11 @@ export function usePlayCampaignWizardOrchestration({
           source: 'saved',
         });
         if (entry) {
-          router.replace(
+          replacePlay(
             `/play?character=${encodeURIComponent(record.id)}&lookPack=${encodeURIComponent(entry.id)}`
           );
         } else {
-          router.replace(`/play?character=${encodeURIComponent(record.id)}`);
+          replacePlay(`/play?character=${encodeURIComponent(record.id)}`);
         }
         setStatus(`Created Cast "${record.name}" from share link.`);
         return;
@@ -231,7 +251,7 @@ export function usePlayCampaignWizardOrchestration({
       const entry = saved ? lookPacksOf(saved)[0] : undefined;
       saveLookPack({ ...portable.pack, characterId: character.id, source: 'saved' });
       if (entry) {
-        router.replace(
+        replacePlay(
           `/play?character=${encodeURIComponent(character.id)}&lookPack=${encodeURIComponent(entry.id)}`
         );
       }
@@ -260,13 +280,13 @@ export function usePlayCampaignWizardOrchestration({
         lookPackId: undefined,
         updatedAt: Date.now(),
       });
-      router.replace(playCampaignHref(characterId));
+      router.replace(mapHref(playCampaignHref(characterId)));
       scheduleAfterCommit(() => {
         setStatus('Saved look was missing — continue without it.');
       });
       return;
     }
-    router.replace(playCampaignHref(characterId, packId));
+    router.replace(mapHref(playCampaignHref(characterId, packId)));
     saveLookPack({ ...saved.pack, characterId: characterRecord.id, source: 'saved' });
   }, [
     mounted,
@@ -274,6 +294,7 @@ export function usePlayCampaignWizardOrchestration({
     characterId,
     queryLookPackId,
     router,
+    mapHref,
     charactersRevision,
     savedLookPacks.length,
   ]);
@@ -310,9 +331,9 @@ export function usePlayCampaignWizardOrchestration({
       if (!step) {
         return;
       }
-      router.push(step.href({ characterId, pack: handoff }));
+      pushPlay(step.href({ characterId, pack: handoff }));
     },
-    [activeLookPack, characterId, effectiveLookPackId, persistCharacter, router]
+    [activeLookPack, characterId, effectiveLookPackId, persistCharacter, pushPlay]
   );
 
   const startNewCampaign = useCallback(() => {
@@ -389,14 +410,14 @@ export function usePlayCampaignWizardOrchestration({
         );
         setStepOverride('moodboard');
         setStatus(`Created "${saved.name}" — opening Look.`);
-        router.push(`/moodboard?character=${encodeURIComponent(saved.id)}`);
+        pushPlay(`/moodboard?character=${encodeURIComponent(saved.id)}`);
         return;
       }
       setStepOverride('character');
       setStatus(`Created "${saved.name}". Continue to Look when ready.`);
-      router.replace(`/play?character=${encodeURIComponent(saved.id)}`);
+      replacePlay(`/play?character=${encodeURIComponent(saved.id)}`);
     },
-    [router, updateShared]
+    [pushPlay, replacePlay, updateShared]
   );
 
   const applySavedLookPack = useCallback(
@@ -411,11 +432,11 @@ export function usePlayCampaignWizardOrchestration({
       }
       saveLookPack(saved.pack);
       scheduleAfterCommit(() => setStatus(`Loaded "${saved.name}" — continue to Outfit or Day.`));
-      router.replace(
+      replacePlay(
         `/play?character=${encodeURIComponent(character.id)}&lookPack=${encodeURIComponent(saved.id)}`
       );
     },
-    [character, router]
+    [character, replacePlay]
   );
 
   return {
@@ -447,5 +468,9 @@ export function usePlayCampaignWizardOrchestration({
     startNewCampaign,
     applySavedLookPack,
     router,
+    mobileStudio,
+    mapHref,
+    pushPlay,
+    replacePlay,
   };
 }

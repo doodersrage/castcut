@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Button, PrimaryButton } from '@/components/ui/Button';
 import { FieldError, TextInput } from '@/components/ui/Field';
+import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
+import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { persistIdentityImage } from '@/lib/gallery-media-client';
 import { saveGalleryHandoff } from '@/lib/gallery-handoff';
 import { isolateSubjectOnWhite } from '@/lib/isolate-subject';
@@ -42,6 +44,7 @@ export default function MobileCaptureTool() {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance({ mobile: true });
 
   const plates = useMemo(() => toolSettings.plates ?? [], [toolSettings.plates]);
   const active = plates.find(plate => plate.id === toolSettings.activePlateId) ?? plates[0] ?? null;
@@ -154,7 +157,20 @@ export default function MobileCaptureTool() {
           activePlateId: plate.id,
         });
         applyPlateToFilmLoop(plate);
-        setStatus(isolated ? 'Plate ready — Start Look next.' : 'Plate saved — Start Look next.');
+        setStatus(
+          isolated ? 'Plate ready — continuing to Outfit…' : 'Plate saved — continuing to Outfit…'
+        );
+        softAdvanceHref(
+          '/m/fitting',
+          'Outfit',
+          'Plate ready — continuing to Outfit (or go to Look)',
+          [
+            {
+              href: '/m/moodboard',
+              label: 'Go to Look instead',
+            },
+          ]
+        );
         if (originalUrl && localPreview.startsWith('blob:') && originalUrl !== localPreview) {
           URL.revokeObjectURL(localPreview);
         }
@@ -165,7 +181,7 @@ export default function MobileCaptureTool() {
         setBusy(false);
       }
     },
-    [applyPlateToFilmLoop, name, plates, shared.model, updateToolSettings]
+    [applyPlateToFilmLoop, name, plates, shared.model, softAdvanceHref, updateToolSettings]
   );
 
   if (!mounted) {
@@ -183,6 +199,12 @@ export default function MobileCaptureTool() {
           not the room. First use downloads a small on-device model.
         </p>
       </div>
+
+      <PlaySoftAdvanceBanner
+        key={softAdvance?.nonce ?? 'idle'}
+        target={softAdvance}
+        onCancel={cancelSoftAdvance}
+      />
 
       <label className="block space-y-1.5">
         <span className="type-caption text-[var(--text-muted)]">Name (optional)</span>

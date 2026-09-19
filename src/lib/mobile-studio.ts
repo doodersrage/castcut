@@ -94,7 +94,7 @@ export function toMobileStudioHref(href: string): string {
   const path = qIndex >= 0 ? withoutHash.slice(0, qIndex) : withoutHash;
   const query = qIndex >= 0 ? withoutHash.slice(qIndex) : '';
 
-  // Cast character detail → phone Gallery films (Watch on Cast soft-advance).
+  // Cast character detail → phone Watch (Gallery films) or Capture with character context.
   const characterMatch = path.match(/^\/characters\/([^/]+)\/?$/);
   if (characterMatch) {
     const characterId = decodeURIComponent(characterMatch[1]);
@@ -102,7 +102,7 @@ export function toMobileStudioHref(href: string): string {
     if (params.get('media') === 'films') {
       return `/m/gallery?character=${encodeURIComponent(characterId)}&derivedKind=film${hash}`;
     }
-    return `/m${hash}`;
+    return `/m?character=${encodeURIComponent(characterId)}${hash}`;
   }
 
   const map: Record<string, string> = {

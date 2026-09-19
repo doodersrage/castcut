@@ -1,16 +1,15 @@
 /**
  * Day/Story mannequin → ControlNet extras.
  *
- * Image 3 remains the Qwen Edit pose cue. ControlNet is only attached for
- * explicitly mapped non-InstantX weights. InstantX + filled mannequins ghosts
- * the guide into the still (cyan outlines, translucent doubles) — skip it.
+ * Filled capsule pose guides are for Qwen Image 3 Edit only. Feeding them into
+ * ControlNet (InstantX or otherwise) ghosts the guide and locks Image 1 clothing
+ * into the still — so pose-guide ControlNet stays off.
  */
 
 import type { WorkflowParamValues } from './comfyui-config';
-import { resolveControlNetModelFilename, type ModelControlNetMap } from './model-controlnet-map';
-import { loadSettingsCache } from './settings-cache';
+import type { ModelControlNetMap } from './model-controlnet-map';
 
-/** Soft pose lock when a safe (non-InstantX) CN is explicitly mapped. */
+/** @deprecated Pose-guide ControlNet is disabled; kept for callers/tests. */
 export const POSE_GUIDE_CONTROLNET_STRENGTH = 0.35;
 
 export type PoseGuideControlNetExtras = {
@@ -40,44 +39,17 @@ export function isMannequinUnsafeControlNet(filename: string | null | undefined)
 }
 
 /**
- * Attach pose-guide ControlNet only when Settings explicitly maps a safe weight.
- * InstantX / inventory auto-pick is skipped — Image 3 Edit carries Qwen pose.
+ * Never attach ControlNet for filled mannequin pose guides.
+ * Image 3 Edit carries pose; CN was locking Cast clothes and leaking schematics.
  */
-export function resolvePoseGuideControlNetExtras(input: {
+export function resolvePoseGuideControlNetExtras(_input: {
   poseGuideFilename?: string | null;
   poseGuideUrl?: string | null;
   model?: string | null;
   controlNetMap?: ModelControlNetMap;
-  /** Ignored for mannequin guides — InstantX inventory auto-pick causes leaks. */
   controlNetInventory?: string[] | null;
 }): PoseGuideControlNetExtras | undefined {
-  const filename = input.poseGuideFilename?.trim() || '';
-  const url = input.poseGuideUrl?.trim() || '';
-  if (!filename && !url) {
-    return undefined;
-  }
-
-  const controlNetMap =
-    input.controlNetMap ?? loadSettingsCache().shared.modelControlNetMap ?? undefined;
-  // Map / token only — never inventory InstantX auto-pick for filled mannequins.
-  const controlNetModelFilename = resolveControlNetModelFilename(input.model?.trim() || '', {
-    controlNetMap,
-    controlNetInventory: [],
-  });
-  if (!controlNetModelFilename || isMannequinUnsafeControlNet(controlNetModelFilename)) {
-    return undefined;
-  }
-
-  return {
-    ...(filename ? { controlImageFilename: filename } : {}),
-    ...(url ? { controlImageUrl: url } : {}),
-    queueParamsBase: {
-      controlNetMode: 'pose',
-      controlNetStrengths: [POSE_GUIDE_CONTROLNET_STRENGTH],
-      controlNetSkipPreprocessor: true,
-      controlNetModelFilename,
-    },
-  };
+  return undefined;
 }
 
 /** Merge pose-guide ControlNet params into an existing queueParamsBase. */

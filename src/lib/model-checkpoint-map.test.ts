@@ -203,6 +203,18 @@ describe("model checkpoint map", () => {
     assert.equal(loaders.unet, undefined);
   });
 
+  it("defaults Rapid AIO Edit to the SFW v23 checkpoint", () => {
+    const loaders = resolveLoaderFilenamesForModel("qwen-rapid-aio-edit");
+    assert.equal(loaders.checkpoint, "Qwen-Rapid-AIO-SFW-v23.safetensors");
+    assert.equal(loaders.unet, undefined);
+  });
+
+  it("defaults Rapid AIO Edit NSFW to the NSFW v23 checkpoint", () => {
+    const loaders = resolveLoaderFilenamesForModel("qwen-rapid-aio-edit-nsfw");
+    assert.equal(loaders.checkpoint, "Qwen-Rapid-AIO-NSFW-v23.safetensors");
+    assert.equal(loaders.unet, undefined);
+  });
+
   it("defaults Rapid AIO to the suggested checkpoint (still no UNET)", () => {
     const loaders = resolveLoaderFilenamesForModel("qwen-rapid-aio-nsfw");
     assert.equal(loaders.checkpoint, "Qwen-Rapid-AIO-NSFW-v23.safetensors");

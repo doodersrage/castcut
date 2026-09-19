@@ -3,6 +3,7 @@ import { getCachedClothingLabel } from './clothing-catalog-client';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from './isolate-subject';
 import { sharedLlmRequestBody } from './llm-request-options';
 import { resolvePoseGuideControlNetExtras } from './pose-guide-controlnet';
+import { resolveAdultNudePlateQueueModel } from './queue-tool-model';
 import {
   normalizeAvoidedRoleplayNames,
   resolveRoleplayLockedCharacterName,
@@ -42,6 +43,8 @@ export type RoleplayQueueStillOptions = {
   /** Match Day stills: strong Qwen edit so Image 3 pose can beat the standing Cast plate. */
   queueTool?: 'image-prompt';
   turboEditStrength?: 'strong';
+  /** Adult nude + Rapid AIO → Edit NSFW (required for bare-skin NSFW stills). */
+  queueModel?: string;
 };
 
 export function buildRoleplayRequestBody(input: {
@@ -67,6 +70,8 @@ export function buildRoleplayRequestBody(input: {
   garmentDescription?: string;
   /** True when Image 2 will carry a packshot / BYO garment. */
   hasGarmentReference?: boolean;
+  /** Adult Solo/Duo/Mixed mix for rolled scenes. */
+  intimateMix?: import('./day-planner').DayIntimateMix | string | null;
 }): Record<string, unknown> {
   const nameLock = resolveRoleplayLockedCharacterName(input.characterName);
   const writingBio = input.action === 'bio';
@@ -90,6 +95,7 @@ export function buildRoleplayRequestBody(input: {
     wardrobeLabel: input.wardrobeLabel?.trim() || undefined,
     garmentDescription: input.garmentDescription?.trim() || undefined,
     hasGarmentReference: input.hasGarmentReference === true,
+    intimateMix: input.intimateMix ?? undefined,
     bio: writingBio ? undefined : input.bio,
     story: writingBio ? [] : input.story,
     rejectedScenes: input.action === 'scenes' ? input.rejectedScenes : undefined,
@@ -211,6 +217,9 @@ export function buildRoleplayQueueStillOptions(input: {
         controlNetMap: input.controlNetMap,
       })
     : undefined;
+  const adultNudeQueueModel = input.omitGarment
+    ? resolveAdultNudePlateQueueModel(input.model ?? '', { adultNude: true })
+    : undefined;
   return {
     inputImageFilename: filename || undefined,
     inputImageUrl: imageUrl || undefined,
@@ -233,6 +242,7 @@ export function buildRoleplayQueueStillOptions(input: {
     // Soft roleplay denoise (~0.65) keeps Image 1 standing pose; Day uses image-prompt + strong.
     queueTool: 'image-prompt',
     turboEditStrength: 'strong',
+    ...(adultNudeQueueModel ? { queueModel: adultNudeQueueModel } : {}),
   };
 }
 

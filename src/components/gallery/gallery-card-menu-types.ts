@@ -25,6 +25,7 @@ export type GalleryCardMenuProps = {
   onUpscale: (qualityProfile: 'final' | 'max', options?: { force?: boolean }) => void;
   onRefine: () => void;
   onSoftSecondPass?: () => void;
+  onSkinRefine?: () => void;
   onFaceDetail?: () => void;
   onAnatomyRepair?: () => void;
   onMoireClean?: (qualityProfile: 'final' | 'max', options?: { force?: boolean }) => void;
@@ -34,6 +35,7 @@ export type GalleryCardMenuProps = {
   showForceUpscaleMax?: boolean;
   showRefineAction?: boolean;
   showSoftSecondPassAction?: boolean;
+  showSkinRefineAction?: boolean;
   showFaceDetailAction?: boolean;
   showAnatomyRepairAction?: boolean;
   showMoireCleanActions?: boolean;
@@ -61,6 +63,7 @@ export type GalleryCardMenuSectionProps = Pick<
   | 'onUpscale'
   | 'onRefine'
   | 'onSoftSecondPass'
+  | 'onSkinRefine'
   | 'onFaceDetail'
   | 'onAnatomyRepair'
   | 'onMoireClean'
@@ -70,6 +73,7 @@ export type GalleryCardMenuSectionProps = Pick<
   | 'showForceUpscaleMax'
   | 'showRefineAction'
   | 'showSoftSecondPassAction'
+  | 'showSkinRefineAction'
   | 'showFaceDetailAction'
   | 'showAnatomyRepairAction'
   | 'showMoireCleanActions'

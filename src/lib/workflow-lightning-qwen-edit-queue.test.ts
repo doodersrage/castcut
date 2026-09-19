@@ -4,6 +4,7 @@ import {
   disconnectQwenEditReferenceImagesForTxt2Img,
   ensureQwenEditReferenceImagesForImg2Img,
   ensureQwenReferenceLatentWiringInWorkflow,
+  isPoseGuideReferenceFilename,
   nextLightningWorkflowNodeId,
   prepareQwenEditReferenceImagesForQueue,
   pruneUnresolvedQwenEditFigureLoaders,
@@ -473,6 +474,103 @@ describe('ensureQwenReferenceLatentWiringInWorkflow', () => {
 
     assert.deepEqual(nodeAt(result.workflow, '6').inputs.positive, ['13', 0]);
     assert.equal(nodeAt(result.workflow, '5').class_type, 'EmptySD3LatentImage');
+  });
+
+  it('keeps pose-guide Image 3 on VL encode but skips ReferenceLatent', () => {
+    assert.equal(isPoseGuideReferenceFilename('day-pose-guide-stand-1.png'), true);
+    assert.equal(isPoseGuideReferenceFilename('story-pose-guide-wall-2.png'), true);
+    assert.equal(isPoseGuideReferenceFilename('day-outfit-vl-123.png'), true);
+    assert.equal(isPoseGuideReferenceFilename('day-vacation-face-1.png'), true);
+    assert.equal(isPoseGuideReferenceFilename('plate.png'), false);
+
+    const workflow = {
+      '1': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: 'qwen.safetensors' } },
+      '2': { class_type: 'VAELoader', inputs: { vae_name: 'vae.safetensors' } },
+      '3': { class_type: 'CLIPTextEncode', inputs: { text: 'a photo', clip: ['1', 1] } },
+      '4': { class_type: 'CLIPTextEncode', inputs: { text: '', clip: ['1', 1] } },
+      '5': { class_type: 'EmptyLatentImage', inputs: { width: 1024, height: 1024, batch_size: 1 } },
+      '6': {
+        class_type: 'KSampler',
+        inputs: {
+          model: ['1', 0],
+          positive: ['3', 0],
+          negative: ['4', 0],
+          latent_image: ['5', 0],
+          seed: 1,
+          steps: 4,
+          cfg: 1,
+          sampler_name: 'euler',
+          scheduler: 'simple',
+          denoise: 1,
+        },
+      },
+      '9': {
+        class_type: 'TextEncodeQwenImageEditPlus',
+        inputs: { prompt: 'edit', clip: ['1', 1], vae: ['2', 0] },
+      },
+    };
+    const result = ensureQwenReferenceLatentWiringInWorkflow(workflow, {
+      inputImageFilename: 'plate.png',
+      inputImageFilenames: ['plate.png', '', 'day-pose-guide-rail-1.png'],
+      width: 1024,
+      height: 1024,
+    });
+    assert.equal(result.wired, true);
+    const nodes = Object.values(result.workflow) as NodeShape[];
+    const refLatents = nodes.filter(node => node.class_type === 'ReferenceLatent');
+    // Plate gets ReferenceLatent; pose guide does not.
+    assert.equal(refLatents.length, 1);
+    const loaders = nodes.filter(node => node.class_type === 'LoadImage');
+    assert.ok(loaders.some(node => node.inputs.image === 'day-pose-guide-rail-1.png'));
+    const encode = nodeAt(result.workflow, '9');
+    assert.ok(encode.inputs.image3);
+  });
+
+  it('skips ReferenceLatent for day-outfit-vl Keep on Image 2 (face-break outfit)', () => {
+    const workflow = {
+      '1': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: 'qwen.safetensors' } },
+      '2': { class_type: 'VAELoader', inputs: { vae_name: 'vae.safetensors' } },
+      '3': { class_type: 'CLIPTextEncode', inputs: { text: 'a photo', clip: ['1', 1] } },
+      '4': { class_type: 'CLIPTextEncode', inputs: { text: '', clip: ['1', 1] } },
+      '5': { class_type: 'EmptyLatentImage', inputs: { width: 1024, height: 1024, batch_size: 1 } },
+      '6': {
+        class_type: 'KSampler',
+        inputs: {
+          model: ['1', 0],
+          positive: ['3', 0],
+          negative: ['4', 0],
+          latent_image: ['5', 0],
+          seed: 1,
+          steps: 4,
+          cfg: 1,
+          sampler_name: 'euler',
+          scheduler: 'simple',
+          denoise: 1,
+        },
+      },
+      '9': {
+        class_type: 'TextEncodeQwenImageEditPlus',
+        inputs: { prompt: 'edit', clip: ['1', 1], vae: ['2', 0] },
+      },
+    };
+    const result = ensureQwenReferenceLatentWiringInWorkflow(workflow, {
+      inputImageFilenames: [
+        'day-vacation-face-1.png',
+        'day-outfit-vl-1.png',
+        'day-pose-guide-walk-1.png',
+      ],
+      width: 1024,
+      height: 1024,
+    });
+    assert.equal(result.wired, true);
+    const nodes = Object.values(result.workflow) as NodeShape[];
+    const refLatents = nodes.filter(node => node.class_type === 'ReferenceLatent');
+    // Face crop + outfit VL + pose guide are all VL-only — IP carries face lock.
+    assert.equal(refLatents.length, 0);
+    const loaders = nodes.filter(node => node.class_type === 'LoadImage');
+    assert.ok(loaders.some(node => node.inputs.image === 'day-vacation-face-1.png'));
+    assert.ok(loaders.some(node => node.inputs.image === 'day-outfit-vl-1.png'));
+    assert.ok(loaders.some(node => node.inputs.image === 'day-pose-guide-walk-1.png'));
   });
 
   it('reuses an existing titled Figure LoadImage and chains multiple references', () => {

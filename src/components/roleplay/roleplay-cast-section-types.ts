@@ -56,4 +56,8 @@ export type RoleplayCastSectionProps = {
   onError: (message: string) => void;
   onScanWithVision: () => void;
   onRestartStory: () => void;
+  /** When true, Mood & world is pinned near the beat picker — hide the Cast collapse. */
+  hideMoodSection?: boolean;
+  /** Skip outer ToolSection (parent CollapsibleSection already titles the block). */
+  embedded?: boolean;
 };

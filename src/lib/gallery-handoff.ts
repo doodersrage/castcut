@@ -195,7 +195,12 @@ export function loadGalleryHandoff(
       return null;
     }
     const parsed = JSON.parse(raw) as GalleryHandoffPayload;
-    if ((parsed.source !== 'gallery' && parsed.source !== 'history') || !parsed.prompt?.trim()) {
+    if (parsed.source !== 'gallery' && parsed.source !== 'history') {
+      return null;
+    }
+    // Cast / plate picks only need an image — empty prompts used to drop the handoff.
+    const hasImage = Boolean(parsed.imageUrl?.trim() || parsed.imageFilename?.trim());
+    if (!parsed.prompt?.trim() && !hasImage) {
       return null;
     }
     if (target && parsed.target !== target) {
@@ -229,7 +234,10 @@ export async function fetchHandoffImageFile(payload: GalleryHandoffPayload): Pro
   }
 
   const blob = await response.blob();
-  const filename = payload.imageFilename?.trim() || `gallery-${payload.promptId.slice(0, 8)}.png`;
+  const fromPrompt = payload.promptId?.trim().slice(0, 8);
+  const fromEntry = payload.galleryEntryId?.trim().slice(0, 8);
+  const filename =
+    payload.imageFilename?.trim() || `gallery-${fromPrompt || fromEntry || 'still'}.png`;
   return new File([blob], filename, { type: blob.type || 'image/png' });
 }
 

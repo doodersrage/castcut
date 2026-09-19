@@ -10,6 +10,7 @@ import {
 import {
   canAnatomyRepairGalleryEntry,
   canFaceDetailGalleryEntry,
+  canSkinRefineGalleryEntry,
   canUpscaleGalleryEntry,
   galleryEntryAlreadyEnrichedForUpscale,
   galleryEntrySupportsMoireClean,
@@ -17,6 +18,8 @@ import {
   galleryEntrySupportsSoftSecondPass,
   galleryEntrySupportsUpscale,
 } from '@/lib/gallery-entry-actions';
+import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { resolvePlaySkinRefineModel } from '@/lib/play-skin-refine';
 
 export type GalleryCardActions = {
   toggleSelected: (id: string, options?: { shift?: boolean }) => void;
@@ -32,6 +35,7 @@ export type GalleryCardActions = {
   upscale: (id: string, qualityProfile: 'final' | 'max', options?: { force?: boolean }) => void;
   refine: (id: string) => void;
   softSecondPass: (id: string) => void;
+  skinRefine: (id: string) => void;
   faceDetail: (id: string) => void;
   anatomyRepair: (id: string) => void;
   moireClean: (id: string, qualityProfile: 'final' | 'max', options?: { force?: boolean }) => void;
@@ -104,6 +108,10 @@ function GalleryCardItem({
   const onRefine = useCallback(() => actionsRef.current.refine(entry.id), [actionsRef, entry.id]);
   const onSoftSecondPass = useCallback(
     () => actionsRef.current.softSecondPass(entry.id),
+    [actionsRef, entry.id]
+  );
+  const onSkinRefine = useCallback(
+    () => actionsRef.current.skinRefine(entry.id),
     [actionsRef, entry.id]
   );
   const onFaceDetail = useCallback(
@@ -195,6 +203,7 @@ function GalleryCardItem({
       onUpscale={onUpscale}
       onRefine={onRefine}
       onSoftSecondPass={onSoftSecondPass}
+      onSkinRefine={onSkinRefine}
       onFaceDetail={onFaceDetail}
       onAnatomyRepair={onAnatomyRepair}
       onMoireClean={onMoireClean}
@@ -211,6 +220,10 @@ function GalleryCardItem({
       }
       showRefineAction={galleryEntrySupportsRefine(entry.model)}
       showSoftSecondPassAction={galleryEntrySupportsSoftSecondPass(entry.model)}
+      showSkinRefineAction={canSkinRefineGalleryEntry(
+        entry,
+        resolvePlaySkinRefineModel(loadComfyUiSettings())
+      )}
       showFaceDetailAction={canFaceDetailGalleryEntry(entry)}
       showAnatomyRepairAction={canAnatomyRepairGalleryEntry(entry)}
       showMoireCleanActions={galleryEntrySupportsMoireClean(entry.model)}

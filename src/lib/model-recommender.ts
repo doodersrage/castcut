@@ -21,6 +21,11 @@ const RULES: Array<{ pattern: RegExp; model: string; reason: string }> = [
     reason: 'Rapid AIO SFW checkpoint',
   },
   {
+    pattern: /\b(rapid aio nsfw edit|aio nsfw edit|rapid edit nsfw)\b/i,
+    model: 'qwen-rapid-aio-edit-nsfw',
+    reason: 'Rapid AIO NSFW Edit checkpoint',
+  },
+  {
     pattern: /\b(rapid aio nsfw|aio nsfw)\b/i,
     model: 'qwen-rapid-aio-nsfw',
     reason: 'Rapid AIO NSFW checkpoint',

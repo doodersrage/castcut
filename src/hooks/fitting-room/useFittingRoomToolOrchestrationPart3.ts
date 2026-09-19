@@ -4,6 +4,7 @@ import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
+import { fittingQueueBlockReason } from '@/lib/fitting-room';
 import FittingCompareSection from '@/components/fitting/FittingCompareSection';
 import FittingActionRow from '@/components/fitting/FittingActionRow';
 import FittingPlateSection from '@/components/fitting/FittingPlateSection';
@@ -174,6 +175,8 @@ export function useFittingRoomToolOrchestrationPart3(
     selectKit,
     swipeKit,
     skipKit,
+    dismissTryOn,
+    requeueTryOn,
     saveKitToCast,
   } = ctx;
 
@@ -239,18 +242,26 @@ export function useFittingRoomToolOrchestrationPart3(
     toolSettings.customGarmentImageUrl?.trim() ||
     toolSettings.customGarmentImageFilename?.trim()
   );
-  const queueBlocked =
-    !hasReference ||
-    !hasGarmentSource ||
-    referenceUploading ||
-    garmentUploading ||
-    busy ||
-    (isolateSubject && toolSettings.referenceIsolated !== true && !error);
+  const isolatePending = isolateSubject && toolSettings.referenceIsolated !== true && !error;
+  const queueBlockReason = fittingQueueBlockReason({
+    hasCharacter: Boolean(character),
+    hasPlate: hasReference,
+    hasGarmentSource,
+    referenceUploading,
+    garmentUploading,
+    isolateSubject,
+    isolatePending,
+    busy,
+  });
+  const queueBlocked = Boolean(queueBlockReason);
 
   return {
     goRoleplay,
     dayPlannerHref,
     wardrobeGroups,
     queueBlocked,
+    queueBlockReason,
+    dismissTryOn,
+    requeueTryOn,
   };
 }

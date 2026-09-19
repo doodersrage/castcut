@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 
+export type PlaySoftAdvanceAlternative = {
+  href: string;
+  label: string;
+  /** Optional side effect before navigation (e.g. bump campaign step). */
+  onNavigate?: () => void;
+};
+
 export type PlaySoftAdvanceTarget = {
   href: string;
   label: string;
@@ -11,6 +18,8 @@ export type PlaySoftAdvanceTarget = {
   message?: string;
   /** Bump to restart the countdown for the same href. */
   nonce: number;
+  /** Optional secondary destinations (e.g. Day when primary is Outfit). */
+  alternatives?: PlaySoftAdvanceAlternative[];
 };
 
 const DELAY_SEC = 3;
@@ -71,6 +80,21 @@ export default function PlaySoftAdvanceBanner({ target, onCancel }: PlaySoftAdva
         >
           Go now
         </Button>
+        {(target.alternatives ?? []).map(alt => (
+          <Button
+            key={`${alt.href}:${alt.label}`}
+            size="sm"
+            variant="secondary"
+            data-testid={`play-soft-advance-alt-${alt.label.toLowerCase().replace(/\s+/g, '-')}`}
+            onClick={() => {
+              alt.onNavigate?.();
+              onCancel();
+              router.push(alt.href);
+            }}
+          >
+            Go to {alt.label} instead
+          </Button>
+        ))}
         <Button size="sm" variant="ghost" data-testid="play-soft-advance-cancel" onClick={onCancel}>
           Stay here
         </Button>

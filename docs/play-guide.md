@@ -25,17 +25,29 @@ First launch asks **What do you want to make?** (Character / Scene·Film / Image
 
 ## Step-by-step {#step-by-step}
 
-### 1. Open Film (`/play`)
+### 1. Open Film (`/play` · `/m/film`)
 
-**Create or pick** a Cast character (name → optional **Part** and **From photo** → **Create & continue to Look**), or tap **Make a starter film**. Part and From photo live on Film / Cast — Story only continues that lead. The stepper shows: Cast → Look → Outfit → Day → Story (optional).
+**Create or pick** a Cast character (name + optional **From photo** first; Part / look traits under **More traits**) → **Create & continue to Look**, or tap **Make a starter film** / **Make one like this** under the sample reel. Phone Film remaps every handoff onto `/m/...` so you stay in Mobile Studio.
+
+- **Resume** — one Continue card mid-film; Restart at Look stays secondary; Jump to starter Day is under More.
+- **Mission control** — funnel chips + Identity ready; full Steps under Edit when mid-film or complete.
+- **Film complete** — Watch on Cast · Same look, new Day · Continue in Story · Start new film.
+- Persistence triad is compact; habit nudge is desk-only on the hub (phone shell already owns it).
+
+Deep links: `/play?character=<id>` · `/m/film?character=<id>`.
 
 ### 2. Look (`/moodboard`)
 
 Stack reference tiles (mood, lighting, location, style, palette). Optional gallery stills per tile.
 
-- **Extract look** — builds a session look pack (vision merge when tiles have images), then queues a **full-body Outfit plate** in minimal base clothing so try-on / Day have a clean body ref.
+- **Phase strip** — Tiles → Extract → Plate → Continue; status line shows tiles · plate · pack and why Extract / Queue is blocked.
+- **Preview vs Queue** — Preview prompt is text only; Queue scene is an optional still. **Extract look** is the film path.
+- **Extract look** — builds a session look pack (vision merge when tiles have images), then queues a **full-body Outfit plate** in minimal base clothing so try-on / Day have a clean body ref. Soft-advance counts down to Outfit with **Go to Day instead**.
+- **Skip look · Day** (desk + phone) — jump to Day without extracting when you already have a Cast lead.
+- **Look plate** — upload / Gallery / Remove on Look (desk + phone); after a queued scene still, **Keep as plate** or requeue.
 - **Continue to Outfit / Day** — hand off vibe notes + optional wardrobe lock.
-- **Save on Cast** / **Export JSON** / **Share this look** — under actions (power users).
+- **Save on Cast** / **Export JSON** / **Share this look** — under More (power users).
+- **Mobile empty tiles** — **Add starter tiles** when the board is empty.
 
 Deep link: `/moodboard?character=<id>`.
 
@@ -43,10 +55,12 @@ Deep link: `/moodboard?character=<id>`.
 
 Lock a character plate, browse wardrobe kits, queue try-ons.
 
-- **Keep / Skip** on completed try-ons — Keep stamps a gallery keeper and maps kits onto Day slots.
+- **Phase strip** — Plate → Try-on → Keep → Day; status line shows plate · kit/BYO and why Queue is blocked.
+- **Preview vs Queue** — draft thumbs vs full-quality try-on (one-line caption under the kit strip).
+- **Keep / Pass / requeue** on compare cards and in the lightbox — Pass dismisses a try-on; **Skip kit** advances the wardrobe deck.
 - **BYO clothing** — upload a clothing photo (extract to packshot) or a ready packshot; **Save for later** keeps it in durable browser storage (desk + phone).
-- **Continue to Day** — primary CTA after a keeper. **Skip outfit · Day** if you want stills without a kit lock.
-- **Save kit to Cast** — under More.
+- **Continue to Day** — primary CTA after a keeper. **Skip outfit · Day** (desk + phone) if you want stills without a kit lock.
+- **Save kit to Cast** — under More. Phone can upload / pick a Gallery plate in-place.
 
 Deep links: `/fitting?character=<id>&wardrobe=<kit>`.
 
@@ -54,20 +68,25 @@ Deep links: `/fitting?character=<id>&wardrobe=<kit>`.
 
 Four slots (Morning → Night) with wardrobe, setting, and beat per slot.
 
-- **Queue day** (Play queues draft stills in parallel for a faster first film).
-- **Outfit kit + BYO** — same clothing strip as Outfit (Image 2); optional **pose stick-figure** on Image 3 so Edit can unlock stance (ControlNet pose auto-attaches InstantX from Comfy inventory when present, or when Settings maps a CN weight).
-- **Animate** stays collapsed until you want I2V clips (Final quality).
-- **Cut film** — server ffmpeg when available, browser MediaRecorder fallback if the server encode fails; optional crossfade + audio bed.
+- **Suggest day** fills a morning→night Setting / Beat plan you can edit; **Queue day** keeps your plan (only fills blanks). Per-slot **Reroll plan** refreshes one card without re-queuing.
+- **Setting & Beat** stay visible under the board for the selected slot (presets / clothing / notes stay in Edit).
+- **Queue day** is disabled with a one-line reason when Cast, look plate, or isolate-on-white isn’t ready.
+- **Outfit kit + BYO** — same clothing strip as Outfit (Image 2); optional **pose stick-figure** on Image 3 so Edit can unlock stance (Image 3 Edit only — pose guides do not attach ControlNet). Everyday beats map to stretch, wave, drink, carry, read, rail, pockets, and more — not only stand/walk/sit. **Sport** maps beat text to mid-action athletic Image 3 layouts (sprint, yoga, cycle, swing, jump shot, kick, lunge, handstand, swim, spike, box, surf, etc.). Solo stills stay one adult by default; turn on **Duo · companions** under the Day slot board for friend/selfie second adults. **Everyday / Suggestive / Sport / Vacation / Intimate / Raunchy** mood chips sit under the board too (Intimate + Raunchy need NSFW env; Sport picks from **21 sports** + cycling road/gravel/MTB/CX/track disciplines with mid-action poses for that time of day; Vacation picks matched travel poses + venues — hotel, pool, market, balcony, rooftop — and keeps Outfit Keep on). Under Intimate or Raunchy, pick **Mixed / Solo / Duo** so heat isn’t duo-only. Each slot card shows Setting · Beat (or an empty-state hint); pose and camera rotate with the scene.
+- **Engine** — floating bottom-right dock for model & workflow (stays reachable while you scroll). Plate Day/Story stills need an Edit model: **Qwen Rapid AIO (Edit)** defaults to Phr00t SFW v23; pick **Qwen Rapid AIO (Edit NSFW)** for the NSFW v23 merge (Intimate / Raunchy). Intimate/Raunchy nude Day **and** Story queues **auto-snap Rapid AIO → Edit NSFW** (required for bare-skin NSFW — SFW will not deliver that). Nude Day **auto-crops a ≥1.1MP face window** when face lock duplicates lingerie; edit lead uses clear natural language: indoor SETTING first (no beach/sand), then “clothes are now gone” / bare skin / zero fabric, then the beat/Image 3 pose named explicitly — **do not name bra/panties/beige in the positive** (those bans stay in the Rapid negative pack); Rapid stays **4–8 steps / CFG 1 / euler_a+simple** (Phr00t AIO — never raise CFG); Solo nude IP lock caps at **0.04**. Map to v21 in Settings if preferred. Edit-2511 Lightning remains the default snap from Qwen 2512 T2I.
+- **Animate → Cut** — after stills land, Day nudges Animate all (clips preferred) then Cut; Cut still works from stills alone.
+- **Cut film** — server ffmpeg when available, browser MediaRecorder fallback if the server encode fails; optional crossfade + audio bed (**Upload audio** or paste a URL).
 - After cut: celebrate with **Watch / Save on Cast** (manual — no auto-advance). Story is optional.
 
 Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 
 ### 5. Story (`/story`)
 
-**Optional** after the first Day cut: continues the Cast lead you started on Film. Write a bio, roll beats, stills + clips, **Cut film**, Save to Cast.
+**Optional** after the first Day cut: continues the Cast lead you started on Film (no re-casting).
 
 - Needs an active Cast character — empty Story sends you to Film / Cast (Part and From photo are set there).
-- **Continue as {name}** — mood, setting, and bio for this story; identity stays on Cast.
+- **Beat picker first** (desk + phone): Setting / Tone / Content stay pinned next to **Roll**; adult content adds **Solo / Duo / Mixed**; Roll shows a clear block reason when bible/plate is missing.
+- Phase strip: Queue → Animate → Cut. After stills, an **Animate → Cut** coach nudges clips before Cut film.
+- Lightbox: beat-to-beat prev/next + requeue chrome (same pattern as Day).
 - **Outfit for stills** — kit or BYO packshot as Image 2 (desk + phone); photo stills also get an Image 3 pose wireframe from the beat text (intimate + social layouts).
 - Literary adult euphemisms in still prompts are rewritten to direct anatomy before queue; Settings **Render realism** defaults to photoreal so wireframes don’t turn stills drawn.
 - Fal **extend-video** when parent is on Fal CDN; else last-frame I2V.
@@ -113,10 +132,13 @@ Durable keys: `play-campaign-v1` (Film resume), `comfy-play-metrics-v1`, look pa
 
 | Chrome | Where | Behavior |
 | --- | --- | --- |
-| **Habit nudge** | Dashboard, Film hub, Mobile Studio | ~24h after latest cut → “Tomorrow’s Day” / same-look remix; dismiss stores `comfy-play-habit-nudge-v1` |
-| **Persistence triad** | Film hub (full), Look after extract (compact, desk + phone) | This session’s look · saved on Cast · resume step |
-| **Soft-advance** | Look → Outfit/Day/Story, Outfit → Day | 3s cancellable countdown — Go now / Stay here |
+| **Habit nudge** | Dashboard, desk Film hub, Mobile Studio (not remounted on `/m/film`) | ~24h after latest cut → “Tomorrow’s Day” / same-look remix; dismiss stores `comfy-play-habit-nudge-v1` |
+| **Persistence triad** | Film hub (compact), Look after extract (compact, desk + phone) | This session’s look · saved on Cast · resume step |
+| **Soft-advance** | Look → Outfit (with Day alternative) / Day / Story, Outfit → Day | 3s cancellable countdown — Go now / Go to Day instead / Stay here |
+
 | **Celebrate · manual Watch** | Day / Story after first Cut | Celebrate owns Watch / Save — no auto soft-advance to Cast |
+| **Cast home readiness** | Character home + roster | Status strip (plate · looks · films); No plate chips; plate upload soft-advances to Outfit |
+| **Play handoff glue** | Look/Outfit → Day; Day/Story chrome | Adult boards realign on handoff; Day/Story status strips; Capture→Outfit soft-advance |
 | **Engine banner** | Film tools when engine ≠ ComfyUI | Warns that film stills queue on Comfy; Heal & ready + Engine settings |
 
 Desk Film dock keeps **Film · Look · Outfit · Day** (+ Story after first cut). Cast, Gallery, Queue, Settings, Profile, and All tools live under **More**.
@@ -128,7 +150,7 @@ Desk Film dock keeps **Film · Look · Outfit · Day** (+ Story after first cut)
 | Surface | Role |
 | --- | --- |
 | **`/m` (Mobile Studio)** | First-class film loop: Cast → **Look → Outfit → Day → Story** |
-| **`/m/film`** | Phone Film hub — same Film resume / starter as desk `/play` |
+| **`/m/film`** | Phone Film hub — same resume / starter / sample reel as desk `/play`, with mobile path remaps |
 | **`/m/moodboard` · `/m/fitting` · `/m/day` · `/m/story`** | Touch-first Look / Outfit / Day / Story — stills + clips, Cut film, Save to Cast |
 | **Desk** | Optional large-screen handoff (Film stepper, full Story chrome) |
 

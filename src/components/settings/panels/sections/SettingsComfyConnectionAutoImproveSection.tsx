@@ -131,6 +131,24 @@ export function SettingsComfyConnectionAutoImproveSection({
           />
           After 5★ upscale, also queue low-denoise refine (experimental)
         </label>
+        <label className="mt-2 flex flex-col gap-1 text-sm text-[var(--text-secondary)]">
+          <span>Gallery skin refine model</span>
+          <select
+            className="rounded border border-[var(--border-default)] bg-[var(--bg-muted)] px-2 py-1 text-[var(--text-primary)]"
+            value={settings.autoSkinRefineModel ?? 'flux-2-klein-9b'}
+            onChange={event => updateSettings({ autoSkinRefineModel: event.target.value })}
+            data-testid="settings-gallery-skin-refine-model"
+          >
+            <option value="flux-2-klein-9b">Klein 9B Base (recommended)</option>
+            <option value="qwen-image-edit-2511">Qwen Image Edit 2511 (pose-locked)</option>
+            <option value="qwen-image-edit">Qwen Image Edit</option>
+            <option value="flux-ultrareal-v4">UltraReal (routes to Klein)</option>
+          </select>
+          <span className="type-caption text-[var(--text-muted)]">
+            Used when you tap Skin refine on a Gallery card. Soft pass rematerializes oily plastic
+            skin; UltraReal remaps to Klein on queue.
+          </span>
+        </label>
         <label className="mt-2 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
           <input
             type="checkbox"

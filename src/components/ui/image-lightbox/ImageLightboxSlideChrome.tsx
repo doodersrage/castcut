@@ -248,6 +248,22 @@ export default function ImageLightboxSlideChromeBar({
             testId: 'lightbox-action-save-look',
           })
         : null}
+      {slideChrome?.showKeep && slideChrome?.onKeep
+        ? renderIconAction(compact, {
+            label: 'Keep',
+            title: 'Keep this try-on for Day',
+            onClick: () => slideChrome.onKeep?.(),
+            testId: 'lightbox-action-keep',
+          })
+        : null}
+      {slideChrome?.showPass && slideChrome?.onPass
+        ? renderIconAction(compact, {
+            label: 'Pass',
+            title: 'Dismiss this try-on',
+            onClick: () => slideChrome.onPass?.(),
+            testId: 'lightbox-action-pass',
+          })
+        : null}
       {slideChrome?.showRequeue !== false && slideChrome?.onRequeue
         ? renderIconAction(compact, {
             label: '↻',
