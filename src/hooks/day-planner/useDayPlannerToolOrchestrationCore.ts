@@ -68,8 +68,8 @@ import {
   seedDaySlotsWardrobe,
   upsertDaySlotStill,
   DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP,
+  DAY_EVERYDAY_POSE_DENOISE,
   DAY_PLATE_IDENTITY_LOCK_CAP,
-  dayEverydayPoseNeedsBodyUnlock,
   isDayPoseStickyEditModel,
   DAY_VACATION_POSE_IDENTITY_LOCK_CAP,
   DAY_VACATION_FACE_BREAK_IDENTITY_LOCK_CAP,
@@ -699,6 +699,24 @@ export function useDayPlannerToolOrchestrationCore() {
               vacationFaceBreak = true;
             }
           }
+        } else if (
+          !isDayHeatMood(normalizeDayMood(toolSettings.dayMood)) &&
+          isDayVacationLightningIdentityVlModel(shared.model) &&
+          (identityPlate ?? queuePlate)
+        ) {
+          // Everyday Lightning: Image 3 paints speckle rain and a Keep-plate ghost
+          // (second woman / beige lingerie). Full Keep as Image 1; stance from text.
+          skipPoseGuideImage = true;
+          const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+          const identityVl = await resolveDayVacationIdentityVlPlate({
+            bodyPlate: identityPlate ?? queuePlate,
+            character,
+            model: shared.model,
+            comfyUrl,
+          });
+          if (identityVl) {
+            identityPlate = identityVl;
+          }
         }
         // Distinct Cast face lock OR auto crop → face-only Image 1 language + IP pin.
         const faceOnlyIdentity =
@@ -964,9 +982,8 @@ export function useDayPlannerToolOrchestrationCore() {
         const everydayPoseUnlock =
           toolSettings.posePriority !== false &&
           !isDayHeatMood(dayMood) &&
-          Boolean(poseGuideFilename) &&
           isDayPoseStickyEditModel(shared.model) &&
-          dayEverydayPoseNeedsBodyUnlock(queueTarget.sceneHints);
+          (Boolean(poseGuideFilename) || skipPoseGuideImage);
         // Nude Solo: always soft-cap identity even without Image 3 — high IP + lingerie
         // face crop is how beige bras win over FULLY NUDE.
         const identityCap =
@@ -1006,11 +1023,11 @@ export function useDayPlannerToolOrchestrationCore() {
           ? DAY_VACATION_UPRIGHT_FACE_DENOISE
           : vacationFaceBreak
             ? DAY_VACATION_POSE_DENOISE
-            : ((dayMood === 'vacation' || dayMood === 'suggestive') &&
-                  Boolean(poseGuideFilename)) ||
-                everydayPoseUnlock
+            : (dayMood === 'vacation' || dayMood === 'suggestive') && Boolean(poseGuideFilename)
               ? DAY_VACATION_POSE_DENOISE
-              : undefined;
+              : everydayPoseUnlock
+                ? DAY_EVERYDAY_POSE_DENOISE
+                : undefined;
         // Plate + pose Image 3 need an Edit-capable model. Adult nude + Rapid AIO
         // must use Edit NSFW — SFW Edit soft-censors into beige lingerie.
         const plateQueueModel = hasPlate
@@ -1027,7 +1044,10 @@ export function useDayPlannerToolOrchestrationCore() {
             ? {
                 queueTool: 'image-prompt',
                 // Strong turbo rewrite fights face lock on Edit-2511 face-break Day.
-                turboEditStrength: vacationFaceBreak || skipPoseGuideImage ? 'balanced' : 'strong',
+                turboEditStrength:
+                  vacationFaceBreak || skipPoseGuideImage || everydayPoseUnlock
+                    ? 'balanced'
+                    : 'strong',
                 identityLock: true,
                 identityLockStrength: identityStrength,
                 // Lightning skips IP/InstantID insert; InstantID is wrong for Qwen UNET.

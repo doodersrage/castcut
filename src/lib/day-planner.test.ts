@@ -281,7 +281,7 @@ describe('day-planner', () => {
     assert.match(prompt, /aggressively refactor/i);
     assert.match(prompt, /navy trench/);
     // The beat leads; the generic baseline is only the fallback for a vague beat.
-    assert.match(prompt, /POSE FIRST: mandatory body pose and action from the beat only/i);
+    assert.match(prompt, /POSE FIRST:.*Beat \(SETTING is backdrop\/lighting only/i);
     assert.match(prompt, /Body-stance baseline only if the beat is vague/i);
     assert.match(prompt, /SETTING \(mandatory/i);
     assert.match(prompt, /front porch/i);
@@ -2224,17 +2224,17 @@ describe('buildDaySlotPrompt everyday posing and background', () => {
     };
     assert.match(
       buildDaySlotPrompt({ ...base, model: 'qwen-image-edit-2511-lightning-8' }),
-      /discard that standing catalog stance/i
+      /IDENTITY CRITICAL|discard that stance|standing try-on plate/i
     );
     // Non-sticky edit models already take the stance from Image 3.
     assert.doesNotMatch(
       buildDaySlotPrompt({ ...base, model: 'qwen-rapid-aio-edit' }),
-      /discard that standing catalog stance/i
+      /IDENTITY CRITICAL: keep the SAME woman as Image 1/i
     );
     // No plate means there is no standing plate to discard.
     assert.doesNotMatch(
       buildDaySlotPrompt({ ...base, hasPlate: false, model: 'qwen-image-edit-2511-lightning-8' }),
-      /discard that standing catalog stance/i
+      /IDENTITY CRITICAL: keep the SAME woman as Image 1/i
     );
   });
 
@@ -2523,5 +2523,25 @@ describe('everyday pose unlock', () => {
     // so it must not go as loose, but must go looser than the stance-freezing default.
     assert.ok(DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP > DAY_VACATION_POSE_IDENTITY_LOCK_CAP);
     assert.ok(DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP < DAY_PLATE_IDENTITY_LOCK_CAP);
+  });
+
+  it('buildDaySlotPrompt everyday Lightning names sit/walk stance and bans plate ghosts', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[2]!,
+        location: 'city sidewalk at night with streetlamps',
+        sceneHints: 'sitting in a diner booth, elbows on the table, looking out the window',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: false,
+      dayMood: 'everyday',
+      model: 'qwen-image-edit-2511-lightning-8',
+    });
+    assert.match(prompt, /POSE FIRST:.*SEATED|hips ON a chair/i);
+    assert.match(prompt, /IDENTITY CRITICAL|same woman as Image 1/i);
+    assert.match(prompt, /one finished photograph of this one woman only|never a second body/i);
+    assert.match(prompt, /speckle|lingerie ghost/i);
+    assert.doesNotMatch(prompt, /Image 3 is a/i);
   });
 });

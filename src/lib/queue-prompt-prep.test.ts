@@ -155,6 +155,20 @@ describe("queue-prompt-prep Rapid AIO / Lightning", () => {
     assert.doesNotMatch(result.negative ?? "", /stiff standing fashion plate|white void background/i);
   });
 
+  it('bans Everyday Lightning plate ghosts and speckle overlays', () => {
+    const result = applyQueuePromptSteering({
+      positive:
+        "Edit instruction for a Day still — night:\nPOSE FIRST: SEATED = hips ON a chair\nIDENTITY CRITICAL: keep the SAME woman as Image 1",
+      negative: "blurry",
+      model: "qwen-image-edit-2511-lightning-8",
+      realismMode: "realistic",
+      anatomyMode: "standard",
+      tool: "day",
+    });
+    assert.match(result.positive ?? "", /one finished photograph of one woman only/i);
+    assert.match(result.negative ?? "", /second woman|speckle rain|beige lingerie ghost|dither/i);
+  });
+
   it("uses duo adult prop pack on Rapid AIO instead of solo self-touch", () => {
     const result = applyQueuePromptSteering({
       positive:

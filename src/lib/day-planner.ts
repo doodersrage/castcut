@@ -489,6 +489,12 @@ export const DAY_VACATION_POSE_IDENTITY_LOCK_CAP = 0.12;
 export const DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP = 0.22;
 
 /**
+ * Everyday keeps the full Keep body as Image 1, so pose change needs more denoise
+ * than Vacation face-break (0.78). 0.78 was copying the plate stand.
+ */
+export const DAY_EVERYDAY_POSE_DENOISE = 0.92;
+
+/**
  * Soft sit/lounge face-break — Edit-2511 needs a firm face pin or every slot invents
  * a new beauty face. Pose still unlocks via face-only Image 1 + Image 3.
  */
@@ -633,7 +639,43 @@ export const DAY_REFERENCE_WHITE_VOID_FILL =
  * face-break Image 1 for this; everyday keeps the whole plate, so it needs the ban in words.
  */
 export const DAY_EVERYDAY_POSE_STICKY_UNLOCK =
-  'Image 1 is a standing try-on plate — discard that standing catalog stance completely: the body pose comes from the beat and Image 3, never from Image 1; never freeze square-on with both feet planted and arms hanging at the sides.';
+  'Image 1 is a standing try-on plate — discard that standing catalog stance completely: the body pose comes from the beat (and Image 3 when attached), never from Image 1; never freeze square-on with both feet planted and arms hanging at the sides. One woman only — never paint a second person, mannequin, or lingerie ghost from Image 1 beside her.';
+
+/** Beat-class stance so everyday sit/walk/lie cannot collapse to the Keep stand. */
+export function everydayStanceDirective(poseClass: string | null | undefined): string {
+  switch ((poseClass ?? '').toUpperCase()) {
+    case 'SEATED':
+      return 'SEATED = hips ON a chair/bench/stool/couch with knees bent — never standing square-on beside the seat';
+    case 'LYING':
+      return 'LYING = body stretched ON the bed/couch/floor, hips and back down — never standing beside it';
+    case 'WALKING':
+      return 'WALKING = full-body mid-stride, one foot clearly ahead, opposite arm swing — never both feet planted parallel';
+    case 'LEANING':
+      return 'LEANING = weight into a wall/door/rail with hip cocked and asymmetric arms — never a planted catalog stand';
+    case 'CROUCH':
+      return 'CROUCHING = knees deeply bent, hips low, reaching down — never standing upright';
+    case 'KNEEL':
+      return 'KNEELING = one or both knees on the ground — never standing on both feet';
+    case 'DANCING':
+      return 'DANCING = both arms in motion, weight on one leg or a step — never arms hanging at her sides';
+    case 'GESTURE':
+      return 'GESTURE = the beat action in the arms/hands with a clear weight shift — never the Image 1 arms-at-sides catalog stand';
+    default:
+      return 'new beat stance — never a square-on standing catalog pose with both feet planted and arms at her sides';
+  }
+}
+
+export function buildDayEverydayKeepPoseUnlock(beat: string | null | undefined): string {
+  const cls = dayEverydayPoseClass(beat);
+  const stance = everydayStanceDirective(cls);
+  return (
+    `Edit Image 1. IDENTITY CRITICAL: keep the SAME woman as Image 1 — same face, bone structure, eyes, nose, mouth, and exact hair color and length. ` +
+    `Keep the worn outfit from Image 1. Image 1 is a standing try-on plate — discard that stance. ${stance}. ` +
+    `If she is standing square-on with arms at her sides copying Image 1, the edit FAILED. ` +
+    `One finished photograph of this one woman only — never a second body, beige-lingerie ghost, mannequin, or speckle/snow overlay from Image 3. ` +
+    `Replace pose, camera, lighting, and background; keep who she is and what she is wearing.`
+  );
+}
 
 /** Edit-2511 family (incl. Lightning 4/8-step) — Image 1 pose sticks without an explicit ban. */
 export function isDayPoseStickyEditModel(model?: string | null): boolean {
@@ -777,7 +819,7 @@ export const DAY_SLOT_CAMERA_PRESETS: string[] = [
  * companion leaks that Read as pose-guide bleed (esp. night window scenes).
  */
 export const DAY_POSE_GUIDE_ANTI_LEAK =
-  'Never paint Image 3 into the photo as a flesh-colored blob, featureless nude torso, incomplete second body, window-reflection doppelganger, or detached hand — only one finished clothed adult matching Image 1.';
+  'Never paint Image 3 into the photo as a flesh-colored blob, featureless nude torso, incomplete second body, window-reflection doppelganger, detached hand, stick overlay, neon outline, white speckle rain, film-grain snow, dither dots, or pose diagram — only one finished clothed adult matching Image 1; never a second woman in beige lingerie standing beside her.';
 
 /** Daypart motion cues for Animate / I2V (beyond generic “subtle motion”). */
 export const DAY_SLOT_MOTION_CUES: Record<DaySlotId, string> = {
@@ -2154,7 +2196,7 @@ export function buildDaySlotPrompt(input: {
           ? `POSE FIRST: mandatory athletic body pose and sport action from the beat only (SETTING is venue/lighting only — do not invent café walks, grocery bags, soft pin-ups, or polite fashion-portrait stances from the scene): ${hints}`
           : dayMood === 'vacation'
             ? `POSE FIRST: ${vacationStanceDirective(vacationPoseClassFromBeat(hints))} Beat (SETTING is venue/lighting only — do not invent office, grocery, bookstore, hands-and-knees, or stiff square-on catalog stances from the scene): ${hints}`
-            : `POSE FIRST: mandatory body pose and action from the beat only (SETTING is backdrop/lighting only — do not invent a different stance from the scene): ${hints}. Body-stance baseline only if the beat is vague: ${defaultPose}`
+            : `POSE FIRST: ${everydayStanceDirective(dayEverydayPoseClass(hints))} Beat (SETTING is backdrop/lighting only — do not invent a different stance from the scene): ${hints}. Body-stance baseline only if the beat is vague: ${defaultPose}`
     : `mandatory new body pose: ${defaultPose}`;
   const cameraLine =
     isDayAdultMood(dayMood) && poseHeadcount >= 2
@@ -2292,7 +2334,7 @@ export function buildDaySlotPrompt(input: {
   // an Edit-2511 model copies unless told not to.
   const everydayPoseStickyLock =
     !isDayHeatMood(dayMood) && input.hasPlate && isDayPoseStickyEditModel(input.model)
-      ? DAY_EVERYDAY_POSE_STICKY_UNLOCK
+      ? buildDayEverydayKeepPoseUnlock(hints)
       : null;
   const poseAntiLeak = poseGuide
     ? isDayAdultMood(dayMood)

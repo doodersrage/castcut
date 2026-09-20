@@ -178,6 +178,13 @@ export const CFG1_T2I_ANATOMY_POSITIVE =
 export const CFG1_T2I_ARTIFACT_NEGATIVE =
   'extra limbs, duplicate hands, fused fingers, bad anatomy, oversaturated, oversharpened halos, plastic skin, moire, grid artifacts';
 
+/** Everyday Day on Lightning — plate ghost + Image 3 speckle rain. */
+export const LIGHTNING_EVERYDAY_DAY_POSITIVE =
+  'one finished photograph of one woman only, clean natural skin, no overlay, no second person';
+
+export const LIGHTNING_EVERYDAY_DAY_NEGATIVE =
+  'second woman, extra person, duplicate subject, beige lingerie ghost, mannequin beside her, stick figure overlay, pose guide leak, white speckle rain, film grain snow, dither dots, salt and pepper noise, neon outline, cyan pose outline, magenta pose outline, Image 3 drawn into scene';
+
 export const QWEN_LIGHTNING_HYPER_PHOTO_POSITIVE =
   'natural photograph, lifelike skin pores, camera realism, soft natural light';
 
@@ -203,6 +210,15 @@ function dayPromptHasSuggestiveHeat(positive: string): boolean {
 
 function dayPromptHasVacationHeat(positive: string): boolean {
   return /\bMOOD:\s*vacation\b/i.test(positive);
+}
+
+function dayPromptHasEverydayMood(positive: string): boolean {
+  if (/\bMOOD:\s*(?:suggestive|vacation|sport|intimate|raunchy)\b/i.test(positive)) {
+    return false;
+  }
+  return (
+    /\bMOOD:\s*everyday\b/i.test(positive) || /\bEdit instruction for a Day still\b/i.test(positive)
+  );
 }
 
 /**
@@ -411,17 +427,23 @@ export function applyQueuePromptSteering(input: {
     });
     let positive = clothedHeat.positive;
     let negative = clothedHeat.negative;
-    if (poseGuideAttached && clothedHeat.applied) {
+    const everydayDay =
+      input.tool === 'day' &&
+      !clothedHeat.applied &&
+      (dayPromptHasEverydayMood(steeredPositive) || /\bPOSE FIRST:\b/i.test(steeredPositive));
+    if (everydayDay) {
+      positive = appendUniqueCsv(positive, LIGHTNING_EVERYDAY_DAY_POSITIVE);
+      negative = appendUniqueCsv(negative, LIGHTNING_EVERYDAY_DAY_NEGATIVE);
+    }
+    if (poseGuideAttached && (clothedHeat.applied || everydayDay)) {
       positive = appendUniqueCsv(positive, RAPID_AIO_POSE_LEAK_POSITIVE_BASE);
       positive = appendUniqueCsv(positive, CLOTHED_HEAT_POSE_LIMB_POSITIVE);
       negative = appendUniqueCsv(negative, CLOTHED_HEAT_POSE_LIMB_NEGATIVE);
-      // Full Rapid anti-leak — Lightning was only getting a short stick-figure line,
-      // so magenta/purple Image 3 capsules painted into the finished still.
       negative = appendUniqueCsv(negative, RAPID_AIO_POSE_LEAK_NEGATIVE);
     }
     const poseLeakNeg = poseGuideAttached
-      ? 'stick figure, wireframe, pose diagram, cyan pose outline, magenta pose outline, purple squiggle, neon capsule, pose guide leak, Image 3 drawn into scene'
-      : 'stick figure, wireframe, pose diagram';
+      ? 'stick figure, wireframe, pose diagram, cyan pose outline, magenta pose outline, purple squiggle, neon capsule, pose guide leak, Image 3 drawn into scene, white speckle rain, dither dots'
+      : 'stick figure, wireframe, pose diagram, white speckle rain, dither dots, second woman, beige lingerie ghost';
     if (realismMode === 'realistic' || realismMode === 'hyper-realistic') {
       return finish({
         positive: appendUniqueCsv(
