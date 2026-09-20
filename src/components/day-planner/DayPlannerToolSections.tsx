@@ -45,6 +45,8 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import DayMoodStrip from '@/components/day-planner/DayMoodStrip';
+import DayRemixMenu from '@/components/day-planner/DayRemixMenu';
+import DaySeriesPanel from '@/components/day-planner/DaySeriesPanel';
 import DayPlateSection from '@/components/day-planner/DayPlateSection';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
@@ -98,6 +100,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     setActiveSlotId,
     assemblingFilm,
     filmStatus,
+    season,
+    seasonStitching,
+    seasonStatus,
+    stitchSeason,
+    startNewSeason,
     filmNeedsCast,
     slots,
     stills,
@@ -115,6 +122,12 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     setIsolateSubject,
     allowCompanions,
     setAllowCompanions,
+    autoReviewStills,
+    setAutoReviewStills,
+    posePriority,
+    setPosePriority,
+    qualityStatus,
+    qualityLedger,
     hideStickyCutCoach,
     setHideStickyCutCoach,
     dayMood,
@@ -125,6 +138,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     suggestDayScenes,
     rerollActiveSlotScene,
     queueBlockReason,
+    poseGuideLine,
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,
@@ -146,7 +160,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     seedDemoStills,
     firstCutCelebrate,
     shareLastCut,
+    saveFilmPoster,
+    posterBusy,
     remixSameLookDay,
+    remixThemeDay,
+    remixNewOutfitDay,
     filmCutOptions,
     setFilmCutOptions,
     garmentUploading,
@@ -212,6 +230,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     firstFilmDone,
     filmNeedsCast,
     campaignCompleted: firstCutCelebrate || firstFilmDone,
+    slotCount: slots.length,
   });
   const showFinalPass = leanChrome;
   const galleryFilmHref = character
@@ -329,7 +348,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               completedClips={completedClipCount}
               slotTotal={slotTotal}
             />
-            <DayStatusStrip statusLine={dayStatusLine} queueBlockReason={queueBlockReason} />
+            <DayStatusStrip
+              statusLine={dayStatusLine}
+              queueBlockReason={queueBlockReason}
+              poseGuideLine={poseGuideLine}
+            />
           </div>
         ) : null}
         {firstCutCelebrate ? (
@@ -394,6 +417,17 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               >
                 Share cut
               </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={posterBusy}
+                loadingLabel="Saving"
+                data-testid="day-first-cut-poster"
+                title="Save a poster frame from a finished still"
+                onClick={() => void saveFilmPoster()}
+              >
+                Save poster
+              </Button>
               {character ? (
                 <Button
                   size="sm"
@@ -403,6 +437,13 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 >
                   Same look, new Day
                 </Button>
+              ) : null}
+              {character ? (
+                <DayRemixMenu
+                  testIdPrefix="day-first-cut"
+                  onNewOutfit={remixNewOutfitDay}
+                  onTheme={remixThemeDay}
+                />
               ) : null}
               {character ? (
                 <Button
@@ -507,12 +548,18 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onRerollSlot={slot => {
               rerollActiveSlotScene({ slotId: slot.id });
             }}
+            qualityLedger={qualityLedger}
           />
           <DayMoodStrip
             className="mt-3"
             busy={busy}
             allowCompanions={allowCompanions}
             onAllowCompanionsChange={setAllowCompanions}
+            posePriority={posePriority}
+            onPosePriorityChange={setPosePriority}
+            autoReviewStills={autoReviewStills}
+            onAutoReviewStillsChange={setAutoReviewStills}
+            qualityStatus={qualityStatus}
             dayMood={dayMood}
             onDayMoodChange={setDayMood}
             intimateMix={intimateMix}
@@ -719,11 +766,31 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   <Button
                     size="sm"
                     variant="secondary"
+                    loading={posterBusy}
+                    loadingLabel="Saving"
+                    data-testid="day-poster"
+                    title="Save a poster frame from a finished still"
+                    onClick={() => void saveFilmPoster()}
+                  >
+                    Save poster
+                  </Button>
+                ) : null}
+                {character && !assemblingFilm ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
                     data-testid="day-remix-day"
                     onClick={remixSameLookDay}
                   >
                     Same look, new Day
                   </Button>
+                ) : null}
+                {character && !assemblingFilm ? (
+                  <DayRemixMenu
+                    testIdPrefix="day-remix"
+                    onNewOutfit={remixNewOutfitDay}
+                    onTheme={remixThemeDay}
+                  />
                 ) : null}
                 {character && !assemblingFilm ? (
                   <ButtonLink
@@ -765,6 +832,13 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           {filmStatus ? (
             <p className="type-caption text-[var(--text-muted)]">{filmStatus}</p>
           ) : null}
+          <DaySeriesPanel
+            season={season}
+            stitching={seasonStitching}
+            status={seasonStatus}
+            onStitch={() => void stitchSeason()}
+            onNewSeason={startNewSeason}
+          />
         </ToolSection>
         {showAnimateCoach ? (
           <ToolSection

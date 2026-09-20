@@ -1035,6 +1035,17 @@ export type DayToolCache = {
    * skips the hard solo lock and can diversify into duo beats.
    */
   allowCompanions?: boolean;
+  /**
+   * Opt-in: vision-review each landed Day still and requeue slots with broken faces, hands,
+   * or outfit (bounded rerolls per slot). Needs a vision LLM; off by default.
+   */
+  autoReviewStills?: boolean;
+  /**
+   * Default on. Loosens the identity lock and raises denoise when a beat needs a body the
+   * standing plate cannot give, so Edit-2511 stops copying Image 1's stance. Turn off if faces
+   * drift more than the posing is worth.
+   */
+  posePriority?: boolean;
   /** Everyday / suggestive / intimate heat for Day stills (intimate is NSFW-gated). */
   dayMood?: import('./day-planner').DayMood;
   /** Solo / duo / mixed beat filter when dayMood is intimate or raunchy. */

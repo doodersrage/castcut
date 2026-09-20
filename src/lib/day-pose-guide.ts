@@ -96,6 +96,13 @@ export type SocialLayout =
   | 'read'
   | 'rail'
   | 'point'
+  | 'hands_hips'
+  | 'bend_pick'
+  | 'foot_up'
+  | 'lean_wall'
+  | 'hair_touch'
+  | 'shrug'
+  | 'stairs'
   | 'sport_sprint'
   | 'sport_yoga_warrior'
   | 'sport_yoga_dog'
@@ -163,6 +170,13 @@ const SOCIAL_SOLO_LAYOUTS: ReadonlySet<SocialLayout> = new Set([
   'read',
   'rail',
   'point',
+  'hands_hips',
+  'bend_pick',
+  'foot_up',
+  'lean_wall',
+  'hair_touch',
+  'shrug',
+  'stairs',
   ...SPORT_SOLO_LAYOUTS,
 ]);
 
@@ -832,7 +846,7 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
     return sport;
   }
   if (
-    /\b(hug(?:s|ging|ged)?|embrace(?:s|d|ing)?|hold(?:s|ing)?\s+(?:them|her|him|each other)\s+close|wrapped\s+(?:in\s+)?(?:arms?|an embrace)|bear[- ]hug)\b/i.test(
+    /\b(hug(?:s|ging|ged)?|embrace(?:s|d|ing)?|hold(?:s|ing)?\s+(?:them|her|him|each other)\s+close|wrapped\s+(?:in\s+)?(?:arms?|an embrace)|bear[- ]hug|arm[-\s]?in[-\s]?arm|arm\s+around\s+(?:a|her|his|their|the)|link(?:s|ing)?\s+arms)\b/i.test(
       haystack
     )
   ) {
@@ -854,6 +868,14 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
   ) {
     return 'fight';
   }
+  // Stairs read as a walking climb, not a hand-over-hand ladder climb.
+  if (
+    /\b(climb(?:s|ing)?\s+(?:the\s+)?(?:stairs|steps|staircase)|up\s+the\s+(?:stairs|steps)|taking\s+the\s+(?:stairs|steps)|descend(?:s|ing)?\s+the\s+(?:stairs|steps)|down\s+the\s+(?:stairs|steps))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'stairs';
+  }
   if (
     /\b(climb(?:s|ing|ed)?|clamber(?:s|ing)?|scale(?:s|ing)?|scrambl(?:e|es|ing)\s+up|up\s+the\s+(?:ladder|rope|wall|cliff|drainpipe)|hand[- ]over[- ]hand)\b/i.test(
       haystack
@@ -867,6 +889,47 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
     )
   ) {
     return 'phone';
+  }
+  // Everyday stances — specific body shapes that would otherwise fall through to a plain stand.
+  if (
+    /\b(foot\s+(?:up\s+)?(?:propped\s+)?on\s+(?:the\s+|a\s+)?(?:step|stair|ledge|bench|curb|kerb|rail|box)|propp(?:ed|ing)\s+(?:one\s+)?foot|boot\s+up\s+on)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'foot_up';
+  }
+  if (
+    /\b(bend(?:s|ing)?\s+(?:down|over|to\s+pick)|pick(?:s|ing)?\s+up\s+|scoop(?:s|ing)?\s+up|reach(?:es|ing)?\s+down\s+for|stoop(?:s|ing)?)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'bend_pick';
+  }
+  if (
+    /\b(lean(?:s|ing)?\s+(?:back\s+)?(?:against|on)\s+(?:the\s+|a\s+)?(?:\w+\s+)?(?:wall|door|doorway|door\s*frame|jamb|column|post|pillar|counter)|shoulder\s+(?:against|on)\s+the\s+(?:wall|frame|jamb))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'lean_wall';
+  }
+  if (
+    /\b(tuck(?:s|ing)?\s+(?:her\s+)?hair|hand\s+through\s+(?:her\s+)?hair|push(?:es|ing)?\s+hair\s+(?:back|behind)|adjust(?:s|ing)?\s+(?:a\s+|her\s+|the\s+)?(?:\w+\s+)?(?:collar|scarf|strap|sleeve|cuff|earring)|fixes?\s+(?:her\s+)?(?:hair|collar|scarf))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'hair_touch';
+  }
+  if (
+    /\b(shrug(?:s|ging)?|palms?\s+up|hands?\s+out\s+(?:in\s+)?(?:a\s+)?shrug)\b/i.test(haystack)
+  ) {
+    return 'shrug';
+  }
+  if (
+    /\b(hands?\s+on\s+(?:her\s+)?hips?|akimbo|one\s+hand\s+on\s+(?:a\s+|her\s+)?hip)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'hands_hips';
   }
   if (
     /\b(look(?:s|ing)?\s+(?:back|over\s+(?:an?\s+|the\s+)?shoulder)|over\s+(?:an?\s+|the\s+)?shoulder|glance(?:s|ing)?\s+back|turns?\s+(?:to\s+)?look\s+back|half[- ]turned|twist(?:ing|s)?\s+to\s+zip|zip(?:ping|s|ped)?\s+(?:up\s+)?(?:a\s+)?dress|unzip(?:ping|s|ped)?|back\s+arch(?:ed)?)\b/i.test(
@@ -933,6 +996,42 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
   return null;
 }
 
+/**
+ * Posture stated in the scene text, which must win the mannequin's base over a hand-gesture
+ * layout: "lying across the bed scrolling a phone" is a lying figure holding a phone, not a
+ * standing one. The gesture still sets the arms.
+ */
+function posturalBaseFromScene(haystack: string): PoseGuideBase | null {
+  if (
+    /\b(lie|lying|sprawl(?:ed|ing)?|reclin(?:e|es|ed|ing)|flat\s+on\s+(?:the|her|his)\s+(?:bed|floor|back))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'lie';
+  }
+  if (/\b(kneel(?:s|ing)?|on\s+(?:one\s+)?knee)\b/i.test(haystack)) {
+    return 'kneel';
+  }
+  if (
+    /\b(crouch(?:es|ing)?|squat(?:s|ting)?|hunker(?:ed|ing)?|stoop(?:s|ing)?)\b/i.test(haystack)
+  ) {
+    return 'crouch';
+  }
+  if (
+    /\b(sit(?:s|ting)?|seated|curled|cross-legged|perch(?:ed|ing)?|booth|on\s+(?:a|the)\s+(?:bench|stool|curb|step|stairs)|in\s+(?:a|the)\s+(?:booth|armchair))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sit';
+  }
+  // Gait counts too: "mid-stride on the sidewalk, coffee in one hand" is a walking figure
+  // holding a cup, not someone standing still. Checked last so a seat or a recline wins.
+  if (/\b(mid[- ]stride|walk(?:s|ing)?|strid(?:e|es|ing)|heading\s+out|pacing)\b/i.test(haystack)) {
+    return 'walk';
+  }
+  return null;
+}
+
 function socialBaseForLayout(layout: SocialLayout): PoseGuideBase {
   switch (layout) {
     case 'climb':
@@ -971,7 +1070,13 @@ function socialBaseForLayout(layout: SocialLayout): PoseGuideBase {
     case 'sport_ski':
       return 'walk';
     case 'rail':
+    case 'lean_wall':
+    case 'foot_up':
       return 'lean';
+    case 'bend_pick':
+      return 'crouch';
+    case 'stairs':
+      return 'walk';
     case 'hug':
     case 'phone':
     case 'look_back':
@@ -981,6 +1086,9 @@ function socialBaseForLayout(layout: SocialLayout): PoseGuideBase {
     case 'drink':
     case 'point':
     case 'read':
+    case 'hands_hips':
+    case 'hair_touch':
+    case 'shrug':
     default:
       return 'stand';
   }
@@ -1044,7 +1152,7 @@ function armChain(
 export function parsePoseGuideIntent(
   text: string | null | undefined,
   fallbackIndex = 0,
-  options?: { forcePeople?: number; clothedUprightOnly?: boolean }
+  options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
 ): PoseGuideIntent {
   const haystack = text?.trim() || '';
   const seed = hashString(`${haystack}::${fallbackIndex}`) || 1;
@@ -1059,7 +1167,10 @@ export function parsePoseGuideIntent(
   let armRight: PoseGuideArm = 'down';
   let lean = (jitterA - 0.5) * 0.2;
   let stride = 0.25 + jitterB * 0.2;
-  let intimate = options?.clothedUprightOnly ? null : parseIntimateLayout(haystack);
+  // Sex layouts belong to the adult moods only. Without this gate an everyday beat like
+  // "leaning against a brick wall waiting for a friend" draws a two-figure wall-press.
+  const intimateAllowed = !options?.clothedUprightOnly && options?.allowIntimate !== false;
+  let intimate = intimateAllowed ? parseIntimateLayout(haystack) : null;
   let social = intimate ? null : parseSocialLayout(haystack);
 
   // Vacation pose-class leads (MID-STRIDE, SEATED, RELAXING, …) must win over prop/glance
@@ -1156,7 +1267,14 @@ export function parsePoseGuideIntent(
       ? Math.min(3, Math.max(1, Math.round(options.forcePeople)))
       : null;
   // Duo chip / forced pair: never a solo masturbation wireframe; default a readable pair stance.
-  if (forcedPeople != null && forcedPeople >= 2 && !options?.clothedUprightOnly) {
+  // Only when sex layouts are allowed — a friendly "Duo · companions" everyday beat such as
+  // "diner booth across from a friend" must not be handed a missionary wireframe.
+  if (
+    forcedPeople != null &&
+    forcedPeople >= 2 &&
+    !options?.clothedUprightOnly &&
+    intimateAllowed
+  ) {
     if (intimate && INTIMATE_SOLO_LAYOUTS.has(intimate)) {
       intimate = 'missionary';
     }
@@ -1257,11 +1375,58 @@ export function parsePoseGuideIntent(
       armLeft = 'up';
       armRight = 'up';
       lean = (jitterA - 0.5) * 0.12;
+    } else if (social === 'hands_hips') {
+      stride = 0.3;
+      armLeft = 'hold';
+      armRight = 'hold';
+      lean = (jitterA - 0.5) * 0.25;
+    } else if (social === 'bend_pick') {
+      stride = 0.32;
+      armLeft = 'forward';
+      armRight = 'down';
+      lean = 0.3;
+    } else if (social === 'foot_up') {
+      stride = 0.5;
+      armLeft = 'forward';
+      armRight = 'hold';
+      lean = 0.22;
+    } else if (social === 'lean_wall') {
+      stride = 0.22;
+      armLeft = 'hold';
+      armRight = 'down';
+      lean = jitterA > 0.5 ? 0.3 : -0.3;
+    } else if (social === 'hair_touch') {
+      stride = 0.24;
+      armLeft = 'up';
+      armRight = 'down';
+      lean = (jitterA - 0.5) * 0.2;
+    } else if (social === 'shrug') {
+      stride = 0.3;
+      armLeft = 'out';
+      armRight = 'out';
+      lean = (jitterA - 0.5) * 0.12;
+    } else if (social === 'stairs') {
+      stride = 0.6;
+      armLeft = 'forward';
+      armRight = 'down';
+      lean = 0.18;
+    }
+    // A stated posture outranks a stand-based gesture layout: keep the arms, fix the body.
+    if (base === 'stand') {
+      const posture = posturalBaseFromScene(haystack);
+      if (posture) {
+        base = posture;
+        if (posture === 'sit' || posture === 'lie') {
+          stride = Math.min(stride, 0.4);
+        }
+      }
     }
   } else if (matched) {
     // Vacation pose-class lead already forced base/arms — skip keyword overrides
     // (e.g. REACHING … "jog" must not become walk).
-  } else if (/\b(lie|lying|sprawl|prone|on\s+the\s+(?:floor|ground|bed))\b/i.test(haystack)) {
+  } else if (
+    /\b(lie|lying|sprawl(?:ed|ing|s)?|prone|on\s+the\s+(?:floor|ground|bed))\b/i.test(haystack)
+  ) {
     base = 'lie';
     stride = 0.55;
     matched = true;
@@ -1307,6 +1472,18 @@ export function parsePoseGuideIntent(
     stride = 0.35;
     armLeft = 'hold';
     armRight = 'hold';
+    matched = true;
+  } else if (
+    /\b(swim(?:s|ming)?|freestyle|backstroke|breaststroke|mid[- ]stroke|treading\s+water|swimming\s+a\s+lap)\b/i.test(
+      haystack
+    )
+  ) {
+    // Horizontal in the water — the vacation SWIMMING directive says "never dry standing on deck",
+    // but without a layout the stance used to come from the slot index.
+    base = 'lie';
+    stride = 0.6;
+    armLeft = 'up';
+    armRight = 'forward';
     matched = true;
   } else if (/\b(kick(?:s|ing)?|kicking\s+through)\b/i.test(haystack)) {
     base = 'walk';
@@ -1422,8 +1599,8 @@ export function parsePoseGuideIntent(
       matched = true;
     } else if (base === 'lie') {
       const keepLounge =
-        /^(RELAXING|RECLINING)\b/i.test(haystack.trim()) ||
-        /\b(relax(?:es|ed|ing)?|reclin(?:e|es|ed|ing)?|towel|lounge|hammock|daybed|float|chaise|sunbath|sofa|couch)\b/i.test(
+        /^(RELAXING|RECLINING|SWIMMING)\b/i.test(haystack.trim()) ||
+        /\b(relax(?:es|ed|ing)?|reclin(?:e|es|ed|ing)?|towel|lounge|hammock|daybed|float|chaise|sunbath|sofa|couch|swim(?:s|ming)?|freestyle|backstroke|mid[- ]stroke|treading\s+water)\b/i.test(
           haystack
         );
       if (!keepLounge) {
@@ -3961,7 +4138,7 @@ export function synthesizeSocialStickFigures(intent: PoseGuideIntent): StickSkel
 export function synthesizeSceneStickFigures(
   text: string | null | undefined,
   fallbackIndex = 0,
-  options?: { forcePeople?: number; clothedUprightOnly?: boolean }
+  options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
 ): { intent: PoseGuideIntent; figures: StickSkeleton[] } {
   const intent = parsePoseGuideIntent(text, fallbackIndex, options);
   if (intent.intimate) {
@@ -4311,7 +4488,7 @@ export function drawPoseGuideFromScene(
   text: string | null | undefined,
   fallbackIndex = 0,
   visualStyle: PoseGuideVisualStyle = 'filled',
-  options?: { forcePeople?: number; clothedUprightOnly?: boolean }
+  options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
 ): PoseGuideIntent {
   const { intent, figures } = synthesizeSceneStickFigures(text, fallbackIndex, options);
   if (intent.intimate === 'wall') {
@@ -4437,7 +4614,7 @@ export async function buildDayPoseGuideFile(
   slotId: DaySlotId,
   sceneText?: string | null,
   model?: string | null,
-  options?: { forcePeople?: number; clothedUprightOnly?: boolean }
+  options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
 ): Promise<File> {
   const visualStyle = resolvePoseGuideVisualStyle(model);
   const trimmed = sceneText?.trim() || '';
@@ -4447,6 +4624,7 @@ export async function buildDayPoseGuideFile(
       const intent = drawPoseGuideFromScene(ctx, trimmed, fallbackIndex, visualStyle, {
         ...(options?.forcePeople != null ? { forcePeople: options.forcePeople } : {}),
         ...(options?.clothedUprightOnly ? { clothedUprightOnly: true } : {}),
+        ...(options?.allowIntimate === false ? { allowIntimate: false as const } : {}),
       });
       return intent.label;
     }, 'day-pose-guide');

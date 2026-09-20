@@ -16,6 +16,42 @@ import {
   resumePlayAction,
 } from './play-step-machine';
 
+describe('play-step-machine day length', () => {
+  it('treats a short Day as complete at its own slot count', () => {
+    const base = { completedClips: 0, firstFilmDone: false, filmNeedsCast: false as const };
+    // Two of four stills is still mid-queue...
+    assert.equal(deriveDayPhase({ ...base, completedStills: 2 }), 'queue');
+    // ...but a two-slot Day is ready to animate/cut at two.
+    assert.equal(deriveDayPhase({ ...base, completedStills: 2, slotCount: 2 }), 'animate');
+    assert.equal(
+      deriveDayPhase({ ...base, completedStills: 2, completedClips: 2, slotCount: 2 }),
+      'cut'
+    );
+    // A nonsense slot count falls back to at least one still.
+    assert.equal(deriveDayPhase({ ...base, completedStills: 1, slotCount: 0 }), 'animate');
+  });
+
+  it('labels resume with the actual slot count', () => {
+    const artifacts = {
+      campaign: { characterId: 'c1', stepIndex: 3 },
+      funnel: { firstPlayCampaign: 1 },
+      completedClips: 0,
+    };
+    assert.equal(
+      resumePlayAction({ ...artifacts, completedStills: 2 }).label,
+      'Finish Day · 2 of 4'
+    );
+    assert.equal(
+      resumePlayAction({ ...artifacts, completedStills: 2, slotCount: 3 }).label,
+      'Finish Day · 2 of 3'
+    );
+    assert.equal(
+      resumePlayAction({ ...artifacts, completedStills: 2, completedClips: 2, slotCount: 2 }).label,
+      'Cut film · 2 of 2'
+    );
+  });
+});
+
 describe('play-step-machine', () => {
   it('defines a linear graph with Story optional', () => {
     assert.equal(PLAY_CAMPAIGN_STEPS.length, 5);

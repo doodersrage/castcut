@@ -9,6 +9,8 @@ import { FILM_AUDIO_BED_ACCEPT, resolveFilmAudioBedFromFile } from '@/lib/film-a
 export type FilmCutOptionsValue = {
   crossfadeSec: number;
   audioBedUrl: string;
+  /** Export a 9:16 vertical cut (Shorts / Reels / Stories) instead of landscape. */
+  vertical?: boolean;
   /** Display name after a local upload (optional). */
   audioBedName?: string;
 };
@@ -20,7 +22,7 @@ type FilmCutOptionsControlsProps = {
   testIdPrefix?: string;
 };
 
-/** Crossfade + audio bed for Day/Story/Cast Cut (upload or URL). */
+/** Crossfade, vertical export, and audio bed for Day/Story/Cast Cut (upload or URL). */
 export default function FilmCutOptionsControls({
   value,
   onChange,
@@ -55,6 +57,16 @@ export default function FilmCutOptionsControls({
             data-testid={`${testIdPrefix}-crossfade`}
           />
           <span>s</span>
+        </label>
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={value.vertical === true}
+            onChange={event => onChange({ ...value, vertical: event.target.checked })}
+            data-testid={`${testIdPrefix}-vertical`}
+          />
+          <span>Vertical 9:16</span>
         </label>
       </ToolActionRow>
 

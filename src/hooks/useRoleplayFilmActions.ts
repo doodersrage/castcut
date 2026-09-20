@@ -32,6 +32,8 @@ import {
 } from '@/lib/settings-cache';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
+import { filmResolutionForCutOptions } from '@/lib/film-resolution';
+import { exportFilmPoster, pickPosterShotUrl } from '@/lib/film-poster';
 
 export function useRoleplayFilmActions(input: {
   toolSettings: RoleplayToolCache;
@@ -43,8 +45,15 @@ export function useRoleplayFilmActions(input: {
   const [filmNeedsCast, setFilmNeedsCast] = useState(false);
   const [filmCharacterId, setFilmCharacterId] = useState<string | null>(null);
   const [firstCutCelebrate, setFirstCutCelebrate] = useState(false);
-  const [filmCutOptions, setFilmCutOptions] = useState({ crossfadeSec: 0, audioBedUrl: '' });
+  const [filmCutOptions, setFilmCutOptions] = useState<{
+    crossfadeSec: number;
+    audioBedUrl: string;
+    vertical?: boolean;
+  }>({ crossfadeSec: 0, audioBedUrl: '' });
   const assembledFilmRef = useRef<{ filename: string; data: Uint8Array } | null>(null);
+  /** Gallery entry of the most recent stamped cut — the poster hangs off it. */
+  const lastFilmEntryRef = useRef<string | undefined>(undefined);
+  const [posterBusy, setPosterBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filmGuideHref, setFilmGuideHref] = useState<string | null>(null);
 
@@ -80,10 +89,12 @@ export function useRoleplayFilmActions(input: {
         characterName: name,
         lookId: character?.activeLookId,
         crossfadeSec: filmCutOptions.crossfadeSec,
+        resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
         audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
         onProgress: progress => setFilmStatus(progress.label),
       });
       downloadFilmBlob(result.blob, result.filename);
+      lastFilmEntryRef.current = result.entryId;
       assembledFilmRef.current = {
         filename: result.filename,
         data: new Uint8Array(await result.blob.arrayBuffer()),
@@ -203,8 +214,49 @@ export function useRoleplayFilmActions(input: {
     }
   }, []);
 
+  /** Save a poster frame from the first completed Story still, matching the cut's aspect. */
+  const saveFilmPoster = useCallback(async () => {
+    const posterUrl = pickPosterShotUrl(roleplayWatchPlaylist(input.storyRef.current));
+    if (!posterUrl) {
+      setError('Queue and wait for a completed still before saving a poster.');
+      return;
+    }
+    const name = input.toolSettings.characterName?.trim() || input.bioName?.trim() || 'roleplay';
+    setPosterBusy(true);
+    setError(null);
+    setFilmStatus('Rendering poster…');
+    try {
+      const poster = await exportFilmPoster({
+        imageUrl: posterUrl,
+        characterName: name,
+        characterId: filmCharacterId ?? undefined,
+        parentGalleryEntryId: lastFilmEntryRef.current,
+        resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
+      });
+      downloadFilmBlob(poster.blob, poster.filename);
+      setFilmStatus(
+        poster.persisted
+          ? `Saved ${poster.filename} (${poster.width}×${poster.height}) to Gallery and started the download.`
+          : `Downloaded ${poster.filename} (${poster.width}×${poster.height}). Studio storage could not keep a copy.`
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the poster.');
+      setFilmStatus(null);
+    } finally {
+      setPosterBusy(false);
+    }
+  }, [
+    filmCharacterId,
+    filmCutOptions.vertical,
+    input.bioName,
+    input.storyRef,
+    input.toolSettings.characterName,
+  ]);
+
   return {
     assemblingFilm,
+    saveFilmPoster,
+    posterBusy,
     filmStatus,
     filmNeedsCast,
     filmCharacterId,

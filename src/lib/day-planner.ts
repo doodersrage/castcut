@@ -480,6 +480,15 @@ export const DAY_PLATE_IDENTITY_LOCK_CAP = 0.4;
 export const DAY_VACATION_POSE_IDENTITY_LOCK_CAP = 0.12;
 
 /**
+ * Identity lock for an everyday pose unlock. A high IP-Adapter lock carries composition, not
+ * just the face, so 0.4 on a standing Keep plate is a large part of why Edit-2511 freezes the
+ * stance. Vacation pairs 0.12 with a face-cropped Image 1; everyday keeps the whole plate as
+ * Image 1, so it sits between the two: loose enough for the body to move, tight enough to hold
+ * the face without cropping.
+ */
+export const DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP = 0.22;
+
+/**
  * Soft sit/lounge face-break — Edit-2511 needs a firm face pin or every slot invents
  * a new beauty face. Pose still unlocks via face-only Image 1 + Image 3.
  */
@@ -617,6 +626,90 @@ export const DAY_ISOLATE_WHITE_REPLACE =
  */
 export const DAY_REFERENCE_WHITE_VOID_FILL =
   'Never leave Image 2 or Image 3 white as the scene background — keep the SETTING behind the posed subject (no ecommerce void, seamless studio sweep, cutout plate, or missing background).';
+
+/**
+ * Qwen Image Edit 2511 (incl. Lightning) anchors body pose from Image 1, so a standing Keep
+ * try-on plate freezes the stance unless the prompt explicitly discards it. Heat moods already
+ * face-break Image 1 for this; everyday keeps the whole plate, so it needs the ban in words.
+ */
+export const DAY_EVERYDAY_POSE_STICKY_UNLOCK =
+  'Image 1 is a standing try-on plate — discard that standing catalog stance completely: the body pose comes from the beat and Image 3, never from Image 1; never freeze square-on with both feet planted and arms hanging at the sides.';
+
+/** Edit-2511 family (incl. Lightning 4/8-step) — Image 1 pose sticks without an explicit ban. */
+export function isDayPoseStickyEditModel(model?: string | null): boolean {
+  return /qwen-image-edit-2511/i.test(String(model ?? '').trim());
+}
+
+/**
+ * True when an everyday beat asks for a body the standing Keep plate cannot supply. A standing
+ * gesture (waving, sipping, pockets) is fine on the plate's own stance and must not pay the
+ * identity cost of an unlock.
+ */
+export function dayEverydayPoseNeedsBodyUnlock(beat: string | null | undefined): boolean {
+  const cls = dayEverydayPoseClass(beat);
+  return cls !== 'STILL' && cls !== 'GESTURE';
+}
+
+/**
+ * Posture of an everyday beat, used to spread stances across the four dayparts.
+ * Keywords mirror the Image 3 guide's own scene matcher so the classification and the drawn
+ * mannequin agree. Order matters: lying beats mention couches, seated beats mention leaning.
+ */
+export function dayEverydayPoseClass(beat: string | null | undefined): string {
+  const hay = String(beat ?? '').toLowerCase();
+  if (!hay.trim()) {
+    return 'STILL';
+  }
+  if (
+    /\b(lie|lies|lying|sprawl(?:ed|ing)?|reclin(?:e|es|ed|ing)|stretched out|flat on)\b/.test(hay)
+  ) {
+    return 'LYING';
+  }
+  if (
+    /\b(crouch(?:ing|es)?|squat(?:ting|s)?|hunker(?:ed|ing)?|duck(?:ing|s)?|bend(?:s|ing)? (?:down|over|to pick)|pick(?:s|ing)? up|scoop(?:s|ing)? up|stoop(?:s|ing)?)\b/.test(
+      hay
+    )
+  ) {
+    return 'CROUCH';
+  }
+  if (/\b(kneel(?:ing|s)?|on one knee)\b/.test(hay)) {
+    return 'KNEEL';
+  }
+  if (
+    /\b(sit(?:ting|s)?|seated|curled|cross-legged|bench|booth|couch|sofa|stool|perch(?:ed|ing)?|knees drawn|armchair)\b/.test(
+      hay
+    )
+  ) {
+    return 'SEATED';
+  }
+  if (
+    /\b(lean(?:ing|s)?|propped|elbows (?:on|lightly)|doorway|jamb|door frame|foot up on|against the wall|rail(?:ing)?)\b/.test(
+      hay
+    )
+  ) {
+    return 'LEANING';
+  }
+  if (
+    /\b(mid-stride|stride|walk(?:ing|s)?|heading out|pacing|climbing the (?:stairs|steps)|up the (?:stairs|steps))\b/.test(
+      hay
+    )
+  ) {
+    return 'WALKING';
+  }
+  if (/\b(danc(?:e|es|ing)|spin(?:s|ning)?|twirl(?:s|ing)?)\b/.test(hay)) {
+    return 'DANCING';
+  }
+  // Standing, but the arms are doing something — distinct enough from a still plate stance that
+  // one of each in a day does not read as the same pose twice.
+  if (
+    /\b(wav(?:e|es|ing)|point(?:s|ing)?|reach(?:es|ing)?|stretch(?:es|ing)?|yawn|sip(?:s|ping)?|drink(?:s|ing)?|mug in hand|coffee in|pouring|look(?:s|ing)? back|over (?:one|the) shoulder|tuck(?:s|ing)?|adjust(?:s|ing)?|fixes|shrug(?:s|ging)?|palms up|hands on hips|hand on a hip|carry(?:ing)?|tote|bag over|read(?:s|ing)?|browsing|menu|surveying|squinting)\b/.test(
+      hay
+    )
+  ) {
+    return 'GESTURE';
+  }
+  return 'STILL';
+}
 
 /**
  * Default activity poses when the slot beat is empty — and always as a body-stance
@@ -807,49 +900,93 @@ export const DAY_SLOT_SETTING_PRESETS: Record<DaySlotId, string[]> = {
  * Vague lines ("quiet start") let Keep's standing fashion pose win.
  */
 export const DAY_SLOT_BEAT_PRESETS: Record<DaySlotId, string[]> = {
+  // Each daypart spans the drawable stances: lying, seated, crouch/bend, kneel, lean, stairs,
+  // walk, gesture and still. diversifyDaySlotScenes spreads these across the four slots, so a
+  // pool that is mostly "standing near something" is what makes a whole Day read as one pose.
   morning: [
+    'lying across the bed scrolling a phone, ankles crossed',
+    'lying on the rug mid-stretch before the day starts',
+    'sitting on the edge of the bed lacing boots, elbows on knees',
+    'curled cross-legged on the couch with a mug in both hands',
+    'perched on a stool waiting for the kettle, ankles hooked on the rung',
+    'crouching at a low cupboard reaching for a pan, one knee bent',
+    'bending to pick up the mail just inside the door',
+    'kneeling on the rug to zip a bag by the door',
+    'tying a lace with one foot up on the step',
+    'leaning against the door frame with a mug, shoulder on the jamb',
+    'checking the phone while leaning on the sill, one elbow propped',
+    'climbing the stairs with a mug, one hand on the banister',
+    'heading out the door mid-stride with a tote, keys in the other hand',
     'stretching arms overhead mid-yawn before heading out',
     'pouring coffee by the window, mug in hand, torso turned toward the light',
-    'checking the phone while leaning on the sill, one elbow propped',
-    'waving hello from the balcony, other hand on the rail',
     'reaching for a mug at the counter, weight on one hip',
-    'standing with arms crossed waiting for the kettle',
-    'checking a phone by the window, soft morning light on the face',
-    'tying a shoe on the step, looking up mid-motion',
-    'carrying a tote toward the door, keys in the other hand',
+    'waving hello from the balcony, other hand on the rail',
+    'tucking hair behind an ear at the hall mirror',
+    'hands on hips surveying the kitchen counter',
   ],
   afternoon: [
-    'mid-stride on the sidewalk, coffee in one hand, glancing sideways',
-    'carrying a tote bag over one shoulder between errands',
+    'lying back on the grass, arms behind the head',
     'sitting on a park bench reading a book, one leg crossed',
-    'browsing a shelf, looking down at a page, weight shifted forward',
-    'pointing toward a storefront across the street',
+    'sitting cross-legged on the grass with a sandwich',
+    'crouching to tie a lace at the curb, bag set down beside her',
+    'bending to pick up a dropped receipt on the sidewalk',
+    'kneeling on the path to pet a dog, both hands out',
+    'foot up on a bench retying a lace',
+    'leaning against a brick wall waiting for a friend',
+    'leaning on a railing overlooking the park, elbows soft',
+    'climbing the steps to the library entrance',
+    'mid-stride on the sidewalk, coffee in one hand, glancing sideways',
     'walking with purpose, natural arm swing, looking ahead',
     'looking back over one shoulder mid-walk, slight smile',
+    'carrying a tote bag over one shoulder between errands',
+    'browsing a shelf, looking down at a page, weight shifted forward',
+    'pointing toward a storefront across the street',
     'pausing to drink from a bottle, other hand on a hip',
-    'leaning on a railing overlooking the park, elbows soft',
+    'shrugging mid-conversation on the corner, palms up',
+    'adjusting a bag strap on the shoulder at the crossing',
+    'hands on hips squinting up at a street sign',
   ],
   evening: [
+    'reclining on the couch with feet up on the cushion',
+    'leaning back on a couch, torso angled toward the lamp, phone in hand',
+    'seated at a table edge reading a menu, soft end-of-day pause',
+    'sitting on the stairs with a drink, elbows on knees',
+    'crouching by a record crate, flipping through the sleeves',
+    'bending to pick up a jacket from the back of the chair',
+    'kneeling to light a candle on the low table',
+    'foot up on a chair rung retying a boot',
+    'leaning against the balcony door frame with a glass',
     'holding a glass at a bar rail, elbows lightly propped',
     'standing at a railing watching the light change, hands on the rail',
-    'seated at a table edge reading a menu, soft end-of-day pause',
-    'leaning back on a couch, torso angled toward the lamp, phone in hand',
-    'waving from across the patio, other hand on the rail',
-    'arms crossed on a rooftop, looking out at golden hour',
-    'checking a phone at golden hour, chin slightly tilted toward the screen',
+    'climbing the stairs to the rooftop, one hand on the rail',
     'dancing alone for a beat on the patio, arms loose',
     'stretching after a long day, hands behind the head',
+    'waving from across the patio, other hand on the rail',
+    'checking a phone at golden hour, chin slightly tilted toward the screen',
+    'arms crossed on a rooftop, looking out at golden hour',
+    'tucking hair back while looking in the hall mirror',
+    'hands on hips at the stove deciding what to cook',
   ],
   night: [
-    'pausing under a streetlamp, hands in pockets, looking down the block',
-    'walking home mid-stride under neon, coat shifting with the step',
-    'leaning in a doorway before sleep, one shoulder on the frame',
-    'looking back over the shoulder on a wet sidewalk',
+    'lying back on the bed still in the coat, phone held overhead',
+    'sprawled sideways in an armchair still in the coat',
     'sitting in a diner booth after dark, elbows on the table',
+    'sitting on the curb under the streetlight, knees drawn up',
+    'crouching to lock a bike at the rack, keys in hand',
+    'bending to pick up keys dropped on the mat',
+    'kneeling to unlace boots by the door',
+    'leaning in a doorway before sleep, one shoulder on the frame',
+    'leaning against the wall by the elevator, coat over one arm',
+    'climbing the stairs to the flat, phone lighting the steps',
+    'walking home mid-stride under neon, coat shifting with the step',
+    'pausing mid-stride to look up at a lit sign',
+    'looking back over the shoulder on a wet sidewalk',
+    'twirling once under a streetlight, coat flaring',
+    'shrugging off a coat onto the back of a chair',
+    'pausing under a streetlamp, hands in pockets, looking down the block',
     'checking a phone under neon, weight on one hip',
     'holding a phone at chest height under neon, looking at the screen',
-    'spinning once under a streetlight, coat flaring',
-    'pausing mid-stride to look up at a lit sign',
+    'tucking hair under a collar against the cold',
   ],
 };
 
@@ -1106,6 +1243,26 @@ function pickUnusedPreset(
   return pickFrom[Math.floor(random() * pickFrom.length)]!;
 }
 
+/**
+ * Like {@link pickUnusedPreset}, but also avoids stances already used by earlier slots — four
+ * distinct beat strings that are all "standing by a window" still read as one pose.
+ */
+function pickUnusedBeatWithFreshPose(
+  pool: string[],
+  usedBeats: Set<string>,
+  usedPoseClasses: Set<string>,
+  random: () => number
+): string | undefined {
+  const unused = pool.filter(entry => !usedBeats.has(entry.trim().toLowerCase()));
+  const pickFrom = unused.length > 0 ? unused : pool;
+  const fresh = pickFrom.filter(entry => !usedPoseClasses.has(dayEverydayPoseClass(entry)));
+  const finalPool = fresh.length > 0 ? fresh : pickFrom;
+  if (finalPool.length === 0) {
+    return undefined;
+  }
+  return finalPool[Math.floor(random() * finalPool.length)]!;
+}
+
 function beatPoolForDayMood(
   slotId: DaySlotId,
   mood: DayMood,
@@ -1300,6 +1457,7 @@ export function diversifyDaySlotScenes(
   const usedLocations = new Set<string>();
   const usedBeats = new Set<string>();
   const usedVacationPoseClasses = new Set<string>();
+  const usedEverydayPoseClasses = new Set<string>();
   let changed = false;
 
   const normalized = normalizeDaySlots(slots);
@@ -1313,6 +1471,8 @@ export function diversifyDaySlotScenes(
       usedBeats.add(beat.toLowerCase());
       if (dayMood === 'vacation') {
         usedVacationPoseClasses.add(vacationPoseClassFromBeat(beat));
+      } else if (!isDayHeatMood(dayMood)) {
+        usedEverydayPoseClasses.add(dayEverydayPoseClass(beat));
       }
     }
   }
@@ -1413,9 +1573,13 @@ export function diversifyDaySlotScenes(
         allowCompanions,
         random
       );
-      const picked =
-        pickUnusedPreset(primary, usedBeats, random) ||
-        pickUnusedPreset(fallback, usedBeats, random);
+      // Heat moods own their own stance spreading; everyday used to dedupe text only, which is
+      // how four different beats could all come back as a standing plate pose.
+      const picked = isDayHeatMood(dayMood)
+        ? pickUnusedPreset(primary, usedBeats, random) ||
+          pickUnusedPreset(fallback, usedBeats, random)
+        : pickUnusedBeatWithFreshPose(primary, usedBeats, usedEverydayPoseClasses, random) ||
+          pickUnusedBeatWithFreshPose(fallback, usedBeats, usedEverydayPoseClasses, random);
       if (picked && picked !== sceneHints) {
         sceneHints = picked;
         slotChanged = true;
@@ -1423,6 +1587,9 @@ export function diversifyDaySlotScenes(
     }
     if (sceneHints) {
       usedBeats.add(sceneHints.toLowerCase());
+      if (!isDayHeatMood(dayMood)) {
+        usedEverydayPoseClasses.add(dayEverydayPoseClass(sceneHints));
+      }
     }
 
     if (!slotChanged) {
@@ -1987,7 +2154,7 @@ export function buildDaySlotPrompt(input: {
           ? `POSE FIRST: mandatory athletic body pose and sport action from the beat only (SETTING is venue/lighting only — do not invent café walks, grocery bags, soft pin-ups, or polite fashion-portrait stances from the scene): ${hints}`
           : dayMood === 'vacation'
             ? `POSE FIRST: ${vacationStanceDirective(vacationPoseClassFromBeat(hints))} Beat (SETTING is venue/lighting only — do not invent office, grocery, bookstore, hands-and-knees, or stiff square-on catalog stances from the scene): ${hints}`
-            : `mandatory new body pose: ${defaultPose}. Also follow the beat action: ${hints}`
+            : `POSE FIRST: mandatory body pose and action from the beat only (SETTING is backdrop/lighting only — do not invent a different stance from the scene): ${hints}. Body-stance baseline only if the beat is vague: ${defaultPose}`
     : `mandatory new body pose: ${defaultPose}`;
   const cameraLine =
     isDayAdultMood(dayMood) && poseHeadcount >= 2
@@ -2121,6 +2288,12 @@ export function buildDaySlotPrompt(input: {
           : 'HANDS: at least one hand on her vulva or breasts mid-act — never both hands flat on a sill/ledge/mattress covering the crotch for a soft pin-up. ANATOMY: one adult woman — natural vulva and labia only between the thighs; never a penis, phallus, futa, hermaphrodite, or extra fleshy protrusion hanging from the crotch. SKIN TEXTURE: natural matte pores. LIGHTING: natural room/lamp/window light only — never free-floating steam/smoke wisps or schematic vapor; never invent desk clutter on the bed.'
         : null;
   const poseActionLock = poseGuide ? POSE_GUIDE_ACTION_LOCK : null;
+  // Heat moods face-break Image 1 instead; everyday/plate keeps the full standing Keep, which
+  // an Edit-2511 model copies unless told not to.
+  const everydayPoseStickyLock =
+    !isDayHeatMood(dayMood) && input.hasPlate && isDayPoseStickyEditModel(input.model)
+      ? DAY_EVERYDAY_POSE_STICKY_UNLOCK
+      : null;
   const poseAntiLeak = poseGuide
     ? isDayAdultMood(dayMood)
       ? rapidAio
@@ -2181,13 +2354,11 @@ export function buildDaySlotPrompt(input: {
     // Face-break Image 1 is a face crop (not isolated), but Image 2 Keep + Image 3
     // pose-guide still sit on white. Keep early isolate tips short; put the clothed
     // white-void ban AFTER pose unlock so CFG-1 does not fill SETTING instead of posing.
+    // Any mood: once a white packshot (Image 2) or a white pose guide (Image 3) is attached, the
+    // model can copy that white as the scene background. Everyday was left out of this ban, which
+    // is why everyday backgrounds dropped to a studio void every few stills.
     const referenceWhiteVoid =
-      !plateIsolated &&
-      (garmentReinforce || poseGuide || faceOnlyIdentity) &&
-      (dayMood === 'suggestive' ||
-        dayMood === 'vacation' ||
-        dayMood === 'sport' ||
-        isDayAdultMood(dayMood));
+      !plateIsolated && (garmentReinforce || poseGuide || faceOnlyIdentity);
     const earlyWhiteVoidLine = plateIsolated
       ? garmentReinforce
         ? 'Image 2 white is packshot only — do not use Image 2 or Image 3 white as the scene background.'
@@ -2324,6 +2495,7 @@ export function buildDaySlotPrompt(input: {
         adultDuoActLock,
         adultBodyLock,
         poseActionLock,
+        everydayPoseStickyLock,
         poseGuideLine,
         poseAntiLeak,
         soloLock,
@@ -2442,6 +2614,7 @@ export function buildDaySlotPrompt(input: {
       adultDuoActLock,
       adultBodyLock,
       poseActionLock,
+      everydayPoseStickyLock,
       poseGuideLine,
       poseAntiLeak,
       soloLock,

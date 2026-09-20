@@ -17,6 +17,7 @@ import {
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui-live-preview-store';
 import { ROLEPLAY_OVERLAY_BTN_CLASS } from '@/components/roleplay/roleplay-story-helpers';
+import { slotQualityBadge, type SlotQualityLedger } from '@/lib/play-slot-quality';
 
 export type DaySlotBoardProps = {
   slots: DaySlot[];
@@ -30,6 +31,8 @@ export type DaySlotBoardProps = {
   onRetrySlot?: (slot: DaySlot) => void;
   onAnimateSlot?: (slot: DaySlot) => void;
   onRerollSlot?: (slot: DaySlot) => void;
+  /** Quality-gate outcomes per slot — drives the review badge on each card. */
+  qualityLedger?: SlotQualityLedger;
 };
 
 /**
@@ -50,6 +53,7 @@ export default function DaySlotBoard({
   onRetrySlot,
   onAnimateSlot,
   onRerollSlot,
+  qualityLedger,
 }: DaySlotBoardProps) {
   const promptKey = useMemo(
     () =>
@@ -135,6 +139,7 @@ export default function DaySlotBoard({
             ? completedSlotIds[completedIndex + 1]
             : null;
         const canRequeue = openable && Boolean(onRetrySlot) && !queueBlocked && state === 'done';
+        const reviewBadge = qualityLedger ? slotQualityBadge(qualityLedger, slot.id) : null;
 
         const openAdjacent = (adjacentId: DaySlotId) => {
           onSelectSlot(adjacentId);
@@ -319,6 +324,21 @@ export default function DaySlotBoard({
                     data-testid={`day-progress-scene-${slot.id}`}
                   >
                     {planLabel}
+                  </p>
+                ) : null}
+                {reviewBadge ? (
+                  <p
+                    className={[
+                      'type-overline mt-1',
+                      reviewBadge.tone === 'warn'
+                        ? 'text-[var(--tint-danger-text)]'
+                        : 'text-[var(--text-muted)]',
+                    ].join(' ')}
+                    title={reviewBadge.detail || undefined}
+                    data-testid={`day-progress-review-${slot.id}`}
+                  >
+                    {reviewBadge.label}
+                    {reviewBadge.detail ? ` · ${reviewBadge.detail}` : ''}
                   </p>
                 ) : null}
                 {clipState === 'done' ? (

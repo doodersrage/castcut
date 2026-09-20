@@ -59,6 +59,74 @@ See [configuration — production checklist](configuration.md#production-checkli
 
 ---
 
+## Posing looks wrong (stance ignored, wireframe bleed) {#pose-guide}
+
+Day stills get their stance from an **Image 3 pose guide** — a mannequin drawn on a canvas in
+your browser, uploaded to ComfyUI, and attached as the third image. When that guide does not
+arrive, the still keeps the pose of the Image 1 plate, which looks like "the beat was ignored"
+and like "every slot has the same pose".
+
+The Day status strip (under the slot board, desk and phone) now says what happened after each
+queue:
+
+| Line | Meaning | What to do |
+| --- | --- | --- |
+| `Pose guide attached on 4 of 4 slots.` | Image 3 reached the queue for every slot | Posing problems are prompt/model quality, not plumbing |
+| `Pose guide failed on … — <reason>` | The canvas render or the ComfyUI upload threw | Check the reason; most are ComfyUI upload failures (offline, auth, wrong URL). Full error is in the browser console |
+| `Pose guide attached on a non-Edit model (…)` | The guide went to a text-to-image model | Switch the Day engine to an Edit model — a T2I model copies the wireframe into the still instead of reading it as a pose |
+| `Pose guide off on … — Lightning identity path…` | By design: Edit-2511 Lightning Vacation keeps Image 1 whole and takes stance from prompt text | Nothing — or switch models if you want Image 3 stance |
+| `Pose guide off on … — no Day plate` | No plate is set, so there is nothing to pose | Set a Day plate (Look or Outfit Keep) |
+
+Story logs the same failures to the browser console (`Story pose guide could not be attached: …`).
+
+### Stance ignored on Qwen Image Edit 2511 (incl. Lightning)
+
+Edit-2511 anchors the body pose from **Image 1**, and everyday Day stills keep the whole standing
+Outfit Keep plate as Image 1 — so the plate's catalog stance could win even with a pose guide
+attached, intermittently. Everyday prompts now lead with the slot's **Beat** (the baseline pose is
+only the fallback for a vague beat) and add an explicit instruction to discard the plate's standing
+stance on Edit-2511 models. If a slot still freezes, give the beat a concrete stance
+("leaning on the rail, hip cocked") rather than a mood ("relaxed morning").
+
+### Three of four stills come back standing
+
+Beat selection used to de-duplicate beat *text* without looking at posture, and the everyday
+pools were mostly upright actions — four different beats could all be "standing near something".
+Beats are now spread across postures (seated, crouching, kneeling, lying, leaning, walking,
+dancing, upright) so a four-slot day gets at least three distinct stances, and the pools carry
+enough non-upright options to spread into. If a slot still freezes, write the beat with a
+concrete posture verb the pose guide recognises — sit, crouch, kneel, lie, lean, stride — rather
+than a mood.
+
+### The Cast keeps the plate's pose
+
+Qwen Image Edit 2511 (including Lightning) takes body pose from **Image 1**, and everyday Day
+stills put the whole standing Outfit Keep plate there. Prompt wording alone does not beat that;
+the identity lock does, because a high IP-Adapter strength carries composition as well as the
+face. When a beat needs a posture the plate cannot supply (seated, crouching, kneeling, lying,
+leaning, walking), Day now drops the identity lock to 0.22 and raises denoise — the same trick
+Vacation and Suggestive already used. Standing gestures (waving, sipping, pockets) are left
+alone, since they cost identity for nothing.
+
+The **Pose over plate** chip under the slot board turns this off. Do that if faces drift more
+than the posing is worth; the trade is real, which is why it is a chip and not a constant.
+
+### A posture beat still renders standing
+
+The Image 3 guide matches a hand-gesture layout (phone, reading, drinking, waving) before it
+matches a body posture. A stated posture now wins the body while the gesture keeps the arms, so
+"lying across the bed scrolling a phone" draws a lying figure. If a beat still renders upright,
+check it names a posture the guide knows — sit, seated, perched, crouch, bend down, kneel, lie,
+sprawl, recline, lean against, foot up on, climbing the stairs.
+
+### Background drops out to white
+
+A white pose guide (Image 3) or clothing packshot (Image 2) can be copied as the scene background.
+The ban that prevents this was previously applied only on Suggestive / Vacation / Sport / adult
+moods; it now applies to every mood whenever a white reference image is attached. If it still
+happens, check that the slot has a **Setting** — an empty Setting leaves nothing to put behind the
+subject.
+
 ## Play funnel {#play-funnel}
 
 | Symptom | Fix |

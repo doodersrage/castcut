@@ -16,8 +16,18 @@ import {
   type FilmShotKind,
 } from './character-film';
 
-export const FILM_RESOLUTION_PRESETS = ['720p', '1080p'] as const;
-export type FilmResolutionPreset = (typeof FILM_RESOLUTION_PRESETS)[number];
+import {
+  buildFilmScaleFilter,
+  FILM_PRESET_SIZE,
+  normalizeFilmResolution,
+  type FilmResolutionPreset,
+} from './film-resolution';
+
+export {
+  FILM_RESOLUTION_PRESETS,
+  normalizeFilmResolution,
+  type FilmResolutionPreset,
+} from './film-resolution';
 
 export type FilmServerEncodeOptions = {
   resolution?: FilmResolutionPreset;
@@ -35,11 +45,6 @@ export type FilmServerEncodeResult = {
   extension: 'mp4';
   width: number;
   height: number;
-};
-
-const PRESET_SIZE: Record<FilmResolutionPreset, { width: number; height: number }> = {
-  '720p': { width: 1280, height: 720 },
-  '1080p': { width: 1920, height: 1080 },
 };
 
 let ffmpegCached: string | null | undefined;
@@ -76,16 +81,6 @@ export async function isServerFilmEncodeAvailable(): Promise<boolean> {
 function even(value: number): number {
   const rounded = Math.max(2, Math.round(value));
   return rounded % 2 === 0 ? rounded : rounded + 1;
-}
-
-export function normalizeFilmResolution(value: unknown): FilmResolutionPreset {
-  const id = String(value ?? '')
-    .trim()
-    .toLowerCase();
-  if (id === '1080p' || id === '1080' || id === 'fullhd') {
-    return '1080p';
-  }
-  return '720p';
 }
 
 export function normalizeFilmCrossfadeSec(value: unknown): number {
@@ -164,7 +159,7 @@ function buildFilterComplex(input: {
   hasAudioBed: boolean;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
-  const scalePad = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps=30,format=yuv420p`;
+  const scalePad = buildFilmScaleFilter(width, height);
 
   const parts: string[] = [];
   const labels: string[] = [];
@@ -234,7 +229,7 @@ export async function encodeFilmPlaylistServer(
   }
 
   const resolution = normalizeFilmResolution(options.resolution);
-  const { width, height } = PRESET_SIZE[resolution];
+  const { width, height } = FILM_PRESET_SIZE[resolution];
   const crossfadeSec = normalizeFilmCrossfadeSec(options.crossfadeSec);
   const workId = randomUUID();
   const workDir = path.join(/* turbopackIgnore: true */ filmWorkRoot(), workId);

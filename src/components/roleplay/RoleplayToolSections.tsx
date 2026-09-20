@@ -365,6 +365,8 @@ export default function RoleplayToolSections({
         onCutFilm={() => void film.cutRoleplayFilm()}
         onSaveToCast={film.saveFilmToCast}
         onShareCut={() => void film.shareLastCut()}
+        onSavePoster={() => void film.saveFilmPoster()}
+        posterBusy={film.posterBusy}
         canShareCut={Boolean(film.filmStatus && !film.assemblingFilm)}
         filmCutOptions={film.filmCutOptions}
         onFilmCutOptionsChange={film.setFilmCutOptions}

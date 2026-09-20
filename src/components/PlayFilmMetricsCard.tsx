@@ -14,11 +14,16 @@ import { loadPlayCampaignState } from '@/lib/play-campaign';
 import { loadLookPack } from '@/lib/look-pack';
 import { loadOnboardingState } from '@/lib/onboarding-store';
 import {
+  countFilmCutsWithinDays,
   daysFromCampaignStartToFirstFilmCut,
+  filmsPerWeek,
   firstFilmCutWithinDays,
+  formatPlayPhaseDuration,
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
   resolveNextPlayAction,
+  slotKeepRate,
+  slowestPlayPhase,
   type PlayMetrics,
 } from '@/lib/play-metrics';
 import type { LookPack } from '@/lib/look-pack';
@@ -51,11 +56,14 @@ export default function PlayFilmMetricsCard() {
   } | null>(null);
 
   const [watchedFirstFilm, setWatchedFirstFilm] = useState(false);
+  // Captured with each refresh so render stays pure (no Date.now() during render).
+  const [now, setNow] = useState(0);
   const [lookPack, setLookPack] = useState<LookPack | null>(null);
 
   useEffect(() => {
     const refresh = () => {
       scheduleAfterCommit(() => {
+        setNow(Date.now());
         setMetrics(loadPlayMetrics());
         setFunnel(loadLocalObservability());
         setCampaignStep(loadPlayCampaignState());
@@ -84,6 +92,11 @@ export default function PlayFilmMetricsCard() {
     (funnel?.filmCutDay || 0) > 0 ||
     (funnel?.filmCutRoleplay || 0) > 0 ||
     (funnel?.campaignMaxStep || 0) > 0;
+  const perWeek = now > 0 ? filmsPerWeek(metrics, now) : null;
+  const cutsThisWeek = now > 0 ? countFilmCutsWithinDays(7, metrics, now) : 0;
+  const keepRate = slotKeepRate(metrics);
+  const slowestPhase = slowestPlayPhase(metrics);
+  const reviews = metrics.slotReviews;
   const hasCampaign = Boolean(campaignStep?.characterId);
   const empty = !hasTiming && !hasFunnel && !hasCampaign;
 
@@ -141,6 +154,29 @@ export default function PlayFilmMetricsCard() {
             value={formatRate(rates.saveRate)}
             detail={`Keep→cut ${formatRate(rates.keepToCutRate)} · ${funnel?.saveToCast ?? 0} saves`}
           />
+          {perWeek !== null ? (
+            <StatCard
+              label="Films per week"
+              value={String(perWeek)}
+              detail={`${cutsThisWeek} in the last 7 days · 4-week average`}
+            />
+          ) : null}
+          {slowestPhase ? (
+            <StatCard
+              label="Slowest phase"
+              value={`${slowestPhase.label} · ${formatPlayPhaseDuration(slowestPhase.avgMs)}`}
+              detail={`Average per visit across ${slowestPhase.runs} ${
+                slowestPhase.runs === 1 ? 'visit' : 'visits'
+              }. Visits over 2h are ignored.`}
+            />
+          ) : null}
+          {keepRate !== null && reviews ? (
+            <StatCard
+              label="Stills passed review"
+              value={formatRate(keepRate)}
+              detail={`${reviews.keep} kept · ${reviews.reroll} requeued · ${reviews.flag} flagged`}
+            />
+          ) : null}
           <StatCard
             label="Welcome → starter"
             value={formatRate(rates.welcomeToStarterRate)}

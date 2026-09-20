@@ -24,6 +24,17 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
   Comfy → Auto-improve) for an automatic UltraReal/Klein soft-pass; the refine model must
   be installed/mapped like any other queue model.
   Diffusers video stays parked.
+- **Day is always four dayparts.** Morning / Afternoon / Evening / Night are a fixed set
+  across the planner, so there is no 2- or 6-slot Day yet. **Auto-review stills** judges
+  face coherence, hands, outfit, and head-count from a single image with a vision LLM; it
+  cannot compare against the Cast plate, so identity drift is still caught only by the
+  face/LoRA locks (the gate's identity pair is a warning, not a gate — a small or
+  turned-away face scores neutral by design), and a weak vision model will miss subtle
+  defects. **Save poster** is a
+  center-crop of one existing still — there is no separate poster render, title text, or
+  frame grabbed from a motion clip. Day is still fixed at four dayparts: the phase and
+  resume helpers now take a slot count, but `DaySlotId` itself is a four-value union
+  keyed by ~18 preset tables, so a 2- or 6-slot Day is not yet possible.
 
 ## Generation engines
 

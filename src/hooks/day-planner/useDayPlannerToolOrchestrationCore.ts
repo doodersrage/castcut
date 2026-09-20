@@ -67,7 +67,10 @@ import {
   rerollDaySlotScene,
   seedDaySlotsWardrobe,
   upsertDaySlotStill,
+  DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP,
   DAY_PLATE_IDENTITY_LOCK_CAP,
+  dayEverydayPoseNeedsBodyUnlock,
+  isDayPoseStickyEditModel,
   DAY_VACATION_POSE_IDENTITY_LOCK_CAP,
   DAY_VACATION_FACE_BREAK_IDENTITY_LOCK_CAP,
   DAY_VACATION_UPRIGHT_FACE_IDENTITY_LOCK_CAP,
@@ -100,6 +103,13 @@ import {
   vacationStanceDirective,
 } from '@/lib/day-vacation';
 import { buildDayPoseGuideFile } from '@/lib/day-pose-guide';
+import { isEditCapableModel } from '@/lib/model-denoise-defaults';
+import {
+  poseGuideFailureReason,
+  recordPoseGuideOutcome,
+  summarizePoseGuideOutcomes,
+  type PoseGuideOutcome,
+} from '@/lib/pose-guide-status';
 import { resolvePoseGuideControlNetExtras } from '@/lib/pose-guide-controlnet';
 import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
 import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
@@ -161,14 +171,22 @@ export function useDayPlannerToolOrchestrationCore() {
   const [busy, setBusy] = useState(false);
   const [activeSlotId, setActiveSlotId] = useState<DaySlotId>('morning');
   const [wardrobeLabels, setWardrobeLabels] = useState<Record<string, string>>({});
+  // Whether Image 3 actually reached the queue, per slot — see pose-guide-status.
+  const [poseGuideOutcomes, setPoseGuideOutcomes] = useState<PoseGuideOutcome[]>([]);
   const [assemblingFilm, setAssemblingFilm] = useState(false);
   const [filmStatus, setFilmStatus] = useState<string | null>(null);
-  const [filmCutOptions, setFilmCutOptions] = useState({ crossfadeSec: 0, audioBedUrl: '' });
+  const [filmCutOptions, setFilmCutOptions] = useState<{
+    crossfadeSec: number;
+    audioBedUrl: string;
+    vertical?: boolean;
+  }>({ crossfadeSec: 0, audioBedUrl: '' });
   const [filmNeedsCast, setFilmNeedsCast] = useState(false);
   const assembledFilmRef = useRef<{ filename: string; data: Uint8Array } | null>(null);
   const deepLinkHandled = useRef(false);
   const stillsRef = useRef(normalizeDaySlotStills(toolSettings.stills));
   const slotStatusRef = useRef<Partial<Record<DaySlotId, string>>>({});
+  /** One-shot prompt fixes from the quality gate, consumed by the next queue of that slot. */
+  const rerollNudgeRef = useRef<Partial<Record<DaySlotId, string>>>({});
 
   const slots = useMemo(() => normalizeDaySlots(toolSettings.slots), [toolSettings.slots]);
   const stills = useMemo(() => normalizeDaySlotStills(toolSettings.stills), [toolSettings.stills]);
@@ -731,6 +749,7 @@ export function useDayPlannerToolOrchestrationCore() {
         // Heat moods: beat only — Setting location text must not rewrite Image 3 stance.
         let poseGuideUrl: string | undefined;
         let poseGuideFilename: string | undefined;
+        let poseGuideFailure: string | undefined;
         if (hasPlate && !skipPoseGuideImage) {
           try {
             const dayMood = normalizeDayMood(
@@ -739,8 +758,11 @@ export function useDayPlannerToolOrchestrationCore() {
                 : toolSettings.dayMood
             );
             const beatOnly = queueTarget.sceneHints?.trim() || '';
+            // Beat first on every mood: the stance keywords the guide matches on live in the
+            // beat, and a Setting like "sunrise sidewalk" used to lead the mannequin upright
+            // before the beat's "sitting"/"crouching" was ever read.
             const rawPoseScene = (
-              isDayHeatMood(dayMood) ? [beatOnly] : [queueTarget.location, queueTarget.sceneHints]
+              isDayHeatMood(dayMood) ? [beatOnly] : [queueTarget.sceneHints, queueTarget.location]
             )
               .map(part => part?.trim())
               .filter(Boolean)
@@ -783,6 +805,9 @@ export function useDayPlannerToolOrchestrationCore() {
               {
                 forcePeople: poseHeadcount,
                 clothedUprightOnly: dayMood === 'vacation' || dayMood === 'suggestive',
+                // Only the adult moods may draw sex layouts; an everyday "leaning against the
+                // wall" beat must not become a two-figure wall press.
+                allowIntimate: isDayAdultMood(dayMood),
               }
             );
             const uploaded = await resolveQueueInputImage({
@@ -799,12 +824,39 @@ export function useDayPlannerToolOrchestrationCore() {
                   comfyUrl,
                 }).find(url => url.includes('/api/comfyui/view?')) || undefined;
             }
-          } catch {
-            // Pose guide is best-effort — Day still queues without Image 3.
+          } catch (poseError) {
+            // Pose guide is best-effort — Day still queues without Image 3 — but a silent drop
+            // reads as "posing is broken", so keep the reason and surface it on the board.
+            poseGuideFailure = poseGuideFailureReason(poseError);
+            console.warn('Day pose guide could not be attached:', poseError);
           }
         }
 
-        const prompt = buildSlotPrompt(queueTarget, {
+        setPoseGuideOutcomes(previous =>
+          recordPoseGuideOutcome(previous, {
+            slotId: queueTarget.id,
+            slotLabel: queueTarget.label,
+            ...(poseGuideFilename
+              ? {
+                  state: 'attached' as const,
+                  model: shared.model,
+                  editCapableModel: isEditCapableModel(shared.model),
+                }
+              : !hasPlate
+                ? { state: 'skipped' as const, reason: 'no Day plate' }
+                : skipPoseGuideImage
+                  ? {
+                      state: 'skipped' as const,
+                      reason: 'Lightning identity path keeps Image 1 whole (stance from text)',
+                    }
+                  : {
+                      state: 'failed' as const,
+                      reason: poseGuideFailure ?? 'ComfyUI did not accept the guide upload',
+                    }),
+          })
+        );
+
+        const basePrompt = buildSlotPrompt(queueTarget, {
           poseGuide: Boolean(poseGuideFilename),
           faceOnlyIdentity,
           // Only force Image 2 language when a clothing-only packshot is actually attached.
@@ -812,6 +864,10 @@ export function useDayPlannerToolOrchestrationCore() {
             vacationFaceBreak &&
             Boolean(garmentReinforce?.imageUrl || garmentReinforce?.imageFilename),
         });
+        // Quality-gate reroll: append the fix for whatever the reviewer flagged, once.
+        const qualityNudge = rerollNudgeRef.current[queueTarget.id]?.trim();
+        delete rerollNudgeRef.current[queueTarget.id];
+        const prompt = qualityNudge ? `${basePrompt}\nQUALITY FIX: ${qualityNudge}` : basePrompt;
         // Play/Simple: skip lint round-trip — Day stills are draft-speed first film.
         const drafted = leanChrome
           ? prompt
@@ -902,6 +958,15 @@ export function useDayPlannerToolOrchestrationCore() {
         // so Image 3 stance still wins. Blanket 0.06 on every slot caused identity float.
         const uprightHardFaceBreak =
           vacationFaceBreak && dayVacationPoseNeedsBodyUnlock(clothedUnlockClass);
+        // Everyday keeps the whole standing Keep as Image 1, and Edit-2511 anchors pose from
+        // Image 1 — so a seated/crouching/lying beat needs the identity lock loosened the way
+        // the heat moods already do, or the plate's stance wins no matter what the prompt says.
+        const everydayPoseUnlock =
+          toolSettings.posePriority !== false &&
+          !isDayHeatMood(dayMood) &&
+          Boolean(poseGuideFilename) &&
+          isDayPoseStickyEditModel(shared.model) &&
+          dayEverydayPoseNeedsBodyUnlock(queueTarget.sceneHints);
         // Nude Solo: always soft-cap identity even without Image 3 — high IP + lingerie
         // face crop is how beige bras win over FULLY NUDE.
         const identityCap =
@@ -918,7 +983,9 @@ export function useDayPlannerToolOrchestrationCore() {
                   : (dayMood === 'vacation' || dayMood === 'suggestive') &&
                       Boolean(poseGuideFilename)
                     ? DAY_VACATION_POSE_IDENTITY_LOCK_CAP
-                    : DAY_PLATE_IDENTITY_LOCK_CAP;
+                    : everydayPoseUnlock
+                      ? DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP
+                      : DAY_PLATE_IDENTITY_LOCK_CAP;
         const identityStrength = Math.min(shared.ipAdapterStrength ?? 0.75, identityCap);
         // Pin the shared face-crop filename on the job (Lightning does not splice IP).
         const croppedFaceFilename =
@@ -935,11 +1002,13 @@ export function useDayPlannerToolOrchestrationCore() {
             ? undefined
             : castFaceQueueParamsBase(character, identityStrength);
         const castLoras = castLoraSessionIds(character);
-        const vacationPoseDenoise = uprightHardFaceBreak
+        const poseUnlockDenoise = uprightHardFaceBreak
           ? DAY_VACATION_UPRIGHT_FACE_DENOISE
           : vacationFaceBreak
             ? DAY_VACATION_POSE_DENOISE
-            : (dayMood === 'vacation' || dayMood === 'suggestive') && Boolean(poseGuideFilename)
+            : ((dayMood === 'vacation' || dayMood === 'suggestive') &&
+                  Boolean(poseGuideFilename)) ||
+                everydayPoseUnlock
               ? DAY_VACATION_POSE_DENOISE
               : undefined;
         // Plate + pose Image 3 need an Edit-capable model. Adult nude + Rapid AIO
@@ -967,12 +1036,12 @@ export function useDayPlannerToolOrchestrationCore() {
             : {}),
           characterId: shared.activeCharacterId,
           lookId: shared.activeLookId ?? character?.activeLookId,
-          ...(faceQueueParams || poseControlNet || vacationPoseDenoise != null
+          ...(faceQueueParams || poseControlNet || poseUnlockDenoise != null
             ? {
                 queueParamsBase: {
                   ...poseControlNet?.queueParamsBase,
                   ...faceQueueParams,
-                  ...(vacationPoseDenoise != null ? { denoise: vacationPoseDenoise } : {}),
+                  ...(poseUnlockDenoise != null ? { denoise: poseUnlockDenoise } : {}),
                 },
               }
             : {}),
@@ -1101,6 +1170,7 @@ export function useDayPlannerToolOrchestrationCore() {
     setFilmNeedsCast,
     stillsRef,
     assembledFilmRef,
+    rerollNudgeRef,
     buildSlotPrompt,
     mounted,
     shared,
@@ -1140,6 +1210,10 @@ export function useDayPlannerToolOrchestrationCore() {
     setIsolateSubject,
     allowCompanions: toolSettings.allowCompanions === true,
     setAllowCompanions: (next: boolean) => updateToolSettings({ allowCompanions: next }),
+    posePriority: toolSettings.posePriority !== false,
+    setPosePriority: (next: boolean) => updateToolSettings({ posePriority: next }),
+    autoReviewStills: toolSettings.autoReviewStills === true,
+    setAutoReviewStills: (next: boolean) => updateToolSettings({ autoReviewStills: next }),
     hideStickyCutCoach: toolSettings.hideStickyCutCoach === true,
     setHideStickyCutCoach: (next: boolean) => updateToolSettings({ hideStickyCutCoach: next }),
     dayMood: normalizeDayMood(
@@ -1178,6 +1252,7 @@ export function useDayPlannerToolOrchestrationCore() {
     suggestDayScenes,
     rerollActiveSlotScene,
     queueBlockReason,
+    poseGuideLine: summarizePoseGuideOutcomes(poseGuideOutcomes),
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,

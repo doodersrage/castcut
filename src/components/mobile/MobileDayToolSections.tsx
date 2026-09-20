@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import DayMoodStrip from '@/components/day-planner/DayMoodStrip';
+import DayRemixMenu from '@/components/day-planner/DayRemixMenu';
+import DaySeriesPanel from '@/components/day-planner/DaySeriesPanel';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
@@ -89,6 +91,11 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setActiveSlotId,
     assemblingFilm,
     filmStatus,
+    season,
+    seasonStitching,
+    seasonStatus,
+    stitchSeason,
+    startNewSeason,
     filmNeedsCast,
     slots,
     stills,
@@ -105,6 +112,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setIsolateSubject,
     allowCompanions,
     setAllowCompanions,
+    autoReviewStills,
+    setAutoReviewStills,
+    posePriority,
+    setPosePriority,
+    qualityStatus,
+    qualityLedger,
     hideStickyCutCoach,
     setHideStickyCutCoach,
     dayMood,
@@ -115,6 +128,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     suggestDayScenes,
     rerollActiveSlotScene,
     queueBlockReason,
+    poseGuideLine,
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,
@@ -131,7 +145,11 @@ export default function MobileDayToolSections(vm: ViewModel) {
     fittingWardrobe,
     firstCutCelebrate,
     shareLastCut,
+    saveFilmPoster,
+    posterBusy,
     remixSameLookDay,
+    remixThemeDay,
+    remixNewOutfitDay,
     seedDemoStills,
     leanChrome,
     goRoleplay,
@@ -201,6 +219,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     firstFilmDone,
     filmNeedsCast,
     campaignCompleted: firstCutCelebrate || firstFilmDone,
+    slotCount: slots.length,
   });
   const showFinalPass = leanChrome;
   const galleryFilmHref = character
@@ -298,7 +317,11 @@ export default function MobileDayToolSections(vm: ViewModel) {
             completedClips={completedClipCount}
             slotTotal={slotTotal}
           />
-          <DayStatusStrip statusLine={dayStatusLine} queueBlockReason={queueBlockReason} />
+          <DayStatusStrip
+            statusLine={dayStatusLine}
+            queueBlockReason={queueBlockReason}
+            poseGuideLine={poseGuideLine}
+          />
         </div>
       ) : null}
 
@@ -361,6 +384,16 @@ export default function MobileDayToolSections(vm: ViewModel) {
             >
               Share cut
             </Button>
+            <Button
+              variant="secondary"
+              className="w-full justify-center"
+              loading={posterBusy}
+              loadingLabel="Saving"
+              data-testid="day-first-cut-poster"
+              onClick={() => void saveFilmPoster()}
+            >
+              Save poster
+            </Button>
             {character ? (
               <Button
                 variant="secondary"
@@ -370,6 +403,14 @@ export default function MobileDayToolSections(vm: ViewModel) {
               >
                 Same look, new Day
               </Button>
+            ) : null}
+            {character ? (
+              <DayRemixMenu
+                stacked
+                testIdPrefix="day-first-cut"
+                onNewOutfit={remixNewOutfitDay}
+                onTheme={remixThemeDay}
+              />
             ) : null}
             {character ? (
               <Button
@@ -456,11 +497,17 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onRerollSlot={slot => {
             rerollActiveSlotScene({ slotId: slot.id });
           }}
+          qualityLedger={qualityLedger}
         />
         <DayMoodStrip
           busy={busy}
           allowCompanions={allowCompanions}
           onAllowCompanionsChange={setAllowCompanions}
+          posePriority={posePriority}
+          onPosePriorityChange={setPosePriority}
+          autoReviewStills={autoReviewStills}
+          onAutoReviewStillsChange={setAutoReviewStills}
+          qualityStatus={qualityStatus}
           dayMood={dayMood}
           onDayMoodChange={setDayMood}
           intimateMix={intimateMix}
@@ -649,6 +696,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
                   >
                     Same look, new Day
                   </Button>
+                  <DayRemixMenu
+                    stacked
+                    testIdPrefix="day-remix"
+                    onNewOutfit={remixNewOutfitDay}
+                    onTheme={remixThemeDay}
+                  />
                   <Link
                     href={toMobileStudioHref(
                       `/characters/${encodeURIComponent(character.id)}?media=films`
@@ -664,6 +717,14 @@ export default function MobileDayToolSections(vm: ViewModel) {
           </CollapsibleSection>
         ) : null}
         {filmStatus ? <p className="type-caption text-[var(--text-muted)]">{filmStatus}</p> : null}
+        <DaySeriesPanel
+          stacked
+          season={season}
+          stitching={seasonStitching}
+          status={seasonStatus}
+          onStitch={() => void stitchSeason()}
+          onNewSeason={startNewSeason}
+        />
       </div>
       {showAnimateCoach ? (
         <div className="space-y-2" data-testid="day-animate">

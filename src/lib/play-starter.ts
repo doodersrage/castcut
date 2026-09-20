@@ -10,9 +10,22 @@ import {
   upsertCharacter,
 } from './character-os';
 import { pickCharacterSubject } from './variation-seed';
-import { DEFAULT_DAY_SLOTS, diversifyDaySlotScenes, type DaySlot } from './day-planner';
+import {
+  DEFAULT_DAY_SLOTS,
+  diversifyDaySlotScenes,
+  normalizeDaySlots,
+  type DaySlot,
+} from './day-planner';
 import { clearLookPack, saveLookPack, type LookPack } from './look-pack';
 import { bumpPlayCampaignStep, savePlayCampaignState } from './play-campaign';
+import {
+  applyDayTheme,
+  clearDaySlotOutfits,
+  dayThemeById,
+  normalizeDayRemixKind,
+  type DayRemixKind,
+} from './play-remix';
+import { resolvePlayStepHref } from './play-step-machine';
 import { markOnboardingFirstPlayCampaign } from './onboarding-hooks';
 import { noteStarterFilmMetric } from './local-observability';
 import {
@@ -135,12 +148,50 @@ export function startStarterPlayFilm(input?: {
 }
 
 /**
- * Clear Day stills and reseed slot beats while keeping Cast + wardrobe.
+ * Clear Day stills and prepare the next Day while keeping Cast + wardrobe.
+ * - `new-day` (default): reseed Setting + Beat per slot.
+ * - `theme`: swap in a themed Setting + Beat set (everyday mood).
+ * - `new-outfit`: keep every Setting + Beat, drop per-slot kits so a fresh Outfit Keep seeds new ones.
  * Call before navigating to {@link remixDayFilmHref}, or from Day when `?remix=1`.
  */
-export function applyRemixDayFilmState(): void {
+export function applyRemixDayFilmState(options?: {
+  kind?: DayRemixKind;
+  themeId?: string | null;
+}): void {
   const existing = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
   const previousSlots = Array.isArray(existing.slots) ? existing.slots : DEFAULT_DAY_SLOTS;
+  const theme = dayThemeById(options?.themeId);
+  const kind = normalizeDayRemixKind(options?.kind ?? (theme ? 'theme' : 'new-day'));
+  const base = {
+    ...existing,
+    stills: [],
+    stillsCharacterId: undefined,
+  };
+
+  if (kind === 'new-outfit') {
+    saveToolSettings('day', {
+      ...base,
+      slots: clearDaySlotOutfits(normalizeDaySlots(previousSlots)),
+      customGarmentImageUrl: undefined,
+      customGarmentImageFilename: undefined,
+      customGarmentDescription: undefined,
+      notes: 'Same Day · new outfit — pick a new Outfit, then Continue to Day.',
+    });
+    // The shared kit lock would otherwise put the old outfit back on every slot.
+    saveSharedSettings({ ...loadSettingsCache().shared, lockedWardrobeId: undefined });
+    return;
+  }
+
+  if (kind === 'theme' && theme) {
+    saveToolSettings('day', {
+      ...base,
+      slots: applyDayTheme(normalizeDaySlots(previousSlots), theme.id),
+      dayMood: 'everyday',
+      notes: `${theme.label} day — queue fresh stills, then Cut film.`,
+    });
+    return;
+  }
+
   const reseeds = starterSlots().map(slot => {
     const prior = previousSlots.find(entry => entry.id === slot.id);
     return {
@@ -149,12 +200,15 @@ export function applyRemixDayFilmState(): void {
     };
   });
   saveToolSettings('day', {
-    ...existing,
+    ...base,
     slots: reseeds,
-    stills: [],
-    stillsCharacterId: undefined,
     notes: 'Same look · new Day — queue fresh stills, then Cut film.',
   });
+}
+
+/** Where "Same Day, new Outfit" sends the user: the Outfit step, keeping this Day's beats. */
+export function remixNewOutfitHref(characterId: string, pack?: LookPack | null): string {
+  return resolvePlayStepHref('fitting', characterId, pack);
 }
 
 export { remixDayFilmHref } from './play-step-machine';

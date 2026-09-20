@@ -27,7 +27,8 @@ import {
 } from '@/lib/character-film';
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/character-film-assemble';
 import { saveCharacterFilmCut } from '@/lib/character-os';
-import type { FilmResolutionPreset } from '@/lib/film-server-encode';
+import { filmResolutionForCutOptions } from '@/lib/film-resolution';
+import { exportFilmPoster, pickPosterShotUrl } from '@/lib/film-poster';
 import { remixDayFilmHref } from '@/lib/play-starter';
 import {
   buildGalleryLightboxPlaylist,
@@ -92,7 +93,10 @@ export default function CharacterFilmStudio({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [assembling, setAssembling] = useState(false);
-  const [resolution, setResolution] = useState<FilmResolutionPreset>('720p');
+  const [posterBusy, setPosterBusy] = useState(false);
+  // Gallery entry of the most recent stamped cut — the poster hangs off it.
+  const [lastFilmEntryId, setLastFilmEntryId] = useState<string | undefined>(undefined);
+  const [resolution, setResolution] = useState<'720p' | '1080p'>('720p');
   const [filmCutOptions, setFilmCutOptions] = useState<FilmCutOptionsValue>({
     crossfadeSec: 0,
     audioBedUrl: '',
@@ -418,13 +422,17 @@ export default function CharacterFilmStudio({
               characterId,
               characterName,
               lookId,
-              resolution,
+              resolution: filmResolutionForCutOptions({
+                vertical: filmCutOptions.vertical,
+                quality: resolution,
+              }),
               crossfadeSec: filmCutOptions.crossfadeSec,
               audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
               onProgress: progress => setStatus(progress.label),
             })
               .then(result => {
                 downloadFilmBlob(result.blob, result.filename);
+                setLastFilmEntryId(result.entryId);
                 setStatus(
                   result.persisted
                     ? `Saved ${result.filename} to this character (${result.encodePath} encode) and started the download.`
@@ -439,6 +447,51 @@ export default function CharacterFilmStudio({
           }}
         >
           Assemble film
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          loading={posterBusy}
+          loadingLabel="Saving"
+          disabled={playlist.length === 0 || assembling}
+          data-testid="character-film-poster"
+          title="Save a poster frame from the first still in this cut"
+          onClick={() => {
+            const posterUrl = pickPosterShotUrl(playlist);
+            if (!posterUrl) {
+              setError('Add a still to the cut before saving a poster.');
+              return;
+            }
+            setPosterBusy(true);
+            setError(null);
+            setStatus('Rendering poster…');
+            void exportFilmPoster({
+              imageUrl: posterUrl,
+              characterName,
+              characterId,
+              lookId,
+              parentGalleryEntryId: lastFilmEntryId,
+              resolution: filmResolutionForCutOptions({
+                vertical: filmCutOptions.vertical,
+                quality: resolution,
+              }),
+            })
+              .then(poster => {
+                downloadFilmBlob(poster.blob, poster.filename);
+                setStatus(
+                  poster.persisted
+                    ? `Saved ${poster.filename} (${poster.width}×${poster.height}) to Gallery and started the download.`
+                    : `Downloaded ${poster.filename} (${poster.width}×${poster.height}). Studio storage could not keep a copy.`
+                );
+              })
+              .catch(err => {
+                setStatus(null);
+                setError(err instanceof Error ? err.message : 'Could not save the poster.');
+              })
+              .finally(() => setPosterBusy(false));
+          }}
+        >
+          Save poster
         </Button>
       </ToolActionRow>
       {status ? (

@@ -7,9 +7,13 @@
 import type { LookPack } from './look-pack';
 import { lookPackDayHref, lookPackFittingHref, lookPackRoleplayHref } from './look-pack';
 import { countCachedCompletedDayClips, countCachedCompletedDayStills } from './play-day-cache';
+import { normalizeDayThemeId } from './play-remix';
 
 /** Deep link for same-look / new-Day remix (clears stills on Day mount). */
-export function remixDayFilmHref(characterId: string, options?: { autoQueue?: boolean }): string {
+export function remixDayFilmHref(
+  characterId: string,
+  options?: { autoQueue?: boolean; theme?: string | null }
+): string {
   const id = characterId.trim();
   const params = new URLSearchParams();
   if (id) {
@@ -17,6 +21,10 @@ export function remixDayFilmHref(characterId: string, options?: { autoQueue?: bo
   }
   params.set('from', 'look');
   params.set('remix', '1');
+  const theme = normalizeDayThemeId(options?.theme);
+  if (theme) {
+    params.set('theme', theme);
+  }
   if (options?.autoQueue !== false) {
     params.set('autoqueue', '1');
   }
@@ -37,6 +45,13 @@ export type PlayCampaignStepId = 'character' | 'moodboard' | 'fitting' | 'day' |
 export type PlayFunnelStepId = PlayCampaignStepId | 'cut';
 
 export type PlayDayPhaseId = 'queue' | 'animate' | 'cut' | 'save';
+
+/**
+ * Stills a full Day is expected to produce (morning → night). Threaded through the phase and
+ * resume helpers as `slotCount` so a future variable-length Day only has to pass a number here
+ * instead of hunting hardcoded 4s.
+ */
+export const DEFAULT_DAY_SLOT_COUNT = 4;
 
 /** Story micro-funnel (no Save chip — Save lives on Cut celebrate / Cast). */
 export type PlayStoryPhaseId = 'queue' | 'animate' | 'cut';
@@ -192,6 +207,8 @@ export type PlayArtifacts = {
   completedClips?: number;
   /** Explicit Save-needed flag from Day UI; else inferred from funnel. */
   filmNeedsCast?: boolean;
+  /** Stills that count as a complete Day (defaults to the standard four dayparts). */
+  slotCount?: number;
 };
 
 export type DerivedPlayProgress = {
@@ -349,9 +366,12 @@ export function deriveDayPhase(input: {
   filmNeedsCast?: boolean;
   saves?: number;
   campaignCompleted?: boolean;
+  /** Stills that count as a complete Day (defaults to the standard four dayparts). */
+  slotCount?: number;
 }): PlayDayPhaseId | null {
   const stills = input.completedStills;
   const clips = input.completedClips;
+  const slotCount = Math.max(1, input.slotCount ?? DEFAULT_DAY_SLOT_COUNT);
   const needsSave =
     input.filmNeedsCast === true ||
     (input.firstFilmDone &&
@@ -365,7 +385,7 @@ export function deriveDayPhase(input: {
   if (stills <= 0) {
     return 'queue';
   }
-  if (stills >= 4) {
+  if (stills >= slotCount) {
     // Prefer animate when stills are done but clips lag.
     if (clips < stills) {
       return 'animate';
@@ -455,6 +475,7 @@ export function derivePlayProgress(artifacts: PlayArtifacts = {}): DerivedPlayPr
           completedClips,
           firstFilmDone,
           filmNeedsCast,
+          slotCount: artifacts.slotCount,
           saves: funnel.saveToCast ?? 0,
           campaignCompleted: Boolean(campaign?.completedAt),
         })
@@ -570,6 +591,7 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
         pack,
         completedStills,
         completedClips,
+        slotCount: artifacts.slotCount,
       });
     }
     const step = playStepById(progress.resumeStepId);
@@ -599,6 +621,7 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
           completedClips,
           fallbackHref: dayHref,
           keepReason: keeps > 0 && completedStills === 0,
+          slotCount: artifacts.slotCount,
         });
       }
       return {
@@ -656,7 +679,10 @@ function dayPhaseAction(input: {
   completedClips: number;
   fallbackHref?: string;
   keepReason?: boolean;
+  /** Stills that count as a complete Day (defaults to the standard four dayparts). */
+  slotCount?: number;
 }): PlayNextAction {
+  const slotCount = Math.max(1, input.slotCount ?? DEFAULT_DAY_SLOT_COUNT);
   const href =
     input.fallbackHref ??
     resolvePlayStepHref(input.dayPhase, input.characterId || undefined, input.pack);
@@ -670,8 +696,8 @@ function dayPhaseAction(input: {
   if (input.dayPhase === 'cut') {
     return {
       label:
-        input.completedStills >= 4
-          ? 'Cut film · 4 of 4'
+        input.completedStills >= slotCount
+          ? `Cut film · ${slotCount} of ${slotCount}`
           : `Cut film · ${input.completedStills} stills`,
       href,
       reason:
@@ -687,9 +713,9 @@ function dayPhaseAction(input: {
       reason: 'Stills ready — Animate into clips before Cut for a motion reel.',
     };
   }
-  if (input.completedStills > 0 && input.completedStills < 4) {
+  if (input.completedStills > 0 && input.completedStills < slotCount) {
     return {
-      label: `Finish Day · ${input.completedStills} of 4`,
+      label: `Finish Day · ${input.completedStills} of ${slotCount}`,
       href,
       reason: `${input.completedStills} stills ready — queue the rest or Cut film.`,
     };

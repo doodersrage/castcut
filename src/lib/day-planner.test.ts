@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { parsePoseGuideIntent } from './day-pose-guide';
+import { DAY_SLOT_SPORT_BEAT_PRESETS } from './day-sport';
+import { DAY_SLOT_VACATION_BEAT_PRESETS } from './day-vacation';
 import { resolveSoloMasturbationPoseKind } from '@/lib/day-pose-guide';
 import {
+  dayEverydayPoseClass,
   buildDayProgressLightboxState,
   buildDayAdultBeatPoseLock,
   buildDaySlotMotionSubject,
@@ -12,6 +16,12 @@ import {
   dayBeatUsesSoloSexToy,
   daySlotMatchesAdultMix,
   DAY_SLOT_BEAT_PRESETS,
+  DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP,
+  DAY_PLATE_IDENTITY_LOCK_CAP,
+  DAY_VACATION_POSE_IDENTITY_LOCK_CAP,
+  dayEverydayPoseNeedsBodyUnlock,
+  DAY_SLOT_COMPANION_BEAT_PRESETS,
+  DAY_SLOT_POSE_PRESETS,
   DAY_SLOT_HEAT_SETTING_PRESETS,
   DAY_SLOT_INTIMATE_BEAT_PRESETS,
   DAY_SLOT_RAUNCHY_BEAT_PRESETS,
@@ -270,7 +280,9 @@ describe('day-planner', () => {
     assert.match(prompt, /Outfit Keep try-on/i);
     assert.match(prompt, /aggressively refactor/i);
     assert.match(prompt, /navy trench/);
-    assert.match(prompt, /mandatory new body pose/i);
+    // The beat leads; the generic baseline is only the fallback for a vague beat.
+    assert.match(prompt, /POSE FIRST: mandatory body pose and action from the beat only/i);
+    assert.match(prompt, /Body-stance baseline only if the beat is vague/i);
     assert.match(prompt, /SETTING \(mandatory/i);
     assert.match(prompt, /front porch/i);
     assert.match(prompt, /coffee on the porch/i);
@@ -2178,5 +2190,338 @@ describe('day-planner', () => {
     assert.match(prompt, /exactly four hands/i);
     assert.match(prompt, /DUO ACT:|never Cast alone masturbating|never solo nude posing/i);
     assert.doesNotMatch(prompt, /SOLO SUBJECT \(mandatory\)/i);
+  });
+});
+
+describe('buildDaySlotPrompt everyday posing and background', () => {
+  const slot = { id: 'morning' as const, label: 'Morning' };
+
+  it('puts the beat before the baseline pose on everyday', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: { ...slot, sceneHints: 'waving from the balcony', location: 'apartment balcony' },
+      hasPlate: true,
+      plateSource: 'keeper',
+    });
+    const poseFirst = prompt.indexOf('POSE FIRST');
+    const baseline = prompt.indexOf('Body-stance baseline only if the beat is vague');
+    assert.ok(poseFirst >= 0, 'everyday beat should lead with POSE FIRST');
+    assert.ok(baseline > poseFirst, 'baseline should trail the beat');
+    assert.match(prompt, /waving from the balcony/);
+  });
+
+  it('keeps the plain baseline when the slot has no beat', () => {
+    const prompt = buildDaySlotPrompt({ slot, hasPlate: true, plateSource: 'keeper' });
+    assert.match(prompt, /mandatory new body pose/i);
+    assert.doesNotMatch(prompt, /POSE FIRST/);
+  });
+
+  it('discards the standing plate stance on Edit-2511 models only', () => {
+    const base = {
+      slot: { ...slot, sceneHints: 'stretching by the window', location: 'sunlit bedroom' },
+      hasPlate: true,
+      plateSource: 'keeper' as const,
+      poseGuide: true,
+    };
+    assert.match(
+      buildDaySlotPrompt({ ...base, model: 'qwen-image-edit-2511-lightning-8' }),
+      /discard that standing catalog stance/i
+    );
+    // Non-sticky edit models already take the stance from Image 3.
+    assert.doesNotMatch(
+      buildDaySlotPrompt({ ...base, model: 'qwen-rapid-aio-edit' }),
+      /discard that standing catalog stance/i
+    );
+    // No plate means there is no standing plate to discard.
+    assert.doesNotMatch(
+      buildDaySlotPrompt({ ...base, hasPlate: false, model: 'qwen-image-edit-2511-lightning-8' }),
+      /discard that standing catalog stance/i
+    );
+  });
+
+  it('bans white reference voids as the background on everyday too', () => {
+    assert.match(
+      buildDaySlotPrompt({
+        slot: { ...slot, sceneHints: 'pouring coffee', location: 'sunlit kitchen' },
+        hasPlate: true,
+        plateSource: 'keeper',
+        poseGuide: true,
+        model: 'qwen-image-edit-2511-lightning-8',
+      }),
+      /Never leave Image 2 or Image 3 white as the scene background/i
+    );
+    // Nothing white is attached, so the ban would only add noise.
+    assert.doesNotMatch(
+      buildDaySlotPrompt({
+        slot: { ...slot, sceneHints: 'pouring coffee', location: 'sunlit kitchen' },
+        hasPlate: true,
+        plateSource: 'keeper',
+      }),
+      /Never leave Image 2 or Image 3 white as the scene background/i
+    );
+  });
+
+  it('still bans white voids on the heat moods that already had it', () => {
+    for (const dayMood of ['suggestive', 'vacation', 'sport'] as const) {
+      assert.match(
+        buildDaySlotPrompt({
+          slot: { ...slot, sceneHints: 'leaning in the doorway', location: 'hotel hallway' },
+          hasPlate: true,
+          plateSource: 'keeper',
+          poseGuide: true,
+          dayMood,
+        }),
+        /Never leave Image 2 or Image 3 white as the scene background/i,
+        `${dayMood} lost its white-void ban`
+      );
+    }
+  });
+});
+
+describe('everyday pose-class spreading', () => {
+  it('classifies everyday beats by posture', () => {
+    assert.equal(dayEverydayPoseClass('sitting on the edge of the bed lacing boots'), 'SEATED');
+    assert.equal(dayEverydayPoseClass('curled cross-legged on the couch with a mug'), 'SEATED');
+    assert.equal(dayEverydayPoseClass('sitting in a diner booth after dark'), 'SEATED');
+    assert.equal(dayEverydayPoseClass('crouching at a low cupboard, one knee bent'), 'CROUCH');
+    assert.equal(dayEverydayPoseClass('bending to pick up the mail inside the door'), 'CROUCH');
+    assert.equal(dayEverydayPoseClass('kneeling on the path to pet a dog'), 'KNEEL');
+    assert.equal(dayEverydayPoseClass('lying across the bed scrolling a phone'), 'LYING');
+    assert.equal(dayEverydayPoseClass('checking the phone while leaning on the sill'), 'LEANING');
+    assert.equal(dayEverydayPoseClass('walking home mid-stride under neon'), 'WALKING');
+    assert.equal(dayEverydayPoseClass('climbing the stairs with a mug'), 'WALKING');
+    assert.equal(dayEverydayPoseClass('dancing alone for a beat on the patio'), 'DANCING');
+    // Standing-with-busy-arms is its own class, so it cannot be picked twice as "upright".
+    assert.equal(dayEverydayPoseClass('waving hello from the balcony'), 'GESTURE');
+    assert.equal(dayEverydayPoseClass('hands on hips surveying the kitchen'), 'GESTURE');
+    // A genuinely still stance.
+    assert.equal(dayEverydayPoseClass('hands in pockets looking down the block'), 'STILL');
+    assert.equal(dayEverydayPoseClass('arms crossed on a rooftop'), 'STILL');
+    assert.equal(dayEverydayPoseClass(''), 'STILL');
+    assert.equal(dayEverydayPoseClass(undefined), 'STILL');
+    // Lying wins over the couch's seated cue.
+    assert.equal(dayEverydayPoseClass('reclining on the couch with feet up'), 'LYING');
+  });
+
+  it('gives every daypart a broad, non-dominated spread of postures', () => {
+    for (const [slotId, pool] of Object.entries(DAY_SLOT_BEAT_PRESETS)) {
+      const counts = new Map<string, number>();
+      for (const beat of pool) {
+        const cls = dayEverydayPoseClass(beat);
+        counts.set(cls, (counts.get(cls) ?? 0) + 1);
+      }
+      assert.ok(
+        counts.size >= 6,
+        `${slotId} only offers ${counts.size} postures: ${[...counts.keys()].join(', ')}`
+      );
+      // No single posture may dominate, or spreading has nothing to spread into.
+      for (const [cls, n] of counts) {
+        assert.ok(
+          n <= Math.ceil(pool.length * 0.4),
+          `${slotId} is ${n}/${pool.length} ${cls}`
+        );
+      }
+    }
+  });
+
+  it('draws a deliberate mannequin for every everyday beat', () => {
+    for (const [slotId, pool] of Object.entries(DAY_SLOT_BEAT_PRESETS)) {
+      for (const beat of pool) {
+        const intent = parsePoseGuideIntent(beat, 0, { allowIntimate: false, forcePeople: 1 });
+        // Unmatched text falls back to a stance picked by slot index, which is how a whole Day
+        // ends up on one pose. Every beat must name something the guide recognises.
+        assert.ok(
+          intent.social !== null || intent.base !== 'stand',
+          `${slotId}: "${beat}" draws no deliberate pose`
+        );
+      }
+    }
+  });
+
+  it('never draws a sex layout for an everyday beat', () => {
+    for (const [slotId, pool] of Object.entries(DAY_SLOT_BEAT_PRESETS)) {
+      for (const beat of pool) {
+        const intent = parsePoseGuideIntent(beat, 0, { allowIntimate: false, forcePeople: 1 });
+        assert.equal(intent.intimate ?? null, null, `${slotId}: "${beat}" drew an intimate layout`);
+        assert.ok(intent.people <= 1, `${slotId}: "${beat}" drew ${intent.people} figures`);
+        // hug/fight are inherently two-person layouts and have no place in a solo everyday day.
+        assert.ok(
+          intent.social !== 'hug' && intent.social !== 'fight',
+          `${slotId}: "${beat}" drew a two-person ${intent.social} layout`
+        );
+      }
+    }
+  });
+
+  it('gives each daypart several non-standing mannequins to draw', () => {
+    for (const [slotId, pool] of Object.entries(DAY_SLOT_BEAT_PRESETS)) {
+      const bases = new Set(
+        pool.map(beat => parsePoseGuideIntent(beat, 0, { allowIntimate: false, forcePeople: 1 }).base)
+      );
+      assert.ok(bases.size >= 5, `${slotId} only draws ${[...bases].join(', ')}`);
+      const standing = pool.filter(
+        beat => parsePoseGuideIntent(beat, 0, { allowIntimate: false, forcePeople: 1 }).base === 'stand'
+      ).length;
+      assert.ok(standing <= pool.length / 2, `${slotId} draws ${standing}/${pool.length} standing`);
+    }
+  });
+
+  it('does not hand three of four slots the same posture', () => {
+    // Deterministic LCG so a failure is reproducible.
+    let seed = 1;
+    const random = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    for (let run = 0; run < 200; run += 1) {
+      const { slots } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+        forceBeats: true,
+        forceLocations: true,
+        fillBeats: true,
+        random,
+      });
+      const counts = new Map<string, number>();
+      for (const slot of slots) {
+        const cls = dayEverydayPoseClass(slot.sceneHints);
+        counts.set(cls, (counts.get(cls) ?? 0) + 1);
+      }
+      const worst = Math.max(...counts.values());
+      assert.ok(
+        worst <= 2,
+        `run ${run}: ${worst} of 4 slots share one posture (${JSON.stringify([...counts])})`
+      );
+      assert.ok(counts.size >= 3, `run ${run}: only ${counts.size} distinct postures`);
+    }
+  });
+
+  it('keeps a posture the user already wrote and varies the rest', () => {
+    let seed = 7;
+    const random = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    const { slots } = diversifyDaySlotScenes(
+      DEFAULT_DAY_SLOTS.map(slot =>
+        slot.id === 'morning'
+          ? { ...slot, sceneHints: 'sitting on the edge of the bed lacing boots' }
+          : slot
+      ),
+      { fillBeats: true, random }
+    );
+    assert.equal(slots[0]?.sceneHints, 'sitting on the edge of the bed lacing boots');
+    const others = slots.slice(1).map(slot => dayEverydayPoseClass(slot.sceneHints));
+    assert.ok(!others.includes('SEATED'), `seated repeated: ${others.join(', ')}`);
+  });
+});
+
+describe('every Day beat pool draws a deliberate pose', () => {
+  // Options each pool is parsed with in the live queue path.
+  const SOLO = { allowIntimate: false as const, forcePeople: 1 };
+  const DUO = { allowIntimate: false as const, forcePeople: 2 };
+  const CLOTHED = { clothedUprightOnly: true as const, forcePeople: 1 };
+
+  const pools: Array<[string, Record<string, string[]>, Record<string, unknown>]> = [
+    ['everyday', DAY_SLOT_BEAT_PRESETS, SOLO],
+    ['companion', DAY_SLOT_COMPANION_BEAT_PRESETS, DUO],
+    ['baseline pose', DAY_SLOT_POSE_PRESETS, SOLO],
+    ['suggestive', DAY_SLOT_SUGGESTIVE_BEAT_PRESETS, CLOTHED],
+    ['vacation', DAY_SLOT_VACATION_BEAT_PRESETS, CLOTHED],
+    ['sport', DAY_SLOT_SPORT_BEAT_PRESETS, SOLO],
+  ];
+
+  it('never falls back to a stance picked by slot index', () => {
+    for (const [name, pool, opts] of pools) {
+      for (const [slot, beats] of Object.entries(pool)) {
+        for (const beat of beats) {
+          // An unmatched beat takes its base from the fallback index, so the drawn stance
+          // changes with the slot rather than with the words.
+          const atZero = parsePoseGuideIntent(beat, 0, opts).base;
+          const atOne = parsePoseGuideIntent(beat, 1, opts).base;
+          assert.equal(
+            atZero,
+            atOne,
+            `${name}/${slot}: "${beat}" matches no layout (${atZero} vs ${atOne})`
+          );
+        }
+      }
+    }
+  });
+
+  it('keeps sex layouts out of the non-adult pools, even with a companion forced', () => {
+    for (const [name, pool, opts] of pools) {
+      for (const [slot, beats] of Object.entries(pool)) {
+        for (const beat of beats) {
+          const intent = parsePoseGuideIntent(beat, 0, opts);
+          assert.equal(
+            intent.intimate ?? null,
+            null,
+            `${name}/${slot}: "${beat}" drew an intimate layout`
+          );
+        }
+      }
+    }
+  });
+
+  it('draws a companion beat from its own words rather than inventing a pair stance', () => {
+    const walking = parsePoseGuideIntent(
+      'walking home arm-in-arm under streetlights with a companion',
+      0,
+      DUO
+    );
+    assert.equal(walking.base, 'walk');
+    assert.equal(walking.people, 2);
+    const seated = parsePoseGuideIntent(
+      'seated knee-to-knee with a companion sharing a menu',
+      0,
+      DUO
+    );
+    assert.equal(seated.base, 'sit');
+    // Adult moods still get their pair layout when nothing else matches.
+    assert.equal(
+      parsePoseGuideIntent('two adults together in the dark', 0, { forcePeople: 2 }).intimate,
+      'missionary'
+    );
+  });
+
+  it('keeps a swimming beat horizontal instead of standing on the deck', () => {
+    const swim = parsePoseGuideIntent(
+      'SWIMMING freestyle mid-stroke in the resort pool — swimsuit, head turned for a breath',
+      0,
+      CLOTHED
+    );
+    assert.equal(swim.base, 'lie');
+  });
+});
+
+describe('everyday pose unlock', () => {
+  it('only unlocks when the beat needs a body the standing plate cannot give', () => {
+    // Postures the plate cannot supply.
+    for (const beat of [
+      'sitting on the edge of the bed lacing boots',
+      'lying across the bed scrolling a phone',
+      'crouching at a low cupboard',
+      'kneeling on the rug to zip a bag',
+      'leaning against a brick wall waiting',
+      'walking home mid-stride under neon',
+      'dancing alone for a beat on the patio',
+    ]) {
+      assert.equal(dayEverydayPoseNeedsBodyUnlock(beat), true, beat);
+    }
+    // Standing already — unlocking would spend identity for nothing.
+    for (const beat of [
+      'waving hello from the balcony',
+      'hands in pockets looking down the block',
+      'arms crossed on a rooftop',
+      'pouring coffee by the window',
+      '',
+    ]) {
+      assert.equal(dayEverydayPoseNeedsBodyUnlock(beat), false, beat);
+    }
+  });
+
+  it('sits between the vacation face-break cap and the standing default', () => {
+    // Vacation pairs its low cap with a face-cropped Image 1; everyday keeps the whole plate,
+    // so it must not go as loose, but must go looser than the stance-freezing default.
+    assert.ok(DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP > DAY_VACATION_POSE_IDENTITY_LOCK_CAP);
+    assert.ok(DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP < DAY_PLATE_IDENTITY_LOCK_CAP);
   });
 });

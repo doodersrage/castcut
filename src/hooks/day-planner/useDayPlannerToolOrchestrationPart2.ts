@@ -67,8 +67,11 @@ import {
 import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play-campaign';
 import { loadPlayMetrics } from '@/lib/play-metrics';
 import { canEnterPlayStep, resolvePlayStepHref } from '@/lib/play-step-machine';
-import { applyRemixDayFilmState } from '@/lib/play-starter';
-import { dayToolHref } from '@/lib/mobile-studio';
+import { applyRemixDayFilmState, remixNewOutfitHref } from '@/lib/play-starter';
+import { dayThemeById, type DayRemixKind } from '@/lib/play-remix';
+import { recordDayFilmEpisode } from '@/lib/play-series';
+import { exportFilmPoster, pickPosterStillUrl } from '@/lib/film-poster';
+import { dayToolHref, dayToolPathname, toMobileStudioHref } from '@/lib/mobile-studio';
 import { markComfyQueueIntent } from '@/lib/comfy-setup-intent';
 import { buildDemoDayStills } from '@/lib/welcome-sample-film';
 import { getReformatTargetModel } from '@/lib/reformat-target';
@@ -102,6 +105,7 @@ const TOOL_ID = 'day' as const;
 type ClothingOption = { value: string; label: string; group?: string };
 
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
+import { filmResolutionForCutOptions } from '@/lib/film-resolution';
 
 export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestrationCore) {
   const {
@@ -159,6 +163,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   const [firstCutCelebrate, setFirstCutCelebrate] = useState(false);
   const starterAutoQueueRef = useRef(false);
   const remixAppliedRef = useRef(false);
+  /** Label of the themed remix the current Day came from — recorded on its season episode. */
+  const dayThemeRef = useRef<string | undefined>(undefined);
+  /** Gallery entry of the most recent stamped cut — the poster hangs off it. */
+  const lastFilmEntryRef = useRef<string | undefined>(undefined);
+  const [posterBusy, setPosterBusy] = useState(false);
   const autoCutRef = useRef(false);
   const pendingAutoCutRef = useRef(false);
   const prevCharacterIdRef = useRef<string | undefined>(undefined);
@@ -272,6 +281,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       updateToolSettings,
     ]
   );
+
+  // `queueAll` closes over `slots` and the Day mood from the render that created it. A remix
+  // rewrites both and then wants to queue, so it must run the NEXT render's version — otherwise
+  // the fresh plan is saved but the previous Day's beats (and mood) are what actually queue.
+  const queueAllRef = useRef(queueAll);
+  useEffect(() => {
+    queueAllRef.current = queueAll;
+  }, [queueAll]);
 
   const animateSlot = useCallback(
     async (slot: DaySlot, options?: { manageBusy?: boolean }) => {
@@ -415,6 +432,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         characterName: name,
         lookId: character?.activeLookId ?? shared.activeLookId,
         crossfadeSec: filmCutOptions.crossfadeSec,
+        resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
         audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
         onProgress: progress => setFilmStatus(progress.label),
       });
@@ -423,7 +441,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         filename: result.filename,
         data: new Uint8Array(await result.blob.arrayBuffer()),
       };
+      lastFilmEntryRef.current = result.entryId;
       if (character && result.persisted) {
+        recordDayFilmEpisode({
+          characterId: character.id,
+          characterName: character.name,
+          filename: result.filename,
+          galleryEntryId: result.entryId,
+          theme: dayThemeRef.current,
+        });
         setFilmNeedsCast(false);
         setFilmStatus(
           `Saved ${result.filename} to ${character.name} (${result.encodePath} encode) and started the download.`
@@ -474,6 +500,39 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       setAssemblingFilm(false);
     }
   }, [character, filmCutOptions, shared.activeLookId, setFilmGuideHref, slots]);
+
+  /** Save a poster frame from a finished still, matching the cut's aspect. */
+  const saveFilmPoster = useCallback(async () => {
+    const posterUrl = pickPosterStillUrl(slots, stillsRef.current, activeSlotId);
+    if (!posterUrl) {
+      setError('Queue and wait for at least one completed slot still before saving a poster.');
+      return;
+    }
+    setPosterBusy(true);
+    setError(null);
+    setFilmStatus('Rendering poster…');
+    try {
+      const poster = await exportFilmPoster({
+        imageUrl: posterUrl,
+        characterName: character?.name?.trim() || 'day',
+        characterId: character?.id,
+        lookId: character?.activeLookId,
+        parentGalleryEntryId: lastFilmEntryRef.current,
+        resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
+      });
+      downloadFilmBlob(poster.blob, poster.filename);
+      setFilmStatus(
+        poster.persisted
+          ? `Saved ${poster.filename} (${poster.width}×${poster.height}) to Gallery and started the download.`
+          : `Downloaded ${poster.filename} (${poster.width}×${poster.height}). Studio storage could not keep a copy.`
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the poster.');
+      setFilmStatus(null);
+    } finally {
+      setPosterBusy(false);
+    }
+  }, [activeSlotId, character, filmCutOptions.vertical, slots]);
 
   const saveFilmToCast = useCallback(() => {
     if (!character) {
@@ -576,29 +635,86 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     }
   }, [assembledFilmRef, setError, setFilmStatus]);
 
+  const runRemixDay = useCallback(
+    (applyOptions: { kind?: DayRemixKind; themeId?: string | null }, status: string) => {
+      if (!character?.id) {
+        setError('Pick a Cast character before starting a new Day.');
+        return;
+      }
+      applyRemixDayFilmState(applyOptions);
+      dayThemeRef.current = dayThemeById(applyOptions.themeId)?.label;
+      const next = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+      stillsRef.current = [];
+      updateToolSettings({
+        slots: next.slots,
+        dayMood: next.dayMood,
+        ...dayStillsCachePatch([], undefined),
+        notes: next.notes,
+      });
+      setFirstCutCelebrate(false);
+      setFilmStatus(status);
+      setError(null);
+      autoCutRef.current = false;
+      pendingAutoCutRef.current = false;
+      starterAutoQueueRef.current = false;
+      // Deferred to the next macrotask so the tool-settings commit above has landed and
+      // `queueAllRef` points at a `queueAll` that sees the new slots and mood.
+      setTimeout(() => {
+        void queueAllRef.current().finally(() => {
+          pendingAutoCutRef.current = true;
+        });
+      }, 0);
+    },
+    [character?.id, setError, setFilmStatus, stillsRef, updateToolSettings]
+  );
+
   const remixSameLookDay = useCallback(() => {
-    if (!character?.id) {
+    runRemixDay({}, 'Same look · new Day — queueing fresh stills…');
+  }, [runRemixDay]);
+
+  /** Same look, but a themed Setting + Beat set (rainy day, workday, city trip, …). */
+  const remixThemeDay = useCallback(
+    (themeId: string) => {
+      const theme = dayThemeById(themeId);
+      if (!theme) {
+        return;
+      }
+      runRemixDay(
+        { kind: 'theme', themeId: theme.id },
+        `${theme.label} day — queueing fresh stills…`
+      );
+    },
+    [runRemixDay]
+  );
+
+  /** Same Day plan (Settings + Beats), new Outfit: clear stills and kits, then pick on Outfit. */
+  const castId = character?.id;
+  const remixNewOutfitDay = useCallback(() => {
+    if (!castId) {
       setError('Pick a Cast character before starting a new Day.');
       return;
     }
-    applyRemixDayFilmState();
+    applyRemixDayFilmState({ kind: 'new-outfit' });
     const next = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
     stillsRef.current = [];
     updateToolSettings({
       slots: next.slots,
+      customGarmentImageUrl: undefined,
+      customGarmentImageFilename: undefined,
+      customGarmentDescription: undefined,
       ...dayStillsCachePatch([], undefined),
       notes: next.notes,
     });
+    updateShared({ lockedWardrobeId: undefined });
     setFirstCutCelebrate(false);
-    setFilmStatus('Same look · new Day — queueing fresh stills…');
     setError(null);
     autoCutRef.current = false;
     pendingAutoCutRef.current = false;
     starterAutoQueueRef.current = false;
-    void queueAll().finally(() => {
-      pendingAutoCutRef.current = true;
-    });
-  }, [character?.id, queueAll, setError, setFilmStatus, stillsRef, updateToolSettings]);
+    setFilmStatus('Same Day · new outfit — pick a new Outfit, then Continue to Day.');
+    const href = remixNewOutfitHref(castId, loadLookPack());
+    router.push(dayToolPathname() === '/m/day' ? toMobileStudioHref(href) : href);
+  }, [castId, router, setError, setFilmStatus, stillsRef, updateShared, updateToolSettings]);
 
   useEffect(() => {
     if (!mounted || remixAppliedRef.current || typeof window === 'undefined') {
@@ -614,18 +730,26 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       if (cancelled) {
         return;
       }
-      applyRemixDayFilmState();
+      const theme = dayThemeById(params.get('theme'));
+      applyRemixDayFilmState(theme ? { kind: 'theme', themeId: theme.id } : undefined);
+      dayThemeRef.current = theme?.label;
       const next = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
       stillsRef.current = [];
       updateToolSettings({
         slots: next.slots,
+        dayMood: next.dayMood,
         ...dayStillsCachePatch([], undefined),
         notes: next.notes,
       });
       setFirstCutCelebrate(false);
-      setFilmStatus('Same look · new Day — ready for fresh stills.');
+      setFilmStatus(
+        theme
+          ? `${theme.label} day — ready for fresh stills.`
+          : 'Same look · new Day — ready for fresh stills.'
+      );
       autoCutRef.current = false;
       params.delete('remix');
+      params.delete('theme');
       params.set('autocut', '1');
       const nextQuery = params.toString();
       router.replace(dayToolHref(nextQuery));
@@ -695,13 +819,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     updateToolSettings,
   ]);
 
-  // Auto-cut when all four Day stills complete (starter / demo / remix / explicit autocut).
+  // Auto-cut when every Day still completes (starter / demo / remix / explicit autocut).
   useEffect(() => {
     if (!mounted || assemblingFilm || autoCutRef.current) {
       return;
     }
     const completed = stills.filter(entry => entry.status === 'completed' && entry.imageUrl).length;
-    if (completed < 4) {
+    if (completed < Math.max(1, slots.length)) {
       return;
     }
     if (typeof window === 'undefined') {
@@ -719,7 +843,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     autoCutRef.current = true;
     pendingAutoCutRef.current = false;
     void cutDayFilm();
-  }, [assemblingFilm, cutDayFilm, mounted, stills]);
+  }, [slots, assemblingFilm, cutDayFilm, mounted, stills]);
 
   const completedShotCount = watchPlaylist.length;
   const fittingWardrobe = (activeSlot.wardrobeId || shared.lockedWardrobeId || '').trim();
@@ -930,7 +1054,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     cutDayFilm,
     saveFilmToCast,
     shareLastCut,
+    saveFilmPoster,
+    posterBusy,
     remixSameLookDay,
+    remixThemeDay,
+    remixNewOutfitDay,
     goRoleplay,
     seedDemoStills,
     firstCutCelebrate,

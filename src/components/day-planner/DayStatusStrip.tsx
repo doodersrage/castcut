@@ -3,6 +3,8 @@
 type DayStatusStripProps = {
   statusLine: string;
   queueBlockReason?: string | null;
+  /** Whether the Image 3 pose guide reached the queue (and why not, when it didn't). */
+  poseGuideLine?: string | null;
   className?: string;
 };
 
@@ -12,6 +14,7 @@ type DayStatusStripProps = {
 export default function DayStatusStrip({
   statusLine,
   queueBlockReason = null,
+  poseGuideLine = null,
   className = '',
 }: DayStatusStripProps) {
   return (
@@ -19,6 +22,11 @@ export default function DayStatusStrip({
       <p className="type-caption text-[var(--text-secondary)]" data-testid="day-status-line">
         {statusLine}
       </p>
+      {poseGuideLine ? (
+        <p className="type-caption mt-1 text-[var(--text-muted)]" data-testid="day-pose-guide-line">
+          {poseGuideLine}
+        </p>
+      ) : null}
       {queueBlockReason ? (
         <p
           className="type-caption mt-1 text-[var(--tint-warning-text,var(--text-muted))]"

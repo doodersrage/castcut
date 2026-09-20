@@ -73,9 +73,15 @@ Four slots (Morning → Night) with wardrobe, setting, and beat per slot.
 - **Queue day** is disabled with a one-line reason when Cast, look plate, or isolate-on-white isn’t ready.
 - **Outfit kit + BYO** — same clothing strip as Outfit (Image 2); optional **pose stick-figure** on Image 3 so Edit can unlock stance (Image 3 Edit only — pose guides do not attach ControlNet). Everyday beats map to stretch, wave, drink, carry, read, rail, pockets, and more — not only stand/walk/sit. **Sport** maps beat text to mid-action athletic Image 3 layouts (sprint, yoga, cycle, swing, jump shot, kick, lunge, handstand, swim, spike, box, surf, etc.). Solo stills stay one adult by default; turn on **Duo · companions** under the Day slot board for friend/selfie second adults. **Everyday / Suggestive / Sport / Vacation / Intimate / Raunchy** mood chips sit under the board too (Intimate + Raunchy need NSFW env; Sport picks from **21 sports** + cycling road/gravel/MTB/CX/track disciplines with mid-action poses for that time of day; Vacation picks matched travel poses + venues — hotel, pool, market, balcony, rooftop — and keeps Outfit Keep on). Under Intimate or Raunchy, pick **Mixed / Solo / Duo** so heat isn’t duo-only. Each slot card shows Setting · Beat (or an empty-state hint); pose and camera rotate with the scene.
 - **Engine** — floating bottom-right dock for model & workflow (stays reachable while you scroll). Plate Day/Story stills need an Edit model: **Qwen Rapid AIO (Edit)** defaults to Phr00t SFW v23; pick **Qwen Rapid AIO (Edit NSFW)** for the NSFW v23 merge (Intimate / Raunchy). Intimate/Raunchy nude Day **and** Story queues **auto-snap Rapid AIO → Edit NSFW** (required for bare-skin NSFW — SFW will not deliver that). Nude Day **auto-crops a ≥1.1MP face window** when face lock duplicates lingerie; edit lead uses clear natural language: indoor SETTING first (no beach/sand), then “clothes are now gone” / bare skin / zero fabric, then the beat/Image 3 pose named explicitly — **do not name bra/panties/beige in the positive** (those bans stay in the Rapid negative pack); Rapid stays **4–8 steps / CFG 1 / euler_a+simple** (Phr00t AIO — never raise CFG); Solo nude IP lock caps at **0.04**. Map to v21 in Settings if preferred. Edit-2511 Lightning remains the default snap from Qwen 2512 T2I.
+- **Auto-review stills** (opt-in chip under the board) — each finished still is vision-checked (face, hands, outfit); a broken slot is requeued with a targeted fix up to two times, then flagged for you to retry or reroll. Needs a vision LLM (`LLM_VISION_MODEL` or a Settings → LLM vision model). It reviews one still at a time and only while the queue is idle; it judges whether the face is coherent, not whether it matches the Cast (the identity locks still own that). Pass rate shows on the Dashboard.
+- When a Day plate is set and the still is solo, the review also gets an identity pair — your plate on the left, the new still on the right — and scores whether it still looks like your Cast. A mismatch only **warns** ("Passed · worth a look · face may not match the Cast"); it never spends a reroll, because a small face in a wide shot is a weak signal. Duo / companion stills skip the pair, since the reviewer can't tell which face to match.
+- Each slot card shows its review result — **Check this still** (with the reason) when the gate gave up after two rerolls, or a quiet **Passed after N rerolls** note when a requeue fixed it. Use the card's requeue button or **Reroll plan** from there.
 - **Animate → Cut** — after stills land, Day nudges Animate all (clips preferred) then Cut; Cut still works from stills alone.
-- **Cut film** — server ffmpeg when available, browser MediaRecorder fallback if the server encode fails; optional crossfade + audio bed (**Upload audio** or paste a URL).
+- **Cut film** — server ffmpeg when available, browser MediaRecorder fallback if the server encode fails; optional crossfade, **Vertical 9:16** export (crop-to-fill 720×1280 for Shorts / Reels / Stories), and audio bed (**Upload audio** or paste a URL).
 - After cut: celebrate with **Watch / Save on Cast** (manual — no auto-advance). Story is optional.
+- **Remix** — next to **Same look, new Day**: **Same Day, new outfit** keeps every Setting and Beat, clears the stills and kits, and sends you to Outfit to pick a fresh Keep; **Themed day…** re-runs the same look with a themed Setting + Beat set (Rainy day, Weekend out, Workday, Cozy home, City trip — everyday mood). Deep link: `/day?character=<id>&remix=1&theme=<id>`.
+- **Save poster** (also on Story and Cast film) — renders a poster/thumbnail frame from a finished still (the slot you are editing, else the first finished one), center-cropped to the cut's aspect (so a vertical cut gets a vertical poster), saved to Gallery next to the film and downloaded.
+- **Season** — each Cut that lands in Gallery is recorded as an episode of that Cast's current Season (`Robin · Season 1`). With two or more episodes, **Stitch season** joins them oldest-first into one reel saved to Gallery; **New season** closes the current one so the next film starts Season 2.
 
 Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 
@@ -110,6 +116,9 @@ The **Play film loop** card on `/dashboard` shows:
 | Cut rate / Save-to-Cast rate | Local observability funnel |
 | Funnel step chips | Deep-links to resume Look, Outfit, Day, etc. |
 | Stall banner | Where you are stuck before first cut + CTA to that step |
+| Films per week | Cuts in the last 4 weeks ÷ 4 (shown once a cut is recorded) |
+| Stills passed review | Share of auto-reviewed stills that passed first time, with kept / requeued / flagged counts |
+| Slowest phase | Average time per visit in Look / Outfit / Day — the phase worth optimizing. A visit over 2h is treated as "walked away" and ignored |
 
 Empty state: **Open Film** + **Heal & ready** link.
 
@@ -124,7 +133,7 @@ Empty state: **Open Film** + **Heal & ready** link.
 | **Cross-machine** | Studio backup JSON or look pack export/import |
 | **Character mismatch** | **Switch to that character** or restart at Look |
 
-Durable keys: `play-campaign-v1` (Film resume), `comfy-play-metrics-v1`, look packs on Cast + session `moodboard-look-pack-v1`.
+Durable keys: `play-campaign-v1` (Film resume), `comfy-play-metrics-v1`, `play-series-v1` (Seasons), look packs on Cast + session `moodboard-look-pack-v1`.
 
 ---
 

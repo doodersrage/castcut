@@ -14,6 +14,12 @@ import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { persistGalleryOriginal } from './gallery-media-client';
 import { galleryStitchShots, MIN_GALLERY_STITCH_CLIPS } from './gallery-video-stitch';
 import {
+  FILM_PRESET_SIZE,
+  isVerticalFilmResolution,
+  normalizeFilmResolution,
+  type FilmResolutionPreset,
+} from './film-resolution';
+import {
   isAnimatedImageShotUrl,
   readAnimatedImageLoopDurationMs,
   sniffAnimatedImageMime,
@@ -32,7 +38,7 @@ export type AssembleFilmOptions = {
   onProgress?: (progress: AssembleFilmProgress) => void;
   /** Prefer server ffmpeg when available (default true). */
   preferServer?: boolean;
-  resolution?: '720p' | '1080p';
+  resolution?: FilmResolutionPreset;
   crossfadeSec?: number;
   audioBedUrl?: string;
 };
@@ -447,9 +453,12 @@ export async function assembleFilmBlob(
       }
     }
 
-    const { width, height } = await probeSize(
-      resolvedShots.map(entry => ({ ...entry.shot, url: entry.src }))
-    );
+    // Vertical presets use a fixed 9:16 canvas (drawCover fills it); landscape follows the shots.
+    const verticalPreset = options?.resolution ? normalizeFilmResolution(options.resolution) : null;
+    const { width, height } =
+      verticalPreset && isVerticalFilmResolution(verticalPreset)
+        ? FILM_PRESET_SIZE[verticalPreset]
+        : await probeSize(resolvedShots.map(entry => ({ ...entry.shot, url: entry.src })));
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -682,7 +691,7 @@ export async function assembleAndStampFilm(input: {
   characterId: string;
   characterName: string;
   lookId?: string;
-  resolution?: '720p' | '1080p';
+  resolution?: FilmResolutionPreset;
   crossfadeSec?: number;
   audioBedUrl?: string;
   preferServer?: boolean;
@@ -717,6 +726,8 @@ export async function assembleAndStampFilm(input: {
 
 export async function stitchSelectedGalleryVideos(input: {
   entries: ComfyGalleryEntry[];
+  /** Names the file and gallery entry (e.g. a Play season title); defaults to a generic stitch. */
+  title?: string;
   onProgress?: (progress: AssembleFilmProgress) => void;
 }): Promise<{
   filename: string;
@@ -732,7 +743,8 @@ export async function stitchSelectedGalleryVideos(input: {
   }
 
   const assembled = await assembleFilmBlob(shots, { onProgress: input.onProgress });
-  const filename = filmDownloadFilename('gallery-stitch', assembled.extension);
+  const title = input.title?.trim();
+  const filename = filmDownloadFilename(title || 'gallery-stitch', assembled.extension);
   const firstId = shots[0]?.entryId;
   const first = input.entries.find(entry => entry.id === firstId);
   const characterIds = new Set(
@@ -749,7 +761,9 @@ export async function stitchSelectedGalleryVideos(input: {
     characterName: 'gallery',
     lookId: first?.lookId,
     mimeType: assembled.mimeType,
-    prompt: `Stitched film · ${shots.length} clips`,
+    prompt: title
+      ? `Stitched film · ${title} · ${shots.length} clips`
+      : `Stitched film · ${shots.length} clips`,
     tool: 'gallery',
     parentGalleryEntryId: first?.id,
     projectId: first?.projectId,

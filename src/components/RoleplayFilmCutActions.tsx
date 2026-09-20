@@ -26,6 +26,8 @@ export type RoleplayFilmCutActionsProps = {
   onCutFilm: () => void;
   onSaveToCast: () => void;
   onShareCut?: () => void;
+  onSavePoster?: () => void;
+  posterBusy?: boolean;
   /** Optional leading controls (e.g. Download story) kept in the same flex row. */
   children?: ReactNode;
 };
@@ -46,6 +48,8 @@ export default function RoleplayFilmCutActions({
   onCutFilm,
   onSaveToCast,
   onShareCut,
+  onSavePoster,
+  posterBusy = false,
   children,
 }: RoleplayFilmCutActionsProps) {
   const showPostCut = Boolean(
@@ -83,6 +87,19 @@ export default function RoleplayFilmCutActions({
             data-testid="roleplay-share-cut"
           >
             Share cut
+          </Button>
+        ) : null}
+        {onSavePoster && !assemblingFilm ? (
+          <Button
+            variant="ghost"
+            disabled={busy || storyEmpty}
+            loading={posterBusy}
+            loadingLabel="Saving"
+            onClick={onSavePoster}
+            data-testid="roleplay-save-poster"
+            title="Save a poster frame from a finished still"
+          >
+            Save poster
           </Button>
         ) : null}
         {filmNeedsCast && !hidePostCutLinks ? (

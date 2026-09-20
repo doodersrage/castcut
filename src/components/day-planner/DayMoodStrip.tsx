@@ -15,6 +15,14 @@ export type DayMoodStripProps = {
   busy?: boolean;
   allowCompanions?: boolean;
   onAllowCompanionsChange?: (next: boolean) => void;
+  /** Default on — loosen the plate's grip on stance when the beat needs a different body. */
+  posePriority?: boolean;
+  onPosePriorityChange?: (next: boolean) => void;
+  /** Opt-in vision review + bounded requeue of broken Day stills. */
+  autoReviewStills?: boolean;
+  onAutoReviewStillsChange?: (next: boolean) => void;
+  /** Latest quality-gate line (reviewing / passed / requeueing / paused). */
+  qualityStatus?: string | null;
   dayMood?: DayMood;
   onDayMoodChange?: (next: DayMood) => void;
   intimateMix?: DayIntimateMix;
@@ -32,6 +40,11 @@ export default function DayMoodStrip({
   busy = false,
   allowCompanions = false,
   onAllowCompanionsChange,
+  posePriority = true,
+  onPosePriorityChange,
+  autoReviewStills = false,
+  onAutoReviewStillsChange,
+  qualityStatus = null,
   dayMood = 'everyday',
   onDayMoodChange,
   intimateMix = 'mixed',
@@ -46,7 +59,12 @@ export default function DayMoodStrip({
   );
   const showAdultMix = isDayAdultMood(mood) && Boolean(onIntimateMixChange);
 
-  if (!onAllowCompanionsChange && !onDayMoodChange) {
+  if (
+    !onAllowCompanionsChange &&
+    !onDayMoodChange &&
+    !onAutoReviewStillsChange &&
+    !onPosePriorityChange
+  ) {
     return null;
   }
 
@@ -62,6 +80,28 @@ export default function DayMoodStrip({
             onClick={() => onAllowCompanionsChange(!allowCompanions)}
           >
             Duo · companions
+          </ChipButton>
+        ) : null}
+        {onPosePriorityChange ? (
+          <ChipButton
+            active={posePriority}
+            disabled={busy}
+            data-testid="day-pose-priority"
+            title="Let the beat's pose win over the plate's stance (Qwen Edit 2511 copies Image 1 otherwise). Turn off if faces drift."
+            onClick={() => onPosePriorityChange(!posePriority)}
+          >
+            Pose over plate
+          </ChipButton>
+        ) : null}
+        {onAutoReviewStillsChange ? (
+          <ChipButton
+            active={autoReviewStills}
+            disabled={busy}
+            data-testid="day-auto-review"
+            title="Vision-check each finished still and requeue broken faces, hands, or outfits (needs a vision model)"
+            onClick={() => onAutoReviewStillsChange(!autoReviewStills)}
+          >
+            Auto-review stills
           </ChipButton>
         ) : null}
         {onDayMoodChange
@@ -94,6 +134,23 @@ export default function DayMoodStrip({
             </ChipButton>
           ))}
         </div>
+      ) : null}
+      {!posePriority ? (
+        <p
+          className="type-caption mt-2 text-[var(--text-muted)]"
+          data-testid="day-pose-priority-hint"
+        >
+          Pose over plate is off — stills will follow the plate&rsquo;s stance more closely.
+        </p>
+      ) : null}
+      {autoReviewStills && qualityStatus ? (
+        <p
+          className="type-caption mt-2 text-[var(--text-muted)]"
+          role="status"
+          data-testid="day-quality-status"
+        >
+          {qualityStatus}
+        </p>
       ) : null}
       {allowCompanions ? (
         <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-companions-hint">

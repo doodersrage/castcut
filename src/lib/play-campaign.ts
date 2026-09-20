@@ -4,6 +4,7 @@
  */
 
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
+import { notePlayPhaseStep } from './play-metrics';
 import type { LookPack } from './look-pack';
 import { saveLookPack } from './look-pack';
 import {
@@ -272,6 +273,7 @@ export function bumpPlayCampaignStep(input: {
     updatedAt: Date.now(),
   };
   savePlayCampaignState(next);
+  notePlayPhaseStep(input.stepId);
   void import('./local-observability').then(
     ({ noteCampaignStepMetric, noteCampaignMaxStepMetric }) => {
       noteCampaignStepMetric();
@@ -336,6 +338,8 @@ export function completePlayCampaign(input: {
     updatedAt: Date.now(),
   };
   savePlayCampaignState(next);
+  // The cut ends the Day phase — close it rather than leaving the clock running.
+  notePlayPhaseStep('complete');
   void import('./local-observability').then(({ noteCampaignMaxStepMetric }) => {
     noteCampaignMaxStepMetric(next.stepIndex);
   });

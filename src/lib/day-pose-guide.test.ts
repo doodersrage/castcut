@@ -6,6 +6,7 @@ import {
   drawDayPoseGuide,
   intimateLeadPrefersSecondRole,
   parsePoseGuideIntent,
+  parseSocialLayout,
   resolvePoseGuideKeyFromScene,
   resolvePoseGuideVisualStyle,
   resolveStoryPoseGuideKey,
@@ -1086,5 +1087,57 @@ describe('day-pose-guide', () => {
     } as unknown as CanvasRenderingContext2D;
     drawDayPoseGuide(ctx, 'morning', 'outline-gray');
     assert.equal(paper.toLowerCase(), '#ffffff');
+  });
+});
+
+describe('everyday pose layouts', () => {
+  const solo = { allowIntimate: false as const, forcePeople: 1 };
+
+  it('maps the everyday stance cues to their own layouts', () => {
+    assert.equal(parseSocialLayout('tying a lace with one foot up on the step'), 'foot_up');
+    assert.equal(parseSocialLayout('bending to pick up the mail inside the door'), 'bend_pick');
+    assert.equal(parseSocialLayout('leaning against a brick wall waiting'), 'lean_wall');
+    assert.equal(parseSocialLayout('climbing the stairs with a mug'), 'stairs');
+    assert.equal(parseSocialLayout('tucking hair behind an ear'), 'hair_touch');
+    assert.equal(parseSocialLayout('adjusting a bag strap on the shoulder'), 'hair_touch');
+    assert.equal(parseSocialLayout('shrugging mid-conversation, palms up'), 'shrug');
+    assert.equal(parseSocialLayout('hands on hips surveying the counter'), 'hands_hips');
+  });
+
+  it('draws those layouts as distinct body shapes', () => {
+    assert.equal(parsePoseGuideIntent('bending to pick up the mail', 0, solo).base, 'crouch');
+    assert.equal(parsePoseGuideIntent('climbing the stairs with a mug', 0, solo).base, 'walk');
+    assert.equal(
+      parsePoseGuideIntent('leaning against a brick wall waiting', 0, solo).base,
+      'lean'
+    );
+    assert.equal(
+      parsePoseGuideIntent('tying a lace with one foot up on the step', 0, solo).base,
+      'lean'
+    );
+  });
+
+  it('lets a stated posture outrank a hand-gesture layout', () => {
+    // The gesture keeps the arms; the body follows the posture the beat actually names.
+    const lying = parsePoseGuideIntent('lying across the bed scrolling a phone', 0, solo);
+    assert.equal(lying.social, 'phone');
+    assert.equal(lying.base, 'lie');
+
+    const seated = parsePoseGuideIntent('sitting on a park bench reading a book', 0, solo);
+    assert.equal(seated.social, 'read');
+    assert.equal(seated.base, 'sit');
+
+    // A genuinely standing gesture is untouched.
+    assert.equal(parsePoseGuideIntent('waving from the balcony', 0, solo).base, 'stand');
+  });
+
+  it('only draws sex layouts when intimate layouts are allowed', () => {
+    const beat = 'leaning against a brick wall waiting for a friend';
+    // Adult moods keep the existing behaviour.
+    assert.equal(parsePoseGuideIntent(beat, 0).intimate, 'wall');
+    // Everyday must not turn an innocent wall lean into a two-figure wall press.
+    const everyday = parsePoseGuideIntent(beat, 0, { allowIntimate: false });
+    assert.equal(everyday.intimate ?? null, null);
+    assert.equal(everyday.social, 'lean_wall');
   });
 });

@@ -28,6 +28,8 @@ export type RoleplayStorySectionProps = {
   onCutFilm: () => void;
   onSaveToCast: () => void;
   onShareCut?: () => void;
+  onSavePoster?: () => void;
+  posterBusy?: boolean;
   canShareCut?: boolean;
   onQueue: (beat: RoleplayStoryBeat) => void;
   onRetry: (beat: RoleplayStoryBeat) => void;
@@ -65,6 +67,8 @@ export default function RoleplayStorySection({
   onCutFilm,
   onSaveToCast,
   onShareCut,
+  onSavePoster,
+  posterBusy = false,
   canShareCut = false,
   onQueue,
   onRetry,
@@ -140,6 +144,19 @@ export default function RoleplayStorySection({
                 Share cut
               </Button>
             ) : null}
+            {onSavePoster ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={posterBusy}
+                loadingLabel="Saving"
+                data-testid="story-first-cut-poster"
+                title="Save a poster frame from a finished still"
+                onClick={onSavePoster}
+              >
+                Save poster
+              </Button>
+            ) : null}
             {filmCharacterId ? (
               <ButtonLink
                 href={remixDayFilmHref(filmCharacterId)}
@@ -172,6 +189,8 @@ export default function RoleplayStorySection({
         onCutFilm={onCutFilm}
         onSaveToCast={onSaveToCast}
         onShareCut={onShareCut}
+        onSavePoster={onSavePoster}
+        posterBusy={posterBusy}
         canShareCut={canShareCut && !firstCutCelebrate}
       >
         {firstCutCelebrate ? null : downloadAction}

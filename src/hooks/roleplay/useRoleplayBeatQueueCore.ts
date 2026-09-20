@@ -36,6 +36,7 @@ import { snapshotRoleplaySession } from '@/lib/roleplay-library';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
 import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs';
 import { buildStoryPoseGuideFile } from '@/lib/day-pose-guide';
+import { poseGuideFailureReason } from '@/lib/pose-guide-status';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
@@ -195,6 +196,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         });
         const poseGuideFilename = uploaded?.filename?.trim() || undefined;
         if (!poseGuideFilename) {
+          console.warn('Story pose guide upload returned no filename — queueing without Image 3.');
           return undefined;
         }
         const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
@@ -204,8 +206,13 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             comfyUrl,
           }).find(url => url.includes('/api/comfyui/view?')) || undefined;
         return { filename: poseGuideFilename, imageUrl: poseGuideUrl };
-      } catch {
-        // Pose guide is best-effort — Story still queues without Image 3.
+      } catch (poseError) {
+        // Pose guide is best-effort — Story still queues without Image 3 — but a silent drop
+        // reads as "posing is broken", so say why in the console at least.
+        console.warn(
+          `Story pose guide could not be attached: ${poseGuideFailureReason(poseError)}`,
+          poseError
+        );
         return undefined;
       }
     },
