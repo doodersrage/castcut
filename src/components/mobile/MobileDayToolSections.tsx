@@ -129,6 +129,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     rerollActiveSlotScene,
     queueBlockReason,
     poseGuideLine,
+    poseGuidePreviews,
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,
@@ -321,6 +322,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             statusLine={dayStatusLine}
             queueBlockReason={queueBlockReason}
             poseGuideLine={poseGuideLine}
+            poseGuidePreviews={poseGuidePreviews}
           />
         </div>
       ) : null}

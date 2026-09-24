@@ -536,6 +536,7 @@ describe('day-planner', () => {
       hasPlate: true,
       plateSource: 'keeper',
       poseGuide: true,
+      poseGuideStyle: 'legacy',
     });
     assert.match(prompt, /Image 3 is a flat SCHEMATIC|Image 3 is a flat mannequin|Image 3 is a crude stick-figure/i);
     assert.match(prompt, /never draw (?:stick figures|mannequins)/i);
@@ -554,12 +555,38 @@ describe('day-planner', () => {
       hasPlate: true,
       plateSource: 'keeper',
       poseGuide: true,
+      poseGuideStyle: 'legacy',
       allowCompanions: true,
     });
     assert.doesNotMatch(prompt, /SOLO SUBJECT \(mandatory\)/i);
     assert.match(prompt, /COMPANIONS:/i);
     assert.match(prompt, /camera:/i);
     assert.match(prompt, /Never paint Image 3 into the photo/i);
+  });
+
+  it('buildDaySlotPrompt OpenPose guide names the lead by position, not color', () => {
+    const solo = buildDaySlotPrompt({
+      slot: DEFAULT_DAY_SLOTS[1]!,
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+    });
+    assert.match(solo, /Image 3 is an OpenPose keypoint/i);
+    assert.match(solo, /one skeleton/i);
+    assert.doesNotMatch(solo, /magenta|cyan|flat SCHEMATIC|gray OUTLINE/i);
+
+    const companions = buildDaySlotPrompt({
+      slot: { ...DEFAULT_DAY_SLOTS[0]!, sceneHints: 'selfie with a friend leaning into frame' },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      poseGuideStyle: 'openpose',
+      poseLeadPosition: 'left',
+      allowCompanions: true,
+    });
+    assert.match(companions, /COMPANIONS: Cast face from Image 1 on the leftmost Image 3 skeleton/i);
+    assert.match(companions, /the leftmost skeleton is the Image 1 person/i);
+    assert.doesNotMatch(companions, /Magenta|cyan\/orange|thick Image 3 outline/i);
   });
 
   it('resolveDaySlotPoseBaseline rotates with setting/beat', () => {

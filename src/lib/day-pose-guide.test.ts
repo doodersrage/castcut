@@ -23,13 +23,20 @@ describe('day-pose-guide', () => {
     assert.equal(size.height, 768);
   });
 
-  it('resolvePoseGuideVisualStyle uses gray outlines for Rapid and Edit-2511', () => {
-    assert.equal(resolvePoseGuideVisualStyle('qwen-rapid-aio-edit'), 'outline-gray');
-    assert.equal(resolvePoseGuideVisualStyle('qwen-rapid-aio-nsfw'), 'outline-gray');
-    assert.equal(resolvePoseGuideVisualStyle('qwen-image-edit-2511-lightning-8'), 'outline-gray');
-    assert.equal(resolvePoseGuideVisualStyle('qwen-image-edit-2511'), 'outline-gray');
-    assert.equal(resolvePoseGuideVisualStyle('qwen-image-2512-lightning-8'), 'filled');
-    assert.equal(resolvePoseGuideVisualStyle('boogu-image-edit-turbo'), 'filled');
+  it('resolvePoseGuideVisualStyle defaults to OpenPose on every model', () => {
+    assert.equal(resolvePoseGuideVisualStyle('qwen-rapid-aio-edit'), 'openpose');
+    assert.equal(resolvePoseGuideVisualStyle('qwen-image-edit-2511-lightning-8', 'openpose'), 'openpose');
+    assert.equal(resolvePoseGuideVisualStyle(null), 'openpose');
+  });
+
+  it('legacy resolvePoseGuideVisualStyle uses gray outlines for Rapid and Edit-2511', () => {
+    const legacy = (model: string) => resolvePoseGuideVisualStyle(model, 'legacy');
+    assert.equal(legacy('qwen-rapid-aio-edit'), 'outline-gray');
+    assert.equal(legacy('qwen-rapid-aio-nsfw'), 'outline-gray');
+    assert.equal(legacy('qwen-image-edit-2511-lightning-8'), 'outline-gray');
+    assert.equal(legacy('qwen-image-edit-2511'), 'outline-gray');
+    assert.equal(legacy('qwen-image-2512-lightning-8'), 'filled');
+    assert.equal(legacy('boogu-image-edit-turbo'), 'filled');
   });
 
   it('resolveStoryPoseGuideKey cycles four stances', () => {

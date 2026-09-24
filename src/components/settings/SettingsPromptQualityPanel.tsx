@@ -19,11 +19,34 @@ import {
   normalizeResolutionSizeTier,
 } from '@/lib/model-resolution-defaults';
 import { normalizeQueueQualityProfile } from '@/lib/queue-quality-profile';
+import {
+  normalizePoseGuideStylePreference,
+  type PoseGuideStylePreference,
+} from '@/lib/pose-guide-prompt';
 
 const DETAIL_OPTIONS: Array<{ id: DetailLevel; label: string }> = [
   { id: 'concise', label: 'Concise' },
   { id: 'balanced', label: 'Balanced' },
   { id: 'rich', label: 'Rich' },
+];
+
+const POSE_GUIDE_STYLE_OPTIONS: Array<{
+  id: PoseGuideStylePreference;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: 'openpose',
+    label: 'OpenPose',
+    description:
+      'Day and Story send Image 3 as a standard OpenPose keypoint map — the pose format Qwen Image Edit understands natively, with head direction and position-based lead mapping.',
+  },
+  {
+    id: 'legacy',
+    label: 'Legacy capsules',
+    description:
+      'Older colored capsule (or gray outline on Rapid AIO / Edit-2511) mannequins with long anti-leak prompts. Use to compare against OpenPose.',
+  },
 ];
 
 type SettingsPromptQualityPanelProps = {
@@ -42,6 +65,7 @@ export default function SettingsPromptQualityPanel({
   totalVramGb,
 }: SettingsPromptQualityPanelProps) {
   const detail = sharedSettings.detail ?? 'balanced';
+  const poseGuideStyle = normalizePoseGuideStylePreference(sharedSettings.poseGuideStyle);
   const vramEnabled = sharedSettings.vramGuardEnabled !== false;
   const minFreeGb = sharedSettings.vramGuardMinFreeGb ?? 6;
   const freeVramAfterMax = sharedSettings.freeVramAfterMax === true;
@@ -119,6 +143,25 @@ export default function SettingsPromptQualityPanel({
           mode={sharedSettings.renderRealismMode ?? 'off'}
           onModeChange={mode => updateSharedSettings({ renderRealismMode: mode })}
         />
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-[var(--text-primary)]">Pose guide style</p>
+          <div className="flex flex-wrap gap-1.5">
+            {POSE_GUIDE_STYLE_OPTIONS.map(option => (
+              <ChipButton
+                key={option.id}
+                active={poseGuideStyle === option.id}
+                disabled={!sharedMounted}
+                title={option.description}
+                onClick={() => updateSharedSettings({ poseGuideStyle: option.id })}
+              >
+                {option.label}
+              </ChipButton>
+            ))}
+          </div>
+          <p className="type-caption text-[var(--text-muted)]">
+            {POSE_GUIDE_STYLE_OPTIONS.find(option => option.id === poseGuideStyle)?.description}
+          </p>
+        </div>
         <AnatomyGuardHints
           mode={sharedSettings.anatomyGuardMode ?? 'standard'}
           onModeChange={mode => updateSharedSettings({ anatomyGuardMode: mode })}

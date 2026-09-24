@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **OpenPose pose guides for Play Day and Story:** Image 3 is now drawn as a standard OpenPose (COCO-18) keypoint map on black — the pose-control format Qwen Image Edit 2509/2511 were trained on — instead of the custom magenta/cyan capsules or gray outlines. The model has been reading those capsules as a picture to copy, which is the root of the long run of morphsuit, ghost-double, speckle and purple-squiggle leak fixes. Skeletons now carry head direction (front / back / profile) so "partner behind", reverse straddle, face-down and wall presses stop reading as face-to-face; the Cast lead is named by position ("the lower (underneath) skeleton") rather than color; the Image 3 prompt is a few short lines instead of the long anti-leak block; and pose negatives drop from ~500 scene-specific terms to a short keypoint-leak list. **Settings → Prompt quality → Pose guide style** switches back to **Legacy capsules** for A/B comparison.
+- **Everyday / Vacation Lightning keep Image 3 again (OpenPose only):** Edit-2511 Lightning had dropped the guide because the legacy art leaked; with OpenPose it attaches, while the Lightning identity plate and turbo strength stay as they were. Legacy style still drops it.
+- **See the guide you sent:** the Day status strip has a **Show pose guides** drawer with a thumbnail per slot, and the status line says when the guide was OpenPose.
+
 ## [v2.0.2] - 2026-09-20
 
 - **Everyday Lightning: skip Image 3, unlock stance from text:** Edit-2511 Lightning was freezing half of Everyday Day stills on the Keep plate stand and occasionally painting Image 3 as white speckle rain plus a beige-lingerie ghost beside her. Everyday Lightning now keeps full Keep as Image 1 (ReferenceLatent identity), drops the pose guide, names sit/walk/lean/gesture stance in the prompt, raises denoise to **0.92**, and bans second-person / speckle / neon-outline leaks at queue time.

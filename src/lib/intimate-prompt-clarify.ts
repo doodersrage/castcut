@@ -1138,10 +1138,15 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
     if (/SOLO SUBJECT \(mandatory\)/i.test(next)) {
       next = next.replace(/SOLO SUBJECT \(mandatory\)[^\n]*/gi, '').replace(/\n{3,}/g, '\n\n');
     }
-    if (/Image 3 shows exactly ONE (?:magenta schematic|outline figure)/i.test(next)) {
+    if (
+      /Image 3 shows exactly ONE (?:magenta schematic|outline figure)|Image 3 has one skeleton:/i.test(
+        next
+      )
+    ) {
       next = next
         .replace(/Image 3 shows exactly ONE magenta schematic[^\n]*/gi, '')
         .replace(/Image 3 shows exactly ONE outline figure[^\n]*/gi, '')
+        .replace(/ ?Image 3 has one skeleton:[^\n]*/gi, '')
         .replace(/\n{3,}/g, '\n\n');
     }
     if (
@@ -1167,7 +1172,10 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
       next = `${next} SKIN TEXTURE: natural matte pores — never oily plastic wet shine or airbrushed CGI skin.`;
     }
     if (!/LIGHTING:\s*natural room|never cyan or magenta|never cyan\/magenta/i.test(next)) {
-      next = `${next} LIGHTING: natural room/lamp light only — never cyan or magenta neon gels, chest glow, schematic smoke, or Image 3 colors painted into the scene.`;
+      // OpenPose guides: no color words in the positive (they self-condition CFG-1 stacks).
+      next = /Image 3 is an OpenPose keypoint/i.test(next)
+        ? `${next} LIGHTING: natural room/lamp light only — never neon gels, chest glow, or Image 3 skeleton colors painted into the scene.`
+        : `${next} LIGHTING: natural room/lamp light only — never cyan or magenta neon gels, chest glow, schematic smoke, or Image 3 colors painted into the scene.`;
     }
     if (!/bare nightstand|nothing open on the bed|FOREGROUND:\s*bare sheets/i.test(next)) {
       next = `${next} PROPS: bare sheets and bodies only — bare nightstand; nothing open on the bed.`;

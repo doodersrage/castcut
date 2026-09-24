@@ -18,7 +18,22 @@ export type PoseGuideOutcome = {
   /** Model the still queued on, and whether it can actually consume Image 3 as an edit. */
   model?: string;
   editCapableModel?: boolean;
+  /** Image 3 art that was drawn (attached only). */
+  style?: 'openpose' | 'legacy';
+  /** ComfyUI view URL of the uploaded guide, for the Day board preview. */
+  previewUrl?: string;
 };
+
+export type PoseGuidePreview = { slotId: string; slotLabel: string; url: string };
+
+/** Attached guides with a viewable upload, in slot order. */
+export function poseGuidePreviews(outcomes: PoseGuideOutcome[]): PoseGuidePreview[] {
+  return outcomes.flatMap(entry =>
+    entry.state === 'attached' && entry.previewUrl
+      ? [{ slotId: entry.slotId, slotLabel: entry.slotLabel, url: entry.previewUrl }]
+      : []
+  );
+}
 
 /** Readable one-liner from whatever the build/upload threw. */
 export function poseGuideFailureReason(error: unknown): string {
@@ -83,9 +98,10 @@ export function summarizePoseGuideOutcomes(outcomes: PoseGuideOutcome[]): string
       reason ? ` — ${reason}` : ''
     }.`;
   }
-  return `Pose guide attached on ${attached.length} of ${outcomes.length} ${
-    outcomes.length === 1 ? 'slot' : 'slots'
-  }.`;
+  const openPose = outcomes.some(entry => entry.state === 'attached' && entry.style === 'openpose');
+  return `Pose guide${openPose ? ' (OpenPose)' : ''} attached on ${attached.length} of ${
+    outcomes.length
+  } ${outcomes.length === 1 ? 'slot' : 'slots'}.`;
 }
 
 /** Upsert one slot's outcome, keeping slot order stable. */

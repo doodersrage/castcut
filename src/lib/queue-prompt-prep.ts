@@ -19,9 +19,11 @@ import { loadRenderRealismMode } from './render-realism-settings';
 import {
   ensurePoseGuideStyleLock,
   mergePoseGuideNegatives,
+  promptHasOpenPoseGuideCue,
   promptHasPoseGuideCue,
   rewritePoseGuideCueForRapidAio,
   usesOutlineGrayPoseGuide,
+  type PoseGuideStylePreference,
 } from './pose-guide-prompt';
 import { appendCleanSkinPositive, mergeCleanSkinNegatives } from './clean-skin';
 import { inferAthleticSport, type AthleticSport } from './athletic-sport-profiles';
@@ -96,6 +98,20 @@ export const RAPID_AIO_POSE_LEAK_NEGATIVE =
 /** Anti-diagram / anti-morphsuit only — safe for Suggestive / Vacation clothed pose unlock. */
 export const RAPID_AIO_POSE_LEAK_POSITIVE_BASE =
   'finished photograph only — do not paint Image 3 outlines, stick figures, neon overlays, cyan/magenta lights, or black morphsuits into the scene';
+
+/**
+ * OpenPose Image 3 variant of the base leak pack. Positive color words ("cyan/magenta",
+ * "neon") self-condition CFG-1 stacks, and a keypoint map has no outlines or fills to warn about.
+ */
+export const OPENPOSE_POSE_LEAK_POSITIVE_BASE =
+  'finished photograph only — the Image 3 keypoint skeleton is pose control, never drawn into the scene';
+
+/** Swap the legacy base leak line for the OpenPose one when the prompt carries a keypoint cue. */
+function poseLeakPositiveFor(pack: string, openPose: boolean): string {
+  return openPose
+    ? pack.replace(RAPID_AIO_POSE_LEAK_POSITIVE_BASE, OPENPOSE_POSE_LEAK_POSITIVE_BASE)
+    : pack;
+}
 
 /** Adult nude/duo pose unlock — never append on Suggestive / Vacation (fights CLOTHING LOCK). */
 export const RAPID_AIO_POSE_LEAK_POSITIVE = `${RAPID_AIO_POSE_LEAK_POSITIVE_BASE}; duo partners are fully bare-skinned humans both fully visible mid-contact; solo adult: rumpled indoor sheets and lamp light in the foreground, no beach sand or ocean, no ocean through window, clothes are now gone — bare breasts with nipples visible and bare vulva, zero fabric on the body, body pose matches the beat and Image 3 exactly, exactly two hands mid-self-touch as the beat says (fingers on vulva or a penis-shaped silicone dildo with the tip of the penis pushed deep into her vaginal opening), each on a continuous forearm from her own shoulder, one woman alone never invent a man, eyes half-lidded looking down not at the lens, five natural fingers each, natural matte pores, warm lamp light, bare sheets only`;
@@ -356,14 +372,18 @@ export function applyQueuePromptSteering(input: {
   const turboEditStrength = normalizeTurboEditStrength(input.turboEditStrength);
   // Pose-guide Image 3: lock finished-scene realism and block stick-figure bleed.
   // Rapid AIO keeps Image 3 but rewrites neon magenta/cyan cue language to gray-outline.
+  // OpenPose guides are model-agnostic keypoint maps — never rewrite them to gray-outline cues.
   const poseGuideAttached = promptHasPoseGuideCue(input.positive);
+  const openPoseGuide = poseGuideAttached && promptHasOpenPoseGuideCue(input.positive);
   let steeredPositive = poseGuideAttached
     ? ensurePoseGuideStyleLock(input.positive, realismMode)
     : input.positive;
-  if (poseGuideAttached && usesOutlineGrayPoseGuide(input.model)) {
+  if (poseGuideAttached && !openPoseGuide && usesOutlineGrayPoseGuide(input.model)) {
     steeredPositive = rewritePoseGuideCueForRapidAio(steeredPositive, realismMode);
   }
-  const steeredNegative = mergePoseGuideNegatives(input.negative, poseGuideAttached);
+  const steeredNegative = mergePoseGuideNegatives(input.negative, poseGuideAttached, {
+    style: openPoseGuide ? 'openpose' : 'legacy',
+  });
   const finish = (result: { positive: string; negative?: string }) => {
     // Boogu zeros the negative encode; WAN Lightning keeps a tiny artifact pack only.
     const skipNegativeSkin =
@@ -436,14 +456,19 @@ export function applyQueuePromptSteering(input: {
       negative = appendUniqueCsv(negative, LIGHTNING_EVERYDAY_DAY_NEGATIVE);
     }
     if (poseGuideAttached && (clothedHeat.applied || everydayDay)) {
-      positive = appendUniqueCsv(positive, RAPID_AIO_POSE_LEAK_POSITIVE_BASE);
+      positive = appendUniqueCsv(
+        positive,
+        poseLeakPositiveFor(RAPID_AIO_POSE_LEAK_POSITIVE_BASE, openPoseGuide)
+      );
       positive = appendUniqueCsv(positive, CLOTHED_HEAT_POSE_LIMB_POSITIVE);
       negative = appendUniqueCsv(negative, CLOTHED_HEAT_POSE_LIMB_NEGATIVE);
       negative = appendUniqueCsv(negative, RAPID_AIO_POSE_LEAK_NEGATIVE);
     }
-    const poseLeakNeg = poseGuideAttached
-      ? 'stick figure, wireframe, pose diagram, cyan pose outline, magenta pose outline, purple squiggle, neon capsule, pose guide leak, Image 3 drawn into scene, white speckle rain, dither dots'
-      : 'stick figure, wireframe, pose diagram, white speckle rain, dither dots, second woman, beige lingerie ghost';
+    const poseLeakNeg = openPoseGuide
+      ? 'openpose skeleton, keypoint dots, colored stick lines, stick figure, pose diagram, black void background, pose guide leak, Image 3 drawn into scene'
+      : poseGuideAttached
+        ? 'stick figure, wireframe, pose diagram, cyan pose outline, magenta pose outline, purple squiggle, neon capsule, pose guide leak, Image 3 drawn into scene, white speckle rain, dither dots'
+        : 'stick figure, wireframe, pose diagram, white speckle rain, dither dots, second woman, beige lingerie ghost';
     if (realismMode === 'realistic' || realismMode === 'hyper-realistic') {
       return finish({
         positive: appendUniqueCsv(
@@ -505,9 +530,12 @@ export function applyQueuePromptSteering(input: {
       // Nude solo/duo pose-leak fights CLOTHING LOCK on Suggestive/Vacation — base only.
       positive = appendUniqueCsv(
         positive,
-        clothedHeat.applied || !adultHeat
-          ? RAPID_AIO_POSE_LEAK_POSITIVE_BASE
-          : RAPID_AIO_POSE_LEAK_POSITIVE
+        poseLeakPositiveFor(
+          clothedHeat.applied || !adultHeat
+            ? RAPID_AIO_POSE_LEAK_POSITIVE_BASE
+            : RAPID_AIO_POSE_LEAK_POSITIVE,
+          openPoseGuide
+        )
       );
       negative = appendUniqueCsv(negative, RAPID_AIO_POSE_LEAK_NEGATIVE);
     }
@@ -784,9 +812,13 @@ export function prepareNegativeForQueue(
     anatomyMode?: AnatomyGuardMode;
     /** When true, or when pairing with a pose-guide positive, block stick-figure bleed. */
     poseGuide?: boolean;
+    /** Which Image 3 art the paired positive used (OpenPose keeps a short negative). */
+    poseGuideStyle?: PoseGuideStylePreference;
   }
 ): string | undefined {
-  const withPoseNeg = mergePoseGuideNegatives(negative, options?.poseGuide === true);
+  const withPoseNeg = mergePoseGuideNegatives(negative, options?.poseGuide === true, {
+    style: options?.poseGuideStyle ?? 'legacy',
+  });
   const withRealism = applyRenderRealismToNegative(
     withPoseNeg,
     options?.realismMode ?? loadRenderRealismMode()

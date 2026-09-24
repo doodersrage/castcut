@@ -35,7 +35,10 @@ import { dispatchWebhook } from '@/lib/webhook-settings';
 import { snapshotRoleplaySession } from '@/lib/roleplay-library';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
 import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs';
-import { buildStoryPoseGuideFile } from '@/lib/day-pose-guide';
+import { buildStoryPoseGuide, poseGuideStylePreferenceFor } from '@/lib/day-pose-guide';
+import { describePoseLeadPosition } from '@/lib/pose-guide-openpose';
+import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
+import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
 import { poseGuideFailureReason } from '@/lib/pose-guide-status';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
@@ -44,6 +47,13 @@ import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { MutableRefObject } from 'react';
 
 const TOOL_ID = 'roleplay';
+
+/** What the Story still prompt needs to know about the Image 3 guide that was drawn. */
+type StoryPoseGuidePromptMeta = {
+  style: PoseGuideStylePreference;
+  headcount: number;
+  leadPosition: string | null;
+};
 
 type PromptActions = ReturnType<typeof usePromptResultActions>;
 
@@ -182,13 +192,15 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           0,
           storyRef.current.findIndex(entry => entry.id === beat.id && entry.at === beat.at)
         );
-        const poseFile = await buildStoryPoseGuideFile({
+        const poseBuild = await buildStoryPoseGuide({
           title: beat.title,
           blurb: beat.blurb,
           prompt: beat.prompt,
           storyIndex: storyIndex >= 0 ? storyIndex : 0,
           model: shared.model,
+          stylePreference: loadPoseGuideStylePreference(),
         });
+        const poseFile = poseBuild.file;
         const uploaded = await resolveQueueInputImage({
           file: poseFile,
           filename: poseFile.name,
@@ -205,7 +217,17 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             filename: poseGuideFilename,
             comfyUrl,
           }).find(url => url.includes('/api/comfyui/view?')) || undefined;
-        return { filename: poseGuideFilename, imageUrl: poseGuideUrl };
+        return {
+          filename: poseGuideFilename,
+          imageUrl: poseGuideUrl,
+          prompt: {
+            style: poseGuideStylePreferenceFor(poseBuild.style),
+            headcount: poseBuild.figureCount,
+            leadPosition: poseBuild.leadPosition
+              ? describePoseLeadPosition(poseBuild.leadPosition)
+              : null,
+          } satisfies StoryPoseGuidePromptMeta,
+        };
       } catch (poseError) {
         // Pose guide is best-effort — Story still queues without Image 3 — but a silent drop
         // reads as "posing is broken", so say why in the console at least.
@@ -244,7 +266,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         promptSource,
         Boolean(poseGuide) || (!queueStill && playAs === 'photo'),
         shared.renderRealismMode,
-        shared.model
+        shared.model,
+        poseGuide?.prompt ?? { style: loadPoseGuideStylePreference() }
       );
       const prompt = await actions.finalizePrompt(promptWithPose, beat.title);
       rememberDraftFields({
@@ -347,7 +370,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           promptSource,
           Boolean(poseGuide),
           shared.renderRealismMode,
-          shared.model
+          shared.model,
+          poseGuide?.prompt
         );
         const stillOpts = queueStillOptions(poseGuide, latest);
         const charOpts = roleplayCharacterQueueFields(

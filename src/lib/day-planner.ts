@@ -5,7 +5,13 @@ import {
 } from '@/lib/character-film';
 import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/compose-prompt';
 import { countPoseGuidePeople } from '@/lib/day-pose-guide';
-import { POSE_GUIDE_ACTION_LOCK, poseGuidePromptBlock } from '@/lib/pose-guide-prompt';
+import {
+  POSE_GUIDE_ACTION_LOCK,
+  normalizePoseGuideStylePreference,
+  poseGuidePromptBlock,
+  type PoseGuideStylePreference,
+} from '@/lib/pose-guide-prompt';
+import { describePoseLeadPosition, type PoseLeadPosition } from '@/lib/pose-guide-openpose';
 import { resolveRoleplaySetting, storyBeatOmitsGarmentPackshot } from '@/lib/roleplay';
 import {
   DEFAULT_RENDER_REALISM_MODE,
@@ -820,6 +826,10 @@ export const DAY_SLOT_CAMERA_PRESETS: string[] = [
  */
 export const DAY_POSE_GUIDE_ANTI_LEAK =
   'Never paint Image 3 into the photo as a flesh-colored blob, featureless nude torso, incomplete second body, window-reflection doppelganger, detached hand, stick overlay, neon outline, white speckle rain, film-grain snow, dither dots, or pose diagram — only one finished clothed adult matching Image 1; never a second woman in beige lingerie standing beside her.';
+
+/** OpenPose Image 3 variant of DAY_POSE_GUIDE_ANTI_LEAK — a keypoint map has no fills to bleed. */
+export const DAY_OPENPOSE_ANTI_LEAK =
+  'Image 3 is only a pose map — never draw its lines, dots, or black background into the photo, and never add a second body the beat does not name.';
 
 /** Daypart motion cues for Animate / I2V (beyond generic “subtle motion”). */
 export const DAY_SLOT_MOTION_CUES: Record<DaySlotId, string> = {
@@ -2109,6 +2119,10 @@ export function buildDaySlotPrompt(input: {
   garmentDescription?: string;
   /** Crude stick-figure / wireframe on Image 3 for pose unlock. */
   poseGuide?: boolean;
+  /** Which Image 3 art was drawn (OpenPose by default). */
+  poseGuideStyle?: PoseGuideStylePreference;
+  /** OpenPose multi-figure: where the lead skeleton sits, so the prompt can name it. */
+  poseLeadPosition?: PoseLeadPosition | null;
   /** Active model — Rapid AIO uses gray-outline Image 3 cue language. */
   model?: string | null;
   /** Settings realism mode — pose guide locks photoreal unless anime/off. */
@@ -2165,6 +2179,14 @@ export function buildDaySlotPrompt(input: {
   const plateIsolated = input.plateIsolated === true;
   const garmentReinforce = input.garmentReinforce === true && !omitGarment && !replaceKeepOutfit;
   const poseGuide = input.poseGuide === true;
+  const openPoseGuide =
+    poseGuide && normalizePoseGuideStylePreference(input.poseGuideStyle) === 'openpose';
+  const leadPositionPhrase = input.poseLeadPosition
+    ? describePoseLeadPosition(input.poseLeadPosition)
+    : null;
+  const leadSkeleton = leadPositionPhrase
+    ? `the ${leadPositionPhrase} Image 3 skeleton`
+    : 'the lead Image 3 skeleton';
   const realismMode = normalizeRenderRealismMode(input.realismMode ?? DEFAULT_RENDER_REALISM_MODE);
   // Heat beats own the stance — setting stays out of the pose haystack (backdrop only).
   const poseHaystack = (isDayHeatMood(dayMood) && hints ? [hints] : [setting, hints, defaultPose])
@@ -2231,6 +2253,8 @@ export function buildDaySlotPrompt(input: {
     ? poseGuidePromptBlock(realismMode, {
         headcount: poseHeadcount,
         model: input.model,
+        style: openPoseGuide ? 'openpose' : 'legacy',
+        leadPosition: leadPositionPhrase,
       })
     : null;
   const soloLock = soloSubject
@@ -2243,17 +2267,23 @@ export function buildDaySlotPrompt(input: {
   const rapidAio = /^qwen-rapid-aio-/i.test(String(input.model ?? '').trim());
   const companionLock =
     partnersAllowed && poseHeadcount >= 2
-      ? rapidAio
+      ? openPoseGuide
         ? isDayAdultMood(dayMood)
           ? intimateMix === 'duo' || poseHeadcount === 2
-            ? 'PARTNERS: Exactly TWO adults — thick Image 3 outline = Cast FACE only on the lead body in the beat pose; thinner outline = one different adult partner with real bare human skin on chest/back/hips/legs, head and shoulders visible. Never a black morphsuit, zentai, catsuit, black bodysuit, or latex void partner (never only face and hands uncovered); never a cyan/magenta light blob or smoke stand-in; never paint Image 1 as a third standing/portrait person; never a third face; exactly four hands (each on a visible forearm); no ghost hands; no flesh-blob merge, no black rubber blob between bodies, no double genitals, no shared hip mass.'
-            : 'PARTNERS: Thick Image 3 outline = Cast face from Image 1 on the lead; thinner outline = a different adult partner with real bare skin — never a twin clone of Cast, never a black morphsuit/zentai, never a flesh blob or incomplete torso.'
-          : 'COMPANIONS: Thick Image 3 outline = Cast face from Image 1 on the lead; thinner outline = a different adult friend or selfie companion — never a twin clone of Cast, never a flesh blob or incomplete torso.'
-        : isDayAdultMood(dayMood)
-          ? intimateMix === 'duo' || poseHeadcount === 2
-            ? 'PARTNERS: Exactly TWO adults — Magenta schematic = Cast FACE only on the lead pose (ignore Magenta/cyan as scene lights); cyan/orange schematic = one different adult partner with real bare human skin on chest/back/hips/legs, head and shoulders visible. Never paint Image 3 colors as neon gels, chest glow, or smoke; never a black morphsuit/zentai/catsuit (never only face and hands uncovered); never a solo Cast portrait; never a third face; exactly four hands (each on a visible forearm); no ghost hands; no flesh-blob merge, no black rubber blob between bodies, no double genitals, no shared hip mass.'
-            : 'PARTNERS: Magenta = Cast face from Image 1 on the lead; cyan/orange = a different adult partner with real bare skin — never a twin clone of Cast, never a black morphsuit/zentai, never a flesh blob or incomplete torso.'
-          : 'COMPANIONS: Magenta = Cast face from Image 1 on the lead; cyan/orange = a different adult friend or selfie companion — never a twin clone of Cast, never a flesh blob or incomplete torso.'
+            ? `PARTNERS: Exactly TWO adults — Cast FACE from Image 1 only on ${leadSkeleton} in the beat pose; the other skeleton is one different adult partner with real bare human skin on chest/back/hips/legs, head and shoulders visible. Never a third face; exactly four hands (each on a visible forearm); no ghost hands; no flesh-blob merge, no double genitals, no shared hip mass.`
+            : `PARTNERS: Cast face from Image 1 on ${leadSkeleton}; each other skeleton is a different adult partner with real bare skin — never a twin clone of Cast, never a flesh blob or incomplete torso.`
+          : `COMPANIONS: Cast face from Image 1 on ${leadSkeleton}; the other skeleton is a different adult friend or selfie companion — never a twin clone of Cast, never a flesh blob or incomplete torso.`
+        : rapidAio
+          ? isDayAdultMood(dayMood)
+            ? intimateMix === 'duo' || poseHeadcount === 2
+              ? 'PARTNERS: Exactly TWO adults — thick Image 3 outline = Cast FACE only on the lead body in the beat pose; thinner outline = one different adult partner with real bare human skin on chest/back/hips/legs, head and shoulders visible. Never a black morphsuit, zentai, catsuit, black bodysuit, or latex void partner (never only face and hands uncovered); never a cyan/magenta light blob or smoke stand-in; never paint Image 1 as a third standing/portrait person; never a third face; exactly four hands (each on a visible forearm); no ghost hands; no flesh-blob merge, no black rubber blob between bodies, no double genitals, no shared hip mass.'
+              : 'PARTNERS: Thick Image 3 outline = Cast face from Image 1 on the lead; thinner outline = a different adult partner with real bare skin — never a twin clone of Cast, never a black morphsuit/zentai, never a flesh blob or incomplete torso.'
+            : 'COMPANIONS: Thick Image 3 outline = Cast face from Image 1 on the lead; thinner outline = a different adult friend or selfie companion — never a twin clone of Cast, never a flesh blob or incomplete torso.'
+          : isDayAdultMood(dayMood)
+            ? intimateMix === 'duo' || poseHeadcount === 2
+              ? 'PARTNERS: Exactly TWO adults — Magenta schematic = Cast FACE only on the lead pose (ignore Magenta/cyan as scene lights); cyan/orange schematic = one different adult partner with real bare human skin on chest/back/hips/legs, head and shoulders visible. Never paint Image 3 colors as neon gels, chest glow, or smoke; never a black morphsuit/zentai/catsuit (never only face and hands uncovered); never a solo Cast portrait; never a third face; exactly four hands (each on a visible forearm); no ghost hands; no flesh-blob merge, no black rubber blob between bodies, no double genitals, no shared hip mass.'
+              : 'PARTNERS: Magenta = Cast face from Image 1 on the lead; cyan/orange = a different adult partner with real bare skin — never a twin clone of Cast, never a black morphsuit/zentai, never a flesh blob or incomplete torso.'
+            : 'COMPANIONS: Magenta = Cast face from Image 1 on the lead; cyan/orange = a different adult friend or selfie companion — never a twin clone of Cast, never a flesh blob or incomplete torso.'
       : null;
   const duoHeadcountLock =
     isDayAdultMood(dayMood) && (intimateMix === 'duo' || poseHeadcount === 2) && !soloSubject
@@ -2337,11 +2367,17 @@ export function buildDaySlotPrompt(input: {
       ? buildDayEverydayKeepPoseUnlock(hints)
       : null;
   const poseAntiLeak = poseGuide
-    ? isDayAdultMood(dayMood)
-      ? rapidAio
-        ? 'Never paint Image 3 as a stick overlay, black morphsuit, zentai, catsuit, black bodysuit, latex void suit, flesh blob, black rubber blob between bodies, cyan/magenta light, smoke stand-in, diagram notebook, or pose diagram — finished human adults with bare real skin on the whole body and natural lamp light only; Cast face on the lead outline; partner is a different bare-skinned adult fully in frame (never only face and hands uncovered on a black suit).'
-        : 'Never paint Image 3 as a black morphsuit/zentai/catsuit, flesh blob, black rubber blob between bodies, featureless torso, cyan/magenta gel light, smoke, diagram notebook, or diagram — finished human adults with bare real skin on the whole body and natural lamp light only; Cast face on the magenta lead pose only (not as scene lights); partner is a different bare-skinned adult fully in frame (never only face and hands uncovered on a black suit).'
-      : DAY_POSE_GUIDE_ANTI_LEAK
+    ? openPoseGuide
+      ? isDayAdultMood(dayMood)
+        ? soloSubject
+          ? 'Image 3 is only a pose map — one finished human adult with bare real skin on the whole body and natural lamp light only; Cast face on the posed body.'
+          : `Image 3 is only a pose map — finished human adults with bare real skin on the whole body and natural lamp light only; Cast face on ${leadSkeleton}; partner is a different bare-skinned adult fully in frame.`
+        : DAY_OPENPOSE_ANTI_LEAK
+      : isDayAdultMood(dayMood)
+        ? rapidAio
+          ? 'Never paint Image 3 as a stick overlay, black morphsuit, zentai, catsuit, black bodysuit, latex void suit, flesh blob, black rubber blob between bodies, cyan/magenta light, smoke stand-in, diagram notebook, or pose diagram — finished human adults with bare real skin on the whole body and natural lamp light only; Cast face on the lead outline; partner is a different bare-skinned adult fully in frame (never only face and hands uncovered on a black suit).'
+          : 'Never paint Image 3 as a black morphsuit/zentai/catsuit, flesh blob, black rubber blob between bodies, featureless torso, cyan/magenta gel light, smoke, diagram notebook, or diagram — finished human adults with bare real skin on the whole body and natural lamp light only; Cast face on the magenta lead pose only (not as scene lights); partner is a different bare-skinned adult fully in frame (never only face and hands uncovered on a black suit).'
+        : DAY_POSE_GUIDE_ANTI_LEAK
     : null;
   const photorealOutput =
     poseGuide && (realismMode === 'realistic' || realismMode === 'hyper-realistic');
@@ -2405,7 +2441,9 @@ export function buildDaySlotPrompt(input: {
       ? garmentReinforce
         ? 'Image 2 white is packshot only — do not use Image 2 or Image 3 white as the scene background.'
         : poseGuide
-          ? 'Image 3 white is pose-guide only — fill Image 1 white with the SETTING, not a studio void.'
+          ? openPoseGuide
+            ? 'Image 3 is a pose map on black — fill Image 1 white with the SETTING, not a studio or black void.'
+            : 'Image 3 white is pose-guide only — fill Image 1 white with the SETTING, not a studio void.'
           : null
       : null;
     const lateWhiteVoidLine = referenceWhiteVoid

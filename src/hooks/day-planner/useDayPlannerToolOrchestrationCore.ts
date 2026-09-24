@@ -102,11 +102,15 @@ import {
   clothedHeatUnlockPoseClass,
   vacationStanceDirective,
 } from '@/lib/day-vacation';
-import { buildDayPoseGuideFile } from '@/lib/day-pose-guide';
+import { buildDayPoseGuide, poseGuideStylePreferenceFor } from '@/lib/day-pose-guide';
+import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
+import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
+import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
 import { isEditCapableModel } from '@/lib/model-denoise-defaults';
 import {
   poseGuideFailureReason,
   recordPoseGuideOutcome,
+  poseGuidePreviews,
   summarizePoseGuideOutcomes,
   type PoseGuideOutcome,
 } from '@/lib/pose-guide-status';
@@ -507,7 +511,13 @@ export function useDayPlannerToolOrchestrationCore() {
   const buildSlotPrompt = useCallback(
     (
       slot: DaySlot,
-      options?: { poseGuide?: boolean; faceOnlyIdentity?: boolean; forceGarmentReinforce?: boolean }
+      options?: {
+        poseGuide?: boolean;
+        poseGuideStyle?: PoseGuideStylePreference;
+        poseLeadPosition?: PoseLeadPosition | null;
+        faceOnlyIdentity?: boolean;
+        forceGarmentReinforce?: boolean;
+      }
     ) => {
       const wardrobeId = slot.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
       const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
@@ -553,6 +563,8 @@ export function useDayPlannerToolOrchestrationCore() {
         garmentReinforce: garmentReinforce && !omitGarment && !replaceKeepOutfit,
         garmentDescription: toolSettings.customGarmentDescription,
         poseGuide,
+        poseGuideStyle: options?.poseGuideStyle ?? loadPoseGuideStylePreference(),
+        poseLeadPosition: options?.poseLeadPosition ?? null,
         model: shared.model,
         realismMode: shared.renderRealismMode,
         allowCompanions: toolSettings.allowCompanions === true,
@@ -650,6 +662,13 @@ export function useDayPlannerToolOrchestrationCore() {
         let nudeFaceAutoCropped = false;
         let vacationFaceBreak = false;
         let skipPoseGuideImage = false;
+        // Lightning keeps full Keep/Cast as Image 1 (ReferenceLatent) — tuned separately from
+        // whether Image 3 rides along.
+        let lightningIdentityPath = false;
+        // Lightning dropped Image 3 because the legacy capsule/outline art leaked into stills;
+        // an OpenPose keypoint map is a pose condition Edit-2511 understands, so it stays on.
+        const poseGuideStyle = loadPoseGuideStylePreference();
+        const lightningDropsPoseGuide = poseGuideStyle === 'legacy';
         if (omitGarment && character) {
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const nudeIdentity = await resolveDayNudeIdentityPlateWithFaceCrop({
@@ -675,9 +694,10 @@ export function useDayPlannerToolOrchestrationCore() {
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const bodyPlate = identityPlate ?? queuePlate;
           if (isDayVacationLightningIdentityVlModel(shared.model)) {
-            // Face-crop Image 1 invents a new person every slot. Pose-guide Image 3
+            // Face-crop Image 1 invents a new person every slot. Legacy pose-guide Image 3
             // paints a color overlay. Full Keep/Cast as Image 1 with ReferenceLatent.
-            skipPoseGuideImage = true;
+            skipPoseGuideImage = lightningDropsPoseGuide;
+            lightningIdentityPath = true;
             const identityVl = await resolveDayVacationIdentityVlPlate({
               bodyPlate,
               character,
@@ -704,9 +724,11 @@ export function useDayPlannerToolOrchestrationCore() {
           isDayVacationLightningIdentityVlModel(shared.model) &&
           (identityPlate ?? queuePlate)
         ) {
-          // Everyday Lightning: Image 3 paints speckle rain and a Keep-plate ghost
-          // (second woman / beige lingerie). Full Keep as Image 1; stance from text.
-          skipPoseGuideImage = true;
+          // Everyday Lightning: legacy Image 3 paints speckle rain and a Keep-plate ghost
+          // (second woman / beige lingerie). Full Keep as Image 1; stance from text (legacy)
+          // or from the OpenPose map.
+          skipPoseGuideImage = lightningDropsPoseGuide;
+          lightningIdentityPath = true;
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const identityVl = await resolveDayVacationIdentityVlPlate({
             bodyPlate: identityPlate ?? queuePlate,
@@ -768,6 +790,8 @@ export function useDayPlannerToolOrchestrationCore() {
         let poseGuideUrl: string | undefined;
         let poseGuideFilename: string | undefined;
         let poseGuideFailure: string | undefined;
+        let poseGuideDrawnStyle: PoseGuideStylePreference = poseGuideStyle;
+        let poseLeadPosition: PoseLeadPosition | null = null;
         if (hasPlate && !skipPoseGuideImage) {
           try {
             const dayMood = normalizeDayMood(
@@ -816,7 +840,7 @@ export function useDayPlannerToolOrchestrationCore() {
                 : poseHeadcount >= 3 && poseSceneReinforced
                   ? poseSceneReinforced
                   : poseSceneReinforced || undefined;
-            const poseFile = await buildDayPoseGuideFile(
+            const poseBuild = await buildDayPoseGuide(
               queueTarget.id,
               poseScene || undefined,
               shared.model,
@@ -826,8 +850,12 @@ export function useDayPlannerToolOrchestrationCore() {
                 // Only the adult moods may draw sex layouts; an everyday "leaning against the
                 // wall" beat must not become a two-figure wall press.
                 allowIntimate: isDayAdultMood(dayMood),
+                stylePreference: poseGuideStyle,
               }
             );
+            const poseFile = poseBuild.file;
+            poseGuideDrawnStyle = poseGuideStylePreferenceFor(poseBuild.style);
+            poseLeadPosition = poseBuild.leadPosition;
             const uploaded = await resolveQueueInputImage({
               file: poseFile,
               filename: poseFile.name,
@@ -859,6 +887,8 @@ export function useDayPlannerToolOrchestrationCore() {
                   state: 'attached' as const,
                   model: shared.model,
                   editCapableModel: isEditCapableModel(shared.model),
+                  style: poseGuideDrawnStyle,
+                  ...(poseGuideUrl ? { previewUrl: poseGuideUrl } : {}),
                 }
               : !hasPlate
                 ? { state: 'skipped' as const, reason: 'no Day plate' }
@@ -876,6 +906,8 @@ export function useDayPlannerToolOrchestrationCore() {
 
         const basePrompt = buildSlotPrompt(queueTarget, {
           poseGuide: Boolean(poseGuideFilename),
+          poseGuideStyle: poseGuideDrawnStyle,
+          poseLeadPosition,
           faceOnlyIdentity,
           // Only force Image 2 language when a clothing-only packshot is actually attached.
           forceGarmentReinforce:
@@ -983,7 +1015,7 @@ export function useDayPlannerToolOrchestrationCore() {
           toolSettings.posePriority !== false &&
           !isDayHeatMood(dayMood) &&
           isDayPoseStickyEditModel(shared.model) &&
-          (Boolean(poseGuideFilename) || skipPoseGuideImage);
+          (Boolean(poseGuideFilename) || lightningIdentityPath);
         // Nude Solo: always soft-cap identity even without Image 3 — high IP + lingerie
         // face crop is how beige bras win over FULLY NUDE.
         const identityCap =
@@ -1045,7 +1077,7 @@ export function useDayPlannerToolOrchestrationCore() {
                 queueTool: 'image-prompt',
                 // Strong turbo rewrite fights face lock on Edit-2511 face-break Day.
                 turboEditStrength:
-                  vacationFaceBreak || skipPoseGuideImage || everydayPoseUnlock
+                  vacationFaceBreak || lightningIdentityPath || everydayPoseUnlock
                     ? 'balanced'
                     : 'strong',
                 identityLock: true,
@@ -1273,6 +1305,7 @@ export function useDayPlannerToolOrchestrationCore() {
     rerollActiveSlotScene,
     queueBlockReason,
     poseGuideLine: summarizePoseGuideOutcomes(poseGuideOutcomes),
+    poseGuidePreviews: poseGuidePreviews(poseGuideOutcomes),
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,

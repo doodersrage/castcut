@@ -13,6 +13,7 @@ import {
   POSE_GUIDE_WALL_STANDING_LOCK,
   poseGuidePromptBlock,
   withPoseGuideEditPrompt,
+  type PoseGuideStylePreference,
 } from '@/lib/pose-guide-prompt';
 import {
   isLegacyAdultMetaBlurb,
@@ -675,16 +676,17 @@ export function formatRoleplayPoseGuideCue(input: {
   phase: 'bio' | 'scenes' | 'prompt';
   hasPoseGuide?: boolean;
   realismMode?: RenderRealismMode;
+  poseGuideStyle?: PoseGuideStylePreference;
 }): string {
   if (!input.hasReferenceImage || input.hasPoseGuide === false) {
     return '';
   }
   if (input.phase === 'prompt') {
     const mode = normalizeRenderRealismMode(input.realismMode ?? DEFAULT_RENDER_REALISM_MODE);
-    return `${poseGuidePromptBlock(mode)} Describe the beat's action (and any second person) so the still can match that stance.`;
+    return `${poseGuidePromptBlock(mode, { style: input.poseGuideStyle })} Describe the beat's action (and any second person) so the still can match that stance.`;
   }
   if (input.phase === 'scenes') {
-    return 'Vary pose and stance between options — stills get a mannequin pose guide on Image 3 (two figures when the beat is a duo).';
+    return 'Vary pose and stance between options — stills get a pose guide on Image 3 (two figures when the beat is a duo).';
   }
   return '';
 }
@@ -694,10 +696,23 @@ export function withRoleplayPoseGuidePrompt(
   prompt: string,
   enabled: boolean,
   realismMode: RenderRealismMode = DEFAULT_RENDER_REALISM_MODE,
-  model?: string | null
+  model?: string | null,
+  guide?: {
+    /** Image 3 art that was drawn (OpenPose by default). */
+    style?: PoseGuideStylePreference;
+    /** Figures in the drawn guide — OpenPose names the exact headcount. */
+    headcount?: number;
+    /** OpenPose multi-figure: lead skeleton position phrase. */
+    leadPosition?: string | null;
+  }
 ): string {
   const reinforced = reinforceIntimateStillPrompt(prompt);
-  const withPose = withPoseGuideEditPrompt(reinforced, enabled, realismMode, { model });
+  const withPose = withPoseGuideEditPrompt(reinforced, enabled, realismMode, {
+    model,
+    style: guide?.style,
+    headcount: guide?.headcount,
+    leadPosition: guide?.leadPosition,
+  });
   if (!enabled || !withPose) {
     return withPose;
   }

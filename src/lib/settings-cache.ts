@@ -16,6 +16,11 @@ import { DEFAULT_ANATOMY_GUARD_MODE, normalizeAnatomyGuardMode } from './anatomy
 import type { AnatomyGuardMode } from './anatomy-guard';
 import { DEFAULT_RENDER_REALISM_MODE, normalizeRenderRealismMode } from './render-realism';
 import type { RenderRealismMode } from './render-realism';
+import {
+  DEFAULT_POSE_GUIDE_STYLE,
+  normalizePoseGuideStylePreference,
+  type PoseGuideStylePreference,
+} from './pose-guide-prompt';
 import { DEFAULT_VARIATION_SETTINGS } from './variation-settings';
 import type { DetailLevel } from './detail-level';
 import {
@@ -516,6 +521,8 @@ export type SharedToolSettings = {
   modelResolutionSizeTier?: ResolutionSizeTier;
   /** Auto-adjust positive/negative prompts for realistic renders on queue. */
   renderRealismMode?: RenderRealismMode;
+  /** Day / Story Image 3 pose-guide art: OpenPose keypoints (default) or legacy capsules. */
+  poseGuideStyle?: PoseGuideStylePreference;
   /** Auto-adjust prompts to reduce mutations and extra limbs on queue. */
   anatomyGuardMode?: AnatomyGuardMode;
   /** When true (default), patch EmptyLatentImage and loader nodes directly at queue time. */
@@ -1218,6 +1225,7 @@ export const DEFAULT_SHARED_SETTINGS: SharedToolSettings = {
   modelResolutionOrientation: DEFAULT_RESOLUTION_ORIENTATION,
   modelResolutionSizeTier: DEFAULT_RESOLUTION_SIZE_TIER,
   renderRealismMode: DEFAULT_RENDER_REALISM_MODE,
+  poseGuideStyle: DEFAULT_POSE_GUIDE_STYLE,
   anatomyGuardMode: DEFAULT_ANATOMY_GUARD_MODE,
   directWorkflowPatching: true,
   syncWorkflowLoadersToModel: false,
@@ -1650,6 +1658,7 @@ export function loadSettingsCache(): SettingsCache {
     shared.renderRealismMode = normalizeRenderRealismMode(
       shared.renderRealismMode ?? DEFAULT_SHARED_SETTINGS.renderRealismMode
     );
+    shared.poseGuideStyle = normalizePoseGuideStylePreference(shared.poseGuideStyle);
     shared.anatomyGuardMode = normalizeAnatomyGuardMode(
       shared.anatomyGuardMode ?? DEFAULT_ANATOMY_GUARD_MODE
     );

@@ -61,8 +61,12 @@ See [configuration — production checklist](configuration.md#production-checkli
 
 ## Posing looks wrong (stance ignored, wireframe bleed) {#pose-guide}
 
-Day stills get their stance from an **Image 3 pose guide** — a mannequin drawn on a canvas in
-your browser, uploaded to ComfyUI, and attached as the third image. When that guide does not
+Day and Story stills get their stance from an **Image 3 pose guide** — an OpenPose keypoint map
+(or, with **Settings → Prompt quality → Pose guide style → Legacy capsules**, the older colored
+mannequin) drawn on a canvas in your browser, uploaded to ComfyUI, and attached as the third
+image. Open **Show pose guides** under the status line to see exactly what each slot sent. With
+more than one person, the prompt names the Cast lead by position ("the lower (underneath)
+skeleton") because OpenPose colors mark limbs, not people. When that guide does not
 arrive, the still keeps the pose of the Image 1 plate, which looks like "the beat was ignored"
 and like "every slot has the same pose".
 
@@ -71,10 +75,10 @@ queue:
 
 | Line | Meaning | What to do |
 | --- | --- | --- |
-| `Pose guide attached on 4 of 4 slots.` | Image 3 reached the queue for every slot | Posing problems are prompt/model quality, not plumbing |
+| `Pose guide (OpenPose) attached on 4 of 4 slots.` | Image 3 reached the queue for every slot | Posing problems are prompt/model quality, not plumbing. If the map itself looks wrong in **Show pose guides**, the beat text picked the wrong layout |
 | `Pose guide failed on … — <reason>` | The canvas render or the ComfyUI upload threw | Check the reason; most are ComfyUI upload failures (offline, auth, wrong URL). Full error is in the browser console |
 | `Pose guide attached on a non-Edit model (…)` | The guide went to a text-to-image model | Switch the Day engine to an Edit model — a T2I model copies the wireframe into the still instead of reading it as a pose |
-| `Pose guide off on … — Lightning identity path…` | By design: Edit-2511 Lightning Vacation keeps Image 1 whole and takes stance from prompt text | Nothing — or switch models if you want Image 3 stance |
+| `Pose guide off on … — Lightning identity path…` | Legacy style only: Edit-2511 Lightning keeps Image 1 whole and takes stance from prompt text, because the legacy art leaked there | Switch Pose guide style back to OpenPose, which attaches on Lightning |
 | `Pose guide off on … — no Day plate` | No plate is set, so there is nothing to pose | Set a Day plate (Look or Outfit Keep) |
 
 Story logs the same failures to the browser console (`Story pose guide could not be attached: …`).

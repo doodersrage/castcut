@@ -309,6 +309,14 @@ describe('roleplay parsers', () => {
         hasReferenceImage: true,
         phase: 'prompt',
       }),
+      /Image 3 is an OpenPose keypoint/i
+    );
+    assert.match(
+      formatRoleplayPoseGuideCue({
+        hasReferenceImage: true,
+        phase: 'prompt',
+        poseGuideStyle: 'legacy',
+      }),
       /Image 3 is a flat SCHEMATIC|Image 3 is a flat mannequin|Image 3 is a crude stick-figure/i
     );
     assert.match(

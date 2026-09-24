@@ -6,6 +6,11 @@ import {
   normalizeRenderRealismMode,
   type RenderRealismMode,
 } from './render-realism';
+import {
+  DEFAULT_POSE_GUIDE_STYLE,
+  normalizePoseGuideStylePreference,
+  type PoseGuideStylePreference,
+} from './pose-guide-prompt';
 
 export function loadRenderRealismMode(): RenderRealismMode {
   if (typeof window === 'undefined') {
@@ -13,4 +18,12 @@ export function loadRenderRealismMode(): RenderRealismMode {
   }
 
   return normalizeRenderRealismMode(loadSettingsCache().shared.renderRealismMode);
+}
+
+/** Settings → Prompt quality → Pose guide style (read at queue time by Day / Story). */
+export function loadPoseGuideStylePreference(): PoseGuideStylePreference {
+  if (typeof window === 'undefined') {
+    return DEFAULT_POSE_GUIDE_STYLE;
+  }
+  return normalizePoseGuideStylePreference(loadSettingsCache().shared.poseGuideStyle);
 }

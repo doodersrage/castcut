@@ -15,7 +15,18 @@ import {
   intimateTextImpliesCabinetDrawer,
   intimateTextImpliesSurfaceBent,
 } from '@/lib/intimate-prompt-clarify';
-import { usesOutlineGrayPoseGuide } from '@/lib/pose-guide-prompt';
+import {
+  drawOpenPoseFigures,
+  mirrorPoseFacing,
+  resolvePoseLeadPosition,
+  type PoseFacing,
+  type PoseLeadPosition,
+} from '@/lib/pose-guide-openpose';
+import {
+  normalizePoseGuideStylePreference,
+  usesOutlineGrayPoseGuide,
+  type PoseGuideStylePreference,
+} from '@/lib/pose-guide-prompt';
 
 type Point = { x: number; y: number };
 
@@ -36,6 +47,8 @@ export type StickSkeleton = {
   rKnee: Point;
   lAnkle: Point;
   rAnkle: Point;
+  /** Head direction for OpenPose face points; inferred from joint geometry when unset. */
+  facing?: PoseFacing;
 };
 
 const WIDTH = 512;
@@ -2010,6 +2023,7 @@ export function mirrorStickSkeleton(skeleton: StickSkeleton, centerX = 0.5): Sti
     rKnee: flip(skeleton.lKnee),
     lAnkle: flip(skeleton.rAnkle),
     rAnkle: flip(skeleton.lAnkle),
+    ...(skeleton.facing ? { facing: mirrorPoseFacing(skeleton.facing) } : {}),
   };
 }
 
@@ -2374,8 +2388,10 @@ function chairBentFigures(): StickSkeleton[] {
     rKnee: point(0.48, 0.7),
     lAnkle: point(0.42, 0.92),
     rAnkle: point(0.48, 0.92),
+    facing: 'left',
   };
   const rear: StickSkeleton = {
+    facing: 'left',
     head: point(0.62, 0.12),
     neck: point(0.62, 0.2),
     pelvis: point(0.58, 0.5),
@@ -2417,8 +2433,10 @@ function deskBentFigures(options?: { throatGrab?: boolean }): StickSkeleton[] {
     rKnee: point(0.48, 0.7),
     lAnkle: point(0.42, 0.92),
     rAnkle: point(0.48, 0.92),
+    facing: 'left',
   };
   const rear: StickSkeleton = {
+    facing: 'left',
     head: point(0.6, 0.12),
     neck: point(0.6, 0.2),
     pelvis: point(0.58, 0.5),
@@ -2470,8 +2488,10 @@ function cabinetDrawerFigures(): StickSkeleton[] {
     rKnee: point(0.5, 0.72),
     lAnkle: point(0.34, 0.92),
     rAnkle: point(0.54, 0.9),
+    facing: 'left',
   };
   const rear: StickSkeleton = {
+    facing: 'left',
     head: point(0.66, 0.1),
     neck: point(0.66, 0.18),
     pelvis: point(0.58, 0.52),
@@ -2499,7 +2519,9 @@ function cabinetDrawerFigures(): StickSkeleton[] {
  */
 function wallPressStandingFigures(): StickSkeleton[] {
   // Pressed to the left wall bar — not center-cab facing camera with a front rail.
+  // Both face the wall (image left): OpenPose shows two profiles, not a face-to-face pair.
   const against: StickSkeleton = {
+    facing: 'left',
     head: point(0.22, 0.1),
     neck: point(0.22, 0.18),
     pelvis: point(0.24, 0.5),
@@ -2518,6 +2540,7 @@ function wallPressStandingFigures(): StickSkeleton[] {
     rAnkle: point(0.28, 0.92),
   };
   const press: StickSkeleton = {
+    facing: 'left',
     // Head clearly visible over her shoulder in camera (not buried / reflection-only).
     head: point(0.38, 0.16),
     neck: point(0.38, 0.26),
@@ -2815,6 +2838,7 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   if (layout === 'reverse_straddle') {
     const bottom = lyingFigure(seed, { cx: 0.34, cy: 0.64, facing: 1, salt: 40 });
     const top = riderOnPelvis(seed, { cx: 0.64, facingAway: true, salt: 2 });
+    top.facing = 'back';
     top.head = point(0.68, 0.12);
     top.neck = point(0.66, 0.2);
     // One contact wrist only (same ghost-hand risk as face-to-face straddle).
@@ -2830,6 +2854,9 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
     bottom.head = point(0.24, 0.54);
     bottom.neck = point(0.32, 0.56);
     const top = lyingFigure(seed, { cx: 0.6, cy: 0.42, facing: 1, salt: 90 });
+    // Face-down, seen from above: back-of-head keypoints, not two faces up at the camera.
+    bottom.facing = 'back';
+    top.facing = 'back';
     return pairOrTrio([bottom, top]);
   }
 
@@ -2895,6 +2922,7 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
     });
     // Reach toward hips without collapsing pelvis centers (merge risk).
     rear = plantHandsOnPartner(rear, bent, { toward: 'hips' });
+    rear.facing = 'left';
     // Keep rear head higher in frame so Edit doesn't crop the partner.
     rear.head = point(rear.head.x, Math.min(rear.head.y, 0.22));
     rear.neck = point(rear.neck.x, Math.min(rear.neck.y, 0.3));
@@ -2976,6 +3004,7 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
       (giver.rShoulder.x + giver.rWrist.x) / 2,
       (giver.rShoulder.y + giver.rWrist.y) / 2
     );
+    giver.facing = 'right';
     return pairOrTrio([receiver, giver]);
   }
 
@@ -4333,12 +4362,27 @@ const RAPID_AIO_OUTLINE_PALETTE = [
 
 const OUTLINE_GRAY_PAPER = '#ffffff';
 
-export type PoseGuideVisualStyle = 'filled' | 'outline-gray';
+export type PoseGuideVisualStyle = 'filled' | 'outline-gray' | 'openpose';
 
 export { usesOutlineGrayPoseGuide };
 
-export function resolvePoseGuideVisualStyle(model?: string | null): PoseGuideVisualStyle {
+/**
+ * OpenPose unless Settings asks for the legacy art; legacy picks gray outlines on Rapid AIO /
+ * Edit-2511 and filled capsules elsewhere.
+ */
+export function resolvePoseGuideVisualStyle(
+  model?: string | null,
+  preference?: PoseGuideStylePreference | null
+): PoseGuideVisualStyle {
+  if (normalizePoseGuideStylePreference(preference) === 'openpose') {
+    return 'openpose';
+  }
   return usesOutlineGrayPoseGuide(model) ? 'outline-gray' : 'filled';
+}
+
+/** Prompt-side style for a drawn guide (both legacy arts share the legacy cue family). */
+export function poseGuideStylePreferenceFor(style: PoseGuideVisualStyle): PoseGuideStylePreference {
+  return style === 'openpose' ? 'openpose' : 'legacy';
 }
 
 function drawStickLimbStroke(
@@ -4473,6 +4517,10 @@ export function drawDayPoseGuide(
   visualStyle: PoseGuideVisualStyle = 'filled'
 ): void {
   const skeleton = SLOT_SKELETONS[normalizePoseKey(slotId)] ?? SLOT_SKELETONS.afternoon;
+  if (visualStyle === 'openpose') {
+    drawOpenPoseFigures(ctx, [skeleton], WIDTH, HEIGHT);
+    return;
+  }
   const outline = RAPID_AIO_OUTLINE_PALETTE[0]!;
   drawStickSkeleton(ctx, skeleton, {
     visualStyle,
@@ -4490,7 +4538,23 @@ export function drawPoseGuideFromScene(
   visualStyle: PoseGuideVisualStyle = 'filled',
   options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
 ): PoseGuideIntent {
+  return drawPoseGuideFiguresFromScene(ctx, text, fallbackIndex, visualStyle, options).intent;
+}
+
+function drawPoseGuideFiguresFromScene(
+  ctx: CanvasRenderingContext2D,
+  text: string | null | undefined,
+  fallbackIndex: number,
+  visualStyle: PoseGuideVisualStyle,
+  options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
+): { intent: PoseGuideIntent; figures: StickSkeleton[] } {
   const { intent, figures } = synthesizeSceneStickFigures(text, fallbackIndex, options);
+  if (visualStyle === 'openpose') {
+    // Pure keypoint map — no wall/chaise props: gray blocks are not part of the format the
+    // model learned, and the beat text already names the furniture.
+    drawOpenPoseFigures(ctx, figures, WIDTH, HEIGHT);
+    return { intent, figures };
+  }
   if (intent.intimate === 'wall') {
     // Visual wall cue so Edit doesn't invent a center-floor kneel.
     ctx.fillStyle = visualStyle === 'outline-gray' ? OUTLINE_GRAY_PAPER : '#ffffff';
@@ -4557,12 +4621,24 @@ export function drawPoseGuideFromScene(
       lineWidth: figures.length > 1 ? (isLead ? 5.5 : 5) : 5,
     });
   });
-  return intent;
+  return { intent, figures };
 }
 
 export function dayPoseGuideSize(): { width: number; height: number } {
   return { width: WIDTH, height: HEIGHT };
 }
+
+/** A rasterized Image 3 guide plus what the prompt needs to describe it. */
+export type PoseGuideBuild = {
+  file: File;
+  style: PoseGuideVisualStyle;
+  /** Figures actually drawn (1–3). */
+  figureCount: number;
+  /** OpenPose multi-figure only: where the lead (Image 1) skeleton sits. */
+  leadPosition: PoseLeadPosition | null;
+  /** Layout label, for logs and the file name. */
+  label: string;
+};
 
 async function canvasToPoseGuideFile(
   draw: (ctx: CanvasRenderingContext2D) => string,
@@ -4598,38 +4674,65 @@ async function canvasToPoseGuideFile(
   });
 }
 
-async function buildPoseGuideFile(
-  poseKey: PoseGuideKey,
+async function buildSceneGuide(
+  sceneText: string,
+  fallbackIndex: number,
+  style: PoseGuideVisualStyle,
   filenamePrefix: string,
-  visualStyle: PoseGuideVisualStyle = 'filled'
-): Promise<File> {
-  return canvasToPoseGuideFile(ctx => {
-    drawDayPoseGuide(ctx, poseKey, visualStyle);
-    return poseKey;
+  options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
+): Promise<PoseGuideBuild> {
+  const drawn: { intent?: PoseGuideIntent; figures: StickSkeleton[] } = { figures: [] };
+  const file = await canvasToPoseGuideFile(ctx => {
+    const result = drawPoseGuideFiguresFromScene(ctx, sceneText, fallbackIndex, style, options);
+    drawn.intent = result.intent;
+    drawn.figures = result.figures;
+    return result.intent.label;
   }, filenamePrefix);
+  const { figures } = drawn;
+  return {
+    file,
+    style,
+    figureCount: figures.length,
+    leadPosition: style === 'openpose' ? resolvePoseLeadPosition(figures, WIDTH, HEIGHT) : null,
+    label: drawn.intent?.label ?? 'scene',
+  };
 }
 
-/** Browser-only: rasterize the mannequin to a PNG File for Comfy Image 3. */
-export async function buildDayPoseGuideFile(
+async function buildSlotGuide(
+  poseKey: PoseGuideKey,
+  style: PoseGuideVisualStyle,
+  filenamePrefix: string
+): Promise<PoseGuideBuild> {
+  const file = await canvasToPoseGuideFile(ctx => {
+    drawDayPoseGuide(ctx, poseKey, style);
+    return poseKey;
+  }, filenamePrefix);
+  return { file, style, figureCount: 1, leadPosition: null, label: poseKey };
+}
+
+/** Browser-only: rasterize the Day slot pose guide to a PNG for Comfy Image 3. */
+export async function buildDayPoseGuide(
   slotId: DaySlotId,
   sceneText?: string | null,
   model?: string | null,
-  options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
-): Promise<File> {
-  const visualStyle = resolvePoseGuideVisualStyle(model);
+  options?: {
+    forcePeople?: number;
+    clothedUprightOnly?: boolean;
+    allowIntimate?: boolean;
+    stylePreference?: PoseGuideStylePreference | null;
+  }
+): Promise<PoseGuideBuild> {
+  const style = resolvePoseGuideVisualStyle(model, options?.stylePreference);
   const trimmed = sceneText?.trim() || '';
   if (trimmed) {
     const fallbackIndex = Math.max(0, POSE_KEYS.indexOf(normalizePoseKey(slotId)));
-    return canvasToPoseGuideFile(ctx => {
-      const intent = drawPoseGuideFromScene(ctx, trimmed, fallbackIndex, visualStyle, {
-        ...(options?.forcePeople != null ? { forcePeople: options.forcePeople } : {}),
-        ...(options?.clothedUprightOnly ? { clothedUprightOnly: true } : {}),
-        ...(options?.allowIntimate === false ? { allowIntimate: false as const } : {}),
-      });
-      return intent.label;
-    }, 'day-pose-guide');
+    return buildSceneGuide(trimmed, fallbackIndex, style, 'day-pose-guide', {
+      ...(options?.forcePeople != null ? { forcePeople: options.forcePeople } : {}),
+      ...(options?.clothedUprightOnly ? { clothedUprightOnly: true } : {}),
+      ...(options?.allowIntimate === false ? { allowIntimate: false as const } : {}),
+    });
   }
-  return buildPoseGuideFile(normalizePoseKey(slotId), 'day-pose-guide', visualStyle);
+  return buildSlotGuide(normalizePoseKey(slotId), style, 'day-pose-guide');
 }
 
 export type StoryPoseGuideInput = {
@@ -4638,8 +4741,10 @@ export type StoryPoseGuideInput = {
   prompt?: string | null;
   /** Fallback cycle index when the scene text has no stance cue. */
   storyIndex?: number;
-  /** Active Comfy model — Rapid AIO gets outline-gray guides. */
+  /** Active Comfy model — legacy style gives Rapid AIO / Edit-2511 outline-gray guides. */
   model?: string | null;
+  /** Settings pose-guide style (OpenPose by default). */
+  stylePreference?: PoseGuideStylePreference | null;
 };
 
 /** Prefer scene text stance; otherwise cycle by story index. */
@@ -4661,16 +4766,13 @@ export function sceneTextFromStoryPoseInput(input: StoryPoseGuideInput): string 
     .join(' · ');
 }
 
-/** Browser-only: synthesize a unique stick stance from the beat scene text. */
-export async function buildStoryPoseGuideFile(input: number | StoryPoseGuideInput): Promise<File> {
-  if (typeof input === 'number') {
-    return buildPoseGuideFile(resolveStoryPoseGuideKey(input), 'story-pose-guide');
-  }
-  const visualStyle = resolvePoseGuideVisualStyle(input.model);
+/** Browser-only: synthesize a stance from the beat scene text for Story Image 3. */
+export async function buildStoryPoseGuide(input: StoryPoseGuideInput): Promise<PoseGuideBuild> {
+  const style = resolvePoseGuideVisualStyle(input.model, input.stylePreference);
   const sceneText = sceneTextFromStoryPoseInput(input);
   const fallbackIndex = input.storyIndex ?? 0;
-  return canvasToPoseGuideFile(ctx => {
-    const intent = drawPoseGuideFromScene(ctx, sceneText, fallbackIndex, visualStyle);
-    return intent.label;
-  }, 'story-pose-guide');
+  if (!sceneText) {
+    return buildSlotGuide(resolveStoryPoseGuideKey(fallbackIndex), style, 'story-pose-guide');
+  }
+  return buildSceneGuide(sceneText, fallbackIndex, style, 'story-pose-guide');
 }

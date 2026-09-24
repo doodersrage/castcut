@@ -139,6 +139,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     rerollActiveSlotScene,
     queueBlockReason,
     poseGuideLine,
+    poseGuidePreviews,
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,
@@ -352,6 +353,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               statusLine={dayStatusLine}
               queueBlockReason={queueBlockReason}
               poseGuideLine={poseGuideLine}
+              poseGuidePreviews={poseGuidePreviews}
             />
           </div>
         ) : null}
