@@ -18,6 +18,9 @@ import {
   formatRoleplaySettingCue,
   formatRoleplayContinuityCue,
   formatRoleplayStoryDigest,
+  formatRoleplayPoseVarietyCue,
+  recentRoleplayPoseKeys,
+  roleplayScenePoseRepeats,
   formatRoleplayPoseGuideCue,
   formatRoleplayWardrobeCue,
   isRoleplayAdultContent,
@@ -421,11 +424,13 @@ export async function generateRoleplayScenes(
     phase: 'scenes',
   });
   const intimateMixCue = roleplayIntimateMixLine(content, options.intimateMix);
-  const raw = await llmJson({
-    llm: options.llm,
-    maxTokens: 700,
-    temperature: continuing ? 0.98 : 1.08,
-    system: `You write choose-your-own-adventure forks for an image roleplay.
+  const recentPoses = recentRoleplayPoseKeys(options.story);
+  const writeScenes = (extraRule = '') =>
+    llmJson({
+      llm: options.llm,
+      maxTokens: 700,
+      temperature: continuing ? 0.98 : 1.08,
+      system: `You write choose-your-own-adventure forks for an image roleplay.
 ${toneLine(tone)}
 ${uncensoredAdultLine(content)}
 ${settingCue}
@@ -435,6 +440,7 @@ ${intimateMixCue}
 Return ONLY JSON: {"scenes":[{"title":"","blurb":"","pose":{"body":"","people":1,"act":""}${finale ? ',"kind":"ending"' : ''}}]}
 - Exactly 4 scenes. Titles 2–6 words. Blurbs one sentence, visual, actionable.
 ${scenePoseFieldLine(content)}
+${formatRoleplayPoseVarietyCue(recentPoses)}${extraRule ? `\n${extraRule}` : ''}
 ${
   finale
     ? '- These are ENDINGS: last stills that close the story. Resolution, twist, fade-out, or aftermath. Do not tease a sequel still.'
@@ -450,30 +456,50 @@ ${
 }
 - Each beat should make a distinct still image of THIS character.
 - ${sceneGuard(content, allowGore)}`,
-    user: [
-      formatRoleplayBio(bio),
-      formatRoleplayStoryDigest(options.story),
-      formatRoleplayAvoidedScenes(rejectedScenes),
-      finale
-        ? 'The plot is complete. Write four mutually exclusive endings that follow from the last chosen beat — four last photographs, not four captions for the same one.'
-        : continuing
-          ? 'The player just picked the last beat. Write four mutually exclusive next moments that follow from it — four different photographs, not four captions for the same one.'
-          : 'No plot yet. Write four opening options for this character that would look like four different photographs.',
-      options.extraHints?.trim() ? `Player notes: ${options.extraHints.trim()}` : '',
-      setting ? `Setting: ${setting}` : '',
-      options.avoidedTokensInstruction ?? '',
-      finale ? 'Four endings.' : continuing ? 'Four continuing scenes.' : 'Four opening scenes.',
-    ]
-      .filter(Boolean)
-      .join('\n\n'),
-  });
+      user: [
+        formatRoleplayBio(bio),
+        formatRoleplayStoryDigest(options.story),
+        formatRoleplayAvoidedScenes(rejectedScenes),
+        finale
+          ? 'The plot is complete. Write four mutually exclusive endings that follow from the last chosen beat — four last photographs, not four captions for the same one.'
+          : continuing
+            ? 'The player just picked the last beat. Write four mutually exclusive next moments that follow from it — four different photographs, not four captions for the same one.'
+            : 'No plot yet. Write four opening options for this character that would look like four different photographs.',
+        options.extraHints?.trim() ? `Player notes: ${options.extraHints.trim()}` : '',
+        setting ? `Setting: ${setting}` : '',
+        options.avoidedTokensInstruction ?? '',
+        finale ? 'Four endings.' : continuing ? 'Four continuing scenes.' : 'Four opening scenes.',
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    });
+  const raw = await writeScenes();
   if (!raw) {
     return {
       scenes: clarifyRoleplaySceneBlurbs(stampFinaleScenes(fallback, finale)),
       provider: 'template',
     };
   }
-  const parsed = parseRoleplayScenes(extractJsonValue(raw));
+  let parsed = parseRoleplayScenes(extractJsonValue(raw));
+  // Options that repeat a pose (each other, or the last beat) look like four takes of one
+  // photo — ask once more naming the clash, and keep whichever set varies more.
+  const repeats = roleplayScenePoseRepeats(parsed, recentPoses);
+  if (parsed.length > 1 && repeats.length > 0) {
+    const retryRaw = await writeScenes(
+      `- Your last options repeated these poses: ${repeats
+        .map(key => key.replace(/_/g, ' '))
+        .join(
+          ', '
+        )}. Every option must use a different pose from the others and from the last beat.`
+    );
+    const retry = retryRaw ? parseRoleplayScenes(extractJsonValue(retryRaw)) : [];
+    if (
+      retry.length >= parsed.length &&
+      roleplayScenePoseRepeats(retry, recentPoses).length < repeats.length
+    ) {
+      parsed = retry;
+    }
+  }
   const scenes = mergeRoleplaySceneOptions(parsed, fallback, options.story, 4, rejectedScenes);
   const next = stampFinaleScenes(scenes.length > 0 ? scenes : fallback, finale);
   return {

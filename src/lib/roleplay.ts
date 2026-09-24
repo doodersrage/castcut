@@ -1501,6 +1501,67 @@ export function parseRoleplayBio(
   return applyRoleplayCharacterName(ROLEPLAY_ARCHETYPES[0].templateBio, characterName);
 }
 
+/**
+ * Pose identity of a Story option/beat for variety checks: the structured sex act when the
+ * scene writer gave one, else the layout the pose guide reads from the text, else the body.
+ * Null when nothing identifies the pose (those never count as repeats).
+ */
+export function roleplayScenePoseKey(
+  scene: Pick<RoleplayScene, 'title' | 'blurb' | 'pose'>
+): string | null {
+  const act = scene.pose?.act;
+  if (act && act !== 'none') {
+    return act;
+  }
+  const layout = parseIntimateLayout(`${scene.title} — ${scene.blurb}`);
+  if (layout && layout !== 'generic') {
+    return layout;
+  }
+  return scene.pose?.body ?? null;
+}
+
+/** Pose keys of the last `count` beats (newest last), for the scene writer to steer away from. */
+export function recentRoleplayPoseKeys(
+  story: Array<Pick<RoleplayScene, 'title' | 'blurb' | 'pose'>> | undefined,
+  count = 3
+): string[] {
+  return (story ?? [])
+    .slice(-count)
+    .map(roleplayScenePoseKey)
+    .filter((key): key is string => Boolean(key));
+}
+
+/**
+ * Repeated poses in a set of options: each key used by more than one option, plus options that
+ * repeat the most recent beat's pose. Empty when every option is distinct and fresh.
+ */
+export function roleplayScenePoseRepeats(
+  scenes: Array<Pick<RoleplayScene, 'title' | 'blurb' | 'pose'>>,
+  recent: string[] = []
+): string[] {
+  const counts = new Map<string, number>();
+  for (const scene of scenes) {
+    const key = roleplayScenePoseKey(scene);
+    if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const repeats = [...counts.entries()].filter(([, n]) => n > 1).map(([key]) => key);
+  const last = recent[recent.length - 1];
+  if (last && counts.has(last) && !repeats.includes(last)) {
+    repeats.push(last);
+  }
+  return repeats;
+}
+
+/** Scene-writer line naming recently used poses (empty when there are none). */
+export function formatRoleplayPoseVarietyCue(recent: string[]): string {
+  const unique = [...new Set(recent)];
+  if (unique.length === 0) {
+    return '- Give each of the four options a different pose (different pose.body or pose.act).';
+  }
+  return `- Give each of the four options a different pose (different pose.body or pose.act). Recent beats already used: ${unique
+    .map(key => key.replace(/_/g, ' '))
+    .join(', ')} — pick others unless the player notes ask for one.`;
+}
 export function parseRoleplayScenes(payload: unknown): RoleplayScene[] {
   const rows = Array.isArray(payload)
     ? payload

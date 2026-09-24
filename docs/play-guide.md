@@ -94,6 +94,7 @@ Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 - Phase strip: Queue → Animate → Cut. After stills, an **Animate → Cut** coach nudges clips before Cut film.
 - Lightbox: beat-to-beat prev/next + requeue chrome (same pattern as Day).
 - **Outfit for stills** — kit or BYO packshot as Image 2 (desk + phone); photo stills also get an Image 3 pose wireframe from the beat text (intimate + social layouts).
+- **Pose variety** — the scene writer is told which poses the last beats used and asked for four different ones; if its options still repeat a pose (each other, or the last beat), it is asked once more with the clash named, and the more varied set wins.
 - **Continuity** — each still remembers what it showed (outfit, place, light, from the scene writer's own description), and the next still keeps the same outfit, hairstyle, location and lighting unless the beat clearly changes them (a new place, a wardrobe change, a time jump, undressing).
 - Literary adult euphemisms in still prompts are rewritten to direct anatomy before queue; Settings **Render realism** defaults to photoreal so wireframes don’t turn stills drawn.
 - Fal **extend-video** when parent is on Fal CDN; else last-frame I2V.

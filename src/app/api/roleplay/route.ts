@@ -3,6 +3,7 @@ import {
   generateRoleplayPrompt,
   generateRoleplayScenes,
 } from '@/lib/specialized/roleplay-generator';
+import { normalizeScenePoseSpec } from '@/lib/day-pose-guide';
 import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
 import { normalizeSharedGenerationOptions } from '@/lib/specialized/normalize';
 import { enrichGenerateResult } from '@/lib/generation-diagnostics';
@@ -87,7 +88,15 @@ function parseStory(raw: unknown): RoleplayStoryBeat[] {
       }
       const stillBrief =
         typeof record.stillBrief === 'string' ? record.stillBrief.trim().slice(0, 400) : '';
-      return { id: id || title, title, blurb, at, ...(stillBrief ? { stillBrief } : {}) };
+      const pose = normalizeScenePoseSpec(record.pose);
+      return {
+        id: id || title,
+        title,
+        blurb,
+        at,
+        ...(stillBrief ? { stillBrief } : {}),
+        ...(pose ? { pose } : {}),
+      };
     })
     .filter((entry): entry is RoleplayStoryBeat => Boolean(entry))
     .slice(-MAX_ROLEPLAY_STORY_CONTEXT);
