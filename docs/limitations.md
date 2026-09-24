@@ -24,17 +24,21 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
   Comfy → Auto-improve) for an automatic UltraReal/Klein soft-pass; the refine model must
   be installed/mapped like any other queue model.
   Diffusers video stays parked.
-- **Day is always four dayparts.** Morning / Afternoon / Evening / Night are a fixed set
-  across the planner, so there is no 2- or 6-slot Day yet. **Auto-review stills** judges
-  face coherence, hands, outfit, and head-count from a single image with a vision LLM; it
-  cannot compare against the Cast plate, so identity drift is still caught only by the
-  face/LoRA locks (the gate's identity pair is a warning, not a gate — a small or
-  turned-away face scores neutral by design), and a weak vision model will miss subtle
-  defects. **Save poster** is a
-  center-crop of one existing still — there is no separate poster render, title text, or
-  frame grabbed from a motion clip. Day is still fixed at four dayparts: the phase and
-  resume helpers now take a slot count, but `DaySlotId` itself is a four-value union
-  keyed by ~18 preset tables, so a 2- or 6-slot Day is not yet possible.
+- **Day length is 2, 3, 4, 6 or 8 stills.** Longer Days add a second slot inside a daypart
+  ("Late morning", "Late night") that draws from that daypart's beats and settings; there
+  are still only four dayparts of preset content, and themed remixes script the four base
+  slots only (late slots keep their own plan).
+- **Auto-review stills** judges face coherence, hands, outfit, and head-count from a single
+  image with a vision LLM, and a weak vision model will miss subtle defects. Identity is
+  **measured** only when ComfyUI has **ComfyUI_FaceAnalysis** (InsightFace): solo stills are
+  scored against the plate and rerolled below the face-match bar; without the pack the
+  vision reviewer's identity pair stays a warning. The pose check likewise needs
+  **comfyui_controlnet_aux** (DWPose). Both bars (60% pose, 30% face) are starting values.
+- **Save poster** is a center-crop of one existing still (optionally with the film title
+  over it) — there is no separate poster render or frame grabbed from a motion clip.
+  **Cut titles and captions** need an ffmpeg with drawtext and a font (Docker ships
+  DejaVu; set `FILM_FONT_FILE` elsewhere); without them the server cut encodes without text,
+  and the browser fallback always draws them.
 
 ## Generation engines
 

@@ -20,6 +20,13 @@ function loadOwnedDayStills() {
   return day.stills ?? [];
 }
 
+/** Stills the current Day board holds (its length), for Play resume "N of M". */
+export function cachedDayLength(): number {
+  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  const length = Number(day.dayLength);
+  return Number.isFinite(length) && length > 0 ? length : (day.slots?.length ?? 4) || 4;
+}
+
 /** Completed Day stills currently in the tool cache (survives navigation). */
 export function countCachedCompletedDayStills(): number {
   return loadOwnedDayStills().filter(

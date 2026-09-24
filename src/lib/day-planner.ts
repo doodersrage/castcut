@@ -46,7 +46,72 @@ import {
 } from '@/lib/qwen-rapid-nude-edit';
 import { isDayVacationFaceRestorePrompt } from '@/lib/day-vacation-face-restore';
 
-export type DaySlotId = 'morning' | 'afternoon' | 'evening' | 'night';
+import { DAY_PARTS, dayPartOf, type DayPart } from '@/lib/day-parts';
+
+export { DAY_PARTS, dayPartOf, type DayPart };
+
+/**
+ * A slot on the Day board. Four-slot Days use the bare daypart ids; longer Days add a second
+ * slot in a daypart as `<daypart>-2` ("Late morning"), so presets still key off the daypart.
+ */
+export type DaySlotId = DayPart | `${DayPart}-${number}`;
+
+/** Supported Day lengths (slots on the board). */
+export const DAY_LENGTHS = [2, 3, 4, 6, 8] as const;
+export type DayLength = (typeof DAY_LENGTHS)[number];
+export const DEFAULT_DAY_LENGTH: DayLength = 4;
+
+export function normalizeDayLength(value: unknown): DayLength {
+  const n = Math.round(Number(value));
+  return (DAY_LENGTHS as readonly number[]).includes(n) ? (n as DayLength) : DEFAULT_DAY_LENGTH;
+}
+
+const DAY_PART_LABELS: Record<DayPart, string> = {
+  morning: 'Morning',
+  afternoon: 'Afternoon',
+  evening: 'Evening',
+  night: 'Night',
+};
+
+/** Slot ids for each Day length, in board (morning → night) order. */
+const DAY_LENGTH_SLOT_IDS: Record<DayLength, DaySlotId[]> = {
+  2: ['morning', 'night'],
+  3: ['morning', 'afternoon', 'night'],
+  4: ['morning', 'afternoon', 'evening', 'night'],
+  6: ['morning', 'morning-2', 'afternoon', 'evening', 'night', 'night-2'],
+  8: [
+    'morning',
+    'morning-2',
+    'afternoon',
+    'afternoon-2',
+    'evening',
+    'evening-2',
+    'night',
+    'night-2',
+  ],
+};
+
+/** Board label: "Morning", or "Late morning" for the second slot in a daypart. */
+export function daySlotDefaultLabel(slotId: DaySlotId | string): string {
+  const part = dayPartOf(slotId);
+  const label = DAY_PART_LABELS[part];
+  return /-\d+$/.test(String(slotId)) ? `Late ${label.toLowerCase()}` : label;
+}
+
+/** Default (empty) slots for a Day of `length` slots. */
+export function daySlotsForLength(length: DayLength | number): DaySlot[] {
+  return DAY_LENGTH_SLOT_IDS[normalizeDayLength(length)].map(id => ({
+    id,
+    label: daySlotDefaultLabel(id),
+  }));
+}
+
+function isDaySlotId(value: unknown): value is DaySlotId {
+  return (
+    typeof value === 'string' &&
+    Object.values(DAY_LENGTH_SLOT_IDS).some(ids => (ids as string[]).includes(value))
+  );
+}
 
 /** Session heat for Day stills — everyday by default; intimate/raunchy are NSFW-gated. */
 export type DayMood = 'everyday' | 'suggestive' | 'sport' | 'vacation' | 'intimate' | 'raunchy';
@@ -132,7 +197,7 @@ export function isDayIntimateSoloBeat(text: string): boolean {
 
 /** Intimate beat presets for a slot filtered by solo / duo / mixed mix. */
 export function intimateBeatsForMix(slotId: DaySlotId, mix: DayIntimateMix): string[] {
-  const pool = DAY_SLOT_INTIMATE_BEAT_PRESETS[slotId] ?? [];
+  const pool = DAY_SLOT_INTIMATE_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
   if (mix === 'mixed') {
     return pool;
   }
@@ -182,7 +247,7 @@ export function isDayRaunchySoloBeat(text: string): boolean {
 
 /** Filter raunchy comedy presets by Solo / Duo / Mixed (same chips as Intimate). */
 export function raunchyBeatsForMix(slotId: DaySlotId, mix: DayIntimateMix): string[] {
-  const pool = DAY_SLOT_RAUNCHY_BEAT_PRESETS[slotId] ?? [];
+  const pool = DAY_SLOT_RAUNCHY_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
   if (mix === 'mixed') {
     return pool;
   }
@@ -222,8 +287,6 @@ export const DEFAULT_DAY_SLOTS: DaySlot[] = [
   { id: 'evening', label: 'Evening' },
   { id: 'night', label: 'Night' },
 ];
-
-const SLOT_IDS = new Set<DaySlotId>(['morning', 'afternoon', 'evening', 'night']);
 
 /**
  * Lightbox slides for completed Day progress stills (slot order).
@@ -448,28 +511,45 @@ export function dayStillsCachePatch(
 }
 
 /** Merge persisted slots with defaults so all four day parts always exist. */
-export function normalizeDaySlots(input?: DaySlot[] | null): DaySlot[] {
+/**
+ * Board slots for a Day of `length` (default: the length the saved slots imply, else four).
+ * Slot content is kept by id, so growing 4 → 6 keeps Morning…Night and adds the late slots.
+ */
+export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | null): DaySlot[] {
   const byId = new Map<DaySlotId, DaySlot>();
   for (const slot of input ?? []) {
-    if (!slot?.id || !SLOT_IDS.has(slot.id)) {
+    if (!slot?.id || !isDaySlotId(slot.id)) {
       continue;
     }
     byId.set(slot.id, {
       id: slot.id,
-      label:
-        readText(slot.label, 40) || DEFAULT_DAY_SLOTS.find(entry => entry.id === slot.id)!.label,
+      label: readText(slot.label, 40) || daySlotDefaultLabel(slot.id),
       wardrobeId: readText(slot.wardrobeId, 120) || undefined,
       // Do not trim location/sceneHints here — updateSlot runs on every keystroke.
       location: readEditableText(slot.location, 160) || undefined,
       sceneHints: readEditableText(slot.sceneHints, 320) || undefined,
     });
   }
-  return DEFAULT_DAY_SLOTS.map(defaultSlot => ({
+  const resolvedLength =
+    length != null ? normalizeDayLength(length) : inferDayLength([...byId.keys()]);
+  return daySlotsForLength(resolvedLength).map(defaultSlot => ({
     ...defaultSlot,
     ...byId.get(defaultSlot.id),
     id: defaultSlot.id,
     label: byId.get(defaultSlot.id)?.label || defaultSlot.label,
   }));
+}
+
+/** Smallest Day length whose slots cover every saved slot id (legacy saves → four). */
+export function inferDayLength(ids: Array<DaySlotId | string>): DayLength {
+  const present = ids.filter(isDaySlotId);
+  if (present.length === 0) return DEFAULT_DAY_LENGTH;
+  const fits = DAY_LENGTHS.filter(length =>
+    present.every(id => (DAY_LENGTH_SLOT_IDS[length] as string[]).includes(id))
+  );
+  // Prefer four when it fits (every legacy save), else the smallest length that holds them all.
+  if (fits.includes(DEFAULT_DAY_LENGTH)) return DEFAULT_DAY_LENGTH;
+  return fits[0] ?? 8;
 }
 
 /** Soft img2img denoise for Day+plate — high enough to restage, not polish the plate. */
@@ -802,7 +882,7 @@ export function dayEverydayPoseClass(beat: string | null | undefined): string {
  * Default activity poses when the slot beat is empty — and always as a body-stance
  * baseline when a beat is present (vague mood beats alone leave Keep standing).
  */
-export const DEFAULT_DAY_SLOT_POSES: Record<DaySlotId, string> = {
+export const DEFAULT_DAY_SLOT_POSES: Record<DayPart, string> = {
   morning:
     'standing at a kitchen counter, arms stretching overhead mid-yawn or pouring coffee, casual weight shift toward morning light',
   afternoon:
@@ -814,7 +894,7 @@ export const DEFAULT_DAY_SLOT_POSES: Record<DaySlotId, string> = {
 };
 
 /** Rotating pose baselines per daypart — picked from Setting·Beat so Queue day varies stance. */
-export const DAY_SLOT_POSE_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_POSE_PRESETS: Record<DayPart, string[]> = {
   morning: [
     DEFAULT_DAY_SLOT_POSES.morning,
     'checking a phone by the window, one elbow on the sill, soft morning light',
@@ -871,7 +951,7 @@ export const DAY_OPENPOSE_ANTI_LEAK =
   'Image 3 is only a pose map — never draw its lines, dots, or black background into the photo, and never add a second body the beat does not name.';
 
 /** Daypart motion cues for Animate / I2V (beyond generic “subtle motion”). */
-export const DAY_SLOT_MOTION_CUES: Record<DaySlotId, string> = {
+export const DAY_SLOT_MOTION_CUES: Record<DayPart, string> = {
   morning: 'soft stretch or pour motion, steam drift, morning light shift',
   afternoon: 'natural walk cycle or gesture, breeze in hair/clothes, passing traffic blur',
   evening: 'slow glass tilt or glance, warm lamp flicker, golden-hour drift',
@@ -882,7 +962,7 @@ export const DAY_SLOT_MOTION_CUES: Record<DaySlotId, string> = {
  * Optional duo / selfie-companion beats — mixed in only when allowCompanions is on.
  * Magenta = Cast; companion must read as a different adult.
  */
-export const DAY_SLOT_COMPANION_BEAT_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_COMPANION_BEAT_PRESETS: Record<DayPart, string[]> = {
   morning: [
     'mirror selfie with a friend leaning into frame over one shoulder',
     'arm-in-arm with a roommate on the balcony, both facing morning light',
@@ -926,9 +1006,11 @@ export function pickDayPresetFromSalt(pool: readonly string[], salt: string): st
 export function resolveDaySlotPoseBaseline(
   slot: Pick<DaySlot, 'id' | 'location' | 'sceneHints'>
 ): string {
-  const pool = DAY_SLOT_POSE_PRESETS[slot.id] ?? [DEFAULT_DAY_SLOT_POSES[slot.id]];
+  const pool = DAY_SLOT_POSE_PRESETS[dayPartOf(slot.id)] ?? [
+    DEFAULT_DAY_SLOT_POSES[dayPartOf(slot.id)],
+  ];
   const salt = `${slot.id}|${slot.location?.trim() ?? ''}|${slot.sceneHints?.trim() ?? ''}`;
-  return pickDayPresetFromSalt(pool, salt) || DEFAULT_DAY_SLOT_POSES[slot.id];
+  return pickDayPresetFromSalt(pool, salt) || DEFAULT_DAY_SLOT_POSES[dayPartOf(slot.id)];
 }
 
 /** Camera cue tied to the same salt as pose baseline. */
@@ -943,7 +1025,7 @@ export function resolveDaySlotCameraCue(
  * Time-of-day setting pools for Queue day diversification.
  * Empty slot locations pick a unique entry so morning→night do not share one backdrop.
  */
-export const DAY_SLOT_SETTING_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_SETTING_PRESETS: Record<DayPart, string[]> = {
   morning: [
     'sunlit kitchen window with breakfast clutter on the counters',
     'quiet neighborhood sidewalk at sunrise with long soft shadows',
@@ -990,7 +1072,7 @@ export const DAY_SLOT_SETTING_PRESETS: Record<DaySlotId, string[]> = {
  * Beat seeds for Queue day — must name a concrete stance/activity, not mood alone.
  * Vague lines ("quiet start") let Keep's standing fashion pose win.
  */
-export const DAY_SLOT_BEAT_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
   // Each daypart spans the drawable stances: lying, seated, crouch/bend, kneel, lean, stairs,
   // walk, gesture and still. diversifyDaySlotScenes spreads these across the four slots, so a
   // pool that is mostly "standing near something" is what makes a whole Day read as one pose.
@@ -1082,7 +1164,7 @@ export const DAY_SLOT_BEAT_PRESETS: Record<DaySlotId, string[]> = {
 };
 
 /** Suggestive beats — clothed heat / innuendo (no named sex). */
-export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = {
   morning: [
     'stretching in thin sleepwear by the window — one arm overhead, hip cocked, fabric catching light on bare thighs, looking back over a shoulder',
     'pouring coffee barefoot in a silk robe loosely tied — leaning on the counter, cleavage and skin, charged quiet, not facing the lens square-on',
@@ -1121,7 +1203,7 @@ export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DaySlotId, string[]> = {
  * Intimate beats — stance keywords Image 3 already maps (bent, wall, missionary…).
  * Duo lines imply a partner; solo lines stay one adult (masturbation / self-touch / undress).
  */
-export const DAY_SLOT_INTIMATE_BEAT_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_INTIMATE_BEAT_PRESETS: Record<DayPart, string[]> = {
   morning: [
     'bent over the kitchen counter mid-sex with a partner behind',
     'missionary on the rumpled bed with morning light through blinds',
@@ -1169,7 +1251,7 @@ export const DAY_SLOT_INTIMATE_BEAT_PRESETS: Record<DaySlotId, string[]> = {
  * naked mid-self-touch / slapstick sex is the punchline (NSFW-gated).
  * Solo lines lead with nude act — naming a worn dress/swimsuit lets Keep win.
  */
-export const DAY_SLOT_RAUNCHY_BEAT_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_RAUNCHY_BEAT_PRESETS: Record<DayPart, string[]> = {
   morning: [
     'solo fingering naked against the kitchen sink — back arched hard, one knee hooked on the counter, both hands between her thighs with two fingers buried in her vulva, Cast alone fully nude, eyes half-lidded down at her hands',
     'alone on the kitchen floor naked with knees pulled to her chest fingering herself when the toaster pops — laughing mid-act, both hands spreading and fingering her vulva, towel in a heap, one adult only',
@@ -1216,7 +1298,7 @@ export const DAY_SLOT_RAUNCHY_BEAT_PRESETS: Record<DaySlotId, string[]> = {
 };
 
 /** Soft bedroom / hotel settings mixed in when mood is suggestive, intimate, or raunchy. */
-export const DAY_SLOT_HEAT_SETTING_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_HEAT_SETTING_PRESETS: Record<DayPart, string[]> = {
   morning: [
     'sunlit bedroom with rumpled sheets and closed blinds — opaque walls only',
     'steamy bathroom with fogged glass and warm tile — indoor only',
@@ -1294,7 +1376,8 @@ export function resolveDayAdultIndoorSetting(input: {
   slotId?: DaySlotId | null;
 }): string {
   const slotId = input.slotId ?? 'night';
-  const heat = DAY_SLOT_HEAT_SETTING_PRESETS[slotId] ?? DAY_SLOT_HEAT_SETTING_PRESETS.night!;
+  const heat =
+    DAY_SLOT_HEAT_SETTING_PRESETS[dayPartOf(slotId)] ?? DAY_SLOT_HEAT_SETTING_PRESETS.night!;
   const fallback = heat[0] ?? 'dark bedroom with a single warm lamp — bare nightstand only';
   const raw = input.setting?.trim() || '';
   if (!raw) {
@@ -1360,17 +1443,19 @@ function beatPoolForDayMood(
   allowCompanions: boolean,
   intimateMix: DayIntimateMix = 'mixed'
 ): string[] {
-  const solo = DAY_SLOT_BEAT_PRESETS[slotId] ?? [];
-  const companion = allowCompanions ? (DAY_SLOT_COMPANION_BEAT_PRESETS[slotId] ?? []) : [];
+  const solo = DAY_SLOT_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
+  const companion = allowCompanions
+    ? (DAY_SLOT_COMPANION_BEAT_PRESETS[dayPartOf(slotId)] ?? [])
+    : [];
   if (mood === 'suggestive') {
     // Heat-only — everyday coffee/walk beats flatten suggestive into polite portraits.
-    return DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[slotId] ?? [];
+    return DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
   }
   if (mood === 'sport') {
-    return DAY_SLOT_SPORT_BEAT_PRESETS[slotId] ?? [];
+    return DAY_SLOT_SPORT_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
   }
   if (mood === 'vacation') {
-    return DAY_SLOT_VACATION_BEAT_PRESETS[slotId] ?? [];
+    return DAY_SLOT_VACATION_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
   }
   if (mood === 'intimate') {
     const heat = intimateBeatsForMix(slotId, intimateMix);
@@ -1396,13 +1481,13 @@ function heatBeatPoolForDayMood(
   intimateMix: DayIntimateMix
 ): string[] {
   if (mood === 'suggestive') {
-    return DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[slotId] ?? [];
+    return DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
   }
   if (mood === 'sport') {
-    return DAY_SLOT_SPORT_BEAT_PRESETS[slotId] ?? [];
+    return DAY_SLOT_SPORT_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
   }
   if (mood === 'vacation') {
-    return DAY_SLOT_VACATION_BEAT_PRESETS[slotId] ?? [];
+    return DAY_SLOT_VACATION_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
   }
   if (mood === 'intimate') {
     return intimateBeatsForMix(slotId, intimateMix);
@@ -1454,8 +1539,10 @@ function pickDayBeatPools(
   if (isDayAdultMood(dayMood) && intimateMix !== 'mixed' && heatPool.length > 0) {
     return { primary: heatPool, fallback: heatPool };
   }
-  const companionPool = allowCompanions ? (DAY_SLOT_COMPANION_BEAT_PRESETS[slotId] ?? []) : [];
-  const soloPool = DAY_SLOT_BEAT_PRESETS[slotId] ?? [];
+  const companionPool = allowCompanions
+    ? (DAY_SLOT_COMPANION_BEAT_PRESETS[dayPartOf(slotId)] ?? [])
+    : [];
+  const soloPool = DAY_SLOT_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
   const preferHeat = heatPool.length > 0 && random() < preferHeatChance(dayMood);
   const preferCompanion =
     !preferHeat && allowCompanions && companionPool.length > 0 && random() < 0.4;
@@ -1487,19 +1574,19 @@ function settingPoolForDayMood(
   mood: DayMood,
   intimateMix: DayIntimateMix = 'mixed'
 ): string[] {
-  const base = DAY_SLOT_SETTING_PRESETS[slotId] ?? [];
+  const base = DAY_SLOT_SETTING_PRESETS[dayPartOf(slotId)] ?? [];
   if (mood === 'everyday') {
     return base;
   }
   if (mood === 'sport') {
-    const sportSettings = DAY_SLOT_SPORT_SETTING_PRESETS[slotId] ?? [];
+    const sportSettings = DAY_SLOT_SPORT_SETTING_PRESETS[dayPartOf(slotId)] ?? [];
     return sportSettings.length > 0 ? sportSettings : base;
   }
   if (mood === 'vacation') {
-    const vacationSettings = DAY_SLOT_VACATION_SETTING_PRESETS[slotId] ?? [];
+    const vacationSettings = DAY_SLOT_VACATION_SETTING_PRESETS[dayPartOf(slotId)] ?? [];
     return vacationSettings.length > 0 ? vacationSettings : base;
   }
-  const heat = DAY_SLOT_HEAT_SETTING_PRESETS[slotId] ?? [];
+  const heat = DAY_SLOT_HEAT_SETTING_PRESETS[dayPartOf(slotId)] ?? [];
   // Intimate/raunchy: stay in bedroom/hotel heat — public piers fight oral/sex beats.
   if (isDayAdultMood(mood) && heat.length > 0) {
     // Duo: drop kitchen/counter still-life settings that win over the sex act.
@@ -1727,11 +1814,11 @@ export function daySlotMatchesAdultMix(input: {
     }
     // Leftover Vacation boards (pier/scooter/hotel terrace) survive on shared pose
     // words like perched/reclining — force-reroll catalog travel slots.
-    const vacationSettings = DAY_SLOT_VACATION_SETTING_PRESETS[input.slot.id] ?? [];
+    const vacationSettings = DAY_SLOT_VACATION_SETTING_PRESETS[dayPartOf(input.slot.id)] ?? [];
     if (vacationSettings.includes(setting)) {
       return false;
     }
-    const vacationBeats = DAY_SLOT_VACATION_BEAT_PRESETS[input.slot.id] ?? [];
+    const vacationBeats = DAY_SLOT_VACATION_BEAT_PRESETS[dayPartOf(input.slot.id)] ?? [];
     if (vacationBeats.includes(beat)) {
       return false;
     }
@@ -1754,7 +1841,7 @@ export function daySlotMatchesAdultMix(input: {
     if (!beatOk) {
       return false;
     }
-    const sportSettings = DAY_SLOT_SPORT_SETTING_PRESETS[input.slot.id] ?? [];
+    const sportSettings = DAY_SLOT_SPORT_SETTING_PRESETS[dayPartOf(input.slot.id)] ?? [];
     if (sportSettings.includes(setting)) {
       return true;
     }
@@ -1774,7 +1861,7 @@ export function daySlotMatchesAdultMix(input: {
     if (!beatOk) {
       return false;
     }
-    const vacationSettings = DAY_SLOT_VACATION_SETTING_PRESETS[input.slot.id] ?? [];
+    const vacationSettings = DAY_SLOT_VACATION_SETTING_PRESETS[dayPartOf(input.slot.id)] ?? [];
     if (vacationSettings.includes(setting)) {
       return true;
     }
@@ -2829,10 +2916,13 @@ function readClipStatus(value: unknown): DaySlotClipStatus | undefined {
   return undefined;
 }
 
-export function normalizeDaySlotStills(input?: DaySlotStill[] | null): DaySlotStill[] {
+export function normalizeDaySlotStills(
+  input?: DaySlotStill[] | null,
+  slots?: Array<Pick<DaySlot, 'id'>> | null
+): DaySlotStill[] {
   const bySlot = new Map<DaySlotId, DaySlotStill>();
   for (const still of input ?? []) {
-    if (!still?.slotId || !SLOT_IDS.has(still.slotId)) {
+    if (!still?.slotId || !isDaySlotId(still.slotId)) {
       continue;
     }
     bySlot.set(still.slotId, {
@@ -2845,7 +2935,10 @@ export function normalizeDaySlotStills(input?: DaySlotStill[] | null): DaySlotSt
       clipStatus: readClipStatus(still.clipStatus),
     });
   }
-  return DEFAULT_DAY_SLOTS.map(slot => bySlot.get(slot.id) ?? { slotId: slot.id });
+  const order = slots?.length
+    ? slots.map(slot => slot.id)
+    : daySlotsForLength(inferDayLength([...bySlot.keys()])).map(slot => slot.id);
+  return order.map(id => bySlot.get(id) ?? { slotId: id });
 }
 
 export function upsertDaySlotStill(
@@ -3060,7 +3153,7 @@ export function buildDaySlotMotionSubject(slot: DaySlot, characterName?: string)
   const name = characterName?.trim() || 'the character';
   const hints = slot.sceneHints?.trim();
   const location = slot.location?.trim();
-  const motion = DAY_SLOT_MOTION_CUES[slot.id] || 'subtle natural motion, cinematic';
+  const motion = DAY_SLOT_MOTION_CUES[dayPartOf(slot.id)] || 'subtle natural motion, cinematic';
   return [
     `${name} during ${slot.label.toLowerCase()}`,
     location ? `at ${location}` : null,

@@ -2,6 +2,7 @@
  * In-memory film assemble jobs with optional disk spill for completed MP4 bytes.
  */
 
+import { normalizeFilmTitleCard, type FilmTitleCard } from './film-polish';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -100,6 +101,9 @@ export type StartFilmAssembleInput = {
   resolution?: FilmResolutionPreset | string;
   crossfadeSec?: number;
   audioBedUrl?: string;
+  stillMotion?: boolean;
+  captions?: boolean;
+  titleCard?: FilmTitleCard | null;
   requestOrigin?: string;
   userId?: string | null;
 };
@@ -145,6 +149,9 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
         resolution: normalizeFilmResolution(input.resolution),
         crossfadeSec: normalizeFilmCrossfadeSec(input.crossfadeSec),
         audioBedUrl: input.audioBedUrl,
+        stillMotion: input.stillMotion === true,
+        captions: input.captions === true,
+        titleCard: normalizeFilmTitleCard(input.titleCard),
         userId: input.userId,
         onProgress: (ratio, label) => {
           const current = jobs.get(id);

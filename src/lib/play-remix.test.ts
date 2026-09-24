@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { DEFAULT_DAY_SLOTS, type DaySlot } from './day-planner';
+import { dayPartOf, DEFAULT_DAY_SLOTS, type DaySlot } from './day-planner';
 import {
   applyDayTheme,
   clearDaySlotOutfits,
@@ -22,7 +22,7 @@ describe('play remix', () => {
     assert.equal(new Set(DAY_THEMES.map(theme => theme.id)).size, DAY_THEMES.length);
     for (const theme of DAY_THEMES) {
       for (const slot of DEFAULT_DAY_SLOTS) {
-        const entry = theme.slots[slot.id];
+        const entry = theme.slots[dayPartOf(slot.id)];
         assert.ok(entry.location.trim().length > 10, `${theme.id} ${slot.id} location`);
         assert.ok(entry.beat.trim().length > 10, `${theme.id} ${slot.id} beat`);
       }

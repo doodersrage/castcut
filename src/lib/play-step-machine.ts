@@ -6,7 +6,11 @@
 
 import type { LookPack } from './look-pack';
 import { lookPackDayHref, lookPackFittingHref, lookPackRoleplayHref } from './look-pack';
-import { countCachedCompletedDayClips, countCachedCompletedDayStills } from './play-day-cache';
+import {
+  cachedDayLength,
+  countCachedCompletedDayClips,
+  countCachedCompletedDayStills,
+} from './play-day-cache';
 import { normalizeDayThemeId } from './play-remix';
 
 /** Deep link for same-look / new-Day remix (clears stills on Day mount). */
@@ -345,6 +349,14 @@ function readCompletedStills(artifacts: PlayArtifacts): number {
   return countCachedCompletedDayStills();
 }
 
+/** Stills in a full Day: explicit override, else the Day board's current length. */
+function readSlotCount(artifacts: PlayArtifacts): number | undefined {
+  if (typeof artifacts.slotCount === 'number') {
+    return artifacts.slotCount;
+  }
+  return typeof window === 'undefined' ? undefined : cachedDayLength();
+}
+
 function readCompletedClips(artifacts: PlayArtifacts): number {
   if (typeof artifacts.completedClips === 'number') {
     return Math.max(0, artifacts.completedClips);
@@ -475,7 +487,7 @@ export function derivePlayProgress(artifacts: PlayArtifacts = {}): DerivedPlayPr
           completedClips,
           firstFilmDone,
           filmNeedsCast,
-          slotCount: artifacts.slotCount,
+          slotCount: readSlotCount(artifacts),
           saves: funnel.saveToCast ?? 0,
           campaignCompleted: Boolean(campaign?.completedAt),
         })
@@ -591,7 +603,7 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
         pack,
         completedStills,
         completedClips,
-        slotCount: artifacts.slotCount,
+        slotCount: readSlotCount(artifacts),
       });
     }
     const step = playStepById(progress.resumeStepId);
@@ -621,7 +633,7 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
           completedClips,
           fallbackHref: dayHref,
           keepReason: keeps > 0 && completedStills === 0,
-          slotCount: artifacts.slotCount,
+          slotCount: readSlotCount(artifacts),
         });
       }
       return {

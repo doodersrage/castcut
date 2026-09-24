@@ -122,6 +122,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     setIsolateSubject,
     allowCompanions,
     setAllowCompanions,
+    dayLength,
+    setDayLength,
     autoReviewStills,
     setAutoReviewStills,
     posePriority,
@@ -567,6 +569,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             intimateMix={intimateMix}
             onIntimateMixChange={setIntimateMix}
             intimateEnabled={intimateEnabled}
+            dayLength={dayLength}
+            onDayLengthChange={setDayLength}
           />
           <div className="mt-3 grid gap-3 sm:grid-cols-2" data-testid="day-active-plan">
             <label className="space-y-2">

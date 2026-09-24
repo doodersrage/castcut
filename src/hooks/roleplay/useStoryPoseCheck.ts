@@ -8,7 +8,9 @@ import { detectStillPose } from '@/lib/pose-detect-client';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
 import { DEFAULT_MIN_POSE_MATCH, POSE_LIBRARY_MIN_SCORE, scorePoseMatch } from '@/lib/pose-score';
-import { recordPoseMatchScore } from '@/lib/play-metrics';
+import { recordFaceMatchScore, recordPoseMatchScore } from '@/lib/play-metrics';
+import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
+import { DEFAULT_MIN_FACE_MATCH } from '@/lib/face-match';
 
 /**
  * Story pose check: when a still that was queued with an Image 3 guide lands, read its pose
@@ -20,7 +22,9 @@ import { recordPoseMatchScore } from '@/lib/play-metrics';
 export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
   poseCheckOff: string | null;
 } {
-  const { storyRef, toolSettings, updateToolSettings } = options;
+  const { storyRef, toolSettings, updateToolSettings, referenceImageUrl, referenceImageFilename } =
+    options;
+  const faceOffRef = useRef<string | null>(null);
   const runningRef = useRef(false);
   const skippedRef = useRef(new Set<string>());
   const offRef = useRef<string | null>(null);
@@ -69,6 +73,31 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
             createdAt: Date.now(),
           });
         }
+        // Solo beats: also measure whether the face is still the Cast (reference photo).
+        let faceMatch: { imageUrl: string; similarity: number } | undefined;
+        const faceReference =
+          expect.keypoints.length === 1 && !faceOffRef.current
+            ? referenceImageUrl?.includes('/api/comfyui/view?')
+              ? referenceImageUrl
+              : comfyInputViewUrl(referenceImageFilename)
+            : null;
+        if (faceReference) {
+          try {
+            const measured = await measureStillFaceMatch({ referenceUrl: faceReference, imageUrl });
+            if (measured?.available) {
+              faceMatch = { imageUrl, similarity: measured.similarity };
+              recordFaceMatchScore(
+                options.shared.model,
+                measured.similarity,
+                measured.similarity < DEFAULT_MIN_FACE_MATCH
+              );
+            } else if (measured && !measured.available) {
+              faceOffRef.current = measured.reason;
+            }
+          } catch (error) {
+            console.warn('Story face check skipped:', error);
+          }
+        }
         const latest =
           storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at) ?? beat;
         updateToolSettings({
@@ -79,6 +108,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
               expectedPeople: match.expectedPeople,
               detectedPeople: match.detectedPeople,
             },
+            ...(faceMatch ? { faceMatch } : {}),
           }),
         });
       } catch (error) {
@@ -90,7 +120,15 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
         setTick(value => value + 1);
       }
     })();
-  }, [storyRef, tick, toolSettings.story, updateToolSettings]);
+  }, [
+    options.shared.model,
+    referenceImageFilename,
+    referenceImageUrl,
+    storyRef,
+    tick,
+    toolSettings.story,
+    updateToolSettings,
+  ]);
 
   return { poseCheckOff };
 }

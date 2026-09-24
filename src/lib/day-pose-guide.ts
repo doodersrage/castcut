@@ -4419,6 +4419,11 @@ function normalizePoseKey(key: string | undefined): PoseGuideKey {
   if ((POSE_KEYS as readonly string[]).includes(trimmed)) {
     return trimmed as PoseGuideKey;
   }
+  // Longer Days add a second slot per daypart (`morning-2`): same daypart, same fallback pose.
+  const daypart = trimmed.replace(/-\d+$/, '');
+  if ((POSE_KEYS as readonly string[]).includes(daypart)) {
+    return daypart as PoseGuideKey;
+  }
   if (/(^|-)(reach|wave|point|grab)$/.test(trimmed) || trimmed === 'reach') {
     return 'morning';
   }

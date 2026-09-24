@@ -13,6 +13,18 @@ export type FilmCutOptionsValue = {
   vertical?: boolean;
   /** Display name after a local upload (optional). */
   audioBedName?: string;
+  /** Slow push-in / pull-out on stills (default on — a static hold reads as a slideshow). */
+  stillMotion?: boolean;
+  /** Opening title card plus a short caption per shot. */
+  titles?: boolean;
+};
+
+/** Cut option defaults shared by Day, Story and Cast film. */
+export const DEFAULT_FILM_CUT_OPTIONS: FilmCutOptionsValue = {
+  crossfadeSec: 0,
+  audioBedUrl: '',
+  stillMotion: true,
+  titles: false,
 };
 
 type FilmCutOptionsControlsProps = {
@@ -67,6 +79,26 @@ export default function FilmCutOptionsControls({
             data-testid={`${testIdPrefix}-vertical`}
           />
           <span>Vertical 9:16</span>
+        </label>
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={value.stillMotion !== false}
+            onChange={event => onChange({ ...value, stillMotion: event.target.checked })}
+            data-testid={`${testIdPrefix}-still-motion`}
+          />
+          <span>Slow zoom on stills</span>
+        </label>
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={value.titles === true}
+            onChange={event => onChange({ ...value, titles: event.target.checked })}
+            data-testid={`${testIdPrefix}-titles`}
+          />
+          <span>Title & captions</span>
         </label>
       </ToolActionRow>
 

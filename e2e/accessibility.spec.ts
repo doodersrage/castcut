@@ -61,6 +61,19 @@ for (const route of ROUTES) {
       timeout: 15_000,
     }).catch(() => undefined);
 
+    // Entrance fades leave text half-transparent for a moment, and axe measures the blended
+    // color (/play failed color-contrast mid-fade, then passed once settled). Wait them out.
+    await page
+      .waitForFunction(
+        () =>
+          document
+            .getAnimations()
+            .every(animation => animation.playState !== 'running' || animation.effect?.getTiming().iterations === Infinity),
+        undefined,
+        { timeout: 10_000 }
+      )
+      .catch(() => undefined);
+
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();

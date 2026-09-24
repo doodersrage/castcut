@@ -100,7 +100,15 @@ export default function DaySlotBoard({
 
   return (
     <ol
-      className={compact ? 'grid grid-cols-2 gap-2' : 'grid gap-2 sm:grid-cols-4'}
+      className={
+        compact
+          ? 'grid grid-cols-2 gap-2'
+          : slots.length === 2
+            ? 'grid gap-2 sm:grid-cols-2'
+            : slots.length === 3 || slots.length === 6
+              ? 'grid gap-2 sm:grid-cols-3'
+              : 'grid gap-2 sm:grid-cols-4'
+      }
       data-testid="day-progress"
       aria-label="Day slots"
     >

@@ -57,6 +57,8 @@ export type SlotQualityDecision = {
   overall: number;
   /** True when the pose check ran and the still did not follow its guide. */
   poseMiss?: boolean;
+  /** True when the measured face match says this is a different person. */
+  faceMiss?: boolean;
 };
 
 export type SlotQualityPolicy = {
@@ -75,6 +77,12 @@ export type SlotQualityPolicy = {
    * Only applies when a pose check ran; uncalibrated starting value.
    */
   minPoseMatch: number;
+  /**
+   * Measured face match (face-recognition similarity to the Cast plate, 0–1) below this
+   * rerolls; below {@link SlotQualityPolicy.warnFaceMatch} it only warns. Uncalibrated.
+   */
+  minFaceMatch: number;
+  warnFaceMatch: number;
 };
 
 export const DEFAULT_SLOT_QUALITY_POLICY: SlotQualityPolicy = {
@@ -84,6 +92,8 @@ export const DEFAULT_SLOT_QUALITY_POLICY: SlotQualityPolicy = {
   maxRerolls: 2,
   minIdentity: 3,
   minPoseMatch: 0.6,
+  minFaceMatch: 0.3,
+  warnFaceMatch: 0.45,
 };
 
 export type SlotReviewContext = {
@@ -266,7 +276,7 @@ export function decideSlotQuality(
   report: SlotQualityReport,
   rerollsUsed: number,
   policy: SlotQualityPolicy = DEFAULT_SLOT_QUALITY_POLICY,
-  extras?: { poseMatch?: number | null }
+  extras?: { poseMatch?: number | null; faceMatch?: number | null }
 ): SlotQualityDecision {
   const overall = slotQualityOverall(report);
   const reasons: string[] = [];
@@ -274,6 +284,11 @@ export function decideSlotQuality(
   const poseMiss = typeof poseMatch === 'number' && poseMatch < policy.minPoseMatch;
   if (poseMiss) {
     reasons.push(`pose match ${Math.round(poseMatch * 100)}% — guide not followed`);
+  }
+  const faceMatch = extras?.faceMatch;
+  const faceMiss = typeof faceMatch === 'number' && faceMatch < policy.minFaceMatch;
+  if (faceMiss) {
+    reasons.push(`face match ${Math.round(faceMatch * 100)}% — not the Cast`);
   }
 
   for (const flag of report.flags) {
@@ -296,7 +311,12 @@ export function decideSlotQuality(
   }
 
   const warnings: string[] = [];
-  if (report.flags.includes('wrong-face')) {
+  if (typeof faceMatch === 'number') {
+    // A measured score outranks the vision reviewer's guess about the same question.
+    if (!faceMiss && faceMatch < policy.warnFaceMatch) {
+      warnings.push(`face match ${Math.round(faceMatch * 100)}%`);
+    }
+  } else if (report.flags.includes('wrong-face')) {
     warnings.push('face may not match the Cast');
   } else if (
     typeof report.identityMatch === 'number' &&
@@ -318,6 +338,7 @@ export function decideSlotQuality(
     warnings,
     overall,
     ...(poseMiss ? { poseMiss: true } : {}),
+    ...(faceMiss ? { faceMiss: true } : {}),
   };
 }
 
@@ -331,6 +352,10 @@ const FLAG_NUDGES: Partial<Record<SlotReviewFlag, string>> = {
   'plastic-skin': 'Natural skin texture with visible pores; no waxy smoothing.',
   'cropped-subject': 'Frame the whole subject with margin around the head and hands.',
 };
+
+/** Prompt nudge for a still whose measured face is not the Cast. */
+export const FACE_MISMATCH_NUDGE =
+  'Keep the exact Cast face from Image 1 — same face shape, eyes, nose, mouth, skin tone and hair; never a different woman.';
 
 /** Extra prompt lines for a requeued slot, built from the flags that caused the reroll. */
 export function slotRerollNudge(flags: SlotReviewFlag[]): string {

@@ -3,7 +3,7 @@
  * Pure helpers only — storage writes live in `play-starter.ts` (`applyRemixDayFilmState`).
  */
 
-import type { DaySlot, DaySlotId } from './day-planner';
+import { dayPartOf, type DayPart, type DaySlot } from './day-planner';
 
 export type DayRemixKind = 'new-day' | 'new-outfit' | 'theme';
 
@@ -24,7 +24,7 @@ export type DayTheme = {
   label: string;
   hint: string;
   /** Everyday, solo beats — one Setting + Beat per time of day. */
-  slots: Record<DaySlotId, DayThemeSlot>;
+  slots: Record<DayPart, DayThemeSlot>;
 };
 
 export const DAY_THEMES: DayTheme[] = [
@@ -155,17 +155,23 @@ export function dayThemeById(id: unknown): DayTheme | null {
   return themeId ? (DAY_THEMES.find(theme => theme.id === themeId) ?? null) : null;
 }
 
-/** Replace each slot's Setting + Beat with the theme's, keeping wardrobe kits and labels. */
+/**
+ * Replace each slot's Setting + Beat with the theme's, keeping wardrobe kits and labels.
+ * Themes script one beat per daypart; on longer Days the late slots (`morning-2`…) keep their
+ * own plan rather than repeat the same beat twice.
+ */
 export function applyDayTheme(slots: DaySlot[], themeId: unknown): DaySlot[] {
   const theme = dayThemeById(themeId);
   if (!theme) {
     return slots;
   }
-  return slots.map(slot => ({
-    ...slot,
-    location: theme.slots[slot.id].location,
-    sceneHints: theme.slots[slot.id].beat,
-  }));
+  return slots.map(slot => {
+    if (slot.id !== dayPartOf(slot.id)) {
+      return slot;
+    }
+    const scripted = theme.slots[dayPartOf(slot.id)];
+    return { ...slot, location: scripted.location, sceneHints: scripted.beat };
+  });
 }
 
 /**

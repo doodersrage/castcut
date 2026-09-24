@@ -15,9 +15,10 @@ import {
   type CyclingDiscipline,
 } from '@/lib/athletic-sport-actions';
 import type { DaySlotId } from '@/lib/day-planner';
+import { dayPartOf, type DayPart } from '@/lib/day-parts';
 
 /** Sports that commonly run in each Day slot (training / match windows). */
-export const DAY_SLOT_SPORTS: Record<DaySlotId, readonly AthleticSport[]> = {
+export const DAY_SLOT_SPORTS: Record<DayPart, readonly AthleticSport[]> = {
   morning: [
     'running',
     'yoga',
@@ -109,7 +110,7 @@ function buildSportBeatLine(pose: string, label: string): string {
 
 /** Beat lines for Suggest / diversify — pose first, sport named for wardrobe lock. */
 export function buildDaySportBeatPresets(slotId: DaySlotId): string[] {
-  const sports = DAY_SLOT_SPORTS[slotId] ?? [];
+  const sports = DAY_SLOT_SPORTS[dayPartOf(slotId)] ?? [];
   const beats: string[] = [];
   for (const sport of sports) {
     if (sport === 'cycling') {
@@ -131,7 +132,7 @@ export function buildDaySportBeatPresets(slotId: DaySlotId): string[] {
 
 /** Venue / lighting lines matched to sports that fit this daypart. */
 export function buildDaySportSettingPresets(slotId: DaySlotId): string[] {
-  const sports = DAY_SLOT_SPORTS[slotId] ?? [];
+  const sports = DAY_SLOT_SPORTS[dayPartOf(slotId)] ?? [];
   const settings: string[] = [];
   const seen = new Set<string>();
   for (const sport of sports) {
@@ -149,14 +150,14 @@ export function buildDaySportSettingPresets(slotId: DaySlotId): string[] {
   return settings;
 }
 
-export const DAY_SLOT_SPORT_BEAT_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_SPORT_BEAT_PRESETS: Record<DayPart, string[]> = {
   morning: buildDaySportBeatPresets('morning'),
   afternoon: buildDaySportBeatPresets('afternoon'),
   evening: buildDaySportBeatPresets('evening'),
   night: buildDaySportBeatPresets('night'),
 };
 
-export const DAY_SLOT_SPORT_SETTING_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_SPORT_SETTING_PRESETS: Record<DayPart, string[]> = {
   morning: buildDaySportSettingPresets('morning'),
   afternoon: buildDaySportSettingPresets('afternoon'),
   evening: buildDaySportSettingPresets('evening'),
@@ -184,7 +185,7 @@ export function pickDaySportScenePair(
   }
 ): { beat: string; setting: string; sport: AthleticSport } | null {
   const random = options?.random ?? Math.random;
-  const sports = [...(DAY_SLOT_SPORTS[slotId] ?? [])];
+  const sports = [...(DAY_SLOT_SPORTS[dayPartOf(slotId)] ?? [])];
   if (sports.length === 0) {
     return null;
   }

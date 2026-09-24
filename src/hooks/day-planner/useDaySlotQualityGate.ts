@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { isDayAdultMood, normalizeDayIntimateMix, normalizeDayMood } from '@/lib/day-planner';
-import { recordPoseMatchScore, recordSlotReviewOutcome } from '@/lib/play-metrics';
+import {
+  recordFaceMatchScore,
+  recordPoseMatchScore,
+  recordSlotReviewOutcome,
+} from '@/lib/play-metrics';
+import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
+import { describeFaceMatch } from '@/lib/face-match';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
 import {
@@ -16,6 +22,7 @@ import {
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import {
   decideSlotQuality,
+  FACE_MISMATCH_NUDGE,
   flaggedSlotIds,
   recordSlotDecision,
   reviewOutfitLabel,
@@ -61,6 +68,8 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
   /** Set once the detector reports it is not installed — skip pose checks for the session. */
   const poseCheckOffRef = useRef<string | null>(null);
   const [poseCheckOff, setPoseCheckOff] = useState<string | null>(null);
+  const faceCheckOffRef = useRef<string | null>(null);
+  const [faceCheckOff, setFaceCheckOff] = useState<string | null>(null);
 
   useEffect(() => {
     if (!mounted) {
@@ -165,6 +174,31 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
             poseNote = `pose check skipped (${error instanceof Error ? error.message : 'error'})`;
           }
         }
+        // Face check (ComfyUI FaceAnalysis): solo stills only — with a companion in frame the
+        // detector can't know which face should be the Cast.
+        let faceMatch: number | null = null;
+        const faceReferenceUrl = referenceUrl
+          ? referenceUrl.includes('/api/comfyui/view?')
+            ? referenceUrl
+            : comfyInputViewUrl(plate?.filename)
+          : null;
+        if (faceReferenceUrl && !faceCheckOffRef.current) {
+          setQualityStatus(`Checking ${target.label} face…`);
+          try {
+            const measured = await measureStillFaceMatch({
+              referenceUrl: faceReferenceUrl,
+              imageUrl,
+            });
+            if (measured?.available) {
+              faceMatch = measured.similarity;
+            } else if (measured && !measured.available) {
+              faceCheckOffRef.current = measured.reason;
+              setFaceCheckOff(measured.reason);
+            }
+          } catch (error) {
+            console.warn('Day face check skipped:', error);
+          }
+        }
         setQualityStatus(`Reviewing ${target.label}…`);
         const report = await reviewDaySlotStill({
           imageUrl: pair ?? imageUrl,
@@ -181,8 +215,11 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
           report,
           slotRerollsUsed(ledgerRef.current, target.id),
           undefined,
-          { poseMatch: poseMatch?.score ?? null }
+          { poseMatch: poseMatch?.score ?? null, faceMatch }
         );
+        if (faceMatch !== null) {
+          recordFaceMatchScore(shared.model, faceMatch, Boolean(decision.faceMiss));
+        }
         if (poseMatch && expectation) {
           recordPoseMatchScore(expectation.style, poseMatch.score, Boolean(decision.poseMiss));
           // A kept still that followed its guide closely is a real body in that layout:
@@ -204,7 +241,10 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
             });
           }
         }
-        const poseSuffix = poseNote ? ` · ${poseNote}` : '';
+        const poseSuffix = [poseNote, faceMatch !== null ? describeFaceMatch(faceMatch) : '']
+          .filter(Boolean)
+          .map(note => ` · ${note}`)
+          .join('');
         ledgerRef.current = recordSlotDecision(ledgerRef.current, target.id, decision);
         setQualityLedger(ledgerRef.current);
         recordSlotReviewOutcome(decision.action);
@@ -223,6 +263,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
           const nudge = [
             slotRerollNudge(report.flags),
             decision.poseMiss ? POSE_MISMATCH_NUDGE : '',
+            decision.faceMiss ? FACE_MISMATCH_NUDGE : '',
           ]
             .filter(Boolean)
             .join(' ');
@@ -270,8 +311,14 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
 
   return {
     qualityStatus: autoReviewStills
-      ? qualityStatus && poseCheckOff
-        ? `${qualityStatus} (Pose check off: ${poseCheckOff})`
+      ? qualityStatus
+        ? [
+            qualityStatus,
+            poseCheckOff ? `(Pose check off: ${poseCheckOff})` : '',
+            faceCheckOff ? `(Face check off: ${faceCheckOff})` : '',
+          ]
+            .filter(Boolean)
+            .join(' ')
         : qualityStatus
       : null,
     qualityLedger,

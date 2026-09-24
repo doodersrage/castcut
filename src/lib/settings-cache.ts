@@ -1028,6 +1028,8 @@ export type FittingToolCache = {
 /** Day Planner — time-of-day slots with wardrobe + scene beats for one character. */
 export type DayToolCache = {
   slots?: import('./day-planner').DaySlot[];
+  /** Stills on the Day board (2, 3, 4, 6 or 8); default four dayparts. */
+  dayLength?: import('./day-planner').DayLength;
   /** Completed / in-flight stills for the day reel and Cut film. */
   stills?: import('./day-planner').DaySlotStill[];
   /** Cast character that owns {@link stills}; cleared when Cast changes. */

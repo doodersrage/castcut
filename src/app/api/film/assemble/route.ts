@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { normalizeFilmTitleCard } from '@/lib/film-polish';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
@@ -114,6 +115,9 @@ export async function POST(request: Request) {
       resolution: typeof body.resolution === 'string' ? body.resolution : undefined,
       crossfadeSec: typeof body.crossfadeSec === 'number' ? body.crossfadeSec : undefined,
       audioBedUrl: typeof body.audioBedUrl === 'string' ? body.audioBedUrl : undefined,
+      stillMotion: body.stillMotion === true,
+      captions: body.captions === true,
+      titleCard: normalizeFilmTitleCard(body.titleCard),
       requestOrigin: new URL(request.url).origin,
       userId: isAuthEnabled() ? (resolveRequestUser(request)?.id ?? null) : null,
     });

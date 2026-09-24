@@ -33,7 +33,8 @@ ENV PORT=47832
 ENV HOSTNAME=0.0.0.0
 
 # Server film Cut (H.264/AAC) — browser MediaRecorder remains the fallback.
-RUN apk add --no-cache ffmpeg \
+# font-dejavu: drawtext needs a font file for Cut title cards and captions.
+RUN apk add --no-cache ffmpeg font-dejavu \
   && addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 

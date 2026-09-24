@@ -3,6 +3,9 @@
 import { ChipButton } from '@/components/ui/Field';
 import {
   DAY_INTIMATE_MIX_OPTIONS,
+  DAY_LENGTHS,
+  DEFAULT_DAY_LENGTH,
+  type DayLength,
   DAY_MOOD_OPTIONS,
   isDayAdultMood,
   normalizeDayIntimateMix,
@@ -29,6 +32,9 @@ export type DayMoodStripProps = {
   onIntimateMixChange?: (next: DayIntimateMix) => void;
   /** When false, Intimate / Raunchy chips are hidden (NSFW generator env off). */
   intimateEnabled?: boolean;
+  /** Stills on the board (2–8). */
+  dayLength?: DayLength;
+  onDayLengthChange?: (next: DayLength) => void;
   className?: string;
 };
 
@@ -50,6 +56,8 @@ export default function DayMoodStrip({
   intimateMix = 'mixed',
   onIntimateMixChange,
   intimateEnabled = false,
+  dayLength = DEFAULT_DAY_LENGTH,
+  onDayLengthChange,
   className = '',
 }: DayMoodStripProps) {
   const mood = normalizeDayMood(dayMood);
@@ -70,6 +78,32 @@ export default function DayMoodStrip({
 
   return (
     <div className={className.trim() || undefined} data-testid="day-mood-strip">
+      {onDayLengthChange ? (
+        <div
+          className="mb-2 flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="Day length"
+          data-testid="day-length"
+        >
+          <span className="type-caption text-[var(--text-muted)]">Stills</span>
+          {DAY_LENGTHS.map(length => (
+            <ChipButton
+              key={length}
+              active={dayLength === length}
+              disabled={busy}
+              data-testid={`day-length-${length}`}
+              title={
+                length > 4
+                  ? `${length} stills — adds late-morning / late-night slots`
+                  : `${length} stills`
+              }
+              onClick={() => onDayLengthChange(length)}
+            >
+              {length}
+            </ChipButton>
+          ))}
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         {onAllowCompanionsChange ? (
           <ChipButton

@@ -112,6 +112,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setIsolateSubject,
     allowCompanions,
     setAllowCompanions,
+    dayLength,
+    setDayLength,
     autoReviewStills,
     setAutoReviewStills,
     posePriority,
@@ -515,6 +517,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
           intimateMix={intimateMix}
           onIntimateMixChange={setIntimateMix}
           intimateEnabled={intimateEnabled}
+          dayLength={dayLength}
+          onDayLengthChange={setDayLength}
         />
         <div className="grid gap-2" data-testid="day-active-plan">
           <label className="block space-y-1.5 text-sm">

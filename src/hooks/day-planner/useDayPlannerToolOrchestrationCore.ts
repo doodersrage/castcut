@@ -56,6 +56,7 @@ import {
   ensureDaySlotsMatchMood,
   dayPoseSpecForBeat,
   isDayAdultMood,
+  normalizeDayLength,
   isDayHeatMood,
   mergeDaySlotStills,
   nextDaySlotToEdit,
@@ -104,6 +105,10 @@ import {
   vacationStanceDirective,
 } from '@/lib/day-vacation';
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
+import {
+  DEFAULT_FILM_CUT_OPTIONS,
+  type FilmCutOptionsValue,
+} from '@/components/FilmCutOptionsControls';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { loadPoseLibrary, type NormalizedBody } from '@/lib/pose-library';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
@@ -183,11 +188,8 @@ export function useDayPlannerToolOrchestrationCore() {
   const [poseGuideOutcomes, setPoseGuideOutcomes] = useState<PoseGuideOutcome[]>([]);
   const [assemblingFilm, setAssemblingFilm] = useState(false);
   const [filmStatus, setFilmStatus] = useState<string | null>(null);
-  const [filmCutOptions, setFilmCutOptions] = useState<{
-    crossfadeSec: number;
-    audioBedUrl: string;
-    vertical?: boolean;
-  }>({ crossfadeSec: 0, audioBedUrl: '' });
+  const [filmCutOptions, setFilmCutOptions] =
+    useState<FilmCutOptionsValue>(DEFAULT_FILM_CUT_OPTIONS);
   const [filmNeedsCast, setFilmNeedsCast] = useState(false);
   const assembledFilmRef = useRef<{ filename: string; data: Uint8Array } | null>(null);
   const deepLinkHandled = useRef(false);
@@ -200,8 +202,14 @@ export function useDayPlannerToolOrchestrationCore() {
   /** What each slot's last Image 3 guide asked for, so the gate can score the still against it. */
   const poseGuideExpectRef = useRef<Partial<Record<DaySlotId, DayPoseGuideExpectation>>>({});
 
-  const slots = useMemo(() => normalizeDaySlots(toolSettings.slots), [toolSettings.slots]);
-  const stills = useMemo(() => normalizeDaySlotStills(toolSettings.stills), [toolSettings.stills]);
+  const slots = useMemo(
+    () => normalizeDaySlots(toolSettings.slots, toolSettings.dayLength),
+    [toolSettings.dayLength, toolSettings.slots]
+  );
+  const stills = useMemo(
+    () => normalizeDaySlotStills(toolSettings.stills, slots),
+    [slots, toolSettings.stills]
+  );
   stillsRef.current = stills;
   const watchPlaylist = useMemo(() => dayWatchPlaylist(stills, slots), [slots, stills]);
   const activeSlot = slots.find(slot => slot.id === activeSlotId) ?? slots[0]!;
@@ -1302,6 +1310,17 @@ export function useDayPlannerToolOrchestrationCore() {
     setIsolateSubject,
     allowCompanions: toolSettings.allowCompanions === true,
     setAllowCompanions: (next: boolean) => updateToolSettings({ allowCompanions: next }),
+    dayLength: normalizeDayLength(toolSettings.dayLength ?? slots.length),
+    setDayLength: (next: number) => {
+      const length = normalizeDayLength(next);
+      // Keep every slot's plan and still by id; growing adds the late slots, shrinking drops them.
+      const nextSlots = normalizeDaySlots(slots, length);
+      updateToolSettings({
+        dayLength: length,
+        slots: nextSlots,
+        stills: normalizeDaySlotStills(stillsRef.current, nextSlots),
+      });
+    },
     posePriority: toolSettings.posePriority !== false,
     setPosePriority: (next: boolean) => updateToolSettings({ posePriority: next }),
     autoReviewStills: toolSettings.autoReviewStills === true,

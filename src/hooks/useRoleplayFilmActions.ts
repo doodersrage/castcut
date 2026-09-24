@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  DEFAULT_FILM_CUT_OPTIONS,
+  type FilmCutOptionsValue,
+} from '@/components/FilmCutOptionsControls';
 import { useCallback, useRef, useState, type MutableRefObject } from 'react';
 import {
   assembleAndStampFilm,
@@ -45,11 +49,8 @@ export function useRoleplayFilmActions(input: {
   const [filmNeedsCast, setFilmNeedsCast] = useState(false);
   const [filmCharacterId, setFilmCharacterId] = useState<string | null>(null);
   const [firstCutCelebrate, setFirstCutCelebrate] = useState(false);
-  const [filmCutOptions, setFilmCutOptions] = useState<{
-    crossfadeSec: number;
-    audioBedUrl: string;
-    vertical?: boolean;
-  }>({ crossfadeSec: 0, audioBedUrl: '' });
+  const [filmCutOptions, setFilmCutOptions] =
+    useState<FilmCutOptionsValue>(DEFAULT_FILM_CUT_OPTIONS);
   const assembledFilmRef = useRef<{ filename: string; data: Uint8Array } | null>(null);
   /** Gallery entry of the most recent stamped cut — the poster hangs off it. */
   const lastFilmEntryRef = useRef<string | undefined>(undefined);
@@ -91,6 +92,9 @@ export function useRoleplayFilmActions(input: {
         crossfadeSec: filmCutOptions.crossfadeSec,
         resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
         audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
+        stillMotion: filmCutOptions.stillMotion !== false,
+        captions: filmCutOptions.titles === true,
+        titleCard: filmCutOptions.titles ? { title: name, subtitle: 'A Castcut story' } : null,
         onProgress: progress => setFilmStatus(progress.label),
       });
       downloadFilmBlob(result.blob, result.filename);
@@ -232,6 +236,7 @@ export function useRoleplayFilmActions(input: {
         characterId: filmCharacterId ?? undefined,
         parentGalleryEntryId: lastFilmEntryRef.current,
         resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
+        titleCard: filmCutOptions.titles ? { title: name, subtitle: 'A Castcut story' } : null,
       });
       downloadFilmBlob(poster.blob, poster.filename);
       setFilmStatus(
@@ -247,6 +252,7 @@ export function useRoleplayFilmActions(input: {
     }
   }, [
     filmCharacterId,
+    filmCutOptions.titles,
     filmCutOptions.vertical,
     input.bioName,
     input.storyRef,

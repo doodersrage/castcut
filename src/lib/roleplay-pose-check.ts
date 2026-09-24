@@ -19,6 +19,28 @@ export type StoryPoseGuideExpect = {
   poseKey: string;
 };
 
+/** Measured face match of a solo still against the Story reference photo. */
+export type StoryFaceMatch = { imageUrl: string; similarity: number };
+
+/** Beat card line for the shown still's face match, or null when not measured. */
+export function storyFaceMatchLabel(
+  beat: { imageUrl?: string; faceMatch?: StoryFaceMatch },
+  thresholds: { miss: number; warn: number }
+): { text: string; miss: boolean } | null {
+  const match = beat.faceMatch;
+  if (!match || match.imageUrl !== beat.imageUrl?.trim()) {
+    return null;
+  }
+  const pct = Math.round(match.similarity * 100);
+  if (match.similarity < thresholds.miss) {
+    return { text: `Face match ${pct}% — this doesn't look like your Cast; Retry.`, miss: true };
+  }
+  if (match.similarity < thresholds.warn) {
+    return { text: `Face match ${pct}% — worth a look.`, miss: false };
+  }
+  return { text: `Face match ${pct}%`, miss: false };
+}
+
 /** Pose-check result for the still at `imageUrl`. */
 export type StoryPoseMatch = {
   imageUrl: string;

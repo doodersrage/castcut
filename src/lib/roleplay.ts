@@ -30,7 +30,11 @@ import {
   type ScenePoseSpec,
 } from '@/lib/day-pose-guide';
 import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
-import type { StoryPoseGuideExpect, StoryPoseMatch } from '@/lib/roleplay-pose-check';
+import type {
+  StoryFaceMatch,
+  StoryPoseGuideExpect,
+  StoryPoseMatch,
+} from '@/lib/roleplay-pose-check';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import {
   DEFAULT_RENDER_REALISM_MODE,
@@ -112,6 +116,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
   poseGuideExpect?: StoryPoseGuideExpect;
   /** DWPose check of the shown still against its guide. */
   poseMatch?: StoryPoseMatch;
+  /** Face-recognition match of the shown (solo) still against the reference photo. */
+  faceMatch?: StoryFaceMatch;
 };
 
 export const MAX_ROLEPLAY_STILL_TAKES = 8;

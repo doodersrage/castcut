@@ -17,6 +17,14 @@ import {
 } from './character-film';
 
 import {
+  captionAlphaExpr,
+  sanitizeFilmCaption,
+  stillMotionZoomExpr,
+  STILL_MOTION_FPS,
+  TITLE_CARD_SEC,
+  type FilmTitleCard,
+} from './film-polish';
+import {
   buildFilmScaleFilter,
   FILM_PRESET_SIZE,
   normalizeFilmResolution,
@@ -33,6 +41,12 @@ export type FilmServerEncodeOptions = {
   resolution?: FilmResolutionPreset;
   /** Crossfade seconds between shots (0 = hard cut). */
   crossfadeSec?: number;
+  /** Slow push-in / pull-out on stills instead of a static hold. */
+  stillMotion?: boolean;
+  /** Short lower-third caption per shot from its title (needs drawtext + a font). */
+  captions?: boolean;
+  /** Opening title card (needs drawtext + a font). */
+  titleCard?: FilmTitleCard | null;
   /** Optional audio bed URL (http/https, private allowed for same-origin). */
   audioBedUrl?: string;
   userId?: string | null;
@@ -149,17 +163,46 @@ function extForShot(kind: FilmShotKind, contentTypeHint?: string, url?: string):
   return kind === 'clip' ? 'mp4' : 'png';
 }
 
-function buildFilterComplex(input: {
+/** Per-shot kind in the filter graph; `title` is the generated opening card. */
+export type FilmGraphShotKind = FilmShotKind | 'title';
+
+/** Text assets for a shot: caption file, or title / subtitle files for the title card. */
+export type FilmGraphText = {
+  captionFile?: string | null;
+  titleFile?: string | null;
+  subtitleFile?: string | null;
+};
+
+/**
+ * Quote a value for a filtergraph option (paths, expressions). ffmpeg treats single-quoted text
+ * literally, so callers never pass values containing a quote (see `usableFilterPath`).
+ */
+function q(value: string): string {
+  return `'${value}'`;
+}
+
+/**
+ * The ffmpeg filter graph for a cut. Every shot is scaled/padded to the canvas; stills either
+ * hold or (with `stillMotion`) slowly zoom; shots optionally get a fading caption; a `title`
+ * shot renders centered title + subtitle on black. Shots join with xfade or concat.
+ */
+export function buildFilterComplex(input: {
   shotCount: number;
-  kinds: FilmShotKind[];
+  kinds: FilmGraphShotKind[];
   holdSecs: number[];
   width: number;
   height: number;
   crossfadeSec: number;
   hasAudioBed: boolean;
+  stillMotion?: boolean;
+  text?: FilmGraphText[];
+  fontFile?: string | null;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const scalePad = buildFilmScaleFilter(width, height);
+  const font = input.fontFile ? q(input.fontFile) : null;
+  const captionSize = Math.round(Math.min(width, height) * 0.045);
+  const margin = Math.round(Math.min(width, height) * 0.06);
 
   const parts: string[] = [];
   const labels: string[] = [];
@@ -168,32 +211,78 @@ function buildFilterComplex(input: {
   for (let i = 0; i < shotCount; i += 1) {
     const label = `v${i}`;
     labels.push(`[${label}]`);
-    if (kinds[i] === 'still') {
-      const hold = holdSecs[i] ?? DEFAULT_STILL_HOLD_SEC;
-      total += hold;
-      parts.push(`[${i}:v]${scalePad},trim=duration=${hold},setpts=PTS-STARTPTS[${label}]`);
+    const kind = kinds[i];
+    const text = input.text?.[i];
+    const hold =
+      kind === 'clip'
+        ? holdSecs[i] && holdSecs[i]! > 0
+          ? holdSecs[i]!
+          : 4
+        : (holdSecs[i] ?? DEFAULT_STILL_HOLD_SEC);
+    total += hold;
+    let chain: string;
+    if (kind === 'title') {
+      const titleSize = Math.round(Math.min(width, height) * 0.075);
+      const subtitleSize = Math.round(titleSize * 0.5);
+      const draws =
+        font && text?.titleFile
+          ? [
+              `drawtext=fontfile=${font}:textfile=${q(text.titleFile)}:fontcolor=white:fontsize=${titleSize}:x=(w-tw)/2:y=(h-th)/2-${text.subtitleFile ? Math.round(subtitleSize * 0.9) : 0}`,
+              ...(text.subtitleFile
+                ? [
+                    `drawtext=fontfile=${font}:textfile=${q(text.subtitleFile)}:fontcolor=white@0.8:fontsize=${subtitleSize}:x=(w-tw)/2:y=(h/2)+${Math.round(subtitleSize * 0.9)}`,
+                  ]
+                : []),
+            ]
+          : [];
+      chain = [
+        `[${i}:v]format=yuv420p,setsar=1`,
+        ...draws,
+        `fade=t=in:st=0:d=0.5,fade=t=out:st=${Math.max(0.5, hold - 0.5).toFixed(2)}:d=0.5`,
+        // xfade needs a constant frame rate on every input.
+        `fps=${STILL_MOTION_FPS},trim=duration=${hold},setpts=PTS-STARTPTS`,
+      ].join(',');
+    } else if (kind === 'still' && input.stillMotion) {
+      // zoompan needs headroom: render at 2× and zoom within it, one output frame per tick.
+      const frames = Math.max(1, Math.round(hold * STILL_MOTION_FPS));
+      chain =
+        `[${i}:v]${scalePad},scale=${width * 2}:${height * 2},` +
+        `zoompan=z=${q(stillMotionZoomExpr(i, frames))}:x=${q('iw/2-(iw/zoom/2)')}:y=${q('ih/2-(ih/zoom/2)')}:d=${frames}:s=${width}x${height}:fps=${STILL_MOTION_FPS},` +
+        `setsar=1,format=yuv420p,fps=${STILL_MOTION_FPS},trim=duration=${hold},setpts=PTS-STARTPTS`;
+    } else if (kind === 'still') {
+      chain = `[${i}:v]${scalePad},trim=duration=${hold},setpts=PTS-STARTPTS`;
     } else {
-      // Clips: use full stream; duration unknown until probe — estimate later via concat
-      parts.push(`[${i}:v]${scalePad},setpts=PTS-STARTPTS[${label}]`);
-      total += holdSecs[i] && holdSecs[i]! > 0 ? holdSecs[i]! : 4;
+      chain = `[${i}:v]${scalePad},setpts=PTS-STARTPTS`;
     }
+    if (kind !== 'title' && font && text?.captionFile) {
+      chain +=
+        `,drawtext=fontfile=${font}:textfile=${q(text.captionFile)}:fontcolor=white:fontsize=${captionSize}` +
+        `:x=${margin}:y=h-th-${Math.round(margin * 1.4)}:box=1:boxcolor=black@0.35:boxborderw=${Math.round(captionSize * 0.45)}` +
+        `:alpha=${q(captionAlphaExpr(hold))}`;
+    }
+    // setpts leaves the frame rate unknown, and ffmpeg 7's xfade rejects that ("inputs needs to
+    // be a constant frame rate") — so every shot ends on a fixed rate.
+    parts.push(`${chain},fps=${STILL_MOTION_FPS}[${label}]`);
   }
 
   let videoLabel: string;
   if (shotCount === 1) {
     videoLabel = 'v0';
-    // already labeled
   } else if (crossfadeSec > 0 && shotCount >= 2) {
-    // xfade chain
+    const holdAt = (i: number) =>
+      kinds[i] === 'clip'
+        ? holdSecs[i] && holdSecs[i]! > 0
+          ? holdSecs[i]!
+          : 4
+        : (holdSecs[i] ?? DEFAULT_STILL_HOLD_SEC);
     let prev = 'v0';
-    let offset = Math.max(0.1, (holdSecs[0] ?? DEFAULT_STILL_HOLD_SEC) - crossfadeSec);
+    let offset = Math.max(0.1, holdAt(0) - crossfadeSec);
     for (let i = 1; i < shotCount; i += 1) {
       const out = i === shotCount - 1 ? 'vout' : `xf${i}`;
       parts.push(
         `[${prev}][v${i}]xfade=transition=fade:duration=${crossfadeSec}:offset=${Math.max(0, offset)}[${out}]`
       );
-      const nextHold = holdSecs[i] ?? (kinds[i] === 'still' ? DEFAULT_STILL_HOLD_SEC : 4);
-      offset += Math.max(0.1, nextHold - crossfadeSec);
+      offset += Math.max(0.1, holdAt(i) - crossfadeSec);
       prev = out;
     }
     videoLabel = 'vout';
@@ -213,6 +302,69 @@ function buildFilterComplex(input: {
   }
 
   return { filter: parts.join(';'), videoLabel, audioLabel, durationSec: total };
+}
+
+/** Paths go into single-quoted filter options, so a quote in one would break the graph. */
+function usableFilterPath(value: string): boolean {
+  return !value.includes("'");
+}
+
+let drawtextCached: boolean | undefined;
+
+/** Whether this ffmpeg build has drawtext (libfreetype). */
+async function ffmpegHasDrawtext(ffmpeg: string): Promise<boolean> {
+  if (drawtextCached !== undefined) return drawtextCached;
+  try {
+    const { stdout } = await runCapture(ffmpeg, ['-hide_banner', '-filters']);
+    drawtextCached = /\sdrawtext\s/.test(stdout);
+  } catch {
+    drawtextCached = false;
+  }
+  return drawtextCached;
+}
+
+const FONT_CANDIDATES = [
+  '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+  '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+  '/usr/share/fonts/TTF/DejaVuSans.ttf',
+  '/usr/share/fonts/noto/NotoSans-Regular.ttf',
+  '/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf',
+  '/usr/share/fonts/liberation/LiberationSans-Regular.ttf',
+  '/System/Library/Fonts/Supplemental/Arial.ttf',
+  '/Library/Fonts/Arial.ttf',
+  'C:\\Windows\\Fonts\\arial.ttf',
+];
+
+let fontCached: string | null | undefined;
+
+/** Font for titles/captions: FILM_FONT_FILE, a common system font, or fontconfig's sans. */
+export async function resolveFilmFontFile(): Promise<string | null> {
+  if (fontCached !== undefined) return fontCached;
+  const candidates = [process.env.FILM_FONT_FILE?.trim(), ...FONT_CANDIDATES].filter(
+    (value): value is string => Boolean(value)
+  );
+  for (const candidate of candidates) {
+    try {
+      await fs.access(/* turbopackIgnore: true */ candidate);
+      fontCached = candidate;
+      return fontCached;
+    } catch {
+      // next
+    }
+  }
+  try {
+    const { stdout } = await runCapture('fc-match', ['-f', '%{file}', 'sans']);
+    const file = stdout.trim();
+    if (file) {
+      await fs.access(/* turbopackIgnore: true */ file);
+      fontCached = file;
+      return fontCached;
+    }
+  } catch {
+    // no fontconfig
+  }
+  fontCached = null;
+  return fontCached;
 }
 
 export async function encodeFilmPlaylistServer(
@@ -267,31 +419,89 @@ export async function encodeFilmPlaylistServer(
       await fs.writeFile(/* turbopackIgnore: true */ audioPath, audioFetched.buffer);
     }
 
-    const { filter, videoLabel, audioLabel } = buildFilterComplex({
-      shotCount: localFiles.length,
-      kinds,
-      holdSecs,
-      width: even(width),
-      height: even(height),
-      crossfadeSec,
-      hasAudioBed: Boolean(audioPath),
-    });
+    // Titles and captions need drawtext and a font; without either the cut still encodes.
+    const wantsText = Boolean(options.titleCard?.title?.trim() || options.captions);
+    const fontFile =
+      wantsText && (await ffmpegHasDrawtext(ffmpeg)) ? await resolveFilmFontFile() : null;
+    const usableFont = fontFile && usableFilterPath(fontFile) ? fontFile : null;
+    if (wantsText && !usableFont) {
+      options.onProgress?.(0.45, 'No drawtext font on this server — skipping titles…');
+    }
+    const writeText = async (name: string, value: string): Promise<string | null> => {
+      const clean = sanitizeFilmCaption(value);
+      if (!clean || !usableFont) return null;
+      const file = path.join(/* turbopackIgnore: true */ workDir, name);
+      await fs.writeFile(/* turbopackIgnore: true */ file, clean, 'utf8');
+      return usableFilterPath(file) ? file : null;
+    };
 
-    const outputPath = path.join(/* turbopackIgnore: true */ workDir, 'out.mp4');
-    const args: string[] = ['-y', '-hide_banner', '-loglevel', 'error'];
+    const graphKinds: FilmGraphShotKind[] = [];
+    const graphHolds: number[] = [];
+    const graphText: FilmGraphText[] = [];
+    const inputArgs: string[][] = [];
+    const titleText = options.titleCard?.title?.trim()
+      ? await writeText('title.txt', options.titleCard.title)
+      : null;
+    if (titleText) {
+      graphKinds.push('title');
+      graphHolds.push(TITLE_CARD_SEC);
+      graphText.push({
+        titleFile: titleText,
+        subtitleFile: options.titleCard?.subtitle
+          ? await writeText('subtitle.txt', options.titleCard.subtitle)
+          : null,
+      });
+      inputArgs.push([
+        '-f',
+        'lavfi',
+        '-t',
+        String(TITLE_CARD_SEC),
+        '-i',
+        `color=c=black:s=${even(width)}x${even(height)}:r=30`,
+      ]);
+    }
     for (let i = 0; i < localFiles.length; i += 1) {
-      if (kinds[i] === 'still') {
-        args.push(
+      graphKinds.push(kinds[i]!);
+      graphHolds.push(holdSecs[i]!);
+      graphText.push({
+        captionFile: options.captions
+          ? await writeText(`caption-${i}.txt`, shots[i]?.title ?? '')
+          : null,
+      });
+      if (kinds[i] === 'still' && options.stillMotion) {
+        // zoompan expands one input frame into the whole hold.
+        inputArgs.push(['-i', localFiles[i]!]);
+      } else if (kinds[i] === 'still') {
+        inputArgs.push([
           '-loop',
           '1',
           '-t',
           String(holdSecs[i] || DEFAULT_STILL_HOLD_SEC),
           '-i',
-          localFiles[i]!
-        );
+          localFiles[i]!,
+        ]);
       } else {
-        args.push('-i', localFiles[i]!);
+        inputArgs.push(['-i', localFiles[i]!]);
       }
+    }
+
+    const { filter, videoLabel, audioLabel } = buildFilterComplex({
+      shotCount: graphKinds.length,
+      kinds: graphKinds,
+      holdSecs: graphHolds,
+      width: even(width),
+      height: even(height),
+      crossfadeSec,
+      hasAudioBed: Boolean(audioPath),
+      stillMotion: options.stillMotion === true,
+      text: graphText,
+      fontFile: usableFont,
+    });
+
+    const outputPath = path.join(/* turbopackIgnore: true */ workDir, 'out.mp4');
+    const args: string[] = ['-y', '-hide_banner', '-loglevel', 'error'];
+    for (const entry of inputArgs) {
+      args.push(...entry);
     }
     if (audioPath) {
       args.push('-i', audioPath);

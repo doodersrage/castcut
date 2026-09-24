@@ -20,6 +20,14 @@ import {
   type FilmResolutionPreset,
 } from './film-resolution';
 import {
+  captionOpacity,
+  normalizeFilmTitleCard,
+  sanitizeFilmCaption,
+  stillMotionZoom,
+  TITLE_CARD_SEC,
+  type FilmTitleCard,
+} from './film-polish';
+import {
   isAnimatedImageShotUrl,
   readAnimatedImageLoopDurationMs,
   sniffAnimatedImageMime,
@@ -41,6 +49,12 @@ export type AssembleFilmOptions = {
   resolution?: FilmResolutionPreset;
   crossfadeSec?: number;
   audioBedUrl?: string;
+  /** Slow push-in / pull-out on stills. */
+  stillMotion?: boolean;
+  /** Short caption per shot from its title. */
+  captions?: boolean;
+  /** Opening title card. */
+  titleCard?: FilmTitleCard | null;
 };
 
 export type AssembledFilmResult = {
@@ -164,14 +178,15 @@ function drawCover(
   sourceWidth: number,
   sourceHeight: number,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  zoom = 1
 ): void {
   context.fillStyle = '#000';
   context.fillRect(0, 0, canvasWidth, canvasHeight);
   if (sourceWidth <= 0 || sourceHeight <= 0) {
     return;
   }
-  const scale = Math.max(canvasWidth / sourceWidth, canvasHeight / sourceHeight);
+  const scale = Math.max(canvasWidth / sourceWidth, canvasHeight / sourceHeight) * zoom;
   const drawWidth = sourceWidth * scale;
   const drawHeight = sourceHeight * scale;
   context.drawImage(
@@ -183,16 +198,71 @@ function drawCover(
   );
 }
 
+/** Lower-left caption box, same placement and fade as the server drawtext. */
+function drawCaption(
+  context: CanvasRenderingContext2D,
+  text: string,
+  opacity: number,
+  canvasWidth: number,
+  canvasHeight: number
+): void {
+  if (!text || opacity <= 0) return;
+  const size = Math.round(Math.min(canvasWidth, canvasHeight) * 0.045);
+  const margin = Math.round(Math.min(canvasWidth, canvasHeight) * 0.06);
+  const pad = Math.round(size * 0.45);
+  context.save();
+  context.globalAlpha = opacity;
+  context.font = `${size}px sans-serif`;
+  const width = context.measureText(text).width;
+  const baseline = canvasHeight - Math.round(margin * 1.4);
+  context.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  context.fillRect(margin - pad, baseline - size - pad * 0.4, width + pad * 2, size + pad * 1.4);
+  context.fillStyle = '#fff';
+  context.textBaseline = 'alphabetic';
+  context.fillText(text, margin, baseline);
+  context.restore();
+}
+
+/** Centered title + subtitle on black, faded in and out over the card. */
+function drawTitleCard(
+  context: CanvasRenderingContext2D,
+  card: FilmTitleCard,
+  elapsed: number,
+  canvasWidth: number,
+  canvasHeight: number
+): void {
+  context.fillStyle = '#000';
+  context.fillRect(0, 0, canvasWidth, canvasHeight);
+  const fade = Math.min(1, elapsed / 0.5, Math.max(0, (TITLE_CARD_SEC - elapsed) / 0.5));
+  const titleSize = Math.round(Math.min(canvasWidth, canvasHeight) * 0.075);
+  const subtitleSize = Math.round(titleSize * 0.5);
+  context.save();
+  context.globalAlpha = Math.max(0, fade);
+  context.fillStyle = '#fff';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.font = `${titleSize}px sans-serif`;
+  const titleY = canvasHeight / 2 - (card.subtitle ? subtitleSize * 0.9 : 0);
+  context.fillText(card.title, canvasWidth / 2, titleY);
+  if (card.subtitle) {
+    context.globalAlpha = Math.max(0, fade) * 0.8;
+    context.font = `${subtitleSize}px sans-serif`;
+    context.fillText(card.subtitle, canvasWidth / 2, canvasHeight / 2 + subtitleSize * 1.4);
+  }
+  context.restore();
+}
+
 async function paintFor(
   context: CanvasRenderingContext2D,
-  draw: () => void,
+  draw: (elapsedSec: number) => void,
   durationSec: number
 ): Promise<void> {
-  const until = performance.now() + durationSec * 1000;
+  const start = performance.now();
+  const until = start + durationSec * 1000;
   const tick = () =>
     new Promise<void>(resolve => {
       const step = () => {
-        draw();
+        draw((performance.now() - start) / 1000);
         if (performance.now() >= until) {
           resolve();
           return;
@@ -341,6 +411,9 @@ async function assembleFilmBlobOnServer(
         resolution: options?.resolution ?? '720p',
         crossfadeSec: options?.crossfadeSec ?? 0,
         audioBedUrl: options?.audioBedUrl,
+        stillMotion: options?.stillMotion === true,
+        captions: options?.captions === true,
+        titleCard: normalizeFilmTitleCard(options?.titleCard),
       }),
     });
     if (!startRes.ok) {
@@ -499,20 +572,43 @@ export async function assembleFilmBlob(
     recorder.start(250);
     await wait(80);
 
+    const titleCard = normalizeFilmTitleCard(options?.titleCard);
+    const captionFor = (title: string) => (options?.captions ? sanitizeFilmCaption(title) : '');
+
     try {
+      if (titleCard) {
+        await paintFor(
+          context,
+          elapsed => drawTitleCard(context, titleCard, elapsed, width, height),
+          TITLE_CARD_SEC
+        );
+      }
       for (const [index, entry] of resolvedShots.entries()) {
         const shot = entry.shot;
         const src = entry.src;
+        const caption = captionFor(shot.title);
         options?.onProgress?.({
           ratio: index / resolvedShots.length,
           label: `Recording ${index + 1} of ${resolvedShots.length} · ${shot.title}`,
         });
         if (shot.kind === 'still') {
           const image = await loadImage(src);
+          const hold = shot.holdSec && shot.holdSec > 0 ? shot.holdSec : DEFAULT_STILL_HOLD_SEC;
           await paintFor(
             context,
-            () => drawCover(context, image, image.naturalWidth, image.naturalHeight, width, height),
-            shot.holdSec && shot.holdSec > 0 ? shot.holdSec : DEFAULT_STILL_HOLD_SEC
+            elapsed => {
+              drawCover(
+                context,
+                image,
+                image.naturalWidth,
+                image.naturalHeight,
+                width,
+                height,
+                options?.stillMotion ? stillMotionZoom(index, elapsed / hold) : 1
+              );
+              drawCaption(context, caption, captionOpacity(elapsed, hold), width, height);
+            },
+            hold
           );
           continue;
         }
@@ -530,6 +626,16 @@ export async function assembleFilmBlob(
           await new Promise<void>((resolve, reject) => {
             const draw = () => {
               drawCover(context, video, video.videoWidth, video.videoHeight, width, height);
+              drawCaption(
+                context,
+                caption,
+                captionOpacity(
+                  video.currentTime,
+                  Number.isFinite(video.duration) ? video.duration : 4
+                ),
+                width,
+                height
+              );
               if (video.ended) {
                 resolve();
                 return;
@@ -694,6 +800,9 @@ export async function assembleAndStampFilm(input: {
   resolution?: FilmResolutionPreset;
   crossfadeSec?: number;
   audioBedUrl?: string;
+  stillMotion?: boolean;
+  captions?: boolean;
+  titleCard?: FilmTitleCard | null;
   preferServer?: boolean;
   onProgress?: (progress: AssembleFilmProgress) => void;
 }): Promise<{
@@ -709,6 +818,9 @@ export async function assembleAndStampFilm(input: {
     resolution: input.resolution,
     crossfadeSec: input.crossfadeSec,
     audioBedUrl: input.audioBedUrl,
+    stillMotion: input.stillMotion,
+    captions: input.captions,
+    titleCard: input.titleCard,
   });
   const filename = filmDownloadFilename(input.characterName, assembled.extension);
   const stamped = await stampAssembledFilm({

@@ -4,6 +4,7 @@
  * Pure geometry + naming live here so they can be tested without a canvas.
  */
 
+import { normalizeFilmTitleCard, type FilmTitleCard } from './film-polish';
 import { addComfyGalleryEntry } from './comfyui-gallery';
 import { loadComfyUiSettings } from './comfyui-settings';
 import type { DaySlot, DaySlotId, DaySlotStill } from './day-planner';
@@ -124,6 +125,65 @@ async function loadPosterSource(imageUrl: string): Promise<PosterSource> {
   }
 }
 
+/** Where the poster title sits: bottom-left over a dark gradient, sized to the poster. */
+export function posterTitleLayout(
+  width: number,
+  height: number,
+  hasSubtitle: boolean
+): {
+  gradientTop: number;
+  margin: number;
+  titleSize: number;
+  subtitleSize: number;
+  titleBaseline: number;
+  subtitleBaseline: number;
+} {
+  const short = Math.min(width, height);
+  const margin = Math.round(short * 0.07);
+  const titleSize = Math.round(short * 0.1);
+  const subtitleSize = Math.round(titleSize * 0.42);
+  const subtitleBaseline = height - margin;
+  const titleBaseline = hasSubtitle
+    ? subtitleBaseline - Math.round(subtitleSize * 1.6)
+    : height - margin;
+  return {
+    gradientTop: Math.round(height * 0.55),
+    margin,
+    titleSize,
+    subtitleSize,
+    titleBaseline,
+    subtitleBaseline,
+  };
+}
+
+function drawPosterTitle(
+  context: CanvasRenderingContext2D,
+  card: FilmTitleCard,
+  width: number,
+  height: number
+): void {
+  const layout = posterTitleLayout(width, height, Boolean(card.subtitle));
+  const gradient = context.createLinearGradient(0, layout.gradientTop, 0, height);
+  gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  gradient.addColorStop(1, 'rgba(0, 0, 0, 0.75)');
+  context.fillStyle = gradient;
+  context.fillRect(0, layout.gradientTop, width, height - layout.gradientTop);
+  context.fillStyle = '#fff';
+  context.textBaseline = 'alphabetic';
+  context.font = `600 ${layout.titleSize}px sans-serif`;
+  context.fillText(card.title, layout.margin, layout.titleBaseline, width - layout.margin * 2);
+  if (card.subtitle) {
+    context.fillStyle = 'rgba(255, 255, 255, 0.82)';
+    context.font = `${layout.subtitleSize}px sans-serif`;
+    context.fillText(
+      card.subtitle,
+      layout.margin,
+      layout.subtitleBaseline,
+      width - layout.margin * 2
+    );
+  }
+}
+
 export type FilmPosterResult = {
   blob: Blob;
   filename: string;
@@ -142,6 +202,8 @@ export async function exportFilmPoster(input: {
   /** Film gallery entry this poster belongs to. */
   parentGalleryEntryId?: string;
   resolution?: FilmResolutionPreset | string;
+  /** Title over the still (same card as the cut's opening title). */
+  titleCard?: FilmTitleCard | null;
 }): Promise<FilmPosterResult> {
   if (typeof document === 'undefined') {
     throw new Error('Posters can only be exported in the browser.');
@@ -159,6 +221,10 @@ export async function exportFilmPoster(input: {
   try {
     const rect = coverRect(source.width, source.height, width, height);
     context.drawImage(source.draw, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, width, height);
+    const card = normalizeFilmTitleCard(input.titleCard);
+    if (card) {
+      drawPosterTitle(context, card, width, height);
+    }
   } finally {
     source.close?.();
   }

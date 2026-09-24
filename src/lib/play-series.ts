@@ -292,3 +292,36 @@ export function recordDayFilmEpisode(
   }
   return { series: result.series, episode: result.episode, added: result.added };
 }
+
+/**
+ * Title card for the next Day cut of a Cast: their name over "Season N · Episode M", counting
+ * the episode this cut is about to become (a new season when none is open).
+ */
+export function nextDayFilmTitleCard(
+  store: PlaySeriesStore,
+  characterId: string,
+  characterName: string
+): { title: string; subtitle: string } {
+  const all = seriesForCast(store, characterId);
+  const active = activeSeriesForCast(store, characterId);
+  const season = active ? all.length : all.length + 1;
+  const episode = active ? active.episodes.length + 1 : 1;
+  return {
+    title: characterName.trim() || 'Untitled',
+    subtitle: `Season ${season} · Episode ${episode}`,
+  };
+}
+
+/** "Season N" for the Cast's current season (the one the last cut landed in). */
+export function currentSeasonLabel(store: PlaySeriesStore, characterId: string): string {
+  const all = seriesForCast(store, characterId);
+  return all.length > 0 ? `Season ${all.length}` : 'Season 1';
+}
+
+/** Day poster subtitle: the season the latest cut was filed under (browser store). */
+export function dayPosterSubtitle(characterId: string | undefined): string {
+  if (!characterId || typeof window === 'undefined') {
+    return 'A day in the life';
+  }
+  return currentSeasonLabel(loadPlaySeriesStore(), characterId);
+}

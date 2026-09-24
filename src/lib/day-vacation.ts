@@ -7,6 +7,7 @@
  */
 
 import type { DaySlotId } from '@/lib/day-planner';
+import { dayPartOf, type DayPart } from '@/lib/day-parts';
 
 export type DayVacationActivity =
   | 'hotel'
@@ -23,7 +24,7 @@ export type DayVacationActivity =
   | 'drive';
 
 /** Activities that fit each Day slot’s light and pace. */
-export const DAY_SLOT_VACATION_ACTIVITIES: Record<DaySlotId, readonly DayVacationActivity[]> = {
+export const DAY_SLOT_VACATION_ACTIVITIES: Record<DayPart, readonly DayVacationActivity[]> = {
   morning: ['hotel', 'pool', 'beach', 'cafe', 'city', 'airport', 'spa', 'drive'],
   afternoon: ['market', 'pool', 'beach', 'boat', 'cafe', 'city', 'pier', 'drive', 'spa'],
   evening: ['rooftop', 'cafe', 'boat', 'city', 'hotel', 'pier', 'drive'],
@@ -40,7 +41,7 @@ type VacationScene = {
  * Matched beat + venue — lead with a clear Image 3 verb (SEATED, MID-STRIDE,
  * RECLINING, RELAXING, DANCING, CLIMBING, WAVING, PERCHED, STRETCHING).
  */
-const VACATION_SCENES: Record<DaySlotId, readonly VacationScene[]> = {
+const VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
   morning: [
     {
       activity: 'spa',
@@ -443,13 +444,13 @@ const VACATION_SCENES: Record<DaySlotId, readonly VacationScene[]> = {
 };
 
 export function buildDayVacationBeatPresets(slotId: DaySlotId): string[] {
-  return (VACATION_SCENES[slotId] ?? []).map(scene => scene.beat);
+  return (VACATION_SCENES[dayPartOf(slotId)] ?? []).map(scene => scene.beat);
 }
 
 export function buildDayVacationSettingPresets(slotId: DaySlotId): string[] {
   const seen = new Set<string>();
   const settings: string[] = [];
-  for (const scene of VACATION_SCENES[slotId] ?? []) {
+  for (const scene of VACATION_SCENES[dayPartOf(slotId)] ?? []) {
     const key = scene.setting.trim().toLowerCase();
     if (seen.has(key)) {
       continue;
@@ -460,14 +461,14 @@ export function buildDayVacationSettingPresets(slotId: DaySlotId): string[] {
   return settings;
 }
 
-export const DAY_SLOT_VACATION_BEAT_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_VACATION_BEAT_PRESETS: Record<DayPart, string[]> = {
   morning: buildDayVacationBeatPresets('morning'),
   afternoon: buildDayVacationBeatPresets('afternoon'),
   evening: buildDayVacationBeatPresets('evening'),
   night: buildDayVacationBeatPresets('night'),
 };
 
-export const DAY_SLOT_VACATION_SETTING_PRESETS: Record<DaySlotId, string[]> = {
+export const DAY_SLOT_VACATION_SETTING_PRESETS: Record<DayPart, string[]> = {
   morning: buildDayVacationSettingPresets('morning'),
   afternoon: buildDayVacationSettingPresets('afternoon'),
   evening: buildDayVacationSettingPresets('evening'),
@@ -609,7 +610,7 @@ export function pickDayVacationScenePair(
   }
 ): { beat: string; setting: string; activity: DayVacationActivity; poseClass: string } | null {
   const random = options?.random ?? Math.random;
-  const scenes = [...(VACATION_SCENES[slotId] ?? [])];
+  const scenes = [...(VACATION_SCENES[dayPartOf(slotId)] ?? [])];
   if (scenes.length === 0) {
     return null;
   }

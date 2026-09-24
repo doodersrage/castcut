@@ -22,6 +22,7 @@ import {
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
   resolveNextPlayAction,
+  faceMatchSummary,
   poseMatchSummary,
   slotKeepRate,
   slowestPlayPhase,
@@ -105,6 +106,7 @@ export default function PlayFilmMetricsCard() {
   const slowestPhase = slowestPlayPhase(metrics);
   const reviews = metrics.slotReviews;
   const poseMatch = poseMatchSummary(metrics);
+  const faceMatch = faceMatchSummary(metrics).slice(0, 3);
   const hasCampaign = Boolean(campaignStep?.characterId);
   const empty = !hasTiming && !hasFunnel && !hasCampaign;
 
@@ -197,6 +199,18 @@ export default function PlayFilmMetricsCard() {
                     `${POSE_STYLE_LABELS[entry.style]}: ${entry.count} checked, ${formatRate(
                       entry.missRate
                     )} missed`
+                )
+                .join(' · ')}
+            />
+          ) : null}
+          {faceMatch.length > 0 ? (
+            <StatCard
+              label="Face match by model"
+              value={faceMatch.map(entry => `${entry.model} ${formatRate(entry.mean)}`).join(' · ')}
+              detail={faceMatch
+                .map(
+                  entry =>
+                    `${entry.model}: ${entry.count} checked, ${formatRate(entry.missRate)} not the Cast`
                 )
                 .join(' · ')}
             />

@@ -60,6 +60,7 @@ import {
   seedDaySlotsFromKeeperWardrobes,
   seedDaySlotsWardrobe,
   upsertDaySlotStill,
+  dayPartOf,
 } from './day-planner';
 
 describe('day-planner', () => {
@@ -141,8 +142,8 @@ describe('day-planner', () => {
     assert.ok(locations.every(Boolean));
     assert.equal(new Set(locations).size, 4);
     for (const slot of slots) {
-      assert.ok(DAY_SLOT_SETTING_PRESETS[slot.id].includes(slot.location!));
-      assert.ok(DAY_SLOT_BEAT_PRESETS[slot.id].includes(slot.sceneHints!));
+      assert.ok(DAY_SLOT_SETTING_PRESETS[dayPartOf(slot.id)].includes(slot.location!));
+      assert.ok(DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(slot.sceneHints!));
     }
   });
 
@@ -619,7 +620,7 @@ describe('day-planner', () => {
     for (const slot of slots) {
       const location = slot.location ?? '';
       assert.ok(
-        DAY_SLOT_HEAT_SETTING_PRESETS[slot.id].includes(location),
+        DAY_SLOT_HEAT_SETTING_PRESETS[dayPartOf(slot.id)].includes(location),
         `expected heat setting, got: ${location}`
       );
       assert.doesNotMatch(location, /pier|park|street|café|cafe|boardwalk/i);
@@ -639,10 +640,10 @@ describe('day-planner', () => {
       for (const slot of slots) {
         const beat = slot.sceneHints ?? '';
         assert.ok(
-          DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[slot.id].includes(beat),
+          DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat),
           `expected suggestive beat, got: ${beat}`
         );
-        assert.ok(!DAY_SLOT_BEAT_PRESETS[slot.id].includes(beat), `everyday beat leaked: ${beat}`);
+        assert.ok(!DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat), `everyday beat leaked: ${beat}`);
       }
     }
   });
@@ -1029,7 +1030,7 @@ describe('day-planner', () => {
     assert.equal(changed, true);
     for (const slot of slots) {
       assert.ok(
-        DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[slot.id].includes(slot.sceneHints ?? ''),
+        DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[dayPartOf(slot.id)].includes(slot.sceneHints ?? ''),
         `expected suggestive beat, got: ${slot.sceneHints}`
       );
       assert.doesNotMatch(slot.sceneHints ?? '', /reading a book|tote bag/i);
@@ -1059,7 +1060,7 @@ describe('day-planner', () => {
       assert.doesNotMatch(slot.location ?? '', /fishing pier|cobblestone street|delivery bikes/i);
       assert.doesNotMatch(slot.sceneHints ?? '', /MID-STRIDE along a wooden pier|SEATED on a scooter/i);
       assert.ok(
-        DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[slot.id].includes(slot.sceneHints ?? '') ||
+        DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[dayPartOf(slot.id)].includes(slot.sceneHints ?? '') ||
           /lingerie|unzip|dress|robe|charged|hip cocked|looking back/i.test(slot.sceneHints ?? ''),
         `expected suggestive heat beat, got: ${slot.sceneHints}`
       );
@@ -1188,14 +1189,14 @@ describe('day-planner', () => {
         const beat = slot.sceneHints ?? '';
         const setting = slot.location ?? '';
         assert.ok(
-          DAY_SLOT_VACATION_BEAT_PRESETS[slot.id].includes(beat),
+          DAY_SLOT_VACATION_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat),
           `expected vacation beat for ${slot.id}, got: ${beat}`
         );
         assert.ok(
-          DAY_SLOT_VACATION_SETTING_PRESETS[slot.id].includes(setting),
+          DAY_SLOT_VACATION_SETTING_PRESETS[dayPartOf(slot.id)].includes(setting),
           `expected vacation setting for ${slot.id}, got: ${setting}`
         );
-        assert.ok(!DAY_SLOT_BEAT_PRESETS[slot.id].includes(beat), `everyday beat leaked: ${beat}`);
+        assert.ok(!DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat), `everyday beat leaked: ${beat}`);
       }
     }
   });
@@ -1294,14 +1295,14 @@ describe('day-planner', () => {
         const beat = slot.sceneHints ?? '';
         const setting = slot.location ?? '';
         assert.ok(
-          DAY_SLOT_SPORT_BEAT_PRESETS[slot.id].includes(beat),
+          DAY_SLOT_SPORT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat),
           `expected sport beat for ${slot.id}, got: ${beat}`
         );
         assert.ok(
-          DAY_SLOT_SPORT_SETTING_PRESETS[slot.id].includes(setting),
+          DAY_SLOT_SPORT_SETTING_PRESETS[dayPartOf(slot.id)].includes(setting),
           `expected sport setting for ${slot.id}, got: ${setting}`
         );
-        assert.ok(!DAY_SLOT_BEAT_PRESETS[slot.id].includes(beat), `everyday beat leaked: ${beat}`);
+        assert.ok(!DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat), `everyday beat leaked: ${beat}`);
       }
     }
   });
@@ -1571,7 +1572,7 @@ describe('day-planner', () => {
     });
     for (const slot of slots) {
       const beat = slot.sceneHints ?? '';
-      const fromIntimatePool = DAY_SLOT_INTIMATE_BEAT_PRESETS[slot.id].includes(beat);
+      const fromIntimatePool = DAY_SLOT_INTIMATE_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat);
       if (fromIntimatePool) {
         assert.equal(isDayIntimateSoloBeat(beat), true, `expected solo beat, got: ${beat}`);
       }
@@ -1592,7 +1593,7 @@ describe('day-planner', () => {
       for (const slot of slots) {
         const beat = slot.sceneHints ?? '';
         assert.equal(
-          DAY_SLOT_BEAT_PRESETS[slot.id].includes(beat),
+          DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat),
           false,
           `everyday beat leaked into duo: ${beat}`
         );
@@ -1602,7 +1603,7 @@ describe('day-planner', () => {
           `solo intimate beat leaked into duo: ${beat}`
         );
         assert.ok(
-          DAY_SLOT_INTIMATE_BEAT_PRESETS[slot.id].includes(beat),
+          DAY_SLOT_INTIMATE_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat),
           `expected intimate duo beat, got: ${beat}`
         );
       }
@@ -1678,7 +1679,7 @@ describe('day-planner', () => {
     });
     for (const slot of slots) {
       const beat = slot.sceneHints ?? '';
-      const fromRaunchyPool = DAY_SLOT_RAUNCHY_BEAT_PRESETS[slot.id].includes(beat);
+      const fromRaunchyPool = DAY_SLOT_RAUNCHY_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat);
       if (fromRaunchyPool) {
         assert.equal(isDayRaunchySoloBeat(beat), true, `expected solo raunchy beat, got: ${beat}`);
       }
@@ -1823,9 +1824,9 @@ describe('day-planner', () => {
     assert.equal(changed, true);
     for (const slot of slots) {
       const beat = slot.sceneHints ?? '';
-      assert.equal(DAY_SLOT_BEAT_PRESETS[slot.id].includes(beat), false, beat);
+      assert.equal(DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat), false, beat);
       assert.equal(isDayRaunchySoloBeat(beat), false, beat);
-      assert.ok(DAY_SLOT_RAUNCHY_BEAT_PRESETS[slot.id].includes(beat), beat);
+      assert.ok(DAY_SLOT_RAUNCHY_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat), beat);
       assert.doesNotMatch(beat, /notebook|clipboard|reading a book/i);
     }
   });

@@ -9,6 +9,7 @@ import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import FilmCutOptionsControls, {
   type FilmCutOptionsValue,
+  DEFAULT_FILM_CUT_OPTIONS,
 } from '@/components/FilmCutOptionsControls';
 import {
   addStillToFilmCut,
@@ -97,10 +98,8 @@ export default function CharacterFilmStudio({
   // Gallery entry of the most recent stamped cut — the poster hangs off it.
   const [lastFilmEntryId, setLastFilmEntryId] = useState<string | undefined>(undefined);
   const [resolution, setResolution] = useState<'720p' | '1080p'>('720p');
-  const [filmCutOptions, setFilmCutOptions] = useState<FilmCutOptionsValue>({
-    crossfadeSec: 0,
-    audioBedUrl: '',
-  });
+  const [filmCutOptions, setFilmCutOptions] =
+    useState<FilmCutOptionsValue>(DEFAULT_FILM_CUT_OPTIONS);
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
 
   const persistCut = (next: CharacterFilmCut) => {
@@ -428,6 +427,9 @@ export default function CharacterFilmStudio({
               }),
               crossfadeSec: filmCutOptions.crossfadeSec,
               audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
+              stillMotion: filmCutOptions.stillMotion !== false,
+              captions: filmCutOptions.titles === true,
+              titleCard: filmCutOptions.titles ? { title: characterName } : null,
               onProgress: progress => setStatus(progress.label),
             })
               .then(result => {
@@ -475,6 +477,7 @@ export default function CharacterFilmStudio({
                 vertical: filmCutOptions.vertical,
                 quality: resolution,
               }),
+              titleCard: filmCutOptions.titles ? { title: characterName } : null,
             })
               .then(poster => {
                 downloadFilmBlob(poster.blob, poster.filename);

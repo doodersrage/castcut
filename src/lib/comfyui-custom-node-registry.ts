@@ -55,9 +55,29 @@ const ATTENTION_COUPLE: ComfyManagerPackSpec = {
   install_type: 'git-clone',
 };
 
+/** DWPose / OpenPose preprocessors — Play's pose check reads stills back with these. */
+const CONTROLNET_AUX: ComfyManagerPackSpec = {
+  name: 'comfyui_controlnet_aux',
+  title: 'ComfyUI ControlNet Auxiliary Preprocessors',
+  files: ['https://github.com/Fannovel16/comfyui_controlnet_aux'],
+  install_type: 'git-clone',
+};
+
+/** InsightFace embeddings — Play's face check measures Cast identity with these. */
+const FACE_ANALYSIS: ComfyManagerPackSpec = {
+  name: 'comfyui_faceanalysis',
+  title: 'ComfyUI FaceAnalysis',
+  files: ['https://github.com/cubiq/ComfyUI_FaceAnalysis'],
+  install_type: 'git-clone',
+};
+
 /** Well-known class_type → Manager pack, used when getmappings has no hit. */
 export const KNOWN_COMFY_NODE_PACK_BY_CLASS: Record<string, ComfyManagerPackSpec> = {
   FaceDetailer: IMPACT_PACK,
+  DWPreprocessor: CONTROLNET_AUX,
+  OpenposePreprocessor: CONTROLNET_AUX,
+  FaceAnalysisModels: FACE_ANALYSIS,
+  FaceEmbedDistance: FACE_ANALYSIS,
   SAMLoader: IMPACT_PACK,
   ImpactWildcardProcessor: IMPACT_PACK,
   UltralyticsDetectorProvider: IMPACT_PACK,

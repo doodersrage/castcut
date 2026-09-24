@@ -7,7 +7,7 @@ import QueueQualityProfileHints from '@/components/QueueQualityProfileHints';
 import { useState, useSyncExternalStore } from 'react';
 import { ChipButton } from '@/components/ui/Field';
 import { clearPoseLibrary, poseLibraryCount, subscribePoseLibrary } from '@/lib/pose-library';
-import { importPoseFromPhoto, POSE_IMPORT_LAYOUTS } from '@/lib/pose-library-import';
+import { POSE_IMPORT_LAYOUTS } from '@/lib/pose-import-layouts';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { DetailLevel } from '@/lib/detail-level';
@@ -75,6 +75,8 @@ function PoseLibraryControl() {
     setBusy(true);
     setStatus('Reading the pose…');
     try {
+      // Loaded on demand: the import pulls in ComfyUI upload + pose detection.
+      const { importPoseFromPhoto } = await import('@/lib/pose-library-import');
       const result = await importPoseFromPhoto({ file, layout });
       setStatus(
         `Saved as ${result.key} (${result.people} ${result.people === 1 ? 'person' : 'people'}).`

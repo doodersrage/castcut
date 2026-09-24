@@ -1,5 +1,6 @@
 'use client';
 
+import { dayPosterSubtitle, loadPlaySeriesStore, nextDayFilmTitleCard } from '@/lib/play-series';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
@@ -434,6 +435,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         crossfadeSec: filmCutOptions.crossfadeSec,
         resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
         audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
+        stillMotion: filmCutOptions.stillMotion !== false,
+        captions: filmCutOptions.titles === true,
+        titleCard: filmCutOptions.titles
+          ? character
+            ? nextDayFilmTitleCard(loadPlaySeriesStore(), character.id, name)
+            : { title: name }
+          : null,
         onProgress: progress => setFilmStatus(progress.label),
       });
       downloadFilmBlob(result.blob, result.filename);
@@ -519,6 +527,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         lookId: character?.activeLookId,
         parentGalleryEntryId: lastFilmEntryRef.current,
         resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
+        // The episode was recorded at Cut, so the poster names the season it landed in.
+        titleCard: filmCutOptions.titles
+          ? { title: character?.name?.trim() || 'Day', subtitle: dayPosterSubtitle(character?.id) }
+          : null,
       });
       downloadFilmBlob(poster.blob, poster.filename);
       setFilmStatus(
@@ -532,7 +544,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     } finally {
       setPosterBusy(false);
     }
-  }, [activeSlotId, character, filmCutOptions.vertical, slots]);
+  }, [activeSlotId, character, filmCutOptions.titles, filmCutOptions.vertical, slots]);
 
   const saveFilmToCast = useCallback(() => {
     if (!character) {

@@ -10,16 +10,9 @@ import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
-import { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS } from '@/lib/day-pose-guide';
+import { POSE_IMPORT_LAYOUTS } from '@/lib/pose-import-layouts';
 
-/**
- * Layouts a photo can be filed under: single-body postures and two-person sex layouts. The
- * headcount suffix of the library key comes from how many people DWPose finds.
- */
-export const POSE_IMPORT_LAYOUTS: readonly string[] = [
-  ...SCENE_POSE_BODY_IDS,
-  ...SCENE_POSE_ACT_IDS.filter(id => id !== 'none' && id !== 'generic'),
-];
+export { POSE_IMPORT_LAYOUTS };
 
 /** Largest (most joints, then tallest) first — the lead is usually the main subject. */
 export function orderImportedBodies(bodies: NormalizedBody[]): NormalizedBody[] {

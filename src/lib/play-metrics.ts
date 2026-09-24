@@ -40,6 +40,11 @@ export type PlayMetrics = {
    * OpenPose vs legacy guides. Sum/count of 0–1 scores, plus how many fell below the gate.
    */
   poseMatch?: Partial<Record<PoseMatchStyle, PoseMatchStats>>;
+  /**
+   * Measured face match (face-recognition similarity to the Cast plate) per queue model — which
+   * engine keeps the Cast's face best. Same sum/count/misses shape as pose match.
+   */
+  faceMatch?: Record<string, PoseMatchStats>;
   /** Accumulated time spent in each film phase. */
   phaseTimings?: PlayPhaseTimings;
   /** Phase the user is currently in, and when they entered it. */
@@ -121,6 +126,35 @@ function normalizePoseMatch(value: unknown): PlayMetrics['poseMatch'] {
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+const FACE_MATCH_MAX_MODELS = 16;
+
+function normalizeFaceMatch(value: unknown): PlayMetrics['faceMatch'] {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const out: Record<string, PoseMatchStats> = {};
+  for (const [model, entry] of Object.entries(value as Record<string, unknown>).slice(
+    0,
+    FACE_MATCH_MAX_MODELS
+  )) {
+    const stats = entry as Partial<PoseMatchStats> | undefined;
+    if (
+      model.trim() &&
+      stats &&
+      typeof stats.sum === 'number' &&
+      typeof stats.count === 'number' &&
+      stats.count > 0
+    ) {
+      out[model] = {
+        sum: Math.max(0, stats.sum),
+        count: Math.floor(stats.count),
+        misses: typeof stats.misses === 'number' && stats.misses > 0 ? Math.floor(stats.misses) : 0,
+      };
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 function normalizePhaseTimings(value: unknown): PlayPhaseTimings | undefined {
   if (!value || typeof value !== 'object') {
     return undefined;
@@ -176,6 +210,7 @@ function normalizePlayMetrics(value: unknown): PlayMetrics {
     filmCutHistory: normalizeFilmCutHistory(raw.filmCutHistory),
     slotReviews: normalizeSlotReviews(raw.slotReviews),
     poseMatch: normalizePoseMatch(raw.poseMatch),
+    faceMatch: normalizeFaceMatch(raw.faceMatch),
     phaseTimings: normalizePhaseTimings(raw.phaseTimings),
     phaseOpen: normalizePhaseOpen(raw.phaseOpen),
   };
@@ -246,6 +281,42 @@ export function recordPoseMatchScore(style: PoseMatchStyle, score: number, misse
       },
     },
   });
+}
+
+/** Records one measured face-match score for the model that rendered the still. */
+export function recordFaceMatchScore(model: string, similarity: number, missed: boolean): void {
+  const key = model.trim();
+  if (!key || !Number.isFinite(similarity)) {
+    return;
+  }
+  const current = loadPlayMetrics();
+  const stats = current.faceMatch?.[key] ?? { sum: 0, count: 0, misses: 0 };
+  savePlayMetrics({
+    ...current,
+    faceMatch: {
+      ...(current.faceMatch ?? {}),
+      [key]: {
+        sum: stats.sum + Math.min(1, Math.max(0, similarity)),
+        count: stats.count + 1,
+        misses: stats.misses + (missed ? 1 : 0),
+      },
+    },
+  });
+}
+
+/** Mean face match and miss rate per model, best first, for the metrics card. */
+export function faceMatchSummary(
+  metrics: PlayMetrics = loadPlayMetrics()
+): Array<{ model: string; mean: number; missRate: number; count: number }> {
+  return Object.entries(metrics.faceMatch ?? {})
+    .filter(([, stats]) => stats.count > 0)
+    .map(([model, stats]) => ({
+      model,
+      mean: stats.sum / stats.count,
+      missRate: stats.misses / stats.count,
+      count: stats.count,
+    }))
+    .sort((a, b) => b.mean - a.mean);
 }
 
 /** Mean pose match and miss rate per guide style, for the metrics card. */
