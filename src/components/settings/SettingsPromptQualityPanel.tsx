@@ -4,9 +4,10 @@ import Link from 'next/link';
 import RenderRealismHints from '@/components/RenderRealismHints';
 import AnatomyGuardHints from '@/components/AnatomyGuardHints';
 import QueueQualityProfileHints from '@/components/QueueQualityProfileHints';
-import { useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { ChipButton } from '@/components/ui/Field';
 import { clearPoseLibrary, poseLibraryCount, subscribePoseLibrary } from '@/lib/pose-library';
+import { importPoseFromPhoto, POSE_IMPORT_LAYOUTS } from '@/lib/pose-library-import';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { DetailLevel } from '@/lib/detail-level';
@@ -63,20 +64,71 @@ const POSE_GUIDE_STYLE_OPTIONS: Array<{
  */
 function PoseLibraryControl() {
   const count = useSyncExternalStore(subscribePoseLibrary, poseLibraryCount, () => null);
+  const [layout, setLayout] = useState<string>(POSE_IMPORT_LAYOUTS[0] ?? 'stand');
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   if (count === null) {
     return null;
   }
+  const onFile = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    setStatus('Reading the pose…');
+    try {
+      const result = await importPoseFromPhoto({ file, layout });
+      setStatus(
+        `Saved as ${result.key} (${result.people} ${result.people === 1 ? 'person' : 'people'}).`
+      );
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Import failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
-    <div className="flex flex-wrap items-center gap-2 type-caption text-[var(--text-muted)]">
-      <span data-testid="pose-library-count">
-        Pose library: {count} {count === 1 ? 'pose' : 'poses'} harvested from well-matched Day
-        stills (needs Auto-review and DWPose in ComfyUI).
-      </span>
-      {count > 0 ? (
-        <ChipButton active={false} onClick={() => clearPoseLibrary()}>
-          Clear
-        </ChipButton>
-      ) : null}
+    <div className="space-y-1.5 type-caption text-[var(--text-muted)]">
+      <div className="flex flex-wrap items-center gap-2">
+        <span data-testid="pose-library-count">
+          Pose library: {count} {count === 1 ? 'pose' : 'poses'} — harvested from well-matched
+          stills or imported from photos (needs DWPose in ComfyUI).
+        </span>
+        {count > 0 ? (
+          <ChipButton active={false} onClick={() => clearPoseLibrary()}>
+            Clear
+          </ChipButton>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-1.5">
+          Import pose as
+          <select
+            className="rounded border border-[var(--border-default)] bg-[var(--bg-base)] px-1.5 py-0.5 text-[var(--text-primary)]"
+            value={layout}
+            disabled={busy}
+            onChange={event => setLayout(event.target.value)}
+          >
+            {POSE_IMPORT_LAYOUTS.map(id => (
+              <option key={id} value={id}>
+                {id.replace(/_/g, ' ')}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="cursor-pointer underline">
+          {busy ? 'Importing…' : 'from photo…'}
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            disabled={busy}
+            onChange={event => {
+              void onFile(event.target.files?.[0]);
+              event.target.value = '';
+            }}
+          />
+        </label>
+      </div>
+      {status ? <p data-testid="pose-library-import-status">{status}</p> : null}
     </div>
   );
 }

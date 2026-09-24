@@ -96,6 +96,11 @@ Each score is also logged per guide style, and **Film loop → Pose match by gui
 average and miss rate for OpenPose, OpenPose + hands and Legacy. Run a few Days in each style
 and switch to the one with the higher match.
 
+Story runs the same check on every still that was queued with a guide and shows `Pose match …%`
+on the beat card; under 60% it suggests **Retry**, which draws a reseeded / mirrored variant.
+You can also seed the library yourself: **Settings → Prompt quality → Import pose as … from
+photo** reads the pose from any picture and files it under the layout you pick.
+
 Two starting values are uncalibrated: the 60% gate, and the 80% bar at which a kept still's
 detected pose is saved to the **pose library** (Settings → Prompt quality shows the count and
 can clear it). Library poses are real rendered bodies; later guides for the same layout

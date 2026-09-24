@@ -4,7 +4,7 @@ import {
   type FilmPlaylistShot,
 } from '@/lib/character-film';
 import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/compose-prompt';
-import { countPoseGuidePeople } from '@/lib/day-pose-guide';
+import { countPoseGuidePeople, type ScenePoseSpec } from '@/lib/day-pose-guide';
 import {
   POSE_GUIDE_ACTION_LOCK,
   isOpenPoseStyle,
@@ -696,6 +696,45 @@ export function isDayPoseStickyEditModel(model?: string | null): boolean {
 export function dayEverydayPoseNeedsBodyUnlock(beat: string | null | undefined): boolean {
   const cls = dayEverydayPoseClass(beat);
   return cls !== 'STILL' && cls !== 'GESTURE';
+}
+
+const DAY_POSE_CLASS_BODY: Record<string, ScenePoseSpec['body']> = {
+  // Everyday classes
+  SEATED: 'sit',
+  LYING: 'lie',
+  WALKING: 'walk',
+  LEANING: 'lean',
+  CROUCH: 'crouch',
+  KNEEL: 'kneel',
+  // Vacation / Suggestive classes
+  PERCHED: 'sit',
+  'MID-STRIDE': 'walk',
+  RECLINING: 'lie',
+  RELAXING: 'lie',
+  REACHING: 'reach',
+  JUMPING: 'jump',
+};
+
+/**
+ * Structured body pose for a Day beat, from the same posture class the prompt's POSE FIRST
+ * directive uses — so the Image 3 guide and the prompt can't disagree about sit vs stand.
+ * Adult heat moods draw sex layouts from the beat text instead, so they get none; gesture /
+ * dance / still classes leave the body to the guide's own layouts.
+ */
+export function dayPoseSpecForBeat(
+  beat: string | null | undefined,
+  dayMood: DayMood | string | null | undefined
+): ScenePoseSpec | undefined {
+  const mood = normalizeDayMood(dayMood);
+  if (isDayAdultMood(mood) || !beat?.trim()) {
+    return undefined;
+  }
+  const poseClass =
+    mood === 'vacation' || mood === 'suggestive'
+      ? clothedHeatUnlockPoseClass(beat, mood)
+      : dayEverydayPoseClass(beat);
+  const body = DAY_POSE_CLASS_BODY[poseClass.toUpperCase()];
+  return body ? { body } : undefined;
 }
 
 /**
@@ -2123,6 +2162,8 @@ export function buildDaySlotPrompt(input: {
   poseGuideStyle?: PoseGuideStylePreference;
   /** OpenPose multi-figure: where the lead skeleton sits, so the prompt can name it. */
   poseLeadPosition?: PoseLeadPosition | null;
+  /** OpenPose: camera angle the guide implies (overhead lying layouts, side-view profiles). */
+  poseCamera?: 'overhead' | 'side' | null;
   /** Active model — Rapid AIO uses gray-outline Image 3 cue language. */
   model?: string | null;
   /** Settings realism mode — pose guide locks photoreal unless anime/off. */
@@ -2252,8 +2293,9 @@ export function buildDaySlotPrompt(input: {
     ? poseGuidePromptBlock(realismMode, {
         headcount: poseHeadcount,
         model: input.model,
-        style: openPoseGuide ? 'openpose' : 'legacy',
+        style: openPoseGuide ? input.poseGuideStyle : 'legacy',
         leadPosition: leadPositionPhrase,
+        camera: openPoseGuide ? input.poseCamera : null,
       })
     : null;
   const soloLock = soloSubject

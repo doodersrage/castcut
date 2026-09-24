@@ -24,10 +24,12 @@ import {
   poseGuideCanvasSize,
   resolvePoseCanvas,
   resolvePoseFraming,
+  resolvePoseCameraAngle,
   resolvePoseLeadPosition,
   stickToOpenPosePerson,
   DEFAULT_POSE_CANVAS,
   type OpenPosePerson,
+  type PoseCameraAngle,
   type PoseFacing,
   type PoseLeadPosition,
 } from '@/lib/pose-guide-openpose';
@@ -1817,7 +1819,11 @@ export function synthesizeStickSkeleton(
       /\b(sit(?:ting|s)?|seated|chair|bench|stool|saddle|steps|carpet|vanity|table)\b/i.test(
         scene
       ));
-  if (intent.base === 'sit' && (chairSit || perchedSit) && !reclinedSit) {
+  // Every upright sit gets the deep hips-on-seat drawing. The shallow generic sit (hips a little
+  // lower, legs barely bent) scored 0.8+ against a stand in the pose check — it barely said
+  // "sit", and a sit from the scene writer's pose field often has no chair word to route here.
+  void chairSit;
+  if (intent.base === 'sit' && !reclinedSit) {
     // Deep chair sit — Keep try-ons are standing; Image 3 must read as hips-on-seat, not a short stand.
     const ox = centerX - 0.5;
     const oneKneeUp = /\b(one\s+knee|knee\s+up|cross(?:ed)?-?legged|legs?\s+cross)\b/i.test(scene);
@@ -1845,12 +1851,15 @@ export function synthesizeStickSkeleton(
     headY = reclinedSit ? 0.3 : 0.26;
     torsoScale = reclinedSit ? 0.85 : 0.9;
   } else if (intent.base === 'crouch') {
-    pelvisY = 0.55;
-    headY = 0.2;
-    torsoScale = 0.88;
+    // Hips dropped near knee height — the whole body sits low in frame.
+    pelvisY = 0.7;
+    headY = 0.4;
+    torsoScale = 0.82;
   } else if (intent.base === 'kneel') {
-    pelvisY = 0.56;
-    headY = 0.18;
+    // Upright kneel: thighs vertical down to knees on the floor, so the whole body sits a
+    // thigh-length lower than a stand (same limb proportions, not a tall figure on tiptoe).
+    pelvisY = 0.68;
+    headY = 0.36;
   } else if (intent.base === 'lie') {
     const ox = centerX - 0.5;
     const lounge =
@@ -2056,7 +2065,13 @@ export function synthesizeStickSkeleton(
   let lAnkle: Point;
   let rAnkle: Point;
 
-  if (intent.base === 'sit' || intent.base === 'crouch') {
+  if (intent.base === 'crouch') {
+    // Three-quarter crouch: knees up at hip height and forward, shins vertical, feet flat.
+    lKnee = point(lHip.x - 0.05 + j(17), pelvisY - 0.03 + j(18) * 0.5);
+    rKnee = point(rHip.x + 0.12 + j(19), pelvisY - 0.05 + j(20) * 0.5);
+    lAnkle = point(lKnee.x + 0.01 + j(21), 0.9 + j(22) * 0.2);
+    rAnkle = point(rKnee.x - 0.02 + j(23), 0.9 + j(24) * 0.2);
+  } else if (intent.base === 'sit') {
     // Chair-like L: knees forward of hips, ankles under/near knees — not a short stand.
     const kneeDrop = reclinedSit ? 0.08 : 0.1;
     const forward = reclinedSit ? 0.16 : perchedSit ? 0.12 : 0.14;
@@ -2073,10 +2088,11 @@ export function synthesizeStickSkeleton(
       rAnkle = point(rKnee.x + 0.06 + j(23), rKnee.y + 0.12 + j(24));
     }
   } else if (intent.base === 'kneel') {
-    lKnee = point(lHip.x - 0.02 + j(17), 0.72 + j(18));
-    rKnee = point(rHip.x + 0.08 + j(19), rHip.y + 0.14 + j(20));
-    lAnkle = point(lKnee.x - 0.08 + j(21), 0.88 + j(22));
-    rAnkle = point(rKnee.x + 0.04 + j(23), 0.86 + j(24));
+    // Knees on the floor under the hips; shins fold back along the floor (three-quarter view).
+    lKnee = point(lHip.x - 0.01 + j(17), 0.88 + j(18) * 0.2);
+    rKnee = point(rHip.x + 0.03 + j(19), 0.87 + j(20) * 0.2);
+    lAnkle = point(lKnee.x + 0.14 + j(21), 0.92 + j(22) * 0.2);
+    rAnkle = point(rKnee.x + 0.16 + j(23), 0.91 + j(24) * 0.2);
   } else {
     // Standing / lean only — jump/reach/walk/run return earlier in this function.
     lKnee = point(lHip.x - front * 0.2 * flip + j(17), lHip.y + 0.18 + j(18));
@@ -4796,6 +4812,8 @@ export type PoseGuideBuild = {
   figureCount: number;
   /** OpenPose multi-figure only: where the lead (Image 1) skeleton sits. */
   leadPosition: PoseLeadPosition | null;
+  /** OpenPose only: camera angle the flat skeleton implies (overhead / side), for the prompt. */
+  camera: PoseCameraAngle | null;
   /** Layout label, for logs and the file name. */
   label: string;
   /** Pose-library key for this layout (`bent:2`, `sit:1`, …). */
@@ -4878,6 +4896,7 @@ export function planOpenPoseGuide(input: {
   canvas: { width: number; height: number };
   people: OpenPosePerson[];
   leadPosition: PoseLeadPosition | null;
+  camera: PoseCameraAngle | null;
   keypoints: NormalizedBody[];
   poseKey: string;
   libraryEntryId?: string;
@@ -4916,6 +4935,7 @@ export function planOpenPoseGuide(input: {
     canvas: size,
     people,
     leadPosition: resolvePoseLeadPosition(people.map(person => person.body)),
+    camera: resolvePoseCameraAngle(input.figures[0]),
     keypoints: normalizePeople(people, size.width, size.height),
     poseKey,
     ...(entry ? { libraryEntryId: entry.id } : {}),
@@ -4955,6 +4975,7 @@ async function buildSceneGuide(
       stylePreference,
       figureCount: plan.people.length,
       leadPosition: plan.leadPosition,
+      camera: plan.camera,
       label: intent.label,
       poseKey: plan.poseKey,
       canvas: plan.canvas,
@@ -4974,6 +4995,7 @@ async function buildSceneGuide(
     stylePreference,
     figureCount: figures.length,
     leadPosition: null,
+    camera: null,
     label: intent.label,
     poseKey: poseLibraryKey({
       intimate: intent.intimate,
@@ -5003,6 +5025,7 @@ async function buildSlotGuide(
     stylePreference,
     figureCount: 1,
     leadPosition: null,
+    camera: null,
     label: poseKey,
     poseKey: `slot-${poseKey}:1`,
     canvas: { width: WIDTH, height: HEIGHT },

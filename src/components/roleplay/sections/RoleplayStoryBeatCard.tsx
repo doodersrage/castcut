@@ -11,6 +11,8 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import { RoleplayStillFrame } from '@/components/roleplay/sections/RoleplayStillFrame';
+import { storyPoseMatchLabel } from '@/lib/roleplay-pose-check';
+import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
 import {
   beatMotionUrl,
   beatPreviewUrl,
@@ -49,6 +51,7 @@ export function RoleplayStoryBeatCard({
   onSelectClipTake,
 }: Props) {
   const takes = roleplayStillTakes(beat);
+  const poseMatch = storyPoseMatchLabel(beat, DEFAULT_MIN_POSE_MATCH);
   const clipTakes = roleplayClipTakes(beat);
   const hasClipAttempt = clipTakes.some(
     take =>
@@ -111,6 +114,18 @@ export function RoleplayStoryBeatCard({
             {beat.title}
           </p>
           <p className="type-caption text-[var(--text-muted)]">{beat.blurb}</p>
+          {poseMatch ? (
+            <p
+              className={`type-caption ${
+                poseMatch.miss
+                  ? 'text-[var(--tint-warning-text,var(--text-muted))]'
+                  : 'text-[var(--text-muted)]'
+              }`}
+              data-testid="story-pose-match"
+            >
+              {poseMatch.text}
+            </p>
+          ) : null}
           {beat.poseGuideUrl ? (
             <details
               className="type-caption text-[var(--text-muted)]"

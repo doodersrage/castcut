@@ -9,6 +9,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Sit, crouch and kneel guides actually look like it:** the pose check showed the generic front-view sit, crouch and kneel mannequins scoring 0.8+ against a plain stand — the guide barely said "sit". Every upright sit now draws hips-on-seat with knees at hip height (it used to need a chair word in the beat), crouch drops the hips with knees up and shins vertical, and kneel puts the knees on the floor with shins folded back at a three-quarter angle.
+- **Camera angle from the guide:** skeletons are flat, so the OpenPose cue now says the angle they imply — "high overhead angle" for the top-down lying layouts, "eye-level side view" for profile layouts (bent-over, wall, oral, carry).
+- **Day guides follow Day's own posture class:** the SEATED / WALKING / CROUCH / MID-STRIDE… class that writes the POSE FIRST line now also sets the guide's body, so the drawing and the prompt can't disagree.
+- **Story pose check:** Story stills queued with a guide are read back with DWPose too; the beat card shows the pose match and, under 60%, suggests Retry (which draws a new variant). Scores feed the same Film loop A/B stat and the pose library.
+- **Import pose from photo:** Settings → Prompt quality → Pose library can read the pose from any photo and file it under a layout, instead of waiting for harvested stills.
+
 - **Pose check (DWPose):** with Auto-review on and `comfyui_controlnet_aux` installed, Day reads the pose back out of each still and scores it against its Image 3 guide (aligned joint distance, so framing and size don't matter). Under **60%** the slot is requeued with a "match the skeleton" fix; the score shows in the review line. Missing node pack = the check switches itself off with a note. Scores are logged per guide style and **Film loop → Pose match by guide** shows OpenPose vs OpenPose + hands vs Legacy, so the style choice can be made from data.
 - **Pose library:** kept stills whose pose matched at **80%+** save their detected skeletons under the guide's layout (`bent:2`, `sit:1`, …). Later guides for that layout draw a harvested real-body pose about a third of the time and on every odd reroll. Count and Clear in Settings → Prompt quality.
 - **Guides match the output shape and framing:** the guide is drawn at Image 1's aspect (the still renders at that aspect), with square/landscape guides framed on the people; solo beats that say close-up, waist-up/selfie or three-quarter get a cropped guide.

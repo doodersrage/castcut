@@ -30,6 +30,7 @@ import {
   type ScenePoseSpec,
 } from '@/lib/day-pose-guide';
 import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
+import type { StoryPoseGuideExpect, StoryPoseMatch } from '@/lib/roleplay-pose-check';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import {
   DEFAULT_RENDER_REALISM_MODE,
@@ -107,6 +108,10 @@ export type RoleplayStoryBeat = RoleplayScene & {
   clipTakeIndex?: number;
   /** Image 3 pose guide sent with the latest still (ComfyUI view URL), for the beat preview. */
   poseGuideUrl?: string;
+  /** Keypoints of that guide, tied to the take's prompt id — what the pose check compares. */
+  poseGuideExpect?: StoryPoseGuideExpect;
+  /** DWPose check of the shown still against its guide. */
+  poseMatch?: StoryPoseMatch;
 };
 
 export const MAX_ROLEPLAY_STILL_TAKES = 8;
@@ -713,6 +718,8 @@ export function withRoleplayPoseGuidePrompt(
     headcount?: number;
     /** OpenPose multi-figure: lead skeleton position phrase. */
     leadPosition?: string | null;
+    /** OpenPose: camera angle the flat guide implies. */
+    camera?: 'overhead' | 'side' | null;
   }
 ): string {
   const reinforced = reinforceIntimateStillPrompt(prompt);
@@ -721,6 +728,7 @@ export function withRoleplayPoseGuidePrompt(
     style: guide?.style,
     headcount: guide?.headcount,
     leadPosition: guide?.leadPosition,
+    camera: guide?.camera,
   });
   if (!enabled || !withPose) {
     return withPose;

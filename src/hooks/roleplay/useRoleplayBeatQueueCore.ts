@@ -40,6 +40,7 @@ import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { loadPoseLibrary } from '@/lib/pose-library';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import { describePoseLeadPosition } from '@/lib/pose-guide-openpose';
+import type { StoryPoseGuideExpect } from '@/lib/roleplay-pose-check';
 import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
 import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
 import { poseGuideFailureReason } from '@/lib/pose-guide-status';
@@ -56,6 +57,7 @@ type StoryPoseGuidePromptMeta = {
   style: PoseGuideStylePreference;
   headcount: number;
   leadPosition: string | null;
+  camera: 'overhead' | 'side' | null;
 };
 
 type PromptActions = ReturnType<typeof usePromptResultActions>;
@@ -246,7 +248,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             leadPosition: poseBuild.leadPosition
               ? describePoseLeadPosition(poseBuild.leadPosition)
               : null,
+            camera: poseBuild.camera,
           } satisfies StoryPoseGuidePromptMeta,
+          expect: {
+            keypoints: poseBuild.keypoints,
+            aspect: poseBuild.canvas.width / poseBuild.canvas.height,
+            style: poseBuild.stylePreference,
+            poseKey: poseBuild.poseKey,
+          },
         };
       } catch (poseError) {
         // Pose guide is best-effort — Story still queues without Image 3 — but a silent drop
@@ -331,6 +340,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           prompt,
           ...roleplayStillQueueResultPatch({ ...beat, prompt }, promptId),
           ...(poseGuide?.imageUrl ? { poseGuideUrl: poseGuide.imageUrl } : {}),
+          ...(poseGuide?.expect && promptId
+            ? { poseGuideExpect: { ...poseGuide.expect, promptId } }
+            : {}),
         };
       } else {
         // Prompt is ready — clear writing so the reel does not say "Queueing…" with no Comfy job.
@@ -380,6 +392,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         : undefined;
       let promptId: string | undefined;
       let poseGuideUrl: string | undefined;
+      let poseGuideExpectBase: Omit<StoryPoseGuideExpect, 'promptId'> | undefined;
       try {
         await loadWardrobeGarmentThumbManifest();
         // A retry draws a different variant of the layout (reseeded / mirrored).
@@ -387,6 +400,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           variant: retry ? roleplayStillTakes(latest).length : 0,
         });
         poseGuideUrl = poseGuide?.imageUrl;
+        poseGuideExpectBase = poseGuide?.expect;
         const promptSource = storyStillPromptSource({
           llmPrompt: prompt,
           blurb: latest.blurb,
@@ -439,6 +453,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         story: patchRoleplayStoryBeat(storyRef.current, latest, {
           ...roleplayStillQueueResultPatch(after, promptId),
           ...(poseGuideUrl ? { poseGuideUrl } : {}),
+          ...(poseGuideExpectBase && promptId
+            ? { poseGuideExpect: { ...poseGuideExpectBase, promptId } }
+            : {}),
         }),
       });
     },

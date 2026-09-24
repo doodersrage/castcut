@@ -40,6 +40,15 @@ export function poseGuideStyleDrawsHands(value: unknown): boolean {
 export const POSE_GUIDE_OPENPOSE_EDIT_PROMPT_LINE =
   'Image 3 is an OpenPose keypoint skeleton map (pose control only, not part of the picture). Pose the people to match Image 3: body position, limb angles, head direction, and headcount. Keep Image 1 face and body proportions; discard Image 1 pose. Never draw the skeleton lines, colored dots, or black background into the photo.';
 
+/**
+ * Skeletons are flat, so the angle they were drawn from must be said: a top-down lying layout
+ * otherwise renders as a side view of people standing, and a profile layout as a front view.
+ */
+export const POSE_GUIDE_CAMERA_LINES: Record<'overhead' | 'side', string> = {
+  overhead: 'Camera: high overhead angle looking down, as Image 3 is drawn.',
+  side: 'Camera: eye-level side view, as Image 3 is drawn.',
+};
+
 /** Extra cue when Image 3 carries 21-point hand maps. */
 export const POSE_GUIDE_OPENPOSE_HANDS_LINE =
   'Image 3 hand keypoints show where each hand is and which way the fingers point — place the real hands there.';
@@ -221,6 +230,8 @@ export function poseGuidePromptBlock(
     style?: PoseGuideStylePreference;
     /** OpenPose only: position phrase for the lead skeleton ("leftmost", "lower (underneath)"). */
     leadPosition?: string | null;
+    /** OpenPose only: camera angle the flat skeleton implies. */
+    camera?: 'overhead' | 'side' | null;
   }
 ): string {
   // Undefined headcount keeps the legacy duo-aware compact lock (Story).
@@ -237,6 +248,7 @@ export function poseGuidePromptBlock(
     return [
       POSE_GUIDE_OPENPOSE_EDIT_PROMPT_LINE,
       poseGuideStyleDrawsHands(options?.style) ? POSE_GUIDE_OPENPOSE_HANDS_LINE : '',
+      options?.camera ? POSE_GUIDE_CAMERA_LINES[options.camera] : '',
       poseGuideStyleLockLine(mode),
       lock,
     ]
@@ -344,6 +356,7 @@ export function withPoseGuideEditPrompt(
     model?: string | null;
     style?: PoseGuideStylePreference;
     leadPosition?: string | null;
+    camera?: 'overhead' | 'side' | null;
   }
 ): string {
   const trimmed = prompt.trim();
@@ -427,6 +440,7 @@ function withOpenPoseGuidePrompt(
     headcount?: number;
     leadPosition?: string | null;
     style?: PoseGuideStylePreference;
+    camera?: 'overhead' | 'side' | null;
   }
 ): string {
   // No fresh headcount = nothing new to say (e.g. a requeue): keep the existing keypoint cue.
@@ -449,6 +463,7 @@ function withOpenPoseGuidePrompt(
     imageAttached: true,
     style: options?.style ?? 'openpose',
     leadPosition: options?.leadPosition,
+    camera: options?.camera,
   });
   return `${base}\n${block}`.trim();
 }

@@ -54,6 +54,7 @@ import {
   dayWatchPlaylist,
   diversifyDaySlotScenes,
   ensureDaySlotsMatchMood,
+  dayPoseSpecForBeat,
   isDayAdultMood,
   isDayHeatMood,
   mergeDaySlotStills,
@@ -522,6 +523,7 @@ export function useDayPlannerToolOrchestrationCore() {
         poseGuide?: boolean;
         poseGuideStyle?: PoseGuideStylePreference;
         poseLeadPosition?: PoseLeadPosition | null;
+        poseCamera?: 'overhead' | 'side' | null;
         faceOnlyIdentity?: boolean;
         forceGarmentReinforce?: boolean;
       }
@@ -572,6 +574,7 @@ export function useDayPlannerToolOrchestrationCore() {
         poseGuide,
         poseGuideStyle: options?.poseGuideStyle ?? loadPoseGuideStylePreference(),
         poseLeadPosition: options?.poseLeadPosition ?? null,
+        poseCamera: options?.poseCamera ?? null,
         model: shared.model,
         realismMode: shared.renderRealismMode,
         allowCompanions: toolSettings.allowCompanions === true,
@@ -799,6 +802,7 @@ export function useDayPlannerToolOrchestrationCore() {
         let poseGuideFailure: string | undefined;
         let poseGuideDrawnStyle: PoseGuideStylePreference = poseGuideStyle;
         let poseLeadPosition: PoseLeadPosition | null = null;
+        let poseCamera: 'overhead' | 'side' | null = null;
         let poseExpectation: DayPoseGuideExpectation | undefined;
         if (hasPlate && !skipPoseGuideImage) {
           try {
@@ -868,6 +872,7 @@ export function useDayPlannerToolOrchestrationCore() {
                 // wall" beat must not become a two-figure wall press.
                 allowIntimate: isDayAdultMood(dayMood),
                 stylePreference: poseGuideStyle,
+                pose: dayPoseSpecForBeat(beatOnly, dayMood),
                 variant: poseVariantRef.current[queueTarget.id] ?? 0,
                 aspect: isOpenPoseStyle(poseGuideStyle) ? await probeImage1Size(image1Url) : null,
                 library: isOpenPoseStyle(poseGuideStyle) ? loadPoseLibrary() : [],
@@ -876,6 +881,7 @@ export function useDayPlannerToolOrchestrationCore() {
             const poseFile = poseBuild.file;
             poseGuideDrawnStyle = poseBuild.stylePreference;
             poseLeadPosition = poseBuild.leadPosition;
+            poseCamera = poseBuild.camera;
             poseExpectation = {
               keypoints: poseBuild.keypoints,
               aspect: poseBuild.canvas.width / poseBuild.canvas.height,
@@ -939,6 +945,7 @@ export function useDayPlannerToolOrchestrationCore() {
           poseGuide: Boolean(poseGuideFilename),
           poseGuideStyle: poseGuideDrawnStyle,
           poseLeadPosition,
+          poseCamera,
           faceOnlyIdentity,
           // Only force Image 2 language when a clothing-only packshot is actually attached.
           forceGarmentReinforce:

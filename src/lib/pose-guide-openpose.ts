@@ -337,6 +337,31 @@ export function inferPoseFacing(skeleton: StickSkeleton): PoseFacing {
   return 'front';
 }
 
+/** Camera the guide implies: skeletons are drawn flat, so the angle must be said in words. */
+export type PoseCameraAngle = 'overhead' | 'side';
+
+/**
+ * Camera angle implied by the lead figure: a horizontal body seen face-on (the top-down lying
+ * layouts) is an overhead shot; a profile (bent-over, wall, oral, carry layouts) is an
+ * eye-level side view. Upright camera-facing figures need no hint.
+ */
+export function resolvePoseCameraAngle(lead: StickSkeleton | undefined): PoseCameraAngle | null {
+  if (!lead) return null;
+  const facing = lead.facing ?? inferPoseFacing(lead);
+  const torso = sub(toDesign(lead.pelvis), toDesign(lead.neck));
+  const horizontal = Math.abs(torso.x) > Math.abs(torso.y);
+  if (facing === 'left' || facing === 'right') {
+    return 'side';
+  }
+  if (
+    horizontal &&
+    (facing === 'front' || facing === 'back' || facing === 'up' || facing === 'down')
+  ) {
+    return 'overhead';
+  }
+  return null;
+}
+
 export function mirrorPoseFacing(facing: PoseFacing | undefined): PoseFacing | undefined {
   if (facing === 'left') return 'right';
   if (facing === 'right') return 'left';
