@@ -5,6 +5,7 @@ import {
   dayPoseGuideSize,
   drawDayPoseGuide,
   intimateLeadPrefersSecondRole,
+  parseIntimateLayout,
   parsePoseGuideIntent,
   parseSocialLayout,
   resolvePoseGuideKeyFromScene,
@@ -1094,6 +1095,34 @@ describe('day-pose-guide', () => {
     } as unknown as CanvasRenderingContext2D;
     drawDayPoseGuide(ctx, 'morning', 'outline-gray');
     assert.equal(paper.toLowerCase(), '#ffffff');
+  });
+});
+
+describe('wall-press layout parsing', () => {
+  it('reads a wall or glass press from behind as the standing wall layout', () => {
+    assert.equal(parseIntimateLayout('pinned against the wall from behind'), 'wall');
+    assert.equal(parseIntimateLayout('he takes her from behind against the wall'), 'wall');
+    assert.equal(parseIntimateLayout('pressed against the hotel window from behind'), 'wall');
+    assert.equal(parseIntimateLayout('up against the shower glass, fucked from behind'), 'wall');
+    assert.equal(parseIntimateLayout('wall sex in the hallway'), 'wall');
+  });
+
+  it('keeps explicit bends and surface leans bent over', () => {
+    assert.equal(parseIntimateLayout('bent over against the wall, taken from behind'), 'bent');
+    assert.equal(parseIntimateLayout('doggy style against the headboard wall'), 'bent');
+    assert.equal(parseIntimateLayout('from behind over the desk by the window'), 'bent');
+    assert.equal(parseIntimateLayout('taken from behind on the bed'), 'bent');
+  });
+
+  it('draws the wall figures for a wall press from behind', () => {
+    const { intent, figures } = synthesizeSceneStickFigures(
+      'pinned against the wall from behind',
+      0,
+      { forcePeople: 2 }
+    );
+    assert.equal(intent.intimate, 'wall');
+    assert.equal(figures.length, 2);
+    assert.ok(figures.every(figure => figure.facing === 'left'));
   });
 });
 

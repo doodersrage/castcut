@@ -388,6 +388,14 @@ export function countPoseGuidePeople(text: string | null | undefined): number {
   return 1;
 }
 
+/** Standing press against a wall / glass / door (the `wall` layout). */
+const WALL_PRESS_RE =
+  /\b(against\s+(?:the\s+)?(?:[\w'-]+\s+){0,4}(?:wall|glass|window|door)|wall\s+(?:sex|fuck|pin)|rear\s+wall\s+press|wall\s+press|pinned\s+against|press(?:es|ed|ing)?\s+(?:her|him|them)\s+(?:back|against)|lean(?:s|ing)?\s+against.{0,48}wall|elevator\s+(?:sex|fuck|wall)|glass\s+elevator)\b/i;
+
+/** Wording that makes a body fold forward (bent layout) even when a wall is named. */
+const BENT_BODY_RE =
+  /\b(doggy(?:[- ]style)?|bent\s+over|bend(?:s|ing)?\s+over|curled?\s+over|ass[- ]up|all\s+fours|hands\s+and\s+knees|over\s+the\s+(?:desk|table|counter|edge|ledgers?|stack|chair|sofa|couch|bed))\b/i;
+
 /**
  * Map adult scene copy to an intimate wireframe layout.
  * Stick figures stay crude — stance/placement only, no anatomy.
@@ -466,6 +474,11 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
   ) {
     return 'prone';
   }
+  // A wall/glass press "from behind" is the standing wall layout (partner behind, both upright);
+  // only an explicit bend, all-fours, or surface lean keeps it bent over.
+  if (WALL_PRESS_RE.test(haystack) && !BENT_BODY_RE.test(haystack)) {
+    return 'wall';
+  }
   if (
     /\b(doggy(?:[- ]style)?|from\s+behind|bent\s+over|bend(?:s|ing)?\s+over|curled?\s+over|ass[- ]up)\b/i.test(
       haystack
@@ -485,11 +498,7 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
   ) {
     return 'scissors';
   }
-  if (
-    /\b(against\s+(?:the\s+)?(?:[\w'-]+\s+){0,4}wall|up\s+against\s+(?:the\s+)?(?:[\w'-]+\s+){0,4}wall|wall\s+(?:sex|fuck|pin)|rear\s+wall\s+press|wall\s+press|pinned\s+against|press(?:es|ed|ing)?\s+(?:her|him|them)\s+(?:back|against)|lean(?:s|ing)?\s+against.{0,48}wall|elevator\s+(?:sex|fuck|wall)|glass\s+elevator)\b/i.test(
-      haystack
-    )
-  ) {
+  if (WALL_PRESS_RE.test(haystack)) {
     return 'wall';
   }
   if (
