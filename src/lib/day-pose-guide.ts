@@ -488,11 +488,11 @@ export function countPoseGuidePeople(text: string | null | undefined): number {
 
 /** Standing press against a wall / glass / door (the `wall` layout). */
 const WALL_PRESS_RE =
-  /\b(against\s+(?:the\s+)?(?:[\w'-]+\s+){0,4}(?:wall|glass|window|door)|wall\s+(?:sex|fuck|pin)|rear\s+wall\s+press|wall\s+press|pinned\s+against|press(?:es|ed|ing)?\s+(?:her|him|them)\s+(?:back|against)|lean(?:s|ing)?\s+against.{0,48}wall|elevator\s+(?:sex|fuck|wall)|glass\s+elevator)\b/i;
+  /\b(against\s+(?:the\s+)?(?:[\w'-]+\s+){0,4}(?:wall|glass|window|door|fridge|refrigerator|mirror)|wall\s+(?:sex|fuck|pin)|rear\s+wall\s+press|wall\s+press|pinned\s+against|press(?:es|ed|ing)?\s+(?:her|him|them)\s+(?:back|against)|lean(?:s|ing)?\s+against.{0,48}wall|elevator\s+(?:sex|fuck|wall)|glass\s+elevator)\b/i;
 
 /** Wording that makes a body fold forward (bent layout) even when a wall is named. */
 const BENT_BODY_RE =
-  /\b(doggy(?:[- ]style)?|bent\s+over|bend(?:s|ing)?\s+over|curled?\s+over|ass[- ]up|all\s+fours|hands\s+and\s+knees|over\s+the\s+(?:desk|table|counter|edge|ledgers?|stack|chair|sofa|couch|bed))\b/i;
+  /\b(doggy(?:[- ]style)?|bent\s+over|bend(?:s|ing)?\s+(?:(?:her|him|them)\s+)?over|curled?\s+over|ass[- ]up|all\s+fours|hands\s+and\s+knees|over\s+the\s+(?:desk|table|counter|edge|ledgers?|stack|chair|sofa|couch|bed))\b/i;
 
 /**
  * Map adult scene copy to an intimate wireframe layout.
@@ -578,7 +578,7 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
     return 'wall';
   }
   if (
-    /\b(doggy(?:[- ]style)?|from\s+behind|bent\s+over|bend(?:s|ing)?\s+over|curled?\s+over|ass[- ]up)\b/i.test(
+    /\b(doggy(?:[- ]style)?|from\s+behind|bent\s+over|bend(?:s|ing)?\s+(?:(?:her|him|them)\s+)?over|curled?\s+over|ass[- ]up)\b/i.test(
       haystack
     ) ||
     (/\bover\s+the\s+(?:desk|table|counter|edge|ledgers?|stack)\b/i.test(haystack) &&
@@ -2430,6 +2430,12 @@ export function intimateLeadPrefersSecondRole(
         return true;
       }
       return false;
+    case 'lap':
+      // Default [on the lap, seated] — swap when the lead is the one holding the lap.
+      if (/\bhe\b.{0,40}\b(?:sits?|sitting)\s+on\s+her\s+lap\b/i.test(hay)) {
+        return true;
+      }
+      return false;
     case 'facesit':
       return false;
     default:
@@ -3171,7 +3177,8 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
     lap.rAnkle = point(0.62, 0.82);
     seat.lKnee = point(0.4, 0.72);
     seat.rKnee = point(0.56, 0.72);
-    return pairOrTrio([seat, lap]);
+    // Lead (Image 1) is the one on the lap — "sitting on his lap" is the Cast's pose.
+    return pairOrTrio([lap, seat]);
   }
 
   if (layout === 'wall') {

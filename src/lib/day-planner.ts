@@ -4,7 +4,12 @@ import {
   type FilmPlaylistShot,
 } from '@/lib/character-film';
 import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/compose-prompt';
-import { countPoseGuidePeople, type ScenePoseSpec } from '@/lib/day-pose-guide';
+import {
+  countPoseGuidePeople,
+  parseIntimateLayout,
+  resolveSoloMasturbationPoseKind,
+  type ScenePoseSpec,
+} from '@/lib/day-pose-guide';
 import {
   POSE_GUIDE_ACTION_LOCK,
   isOpenPoseStyle,
@@ -20,15 +25,15 @@ import {
 } from '@/lib/render-realism';
 import { buildSinglePersonUserDirective } from '@/lib/single-person';
 import {
-  DAY_SLOT_SPORT_BEAT_PRESETS,
-  DAY_SLOT_SPORT_SETTING_PRESETS,
+  daySportBeatPresetsForSlot,
+  daySportSettingPresetsForSlot,
   buildDaySportPromptLocks,
   pickDaySportScenePair,
   DAY_SPORT_STALE_SETTING_RE,
 } from '@/lib/day-sport';
 import {
-  DAY_SLOT_VACATION_BEAT_PRESETS,
-  DAY_SLOT_VACATION_SETTING_PRESETS,
+  dayVacationBeatPresetsForSlot,
+  dayVacationSettingPresetsForSlot,
   buildDayVacationClothedFaceBreakLeads,
   buildDayVacationPromptLocks,
   pickDayVacationScenePair,
@@ -46,9 +51,9 @@ import {
 } from '@/lib/qwen-rapid-nude-edit';
 import { isDayVacationFaceRestorePrompt } from '@/lib/day-vacation-face-restore';
 
-import { DAY_PARTS, dayPartOf, type DayPart } from '@/lib/day-parts';
+import { DAY_PARTS, dayPartOf, isLateDaySlot, type DayPart } from '@/lib/day-parts';
 
-export { DAY_PARTS, dayPartOf, type DayPart };
+export { DAY_PARTS, dayPartOf, isLateDaySlot, type DayPart };
 
 /**
  * A slot on the Day board. Four-slot Days use the bare daypart ids; longer Days add a second
@@ -197,7 +202,7 @@ export function isDayIntimateSoloBeat(text: string): boolean {
 
 /** Intimate beat presets for a slot filtered by solo / duo / mixed mix. */
 export function intimateBeatsForMix(slotId: DaySlotId, mix: DayIntimateMix): string[] {
-  const pool = DAY_SLOT_INTIMATE_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
+  const pool = intimateBeatPresets(slotId);
   if (mix === 'mixed') {
     return pool;
   }
@@ -247,7 +252,7 @@ export function isDayRaunchySoloBeat(text: string): boolean {
 
 /** Filter raunchy comedy presets by Solo / Duo / Mixed (same chips as Intimate). */
 export function raunchyBeatsForMix(slotId: DaySlotId, mix: DayIntimateMix): string[] {
-  const pool = DAY_SLOT_RAUNCHY_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
+  const pool = raunchyBeatPresets(slotId);
   if (mix === 'mixed') {
     return pool;
   }
@@ -1163,6 +1168,305 @@ export const DAY_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
   ],
 };
 
+/**
+ * Everyday activities for the extra slots on 6- and 8-still Days (`morning-2` = Late morning…).
+ * Keyed by daypart but written for the later hours, so a long Day moves on instead of repeating
+ * that daypart's pool; each spans the same posture classes as {@link DAY_SLOT_BEAT_PRESETS}.
+ */
+export const DAY_LATE_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
+  morning: [
+    'lying on the park lawn with sunglasses on, one knee up, phone held overhead',
+    'sitting at a brunch table tearing a croissant, elbows on the table',
+    'perched on a counter stool at a juice bar, one foot on the rung',
+    'crouching at a farmers market crate picking out peaches',
+    'kneeling to clip a leash on a friend’s dog outside the bakery',
+    'leaning on a bookstore shelf flipping through a paperback',
+    'climbing the subway stairs with a pastry bag, one hand on the rail',
+    'walking out of the laundromat mid-stride with a folded stack on one hip',
+    'carrying a potted plant home mid-stride, arms wrapped around the pot',
+    'waving down a friend across the plaza, other hand holding an iced coffee',
+    'tucking hair behind an ear while trying on sunglasses at a street stall mirror',
+    'standing in line at the post office, parcel under one arm, weight on one hip',
+  ],
+  afternoon: [
+    'lying on a picnic blanket in golden light, propped on both elbows',
+    'sitting on the steps of a museum with a paper cone of fries',
+    'curled in a library window seat with knees drawn up and a book',
+    'crouching to pet a cat outside a corner shop, one knee near the pavement',
+    'kneeling on a gallery bench to photograph a painting',
+    'leaning on a bridge railing watching boats pass, chin on one hand',
+    'walking home through long golden-hour shadows, shopping bag swinging',
+    'riding a city bike with one hand on the bars, hair lifting',
+    'climbing a hillside staircase toward the view, one hand on the wall',
+    'stretching both arms overhead on a rooftop as the light turns gold',
+    'waving at a friend down the street, other hand shading her eyes from the low sun',
+    'hands on hips outside the florist, a bunch of flowers tucked under one arm',
+  ],
+  evening: [
+    'lying on the couch with feet up on the armrest, takeout container on the chest',
+    'sitting at a dinner table twirling pasta, one elbow on the table',
+    'perched on a bar stool with a cocktail, legs crossed at the ankle',
+    'crouching to pick a record from a crate in a vinyl shop',
+    'kneeling on the floor sorting a stack of board games',
+    'leaning against a brick wall outside a restaurant waiting for a table',
+    'walking a lamplit street after dinner mid-stride, coat over one arm',
+    'climbing the stairs up to a cinema with a bucket of popcorn',
+    'dancing alone in the kitchen with a wooden spoon as a microphone',
+    'raising a glass for a toast at an outdoor table, other hand on the chair back',
+    'checking a reflection in a shop window while fixing a collar',
+    'standing at a food truck window counting coins into one palm',
+  ],
+  night: [
+    'lying on the living-room floor with headphones on, eyes closed',
+    'sitting cross-legged on the bed with a laptop glowing, mug beside the knee',
+    'perched on a kitchen counter eating cereal straight from the box',
+    'crouching at the open fridge in the blue light, one hand on the door',
+    'kneeling at the window to look at the rain, forehead near the glass',
+    'leaning in a doorway in pajamas, brushing teeth',
+    'walking home from a late show mid-stride, hands in coat pockets',
+    'climbing the stairs to a rooftop in the dark, phone torch lighting the steps',
+    'stretching arms overhead at the end of a long day, eyes closed',
+    'pointing up at the stars from the balcony, other hand on the rail',
+    'hugging a pillow while standing by the window, looking out at the city',
+    'standing at the bathroom mirror taking off earrings, head tilted',
+  ],
+};
+
+/** Late-hour settings to match {@link DAY_LATE_SLOT_BEAT_PRESETS}. */
+export const DAY_LATE_SLOT_SETTING_PRESETS: Record<DayPart, string[]> = {
+  morning: [
+    'bright brunch café with marble tables and hanging plants',
+    'weekend farmers market with striped awnings and fruit crates',
+    'leafy city park lawn in late-morning sun',
+    'independent bookstore with tall shelves and a rolling ladder',
+    'busy plaza with a fountain and café umbrellas',
+    'corner laundromat with round windows and a bench along the wall',
+    'subway exit stairs into a sunlit street',
+  ],
+  afternoon: [
+    'art museum steps with long golden-hour shadows',
+    'riverside promenade with a stone bridge and passing boats',
+    'quiet library reading room with tall windows',
+    'hillside staircase street with pastel houses',
+    'rooftop terrace as the afternoon light turns gold',
+    'neighborhood florist with buckets of cut flowers on the sidewalk',
+    'tree-lined bike lane in late-afternoon sun',
+  ],
+  evening: [
+    'candlelit trattoria with checkered tablecloths',
+    'cocktail bar with a long brass counter and warm pendant lights',
+    'lamplit street of restaurants just after dinner',
+    'record shop with crates of vinyl and a listening booth',
+    'outdoor food truck lot with string lights',
+    'cozy apartment kitchen with dinner dishes on the counter',
+    'old cinema lobby with a popcorn counter',
+  ],
+  night: [
+    'dim apartment living room lit by a single lamp and the TV',
+    'bedroom at midnight with the laptop glow and rain on the window',
+    'kitchen lit only by the open fridge',
+    'quiet city street after a late show, wet pavement and neon reflections',
+    'rooftop in the dark with the city skyline glowing',
+    'bathroom mirror with warm vanity lights late at night',
+    'balcony at midnight overlooking city lights',
+  ],
+};
+
+/** Late-hour companion beats (Duo · companions on). */
+export const DAY_LATE_SLOT_COMPANION_BEAT_PRESETS: Record<DayPart, string[]> = {
+  morning: [
+    'seated across a brunch table from a friend, both mid-laugh, different faces',
+    'selfie with a friend at the farmers market, fruit bags in hand',
+  ],
+  afternoon: [
+    'walking a friend’s bike alongside them on the promenade, mid-conversation',
+    'sitting on a picnic blanket with a friend in golden light, heads close',
+  ],
+  evening: [
+    'seated across a candlelit dinner table from a friend, clinking glasses',
+    'arm-in-arm with a friend walking out of the restaurant',
+  ],
+  night: [
+    'sitting on the rooftop ledge with a friend sharing earbuds, city lights behind',
+    'selfie with a friend in the late-night diner booth',
+  ],
+};
+
+/**
+ * Heat pools for the extra slots on long Days (Late morning / afternoon / evening / night),
+ * written for the later hours and held to the same rules as the daypart pools: Suggestive keeps
+ * clothes on, Intimate / Raunchy split cleanly into solo ("Cast alone") and duo (both adults
+ * fully visible) for the Solo / Duo chips, and every beat names a layout the pose guide draws.
+ */
+export const DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = {
+  morning: [
+    'lounging late in bed in an oversized shirt and panties — lying on her side propped on one elbow, bare legs tangled in the sheet, sleepy half-smile over one shoulder, clothes stay on',
+    'perched on the kitchen counter in a silk slip eating fruit — ankles crossed, one strap slipping, leaning back on both hands, charged look, clothes stay on',
+    'kneeling upright on the bed buttoning a shirt over lingerie — back arched, shirt half open, glancing up through her lashes, never square-on to the lens',
+    'leaning in the bathroom doorway in a towel wrap and lingerie, hip against the frame, one hand in wet hair, looking back over a shoulder',
+  ],
+  afternoon: [
+    'reclining on a daybed in a sundress during a lazy siesta — lying back, one knee raised, hem riding up, eyes half-lidded, clothes stay on',
+    'sitting on the floor against the bed in lingerie under an open robe — knees up, head tipped back on the mattress, warm golden light',
+    'leaning on a sunlit window frame in a slip dress, back arched, one strap off the shoulder, looking back over a shoulder',
+    'perched on the arm of a reading chair in a short robe, legs crossed high, leaning forward with charged eye contact, never a stiff standing catalog pose',
+  ],
+  evening: [
+    'kicking off heels on the bed after dinner — lying back across the mattress in a cocktail dress, one knee raised, arms overhead, clothes stay on',
+    'leaning against the hallway wall unzipping a dress halfway — back to the wall, hips cocked, looking back over a shoulder, lingerie straps showing, clothes stay on',
+    'sitting on the edge of the bathtub in lingerie and an open satin robe, one leg extended, removing an earring, charged glance',
+    'kneeling upright on the rug in a slip dress pouring two glasses of wine, back arched, looking up with a slow smile',
+  ],
+  night: [
+    'lying on her stomach across the bed in a silk camisole and shorts, ankles crossed in the air, chin on her hands, phone glow on her face, clothes stay on',
+    'leaning on the dark windowsill at 3 a.m. in an oversized shirt, one knee on the sill, city glow on bare legs, looking back over a shoulder',
+    'sitting cross-legged on the rumpled bed in lingerie hugging a pillow, hair messy, sleepy charged look, clothes stay on',
+    'stretching in the doorway in a thin sleep slip — one arm overhead against the frame, hip cocked, bare legs, eyes half-lidded',
+  ],
+};
+
+export const DAY_LATE_SLOT_INTIMATE_BEAT_PRESETS: Record<DayPart, string[]> = {
+  morning: [
+    'lazy late-morning spooning sex in rumpled sheets with a partner behind, sun through the blinds',
+    'straddling a partner on the unmade bed at late morning, her hands on his chest — both adults fully visible',
+    'bent over the bed edge mid-sex with a partner behind, breakfast tray knocked aside',
+    'solo masturbation lying in late-morning sheets, one knee raised, hand between her thighs, eyes closed — Cast alone',
+    'alone sitting on the edge of the bathtub masturbating, one foot on the rim, head tipped back — never invent a partner',
+    'going down on her in the late-morning sheets, partner between her thighs — both adults fully visible',
+    'sitting on his lap facing him in the armchair at late morning mid-sex — both adults fully visible',
+  ],
+  afternoon: [
+    'missionary on the bed during a golden-hour siesta, light striping across both bodies',
+    'reverse cowgirl on the couch in warm late-afternoon light, partner lying back — both adults fully visible',
+    'pressed against the bedroom wall mid-sex with a partner behind, curtains glowing gold',
+    'solo masturbation reclining on a daybed in golden light, clothes half off, hand between her thighs — Cast alone',
+    'alone kneeling upright on the bed masturbating in late-afternoon light, head tipped back — one adult only fully nude',
+    'sixty-nine on the daybed during a golden-hour siesta — both adults fully visible',
+    'lying face-down on the sheets mid-sex with a partner stretched along her back, golden light — both adults fully visible',
+  ],
+  evening: [
+    'straddling a partner on the couch after dinner, dress pushed up, both adults fully visible mid-kiss',
+    'bent over the hotel desk mid-sex with a partner behind, cocktail dress around her waist',
+    'missionary on the hotel bed after a night out, heels still on, both adults fully visible',
+    'solo masturbation lying across the bed in lingerie after dinner, one hand between her thighs — Cast alone',
+    'alone in the bath masturbating by candlelight, one knee out of the water, head tipped back — never invent a partner',
+    'lifted onto a partner mid-sex just inside the hotel room, legs wrapped around his waist — both adults fully visible',
+    'she kneels between his legs going down on him after dinner — oral with a partner, both adults fully visible',
+  ],
+  night: [
+    'slow spooning sex at 3 a.m. in the dark with a partner behind, city glow through closed curtains',
+    'straddling a partner on the bed in the middle of the night, lamp low, both adults fully visible',
+    'against the dark bedroom wall mid-sex with a partner behind, one leg lifted',
+    'solo masturbation lying in the dark with the covers kicked off, knees apart, hand between her thighs — Cast alone',
+    'alone on her side masturbating at 3 a.m., one knee drawn up, face pressed into the pillow — never invent a partner',
+    'scissoring with a partner in the dark at 3 a.m., legs interlocked — both adults fully visible',
+    'kneeling face to face on the bed with a partner mid-sex in the middle of the night — both adults fully visible',
+  ],
+};
+
+export const DAY_LATE_SLOT_RAUNCHY_BEAT_PRESETS: Record<DayPart, string[]> = {
+  morning: [
+    'solo naked lying on her back on the unmade bed fingering herself while brunch goes cold on the tray — knees spread, both hands between her thighs, laughing mid-act, Cast alone fully nude',
+    'alone naked face-down on a pile of clean laundry grinding into the towels, one hand between her thighs — laughing, one adult only',
+    'partner mid-sex bending her over the bed as the delivery buzzer goes off — both adults fully visible, laughing mid-thrust',
+    'straddling a partner on the couch mid-sex while the kettle screams — two adults mid-contact, both fully visible',
+    'she goes down on her partner on the couch as the brunch timer shrieks — oral, both adults fully visible, laughing',
+    'mating press on the unmade bed with a partner as the neighbor’s lawnmower starts — both adults fully visible',
+  ],
+  afternoon: [
+    'solo naked siesta on her side on the couch turning into fingering — top knee drawn up, one hand between her thighs, Cast alone fully nude, eyes half-lidded',
+    'alone naked kneeling upright on the bed in golden light riding her own hand, hips grinding, head tipped back — Cast alone',
+    'partner mid-sex against the wardrobe when the door swings open and dumps clothes on both of them — two heads in frame',
+    'cowgirl on the bed mid-sex in golden light with a partner when the blinds snap up — both adults fully visible',
+    'sixty-nine on the daybed with a partner when the ceiling fan wobbles loose — both adults fully visible',
+    'sitting on his lap facing him mid-sex on the rocking chair when it tips over — partner and Cast both fully visible',
+  ],
+  evening: [
+    'solo naked on all fours on the bed after a night out, heels still on, looking back over a shoulder, one hand reaching between her thighs — Cast alone fully nude',
+    'alone naked in the bath fingering herself as bubbles overflow onto the floor — one knee hooked on the rim, laughing, one adult only',
+    'partner mid-sex over the arm of the couch as takeout spills across the floor — doggy-style, both adults fully visible',
+    'pressed against the front door mid-sex with a partner just inside the apartment — keys still in hand, two adults mid-contact',
+    'face-sitting a partner on the bed after a night out, heels still on — both adults fully visible',
+    'picked up and fucked by a partner in the hallway as her shopping bags spill — legs wrapped around him, both adults fully visible',
+  ],
+  night: [
+    'solo naked at 3 a.m. standing at the open fridge fingering herself in its light, one foot up on the crisper drawer — Cast alone fully nude, laughing',
+    'alone naked on her back in the dark with ankles near her shoulders masturbating — both hands between her thighs, Cast alone, mouth open',
+    'partner mid-sex on the bed when the smoke alarm chirps at 3 a.m. — missionary, both adults fully visible, laughing',
+    'straddling a partner on the bedroom floor mid-sex after falling off the bed — two adults mid-contact, both fully visible',
+    'lying face-down across the bed mid-sex with a partner stretched along her back when the bed slats give out at 3 a.m. — both adults fully visible',
+    'she goes down on her partner in the glow of the open fridge at 3 a.m. — oral, both adults fully visible',
+  ],
+};
+
+/** Late-hour indoor heat settings (opaque walls, curtains closed — same rules as the daypart pool). */
+export const DAY_LATE_SLOT_HEAT_SETTING_PRESETS: Record<DayPart, string[]> = {
+  morning: [
+    'bright bedroom at late morning with rumpled sheets and blinds half-drawn — opaque walls only',
+    'hotel room at late morning with a room-service tray on the bed and curtains drawn — lamp only',
+  ],
+  afternoon: [
+    'bedroom at golden hour with warm light glowing through closed curtains — opaque walls only',
+    'quiet apartment living room with a daybed and blinds drawn against the late sun',
+  ],
+  evening: [
+    'hotel suite after dinner with warm lamp light and drawn curtains — opaque walls only',
+    'bedroom with a discarded dress on the chair and warm lamp light — curtains closed',
+  ],
+  night: [
+    'dark bedroom at 3 a.m. lit by a bedside lamp — curtains closed, opaque walls only',
+    'apartment at midnight lit by the open fridge and a single lamp — blinds closed',
+  ],
+};
+
+function lateOr(
+  late: Record<DayPart, string[]>,
+  base: Record<DayPart, string[]>,
+  slotId: DaySlotId | string
+): string[] {
+  const part = dayPartOf(slotId);
+  const pool = isLateDaySlot(slotId) ? late[part] : undefined;
+  return pool && pool.length > 0 ? pool : (base[part] ?? []);
+}
+
+function suggestiveBeatPresets(slotId: DaySlotId | string): string[] {
+  return lateOr(DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS, DAY_SLOT_SUGGESTIVE_BEAT_PRESETS, slotId);
+}
+
+function intimateBeatPresets(slotId: DaySlotId | string): string[] {
+  return lateOr(DAY_LATE_SLOT_INTIMATE_BEAT_PRESETS, DAY_SLOT_INTIMATE_BEAT_PRESETS, slotId);
+}
+
+function raunchyBeatPresets(slotId: DaySlotId | string): string[] {
+  return lateOr(DAY_LATE_SLOT_RAUNCHY_BEAT_PRESETS, DAY_SLOT_RAUNCHY_BEAT_PRESETS, slotId);
+}
+
+function heatSettingPresets(slotId: DaySlotId | string): string[] {
+  return lateOr(DAY_LATE_SLOT_HEAT_SETTING_PRESETS, DAY_SLOT_HEAT_SETTING_PRESETS, slotId);
+}
+
+/** Everyday pools for a slot: late slots (`morning-2`…) get their own later-hours activities. */
+function everydayBeatPresets(slotId: DaySlotId | string): string[] {
+  const part = dayPartOf(slotId);
+  return isLateDaySlot(slotId)
+    ? (DAY_LATE_SLOT_BEAT_PRESETS[part] ?? DAY_SLOT_BEAT_PRESETS[part] ?? [])
+    : (DAY_SLOT_BEAT_PRESETS[part] ?? []);
+}
+
+function everydayCompanionBeatPresets(slotId: DaySlotId | string): string[] {
+  const part = dayPartOf(slotId);
+  return isLateDaySlot(slotId)
+    ? (DAY_LATE_SLOT_COMPANION_BEAT_PRESETS[part] ?? DAY_SLOT_COMPANION_BEAT_PRESETS[part] ?? [])
+    : (DAY_SLOT_COMPANION_BEAT_PRESETS[part] ?? []);
+}
+
+function everydaySettingPresets(slotId: DaySlotId | string): string[] {
+  const part = dayPartOf(slotId);
+  return isLateDaySlot(slotId)
+    ? (DAY_LATE_SLOT_SETTING_PRESETS[part] ?? DAY_SLOT_SETTING_PRESETS[part] ?? [])
+    : (DAY_SLOT_SETTING_PRESETS[part] ?? []);
+}
+
 /** Suggestive beats — clothed heat / innuendo (no named sex). */
 export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = {
   morning: [
@@ -1213,6 +1517,8 @@ export const DAY_SLOT_INTIMATE_BEAT_PRESETS: Record<DayPart, string[]> = {
     'alone on her back in rumpled morning sheets, knees pulled up and spread, both hands between her thighs, head tipped back — never invent a partner',
     'solo kneeling upright on the bed masturbating at sunrise — hand on her vulva, chest forward, head tipped back eyes half-lidded not at the lens — one adult only fully nude',
     'alone standing in the shower masturbating under the spray, one foot on the ledge, fogged glass — Cast alone',
+    'going down on her at the edge of the bed in morning light, partner kneeling between her thighs — both adults fully visible',
+    'sitting on his lap facing him on a kitchen chair mid-sex, arms around his neck — both adults fully visible',
   ],
   afternoon: [
     'missionary on a rumpled bed with afternoon light through blinds',
@@ -1223,6 +1529,8 @@ export const DAY_SLOT_INTIMATE_BEAT_PRESETS: Record<DayPart, string[]> = {
     'alone on all fours on the bed masturbating, hips high, looking back over her shoulder — afternoon light',
     'solo masturbation on her side on the couch, top knee raised, hand between her thighs — one adult only',
     'alone sitting on the windowsill masturbating fully nude, blinds half-drawn, thighs open, one hand on her vulva — never both hands flat on the sill, Cast alone',
+    'sixty-nine on the couch in afternoon light — both adults fully visible',
+    'lying face-down on the bed mid-sex with a partner stretched along her back, afternoon light through the blinds',
   ],
   evening: [
     'missionary on the couch at golden hour',
@@ -1233,6 +1541,8 @@ export const DAY_SLOT_INTIMATE_BEAT_PRESETS: Record<DayPart, string[]> = {
     'alone face-down on the bed masturbating, hips grinding into the mattress, fist in the sheets — warm lamp',
     'solo masturbation standing against the hotel wall at dusk, one knee bent, hand between her thighs — one adult only',
     'alone kneeling at the foot of the bed masturbating, back arched, looking up into the lamp — Cast alone',
+    'lifted onto a partner mid-sex in the hotel room, legs wrapped around his waist — both adults fully visible',
+    'reverse cowgirl on the hotel armchair with a partner seated beneath her hips — both adults fully visible',
   ],
   night: [
     'missionary under warm lamp light through the blinds',
@@ -1243,6 +1553,8 @@ export const DAY_SLOT_INTIMATE_BEAT_PRESETS: Record<DayPart, string[]> = {
     'solo kneeling on the sheets masturbating after dark, riding her own hand, soft lamp — one adult only',
     'solo masturbation on her side under a lamp, bottom leg straight, top knee high, biting a pillow — empty sheets',
     'alone sitting astride a pillow on the bed masturbating after dark, grinding, head tipped back — Cast alone, never invent a partner',
+    'scissoring on the bed in the lamp glow, legs interlocked with a partner — both adults fully visible',
+    'kneeling face to face on the bed mid-sex with a partner, bodies pressed together, lamp low',
   ],
 };
 
@@ -1262,6 +1574,8 @@ export const DAY_SLOT_RAUNCHY_BEAT_PRESETS: Record<DayPart, string[]> = {
     'bent over searching a lower cabinet when a partner pulls her shorts down into slapstick doggy-style — both adults mid-sex fully visible',
     'bent over the kitchen counter mid-slapstick sex with a partner when the coffee cup tips — two adults mid-contact',
     'pressed against the fridge mid-sex with a partner when the ice maker dumps cubes on both of them — two heads in frame',
+    'she kneels on the kitchen floor giving her partner oral sex when the smoke alarm goes off — both adults fully visible, laughing',
+    'sitting on his face on the bed as the alarm clock blares — face-sitting a partner, both adults fully visible',
   ],
   afternoon: [
     'solo on the couch naked with one ankle on the backrest — thighs wide, both hands between her thighs rubbing her clit hard, lamp-only comedy, Cast alone fully nude, eyes not at the lens',
@@ -1273,6 +1587,8 @@ export const DAY_SLOT_RAUNCHY_BEAT_PRESETS: Record<DayPart, string[]> = {
     'bent over a desk mid-sex with a partner gripping her hips when the chair rolls away — both scramble laughing, two adults in frame',
     'partner yanking her pants down mid-argument into slapstick doggy-style — both adults mid-sex fully visible',
     'against the wall mid-sex with a partner when the lamp tip-over startles them mid-thrust — both freeze laughing, two heads in frame',
+    'mating press on the couch with a partner when the doorbell rings — both adults fully visible, laughing',
+    'picked up and fucked by a partner in the laundry room as the dryer buzzes — legs wrapped around him, both adults fully visible',
   ],
   evening: [
     'solo naked on the windowsill at dusk — heels planted, knees out, both hands between her thighs with two fingers deep in her vulva, head tipped back eyes half-lidded not at the lens, Cast alone fully nude',
@@ -1283,6 +1599,8 @@ export const DAY_SLOT_RAUNCHY_BEAT_PRESETS: Record<DayPart, string[]> = {
     'missionary on a partner when the couch cushion slides and they tumble mid-sex — both adults fully visible mid-contact',
     'oral sex: partner kneeling between her thighs mid-gag, mouth on her vulva, both hands on her thighs — lamp tip-over comedy, never hand in own mouth, never Cast alone',
     'pressed against a hotel window mid-sex with a partner when curtains stick open — both adults mid-contact comedy',
+    'sixty-nine on the living-room rug with a partner when the pizza arrives — both adults fully visible',
+    'sitting on his lap facing him mid-sex on the office chair when it tips back — partner and Cast both fully visible',
   ],
   night: [
     'solo naked tangled in sheets when the phone light turns on — knees open wide, both hands between her thighs with fingers sliding in and out of her vulva, Cast alone fully nude, eyes half-lidded on her hands',
@@ -1294,6 +1612,8 @@ export const DAY_SLOT_RAUNCHY_BEAT_PRESETS: Record<DayPart, string[]> = {
     'missionary under neon when the bed frame collapses mid-thrust — slapstick pile-up of two adults, both heads in frame',
     'bent over the foot of the bed from behind when a partner slips and face-plants laughing — partner still in frame mid-doggy',
     'against the bedroom wall mid-sex with a partner when the smoke alarm goes off mid-climax comedy — two adults mid-contact',
+    'lying face-down across the bed mid-sex with a partner stretched along her back when the bed frame collapses — both adults fully visible',
+    'scissoring with a partner on the couch when the TV turns on at full volume — both adults fully visible',
   ],
 };
 
@@ -1376,8 +1696,7 @@ export function resolveDayAdultIndoorSetting(input: {
   slotId?: DaySlotId | null;
 }): string {
   const slotId = input.slotId ?? 'night';
-  const heat =
-    DAY_SLOT_HEAT_SETTING_PRESETS[dayPartOf(slotId)] ?? DAY_SLOT_HEAT_SETTING_PRESETS.night!;
+  const heat = heatSettingPresets(slotId);
   const fallback = heat[0] ?? 'dark bedroom with a single warm lamp — bare nightstand only';
   const raw = input.setting?.trim() || '';
   if (!raw) {
@@ -1421,15 +1740,32 @@ function pickUnusedPreset(
  * Like {@link pickUnusedPreset}, but also avoids stances already used by earlier slots — four
  * distinct beat strings that are all "standing by a window" still read as one pose.
  */
+/**
+ * Pose class of a heat-mood beat for spreading a Day: the sex layout the pose guide will draw
+ * for partner beats (`bent`, `oral`, `lap`…), `solo:<kind>` for solo beats (`solo:on_back`…),
+ * and the everyday posture class for Suggestive (clothed) beats.
+ */
+export function dayHeatPoseClass(
+  beat: string,
+  dayMood: DayMood | string | null | undefined
+): string {
+  if (isDayAdultMood(normalizeDayMood(dayMood))) {
+    const layout = parseIntimateLayout(beat) ?? 'generic';
+    return layout === 'solo' ? `solo:${resolveSoloMasturbationPoseKind(beat)}` : layout;
+  }
+  return dayEverydayPoseClass(beat);
+}
+
 function pickUnusedBeatWithFreshPose(
   pool: string[],
   usedBeats: Set<string>,
   usedPoseClasses: Set<string>,
-  random: () => number
+  random: () => number,
+  classify: (beat: string) => string = dayEverydayPoseClass
 ): string | undefined {
   const unused = pool.filter(entry => !usedBeats.has(entry.trim().toLowerCase()));
   const pickFrom = unused.length > 0 ? unused : pool;
-  const fresh = pickFrom.filter(entry => !usedPoseClasses.has(dayEverydayPoseClass(entry)));
+  const fresh = pickFrom.filter(entry => !usedPoseClasses.has(classify(entry)));
   const finalPool = fresh.length > 0 ? fresh : pickFrom;
   if (finalPool.length === 0) {
     return undefined;
@@ -1443,19 +1779,17 @@ function beatPoolForDayMood(
   allowCompanions: boolean,
   intimateMix: DayIntimateMix = 'mixed'
 ): string[] {
-  const solo = DAY_SLOT_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
-  const companion = allowCompanions
-    ? (DAY_SLOT_COMPANION_BEAT_PRESETS[dayPartOf(slotId)] ?? [])
-    : [];
+  const solo = everydayBeatPresets(slotId);
+  const companion = allowCompanions ? everydayCompanionBeatPresets(slotId) : [];
   if (mood === 'suggestive') {
     // Heat-only — everyday coffee/walk beats flatten suggestive into polite portraits.
-    return DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
+    return suggestiveBeatPresets(slotId);
   }
   if (mood === 'sport') {
-    return DAY_SLOT_SPORT_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
+    return daySportBeatPresetsForSlot(slotId);
   }
   if (mood === 'vacation') {
-    return DAY_SLOT_VACATION_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
+    return dayVacationBeatPresetsForSlot(slotId);
   }
   if (mood === 'intimate') {
     const heat = intimateBeatsForMix(slotId, intimateMix);
@@ -1481,13 +1815,13 @@ function heatBeatPoolForDayMood(
   intimateMix: DayIntimateMix
 ): string[] {
   if (mood === 'suggestive') {
-    return DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
+    return suggestiveBeatPresets(slotId);
   }
   if (mood === 'sport') {
-    return DAY_SLOT_SPORT_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
+    return daySportBeatPresetsForSlot(slotId);
   }
   if (mood === 'vacation') {
-    return DAY_SLOT_VACATION_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
+    return dayVacationBeatPresetsForSlot(slotId);
   }
   if (mood === 'intimate') {
     return intimateBeatsForMix(slotId, intimateMix);
@@ -1539,10 +1873,8 @@ function pickDayBeatPools(
   if (isDayAdultMood(dayMood) && intimateMix !== 'mixed' && heatPool.length > 0) {
     return { primary: heatPool, fallback: heatPool };
   }
-  const companionPool = allowCompanions
-    ? (DAY_SLOT_COMPANION_BEAT_PRESETS[dayPartOf(slotId)] ?? [])
-    : [];
-  const soloPool = DAY_SLOT_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
+  const companionPool = allowCompanions ? everydayCompanionBeatPresets(slotId) : [];
+  const soloPool = everydayBeatPresets(slotId);
   const preferHeat = heatPool.length > 0 && random() < preferHeatChance(dayMood);
   const preferCompanion =
     !preferHeat && allowCompanions && companionPool.length > 0 && random() < 0.4;
@@ -1574,19 +1906,19 @@ function settingPoolForDayMood(
   mood: DayMood,
   intimateMix: DayIntimateMix = 'mixed'
 ): string[] {
-  const base = DAY_SLOT_SETTING_PRESETS[dayPartOf(slotId)] ?? [];
+  const base = everydaySettingPresets(slotId);
   if (mood === 'everyday') {
     return base;
   }
   if (mood === 'sport') {
-    const sportSettings = DAY_SLOT_SPORT_SETTING_PRESETS[dayPartOf(slotId)] ?? [];
+    const sportSettings = daySportSettingPresetsForSlot(slotId);
     return sportSettings.length > 0 ? sportSettings : base;
   }
   if (mood === 'vacation') {
-    const vacationSettings = DAY_SLOT_VACATION_SETTING_PRESETS[dayPartOf(slotId)] ?? [];
+    const vacationSettings = dayVacationSettingPresetsForSlot(slotId);
     return vacationSettings.length > 0 ? vacationSettings : base;
   }
-  const heat = DAY_SLOT_HEAT_SETTING_PRESETS[dayPartOf(slotId)] ?? [];
+  const heat = heatSettingPresets(slotId);
   // Intimate/raunchy: stay in bedroom/hotel heat — public piers fight oral/sex beats.
   if (isDayAdultMood(mood) && heat.length > 0) {
     // Duo: drop kitchen/counter still-life settings that win over the sex act.
@@ -1636,6 +1968,8 @@ export function diversifyDaySlotScenes(
   const usedBeats = new Set<string>();
   const usedVacationPoseClasses = new Set<string>();
   const usedEverydayPoseClasses = new Set<string>();
+  const usedHeatPoseClasses = new Set<string>();
+  const heatClass = (beat: string) => dayHeatPoseClass(beat, dayMood);
   let changed = false;
 
   const normalized = normalizeDaySlots(slots);
@@ -1651,6 +1985,8 @@ export function diversifyDaySlotScenes(
         usedVacationPoseClasses.add(vacationPoseClassFromBeat(beat));
       } else if (!isDayHeatMood(dayMood)) {
         usedEverydayPoseClasses.add(dayEverydayPoseClass(beat));
+      } else {
+        usedHeatPoseClasses.add(heatClass(beat));
       }
     }
   }
@@ -1751,11 +2087,11 @@ export function diversifyDaySlotScenes(
         allowCompanions,
         random
       );
-      // Heat moods own their own stance spreading; everyday used to dedupe text only, which is
-      // how four different beats could all come back as a standing plate pose.
+      // Spread poses across the Day: everyday by posture class, heat moods by the layout the
+      // pose guide draws — text-only dedupe let four different beats all be "bent over".
       const picked = isDayHeatMood(dayMood)
-        ? pickUnusedPreset(primary, usedBeats, random) ||
-          pickUnusedPreset(fallback, usedBeats, random)
+        ? pickUnusedBeatWithFreshPose(primary, usedBeats, usedHeatPoseClasses, random, heatClass) ||
+          pickUnusedBeatWithFreshPose(fallback, usedBeats, usedHeatPoseClasses, random, heatClass)
         : pickUnusedBeatWithFreshPose(primary, usedBeats, usedEverydayPoseClasses, random) ||
           pickUnusedBeatWithFreshPose(fallback, usedBeats, usedEverydayPoseClasses, random);
       if (picked && picked !== sceneHints) {
@@ -1767,6 +2103,8 @@ export function diversifyDaySlotScenes(
       usedBeats.add(sceneHints.toLowerCase());
       if (!isDayHeatMood(dayMood)) {
         usedEverydayPoseClasses.add(dayEverydayPoseClass(sceneHints));
+      } else {
+        usedHeatPoseClasses.add(heatClass(sceneHints));
       }
     }
 
@@ -1814,11 +2152,11 @@ export function daySlotMatchesAdultMix(input: {
     }
     // Leftover Vacation boards (pier/scooter/hotel terrace) survive on shared pose
     // words like perched/reclining — force-reroll catalog travel slots.
-    const vacationSettings = DAY_SLOT_VACATION_SETTING_PRESETS[dayPartOf(input.slot.id)] ?? [];
+    const vacationSettings = dayVacationSettingPresetsForSlot(input.slot.id);
     if (vacationSettings.includes(setting)) {
       return false;
     }
-    const vacationBeats = DAY_SLOT_VACATION_BEAT_PRESETS[dayPartOf(input.slot.id)] ?? [];
+    const vacationBeats = dayVacationBeatPresetsForSlot(input.slot.id);
     if (vacationBeats.includes(beat)) {
       return false;
     }
@@ -1841,7 +2179,7 @@ export function daySlotMatchesAdultMix(input: {
     if (!beatOk) {
       return false;
     }
-    const sportSettings = DAY_SLOT_SPORT_SETTING_PRESETS[dayPartOf(input.slot.id)] ?? [];
+    const sportSettings = daySportSettingPresetsForSlot(input.slot.id);
     if (sportSettings.includes(setting)) {
       return true;
     }
@@ -1861,7 +2199,7 @@ export function daySlotMatchesAdultMix(input: {
     if (!beatOk) {
       return false;
     }
-    const vacationSettings = DAY_SLOT_VACATION_SETTING_PRESETS[dayPartOf(input.slot.id)] ?? [];
+    const vacationSettings = dayVacationSettingPresetsForSlot(input.slot.id);
     if (vacationSettings.includes(setting)) {
       return true;
     }

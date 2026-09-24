@@ -15,7 +15,7 @@ import {
   type CyclingDiscipline,
 } from '@/lib/athletic-sport-actions';
 import type { DaySlotId } from '@/lib/day-planner';
-import { dayPartOf, type DayPart } from '@/lib/day-parts';
+import { dayPartOf, isLateDaySlot, type DayPart } from '@/lib/day-parts';
 
 /** Sports that commonly run in each Day slot (training / match windows). */
 export const DAY_SLOT_SPORTS: Record<DayPart, readonly AthleticSport[]> = {
@@ -108,9 +108,26 @@ function buildSportBeatLine(pose: string, label: string): string {
   return `${pose} — ${label} athletic action in proper ${label} kit and sport footwear, mid-play on a ${label} venue, Cast alone, never a sundress or soft fashion pin-up, never invent a second sport`;
 }
 
+/**
+ * Sports for the extra slots on 6- and 8-still Days: late-morning club matches, golden-hour
+ * sessions, after-work league games, and late-night training.
+ */
+const DAY_LATE_SLOT_SPORTS: Record<DayPart, readonly AthleticSport[]> = {
+  morning: ['tennis', 'golf', 'swimming', 'climbing', 'volleyball', 'cycling'],
+  afternoon: ['soccer', 'baseball', 'volleyball', 'surfing', 'running', 'tennis'],
+  evening: ['boxing', 'martial_arts', 'basketball', 'fencing', 'climbing', 'hockey'],
+  night: ['running', 'boxing', 'swimming', 'basketball', 'martial_arts'],
+};
+
+/** Sports for a slot: late slots use {@link DAY_LATE_SLOT_SPORTS}. */
+function sportsFor(slotId: DaySlotId | string): readonly AthleticSport[] {
+  const part = dayPartOf(slotId);
+  return isLateDaySlot(slotId) ? DAY_LATE_SLOT_SPORTS[part] : (DAY_SLOT_SPORTS[part] ?? []);
+}
+
 /** Beat lines for Suggest / diversify — pose first, sport named for wardrobe lock. */
 export function buildDaySportBeatPresets(slotId: DaySlotId): string[] {
-  const sports = DAY_SLOT_SPORTS[dayPartOf(slotId)] ?? [];
+  const sports = sportsFor(slotId);
   const beats: string[] = [];
   for (const sport of sports) {
     if (sport === 'cycling') {
@@ -132,7 +149,7 @@ export function buildDaySportBeatPresets(slotId: DaySlotId): string[] {
 
 /** Venue / lighting lines matched to sports that fit this daypart. */
 export function buildDaySportSettingPresets(slotId: DaySlotId): string[] {
-  const sports = DAY_SLOT_SPORTS[dayPartOf(slotId)] ?? [];
+  const sports = sportsFor(slotId);
   const settings: string[] = [];
   const seen = new Set<string>();
   for (const sport of sports) {
@@ -164,6 +181,35 @@ export const DAY_SLOT_SPORT_SETTING_PRESETS: Record<DayPart, string[]> = {
   night: buildDaySportSettingPresets('night'),
 };
 
+const lateSportPools = new Map<string, { beats: string[]; settings: string[] }>();
+
+function lateSportPool(slotId: DaySlotId | string): { beats: string[]; settings: string[] } {
+  const key = String(slotId);
+  let pool = lateSportPools.get(key);
+  if (!pool) {
+    pool = {
+      beats: buildDaySportBeatPresets(slotId as DaySlotId),
+      settings: buildDaySportSettingPresets(slotId as DaySlotId),
+    };
+    lateSportPools.set(key, pool);
+  }
+  return pool;
+}
+
+/** Sport beats for a slot (late slots get the later-hours sports). */
+export function daySportBeatPresetsForSlot(slotId: DaySlotId | string): string[] {
+  return isLateDaySlot(slotId)
+    ? lateSportPool(slotId).beats
+    : (DAY_SLOT_SPORT_BEAT_PRESETS[dayPartOf(slotId)] ?? []);
+}
+
+/** Sport venues for a slot (late slots get the later-hours sports). */
+export function daySportSettingPresetsForSlot(slotId: DaySlotId | string): string[] {
+  return isLateDaySlot(slotId)
+    ? lateSportPool(slotId).settings
+    : (DAY_SLOT_SPORT_SETTING_PRESETS[dayPartOf(slotId)] ?? []);
+}
+
 /**
  * Fashion / domestic settings that must not survive under Sport.
  * Do not ban asphalt/road alone — running/cycling venues legitimately use those words.
@@ -185,7 +231,7 @@ export function pickDaySportScenePair(
   }
 ): { beat: string; setting: string; sport: AthleticSport } | null {
   const random = options?.random ?? Math.random;
-  const sports = [...(DAY_SLOT_SPORTS[dayPartOf(slotId)] ?? [])];
+  const sports = [...sportsFor(slotId)];
   if (sports.length === 0) {
     return null;
   }

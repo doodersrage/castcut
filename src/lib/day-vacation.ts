@@ -7,7 +7,7 @@
  */
 
 import type { DaySlotId } from '@/lib/day-planner';
-import { dayPartOf, type DayPart } from '@/lib/day-parts';
+import { dayPartOf, isLateDaySlot, type DayPart } from '@/lib/day-parts';
 
 export type DayVacationActivity =
   | 'hotel'
@@ -443,14 +443,116 @@ const VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
   ],
 };
 
+/**
+ * Scenes for the extra slots on 6- and 8-still Days (Late morning / afternoon / evening / night):
+ * the later-hours version of each daypart, so a long vacation Day keeps moving.
+ */
+const LATE_VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
+  morning: [
+    {
+      activity: 'cafe',
+      beat: 'SEATED at a harbor brunch table — hips on the chair, knees crossed, one hand lifting a mimosa, sunglasses on, laughing off-frame — never standing beside the table',
+      setting: 'harbor-side brunch terrace with striped umbrellas and boats bobbing behind',
+    },
+    {
+      activity: 'market',
+      beat: 'MID-STRIDE through a flower market with a paper-wrapped bouquet — WALKING one foot clearly ahead, sundress swinging, glancing at the stalls — never both feet planted',
+      setting: 'open-air flower market with buckets of blooms and hanging baskets',
+    },
+    {
+      activity: 'pool',
+      beat: 'PERCHED on the pool edge with feet in the water — hips on the tiles, hands braced behind, one-piece swimsuit, face tipped to the late-morning sun',
+      setting: 'resort pool edge in bright late-morning sun with turquoise water',
+    },
+    {
+      activity: 'city',
+      beat: 'CLIMBING old stone steps to a hilltop viewpoint — one foot on the next step, hand on the wall, tote on the shoulder, half-turned back toward the camera',
+      setting: 'whitewashed stairway street climbing toward a hilltop view',
+    },
+  ],
+  afternoon: [
+    {
+      activity: 'beach',
+      beat: 'RECLINING on a beach towel in late-afternoon light — body lying flat, propped on one elbow, one knee raised, swimsuit, straw hat tipped back — never standing beside the towel',
+      setting: 'golden late-afternoon beach with long shadows and a striped towel',
+    },
+    {
+      activity: 'boat',
+      beat: 'SEATED on the bow of a small boat — hips on the deck, knees drawn up, one hand holding the rail, hair blown back by the breeze',
+      setting: 'wooden day boat cutting through blue water toward a rocky coast',
+    },
+    {
+      activity: 'city',
+      beat: 'WAVING from a café-lined square — one arm raised high overhead, weight shifted onto one leg, shopping bag in the other hand',
+      setting: 'sunny old-town square with café tables and a fountain in late light',
+    },
+    {
+      activity: 'spa',
+      beat: 'RELAXING in a robe on a garden daybed with eyes closed — cucumber water on the side table, one knee up, late sun through the leaves',
+      setting: 'resort spa garden with daybeds under palms in late-afternoon light',
+    },
+  ],
+  evening: [
+    {
+      activity: 'rooftop',
+      beat: 'DANCING on a rooftop bar terrace at dusk — both arms raised overhead, one knee lifted mid-step, dress swinging, city lights coming on behind',
+      setting: 'rooftop bar terrace at dusk with string lights and a glowing skyline',
+    },
+    {
+      activity: 'pier',
+      beat: 'MID-STRIDE along a lantern-lit pier after dinner — WALKING one foot clearly ahead, shawl over one shoulder, glancing out at the water — never both feet planted',
+      setting: 'wooden pier at blue hour with lanterns and reflections on the water',
+    },
+    {
+      activity: 'cafe',
+      beat: 'SEATED at a candlelit seafood dinner — hips on the chair, one elbow on the table, twirling a glass of white wine, leaning toward the candle',
+      setting: 'candlelit waterfront restaurant terrace with the harbor behind',
+    },
+    {
+      activity: 'boat',
+      beat: 'PERCHED on the rail of a sunset cruise deck — hips on the rail seat, legs crossed, hair lifting in the breeze, last light on the water',
+      setting: 'sunset cruise deck with orange sky and a distant coastline',
+    },
+  ],
+  night: [
+    {
+      activity: 'city',
+      beat: 'MID-STRIDE through a glowing night market with a skewer in hand — WALKING one foot clearly ahead, lanterns overhead, glancing at the stalls — never both feet planted',
+      setting: 'night market with red lanterns, food stalls and warm steam',
+    },
+    {
+      activity: 'hotel',
+      beat: 'RECLINING on a hotel balcony lounger at midnight — body lying back on the cushion, one knee raised, silk robe, city lights below — never standing beside the lounger',
+      setting: 'hotel balcony at midnight overlooking a glittering city',
+    },
+    {
+      activity: 'pool',
+      beat: 'RELAXING in a lit pool at night — floating on her back with arms out, hair fanned in the glowing water',
+      setting: 'resort pool lit from below at night with palm silhouettes',
+    },
+    {
+      activity: 'rooftop',
+      beat: 'STRETCHING arms overhead on a quiet rooftop after the party — weight on one leg, heels in one hand, skyline behind',
+      setting: 'empty rooftop terrace late at night with the skyline glowing',
+    },
+  ],
+};
+
+/** Scenes for a slot: late slots use {@link LATE_VACATION_SCENES}. */
+function vacationScenesFor(slotId: DaySlotId | string): readonly VacationScene[] {
+  const part = dayPartOf(slotId);
+  const late = isLateDaySlot(slotId) ? LATE_VACATION_SCENES[part] : undefined;
+  return late && late.length > 0 ? late : (VACATION_SCENES[part] ?? []);
+}
+
 export function buildDayVacationBeatPresets(slotId: DaySlotId): string[] {
-  return (VACATION_SCENES[dayPartOf(slotId)] ?? []).map(scene => scene.beat);
+  return vacationScenesFor(slotId).map(scene => scene.beat);
 }
 
 export function buildDayVacationSettingPresets(slotId: DaySlotId): string[] {
   const seen = new Set<string>();
   const settings: string[] = [];
-  for (const scene of VACATION_SCENES[dayPartOf(slotId)] ?? []) {
+  for (const scene of vacationScenesFor(slotId)) {
     const key = scene.setting.trim().toLowerCase();
     if (seen.has(key)) {
       continue;
@@ -474,6 +576,35 @@ export const DAY_SLOT_VACATION_SETTING_PRESETS: Record<DayPart, string[]> = {
   evening: buildDayVacationSettingPresets('evening'),
   night: buildDayVacationSettingPresets('night'),
 };
+
+const lateVacationPools = new Map<string, { beats: string[]; settings: string[] }>();
+
+function lateVacationPool(slotId: DaySlotId | string): { beats: string[]; settings: string[] } {
+  const key = String(slotId);
+  let pool = lateVacationPools.get(key);
+  if (!pool) {
+    pool = {
+      beats: buildDayVacationBeatPresets(slotId as DaySlotId),
+      settings: buildDayVacationSettingPresets(slotId as DaySlotId),
+    };
+    lateVacationPools.set(key, pool);
+  }
+  return pool;
+}
+
+/** Vacation beats for a slot (late slots get the later-hours scenes). */
+export function dayVacationBeatPresetsForSlot(slotId: DaySlotId | string): string[] {
+  return isLateDaySlot(slotId)
+    ? lateVacationPool(slotId).beats
+    : (DAY_SLOT_VACATION_BEAT_PRESETS[dayPartOf(slotId)] ?? []);
+}
+
+/** Vacation venues for a slot (late slots get the later-hours scenes). */
+export function dayVacationSettingPresetsForSlot(slotId: DaySlotId | string): string[] {
+  return isLateDaySlot(slotId)
+    ? lateVacationPool(slotId).settings
+    : (DAY_SLOT_VACATION_SETTING_PRESETS[dayPartOf(slotId)] ?? []);
+}
 
 /** Office / grocery / bookstore boards that fight Vacation. */
 export const DAY_VACATION_STALE_SETTING_RE =
@@ -610,7 +741,7 @@ export function pickDayVacationScenePair(
   }
 ): { beat: string; setting: string; activity: DayVacationActivity; poseClass: string } | null {
   const random = options?.random ?? Math.random;
-  const scenes = [...(VACATION_SCENES[dayPartOf(slotId)] ?? [])];
+  const scenes = [...vacationScenesFor(slotId)];
   if (scenes.length === 0) {
     return null;
   }

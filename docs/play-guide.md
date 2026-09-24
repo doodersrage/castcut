@@ -66,7 +66,7 @@ Deep links: `/fitting?character=<id>&wardrobe=<kit>`.
 
 ### 4. Day (`/day`)
 
-Four slots (Morning → Night) by default, with wardrobe, setting, and beat per slot. The **Stills** chips above the mood strip set the Day's length — **2, 3, 4, 6 or 8** stills; longer Days add Late morning / Late afternoon / Late evening / Late night slots that draw from their daypart's beats, and every slot keeps its plan when you change the length.
+Four slots (Morning → Night) by default, with wardrobe, setting, and beat per slot. The **Stills** chips above the mood strip set the Day's length — **2, 3, 4, 6 or 8** stills; longer Days add Late morning / Late afternoon / Late evening / Late night slots with their own later-hours activities — brunch, markets and errands; golden-hour walks and picnics; dinner, drinks and a show; after-hours at home — and matching Vacation scenes (harbor brunch, sunset cruise, rooftop dancing, night market) and Sport windows (club matches, after-work leagues, late training). The heat moods get later-hours pools too — lazy late-morning, golden-hour siesta, back from dinner, 3 a.m. — with the same Solo / Duo split and indoor settings as their daypart pools. Every slot keeps its plan when you change the length.
 
 - **Suggest day** fills a morning→night Setting / Beat plan you can edit; **Queue day** keeps your plan (only fills blanks). Per-slot **Reroll plan** refreshes one card without re-queuing.
 - **Setting & Beat** stay visible under the board for the selected slot (presets / clothing / notes stay in Edit).

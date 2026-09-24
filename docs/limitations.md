@@ -25,9 +25,8 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
   be installed/mapped like any other queue model.
   Diffusers video stays parked.
 - **Day length is 2, 3, 4, 6 or 8 stills.** Longer Days add a second slot inside a daypart
-  ("Late morning", "Late night") that draws from that daypart's beats and settings; there
-  are still only four dayparts of preset content, and themed remixes script the four base
-  slots only (late slots keep their own plan).
+  ("Late morning", "Late night") with its own later-hours activities on every mood; themed
+  remixes script the four base slots only (late slots keep their own plan).
 - **Auto-review stills** judges face coherence, hands, outfit, and head-count from a single
   image with a vision LLM, and a weak vision model will miss subtle defects. Identity is
   **measured** only when ComfyUI has **ComfyUI_FaceAnalysis** (InsightFace): solo stills are
