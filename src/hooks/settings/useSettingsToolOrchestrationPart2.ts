@@ -83,6 +83,7 @@ import {
   PLAYBOOK_SECTION_CHECKLISTS,
   serverEnvFieldValue,
   formatModelWorkflowMap,
+  isHealthResponse,
   type HealthResponse,
 } from '@/components/settings/tabs/settings-tool-shared';
 import { markOnboardingComfyHealthOk, markOnboardingLlmHealthOk } from '@/lib/onboarding-hooks';
@@ -268,7 +269,18 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
       }
       const query = params.toString();
       const response = await fetch(query ? `/api/health?${query}` : '/api/health');
-      const healthData = (await response.json()) as HealthResponse;
+      const payload = (await response.json().catch(() => null)) as unknown;
+      if (!isHealthResponse(payload)) {
+        // Keep the last good health: a rate-limited or failed check must not blank the panels.
+        const reason =
+          response.status === 429
+            ? 'Health check rate-limited — try again in a moment.'
+            : ((payload as { error?: string } | null)?.error ??
+              `Health check failed (HTTP ${response.status}).`);
+        setStatus(reason);
+        return;
+      }
+      const healthData = payload;
       setHealth(healthData);
       if (healthData.llm?.ok) {
         markOnboardingLlmHealthOk();

@@ -118,7 +118,74 @@ export type RoleplayStoryBeat = RoleplayScene & {
   poseMatch?: StoryPoseMatch;
   /** Face-recognition match of the shown (solo) still against the reference photo. */
   faceMatch?: StoryFaceMatch;
+  /**
+   * What the still showed (outfit, place, light), from the scene writer's own description —
+   * fed to the next still so a Story doesn't jump wardrobe or location between beats.
+   */
+  stillBrief?: string;
 };
+
+const STILL_BRIEF_MAX = 360;
+
+/**
+ * Continuity brief from a still prompt: the scene writer's description before any lock / cue
+ * lines the queue appended (those start with an ALL-CAPS label or "Image N"), capped short.
+ */
+export function roleplayStillBrief(prompt: string | null | undefined): string {
+  const lines = String(prompt ?? '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+  const description: string[] = [];
+  for (const line of lines) {
+    if (
+      /^(?:[A-Z][A-Z0-9 /&-]{2,}:|Image \d|Match (?:Image|the beat)|Final still must)/.test(line)
+    ) {
+      break;
+    }
+    description.push(line);
+  }
+  // Reinforcers also append locks inline (`… HEADCOUNT LOCK: …`) — stop at the first label.
+  const text = (
+    description.join(' ').split(/\s(?=[A-Z][A-Z0-9/&-]{2,}(?: [A-Z0-9/&-]+)*:)/)[0] ?? ''
+  )
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= STILL_BRIEF_MAX) {
+    return text;
+  }
+  const cut = text.slice(0, STILL_BRIEF_MAX);
+  const sentenceEnd = cut.lastIndexOf('. ');
+  return (
+    sentenceEnd > STILL_BRIEF_MAX * 0.5 ? cut.slice(0, sentenceEnd + 1) : `${cut.trimEnd()}…`
+  ).trim();
+}
+
+/**
+ * Continuity line for the next still: the most recent earlier beat's brief, and the rule that
+ * wardrobe / hair / place / light carry over unless this beat changes them. Empty on the first
+ * still or when no earlier still has a brief.
+ */
+export function formatRoleplayContinuityCue(
+  story: RoleplayStoryBeat[] | undefined,
+  current?: { id?: string; title?: string } | null
+): string {
+  const previous = [...(story ?? [])]
+    .reverse()
+    .find(
+      beat =>
+        beat.stillBrief?.trim() &&
+        !(current?.id && beat.id === current.id) &&
+        !(current?.title && beat.title === current.title)
+    );
+  if (!previous?.stillBrief) {
+    return '';
+  }
+  return [
+    `Previous still (continuity): ${previous.stillBrief.trim()}`,
+    'Keep the same outfit, hairstyle, location and lighting as the previous still unless this beat clearly changes them (a new place, a wardrobe change, a time jump, or undressing) — then change only what the beat changes.',
+  ].join('\n');
+}
 
 export const MAX_ROLEPLAY_STILL_TAKES = 8;
 export const MAX_ROLEPLAY_CLIP_TAKES = 8;

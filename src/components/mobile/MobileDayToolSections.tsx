@@ -120,6 +120,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setPosePriority,
     qualityStatus,
     qualityLedger,
+    clipChecks,
     hideStickyCutCoach,
     setHideStickyCutCoach,
     dayMood,
@@ -502,6 +503,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             rerollActiveSlotScene({ slotId: slot.id });
           }}
           qualityLedger={qualityLedger}
+          clipChecks={clipChecks}
         />
         <DayMoodStrip
           busy={busy}

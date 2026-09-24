@@ -18,6 +18,7 @@ import {
 } from '@/lib/comfyui-live-preview-store';
 import { ROLEPLAY_OVERLAY_BTN_CLASS } from '@/components/roleplay/roleplay-story-helpers';
 import { slotQualityBadge, type SlotQualityLedger } from '@/lib/play-slot-quality';
+import { clipCheckLabel, type ClipCheck } from '@/lib/clip-quality';
 
 export type DaySlotBoardProps = {
   slots: DaySlot[];
@@ -33,6 +34,8 @@ export type DaySlotBoardProps = {
   onRerollSlot?: (slot: DaySlot) => void;
   /** Quality-gate outcomes per slot — drives the review badge on each card. */
   qualityLedger?: SlotQualityLedger;
+  /** Animate clip checks by slot id (Auto-review). */
+  clipChecks?: Record<string, ClipCheck>;
 };
 
 /**
@@ -54,6 +57,7 @@ export default function DaySlotBoard({
   onAnimateSlot,
   onRerollSlot,
   qualityLedger,
+  clipChecks,
 }: DaySlotBoardProps) {
   const promptKey = useMemo(
     () =>
@@ -148,6 +152,8 @@ export default function DaySlotBoard({
             : null;
         const canRequeue = openable && Boolean(onRetrySlot) && !queueBlocked && state === 'done';
         const reviewBadge = qualityLedger ? slotQualityBadge(qualityLedger, slot.id) : null;
+        const clipCheck = clipChecks?.[slot.id];
+        const clipNote = clipCheckLabel(clipCheck);
 
         const openAdjacent = (adjacentId: DaySlotId) => {
           onSelectSlot(adjacentId);
@@ -347,6 +353,19 @@ export default function DaySlotBoard({
                   >
                     {reviewBadge.label}
                     {reviewBadge.detail ? ` · ${reviewBadge.detail}` : ''}
+                  </p>
+                ) : null}
+                {clipNote ? (
+                  <p
+                    className={[
+                      'type-overline mt-1',
+                      clipCheck?.status === 'warn'
+                        ? 'text-[var(--tint-danger-text)]'
+                        : 'text-[var(--text-muted)]',
+                    ].join(' ')}
+                    data-testid={`day-progress-clip-check-${slot.id}`}
+                  >
+                    {clipNote}
                   </p>
                 ) : null}
                 {clipState === 'done' ? (

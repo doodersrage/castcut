@@ -16,6 +16,7 @@ import {
   formatRoleplayAvoidedScenes,
   formatRoleplayBio,
   formatRoleplaySettingCue,
+  formatRoleplayContinuityCue,
   formatRoleplayStoryDigest,
   formatRoleplayPoseGuideCue,
   formatRoleplayWardrobeCue,
@@ -553,6 +554,7 @@ ${
     userMessage: [
       formatRoleplayBio(bio),
       formatRoleplayStoryDigest(options.story),
+      formatRoleplayContinuityCue(options.story, situation),
       `This beat: ${situation.title} — ${clarifiedBlurb}`,
       setting
         ? `Seeded setting: ${setting}. Put this still there.`

@@ -165,3 +165,20 @@ export type HealthResponse = {
     backend: 'redis' | 'sqlite' | 'file' | 'memory';
   };
 };
+
+/**
+ * True when `/api/health` returned a real health payload. Error bodies (a 429 from the API rate
+ * limiter, a 5xx `{ error }`) lack the service objects, and storing one as health crashed every
+ * panel that reads `health.comfyui.ok`.
+ */
+export function isHealthResponse(value: unknown): value is HealthResponse {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  const service = (key: string) => {
+    const entry = record[key];
+    return Boolean(entry) && typeof entry === 'object' && 'ok' in (entry as object);
+  };
+  return service('comfyui') && service('llm');
+}

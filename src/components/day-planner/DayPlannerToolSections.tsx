@@ -130,6 +130,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     setPosePriority,
     qualityStatus,
     qualityLedger,
+    clipChecks,
     hideStickyCutCoach,
     setHideStickyCutCoach,
     dayMood,
@@ -553,6 +554,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               rerollActiveSlotScene({ slotId: slot.id });
             }}
             qualityLedger={qualityLedger}
+            clipChecks={clipChecks}
           />
           <DayMoodStrip
             className="mt-3"

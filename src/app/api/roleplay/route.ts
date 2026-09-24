@@ -85,7 +85,9 @@ function parseStory(raw: unknown): RoleplayStoryBeat[] {
       if (!title) {
         return null;
       }
-      return { id: id || title, title, blurb, at };
+      const stillBrief =
+        typeof record.stillBrief === 'string' ? record.stillBrief.trim().slice(0, 400) : '';
+      return { id: id || title, title, blurb, at, ...(stillBrief ? { stillBrief } : {}) };
     })
     .filter((entry): entry is RoleplayStoryBeat => Boolean(entry))
     .slice(-MAX_ROLEPLAY_STORY_CONTEXT);

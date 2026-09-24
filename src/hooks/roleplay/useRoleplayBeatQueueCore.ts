@@ -25,6 +25,7 @@ import {
   storyIntimateSnofsStrengthOverrides,
   storyStillPromptSource,
   storyStillRetryQueueParamsBase,
+  roleplayStillBrief,
   withRoleplayPoseGuidePrompt,
   type RoleplayBio,
   type RoleplayStoryBeat,
@@ -312,7 +313,12 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         prompt: prompt.slice(0, 500),
         completedAt: Date.now(),
       });
-      let stillPatch: Partial<RoleplayStoryBeat> = { prompt };
+      // What the scene writer described (before locks) — the next still keeps its continuity.
+      const stillBrief = roleplayStillBrief(promptSource);
+      let stillPatch: Partial<RoleplayStoryBeat> = {
+        prompt,
+        ...(stillBrief ? { stillBrief } : {}),
+      };
       if (queueStill) {
         await loadWardrobeGarmentThumbManifest();
         const stillOpts = queueStillOptions(poseGuide, beat);
@@ -337,7 +343,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             : {}),
         });
         stillPatch = {
-          prompt,
+          ...stillPatch,
           ...roleplayStillQueueResultPatch({ ...beat, prompt }, promptId),
           ...(poseGuide?.imageUrl ? { poseGuideUrl: poseGuide.imageUrl } : {}),
           ...(poseGuide?.expect && promptId
@@ -346,7 +352,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         };
       } else {
         // Prompt is ready — clear writing so the reel does not say "Queueing…" with no Comfy job.
-        stillPatch = { prompt, stillStatus: undefined };
+        stillPatch = { ...stillPatch, stillStatus: undefined };
       }
       const nextStory = patchRoleplayStoryBeat(currentStory, beat, stillPatch);
       updateToolSettings({ bio: nextBio, story: nextStory });
