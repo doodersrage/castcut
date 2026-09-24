@@ -10,6 +10,12 @@ import {
 import {
   drawOpenPoseFigures,
   inferPoseFacing,
+  poseFramingRegion,
+  poseGuideCanvasSize,
+  resolvePoseCanvas,
+  resolvePoseFraming,
+  stickToOpenPosePerson,
+  synthesizeHandKeypoints,
   OPENPOSE_KEYPOINT_NAMES,
   resolvePoseLeadPosition,
   stickToOpenPoseKeypoints,
@@ -58,7 +64,7 @@ function recordingContext() {
 describe('pose-guide-openpose keypoints', () => {
   it('maps a camera-facing figure to all 18 COCO keypoints, person-right on image-left', () => {
     const figure = standing();
-    const kp = stickToOpenPoseKeypoints(figure, W, H);
+    const kp = stickToOpenPoseKeypoints(figure);
     assert.equal(kp.length, 18);
     assert.ok(kp.every(Boolean), 'front view shows nose, both eyes and both ears');
     assert.ok(kp[idx('rShoulder')]!.x < kp[idx('lShoulder')]!.x);
@@ -68,7 +74,7 @@ describe('pose-guide-openpose keypoints', () => {
 
   it('back view drops the face and swaps sides', () => {
     const figure: StickSkeleton = { ...standing(), facing: 'back' };
-    const kp = stickToOpenPoseKeypoints(figure, W, H);
+    const kp = stickToOpenPoseKeypoints(figure);
     assert.equal(kp[idx('nose')], null);
     assert.equal(kp[idx('rEye')], null);
     assert.equal(kp[idx('lEye')], null);
@@ -77,24 +83,24 @@ describe('pose-guide-openpose keypoints', () => {
   });
 
   it('profile view points the nose that way and shows one eye', () => {
-    const right = stickToOpenPoseKeypoints({ ...standing(), facing: 'right' }, W, H);
+    const right = stickToOpenPoseKeypoints({ ...standing(), facing: 'right' });
     const head = { x: standing().head.x * W };
     assert.ok(right[idx('nose')]!.x > head.x);
     assert.ok(right[idx('rEye')], 'facing image-right shows the right side');
     assert.equal(right[idx('lEye')], null);
 
-    const left = stickToOpenPoseKeypoints({ ...standing(), facing: 'left' }, W, H);
+    const left = stickToOpenPoseKeypoints({ ...standing(), facing: 'left' });
     assert.ok(left[idx('nose')]!.x < head.x);
     assert.ok(left[idx('lEye')]);
     assert.equal(left[idx('rEye')], null);
   });
 
   it('infers profile for bent-over torsos and front for wide shoulders', () => {
-    assert.equal(inferPoseFacing(standing(), W, H), 'front');
+    assert.equal(inferPoseFacing(standing()), 'front');
     const intent = parsePoseGuideIntent('on all fours on the bed', 0);
     const [lead, rear] = synthesizeIntimateStickFigures({ ...intent, intimate: 'bent', people: 2 });
     assert.equal(lead!.facing, undefined, 'all-fours lead relies on inference');
-    assert.equal(inferPoseFacing(lead!, W, H), 'left');
+    assert.equal(inferPoseFacing(lead!), 'left');
     assert.equal(rear!.facing, 'left', 'rear partner faces the lead');
   });
 });
@@ -126,7 +132,7 @@ describe('pose-guide-openpose layouts', () => {
       intimate: 'missionary',
       people: 2,
     });
-    assert.equal(resolvePoseLeadPosition(missionary, W, H), 'lower');
+    assert.equal(resolvePoseLeadPosition(missionary.map(f => stickToOpenPoseKeypoints(f))), 'lower');
 
     const a = standing();
     const b = { ...standing(), head: { x: 0.8, y: a.head.y } };
@@ -136,15 +142,15 @@ describe('pose-guide-openpose layouts', () => {
           typeof value === 'object' ? [key, { x: value.x + dx, y: value.y }] : [key, value]
         )
       ) as StickSkeleton;
-    assert.equal(resolvePoseLeadPosition([shift(a, -0.2), shift(b, 0.2)], W, H), 'left');
-    assert.equal(resolvePoseLeadPosition([a], W, H), null);
+    assert.equal(resolvePoseLeadPosition([shift(a, -0.2), shift(b, 0.2)].map(f => stickToOpenPoseKeypoints(f))), 'left');
+    assert.equal(resolvePoseLeadPosition([stickToOpenPoseKeypoints(a)]), null);
   });
 });
 
 describe('pose-guide-openpose drawing', () => {
   it('paints a black map with limb ellipses and joint dots', () => {
     const { ops, ctx } = recordingContext();
-    drawOpenPoseFigures(ctx, [standing()], W, H);
+    drawOpenPoseFigures(ctx, [standing()]);
     assert.equal(ops[0]!.op, 'fillRect');
     assert.equal(ops[0]!.fill, '#000000');
     assert.equal(ops.filter(op => op.op === 'ellipse').length, 17);
@@ -158,5 +164,70 @@ describe('pose-guide-openpose drawing', () => {
     drawDayPoseGuide(ctx, 'morning', 'openpose');
     assert.equal(ops[0]!.fill, '#000000');
     assert.ok(ops.some(op => op.op === 'ellipse'));
+  });
+});
+
+describe('pose-guide-openpose canvas and framing', () => {
+  it('sizes the guide to the Image 1 aspect with a 768 long side', () => {
+    assert.deepEqual(poseGuideCanvasSize(null), { width: 512, height: 768 });
+    assert.deepEqual(poseGuideCanvasSize({ width: 1024, height: 1024 }), { width: 768, height: 768 });
+    assert.deepEqual(poseGuideCanvasSize({ width: 1664, height: 928 }), { width: 768, height: 432 });
+    assert.deepEqual(poseGuideCanvasSize({ width: 928, height: 1664 }), { width: 432, height: 768 });
+  });
+
+  it('contain-fits the portrait design into a landscape canvas without stretching', () => {
+    const canvas = resolvePoseCanvas({ width: 768, height: 432 });
+    assert.equal(canvas.scale, 432 / 768);
+    const kp = stickToOpenPoseKeypoints(standing(), canvas);
+    const neck = kp[idx('neck')]!;
+    assert.ok(Math.abs(neck.x - 384) < 20, 'figure stays centered');
+    assert.ok(kp.every(p => !p || (p.x >= 0 && p.x <= 768 && p.y >= 0 && p.y <= 432)));
+  });
+
+  it('reads shot size from explicit framing words only', () => {
+    assert.equal(resolvePoseFraming('close-up of her laughing'), 'close-up');
+    assert.equal(resolvePoseFraming('selfie in the mirror'), 'waist-up');
+    assert.equal(resolvePoseFraming('three-quarter shot on the stairs'), 'three-quarter');
+    assert.equal(resolvePoseFraming('walking to the café'), 'full');
+  });
+
+  it('waist-up framing zooms in and drops the legs', () => {
+    const figure = standing();
+    const region = poseFramingRegion(figure, 'waist-up')!;
+    const canvas = resolvePoseCanvas({ width: 512, height: 768, region });
+    assert.ok(canvas.scale > 1.2);
+    const kp = stickToOpenPoseKeypoints(figure, canvas);
+    assert.equal(kp[idx('rAnkle')], null);
+    assert.equal(kp[idx('lKnee')], null);
+    assert.ok(kp[idx('neck')] && kp[idx('rShoulder')]);
+    assert.equal(poseFramingRegion(figure, 'full'), null);
+  });
+});
+
+describe('pose-guide-openpose hands', () => {
+  it('synthesizes 21 hand keypoints beyond the wrist, thumb toward the body', () => {
+    const figure = standing();
+    const hand = synthesizeHandKeypoints(figure.lElbow, figure.lWrist, figure.pelvis);
+    assert.equal(hand.length, 21);
+    const wrist = { x: figure.lWrist.x * 512, y: figure.lWrist.y * 768 };
+    assert.deepEqual(hand[0], wrist);
+    // Arm hangs down: fingertips below the wrist.
+    assert.ok(hand[12]!.y > wrist.y);
+    // Image-left arm: thumb tip sits toward the body center (right of the index tip).
+    assert.ok(hand[4]!.x > hand[20]!.x);
+  });
+
+  it('draws hands only when asked', () => {
+    const plain = stickToOpenPosePerson(standing());
+    assert.equal(plain.lHand, undefined);
+    const withHands = stickToOpenPosePerson(standing(), undefined, { hands: true });
+    assert.equal(withHands.lHand?.length, 21);
+    assert.equal(withHands.rHand?.length, 21);
+    const { ops, ctx } = recordingContext();
+    (ctx as unknown as Record<string, unknown>).moveTo = () => {};
+    (ctx as unknown as Record<string, unknown>).lineTo = () => {};
+    (ctx as unknown as Record<string, unknown>).stroke = () => {};
+    drawOpenPoseFigures(ctx, [standing()], undefined, { hands: true });
+    assert.equal(ops.filter(op => op.op === 'arc').length, 18 + 42);
   });
 });

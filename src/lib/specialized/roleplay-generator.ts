@@ -43,6 +43,7 @@ import {
   type RoleplayTone,
 } from '../roleplay';
 import { runSpecializedPrompt } from './runner';
+import { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS } from '../day-pose-guide';
 import type { SharedGenerationOptions, ToolGenerateResult } from './types';
 
 export type RoleplaySharedOptions = SharedGenerationOptions & {
@@ -227,6 +228,18 @@ function referenceLine(hasReferenceImage: boolean, isolatedSubject?: boolean): s
 
 function hasRoleplayPlot(story: RoleplayStoryBeat[] | undefined): boolean {
   return Boolean(lastRoleplayPlotBeat(story));
+}
+
+/**
+ * The `pose` field drives the Image 3 guide directly, so the drawn body stops depending on
+ * regex reads of the blurb. Only adult ratings get the sex-position vocabulary.
+ */
+function scenePoseFieldLine(content: RoleplayContentId): string {
+  const bodies = SCENE_POSE_BODY_IDS.join(', ');
+  const acts = isRoleplayAdultContent(content)
+    ? `the sex position shown, one of ${SCENE_POSE_ACT_IDS.filter(id => id !== 'none').join(', ')}, or "none"`
+    : '"none"';
+  return `- pose describes the still's main body: body is one of ${bodies}; people is how many people are in frame (1–3); act is ${acts}. It must agree with the blurb.`;
 }
 
 function stampFinaleScenes(scenes: RoleplayScene[], finale: boolean): RoleplayScene[] {
@@ -418,8 +431,9 @@ ${settingCue}
 ${wardrobeCue}
 ${poseGuideCue}
 ${intimateMixCue}
-Return ONLY JSON: {"scenes":[{"title":"","blurb":""${finale ? ',"kind":"ending"' : ''}}]}
+Return ONLY JSON: {"scenes":[{"title":"","blurb":"","pose":{"body":"","people":1,"act":""}${finale ? ',"kind":"ending"' : ''}}]}
 - Exactly 4 scenes. Titles 2–6 words. Blurbs one sentence, visual, actionable.
+${scenePoseFieldLine(content)}
 ${
   finale
     ? '- These are ENDINGS: last stills that close the story. Resolution, twist, fade-out, or aftermath. Do not tease a sequel still.'

@@ -9,6 +9,7 @@ import {
   firstFilmCutWithinDays,
   PLAY_PHASE_MAX_SAMPLE_MS,
   playPhaseAverages,
+  poseMatchSummary,
   slotKeepRate,
   slowestPlayPhase,
   resolveNextPlayAction,
@@ -114,6 +115,24 @@ describe('play-metrics', () => {
     assert.equal(
       slotKeepRate({ version: 1, slotReviews: { keep: 3, reroll: 1, flag: 0 } }),
       0.75
+    );
+  });
+
+  it('summarizes pose match per guide style for the A/B stat', () => {
+    assert.deepEqual(poseMatchSummary({ version: 1 }), []);
+    const summary = poseMatchSummary({
+      version: 1,
+      poseMatch: {
+        openpose: { sum: 3.2, count: 4, misses: 1 },
+        legacy: { sum: 1, count: 2, misses: 1 },
+      },
+    });
+    assert.deepEqual(
+      summary.map(entry => [entry.style, entry.mean, entry.missRate, entry.count]),
+      [
+        ['openpose', 0.8, 0.25, 4],
+        ['legacy', 0.5, 0.5, 2],
+      ]
     );
   });
 

@@ -23,7 +23,12 @@ import {
   intimateTextImpliesSurfaceBent,
   reinforceIntimateStillPrompt,
 } from '@/lib/intimate-prompt-clarify';
-import { parseIntimateLayout, type IntimateLayout } from '@/lib/day-pose-guide';
+import {
+  normalizeScenePoseSpec,
+  parseIntimateLayout,
+  type IntimateLayout,
+  type ScenePoseSpec,
+} from '@/lib/day-pose-guide';
 import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import {
@@ -66,6 +71,8 @@ export type RoleplayScene = {
   title: string;
   blurb: string;
   kind?: RoleplaySceneKind;
+  /** Structured pose from the scene writer — outranks the text read when drawing Image 3. */
+  pose?: ScenePoseSpec;
 };
 
 export type RoleplayStillStatus = 'writing' | 'queued' | 'running' | 'completed' | 'error';
@@ -98,6 +105,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
   /** All clip takes for this beat; `clipPromptId` / `clipUrl` / `clipStatus` mirror the shown take. */
   clipTakes?: RoleplayClipTake[];
   clipTakeIndex?: number;
+  /** Image 3 pose guide sent with the latest still (ComfyUI view URL), for the beat preview. */
+  poseGuideUrl?: string;
 };
 
 export const MAX_ROLEPLAY_STILL_TAKES = 8;
@@ -1434,11 +1443,13 @@ export function parseRoleplayScenes(payload: unknown): RoleplayScene[] {
     if (!title) {
       continue;
     }
+    const pose = normalizeScenePoseSpec(record.pose);
     scenes.push({
       id: slugId(title, index),
       title,
       blurb,
       ...(record.kind === 'ending' || record.kind === 'plot' ? { kind: record.kind } : {}),
+      ...(pose ? { pose } : {}),
     });
   }
   return scenes.slice(0, 6);

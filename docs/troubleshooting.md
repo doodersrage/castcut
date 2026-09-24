@@ -81,7 +81,25 @@ queue:
 | `Pose guide off on … — Lightning identity path…` | Legacy style only: Edit-2511 Lightning keeps Image 1 whole and takes stance from prompt text, because the legacy art leaked there | Switch Pose guide style back to OpenPose, which attaches on Lightning |
 | `Pose guide off on … — no Day plate` | No plate is set, so there is nothing to pose | Set a Day plate (Look or Outfit Keep) |
 
-Story logs the same failures to the browser console (`Story pose guide could not be attached: …`).
+Story logs the same failures to the browser console (`Story pose guide could not be attached: …`),
+and each Story beat card has a **Pose guide** drawer showing the guide its latest still used.
+
+### Did the still follow its guide? (pose check)
+
+With **Auto-review stills** on and the **comfyui_controlnet_aux** node pack installed in ComfyUI
+(it provides `DWPreprocessor`), Day reads the body pose back out of every finished still and
+scores it against the guide it was sent: `pose match 82%` in the review line. Below 60% the
+slot is requeued with a "match the Image 3 skeleton" fix. If the pack is missing, the review
+line says `Pose check off: DWPose not installed…` and everything else keeps working.
+
+Each score is also logged per guide style, and **Film loop → Pose match by guide** shows the
+average and miss rate for OpenPose, OpenPose + hands and Legacy. Run a few Days in each style
+and switch to the one with the higher match.
+
+Two starting values are uncalibrated: the 60% gate, and the 80% bar at which a kept still's
+detected pose is saved to the **pose library** (Settings → Prompt quality shows the count and
+can clear it). Library poses are real rendered bodies; later guides for the same layout
+sometimes draw one instead of the hand-placed mannequin, and every other reroll does.
 
 ### Stance ignored on Qwen Image Edit 2511 (incl. Lightning)
 

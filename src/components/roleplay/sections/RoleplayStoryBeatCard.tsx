@@ -111,6 +111,21 @@ export function RoleplayStoryBeatCard({
             {beat.title}
           </p>
           <p className="type-caption text-[var(--text-muted)]">{beat.blurb}</p>
+          {beat.poseGuideUrl ? (
+            <details
+              className="type-caption text-[var(--text-muted)]"
+              data-testid="story-pose-guide"
+            >
+              <summary className="cursor-pointer">Pose guide</summary>
+              {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI proxy URL */}
+              <img
+                src={beat.poseGuideUrl}
+                alt={`${beat.title} pose guide`}
+                className="mt-1 max-h-40 w-auto rounded border border-[var(--border-subtle)]"
+                loading="lazy"
+              />
+            </details>
+          ) : null}
         </div>
         {canQueue || canCopy || canAnimate || canExtend || canRetryClipAction ? (
           <div className="flex flex-wrap gap-2">

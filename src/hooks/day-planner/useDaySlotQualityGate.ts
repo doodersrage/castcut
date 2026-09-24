@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { isDayAdultMood, normalizeDayIntimateMix, normalizeDayMood } from '@/lib/day-planner';
-import { recordSlotReviewOutcome } from '@/lib/play-metrics';
+import { recordPoseMatchScore, recordSlotReviewOutcome } from '@/lib/play-metrics';
+import { detectStillPose } from '@/lib/pose-detect-client';
+import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
+import {
+  describePoseMatch,
+  POSE_LIBRARY_MIN_SCORE,
+  POSE_MISMATCH_NUDGE,
+  scorePoseMatch,
+  type PoseMatchResult,
+} from '@/lib/pose-score';
+import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import {
   decideSlotQuality,
   flaggedSlotIds,
@@ -20,9 +30,14 @@ import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
  * Opt-in Day quality gate: when a still lands, vision-review it and requeue the slot (bounded
  * rerolls) if the face, hands, or outfit are broken. Reviews run one at a time and only while
  * the Day queue is idle so rerolls never overlap a Queue-all submit.
+ *
+ * When the slot had an Image 3 guide and ComfyUI has DWPose, the still's pose is also read back
+ * and scored against the guide: a still that ignored its guide is rerolled, every score is logged
+ * per guide style (the OpenPose-vs-legacy record), and well-matched stills feed the pose library.
  */
 export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
   const { autoReviewStills, busy, mounted, queueSlot, rerollNudgeRef, shared, slots, stills } = ctx;
+  const { poseGuideExpectRef, poseVariantRef } = ctx;
   const { plate, toolSettings, wardrobeLabelFor } = ctx;
 
   const [qualityStatus, setQualityStatus] = useState<string | null>(null);
@@ -43,6 +58,9 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
   const baselinedRef = useRef(false);
   const runningRef = useRef(false);
   const pausedRef = useRef(false);
+  /** Set once the detector reports it is not installed — skip pose checks for the session. */
+  const poseCheckOffRef = useRef<string | null>(null);
+  const [poseCheckOff, setPoseCheckOff] = useState<string | null>(null);
 
   useEffect(() => {
     if (!mounted) {
@@ -53,6 +71,8 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
       baselinedRef.current = true;
       reviewedRef.current = {};
       ledgerRef.current = {};
+      // New Day, new layouts: rerolled variants start from the stable drawing again.
+      poseVariantRef.current = {};
       // A new Day is a fresh chance for a gate that paused on a vision error.
       pausedRef.current = false;
       return;
@@ -66,7 +86,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
         }
       }
     }
-  }, [mounted, stills]);
+  }, [mounted, poseVariantRef, stills]);
 
   useEffect(() => {
     if (!autoReviewStills) {
@@ -116,6 +136,36 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
         const pair = referenceUrl
           ? await buildFaceComparePair({ referenceUrl, stillUrl: imageUrl })
           : null;
+        // Pose check first (ComfyUI DWPose). Never blocks the vision review: a missing node
+        // pack turns it off for the session; any other error just skips it for this still.
+        const expectation = poseGuideExpectRef.current[target.id];
+        let poseMatch: PoseMatchResult | null = null;
+        let poseNote = '';
+        let detectedPeople: NormalizedBody[] = [];
+        let detectedAspect = 1;
+        if (expectation && !poseCheckOffRef.current) {
+          setQualityStatus(`Checking ${target.label} pose…`);
+          try {
+            const detected = await detectStillPose(imageUrl);
+            if (detected.available) {
+              poseMatch = scorePoseMatch({
+                guide: expectation.keypoints,
+                guideAspect: expectation.aspect,
+                detected: detected.pose,
+              });
+              detectedPeople = detected.pose.people;
+              const { width, height } = detected.pose.canvas;
+              detectedAspect = width > 0 && height > 0 ? width / height : expectation.aspect;
+              poseNote = describePoseMatch(poseMatch);
+            } else {
+              poseCheckOffRef.current = detected.reason;
+              setPoseCheckOff(detected.reason);
+            }
+          } catch (error) {
+            poseNote = `pose check skipped (${error instanceof Error ? error.message : 'error'})`;
+          }
+        }
+        setQualityStatus(`Reviewing ${target.label}…`);
         const report = await reviewDaySlotStill({
           imageUrl: pair ?? imageUrl,
           context: {
@@ -127,7 +177,34 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
           },
           shared,
         });
-        const decision = decideSlotQuality(report, slotRerollsUsed(ledgerRef.current, target.id));
+        const decision = decideSlotQuality(
+          report,
+          slotRerollsUsed(ledgerRef.current, target.id),
+          undefined,
+          { poseMatch: poseMatch?.score ?? null }
+        );
+        if (poseMatch && expectation) {
+          recordPoseMatchScore(expectation.style, poseMatch.score, Boolean(decision.poseMiss));
+          // A kept still that followed its guide closely is a real body in that layout:
+          // save the detected skeletons (lead first) so later guides can reuse them.
+          const ordered = poseMatch.assignment.map(index => detectedPeople[index]);
+          if (
+            decision.action === 'keep' &&
+            isOpenPoseStyle(expectation.style) &&
+            poseMatch.score >= POSE_LIBRARY_MIN_SCORE &&
+            ordered.every(body => body && bodyIsUsable(body))
+          ) {
+            savePoseLibraryEntry({
+              id: `${expectation.poseKey}-${Date.now().toString(36)}`,
+              key: expectation.poseKey,
+              aspect: detectedAspect,
+              people: ordered as NormalizedBody[],
+              score: poseMatch.score,
+              createdAt: Date.now(),
+            });
+          }
+        }
+        const poseSuffix = poseNote ? ` · ${poseNote}` : '';
         ledgerRef.current = recordSlotDecision(ledgerRef.current, target.id, decision);
         setQualityLedger(ledgerRef.current);
         recordSlotReviewOutcome(decision.action);
@@ -135,17 +212,28 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
         if (decision.action === 'keep') {
           setQualityStatus(
             decision.warnings.length > 0
-              ? `${target.label} passed (${decision.overall}/5) — ${decision.warnings.join(', ')}.`
-              : `${target.label} passed review (${decision.overall}/5).`
+              ? `${target.label} passed (${decision.overall}/5${poseSuffix}) — ${decision.warnings.join(', ')}.`
+              : `${target.label} passed review (${decision.overall}/5${poseSuffix}).`
           );
         } else if (decision.action === 'flag') {
           setQualityStatus(
             `${target.label} needs a look: ${decision.reasons.join(', ')}. Retry or reroll it.`
           );
         } else {
-          const nudge = slotRerollNudge(report.flags);
+          const nudge = [
+            slotRerollNudge(report.flags),
+            decision.poseMiss ? POSE_MISMATCH_NUDGE : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
           if (nudge) {
             rerollNudgeRef.current[target.id] = nudge;
+          }
+          // Broken bodies (extra people, merged limbs…) often come from the layout itself —
+          // try a different arrangement. A pure pose miss keeps the guide and retries the render.
+          const onlyPoseMiss = decision.poseMiss && decision.reasons.length === 1;
+          if (!onlyPoseMiss) {
+            poseVariantRef.current[target.id] = (poseVariantRef.current[target.id] ?? 0) + 1;
           }
           setQualityStatus(`Requeueing ${target.label}: ${decision.reasons.join(', ')}.`);
           await queueSlot(target);
@@ -165,6 +253,8 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
     busy,
     mounted,
     plate,
+    poseGuideExpectRef,
+    poseVariantRef,
     queueSlot,
     rerollNudgeRef,
     shared,
@@ -179,7 +269,11 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
   ]);
 
   return {
-    qualityStatus: autoReviewStills ? qualityStatus : null,
+    qualityStatus: autoReviewStills
+      ? qualityStatus && poseCheckOff
+        ? `${qualityStatus} (Pose check off: ${poseCheckOff})`
+        : qualityStatus
+      : null,
     qualityLedger,
     flaggedSlotIds: flaggedSlotIds(qualityLedger),
   };

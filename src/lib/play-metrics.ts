@@ -35,6 +35,11 @@ export type PlayMetrics = {
   filmCutHistory?: number[];
   /** Day quality-gate outcomes across all slots reviewed so far. */
   slotReviews?: PlaySlotReviewCounts;
+  /**
+   * Pose-match scores (DWPose vs the Image 3 guide) per guide style — the A/B record for
+   * OpenPose vs legacy guides. Sum/count of 0–1 scores, plus how many fell below the gate.
+   */
+  poseMatch?: Partial<Record<PoseMatchStyle, PoseMatchStats>>;
   /** Accumulated time spent in each film phase. */
   phaseTimings?: PlayPhaseTimings;
   /** Phase the user is currently in, and when they entered it. */
@@ -72,6 +77,12 @@ export function isTimedPlayPhase(value: unknown): value is PlayPhaseId {
 
 export type PlaySlotReviewCounts = { keep: number; reroll: number; flag: number };
 
+export type PoseMatchStyle = 'openpose' | 'openpose-hands' | 'legacy';
+
+export type PoseMatchStats = { sum: number; count: number; misses: number };
+
+const POSE_MATCH_STYLES: readonly PoseMatchStyle[] = ['openpose', 'openpose-hands', 'legacy'];
+
 export const PLAY_FILM_CUT_HISTORY_LIMIT = 60;
 
 const DAY_MS = 1000 * 60 * 60 * 24;
@@ -84,6 +95,30 @@ function normalizeSlotReviews(value: unknown): PlaySlotReviewCounts | undefined 
   const count = (n: unknown) => (typeof n === 'number' && n > 0 ? Math.floor(n) : 0);
   const counts = { keep: count(raw.keep), reroll: count(raw.reroll), flag: count(raw.flag) };
   return counts.keep + counts.reroll + counts.flag > 0 ? counts : undefined;
+}
+
+function normalizePoseMatch(value: unknown): PlayMetrics['poseMatch'] {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const raw = value as Record<string, unknown>;
+  const out: Partial<Record<PoseMatchStyle, PoseMatchStats>> = {};
+  for (const style of POSE_MATCH_STYLES) {
+    const entry = raw[style] as Partial<PoseMatchStats> | undefined;
+    if (
+      entry &&
+      typeof entry.sum === 'number' &&
+      typeof entry.count === 'number' &&
+      entry.count > 0
+    ) {
+      out[style] = {
+        sum: Math.max(0, entry.sum),
+        count: Math.floor(entry.count),
+        misses: typeof entry.misses === 'number' && entry.misses > 0 ? Math.floor(entry.misses) : 0,
+      };
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function normalizePhaseTimings(value: unknown): PlayPhaseTimings | undefined {
@@ -140,6 +175,7 @@ function normalizePlayMetrics(value: unknown): PlayMetrics {
     lastFilmCutAt: typeof raw.lastFilmCutAt === 'number' ? raw.lastFilmCutAt : undefined,
     filmCutHistory: normalizeFilmCutHistory(raw.filmCutHistory),
     slotReviews: normalizeSlotReviews(raw.slotReviews),
+    poseMatch: normalizePoseMatch(raw.poseMatch),
     phaseTimings: normalizePhaseTimings(raw.phaseTimings),
     phaseOpen: normalizePhaseOpen(raw.phaseOpen),
   };
@@ -190,6 +226,45 @@ export function recordSlotReviewOutcome(action: keyof PlaySlotReviewCounts): voi
   const current = loadPlayMetrics();
   const counts = current.slotReviews ?? { keep: 0, reroll: 0, flag: 0 };
   savePlayMetrics({ ...current, slotReviews: { ...counts, [action]: counts[action] + 1 } });
+}
+
+/** Records one pose-match score for a guide style (0–1; `missed` = below the gate). */
+export function recordPoseMatchScore(style: PoseMatchStyle, score: number, missed: boolean): void {
+  if (!Number.isFinite(score)) {
+    return;
+  }
+  const current = loadPlayMetrics();
+  const stats = current.poseMatch?.[style] ?? { sum: 0, count: 0, misses: 0 };
+  savePlayMetrics({
+    ...current,
+    poseMatch: {
+      ...(current.poseMatch ?? {}),
+      [style]: {
+        sum: stats.sum + Math.min(1, Math.max(0, score)),
+        count: stats.count + 1,
+        misses: stats.misses + (missed ? 1 : 0),
+      },
+    },
+  });
+}
+
+/** Mean pose match and miss rate per guide style, for the metrics card. */
+export function poseMatchSummary(
+  metrics: PlayMetrics = loadPlayMetrics()
+): Array<{ style: PoseMatchStyle; mean: number; missRate: number; count: number }> {
+  return POSE_MATCH_STYLES.flatMap(style => {
+    const stats = metrics.poseMatch?.[style];
+    return stats && stats.count > 0
+      ? [
+          {
+            style,
+            mean: stats.sum / stats.count,
+            missRate: stats.misses / stats.count,
+            count: stats.count,
+          },
+        ]
+      : [];
+  });
 }
 
 /** Cuts recorded in the last `days` days (history only — older installs start at zero). */

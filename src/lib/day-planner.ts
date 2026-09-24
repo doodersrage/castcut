@@ -7,7 +7,7 @@ import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/compose-prompt';
 import { countPoseGuidePeople } from '@/lib/day-pose-guide';
 import {
   POSE_GUIDE_ACTION_LOCK,
-  normalizePoseGuideStylePreference,
+  isOpenPoseStyle,
   poseGuidePromptBlock,
   type PoseGuideStylePreference,
 } from '@/lib/pose-guide-prompt';
@@ -2179,8 +2179,7 @@ export function buildDaySlotPrompt(input: {
   const plateIsolated = input.plateIsolated === true;
   const garmentReinforce = input.garmentReinforce === true && !omitGarment && !replaceKeepOutfit;
   const poseGuide = input.poseGuide === true;
-  const openPoseGuide =
-    poseGuide && normalizePoseGuideStylePreference(input.poseGuideStyle) === 'openpose';
+  const openPoseGuide = poseGuide && isOpenPoseStyle(input.poseGuideStyle);
   const leadPositionPhrase = input.poseLeadPosition
     ? describePoseLeadPosition(input.poseLeadPosition)
     : null;

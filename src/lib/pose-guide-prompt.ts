@@ -15,12 +15,22 @@ import {
  *   Qwen Image Edit 2509/2511 were trained on, so it reads as a pose, not a picture to copy.
  * - `legacy`: the older magenta capsules / gray outlines, kept for A/B and fallback.
  */
-export type PoseGuideStylePreference = 'openpose' | 'legacy';
+export type PoseGuideStylePreference = 'openpose' | 'openpose-hands' | 'legacy';
 
 export const DEFAULT_POSE_GUIDE_STYLE: PoseGuideStylePreference = 'openpose';
 
 export function normalizePoseGuideStylePreference(value: unknown): PoseGuideStylePreference {
-  return value === 'legacy' ? 'legacy' : DEFAULT_POSE_GUIDE_STYLE;
+  return value === 'legacy' || value === 'openpose-hands' ? value : DEFAULT_POSE_GUIDE_STYLE;
+}
+
+/** Both OpenPose variants share the keypoint cue; only legacy uses capsule/outline art. */
+export function isOpenPoseStyle(value: unknown): boolean {
+  return normalizePoseGuideStylePreference(value) !== 'legacy';
+}
+
+/** OpenPose with 21-point hand maps. */
+export function poseGuideStyleDrawsHands(value: unknown): boolean {
+  return normalizePoseGuideStylePreference(value) === 'openpose-hands';
 }
 
 /**
@@ -29,6 +39,10 @@ export function normalizePoseGuideStylePreference(value: unknown): PoseGuideStyl
  */
 export const POSE_GUIDE_OPENPOSE_EDIT_PROMPT_LINE =
   'Image 3 is an OpenPose keypoint skeleton map (pose control only, not part of the picture). Pose the people to match Image 3: body position, limb angles, head direction, and headcount. Keep Image 1 face and body proportions; discard Image 1 pose. Never draw the skeleton lines, colored dots, or black background into the photo.';
+
+/** Extra cue when Image 3 carries 21-point hand maps. */
+export const POSE_GUIDE_OPENPOSE_HANDS_LINE =
+  'Image 3 hand keypoints show where each hand is and which way the fingers point — place the real hands there.';
 
 export const POSE_GUIDE_OPENPOSE_SOLO_LOCK =
   'Image 3 has one skeleton: the Image 1 person takes that pose. Exactly one person in the still.';
@@ -213,14 +227,19 @@ export function poseGuidePromptBlock(
   // Day passes headcount: 1 for everyday solo stills.
   const headcount = options?.headcount;
   const imageAttached = options?.imageAttached !== false;
-  if (imageAttached && normalizePoseGuideStylePreference(options?.style) === 'openpose') {
+  if (imageAttached && isOpenPoseStyle(options?.style)) {
     const lock =
       headcount != null && headcount >= 2
         ? poseGuideOpenPoseMultiLock(headcount, options?.leadPosition)
         : headcount != null
           ? POSE_GUIDE_OPENPOSE_SOLO_LOCK
           : '';
-    return [POSE_GUIDE_OPENPOSE_EDIT_PROMPT_LINE, poseGuideStyleLockLine(mode), lock]
+    return [
+      POSE_GUIDE_OPENPOSE_EDIT_PROMPT_LINE,
+      poseGuideStyleDrawsHands(options?.style) ? POSE_GUIDE_OPENPOSE_HANDS_LINE : '',
+      poseGuideStyleLockLine(mode),
+      lock,
+    ]
       .filter(Boolean)
       .join(' ');
   }
@@ -335,7 +354,7 @@ export function withPoseGuideEditPrompt(
   if (!imageAttached) {
     return rewritePoseGuideCueForTextOnly(trimmed, mode, { headcount: options?.headcount });
   }
-  if (normalizePoseGuideStylePreference(options?.style) === 'openpose') {
+  if (isOpenPoseStyle(options?.style)) {
     return withOpenPoseGuidePrompt(trimmed, mode, options);
   }
   // Legacy art attached: drop any OpenPose cue an LLM draft picked up from the default block.
@@ -394,6 +413,7 @@ function stripLegacyPoseGuideCues(prompt: string): string {
 function stripOpenPoseGuideCues(prompt: string): string {
   return prompt
     .replace(/Image 3 is an OpenPose keypoint[^\n]*/gi, '')
+    .replace(/Image 3 hand keypoints show[^\n]*/gi, '')
     .replace(/Image 3 has (?:one|two|three) skeletons?:[^\n]*/gi, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -403,7 +423,11 @@ function stripOpenPoseGuideCues(prompt: string): string {
 function withOpenPoseGuidePrompt(
   prompt: string,
   mode: RenderRealismMode,
-  options?: { headcount?: number; leadPosition?: string | null }
+  options?: {
+    headcount?: number;
+    leadPosition?: string | null;
+    style?: PoseGuideStylePreference;
+  }
 ): string {
   // No fresh headcount = nothing new to say (e.g. a requeue): keep the existing keypoint cue.
   if (promptHasOpenPoseGuideCue(prompt) && options?.headcount == null) {
@@ -423,7 +447,7 @@ function withOpenPoseGuidePrompt(
   const block = poseGuidePromptBlock(mode, {
     headcount: options?.headcount,
     imageAttached: true,
-    style: 'openpose',
+    style: options?.style ?? 'openpose',
     leadPosition: options?.leadPosition,
   });
   return `${base}\n${block}`.trim();
@@ -497,10 +521,9 @@ export function mergePoseGuideNegatives(
   if (!enabled) {
     return negative?.trim() || undefined;
   }
-  const extra =
-    normalizePoseGuideStylePreference(options?.style) === 'openpose'
-      ? POSE_GUIDE_OPENPOSE_NEGATIVE
-      : POSE_GUIDE_NEGATIVE_EXTRA;
+  const extra = isOpenPoseStyle(options?.style)
+    ? POSE_GUIDE_OPENPOSE_NEGATIVE
+    : POSE_GUIDE_NEGATIVE_EXTRA;
   const parts = `${negative ?? ''}, ${extra}`
     .split(',')
     .map(part => part.trim())

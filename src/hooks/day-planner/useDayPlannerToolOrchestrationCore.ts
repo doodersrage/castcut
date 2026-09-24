@@ -102,7 +102,10 @@ import {
   clothedHeatUnlockPoseClass,
   vacationStanceDirective,
 } from '@/lib/day-vacation';
-import { buildDayPoseGuide, poseGuideStylePreferenceFor } from '@/lib/day-pose-guide';
+import { buildDayPoseGuide } from '@/lib/day-pose-guide';
+import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
+import { loadPoseLibrary, type NormalizedBody } from '@/lib/pose-library';
+import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
 import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
 import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
@@ -191,6 +194,10 @@ export function useDayPlannerToolOrchestrationCore() {
   const slotStatusRef = useRef<Partial<Record<DaySlotId, string>>>({});
   /** One-shot prompt fixes from the quality gate, consumed by the next queue of that slot. */
   const rerollNudgeRef = useRef<Partial<Record<DaySlotId, string>>>({});
+  /** Guide layout variant per slot — the quality gate bumps it so a reroll tries a new body. */
+  const poseVariantRef = useRef<Partial<Record<DaySlotId, number>>>({});
+  /** What each slot's last Image 3 guide asked for, so the gate can score the still against it. */
+  const poseGuideExpectRef = useRef<Partial<Record<DaySlotId, DayPoseGuideExpectation>>>({});
 
   const slots = useMemo(() => normalizeDaySlots(toolSettings.slots), [toolSettings.slots]);
   const stills = useMemo(() => normalizeDaySlotStills(toolSettings.stills), [toolSettings.stills]);
@@ -792,6 +799,7 @@ export function useDayPlannerToolOrchestrationCore() {
         let poseGuideFailure: string | undefined;
         let poseGuideDrawnStyle: PoseGuideStylePreference = poseGuideStyle;
         let poseLeadPosition: PoseLeadPosition | null = null;
+        let poseExpectation: DayPoseGuideExpectation | undefined;
         if (hasPlate && !skipPoseGuideImage) {
           try {
             const dayMood = normalizeDayMood(
@@ -840,6 +848,15 @@ export function useDayPlannerToolOrchestrationCore() {
                 : poseHeadcount >= 3 && poseSceneReinforced
                   ? poseSceneReinforced
                   : poseSceneReinforced || undefined;
+            // The still renders at Image 1's aspect, so draw the guide at that aspect too —
+            // a portrait guide squeezed onto a square latent lands the body in the wrong place.
+            const image1Plate = omitGarment ? identityPlate : (identityPlate ?? queuePlate);
+            const image1Url =
+              image1Plate?.imageUrl?.trim() ||
+              collectIsolateSourceUrls({
+                filename: image1Plate?.filename?.trim() || undefined,
+                comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+              })[0];
             const poseBuild = await buildDayPoseGuide(
               queueTarget.id,
               poseScene || undefined,
@@ -851,11 +868,20 @@ export function useDayPlannerToolOrchestrationCore() {
                 // wall" beat must not become a two-figure wall press.
                 allowIntimate: isDayAdultMood(dayMood),
                 stylePreference: poseGuideStyle,
+                variant: poseVariantRef.current[queueTarget.id] ?? 0,
+                aspect: isOpenPoseStyle(poseGuideStyle) ? await probeImage1Size(image1Url) : null,
+                library: isOpenPoseStyle(poseGuideStyle) ? loadPoseLibrary() : [],
               }
             );
             const poseFile = poseBuild.file;
-            poseGuideDrawnStyle = poseGuideStylePreferenceFor(poseBuild.style);
+            poseGuideDrawnStyle = poseBuild.stylePreference;
             poseLeadPosition = poseBuild.leadPosition;
+            poseExpectation = {
+              keypoints: poseBuild.keypoints,
+              aspect: poseBuild.canvas.width / poseBuild.canvas.height,
+              style: poseBuild.stylePreference,
+              poseKey: poseBuild.poseKey,
+            };
             const uploaded = await resolveQueueInputImage({
               file: poseFile,
               filename: poseFile.name,
@@ -878,6 +904,11 @@ export function useDayPlannerToolOrchestrationCore() {
           }
         }
 
+        if (poseGuideFilename && poseExpectation) {
+          poseGuideExpectRef.current[queueTarget.id] = poseExpectation;
+        } else {
+          delete poseGuideExpectRef.current[queueTarget.id];
+        }
         setPoseGuideOutcomes(previous =>
           recordPoseGuideOutcome(previous, {
             slotId: queueTarget.id,
@@ -1223,6 +1254,8 @@ export function useDayPlannerToolOrchestrationCore() {
     stillsRef,
     assembledFilmRef,
     rerollNudgeRef,
+    poseVariantRef,
+    poseGuideExpectRef,
     buildSlotPrompt,
     mounted,
     shared,
@@ -1320,3 +1353,26 @@ export function useDayPlannerToolOrchestrationCore() {
 }
 
 export type DayPlannerToolOrchestrationCore = ReturnType<typeof useDayPlannerToolOrchestrationCore>;
+
+/** A slot's queued guide, kept for the pose-match check and the pose library. */
+export type DayPoseGuideExpectation = {
+  keypoints: NormalizedBody[];
+  /** Guide canvas width / height. */
+  aspect: number;
+  style: PoseGuideStylePreference;
+  poseKey: string;
+};
+
+/** Image 1 sizes by URL — the plate rarely changes within a Day, so probe once. */
+const image1SizeCache = new Map<string, { width: number; height: number } | null>();
+
+async function probeImage1Size(
+  url: string | undefined
+): Promise<{ width: number; height: number } | null> {
+  const key = url?.trim();
+  if (!key) return null;
+  if (!image1SizeCache.has(key)) {
+    image1SizeCache.set(key, await probeImageUrlDimensions(key).catch(() => null));
+  }
+  return image1SizeCache.get(key) ?? null;
+}

@@ -35,7 +35,10 @@ import { dispatchWebhook } from '@/lib/webhook-settings';
 import { snapshotRoleplaySession } from '@/lib/roleplay-library';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
 import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs';
-import { buildStoryPoseGuide, poseGuideStylePreferenceFor } from '@/lib/day-pose-guide';
+import { buildStoryPoseGuide } from '@/lib/day-pose-guide';
+import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
+import { loadPoseLibrary } from '@/lib/pose-library';
+import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import { describePoseLeadPosition } from '@/lib/pose-guide-openpose';
 import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
 import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
@@ -183,7 +186,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
   );
 
   const resolvePoseGuideForBeat = useCallback(
-    async (beat: RoleplayStoryBeat) => {
+    async (beat: RoleplayStoryBeat, options?: { variant?: number }) => {
       if (playAs !== 'photo') {
         return undefined;
       }
@@ -192,13 +195,30 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           0,
           storyRef.current.findIndex(entry => entry.id === beat.id && entry.at === beat.at)
         );
+        const stylePreference = loadPoseGuideStylePreference();
+        const openPose = isOpenPoseStyle(stylePreference);
+        // Story Image 1 is the reference photo; the still renders at its aspect.
+        const referenceUrl =
+          referenceImageUrl?.trim() ||
+          collectIsolateSourceUrls({
+            filename: referenceImageFilename?.trim() || undefined,
+            comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+          })[0];
+        const aspect =
+          openPose && referenceUrl
+            ? await probeImageUrlDimensions(referenceUrl).catch(() => null)
+            : null;
         const poseBuild = await buildStoryPoseGuide({
           title: beat.title,
           blurb: beat.blurb,
           prompt: beat.prompt,
           storyIndex: storyIndex >= 0 ? storyIndex : 0,
           model: shared.model,
-          stylePreference: loadPoseGuideStylePreference(),
+          stylePreference,
+          pose: beat.pose,
+          variant: options?.variant ?? 0,
+          aspect,
+          library: openPose ? loadPoseLibrary() : [],
         });
         const poseFile = poseBuild.file;
         const uploaded = await resolveQueueInputImage({
@@ -221,7 +241,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           filename: poseGuideFilename,
           imageUrl: poseGuideUrl,
           prompt: {
-            style: poseGuideStylePreferenceFor(poseBuild.style),
+            style: poseBuild.stylePreference,
             headcount: poseBuild.figureCount,
             leadPosition: poseBuild.leadPosition
               ? describePoseLeadPosition(poseBuild.leadPosition)
@@ -238,7 +258,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         return undefined;
       }
     },
-    [playAs, shared.model, storyRef]
+    [playAs, referenceImageFilename, referenceImageUrl, shared.model, storyRef]
   );
 
   const skipStillForClip = beatOutput === 'clip' && autoQueue;
@@ -310,6 +330,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         stillPatch = {
           prompt,
           ...roleplayStillQueueResultPatch({ ...beat, prompt }, promptId),
+          ...(poseGuide?.imageUrl ? { poseGuideUrl: poseGuide.imageUrl } : {}),
         };
       } else {
         // Prompt is ready — clear writing so the reel does not say "Queueing…" with no Comfy job.
@@ -358,9 +379,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         ? loadComfyGallery().find(entry => entry.promptId === parentPromptId)
         : undefined;
       let promptId: string | undefined;
+      let poseGuideUrl: string | undefined;
       try {
         await loadWardrobeGarmentThumbManifest();
-        const poseGuide = await resolvePoseGuideForBeat(latest);
+        // A retry draws a different variant of the layout (reseeded / mirrored).
+        const poseGuide = await resolvePoseGuideForBeat(latest, {
+          variant: retry ? roleplayStillTakes(latest).length : 0,
+        });
+        poseGuideUrl = poseGuide?.imageUrl;
         const promptSource = storyStillPromptSource({
           llmPrompt: prompt,
           blurb: latest.blurb,
@@ -410,11 +436,10 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         ...startPatch,
       };
       updateToolSettings({
-        story: patchRoleplayStoryBeat(
-          storyRef.current,
-          latest,
-          roleplayStillQueueResultPatch(after, promptId)
-        ),
+        story: patchRoleplayStoryBeat(storyRef.current, latest, {
+          ...roleplayStillQueueResultPatch(after, promptId),
+          ...(poseGuideUrl ? { poseGuideUrl } : {}),
+        }),
       });
     },
     [

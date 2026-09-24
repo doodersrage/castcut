@@ -4,7 +4,9 @@ import Link from 'next/link';
 import RenderRealismHints from '@/components/RenderRealismHints';
 import AnatomyGuardHints from '@/components/AnatomyGuardHints';
 import QueueQualityProfileHints from '@/components/QueueQualityProfileHints';
+import { useSyncExternalStore } from 'react';
 import { ChipButton } from '@/components/ui/Field';
+import { clearPoseLibrary, poseLibraryCount, subscribePoseLibrary } from '@/lib/pose-library';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { DetailLevel } from '@/lib/detail-level';
@@ -42,12 +44,42 @@ const POSE_GUIDE_STYLE_OPTIONS: Array<{
       'Day and Story send Image 3 as a standard OpenPose keypoint map — the pose format Qwen Image Edit understands natively, with head direction and position-based lead mapping.',
   },
   {
+    id: 'openpose-hands',
+    label: 'OpenPose + hands',
+    description:
+      'OpenPose body map plus 21-point hand keypoints, for self-touch, grips and hands on a partner. Experimental — compare against plain OpenPose in the Film loop pose-match stat.',
+  },
+  {
     id: 'legacy',
     label: 'Legacy capsules',
     description:
       'Older colored capsule (or gray outline on Rapid AIO / Edit-2511) mannequins with long anti-leak prompts. Use to compare against OpenPose.',
   },
 ];
+
+/**
+ * Harvested-pose library (Day Auto-review + DWPose). Count and a reset — the entries are
+ * browser-local, so this is the only way to see or clear them.
+ */
+function PoseLibraryControl() {
+  const count = useSyncExternalStore(subscribePoseLibrary, poseLibraryCount, () => null);
+  if (count === null) {
+    return null;
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2 type-caption text-[var(--text-muted)]">
+      <span data-testid="pose-library-count">
+        Pose library: {count} {count === 1 ? 'pose' : 'poses'} harvested from well-matched Day
+        stills (needs Auto-review and DWPose in ComfyUI).
+      </span>
+      {count > 0 ? (
+        <ChipButton active={false} onClick={() => clearPoseLibrary()}>
+          Clear
+        </ChipButton>
+      ) : null}
+    </div>
+  );
+}
 
 type SettingsPromptQualityPanelProps = {
   sharedSettings: SharedToolSettings;
@@ -161,6 +193,7 @@ export default function SettingsPromptQualityPanel({
           <p className="type-caption text-[var(--text-muted)]">
             {POSE_GUIDE_STYLE_OPTIONS.find(option => option.id === poseGuideStyle)?.description}
           </p>
+          <PoseLibraryControl />
         </div>
         <AnatomyGuardHints
           mode={sharedSettings.anatomyGuardMode ?? 'standard'}

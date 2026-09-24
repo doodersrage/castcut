@@ -22,11 +22,18 @@ import {
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
   resolveNextPlayAction,
+  poseMatchSummary,
   slotKeepRate,
   slowestPlayPhase,
   type PlayMetrics,
 } from '@/lib/play-metrics';
 import type { LookPack } from '@/lib/look-pack';
+
+const POSE_STYLE_LABELS = {
+  openpose: 'OpenPose',
+  'openpose-hands': 'OpenPose + hands',
+  legacy: 'Legacy',
+} as const;
 
 function formatDays(days: number): string {
   if (days < 1) {
@@ -97,6 +104,7 @@ export default function PlayFilmMetricsCard() {
   const keepRate = slotKeepRate(metrics);
   const slowestPhase = slowestPlayPhase(metrics);
   const reviews = metrics.slotReviews;
+  const poseMatch = poseMatchSummary(metrics);
   const hasCampaign = Boolean(campaignStep?.characterId);
   const empty = !hasTiming && !hasFunnel && !hasCampaign;
 
@@ -175,6 +183,22 @@ export default function PlayFilmMetricsCard() {
               label="Stills passed review"
               value={formatRate(keepRate)}
               detail={`${reviews.keep} kept · ${reviews.reroll} requeued · ${reviews.flag} flagged`}
+            />
+          ) : null}
+          {poseMatch.length > 0 ? (
+            <StatCard
+              label="Pose match by guide"
+              value={poseMatch
+                .map(entry => `${POSE_STYLE_LABELS[entry.style]} ${formatRate(entry.mean)}`)
+                .join(' · ')}
+              detail={poseMatch
+                .map(
+                  entry =>
+                    `${POSE_STYLE_LABELS[entry.style]}: ${entry.count} checked, ${formatRate(
+                      entry.missRate
+                    )} missed`
+                )
+                .join(' · ')}
             />
           ) : null}
           <StatCard

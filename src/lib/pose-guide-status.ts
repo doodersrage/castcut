@@ -19,7 +19,7 @@ export type PoseGuideOutcome = {
   model?: string;
   editCapableModel?: boolean;
   /** Image 3 art that was drawn (attached only). */
-  style?: 'openpose' | 'legacy';
+  style?: 'openpose' | 'openpose-hands' | 'legacy';
   /** ComfyUI view URL of the uploaded guide, for the Day board preview. */
   previewUrl?: string;
 };
@@ -98,7 +98,9 @@ export function summarizePoseGuideOutcomes(outcomes: PoseGuideOutcome[]): string
       reason ? ` — ${reason}` : ''
     }.`;
   }
-  const openPose = outcomes.some(entry => entry.state === 'attached' && entry.style === 'openpose');
+  const openPose = outcomes.some(
+    entry => entry.state === 'attached' && entry.style !== undefined && entry.style !== 'legacy'
+  );
   return `Pose guide${openPose ? ' (OpenPose)' : ''} attached on ${attached.length} of ${
     outcomes.length
   } ${outcomes.length === 1 ? 'slot' : 'slots'}.`;

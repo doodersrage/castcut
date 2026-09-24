@@ -55,6 +55,8 @@ export type SlotQualityDecision = {
   warnings: string[];
   /** Mean of the three 1–5 scores, rounded to one decimal. */
   overall: number;
+  /** True when the pose check ran and the still did not follow its guide. */
+  poseMiss?: boolean;
 };
 
 export type SlotQualityPolicy = {
@@ -68,6 +70,11 @@ export type SlotQualityPolicy = {
   maxRerolls: number;
   /** identityMatch below this warns (never rerolls — see {@link SlotQualityDecision.warnings}). */
   minIdentity: number;
+  /**
+   * Pose match (DWPose vs the Image 3 guide, 0–1) below this rerolls while budget remains.
+   * Only applies when a pose check ran; uncalibrated starting value.
+   */
+  minPoseMatch: number;
 };
 
 export const DEFAULT_SLOT_QUALITY_POLICY: SlotQualityPolicy = {
@@ -76,6 +83,7 @@ export const DEFAULT_SLOT_QUALITY_POLICY: SlotQualityPolicy = {
   hardFlags: ['extra-person', 'extra-hands', 'merged-limbs', 'wrong-outfit', 'face-distorted'],
   maxRerolls: 2,
   minIdentity: 3,
+  minPoseMatch: 0.6,
 };
 
 export type SlotReviewContext = {
@@ -257,10 +265,16 @@ export function slotReviewFlagLabel(flag: SlotReviewFlag): string {
 export function decideSlotQuality(
   report: SlotQualityReport,
   rerollsUsed: number,
-  policy: SlotQualityPolicy = DEFAULT_SLOT_QUALITY_POLICY
+  policy: SlotQualityPolicy = DEFAULT_SLOT_QUALITY_POLICY,
+  extras?: { poseMatch?: number | null }
 ): SlotQualityDecision {
   const overall = slotQualityOverall(report);
   const reasons: string[] = [];
+  const poseMatch = extras?.poseMatch;
+  const poseMiss = typeof poseMatch === 'number' && poseMatch < policy.minPoseMatch;
+  if (poseMiss) {
+    reasons.push(`pose match ${Math.round(poseMatch * 100)}% — guide not followed`);
+  }
 
   for (const flag of report.flags) {
     if (policy.hardFlags.includes(flag)) {
@@ -298,7 +312,13 @@ export function decideSlotQuality(
     return { action: 'keep', reasons: [], warnings, overall };
   }
   const budgetLeft = rerollsUsed < Math.max(0, policy.maxRerolls);
-  return { action: budgetLeft ? 'reroll' : 'flag', reasons, warnings, overall };
+  return {
+    action: budgetLeft ? 'reroll' : 'flag',
+    reasons,
+    warnings,
+    overall,
+    ...(poseMiss ? { poseMiss: true } : {}),
+  };
 }
 
 const FLAG_NUDGES: Partial<Record<SlotReviewFlag, string>> = {

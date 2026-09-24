@@ -17,16 +17,34 @@ import {
 } from '@/lib/intimate-prompt-clarify';
 import {
   drawOpenPoseFigures,
+  drawOpenPosePeople,
   mirrorPoseFacing,
+  poseFiguresRegion,
+  poseFramingRegion,
+  poseGuideCanvasSize,
+  resolvePoseCanvas,
+  resolvePoseFraming,
   resolvePoseLeadPosition,
+  stickToOpenPosePerson,
+  DEFAULT_POSE_CANVAS,
+  type OpenPosePerson,
   type PoseFacing,
   type PoseLeadPosition,
 } from '@/lib/pose-guide-openpose';
 import {
+  isOpenPoseStyle,
   normalizePoseGuideStylePreference,
+  poseGuideStyleDrawsHands,
   usesOutlineGrayPoseGuide,
   type PoseGuideStylePreference,
 } from '@/lib/pose-guide-prompt';
+import {
+  pickPoseLibraryEntry,
+  placeLibraryPeople,
+  poseLibraryKey,
+  type NormalizedBody,
+  type PoseLibraryEntry,
+} from '@/lib/pose-library';
 
 type Point = { x: number; y: number };
 
@@ -87,6 +105,84 @@ export type IntimateLayout =
   | 'generic';
 
 const INTIMATE_SOLO_LAYOUTS: ReadonlySet<IntimateLayout> = new Set(['solo']);
+
+const INTIMATE_LAYOUT_IDS: ReadonlySet<string> = new Set<IntimateLayout>([
+  'missionary',
+  'mating_press',
+  'straddle',
+  'reverse_straddle',
+  'bent',
+  'prone',
+  'spoon',
+  'scissors',
+  'standing',
+  'wall',
+  'lift',
+  'oral',
+  'sixty_nine',
+  'facesit',
+  'kneeling',
+  'lap',
+  'afterglow',
+  'undress',
+  'solo',
+  'generic',
+]);
+
+const POSE_BASE_IDS: ReadonlySet<string> = new Set<PoseGuideBase>([
+  'stand',
+  'walk',
+  'run',
+  'sit',
+  'crouch',
+  'kneel',
+  'reach',
+  'lean',
+  'lie',
+  'jump',
+]);
+
+/**
+ * Structured pose the scene writer (LLM) states alongside a beat. When present it outranks the
+ * regex read of the beat text for body, headcount and sex layout — the text parser is still used
+ * for everything it doesn't name (arms, gestures, props).
+ */
+export type ScenePoseSpec = {
+  body?: PoseGuideBase;
+  people?: number;
+  /** Sex layout, or 'none' to forbid one the text might imply. */
+  act?: IntimateLayout | 'none';
+};
+
+/** Accept only known values from an LLM `pose` object; undefined when nothing usable. */
+export function normalizeScenePoseSpec(raw: unknown): ScenePoseSpec | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined;
+  }
+  const record = raw as Record<string, unknown>;
+  const text = (value: unknown) =>
+    typeof value === 'string'
+      ? value
+          .trim()
+          .toLowerCase()
+          .replace(/[\s-]+/g, '_')
+      : '';
+  const body = text(record.body);
+  const act = text(record.act);
+  const people = Math.round(Number(record.people));
+  const spec: ScenePoseSpec = {
+    ...(POSE_BASE_IDS.has(body) ? { body: body as PoseGuideBase } : {}),
+    ...(Number.isFinite(people) && people >= 1 && people <= 3 ? { people } : {}),
+    ...(act === 'none' || INTIMATE_LAYOUT_IDS.has(act)
+      ? { act: act as IntimateLayout | 'none' }
+      : {}),
+  };
+  return Object.keys(spec).length > 0 ? spec : undefined;
+}
+
+/** Layout vocabulary for the scene writer's `pose.act` field. */
+export const SCENE_POSE_ACT_IDS: readonly string[] = [...INTIMATE_LAYOUT_IDS, 'none'];
+export const SCENE_POSE_BODY_IDS: readonly string[] = [...POSE_BASE_IDS];
 
 /**
  * Non-intimate duo/solo layouts that need more than base+arms
@@ -4173,12 +4269,70 @@ export function synthesizeSocialStickFigures(intent: PoseGuideIntent): StickSkel
 }
 
 /** Synthesize 1–3 stick figures laid out for the scene. */
+export type SceneStickOptions = {
+  forcePeople?: number;
+  clothedUprightOnly?: boolean;
+  allowIntimate?: boolean;
+  /** Scene writer's structured pose; outranks the text read where it speaks. */
+  pose?: ScenePoseSpec;
+  /**
+   * Reroll variant: 0 is the stable drawing; higher values reseed the layout and mirror it on
+   * odd variants, so a retry tries a different body arrangement instead of the same one.
+   */
+  variant?: number;
+};
+
 export function synthesizeSceneStickFigures(
   text: string | null | undefined,
   fallbackIndex = 0,
-  options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
+  options?: SceneStickOptions
 ): { intent: PoseGuideIntent; figures: StickSkeleton[] } {
-  const intent = parsePoseGuideIntent(text, fallbackIndex, options);
+  const variant = Math.max(0, Math.round(options?.variant ?? 0));
+  const result = synthesizeSceneStickFiguresBase(text, fallbackIndex, options, variant);
+  if (variant % 2 === 1) {
+    return { ...result, figures: result.figures.map(figure => mirrorStickSkeleton(figure)) };
+  }
+  return result;
+}
+
+function applyScenePoseSpec(
+  intent: PoseGuideIntent,
+  spec: ScenePoseSpec | undefined,
+  options: SceneStickOptions | undefined
+): PoseGuideIntent {
+  if (!spec) {
+    return intent;
+  }
+  let next = intent;
+  if (spec.act === 'none') {
+    next = { ...next, intimate: null };
+  } else if (spec.act && options?.allowIntimate !== false) {
+    next = { ...next, intimate: spec.act, social: null, base: intimateBaseForLayout(spec.act) };
+  }
+  if (spec.body && !next.intimate) {
+    next = { ...next, base: spec.body };
+  }
+  if (spec.people && options?.forcePeople == null) {
+    next = { ...next, people: spec.people };
+  }
+  return next;
+}
+
+function synthesizeSceneStickFiguresBase(
+  text: string | null | undefined,
+  fallbackIndex: number,
+  options: SceneStickOptions | undefined,
+  variant: number
+): { intent: PoseGuideIntent; figures: StickSkeleton[] } {
+  const parsed = applyScenePoseSpec(
+    parsePoseGuideIntent(text, fallbackIndex, options),
+    options?.pose,
+    options
+  );
+  const intent =
+    variant > 0
+      ? { ...parsed, seed: (parsed.seed ^ Math.imul(variant, 0x9e3779b1)) >>> 0 }
+      : parsed;
   if (intent.intimate) {
     const figures = synthesizeIntimateStickFigures(intent);
     return {
@@ -4383,15 +4537,10 @@ export function resolvePoseGuideVisualStyle(
   model?: string | null,
   preference?: PoseGuideStylePreference | null
 ): PoseGuideVisualStyle {
-  if (normalizePoseGuideStylePreference(preference) === 'openpose') {
+  if (isOpenPoseStyle(preference)) {
     return 'openpose';
   }
   return usesOutlineGrayPoseGuide(model) ? 'outline-gray' : 'filled';
-}
-
-/** Prompt-side style for a drawn guide (both legacy arts share the legacy cue family). */
-export function poseGuideStylePreferenceFor(style: PoseGuideVisualStyle): PoseGuideStylePreference {
-  return style === 'openpose' ? 'openpose' : 'legacy';
 }
 
 function drawStickLimbStroke(
@@ -4527,7 +4676,7 @@ export function drawDayPoseGuide(
 ): void {
   const skeleton = SLOT_SKELETONS[normalizePoseKey(slotId)] ?? SLOT_SKELETONS.afternoon;
   if (visualStyle === 'openpose') {
-    drawOpenPoseFigures(ctx, [skeleton], WIDTH, HEIGHT);
+    drawOpenPoseFigures(ctx, [skeleton]);
     return;
   }
   const outline = RAPID_AIO_OUTLINE_PALETTE[0]!;
@@ -4555,13 +4704,13 @@ function drawPoseGuideFiguresFromScene(
   text: string | null | undefined,
   fallbackIndex: number,
   visualStyle: PoseGuideVisualStyle,
-  options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
+  options?: SceneStickOptions
 ): { intent: PoseGuideIntent; figures: StickSkeleton[] } {
   const { intent, figures } = synthesizeSceneStickFigures(text, fallbackIndex, options);
   if (visualStyle === 'openpose') {
     // Pure keypoint map — no wall/chaise props: gray blocks are not part of the format the
     // model learned, and the beat text already names the furniture.
-    drawOpenPoseFigures(ctx, figures, WIDTH, HEIGHT);
+    drawOpenPoseFigures(ctx, figures);
     return { intent, figures };
   }
   if (intent.intimate === 'wall') {
@@ -4637,28 +4786,47 @@ export function dayPoseGuideSize(): { width: number; height: number } {
   return { width: WIDTH, height: HEIGHT };
 }
 
-/** A rasterized Image 3 guide plus what the prompt needs to describe it. */
+/** A rasterized Image 3 guide plus what the prompt (and pose check) need to know about it. */
 export type PoseGuideBuild = {
   file: File;
   style: PoseGuideVisualStyle;
+  /** Effective Settings style (OpenPose, OpenPose + hands, or legacy) for the prompt cue. */
+  stylePreference: PoseGuideStylePreference;
   /** Figures actually drawn (1–3). */
   figureCount: number;
   /** OpenPose multi-figure only: where the lead (Image 1) skeleton sits. */
   leadPosition: PoseLeadPosition | null;
   /** Layout label, for logs and the file name. */
   label: string;
+  /** Pose-library key for this layout (`bent:2`, `sit:1`, …). */
+  poseKey: string;
+  /** Guide canvas size — matches the Image 1 aspect when it was known. */
+  canvas: { width: number; height: number };
+  /** Lead-first body keypoints, normalized 0–1 of the canvas — what the pose check compares. */
+  keypoints: NormalizedBody[];
+  /** Library entry id when the guide reused a harvested pose. */
+  libraryEntryId?: string;
+};
+
+export type PoseGuideBuildOptions = SceneStickOptions & {
+  stylePreference?: PoseGuideStylePreference | null;
+  /** Image 1 pixel size — the still renders at this aspect, so the guide should too. */
+  aspect?: { width: number; height: number } | null;
+  /** Harvested poses to draw from (see `pose-library.ts`). */
+  library?: PoseLibraryEntry[];
 };
 
 async function canvasToPoseGuideFile(
   draw: (ctx: CanvasRenderingContext2D) => string,
-  filenamePrefix: string
+  filenamePrefix: string,
+  size: { width: number; height: number } = { width: WIDTH, height: HEIGHT }
 ): Promise<File> {
   if (typeof document === 'undefined') {
     throw new Error('Pose guide needs a browser canvas.');
   }
   const canvas = document.createElement('canvas');
-  canvas.width = WIDTH;
-  canvas.height = HEIGHT;
+  canvas.width = size.width;
+  canvas.height = size.height;
   const ctx = canvas.getContext('2d');
   if (!ctx) {
     throw new Error('Could not create a 2D canvas for the pose guide.');
@@ -4683,40 +4851,167 @@ async function canvasToPoseGuideFile(
   });
 }
 
+function normalizePeople(
+  people: OpenPosePerson[],
+  width: number,
+  height: number
+): NormalizedBody[] {
+  return people.map(person =>
+    person.body.map(p => (p ? { x: p.x / width, y: p.y / height } : null))
+  );
+}
+
+/**
+ * Everything about an OpenPose guide except the rasterizing: canvas (aspect + framing), people
+ * (synthesized or from the library), lead position and normalized keypoints. Pure, so it is
+ * testable without a browser canvas.
+ */
+export function planOpenPoseGuide(input: {
+  intent: PoseGuideIntent;
+  figures: StickSkeleton[];
+  sceneText?: string | null;
+  aspect?: { width: number; height: number } | null;
+  hands?: boolean;
+  library?: PoseLibraryEntry[];
+  variant?: number;
+}): {
+  canvas: { width: number; height: number };
+  people: OpenPosePerson[];
+  leadPosition: PoseLeadPosition | null;
+  keypoints: NormalizedBody[];
+  poseKey: string;
+  libraryEntryId?: string;
+} {
+  const size = poseGuideCanvasSize(input.aspect);
+  const poseKey = poseLibraryKey({
+    intimate: input.intent.intimate,
+    social: input.intent.social,
+    base: input.intent.base,
+    people: input.figures.length,
+  });
+  const entry = pickPoseLibraryEntry(
+    input.library ?? [],
+    poseKey,
+    input.intent.seed,
+    input.variant ?? 0
+  );
+  let people: OpenPosePerson[];
+  if (entry) {
+    people = placeLibraryPeople(entry, size.width, size.height);
+  } else {
+    // Solo beats that name a shot size get a cropped guide; duos keep everyone in frame.
+    // Portrait guides keep the authored placement; square/landscape ones frame the people.
+    const framed =
+      input.figures.length === 1
+        ? poseFramingRegion(input.figures[0]!, resolvePoseFraming(input.sceneText))
+        : null;
+    const portrait = Math.abs(size.width / size.height - WIDTH / HEIGHT) < 0.02;
+    const region = framed ?? (portrait ? null : poseFiguresRegion(input.figures));
+    const canvas = resolvePoseCanvas({ ...size, region });
+    people = input.figures.map(figure =>
+      stickToOpenPosePerson(figure, canvas, { hands: input.hands })
+    );
+  }
+  return {
+    canvas: size,
+    people,
+    leadPosition: resolvePoseLeadPosition(people.map(person => person.body)),
+    keypoints: normalizePeople(people, size.width, size.height),
+    poseKey,
+    ...(entry ? { libraryEntryId: entry.id } : {}),
+  };
+}
+
 async function buildSceneGuide(
   sceneText: string,
   fallbackIndex: number,
   style: PoseGuideVisualStyle,
+  stylePreference: PoseGuideStylePreference,
   filenamePrefix: string,
-  options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
+  options?: PoseGuideBuildOptions
 ): Promise<PoseGuideBuild> {
-  const drawn: { intent?: PoseGuideIntent; figures: StickSkeleton[] } = { figures: [] };
+  const { intent, figures } = synthesizeSceneStickFigures(sceneText, fallbackIndex, options);
+  if (style === 'openpose') {
+    const plan = planOpenPoseGuide({
+      intent,
+      figures,
+      sceneText,
+      aspect: options?.aspect,
+      hands: poseGuideStyleDrawsHands(stylePreference),
+      library: options?.library,
+      variant: options?.variant,
+    });
+    const file = await canvasToPoseGuideFile(
+      ctx => {
+        drawOpenPosePeople(ctx, plan.people, plan.canvas.width, plan.canvas.height);
+        return plan.libraryEntryId ? `${intent.label}-lib` : intent.label;
+      },
+      filenamePrefix,
+      plan.canvas
+    );
+    return {
+      file,
+      style,
+      stylePreference,
+      figureCount: plan.people.length,
+      leadPosition: plan.leadPosition,
+      label: intent.label,
+      poseKey: plan.poseKey,
+      canvas: plan.canvas,
+      keypoints: plan.keypoints,
+      ...(plan.libraryEntryId ? { libraryEntryId: plan.libraryEntryId } : {}),
+    };
+  }
+  // Legacy art stays on the fixed 512×768 design canvas.
   const file = await canvasToPoseGuideFile(ctx => {
-    const result = drawPoseGuideFiguresFromScene(ctx, sceneText, fallbackIndex, style, options);
-    drawn.intent = result.intent;
-    drawn.figures = result.figures;
-    return result.intent.label;
+    drawPoseGuideFiguresFromScene(ctx, sceneText, fallbackIndex, style, options);
+    return intent.label;
   }, filenamePrefix);
-  const { figures } = drawn;
+  const people = figures.map(figure => stickToOpenPosePerson(figure, DEFAULT_POSE_CANVAS));
   return {
     file,
     style,
+    stylePreference,
     figureCount: figures.length,
-    leadPosition: style === 'openpose' ? resolvePoseLeadPosition(figures, WIDTH, HEIGHT) : null,
-    label: drawn.intent?.label ?? 'scene',
+    leadPosition: null,
+    label: intent.label,
+    poseKey: poseLibraryKey({
+      intimate: intent.intimate,
+      social: intent.social,
+      base: intent.base,
+      people: figures.length,
+    }),
+    canvas: { width: WIDTH, height: HEIGHT },
+    keypoints: normalizePeople(people, WIDTH, HEIGHT),
   };
 }
 
 async function buildSlotGuide(
   poseKey: PoseGuideKey,
   style: PoseGuideVisualStyle,
+  stylePreference: PoseGuideStylePreference,
   filenamePrefix: string
 ): Promise<PoseGuideBuild> {
+  const skeleton = SLOT_SKELETONS[poseKey] ?? SLOT_SKELETONS.afternoon;
   const file = await canvasToPoseGuideFile(ctx => {
     drawDayPoseGuide(ctx, poseKey, style);
     return poseKey;
   }, filenamePrefix);
-  return { file, style, figureCount: 1, leadPosition: null, label: poseKey };
+  return {
+    file,
+    style,
+    stylePreference,
+    figureCount: 1,
+    leadPosition: null,
+    label: poseKey,
+    poseKey: `slot-${poseKey}:1`,
+    canvas: { width: WIDTH, height: HEIGHT },
+    keypoints: normalizePeople(
+      [stickToOpenPosePerson(skeleton, DEFAULT_POSE_CANVAS)],
+      WIDTH,
+      HEIGHT
+    ),
+  };
 }
 
 /** Browser-only: rasterize the Day slot pose guide to a PNG for Comfy Image 3. */
@@ -4724,27 +5019,22 @@ export async function buildDayPoseGuide(
   slotId: DaySlotId,
   sceneText?: string | null,
   model?: string | null,
-  options?: {
-    forcePeople?: number;
-    clothedUprightOnly?: boolean;
-    allowIntimate?: boolean;
-    stylePreference?: PoseGuideStylePreference | null;
-  }
+  options?: PoseGuideBuildOptions
 ): Promise<PoseGuideBuild> {
-  const style = resolvePoseGuideVisualStyle(model, options?.stylePreference);
+  const stylePreference = normalizePoseGuideStylePreference(options?.stylePreference);
+  const style = resolvePoseGuideVisualStyle(model, stylePreference);
   const trimmed = sceneText?.trim() || '';
   if (trimmed) {
     const fallbackIndex = Math.max(0, POSE_KEYS.indexOf(normalizePoseKey(slotId)));
-    return buildSceneGuide(trimmed, fallbackIndex, style, 'day-pose-guide', {
-      ...(options?.forcePeople != null ? { forcePeople: options.forcePeople } : {}),
+    return buildSceneGuide(trimmed, fallbackIndex, style, stylePreference, 'day-pose-guide', {
+      ...options,
       ...(options?.clothedUprightOnly ? { clothedUprightOnly: true } : {}),
-      ...(options?.allowIntimate === false ? { allowIntimate: false as const } : {}),
     });
   }
-  return buildSlotGuide(normalizePoseKey(slotId), style, 'day-pose-guide');
+  return buildSlotGuide(normalizePoseKey(slotId), style, stylePreference, 'day-pose-guide');
 }
 
-export type StoryPoseGuideInput = {
+export type StoryPoseGuideInput = PoseGuideBuildOptions & {
   title?: string | null;
   blurb?: string | null;
   prompt?: string | null;
@@ -4752,8 +5042,6 @@ export type StoryPoseGuideInput = {
   storyIndex?: number;
   /** Active Comfy model — legacy style gives Rapid AIO / Edit-2511 outline-gray guides. */
   model?: string | null;
-  /** Settings pose-guide style (OpenPose by default). */
-  stylePreference?: PoseGuideStylePreference | null;
 };
 
 /** Prefer scene text stance; otherwise cycle by story index. */
@@ -4777,11 +5065,24 @@ export function sceneTextFromStoryPoseInput(input: StoryPoseGuideInput): string 
 
 /** Browser-only: synthesize a stance from the beat scene text for Story Image 3. */
 export async function buildStoryPoseGuide(input: StoryPoseGuideInput): Promise<PoseGuideBuild> {
-  const style = resolvePoseGuideVisualStyle(input.model, input.stylePreference);
+  const stylePreference = normalizePoseGuideStylePreference(input.stylePreference);
+  const style = resolvePoseGuideVisualStyle(input.model, stylePreference);
   const sceneText = sceneTextFromStoryPoseInput(input);
   const fallbackIndex = input.storyIndex ?? 0;
   if (!sceneText) {
-    return buildSlotGuide(resolveStoryPoseGuideKey(fallbackIndex), style, 'story-pose-guide');
+    return buildSlotGuide(
+      resolveStoryPoseGuideKey(fallbackIndex),
+      style,
+      stylePreference,
+      'story-pose-guide'
+    );
   }
-  return buildSceneGuide(sceneText, fallbackIndex, style, 'story-pose-guide');
+  return buildSceneGuide(
+    sceneText,
+    fallbackIndex,
+    style,
+    stylePreference,
+    'story-pose-guide',
+    input
+  );
 }
