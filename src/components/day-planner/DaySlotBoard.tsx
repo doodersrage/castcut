@@ -38,6 +38,15 @@ export type DaySlotBoardProps = {
   clipChecks?: Record<string, ClipCheck>;
 };
 
+/** Open (and scroll to) the slot editor — it's a collapsible below the board. */
+function revealDaySlotEditor(): void {
+  if (typeof document === 'undefined') return;
+  const section = document.querySelector('[data-testid="day-slots"]')?.closest('details');
+  if (!section) return;
+  section.open = true;
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 /**
  * Morning → night board: primary way to pick which Day slot you are editing.
  * Completed thumbs stay tappable for a larger view via View / second select.
@@ -299,18 +308,35 @@ export default function DaySlotBoard({
                   type="button"
                   className={[
                     'flex w-full items-center justify-center bg-[var(--bg-muted)]/40 text-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]',
-                    compact ? 'aspect-video' : 'aspect-[4/3]',
+                    // Nothing rendered yet: a short strip, not a full-size empty frame.
+                    state === 'idle' ? 'h-12' : compact ? 'aspect-video' : 'aspect-[4/3]',
                   ].join(' ')}
                   aria-pressed={selected}
                   aria-label={
-                    selected
-                      ? `${slot.label}, selected — ${planLabel || label}`
-                      : `Select ${slot.label} — ${planLabel || label}`
+                    state === 'idle' && planEmpty
+                      ? `Add a beat for ${slot.label}`
+                      : selected
+                        ? `${slot.label}, selected — ${planLabel || label}`
+                        : `Select ${slot.label} — ${planLabel || label}`
                   }
                   data-testid={`day-slot-select-${slot.id}`}
-                  onClick={() => onSelectSlot(slot.id)}
+                  onClick={() => {
+                    onSelectSlot(slot.id);
+                    if (state === 'idle' && planEmpty) {
+                      revealDaySlotEditor();
+                    }
+                  }}
                 >
-                  <span className="type-caption">{label}</span>
+                  {state === 'idle' && planEmpty ? (
+                    <span
+                      className="type-caption inline-flex items-center gap-1 font-medium text-[var(--accent-text)]"
+                      data-testid={`day-slot-add-beat-${slot.id}`}
+                    >
+                      + Add a beat
+                    </span>
+                  ) : (
+                    <span className="type-caption">{label}</span>
+                  )}
                 </button>
               )}
               <button

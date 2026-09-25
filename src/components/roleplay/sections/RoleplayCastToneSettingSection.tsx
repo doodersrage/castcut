@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipButton, TextArea, TextInput } from '@/components/ui/Field';
 import { accentFocusClass } from '@/components/ui/ToolPageShell';
@@ -13,6 +14,20 @@ import type { RoleplayCastSectionProps } from '@/components/roleplay/roleplay-ca
 
 const ACCENT = 'amber' as const;
 
+/** Setting chips shown before "More settings…" — the full preset list is ~70 places. */
+const COMMON_SETTING_IDS = new Set([
+  'kitchen',
+  'cafe',
+  'bedroom',
+  'living-room',
+  'park',
+  'beach',
+  'rooftop',
+  'forest',
+  'neon-alley',
+  'tavern',
+]);
+
 export function RoleplayCastToneSettingSection({
   busy,
   playAs,
@@ -25,6 +40,16 @@ export function RoleplayCastToneSettingSection({
   RoleplayCastSectionProps,
   'busy' | 'playAs' | 'tone' | 'content' | 'adultEnabled' | 'toolSettings' | 'onUpdateToolSettings'
 >) {
+  const [allSettings, setAllSettings] = useState(false);
+  const currentSetting = (toolSettings.setting ?? '').trim();
+  // Keep the picked preset visible even when it isn't one of the common ones.
+  const settingChips = allSettings
+    ? ROLEPLAY_SETTING_PRESETS
+    : ROLEPLAY_SETTING_PRESETS.filter(
+        entry => COMMON_SETTING_IDS.has(entry.id) || entry.setting === currentSetting
+      );
+  const hiddenSettingCount = ROLEPLAY_SETTING_PRESETS.length - settingChips.length;
+
   return (
     <>
       <div className="space-y-2">
@@ -101,23 +126,33 @@ export function RoleplayCastToneSettingSection({
             ? 'Replaces the photo backdrop. Leave blank to invent a place per beat.'
             : 'Where opening beats happen. Leave blank to let the story pick places.'}
         </p>
-        <div className="flex flex-wrap gap-1.5">
-          {ROLEPLAY_SETTING_PRESETS.map(entry => (
+        <div className="flex flex-wrap gap-1.5" data-testid="story-setting-chips">
+          {settingChips.map(entry => (
             <ChipButton
               key={entry.id}
-              active={(toolSettings.setting ?? '').trim() === entry.setting}
+              active={currentSetting === entry.setting}
               disabled={busy}
               title={entry.setting}
               onClick={() =>
                 onUpdateToolSettings({
-                  setting:
-                    (toolSettings.setting ?? '').trim() === entry.setting ? '' : entry.setting,
+                  setting: currentSetting === entry.setting ? '' : entry.setting,
                 })
               }
             >
               {entry.label}
             </ChipButton>
           ))}
+          {allSettings || hiddenSettingCount > 0 ? (
+            <button
+              type="button"
+              className="ui-chip border-dashed"
+              aria-expanded={allSettings}
+              data-testid="story-setting-more"
+              onClick={() => setAllSettings(value => !value)}
+            >
+              {allSettings ? 'Fewer settings' : `More settings… (${hiddenSettingCount})`}
+            </button>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <TextInput

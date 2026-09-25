@@ -53,6 +53,7 @@ import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
+import DayGetStartedCard from '@/components/day-planner/DayGetStartedCard';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import {
@@ -352,9 +353,15 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               completedClips={completedClipCount}
               slotTotal={slotTotal}
             />
+            <DayGetStartedCard
+              hasCharacter={Boolean(character)}
+              hasPlate={hasPlate}
+              characterId={character?.id}
+            />
             <DayStatusStrip
               statusLine={dayStatusLine}
-              queueBlockReason={queueBlockReason}
+              // The get-started card already says what's missing.
+              queueBlockReason={character && hasPlate ? queueBlockReason : null}
               poseGuideLine={poseGuideLine}
               poseGuidePreviews={poseGuidePreviews}
             />

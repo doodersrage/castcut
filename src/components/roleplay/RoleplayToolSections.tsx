@@ -216,6 +216,10 @@ export default function RoleplayToolSections({
       variant="roleplay"
     />
   );
+  // No Cast and nothing written yet: the "Story needs a Cast" card is the whole page — beat
+  // controls would only lead to a queue blocker.
+  const needsCastGate = !activeCharacterId?.trim() && story.length === 0;
+
   return (
     <ToolLayout
       accent={ACCENT}
@@ -235,151 +239,157 @@ export default function RoleplayToolSections({
         onCancel={cancelSoftAdvance}
       />
 
-      {!film.firstCutCelebrate ? (
-        <div className="mb-3 space-y-2">
-          <StoryPlayPhaseStrip
-            activePhase={storyPhase}
-            completedStills={completedShotCount}
-            completedClips={completedClipCount}
-            beatTotal={story.length}
-          />
-          <StoryStatusStrip statusLine={storyStatusLine} queueBlockReason={queueBlockReason} />
-        </div>
-      ) : null}
-
-      {collapseEditors ? (
-        <CollapsibleSection
-          title={`Cast · ${castCharacterName || 'lead'}`}
-          summary={bio ? 'Bible set' : 'Needs bible'}
-          defaultOpen={false}
-          persistKey="story-cast-lean"
-        >
-          <RoleplayCastSection {...castProps} embedded />
-        </CollapsibleSection>
-      ) : (
+      {needsCastGate ? (
         <RoleplayCastSection {...castProps} />
-      )}
+      ) : (
+        <>
+          {!film.firstCutCelebrate ? (
+            <div className="mb-3 space-y-2">
+              <StoryPlayPhaseStrip
+                activePhase={storyPhase}
+                completedStills={completedShotCount}
+                completedClips={completedClipCount}
+                beatTotal={story.length}
+              />
+              <StoryStatusStrip statusLine={storyStatusLine} queueBlockReason={queueBlockReason} />
+            </div>
+          ) : null}
 
-      {activeCharacterId ? (
-        <RoleplayWardrobeSection
-          busy={busy}
-          toolSettings={toolSettings}
-          onUpdateToolSettings={updateToolSettings}
-          onError={message => setError(message)}
-          wardrobe={wardrobe}
-        />
-      ) : null}
+          {collapseEditors ? (
+            <CollapsibleSection
+              title={`Cast · ${castCharacterName || 'lead'}`}
+              summary={bio ? 'Bible set' : 'Needs bible'}
+              defaultOpen={false}
+              persistKey="story-cast-lean"
+            >
+              <RoleplayCastSection {...castProps} embedded />
+            </CollapsibleSection>
+          ) : (
+            <RoleplayCastSection {...castProps} />
+          )}
 
-      <RoleplayBeatOutputSection
-        storyProgress={storyProgress}
-        beatOutput={beatOutput}
-        autoQueue={autoQueue}
-        busy={busy}
-        bioPresent={Boolean(bio)}
-        scenesLoading={sceneFlow.scenesLoading}
-        scenes={sceneFlow.scenes}
-        playingId={sceneFlow.playingId}
-        error={error}
-        filmError={film.filmError}
-        filmGuideHref={film.filmGuideHref}
-        queueBlockReason={queueBlockReason}
-        content={content}
-        intimateMix={normalizeDayIntimateMix(toolSettings.intimateMix)}
-        onIntimateMixChange={next =>
-          updateToolSettings({ intimateMix: normalizeDayIntimateMix(next) })
-        }
-        onRestartStory={session.restartStory}
-        onBeatOutputChange={next => updateToolSettings({ beatOutput: next })}
-        onAutoQueueChange={next => updateToolSettings({ autoQueue: next })}
-        onRollScenes={() => void sceneFlow.rollScenes()}
-        onPlayScene={scene => void sceneFlow.playScene(scene)}
-        moodControls={
-          <RoleplayCastToneSettingSection
+          {activeCharacterId ? (
+            <RoleplayWardrobeSection
+              busy={busy}
+              toolSettings={toolSettings}
+              onUpdateToolSettings={updateToolSettings}
+              onError={message => setError(message)}
+              wardrobe={wardrobe}
+            />
+          ) : null}
+
+          <RoleplayBeatOutputSection
+            storyProgress={storyProgress}
+            beatOutput={beatOutput}
+            autoQueue={autoQueue}
             busy={busy}
-            playAs={playAsResolved}
-            tone={tone}
+            bioPresent={Boolean(bio)}
+            scenesLoading={sceneFlow.scenesLoading}
+            scenes={sceneFlow.scenes}
+            playingId={sceneFlow.playingId}
+            error={error}
+            filmError={film.filmError}
+            filmGuideHref={film.filmGuideHref}
+            queueBlockReason={queueBlockReason}
             content={content}
-            adultEnabled={adultEnabled}
-            toolSettings={toolSettings}
-            onUpdateToolSettings={updateToolSettings}
+            intimateMix={normalizeDayIntimateMix(toolSettings.intimateMix)}
+            onIntimateMixChange={next =>
+              updateToolSettings({ intimateMix: normalizeDayIntimateMix(next) })
+            }
+            onRestartStory={session.restartStory}
+            onBeatOutputChange={next => updateToolSettings({ beatOutput: next })}
+            onAutoQueueChange={next => updateToolSettings({ autoQueue: next })}
+            onRollScenes={() => void sceneFlow.rollScenes()}
+            onPlayScene={scene => void sceneFlow.playScene(scene)}
+            moodControls={
+              <RoleplayCastToneSettingSection
+                busy={busy}
+                playAs={playAsResolved}
+                tone={tone}
+                content={content}
+                adultEnabled={adultEnabled}
+                toolSettings={toolSettings}
+                onUpdateToolSettings={updateToolSettings}
+              />
+            }
           />
-        }
-      />
 
-      {showAnimateCoach ? (
-        <ToolSection
-          title="Next · Animate → Cut"
-          description="Stills are ready — animate into clips, then Cut film for a motion reel."
-          data-testid="story-animate"
-        >
-          <ToolActionRow>
-            <Button
-              variant="primary"
-              disabled={busy || film.assemblingFilm}
-              data-testid="story-animate-all"
-              onClick={() => void animateAllReady()}
+          {showAnimateCoach ? (
+            <ToolSection
+              title="Next · Animate → Cut"
+              description="Stills are ready — animate into clips, then Cut film for a motion reel."
+              data-testid="story-animate"
             >
-              Animate all ready stills
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={busy || film.assemblingFilm || story.length === 0}
-              data-testid="story-animate-cut"
-              onClick={() => void film.cutRoleplayFilm()}
-            >
-              Skip to Cut film
-            </Button>
-          </ToolActionRow>
-        </ToolSection>
-      ) : null}
+              <ToolActionRow>
+                <Button
+                  variant="primary"
+                  disabled={busy || film.assemblingFilm}
+                  data-testid="story-animate-all"
+                  onClick={() => void animateAllReady()}
+                >
+                  Animate all ready stills
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={busy || film.assemblingFilm || story.length === 0}
+                  data-testid="story-animate-cut"
+                  onClick={() => void film.cutRoleplayFilm()}
+                >
+                  Skip to Cut film
+                </Button>
+              </ToolActionRow>
+            </ToolSection>
+          ) : null}
 
-      <RoleplayStorySection
-        beatOutput={beatOutput}
-        autoQueue={autoQueue}
-        assemblingFilm={film.assemblingFilm}
-        busy={busy}
-        story={story}
-        bioPresent={Boolean(bio)}
-        castBibleHref={castHomeHref}
-        scenesLoading={sceneFlow.scenesLoading}
-        filmNeedsCast={film.filmNeedsCast}
-        filmCharacterId={film.filmCharacterId}
-        filmStatus={film.filmStatus}
-        filmError={film.filmError}
-        filmGuideHref={film.filmGuideHref}
-        firstCutCelebrate={film.firstCutCelebrate}
-        onClearFirstCutCelebrate={() => {
-          film.clearFirstCutCelebrate();
-        }}
-        downloadAction={
-          <Button
-            variant="secondary"
-            loading={session.exporting}
-            loadingLabel="Packing story"
-            disabled={(!bio && story.length === 0) || (busy && !session.exporting)}
-            onClick={() => void session.downloadStory()}
-          >
-            Download story + stills + clips
-          </Button>
-        }
-        onCutFilm={() => void film.cutRoleplayFilm()}
-        onSaveToCast={film.saveFilmToCast}
-        onShareCut={() => void film.shareLastCut()}
-        onSavePoster={() => void film.saveFilmPoster()}
-        posterBusy={film.posterBusy}
-        canShareCut={Boolean(film.filmStatus && !film.assemblingFilm)}
-        filmCutOptions={film.filmCutOptions}
-        onFilmCutOptionsChange={film.setFilmCutOptions}
-        onQueue={beat => void beatQueue.queueBeat(beat)}
-        onRetry={beat => void beatQueue.queueBeat(beat, { retry: true })}
-        onRetryClip={beat => void beatQueue.queueBeatMotion(beat, { retry: true })}
-        onAnimate={beat => void beatQueue.queueBeatMotion(beat)}
-        onExtend={extendBeat}
-        onSelectTake={session.selectStillTake}
-        onSelectClipTake={session.selectClipTake}
-        onCopy={beat => void session.copyBeatPrompt(beat)}
-        onRollScenes={() => void sceneFlow.rollScenes()}
-      />
+          <RoleplayStorySection
+            beatOutput={beatOutput}
+            autoQueue={autoQueue}
+            assemblingFilm={film.assemblingFilm}
+            busy={busy}
+            story={story}
+            bioPresent={Boolean(bio)}
+            castBibleHref={castHomeHref}
+            scenesLoading={sceneFlow.scenesLoading}
+            filmNeedsCast={film.filmNeedsCast}
+            filmCharacterId={film.filmCharacterId}
+            filmStatus={film.filmStatus}
+            filmError={film.filmError}
+            filmGuideHref={film.filmGuideHref}
+            firstCutCelebrate={film.firstCutCelebrate}
+            onClearFirstCutCelebrate={() => {
+              film.clearFirstCutCelebrate();
+            }}
+            downloadAction={
+              <Button
+                variant="secondary"
+                loading={session.exporting}
+                loadingLabel="Packing story"
+                disabled={(!bio && story.length === 0) || (busy && !session.exporting)}
+                onClick={() => void session.downloadStory()}
+              >
+                Download story + stills + clips
+              </Button>
+            }
+            onCutFilm={() => void film.cutRoleplayFilm()}
+            onSaveToCast={film.saveFilmToCast}
+            onShareCut={() => void film.shareLastCut()}
+            onSavePoster={() => void film.saveFilmPoster()}
+            posterBusy={film.posterBusy}
+            canShareCut={Boolean(film.filmStatus && !film.assemblingFilm)}
+            filmCutOptions={film.filmCutOptions}
+            onFilmCutOptionsChange={film.setFilmCutOptions}
+            onQueue={beat => void beatQueue.queueBeat(beat)}
+            onRetry={beat => void beatQueue.queueBeat(beat, { retry: true })}
+            onRetryClip={beat => void beatQueue.queueBeatMotion(beat, { retry: true })}
+            onAnimate={beat => void beatQueue.queueBeatMotion(beat)}
+            onExtend={extendBeat}
+            onSelectTake={session.selectStillTake}
+            onSelectClipTake={session.selectClipTake}
+            onCopy={beat => void session.copyBeatPrompt(beat)}
+            onRollScenes={() => void sceneFlow.rollScenes()}
+          />
+        </>
+      )}
     </ToolLayout>
   );
 }

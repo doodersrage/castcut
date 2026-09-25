@@ -111,3 +111,39 @@ export function ChipButton({
     </button>
   );
 }
+
+/** On/off option styled as a switch (role="switch") — distinct from pick-one chips. */
+export function SwitchButton({
+  checked,
+  onChange,
+  children,
+  className = '',
+  disabled = false,
+  title,
+  'data-testid': dataTestId,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  children: ReactNode;
+  className?: string;
+  disabled?: boolean;
+  title?: string;
+  'data-testid'?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      disabled={disabled}
+      title={title}
+      data-testid={dataTestId}
+      data-active={checked ? 'true' : 'false'}
+      className={`ui-switch ${className}`.trim()}
+    >
+      <span className="ui-switch-track" aria-hidden="true" />
+      {children}
+    </button>
+  );
+}

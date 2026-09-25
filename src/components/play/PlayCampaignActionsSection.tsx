@@ -133,11 +133,11 @@ export default function PlayCampaignActionsSection({
                 Continue to {resumeStep.label}
               </Button>
             ) : null}
-            {!compact || !resumeStep ? (
+            {/* Hidden until a Cast exists — a disabled primary read as the next step. */}
+            {characterId && (!compact || !resumeStep) ? (
               <Button
                 size="sm"
                 variant={resumeStep ? 'secondary' : 'primary'}
-                disabled={!characterId}
                 data-testid="play-campaign-start-moodboard"
                 onClick={() => goToStep('moodboard', activeLookPack)}
               >

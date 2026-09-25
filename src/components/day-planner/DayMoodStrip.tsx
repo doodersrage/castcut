@@ -1,6 +1,6 @@
 'use client';
 
-import { ChipButton } from '@/components/ui/Field';
+import { SwitchButton } from '@/components/ui/Field';
 import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
 import { summarizePlayChecks } from '@/lib/play-checks-readiness';
 import {
@@ -81,115 +81,153 @@ export default function DayMoodStrip({
     return null;
   }
 
+  const groupLabel = 'type-caption w-16 shrink-0 text-[var(--text-muted)]';
+
   return (
-    <div className={className.trim() || undefined} data-testid="day-mood-strip">
+    <div className={`space-y-2 ${className}`.trim()} data-testid="day-mood-strip">
       {onDayLengthChange ? (
         <div
-          className="mb-2 flex flex-wrap items-center gap-1.5"
+          className="flex flex-wrap items-center gap-x-2 gap-y-1.5"
           role="group"
           aria-label="Day length"
           data-testid="day-length"
         >
-          <span className="type-caption text-[var(--text-muted)]">Stills</span>
-          {DAY_LENGTHS.map(length => (
-            <ChipButton
-              key={length}
-              active={dayLength === length}
-              disabled={busy}
-              data-testid={`day-length-${length}`}
-              title={
-                length > 4
-                  ? `${length} stills — adds late-morning / late-night slots`
-                  : `${length} stills`
-              }
-              onClick={() => onDayLengthChange(length)}
-            >
-              {length}
-            </ChipButton>
-          ))}
+          <span className={groupLabel}>Stills</span>
+          <div className="ui-segmented" data-wrap="true">
+            {DAY_LENGTHS.map(length => (
+              <button
+                key={length}
+                type="button"
+                className="ui-segmented-item"
+                aria-pressed={dayLength === length}
+                data-active={dayLength === length ? 'true' : 'false'}
+                disabled={busy}
+                data-testid={`day-length-${length}`}
+                title={
+                  length > 4
+                    ? `${length} stills — adds late-morning / late-night slots`
+                    : `${length} stills`
+                }
+                onClick={() => onDayLengthChange(length)}
+              >
+                {length}
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
-      <div className="flex flex-wrap gap-2">
-        {onAllowCompanionsChange ? (
-          <ChipButton
-            active={allowCompanions}
-            disabled={busy}
-            data-testid="day-allow-companions"
-            title="Allow a friend or selfie companion (different face from Cast)"
-            onClick={() => onAllowCompanionsChange(!allowCompanions)}
-          >
-            Duo · companions
-          </ChipButton>
-        ) : null}
-        {onPosePriorityChange ? (
-          <ChipButton
-            active={posePriority}
-            disabled={busy}
-            data-testid="day-pose-priority"
-            title="Let the beat's pose win over the plate's stance (Qwen Edit 2511 copies Image 1 otherwise). Turn off if faces drift."
-            onClick={() => onPosePriorityChange(!posePriority)}
-          >
-            Pose over plate
-          </ChipButton>
-        ) : null}
-        {onAutoReviewStillsChange ? (
-          <ChipButton
-            active={autoReviewStills}
-            disabled={busy}
-            data-testid="day-auto-review"
-            title="Vision-check each finished still and requeue broken faces, hands, or outfits (needs a vision model)"
-            onClick={() => onAutoReviewStillsChange(!autoReviewStills)}
-          >
-            Auto-review stills
-          </ChipButton>
-        ) : null}
-        {onDayMoodChange
-          ? moodOptions.map(option => (
-              <ChipButton
+      {onDayMoodChange ? (
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1.5"
+          role="radiogroup"
+          aria-label="Day mood"
+          data-testid="day-mood-group"
+        >
+          <span className={groupLabel}>Mood</span>
+          <div className="ui-segmented" data-wrap="true">
+            {moodOptions.map(option => (
+              <button
                 key={option.id}
-                active={mood === option.id}
+                type="button"
+                role="radio"
+                className="ui-segmented-item"
+                aria-checked={mood === option.id}
+                data-active={mood === option.id ? 'true' : 'false'}
                 disabled={busy}
                 data-testid={`day-mood-${option.id}`}
                 title={option.hint}
                 onClick={() => onDayMoodChange(option.id)}
               >
                 {option.label}
-              </ChipButton>
-            ))
-          : null}
-      </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {showAdultMix ? (
-        <div className="mt-2 flex flex-wrap gap-2" data-testid="day-intimate-mix">
-          {DAY_INTIMATE_MIX_OPTIONS.map(option => (
-            <ChipButton
-              key={option.id}
-              active={mix === option.id}
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1.5"
+          role="radiogroup"
+          aria-label="Who's in the scene"
+          data-testid="day-intimate-mix"
+        >
+          <span className={groupLabel}>Mix</span>
+          <div className="ui-segmented" data-wrap="true">
+            {DAY_INTIMATE_MIX_OPTIONS.map(option => (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                className="ui-segmented-item"
+                aria-checked={mix === option.id}
+                data-active={mix === option.id ? 'true' : 'false'}
+                disabled={busy}
+                data-testid={`day-intimate-mix-${option.id}`}
+                title={option.hint}
+                onClick={() => onIntimateMixChange?.(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {onAllowCompanionsChange || onPosePriorityChange || onAutoReviewStillsChange ? (
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1"
+          role="group"
+          aria-label="Day options"
+          data-testid="day-options"
+        >
+          <span className={groupLabel}>Options</span>
+          {onAllowCompanionsChange ? (
+            <SwitchButton
+              checked={allowCompanions}
               disabled={busy}
-              data-testid={`day-intimate-mix-${option.id}`}
-              title={option.hint}
-              onClick={() => onIntimateMixChange?.(option.id)}
+              data-testid="day-allow-companions"
+              title="Allow a friend or selfie companion (different face from Cast)"
+              onChange={onAllowCompanionsChange}
             >
-              {option.label}
-            </ChipButton>
-          ))}
+              Duo · companions
+            </SwitchButton>
+          ) : null}
+          {onPosePriorityChange ? (
+            <SwitchButton
+              checked={posePriority}
+              disabled={busy}
+              data-testid="day-pose-priority"
+              title="Let the beat's pose win over the plate's stance (Qwen Edit 2511 copies Image 1 otherwise). Turn off if faces drift."
+              onChange={onPosePriorityChange}
+            >
+              Pose over plate
+            </SwitchButton>
+          ) : null}
+          {onAutoReviewStillsChange ? (
+            <SwitchButton
+              checked={autoReviewStills}
+              disabled={busy}
+              data-testid="day-auto-review"
+              title="Vision-check each finished still and requeue broken faces, hands, or outfits (needs a vision model)"
+              onChange={onAutoReviewStillsChange}
+            >
+              Auto-review stills
+            </SwitchButton>
+          ) : null}
         </div>
       ) : null}
       {!posePriority ? (
-        <p
-          className="type-caption mt-2 text-[var(--text-muted)]"
-          data-testid="day-pose-priority-hint"
-        >
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-pose-priority-hint">
           Pose over plate is off — stills will follow the plate&rsquo;s stance more closely.
         </p>
       ) : null}
       {autoReviewStills && checksLine ? (
-        <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-play-checks">
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-play-checks">
           {checksLine}
         </p>
       ) : null}
       {autoReviewStills && qualityStatus ? (
         <p
-          className="type-caption mt-2 text-[var(--text-muted)]"
+          className="type-caption text-[var(--text-muted)]"
           role="status"
           data-testid="day-quality-status"
         >
@@ -197,31 +235,31 @@ export default function DayMoodStrip({
         </p>
       ) : null}
       {allowCompanions ? (
-        <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-companions-hint">
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-companions-hint">
           Second adults allowed — friend or selfie companion with a different face (not a Cast
           twin).
         </p>
       ) : null}
       {mood === 'suggestive' ? (
-        <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-mood-hint">
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-mood-hint">
           Suggestive heat — clothed innuendo; Suggest day / Queue day mix spicy beats.
         </p>
       ) : null}
       {mood === 'sport' ? (
-        <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-mood-hint">
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-mood-hint">
           Sport — each slot picks a sport that fits that time of day (including swim, volleyball,
           boxing, surfing, and cycling road/gravel/MTB/CX/track), mid-action pose + athletic kit
           (Outfit Keep dress is discarded for the kit).
         </p>
       ) : null}
       {mood === 'vacation' ? (
-        <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-mood-hint">
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-mood-hint">
           Vacation — mixed energy: RELAXING + active (swim, kick, bike, toss, jump, dance, climb);
           Suggest day spreads pose classes so you don’t get three mid-strides.
         </p>
       ) : null}
       {mood === 'intimate' ? (
-        <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-mood-hint">
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-mood-hint">
           {mix === 'solo'
             ? 'Intimate solo — one adult; self-touch / undress beats.'
             : mix === 'duo'
@@ -230,7 +268,7 @@ export default function DayMoodStrip({
         </p>
       ) : null}
       {mood === 'raunchy' ? (
-        <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-mood-hint">
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-mood-hint">
           {mix === 'solo'
             ? 'Raunchy solo — wardrobe fails as the setup; crude self-touch is the punchline.'
             : mix === 'duo'
@@ -239,7 +277,7 @@ export default function DayMoodStrip({
         </p>
       ) : null}
       {!intimateEnabled ? (
-        <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-mood-nsfw-hint">
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-mood-nsfw-hint">
           Intimate and Raunchy stay off until the NSFW generator env flag is enabled.
         </p>
       ) : null}

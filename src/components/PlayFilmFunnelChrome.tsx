@@ -13,7 +13,8 @@ type PlayFilmFunnelChromeProps = {
 
 /**
  * Persistent Film session chrome: step chips + Continue CTA + Identity ready.
- * Mount on Look / Outfit / Day / Story (desk + phone).
+ * Mount on Look / Outfit / Day / Story (desk + phone). Each child renders null until there is
+ * Film progress (or an identity status), so the frame hides itself while it has nothing inside.
  */
 export default function PlayFilmFunnelChrome({
   compact = false,
@@ -21,11 +22,11 @@ export default function PlayFilmFunnelChrome({
 }: PlayFilmFunnelChromeProps) {
   return (
     <div
-      className={
+      className={`${
         compact
           ? 'space-y-2'
           : 'mb-3 space-y-2 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-3 py-3'
-      }
+      } [&:not(:has([data-testid]))]:hidden`}
       data-testid="play-film-funnel-chrome"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">

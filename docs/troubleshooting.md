@@ -140,7 +140,7 @@ leaning, walking), Day now drops the identity lock to 0.22 and raises denoise â€
 Vacation and Suggestive already used. Standing gestures (waving, sipping, pockets) are left
 alone, since they cost identity for nothing.
 
-The **Pose over plate** chip under the slot board turns this off. Do that if faces drift more
+The **Pose over plate** switch under the slot board turns this off. Do that if faces drift more
 than the posing is worth; the trade is real, which is why it is a chip and not a constant.
 
 ### A posture beat still renders standing

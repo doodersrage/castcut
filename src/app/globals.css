@@ -638,8 +638,8 @@ html[data-density='comfortable'] .ui-tool-header {
 
 /* Calm UI — quieter ambient + less hover motion */
 html[data-calm='true'] {
-  --transition-interactive: color 160ms ease, background-color 160ms ease, border-color 160ms ease,
-    box-shadow 160ms ease;
+  --transition-interactive:
+    color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
   --ambient-orb-opacity: 0.28;
 }
 
@@ -834,7 +834,9 @@ html[data-theme='light'] .ui-media-card:hover {
   border-radius: var(--radius-lg);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-card);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .ui-card:hover {
@@ -846,7 +848,9 @@ html[data-theme='light'] .ui-media-card:hover {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--bg-muted);
-  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
 }
 
 .ui-surface-interactive:hover {
@@ -1268,9 +1272,7 @@ html[data-workspace='play'] .play-engine-popover-float {
 .ui-setup-banner {
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-xl);
-  background:
-    linear-gradient(120deg, rgb(56 189 248 / 0.08), transparent 55%),
-    var(--accent-muted);
+  background: linear-gradient(120deg, rgb(56 189 248 / 0.08), transparent 55%), var(--accent-muted);
   padding: var(--space-4);
   box-shadow: var(--shadow-surface);
 }
@@ -1279,9 +1281,7 @@ html[data-workspace='play'] .play-engine-popover-float {
   padding: var(--space-4);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.02), transparent 40%),
-    var(--bg-muted);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.02), transparent 40%), var(--bg-muted);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
   transition: var(--transition-interactive);
 }
@@ -1923,6 +1923,88 @@ html[data-theme='light'] .ui-input:active:not(:disabled) {
 .ui-chip[data-active='true']:hover:not(:disabled) {
   border-color: var(--accent-border);
   background: color-mix(in oklab, var(--accent-muted) 85%, white 8%);
+}
+
+/* On/off option: a chip with a leading switch track so it doesn't read as a pick-one chip. */
+.ui-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  padding: 0.3rem 0.5rem 0.3rem 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: var(--transition-interactive);
+}
+
+.ui-switch:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.ui-switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.ui-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ui-switch-track {
+  position: relative;
+  flex: none;
+  width: 1.75rem;
+  height: 1rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-muted);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.ui-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: calc(1rem - 4px);
+  height: calc(1rem - 4px);
+  border-radius: var(--radius-full);
+  background: var(--text-muted);
+  transition:
+    transform var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.ui-switch[aria-checked='true'] {
+  color: var(--text-primary);
+}
+
+.ui-switch[aria-checked='true'] .ui-switch-track {
+  border-color: var(--accent-active);
+  background: var(--accent-active);
+}
+
+.ui-switch[aria-checked='true'] .ui-switch-track::after {
+  transform: translateX(0.75rem);
+  background: white;
+}
+
+.ui-segmented[data-wrap='true'] {
+  flex-wrap: wrap;
+}
+
+.ui-segmented-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 /* ─── Navigation ────────────────────────────────────────────────────────── */
@@ -2734,8 +2816,7 @@ html[data-theme='light'] .ui-modal-card {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 20%, rgb(255 255 255 / 0.03), transparent 55%),
-    var(--bg-base);
+    radial-gradient(circle at 50% 20%, rgb(255 255 255 / 0.03), transparent 55%), var(--bg-base);
 }
 
 .ui-gallery-caption {
@@ -2803,7 +2884,11 @@ html[data-theme='light'] .ui-modal-card {
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-xl);
   background:
-    linear-gradient(145deg, color-mix(in oklab, var(--accent-muted) 80%, transparent), transparent 55%),
+    linear-gradient(
+      145deg,
+      color-mix(in oklab, var(--accent-muted) 80%, transparent),
+      transparent 55%
+    ),
     color-mix(in oklab, var(--bg-elevated) 88%, transparent);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
   padding: var(--space-3);
@@ -2841,4 +2926,3 @@ html[data-theme='light'] .ui-modal-card {
     text-decoration: underline;
   }
 }
-

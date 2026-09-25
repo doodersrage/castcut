@@ -10,6 +10,7 @@ import DayRemixMenu from '@/components/day-planner/DayRemixMenu';
 import DaySeriesPanel from '@/components/day-planner/DaySeriesPanel';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
+import DayGetStartedCard from '@/components/day-planner/DayGetStartedCard';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
@@ -321,9 +322,16 @@ export default function MobileDayToolSections(vm: ViewModel) {
             completedClips={completedClipCount}
             slotTotal={slotTotal}
           />
+          <DayGetStartedCard
+            hasCharacter={Boolean(character)}
+            hasPlate={hasPlate}
+            characterId={character?.id}
+            mobile
+          />
           <DayStatusStrip
             statusLine={dayStatusLine}
-            queueBlockReason={queueBlockReason}
+            // The get-started card already says what's missing.
+            queueBlockReason={character && hasPlate ? queueBlockReason : null}
             poseGuideLine={poseGuideLine}
             poseGuidePreviews={poseGuidePreviews}
           />
@@ -950,6 +958,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         }
         defaultOpen={setupDefaultOpen}
         persistKey="mobile-day-setup-lean"
+        className="day-character-section"
       >
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
           <div data-testid="day-character">

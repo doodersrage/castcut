@@ -39,7 +39,8 @@ test('play campaign wizard loads with steps and share controls', async ({ page }
   await expect(page.getByTestId('play-campaign-step-day')).toBeVisible();
   await expect(page.getByTestId('play-campaign-step-roleplay')).toBeVisible();
   await expect(page.getByTestId('play-campaign-step-roleplay-locked')).toBeVisible();
-  await expect(page.getByTestId('play-campaign-start-moodboard')).toBeVisible();
+  // No Cast yet — the disabled "Start at Look" stays hidden until one exists.
+  await expect(page.getByTestId('play-campaign-start-moodboard')).toHaveCount(0);
 });
 
 test('fitting room happy path chrome loads', async ({ page }) => {
@@ -67,6 +68,33 @@ test('day planner happy path chrome loads', async ({ page }) => {
   await expect(
     page.getByTestId('day-reel').getByRole('button', { name: /Cut film/i })
   ).toBeVisible();
+});
+
+test('day without a Cast leads with the get-started card', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: '' },
+    characters: { version: 1, characters: [], removedIds: [] },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  const card = page.getByTestId('day-get-started');
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  await expect(card).toContainText(/Day needs a Cast lead/i);
+  await expect(page.getByTestId('day-get-started-starter')).toBeVisible();
+  await page.getByTestId('day-get-started-setup').click();
+  await expect(page.getByTestId('day-character')).toBeVisible();
+
+  // Options read as switches, mood as a pick-one group.
+  await expect(page.getByRole('switch', { name: /Pose over plate/i })).toHaveAttribute(
+    'aria-checked',
+    'true'
+  );
+  const companions = page.getByRole('switch', { name: /Duo · companions/i });
+  await companions.click();
+  await expect(companions).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('radiogroup', { name: 'Day mood' })).toBeVisible();
+  // Nothing planned yet: slot cards offer "Add a beat".
+  await expect(page.locator('[data-testid^="day-slot-add-beat-"]').first()).toBeVisible();
 });
 
 test('moodboard look extract controls load', async ({ page }) => {
@@ -1172,6 +1200,8 @@ test('story without Cast shows Open Film gate', async ({ page }) => {
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('story-needs-cast')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('story-open-film')).toBeVisible();
+  // The gate is the whole page — no beat controls that could only hit a queue blocker.
+  await expect(page.getByRole('button', { name: 'Clip', exact: true })).toHaveCount(0);
 });
 
 test('film create includes Part and From photo cast identity', async ({ page }) => {
