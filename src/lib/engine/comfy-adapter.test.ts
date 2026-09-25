@@ -14,6 +14,17 @@ import {
 import { buildDiffusersViewPath, buildEngineViewPath, buildFalViewPath, buildNamedCloudViewPath, buildReplicateViewPath } from "./view-paths";
 
 describe("engine adapter", () => {
+  it("builds a ComfyUI view path for gallery entries without an engine URL", () => {
+    // Imported / saved-film entries can lack comfyUrl; the Cast home crashed on them.
+    const image = { filename: "film.webm", subfolder: "", type: "output" };
+    const path = buildEngineViewPath(undefined, undefined, image);
+    assert.equal(path, "/api/comfyui/view?filename=film.webm&subfolder=&type=output");
+    assert.match(
+      buildEngineViewPath("comfyui", "http://127.0.0.1:8188/", image),
+      /comfyUrl=http%3A%2F%2F127\.0\.0\.1%3A8188$/
+    );
+  });
+
   it("defaults to ComfyUI outside the browser", () => {
     assert.equal(getEngineAdapter().id, "comfyui");
     assert.equal(getEngineAdapter(), comfyEngineAdapter);

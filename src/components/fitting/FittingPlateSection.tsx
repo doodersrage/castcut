@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import UploadButton from '@/components/ui/UploadButton';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
@@ -41,43 +42,6 @@ export type FittingPlateSectionProps = {
   /** Look link for the empty state (extract a look → new plate). */
   lookHref?: string;
 };
-
-/** File picker styled as a button (the bare input read as a form field). */
-function PlateUploadButton({
-  label,
-  variant,
-  disabled,
-  onFile,
-}: {
-  label: string;
-  variant: 'primary' | 'secondary';
-  disabled: boolean;
-  onFile: (file: File) => void;
-}) {
-  return (
-    <label
-      className={`${variant === 'primary' ? 'ui-btn-primary' : 'ui-btn-secondary'} inline-flex cursor-pointer items-center justify-center px-3 py-1.5 text-sm focus-within:ring-2 focus-within:ring-[var(--accent-ring)] ${
-        disabled ? 'pointer-events-none opacity-55' : ''
-      }`}
-    >
-      {label}
-      <input
-        type="file"
-        accept="image/*"
-        aria-label="Upload Cast plate photo"
-        disabled={disabled}
-        className="sr-only"
-        onChange={event => {
-          const file = event.target.files?.[0];
-          event.target.value = '';
-          if (file) {
-            onFile(file);
-          }
-        }}
-      />
-    </label>
-  );
-}
 
 export default function FittingPlateSection({
   busy,
@@ -163,7 +127,8 @@ export default function FittingPlateSection({
             className="max-h-64 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
           />
           <div className="flex flex-wrap items-center gap-2">
-            <PlateUploadButton
+            <UploadButton
+              ariaLabel="Upload Cast plate photo"
               label="Replace"
               variant="secondary"
               disabled={busy || referenceUploading}
@@ -197,7 +162,8 @@ export default function FittingPlateSection({
             extract a look in Look.
           </p>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
-            <PlateUploadButton
+            <UploadButton
+              ariaLabel="Upload Cast plate photo"
               label="Upload plate"
               variant="primary"
               disabled={busy || referenceUploading}

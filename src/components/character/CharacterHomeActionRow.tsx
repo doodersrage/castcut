@@ -33,7 +33,9 @@ export default function CharacterHomeActionRow({
         </Button>
       </ToolActionRow>
       <div data-testid="character-home-continue">
-        <p className="type-caption mb-2 text-[var(--text-muted)]">Continue reel</p>
+        <p className="type-caption mb-2 text-[var(--text-muted)]">
+          Continue with this character in
+        </p>
         <ToolActionRow>
           <Button
             size="sm"

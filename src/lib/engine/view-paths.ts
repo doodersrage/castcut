@@ -78,10 +78,13 @@ export function buildNamedCloudViewPath(
 
 export function buildEngineViewPath(
   engineId: EngineId | undefined,
-  engineUrl: string,
+  engineUrlInput: string | null | undefined,
   image: EngineOutputImage,
   options?: EngineViewPathOptions
 ): string {
+  // Older / imported gallery entries (e.g. saved films) can lack an engine URL; the view route
+  // falls back to the configured ComfyUI when `comfyUrl` is absent, so omit it instead of crashing.
+  const engineUrl = engineUrlInput?.trim() ?? '';
   const cacheKey = buildCacheKey(engineId, engineUrl, image, options?.width);
   const cached = _viewPathCache.get(cacheKey);
   if (cached) return cached;
@@ -96,8 +99,10 @@ export function buildEngineViewPath(
       filename: image.filename,
       subfolder: image.subfolder,
       type: image.type,
-      comfyUrl: engineUrl.replace(/\/+$/, ''),
     });
+    if (engineUrl) {
+      params.set('comfyUrl', engineUrl.replace(/\/+$/, ''));
+    }
     appendWidth(params, image, options);
     result = `/api/comfyui/view?${params.toString()}`;
   }

@@ -588,6 +588,8 @@ test('cast films tab and continue roleplay work for Play characters', async ({ p
   await gotoStable(page, `/characters/${characterId}`);
   await dismissBlockingOverlays(page);
   await expect(page.getByRole('heading', { name: /Play E2E/i })).toBeVisible({ timeout: 30_000 });
+  // Media sits on the Film & media tab.
+  await page.getByRole('tab', { name: /Film & media/i }).click();
   await expect(page.getByRole('tab', { name: /Films/i })).toBeVisible();
   await page.getByRole('tab', { name: /Films/i }).click();
   await expect(page.getByTestId('cast-continue-roleplay')).toBeVisible();
@@ -958,6 +960,49 @@ test('play campaign shows complete state after durable completedAt', async ({ pa
     /media=films/
   );
   await expect(page.getByTestId('play-campaign-start-new')).toBeVisible();
+});
+
+test('cast home: tabs, plate empty state, no server/client title swap', async ({ page }) => {
+  // The server can't see the Cast store: it used to render "Character not found" and the
+  // client swapped in the name (a hydration mismatch). Now both render a loading state first.
+  let serverHtml = '';
+  await page.route('**/characters/e2e-cast-tabs', async route => {
+    const response = await route.fetch();
+    serverHtml = await response.text();
+    await route.fulfill({ response, body: serverHtml });
+  });
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [
+          { id: 'e2e-cast-tabs', name: 'Tabs Cast', version: 1, updatedAt: Date.now() },
+        ],
+        removedIds: [],
+      })
+    );
+  });
+  await gotoStable(page, '/characters/e2e-cast-tabs');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByRole('heading', { name: 'Tabs Cast', level: 1 })).toBeVisible({
+    timeout: 30_000,
+  });
+  // Overview leads with the plate: a real empty state, not a bare file input.
+  const empty = page.getByTestId('cast-look-plate-empty');
+  await expect(empty).toBeVisible();
+  await expect(empty.getByText('Upload plate')).toBeVisible();
+  await expect(page.getByTestId('character-film-studio')).toHaveCount(0);
+
+  await page.getByRole('tab', { name: 'Bible' }).click();
+  await expect(page.getByTestId('bible-paste')).not.toHaveAttribute('open', '');
+
+  await page.getByRole('tab', { name: /Film & media/i }).click();
+  await expect(page.getByTestId('character-film-studio')).toBeVisible();
+  await expect(page.getByTestId('character-film-cut-options')).toContainText(/Cut options/);
+  await expect(page.getByTestId('cast-media')).toBeVisible();
+
+  expect(serverHtml).not.toContain('Character not found');
 });
 
 test('cast media=films deep-link opens Films tab and Film studio', async ({ page }) => {

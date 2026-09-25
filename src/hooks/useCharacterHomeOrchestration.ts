@@ -73,6 +73,18 @@ function subscribeGallery(onStoreChange: () => void): () => void {
   };
 }
 
+/** Cast home tabs — the page was nine stacked sections (about 5,000px on a phone). */
+export const CHARACTER_HOME_TABS = ['overview', 'bible', 'film', 'more'] as const;
+export type CharacterHomeTab = (typeof CHARACTER_HOME_TABS)[number];
+
+export function isCharacterHomeTab(value: string | null | undefined): value is CharacterHomeTab {
+  return (CHARACTER_HOME_TABS as readonly string[]).includes(value ?? '');
+}
+
+const subscribeNoop = () => () => undefined;
+const returnTrue = () => true;
+const returnFalse = () => false;
+
 export function useCharacterHomeOrchestration(characterId: string) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -84,6 +96,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
   const gallery = useSyncExternalStore(subscribeGallery, getGalleryCache, () => EMPTY_GALLERY);
   const [lookName, setLookName] = useState('');
   const [mediaTab, setMediaTab] = useState<MediaTab>('all');
+  const [homeTab, setHomeTab] = useState<CharacterHomeTab>('overview');
   const [continueError, setContinueError] = useState<string | null>(null);
   const [lookPackStatus, setLookPackStatus] = useState<string | null>(null);
   const [plateUploading, setPlateUploading] = useState(false);
@@ -101,11 +114,25 @@ export function useCharacterHomeOrchestration(characterId: string) {
       media === 'films' ||
       media === 'keepers'
     ) {
-      scheduleAfterCommit(() => setMediaTab(media));
+      scheduleAfterCommit(() => {
+        setMediaTab(media);
+        // Media lives on the Film & media tab.
+        setHomeTab('film');
+      });
+      return;
+    }
+    const tab = searchParams.get('tab')?.trim().toLowerCase();
+    if (isCharacterHomeTab(tab)) {
+      scheduleAfterCommit(() => setHomeTab(tab));
     }
   }, [searchParams]);
 
-  const character = characters.find(entry => entry.id === characterId) ?? getCharacter(characterId);
+  // The Cast store lives in browser storage: the server (and the hydration pass) can't see it,
+  // so hold the page until mounted instead of rendering "Character not found" then swapping.
+  const hydrated = useSyncExternalStore(subscribeNoop, returnTrue, returnFalse);
+  const character = hydrated
+    ? (characters.find(entry => entry.id === characterId) ?? getCharacter(characterId))
+    : undefined;
 
   // Opening a Cast profile activates that Cast so nav → Story/Film/Outfit matches profile CTAs.
   useEffect(() => {
@@ -406,6 +433,9 @@ export function useCharacterHomeOrchestration(characterId: string) {
   });
 
   return {
+    hydrated,
+    homeTab,
+    setHomeTab,
     character,
     router,
     lookName,

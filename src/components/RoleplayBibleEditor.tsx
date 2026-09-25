@@ -118,27 +118,35 @@ export default function RoleplayBibleEditor({
       <Button type="button" variant="secondary" disabled={disabled} onClick={applyFromFields}>
         {applyLabel}
       </Button>
-      <label className="block space-y-1.5 text-sm">
-        <span className="type-caption text-[var(--text-muted)]">Or paste a bible</span>
-        <TextArea
-          value={paste}
-          disabled={disabled}
-          rows={4}
-          placeholder={
-            'Name: Mara Quill\nLook: ink-stained coat, satchel, gold-rim glasses\nPersonality: dry, loyal, always late\nCatchphrase: notes first'
-          }
-          onChange={event => setPaste(event.target.value)}
-          className={accentClass}
-        />
-      </label>
-      <Button
-        type="button"
-        variant="ghost"
-        disabled={disabled || !paste.trim()}
-        onClick={applyFromPaste}
-      >
-        Use pasted bible
-      </Button>
+      {/* Pasting is the rarer path — keep it folded under the fields. */}
+      <details className="space-y-2" data-testid="bible-paste">
+        <summary className="type-caption cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+          Or paste a whole bible…
+        </summary>
+        <div className="mt-2 space-y-2">
+          <label className="block space-y-1.5 text-sm">
+            <span className="sr-only">Paste a bible</span>
+            <TextArea
+              value={paste}
+              disabled={disabled}
+              rows={4}
+              placeholder={
+                'Name: Mara Quill\nLook: ink-stained coat, satchel, gold-rim glasses\nPersonality: dry, loyal, always late\nCatchphrase: notes first'
+              }
+              onChange={event => setPaste(event.target.value)}
+              className={accentClass}
+            />
+          </label>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={disabled || !paste.trim()}
+            onClick={applyFromPaste}
+          >
+            Use pasted bible
+          </Button>
+        </div>
+      </details>
       {error ? <p className="text-xs text-[var(--danger-text)]">{error}</p> : null}
     </div>
   );

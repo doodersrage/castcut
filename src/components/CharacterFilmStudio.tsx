@@ -123,6 +123,16 @@ export default function CharacterFilmStudio({
   const latestFilm = films[0];
   const latestFilmUrl = latestFilm ? galleryEntryPrimaryViewUrl(latestFilm) : null;
   const emptyCut = cut.items.length === 0 && playlist.length === 0;
+  const cutOptionsSummary = [
+    filmCutOptions.vertical ? `${resolution} vertical` : resolution,
+    `stills ${cut.stillHoldSec}s`,
+    filmCutOptions.crossfadeSec > 0 ? `crossfade ${filmCutOptions.crossfadeSec}s` : '',
+    filmCutOptions.stillMotion !== false ? 'slow zoom' : '',
+    filmCutOptions.titles ? 'titles' : '',
+    filmCutOptions.audioBedUrl.trim() ? 'audio bed' : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <ToolSection
@@ -234,26 +244,6 @@ export default function CharacterFilmStudio({
           </ToolActionRow>
         </div>
       ) : null}
-
-      <div className="space-y-2">
-        <FieldLabel>Still hold (seconds)</FieldLabel>
-        <input
-          type="number"
-          min={0.5}
-          max={12}
-          step={0.5}
-          value={cut.stillHoldSec}
-          aria-label="Default still hold in seconds"
-          className="ui-input w-28 px-[var(--input-padding-x)] py-[var(--input-padding-y)] type-body"
-          onChange={event => {
-            persistCut({
-              ...cut,
-              stillHoldSec: clampStillHoldSec(event.target.value),
-              updatedAt: Date.now(),
-            });
-          }}
-        />
-      </div>
 
       {cut.items.length === 0 ? (
         <p className="type-caption text-[var(--text-muted)]">
@@ -381,28 +371,58 @@ export default function CharacterFilmStudio({
         </Button>
       </div>
 
-      <ToolActionRow>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <span>Encode</span>
-          <select
-            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
-            value={resolution}
-            onChange={event => setResolution(event.target.value === '1080p' ? '1080p' : '720p')}
-            data-testid="character-film-resolution"
-          >
-            <option value="720p">720p MP4</option>
-            <option value="1080p">1080p MP4</option>
-          </select>
-        </label>
-      </ToolActionRow>
-      <div className="mt-2">
-        <FilmCutOptionsControls
-          value={filmCutOptions}
-          onChange={setFilmCutOptions}
-          disabled={assembling}
-          testIdPrefix="character-film"
-        />
-      </div>
+      {/* Encode settings are set-once: keep them one click away, with a summary on the fold. */}
+      <details
+        className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2"
+        data-testid="character-film-cut-options"
+      >
+        <summary className="type-caption cursor-pointer text-[var(--text-secondary)]">
+          Cut options · {cutOptionsSummary}
+        </summary>
+        <div className="mt-3 space-y-3">
+          <div className="space-y-2">
+            <FieldLabel>Still hold (seconds)</FieldLabel>
+            <input
+              type="number"
+              min={0.5}
+              max={12}
+              step={0.5}
+              value={cut.stillHoldSec}
+              aria-label="Default still hold in seconds"
+              className="ui-input w-28 px-[var(--input-padding-x)] py-[var(--input-padding-y)] type-body"
+              onChange={event => {
+                persistCut({
+                  ...cut,
+                  stillHoldSec: clampStillHoldSec(event.target.value),
+                  updatedAt: Date.now(),
+                });
+              }}
+            />
+          </div>
+          <ToolActionRow>
+            <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+              <span>Encode</span>
+              <select
+                className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
+                value={resolution}
+                onChange={event => setResolution(event.target.value === '1080p' ? '1080p' : '720p')}
+                data-testid="character-film-resolution"
+              >
+                <option value="720p">720p MP4</option>
+                <option value="1080p">1080p MP4</option>
+              </select>
+            </label>
+          </ToolActionRow>
+          <div className="mt-2">
+            <FilmCutOptionsControls
+              value={filmCutOptions}
+              onChange={setFilmCutOptions}
+              disabled={assembling}
+              testIdPrefix="character-film"
+            />
+          </div>
+        </div>
+      </details>
 
       <ToolActionRow>
         <Button
