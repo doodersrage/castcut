@@ -37,6 +37,10 @@ export type RoleplayStorySectionProps = {
   onAnimate: (beat: RoleplayStoryBeat) => void;
   onExtend: (beat: RoleplayStoryBeat) => void;
   onSelectTake: (beat: RoleplayStoryBeat, index: number) => void;
+  onPoseChange?: (
+    beat: RoleplayStoryBeat,
+    patch: Pick<RoleplayStoryBeat, 'poseLayout' | 'poseVariant'>
+  ) => void;
   onSelectClipTake: (beat: RoleplayStoryBeat, index: number) => void;
   onCopy: (beat: RoleplayStoryBeat) => void;
   onRollScenes?: () => void;
@@ -76,6 +80,7 @@ export default function RoleplayStorySection({
   onAnimate,
   onExtend,
   onSelectTake,
+  onPoseChange,
   onSelectClipTake,
   onCopy,
   onRollScenes,
@@ -207,6 +212,7 @@ export default function RoleplayStorySection({
         onAnimate={onAnimate}
         onExtend={onExtend}
         onSelectTake={onSelectTake}
+        onPoseChange={onPoseChange}
         onSelectClipTake={onSelectClipTake}
         onCopy={onCopy}
         onRollScenes={onRollScenes}

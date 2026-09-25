@@ -1,5 +1,6 @@
 'use client';
 
+import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
@@ -558,6 +559,17 @@ export default function MobileDayToolSections(vm: ViewModel) {
             />
           </label>
         </div>
+        <DaySlotPosePreview
+          slot={activeSlot}
+          dayMood={dayMood}
+          intimateEnabled={intimateEnabled}
+          intimateMix={intimateMix}
+          allowCompanions={allowCompanions}
+          model={shared.model}
+          busy={busy}
+          compact
+          updateSlot={updateSlot}
+        />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <Button
             variant="secondary"

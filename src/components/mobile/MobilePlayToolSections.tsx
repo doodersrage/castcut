@@ -81,6 +81,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
     animateAllReady,
     queueBeat,
     selectStillTake,
+    setBeatPose,
     selectClipTake,
     animateBeat,
     retryClip,
@@ -452,6 +453,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
         onAnimate={animateBeat}
         onExtend={extendBeat}
         onSelectTake={selectStillTake}
+        onPoseChange={setBeatPose}
         onSelectClipTake={selectClipTake}
         onRollScenes={() => void rollScenes()}
       />

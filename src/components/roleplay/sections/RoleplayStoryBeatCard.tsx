@@ -10,6 +10,7 @@ import {
   roleplayStillTakes,
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
+import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
 import { RoleplayStillFrame } from '@/components/roleplay/sections/RoleplayStillFrame';
 import { storyFaceMatchLabel, storyPoseMatchLabel } from '@/lib/roleplay-pose-check';
 import { DEFAULT_MIN_FACE_MATCH, FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
@@ -34,6 +35,10 @@ type Props = {
   onExtend?: (beat: RoleplayStoryBeat) => void;
   onSelectTake?: (beat: RoleplayStoryBeat, index: number) => void;
   onSelectClipTake?: (beat: RoleplayStoryBeat, index: number) => void;
+  onPoseChange?: (
+    beat: RoleplayStoryBeat,
+    patch: Pick<RoleplayStoryBeat, 'poseLayout' | 'poseVariant'>
+  ) => void;
 };
 
 export function RoleplayStoryBeatCard({
@@ -50,6 +55,7 @@ export function RoleplayStoryBeatCard({
   onExtend,
   onSelectTake,
   onSelectClipTake,
+  onPoseChange,
 }: Props) {
   const takes = roleplayStillTakes(beat);
   const poseMatch = storyPoseMatchLabel(beat, DEFAULT_MIN_POSE_MATCH);
@@ -142,6 +148,14 @@ export function RoleplayStoryBeatCard({
             >
               {faceMatch.text}
             </p>
+          ) : null}
+          {onPoseChange ? (
+            <StoryBeatPosePreview
+              beat={beat}
+              index={index}
+              busy={busy}
+              onPoseChange={onPoseChange}
+            />
           ) : null}
           {beat.poseGuideUrl ? (
             <details

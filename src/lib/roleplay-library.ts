@@ -1,3 +1,4 @@
+import { normalizeScenePoseSpec } from '@/lib/day-pose-guide';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import {
   getCharacter,
@@ -124,6 +125,16 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
   }
   if (typeof record.clipTakeIndex === 'number' && Number.isInteger(record.clipTakeIndex)) {
     beat.clipTakeIndex = record.clipTakeIndex;
+  }
+  const pose = normalizeScenePoseSpec(record.pose);
+  if (pose) {
+    beat.pose = pose;
+  }
+  if (typeof record.poseLayout === 'string' && record.poseLayout.trim()) {
+    beat.poseLayout = record.poseLayout.trim().slice(0, 40);
+  }
+  if (typeof record.poseVariant === 'number' && record.poseVariant > 0) {
+    beat.poseVariant = Math.min(99, Math.floor(record.poseVariant));
   }
   return beat;
 }

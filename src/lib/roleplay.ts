@@ -24,6 +24,7 @@ import {
   reinforceIntimateStillPrompt,
 } from '@/lib/intimate-prompt-clarify';
 import {
+  parseSocialLayout,
   normalizeScenePoseSpec,
   parseIntimateLayout,
   type IntimateLayout,
@@ -116,6 +117,10 @@ export type RoleplayStoryBeat = RoleplayScene & {
   poseGuideExpect?: StoryPoseGuideExpect;
   /** DWPose check of the shown still against its guide. */
   poseMatch?: StoryPoseMatch;
+  /** Pose picked on the beat card (a layout or posture id); unset = the writer's / text's pose. */
+  poseLayout?: string;
+  /** "Try another" count for this beat's pose guide. */
+  poseVariant?: number;
   /** Face-recognition match of the shown (solo) still against the reference photo. */
   faceMatch?: StoryFaceMatch;
   /**
@@ -1515,9 +1520,16 @@ export function roleplayScenePoseKey(
   if (act && act !== 'none') {
     return act;
   }
-  const layout = parseIntimateLayout(`${scene.title} — ${scene.blurb}`);
+  const text = `${scene.title} — ${scene.blurb}`;
+  const layout = parseIntimateLayout(text);
   if (layout && layout !== 'generic') {
     return layout;
+  }
+  // Everyday / sport layouts: two "cooking" beats in a row are the same pose even when the
+  // writer's body field says stand both times.
+  const social = scene.pose?.layout ?? parseSocialLayout(text);
+  if (social) {
+    return social;
   }
   return scene.pose?.body ?? null;
 }

@@ -49,6 +49,7 @@ import DayRemixMenu from '@/components/day-planner/DayRemixMenu';
 import DaySeriesPanel from '@/components/day-planner/DaySeriesPanel';
 import DayPlateSection from '@/components/day-planner/DayPlateSection';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
+import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
@@ -609,6 +610,18 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 onChange={event => updateSlot(activeSlot.id, { sceneHints: event.target.value })}
               />
             </label>
+          </div>
+          <div className="mt-3">
+            <DaySlotPosePreview
+              slot={activeSlot}
+              dayMood={dayMood}
+              intimateEnabled={intimateEnabled}
+              intimateMix={intimateMix}
+              allowCompanions={allowCompanions}
+              model={shared.model}
+              busy={busy}
+              updateSlot={updateSlot}
+            />
           </div>
           <ToolActionRow className="mt-3">
             <Button

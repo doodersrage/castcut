@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **See and pick the pose before you queue.** The Day slot editor (desk and phone) and each Story beat card (under **Pose**) show a small stick-figure preview of the Image 3 pose guide with its name (*Cooking*, *Selfie together · 2 people*). **Change pose** picks any posture, everyday gesture, two-person or sport pose over what the beat text matched; **Try another** redraws it as a different variant. Day draws the preview from the same plan Queue day uses, so what you see is what's queued; on Story it applies to the next queue or retry.
+- **The Story writer can name the pose.** The scene writer's `pose` field takes a `layout` (`cook`, `hold_hands`, `sport_skate`, …, 71 in all) so the guide draws what the blurb shows instead of guessing from wording. Story's pose-variety check compares these layouts too.
+- **Pose match by layout.** Pose checks now record which layout the guide drew; the Dashboard shows the three weakest (**Pose match by layout**). A layout Edit keeps ignoring — 8+ checks averaging under 45% — is routed around: the guide uses a saved pose-library skeleton for it, or the plain posture without the gesture. A pose you pick yourself is always drawn as picked.
+- **Suggest day spreads gestures.** It avoids giving two slots the same drawn gesture (two selfies, two toasts) when the beat pools allow.
+
 - **More poses:** 24 new pose-guide layouts.
   - Everyday solo: cross-legged on the floor, lounging back on the elbows, lying on the front (feet up), lying on the side (head propped), perched on an edge, hands behind the head (standing or lying), arms up, selfie, camera to the eye, cooking, laptop, eating (seated or standing).
   - Duo: holding hands, piggyback, high five, toast (standing or across a table), head on a shoulder, selfie together. With one person allowed (Duo off, clothed moods) each draws a solo stand-in instead: high five → wave, toast → drink, selfie together → selfie.

@@ -390,6 +390,7 @@ export default function RoleplayToolSections({
             onAnimate={beat => void beatQueue.queueBeatMotion(beat)}
             onExtend={extendBeat}
             onSelectTake={session.selectStillTake}
+            onPoseChange={session.setBeatPose}
             onSelectClipTake={session.selectClipTake}
             onCopy={beat => void session.copyBeatPrompt(beat)}
             onRollScenes={() => void sceneFlow.rollScenes()}

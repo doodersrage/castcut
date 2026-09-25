@@ -7,6 +7,7 @@ import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/compose-prompt';
 import {
   countPoseGuidePeople,
   parseIntimateLayout,
+  parseSocialLayout,
   resolveSoloMasturbationPoseKind,
   type ScenePoseSpec,
 } from '@/lib/day-pose-guide';
@@ -268,6 +269,13 @@ export type DaySlot = {
   wardrobeId?: string;
   location?: string;
   sceneHints?: string;
+  /**
+   * Pose picked in the slot editor — a layout (`cook`, `selfie`, `sport_squat`, …) or a plain
+   * posture (`sit`, `lie`, …). Unset = read the pose from the beat.
+   */
+  poseLayout?: string;
+  /** "Try another" count for this slot's pose guide (added to automatic retry variants). */
+  poseVariant?: number;
 };
 
 export type DaySlotStillStatus = 'queued' | 'running' | 'completed' | 'error';
@@ -533,6 +541,11 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       // Do not trim location/sceneHints here — updateSlot runs on every keystroke.
       location: readEditableText(slot.location, 160) || undefined,
       sceneHints: readEditableText(slot.sceneHints, 320) || undefined,
+      poseLayout: readText(slot.poseLayout, 40) || undefined,
+      poseVariant:
+        typeof slot.poseVariant === 'number' && slot.poseVariant > 0
+          ? Math.min(99, Math.floor(slot.poseVariant))
+          : undefined,
     });
   }
   const resolvedLength =
@@ -1799,12 +1812,27 @@ function pickUnusedBeatWithFreshPose(
   usedBeats: Set<string>,
   usedPoseClasses: Set<string>,
   random: () => number,
-  classify: (beat: string) => string = dayEverydayPoseClass
+  classify: (beat: string) => string = dayEverydayPoseClass,
+  /** Gesture / action layouts already on the Day (cook, selfie, hug…) — avoided when possible. */
+  usedLayouts?: ReadonlySet<string>,
+  /** Return nothing rather than repeat a layout (so the caller can try another pool). */
+  strictLayouts = false
 ): string | undefined {
   const unused = pool.filter(entry => !usedBeats.has(entry.trim().toLowerCase()));
   const pickFrom = unused.length > 0 ? unused : pool;
   const fresh = pickFrom.filter(entry => !usedPoseClasses.has(classify(entry)));
-  const finalPool = fresh.length > 0 ? fresh : pickFrom;
+  const freshClass = fresh.length > 0 ? fresh : pickFrom;
+  // Same posture class is sometimes unavoidable; the same drawn gesture twice rarely is.
+  const freshLayout = usedLayouts?.size
+    ? freshClass.filter(entry => {
+        const layout = parseSocialLayout(entry);
+        return !layout || !usedLayouts.has(layout);
+      })
+    : freshClass;
+  if (strictLayouts && freshLayout.length === 0) {
+    return undefined;
+  }
+  const finalPool = freshLayout.length > 0 ? freshLayout : freshClass;
   if (finalPool.length === 0) {
     return undefined;
   }
@@ -2007,6 +2035,11 @@ export function diversifyDaySlotScenes(
   const usedVacationPoseClasses = new Set<string>();
   const usedEverydayPoseClasses = new Set<string>();
   const usedHeatPoseClasses = new Set<string>();
+  const usedLayouts = new Set<string>();
+  const noteLayout = (beat: string) => {
+    const layout = parseSocialLayout(beat);
+    if (layout) usedLayouts.add(layout);
+  };
   const heatClass = (beat: string) => dayHeatPoseClass(beat, dayMood);
   let changed = false;
 
@@ -2019,6 +2052,7 @@ export function diversifyDaySlotScenes(
     const beat = slot.sceneHints?.trim();
     if (beat && !forceBeats) {
       usedBeats.add(beat.toLowerCase());
+      noteLayout(beat);
       if (dayMood === 'vacation') {
         usedVacationPoseClasses.add(vacationPoseClassFromBeat(beat));
       } else if (!isDayHeatMood(dayMood)) {
@@ -2055,6 +2089,7 @@ export function diversifyDaySlotScenes(
         }
         if (sceneHints) {
           usedBeats.add(sceneHints.toLowerCase());
+          noteLayout(sceneHints);
         }
         if (slotChanged) {
           changed = true;
@@ -2090,6 +2125,7 @@ export function diversifyDaySlotScenes(
         if (sceneHints) {
           usedBeats.add(sceneHints.toLowerCase());
           usedVacationPoseClasses.add(pair.poseClass);
+          noteLayout(sceneHints);
         }
         if (slotChanged) {
           changed = true;
@@ -2127,11 +2163,23 @@ export function diversifyDaySlotScenes(
       );
       // Spread poses across the Day: everyday by posture class, heat moods by the layout the
       // pose guide draws — text-only dedupe let four different beats all be "bent over".
-      const picked = isDayHeatMood(dayMood)
-        ? pickUnusedBeatWithFreshPose(primary, usedBeats, usedHeatPoseClasses, random, heatClass) ||
-          pickUnusedBeatWithFreshPose(fallback, usedBeats, usedHeatPoseClasses, random, heatClass)
-        : pickUnusedBeatWithFreshPose(primary, usedBeats, usedEverydayPoseClasses, random) ||
-          pickUnusedBeatWithFreshPose(fallback, usedBeats, usedEverydayPoseClasses, random);
+      const classify = isDayHeatMood(dayMood) ? heatClass : dayEverydayPoseClass;
+      const usedClasses = isDayHeatMood(dayMood) ? usedHeatPoseClasses : usedEverydayPoseClasses;
+      const pick = (pool: string[], strict: boolean) =>
+        pickUnusedBeatWithFreshPose(
+          pool,
+          usedBeats,
+          usedClasses,
+          random,
+          classify,
+          usedLayouts,
+          strict
+        );
+      const picked =
+        pick(primary, true) ||
+        pick(fallback, true) ||
+        pick(primary, false) ||
+        pick(fallback, false);
       if (picked && picked !== sceneHints) {
         sceneHints = picked;
         slotChanged = true;
@@ -2139,6 +2187,7 @@ export function diversifyDaySlotScenes(
     }
     if (sceneHints) {
       usedBeats.add(sceneHints.toLowerCase());
+      noteLayout(sceneHints);
       if (!isDayHeatMood(dayMood)) {
         usedEverydayPoseClasses.add(dayEverydayPoseClass(sceneHints));
       } else {

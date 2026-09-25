@@ -42,6 +42,7 @@ export default function RoleplayStoryReel({
   onExtend,
   onSelectTake,
   onSelectClipTake,
+  onPoseChange,
   onRollScenes,
   castBibleHref,
 }: {
@@ -57,6 +58,10 @@ export default function RoleplayStoryReel({
   onExtend?: (beat: RoleplayStoryBeat) => void;
   onSelectTake?: (beat: RoleplayStoryBeat, index: number) => void;
   onSelectClipTake?: (beat: RoleplayStoryBeat, index: number) => void;
+  onPoseChange?: (
+    beat: RoleplayStoryBeat,
+    patch: Pick<RoleplayStoryBeat, 'poseLayout' | 'poseVariant'>
+  ) => void;
   onRollScenes?: () => void;
   /** Cast home — bible rewrite/edit/clear live there. */
   castBibleHref?: string;
@@ -277,6 +282,7 @@ export default function RoleplayStoryReel({
               onExtend={onExtend}
               onSelectTake={onSelectTake}
               onSelectClipTake={onSelectClipTake}
+              onPoseChange={onPoseChange}
             />
           );
         })}

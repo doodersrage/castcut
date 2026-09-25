@@ -37,6 +37,8 @@ import { snapshotRoleplaySession } from '@/lib/roleplay-library';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
 import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs';
 import { buildStoryPoseGuide } from '@/lib/day-pose-guide';
+import { mergePickedPose } from '@/lib/day-slot-pose';
+import { weakPoseLayouts } from '@/lib/play-metrics';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { loadPoseLibrary } from '@/lib/pose-library';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
@@ -218,8 +220,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           storyIndex: storyIndex >= 0 ? storyIndex : 0,
           model: shared.model,
           stylePreference,
-          pose: beat.pose,
-          variant: options?.variant ?? 0,
+          // A pose picked on the beat card wins over the writer's; it's drawn even if Edit has
+          // a poor record with it (weak layouts are only routed around when nothing was picked).
+          pose: mergePickedPose(beat.poseLayout, beat.pose),
+          variant: (options?.variant ?? 0) + (beat.poseVariant ?? 0),
+          ...(beat.poseLayout ? {} : { avoidLayouts: weakPoseLayouts() }),
           aspect,
           library: openPose ? loadPoseLibrary() : [],
         });

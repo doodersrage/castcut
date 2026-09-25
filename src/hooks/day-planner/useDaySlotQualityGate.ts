@@ -5,6 +5,7 @@ import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDay
 import { isDayAdultMood, normalizeDayIntimateMix, normalizeDayMood } from '@/lib/day-planner';
 import {
   recordFaceMatchScore,
+  poseLayoutFromKey,
   recordPoseMatchScore,
   recordSlotReviewOutcome,
 } from '@/lib/play-metrics';
@@ -221,7 +222,12 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
           recordFaceMatchScore(shared.model, faceMatch, Boolean(decision.faceMiss));
         }
         if (poseMatch && expectation) {
-          recordPoseMatchScore(expectation.style, poseMatch.score, Boolean(decision.poseMiss));
+          recordPoseMatchScore(
+            expectation.style,
+            poseMatch.score,
+            Boolean(decision.poseMiss),
+            poseLayoutFromKey(expectation.poseKey)
+          );
           // A kept still that followed its guide closely is a real body in that layout:
           // save the detected skeletons (lead first) so later guides can reuse them.
           const ordered = poseMatch.assignment.map(index => detectedPeople[index]);

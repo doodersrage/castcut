@@ -206,6 +206,17 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     [storyRef, updateToolSettings]
   );
 
+  const setBeatPose = useCallback(
+    (beat: RoleplayStoryBeat, patch: Pick<RoleplayStoryBeat, 'poseLayout' | 'poseVariant'>) => {
+      const latest =
+        storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at) ?? beat;
+      updateToolSettings({
+        story: patchRoleplayStoryBeat(storyRef.current, latest, patch),
+      });
+    },
+    [storyRef, updateToolSettings]
+  );
+
   const selectClipTake = useCallback(
     (beat: RoleplayStoryBeat, index: number) => {
       const latest =
@@ -262,6 +273,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     playScene,
     queueBeat,
     selectStillTake,
+    setBeatPose,
     selectClipTake,
     animateBeat,
     retryClip,

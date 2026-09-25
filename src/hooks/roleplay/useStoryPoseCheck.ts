@@ -8,7 +8,7 @@ import { detectStillPose } from '@/lib/pose-detect-client';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
 import { DEFAULT_MIN_POSE_MATCH, POSE_LIBRARY_MIN_SCORE, scorePoseMatch } from '@/lib/pose-score';
-import { recordFaceMatchScore, recordPoseMatchScore } from '@/lib/play-metrics';
+import { poseLayoutFromKey, recordFaceMatchScore, recordPoseMatchScore } from '@/lib/play-metrics';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
 import { DEFAULT_MIN_FACE_MATCH } from '@/lib/face-match';
 
@@ -56,7 +56,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
           detected: detected.pose,
         });
         const miss = match.score < DEFAULT_MIN_POSE_MATCH;
-        recordPoseMatchScore(expect.style, match.score, miss);
+        recordPoseMatchScore(expect.style, match.score, miss, poseLayoutFromKey(expect.poseKey));
         const ordered = match.assignment.map(index => detected.pose.people[index]);
         const { width, height } = detected.pose.canvas;
         if (

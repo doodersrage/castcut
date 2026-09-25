@@ -160,6 +160,11 @@ export type ScenePoseSpec = {
   people?: number;
   /** Sex layout, or 'none' to forbid one the text might imply. */
   act?: IntimateLayout | 'none';
+  /**
+   * Everyday / duo / sport layout (cook, selfie, hold_hands, sport_squat, …) — drawn as named
+   * instead of being guessed from the blurb. `body` still sets the posture for hand gestures.
+   */
+  layout?: SocialLayout;
 };
 
 /** Accept only known values from an LLM `pose` object; undefined when nothing usable. */
@@ -178,8 +183,10 @@ export function normalizeScenePoseSpec(raw: unknown): ScenePoseSpec | undefined 
   const body = text(record.body);
   const act = text(record.act);
   const people = Math.round(Number(record.people));
+  const layout = text(record.layout);
   const spec: ScenePoseSpec = {
     ...(POSE_BASE_IDS.has(body) ? { body: body as PoseGuideBase } : {}),
+    ...(SOCIAL_LAYOUT_ID_SET.has(layout) ? { layout: layout as SocialLayout } : {}),
     ...(Number.isFinite(people) && people >= 1 && people <= 3 ? { people } : {}),
     ...(act === 'none' || INTIMATE_LAYOUT_IDS.has(act)
       ? { act: act as IntimateLayout | 'none' }
@@ -191,6 +198,81 @@ export function normalizeScenePoseSpec(raw: unknown): ScenePoseSpec | undefined 
 /** Layout vocabulary for the scene writer's `pose.act` field. */
 export const SCENE_POSE_ACT_IDS: readonly string[] = [...INTIMATE_LAYOUT_IDS, 'none'];
 export const SCENE_POSE_BODY_IDS: readonly string[] = [...POSE_BASE_IDS];
+/** Everyday, duo and sport layouts the scene writer (and the pose picker) may name. */
+export const SCENE_POSE_LAYOUT_IDS: readonly SocialLayout[] = [
+  'phone',
+  'drink',
+  'read',
+  'carry',
+  'wave',
+  'point',
+  'pockets',
+  'cross_arms',
+  'hands_hips',
+  'hair_touch',
+  'shrug',
+  'look_back',
+  'stretch',
+  'lean_wall',
+  'rail',
+  'foot_up',
+  'bend_pick',
+  'stairs',
+  'climb',
+  'sit_floor',
+  'lounge_elbows',
+  'lie_front',
+  'lie_side',
+  'perch_edge',
+  'hands_behind_head',
+  'arms_up',
+  'selfie',
+  'photograph',
+  'cook',
+  'laptop',
+  'eat',
+  'hug',
+  'dance',
+  'fight',
+  'hold_hands',
+  'piggyback',
+  'high_five',
+  'toast',
+  'head_shoulder',
+  'selfie_duo',
+  'sport_sprint',
+  'sport_yoga_warrior',
+  'sport_yoga_dog',
+  'sport_cycle',
+  'sport_swing',
+  'sport_serve',
+  'sport_forehand',
+  'sport_jump_shot',
+  'sport_kick',
+  'sport_throw',
+  'sport_lunge',
+  'sport_handstand',
+  'sport_pitch',
+  'sport_stick',
+  'sport_block',
+  'sport_hurdle',
+  'sport_slide',
+  'sport_dunk',
+  'sport_ski',
+  'sport_putt',
+  'sport_overhead',
+  'sport_swim',
+  'sport_spike',
+  'sport_box',
+  'sport_surf',
+  'sport_squat',
+  'sport_deadlift',
+  'sport_pushup',
+  'sport_plank',
+  'sport_pullup',
+  'sport_skate',
+];
+const SOCIAL_LAYOUT_ID_SET: ReadonlySet<string> = new Set(SCENE_POSE_LAYOUT_IDS);
 
 /**
  * Non-intimate duo/solo layouts that need more than base+arms
@@ -4616,6 +4698,8 @@ export type SceneStickOptions = {
    * odd variants, so a retry tries a different body arrangement instead of the same one.
    */
   variant?: number;
+  /** Draw the plain posture only — no everyday/sport layout (a layout Edit keeps ignoring). */
+  plainPosture?: boolean;
 };
 
 export function synthesizeSceneStickFigures(
@@ -4645,6 +4729,19 @@ function applyScenePoseSpec(
   } else if (spec.act && options?.allowIntimate !== false) {
     next = { ...next, intimate: spec.act, social: null, base: intimateBaseForLayout(spec.act) };
   }
+  // A named layout replaces the text read (and any sex layout the words suggested).
+  if (spec.layout && (!spec.act || spec.act === 'none')) {
+    const layout = spec.layout;
+    const people = SOCIAL_SOLO_LAYOUTS.has(layout) ? Math.min(next.people, 1) || 1 : next.people;
+    next = {
+      ...next,
+      intimate: null,
+      social: layout,
+      base: socialBaseForLayout(layout),
+      people,
+      label: `${layout}-${next.seed.toString(16).slice(0, 6)}`,
+    };
+  }
   if (spec.body && !next.intimate) {
     next = { ...next, base: spec.body };
   }
@@ -4665,10 +4762,14 @@ function synthesizeSceneStickFiguresBase(
     options?.pose,
     options
   );
-  const intent =
+  const reseeded =
     variant > 0
       ? { ...parsed, seed: (parsed.seed ^ Math.imul(variant, 0x9e3779b1)) >>> 0 }
       : parsed;
+  const intent =
+    options?.plainPosture && reseeded.social
+      ? { ...reseeded, social: null, label: `${reseeded.base}-plain-${reseeded.label}` }
+      : reseeded;
   if (intent.intimate) {
     const figures = synthesizeIntimateStickFigures(intent);
     return {
@@ -5149,9 +5250,16 @@ export type PoseGuideBuild = {
   keypoints: NormalizedBody[];
   /** Library entry id when the guide reused a harvested pose. */
   libraryEntryId?: string;
+  /** Layout drawn as its plain posture because Edit kept missing it. */
+  routedAround?: SocialLayout;
 };
 
 export type PoseGuideBuildOptions = SceneStickOptions & {
+  /**
+   * Layouts with a poor pose-match record (see `weakPoseLayouts`): drawn as their plain posture
+   * unless the pose library has a real pose for them.
+   */
+  avoidLayouts?: ReadonlySet<string>;
   stylePreference?: PoseGuideStylePreference | null;
   /** Image 1 pixel size — the still renders at this aspect, so the guide should too. */
   aspect?: { width: number; height: number } | null;
@@ -5275,7 +5383,28 @@ async function buildSceneGuide(
   filenamePrefix: string,
   options?: PoseGuideBuildOptions
 ): Promise<PoseGuideBuild> {
-  const { intent, figures } = synthesizeSceneStickFigures(sceneText, fallbackIndex, options);
+  let { intent, figures } = synthesizeSceneStickFigures(sceneText, fallbackIndex, options);
+  // A layout Edit keeps ignoring: use a harvested real pose if there is one, else the plain
+  // posture (a sit / stand / lie it does follow) rather than the same failing drawing.
+  let routedAround: SocialLayout | undefined;
+  if (intent.social && options?.avoidLayouts?.has(intent.social)) {
+    const key = poseLibraryKey({
+      intimate: null,
+      social: intent.social,
+      base: intent.base,
+      people: figures.length,
+    });
+    const libraryHasIt = Boolean(
+      pickPoseLibraryEntry(options.library ?? [], key, intent.seed, options.variant ?? 0)
+    );
+    if (!libraryHasIt) {
+      routedAround = intent.social;
+      ({ intent, figures } = synthesizeSceneStickFigures(sceneText, fallbackIndex, {
+        ...options,
+        plainPosture: true,
+      }));
+    }
+  }
   if (style === 'openpose') {
     const plan = planOpenPoseGuide({
       intent,
@@ -5306,6 +5435,7 @@ async function buildSceneGuide(
       canvas: plan.canvas,
       keypoints: plan.keypoints,
       ...(plan.libraryEntryId ? { libraryEntryId: plan.libraryEntryId } : {}),
+      ...(routedAround ? { routedAround } : {}),
     };
   }
   // Legacy art stays on the fixed 512×768 design canvas.
@@ -5330,6 +5460,7 @@ async function buildSceneGuide(
     }),
     canvas: { width: WIDTH, height: HEIGHT },
     keypoints: normalizePeople(people, WIDTH, HEIGHT),
+    ...(routedAround ? { routedAround } : {}),
   };
 }
 
@@ -5363,6 +5494,11 @@ async function buildSlotGuide(
 }
 
 /** Browser-only: rasterize the Day slot pose guide to a PNG for Comfy Image 3. */
+/** Stance cycle index a Day slot's guide falls back to when its beat has no stance cue. */
+export function dayPoseGuideFallbackIndex(slotId: DaySlotId): number {
+  return Math.max(0, POSE_KEYS.indexOf(normalizePoseKey(slotId)));
+}
+
 export async function buildDayPoseGuide(
   slotId: DaySlotId,
   sceneText?: string | null,
@@ -5373,11 +5509,17 @@ export async function buildDayPoseGuide(
   const style = resolvePoseGuideVisualStyle(model, stylePreference);
   const trimmed = sceneText?.trim() || '';
   if (trimmed) {
-    const fallbackIndex = Math.max(0, POSE_KEYS.indexOf(normalizePoseKey(slotId)));
-    return buildSceneGuide(trimmed, fallbackIndex, style, stylePreference, 'day-pose-guide', {
-      ...options,
-      ...(options?.clothedUprightOnly ? { clothedUprightOnly: true } : {}),
-    });
+    return buildSceneGuide(
+      trimmed,
+      dayPoseGuideFallbackIndex(slotId),
+      style,
+      stylePreference,
+      'day-pose-guide',
+      {
+        ...options,
+        ...(options?.clothedUprightOnly ? { clothedUprightOnly: true } : {}),
+      }
+    );
   }
   return buildSlotGuide(normalizePoseKey(slotId), style, stylePreference, 'day-pose-guide');
 }

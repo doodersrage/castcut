@@ -39,10 +39,7 @@ import {
 } from '@/lib/comfyui-gallery';
 import { resolveAdultNudePlateQueueModel } from '@/lib/queue-tool-model';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
-import {
-  clarifyIntimateImageLanguage,
-  reinforceIntimateStillPrompt,
-} from '@/lib/intimate-prompt-clarify';
+import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
 import { STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP } from '@/lib/roleplay';
 import {
   buildDaySlotMotionSubject,
@@ -54,7 +51,6 @@ import {
   dayWatchPlaylist,
   diversifyDaySlotScenes,
   ensureDaySlotsMatchMood,
-  dayPoseSpecForBeat,
   isDayAdultMood,
   normalizeDayLength,
   isDayHeatMood,
@@ -65,7 +61,6 @@ import {
   normalizeDaySlotStills,
   normalizeDaySlots,
   promoteDayStillsToSoftPassChildren,
-  resolveDayPoseHeadcount,
   rerollDaySlotScene,
   seedDaySlotsWardrobe,
   upsertDaySlotStill,
@@ -102,9 +97,9 @@ import {
   dayClothedHeatPoseNeedsBodyUnlock,
   dayVacationPoseNeedsBodyUnlock,
   clothedHeatUnlockPoseClass,
-  vacationStanceDirective,
 } from '@/lib/day-vacation';
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
+import { planDaySlotPose } from '@/lib/day-slot-pose';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
   type FilmCutOptionsValue,
@@ -150,7 +145,7 @@ import {
   resolvePlayLoopEntryCharacterId,
 } from '@/lib/play-campaign';
 import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/look-outfit-plate';
-import { hasCompletedFirstFilm, loadPlayMetrics } from '@/lib/play-metrics';
+import { hasCompletedFirstFilm, loadPlayMetrics, weakPoseLayouts } from '@/lib/play-metrics';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
@@ -819,47 +814,16 @@ export function useDayPlannerToolOrchestrationCore() {
                 ? 'everyday'
                 : toolSettings.dayMood
             );
-            const beatOnly = queueTarget.sceneHints?.trim() || '';
-            // Beat first on every mood: the stance keywords the guide matches on live in the
-            // beat, and a Setting like "sunrise sidewalk" used to lead the mannequin upright
-            // before the beat's "sitting"/"crouching" was ever read.
-            const rawPoseScene = (
-              isDayHeatMood(dayMood) ? [beatOnly] : [queueTarget.sceneHints, queueTarget.location]
-            )
-              .map(part => part?.trim())
-              .filter(Boolean)
-              .join(' · ');
-            // Adult moods only: intimate clarify rewrites euphemisms into sex-act
-            // language. Running it on Vacation/Suggestive injects rear-entry priors.
-            const clarifiedPose =
-              isDayAdultMood(dayMood) && rawPoseScene
-                ? clarifyIntimateImageLanguage(rawPoseScene)
-                : undefined;
-            const poseSceneBase = clarifiedPose || rawPoseScene || beatOnly;
-            const vacationPoseClass = clothedHeatUnlockPoseClass(beatOnly, dayMood);
-            const poseSceneReinforced =
-              (dayMood === 'vacation' || dayMood === 'suggestive') &&
-              dayClothedHeatPoseNeedsBodyUnlock(beatOnly, dayMood, {
-                poseStickyModel: isQwenEdit2511PoseStickyModel(shared.model),
-              }) &&
-              poseSceneBase
-                ? `${poseSceneBase} · ${vacationStanceDirective(vacationPoseClass)} · nuclear Image 3 silhouette — never planted fashion stand`
-                : poseSceneBase;
-            const intimateMix = normalizeDayIntimateMix(toolSettings.intimateMix);
-            const poseHeadcount = resolveDayPoseHeadcount({
-              haystack: poseSceneReinforced,
-              beat: queueTarget.sceneHints,
+            // Same plan the slot editor's pose preview draws (beat text, headcount, picked pose).
+            const posePlan = planDaySlotPose({
+              slot: queueTarget,
               dayMood,
-              intimateMix,
+              intimateMix: toolSettings.intimateMix,
               allowCompanions: toolSettings.allowCompanions === true,
+              model: shared.model,
+              retryVariant: poseVariantRef.current[queueTarget.id] ?? 0,
+              weakLayouts: weakPoseLayouts(),
             });
-            // Duo mix must draw exactly two figures — never inflate to a trio.
-            const poseScene =
-              poseHeadcount === 2
-                ? `${poseSceneReinforced || 'intimate duo mid-sex on the bed'} · exactly two adults only: Cast lead in the beat pose plus one distinct partner — both fully visible mid-contact in frame; never solo Cast; no third person`
-                : poseHeadcount >= 3 && poseSceneReinforced
-                  ? poseSceneReinforced
-                  : poseSceneReinforced || undefined;
             // The still renders at Image 1's aspect, so draw the guide at that aspect too —
             // a portrait guide squeezed onto a square latent lands the body in the wrong place.
             const image1Plate = omitGarment ? identityPlate : (identityPlate ?? queuePlate);
@@ -871,17 +835,11 @@ export function useDayPlannerToolOrchestrationCore() {
               })[0];
             const poseBuild = await buildDayPoseGuide(
               queueTarget.id,
-              poseScene || undefined,
+              posePlan.sceneText,
               shared.model,
               {
-                forcePeople: poseHeadcount,
-                clothedUprightOnly: dayMood === 'vacation' || dayMood === 'suggestive',
-                // Only the adult moods may draw sex layouts; an everyday "leaning against the
-                // wall" beat must not become a two-figure wall press.
-                allowIntimate: isDayAdultMood(dayMood),
+                ...posePlan.options,
                 stylePreference: poseGuideStyle,
-                pose: dayPoseSpecForBeat(beatOnly, dayMood),
-                variant: poseVariantRef.current[queueTarget.id] ?? 0,
                 aspect: isOpenPoseStyle(poseGuideStyle) ? await probeImage1Size(image1Url) : null,
                 library: isOpenPoseStyle(poseGuideStyle) ? loadPoseLibrary() : [],
               }

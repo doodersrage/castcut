@@ -45,6 +45,11 @@ export type PlayMetrics = {
    * engine keeps the Cast's face best. Same sum/count/misses shape as pose match.
    */
   faceMatch?: Record<string, PoseMatchStats>;
+  /**
+   * Pose-match scores per guide layout (cook, sit, bent, …) — which poses Edit follows and
+   * which it ignores. Feeds the Dashboard and {@link weakPoseLayouts}.
+   */
+  poseMatchByLayout?: Record<string, PoseMatchStats>;
   /** Accumulated time spent in each film phase. */
   phaseTimings?: PlayPhaseTimings;
   /** Phase the user is currently in, and when they entered it. */
@@ -127,16 +132,17 @@ function normalizePoseMatch(value: unknown): PlayMetrics['poseMatch'] {
 }
 
 const FACE_MATCH_MAX_MODELS = 16;
+const POSE_LAYOUT_MAX = 160;
 
-function normalizeFaceMatch(value: unknown): PlayMetrics['faceMatch'] {
+function normalizeFaceMatch(
+  value: unknown,
+  limit = FACE_MATCH_MAX_MODELS
+): PlayMetrics['faceMatch'] {
   if (!value || typeof value !== 'object') {
     return undefined;
   }
   const out: Record<string, PoseMatchStats> = {};
-  for (const [model, entry] of Object.entries(value as Record<string, unknown>).slice(
-    0,
-    FACE_MATCH_MAX_MODELS
-  )) {
+  for (const [model, entry] of Object.entries(value as Record<string, unknown>).slice(0, limit)) {
     const stats = entry as Partial<PoseMatchStats> | undefined;
     if (
       model.trim() &&
@@ -211,6 +217,8 @@ function normalizePlayMetrics(value: unknown): PlayMetrics {
     slotReviews: normalizeSlotReviews(raw.slotReviews),
     poseMatch: normalizePoseMatch(raw.poseMatch),
     faceMatch: normalizeFaceMatch(raw.faceMatch),
+    // Same stats shape keyed by layout name (there are ~100 layouts).
+    poseMatchByLayout: normalizeFaceMatch(raw.poseMatchByLayout, POSE_LAYOUT_MAX),
     phaseTimings: normalizePhaseTimings(raw.phaseTimings),
     phaseOpen: normalizePhaseOpen(raw.phaseOpen),
   };
@@ -263,24 +271,87 @@ export function recordSlotReviewOutcome(action: keyof PlaySlotReviewCounts): voi
   savePlayMetrics({ ...current, slotReviews: { ...counts, [action]: counts[action] + 1 } });
 }
 
-/** Records one pose-match score for a guide style (0–1; `missed` = below the gate). */
-export function recordPoseMatchScore(style: PoseMatchStyle, score: number, missed: boolean): void {
+function addPoseStat(
+  stats: PoseMatchStats | undefined,
+  score: number,
+  missed: boolean
+): PoseMatchStats {
+  const base = stats ?? { sum: 0, count: 0, misses: 0 };
+  return {
+    sum: base.sum + Math.min(1, Math.max(0, score)),
+    count: base.count + 1,
+    misses: base.misses + (missed ? 1 : 0),
+  };
+}
+
+/** Layout name from a pose-library key (`cook:1` → `cook`). */
+export function poseLayoutFromKey(poseKey: string | null | undefined): string | null {
+  const layout = poseKey?.split(':')[0]?.trim();
+  return layout ? layout : null;
+}
+
+/**
+ * Records one pose-match score (0–1; `missed` = below the gate) for a guide style and, when
+ * given, the layout the guide drew.
+ */
+export function recordPoseMatchScore(
+  style: PoseMatchStyle,
+  score: number,
+  missed: boolean,
+  layout?: string | null
+): void {
   if (!Number.isFinite(score)) {
     return;
   }
   const current = loadPlayMetrics();
-  const stats = current.poseMatch?.[style] ?? { sum: 0, count: 0, misses: 0 };
+  const key = layout?.trim();
   savePlayMetrics({
     ...current,
     poseMatch: {
       ...(current.poseMatch ?? {}),
-      [style]: {
-        sum: stats.sum + Math.min(1, Math.max(0, score)),
-        count: stats.count + 1,
-        misses: stats.misses + (missed ? 1 : 0),
-      },
+      [style]: addPoseStat(current.poseMatch?.[style], score, missed),
     },
+    ...(key
+      ? {
+          poseMatchByLayout: {
+            ...(current.poseMatchByLayout ?? {}),
+            [key]: addPoseStat(current.poseMatchByLayout?.[key], score, missed),
+          },
+        }
+      : {}),
   });
+}
+
+/** Mean pose match per layout, weakest first (only layouts with at least `minCount` checks). */
+export function poseMatchByLayoutSummary(
+  metrics: PlayMetrics = loadPlayMetrics(),
+  minCount = 1
+): Array<{ layout: string; mean: number; missRate: number; count: number }> {
+  return Object.entries(metrics.poseMatchByLayout ?? {})
+    .filter(([, stats]) => stats.count >= minCount)
+    .map(([layout, stats]) => ({
+      layout,
+      mean: stats.sum / stats.count,
+      missRate: stats.misses / stats.count,
+      count: stats.count,
+    }))
+    .sort((a, b) => a.mean - b.mean);
+}
+
+/** Enough checks before a layout is judged, and the mean below which it's routed around. */
+export const WEAK_POSE_LAYOUT_MIN_COUNT = 8;
+export const WEAK_POSE_LAYOUT_MAX_MEAN = 0.45;
+
+/**
+ * Layouts Edit keeps ignoring: after enough checks their mean pose match stays low. The guide
+ * builder draws the plain posture for these instead (unless the pose library has a real pose).
+ */
+export function weakPoseLayouts(metrics: PlayMetrics = loadPlayMetrics()): Set<string> {
+  return new Set(
+    poseMatchByLayoutSummary(metrics, WEAK_POSE_LAYOUT_MIN_COUNT)
+      .filter(entry => entry.mean < WEAK_POSE_LAYOUT_MAX_MEAN)
+      .map(entry => entry.layout)
+  );
 }
 
 /** Records one measured face-match score for the model that rendered the still. */

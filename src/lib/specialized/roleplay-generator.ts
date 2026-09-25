@@ -47,7 +47,7 @@ import {
   type RoleplayTone,
 } from '../roleplay';
 import { runSpecializedPrompt } from './runner';
-import { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS } from '../day-pose-guide';
+import { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS, SCENE_POSE_LAYOUT_IDS } from '../day-pose-guide';
 import type { SharedGenerationOptions, ToolGenerateResult } from './types';
 
 export type RoleplaySharedOptions = SharedGenerationOptions & {
@@ -243,7 +243,8 @@ function scenePoseFieldLine(content: RoleplayContentId): string {
   const acts = isRoleplayAdultContent(content)
     ? `the sex position shown, one of ${SCENE_POSE_ACT_IDS.filter(id => id !== 'none').join(', ')}, or "none"`
     : '"none"';
-  return `- pose describes the still's main body: body is one of ${bodies}; people is how many people are in frame (1–3); act is ${acts}. It must agree with the blurb.`;
+  const layouts = SCENE_POSE_LAYOUT_IDS.join(', ');
+  return `- pose describes the still's main body: body is one of ${bodies}; people is how many people are in frame (1–3); act is ${acts}; layout (optional) is the specific action or gesture, one of ${layouts} — pick the one the blurb shows, or leave it out when none fits. It must agree with the blurb.`;
 }
 
 function stampFinaleScenes(scenes: RoleplayScene[], finale: boolean): RoleplayScene[] {

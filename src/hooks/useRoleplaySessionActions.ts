@@ -65,6 +65,17 @@ export function useRoleplaySessionActions({
     [storyRef, updateToolSettings]
   );
 
+  const setBeatPose = useCallback(
+    (beat: RoleplayStoryBeat, patch: Pick<RoleplayStoryBeat, 'poseLayout' | 'poseVariant'>) => {
+      const latest =
+        storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at) ?? beat;
+      updateToolSettings({
+        story: patchRoleplayStoryBeat(storyRef.current, latest, patch),
+      });
+    },
+    [storyRef, updateToolSettings]
+  );
+
   const selectClipTake = useCallback(
     (beat: RoleplayStoryBeat, index: number) => {
       const latest =
@@ -155,6 +166,7 @@ export function useRoleplaySessionActions({
   return {
     exporting,
     selectStillTake,
+    setBeatPose,
     selectClipTake,
     copyBeatPrompt,
     downloadStory,

@@ -23,11 +23,15 @@ import {
   PLAY_METRICS_UPDATED_EVENT,
   resolveNextPlayAction,
   faceMatchSummary,
+  poseMatchByLayoutSummary,
   poseMatchSummary,
+  WEAK_POSE_LAYOUT_MAX_MEAN,
+  WEAK_POSE_LAYOUT_MIN_COUNT,
   slotKeepRate,
   slowestPlayPhase,
   type PlayMetrics,
 } from '@/lib/play-metrics';
+import { poseLayoutLabel } from '@/lib/pose-layout-labels';
 import type { LookPack } from '@/lib/look-pack';
 
 const POSE_STYLE_LABELS = {
@@ -106,6 +110,10 @@ export default function PlayFilmMetricsCard() {
   const slowestPhase = slowestPlayPhase(metrics);
   const reviews = metrics.slotReviews;
   const poseMatch = poseMatchSummary(metrics);
+  // Weakest three layouts — the ones worth knowing about.
+  const poseByLayout = poseMatchByLayoutSummary(metrics).slice(0, 3);
+  const isRoutedAround = (entry: { mean: number; count: number }) =>
+    entry.count >= WEAK_POSE_LAYOUT_MIN_COUNT && entry.mean < WEAK_POSE_LAYOUT_MAX_MEAN;
   const faceMatch = faceMatchSummary(metrics).slice(0, 3);
   const hasCampaign = Boolean(campaignStep?.characterId);
   const empty = !hasTiming && !hasFunnel && !hasCampaign;
@@ -199,6 +207,22 @@ export default function PlayFilmMetricsCard() {
                     `${POSE_STYLE_LABELS[entry.style]}: ${entry.count} checked, ${formatRate(
                       entry.missRate
                     )} missed`
+                )
+                .join(' · ')}
+            />
+          ) : null}
+          {poseByLayout.length > 0 ? (
+            <StatCard
+              label="Pose match by layout"
+              value={poseByLayout
+                .map(entry => `${poseLayoutLabel(entry.layout)} ${formatRate(entry.mean)}`)
+                .join(' · ')}
+              detail={poseByLayout
+                .map(
+                  entry =>
+                    `${poseLayoutLabel(entry.layout)}: ${entry.count} checked${
+                      isRoutedAround(entry) ? ', guide now swaps in a plainer pose' : ''
+                    }`
                 )
                 .join(' · ')}
             />
