@@ -29,6 +29,7 @@ export const DAY_SLOT_SPORTS: Record<DayPart, readonly AthleticSport[]> = {
     'ski',
     'swimming',
     'surfing',
+    'gym',
   ],
   afternoon: [
     'tennis',
@@ -47,6 +48,7 @@ export const DAY_SLOT_SPORTS: Record<DayPart, readonly AthleticSport[]> = {
     'swimming',
     'boxing',
     'surfing',
+    'skateboarding',
   ],
   evening: [
     'basketball',
@@ -63,6 +65,8 @@ export const DAY_SLOT_SPORTS: Record<DayPart, readonly AthleticSport[]> = {
     'volleyball',
     'boxing',
     'swimming',
+    'gym',
+    'skateboarding',
   ],
   night: [
     'hockey',
@@ -73,6 +77,7 @@ export const DAY_SLOT_SPORTS: Record<DayPart, readonly AthleticSport[]> = {
     'soccer',
     'boxing',
     'volleyball',
+    'gym',
   ],
 };
 
@@ -98,6 +103,8 @@ const SPORT_LABEL: Record<AthleticSport, string> = {
   volleyball: 'volleyball',
   boxing: 'boxing',
   surfing: 'surfing',
+  gym: 'gym strength training',
+  skateboarding: 'skateboarding',
 };
 
 export function daySportLabel(sport: AthleticSport): string {
@@ -113,10 +120,18 @@ function buildSportBeatLine(pose: string, label: string): string {
  * sessions, after-work league games, and late-night training.
  */
 const DAY_LATE_SLOT_SPORTS: Record<DayPart, readonly AthleticSport[]> = {
-  morning: ['tennis', 'golf', 'swimming', 'climbing', 'volleyball', 'cycling'],
-  afternoon: ['soccer', 'baseball', 'volleyball', 'surfing', 'running', 'tennis'],
-  evening: ['boxing', 'martial_arts', 'basketball', 'fencing', 'climbing', 'hockey'],
-  night: ['running', 'boxing', 'swimming', 'basketball', 'martial_arts'],
+  morning: ['tennis', 'golf', 'swimming', 'climbing', 'volleyball', 'cycling', 'gym'],
+  afternoon: ['soccer', 'baseball', 'volleyball', 'surfing', 'running', 'tennis', 'skateboarding'],
+  evening: [
+    'boxing',
+    'martial_arts',
+    'basketball',
+    'fencing',
+    'climbing',
+    'hockey',
+    'skateboarding',
+  ],
+  night: ['running', 'boxing', 'swimming', 'basketball', 'martial_arts', 'gym'],
 };
 
 /** Sports for a slot: late slots use {@link DAY_LATE_SLOT_SPORTS}. */

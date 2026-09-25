@@ -19,7 +19,9 @@ export type AthleticSport =
   | 'swimming'
   | 'volleyball'
   | 'boxing'
-  | 'surfing';
+  | 'surfing'
+  | 'gym'
+  | 'skateboarding';
 
 export type AthleticSportProfile = {
   id: AthleticSport;
@@ -369,6 +371,31 @@ export const ATHLETIC_SPORT_PROFILES: readonly AthleticSportProfile[] = [
     guardrail:
       'Surfing—use a wetsuit, rash guard with boardshorts, or swimwear with bare feet. No cycling kit, track pants, or cleats.',
     outfitPickRate: 75,
+  },
+  // Last so a "gym corner with a heavy bag" stays boxing — gym needs lifting words, not "gym".
+  {
+    id: 'gym',
+    hint: /\b(?:barbell|dumbbells?|kettlebells?|deadlift(?:s|ing)?|squat rack|power rack|bench press|pull-?ups?|chin-?ups?|push-?ups?|press-?ups?|forearm plank|plank hold|weight room|lifting weights|strength training|weight training|gym floor|leg day)\b/i,
+    outfitLabels: [/\b(?:gym|workout|training|athleisure|activewear)\b/i],
+    topLabels: [/\b(?:sports bra|tank|tank top|crop top|training tee)\b/i],
+    bottomLabels: [/\b(?:leggings|joggers|gym shorts|training shorts|bike shorts)\b/i],
+    footwearLabels: [/\b(?:training shoes|trainers|sneakers?|lifting shoes|cross-?trainers)\b/i],
+    excludeLabels: [WRONG_CYCLING, WRONG_SOCCER, /\b(?:cleats|wetsuit|boots|heels|sandals)\b/i],
+    guardrail:
+      'Gym strength training—use leggings, joggers or gym shorts with a sports bra, tank or training tee and training shoes. No cleats, cycling kit, wetsuits, or street shoes.',
+    outfitPickRate: 70,
+  },
+  {
+    id: 'skateboarding',
+    hint: /\b(?:skateboard(?:s|ing|er)?|skate ?park|skate bowl|kickflip|ollie|half-?pipe|grinding (?:a|the) (?:rail|ledge|coping))\b/i,
+    outfitLabels: [/\b(?:skater|streetwear|skate)\b/i],
+    topLabels: [/\b(?:hoodie|t-shirt|tee|flannel|graphic)\b/i],
+    bottomLabels: [/\b(?:cargo pants|cargo shorts|baggy jeans|skate shorts|jeans|work pants)\b/i],
+    footwearLabels: [/\b(?:skate shoes|sneakers?|high-tops?|canvas shoes)\b/i],
+    excludeLabels: [WRONG_CYCLING, WRONG_SOCCER, /\b(?:cleats|wetsuit|heels|sandals|leotard)\b/i],
+    guardrail:
+      'Skateboarding—use streetwear: a tee or hoodie with cargo pants, baggy jeans or skate shorts and flat skate shoes. No cleats, wetsuits, heels, or sandals.',
+    outfitPickRate: 70,
   },
 ];
 

@@ -144,6 +144,11 @@ const VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
       beat: 'MID-STRIDE collecting shells in a straw hat — WALKING mid-step one foot clearly ahead opposite arm swing, tote hanging on the back arm, head tipped looking DOWN at wet sand sparkle, three-quarter body not square to camera — never arms-at-sides fashion stand staring at the lens',
       setting: 'tide-pool shoreline with clear shallow water and morning light',
     },
+    {
+      activity: 'beach',
+      beat: 'RELAXING on her stomach on a beach towel with a paperback — feet kicked up behind, sun hat, sunglasses pushed up',
+      setting: 'quiet morning beach with raked sand and a striped umbrella',
+    },
   ],
   afternoon: [
     {
@@ -246,6 +251,11 @@ const VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
       beat: 'RELAXING on a pool float mid-lounge — one arm trailing in the water, swimsuit, drink in a cup holder, turquoise water',
       setting: 'resort pool with floating loungers and white cabana backs',
     },
+    {
+      activity: 'pier',
+      beat: 'PERCHED on the harbor wall taking a selfie with the boats behind — legs dangling, linen shirt, sunglasses',
+      setting: 'sunny harbor wall above bobbing fishing boats',
+    },
   ],
   evening: [
     {
@@ -343,6 +353,11 @@ const VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
       beat: 'SEATED at a night-market stool sampling street noodles — evening wear, chopsticks raised, lantern glow',
       setting: 'lantern-lit night market alley with steam and paper lamps (early evening)',
     },
+    {
+      activity: 'rooftop',
+      beat: 'SEATED cross-legged on a rooftop daybed with a spritz — sunset behind, silk shirt, bare feet tucked',
+      setting: 'rooftop terrace with daybeds, string lights, and a golden-hour skyline',
+    },
   ],
   night: [
     {
@@ -439,6 +454,11 @@ const VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
       activity: 'hotel',
       beat: 'SEATED on the luggage bench in the elevator lobby — evening dress, shoes off, waiting for the lift, soft brass light',
       setting: 'boutique hotel elevator lobby after dark with brass fixtures and carpet',
+    },
+    {
+      activity: 'hotel',
+      beat: 'RECLINING on the hotel bed on her side, head propped on one hand — room-service tray, city lights through the window',
+      setting: 'hotel suite with crisp sheets, low lamps, and a skyline window',
     },
   ],
 };

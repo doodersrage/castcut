@@ -9,6 +9,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **More poses:** 24 new pose-guide layouts.
+  - Everyday solo: cross-legged on the floor, lounging back on the elbows, lying on the front (feet up), lying on the side (head propped), perched on an edge, hands behind the head (standing or lying), arms up, selfie, camera to the eye, cooking, laptop, eating (seated or standing).
+  - Duo: holding hands, piggyback, high five, toast (standing or across a table), head on a shoulder, selfie together. With one person allowed (Duo off, clothed moods) each draws a solo stand-in instead: high five → wave, toast → drink, selfie together → selfie.
+  - Gym and skate: squat, deadlift, push-up, plank, pull-up, skateboard.
+  - Sport mood gains **gym strength training** and **skateboarding** (kit rules, action beats, venues, time-of-day slots). Day, late-slot, companion and vacation pools gained beats that use the new layouts, and existing beats like "cross-legged on the couch" or "arms behind the head" now draw them too.
+- **Fix: seven solo gestures drew a two-person fight.** Hands on hips, bending to pick something up, foot up on a step, leaning on a wall, touching hair, shrugging and climbing stairs had no drawing of their own and fell through to the fight wireframe — two figures on a solo Day still. Each now has its own one-figure drawing.
+- **Fix: a hand gesture ignored the stated posture.** "Lying across the bed scrolling a phone" and "sitting on the edge of the bed checking a phone" drew a standing figure; gesture layouts now follow a stated sit / lie / kneel / crouch, with the phone or glass hand at the face.
+
 - **Fix: intermittent hydration error on every page (React #418).** The sidebar sits in a Suspense boundary that hydrates after the rest of the page; under load the auth session and workspace mode had loaded by then, so its hydration render (signed-in nav) no longer matched the server's signed-out shell and React threw the server HTML away. The sidebar now renders its placeholder until hydrated (new `useHydrated` hook). 216 page loads under 6-way parallel load: 0 errors (was 5 in 18). A smoke test now fails on any hydration error. (The *every-load* #418 seen earlier was a test-setup artifact — a build without `NEXT_PUBLIC_PLAYWRIGHT` served with it set; see quick reference.)
 - **Play checks contract tests:** a fake ComfyUI (with ComfyUI-style graph validation — link types, required inputs, allowed combo values) and a fake vision LLM over real HTTP exercise the DWPose read (plate check, pose checks), FaceAnalysis face match (Outfit Auto-review, Day), the slot review call (Outfit Auto-review), and Look tile-role suggestion, plus the "node pack missing → check off" path. An e2e test covers a running job showing as *Rendering* on Day and Story and Story's *Retry N flagged*. Still not verified against a real GPU / model — these pin our wire contract, not model quality.
 

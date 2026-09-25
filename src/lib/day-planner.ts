@@ -833,7 +833,9 @@ export function dayEverydayPoseClass(beat: string | null | undefined): string {
     return 'STILL';
   }
   if (
-    /\b(lie|lies|lying|sprawl(?:ed|ing)?|reclin(?:e|es|ed|ing)|stretched out|flat on)\b/.test(hay)
+    /\b(lie|lies|lying|sprawl(?:ed|ing)?|reclin(?:e|es|ed|ing)|stretched out|flat on|propped back on|on (?:her|his|their) (?:stomach|belly|side))\b/.test(
+      hay
+    )
   ) {
     return 'LYING';
   }
@@ -874,7 +876,7 @@ export function dayEverydayPoseClass(beat: string | null | undefined): string {
   // Standing, but the arms are doing something — distinct enough from a still plate stance that
   // one of each in a day does not read as the same pose twice.
   if (
-    /\b(wav(?:e|es|ing)|point(?:s|ing)?|reach(?:es|ing)?|stretch(?:es|ing)?|yawn|sip(?:s|ping)?|drink(?:s|ing)?|mug in hand|coffee in|pouring|look(?:s|ing)? back|over (?:one|the) shoulder|tuck(?:s|ing)?|adjust(?:s|ing)?|fixes|shrug(?:s|ging)?|palms up|hands on hips|hand on a hip|carry(?:ing)?|tote|bag over|read(?:s|ing)?|browsing|menu|surveying|squinting)\b/.test(
+    /\b(wav(?:e|es|ing)|point(?:s|ing)?|reach(?:es|ing)?|stretch(?:es|ing)?|yawn|sip(?:s|ping)?|drink(?:s|ing)?|mug in hand|coffee in|pouring|look(?:s|ing)? back|over (?:one|the) shoulder|tuck(?:s|ing)?|adjust(?:s|ing)?|fixes|shrug(?:s|ging)?|palms up|hands on hips|hand on a hip|carry(?:ing)?|tote|bag over|read(?:s|ing)?|browsing|menu|surveying|squinting|cook(?:s|ing)|stir(?:s|ring)|flipping|at the stove|laptop|typing|eat(?:s|ing)|bite|photo(?:s|graph\w*)?|camera|selfie|arms? up|behind (?:her|his|their) head)\b/.test(
       hay
     )
   ) {
@@ -972,21 +974,29 @@ export const DAY_SLOT_COMPANION_BEAT_PRESETS: Record<DayPart, string[]> = {
     'mirror selfie with a friend leaning into frame over one shoulder',
     'arm-in-arm with a roommate on the balcony, both facing morning light',
     'phone selfie with a friend crowding into the shot, laughing',
+    'walking hand in hand with a friend to the café',
+    'clinking mugs with a roommate over breakfast at the counter',
   ],
   afternoon: [
     'selfie with a friend on a park bench, heads close, different faces',
     'walking side by side with a companion, mid-conversation gesture',
     'hugging a friend hello on the sidewalk, both smiling',
+    'high-fiving a friend at the top of the hike',
+    "piggyback ride on a friend's back across the park, both laughing",
   ],
   evening: [
     'selfie double at a bar rail with a friend leaning in, different faces',
     'seated knee-to-knee with a companion sharing a menu',
     'arm around a friend on a rooftop at golden hour',
+    'clinking glasses with a friend at the rooftop bar',
+    'selfie with a friend at golden hour, heads together',
   ],
   night: [
     'neon selfie with a friend pressed close, Cast face on the lead only',
     'walking home arm-in-arm under streetlights with a companion',
     'diner booth across from a friend, leaning into conversation',
+    "sitting on the steps, head resting on a friend's shoulder",
+    'walking home hand in hand with a friend under the streetlights',
   ],
 };
 
@@ -1101,6 +1111,10 @@ export const DAY_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'waving hello from the balcony, other hand on the rail',
     'tucking hair behind an ear at the hall mirror',
     'hands on hips surveying the kitchen counter',
+    'lying on her stomach on the bed, feet kicked up behind, scrolling the news',
+    'sitting cross-legged on the rug with a mug, blanket around the shoulders',
+    'flipping pancakes at the stove, spatula mid-air',
+    'perched on the kitchen counter with a bowl of cereal, legs dangling',
   ],
   afternoon: [
     'lying back on the grass, arms behind the head',
@@ -1123,6 +1137,10 @@ export const DAY_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'shrugging mid-conversation on the corner, palms up',
     'adjusting a bag strap on the shoulder at the crossing',
     'hands on hips squinting up at a street sign',
+    'lying on her side on the picnic blanket, head propped on one hand',
+    'working on her laptop at a café table, coffee at her elbow',
+    'snapping a photo of the street with a film camera',
+    'taking a selfie on the bridge with the skyline behind',
   ],
   evening: [
     'reclining on the couch with feet up on the cushion',
@@ -1144,6 +1162,10 @@ export const DAY_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'arms crossed on a rooftop, looking out at golden hour',
     'tucking hair back while looking in the hall mirror',
     'hands on hips at the stove deciding what to cook',
+    'propped back on her elbows on the grass watching the sunset',
+    'stirring a pot of pasta sauce at the stove, wooden spoon raised',
+    'throws both arms up in the air as the fireworks start',
+    'sitting at the counter taking a bite of a slice of pizza',
   ],
   night: [
     'lying back on the bed still in the coat, phone held overhead',
@@ -1165,6 +1187,10 @@ export const DAY_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'checking a phone under neon, weight on one hip',
     'holding a phone at chest height under neon, looking at the screen',
     'tucking hair under a collar against the cold',
+    'lying on her stomach on the couch, chin on her hands, laptop open',
+    'perched on the edge of the kitchen table, legs dangling, mug of tea',
+    'standing at the balcony door, hands behind her head, taking a breath',
+    'sitting cross-legged on the bed eating noodles from the carton',
   ],
 };
 
@@ -1187,6 +1213,8 @@ export const DAY_LATE_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'waving down a friend across the plaza, other hand holding an iced coffee',
     'tucking hair behind an ear while trying on sunglasses at a street stall mirror',
     'standing in line at the post office, parcel under one arm, weight on one hip',
+    'photographing brunch on the table with a film camera',
+    'lying on her side on the sofa, head propped on one hand, reading',
   ],
   afternoon: [
     'lying on a picnic blanket in golden light, propped on both elbows',
@@ -1201,6 +1229,8 @@ export const DAY_LATE_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'stretching both arms overhead on a rooftop as the light turns gold',
     'waving at a friend down the street, other hand shading her eyes from the low sun',
     'hands on hips outside the florist, a bunch of flowers tucked under one arm',
+    'perched on a low wall with a gelato, legs dangling',
+    'taking a selfie in front of the mural',
   ],
   evening: [
     'lying on the couch with feet up on the armrest, takeout container on the chest',
@@ -1215,6 +1245,8 @@ export const DAY_LATE_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'raising a glass for a toast at an outdoor table, other hand on the chair back',
     'checking a reflection in a shop window while fixing a collar',
     'standing at a food truck window counting coins into one palm',
+    'lying back on the rooftop lounger, hands behind her head',
+    'throws both arms up as the fireworks burst over the river',
   ],
   night: [
     'lying on the living-room floor with headphones on, eyes closed',
@@ -1229,6 +1261,8 @@ export const DAY_LATE_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'pointing up at the stars from the balcony, other hand on the rail',
     'hugging a pillow while standing by the window, looking out at the city',
     'standing at the bathroom mirror taking off earrings, head tilted',
+    'lying on her stomach across the hotel bed, feet kicked up behind, texting',
+    'cooking a midnight omelette at the stove',
   ],
 };
 
@@ -1277,18 +1311,22 @@ export const DAY_LATE_SLOT_COMPANION_BEAT_PRESETS: Record<DayPart, string[]> = {
   morning: [
     'seated across a brunch table from a friend, both mid-laugh, different faces',
     'selfie with a friend at the farmers market, fruit bags in hand',
+    'high-fiving a friend after the farmers market haul',
   ],
   afternoon: [
     'walking a friend’s bike alongside them on the promenade, mid-conversation',
     'sitting on a picnic blanket with a friend in golden light, heads close',
+    "piggyback ride on a friend's back along the boardwalk",
   ],
   evening: [
     'seated across a candlelit dinner table from a friend, clinking glasses',
     'arm-in-arm with a friend walking out of the restaurant',
+    'clinking glasses with a friend at the wine bar',
   ],
   night: [
     'sitting on the rooftop ledge with a friend sharing earbuds, city lights behind',
     'selfie with a friend in the late-night diner booth',
+    "sitting on the curb, head resting on a friend's shoulder",
   ],
 };
 

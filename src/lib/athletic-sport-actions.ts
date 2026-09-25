@@ -482,6 +482,46 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
     ],
     foreignTokens: ['cyclist', 'javelin', 'dunk', 'golf swing', 'indoor court', 'dojo', 'piste'],
   },
+  gym: {
+    instructions:
+      'Show strength training: a squat, deadlift, push-up, plank, or pull-up with correct form in a gym. Loaded bar or bodyweight, braced core—no fashion poses, balls, bikes, or courts.',
+    rewriteDefault: 'sinking a barbell back squat to parallel in the squat rack',
+    poses: [
+      'sinking a barbell back squat to parallel in the squat rack, chest up',
+      'driving up out of the bottom of a goblet squat with a kettlebell at the chest',
+      'pulling a deadlift from the floor with a flat back and the bar close to the shins',
+      'locking out a kettlebell swing hip hinge at chest height',
+      'holding the top of a push-up with arms straight and body in one line',
+      'lowering into a push-up with elbows tucked',
+      'holding a forearm plank on the mat, body straight from heels to head',
+      'grinding out strict pull-ups with the chin over the bar',
+    ],
+    settings: [
+      'a weight room with racks, chalk dust, and rubber floors under strip lights',
+      'a garage gym with a squat rack and plates stacked by the door',
+      'a bright boutique gym with mirrors and a turf lane',
+    ],
+    foreignTokens: ['cyclist', 'javelin', 'dunk', 'golf swing', 'surfboard', 'racket', 'ski slope'],
+  },
+  skateboarding: {
+    instructions:
+      'Show skateboarding: cruising, carving, an ollie, or dropping into a bowl on a skateboard. Board under the feet, knees bent—no bikes, balls, or fashion poses.',
+    rewriteDefault: 'cruising on her skateboard through the skate park, knees bent',
+    poses: [
+      'cruising on her skateboard through the skate park, knees bent and arms out',
+      'carving the skate bowl wall with weight low over the board',
+      'popping an ollie off the flat, board rising with the feet',
+      'dropping in on the half-pipe ramp, leaning forward over the nose',
+      'pushing off on the skateboard down a smooth street with the back foot',
+      'grinding the ledge with arms out for balance',
+    ],
+    settings: [
+      'a concrete skate park with bowls and graffiti under late sun',
+      'an empty downtown plaza with ledges and long evening shadows',
+      'an indoor skate park with wooden ramps and fluorescent light',
+    ],
+    foreignTokens: ['cyclist', 'javelin', 'dunk', 'golf swing', 'surfboard', 'racket', 'ski slope'],
+  },
 };
 
 export type CyclingDiscipline = 'road' | 'gravel' | 'mountain' | 'cyclocross' | 'track';
@@ -797,6 +837,8 @@ const DEFAULT_BOTTOM_BY_SPORT: Partial<Record<AthleticSport, string>> = {
   yoga: 'yoga pants',
   volleyball: 'volleyball shorts',
   boxing: 'boxing shorts',
+  gym: 'leggings',
+  skateboarding: 'cargo pants',
   swimming: 'racing swimsuit',
   surfing: 'boardshorts',
 };
@@ -816,6 +858,8 @@ const SPORTS_REQUIRING_BOTTOM: AthleticSport[] = [
   'boxing',
   'swimming',
   'surfing',
+  'gym',
+  'skateboarding',
 ];
 
 function bottomLabelFromSummary(summary: string, sport: AthleticSport): string | null {

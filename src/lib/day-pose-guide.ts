@@ -41,6 +41,12 @@ import {
   type PoseGuideStylePreference,
 } from '@/lib/pose-guide-prompt';
 import {
+  duoSoloFallback,
+  everydayFigures,
+  isEverydayDuoLayout,
+  sportFigure,
+} from '@/lib/pose-everyday-figures';
+import {
   pickPoseLibraryEntry,
   placeLibraryPeople,
   poseLibraryKey,
@@ -238,7 +244,33 @@ export type SocialLayout =
   | 'sport_swim'
   | 'sport_spike'
   | 'sport_box'
-  | 'sport_surf';
+  | 'sport_surf'
+  | 'sport_squat'
+  | 'sport_deadlift'
+  | 'sport_pushup'
+  | 'sport_plank'
+  | 'sport_pullup'
+  | 'sport_skate'
+  // Everyday solo — floor, lounging, lying, perched, and hands-busy stances.
+  | 'sit_floor'
+  | 'lounge_elbows'
+  | 'lie_front'
+  | 'lie_side'
+  | 'perch_edge'
+  | 'hands_behind_head'
+  | 'arms_up'
+  | 'selfie'
+  | 'photograph'
+  | 'cook'
+  | 'laptop'
+  | 'eat'
+  // Everyday duo — drawn as two figures only when two people are allowed; solo fallback otherwise.
+  | 'hold_hands'
+  | 'piggyback'
+  | 'high_five'
+  | 'toast'
+  | 'head_shoulder'
+  | 'selfie_duo';
 
 const SPORT_SOLO_LAYOUTS: readonly SocialLayout[] = [
   'sport_sprint',
@@ -266,6 +298,12 @@ const SPORT_SOLO_LAYOUTS: readonly SocialLayout[] = [
   'sport_spike',
   'sport_box',
   'sport_surf',
+  'sport_squat',
+  'sport_deadlift',
+  'sport_pushup',
+  'sport_plank',
+  'sport_pullup',
+  'sport_skate',
 ];
 
 const SOCIAL_SOLO_LAYOUTS: ReadonlySet<SocialLayout> = new Set([
@@ -288,8 +326,47 @@ const SOCIAL_SOLO_LAYOUTS: ReadonlySet<SocialLayout> = new Set([
   'hair_touch',
   'shrug',
   'stairs',
+  'sit_floor',
+  'lounge_elbows',
+  'lie_front',
+  'lie_side',
+  'perch_edge',
+  'hands_behind_head',
+  'arms_up',
+  'selfie',
+  'photograph',
+  'cook',
+  'laptop',
+  'eat',
   ...SPORT_SOLO_LAYOUTS,
 ]);
+
+/** Upright gesture layouts that should follow a stated sit / lie / kneel / crouch posture. */
+const POSTURE_ADAPTS: ReadonlySet<SocialLayout> = new Set([
+  'phone',
+  'drink',
+  'point',
+  'pockets',
+  'cross_arms',
+  'look_back',
+  'hair_touch',
+  'shrug',
+  'hands_hips',
+  'carry',
+  'rail',
+  'read',
+  'wave',
+  'selfie',
+  'photograph',
+  'arms_up',
+  'cook',
+]);
+
+/** Layouts that already draw their own seated figure. */
+const HAS_SEATED_DRAWING: ReadonlySet<SocialLayout> = new Set(['read', 'wave', 'laptop', 'eat']);
+
+/** Gestures whose hand goes to the face when drawn in another posture. */
+const HAND_TO_FACE: ReadonlySet<SocialLayout> = new Set(['phone', 'drink', 'selfie']);
 
 function isSportSocialLayout(layout: SocialLayout): boolean {
   return layout.startsWith('sport_');
@@ -749,6 +826,46 @@ export function parseSportLayout(text: string | null | undefined): SocialLayout 
   ) {
     return 'sport_handstand';
   }
+  // Gym and skate — checked after yoga so "side plank" stays a yoga pose.
+  if (
+    /\b(pull[- ]?ups?|chin[- ]?ups?|dead\s+hang|hanging\s+from\s+(?:a|the)\s+(?:pull[- ]?up\s+)?bar)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_pullup';
+  }
+  if (/\b(push[- ]?ups?|press[- ]?ups?)\b/i.test(haystack)) {
+    return 'sport_pushup';
+  }
+  if (
+    /\b((?:forearm|elbow|high)\s+plank|plank(?:ing)?\s+(?:hold|position)|holding\s+a\s+plank|planks?\s+on\s+(?:a|the)\s+mat)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_plank';
+  }
+  if (
+    /\b(deadlift(?:s|ing)?|romanian\s+deadlift|kettlebell\s+swing(?:s|ing)?|hip\s+hinge\s+with\s+(?:a|the)\s+(?:bar|barbell|kettlebell))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_deadlift';
+  }
+  if (
+    /\b((?:back|front|goblet|barbell|dumbbell|kettlebell|air|jump|split)\s+squats?|squat\s+rack|squats?\s+(?:with|under)\s+(?:a|the)\s+(?:barbell|bar|kettlebell|dumbbells?)|squatting\s+(?:the|a)\s+(?:bar|barbell))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_squat';
+  }
+  if (
+    /\b(skateboard(?:s|ing|er)?|skate\s*park|skate\s+bowl|ollie(?:s|ing)?|kickflip(?:s|ping)?|grind(?:s|ing)?\s+(?:a|the)\s+(?:rail|ledge|coping)|(?:drops?|dropping)\s+in\s+on\s+(?:a|the)\s+(?:ramp|bowl|half[- ]?pipe)|cruis(?:es|ing)\s+on\s+(?:a|her|his|their)\s+(?:skate)?board)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sport_skate';
+  }
+
   if (/\b(dunk(?:ing)?|two-handed\s+through\s+the\s+rim)\b/i.test(haystack)) {
     return 'sport_dunk';
   }
@@ -965,6 +1082,45 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
   if (sport) {
     return sport;
   }
+  // Two-person everyday layouts — before hug, whose "arm around" / "arm-in-arm" would claim them.
+  if (
+    /\b(head\s+(?:resting\s+)?on\s+(?:a\s+|her\s+|his\s+|their\s+)?(?:friend'?s\s+|partner'?s\s+|companion'?s\s+)?shoulder|rests?\s+(?:her|his|their)\s+head\s+on|lean(?:s|ing)?\s+(?:her|his|their)\s+head\s+on)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'head_shoulder';
+  }
+  if (
+    /\b(selfies?\s+together|selfies?\s+with\s+(?:a|an|her|his|their|the)\s+(?:\w+\s+)?(?:friends?|roommate|partner|companion|sister|brother|mum|mom|dad|date|boyfriend|girlfriend|bestie|crew|mates?|pals?|group|cousin)|(?:group|couple|double)\s+selfie|selfie\s+double|crowd(?:s|ing)?\s+into\s+(?:the\s+)?(?:shot|frame)|lean(?:s|ing)?\s+into\s+(?:the\s+)?frame)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'selfie_duo';
+  }
+  if (
+    /\b(hand[- ]in[- ]hand|hold(?:s|ing)?\s+hands|fingers\s+(?:laced|interlaced|linked)|hands\s+(?:linked|joined)|(?:leads?|pulls?)\s+(?:her|him|them)\s+by\s+the\s+hand)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'hold_hands';
+  }
+  if (
+    /\b(piggy[- ]?back(?:s|ing)?|(?:rides?|riding|carried|carrying\s+her|carrying\s+him)\s+on\s+(?:a\s+|her\s+|his\s+|their\s+)?(?:friend'?s\s+|partner'?s\s+)?back)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'piggyback';
+  }
+  if (/\b(high[- ]fives?|high[- ]fiving|fist[- ]bump(?:s|ing)?)\b/i.test(haystack)) {
+    return 'high_five';
+  }
+  if (
+    /\b(clink(?:s|ing)?\s+(?:glasses|drinks|mugs|bottles|cups)|toast(?:s|ing)\s+(?:with|to|each\s+other)|raise(?:s|d)?\s+(?:a\s+toast|their\s+glasses|glasses)|cheers(?:ing)?\s+(?:with|over|to))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'toast';
+  }
   if (
     /\b(hug(?:s|ging|ged)?|embrace(?:s|d|ing)?|hold(?:s|ing)?\s+(?:them|her|him|each other)\s+close|wrapped\s+(?:in\s+)?(?:arms?|an embrace)|bear[- ]hug|arm[-\s]?in[-\s]?arm|arm\s+around\s+(?:a|her|his|their|the)|link(?:s|ing)?\s+arms)\b/i.test(
       haystack
@@ -1002,6 +1158,94 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
     )
   ) {
     return 'climb';
+  }
+  // Body shapes that were drawn as a generic sit / lie — before the phone and gesture matchers,
+  // so "lying on her stomach scrolling a phone" keeps the lying shape.
+  if (
+    /\b((?:lying|lies|lays|laying|stretched\s+out|sprawled|relaxing|reclining|sunbathing|lounging)\s+on\s+(?:her|his|their)\s+(?:stomach|belly|front|tummy)|(?:belly|tummy)[- ]down|(?:feet|heels|ankles)\s+(?:kicked\s+|kicking\s+|swinging\s+|crossed\s+)?up\s+behind)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'lie_front';
+  }
+  if (
+    /\b((?:lying|lies|curled|curls|stretched\s+out)\s+on\s+(?:her|his|their)\s+side|side[- ]lying|head\s+propped\s+(?:up\s+)?on\s+(?:a|her|his|one)\s+hand|propped\s+(?:up\s+)?on\s+one\s+elbow)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'lie_side';
+  }
+  if (
+    /\b((?:propped|leaning|lying|lies|leans|reclin(?:es|ing))\s+back\s+on\s+(?:her\s+|his\s+|their\s+|both\s+)?elbows|propped\s+on\s+(?:her\s+|his\s+|their\s+|both\s+)elbows)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'lounge_elbows';
+  }
+  if (
+    /\b(cross[- ]legged|legs\s+crossed\s+(?:on|under)|lotus\s+(?:pose|position)|legs\s+tucked\s+under|sit(?:s|ting)?\s+on\s+the\s+(?:floor|rug|carpet|mat))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'sit_floor';
+  }
+  if (
+    /\b((?:perched|perches|sits|sitting)\s+on\s+(?:the\s+|a\s+)?(?:edge\s+of\s+(?:the\s+|a\s+)?(?:counter|table|desk|dock|pier|pool|fountain|stage|wall|ledge)|(?:kitchen\s+)?counter(?:top)?|table(?:top)?|desk|low\s+wall|stone\s+wall|ledge|railing|tailgate|car\s+hood|hood\s+of\s+(?:the|a)\s+car|dock|pier)|(?:legs|feet)\s+dangling|swinging\s+(?:her|his|their)\s+legs)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'perch_edge';
+  }
+  if (
+    /\b(hands?\s+(?:clasped\s+|laced\s+)?behind\s+(?:her\s+|his\s+|their\s+|the\s+)?head|arms?\s+(?:folded\s+|crossed\s+)?behind\s+(?:her\s+|his\s+|their\s+|the\s+)?head)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'hands_behind_head';
+  }
+  if (
+    /\b(arms?\s+(?:thrown\s+|flung\s+)?(?:up|raised|high|wide)\s+in\s+(?:victory|triumph|celebration|the\s+air)|throws?\s+(?:both\s+|her\s+|his\s+|their\s+)?arms?\s+(?:up|in\s+the\s+air|wide)|fist[- ]pump(?:s|ing)?|hands\s+(?:up\s+)?in\s+the\s+air|victory\s+pose|celebrat(?:es|ing)\s+with\s+(?:both\s+)?arms)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'arms_up';
+  }
+  // A mirror selfie holds the phone at the chest — that's the phone layout below.
+  if (
+    !/\bmirror\s+selfie\b/i.test(haystack) &&
+    /\b(selfie|arm\s+(?:out|outstretched|extended)\s+(?:with|holding)\s+(?:the|a|her|his)\s+phone|phone\s+held\s+(?:up\s+)?at\s+arm'?s\s+length)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'selfie';
+  }
+  if (
+    /\b((?:takes?|taking|snaps?|snapping|shoots?|shooting)\s+(?:a\s+)?(?:photo|picture|pic)s?|photograph(?:s|ing)?|lines?\s+up\s+(?:a|the)\s+shot|camera\s+(?:raised\s+|up\s+)?to\s+(?:her|his|their|one)\s+eye|film\s+camera|(?:through|into)\s+the\s+viewfinder|polaroid)\b/i.test(
+      haystack
+    )
+  ) {
+    return 'photograph';
+  }
+  if (
+    /\b(laptop|keyboard|(?:typing|types)\s+(?:on|at)\s+(?:a|her|his|the)\s+(?:laptop|computer|keyboard)|working\s+on\s+(?:a|her|his|the)\s+(?:laptop|computer))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'laptop';
+  }
+  if (
+    /\b(cook(?:s|ing)\b|stir(?:s|ring)?\s+(?:a|the)\s+(?:pot|pan|sauce|risotto|soup)|chop(?:s|ping)?\s+(?:veg|vegetables|onions?|herbs|garlic|tomatoes)|at\s+the\s+stove|flip(?:s|ping)?\s+(?:a\s+)?(?:pancakes?|omelet(?:te)?|eggs?)|whisk(?:s|ing)|knead(?:s|ing)|saut[eé](?:s|ing)?|tast(?:es|ing)\s+from\s+(?:a|the)\s+(?:spoon|pot|pan))/i.test(
+      haystack
+    )
+  ) {
+    return 'cook';
+  }
+  if (
+    /\b(eat(?:s|ing)\s+(?:a|an|the|her|his|some|from|with|lunch|breakfast|dinner|noodles|ramen|pasta|pizza|ice\s+cream|cereal|toast)|(?:takes?|taking)\s+(?:a\s+)?bites?|bites?\s+into|mid[- ]bite|forkful|spoonful|chopsticks\s+(?:raised|lifted|to)|slurp(?:s|ing)|lick(?:s|ing)\s+(?:an?\s+)?(?:ice\s+cream|cone))\b/i.test(
+      haystack
+    )
+  ) {
+    return 'eat';
   }
   if (
     /\b((?:on\s+(?:the|their|her|his)\s+)?phone|text(?:s|ing)?|selfie|scroll(?:s|ing)?\s+(?:on\s+)?(?:a\s+)?phone|looking\s+at\s+(?:a\s+)?(?:phone|screen)|checks?\s+(?:a\s+)?phone|mobile\s+in\s+hand)\b/i.test(
@@ -1196,6 +1440,24 @@ function socialBaseForLayout(layout: SocialLayout): PoseGuideBase {
     case 'bend_pick':
       return 'crouch';
     case 'stairs':
+      return 'walk';
+    case 'sit_floor':
+    case 'perch_edge':
+    case 'laptop':
+    case 'head_shoulder':
+      return 'sit';
+    case 'lounge_elbows':
+    case 'lie_front':
+    case 'lie_side':
+    case 'sport_pushup':
+    case 'sport_plank':
+      return 'lie';
+    case 'sport_squat':
+    case 'sport_deadlift':
+      return 'crouch';
+    case 'sport_pullup':
+      return 'reach';
+    case 'hold_hands':
       return 'walk';
     case 'hug':
     case 'phone':
@@ -3297,6 +3559,10 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
  * Joints are exaggerated so Edit reads sprint / swing / kick — not a standing pin-up.
  */
 function synthesizeSportStickFigure(layout: SocialLayout, seed: number): StickSkeleton {
+  const gymOrSkate = sportFigure(layout, seed);
+  if (gymOrSkate) {
+    return gymOrSkate;
+  }
   switch (layout) {
     case 'sport_sprint': {
       const fig = uprightFigure(seed, {
@@ -3797,6 +4063,53 @@ export function synthesizeSocialStickFigures(intent: PoseGuideIntent): StickSkel
   const seed = intent.seed;
   if (isSportSocialLayout(layout)) {
     return [synthesizeSportStickFigure(layout, seed)];
+  }
+  const companion = () =>
+    uprightFigure(seed, { cx: 0.72, base: 'stand', salt: 2, arms: 'down', lean: -0.08 });
+
+  // A two-person layout with one person allowed (Duo off, clothed moods) draws its solo cousin.
+  if (isEverydayDuoLayout(layout) && intent.people <= 1) {
+    const fallback = duoSoloFallback(layout);
+    if (fallback && POSE_BASE_IDS.has(fallback)) {
+      return [
+        synthesizeStickSkeleton({ ...intent, base: fallback as PoseGuideBase, social: null }),
+      ];
+    }
+    if (fallback) {
+      return synthesizeSocialStickFigures({ ...intent, social: fallback as SocialLayout });
+    }
+  }
+
+  // Upright gesture layouts keep a stated posture: "lying across the bed scrolling a phone" is a
+  // lying figure, not a standing one with a phone. The gesture's hand goes to the face.
+  if (
+    intent.people <= 1 &&
+    POSTURE_ADAPTS.has(layout) &&
+    (intent.base === 'lie' ||
+      intent.base === 'kneel' ||
+      intent.base === 'crouch' ||
+      (intent.base === 'sit' && !HAS_SEATED_DRAWING.has(layout)))
+  ) {
+    const body = synthesizeStickSkeleton({ ...intent, social: null });
+    if (HAND_TO_FACE.has(layout)) {
+      body.rWrist = point(body.head.x + 0.06, body.head.y + 0.05);
+      body.rElbow = point(
+        (body.rShoulder.x + body.rWrist.x) / 2 + 0.05,
+        (body.rShoulder.y + body.rWrist.y) / 2 + 0.06
+      );
+    }
+    return [body];
+  }
+
+  const drawn = everydayFigures({
+    layout,
+    people: intent.people,
+    seed,
+    base: intent.base,
+    companion,
+  });
+  if (drawn) {
+    return drawn;
   }
   const wantTrio = intent.people >= 3;
   const pairOrTrio = (pair: StickSkeleton[]) =>
