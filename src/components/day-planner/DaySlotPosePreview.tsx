@@ -1,11 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
-import PosePreview from '@/components/PosePreview';
+import PoseMissPanel from '@/components/pose/PoseMissPanel';
+import PosePreview from '@/components/pose/PosePreview';
 import { useWeakPoseLayouts } from '@/hooks/useWeakPoseLayouts';
 import { isDayAdultMood, type DaySlot, type DaySlotId } from '@/lib/day-planner';
 import { dayPoseGuideFallbackIndex } from '@/lib/day-pose-guide';
 import { planDaySlotPose } from '@/lib/day-slot-pose';
+import type { PoseMissView } from '@/lib/pose-coaching';
 
 /** The active Day slot's pose preview — drawn with the same plan Queue day uses. */
 export default function DaySlotPosePreview({
@@ -17,6 +19,7 @@ export default function DaySlotPosePreview({
   model,
   busy,
   compact,
+  poseMiss,
   updateSlot,
 }: {
   slot: DaySlot;
@@ -27,6 +30,8 @@ export default function DaySlotPosePreview({
   model?: string | null;
   busy?: boolean;
   compact?: boolean;
+  /** Auto-review's last pose miss on this slot. */
+  poseMiss?: PoseMissView;
   updateSlot: (id: DaySlotId, patch: Partial<DaySlot>) => void;
 }) {
   const weakLayouts = useWeakPoseLayouts();
@@ -43,21 +48,19 @@ export default function DaySlotPosePreview({
     [allowCompanions, effectiveMood, intimateMix, model, slot]
   );
   return (
-    <div className="space-y-1.5" data-testid="day-slot-pose">
+    <div className="space-y-2" data-testid="day-slot-pose">
       <PosePreview
         sceneText={plan.sceneText}
         options={plan.options}
         fallbackIndex={dayPoseGuideFallbackIndex(slot.id)}
-        value={slot.poseLayout}
+        picks={slot}
         weakLayouts={weakLayouts}
         disabled={busy}
         compact={compact}
         testIdPrefix="day-slot-pose-preview"
-        onChange={poseLayout => updateSlot(slot.id, { poseLayout, poseVariant: undefined })}
-        onTryAnother={() =>
-          updateSlot(slot.id, { poseVariant: ((slot.poseVariant ?? 0) % 99) + 1 })
-        }
+        onChange={patch => updateSlot(slot.id, patch)}
       />
+      {poseMiss ? <PoseMissPanel view={poseMiss} testId="day-slot-pose-miss" /> : null}
     </div>
   );
 }

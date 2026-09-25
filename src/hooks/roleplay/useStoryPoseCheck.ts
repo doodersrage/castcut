@@ -11,6 +11,7 @@ import { DEFAULT_MIN_POSE_MATCH, POSE_LIBRARY_MIN_SCORE, scorePoseMatch } from '
 import { poseLayoutFromKey, recordFaceMatchScore, recordPoseMatchScore } from '@/lib/play-metrics';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
 import { DEFAULT_MIN_FACE_MATCH } from '@/lib/face-match';
+import { buildPoseMissView } from '@/lib/pose-coaching';
 
 /**
  * Story pose check: when a still that was queued with an Image 3 guide lands, read its pose
@@ -56,10 +57,23 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
           detected: detected.pose,
         });
         const miss = match.score < DEFAULT_MIN_POSE_MATCH;
-        recordPoseMatchScore(expect.style, match.score, miss, poseLayoutFromKey(expect.poseKey));
+        recordPoseMatchScore(expect.style, match.score, miss, poseLayoutFromKey(expect.poseKey), {
+          cued: expect.cued === true,
+        });
         const ordered = match.assignment.map(index => detected.pose.people[index]);
         const { width, height } = detected.pose.canvas;
+        const missView = miss
+          ? buildPoseMissView({
+              imageUrl,
+              score: match.score,
+              guide: expect.keypoints,
+              guideAspect: expect.aspect,
+              still: ordered,
+              stillAspect: width > 0 && height > 0 ? width / height : expect.aspect,
+            })
+          : null;
         if (
+          !expect.poseKey.startsWith('photo:') &&
           isOpenPoseStyle(expect.style) &&
           match.score >= POSE_LIBRARY_MIN_SCORE &&
           ordered.every(body => body && bodyIsUsable(body))
@@ -107,6 +121,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
               score: match.score,
               expectedPeople: match.expectedPeople,
               detectedPeople: match.detectedPeople,
+              ...(missView ? { missView } : {}),
             },
             ...(faceMatch ? { faceMatch } : {}),
           }),

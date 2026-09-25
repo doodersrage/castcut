@@ -146,6 +146,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     wardrobeCategoryFilter,
     filteredWardrobeOptions,
     updateSlot,
+    poseMissViews,
     wardrobeLabelFor,
     queueSlot,
     queueAll,
@@ -568,6 +569,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           model={shared.model}
           busy={busy}
           compact
+          poseMiss={poseMissViews[activeSlot.id]}
           updateSlot={updateSlot}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">

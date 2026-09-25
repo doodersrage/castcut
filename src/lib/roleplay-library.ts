@@ -1,4 +1,8 @@
-import { normalizeScenePoseSpec } from '@/lib/day-pose-guide';
+import {
+  normalizePhotoPose,
+  normalizePoseCameraChoice,
+  normalizeScenePoseSpec,
+} from '@/lib/day-pose-guide';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import {
   getCharacter,
@@ -135,6 +139,17 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
   }
   if (typeof record.poseVariant === 'number' && record.poseVariant > 0) {
     beat.poseVariant = Math.min(99, Math.floor(record.poseVariant));
+  }
+  const posePhoto = normalizePhotoPose(record.posePhoto);
+  if (posePhoto) {
+    beat.posePhoto = posePhoto;
+  }
+  const poseCamera = normalizePoseCameraChoice(record.poseCamera);
+  if (poseCamera) {
+    beat.poseCamera = poseCamera;
+  }
+  if (record.poseLead === 'left' || record.poseLead === 'right') {
+    beat.poseLead = record.poseLead;
   }
   return beat;
 }

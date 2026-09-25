@@ -32,6 +32,7 @@ import {
   type SlotQualityLedger,
 } from '@/lib/play-slot-quality';
 import { buildFaceComparePair } from '@/lib/play-face-compare';
+import { buildPoseMissView, poseLimbFixNudge, type PoseMissView } from '@/lib/pose-coaching';
 import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
 
 /**
@@ -50,6 +51,8 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
 
   const [qualityStatus, setQualityStatus] = useState<string | null>(null);
   const [qualityLedger, setQualityLedger] = useState<SlotQualityLedger>({});
+  /** Last pose miss per slot: guide vs still skeleton and the limbs that differ. */
+  const [poseMissViews, setPoseMissViews] = useState<Record<string, PoseMissView>>({});
   const [tick, setTick] = useState(0);
   const stillsEmpty = stills.length === 0;
   const [wasStillsEmpty, setWasStillsEmpty] = useState(stillsEmpty);
@@ -59,6 +62,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
     if (stillsEmpty) {
       setQualityLedger({});
       setQualityStatus(null);
+      setPoseMissViews({});
     }
   }
   const ledgerRef = useRef<SlotQualityLedger>({});
@@ -212,6 +216,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
           },
           shared,
         });
+        let poseLimbNudge = '';
         const decision = decideSlotQuality(
           report,
           slotRerollsUsed(ledgerRef.current, target.id),
@@ -226,13 +231,33 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
             expectation.style,
             poseMatch.score,
             Boolean(decision.poseMiss),
-            poseLayoutFromKey(expectation.poseKey)
+            poseLayoutFromKey(expectation.poseKey),
+            { cued: expectation.cued === true }
           );
           // A kept still that followed its guide closely is a real body in that layout:
           // save the detected skeletons (lead first) so later guides can reuse them.
           const ordered = poseMatch.assignment.map(index => detectedPeople[index]);
+          const missView = decision.poseMiss
+            ? buildPoseMissView({
+                imageUrl,
+                score: poseMatch.score,
+                guide: expectation.keypoints,
+                guideAspect: expectation.aspect,
+                still: ordered,
+                stillAspect: detectedAspect,
+              })
+            : null;
+          poseLimbNudge = missView ? poseLimbFixNudge(missView.misses) : '';
+          setPoseMissViews(previous => {
+            if (!missView && !previous[target.id]) return previous;
+            const next = { ...previous };
+            if (missView) next[target.id] = missView;
+            else delete next[target.id];
+            return next;
+          });
           if (
             decision.action === 'keep' &&
+            !expectation.poseKey.startsWith('photo:') &&
             isOpenPoseStyle(expectation.style) &&
             poseMatch.score >= POSE_LIBRARY_MIN_SCORE &&
             ordered.every(body => body && bodyIsUsable(body))
@@ -269,6 +294,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
           const nudge = [
             slotRerollNudge(report.flags),
             decision.poseMiss ? POSE_MISMATCH_NUDGE : '',
+            decision.poseMiss ? poseLimbNudge : '',
             decision.faceMiss ? FACE_MISMATCH_NUDGE : '',
           ]
             .filter(Boolean)
@@ -328,6 +354,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
         : qualityStatus
       : null,
     qualityLedger,
+    poseMissViews,
     flaggedSlotIds: flaggedSlotIds(qualityLedger),
   };
 }

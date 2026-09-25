@@ -38,7 +38,9 @@ import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-ou
 import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs';
 import { buildStoryPoseGuide } from '@/lib/day-pose-guide';
 import { mergePickedPose } from '@/lib/day-slot-pose';
-import { weakPoseLayouts } from '@/lib/play-metrics';
+import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play-metrics';
+import { poseLayoutCueLine, poseLimbFixNudge } from '@/lib/pose-coaching';
+import { DEFAULT_MIN_POSE_MATCH, POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { loadPoseLibrary } from '@/lib/pose-library';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
@@ -60,7 +62,7 @@ type StoryPoseGuidePromptMeta = {
   style: PoseGuideStylePreference;
   headcount: number;
   leadPosition: string | null;
-  camera: 'overhead' | 'side' | null;
+  camera: 'overhead' | 'side' | 'low' | null;
 };
 
 type PromptActions = ReturnType<typeof usePromptResultActions>;
@@ -191,7 +193,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
   );
 
   const resolvePoseGuideForBeat = useCallback(
-    async (beat: RoleplayStoryBeat, options?: { variant?: number }) => {
+    async (beat: RoleplayStoryBeat, options?: { variant?: number; afterPoseMiss?: boolean }) => {
       if (playAs !== 'photo') {
         return undefined;
       }
@@ -225,6 +227,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           pose: mergePickedPose(beat.poseLayout, beat.pose),
           variant: (options?.variant ?? 0) + (beat.poseVariant ?? 0),
           ...(beat.poseLayout ? {} : { avoidLayouts: weakPoseLayouts() }),
+          ...(beat.posePhoto ? { photoPose: beat.posePhoto } : {}),
+          ...(beat.poseCamera ? { camera: beat.poseCamera } : {}),
+          ...(beat.poseLead ? { leadSide: beat.poseLead } : {}),
           aspect,
           library: openPose ? loadPoseLibrary() : [],
         });
@@ -245,7 +250,15 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             filename: poseGuideFilename,
             comfyUrl,
           }).find(url => url.includes('/api/comfyui/view?')) || undefined;
+        // Spell the pose out in words after a pose miss, and always for layouts Edit has a
+        // poor record with (step one before the guide falls back to a plainer pose).
+        const drawnLayout = poseLayoutFromKey(poseBuild.poseKey);
+        const cueLine =
+          drawnLayout && (options?.afterPoseMiss || cuePoseLayouts().has(drawnLayout))
+            ? poseLayoutCueLine(drawnLayout)
+            : '';
         return {
+          cueLine,
           filename: poseGuideFilename,
           imageUrl: poseGuideUrl,
           prompt: {
@@ -261,6 +274,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             aspect: poseBuild.canvas.width / poseBuild.canvas.height,
             style: poseBuild.stylePreference,
             poseKey: poseBuild.poseKey,
+            ...(cueLine ? { cued: true } : {}),
           },
         };
       } catch (poseError) {
@@ -297,13 +311,18 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         blurb: beat.blurb,
         title: beat.title,
       });
-      const promptWithPose = withRoleplayPoseGuidePrompt(
-        promptSource,
-        Boolean(poseGuide) || (!queueStill && playAs === 'photo'),
-        shared.renderRealismMode,
-        shared.model,
-        poseGuide?.prompt ?? { style: loadPoseGuideStylePreference() }
-      );
+      const promptWithPose = [
+        withRoleplayPoseGuidePrompt(
+          promptSource,
+          Boolean(poseGuide) || (!queueStill && playAs === 'photo'),
+          shared.renderRealismMode,
+          shared.model,
+          poseGuide?.prompt ?? { style: loadPoseGuideStylePreference() }
+        ),
+        poseGuide?.cueLine ?? '',
+      ]
+        .filter(Boolean)
+        .join('\n');
       const prompt = await actions.finalizePrompt(promptWithPose, beat.title);
       rememberDraftFields({
         toolKey: TOOL_ID,
@@ -406,9 +425,17 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       let poseGuideExpectBase: Omit<StoryPoseGuideExpect, 'promptId'> | undefined;
       try {
         await loadWardrobeGarmentThumbManifest();
-        // A retry draws a different variant of the layout (reseeded / mirrored).
+        // A retry draws a different variant of the layout (reseeded / mirrored). After a pose
+        // miss it also spells the pose out and names the limbs the last still got wrong.
+        const lastMatch =
+          latest.poseMatch && latest.poseMatch.imageUrl === latest.imageUrl?.trim()
+            ? latest.poseMatch
+            : undefined;
+        const afterPoseMiss =
+          retry && Boolean(lastMatch && lastMatch.score < DEFAULT_MIN_POSE_MATCH);
         const poseGuide = await resolvePoseGuideForBeat(latest, {
           variant: retry ? roleplayStillTakes(latest).length : 0,
+          afterPoseMiss,
         });
         poseGuideUrl = poseGuide?.imageUrl;
         poseGuideExpectBase = poseGuide?.expect;
@@ -417,13 +444,26 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           blurb: latest.blurb,
           title: latest.title,
         });
-        const queuePrompt = withRoleplayPoseGuidePrompt(
-          promptSource,
-          Boolean(poseGuide),
-          shared.renderRealismMode,
-          shared.model,
-          poseGuide?.prompt
-        );
+        const queuePrompt = [
+          withRoleplayPoseGuidePrompt(
+            promptSource,
+            Boolean(poseGuide),
+            shared.renderRealismMode,
+            shared.model,
+            poseGuide?.prompt
+          ),
+          poseGuide?.cueLine ?? '',
+          afterPoseMiss && poseGuide
+            ? `QUALITY FIX: ${[
+                POSE_MISMATCH_NUDGE,
+                poseLimbFixNudge(lastMatch?.missView?.misses ?? []),
+              ]
+                .filter(Boolean)
+                .join(' ')}`
+            : '',
+        ]
+          .filter(Boolean)
+          .join('\n');
         const stillOpts = queueStillOptions(poseGuide, latest);
         const charOpts = roleplayCharacterQueueFields(
           undefined,

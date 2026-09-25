@@ -7,6 +7,7 @@
  */
 
 import type { NormalizedBody } from '@/lib/pose-library';
+import type { PoseMissView } from '@/lib/pose-coaching';
 import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
 
 /** The guide a Story take was queued with, tied to that take's ComfyUI prompt id. */
@@ -17,6 +18,8 @@ export type StoryPoseGuideExpect = {
   aspect: number;
   style: PoseGuideStylePreference;
   poseKey: string;
+  /** The prompt also spelled the pose out in words. */
+  cued?: boolean;
 };
 
 /** Measured face match of a solo still against the Story reference photo. */
@@ -47,6 +50,8 @@ export type StoryPoseMatch = {
   score: number;
   expectedPeople: number;
   detectedPeople: number;
+  /** On a miss: the still's lead laid over the guide's, and the limbs that differ. */
+  missView?: PoseMissView;
 };
 
 type BeatLike = {

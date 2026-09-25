@@ -28,6 +28,8 @@ import {
   normalizeScenePoseSpec,
   parseIntimateLayout,
   type IntimateLayout,
+  type PhotoPose,
+  type PoseCameraChoice,
   type ScenePoseSpec,
 } from '@/lib/day-pose-guide';
 import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
@@ -121,6 +123,12 @@ export type RoleplayStoryBeat = RoleplayScene & {
   poseLayout?: string;
   /** "Try another" count for this beat's pose guide. */
   poseVariant?: number;
+  /** Pose read from the player's own photo — drawn exactly instead of the layout. */
+  posePhoto?: PhotoPose;
+  /** Camera picked on the beat card (unset = the angle the pose implies). */
+  poseCamera?: PoseCameraChoice;
+  /** Two-person poses: which side the Cast lead stands on. */
+  poseLead?: 'left' | 'right';
   /** Face-recognition match of the shown (solo) still against the reference photo. */
   faceMatch?: StoryFaceMatch;
   /**
@@ -797,7 +805,7 @@ export function withRoleplayPoseGuidePrompt(
     /** OpenPose multi-figure: lead skeleton position phrase. */
     leadPosition?: string | null;
     /** OpenPose: camera angle the flat guide implies. */
-    camera?: 'overhead' | 'side' | null;
+    camera?: 'overhead' | 'side' | 'low' | null;
   }
 ): string {
   const reinforced = reinforceIntimateStillPrompt(prompt);

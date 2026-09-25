@@ -207,7 +207,13 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
   );
 
   const setBeatPose = useCallback(
-    (beat: RoleplayStoryBeat, patch: Pick<RoleplayStoryBeat, 'poseLayout' | 'poseVariant'>) => {
+    (
+      beat: RoleplayStoryBeat,
+      patch: Pick<
+        RoleplayStoryBeat,
+        'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead'
+      >
+    ) => {
       const latest =
         storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at) ?? beat;
       updateToolSettings({

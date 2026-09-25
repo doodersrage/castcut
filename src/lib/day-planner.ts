@@ -7,8 +7,12 @@ import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/compose-prompt';
 import {
   countPoseGuidePeople,
   parseIntimateLayout,
+  normalizePhotoPose,
+  normalizePoseCameraChoice,
   parseSocialLayout,
   resolveSoloMasturbationPoseKind,
+  type PhotoPose,
+  type PoseCameraChoice,
   type ScenePoseSpec,
 } from '@/lib/day-pose-guide';
 import {
@@ -276,6 +280,12 @@ export type DaySlot = {
   poseLayout?: string;
   /** "Try another" count for this slot's pose guide (added to automatic retry variants). */
   poseVariant?: number;
+  /** Pose read from the player's own photo — drawn exactly instead of the layout. */
+  posePhoto?: PhotoPose;
+  /** Camera the player picked for this slot (unset = the angle the pose implies). */
+  poseCamera?: PoseCameraChoice;
+  /** Two-person poses: which side the Cast lead stands on (unset = as drawn). */
+  poseLead?: 'left' | 'right';
 };
 
 export type DaySlotStillStatus = 'queued' | 'running' | 'completed' | 'error';
@@ -546,6 +556,9 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
         typeof slot.poseVariant === 'number' && slot.poseVariant > 0
           ? Math.min(99, Math.floor(slot.poseVariant))
           : undefined,
+      posePhoto: normalizePhotoPose(slot.posePhoto),
+      poseCamera: normalizePoseCameraChoice(slot.poseCamera),
+      poseLead: slot.poseLead === 'left' || slot.poseLead === 'right' ? slot.poseLead : undefined,
     });
   }
   const resolvedLength =
@@ -2675,7 +2688,7 @@ export function buildDaySlotPrompt(input: {
   /** OpenPose multi-figure: where the lead skeleton sits, so the prompt can name it. */
   poseLeadPosition?: PoseLeadPosition | null;
   /** OpenPose: camera angle the guide implies (overhead lying layouts, side-view profiles). */
-  poseCamera?: 'overhead' | 'side' | null;
+  poseCamera?: 'overhead' | 'side' | 'low' | null;
   /** Active model — Rapid AIO uses gray-outline Image 3 cue language. */
   model?: string | null;
   /** Settings realism mode — pose guide locks photoreal unless anime/off. */

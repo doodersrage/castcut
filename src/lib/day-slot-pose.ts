@@ -8,7 +8,7 @@ import {
   SCENE_POSE_BODY_IDS,
   SCENE_POSE_LAYOUT_IDS,
   type PoseGuideBase,
-  type SceneStickOptions,
+  type PoseGuideBuildOptions,
   type ScenePoseSpec,
   type SocialLayout,
 } from '@/lib/day-pose-guide';
@@ -35,7 +35,7 @@ export type DaySlotPosePlan = {
   /** Scene text the guide reads (undefined → the slot's default stance). */
   sceneText?: string;
   headcount: number;
-  options: SceneStickOptions & { avoidLayouts?: ReadonlySet<string> };
+  options: PoseGuideBuildOptions;
 };
 
 const BODY_SET: ReadonlySet<string> = new Set(SCENE_POSE_BODY_IDS);
@@ -68,7 +68,17 @@ export function mergePickedPose(
 }
 
 export function planDaySlotPose(input: {
-  slot: Pick<DaySlot, 'id' | 'sceneHints' | 'location' | 'poseLayout' | 'poseVariant'>;
+  slot: Pick<
+    DaySlot,
+    | 'id'
+    | 'sceneHints'
+    | 'location'
+    | 'poseLayout'
+    | 'poseVariant'
+    | 'posePhoto'
+    | 'poseCamera'
+    | 'poseLead'
+  >;
   dayMood: DayMood | string | null | undefined;
   intimateMix?: DayIntimateMix | string | null;
   allowCompanions?: boolean;
@@ -135,6 +145,9 @@ export function planDaySlotPose(input: {
       variant,
       // A pose the player picked is drawn as picked, even if its record is poor.
       ...(!override && input.weakLayouts?.size ? { avoidLayouts: input.weakLayouts } : {}),
+      ...(input.slot.posePhoto ? { photoPose: input.slot.posePhoto } : {}),
+      ...(input.slot.poseCamera ? { camera: input.slot.poseCamera } : {}),
+      ...(input.slot.poseLead ? { leadSide: input.slot.poseLead } : {}),
     },
   };
 }

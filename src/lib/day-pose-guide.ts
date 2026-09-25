@@ -4700,7 +4700,25 @@ export type SceneStickOptions = {
   variant?: number;
   /** Draw the plain posture only — no everyday/sport layout (a layout Edit keeps ignoring). */
   plainPosture?: boolean;
+  /** Two or more people: which side of the frame the lead (Cast) figure stands on. */
+  leadSide?: 'left' | 'right';
 };
+
+/** Mirror a multi-person drawing when the lead stands on the other side from `side`. */
+function placeLeadSide(
+  figures: StickSkeleton[],
+  side: 'left' | 'right' | undefined
+): StickSkeleton[] {
+  if (!side || figures.length < 2) return figures;
+  const leadX = figures[0]!.pelvis.x;
+  const othersX =
+    figures.slice(1).reduce((sum, figure) => sum + figure.pelvis.x, 0) / (figures.length - 1);
+  if (Math.abs(leadX - othersX) < 0.04) return figures;
+  const leadIsLeft = leadX < othersX;
+  return leadIsLeft === (side === 'left')
+    ? figures
+    : figures.map(figure => mirrorStickSkeleton(figure));
+}
 
 export function synthesizeSceneStickFigures(
   text: string | null | undefined,
@@ -4709,10 +4727,9 @@ export function synthesizeSceneStickFigures(
 ): { intent: PoseGuideIntent; figures: StickSkeleton[] } {
   const variant = Math.max(0, Math.round(options?.variant ?? 0));
   const result = synthesizeSceneStickFiguresBase(text, fallbackIndex, options, variant);
-  if (variant % 2 === 1) {
-    return { ...result, figures: result.figures.map(figure => mirrorStickSkeleton(figure)) };
-  }
-  return result;
+  const figures =
+    variant % 2 === 1 ? result.figures.map(figure => mirrorStickSkeleton(figure)) : result.figures;
+  return { ...result, figures: placeLeadSide(figures, options?.leadSide) };
 }
 
 function applyScenePoseSpec(
@@ -5265,7 +5282,68 @@ export type PoseGuideBuildOptions = SceneStickOptions & {
   aspect?: { width: number; height: number } | null;
   /** Harvested poses to draw from (see `pose-library.ts`). */
   library?: PoseLibraryEntry[];
+  /** A pose read from the player's own photo — drawn exactly (OpenPose styles only). */
+  photoPose?: PhotoPose | null;
+  /** Camera the player picked; `front` drops any inferred angle. Unset = inferred. */
+  camera?: PoseCameraChoice | null;
 };
+
+/** Skeletons read from a reference photo for one slot / beat (lead first, 0–1 of the photo). */
+export type PhotoPose = { aspect: number; people: NormalizedBody[] };
+
+export type PoseCameraChoice = 'front' | 'side' | 'overhead' | 'low';
+export const POSE_CAMERA_CHOICES: readonly PoseCameraChoice[] = [
+  'front',
+  'side',
+  'overhead',
+  'low',
+];
+
+/** Pose-library key for a photo pose (its stats are logged as the `photo` layout). */
+export function photoPoseKey(people: number): string {
+  return `photo:${Math.max(1, Math.min(3, Math.round(people)))}`;
+}
+
+export function normalizePhotoPose(raw: unknown): PhotoPose | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const record = raw as { aspect?: unknown; people?: unknown };
+  const aspect =
+    typeof record.aspect === 'number' && record.aspect > 0.1 && record.aspect < 10
+      ? record.aspect
+      : null;
+  if (!aspect || !Array.isArray(record.people)) return undefined;
+  const people = record.people
+    .slice(0, 3)
+    .filter(Array.isArray)
+    .map(body =>
+      (body as unknown[]).slice(0, 18).map(p => {
+        const pt = p as { x?: unknown; y?: unknown } | null;
+        return pt &&
+          typeof pt.x === 'number' &&
+          typeof pt.y === 'number' &&
+          Number.isFinite(pt.x) &&
+          Number.isFinite(pt.y)
+          ? { x: pt.x, y: pt.y }
+          : null;
+      })
+    );
+  return people.length > 0 ? { aspect, people } : undefined;
+}
+
+export function normalizePoseCameraChoice(raw: unknown): PoseCameraChoice | undefined {
+  return typeof raw === 'string' && (POSE_CAMERA_CHOICES as readonly string[]).includes(raw)
+    ? (raw as PoseCameraChoice)
+    : undefined;
+}
+
+/** Camera line for the prompt: the player's pick wins over the one the skeleton implies. */
+export function resolvePoseCamera(
+  inferred: PoseCameraAngle | null,
+  choice: PoseCameraChoice | null | undefined
+): PoseCameraAngle | null {
+  if (!choice) return inferred;
+  return choice === 'front' ? null : choice;
+}
 
 async function canvasToPoseGuideFile(
   draw: (ctx: CanvasRenderingContext2D) => string,
@@ -5325,6 +5403,7 @@ export function planOpenPoseGuide(input: {
   hands?: boolean;
   library?: PoseLibraryEntry[];
   variant?: number;
+  photoPose?: PhotoPose | null;
 }): {
   canvas: { width: number; height: number };
   people: OpenPosePerson[];
@@ -5335,18 +5414,25 @@ export function planOpenPoseGuide(input: {
   libraryEntryId?: string;
 } {
   const size = poseGuideCanvasSize(input.aspect);
-  const poseKey = poseLibraryKey({
-    intimate: input.intent.intimate,
-    social: input.intent.social,
-    base: input.intent.base,
-    people: input.figures.length,
-  });
-  const entry = pickPoseLibraryEntry(
-    input.library ?? [],
-    poseKey,
-    input.intent.seed,
-    input.variant ?? 0
-  );
+  const photo = input.photoPose?.people.length ? input.photoPose : null;
+  const poseKey = photo
+    ? photoPoseKey(photo.people.length)
+    : poseLibraryKey({
+        intimate: input.intent.intimate,
+        social: input.intent.social,
+        base: input.intent.base,
+        people: input.figures.length,
+      });
+  const entry: PoseLibraryEntry | null = photo
+    ? {
+        id: 'photo',
+        key: poseKey,
+        aspect: photo.aspect,
+        people: photo.people,
+        score: 1,
+        createdAt: 0,
+      }
+    : pickPoseLibraryEntry(input.library ?? [], poseKey, input.intent.seed, input.variant ?? 0);
   let people: OpenPosePerson[];
   if (entry) {
     people = placeLibraryPeople(entry, size.width, size.height);
@@ -5371,7 +5457,68 @@ export function planOpenPoseGuide(input: {
     camera: resolvePoseCameraAngle(input.figures[0]),
     keypoints: normalizePeople(people, size.width, size.height),
     poseKey,
-    ...(entry ? { libraryEntryId: entry.id } : {}),
+    ...(entry && !photo ? { libraryEntryId: entry.id } : {}),
+  };
+}
+
+/**
+ * The drawing a scene guide will use, before rasterizing: the synthesized figures (after
+ * weak-layout routing) and, for OpenPose styles, the placed keypoints (library / photo pose).
+ * Pure — the slot and beat pose previews draw from this, so they show what gets queued.
+ */
+export function resolveSceneGuidePlan(
+  sceneText: string | null | undefined,
+  fallbackIndex: number,
+  options?: PoseGuideBuildOptions & { hands?: boolean; openPose?: boolean }
+): {
+  intent: PoseGuideIntent;
+  figures: StickSkeleton[];
+  routedAround?: SocialLayout;
+  openPose: ReturnType<typeof planOpenPoseGuide>;
+} {
+  let { intent, figures } = synthesizeSceneStickFigures(sceneText, fallbackIndex, options);
+  const photo =
+    options?.openPose !== false && options?.photoPose?.people.length ? options.photoPose : null;
+  // A layout Edit keeps ignoring: use a harvested real pose if there is one, else the plain
+  // posture (a sit / stand / lie it does follow) rather than the same failing drawing.
+  let routedAround: SocialLayout | undefined;
+  if (!photo && intent.social && options?.avoidLayouts?.has(intent.social)) {
+    const key = poseLibraryKey({
+      intimate: null,
+      social: intent.social,
+      base: intent.base,
+      people: figures.length,
+    });
+    const libraryHasIt = Boolean(
+      options.openPose !== false &&
+      pickPoseLibraryEntry(options.library ?? [], key, intent.seed, options.variant ?? 0)
+    );
+    if (!libraryHasIt) {
+      routedAround = intent.social;
+      ({ intent, figures } = synthesizeSceneStickFigures(sceneText, fallbackIndex, {
+        ...options,
+        plainPosture: true,
+      }));
+    }
+  }
+  const openPose = planOpenPoseGuide({
+    intent,
+    figures,
+    sceneText,
+    aspect: options?.aspect,
+    hands: options?.hands,
+    library: options?.openPose === false ? [] : options?.library,
+    variant: options?.variant,
+    photoPose: photo,
+  });
+  return {
+    intent,
+    figures,
+    ...(routedAround ? { routedAround } : {}),
+    openPose: {
+      ...openPose,
+      camera: resolvePoseCamera(photo ? null : openPose.camera, options?.camera),
+    },
   };
 }
 
@@ -5383,42 +5530,22 @@ async function buildSceneGuide(
   filenamePrefix: string,
   options?: PoseGuideBuildOptions
 ): Promise<PoseGuideBuild> {
-  let { intent, figures } = synthesizeSceneStickFigures(sceneText, fallbackIndex, options);
-  // A layout Edit keeps ignoring: use a harvested real pose if there is one, else the plain
-  // posture (a sit / stand / lie it does follow) rather than the same failing drawing.
-  let routedAround: SocialLayout | undefined;
-  if (intent.social && options?.avoidLayouts?.has(intent.social)) {
-    const key = poseLibraryKey({
-      intimate: null,
-      social: intent.social,
-      base: intent.base,
-      people: figures.length,
-    });
-    const libraryHasIt = Boolean(
-      pickPoseLibraryEntry(options.library ?? [], key, intent.seed, options.variant ?? 0)
-    );
-    if (!libraryHasIt) {
-      routedAround = intent.social;
-      ({ intent, figures } = synthesizeSceneStickFigures(sceneText, fallbackIndex, {
-        ...options,
-        plainPosture: true,
-      }));
-    }
-  }
+  const resolved = resolveSceneGuidePlan(sceneText, fallbackIndex, {
+    ...options,
+    hands: poseGuideStyleDrawsHands(stylePreference),
+    openPose: style === 'openpose',
+  });
+  const { intent, figures, routedAround } = resolved;
   if (style === 'openpose') {
-    const plan = planOpenPoseGuide({
-      intent,
-      figures,
-      sceneText,
-      aspect: options?.aspect,
-      hands: poseGuideStyleDrawsHands(stylePreference),
-      library: options?.library,
-      variant: options?.variant,
-    });
+    const plan = resolved.openPose;
     const file = await canvasToPoseGuideFile(
       ctx => {
         drawOpenPosePeople(ctx, plan.people, plan.canvas.width, plan.canvas.height);
-        return plan.libraryEntryId ? `${intent.label}-lib` : intent.label;
+        return options?.photoPose?.people.length
+          ? `${intent.label}-photo`
+          : plan.libraryEntryId
+            ? `${intent.label}-lib`
+            : intent.label;
       },
       filenamePrefix,
       plan.canvas
@@ -5438,9 +5565,10 @@ async function buildSceneGuide(
       ...(routedAround ? { routedAround } : {}),
     };
   }
-  // Legacy art stays on the fixed 512×768 design canvas.
+  // Legacy art stays on the fixed 512×768 design canvas (and can't draw a photo pose).
+  const drawOptions = routedAround ? { ...options, plainPosture: true } : options;
   const file = await canvasToPoseGuideFile(ctx => {
-    drawPoseGuideFiguresFromScene(ctx, sceneText, fallbackIndex, style, options);
+    drawPoseGuideFiguresFromScene(ctx, sceneText, fallbackIndex, style, drawOptions);
     return intent.label;
   }, filenamePrefix);
   const people = figures.map(figure => stickToOpenPosePerson(figure, DEFAULT_POSE_CANVAS));
@@ -5450,7 +5578,7 @@ async function buildSceneGuide(
     stylePreference,
     figureCount: figures.length,
     leadPosition: null,
-    camera: null,
+    camera: resolvePoseCamera(null, options?.camera),
     label: intent.label,
     poseKey: poseLibraryKey({
       intimate: intent.intimate,
@@ -5508,7 +5636,8 @@ export async function buildDayPoseGuide(
   const stylePreference = normalizePoseGuideStylePreference(options?.stylePreference);
   const style = resolvePoseGuideVisualStyle(model, stylePreference);
   const trimmed = sceneText?.trim() || '';
-  if (trimmed) {
+  // A photo pose is drawn even when the slot has no beat text yet.
+  if (trimmed || options?.photoPose?.people.length) {
     return buildSceneGuide(
       trimmed,
       dayPoseGuideFallbackIndex(slotId),
@@ -5559,7 +5688,7 @@ export async function buildStoryPoseGuide(input: StoryPoseGuideInput): Promise<P
   const style = resolvePoseGuideVisualStyle(input.model, stylePreference);
   const sceneText = sceneTextFromStoryPoseInput(input);
   const fallbackIndex = input.storyIndex ?? 0;
-  if (!sceneText) {
+  if (!sceneText && !input.photoPose?.people.length) {
     return buildSlotGuide(
       resolveStoryPoseGuideKey(fallbackIndex),
       style,

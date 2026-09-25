@@ -25,8 +25,8 @@ import {
   faceMatchSummary,
   poseMatchByLayoutSummary,
   poseMatchSummary,
-  WEAK_POSE_LAYOUT_MAX_MEAN,
-  WEAK_POSE_LAYOUT_MIN_COUNT,
+  cuePoseLayouts,
+  weakPoseLayouts,
   slotKeepRate,
   slowestPlayPhase,
   type PlayMetrics,
@@ -112,8 +112,17 @@ export default function PlayFilmMetricsCard() {
   const poseMatch = poseMatchSummary(metrics);
   // Weakest three layouts — the ones worth knowing about.
   const poseByLayout = poseMatchByLayoutSummary(metrics).slice(0, 3);
-  const isRoutedAround = (entry: { mean: number; count: number }) =>
-    entry.count >= WEAK_POSE_LAYOUT_MIN_COUNT && entry.mean < WEAK_POSE_LAYOUT_MAX_MEAN;
+  // The ladder for a layout Edit keeps missing: spell it out in words, then a plainer pose.
+  const cuedLayouts = cuePoseLayouts(metrics);
+  const routedLayouts = weakPoseLayouts(metrics);
+  const layoutNote = (entry: (typeof poseByLayout)[number]) => {
+    const withWords = entry.cued
+      ? `, with the pose in words ${formatRate(entry.cued.mean)} (${entry.cued.count})`
+      : '';
+    if (routedLayouts.has(entry.layout)) return `${withWords}, guide now swaps in a plainer pose`;
+    if (cuedLayouts.has(entry.layout)) return `${withWords}, prompt now spells the pose out`;
+    return withWords;
+  };
   const faceMatch = faceMatchSummary(metrics).slice(0, 3);
   const hasCampaign = Boolean(campaignStep?.characterId);
   const empty = !hasTiming && !hasFunnel && !hasCampaign;
@@ -220,9 +229,7 @@ export default function PlayFilmMetricsCard() {
               detail={poseByLayout
                 .map(
                   entry =>
-                    `${poseLayoutLabel(entry.layout)}: ${entry.count} checked${
-                      isRoutedAround(entry) ? ', guide now swaps in a plainer pose' : ''
-                    }`
+                    `${poseLayoutLabel(entry.layout)}: ${entry.count} checked${layoutNote(entry)}`
                 )
                 .join(' · ')}
             />

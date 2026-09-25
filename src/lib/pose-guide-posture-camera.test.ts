@@ -152,13 +152,16 @@ describe('import pose from photo', () => {
 });
 
 describe('pose import layout list', () => {
-  it('matches the scene pose vocabulary (bodies + sex layouts, minus none/generic)', async () => {
-    const { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS } = await import('./day-pose-guide');
+  it('matches the scene pose vocabulary (bodies, gesture / duo / sport layouts, sex layouts minus none/generic)', async () => {
+    const { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS, SCENE_POSE_LAYOUT_IDS } = await import(
+      './day-pose-guide'
+    );
     const { POSE_IMPORT_LAYOUTS: list } = await import('./pose-import-layouts');
     assert.deepEqual(
       [...list].sort(),
       [
         ...SCENE_POSE_BODY_IDS,
+        ...SCENE_POSE_LAYOUT_IDS,
         ...SCENE_POSE_ACT_IDS.filter(id => id !== 'none' && id !== 'generic'),
       ].sort()
     );

@@ -47,6 +47,8 @@ const LABELS: Record<string, string> = {
   cook: 'Cooking',
   laptop: 'On a laptop',
   eat: 'Eating',
+  // Not in the picker: a pose read from the player's own photo.
+  photo: 'Your photo pose',
   // Two people
   hug: 'Hug',
   dance: 'Dancing',

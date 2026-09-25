@@ -10,6 +10,7 @@ import {
   roleplayStillTakes,
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
+import PoseMissPanel from '@/components/pose/PoseMissPanel';
 import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
 import { RoleplayStillFrame } from '@/components/roleplay/sections/RoleplayStillFrame';
 import { storyFaceMatchLabel, storyPoseMatchLabel } from '@/lib/roleplay-pose-check';
@@ -37,7 +38,10 @@ type Props = {
   onSelectClipTake?: (beat: RoleplayStoryBeat, index: number) => void;
   onPoseChange?: (
     beat: RoleplayStoryBeat,
-    patch: Pick<RoleplayStoryBeat, 'poseLayout' | 'poseVariant'>
+    patch: Pick<
+      RoleplayStoryBeat,
+      'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead'
+    >
   ) => void;
 };
 
@@ -136,6 +140,9 @@ export function RoleplayStoryBeatCard({
             >
               {poseMatch.text}
             </p>
+          ) : null}
+          {poseMatch?.miss && beat.poseMatch?.missView ? (
+            <PoseMissPanel view={beat.poseMatch.missView} testId="story-pose-miss" />
           ) : null}
           {faceMatch ? (
             <p

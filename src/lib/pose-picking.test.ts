@@ -10,6 +10,7 @@ import { diversifyDaySlotScenes, normalizeDaySlots, type DaySlot } from './day-p
 import { daySlotPoseOverride, mergePickedPose, planDaySlotPose } from './day-slot-pose';
 import {
   poseLayoutFromKey,
+  cuePoseLayouts,
   poseMatchByLayoutSummary,
   weakPoseLayouts,
   type PlayMetrics,
@@ -177,11 +178,26 @@ describe('pose match by layout', () => {
     );
   });
 
-  it('routes around a layout only after enough low scores', () => {
-    const weak = weakPoseLayouts(
-      metrics({ cook: [0.3, 8], wave: [0.3, 7], selfie: [0.5, 20], piggyback: [0.44, 12] })
-    );
-    assert.deepEqual([...weak].sort(), ['cook', 'piggyback']);
+  it('spells a poorly followed layout out first, and swaps it only when words fail too', () => {
+    const stats = (mean: number, count: number) => ({ sum: mean * count, count, misses: 0 });
+    const plain = metrics({ cook: [0.3, 8], wave: [0.3, 7], selfie: [0.5, 20], piggyback: [0.44, 12] });
+    // No cued attempts yet: words first, nothing swapped.
+    assert.deepEqual([...cuePoseLayouts(plain)].sort(), ['cook', 'piggyback']);
+    assert.equal(weakPoseLayouts(plain).size, 0);
+    // Words helped cook; piggyback still misses with them (4+ cued checks under 0.45).
+    const withWords: PlayMetrics = {
+      ...plain,
+      poseMatchByLayoutCued: { cook: stats(0.7, 5), piggyback: stats(0.3, 4) },
+    };
+    assert.deepEqual([...cuePoseLayouts(withWords)].sort(), ['cook']);
+    assert.deepEqual([...weakPoseLayouts(withWords)], ['piggyback']);
+    // Too few cued checks to judge: keep trying the words.
+    const early: PlayMetrics = { ...plain, poseMatchByLayoutCued: { piggyback: stats(0.2, 3) } };
+    assert.ok(cuePoseLayouts(early).has('piggyback'));
+    assert.equal(weakPoseLayouts(early).size, 0);
+    // The summary carries the cued record next to the plain one.
+    const cook = poseMatchByLayoutSummary(withWords).find(entry => entry.layout === 'cook');
+    assert.equal(cook?.cued?.count, 5);
   });
 });
 

@@ -7,7 +7,8 @@ import QueueQualityProfileHints from '@/components/QueueQualityProfileHints';
 import { useState, useSyncExternalStore } from 'react';
 import { ChipButton } from '@/components/ui/Field';
 import { clearPoseLibrary, poseLibraryCount, subscribePoseLibrary } from '@/lib/pose-library';
-import { POSE_IMPORT_LAYOUTS } from '@/lib/pose-import-layouts';
+import { POSE_IMPORT_GROUPS, POSE_IMPORT_LAYOUTS } from '@/lib/pose-import-layouts';
+import { poseLayoutLabel } from '@/lib/pose-layout-labels';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { DetailLevel } from '@/lib/detail-level';
@@ -109,10 +110,14 @@ function PoseLibraryControl() {
             disabled={busy}
             onChange={event => setLayout(event.target.value)}
           >
-            {POSE_IMPORT_LAYOUTS.map(id => (
-              <option key={id} value={id}>
-                {id.replace(/_/g, ' ')}
-              </option>
+            {POSE_IMPORT_GROUPS.map(group => (
+              <optgroup key={group.label} label={group.label}>
+                {group.ids.map(id => (
+                  <option key={id} value={id}>
+                    {poseLayoutLabel(id)}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>

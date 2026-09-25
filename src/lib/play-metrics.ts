@@ -50,6 +50,8 @@ export type PlayMetrics = {
    * which it ignores. Feeds the Dashboard and {@link weakPoseLayouts}.
    */
   poseMatchByLayout?: Record<string, PoseMatchStats>;
+  /** Same, for stills whose prompt also spelled the pose out in words (see `pose-coaching`). */
+  poseMatchByLayoutCued?: Record<string, PoseMatchStats>;
   /** Accumulated time spent in each film phase. */
   phaseTimings?: PlayPhaseTimings;
   /** Phase the user is currently in, and when they entered it. */
@@ -219,6 +221,7 @@ function normalizePlayMetrics(value: unknown): PlayMetrics {
     faceMatch: normalizeFaceMatch(raw.faceMatch),
     // Same stats shape keyed by layout name (there are ~100 layouts).
     poseMatchByLayout: normalizeFaceMatch(raw.poseMatchByLayout, POSE_LAYOUT_MAX),
+    poseMatchByLayoutCued: normalizeFaceMatch(raw.poseMatchByLayoutCued, POSE_LAYOUT_MAX),
     phaseTimings: normalizePhaseTimings(raw.phaseTimings),
     phaseOpen: normalizePhaseOpen(raw.phaseOpen),
   };
@@ -292,19 +295,22 @@ export function poseLayoutFromKey(poseKey: string | null | undefined): string | 
 
 /**
  * Records one pose-match score (0–1; `missed` = below the gate) for a guide style and, when
- * given, the layout the guide drew.
+ * given, the layout the guide drew — under the cued table when the prompt also spelled the
+ * pose out in words.
  */
 export function recordPoseMatchScore(
   style: PoseMatchStyle,
   score: number,
   missed: boolean,
-  layout?: string | null
+  layout?: string | null,
+  options?: { cued?: boolean }
 ): void {
   if (!Number.isFinite(score)) {
     return;
   }
   const current = loadPlayMetrics();
   const key = layout?.trim();
+  const table = options?.cued ? 'poseMatchByLayoutCued' : 'poseMatchByLayout';
   savePlayMetrics({
     ...current,
     poseMatch: {
@@ -313,21 +319,22 @@ export function recordPoseMatchScore(
     },
     ...(key
       ? {
-          poseMatchByLayout: {
-            ...(current.poseMatchByLayout ?? {}),
-            [key]: addPoseStat(current.poseMatchByLayout?.[key], score, missed),
+          [table]: {
+            ...(current[table] ?? {}),
+            [key]: addPoseStat(current[table]?.[key], score, missed),
           },
         }
       : {}),
   });
 }
 
-/** Mean pose match per layout, weakest first (only layouts with at least `minCount` checks). */
-export function poseMatchByLayoutSummary(
-  metrics: PlayMetrics = loadPlayMetrics(),
-  minCount = 1
-): Array<{ layout: string; mean: number; missRate: number; count: number }> {
-  return Object.entries(metrics.poseMatchByLayout ?? {})
+type LayoutSummary = { layout: string; mean: number; missRate: number; count: number };
+
+function summarizeLayouts(
+  table: Record<string, PoseMatchStats> | undefined,
+  minCount: number
+): LayoutSummary[] {
+  return Object.entries(table ?? {})
     .filter(([, stats]) => stats.count >= minCount)
     .map(([layout, stats]) => ({
       layout,
@@ -338,20 +345,58 @@ export function poseMatchByLayoutSummary(
     .sort((a, b) => a.mean - b.mean);
 }
 
-/** Enough checks before a layout is judged, and the mean below which it's routed around. */
+/**
+ * Mean pose match per layout, weakest first (only layouts with at least `minCount` plain
+ * checks). `cued` is the same layout's record when the pose was also spelled out in words.
+ */
+export function poseMatchByLayoutSummary(
+  metrics: PlayMetrics = loadPlayMetrics(),
+  minCount = 1
+): Array<LayoutSummary & { cued?: LayoutSummary }> {
+  const cued = new Map(
+    summarizeLayouts(metrics.poseMatchByLayoutCued, 1).map(entry => [entry.layout, entry])
+  );
+  return summarizeLayouts(metrics.poseMatchByLayout, minCount).map(entry => {
+    const withWords = cued.get(entry.layout);
+    return withWords ? { ...entry, cued: withWords } : entry;
+  });
+}
+
+/** Enough checks before a layout is judged, and the mean below which it counts as missed. */
 export const WEAK_POSE_LAYOUT_MIN_COUNT = 8;
 export const WEAK_POSE_LAYOUT_MAX_MEAN = 0.45;
+/** Cued checks before the words are judged not to help either. */
+export const CUED_POSE_LAYOUT_MIN_COUNT = 4;
+
+function layoutsWithPoorRecord(metrics: PlayMetrics): string[] {
+  return poseMatchByLayoutSummary(metrics, WEAK_POSE_LAYOUT_MIN_COUNT)
+    .filter(entry => entry.mean < WEAK_POSE_LAYOUT_MAX_MEAN)
+    .map(entry => entry.layout);
+}
+
+function cuesFailed(metrics: PlayMetrics, layout: string): boolean {
+  const stats = metrics.poseMatchByLayoutCued?.[layout];
+  return Boolean(
+    stats &&
+    stats.count >= CUED_POSE_LAYOUT_MIN_COUNT &&
+    stats.sum / stats.count < WEAK_POSE_LAYOUT_MAX_MEAN
+  );
+}
 
 /**
- * Layouts Edit keeps ignoring: after enough checks their mean pose match stays low. The guide
- * builder draws the plain posture for these instead (unless the pose library has a real pose).
+ * Step one for a layout Edit keeps missing: spell the pose out in the prompt (every still, not
+ * only retries) while the words are still being tried.
+ */
+export function cuePoseLayouts(metrics: PlayMetrics = loadPlayMetrics()): Set<string> {
+  return new Set(layoutsWithPoorRecord(metrics).filter(layout => !cuesFailed(metrics, layout)));
+}
+
+/**
+ * Step two: the layout still misses with the words too — the guide builder draws the plain
+ * posture instead (unless the pose library has a real pose for it).
  */
 export function weakPoseLayouts(metrics: PlayMetrics = loadPlayMetrics()): Set<string> {
-  return new Set(
-    poseMatchByLayoutSummary(metrics, WEAK_POSE_LAYOUT_MIN_COUNT)
-      .filter(entry => entry.mean < WEAK_POSE_LAYOUT_MAX_MEAN)
-      .map(entry => entry.layout)
-  );
+  return new Set(layoutsWithPoorRecord(metrics).filter(layout => cuesFailed(metrics, layout)));
 }
 
 /** Records one measured face-match score for the model that rendered the still. */

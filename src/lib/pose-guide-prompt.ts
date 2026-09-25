@@ -44,9 +44,10 @@ export const POSE_GUIDE_OPENPOSE_EDIT_PROMPT_LINE =
  * Skeletons are flat, so the angle they were drawn from must be said: a top-down lying layout
  * otherwise renders as a side view of people standing, and a profile layout as a front view.
  */
-export const POSE_GUIDE_CAMERA_LINES: Record<'overhead' | 'side', string> = {
+export const POSE_GUIDE_CAMERA_LINES: Record<'overhead' | 'side' | 'low', string> = {
   overhead: 'Camera: high overhead angle looking down, as Image 3 is drawn.',
   side: 'Camera: eye-level side view, as Image 3 is drawn.',
+  low: 'Camera: low angle from about hip height looking up at the subject; keep the Image 3 body pose.',
 };
 
 /** Extra cue when Image 3 carries 21-point hand maps. */
@@ -231,7 +232,7 @@ export function poseGuidePromptBlock(
     /** OpenPose only: position phrase for the lead skeleton ("leftmost", "lower (underneath)"). */
     leadPosition?: string | null;
     /** OpenPose only: camera angle the flat skeleton implies. */
-    camera?: 'overhead' | 'side' | null;
+    camera?: 'overhead' | 'side' | 'low' | null;
   }
 ): string {
   // Undefined headcount keeps the legacy duo-aware compact lock (Story).
@@ -356,7 +357,7 @@ export function withPoseGuideEditPrompt(
     model?: string | null;
     style?: PoseGuideStylePreference;
     leadPosition?: string | null;
-    camera?: 'overhead' | 'side' | null;
+    camera?: 'overhead' | 'side' | 'low' | null;
   }
 ): string {
   const trimmed = prompt.trim();
@@ -440,7 +441,7 @@ function withOpenPoseGuidePrompt(
     headcount?: number;
     leadPosition?: string | null;
     style?: PoseGuideStylePreference;
-    camera?: 'overhead' | 'side' | null;
+    camera?: 'overhead' | 'side' | 'low' | null;
   }
 ): string {
   // No fresh headcount = nothing new to say (e.g. a requeue): keep the existing keypoint cue.

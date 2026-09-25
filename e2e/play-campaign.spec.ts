@@ -648,6 +648,91 @@ test('play campaign shows mismatch when saved character differs', async ({ page 
   await expect(page.getByTestId('play-campaign-continue')).toHaveCount(0);
 });
 
+test('day slot editor previews the pose and lets you change it', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: 'e2e-day-pose', name: 'Day Pose', version: 1, updatedAt: Date.now() }],
+        removedIds: [],
+      })
+    );
+    window.localStorage.setItem(
+      'comfy-prompt-tool-settings-v1',
+      JSON.stringify({
+        shared: { activeCharacterId: 'e2e-day-pose' },
+        tools: {
+          day: {
+            stillsCharacterId: 'e2e-day-pose',
+            slots: [
+              {
+                id: 'morning',
+                label: 'Morning',
+                location: 'small kitchen',
+                sceneHints: 'stirring a pot of risotto at the stove',
+              },
+              // Every slot cooks, so whichever slot the editor opens on draws the same pose.
+              {
+                id: 'afternoon',
+                label: 'Afternoon',
+                location: 'small kitchen',
+                sceneHints: 'chopping onions at the counter',
+              },
+              {
+                id: 'evening',
+                label: 'Evening',
+                location: 'small kitchen',
+                sceneHints: 'stirring a pot of soup at the stove',
+              },
+              {
+                id: 'night',
+                label: 'Night',
+                location: 'small kitchen',
+                sceneHints: 'cooking pasta at the stove',
+              },
+            ],
+          },
+        },
+      })
+    );
+  });
+  await gotoStable(page, '/day?character=e2e-day-pose');
+  await dismissBlockingOverlays(page);
+  const preview = page.getByTestId('day-slot-pose-preview');
+  await expect(preview).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Cooking');
+  await expect(page.getByTestId('pose-preview-figure').first()).toBeVisible();
+  // Change pose overrides the beat; Try another keeps the pick.
+  await page.getByTestId('day-slot-pose-preview-select').selectOption('wave');
+  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Waving');
+  await expect(preview).toContainText('Picked');
+  await page.getByTestId('day-slot-pose-preview-another').click();
+  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Waving');
+  await page.getByTestId('day-slot-pose-preview-camera').selectOption('low');
+  await expect(page.getByTestId('day-slot-pose-preview-camera')).toHaveValue('low');
+  await expect(page.getByTestId('day-slot-pose-preview-photo')).toContainText('Use a photo');
+});
+
+test('dashboard shows pose match by layout and the words-first ladder', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfy-play-metrics-v1',
+      JSON.stringify({
+        version: 1,
+        firstPlayCampaignAt: Date.now() - 86_400_000,
+        firstFilmCutAt: Date.now(),
+        poseMatchByLayout: { cook: { sum: 2.4, count: 8, misses: 6 } },
+      })
+    );
+  });
+  await gotoStable(page, '/dashboard');
+  await dismissBlockingOverlays(page);
+  const card = page.getByRole('main').getByTestId('play-film-metrics');
+  await expect(card).toContainText('Pose match by layout', { timeout: 30_000 });
+  await expect(card).toContainText('prompt now spells the pose out');
+});
+
 test('play metrics card appears on dashboard when metrics exist', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem(

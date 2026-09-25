@@ -39,7 +39,10 @@ export type RoleplayStorySectionProps = {
   onSelectTake: (beat: RoleplayStoryBeat, index: number) => void;
   onPoseChange?: (
     beat: RoleplayStoryBeat,
-    patch: Pick<RoleplayStoryBeat, 'poseLayout' | 'poseVariant'>
+    patch: Pick<
+      RoleplayStoryBeat,
+      'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead'
+    >
   ) => void;
   onSelectClipTake: (beat: RoleplayStoryBeat, index: number) => void;
   onCopy: (beat: RoleplayStoryBeat) => void;

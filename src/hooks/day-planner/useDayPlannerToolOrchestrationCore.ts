@@ -145,7 +145,15 @@ import {
   resolvePlayLoopEntryCharacterId,
 } from '@/lib/play-campaign';
 import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/look-outfit-plate';
-import { hasCompletedFirstFilm, loadPlayMetrics, weakPoseLayouts } from '@/lib/play-metrics';
+import {
+  cuePoseLayouts,
+  hasCompletedFirstFilm,
+  loadPlayMetrics,
+  poseLayoutFromKey,
+  weakPoseLayouts,
+} from '@/lib/play-metrics';
+import { poseLayoutCueLine } from '@/lib/pose-coaching';
+import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
@@ -526,7 +534,7 @@ export function useDayPlannerToolOrchestrationCore() {
         poseGuide?: boolean;
         poseGuideStyle?: PoseGuideStylePreference;
         poseLeadPosition?: PoseLeadPosition | null;
-        poseCamera?: 'overhead' | 'side' | null;
+        poseCamera?: 'overhead' | 'side' | 'low' | null;
         faceOnlyIdentity?: boolean;
         forceGarmentReinforce?: boolean;
       }
@@ -805,7 +813,7 @@ export function useDayPlannerToolOrchestrationCore() {
         let poseGuideFailure: string | undefined;
         let poseGuideDrawnStyle: PoseGuideStylePreference = poseGuideStyle;
         let poseLeadPosition: PoseLeadPosition | null = null;
-        let poseCamera: 'overhead' | 'side' | null = null;
+        let poseCamera: 'overhead' | 'side' | 'low' | null = null;
         let poseExpectation: DayPoseGuideExpectation | undefined;
         if (hasPlate && !skipPoseGuideImage) {
           try {
@@ -921,7 +929,21 @@ export function useDayPlannerToolOrchestrationCore() {
         // Quality-gate reroll: append the fix for whatever the reviewer flagged, once.
         const qualityNudge = rerollNudgeRef.current[queueTarget.id]?.trim();
         delete rerollNudgeRef.current[queueTarget.id];
-        const prompt = qualityNudge ? `${basePrompt}\nQUALITY FIX: ${qualityNudge}` : basePrompt;
+        // Spell the drawn pose out in words after a pose miss, and always for layouts Edit has
+        // a poor record with (step one before the guide falls back to a plainer pose).
+        const drawnLayout = poseExpectation ? poseLayoutFromKey(poseExpectation.poseKey) : null;
+        const cueLine =
+          drawnLayout &&
+          (cuePoseLayouts().has(drawnLayout) ||
+            Boolean(qualityNudge?.includes(POSE_MISMATCH_NUDGE)))
+            ? poseLayoutCueLine(drawnLayout)
+            : '';
+        if (cueLine && poseExpectation) {
+          poseExpectation.cued = true;
+        }
+        const prompt = [basePrompt, cueLine, qualityNudge ? `QUALITY FIX: ${qualityNudge}` : '']
+          .filter(Boolean)
+          .join('\n');
         // Play/Simple: skip lint round-trip — Day stills are draft-speed first film.
         const drafted = leanChrome
           ? prompt
@@ -1345,6 +1367,8 @@ export type DayPoseGuideExpectation = {
   aspect: number;
   style: PoseGuideStylePreference;
   poseKey: string;
+  /** The prompt also spelled the pose out in words (logged separately in Play metrics). */
+  cued?: boolean;
 };
 
 /** Image 1 sizes by URL — the plate rarely changes within a Day, so probe once. */

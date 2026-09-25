@@ -337,8 +337,11 @@ export function inferPoseFacing(skeleton: StickSkeleton): PoseFacing {
   return 'front';
 }
 
-/** Camera the guide implies: skeletons are drawn flat, so the angle must be said in words. */
-export type PoseCameraAngle = 'overhead' | 'side';
+/**
+ * Camera the guide implies: skeletons are drawn flat, so the angle must be said in words.
+ * `low` is only ever picked by the player (never inferred from a skeleton).
+ */
+export type PoseCameraAngle = 'overhead' | 'side' | 'low';
 
 /**
  * Camera angle implied by the lead figure: a horizontal body seen face-on (the top-down lying

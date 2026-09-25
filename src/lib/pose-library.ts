@@ -175,6 +175,15 @@ export function clearPoseLibrary(): void {
   }
 }
 
+/** Raw stored library, as a stable `useSyncExternalStore` snapshot ('' when empty). */
+export function poseLibrarySnapshot(): string {
+  try {
+    return storage()?.getItem(STORAGE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 export function poseLibraryCount(): number {
   return loadPoseLibrary().length;
 }

@@ -157,6 +157,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     wardrobeKitCount,
     actions,
     updateSlot,
+    poseMissViews,
     wardrobeLabelFor,
     queueSlot,
     queueAll,
@@ -620,6 +621,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               allowCompanions={allowCompanions}
               model={shared.model}
               busy={busy}
+              poseMiss={poseMissViews[activeSlot.id]}
               updateSlot={updateSlot}
             />
           </div>

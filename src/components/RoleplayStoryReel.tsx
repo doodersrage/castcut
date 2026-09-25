@@ -60,7 +60,10 @@ export default function RoleplayStoryReel({
   onSelectClipTake?: (beat: RoleplayStoryBeat, index: number) => void;
   onPoseChange?: (
     beat: RoleplayStoryBeat,
-    patch: Pick<RoleplayStoryBeat, 'poseLayout' | 'poseVariant'>
+    patch: Pick<
+      RoleplayStoryBeat,
+      'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead'
+    >
   ) => void;
   onRollScenes?: () => void;
   /** Cast home — bible rewrite/edit/clear live there. */
