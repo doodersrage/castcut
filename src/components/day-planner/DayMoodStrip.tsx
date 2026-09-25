@@ -1,6 +1,8 @@
 'use client';
 
 import { ChipButton } from '@/components/ui/Field';
+import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
+import { summarizePlayChecks } from '@/lib/play-checks-readiness';
 import {
   DAY_INTIMATE_MIX_OPTIONS,
   DAY_LENGTHS,
@@ -61,6 +63,9 @@ export default function DayMoodStrip({
   className = '',
 }: DayMoodStripProps) {
   const mood = normalizeDayMood(dayMood);
+  // What Auto-review can measure on this setup (DWPose / FaceAnalysis installed in ComfyUI).
+  const { readiness } = usePlayChecksReadiness(undefined, { enabled: autoReviewStills });
+  const checksLine = summarizePlayChecks(readiness);
   const mix = normalizeDayIntimateMix(intimateMix);
   const moodOptions = DAY_MOOD_OPTIONS.filter(
     option => !isDayAdultMood(option.id) || intimateEnabled
@@ -175,6 +180,11 @@ export default function DayMoodStrip({
           data-testid="day-pose-priority-hint"
         >
           Pose over plate is off — stills will follow the plate&rsquo;s stance more closely.
+        </p>
+      ) : null}
+      {autoReviewStills && checksLine ? (
+        <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-play-checks">
+          {checksLine}
         </p>
       ) : null}
       {autoReviewStills && qualityStatus ? (

@@ -86,6 +86,11 @@ and each Story beat card has a **Pose guide** drawer showing the guide its lates
 
 ### Did the still follow its guide? (pose check)
 
+**Settings → ComfyUI → Heal & ready** shows a **Play checks** list — pose check (DWPose), face
+check (FaceAnalysis) and Cut titles (server ffmpeg + font) — with the pack to install for any
+that are off and a **Re-check** button. Day shows the same summary under the chips while
+Auto-review is on. After installing a pack, restart ComfyUI, Re-check, then reload Day / Story.
+
 With **Auto-review stills** on and the **comfyui_controlnet_aux** node pack installed in ComfyUI
 (it provides `DWPreprocessor`), Day reads the body pose back out of every finished still and
 scores it against the guide it was sent: `pose match 82%` in the review line. Below 60% the

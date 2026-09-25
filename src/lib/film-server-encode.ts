@@ -312,7 +312,7 @@ function usableFilterPath(value: string): boolean {
 let drawtextCached: boolean | undefined;
 
 /** Whether this ffmpeg build has drawtext (libfreetype). */
-async function ffmpegHasDrawtext(ffmpeg: string): Promise<boolean> {
+export async function ffmpegHasDrawtext(ffmpeg: string): Promise<boolean> {
   if (drawtextCached !== undefined) return drawtextCached;
   try {
     const { stdout } = await runCapture(ffmpeg, ['-hide_banner', '-filters']);

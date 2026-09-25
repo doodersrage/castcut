@@ -32,14 +32,22 @@ export function comfyBaseUrl(comfyUrl?: string): string {
   return getComfyUiBaseUrl(stripEmptyComfyUiRuntime({ apiUrl: comfyUrl })).replace(/\/+$/, '');
 }
 
-/** First installed node among `candidates` (cached per host), or null. */
+/**
+ * First installed node among `candidates` (cached per host), or null. `fresh` skips the cache
+ * (the readiness check, right after a pack install) and refreshes it for the real checks.
+ */
 export async function resolveComfyNode(
   baseUrl: string,
-  candidates: readonly string[]
+  candidates: readonly string[],
+  options?: { fresh?: boolean }
 ): Promise<{ node: string; info: ComfyNodeInfo } | null> {
   const key = `${baseUrl}::${candidates.join('|')}`;
   const cached = nodeCache.get(key);
-  if (cached !== undefined && (cached === null || Date.now() - cached.at < NODE_CACHE_MS)) {
+  if (
+    !options?.fresh &&
+    cached !== undefined &&
+    (cached === null || Date.now() - cached.at < NODE_CACHE_MS)
+  ) {
     return cached;
   }
   for (const node of candidates) {

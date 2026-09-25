@@ -1433,6 +1433,10 @@ html[data-workspace='play'] .play-engine-popover-float {
   background: rgb(251 113 133);
 }
 
+.ui-health-dot[data-status='warn'] {
+  background: rgb(251 191 36);
+}
+
 .ui-code-block {
   overflow-x: auto;
   white-space: pre-wrap;

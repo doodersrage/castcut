@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FIRST_RUN_GENERATE_HREF, FIRST_RUN_QUEUE_HREF } from '@/lib/empty-cta';
 import type { HealthResponse } from '@/components/settings/tabs/settings-tool-shared';
+import PlayChecksReadinessRows from '@/components/settings/PlayChecksReadinessRows';
+import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
 
 export default function SettingsConnectionFirstRun({
   health,
@@ -18,8 +20,10 @@ export default function SettingsConnectionFirstRun({
   healProgress?: string | null;
   onHealAndReady: () => void | Promise<void>;
 }) {
-  const comfyOk = health?.comfyui.ok === true;
-  const comfyFail = health != null && health.comfyui.ok !== true;
+  const comfyOk = health?.comfyui?.ok === true;
+  // Re-probe when the connection flips or a Heal finishes.
+  const { readiness, checking, recheck } = usePlayChecksReadiness(`${comfyOk}:${healBusy}`);
+  const comfyFail = health != null && health.comfyui?.ok !== true;
   const ready = comfyOk && systemWorkflowsEnabled;
 
   return (
@@ -86,6 +90,7 @@ export default function SettingsConnectionFirstRun({
           </span>
         </li>
       </ul>
+      <PlayChecksReadinessRows readiness={readiness} checking={checking} onRecheck={recheck} />
       {ready ? (
         <div className="mt-3 space-y-2" data-testid="post-heal-checklist">
           <p className="text-sm font-medium text-[var(--accent-text)]">
