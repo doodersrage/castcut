@@ -5,6 +5,8 @@ import { ChipButton } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { DayPlate } from '@/lib/day-plate';
 import { lookPackFittingHref } from '@/lib/look-pack';
+import { galleryPickPath } from '@/lib/gallery-handoff';
+import UploadButton from '@/components/ui/UploadButton';
 
 export type DayPlateSectionProps = {
   plate: DayPlate | null;
@@ -17,6 +19,10 @@ export type DayPlateSectionProps = {
   isolateStatus?: string | null;
   isolatePending?: boolean;
   onIsolateSubjectChange?: (next: boolean) => void;
+  /** Upload a photo as the Cast's look plate (shared with Outfit and Story). */
+  onUploadPlate?: (file: File) => void;
+  uploading?: boolean;
+  uploadError?: string | null;
 };
 
 export default function DayPlateSection({
@@ -30,6 +36,9 @@ export default function DayPlateSection({
   isolateStatus = null,
   isolatePending = false,
   onIsolateSubjectChange,
+  onUploadPlate,
+  uploading = false,
+  uploadError = null,
 }: DayPlateSectionProps) {
   const previewUrl = platePreviewUrl?.trim() || plate?.imageUrl?.trim() || '';
   const outfitHref = lookPackFittingHref({
@@ -76,7 +85,8 @@ export default function DayPlateSection({
         />
       ) : (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-plate-empty">
-          No plate yet — Keep a try-on in Outfit, or add a look plate in Cast.
+          No plate yet — upload a clear photo of this character (it becomes their Cast look plate),
+          pick one from Gallery, or Keep a try-on in Outfit.
         </p>
       )}
       {isolateStatus ? (
@@ -97,11 +107,40 @@ export default function DayPlateSection({
       {sourceLabel ? (
         <p className="type-caption mt-2 text-[var(--text-muted)]">{sourceLabel}</p>
       ) : null}
-      {!previewUrl ? (
+      {uploadError ? (
+        <p
+          className="type-caption mt-2 text-[var(--danger-text)]"
+          data-testid="day-plate-upload-error"
+        >
+          {uploadError}
+        </p>
+      ) : null}
+      {!previewUrl || onUploadPlate ? (
         <div className="mt-3 flex flex-wrap gap-2">
-          <ButtonLink href={outfitHref} variant="secondary" size="sm">
-            Open Outfit
-          </ButtonLink>
+          {onUploadPlate && characterId ? (
+            <>
+              <UploadButton
+                label={uploading ? 'Uploading…' : previewUrl ? 'Replace plate' : 'Upload plate'}
+                variant={previewUrl ? 'secondary' : 'primary'}
+                disabled={busy || uploading}
+                ariaLabel="Upload a look plate for this Cast"
+                testId="day-plate-upload"
+                onFile={onUploadPlate}
+              />
+              <ButtonLink
+                href={galleryPickPath('cast', { characterId })}
+                variant="secondary"
+                size="sm"
+              >
+                Choose from Gallery
+              </ButtonLink>
+            </>
+          ) : null}
+          {!previewUrl ? (
+            <ButtonLink href={outfitHref} variant="ghost" size="sm">
+              Open Outfit
+            </ButtonLink>
+          ) : null}
         </div>
       ) : null}
     </ToolSection>

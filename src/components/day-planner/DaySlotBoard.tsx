@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
 import {
@@ -19,6 +19,10 @@ import {
 import { ROLEPLAY_OVERLAY_BTN_CLASS } from '@/components/roleplay/roleplay-story-helpers';
 import { slotQualityBadge, type SlotQualityLedger } from '@/lib/play-slot-quality';
 import { clipCheckLabel, type ClipCheck } from '@/lib/clip-quality';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
+import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
+import { daySlotJobProgress, type DaySlotJobEntry } from '@/lib/day-slot-progress';
+import { getGalleryCache } from '@/lib/gallery-db-store';
 
 export type DaySlotBoardProps = {
   slots: DaySlot[];
@@ -37,6 +41,13 @@ export type DaySlotBoardProps = {
   /** Animate clip checks by slot id (Auto-review). */
   clipChecks?: Record<string, ClipCheck>;
 };
+
+const NO_GALLERY: ComfyGalleryEntry[] = [];
+
+function subscribeGallery(onChange: () => void): () => void {
+  window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, onChange);
+  return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, onChange);
+}
 
 /** Open (and scroll to) the slot editor — it's a collapsible below the board. */
 function revealDaySlotEditor(): void {
@@ -106,6 +117,22 @@ export default function DaySlotBoard({
     return () => window.removeEventListener(COMFY_LIVE_PREVIEW_UPDATED_EVENT, refresh);
   }, [promptKey]);
 
+  // Queue position and sampler progress live on each prompt's gallery entry.
+  const gallery = useSyncExternalStore(subscribeGallery, getGalleryCache, () => NO_GALLERY);
+  const jobsByPrompt = useMemo(() => {
+    const map = new Map<string, DaySlotJobEntry>();
+    const wanted = new Set(stills.map(still => still.promptId?.trim()).filter(Boolean));
+    if (wanted.size === 0) {
+      return map;
+    }
+    for (const entry of gallery) {
+      if (wanted.has(entry.promptId)) {
+        map.set(entry.promptId, entry);
+      }
+    }
+    return map;
+  }, [gallery, stills]);
+
   const stop = (event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -142,11 +169,13 @@ export default function DaySlotBoard({
         const baseCaption = daySlotBoardCaption(still);
         const planLabel = daySlotPlanLabel(slot, compact ? 72 : 96);
         const planEmpty = !slot.location?.trim() || !slot.sceneHints?.trim();
-        const label = showStillLive
-          ? baseCaption === 'Queueing…'
-            ? 'Rendering…'
-            : baseCaption.replace('Queueing…', 'Rendering…')
-          : baseCaption;
+        // Queue position / render % from the still's gallery entry instead of a flat "Queueing…".
+        const job = daySlotJobProgress({
+          stillStatus: still?.status,
+          entry: stillPromptId ? jobsByPrompt.get(stillPromptId) : null,
+          livePreview: showStillLive,
+        });
+        const label = job ? baseCaption.replace('Queueing…', job.label) : baseCaption;
         const selected = activeSlotId === slot.id;
         const canAnimate =
           state === 'done' && clipState === 'idle' && Boolean(onAnimateSlot) && !queueBlocked;
@@ -355,6 +384,22 @@ export default function DaySlotBoard({
                   ) : null}
                 </div>
                 <p className="type-caption text-[var(--text-muted)]">{label}</p>
+                {job?.percent != null ? (
+                  <div
+                    className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--bg-muted)]"
+                    role="progressbar"
+                    aria-label={`${slot.label} render progress`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={job.percent}
+                    data-testid={`day-slot-progress-${slot.id}`}
+                  >
+                    <div
+                      className="h-full bg-[var(--accent-active)] transition-[width]"
+                      style={{ width: `${job.percent}%` }}
+                    />
+                  </div>
+                ) : null}
                 {planLabel ? (
                   <p
                     className={[

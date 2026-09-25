@@ -1,7 +1,8 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import FilmCutOptionsControls, {
+import {
+  FilmCutOptionsDisclosure,
   type FilmCutOptionsValue,
 } from '@/components/FilmCutOptionsControls';
 import { Button, ButtonLink } from '@/components/ui/Button';
@@ -60,7 +61,7 @@ export default function RoleplayFilmCutActions({
     <>
       {filmCutOptions && onFilmCutOptionsChange ? (
         <div className="mb-2">
-          <FilmCutOptionsControls
+          <FilmCutOptionsDisclosure
             value={filmCutOptions}
             onChange={onFilmCutOptionsChange}
             disabled={assemblingFilm}

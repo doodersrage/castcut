@@ -265,7 +265,8 @@ export const ToolPageShell = memo(function ToolPageShell({
 }) {
   return (
     <div
-      className={`page-enter mx-auto flex w-full flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] py-6 pb-28 sm:py-8 md:pb-10 lg:py-9 ${widthClasses[width]} ${className}`.trim()}
+      // Bottom padding clears the floating Engine pill (~4rem) so the last row isn't under it.
+      className={`page-enter mx-auto flex w-full flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] pt-6 pb-28 sm:pt-8 md:pb-24 lg:pt-9 ${widthClasses[width]} ${className}`.trim()}
     >
       {children}
     </div>

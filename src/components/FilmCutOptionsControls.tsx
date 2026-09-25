@@ -205,3 +205,45 @@ export default function FilmCutOptionsControls({
     </div>
   );
 }
+
+/** One-line summary of the non-default cut options, e.g. "slow zoom · crossfade 0.5s · titles". */
+export function filmCutOptionsSummary(value: FilmCutOptionsValue): string {
+  const parts = [
+    value.vertical ? 'vertical 9:16' : '',
+    value.crossfadeSec > 0 ? `crossfade ${value.crossfadeSec}s` : '',
+    value.stillMotion !== false ? 'slow zoom' : 'no zoom',
+    value.titles ? 'titles' : '',
+    value.audioBedUrl.trim() ? 'audio bed' : '',
+  ].filter(Boolean);
+  return parts.join(' · ');
+}
+
+/**
+ * Cut options folded behind a one-line summary — they're set-once, and the full form made the
+ * Cut banners (sticky on Day) several times taller than the Cut button they sit next to.
+ */
+export function FilmCutOptionsDisclosure({
+  value,
+  onChange,
+  disabled = false,
+  testIdPrefix = 'film-cut',
+}: FilmCutOptionsControlsProps) {
+  return (
+    <details
+      className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-1.5"
+      data-testid={`${testIdPrefix}-options-disclosure`}
+    >
+      <summary className="type-caption cursor-pointer text-[var(--text-secondary)]">
+        Cut options · {filmCutOptionsSummary(value)}
+      </summary>
+      <div className="mt-2 pb-1">
+        <FilmCutOptionsControls
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          testIdPrefix={testIdPrefix}
+        />
+      </div>
+    </details>
+  );
+}

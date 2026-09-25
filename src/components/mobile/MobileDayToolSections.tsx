@@ -11,6 +11,7 @@ import DaySeriesPanel from '@/components/day-planner/DaySeriesPanel';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
+import UploadButton from '@/components/ui/UploadButton';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
@@ -122,6 +123,11 @@ export default function MobileDayToolSections(vm: ViewModel) {
     qualityStatus,
     qualityLedger,
     clipChecks,
+    flaggedRetryCount,
+    retryFlagged,
+    uploadCastPlate,
+    plateUploading,
+    plateUploadError,
     hideStickyCutCoach,
     setHideStickyCutCoach,
     dayMood,
@@ -582,6 +588,17 @@ export default function MobileDayToolSections(vm: ViewModel) {
               Final pass
             </Button>
           ) : null}
+          {flaggedRetryCount > 0 ? (
+            <Button
+              variant="secondary"
+              disabled={busy || queueBlocked}
+              data-testid="day-retry-flagged"
+              onClick={() => void retryFlagged()}
+              className="w-full justify-center"
+            >
+              Retry {flaggedRetryCount} flagged
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             disabled={busy || queueBlocked}
@@ -764,15 +781,18 @@ export default function MobileDayToolSections(vm: ViewModel) {
           >
             Animate {activeSlot.label.toLowerCase()}
           </Button>
-          <Button
-            variant="ghost"
-            disabled={busy || assemblingFilm}
-            data-testid="day-animate-cut"
-            onClick={() => void cutDayFilm()}
-            className="w-full justify-center"
-          >
-            Skip to Cut film
-          </Button>
+          {/* The Cut card at the top already owns Cut; only offer it here when that is hidden. */}
+          {!showCutCoach ? (
+            <Button
+              variant="ghost"
+              disabled={busy || assemblingFilm}
+              data-testid="day-animate-cut"
+              onClick={() => void cutDayFilm()}
+              className="w-full justify-center"
+            >
+              Skip to Cut film
+            </Button>
+          ) : null}
         </div>
       ) : completedShotCount > 0 && !firstCutCelebrate ? (
         <div className="space-y-2" data-testid="day-animate">
@@ -979,8 +999,23 @@ export default function MobileDayToolSections(vm: ViewModel) {
               ? isolateSubject && isolatePending
                 ? 'Isolating plate on white…'
                 : 'Plate ready.'
-              : 'No plate — Keep in Outfit or add a Cast look.'}
+              : 'No plate — upload one (it becomes the Cast look plate) or Keep in Outfit.'}
           </p>
+          {!hasPlate && character ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <UploadButton
+                label={plateUploading ? 'Uploading…' : 'Upload plate'}
+                variant="primary"
+                disabled={busy || plateUploading}
+                ariaLabel="Upload a look plate for this Cast"
+                testId="day-plate-upload"
+                onFile={file => void uploadCastPlate(file)}
+              />
+            </div>
+          ) : null}
+          {plateUploadError ? (
+            <p className="type-caption mt-1 text-[var(--danger-text)]">{plateUploadError}</p>
+          ) : null}
           {hasPlate ? (
             <div className="mt-2 flex flex-wrap gap-2">
               <ChipButton

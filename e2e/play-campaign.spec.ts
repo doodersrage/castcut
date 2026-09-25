@@ -153,6 +153,56 @@ test('day without a Cast leads with the get-started card', async ({ page }) => {
   await expect(page.locator('[data-testid^="day-slot-add-beat-"]').first()).toBeVisible();
 });
 
+test('day mid-flow: one Cut, folded cut options, honest render status', async ({ page }) => {
+  await page.addInitScript(() => {
+    const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: 'e2e-day-mid', name: 'Day Mid', version: 1, updatedAt: Date.now() }],
+        removedIds: [],
+      })
+    );
+    window.localStorage.setItem(
+      'comfy-prompt-tool-settings-v1',
+      JSON.stringify({
+        shared: { activeCharacterId: 'e2e-day-mid' },
+        tools: {
+          day: {
+            stillsCharacterId: 'e2e-day-mid',
+            slots: [
+              { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+              { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
+              { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs' },
+              { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
+            ],
+            stills: [
+              { slotId: 'morning', status: 'completed', imageUrl: thumb },
+              { slotId: 'afternoon', status: 'completed', imageUrl: thumb },
+              { slotId: 'evening', status: 'running' },
+            ],
+          },
+        },
+      })
+    );
+  });
+  await gotoStable(page, '/day?character=e2e-day-mid');
+  await dismissBlockingOverlays(page);
+  const coach = page.getByTestId('day-cut-coach');
+  await expect(coach).toBeVisible({ timeout: 30_000 });
+  // Cut options fold behind a summary instead of filling the sticky banner.
+  const options = coach.getByTestId('day-cut-options-disclosure');
+  await expect(options).toContainText(/Cut options/);
+  await expect(options).not.toHaveAttribute('open', '');
+  // The banner owns Cut — the Animate card doesn't repeat it.
+  await expect(page.getByTestId('day-animate-cut')).toHaveCount(0);
+  // A running still says so instead of "Queueing…".
+  await expect(page.getByTestId('day-progress-evening')).toContainText(/Rendering/);
+  // Setup can upload a plate (it becomes the Cast look plate).
+  await expect(page.getByTestId('day-plate-upload')).toBeAttached();
+});
+
 test('moodboard look extract controls load', async ({ page }) => {
   await gotoStable(page, '/moodboard');
   await dismissBlockingOverlays(page);

@@ -10,11 +10,14 @@ export default function FilmWatchPlayer({
   shots,
   emptyLabel = 'No playable shots yet.',
   onWatchStart,
+  compact = false,
 }: {
   shots: FilmPlaylistShot[];
   emptyLabel?: string;
   /** Fires once when the user starts watching (honest Watch-step proof). */
   onWatchStart?: () => void;
+  /** Cap the viewer width (Day's reel sits under a board that already shows every still). */
+  compact?: boolean;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -119,7 +122,7 @@ export default function FilmWatchPlayer({
   return (
     <div
       ref={rootRef}
-      className="space-y-3"
+      className={compact ? 'mx-auto max-w-xl space-y-3' : 'space-y-3'}
       tabIndex={0}
       role="region"
       aria-label="Film reel player"

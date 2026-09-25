@@ -446,3 +446,25 @@ export function flaggedSlotIds(ledger: SlotQualityLedger): string[] {
     .filter(([, entry]) => entry.lastDecision === 'flag')
     .map(([slotId]) => slotId);
 }
+
+/**
+ * What "Retry flagged" requeues: stills Auto-review flagged, then clips flagged by the clip
+ * check. A slot whose still is requeued skips its clip retry — the new still needs a new clip.
+ */
+export function flaggedRetryPlan(input: {
+  flaggedStillSlotIds: string[];
+  clipChecks: Record<string, { status: 'ok' | 'warn' }>;
+  /** Board order, so retries queue morning → night. */
+  slotOrder: string[];
+}): { stills: string[]; clips: string[] } {
+  const stills = new Set(input.flaggedStillSlotIds);
+  const clips = new Set(
+    Object.entries(input.clipChecks)
+      .filter(([slotId, check]) => check.status === 'warn' && !stills.has(slotId))
+      .map(([slotId]) => slotId)
+  );
+  return {
+    stills: input.slotOrder.filter(id => stills.has(id)),
+    clips: input.slotOrder.filter(id => clips.has(id)),
+  };
+}

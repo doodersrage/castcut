@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/ToolPageShell';
 import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
 import CustomGarmentPhotoControls from '@/components/fitting/CustomGarmentPhotoControls';
-import FilmCutOptionsControls from '@/components/FilmCutOptionsControls';
+import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import { ROLEPLAY_SETTING_PRESETS } from '@/lib/roleplay';
@@ -132,6 +132,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     qualityStatus,
     qualityLedger,
     clipChecks,
+    flaggedRetryCount,
+    retryFlagged,
+    uploadCastPlate,
+    plateUploading,
+    plateUploadError,
     hideStickyCutCoach,
     setHideStickyCutCoach,
     dayMood,
@@ -500,7 +505,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     : 'All stills ready — cut the reel.'}
                 </p>
                 <div className="mt-2">
-                  <FilmCutOptionsControls
+                  <FilmCutOptionsDisclosure
                     value={filmCutOptions}
                     onChange={setFilmCutOptions}
                     disabled={assemblingFilm}
@@ -640,6 +645,18 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 Final pass
               </Button>
             ) : null}
+            {flaggedRetryCount > 0 ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy || queueBlocked}
+                data-testid="day-retry-flagged"
+                title="Requeue every still and clip Auto-review flagged"
+                onClick={() => void retryFlagged()}
+              >
+                Retry {flaggedRetryCount} flagged
+              </Button>
+            ) : null}
             <Button
               size="sm"
               variant="ghost"
@@ -680,14 +697,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
 
         <ToolSection
           title="Day reel"
-          description={
-            showCutCoach
-              ? 'Cut from the banner above when you are ready.'
-              : 'Stills and clips land here as you Queue — then Cut film.'
-          }
+          description="Stills and clips land here as you Queue — watch them in order."
           data-testid="day-reel"
         >
           <FilmWatchPlayer
+            compact
             shots={sampleWatch ? sampleShots : watchPlaylist}
             emptyLabel="Queue the day — Morning through Night fill in here."
           />
@@ -880,15 +894,18 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               >
                 Animate {activeSlot.label.toLowerCase()}
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy || assemblingFilm}
-                data-testid="day-animate-cut"
-                onClick={() => void cutDayFilm()}
-              >
-                Skip to Cut film
-              </Button>
+              {/* The sticky Cut banner already owns Cut; only offer it here when that is hidden. */}
+              {!showCutCoach ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy || assemblingFilm}
+                  data-testid="day-animate-cut"
+                  onClick={() => void cutDayFilm()}
+                >
+                  Skip to Cut film
+                </Button>
+              ) : null}
             </ToolActionRow>
             <p className="type-caption mt-2 text-[var(--text-muted)]">
               Clips optional but preferred — Cut still works from stills alone.
@@ -1119,6 +1136,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               isolateStatus={isolateStatus}
               isolatePending={isolatePending}
               onIsolateSubjectChange={setIsolateSubject}
+              onUploadPlate={file => void uploadCastPlate(file)}
+              uploading={plateUploading}
+              uploadError={plateUploadError}
             />
           </div>
         </CollapsibleSection>

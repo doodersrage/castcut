@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  flaggedRetryPlan,
   buildSlotReviewPrompt,
   DEFAULT_SLOT_QUALITY_POLICY,
   decideSlotQuality,
@@ -245,5 +246,29 @@ describe('play slot quality', () => {
 
     const kept = recordSlotDecision(flagged, 'morning', { action: 'keep', reasons: [], warnings: [], overall: 4.5 });
     assert.deepEqual(flaggedSlotIds(kept), []);
+  });
+});
+
+describe('flaggedRetryPlan', () => {
+  it('retries flagged stills and warned clips in board order, once per slot', () => {
+    assert.deepEqual(
+      flaggedRetryPlan({
+        flaggedStillSlotIds: ['night', 'morning'],
+        clipChecks: {
+          morning: { status: 'warn' },
+          evening: { status: 'warn' },
+          afternoon: { status: 'ok' },
+        },
+        slotOrder: ['morning', 'afternoon', 'evening', 'night'],
+      }),
+      { stills: ['morning', 'night'], clips: ['evening'] }
+    );
+  });
+
+  it('is empty when nothing is flagged', () => {
+    assert.deepEqual(
+      flaggedRetryPlan({ flaggedStillSlotIds: [], clipChecks: {}, slotOrder: ['morning'] }),
+      { stills: [], clips: [] }
+    );
   });
 });
