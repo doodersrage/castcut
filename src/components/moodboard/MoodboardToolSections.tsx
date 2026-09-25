@@ -10,6 +10,9 @@ import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import PlayPersistenceTriad from '@/components/PlayPersistenceTriad';
 import LookPlayPhaseStrip from '@/components/moodboard/LookPlayPhaseStrip';
 import LookStatusStrip from '@/components/moodboard/LookStatusStrip';
+import LookPresetPicker from '@/components/moodboard/LookPresetPicker';
+import LookTileBoard from '@/components/moodboard/LookTileBoard';
+import UploadButton from '@/components/ui/UploadButton';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import {
@@ -39,7 +42,7 @@ import {
   lookPackFittingHref,
   saveLookPack,
 } from '@/lib/look-pack';
-import { LOOK_PRESETS, lookPackFromPreset, tilesFromLookPreset } from '@/lib/look-presets';
+import { lookPackFromPreset, tilesFromLookPreset } from '@/lib/look-presets';
 import {
   LOOK_PREVIEW_HINT,
   MOODBOARD_TEMPLATE_OPTIONS,
@@ -80,7 +83,6 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
     extracting,
     lookStatus,
     setLookStatus,
-    activeTileId,
     setActiveTileId,
     uploadingTileId,
     plateUploading,
@@ -96,6 +98,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
     addTile,
     removeTile,
     applyImageToTile,
+    addTilesFromFiles,
     applyLookPlate,
     clearLookPlate,
     keepSceneAsLookPlate,
@@ -206,7 +209,6 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         statusLine={statusLine}
         extractBlockReason={extractBlocked}
         queueBlockReason={!extractBlocked ? queueBlocked : null}
-        previewHint={LOOK_PREVIEW_HINT}
         lookStatus={lookStatus}
       />
       {lookStatus ? (
@@ -217,59 +219,36 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Look presets"
-        description="Load tiles, or jump straight to Day with a look."
+        description="Start from a preset — load its tiles, or use it straight for today."
         data-testid="moodboard-presets"
       >
-        <div className="flex flex-wrap gap-2">
-          {LOOK_PRESETS.map(preset => (
-            <ChipButton
-              key={preset.id}
-              active={false}
-              disabled={busy || extracting}
-              title={preset.hint}
-              onClick={() => {
-                const tilesNext = tilesFromLookPreset(preset);
-                updateToolSettings({ tiles: tilesNext });
-                if (tilesNext[0]) {
-                  setActiveTileId(tilesNext[0].id);
-                }
-                const pack = lookPackFromPreset(preset, character?.id);
-                saveLookPack(pack);
-                setLookStatus(`Loaded ${preset.label} — Extract look or Continue to Outfit.`);
-              }}
-            >
-              {preset.label}
-            </ChipButton>
-          ))}
-        </div>
-        <p className="type-caption mt-3 text-[var(--text-muted)]">Use for today — skip Outfit</p>
-        <div className="mt-2 flex flex-wrap gap-2" data-testid="moodboard-use-for-today">
-          {LOOK_PRESETS.slice(0, 6).map(preset => (
-            <Button
-              key={`today-${preset.id}`}
-              size="sm"
-              variant="secondary"
-              disabled={busy || extracting}
-              data-testid={`moodboard-preset-day-${preset.id}`}
-              onClick={() => {
-                const tilesNext = tilesFromLookPreset(preset);
-                updateToolSettings({ tiles: tilesNext });
-                if (tilesNext[0]) {
-                  setActiveTileId(tilesNext[0].id);
-                }
-                const pack = lookPackFromPreset(preset, character?.id);
-                saveLookPack(pack);
-                void sendLookToDay().then(href => {
-                  if (href) {
-                    softAdvanceHref(href, 'Day', `Using ${preset.label} for today`);
-                  }
-                });
-              }}
-            >
-              Use {preset.label} for today
-            </Button>
-          ))}
-        </div>
+        <LookPresetPicker
+          busy={busy || extracting}
+          onLoad={preset => {
+            const tilesNext = tilesFromLookPreset(preset);
+            updateToolSettings({ tiles: tilesNext });
+            if (tilesNext[0]) {
+              setActiveTileId(tilesNext[0].id);
+            }
+            const pack = lookPackFromPreset(preset, character?.id);
+            saveLookPack(pack);
+            setLookStatus(`Loaded ${preset.label} — Extract look or Continue to Outfit.`);
+          }}
+          onUseToday={preset => {
+            const tilesNext = tilesFromLookPreset(preset);
+            updateToolSettings({ tiles: tilesNext });
+            if (tilesNext[0]) {
+              setActiveTileId(tilesNext[0].id);
+            }
+            const pack = lookPackFromPreset(preset, character?.id);
+            saveLookPack(pack);
+            void sendLookToDay().then(href => {
+              if (href) {
+                softAdvanceHref(href, 'Day', `Using ${preset.label} for today`);
+              }
+            });
+          }}
+        />
       </ToolSection>
 
       <ToolSection
@@ -291,19 +270,12 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         {character ? (
           <div className="mt-3 space-y-2" data-testid="moodboard-look-plate">
             <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="file"
-                accept="image/*"
+              <UploadButton
+                label={hasPlate ? 'Replace plate' : 'Upload plate'}
                 disabled={busy || plateUploading}
-                className="ui-file-input block min-w-0 flex-1"
-                data-testid="moodboard-look-plate-upload"
-                onChange={event => {
-                  const file = event.target.files?.[0];
-                  event.target.value = '';
-                  if (file) {
-                    void applyLookPlate({ file });
-                  }
-                }}
+                ariaLabel="Upload a look plate"
+                testId="moodboard-look-plate-upload"
+                onFile={file => void applyLookPlate({ file })}
               />
               <ButtonLink
                 href={galleryPickPath('moodboard', { characterId: character.id })}
@@ -367,67 +339,34 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
 
       <ToolSection
         title="Reference tiles"
-        description={`Up to ${MAX_TILES} tiles — role, notes, and optional still per tile.`}
+        description={`Up to ${MAX_TILES} references — what each one contributes (its role), notes, and an optional image.`}
         data-testid="moodboard-tiles"
       >
-        {tiles.length === 0 ? (
-          <div className="space-y-2" data-testid="moodboard-empty">
-            <p className="type-caption text-[var(--text-muted)]">
-              No tiles yet — add refs, or extract a look from notes alone.
-            </p>
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={busy}
-              data-testid="moodboard-seed-tiles"
-              onClick={() => {
-                addTile();
-                addTile();
-              }}
-            >
-              Add starter tiles
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {tiles.map((tile, index) => (
-              <ChipButton
-                key={tile.id}
-                active={activeTileId === tile.id}
-                disabled={busy}
-                onClick={() => setActiveTileId(tile.id)}
-              >
-                {tile.label?.trim() ||
-                  MOODBOARD_TILE_ROLES.find(entry => entry.id === tile.role)?.label ||
-                  `Tile ${index + 1}`}
-              </ChipButton>
-            ))}
-          </div>
-        )}
-        <ToolActionRow className="mt-3">
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy || tiles.length >= MAX_TILES}
-            onClick={addTile}
-          >
-            Add tile
-          </Button>
-          {activeTile ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() => removeTile(activeTile.id)}
-            >
-              Remove tile
-            </Button>
-          ) : null}
-        </ToolActionRow>
+        <LookTileBoard
+          tiles={tiles}
+          activeTileId={activeTile?.id ?? null}
+          maxTiles={MAX_TILES}
+          busy={busy}
+          uploadingTileId={uploadingTileId}
+          onSelect={setActiveTileId}
+          onAdd={addTile}
+          onFiles={files => {
+            void addTilesFromFiles(files).then(({ added, skipped }) => {
+              if (skipped > 0) {
+                setLookStatus(
+                  `Added ${added} tile${added === 1 ? '' : 's'} — ${skipped} didn't fit (${MAX_TILES} max).`
+                );
+              }
+            });
+          }}
+        />
 
         {activeTile ? (
           <>
             <FieldDivider />
+            <p className="type-overline text-[var(--text-muted)]">
+              Tile {tiles.findIndex(tile => tile.id === activeTile.id) + 1}
+            </p>
             <label className="space-y-2">
               <FieldLabel>Role</FieldLabel>
               <SelectInput
@@ -466,17 +405,17 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               />
             </label>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <input
-                type="file"
-                accept="image/*"
+              <UploadButton
+                label={
+                  uploadingTileId === activeTile.id
+                    ? 'Uploading…'
+                    : activeTile.imageUrl
+                      ? 'Replace image'
+                      : 'Upload image'
+                }
                 disabled={busy || uploadingTileId === activeTile.id}
-                className="ui-file-input block min-w-0 flex-1"
-                onChange={event => {
-                  const file = event.target.files?.[0];
-                  event.target.value = '';
-                  if (!file) {
-                    return;
-                  }
+                ariaLabel="Upload an image for this tile"
+                onFile={file => {
                   void applyImageToTile(activeTile.id, { file }).catch(err => {
                     setError(err instanceof Error ? err.message : 'Could not upload that photo.');
                   });
@@ -485,6 +424,15 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               <ButtonLink href={galleryPickPath('moodboard')} variant="secondary" size="sm">
                 Choose from Gallery
               </ButtonLink>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy}
+                data-testid="look-tile-remove"
+                onClick={() => removeTile(activeTile.id)}
+              >
+                Remove tile
+              </Button>
             </div>
             {activeTile.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -562,31 +510,32 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
             Skip look · Day
           </ButtonLink>
         ) : null}
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={Boolean(queueBlocked) || extracting}
-          title={queueBlocked || LOOK_PREVIEW_HINT}
-          data-testid="moodboard-preview-prompt"
-          onClick={previewPrompt}
-        >
-          Preview prompt
-        </Button>
-        <Button
-          size="sm"
-          variant={demoteQueue ? 'ghost' : 'secondary'}
-          disabled={Boolean(queueBlocked) || extracting}
-          title={queueBlocked || undefined}
-          data-testid="moodboard-queue-scene"
-          onClick={() => void queueScene()}
-        >
-          {busy ? 'Queueing…' : 'Queue scene'}
-        </Button>
         <details className="w-full">
           <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-            More · Story, save, export
+            More · prompt, scene still, Story, save
           </summary>
           <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={Boolean(queueBlocked) || extracting}
+              title={queueBlocked || LOOK_PREVIEW_HINT}
+              data-testid="moodboard-preview-prompt"
+              onClick={previewPrompt}
+            >
+              Preview prompt
+            </Button>
+            <Button
+              size="sm"
+              variant={demoteQueue ? 'ghost' : 'secondary'}
+              disabled={Boolean(queueBlocked) || extracting}
+              title={queueBlocked || undefined}
+              data-testid="moodboard-queue-scene"
+              onClick={() => void queueScene()}
+            >
+              {busy ? 'Queueing…' : 'Queue scene'}
+            </Button>
+
             <Button
               size="sm"
               variant="secondary"

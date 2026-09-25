@@ -11,6 +11,7 @@ export default function UploadButton({
   accept = 'image/*',
   ariaLabel,
   testId,
+  capture,
   onFile,
 }: {
   label: string;
@@ -19,6 +20,8 @@ export default function UploadButton({
   accept?: string;
   ariaLabel?: string;
   testId?: string;
+  /** Phone: open the camera directly (`capture` on the input). */
+  capture?: 'environment' | 'user';
   onFile: (file: File) => void;
 }) {
   return (
@@ -31,6 +34,7 @@ export default function UploadButton({
       <input
         type="file"
         accept={accept}
+        capture={capture}
         aria-label={ariaLabel ?? label}
         data-testid={testId}
         disabled={disabled}

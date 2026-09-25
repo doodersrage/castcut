@@ -22,6 +22,7 @@ import {
 import { resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
 import { resolvePreferredLookModel } from '@/lib/queue-tool-model';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import { suggestLookTileRoleForFile } from '@/lib/look-tile-role-client';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
   DEFAULT_MOODBOARD_TOOL_CACHE,
@@ -91,31 +92,74 @@ export function useMoodboardToolOrchestrationCore() {
     [updateToolSettings]
   );
 
+  // Latest tiles for async work (uploads, role suggestions): several can land in one drop, and
+  // a closure over `tiles` would write each back over the one before.
+  const tilesRef = useRef(tiles);
+  useEffect(() => {
+    tilesRef.current = tiles;
+  }, [tiles]);
+  const patchTile = useCallback(
+    (tileId: string, patch: Partial<MoodboardTile>) => {
+      const next = normalizeMoodboardTiles(
+        tilesRef.current.map(tile => (tile.id === tileId ? { ...tile, ...patch } : tile))
+      );
+      tilesRef.current = next;
+      persistTiles(next);
+    },
+    [persistTiles]
+  );
+  // Tiles whose role the player picked — a suggestion never overrides those.
+  const userRoleTileIds = useRef(new Set<string>());
   const updateTile = useCallback(
     (tileId: string, patch: Partial<MoodboardTile>) => {
-      persistTiles(tiles.map(tile => (tile.id === tileId ? { ...tile, ...patch } : tile)));
+      if (patch.role) {
+        userRoleTileIds.current.add(tileId);
+      }
+      patchTile(tileId, patch);
     },
-    [persistTiles, tiles]
+    [patchTile]
+  );
+  // Off for the session once the vision model is missing or keeps failing.
+  const roleSuggestOff = useRef(false);
+  const suggestTileRole = useCallback(
+    async (tileId: string, file: File) => {
+      if (roleSuggestOff.current || userRoleTileIds.current.has(tileId)) {
+        return;
+      }
+      try {
+        const role = await suggestLookTileRoleForFile(file, loadSettingsCache().shared);
+        const tile = tilesRef.current.find(entry => entry.id === tileId);
+        if (role && tile && !userRoleTileIds.current.has(tileId)) {
+          patchTile(tileId, { role });
+        }
+      } catch {
+        roleSuggestOff.current = true;
+      }
+    },
+    [patchTile]
   );
 
   const addTile = useCallback(() => {
-    if (tiles.length >= MAX_TILES) {
+    if (tilesRef.current.length >= MAX_TILES) {
       return;
     }
     const id = newMoodboardTileId();
-    persistTiles([...tiles, { id, role: 'mood' }]);
+    const next = normalizeMoodboardTiles([...tilesRef.current, { id, role: 'mood' }]);
+    tilesRef.current = next;
+    persistTiles(next);
     setActiveTileId(id);
-  }, [persistTiles, tiles]);
+  }, [persistTiles]);
 
   const removeTile = useCallback(
     (tileId: string) => {
-      const next = tiles.filter(tile => tile.id !== tileId);
+      const next = tilesRef.current.filter(tile => tile.id !== tileId);
+      tilesRef.current = next;
       persistTiles(next);
       if (activeTileId === tileId) {
         setActiveTileId(next[0]?.id ?? null);
       }
     },
-    [activeTileId, persistTiles, tiles]
+    [activeTileId, persistTiles]
   );
 
   const applyImageToTile = useCallback(
@@ -159,15 +203,52 @@ export function useMoodboardToolOrchestrationCore() {
             filename,
             comfyUrl,
           }).find(url => url.includes('/api/comfyui/view?')) ?? imageUrl;
-        updateTile(tileId, {
+        patchTile(tileId, {
           imageFilename: filename,
           imageUrl: viewUrl || imageUrl || undefined,
         });
+        // A fresh image with no notes: let the vision model say what it's for.
+        const tile = tilesRef.current.find(entry => entry.id === tileId);
+        if (tile && !tile.notes?.trim()) {
+          void suggestTileRole(tileId, sourceFile);
+        }
       } finally {
         setUploadingTileId(null);
       }
     },
-    [shared.model, updateTile]
+    [patchTile, shared.model, suggestTileRole]
+  );
+
+  /**
+   * Drop / paste: each image becomes a new tile (up to the 4-tile board), uploaded in turn.
+   * Returns how many were added and how many didn't fit.
+   */
+  const addTilesFromFiles = useCallback(
+    async (files: File[]): Promise<{ added: number; skipped: number }> => {
+      const images = files.filter(file => file.type.startsWith('image/'));
+      const room = Math.max(0, MAX_TILES - tilesRef.current.length);
+      const take = images.slice(0, room);
+      if (take.length === 0) {
+        return { added: 0, skipped: images.length };
+      }
+      const ids = take.map(() => newMoodboardTileId());
+      const next = normalizeMoodboardTiles([
+        ...tilesRef.current,
+        ...ids.map(id => ({ id, role: 'other' as const })),
+      ]);
+      tilesRef.current = next;
+      persistTiles(next);
+      setActiveTileId(ids[0]!);
+      for (let index = 0; index < take.length; index += 1) {
+        try {
+          await applyImageToTile(ids[index]!, { file: take[index]! });
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Could not upload that image.');
+        }
+      }
+      return { added: take.length, skipped: images.length - take.length };
+    },
+    [applyImageToTile, persistTiles]
   );
 
   const applyLookPlate = useCallback(
@@ -379,6 +460,7 @@ export function useMoodboardToolOrchestrationCore() {
     addTile,
     removeTile,
     applyImageToTile,
+    addTilesFromFiles,
     applyLookPlate,
     clearLookPlate,
     keepSceneAsLookPlate,

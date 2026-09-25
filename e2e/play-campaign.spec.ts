@@ -279,6 +279,47 @@ test('phone story recognises the active Cast before any film is cut', async ({ p
   await expect(page.getByTestId('story-needs-cast')).toHaveCount(0);
 });
 
+test('look: one preset row, tile board, paste adds a tile', async ({ page }) => {
+  await gotoStable(page, '/moodboard');
+  await dismissBlockingOverlays(page);
+  const picker = page.getByTestId('look-preset-picker');
+  await expect(picker).toBeVisible({ timeout: 30_000 });
+  // Presets are listed once — the separate "Use X for today" button wall is gone.
+  await expect(page.getByTestId('moodboard-use-for-today')).toHaveCount(0);
+  await expect(page.getByTestId('look-preset-selected')).toHaveCount(0);
+
+  const board = page.getByTestId('look-tile-board');
+  await expect(board).toBeVisible();
+  const before = await board.locator('[data-testid^="look-tile-"]:not([data-testid="look-tile-add"])').count();
+
+  // Paste an image anywhere on the page → a new tile.
+  if (before < 4) {
+    await page.evaluate(async () => {
+      const png = Uint8Array.from(
+        atob(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+        ),
+        char => char.charCodeAt(0)
+      );
+      const data = new DataTransfer();
+      data.items.add(new File([png], 'pasted.png', { type: 'image/png' }));
+      window.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data }));
+    });
+    await expect(
+      board.locator('[data-testid^="look-tile-"]:not([data-testid="look-tile-add"])')
+    ).toHaveCount(before + 1, { timeout: 15_000 });
+  }
+
+  // Pick a preset → one place to load it or use it for today.
+  await page.getByTestId('look-preset-cozy').click();
+  const selected = page.getByTestId('look-preset-selected');
+  await expect(selected).toBeVisible();
+  await expect(selected.getByTestId('look-preset-load')).toBeVisible();
+  await expect(selected.getByTestId('moodboard-preset-day-cozy')).toBeVisible();
+  await selected.getByTestId('look-preset-load').click();
+  await expect(board.getByTestId('look-tile-0')).toBeVisible();
+});
+
 test('moodboard look extract controls load', async ({ page }) => {
   await gotoStable(page, '/moodboard');
   await dismissBlockingOverlays(page);

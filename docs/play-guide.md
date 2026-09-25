@@ -41,13 +41,14 @@ Deep links: `/play?character=<id>` · `/m/film?character=<id>`.
 Stack reference tiles (mood, lighting, location, style, palette). Optional gallery stills per tile.
 
 - **Phase strip** — Tiles → Extract → Plate → Continue; status line shows tiles · plate · pack and why Extract / Queue is blocked.
-- **Preview vs Queue** — Preview prompt is text only; Queue scene is an optional still. **Extract look** is the film path.
+- **Presets** — one row; pick a preset, then **Load into board** or **Use for today — skip Outfit**.
+- **Tile board** — every tile as a thumbnail (image, role, label) plus **+ Add tile**; tap one to edit it. Drop images onto the board or paste one (Ctrl/⌘+V) and each becomes a tile (up to four). With a vision model set up, a new image's role is suggested (mood / lighting / location / style / palette) — never over a role you picked.
+- **Extract look** is the film path; **Preview prompt** (text only) and **Queue scene** (an optional still) sit under More.
 - **Extract look** — builds a session look pack (vision merge when tiles have images), then queues a **full-body Outfit plate** in minimal base clothing so try-on / Day have a clean body ref. Soft-advance counts down to Outfit with **Go to Day instead**.
 - **Skip look · Day** (desk + phone) — jump to Day without extracting when you already have a Cast lead.
 - **Look plate** — upload / Gallery / Remove on Look (desk + phone); after a queued scene still, **Keep as plate** or requeue.
 - **Continue to Outfit / Day** — hand off vibe notes + optional wardrobe lock.
 - **Save on Cast** / **Export JSON** / **Share this look** — under More (power users).
-- **Mobile empty tiles** — **Add starter tiles** when the board is empty.
 
 Deep link: `/moodboard?character=<id>`.
 

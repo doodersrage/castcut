@@ -8,7 +8,7 @@ import PlayPersistenceTriad from '@/components/PlayPersistenceTriad';
 import LookPlayPhaseStrip from '@/components/moodboard/LookPlayPhaseStrip';
 import LookStatusStrip from '@/components/moodboard/LookStatusStrip';
 import { Button, PrimaryButton } from '@/components/ui/Button';
-import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
+import { FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useMoodboardToolOrchestration } from '@/hooks/useMoodboardToolOrchestration';
 import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
@@ -20,7 +20,10 @@ import {
   loadLookPack,
   saveLookPack,
 } from '@/lib/look-pack';
-import { LOOK_PRESETS, lookPackFromPreset, tilesFromLookPreset } from '@/lib/look-presets';
+import { lookPackFromPreset, tilesFromLookPreset } from '@/lib/look-presets';
+import LookPresetPicker from '@/components/moodboard/LookPresetPicker';
+import LookTileBoard from '@/components/moodboard/LookTileBoard';
+import UploadButton from '@/components/ui/UploadButton';
 import {
   LOOK_PREVIEW_HINT,
   MOODBOARD_TEMPLATE_OPTIONS,
@@ -50,7 +53,6 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
     busy,
     extracting,
     lookStatus,
-    activeTileId,
     setActiveTileId,
     uploadingTileId,
     plateUploading,
@@ -65,6 +67,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
     addTile,
     removeTile,
     applyImageToTile,
+    addTilesFromFiles,
     applyLookPlate,
     clearLookPlate,
     keepSceneAsLookPlate,
@@ -156,62 +159,39 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         statusLine={statusLine}
         extractBlockReason={extractBlocked}
         queueBlockReason={!extractBlocked ? queueBlocked : null}
-        previewHint={LOOK_PREVIEW_HINT}
         lookStatus={lookStatus}
       />
 
       <div className="space-y-2" data-testid="mobile-moodboard-presets">
         <p className="type-caption text-[var(--text-muted)]">Look presets</p>
-        <div className="flex flex-wrap gap-2">
-          {LOOK_PRESETS.map(preset => (
-            <ChipButton
-              key={preset.id}
-              active={false}
-              disabled={busy || extracting}
-              title={preset.hint}
-              onClick={() => {
-                const tilesNext = tilesFromLookPreset(preset);
-                updateToolSettings({ tiles: tilesNext });
-                if (tilesNext[0]) {
-                  setActiveTileId(tilesNext[0].id);
-                }
-                const pack = lookPackFromPreset(preset, character?.id);
-                saveLookPack(pack);
-                setLookStatus(`Loaded ${preset.label} — Extract look or Continue to Outfit.`);
-              }}
-            >
-              {preset.label}
-            </ChipButton>
-          ))}
-        </div>
-        <p className="type-caption text-[var(--text-muted)]">Use for today — skip Outfit</p>
-        <div className="grid gap-2" data-testid="moodboard-use-for-today">
-          {LOOK_PRESETS.slice(0, 4).map(preset => (
-            <Button
-              key={`today-${preset.id}`}
-              variant="secondary"
-              disabled={busy || extracting}
-              data-testid={`moodboard-preset-day-${preset.id}`}
-              className="w-full justify-center"
-              onClick={() => {
-                const tilesNext = tilesFromLookPreset(preset);
-                updateToolSettings({ tiles: tilesNext });
-                if (tilesNext[0]) {
-                  setActiveTileId(tilesNext[0].id);
-                }
-                const pack = lookPackFromPreset(preset, character?.id);
-                saveLookPack(pack);
-                void sendLookToDay().then(href => {
-                  if (href) {
-                    softAdvanceHref(href, 'Day', `Using ${preset.label} for today`);
-                  }
-                });
-              }}
-            >
-              Use {preset.label} for today
-            </Button>
-          ))}
-        </div>
+        <LookPresetPicker
+          compact
+          busy={busy || extracting}
+          onLoad={preset => {
+            const tilesNext = tilesFromLookPreset(preset);
+            updateToolSettings({ tiles: tilesNext });
+            if (tilesNext[0]) {
+              setActiveTileId(tilesNext[0].id);
+            }
+            const pack = lookPackFromPreset(preset, character?.id);
+            saveLookPack(pack);
+            setLookStatus(`Loaded ${preset.label} — Extract look or Continue to Outfit.`);
+          }}
+          onUseToday={preset => {
+            const tilesNext = tilesFromLookPreset(preset);
+            updateToolSettings({ tiles: tilesNext });
+            if (tilesNext[0]) {
+              setActiveTileId(tilesNext[0].id);
+            }
+            const pack = lookPackFromPreset(preset, character?.id);
+            saveLookPack(pack);
+            void sendLookToDay().then(href => {
+              if (href) {
+                softAdvanceHref(href, 'Day', `Using ${preset.label} for today`);
+              }
+            });
+          }}
+        />
       </div>
 
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
@@ -310,62 +290,18 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
       </label>
 
       <div className="space-y-2" data-testid="mobile-moodboard-tiles">
-        {tiles.length === 0 ? (
-          <div className="space-y-2" data-testid="mobile-moodboard-empty">
-            <p className="type-caption text-[var(--text-muted)]">
-              No tiles yet — add starter refs, or extract from notes alone.
-            </p>
-            <Button
-              variant="secondary"
-              disabled={busy}
-              data-testid="mobile-moodboard-seed-tiles"
-              className="w-full justify-center"
-              onClick={() => {
-                addTile();
-                addTile();
-              }}
-            >
-              Add starter tiles
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {tiles.map((tile, index) => (
-              <ChipButton
-                key={tile.id}
-                active={activeTileId === tile.id}
-                disabled={busy}
-                onClick={() => setActiveTileId(tile.id)}
-              >
-                {tile.label?.trim() ||
-                  MOODBOARD_TILE_ROLES.find(entry => entry.id === tile.role)?.label ||
-                  `Tile ${index + 1}`}
-              </ChipButton>
-            ))}
-          </div>
-        )}
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy || tiles.length >= 4}
-            onClick={addTile}
-            className="flex-1 justify-center"
-          >
-            Add tile
-          </Button>
-          {activeTile ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() => removeTile(activeTile.id)}
-              className="flex-1 justify-center"
-            >
-              Remove
-            </Button>
-          ) : null}
-        </div>
+        <FieldLabel>Reference tiles</FieldLabel>
+        <LookTileBoard
+          compact
+          tiles={tiles}
+          activeTileId={activeTile?.id ?? null}
+          maxTiles={4}
+          busy={busy}
+          uploadingTileId={uploadingTileId}
+          onSelect={setActiveTileId}
+          onAdd={addTile}
+          onFiles={files => void addTilesFromFiles(files)}
+        />
       </div>
 
       {activeTile ? (
@@ -395,23 +331,33 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
               onChange={event => updateTile(activeTile.id, { notes: event.target.value })}
             />
           </label>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            disabled={busy || uploadingTileId === activeTile.id}
-            className="ui-file-input block w-full"
-            onChange={event => {
-              const file = event.target.files?.[0];
-              event.target.value = '';
-              if (!file) {
-                return;
+          <div className="grid grid-cols-2 gap-2">
+            <UploadButton
+              label={
+                uploadingTileId === activeTile.id
+                  ? 'Uploading…'
+                  : activeTile.imageUrl
+                    ? 'Replace image'
+                    : 'Add image'
               }
-              void applyImageToTile(activeTile.id, { file }).catch(err => {
-                setError(err instanceof Error ? err.message : 'Could not upload that photo.');
-              });
-            }}
-          />
+              capture="environment"
+              disabled={busy || uploadingTileId === activeTile.id}
+              ariaLabel="Upload an image for this tile"
+              onFile={file => {
+                void applyImageToTile(activeTile.id, { file }).catch(err => {
+                  setError(err instanceof Error ? err.message : 'Could not upload that photo.');
+                });
+              }}
+            />
+            <Button
+              variant="ghost"
+              disabled={busy}
+              className="justify-center"
+              onClick={() => removeTile(activeTile.id)}
+            >
+              Remove tile
+            </Button>
+          </div>
           <Link
             href={toMobileStudioHref(galleryPickPath('moodboard'))}
             className="ui-btn-secondary inline-flex w-full justify-center text-sm"
@@ -494,26 +440,6 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
             Skip look · Day
           </Link>
         ) : null}
-        <Button
-          variant="ghost"
-          disabled={Boolean(queueBlocked) || extracting}
-          title={queueBlocked || LOOK_PREVIEW_HINT}
-          onClick={previewPrompt}
-          className="w-full justify-center"
-          data-testid="mobile-moodboard-preview"
-        >
-          Preview prompt
-        </Button>
-        <Button
-          variant={demoteQueue ? 'ghost' : 'secondary'}
-          disabled={Boolean(queueBlocked) || extracting}
-          title={queueBlocked || undefined}
-          onClick={() => void queueScene()}
-          className="w-full justify-center"
-          data-testid="mobile-moodboard-queue"
-        >
-          {busy ? 'Queueing…' : 'Queue scene still'}
-        </Button>
         {scenePreviewUrl ? (
           <div
             className="space-y-2 rounded-2xl border border-[var(--border-subtle)] p-3"
@@ -573,9 +499,30 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         ) : null}
         <details className="rounded-xl border border-[var(--border-subtle)] px-3 py-2">
           <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-            More · Day, Story, save
+            More · prompt, scene still, Day, Story, save
           </summary>
           <div className="mt-2 grid gap-2">
+            <Button
+              variant="ghost"
+              disabled={Boolean(queueBlocked) || extracting}
+              title={queueBlocked || LOOK_PREVIEW_HINT}
+              onClick={previewPrompt}
+              className="w-full justify-center"
+              data-testid="mobile-moodboard-preview"
+            >
+              Preview prompt
+            </Button>
+            <Button
+              variant={demoteQueue ? 'ghost' : 'secondary'}
+              disabled={Boolean(queueBlocked) || extracting}
+              title={queueBlocked || undefined}
+              onClick={() => void queueScene()}
+              className="w-full justify-center"
+              data-testid="mobile-moodboard-queue"
+            >
+              {busy ? 'Queueing…' : 'Queue scene still'}
+            </Button>
+
             <Button
               variant="secondary"
               disabled={busy || extracting}
