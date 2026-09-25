@@ -17,25 +17,40 @@ export function revealDaySetup(): void {
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/** Scroll to Outfit's Character section and focus its picker. */
+function revealOutfitCharacter(): void {
+  if (typeof document === 'undefined') return;
+  const section = document.querySelector<HTMLElement>(
+    '[data-testid="fitting-character"], [data-testid="mobile-fitting-character"]'
+  );
+  if (!section) return;
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  section.querySelector<HTMLSelectElement>('select')?.focus({ preventScroll: true });
+}
+
 /**
- * First-run card at the top of Day: what's missing (Cast lead, then plate) and the one-tap ways
- * to fix it, instead of a caption pointing at a Setup section two screens down.
+ * First-run card at the top of Day / Outfit: what's missing and the one-tap ways to fix it,
+ * instead of a caption pointing at a section further down. Day covers Cast lead then plate;
+ * Outfit only the Cast lead (its Plate section sits right below and has its own empty state).
  */
-export default function DayGetStartedCard({
+export default function PlayGetStartedCard({
+  tool = 'day',
   hasCharacter,
   hasPlate,
   characterId,
   mobile = false,
 }: {
+  tool?: 'day' | 'outfit';
   hasCharacter: boolean;
   hasPlate: boolean;
   characterId?: string | null;
   mobile?: boolean;
 }) {
   const router = useRouter();
-  if (hasCharacter && hasPlate) {
+  if (hasCharacter && (hasPlate || tool === 'outfit')) {
     return null;
   }
+  const testId = tool === 'day' ? 'day-get-started' : 'outfit-get-started';
   const href = (path: string) => (mobile ? toMobileStudioHref(path) : path);
   const startStarter = () => {
     const result = startStarterPlayFilm({ existingCharacterId: characterId || undefined });
@@ -45,14 +60,17 @@ export default function DayGetStartedCard({
   return (
     <div
       className="mb-3 rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-4 py-3"
-      data-testid="day-get-started"
+      data-testid={testId}
     >
       {!hasCharacter ? (
         <>
-          <p className="type-heading">Day needs a Cast lead</p>
+          <p className="type-heading">
+            {tool === 'day' ? 'Day needs a Cast lead' : 'Outfit needs a Cast lead'}
+          </p>
           <p className="type-caption mt-1 text-[var(--text-secondary)]">
-            Pick the character this day follows — or let a starter film create one and plan the day
-            for you.
+            {tool === 'day'
+              ? 'Pick the character this day follows — or let a starter film create one and plan the day for you.'
+              : 'Try-ons dress a Cast lead and are saved to them — pick one, or let a starter film create one.'}
           </p>
         </>
       ) : (
@@ -70,7 +88,7 @@ export default function DayGetStartedCard({
             size="sm"
             variant="primary"
             onClick={startStarter}
-            data-testid="day-get-started-starter"
+            data-testid={`${testId}-starter`}
           >
             Make a starter film
           </Button>
@@ -81,7 +99,7 @@ export default function DayGetStartedCard({
             href={href(
               characterId ? `/fitting?character=${encodeURIComponent(characterId)}` : '/fitting'
             )}
-            data-testid="day-get-started-outfit"
+            data-testid={`${testId}-outfit`}
           >
             Open Outfit
           </ButtonLink>
@@ -89,8 +107,8 @@ export default function DayGetStartedCard({
         <Button
           size="sm"
           variant="secondary"
-          onClick={revealDaySetup}
-          data-testid="day-get-started-setup"
+          onClick={tool === 'day' ? revealDaySetup : revealOutfitCharacter}
+          data-testid={`${testId}-setup`}
         >
           {hasCharacter ? 'Pick a plate in Setup' : 'Choose a character'}
         </Button>

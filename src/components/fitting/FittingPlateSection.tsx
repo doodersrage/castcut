@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
@@ -37,7 +38,46 @@ export type FittingPlateSectionProps = {
   onApplyReference: (input: FittingPlateApplyReferenceInput) => Promise<void>;
   onClearReference: () => void;
   onError: (message: string) => void;
+  /** Look link for the empty state (extract a look → new plate). */
+  lookHref?: string;
 };
+
+/** File picker styled as a button (the bare input read as a form field). */
+function PlateUploadButton({
+  label,
+  variant,
+  disabled,
+  onFile,
+}: {
+  label: string;
+  variant: 'primary' | 'secondary';
+  disabled: boolean;
+  onFile: (file: File) => void;
+}) {
+  return (
+    <label
+      className={`${variant === 'primary' ? 'ui-btn-primary' : 'ui-btn-secondary'} inline-flex cursor-pointer items-center justify-center px-3 py-1.5 text-sm focus-within:ring-2 focus-within:ring-[var(--accent-ring)] ${
+        disabled ? 'pointer-events-none opacity-55' : ''
+      }`}
+    >
+      {label}
+      <input
+        type="file"
+        accept="image/*"
+        aria-label="Upload Cast plate photo"
+        disabled={disabled}
+        className="sr-only"
+        onChange={event => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (file) {
+            onFile(file);
+          }
+        }}
+      />
+    </label>
+  );
+}
 
 export default function FittingPlateSection({
   busy,
@@ -56,7 +96,16 @@ export default function FittingPlateSection({
   onApplyReference,
   onClearReference,
   onError,
+  lookHref,
 }: FittingPlateSectionProps) {
+  // Only say "cleared" after the player cleared it here — a fresh session has nothing to clear.
+  const [justCleared, setJustCleared] = useState(false);
+  const upload = (file: File) => {
+    setJustCleared(false);
+    void onApplyReference({ file }).catch(err => {
+      onError(err instanceof Error ? err.message : 'Could not upload that photo.');
+    });
+  };
   return (
     <ToolSection
       title="Plate"
@@ -102,51 +151,73 @@ export default function FittingPlateSection({
           Isolate on white
         </ChipButton>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <input
-          type="file"
-          accept="image/*"
-          aria-label="Upload Cast plate photo"
-          disabled={busy || referenceUploading}
-          className="ui-file-input block min-w-0 flex-1"
-          onChange={event => {
-            const file = event.target.files?.[0];
-            event.target.value = '';
-            if (!file) {
-              return;
-            }
-            void onApplyReference({ file }).catch(err => {
-              onError(err instanceof Error ? err.message : 'Could not upload that photo.');
-            });
-          }}
-        />
-        <ButtonLink href={galleryPickPath('fitting')} variant="secondary" size="sm">
-          Choose from Gallery
-        </ButtonLink>
-        {hasReference ? (
-          <Button variant="ghost" size="sm" disabled={busy} onClick={onClearReference}>
-            Clear
-          </Button>
-        ) : (
-          <p className="type-caption w-full text-[var(--text-muted)]">
-            Plate cleared — Extract look in Look to queue a new one, or upload / pick from Gallery.
-          </p>
-        )}
-      </div>
       {isolateStatus ? (
         <p className="type-caption mt-2 text-[var(--text-muted)]">{isolateStatus}</p>
       ) : null}
       {referencePreviewUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={referencePreviewUrl}
-          alt="Fitting plate"
-          className="mt-3 max-h-64 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
-        />
+        <div className="mt-3 space-y-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={referencePreviewUrl}
+            alt="Fitting plate"
+            className="max-h-64 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <PlateUploadButton
+              label="Replace"
+              variant="secondary"
+              disabled={busy || referenceUploading}
+              onFile={upload}
+            />
+            <ButtonLink href={galleryPickPath('fitting')} variant="secondary" size="sm">
+              Choose from Gallery
+            </ButtonLink>
+            {hasReference ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy}
+                onClick={() => {
+                  setJustCleared(true);
+                  onClearReference();
+                }}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </div>
+        </div>
       ) : (
-        <p className="type-caption mt-2 text-[var(--text-muted)]">
-          No plate yet — open a Cast character with a look, or upload / pick from Gallery.
-        </p>
+        <div
+          className="mt-3 rounded-[var(--radius-md)] border border-dashed border-[var(--border-strong)] px-4 py-6 text-center"
+          data-testid="fitting-plate-empty"
+        >
+          <p className="text-sm text-[var(--text-muted)]">
+            {justCleared ? 'Plate cleared.' : 'No plate yet.'} Use a photo of the Cast lead — or
+            extract a look in Look.
+          </p>
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <PlateUploadButton
+              label="Upload plate"
+              variant="primary"
+              disabled={busy || referenceUploading}
+              onFile={upload}
+            />
+            <ButtonLink href={galleryPickPath('fitting')} variant="secondary" size="sm">
+              Choose from Gallery
+            </ButtonLink>
+            {lookHref ? (
+              <ButtonLink
+                href={lookHref}
+                variant="ghost"
+                size="sm"
+                data-testid="fitting-plate-open-look"
+              >
+                Open Look
+              </ButtonLink>
+            ) : null}
+          </div>
+        </div>
       )}
     </ToolSection>
   );

@@ -104,6 +104,7 @@ export function ChipButton({
       disabled={disabled}
       title={title}
       data-testid={dataTestId}
+      aria-pressed={active}
       data-active={active ? 'true' : 'false'}
       className={`ui-chip ${className}`.trim()}
     >

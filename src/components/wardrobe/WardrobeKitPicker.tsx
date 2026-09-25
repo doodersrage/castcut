@@ -75,7 +75,7 @@ export default function WardrobeKitPicker({
   onSelect,
   onSwipe,
   showNav = true,
-  emptyLabel = 'Pick a kit to swipe',
+  emptyLabel = 'Pick a kit below — then Prev / Next steps through the rest.',
   testId,
 }: WardrobeKitPickerProps) {
   useWardrobeGarmentThumbManifestGeneration();
@@ -166,7 +166,8 @@ export default function WardrobeKitPicker({
         </Button>
       </div>
 
-      {showNav && onSwipe ? (
+      {/* Prev / Next only once a kit is picked — before that they had nothing to step from. */}
+      {showNav && onSwipe && activeKit ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
@@ -209,7 +210,7 @@ export default function WardrobeKitPicker({
         <p className="type-caption text-[var(--text-muted)]">
           <span className="text-[var(--text-secondary)]">{activeKit.label}</span>
           {activeKit.group ? ` · ${activeKit.group}` : ''}
-          {kits.length > 1 ? ` · ${selectedIndex + 1} / {kits.length}` : ''}
+          {kits.length > 1 ? ` · ${selectedIndex + 1} / ${kits.length}` : ''}
         </p>
       ) : (
         <p className="type-caption text-[var(--text-muted)]">{emptyLabel}</p>

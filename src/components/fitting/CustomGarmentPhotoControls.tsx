@@ -21,6 +21,82 @@ function useSavedFittingGarments(): SavedFittingGarment[] {
   return useMemo(() => JSON.parse(json) as SavedFittingGarment[], [json]);
 }
 
+/**
+ * The two ways in for a clothing photo, as labelled buttons (not bare file inputs): a worn photo
+ * goes through the extract pass, a packshot is used as is.
+ */
+export function GarmentUploadButtons({
+  busy,
+  testIdPrefix = 'fitting',
+  onApplyCustomGarment,
+  onError,
+}: {
+  busy: boolean;
+  testIdPrefix?: string;
+  onApplyCustomGarment: (input: { file: File; asPackshot?: boolean }) => Promise<void>;
+  onError: (message: string) => void;
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <label
+        className={`ui-btn-secondary flex cursor-pointer flex-col items-start gap-0.5 px-3 py-2 text-left focus-within:ring-2 focus-within:ring-[var(--accent-ring)] ${
+          busy ? 'pointer-events-none opacity-55' : ''
+        }`}
+      >
+        <span className="text-sm font-medium">Upload worn photo</span>
+        <span className="type-caption font-normal text-[var(--text-muted)]">
+          Someone wearing it — we cut the clothes out first.
+        </span>
+        <input
+          type="file"
+          accept="image/*"
+          aria-label="Upload clothing photo to extract a packshot"
+          disabled={busy}
+          className="sr-only"
+          onChange={event => {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (!file) {
+              return;
+            }
+            void onApplyCustomGarment({ file }).catch(err => {
+              onError(err instanceof Error ? err.message : 'Could not upload that clothing photo.');
+            });
+          }}
+        />
+      </label>
+      <label
+        className={`ui-btn-secondary flex cursor-pointer flex-col items-start gap-0.5 px-3 py-2 text-left focus-within:ring-2 focus-within:ring-[var(--accent-ring)] ${
+          busy ? 'pointer-events-none opacity-55' : ''
+        }`}
+      >
+        <span className="text-sm font-medium">Upload packshot</span>
+        <span className="type-caption font-normal text-[var(--text-muted)]">
+          Just the clothes on a plain background — used as is.
+        </span>
+        <input
+          type="file"
+          accept="image/*"
+          aria-label="Upload a ready clothing packshot"
+          data-testid={`${testIdPrefix}-upload-ready-packshot`}
+          disabled={busy}
+          className="sr-only"
+          onChange={event => {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (!file) {
+              return;
+            }
+            void onApplyCustomGarment({ file, asPackshot: true }).catch(err => {
+              onError(err instanceof Error ? err.message : 'Could not upload that packshot.');
+            });
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
 export type CustomGarmentPhotoControlsProps = {
   accent?: ToolAccent;
   busy: boolean;
@@ -68,54 +144,18 @@ export default function CustomGarmentPhotoControls({
   return (
     <div className="space-y-2" data-testid={`${testIdPrefix}-custom-garment`}>
       <FieldLabel>Your clothing photo</FieldLabel>
-      <p className="type-caption text-[var(--text-muted)]">
-        Worn still → extract a clothing-only packshot, or upload a ready packshot and skip the edit
-        pass{hasCustomGarment ? ' · catalog kit cleared' : ''}.
-      </p>
+      <GarmentUploadButtons
+        busy={busy || garmentUploading}
+        testIdPrefix={testIdPrefix}
+        onApplyCustomGarment={onApplyCustomGarment}
+        onError={onError}
+      />
+      {hasCustomGarment ? (
+        <p className="type-caption text-[var(--text-muted)]">
+          Catalog kit cleared while this is set.
+        </p>
+      ) : null}
       <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="type-caption shrink-0 text-[var(--text-muted)]">Extract from photo</span>
-          <input
-            type="file"
-            accept="image/*"
-            aria-label="Upload clothing photo to extract a packshot"
-            disabled={busy || garmentUploading}
-            className="ui-file-input block min-w-0 flex-1"
-            onChange={event => {
-              const file = event.target.files?.[0];
-              event.target.value = '';
-              if (!file) {
-                return;
-              }
-              void onApplyCustomGarment({ file }).catch(err => {
-                onError(
-                  err instanceof Error ? err.message : 'Could not upload that clothing photo.'
-                );
-              });
-            }}
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="type-caption shrink-0 text-[var(--text-muted)]">Ready packshot</span>
-          <input
-            type="file"
-            accept="image/*"
-            aria-label="Upload a ready clothing packshot"
-            data-testid={`${testIdPrefix}-upload-ready-packshot`}
-            disabled={busy || garmentUploading}
-            className="ui-file-input block min-w-0 flex-1"
-            onChange={event => {
-              const file = event.target.files?.[0];
-              event.target.value = '';
-              if (!file) {
-                return;
-              }
-              void onApplyCustomGarment({ file, asPackshot: true }).catch(err => {
-                onError(err instanceof Error ? err.message : 'Could not upload that packshot.');
-              });
-            }}
-          />
-        </div>
         {hasCustomGarment ? (
           <div className="flex flex-wrap items-center gap-2">
             <Button

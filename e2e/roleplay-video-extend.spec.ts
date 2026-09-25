@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
-import { seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { gotoStable } from './helpers/navigation';
 
 test.beforeEach(async ({ page }) => {
@@ -9,15 +8,19 @@ test.beforeEach(async ({ page }) => {
 
 test('roleplay still/clip toggle is visible', async ({ page }) => {
   // Story only shows beat controls once a Cast lead exists.
-  await seedSettingsCacheOnNextLoad(page, {
-    shared: { activeCharacterId: 'e2e-rp-toggle' },
-    characters: {
-      version: 1,
-      characters: [
-        { id: 'e2e-rp-toggle', name: 'RP Toggle', version: 1, updatedAt: Date.now() },
-      ],
-      removedIds: [],
-    },
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: 'e2e-rp-toggle', name: 'RP Toggle', version: 1, updatedAt: Date.now() }],
+        removedIds: [],
+      })
+    );
+    window.localStorage.setItem(
+      'comfy-prompt-tool-settings-v1',
+      JSON.stringify({ shared: { activeCharacterId: 'e2e-rp-toggle' }, tools: {} })
+    );
   });
   await gotoStable(page, '/story?character=e2e-rp-toggle');
   await expect(page.getByRole('heading', { name: /^Story$/i, level: 1 })).toBeVisible({

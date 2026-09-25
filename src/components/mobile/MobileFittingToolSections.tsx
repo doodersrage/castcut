@@ -7,7 +7,7 @@ import CharacterOsPicker from '@/components/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button } from '@/components/ui/Button';
-import { FieldError, FieldLabel, SelectInput } from '@/components/ui/Field';
+import { FieldError, FieldLabel } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
@@ -29,12 +29,15 @@ import { toMobileStudioHref, withCharacterQuery } from '@/lib/mobile-studio';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
 import OutfitPlayPhaseStrip from '@/components/fitting/OutfitPlayPhaseStrip';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
+import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
+import FittingAutoReviewToggle from '@/components/fitting/FittingAutoReviewToggle';
+import { TryOnReviewLine } from '@/components/fitting/FittingCompareSection';
+import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnReview';
+import { suggestTryOnToKeep } from '@/lib/fitting-tryon-review';
+import WardrobeCategoryPicker from '@/components/wardrobe/WardrobeCategoryPicker';
+import { GarmentUploadButtons } from '@/components/fitting/CustomGarmentPhotoControls';
 import type { ImageLightboxSlideChrome } from '@/components/ui/ImageLightbox';
-import {
-  countWardrobeOptionsForFilter,
-  normalizeWardrobeCategoryFilter,
-  wardrobeCategoryFilterOptions,
-} from '@/lib/wardrobe-catalog-ui';
+import { normalizeWardrobeCategoryFilter } from '@/lib/wardrobe-catalog-ui';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import {
   resolveWardrobeGarmentThumbUrl,
@@ -126,6 +129,22 @@ export default function MobileFittingToolSections(vm: ViewModel) {
   const mobileContinueDay = continueDayHref ? toMobileStudioHref(continueDayHref) : null;
   const mobileDayHref = toMobileStudioHref(dayPlannerHref);
   const plateUrl = referencePreviewUrl || toolSettings.referenceImageUrl?.trim() || '';
+  const autoReviewTryOns = toolSettings.autoReviewTryOns === true;
+  const tryOnReview = useFittingTryOnReview({
+    enabled: autoReviewTryOns,
+    compareTryOns,
+    plateUrl: toolSettings.referenceImageUrl?.trim() || '',
+    plateFilename: toolSettings.referenceImageFilename?.trim() || '',
+    customGarmentDescription: toolSettings.customGarmentDescription,
+    shared,
+  });
+  const suggestedTryOnId = suggestTryOnToKeep(
+    compareTryOns.flatMap(tryOn =>
+      tryOnReview.reviews[tryOn.promptId]
+        ? [{ promptId: tryOn.promptId, review: tryOnReview.reviews[tryOn.promptId]! }]
+        : []
+    )
+  );
   const activePreview = activeSwipeKit
     ? getFittingKitPreview(kitPreviews, activeSwipeKit.id, activeLookId)
     : undefined;
@@ -226,10 +245,17 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         onCancel={cancelSoftAdvance}
       />
 
+      <PlayGetStartedCard
+        tool="outfit"
+        mobile
+        hasCharacter={Boolean(character)}
+        hasPlate={hasReference}
+        characterId={shared.activeCharacterId}
+      />
+
       <FittingStatusStrip
         statusLine={statusLine}
-        queueBlockReason={queueBlocked ? queueBlockReason : null}
-        previewHint="Draft thumbs when available · Queue try-on = full quality for Keep → Day"
+        queueBlockReason={queueBlocked && character ? queueBlockReason : null}
       />
 
       {compareTryOns.length > 0 && !softAdvance && !continueDayHref ? (
@@ -245,7 +271,10 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
+      <div
+        className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3"
+        data-testid="mobile-fitting-character"
+      >
         <CharacterOsPicker
           shared={shared}
           hints={character?.hints}
@@ -347,33 +376,14 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         </div>
       )}
 
-      <label className="block space-y-1.5 text-sm">
-        <FieldLabel>Clothing type</FieldLabel>
-        <SelectInput
+      <div className="space-y-1.5 text-sm">
+        <WardrobeCategoryPicker
           value={wardrobeCategoryFilter}
-          disabled={!wardrobeReady || busy}
-          onChange={event =>
-            updateToolSettings({
-              wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(event.target.value),
-            })
-          }
-        >
-          {wardrobeCategoryFilterOptions().map(option => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-              {option.value !== 'all' && wardrobeReady
-                ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
-                : option.value === 'all' && wardrobeReady
-                  ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, 'all')})`
-                  : ''}
-            </option>
-          ))}
-        </SelectInput>
-        {wardrobeReady && wardrobeCategoryFilter !== 'all' ? (
-          <p className="type-caption text-[var(--text-muted)]">
-            {wardrobeKitCount} kit{wardrobeKitCount === 1 ? '' : 's'} in this type.
-          </p>
-        ) : null}
+          options={wardrobeOptions}
+          ready={wardrobeReady}
+          disabled={busy}
+          onChange={filter => updateToolSettings({ wardrobeCategoryFilter: filter })}
+        />
         {wardrobeReady && wardrobeCategoryFilter !== 'all' && wardrobeKitCount === 0 ? (
           <div
             className="rounded-2xl border border-dashed border-[var(--border-subtle)] px-3 py-3"
@@ -398,56 +408,15 @@ export default function MobileFittingToolSections(vm: ViewModel) {
             </p>
           </div>
         ) : null}
-      </label>
+      </div>
 
       <div className="space-y-2" data-testid="mobile-fitting-custom-garment">
         <FieldLabel>Your clothing photo</FieldLabel>
-        <p className="type-caption text-[var(--text-muted)]">
-          Extract from a worn still, or upload a ready packshot (skips the edit pass).
-        </p>
-        <label className="block space-y-1">
-          <span className="type-caption text-[var(--text-muted)]">Extract from photo</span>
-          <input
-            type="file"
-            accept="image/*"
-            aria-label="Upload clothing photo to extract a packshot"
-            disabled={busy || garmentUploading}
-            className="ui-file-input block w-full"
-            onChange={event => {
-              const file = event.target.files?.[0];
-              event.target.value = '';
-              if (!file) {
-                return;
-              }
-              void applyCustomGarment({ file }).catch(err => {
-                setError(
-                  err instanceof Error ? err.message : 'Could not upload that clothing photo.'
-                );
-              });
-            }}
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="type-caption text-[var(--text-muted)]">Ready packshot</span>
-          <input
-            type="file"
-            accept="image/*"
-            aria-label="Upload a ready clothing packshot"
-            data-testid="fitting-upload-ready-packshot"
-            disabled={busy || garmentUploading}
-            className="ui-file-input block w-full"
-            onChange={event => {
-              const file = event.target.files?.[0];
-              event.target.value = '';
-              if (!file) {
-                return;
-              }
-              void applyCustomGarment({ file, asPackshot: true }).catch(err => {
-                setError(err instanceof Error ? err.message : 'Could not upload that packshot.');
-              });
-            }}
-          />
-        </label>
+        <GarmentUploadButtons
+          busy={busy || garmentUploading}
+          onApplyCustomGarment={applyCustomGarment}
+          onError={setError}
+        />
         {garmentUploading || garmentScanStatus ? (
           <p
             className="type-caption text-[var(--text-muted)]"
@@ -670,6 +639,12 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         Draft thumbs when available · Queue try-on = full quality for Keep → Day.
       </p>
 
+      <FittingAutoReviewToggle
+        enabled={autoReviewTryOns}
+        checksOff={tryOnReview.checksOff}
+        onChange={next => updateToolSettings({ autoReviewTryOns: next })}
+      />
+
       {compareTryOns.length > 0 ? (
         <div className="space-y-2" data-testid="mobile-fitting-compare">
           <p className="type-caption text-[var(--text-muted)]">
@@ -679,7 +654,15 @@ export default function MobileFittingToolSections(vm: ViewModel) {
             {compareTryOns.map(tryOn => (
               <figure
                 key={tryOn.promptId}
-                className="min-w-[8rem] shrink-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-2"
+                data-testid="fitting-compare-card"
+                data-review={tryOnReview.reviews[tryOn.promptId]?.status ?? 'none'}
+                className={`w-[9rem] shrink-0 rounded-2xl border bg-[var(--bg-muted)]/40 p-2 ${
+                  suggestedTryOnId === tryOn.promptId
+                    ? 'border-[var(--accent-border)] ring-2 ring-[var(--accent-ring)]'
+                    : tryOnReview.reviews[tryOn.promptId]?.status === 'warn'
+                      ? 'border-[var(--tint-warning-border)]'
+                      : 'border-[var(--border-subtle)]'
+                }`}
               >
                 {tryOn.imageUrl ? (
                   <button
@@ -699,6 +682,11 @@ export default function MobileFittingToolSections(vm: ViewModel) {
                 <figcaption className="type-caption truncate text-[var(--text-muted)]">
                   {tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on'}
                 </figcaption>
+                <TryOnReviewLine
+                  review={tryOnReview.reviews[tryOn.promptId]}
+                  reviewing={tryOnReview.reviewingId === tryOn.promptId}
+                  suggested={suggestedTryOnId === tryOn.promptId}
+                />
                 <div className="mt-2 grid grid-cols-3 gap-1">
                   <Button
                     size="sm"
@@ -804,7 +792,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         </Button>
         <Button
           variant="secondary"
-          disabled={swipeDeck.length < 2 || busy}
+          disabled={swipeDeck.length < 2 || busy || !shared.lockedWardrobeId?.trim()}
           title="Advance to the next wardrobe kit"
           data-testid="fitting-skip-kit"
           onClick={skipKit}

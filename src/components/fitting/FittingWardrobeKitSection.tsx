@@ -5,17 +5,13 @@ import { Button } from '@/components/ui/Button';
 import { ChipButton, FieldDivider, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { CollapsibleSection, ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import CustomGarmentPhotoControls from '@/components/fitting/CustomGarmentPhotoControls';
+import WardrobeCategoryPicker from '@/components/wardrobe/WardrobeCategoryPicker';
 import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
 import type { FittingClothingOption } from '@/lib/fitting-clothing-options';
 import type { FittingKitPreview } from '@/lib/fitting-kit-previews';
 import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
 import type { FittingSwipeKit } from '@/lib/fitting-room';
-import {
-  countWardrobeOptionsForFilter,
-  normalizeWardrobeCategoryFilter,
-  wardrobeCategoryFilterOptions,
-  type WardrobeCategoryFilter,
-} from '@/lib/wardrobe-catalog-ui';
+import type { WardrobeCategoryFilter } from '@/lib/wardrobe-catalog-ui';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import { resolveWardrobeKitThumbUrl } from '@/lib/wardrobe-garment-thumbs';
 
@@ -74,7 +70,6 @@ export type FittingWardrobeKitSectionProps = {
 
 export default function FittingWardrobeKitSection({
   busy,
-  leanChrome,
   wardrobeReady,
   wardrobeCategoryFilter,
   wardrobeOptions,
@@ -83,6 +78,7 @@ export default function FittingWardrobeKitSection({
   wardrobeGroups,
   swipeDeck,
   deckSelectionId,
+  deckSelectionIndex,
   activeThumbRef,
   activeLookId,
   kitPreviews,
@@ -123,39 +119,38 @@ export default function FittingWardrobeKitSection({
   useWardrobeGarmentThumbManifestGeneration();
   const hasCustomGarment = Boolean(customGarmentImageUrl?.trim());
   const hasKit = Boolean(lockedWardrobeId?.trim());
+  // Person draft preview when one landed for this look, else the packaged garment thumb.
+  const resolveKitThumb = (kitId: string) => {
+    const preview = activeLookId
+      ? getFittingKitPreview(kitPreviews, kitId, activeLookId)
+      : undefined;
+    const personUrl = preview?.status === 'completed' ? preview.imageUrl?.trim() || null : null;
+    const pending = preview?.status === 'queued' || preview?.status === 'running';
+    return {
+      url: resolveWardrobeKitThumbUrl({ wardrobeId: kitId, personPreviewUrl: personUrl }),
+      pending: Boolean(pending && !personUrl),
+    };
+  };
+  const selectedKit =
+    hasKit && !hasCustomGarment
+      ? (swipeDeck.find(kit => kit.id === lockedWardrobeId) ?? null)
+      : null;
+  const selectedKitThumb = selectedKit
+    ? resolveKitThumb(selectedKit.id)
+    : { url: null, pending: false };
   return (
     <ToolSection
       title="Wardrobe kit"
       description="Upload your own clothing photo (vision-scanned), or pick a catalog kit — not both."
       data-testid="fitting-kit-strip"
     >
-      <label className="space-y-2">
-        <FieldLabel>Clothing type</FieldLabel>
-        <SelectInput
-          value={wardrobeCategoryFilter}
-          disabled={!wardrobeReady || busy}
-          className={accentFocusClass(ACCENT)}
-          onChange={event =>
-            onCategoryFilterChange(normalizeWardrobeCategoryFilter(event.target.value))
-          }
-        >
-          {wardrobeCategoryFilterOptions().map(option => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-              {option.value !== 'all' && wardrobeReady
-                ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
-                : option.value === 'all' && wardrobeReady
-                  ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, 'all')})`
-                  : ''}
-            </option>
-          ))}
-        </SelectInput>
-        {wardrobeReady && wardrobeCategoryFilter !== 'all' ? (
-          <p className="type-caption text-[var(--text-muted)]">
-            Showing {wardrobeKitCount} kit{wardrobeKitCount === 1 ? '' : 's'} in this type.
-          </p>
-        ) : null}
-      </label>
+      <WardrobeCategoryPicker
+        value={wardrobeCategoryFilter}
+        options={wardrobeOptions}
+        ready={wardrobeReady}
+        disabled={busy}
+        onChange={onCategoryFilterChange}
+      />
       {wardrobeReady && wardrobeCategoryFilter !== 'all' && wardrobeKitCount === 0 ? (
         <div
           className="rounded-[var(--radius-md)] border border-dashed border-[var(--border-subtle)] px-3 py-3"
@@ -201,26 +196,51 @@ export default function FittingWardrobeKitSection({
           Using your clothing photo. Clear it below to pick a catalog kit again.
         </p>
       ) : null}
-      <p className="type-caption text-[var(--text-muted)]" data-testid="fitting-preview-vs-queue">
-        Preview kits = draft thumbs. Queue try-on = full-quality still for Keep → Day.
-      </p>
       {swipeDeck.length > 0 ? (
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {hasKit ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy || hasCustomGarment}
-                data-testid="fitting-clear-kit"
-                onClick={onClearKit}
-              >
-                Clear kit
-              </Button>
-            ) : (
-              <span className="type-caption text-[var(--text-muted)]">No kit selected</span>
-            )}
-          </div>
+          {selectedKit ? (
+            <div
+              className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--accent-border)] bg-[var(--accent-muted)] p-2"
+              data-testid="fitting-selected-kit"
+            >
+              {selectedKitThumb.url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={selectedKitThumb.url}
+                  alt=""
+                  className="h-40 w-28 shrink-0 rounded object-cover sm:h-48 sm:w-32"
+                />
+              ) : (
+                <span className="flex h-40 w-28 shrink-0 items-center justify-center rounded border border-[var(--border-subtle)] type-caption text-[var(--text-muted)] sm:h-48 sm:w-32">
+                  No thumb
+                </span>
+              )}
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="type-overline text-[var(--accent-text)]">Selected kit</p>
+                <p className="type-heading break-words">{selectedKit.label}</p>
+                <p className="type-caption text-[var(--text-muted)]">
+                  {[
+                    selectedKit.group,
+                    deckSelectionIndex >= 0
+                      ? `${deckSelectionIndex + 1} / ${swipeDeck.length}`
+                      : '',
+                    selectedKitThumb.pending ? 'draft preview rendering…' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy || hasCustomGarment}
+                  data-testid="fitting-clear-kit"
+                  onClick={onClearKit}
+                >
+                  Clear kit
+                </Button>
+              </div>
+            </div>
+          ) : null}
           <WardrobeKitPicker
             kits={swipeDeck}
             selectedId={deckSelectionId}
@@ -228,29 +248,22 @@ export default function FittingWardrobeKitSection({
             activeThumbRef={activeThumbRef}
             onSelect={onSelectKit}
             onSwipe={delta => onSwipeKit(delta)}
-            resolveThumb={kit => {
-              const preview = activeLookId
-                ? getFittingKitPreview(kitPreviews, kit.id, activeLookId)
-                : undefined;
-              const personUrl =
-                preview?.status === 'completed' ? preview.imageUrl?.trim() || null : null;
-              const pending = preview?.status === 'queued' || preview?.status === 'running';
-              return {
-                url: resolveWardrobeKitThumbUrl({
-                  wardrobeId: kit.id,
-                  personPreviewUrl: personUrl,
-                }),
-                pending: Boolean(pending && !personUrl),
-              };
-            }}
+            resolveThumb={kit => resolveKitThumb(kit.id)}
           />
           <CollapsibleSection
             title="Draft previews & list"
             summary="Auto draft thumbs, optional list picker, and notes."
-            defaultOpen={!leanChrome}
+            defaultOpen={false}
             persistKey="fitting-kit-advanced"
           >
-            <div className="flex flex-wrap items-center gap-2">
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              data-testid="fitting-preview-vs-queue"
+            >
+              Preview kits = quick draft thumbs. Queue try-on = the full-quality still you Keep for
+              Day.
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <ChipButton
                 active={autoKitPreviews}
                 disabled={busy || !hasReference}

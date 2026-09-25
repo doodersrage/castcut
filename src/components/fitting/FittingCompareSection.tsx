@@ -6,11 +6,64 @@ import { Button } from '@/components/ui/Button';
 import type { ImageLightboxState, ImageLightboxSlideChrome } from '@/components/ui/ImageLightbox';
 import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
 import { buildFittingCompareLightboxState, type FittingCompareTryOn } from '@/lib/fitting-room';
+import {
+  suggestTryOnToKeep,
+  tryOnReviewScoreLine,
+  type TryOnReview,
+} from '@/lib/fitting-tryon-review';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
   ssr: false,
   loading: () => null,
 });
+
+/** Scores / warnings under a Compare thumb (Auto-review on). */
+export function TryOnReviewLine({
+  review,
+  reviewing,
+  suggested,
+}: {
+  review?: TryOnReview;
+  reviewing: boolean;
+  suggested: boolean;
+}) {
+  if (reviewing) {
+    return (
+      <p
+        className="type-caption mt-1 text-[var(--text-muted)]"
+        data-testid="fitting-review-pending"
+      >
+        Reviewing…
+      </p>
+    );
+  }
+  if (!review) {
+    return null;
+  }
+  const scores = tryOnReviewScoreLine(review);
+  return (
+    <div className="mt-1 space-y-0.5" data-testid="fitting-review">
+      {suggested ? (
+        <p className="type-overline text-[var(--accent-text)]" data-testid="fitting-review-best">
+          Best match
+        </p>
+      ) : null}
+      {scores ? <p className="type-caption text-[var(--text-secondary)]">{scores}</p> : null}
+      {review.notes.length > 0 ? (
+        <p
+          className={`type-caption ${
+            review.status === 'warn'
+              ? 'text-[var(--tint-warning-text,var(--text-muted))]'
+              : 'text-[var(--text-muted)]'
+          }`}
+        >
+          {review.notes.join(', ')}
+          {review.status === 'warn' ? ' — try ↻ or Pass' : ''}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 export type FittingCompareSectionProps = {
   compareTryOns: FittingCompareTryOn[];
@@ -21,6 +74,10 @@ export type FittingCompareSectionProps = {
   onDismissTryOn: (tryOn: FittingCompareTryOn) => void;
   /** Requeue this kit / BYO from the card or lightbox. */
   onRequeueTryOn: (tryOn: FittingCompareTryOn) => void;
+  /** Auto-review results by promptId (face match + outfit read). */
+  reviews?: Record<string, TryOnReview>;
+  /** Try-on being reviewed right now. */
+  reviewingId?: string | null;
 };
 
 export default function FittingCompareSection({
@@ -30,7 +87,16 @@ export default function FittingCompareSection({
   onSoftAdvance,
   onDismissTryOn,
   onRequeueTryOn,
+  reviews = {},
+  reviewingId = null,
 }: FittingCompareSectionProps) {
+  const suggestedId = suggestTryOnToKeep(
+    compareTryOns.flatMap(tryOn =>
+      reviews[tryOn.promptId]
+        ? [{ promptId: tryOn.promptId, review: reviews[tryOn.promptId]! }]
+        : []
+    )
+  );
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
 
   const openLightbox = useCallback(
@@ -117,7 +183,15 @@ export default function FittingCompareSection({
             {compareTryOns.map(tryOn => (
               <figure
                 key={tryOn.promptId}
-                className="min-w-[7.5rem] shrink-0 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+                data-testid="fitting-compare-card"
+                data-review={reviews[tryOn.promptId]?.status ?? 'none'}
+                className={`w-[9rem] shrink-0 rounded-[var(--radius-md)] border p-2 ${
+                  suggestedId === tryOn.promptId
+                    ? 'border-[var(--accent-border)] ring-2 ring-[var(--accent-ring)]'
+                    : reviews[tryOn.promptId]?.status === 'warn'
+                      ? 'border-[var(--tint-warning-border)]'
+                      : 'border-[var(--border-subtle)]'
+                }`}
               >
                 {tryOn.imageUrl ? (
                   <button
@@ -137,6 +211,11 @@ export default function FittingCompareSection({
                 <figcaption className="type-caption truncate text-[var(--text-muted)]">
                   {tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on'}
                 </figcaption>
+                <TryOnReviewLine
+                  review={reviews[tryOn.promptId]}
+                  reviewing={reviewingId === tryOn.promptId}
+                  suggested={suggestedId === tryOn.promptId}
+                />
                 <div className="mt-2 flex flex-wrap gap-1">
                   <Button
                     size="sm"

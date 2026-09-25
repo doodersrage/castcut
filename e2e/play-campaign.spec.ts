@@ -55,6 +55,62 @@ test('fitting room happy path chrome loads', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Queue try-on/i })).toBeVisible();
 });
 
+test('outfit first run: Cast card, one plate message, grouped kit controls', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: '' },
+    characters: { version: 1, characters: [], removedIds: [] },
+  });
+  await gotoStable(page, '/fitting');
+  await dismissBlockingOverlays(page);
+  const card = page.getByTestId('outfit-get-started');
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  await expect(card).toContainText(/Outfit needs a Cast lead/i);
+  await expect(page.getByTestId('outfit-get-started-starter')).toBeVisible();
+
+  // A fresh plate says "No plate yet" once — not also "Plate cleared".
+  const empty = page.getByTestId('fitting-plate-empty');
+  await expect(empty).toContainText(/No plate yet/i);
+  await expect(page.getByTestId('fitting-plate')).not.toContainText(/cleared/i);
+
+  // Clothing type quick picks; uploads are labelled buttons.
+  await expect(page.getByTestId('wardrobe-category-all')).toBeVisible();
+  await expect(page.getByText('Upload worn photo')).toBeVisible();
+  await expect(page.getByText('Upload packshot')).toBeVisible();
+  await expect(page.getByTestId('fitting-skip-kit')).toBeDisabled();
+
+  const review = page.getByTestId('fitting-auto-review-switch');
+  await expect(review).toHaveAttribute('aria-checked', 'false');
+  await review.click();
+  await expect(review).toHaveAttribute('aria-checked', 'true');
+});
+
+test('forgetting a Cast lead asks first', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: 'e2e-forget', name: 'Keep Me', version: 1, updatedAt: Date.now() }],
+        removedIds: [],
+      })
+    );
+    window.localStorage.setItem(
+      'comfy-prompt-tool-settings-v1',
+      JSON.stringify({ shared: { activeCharacterId: 'e2e-forget' }, tools: {} })
+    );
+  });
+  await gotoStable(page, '/fitting?character=e2e-forget');
+  await dismissBlockingOverlays(page);
+  const picker = page.getByLabel('Active character');
+  await expect(picker).toHaveValue('e2e-forget', { timeout: 30_000 });
+  page.once('dialog', dialog => {
+    expect(dialog.message()).toMatch(/Forget Keep Me\?/);
+    void dialog.dismiss();
+  });
+  await page.getByTestId('fitting-character').getByRole('button', { name: 'Forget' }).click();
+  await expect(picker).toHaveValue('e2e-forget');
+});
+
 test('day planner happy path chrome loads', async ({ page }) => {
   await gotoStable(page, '/day');
   await dismissBlockingOverlays(page);

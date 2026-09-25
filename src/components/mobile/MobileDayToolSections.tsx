@@ -10,7 +10,7 @@ import DayRemixMenu from '@/components/day-planner/DayRemixMenu';
 import DaySeriesPanel from '@/components/day-planner/DaySeriesPanel';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
-import DayGetStartedCard from '@/components/day-planner/DayGetStartedCard';
+import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
@@ -322,7 +322,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             completedClips={completedClipCount}
             slotTotal={slotTotal}
           />
-          <DayGetStartedCard
+          <PlayGetStartedCard
             hasCharacter={Boolean(character)}
             hasPlate={hasPlate}
             characterId={character?.id}

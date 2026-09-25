@@ -14,6 +14,8 @@ export type FittingActionRowProps = {
   queueBlocked: boolean;
   queueBlockReason?: string | null;
   swipeDeckLength: number;
+  /** A catalog kit is picked — Skip kit has something to step from. */
+  hasKit?: boolean;
   busy: boolean;
   character: CharacterRecord | undefined;
   /** Try-ons waiting for Keep — demote Queue. */
@@ -45,6 +47,7 @@ export default function FittingActionRow({
   queueBlocked,
   queueBlockReason = null,
   swipeDeckLength,
+  hasKit = true,
   busy,
   character,
   compareActive = false,
@@ -87,7 +90,7 @@ export default function FittingActionRow({
         <Button
           size="sm"
           variant="secondary"
-          disabled={swipeDeckLength < 2 || busy}
+          disabled={swipeDeckLength < 2 || busy || !hasKit}
           title="Advance to the next wardrobe kit (does not dismiss try-ons)"
           data-testid="fitting-skip-kit"
           onClick={onSkipKit}

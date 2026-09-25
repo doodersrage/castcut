@@ -55,10 +55,14 @@ Deep link: `/moodboard?character=<id>`.
 
 Lock a character plate, browse wardrobe kits, queue try-ons.
 
+- **Get started** — with no Cast lead, a card at the top offers **Make a starter film** or jumps to the Character picker. With no plate, the Plate section offers **Upload plate**, **Choose from Gallery** or **Open Look** (extract a look → new plate).
 - **Phase strip** — Plate → Try-on → Keep → Day; status line shows plate · kit/BYO and why Queue is blocked.
-- **Preview vs Queue** — draft thumbs vs full-quality try-on (one-line caption under the kit strip).
-- **Keep / Pass / requeue** on compare cards and in the lightbox — Pass dismisses a try-on; **Skip kit** advances the wardrobe deck.
-- **BYO clothing** — upload a clothing photo (extract to packshot) or a ready packshot; **Save for later** keeps it in durable browser storage (desk + phone).
+- **Kits** — **Clothing type** quick picks (All, Full outfits, Tops, Bottoms, Outerwear, Formal, Swimwear; **More types…** for the rest). The picked kit shows large with its name and position; Prev / Next appear once a kit is picked.
+- **Preview vs Queue** — draft thumbs vs full-quality try-on (explained under **Draft previews & list**, collapsed by default).
+- **Keep / Pass / requeue** on compare cards and in the lightbox — Pass dismisses a try-on; **Skip kit** advances the wardrobe deck (off until a kit is picked).
+- **Auto-review try-ons** (opt-in switch under the action row) — each try-on in Compare gets a face match against the plate (needs **ComfyUI_FaceAnalysis**) and a vision read of the outfit, face and hands (needs a vision LLM): the card shows *Face 64% · Outfit 4/5*, warns on a drifted face, an outfit that doesn't match the kit, or broken hands, and marks the best clean try-on **Best match**. Scores only — nothing is requeued. Face scores feed **Face match by model** on the Dashboard. A missing node pack or vision model turns that check off with a note.
+- **BYO clothing** — **Upload worn photo** (someone wearing it; the clothes are extracted to a packshot) or **Upload packshot** (clothes on a plain background, used as is); **Save for later** keeps it in durable browser storage (desk + phone).
+- **Character** — the **Look** picker is labelled; saving or renaming a look sits under **Save or rename this look…**. **Forget** asks before deleting the Cast record.
 - **Continue to Day** — primary CTA after a keeper. **Skip outfit · Day** (desk + phone) if you want stills without a kit lock.
 - **Save kit to Cast** — under More. Phone can upload / pick a Gallery plate in-place.
 

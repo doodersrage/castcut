@@ -4,10 +4,13 @@ import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
 import FittingCompareSection from '@/components/fitting/FittingCompareSection';
 import FittingActionRow from '@/components/fitting/FittingActionRow';
+import FittingAutoReviewToggle from '@/components/fitting/FittingAutoReviewToggle';
+import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnReview';
 import FittingPlateSection from '@/components/fitting/FittingPlateSection';
 import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
 import OutfitPlayPhaseStrip from '@/components/fitting/OutfitPlayPhaseStrip';
+import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
@@ -19,6 +22,7 @@ import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { fittingSessionStatusLine, resolveFittingOutfitPhase } from '@/lib/fitting-room';
 import { fittingNotesCachePatch } from '@/lib/look-pack';
+import { withCharacterQuery } from '@/lib/mobile-studio';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 
 const ACCENT = 'rose' as const;
@@ -106,6 +110,15 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     setIsolateStatus,
   } = vm;
   const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance();
+  const autoReviewTryOns = toolSettings.autoReviewTryOns === true;
+  const tryOnReview = useFittingTryOnReview({
+    enabled: autoReviewTryOns,
+    compareTryOns,
+    plateUrl: referenceImageUrl,
+    plateFilename: referenceImageFilename,
+    customGarmentDescription: toolSettings.customGarmentDescription,
+    shared,
+  });
   const outfitPhase = resolveFittingOutfitPhase({
     hasPlate: hasReference,
     compareCount: compareTryOns.length,
@@ -165,11 +178,17 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onCancel={cancelSoftAdvance}
       />
 
+      <PlayGetStartedCard
+        tool="outfit"
+        hasCharacter={Boolean(character)}
+        hasPlate={hasReference}
+        characterId={shared.activeCharacterId}
+      />
+
       <FittingStatusStrip
         className="mt-2"
         statusLine={statusLine}
-        queueBlockReason={queueBlocked ? queueBlockReason : null}
-        previewHint="Preview kits = draft thumbs · Queue try-on = full quality for Keep → Day"
+        queueBlockReason={queueBlocked && character ? queueBlockReason : null}
       />
 
       {compareTryOns.length > 0 && !softAdvance && !continueDayHref ? (
@@ -209,6 +228,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onApplyReference={applyReference}
         onClearReference={clearReference}
         onError={message => setError(message)}
+        lookHref={withCharacterQuery('/moodboard', shared.activeCharacterId)}
       />
 
       <FittingWardrobeKitSection
@@ -273,6 +293,8 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onSoftAdvance={href => softAdvanceHref(href, 'Day')}
         onDismissTryOn={dismissTryOn}
         onRequeueTryOn={tryOn => void requeueTryOn(tryOn)}
+        reviews={tryOnReview.reviews}
+        reviewingId={tryOnReview.reviewingId}
       />
 
       <FittingActionRow
@@ -281,6 +303,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         queueBlocked={queueBlocked}
         queueBlockReason={queueBlockReason}
         swipeDeckLength={swipeDeck.length}
+        hasKit={Boolean(shared.lockedWardrobeId?.trim())}
         busy={busy}
         character={character}
         compareActive={compareTryOns.length > 0 && !continueDayHref}
@@ -290,6 +313,11 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onQueueTryOnAndSwipe={() => void queueTryOnAndSwipe()}
         onSaveKitToCast={saveKitToCast}
         onGoRoleplay={goRoleplay}
+      />
+      <FittingAutoReviewToggle
+        enabled={autoReviewTryOns}
+        checksOff={tryOnReview.checksOff}
+        onChange={next => updateToolSettings({ autoReviewTryOns: next })}
       />
       {saveStatus ? <p className="type-caption text-[var(--text-muted)]">{saveStatus}</p> : null}
       {error ? <FieldError>{error}</FieldError> : null}

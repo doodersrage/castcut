@@ -1023,6 +1023,8 @@ export type FittingToolCache = {
   customGarmentImageFilename?: string;
   /** Vision scan of the BYO clothing photo — text cue for try-on. */
   customGarmentDescription?: string;
+  /** Opt-in: score each landed try-on (face match vs plate + vision outfit read). */
+  autoReviewTryOns?: boolean;
 };
 
 /** Day Planner — time-of-day slots with wardrobe + scene beats for one character. */
