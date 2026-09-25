@@ -320,6 +320,104 @@ test('look: one preset row, tile board, paste adds a tile', async ({ page }) => 
   await expect(board.getByTestId('look-tile-0')).toBeVisible();
 });
 
+test('day and story show a running job as Rendering, and Story Retry flagged', async ({ page }) => {
+  await page.addInitScript(() => {
+    const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+    const now = Date.now();
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: 'e2e-progress', name: 'Progress', version: 1, updatedAt: now }],
+        removedIds: [],
+      })
+    );
+    window.localStorage.setItem(
+      'comfy-play-metrics-v1',
+      JSON.stringify({ version: 1, firstFilmCutAt: now })
+    );
+    // What the live poller writes while ComfyUI works: sampler steps and queue position.
+    const job = (promptId: string, extra: Record<string, unknown>) => ({
+      id: `g-${promptId}`,
+      promptId,
+      prompt: 'progress',
+      model: 'qwen-image-2512',
+      tool: 'day',
+      queuedAt: now,
+      characterId: 'e2e-progress',
+      images: [],
+      ...extra,
+    });
+    window.localStorage.setItem(
+      'comfyui-gallery-v1',
+      JSON.stringify([
+        job('p-evening', { status: 'running', progressValue: 9, progressMax: 20, queuePosition: 0 }),
+        job('p-beat', { status: 'running', progressValue: 30, progressMax: 60, queuePosition: 0 }),
+      ])
+    );
+    window.localStorage.setItem(
+      'comfy-prompt-tool-settings-v1',
+      JSON.stringify({
+        shared: { activeCharacterId: 'e2e-progress' },
+        tools: {
+          day: {
+            stillsCharacterId: 'e2e-progress',
+            slots: [
+              { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'coffee' },
+              { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
+              { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs' },
+              { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'sleeps' },
+            ],
+            stills: [
+              { slotId: 'morning', status: 'completed', imageUrl: thumb },
+              { slotId: 'evening', status: 'queued', promptId: 'p-evening' },
+            ],
+          },
+          roleplay: {
+            activeSessionId: 'cast-e2e-progress',
+            characterName: 'Progress',
+            bio: { name: 'Progress', look: 'green raincoat', personality: 'curious' },
+            story: [
+              {
+                id: 'b1',
+                at: now - 2000,
+                kind: 'plot',
+                title: 'Missed pose',
+                blurb: 'A still that ignored its guide.',
+                stillStatus: 'completed',
+                imageUrl: thumb,
+                poseMatch: { imageUrl: thumb, score: 0.2, expectedPeople: 1, detectedPeople: 1 },
+              },
+              {
+                id: 'b2',
+                at: now - 1000,
+                kind: 'plot',
+                title: 'Rendering beat',
+                blurb: 'Still in ComfyUI.',
+                stillStatus: 'queued',
+                promptId: 'p-beat',
+              },
+            ],
+          },
+        },
+      })
+    );
+  });
+
+  await gotoStable(page, '/day?character=e2e-progress');
+  await dismissBlockingOverlays(page);
+  // Sampler % and queue position are in-memory only (the poller writes them live; they aren't
+  // persisted), so a seeded entry carries its running status — their formatting is unit-tested.
+  await expect(page.getByTestId('day-progress-evening')).toContainText('Rendering', {
+    timeout: 30_000,
+  });
+
+  await gotoStable(page, '/story?character=e2e-progress');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByText(/^Rendering/).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('story-retry-flagged-button')).toHaveText('Retry 1 flagged');
+});
+
 test('moodboard look extract controls load', async ({ page }) => {
   await gotoStable(page, '/moodboard');
   await dismissBlockingOverlays(page);

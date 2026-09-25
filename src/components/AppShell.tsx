@@ -3,6 +3,7 @@
 import { Suspense, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import AppNav from '@/components/AppNav';
+import { useHydrated } from '@/hooks/useHydrated';
 import PlayKioskShell from '@/components/PlayKioskShell';
 import MobileStudioOfferBanner from '@/components/MobileStudioOfferBanner';
 import { isMobileStudioPath } from '@/lib/mobile-studio';
@@ -27,6 +28,17 @@ function NavFallback() {
   );
 }
 
+/**
+ * The sidebar sits in a Suspense boundary (useSearchParams) that hydrates after the root. By
+ * then the auth session and workspace mode may have loaded, so its hydration render no longer
+ * matched the server's signed-out shell (React #418, under load). Render the placeholder until
+ * hydrated — it's what the server sends — then the live nav.
+ */
+function HydratedAppNav() {
+  const hydrated = useHydrated();
+  return hydrated ? <AppNav /> : <NavFallback />;
+}
+
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const workspaceMode = useWorkspaceMode();
@@ -45,7 +57,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <PlayKioskShell />
       ) : (
         <Suspense fallback={<NavFallback />}>
-          <AppNav />
+          <HydratedAppNav />
         </Suspense>
       )}
       {!mobileStudio ? <MobileStudioOfferBanner /> : null}

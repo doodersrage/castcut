@@ -77,6 +77,11 @@ npm run prompt:cli -- --help
 
 CI runs lint, test, build, Playwright on push — see [performance guide](performance/guide.md).
 
+Running Playwright against your own production server? Build and start with the **same**
+`NEXT_PUBLIC_*` values (e.g. `NEXT_PUBLIC_PLAYWRIGHT=1` for both `npm run build` and `npm start`).
+They're baked into the browser bundle at build time, so a mismatch renders differently on server
+and client and shows up as React hydration error #418 on every page.
+
 ---
 
 ## Docker (production)

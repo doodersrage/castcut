@@ -196,3 +196,20 @@ for (const route of ADDITIONAL_ROUTES) {
     });
   });
 }
+
+// A server/client render mismatch makes React throw away the server HTML (minified error #418).
+// Build and server must share NEXT_PUBLIC_* — a build without NEXT_PUBLIC_PLAYWRIGHT served with
+// it set looked like a site-wide hydration bug.
+test('play pages hydrate without mismatches', async ({ page }) => {
+  const hydrationErrors: string[] = [];
+  page.on('pageerror', error => {
+    if (/#418|#423|#425|hydrat/i.test(error.message)) {
+      hydrationErrors.push(error.message.slice(0, 160));
+    }
+  });
+  for (const path of ['/characters', '/play', '/moodboard', '/fitting', '/day', '/story']) {
+    await gotoStable(page, path);
+    await page.waitForTimeout(1500);
+  }
+  expect(hydrationErrors).toEqual([]);
+});

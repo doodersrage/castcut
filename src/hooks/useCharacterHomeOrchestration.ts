@@ -56,6 +56,7 @@ import { loadEngineSettings } from '@/lib/engine-settings';
 import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import { buildCastHomeStatus } from '@/lib/cast-home-status';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
+import { useHydrated } from '@/hooks/useHydrated';
 
 export type MediaTab = 'all' | 'stills' | 'clips' | 'films' | 'keepers';
 
@@ -80,10 +81,6 @@ export type CharacterHomeTab = (typeof CHARACTER_HOME_TABS)[number];
 export function isCharacterHomeTab(value: string | null | undefined): value is CharacterHomeTab {
   return (CHARACTER_HOME_TABS as readonly string[]).includes(value ?? '');
 }
-
-const subscribeNoop = () => () => undefined;
-const returnTrue = () => true;
-const returnFalse = () => false;
 
 export function useCharacterHomeOrchestration(characterId: string) {
   const router = useRouter();
@@ -129,7 +126,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
 
   // The Cast store lives in browser storage: the server (and the hydration pass) can't see it,
   // so hold the page until mounted instead of rendering "Character not found" then swapping.
-  const hydrated = useSyncExternalStore(subscribeNoop, returnTrue, returnFalse);
+  const hydrated = useHydrated();
   const character = hydrated
     ? (characters.find(entry => entry.id === characterId) ?? getCharacter(characterId))
     : undefined;
