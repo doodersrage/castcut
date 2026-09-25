@@ -8,6 +8,7 @@ import PlayKioskShell from '@/components/PlayKioskShell';
 import MobileStudioOfferBanner from '@/components/MobileStudioOfferBanner';
 import { isMobileStudioPath } from '@/lib/mobile-studio';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
+import InventorySyncNotice from '@/components/InventorySyncNotice';
 
 function NavFallback() {
   return (
@@ -61,6 +62,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </Suspense>
       )}
       {!mobileStudio ? <MobileStudioOfferBanner /> : null}
+      <InventorySyncNotice />
       {playKiosk ? (
         <div className="pt-[calc(4.75rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
           {children}

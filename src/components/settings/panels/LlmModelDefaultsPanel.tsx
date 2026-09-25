@@ -35,7 +35,7 @@ export default function LlmModelDefaultsPanel({
   const fallbackOverride = sharedSettings.sessionAllowTemplateFallback;
 
   return (
-    <ToolSection title="Model defaults">
+    <ToolSection title="Model defaults" id="settings-llm-models">
       <SessionLlmModelSelect
         label="Session text model override"
         value={sharedSettings.sessionLlmModel ?? ''}

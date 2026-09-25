@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadSettingsCache } from '@/lib/settings-cache';
 import type { PlayChecksReadiness } from '@/lib/play-checks-readiness';
 
 /**
@@ -31,7 +32,12 @@ export function usePlayChecksReadiness(
     }
     let cancelled = false;
     const comfyUrl = loadComfyUiSettings().apiUrl?.trim();
-    const query = comfyUrl ? `?comfyUrl=${encodeURIComponent(comfyUrl)}` : '';
+    // A session vision model (Settings → LLM) outranks the server's.
+    const visionModel = loadSettingsCache().shared.sessionLlmVisionModel?.trim();
+    const params = new URLSearchParams();
+    if (comfyUrl) params.set('comfyUrl', comfyUrl);
+    if (visionModel) params.set('visionModel', visionModel);
+    const query = params.size ? `?${params.toString()}` : '';
     fetch(`/api/play-checks${query}`, { credentials: 'same-origin' })
       .then(response => (response.ok ? (response.json() as Promise<PlayChecksReadiness>) : null))
       .then(data => {

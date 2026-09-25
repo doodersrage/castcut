@@ -1,3 +1,4 @@
+import { detectVisionModel } from '@/lib/vision-model-auto';
 import {
   checkCollabHealth,
   checkComfyUiPoolHealth,
@@ -36,6 +37,14 @@ function parseRuntimeFromSearch(searchParams: URLSearchParams): ComfyUiRuntimeCo
 
 export async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams;
+  // Cached for minutes after the first look; capped so health never waits long on it.
+  const visionModelDetected =
+    isLlmEnabled() && !process.env.LLM_VISION_MODEL?.trim()
+      ? await Promise.race([
+          detectVisionModel(),
+          new Promise<undefined>(resolve => setTimeout(() => resolve(undefined), 1_500)),
+        ])
+      : undefined;
   const runtime = parseRuntimeFromSearch(searchParams);
 
   let comfyUiUrl = '';
@@ -87,6 +96,8 @@ export async function GET(request: Request) {
       visionModel: getLlmConfig().visionModel,
       llmApiKeyConfigured: Boolean(process.env.LLM_API_KEY?.trim()),
       visionModelConfigured: Boolean(process.env.LLM_VISION_MODEL?.trim()),
+      // No LLM_VISION_MODEL: the vision model image checks will use, found in the model list.
+      ...(visionModelDetected ? { visionModelDetected } : {}),
       comfyUiUrl,
     },
     serverEnv: getServerEnvSummary(),

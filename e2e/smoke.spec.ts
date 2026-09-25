@@ -93,6 +93,55 @@ test('command palette lists heal and gallery continue items', async ({ page }) =
   await page.keyboard.press('Escape');
 });
 
+test('command palette finds a setting and deep-links to it', async ({ page }) => {
+  await gotoStable(page, '/dashboard');
+  await dismissBlockingOverlays(page);
+  const dialog = page.getByRole('dialog', { name: /Command palette/i });
+  await expect
+    .poll(
+      async () => {
+        if (await dialog.isVisible().catch(() => false)) {
+          return true;
+        }
+        await page.keyboard.press('Control+K');
+        return dialog.isVisible().catch(() => false);
+      },
+      { timeout: 20_000, intervals: [200, 400, 800] }
+    )
+    .toBeTruthy();
+  // Deep settings only show once you type.
+  await expect(dialog.getByText('Settings · Lock the pose with ControlNet')).toHaveCount(0);
+  await page.keyboard.type('pose controlnet');
+  const hit = dialog.getByText('Settings · Lock the pose with ControlNet');
+  await expect(hit).toBeVisible();
+  await hit.click();
+  await expect(page).toHaveURL(/focus=settings-pose-controlnet/, { timeout: 20_000 });
+  await expect(page.getByTestId('settings-pose-controlnet')).toBeVisible({ timeout: 20_000 });
+});
+
+test('settings shows what changed from defaults and resets it', async ({ page }) => {
+  await gotoStable(page, '/settings?tab=data&focus=settings-changed-defaults');
+  const panel = page.locator('#settings-changed-defaults');
+  await expect(panel).toBeVisible({ timeout: 20_000 });
+  // Change one preference in the prompt-quality section, then see it listed and reset it.
+  await gotoStable(page, '/settings?tab=comfyui&section=prompt-quality&focus=settings-pose-controlnet');
+  const toggle = page.getByTestId('settings-pose-controlnet');
+  await expect(toggle).toBeVisible({ timeout: 20_000 });
+  if (!(await toggle.isChecked())) {
+    await toggle.check();
+  }
+  // Switch tabs in the page (settings save on a short debounce — a reload could race it).
+  await page
+    .getByRole('navigation', { name: /Settings sections/i })
+    .getByRole('button', { name: /^Data/ })
+    .first()
+    .click();
+  const row = page.getByTestId('changed-setting-poseGuideControlNet');
+  await expect(row).toContainText('Pose ControlNet lock', { timeout: 20_000 });
+  await page.getByTestId('changed-setting-reset-poseGuideControlNet').click();
+  await expect(row).toHaveCount(0);
+});
+
 test('settings page loads', async ({ page }) => {
   await gotoStable(page, '/settings?tab=automation');
   await revealFullSettings(page);

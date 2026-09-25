@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { focusSettingsElement } from '@/lib/settings-focus';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { STUDIO_BACKUP_LAST_EXPORT_KEY } from '@/lib/studio-backup-meta';
 import {
@@ -94,6 +95,8 @@ export function useSettingsToolOrchestrationCore() {
   const { mounted, settings, updateSettings } = useComfyUiSettings();
   const workspaceMode = useWorkspaceMode();
   const searchParams = useSearchParams();
+  const searchKey = searchParams.toString();
+  const firstUrlViewRef = useRef(true);
   const urlView = settingsViewFromSearchParams(
     searchParams.get('tab'),
     searchParams.get('section')
@@ -208,6 +211,12 @@ export function useSettingsToolOrchestrationCore() {
     }
     scheduleAfterCommit(() => {
       const params = new URLSearchParams(window.location.search);
+      // After the first load, only a Settings-search link (focus=…) re-applies the URL —
+      // tab clicks rewrite the URL too and must not re-scroll.
+      if (!firstUrlViewRef.current && !params.get('focus')) {
+        return;
+      }
+      firstUrlViewRef.current = false;
       const nextTab = normalizeSettingsTab(params.get('tab'));
       const section = normalizeComfyUiSettingsSection(params.get('section'));
       setTab(nextTab);
@@ -218,7 +227,11 @@ export function useSettingsToolOrchestrationCore() {
       ) {
         setUserShowAllSettings(true);
       }
-      if (nextTab === 'comfyui' && section) {
+      const focus = params.get('focus')?.trim();
+      if (focus) {
+        // A specific control (Settings search): scroll to it rather than the section top.
+        window.setTimeout(() => focusSettingsElement(focus), 300);
+      } else if (nextTab === 'comfyui' && section) {
         window.setTimeout(() => scrollToComfyUiSection(section), 250);
       }
       if (nextTab === 'data' && params.get('section') === 'reliability') {
@@ -247,7 +260,7 @@ export function useSettingsToolOrchestrationCore() {
         }, 120);
       }
     });
-  }, [workspaceMode, scrollToComfyUiSection]);
+  }, [workspaceMode, scrollToComfyUiSection, searchKey]);
 
   const handleTabChange = useCallback((next: SettingsTab) => {
     setTab(next);

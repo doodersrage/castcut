@@ -2,6 +2,8 @@
  * Server-only: probe ComfyUI (object_info) and the local ffmpeg for Play's optional checks.
  */
 
+import { isLlmEnabled } from '@/lib/llm-client';
+import { detectVisionModel } from '@/lib/vision-model-auto';
 import { comfyBaseUrl, resolveComfyNode } from '@/lib/comfy-utility-graph-server';
 import {
   ffmpegHasDrawtext,
@@ -19,7 +21,10 @@ async function comfyReachable(baseUrl: string): Promise<boolean> {
   }
 }
 
-export async function probePlayChecksReadiness(comfyUrl?: string): Promise<PlayChecksReadiness> {
+export async function probePlayChecksReadiness(
+  comfyUrl?: string,
+  options?: { sessionVisionModel?: string }
+): Promise<PlayChecksReadiness> {
   const baseUrl = comfyBaseUrl(comfyUrl);
   const reachable = await comfyReachable(baseUrl);
   const [pose, models, distance, previewAny] = reachable
@@ -33,6 +38,22 @@ export async function probePlayChecksReadiness(comfyUrl?: string): Promise<PlayC
   const ffmpeg = await resolveFfmpegBinary();
   const drawtext = ffmpeg ? await ffmpegHasDrawtext(ffmpeg) : false;
   const font = drawtext ? Boolean(await resolveFilmFontFile()) : false;
+  const sessionVision = options?.sessionVisionModel?.trim();
+  const envVision = process.env.LLM_VISION_MODEL?.trim();
+  const llmEnabled = isLlmEnabled();
+  const detected =
+    llmEnabled && !sessionVision && !envVision ? await detectVisionModel() : undefined;
+  const vision = {
+    llmEnabled,
+    model: sessionVision || envVision || detected,
+    source: sessionVision
+      ? ('session' as const)
+      : envVision
+        ? ('env' as const)
+        : detected
+          ? ('detected' as const)
+          : undefined,
+  };
   return buildPlayChecksReadiness({
     comfyReachable: reachable,
     poseNode: pose?.node ?? null,
@@ -42,5 +63,6 @@ export async function probePlayChecksReadiness(comfyUrl?: string): Promise<PlayC
       previewAny: Boolean(previewAny),
     },
     ffmpeg: { available: Boolean(ffmpeg), drawtext, font },
+    vision,
   });
 }

@@ -322,24 +322,30 @@ export function filterCommandPaletteItems(options: {
 
   if (!q) {
     const seen = new Set<string>();
-    return [...continueItems, ...recentItems, ...withFavFirst].filter(isAllowed).filter(item => {
-      const key = item.group === 'Continue' ? item.id : (item.href ?? item.id);
-      if (seen.has(key)) {
-        return false;
-      }
-      seen.add(key);
-      return true;
-    });
+    return [...continueItems, ...recentItems, ...withFavFirst]
+      .filter(isAllowed)
+      .filter(item => !item.searchOnly)
+      .filter(item => {
+        const key = item.group === 'Continue' ? item.id : (item.href ?? item.id);
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
   }
 
   const staticMatches = [...continueItems, ...recentItems, ...withFavFirst]
     .filter(isAllowed)
-    .filter(
-      item =>
-        item.label.toLowerCase().includes(q) ||
-        item.group.toLowerCase().includes(q) ||
-        (item.subtitle?.toLowerCase().includes(q) ?? false)
-    );
+    .filter(item => {
+      // Every word somewhere in the item ("pose controlnet" finds the pose lock switch).
+      const haystack =
+        `${item.label} ${item.group} ${item.subtitle ?? ''} ${item.keywords ?? ''}`.toLowerCase();
+      return q
+        .split(/\s+/)
+        .filter(Boolean)
+        .every(word => haystack.includes(word));
+    });
   const seen = new Set<string>();
   return [...staticMatches, ...globalMatches].filter(isAllowed).filter(item => {
     if (seen.has(item.id)) {

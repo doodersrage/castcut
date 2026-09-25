@@ -67,7 +67,7 @@ Use **Film** (`/play`) for a guided film loop on one Cast character:
 
 If resume shows a character mismatch, use **Switch to resume character** or restart at Look.
 
-If vision tools fail, `LLM_VISION_MODEL` is unset or the model is text-only. Settings → LLM can override the session text model; the vision model still comes from env (or the LLM panel override when present).
+If vision tools fail, no vision model was found: with `LLM_VISION_MODEL` unset, Castcut picks a vision-capable model from the LLM server's model list (Settings → Overview → Play checks shows which), so pull one (e.g. `qwen2.5vl`, `gemma3`) or set `LLM_VISION_MODEL`. Settings → LLM can override both per browser.
 
 ---
 

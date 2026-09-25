@@ -532,6 +532,11 @@ export type SharedToolSettings = {
   anatomyGuardMode?: AnatomyGuardMode;
   /** When true (default), patch EmptyLatentImage and loader nodes directly at queue time. */
   directWorkflowPatching?: boolean;
+  /**
+   * When ComfyUI's model list changes, fill empty loader-map entries from it (default on).
+   * Never rewrites a mapped value.
+   */
+  autoSyncLoaderMaps?: boolean;
   /** When true, overwrite hardcoded checkpoint/UNET/VAE/CLIP filenames with the target model at queue time. */
   syncWorkflowLoadersToModel?: boolean;
   /** When true (default), auto-bind placeholders and audit workflow structure at queue time. */

@@ -37,6 +37,8 @@ import { snapshotRoleplaySession } from '@/lib/roleplay-library';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
 import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs';
 import { buildStoryPoseGuide } from '@/lib/day-pose-guide';
+import { loadPoseGuideControlNetEnabled } from '@/lib/pose-guide-controlnet';
+import { fetchComfyObjectInfoModelsCached } from '@/lib/comfyui-object-info-cache';
 import { mergePickedPose } from '@/lib/day-slot-pose';
 import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play-metrics';
 import { poseLayoutCueLine, poseLimbFixNudge, poseLookLine } from '@/lib/pose-coaching';
@@ -243,6 +245,10 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           library: openPose ? loadPoseLibrary() : [],
         });
         const poseFile = poseBuild.file;
+        // The pose lock reads ComfyUI's ControlNet list from the object_info cache — fill it.
+        if (loadPoseGuideControlNetEnabled()) {
+          await fetchComfyObjectInfoModelsCached().catch(() => null);
+        }
         const uploaded = await resolveQueueInputImage({
           file: poseFile,
           filename: poseFile.name,

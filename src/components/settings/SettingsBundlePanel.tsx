@@ -20,6 +20,7 @@ export default function SettingsBundlePanel({
 
   return (
     <ToolSection
+      id="settings-data-bundle"
       title="Settings export"
       description="Lightweight JSON of shared prefs, ComfyUI settings, webhooks, scheduled batch, and avoided tokens — not history or gallery."
     >

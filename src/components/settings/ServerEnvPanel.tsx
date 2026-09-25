@@ -36,6 +36,7 @@ export default function ServerEnvPanel({
 
   return (
     <ToolSection
+      id="settings-server-env"
       title="Server environment (.env.local)"
       description="Read-only view of values loaded at server start. Change these in .env.local and restart the dev server or container."
     >

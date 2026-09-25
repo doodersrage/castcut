@@ -41,7 +41,7 @@ export default function ScheduledBatchPanel({
     : null;
 
   return (
-    <ToolSection title="Scheduled batch">
+    <ToolSection title="Scheduled batch" id="settings-scheduled-batch">
       <p className="text-sm text-[var(--text-secondary)]">
         Two runners exist: a{' '}
         <strong className="font-medium text-[var(--text-secondary)]">browser</strong> scheduler

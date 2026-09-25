@@ -48,6 +48,7 @@ export type ServerLlmSnapshot = {
   busy?: boolean;
   apiKeyConfigured?: boolean;
   visionModelConfigured?: boolean;
+  visionModelDetected?: string;
 };
 
 export function catalogEntriesFromPayload(payload: LlmCatalogResponse): LlmCatalogEntry[] {

@@ -136,6 +136,8 @@ export type HealthResponse = {
     visionModel: string;
     llmApiKeyConfigured?: boolean;
     visionModelConfigured?: boolean;
+    /** Vision model found in the LLM's model list when LLM_VISION_MODEL is unset. */
+    visionModelDetected?: string;
     comfyUiUrl: string;
   };
   serverEnv?: ServerEnvSummary;

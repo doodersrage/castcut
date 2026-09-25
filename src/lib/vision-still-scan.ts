@@ -1,10 +1,10 @@
+import { resolveVisionModel } from '@/lib/vision-model-auto';
 import { comfyModelLabel, DEFAULT_QWEN_MODEL } from './comfy-models';
 import { getDetailLimits, type DetailLevel } from './detail-level';
 import { visionCompletion } from './llm-client';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
-  resolveRequestVisionModel,
   type LlmRequestOptions,
 } from './llm-request-options';
 import { stripPromptArtifacts } from './prompt-cleanup';
@@ -141,13 +141,12 @@ export async function scanStillReference(options: {
         : 'Vision scan needs a vision-capable LLM. Set LLM_ENABLED=true and configure LLM_VISION_MODEL.'
     );
   }
-  const visionModel =
-    resolveRequestVisionModel(options.llm) ?? process.env.LLM_VISION_MODEL?.trim();
+  const visionModel = await resolveVisionModel(options.llm);
   if (!visionModel) {
     throw new Error(
       hosted
         ? 'Pick a session vision model under Settings → LLM to scan this still.'
-        : 'LLM_VISION_MODEL is not set. Add LLM_VISION_MODEL=qwen3-vl:latest to .env.local and restart.'
+        : 'No vision model found on the LLM server. Pull one (e.g. qwen2.5vl or gemma3) or set LLM_VISION_MODEL in .env.local and restart.'
     );
   }
 

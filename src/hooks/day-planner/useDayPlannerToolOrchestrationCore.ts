@@ -118,7 +118,11 @@ import {
   summarizePoseGuideOutcomes,
   type PoseGuideOutcome,
 } from '@/lib/pose-guide-status';
-import { resolvePoseGuideControlNetExtras } from '@/lib/pose-guide-controlnet';
+import {
+  loadPoseGuideControlNetEnabled,
+  resolvePoseGuideControlNetExtras,
+} from '@/lib/pose-guide-controlnet';
+import { fetchComfyObjectInfoModelsCached } from '@/lib/comfyui-object-info-cache';
 import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
 import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
@@ -992,6 +996,10 @@ export function useDayPlannerToolOrchestrationCore() {
         const hasExtras =
           extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
           extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
+        // The pose lock reads ComfyUI's ControlNet list from the object_info cache — fill it.
+        if (poseGuideFilename && loadPoseGuideControlNetEnabled()) {
+          await fetchComfyObjectInfoModelsCached().catch(() => null);
+        }
         const poseControlNet = resolvePoseGuideControlNetExtras({
           poseGuideFilename,
           poseGuideUrl,

@@ -1,8 +1,8 @@
+import { resolveVisionModel } from '@/lib/vision-model-auto';
 import { visionCompletion } from './llm-client';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
-  resolveRequestVisionModel,
   type LlmRequestOptions,
 } from './llm-request-options';
 import { buildTileRolePrompt, parseTileRoleReply } from './look-tile-role';
@@ -16,8 +16,7 @@ export async function suggestLookTileRole(options: {
   if (!resolveRequestLlmEnabled(options.llm)) {
     throw new Error('Tile roles need a vision-capable LLM.');
   }
-  const visionModel =
-    resolveRequestVisionModel(options.llm) ?? process.env.LLM_VISION_MODEL?.trim();
+  const visionModel = await resolveVisionModel(options.llm);
   if (!visionModel) {
     throw new Error('Tile roles need a vision model (LLM_VISION_MODEL or Settings → LLM).');
   }

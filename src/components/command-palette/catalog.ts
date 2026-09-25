@@ -15,6 +15,7 @@ import {
   usesPlayChrome,
 } from '@/lib/workspace-mode';
 import { SETTINGS_TABS, settingsTabHref, SIMPLE_SETTINGS_TAB_IDS } from '@/lib/settings-nav';
+import { buildSettingsSearchEntries, settingsSearchHref } from '@/lib/settings-search-index';
 import { studioTabHref, studioTabsForWorkspaceMode } from '@/lib/studio-nav';
 import { ACTION_ITEMS } from '@/components/command-palette/action-items';
 import type { CommandItem } from '@/components/command-palette/types';
@@ -86,6 +87,18 @@ export function buildNavItems(pathname: string): CommandItem[] {
       href: settingsTabHref(tab.id),
       group: 'Settings',
     }));
+  // Sections and individual settings, found by typing ("pose", "vision", "controlnet"…).
+  const settingsDeep: CommandItem[] = buildSettingsSearchEntries()
+    .filter(entry => !entry.id.startsWith('tab-'))
+    .map(entry => ({
+      id: `settings-find-${entry.id}`,
+      label: `Settings · ${entry.label}`,
+      subtitle: entry.subtitle,
+      keywords: entry.keywords,
+      href: settingsSearchHref(entry),
+      group: 'Settings',
+      searchOnly: true,
+    }));
   const studioTabs = studioTabsForWorkspaceMode(mode).map(tab => ({
     id: `studio-${tab.id}`,
     label: `Studio · ${tab.label}`,
@@ -113,6 +126,7 @@ export function buildNavItems(pathname: string): CommandItem[] {
       group: 'Navigate',
     },
     ...(focused ? [] : settingsTabs),
+    ...(focused ? [] : settingsDeep),
     ...(focused ? [] : studioTabs),
     ...actionItems,
   ];

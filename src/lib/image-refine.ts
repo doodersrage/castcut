@@ -1,11 +1,8 @@
+import { resolveVisionModel } from '@/lib/vision-model-auto';
 import { getComfyModelDefinition, comfyModelLabel } from './comfy-models';
 import { getDetailLimits } from './detail-level';
 import { visionCompletion } from './llm-client';
-import {
-  resolveRequestLlmEnabled,
-  resolveRequestLlmEndpoint,
-  resolveRequestVisionModel,
-} from './llm-request-options';
+import { resolveRequestLlmEnabled, resolveRequestLlmEndpoint } from './llm-request-options';
 import { stripPromptArtifacts } from './prompt-cleanup';
 import { formatPromptForModel, sanitizeQwenPrompt } from './qwen-clarity';
 import { buildToolResult } from './specialized/runner';
@@ -52,7 +49,7 @@ function clipScanField(value: string, max: number): string {
   return `${trimmed.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
 }
 
-function requireVisionScanReady(options: Pick<RefinePromptOptions, 'llm'>): string {
+async function requireVisionScanReady(options: Pick<RefinePromptOptions, 'llm'>): Promise<string> {
   const hosted = Boolean(options.llm?.llmProvider && options.llm.llmProvider !== 'server');
   if (!resolveRequestLlmEnabled(options.llm)) {
     throw new Error(
@@ -61,13 +58,12 @@ function requireVisionScanReady(options: Pick<RefinePromptOptions, 'llm'>): stri
         : 'Vision scan needs a vision-capable LLM. Set LLM_ENABLED=true and configure LLM_VISION_MODEL.'
     );
   }
-  const visionModel =
-    resolveRequestVisionModel(options.llm) ?? process.env.LLM_VISION_MODEL?.trim();
+  const visionModel = await resolveVisionModel(options.llm);
   if (!visionModel) {
     throw new Error(
       hosted
         ? 'Pick a session vision model under Settings → LLM to scan this still.'
-        : 'LLM_VISION_MODEL is not set. Add LLM_VISION_MODEL=qwen3-vl:latest to .env.local and restart.'
+        : 'No vision model found on the LLM server. Pull one (e.g. qwen2.5vl or gemma3) or set LLM_VISION_MODEL in .env.local and restart.'
     );
   }
   return visionModel;
@@ -95,7 +91,7 @@ export function parseRefineScan(raw: string, maxChars = 1200): RefineScan {
 export async function scanRefineReference(
   options: Pick<RefinePromptOptions, 'imageDataUrl' | 'model' | 'detail' | 'intentHints' | 'llm'>
 ): Promise<RefineScan> {
-  const visionModel = requireVisionScanReady(options);
+  const visionModel = await requireVisionScanReady(options);
   const limits = getDetailLimits(options.detail, options.model);
   const intent = options.intentHints?.trim() ?? '';
 
@@ -136,8 +132,7 @@ export async function refineImagePrompt(
     throw new Error('Image refine requires LLM_ENABLED=true.');
   }
 
-  const visionModel =
-    resolveRequestVisionModel(options.llm) ?? process.env.LLM_VISION_MODEL?.trim();
+  const visionModel = await resolveVisionModel(options.llm);
   if (!visionModel) {
     throw new Error('LLM_VISION_MODEL is not set.');
   }

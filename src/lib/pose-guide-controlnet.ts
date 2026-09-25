@@ -3,15 +3,16 @@
  *
  * Image 3 always goes to Qwen Edit as a reference image. With Settings → Pose guide →
  * "Also lock the pose with ControlNet" on, an OpenPose-style guide (a real keypoint map, the
- * input OpenPose / Union ControlNets are trained on) is also sent through the ControlNet the
- * model is mapped to, at a soft strength.
+ * input OpenPose / Union ControlNets are trained on) is also sent through a pose-capable
+ * ControlNet — mapped for the model, or found in ComfyUI's list — at a soft strength.
  *
  * The legacy filled-capsule mannequin never goes through ControlNet: it isn't a pose map, and
  * InstantX / Union read it as an image — it ghosted into stills and locked Image 1 clothing.
  */
 
 import type { WorkflowParamValues } from './comfyui-config';
-import { resolveControlNetModelFilename, type ModelControlNetMap } from './model-controlnet-map';
+import { pickQwenPoseControlNetFilename, type ModelControlNetMap } from './model-controlnet-map';
+import { readCachedComfyObjectInfoModels } from './comfyui-object-info-cache';
 import { isOpenPoseStyle, type PoseGuideStylePreference } from './pose-guide-prompt';
 import { loadSettingsCache } from './settings-cache';
 
@@ -42,6 +43,53 @@ export function isMannequinUnsafeControlNet(filename: string | null | undefined)
   return /instantx|qwen[-_]?image[-_]?instantx|qwen[-_]?controlnet[-_]?union|qwen.*controlnet/i.test(
     name
   );
+}
+
+/** A ControlNet trained on pose maps (OpenPose / DWPose) or a Union model that includes them. */
+export function isPoseCapableControlNet(filename: string | null | undefined): boolean {
+  const name = filename?.trim() || '';
+  return Boolean(name) && /openpose|dwpose|[-_ .]pose[-_ .]|pose\.|union|promax/i.test(name);
+}
+
+/**
+ * Which ControlNet the pose lock uses: one mapped for this model in Settings (trusted as is),
+ * else a pose-capable file in ComfyUI's list (Qwen Union first), else the map's default when
+ * it is pose-capable. Heal & ready's default can be any ControlNet (canny, depth…), so it is
+ * never used blindly.
+ */
+export function resolvePoseControlNetFilename(input: {
+  model?: string | null;
+  controlNetMap?: ModelControlNetMap | null;
+  inventory?: readonly string[] | null;
+}): { filename: string; source: 'map' | 'inventory' } | undefined {
+  const model = input.model?.trim() || '';
+  const mapped = model ? input.controlNetMap?.[model]?.trim() : '';
+  if (mapped) {
+    return { filename: mapped, source: 'map' };
+  }
+  const inventory = (input.inventory ?? []).map(name => name.trim()).filter(Boolean);
+  const fromInventory =
+    pickQwenPoseControlNetFilename(inventory) ?? inventory.find(isPoseCapableControlNet);
+  if (fromInventory) {
+    return { filename: fromInventory, source: 'inventory' };
+  }
+  const fallback = input.controlNetMap?.default?.trim();
+  if (fallback && isPoseCapableControlNet(fallback)) {
+    return { filename: fallback, source: 'map' };
+  }
+  return undefined;
+}
+
+/** ComfyUI's ControlNet files from the browser's object_info cache (empty when unknown). */
+export function cachedControlNetInventory(): string[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+  try {
+    return readCachedComfyObjectInfoModels()?.controlNets ?? [];
+  } catch {
+    return [];
+  }
 }
 
 /** Settings switch, read at queue time. */
@@ -80,13 +128,15 @@ export function resolvePoseGuideControlNetExtras(input: {
   const controlNetMap =
     input.controlNetMap ??
     (typeof window === 'undefined' ? undefined : loadSettingsCache().shared.modelControlNetMap);
-  const controlNetModelFilename = resolveControlNetModelFilename(input.model?.trim() || '', {
-    controlNetMap: controlNetMap ?? undefined,
-    controlNetInventory: input.controlNetInventory ?? [],
+  const resolved = resolvePoseControlNetFilename({
+    model: input.model,
+    controlNetMap,
+    inventory: input.controlNetInventory ?? cachedControlNetInventory(),
   });
-  if (!controlNetModelFilename) {
+  if (!resolved) {
     return undefined;
   }
+  const controlNetModelFilename = resolved.filename;
   return {
     ...(filename ? { controlImageFilename: filename } : {}),
     ...(url ? { controlImageUrl: url } : {}),

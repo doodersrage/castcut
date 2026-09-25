@@ -1,11 +1,8 @@
+import { resolveVisionModel } from '@/lib/vision-model-auto';
 import { getComfyModelDefinition, comfyModelLabel } from '../comfy-models';
 import { getDetailLimits, type DetailLevel } from '../detail-level';
 import { allowTemplateFallback, visionCompletion } from '../llm-client';
-import {
-  resolveRequestLlmEnabled,
-  resolveRequestLlmEndpoint,
-  resolveRequestVisionModel,
-} from '../llm-request-options';
+import { resolveRequestLlmEnabled, resolveRequestLlmEndpoint } from '../llm-request-options';
 import {
   applyVisionFocusTrim,
   stripPromptArtifacts,
@@ -188,8 +185,7 @@ export async function generateImagePrompt(
     );
   }
 
-  const visionModel =
-    resolveRequestVisionModel(options.llm) ?? process.env.LLM_VISION_MODEL?.trim();
+  const visionModel = await resolveVisionModel(options.llm);
   if (!visionModel) {
     throw new Error(
       hosted

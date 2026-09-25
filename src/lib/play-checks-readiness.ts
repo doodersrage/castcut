@@ -17,6 +17,8 @@ export type PlayChecksReadiness = {
   pose: PlayCheckReadiness;
   face: PlayCheckReadiness;
   cutTitles: PlayCheckReadiness;
+  /** Vision model for still review (Auto-review, Look tile roles); absent on older probes. */
+  review?: PlayCheckReadiness;
 };
 
 export const DWPOSE_PACK = {
@@ -35,6 +37,8 @@ export function buildPlayChecksReadiness(input: {
   poseNode: string | null;
   faceNodes: { models: boolean; distance: boolean; previewAny: boolean };
   ffmpeg: { available: boolean; drawtext: boolean; font: boolean };
+  /** Which vision model still review will use, and where it came from. */
+  vision?: { llmEnabled: boolean; model?: string; source?: 'session' | 'env' | 'detected' };
 }): PlayChecksReadiness {
   const { faceNodes, ffmpeg } = input;
   const faceMissing = [
@@ -42,7 +46,27 @@ export function buildPlayChecksReadiness(input: {
     faceNodes.distance ? null : 'FaceEmbedDistance',
   ].filter((name): name is string => Boolean(name));
   const faceReady = input.comfyReachable && faceMissing.length === 0 && faceNodes.previewAny;
+  const vision = input.vision;
+  const review: PlayCheckReadiness | undefined = !vision
+    ? undefined
+    : !vision.llmEnabled
+      ? { ready: false, detail: 'LLM is off (LLM_ENABLED)' }
+      : vision.model
+        ? {
+            ready: true,
+            detail:
+              vision.source === 'detected'
+                ? `${vision.model} (found on the LLM server)`
+                : vision.source === 'session'
+                  ? `${vision.model} (Settings → LLM)`
+                  : `${vision.model} (LLM_VISION_MODEL)`,
+          }
+        : {
+            ready: false,
+            detail: 'no vision model on the LLM server — pull one (e.g. qwen2.5vl or gemma3)',
+          };
   return {
+    ...(review ? { review } : {}),
     comfyReachable: input.comfyReachable,
     pose: input.poseNode
       ? { ready: true, detail: input.poseNode }

@@ -60,7 +60,9 @@ export default function LlmProviderPanel({
     sessionProvider !== 'server' && !sharedSettings.sessionLlmVisionModel?.trim();
   const hostedKeyMissing = Boolean(hostedPreset) && !sessionKeySet;
   const serverVisionFallback =
-    sessionProvider === 'server' && server?.visionModelConfigured === false;
+    sessionProvider === 'server' &&
+    server?.visionModelConfigured === false &&
+    !server?.visionModelDetected;
 
   const [llmUsage, setLlmUsage] = useState<{
     last24h: number;
@@ -98,7 +100,7 @@ export default function LlmProviderPanel({
 
   return (
     <>
-      <ToolSection title="Server LLM (read-only)">
+      <ToolSection title="Server LLM (read-only)" id="settings-llm-provider">
         <p className="text-sm text-[var(--text-muted)]">
           Configured via server env (<code className="text-[var(--text-secondary)]">LLM_*</code>).
           Edit <code className="text-[var(--text-secondary)]">.env.local</code> and restart to
@@ -124,7 +126,9 @@ export default function LlmProviderPanel({
             <dt className="type-caption text-[var(--text-muted)]">Vision model</dt>
             <dd className="truncate text-[var(--text-primary)]">
               {server?.visionModelConfigured === false
-                ? `${server?.visionModel ?? '—'} (text fallback)`
+                ? server?.visionModelDetected
+                  ? `${server.visionModelDetected} (found on the server)`
+                  : `${server?.visionModel ?? '—'} (text fallback)`
                 : (server?.visionModel ?? '—')}
             </dd>
           </div>

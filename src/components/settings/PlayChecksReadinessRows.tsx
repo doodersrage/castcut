@@ -6,6 +6,7 @@ const ROWS: Array<{ key: keyof Omit<PlayChecksReadiness, 'comfyReachable'>; labe
   { key: 'pose', label: 'Pose check (Auto-review)' },
   { key: 'face', label: 'Face check (Auto-review)' },
   { key: 'cutTitles', label: 'Cut titles (server)' },
+  { key: 'review', label: 'Still review (vision model)' },
 ];
 
 function Row({ label, check }: { label: string; check: PlayCheckReadiness }) {
@@ -60,9 +61,10 @@ export default function PlayChecksReadinessRows({
       </div>
       {readiness ? (
         <ul className="grid gap-1.5 sm:grid-cols-2">
-          {ROWS.map(row => (
-            <Row key={row.key} label={row.label} check={readiness[row.key]} />
-          ))}
+          {ROWS.map(row => {
+            const check = readiness[row.key];
+            return check ? <Row key={row.key} label={row.label} check={check} /> : null;
+          })}
         </ul>
       ) : (
         <p className="type-caption text-[var(--text-muted)]">

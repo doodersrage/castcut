@@ -103,6 +103,26 @@ export default function SettingsWorkflowPatchingPanel({
         }
       </p>
 
+      <label className="mb-3 flex cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          checked={sharedSettings.autoSyncLoaderMaps !== false}
+          onChange={event => updateSharedSettings({ autoSyncLoaderMaps: event.target.checked })}
+          disabled={!sharedMounted}
+          data-testid="settings-auto-sync-loader-maps"
+          className={`mt-1 h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-muted)] ${accentFocusClass(ACCENT)}`}
+        />
+        <span className="space-y-1">
+          <span className="block text-sm font-medium text-[var(--text-primary)]">
+            Map new ComfyUI models automatically
+          </span>
+          <span className="block text-xs text-[var(--text-muted)]">
+            When ComfyUI&apos;s model list changes, fill empty checkpoint / VAE / upscale /
+            ControlNet map entries from it (what Heal &amp; ready does for maps). Entries that are
+            already set are never changed.
+          </span>
+        </span>
+      </label>
       <CollapsibleSection
         title="Expert patch toggles"
         summary="Direct patching, loader sync, optimize, Draft WebP, enrich / refiner / sharpen"

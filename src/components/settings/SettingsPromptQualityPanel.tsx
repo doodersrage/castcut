@@ -9,6 +9,7 @@ import { ChipButton } from '@/components/ui/Field';
 import { clearPoseLibrary, poseLibraryCount, subscribePoseLibrary } from '@/lib/pose-library';
 import { POSE_IMPORT_GROUPS, POSE_IMPORT_LAYOUTS } from '@/lib/pose-import-layouts';
 import { poseLayoutLabel } from '@/lib/pose-layout-labels';
+import PoseControlNetStatus from '@/components/settings/PoseControlNetStatus';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { DetailLevel } from '@/lib/detail-level';
@@ -234,7 +235,7 @@ export default function SettingsPromptQualityPanel({
           mode={sharedSettings.renderRealismMode ?? 'off'}
           onModeChange={mode => updateSharedSettings({ renderRealismMode: mode })}
         />
-        <div className="space-y-2">
+        <div className="scroll-mt-28 space-y-2" id="settings-pose-guide">
           <p className="text-sm font-medium text-[var(--text-primary)]">Pose guide style</p>
           <div className="flex flex-wrap gap-1.5">
             {POSE_GUIDE_STYLE_OPTIONS.map(option => (
@@ -268,11 +269,17 @@ export default function SettingsPromptQualityPanel({
                 Also lock the pose with ControlNet
               </span>
               <span className="type-caption mt-0.5 block text-[var(--text-muted)]">
-                Sends the OpenPose guide through the ControlNet mapped for the model (Workflow
-                health → ControlNet map) at a soft 0.35, on top of Image 3. Stricter limbs; try it
-                if stills keep ignoring the guide. Needs a pose-capable ControlNet (OpenPose or
-                Union) — OpenPose styles only, never the legacy mannequin.
+                Sends the OpenPose guide through a pose ControlNet at a soft 0.35, on top of Image 3
+                — stricter limbs; try it if stills keep ignoring the guide. Uses the ControlNet
+                mapped for the model, or finds an OpenPose / Union one in ComfyUI. OpenPose styles
+                only, never the legacy mannequin.
               </span>
+              {sharedMounted && poseGuideStyle !== 'legacy' ? (
+                <PoseControlNetStatus
+                  model={sharedSettings.model}
+                  controlNetMap={sharedSettings.modelControlNetMap}
+                />
+              ) : null}
             </span>
           </label>
           <PoseLibraryControl />

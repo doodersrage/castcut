@@ -25,7 +25,7 @@ export default function WebhookSettingsPanel({
   setScheduledBatch,
 }: WebhookSettingsPanelProps) {
   return (
-    <ToolSection title="Webhooks">
+    <ToolSection title="Webhooks" id="settings-webhooks">
       <p className="text-sm text-[var(--text-secondary)]">
         POST queue, prompt, and session events to an external URL (via server proxy).
       </p>

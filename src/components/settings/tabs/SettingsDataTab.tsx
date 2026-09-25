@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import ComfyUiGalleryPanel from '@/components/ComfyUiGalleryPanel';
 import SettingsBundlePanel from '@/components/settings/SettingsBundlePanel';
+import ChangedSettingsPanel from '@/components/settings/ChangedSettingsPanel';
 import { clearAllLocalPromptData, LOCAL_DATA_KEYS } from '@/lib/local-data-reset';
 import { DEFAULT_COMFYUI_SETTINGS, resetComfyUiSettings } from '@/lib/comfyui-settings';
 import type { SharedToolSettings } from '@/lib/settings-cache';
@@ -296,6 +297,11 @@ export default function SettingsDataTab({
           className={accentFocusClass()}
         />
       </ToolSection>
+
+      <ChangedSettingsPanel
+        sharedSettings={sharedSettings}
+        updateSharedSettings={updateSharedSettings}
+      />
 
       <SettingsBundlePanel onImported={reloadBrowserSettingsState} onStatus={setStatus} />
 
