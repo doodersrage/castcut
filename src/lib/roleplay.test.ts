@@ -1050,3 +1050,14 @@ describe('roleplay Story UX helpers', () => {
     assert.match(roleplayIntimateMixLine('sultry', 'duo'), /DUO only/i);
   });
 });
+
+describe('Story with no Part', () => {
+  it('does not fall back to the first archetype', () => {
+    assert.doesNotMatch(resolveRoleplayPersonaPrompt(''), /raccoon|pirate/i);
+    assert.doesNotMatch(resolveRoleplayPersonaPrompt(undefined), /raccoon|pirate/i);
+    const opening = templateRoleplayScenes('', undefined, [], 'Nova');
+    assert.ok(opening.length > 0);
+    assert.ok(opening.every(scene => !/raccoon|pirate/i.test(`${scene.title} ${scene.blurb}`)));
+    assert.match(opening.map(scene => scene.blurb).join(' '), /Nova/);
+  });
+});

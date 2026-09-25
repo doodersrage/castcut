@@ -86,7 +86,7 @@ export function useMobilePlayToolOrchestrationCore() {
     onMessage: message => setError(message),
   });
 
-  const personaId = toolSettings.personaId ?? 'raccoon-pirate';
+  const personaId = toolSettings.personaId ?? '';
   const { tone, content } = resolveRoleplayToneAndContent(toolSettings.tone, toolSettings.content);
   const playAs = normalizeRoleplayPlayAs(toolSettings.playAs);
   const isolateSubject = normalizeRoleplayIsolateSubject(toolSettings.isolateSubject);

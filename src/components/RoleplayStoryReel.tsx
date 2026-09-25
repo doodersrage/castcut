@@ -251,10 +251,10 @@ export default function RoleplayStoryReel({
           <p className="type-caption text-[var(--text-muted)]">
             Watch plays completed clips in beat order. Stills hold when a clip is not ready.
           </p>
-          <FilmWatchPlayer shots={watchPlaylist} />
+          <FilmWatchPlayer compact shots={watchPlaylist} />
         </div>
       ) : null}
-      <ol className="grid gap-4 sm:grid-cols-2">
+      <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {story.map((beat, index) => {
           const clipLive =
             beat.clipPromptId && (beat.clipStatus === 'queued' || beat.clipStatus === 'running')

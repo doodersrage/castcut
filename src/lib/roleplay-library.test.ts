@@ -447,3 +447,25 @@ describe('roleplay library', () => {
     assert.equal(shouldSyncRoleplaySessionToCharacter('', 'cast-x'), false);
   });
 });
+
+describe('withRoleplayCacheFromCastCharacter Part', () => {
+  it("clears the previous Cast's Part for a Cast without one", () => {
+    const next = withRoleplayCacheFromCastCharacter(
+      { personaId: 'raccoon-pirate', customPersona: 'leftover' } as RoleplayToolCache,
+      { id: 'c1', name: 'Nova', version: 1, updatedAt: 1 }
+    );
+    assert.equal(next.personaId, undefined);
+    assert.equal(next.customPersona, undefined);
+  });
+
+  it("takes the Cast's own Part", () => {
+    const next = withRoleplayCacheFromCastCharacter({} as RoleplayToolCache, {
+      id: 'c2',
+      name: 'Rex',
+      version: 1,
+      updatedAt: 1,
+      personaId: 'hoodie-dragon',
+    });
+    assert.equal(next.personaId, 'hoodie-dragon');
+  });
+});

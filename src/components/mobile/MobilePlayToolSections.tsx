@@ -29,6 +29,9 @@ import {
   toMobileStudioHref,
   withCharacterQuery,
 } from '@/lib/mobile-studio';
+import StoryRetryFlagged from '@/components/roleplay/StoryRetryFlagged';
+import { getCharacter } from '@/lib/character-os';
+import { confirmRoleplayRestart } from '@/lib/roleplay';
 import { remixDayFilmHref } from '@/lib/play-starter';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import {
@@ -42,6 +45,7 @@ type Props = ViewModel & { description: string };
 
 export default function MobilePlayToolSections({ description: _description, ...vm }: Props) {
   const {
+    shared,
     toolSettings,
     updateToolSettings,
     plates,
@@ -89,7 +93,11 @@ export default function MobilePlayToolSections({ description: _description, ...v
   } = vm;
 
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance({ mobile: true });
-  const castId = filmCharacterId?.trim() || '';
+  // The active Cast lead (as desktop Story does). filmCharacterId is only set once a film is
+  // cut, so gating on it alone told every phone player "Story needs a Cast lead" until then.
+  const activeCastId = shared.activeCharacterId?.trim() || '';
+  const castId =
+    filmCharacterId?.trim() || (activeCastId && getCharacter(activeCastId) ? activeCastId : '');
   const castBibleHref = castId ? `/characters/${encodeURIComponent(castId)}` : '/characters';
   const busy =
     bioLoading ||
@@ -391,6 +399,9 @@ export default function MobilePlayToolSections({ description: _description, ...v
             variant="secondary"
             disabled={busy}
             onClick={() => {
+              if (!confirmRoleplayRestart(story.length)) {
+                return;
+              }
               updateToolSettings({ story: [], rejectedScenes: [] });
               setScenes([]);
             }}
@@ -419,17 +430,15 @@ export default function MobilePlayToolSections({ description: _description, ...v
           >
             Animate all ready stills
           </Button>
-          <Button
-            variant="secondary"
-            disabled={busy || story.length === 0}
-            data-testid="story-animate-cut"
-            onClick={() => void cutRoleplayFilm()}
-            className="w-full justify-center"
-          >
-            Skip to Cut film
-          </Button>
         </div>
       ) : null}
+
+      <StoryRetryFlagged
+        story={story}
+        busy={busy}
+        fullWidth
+        onRetry={beat => queueBeat(beat, { retry: true })}
+      />
 
       <RoleplayStoryReel
         story={story}

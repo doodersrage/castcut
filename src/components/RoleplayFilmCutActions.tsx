@@ -70,9 +70,8 @@ export default function RoleplayFilmCutActions({
         </div>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        {children}
         <Button
-          variant="secondary"
+          variant="primary"
           loading={assemblingFilm}
           loadingLabel="Cutting film"
           disabled={storyEmpty || (busy && !assemblingFilm)}
@@ -80,6 +79,8 @@ export default function RoleplayFilmCutActions({
         >
           Cut film
         </Button>
+        {/* Download is the export path; Cut is the main one. */}
+        {children}
         {canShareCut && onShareCut && filmStatus && !assemblingFilm ? (
           <Button
             variant="ghost"

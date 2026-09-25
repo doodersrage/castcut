@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type MutableRefObject } from 'react';
 import {
+  confirmRoleplayRestart,
   CUSTOM_ROLEPLAY_PERSONA_ID,
   ROLEPLAY_CONTENT,
   ROLEPLAY_TONES,
@@ -144,9 +145,12 @@ export function useRoleplaySessionActions({
   }, [setOwnBibleOpen, setScenes, updateToolSettings]);
 
   const restartStory = useCallback(() => {
+    if (!confirmRoleplayRestart(storyRef.current.length)) {
+      return;
+    }
     updateToolSettings({ story: [], rejectedScenes: [] });
     setScenes([]);
-  }, [setScenes, updateToolSettings]);
+  }, [setScenes, storyRef, updateToolSettings]);
 
   return {
     exporting,

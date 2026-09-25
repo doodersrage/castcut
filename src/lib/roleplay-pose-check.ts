@@ -110,3 +110,27 @@ export function storyPoseMatchLabel(
     miss,
   };
 }
+
+/**
+ * Beats "Retry N flagged" redoes: a failed still, or a finished still whose pose or face check
+ * missed (the same misses the beat card suggests Retry for). In reel order.
+ */
+export function storyFlaggedBeats<T extends BeatLike & { faceMatch?: StoryFaceMatch }>(
+  story: T[],
+  thresholds: { minPose: number; minFace: number; warnFace: number }
+): T[] {
+  return story.filter(beat => {
+    if (beat.stillStatus === 'error') {
+      return true;
+    }
+    if (beat.stillStatus !== 'completed') {
+      return false;
+    }
+    const pose = storyPoseMatchLabel(beat, thresholds.minPose);
+    const face = storyFaceMatchLabel(beat, {
+      miss: thresholds.minFace,
+      warn: thresholds.warnFace,
+    });
+    return Boolean(pose?.miss || face?.miss);
+  });
+}

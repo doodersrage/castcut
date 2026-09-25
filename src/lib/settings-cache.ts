@@ -1456,7 +1456,8 @@ export const DEFAULT_NSFW_GENERATOR_TOOL_CACHE: NsfwGeneratorToolCache = {
 };
 
 export const DEFAULT_ROLEPLAY_TOOL_CACHE: RoleplayToolCache = {
-  personaId: 'raccoon-pirate',
+  // No default Part — a Cast lead without one is written from its own look, not an archetype.
+  personaId: undefined,
   customPersona: '',
   characterName: '',
   extraHints: '',

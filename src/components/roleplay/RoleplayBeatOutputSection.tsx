@@ -51,6 +51,8 @@ export type RoleplayBeatOutputSectionProps = {
   onPlayScene: (scene: RoleplayScene) => void;
   /** Pinned Setting / Tone / Content controls (Day-style plan strip). */
   moodControls?: ReactNode;
+  /** One line for the folded Story settings, e.g. "Silly · PG-13 · any setting". */
+  moodSummary?: string;
 };
 
 export default function RoleplayBeatOutputSection({
@@ -75,6 +77,7 @@ export default function RoleplayBeatOutputSection({
   onRollScenes,
   onPlayScene,
   moodControls,
+  moodSummary,
 }: RoleplayBeatOutputSectionProps) {
   const rollBlocked = Boolean(queueBlockReason) || !bioPresent;
   const showIntimateMix =
@@ -84,78 +87,14 @@ export default function RoleplayBeatOutputSection({
   return (
     <ToolSection title={storyProgress.heading} data-testid="story-beat-picker">
       <p className="text-sm text-[var(--text-muted)]">{storyProgress.hint}</p>
-      {moodControls ? (
-        <div className="space-y-3" data-testid="story-active-plan">
-          {moodControls}
-        </div>
-      ) : null}
-      {showIntimateMix ? (
-        <div className="space-y-2" data-testid="story-intimate-mix">
-          <p className="type-caption text-[var(--text-muted)]">Intimate mix</p>
-          <div className="flex flex-wrap gap-2">
-            {DAY_INTIMATE_MIX_OPTIONS.map(option => (
-              <ChipButton
-                key={option.id}
-                active={mix === option.id}
-                disabled={busy}
-                data-testid={`story-intimate-mix-${option.id}`}
-                title={option.hint}
-                onClick={() => onIntimateMixChange?.(option.id)}
-              >
-                {option.label}
-              </ChipButton>
-            ))}
-          </div>
-          <p className="type-caption text-[var(--text-muted)]">
-            {mix === 'solo'
-              ? 'Solo — one adult; self-touch / undress beats.'
-              : mix === 'duo'
-                ? 'Duo — partner scenes; partners get different faces from Cast.'
-                : 'Mixed — solo and duo beats across the four cards.'}
-          </p>
-        </div>
-      ) : null}
       {storyProgress.phase === 'complete' ? (
         <Button variant="secondary" disabled={busy} onClick={onRestartStory}>
           Restart story
         </Button>
       ) : (
         <>
-          <div className="flex flex-wrap gap-2">
-            <ChipButton
-              active={beatOutput === 'still'}
-              disabled={busy}
-              onClick={() => onBeatOutputChange('still')}
-            >
-              Still
-            </ChipButton>
-            <ChipButton
-              active={beatOutput === 'clip'}
-              disabled={busy}
-              onClick={() => onBeatOutputChange('clip')}
-            >
-              Clip
-            </ChipButton>
-          </div>
-          <label className="flex cursor-pointer items-start gap-3 text-sm text-[var(--text-secondary)]">
-            <input
-              type="checkbox"
-              checked={autoQueue}
-              disabled={busy}
-              onChange={event => onAutoQueueChange(event.target.checked)}
-              className={`mt-1 h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-base)] ${accentFocusClass(ACCENT)}`}
-            />
-            <span>
-              Queue a {beatOutput === 'clip' ? 'clip' : 'still'} when I write a bio or pick a scene
-              <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-                {beatOutput === 'clip'
-                  ? 'Queues T2V (or I2V from photo). Extend / Continue / Stitch labels show which path ran.'
-                  : 'Uses the sidebar model. Turn off to write the prompt first.'}
-              </span>
-            </span>
-          </label>
           <Button
-            variant="secondary"
+            variant="primary"
             loading={scenesLoading}
             loadingLabel="Rolling scenes"
             disabled={rollBlocked || busy}
@@ -207,8 +146,86 @@ export default function RoleplayBeatOutputSection({
               ))}
             </div>
           ) : null}
+          <div className="space-y-2 border-t border-[var(--border-subtle)] pt-3">
+            <div className="flex flex-wrap gap-2">
+              <ChipButton
+                active={beatOutput === 'still'}
+                disabled={busy}
+                onClick={() => onBeatOutputChange('still')}
+              >
+                Still
+              </ChipButton>
+              <ChipButton
+                active={beatOutput === 'clip'}
+                disabled={busy}
+                onClick={() => onBeatOutputChange('clip')}
+              >
+                Clip
+              </ChipButton>
+            </div>
+            <label className="flex cursor-pointer items-start gap-3 text-sm text-[var(--text-secondary)]">
+              <input
+                type="checkbox"
+                checked={autoQueue}
+                disabled={busy}
+                onChange={event => onAutoQueueChange(event.target.checked)}
+                className={`mt-1 h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-base)] ${accentFocusClass(ACCENT)}`}
+              />
+              <span>
+                Queue a {beatOutput === 'clip' ? 'clip' : 'still'} when I write a bio or pick a
+                scene
+                <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                  {beatOutput === 'clip'
+                    ? 'Queues T2V (or I2V from photo). Extend / Continue / Stitch labels show which path ran.'
+                    : 'Uses the sidebar model. Turn off to write the prompt first.'}
+                </span>
+              </span>
+            </label>
+          </div>
         </>
       )}
+      {/* Tone / Content / Setting are set-and-forget: folded so Roll leads the card. */}
+      <details
+        className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2"
+        data-testid="story-settings"
+      >
+        <summary className="type-caption cursor-pointer text-[var(--text-secondary)]">
+          Story settings{moodSummary ? ` · ${moodSummary}` : ''}
+        </summary>
+        <div className="mt-3 space-y-3">
+          {moodControls ? (
+            <div className="space-y-3" data-testid="story-active-plan">
+              {moodControls}
+            </div>
+          ) : null}
+          {showIntimateMix ? (
+            <div className="space-y-2" data-testid="story-intimate-mix">
+              <p className="type-caption text-[var(--text-muted)]">Intimate mix</p>
+              <div className="flex flex-wrap gap-2">
+                {DAY_INTIMATE_MIX_OPTIONS.map(option => (
+                  <ChipButton
+                    key={option.id}
+                    active={mix === option.id}
+                    disabled={busy}
+                    data-testid={`story-intimate-mix-${option.id}`}
+                    title={option.hint}
+                    onClick={() => onIntimateMixChange?.(option.id)}
+                  >
+                    {option.label}
+                  </ChipButton>
+                ))}
+              </div>
+              <p className="type-caption text-[var(--text-muted)]">
+                {mix === 'solo'
+                  ? 'Solo — one adult; self-touch / undress beats.'
+                  : mix === 'duo'
+                    ? 'Duo — partner scenes; partners get different faces from Cast.'
+                    : 'Mixed — solo and duo beats across the four cards.'}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </details>
       {error || filmError ? (
         <div className="space-y-2">
           <FieldError>{error || filmError}</FieldError>

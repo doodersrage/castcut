@@ -6,6 +6,7 @@
 
 import type { ComfyGalleryJobStatus } from '@/lib/comfyui-gallery-types';
 import type { DaySlotStillStatus } from '@/lib/day-planner';
+import type { RoleplayStillStatus } from '@/lib/roleplay';
 
 export type DaySlotJobEntry = {
   status?: ComfyGalleryJobStatus;
@@ -23,7 +24,8 @@ export type DaySlotJobProgress = {
 };
 
 export function daySlotJobProgress(input: {
-  stillStatus?: DaySlotStillStatus;
+  /** Day still or Story beat status — only `queued` / `running` produce a line. */
+  stillStatus?: DaySlotStillStatus | RoleplayStillStatus;
   entry?: DaySlotJobEntry | null;
   /** A live preview frame arrived — ComfyUI is on it even if no status says so yet. */
   livePreview?: boolean;

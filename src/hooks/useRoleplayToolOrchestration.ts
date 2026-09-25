@@ -40,7 +40,7 @@ export function useRoleplayToolOrchestration() {
   const [error, setError] = useState<string | null>(null);
   const [ownBibleOpen, setOwnBibleOpen] = useState(false);
 
-  const personaId = toolSettings.personaId ?? ROLEPLAY_ARCHETYPES[0].id;
+  const personaId = toolSettings.personaId ?? '';
   const adultEnabled = isNsfwGeneratorEnabledClient();
   const { tone, content } = resolveRoleplayToneAndContent(toolSettings.tone, toolSettings.content, {
     adultEnabled,

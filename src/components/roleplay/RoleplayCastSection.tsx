@@ -7,31 +7,12 @@ import { RoleplayCastActionsSection } from '@/components/roleplay/sections/Rolep
 import { RoleplayCastPhotoSection } from '@/components/roleplay/sections/RoleplayCastPhotoSection';
 import { RoleplayCastToneSettingSection } from '@/components/roleplay/sections/RoleplayCastToneSettingSection';
 import type { RoleplayCastSectionProps } from '@/components/roleplay/roleplay-cast-section-types';
-import { ROLEPLAY_ARCHETYPES, ROLEPLAY_CONTENT, ROLEPLAY_TONES } from '@/lib/roleplay';
+import { ROLEPLAY_ARCHETYPES, roleplayMoodSummary } from '@/lib/roleplay';
 
 export type {
   RoleplayCastApplyReferenceInput,
   RoleplayCastSectionProps,
 } from '@/components/roleplay/roleplay-cast-section-types';
-
-function moodSummary(
-  tone: RoleplayCastSectionProps['tone'],
-  content: RoleplayCastSectionProps['content'],
-  setting: string | undefined,
-  allowGore: boolean | undefined
-): string {
-  const toneLabel = ROLEPLAY_TONES.find(entry => entry.id === tone)?.label ?? tone;
-  const contentLabel = ROLEPLAY_CONTENT.find(entry => entry.id === content)?.label ?? content;
-  const place = setting?.trim();
-  const parts = [toneLabel, contentLabel];
-  if (allowGore) {
-    parts.push('Gore');
-  }
-  if (place) {
-    parts.push(place.length > 36 ? `${place.slice(0, 36)}…` : place);
-  }
-  return parts.join(' · ');
-}
 
 function partLabel(
   personaId: string | undefined,
@@ -65,7 +46,7 @@ export default function RoleplayCastSection(props: RoleplayCastSectionProps) {
     embedded = false,
   } = props;
   const mood = useMemo(
-    () => moodSummary(tone, content, toolSettings.setting, toolSettings.allowGore),
+    () => roleplayMoodSummary(tone, content, toolSettings.setting, toolSettings.allowGore),
     [tone, content, toolSettings.setting, toolSettings.allowGore]
   );
   const hasCast = Boolean(activeCharacterId?.trim());

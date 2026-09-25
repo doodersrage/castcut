@@ -203,6 +203,82 @@ test('day mid-flow: one Cut, folded cut options, honest render status', async ({
   await expect(page.getByTestId('day-plate-upload')).toBeAttached();
 });
 
+async function seedStoryMidFlow(page: Page, id: string) {
+  await page.addInitScript(castId => {
+    const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: castId, name: 'Story Mid', version: 1, updatedAt: Date.now() }],
+        removedIds: [],
+      })
+    );
+    window.localStorage.setItem(
+      'comfy-play-metrics-v1',
+      JSON.stringify({ version: 1, firstFilmCutAt: Date.now() })
+    );
+    window.localStorage.setItem(
+      'comfy-prompt-tool-settings-v1',
+      JSON.stringify({
+        shared: { activeCharacterId: castId },
+        tools: {
+          roleplay: {
+            activeSessionId: `cast-${castId}`,
+            characterName: 'Story Mid',
+            bio: { name: 'Story Mid', look: 'green raincoat', personality: 'curious' },
+            story: [
+              {
+                id: 'b1',
+                at: Date.now() - 2000,
+                kind: 'plot',
+                title: 'The letter',
+                blurb: 'A letter under the door.',
+                stillStatus: 'completed',
+                imageUrl: thumb,
+              },
+              {
+                id: 'b2',
+                at: Date.now() - 1000,
+                kind: 'plot',
+                title: 'The station',
+                blurb: 'The last train north.',
+                stillStatus: 'running',
+              },
+            ],
+          },
+        },
+      })
+    );
+  }, id);
+}
+
+test('story mid-flow: Roll leads, settings fold, no default Part', async ({ page }) => {
+  await seedStoryMidFlow(page, 'e2e-story-mid');
+  await gotoStable(page, '/story?character=e2e-story-mid');
+  await dismissBlockingOverlays(page);
+  const picker = page.getByTestId('story-beat-picker');
+  await expect(picker).toBeVisible({ timeout: 30_000 });
+  await expect(picker.getByTestId('story-roll-scenes')).toBeVisible();
+  const settings = picker.getByTestId('story-settings');
+  await expect(settings).toContainText(/Story settings · .* · any setting/);
+  await expect(settings).not.toHaveAttribute('open', '');
+  // A Cast without a Part used to show (and be written as) the first archetype.
+  await expect(page.getByText(/Raccoon pirate/i)).toHaveCount(0);
+  // One Cut: the reel's, not also the Animate card's.
+  await expect(page.getByTestId('story-animate-cut')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Cut film', exact: true })).toBeVisible();
+});
+
+test('phone story recognises the active Cast before any film is cut', async ({ page }) => {
+  await seedStoryMidFlow(page, 'e2e-story-phone');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoStable(page, '/m/story?character=e2e-story-phone');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByText('The letter').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('story-needs-cast')).toHaveCount(0);
+});
+
 test('moodboard look extract controls load', async ({ page }) => {
   await gotoStable(page, '/moodboard');
   await dismissBlockingOverlays(page);
@@ -883,7 +959,7 @@ test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async 
 
   await gotoStable(page, '/story?character=e2e-rp-cut');
   await dismissBlockingOverlays(page);
-  // Exact name — "Skip to Cut film" (story-animate-cut) also matches /Cut film/i.
+  // Exact name — other buttons ("Cut film" in banners, "Open films") can match /Cut film/i.
   const cutBtn = page.getByRole('button', { name: 'Cut film', exact: true });
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
@@ -953,7 +1029,7 @@ test('mobile play cut film with mocked MediaRecorder shows Cast deep-links', asy
 
   await gotoStable(page, '/m/story');
   await dismissBlockingOverlays(page);
-  // Exact name — "Skip to Cut film" (story-animate-cut) also matches /Cut film/i.
+  // Exact name — other buttons ("Cut film" in banners, "Open films") can match /Cut film/i.
   const cutBtn = page.getByRole('button', { name: 'Cut film', exact: true });
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });

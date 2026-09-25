@@ -24,6 +24,8 @@ import {
   ROLEPLAY_OVERLAY_BTN_CLASS,
   stillLabel,
 } from '@/components/roleplay/roleplay-story-helpers';
+import { useGalleryJobEntry } from '@/hooks/useGalleryJobEntry';
+import { daySlotJobProgress } from '@/lib/day-slot-progress';
 
 export function RoleplayStillFrame({
   beat,
@@ -56,8 +58,22 @@ export function RoleplayStillFrame({
   const ghost = Boolean(displayUrl && !openableUrl);
   const clipBusy = isBusyStatus(beat.clipStatus);
   const busy = isBusyStatus(beat.stillStatus) || clipBusy || Boolean(liveUrl && !completedUrl);
+  // Queue position / render % from the job's gallery entry (clip first while it's the busy one).
+  const jobEntry = useGalleryJobEntry(clipBusy ? beat.clipPromptId : beat.promptId);
+  const job = daySlotJobProgress({
+    stillStatus: clipBusy ? beat.clipStatus : beat.stillStatus,
+    entry: jobEntry,
+    livePreview: Boolean(liveUrl),
+  });
+  const jobLabel = job
+    ? clipBusy && job.phase === 'rendering'
+      ? job.percent === null
+        ? 'Animating…'
+        : `Animating · ${job.percent}%`
+      : job.label
+    : null;
   const motionLabel = clipLabel(beat);
-  const label = motionLabel || stillLabel(beat, liveUrl);
+  const label = jobLabel || motionLabel || stillLabel(beat, liveUrl);
   const clickable = Boolean(openableUrl && onOpen);
   const canRetry = Boolean(!motionClip && onRetry && canRetryRoleplayStill(beat));
   const canRetryClip = Boolean(onRetryClip && canRetryRoleplayClip(beat));
@@ -110,6 +126,21 @@ export function RoleplayStillFrame({
         <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 px-4 text-center">
           <Spinner size="lg" />
           <p className="type-caption text-[var(--accent-text)]">{label}</p>
+          {job?.percent != null ? (
+            <div
+              className="h-1 w-24 overflow-hidden rounded-full bg-[var(--bg-muted)]"
+              role="progressbar"
+              aria-label={`Beat ${beat.title} progress`}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={job.percent}
+            >
+              <div
+                className="h-full bg-[var(--accent-active)] transition-[width]"
+                style={{ width: `${job.percent}%` }}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -117,6 +148,21 @@ export function RoleplayStillFrame({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-2 bg-[var(--bg-base)]/70 px-3 py-2 backdrop-blur-sm">
           <Spinner size="sm" />
           <p className="type-caption text-[var(--accent-text)]">{label}</p>
+          {job?.percent != null ? (
+            <div
+              className="h-1 w-24 overflow-hidden rounded-full bg-[var(--bg-muted)]"
+              role="progressbar"
+              aria-label={`Beat ${beat.title} progress`}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={job.percent}
+            >
+              <div
+                className="h-full bg-[var(--accent-active)] transition-[width]"
+                style={{ width: `${job.percent}%` }}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
 

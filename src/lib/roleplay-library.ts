@@ -506,12 +506,12 @@ export function withRoleplayCacheFromCastCharacter(
     next.characterName =
       character.characterName?.trim() || character.name.trim() || cache.characterName;
   }
-  if (character.personaId?.trim()) {
-    next.personaId = character.personaId.trim();
-  }
+  // The Part is the Cast's, not the Story tool's: a Cast without one clears the previous
+  // Cast's Part instead of inheriting it.
+  next.personaId = character.personaId?.trim() || undefined;
   if (character.customPersona?.trim()) {
     next.customPersona = character.customPersona.trim();
-  } else if (character.personaId?.trim() && character.personaId !== CUSTOM_ROLEPLAY_PERSONA_ID) {
+  } else if (character.personaId !== CUSTOM_ROLEPLAY_PERSONA_ID) {
     next.customPersona = undefined;
   }
   if (character.tone) {

@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Fix: every Cast without a Part became a raccoon pirate in Story.** Story's default Part was the first archetype, so a Part-less Cast showed "Part: Raccoon pirate", got its opening scenes when the LLM was off, and had bios written with "Play as: a raccoon pirate". There's no default Part now — the Cast is written from its own name, look and notes — and switching Cast clears the previous Cast's Part instead of inheriting it.
+- **Fix: phone Story said "Story needs a Cast lead" until a film was cut.** It read the Cast from the last cut instead of the active Cast lead, so the status line, the queue blocker and the Cast card all said there was none.
+- **Fix: Restart story wiped the reel without asking.** It now confirms (stills and clips stay in the Gallery).
+- **Story layout:** **Roll four scenes** leads the beat picker with Tone / Content / Setting folded under **Story settings · …**; the reel makes **Cut film** primary (Download beside it), uses the compact player and three beats per row, and the Animate card no longer repeats *Skip to Cut film*. Beats show queue position and progress like Day slots, and **Retry N flagged** redoes every failed still and pose / face miss at once.
+
 - **Day mid-flow polish:** slot cards show where a still really is — *#3 in queue*, *Next in queue*, *Rendering · 45%* with a progress bar (from ComfyUI's queue position and sampler steps) — instead of "Queueing…" until done. A **Retry N flagged** button next to Queue day requeues every still and clip Auto-review flagged, in board order (a slot whose still is requeued skips its clip). The sticky *Ready to cut* banner folds its crossfade / vertical / zoom / titles / audio settings under **Cut options · …** (Story's Cut too); the Animate card no longer repeats *Skip to Cut film* while that banner is up, and the Day reel player is capped at a smaller size since the board already shows every still. Setup's Plate can **Upload plate** / **Choose from Gallery** — it becomes the Cast's look plate, shared with Outfit and Story.
 - **Tool pages leave room for the Engine button:** desktop bottom padding was smaller than the floating Engine pill, so the last right-aligned control on a page sat under it.
 

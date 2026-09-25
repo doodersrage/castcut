@@ -12,6 +12,7 @@ import StoryPlayPhaseStrip from '@/components/roleplay/StoryPlayPhaseStrip';
 import StoryStatusStrip from '@/components/roleplay/StoryStatusStrip';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
+import StoryRetryFlagged from '@/components/roleplay/StoryRetryFlagged';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
@@ -34,6 +35,7 @@ import {
   countRoleplayCompletedStills,
   roleplayQueueBlockReason,
   storySessionStatusLine,
+  roleplayMoodSummary,
 } from '@/lib/roleplay';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 import { useCallback, useMemo } from 'react';
@@ -301,6 +303,12 @@ export default function RoleplayToolSections({
             onAutoQueueChange={next => updateToolSettings({ autoQueue: next })}
             onRollScenes={() => void sceneFlow.rollScenes()}
             onPlayScene={scene => void sceneFlow.playScene(scene)}
+            moodSummary={roleplayMoodSummary(
+              tone,
+              content,
+              toolSettings.setting,
+              toolSettings.allowGore
+            )}
             moodControls={
               <RoleplayCastToneSettingSection
                 busy={busy}
@@ -329,17 +337,15 @@ export default function RoleplayToolSections({
                 >
                   Animate all ready stills
                 </Button>
-                <Button
-                  variant="secondary"
-                  disabled={busy || film.assemblingFilm || story.length === 0}
-                  data-testid="story-animate-cut"
-                  onClick={() => void film.cutRoleplayFilm()}
-                >
-                  Skip to Cut film
-                </Button>
               </ToolActionRow>
             </ToolSection>
           ) : null}
+
+          <StoryRetryFlagged
+            story={story}
+            busy={busy}
+            onRetry={beat => beatQueue.queueBeat(beat, { retry: true })}
+          />
 
           <RoleplayStorySection
             beatOutput={beatOutput}

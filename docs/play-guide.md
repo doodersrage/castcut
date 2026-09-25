@@ -97,7 +97,10 @@ Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 **Optional** after the first Day cut: continues the Cast lead you started on Film (no re-casting).
 
 - Needs an active Cast character — empty Story sends you to Film / Cast (Part and From photo are set there).
-- **Beat picker first** (desk + phone): Setting / Tone / Content stay pinned next to **Roll**; adult content adds **Solo / Duo / Mixed**; Roll shows a clear block reason when bible/plate is missing.
+- **Beat picker first** (desk + phone): **Roll four scenes** leads the card; Tone / Content / Setting / notes (and adult **Solo / Duo / Mixed**) fold under **Story settings · Silly · PG-13 · any setting**; Roll shows a clear block reason when bible/plate is missing.
+- **Part** comes from the Cast. A Cast with no Part is written from its own name, look and notes — there's no default archetype, and a previous Cast's Part doesn't carry over.
+- **Beats** show queue position and progress (*#2 in queue*, *Rendering · 45%*, *Animating · 30%*). **Retry N flagged** redoes every failed still and every pose or face miss in one tap. **Restart story** asks first — stills and clips stay in the Gallery.
+- **Reel** — **Cut film** is the primary action (cut options folded under **Cut options**), Download beside it; the player is compact and beats sit three to a row.
 - Phase strip: Queue → Animate → Cut. After stills, an **Animate → Cut** coach nudges clips before Cut film.
 - Lightbox: beat-to-beat prev/next + requeue chrome (same pattern as Day).
 - **Outfit for stills** — kit or BYO packshot as Image 2 (desk + phone); photo stills also get an Image 3 pose wireframe from the beat text (intimate + social layouts).

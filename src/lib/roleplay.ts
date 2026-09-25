@@ -1226,10 +1226,12 @@ export function resolveRoleplayPersonaPrompt(
   if (personaId === CUSTOM_ROLEPLAY_PERSONA_ID) {
     return customPersona?.trim() || 'an unexpected character with a secret inner life';
   }
+  // No Part: an original character — not the first archetype. (That fallback turned every
+  // Cast lead without a Part into a raccoon pirate in bios and template scenes.)
   return (
     getRoleplayArchetype(personaId)?.prompt ??
-    customPersona?.trim() ??
-    ROLEPLAY_ARCHETYPES[0].prompt
+    (customPersona?.trim() ||
+      'an original character — build them from their name, look, and notes, not an archetype')
   );
 }
 
@@ -2292,10 +2294,15 @@ export function templateRoleplayScenes(
     );
   }
   const archetype = getRoleplayArchetype(personaId);
+  // A custom Part names itself; otherwise the Cast's name (never an archetype it didn't pick).
+  const doorSubject =
+    personaId === CUSTOM_ROLEPLAY_PERSONA_ID && customPersona?.trim()
+      ? customPersona.trim()
+      : characterName?.trim() || 'Someone';
   const rows = archetype?.templateScenes ?? [
     {
       title: 'A door appears',
-      blurb: `${resolveRoleplayPersonaPrompt(personaId, customPersona)} finds a door that was not there yesterday.`,
+      blurb: `${doorSubject} finds a door that was not there yesterday.`,
     },
     { title: 'Wrong weather', blurb: 'The sky is doing a bit. You decide to match its energy.' },
     {
@@ -2611,3 +2618,34 @@ export {
   roleplayStillQueueResultPatch,
   mergeRoleplayStoryStills,
 } from './roleplay-gallery-takes';
+
+/**
+ * Restart wipes the whole reel in one click — ask first when there is anything to lose.
+ * Stills and clips stay in the Gallery; only the story order and beat cards go.
+ */
+export function confirmRoleplayRestart(beatCount: number): boolean {
+  if (beatCount <= 0 || typeof window === 'undefined') {
+    return true;
+  }
+  return window.confirm(
+    `Restart the story? This clears ${beatCount} beat${beatCount === 1 ? '' : 's'} from the reel. Stills and clips stay in the Gallery.`
+  );
+}
+
+/** "Silly · PG-13 · rooftop bar" — the Story settings line when the controls are folded. */
+export function roleplayMoodSummary(
+  tone: RoleplayTone,
+  content: RoleplayContentId,
+  setting: string | undefined,
+  allowGore: boolean | undefined
+): string {
+  const toneLabel = ROLEPLAY_TONES.find(entry => entry.id === tone)?.label ?? tone;
+  const contentLabel = ROLEPLAY_CONTENT.find(entry => entry.id === content)?.label ?? content;
+  const place = setting?.trim();
+  const parts = [toneLabel, contentLabel];
+  if (allowGore) {
+    parts.push('Gore');
+  }
+  parts.push(place ? (place.length > 36 ? `${place.slice(0, 36)}…` : place) : 'any setting');
+  return parts.join(' · ');
+}
