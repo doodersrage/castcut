@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Fix: Day, Outfit and Look stills opened Generate from the Gallery.** The Gallery's tool links had no entry for them; they now open Day, Outfit or Look, on the still's Cast (Story too).
+- **Gallery Cast filter.** A row of Cast chips (look-plate thumb + name) filters the Gallery to one Cast — stills already carried their Cast, but only a hand-typed `?character=` could filter by it. It shows as an active filter chip, and each Cast's Media section has **See all in Gallery**.
+- **Pose and face scores in the Gallery.** Day Auto-review and Story's pose check now store their pose / face match on the still's gallery entry: a *pose 82% · face 64%* badge on the card (warning-tinted on a miss), a **Missed pose / face** filter (`missed=1` in the URL) and a **Best pose / face match** sort.
+- **Use this pose… from any still.** The card menu reads a still's skeleton with DWPose and lets you save it to the pose library under any pose, or set it as a Day slot's or Story beat's pose — like *Use a photo…*, without the upload.
+
 - **Vision model found automatically.** With no `LLM_VISION_MODEL` and no Settings → LLM pick, still review, Look tile roles, Refine critique and Image → Prompt use a vision-capable model from the LLM server's own model list (Qwen-VL, Gemma 3, Llama 3.2 Vision, MiniCPM-V, LLaVA… — image generators and text-only sizes skipped), cached for a few minutes. Settings shows it (*found on the server*), and Play checks gains a **Still review (vision model)** row saying which model and where it came from.
 - **Pose ControlNet picks itself.** The *Lock the pose with ControlNet* switch no longer needs a hand-made map: it uses the ControlNet mapped for the model, else a pose-capable one in ComfyUI (Qwen Union first, then OpenPose / Union files), and never Heal's catch-all default unless that one reads poses. Settings says which file it will use, or that none is installed.
 - **New ComfyUI models get mapped.** When ComfyUI's model list changes, Castcut fills empty checkpoint / VAE / upscale / ControlNet map entries from it — the mapping part of Heal & ready — and says so in a small notice. Entries that are already set are never changed; switch it off under Patching & maps.

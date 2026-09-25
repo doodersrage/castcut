@@ -13,6 +13,9 @@ const TOOL_HREF: Record<string, string> = {
   pet: '/pet',
   fantasy: '/fantasy',
   roleplay: '/story',
+  day: '/day',
+  fitting: '/fitting',
+  moodboard: '/moodboard',
   refine: '/refine',
   inpaint: '/inpaint',
   outpaint: '/outpaint',
@@ -44,6 +47,9 @@ const TOOL_LABEL: Record<string, string> = {
   pet: 'Pet',
   fantasy: 'Fantasy',
   roleplay: 'Story',
+  day: 'Day',
+  fitting: 'Outfit',
+  moodboard: 'Look',
   refine: 'Refine',
   inpaint: 'Inpaint',
   outpaint: 'Outpaint',
@@ -74,8 +80,17 @@ export function galleryToolHref(tool?: string): string {
   return TOOL_HREF[key] ?? '/';
 }
 
-export function galleryToolHrefForEntry(entry: { tool?: string }): string {
-  return galleryToolHref(entry.tool);
+/** Play tools that open on a Cast (`?character=`). */
+const CAST_TOOLS = new Set(['day', 'fitting', 'moodboard', 'roleplay']);
+
+/** Route for an entry — Play tools open on the entry's Cast when it has one. */
+export function galleryToolHrefForEntry(entry: { tool?: string; characterId?: string }): string {
+  const href = galleryToolHref(entry.tool);
+  const castId = entry.characterId?.trim();
+  if (!castId || !CAST_TOOLS.has(entry.tool?.trim() ?? '')) {
+    return href;
+  }
+  return `${href}${href.includes('?') ? '&' : '?'}character=${encodeURIComponent(castId)}`;
 }
 
 export function galleryToolLabel(tool?: string): string {

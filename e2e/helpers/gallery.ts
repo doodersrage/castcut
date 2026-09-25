@@ -119,3 +119,50 @@ export async function seedFailedGalleryFixture(
   }
   await replaceGalleryIdb(page, [entry]);
 }
+
+/** Two Day stills of one Cast with Play checks (one missed its pose), plus that Cast. */
+export async function seedGalleryPlayFixtures(page: Page): Promise<void> {
+  await ensureStudioWorkspace(page);
+  const now = Date.now();
+  const entries = [
+    {
+      ...FIXTURE,
+      id: 'e2e-play-kept',
+      promptId: 'e2e-play-kept',
+      prompt: 'e2e play kept still',
+      tool: 'day',
+      characterId: 'e2e-gallery-cast',
+      queuedAt: now,
+      completedAt: now,
+      playChecks: { pose: 0.86, face: 0.71, at: now },
+    },
+    {
+      ...FIXTURE,
+      id: 'e2e-play-missed',
+      promptId: 'e2e-play-missed',
+      prompt: 'e2e play missed still',
+      tool: 'day',
+      characterId: 'e2e-gallery-cast',
+      queuedAt: now - 1_000,
+      completedAt: now - 1_000,
+      images: [{ filename: 'e2e-play-missed.png', subfolder: '', type: 'output' }],
+      playChecks: { pose: 0.31, poseMiss: true, at: now },
+    },
+  ];
+  const cast = {
+    version: 1,
+    characters: [{ id: 'e2e-gallery-cast', name: 'Gallery Cast', version: 1, updatedAt: now }],
+    removedIds: [],
+  };
+  const seed = ({ items, characters }: { items: unknown[]; characters: unknown }) => {
+    try {
+      localStorage.setItem('comfyui-gallery-v1', JSON.stringify(items));
+      localStorage.setItem('comfy-prompt-characters-v1', JSON.stringify(characters));
+      window.dispatchEvent(new Event('comfyui-gallery-updated'));
+    } catch {
+      // ignore
+    }
+  };
+  await page.addInitScript(seed, { items: entries, characters: cast });
+  await page.evaluate(seed, { items: entries, characters: cast });
+}

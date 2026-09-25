@@ -1,5 +1,6 @@
 'use client';
 
+import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, ButtonLink } from '@/components/ui/Button';
@@ -19,8 +20,6 @@ import {
   type CharacterRecord,
 } from '@/lib/character-os';
 import { castRosterReadinessLine } from '@/lib/cast-home-status';
-import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
-import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
 import {
   listSavedIdentityBundles,
   loadSettingsCache,
@@ -36,23 +35,6 @@ function applyCharacter(character: CharacterRecord) {
     ...loadSettingsCache().shared,
     ...applyCharacterRecord(character),
   });
-}
-
-function rosterPlateUrl(character: CharacterRecord): string {
-  const plate = resolveFittingPlateFromCharacter(character);
-  // Roster thumbs are look plates only — skip face-lock IP fallback.
-  const hasLookPlate = Boolean(
-    character.reference?.originalUrl?.trim() ||
-    character.reference?.isolatedUrl?.trim() ||
-    character.looks?.some(
-      look => look.reference?.originalUrl?.trim() || look.reference?.isolatedUrl?.trim()
-    )
-  );
-  if (!hasLookPlate) {
-    return '';
-  }
-  const url = plate?.imageUrl?.trim();
-  return url ? cacheBustIdentityMediaUrl(url) : '';
 }
 
 export default function CharacterCastRoster() {
@@ -164,7 +146,7 @@ export default function CharacterCastRoster() {
               const looks = looksOf(character);
               const trigger = loraTriggerFromCharacter(character);
               const detailsOpen = detailsId === character.id;
-              const plateUrl = rosterPlateUrl(character);
+              const plateUrl = castPlateThumbUrl(character);
               const readiness = castRosterReadinessLine({
                 lookCount: looks.length,
                 hasPlate: Boolean(plateUrl),

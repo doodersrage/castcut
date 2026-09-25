@@ -127,6 +127,18 @@ export default function CharacterMediaSection({
           { value: 'keepers', label: `Keepers (${keepers.length})` },
         ]}
       />
+      {entries.length > 0 ? (
+        <ToolActionRow>
+          <ButtonLink
+            href={`/gallery?character=${encodeURIComponent(character.id)}`}
+            size="sm"
+            variant="ghost"
+            data-testid="cast-see-in-gallery"
+          >
+            See all in Gallery
+          </ButtonLink>
+        </ToolActionRow>
+      ) : null}
       {mediaTab === 'clips' || mediaTab === 'films' || mediaTab === 'all' ? (
         <ToolActionRow>
           {mediaTab === 'films' ? (

@@ -107,6 +107,8 @@ export default function GalleryPanelBodyContent({
         refreshPending={browse.refreshPending}
         tools={browse.tools}
         models={browse.models}
+        castIds={browse.castIds}
+        hasPlayChecks={browse.hasPlayChecks}
         userTags={browse.userTags}
         customGroups={browse.customGroups}
         renameCustomGroup={browse.renameCustomGroup}

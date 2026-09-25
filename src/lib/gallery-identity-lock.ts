@@ -9,7 +9,7 @@ import {
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { resolveComfyOutputMediaKind } from './comfyui-outputs';
 import { persistIdentityImage, IDENTITY_MEDIA_URL } from './gallery-media-client';
-import { galleryToolHref, galleryToolLabel } from './gallery-tool-href';
+import { galleryToolHrefForEntry, galleryToolLabel } from './gallery-tool-href';
 import { resolveQueueInputImage } from './queue-input-image';
 import { loadSettingsCache, saveSharedSettings } from './settings-cache';
 
@@ -89,7 +89,7 @@ export async function applyGalleryFaceToSession(
       void import('./app-toast').then(({ pushAppToast }) => {
         pushAppToast({
           text: `Face locked on ${galleryToolLabel(entry.tool)} · ${filename}`,
-          href: galleryToolHref(entry.tool),
+          href: galleryToolHrefForEntry(entry),
         });
       });
     }

@@ -15,6 +15,7 @@ const SORT_VALUES: ComfyGallerySort[] = [
   'favorites-first',
   'rating-desc',
   'eviction-risk-desc',
+  'play-match-desc',
 ];
 
 function isSort(value: string | null): value is ComfyGallerySort {
@@ -89,6 +90,9 @@ export function parseGalleryUrlState(params: URLSearchParams): GalleryUrlState {
   }
   if (params.get('atRisk') === '1') {
     filter.atRiskOnly = true;
+  }
+  if (params.get('missed') === '1') {
+    filter.playCheckMissOnly = true;
   }
   const media = params.get('media');
   if (
@@ -188,6 +192,7 @@ export function applyGalleryUrlState(
   setOrDelete('minRating', filter.minRating ? String(filter.minRating) : undefined);
   setOrDelete('fav', filter.favoritesOnly ? '1' : undefined);
   setOrDelete('atRisk', filter.atRiskOnly ? '1' : undefined);
+  setOrDelete('missed', filter.playCheckMissOnly ? '1' : undefined);
   setOrDelete(
     'media',
     filter.mediaKind && filter.mediaKind !== 'all' ? filter.mediaKind : undefined

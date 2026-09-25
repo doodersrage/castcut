@@ -17,7 +17,7 @@ import { buildSessionRecipeFromShared, pushSessionRecipe } from './session-recip
 import { embeddingStem } from './textual-inversion';
 import { saveGenerateHandoff } from './generate-handoff';
 import { isGalleryCapKeeper } from './gallery-cap';
-import { galleryToolHref, galleryToolLabel } from './gallery-tool-href';
+import { galleryToolHrefForEntry, galleryToolLabel } from './gallery-tool-href';
 
 export function parseEmbeddingTokensFromPrompt(prompt?: string): string[] {
   if (!prompt?.trim()) {
@@ -281,7 +281,7 @@ export function applyGalleryStackToSession(
   const next = applyGalleryStackToShared(loadSettingsCache().shared, entry);
   saveSharedSettings(next, { notify: options?.notify !== false });
   const summary = formatGalleryStackRestoreSummary(entry);
-  const href = galleryToolHref(entry.tool);
+  const href = galleryToolHrefForEntry(entry);
   const toolLabel = galleryToolLabel(entry.tool);
   if (options?.toast !== false) {
     void import('./app-toast').then(({ pushAppToast }) => {

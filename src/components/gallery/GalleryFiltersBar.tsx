@@ -22,6 +22,8 @@ export type GalleryFiltersBarProps = {
   setFilter: React.Dispatch<React.SetStateAction<ComfyGalleryFilter>>;
   tools: string[];
   models: string[];
+  castIds?: string[];
+  hasPlayChecks?: boolean;
   userTags?: string[];
   customGroups?: string[];
   onRenameCustomGroup?: (from: string, to: string) => void;
@@ -59,6 +61,8 @@ export default function GalleryFiltersBar(props: GalleryFiltersBarProps) {
     setFilter,
     tools,
     models,
+    castIds,
+    hasPlayChecks,
     userTags = [],
     customGroups = [],
     onRenameCustomGroup,
@@ -107,6 +111,8 @@ export default function GalleryFiltersBar(props: GalleryFiltersBarProps) {
         filter={filter}
         setFilter={setFilter}
         models={models}
+        castIds={castIds}
+        hasPlayChecks={hasPlayChecks}
         customGroups={customGroups}
         onRenameCustomGroup={onRenameCustomGroup}
         onDeleteCustomGroup={onDeleteCustomGroup}

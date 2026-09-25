@@ -37,13 +37,18 @@ export async function readPoseFromPhoto(file: File): Promise<PhotoPose> {
     subfolder: uploaded.subfolder ?? '',
     type: uploaded.type ?? 'input',
   });
-  const detected = await detectStillPose(`/api/comfyui/view?${params.toString()}`);
+  return readPoseFromImageUrl(`/api/comfyui/view?${params.toString()}`);
+}
+
+/** Read the people in an image ComfyUI can already see (a gallery still's view URL). */
+export async function readPoseFromImageUrl(imageUrl: string): Promise<PhotoPose> {
+  const detected = await detectStillPose(imageUrl);
   if (!detected.available) {
     throw new Error(detected.reason);
   }
   const people = orderImportedBodies(detected.pose.people.filter(bodyIsUsable)).slice(0, 3);
   if (people.length === 0) {
-    throw new Error('No full body found in that photo — try one with the whole person in frame.');
+    throw new Error('No full body found in that image — it needs the whole person in frame.');
   }
   const { width, height } = detected.pose.canvas;
   return { aspect: width > 0 && height > 0 ? width / height : 2 / 3, people };

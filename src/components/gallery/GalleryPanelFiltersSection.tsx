@@ -36,6 +36,8 @@ type GalleryPanelFiltersSectionProps = {
   refreshPending: () => Promise<void>;
   tools: string[];
   models: string[];
+  castIds?: string[];
+  hasPlayChecks?: boolean;
   userTags: string[];
   customGroups: string[];
   renameCustomGroup: (from: string, to: string) => number;
@@ -86,6 +88,8 @@ export default function GalleryPanelFiltersSection({
   refreshPending,
   tools,
   models,
+  castIds,
+  hasPlayChecks,
   userTags,
   customGroups,
   renameCustomGroup,
@@ -142,6 +146,8 @@ export default function GalleryPanelFiltersSection({
           setFilter={setFilter}
           tools={tools}
           models={models}
+          castIds={castIds}
+          hasPlayChecks={hasPlayChecks}
           userTags={userTags}
           customGroups={customGroups}
           onRenameCustomGroup={(from, to) => {

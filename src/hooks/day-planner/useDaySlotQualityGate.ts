@@ -38,6 +38,7 @@ import {
   type SlotQualityLedger,
 } from '@/lib/play-slot-quality';
 import { buildFaceComparePair } from '@/lib/play-face-compare';
+import { recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { buildPoseMissView, poseLimbFixNudge, type PoseMissView } from '@/lib/pose-coaching';
 import { betterTakeIndex, type TakeScores } from '@/lib/take-scoring';
 import { DEFAULT_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face-match';
@@ -297,6 +298,11 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
           .filter(Boolean)
           .map(note => ` · ${note}`)
           .join('');
+        // The scores follow the still into the Gallery (badge, "missed" filter, best-match sort).
+        recordGalleryPlayChecks(targetStill.promptId, {
+          ...(poseMatch ? { pose: poseMatch.score, poseMiss: Boolean(decision.poseMiss) } : {}),
+          ...(faceMatch !== null ? { face: faceMatch, faceMiss: Boolean(decision.faceMiss) } : {}),
+        });
         const attempts = [
           ...(attemptsRef.current[target.id] ?? []),
           {

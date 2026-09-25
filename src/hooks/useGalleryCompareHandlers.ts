@@ -19,7 +19,7 @@ import type { GalleryComparePanelProps } from '@/components/GalleryComparePanel'
 import { experimentGroupIdForPrompt } from '@/lib/experiment-groups';
 import { markExperimentWinner } from '@/lib/experiment-winners';
 import { applyGalleryStackToSession } from '@/lib/gallery-stack-restore';
-import { galleryToolHref, galleryToolLabel } from '@/lib/gallery-tool-href';
+import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery-tool-href';
 
 const loadGalleryRequeue = () => import('@/lib/comfyui-requeue');
 
@@ -87,7 +87,7 @@ export function useGalleryCompareHandlers({
           built.ok ? ' · recipe saved' : ''
         }${stack.applied ? ` · stack on ${galleryToolLabel(entry.tool)}` : ''}`
       );
-      router.push(galleryToolHref(entry.tool));
+      router.push(galleryToolHrefForEntry(entry));
       void import('@/lib/auto-improve-loop')
         .then(({ runAutoImproveOnRating }) => runAutoImproveOnRating(entry, 5))
         .then(message => {

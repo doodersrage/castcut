@@ -20,6 +20,7 @@ import { loadEngineSettings } from '@/lib/engine-settings';
 import { continueClipActionLabel } from '@/lib/video-clip-mode';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';
 import type { GalleryCardMenuSectionProps } from '@/components/gallery/gallery-card-menu-types';
+import { requestGalleryUsePose } from '@/lib/gallery-pose-event';
 
 export function GalleryEditSection({
   entry,
@@ -38,6 +39,15 @@ export function GalleryEditSection({
 
   return (
     <GalleryMenuGroup label="Edit">
+      {previewUrl && primaryMediaKind === 'image' ? (
+        <GalleryMenuButton
+          label="Use this pose…"
+          onClick={() => {
+            requestGalleryUsePose(entry.id);
+            setMenuOpen(false);
+          }}
+        />
+      ) : null}
       <GalleryMenuButton
         label="Edit prompt"
         onClick={() => {

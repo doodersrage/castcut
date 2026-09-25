@@ -1,6 +1,7 @@
 import type { PromptProject } from '@/lib/prompt-projects';
 import type { ComfyGalleryFilter, ComfyGallerySort } from '@/lib/comfyui-gallery';
 import { GALLERY_UNGROUPED_FILTER } from '@/lib/gallery-custom-groups';
+import { getCharacter } from '@/lib/character-os';
 
 export const GALLERY_SORT_OPTIONS: { value: ComfyGallerySort; label: string }[] = [
   { value: 'queued-desc', label: 'Newest' },
@@ -10,6 +11,7 @@ export const GALLERY_SORT_OPTIONS: { value: ComfyGallerySort; label: string }[] 
   { value: 'favorites-first', label: 'Favorites' },
   { value: 'rating-desc', label: 'Highest rated' },
   { value: 'eviction-risk-desc', label: 'Eviction risk' },
+  { value: 'play-match-desc', label: 'Best pose / face match' },
 ];
 
 export type ActiveFilterChip = {
@@ -55,6 +57,21 @@ export function buildActiveFilterChips({
       key: 'tool',
       label: `Tool: ${filter.tool}`,
       clear: () => setFilter(previous => ({ ...previous, tool: undefined })),
+    });
+  }
+  if (filter.playCheckMissOnly) {
+    chips.push({
+      key: 'playCheckMiss',
+      label: 'Missed pose / face',
+      clear: () => setFilter(previous => ({ ...previous, playCheckMissOnly: undefined })),
+    });
+  }
+  if (filter.characterId?.trim()) {
+    const castId = filter.characterId.trim();
+    chips.push({
+      key: 'cast',
+      label: `Cast: ${getCharacter(castId)?.name?.trim() || castId}`,
+      clear: () => setFilter(previous => ({ ...previous, characterId: undefined })),
     });
   }
   if (filter.model) {

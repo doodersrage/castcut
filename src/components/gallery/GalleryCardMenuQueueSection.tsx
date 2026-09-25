@@ -6,7 +6,7 @@ import {
   saveGalleryLookFromEntry,
 } from '@/lib/gallery-stack-restore';
 import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery-identity-lock';
-import { galleryToolHref, galleryToolLabel } from '@/lib/gallery-tool-href';
+import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery-tool-href';
 import { loadEngineSettings } from '@/lib/engine-settings';
 import { isCloudEngine } from '@/lib/engine/capabilities';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';
@@ -39,7 +39,7 @@ export function GalleryQueueSection({
           data-testid="gallery-use-stack-menu"
           onClick={() => {
             applyGalleryStackToSession(entry);
-            router.push(galleryToolHref(entry.tool));
+            router.push(galleryToolHrefForEntry(entry));
             setMenuOpen(false);
           }}
         />
@@ -50,7 +50,7 @@ export function GalleryQueueSection({
           data-testid="gallery-use-prompt-stack-menu"
           onClick={() => {
             applyGalleryPromptAndStackToSession(entry);
-            router.push(galleryToolHref(entry.tool));
+            router.push(galleryToolHrefForEntry(entry));
             setMenuOpen(false);
           }}
         />
@@ -64,7 +64,7 @@ export function GalleryQueueSection({
           onClick={() => {
             void applyGalleryFaceToSession(entry).then(result => {
               if (result.ok) {
-                router.push(galleryToolHref(entry.tool));
+                router.push(galleryToolHrefForEntry(entry));
               }
             });
             setMenuOpen(false);

@@ -107,6 +107,8 @@ export type GalleryPanelBrowseProps = {
   refreshPending: () => Promise<void>;
   tools: string[];
   models: string[];
+  castIds?: string[];
+  hasPlayChecks?: boolean;
   userTags: string[];
   customGroups: string[];
   renameCustomGroup: (from: string, to: string) => number;

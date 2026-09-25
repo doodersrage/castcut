@@ -1,5 +1,6 @@
 'use client';
 
+import GalleryPlayChecksBadge from '@/components/gallery/GalleryPlayChecksBadge';
 import type { AestheticScoreResult } from '@/lib/aesthetic-score';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
 import { CustomGroupBadge, statusLabel, statusTone } from '@/components/gallery/galleryCardStatus';
@@ -50,6 +51,7 @@ export function GalleryCardTopChrome({
             {entry.reviewRating}★
           </span>
         ) : null}
+        <GalleryPlayChecksBadge entry={entry} />
         {entry.customGroup?.trim() ? (
           <CustomGroupBadge
             name={entry.customGroup.trim()}

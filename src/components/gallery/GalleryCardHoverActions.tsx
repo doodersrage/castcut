@@ -12,7 +12,7 @@ import {
   saveGalleryLookFromEntry,
 } from '@/lib/gallery-stack-restore';
 import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery-identity-lock';
-import { galleryToolHref } from '@/lib/gallery-tool-href';
+import { galleryToolHrefForEntry } from '@/lib/gallery-tool-href';
 
 type Props = {
   entry: ComfyGalleryEntry;
@@ -100,7 +100,7 @@ export function GalleryCardHoverActions({
                 data-testid="gallery-use-stack"
                 onClick={() => {
                   applyGalleryStackToSession(entry);
-                  router.push(galleryToolHref(entry.tool));
+                  router.push(galleryToolHrefForEntry(entry));
                 }}
                 className={`shrink-0 whitespace-nowrap rounded-lg border px-2 py-0.5 text-[10px] backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
                   (entry.reviewRating ?? 0) >= 4
@@ -118,7 +118,7 @@ export function GalleryCardHoverActions({
                 data-testid="gallery-use-prompt-stack"
                 onClick={() => {
                   applyGalleryPromptAndStackToSession(entry);
-                  router.push(galleryToolHref(entry.tool));
+                  router.push(galleryToolHrefForEntry(entry));
                 }}
                 className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               >
@@ -132,7 +132,7 @@ export function GalleryCardHoverActions({
                 onClick={() => {
                   void applyGalleryFaceToSession(entry).then(result => {
                     if (result.ok) {
-                      router.push(galleryToolHref(entry.tool));
+                      router.push(galleryToolHrefForEntry(entry));
                     }
                   });
                 }}

@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import LoraDatasetExportDialog from '@/components/LoraDatasetExportDialog';
+import GalleryPoseDialogHost from '@/components/gallery/GalleryPoseDialog';
 import type { GalleryComparePanelProps } from '@/components/GalleryComparePanel';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import type { LoraDatasetExportUiOptions } from '@/lib/lora-dataset-export-ui';
@@ -57,6 +58,8 @@ export default function GalleryPanelModalsSlot({
       {workflowEntry ? (
         <GalleryWorkflowModal entry={workflowEntry} onClose={onWorkflowClose} />
       ) : null}
+
+      <GalleryPoseDialogHost />
 
       <LoraDatasetExportDialog
         open={loraExportOpen}

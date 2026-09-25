@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
 import { seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { gotoStable } from './helpers/navigation';
+import { seedGalleryPlayFixtures } from './helpers/gallery';
 import { dismissBlockingOverlays } from './helpers/overlays';
 
 function seedFirstFilmDone(page: Page) {
@@ -740,6 +741,40 @@ test('dashboard shows pose match by layout and the words-first ladder', async ({
   const card = page.getByRole('main').getByTestId('play-film-metrics');
   await expect(card).toContainText('Pose match by layout', { timeout: 30_000 });
   await expect(card).toContainText('prompt now spells the pose out');
+});
+
+test('gallery: Cast filter, pose / face badges, missed filter, use this pose', async ({
+  page,
+}) => {
+  await seedGalleryPlayFixtures(page);
+  await gotoStable(page, '/gallery');
+  await dismissBlockingOverlays(page);
+  const filtersSummary = page.locator('details.ui-collapsible summary').filter({ hasText: 'Filters' });
+  if (await filtersSummary.isVisible().catch(() => false)) {
+    await filtersSummary.click();
+  }
+  const castFilter = page.getByTestId('gallery-cast-filter');
+  await expect(castFilter).toBeVisible({ timeout: 20_000 });
+  await expect(castFilter).toContainText('Gallery Cast');
+  await expect(page.getByTestId('gallery-card-play-checks').first()).toBeVisible();
+  await expect(page.getByText('pose 86% · face 71%').first()).toBeVisible();
+  // Missed pose / face narrows to the one still that ignored its guide.
+  await page.getByTestId('gallery-filter-play-miss').click();
+  await expect(page).toHaveURL(/missed=1/);
+  await expect(page.getByText('pose 31%').first()).toBeVisible();
+  await expect(page.getByText('pose 86% · face 71%')).toHaveCount(0);
+  // Cast chip filters too, and shows as an active filter.
+  await page.getByTestId('gallery-cast-filter-e2e-gallery-cast').click();
+  await expect(page).toHaveURL(/character=e2e-gallery-cast/);
+  await expect(page.getByTestId('gallery-active-filters')).toContainText('Cast: Gallery Cast');
+  // "Use this pose…" opens the pose dialog (no ComfyUI here, so it says it can't read it).
+  await page.getByTestId('gallery-card-menu').first().click();
+  await page.getByRole('menuitem', { name: 'Use this pose…' }).click();
+  const dialog = page.getByTestId('gallery-pose-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByTestId('gallery-pose-error')).toBeVisible({ timeout: 20_000 });
+  await dialog.getByRole('button', { name: 'Close' }).click();
+  await expect(dialog).toHaveCount(0);
 });
 
 test('play metrics card appears on dashboard when metrics exist', async ({ page }) => {

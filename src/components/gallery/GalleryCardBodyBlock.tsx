@@ -1,5 +1,6 @@
 'use client';
 
+import GalleryPlayChecksBadge from '@/components/gallery/GalleryPlayChecksBadge';
 import type { RefObject } from 'react';
 import GalleryCardMenu from '@/components/gallery/GalleryCardMenu';
 import { CustomGroupBadge, statusLabel, statusTone } from '@/components/gallery/galleryCardStatus';
@@ -178,6 +179,7 @@ export default function GalleryCardBodyBlock({
           {entry.reviewRating ? (
             <span className="text-[10px] text-[var(--accent-text)]">{entry.reviewRating}★</span>
           ) : null}
+          <GalleryPlayChecksBadge entry={entry} />
           {entry.customGroup?.trim() ? (
             <CustomGroupBadge name={entry.customGroup.trim()} onClick={onCustomGroupClick} />
           ) : null}

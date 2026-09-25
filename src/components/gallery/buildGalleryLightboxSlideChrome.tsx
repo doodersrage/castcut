@@ -22,7 +22,7 @@ import {
   saveGalleryLookFromEntry,
 } from '@/lib/gallery-stack-restore';
 import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery-identity-lock';
-import { galleryToolHref, galleryToolLabel } from '@/lib/gallery-tool-href';
+import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery-tool-href';
 import {
   galleryEntryLightboxUrls,
   galleryEntryPrimaryMediaKind,
@@ -145,14 +145,14 @@ export function buildGalleryLightboxSlideChrome({
     onUseStack: galleryEntryHasRestorableStack(entry)
       ? () => {
           applyGalleryStackToSession(entry);
-          router.push(galleryToolHref(entry.tool));
+          router.push(galleryToolHrefForEntry(entry));
         }
       : undefined,
     onUsePromptStack:
       galleryEntryHasRestorableStack(entry) && entry.prompt?.trim()
         ? () => {
             applyGalleryPromptAndStackToSession(entry);
-            router.push(galleryToolHref(entry.tool));
+            router.push(galleryToolHrefForEntry(entry));
           }
         : undefined,
     onUseFace: galleryEntryCanLockFace(entry)
@@ -160,7 +160,7 @@ export function buildGalleryLightboxSlideChrome({
           setRequeueStatus(`Locking face on ${galleryToolLabel(entry.tool)}…`);
           void applyGalleryFaceToSession(entry).then(result => {
             if (result.ok) {
-              router.push(galleryToolHref(entry.tool));
+              router.push(galleryToolHrefForEntry(entry));
               return;
             }
             setRequeueStatus(result.error ?? 'Face lock failed.');

@@ -16,6 +16,7 @@ import { poseLayoutFromKey, recordFaceMatchScore, recordPoseMatchScore } from '@
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
 import { DEFAULT_MIN_FACE_MATCH } from '@/lib/face-match';
 import { buildPoseMissView } from '@/lib/pose-coaching';
+import { recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 
 /**
  * Story pose check: when a still that was queued with an Image 3 guide lands, read its pose
@@ -118,6 +119,16 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
         }
         const latest =
           storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at) ?? beat;
+        recordGalleryPlayChecks(beat.promptId, {
+          pose: match.score,
+          poseMiss: miss,
+          ...(faceMatch
+            ? {
+                face: faceMatch.similarity,
+                faceMiss: faceMatch.similarity < DEFAULT_MIN_FACE_MATCH,
+              }
+            : {}),
+        });
         const checks = {
           poseMatch: {
             imageUrl,

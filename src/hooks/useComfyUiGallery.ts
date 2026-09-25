@@ -24,6 +24,7 @@ import {
   toggleComfyGalleryFavorite,
   type ComfyGalleryEntry,
   type ComfyGalleryFilter,
+  uniqueGalleryCastIds,
   uniqueGalleryModels,
   uniqueGalleryTools,
   uniqueGalleryUserTags,
@@ -244,6 +245,8 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
 
   const tools = useMemo(() => uniqueGalleryTools(entries), [entries]);
   const models = useMemo(() => uniqueGalleryModels(entries), [entries]);
+  const castIds = useMemo(() => uniqueGalleryCastIds(entries), [entries]);
+  const hasPlayChecks = useMemo(() => entries.some(entry => Boolean(entry.playChecks)), [entries]);
   const userTags = useMemo(() => uniqueGalleryUserTags(entries), [entries]);
   const customGroups = useMemo(() => uniqueGalleryCustomGroups(entries), [entries]);
 
@@ -366,6 +369,8 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
     setFilter,
     tools,
     models,
+    castIds,
+    hasPlayChecks,
     userTags,
     customGroups,
     refresh,

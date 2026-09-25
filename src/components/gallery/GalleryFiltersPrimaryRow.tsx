@@ -1,5 +1,7 @@
 'use client';
 
+import { FilterChip } from '@/components/gallery/GalleryFilterChip';
+import GalleryCastFilter from '@/components/gallery/GalleryCastFilter';
 import type {
   ComfyGalleryFilter,
   ComfyGallerySort,
@@ -18,6 +20,8 @@ export type GalleryFiltersPrimaryRowProps = {
   filter: ComfyGalleryFilter;
   setFilter: React.Dispatch<React.SetStateAction<ComfyGalleryFilter>>;
   models: string[];
+  castIds?: string[];
+  hasPlayChecks?: boolean;
   customGroups?: string[];
   onRenameCustomGroup?: (from: string, to: string) => void;
   onDeleteCustomGroup?: (name: string) => void;
@@ -46,6 +50,8 @@ export default function GalleryFiltersPrimaryRow({
   filter,
   setFilter,
   models,
+  castIds,
+  hasPlayChecks,
   customGroups = [],
   onRenameCustomGroup,
   onDeleteCustomGroup,
@@ -112,6 +118,24 @@ export default function GalleryFiltersPrimaryRow({
       <GalleryFiltersGroupsRail filter={filter} setFilter={setFilter} customGroups={customGroups} />
 
       <GalleryFiltersRatingModelRow filter={filter} setFilter={setFilter} models={models} />
+
+      <GalleryCastFilter filter={filter} setFilter={setFilter} castIds={castIds ?? []} />
+
+      {hasPlayChecks ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <FilterChip
+            active={Boolean(filter.playCheckMissOnly)}
+            label="Missed pose / face"
+            testId="gallery-filter-play-miss"
+            onClick={() =>
+              setFilter(previous => ({
+                ...previous,
+                playCheckMissOnly: previous.playCheckMissOnly ? undefined : true,
+              }))
+            }
+          />
+        </div>
+      ) : null}
 
       {lean ? (
         <GalleryFiltersLeanRow

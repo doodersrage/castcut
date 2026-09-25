@@ -2,6 +2,14 @@ import type { ComfyOutputImage } from './comfyui-outputs';
 import type { WorkflowParamValues } from './comfyui-config';
 import type { ComfyGalleryJobStatus } from './comfyui-gallery-types';
 
+export type GalleryPlayChecks = {
+  pose?: number;
+  face?: number;
+  poseMiss?: boolean;
+  faceMiss?: boolean;
+  at: number;
+};
+
 export type ComfyGalleryEntry = {
   id: string;
   promptId: string;
@@ -76,6 +84,11 @@ export type ComfyGalleryEntry = {
   userTags?: string[];
   /** Named custom group assigned from gallery multi-select. One group per entry. */
   customGroup?: string;
+  /**
+   * Play checks of this still (Day Auto-review / Story pose check): pose and face match 0–1,
+   * and whether each counted as a miss.
+   */
+  playChecks?: GalleryPlayChecks;
   /** Cached aesthetic score (0–100) from heuristic or vision. */
   aestheticScore?: number;
   /** How aestheticScore was produced. */

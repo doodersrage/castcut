@@ -18,7 +18,7 @@ import { isCloudEngine } from './engine/capabilities';
 import { filterBySemanticQuery } from './semantic-search';
 import { orderGalleryBySimilarity, orderGalleryByVisualSimilarity } from './gallery-similarity';
 import { clusterGalleryDuplicates, duplicateEntryIds } from './gallery-duplicate-clusters';
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import type { ComfyGalleryEntry, GalleryPlayChecks } from './comfyui-gallery-entry';
 import type { ComfyGalleryJobStatus } from './comfyui-gallery-types';
 import { durableGalleryOriginalUrl, durableGalleryThumbUrl } from './gallery-media-client';
 import {
@@ -52,7 +52,7 @@ import {
 import { loadSettingsCache } from './settings-cache';
 import { celebrateSystemTray } from './system-tray-celebrate';
 
-export type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+export type { ComfyGalleryEntry, GalleryPlayChecks } from './comfyui-gallery-entry';
 export type { ComfyGalleryJobStatus } from './comfyui-gallery-types';
 export {
   COMFYUI_GALLERY_KEY,
@@ -101,6 +101,8 @@ export type ComfyGalleryFilter = {
   customGroup?: string;
   /** Character OS record this job was queued as. */
   characterId?: string;
+  /** Only stills whose pose or face check missed. */
+  playCheckMissOnly?: boolean;
 };
 
 export type ComfyGallerySort =
@@ -110,7 +112,8 @@ export type ComfyGallerySort =
   | 'tool-asc'
   | 'favorites-first'
   | 'rating-desc'
-  | 'eviction-risk-desc';
+  | 'eviction-risk-desc'
+  | 'play-match-desc';
 
 export const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
 export const GALLERY_PAGE_SIZE_ALL = 'all' as const;
@@ -134,6 +137,7 @@ export function galleryEntryRenderKey(entry: ComfyGalleryEntry): string {
     entry.userTags?.join(',') ?? '',
     entry.customGroup ?? '',
     entry.projectId ?? '',
+    `${entry.playChecks?.pose ?? ''}:${entry.playChecks?.face ?? ''}`,
   ];
 
   // For in-flight entries, include progress info to prevent unnecessary re-renders
@@ -434,6 +438,13 @@ export function filterComfyGalleryEntries(
       idx += 1;
       continue;
     }
+    if (
+      filter.playCheckMissOnly &&
+      !(entry.playChecks?.poseMiss === true || entry.playChecks?.faceMiss === true)
+    ) {
+      idx += 1;
+      continue;
+    }
     if (filter.minRating && (entry.reviewRating ?? 0) < filter.minRating) {
       idx += 1;
       continue;
@@ -591,6 +602,16 @@ export function sortGalleryEntries(
         return (a.completedAt ?? a.queuedAt) - (b.completedAt ?? b.queuedAt);
       });
     }
+    case 'play-match-desc': {
+      // Checked stills first, fewest misses, then closest pose, then face.
+      const rank = (entry: ComfyGalleryEntry) => {
+        const checks = entry.playChecks;
+        if (!checks) return -1;
+        const misses = Number(Boolean(checks.poseMiss)) + Number(Boolean(checks.faceMiss));
+        return (2 - misses) * 10 + (checks.pose ?? 0) * 2 + (checks.face ?? 0);
+      };
+      return sorted.sort((a, b) => rank(b) - rank(a) || b.queuedAt - a.queuedAt);
+    }
     case 'queued-desc':
     default:
       return sorted.sort((a, b) => b.queuedAt - a.queuedAt);
@@ -619,6 +640,7 @@ export function loadGalleryViewPreferences(): ComfyGalleryViewPreferences {
       'favorites-first',
       'rating-desc',
       'eviction-risk-desc',
+      'play-match-desc',
     ];
     const sort = sortValues.includes(parsed.sort as ComfyGallerySort)
       ? (parsed.sort as ComfyGallerySort)
@@ -650,6 +672,11 @@ export function saveGalleryViewPreferences(preferences: ComfyGalleryViewPreferen
 
 export function uniqueGalleryTools(entries: ComfyGalleryEntry[]): string[] {
   return [...new Set(entries.map(entry => entry.tool).filter(Boolean) as string[])].sort();
+}
+
+/** Cast ids that appear on gallery entries (for the Cast filter). */
+export function uniqueGalleryCastIds(entries: ComfyGalleryEntry[]): string[] {
+  return [...new Set(entries.map(entry => entry.characterId?.trim()).filter(Boolean) as string[])];
 }
 
 export function uniqueGalleryModels(entries: ComfyGalleryEntry[]): string[] {
@@ -901,6 +928,35 @@ export function setGalleryReviewRating(
         : entry
     )
   );
+}
+
+/**
+ * Store a still's Play checks on its gallery entry (matched by ComfyUI prompt id). Measured
+ * values only — an unmeasured side keeps what was there.
+ */
+export function recordGalleryPlayChecks(
+  promptId: string | null | undefined,
+  checks: Omit<GalleryPlayChecks, 'at'>
+): boolean {
+  const id = promptId?.trim();
+  if (!id) return false;
+  let changed = false;
+  const next = loadComfyGallery().map(entry => {
+    if (entry.promptId !== id) return entry;
+    changed = true;
+    const merged: GalleryPlayChecks = { ...entry.playChecks, at: Date.now() };
+    if (typeof checks.pose === 'number') {
+      merged.pose = checks.pose;
+      merged.poseMiss = checks.poseMiss === true;
+    }
+    if (typeof checks.face === 'number') {
+      merged.face = checks.face;
+      merged.faceMiss = checks.faceMiss === true;
+    }
+    return { ...entry, playChecks: merged };
+  });
+  if (changed) saveComfyGallery(next);
+  return changed;
 }
 
 export function setGalleryReviewNote(id: string, reviewNote?: string): void {

@@ -69,6 +69,7 @@ export function GalleryFiltersLayoutGroup({
                     'favorites-first',
                     'rating-desc',
                     'eviction-risk-desc',
+                    'play-match-desc',
                   ].includes(option.value)
                 )
               : GALLERY_SORT_OPTIONS
