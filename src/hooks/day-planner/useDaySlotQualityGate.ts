@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { isDayAdultMood, normalizeDayIntimateMix, normalizeDayMood } from '@/lib/day-planner';
+import {
+  isDayAdultMood,
+  normalizeDayIntimateMix,
+  normalizeDayMood,
+  upsertDaySlotStill,
+} from '@/lib/day-planner';
 import {
   recordFaceMatchScore,
   poseLayoutFromKey,
@@ -10,10 +15,10 @@ import {
   recordSlotReviewOutcome,
 } from '@/lib/play-metrics';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
-import { describeFaceMatch } from '@/lib/face-match';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
 import {
+  DEFAULT_MIN_POSE_MATCH,
   describePoseMatch,
   POSE_LIBRARY_MIN_SCORE,
   POSE_MISMATCH_NUDGE,
@@ -29,10 +34,21 @@ import {
   reviewOutfitLabel,
   slotRerollNudge,
   slotRerollsUsed,
+  type SlotQualityDecision,
   type SlotQualityLedger,
 } from '@/lib/play-slot-quality';
 import { buildFaceComparePair } from '@/lib/play-face-compare';
 import { buildPoseMissView, poseLimbFixNudge, type PoseMissView } from '@/lib/pose-coaching';
+import { betterTakeIndex, type TakeScores } from '@/lib/take-scoring';
+import { DEFAULT_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face-match';
+
+type DaySlotAttempt = {
+  imageUrl: string;
+  promptId?: string;
+  scores: TakeScores;
+  decision: SlotQualityDecision;
+  missView?: PoseMissView;
+};
 import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
 
 /**
@@ -47,7 +63,7 @@ import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
 export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
   const { autoReviewStills, busy, mounted, queueSlot, rerollNudgeRef, shared, slots, stills } = ctx;
   const { poseGuideExpectRef, poseVariantRef } = ctx;
-  const { plate, toolSettings, wardrobeLabelFor } = ctx;
+  const { plate, toolSettings, wardrobeLabelFor, stillsRef, updateToolSettings } = ctx;
 
   const [qualityStatus, setQualityStatus] = useState<string | null>(null);
   const [qualityLedger, setQualityLedger] = useState<SlotQualityLedger>({});
@@ -66,6 +82,8 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
     }
   }
   const ledgerRef = useRef<SlotQualityLedger>({});
+  /** Every reviewed attempt per slot this Day, so a give-up can restore the best one. */
+  const attemptsRef = useRef<Record<string, DaySlotAttempt[]>>({});
   const reviewedRef = useRef<Record<string, string>>({});
   const baselinedRef = useRef(false);
   const runningRef = useRef(false);
@@ -84,6 +102,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
     if (stills.length === 0) {
       baselinedRef.current = true;
       reviewedRef.current = {};
+      attemptsRef.current = {};
       ledgerRef.current = {};
       // New Day, new layouts: rerolled variants start from the stable drawing again.
       poseVariantRef.current = {};
@@ -217,6 +236,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
           shared,
         });
         let poseLimbNudge = '';
+        let currentMissView: PoseMissView | undefined;
         const decision = decideSlotQuality(
           report,
           slotRerollsUsed(ledgerRef.current, target.id),
@@ -248,6 +268,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
               })
             : null;
           poseLimbNudge = missView ? poseLimbFixNudge(missView.misses) : '';
+          currentMissView = missView ?? undefined;
           setPoseMissViews(previous => {
             if (!missView && !previous[target.id]) return previous;
             const next = { ...previous };
@@ -276,7 +297,55 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
           .filter(Boolean)
           .map(note => ` · ${note}`)
           .join('');
-        ledgerRef.current = recordSlotDecision(ledgerRef.current, target.id, decision);
+        const attempts = [
+          ...(attemptsRef.current[target.id] ?? []),
+          {
+            imageUrl,
+            promptId: targetStill.promptId,
+            scores: {
+              pose: poseMatch?.score ?? null,
+              face: faceMatch,
+              overall: decision.overall ?? null,
+            },
+            decision,
+            missView: currentMissView,
+          },
+        ].slice(-6);
+        attemptsRef.current[target.id] = attempts;
+        // Out of rerolls: if an earlier attempt was clearly better (fewer pose / face misses
+        // or a much closer pose, and no worse a review), put it back instead of the last one.
+        const restoreIndex =
+          decision.action === 'flag'
+            ? betterTakeIndex(
+                attempts.map(attempt => attempt.scores),
+                attempts.length - 1,
+                { minPose: DEFAULT_MIN_POSE_MATCH, minFace: DEFAULT_MIN_FACE_MATCH }
+              )
+            : null;
+        const restored = restoreIndex !== null ? attempts[restoreIndex] : undefined;
+        if (restored) {
+          reviewedRef.current[target.id] = restored.imageUrl;
+          updateToolSettings({
+            stills: upsertDaySlotStill(stillsRef.current, {
+              slotId: target.id,
+              imageUrl: restored.imageUrl,
+              promptId: restored.promptId,
+              status: 'completed',
+            }),
+          });
+          setPoseMissViews(previous => {
+            const next = { ...previous };
+            if (restored.missView) next[target.id] = restored.missView;
+            else delete next[target.id];
+            return next;
+          });
+        }
+        const shownDecision = restored
+          ? restored.decision.action === 'keep'
+            ? restored.decision
+            : { ...restored.decision, action: 'flag' as const }
+          : decision;
+        ledgerRef.current = recordSlotDecision(ledgerRef.current, target.id, shownDecision);
         setQualityLedger(ledgerRef.current);
         recordSlotReviewOutcome(decision.action);
 
@@ -285,6 +354,18 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
             decision.warnings.length > 0
               ? `${target.label} passed (${decision.overall}/5${poseSuffix}) — ${decision.warnings.join(', ')}.`
               : `${target.label} passed review (${decision.overall}/5${poseSuffix}).`
+          );
+        } else if (decision.action === 'flag' && restored) {
+          const pct = (value: number | null | undefined) =>
+            value == null ? '—' : `${Math.round(value * 100)}%`;
+          setQualityStatus(
+            `${target.label}: kept an earlier take — pose match ${pct(restored.scores.pose)} vs ${pct(
+              poseMatch?.score
+            )} on the last try.${
+              shownDecision.action === 'flag'
+                ? ` Still worth a look: ${shownDecision.reasons.join(', ')}.`
+                : ''
+            }`
           );
         } else if (decision.action === 'flag') {
           setQualityStatus(
@@ -333,11 +414,13 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
     shared,
     slots,
     stills,
+    stillsRef,
     tick,
     toolSettings.allowCompanions,
     toolSettings.customGarmentDescription,
     toolSettings.dayMood,
     toolSettings.intimateMix,
+    updateToolSettings,
     wardrobeLabelFor,
   ]);
 

@@ -252,6 +252,29 @@ export default function SettingsPromptQualityPanel({
           <p className="type-caption text-[var(--text-muted)]">
             {POSE_GUIDE_STYLE_OPTIONS.find(option => option.id === poseGuideStyle)?.description}
           </p>
+          <label className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-base)] accent-[var(--accent)]"
+              checked={sharedSettings.poseGuideControlNet === true}
+              disabled={!sharedMounted || poseGuideStyle === 'legacy'}
+              data-testid="settings-pose-controlnet"
+              onChange={event =>
+                updateSharedSettings({ poseGuideControlNet: event.target.checked })
+              }
+            />
+            <span>
+              <span className="block font-medium text-[var(--text-primary)]">
+                Also lock the pose with ControlNet
+              </span>
+              <span className="type-caption mt-0.5 block text-[var(--text-muted)]">
+                Sends the OpenPose guide through the ControlNet mapped for the model (Workflow
+                health → ControlNet map) at a soft 0.35, on top of Image 3. Stricter limbs; try it
+                if stills keep ignoring the guide. Needs a pose-capable ControlNet (OpenPose or
+                Union) — OpenPose styles only, never the legacy mannequin.
+              </span>
+            </span>
+          </label>
           <PoseLibraryControl />
         </div>
         <AnatomyGuardHints

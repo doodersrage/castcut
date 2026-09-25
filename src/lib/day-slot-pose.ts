@@ -78,6 +78,7 @@ export function planDaySlotPose(input: {
     | 'posePhoto'
     | 'poseCamera'
     | 'poseLead'
+    | 'poseLook'
   >;
   dayMood: DayMood | string | null | undefined;
   intimateMix?: DayIntimateMix | string | null;
@@ -148,6 +149,7 @@ export function planDaySlotPose(input: {
       ...(input.slot.posePhoto ? { photoPose: input.slot.posePhoto } : {}),
       ...(input.slot.poseCamera ? { camera: input.slot.poseCamera } : {}),
       ...(input.slot.poseLead ? { leadSide: input.slot.poseLead } : {}),
+      ...(input.slot.poseLook ? { look: input.slot.poseLook } : {}),
     },
   };
 }

@@ -372,3 +372,19 @@ export function poseLimbFixNudge(misses: PoseLimbMiss[], max = 3): string {
   const parts = misses.slice(0, max).map(miss => `${miss.part} ${miss.guide}, not ${miss.still}`);
   return `Fix the pose: ${parts.join('; ')}.`;
 }
+
+// ── Where the lead looks ──────────────────────────────────────────────────────────────────
+
+const POSE_LOOK_LINES: Record<string, string> = {
+  camera: 'GAZE: looking straight into the camera lens.',
+  away: 'GAZE: head turned away, looking off to the side out of frame — not at the camera.',
+  down: 'GAZE: head tipped down, eyes lowered — not looking at the camera.',
+  partner: 'GAZE: looking at the other person in the frame, not at the camera.',
+};
+
+/** Prompt line for a Look choice (partner falls back to away when there's no one else). */
+export function poseLookLine(look: string | null | undefined, people = 1): string {
+  if (!look) return '';
+  const key = look === 'partner' && people < 2 ? 'away' : look;
+  return POSE_LOOK_LINES[key] ?? '';
+}

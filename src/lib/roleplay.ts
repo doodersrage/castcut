@@ -30,6 +30,7 @@ import {
   type IntimateLayout,
   type PhotoPose,
   type PoseCameraChoice,
+  type PoseLookChoice,
   type ScenePoseSpec,
 } from '@/lib/day-pose-guide';
 import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
@@ -89,6 +90,9 @@ export type RoleplayStillTake = {
   promptId?: string;
   imageUrl?: string;
   stillStatus?: RoleplayStillStatus;
+  /** Pose / face checks of this take, so switching takes shows (and ranks by) its scores. */
+  poseMatch?: StoryPoseMatch;
+  faceMatch?: StoryFaceMatch;
 };
 
 export type RoleplayClipTake = {
@@ -106,6 +110,10 @@ export type RoleplayStoryBeat = RoleplayScene & {
   /** All still takes for this beat; `promptId` / `imageUrl` / `stillStatus` mirror the shown take. */
   stillTakes?: RoleplayStillTake[];
   stillTakeIndex?: number;
+  /** The player picked the shown take — never switch it automatically. */
+  stillTakePinned?: boolean;
+  /** Set when the shown take was switched to automatically for a better pose / face match. */
+  stillTakeAutoPicked?: boolean;
   /** I2V / extend clip queued from this beat. */
   clipPromptId?: string;
   clipUrl?: string;
@@ -129,6 +137,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
   poseCamera?: PoseCameraChoice;
   /** Two-person poses: which side the Cast lead stands on. */
   poseLead?: 'left' | 'right';
+  /** Where the Cast looks (unset = as the pose draws it). */
+  poseLook?: PoseLookChoice;
   /** Face-recognition match of the shown (solo) still against the reference photo. */
   faceMatch?: StoryFaceMatch;
   /**
@@ -2627,6 +2637,9 @@ export {
   roleplayStillHasInFlightTake,
   canRetryRoleplayStill,
   selectRoleplayStillTakePatch,
+  pinRoleplayStillTakePatch,
+  autoPickRoleplayStillTakePatch,
+  withRoleplayTakeChecks,
   beginRoleplayStillRetryPatch,
   roleplayClipTakes,
   roleplayClipTakeIndex,

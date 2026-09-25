@@ -152,7 +152,7 @@ import {
   poseLayoutFromKey,
   weakPoseLayouts,
 } from '@/lib/play-metrics';
-import { poseLayoutCueLine } from '@/lib/pose-coaching';
+import { poseLayoutCueLine, poseLookLine } from '@/lib/pose-coaching';
 import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
@@ -941,7 +941,13 @@ export function useDayPlannerToolOrchestrationCore() {
         if (cueLine && poseExpectation) {
           poseExpectation.cued = true;
         }
-        const prompt = [basePrompt, cueLine, qualityNudge ? `QUALITY FIX: ${qualityNudge}` : '']
+        const lookLine = poseLookLine(queueTarget.poseLook, poseExpectation?.keypoints.length ?? 1);
+        const prompt = [
+          basePrompt,
+          cueLine,
+          lookLine,
+          qualityNudge ? `QUALITY FIX: ${qualityNudge}` : '',
+        ]
           .filter(Boolean)
           .join('\n');
         // Play/Simple: skip lint round-trip — Day stills are draft-speed first film.
@@ -990,6 +996,7 @@ export function useDayPlannerToolOrchestrationCore() {
           poseGuideFilename,
           poseGuideUrl,
           model: shared.model,
+          style: poseGuideFilename ? poseGuideDrawnStyle : null,
         });
         const queueImagePlate = omitGarment ? identityPlate : (identityPlate ?? queuePlate);
         const queueOptions = !hasPlate

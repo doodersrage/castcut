@@ -11,6 +11,7 @@ import {
   MAX_ROLEPLAY_STILL_TAKES,
   MAX_ROLEPLAY_CLIP_TAKES,
 } from './roleplay';
+import { betterTakeIndex, type TakeThresholds } from './take-scoring';
 
 export type RoleplayGalleryStill = {
   promptId: string;
@@ -33,11 +34,15 @@ function takeHasStill(take: RoleplayStillTake): boolean {
 
 function activeFieldsFromTake(
   take: RoleplayStillTake | undefined
-): Pick<RoleplayStoryBeat, 'promptId' | 'imageUrl' | 'stillStatus'> {
+): Pick<RoleplayStoryBeat, 'promptId' | 'imageUrl' | 'stillStatus'> &
+  Partial<Pick<RoleplayStoryBeat, 'poseMatch' | 'faceMatch'>> {
   return {
     promptId: take?.promptId,
     imageUrl: take?.imageUrl,
     stillStatus: take?.stillStatus,
+    // The take's own checks (labels match on imageUrl, so an older score never shows wrongly).
+    ...(take?.poseMatch ? { poseMatch: take.poseMatch } : {}),
+    ...(take?.faceMatch ? { faceMatch: take.faceMatch } : {}),
   };
 }
 
@@ -62,6 +67,7 @@ export function roleplayStillTakes(beat: RoleplayStoryBeat): RoleplayStillTake[]
       ? beat.stillTakeIndex
       : stored.length - 1;
   const overlay = (take: RoleplayStillTake): RoleplayStillTake => ({
+    ...take,
     promptId: current.promptId ?? take.promptId,
     imageUrl: current.imageUrl ?? take.imageUrl,
     stillStatus: current.stillStatus ?? take.stillStatus,
@@ -208,7 +214,59 @@ export function beginRoleplayStillRetryPatch(beat: RoleplayStoryBeat): Partial<R
     promptId: undefined,
     imageUrl: undefined,
     stillStatus: 'writing',
+    // A new take is the player's latest ask — auto-pick may compare again once it's checked.
+    stillTakePinned: false,
+    stillTakeAutoPicked: false,
   };
+}
+
+/** The player tapped a take: show it and never switch away from it automatically. */
+export function pinRoleplayStillTakePatch(
+  beat: RoleplayStoryBeat,
+  index: number
+): Partial<RoleplayStoryBeat> {
+  return {
+    ...selectRoleplayStillTakePatch(beat, index),
+    stillTakePinned: true,
+    stillTakeAutoPicked: false,
+  };
+}
+
+/**
+ * After a take's checks land: switch to a clearly better earlier take (fewer pose / face
+ * misses, or a much better pose match), unless the player picked the shown take. Null = keep.
+ */
+export function autoPickRoleplayStillTakePatch(
+  beat: RoleplayStoryBeat,
+  thresholds: TakeThresholds
+): Partial<RoleplayStoryBeat> | null {
+  if (beat.stillTakePinned) {
+    return null;
+  }
+  const takes = roleplayStillTakes(beat);
+  if (takes.length < 2 || takes.some(take => take.stillStatus !== 'completed')) {
+    return null;
+  }
+  const best = betterTakeIndex(
+    takes.map(take => ({ pose: take.poseMatch?.score, face: take.faceMatch?.similarity })),
+    roleplayStillTakeIndex(beat),
+    thresholds
+  );
+  if (best === null) {
+    return null;
+  }
+  return { ...selectRoleplayStillTakePatch(beat, best), stillTakeAutoPicked: true };
+}
+
+/** Record a take's pose / face check on the take itself (matched by image URL). */
+export function withRoleplayTakeChecks(
+  beat: RoleplayStoryBeat,
+  imageUrl: string,
+  checks: Pick<RoleplayStillTake, 'poseMatch' | 'faceMatch'>
+): RoleplayStillTake[] {
+  return roleplayStillTakes(beat).map(take =>
+    take.imageUrl?.trim() === imageUrl ? { ...take, ...checks } : take
+  );
 }
 
 function takeHasClip(take: RoleplayClipTake): boolean {

@@ -9,10 +9,12 @@ import {
   parseIntimateLayout,
   normalizePhotoPose,
   normalizePoseCameraChoice,
+  normalizePoseLookChoice,
   parseSocialLayout,
   resolveSoloMasturbationPoseKind,
   type PhotoPose,
   type PoseCameraChoice,
+  type PoseLookChoice,
   type ScenePoseSpec,
 } from '@/lib/day-pose-guide';
 import {
@@ -286,6 +288,8 @@ export type DaySlot = {
   poseCamera?: PoseCameraChoice;
   /** Two-person poses: which side the Cast lead stands on (unset = as drawn). */
   poseLead?: 'left' | 'right';
+  /** Where the Cast looks (unset = as the pose draws it). */
+  poseLook?: PoseLookChoice;
 };
 
 export type DaySlotStillStatus = 'queued' | 'running' | 'completed' | 'error';
@@ -559,6 +563,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       posePhoto: normalizePhotoPose(slot.posePhoto),
       poseCamera: normalizePoseCameraChoice(slot.poseCamera),
       poseLead: slot.poseLead === 'left' || slot.poseLead === 'right' ? slot.poseLead : undefined,
+      poseLook: normalizePoseLookChoice(slot.poseLook),
     });
   }
   const resolvedLength =

@@ -1,15 +1,21 @@
 /**
- * Day/Story mannequin → ControlNet extras.
+ * Day/Story Image 3 guide → ControlNet extras (opt-in).
  *
- * Filled capsule pose guides are for Qwen Image 3 Edit only. Feeding them into
- * ControlNet (InstantX or otherwise) ghosts the guide and locks Image 1 clothing
- * into the still — so pose-guide ControlNet stays off.
+ * Image 3 always goes to Qwen Edit as a reference image. With Settings → Pose guide →
+ * "Also lock the pose with ControlNet" on, an OpenPose-style guide (a real keypoint map, the
+ * input OpenPose / Union ControlNets are trained on) is also sent through the ControlNet the
+ * model is mapped to, at a soft strength.
+ *
+ * The legacy filled-capsule mannequin never goes through ControlNet: it isn't a pose map, and
+ * InstantX / Union read it as an image — it ghosted into stills and locked Image 1 clothing.
  */
 
 import type { WorkflowParamValues } from './comfyui-config';
-import type { ModelControlNetMap } from './model-controlnet-map';
+import { resolveControlNetModelFilename, type ModelControlNetMap } from './model-controlnet-map';
+import { isOpenPoseStyle, type PoseGuideStylePreference } from './pose-guide-prompt';
+import { loadSettingsCache } from './settings-cache';
 
-/** @deprecated Pose-guide ControlNet is disabled; kept for callers/tests. */
+/** Soft pose lock: enough to hold limbs, low enough to leave clothing and scene to the prompt. */
 export const POSE_GUIDE_CONTROLNET_STRENGTH = 0.35;
 
 export type PoseGuideControlNetExtras = {
@@ -25,8 +31,8 @@ export type PoseGuideControlNetExtras = {
 };
 
 /**
- * InstantX / Qwen Union expects canny/depth/pose maps — not filled capsule mannequins.
- * Feeding Image 3 into InstantX ghosts the guide into the still.
+ * InstantX / Qwen Union ControlNets read any image as a control map — safe with an OpenPose
+ * keypoint guide, not with the filled mannequin.
  */
 export function isMannequinUnsafeControlNet(filename: string | null | undefined): boolean {
   const name = filename?.trim() || '';
@@ -38,18 +44,60 @@ export function isMannequinUnsafeControlNet(filename: string | null | undefined)
   );
 }
 
+/** Settings switch, read at queue time. */
+export function loadPoseGuideControlNetEnabled(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return loadSettingsCache().shared.poseGuideControlNet === true;
+}
+
 /**
- * Never attach ControlNet for filled mannequin pose guides.
- * Image 3 Edit carries pose; CN was locking Cast clothes and leaking schematics.
+ * ControlNet params for a pose guide, or undefined: switched off, no guide, a legacy mannequin
+ * guide, or no ControlNet mapped for the model (Settings map / {{CONTROLNET_MODEL}} token).
  */
-export function resolvePoseGuideControlNetExtras(_input: {
+export function resolvePoseGuideControlNetExtras(input: {
   poseGuideFilename?: string | null;
   poseGuideUrl?: string | null;
   model?: string | null;
+  /** Style the guide was drawn in — only OpenPose styles are pose maps. */
+  style?: PoseGuideStylePreference | null;
+  /** Settings switch (defaults to the stored setting). */
+  enabled?: boolean;
   controlNetMap?: ModelControlNetMap;
   controlNetInventory?: string[] | null;
 }): PoseGuideControlNetExtras | undefined {
-  return undefined;
+  const enabled = input.enabled ?? loadPoseGuideControlNetEnabled();
+  // The drawn style must be known — never assume a guide is a keypoint map.
+  if (!enabled || !input.style || !isOpenPoseStyle(input.style)) {
+    return undefined;
+  }
+  const filename = input.poseGuideFilename?.trim() || '';
+  const url = input.poseGuideUrl?.trim() || '';
+  if (!filename && !url) {
+    return undefined;
+  }
+  const controlNetMap =
+    input.controlNetMap ??
+    (typeof window === 'undefined' ? undefined : loadSettingsCache().shared.modelControlNetMap);
+  const controlNetModelFilename = resolveControlNetModelFilename(input.model?.trim() || '', {
+    controlNetMap: controlNetMap ?? undefined,
+    controlNetInventory: input.controlNetInventory ?? [],
+  });
+  if (!controlNetModelFilename) {
+    return undefined;
+  }
+  return {
+    ...(filename ? { controlImageFilename: filename } : {}),
+    ...(url ? { controlImageUrl: url } : {}),
+    queueParamsBase: {
+      controlNetMode: 'pose',
+      controlNetStrengths: [POSE_GUIDE_CONTROLNET_STRENGTH],
+      // The guide already is a keypoint map — running DWPose on it again would be wrong.
+      controlNetSkipPreprocessor: true,
+      controlNetModelFilename,
+    },
+  };
 }
 
 /** Merge pose-guide ControlNet params into an existing queueParamsBase. */

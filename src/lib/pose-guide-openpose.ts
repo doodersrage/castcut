@@ -417,10 +417,23 @@ export function stickToOpenPoseKeypoints(
   let rEar: Point | null = null;
   let lEar: Point | null = null;
 
-  if (facing === 'front') {
-    nose = add(head, scale(axis, -0.05 * radius));
-    rEye = add(head, add(scale(axis, 0.28 * radius), scale(perp, 0.38 * radius)));
-    lEye = add(head, add(scale(axis, 0.28 * radius), scale(perp, -0.38 * radius)));
+  // "Look" turns only the face: a turned gaze draws a profile head on any non-back body; camera
+  // and down draw a face-on head (down with the nose and eyes tipped toward the chest).
+  const gaze = skeleton.gaze;
+  const headFacing: PoseFacing = back
+    ? facing
+    : gaze === 'left' || gaze === 'right'
+      ? gaze
+      : gaze === 'camera' || gaze === 'down'
+        ? 'front'
+        : facing;
+  const lookDown = gaze === 'down';
+
+  if (headFacing === 'front') {
+    nose = add(head, scale(axis, (lookDown ? -0.55 : -0.05) * radius));
+    const eyeRise = (lookDown ? 0.02 : 0.28) * radius;
+    rEye = add(head, add(scale(axis, eyeRise), scale(perp, 0.38 * radius)));
+    lEye = add(head, add(scale(axis, eyeRise), scale(perp, -0.38 * radius)));
     rEar = add(head, add(scale(axis, 0.12 * radius), scale(perp, 0.85 * radius)));
     lEar = add(head, add(scale(axis, 0.12 * radius), scale(perp, -0.85 * radius)));
   } else if (back) {
@@ -428,7 +441,7 @@ export function stickToOpenPoseKeypoints(
     rEar = add(head, add(scale(axis, 0.12 * radius), scale(perp, -0.8 * radius)));
     lEar = add(head, add(scale(axis, 0.12 * radius), scale(perp, 0.8 * radius)));
   } else {
-    const dir = FACING_VECTORS[facing];
+    const dir = FACING_VECTORS[headFacing as keyof typeof FACING_VECTORS];
     nose = add(head, scale(dir, 0.85 * radius));
     const eye = add(head, add(scale(dir, 0.5 * radius), scale(axis, 0.28 * radius)));
     const ear = add(head, add(scale(dir, -0.28 * radius), scale(axis, 0.12 * radius)));

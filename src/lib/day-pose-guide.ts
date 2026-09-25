@@ -75,7 +75,14 @@ export type StickSkeleton = {
   rAnkle: Point;
   /** Head direction for OpenPose face points; inferred from joint geometry when unset. */
   facing?: PoseFacing;
+  /**
+   * Where the face points, independent of the body (picked with "Look"): at the camera, turned
+   * to image-left / image-right, or tipped down. Only the face keypoints change.
+   */
+  gaze?: StickGaze;
 };
+
+export type StickGaze = 'camera' | 'left' | 'right' | 'down';
 
 const WIDTH = 512;
 const HEIGHT = 768;
@@ -2489,6 +2496,12 @@ export function mirrorStickSkeleton(skeleton: StickSkeleton, centerX = 0.5): Sti
     lAnkle: flip(skeleton.rAnkle),
     rAnkle: flip(skeleton.lAnkle),
     ...(skeleton.facing ? { facing: mirrorPoseFacing(skeleton.facing) } : {}),
+    ...(skeleton.gaze
+      ? {
+          gaze:
+            skeleton.gaze === 'left' ? 'right' : skeleton.gaze === 'right' ? 'left' : skeleton.gaze,
+        }
+      : {}),
   };
 }
 
@@ -4702,7 +4715,36 @@ export type SceneStickOptions = {
   plainPosture?: boolean;
   /** Two or more people: which side of the frame the lead (Cast) figure stands on. */
   leadSide?: 'left' | 'right';
+  /** Where the lead looks (turns only the face keypoints). */
+  look?: PoseLookChoice;
 };
+
+export type PoseLookChoice = 'camera' | 'away' | 'down' | 'partner';
+export const POSE_LOOK_CHOICES: readonly PoseLookChoice[] = ['camera', 'away', 'down', 'partner'];
+
+export function normalizePoseLookChoice(raw: unknown): PoseLookChoice | undefined {
+  return typeof raw === 'string' && (POSE_LOOK_CHOICES as readonly string[]).includes(raw)
+    ? (raw as PoseLookChoice)
+    : undefined;
+}
+
+/**
+ * The lead's face direction for a Look choice: away turns toward the nearer frame edge (off
+ * camera), partner toward the other figure (away when solo).
+ */
+function leadGaze(figures: StickSkeleton[], look: PoseLookChoice): StickGaze {
+  if (look === 'camera' || look === 'down') return look;
+  const lead = figures[0]!;
+  if (look === 'partner' && figures.length > 1) {
+    return figures[1]!.pelvis.x < lead.pelvis.x ? 'left' : 'right';
+  }
+  return lead.pelvis.x < 0.5 ? 'left' : 'right';
+}
+
+function applyLook(figures: StickSkeleton[], look: PoseLookChoice | undefined): StickSkeleton[] {
+  if (!look || figures.length === 0) return figures;
+  return [{ ...figures[0]!, gaze: leadGaze(figures, look) }, ...figures.slice(1)];
+}
 
 /** Mirror a multi-person drawing when the lead stands on the other side from `side`. */
 function placeLeadSide(
@@ -4729,7 +4771,10 @@ export function synthesizeSceneStickFigures(
   const result = synthesizeSceneStickFiguresBase(text, fallbackIndex, options, variant);
   const figures =
     variant % 2 === 1 ? result.figures.map(figure => mirrorStickSkeleton(figure)) : result.figures;
-  return { ...result, figures: placeLeadSide(figures, options?.leadSide) };
+  return {
+    ...result,
+    figures: applyLook(placeLeadSide(figures, options?.leadSide), options?.look),
+  };
 }
 
 function applyScenePoseSpec(
@@ -5289,7 +5334,12 @@ export type PoseGuideBuildOptions = SceneStickOptions & {
 };
 
 /** Skeletons read from a reference photo for one slot / beat (lead first, 0–1 of the photo). */
-export type PhotoPose = { aspect: number; people: NormalizedBody[] };
+export type PhotoPose = {
+  aspect: number;
+  people: NormalizedBody[];
+  /** Read from a photo (default) or dragged into shape in the joint editor. */
+  source?: 'photo' | 'edited';
+};
 
 export type PoseCameraChoice = 'front' | 'side' | 'overhead' | 'low';
 export const POSE_CAMERA_CHOICES: readonly PoseCameraChoice[] = [
@@ -5306,7 +5356,7 @@ export function photoPoseKey(people: number): string {
 
 export function normalizePhotoPose(raw: unknown): PhotoPose | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
-  const record = raw as { aspect?: unknown; people?: unknown };
+  const record = raw as { aspect?: unknown; people?: unknown; source?: unknown };
   const aspect =
     typeof record.aspect === 'number' && record.aspect > 0.1 && record.aspect < 10
       ? record.aspect
@@ -5327,7 +5377,8 @@ export function normalizePhotoPose(raw: unknown): PhotoPose | undefined {
           : null;
       })
     );
-  return people.length > 0 ? { aspect, people } : undefined;
+  if (people.length === 0) return undefined;
+  return record.source === 'edited' ? { aspect, people, source: 'edited' } : { aspect, people };
 }
 
 export function normalizePoseCameraChoice(raw: unknown): PoseCameraChoice | undefined {

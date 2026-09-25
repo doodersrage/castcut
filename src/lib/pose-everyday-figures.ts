@@ -12,7 +12,7 @@ import type { PoseGuideBase, SocialLayout, StickSkeleton } from '@/lib/day-pose-
 
 type Point = { x: number; y: number };
 type Joint = readonly [number, number];
-type JointName = Exclude<keyof StickSkeleton, 'facing'>;
+type JointName = Exclude<keyof StickSkeleton, 'facing' | 'gaze'>;
 export type JointSpec = Record<JointName, Joint>;
 
 const JOINTS: readonly JointName[] = [

@@ -39,7 +39,7 @@ import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs'
 import { buildStoryPoseGuide } from '@/lib/day-pose-guide';
 import { mergePickedPose } from '@/lib/day-slot-pose';
 import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play-metrics';
-import { poseLayoutCueLine, poseLimbFixNudge } from '@/lib/pose-coaching';
+import { poseLayoutCueLine, poseLimbFixNudge, poseLookLine } from '@/lib/pose-coaching';
 import { DEFAULT_MIN_POSE_MATCH, POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { loadPoseLibrary } from '@/lib/pose-library';
@@ -156,7 +156,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
   );
 
   const queueStillOptions = useCallback(
-    (poseGuide?: { filename?: string; imageUrl?: string }, beat?: RoleplayStoryBeat) =>
+    (
+      poseGuide?: {
+        filename?: string;
+        imageUrl?: string;
+        prompt?: { style?: PoseGuideStylePreference };
+      },
+      beat?: RoleplayStoryBeat
+    ) =>
       buildRoleplayQueueStillOptions({
         photoMode: playAs === 'photo',
         isolateSubject,
@@ -173,6 +180,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         customGarmentFilename: toolSettings.customGarmentImageFilename,
         poseGuideFilename: poseGuide?.filename,
         poseGuideUrl: poseGuide?.imageUrl,
+        poseGuideStyle: poseGuide?.prompt?.style,
         omitGarment: storyBeatOmitsGarmentPackshot(beat),
         model: shared.model,
       }),
@@ -230,6 +238,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           ...(beat.posePhoto ? { photoPose: beat.posePhoto } : {}),
           ...(beat.poseCamera ? { camera: beat.poseCamera } : {}),
           ...(beat.poseLead ? { leadSide: beat.poseLead } : {}),
+          ...(beat.poseLook ? { look: beat.poseLook } : {}),
           aspect,
           library: openPose ? loadPoseLibrary() : [],
         });
@@ -258,7 +267,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             ? poseLayoutCueLine(drawnLayout)
             : '';
         return {
-          cueLine,
+          cueLine: [cueLine, poseLookLine(beat.poseLook, poseBuild.figureCount)]
+            .filter(Boolean)
+            .join('\n'),
           filename: poseGuideFilename,
           imageUrl: poseGuideUrl,
           prompt: {

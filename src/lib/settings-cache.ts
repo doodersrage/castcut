@@ -523,6 +523,11 @@ export type SharedToolSettings = {
   renderRealismMode?: RenderRealismMode;
   /** Day / Story Image 3 pose-guide art: OpenPose keypoints (default) or legacy capsules. */
   poseGuideStyle?: PoseGuideStylePreference;
+  /**
+   * Also send OpenPose Image 3 guides through a mapped ControlNet (off by default). Never for
+   * the legacy filled mannequin, which ghosts into the still.
+   */
+  poseGuideControlNet?: boolean;
   /** Auto-adjust prompts to reduce mutations and extra limbs on queue. */
   anatomyGuardMode?: AnatomyGuardMode;
   /** When true (default), patch EmptyLatentImage and loader nodes directly at queue time. */
@@ -1230,6 +1235,7 @@ export const DEFAULT_SHARED_SETTINGS: SharedToolSettings = {
   modelResolutionSizeTier: DEFAULT_RESOLUTION_SIZE_TIER,
   renderRealismMode: DEFAULT_RENDER_REALISM_MODE,
   poseGuideStyle: DEFAULT_POSE_GUIDE_STYLE,
+  poseGuideControlNet: false,
   anatomyGuardMode: DEFAULT_ANATOMY_GUARD_MODE,
   directWorkflowPatching: true,
   syncWorkflowLoadersToModel: false,
@@ -1664,6 +1670,7 @@ export function loadSettingsCache(): SettingsCache {
       shared.renderRealismMode ?? DEFAULT_SHARED_SETTINGS.renderRealismMode
     );
     shared.poseGuideStyle = normalizePoseGuideStylePreference(shared.poseGuideStyle);
+    shared.poseGuideControlNet = shared.poseGuideControlNet === true;
     shared.anatomyGuardMode = normalizeAnatomyGuardMode(
       shared.anatomyGuardMode ?? DEFAULT_ANATOMY_GUARD_MODE
     );

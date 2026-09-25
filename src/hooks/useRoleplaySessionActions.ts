@@ -9,7 +9,7 @@ import {
   getRoleplayArchetype,
   patchRoleplayStoryBeat,
   selectRoleplayClipTakePatch,
-  selectRoleplayStillTakePatch,
+  pinRoleplayStillTakePatch,
   type RoleplayBio,
   type RoleplayContentId,
   type RoleplayStoryBeat,
@@ -58,7 +58,7 @@ export function useRoleplaySessionActions({
         story: patchRoleplayStoryBeat(
           storyRef.current,
           latest,
-          selectRoleplayStillTakePatch(latest, index)
+          pinRoleplayStillTakePatch(latest, index)
         ),
       });
     },
@@ -70,7 +70,7 @@ export function useRoleplaySessionActions({
       beat: RoleplayStoryBeat,
       patch: Pick<
         RoleplayStoryBeat,
-        'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead'
+        'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead' | 'poseLook'
       >
     ) => {
       const latest =

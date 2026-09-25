@@ -712,6 +712,15 @@ test('day slot editor previews the pose and lets you change it', async ({ page }
   await page.getByTestId('day-slot-pose-preview-camera').selectOption('low');
   await expect(page.getByTestId('day-slot-pose-preview-camera')).toHaveValue('low');
   await expect(page.getByTestId('day-slot-pose-preview-photo')).toContainText('Use a photo');
+  await page.getByTestId('day-slot-pose-preview-look').selectOption('down');
+  await expect(page.getByTestId('day-slot-pose-preview-look')).toHaveValue('down');
+  // Edit joints: nudge the Cast's right wrist with the keyboard and use the edited pose.
+  await page.getByTestId('day-slot-pose-preview-edit').click();
+  const wrist = page.getByTestId('day-slot-pose-preview-joint-0-4');
+  await wrist.focus();
+  await page.keyboard.press('Shift+ArrowUp');
+  await page.getByTestId('day-slot-pose-preview-editor-save').click();
+  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Your edit');
 });
 
 test('dashboard shows pose match by layout and the words-first ladder', async ({ page }) => {

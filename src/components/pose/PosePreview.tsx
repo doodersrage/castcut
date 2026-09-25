@@ -2,12 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
+import PoseJointEditor from '@/components/pose/PoseJointEditor';
 import { Button } from '@/components/ui/Button';
 import { SelectInput } from '@/components/ui/Field';
 import { usePoseLibrary } from '@/hooks/usePoseLibrary';
 import {
   POSE_CAMERA_CHOICES,
+  POSE_LOOK_CHOICES,
   resolveSceneGuidePlan,
+  type PoseLookChoice,
   type PhotoPose,
   type PoseCameraChoice,
   type PoseGuideBuildOptions,
@@ -21,6 +24,14 @@ export type PosePicks = {
   posePhoto?: PhotoPose;
   poseCamera?: PoseCameraChoice;
   poseLead?: 'left' | 'right';
+  poseLook?: PoseLookChoice;
+};
+
+const LOOK_LABELS: Record<PoseLookChoice, string> = {
+  camera: 'At the camera',
+  away: 'Away, off frame',
+  down: 'Down',
+  partner: 'At the other person',
 };
 
 const CAMERA_LABELS: Record<PoseCameraChoice, string> = {
@@ -63,6 +74,7 @@ export default function PosePreview({
   const library = usePoseLibrary();
   const [photoStatus, setPhotoStatus] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const plan = useMemo(
     () =>
@@ -78,8 +90,11 @@ export default function PosePreview({
   const { intent, routedAround, openPose } = plan;
   const drawnId = intent.intimate ?? intent.social ?? intent.base;
   const fromPhoto = Boolean(picks.posePhoto);
+  const edited = picks.posePhoto?.source === 'edited';
   const name = fromPhoto
-    ? 'Your photo'
+    ? edited
+      ? 'Your edit'
+      : 'Your photo'
     : `${poseLayoutLabel(drawnId)}${openPose.libraryEntryId ? ' · real pose' : ''}`;
   const people = openPose.keypoints.length;
   const busy = disabled || photoBusy;
@@ -109,6 +124,22 @@ export default function PosePreview({
     const { key } = savePhotoPoseToLibrary(picks.posePhoto, drawnId);
     setPhotoStatus(`Saved to the pose library as ${poseLayoutLabel(drawnId)} (${key}).`);
   };
+
+  if (editing) {
+    return (
+      <PoseJointEditor
+        bodies={openPose.keypoints}
+        aspect={openPose.canvas.width / openPose.canvas.height}
+        testIdPrefix={testIdPrefix}
+        onCancel={() => setEditing(false)}
+        onSave={pose => {
+          onChange({ posePhoto: pose, poseLayout: undefined, poseVariant: undefined });
+          setPhotoStatus('Using your edited pose.');
+          setEditing(false);
+        }}
+      />
+    );
+  }
 
   return (
     <div
@@ -159,7 +190,7 @@ export default function PosePreview({
               })
             }
           >
-            <option value="">{fromPhoto ? 'Your photo' : 'Auto — from the beat'}</option>
+            <option value="">{fromPhoto ? name : 'Auto — from the beat'}</option>
             {POSE_PICKER_GROUPS.map(group => (
               <optgroup key={group.label} label={group.label}>
                 {group.ids.map(id => (
@@ -221,8 +252,34 @@ export default function PosePreview({
               <option value="right">Lead on the right</option>
             </SelectInput>
           ) : null}
+          <SelectInput
+            value={picks.poseLook ?? ''}
+            disabled={busy}
+            aria-label="Where the Cast looks"
+            data-testid={`${testIdPrefix}-look`}
+            className={selectClass}
+            onChange={event =>
+              onChange({ poseLook: (event.target.value || undefined) as PoseLookChoice })
+            }
+          >
+            <option value="">Look: as posed</option>
+            {POSE_LOOK_CHOICES.filter(choice => choice !== 'partner' || people > 1).map(choice => (
+              <option key={choice} value={choice}>
+                {LOOK_LABELS[choice]}
+              </option>
+            ))}
+          </SelectInput>
         </div>
         <div className="flex flex-wrap items-center gap-2 type-caption text-[var(--text-muted)]">
+          <button
+            type="button"
+            className="underline"
+            disabled={busy}
+            data-testid={`${testIdPrefix}-edit`}
+            onClick={() => setEditing(true)}
+          >
+            Edit joints
+          </button>
           <label className="cursor-pointer underline" data-testid={`${testIdPrefix}-photo`}>
             {photoBusy ? 'Reading…' : fromPhoto ? 'Use another photo…' : 'Use a photo…'}
             <input
@@ -248,7 +305,7 @@ export default function PosePreview({
                   setPhotoStatus(null);
                 }}
               >
-                Clear photo
+                {edited ? 'Clear edit' : 'Clear photo'}
               </button>
               <button
                 type="button"

@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { UseRoleplayBeatQueueOptions } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
-import { patchRoleplayStoryBeat } from '@/lib/roleplay';
+import {
+  autoPickRoleplayStillTakePatch,
+  patchRoleplayStoryBeat,
+  withRoleplayTakeChecks,
+} from '@/lib/roleplay';
 import { nextStoryPoseCheck } from '@/lib/roleplay-pose-check';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
@@ -114,16 +118,32 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
         }
         const latest =
           storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at) ?? beat;
+        const checks = {
+          poseMatch: {
+            imageUrl,
+            score: match.score,
+            expectedPeople: match.expectedPeople,
+            detectedPeople: match.detectedPeople,
+            ...(missView ? { missView } : {}),
+          },
+          ...(faceMatch ? { faceMatch } : {}),
+        };
+        // Keep the scores on the take too, then show a clearly better earlier take (fewer
+        // misses, or a much closer pose) unless the player picked this one.
+        const checked = {
+          ...latest,
+          ...checks,
+          stillTakes: withRoleplayTakeChecks(latest, imageUrl, checks),
+        };
+        const autoPick = autoPickRoleplayStillTakePatch(checked, {
+          minPose: DEFAULT_MIN_POSE_MATCH,
+          minFace: DEFAULT_MIN_FACE_MATCH,
+        });
         updateToolSettings({
           story: patchRoleplayStoryBeat(storyRef.current, latest, {
-            poseMatch: {
-              imageUrl,
-              score: match.score,
-              expectedPeople: match.expectedPeople,
-              detectedPeople: match.detectedPeople,
-              ...(missView ? { missView } : {}),
-            },
-            ...(faceMatch ? { faceMatch } : {}),
+            ...checks,
+            stillTakes: checked.stillTakes,
+            ...(autoPick ?? {}),
           }),
         });
       } catch (error) {

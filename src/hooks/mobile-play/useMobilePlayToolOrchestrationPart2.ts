@@ -6,7 +6,7 @@ import {
   appendRoleplayStoryBeat,
   patchRoleplayStoryBeat,
   selectRoleplayClipTakePatch,
-  selectRoleplayStillTakePatch,
+  pinRoleplayStillTakePatch,
   lastRoleplayPlotBeat,
   roleplayStoryPhase,
   type RoleplayBio,
@@ -199,7 +199,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
         story: patchRoleplayStoryBeat(
           storyRef.current,
           latest,
-          selectRoleplayStillTakePatch(latest, index)
+          pinRoleplayStillTakePatch(latest, index)
         ),
       });
     },
@@ -211,7 +211,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
       beat: RoleplayStoryBeat,
       patch: Pick<
         RoleplayStoryBeat,
-        'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead'
+        'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead' | 'poseLook'
       >
     ) => {
       const latest =

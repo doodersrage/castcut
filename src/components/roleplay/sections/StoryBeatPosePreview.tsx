@@ -9,7 +9,9 @@ import type { RoleplayStoryBeat } from '@/lib/roleplay';
 
 /** Whether a beat has any pose choice set (keeps its Pose section open). */
 export function storyBeatHasPosePicks(beat: RoleplayStoryBeat): boolean {
-  return Boolean(beat.poseLayout || beat.posePhoto || beat.poseCamera || beat.poseLead);
+  return Boolean(
+    beat.poseLayout || beat.posePhoto || beat.poseCamera || beat.poseLead || beat.poseLook
+  );
 }
 
 /**
@@ -42,12 +44,14 @@ export default function StoryBeatPosePreview({
       ...(beat.posePhoto ? { photoPose: beat.posePhoto } : {}),
       ...(beat.poseCamera ? { camera: beat.poseCamera } : {}),
       ...(beat.poseLead ? { leadSide: beat.poseLead } : {}),
+      ...(beat.poseLook ? { look: beat.poseLook } : {}),
     };
   }, [
     beat.pose,
     beat.poseCamera,
     beat.poseLayout,
     beat.poseLead,
+    beat.poseLook,
     beat.posePhoto,
     beat.poseVariant,
   ]);

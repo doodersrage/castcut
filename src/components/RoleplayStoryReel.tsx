@@ -62,7 +62,7 @@ export default function RoleplayStoryReel({
     beat: RoleplayStoryBeat,
     patch: Pick<
       RoleplayStoryBeat,
-      'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead'
+      'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead' | 'poseLook'
     >
   ) => void;
   onRollScenes?: () => void;

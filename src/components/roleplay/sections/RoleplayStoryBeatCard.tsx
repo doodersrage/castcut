@@ -7,6 +7,7 @@ import {
   canRetryRoleplayClip,
   lastCompletedRoleplayStillUrl,
   roleplayClipTakes,
+  roleplayStillTakeIndex,
   roleplayStillTakes,
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
@@ -40,7 +41,7 @@ type Props = {
     beat: RoleplayStoryBeat,
     patch: Pick<
       RoleplayStoryBeat,
-      'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead'
+      'poseLayout' | 'poseVariant' | 'posePhoto' | 'poseCamera' | 'poseLead' | 'poseLook'
     >
   ) => void;
 };
@@ -129,6 +130,15 @@ export function RoleplayStoryBeatCard({
             {beat.title}
           </p>
           <p className="type-caption text-[var(--text-muted)]">{beat.blurb}</p>
+          {beat.stillTakeAutoPicked && takes.length > 1 ? (
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              data-testid="story-take-autopicked"
+            >
+              Showing take {roleplayStillTakeIndex(beat) + 1} of {takes.length} — it matched the
+              pose / Cast better than the newest. Tap another take to pick it yourself.
+            </p>
+          ) : null}
           {poseMatch ? (
             <p
               className={`type-caption ${

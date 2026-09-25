@@ -1,6 +1,7 @@
 import {
   normalizePhotoPose,
   normalizePoseCameraChoice,
+  normalizePoseLookChoice,
   normalizeScenePoseSpec,
 } from '@/lib/day-pose-guide';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
@@ -150,6 +151,10 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
   }
   if (record.poseLead === 'left' || record.poseLead === 'right') {
     beat.poseLead = record.poseLead;
+  }
+  const poseLook = normalizePoseLookChoice(record.poseLook);
+  if (poseLook) {
+    beat.poseLook = poseLook;
   }
   return beat;
 }

@@ -159,6 +159,8 @@ export function buildRoleplayQueueStillOptions(input: {
   /** Crude stick-figure pose guide as Image 3. */
   poseGuideFilename?: string | null;
   poseGuideUrl?: string | null;
+  /** Style the guide was drawn in — only OpenPose guides may go through ControlNet. */
+  poseGuideStyle?: import('./pose-guide-prompt').PoseGuideStylePreference | null;
   /** Drop Image 2 clothing packshot (intimate nude/sex beats). */
   omitGarment?: boolean;
   /** Active Comfy model — gates ControlNet attach when a CN weight is mapped. */
@@ -214,6 +216,7 @@ export function buildRoleplayQueueStillOptions(input: {
         poseGuideFilename,
         poseGuideUrl,
         model: input.model,
+        style: input.poseGuideStyle,
         controlNetMap: input.controlNetMap,
       })
     : undefined;
