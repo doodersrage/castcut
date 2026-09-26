@@ -24,7 +24,7 @@ import {
 import {
   captionOpacity,
   normalizeFilmTitleCard,
-  sanitizeFilmCaption,
+  filmShotCaption,
   stillMotionZoom,
   TITLE_CARD_SEC,
   type FilmTitleCard,
@@ -575,7 +575,7 @@ export async function assembleFilmBlob(
     await wait(80);
 
     const titleCard = normalizeFilmTitleCard(options?.titleCard);
-    const captionFor = (title: string) => (options?.captions ? sanitizeFilmCaption(title) : '');
+    const captionFor = (shot: FilmPlaylistShot) => (options?.captions ? filmShotCaption(shot) : '');
 
     try {
       if (titleCard) {
@@ -588,7 +588,7 @@ export async function assembleFilmBlob(
       for (const [index, entry] of resolvedShots.entries()) {
         const shot = entry.shot;
         const src = entry.src;
-        const caption = captionFor(shot.title);
+        const caption = captionFor(shot);
         options?.onProgress?.({
           ratio: index / resolvedShots.length,
           label: `Recording ${index + 1} of ${resolvedShots.length} · ${shot.title}`,

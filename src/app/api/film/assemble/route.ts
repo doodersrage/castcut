@@ -42,12 +42,15 @@ function parseShots(raw: unknown): FilmPlaylistShot[] {
         ? record.holdSec
         : undefined;
     const entryId = typeof record.entryId === 'string' ? record.entryId.trim() : undefined;
+    // Edited in the Cut shot list — dropping it burned the shot title instead.
+    const caption = typeof record.caption === 'string' ? record.caption.trim() : '';
     shots.push({
       url,
       title: title || 'shot',
       kind,
       ...(holdSec != null ? { holdSec } : {}),
       ...(entryId ? { entryId } : {}),
+      ...(caption ? { caption } : {}),
     });
   }
   return shots;

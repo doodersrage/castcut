@@ -70,6 +70,11 @@ export function sanitizeFilmCaption(text: string | null | undefined, max = 60): 
   return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean;
 }
 
+/** Caption burned onto a shot: the one edited in the Cut shot list, else the shot title. */
+export function filmShotCaption(shot: { title?: string; caption?: string }): string {
+  return sanitizeFilmCaption(shot.caption?.trim() || shot.title);
+}
+
 /** Normalize a title card; null when there is no title to show. */
 export function normalizeFilmTitleCard(value: unknown): FilmTitleCard | null {
   if (!value || typeof value !== 'object') return null;

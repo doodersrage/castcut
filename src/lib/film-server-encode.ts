@@ -18,6 +18,7 @@ import {
 
 import {
   captionAlphaExpr,
+  filmShotCaption,
   sanitizeFilmCaption,
   stillMotionZoomExpr,
   STILL_MOTION_FPS,
@@ -465,7 +466,7 @@ export async function encodeFilmPlaylistServer(
       graphHolds.push(holdSecs[i]!);
       graphText.push({
         captionFile: options.captions
-          ? await writeText(`caption-${i}.txt`, shots[i]?.title ?? '')
+          ? await writeText(`caption-${i}.txt`, shots[i] ? filmShotCaption(shots[i]) : '')
           : null,
       });
       if (kinds[i] === 'still' && options.stillMotion) {

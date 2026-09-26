@@ -7,6 +7,7 @@ import {
   sanitizeFilmCaption,
   stillMotionZoom,
   stillMotionZoomExpr,
+  filmShotCaption,
 } from './film-polish';
 import { buildFilterComplex } from './film-server-encode';
 import { posterTitleLayout } from './film-poster';
@@ -132,5 +133,13 @@ describe('titles for posters and Day cuts', () => {
     };
     assert.equal(nextDayFilmTitleCard(closed, 'c1', 'Robin').subtitle, 'Season 2 · Episode 1');
     assert.equal(currentSeasonLabel(closed, 'c1'), 'Season 1');
+  });
+});
+
+describe('filmShotCaption', () => {
+  it('uses the caption edited in the Cut shot list, else the shot title', () => {
+    assert.equal(filmShotCaption({ title: 'Morning run', caption: '  Coffee first  ' }), 'Coffee first');
+    assert.equal(filmShotCaption({ title: 'Morning run', caption: '   ' }), 'Morning run');
+    assert.equal(filmShotCaption({ title: 'Morning run' }), 'Morning run');
   });
 });
