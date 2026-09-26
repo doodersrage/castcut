@@ -122,10 +122,16 @@ test('command palette finds a setting and deep-links to it', async ({ page }) =>
 test('settings looks for ComfyUI at the usual addresses when it is not answering', async ({
   page,
 }) => {
+  // The card hides once health says ComfyUI is up — report it down so this runs the same
+  // on a dev box with ComfyUI running as in CI with nothing listening.
+  await page.route('**/api/health', route =>
+    route.fulfill({
+      json: { comfyui: { ok: false, error: 'fetch failed' }, llm: { enabled: false } },
+    })
+  );
   await gotoStable(page, '/settings?tab=comfyui&section=connection');
   const card = page.getByTestId('service-discovery');
   await expect(card).toBeVisible({ timeout: 20_000 });
-  // Health may still be loading (or rate-limited under parallel tests) — ask explicitly.
   await card.getByTestId('service-discovery-search').click();
   // Nothing runs locally in CI: it says so rather than offering a wrong address.
   await expect(
