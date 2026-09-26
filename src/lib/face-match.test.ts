@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   DEFAULT_MIN_FACE_MATCH,
   describeFaceMatch,
+  isNoFaceDistance,
   faceSimilarityFromDistance,
   FACE_MATCH_WARN_BELOW,
   parseFaceDistance,
@@ -23,6 +24,12 @@ describe('face match parsing', () => {
     assert.equal(parseFaceDistance('distance: 0.61'), 0.61);
     assert.equal(parseFaceDistance(''), null);
     assert.equal(parseFaceDistance(undefined), null);
+  });
+
+  it('treats the FaceEmbedDistance no-face sentinel as no face, not a 0% match', () => {
+    assert.equal(isNoFaceDistance(100), true);
+    assert.equal(isNoFaceDistance(0.53), false);
+    assert.equal(isNoFaceDistance(1.9), false);
   });
 
   it('turns cosine and L2 distances into a 0–1 similarity', () => {

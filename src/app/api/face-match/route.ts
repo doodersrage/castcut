@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { measureFaceMatchInComfy } from '@/lib/face-match-server';
+import { FaceMatchNoFaceError, measureFaceMatchInComfy } from '@/lib/face-match-server';
 
 export const runtime = 'nodejs';
 
@@ -29,12 +29,16 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Face match failed.';
-    // A still with no detectable face fails inside the node — the client treats 422 as "skip".
-    const status = /not allowed|Invalid URL|allowlist/i.test(message)
-      ? 400
-      : /failed in ComfyUI/i.test(message)
+    // No detectable face (node error on the reference, sentinel distance on the still) —
+    // the client treats 422 as "skip".
+    const status =
+      error instanceof FaceMatchNoFaceError
         ? 422
-        : 502;
+        : /not allowed|Invalid URL|allowlist/i.test(message)
+          ? 400
+          : /failed in ComfyUI/i.test(message)
+            ? 422
+            : 502;
     return apiError(message, status);
   }
 }

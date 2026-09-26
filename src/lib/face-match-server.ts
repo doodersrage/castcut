@@ -18,11 +18,20 @@ import {
 } from '@/lib/comfy-utility-graph-server';
 import {
   faceSimilarityFromDistance,
+  isNoFaceDistance,
   parseFaceDistance,
   type FaceMatchResult,
 } from '@/lib/face-match';
 
 export type { FaceMatchResult };
+
+/** The still has no detectable face (turned away, helmet, from behind) — skip, don't score 0. */
+export class FaceMatchNoFaceError extends Error {
+  constructor() {
+    super('No face detected in the still.');
+    this.name = 'FaceMatchNoFaceError';
+  }
+}
 
 /** Index of the first output of `type` (e.g. FaceEmbedDistance's FLOAT distance). */
 export function comfyOutputIndex(info: ComfyNodeInfo, type: string): number {
@@ -96,6 +105,9 @@ export async function measureFaceMatchInComfy(input: {
   const value = run.result === undefined ? null : parseFaceDistance(run.result);
   if (value === null) {
     return { available: false, reason: 'FaceEmbedDistance returned no distance.' };
+  }
+  if (isNoFaceDistance(value)) {
+    throw new FaceMatchNoFaceError();
   }
   return {
     available: true,

@@ -47,6 +47,16 @@ export function parseFaceDistance(raw: unknown): number | null {
   return pick(raw);
 }
 
+/**
+ * FaceEmbedDistance reports this distance (as a success) when it finds no face in the still —
+ * a missing face in the reference raises instead. Not a similarity: nothing to judge.
+ */
+export const FACE_EMBED_NO_FACE_DISTANCE = 100;
+
+export function isNoFaceDistance(distance: number): boolean {
+  return distance >= FACE_EMBED_NO_FACE_DISTANCE;
+}
+
 /** Similarity from a FaceEmbedDistance value for the metric that produced it. */
 export function faceSimilarityFromDistance(distance: number, metric: string): number {
   if (metric === 'cosine') {
