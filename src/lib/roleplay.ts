@@ -1067,7 +1067,13 @@ export function storyStillPromptSource(input: {
   blurb?: string | null;
   title?: string | null;
 }): string {
-  const llm = input.llmPrompt.trim();
+  // A stored prompt (reroll) can carry a canned rear-entry recipe from an older rewrite — e.g. the
+  // all-fours block on a beat at a railing. Drop it; the final rewrite below re-derives one only
+  // if the beat still calls for it.
+  const llm = input.llmPrompt
+    .replace(/Behind: (?:standing )?rear-entry sex\.[\s\S]*?readable anatomy\./g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
   const blurb = input.blurb?.trim() || '';
   const haystack = [input.title, blurb, llm].filter(Boolean).join(' · ');
   const intimate = Boolean(parseIntimateLayout(haystack)) || intimateTextImpliesAct(haystack);

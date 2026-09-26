@@ -1061,3 +1061,31 @@ describe('Story with no Part', () => {
     assert.match(opening.map(scene => scene.blurb).join(' '), /Nova/);
   });
 });
+
+describe('storyStillPromptSource on reroll', () => {
+  const allFoursRecipe =
+    'Behind: rear-entry sex. indoors, on a firm surface. Exactly TWO adults, exactly two faces, four hands only. Lead on hands and knees, hips raised; partner kneeling behind. ¾ rear three-quarter camera, clean separate bodies, readable anatomy.';
+
+  it('drops a stale all-fours recipe from the stored prompt when the beat is standing', async () => {
+    const { storyStillPromptSource } = await import('./roleplay');
+    const prompt = storyStillPromptSource({
+      llmPrompt: `Match Image 3 body positions.\n${allFoursRecipe}\nWarm rim light.`,
+      title: 'Iron Balcony',
+      blurb:
+        'Lana stands barefoot on a rusted iron railing, back pressed to steel as he fucks her up against the metal',
+    });
+    assert.doesNotMatch(prompt, /hands and knees/);
+    assert.match(prompt, /Warm rim light/);
+  });
+
+  it('keeps all fours when the beat itself is on hands and knees', async () => {
+    const { storyStillPromptSource } = await import('./roleplay');
+    const prompt = storyStillPromptSource({
+      llmPrompt: allFoursRecipe,
+      title: 'Late night',
+      blurb: 'She is on her hands and knees on the bed as he takes her from behind',
+    });
+    assert.match(prompt, /hands and knees/);
+  });
+});
+
