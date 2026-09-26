@@ -892,10 +892,69 @@ function intimateBaseForLayout(layout: IntimateLayout): PoseGuideBase {
  * Checked before everyday social layouts so "martial arts" does not become duo fight
  * and "golf swing" does not fall through to a standing Keep pin-up.
  */
+/**
+ * Day Sport beats name their sport ("— ski athletic action"). Settle sports whose action words
+ * collide with another sport's first — an "ollie" on skis, "carving" a berm on a bike, "starting
+ * blocks" under track and field — or the guide draws a different activity than the beat.
+ */
+function parseNamedSportLayout(haystack: string): SocialLayout | null {
+  const named = (label: string) =>
+    new RegExp(`\\b${label}\\s+athletic\\s+action\\b`, 'i').test(haystack);
+  if (named('ski')) {
+    return 'sport_ski';
+  }
+  if (
+    named(
+      '(?:mountain\\s+biking|cyclocross|gravel\\s+cycling|road\\s+cycling|track\\s+cycling|cycling)'
+    )
+  ) {
+    // Cyclocross run-ups carry the bike on foot.
+    return /\bshouldering\s+the\s+bike\b/i.test(haystack) ? 'sport_sprint' : 'sport_cycle';
+  }
+  if (named('triathlon')) {
+    if (/\b(swim(?:s|ming)?|freestyle|open\s+water|diving\s+into)\b/i.test(haystack)) {
+      return 'sport_swim';
+    }
+    if (/\b(bike\s+leg|aero\s+tuck|onto\s+the\s+saddle|mounting\s+the\s+bike)\b/i.test(haystack)) {
+      return 'sport_cycle';
+    }
+    return 'sport_sprint';
+  }
+  if (named('track\\s+and\\s+field')) {
+    if (/\b(starting\s+blocks|sprint(?:s|ing)?)\b/i.test(haystack)) {
+      return 'sport_sprint';
+    }
+    if (/\b(high\s+jump|fosbury|pole\s+vault|vault|long[- ]jump)\b/i.test(haystack)) {
+      return 'sport_hurdle';
+    }
+    return 'sport_throw';
+  }
+  if (named('baseball')) {
+    if (/\b(squatting\s+behind\s+the\s+plate|catcher)\b/i.test(haystack)) {
+      return 'sport_squat';
+    }
+    if (/\bthrowing\s+from\b/i.test(haystack)) {
+      return 'sport_throw';
+    }
+    if (/\b(snagging|glove\s+stretched|diving\s+catch)\b/i.test(haystack)) {
+      return 'sport_lunge';
+    }
+    return null;
+  }
+  if (named('martial\\s+arts') && /\b(reverse\s+punch|punch(?:es|ing)?)\b/i.test(haystack)) {
+    return 'sport_box';
+  }
+  return null;
+}
+
 export function parseSportLayout(text: string | null | undefined): SocialLayout | null {
   const haystack = text?.trim() || '';
   if (!haystack) {
     return null;
+  }
+  const namedSport = parseNamedSportLayout(haystack);
+  if (namedSport) {
+    return namedSport;
   }
 
   if (/\b(downward\s+dog|down[- ]dog)\b/i.test(haystack)) {

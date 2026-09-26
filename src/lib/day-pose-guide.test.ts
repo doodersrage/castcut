@@ -1176,4 +1176,33 @@ describe('everyday pose layouts', () => {
     assert.equal(everyday.intimate ?? null, null);
     assert.equal(everyday.social, 'lean_wall');
   });
+  it('parseSportLayout lets the named sport settle actions shared with another sport', async () => {
+    const { parseSportLayout } = await import('./day-pose-guide');
+    const { buildDaySportBeatPresets } = await import('./day-sport');
+    const { DAY_PARTS } = await import('./day-parts');
+    const beat = (pose: string, sport: string) =>
+      `${pose} — ${sport} athletic action in proper ${sport} kit and sport footwear`;
+    const cases: Array<[string, string, string]> = [
+      ['diving into open water with a long freestyle pull and splash', 'triathlon', 'sport_swim'],
+      ['mounting the bike in transition with a flying leap onto the saddle', 'triathlon', 'sport_cycle'],
+      ['sprinting off the bike toward the run segment', 'triathlon', 'sport_sprint'],
+      ['exploding out of starting blocks on the track', 'track and field', 'sport_sprint'],
+      ['planting the pole and rising into a vault over the bar', 'track and field', 'sport_hurdle'],
+      ['popping a small ollie over a park box with skis level', 'ski', 'sport_ski'],
+      ['carving through a rooty singletrack descent with the bike leaned into a berm', 'mountain biking', 'sport_cycle'],
+      ['shouldering the bike over a wooden barrier with mud on the calves', 'cyclocross', 'sport_sprint'],
+      ['squatting behind the plate framing a pitch with mitt soft', 'baseball', 'sport_squat'],
+      ['unloading into a swing with hips rotating through the zone', 'baseball', 'sport_swing'],
+      ['driving a reverse punch with hips squared and rear heel planted', 'martial arts', 'sport_box'],
+    ];
+    for (const [pose, sport, layout] of cases) {
+      assert.equal(parseSportLayout(beat(pose, sport)), layout, `${sport}: ${pose}`);
+    }
+    // Every Day Sport preset gets a guide — a null layout drops Image 3 for that slot.
+    for (const slot of DAY_PARTS.flatMap(part => [part, `${part}-2` as const])) {
+      for (const line of buildDaySportBeatPresets(slot)) {
+        assert.notEqual(parseSportLayout(line), null, line);
+      }
+    }
+  });
 });
