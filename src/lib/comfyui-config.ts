@@ -9,6 +9,7 @@ import {
   pruneUnresolvedQwenEditFigureLoaders,
   neutralizeNonLightningLoras,
   resolveLightningBf16Loaders,
+  forceFullDenoiseOnEmptyLatentSamplers,
 } from './workflow-lightning-queue';
 import {
   isBooguTurboModel,
@@ -1650,6 +1651,11 @@ export function injectPromptsWithFallbacks(
       force: true,
       mutateInPlace: true,
     }).workflow;
+    // App-supplied denoise (Day pose unlock 0.78–0.92) on a reference edit's empty latent
+    // renders sepia and crunchy; an explicit sidebar override is still the user's call.
+    if (!userDenoiseOverride?.toString().trim()) {
+      forceFullDenoiseOnEmptyLatentSamplers(nextWorkflow);
+    }
   }
 
   injected = {

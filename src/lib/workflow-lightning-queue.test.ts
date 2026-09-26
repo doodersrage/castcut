@@ -4,6 +4,7 @@ import {
   auditLightningWorkflowIssues,
   bypassModelSamplingAuraFlowForLightning,
   ensureLightningModelChainInWorkflow,
+  forceFullDenoiseOnEmptyLatentSamplers,
   neutralizeNonLightningLoras,
   prepareLightningWorkflowForQueue,
   stripLightningHiresPass,
@@ -16,6 +17,21 @@ import { patchModelSamplingInWorkflow } from "./model-sampling-patch";
 import { patchSamplerParamsInWorkflow } from "./comfyui-config";
 
 describe("workflow-lightning-queue", () => {
+  it("forces full denoise when the sampler starts from an empty latent", () => {
+    // Day Suggestive/Vacation sent denoise 0.78 into a Qwen Edit reference graph → sepia, crunchy stills.
+    const workflow: Record<string, unknown> = {
+      "3": { class_type: "KSampler", inputs: { denoise: 0.78, latent_image: ["120", 0], positive: ["130", 0] } },
+      "4": { class_type: "KSampler", inputs: { denoise: 0.6, latent_image: ["127", 0], positive: ["130", 0] } },
+      "120": { class_type: "EmptySD3LatentImage", inputs: { width: 1328, height: 1328, batch_size: 1 } },
+      "127": { class_type: "VAEEncode", inputs: {} },
+    };
+    assert.equal(forceFullDenoiseOnEmptyLatentSamplers(workflow), 1);
+    const nodes = workflow as Record<string, { inputs: { denoise: number } }>;
+    assert.equal(nodes["3"]!.inputs.denoise, 1);
+    // Real img2img from VAEEncode keeps its soft denoise.
+    assert.equal(nodes["4"]!.inputs.denoise, 0.6);
+  });
+
   it("keeps ModelSamplingAuraFlow for lightning models", () => {
     const workflow = {
       "1": { class_type: "UNETLoader", inputs: { unet_name: "qwen.safetensors" } },

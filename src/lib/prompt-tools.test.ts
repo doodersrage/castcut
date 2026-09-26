@@ -2462,7 +2462,7 @@ describe("comfyui runtime queue params", () => {
     assert.equal(sampler.inputs.steps, 8);
   });
 
-  it("honors client queue params denoise on Lightning inject without sidebar runtime", async () => {
+  it("forces full denoise for client queue params on a Lightning empty-latent edit", async () => {
     const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui-config"
     );
     const tokens = resolvePlaceholderTokens();
@@ -2525,7 +2525,8 @@ describe("comfyui runtime queue params", () => {
         typeof node === "object" &&
         (node as { class_type?: string }).class_type === "KSampler",
     ) as { inputs: { denoise: number; cfg: number; steps: number } };
-    assert.equal(sampler.inputs.denoise, 0.58);
+    // Partial denoise on EmptySD3Latent renders sepia/crunchy (Day Suggestive 0.78).
+    assert.equal(sampler.inputs.denoise, 1);
   });
 
   it("applies selected style LoRAs on Edit-2511 Lightning after the Lightning LoRA", async () => {

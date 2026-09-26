@@ -308,6 +308,29 @@ export function ensureRefImageScaleNode(
   return scaleId;
 }
 
+/**
+ * Partial denoise on a blank latent leaves the zero-latent bias in the image — washed-out
+ * sepia/green color and crunchy artifacts. Reference edits carry the plate through
+ * ReferenceLatent, so any sampler fed straight from an empty latent must start from full noise.
+ * Run after the final sampler patch so Day pose-unlock denoise (0.78–0.92) cannot leak in.
+ */
+export function forceFullDenoiseOnEmptyLatentSamplers(workflow: Record<string, unknown>): number {
+  const typed = workflow as Record<string, WorkflowNodeRecord>;
+  let patched = 0;
+  for (const node of Object.values(typed)) {
+    if (!node?.inputs || typeof node.inputs.denoise !== 'number' || node.inputs.denoise >= 1) {
+      continue;
+    }
+    const latentRef = node.inputs.latent_image;
+    const latentType = isNodeOutputRef(latentRef) ? typed[latentRef[0]]?.class_type : undefined;
+    if (latentType && EMPTY_LATENT_TYPES.has(latentType)) {
+      node.inputs.denoise = 1;
+      patched += 1;
+    }
+  }
+  return patched;
+}
+
 /** ReferenceLatent edits start from EmptySD3Latent, not classic img2img VAEEncode. */
 export function ensureQwenEmptyLatentForReferenceEdit(
   workflow: Record<string, WorkflowNodeRecord>,
