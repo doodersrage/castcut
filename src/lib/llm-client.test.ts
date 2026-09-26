@@ -101,3 +101,20 @@ describe("llm-client config resolution", () => {
     });
   });
 });
+
+describe('llmErrorDetail', () => {
+  it('digs the reason out of provider JSON nested in strings', async () => {
+    const { llmErrorDetail } = await import('./llm-client');
+    const lmStudio = JSON.stringify({
+      error:
+        'Engine protocol predict request returned 400: ' +
+        JSON.stringify({ error: { code: 400, message: 'Failed to load image or audio file' } }),
+    });
+    assert.equal(llmErrorDetail(lmStudio), 'Failed to load image or audio file');
+    assert.equal(
+      llmErrorDetail(JSON.stringify({ error: { message: 'model not found' } })),
+      'model not found'
+    );
+    assert.equal(llmErrorDetail('Bad Gateway'), 'Bad Gateway');
+  });
+});

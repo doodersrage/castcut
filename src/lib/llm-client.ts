@@ -100,6 +100,42 @@ function ollamaNativeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/v1\/?$/, '');
 }
 
+/**
+ * Readable reason from an LLM error body. Providers nest JSON in strings (LM Studio: `{"error":
+ * "Engine … returned 400: {\\"error\\":{\\"message\\":\\"Failed to load image…\\"}}"}`), which
+ * otherwise reached the UI as triple-escaped JSON. Falls back to the trimmed body.
+ */
+export function llmErrorDetail(body: string): string {
+  let text = body.trim();
+  for (let depth = 0; depth < 4; depth += 1) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      // Nested JSON after a prefix ("… returned 400: {…}").
+      const brace = text.indexOf('{');
+      if (brace <= 0) break;
+      try {
+        parsed = JSON.parse(text.slice(brace));
+      } catch {
+        break;
+      }
+    }
+    const error = (parsed as { error?: unknown; message?: unknown } | null) ?? null;
+    const next =
+      typeof error?.error === 'string'
+        ? error.error
+        : typeof (error?.error as { message?: unknown } | undefined)?.message === 'string'
+          ? (error!.error as { message: string }).message
+          : typeof error?.message === 'string'
+            ? error.message
+            : null;
+    if (!next || next === text) break;
+    text = next.trim();
+  }
+  return text.slice(0, 300);
+}
+
 export function extractBase64FromDataUrl(dataUrl: string): {
   mimeType: string;
   base64: string;
@@ -646,7 +682,7 @@ async function openAiCompatibleChatCompletion(options: {
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(`LLM request failed (${response.status}): ${detail.slice(0, 300)}`);
+    throw new Error(`LLM request failed (${response.status}): ${llmErrorDetail(detail)}`);
   }
 
   const data = (await parseJsonResponseBody(response)) as {
