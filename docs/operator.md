@@ -67,6 +67,8 @@ Use **Film** (`/play`) for a guided film loop on one Cast character:
 
 If resume shows a character mismatch, use **Switch to resume character** or restart at Look.
 
+If ComfyUI or the LLM doesn't answer, Settings → ComfyUI connection looks for them at the usual local addresses (ComfyUI 8188 / Desktop 8000 / Docker host; Ollama 11434, LM Studio 1234) and offers the one it finds. Heal & ready also installs the Play-check node packs (DWPose, FaceAnalysis).
+
 If vision tools fail, no vision model was found: with `LLM_VISION_MODEL` unset, Castcut picks a vision-capable model from the LLM server's model list (Settings → Overview → Play checks shows which), so pull one (e.g. `qwen2.5vl`, `gemma3`) or set `LLM_VISION_MODEL`. Settings → LLM can override both per browser.
 
 ---

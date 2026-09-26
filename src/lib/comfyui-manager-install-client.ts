@@ -42,6 +42,22 @@ export const FACE_DETAILER_HEAL_NODE_TYPES = [
   'UltralyticsDetectorProvider',
 ] as const;
 
+/**
+ * Seed the Play checks' packs too: DWPose (comfyui_controlnet_aux) for the pose check and
+ * FaceAnalysis for the face check — no workflow references them, so Heal never saw them missing.
+ */
+export const PLAY_CHECK_HEAL_NODE_TYPES = [
+  'DWPreprocessor',
+  'FaceAnalysisModels',
+  'FaceEmbedDistance',
+] as const;
+
+/** Node type each Play-check row installs (Settings → Play checks "Install"). */
+export const PLAY_CHECK_INSTALL_NODE_TYPES: Record<'pose' | 'face', string[]> = {
+  pose: ['DWPreprocessor'],
+  face: ['FaceAnalysisModels', 'FaceEmbedDistance'],
+};
+
 export async function requestComfyManagerInstall(input: {
   nodeTypes: string[];
   comfyUrl?: string;
@@ -151,7 +167,12 @@ export async function installMissingWorkflowNodePacks(
     const faceDetailerMissing = FACE_DETAILER_HEAL_NODE_TYPES.filter(
       type => !objectInfo.nodeTypes!.has(type)
     );
-    const toInstall = [...new Set([...missing, ...identityMissing, ...faceDetailerMissing])];
+    const playCheckMissing = PLAY_CHECK_HEAL_NODE_TYPES.filter(
+      type => !objectInfo.nodeTypes!.has(type)
+    );
+    const toInstall = [
+      ...new Set([...missing, ...identityMissing, ...faceDetailerMissing, ...playCheckMissing]),
+    ];
     if (toInstall.length === 0) {
       return emptyInstall();
     }

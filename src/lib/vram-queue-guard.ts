@@ -12,11 +12,22 @@ export type VramGuardOptions = {
   enabled?: boolean;
   /** Free VRAM threshold in bytes. */
   freeBytesThreshold?: number;
+  /** Size the threshold from the card's total VRAM when it is known. */
+  auto?: boolean;
 };
+
+/** Auto threshold for a card: ~30% of total VRAM, in half-GB steps, kept to 4–12 GB. */
+export function autoVramThresholdGb(totalBytes: number | null | undefined): number | null {
+  if (typeof totalBytes !== 'number' || !Number.isFinite(totalBytes) || totalBytes <= 0) {
+    return null;
+  }
+  const gb = Math.round((totalBytes / 1e9) * 0.3 * 2) / 2;
+  return Math.min(12, Math.max(4, gb));
+}
 
 export function getVramGuardOptions(): Required<VramGuardOptions> {
   if (typeof window === 'undefined') {
-    return { enabled: true, freeBytesThreshold: MAX_VRAM_FREE_BYTES_THRESHOLD };
+    return { enabled: true, freeBytesThreshold: MAX_VRAM_FREE_BYTES_THRESHOLD, auto: true };
   }
   const shared = loadSettingsCache().shared;
   const gb = shared.vramGuardMinFreeGb;
@@ -27,13 +38,19 @@ export function getVramGuardOptions(): Required<VramGuardOptions> {
   return {
     enabled: shared.vramGuardEnabled !== false,
     freeBytesThreshold,
+    auto: shared.vramGuardAutoThreshold !== false,
   };
 }
 
 export function isVramTightForMax(vram?: VramSnapshot | null, options?: VramGuardOptions): boolean {
+  const stored =
+    options?.enabled == null || options?.freeBytesThreshold == null || options?.auto == null
+      ? getVramGuardOptions()
+      : null;
   const resolved = {
-    enabled: options?.enabled ?? getVramGuardOptions().enabled,
-    freeBytesThreshold: options?.freeBytesThreshold ?? getVramGuardOptions().freeBytesThreshold,
+    enabled: options?.enabled ?? stored!.enabled,
+    freeBytesThreshold: options?.freeBytesThreshold ?? stored!.freeBytesThreshold,
+    auto: options?.auto ?? stored!.auto,
   };
   if (!resolved.enabled) {
     return false;
@@ -42,7 +59,8 @@ export function isVramTightForMax(vram?: VramSnapshot | null, options?: VramGuar
   if (typeof free !== 'number' || !Number.isFinite(free)) {
     return false;
   }
-  return free < resolved.freeBytesThreshold;
+  const autoGb = resolved.auto ? autoVramThresholdGb(vram?.total) : null;
+  return free < (autoGb != null ? autoGb * 1e9 : resolved.freeBytesThreshold);
 }
 
 /**

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import SettingsConnectionFirstRun from '@/components/settings/SettingsConnectionFirstRun';
+import ServiceDiscoveryCard from '@/components/settings/ServiceDiscoveryCard';
 import QueueExportSettingsPanel from '@/components/settings/QueueExportSettingsPanel';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { SettingsComfyConnectionDesktopNotice } from '@/components/settings/panels/sections/SettingsComfyConnectionDesktopNotice';
@@ -72,6 +73,15 @@ export default function SettingsComfyConnectionPanel(props: SettingsComfyConnect
 
   return (
     <ToolSection id="settings-comfyui-connection" title="ComfyUI connection & injection">
+      <ServiceDiscoveryCard
+        health={health}
+        comfyUrl={settings.apiUrl}
+        onUseComfyUrl={url => {
+          updateSettings({ apiUrl: url });
+          setStatus?.(`Using ComfyUI at ${url}.`);
+          window.setTimeout(() => void refreshHealth(), 300);
+        }}
+      />
       {handleHealAndReady ? (
         <SettingsConnectionFirstRun
           health={health}

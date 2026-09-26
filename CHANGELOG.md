@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Install the Play-check packs from Settings.** Heal & ready now also installs DWPose (`comfyui_controlnet_aux`, pose check) and `ComfyUI_FaceAnalysis` (face check) through ComfyUI-Manager — no workflow referenced them, so Heal never did. The Play checks rows get an **Install** button that does the same for one pack, restarts ComfyUI and re-checks.
+- **VRAM guard sized from the GPU.** "Min free VRAM before Max" defaults to **Size it from the GPU**: about 30% of the card's VRAM in half-GB steps, 4–12 GB (*Auto: 7 GB (24 GB card)*), instead of a fixed 6 GB. Typing a number switches to it.
+- **Find ComfyUI and the LLM.** When the saved address doesn't answer, Settings → ComfyUI connection looks at the usual local spots — ComfyUI on 8188, the ComfyUI Desktop app on 8000, the Docker host; Ollama on 11434, LM Studio on 1234 — and offers **Use it** for a ComfyUI it finds, or the `LLM_API_BASE_URL=…` line to paste for an LLM. Only hosts the ComfyUI allowlist permits are tried; nothing is saved until you click.
+
 - **Fix: Day, Outfit and Look stills opened Generate from the Gallery.** The Gallery's tool links had no entry for them; they now open Day, Outfit or Look, on the still's Cast (Story too).
 - **Gallery Cast filter.** A row of Cast chips (look-plate thumb + name) filters the Gallery to one Cast — stills already carried their Cast, but only a hand-typed `?character=` could filter by it. It shows as an active filter chip, and each Cast's Media section has **See all in Gallery**.
 - **Pose and face scores in the Gallery.** Day Auto-review and Story's pose check now store their pose / face match on the still's gallery entry: a *pose 82% · face 64%* badge on the card (warning-tinted on a miss), a **Missed pose / face** filter (`missed=1` in the URL) and a **Best pose / face match** sort.

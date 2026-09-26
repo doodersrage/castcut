@@ -10,6 +10,7 @@ import { clearPoseLibrary, poseLibraryCount, subscribePoseLibrary } from '@/lib/
 import { POSE_IMPORT_GROUPS, POSE_IMPORT_LAYOUTS } from '@/lib/pose-import-layouts';
 import { poseLayoutLabel } from '@/lib/pose-layout-labels';
 import PoseControlNetStatus from '@/components/settings/PoseControlNetStatus';
+import VramAutoThresholdNote from '@/components/settings/VramAutoThresholdNote';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { DetailLevel } from '@/lib/detail-level';
@@ -446,10 +447,36 @@ export default function SettingsPromptQualityPanel({
             onChange={event =>
               updateSharedSettings({
                 vramGuardMinFreeGb: Number(event.target.value),
+                // A typed number is a choice — stop sizing it from the GPU.
+                vramGuardAutoThreshold: false,
               })
             }
             className="ui-input w-full max-w-[10rem]"
           />
+        </label>
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={sharedSettings.vramGuardAutoThreshold !== false}
+            disabled={!sharedMounted || !vramEnabled}
+            data-testid="settings-vram-auto"
+            onChange={event =>
+              updateSharedSettings({ vramGuardAutoThreshold: event.target.checked })
+            }
+            className={`mt-1 h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-base)] ${accentFocusClass()}`}
+          />
+          <span className="space-y-1">
+            <span className="block text-sm font-medium text-[var(--text-primary)]">
+              Size it from the GPU
+            </span>
+            {sharedMounted && sharedSettings.vramGuardAutoThreshold !== false ? (
+              <VramAutoThresholdNote totalVramGb={totalVramGb} fallbackGb={minFreeGb} />
+            ) : (
+              <span className="block text-xs text-[var(--text-muted)]">
+                About 30% of the card&apos;s VRAM (4–12 GB) instead of the number above.
+              </span>
+            )}
+          </span>
         </label>
         <label className="flex cursor-pointer items-start gap-3">
           <input

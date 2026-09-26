@@ -567,6 +567,11 @@ export type SharedToolSettings = {
   vramGuardEnabled?: boolean;
   /** Free VRAM (GB) below which Max enrich downgrades to Final. */
   vramGuardMinFreeGb?: number;
+  /**
+   * Size the VRAM guard threshold from the GPU (about 30% of total, 4–12 GB) instead of
+   * `vramGuardMinFreeGb`. Default on; editing the number turns it off.
+   */
+  vramGuardAutoThreshold?: boolean;
   /** When true, call ComfyUI's `/free` (unload + free VRAM) after a Max-quality gallery job completes. */
   freeVramAfterMax?: boolean;
   /** Per-model sampler params learned from 4–5★ gallery ratings. */
@@ -1257,6 +1262,7 @@ export const DEFAULT_SHARED_SETTINGS: SharedToolSettings = {
   holdMaxUntilIdle: false,
   vramGuardEnabled: true,
   vramGuardMinFreeGb: 6,
+  vramGuardAutoThreshold: true,
   freeVramAfterMax: false,
   modelSamplerMemory: {},
   toolQueueQualityProfiles: SUGGESTED_TOOL_QUEUE_QUALITY_PROFILES,
@@ -1692,6 +1698,7 @@ export function loadSettingsCache(): SettingsCache {
     shared.autoRetryOnOom = shared.autoRetryOnOom !== false;
     shared.oomRetryDowngrade = shared.oomRetryDowngrade !== false;
     shared.vramGuardEnabled = shared.vramGuardEnabled !== false;
+    shared.vramGuardAutoThreshold = shared.vramGuardAutoThreshold !== false;
     shared.promptVersioningEnabled = shared.promptVersioningEnabled !== false;
     const freeGb = shared.vramGuardMinFreeGb;
     shared.vramGuardMinFreeGb =

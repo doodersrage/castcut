@@ -119,6 +119,20 @@ test('command palette finds a setting and deep-links to it', async ({ page }) =>
   await expect(page.getByTestId('settings-pose-controlnet')).toBeVisible({ timeout: 20_000 });
 });
 
+test('settings looks for ComfyUI at the usual addresses when it is not answering', async ({
+  page,
+}) => {
+  await gotoStable(page, '/settings?tab=comfyui&section=connection');
+  const card = page.getByTestId('service-discovery');
+  await expect(card).toBeVisible({ timeout: 20_000 });
+  // Health may still be loading (or rate-limited under parallel tests) — ask explicitly.
+  await card.getByTestId('service-discovery-search').click();
+  // Nothing runs locally in CI: it says so rather than offering a wrong address.
+  await expect(
+    card.getByTestId('service-discovery-no-comfy').or(card.getByTestId('service-discovery-use-comfy').first())
+  ).toBeVisible({ timeout: 20_000 });
+});
+
 test('settings shows what changed from defaults and resets it', async ({ page }) => {
   await gotoStable(page, '/settings?tab=data&focus=settings-changed-defaults');
   const panel = page.locator('#settings-changed-defaults');

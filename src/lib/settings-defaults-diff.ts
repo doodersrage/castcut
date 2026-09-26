@@ -70,6 +70,7 @@ export const PREFERENCE_KEYS: ReadonlyArray<{
   { key: 'holdMaxUntilIdle', label: 'Hold Max until idle', area: VRAM },
   { key: 'vramGuardEnabled', label: 'VRAM guard', area: VRAM },
   { key: 'vramGuardMinFreeGb', label: 'VRAM guard minimum free', area: VRAM },
+  { key: 'vramGuardAutoThreshold', label: 'VRAM guard sized from the GPU', area: VRAM },
   { key: 'freeVramAfterMax', label: 'Free VRAM after Max', area: VRAM },
   { key: 'ipAdapterStrength', label: 'Identity lock strength', area: CONNECTION },
   { key: 'identityKind', label: 'Identity lock kind', area: CONNECTION },
