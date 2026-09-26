@@ -519,6 +519,18 @@ describe("patchSamplerParamsInWorkflow", () => {
     assert.equal(params.samplerName, "dpmpp_2m");
   });
 
+  it("keeps empty image slots so a pose guide stays Image 3", () => {
+    // Story with no garment: plate, empty Image 2, pose guide — compacting moved the guide to
+    // Image 2 while the prompt still said "Image 3".
+    const params = resolveQueueParams({
+      model: "qwen-rapid-aio-edit-nsfw",
+      inputImageFilename: "plate.png",
+      inputImageFilenames: ["", "", "story-pose-guide.png"],
+    });
+    assert.deepEqual(params.inputImageFilenames, ["plate.png", "", "story-pose-guide.png"]);
+    assert.equal(params.inputImageFilename, "plate.png");
+  });
+
   it("uses Balanced 0.36 denoise for Z-Image Turbo refine", () => {
     const params = resolveQueueParams({
       model: "z-image-turbo",

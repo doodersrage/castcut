@@ -725,6 +725,27 @@ export function intimateTextImpliesSurfaceBent(text: string | null | undefined):
 }
 
 /**
+ * Rear-entry with the lead on her feet — at a railing, on a ledge or pier, pressed to metal —
+ * and nothing folding her down onto hands and knees. The all-fours recipe used to replace
+ * these beats wholesale, contradicting a standing pose guide (and the model followed the text).
+ */
+export function intimateTextImpliesStandingRear(text: string | null | undefined): boolean {
+  const sample = text?.trim() || '';
+  if (!sample) {
+    return false;
+  }
+  const standing =
+    /\b(stands?|standing|on\s+(?:her|his|their)\s+feet|(?:on|at)\s+(?:a|the)\s+(?:[\w'-]+\s+){0,3}(?:ledge|railing|rail|pier|plank|balcony|landing)|(?:up\s+)?against\s+(?:the\s+)?(?:[\w'-]+\s+){0,3}(?:railing|rail|metal|steel|pipe|pillar|post|balustrade)|gripping\s+the\s+(?:railing|rail|ledge)|pressed\s+(?:to|against))\b/i.test(
+      sample
+    );
+  const folded =
+    /\b(hands\s+and\s+knees|all\s+fours|on\s+(?:her|his|their)\s+knees|bent\s+over|bend(?:s|ing)?\s+(?:(?:her|him|them)\s+)?over|ass[- ]up|lying|lies\s+(?:down|back|on)|prone|face[- ]down)\b/i.test(
+      sample
+    );
+  return standing && !folded;
+}
+
+/**
  * Filing-cabinet / open-drawer rear-entry — not desk bent, not carpet doggy.
  */
 function rewriteCabinetDrawerContact(text: string): string {
@@ -886,6 +907,16 @@ function rewriteDoggyBentContact(text: string): string {
       contact,
       'Lead looks back over one shoulder; both mouths closed — no dual camera O-faces.',
       'Partner is fully bare-skinned nude (bare chest, bare back, bare hips, bare legs) — never a black morphsuit, zentai, catsuit, or schematic capsule; never leave only his face and hands uncovered.',
+      '¾ rear three-quarter camera, clean separate bodies, readable anatomy.',
+    ].join(' ');
+  }
+
+  if (intimateTextImpliesStandingRear(text)) {
+    return [
+      'Behind: standing rear-entry sex.',
+      'Exactly TWO adults, exactly two faces, four hands only — humans only; never a dog or pet; no third head; never a third black morphsuit.',
+      'Lead standing on her feet, leaning forward onto the railing / wall / ledge in the scene, back to her partner; partner standing close behind with pelvis connected to his torso, one hand on her hip, nude mid-thrust — both upright on their feet, neither one down on the floor.',
+      'Mouths closed — no dual camera O-faces. Partner fully bare-skinned nude — never a black morphsuit/zentai with only face and hands showing; never an Image 3 diagram in the photo.',
       '¾ rear three-quarter camera, clean separate bodies, readable anatomy.',
     ].join(' ');
   }

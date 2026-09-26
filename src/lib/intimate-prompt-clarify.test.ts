@@ -244,3 +244,28 @@ describe('intimate-prompt-clarify', () => {
     assert.equal(promptHasIntimateEuphemisms('standing in a doorway'), false);
   });
 });
+
+describe('standing rear-entry beats', () => {
+  it('keep her on her feet instead of the all-fours recipe', async () => {
+    const { reinforceIntimateStillPrompt, intimateTextImpliesStandingRear } = await import(
+      './intimate-prompt-clarify'
+    );
+    const balcony =
+      'She stands barefoot on a wet balcony ledge, one hand gripping the railing as he enters her from behind';
+    assert.equal(intimateTextImpliesStandingRear(balcony), true);
+    const prompt = reinforceIntimateStillPrompt(balcony);
+    assert.match(prompt, /standing rear-entry/);
+    assert.doesNotMatch(prompt, /hands and knees/);
+    // The recipe's own wording must not read as folded when the guide re-reads it.
+    assert.equal(intimateTextImpliesStandingRear(prompt), true);
+  });
+
+  it('still uses all fours when the beat says so', async () => {
+    const { reinforceIntimateStillPrompt, intimateTextImpliesStandingRear } = await import(
+      './intimate-prompt-clarify'
+    );
+    const allFours = 'She is on her hands and knees on the bed as he takes her from behind';
+    assert.equal(intimateTextImpliesStandingRear(allFours), false);
+    assert.match(reinforceIntimateStillPrompt(allFours), /hands and knees/);
+  });
+});

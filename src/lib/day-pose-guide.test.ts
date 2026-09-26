@@ -1205,4 +1205,18 @@ describe('everyday pose layouts', () => {
       }
     }
   });
+  it('parseIntimateLayout: rear-entry on all fours is bent, and straddling furniture is not riding', async () => {
+    const { parseIntimateLayout } = await import('./day-pose-guide');
+    assert.equal(
+      parseIntimateLayout(
+        'Behind: rear-entry sex. Lead on hands and knees, hips raised; partner kneeling behind, gripping her hips'
+      ),
+      'bent'
+    );
+    assert.notEqual(
+      parseIntimateLayout('She straddles a bench as he kneels behind her, mouth sealed to her neck'),
+      'straddle'
+    );
+    assert.equal(parseIntimateLayout('She straddles him on the couch, riding slowly'), 'straddle');
+  });
 });

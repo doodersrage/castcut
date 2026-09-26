@@ -1,3 +1,4 @@
+import { normalizeInputImageFilenames } from './workflow-load-image-bindings';
 import { isLockLatentSizeParams, type WorkflowParamValues } from './comfyui-config';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import {
@@ -405,26 +406,19 @@ export function resolveQueueParams(
       }
     }
 
+    // Slots are positional — Image 2 garment, Image 3 pose guide — so keep empty gaps. Dropping
+    // them moved a Story pose guide into Image 2 while the prompt still said "Image 3".
     const resolvedFilenames = (() => {
-      const fromArg = (inputImageFilenames ?? []).map(entry => entry?.trim() ?? '').filter(Boolean);
-      const fromBase = (base?.inputImageFilenames ?? [])
-        .map(entry => entry?.trim() ?? '')
-        .filter(Boolean);
-      const list = (fromArg.length > 0 ? fromArg : fromBase).slice(0, 4);
-      const primary = inputImageFilename?.trim() || base?.inputImageFilename?.trim() || list[0];
-      if (!primary && list.length === 0) {
-        return [] as string[];
-      }
-      if (list.length === 0 && primary) {
-        return [primary];
-      }
-      if (primary && list[0] !== primary) {
-        list[0] = primary;
-      }
-      return list;
+      const fromArg = (inputImageFilenames ?? []).slice(0, 4);
+      const fromBase = (base?.inputImageFilenames ?? []).slice(0, 4);
+      const list = fromArg.some(entry => entry?.trim()) ? fromArg : fromBase;
+      const primary =
+        inputImageFilename?.trim() || base?.inputImageFilename?.trim() || list[0]?.trim() || '';
+      return normalizeInputImageFilenames(primary, list);
     })();
-    if (resolvedFilenames.length > 0) {
-      merged.inputImageFilename = resolvedFilenames[0];
+    if (resolvedFilenames.some(Boolean)) {
+      merged.inputImageFilename =
+        resolvedFilenames[0] || resolvedFilenames.find(Boolean) || undefined;
       merged.inputImageFilenames = resolvedFilenames;
     }
 

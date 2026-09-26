@@ -14,6 +14,7 @@ import {
   clarifyIntimateImageLanguage,
   intimateTextImpliesCabinetDrawer,
   intimateTextImpliesSurfaceBent,
+  intimateTextImpliesStandingRear,
 } from '@/lib/intimate-prompt-clarify';
 import {
   drawOpenPoseFigures,
@@ -724,7 +725,13 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
   ) {
     return 'missionary';
   }
+  // Straddling furniture ("straddles a bench as he kneels behind her") isn't riding the partner.
+  const straddlesObject =
+    /\bstraddl(?:e|es|ing)\s+(?:a|an|the)\s+(?:[\w'-]+\s+)?(?:bench|chair|stool|bike|bicycle|motorcycle|saddle|railing|rail|ledge|log|bar|seat|beam|table|desk|sofa|couch|arm)\b/i.test(
+      haystack
+    );
   if (
+    !straddlesObject &&
     /\b(cowgirl|straddl(?:e|es|ing)|rid(?:e|es|ing)\s+(?:them|him|her)|mount(?:s|ing|ed)?)\b/i.test(
       haystack
     )
@@ -744,7 +751,9 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
     return 'wall';
   }
   if (
-    /\b(doggy(?:[- ]style)?|from\s+behind|bent\s+over|bend(?:s|ing)?\s+(?:(?:her|him|them)\s+)?over|curled?\s+over|ass[- ]up)\b/i.test(
+    // "Rear-entry … on hands and knees, partner kneeling behind" fell through to the two-upright
+    // kneeling layout.
+    /\b(doggy(?:[- ]style)?|from\s+behind|rear[- ]entry|hands\s+and\s+knees|all\s+fours|kneel(?:s|ing)?\s+behind|bent\s+over|bend(?:s|ing)?\s+(?:(?:her|him|them)\s+)?over|curled?\s+over|ass[- ]up)\b/i.test(
       haystack
     ) ||
     (/\bover\s+the\s+(?:desk|table|counter|edge|ledgers?|stack)\b/i.test(haystack) &&
@@ -3447,7 +3456,9 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
     if (intimateTextImpliesCabinetDrawer(scene)) {
       return pairOrTrio(cabinetDrawerFigures());
     }
-    if (intimateTextImpliesSurfaceBent(scene)) {
+    // Standing rear-entry (railing, ledge, pier) is a standing bend, not all fours — same as the
+    // prompt recipe, so the guide and the words agree.
+    if (intimateTextImpliesSurfaceBent(scene) || intimateTextImpliesStandingRear(scene)) {
       return pairOrTrio(
         deskBentFigures({
           throatGrab: /\bthroat\b/i.test(scene),
