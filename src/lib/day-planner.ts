@@ -3,6 +3,7 @@ import {
   DEFAULT_STILL_HOLD_SEC,
   type FilmPlaylistShot,
 } from '@/lib/character-film';
+import { captionFromBeat } from '@/lib/film-cut-plan';
 import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/compose-prompt';
 import {
   countPoseGuidePeople,
@@ -3569,6 +3570,8 @@ export function dayWatchPlaylist(
     const clipUrl = still?.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
     if (clipUrl) {
       shots.push({
+        key: slot.id,
+        caption: captionFromBeat(slot.sceneHints) || slot.label,
         entryId: still?.clipPromptId?.trim() || `${slot.id}-clip`,
         title: slot.label,
         url: clipUrl,
@@ -3581,6 +3584,8 @@ export function dayWatchPlaylist(
       continue;
     }
     shots.push({
+      key: slot.id,
+      caption: captionFromBeat(slot.sceneHints) || slot.label,
       entryId: still?.promptId?.trim() || slot.id,
       title: slot.label,
       url,

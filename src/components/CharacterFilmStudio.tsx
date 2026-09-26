@@ -450,6 +450,8 @@ export default function CharacterFilmStudio({
               stillMotion: filmCutOptions.stillMotion !== false,
               captions: filmCutOptions.titles === true,
               titleCard: filmCutOptions.titles ? { title: characterName } : null,
+              length: filmCutOptions.length,
+              beatSnap: filmCutOptions.beatSnap,
               onProgress: progress => setStatus(progress.label),
             })
               .then(result => {

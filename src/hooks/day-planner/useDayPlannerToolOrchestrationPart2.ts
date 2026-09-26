@@ -1,5 +1,6 @@
 'use client';
 
+import { applyCutShotEdits, type KeyedShot } from '@/lib/film-cut-plan';
 import { dayPosterSubtitle, loadPlaySeriesStore, nextDayFilmTitleCard } from '@/lib/play-series';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -413,101 +414,125 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     }
   }, [animateSlot, slots]);
 
-  const cutDayFilm = useCallback(async () => {
-    const shots = dayWatchPlaylist(stillsRef.current, slots);
-    if (shots.length === 0) {
-      setFilmGuideHref(null);
-      setError('Queue and wait for at least one completed slot still before cutting a film.');
-      return;
-    }
-    const name = character?.name?.trim() || 'day';
-    setAssemblingFilm(true);
-    setError(null);
-    setFilmGuideHref(null);
-    setFilmNeedsCast(false);
-    setFilmStatus('Checking shots…');
-    try {
-      const result = await assembleAndStampFilm({
-        shots,
-        characterId: character?.id ?? '',
-        characterName: name,
-        lookId: character?.activeLookId ?? shared.activeLookId,
-        crossfadeSec: filmCutOptions.crossfadeSec,
-        resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
-        audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
-        stillMotion: filmCutOptions.stillMotion !== false,
-        captions: filmCutOptions.titles === true,
-        titleCard: filmCutOptions.titles
-          ? character
-            ? nextDayFilmTitleCard(loadPlaySeriesStore(), character.id, name)
-            : { title: name }
-          : null,
-        onProgress: progress => setFilmStatus(progress.label),
-      });
-      downloadFilmBlob(result.blob, result.filename);
-      assembledFilmRef.current = {
-        filename: result.filename,
-        data: new Uint8Array(await result.blob.arrayBuffer()),
-      };
-      lastFilmEntryRef.current = result.entryId;
-      if (character && result.persisted) {
-        recordDayFilmEpisode({
-          characterId: character.id,
-          characterName: character.name,
-          filename: result.filename,
-          galleryEntryId: result.entryId,
-          theme: dayThemeRef.current,
-        });
-        setFilmNeedsCast(false);
-        setFilmStatus(
-          `Saved ${result.filename} to ${character.name} (${result.encodePath} encode) and started the download.`
-        );
-      } else {
-        setFilmNeedsCast(true);
-        setFilmStatus(
-          character
-            ? `Downloaded ${result.filename} (${result.encodePath} encode). Save to Cast to stamp a studio copy.`
-            : `Downloaded ${result.filename} (${result.encodePath} encode) unstamped. Save to Cast to attach this film.`
-        );
-        if (character && !result.persisted) {
-          setError('Film downloaded — Save film to Cast to stamp it into Gallery.');
-        }
+  const cutDayFilm = useCallback(
+    async (options?: { excludeKeys?: string[] }) => {
+      // The shot list (order, leave-outs, captions, holds), plus any shots left out at the
+      // pre-cut check.
+      const edits = filmCutOptions.shotEdits;
+      const excluded = options?.excludeKeys ?? [];
+      const shots = applyCutShotEdits(
+        dayWatchPlaylist(stillsRef.current, slots) as KeyedShot[],
+        excluded.length > 0
+          ? {
+              ...edits,
+              shots: {
+                ...edits?.shots,
+                ...Object.fromEntries(
+                  excluded.map(key => [key, { ...edits?.shots?.[key], include: false }])
+                ),
+              },
+            }
+          : edits
+      );
+      if (shots.length === 0) {
+        setFilmGuideHref(null);
+        setError('Queue and wait for at least one completed slot still before cutting a film.');
+        return;
       }
-      markOnboardingFirstPlayCampaign();
-      const firstCut = markOnboardingFirstFilmCut();
-      void import('@/lib/local-observability').then(
-        ({ noteFilmCutSourceMetric, noteSaveToCastMetric }) => {
-          noteFilmCutSourceMetric('day');
-          if (character && result.persisted) {
-            noteSaveToCastMetric();
+      const name = character?.name?.trim() || 'day';
+      setAssemblingFilm(true);
+      setError(null);
+      setFilmGuideHref(null);
+      setFilmNeedsCast(false);
+      setFilmStatus('Checking shots…');
+      try {
+        const result = await assembleAndStampFilm({
+          shots,
+          characterId: character?.id ?? '',
+          characterName: name,
+          lookId: character?.activeLookId ?? shared.activeLookId,
+          crossfadeSec: filmCutOptions.crossfadeSec,
+          resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
+          audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
+          stillMotion: filmCutOptions.stillMotion !== false,
+          captions: filmCutOptions.titles === true,
+          titleCard: filmCutOptions.titles
+            ? character
+              ? nextDayFilmTitleCard(loadPlaySeriesStore(), character.id, name)
+              : { title: name }
+            : null,
+          length: filmCutOptions.length,
+          beatSnap: filmCutOptions.beatSnap,
+          onProgress: progress => setFilmStatus(progress.label),
+        });
+        downloadFilmBlob(result.blob, result.filename);
+        assembledFilmRef.current = {
+          filename: result.filename,
+          data: new Uint8Array(await result.blob.arrayBuffer()),
+        };
+        lastFilmEntryRef.current = result.entryId;
+        if (character && result.persisted) {
+          recordDayFilmEpisode({
+            characterId: character.id,
+            characterName: character.name,
+            filename: result.filename,
+            galleryEntryId: result.entryId,
+            theme: dayThemeRef.current,
+          });
+          setFilmNeedsCast(false);
+          setFilmStatus(
+            `Saved ${result.filename} to ${character.name} (${result.encodePath} encode${
+              result.cutNotes.length ? ` · ${result.cutNotes.join(' · ')}` : ''
+            }) and started the download.`
+          );
+        } else {
+          setFilmNeedsCast(true);
+          setFilmStatus(
+            character
+              ? `Downloaded ${result.filename} (${result.encodePath} encode). Save to Cast to stamp a studio copy.`
+              : `Downloaded ${result.filename} (${result.encodePath} encode) unstamped. Save to Cast to attach this film.`
+          );
+          if (character && !result.persisted) {
+            setError('Film downloaded — Save film to Cast to stamp it into Gallery.');
           }
         }
-      );
-      if (character) {
-        completePlayCampaign({ characterId: character.id, stepId: 'day' });
-      }
-      if (firstCut) {
-        void import('@/lib/system-tray-celebrate').then(({ celebrateSystemTray }) => {
-          celebrateSystemTray('job');
-        });
-        setFirstCutCelebrate(true);
-        setFilmStatus(
-          character
-            ? `First film cut — watch it on Cast, then cut another Day reel.`
-            : `First film cut — pick a Cast lead to save it, or download above.`
+        markOnboardingFirstPlayCampaign();
+        const firstCut = markOnboardingFirstFilmCut();
+        void import('@/lib/local-observability').then(
+          ({ noteFilmCutSourceMetric, noteSaveToCastMetric }) => {
+            noteFilmCutSourceMetric('day');
+            if (character && result.persisted) {
+              noteSaveToCastMetric();
+            }
+          }
         );
+        if (character) {
+          completePlayCampaign({ characterId: character.id, stepId: 'day' });
+        }
+        if (firstCut) {
+          void import('@/lib/system-tray-celebrate').then(({ celebrateSystemTray }) => {
+            celebrateSystemTray('job');
+          });
+          setFirstCutCelebrate(true);
+          setFilmStatus(
+            character
+              ? `First film cut — watch it on Cast, then cut another Day reel.`
+              : `First film cut — pick a Cast lead to save it, or download above.`
+          );
+        }
+      } catch (err) {
+        const playbook = resolveFilmFailurePlaybook(
+          err instanceof Error ? err.message : 'Could not assemble the film.'
+        );
+        setError(playbook.message);
+        setFilmGuideHref(playbook.href ?? null);
+        setFilmStatus(null);
+      } finally {
+        setAssemblingFilm(false);
       }
-    } catch (err) {
-      const playbook = resolveFilmFailurePlaybook(
-        err instanceof Error ? err.message : 'Could not assemble the film.'
-      );
-      setError(playbook.message);
-      setFilmGuideHref(playbook.href ?? null);
-      setFilmStatus(null);
-    } finally {
-      setAssemblingFilm(false);
-    }
-  }, [character, filmCutOptions, shared.activeLookId, setFilmGuideHref, slots]);
+    },
+    [character, filmCutOptions, shared.activeLookId, setFilmGuideHref, slots]
+  );
 
   /** Save a poster frame from a finished still, matching the cut's aspect. */
   const saveFilmPoster = useCallback(async () => {

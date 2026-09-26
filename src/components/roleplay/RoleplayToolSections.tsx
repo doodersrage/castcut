@@ -1,5 +1,6 @@
 'use client';
 
+import CutProblemsDialog from '@/components/CutProblemsDialog';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 
 import SharedToolControls from '@/components/SharedToolControls';
@@ -347,6 +348,14 @@ export default function RoleplayToolSections({
             onRetry={beat => beatQueue.queueBeat(beat, { retry: true })}
           />
 
+          <CutProblemsDialog
+            problems={film.cutProblems}
+            onResolve={action =>
+              void film.resolveCutProblems(action, beat =>
+                beatQueue.queueBeat(beat, { retry: true })
+              )
+            }
+          />
           <RoleplayStorySection
             beatOutput={beatOutput}
             autoQueue={autoQueue}

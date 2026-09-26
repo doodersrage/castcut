@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Check the shots before a cut.** Day and Story Cut now stop first when a shot Auto-review flagged, or one that missed its pose or face check, would go into the film (*Evening — missed its pose (31%)*), with **Retry them first**, **Leave them out** or **Cut anyway**.
+- **Captions that say something.** With titles on, Day captions come from the beat (*pours coffee by the window*) instead of the slot name, Story keeps the beat title, and every caption can be edited in the shot list.
+- **Fit the cut to the music.** Cut options gain **Length** — as the shots hold, **Fit to the music** (stills stretch so the film ends with the track, 0.5–12 s each), or 15 / 30 / 60 s — and **Cut on the beat**, which rounds each still to whole beats of the track's tempo (detected in the browser). The status line says what was done (*fit to the 42 s track · cuts on the beat (120 BPM)*). Cast's Film studio gets both too.
+- **Shot list in Day and Story Cut.** Cut options list the shots: reorder them, leave one out, edit its caption, and set a still's hold — what Cast's Film studio could already do, without leaving Day or Story.
+
 - **Install the Play-check packs from Settings.** Heal & ready now also installs DWPose (`comfyui_controlnet_aux`, pose check) and `ComfyUI_FaceAnalysis` (face check) through ComfyUI-Manager — no workflow referenced them, so Heal never did. The Play checks rows get an **Install** button that does the same for one pack, restarts ComfyUI and re-checks.
 - **VRAM guard sized from the GPU.** "Min free VRAM before Max" defaults to **Size it from the GPU**: about 30% of the card's VRAM in half-GB steps, 4–12 GB (*Auto: 7 GB (24 GB card)*), instead of a fixed 6 GB. Typing a number switches to it.
 - **Find ComfyUI and the LLM.** When the saved address doesn't answer, Settings → ComfyUI connection looks at the usual local spots — ComfyUI on 8188, the ComfyUI Desktop app on 8000, the Docker host; Ollama on 11434, LM Studio on 1234 — and offers **Use it** for a ComfyUI it finds, or the `LLM_API_BASE_URL=…` line to paste for an LLM. Only hosts the ComfyUI allowlist permits are tried; nothing is saved until you click.

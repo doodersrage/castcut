@@ -1,5 +1,6 @@
 'use client';
 
+import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
@@ -70,6 +71,8 @@ export default function MobilePlayToolSections({ description: _description, ...v
     firstCutCelebrate,
     clearFirstCutCelebrate,
     cutRoleplayFilm,
+    cutProblems,
+    resolveCutProblems,
     saveFilmToCast,
     shareLastCut,
     filmError,
@@ -153,6 +156,12 @@ export default function MobilePlayToolSections({ description: _description, ...v
 
   return (
     <div className="space-y-4" data-testid="mobile-play">
+      <CutProblemsDialog
+        problems={cutProblems}
+        onResolve={action =>
+          void resolveCutProblems(action, beat => queueBeat(beat, { retry: true }))
+        }
+      />
       <div className="space-y-1">
         <h1 className="type-display text-2xl tracking-tight">Story</h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">

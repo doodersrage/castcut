@@ -9,6 +9,14 @@ import { useDayClipQualityCheck } from '@/hooks/day-planner/useDayClipQualityChe
 import { applyCharacterRecordFresh } from '@/lib/character-os';
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
+import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { dayWatchPlaylist } from '@/lib/day-planner';
+import {
+  applyCutShotEdits,
+  cutShotProblems,
+  type CutShotProblem,
+  type KeyedShot,
+} from '@/lib/film-cut-plan';
 
 export function useDayPlannerToolOrchestration() {
   const core = useDayPlannerToolOrchestrationCore();
@@ -79,12 +87,57 @@ export function useDayPlannerToolOrchestration() {
     [characterId, sharedModel, updateShared]
   );
 
+  // Pre-cut check: stills Auto-review flagged, or that missed their pose / face, get a look
+  // before they end up in the film.
+  const [cutProblems, setCutProblems] = useState<CutShotProblem[] | null>(null);
+  const { cutDayFilm: cutDayFilmNow } = part2;
+  const { qualityLedger } = quality;
+  const { filmCutOptions, stillsRef } = core;
+  const cutDayFilm = useCallback(async () => {
+    const shots = applyCutShotEdits(
+      dayWatchPlaylist(stillsRef.current, slots) as KeyedShot[],
+      filmCutOptions.shotEdits
+    );
+    const gallery = loadComfyGallery();
+    const problems = cutShotProblems(shots, shot => {
+      const still = stillsRef.current.find(entry => entry.slotId === shot.key);
+      const ledger = qualityLedger[shot.key];
+      const checks = still?.promptId
+        ? gallery.find(entry => entry.promptId === still.promptId)?.playChecks
+        : undefined;
+      return {
+        flagged: ledger?.lastDecision === 'flag' ? (ledger.lastReasons ?? ['flagged']) : [],
+        ...checks,
+      };
+    });
+    if (problems.length > 0) {
+      setCutProblems(problems);
+      return;
+    }
+    setCutProblems(null);
+    await cutDayFilmNow();
+  }, [cutDayFilmNow, filmCutOptions.shotEdits, qualityLedger, slots, stillsRef]);
+  const resolveCutProblems = useCallback(
+    async (action: 'retry' | 'leave-out' | 'cut-anyway' | 'cancel') => {
+      const problems = cutProblems ?? [];
+      setCutProblems(null);
+      if (action === 'retry') await retryFlagged();
+      else if (action === 'leave-out')
+        await cutDayFilmNow({ excludeKeys: problems.map(problem => problem.key) });
+      else if (action === 'cut-anyway') await cutDayFilmNow();
+    },
+    [cutDayFilmNow, cutProblems, retryFlagged]
+  );
+
   return {
     ...core,
     ...part2,
     ...quality,
     ...clips,
     ...season,
+    cutDayFilm,
+    cutProblems,
+    resolveCutProblems,
     flaggedRetryCount,
     retryFlagged,
     plateUploading,

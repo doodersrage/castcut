@@ -1,5 +1,6 @@
 'use client';
 
+import CutProblemsDialog from '@/components/CutProblemsDialog';
 import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -153,6 +154,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     animateSlot,
     animateAllClips,
     cutDayFilm,
+    cutProblems,
+    resolveCutProblems,
     saveFilmToCast,
     completedShotCount,
     fittingWardrobe,
@@ -308,6 +311,10 @@ export default function MobileDayToolSections(vm: ViewModel) {
 
   return (
     <div className="space-y-4" data-testid="mobile-day">
+      <CutProblemsDialog
+        problems={cutProblems}
+        onResolve={action => void resolveCutProblems(action)}
+      />
       <div className="space-y-1">
         <h1 className="type-display text-2xl tracking-tight">Day</h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">

@@ -1,6 +1,15 @@
 'use client';
 
 import {
+  applyCutShotEdits,
+  cutShotProblems,
+  type CutShotProblem,
+  type KeyedShot,
+} from '@/lib/film-cut-plan';
+import { storyFaceMatchLabel, storyPoseMatchLabel } from '@/lib/roleplay-pose-check';
+import { DEFAULT_MIN_FACE_MATCH, FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
+import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
+import {
   DEFAULT_FILM_CUT_OPTIONS,
   type FilmCutOptionsValue,
 } from '@/components/FilmCutOptionsControls';
@@ -58,102 +67,149 @@ export function useRoleplayFilmActions(input: {
   const [error, setError] = useState<string | null>(null);
   const [filmGuideHref, setFilmGuideHref] = useState<string | null>(null);
 
-  const cutRoleplayFilm = useCallback(async () => {
-    const shots = roleplayWatchPlaylist(input.storyRef.current);
-    if (shots.length === 0) {
-      setFilmGuideHref(null);
-      setError('Need a completed still or clip before cutting a film.');
-      return;
-    }
-    const name = input.toolSettings.characterName?.trim() || input.bioName?.trim() || 'roleplay';
-    const session = snapshotRoleplaySession(input.toolSettings);
-    const fromSession = session ? characterFromRoleplaySession(session) : null;
-    let character =
-      (fromSession ? getCharacter(fromSession.id) : undefined) ||
-      loadCharacters().find(entry => {
-        const labels = [entry.name, entry.characterName].map(value => value?.trim().toLowerCase());
-        return labels.includes(name.toLowerCase());
-      });
-    if (!character && session) {
-      character = upsertCharacterFromRoleplaySession(session);
-      upsertRoleplayLibrarySession(session);
-    }
-    setAssemblingFilm(true);
-    setError(null);
-    setFilmGuideHref(null);
-    setFilmNeedsCast(false);
-    setFilmStatus('Checking shots…');
-    try {
-      const result = await assembleAndStampFilm({
-        shots,
-        characterId: character?.id ?? '',
-        characterName: name,
-        lookId: character?.activeLookId,
-        crossfadeSec: filmCutOptions.crossfadeSec,
-        resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
-        audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
-        stillMotion: filmCutOptions.stillMotion !== false,
-        captions: filmCutOptions.titles === true,
-        titleCard: filmCutOptions.titles ? { title: name, subtitle: 'A Castcut story' } : null,
-        onProgress: progress => setFilmStatus(progress.label),
-      });
-      downloadFilmBlob(result.blob, result.filename);
-      lastFilmEntryRef.current = result.entryId;
-      assembledFilmRef.current = {
-        filename: result.filename,
-        data: new Uint8Array(await result.blob.arrayBuffer()),
-      };
-      if (character) {
-        setFilmCharacterId(character.id);
-      }
-      if (character && result.persisted) {
-        setFilmNeedsCast(false);
-        setFilmStatus(
-          `Saved ${result.filename} to ${character.name} (${result.encodePath} encode) and started the download.`
-        );
-      } else {
-        setFilmNeedsCast(true);
-        setFilmStatus(
-          character
-            ? `Downloaded ${result.filename} (${result.encodePath} encode). Save to Cast to stamp a studio copy.`
-            : `Downloaded ${result.filename} (${result.encodePath} encode) unstamped. Save to Cast to attach this film to a character.`
-        );
-      }
-      markOnboardingFirstPlayCampaign();
-      const firstCut = markOnboardingFirstFilmCut();
-      void import('@/lib/local-observability').then(
-        ({ noteFilmCutSourceMetric, noteSaveToCastMetric }) => {
-          noteFilmCutSourceMetric('roleplay');
-          if (character && result.persisted) {
-            noteSaveToCastMetric();
-          }
-        }
+  const [cutProblems, setCutProblems] = useState<CutShotProblem[] | null>(null);
+
+  const cutRoleplayFilm = useCallback(
+    async (options?: { excludeKeys?: string[]; skipCheck?: boolean }) => {
+      const edits = filmCutOptions.shotEdits;
+      const excluded = options?.excludeKeys ?? [];
+      const shots = applyCutShotEdits(
+        roleplayWatchPlaylist(input.storyRef.current) as KeyedShot[],
+        excluded.length > 0
+          ? {
+              ...edits,
+              shots: {
+                ...edits?.shots,
+                ...Object.fromEntries(
+                  excluded.map(key => [key, { ...edits?.shots?.[key], include: false }])
+                ),
+              },
+            }
+          : edits
       );
-      if (character) {
-        completePlayCampaign({ characterId: character.id, stepId: 'roleplay' });
-      }
-      if (firstCut) {
-        void import('@/lib/system-tray-celebrate').then(({ celebrateSystemTray }) => {
-          celebrateSystemTray('job');
+      // Pre-cut check: beats whose still failed or missed its pose / face get a look first.
+      if (!options?.skipCheck) {
+        const byKey = new Map(input.storyRef.current.map(beat => [`${beat.id}@${beat.at}`, beat]));
+        const problems = cutShotProblems(shots, shot => {
+          const beat = byKey.get(shot.key);
+          if (!beat) return null;
+          const pose = storyPoseMatchLabel(beat, DEFAULT_MIN_POSE_MATCH);
+          const face = storyFaceMatchLabel(beat, {
+            miss: DEFAULT_MIN_FACE_MATCH,
+            warn: FACE_MATCH_WARN_BELOW,
+          });
+          return {
+            flagged: beat.stillStatus === 'error' ? ['the still failed'] : [],
+            ...(pose?.miss ? { poseMiss: true, pose: beat.poseMatch?.score } : {}),
+            ...(face?.miss ? { faceMiss: true, face: beat.faceMatch?.similarity } : {}),
+          };
         });
-        setFirstCutCelebrate(true);
-        setFilmStatus(
-          character
-            ? `First film cut — watch on Cast, share, or open Same look, new Day.`
-            : `First film cut — share or Save to Cast to attach it.`
-        );
+        if (problems.length > 0) {
+          setCutProblems(problems);
+          return;
+        }
       }
-    } catch (err) {
-      const playbook = resolveFilmFailurePlaybook(
-        err instanceof Error ? err.message : 'Could not assemble the film.'
-      );
-      setError(playbook.message);
-      setFilmGuideHref(playbook.href ?? null);
-      setFilmStatus(null);
-    } finally {
-      setAssemblingFilm(false);
-    }
-  }, [filmCutOptions, input.bioName, input.storyRef, input.toolSettings]);
+      setCutProblems(null);
+      if (shots.length === 0) {
+        setFilmGuideHref(null);
+        setError('Need a completed still or clip before cutting a film.');
+        return;
+      }
+      const name = input.toolSettings.characterName?.trim() || input.bioName?.trim() || 'roleplay';
+      const session = snapshotRoleplaySession(input.toolSettings);
+      const fromSession = session ? characterFromRoleplaySession(session) : null;
+      let character =
+        (fromSession ? getCharacter(fromSession.id) : undefined) ||
+        loadCharacters().find(entry => {
+          const labels = [entry.name, entry.characterName].map(value =>
+            value?.trim().toLowerCase()
+          );
+          return labels.includes(name.toLowerCase());
+        });
+      if (!character && session) {
+        character = upsertCharacterFromRoleplaySession(session);
+        upsertRoleplayLibrarySession(session);
+      }
+      setAssemblingFilm(true);
+      setError(null);
+      setFilmGuideHref(null);
+      setFilmNeedsCast(false);
+      setFilmStatus('Checking shots…');
+      try {
+        const result = await assembleAndStampFilm({
+          shots,
+          characterId: character?.id ?? '',
+          characterName: name,
+          lookId: character?.activeLookId,
+          crossfadeSec: filmCutOptions.crossfadeSec,
+          resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
+          audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
+          stillMotion: filmCutOptions.stillMotion !== false,
+          captions: filmCutOptions.titles === true,
+          titleCard: filmCutOptions.titles ? { title: name, subtitle: 'A Castcut story' } : null,
+          length: filmCutOptions.length,
+          beatSnap: filmCutOptions.beatSnap,
+          onProgress: progress => setFilmStatus(progress.label),
+        });
+        downloadFilmBlob(result.blob, result.filename);
+        lastFilmEntryRef.current = result.entryId;
+        assembledFilmRef.current = {
+          filename: result.filename,
+          data: new Uint8Array(await result.blob.arrayBuffer()),
+        };
+        if (character) {
+          setFilmCharacterId(character.id);
+        }
+        if (character && result.persisted) {
+          setFilmNeedsCast(false);
+          setFilmStatus(
+            `Saved ${result.filename} to ${character.name} (${result.encodePath} encode) and started the download.`
+          );
+        } else {
+          setFilmNeedsCast(true);
+          setFilmStatus(
+            character
+              ? `Downloaded ${result.filename} (${result.encodePath} encode). Save to Cast to stamp a studio copy.`
+              : `Downloaded ${result.filename} (${result.encodePath} encode) unstamped. Save to Cast to attach this film to a character.`
+          );
+        }
+        markOnboardingFirstPlayCampaign();
+        const firstCut = markOnboardingFirstFilmCut();
+        void import('@/lib/local-observability').then(
+          ({ noteFilmCutSourceMetric, noteSaveToCastMetric }) => {
+            noteFilmCutSourceMetric('roleplay');
+            if (character && result.persisted) {
+              noteSaveToCastMetric();
+            }
+          }
+        );
+        if (character) {
+          completePlayCampaign({ characterId: character.id, stepId: 'roleplay' });
+        }
+        if (firstCut) {
+          void import('@/lib/system-tray-celebrate').then(({ celebrateSystemTray }) => {
+            celebrateSystemTray('job');
+          });
+          setFirstCutCelebrate(true);
+          setFilmStatus(
+            character
+              ? `First film cut — watch on Cast, share, or open Same look, new Day.`
+              : `First film cut — share or Save to Cast to attach it.`
+          );
+        }
+      } catch (err) {
+        const playbook = resolveFilmFailurePlaybook(
+          err instanceof Error ? err.message : 'Could not assemble the film.'
+        );
+        setError(playbook.message);
+        setFilmGuideHref(playbook.href ?? null);
+        setFilmStatus(null);
+      } finally {
+        setAssemblingFilm(false);
+      }
+    },
+    [filmCutOptions, input.bioName, input.storyRef, input.toolSettings]
+  );
 
   const saveFilmToCast = useCallback(() => {
     const persisted = persistRoleplayLibraryFromCache(input.toolSettings);
@@ -259,6 +315,32 @@ export function useRoleplayFilmActions(input: {
     input.toolSettings.characterName,
   ]);
 
+  /** Pre-cut dialog: retry the beats first (the caller's queue), leave them out, or cut anyway. */
+  const resolveCutProblems = useCallback(
+    async (
+      action: 'retry' | 'leave-out' | 'cut-anyway' | 'cancel',
+      retryBeat?: (beat: RoleplayStoryBeat) => Promise<unknown>
+    ) => {
+      const problems = cutProblems ?? [];
+      setCutProblems(null);
+      if (action === 'retry' && retryBeat) {
+        const byKey = new Map(input.storyRef.current.map(beat => [`${beat.id}@${beat.at}`, beat]));
+        // Sequential — the queue is single-flight.
+        for (const problem of problems) {
+          const beat = byKey.get(problem.key);
+          if (beat) await retryBeat(beat);
+        }
+      } else if (action === 'leave-out') {
+        await cutRoleplayFilm({
+          excludeKeys: problems.map(problem => problem.key),
+          skipCheck: true,
+        });
+      } else if (action === 'cut-anyway') {
+        await cutRoleplayFilm({ skipCheck: true });
+      }
+    },
+    [cutProblems, cutRoleplayFilm, input.storyRef]
+  );
   return {
     assemblingFilm,
     saveFilmPoster,
@@ -269,6 +351,8 @@ export function useRoleplayFilmActions(input: {
     firstCutCelebrate,
     clearFirstCutCelebrate: () => setFirstCutCelebrate(false),
     cutRoleplayFilm,
+    cutProblems,
+    resolveCutProblems,
     saveFilmToCast,
     shareLastCut,
     filmError: error,

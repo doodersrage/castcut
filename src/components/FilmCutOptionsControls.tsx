@@ -1,5 +1,12 @@
 'use client';
 
+import FilmCutShotList from '@/components/FilmCutShotList';
+import {
+  normalizeFilmCutLength,
+  type CutShotEdits,
+  type FilmCutLength,
+  type KeyedShot,
+} from '@/lib/film-cut-plan';
 import { useRef, useState } from 'react';
 import { FieldLabel } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +24,12 @@ export type FilmCutOptionsValue = {
   stillMotion?: boolean;
   /** Opening title card plus a short caption per shot. */
   titles?: boolean;
+  /** How long the cut runs: as the shots hold, fit to the music, or 15 / 30 / 60 s. */
+  length?: FilmCutLength;
+  /** Land still cuts on the music's beat (needs an audio bed). */
+  beatSnap?: boolean;
+  /** Day / Story shot list: order, leave-outs, captions, holds. */
+  shotEdits?: CutShotEdits;
 };
 
 /** Cut option defaults shared by Day, Story and Cast film. */
@@ -32,6 +45,8 @@ type FilmCutOptionsControlsProps = {
   onChange: (next: FilmCutOptionsValue) => void;
   disabled?: boolean;
   testIdPrefix?: string;
+  /** Shots this cut would use (Day / Story) — shows the shot list when given. */
+  shots?: KeyedShot[];
 };
 
 /** Crossfade, vertical export, and audio bed for Day/Story/Cast Cut (upload or URL). */
@@ -40,6 +55,7 @@ export default function FilmCutOptionsControls({
   onChange,
   disabled = false,
   testIdPrefix = 'film-cut',
+  shots,
 }: FilmCutOptionsControlsProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadBusy, setUploadBusy] = useState(false);
@@ -101,6 +117,63 @@ export default function FilmCutOptionsControls({
           <span>Title & captions</span>
         </label>
       </ToolActionRow>
+
+      <ToolActionRow>
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <span>Length</span>
+          <select
+            disabled={disabled}
+            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
+            value={String(value.length ?? 'shots')}
+            onChange={event =>
+              onChange({
+                ...value,
+                length: normalizeFilmCutLength(
+                  event.target.value === 'shots' || event.target.value === 'music'
+                    ? event.target.value
+                    : Number(event.target.value)
+                ),
+              })
+            }
+            data-testid={`${testIdPrefix}-length`}
+          >
+            <option value="shots">As the shots hold</option>
+            <option value="music" disabled={!value.audioBedUrl.trim()}>
+              Fit to the music
+            </option>
+            <option value="15">15 s</option>
+            <option value="30">30 s</option>
+            <option value="60">60 s</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <input
+            type="checkbox"
+            disabled={disabled || !value.audioBedUrl.trim()}
+            checked={value.beatSnap === true}
+            onChange={event => onChange({ ...value, beatSnap: event.target.checked })}
+            data-testid={`${testIdPrefix}-beat-snap`}
+          />
+          <span>Cut on the beat</span>
+        </label>
+      </ToolActionRow>
+      {!value.audioBedUrl.trim() && (value.length === 'music' || value.beatSnap) ? (
+        <p className="type-caption text-[var(--text-muted)]">
+          Add a music track below to fit the cut to it or cut on its beat.
+        </p>
+      ) : null}
+
+      {shots && shots.length > 0 ? (
+        <FilmCutShotList
+          shots={shots}
+          edits={value.shotEdits}
+          captions={value.titles === true}
+          holdsLocked={(value.length ?? 'shots') !== 'shots'}
+          disabled={disabled}
+          testIdPrefix={testIdPrefix}
+          onChange={shotEdits => onChange({ ...value, shotEdits })}
+        />
+      ) : null}
 
       <div className="space-y-1.5">
         <FieldLabel>Audio bed (optional)</FieldLabel>
@@ -214,6 +287,15 @@ export function filmCutOptionsSummary(value: FilmCutOptionsValue): string {
     value.stillMotion !== false ? 'slow zoom' : 'no zoom',
     value.titles ? 'titles' : '',
     value.audioBedUrl.trim() ? 'audio bed' : '',
+    value.length === 'music'
+      ? 'fit to music'
+      : typeof value.length === 'number'
+        ? `${value.length}s`
+        : '',
+    value.beatSnap && value.audioBedUrl.trim() ? 'on the beat' : '',
+    Object.values(value.shotEdits?.shots ?? {}).some(edit => edit.include === false)
+      ? 'shots left out'
+      : '',
   ].filter(Boolean);
   return parts.join(' · ');
 }
@@ -227,6 +309,7 @@ export function FilmCutOptionsDisclosure({
   onChange,
   disabled = false,
   testIdPrefix = 'film-cut',
+  shots,
 }: FilmCutOptionsControlsProps) {
   return (
     <details
@@ -242,6 +325,7 @@ export function FilmCutOptionsDisclosure({
           onChange={onChange}
           disabled={disabled}
           testIdPrefix={testIdPrefix}
+          shots={shots}
         />
       </div>
     </details>

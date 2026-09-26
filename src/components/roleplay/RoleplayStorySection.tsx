@@ -1,5 +1,7 @@
 'use client';
 
+import { roleplayWatchPlaylist } from '@/lib/character-film';
+import type { KeyedShot } from '@/lib/film-cut-plan';
 import type { ReactNode } from 'react';
 import RoleplayFilmCutActions from '@/components/RoleplayFilmCutActions';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
@@ -183,6 +185,7 @@ export default function RoleplayStorySection({
       ) : null}
 
       <RoleplayFilmCutActions
+        cutShots={roleplayWatchPlaylist(story) as KeyedShot[]}
         assemblingFilm={assemblingFilm}
         busy={busy}
         storyEmpty={story.length === 0}

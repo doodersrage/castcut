@@ -1,5 +1,6 @@
 'use client';
 
+import type { KeyedShot } from '@/lib/film-cut-plan';
 import type { ReactNode } from 'react';
 import {
   FilmCutOptionsDisclosure,
@@ -29,6 +30,8 @@ export type RoleplayFilmCutActionsProps = {
   onShareCut?: () => void;
   onSavePoster?: () => void;
   posterBusy?: boolean;
+  /** Shots the cut would use — shows the shot list under Cut options. */
+  cutShots?: KeyedShot[];
   /** Optional leading controls (e.g. Download story) kept in the same flex row. */
   children?: ReactNode;
 };
@@ -51,6 +54,7 @@ export default function RoleplayFilmCutActions({
   onShareCut,
   onSavePoster,
   posterBusy = false,
+  cutShots,
   children,
 }: RoleplayFilmCutActionsProps) {
   const showPostCut = Boolean(
@@ -66,6 +70,7 @@ export default function RoleplayFilmCutActions({
             onChange={onFilmCutOptionsChange}
             disabled={assemblingFilm}
             testIdPrefix="story-cut"
+            shots={cutShots}
           />
         </div>
       ) : null}

@@ -777,6 +777,81 @@ test('gallery: Cast filter, pose / face badges, missed filter, use this pose', a
   await expect(dialog).toHaveCount(0);
 });
 
+test('day cut: shot list with beat captions, and a pre-cut check for a pose miss', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+    const now = Date.now();
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: 'e2e-day-cut', name: 'Day Cut', version: 1, updatedAt: now }],
+        removedIds: [],
+      })
+    );
+    window.localStorage.setItem(
+      'comfy-prompt-tool-settings-v1',
+      JSON.stringify({
+        shared: { activeCharacterId: 'e2e-day-cut' },
+        tools: {
+          day: {
+            stillsCharacterId: 'e2e-day-cut',
+            slots: [
+              { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee by the window' },
+              { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads on a bench' },
+              { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs with a drink' },
+              { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
+            ],
+            stills: [
+              { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'e2e-cut-m' },
+              { slotId: 'afternoon', status: 'completed', imageUrl: thumb, promptId: 'e2e-cut-a' },
+            ],
+          },
+        },
+      })
+    );
+    window.localStorage.setItem(
+      'comfyui-gallery-v1',
+      JSON.stringify([
+        {
+          id: 'e2e-cut-m',
+          promptId: 'e2e-cut-m',
+          prompt: 'morning still',
+          tool: 'day',
+          comfyUrl: 'http://127.0.0.1:8188',
+          status: 'completed',
+          queuedAt: now,
+          completedAt: now,
+          images: [{ filename: 'm.png', subfolder: '', type: 'output' }],
+          playChecks: { pose: 0.31, poseMiss: true, at: now },
+        },
+      ])
+    );
+  });
+  await gotoStable(page, '/day?character=e2e-day-cut');
+  await dismissBlockingOverlays(page);
+  const coach = page.getByTestId('day-cut-coach');
+  await expect(coach).toBeVisible({ timeout: 30_000 });
+  // Cut options: the shot list, with captions from the beats once titles are on.
+  await coach.getByTestId('day-cut-options-disclosure').locator('summary').click();
+  await expect(coach.getByTestId('day-cut-shot-list')).toBeVisible();
+  await coach.getByTestId('day-cut-titles').check();
+  await expect(coach.getByTestId('day-cut-shot-caption-morning')).toHaveValue(
+    'pours coffee by the window'
+  );
+  await expect(coach.getByTestId('day-cut-length')).toBeVisible();
+  // Cut: the morning still missed its pose, so the check comes first.
+  await coach.getByRole('button', { name: 'Cut film', exact: true }).click();
+  const dialog = page.getByTestId('cut-problems');
+  await expect(dialog).toBeVisible({ timeout: 20_000 });
+  await expect(dialog.getByTestId('cut-problem-morning')).toContainText('missed its pose (31%)');
+  await expect(dialog.getByTestId('cut-problems-leave-out')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+});
+
 test('play metrics card appears on dashboard when metrics exist', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem(

@@ -2,6 +2,8 @@
  * Browser-side film assemble: paint the cut onto a canvas, record it, stamp the gallery.
  */
 
+import { prepareCutShots } from './film-cut-media';
+import type { FilmCutLength } from './film-cut-plan';
 import { addComfyGalleryEntry } from './comfyui-gallery';
 import { loadComfyUiSettings } from './comfyui-settings';
 import {
@@ -804,6 +806,10 @@ export async function assembleAndStampFilm(input: {
   captions?: boolean;
   titleCard?: FilmTitleCard | null;
   preferServer?: boolean;
+  /** How long the cut runs (fit stills to the music / a set length). Default: as the shots hold. */
+  length?: FilmCutLength;
+  /** Land still cuts on the music's beat. */
+  beatSnap?: boolean;
   onProgress?: (progress: AssembleFilmProgress) => void;
 }): Promise<{
   filename: string;
@@ -811,8 +817,19 @@ export async function assembleAndStampFilm(input: {
   persisted: boolean;
   entryId?: string;
   encodePath: 'server' | 'browser';
+  /** What the cut plan did (length fit, beat snap). */
+  cutNotes: string[];
 }> {
-  const assembled = await assembleFilmBlob(input.shots, {
+  input.onProgress?.({ ratio: 0.01, label: 'Timing the cut…' });
+  const prepared = await prepareCutShots(input.shots, {
+    length: input.length,
+    beatSnap: input.beatSnap,
+    audioBedUrl: input.audioBedUrl,
+    crossfadeSec: input.crossfadeSec,
+    titleCard: Boolean(input.titleCard?.title?.trim()),
+    captions: input.captions,
+  });
+  const assembled = await assembleFilmBlob(prepared.shots, {
     onProgress: input.onProgress,
     preferServer: input.preferServer,
     resolution: input.resolution,
@@ -833,7 +850,13 @@ export async function assembleAndStampFilm(input: {
     serverEncoded: assembled.encodePath === 'server',
     onProgress: input.onProgress,
   });
-  return { filename, blob: assembled.blob, encodePath: assembled.encodePath, ...stamped };
+  return {
+    filename,
+    blob: assembled.blob,
+    encodePath: assembled.encodePath,
+    cutNotes: prepared.notes,
+    ...stamped,
+  };
 }
 
 export async function stitchSelectedGalleryVideos(input: {

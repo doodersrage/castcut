@@ -1,5 +1,7 @@
 'use client';
 
+import CutProblemsDialog from '@/components/CutProblemsDialog';
+import type { KeyedShot } from '@/lib/film-cut-plan';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
@@ -164,6 +166,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     animateSlot,
     animateAllClips,
     cutDayFilm,
+    cutProblems,
+    resolveCutProblems,
     saveFilmToCast,
     goRoleplay,
     completedShotCount,
@@ -335,6 +339,10 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   );
   return (
     <>
+      <CutProblemsDialog
+        problems={cutProblems}
+        onResolve={action => void resolveCutProblems(action)}
+      />
       <ToolLayout
         accent={ACCENT}
         badge={<ToolBadge accent={ACCENT}>Day · {selectedModel?.comfyNode ?? 'model'}</ToolBadge>}
@@ -512,6 +520,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     onChange={setFilmCutOptions}
                     disabled={assemblingFilm}
                     testIdPrefix="day-cut"
+                    shots={watchPlaylist as KeyedShot[]}
                   />
                 </div>
               </div>

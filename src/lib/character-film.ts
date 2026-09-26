@@ -54,6 +54,10 @@ export type FilmPlaylistShot = {
   url: string;
   kind: FilmShotKind;
   holdSec?: number;
+  /** Stable id for cut edits (Day slot id, Story beat id@at). */
+  key?: string;
+  /** Caption when titles are on (default: `title`). */
+  caption?: string;
 };
 
 export function clampStillHoldSec(value: unknown, fallback = DEFAULT_STILL_HOLD_SEC): number {
@@ -284,6 +288,7 @@ export function roleplayWatchPlaylist(
     if (clipUrl) {
       const asClip = looksLikeMotionUrl(clipUrl);
       shots.push({
+        key: `${beat.id}@${beat.at}`,
         entryId: beat.clipPromptId?.trim() || beat.id,
         title: beat.title,
         url: clipUrl,
@@ -300,6 +305,7 @@ export function roleplayWatchPlaylist(
       continue;
     }
     shots.push({
+      key: `${beat.id}@${beat.at}`,
       entryId: beat.promptId?.trim() || beat.id,
       title: beat.title,
       url: stillUrl,
