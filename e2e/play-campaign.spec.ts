@@ -4,6 +4,7 @@ import { seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { gotoStable } from './helpers/navigation';
 import { seedGalleryPlayFixtures } from './helpers/gallery';
 import { dismissBlockingOverlays } from './helpers/overlays';
+import { isolateServerStorage } from './helpers/storage';
 
 function seedFirstFilmDone(page: Page) {
   return page.addInitScript(() => {
@@ -23,6 +24,7 @@ async function expandFittingMoreMenu(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await isolateServerStorage(page);
   await ensureAuthenticated(page);
 });
 
@@ -155,8 +157,8 @@ test('day without a Cast leads with the get-started card', async ({ page }) => {
 });
 
 test('day mid-flow: one Cut, folded cut options, honest render status', async ({ page }) => {
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
   await page.addInitScript(() => {
-    const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
     window.localStorage.setItem(
       'comfy-prompt-characters-v1',
       JSON.stringify({
@@ -165,28 +167,25 @@ test('day mid-flow: one Cut, folded cut options, honest render status', async ({
         removedIds: [],
       })
     );
-    window.localStorage.setItem(
-      'comfy-prompt-tool-settings-v1',
-      JSON.stringify({
-        shared: { activeCharacterId: 'e2e-day-mid' },
-        tools: {
-          day: {
-            stillsCharacterId: 'e2e-day-mid',
-            slots: [
-              { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
-              { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
-              { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs' },
-              { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
-            ],
-            stills: [
-              { slotId: 'morning', status: 'completed', imageUrl: thumb },
-              { slotId: 'afternoon', status: 'completed', imageUrl: thumb },
-              { slotId: 'evening', status: 'running' },
-            ],
-          },
-        },
-      })
-    );
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-day-mid' },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-day-mid',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
+          { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: thumb },
+          { slotId: 'afternoon', status: 'completed', imageUrl: thumb },
+          { slotId: 'evening', status: 'running' },
+        ],
+      },
+    },
   });
   await gotoStable(page, '/day?character=e2e-day-mid');
   await dismissBlockingOverlays(page);
@@ -205,8 +204,8 @@ test('day mid-flow: one Cut, folded cut options, honest render status', async ({
 });
 
 async function seedStoryMidFlow(page: Page, id: string) {
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
   await page.addInitScript(castId => {
-    const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
     window.localStorage.setItem(
       'comfy-prompt-characters-v1',
       JSON.stringify({
@@ -219,39 +218,36 @@ async function seedStoryMidFlow(page: Page, id: string) {
       'comfy-play-metrics-v1',
       JSON.stringify({ version: 1, firstFilmCutAt: Date.now() })
     );
-    window.localStorage.setItem(
-      'comfy-prompt-tool-settings-v1',
-      JSON.stringify({
-        shared: { activeCharacterId: castId },
-        tools: {
-          roleplay: {
-            activeSessionId: `cast-${castId}`,
-            characterName: 'Story Mid',
-            bio: { name: 'Story Mid', look: 'green raincoat', personality: 'curious' },
-            story: [
-              {
-                id: 'b1',
-                at: Date.now() - 2000,
-                kind: 'plot',
-                title: 'The letter',
-                blurb: 'A letter under the door.',
-                stillStatus: 'completed',
-                imageUrl: thumb,
-              },
-              {
-                id: 'b2',
-                at: Date.now() - 1000,
-                kind: 'plot',
-                title: 'The station',
-                blurb: 'The last train north.',
-                stillStatus: 'running',
-              },
-            ],
-          },
-        },
-      })
-    );
   }, id);
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: id },
+    tools: {
+      roleplay: {
+        activeSessionId: `cast-${id}`,
+        characterName: 'Story Mid',
+        bio: { name: 'Story Mid', look: 'green raincoat', personality: 'curious' },
+        story: [
+          {
+            id: 'b1',
+            at: Date.now() - 2000,
+            kind: 'plot',
+            title: 'The letter',
+            blurb: 'A letter under the door.',
+            stillStatus: 'completed',
+            imageUrl: thumb,
+          },
+          {
+            id: 'b2',
+            at: Date.now() - 1000,
+            kind: 'plot',
+            title: 'The station',
+            blurb: 'The last train north.',
+            stillStatus: 'running',
+          },
+        ],
+      },
+    },
+  });
 }
 
 test('story mid-flow: Roll leads, settings fold, no default Part', async ({ page }) => {
@@ -322,6 +318,52 @@ test('look: one preset row, tile board, paste adds a tile', async ({ page }) => 
 });
 
 test('day and story show a running job as Rendering, and Story Retry flagged', async ({ page }) => {
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  const now = Date.now();
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-progress' },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-progress',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
+          { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'sleeps' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: thumb },
+          { slotId: 'evening', status: 'queued', promptId: 'p-evening' },
+        ],
+      },
+      roleplay: {
+        activeSessionId: 'cast-e2e-progress',
+        characterName: 'Progress',
+        bio: { name: 'Progress', look: 'green raincoat', personality: 'curious' },
+        story: [
+          {
+            id: 'b1',
+            at: now - 2000,
+            kind: 'plot',
+            title: 'Missed pose',
+            blurb: 'A still that ignored its guide.',
+            stillStatus: 'completed',
+            imageUrl: thumb,
+            poseMatch: { imageUrl: thumb, score: 0.2, expectedPeople: 1, detectedPeople: 1 },
+          },
+          {
+            id: 'b2',
+            at: now - 1000,
+            kind: 'plot',
+            title: 'Rendering beat',
+            blurb: 'Still in ComfyUI.',
+            stillStatus: 'queued',
+            promptId: 'p-beat',
+          },
+        ],
+      },
+    },
+  });
   await page.addInitScript(() => {
     const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
     const now = Date.now();
@@ -355,53 +397,6 @@ test('day and story show a running job as Rendering, and Story Retry flagged', a
         job('p-evening', { status: 'running', progressValue: 9, progressMax: 20, queuePosition: 0 }),
         job('p-beat', { status: 'running', progressValue: 30, progressMax: 60, queuePosition: 0 }),
       ])
-    );
-    window.localStorage.setItem(
-      'comfy-prompt-tool-settings-v1',
-      JSON.stringify({
-        shared: { activeCharacterId: 'e2e-progress' },
-        tools: {
-          day: {
-            stillsCharacterId: 'e2e-progress',
-            slots: [
-              { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'coffee' },
-              { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
-              { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs' },
-              { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'sleeps' },
-            ],
-            stills: [
-              { slotId: 'morning', status: 'completed', imageUrl: thumb },
-              { slotId: 'evening', status: 'queued', promptId: 'p-evening' },
-            ],
-          },
-          roleplay: {
-            activeSessionId: 'cast-e2e-progress',
-            characterName: 'Progress',
-            bio: { name: 'Progress', look: 'green raincoat', personality: 'curious' },
-            story: [
-              {
-                id: 'b1',
-                at: now - 2000,
-                kind: 'plot',
-                title: 'Missed pose',
-                blurb: 'A still that ignored its guide.',
-                stillStatus: 'completed',
-                imageUrl: thumb,
-                poseMatch: { imageUrl: thumb, score: 0.2, expectedPeople: 1, detectedPeople: 1 },
-              },
-              {
-                id: 'b2',
-                at: now - 1000,
-                kind: 'plot',
-                title: 'Rendering beat',
-                blurb: 'Still in ComfyUI.',
-                stillStatus: 'queued',
-                promptId: 'p-beat',
-              },
-            ],
-          },
-        },
-      })
     );
   });
 
@@ -650,6 +645,41 @@ test('play campaign shows mismatch when saved character differs', async ({ page 
 });
 
 test('day slot editor previews the pose and lets you change it', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-day-pose' },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-day-pose',
+        slots: [
+          {
+            id: 'morning',
+            label: 'Morning',
+            location: 'small kitchen',
+            sceneHints: 'stirring a pot of risotto at the stove',
+          },
+          // Every slot cooks, so whichever slot the editor opens on draws the same pose.
+          {
+            id: 'afternoon',
+            label: 'Afternoon',
+            location: 'small kitchen',
+            sceneHints: 'chopping onions at the counter',
+          },
+          {
+            id: 'evening',
+            label: 'Evening',
+            location: 'small kitchen',
+            sceneHints: 'stirring a pot of soup at the stove',
+          },
+          {
+            id: 'night',
+            label: 'Night',
+            location: 'small kitchen',
+            sceneHints: 'cooking pasta at the stove',
+          },
+        ],
+      },
+    },
+  });
   await page.addInitScript(() => {
     window.localStorage.setItem(
       'comfy-prompt-characters-v1',
@@ -657,44 +687,6 @@ test('day slot editor previews the pose and lets you change it', async ({ page }
         version: 1,
         characters: [{ id: 'e2e-day-pose', name: 'Day Pose', version: 1, updatedAt: Date.now() }],
         removedIds: [],
-      })
-    );
-    window.localStorage.setItem(
-      'comfy-prompt-tool-settings-v1',
-      JSON.stringify({
-        shared: { activeCharacterId: 'e2e-day-pose' },
-        tools: {
-          day: {
-            stillsCharacterId: 'e2e-day-pose',
-            slots: [
-              {
-                id: 'morning',
-                label: 'Morning',
-                location: 'small kitchen',
-                sceneHints: 'stirring a pot of risotto at the stove',
-              },
-              // Every slot cooks, so whichever slot the editor opens on draws the same pose.
-              {
-                id: 'afternoon',
-                label: 'Afternoon',
-                location: 'small kitchen',
-                sceneHints: 'chopping onions at the counter',
-              },
-              {
-                id: 'evening',
-                label: 'Evening',
-                location: 'small kitchen',
-                sceneHints: 'stirring a pot of soup at the stove',
-              },
-              {
-                id: 'night',
-                label: 'Night',
-                location: 'small kitchen',
-                sceneHints: 'cooking pasta at the stove',
-              },
-            ],
-          },
-        },
       })
     );
   });
@@ -780,8 +772,26 @@ test('gallery: Cast filter, pose / face badges, missed filter, use this pose', a
 test('day cut: shot list with beat captions, and a pre-cut check for a pose miss', async ({
   page,
 }) => {
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-day-cut' },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-day-cut',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee by the window' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads on a bench' },
+          { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs with a drink' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'e2e-cut-m' },
+          { slotId: 'afternoon', status: 'completed', imageUrl: thumb, promptId: 'e2e-cut-a' },
+        ],
+      },
+    },
+  });
   await page.addInitScript(() => {
-    const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
     const now = Date.now();
     window.localStorage.setItem(
       'comfy-prompt-characters-v1',
@@ -789,27 +799,6 @@ test('day cut: shot list with beat captions, and a pre-cut check for a pose miss
         version: 1,
         characters: [{ id: 'e2e-day-cut', name: 'Day Cut', version: 1, updatedAt: now }],
         removedIds: [],
-      })
-    );
-    window.localStorage.setItem(
-      'comfy-prompt-tool-settings-v1',
-      JSON.stringify({
-        shared: { activeCharacterId: 'e2e-day-cut' },
-        tools: {
-          day: {
-            stillsCharacterId: 'e2e-day-cut',
-            slots: [
-              { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee by the window' },
-              { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads on a bench' },
-              { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs with a drink' },
-              { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
-            ],
-            stills: [
-              { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'e2e-cut-m' },
-              { slotId: 'afternoon', status: 'completed', imageUrl: thumb, promptId: 'e2e-cut-a' },
-            ],
-          },
-        },
       })
     );
     window.localStorage.setItem(
@@ -855,6 +844,26 @@ test('day cut: shot list with beat captions, and a pre-cut check for a pose miss
 test('queue: jobs say where they came from, batch together, and show time left', async ({
   page,
 }) => {
+  // Day slices live in the IDB tools sidecar — a localStorage-only seed lost to it on hydrate
+  // about half the time, and the jobs showed without their slot ("Day · Queue Cast").
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-queue-cast' },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-queue-cast',
+        slots: [
+          { id: 'morning', label: 'Morning' },
+          { id: 'afternoon', label: 'Afternoon' },
+          { id: 'evening', label: 'Evening' },
+          { id: 'night', label: 'Night' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'running', promptId: 'e2e-q-m' },
+          { slotId: 'afternoon', status: 'queued', promptId: 'e2e-q-a' },
+        ],
+      },
+    },
+  });
   await page.addInitScript(() => {
     const now = Date.now();
     window.localStorage.setItem(
@@ -863,27 +872,6 @@ test('queue: jobs say where they came from, batch together, and show time left',
         version: 1,
         characters: [{ id: 'e2e-queue-cast', name: 'Queue Cast', version: 1, updatedAt: now }],
         removedIds: [],
-      })
-    );
-    window.localStorage.setItem(
-      'comfy-prompt-tool-settings-v1',
-      JSON.stringify({
-        shared: { activeCharacterId: 'e2e-queue-cast' },
-        tools: {
-          day: {
-            stillsCharacterId: 'e2e-queue-cast',
-            slots: [
-              { id: 'morning', label: 'Morning' },
-              { id: 'afternoon', label: 'Afternoon' },
-              { id: 'evening', label: 'Evening' },
-              { id: 'night', label: 'Night' },
-            ],
-            stills: [
-              { slotId: 'morning', status: 'running', promptId: 'e2e-q-m' },
-              { slotId: 'afternoon', status: 'queued', promptId: 'e2e-q-a' },
-            ],
-          },
-        },
       })
     );
     const base = {
@@ -1476,7 +1464,8 @@ test('mobile play cut film with mocked MediaRecorder shows Cast deep-links', asy
   await expect(celebrateOrWatch.first()).toBeVisible({ timeout: 45_000 });
   const watch = page.getByTestId('story-first-cut-watch');
   if ((await watch.count()) > 0) {
-    await expect(watch).toHaveAttribute('href', /media=films/);
+    // Phone maps Cast → films to the Gallery film view (toMobileStudioHref).
+    await expect(watch).toHaveAttribute('href', /media=films|derivedKind=film/);
   }
   const remix = page.getByTestId('story-first-cut-remix');
   if ((await remix.count()) > 0) {

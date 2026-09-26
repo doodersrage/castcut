@@ -53,3 +53,10 @@ jobs:
           CI: true
           PROMPT_AUTH_ENABLED: 'false'
           NEXT_PUBLIC_PLAYWRIGHT: '1'
+      # Page snapshots + error context for whichever step failed — CI logs alone only show the assertion.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 7

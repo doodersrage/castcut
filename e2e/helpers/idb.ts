@@ -86,6 +86,14 @@ export async function seedSettingsCacheOnNextLoad(
   if (cache.characters !== undefined) {
     entries['comfy-prompt-characters-v1'] = cache.characters;
   }
+  // The init-script write below is async and can lose the race with the app's own hydrate (a
+  // localStorage-only seed lost outright). When an app page is already open, also write now
+  // from a static same-origin file — no app code is running there, and leaving the app page
+  // first means its pagehide settings flush can't land on top of the seed.
+  if (/^https?:/.test(page.url())) {
+    await page.goto('/manifest.json');
+    await putAppKv(page, entries);
+  }
   await page.addInitScript(async pairs => {
     await new Promise<void>((resolve, reject) => {
       const request = indexedDB.open('comfy-prompt-studio-v1');
