@@ -33,7 +33,8 @@ export function gpuSettingsSuggestion(
   if (typeof totalBytes !== 'number' || !Number.isFinite(totalBytes) || totalBytes <= 0) {
     return null;
   }
-  const totalGb = Math.round(totalBytes / 1e9);
+  // Binary GB, as cards are sold: a 24 GB 4090 reports 25.3e9 bytes ("25 GB" in decimal).
+  const totalGb = Math.round(totalBytes / 2 ** 30);
   const [sizeTier, qualityProfile]: [ResolutionSizeTier, GpuSettingsSuggestion['qualityProfile']] =
     totalGb < 10
       ? ['small', 'draft']

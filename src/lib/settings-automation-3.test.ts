@@ -11,7 +11,7 @@ import { CLOUD_ENGINE_IDS } from './engine/capabilities';
 import { gpuSettingsPatch, gpuSettingsSuggestion } from './gpu-settings-match';
 import { DEFAULT_SHARED_SETTINGS } from './settings-cache';
 
-const GB = 1e9;
+const GB = 2 ** 30;
 
 describe('match settings to the GPU', () => {
   it('sizes render and quality to the card', () => {
@@ -26,6 +26,8 @@ describe('match settings to the GPU', () => {
       gpuSettingsSuggestion(24 * GB)?.label,
       '24 GB card → Max size · Final quality'
     );
+    // What an RTX 4090 actually reports to ComfyUI — labelled as the 24 GB card it is sold as.
+    assert.equal(gpuSettingsSuggestion(25_333_661_696)?.totalGb, 24);
     assert.equal(gpuSettingsSuggestion(undefined), null);
   });
 
