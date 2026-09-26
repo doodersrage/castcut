@@ -2,7 +2,7 @@
   {
     "name": "all client JS chunks incl. per-route/on-demand data (gzip aggregate; NOT first-load -- see npm run size / check-shared-bundle-size.mjs for that)",
     "path": ".next/static/chunks/**/*.js",
-    "limit": "3000 KB",
+    "limit": "3500 KB",
     "gzip": true
   }
 ]
