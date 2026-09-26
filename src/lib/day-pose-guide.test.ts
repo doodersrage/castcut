@@ -1219,4 +1219,20 @@ describe('everyday pose layouts', () => {
     );
     assert.equal(parseIntimateLayout('She straddles him on the couch, riding slowly'), 'straddle');
   });
+  it('writer act gives way when the beat plainly states another posture', async () => {
+    const { resolveSceneGuidePlan, textLeadPosture } = await import('./day-pose-guide');
+    assert.equal(textLeadPosture('She balances on one foot against the glass as he presses up behind her'), 'stand');
+    assert.equal(textLeadPosture('She straddles a bench as he kneels behind her'), 'sit');
+    // Prompt boilerplate negations are not the pose.
+    assert.equal(textLeadPosture('Lana on the bed — not a standing fashion portrait'), null);
+    const plan = (text: string, act: string) =>
+      resolveSceneGuidePlan(text, 0, { openPose: true, pose: { people: 2, act } } as never).intent;
+    // Contradiction: the words win.
+    assert.equal(plan('She balances on one foot as he presses up behind her', 'kneeling').intimate, 'standing');
+    assert.equal(plan('Rain slicks her thighs as he sinks into her from above', 'straddle').intimate, 'missionary');
+    // No contradiction: the writer still wins, and the filename label follows it.
+    const kept = plan('She lies still as he withdraws', 'afterglow');
+    assert.equal(kept.intimate, 'afterglow');
+    assert.match(kept.label, /^afterglow-/);
+  });
 });

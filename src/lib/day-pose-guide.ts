@@ -4847,6 +4847,64 @@ export function synthesizeSceneStickFigures(
   };
 }
 
+type LeadPosture = 'stand' | 'lie' | 'sit' | 'kneel';
+
+/**
+ * The lead's posture when the beat states exactly one — "balances on one foot", "lies still",
+ * "straddles a bench", "on her hands and knees". Null when unstated or mixed. A partner who
+ * "kneels behind her" doesn't count.
+ */
+export function textLeadPosture(text: string | null | undefined): LeadPosture | null {
+  // Negated clauses are prompt boilerplate ("not a standing fashion portrait"), not the pose.
+  const sample = (text?.trim() || '').replace(/\b(?:not|never|no|without)\b[^.,;:—\n]*/gi, ' ');
+  if (!sample.trim()) return null;
+  const found = new Set<LeadPosture>();
+  if (
+    /\b(stands?|standing|on\s+(?:her|his|their)\s+feet|balanc(?:e|es|ing)\s+on\s+one\s+foot|(?:on|at)\s+(?:a|the)\s+(?:[\w'-]+\s+){0,3}(?:ledge|railing|pier|plank|balcony)|gripping\s+the\s+(?:railing|rail|ledge)|(?:up\s+)?against\s+(?:the\s+)?(?:[\w'-]+\s+){0,3}(?:wall|railing|door|glass|window))\b/i.test(
+      sample
+    )
+  ) {
+    found.add('stand');
+  }
+  if (
+    /\b(lies|lying|lays?\s+(?:back|down)|on\s+(?:her|his|their)\s+back|supine|prone|face[- ]down|sprawl(?:s|ed|ing)|(?:into|onto)\s+her\s+from\s+above|on\s+top\s+of\s+her)\b/i.test(
+      sample
+    )
+  ) {
+    found.add('lie');
+  }
+  if (
+    /\b(sits?|sitting|seated|straddl(?:e|es|ing)\s+(?:a|an|the)\s+(?:[\w'-]+\s+)?(?:bench|chair|stool|seat|sofa|couch|bike|saddle))\b/i.test(
+      sample
+    )
+  ) {
+    found.add('sit');
+  }
+  if (/\b(hands\s+and\s+knees|all\s+fours|she\s+kneels|kneeling\s+on)\b/i.test(sample)) {
+    found.add('kneel');
+  }
+  return found.size === 1 ? [...found][0]! : null;
+}
+
+const POSTURE_FREE_LAYOUTS: ReadonlySet<IntimateLayout> = new Set(['undress', 'solo', 'generic']);
+const POSTURE_DEFAULT_LAYOUT: Record<LeadPosture, IntimateLayout> = {
+  stand: 'standing',
+  lie: 'missionary',
+  sit: 'lap',
+  kneel: 'bent',
+};
+
+function layoutFitsPosture(layout: IntimateLayout, posture: LeadPosture): boolean {
+  if (POSTURE_FREE_LAYOUTS.has(layout)) return true;
+  const base = intimateBaseForLayout(layout);
+  // Bent covers a standing bend, all fours, and leaning forward astride a seat.
+  return base === posture || (base === 'lean' && posture !== 'lie');
+}
+
+function relabel(intent: PoseGuideIntent, layout: string): string {
+  return intent.label.replace(/^[^-]+/, layout);
+}
+
 function applyScenePoseSpec(
   intent: PoseGuideIntent,
   spec: ScenePoseSpec | undefined,
@@ -4859,7 +4917,33 @@ function applyScenePoseSpec(
   if (spec.act === 'none') {
     next = { ...next, intimate: null };
   } else if (spec.act && options?.allowIntimate !== false) {
-    next = { ...next, intimate: spec.act, social: null, base: intimateBaseForLayout(spec.act) };
+    // The writer's act outranks the text read — unless the beat plainly puts her in another
+    // posture ("balances on one foot" vs a kneeling act): then the words win, since the prompt
+    // carries them and the model follows the prompt over a contradicting guide.
+    const posture = textLeadPosture(intent.sceneText);
+    if (posture && !layoutFitsPosture(spec.act, posture)) {
+      const layout =
+        intent.intimate &&
+        !POSTURE_FREE_LAYOUTS.has(intent.intimate) &&
+        layoutFitsPosture(intent.intimate, posture)
+          ? intent.intimate
+          : POSTURE_DEFAULT_LAYOUT[posture];
+      return {
+        ...next,
+        intimate: layout,
+        social: null,
+        base: intimateBaseForLayout(layout),
+        label: relabel(next, layout),
+        ...(spec.people && options?.forcePeople == null ? { people: spec.people } : {}),
+      };
+    }
+    next = {
+      ...next,
+      intimate: spec.act,
+      social: null,
+      base: intimateBaseForLayout(spec.act),
+      label: relabel(next, spec.act),
+    };
   }
   // A named layout replaces the text read (and any sex layout the words suggested).
   if (spec.layout && (!spec.act || spec.act === 'none')) {
