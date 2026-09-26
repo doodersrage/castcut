@@ -236,9 +236,23 @@ function limbCount(body: NormalizedBody): number {
 }
 
 /**
+ * How much of the frame a detected person fills: the diagonal of their visible keypoints (so a
+ * lying pose counts as much as a standing one), aspect-corrected. Bystanders in the background
+ * are small; a fragment with under two limbs counts for little.
+ */
+function prominence(body: NormalizedBody, aspect: number): number {
+  const points = body.filter((point): point is Point => Boolean(point));
+  if (points.length < 3) return 0;
+  const xs = points.map(point => point.x * aspect);
+  const ys = points.map(point => point.y);
+  const diagonal = Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  return limbCount(body) >= 2 ? diagonal : diagonal * 0.25;
+}
+
+/**
  * Score a detected pose against the guide. Guide people are matched to detected people by the
- * best overall assignment (≤3 guide people, ≤4 largest detections), so a partner on the other
- * side of the frame still pairs with the right skeleton.
+ * best overall assignment among the same number of largest detections (≤3), so a partner on the
+ * other side of the frame still pairs with the right skeleton and bystanders are ignored.
  */
 export function scorePoseMatch(input: {
   guide: NormalizedBody[];
@@ -250,10 +264,12 @@ export function scorePoseMatch(input: {
       ? input.detected.canvas.width / input.detected.canvas.height
       : input.guideAspect;
   const guide = input.guide.slice(0, 3);
+  // Only as many detections as the guide has people, largest first — otherwise a small bystander
+  // in the background could "match" the guide better than the lead and inflate the score.
   const candidates = input.detected.people
-    .map((body, index) => ({ body, index }))
-    .sort((a, b) => limbCount(b.body) - limbCount(a.body))
-    .slice(0, 4);
+    .map((body, index) => ({ body, index, size: prominence(body, detectedAspect) }))
+    .sort((a, b) => b.size - a.size)
+    .slice(0, Math.max(1, Math.min(3, input.guide.length)));
   const matrix = guide.map(g =>
     candidates.map(c =>
       scoreBodyMatch(g, c.body, { guide: input.guideAspect, detected: detectedAspect })

@@ -87,6 +87,25 @@ describe('pose-score matching', () => {
     }
   });
 
+  it('scores the lead, not a small bystander who happens to match the guide', () => {
+    const guide = normalized(figure('walk'));
+    const lead = normalized(figure('stand'));
+    // Same walking pose as the guide, shrunk into a corner of the frame.
+    const bystander = guide.map(p => (p ? { x: 0.85 + p.x * 0.1, y: 0.1 + p.y * 0.1 } : null));
+    const leadOnly = scorePoseMatch({
+      guide: [guide],
+      guideAspect: 2 / 3,
+      detected: { canvas: { width: 768, height: 1152 }, people: [lead] },
+    });
+    const withBystander = scorePoseMatch({
+      guide: [guide],
+      guideAspect: 2 / 3,
+      detected: { canvas: { width: 768, height: 1152 }, people: [bystander, lead] },
+    });
+    assert.equal(withBystander.score, leadOnly.score);
+    assert.deepEqual(withBystander.assignment, [1]);
+  });
+
   it('tolerates detection jitter on the same pose', () => {
     const guide = normalized(figure('crouch'));
     const jittered = guide.map((p, i) =>
