@@ -131,6 +131,23 @@ function findPrimarySamplerCondLinks(
   return null;
 }
 
+/**
+ * VAE feeding the graph's decode — Flux / Qwen InstantX ControlNets need it on the apply node
+ * ("This Controlnet needs a VAE"); SD1.5/SDXL ControlNets ignore it.
+ */
+function findDecodeVaeRef(workflow: Record<string, WorkflowNode>): [string, number] | undefined {
+  for (const node of Object.values(workflow)) {
+    if (node?.class_type !== 'VAEDecode' && node?.class_type !== 'VAEDecodeTiled') {
+      continue;
+    }
+    const vae = node.inputs?.vae;
+    if (Array.isArray(vae) && typeof vae[0] === 'string' && typeof vae[1] === 'number') {
+      return [vae[0], vae[1]];
+    }
+  }
+  return undefined;
+}
+
 export function resolveControlNetPreprocessorClass(
   mode: ControlNetMode | string | undefined,
   availableNodeTypes?: Iterable<string> | null
@@ -173,7 +190,7 @@ export function insertControlNetChainIfMissing(
       ? options.availableNodeTypes
       : new Set(options.availableNodeTypes)
     : undefined;
-  if (availableTypes && !availableTypes.has('ControlNetApply')) {
+  if (availableTypes && !availableTypes.has('ControlNetApplyAdvanced')) {
     return { workflow, inserted: false, insertedNodeIds: [] };
   }
 
@@ -224,9 +241,12 @@ export function insertControlNetChainIfMissing(
     typeof options.strength === 'number' && Number.isFinite(options.strength)
       ? Math.min(2, Math.max(0, options.strength))
       : 1;
+  const vaeRef = findDecodeVaeRef(next);
   const applyId = nextWorkflowNodeId(next);
   next[applyId] = {
-    class_type: 'ControlNetApply',
+    // Advanced: positive + negative in, two outputs. The deprecated ControlNetApply takes one
+    // conditioning and has one output, so the sampler's negative ([apply, 1]) failed validation.
+    class_type: 'ControlNetApplyAdvanced',
     inputs: {
       strength,
       start_percent: 0,
@@ -235,6 +255,7 @@ export function insertControlNetChainIfMissing(
       negative: [chain.negativeLinkId, 0],
       control_net: [loaderId, 0],
       image: [imageSourceId, 0],
+      ...(vaeRef ? { vae: vaeRef } : {}),
     },
     _meta: { title: 'Castcut — ControlNet apply' },
   };
@@ -313,7 +334,7 @@ export function insertControlNetStack(
         ? options.availableNodeTypes
         : new Set(options.availableNodeTypes)
       : undefined;
-    if (availableTypes && !availableTypes.has('ControlNetApply')) {
+    if (availableTypes && !availableTypes.has('ControlNetApplyAdvanced')) {
       break;
     }
     const chain = findPrimarySamplerCondLinks(typed);
@@ -370,9 +391,10 @@ export function insertControlNetStack(
       typeof entry.strength === 'number' && Number.isFinite(entry.strength)
         ? Math.min(2, Math.max(0, entry.strength))
         : 1;
+    const vaeRef = findDecodeVaeRef(next);
     const applyId = nextWorkflowNodeId(next);
     next[applyId] = {
-      class_type: 'ControlNetApply',
+      class_type: 'ControlNetApplyAdvanced',
       inputs: {
         strength,
         start_percent: 0,
@@ -381,6 +403,7 @@ export function insertControlNetStack(
         negative: [chain.negativeLinkId, 0],
         control_net: [loaderId, 0],
         image: [imageSourceId, 0],
+        ...(vaeRef ? { vae: vaeRef } : {}),
       },
       _meta: { title: `Castcut — ControlNet apply ${tokenSuffix}` },
     };

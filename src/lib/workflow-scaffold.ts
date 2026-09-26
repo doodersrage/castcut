@@ -226,7 +226,7 @@ function controlNetScaffold(tokens: WorkflowPlaceholderTokens): Record<string, u
       _meta: { title: 'Control Image' },
     },
     '6': {
-      class_type: 'ControlNetApply',
+      class_type: 'ControlNetApplyAdvanced',
       inputs: {
         strength: 1,
         start_percent: 0,
