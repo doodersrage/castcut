@@ -260,6 +260,22 @@ export function peelQwenReferenceLatentChain(
   return textCond;
 }
 
+/**
+ * Fit (not cover) the ReferenceLatent plate to the EmptyLatent W×H, padding with white.
+ * A cover + center crop cut the face off tall Keep plates on square Day stills (3:4 → 1:1
+ * drops the top 13%), so every slot invented a new face. Keep/garment plates are already
+ * on white; pose guides never reach ReferenceLatent, so the white bars are seamless.
+ */
+function refImageScaleInputs(loaderId: string, width: number, height: number) {
+  return {
+    image: [loaderId, 0] as [string, number],
+    target_width: width,
+    target_height: height,
+    padding_color: 'white',
+    interpolation: 'lanczos',
+  };
+}
+
 export function ensureRefImageScaleNode(
   workflow: Record<string, WorkflowNodeRecord>,
   loaderId: string,
@@ -268,7 +284,11 @@ export function ensureRefImageScaleNode(
   insertedNodeIds: string[]
 ): string {
   for (const [nodeId, node] of Object.entries(workflow)) {
-    if (node?.class_type !== 'ImageScale' && node?.class_type !== 'ResizeImage') {
+    if (
+      node?.class_type !== 'ImageScale' &&
+      node?.class_type !== 'ResizeImage' &&
+      node?.class_type !== 'ResizeAndPadImage'
+    ) {
       continue;
     }
     if (node._meta?.title !== QWEN_REF_LATENT_SCALE_TITLE) {
@@ -278,30 +298,16 @@ export function ensureRefImageScaleNode(
     if (imageRef !== loaderId) {
       continue;
     }
-    if (node.inputs) {
-      node.inputs.width = width;
-      node.inputs.height = height;
-      if (node.class_type === 'ImageScale') {
-        node.inputs.upscale_method = node.inputs.upscale_method ?? 'lanczos';
-        node.inputs.crop = 'center';
-      }
-    }
-    if (node._meta?.title !== QWEN_REF_LATENT_SCALE_TITLE) {
-      node._meta = { ...(node._meta ?? {}), title: QWEN_REF_LATENT_SCALE_TITLE };
-    }
+    // Older saved graphs carry a cropping ImageScale here — rewrite it in place.
+    node.class_type = 'ResizeAndPadImage';
+    node.inputs = refImageScaleInputs(loaderId, width, height);
     return nodeId;
   }
 
   const scaleId = nextLightningWorkflowNodeId(workflow);
   workflow[scaleId] = {
-    class_type: 'ImageScale',
-    inputs: {
-      image: [loaderId, 0],
-      upscale_method: 'lanczos',
-      width,
-      height,
-      crop: 'center',
-    },
+    class_type: 'ResizeAndPadImage',
+    inputs: refImageScaleInputs(loaderId, width, height),
     _meta: { title: QWEN_REF_LATENT_SCALE_TITLE },
   };
   insertedNodeIds.push(scaleId);

@@ -1473,17 +1473,15 @@ describe("qwen edit reference image prep", () => {
       class_type: string;
       inputs: {
         image: [string, number];
-        width: number;
-        height: number;
-        upscale_method: string;
-        crop: string;
+        target_width: number;
+        target_height: number;
+        padding_color: string;
       };
     };
-    assert.equal(scaleNode.class_type, "ImageScale");
-    assert.equal(scaleNode.inputs.width, 1328);
-    assert.equal(scaleNode.inputs.height, 1328);
-    assert.equal(scaleNode.inputs.upscale_method, "lanczos");
-    assert.equal(scaleNode.inputs.crop, "center");
+    assert.equal(scaleNode.class_type, "ResizeAndPadImage");
+    assert.equal(scaleNode.inputs.target_width, 1328);
+    assert.equal(scaleNode.inputs.target_height, 1328);
+    assert.equal(scaleNode.inputs.padding_color, "white");
     assert.equal(
       (result[scaleNode.inputs.image[0]] as { inputs: { image: string } }).inputs
         .image,
@@ -1496,7 +1494,7 @@ describe("qwen edit reference image prep", () => {
     );
   });
 
-  it("keeps portrait EmptyLatent + center-crop ref scale on Edit Lightning Compose", async () => {
+  it("keeps portrait EmptyLatent + fit-and-pad ref scale on Edit Lightning Compose", async () => {
     const { prepareLightningWorkflowForQueue } = await import("./workflow-lightning-queue");
     const workflow = {
       "1": {
@@ -1584,12 +1582,13 @@ describe("qwen edit reference image prep", () => {
     assert.equal(vaeEncode.class_type, "VAEEncode");
     const scaleNode = result[vaeEncode.inputs.pixels[0]] as {
       class_type: string;
-      inputs: { width: number; height: number; crop: string };
+      inputs: { target_width: number; target_height: number; padding_color: string };
     };
-    assert.equal(scaleNode.class_type, "ImageScale");
-    assert.equal(scaleNode.inputs.width, 1104);
-    assert.equal(scaleNode.inputs.height, 1472);
-    assert.equal(scaleNode.inputs.crop, "center");
+    // Fit + white pad — a center crop cut the face off tall plates on square stills.
+    assert.equal(scaleNode.class_type, "ResizeAndPadImage");
+    assert.equal(scaleNode.inputs.target_width, 1104);
+    assert.equal(scaleNode.inputs.target_height, 1472);
+    assert.equal(scaleNode.inputs.padding_color, "white");
   });
 
   it("builds ReferenceLatent chain with VAE disconnected from encode", async () => {

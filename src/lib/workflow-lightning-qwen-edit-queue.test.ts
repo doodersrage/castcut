@@ -426,7 +426,7 @@ describe('ensureQwenReferenceLatentWiringInWorkflow', () => {
     assert.equal(nodeAt(result.workflow, '3').inputs.width, 1024);
   });
 
-  it('builds the full LoadImage -> ImageScale -> VAEEncode -> ReferenceLatent chain', () => {
+  it('builds the full LoadImage -> ResizeAndPadImage -> VAEEncode -> ReferenceLatent chain', () => {
     const workflow = {
       '1': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: 'qwen.safetensors' } },
       '2': { class_type: 'VAELoader', inputs: { vae_name: 'vae.safetensors' } },
@@ -461,8 +461,9 @@ describe('ensureQwenReferenceLatentWiringInWorkflow', () => {
     assert.equal(loader.inputs.image, 'ref.png');
 
     const scale = nodeAt(result.workflow, '11');
-    assert.equal(scale.class_type, 'ImageScale');
+    assert.equal(scale.class_type, 'ResizeAndPadImage');
     assert.deepEqual(scale.inputs.image, ['10', 0]);
+    assert.equal(scale.inputs.padding_color, 'white');
 
     const encode = nodeAt(result.workflow, '12');
     assert.equal(encode.class_type, 'VAEEncode');
