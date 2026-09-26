@@ -11,6 +11,7 @@ import { POSE_IMPORT_GROUPS, POSE_IMPORT_LAYOUTS } from '@/lib/pose-import-layou
 import { poseLayoutLabel } from '@/lib/pose-layout-labels';
 import PoseControlNetStatus from '@/components/settings/PoseControlNetStatus';
 import VramAutoThresholdNote from '@/components/settings/VramAutoThresholdNote';
+import GpuMatchCard from '@/components/settings/GpuMatchCard';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { DetailLevel } from '@/lib/detail-level';
@@ -381,6 +382,11 @@ export default function SettingsPromptQualityPanel({
             </label>
           </div>
         ) : null}
+        <GpuMatchCard
+          totalVramGb={totalVramGb}
+          sharedSettings={sharedSettings}
+          updateSharedSettings={updateSharedSettings}
+        />
         <QueueQualityProfileHints
           profile={normalizeQueueQualityProfile(sharedSettings.queueQualityProfile)}
           samplerPreset={samplerPreset}

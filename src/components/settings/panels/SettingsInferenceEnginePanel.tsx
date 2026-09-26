@@ -1,5 +1,6 @@
 'use client';
 
+import EngineKeyCheckButton, { useEngineKeyCheck } from '@/components/settings/EngineKeyCheck';
 import { useState } from 'react';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import {
@@ -287,6 +288,7 @@ function CloudEngineFields(props: {
   const img2imgValue = sharedSettings[img2imgField] ?? '';
   const listId = `${engineId}-model-presets`;
   const showStills = engineId !== 'luma';
+  const keyCheck = useEngineKeyCheck(engineId);
 
   return (
     <>
@@ -299,13 +301,25 @@ function CloudEngineFields(props: {
           type="password"
           autoComplete="off"
           value={tokenValue}
-          onChange={event =>
+          onChange={event => {
+            keyCheck.clear();
             updateSharedSettings({
               [sessionTokenField]: event.target.value.trim() || undefined,
-            })
-          }
+            });
+          }}
+          onPaste={event => {
+            // A pasted key is checked right away.
+            const pasted = event.clipboardData.getData('text').trim();
+            if (pasted) void keyCheck.check(pasted);
+          }}
           placeholder={tokenPlaceholder}
           className={FIELD_CLASS}
+        />
+        <EngineKeyCheckButton
+          engineId={engineId}
+          result={keyCheck.result}
+          checking={keyCheck.checking}
+          onCheck={() => void keyCheck.check(tokenValue)}
         />
       </div>
       {showStills ? (

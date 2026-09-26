@@ -9,6 +9,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Match settings to the GPU.** Prompt quality shows what suits the card ComfyUI reports (*24 GB card → Max size · Final quality*; 8 GB → Small · Draft) with **Match this GPU**, and the first time ComfyUI reports a GPU a one-time notice offers the same. Only size and quality still at their defaults are changed.
+- **Check hosted-engine keys.** Each Fal / Replicate / OpenAI / Gemini / Grok / Runway / Luma key field gets **Check key** — one free authenticated request to the provider (list models / read the account) that says *Key works*, *The provider rejected this key (HTTP 401)*, or that it couldn't tell. A pasted key is checked right away; with no key typed it checks the server's env key.
+
 - **Queue says what each job is.** Active and failed jobs lead with where they came from — *Day · Evening · Robin*, *Story · beat 3 “The letter” · retry*, *Refine · Robin* — with **Open in Day / Story / …** back to it, instead of the raw prompt (folded under *Prompt*).
 - **Time left.** Each job shows *done in ~2 min* and the page *All done in ~6 min*, from how long recent jobs on the same model actually took (a guess until one finishes); running jobs count their progress, and a ComfyUI pool splits the wait across hosts. The header's active-jobs chip shows it too (*5 active · ~6 min*).
 - **Run next.** A waiting job can be moved to the front: it's resubmitted at the head of ComfyUI's queue from its saved workflow and the original is removed; a Day slot or Story beat waiting on it follows the new job.

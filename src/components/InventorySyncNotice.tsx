@@ -3,6 +3,16 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { gpuSettingsPatch, gpuSettingsSuggestion } from '@/lib/gpu-settings-match';
+import {
+  DEFAULT_SHARED_SETTINGS,
+  loadSettingsCache,
+  saveSharedSettings,
+  type SharedToolSettings,
+} from '@/lib/settings-cache';
+import { subscribeSharedHealth } from '@/lib/shared-health-poll';
+
+const GPU_OFFER_KEY = 'castcut.gpuMatchOffered.v1';
 
 const RECHECK_MS = 60_000;
 const SHOW_MS = 15_000;
@@ -14,6 +24,35 @@ const SHOW_MS = 15_000;
 export default function InventorySyncNotice() {
   const [message, setMessage] = useState<string | null>(null);
   const lastRunRef = useRef(0);
+  // One-time "Match this GPU" offer the first time ComfyUI reports its card.
+  const [gpuOffer, setGpuOffer] = useState<{
+    label: string;
+    patch: Partial<SharedToolSettings>;
+  } | null>(null);
+
+  useEffect(() => {
+    let offered = false;
+    return subscribeSharedHealth(data => {
+      if (offered) return;
+      const total = (data as { comfyui?: { vram?: { total?: number } } } | null)?.comfyui?.vram
+        ?.total;
+      const suggestion = gpuSettingsSuggestion(total);
+      if (!suggestion) return;
+      offered = true;
+      try {
+        if (window.localStorage.getItem(GPU_OFFER_KEY) === String(suggestion.totalGb)) return;
+        window.localStorage.setItem(GPU_OFFER_KEY, String(suggestion.totalGb));
+      } catch {
+        return;
+      }
+      const patch = gpuSettingsPatch(
+        loadSettingsCache().shared,
+        DEFAULT_SHARED_SETTINGS,
+        suggestion
+      );
+      if (Object.keys(patch).length > 0) setGpuOffer({ label: suggestion.label, patch });
+    }, 60_000);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,6 +82,33 @@ export default function InventorySyncNotice() {
     };
   }, []);
 
+  if (gpuOffer && !message) {
+    return (
+      <div
+        role="status"
+        data-testid="gpu-match-offer"
+        className="fixed bottom-4 left-4 z-50 max-w-sm rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-elevated,var(--bg-base))] px-3 py-2 text-sm text-[var(--text-secondary)] shadow-[var(--shadow-surface)] lg:left-[calc(var(--sidebar-width)+1rem)]"
+      >
+        <p>ComfyUI found your GPU: {gpuOffer.label}. Match these settings to it?</p>
+        <p className="type-caption mt-1 flex gap-3">
+          <button
+            type="button"
+            className="ui-text-link"
+            data-testid="gpu-match-offer-apply"
+            onClick={() => {
+              saveSharedSettings({ ...loadSettingsCache().shared, ...gpuOffer.patch });
+              setGpuOffer(null);
+            }}
+          >
+            Match it
+          </button>
+          <button type="button" className="ui-text-link" onClick={() => setGpuOffer(null)}>
+            Not now
+          </button>
+        </p>
+      </div>
+    );
+  }
   if (!message) return null;
   return (
     <div
