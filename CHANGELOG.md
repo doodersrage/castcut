@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Queue says what each job is.** Active and failed jobs lead with where they came from — *Day · Evening · Robin*, *Story · beat 3 “The letter” · retry*, *Refine · Robin* — with **Open in Day / Story / …** back to it, instead of the raw prompt (folded under *Prompt*).
+- **Time left.** Each job shows *done in ~2 min* and the page *All done in ~6 min*, from how long recent jobs on the same model actually took (a guess until one finishes); running jobs count their progress, and a ComfyUI pool splits the wait across hosts. The header's active-jobs chip shows it too (*5 active · ~6 min*).
+- **Run next.** A waiting job can be moved to the front: it's resubmitted at the head of ComfyUI's queue from its saved workflow and the original is removed; a Day slot or Story beat waiting on it follows the new job.
+- **Batches.** Jobs queued together from one place for one Cast (Queue day, Retry flagged) group into one row — *Day · 4 jobs · 1 rendering · done in ~5 min* — with **Cancel batch**.
+
 - **Check the shots before a cut.** Day and Story Cut now stop first when a shot Auto-review flagged, or one that missed its pose or face check, would go into the film (*Evening — missed its pose (31%)*), with **Retry them first**, **Leave them out** or **Cut anyway**.
 - **Captions that say something.** With titles on, Day captions come from the beat (*pours coffee by the window*) instead of the slot name, Story keeps the beat title, and every caption can be edited in the shot list.
 - **Fit the cut to the music.** Cut options gain **Length** — as the shots hold, **Fit to the music** (stills stretch so the film ends with the track, 0.5–12 s each), or 15 / 30 / 60 s — and **Cut on the beat**, which rounds each still to whole beats of the track's tempo (detected in the browser). The status line says what was done (*fit to the 42 s track · cuts on the beat (120 BPM)*). Cast's Film studio gets both too.

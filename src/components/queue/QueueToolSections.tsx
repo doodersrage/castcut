@@ -16,6 +16,8 @@ import ToolSetupBanner from '@/components/ToolSetupBanner';
 import PlayContinueChip from '@/components/PlayContinueChip';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import QueueActiveJobRow from '@/components/queue/QueueActiveJobRow';
+import QueueJobTitle from '@/components/queue/QueueJobTitle';
+import { formatEta } from '@/lib/queue-eta';
 import QueueCompletedRow from '@/components/queue/QueueCompletedRow';
 import { resolveStudioEmptyCta } from '@/lib/empty-cta';
 import type { useQueueToolOrchestration } from '@/hooks/useQueueToolOrchestration';
@@ -48,6 +50,11 @@ export default function QueueToolSections({
   freeComfyVram,
   restartComfy,
   cancelJob,
+  cancelBatch,
+  runJobNext,
+  jobLabels,
+  pendingGroups,
+  eta,
   cancelHostJob,
   claimHostJob,
   claimAllHostJobs,
@@ -115,16 +122,76 @@ export default function QueueToolSections({
             />
           )
         ) : (
-          <ul className="ui-list">
-            {pending.map(entry => (
-              <QueueActiveJobRow
-                key={entry.id}
-                entry={entry}
-                onRetry={() => retryEntry(entry)}
-                onCancel={() => void cancelJob(entry)}
-              />
-            ))}
-          </ul>
+          <>
+            {eta.totalSec > 0 ? (
+              <p className="mb-2 type-caption text-[var(--text-muted)]" data-testid="queue-eta">
+                All done in {formatEta(eta.totalSec)}
+                {eta.guess ? ' (a guess until a job finishes here)' : ''}
+              </p>
+            ) : null}
+            <ul className="ui-list">
+              {pendingGroups.map(group => {
+                const rows = group.entries.map(entry => (
+                  <QueueActiveJobRow
+                    key={entry.id}
+                    entry={entry}
+                    label={jobLabels.get(entry.id)}
+                    etaSec={eta.byId.get(entry.id)}
+                    onRetry={() => retryEntry(entry)}
+                    onCancel={() => void cancelJob(entry)}
+                    onRunNext={
+                      entry.status === 'pending' && (entry.queuePosition ?? 0) > 1
+                        ? () => void runJobNext(entry)
+                        : undefined
+                    }
+                  />
+                ));
+                if (!group.batchLabel) return rows;
+                const running = group.entries.filter(entry => entry.status === 'running').length;
+                const lastEta = Math.max(
+                  0,
+                  ...group.entries.map(entry => eta.byId.get(entry.id) ?? 0)
+                );
+                return (
+                  <li key={group.key} className="list-none" data-testid="queue-batch">
+                    <details
+                      open
+                      className="rounded-[var(--radius-md)] border border-[var(--border-subtle)]"
+                    >
+                      <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-3 py-2 text-sm">
+                        <span className="font-medium text-[var(--text-primary)]">
+                          {group.batchLabel}
+                        </span>
+                        <span className="type-caption text-[var(--text-muted)]">
+                          {running ? `${running} rendering · ` : ''}
+                          {lastEta ? `done in ${formatEta(lastEta)}` : ''}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          className="ml-auto"
+                          data-testid="queue-cancel-batch"
+                          onClick={event => {
+                            event.preventDefault();
+                            if (
+                              window.confirm(
+                                `Cancel all ${group.entries.length} jobs in this batch?`
+                              )
+                            ) {
+                              void cancelBatch(group.entries);
+                            }
+                          }}
+                        >
+                          Cancel batch
+                        </Button>
+                      </summary>
+                      <ul className="ui-list">{rows}</ul>
+                    </details>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </ToolSection>
 
@@ -202,7 +269,7 @@ export default function QueueToolSections({
                     className="ui-list-row flex-col items-stretch gap-2 sm:flex-row sm:items-start"
                   >
                     <div className="ui-list-primary min-w-0 space-y-1">
-                      <p className="truncate text-sm text-[var(--text-primary)]">{entry.prompt}</p>
+                      <QueueJobTitle label={jobLabels.get(entry.id)} prompt={entry.prompt} />
                       <p className="type-caption ui-status-danger">
                         {entry.statusMessage ?? entry.status} · {entry.model}
                       </p>
@@ -254,7 +321,7 @@ export default function QueueToolSections({
                 {failed.map(entry => (
                   <li key={entry.id} className="ui-list-row items-start">
                     <div className="ui-list-primary min-w-0 space-y-1">
-                      <p className="truncate text-sm text-[var(--text-primary)]">{entry.prompt}</p>
+                      <QueueJobTitle label={jobLabels.get(entry.id)} prompt={entry.prompt} />
                       <p className="type-caption ui-status-danger">
                         {entry.statusMessage ?? entry.status} · {entry.model}
                       </p>

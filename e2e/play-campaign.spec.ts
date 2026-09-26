@@ -852,6 +852,98 @@ test('day cut: shot list with beat captions, and a pre-cut check for a pose miss
   await expect(dialog).toHaveCount(0);
 });
 
+test('queue: jobs say where they came from, batch together, and show time left', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const now = Date.now();
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: 'e2e-queue-cast', name: 'Queue Cast', version: 1, updatedAt: now }],
+        removedIds: [],
+      })
+    );
+    window.localStorage.setItem(
+      'comfy-prompt-tool-settings-v1',
+      JSON.stringify({
+        shared: { activeCharacterId: 'e2e-queue-cast' },
+        tools: {
+          day: {
+            stillsCharacterId: 'e2e-queue-cast',
+            slots: [
+              { id: 'morning', label: 'Morning' },
+              { id: 'afternoon', label: 'Afternoon' },
+              { id: 'evening', label: 'Evening' },
+              { id: 'night', label: 'Night' },
+            ],
+            stills: [
+              { slotId: 'morning', status: 'running', promptId: 'e2e-q-m' },
+              { slotId: 'afternoon', status: 'queued', promptId: 'e2e-q-a' },
+            ],
+          },
+        },
+      })
+    );
+    const base = {
+      comfyUrl: 'http://127.0.0.1:8188',
+      tool: 'day',
+      characterId: 'e2e-queue-cast',
+      model: 'qwen-e2e',
+      images: [],
+    };
+    window.localStorage.setItem(
+      'comfyui-gallery-v1',
+      JSON.stringify([
+        {
+          ...base,
+          id: 'e2e-q-a',
+          promptId: 'e2e-q-a',
+          prompt: 'afternoon still with a long lock-laden prompt',
+          status: 'pending',
+          queuePosition: 2,
+          queuedAt: now - 20_000,
+        },
+        {
+          ...base,
+          id: 'e2e-q-m',
+          promptId: 'e2e-q-m',
+          prompt: 'morning still with a long lock-laden prompt',
+          status: 'running',
+          progressValue: 2,
+          progressMax: 4,
+          queuedAt: now - 30_000,
+        },
+        {
+          ...base,
+          id: 'e2e-q-done',
+          promptId: 'e2e-q-done',
+          prompt: 'earlier still',
+          status: 'completed',
+          renderDurationMs: 40_000,
+          queuedAt: now - 600_000,
+          completedAt: now - 560_000,
+          images: [{ filename: 'done.png', subfolder: '', type: 'output' }],
+        },
+      ])
+    );
+  });
+  await gotoStable(page, '/queue');
+  await dismissBlockingOverlays(page);
+  const batch = page.getByTestId('queue-batch');
+  await expect(batch).toContainText('Day · 2 jobs', { timeout: 30_000 });
+  await expect(batch.getByText('Day · Morning · Queue Cast')).toBeVisible();
+  await expect(batch.getByText('Day · Afternoon · Queue Cast')).toBeVisible();
+  await expect(batch.getByRole('link', { name: 'Open in Day' }).first()).toHaveAttribute(
+    'href',
+    '/day?character=e2e-queue-cast'
+  );
+  await expect(page.getByTestId('queue-eta')).toContainText('All done in');
+  await expect(batch.getByTestId('queue-run-next')).toHaveCount(1);
+  await expect(batch.getByTestId('queue-cancel-batch')).toBeVisible();
+});
+
 test('play metrics card appears on dashboard when metrics exist', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem(

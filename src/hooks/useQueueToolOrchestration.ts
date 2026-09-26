@@ -21,6 +21,18 @@ import { summarizePoolQueueDepth } from '@/lib/comfyui-host-ready';
 import { cancelComfyGalleryJob } from '@/lib/comfyui-queue-cancel';
 import { refreshSharedHealth } from '@/lib/shared-health-poll';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
+import { removeComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import { cancelComfyGalleryPoll } from '@/lib/comfyui-gallery-poller';
+import { loadCharacters } from '@/lib/character-os';
+import { loadSettingsCache, saveToolSettings } from '@/lib/settings-cache';
+import { whenBrowserStorageReady } from '@/lib/browser-storage';
+import { estimateQueueEta } from '@/lib/queue-eta';
+import {
+  buildPlayJobIndex,
+  describeQueueJob,
+  groupQueueJobs,
+  repointPlayJobIds,
+} from '@/lib/queue-job-context';
 
 type ComfyQueueHealth = {
   queueRunning?: number;
@@ -183,6 +195,102 @@ export function useQueueToolOrchestration() {
     [refreshEntries, refreshHealth]
   );
 
+  // Day / Story settings live in browser storage that hydrates after mount — relabel then.
+  const [storageReady, setStorageReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void whenBrowserStorageReady().then(() => {
+      if (!cancelled) setStorageReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // What each job is (Day slot / Story beat / tool, on which Cast), for labels and batches.
+  const jobLabels = useMemo(() => {
+    const tools = loadSettingsCache().tools;
+    const index = buildPlayJobIndex({
+      daySlots: tools.day?.slots,
+      dayStills: tools.day?.stills,
+      story: tools.roleplay?.story,
+    });
+    const names = new Map(loadCharacters().map(character => [character.id, character.name]));
+    return new Map(
+      entries.map(entry => [
+        entry.id,
+        describeQueueJob(entry, index, entry.characterId ? names.get(entry.characterId) : null),
+      ])
+    );
+    // Re-read the Play context whenever the gallery entries refresh or storage hydrates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- storageReady gates the reads
+  }, [entries, storageReady]);
+  const pendingGroups = useMemo(
+    () => groupQueueJobs(pending, entry => jobLabels.get(entry.id)?.source ?? 'generate'),
+    [jobLabels, pending]
+  );
+  const eta = useMemo(
+    () =>
+      estimateQueueEta(
+        pending,
+        entries,
+        poolEndpoints.filter(host => host.ok !== false).length || 1
+      ),
+    [entries, pending, poolEndpoints]
+  );
+
+  /**
+   * Run next: resubmit a waiting job at the front of ComfyUI's queue, then drop the original.
+   * A Day slot / Story beat waiting on it is re-pointed at the new job.
+   */
+  const runJobNext = useCallback(
+    async (entry: ComfyGalleryEntry) => {
+      const oldId = entry.promptId?.trim();
+      if (entry.status !== 'pending' || !oldId) {
+        setStatus('Only a waiting job can be moved to the front.');
+        return;
+      }
+      setStatus('Moving the job to the front…');
+      const queued = await requeueComfyJobFromEntry(entry);
+      if (!queued.ok || !queued.promptId) {
+        setStatus(queued.error ?? 'Could not move the job — it is still where it was.');
+        return;
+      }
+      await cancelComfyUiJob({ promptId: oldId, comfyUrl: entry.comfyUrl, deleteHistory: true });
+      cancelComfyGalleryPoll(oldId);
+      removeComfyGalleryEntry(entry.id);
+      const tools = loadSettingsCache().tools;
+      const repointed = repointPlayJobIds({
+        dayStills: tools.day?.stills,
+        story: tools.roleplay?.story,
+        from: oldId,
+        to: queued.promptId,
+      });
+      if (repointed?.dayStills) saveToolSettings('day', { stills: repointed.dayStills });
+      if (repointed?.story) saveToolSettings('roleplay', { story: repointed.story });
+      setStatus('Moved to the front of the queue.');
+      refreshEntries();
+      void refreshHealth();
+    },
+    [refreshEntries, refreshHealth]
+  );
+
+  /** Cancel every job in a batch, one at a time. */
+  const cancelBatch = useCallback(
+    async (batch: ComfyGalleryEntry[]) => {
+      setStatus(`Cancelling ${batch.length} jobs…`);
+      let cancelled = 0;
+      for (const entry of batch) {
+        const result = await cancelComfyGalleryJob(entry);
+        if (result.ok) cancelled += 1;
+      }
+      setStatus(`Cancelled ${cancelled} of ${batch.length} jobs.`);
+      refreshEntries();
+      void refreshHealth();
+    },
+    [refreshEntries, refreshHealth]
+  );
+
   const cancelHostJob = useCallback(
     async (job: HostOrphanJob) => {
       setStatus(`Cancelling ${job.id}…`);
@@ -311,6 +419,11 @@ export function useQueueToolOrchestration() {
     freeComfyVram,
     restartComfy,
     cancelJob,
+    cancelBatch,
+    runJobNext,
+    jobLabels,
+    pendingGroups,
+    eta,
     cancelHostJob,
     claimHostJob,
     claimAllHostJobs,

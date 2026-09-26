@@ -184,6 +184,7 @@ Jump to: [Prompt generation](#prompt-generation) · [Scene tools](#scene-tools) 
 - **Queue orchestration panel** — home/gallery view of ComfyUI server queue, VRAM, and local tracked jobs
 - **Central job queue** — `/queue` page for pending ComfyUI jobs
 - **Queue upgrades** — `/queue` shows ComfyUI queue stats (pool totals + per-host depth), failed jobs, and bulk retry
+- **Readable queue** — jobs lead with where they came from (*Day · Evening · Robin*, *Story · beat 3 “The letter” · retry*) and link back; per-job and total **time left** from recent render times on the same model (also on the active-jobs chip); **Run next** resubmits a waiting job at the front of ComfyUI's queue (the Day slot / Story beat follows it); jobs queued together group into a **batch** with **Cancel batch**
 - **Orphan host jobs** — Queue lists in-flight Comfy jobs from every pool host that are not in this gallery; Import or Import all to track them
 - **VRAM-aware Max → Final** — when free VRAM is under ~6 GB, Max queues downgrade to Final
 - **Hold Max until idle** — optional park for Max jobs until ComfyUI is empty; flush from Orchestration
