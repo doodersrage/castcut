@@ -100,6 +100,7 @@ export function pickAlternateComfyUrl(
 
 export type OomRetryDecision =
   | { action: 'none'; reason: string }
+  | { action: 'free-llm-vram'; freed: string[]; reason: string }
   | { action: 'downgrade'; nextProfile: QueueQualityProfile; reason: string }
   | { action: 'switch-endpoint'; nextComfyUrl: string; reason: string }
   | {
@@ -313,6 +314,24 @@ export type OomAutoRetryResult = {
  * `oomRetryAttempted` only after a successful requeue so a transient 502 does
  * not burn the one-shot budget. Returns `null` when no retry is attempted.
  */
+/** Ask the server to unload a same-machine LLM's models (`/api/llm/free-vram`). */
+async function freeLocalLlmVramFromBrowser(): Promise<string[]> {
+  if (typeof fetch !== 'function') return [];
+  try {
+    const response = await fetch('/api/llm/free-vram', {
+      method: 'POST',
+      credentials: 'same-origin',
+    });
+    if (!response.ok) return [];
+    const data = (await response.json()) as { freed?: unknown };
+    return Array.isArray(data.freed)
+      ? data.freed.filter((id): id is string => typeof id === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function attemptOomAutoRetry(
   entry: ComfyGalleryEntry,
   statusMessage: string | undefined,
@@ -330,6 +349,33 @@ export async function attemptOomAutoRetry(
     import('./comfyui-gallery'),
   ]);
   const shared = loadSettingsCache().shared;
+
+  // A same-machine LLM (LM Studio's vision model is ~8 GB) can hold the VRAM the render needed.
+  // Free it and retry at the same quality before giving anything up; it reloads on its next use.
+  if (shared.autoRetryOnOom !== false) {
+    const freed = await freeLocalLlmVramFromBrowser();
+    if (freed.length > 0) {
+      const decision: OomRetryDecision = {
+        action: 'free-llm-vram',
+        freed,
+        reason: `ComfyUI ran out of GPU memory — unloaded ${freed.join(', ')} from the local LLM, retrying at the same quality`,
+      };
+      onStatus?.(`Auto-retry: ${decision.reason}…`);
+      try {
+        const { requeueComfyJobFromEntry } = await import('./comfyui-requeue');
+        const result = await requeueComfyJobFromEntry(entry, {
+          qualityProfile: normalizeQueueQualityProfile(entry.queueQualityProfile),
+          onStatus,
+        });
+        if (result.ok) {
+          updateComfyGalleryByPromptId(entry.promptId, { oomRetryAttempted: true });
+          return { decision, requeued: true, promptId: result.promptId };
+        }
+      } catch {
+        // Fall through to the downgrade / pool decision below.
+      }
+    }
+  }
 
   const poolStats = await fetchComfyUiPoolStatsForRetry();
   const poolUrls = poolStats.map(endpoint => endpoint.url);
