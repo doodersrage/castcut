@@ -169,40 +169,64 @@ export function snapHoldsToBeat(shots: FilmPlaylistShot[], bpm: number): FilmPla
   });
 }
 
+/** Beat confidence (normalized onset autocorrelation) below this means "no clear beat". */
+const MIN_TEMPO_CONFIDENCE = 0.3;
+
 /**
- * Tempo from mono samples: onset energy envelope (10 ms hops), autocorrelated over 60–180 BPM,
- * folded into 80–160. Null when there's no clear pulse.
+ * Tempo from mono samples: Hann-weighted 40 ms energy every 10 ms, onset (rise in energy) with
+ * its slow drift removed, autocorrelated over 60–180 BPM and folded into 80–160. Null when
+ * there's no clear pulse — the correlation peak is normalized by the onset energy, so white
+ * noise, ambient pads and sustained tones score near 0 and drum tracks near 1 (a raw peak
+ * ratio called noise 125 BPM, and a pure tone's window ripple looked like a beat).
  */
 export function estimateTempoBpm(samples: Float32Array, sampleRate: number): number | null {
   const hop = Math.max(1, Math.round(sampleRate / 100));
   const frames = Math.floor(samples.length / hop);
   if (frames < 300) return null;
+  const win = hop * 4;
+  const hann = new Float32Array(win);
+  for (let i = 0; i < win; i += 1) hann[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (win - 1));
   const energy = new Float32Array(frames);
   for (let f = 0; f < frames; f += 1) {
+    const start = Math.max(0, Math.floor(f * hop - win / 2 + hop / 2));
+    const end = Math.min(samples.length, start + win);
     let sum = 0;
-    for (let i = f * hop; i < (f + 1) * hop; i += 1) sum += samples[i]! * samples[i]!;
-    energy[f] = Math.sqrt(sum / hop);
+    let weight = 0;
+    for (let i = start; i < end; i += 1) {
+      const w = hann[i - start]!;
+      sum += w * samples[i]! * samples[i]!;
+      weight += w;
+    }
+    energy[f] = Math.sqrt(sum / Math.max(1e-9, weight));
   }
   const onset = new Float32Array(frames);
   for (let f = 1; f < frames; f += 1) onset[f] = Math.max(0, energy[f]! - energy[f - 1]!);
-  const mean = onset.reduce((sum, value) => sum + value, 0) / frames;
-  for (let f = 0; f < frames; f += 1) onset[f] = onset[f]! - mean;
+  // Remove slow drift (a swelling pad) with a ~0.5 s centered moving average.
+  const half = 25;
+  const prefix = new Float64Array(frames + 1);
+  for (let f = 0; f < frames; f += 1) prefix[f + 1] = prefix[f]! + onset[f]!;
+  const detrended = new Float32Array(frames);
+  for (let f = 0; f < frames; f += 1) {
+    const lo = Math.max(0, f - half);
+    const hi = Math.min(frames, f + half + 1);
+    detrended[f] = onset[f]! - (prefix[hi]! - prefix[lo]!) / (hi - lo);
+  }
+  let zeroLag = 0;
+  for (let f = 0; f < frames; f += 1) zeroLag += detrended[f]! * detrended[f]!;
+  if (!(zeroLag > 0)) return null;
   const minLag = Math.round(100 * (60 / 180));
   const maxLag = Math.round(100 * (60 / 60));
   let bestLag = 0;
   let best = 0;
-  let total = 0;
   for (let lag = minLag; lag <= maxLag; lag += 1) {
     let sum = 0;
-    for (let f = lag; f < frames; f += 1) sum += onset[f]! * onset[f - lag]!;
-    total += Math.max(0, sum);
+    for (let f = lag; f < frames; f += 1) sum += detrended[f]! * detrended[f - lag]!;
     if (sum > best) {
       best = sum;
       bestLag = lag;
     }
   }
-  const lags = maxLag - minLag + 1;
-  if (!bestLag || best <= 0 || best < (total / lags) * 2) return null;
+  if (!bestLag || best / zeroLag < MIN_TEMPO_CONFIDENCE) return null;
   let bpm = 6000 / bestLag;
   while (bpm < 80) bpm *= 2;
   while (bpm > 160) bpm /= 2;

@@ -157,6 +157,22 @@ describe('tempo', () => {
     assert.equal(estimateTempoBpm(new Float32Array(8000 * 10), 8000), null);
     assert.equal(estimateTempoBpm(new Float32Array(100), 8000), null);
   });
+
+  it('finds no beat in noise or a slowly swelling ambient pad', () => {
+    const rate = 8000;
+    let seed = 7;
+    const noise = new Float32Array(rate * 20).map(() => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed / 2147483647) * 2 - 1;
+    });
+    // A sustained 220 Hz tone swelling every ~8 s — once read as a 150 BPM pulse.
+    const pad = new Float32Array(rate * 20).map(
+      (_, i) =>
+        0.3 * Math.sin((2 * Math.PI * 220 * i) / rate) * (0.6 + 0.4 * Math.sin((2 * Math.PI * 0.13 * i) / rate))
+    );
+    assert.equal(estimateTempoBpm(noise, rate), null);
+    assert.equal(estimateTempoBpm(pad, rate), null);
+  });
 });
 
 describe('pre-cut check', () => {
