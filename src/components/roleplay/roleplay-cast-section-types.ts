@@ -26,6 +26,8 @@ export type RoleplayCastSectionProps = {
   tone: RoleplayTone;
   content: RoleplayContentId;
   adultEnabled: boolean;
+  /** False while the server NSFW flag is still being read. Hide the lockout hint until then. */
+  adultGateReady?: boolean;
   autoQueue: boolean;
   beatOutput: RoleplayBeatOutput;
   photoReady: boolean;

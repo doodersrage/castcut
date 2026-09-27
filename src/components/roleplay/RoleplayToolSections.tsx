@@ -60,6 +60,7 @@ export default function RoleplayToolSections({
   setError,
   personaId,
   adultEnabled,
+  adultGateReady,
   tone,
   content,
   bio,
@@ -317,6 +318,7 @@ export default function RoleplayToolSections({
                 tone={tone}
                 content={content}
                 adultEnabled={adultEnabled}
+                adultGateReady={adultGateReady}
                 toolSettings={toolSettings}
                 onUpdateToolSettings={updateToolSettings}
               />

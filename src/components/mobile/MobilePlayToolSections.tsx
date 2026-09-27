@@ -14,7 +14,7 @@ import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useMobilePlayToolOrchestration } from '@/hooks/useMobilePlayToolOrchestration';
 import { DAY_INTIMATE_MIX_OPTIONS, normalizeDayIntimateMix } from '@/lib/day-planner';
-import { isNsfwGeneratorEnabledClient } from '@/lib/nsfw-generator-env';
+import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import { deriveStoryPhase } from '@/lib/play-step-machine';
 import {
   applyRoleplayCharacterName,
@@ -110,7 +110,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
     assemblingFilm ||
     wardrobe.garmentUploading ||
     scenesLoading;
-  const adultEnabled = isNsfwGeneratorEnabledClient();
+  const adultEnabled = useNsfwGeneratorEnabled();
   const completedShotCount = useMemo(() => countRoleplayCompletedStills(story), [story]);
   const completedClipCount = useMemo(() => countRoleplayCompletedClips(story), [story]);
   const storyPhase = useMemo(

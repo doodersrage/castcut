@@ -28,7 +28,7 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import { lastRoleplayMotionSource, normalizeRoleplayBeatOutput } from '@/lib/roleplay-film';
-import { isNsfwGeneratorEnabledClient } from '@/lib/nsfw-generator-env';
+import { useNsfwGeneratorStatus } from '@/hooks/useNsfwGeneratorEnabled';
 
 const TOOL_ID = 'roleplay';
 
@@ -41,7 +41,7 @@ export function useRoleplayToolOrchestration() {
   const [ownBibleOpen, setOwnBibleOpen] = useState(false);
 
   const personaId = toolSettings.personaId ?? '';
-  const adultEnabled = isNsfwGeneratorEnabledClient();
+  const { enabled: adultEnabled, ready: adultGateReady } = useNsfwGeneratorStatus();
   const { tone, content } = resolveRoleplayToneAndContent(toolSettings.tone, toolSettings.content, {
     adultEnabled,
   });
@@ -255,6 +255,7 @@ export function useRoleplayToolOrchestration() {
     setError,
     personaId,
     adultEnabled,
+    adultGateReady,
     tone,
     content,
     bio,
