@@ -61,6 +61,27 @@ export function resolveDayGarmentReinforce(input: {
   return url ? { imageUrl: url, source: 'packshot' } : null;
 }
 
+const FITTING_GARMENT_PACKSHOT_RE = /(?:^|[/\\=])fitting-garment-packshot[-_]/i;
+
+/**
+ * Clothing-only garment image (no worn body): the Keep packshot, or a custom
+ * garment that Fitting Room already turned into a packshot. Face-break Day
+ * stills can take these as Image 2; BYO worn photos teach studio voids.
+ */
+export function isClothingOnlyDayGarment(
+  garment: { imageUrl?: string; imageFilename?: string; source: 'custom' | 'packshot' } | null
+): boolean {
+  if (!garment) {
+    return false;
+  }
+  if (garment.source === 'packshot') {
+    return true;
+  }
+  return [garment.imageFilename, garment.imageUrl].some(value =>
+    FITTING_GARMENT_PACKSHOT_RE.test(value?.trim() ?? '')
+  );
+}
+
 /**
  * Resolve the Day display plate: latest Outfit keeper when available, else Cast look.
  * Queue Image 1 uses this Keep when present (outfit continuity).

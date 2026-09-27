@@ -529,7 +529,7 @@ describe('ensureQwenReferenceLatentWiringInWorkflow', () => {
     assert.ok(encode.inputs.image3);
   });
 
-  it('skips ReferenceLatent for day-outfit-vl Keep on Image 2 (face-break outfit)', () => {
+  it('face-break: head-only face latent, outfit VL and pose guide skip ReferenceLatent', () => {
     const workflow = {
       '1': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: 'qwen.safetensors' } },
       '2': { class_type: 'VAELoader', inputs: { vae_name: 'vae.safetensors' } },
@@ -568,8 +568,24 @@ describe('ensureQwenReferenceLatentWiringInWorkflow', () => {
     assert.equal(result.wired, true);
     const nodes = Object.values(result.workflow) as NodeShape[];
     const refLatents = nodes.filter(node => node.class_type === 'ReferenceLatent');
-    // Face crop + outfit VL + pose guide are all VL-only (pose unlock on Lightning).
-    assert.equal(refLatents.length, 0);
+    // Outfit VL + pose guide stay VL-only; the face crop adds one small head-only latent.
+    assert.equal(refLatents.length, 1);
+    const crop = nodes.find(node => node.class_type === 'ImageCrop');
+    assert.ok(crop);
+    assert.equal(crop.inputs.width, 464);
+    assert.equal(crop.inputs.height, 336);
+    assert.equal(crop.inputs.y, 0);
+    const normalize = nodeAt(result.workflow, (crop.inputs.image as [string, number])[0]);
+    assert.equal(normalize.class_type, 'ImageScale');
+    assert.equal(normalize.inputs.width, 464);
+    assert.equal(normalize.inputs.height, 544);
+    const faceLoad = nodeAt(result.workflow, (normalize.inputs.image as [string, number])[0]);
+    assert.equal(faceLoad.inputs.image, 'day-vacation-face-1.png');
+    // Full crop still rides VL Image 1.
+    assert.deepEqual(nodeAt(result.workflow, '9').inputs.image1, [
+      (normalize.inputs.image as [string, number])[0],
+      0,
+    ]);
     const loaders = nodes.filter(node => node.class_type === 'LoadImage');
     assert.ok(loaders.some(node => node.inputs.image === 'day-vacation-face-1.png'));
     assert.ok(loaders.some(node => node.inputs.image === 'day-outfit-vl-1.png'));

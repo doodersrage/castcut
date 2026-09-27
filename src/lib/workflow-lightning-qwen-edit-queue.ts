@@ -489,6 +489,69 @@ export function isPoseGuideReferenceFilename(filename: string | null | undefined
   );
 }
 
+/** Day face-break crop (`day-vacation-face*`) — Image 1 when the Keep plate would freeze the pose. */
+export function isDayFaceBreakCropFilename(filename: string | null | undefined): boolean {
+  const name = String(filename ?? '')
+    .trim()
+    .split(/[/\\]/)
+    .pop();
+  return Boolean(name && /^day-vacation-face[-_]/i.test(name));
+}
+
+/**
+ * Face-break crops are the top of the plate, so their lower third shows shoulders
+ * and the plate's straps. Normalize to a known size (core nodes only), keep the
+ * head and neck, and attach it as a small ReferenceLatent.
+ *
+ * Live A/B (Rapid AIO Day suggestive, face distance to the Keep plate, lower =
+ * closer): VL-only crop 0.81; full-crop latent 0.44 but it dressed her in the
+ * plate's straps' print 5/6; head-only small latent 0.59 with the packshot
+ * garment kept. A full-size latent pinned a catalog portrait; small keeps poses.
+ */
+export const FACE_BREAK_HEAD_REF_NORMALIZE = { width: 464, height: 544 } as const;
+export const FACE_BREAK_HEAD_REF_CROP = { width: 464, height: 336 } as const;
+
+function appendHeadOnlyFaceReferenceLatent(
+  workflow: Record<string, WorkflowNodeRecord>,
+  loadId: string,
+  vaeRef: [string, number],
+  conditioning: [string, number],
+  figureIndex: number,
+  insertedNodeIds: string[]
+): [string, number] {
+  const scaleId = nextLightningWorkflowNodeId(workflow);
+  workflow[scaleId] = {
+    class_type: 'ImageScale',
+    inputs: {
+      image: [loadId, 0],
+      upscale_method: 'lanczos',
+      ...FACE_BREAK_HEAD_REF_NORMALIZE,
+      crop: 'center',
+    },
+    _meta: { title: `Face crop normalize (Image ${figureIndex})` },
+  };
+  const cropId = nextLightningWorkflowNodeId(workflow);
+  workflow[cropId] = {
+    class_type: 'ImageCrop',
+    inputs: { image: [scaleId, 0], ...FACE_BREAK_HEAD_REF_CROP, x: 0, y: 0 },
+    _meta: { title: `Face crop head only (Image ${figureIndex})` },
+  };
+  const encodeId = nextLightningWorkflowNodeId(workflow);
+  workflow[encodeId] = {
+    class_type: 'VAEEncode',
+    inputs: { pixels: [cropId, 0], vae: vaeRef },
+    _meta: { title: `VAE Encode Face Head ${figureIndex}` },
+  };
+  const refId = nextLightningWorkflowNodeId(workflow);
+  workflow[refId] = {
+    class_type: 'ReferenceLatent',
+    inputs: { conditioning, latent: [encodeId, 0] },
+    _meta: { title: `Reference Latent Face Head ${figureIndex}` },
+  };
+  insertedNodeIds.push(scaleId, cropId, encodeId, refId);
+  return [refId, 0];
+}
+
 /** @deprecated Prefer {@link isPoseGuideReferenceFilename} — same VL-only skip set. */
 export function shouldSkipQwenEditReferenceLatent(filename: string | null | undefined): boolean {
   return isPoseGuideReferenceFilename(filename);
@@ -585,6 +648,19 @@ export function ensureQwenReferenceLatentWiringInWorkflow(
       next[loadId]!.inputs!.image = filename;
     }
     loaderIds.push(loadId);
+
+    // Face-break crop: VL keeps the full crop; a small head-only latent carries identity.
+    if (isDayFaceBreakCropFilename(filename)) {
+      currentCond = appendHeadOnlyFaceReferenceLatent(
+        next,
+        loadId,
+        vaeRef,
+        currentCond,
+        figureIndex,
+        insertedNodeIds
+      );
+      continue;
+    }
 
     // VL-only refs (pose guides, Day outfit Keep after face-break): no ReferenceLatent.
     if (isPoseGuideReferenceFilename(filename)) {

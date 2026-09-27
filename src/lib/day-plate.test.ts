@@ -6,6 +6,7 @@ import {
   dayNudeNeedsAutoFaceCrop,
   dayPlateIsolatePending,
   dayPlateSourceKey,
+  isClothingOnlyDayGarment,
   isDayVacationLightningIdentityVlModel,
   isQwenEdit2511PoseStickyModel,
   resolveDayGarmentReinforce,
@@ -358,6 +359,26 @@ describe('Day plate pose / garment reinforce', () => {
       }),
       null
     );
+  });
+
+  it('isClothingOnlyDayGarment accepts Keep and Fitting Room packshots, not BYO photos', () => {
+    assert.equal(isClothingOnlyDayGarment({ imageUrl: 'https://x/pack.webp', source: 'packshot' }), true);
+    assert.equal(
+      isClothingOnlyDayGarment({
+        imageFilename: 'fitting-garment-packshot-1790531449729.png',
+        source: 'custom',
+      }),
+      true
+    );
+    assert.equal(
+      isClothingOnlyDayGarment({
+        imageUrl: '/api/comfy/view?filename=fitting-garment-packshot-1790531449729.png&type=input',
+        source: 'custom',
+      }),
+      true
+    );
+    assert.equal(isClothingOnlyDayGarment({ imageFilename: 'byo.png', source: 'custom' }), false);
+    assert.equal(isClothingOnlyDayGarment(null), false);
   });
 
   it('resolveDayGarmentReinforce prefers custom BYO for Keep and Cast', () => {

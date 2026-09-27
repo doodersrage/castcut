@@ -81,6 +81,7 @@ import {
 } from '@/lib/day-planner';
 import {
   castFaceDuplicatesBodyPlate,
+  isClothingOnlyDayGarment,
   isDayVacationLightningIdentityVlModel,
   isQwenEdit2511PoseStickyModel,
   resolveDayFaceOnlyPlate,
@@ -770,19 +771,21 @@ export function useDayPlannerToolOrchestrationCore() {
         const faceOnlyIdentity =
           (omitGarment && (nudeFaceAutoCropped || Boolean(resolveDayFaceOnlyPlate(character)))) ||
           vacationFaceBreak;
-        // Face-break: clothing-only packshot Image 2 is OK (no standing body silhouette).
-        // Full-body Keep / BYO worn stills teach studio voids — dress from garment text.
+        // Face-break: clothing-only packshot Image 2 is OK (no standing body silhouette),
+        // including a Fitting Room packshot picked as the custom garment. Full-body Keep /
+        // BYO worn stills teach studio voids — dress from garment text.
         const byoOrPackGarment = resolveDayGarmentReinforce({
           plateSource: plate?.source,
           packshotUrl,
           customGarmentUrl: toolSettings.customGarmentImageUrl,
           customGarmentFilename: toolSettings.customGarmentImageFilename,
         });
+        const clothingOnlyGarment = isClothingOnlyDayGarment(byoOrPackGarment);
         let garmentReinforce =
           omitGarment || replaceKeepOutfit
             ? null
             : vacationFaceBreak
-              ? byoOrPackGarment?.source === 'packshot'
+              ? clothingOnlyGarment
                 ? byoOrPackGarment
                 : null
               : byoOrPackGarment;
@@ -790,7 +793,8 @@ export function useDayPlannerToolOrchestrationCore() {
           !omitGarment &&
           !replaceKeepOutfit &&
           vacationFaceBreak &&
-          byoOrPackGarment?.source === 'packshot' &&
+          byoOrPackGarment &&
+          clothingOnlyGarment &&
           (byoOrPackGarment.imageUrl || byoOrPackGarment.imageFilename)
         ) {
           // Re-upload as VL Image 2 without gray full-body cutout (already clothing-only).
