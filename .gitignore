@@ -73,3 +73,5 @@ services/**/.venv/
 
 # Local generation scratch (prompts / PNGs) — never commit
 /tmp-adult/
+# Live Play A/B output (scripts/play-ab.mjs)
+/play-ab-out/
