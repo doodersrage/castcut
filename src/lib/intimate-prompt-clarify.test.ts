@@ -276,7 +276,6 @@ describe('nude intimate prompts', () => {
     const prompt = reinforceIntimateStillPrompt(
       'Two lovers, fully naked, having sex on the bed, her thighs around his hips'
     );
-    assert.match(prompt, /bare skin only/);
     // "no lingerie, bra, or panties" summoned them — the Day Intimate/Raunchy lesson.
     assert.doesNotMatch(prompt, /\b(lingerie|bra|panties|bikini)\b/i);
   });

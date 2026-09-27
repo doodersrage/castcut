@@ -446,7 +446,7 @@ const INTIMATE_NUDE_CUE =
   /\b(nude|naked|fully\s+nude|bare\s+bodies?|unclothed|nothing\s+(?:on|worn)|no\s+clothes)\b/i;
 
 const INTIMATE_DUO_LOCK =
-  'Two adults: Cast lead (Image 1 face) in the lead role + distinct partner — no twin people or duplicate faces (room mirrors/glass OK); show the sex act, not a standing lingerie portrait.';
+  'Two adults: Cast lead (Image 1 face) in the lead role + distinct partner — no twin people or duplicate faces (room mirrors/glass OK); show the sex act, not a standing portrait.';
 
 const INTIMATE_POSE_LOCK =
   'Match the beat’s named pose and stance as written — not a standing fashion portrait.';
