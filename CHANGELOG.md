@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.1.1] - 2026-09-27
+
+- Look plates stay on the Cast that owns them instead of sharing one identity file.
+
 ## [v2.1.0] - 2026-09-27
 
 - **Match settings to the GPU.** Prompt quality shows what suits the card ComfyUI reports (*24 GB card → Max size · Final quality*; 8 GB → Small · Draft) with **Match this GPU**, and the first time ComfyUI reports a GPU a one-time notice offers the same. Only size and quality still at their defaults are changed.
