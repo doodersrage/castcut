@@ -1028,6 +1028,8 @@ export type FittingToolCache = {
   previewPlateSourceKey?: string;
   /** Look→Outfit: await this Comfy still, then stamp it as the try-on plate. */
   pendingOutfitPlatePromptId?: string;
+  /** Cast that queued {@link pendingOutfitPlatePromptId}. Completion must not stamp whoever is active. */
+  pendingOutfitPlateCharacterId?: string;
   /**
    * User cleared the Outfit plate — do not auto-reseed from Cast, and let Look
    * Extract queue a fresh plate instead of reusing the old Cast look reference.
@@ -1918,7 +1920,8 @@ export function scrubPlayToolCachesOnCastChange(tools: ToolSettingsCache): ToolS
         previewPlateFilename: undefined,
         previewPlateUrl: undefined,
         previewPlateSourceKey: undefined,
-        pendingOutfitPlatePromptId: undefined,
+        // Keep the in-flight Look plate job. It belongs to pendingOutfitPlateCharacterId,
+        // not the Cast being activated, and must not be dropped or stamped here.
         // Allow Cast look reseed after switch (user clear still sets this true).
         suppressAutoPlateSeed: false,
       },

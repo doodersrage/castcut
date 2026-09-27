@@ -4,6 +4,7 @@ import {
   cacheBustIdentityMediaUrl,
   durableGalleryOriginalUrl,
   durableGalleryThumbUrl,
+  castPlateMediaId,
   IDENTITY_MEDIA_URL,
   isDurableGalleryMediaUrl,
   isIdentityMediaUrl,
@@ -32,6 +33,14 @@ describe('cacheBustIdentityMediaUrl', () => {
     assert.equal(isIdentityMediaUrl(IDENTITY_MEDIA_URL), true);
     assert.equal(isIdentityMediaUrl(`${IDENTITY_MEDIA_URL}?v=9`), true);
     assert.equal(isIdentityMediaUrl('/api/gallery/media/abc'), false);
+  });
+});
+
+describe('castPlateMediaId', () => {
+  it('gives each Cast its own plate file id', () => {
+    assert.equal(castPlateMediaId('char-abc'), 'cast-plate-char-abc');
+    assert.equal(castPlateMediaId('  char-abc  '), 'cast-plate-char-abc');
+    assert.equal(castPlateMediaId('../etc'), null);
   });
 });
 

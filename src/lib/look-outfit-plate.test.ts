@@ -17,11 +17,13 @@ import {
   withCastFaceQueueParams,
   withCastIdentityQueueFields,
   syncSharedIdentityToCast,
+  tryAttachPendingOutfitPlate,
   resolveCharacterAppearanceForPlate,
   stripDemographicCuesFromStyle,
   styleNotesForLookPlate,
 } from './look-outfit-plate';
 import { createBlankCharacter, getCharacter, upsertCharacter, activeLook } from './character-os';
+import { saveComfyGallery, type ComfyGalleryEntry } from './comfyui-gallery';
 import {
   DEFAULT_FITTING_TOOL_CACHE,
   loadSettingsCache,
@@ -591,6 +593,49 @@ describe('look-outfit-plate', () => {
     assert.equal(getCharacter(blank.id)?.reference, undefined);
     const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
     assert.equal(fitting.pendingOutfitPlatePromptId, 'prompt-queued');
+    assert.equal(fitting.pendingOutfitPlateCharacterId, blank.id);
     assert.equal(fitting.referenceImageUrl, undefined);
+  });
+
+  it('a finished Look plate stamps the Cast that queued it, not the one active now', () => {
+    installMemoryWindow();
+    const recent = createBlankCharacter('Recent');
+    const next = createBlankCharacter('Next');
+    upsertCharacter(recent);
+    upsertCharacter(next);
+    assignOutfitPlateToCastAndFitting({
+      characterId: recent.id,
+      imageUrl: 'https://example.com/recent.jpg',
+      filename: 'recent.jpg',
+    });
+    const entry: ComfyGalleryEntry = {
+      id: 'plate-entry',
+      promptId: 'plate-job',
+      prompt: 'look plate',
+      comfyUrl: 'http://127.0.0.1:8188',
+      status: 'completed',
+      queuedAt: Date.now(),
+      images: [{ filename: 'new-plate.png', subfolder: '', type: 'output' }],
+    };
+    saveComfyGallery([entry], { syncRemote: false });
+    saveToolSettings('fitting', {
+      ...loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE),
+      pendingOutfitPlatePromptId: 'plate-job',
+      pendingOutfitPlateCharacterId: next.id,
+      referenceImageUrl: 'https://example.com/recent.jpg',
+      referenceImageFilename: 'recent.jpg',
+    });
+    saveSettingsCache({
+      ...loadSettingsCache(),
+      shared: { ...loadSettingsCache().shared, activeCharacterId: recent.id },
+    });
+
+    assert.equal(tryAttachPendingOutfitPlate(recent.id), false);
+    assert.equal(getCharacter(recent.id)?.reference?.originalUrl, 'https://example.com/recent.jpg');
+    assert.match(getCharacter(next.id)?.reference?.originalUrl ?? '', /new-plate\.png/);
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(fitting.referenceImageUrl, 'https://example.com/recent.jpg');
+    assert.equal(fitting.pendingOutfitPlatePromptId, undefined);
+    assert.equal(fitting.pendingOutfitPlateCharacterId, undefined);
   });
 });

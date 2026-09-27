@@ -9,7 +9,11 @@ import { useRoleplayLookPackDeepLink } from '@/hooks/useRoleplayLookPackDeepLink
 import { useRoleplayStorySync } from '@/hooks/useRoleplayStorySync';
 import { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import { IDENTITY_MEDIA_URL, persistIdentityImage } from '@/lib/gallery-media-client';
+import {
+  IDENTITY_MEDIA_URL,
+  persistOwnedPlateImage,
+  sessionPlateMediaId,
+} from '@/lib/gallery-media-client';
 import {
   collectIsolateSourceUrls,
   isolateSubjectOnWhite,
@@ -205,7 +209,8 @@ export function useMobilePlayToolOrchestrationCore() {
         if (!cutoutFilename) {
           throw new Error('Cut-out upload did not return a filename.');
         }
-        const cutoutDurable = await persistIdentityImage({
+        const cutoutDurable = await persistOwnedPlateImage({
+          mediaId: sessionPlateMediaId('story'),
           file: cutout,
           filename: cutoutFilename,
         });

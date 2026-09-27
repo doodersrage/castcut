@@ -7,7 +7,8 @@ import {
   cacheBustIdentityMediaUrl,
   IDENTITY_MEDIA_URL,
   isIdentityMediaUrl,
-  persistIdentityImage,
+  persistOwnedPlateImage,
+  sessionPlateMediaId,
 } from '@/lib/gallery-media-client';
 import {
   collectIsolateSourceUrls,
@@ -168,7 +169,8 @@ export function useRoleplayReferenceImage({
         let isolated = false;
 
         if (!shouldIsolate) {
-          const originalDurable = await persistIdentityImage({
+          const originalDurable = await persistOwnedPlateImage({
+            mediaId: sessionPlateMediaId('story'),
             file: sourceFile,
             filename: originalFilename,
           });
@@ -192,7 +194,8 @@ export function useRoleplayReferenceImage({
             if (!cutoutFilename) {
               throw new Error('Cut-out upload did not return a filename.');
             }
-            const cutoutDurable = await persistIdentityImage({
+            const cutoutDurable = await persistOwnedPlateImage({
+              mediaId: sessionPlateMediaId('story'),
               file: cutout,
               filename: cutoutFilename,
             });
@@ -217,7 +220,8 @@ export function useRoleplayReferenceImage({
                 ? `${err.message} ${ISOLATE_QUEUE_BLOCKED_MESSAGE}`
                 : ISOLATE_QUEUE_BLOCKED_MESSAGE
             );
-            const originalDurable = await persistIdentityImage({
+            const originalDurable = await persistOwnedPlateImage({
+              mediaId: sessionPlateMediaId('story'),
               file: sourceFile,
               filename: originalFilename,
             });

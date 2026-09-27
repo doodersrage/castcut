@@ -22,7 +22,7 @@ import {
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
 } from '@/lib/comfyui-gallery';
-import { persistIdentityImage } from '@/lib/gallery-media-client';
+import { castPlateMediaId, persistOwnedPlateImage } from '@/lib/gallery-media-client';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import {
   DEFAULT_FITTING_TOOL_CACHE,
@@ -436,6 +436,7 @@ export function clearCharacterBodyPlate(characterId?: string | null): boolean {
       referenceOriginalFilename: undefined,
       referenceIsolated: false,
       pendingOutfitPlatePromptId: undefined,
+      pendingOutfitPlateCharacterId: undefined,
       suppressAutoPlateSeed: true,
     });
     return true;
@@ -460,6 +461,7 @@ export function clearCharacterBodyPlate(characterId?: string | null): boolean {
     referenceOriginalFilename: undefined,
     referenceIsolated: false,
     pendingOutfitPlatePromptId: undefined,
+    pendingOutfitPlateCharacterId: undefined,
     suppressAutoPlateSeed: true,
   });
   return true;
@@ -527,6 +529,7 @@ export function clearCharacterLookPlate(characterId?: string | null): boolean {
     referenceOriginalFilename: undefined,
     referenceIsolated: false,
     pendingOutfitPlatePromptId: undefined,
+    pendingOutfitPlateCharacterId: undefined,
     suppressAutoPlateSeed: true,
   });
   return true;
@@ -562,6 +565,11 @@ export function assignOutfitPlateToCastAndFitting(input: {
    * Adapter thumbnail cannot keep showing as the look plate.
    */
   syncFace?: boolean;
+  /**
+   * False when the plate belongs to a Cast who is no longer active.
+   * Their record updates; the Outfit session plate stays with the current Cast.
+   */
+  syncFitting?: boolean;
 }): CharacterRecord | null {
   const characterId = input.characterId.trim();
   const imageUrl = input.imageUrl.trim();
@@ -612,6 +620,14 @@ export function assignOutfitPlateToCastAndFitting(input: {
   });
 
   const previous = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+  if (input.syncFitting === false) {
+    saveToolSettings('fitting', {
+      ...previous,
+      pendingOutfitPlatePromptId: undefined,
+      pendingOutfitPlateCharacterId: undefined,
+    });
+    return getCharacter(characterId) ?? null;
+  }
   saveToolSettings('fitting', {
     ...previous,
     isolateSubject: true,
@@ -622,21 +638,30 @@ export function assignOutfitPlateToCastAndFitting(input: {
     referenceOriginalFilename: filename,
     // Cancel in-flight Look→Outfit extract so a late still cannot clobber this plate.
     pendingOutfitPlatePromptId: undefined,
+    pendingOutfitPlateCharacterId: undefined,
     suppressAutoPlateSeed: false,
   });
 
   return getCharacter(characterId) ?? null;
 }
 
-export function setPendingOutfitPlatePromptId(promptId: string | undefined): void {
+export function setPendingOutfitPlatePromptId(
+  promptId: string | undefined,
+  characterId?: string
+): void {
   const previous = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
   const id = promptId?.trim() || undefined;
-  if (previous.pendingOutfitPlatePromptId === id) {
+  const owner = id ? characterId?.trim() || previous.pendingOutfitPlateCharacterId : undefined;
+  if (
+    previous.pendingOutfitPlatePromptId === id &&
+    previous.pendingOutfitPlateCharacterId === owner
+  ) {
     return;
   }
   saveToolSettings('fitting', {
     ...previous,
     pendingOutfitPlatePromptId: id,
+    pendingOutfitPlateCharacterId: owner,
   });
 }
 
@@ -726,6 +751,7 @@ export async function ensureOutfitPlateAfterLook(input: {
       referenceOriginalUrl: undefined,
       referenceOriginalFilename: undefined,
       pendingOutfitPlatePromptId: undefined,
+      pendingOutfitPlateCharacterId: undefined,
       // Block Fitting auto-seed from a stale Cast plate until the queued still attaches.
       suppressAutoPlateSeed: true,
     };
@@ -816,7 +842,7 @@ export async function ensureOutfitPlateAfterLook(input: {
     if (!id) {
       return 'failed';
     }
-    setPendingOutfitPlatePromptId(id);
+    setPendingOutfitPlatePromptId(id, characterId);
     return 'queued';
   } catch {
     return 'failed';
@@ -901,11 +927,16 @@ export async function applyCastLookPlateFromSource(
   let queueUrl = originalUrl || incomingDurable;
   let isolated = false;
 
+  const persistPlate = (file: Blob, filename: string) => {
+    const mediaId = castPlateMediaId(characterId);
+    if (!mediaId) {
+      return Promise.resolve(null);
+    }
+    return persistOwnedPlateImage({ mediaId, file, filename });
+  };
+
   if (!shouldIsolate) {
-    const durable = await persistIdentityImage({
-      file: sourceFile,
-      filename: queueFilename,
-    });
+    const durable = await persistPlate(sourceFile, queueFilename);
     queueUrl = durable || originalUrl || incomingDurable;
   } else {
     try {
@@ -921,10 +952,7 @@ export async function applyCastLookPlateFromSource(
       } catch {
         // Keep local cutout name when Comfy is down.
       }
-      const cutoutDurable = await persistIdentityImage({
-        file: cutout,
-        filename: cutoutFilename,
-      });
+      const cutoutDurable = await persistPlate(cutout, cutoutFilename);
       queueFilename = cutoutFilename;
       queueUrl = cutoutDurable || incomingDurable || originalUrl;
       if (!queueUrl) {
@@ -933,10 +961,7 @@ export async function applyCastLookPlateFromSource(
       }
       isolated = true;
     } catch {
-      const durable = await persistIdentityImage({
-        file: sourceFile,
-        filename: queueFilename,
-      });
+      const durable = await persistPlate(sourceFile, queueFilename);
       queueUrl = durable || originalUrl || incomingDurable;
       isolated = false;
     }
@@ -970,14 +995,19 @@ export function tryAttachPendingOutfitPlate(characterId?: string): boolean {
   if (!still) {
     return false;
   }
-  const id = characterId?.trim() || undefined;
-  if (id) {
+  const activeId = characterId?.trim() || '';
+  const owner = fitting.pendingOutfitPlateCharacterId?.trim() || activeId;
+  if (owner) {
+    const syncFitting = !activeId || owner === activeId;
     assignOutfitPlateToCastAndFitting({
-      characterId: id,
+      characterId: owner,
       imageUrl: still.imageUrl,
       filename: still.filename,
+      syncFitting,
     });
-    return true;
+    // False when the still belonged to another Cast — their record is updated,
+    // and the Outfit session must not adopt that plate.
+    return syncFitting;
   }
   // No Cast id — still clear pending and stamp session plate so try-on can proceed.
   saveToolSettings('fitting', {
@@ -989,6 +1019,7 @@ export function tryAttachPendingOutfitPlate(characterId?: string): boolean {
     referenceOriginalUrl: still.imageUrl,
     referenceOriginalFilename: still.filename,
     pendingOutfitPlatePromptId: undefined,
+    pendingOutfitPlateCharacterId: undefined,
     suppressAutoPlateSeed: false,
   });
   return true;

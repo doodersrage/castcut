@@ -8,7 +8,7 @@ import { FieldError, TextInput } from '@/components/ui/Field';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
-import { persistIdentityImage } from '@/lib/gallery-media-client';
+import { persistOwnedPlateImage } from '@/lib/gallery-media-client';
 import { saveGalleryHandoff } from '@/lib/gallery-handoff';
 import { isolateSubjectOnWhite } from '@/lib/isolate-subject';
 import {
@@ -95,13 +95,15 @@ export default function MobileCaptureTool() {
       });
       try {
         const originalName = file.name || `plate-${Date.now()}.png`;
+        const plateId = newCharacterPlateId();
         const originalUploaded = await resolveQueueInputImage({
           file,
           filename: originalName,
           model: shared.model,
         });
         const originalFilename = originalUploaded?.filename?.trim() || originalName;
-        const originalDurable = await persistIdentityImage({
+        const originalDurable = await persistOwnedPlateImage({
+          mediaId: `capture-${plateId}-original`,
           file,
           filename: originalFilename,
         });
@@ -119,7 +121,8 @@ export default function MobileCaptureTool() {
             model: shared.model,
           });
           isolatedFilename = cutoutUploaded?.filename?.trim() || cutout.name;
-          const cutoutDurable = await persistIdentityImage({
+          const cutoutDurable = await persistOwnedPlateImage({
+            mediaId: `capture-${plateId}-isolated`,
             file: cutout,
             filename: isolatedFilename,
           });
@@ -142,7 +145,7 @@ export default function MobileCaptureTool() {
         }
 
         const plate: CharacterPlate = {
-          id: newCharacterPlateId(),
+          id: plateId,
           name: name.trim() || file.name.replace(/\.[^.]+$/, '') || 'Untitled plate',
           createdAt: Date.now(),
           originalUrl,

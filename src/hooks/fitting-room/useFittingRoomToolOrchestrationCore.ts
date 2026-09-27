@@ -59,7 +59,8 @@ import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import {
   cacheBustIdentityMediaUrl,
   isIdentityMediaUrl,
-  persistIdentityImage,
+  persistOwnedPlateImage,
+  sessionPlateMediaId,
 } from '@/lib/gallery-media-client';
 import {
   collectIsolateSourceUrls,
@@ -295,7 +296,8 @@ export function useFittingRoomToolOrchestrationCore() {
         let isolated = false;
 
         if (!shouldIsolate) {
-          const originalDurable = await persistIdentityImage({
+          const originalDurable = await persistOwnedPlateImage({
+            mediaId: sessionPlateMediaId('fitting'),
             file: sourceFile,
             filename: originalFilename,
           });
@@ -319,7 +321,8 @@ export function useFittingRoomToolOrchestrationCore() {
             if (!cutoutFilename) {
               throw new Error('Cut-out upload did not return a filename.');
             }
-            const cutoutDurable = await persistIdentityImage({
+            const cutoutDurable = await persistOwnedPlateImage({
+              mediaId: sessionPlateMediaId('fitting'),
               file: cutout,
               filename: cutoutFilename,
             });
@@ -344,7 +347,8 @@ export function useFittingRoomToolOrchestrationCore() {
                 ? `${err.message} ${ISOLATE_QUEUE_BLOCKED_MESSAGE}`
                 : ISOLATE_QUEUE_BLOCKED_MESSAGE
             );
-            const originalDurable = await persistIdentityImage({
+            const originalDurable = await persistOwnedPlateImage({
+              mediaId: sessionPlateMediaId('fitting'),
               file: sourceFile,
               filename: originalFilename,
             });

@@ -28,12 +28,14 @@ describe('scrubPlayToolCachesOnCastChange', () => {
         referenceImageFilename: 'old.png',
         suppressAutoPlateSeed: true,
         pendingOutfitPlatePromptId: 'p1',
+        pendingOutfitPlateCharacterId: 'char-b',
         previewPlateUrl: '/preview.webp',
       },
     });
     assert.equal(next.fitting?.referenceImageUrl, undefined);
     assert.equal(next.fitting?.referenceImageFilename, undefined);
-    assert.equal(next.fitting?.pendingOutfitPlatePromptId, undefined);
+    assert.equal(next.fitting?.pendingOutfitPlatePromptId, 'p1');
+    assert.equal(next.fitting?.pendingOutfitPlateCharacterId, 'char-b');
     assert.equal(next.fitting?.previewPlateUrl, undefined);
     assert.equal(next.fitting?.suppressAutoPlateSeed, false);
   });

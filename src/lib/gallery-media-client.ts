@@ -220,6 +220,53 @@ export async function persistGalleryOriginal(
   }
 }
 
+const OWNED_PLATE_ID = /^[A-Za-z0-9._-]{1,128}$/;
+
+/** Per-Cast look plate file. Replaces only this character, never the identity lock. */
+export function castPlateMediaId(characterId: string): string | null {
+  const id = `cast-plate-${characterId.trim()}`;
+  if (!OWNED_PLATE_ID.test(id) || id === '.' || id === '..') {
+    return null;
+  }
+  return id;
+}
+
+/** Session plate for one tool. Separate from the face-lock file and from Cast plates. */
+export function sessionPlateMediaId(slot: 'fitting' | 'day' | 'story'): string {
+  return `session-plate-${slot}`;
+}
+
+function cacheBustOwnedPlateUrl(url: string): string {
+  const [path, query = ''] = url.split('?');
+  const params = new URLSearchParams(query);
+  params.set('v', String(Date.now()));
+  return `${path}?${params.toString()}`;
+}
+
+/**
+ * Store plate bytes under their own gallery id.
+ * The identity lock is one file for the face pin — look plates must not use it,
+ * or saving one Cast replaces every other Cast still pointing at that URL.
+ */
+export async function persistOwnedPlateImage(input: {
+  mediaId: string;
+  file: Blob;
+  filename?: string;
+}): Promise<string | null> {
+  const id = input.mediaId.trim();
+  if (!OWNED_PLATE_ID.test(id) || id === '.' || id === '..') {
+    return null;
+  }
+  const filename = input.filename?.trim() || 'plate.png';
+  const file =
+    input.file instanceof File
+      ? input.file
+      : new File([input.file], filename, { type: input.file.type || 'image/png' });
+  const stored = await persistGalleryOriginal(id, file);
+  const url = stored?.originalUrl?.trim();
+  return url ? cacheBustOwnedPlateUrl(url) : null;
+}
+
 /** Best-effort: store the locked-face bytes under PROMPT_DATA_DIR. */
 export async function persistIdentityImage(input: {
   file?: Blob;

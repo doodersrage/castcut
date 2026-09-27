@@ -180,6 +180,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       previewPlateUrl: undefined,
       previewPlateSourceKey: undefined,
       pendingOutfitPlatePromptId: undefined,
+      pendingOutfitPlateCharacterId: undefined,
       // Stop Cast auto-reseed; Look Extract can queue a fresh plate.
       suppressAutoPlateSeed: true,
     });

@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import { cacheBustIdentityMediaUrl, persistIdentityImage } from '@/lib/gallery-media-client';
+import {
+  cacheBustIdentityMediaUrl,
+  persistOwnedPlateImage,
+  sessionPlateMediaId,
+} from '@/lib/gallery-media-client';
 import {
   dayPlateIsolatePending,
   dayPlateSourceKey,
@@ -165,7 +169,8 @@ export function useDayPlateIsolate(input: {
         let isolated = false;
 
         if (!shouldIsolate) {
-          const originalDurable = await persistIdentityImage({
+          const originalDurable = await persistOwnedPlateImage({
+            mediaId: sessionPlateMediaId('day'),
             file: sourceFile,
             filename: uploadedOriginalFilename,
           });
@@ -193,7 +198,8 @@ export function useDayPlateIsolate(input: {
             if (!cutoutFilename) {
               throw new Error('Cut-out upload did not return a filename.');
             }
-            const cutoutDurable = await persistIdentityImage({
+            const cutoutDurable = await persistOwnedPlateImage({
+              mediaId: sessionPlateMediaId('day'),
               file: cutout,
               filename: cutoutFilename,
             });
@@ -218,7 +224,8 @@ export function useDayPlateIsolate(input: {
                 ? `${err.message} ${ISOLATE_QUEUE_BLOCKED_MESSAGE}`
                 : ISOLATE_QUEUE_BLOCKED_MESSAGE
             );
-            const originalDurable = await persistIdentityImage({
+            const originalDurable = await persistOwnedPlateImage({
+              mediaId: sessionPlateMediaId('day'),
               file: sourceFile,
               filename: uploadedOriginalFilename,
             });
