@@ -449,13 +449,14 @@ const INTIMATE_DUO_LOCK =
   'Two adults: Cast lead (Image 1 face) in the lead role + distinct partner — no twin people or duplicate faces (room mirrors/glass OK); show the sex act, not a standing lingerie portrait.';
 
 const INTIMATE_POSE_LOCK =
-  'Match the beat’s named pose and stance as written — not a standing fashion portrait or lingerie pose.';
+  'Match the beat’s named pose and stance as written — not a standing fashion portrait.';
 
 const INTIMATE_CONTACT_LOCK =
   'Cross-person touch only (hands/mouth on the other body); partner does the grabbing named in the beat — no self-grab, no role-reversed hands, no fused silhouette.';
 
+// Never name the garments here — "no lingerie, bra, or panties" summons them (the Day fix).
 const INTIMATE_NUDE_DEFAULT =
-  'Both adults fully nude — nothing worn; discard Image 1 and Image 2 clothing entirely (no turtleneck, suit, lingerie, bra, or panties); bare skin only.';
+  'Both adults fully nude — bare skin only (clothes are now gone): bare breasts and bare hips, zero fabric on either body; Image 1 and Image 2 fabric is invisible and must not be copied.';
 
 /**
  * SNOFS / NSFW LoRA caption cues. Bare "sex" alone collapses every beat to one pose —
@@ -816,7 +817,7 @@ function rewriteDrawerAfterglowContact(text: string): string {
 
   return [
     'Drawer afterglow: soft post-sex withdrawal. office with an OPEN steel filing-cabinet drawer pulled out — she lies on her back in the open drawer under dim light; mid-shot from hips to faces, not sealed inside a white metal coffin, not a face-only crop.',
-    'Exactly TWO fully nude adults, exactly two faces, four hands only — Image 1 face only; never a bikini, bra, or lingerie top; never a third person.',
+    'Exactly TWO fully nude adults, exactly two faces, four hands only — Image 1 face only; bare breasts, zero fabric on either body; never a third person.',
     'He leans over her as he withdraws slowly; his thumb smears her clit between her thighs, then his hand slips free — never a finger in her mouth, never a floating third hand near her face.',
     'Eyes closed, mouths calm, soft afterglow; clean separate solid opaque bodies, readable anatomy.',
   ].join(' ');

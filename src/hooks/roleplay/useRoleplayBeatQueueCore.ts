@@ -54,8 +54,14 @@ import { poseGuideFailureReason } from '@/lib/pose-guide-status';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { resolveStoryNudeFaceFilename } from '@/lib/story-nude-face';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { MutableRefObject } from 'react';
+
+/** The Cast face pin must not be the underwear plate on a nude beat either. */
+function nudeFaceIdentityParams(nudeFace: string | null): Record<string, unknown> {
+  return nudeFace ? { ipAdapterImageFilename: nudeFace, ipAdapterImageFilenames: [nudeFace] } : {};
+}
 
 const TOOL_ID = 'roleplay';
 
@@ -157,6 +163,23 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     [shared.ipAdapterStrength, shared.sessionActiveLoraIds, stampRoleplayCharacter]
   );
 
+  /** Nude beats (garment dropped): face-only Image 1, as Day Intimate/Raunchy do. */
+  const resolveNudeFaceForBeat = useCallback(
+    async (beat: RoleplayStoryBeat): Promise<string | null> => {
+      if (playAs !== 'photo' || !storyBeatOmitsGarmentPackshot(beat)) {
+        return null;
+      }
+      return resolveStoryNudeFaceFilename({
+        character: stampRoleplayCharacter(),
+        referenceFilename: referenceImageFilename,
+        referenceUrl: referenceImageUrl,
+        model: shared.model,
+        comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+      }).catch(() => null);
+    },
+    [playAs, referenceImageFilename, referenceImageUrl, shared.model, stampRoleplayCharacter]
+  );
+
   const queueStillOptions = useCallback(
     (
       poseGuide?: {
@@ -164,14 +187,16 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         imageUrl?: string;
         prompt?: { style?: PoseGuideStylePreference };
       },
-      beat?: RoleplayStoryBeat
+      beat?: RoleplayStoryBeat,
+      nudeFaceFilename?: string | null
     ) =>
       buildRoleplayQueueStillOptions({
         photoMode: playAs === 'photo',
         isolateSubject,
         referenceIsolated: toolSettings.referenceIsolated === true,
-        filename: referenceImageFilename,
-        imageUrl: referenceImageUrl,
+        // Nude beats: face-only Image 1 so the plate's underwear never reaches the reference.
+        filename: nudeFaceFilename || referenceImageFilename,
+        imageUrl: nudeFaceFilename ? undefined : referenceImageUrl,
         identityLockStrength: storyIdentityLockStrengthForBeat(shared.ipAdapterStrength, {
           beat,
           hasPoseGuide: Boolean(poseGuide?.filename || poseGuide?.imageUrl),
@@ -362,7 +387,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       };
       if (queueStill) {
         await loadWardrobeGarmentThumbManifest();
-        const stillOpts = queueStillOptions(poseGuide, beat);
+        const nudeFace = await resolveNudeFaceForBeat(beat);
+        const stillOpts = queueStillOptions(poseGuide, beat, nudeFace);
         const charOpts = roleplayCharacterQueueFields(
           { bio: nextBio, story: currentStory },
           stillOpts?.queueParamsBase,
@@ -379,6 +405,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
                 queueParamsBase: {
                   ...stillOpts?.queueParamsBase,
                   ...charOpts.queueParamsBase,
+                  ...nudeFaceIdentityParams(nudeFace),
                 },
               }
             : {}),
@@ -401,6 +428,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     },
     [
       actions,
+      resolveNudeFaceForBeat,
       autoQueue,
       playAs,
       queueStillOptions,
@@ -481,7 +509,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         ]
           .filter(Boolean)
           .join('\n');
-        const stillOpts = queueStillOptions(poseGuide, latest);
+        const nudeFace = await resolveNudeFaceForBeat(latest);
+        const stillOpts = queueStillOptions(poseGuide, latest, nudeFace);
         const charOpts = roleplayCharacterQueueFields(
           undefined,
           {
@@ -498,6 +527,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
                 queueParamsBase: {
                   ...stillOpts?.queueParamsBase,
                   ...charOpts.queueParamsBase,
+                  ...nudeFaceIdentityParams(nudeFace),
                 },
               }
             : {}),
@@ -529,6 +559,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     },
     [
       actions,
+      resolveNudeFaceForBeat,
       queueStillOptions,
       resolvePoseGuideForBeat,
       roleplayCharacterQueueFields,

@@ -269,3 +269,16 @@ describe('standing rear-entry beats', () => {
     assert.match(reinforceIntimateStillPrompt(allFours), /hands and knees/);
   });
 });
+
+describe('nude intimate prompts', () => {
+  it('never name the garments they mean to remove', async () => {
+    const { reinforceIntimateStillPrompt } = await import('./intimate-prompt-clarify');
+    const prompt = reinforceIntimateStillPrompt(
+      'Two lovers, fully naked, having sex on the bed, her thighs around his hips'
+    );
+    assert.match(prompt, /bare skin only/);
+    // "no lingerie, bra, or panties" summoned them — the Day Intimate/Raunchy lesson.
+    assert.doesNotMatch(prompt, /\b(lingerie|bra|panties|bikini)\b/i);
+  });
+});
+
