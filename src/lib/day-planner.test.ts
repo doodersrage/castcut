@@ -2226,7 +2226,7 @@ describe('buildDaySlotPrompt everyday posing and background', () => {
 
   it('puts the beat before the baseline pose on everyday', () => {
     const prompt = buildDaySlotPrompt({
-      slot: { ...slot, sceneHints: 'waving from the balcony', location: 'apartment balcony' },
+      slot: { ...slot, sceneHints: 'a quiet moment on the balcony', location: 'apartment balcony' },
       hasPlate: true,
       plateSource: 'keeper',
     });
@@ -2234,7 +2234,24 @@ describe('buildDaySlotPrompt everyday posing and background', () => {
     const baseline = prompt.indexOf('Body-stance baseline only if the beat is vague');
     assert.ok(poseFirst >= 0, 'everyday beat should lead with POSE FIRST');
     assert.ok(baseline > poseFirst, 'baseline should trail the beat');
-    assert.match(prompt, /waving from the balcony/);
+    assert.match(prompt, /a quiet moment on the balcony/);
+  });
+
+  it('drops the slot baseline when the beat names its own stance', () => {
+    // Rapid AIO rendered "pausing mid-stride" as the night baseline's diner-booth sit.
+    for (const sceneHints of [
+      'pausing mid-stride to look up at a lit sign',
+      'leaning on a railing overlooking the park',
+      'waving from the balcony',
+    ]) {
+      const prompt = buildDaySlotPrompt({
+        slot: { id: 'night', label: 'Night', sceneHints, location: 'corner store' },
+        hasPlate: true,
+        plateSource: 'cast',
+      });
+      assert.match(prompt, /POSE FIRST/);
+      assert.doesNotMatch(prompt, /Body-stance baseline/, sceneHints);
+    }
   });
 
   it('keeps the plain baseline when the slot has no beat', () => {

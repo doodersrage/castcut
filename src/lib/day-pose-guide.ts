@@ -1465,7 +1465,9 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
   if (
     /\b(stretch(?:es|ing)?|arms?\s+overhead|overhead\s+stretch|mid[- ]yawn|yawn(?:s|ing)?)\b/i.test(
       haystack
-    )
+    ) &&
+    // "lying on the rug mid-stretch" is a lying pose — the stretch layout is a standing reach.
+    !/\b(lie|lies|lying|laying|sprawl(?:ed|ing)?|reclin(?:e|es|ed|ing)|flat\s+on)\b/i.test(haystack)
   ) {
     return 'stretch';
   }

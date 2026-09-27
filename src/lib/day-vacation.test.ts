@@ -207,6 +207,13 @@ describe('day-vacation', () => {
       ),
       'LEAN'
     );
+    // A seated beat that leans back is a sit (Keep path) — the LEAN lead perched it on a rail.
+    assert.equal(
+      daySuggestivePoseNeedsBodyUnlock(
+        'seated on a couch arm in evening wear, legs crossed high, leaning back on one hand'
+      ),
+      false
+    );
     assert.equal(
       suggestiveUnlockPoseClass(
         'DANCING alone on the patio — both arms raised overhead, one knee lifted'

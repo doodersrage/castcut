@@ -684,8 +684,10 @@ export function suggestiveUnlockPoseClass(beat: string | null | undefined): stri
     /\b(sit(?:ting|s)?\s+on|seated\s+on|reclining|lying\s+on|kneeling\s+(?:on|upright)|perched\s+on)\b/i.test(
       hay
     );
+  // "leaning back on one hand" from a seat is still a sit, not an upright lean — the LEAN
+  // face-break lead made Rapid AIO perch every such beat on a balcony rail.
   const uprightCue =
-    /\b(lean(?:ing|s)?|zip(?:ping|s|ped)?|unzip(?:ping|s|ped)?|twist(?:ing|s)?|look(?:ing)?\s+back|over\s+(?:an?\s+|the\s+)?shoulder|doorway|mid-stride|mid-step|danc(?:e|es|ing)|stretch(?:es|ing)?|hip\s+cocked|weight\s+on\s+one\s+hip|neckline|shop\s+window|three-quarter)\b/i.test(
+    /\b(lean(?:ing|s)?(?!\s+back)|zip(?:ping|s|ped)?|unzip(?:ping|s|ped)?|twist(?:ing|s)?|look(?:ing)?\s+back|over\s+(?:an?\s+|the\s+)?shoulder|doorway|mid-stride|mid-step|danc(?:e|es|ing)|stretch(?:es|ing)?|hip\s+cocked|weight\s+on\s+one\s+hip|neckline|shop\s+window|three-quarter)\b/i.test(
       hay
     );
   if (seatedLead && !uprightCue) return 'OTHER';
@@ -969,10 +971,12 @@ export function buildDayVacationClothedFaceBreakLeads(
       preamble:
         'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
         identityLock +
-        'Invent a FULL BODY lean from Image 3: weight into a doorway/rail/sill, hip cocked, asymmetric arms, three-quarter body angle — NEVER a square-on planted catalog stand with arms at her sides. CRITICAL: a fashion stand means the edit FAILED. ' +
+        // Name no surface here: "doorway/rail/sill … balcony rail" made Rapid AIO perch every
+        // lean beat on the same balcony balustrade. The beat names the surface.
+        'Invent a FULL BODY standing lean from Image 3: on her feet, weight into the wall or doorframe the beat names, hip cocked, asymmetric arms, three-quarter body angle — NEVER a square-on planted catalog stand with arms at her sides. CRITICAL: a fashion stand means the edit FAILED. ' +
         outfitFrom +
-        ' Follow the beat action and SETTING (doorway, balcony rail, lingerie/robe when written).',
-      image1: `Image 1 = face likeness only — invent FULL BODY leaning matching Image 3 (hip cocked into doorway/rail, asymmetric arms); never a planted fashion stand; ${outfitImage1}.`,
+        ' Follow the beat action and SETTING.',
+      image1: `Image 1 = face likeness only — invent FULL BODY standing lean matching Image 3 (hip cocked, asymmetric arms); never a planted fashion stand; ${outfitImage1}.`,
     };
   }
   if (cls === 'REACHING') {

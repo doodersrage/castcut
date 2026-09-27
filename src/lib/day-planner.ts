@@ -2796,7 +2796,13 @@ export function buildDaySlotPrompt(input: {
           ? `POSE FIRST: mandatory athletic body pose and sport action from the beat only (SETTING is venue/lighting only — do not invent café walks, grocery bags, soft pin-ups, or polite fashion-portrait stances from the scene): ${hints}`
           : dayMood === 'vacation'
             ? `POSE FIRST: ${vacationStanceDirective(vacationPoseClassFromBeat(hints))} Beat (SETTING is venue/lighting only — do not invent office, grocery, bookstore, hands-and-knees, or stiff square-on catalog stances from the scene): ${hints}`
-            : `POSE FIRST: ${everydayStanceDirective(dayEverydayPoseClass(hints))} Beat (SETTING is backdrop/lighting only — do not invent a different stance from the scene): ${hints}. Body-stance baseline only if the beat is vague: ${defaultPose}`
+            : `POSE FIRST: ${everydayStanceDirective(dayEverydayPoseClass(hints))} Beat (SETTING is backdrop/lighting only — do not invent a different stance from the scene): ${hints}${
+                // A beat with its own stance must not carry the slot baseline: Rapid AIO renders
+                // "mid-stride" as the baseline's "sitting in a diner booth".
+                dayEverydayPoseClass(hints) === 'STILL'
+                  ? `. Body-stance baseline only if the beat is vague: ${defaultPose}`
+                  : ''
+              }`
     : `mandatory new body pose: ${defaultPose}`;
   // Wall / couch / armchair / sink beats: no bed wording, or Rapid lays the pose on a mattress.
   const duoOffBed = isDayAdultMood(dayMood) && !soloSubject && intimateBeatIsOffBed(hints);

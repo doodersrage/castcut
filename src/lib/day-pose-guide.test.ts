@@ -683,6 +683,9 @@ describe('day-pose-guide', () => {
       await import('./day-pose-guide');
     assert.equal(parseSocialLayout('They hug in the rain.'), 'hug');
     assert.equal(parseSocialLayout('A slow dance under neon.'), 'dance');
+    assert.equal(parseSocialLayout('Stretching by the window, arms overhead.'), 'stretch');
+    // The stretch layout draws a standing reach; a lying stretch must fall through to lie.
+    assert.equal(parseSocialLayout('lying on the rug mid-stretch before the day starts'), null);
     assert.equal(parseSocialLayout('They waltz across the ballroom.'), 'dance');
     // Intimate chaise/alcove copy mentioning "ballroom" must not become a dance wireframe.
     assert.equal(
