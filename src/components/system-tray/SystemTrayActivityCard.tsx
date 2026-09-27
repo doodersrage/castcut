@@ -57,8 +57,11 @@ export function SystemTrayActivityCard({
 
   return (
     <div
+      data-testid="system-tray-card"
       className={`pointer-events-auto ui-tray-card overflow-hidden transition-[box-shadow] duration-200 ${
-        expanded ? 'ring-1 ring-[var(--accent-ring)]' : ''
+        expanded
+          ? 'ring-1 ring-[var(--accent-ring)]'
+          : 'max-md:w-fit max-md:max-w-full max-md:self-end'
       }`}
     >
       <div className="flex w-full items-stretch">
@@ -68,9 +71,9 @@ export function SystemTrayActivityCard({
           aria-controls={panelId}
           data-testid="system-tray-toggle"
           onClick={() => setExpanded(value => !value)}
-          className="flex min-w-0 flex-1 items-start gap-3 px-3.5 py-3 text-left transition hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]"
+          className="flex min-w-0 flex-1 items-start gap-3 px-3.5 py-3 text-left max-md:gap-2 max-md:py-2 transition hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]"
         >
-          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--accent-border)] bg-gradient-to-br from-[var(--accent-muted)] to-[var(--tint-info-bg)] text-[var(--accent-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center max-md:h-7 max-md:w-7 justify-center rounded-xl border border-[var(--accent-border)] bg-gradient-to-br from-[var(--accent-muted)] to-[var(--tint-info-bg)] text-[var(--accent-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
             {primary.kind === 'asset' ? (
               <UiIcon name="download" size={14} />
             ) : primary.kind === 'held' ? (
@@ -90,12 +93,20 @@ export function SystemTrayActivityCard({
                   {primaryTitle(primary)}
                 </p>
                 {subtitle ? (
-                  <p className="mt-0.5 truncate type-caption text-[var(--text-tertiary)]">
+                  <p
+                    className={`mt-0.5 truncate type-caption text-[var(--text-tertiary)] ${
+                      expanded ? '' : 'max-md:hidden'
+                    }`}
+                  >
                     {subtitle}
                   </p>
                 ) : null}
                 {downloadHint ? (
-                  <p className="mt-0.5 truncate type-caption text-[var(--tint-info-text)]/80">
+                  <p
+                    className={`mt-0.5 truncate type-caption text-[var(--tint-info-text)]/80 ${
+                      expanded ? '' : 'max-md:hidden'
+                    }`}
+                  >
                     {downloadHint}
                   </p>
                 ) : null}

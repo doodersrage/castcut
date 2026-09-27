@@ -1,6 +1,6 @@
-import type { AppToast } from '@/lib/app-toast';
+import type { SystemTrayMessageTone } from '@/lib/system-tray-messages';
 
-export type TrayNoticeTone = AppToast['tone'];
+export type TrayNoticeTone = SystemTrayMessageTone;
 
 export const NOTICE_TONE_CLASS: Record<TrayNoticeTone, string> = {
   neutral: 'border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-secondary)]',

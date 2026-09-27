@@ -9,6 +9,7 @@ import PlayContinueChip from '@/components/PlayContinueChip';
 import PlayFunnelStrip from '@/components/PlayFunnelStrip';
 import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
+import { useBottomDockRef } from '@/hooks/useBottomDockRef';
 import { featureForPath } from '@/lib/auth/features';
 import {
   MOBILE_STUDIO_PRIMARY_TAB_IDS,
@@ -33,6 +34,7 @@ function deskBridgeHref(): string {
 }
 
 export default function MobileStudioShell({ children }: { children: ReactNode }) {
+  const dockRef = useBottomDockRef<HTMLElement>();
   const pathname = usePathname() ?? '/m';
   const tab = mobileStudioTabFromPath(pathname);
   const accent = accentForPath(pathname);
@@ -115,6 +117,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
         {children}
       </main>
       <nav
+        ref={dockRef}
         aria-label="Film"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border-subtle)] bg-[var(--bg-muted)] pb-[env(safe-area-inset-bottom)]"
       >

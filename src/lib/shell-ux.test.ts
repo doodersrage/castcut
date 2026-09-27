@@ -6,8 +6,6 @@ import { isStudioTabId, studioTabHref, STUDIO_TABS, studioTabsForWorkspaceMode }
 import { loadUiDensity, saveUiDensity } from "./density-settings";
 import { loadWorkspaceMode, saveWorkspaceMode } from "./workspace-mode";
 import {
-  dismissAppToast,
-  getAppToasts,
   pushAppToast,
   rememberToastPreference,
   toastBulkQueueSummary,
@@ -149,9 +147,6 @@ describe("app toast", () => {
   beforeEach(() => {
     withMockLocalStorage(() => {
       rememberToastPreference(true);
-      while (getAppToasts().length) {
-        dismissAppToast(getAppToasts()[0]!.id);
-      }
       while (getSystemTrayMessages().length) {
         dismissSystemTrayMessage(getSystemTrayMessages()[0]!.id);
       }
@@ -163,9 +158,9 @@ describe("app toast", () => {
       rememberToastPreference(true);
       const id = pushAppToast({ text: "Queued", tone: "info", ttlMs: 0 });
       assert.ok(id);
-      assert.equal(getAppToasts()[0]?.text, "Queued");
-      dismissAppToast(id!);
-      assert.equal(getAppToasts().length, 0);
+      assert.equal(getSystemTrayMessages()[0]?.text, "Queued");
+      dismissSystemTrayMessage(id!);
+      assert.equal(getSystemTrayMessages().length, 0);
     });
   });
 
@@ -348,9 +343,6 @@ describe("mute toasts", () => {
     withMockLocalStorage(() => {
       resetBrowserStorageCache();
       rememberToastPreference(true);
-      while (getAppToasts().length) {
-        dismissAppToast(getAppToasts()[0]!.id);
-      }
       while (getSystemTrayMessages().length) {
         dismissSystemTrayMessage(getSystemTrayMessages()[0]!.id);
       }
@@ -361,7 +353,7 @@ describe("mute toasts", () => {
     withMockLocalStorage(() => {
       rememberToastPreference(false);
       assert.equal(pushAppToast({ text: "Should not show", ttlMs: 0 }), null);
-      assert.equal(getAppToasts().length, 0);
+      assert.equal(getSystemTrayMessages().length, 0);
       assert.equal(toastQueueOutcome({ ok: true, text: "Also hidden", ttlMs: 0 }), null);
       assert.equal(getSystemTrayMessages().length, 0);
       rememberToastPreference(true);

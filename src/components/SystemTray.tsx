@@ -1,19 +1,16 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-import {
-  APP_TOAST_EVENT,
-  dismissAppToast,
-  getAppToasts,
-  toastQueueOutcome,
-  type AppToast,
-} from '@/lib/app-toast';
+import { toastQueueOutcome } from '@/lib/app-toast';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import { RETRY_LAST_FAILED_QUEUE_EVENT, retryLastFailedQueue } from '@/lib/last-failed-queue';
-import { dismissSystemTrayMessage, type SystemTrayMessage } from '@/lib/system-tray-messages';
+import {
+  clearSystemTrayMessages,
+  dismissSystemTrayMessage,
+  type SystemTrayMessage,
+} from '@/lib/system-tray-messages';
 import { useSystemTrayState } from '@/hooks/useSystemTrayState';
 import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfy-asset-events';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { cancelComfyGalleryJob } from '@/lib/comfyui-queue-cancel';
 import { TrayNotice } from '@/components/system-tray/TrayNotice';
 import { SystemTrayActivityCard } from '@/components/system-tray/SystemTrayActivityCard';
@@ -22,7 +19,7 @@ export default function SystemTray() {
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
-  const [appToasts, setAppToasts] = useState<AppToast[]>([]);
+  const [showAllNotices, setShowAllNotices] = useState(false);
   const [cancellingGalleryIds, setCancellingGalleryIds] = useState<Set<string>>(() => new Set());
   const {
     activeGalleryJobs,
@@ -92,18 +89,6 @@ export default function SystemTray() {
   }, []);
 
   useEffect(() => {
-    scheduleAfterCommit(() => {
-      setAppToasts(getAppToasts());
-    });
-    const onAppToast = (event: Event) => {
-      const detail = (event as CustomEvent<AppToast[]>).detail;
-      setAppToasts(Array.isArray(detail) ? detail : getAppToasts());
-    };
-    window.addEventListener(APP_TOAST_EVENT, onAppToast);
-    return () => window.removeEventListener(APP_TOAST_EVENT, onAppToast);
-  }, []);
-
-  useEffect(() => {
     if (!expanded) {
       return;
     }
@@ -125,29 +110,28 @@ export default function SystemTray() {
     };
   }, [expanded]);
 
-  if (!hasActivity && trayMessages.length === 0 && appToasts.length === 0) {
+  if (!hasActivity && trayMessages.length === 0) {
     return null;
   }
 
+  // One notice at a time (newest first) with a count, not a stack of cards over the activity
+  // card; "+N more" opens the rest. Failures are sticky, so they surface once others fade.
+  const visibleNotices = showAllNotices ? trayMessages : trayMessages.slice(0, 1);
+  const hiddenNoticeCount = trayMessages.length - visibleNotices.length;
+
   const showActivityCard = hasActivity && primary;
 
+  // Floats just above whatever bar is pinned to the bottom (see useBottomDockRef) — the old
+  // fixed 5.5rem lift covered the mobile Queue button when a tool's bar grew, and the Play
+  // kiosk nav on desktop.
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none fixed bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))] right-4 z-[90] flex w-[min(24rem,calc(100vw-2rem))] flex-col ui-tray-stack md:bottom-4"
+      className="pointer-events-none fixed bottom-[calc(max(var(--bottom-dock-height,0px),env(safe-area-inset-bottom),0.25rem)+0.75rem)] right-4 z-[90] flex w-[min(24rem,calc(100vw-2rem))] flex-col ui-tray-stack transition-[bottom] duration-200"
       data-testid="system-tray"
       aria-live="polite"
     >
-      {appToasts.map(toast => (
-        <TrayNotice
-          key={toast.id}
-          text={toast.text}
-          tone={toast.tone}
-          href={toast.href}
-          onDismiss={() => dismissAppToast(toast.id)}
-        />
-      ))}
-      {trayMessages.map((message: SystemTrayMessage) => (
+      {visibleNotices.map((message: SystemTrayMessage, index) => (
         <TrayNotice
           key={message.id}
           text={message.text}
@@ -155,9 +139,28 @@ export default function SystemTray() {
           href={message.href}
           actionLabel={message.actionLabel}
           actionEvent={message.actionEvent}
-          onDismiss={() => dismissSystemTrayMessage(message.id)}
+          moreCount={index === 0 ? hiddenNoticeCount : 0}
+          onShowMore={() => setShowAllNotices(true)}
+          onDismiss={() => {
+            dismissSystemTrayMessage(message.id);
+            if (trayMessages.length <= 2) {
+              setShowAllNotices(false);
+            }
+          }}
         />
       ))}
+      {showAllNotices && trayMessages.length > 1 ? (
+        <button
+          type="button"
+          className="pointer-events-auto self-end type-caption text-[var(--text-muted)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          onClick={() => {
+            clearSystemTrayMessages();
+            setShowAllNotices(false);
+          }}
+        >
+          Clear all
+        </button>
+      ) : null}
 
       {showActivityCard ? (
         <SystemTrayActivityCard

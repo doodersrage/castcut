@@ -1,5 +1,14 @@
 import { readBrowserString, writeBrowserString } from './browser-storage';
 
+/**
+ * The one store for transient notices in the system tray. `app-toast.ts` is a set of
+ * convenience wrappers over it — there used to be a second, parallel toast store and the tray
+ * stacked both lists. The persistent inbox (`notification-center.ts`) also surfaces here.
+ *
+ * React reads it with `useSyncExternalStore(subscribeSystemTrayMessages,
+ * getSystemTrayMessagesSnapshot, …)`; the window event stays for non-React listeners.
+ */
+
 export type SystemTrayMessageTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
 export type SystemTrayMessage = {
@@ -11,6 +20,8 @@ export type SystemTrayMessage = {
   actionLabel?: string;
   /** CustomEvent / window name dispatched on action click. */
   actionEvent?: string;
+  /** No auto-dismiss — stays until the user closes it (failures). */
+  sticky?: boolean;
   at: number;
 };
 
@@ -18,14 +29,37 @@ export const SYSTEM_TRAY_MESSAGES_EVENT = 'system-tray-messages';
 
 const MAX_VISIBLE = 4;
 const DEFAULT_TTL_MS = 6500;
+const EMPTY: readonly SystemTrayMessage[] = Object.freeze([]);
 
-let messages: SystemTrayMessage[] = [];
+let messages: readonly SystemTrayMessage[] = EMPTY;
+const listeners = new Set<() => void>();
 
+/** A copy, newest first. */
 export function getSystemTrayMessages(): SystemTrayMessage[] {
   return [...messages];
 }
 
-function emit(): void {
+/** Stable reference until the list changes — for `useSyncExternalStore`. */
+export function getSystemTrayMessagesSnapshot(): readonly SystemTrayMessage[] {
+  return messages;
+}
+
+export function getSystemTrayMessagesServerSnapshot(): readonly SystemTrayMessage[] {
+  return EMPTY;
+}
+
+export function subscribeSystemTrayMessages(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function setMessages(next: readonly SystemTrayMessage[]): void {
+  messages = next.length === 0 ? EMPTY : next;
+  for (const listener of listeners) {
+    listener();
+  }
   if (typeof window === 'undefined') {
     return;
   }
@@ -40,6 +74,7 @@ export function pushSystemTrayMessage(input: {
   href?: string;
   actionLabel?: string;
   actionEvent?: string;
+  /** 0 = sticky until dismissed. */
   ttlMs?: number;
 }): string | null {
   const text = input.text.trim();
@@ -49,20 +84,23 @@ export function pushSystemTrayMessage(input: {
   if (!loadToastPreferenceEnabled()) {
     return null;
   }
+  const tone = input.tone ?? 'neutral';
+  const ttl = input.ttlMs ?? DEFAULT_TTL_MS;
   const id = crypto.randomUUID();
   const entry: SystemTrayMessage = {
     id,
     text,
-    tone: input.tone ?? 'neutral',
+    tone,
     href: input.href,
     ...(input.actionLabel?.trim() && input.actionEvent?.trim()
       ? { actionLabel: input.actionLabel.trim(), actionEvent: input.actionEvent.trim() }
       : {}),
+    ...(ttl <= 0 ? { sticky: true } : {}),
     at: Date.now(),
   };
-  messages = [entry, ...messages].slice(0, MAX_VISIBLE);
-  emit();
-  const ttl = input.ttlMs ?? DEFAULT_TTL_MS;
+  // The same notice again (a retry loop failing the same way) replaces the old one.
+  const rest = messages.filter(message => message.text !== text || message.tone !== tone);
+  setMessages([entry, ...rest].slice(0, MAX_VISIBLE));
   if (ttl > 0) {
     window.setTimeout(() => {
       dismissSystemTrayMessage(id);
@@ -72,10 +110,9 @@ export function pushSystemTrayMessage(input: {
 }
 
 export function dismissSystemTrayMessage(id: string): void {
-  const before = messages.length;
-  messages = messages.filter(message => message.id !== id);
-  if (messages.length !== before) {
-    emit();
+  const next = messages.filter(message => message.id !== id);
+  if (next.length !== messages.length) {
+    setMessages(next);
   }
 }
 
@@ -83,8 +120,7 @@ export function clearSystemTrayMessages(): void {
   if (messages.length === 0) {
     return;
   }
-  messages = [];
-  emit();
+  setMessages(EMPTY);
 }
 
 export function rememberToastPreference(enabled: boolean): void {

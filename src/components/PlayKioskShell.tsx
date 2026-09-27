@@ -8,6 +8,7 @@ import ConnectionHealthChip from '@/components/ConnectionHealthChip';
 import ReportBugLink from '@/components/ReportBugLink';
 import PlayContinueChip from '@/components/PlayContinueChip';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
+import { useBottomDockRef } from '@/hooks/useBottomDockRef';
 import { featureForPath } from '@/lib/auth/features';
 import { APP_NAV_PROFILE_LINK, APP_NAV_SETTINGS_LINK } from '@/lib/app-nav-catalog';
 import { ROLEPLAY_FOCUS_ESCAPE_HREF } from '@/lib/workspace-mode';
@@ -73,6 +74,7 @@ function gridColsClass(count: number): string {
 }
 
 export default function PlayKioskShell() {
+  const dockRef = useBottomDockRef<HTMLElement>();
   const pathname = usePathname() ?? '/play';
   const galleryHref = galleryNavHref('/gallery');
   const accent = accentForPath(pathname);
@@ -198,6 +200,7 @@ export default function PlayKioskShell() {
         </div>
       </header>
       <nav
+        ref={dockRef}
         aria-label="Film"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--bg-base)_92%,transparent)] pb-[env(safe-area-inset-bottom)] backdrop-blur-md"
       >

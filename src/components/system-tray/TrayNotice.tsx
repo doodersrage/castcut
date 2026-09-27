@@ -13,6 +13,8 @@ export function TrayNotice({
   href,
   actionLabel,
   actionEvent,
+  moreCount = 0,
+  onShowMore,
   onDismiss,
 }: {
   text: string;
@@ -20,6 +22,9 @@ export function TrayNotice({
   href?: string;
   actionLabel?: string;
   actionEvent?: string;
+  /** Older notices hidden behind this one. */
+  moreCount?: number;
+  onShowMore?: () => void;
   onDismiss: () => void;
 }) {
   const hrefLabel = href && !href.startsWith('http') ? resolveQueueFailureGuideLabel(href) : 'Open';
@@ -29,6 +34,17 @@ export function TrayNotice({
       <div className="flex items-start gap-3">
         <p className="type-caption min-w-0 flex-1 leading-relaxed">{text}</p>
         <div className="flex shrink-0 items-center gap-2">
+          {moreCount > 0 && onShowMore ? (
+            <button
+              type="button"
+              data-testid="system-tray-more-notices"
+              aria-label={`Show ${moreCount} more notice${moreCount === 1 ? '' : 's'}`}
+              className="rounded-full border border-[var(--border-subtle)] px-1.5 text-[10px] font-medium tabular-nums text-[var(--text-muted)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              onClick={onShowMore}
+            >
+              +{moreCount}
+            </button>
+          ) : null}
           {href?.startsWith('http') ? (
             <a
               href={href}

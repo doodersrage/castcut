@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useBottomDockRef } from '@/hooks/useBottomDockRef';
 
 type MobileStickyQueueBarProps = {
   disabled?: boolean;
@@ -21,8 +22,9 @@ export default function MobileStickyQueueBar({
   children,
   primaryGenerate = false,
 }: MobileStickyQueueBarProps) {
+  const dockRef = useBottomDockRef<HTMLDivElement>();
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 md:hidden">
+    <div ref={dockRef} className="pointer-events-none fixed inset-x-0 bottom-0 z-40 md:hidden">
       <div className="pointer-events-auto ui-mobile-dock px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
         {children}
         <div className="flex items-center gap-3">

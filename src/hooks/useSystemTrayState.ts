@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   loadComfyGallery,
@@ -12,8 +12,9 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { summarizePoolQueueDepth } from '@/lib/comfyui-host-ready';
 import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfy-asset-events';
 import {
-  getSystemTrayMessages,
-  SYSTEM_TRAY_MESSAGES_EVENT,
+  getSystemTrayMessagesServerSnapshot,
+  getSystemTrayMessagesSnapshot,
+  subscribeSystemTrayMessages,
   type SystemTrayMessage,
 } from '@/lib/system-tray-messages';
 import {
@@ -49,7 +50,7 @@ export type SystemTrayState = {
   primary: SystemTrayPrimary | null;
   totalActiveCount: number;
   hasActivity: boolean;
-  trayMessages: SystemTrayMessage[];
+  trayMessages: readonly SystemTrayMessage[];
   refresh: () => void;
 };
 
@@ -125,7 +126,11 @@ export function useSystemTrayState(options?: { pollAssets?: boolean }): SystemTr
   const [heldJobs, setHeldJobs] = useState<HeldMaxJob[]>([]);
   const [assetJobs, setAssetJobs] = useState<SystemTrayAssetJob[]>([]);
   const [queueHealth, setQueueHealth] = useState<SystemTrayQueueHealth | null>(null);
-  const [trayMessages, setTrayMessages] = useState<SystemTrayMessage[]>([]);
+  const trayMessages = useSyncExternalStore(
+    subscribeSystemTrayMessages,
+    getSystemTrayMessagesSnapshot,
+    getSystemTrayMessagesServerSnapshot
+  );
 
   const refreshGallery = useCallback(() => {
     setGalleryEntries(loadComfyGallery());
@@ -203,49 +208,56 @@ export function useSystemTrayState(options?: { pollAssets?: boolean }): SystemTr
     }
   }, [pollAssets]);
 
-  const assetPollMs = assetJobs.length > 0 ? 2000 : 8000;
-
-  const refreshMessages = useCallback(() => {
-    setTrayMessages(getSystemTrayMessages());
-  }, []);
+  const downloading = assetJobs.length > 0;
 
   const refresh = useCallback(() => {
     refreshGallery();
     refreshHeld();
     void refreshHealth();
     void refreshAssets();
-    refreshMessages();
-  }, [refreshAssets, refreshGallery, refreshHeld, refreshHealth, refreshMessages]);
+  }, [refreshAssets, refreshGallery, refreshHeld, refreshHealth]);
 
+  // Event-driven: every gallery write fires COMFYUI_GALLERY_UPDATED_EVENT (live progress lands
+  // there from the ComfyUI stream every ~250ms), and every in-app download start fires the asset
+  // event. The 4s gallery re-read and the always-on 8s asset poll ran on every page while idle.
   useEffect(() => {
     scheduleAfterCommit(refresh);
 
     const onGallery = () => refreshGallery();
     const onHeld = () => refreshHeld();
     const onAssets = () => void refreshAssets();
-    const onTrayMessages = () => refreshMessages();
+    // Downloads started outside this tab show up when you come back to it.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshAssets();
+      }
+    };
 
     window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, onGallery);
     window.addEventListener(HELD_MAX_UPDATED_EVENT, onHeld);
     window.addEventListener(COMFY_ASSET_JOBS_UPDATED_EVENT, onAssets);
-    window.addEventListener(SYSTEM_TRAY_MESSAGES_EVENT, onTrayMessages);
     window.addEventListener('storage', onHeld);
-
-    const galleryInterval = window.setInterval(refreshGallery, 4000);
-    const assetInterval = window.setInterval(() => {
-      void refreshAssets();
-    }, assetPollMs);
+    document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, onGallery);
       window.removeEventListener(HELD_MAX_UPDATED_EVENT, onHeld);
       window.removeEventListener(COMFY_ASSET_JOBS_UPDATED_EVENT, onAssets);
-      window.removeEventListener(SYSTEM_TRAY_MESSAGES_EVENT, onTrayMessages);
       window.removeEventListener('storage', onHeld);
-      window.clearInterval(galleryInterval);
-      window.clearInterval(assetInterval);
+      document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [assetPollMs, refresh, refreshAssets, refreshGallery, refreshHeld, refreshMessages]);
+  }, [refresh, refreshAssets, refreshGallery, refreshHeld]);
+
+  // Download progress has no push channel — poll only while one is running.
+  useEffect(() => {
+    if (!downloading) {
+      return;
+    }
+    const interval = window.setInterval(() => {
+      void refreshAssets();
+    }, 2000);
+    return () => window.clearInterval(interval);
+  }, [downloading, refreshAssets]);
 
   // Passive 20s health tick, shared with the other pollers (see shared-health-poll.ts) — this
   // used to be its own window.setInterval inside the effect above.

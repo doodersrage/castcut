@@ -1,5 +1,7 @@
 'use client';
 
+import { useBottomDockRef } from '@/hooks/useBottomDockRef';
+
 type GalleryReviewTouchBarProps = {
   onRate: (rating: 1 | 2 | 3 | 4 | 5) => void;
   onFavorite: () => void;
@@ -13,6 +15,7 @@ export default function GalleryReviewTouchBar({
   onNext,
   onPrev,
 }: GalleryReviewTouchBarProps) {
+  const dockRef = useBottomDockRef<HTMLDivElement>();
   const ratingColors = [
     'border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)] text-[var(--tint-danger-text)] hover:brightness-110',
     'border-orange-600/50 bg-orange-900/18 text-orange-400 hover:bg-orange-500/35 hover:border-orange-500/75',
@@ -22,7 +25,10 @@ export default function GalleryReviewTouchBar({
   ];
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--border-subtle)]/80 bg-[var(--bg-elevated)] px-3 py-3 lg:hidden">
+    <div
+      ref={dockRef}
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--border-subtle)]/80 bg-[var(--bg-elevated)] px-3 py-3 lg:hidden"
+    >
       <div className="mx-auto flex max-w-lg items-center justify-between gap-2">
         <button
           type="button"

@@ -2,68 +2,25 @@ import {
   loadToastPreferenceEnabled,
   pushSystemTrayMessage,
   rememberToastPreference,
+  type SystemTrayMessageTone,
 } from './system-tray-messages';
 
 export { loadToastPreferenceEnabled, rememberToastPreference };
 
-export type AppToastTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+/**
+ * Convenience wrappers over the tray's notice store (`system-tray-messages.ts`). This file used
+ * to keep its own parallel toast list, and the tray stacked both.
+ */
+export type AppToastTone = SystemTrayMessageTone;
 
-export type AppToast = {
-  id: string;
-  text: string;
-  tone: AppToastTone;
-  href?: string;
-  at: number;
-};
-
-export const APP_TOAST_EVENT = 'app-toast';
-
-const MAX_VISIBLE = 4;
-const DEFAULT_TTL_MS = 6500;
-
-let toasts: AppToast[] = [];
-
-export function getAppToasts(): AppToast[] {
-  return [...toasts];
-}
-
-function emit(): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  window.dispatchEvent(new CustomEvent(APP_TOAST_EVENT, { detail: getAppToasts() }));
-}
-
+/** A plain notice in the system tray (fades after `ttlMs`; 0 = stays until dismissed). */
 export function pushAppToast(input: {
   text: string;
   tone?: AppToastTone;
   href?: string;
   ttlMs?: number;
 }): string | null {
-  const text = input.text.trim();
-  if (!text || typeof window === 'undefined') {
-    return null;
-  }
-  if (!loadToastPreferenceEnabled()) {
-    return null;
-  }
-  const id = crypto.randomUUID();
-  const entry: AppToast = {
-    id,
-    text,
-    tone: input.tone ?? 'neutral',
-    href: input.href,
-    at: Date.now(),
-  };
-  toasts = [entry, ...toasts].slice(0, MAX_VISIBLE);
-  emit();
-  const ttl = input.ttlMs ?? DEFAULT_TTL_MS;
-  if (ttl > 0) {
-    window.setTimeout(() => {
-      dismissAppToast(id);
-    }, ttl);
-  }
-  return id;
+  return pushSystemTrayMessage(input);
 }
 
 /** Convenience for Comfy queue / requeue outcomes — shown in the system tray. */
@@ -81,7 +38,8 @@ export function toastQueueOutcome(input: {
     href: input.href ?? (input.ok ? '/gallery' : '/queue'),
     actionLabel: input.actionLabel,
     actionEvent: input.actionEvent,
-    ttlMs: input.ttlMs ?? (input.ok ? 5000 : 9000),
+    // Failures stay until dismissed — a 9s fade hid the Retry button before people saw it.
+    ttlMs: input.ttlMs ?? (input.ok ? 5000 : 0),
   });
 }
 
@@ -117,20 +75,4 @@ export function toastBulkQueueSummary(input: {
     });
   }
   return toastQueueOutcome({ ok: true, text, href: '/queue' });
-}
-
-export function dismissAppToast(id: string): void {
-  const before = toasts.length;
-  toasts = toasts.filter(toast => toast.id !== id);
-  if (toasts.length !== before) {
-    emit();
-  }
-}
-
-export function clearAppToasts(): void {
-  if (toasts.length === 0) {
-    return;
-  }
-  toasts = [];
-  emit();
 }
