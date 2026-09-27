@@ -887,6 +887,32 @@ export function buildDayVacationClothedFaceBreakLeads(
   poseClass: string | null | undefined,
   platePath: 'keep' | 'cast',
   mood?: string | null,
+  options?: {
+    garmentDescription?: string | null;
+    hasOutfitImage?: boolean;
+    /** The slot's SETTING — named in the lead, where Rapid actually reads it. */
+    setting?: string | null;
+  }
+): { preamble: string; image1: string } {
+  const leads = clothedFaceBreakLeadsFor(poseClass, platePath, mood, options);
+  const setting = options?.setting?.trim().replace(/[.\s]+$/, '');
+  if (!setting) {
+    return leads;
+  }
+  // Rapid AIO ignores the SETTING line deep in a ~7k-char brief: stills fell back to
+  // the lead's own props (a plaza beat rendered on a beach) or a studio void once those
+  // were removed. Naming the place in the lead put her in the plaza / on the balcony 4/4.
+  const scene = ` SCENE: she is in the ${setting} — show that place around her.`;
+  return {
+    ...leads,
+    preamble: leads.preamble.replace(/ Follow the beat action and SETTING(?: \([^)]*\))?\./, scene),
+  };
+}
+
+function clothedFaceBreakLeadsFor(
+  poseClass: string | null | undefined,
+  platePath: 'keep' | 'cast',
+  mood?: string | null,
   options?: { garmentDescription?: string | null; hasOutfitImage?: boolean }
 ): { preamble: string; image1: string } {
   const cls = (poseClass ?? '').toUpperCase();
@@ -1052,7 +1078,7 @@ export function buildDayVacationClothedFaceBreakLeads(
       identityLock +
       'Invent the full body pose from Image 3 and the beat. CRITICAL: Image 1 has no standing body — do not invent a square-on fashion stand with arms at her sides. ' +
       outfitFrom +
-      ' BACKGROUND CRITICAL: invent the full SETTING venue behind her (depth, props, lighting) — blank white or a missing background means the edit FAILED. Aggressively match Image 3 stance and the SETTING backdrop.',
+      ' Follow the beat action and SETTING. BACKGROUND CRITICAL: invent the full SETTING venue behind her (depth, props, lighting) — blank white or a missing background means the edit FAILED. Aggressively match Image 3 stance and the SETTING backdrop.',
     image1: `Image 1 = face likeness only (cropped head/shoulders) — invent full body matching Image 3 plus the SETTING venue behind her; never a white void or standing fashion plate; ${outfitImage1}.`,
   };
 }

@@ -93,7 +93,6 @@ import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day-nude-face-cro
 import {
   resolveDayVacationFaceBreakPlate,
   resolveDayVacationIdentityVlPlate,
-  uploadDayOutfitVlPlate,
 } from '@/lib/day-vacation-face-crop';
 import {
   dayClothedHeatPoseNeedsBodyUnlock,
@@ -774,46 +773,23 @@ export function useDayPlannerToolOrchestrationCore() {
         // Face-break: clothing-only packshot Image 2 is OK (no standing body silhouette),
         // including a Fitting Room packshot picked as the custom garment. Full-body Keep /
         // BYO worn stills teach studio voids — dress from garment text.
+        // The packshot keeps its own name so it gets a ReferenceLatent like the Keep path:
+        // as a VL-only `day-outfit-vl` Image 2, Rapid kept the print but invented the cut
+        // (live: exact collar/sleeves/tiers 12/12 with the latent, poses still held).
         const byoOrPackGarment = resolveDayGarmentReinforce({
           plateSource: plate?.source,
           packshotUrl,
           customGarmentUrl: toolSettings.customGarmentImageUrl,
           customGarmentFilename: toolSettings.customGarmentImageFilename,
         });
-        const clothingOnlyGarment = isClothingOnlyDayGarment(byoOrPackGarment);
-        let garmentReinforce =
+        const garmentReinforce =
           omitGarment || replaceKeepOutfit
             ? null
             : vacationFaceBreak
-              ? clothingOnlyGarment
+              ? isClothingOnlyDayGarment(byoOrPackGarment)
                 ? byoOrPackGarment
                 : null
               : byoOrPackGarment;
-        if (
-          !omitGarment &&
-          !replaceKeepOutfit &&
-          vacationFaceBreak &&
-          byoOrPackGarment &&
-          clothingOnlyGarment &&
-          (byoOrPackGarment.imageUrl || byoOrPackGarment.imageFilename)
-        ) {
-          // Re-upload as VL Image 2 without gray full-body cutout (already clothing-only).
-          const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
-          const byoVl = await uploadDayOutfitVlPlate({
-            imageUrl: byoOrPackGarment.imageUrl,
-            filename: byoOrPackGarment.imageFilename,
-            model: shared.model,
-            comfyUrl,
-            neutralBackdrop: false,
-          });
-          if (byoVl?.filename) {
-            garmentReinforce = {
-              imageUrl: byoVl.imageUrl?.trim() || undefined,
-              imageFilename: byoVl.filename,
-              source: byoOrPackGarment.source,
-            };
-          }
-        }
 
         // Image 3: mannequin pose guide from Beat (Keep / Cast stay Image 1).
         // Heat moods: beat only — Setting location text must not rewrite Image 3 stance.

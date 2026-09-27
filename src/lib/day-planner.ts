@@ -3120,6 +3120,7 @@ export function buildDaySlotPrompt(input: {
             {
               garmentDescription,
               hasOutfitImage: Boolean(garmentReinforce),
+              setting,
             }
           )
         : null;
@@ -3251,6 +3252,7 @@ export function buildDaySlotPrompt(input: {
           {
             garmentDescription,
             hasOutfitImage: Boolean(garmentReinforce),
+            setting,
           }
         )
       : null;

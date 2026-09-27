@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  buildDayVacationClothedFaceBreakLeads,
   DAY_SLOT_VACATION_ACTIVITIES,
   DAY_SLOT_VACATION_BEAT_PRESETS,
   DAY_SLOT_VACATION_SETTING_PRESETS,
@@ -287,6 +288,28 @@ describe('day-vacation', () => {
         { poseStickyModel: true }
       ),
       true
+    );
+  });
+
+  it('names the slot SETTING in the face-break lead instead of generic venue props', () => {
+    const leads = buildDayVacationClothedFaceBreakLeads('MID-STRIDE', 'cast', 'vacation', {
+      hasOutfitImage: true,
+      setting: 'old-town plaza at golden hour with a fountain.',
+    });
+    assert.match(
+      leads.preamble,
+      /SCENE: she is in the old-town plaza at golden hour with a fountain — show that place around her\./
+    );
+    assert.doesNotMatch(leads.preamble, /sand\/shells/);
+    const generic = buildDayVacationClothedFaceBreakLeads('OTHER', 'cast', 'suggestive', {
+      setting: 'hotel balcony over the sea at dusk',
+    });
+    assert.match(generic.preamble, /SCENE: she is in the hotel balcony over the sea at dusk/);
+    assert.match(generic.preamble, /BACKGROUND CRITICAL/);
+    // No setting: the old lead stays as it was.
+    assert.match(
+      buildDayVacationClothedFaceBreakLeads('MID-STRIDE', 'cast', 'vacation').preamble,
+      /Follow the beat action and SETTING/
     );
   });
 });
