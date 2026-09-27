@@ -28,7 +28,10 @@ import {
   storyStillRetryQueueParamsBase,
   roleplayStillBrief,
   withRoleplayPoseGuidePrompt,
+  withStoryEverydayWardrobe,
+  isRoleplayAdultContent,
   type RoleplayBio,
+  type RoleplayContentId,
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import type { RoleplayBeatOutput } from '@/lib/roleplay-film';
@@ -88,6 +91,8 @@ export type UseRoleplayBeatQueueOptions = {
   referenceImageFilename: string;
   autoQueue: boolean;
   beatOutput: RoleplayBeatOutput;
+  /** Resolved Story rating — only adult ratings get sex pose layouts, locks and recipes. */
+  content: RoleplayContentId;
   setError: (message: string | null) => void;
 };
 
@@ -104,8 +109,23 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     referenceImageFilename,
     autoQueue,
     beatOutput,
+    content,
     setError,
   } = options;
+  // Clean / PG-13 / Suggestive: "leans against a brick wall" must not become a wall-sex duo.
+  const adult = isRoleplayAdultContent(content);
+  const hasOutfitImage = Boolean(
+    toolSettings.wardrobeId ||
+    shared.lockedWardrobeId ||
+    toolSettings.customGarmentImageFilename ||
+    toolSettings.customGarmentImageUrl
+  );
+  /** Clean-rated still with no outfit image: name everyday clothes when the writer named none. */
+  const dressForRating = useCallback(
+    (prompt: string, headcount?: number) =>
+      adult || hasOutfitImage ? prompt : withStoryEverydayWardrobe(prompt, headcount),
+    [adult, hasOutfitImage]
+  );
 
   const stampRoleplayCharacter = useCallback(
     (cache?: Partial<RoleplayToolCache>) => {
@@ -140,6 +160,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       const identityStrength = storyIdentityLockStrengthForBeat(shared.ipAdapterStrength ?? 0.75, {
         beat: options?.beat,
         hasPoseGuide: options?.hasPoseGuide,
+        adult,
       });
       if (!character) {
         return queueParamsBase ? { queueParamsBase } : {};
@@ -152,6 +173,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         beat: options?.beat,
         hasPoseGuide: options?.hasPoseGuide,
         sessionActiveLoraIds: castLoras ?? shared.sessionActiveLoraIds,
+        adult,
       });
       return {
         characterId: character.id,
@@ -161,13 +183,18 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         ...(snofsOverrides ? { sessionLoraStrengthOverrides: snofsOverrides } : {}),
       };
     },
-    [shared.ipAdapterStrength, shared.sessionActiveLoraIds, stampRoleplayCharacter]
+    [adult, shared.ipAdapterStrength, shared.sessionActiveLoraIds, stampRoleplayCharacter]
   );
 
-  /** Nude beats (garment dropped): face-only Image 1, as Day Intimate/Raunchy do. */
+  /**
+   * Face-only Image 1, as Day Intimate/Raunchy do: nude beats (garment dropped), and clean-rated
+   * stills with no outfit image — the Cast plate is underwear, and Rapid kept it on a PG-13 hug
+   * however the prompt dressed her (live 2026-09-27; the face crop dressed both seeds).
+   */
   const resolveNudeFaceForBeat = useCallback(
     async (beat: RoleplayStoryBeat): Promise<string | null> => {
-      if (playAs !== 'photo' || !storyBeatOmitsGarmentPackshot(beat)) {
+      const needsFaceOnly = adult ? storyBeatOmitsGarmentPackshot(beat, adult) : !hasOutfitImage;
+      if (playAs !== 'photo' || !needsFaceOnly) {
         return null;
       }
       return resolveStoryNudeFaceFilename({
@@ -178,7 +205,15 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
       }).catch(() => null);
     },
-    [playAs, referenceImageFilename, referenceImageUrl, shared.model, stampRoleplayCharacter]
+    [
+      adult,
+      hasOutfitImage,
+      playAs,
+      referenceImageFilename,
+      referenceImageUrl,
+      shared.model,
+      stampRoleplayCharacter,
+    ]
   );
 
   /**
@@ -191,6 +226,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       stillOpts: ReturnType<typeof buildRoleplayQueueStillOptions>,
       extra?: string
     ) => {
+      if (!adult) {
+        return null;
+      }
       const recipe = buildStoryRapidDuoRecipe({
         model: stillOpts?.queueModel ?? shared.model,
         title: beat.title,
@@ -205,7 +243,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       });
       return recipe && extra?.trim() ? `${recipe} ${extra.trim()}` : recipe;
     },
-    [shared.model]
+    [adult, shared.model]
   );
 
   const queueStillOptions = useCallback(
@@ -228,6 +266,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         identityLockStrength: storyIdentityLockStrengthForBeat(shared.ipAdapterStrength, {
           beat,
           hasPoseGuide: Boolean(poseGuide?.filename || poseGuide?.imageUrl),
+          adult,
         }),
         identityKind: shared.identityKind,
         wardrobeId: toolSettings.wardrobeId || shared.lockedWardrobeId,
@@ -236,10 +275,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         poseGuideFilename: poseGuide?.filename,
         poseGuideUrl: poseGuide?.imageUrl,
         poseGuideStyle: poseGuide?.prompt?.style,
-        omitGarment: storyBeatOmitsGarmentPackshot(beat),
+        omitGarment: storyBeatOmitsGarmentPackshot(beat, adult),
         model: shared.model,
       }),
     [
+      adult,
       isolateSubject,
       playAs,
       referenceImageFilename,
@@ -296,6 +336,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           ...(beat.poseLook ? { look: beat.poseLook } : {}),
           aspect,
           library: openPose ? loadPoseLibrary() : [],
+          allowIntimate: adult,
         });
         const poseFile = poseBuild.file;
         // The pose lock reads ComfyUI's ControlNet list from the object_info cache — fill it.
@@ -357,7 +398,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         return undefined;
       }
     },
-    [playAs, referenceImageFilename, referenceImageUrl, shared.model, storyRef]
+    [adult, playAs, referenceImageFilename, referenceImageUrl, shared.model, storyRef]
   );
 
   const skipStillForClip = beatOutput === 'clip' && autoQueue;
@@ -380,14 +421,16 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         llmPrompt: data.prompt,
         blurb: beat.blurb,
         title: beat.title,
+        adult,
       });
       const promptWithPose = [
         withRoleplayPoseGuidePrompt(
-          promptSource,
+          dressForRating(promptSource, poseGuide?.prompt.headcount),
           Boolean(poseGuide) || (!queueStill && playAs === 'photo'),
           shared.renderRealismMode,
           shared.model,
-          poseGuide?.prompt ?? { style: loadPoseGuideStylePreference() }
+          poseGuide?.prompt ?? { style: loadPoseGuideStylePreference() },
+          adult
         ),
         poseGuide?.cueLine ?? '',
       ]
@@ -457,6 +500,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     },
     [
       actions,
+      adult,
+      dressForRating,
       resolveNudeFaceForBeat,
       storyRapidDuoRecipeFor,
       autoQueue,
@@ -518,14 +563,16 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           llmPrompt: prompt,
           blurb: latest.blurb,
           title: latest.title,
+          adult,
         });
         const queuePrompt = [
           withRoleplayPoseGuidePrompt(
-            promptSource,
+            dressForRating(promptSource, poseGuide?.prompt.headcount),
             Boolean(poseGuide),
             shared.renderRealismMode,
             shared.model,
-            poseGuide?.prompt
+            poseGuide?.prompt,
+            adult
           ),
           poseGuide?.cueLine ?? '',
           afterPoseMiss && poseGuide
@@ -599,12 +646,15 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     },
     [
       actions,
+      adult,
+      dressForRating,
       resolveNudeFaceForBeat,
       storyRapidDuoRecipeFor,
       queueStillOptions,
       resolvePoseGuideForBeat,
       roleplayCharacterQueueFields,
       setError,
+      shared.model,
       shared.renderRealismMode,
       storyRef,
       updateToolSettings,

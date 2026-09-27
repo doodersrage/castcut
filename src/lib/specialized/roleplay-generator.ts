@@ -546,7 +546,11 @@ export async function generateRoleplayPrompt(
     phase: 'prompt',
   });
 
-  const clarifiedBlurb = clarifyIntimateImageLanguage(situation.blurb);
+  // Sex rewrites/locks are for adult ratings only — a Clean "leans against a brick wall" beat
+  // must not pick up a wall-sex recipe.
+  const adult = isRoleplayAdultContent(content);
+  const clarifiedBlurb = adult ? clarifyIntimateImageLanguage(situation.blurb) : situation.blurb;
+  const adultStill = (prompt: string) => (adult ? reinforceIntimateStillPrompt(prompt) : prompt);
   return runSpecializedPrompt({
     model: options.model,
     detail: options.detail,
@@ -602,7 +606,7 @@ ${
     llmProvider: options.llm?.llmProvider,
     llmApiKey: options.llm?.llmApiKey,
     templateFallback: () =>
-      reinforceIntimateStillPrompt(
+      adultStill(
         templatePromptFallback(
           lookLock,
           clarifiedBlurb,
@@ -613,7 +617,7 @@ ${
           hasReferenceImage
         )
       ),
-    postProcessPrompt: reinforceIntimateStillPrompt,
+    postProcessPrompt: adultStill,
     metadata: {
       tool: 'roleplay',
       personaId: options.personaId ?? null,

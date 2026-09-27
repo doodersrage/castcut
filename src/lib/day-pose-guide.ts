@@ -651,6 +651,14 @@ export function countPoseGuidePeople(text: string | null | undefined): number {
   if (/\band (?:another|a second|someone else)\b/i.test(haystack)) {
     return 2;
   }
+  // "She and her date lean in for a kiss" — but "her boyfriend's shirt" is wardrobe, not a person.
+  if (
+    /\b(?:her|his|their)\s+(?:date|boyfriend|girlfriend|husband|wife|fianc[eé]e?|best\s+friend|crush)\b(?!['’]s)/i.test(
+      haystack
+    )
+  ) {
+    return 2;
+  }
   return 1;
 }
 
@@ -1423,7 +1431,7 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
     return 'foot_up';
   }
   if (
-    /\b(bend(?:s|ing)?\s+(?:down|over|to\s+pick)|pick(?:s|ing)?\s+up\s+|scoop(?:s|ing)?\s+up|reach(?:es|ing)?\s+down\s+for|stoop(?:s|ing)?)\b/i.test(
+    /\b(bend(?:s|ing)?\s+(?:down|over|to\s+pick)|pick(?:s|ing)?\s+up\s+|scoop(?:s|ing)?\s+up|reach(?:es|ing)?\s+down\s+for|stoop(?:s|ed)?\s+(?:down|over|to)|stooping)\b/i.test(
       haystack
     )
   ) {
@@ -1529,17 +1537,20 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
  */
 function posturalBaseFromScene(haystack: string): PoseGuideBase | null {
   if (
-    /\b(lie|lying|sprawl(?:ed|ing)?|reclin(?:e|es|ed|ing)|flat\s+on\s+(?:the|her|his)\s+(?:bed|floor|back))\b/i.test(
+    /\b(lie|lies|lying|laid|supine|sprawl(?:ed|ing)?|reclin(?:e|es|ed|ing)|flat\s+on\s+(?:the|her|his)\s+(?:bed|floor|back)|on\s+(?:her|his|their)\s+back\s+(?:on|in|across|atop))\b/i.test(
       haystack
     )
   ) {
     return 'lie';
   }
-  if (/\b(kneel(?:s|ing)?|on\s+(?:one\s+)?knee)\b/i.test(haystack)) {
+  if (/\b(kneel(?:s|ing)?|knelt|on\s+(?:one\s+)?knee)\b/i.test(haystack)) {
     return 'kneel';
   }
   if (
-    /\b(crouch(?:es|ing)?|squat(?:s|ting)?|hunker(?:ed|ing)?|stoop(?:s|ing)?)\b/i.test(haystack)
+    // "the front stoop" is a step, not a stance — only the verb crouches.
+    /\b(crouch(?:es|ing)?|squat(?:s|ting)?|hunker(?:ed|ing)?|stooping|stoop(?:s|ed)?\s+(?:down|over|to))\b/i.test(
+      haystack
+    )
   ) {
     return 'crouch';
   }
@@ -1969,7 +1980,9 @@ export function parsePoseGuideIntent(
     // Vacation pose-class lead already forced base/arms — skip keyword overrides
     // (e.g. REACHING … "jog" must not become walk).
   } else if (
-    /\b(lie|lying|sprawl(?:ed|ing|s)?|prone|on\s+the\s+(?:floor|ground|bed))\b/i.test(haystack)
+    /\b(lie|lies|lying|laid|sprawl(?:ed|ing|s)?|prone|on\s+the\s+(?:floor|ground|bed)|(?:flat\s+)?on\s+(?:her|his|their)\s+back\s+(?:on|in|across|atop))\b/i.test(
+      haystack
+    )
   ) {
     base = 'lie';
     stride = 0.55;
@@ -1999,7 +2012,7 @@ export function parsePoseGuideIntent(
     armLeft = 'out';
     armRight = 'out';
     matched = true;
-  } else if (/\b(kneel(?:ing)?|on\s+(?:one\s+)?knee|propose|proposal)\b/i.test(haystack)) {
+  } else if (/\b(kneel(?:s|ing)?|knelt|on\s+(?:one\s+)?knee|propose|proposal)\b/i.test(haystack)) {
     base = 'kneel';
     stride = 0.35;
     matched = true;
@@ -2008,7 +2021,7 @@ export function parsePoseGuideIntent(
     stride = 0.4;
     matched = true;
   } else if (
-    /\b(sit(?:ting|s)?|seated|couch|sofa|chair|bench|perch(?:ed|ing)?|lounge(?:s|ing)?|cross-legged|reclin(?:e|es|ed|ing)?|relax(?:es|ed|ing)?|on\s+a\s+(?:towel|lounge|stool|hammock|float|chaise|ledge|piling|saddle|gate|daybed)|in\s+a\s+(?:convertible|hammock|cabana|tub))\b/i.test(
+    /\b(sit(?:ting|s)?|seated|couch|sofa|chair|bench|perch(?:ed|ing)?|lounge(?:s|ing)?|cross-legged|reclin(?:e|es|ed|ing)?|relax(?:es|ed|ing)?|on\s+a\s+(?:towel|lounge|stool|hammock|float|chaise|ledge|piling|saddle|gate|daybed)|in\s+a\s+(?:convertible|hammock|cabana|tub)|driv(?:e|es|ing)|drove|behind\s+the\s+wheel)\b/i.test(
       haystack
     )
   ) {
@@ -2041,7 +2054,7 @@ export function parsePoseGuideIntent(
     armLeft = 'forward';
     armRight = 'forward';
     matched = true;
-  } else if (/\b(pedal(?:s|ing)?|bik(?:e|ing)|cycling)\b/i.test(haystack)) {
+  } else if (/\b(pedal(?:s|ing)?|bik(?:e|es|ing)|bicycl(?:e|es|ing)|cycling)\b/i.test(haystack)) {
     base = 'sit';
     stride = 0.55;
     armLeft = 'forward';
@@ -2186,7 +2199,14 @@ export function parsePoseGuideIntent(
       if (people < 2) {
         people = 1;
       }
-    } else if (social && people < 2) {
+    } else if (
+      social &&
+      people < 2 &&
+      // "She dances alone in the kitchen" — a solo dance, not a ballroom pair.
+      !/\b(alone|solo|by\s+(?:herself|himself|themselves)|on\s+(?:her|his|their)\s+own)\b/i.test(
+        haystack
+      )
+    ) {
       people = 2;
     }
   }

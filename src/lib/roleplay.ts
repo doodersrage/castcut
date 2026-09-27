@@ -21,6 +21,7 @@ import {
   intimateTextImpliesAct,
   intimateTextImpliesCabinetDrawer,
   intimateTextImpliesSurfaceBent,
+  intimateTextMentionsWardrobe,
   reinforceIntimateStillPrompt,
   modernizeStoredIntimateWording,
 } from '@/lib/intimate-prompt-clarify';
@@ -817,9 +818,11 @@ export function withRoleplayPoseGuidePrompt(
     leadPosition?: string | null;
     /** OpenPose: camera angle the flat guide implies. */
     camera?: 'overhead' | 'side' | 'low' | null;
-  }
+  },
+  /** Story rating is adult (Sultry / Explicit / Raunchy). Off: no sex rewrites or locks. */
+  adult = true
 ): string {
-  const reinforced = reinforceIntimateStillPrompt(prompt);
+  const reinforced = adult ? reinforceIntimateStillPrompt(prompt) : prompt.trim();
   const withPose = withPoseGuideEditPrompt(reinforced, enabled, realismMode, {
     model,
     style: guide?.style,
@@ -827,7 +830,7 @@ export function withRoleplayPoseGuidePrompt(
     leadPosition: guide?.leadPosition,
     camera: guide?.camera,
   });
-  if (!enabled || !withPose) {
+  if (!enabled || !withPose || !adult) {
     return withPose;
   }
   // Prefer literary/compact beat text — lock boilerplate must not retarget layout.
@@ -929,8 +932,12 @@ const KEEP_GARMENT_INTIMATE_LAYOUTS: ReadonlySet<IntimateLayout> = new Set(['und
  * Lingerie / half-dressed / kit packshots still attach when the beat names clothes.
  */
 export function storyBeatOmitsGarmentPackshot(
-  beat: { title?: string; blurb?: string; prompt?: string } | null | undefined
+  beat: { title?: string; blurb?: string; prompt?: string } | null | undefined,
+  adult = true
 ): boolean {
+  if (!adult) {
+    return false;
+  }
   const haystack = [beat?.title, beat?.blurb, beat?.prompt].filter(Boolean).join(' · ');
   const layout = parseIntimateLayout(haystack);
   if (!layout || KEEP_GARMENT_INTIMATE_LAYOUTS.has(layout)) {
@@ -977,8 +984,10 @@ export function storyIntimateSnofsStrengthOverrides(options: {
   hasPoseGuide?: boolean;
   sessionActiveLoraIds?: string[] | null;
   library?: Array<{ id: string; label?: string; tokenValue?: string }> | null;
+  /** Story rating is adult; a clean-rated beat is never an intimate still. */
+  adult?: boolean;
 }): SessionLoraStrengthOverrides | undefined {
-  if (!options.hasPoseGuide || !options.beat) {
+  if (!options.hasPoseGuide || !options.beat || options.adult === false) {
     return undefined;
   }
   const haystack = [options.beat.title, options.beat.blurb, options.beat.prompt]
@@ -1022,18 +1031,21 @@ export function storyIdentityLockStrengthForBeat(
     beat?: { title?: string; blurb?: string; prompt?: string } | null;
     hasPoseGuide?: boolean;
     omitGarment?: boolean;
+    /** Story rating is adult; a clean-rated beat is never an intimate still. */
+    adult?: boolean;
   }
 ): number | undefined {
   const strength =
     typeof base === 'number' && Number.isFinite(base) ? Math.max(0, Math.min(1, base)) : undefined;
   const effective = strength ?? 0.75;
+  const adult = options.adult !== false;
   const omitGarment =
     options.omitGarment === true ||
-    (options.beat ? storyBeatOmitsGarmentPackshot(options.beat) : false);
+    (options.beat ? storyBeatOmitsGarmentPackshot(options.beat, adult) : false);
   if (omitGarment) {
     return Math.min(effective, STORY_ADULT_NUDE_IDENTITY_LOCK_CAP);
   }
-  if (!options.hasPoseGuide || !options.beat) {
+  if (!options.hasPoseGuide || !options.beat || !adult) {
     return strength;
   }
   const haystack = [options.beat.title, options.beat.blurb, options.beat.prompt]
@@ -1067,7 +1079,12 @@ export function storyStillPromptSource(input: {
   llmPrompt: string;
   blurb?: string | null;
   title?: string | null;
+  /** Story rating is adult. Off: the writer's prompt as-is — "leans against a wall" is no wall-sex. */
+  adult?: boolean;
 }): string {
+  if (input.adult === false) {
+    return input.llmPrompt.trim();
+  }
   // A stored prompt (reroll) can carry a canned rear-entry recipe from an older rewrite — e.g. the
   // all-fours block on a beat at a railing. Drop it; the final rewrite below re-derives one only
   // if the beat still calls for it.
@@ -1104,6 +1121,26 @@ export function storyStillPromptSource(input: {
     return `${llm}\n${blurb}`;
   }
   return llm;
+}
+
+const EVERYDAY_WARDROBE_CUE =
+  /\b(gown|nightgown|sweater|jumper|hoodie|jacket|coat|cardigan|tank\s+top|crop\s+top|camisole|apron|overalls|uniform|suit|sundress|jumpsuit|romper|leggings|sweatpants|dressed)\b/i;
+
+/**
+ * Clean / PG-13 / Suggestive still with no outfit image: when the writer named no clothes,
+ * Rapid keeps Image 1's outfit — the Cast plate is underwear, so a hug beat rendered two people
+ * in underwear. Say what they wear, positively (CFG 1: naming the underwear would summon it).
+ */
+export function withStoryEverydayWardrobe(prompt: string, headcount = 1): string {
+  const trimmed = prompt.trim();
+  if (!trimmed || intimateTextMentionsWardrobe(trimmed) || EVERYDAY_WARDROBE_CUE.test(trimmed)) {
+    return trimmed;
+  }
+  const line =
+    headcount > 1
+      ? 'Wardrobe: everyone wears casual everyday clothes that suit the scene — tops, jackets, jeans or skirts.'
+      : 'Wardrobe: she wears casual everyday clothes that suit the scene — a top, a jacket, jeans or a skirt.';
+  return `${trimmed}\n${line}`;
 }
 
 export function normalizeRoleplayIsolateSubject(value: unknown): boolean {

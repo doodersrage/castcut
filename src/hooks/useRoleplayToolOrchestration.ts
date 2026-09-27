@@ -157,6 +157,7 @@ export function useRoleplayToolOrchestration() {
     referenceImageFilename: reference.referenceImageFilename,
     autoQueue,
     beatOutput,
+    content,
     setError,
   });
 

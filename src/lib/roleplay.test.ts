@@ -52,6 +52,7 @@ import {
   storyIdentityLockStrengthForBeat,
   storyIntimateSnofsStrengthOverrides,
   storyStillPromptSource,
+  withStoryEverydayWardrobe,
   storyStillRetryQueueParamsBase,
   rollRoleplaySetting,
   ROLEPLAY_SETTING_PRESETS,
@@ -342,6 +343,21 @@ describe('roleplay parsers', () => {
       withRoleplayPoseGuidePrompt('fingers into her slick core on the bed', false),
       /fingers penetrating her vagina/i
     );
+    // Clean-rated Story: a wall lean gets no wall-duo lock and no sex rewrite.
+    const cleanWall = withRoleplayPoseGuidePrompt(
+      'She leans against a brick wall under a streetlamp, arms folded.',
+      true,
+      undefined,
+      undefined,
+      undefined,
+      false
+    );
+    assert.doesNotMatch(cleanWall, /Wall duo|two adults|partner|Match Image 3 body positions/i);
+    assert.match(cleanWall, /brick wall/);
+    assert.match(
+      withRoleplayPoseGuidePrompt('She leans against a brick wall, arms folded.', true),
+      /Wall duo/
+    );
     assert.equal(formatRoleplayWardrobeCue({ phase: 'prompt' }), '');
     assert.equal(normalizeRoleplayIsolateSubject(undefined), true);
     assert.equal(normalizeRoleplayIsolateSubject(false), false);
@@ -421,6 +437,33 @@ describe('roleplay parsers', () => {
         omitGarment: true,
       }),
       0.12
+    );
+    // Clean-rated Story never takes the intimate caps, nude face or garment drop.
+    assert.equal(storyBeatOmitsGarmentPackshot({ blurb: oralBlurb }, false), false);
+    assert.equal(
+      storyIdentityLockStrengthForBeat(0.75, {
+        beat: { blurb: oralBlurb },
+        hasPoseGuide: true,
+        adult: false,
+      }),
+      0.75
+    );
+    assert.equal(
+      storyStillPromptSource({
+        llmPrompt: 'She leans against a brick wall, arms folded.',
+        blurb: 'Leaning on the wall, waiting for a friend.',
+        adult: false,
+      }),
+      'She leans against a brick wall, arms folded.'
+    );
+    // Clean still with no clothes named: say what they wear (the Cast plate is underwear).
+    assert.match(
+      withStoryEverydayWardrobe('She hugs her best friend at the arrivals gate.', 2),
+      /\nWardrobe: everyone wears casual everyday clothes/
+    );
+    assert.equal(
+      withStoryEverydayWardrobe('She lies on the car hood in a cotton nightgown.'),
+      'She lies on the car hood in a cotton nightgown.'
     );
     const snofsDip = storyIntimateSnofsStrengthOverrides({
       beat: { blurb: doggyBlurb },

@@ -678,6 +678,35 @@ describe('day-pose-guide', () => {
     assert.equal(crowd.figures.length, 3);
   });
 
+  it('reads Story clean-rated stances without sex layouts', async () => {
+    const { resolveSceneGuidePlan } = await import('./day-pose-guide');
+    const pick = (text: string) => {
+      const plan = resolveSceneGuidePlan(text, 0, { openPose: true, allowIntimate: false });
+      return `${plan.openPose.poseKey}`;
+    };
+    // Sex layouts off: a wall lean stays a solo lean, a wooden spoon is not spooning.
+    assert.equal(pick('She leans against a brick wall under a streetlamp, arms folded.'), 'lean_wall:1');
+    assert.equal(
+      pick('She dances alone in the kitchen, spinning with a wooden spoon as a mic.'),
+      'dance:1'
+    );
+    assert.equal(pick('She lies on her back on the car hood staring up at the stars.'), 'lie:1');
+    assert.equal(pick('She kneels in the flower bed planting tulips.'), 'kneel:1');
+    assert.equal(pick('Stoop talk · Sitting on the front steps with lemonade, knees up.'), 'sit:1');
+    assert.equal(pick('She drives the convertible, one hand on the wheel.'), 'sit:1');
+    assert.equal(pick('She rides a bicycle down the hill, basket full of groceries.'), 'sit:1');
+    assert.equal(pick('She and her date lean in for a kiss on the rooftop.'), 'lean:2');
+    // Wardrobe, not a second person.
+    assert.equal(pick("She leans in the doorway in her boyfriend's shirt."), 'lean:1');
+    // A stated recline turns a gesture layout horizontal ("lies supine … hands behind head").
+    const hood = resolveSceneGuidePlan(
+      'She lies supine on the car hood, hands clasped behind head.',
+      0,
+      { openPose: true, allowIntimate: false }
+    );
+    assert.equal(hood.intent.base, 'lie');
+  });
+
   it('parseSocialLayout maps hug/dance/fight/climb/phone/look-back and everyday Day stances', async () => {
     const { parseSocialLayout, synthesizeSocialStickFigures, parsePoseGuideIntent } =
       await import('./day-pose-guide');

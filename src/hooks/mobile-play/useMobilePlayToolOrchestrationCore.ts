@@ -262,6 +262,7 @@ export function useMobilePlayToolOrchestrationCore() {
     referenceImageFilename,
     autoQueue,
     beatOutput,
+    content,
     setError,
   });
 
