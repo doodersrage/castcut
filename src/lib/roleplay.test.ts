@@ -1089,3 +1089,16 @@ describe('storyStillPromptSource on reroll', () => {
   });
 });
 
+describe('storyStillPromptSource legacy wording', () => {
+  it('upgrades old garment-naming lines in a stored prompt', async () => {
+    const { storyStillPromptSource } = await import('./roleplay');
+    const prompt = storyStillPromptSource({
+      llmPrompt:
+        'She rides him on the couch. Both adults bare skin only — nothing worn; discard Image 1 and Image 2 clothing entirely (no turtleneck, suit, lingerie, bra, or panties); bare skin only.. Two adults — show the sex act, not a standing lingerie portrait.',
+      title: 'Couch',
+      blurb: 'She rides him on the couch, both naked',
+    });
+    assert.doesNotMatch(prompt, /\b(lingerie|bra|panties)\b/i);
+  });
+});
+

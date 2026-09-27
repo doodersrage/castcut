@@ -459,6 +459,23 @@ const INTIMATE_NUDE_DEFAULT =
   'Both adults fully nude — bare skin only (clothes are now gone): bare breasts and bare hips, zero fabric on either body; Image 1 and Image 2 fabric is invisible and must not be copied.';
 
 /**
+ * Stored Story prompts (rerolls) predate the no-garment-names wording — upgrade the old lines so
+ * "no lingerie, bra, or panties" and "lingerie portrait" don't come back and summon them.
+ */
+export function modernizeStoredIntimateWording(text: string): string {
+  return text
+    .replace(
+      /Both adults[^.]*?\(no turtleneck, suit, lingerie, bra, or panties\)[^.]*\./g,
+      INTIMATE_NUDE_DEFAULT
+    )
+    .replace(/not a standing lingerie portrait/g, 'not a standing portrait')
+    .replace(
+      /not a standing fashion portrait or lingerie pose/g,
+      'not a standing fashion portrait'
+    );
+}
+
+/**
  * SNOFS / NSFW LoRA caption cues. Bare "sex" alone collapses every beat to one pose —
  * prefer trained "… position" phrases (see CivArchive SNOFS trigger list).
  */
