@@ -23,6 +23,9 @@ export type DayMoodStripProps = {
   /** Default on — loosen the plate's grip on stance when the beat needs a different body. */
   posePriority?: boolean;
   onPosePriorityChange?: (next: boolean) => void;
+  /** Opt-in: full plate as an extra identity reference on face-break stills. */
+  identityBoost?: boolean;
+  onIdentityBoostChange?: (next: boolean) => void;
   /** Opt-in vision review + bounded requeue of broken Day stills. */
   autoReviewStills?: boolean;
   onAutoReviewStillsChange?: (next: boolean) => void;
@@ -50,6 +53,8 @@ export default function DayMoodStrip({
   onAllowCompanionsChange,
   posePriority = true,
   onPosePriorityChange,
+  identityBoost = false,
+  onIdentityBoostChange,
   autoReviewStills = false,
   onAutoReviewStillsChange,
   qualityStatus = null,
@@ -202,6 +207,17 @@ export default function DayMoodStrip({
               Pose over plate
             </SwitchButton>
           ) : null}
+          {onIdentityBoostChange ? (
+            <SwitchButton
+              checked={identityBoost}
+              disabled={busy}
+              data-testid="day-identity-boost"
+              title="Walking, dancing and leaning stills also look at the full plate for her face. Closer likeness, but now and then a second person or the plate's outfit sneaks in — best with Auto-review stills on."
+              onChange={onIdentityBoostChange}
+            >
+              Face boost
+            </SwitchButton>
+          ) : null}
           {onAutoReviewStillsChange ? (
             <SwitchButton
               checked={autoReviewStills}
@@ -218,6 +234,12 @@ export default function DayMoodStrip({
       {!posePriority ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-pose-priority-hint">
           Pose over plate is off — stills will follow the plate&rsquo;s stance more closely.
+        </p>
+      ) : null}
+      {identityBoost && !autoReviewStills ? (
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-identity-boost-hint">
+          Face boost is on — turn on Auto-review stills so the odd extra person or borrowed outfit
+          gets rerolled.
         </p>
       ) : null}
       {autoReviewStills && checksLine ? (

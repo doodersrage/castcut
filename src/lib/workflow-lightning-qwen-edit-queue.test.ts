@@ -592,6 +592,44 @@ describe('ensureQwenReferenceLatentWiringInWorkflow', () => {
     assert.ok(loaders.some(node => node.inputs.image === 'day-pose-guide-walk-1.png'));
   });
 
+  it('face-break identity plate rides as a mid-size ReferenceLatent and never as VL', () => {
+    const workflow = {
+      '1': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: 'qwen.safetensors' } },
+      '3': { class_type: 'CLIPTextEncode', inputs: { text: 'a photo', clip: ['1', 1] } },
+      '4': { class_type: 'CLIPTextEncode', inputs: { text: '', clip: ['1', 1] } },
+      '5': { class_type: 'EmptySD3LatentImage', inputs: { width: 1104, height: 1472, batch_size: 1 } },
+      '6': {
+        class_type: 'KSampler',
+        inputs: { model: ['1', 0], positive: ['9', 0], negative: ['4', 0], latent_image: ['5', 0] },
+      },
+      '9': {
+        class_type: 'TextEncodeQwenImageEditPlus',
+        inputs: { prompt: 'edit', clip: ['1', 1], vae: ['1', 2] },
+      },
+    };
+    const result = ensureQwenReferenceLatentWiringInWorkflow(workflow, {
+      inputImageFilenames: [
+        'day-vacation-face-1.png',
+        'fitting-garment-packshot-1.png',
+        'day-pose-guide-walk-1.png',
+        'day-identity-rl-1.png',
+      ],
+      width: 1104,
+      height: 1472,
+    });
+    assert.equal(result.wired, true);
+    const nodes = Object.values(result.workflow) as NodeShape[];
+    // Face head + garment + identity plate.
+    assert.equal(nodes.filter(node => node.class_type === 'ReferenceLatent').length, 3);
+    const fit = nodes.find(node => node._meta?.title?.startsWith('Identity plate fit'));
+    assert.ok(fit);
+    assert.equal(fit.inputs.target_width, 576);
+    assert.equal(fit.inputs.target_height, 768);
+    const encode = nodeAt(result.workflow, '9');
+    assert.equal(encode.inputs.image4, undefined);
+    assert.ok(encode.inputs.image3);
+  });
+
   it('reuses an existing titled Figure LoadImage and chains multiple references', () => {
     const workflow = {
       '1': { class_type: 'VAELoader', inputs: { vae_name: 'vae.safetensors' } },

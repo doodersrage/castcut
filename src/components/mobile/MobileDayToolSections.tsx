@@ -122,6 +122,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setAutoReviewStills,
     posePriority,
     setPosePriority,
+    identityBoost,
+    setIdentityBoost,
     qualityStatus,
     qualityLedger,
     clipChecks,
@@ -534,6 +536,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onAllowCompanionsChange={setAllowCompanions}
           posePriority={posePriority}
           onPosePriorityChange={setPosePriority}
+          identityBoost={identityBoost}
+          onIdentityBoostChange={setIdentityBoost}
           autoReviewStills={autoReviewStills}
           onAutoReviewStillsChange={setAutoReviewStills}
           qualityStatus={qualityStatus}

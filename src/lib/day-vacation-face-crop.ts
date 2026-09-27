@@ -121,6 +121,49 @@ export async function uploadDayOutfitVlPlate(input: {
 }
 
 /**
+ * Face-break identity boost: the full body plate as a mid-size ReferenceLatent only (never a
+ * VL image — VL on the full plate is what froze upright poses). `day-identity-rl-*` tells the
+ * queue wiring to skip VL. Live (Rapid AIO Day, 4 upright beats × 2 seeds): face distance
+ * 0.56 → 0.42, closer 7/8, poses held; 2/8 borrowed some of the plate outfit's cut.
+ */
+export async function uploadDayIdentityLatentPlate(input: {
+  imageUrl?: string | null;
+  filename?: string | null;
+  model?: string | null;
+  comfyUrl?: string | null;
+}): Promise<DayPlate | null> {
+  const comfyUrl = input.comfyUrl?.trim() || undefined;
+  const urls = collectIsolateSourceUrls({
+    imageUrl: input.imageUrl?.trim() || undefined,
+    filename: input.filename?.trim() || undefined,
+    comfyUrl,
+  });
+  if (urls.length === 0) {
+    return null;
+  }
+  try {
+    const blob = await loadImageBlobFromUrls(urls);
+    const stamp = Date.now();
+    const file = new File([blob], `day-identity-rl-${stamp}.png`, {
+      type: blob.type || 'image/png',
+      lastModified: stamp,
+    });
+    const uploaded = await resolveQueueInputImage({
+      file,
+      filename: file.name,
+      model: input.model ?? undefined,
+      comfyUrl,
+    });
+    const filename = uploaded?.filename?.trim();
+    return filename
+      ? { filename, imageUrl: undefined, isolated: false, isolateSubject: false, source: 'keeper' }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Lightning Vacation: full Keep/Cast as Image 1. Filename must NOT be VL-skip
  * (`day-vacation-id-vl-*`) so ReferenceLatent can pin identity. Pose comes from
  * text (no Image 3) so RL does not fight a pose diagram. Same file every slot.

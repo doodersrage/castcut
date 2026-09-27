@@ -1074,6 +1074,13 @@ export type DayToolCache = {
    * drift more than the posing is worth.
    */
   posePriority?: boolean;
+  /**
+   * Off by default. Face-break stills (upright Vacation / Suggestive beats) also get the full
+   * plate as a mid-size ReferenceLatent: live the face got closer (0.56 → 0.46 distance) but
+   * about 1 in 16 stills painted a second woman and 3 in 16 borrowed the plate's outfit cut —
+   * pair with auto-review so those reroll.
+   */
+  identityBoost?: boolean;
   /** Everyday / suggestive / intimate heat for Day stills (intimate is NSFW-gated). */
   dayMood?: import('./day-planner').DayMood;
   /** Solo / duo / mixed beat filter when dayMood is intimate or raunchy. */

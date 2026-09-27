@@ -498,6 +498,57 @@ export function isDayFaceBreakCropFilename(filename: string | null | undefined):
   return Boolean(name && /^day-vacation-face[-_]/i.test(name));
 }
 
+/** Face-break body plate riding as a ReferenceLatent only (`day-identity-rl-*`). */
+export function isDayIdentityLatentFilename(filename: string | null | undefined): boolean {
+  const name = String(filename ?? '')
+    .trim()
+    .split(/[/\\]/)
+    .pop();
+  return Boolean(name && /^day-identity-rl[-_]/i.test(name));
+}
+
+/** ~0.44 MP (576×768 on a 3:4 canvas) — full size re-pins the plate's stance, small barely helps. */
+export const IDENTITY_PLATE_REF_PIXELS = 576 * 768;
+
+function appendIdentityPlateReferenceLatent(
+  workflow: Record<string, WorkflowNodeRecord>,
+  loadId: string,
+  vaeRef: [string, number],
+  conditioning: [string, number],
+  latent: { width: number; height: number },
+  figureIndex: number,
+  insertedNodeIds: string[]
+): [string, number] {
+  const scale = Math.sqrt(IDENTITY_PLATE_REF_PIXELS / (latent.width * latent.height));
+  const snap = (value: number) => Math.max(64, Math.round((value * scale) / 16) * 16);
+  const padId = nextLightningWorkflowNodeId(workflow);
+  workflow[padId] = {
+    class_type: 'ResizeAndPadImage',
+    inputs: {
+      image: [loadId, 0],
+      target_width: snap(latent.width),
+      target_height: snap(latent.height),
+      padding_color: 'white',
+      interpolation: 'lanczos',
+    },
+    _meta: { title: `Identity plate fit (Image ${figureIndex})` },
+  };
+  const encodeId = nextLightningWorkflowNodeId(workflow);
+  workflow[encodeId] = {
+    class_type: 'VAEEncode',
+    inputs: { pixels: [padId, 0], vae: vaeRef },
+    _meta: { title: `VAE Encode Identity Plate ${figureIndex}` },
+  };
+  const refId = nextLightningWorkflowNodeId(workflow);
+  workflow[refId] = {
+    class_type: 'ReferenceLatent',
+    inputs: { conditioning, latent: [encodeId, 0] },
+    _meta: { title: `Reference Latent Identity Plate ${figureIndex}` },
+  };
+  insertedNodeIds.push(padId, encodeId, refId);
+  return [refId, 0];
+}
+
 /**
  * Face-break crops are the top of the plate, so their lower third shows shoulders
  * and the plate's straps. Normalize to a known size (core nodes only), keep the
@@ -648,6 +699,21 @@ export function ensureQwenReferenceLatentWiringInWorkflow(
       next[loadId]!.inputs!.image = filename;
     }
     loaderIds.push(loadId);
+
+    // Face-break identity plate: mid-size ReferenceLatent only, never a VL image.
+    if (isDayIdentityLatentFilename(filename)) {
+      loaderIds[loaderIds.length - 1] = '';
+      currentCond = appendIdentityPlateReferenceLatent(
+        next,
+        loadId,
+        vaeRef,
+        currentCond,
+        { width, height },
+        figureIndex,
+        insertedNodeIds
+      );
+      continue;
+    }
 
     // Face-break crop: VL keeps the full crop; a small head-only latent carries identity.
     if (isDayFaceBreakCropFilename(filename)) {

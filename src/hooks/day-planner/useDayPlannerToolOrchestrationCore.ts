@@ -93,6 +93,7 @@ import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day-nude-face-cro
 import {
   resolveDayVacationFaceBreakPlate,
   resolveDayVacationIdentityVlPlate,
+  uploadDayIdentityLatentPlate,
 } from '@/lib/day-vacation-face-crop';
 import {
   dayClothedHeatPoseNeedsBodyUnlock,
@@ -687,6 +688,7 @@ export function useDayPlannerToolOrchestrationCore() {
         });
         let nudeFaceAutoCropped = false;
         let vacationFaceBreak = false;
+        let identityLatentPlate: { filename?: string; imageUrl?: string } | null = null;
         let skipPoseGuideImage = false;
         // Lightning keeps full Keep/Cast as Image 1 (ReferenceLatent) — tuned separately from
         // whether Image 3 rides along.
@@ -743,6 +745,19 @@ export function useDayPlannerToolOrchestrationCore() {
             if (faceBreak.facePlate) {
               identityPlate = faceBreak.facePlate;
               vacationFaceBreak = true;
+              // Opt-in: full plate as a mid-size ReferenceLatent (never VL) — the head crop
+              // alone leaves face-break behind the plate path on identity.
+              if (
+                toolSettings.identityBoost === true &&
+                (bodyPlate?.filename || bodyPlate?.imageUrl)
+              ) {
+                identityLatentPlate = await uploadDayIdentityLatentPlate({
+                  imageUrl: bodyPlate.imageUrl,
+                  filename: bodyPlate.filename,
+                  model: shared.model,
+                  comfyUrl,
+                });
+              }
             }
           }
         } else if (
@@ -976,6 +991,11 @@ export function useDayPlannerToolOrchestrationCore() {
           extraUrls[2] = poseGuideUrl;
           extraFilenames[2] = poseGuideFilename || '';
         }
+        if (vacationFaceBreak && identityLatentPlate?.filename) {
+          extraFilenames[2] = extraFilenames[2] ?? '';
+          extraUrls[3] = undefined;
+          extraFilenames[3] = identityLatentPlate.filename;
+        }
         const hasExtras =
           extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
           extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
@@ -1172,7 +1192,9 @@ export function useDayPlannerToolOrchestrationCore() {
       toolSettings.customGarmentImageFilename,
       toolSettings.customGarmentImageUrl,
       toolSettings.dayMood,
+      toolSettings.identityBoost,
       toolSettings.intimateMix,
+      toolSettings.posePriority,
       intimateEnabled,
       shared.model,
       updateShared,
@@ -1302,6 +1324,8 @@ export function useDayPlannerToolOrchestrationCore() {
     },
     posePriority: toolSettings.posePriority !== false,
     setPosePriority: (next: boolean) => updateToolSettings({ posePriority: next }),
+    identityBoost: toolSettings.identityBoost === true,
+    setIdentityBoost: (next: boolean) => updateToolSettings({ identityBoost: next }),
     autoReviewStills: toolSettings.autoReviewStills === true,
     setAutoReviewStills: (next: boolean) => updateToolSettings({ autoReviewStills: next }),
     hideStickyCutCoach: toolSettings.hideStickyCutCoach === true,
