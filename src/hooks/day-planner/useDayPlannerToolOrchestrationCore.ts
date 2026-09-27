@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
+import { isRapidDuoRecipePrompt } from '@/lib/rapid-duo-recipe-mark';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
@@ -955,9 +956,11 @@ export function useDayPlannerToolOrchestrationCore() {
           .filter(Boolean)
           .join('\n');
         // Play/Simple: skip lint round-trip — Day stills are draft-speed first film.
-        const drafted = leanChrome
-          ? prompt
-          : await actions.finalizePrompt(prompt, character?.name || slot.label);
+        // Rapid duo recipe skips it too — its length is the point.
+        const drafted =
+          leanChrome || isRapidDuoRecipePrompt(prompt)
+            ? prompt
+            : await actions.finalizePrompt(prompt, character?.name || slot.label);
         // Adult moods only — reinforceIntimateStillPrompt false-positives on Suggestive/
         // Vacation ("hands on" zipper, "sex contact" bans) and injects nude/duo locks
         // that fight CLOTHING LOCK → bikini/beach drift.

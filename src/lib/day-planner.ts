@@ -1,3 +1,5 @@
+import { intimateBeatIsOffBed } from './intimate-prompt-clarify';
+import { buildRapidDuoRecipe } from './rapid-duo-recipe';
 import { stripNegatedClauses } from './negated-clauses';
 import {
   clampStillHoldSec,
@@ -2796,9 +2798,13 @@ export function buildDaySlotPrompt(input: {
             ? `POSE FIRST: ${vacationStanceDirective(vacationPoseClassFromBeat(hints))} Beat (SETTING is venue/lighting only — do not invent office, grocery, bookstore, hands-and-knees, or stiff square-on catalog stances from the scene): ${hints}`
             : `POSE FIRST: ${everydayStanceDirective(dayEverydayPoseClass(hints))} Beat (SETTING is backdrop/lighting only — do not invent a different stance from the scene): ${hints}. Body-stance baseline only if the beat is vague: ${defaultPose}`
     : `mandatory new body pose: ${defaultPose}`;
+  // Wall / couch / armchair / sink beats: no bed wording, or Rapid lays the pose on a mattress.
+  const duoOffBed = isDayAdultMood(dayMood) && !soloSubject && intimateBeatIsOffBed(hints);
   const cameraLine =
     isDayAdultMood(dayMood) && poseHeadcount >= 2
-      ? 'camera: intimate medium shot — both adults engaged with each other, looking at partner not the lens; empty sheets in the foreground'
+      ? duoOffBed
+        ? 'camera: intimate medium shot — both adults engaged with each other, looking at partner not the lens; the beat surface and bare skin in the foreground'
+        : 'camera: intimate medium shot — both adults engaged with each other, looking at partner not the lens; empty sheets in the foreground'
       : isDayAdultMood(dayMood)
         ? dayMood === 'raunchy' && soloSubject
           ? soloToy
@@ -2885,7 +2891,7 @@ export function buildDaySlotPrompt(input: {
           : 'MOOD: raunchy sexual comedy — crude wardrobe fails, slapstick sex, accidental flashes; Cast face on the lead only; never tame soft-core portraits or invented reading props.'
       : dayMood === 'intimate'
         ? intimateMix === 'duo'
-          ? 'MOOD: intimate duo sex still — follow the beat sex/stance exactly; both adults mid-sex with readable body contact; looking at each other not the lens; Cast face on the lead only; never a tame softcore portrait; bare sheets and skin only in the foreground.'
+          ? `MOOD: intimate duo sex still — follow the beat sex/stance exactly; both adults mid-sex with readable body contact; looking at each other not the lens; Cast face on the lead only; never a tame softcore portrait; ${duoOffBed ? 'bare skin and the beat surface only' : 'bare sheets and skin only'} in the foreground.`
           : intimateMix === 'solo'
             ? 'MOOD: intimate solo sex/self-touch still — follow the beat body pose and hand placement exactly; Cast alone mid-act with readable arousal (open thighs, arched back, head tipped, hands on her own vulva/breasts as the beat says); never invent a second adult, partner torso, or thigh under her; never a soft floral-dress pin-up staring politely at the lens; empty rumpled sheets only — SETTING is backdrop only.'
             : 'MOOD: intimate adult still — follow the beat sex/stance exactly; Cast face on the lead only; never a soft fashion pin-up; bare sheets and skin only in the foreground.'
@@ -2907,11 +2913,15 @@ export function buildDaySlotPrompt(input: {
           ? `FOREGROUND: match the beat pose — rumpled sheets and bare skin; closed blinds on every window (no glass balcony door, no ocean vista); ${SOLO_DILDO_INSERTION_CUE}; bare breasts with nipples visible uncovered; never invent a man; never books or phones on the bed.`
           : 'FOREGROUND: match the beat pose — rumpled sheets and bare skin; closed blinds on every window (no glass balcony door, no ocean vista); fingers on her vulva mid-act as written; bare breasts with nipples visible uncovered; nothing held; never books or phones on the bed.'
         : 'FOREGROUND: empty rumpled sheets only between the knees and in front of the body — bare fabric, empty lap, nothing held, nothing open on the bed; closed blinds (no outdoor vista); both hands on her own skin only (breasts/hips/vulva).'
-      : 'FOREGROUND: bare sheets and bodies only — empty bed surface around the couple; closed blinds on every window (no glass balcony door, no ocean or water visible outside); hands on bodies only; nothing open or held in the foreground.'
+      : duoOffBed
+        ? 'FOREGROUND: bare bodies and the beat surface only (wall, couch, chair, counter as written) — bed out of frame; closed blinds on every window (no glass balcony door, no ocean or water visible outside); hands on bodies only; nothing open or held in the foreground.'
+        : 'FOREGROUND: bare sheets and bodies only — empty bed surface around the couple; closed blinds on every window (no glass balcony door, no ocean or water visible outside); hands on bodies only; nothing open or held in the foreground.'
     : null;
   const adultPropsLock = isDayAdultMood(dayMood)
     ? intimateMix === 'duo' || poseHeadcount >= 2
-      ? 'PROPS + FRAME: sex/contact fills the frame — bare skin and sheets only; empty hands on bodies; bare nightstand; nothing open on the bed.'
+      ? duoOffBed
+        ? 'PROPS + FRAME: sex/contact fills the frame — bare skin and the beat surface only; empty hands on bodies; nothing held.'
+        : 'PROPS + FRAME: sex/contact fills the frame — bare skin and sheets only; empty hands on bodies; bare nightstand; nothing open on the bed.'
       : dayMood === 'raunchy' && soloSubject
         ? soloToy
           ? `PROPS + FRAME: beat pose fills the frame — bare breasts and vulva (clothes are now gone); ${SOLO_DILDO_INSERTION_CUE}; bare nightstand; zero fabric on the body; ${SOLO_DILDO_NO_EXTERNAL_HOLD_CUE}; never raised gesture hands; never open books.`
@@ -2980,6 +2990,20 @@ export function buildDaySlotPrompt(input: {
       : null;
 
   if (input.hasPlate) {
+    // Rapid AIO duo nude beats: the full lock brief (~9k chars) drowned the beat and every
+    // duo still became the same reclining couple on a bed. Send where each body goes instead.
+    if (rapidAio && omitGarment && !soloSubject && isDayAdultMood(dayMood)) {
+      const recipe = buildRapidDuoRecipe({
+        beat: hints,
+        setting,
+        timeOfDay,
+        descriptor,
+        poseGuide,
+      });
+      if (recipe) {
+        return recipe;
+      }
+    }
     const settingLine = setting
       ? isDayAdultMood(dayMood)
         ? soloSubject

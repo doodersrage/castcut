@@ -26,6 +26,8 @@ import {
   type PoseGuideStylePreference,
 } from './pose-guide-prompt';
 import { appendCleanSkinPositive, mergeCleanSkinNegatives } from './clean-skin';
+import { intimateBeatIsOffBed, intimatePoseSample } from './intimate-prompt-clarify';
+import { isRapidDuoRecipePrompt } from './rapid-duo-recipe-mark';
 import { inferAthleticSport, type AthleticSport } from './athletic-sport-profiles';
 import { resolveQueueNegativePromptRaw } from './queue-negative';
 import { isQwenLightningModel, isWanLightningModel } from './model-sampling-patch';
@@ -115,6 +117,9 @@ function poseLeakPositiveFor(pack: string, openPose: boolean): string {
 
 /** Adult nude/duo pose unlock — never append on Suggestive / Vacation (fights CLOTHING LOCK). */
 export const RAPID_AIO_POSE_LEAK_POSITIVE = `${RAPID_AIO_POSE_LEAK_POSITIVE_BASE}; duo partners are fully bare-skinned humans both fully visible mid-contact; solo adult: rumpled indoor sheets and lamp light in the foreground, no beach sand or ocean, no ocean through window, clothes are now gone — bare breasts with nipples visible and bare vulva, zero fabric on the body, body pose matches the beat and Image 3 exactly, exactly two hands mid-self-touch as the beat says (fingers on vulva or a penis-shaped silicone dildo with the tip of the penis pushed deep into her vaginal opening), each on a continuous forearm from her own shoulder, one woman alone never invent a man, eyes half-lidded looking down not at the lens, five natural fingers each, natural matte pores, warm lamp light, bare sheets only`;
+
+/** Duo pose-leak — the solo pack's self-touch / "one woman alone never invent a man" fights the partner. */
+export const RAPID_AIO_DUO_POSE_LEAK_POSITIVE = `${RAPID_AIO_POSE_LEAK_POSITIVE_BASE}; duo partners are fully bare-skinned humans both fully visible mid-contact; clothes are now gone — zero fabric on either body, body pose matches the beat and Image 3 exactly, four hands on bodies each on a continuous forearm, natural matte pores, warm lamp light`;
 
 export const RAPID_AIO_ADULT_PROP_POSITIVE =
   'rumpled indoor sheets in the foreground, bare bed surface, lamp and closed blinds only, opaque walls, no beach sand or ocean, no glass balcony door, no ocean through window, no coastal vista, body pose matches the beat, exactly two hands mid-self-touch with fingers on vulva as written, each on a continuous forearm from her shoulder, bare breasts uncovered with nipples visible, clothes are now gone, bare vulva, zero fabric on the body, matte skin';
@@ -511,6 +516,13 @@ export function applyQueuePromptSteering(input: {
       userExplicit && userExplicit.length <= LIGHTNING_MAX_EXPLICIT_NEGATIVE_CHARS
         ? userExplicit
         : undefined;
+    // Compact duo recipe: every appended pack re-buries the placement it spells out.
+    if (isRapidDuoRecipePrompt(input.positive)) {
+      return finish({
+        positive: input.positive,
+        negative: appendUniqueCsv(shortExplicit, RAPID_AIO_MOIRE_NEGATIVE),
+      });
+    }
     let positive = appendUniqueCsv(steeredPositive, RAPID_AIO_MOIRE_POSITIVE);
     let negative = appendUniqueCsv(shortExplicit, RAPID_AIO_MOIRE_NEGATIVE);
     // Adult Day/Story: empty-bed positives + prop bans in negatives (saying "planner"
@@ -526,6 +538,10 @@ export function applyQueuePromptSteering(input: {
     });
     positive = clothedHeat.positive;
     negative = clothedHeat.negative ?? negative;
+    const duoBeat =
+      /\b(MOOD:\s*(?:intimate|raunchy)\s+duo|PARTNERS:|HEADCOUNT LOCK:|exactly TWO adults|DUO VISIBLE)\b/i.test(
+        steeredPositive
+      );
     if (poseGuideAttached) {
       // Nude solo/duo pose-leak fights CLOTHING LOCK on Suggestive/Vacation — base only.
       positive = appendUniqueCsv(
@@ -533,24 +549,31 @@ export function applyQueuePromptSteering(input: {
         poseLeakPositiveFor(
           clothedHeat.applied || !adultHeat
             ? RAPID_AIO_POSE_LEAK_POSITIVE_BASE
-            : RAPID_AIO_POSE_LEAK_POSITIVE,
+            : duoBeat
+              ? RAPID_AIO_DUO_POSE_LEAK_POSITIVE
+              : RAPID_AIO_POSE_LEAK_POSITIVE,
           openPoseGuide
         )
       );
       negative = appendUniqueCsv(negative, RAPID_AIO_POSE_LEAK_NEGATIVE);
     }
     if (!clothedHeat.applied && adultHeat) {
-      const duoBeat =
-        /\b(MOOD:\s*(?:intimate|raunchy)\s+duo|PARTNERS:|HEADCOUNT LOCK:|exactly TWO adults|DUO VISIBLE)\b/i.test(
-          steeredPositive
-        );
       const soloToyBeat =
         !duoBeat &&
         /\b(dildo|vibrator|wand\s+vibrator|magic\s*wand|rabbit\s+vibe|sex\s*toy|toy\s+play)\b/i.test(
           steeredPositive
         );
       if (duoBeat) {
-        positive = appendUniqueCsv(positive, RAPID_AIO_ADULT_DUO_PROP_POSITIVE);
+        // Wall / couch / armchair beats — the bed foreground pulls the pose back onto the sheets.
+        positive = appendUniqueCsv(
+          positive,
+          intimateBeatIsOffBed(intimatePoseSample(steeredPositive))
+            ? RAPID_AIO_ADULT_DUO_PROP_POSITIVE.replace(
+                'rumpled indoor sheets in the foreground, bare bed surface, ',
+                ''
+              ).replace('bare skin and sheets only', 'bare skin only')
+            : RAPID_AIO_ADULT_DUO_PROP_POSITIVE
+        );
         negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_DUO_PROP_NEGATIVE);
         negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_PROP_NEGATIVE);
       } else if (soloToyBeat) {
@@ -560,22 +583,22 @@ export function applyQueuePromptSteering(input: {
         positive = appendUniqueCsv(positive, RAPID_AIO_ADULT_PROP_POSITIVE);
         negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_PROP_NEGATIVE);
       }
-      if (
-        /\bPOSE LOCK:\s*ALL FOURS\b/i.test(steeredPositive) ||
-        /\ball\s+fours\b/i.test(steeredPositive)
-      ) {
+      // Read the planner's POSE LOCK, else the beat — the DUO ACT boilerplate names
+      // "doggy" and "wall sex", so a whole-prompt test put the doggy pack on every duo still.
+      const poseLock = steeredPositive.match(/\bPOSE LOCK:\s*([^\n.;—]+)/i)?.[1] ?? '';
+      const poseSample = poseLock || intimatePoseSample(steeredPositive);
+      if (/\ball\s+fours\b|\bhands\s+and\s+knees\b/i.test(poseSample)) {
         positive = appendUniqueCsv(positive, RAPID_AIO_ADULT_ALL_FOURS_POSITIVE);
         negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_ALL_FOURS_NEGATIVE);
       } else if (
-        /\bPOSE LOCK:\s*DOGGY\b/i.test(steeredPositive) ||
-        /\b(?:doggy|doggystyle|from\s+behind|rear[- ]entry)\b/i.test(steeredPositive)
+        /\b(?:doggy|doggystyle|from\s+behind|partner\s+behind|rear[- ]entry)\b/i.test(poseSample)
       ) {
         positive = appendUniqueCsv(positive, RAPID_AIO_ADULT_DOGGY_POSITIVE);
         negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_DOGGY_NEGATIVE);
       } else if (
-        /\bPOSE LOCK:\s*STANDING WALL\b/i.test(steeredPositive) ||
+        /\bSTANDING WALL\b/i.test(poseSample) ||
         /\b(?:against|pressed\s+against)\s+(?:the\s+)?(?:bedroom\s+)?wall\b|\bwall\s+(?:sex|press)\b/i.test(
-          steeredPositive
+          poseSample
         )
       ) {
         positive = appendUniqueCsv(positive, RAPID_AIO_ADULT_WALL_POSITIVE);

@@ -8,6 +8,7 @@ import {
   upsertCharacterFromRoleplaySession,
 } from '@/lib/character-os';
 import { buildRoleplayQueueStillOptions, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
+import { buildStoryRapidDuoRecipe } from '@/lib/rapid-duo-recipe';
 import {
   loadSettingsCache,
   saveSharedSettings,
@@ -178,6 +179,33 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       }).catch(() => null);
     },
     [playAs, referenceImageFilename, referenceImageUrl, shared.model, stampRoleplayCharacter]
+  );
+
+  /**
+   * Rapid AIO duo sex beats: a compact placement recipe instead of the long Story prompt —
+   * the locks buried the pose (see rapid-duo-recipe.ts). Null keeps the normal prompt.
+   */
+  const storyRapidDuoRecipeFor = useCallback(
+    (
+      beat: RoleplayStoryBeat,
+      stillOpts: ReturnType<typeof buildRoleplayQueueStillOptions>,
+      extra?: string
+    ) => {
+      const recipe = buildStoryRapidDuoRecipe({
+        model: stillOpts?.queueModel ?? shared.model,
+        title: beat.title,
+        blurb: beat.blurb,
+        omitGarment: storyBeatOmitsGarmentPackshot(beat),
+        hasGarmentImage: Boolean(
+          stillOpts?.inputImageFilenames?.[1]?.trim() || stillOpts?.inputImageUrls?.[1]
+        ),
+        hasPoseGuide: Boolean(
+          stillOpts?.inputImageFilenames?.[2]?.trim() || stillOpts?.inputImageUrls?.[2]
+        ),
+      });
+      return recipe && extra?.trim() ? `${recipe} ${extra.trim()}` : recipe;
+    },
+    [shared.model]
   );
 
   const queueStillOptions = useCallback(
@@ -389,6 +417,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         await loadWardrobeGarmentThumbManifest();
         const nudeFace = await resolveNudeFaceForBeat(beat);
         const stillOpts = queueStillOptions(poseGuide, beat, nudeFace);
+        const rapidRecipe = storyRapidDuoRecipeFor(beat, stillOpts, poseGuide?.cueLine);
         const charOpts = roleplayCharacterQueueFields(
           { bio: nextBio, story: currentStory },
           stillOpts?.queueParamsBase,
@@ -397,7 +426,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             hasPoseGuide: Boolean(poseGuide),
           }
         );
-        const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
+        const promptId = await actions.sendComfyUi(rapidRecipe ?? prompt, undefined, undefined, {
           ...(stillOpts ?? {}),
           ...charOpts,
           ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
@@ -429,6 +458,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     [
       actions,
       resolveNudeFaceForBeat,
+      storyRapidDuoRecipeFor,
       autoQueue,
       playAs,
       queueStillOptions,
@@ -511,6 +541,16 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           .join('\n');
         const nudeFace = await resolveNudeFaceForBeat(latest);
         const stillOpts = queueStillOptions(poseGuide, latest, nudeFace);
+        const rapidRecipe = storyRapidDuoRecipeFor(
+          latest,
+          stillOpts,
+          [
+            poseGuide?.cueLine ?? '',
+            afterPoseMiss && poseGuide ? `QUALITY FIX: ${POSE_MISMATCH_NUDGE}` : '',
+          ]
+            .filter(Boolean)
+            .join(' ')
+        );
         const charOpts = roleplayCharacterQueueFields(
           undefined,
           {
@@ -519,7 +559,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           },
           { beat: latest, hasPoseGuide: Boolean(poseGuide) }
         );
-        promptId = await actions.sendComfyUi(queuePrompt, undefined, undefined, {
+        promptId = await actions.sendComfyUi(rapidRecipe ?? queuePrompt, undefined, undefined, {
           ...(stillOpts ?? {}),
           ...charOpts,
           ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
@@ -560,6 +600,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     [
       actions,
       resolveNudeFaceForBeat,
+      storyRapidDuoRecipeFor,
       queueStillOptions,
       resolvePoseGuideForBeat,
       roleplayCharacterQueueFields,

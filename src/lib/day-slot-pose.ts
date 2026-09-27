@@ -9,6 +9,7 @@ import {
   SCENE_POSE_LAYOUT_IDS,
   type PoseGuideBase,
   type PoseGuideBuildOptions,
+  parseIntimateLayout,
   type ScenePoseSpec,
   type SocialLayout,
 } from '@/lib/day-pose-guide';
@@ -30,6 +31,7 @@ import {
   vacationStanceDirective,
 } from '@/lib/day-vacation';
 import { clarifyIntimateImageLanguage } from '@/lib/intimate-prompt-clarify';
+import { isQwenRapidAioModel } from '@/lib/model-denoise-defaults';
 
 export type DaySlotPosePlan = {
   /** Scene text the guide reads (undefined → the slot's default stance). */
@@ -128,7 +130,15 @@ export function planDaySlotPose(input: {
       : reinforced || undefined;
 
   const override = daySlotPoseOverride(input.slot.poseLayout);
-  const beatSpec = dayPoseSpecForBeat(beatOnly, dayMood);
+  // Rapid AIO cannot draw a 69 — its recipe (rapid-duo-recipe.ts) renders face-sitting, so
+  // draw that guide too, or the pose check flags every 69 still as a miss and rerolls it.
+  const rapidSixtyNine =
+    isDayAdultMood(dayMood) &&
+    isQwenRapidAioModel(input.model ?? undefined) &&
+    parseIntimateLayout(beatOnly) === 'sixty_nine';
+  const beatSpec: ScenePoseSpec | undefined = rapidSixtyNine
+    ? { act: 'facesit' }
+    : dayPoseSpecForBeat(beatOnly, dayMood);
   const pose: ScenePoseSpec | undefined = override
     ? { ...(override.layout ? {} : beatSpec), ...override }
     : beatSpec;

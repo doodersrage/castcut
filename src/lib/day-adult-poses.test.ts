@@ -109,3 +109,69 @@ describe('negated locks do not steer adult Day poses', () => {
   });
 });
 
+
+describe('DUO ACT boilerplate does not pick the pose cue', () => {
+  const duoWallPrompt = [
+    'MOOD: intimate duo sex still — follow the beat sex/stance exactly.',
+    'POSE LOCK: STANDING WALL PRESS — both adults STANDING upright mid-sex with Casts back flat against a solid bedroom WALL.',
+    'DUO ACT: both adults mid-sex as the beat says (missionary, doggy, oral, cowgirl, wall sex) — partner body fully visible touching Cast; never Cast alone masturbating.',
+    'PARTNERS: Exactly TWO adults — Cast FACE from Image 1 only on the leftmost Image 3 skeleton.',
+    'Image 3 is an OpenPose keypoint skeleton map (pose control only, not part of the picture).',
+    'beat: against the bedroom wall mid-sex, night city glow',
+  ].join('\n');
+
+  it('adds no missionary cue or ORAL clause to a wall beat', async () => {
+    const { reinforceIntimateStillPrompt } = await import('./intimate-prompt-clarify');
+    const prompt = reinforceIntimateStillPrompt(duoWallPrompt);
+    assert.doesNotMatch(prompt, /^missionary position\./);
+    assert.doesNotMatch(prompt, /ORAL: giver mouth/);
+  });
+
+  it('still cues the beat pose and oral when the beat names them', async () => {
+    const { reinforceIntimateStillPrompt } = await import('./intimate-prompt-clarify');
+    const sixtyNine = reinforceIntimateStillPrompt(
+      duoWallPrompt.replace(/^POSE LOCK:.*\n/m, '').replace(/^beat:.*$/m, 'beat: sixty-nine on the couch in afternoon light')
+    );
+    assert.match(sixtyNine, /^sixty-nine\./);
+    assert.match(sixtyNine, /ORAL: giver mouth/);
+  });
+
+  it('keeps "bent over the sink" a standing bend, not hands and knees', async () => {
+    const { clarifyIntimateImageLanguage } = await import('./intimate-prompt-clarify');
+    const text = clarifyIntimateImageLanguage('bent over the bathroom sink mid-sex with a partner behind');
+    assert.match(text, /bent over the bathroom sink/);
+  });
+
+  it('does not stack the Story "sex." cue on each reinforce pass', async () => {
+    const { reinforceIntimateStillPrompt } = await import('./intimate-prompt-clarify');
+    const once = reinforceIntimateStillPrompt('Lana having quick standing sex with a distinct adult partner.');
+    assert.equal(reinforceIntimateStillPrompt(reinforceIntimateStillPrompt(once)).match(/\bsex\. /g)?.length, 1);
+  });
+
+  it('gives a Rapid duo wall still the wall pack — no solo self-touch, doggy or bed foreground', async () => {
+    const { applyQueuePromptSteering } = await import('./queue-prompt-prep');
+    const { positive } = applyQueuePromptSteering({
+      positive: duoWallPrompt,
+      model: 'qwen-rapid-aio-edit-nsfw',
+      realismMode: 'off' as never,
+      anatomyMode: 'off' as never,
+      tool: 'day',
+    });
+    assert.doesNotMatch(positive, /mid-self-touch|one woman alone never invent a man/);
+    assert.doesNotMatch(positive, /doggy rear-entry Cast bent/);
+    assert.doesNotMatch(positive, /bare bed surface/);
+    assert.match(positive, /standing wall press both adults standing upright/);
+  });
+});
+
+describe('off-bed duo beats', () => {
+  it('drops the bed wording only when the beat happens off the bed', async () => {
+    const { intimateBeatIsOffBed } = await import('./intimate-prompt-clarify');
+    assert.equal(intimateBeatIsOffBed('against the bedroom wall mid-sex, night city glow'), true);
+    assert.equal(intimateBeatIsOffBed('sixty-nine on the couch in afternoon light'), true);
+    assert.equal(intimateBeatIsOffBed('reverse cowgirl on the hotel armchair'), true);
+    assert.equal(intimateBeatIsOffBed('missionary under warm lamp light through the blinds'), false);
+    assert.equal(intimateBeatIsOffBed('doggy on the bed, knees on the sheets by the wall'), false);
+    assert.equal(intimateBeatIsOffBed('on her back mid-sex, never against the wall'), false);
+  });
+});

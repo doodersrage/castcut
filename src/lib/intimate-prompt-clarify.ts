@@ -6,6 +6,7 @@
  */
 
 import { stripNegatedClauses } from './negated-clauses';
+import { isRapidDuoRecipePrompt } from './rapid-duo-recipe-mark';
 import { softenQwenRapidNudeSafetyTriggers } from '@/lib/qwen-rapid-nude-edit';
 
 type ClarifyRule = {
@@ -388,7 +389,7 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
   },
   {
     pattern:
-      /\bbent\s+over\b(?!\s+(?:an?\s+|the\s+)?(?:office\s+)?(?:desk|chair|table|counter))(?=.{0,80}(?:doggy|sex|fuck|partner|thrust|camera\s+from\s+behind))/gi,
+      /\bbent\s+over\b(?!\s+(?:an?|the|his|her|their)\b|\s+(?:office\s+)?(?:desk|chair|table|counter|sink|bed|couch|sofa|railing|rail|vanity|dresser|armrest))(?=.{0,80}(?:doggy|sex|fuck|partner|thrust|camera\s+from\s+behind))/gi,
     replace: 'on hands and knees',
   },
 ];
@@ -474,6 +475,34 @@ export function modernizeStoredIntimateWording(text: string): string {
       /not a standing fashion portrait or lingerie pose/g,
       'not a standing fashion portrait'
     );
+}
+
+/**
+ * The text a pose/act cue should read: the `beat:` line when the prompt has one (Day stills),
+ * otherwise the prompt minus the DUO ACT enumeration — negated clauses dropped either way.
+ * Read whole-prompt, "DUO ACT: … (missionary, doggy, oral, cowgirl, wall sex)" gave every duo
+ * beat a leading "missionary position", the ORAL clause and the doggy lock.
+ */
+export function intimatePoseSample(text: string): string {
+  const beat = text.match(/^beat:\s*(.+)$/im)?.[1];
+  const sample = (beat ?? text)
+    .replace(/^[ \t]*DUO ACT:[^\n]*$/gim, ' ')
+    .replace(/\((?:missionary|doggy|from behind|oral|cowgirl|wall sex|,\s*)+\)/gi, ' ');
+  return stripNegatedClauses(sample);
+}
+
+/**
+ * Beat happens off the bed (wall, couch, armchair, sink, counter, shower, standing lift…).
+ * The duo foreground/camera/props lines assumed "bare sheets" — Rapid then laid a standing
+ * wall press, a couch 69 or an armchair ride back down on a mattress.
+ */
+export function intimateBeatIsOffBed(text: string | null | undefined): boolean {
+  const sample = stripNegatedClauses(text ?? '');
+  return (
+    /\b(wall|couch|sofa|armchair|chair|sink|counter|desk|table|shower|floor|rug|window|railing|balcony|stairs?|lifted|standing|vanity|dresser)\b/i.test(
+      sample
+    ) && !/\b(bed|mattress|sheets)\b/i.test(sample)
+  );
 }
 
 /**
@@ -880,7 +909,7 @@ function rewriteDoggyBentContact(text: string): string {
   }
   const doggyish =
     /\b(doggy(?:[- ]style)?|doggystyle|rear-entry|hands\s+and\s+knees|partner\s+behind|camera\s+(?:from\s+)?behind|bent\s+over|leaning\s+over|curled?\s+over|from\s+behind|mid-thrust|fucks?\s+her\s+from\s+behind|fucks?\s+him\s+from\s+behind)\b/i.test(
-      text
+      intimatePoseSample(text)
     ) || isLegacyAdultMetaBlurb(text);
   if (!doggyish) {
     return text;
@@ -956,6 +985,10 @@ function rewriteDoggyBentContact(text: string): string {
 export function reinforceIntimateStillPrompt(prompt: string): string {
   const trimmed = prompt.trim();
   if (!trimmed) {
+    return trimmed;
+  }
+  // Rapid duo recipe is compact on purpose — the long locks are what broke its poses.
+  if (isRapidDuoRecipePrompt(trimmed)) {
     return trimmed;
   }
   // Suggestive / Vacation / Sport / Everyday Day stills must not get nude/duo locks —
@@ -1066,8 +1099,9 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
     behindRecipe;
 
   if (!compactRecipe) {
-    const snofsCue = snofsPositionCueForText(next);
-    if (snofsCue) {
+    const snofsCue = snofsPositionCueForText(intimatePoseSample(next));
+    // Idempotent — Story re-reinforces its own output ("sex. sex. sex.").
+    if (snofsCue && !next.toLowerCase().startsWith(`${snofsCue.toLowerCase()}.`)) {
       next = `${snofsCue}. ${next}`;
     }
   }
@@ -1075,7 +1109,7 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
   if (
     !compactRecipe &&
     /\b(doggy|hands\s+and\s+knees|partner\s+behind|camera\s+from\s+behind|rear-entry)\b/i.test(
-      next
+      intimatePoseSample(next)
     ) &&
     !/\b(partner|second\s+(?:person|adult)|behind\s+(?:her|him|them)|chest-to-back)\b/i.test(next)
   ) {
@@ -1084,7 +1118,9 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
   // Day/Story oral (non-piano): stop hand-in-mouth + soft-date prop collapse.
   if (
     !compactRecipe &&
-    /\b(oral(?:\s+sex)?|cunnilingus|fellatio|blow\s*job)\b/i.test(next) &&
+    /\b(oral(?:\s+sex)?|cunnilingus|fellatio|blow\s*job|sixty[- ]?nine|69)\b/i.test(
+      intimatePoseSample(next)
+    ) &&
     !/^Piano oral:/i.test(next)
   ) {
     if (
