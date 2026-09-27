@@ -26,6 +26,16 @@ export const DEFAULT_MIN_FACE_MATCH = 0.3;
 /** Below this (but above the reroll bar) the still passes with a "face may drift" warning. */
 export const FACE_MATCH_WARN_BELOW = 0.45;
 
+/**
+ * Plate-backed stills (Day slots, Fitting try-ons), calibrated live on Rapid AIO Day
+ * (2026-09-27, similarity to the Cast plate): 22 visibly drifted stills vs 42 good ones.
+ * Rerolling below 0.4 catches 86% of drift and rerolls ~21% of good stills (mostly
+ * full-body walks where the face is tiny); the old 0.3 bar let 41% of drift through.
+ * Film clips keep {@link DEFAULT_MIN_FACE_MATCH} — video frames are not calibrated.
+ */
+export const STILL_MIN_FACE_MATCH = 0.4;
+export const STILL_FACE_MATCH_WARN_BELOW = 0.55;
+
 /** Parse the distance PreviewAny shows (`"0.412"`, `0.412`, `"[0.412]"`, JSON list). */
 export function parseFaceDistance(raw: unknown): number | null {
   const pick = (value: unknown): number | null => {

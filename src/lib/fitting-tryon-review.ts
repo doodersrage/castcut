@@ -4,7 +4,7 @@
  * hands. Try-ons are only scored, never requeued — the player picks Keep with the numbers.
  */
 
-import { DEFAULT_MIN_FACE_MATCH, FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
+import { STILL_MIN_FACE_MATCH, STILL_FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
 import { slotReviewFlagLabel, type SlotQualityReport } from '@/lib/play-slot-quality';
 
 export type TryOnReview = {
@@ -32,10 +32,10 @@ export function decideTryOnReview(input: {
   const face = input.faceMatch;
   if (typeof face === 'number') {
     const pct = Math.round(face * 100);
-    if (face < DEFAULT_MIN_FACE_MATCH) {
+    if (face < STILL_MIN_FACE_MATCH) {
       notes.push(`face drifted from the plate (${pct}%)`);
       warn = true;
-    } else if (face < FACE_MATCH_WARN_BELOW) {
+    } else if (face < STILL_FACE_MATCH_WARN_BELOW) {
       notes.push(`weak face match (${pct}%)`);
     }
   }

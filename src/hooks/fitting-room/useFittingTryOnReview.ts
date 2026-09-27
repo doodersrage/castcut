@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
-import { DEFAULT_MIN_FACE_MATCH } from '@/lib/face-match';
+import { STILL_MIN_FACE_MATCH } from '@/lib/face-match';
 import type { FittingCompareTryOn } from '@/lib/fitting-room';
 import { decideTryOnReview, type TryOnReview } from '@/lib/fitting-tryon-review';
 import { recordFaceMatchScore } from '@/lib/play-metrics';
@@ -71,7 +71,7 @@ export function useFittingTryOnReview(input: {
               recordFaceMatchScore(
                 shared.model,
                 measured.similarity,
-                measured.similarity < DEFAULT_MIN_FACE_MATCH
+                measured.similarity < STILL_MIN_FACE_MATCH
               );
             } else if (measured && !measured.available) {
               faceOffRef.current = true;

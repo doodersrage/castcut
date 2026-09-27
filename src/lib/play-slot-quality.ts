@@ -11,6 +11,8 @@
  * job of the IP-Adapter / LoRA locks.
  */
 
+import { STILL_FACE_MATCH_WARN_BELOW, STILL_MIN_FACE_MATCH } from '@/lib/face-match';
+
 export const SLOT_REVIEW_FLAGS = [
   'extra-person',
   'extra-hands',
@@ -92,8 +94,8 @@ export const DEFAULT_SLOT_QUALITY_POLICY: SlotQualityPolicy = {
   maxRerolls: 2,
   minIdentity: 3,
   minPoseMatch: 0.6,
-  minFaceMatch: 0.3,
-  warnFaceMatch: 0.45,
+  minFaceMatch: STILL_MIN_FACE_MATCH,
+  warnFaceMatch: STILL_FACE_MATCH_WARN_BELOW,
 };
 
 export type SlotReviewContext = {

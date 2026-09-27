@@ -41,7 +41,7 @@ import { buildFaceComparePair } from '@/lib/play-face-compare';
 import { recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { buildPoseMissView, poseLimbFixNudge, type PoseMissView } from '@/lib/pose-coaching';
 import { betterTakeIndex, type TakeScores } from '@/lib/take-scoring';
-import { DEFAULT_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face-match';
+import { STILL_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face-match';
 
 type DaySlotAttempt = {
   imageUrl: string;
@@ -325,7 +325,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
             ? betterTakeIndex(
                 attempts.map(attempt => attempt.scores),
                 attempts.length - 1,
-                { minPose: DEFAULT_MIN_POSE_MATCH, minFace: DEFAULT_MIN_FACE_MATCH }
+                { minPose: DEFAULT_MIN_POSE_MATCH, minFace: STILL_MIN_FACE_MATCH }
               )
             : null;
         const restored = restoreIndex !== null ? attempts[restoreIndex] : undefined;
