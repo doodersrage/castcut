@@ -684,10 +684,11 @@ export function suggestiveUnlockPoseClass(beat: string | null | undefined): stri
     /\b(sit(?:ting|s)?\s+on|seated\s+on|reclining|lying\s+on|kneeling\s+(?:on|upright)|perched\s+on)\b/i.test(
       hay
     );
-  // "leaning back on one hand" from a seat is still a sit, not an upright lean — the LEAN
-  // face-break lead made Rapid AIO perch every such beat on a balcony rail.
+  // "leaning back on one hand" / "leaning forward" from a seat is still a sit, not an
+  // upright lean — the LEAN face-break lead stood "perched on a couch arm… leaning
+  // forward" in a hallway, while the Keep path sat her on the couch as written.
   const uprightCue =
-    /\b(lean(?:ing|s)?(?!\s+back)|zip(?:ping|s|ped)?|unzip(?:ping|s|ped)?|twist(?:ing|s)?|look(?:ing)?\s+back|over\s+(?:an?\s+|the\s+)?shoulder|doorway|mid-stride|mid-step|danc(?:e|es|ing)|stretch(?:es|ing)?|hip\s+cocked|weight\s+on\s+one\s+hip|neckline|shop\s+window|three-quarter)\b/i.test(
+    /\b(lean(?:ing|s)?(?!\s+(?:back|forward))|zip(?:ping|s|ped)?|unzip(?:ping|s|ped)?|twist(?:ing|s)?|look(?:ing)?\s+back|over\s+(?:an?\s+|the\s+)?shoulder|doorway|mid-stride|mid-step|danc(?:e|es|ing)|stretch(?:es|ing)?|hip\s+cocked|weight\s+on\s+one\s+hip|neckline|shop\s+window|three-quarter)\b/i.test(
       hay
     );
   if (seatedLead && !uprightCue) return 'OTHER';

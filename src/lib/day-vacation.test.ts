@@ -215,6 +215,19 @@ describe('day-vacation', () => {
       false
     );
     assert.equal(
+      daySuggestivePoseNeedsBodyUnlock(
+        'perched on a couch arm in a short dress, legs crossed high, leaning forward with charged eye contact, never a stiff standing catalog pose'
+      ),
+      false
+    );
+    // Upright leans without a seat still face-break.
+    assert.equal(
+      suggestiveUnlockPoseClass(
+        'biting a lip while checking a flirtatious text — weight on one hip, dress strap slipping, hand on the doorframe'
+      ),
+      'LEAN'
+    );
+    assert.equal(
       suggestiveUnlockPoseClass(
         'DANCING alone on the patio — both arms raised overhead, one knee lifted'
       ),
