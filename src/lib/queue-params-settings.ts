@@ -40,7 +40,7 @@ import { loadSettingsCache } from './settings-cache';
 import { findComfyWorkflowFile, mergeCustomWorkflowTokens } from './comfyui-workflow-files';
 import { getSelectedWorkflowFileId } from './comfyui-runtime';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
-import { enlargePlayCastPlateLatent } from './play-plate-render-size';
+import { enlargePlayCastPlateLatent, fitPlayCastPlateLatent } from './play-plate-render-size';
 import { normalizeComposeIdentityKind } from './compose-identity-lock';
 import {
   resolveEffectiveResolutionSizeTier,
@@ -86,8 +86,8 @@ export type ResolveQueueParamsOptions = {
    */
   preserveInputAspect?: boolean;
   /**
-   * Play stills that use a Cast plate as Image 1. The plate is fitted into the
-   * latent, so raise that canvas when its long edge is below 1536.
+   * Play stills that use a Cast plate as Image 1. The latent follows the plate's
+   * aspect and size (figurePixelSize); without a probed size it is raised to 1536.
    */
   castPlateReference?: boolean;
 };
@@ -480,23 +480,32 @@ export function resolveQueueParams(
 
     // Figure pixels beat sidebar / re-edit handoff W×H — wrong latent AR stretches
     // refs and compounds “thinning” when gallery outputs feed the next Compose pass.
+    // Play Cast plate stills too: a square sidebar latent pads the tall plate with
+    // white bars and the face drifts (live A/B: portrait latent 0.64 → 0.46 face distance).
+    let plateLatentFitted = false;
     if (
       figurePixelSize &&
       figurePixelSize.width > 0 &&
       figurePixelSize.height > 0 &&
       hasInputImage &&
-      (toolUsesComposeFigureLatent(tool) || lockExact)
+      (toolUsesComposeFigureLatent(tool) || lockExact || castPlateReference === true)
     ) {
+      const plateFit =
+        castPlateReference === true && !lockExact && !toolUsesComposeFigureLatent(tool)
+          ? fitPlayCastPlateLatent(figurePixelSize, model)
+          : null;
+      plateLatentFitted = plateFit != null;
       const latent =
         lockExact && lockedWidth && lockedHeight
           ? { width: Number(lockedWidth), height: Number(lockedHeight) }
-          : resolveComposeOutputLatentSize(
+          : (plateFit ??
+            resolveComposeOutputLatentSize(
               figurePixelSize.width,
               figurePixelSize.height,
               model,
               orientation,
               sizeTier
-            );
+            ));
       merged.width = String(latent.width);
       merged.height = String(latent.height);
     }
@@ -559,7 +568,8 @@ export function resolveQueueParams(
         presetTier
       ),
       model,
-      castPlateReference === true
+      // A plate-shaped latent already has its size; the 1536 step-up hurt it live.
+      castPlateReference === true && !plateLatentFitted
     );
   }
 

@@ -43,8 +43,8 @@ export type SendComfyUiOptions = {
   /** Override probed upload dimensions (e.g. locked fitting preview thumbs). */
   figurePixelSize?: { width: number; height: number };
   /**
-   * Cast plate is Image 1. Fit it into a larger latent so Play stills see more
-   * plate pixels (Lightning stays on its native ladder).
+   * Cast plate is Image 1. The latent takes the plate's aspect and size (not the
+   * sidebar orientation); Lightning snaps to its ladder.
    */
   castPlateReference?: boolean;
   /** Skip graph enrich passes for tiny fitting draft thumbs. */

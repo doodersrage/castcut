@@ -87,6 +87,74 @@ test('cast plate Play stills enlarge Rapid AIO Edit latent past 1328', async () 
   assert.equal(params.height, '1536');
 });
 
+test('cast plate Play stills follow the tall plate, not a square sidebar', async () => {
+  const { resolveQueueParams } = await import('./queue-params-settings');
+
+  const params = resolveQueueParams({
+    model: 'qwen-rapid-aio-edit',
+    tool: 'image-prompt',
+    resolutionOrientation: 'square',
+    resolutionSizeTier: 'medium',
+    inputImageFilename: 'cast-plate.png',
+    figurePixelSize: { width: 1104, height: 1472 },
+    castPlateReference: true,
+    base: { seed: '1' },
+  });
+
+  assert.equal(params.width, '1104');
+  assert.equal(params.height, '1472');
+});
+
+test('cast plate Play stills shrink an oversized plate to a 1536 long edge', async () => {
+  const { resolveQueueParams } = await import('./queue-params-settings');
+
+  const params = resolveQueueParams({
+    model: 'qwen-rapid-aio-edit',
+    tool: 'image-prompt',
+    resolutionOrientation: 'square',
+    inputImageFilename: 'cast-plate.png',
+    figurePixelSize: { width: 1536, height: 2048 },
+    castPlateReference: true,
+    base: { seed: '1' },
+  });
+
+  assert.equal(params.width, '1152');
+  assert.equal(params.height, '1536');
+});
+
+test('cast plate Lightning stills snap the tall plate to a portrait ladder size', async () => {
+  const { resolveQueueParams } = await import('./queue-params-settings');
+
+  const params = resolveQueueParams({
+    model: 'qwen-image-edit-2511-lightning-8',
+    tool: 'image-prompt',
+    resolutionOrientation: 'square',
+    resolutionSizeTier: 'medium',
+    inputImageFilename: 'cast-plate.png',
+    figurePixelSize: { width: 1104, height: 1472 },
+    castPlateReference: true,
+    base: { seed: '1' },
+  });
+
+  assert.ok(Number(params.height) > Number(params.width));
+});
+
+test('image-prompt without a cast plate keeps the sidebar square', async () => {
+  const { resolveQueueParams } = await import('./queue-params-settings');
+
+  const params = resolveQueueParams({
+    model: 'qwen-rapid-aio-edit',
+    tool: 'image-prompt',
+    resolutionOrientation: 'square',
+    resolutionSizeTier: 'medium',
+    inputImageFilename: 'photo.png',
+    figurePixelSize: { width: 1104, height: 1472 },
+    base: { seed: '1' },
+  });
+
+  assert.equal(params.width, params.height);
+});
+
 test('cast plate flag does not enlarge Lightning off its ladder', async () => {
   const { resolveQueueParams } = await import('./queue-params-settings');
 
