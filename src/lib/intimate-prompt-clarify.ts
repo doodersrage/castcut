@@ -303,7 +303,9 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
     replace: (_m, obj: string) => `cumming inside ${obj}`,
   },
   {
-    pattern: /\b(?:straddled|straddling|mounted|mounting|rode|riding)\s+(him|her|them)\b/gi,
+    // "riding her own hand" is solo — not straddling a partner.
+    pattern:
+      /\b(?:straddled|straddling|mounted|mounting|rode|riding)\s+(him|her|them)\b(?!\s+own\b)/gi,
     replace: (_m, obj: string) => `straddling ${obj} in sex`,
   },
   // Meta beat-template phrasing that confuses image models (legacy adult forks)
@@ -979,6 +981,30 @@ function rewriteDoggyBentContact(text: string): string {
   ].join(' ');
 }
 
+const INTIMATE_SOLO_NUDE_DEFAULT =
+  'She wears nothing — bare skin only (clothes are now gone): bare breasts and bare hips, zero fabric on her body; Image 1 fabric is invisible and must not be copied.';
+
+/** Day brief sections that only a solo still carries. */
+const SOLO_BRIEF_RE =
+  /\b(?:SOLO SUBJECT \(mandatory\)|SOLO ACT:|SOLO TOY LOCK|MOOD:\s*(?:intimate|raunchy)\s+solo)/i;
+const SOLO_BEAT_RE =
+  /\b(?:solo|alone|masturbat\w*|self[- ]pleasur\w*|self[- ]touch\w*|touch(?:es|ing)?\s+herself|finger(?:s|ing)?\s+herself|her\s+own\s+hand|one\s+adult\s+only)\b/i;
+const DUO_BEAT_RE =
+  /\b(?:partner|lover|boyfriend|girlfriend|husband|wife|second\s+adult|two\s+adults|both\s+of\s+them|PARTNERS:|mid-sex|his\s+(?:cock|penis|dick|hips|mouth|tongue|lap))\b/i;
+
+/**
+ * One adult alone (masturbation / self-touch). The duo rewrites below turned 15 of 17 Day solo
+ * presets into partner prompts — "bent over the foot of the bed masturbating" became a two-adult
+ * rear-entry recipe and Rapid painted a man behind her (live 2026-09-27).
+ */
+export function intimateTextIsSolo(text: string): boolean {
+  if (SOLO_BRIEF_RE.test(text) && !/\b(?:PARTNERS:|exactly TWO adults)\b/.test(text)) {
+    return true;
+  }
+  const affirmative = stripNegatedClauses(text);
+  return SOLO_BEAT_RE.test(affirmative) && !DUO_BEAT_RE.test(affirmative);
+}
+
 /**
  * Clarify euphemisms/meta, then lock duo sex poses so models do not invent twin stands.
  */
@@ -1075,13 +1101,18 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
   if (!intimateTextImpliesAct(clarified)) {
     return softenQwenRapidNudeSafetyTriggers(clarified);
   }
-  let next = rewriteWallCollarboneContact(clarified);
-  next = rewriteChaiseLowerContact(next);
-  next = rewritePianoBenchOralContact(next);
-  next = rewriteDrawerAfterglowContact(next);
-  next = rewriteCabinetDrawerContact(next);
-  next = rewriteChairBentContact(next);
-  next = rewriteDoggyBentContact(next);
+  const solo = intimateTextIsSolo(clarified);
+  let next = clarified;
+  // Every rewrite below is a two-adult recipe — a solo beat keeps its own words.
+  if (!solo) {
+    next = rewriteWallCollarboneContact(next);
+    next = rewriteChaiseLowerContact(next);
+    next = rewritePianoBenchOralContact(next);
+    next = rewriteDrawerAfterglowContact(next);
+    next = rewriteCabinetDrawerContact(next);
+    next = rewriteChairBentContact(next);
+    next = rewriteDoggyBentContact(next);
+  }
   const wallRecipe = /Rear wall press/i.test(next);
   const chaiseRecipe = /Chaise lower:/i.test(next);
   const chairRecipe = /^Chair bent:/i.test(next);
@@ -1098,7 +1129,8 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
     drawerAfterglowRecipe ||
     behindRecipe;
 
-  if (!compactRecipe) {
+  // SNOFS cues name partner positions ("missionary position." on a solo on-her-back beat).
+  if (!compactRecipe && !solo) {
     const snofsCue = snofsPositionCueForText(intimatePoseSample(next));
     // Idempotent — Story re-reinforces its own output ("sex. sex. sex.").
     if (snofsCue && !next.toLowerCase().startsWith(`${snofsCue.toLowerCase()}.`)) {
@@ -1108,6 +1140,7 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
 
   if (
     !compactRecipe &&
+    !solo &&
     /\b(doggy|hands\s+and\s+knees|partner\s+behind|camera\s+from\s+behind|rear-entry)\b/i.test(
       intimatePoseSample(next)
     ) &&
@@ -1268,8 +1301,9 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
     }
   }
   // Literary wall/elevator presses often miss "against the wall" parsers — spell the stance.
-  // Skip when a compact recipe already shipped (avoid bloat / false matches on pose-lock copy).
-  if (!compactRecipe) {
+  // Skip when a compact recipe already shipped (avoid bloat / false matches on pose-lock copy),
+  // and on solo beats: every line here stages a partner.
+  if (!compactRecipe && !solo) {
     if (
       /\b(lean(?:s|ing)?\s+against|press(?:es|ed|ing)?\s+(?:her|him|them)\s+back|elevator).{0,80}\b(wall|elevator)\b/i.test(
         next
@@ -1323,11 +1357,12 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
     }
   }
   if (intimateTextDefaultsToNude(next) && !INTIMATE_NUDE_CUE.test(next)) {
-    next = `${next}. ${INTIMATE_NUDE_DEFAULT}`;
+    next = `${next}. ${solo ? INTIMATE_SOLO_NUDE_DEFAULT : INTIMATE_NUDE_DEFAULT}`;
   }
   // Compact wall/chaise/chair/doggy recipes already carry headcount / pose / contact — don't re-stack locks.
   if (!compactRecipe) {
     if (
+      !solo &&
       !/never twins|Two adults: Cast lead|no twin people|Exactly TWO adults|Exactly two adults/i.test(
         next
       )
@@ -1341,7 +1376,7 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
     ) {
       next = `${next} ${INTIMATE_POSE_LOCK}`;
     }
-    if (!/Cross-person touch|two separate bodies|no floating third hand/i.test(next)) {
+    if (!solo && !/Cross-person touch|two separate bodies|no floating third hand/i.test(next)) {
       next = `${next} ${INTIMATE_CONTACT_LOCK}`;
     }
   }

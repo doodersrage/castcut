@@ -145,3 +145,105 @@ describe('Rapid duo recipe', () => {
     );
   });
 });
+
+const SOLO_BEATS = [
+  ...Object.values(DAY_SLOT_INTIMATE_BEAT_PRESETS).flat(),
+  ...Object.values(DAY_LATE_SLOT_INTIMATE_BEAT_PRESETS).flat(),
+].filter(isDayIntimateSoloBeat);
+const RAUNCHY_SOLO_BEATS = [
+  ...Object.values(DAY_SLOT_RAUNCHY_BEAT_PRESETS).flat(),
+  ...Object.values(DAY_LATE_SLOT_RAUNCHY_BEAT_PRESETS).flat(),
+].filter(isDayRaunchySoloBeat);
+
+function soloPrompt(
+  beat: string,
+  model: string,
+  dayMood: 'intimate' | 'raunchy' = 'intimate',
+  location = 'bedroom'
+): string {
+  return buildDaySlotPrompt({
+    slot: { ...(nightSlot as object), sceneHints: beat, location } as never,
+    characterName: 'Lana',
+    characterDescriptor: 'white woman in her 30s',
+    hasPlate: true,
+    plateSource: 'cast',
+    poseGuide: true,
+    model,
+    dayMood,
+    intimateMix: 'solo',
+    omitGarment: true,
+    faceOnlyIdentity: true,
+  });
+}
+
+describe('Rapid solo recipe', () => {
+  it('replaces the long solo brief on Rapid with a short, partner-free recipe', () => {
+    for (const [beats, mood] of [
+      [SOLO_BEATS, 'intimate'],
+      [RAUNCHY_SOLO_BEATS, 'raunchy'],
+    ] as const) {
+      for (const beat of beats) {
+        const prompt = soloPrompt(beat, 'qwen-rapid-aio-edit-nsfw', mood);
+        assert.match(prompt, /^Explicit solo photo: One woman alone/, beat);
+        assert.ok(prompt.length < 1400, `${prompt.length}: ${beat}`);
+        assert.doesNotMatch(prompt, /partner|two adults|\bman\b|rear-entry|missionary/i, beat);
+        assert.ok(isRapidDuoRecipePrompt(prompt));
+        // Queue steering must not append its long packs to it either.
+        assert.equal(reinforceIntimateStillPrompt(prompt), prompt);
+      }
+    }
+  });
+
+  it("keeps the beat's own room and names the toy", async () => {
+    const { buildRapidSoloRecipe } = await import('./rapid-duo-recipe');
+    // "kitchen floor … toaster" under a rolled bathroom rendered a bathroom with a toaster.
+    const kitchen = buildRapidSoloRecipe({
+      beat: 'alone on the kitchen floor naked with knees pulled to her chest fingering herself when the toaster pops',
+      setting: 'steamy bathroom with fogged glass and warm tile',
+      timeOfDay: 'morning',
+    })!;
+    assert.match(kitchen, /sits on the kitchen floor/);
+    assert.doesNotMatch(kitchen, /bathroom/);
+    // A bed beat never lands in a bed-less room.
+    assert.doesNotMatch(
+      buildRapidSoloRecipe({
+        beat: 'alone on her back in rumpled morning sheets, both hands between her thighs',
+        setting: 'steamy bathroom with fogged glass and warm tile',
+      })!,
+      /Room:/
+    );
+    assert.match(
+      buildRapidSoloRecipe({
+        beat: 'alone on her back on the bed masturbating',
+        setting: 'dim hotel suite with warm lamp light',
+      })!,
+      /Room: dim hotel suite/
+    );
+    const toy = buildRapidSoloRecipe({
+      beat: 'solo kneeling upright naked after dark — both hands on the base of a dildo, never invent a man',
+      toy: true,
+    })!;
+    assert.match(toy, /Both of her hands hold the base of a realistic silicone dildo/);
+    assert.doesNotMatch(toy, /never|invent a man/);
+    assert.match(
+      buildRapidSoloRecipe({ beat: 'alone face-down on the bed masturbating, hips grinding' })!,
+      /flat on her stomach .* bare back and buttocks up/
+    );
+  });
+
+  it('never stages a partner on a solo beat for other models either', () => {
+    for (const beat of [...SOLO_BEATS, ...RAUNCHY_SOLO_BEATS]) {
+      const out = reinforceIntimateStillPrompt(beat);
+      assert.doesNotMatch(
+        out,
+        /Two adults|rear-entry|Partner's|both adults|missionary position|STANDING upright sex/i,
+        beat
+      );
+    }
+    // "riding her own hand" is not straddling a partner.
+    assert.match(
+      reinforceIntimateStillPrompt('solo kneeling on the sheets masturbating, riding her own hand'),
+      /riding her own hand/
+    );
+  });
+});

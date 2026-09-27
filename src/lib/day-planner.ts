@@ -1,5 +1,5 @@
 import { intimateBeatIsOffBed } from './intimate-prompt-clarify';
-import { buildRapidDuoRecipe } from './rapid-duo-recipe';
+import { buildRapidDuoRecipe, buildRapidSoloRecipe } from './rapid-duo-recipe';
 import { stripNegatedClauses } from './negated-clauses';
 import {
   clampStillHoldSec,
@@ -3005,6 +3005,21 @@ export function buildDaySlotPrompt(input: {
         timeOfDay,
         descriptor,
         poseGuide,
+      });
+      if (recipe) {
+        return recipe;
+      }
+    }
+    // Solo too: the 8–13k solo brief missed prone, toy and hands on Rapid, and its rolled room
+    // overrode the beat's own ("kitchen floor" rendered in a bathroom).
+    if (rapidAio && omitGarment && soloSubject && isDayAdultMood(dayMood)) {
+      const recipe = buildRapidSoloRecipe({
+        beat: hints,
+        setting,
+        timeOfDay,
+        descriptor,
+        poseGuide,
+        toy: dayBeatUsesSoloSexToy(hints),
       });
       if (recipe) {
         return recipe;

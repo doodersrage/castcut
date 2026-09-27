@@ -10,12 +10,21 @@
  * Keep each placement concrete (who lies/sits/stands where, facing which way, what touches
  * what). Do not add "never …" locks: CFG 1 has no negative, and naming a thing summons it.
  */
-import { parseIntimateLayout, type IntimateLayout } from './day-pose-guide';
+import {
+  parseIntimateLayout,
+  resolveSoloMasturbationPoseKind,
+  type IntimateLayout,
+  type SoloMasturbationPoseKind,
+} from './day-pose-guide';
 import { stripNegatedClauses } from './negated-clauses';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
-import { RAPID_DUO_RECIPE_MARK } from './rapid-duo-recipe-mark';
+import { RAPID_DUO_RECIPE_MARK, RAPID_SOLO_RECIPE_MARK } from './rapid-duo-recipe-mark';
 
-export { isRapidDuoRecipePrompt, RAPID_DUO_RECIPE_MARK } from './rapid-duo-recipe-mark';
+export {
+  isRapidDuoRecipePrompt,
+  RAPID_DUO_RECIPE_MARK,
+  RAPID_SOLO_RECIPE_MARK,
+} from './rapid-duo-recipe-mark';
 
 const SURFACE_RE =
   /\b(?:on|onto|against|over|across|in|into|off|at)\s+(?:the|a|an|his|her|their)\s+((?:(?:arm|edge|foot|end)\s+of\s+the\s+(?:bed|couch|sofa|chair))|(?:(?!(?:at|on|in|of|the|a|an|to|by|with)\b)[\w’'-]+\s+){0,2}?(?:bed(?:\s+edge)?|daybed|couch|sofa|armchair|chair|sink|counter|desk|table|wall|floor|rug|shower|window|door|fridge|wardrobe|cabinet|stairs|bench|vanity|dresser|mattress|sheets))\b/i;
@@ -108,6 +117,40 @@ function clothedLine(outfitImage: RecipeImage | null | undefined): string {
 export type RecipeImage = 'second' | 'third';
 
 /**
+ * The planner's room only when the beat names no place of its own — a "kitchen floor … toaster"
+ * beat under a "steamy bathroom" setting rendered a bathroom with a toaster in it.
+ */
+function recipeRoom(
+  beat: string,
+  surface: string | null,
+  setting: string | null | undefined,
+  timeOfDay: string | null | undefined
+): string | null {
+  const beatNamesPlace =
+    Boolean(
+      surface && !/^(?:(?:unmade |rumpled |hotel )?(?:bed|daybed)|bed edge|sheets)$/i.test(surface)
+    ) ||
+    /\b(?:bathroom|kitchen|hallway|hotel|office|laundry|living[- ]room|shower|fridge|car|balcony|elevator|windowsill|couch|sofa|doorway|bathtub|tub)\b/i.test(
+      beat
+    );
+  // A bed beat under a bed-less room ("on her back on the bed" + "steamy bathroom") paints both.
+  const bedBeat = /\b(?:bed|mattress|sheets|pillow)\b/i.test(beat);
+  const roomFits =
+    !bedBeat || /\b(?:bed(?:room)?|hotel|suite|sheets|mattress|motel|cabin)\b/i.test(setting ?? '');
+  if (!beatNamesPlace && roomFits && setting?.trim()) {
+    return `Room: ${setting.trim()}.`;
+  }
+  const light = timeOfDay?.trim();
+  // "Night light." reads as a nightlight; skip it when the beat already names its light.
+  if (!light || new RegExp(`\\b${light}\\s+light\\b`, 'i').test(beat)) {
+    return null;
+  }
+  return /^night$/i.test(light)
+    ? 'Night-time, lamp light.'
+    : `${light[0]!.toUpperCase()}${light.slice(1)} light.`;
+}
+
+/**
  * Compact Rapid duo prompt, or null when the beat has no drawable two-person layout
  * (afterglow / undress / generic) — callers keep the full brief then.
  */
@@ -138,19 +181,7 @@ export function buildRapidDuoRecipe(input: {
   if (!body) {
     return null;
   }
-  const beatNamesPlace =
-    Boolean(
-      surface && !/^(?:(?:unmade |rumpled |hotel )?(?:bed|daybed)|bed edge|sheets)$/i.test(surface)
-    ) ||
-    /\b(?:bathroom|kitchen|hallway|hotel|office|laundry|living[- ]room|shower|fridge|car|balcony|elevator)\b/i.test(
-      beat
-    );
-  const room =
-    !beatNamesPlace && input.setting?.trim()
-      ? `Room: ${input.setting.trim()}.`
-      : input.timeOfDay?.trim()
-        ? `${input.timeOfDay.trim()[0]!.toUpperCase()}${input.timeOfDay.trim().slice(1)} light.`
-        : null;
+  const room = recipeRoom(beat, surface, input.setting, input.timeOfDay);
   return [
     RAPID_DUO_RECIPE_MARK,
     body,
@@ -200,4 +231,139 @@ export function buildStoryRapidDuoRecipe(input: {
     // The encoder packs images in order — no packshot means the guide is the second image.
     poseGuide: input.hasPoseGuide ? (outfitImage ? 'third' : 'second') : false,
   });
+}
+
+/** Where her body is, per solo stance — the same stances the solo pose guide draws. */
+function soloPlacement(
+  kind: SoloMasturbationPoseKind,
+  beat: string,
+  surface: string | null
+): string {
+  const on = (fallback: string) => `the ${surface ?? fallback}`;
+  if (/\bwindowsill\b/i.test(beat)) {
+    return 'She sits on the windowsill with her back against the window frame, thighs apart, facing the camera.';
+  }
+  // Places the stance table has no furniture for — say them, or the bed fallback wins.
+  if (/\bbath(?:tub)?\b/i.test(beat) && !/\bbathroom\b/i.test(beat)) {
+    return 'She sits in a bathtub full of bubbles, leaning back, one knee hooked over the rim, facing the camera.';
+  }
+  if (/\blaundry\b/i.test(beat)) {
+    return 'She lies face-down on a pile of clean laundry and towels on the floor, hips pressed into it, face turned toward the camera.';
+  }
+  if (/\bfridge\b/i.test(beat)) {
+    return 'She stands at the open fridge in its light, one foot up on the crisper drawer, facing the camera.';
+  }
+  if (/\bminibar\b/i.test(beat)) {
+    return 'She leans back against the hotel minibar, hips at its edge, thighs apart, facing the camera.';
+  }
+  if (/\bkitchen\s+floor\b/i.test(beat)) {
+    return 'She sits on the kitchen floor, leaning back against the cabinets, knees pulled up and apart, facing the camera.';
+  }
+  if (/\b(?:astride|straddl\w*)\s+(?:a\s+)?pillow\b/i.test(beat)) {
+    return 'She kneels astride a pillow on the bed, grinding her hips down onto it, facing the camera.';
+  }
+  switch (kind) {
+    case 'on_back':
+      return `She lies on her back on ${on('bed')}, head on the pillow, knees bent and thighs spread wide.`;
+    case 'side_lying':
+      return `She lies on her side on ${on('bed')}, bottom leg straight and top knee raised high, facing the camera.`;
+    case 'prone':
+      // Live 2026-09-27: "face-down … cheek on the pillow" rendered her on her back 3/3 (the
+      // side-view guide can't say which way she faces); naming back-up/breasts-down got 3/4.
+      return `She lies stretched out flat on her stomach on ${on('bed')}, legs straight out behind her, her whole body flat on the mattress, seen from the side: her bare back and buttocks up, her breasts pressed into the sheets, her hips pressing down into the mattress, her head on the pillow turned to the side.`;
+    case 'kneeling':
+      return `She kneels upright on ${on('bed')} with her knees apart and her torso straight up, facing the camera.`;
+    case 'all_fours':
+      return /\bbent\s+over\b/i.test(beat)
+        ? `She stands bent forward over ${on('foot of the bed')}, chest down on it and hips pushed back toward the camera, looking back over her shoulder.`
+        : `She is on all fours on ${on('bed')}, hips raised high toward the camera, looking back over her shoulder.`;
+    case 'standing':
+      return /\bwall\b/i.test(beat)
+        ? `She stands with her back against ${on('wall')}, one knee bent, facing the camera.`
+        : /\bshower\b/i.test(beat)
+          ? 'She stands in the shower with one foot up on the ledge, facing the camera.'
+          : 'She stands upright with one knee bent, facing the camera.';
+    case 'lean':
+      return /\bsink\b/i.test(beat)
+        ? 'She sits on the edge of the bathroom sink, leaning back against the mirror, thighs apart, facing the camera.'
+        : `She leans back against ${on('counter')}, hips at its edge, thighs apart, facing the camera.`;
+    case 'seated':
+    default:
+      return `She sits on ${on('bed edge')}, leaning back on one hand with her thighs spread, facing the camera.`;
+  }
+}
+
+/** Her hands, in the beat's own count — "both hands between her thighs" must not get a breast. */
+function soloHands(beat: string, toy: boolean): string {
+  if (toy) {
+    return /\bone\s+hand\b/i.test(beat)
+      ? 'One hand is braced on the bed; the other pushes a realistic silicone dildo into her vagina.'
+      : 'Both of her hands hold the base of a realistic silicone dildo that is inside her vagina.';
+  }
+  if (/\bboth\s+hands\b/i.test(beat)) {
+    return 'Both of her hands are between her thighs, her fingers on her vulva.';
+  }
+  if (/\bfist\s+in\s+the\s+sheets\b/i.test(beat)) {
+    return 'One hand is between her thighs with her fingers on her vulva; the other hand grips the sheets.';
+  }
+  if (/\breach(?:es|ing)?\s+back\b/i.test(beat)) {
+    return 'One hand reaches back between her thighs, her fingers on her vulva; the other is braced on the bed.';
+  }
+  return 'One hand is between her thighs with her fingers on her vulva; the other hand rests on her breast.';
+}
+
+/**
+ * Compact solo self-touch recipe for Rapid AIO Edit (NSFW) Day stills — the solo twin of
+ * {@link buildRapidDuoRecipe}. The 8–13k solo brief missed prone, dildo and hands on Rapid
+ * (live 2026-09-27); the duo lesson is the same: say where the body is, plainly, once.
+ */
+export function buildRapidSoloRecipe(input: {
+  beat: string | null | undefined;
+  setting?: string | null;
+  timeOfDay?: string | null;
+  descriptor?: string | null;
+  /** Pose map attached — `true` means the second encoder image. */
+  poseGuide?: boolean | RecipeImage;
+  /** Beat names a dildo / vibrator. */
+  toy?: boolean;
+}): string | null {
+  const raw = input.beat?.trim();
+  if (!raw) {
+    return null;
+  }
+  // Negated locks ("never both hands flat on the sill") summon what they name at CFG 1, and
+  // "Cast" is app vocabulary, not a word the image model knows.
+  const beat = stripNegatedClauses(raw)
+    .replace(/\bCast\s+alone\b/gi, 'alone')
+    .replace(/\s+([,;])/g, '$1')
+    .replace(/([,;—-])(?:\s*[,;—-])+/g, '$1')
+    .replace(/[\s,;—-]+$/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  const surface = rapidDuoSurface(beat);
+  const kind = resolveSoloMasturbationPoseKind(beat);
+  const ownGaze =
+    kind === 'all_fours' ||
+    /\b(?:looking\s+(?:back|up)|over\s+(?:her|a)\s+shoulder|head\s+tipped\s+back|eyes|biting)\b/i.test(
+      beat
+    );
+  return [
+    RAPID_SOLO_RECIPE_MARK,
+    'One woman alone, masturbating.',
+    soloPlacement(kind, beat, surface),
+    soloHands(beat, input.toy === true),
+    ownGaze ? null : 'Eyes half-closed, looking down at her body.',
+    `Moment: ${beat}.`,
+    recipeRoom(beat, surface, input.setting, input.timeOfDay),
+    'She is completely nude — bare breasts with nipples visible and bare vulva; zero fabric on her body.',
+    input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
+    'Keep her face from the first image.',
+    input.poseGuide
+      ? `Match her body to the ${input.poseGuide === true ? 'second' : input.poseGuide} image (pose map).`
+      : null,
+    'Photorealistic photograph, natural skin.',
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\.\./g, '.');
 }
