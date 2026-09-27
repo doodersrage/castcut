@@ -1,3 +1,4 @@
+import { stripNegatedClauses } from './negated-clauses';
 import {
   clampStillHoldSec,
   DEFAULT_STILL_HOLD_SEC,
@@ -205,7 +206,8 @@ const DAY_INTIMATE_SOLO_BEAT_RE =
 
 /** True when an intimate beat preset is solo / one-adult only. */
 export function isDayIntimateSoloBeat(text: string): boolean {
-  return DAY_INTIMATE_SOLO_BEAT_RE.test(text.trim());
+  // "never Cast alone" is a duo lock, not a solo beat.
+  return DAY_INTIMATE_SOLO_BEAT_RE.test(stripNegatedClauses(text.trim()));
 }
 
 /** Intimate beat presets for a slot filtered by solo / duo / mixed mix. */
@@ -252,10 +254,13 @@ export function isDayRaunchySoloBeat(text: string): boolean {
     return false;
   }
   // Solo chip = nude self-touch comedy — clothed flash softcore is Mixed-only.
-  if (DAY_RAUNCHY_SELF_TOUCH_RE.test(trimmed)) {
+  const affirmative = stripNegatedClauses(trimmed);
+  if (DAY_RAUNCHY_SELF_TOUCH_RE.test(affirmative)) {
     return true;
   }
-  return DAY_RAUNCHY_SOLO_BEAT_RE.test(trimmed) && /\b(naked|nude|fully nude)\b/i.test(trimmed);
+  return (
+    DAY_RAUNCHY_SOLO_BEAT_RE.test(affirmative) && /\b(naked|nude|fully nude)\b/i.test(affirmative)
+  );
 }
 
 /** Filter raunchy comedy presets by Solo / Duo / Mixed (same chips as Intimate). */

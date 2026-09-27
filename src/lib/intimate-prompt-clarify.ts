@@ -5,6 +5,7 @@
  * Patterns are sexual-context only — weather like "rain-slick asphalt" is left alone.
  */
 
+import { stripNegatedClauses } from './negated-clauses';
 import { softenQwenRapidNudeSafetyTriggers } from '@/lib/qwen-rapid-nude-edit';
 
 type ClarifyRule = {
@@ -1278,7 +1279,8 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
         next = `${next} Partner's other hand is between the lead's thighs / on genitals — not only on the waist or mirror.`;
       }
     }
-    if (/\b(mirror|glass\s+doors?|neon|elevator)\b/i.test(next)) {
+    // Negated mentions ("never … neon gels" in the lighting lock) aren't an elevator scene.
+    if (/\b(mirror|glass\s+doors?|neon|elevator)\b/i.test(stripNegatedClauses(next))) {
       if (!/\bKeep the named room mirrors|glass elevator|elevator cab/i.test(next)) {
         next = `${next} Keep mirrored walls and glass elevator doors with city neon visible — do not replace them with a plain metal box.`;
       }

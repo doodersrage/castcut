@@ -16,6 +16,7 @@ import {
   intimateTextImpliesSurfaceBent,
   intimateTextImpliesStandingRear,
 } from '@/lib/intimate-prompt-clarify';
+import { stripNegatedClauses } from '@/lib/negated-clauses';
 import {
   drawOpenPoseFigures,
   drawOpenPosePeople,
@@ -655,7 +656,7 @@ export function countPoseGuidePeople(text: string | null | undefined): number {
 
 /** Standing press against a wall / glass / door (the `wall` layout). */
 const WALL_PRESS_RE =
-  /\b(against\s+(?:the\s+)?(?:[\w'-]+\s+){0,4}(?:wall|glass|window|door|fridge|refrigerator|mirror)|wall\s+(?:sex|fuck|pin)|rear\s+wall\s+press|wall\s+press|pinned\s+against|press(?:es|ed|ing)?\s+(?:her|him|them)\s+(?:back|against)|lean(?:s|ing)?\s+against.{0,48}wall|elevator\s+(?:sex|fuck|wall)|glass\s+elevator)\b/i;
+  /\b(against\s+(?:the\s+)?(?:[\w'-]+\s+){0,4}(?:wall|glass|window|door|fridge|refrigerator|mirror|counter)|wall\s+(?:sex|fuck|pin)|rear\s+wall\s+press|wall\s+press|pinned\s+against|press(?:es|ed|ing)?\s+(?:her|him|them)\s+(?:back|against)|lean(?:s|ing)?\s+against.{0,48}wall|elevator\s+(?:sex|fuck|wall)|glass\s+elevator)\b/i;
 
 /** Wording that makes a body fold forward (bent layout) even when a wall is named. */
 const BENT_BODY_RE =
@@ -667,7 +668,9 @@ const BENT_BODY_RE =
  * More specific cues win; order matters.
  */
 export function parseIntimateLayout(text: string | null | undefined): IntimateLayout | null {
-  const haystack = text?.trim() || '';
+  // Negated clauses are prompt boilerplate, not the pose — Day's duo suffix says "never solo Cast"
+  // and the solo check (deliberately early) turned every duo beat into solo → missionary.
+  const haystack = stripNegatedClauses(text?.trim() || '').trim();
   if (!haystack) {
     return null;
   }
@@ -4856,7 +4859,7 @@ type LeadPosture = 'stand' | 'lie' | 'sit' | 'kneel';
  */
 export function textLeadPosture(text: string | null | undefined): LeadPosture | null {
   // Negated clauses are prompt boilerplate ("not a standing fashion portrait"), not the pose.
-  const sample = (text?.trim() || '').replace(/\b(?:not|never|no|without)\b[^.,;:—\n]*/gi, ' ');
+  const sample = stripNegatedClauses(text?.trim() || '').replace(/\bwithout\b[^.,;:—\n]*/gi, ' ');
   if (!sample.trim()) return null;
   const found = new Set<LeadPosture>();
   if (

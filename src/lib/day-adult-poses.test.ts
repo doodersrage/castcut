@@ -69,3 +69,43 @@ describe('adult Day poses', () => {
     assert.ok(swapped.figures[0]!.pelvis.y > swapped.figures[1]!.pelvis.y);
   });
 });
+
+describe('negated locks do not steer adult Day poses', () => {
+  it('keeps each duo beat on its own layout through the planner\'s "never solo" suffix', async () => {
+    const { planDaySlotPose } = await import('./day-slot-pose');
+    const { resolveSceneGuidePlan } = await import('./day-pose-guide');
+    const cases: Array<[string, string]> = [
+      ['oral sex on her at the edge of the bed, partner kneeling between her thighs — both adults fully visible', 'oral'],
+      ['lifted onto a partner mid-sex, legs wrapped around his waist — both adults fully visible', 'lift'],
+      ['lying face-down across the bed mid-sex with a partner stretched along her back', 'prone'],
+      ['on hands and knees on the kitchen counter mid-sex with a partner', 'bent'],
+    ];
+    for (const [beat, layout] of cases) {
+      const plan = planDaySlotPose({
+        slot: { id: 'morning', sceneHints: beat, location: 'hotel' } as never,
+        dayMood: 'raunchy',
+        intimateMix: 'duo',
+        allowCompanions: true,
+      });
+      const { intent } = resolveSceneGuidePlan(plan.sceneText, 0, { ...plan.options, openPose: true });
+      assert.equal(intent.intimate, layout, beat);
+    }
+  });
+
+  it('does not call a partner beat solo because it says "never Cast alone"', () => {
+    assert.equal(
+      isDayIntimateSoloBeat('partner mid-sex against the counter — Cast and partner both fully visible, never Cast alone'),
+      false
+    );
+    assert.equal(isDayIntimateSoloBeat('alone on her back touching herself, never invent a partner'), true);
+  });
+
+  it('does not add the glass-elevator line for a negated "neon"', async () => {
+    const { reinforceIntimateStillPrompt } = await import('./intimate-prompt-clarify');
+    const prompt = reinforceIntimateStillPrompt(
+      'Two adults mid-sex on the bed, both fully nude. LIGHTING: natural lamp light only — never cyan or magenta neon gels.'
+    );
+    assert.doesNotMatch(prompt, /glass elevator doors/);
+  });
+});
+
