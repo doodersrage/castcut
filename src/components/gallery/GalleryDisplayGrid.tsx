@@ -139,12 +139,16 @@ function DisplayRowView({
         groupId={row.groupId}
         label={row.label}
         entries={row.entries}
+        groupEntries={row.groupEntries}
+        partStart={row.partStart}
         winnerEntryId={row.winnerEntryId}
         collapsed={row.collapsed}
         onToggle={() => onToggleExperimentGroup?.(row.groupId)}
         onCrown={onCrownExperiment ? entryId => onCrownExperiment(row.groupId, entryId) : undefined}
-        onCompare={onCompareExperiment ? () => onCompareExperiment(row.entries) : undefined}
-        onRequeueSeeds={onRequeueExperiment ? () => onRequeueExperiment(row.entries) : undefined}
+        onCompare={onCompareExperiment ? () => onCompareExperiment(row.groupEntries) : undefined}
+        onRequeueSeeds={
+          onRequeueExperiment ? () => onRequeueExperiment(row.groupEntries) : undefined
+        }
         onWinnerUpscale={onWinnerUpscale}
         onWinnerRefine={onWinnerRefine}
         onWinnerContinue={onWinnerContinue}

@@ -19,7 +19,12 @@ export type GalleryExperimentRow = {
   kind: 'experiment';
   groupId: string;
   label: string;
+  /** Members shown in this block — a page-sized part when the group spans several pages. */
   entries: ComfyGalleryEntry[];
+  /** The whole group, for compare / re-queue / winner lookups from any part. */
+  groupEntries: ComfyGalleryEntry[];
+  /** 1-based position of `entries[0]` within `groupEntries`. */
+  partStart: number;
   winnerEntryId?: string;
   collapsed: boolean;
 };
@@ -33,19 +38,16 @@ export type BuildGalleryDisplayRowsOptions = {
 };
 
 /**
- * Both `buildGalleryDisplayRows` and `paginateGalleryEntriesWithGroups` treat `group.entries[0]`
- * as a group's "anchor" — the one member whose position in `sortedSource` decides which single
- * page the whole group renders on. That's only reliable if `entries[0]` actually IS the member
+ * `paginateGalleryEntriesWithGroups` treats `group.entries[0]` as a group's "anchor" — the one
+ * member whose position in `sortedSource` decides where the group (or its first part) lands. That's only reliable if `entries[0]` actually IS the member
  * that appears earliest when walking `sortedSource` in its real order.
  *
  * `groupGalleryExperiments` already preserves `sortedSource`'s order, but `groupGalleryQueueRuns`
  * sorts its own `entries` ascending by `queuedAt` (oldest first) to detect clustering windows —
  * the opposite of `sortedSource`'s default newest-first order. Left uncorrected, a run-group's
  * "anchor" would be its OLDEST member, which `sortedSource` walks past LAST rather than first.
- * `buildGalleryDisplayRows` still claims (hides) every member on every page regardless of where
- * the anchor lands, so with the wrong anchor the block renders once on some far-later page while
- * claiming its members away from every page before that — which, watched from any earlier page,
- * looks exactly like the block being "stuck" since page 1.
+ * With the wrong anchor the block lands on some far-later page instead of where its newest member
+ * sorts.
  *
  * Call this once, right after combining groups from any mix of grouping functions, before handing
  * them to `buildGalleryDisplayRows` or `paginateGalleryEntriesWithGroups`. It's a no-op for a
@@ -80,33 +82,31 @@ export function buildGalleryDisplayRows(
   const experimentByAnchorId = new Map<string, GalleryExperimentRow>();
 
   if (experimentGroups?.length) {
-    const visibleById = new Map(visibleEntries.map(entry => [entry.id, entry]));
+    const visibleIds = new Set(visibleEntries.map(entry => entry.id));
     for (const group of experimentGroups) {
       if (group.entries.length < 2) {
         continue;
       }
-      // Every member is claimed on every page — including ones that fall on a page other
-      // than where the block itself renders — so a group split across a pagination boundary
-      // never leaks a stray, ungrouped single-entry card on its "other" page.
+      // Every member is claimed on every page, so a member that is not on this page never
+      // leaks through as a stray ungrouped card.
       for (const entry of group.entries) {
         claimedByExperiment.add(entry.id);
       }
-      // `group.entries` preserves the caller's sort order (newest-first), so entries[0] is
-      // the group's newest member and, in practice, the page a user would expect the block
-      // to live on. Anchoring the block to that one page — and rendering ALL of the group's
-      // entries there rather than only the subset present in this page's `visibleEntries` —
-      // is what keeps the same experiment from rendering again on the next page whenever its
-      // members straddle a pagination boundary (which they often do, since best-of-N/variant
-      // runs are generated in a tight burst and land right at a page's edge).
-      const anchor = group.entries[0];
-      if (!anchor || !visibleById.has(anchor.id)) {
+      // Render only the members on this page. `paginateGalleryEntriesWithGroups` keeps a group
+      // contiguous and whole when it fits on a page, and splits an oversized group into
+      // page-sized parts — each part renders as its own block on its own page.
+      const shown = group.entries.filter(entry => visibleIds.has(entry.id));
+      const anchor = shown[0];
+      if (!anchor) {
         continue;
       }
       experimentByAnchorId.set(anchor.id, {
         kind: 'experiment',
         groupId: group.id,
         label: group.label,
-        entries: group.entries,
+        entries: shown,
+        groupEntries: group.entries,
+        partStart: group.entries.indexOf(anchor) + 1,
         winnerEntryId: winners[group.id]?.entryId,
         collapsed: collapsedExperimentGroups.has(group.id),
       });
@@ -190,17 +190,15 @@ export type GalleryPaginationResult = {
   rangeEnd: number;
 };
 
-type GalleryPagePlan = {
-  dedupedSource: ComfyGalleryEntry[];
-  pages: ComfyGalleryEntry[][];
-  anchorGroupEntries: Map<string, ComfyGalleryEntry[]>;
-};
+/** An oversized group never opens a part smaller than this at the bottom of a page. */
+const MIN_SPLIT_PART = 2;
 
 function planGalleryPagesWithGroups(
   sortedSource: readonly ComfyGalleryEntry[],
   experimentGroups: ExperimentGroup[] | null | undefined,
   pageSize: number
-): GalleryPagePlan {
+): { dedupedSource: ComfyGalleryEntry[]; pages: ComfyGalleryEntry[][] } {
+  const safePageSize = Math.max(1, pageSize);
   const seenIds = new Set<string>();
   const dedupedSource: ComfyGalleryEntry[] = [];
   for (const entry of sortedSource) {
@@ -211,7 +209,6 @@ function planGalleryPagesWithGroups(
     dedupedSource.push(entry);
   }
 
-  const anchorWeight = new Map<string, number>();
   const nonAnchorMemberOf = new Set<string>();
   const anchorGroupEntries = new Map<string, ComfyGalleryEntry[]>();
 
@@ -224,7 +221,6 @@ function planGalleryPagesWithGroups(
       if (!anchor) {
         continue;
       }
-      anchorWeight.set(anchor.id, group.entries.length);
       anchorGroupEntries.set(anchor.id, group.entries);
       for (const member of group.entries) {
         if (member.id !== anchor.id) {
@@ -234,54 +230,57 @@ function planGalleryPagesWithGroups(
     }
   }
 
-  const planned: Array<{ slot: ComfyGalleryEntry; weight: number }> = [];
+  const pages: ComfyGalleryEntry[][] = [];
+  let current: ComfyGalleryEntry[] = [];
+  const flush = () => {
+    if (current.length > 0) {
+      pages.push(current);
+      current = [];
+    }
+  };
+
   for (const entry of dedupedSource) {
     if (nonAnchorMemberOf.has(entry.id)) {
       continue;
     }
-    planned.push({ slot: entry, weight: anchorWeight.get(entry.id) ?? 1 });
-  }
-
-  const pages: ComfyGalleryEntry[][] = [];
-  let current: ComfyGalleryEntry[] = [];
-  let currentWeight = 0;
-  for (const { slot, weight } of planned) {
-    if (current.length > 0 && currentWeight + weight > pageSize) {
-      pages.push(current);
-      current = [];
-      currentWeight = 0;
+    const unit = anchorGroupEntries.get(entry.id) ?? [entry];
+    if (unit.length <= safePageSize) {
+      // A group that fits on one page stays whole: move it to the next page rather than split.
+      if (current.length + unit.length > safePageSize) {
+        flush();
+      }
+      current.push(...unit);
+      continue;
     }
-    current.push(slot);
-    currentWeight += weight;
-  }
-  if (current.length > 0 || pages.length === 0) {
-    pages.push(current);
-  }
-
-  return { dedupedSource, pages, anchorGroupEntries };
-}
-
-function expandPageSlots(
-  pageSlots: readonly ComfyGalleryEntry[],
-  anchorGroupEntries: Map<string, ComfyGalleryEntry[]>
-): ComfyGalleryEntry[] {
-  const items: ComfyGalleryEntry[] = [];
-  for (const slot of pageSlots) {
-    const expanded = anchorGroupEntries.get(slot.id);
-    if (expanded) {
-      items.push(...expanded);
-    } else {
-      items.push(slot);
+    // A group larger than a page flows across pages in page-sized parts, so every page holds
+    // exactly `pageSize` entries instead of one oversized block swallowing the page size.
+    if (safePageSize - current.length < Math.min(MIN_SPLIT_PART, safePageSize)) {
+      flush();
+    }
+    let offset = 0;
+    while (offset < unit.length) {
+      if (current.length >= safePageSize) {
+        flush();
+      }
+      const take = safePageSize - current.length;
+      current.push(...unit.slice(offset, offset + take));
+      offset += take;
     }
   }
-  return items;
+  flush();
+  if (pages.length === 0) {
+    pages.push([]);
+  }
+
+  return { dedupedSource, pages };
 }
 
 /**
- * Like a plain flat-index `entries.slice(...)` pagination, but treats each qualifying experiment
- * group as an indivisible unit anchored at its newest member's position (matching
- * `buildGalleryDisplayRows`'s own anchor rule) instead of letting a page boundary fall in the
- * middle of it.
+ * Like a plain flat-index `entries.slice(...)` pagination, but pulls each qualifying experiment
+ * group together at its newest member's position. A group that fits on a page is an indivisible
+ * unit (a page boundary never falls in the middle of it); a group larger than `pageSize` is split
+ * into page-sized parts that paginate like everything else, and `buildGalleryDisplayRows` renders
+ * each part as its own block.
  *
  * Without this, index-based pagination has no idea a group's other members are about to get
  * pulled onto a different page by `buildGalleryDisplayRows` — so once two or more sizeable
@@ -289,8 +288,7 @@ function expandPageSlots(
  * index range that would have belonged to the next page can end up "claimed" by those groups'
  * non-anchor members, leaving that page completely empty even though later pages still have
  * unclaimed content. This plans page boundaries around each group's true size up front so that
- * never happens: a page's budget accounts for a group as `group.entries.length` slots, and a
- * group that's larger than `pageSize` still gets a page entirely to itself rather than splitting.
+ * never happens.
  *
  * `sortedSource` is expected to contain each entry id at most once, but upstream merge/sync/poll
  * gaps have been known to hand this function the same id twice (e.g. a still-in-flight entry that
@@ -307,7 +305,7 @@ export function paginateGalleryEntriesWithGroups(
   page: number,
   pageSize: number
 ): GalleryPaginationResult {
-  const { dedupedSource, pages, anchorGroupEntries } = planGalleryPagesWithGroups(
+  const { dedupedSource, pages } = planGalleryPagesWithGroups(
     sortedSource,
     experimentGroups,
     pageSize
@@ -315,31 +313,22 @@ export function paginateGalleryEntriesWithGroups(
 
   const totalPages = pages.length;
   const safePage = Math.min(Math.max(page, 1), totalPages);
-  const pageSlots = pages[safePage - 1] ?? [];
-  const items = expandPageSlots(pageSlots, anchorGroupEntries);
+  const items = pages[safePage - 1] ?? [];
 
-  // Weighted pages rarely hold `pageSize` entries (a 33-variant experiment is one page).
-  // Flat `(page-1)*pageSize` math lies in the paginator — count real expanded lengths instead.
-  const pageLengths = pages.map(slots => {
-    let length = 0;
-    for (const slot of slots) {
-      length += anchorGroupEntries.get(slot.id)?.length ?? 1;
-    }
-    return length;
-  });
+  // Whole groups can leave a page short of `pageSize` — count real page lengths instead of
+  // flat `(page-1)*pageSize` math.
   let itemsBefore = 0;
   for (let index = 0; index < safePage - 1; index += 1) {
-    itemsBefore += pageLengths[index] ?? 0;
+    itemsBefore += pages[index]?.length ?? 0;
   }
-  const pageItemCount = pageLengths[safePage - 1] ?? 0;
 
   return {
     items,
     page: safePage,
     totalPages,
     totalItems: dedupedSource.length,
-    rangeStart: pageItemCount === 0 ? 0 : itemsBefore + 1,
-    rangeEnd: itemsBefore + pageItemCount,
+    rangeStart: items.length === 0 ? 0 : itemsBefore + 1,
+    rangeEnd: itemsBefore + items.length,
   };
 }
 
@@ -350,18 +339,9 @@ export function pageForGalleryEntryWithGroups(
   entryId: string,
   pageSize: number
 ): number {
-  const { pages, anchorGroupEntries } = planGalleryPagesWithGroups(
-    sortedSource,
-    experimentGroups,
-    pageSize
-  );
-  for (let index = 0; index < pages.length; index += 1) {
-    const items = expandPageSlots(pages[index] ?? [], anchorGroupEntries);
-    if (items.some(entry => entry.id === entryId)) {
-      return index + 1;
-    }
-  }
-  return 1;
+  const { pages } = planGalleryPagesWithGroups(sortedSource, experimentGroups, pageSize);
+  const index = pages.findIndex(items => items.some(entry => entry.id === entryId));
+  return index < 0 ? 1 : index + 1;
 }
 
 export function countGalleryDisplayEntries(rows: readonly GalleryDisplayRow[]): number {

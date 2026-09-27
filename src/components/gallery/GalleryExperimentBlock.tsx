@@ -9,7 +9,12 @@ import GalleryExperimentCardGrid from '@/components/gallery/GalleryExperimentCar
 type GalleryExperimentBlockProps = {
   groupId: string;
   label: string;
+  /** Members on this page — a part of the group when it spans several pages. */
   entries: ComfyGalleryEntry[];
+  /** The whole group; defaults to `entries`. */
+  groupEntries?: ComfyGalleryEntry[];
+  /** 1-based position of `entries[0]` within `groupEntries`. */
+  partStart?: number;
   winnerEntryId?: string;
   collapsed: boolean;
   onToggle: () => void;
@@ -28,6 +33,8 @@ type GalleryExperimentBlockProps = {
 export default function GalleryExperimentBlock({
   label,
   entries,
+  groupEntries = entries,
+  partStart = 1,
   winnerEntryId,
   collapsed,
   onToggle,
@@ -44,8 +51,15 @@ export default function GalleryExperimentBlock({
 }: GalleryExperimentBlockProps) {
   const collapsedPreview = entries.find(entry => entry.id === winnerEntryId) ?? entries[0];
   const shown = collapsed ? (collapsedPreview ? [collapsedPreview] : []) : entries;
-  const paramDiffChips = useMemo(() => formatExperimentParamDiffChips(entries), [entries]);
-  const winner = winnerEntryId ? (entries.find(entry => entry.id === winnerEntryId) ?? null) : null;
+  const paramDiffChips = useMemo(
+    () => formatExperimentParamDiffChips(groupEntries),
+    [groupEntries]
+  );
+  const winner = winnerEntryId
+    ? (groupEntries.find(entry => entry.id === winnerEntryId) ?? null)
+    : null;
+  const isPart = entries.length < groupEntries.length;
+  const partEnd = partStart + entries.length - 1;
   const showWinnerActions = Boolean(
     winner && (onWinnerUpscale || onWinnerRefine || onWinnerContinue)
   );
@@ -61,7 +75,8 @@ export default function GalleryExperimentBlock({
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
         <div className="min-w-0 space-y-1">
           <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--tint-info-text)]">
-            Experiment · {entries.length} variants
+            Experiment · {groupEntries.length} variants
+            {isPart ? ` · showing ${partStart}–${partEnd}` : ''}
             {winnerEntryId ? ' · crowned' : ''}
           </p>
           <p className="truncate text-xs text-[var(--text-secondary)]" title={label}>
