@@ -53,6 +53,7 @@ import {
   storyIntimateSnofsStrengthOverrides,
   storyStillPromptSource,
   withStoryEverydayWardrobe,
+  keepFirstStoryTake,
   storyStillRetryQueueParamsBase,
   rollRoleplaySetting,
   ROLEPLAY_SETTING_PRESETS,
@@ -464,6 +465,19 @@ describe('roleplay parsers', () => {
     assert.equal(
       withStoryEverydayWardrobe('She lies on the car hood in a cotton nightgown.'),
       'She lies on the car hood in a cotton nightgown.'
+    );
+    // A rambling writer's second take restarts on the name — keep take one only.
+    const rambling =
+      'Lana stands in the terminal hallway, arms wrapped around her best friend as they both laugh. Warm light spills through high windows. Lana leans into a playful shoulder bump, one foot planted near a suitcase. Lana spins her friend in a circle.';
+    assert.equal(
+      keepFirstStoryTake(rambling, 'Lana'),
+      'Lana stands in the terminal hallway, arms wrapped around her best friend as they both laugh. Warm light spills through high windows.'
+    );
+    const single = "Lana kneels in the flower bed. Lana's gloves are caked in dirt.";
+    assert.equal(keepFirstStoryTake(single, 'Lana'), single);
+    assert.equal(
+      keepFirstStoryTake(`${'She sits on the stoop with lemonade, laughing at the neighbor. '.repeat(3)}\n\nTake two.`),
+      'She sits on the stoop with lemonade, laughing at the neighbor. '.repeat(3).trim()
     );
     const snofsDip = storyIntimateSnofsStrengthOverrides({
       beat: { blurb: doggyBlurb },

@@ -119,6 +119,39 @@ export function poseLayoutCueLine(layout: string | null | undefined): string {
   return cue ? `POSE DETAIL (as Image 3 shows): ${cue}.` : '';
 }
 
+/**
+ * Plain postures Rapid Edit keeps getting wrong from the stick figure alone — spelled out on every
+ * still, not learned from pose scores (DWPose can't tell a kneel from a crouch reliably).
+ * Live 2026-09-27: "kneels in the flower bed" rendered as a squat on both seeds.
+ */
+const POSTURE_CUES: Record<string, string> = {
+  kneel:
+    'kneeling upright on both knees, knees and shins resting flat on the ground, thighs straight up under the hips, torso upright',
+};
+
+/** Prompt line for a plain posture Rapid misreads, or '' ("kneel:1" → the kneel line). */
+export function postureCueLine(poseKey: string | null | undefined): string {
+  const posture = poseKey?.split(':')[0]?.trim();
+  const cue = posture ? POSTURE_CUES[posture] : undefined;
+  return cue ? `POSE DETAIL (as Image 3 shows): ${cue}.` : '';
+}
+
+/**
+ * Two-person layouts Story always spells out: from the figures alone Rapid squeezed a third face
+ * in behind a hug on 3 of 6 seeds; with the cue, 0 of 6 (live 2026-09-27).
+ */
+export const ALWAYS_CUED_DUO_LAYOUTS: ReadonlySet<string> = new Set([
+  'hug',
+  'dance',
+  'fight',
+  'hold_hands',
+  'piggyback',
+  'high_five',
+  'toast',
+  'head_shoulder',
+  'selfie_duo',
+]);
+
 /** Every layout with a cue (for tests and docs). */
 export const CUED_POSE_LAYOUTS: readonly string[] = Object.keys(POSE_LAYOUT_CUES);
 

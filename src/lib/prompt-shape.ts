@@ -646,6 +646,19 @@ function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+/** Words a scene lead can open on — anything else capitalized is a name ("Lana stands…"). */
+const LOWERCASE_SCENE_LEAD_WORD =
+  /^(?:a|an|the|she|he|they|her|his|their|its|it|this|that|these|those|one|two|three|some|in|on|at|under|inside|outside|with|by|from|beneath|behind|above|across|near|through|during|after|before|as|while|every|each|no|our|my|your)$/i;
+
+function lowerSceneLead(text: string): string {
+  // "Lana stands…" / "Lana, freckled…" — a named subject, not "Red jacket, blue jeans".
+  const lead = /^([A-Z][a-z]+)(?:,|\s+[a-z]+s\b)/.exec(text);
+  if (lead && !LOWERCASE_SCENE_LEAD_WORD.test(lead[1]!)) {
+    return text;
+  }
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
 function impliesMultiImageReferences(input: string): boolean {
   return /\b(figure\s*[12]|picture\s*[12]|image\s*[12]|photo\s*[12])\b/i.test(input);
 }
@@ -692,15 +705,15 @@ export function enforcePromptShapeForProfile(
 
     if (looksLikeTagSoup(text)) {
       const prose = tagSoupToProse(text);
-      return `Replace the scene with ${prose.charAt(0).toLowerCase() + prose.slice(1)}`;
+      return `Replace the scene with ${lowerSceneLead(prose)}`;
     }
 
     if (isSceneDescription(text)) {
-      return `Replace the scene with ${text.charAt(0).toLowerCase() + text.slice(1)}`;
+      return `Replace the scene with ${lowerSceneLead(text)}`;
     }
 
     if (!/^replace\b/i.test(text) && !/^keep\b/i.test(text)) {
-      return `Replace the scene with ${text.charAt(0).toLowerCase() + text.slice(1)}`;
+      return `Replace the scene with ${lowerSceneLead(text)}`;
     }
 
     if (impliesMultiImageReferences(input) && !/\bFigure\s*[12]\b/i.test(text)) {

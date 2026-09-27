@@ -1143,6 +1143,40 @@ export function withStoryEverydayWardrobe(prompt: string, headcount = 1): string
   return `${trimmed}\n${line}`;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * The still writer sometimes runs on with alternate takes of the beat ("Lana stands at the gate…
+ * Lana leans into a shoulder bump… Lana spins her friend…") until it hits the token limit, and the
+ * sentence trim then stitched take 1 to take 2. Keep the first take: stop at a blank line, or at a
+ * later sentence that restarts on the character's name ("Lana stands", not "Lana's hair").
+ */
+export function keepFirstStoryTake(prompt: string, name?: string | null): string {
+  let text = prompt.trim();
+  const paragraphs = text.split(/\n\s*\n/);
+  if (paragraphs.length > 1 && paragraphs[0]!.trim().length >= 120) {
+    text = paragraphs[0]!.trim();
+  }
+  const names = [name?.trim(), name?.trim().split(/\s+/)[0]].filter(
+    (entry, index, all): entry is string =>
+      Boolean(entry && entry.length > 1) && all.indexOf(entry) === index
+  );
+  if (names.length === 0) {
+    return text;
+  }
+  const restart = new RegExp(
+    `[.!?]["”’)]?\\s+(?:${names.map(escapeRegExp).join('|')})(?:,|\\s+[a-z])`,
+    'u'
+  );
+  const match = restart.exec(text);
+  if (!match || match.index < 60) {
+    return text;
+  }
+  return text.slice(0, match.index + 1).trim();
+}
+
 export function normalizeRoleplayIsolateSubject(value: unknown): boolean {
   return value !== false && value !== 'false' && value !== 0;
 }

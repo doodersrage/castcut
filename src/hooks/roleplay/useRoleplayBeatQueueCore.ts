@@ -45,7 +45,13 @@ import { loadPoseGuideControlNetEnabled } from '@/lib/pose-guide-controlnet';
 import { fetchComfyObjectInfoModelsCached } from '@/lib/comfyui-object-info-cache';
 import { mergePickedPose } from '@/lib/day-slot-pose';
 import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play-metrics';
-import { poseLayoutCueLine, poseLimbFixNudge, poseLookLine } from '@/lib/pose-coaching';
+import {
+  ALWAYS_CUED_DUO_LAYOUTS,
+  poseLayoutCueLine,
+  poseLimbFixNudge,
+  poseLookLine,
+  postureCueLine,
+} from '@/lib/pose-coaching';
 import { DEFAULT_MIN_POSE_MATCH, POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { loadPoseLibrary } from '@/lib/pose-library';
@@ -360,12 +366,16 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             comfyUrl,
           }).find(url => url.includes('/api/comfyui/view?')) || undefined;
         // Spell the pose out in words after a pose miss, and always for layouts Edit has a
-        // poor record with (step one before the guide falls back to a plainer pose).
+        // poor record with (step one before the guide falls back to a plainer pose), for
+        // two-person layouts (no extra face in a hug) and for a kneel (Rapid squats otherwise).
         const drawnLayout = poseLayoutFromKey(poseBuild.poseKey);
         const cueLine =
-          drawnLayout && (options?.afterPoseMiss || cuePoseLayouts().has(drawnLayout))
+          (drawnLayout &&
+          (options?.afterPoseMiss ||
+            ALWAYS_CUED_DUO_LAYOUTS.has(drawnLayout) ||
+            cuePoseLayouts().has(drawnLayout))
             ? poseLayoutCueLine(drawnLayout)
-            : '';
+            : '') || postureCueLine(poseBuild.poseKey);
         return {
           cueLine: [cueLine, poseLookLine(beat.poseLook, poseBuild.figureCount)]
             .filter(Boolean)

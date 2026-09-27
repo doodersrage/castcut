@@ -75,6 +75,11 @@ export async function runSpecializedPrompt(options: {
   soloSubject?: boolean;
   enforceMinimum?: boolean;
   postProcessPrompt?: (prompt: string) => string;
+  /**
+   * LLM path only: reshape the cleaned reply before sanitize trims it to the model's sentence
+   * and char limits (e.g. drop the alternate takes a rambling writer appends).
+   */
+  preProcessPrompt?: (prompt: string) => string;
   /** When set, report this model in the result (e.g. selected edit checkpoint). */
   resultModel?: ComfyImageModel;
 }): Promise<ToolGenerateResult> {
@@ -111,8 +116,9 @@ Output ONLY the raw prompt text. No quotes around the whole prompt, labels, mark
       });
 
       const rawPrompt = stripPromptArtifacts(content).trim() || content.trim();
+      const draft = options.preProcessPrompt?.(rawPrompt).trim() || content;
       const prompt = await finalizeSpecializedPrompt(
-        content,
+        draft,
         options.detail,
         options.model,
         options.sanitizeInput ?? '',

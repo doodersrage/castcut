@@ -93,6 +93,15 @@ describe("trimPromptToMaxChars", () => {
 });
 
 describe("sanitizeQwenPrompt", () => {
+  it("trims Rapid Edit prompts at a sentence boundary, never mid-word", () => {
+    const draft =
+      "Lana spins in a sunlit kitchen, a wooden spoon held like a mic. She wears a sparkly neon apron over a striped tee. Flour clouds float around her, one leg kicked high while the other anchors her spin near the sink, bright daylight streaming through the window behind her, catching dust motes in gold rays over the counters and the open cookbook.";
+    const result = sanitizeQwenPrompt(draft, "balanced", "", "qwen-rapid-aio-edit");
+    assert.ok(result.length <= 420, `length ${result.length}`);
+    assert.match(result, /[.!?]$/);
+    assert.match(result, /wooden spoon held like a mic/);
+  });
+
   it("leaves a short single-sentence draft unchanged once padding is stripped back out by compaction (balanced)", () => {
     const draft = "A woman in a red coat walks through the rain.";
     const result = sanitizeQwenPrompt(draft, "balanced", "red coat rain walk", "qwen-image-2512");

@@ -488,6 +488,21 @@ describe("enforcePromptShapeForProfile", () => {
     );
   });
 
+  it("qwen_edit_instruction: keeps a named subject capitalized in the Replace-the-scene lead", () => {
+    assert.equal(
+      enforcePromptShapeForProfile(
+        "Lana kneels in the garden planting tulips.",
+        "qwen_edit_instruction",
+        "positive"
+      ),
+      "Replace the scene with Lana kneels in the garden planting tulips."
+    );
+    assert.match(
+      enforcePromptShapeForProfile("Red jacket, blue jeans, black boots", "qwen_edit_instruction", "positive"),
+      /^Replace the scene with red jacket/
+    );
+  });
+
   it("qwen_edit_instruction: wraps plain non-instructional text into a Replace-the-scene instruction", () => {
     assert.equal(
       enforcePromptShapeForProfile("a red jacket on a mannequin", "qwen_edit_instruction", "positive"),

@@ -24,6 +24,7 @@ import {
   formatRoleplayPoseGuideCue,
   formatRoleplayWardrobeCue,
   isRoleplayAdultContent,
+  keepFirstStoryTake,
   lastRoleplayPlotBeat,
   mergeRoleplaySceneOptions,
   normalizeAvoidedRoleplayNames,
@@ -47,6 +48,7 @@ import {
   type RoleplayTone,
 } from '../roleplay';
 import { runSpecializedPrompt } from './runner';
+import { getDetailLimits } from '../detail-level';
 import { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS, SCENE_POSE_LAYOUT_IDS } from '../day-pose-guide';
 import type { SharedGenerationOptions, ToolGenerateResult } from './types';
 
@@ -551,6 +553,12 @@ export async function generateRoleplayPrompt(
   const adult = isRoleplayAdultContent(content);
   const clarifiedBlurb = adult ? clarifyIntimateImageLanguage(situation.blurb) : situation.blurb;
   const adultStill = (prompt: string) => (adult ? reinforceIntimateStillPrompt(prompt) : prompt);
+  // Rapid Edit keeps ~420 chars: a restated look and a rambling second take pushed the beat's pose
+  // out of the trimmed prompt (live 2026-09-27: "leans against a brick wall" was the dropped line).
+  const { maxChars } = getDetailLimits(options.detail, options.model);
+  const identityLine = hasReferenceImage
+    ? `- Face, hair and body come from the reference image — do not describe them again. Use the name ${bio.name} once.`
+    : `- The SAME character must appear (face, hair, body): ${lookLock}`;
   return runSpecializedPrompt({
     model: options.model,
     detail: options.detail,
@@ -563,9 +571,10 @@ ${settingCue}
 ${wardrobeCue}
 ${poseGuideCue}
 ${adultStillGuard(content)}
-- The SAME character must appear (face, hair, body): ${lookLock}
+${identityLine}
 - Name (${bio.name}) can appear once; do not invent a new cast unless the beat requires one extra figure.
-- Describe the chosen situation as a readable tableau: pose, props, setting, light, bodies, and what they are wearing.${
+- Write ONE take of this beat — never a second version, alternates, or a list. At most ${maxChars} characters, 2–3 sentences.
+- Open with what ${bio.name} is doing and where (this beat's pose and place), then what they are wearing and the props; light last, briefly.${
       hasReferenceImage
         ? isolatedSubject
           ? "\n- This still is img2img from a subject cut-out on white: keep face/hair/body identity, replace clothing with this beat's outfit, fill the white with the beat's environment — do not leave a studio backdrop or the photo's clothes."
@@ -617,6 +626,7 @@ ${
           hasReferenceImage
         )
       ),
+    preProcessPrompt: prompt => keepFirstStoryTake(prompt, bio.name),
     postProcessPrompt: adultStill,
     metadata: {
       tool: 'roleplay',

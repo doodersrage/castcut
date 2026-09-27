@@ -16,6 +16,8 @@ import {
   describePoseLimbMisses,
   formatPoseLimbMisses,
   poseLayoutCue,
+  postureCueLine,
+  ALWAYS_CUED_DUO_LAYOUTS,
   poseLayoutCueLine,
   poseLimbFixNudge,
 } from './pose-coaching';
@@ -43,6 +45,12 @@ describe('pose in words', () => {
     assert.equal(poseLayoutCue('photo'), null);
     assert.equal(poseLayoutCueLine('stand'), '');
     assert.match(poseLayoutCueLine('cook'), /^POSE DETAIL \(as Image 3 shows\): .*stirring/);
+    // Kneel is always spelled out — Rapid squats from the figure alone.
+    assert.match(postureCueLine('kneel:1'), /kneeling upright on both knees/);
+    assert.equal(postureCueLine('crouch:1'), '');
+    for (const layout of ALWAYS_CUED_DUO_LAYOUTS) {
+      assert.ok(poseLayoutCue(layout), layout);
+    }
   });
 
   it('names the limbs to fix on a requeue', () => {

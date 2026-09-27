@@ -141,7 +141,8 @@ function expandPromptToMinChars(
   }
 
   if (profileSkipsProsePadding(profile)) {
-    return text.length > maxChars ? text.slice(0, maxChars).trim() : text;
+    // Sentence/clause boundary — a raw slice left Story stills ending "…behind her, catc".
+    return text.length > maxChars ? trimTextToMaxChars(text.trim(), maxChars) : text;
   }
 
   if (!minChars || text.length >= minChars) {
