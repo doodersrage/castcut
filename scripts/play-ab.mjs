@@ -16,7 +16,8 @@
  *       "square":   { "latent": [1328, 1328] },
  *       "portrait": { "latent": [1104, 1472], "steps": 8,
  *                     "replace": [["old prompt text", "new prompt text"]],
- *                     "inputs": { "900": { "image": "other-plate.png" } } }
+ *                     "inputs": { "900": { "image": "other-plate.png" } },
+ *                     "nodes": { "990": { "class_type": "ImageCrop", "inputs": { ... } } } }
  *     }
  *   }]
  * }
@@ -125,6 +126,10 @@ function applyVariant(graph, variant, seed, prefix) {
     if (hits === 0) {
       throw new Error(`replace: "${find.slice(0, 60)}" not found in any prompt`);
     }
+  }
+  // Whole nodes to add or replace (e.g. a crop in front of a VAEEncode), then input rewires.
+  for (const [nodeId, node] of Object.entries(variant.nodes ?? {})) {
+    next[nodeId] = structuredClone(node);
   }
   for (const [nodeId, inputs] of Object.entries(variant.inputs ?? {})) {
     if (!next[nodeId]) {
