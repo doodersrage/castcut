@@ -40,6 +40,7 @@ import { loadSettingsCache } from './settings-cache';
 import { findComfyWorkflowFile, mergeCustomWorkflowTokens } from './comfyui-workflow-files';
 import { getSelectedWorkflowFileId } from './comfyui-runtime';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
+import { enlargePlayCastPlateLatent } from './play-plate-render-size';
 import { normalizeComposeIdentityKind } from './compose-identity-lock';
 import {
   resolveEffectiveResolutionSizeTier,
@@ -84,6 +85,11 @@ export type ResolveQueueParamsOptions = {
    * to the Lightning compose ladder (used for tiny Fitting Room draft thumbs).
    */
   preserveInputAspect?: boolean;
+  /**
+   * Play stills that use a Cast plate as Image 1. The plate is fitted into the
+   * latent, so raise that canvas when its long edge is below 1536.
+   */
+  castPlateReference?: boolean;
 };
 
 /** Random KSampler seed for a new queue job. */
@@ -173,11 +179,30 @@ function normalizeResolveQueueParamsInput(
     'samplerOverrides' in input ||
     'forceNewSeed' in input ||
     'figurePixelSize' in input ||
-    'preserveInputAspect' in input
+    'preserveInputAspect' in input ||
+    'castPlateReference' in input
   ) {
     return input as ResolveQueueParamsOptions;
   }
   return { base: input as WorkflowParamValues };
+}
+
+function withPlayCastPlateLatent(
+  merged: WorkflowParamValues,
+  model: string,
+  enabled: boolean
+): WorkflowParamValues {
+  if (!enabled) {
+    return merged;
+  }
+  const next = enlargePlayCastPlateLatent(
+    { width: Number(merged.width), height: Number(merged.height) },
+    model
+  );
+  if (!next) {
+    return merged;
+  }
+  return { ...merged, width: String(next.width), height: String(next.height) };
 }
 
 export function resolveQueueParams(
@@ -201,6 +226,7 @@ export function resolveQueueParams(
     forceNewSeed,
     figurePixelSize,
     preserveInputAspect,
+    castPlateReference,
   } = normalizeResolveQueueParamsInput(input);
   const settings = loadQueueParamsSettings();
   const shared = loadSettingsCache().shared;
@@ -518,18 +544,22 @@ export function resolveQueueParams(
       return ensureDistilledSamplerParams(merged, model, presetTier);
     }
 
-    return ensureDistilledSamplerParams(
-      ensureLightningNativeResolutionParams(
-        merged,
+    return withPlayCastPlateLatent(
+      ensureDistilledSamplerParams(
+        ensureLightningNativeResolutionParams(
+          merged,
+          model,
+          isQwenRapidAioModel(model) && !hasInputImage ? 'square' : orientation,
+          isQwenRapidAioModel(model) && !hasInputImage && sizeTier === 'max' ? 'medium' : sizeTier,
+          {
+            preserveInputAspect: preserveInputAspect ?? hasInputImage,
+          }
+        ),
         model,
-        isQwenRapidAioModel(model) && !hasInputImage ? 'square' : orientation,
-        isQwenRapidAioModel(model) && !hasInputImage && sizeTier === 'max' ? 'medium' : sizeTier,
-        {
-          preserveInputAspect: preserveInputAspect ?? hasInputImage,
-        }
+        presetTier
       ),
       model,
-      presetTier
+      castPlateReference === true
     );
   }
 

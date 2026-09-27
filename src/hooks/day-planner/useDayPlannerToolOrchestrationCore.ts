@@ -1119,6 +1119,7 @@ export function useDayPlannerToolOrchestrationCore() {
           ...(hasPlate
             ? {
                 queueTool: 'image-prompt',
+                castPlateReference: true,
                 // Strong turbo rewrite fights face lock on Edit-2511 face-break Day.
                 turboEditStrength:
                   vacationFaceBreak || lightningIdentityPath || everydayPoseUnlock

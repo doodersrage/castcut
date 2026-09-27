@@ -198,6 +198,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
         );
         const promptId = await input.actions.sendComfyUi(finalized, undefined, undefined, {
           ...(queueOptions ?? {}),
+          ...(queueOptions ? { castPlateReference: true } : {}),
           ...identityFields,
           ...(garmentExtras
             ? {

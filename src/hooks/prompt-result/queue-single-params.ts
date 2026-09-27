@@ -53,6 +53,7 @@ export async function buildQueueSingleParams(input: {
     preserveInputAspect: options?.preserveInputAspect,
     forceNewSeed: true,
     figurePixelSize: options?.figurePixelSize ?? uploadedFigureSize,
+    castPlateReference: options?.castPlateReference,
   });
 
   if (pluginDenoise != null && pluginDenoise.toString().trim() !== '') {

@@ -481,6 +481,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         );
         const promptId = await actions.sendComfyUi(rapidRecipe ?? prompt, undefined, undefined, {
           ...(stillOpts ?? {}),
+          ...(stillOpts ? { castPlateReference: true } : {}),
           ...charOpts,
           ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
             ? {
@@ -618,6 +619,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         );
         promptId = await actions.sendComfyUi(rapidRecipe ?? queuePrompt, undefined, undefined, {
           ...(stillOpts ?? {}),
+          ...(stillOpts ? { castPlateReference: true } : {}),
           ...charOpts,
           ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
             ? {
