@@ -902,11 +902,23 @@ export function buildDayVacationClothedFaceBreakLeads(
   // Rapid AIO ignores the SETTING line deep in a ~7k-char brief: stills fell back to
   // the lead's own props (a plaza beat rendered on a beach) or a studio void once those
   // were removed. Naming the place in the lead put her in the plaza / on the balcony 4/4.
-  const scene = ` SCENE: she is in the ${setting} — show that place around her.`;
   return {
     ...leads,
-    preamble: leads.preamble.replace(/ Follow the beat action and SETTING(?: \([^)]*\))?\./, scene),
+    preamble: leads.preamble.replace(
+      / Follow the beat action and SETTING(?: \([^)]*\))?\./,
+      ` ${daySceneLeadLine(setting)}`
+    ),
   };
+}
+
+/**
+ * The slot's place, phrased for the first paragraph of a Rapid still brief — the only part
+ * the model reliably follows. Plate path live: plaza and doorframe suite 4/4 (were a pool
+ * and a bed); face-break: plaza / balcony 4/4.
+ */
+export function daySceneLeadLine(setting: string | null | undefined): string {
+  const place = setting?.trim().replace(/[.\s]+$/, '');
+  return place ? `SCENE: she is in the ${place} — show that place around her.` : '';
 }
 
 function clothedFaceBreakLeadsFor(

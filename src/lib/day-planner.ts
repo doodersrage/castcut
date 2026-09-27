@@ -46,6 +46,7 @@ import {
   dayVacationBeatPresetsForSlot,
   dayVacationSettingPresetsForSlot,
   buildDayVacationClothedFaceBreakLeads,
+  daySceneLeadLine,
   buildDayVacationPromptLocks,
   pickDayVacationScenePair,
   vacationPoseClassFromBeat,
@@ -2752,6 +2753,12 @@ export function buildDaySlotPrompt(input: {
   const faceOnlyIdentity = input.faceOnlyIdentity === true;
   const clothedFaceBreak =
     faceOnlyIdentity && !omitGarment && (dayMood === 'vacation' || dayMood === 'suggestive');
+  // Rapid follows the first paragraph and ignores the SETTING line deep in the brief —
+  // name the place up front on clothed Vacation/Suggestive plate stills too.
+  const plateSceneLead =
+    !faceOnlyIdentity && !omitGarment && (dayMood === 'vacation' || dayMood === 'suggestive')
+      ? daySceneLeadLine(setting)
+      : '';
   const replaceKeepOutfit =
     !omitGarment && (input.replaceKeepOutfit === true || dayMoodReplacesKeepOutfit(dayMood));
   const keepAsImage1 = input.plateSource === 'keeper';
@@ -3132,9 +3139,14 @@ export function buildDaySlotPrompt(input: {
           (replaceKeepOutfit
             ? 'Edit Image 1. Keep facial likeness only. Discard Image 1 floral dress, sundress, swimsuit, street clothes, and footwear entirely — dress her in the beat SPORT KIT with athletic shoes on a sport venue. Do not preserve body pose, kneeling fashion stance, arm positions, camera angle, or background — aggressively refactor into mid-play athletic action (sprint, swing, dunk, lunge) as described — never a barefoot asphalt pin-up.'
             : dayMood === 'suggestive'
-              ? buildDaySuggestiveKeepPoseUnlock(hints)
+              ? [buildDaySuggestiveKeepPoseUnlock(hints), plateSceneLead].filter(Boolean).join(' ')
               : dayMood === 'vacation'
-                ? (vacationLocks?.keepUnlock ?? DAY_VACATION_KEEP_POSE_UNLOCK_PREFIX)
+                ? [
+                    vacationLocks?.keepUnlock ?? DAY_VACATION_KEEP_POSE_UNLOCK_PREFIX,
+                    plateSceneLead,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
                 : DAY_KEEP_OUTFIT_POSE_UNLOCK_PREFIX),
         isolateLine,
         `Edit instruction for a Day still — ${timeOfDay}:`,
@@ -3261,7 +3273,9 @@ export function buildDaySlotPrompt(input: {
         (clothedFaceBreak
           ? (castFaceBreakLeads?.preamble ??
             'Edit Image 1. Image 1 is a FACE CROP only (head/shoulders) — keep facial likeness only. Invent the full body pose from Image 3 and the beat. CRITICAL: Image 1 has no standing body — do not invent a square-on fashion stand with arms at her sides. Dress her from Image 2 garment colors/cut only; ignore Image 2 standing pose and room. Aggressively match Image 3 stance and the SETTING backdrop.')
-          : QWEN_POSE_UNLOCK_MODIFY_PREFIX),
+          : plateSceneLead
+            ? `${QWEN_POSE_UNLOCK_MODIFY_PREFIX} ${plateSceneLead}`
+            : QWEN_POSE_UNLOCK_MODIFY_PREFIX),
       isolateLine,
       `Edit instruction for a Day still — ${timeOfDay}:`,
       nudeImage1Line ??

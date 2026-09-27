@@ -2590,3 +2590,63 @@ describe('everyday pose unlock', () => {
     assert.doesNotMatch(prompt, /Image 3 is a/i);
   });
 });
+
+describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
+  const slot = {
+    id: 'evening',
+    label: 'Evening',
+    location: 'old-town plaza at golden hour with a fountain',
+    sceneHints: 'MID-STRIDE crossing a plaza with a clutch — glancing at a fountain',
+  } as const;
+  const firstLine = (prompt: string) => prompt.split('\n')[0] ?? '';
+
+  it('Cast plate path: clothed Vacation / Suggestive lead with the scene', () => {
+    for (const dayMood of ['vacation', 'suggestive'] as const) {
+      const prompt = buildDaySlotPrompt({
+        slot,
+        hasPlate: true,
+        plateSource: 'cast',
+        plateIsolated: true,
+        garmentReinforce: true,
+        poseGuide: true,
+        model: 'qwen-rapid-aio-edit-nsfw',
+        dayMood,
+      });
+      assert.match(
+        firstLine(prompt),
+        /SCENE: she is in the old-town plaza at golden hour with a fountain — show that place around her\./
+      );
+    }
+  });
+
+  it('Keep plate path and face-break carry it too; everyday does not', () => {
+    const keep = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      model: 'qwen-rapid-aio-edit-nsfw',
+      dayMood: 'suggestive',
+    });
+    assert.match(firstLine(keep), /SCENE: she is in the old-town plaza/);
+    const faceBreak = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'cast',
+      garmentReinforce: true,
+      poseGuide: true,
+      model: 'qwen-rapid-aio-edit-nsfw',
+      dayMood: 'vacation',
+      faceOnlyIdentity: true,
+    });
+    assert.equal(faceBreak.match(/SCENE: she is in/g)?.length, 1);
+    const everyday = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'cast',
+      model: 'qwen-rapid-aio-edit-nsfw',
+      dayMood: 'everyday',
+    });
+    assert.doesNotMatch(everyday, /SCENE: she is in/);
+  });
+});
