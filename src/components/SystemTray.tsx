@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { toastQueueOutcome } from '@/lib/app-toast';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import { RETRY_LAST_FAILED_QUEUE_EVENT, retryLastFailedQueue } from '@/lib/last-failed-queue';
@@ -14,6 +14,10 @@ import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfy-asset-events';
 import { cancelComfyGalleryJob } from '@/lib/comfyui-queue-cancel';
 import { TrayNotice } from '@/components/system-tray/TrayNotice';
 import { SystemTrayActivityCard } from '@/components/system-tray/SystemTrayActivityCard';
+
+/** Space the floating Engine button keeps above this tray. Published on <html>. */
+export const SYSTEM_TRAY_HEIGHT_VAR = '--system-tray-height';
+const SYSTEM_TRAY_CLEARANCE_PX = 12;
 
 export default function SystemTray() {
   const panelId = useId();
@@ -110,7 +114,33 @@ export default function SystemTray() {
     };
   }, [expanded]);
 
-  if (!hasActivity && trayMessages.length === 0) {
+  const trayVisible = hasActivity || trayMessages.length > 0;
+
+  // The Engine dock is portaled to <body> (above this shell's stacking context) and shares
+  // this corner. Publish the tray's height so that button sits above the cards.
+  useLayoutEffect(() => {
+    const el = rootRef.current;
+    if (!el) {
+      document.documentElement.style.setProperty(SYSTEM_TRAY_HEIGHT_VAR, '0px');
+      return;
+    }
+    const publish = () => {
+      const height = Math.ceil(el.getBoundingClientRect().height);
+      document.documentElement.style.setProperty(
+        SYSTEM_TRAY_HEIGHT_VAR,
+        height > 0 ? `${height + SYSTEM_TRAY_CLEARANCE_PX}px` : '0px'
+      );
+    };
+    publish();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(publish);
+    observer?.observe(el);
+    return () => {
+      observer?.disconnect();
+      document.documentElement.style.setProperty(SYSTEM_TRAY_HEIGHT_VAR, '0px');
+    };
+  }, [trayVisible]);
+
+  if (!trayVisible) {
     return null;
   }
 

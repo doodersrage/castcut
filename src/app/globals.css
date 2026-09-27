@@ -1097,17 +1097,32 @@ html[data-theme='light'] .ui-media-card:hover {
   z-index: 40;
 }
 
-/** Fixed dock — reachable without scrolling back to the tool header. */
+/** Fixed dock — reachable without scrolling back to the tool header.
+ *  `--system-tray-height` is the tray's height plus clearance, so the button sits
+ *  just above those cards instead of painting over them. */
 .play-engine-popover-float {
   position: fixed;
   z-index: 45;
   right: max(0.75rem, env(safe-area-inset-right, 0px));
-  bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+  bottom: calc(
+    max(
+      max(1.25rem, env(safe-area-inset-bottom, 0px)),
+      max(var(--bottom-dock-height, 0px), env(safe-area-inset-bottom, 0px), 0.25rem) + 0.75rem +
+        var(--system-tray-height, 0px)
+    )
+  );
+  transition: bottom 200ms ease;
 }
 
 /* Clear Play film bottom tabs (and similar bottom chrome). */
 html[data-workspace='play'] .play-engine-popover-float {
-  bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(
+    max(
+      5.75rem + env(safe-area-inset-bottom, 0px),
+      max(var(--bottom-dock-height, 0px), env(safe-area-inset-bottom, 0px), 0.25rem) + 0.75rem +
+        var(--system-tray-height, 0px)
+    )
+  );
 }
 
 .play-engine-popover {
@@ -1132,7 +1147,10 @@ html[data-workspace='play'] .play-engine-popover-float {
   bottom: calc(100% + 0.5rem);
   max-height: min(
     70vh,
-    calc(100vh - 7.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
+    calc(
+      100vh - 7.5rem - var(--system-tray-height, 0px) - env(safe-area-inset-top, 0px) -
+        env(safe-area-inset-bottom, 0px)
+    )
   );
 }
 
