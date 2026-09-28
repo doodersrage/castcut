@@ -9,6 +9,8 @@ import { recordFaceMatchScore } from '@/lib/play-metrics';
 import { reviewOutfitLabel, type SlotQualityReport } from '@/lib/play-slot-quality';
 import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
 import type { SharedToolSettings } from '@/lib/settings-cache';
+import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
 
 /**
  * Outfit Auto-review: once a try-on lands in Compare, measure its face against the plate
@@ -65,7 +67,10 @@ export function useFittingTryOnReview(input: {
         let faceMatch: number | null = null;
         if (referenceUrl && !faceOffRef.current) {
           try {
-            const measured = await measureStillFaceMatch({ referenceUrl, imageUrl });
+            const measured = await measureStillFaceMatch({
+              referenceUrl,
+              imageUrl: comfyViewUrlForStill(target, loadComfyGallery()) ?? imageUrl,
+            });
             if (measured?.available) {
               faceMatch = measured.similarity;
               recordFaceMatchScore(

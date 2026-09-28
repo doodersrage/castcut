@@ -2718,4 +2718,40 @@ describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
     assert.match(prompt, /tailored cobalt slip dress/);
     assert.ok(prompt.length < 700);
   });
+
+  it('mergeDaySlotStills keeps a Face finish image for its own take only', () => {
+    const gallery = [
+      { promptId: 'p1', status: 'completed', imageUrl: '/api/gallery/media/raw' },
+    ] as Parameters<typeof mergeDaySlotStills>[1];
+    const finished = mergeDaySlotStills(
+      [
+        {
+          slotId: 'morning',
+          promptId: 'p1',
+          status: 'completed',
+          imageUrl: '/finished.png',
+          finishedUrl: '/finished.png',
+          finishedFor: 'p1',
+        },
+      ],
+      gallery
+    );
+    assert.equal(finished.stills[0]!.imageUrl, '/finished.png');
+    assert.equal(finished.changed, false);
+    // A requeued take (new prompt id) shows the gallery image, not the old finish.
+    const requeued = mergeDaySlotStills(
+      [
+        {
+          slotId: 'morning',
+          promptId: 'p1',
+          status: 'completed',
+          imageUrl: '/finished.png',
+          finishedUrl: '/finished.png',
+          finishedFor: 'p0',
+        },
+      ],
+      gallery
+    );
+    assert.equal(requeued.stills[0]!.imageUrl, '/api/gallery/media/raw');
+  });
 });

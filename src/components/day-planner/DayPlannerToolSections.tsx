@@ -134,6 +134,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     setPosePriority,
     identityBoost,
     setIdentityBoost,
+    faceFinish,
+    setFaceFinish,
+    faceFinishStatus,
     qualityStatus,
     qualityLedger,
     clipChecks,
@@ -589,6 +592,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onPosePriorityChange={setPosePriority}
             identityBoost={identityBoost}
             onIdentityBoostChange={setIdentityBoost}
+            faceFinish={faceFinish}
+            onFaceFinishChange={setFaceFinish}
+            faceFinishStatus={faceFinishStatus}
             autoReviewStills={autoReviewStills}
             onAutoReviewStillsChange={setAutoReviewStills}
             qualityStatus={qualityStatus}

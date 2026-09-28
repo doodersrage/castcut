@@ -38,7 +38,8 @@ import {
   type SlotQualityLedger,
 } from '@/lib/play-slot-quality';
 import { buildFaceComparePair } from '@/lib/play-face-compare';
-import { recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
 import { buildPoseMissView, poseLimbFixNudge, type PoseMissView } from '@/lib/pose-coaching';
 import { betterTakeIndex, type TakeScores } from '@/lib/take-scoring';
 import { STILL_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face-match';
@@ -61,7 +62,15 @@ import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
  * and scored against the guide: a still that ignored its guide is rerolled, every score is logged
  * per guide style (the OpenPose-vs-legacy record), and well-matched stills feed the pose library.
  */
-export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
+export function useDaySlotQualityGate(
+  ctx: DayPlannerToolOrchestrationCore,
+  faceFinish?: {
+    /** Face finish will replace this still — review the finished one instead. */
+    holdsStill: (still: { imageUrl?: string; promptId?: string }) => boolean;
+    /** Bumps when Face finish handles a still, so held reviews get another look. */
+    tick: number;
+  }
+) {
   const { autoReviewStills, busy, mounted, queueSlot, rerollNudgeRef, shared, slots, stills } = ctx;
   const { poseGuideExpectRef, poseVariantRef } = ctx;
   const { plate, toolSettings, wardrobeLabelFor, stillsRef, updateToolSettings } = ctx;
@@ -135,7 +144,8 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
       return (
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
-        reviewedRef.current[slot.id] !== still.imageUrl
+        reviewedRef.current[slot.id] !== still.imageUrl &&
+        !faceFinish?.holdsStill(still)
       );
     });
     const targetStill = target ? stills.find(entry => entry.slotId === target.id) : undefined;
@@ -143,6 +153,8 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
       return;
     }
     const imageUrl = targetStill.imageUrl;
+    // The pose / face checks run in ComfyUI: durable gallery copies map back to the output.
+    const checkUrl = comfyViewUrlForStill(targetStill, loadComfyGallery()) ?? imageUrl;
     reviewedRef.current[target.id] = imageUrl;
     runningRef.current = true;
 
@@ -180,7 +192,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
         if (expectation && !poseCheckOffRef.current) {
           setQualityStatus(`Checking ${target.label} pose…`);
           try {
-            const detected = await detectStillPose(imageUrl);
+            const detected = await detectStillPose(checkUrl);
             if (detected.available) {
               poseMatch = scorePoseMatch({
                 guide: expectation.keypoints,
@@ -212,7 +224,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
           try {
             const measured = await measureStillFaceMatch({
               referenceUrl: faceReferenceUrl,
-              imageUrl,
+              imageUrl: checkUrl,
             });
             if (measured?.available) {
               faceMatch = measured.similarity;
@@ -411,6 +423,7 @@ export function useDaySlotQualityGate(ctx: DayPlannerToolOrchestrationCore) {
   }, [
     autoReviewStills,
     busy,
+    faceFinish,
     mounted,
     plate,
     poseGuideExpectRef,

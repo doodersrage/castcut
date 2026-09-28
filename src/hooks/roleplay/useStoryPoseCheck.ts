@@ -17,6 +17,8 @@ import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-clien
 import { STORY_MIN_FACE_MATCH } from '@/lib/face-match';
 import { buildPoseMissView } from '@/lib/pose-coaching';
 import { recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
 
 /**
  * Story pose check: when a still that was queued with an Image 3 guide lands, read its pose
@@ -43,10 +45,12 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
     }
     const beat = nextStoryPoseCheck(toolSettings.story ?? [], skippedRef.current);
     const expect = beat?.poseGuideExpect;
-    const imageUrl = beat?.imageUrl?.trim();
-    if (!beat || !expect || !imageUrl) {
+    const shownUrl = beat?.imageUrl?.trim();
+    if (!beat || !expect || !shownUrl) {
       return;
     }
+    // The checks run in ComfyUI: durable gallery copies map back to the output.
+    const imageUrl = comfyViewUrlForStill(beat, loadComfyGallery()) ?? shownUrl;
     runningRef.current = true;
     void (async () => {
       try {

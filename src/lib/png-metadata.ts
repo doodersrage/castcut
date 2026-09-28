@@ -21,7 +21,7 @@ function readAscii(view: DataView, offset: number, length: number): string {
   return text;
 }
 
-function parseTextChunks(buffer: ArrayBuffer): Record<string, string> {
+export function parseTextChunks(buffer: ArrayBuffer): Record<string, string> {
   const view = new DataView(buffer);
   const chunks: Record<string, string> = {};
 

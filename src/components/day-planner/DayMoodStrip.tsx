@@ -26,6 +26,11 @@ export type DayMoodStripProps = {
   /** Opt-in: full plate as an extra identity reference on face-break stills. */
   identityBoost?: boolean;
   onIdentityBoostChange?: (next: boolean) => void;
+  /** Opt-in: re-render each one-person still's face against the Cast face crop. */
+  faceFinish?: boolean;
+  onFaceFinishChange?: (next: boolean) => void;
+  /** Latest Face finish line (running / applied / skipped / paused). */
+  faceFinishStatus?: string | null;
   /** Opt-in vision review + bounded requeue of broken Day stills. */
   autoReviewStills?: boolean;
   onAutoReviewStillsChange?: (next: boolean) => void;
@@ -55,6 +60,9 @@ export default function DayMoodStrip({
   onPosePriorityChange,
   identityBoost = false,
   onIdentityBoostChange,
+  faceFinish = false,
+  onFaceFinishChange,
+  faceFinishStatus = null,
   autoReviewStills = false,
   onAutoReviewStillsChange,
   qualityStatus = null,
@@ -218,6 +226,17 @@ export default function DayMoodStrip({
               Face boost
             </SwitchButton>
           ) : null}
+          {onFaceFinishChange ? (
+            <SwitchButton
+              checked={faceFinish}
+              disabled={busy}
+              data-testid="day-face-finish"
+              title="After each one-person still lands, re-render just her face against the Cast face crop — sharper eyes and a closer likeness on small full-body faces. Rapid AIO stills only; adds a few seconds per still."
+              onChange={onFaceFinishChange}
+            >
+              Face finish
+            </SwitchButton>
+          ) : null}
           {onAutoReviewStillsChange ? (
             <SwitchButton
               checked={autoReviewStills}
@@ -240,6 +259,11 @@ export default function DayMoodStrip({
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-identity-boost-hint">
           Face boost is on — turn on Auto-review stills so the odd extra person or borrowed outfit
           gets rerolled.
+        </p>
+      ) : null}
+      {faceFinish && faceFinishStatus ? (
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-face-finish-status">
+          {faceFinishStatus}
         </p>
       ) : null}
       {autoReviewStills && checksLine ? (

@@ -1081,6 +1081,11 @@ export type DayToolCache = {
    * pair with auto-review so those reroll.
    */
   identityBoost?: boolean;
+  /**
+   * Off by default. After each one-person still lands, re-render its face against the Cast face
+   * crop (face-finish.ts): live on Rapid AIO the face got closer on 6/8 stills (0.659 → 0.581).
+   */
+  faceFinish?: boolean;
   /** Everyday / suggestive / intimate heat for Day stills (intimate is NSFW-gated). */
   dayMood?: import('./day-planner').DayMood;
   /** Solo / duo / mixed beat filter when dayMood is intimate or raunchy. */

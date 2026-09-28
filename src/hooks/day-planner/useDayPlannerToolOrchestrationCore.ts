@@ -1428,6 +1428,8 @@ export function useDayPlannerToolOrchestrationCore() {
     setPosePriority: (next: boolean) => updateToolSettings({ posePriority: next }),
     identityBoost: toolSettings.identityBoost === true,
     setIdentityBoost: (next: boolean) => updateToolSettings({ identityBoost: next }),
+    faceFinish: toolSettings.faceFinish === true,
+    setFaceFinish: (next: boolean) => updateToolSettings({ faceFinish: next }),
     autoReviewStills: toolSettings.autoReviewStills === true,
     setAutoReviewStills: (next: boolean) => updateToolSettings({ autoReviewStills: next }),
     hideStickyCutCoach: toolSettings.hideStickyCutCoach === true,

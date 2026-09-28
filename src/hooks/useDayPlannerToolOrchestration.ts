@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useDayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { useDayPlannerToolOrchestrationPart2 } from '@/hooks/day-planner/useDayPlannerToolOrchestrationPart2';
 import { useDaySeries } from '@/hooks/day-planner/useDaySeries';
 import { useDaySlotQualityGate } from '@/hooks/day-planner/useDaySlotQualityGate';
+import { useDayFaceFinish } from '@/hooks/day-planner/useDayFaceFinish';
 import { useDayClipQualityCheck } from '@/hooks/day-planner/useDayClipQualityCheck';
 import { applyCharacterRecordFresh } from '@/lib/character-os';
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
@@ -21,7 +22,13 @@ import {
 export function useDayPlannerToolOrchestration() {
   const core = useDayPlannerToolOrchestrationCore();
   const part2 = useDayPlannerToolOrchestrationPart2(core);
-  const quality = useDaySlotQualityGate(core);
+  const faceFinish = useDayFaceFinish(core);
+  const { holdsStillForFaceFinish, faceFinishTick } = faceFinish;
+  const faceFinishHold = useMemo(
+    () => ({ holdsStill: holdsStillForFaceFinish, tick: faceFinishTick }),
+    [faceFinishTick, holdsStillForFaceFinish]
+  );
+  const quality = useDaySlotQualityGate(core, faceFinishHold);
   const clips = useDayClipQualityCheck(core);
   const season = useDaySeries(core.character?.id);
 
@@ -133,6 +140,7 @@ export function useDayPlannerToolOrchestration() {
     ...core,
     ...part2,
     ...quality,
+    faceFinishStatus: faceFinish.faceFinishStatus,
     ...clips,
     ...season,
     cutDayFilm,

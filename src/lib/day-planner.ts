@@ -320,6 +320,13 @@ export type DaySlotStill = {
   clipPromptId?: string;
   clipUrl?: string;
   clipStatus?: DaySlotClipStatus;
+  /**
+   * Face finish (face-finish.ts): the finished image for the take `finishedFor` names. The
+   * gallery poll shows it instead of the raw take while `finishedFor` matches `promptId`; a
+   * requeue gets a new prompt id, so a stale finish is ignored.
+   */
+  finishedUrl?: string;
+  finishedFor?: string;
 };
 
 export const DEFAULT_DAY_SLOTS: DaySlot[] = [
@@ -3487,6 +3494,8 @@ export function normalizeDaySlotStills(
       clipPromptId: readText(still.clipPromptId, 160) || undefined,
       clipUrl: readText(still.clipUrl, 2048) || undefined,
       clipStatus: readClipStatus(still.clipStatus),
+      finishedUrl: readText(still.finishedUrl, 2048) || undefined,
+      finishedFor: readText(still.finishedFor, 160) || undefined,
     });
   }
   const order = slots?.length
@@ -3540,7 +3549,8 @@ export function mergeDaySlotStills(
     if (stillId) {
       const match = byPromptId.get(stillId);
       if (match && !match.isClip) {
-        const galleryImage = match.imageUrl?.trim() || '';
+        const finished = still.finishedFor === stillId ? still.finishedUrl?.trim() || '' : '';
+        const galleryImage = finished || match.imageUrl?.trim() || '';
         const galleryStatus = stillStatusFromGallery(match.status);
         if (galleryStatus === 'completed' && galleryImage) {
           if (still.imageUrl !== galleryImage || still.status !== 'completed') {
