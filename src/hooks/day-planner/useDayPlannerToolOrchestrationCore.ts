@@ -116,6 +116,10 @@ import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
 import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
 import { readsPoseGuideImage } from '@/lib/model-denoise-defaults';
 import {
+  KLEIN_FACE_REFERENCE_LINE,
+  shouldAppendKleinFaceReference,
+} from '@/lib/klein-face-reference';
+import {
   poseGuideFailureReason,
   recordPoseGuideOutcome,
   poseGuidePreviews,
@@ -851,6 +855,29 @@ export function useDayPlannerToolOrchestrationCore() {
                 ? byoOrPackGarment
                 : null
               : byoOrPackGarment;
+        // FLUX.2 Klein holds a full-body plate's face loosely — the head crop rides along as the
+        // last reference (see klein-face-reference.ts). Same cached crop as face-break.
+        let kleinFaceReference: { filename?: string } | null = null;
+        if (
+          hasPlate &&
+          shouldAppendKleinFaceReference({
+            model: shared.model,
+            imageOneIsFaceCrop: faceOnlyIdentity,
+          })
+        ) {
+          try {
+            kleinFaceReference = (
+              await resolveDayVacationFaceBreakPlate({
+                bodyPlate: identityPlate ?? queuePlate,
+                character,
+                model: shared.model,
+                comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+              })
+            ).facePlate;
+          } catch (faceError) {
+            console.warn('Klein face reference could not be attached:', faceError);
+          }
+        }
 
         // Image 3: mannequin pose guide from Beat (Keep / Cast stay Image 1).
         // Heat moods: beat only — Setting location text must not rewrite Image 3 stance.
@@ -988,10 +1015,21 @@ export function useDayPlannerToolOrchestrationCore() {
           poseExpectation.cued = true;
         }
         const lookLine = poseLookLine(queueTarget.poseLook, poseExpectation?.keypoints.length ?? 1);
+        // Solo only — on a two-person guide the extra face reads as an extra head.
+        const kleinFaceFilename =
+          kleinFaceReference?.filename &&
+          shouldAppendKleinFaceReference({
+            model: shared.model,
+            imageOneIsFaceCrop: faceOnlyIdentity,
+            headcount: poseExpectation?.keypoints.length,
+          })
+            ? kleinFaceReference.filename
+            : undefined;
         const prompt = [
           basePrompt,
           cueLine,
           lookLine,
+          kleinFaceFilename ? KLEIN_FACE_REFERENCE_LINE : '',
           qualityNudge ? `QUALITY FIX: ${qualityNudge}` : '',
         ]
           .filter(Boolean)
@@ -1041,6 +1079,10 @@ export function useDayPlannerToolOrchestrationCore() {
           extraFilenames[2] = extraFilenames[2] ?? '';
           extraUrls[3] = undefined;
           extraFilenames[3] = identityLatentPlate.filename;
+        } else if (kleinFaceFilename) {
+          extraFilenames[2] = extraFilenames[2] ?? '';
+          extraUrls[3] = undefined;
+          extraFilenames[3] = kleinFaceFilename;
         }
         const hasExtras =
           extraUrls.some((url, index) => index > 0 && Boolean(url)) ||

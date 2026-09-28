@@ -194,9 +194,10 @@ export const POSE_GUIDE_NEGATIVE_EXTRA =
 
 /** Match OpenPose, schematic, Rapid outline, text-only, or legacy cues. */
 const POSE_GUIDE_CUE_RE =
-  /Image 3 is (?:an OpenPose keypoint|a (?:flat SCHEMATIC|thin gray OUTLINE|flat gray OUTLINE|flat mannequin|crude stick-figure))|Match the beat body pose, stance, limb angles/i;
+  /Image 3 is (?:an OpenPose keypoint|a (?:flat SCHEMATIC|thin gray OUTLINE|flat gray OUTLINE|flat mannequin|crude stick-figure))|Match the beat body pose, stance, limb angles|POSE: the (?:two|three) people match the (?:two|three) OpenPose skeletons/i;
 
-const OPENPOSE_CUE_RE = /Image 3 is an OpenPose keypoint/i;
+const OPENPOSE_CUE_RE =
+  /Image 3 is an OpenPose keypoint|POSE: the (?:two|three) people match the (?:two|three) OpenPose skeletons/i;
 
 /** The prompt already carries the OpenPose cue (so legacy color locks must not be appended). */
 export function promptHasOpenPoseGuideCue(prompt: string | null | undefined): boolean {
@@ -235,6 +236,43 @@ export function usesOutlineGrayPoseGuide(model?: string | null): boolean {
   return isRapidAioModelId(id) || /qwen-image-edit-2511/i.test(id);
 }
 
+function isKleinModelId(model: string | null | undefined): boolean {
+  return /flux-2-klein/i.test(String(model ?? ''));
+}
+
+/**
+ * FLUX.2 Klein, two or three skeletons. Live A/B on Klein 9B Distilled (2026-09-28, 5 duo
+ * layouts × 2 seeds): the Qwen cue above cloned the Cast onto the partner or added a person in
+ * 4/10; this short cue, naming each skeleton, got 1–2/10. Klein reads a flat lying layout with
+ * an "overhead" camera as two people side by side (missionary 0/4 on top); "side view" put the
+ * partner on top 4/4, so multi-figure Klein guides always say side view. Wording matters:
+ * calling Image 3 "an OpenPose keypoint skeleton map" without the Qwen cue's "never draw the
+ * lines / dots" sentences painted keypoints onto the people in most stills, and the realism
+ * lock's "ghost person / pose-diagram" list added people — both are left out here.
+ */
+function kleinOpenPoseMultiBlock(input: {
+  headcount: number;
+  leadPosition?: string | null;
+  camera?: 'overhead' | 'side' | 'low' | null;
+}): string {
+  const count = Math.max(2, Math.min(3, Math.round(input.headcount)));
+  const word = count === 3 ? 'three' : 'two';
+  const lead = input.leadPosition?.trim()
+    ? `She is the ${input.leadPosition.trim()} skeleton`
+    : 'She is one of the skeletons';
+  const others =
+    count === 3
+      ? 'the other skeletons are her partners from the scene, each with their own face'
+      : 'the other skeleton is her partner from the scene, with their own face';
+  const camera = input.camera === 'overhead' ? 'side' : input.camera;
+  return [
+    `POSE: the ${word} people match the ${word} OpenPose skeletons (pose control only, never drawn). ${lead}; ${others}. Only these ${word} people.`,
+    camera ? POSE_GUIDE_CAMERA_LINES[camera] : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
 /** Full pose block for queue / LLM cues. */
 export function poseGuidePromptBlock(
   mode: RenderRealismMode = DEFAULT_RENDER_REALISM_MODE,
@@ -254,6 +292,13 @@ export function poseGuidePromptBlock(
   const headcount = options?.headcount;
   const imageAttached = options?.imageAttached !== false;
   if (imageAttached && isOpenPoseStyle(options?.style)) {
+    if (headcount != null && headcount >= 2 && isKleinModelId(options?.model)) {
+      return kleinOpenPoseMultiBlock({
+        headcount,
+        leadPosition: options?.leadPosition,
+        camera: options?.camera,
+      });
+    }
     const lock =
       headcount != null && headcount >= 2
         ? poseGuideOpenPoseMultiLock(headcount, options?.leadPosition)
@@ -441,6 +486,10 @@ function stripLegacyPoseGuideCues(prompt: string): string {
 function stripOpenPoseGuideCues(prompt: string): string {
   return prompt
     .replace(/Image 3 is an OpenPose keypoint[^\n]*/gi, '')
+    .replace(
+      /POSE: the (?:two|three) people match the (?:two|three) OpenPose skeletons[^\n]*/gi,
+      ''
+    )
     .replace(/Image 3 hand keypoints show[^\n]*/gi, '')
     .replace(/Image 3 has (?:one|two|three) skeletons?:[^\n]*/gi, '')
     .replace(/\n{3,}/g, '\n\n')
@@ -456,6 +505,7 @@ function withOpenPoseGuidePrompt(
     leadPosition?: string | null;
     style?: PoseGuideStylePreference;
     camera?: 'overhead' | 'side' | 'low' | null;
+    model?: string | null;
   }
 ): string {
   // No fresh headcount = nothing new to say (e.g. a requeue): keep the existing keypoint cue.
@@ -479,6 +529,7 @@ function withOpenPoseGuidePrompt(
     style: options?.style ?? 'openpose',
     leadPosition: options?.leadPosition,
     camera: options?.camera,
+    model: options?.model,
   });
   return `${base}\n${block}`.trim();
 }

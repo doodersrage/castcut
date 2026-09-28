@@ -167,6 +167,8 @@ export function buildRoleplayQueueStillOptions(input: {
   model?: string | null;
   /** Optional ControlNet map override (tests / callers with a pinned map). */
   controlNetMap?: import('./model-controlnet-map').ModelControlNetMap;
+  /** FLUX.2 Klein: head crop of the Cast as the last reference (see klein-face-reference.ts). */
+  faceReferenceFilename?: string | null;
 }): RoleplayQueueStillOptions | undefined {
   if (!input.photoMode) {
     return undefined;
@@ -207,6 +209,15 @@ export function buildRoleplayQueueStillOptions(input: {
   if (hasPoseGuide) {
     extraUrls[2] = poseGuideUrl || undefined;
     extraFilenames[2] = poseGuideFilename;
+  }
+  const faceReferenceFilename = input.faceReferenceFilename?.trim() || '';
+  if (faceReferenceFilename) {
+    extraUrls[1] = extraUrls[1] ?? undefined;
+    extraFilenames[1] = extraFilenames[1] ?? '';
+    extraUrls[2] = extraUrls[2] ?? undefined;
+    extraFilenames[2] = extraFilenames[2] ?? '';
+    extraUrls[3] = undefined;
+    extraFilenames[3] = faceReferenceFilename;
   }
   const hasExtras =
     extraUrls.some((url, index) => index > 0 && Boolean(url)) ||

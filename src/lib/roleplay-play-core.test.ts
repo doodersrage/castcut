@@ -199,4 +199,18 @@ describe('roleplay-play-core', () => {
     assert.equal(body.garmentDescription, 'cream linen shirt');
     assert.equal(body.hasGarmentReference, true);
   });
+
+  it('puts the Klein face crop after the pose guide as the last reference', () => {
+    const options = buildRoleplayQueueStillOptions({
+      photoMode: true,
+      isolateSubject: false,
+      referenceIsolated: false,
+      filename: 'plate.png',
+      poseGuideFilename: 'guide.png',
+      omitGarment: true,
+      model: 'flux-2-klein-9b-distilled',
+      faceReferenceFilename: 'face.png',
+    });
+    assert.deepEqual(options?.inputImageFilenames, ['', '', 'guide.png', 'face.png']);
+  });
 });

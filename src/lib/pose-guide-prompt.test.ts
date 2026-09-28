@@ -148,4 +148,56 @@ describe('pose-guide-prompt', () => {
     assert.equal(poseGuideStyleForModel('legacy', 'qwen-rapid-aio-edit'), 'legacy');
     assert.equal(poseGuideStyleForModel(undefined, 'flux-2-klein-9b'), 'openpose');
   });
+
+  it('gives Klein duos a short cue naming the lead skeleton, in side view', () => {
+    const block = poseGuidePromptBlock('realistic', {
+      headcount: 2,
+      model: 'flux-2-klein-9b-distilled',
+      style: 'openpose',
+      leadPosition: 'lower (underneath)',
+      camera: 'overhead',
+    });
+    assert.ok(promptHasOpenPoseGuideCue(block));
+    assert.match(block, /She is the lower \(underneath\) skeleton/);
+    assert.match(block, /Only these two people\./);
+    assert.match(block, /eye-level side view/);
+    assert.doesNotMatch(block, /overhead|keypoint|ghost/);
+    // Qwen keeps its own cue and the inferred camera.
+    const qwen = poseGuidePromptBlock('realistic', {
+      headcount: 2,
+      model: 'qwen-rapid-aio-edit',
+      style: 'openpose',
+      leadPosition: 'lower (underneath)',
+      camera: 'overhead',
+    });
+    assert.match(qwen, /high overhead angle/);
+    assert.match(qwen, /never merged, no extra person/);
+  });
+
+  it('routes Story prompts through the Klein duo cue via withPoseGuideEditPrompt', () => {
+    const out = withPoseGuideEditPrompt('They cuddle on the bed.', true, 'realistic', {
+      headcount: 2,
+      model: 'flux-2-klein-9b',
+      style: 'openpose',
+      leadPosition: 'leftmost',
+    });
+    assert.match(out, /POSE: the two people match the two OpenPose skeletons/);
+    assert.match(out, /She is the leftmost skeleton/);
+    // Re-queue with a fresh headcount swaps the cue instead of stacking a second one.
+    const again = withPoseGuideEditPrompt(out, true, 'realistic', {
+      headcount: 2,
+      model: 'flux-2-klein-9b',
+      style: 'openpose',
+      leadPosition: 'rightmost',
+    });
+    assert.equal(again.match(/POSE: the two people/g)?.length, 1);
+    assert.match(again, /She is the rightmost skeleton/);
+    // Solo Klein keeps the standard OpenPose cue.
+    const solo = withPoseGuideEditPrompt('She dances.', true, 'realistic', {
+      headcount: 1,
+      model: 'flux-2-klein-9b',
+      style: 'openpose',
+    });
+    assert.match(solo, /Image 3 has one skeleton/);
+  });
 });

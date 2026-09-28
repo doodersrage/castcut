@@ -41,6 +41,10 @@ import { snapshotRoleplaySession } from '@/lib/roleplay-library';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
 import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs';
 import { buildStoryPoseGuide } from '@/lib/day-pose-guide';
+import {
+  KLEIN_FACE_REFERENCE_LINE,
+  shouldAppendKleinFaceReference,
+} from '@/lib/klein-face-reference';
 import { loadPoseGuideControlNetEnabled } from '@/lib/pose-guide-controlnet';
 import { fetchComfyObjectInfoModelsCached } from '@/lib/comfyui-object-info-cache';
 import { mergePickedPose } from '@/lib/day-slot-pose';
@@ -223,6 +227,33 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
   );
 
   /**
+   * FLUX.2 Klein: when Image 1 is the full plate, the same head crop rides along as the last
+   * reference (see klein-face-reference.ts). Null when Image 1 already is the face crop.
+   */
+  const resolveKleinFaceReferenceForBeat = useCallback(
+    async (nudeFace: string | null, headcount?: number): Promise<string | null> => {
+      if (
+        playAs !== 'photo' ||
+        !shouldAppendKleinFaceReference({
+          model: shared.model,
+          imageOneIsFaceCrop: Boolean(nudeFace),
+          headcount,
+        })
+      ) {
+        return null;
+      }
+      return resolveStoryNudeFaceFilename({
+        character: stampRoleplayCharacter(),
+        referenceFilename: referenceImageFilename,
+        referenceUrl: referenceImageUrl,
+        model: shared.model,
+        comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+      }).catch(() => null);
+    },
+    [playAs, referenceImageFilename, referenceImageUrl, shared.model, stampRoleplayCharacter]
+  );
+
+  /**
    * Rapid AIO duo sex beats: a compact placement recipe instead of the long Story prompt —
    * the locks buried the pose (see rapid-duo-recipe.ts). Null keeps the normal prompt.
    */
@@ -260,7 +291,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         prompt?: { style?: PoseGuideStylePreference };
       },
       beat?: RoleplayStoryBeat,
-      nudeFaceFilename?: string | null
+      nudeFaceFilename?: string | null,
+      kleinFaceFilename?: string | null
     ) =>
       buildRoleplayQueueStillOptions({
         photoMode: playAs === 'photo',
@@ -283,6 +315,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         poseGuideStyle: poseGuide?.prompt?.style,
         omitGarment: storyBeatOmitsGarmentPackshot(beat, adult),
         model: shared.model,
+        faceReferenceFilename: kleinFaceFilename,
       }),
     [
       adult,
@@ -469,7 +502,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       if (queueStill) {
         await loadWardrobeGarmentThumbManifest();
         const nudeFace = await resolveNudeFaceForBeat(beat);
-        const stillOpts = queueStillOptions(poseGuide, beat, nudeFace);
+        const kleinFace = await resolveKleinFaceReferenceForBeat(
+          nudeFace,
+          poseGuide?.prompt.headcount
+        );
+        const stillOpts = queueStillOptions(poseGuide, beat, nudeFace, kleinFace);
         const rapidRecipe = storyRapidDuoRecipeFor(beat, stillOpts, poseGuide?.cueLine);
         const charOpts = roleplayCharacterQueueFields(
           { bio: nextBio, story: currentStory },
@@ -479,20 +516,26 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             hasPoseGuide: Boolean(poseGuide),
           }
         );
-        const promptId = await actions.sendComfyUi(rapidRecipe ?? prompt, undefined, undefined, {
-          ...(stillOpts ?? {}),
-          ...(stillOpts ? { castPlateReference: true } : {}),
-          ...charOpts,
-          ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
-            ? {
-                queueParamsBase: {
-                  ...stillOpts?.queueParamsBase,
-                  ...charOpts.queueParamsBase,
-                  ...nudeFaceIdentityParams(nudeFace),
-                },
-              }
-            : {}),
-        });
+        const sentPrompt = rapidRecipe ?? prompt;
+        const promptId = await actions.sendComfyUi(
+          kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
+          undefined,
+          undefined,
+          {
+            ...(stillOpts ?? {}),
+            ...(stillOpts ? { castPlateReference: true } : {}),
+            ...charOpts,
+            ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
+              ? {
+                  queueParamsBase: {
+                    ...stillOpts?.queueParamsBase,
+                    ...charOpts.queueParamsBase,
+                    ...nudeFaceIdentityParams(nudeFace),
+                  },
+                }
+              : {}),
+          }
+        );
         stillPatch = {
           ...stillPatch,
           ...roleplayStillQueueResultPatch({ ...beat, prompt }, promptId),
@@ -514,6 +557,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       adult,
       dressForRating,
       resolveNudeFaceForBeat,
+      resolveKleinFaceReferenceForBeat,
       storyRapidDuoRecipeFor,
       autoQueue,
       playAs,
@@ -598,7 +642,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           .filter(Boolean)
           .join('\n');
         const nudeFace = await resolveNudeFaceForBeat(latest);
-        const stillOpts = queueStillOptions(poseGuide, latest, nudeFace);
+        const kleinFace = await resolveKleinFaceReferenceForBeat(
+          nudeFace,
+          poseGuide?.prompt.headcount
+        );
+        const stillOpts = queueStillOptions(poseGuide, latest, nudeFace, kleinFace);
         const rapidRecipe = storyRapidDuoRecipeFor(
           latest,
           stillOpts,
@@ -617,26 +665,32 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           },
           { beat: latest, hasPoseGuide: Boolean(poseGuide) }
         );
-        promptId = await actions.sendComfyUi(rapidRecipe ?? queuePrompt, undefined, undefined, {
-          ...(stillOpts ?? {}),
-          ...(stillOpts ? { castPlateReference: true } : {}),
-          ...charOpts,
-          ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
-            ? {
-                queueParamsBase: {
-                  ...stillOpts?.queueParamsBase,
-                  ...charOpts.queueParamsBase,
-                  ...nudeFaceIdentityParams(nudeFace),
-                },
-              }
-            : {}),
-          ...(retry
-            ? {
-                derivedKind: 'variation' as const,
-                parentGalleryEntryId: parentEntry?.id,
-              }
-            : {}),
-        });
+        const sentPrompt = rapidRecipe ?? queuePrompt;
+        promptId = await actions.sendComfyUi(
+          kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
+          undefined,
+          undefined,
+          {
+            ...(stillOpts ?? {}),
+            ...(stillOpts ? { castPlateReference: true } : {}),
+            ...charOpts,
+            ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
+              ? {
+                  queueParamsBase: {
+                    ...stillOpts?.queueParamsBase,
+                    ...charOpts.queueParamsBase,
+                    ...nudeFaceIdentityParams(nudeFace),
+                  },
+                }
+              : {}),
+            ...(retry
+              ? {
+                  derivedKind: 'variation' as const,
+                  parentGalleryEntryId: parentEntry?.id,
+                }
+              : {}),
+          }
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not queue a still.');
       }
@@ -661,6 +715,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       adult,
       dressForRating,
       resolveNudeFaceForBeat,
+      resolveKleinFaceReferenceForBeat,
       storyRapidDuoRecipeFor,
       queueStillOptions,
       resolvePoseGuideForBeat,
