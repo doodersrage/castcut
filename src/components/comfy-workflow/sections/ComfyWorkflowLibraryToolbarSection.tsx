@@ -32,17 +32,6 @@ export function ComfyWorkflowLibraryToolbarSection({
 }: Props) {
   return (
     <>
-      <div className="space-y-1">
-        <h2 className="type-heading">ComfyUI workflow library</h2>
-        <p className="type-caption">
-          Manage multiple ComfyUI API workflow JSON files. Pick the active file from the dropdown
-          next to{' '}
-          <strong className="font-medium text-[var(--text-secondary)]">Send to ComfyUI</strong> on
-          any result panel. URL, tokens, and queue params still come from the connection settings
-          below (or server env).
-        </p>
-      </div>
-
       <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4">
         <p className="type-heading mb-2">Import Comfy pack</p>
         <ComfyPackImportControl onImported={handlePackImport} />
