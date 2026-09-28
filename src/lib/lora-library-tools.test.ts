@@ -6,6 +6,7 @@ import {
   deleteLoraStackPreset,
   duplicateLoraEntries,
   loraEntriesNeedingScan,
+  loraStackMembership,
   loraUsageStats,
   missingLoraEntries,
   removeLoraEntries,
@@ -134,5 +135,15 @@ describe('library usage + tidy', () => {
       ['a']
     );
     assert.deepEqual(next.byModel, { m1: ['a'], m2: ['a'] });
+  });
+});
+
+describe('loraStackMembership', () => {
+  it('lists the model stacks and saved stacks each LoRA is in', () => {
+    const membership = loraStackMembership({ m1: ['a', 'b'], m2: ['a'] }, [
+      { id: 'p', name: 'Realism', family: 'qwen', loraIds: ['b'] },
+    ]);
+    assert.deepEqual(membership.get('a'), { models: ['m1', 'm2'], savedStacks: [] });
+    assert.deepEqual(membership.get('b'), { models: ['m1'], savedStacks: ['Realism'] });
   });
 });

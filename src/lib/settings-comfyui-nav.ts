@@ -76,8 +76,12 @@ export const COMFYUI_SETTINGS_SECTIONS: ComfyUiSettingsSection[] = [
   },
   {
     id: 'model-assets',
-    label: 'Model assets',
+    label: 'Models',
     keywords: [
+      'disk',
+      'space',
+      'delete',
+      'unused',
       'download',
       'checkpoint',
       'unet',

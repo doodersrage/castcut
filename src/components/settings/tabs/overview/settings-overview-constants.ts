@@ -19,8 +19,8 @@ export const ESSENTIAL_TASKS: Array<{
     section: 'connection',
   },
   {
-    title: 'Model assets',
-    description: 'Download curated checkpoints and helpers (maps sync after install).',
+    title: 'Models',
+    description: 'What is on disk, what you use, free space, and per-engine downloads.',
     section: 'model-assets',
   },
   {

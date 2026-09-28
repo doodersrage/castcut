@@ -213,7 +213,7 @@ export function getServerEnvSummary(): ServerEnvSummary {
           value: flag(process.env.COMFYUI_ROOT) ? process.env.COMFYUI_ROOT!.trim() : 'not set',
           configured: flag(process.env.COMFYUI_ROOT),
           hint: 'Same-machine path for curated model weight downloads into models/.',
-          uiOverride: 'Settings → ComfyUI → Model assets',
+          uiOverride: 'Settings → ComfyUI → Models',
         },
         {
           key: 'HF_TOKEN',

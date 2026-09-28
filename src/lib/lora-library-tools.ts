@@ -270,3 +270,27 @@ export function removeLoraEntries(
   }
   return { library: library.filter(entry => !drop.has(entry.id)), byModel: nextByModel };
 }
+
+export type LoraMembership = { models: string[]; savedStacks: string[] };
+
+/** Which models' session stacks and which saved stacks include each LoRA id. */
+export function loraStackMembership(
+  byModel: Partial<Record<string, string[]>> | undefined,
+  presets: LoraStackPreset[]
+): Map<string, LoraMembership> {
+  const result = new Map<string, LoraMembership>();
+  const entry = (id: string) => {
+    const existing = result.get(id);
+    if (existing) return existing;
+    const created: LoraMembership = { models: [], savedStacks: [] };
+    result.set(id, created);
+    return created;
+  };
+  for (const [model, ids] of Object.entries(byModel ?? {})) {
+    for (const id of ids ?? []) entry(id).models.push(model);
+  }
+  for (const preset of presets) {
+    for (const id of preset.loraIds) entry(id).savedStacks.push(preset.name);
+  }
+  return result;
+}

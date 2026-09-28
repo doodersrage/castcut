@@ -36,6 +36,8 @@ export type ComfyAssetStatusRow = {
   notes?: string;
   urlHost?: string;
   requiresHfToken?: boolean;
+  /** Download size when the catalog knows it. */
+  bytes?: number;
 };
 
 function inventoryListForKind(
@@ -138,6 +140,7 @@ export function buildComfyAssetStatusRows(input?: {
       id: asset.id,
       label: asset.label,
       kind: asset.kind,
+      ...(asset.bytes ? { bytes: asset.bytes } : {}),
       filename: asset.filename,
       modelIds: asset.modelIds.map(String),
       status,

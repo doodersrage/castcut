@@ -119,7 +119,7 @@ export function resolveQueueFailureGuideLabel(href: string): string {
     return 'LoRA library';
   }
   if (/model-assets/i.test(path)) {
-    return 'Model assets';
+    return 'Models';
   }
   if (/inference-engine/i.test(path)) {
     return 'Inference engine';

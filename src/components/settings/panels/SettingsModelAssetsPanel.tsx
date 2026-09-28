@@ -1,6 +1,6 @@
 'use client';
 
-import ComfyModelAssetsPanel from '@/components/settings/ComfyModelAssetsPanel';
+import ModelsManager from '@/components/settings/models-manager/ModelsManager';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 
 export type SettingsModelAssetsPanelProps = {
@@ -13,8 +13,8 @@ export default function SettingsModelAssetsPanel({
   syncLoaderMapsFromComfyInventory,
 }: SettingsModelAssetsPanelProps) {
   return (
-    <ToolSection id="settings-comfyui-model-assets" title="Model assets">
-      <ComfyModelAssetsPanel
+    <ToolSection id="settings-comfyui-model-assets" title="Models">
+      <ModelsManager
         onStatus={setStatus}
         onInstalled={() => {
           setStatus('Weight installed — syncing loader maps from Comfy inventory…');

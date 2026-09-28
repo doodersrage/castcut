@@ -13,8 +13,8 @@ import {
 import { fetchLoraTriggerPhrase } from '@/lib/comfyui-object-info-cache';
 import { useLoraLibraryInventory } from '@/hooks/useLoraLibraryInventory';
 import LoraSearchDownloadPanel from '@/components/settings/LoraSearchDownloadPanel';
-import LoraLibraryInventorySection from '@/components/settings/LoraLibraryInventorySection';
-import LoraLibraryEntryRow from '@/components/settings/LoraLibraryEntryRow';
+import LoraLibraryManager from '@/components/settings/LoraLibraryManager';
+import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
 import { fetchLoraScanRows } from '@/lib/lora-scan-client';
 import {
@@ -229,12 +229,32 @@ export default function LoraLibrarySettingsPanel({
     },
     [comfyUrl, onChange]
   );
-  const autoScanned = useRef(false);
+  // Scan new entries as they arrive; each file is tried once per visit (unreadable ones stay put).
+  const scanAttempted = useRef(new Set<string>());
   useEffect(() => {
-    if (autoScanned.current || loraEntriesNeedingScan(entries).length === 0) return;
-    autoScanned.current = true;
+    const fresh = loraEntriesNeedingScan(entries)
+      .map(entry => entry.tokenValue.trim())
+      .filter(name => !scanAttempted.current.has(name));
+    if (fresh.length === 0 || scanning) return;
+    fresh.forEach(name => scanAttempted.current.add(name));
     void scan(false);
-  }, [entries, scan]);
+  }, [entries, scan, scanning]);
+
+  const addFiles = useCallback(
+    (filenames: string[]) => {
+      const next = [...entriesRef.current];
+      for (const filename of filenames) {
+        if (next.some(entry => entry.tokenValue === filename)) continue;
+        next.push(createLoraLibraryEntryFromFilename(filename, next));
+      }
+      entriesRef.current = next;
+      onChange(next);
+      onStatus?.(
+        `Added ${filenames.length} LoRA${filenames.length === 1 ? '' : 's'} to the library — identifying ${filenames.length === 1 ? 'it' : 'them'}…`
+      );
+    },
+    [onChange, onStatus]
+  );
 
   // Per-model stacks with picks that can't apply (wrong family) or that are oversized.
   const [auditTick, setAuditTick] = useState(0);
@@ -263,29 +283,12 @@ export default function LoraLibrarySettingsPanel({
   return (
     <div className="space-y-4">
       <p className="text-sm text-[var(--text-muted)]">
-        Pick LoRAs from your ComfyUI inventory, then set ID and label. New entries start unchecked —
-        turn on <span className="text-[var(--text-secondary)]">Enabled</span> for Settings defaults,
-        or use the tool sidebar <span className="text-[var(--text-secondary)]">LoRA stack</span> for
-        the current session.
+        Every LoRA ComfyUI has, identified from its file.{' '}
+        <span className="text-[var(--text-secondary)]">On</span> makes one part of the default
+        stack; the tool sidebar&rsquo;s{' '}
+        <span className="text-[var(--text-secondary)]">LoRA stack</span> picks per model. Click a
+        row to edit it or check it on your Cast.
       </p>
-
-      <LoraSearchDownloadPanel
-        comfyUrl={comfyUrl}
-        libraryFilenames={libraryFilenames}
-        onAddToLibrary={addFromInventory}
-        onRefreshInventory={refreshInventory}
-        onStatus={onStatus}
-      />
-
-      <LoraLibraryInventorySection
-        comfyUrl={comfyUrl}
-        libraryFilenames={libraryFilenames}
-        inventoryLoras={inventoryLoras}
-        inventoryLoading={inventoryLoading}
-        inventoryError={inventoryError}
-        onRefreshInventory={refreshInventory}
-        onAddFromInventory={addFromInventory}
-      />
 
       {audit.length > 0 ? (
         <div className="ui-surface-inset space-y-2" data-testid="lora-stack-audit">
@@ -376,7 +379,9 @@ export default function LoraLibrarySettingsPanel({
 
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-[var(--text-muted)]">Library entries</p>
+          <p className="text-xs text-[var(--text-muted)]">
+            Library · {entries.length} entr{entries.length === 1 ? 'y' : 'ies'}
+          </p>
           <button
             type="button"
             onClick={() => void scan(true)}
@@ -394,13 +399,6 @@ export default function LoraLibrarySettingsPanel({
             Add blank
           </button>
         </div>
-        <p className="text-xs text-[var(--text-muted)]">
-          For Qwen Lightning, set ID to{' '}
-          <code className="rounded bg-[var(--bg-muted)] px-1 text-[var(--accent-text)]">
-            LIGHTNING
-          </code>{' '}
-          (suggested automatically for Lightning filenames).
-        </p>
         {entries.length > 0 ? (
           <p className="ui-surface-inset text-xs text-[var(--text-secondary)]">{activeSummary}</p>
         ) : null}
@@ -409,38 +407,54 @@ export default function LoraLibrarySettingsPanel({
             {scanNote}
           </p>
         ) : null}
-        {entries.length === 0 ? (
+        {inventoryError ? <p className="text-xs ui-status-danger">{inventoryError}</p> : null}
+        {entries.length === 0 && inventoryLoras.length === 0 && !inventoryLoading ? (
           <EmptyState
             compact
             icon="catalog"
-            title="No LoRA entries yet"
-            description="Add from the inventory list above, or create a blank entry and pick a file."
+            title="No LoRAs yet"
+            description="ComfyUI reports no LoRA files. Download some below, or add a blank entry and pick a file."
             action={{
               label: 'Add blank',
               onClick: addBlank,
             }}
           />
         ) : (
-          <ul className="space-y-3">
-            {entries.map((entry, index) => (
-              <LoraLibraryEntryRow
-                key={`${entry.id}-${index}`}
-                entry={entry}
-                index={index}
-                entryCount={entries.length}
-                inventoryLoras={inventoryLoras}
-                inventoryNames={inventoryNames}
-                comfyUrl={comfyUrl}
-                usage={usage.get(entry.id)}
-                onPatchById={patchEntryById}
-                onUpdate={updateEntry}
-                onMove={moveEntry}
-                onRemove={removeEntry}
-              />
-            ))}
-          </ul>
+          <LoraLibraryManager
+            entries={entries}
+            inventoryLoras={inventoryLoras}
+            inventoryNames={inventoryNames}
+            inventoryLoading={inventoryLoading}
+            comfyUrl={comfyUrl}
+            usage={usage}
+            onChange={next => {
+              entriesRef.current = next;
+              onChange(next);
+            }}
+            onUpdate={updateEntry}
+            onPatchById={patchEntryById}
+            onMove={moveEntry}
+            onRemove={removeEntry}
+            onAddFiles={addFiles}
+            onRefreshInventory={refreshInventory}
+          />
         )}
       </div>
+
+      <CollapsibleSection
+        title="Find and download LoRAs"
+        summary="Search Civitai / Hugging Face and install into ComfyUI"
+        defaultOpen={false}
+        persistKey="settings-lora-find-download"
+      >
+        <LoraSearchDownloadPanel
+          comfyUrl={comfyUrl}
+          libraryFilenames={libraryFilenames}
+          onAddToLibrary={addFromInventory}
+          onRefreshInventory={refreshInventory}
+          onStatus={onStatus}
+        />
+      </CollapsibleSection>
     </div>
   );
 }

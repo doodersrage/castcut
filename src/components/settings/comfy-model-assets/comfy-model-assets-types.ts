@@ -13,6 +13,7 @@ export type AssetRow = {
   notes?: string;
   urlHost?: string;
   requiresHfToken?: boolean;
+  bytes?: number;
 };
 
 export type AssetJob = {
