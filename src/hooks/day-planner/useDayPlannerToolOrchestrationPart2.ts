@@ -90,6 +90,7 @@ import {
   loadSavedFittingGarments,
   removeSavedFittingGarment,
   saveFittingGarment,
+  updateSavedFittingGarmentDescription,
 } from '@/lib/fitting-saved-garments';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
@@ -1000,6 +1001,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         throw new Error('Vision returned an empty garment description. Try Rescan again.');
       }
       updateToolSettings({ customGarmentDescription: description.trim() });
+      updateSavedFittingGarmentDescription(filename, description);
     } finally {
       setGarmentUploading(false);
       setGarmentScanStatus(null);

@@ -856,6 +856,8 @@ export type ApplyCastLookPlateInput = {
   filename?: string;
   /** Default true — isolate on white like Outfit. */
   isolate?: boolean;
+  /** With `isolate: false`: the image is already a white cutout (an edit of an isolated plate). */
+  alreadyIsolated?: boolean;
   model?: string;
 };
 
@@ -938,6 +940,7 @@ export async function applyCastLookPlateFromSource(
   if (!shouldIsolate) {
     const durable = await persistPlate(sourceFile, queueFilename);
     queueUrl = durable || originalUrl || incomingDurable;
+    isolated = input.alreadyIsolated === true;
   } else {
     try {
       const cutout = await isolateSubjectOnWhite(sourceFile, originalName);

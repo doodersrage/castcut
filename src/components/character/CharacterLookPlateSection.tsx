@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import ImageLightbox, { type ImageLightboxState } from '@/components/ui/ImageLightbox';
 import { Button, ButtonLink } from '@/components/ui/Button';
@@ -10,6 +11,12 @@ import { usePlateCheck } from '@/hooks/usePlateCheck';
 import type { FittingPlate } from '@/lib/fitting-room';
 import { galleryPickPath } from '@/lib/gallery-handoff';
 import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
+import type { stripCastPlateClothing } from '@/lib/cast-plate-strip';
+
+const CastPlateStripButton = dynamic(() => import('@/components/character/CastPlateStripButton'), {
+  ssr: false,
+  loading: () => null,
+});
 
 export type CharacterLookPlateSectionProps = {
   characterId: string;
@@ -19,6 +26,12 @@ export type CharacterLookPlateSectionProps = {
   error: string | null;
   onClear: () => void;
   onUpload: (file: File) => void;
+  /** Edit the plate down to a plain base layer (hidden when omitted). */
+  onStripClothing?: (
+    sendComfyUi: Parameters<typeof stripCastPlateClothing>[0]['sendComfyUi']
+  ) => void;
+  canUndoStrip?: boolean;
+  onUndoStrip?: () => void;
 };
 
 /** DWPose read of the plate: one person, face visible and big enough, sharp enough. */
@@ -87,6 +100,9 @@ export default function CharacterLookPlateSection({
   error,
   onClear,
   onUpload,
+  onStripClothing,
+  canUndoStrip = false,
+  onUndoStrip,
 }: CharacterLookPlateSectionProps) {
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const previewUrl = plate?.imageUrl?.trim()
@@ -147,6 +163,20 @@ export default function CharacterLookPlateSection({
               >
                 Choose from Gallery
               </ButtonLink>
+              {onStripClothing ? (
+                <CastPlateStripButton disabled={uploading} onStrip={onStripClothing} />
+              ) : null}
+              {canUndoStrip && onUndoStrip ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={uploading}
+                  data-testid="cast-look-plate-strip-undo"
+                  onClick={onUndoStrip}
+                >
+                  Undo
+                </Button>
+              ) : null}
               <Button
                 variant="ghost"
                 size="sm"

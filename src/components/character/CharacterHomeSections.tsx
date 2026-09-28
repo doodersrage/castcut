@@ -100,6 +100,13 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
             onUpload={file => {
               void props.applyLookPlate({ file });
             }}
+            onStripClothing={sendComfyUi => {
+              void props.stripLookPlateClothing(sendComfyUi);
+            }}
+            canUndoStrip={props.canUndoPlateStrip}
+            onUndoStrip={() => {
+              void props.undoLookPlateStrip();
+            }}
           />
           <CharacterLooksSection
             character={character}

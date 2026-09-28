@@ -9,6 +9,7 @@ import {
   loadSavedFittingGarments,
   removeSavedFittingGarment,
   saveFittingGarment,
+  updateSavedFittingGarmentDescription,
 } from './fitting-saved-garments';
 
 describe('fitting-saved-garments', () => {
@@ -97,6 +98,22 @@ describe('fitting-saved-garments', () => {
     const saved = saveFittingGarment({ imageFilename: 'dress.png', description: 'red dress' });
     removeSavedFittingGarment(saved.id);
     assert.deepEqual(loadSavedFittingGarments(), []);
+  });
+
+  it('updateSavedFittingGarmentDescription fills a blank saved photo in place', () => {
+    saveFittingGarment({ imageFilename: 'tee.png' });
+    saveFittingGarment({ imageFilename: 'named.png', label: 'Gym top' });
+    assert.equal(updateSavedFittingGarmentDescription('tee.png', ' pink ribbed crop tee '), true);
+    assert.equal(updateSavedFittingGarmentDescription('named.png', 'grey sports bra'), true);
+    const [named, tee] = loadSavedFittingGarments();
+    assert.equal(tee?.description, 'pink ribbed crop tee');
+    assert.equal(tee?.label, 'pink ribbed crop tee');
+    // A hand-set label and the strip order stay put.
+    assert.equal(named?.label, 'Gym top');
+    assert.equal(named?.description, 'grey sports bra');
+    assert.equal(updateSavedFittingGarmentDescription('missing.png', 'x'), false);
+    assert.equal(updateSavedFittingGarmentDescription('tee.png', '  '), false);
+    assert.equal(findSavedFittingGarmentByFilename('tee.png')?.description, 'pink ribbed crop tee');
   });
 
   it('loadSavedFittingGarments returns [] for malformed storage', () => {

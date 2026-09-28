@@ -10,6 +10,7 @@ import {
   removeSavedFittingGarment,
   saveFittingGarment,
   loadSavedFittingGarments,
+  updateSavedFittingGarmentDescription,
 } from '@/lib/fitting-saved-garments';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
@@ -207,6 +208,7 @@ export function useRoleplayWardrobe({
         throw new Error('Vision returned an empty garment description. Try Rescan again.');
       }
       updateToolSettings({ customGarmentDescription: description.trim() });
+      updateSavedFittingGarmentDescription(filename, description);
     } finally {
       setGarmentUploading(false);
       setGarmentScanStatus(null);

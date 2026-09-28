@@ -170,6 +170,40 @@ export function saveFittingGarment(input: {
   return entry;
 }
 
+/**
+ * Keep a saved photo's description in step with the active copy after Rescan or an edit —
+ * otherwise re-picking the tile brings back the old (often empty) text. Keeps its place and a
+ * hand-set label. Returns false when that photo is not saved.
+ */
+export function updateSavedFittingGarmentDescription(
+  imageFilename: string | null | undefined,
+  description: string | null | undefined
+): boolean {
+  const filename = imageFilename?.trim();
+  const text = description?.trim();
+  if (!filename || !text) {
+    return false;
+  }
+  const existing = readAll();
+  const index = existing.findIndex(entry => entry.imageFilename === filename);
+  if (index < 0) {
+    return false;
+  }
+  const prior = existing[index];
+  if (prior.description === text) {
+    return true;
+  }
+  const autoLabel = prior.label === labelForSavedFittingGarment(prior.description);
+  const next = [...existing];
+  next[index] = {
+    ...prior,
+    description: text,
+    label: autoLabel ? labelForSavedFittingGarment(text) : prior.label,
+  };
+  writeAll(next);
+  return true;
+}
+
 export function removeSavedFittingGarment(id: string | null | undefined): SavedFittingGarment[] {
   const target = id?.trim();
   if (!target) {

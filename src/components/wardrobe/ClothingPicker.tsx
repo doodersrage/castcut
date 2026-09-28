@@ -16,6 +16,7 @@ import {
   findSavedFittingGarmentByFilename,
   loadSavedFittingGarments,
   subscribeSavedFittingGarments,
+  updateSavedFittingGarmentDescription,
   type SavedFittingGarment,
 } from '@/lib/fitting-saved-garments';
 
@@ -383,6 +384,9 @@ export default function ClothingPicker({
                 disabled={photoBusy}
                 className={accentFocusClass(accent)}
                 placeholder="Vision fills this from your photo — edit if needed"
+                onBlur={() =>
+                  updateSavedFittingGarmentDescription(garment.imageFilename, garment.description)
+                }
                 onChange={event => garment.onDescriptionChange?.(event.target.value)}
               />
             </label>

@@ -9,6 +9,7 @@ import {
   findSavedFittingGarmentByFilename,
   loadSavedFittingGarments,
   subscribeSavedFittingGarments,
+  updateSavedFittingGarmentDescription,
   type SavedFittingGarment,
 } from '@/lib/fitting-saved-garments';
 
@@ -224,6 +225,12 @@ export default function CustomGarmentPhotoControls({
             disabled={busy || garmentUploading}
             className={accentFocusClass(accent)}
             placeholder="Vision fills this from your photo — edit if needed"
+            onBlur={() =>
+              updateSavedFittingGarmentDescription(
+                customGarmentImageFilename,
+                customGarmentDescription
+              )
+            }
             onChange={event => onCustomGarmentDescriptionChange(event.target.value)}
           />
         </label>
