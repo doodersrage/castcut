@@ -107,4 +107,26 @@ describe("comfyui settings lora migration", () => {
       true,
     );
   });
+
+  it("never loads a LoRA the file scan placed in another model family", () => {
+    const merged = mergeLoraLibraryIntoCustomTokens(
+      {
+        useServerDefaults: false,
+        loraLibrary: [
+          { id: "qwen-skin", label: "Skin", triggerPhrase: "", tokenValue: "skin.safetensors", family: "qwen", familySource: "metadata" },
+          { id: "sdxl-detail", label: "Detail", triggerPhrase: "", tokenValue: "detail-xl.safetensors", family: "sdxl", familySource: "keys" },
+          { id: "unscanned", label: "Old", triggerPhrase: "", tokenValue: "old.safetensors" },
+        ],
+      },
+      {
+        activeOnly: true,
+        model: "qwen-image-2512-lightning-8",
+        sessionActiveLoraIds: ["qwen-skin", "sdxl-detail", "unscanned"],
+      },
+    );
+    const tokens = new Set(merged.customTokens?.map((entry) => entry.token));
+    assert.equal(tokens.has("{{LORA_qwen-skin}}"), true);
+    assert.equal(tokens.has("{{LORA_sdxl-detail}}"), false);
+    assert.equal(tokens.has("{{LORA_unscanned}}"), true);
+  });
 });

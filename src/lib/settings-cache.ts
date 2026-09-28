@@ -273,6 +273,12 @@ function applyCriticalSharedPrefs(shared: SharedToolSettings): void {
 
 /** Memoized result for loadSettingsCache to avoid re-normalizing on hot-path reads. */
 let cachedLoadResult: SettingsCache | null = null;
+/**
+ * Bumped on every save. A load that migrates or repairs saves its snapshot a microtask later;
+ * if anything saved in between, that snapshot is stale and would undo the newer save (e.g. a
+ * LoRA clean-up reverting to the old picks). Newer saves are built from a migrated load anyway.
+ */
+let settingsSaveGeneration = 0;
 let cachedBrowserVersion: unknown | null = null;
 /** Patches queued before IndexedDB KV hydrate — merged and flushed on ready. */
 let pendingSettingsCache: SettingsCache | null = null;
@@ -1793,12 +1799,15 @@ export function loadSettingsCache(): SettingsCache {
       Object.assign(shared, repair.shared);
     }
 
+    const loadGeneration = settingsSaveGeneration;
     if (migrated.changed && typeof window !== 'undefined') {
       scheduleAfterCommit(() => {
+        if (settingsSaveGeneration !== loadGeneration) return;
         saveSettingsCache({ shared, tools: migrated.tools, installedPlugins });
       });
     } else if (repair.repaired && typeof window !== 'undefined') {
       scheduleAfterCommit(() => {
+        if (settingsSaveGeneration !== loadGeneration) return;
         saveSettingsCache({
           shared,
           tools: migrated.tools,
@@ -1860,6 +1869,7 @@ export function saveSettingsCache(cache: SettingsCache, options?: SaveSettingsOp
   if (typeof window === 'undefined') {
     return;
   }
+  settingsSaveGeneration += 1;
   const shouldNotify = options?.notify !== false;
   const stamped: SettingsCache = { ...cache, updatedAt: Date.now() };
   applySystemWorkflowsSidecar(stamped.shared);

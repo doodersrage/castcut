@@ -6,6 +6,7 @@ import {
   saveSharedSettings,
   saveSharedSettingsNow,
   saveSessionLoraSelectionNow,
+  saveSettingsCache,
   setUseSystemWorkflowsPref,
   SYSTEM_WORKFLOWS_PREF_KEY,
   SESSION_LORA_PREFS_KEY,
@@ -152,6 +153,33 @@ describe('settings persistence sidecars', () => {
         window.localStorage.getItem(SESSION_LORA_PREFS_KEY)?.includes('klein-snofs'),
         false
       );
+    });
+  });
+
+  it('a load that migrates does not undo the save that follows it', async () => {
+    await withMockLocalStorage(async () => {
+      resetBrowserStorageCache();
+      // Legacy `duo` tools make every load migrate and queue a save of its snapshot.
+      saveSettingsCache({
+        shared: {
+          ...loadSettingsCache().shared,
+          sessionActiveLoraIdsByModel: { 'flux-2-klein-9b': ['klein-a', 'sdxl-b'] },
+        },
+        tools: { duo: {} } as never,
+        installedPlugins: [],
+      });
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      saveSharedSettings({
+        ...loadSettingsCache().shared,
+        sessionActiveLoraIdsByModel: { 'flux-2-klein-9b': ['klein-a'] },
+      });
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      resetBrowserStorageCache();
+      assert.deepEqual(loadSettingsCache().shared.sessionActiveLoraIdsByModel?.['flux-2-klein-9b'], [
+        'klein-a',
+      ]);
     });
   });
 

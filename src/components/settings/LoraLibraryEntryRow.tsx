@@ -4,6 +4,7 @@ import ComfyLoraPreviewThumb from '@/components/ComfyLoraPreviewThumb';
 import { fetchLoraTriggerPhrase } from '@/lib/comfyui-object-info-cache';
 import type { ComfyLoraInventoryFile } from '@/lib/comfyui-object-info-cache';
 import type { LoraLibraryEntry } from '@/lib/lora-stack';
+import { LORA_FAMILY_LABELS } from '@/lib/lora-family-detect';
 
 type LoraLibraryEntryRowProps = {
   entry: LoraLibraryEntry;
@@ -54,6 +55,21 @@ export default function LoraLibraryEntryRow({
             />
             Enabled
           </label>
+          {entry.family ? (
+            <span
+              className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]"
+              title={
+                entry.familySource === 'missing'
+                  ? 'This file is no longer in ComfyUI — remove the entry or re-download it'
+                  : entry.familySource === 'unreadable'
+                    ? "Couldn't read the file — family unknown"
+                    : `Read from the file's ${entry.familySource === 'keys' ? 'layer names' : 'training metadata'}`
+              }
+              data-testid="lora-entry-family"
+            >
+              {entry.familySource === 'missing' ? 'File missing' : LORA_FAMILY_LABELS[entry.family]}
+            </span>
+          ) : null}
         </div>
         <div className="flex items-center gap-1">
           <button

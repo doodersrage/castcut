@@ -2,6 +2,7 @@ import { getComfyModelDefinition } from './comfy-models/client';
 import { KLEIN_REALISTIC_DETAIL_LORA_ID } from './klein-realistic-detail-lora';
 import { KLEIN_ULTRA_REAL_LORA_ID } from './klein-ultra-real-lora';
 import type { LoraLibraryEntry } from './lora-stack';
+import { loraFamilyForModel } from './lora-family-detect';
 import { companionRealismLoraIdsForModel } from './model-lora-map';
 import { ULTRAREAL_AMPLIFIER_LORA_ID } from './ultrareal-amplifier-lora';
 import {
@@ -67,6 +68,13 @@ export function isLoraCompatibleWithModel(entry: LoraLibraryEntry, model?: strin
     return false;
   }
 
+  // Scanned: the file says what it was trained for — match strictly. A scanned file that is
+  // still unknown isn't offered by default (it used to count as compatible everywhere).
+  if (entry.family && entry.familySource !== 'unreadable' && entry.familySource !== 'missing') {
+    const wanted = loraFamilyForModel(model);
+    if (!wanted) return true;
+    return entry.family === wanted;
+  }
   const modelFamily = resolveLoraFilterFamily(model);
   const loraFamily = classifyLoraEntryFamily(entry);
   if (isAmbiguousFamily(modelFamily) || isAmbiguousFamily(loraFamily)) {

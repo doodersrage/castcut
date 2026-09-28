@@ -24,6 +24,13 @@ export type LoraLibraryEntry = {
   autoFromPrompt?: boolean;
   /** Explicit stack position; falls back to array order when omitted. */
   order?: number;
+  /** What the file was trained for, read from its header (lora-family-detect.ts). */
+  family?: import('./lora-family-detect').LoraFamily;
+  /**
+   * Where `family` came from; `unreadable` means the scan could not open the file and `missing`
+   * that the file is no longer in ComfyUI.
+   */
+  familySource?: 'metadata' | 'keys' | 'unreadable' | 'missing';
 };
 
 export type ActiveLoraStackEntry = {

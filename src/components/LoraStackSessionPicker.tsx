@@ -30,6 +30,15 @@ import { loadSettingsCache } from '@/lib/settings-cache';
 import { Button } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import ComfyLoraPreviewThumb from '@/components/ComfyLoraPreviewThumb';
+import { scanUnscannedLorasOnce } from '@/lib/lora-scan-client';
+import { LORA_FAMILY_LABELS } from '@/lib/lora-family-detect';
+import {
+  deleteLoraStackPreset,
+  loraStackPresetsForModel,
+  LORA_STACK_WARN_SIZE,
+  normalizeLoraStackPresets,
+  saveLoraStackPreset,
+} from '@/lib/lora-library-tools';
 
 type LoraStackSessionPickerProps = {
   model?: string;
@@ -93,6 +102,21 @@ export default function LoraStackSessionPicker({
   const modelKey = model ?? '';
   const [showAllForModel, setShowAllForModel] = useState(modelKey);
   const [showAllLoras, setShowAllLoras] = useState(false);
+  const [libraryVersion, setLibraryVersion] = useState(0);
+  const [stackName, setStackName] = useState('');
+
+  // Identify LoRAs the app hasn't read yet (family + trigger), once per page session.
+  useEffect(() => {
+    let cancelled = false;
+    void scanUnscannedLorasOnce()
+      .then(changed => {
+        if (!cancelled && changed > 0) setLibraryVersion(value => value + 1);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     scheduleAfterCommit(() => {
@@ -104,7 +128,7 @@ export default function LoraStackSessionPicker({
         sessionActiveLoraIdsByModel: shared.sessionActiveLoraIdsByModel,
       });
     });
-  }, [model, sessionActiveLoraIds, sessionLoraStrengthOverrides]);
+  }, [model, sessionActiveLoraIds, sessionLoraStrengthOverrides, libraryVersion]);
 
   if (showAllForModel !== modelKey) {
     setShowAllForModel(modelKey);
@@ -209,11 +233,112 @@ export default function LoraStackSessionPicker({
       ) : null}
 
       {mismatchCount > 0 ? (
-        <p className="type-caption ui-status-danger">
-          {mismatchCount} selected LoRA{mismatchCount === 1 ? '' : 's'} look like a different family
-          than {loraModelFilterLabel(snapshot.model)}.
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="type-caption ui-status-danger">
+            {mismatchCount} selected LoRA{mismatchCount === 1 ? '' : 's'} can&rsquo;t apply to{' '}
+            {loraModelFilterLabel(snapshot.model)} (made for a different model family).
+          </p>
+          <button
+            type="button"
+            data-testid="lora-remove-incompatible"
+            onClick={() =>
+              onChange(
+                activeIds.filter(id => {
+                  const entry = selectable.find(item => item.id === id);
+                  return entry ? isLoraCompatibleWithModel(entry, snapshot.model) : false;
+                })
+              )
+            }
+            className="type-caption ui-text-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          >
+            Remove {mismatchCount === 1 ? 'it' : 'them'}
+          </button>
+        </div>
+      ) : null}
+
+      {activeIds.length - mismatchCount > LORA_STACK_WARN_SIZE ? (
+        <p
+          className="type-caption text-[var(--tint-warning-text,var(--text-muted))]"
+          data-testid="lora-stack-oversized"
+        >
+          {activeIds.length - mismatchCount} LoRAs active — stacks over {LORA_STACK_WARN_SIZE} tend
+          to fight each other. Try a smaller saved stack.
         </p>
       ) : null}
+
+      {(() => {
+        const presets = normalizeLoraStackPresets(loadComfyUiSettings().loraStackPresets);
+        const forModel = loraStackPresetsForModel(presets, snapshot.model);
+        const savePresets = (next: typeof presets) => {
+          saveComfyUiSettings({ ...loadComfyUiSettings(), loraStackPresets: next });
+          setLibraryVersion(value => value + 1);
+        };
+        return (
+          <div className="space-y-2" data-testid="lora-saved-stacks">
+            {forModel.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {forModel.map(preset => (
+                  <span key={preset.id} className="inline-flex items-center gap-1">
+                    <ChipButton
+                      active={
+                        preset.loraIds.length === activeIds.length &&
+                        preset.loraIds.every(id => activeSet.has(id))
+                      }
+                      onClick={() => {
+                        const known = new Set(selectable.map(entry => entry.id));
+                        onChange(preset.loraIds.filter(id => known.has(id)));
+                        if (preset.strengthOverrides) {
+                          onSessionStrengthOverridesChange?.(preset.strengthOverrides);
+                        }
+                      }}
+                      className="px-2 text-[11px]"
+                    >
+                      {preset.name} · {preset.loraIds.length}
+                    </ChipButton>
+                    <button
+                      type="button"
+                      aria-label={`Delete saved stack ${preset.name}`}
+                      onClick={() => savePresets(deleteLoraStackPreset(presets, preset.id))}
+                      className="text-[11px] text-[var(--text-muted)] hover:text-[var(--accent-text)]"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {activeIds.length === 0 ? null : (
+              <form
+                className="flex items-center gap-2"
+                onSubmit={event => {
+                  event.preventDefault();
+                  if (!stackName.trim()) return;
+                  savePresets(
+                    saveLoraStackPreset(presets, {
+                      name: stackName,
+                      model: snapshot.model,
+                      loraIds: activeIds,
+                      strengthOverrides: sessionLoraStrengthOverrides,
+                    })
+                  );
+                  setStackName('');
+                }}
+              >
+                <input
+                  value={stackName}
+                  onChange={event => setStackName(event.target.value)}
+                  placeholder="Save these picks as a stack…"
+                  aria-label="Saved stack name"
+                  className="min-w-0 flex-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-base)] px-2 py-1 text-xs"
+                />
+                <Button type="submit" size="sm" variant="ghost" disabled={!stackName.trim()}>
+                  Save
+                </Button>
+              </form>
+            )}
+          </div>
+        );
+      })()}
 
       {hiddenCount > 0 || showAllLoras ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -292,7 +417,13 @@ export default function LoraStackSessionPicker({
                         {entry.label || entry.id}
                       </span>
                       {mismatched ? (
-                        <span className="block text-[10px] ui-status-danger">Family mismatch</span>
+                        <span className="block text-[10px] ui-status-danger">
+                          {entry.family &&
+                          entry.familySource !== 'unreadable' &&
+                          entry.familySource !== 'missing'
+                            ? `Made for ${LORA_FAMILY_LABELS[entry.family]}`
+                            : 'Family mismatch'}
+                        </span>
                       ) : null}
                     </span>
                     {checked || strengths.hasSessionOverride ? (

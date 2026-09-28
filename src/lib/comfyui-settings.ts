@@ -37,6 +37,7 @@ import {
   resolveEffectiveSessionLoraStrengthOverrides,
 } from './model-lora-map';
 import { loadSettingsCache } from './settings-cache';
+import { loraFamilyForModel } from './lora-family-detect';
 
 /**
  * Per-model session → model LoRA map → library enabled flags.
@@ -77,6 +78,8 @@ export type ComfyUiSettings = {
   queueParams?: WorkflowParamValues;
   customTokens?: CustomWorkflowToken[];
   loraLibrary?: LoraLibraryEntry[];
+  /** Named LoRA stacks per model family (lora-library-tools.ts). */
+  loraStackPresets?: import('./lora-library-tools').LoraStackPreset[];
   notifyOnComplete?: boolean;
   /** Auto-tag completed gallery entries with vision LLM tags. */
   autoVisionTags?: boolean;
@@ -220,8 +223,11 @@ export function mergeLoraLibraryIntoCustomTokens(
       options.sessionActiveLoraIds !== undefined
         ? options.sessionActiveLoraIds
         : resolveSharedEffectiveSessionLoraIds(options.model);
+    const queueModel = options.model ?? loadSettingsCache().shared.model;
     library = applySessionLoraSelection(library, sessionIds).filter(
-      entry => entry.enabled !== false || isLightningLibraryEntry(entry)
+      entry =>
+        isLightningLibraryEntry(entry) ||
+        (entry.enabled !== false && !scannedForOtherFamily(entry, queueModel))
     );
   }
   const manualTokens = (normalized.customTokens ?? []).filter(
@@ -239,6 +245,24 @@ export function mergeLoraLibraryIntoCustomTokens(
     loraLibrary: normalizeLoraLibrary(normalized.loraLibrary),
     customTokens: [...manualTokens, ...loraTokens],
   };
+}
+
+/**
+ * A LoRA the file scan identified as another model family (lora-family-detect.ts) is never
+ * loaded — an SDXL LoRA on a Qwen graph only adds "lora key not loaded" noise. Unscanned
+ * entries keep the old behaviour.
+ */
+function scannedForOtherFamily(entry: LoraLibraryEntry, model: string | undefined): boolean {
+  if (
+    !entry.family ||
+    entry.familySource === 'unreadable' ||
+    entry.familySource === 'missing' ||
+    entry.family === 'unknown'
+  ) {
+    return false;
+  }
+  const wanted = loraFamilyForModel(model);
+  return Boolean(wanted) && entry.family !== wanted;
 }
 
 /** Keep Settings → LoRA library in sync when a workflow sets {{LORA_LIGHTNING}}. */
@@ -389,8 +413,11 @@ export function comfyUiSettingsToRuntime(
   // normalized library itself so queue-time LoRA stacking survives the client→server hop.
   // Session sidebar picks override Settings enabled flags when set;
   // otherwise the per-model LoRA map applies when present.
+  const queueModel = options?.model ?? loadSettingsCache().shared.model;
   const loraLibrary = applySessionLoraStrengthOverrides(
-    applySessionLoraSelection(settings.loraLibrary, sessionActiveLoraIds),
+    applySessionLoraSelection(settings.loraLibrary, sessionActiveLoraIds).map(entry =>
+      scannedForOtherFamily(entry, queueModel) ? { ...entry, enabled: false } : entry
+    ),
     options?.sessionLoraStrengthOverrides ??
       resolveSharedEffectiveSessionLoraStrengthOverrides(options?.model)
   );
