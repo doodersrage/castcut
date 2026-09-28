@@ -988,6 +988,14 @@ export function patchSamplerParamsInWorkflow(
       continue;
     }
 
+    const hasSeed = params.seed != null && params.seed.toString().trim() !== '';
+    // SamplerCustomAdvanced graphs take their noise from a RandomNoise node.
+    if (record.class_type === 'RandomNoise' && hasSeed && 'noise_seed' in inputs) {
+      inputs.noise_seed = Number(params.seed);
+      patched.seed = (patched.seed ?? 0) + 1;
+      continue;
+    }
+
     if (!isSamplerLikeNode(record.class_type ?? '', inputs)) {
       continue;
     }
@@ -1000,8 +1008,15 @@ export function patchSamplerParamsInWorkflow(
       continue;
     }
 
-    if (params.seed != null && params.seed.toString().trim() !== '' && 'seed' in inputs) {
+    if (hasSeed && 'seed' in inputs) {
       inputs.seed = Number(params.seed);
+      patched.seed = (patched.seed ?? 0) + 1;
+    }
+    // KSamplerAdvanced samples from noise_seed. Packs can also carry a stray `seed` input that
+    // ComfyUI ignores, so patching only `seed` left every still on the pack's fixed noise —
+    // eight real Day stills on Klein all ran noise_seed 126665266752389 and rerolls repeated.
+    if (hasSeed && 'noise_seed' in inputs) {
+      inputs.noise_seed = Number(params.seed);
       patched.seed = (patched.seed ?? 0) + 1;
     }
     if (params.steps != null && params.steps.toString().trim() !== '' && 'steps' in inputs) {

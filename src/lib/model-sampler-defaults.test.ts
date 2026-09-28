@@ -412,6 +412,29 @@ describe("model sampler defaults", () => {
 });
 
 describe("patchSamplerParamsInWorkflow", () => {
+  it("patches noise_seed on KSamplerAdvanced and RandomNoise, not just seed", () => {
+    const workflow = {
+      "81": {
+        class_type: "KSamplerAdvanced",
+        inputs: {
+          add_noise: "enable",
+          noise_seed: 126665266752389,
+          seed: 1,
+          steps: 4,
+          cfg: 1,
+          sampler_name: "euler",
+          scheduler: "simple",
+        },
+      },
+      "90": { class_type: "RandomNoise", inputs: { noise_seed: 42 } },
+    };
+    const result = patchSamplerParamsInWorkflow(workflow, { seed: "777" });
+    const adv = (result.workflow["81"] as { inputs: Record<string, unknown> }).inputs;
+    const noise = (result.workflow["90"] as { inputs: Record<string, unknown> }).inputs;
+    assert.equal(adv.noise_seed, 777);
+    assert.equal(noise.noise_seed, 777);
+  });
+
   it("patches KSampler seed, steps, cfg, sampler, and scheduler inputs", () => {
     const workflow = {
       "3": {
