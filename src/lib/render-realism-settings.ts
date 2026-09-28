@@ -8,7 +8,7 @@ import {
 } from './render-realism';
 import {
   DEFAULT_POSE_GUIDE_STYLE,
-  normalizePoseGuideStylePreference,
+  poseGuideStyleForModel,
   type PoseGuideStylePreference,
 } from './pose-guide-prompt';
 
@@ -20,10 +20,13 @@ export function loadRenderRealismMode(): RenderRealismMode {
   return normalizeRenderRealismMode(loadSettingsCache().shared.renderRealismMode);
 }
 
-/** Settings → Prompt quality → Pose guide style (read at queue time by Day / Story). */
-export function loadPoseGuideStylePreference(): PoseGuideStylePreference {
+/**
+ * Settings → Prompt quality → Pose guide style (read at queue time by Day / Story).
+ * Pass the queue model: FLUX.2 Klein always gets OpenPose (see poseGuideStyleForModel).
+ */
+export function loadPoseGuideStylePreference(model?: string | null): PoseGuideStylePreference {
   if (typeof window === 'undefined') {
     return DEFAULT_POSE_GUIDE_STYLE;
   }
-  return normalizePoseGuideStylePreference(loadSettingsCache().shared.poseGuideStyle);
+  return poseGuideStyleForModel(loadSettingsCache().shared.poseGuideStyle, model);
 }

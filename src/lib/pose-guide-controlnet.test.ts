@@ -3,6 +3,8 @@ import { describe, it } from 'node:test';
 import {
   isMannequinUnsafeControlNet,
   mergePoseGuideControlNetParams,
+  poseControlNetGuessableForModel,
+  resolvePoseControlNetFilename,
   POSE_GUIDE_CONTROLNET_STRENGTH,
   resolvePoseGuideControlNetExtras,
 } from './pose-guide-controlnet';
@@ -85,5 +87,50 @@ describe('pose-guide-controlnet', () => {
   it('merge is a no-op when extras are undefined', () => {
     const base = { ipAdapterStrength: 0.4, denoise: 0.95 };
     assert.deepEqual(mergePoseGuideControlNetParams(base, undefined), base);
+  });
+  it('never guesses a ControlNet for FLUX.2 Klein (none load on it)', () => {
+    const inventory = [
+      'Qwen-Image-InstantX-ControlNet-Union.safetensors',
+      'flux-openpose.safetensors',
+      'Instant_flux-union.safetensors',
+    ];
+    assert.equal(poseControlNetGuessableForModel('flux-2-klein-9b-distilled'), false);
+    assert.equal(
+      resolvePoseControlNetFilename({ model: 'flux-2-klein-9b-distilled', inventory }),
+      undefined
+    );
+    // A pose-capable map default is still a guess — skip it on Klein.
+    assert.equal(
+      resolvePoseControlNetFilename({
+        model: 'flux-2-klein-9b-distilled',
+        inventory,
+        controlNetMap: { default: 'flux-openpose.safetensors' },
+      }),
+      undefined
+    );
+    // An explicit per-model mapping is trusted.
+    assert.deepEqual(
+      resolvePoseControlNetFilename({
+        model: 'flux-2-klein-9b-distilled',
+        inventory,
+        controlNetMap: { 'flux-2-klein-9b-distilled': 'future-klein-pose.safetensors' },
+      }),
+      { filename: 'future-klein-pose.safetensors', source: 'map' }
+    );
+  });
+
+  it('only guesses the Qwen Union ControlNet for Qwen models', () => {
+    const inventory = [
+      'Qwen-Image-InstantX-ControlNet-Union.safetensors',
+      'flux-openpose.safetensors',
+    ];
+    assert.equal(
+      resolvePoseControlNetFilename({ model: 'qwen-rapid-aio-edit', inventory })?.filename,
+      'Qwen-Image-InstantX-ControlNet-Union.safetensors'
+    );
+    assert.equal(
+      resolvePoseControlNetFilename({ model: 'flux-dev', inventory })?.filename,
+      'flux-openpose.safetensors'
+    );
   });
 });

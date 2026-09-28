@@ -58,7 +58,7 @@ const POSE_GUIDE_STYLE_OPTIONS: Array<{
     id: 'legacy',
     label: 'Legacy capsules',
     description:
-      'Older colored capsule (or gray outline on Rapid AIO / Edit-2511) mannequins with long anti-leak prompts. Use to compare against OpenPose.',
+      'Older colored capsule (or gray outline on Rapid AIO / Edit-2511) mannequins with long anti-leak prompts. Use to compare against OpenPose. FLUX.2 Klein always gets OpenPose — it paints mannequins into the photo.',
   },
 ];
 

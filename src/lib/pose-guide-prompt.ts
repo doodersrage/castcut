@@ -23,6 +23,20 @@ export function normalizePoseGuideStylePreference(value: unknown): PoseGuideStyl
   return value === 'legacy' || value === 'openpose-hands' ? value : DEFAULT_POSE_GUIDE_STYLE;
 }
 
+/**
+ * The style actually drawn for `model`. FLUX.2 Klein reads Image 3 as a ReferenceLatent and
+ * copies filled or outline figures into the photo (live A/B 2026-09-28: a gray mannequin
+ * guide was painted into 3/8 Klein 9B Distilled stills, OpenPose into none), so Klein always
+ * gets OpenPose.
+ */
+export function poseGuideStyleForModel(
+  preference: unknown,
+  model: string | null | undefined
+): PoseGuideStylePreference {
+  const style = normalizePoseGuideStylePreference(preference);
+  return style === 'legacy' && /flux-2-klein/i.test(String(model ?? '')) ? 'openpose' : style;
+}
+
 /** Both OpenPose variants share the keypoint cue; only legacy uses capsule/outline art. */
 export function isOpenPoseStyle(value: unknown): boolean {
   return normalizePoseGuideStylePreference(value) !== 'legacy';

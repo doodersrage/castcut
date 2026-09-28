@@ -199,6 +199,18 @@ export function isFluxKleinModel(model: ComfyImageModel | string | null | undefi
   return /flux-2-klein/i.test(String(model ?? ''));
 }
 
+/**
+ * Models that read a Day / Story pose guide as an image to follow rather than one to copy:
+ * Edit checkpoints (Qwen VL sees it as Picture N) and FLUX.2 Klein (a ReferenceLatent).
+ * On a plain text-to-image graph the guide just bleeds into the still.
+ */
+export function readsPoseGuideImage(model: ComfyImageModel | string | null | undefined): boolean {
+  if (!model?.toString().trim()) {
+    return false;
+  }
+  return isEditCapableModel(model) || isFluxKleinModel(model);
+}
+
 /** Z-Image Base or Turbo T2I (UNETLoader + CLIPLoader lumina2 + Flux AE VAE). */
 export function isZImageModel(model: ComfyImageModel | string | null | undefined): boolean {
   const id = String(model ?? '').trim();

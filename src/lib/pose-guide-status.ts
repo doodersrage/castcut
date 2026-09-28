@@ -15,7 +15,7 @@ export type PoseGuideOutcome = {
   state: PoseGuideState;
   /** Why, for `skipped` (by design) and `failed` (the error). */
   reason?: string;
-  /** Model the still queued on, and whether it can actually consume Image 3 as an edit. */
+  /** Model the still queued on, and whether it reads Image 3 as a guide (Edit or Klein). */
   model?: string;
   editCapableModel?: boolean;
   /** Image 3 art that was drawn (attached only). */
@@ -82,7 +82,7 @@ export function summarizePoseGuideOutcomes(outcomes: PoseGuideOutcome[]): string
     const model = bleeding.find(entry => entry.model?.trim())?.model?.trim();
     return `Pose guide attached on a non-Edit model${
       model ? ` (${model})` : ''
-    } — the guide will bleed into the still. Switch the Day engine to an Edit model.`;
+    } — the guide will bleed into the still. Switch the Day engine to an Edit or FLUX.2 Klein model.`;
   }
   if (failed.length > 0) {
     const reason = firstReason(outcomes, 'failed');

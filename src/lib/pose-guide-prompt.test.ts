@@ -9,6 +9,7 @@ import {
   promptHasOpenPoseGuideCue,
   promptHasPoseGuideCue,
   withPoseGuideEditPrompt,
+  poseGuideStyleForModel,
 } from './pose-guide-prompt';
 import { applyQueuePromptSteering } from './queue-prompt-prep';
 
@@ -139,5 +140,12 @@ describe('pose-guide-prompt', () => {
     assert.match(result.positive, /gray OUTLINE pose guide on white/i);
     assert.doesNotMatch(result.positive, /magenta schematic|filled limbs|dark charcoal/i);
     assert.match(result.negative ?? '', /mannequin|stick figure|magenta|neon capsule/i);
+  });
+
+  it('draws OpenPose on FLUX.2 Klein even when Settings asks for legacy art', () => {
+    assert.equal(poseGuideStyleForModel('legacy', 'flux-2-klein-9b-distilled'), 'openpose');
+    assert.equal(poseGuideStyleForModel('openpose-hands', 'flux-2-klein-9b-distilled'), 'openpose-hands');
+    assert.equal(poseGuideStyleForModel('legacy', 'qwen-rapid-aio-edit'), 'legacy');
+    assert.equal(poseGuideStyleForModel(undefined, 'flux-2-klein-9b'), 'openpose');
   });
 });

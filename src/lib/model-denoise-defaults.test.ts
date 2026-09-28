@@ -13,6 +13,7 @@ import {
   resolveDistilledQueueDenoise,
   resolveDenoiseForModel,
   resolveQueueDenoise,
+  readsPoseGuideImage,
 } from "./model-denoise-defaults";
 
 describe("model denoise defaults", () => {
@@ -539,5 +540,13 @@ describe("model denoise defaults", () => {
       resolveDenoiseForModel("wan-video", { hasInputImage: true }),
       1,
     );
+  });
+
+  it("counts Edit and FLUX.2 Klein models as pose-guide readers", () => {
+    assert.equal(readsPoseGuideImage("qwen-rapid-aio-edit"), true);
+    assert.equal(readsPoseGuideImage("flux-2-klein-9b-distilled"), true);
+    assert.equal(readsPoseGuideImage("flux-2-klein-4b-distilled"), true);
+    assert.equal(readsPoseGuideImage("qwen-image-2512"), false);
+    assert.equal(readsPoseGuideImage(""), false);
   });
 });

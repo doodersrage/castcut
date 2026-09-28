@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 import { fetchComfyObjectInfoModelsCached } from '@/lib/comfyui-object-info-cache';
 import type { ModelControlNetMap } from '@/lib/model-controlnet-map';
-import { resolvePoseControlNetFilename } from '@/lib/pose-guide-controlnet';
+import {
+  poseControlNetGuessableForModel,
+  resolvePoseControlNetFilename,
+} from '@/lib/pose-guide-controlnet';
 
 /** Which ControlNet the pose lock would use for the active model, or why there's none. */
 export default function PoseControlNetStatus({
@@ -36,11 +39,13 @@ export default function PoseControlNetStatus({
       ? `Will use ${resolved.filename} (mapped in Settings).`
       : resolved
         ? `Will use ${resolved.filename} (found in ComfyUI).`
-        : inventory === undefined
-          ? 'Checking ComfyUI for a pose ControlNet…'
-          : inventory === null
-            ? "ComfyUI didn't answer — can't check for a pose ControlNet yet."
-            : 'No pose-capable ControlNet in ComfyUI (OpenPose or Union) — install one, or the switch does nothing.';
+        : !poseControlNetGuessableForModel(model)
+          ? 'FLUX.2 Klein has no pose ControlNet — it reads the OpenPose guide as a reference image, so the switch does nothing here.'
+          : inventory === undefined
+            ? 'Checking ComfyUI for a pose ControlNet…'
+            : inventory === null
+              ? "ComfyUI didn't answer — can't check for a pose ControlNet yet."
+              : 'No pose-capable ControlNet in ComfyUI (OpenPose or Union) — install one, or the switch does nothing.';
   return (
     <span
       className={`type-caption mt-1 block ${resolved ? 'text-[var(--text-secondary)]' : 'text-[var(--tint-warning-text,var(--text-muted))]'}`}

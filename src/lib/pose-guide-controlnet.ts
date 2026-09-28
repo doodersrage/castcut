@@ -13,6 +13,7 @@
 import type { WorkflowParamValues } from './comfyui-config';
 import { pickQwenPoseControlNetFilename, type ModelControlNetMap } from './model-controlnet-map';
 import { readCachedComfyObjectInfoModels } from './comfyui-object-info-cache';
+import { isFluxKleinModel } from './model-denoise-defaults';
 import { isOpenPoseStyle, type PoseGuideStylePreference } from './pose-guide-prompt';
 import { loadSettingsCache } from './settings-cache';
 
@@ -52,10 +53,19 @@ export function isPoseCapableControlNet(filename: string | null | undefined): bo
 }
 
 /**
+ * FLUX.2 Klein has no pose ControlNet: FLUX.1 files (flux-openpose, InstantX flux-union) and
+ * the Qwen InstantX Union don't load on it. Klein reads the OpenPose guide as a reference image
+ * instead, so only a file the user mapped for the model on purpose is ever attached.
+ */
+export function poseControlNetGuessableForModel(model: string | null | undefined): boolean {
+  return !isFluxKleinModel(model);
+}
+
+/**
  * Which ControlNet the pose lock uses: one mapped for this model in Settings (trusted as is),
- * else a pose-capable file in ComfyUI's list (Qwen Union first), else the map's default when
- * it is pose-capable. Heal & ready's default can be any ControlNet (canny, depth…), so it is
- * never used blindly.
+ * else a pose-capable file in ComfyUI's list (Qwen Union first, and only for Qwen models), else
+ * the map's default when it is pose-capable. Heal & ready's default can be any ControlNet
+ * (canny, depth…), so it is never used blindly.
  */
 export function resolvePoseControlNetFilename(input: {
   model?: string | null;
@@ -67,9 +77,17 @@ export function resolvePoseControlNetFilename(input: {
   if (mapped) {
     return { filename: mapped, source: 'map' };
   }
+  if (!poseControlNetGuessableForModel(model)) {
+    return undefined;
+  }
   const inventory = (input.inventory ?? []).map(name => name.trim()).filter(Boolean);
+  // A Qwen Union ControlNet on a non-Qwen graph fails to load — only guess it for Qwen.
+  const qwenModel = !model || /^qwen/i.test(model);
   const fromInventory =
-    pickQwenPoseControlNetFilename(inventory) ?? inventory.find(isPoseCapableControlNet);
+    (qwenModel ? pickQwenPoseControlNetFilename(inventory) : undefined) ??
+    inventory.find(
+      name => isPoseCapableControlNet(name) && (qwenModel || !isMannequinUnsafeControlNet(name))
+    );
   if (fromInventory) {
     return { filename: fromInventory, source: 'inventory' };
   }

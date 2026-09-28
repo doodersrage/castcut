@@ -114,7 +114,7 @@ import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
 import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
 import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
-import { isEditCapableModel } from '@/lib/model-denoise-defaults';
+import { readsPoseGuideImage } from '@/lib/model-denoise-defaults';
 import {
   poseGuideFailureReason,
   recordPoseGuideOutcome,
@@ -591,7 +591,7 @@ export function useDayPlannerToolOrchestrationCore() {
         garmentReinforce: garmentReinforce && !omitGarment && !replaceKeepOutfit,
         garmentDescription: toolSettings.customGarmentDescription,
         poseGuide,
-        poseGuideStyle: options?.poseGuideStyle ?? loadPoseGuideStylePreference(),
+        poseGuideStyle: options?.poseGuideStyle ?? loadPoseGuideStylePreference(shared.model),
         poseLeadPosition: options?.poseLeadPosition ?? null,
         poseCamera: options?.poseCamera ?? null,
         model: shared.model,
@@ -724,7 +724,7 @@ export function useDayPlannerToolOrchestrationCore() {
         let lightningIdentityPath = false;
         // Lightning dropped Image 3 because the legacy capsule/outline art leaked into stills;
         // an OpenPose keypoint map is a pose condition Edit-2511 understands, so it stays on.
-        const poseGuideStyle = loadPoseGuideStylePreference();
+        const poseGuideStyle = loadPoseGuideStylePreference(shared.model);
         const lightningDropsPoseGuide = poseGuideStyle === 'legacy';
         // Seated Suggestive on Rapid with the undressed Cast plate as Image 1: the plate's full
         // latent kept her in its underwear over the kit 5/6 whatever the brief said. Face-break
@@ -943,7 +943,7 @@ export function useDayPlannerToolOrchestrationCore() {
               ? {
                   state: 'attached' as const,
                   model: shared.model,
-                  editCapableModel: isEditCapableModel(shared.model),
+                  editCapableModel: readsPoseGuideImage(shared.model),
                   style: poseGuideDrawnStyle,
                   ...(poseGuideUrl ? { previewUrl: poseGuideUrl } : {}),
                 }

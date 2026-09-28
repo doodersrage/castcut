@@ -311,7 +311,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           0,
           storyRef.current.findIndex(entry => entry.id === beat.id && entry.at === beat.at)
         );
-        const stylePreference = loadPoseGuideStylePreference();
+        const stylePreference = loadPoseGuideStylePreference(shared.model);
         const openPose = isOpenPoseStyle(stylePreference);
         // Story Image 1 is the reference photo; the still renders at its aspect.
         const referenceUrl =
@@ -439,7 +439,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           Boolean(poseGuide) || (!queueStill && playAs === 'photo'),
           shared.renderRealismMode,
           shared.model,
-          poseGuide?.prompt ?? { style: loadPoseGuideStylePreference() },
+          poseGuide?.prompt ?? { style: loadPoseGuideStylePreference(shared.model) },
           adult
         ),
         poseGuide?.cueLine ?? '',
