@@ -14,7 +14,7 @@ import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/p
 import { DEFAULT_MIN_POSE_MATCH, POSE_LIBRARY_MIN_SCORE, scorePoseMatch } from '@/lib/pose-score';
 import { poseLayoutFromKey, recordFaceMatchScore, recordPoseMatchScore } from '@/lib/play-metrics';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
-import { DEFAULT_MIN_FACE_MATCH } from '@/lib/face-match';
+import { STORY_MIN_FACE_MATCH } from '@/lib/face-match';
 import { buildPoseMissView } from '@/lib/pose-coaching';
 import { recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 
@@ -108,7 +108,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
               recordFaceMatchScore(
                 options.shared.model,
                 measured.similarity,
-                measured.similarity < DEFAULT_MIN_FACE_MATCH
+                measured.similarity < STORY_MIN_FACE_MATCH
               );
             } else if (measured && !measured.available) {
               faceOffRef.current = measured.reason;
@@ -125,7 +125,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
           ...(faceMatch
             ? {
                 face: faceMatch.similarity,
-                faceMiss: faceMatch.similarity < DEFAULT_MIN_FACE_MATCH,
+                faceMiss: faceMatch.similarity < STORY_MIN_FACE_MATCH,
               }
             : {}),
         });
@@ -148,7 +148,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
         };
         const autoPick = autoPickRoleplayStillTakePatch(checked, {
           minPose: DEFAULT_MIN_POSE_MATCH,
-          minFace: DEFAULT_MIN_FACE_MATCH,
+          minFace: STORY_MIN_FACE_MATCH,
         });
         updateToolSettings({
           story: patchRoleplayStoryBeat(storyRef.current, latest, {

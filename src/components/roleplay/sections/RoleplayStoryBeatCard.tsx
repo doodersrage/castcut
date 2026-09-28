@@ -15,7 +15,7 @@ import PoseMissPanel from '@/components/pose/PoseMissPanel';
 import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
 import { RoleplayStillFrame } from '@/components/roleplay/sections/RoleplayStillFrame';
 import { storyFaceMatchLabel, storyPoseMatchLabel } from '@/lib/roleplay-pose-check';
-import { DEFAULT_MIN_FACE_MATCH, FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
+import { STORY_MIN_FACE_MATCH, STORY_FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
 import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
 import {
   beatMotionUrl,
@@ -65,8 +65,8 @@ export function RoleplayStoryBeatCard({
   const takes = roleplayStillTakes(beat);
   const poseMatch = storyPoseMatchLabel(beat, DEFAULT_MIN_POSE_MATCH);
   const faceMatch = storyFaceMatchLabel(beat, {
-    miss: DEFAULT_MIN_FACE_MATCH,
-    warn: FACE_MATCH_WARN_BELOW,
+    miss: STORY_MIN_FACE_MATCH,
+    warn: STORY_FACE_MATCH_WARN_BELOW,
   });
   const clipTakes = roleplayClipTakes(beat);
   const hasClipAttempt = clipTakes.some(

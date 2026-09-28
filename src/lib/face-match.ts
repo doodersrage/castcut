@@ -36,6 +36,15 @@ export const FACE_MATCH_WARN_BELOW = 0.45;
 export const STILL_MIN_FACE_MATCH = 0.4;
 export const STILL_FACE_MATCH_WARN_BELOW = 0.55;
 
+/**
+ * Story stills are staged expressively (hard golden backlight, open grins, tilted heads) and
+ * InsightFace scores all of that as distance: 78 right-woman Story renders (2026-09-27) sat at
+ * similarity 0.12–0.43 (median 0.26), so the 0.3 bar marked 68% of them as "not the Cast".
+ * These bars flag ~5% (miss) and ~15% (warn) of those — a real wrong face still falls below.
+ */
+export const STORY_MIN_FACE_MATCH = 0.15;
+export const STORY_FACE_MATCH_WARN_BELOW = 0.2;
+
 /** Parse the distance PreviewAny shows (`"0.412"`, `0.412`, `"[0.412]"`, JSON list). */
 export function parseFaceDistance(raw: unknown): number | null {
   const pick = (value: unknown): number | null => {
