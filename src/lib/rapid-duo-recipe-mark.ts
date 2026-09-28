@@ -1,10 +1,12 @@
-import { KLEIN_SPOON_RECIPE_MARK } from './klein-duo-recipe';
-
 /** Leads every Rapid duo recipe — reinforce / queue steering skip their long packs on it. */
 export const RAPID_DUO_RECIPE_MARK = 'Explicit sex photo:';
 
 /** Leads every Rapid solo recipe — same treatment as the duo one. */
 export const RAPID_SOLO_RECIPE_MARK = 'Explicit solo photo:';
+
+/** Leads every FLUX.2 Klein spoon recipe (klein-duo-recipe.ts). */
+export const KLEIN_SPOON_RECIPE_MARK =
+  'Photo of exactly two adults lying on their sides on a bed, spooning.';
 
 /** A compact Rapid recipe (duo or solo) — its length is the point, so nothing appends to it. */
 export function isRapidDuoRecipePrompt(prompt: string | null | undefined): boolean {

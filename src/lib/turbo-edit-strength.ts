@@ -14,6 +14,7 @@ import {
   Z_IMAGE_TURBO_IMG2IMG_DENOISE,
   type ZImageTurboImg2imgStrength,
 } from './model-denoise-defaults';
+import { KLEIN_SPOON_RECIPE_MARK } from './rapid-duo-recipe-mark';
 import { isKleinDistilledModel } from './model-sampler-defaults';
 import { isQwenLightningModel } from './model-sampling-patch';
 
@@ -268,6 +269,11 @@ export function applyTurboEditStrengthToPrompt(
   model?: string | null,
   strength?: unknown
 ): string {
+  // The Klein spoon recipe is front-loaded on purpose; the edit opener/closer around it cut
+  // two-person stills from 7/8 to 5/8 on the real Day graph.
+  if (prompt.includes(KLEIN_SPOON_RECIPE_MARK)) {
+    return stripTurboEditStrengthWrap(prompt);
+  }
   const stripped = stripTurboEditStrengthWrap(prompt);
   if (!stripped) {
     return prompt;

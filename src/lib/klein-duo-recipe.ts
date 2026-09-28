@@ -13,6 +13,7 @@
  */
 
 import { CLOTHED_SPOON_RE } from './day-pose-guide';
+import { KLEIN_SPOON_RECIPE_MARK } from './rapid-duo-recipe-mark';
 import { isFluxKleinModel } from './model-denoise-defaults';
 import { inferPoseGuidePartner } from './pose-guide-prompt';
 
@@ -37,9 +38,7 @@ export function kleinSpoonRecipeApplies(input: {
   );
 }
 
-/** Leads every Klein spoon recipe — nothing appends to it (see isRapidDuoRecipePrompt). */
-export const KLEIN_SPOON_RECIPE_MARK =
-  'Photo of exactly two adults lying on their sides on a bed, spooning.';
+export { KLEIN_SPOON_RECIPE_MARK };
 
 /** "outfit-tailored-cobalt-slip-dress" → "tailored cobalt slip dress". */
 function readableOutfit(outfit: string | null | undefined): string {

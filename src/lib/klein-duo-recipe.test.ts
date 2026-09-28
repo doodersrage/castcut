@@ -6,6 +6,7 @@ import {
   kleinSpoonRecipeApplies,
 } from './klein-duo-recipe';
 import { isRapidDuoRecipePrompt } from './rapid-duo-recipe-mark';
+import { applyTurboEditStrengthToPrompt } from './turbo-edit-strength';
 
 const beat = 'spooning with her boyfriend in bed under white sheets, him behind her';
 
@@ -39,5 +40,19 @@ describe('klein-duo-recipe', () => {
     assert.match(recipe, /Setting: bedroom after dark\./);
     assert.doesNotMatch(recipe, /\bnever\b|\bno\b/i);
     assert.equal(isRapidDuoRecipePrompt(recipe), true);
+  });
+
+  it('is never wrapped in the Klein edit opener/closer', () => {
+    const recipe = buildKleinSpoonRecipe({
+      outfit: 'outfit-tailored-cobalt-slip-dress',
+      setting: 'bedroom after dark',
+      partnerOutfit: 'a plain grey sweater and dark jeans',
+    });
+    assert.equal(applyTurboEditStrengthToPrompt(recipe, 'flux-2-klein-9b-distilled', 'strong'), recipe);
+    // Other Klein prompts keep the wrap.
+    assert.match(
+      applyTurboEditStrengthToPrompt('She kneels by the door.', 'flux-2-klein-9b-distilled', 'strong'),
+      /^Carry out this change on Image 1/
+    );
   });
 });
