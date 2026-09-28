@@ -9,7 +9,8 @@ type UiIconName =
   | 'chevronLeft'
   | 'chevronRight'
   | 'search'
-  | 'grid';
+  | 'grid'
+  | 'upload';
 
 const common = {
   fill: 'none',
@@ -78,6 +79,13 @@ export default function UiIcon({
         <>
           <circle cx="7" cy="7" r="4.25" />
           <path d="m10.25 10.25 3 3" />
+        </>
+      ) : null}
+      {name === 'upload' ? (
+        <>
+          <path d="M8 11V3.5" />
+          <path d="M5.25 6.25 8 3.5l2.75 2.75" />
+          <path d="M3.5 13h9" />
         </>
       ) : null}
       {name === 'grid' ? (

@@ -6,7 +6,7 @@ import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { Button, ButtonLink } from '@/components/ui/Button';
-import { FieldDivider, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
+import { FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import {
   CollapsibleSection,
@@ -16,8 +16,8 @@ import {
   ToolSection,
   accentFocusClass,
 } from '@/components/ui/ToolPageShell';
-import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
-import CustomGarmentPhotoControls from '@/components/fitting/CustomGarmentPhotoControls';
+import ClothingPicker from '@/components/wardrobe/ClothingPicker';
+import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
 import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
@@ -158,7 +158,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     wardrobeReady,
     wardrobeCategoryFilter,
     filteredWardrobeOptions,
-    wardrobeKitCount,
     actions,
     updateSlot,
     poseMissViews,
@@ -1005,126 +1004,66 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               title="Clothing"
               summary={
                 hasCustomGarment
-                  ? 'BYO clothing photo'
-                  : wardrobeLabelFor(activeSlot.wardrobeId) || 'Outfit kit for this slot'
+                  ? 'Your clothing photo'
+                  : formatWardrobeKitLabel(wardrobeLabelFor(activeSlot.wardrobeId) || '') ||
+                    'Outfit kit for this slot'
               }
               defaultOpen={false}
               persistKey="day-clothing"
               className="mt-3"
             >
               <div data-testid="day-clothing">
-                <CustomGarmentPhotoControls
+                <ClothingPicker
                   accent={ACCENT}
                   busy={busy}
-                  garmentUploading={garmentUploading}
-                  garmentScanStatus={garmentScanStatus}
-                  customGarmentImageUrl={toolSettings.customGarmentImageUrl}
-                  customGarmentImageFilename={toolSettings.customGarmentImageFilename}
-                  customGarmentDescription={toolSettings.customGarmentDescription}
                   testIdPrefix="day"
-                  onApplyCustomGarment={applyCustomGarment}
-                  onClearCustomGarment={clearCustomGarment}
-                  onRescanCustomGarment={rescanCustomGarment}
-                  onSaveCustomGarment={saveCurrentCustomGarment}
-                  onApplySavedCustomGarment={applySavedCustomGarment}
-                  onRemoveSavedCustomGarment={removeSavedCustomGarment}
-                  onCustomGarmentDescriptionChange={value =>
-                    updateToolSettings({ customGarmentDescription: value })
-                  }
+                  garment={{
+                    uploading: garmentUploading,
+                    scanStatus: garmentScanStatus,
+                    imageUrl: toolSettings.customGarmentImageUrl,
+                    imageFilename: toolSettings.customGarmentImageFilename,
+                    description: toolSettings.customGarmentDescription,
+                    onApply: applyCustomGarment,
+                    onClear: clearCustomGarment,
+                    onRescan: rescanCustomGarment,
+                    onSave: saveCurrentCustomGarment,
+                    onApplySaved: applySavedCustomGarment,
+                    onRemoveSaved: removeSavedCustomGarment,
+                    onDescriptionChange: value =>
+                      updateToolSettings({ customGarmentDescription: value }),
+                  }}
+                  kits={wardrobeKitDeck}
+                  kitsReady={wardrobeReady}
+                  selectedKitId={activeSlot.wardrobeId}
+                  kitPickerTestId="day-wardrobe-kit-picker"
+                  onSelectKit={wardrobeId => selectSlotWardrobe(activeSlot.id, wardrobeId)}
+                  onSwipeKit={delta => {
+                    const next = fittingSwipeNeighbor(
+                      wardrobeKitDeck,
+                      activeSlot.wardrobeId,
+                      delta
+                    );
+                    if (next) {
+                      selectSlotWardrobe(activeSlot.id, next.id);
+                    }
+                  }}
+                  onClearKit={() => selectSlotWardrobe(activeSlot.id, undefined)}
+                  resolveKitThumb={kit => ({ url: resolveWardrobeGarmentThumbUrl(kit.id) })}
+                  category={{
+                    value: wardrobeCategoryFilter,
+                    options: wardrobeCategoryFilterOptions().map(option => ({
+                      value: option.value,
+                      label: wardrobeReady
+                        ? `${option.label} (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
+                        : option.label,
+                    })),
+                    onChange: value =>
+                      updateToolSettings({
+                        wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(value),
+                      }),
+                  }}
                   onError={message => setError(message)}
                 />
-                <FieldDivider />
-                <label className="mt-3 space-y-2">
-                  <FieldLabel>Outfit kit</FieldLabel>
-                  {hasCustomGarment ? (
-                    <p
-                      className="type-caption text-[var(--text-muted)]"
-                      data-testid="day-byo-active"
-                    >
-                      Using your clothing photo. Clear it above to pick a catalog kit again.
-                    </p>
-                  ) : null}
-                  {wardrobeKitDeck.length > 0 ? (
-                    <WardrobeKitPicker
-                      kits={wardrobeKitDeck}
-                      selectedId={activeSlot.wardrobeId}
-                      disabled={!wardrobeReady || busy || hasCustomGarment}
-                      testId="day-wardrobe-kit-picker"
-                      onSelect={wardrobeId => selectSlotWardrobe(activeSlot.id, wardrobeId)}
-                      onSwipe={delta => {
-                        const next = fittingSwipeNeighbor(
-                          wardrobeKitDeck,
-                          activeSlot.wardrobeId,
-                          delta
-                        );
-                        if (next) {
-                          selectSlotWardrobe(activeSlot.id, next.id);
-                        }
-                      }}
-                      resolveThumb={kit => ({
-                        url: resolveWardrobeGarmentThumbUrl(kit.id),
-                      })}
-                    />
-                  ) : null}
-                  <CollapsibleSection
-                    title="Kit filters"
-                    summary="Clothing type and list picker."
-                    defaultOpen={false}
-                    persistKey="day-kit-filters"
-                    className="mt-3"
-                  >
-                    <label className="space-y-2">
-                      <FieldLabel>Clothing type</FieldLabel>
-                      <SelectInput
-                        value={wardrobeCategoryFilter}
-                        disabled={!wardrobeReady || busy}
-                        className={accentFocusClass(ACCENT)}
-                        onChange={event =>
-                          updateToolSettings({
-                            wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(
-                              event.target.value
-                            ),
-                          })
-                        }
-                      >
-                        {wardrobeCategoryFilterOptions().map(option => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                            {option.value !== 'all' && wardrobeReady
-                              ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
-                              : option.value === 'all' && wardrobeReady
-                                ? ` (${countWardrobeOptionsForFilter(wardrobeOptions, 'all')})`
-                                : ''}
-                          </option>
-                        ))}
-                      </SelectInput>
-                      {wardrobeReady && wardrobeCategoryFilter !== 'all' ? (
-                        <p className="type-caption text-[var(--text-muted)]">
-                          Showing {wardrobeKitCount} kit{wardrobeKitCount === 1 ? '' : 's'} for{' '}
-                          {activeSlot.label.toLowerCase()}.
-                        </p>
-                      ) : null}
-                    </label>
-                    <label className="mt-3 space-y-2">
-                      <FieldLabel>List picker</FieldLabel>
-                      <SelectInput
-                        value={activeSlot.wardrobeId ?? ''}
-                        disabled={!wardrobeReady || busy || hasCustomGarment}
-                        className={accentFocusClass(ACCENT)}
-                        onChange={event => {
-                          const value = event.target.value.trim();
-                          selectSlotWardrobe(activeSlot.id, value || undefined);
-                        }}
-                      >
-                        {filteredWardrobeOptions.map(option => (
-                          <option key={option.value || 'default'} value={option.value}>
-                            {option.group ? `${option.label} · ${option.group}` : option.label}
-                          </option>
-                        ))}
-                      </SelectInput>
-                    </label>
-                  </CollapsibleSection>
-                </label>
               </div>
             </CollapsibleSection>
           </div>

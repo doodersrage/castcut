@@ -1,10 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import CustomGarmentPhotoControls from '@/components/fitting/CustomGarmentPhotoControls';
-import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
-import { FieldDivider, FieldLabel, SelectInput } from '@/components/ui/Field';
-import { CollapsibleSection, accentFocusClass } from '@/components/ui/ToolPageShell';
+import ClothingPicker from '@/components/wardrobe/ClothingPicker';
+import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
+import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { fittingSwipeNeighbor } from '@/lib/fitting-room';
 import {
   buildWardrobeKitPickerDeck,
@@ -64,92 +63,62 @@ export default function RoleplayWardrobeSection({
           hasCustomGarment
             ? 'Your clothing photo'
             : selectedWardrobeId
-              ? selectedWardrobeId
+              ? formatWardrobeKitLabel(
+                  wardrobeKitDeck.find(kit => kit.id === selectedWardrobeId)?.label ??
+                    selectedWardrobeId
+                )
               : 'Kit or clothing photo'
         }
         defaultOpen={hasCustomGarment || Boolean(selectedWardrobeId)}
         persistKey="roleplay-wardrobe"
       >
         <p className="type-caption text-[var(--text-muted)]">
-          Photo stills use this as Image 2 so beat outfits land on the Cast plate — same strip as
-          Day / Outfit.
+          Photo stills use this as Image 2 so beat outfits land on the Cast plate.
         </p>
         <div className="mt-3">
-          <CustomGarmentPhotoControls
+          <ClothingPicker
             accent={ACCENT}
             busy={busy}
-            garmentUploading={garmentUploading}
-            garmentScanStatus={garmentScanStatus}
-            customGarmentImageUrl={toolSettings.customGarmentImageUrl}
-            customGarmentImageFilename={toolSettings.customGarmentImageFilename}
-            customGarmentDescription={toolSettings.customGarmentDescription}
             testIdPrefix="story"
-            onApplyCustomGarment={applyCustomGarment}
-            onClearCustomGarment={clearCustomGarment}
-            onRescanCustomGarment={rescanCustomGarment}
-            onSaveCustomGarment={saveCurrentCustomGarment}
-            onApplySavedCustomGarment={applySavedCustomGarment}
-            onRemoveSavedCustomGarment={removeSavedCustomGarment}
-            onCustomGarmentDescriptionChange={value =>
-              onUpdateToolSettings({ customGarmentDescription: value })
-            }
+            garment={{
+              uploading: garmentUploading,
+              scanStatus: garmentScanStatus,
+              imageUrl: toolSettings.customGarmentImageUrl,
+              imageFilename: toolSettings.customGarmentImageFilename,
+              description: toolSettings.customGarmentDescription,
+              onApply: applyCustomGarment,
+              onClear: clearCustomGarment,
+              onRescan: rescanCustomGarment,
+              onSave: saveCurrentCustomGarment,
+              onApplySaved: applySavedCustomGarment,
+              onRemoveSaved: removeSavedCustomGarment,
+              onDescriptionChange: value =>
+                onUpdateToolSettings({ customGarmentDescription: value }),
+            }}
+            kits={wardrobeKitDeck}
+            kitsReady={wardrobeReady}
+            selectedKitId={selectedWardrobeId}
+            kitPickerTestId="story-wardrobe-kit-picker"
+            onSelectKit={wardrobeId => selectWardrobe(wardrobeId)}
+            onSwipeKit={delta => {
+              const next = fittingSwipeNeighbor(wardrobeKitDeck, selectedWardrobeId, delta);
+              if (next) {
+                selectWardrobe(next.id);
+              }
+            }}
+            onClearKit={() => selectWardrobe(undefined)}
+            resolveKitThumb={kit => ({ url: resolveWardrobeGarmentThumbUrl(kit.id) })}
+            category={{
+              value: wardrobeCategoryFilter,
+              options: wardrobeCategoryFilterOptions(),
+              onChange: value =>
+                onUpdateToolSettings({
+                  wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(value),
+                }),
+            }}
             onError={onError}
           />
         </div>
-        <FieldDivider />
-        <label className="mt-3 space-y-2">
-          <FieldLabel>Outfit kit</FieldLabel>
-          {hasCustomGarment ? (
-            <p className="type-caption text-[var(--text-muted)]" data-testid="story-byo-active">
-              Using your clothing photo. Clear it above to pick a catalog kit again.
-            </p>
-          ) : null}
-          {wardrobeKitDeck.length > 0 ? (
-            <WardrobeKitPicker
-              kits={wardrobeKitDeck}
-              selectedId={selectedWardrobeId}
-              disabled={!wardrobeReady || busy || hasCustomGarment}
-              testId="story-wardrobe-kit-picker"
-              onSelect={wardrobeId => selectWardrobe(wardrobeId)}
-              onSwipe={delta => {
-                const next = fittingSwipeNeighbor(wardrobeKitDeck, selectedWardrobeId, delta);
-                if (next) {
-                  selectWardrobe(next.id);
-                }
-              }}
-              resolveThumb={kit => ({
-                url: resolveWardrobeGarmentThumbUrl(kit.id),
-              })}
-            />
-          ) : null}
-          <CollapsibleSection
-            title="Kit filters"
-            summary="Clothing type and list picker."
-            defaultOpen={false}
-            persistKey="story-kit-filters"
-            className="mt-3"
-          >
-            <label className="space-y-2">
-              <FieldLabel>Clothing type</FieldLabel>
-              <SelectInput
-                value={wardrobeCategoryFilter}
-                disabled={!wardrobeReady || busy}
-                className={accentFocusClass(ACCENT)}
-                onChange={event =>
-                  onUpdateToolSettings({
-                    wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(event.target.value),
-                  })
-                }
-              >
-                {wardrobeCategoryFilterOptions().map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectInput>
-            </label>
-          </CollapsibleSection>
-        </label>
       </CollapsibleSection>
     </div>
   );
