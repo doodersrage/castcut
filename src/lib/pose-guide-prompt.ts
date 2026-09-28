@@ -251,6 +251,34 @@ function isKleinModelId(model: string | null | undefined): boolean {
  * lines / dots" sentences painted keypoints onto the people in most stills, and the realism
  * lock's "ghost person / pose-diagram" list added people — both are left out here.
  */
+/**
+ * Social layouts a model can't draw as two people, routed to their plain posture (the same path
+ * a poor pose-match record takes). FLUX.2 Klein adds a person when the two skeletons overlap:
+ * the hug layout grew an extra face in ~4/14 stills, while side-by-side standing held two
+ * people 18/18 and bent-over 16/16.
+ */
+export function modelAvoidedPoseLayouts(model: string | null | undefined): ReadonlySet<string> {
+  return isKleinModelId(model) ? KLEIN_AVOIDED_LAYOUTS : NO_AVOIDED_LAYOUTS;
+}
+
+const KLEIN_AVOIDED_LAYOUTS: ReadonlySet<string> = new Set(['hug']);
+
+/** Base to draw a routed-around layout as (see SceneStickOptions.plainPostureBase). */
+export function modelPlainPostureBase(model: string | null | undefined): 'stand' | undefined {
+  return isKleinModelId(model) ? 'stand' : undefined;
+}
+const NO_AVOIDED_LAYOUTS: ReadonlySet<string> = new Set();
+
+/** Play-metrics weak layouts plus the model's own (see modelAvoidedPoseLayouts). */
+export function mergeAvoidedPoseLayouts(
+  weak: ReadonlySet<string> | null | undefined,
+  model: string | null | undefined
+): ReadonlySet<string> {
+  const fromModel = modelAvoidedPoseLayouts(model);
+  if (fromModel.size === 0) return weak ?? NO_AVOIDED_LAYOUTS;
+  return new Set([...(weak ?? []), ...fromModel]);
+}
+
 export type PoseGuidePartner = 'man' | 'woman';
 
 /**

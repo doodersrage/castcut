@@ -4818,6 +4818,13 @@ export type SceneStickOptions = {
   variant?: number;
   /** Draw the plain posture only — no everyday/sport layout (a layout Edit keeps ignoring). */
   plainPosture?: boolean;
+  /**
+   * When a layout is routed around, draw this base instead of the beat's. FLUX.2 Klein copies
+   * the walk stride literally (a leg lifted sideways; a routed hug drew two people kicking knee
+   * to knee 8/8), while a plain standing pair under the same "walking arm-in-arm" text walked
+   * naturally with two people 8/8.
+   */
+  plainPostureBase?: 'stand';
   /** Two or more people: which side of the frame the lead (Cast) figure stands on. */
   leadSide?: 'left' | 'right';
   /** Where the lead looks (turns only the face keypoints). */
@@ -5017,9 +5024,15 @@ function synthesizeSceneStickFiguresBase(
     variant > 0
       ? { ...parsed, seed: (parsed.seed ^ Math.imul(variant, 0x9e3779b1)) >>> 0 }
       : parsed;
+  const plainBase = options?.plainPostureBase ?? reseeded.base;
   const intent =
     options?.plainPosture && reseeded.social
-      ? { ...reseeded, social: null, label: `${reseeded.base}-plain-${reseeded.label}` }
+      ? {
+          ...reseeded,
+          social: null,
+          base: plainBase,
+          label: `${plainBase}-plain-${reseeded.label}`,
+        }
       : reseeded;
   if (intent.intimate) {
     const figures = synthesizeIntimateStickFigures(intent);

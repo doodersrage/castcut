@@ -5,7 +5,9 @@ import PosePreview, { type PosePicks } from '@/components/pose/PosePreview';
 import { useWeakPoseLayouts } from '@/hooks/useWeakPoseLayouts';
 import { sceneTextFromStoryPoseInput, type PoseGuideBuildOptions } from '@/lib/day-pose-guide';
 import { mergePickedPose } from '@/lib/day-slot-pose';
+import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
+import { loadSettingsCache } from '@/lib/settings-cache';
 
 /** Whether a beat has any pose choice set (keeps its Pose section open). */
 export function storyBeatHasPosePicks(beat: RoleplayStoryBeat): boolean {
@@ -29,7 +31,13 @@ export default function StoryBeatPosePreview({
   busy: boolean;
   onPoseChange: (beat: RoleplayStoryBeat, patch: PosePicks) => void;
 }) {
-  const weakLayouts = useWeakPoseLayouts();
+  const playWeakLayouts = useWeakPoseLayouts();
+  // Same routing the queue applies (FLUX.2 Klein draws hug as a plain side-by-side pair).
+  const model = loadSettingsCache().shared.model;
+  const weakLayouts = useMemo(
+    () => mergeAvoidedPoseLayouts(playWeakLayouts, model),
+    [model, playWeakLayouts]
+  );
   const sceneText = useMemo(
     () =>
       sceneTextFromStoryPoseInput({ title: beat.title, blurb: beat.blurb, prompt: beat.prompt }),
@@ -45,8 +53,10 @@ export default function StoryBeatPosePreview({
       ...(beat.poseCamera ? { camera: beat.poseCamera } : {}),
       ...(beat.poseLead ? { leadSide: beat.poseLead } : {}),
       ...(beat.poseLook ? { look: beat.poseLook } : {}),
+      ...(modelPlainPostureBase(model) ? { plainPostureBase: modelPlainPostureBase(model) } : {}),
     };
   }, [
+    model,
     beat.pose,
     beat.poseCamera,
     beat.poseLayout,

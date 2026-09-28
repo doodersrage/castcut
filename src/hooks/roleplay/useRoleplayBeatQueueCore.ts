@@ -41,6 +41,7 @@ import { snapshotRoleplaySession } from '@/lib/roleplay-library';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
 import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs';
 import { buildStoryPoseGuide } from '@/lib/day-pose-guide';
+import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
 import {
   KLEIN_FACE_REFERENCE_LINE,
   shouldAppendKleinFaceReference,
@@ -368,7 +369,12 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           // a poor record with it (weak layouts are only routed around when nothing was picked).
           pose: mergePickedPose(beat.poseLayout, beat.pose),
           variant: (options?.variant ?? 0) + (beat.poseVariant ?? 0),
-          ...(beat.poseLayout ? {} : { avoidLayouts: weakPoseLayouts() }),
+          ...(beat.poseLayout
+            ? {}
+            : { avoidLayouts: mergeAvoidedPoseLayouts(weakPoseLayouts(), shared.model) }),
+          ...(modelPlainPostureBase(shared.model)
+            ? { plainPostureBase: modelPlainPostureBase(shared.model) }
+            : {}),
           ...(beat.posePhoto ? { photoPose: beat.posePhoto } : {}),
           ...(beat.poseCamera ? { camera: beat.poseCamera } : {}),
           ...(beat.poseLead ? { leadSide: beat.poseLead } : {}),

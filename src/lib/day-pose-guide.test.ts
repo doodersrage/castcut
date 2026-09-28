@@ -1293,4 +1293,23 @@ describe('everyday pose layouts', () => {
     );
     assert.doesNotMatch(cooking.label, /^spoon-/);
   });
+
+  it('resolveSceneGuidePlan draws a routed hug as a plain standing pair when asked', async () => {
+    const { resolveSceneGuidePlan } = await import('./day-pose-guide');
+    const text = 'walking arm-in-arm with her boyfriend on a city sidewalk at dusk';
+    const walk = resolveSceneGuidePlan(text, 2, {
+      openPose: true,
+      forcePeople: 2,
+      avoidLayouts: new Set(['hug']),
+    });
+    const stand = resolveSceneGuidePlan(text, 2, {
+      openPose: true,
+      forcePeople: 2,
+      avoidLayouts: new Set(['hug']),
+      plainPostureBase: 'stand',
+    });
+    assert.equal(stand.routedAround, 'hug');
+    assert.equal(stand.openPose.poseKey, 'stand:2');
+    assert.notEqual(walk.openPose.poseKey, 'stand:2');
+  });
 });

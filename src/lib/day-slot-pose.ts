@@ -32,6 +32,7 @@ import {
 } from '@/lib/day-vacation';
 import { clarifyIntimateImageLanguage } from '@/lib/intimate-prompt-clarify';
 import { isQwenRapidAioModel } from '@/lib/model-denoise-defaults';
+import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
 
 export type DaySlotPosePlan = {
   /** Scene text the guide reads (undefined → the slot's default stance). */
@@ -143,6 +144,7 @@ export function planDaySlotPose(input: {
     ? { ...(override.layout ? {} : beatSpec), ...override }
     : beatSpec;
   const variant = (input.slot.poseVariant ?? 0) + (input.retryVariant ?? 0);
+  const avoidLayouts = mergeAvoidedPoseLayouts(input.weakLayouts, input.model);
 
   return {
     sceneText,
@@ -155,7 +157,10 @@ export function planDaySlotPose(input: {
       ...(pose ? { pose } : {}),
       variant,
       // A pose the player picked is drawn as picked, even if its record is poor.
-      ...(!override && input.weakLayouts?.size ? { avoidLayouts: input.weakLayouts } : {}),
+      ...(!override && avoidLayouts.size ? { avoidLayouts } : {}),
+      ...(modelPlainPostureBase(input.model)
+        ? { plainPostureBase: modelPlainPostureBase(input.model) }
+        : {}),
       ...(input.slot.posePhoto ? { photoPose: input.slot.posePhoto } : {}),
       ...(input.slot.poseCamera ? { camera: input.slot.poseCamera } : {}),
       ...(input.slot.poseLead ? { leadSide: input.slot.poseLead } : {}),

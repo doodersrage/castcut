@@ -10,6 +10,8 @@ import {
   promptHasPoseGuideCue,
   withPoseGuideEditPrompt,
   inferPoseGuidePartner,
+  mergeAvoidedPoseLayouts,
+  modelPlainPostureBase,
   poseGuideStyleForModel,
 } from './pose-guide-prompt';
 import { applyQueuePromptSteering } from './queue-prompt-prep';
@@ -244,5 +246,19 @@ describe('pose-guide-prompt', () => {
       'realistic'
     );
     assert.match(qwen, /translucent ghost person/);
+  });
+
+  it('routes the hug layout around on Klein only, keeping Play weak layouts', () => {
+    assert.deepEqual([...mergeAvoidedPoseLayouts(new Set(['sit']), 'flux-2-klein-9b-distilled')].sort(), [
+      'hug',
+      'sit',
+    ]);
+    assert.deepEqual([...mergeAvoidedPoseLayouts(new Set(['sit']), 'qwen-rapid-aio-edit')], ['sit']);
+    assert.deepEqual([...mergeAvoidedPoseLayouts(undefined, 'qwen-rapid-aio-edit')], []);
+  });
+
+  it('draws a routed-around layout as a standing pair on Klein only', () => {
+    assert.equal(modelPlainPostureBase('flux-2-klein-9b-distilled'), 'stand');
+    assert.equal(modelPlainPostureBase('qwen-rapid-aio-edit'), undefined);
   });
 });
