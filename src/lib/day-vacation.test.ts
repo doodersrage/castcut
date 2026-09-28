@@ -11,6 +11,7 @@ import {
   buildDayVacationPromptLocks,
   clothedHeatUnlockPoseClass,
   dayClothedHeatPoseNeedsBodyUnlock,
+  daySuggestiveBeatIsSeated,
   daySuggestivePoseNeedsBodyUnlock,
   dayVacationPoseNeedsBodyUnlock,
   pickDayVacationScenePair,
@@ -311,5 +312,32 @@ describe('day-vacation', () => {
       buildDayVacationClothedFaceBreakLeads('MID-STRIDE', 'cast', 'vacation').preamble,
       /Follow the beat action and SETTING/
     );
+  });
+
+  it('daySuggestiveBeatIsSeated: seats, including a forward lean from the seat — not upright leans', () => {
+    assert.equal(
+      daySuggestiveBeatIsSeated('perched on the bed edge in a short dress, leaning forward'),
+      true
+    );
+    assert.equal(daySuggestiveBeatIsSeated('sitting on the windowsill in a short robe'), true);
+    assert.equal(daySuggestiveBeatIsSeated('leaning in the doorway, hip cocked'), false);
+    assert.equal(daySuggestiveBeatIsSeated('lying on her side on the hotel bed'), false);
+    assert.equal(daySuggestiveBeatIsSeated(''), false);
+  });
+
+  it('seated Suggestive face-break leads with the sit and the Image 2 garment', () => {
+    const leads = buildDayVacationClothedFaceBreakLeads('OTHER', 'cast', 'suggestive', {
+      hasOutfitImage: true,
+      seated: true,
+      setting: 'hotel room with drawn curtains',
+    });
+    assert.match(leads.preamble, /^SEATED: she sits on the seat the beat names/);
+    assert.match(leads.preamble.split('\n')[0]!, /wearing the Image 2 garment/);
+    assert.match(leads.preamble, /SCENE: she is in the hotel room with drawn curtains/);
+    // Without the flag the generic face-crop text is unchanged.
+    const generic = buildDayVacationClothedFaceBreakLeads('OTHER', 'cast', 'suggestive', {
+      hasOutfitImage: true,
+    });
+    assert.doesNotMatch(generic.preamble, /^SEATED/);
   });
 });

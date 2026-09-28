@@ -39,6 +39,8 @@ export type CastPlateSnapshot = {
   filename: string;
   imageUrl: string;
   isolated: boolean;
+  /** Pixel size, so the edit renders at the plate's shape (null when the browser can't read it). */
+  size?: { width: number; height: number } | null;
 };
 
 type SendComfyUi = (
@@ -75,7 +77,15 @@ async function snapshotPlate(
     collectIsolateSourceUrls({ filename, comfyUrl }).find(url =>
       url.includes('/api/comfyui/view?')
     ) ?? '';
-  return { filename, imageUrl, isolated: plate.isolated === true };
+  let size: CastPlateSnapshot['size'] = null;
+  try {
+    const bitmap = await createImageBitmap(blob);
+    size = { width: bitmap.width, height: bitmap.height };
+    bitmap.close();
+  } catch {
+    size = null;
+  }
+  return { filename, imageUrl, isolated: plate.isolated === true, size };
 }
 
 export async function stripCastPlateClothing(input: {
@@ -106,6 +116,9 @@ export async function stripCastPlateClothing(input: {
     queueTool: 'fitting',
     turboEditStrength: 'strong',
     preserveInputAspect: true,
+    // Render at the plate's own shape: the sidebar's square latent padded tall plates with
+    // white side bars that then stayed in the new plate (live, 1104×1472 → 1328²).
+    ...(before.size ? { castPlateReference: true, figurePixelSize: before.size } : {}),
     explicitNegative: CAST_PLATE_STRIP_NEGATIVE,
     queueHints: '',
     characterId: input.characterId,

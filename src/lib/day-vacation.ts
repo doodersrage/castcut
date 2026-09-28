@@ -672,6 +672,9 @@ export function dayVacationPoseNeedsBodyUnlock(poseClass?: string | null): boole
  * ALL-CAPS Vacation tokens (only STRETCHING / DANCING today), so lean / zip /
  * look-back / hip-cocked freezes never got a face-crop Image 1.
  */
+const SUGGESTIVE_SEATED_LEAD_RE =
+  /^(SEATED|PERCHED)\b|\b(sit(?:ting|s)?\s+on|seated\s+on|perched\s+on)\b/i;
+
 export function suggestiveUnlockPoseClass(beat: string | null | undefined): string {
   const cls = vacationPoseClassFromBeat(beat);
   if (dayVacationPoseNeedsBodyUnlock(cls)) return cls;
@@ -713,6 +716,13 @@ export function suggestiveUnlockPoseClass(beat: string | null | undefined): stri
 }
 
 /** Suggestive Keep upright freeze — face-crop Image 1 when true. */
+/** A Suggestive beat that sits (bed edge, couch arm, sill) — "leaning forward" from a seat included. */
+export function daySuggestiveBeatIsSeated(beat: string | null | undefined): boolean {
+  const hay = beat?.trim() || '';
+  if (!hay) return false;
+  return suggestiveUnlockPoseClass(hay) === 'OTHER' && SUGGESTIVE_SEATED_LEAD_RE.test(hay);
+}
+
 export function daySuggestivePoseNeedsBodyUnlock(beat?: string | null): boolean {
   const cls = suggestiveUnlockPoseClass(beat);
   return dayVacationPoseNeedsBodyUnlock(cls) || cls === 'LOOK_BACK' || cls === 'LEAN';
@@ -892,6 +902,8 @@ export function buildDayVacationClothedFaceBreakLeads(
     hasOutfitImage?: boolean;
     /** The slot's SETTING — named in the lead, where Rapid actually reads it. */
     setting?: string | null;
+    /** Seated Suggestive beat on Rapid — lead with the sit (see clothedFaceBreakLeadsFor). */
+    seated?: boolean;
   }
 ): { preamble: string; image1: string } {
   const leads = clothedFaceBreakLeadsFor(poseClass, platePath, mood, options);
@@ -925,7 +937,7 @@ function clothedFaceBreakLeadsFor(
   poseClass: string | null | undefined,
   platePath: 'keep' | 'cast',
   mood?: string | null,
-  options?: { garmentDescription?: string | null; hasOutfitImage?: boolean }
+  options?: { garmentDescription?: string | null; hasOutfitImage?: boolean; seated?: boolean }
 ): { preamble: string; image1: string } {
   const cls = (poseClass ?? '').toUpperCase();
   const suggestive = (mood ?? '').trim().toLowerCase() === 'suggestive';
@@ -936,31 +948,46 @@ function clothedFaceBreakLeadsFor(
   const outfitFrom = hasOutfitImage
     ? suggestive
       ? platePath === 'keep'
-        ? 'CLOTHING LOCK CRITICAL: wear the EXACT Outfit Keep garment from Image 2 — same cut, colors, print, fabric, and coverage (if Image 2 is a dress/robe/lingerie set, she wears that). NEVER invent a bikini, swimsuit, nude, bare midriff, or a different outfit. Ignore Image 2 pose, room, and background only.'
-        : 'CLOTHING LOCK CRITICAL: wear the EXACT Image 2 garment — same cut, colors, print, fabric, and coverage. NEVER invent a bikini, swimsuit, nude, bare midriff, or a different outfit. Ignore Image 2 standing pose and room only.'
+        ? 'CLOTHING LOCK CRITICAL: wear the EXACT Outfit Keep garment from Image 2 — same cut, colors, print, fabric, and coverage (if Image 2 is a dress/robe/lingerie set, she wears that). NEVER swap in a different outfit or strip her. Ignore Image 2 pose, room, and background only.'
+        : 'CLOTHING LOCK CRITICAL: wear the EXACT Image 2 garment — same cut, colors, print, fabric, and coverage. NEVER swap in a different outfit or strip her. Ignore Image 2 standing pose and room only.'
       : platePath === 'keep'
         ? 'Dress the Outfit Keep kit from Image 2 (garment colors/cut only — ignore Image 2 pose, room, and background).'
         : 'Dress her from Image 2 garment colors/cut only; ignore Image 2 standing pose and room.'
     : garmentDesc
       ? suggestive
-        ? `CLOTHING LOCK CRITICAL: wear this EXACT outfit — ${garmentDesc} — same cut, colors, print, fabric, and coverage. NEVER invent a bikini, swimsuit, nude, bare midriff, or a different outfit.`
+        ? `CLOTHING LOCK CRITICAL: wear this EXACT outfit — ${garmentDesc} — same cut, colors, print, fabric, and coverage. NEVER swap in a different outfit or strip her.`
         : `Dress her in this outfit only — ${garmentDesc} (exact cut, colors, print, fabric).`
       : suggestive
-        ? 'CLOTHING LOCK CRITICAL: keep her fully clothed in the day outfit described in the beat/notes — NEVER invent a bikini, swimsuit, nude, or bare midriff.'
+        ? 'CLOTHING LOCK CRITICAL: keep her fully clothed in the day outfit described in the beat/notes — NEVER strip her or swap the outfit.'
         : 'Dress her in the day outfit described in the beat/notes (clothes stay on).';
   const outfitImage1 = hasOutfitImage
     ? suggestive
-      ? 'exact Image 2 garment (same print/cut/coverage) — inventing a bikini, swimsuit, or stripping her means the edit FAILED'
+      ? 'exact Image 2 garment (same print/cut/coverage) — swapping the outfit or stripping her means the edit FAILED'
       : 'outfit colors from Image 2 only'
     : garmentDesc
       ? suggestive
-        ? `exact outfit (${garmentDesc}) — inventing a bikini, swimsuit, or stripping her means the edit FAILED`
+        ? `exact outfit (${garmentDesc}) — swapping the outfit or stripping her means the edit FAILED`
         : `wearing ${garmentDesc}`
       : suggestive
         ? 'exact clothed day outfit from the beat — inventing a bikini or stripping her means the edit FAILED'
         : 'clothed day outfit from the beat';
   const identityLock =
     'IDENTITY CRITICAL: the finished still must show the SAME woman as the Image 1 face crop — identical face shape, hair color and length, eye color, nose, and mouth; inventing a different beauty face means the edit FAILED. Exactly one woman in frame — never a second person. ';
+  // A seated Suggestive beat on the face-break path (undressed Cast plate + a garment): the
+  // generic face-crop text says "standing" eight times and Rapid stood her up 3/3. The sit
+  // first, then the garment: seated 3/3, dressed 3/3 (live 2026-09-27).
+  if (options?.seated && suggestive && (cls === 'OTHER' || cls === 'SEATED' || cls === 'PERCHED')) {
+    return {
+      preamble:
+        'SEATED: she sits on the seat the beat names — hips down on it, knees bent, legs and lean as the beat says — ' +
+        `${hasOutfitImage ? 'wearing the Image 2 garment' : garmentDesc ? `wearing ${garmentDesc}` : 'fully dressed'}.\n` +
+        'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
+        identityLock +
+        outfitFrom +
+        ' Follow the beat action and SETTING.',
+      image1: `Image 1 = face likeness only — invent her seated full body matching Image 3; ${outfitImage1}.`,
+    };
+  }
   if (cls === 'MID-STRIDE') {
     return {
       preamble:
@@ -1001,7 +1028,7 @@ function clothedFaceBreakLeadsFor(
         identityLock +
         'Invent a FULL BODY look-back / zip-twist from Image 3: torso twisted three-quarter, looking over a shoulder, back arched, both hands on her own dress zipper behind her back (or adjusting straps) — NEVER square-on facing the lens with arms at her sides. CRITICAL: a planted fashion stand means the edit FAILED. ' +
         outfitFrom +
-        ' Follow the beat action and SETTING (mirror, dress zipper/straps when written — never invent a bikini).',
+        ' Follow the beat action and SETTING (mirror, dress zipper/straps when written — she keeps the outfit on).',
       image1: `Image 1 = face likeness only — invent FULL BODY zip-twist / look-back matching Image 3 (torso twisted, over-shoulder glance, hands on zipper behind her); never a planted fashion stand; ${outfitImage1}.`,
     };
   }
@@ -1138,8 +1165,8 @@ export function buildDayVacationPromptLocks(input: {
       'Image 1 Keep is a standing try-on — discard that standing fashion stance; never freeze as a square-on standing catalog model with arms at her sides.',
     moodLine:
       `MOOD: vacation travel day — follow the beat body stance exactly (${beat.slice(0, 80)}); ` +
-      `lively resort energy — ${stance}; ` +
-      'keep travel clothes or swimsuit as the beat says; one woman alone in frame; ' +
+      `lively travel energy — ${stance}; ` +
+      'keep the outfit Image 2 or the beat names; one woman alone in frame; ' +
       'never hands-and-knees or rear-presenting on a bed; never invent a man or second adult; ' +
       'never a stiff square-on standing catalog pose; never office/grocery/bookstore stills.',
   };

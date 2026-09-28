@@ -8,6 +8,7 @@ import {
   labelForSavedFittingGarment,
   loadSavedFittingGarments,
   removeSavedFittingGarment,
+  replaceSavedFittingGarments,
   saveFittingGarment,
   updateSavedFittingGarmentDescription,
 } from './fitting-saved-garments';
@@ -114,6 +115,27 @@ describe('fitting-saved-garments', () => {
     assert.equal(updateSavedFittingGarmentDescription('missing.png', 'x'), false);
     assert.equal(updateSavedFittingGarmentDescription('tee.png', '  '), false);
     assert.equal(findSavedFittingGarmentByFilename('tee.png')?.description, 'pink ribbed crop tee');
+  });
+
+  it('replaceSavedFittingGarments takes a synced list, dropping junk and duplicates', () => {
+    saveFittingGarment({ imageFilename: 'local.png' });
+    const kept = replaceSavedFittingGarments([
+      { id: 'a', label: 'Tee', imageFilename: 'tee.png', description: 'pink tee', savedAt: 2 },
+      { id: 'b', label: 'Tee again', imageFilename: 'tee.png', savedAt: 1 },
+      { label: 'no file' },
+      'junk',
+    ]);
+    assert.deepEqual(
+      kept.map(entry => entry.imageFilename),
+      ['tee.png']
+    );
+    assert.deepEqual(
+      loadSavedFittingGarments().map(entry => entry.description),
+      ['pink tee']
+    );
+    // Not a list: leave what's there.
+    replaceSavedFittingGarments({ nope: true });
+    assert.equal(loadSavedFittingGarments().length, 1);
   });
 
   it('loadSavedFittingGarments returns [] for malformed storage', () => {

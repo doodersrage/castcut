@@ -3,6 +3,11 @@
  * Synced to PROMPT_DATA_DIR as the `studio-extras` namespace.
  */
 import {
+  loadSavedFittingGarments,
+  replaceSavedFittingGarments,
+  type SavedFittingGarment,
+} from './fitting-saved-garments';
+import {
   readBrowserValue,
   withSuppressedDurableSyncPush,
   writeBrowserValue,
@@ -190,6 +195,8 @@ export type StudioExtrasPayload = {
   calmUi?: boolean;
   playMetrics?: PlayMetrics;
   playCampaignState?: PlayCampaignState | null;
+  /** Saved clothing photos (Day / Story / Outfit "Saved photos"). */
+  fittingSavedGarments?: SavedFittingGarment[];
 };
 
 export function collectStudioExtras(): StudioExtrasPayload {
@@ -253,6 +260,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     calmUi: loadCalmUi(),
     playMetrics: loadPlayMetrics(),
     playCampaignState: loadPlayCampaignState(),
+    fittingSavedGarments: loadSavedFittingGarments(),
   };
 }
 
@@ -345,6 +353,9 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.navFavorites) {
       saveNavFavorites(payload.navFavorites);
+    }
+    if (payload.fittingSavedGarments) {
+      replaceSavedFittingGarments(payload.fittingSavedGarments);
     }
     if (payload.queueParams) {
       saveQueueParamsSettings(payload.queueParams);

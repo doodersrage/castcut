@@ -441,6 +441,10 @@ export function resolveQueueParams(
     result.inputImageFilename = merged.inputImageFilename.trim();
   }
   if (Array.isArray(merged.inputImageFilenames) && merged.inputImageFilenames.length > 0) {
+    // Gaps close up here, so with no garment the pose guide rides encoder slot 2 while the Day /
+    // Story prompt still calls it "Image 3". Every live tuning since has run this way, and wiring
+    // it to slot 3 instead was no better on Rapid (2026-09-27: sport/walk same, a sit beat grew a
+    // ghost second face) — keep the compaction unless an A/B says otherwise.
     const filenames = merged.inputImageFilenames
       .map(entry => entry?.trim() ?? '')
       .filter(Boolean)

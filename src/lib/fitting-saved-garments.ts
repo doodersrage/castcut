@@ -204,6 +204,24 @@ export function updateSavedFittingGarmentDescription(
   return true;
 }
 
+/** Replace the whole list from a synced copy (studio-extras); returns what was kept. */
+export function replaceSavedFittingGarments(entries: unknown): SavedFittingGarment[] {
+  if (!Array.isArray(entries)) {
+    return loadSavedFittingGarments();
+  }
+  const seen = new Set<string>();
+  const next: SavedFittingGarment[] = [];
+  for (const item of entries) {
+    const entry = normalizeEntry(item);
+    if (!entry || seen.has(entry.imageFilename)) {
+      continue;
+    }
+    seen.add(entry.imageFilename);
+    next.push(entry);
+  }
+  return writeAll(next);
+}
+
 export function removeSavedFittingGarment(id: string | null | undefined): SavedFittingGarment[] {
   const target = id?.trim();
   if (!target) {

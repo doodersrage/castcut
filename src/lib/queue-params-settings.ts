@@ -432,8 +432,9 @@ export function resolveQueueParams(
       }
     }
 
-    // Slots are positional — Image 2 garment, Image 3 pose guide — so keep empty gaps. Dropping
-    // them moved a Story pose guide into Image 2 while the prompt still said "Image 3".
+    // Slots are positional — Image 2 garment, Image 3 pose guide — so keep empty gaps here.
+    // (resolveQueueParams in comfyui-config still closes them up before the graph is built;
+    // see the note there.)
     const resolvedFilenames = (() => {
       const fromArg = (inputImageFilenames ?? []).slice(0, 4);
       const fromBase = (base?.inputImageFilenames ?? []).slice(0, 4);

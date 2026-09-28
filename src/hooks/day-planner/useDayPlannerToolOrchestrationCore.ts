@@ -90,6 +90,7 @@ import {
   resolveDayQueueIdentityPlate,
 } from '@/lib/day-plate';
 import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day-nude-face-crop';
+import { dayMoodWantsAutoKit, pickDayAutoKit } from '@/lib/day-auto-kit';
 import {
   resolveDayVacationFaceBreakPlate,
   resolveDayVacationIdentityVlPlate,
@@ -99,6 +100,7 @@ import {
   dayClothedHeatPoseNeedsBodyUnlock,
   dayVacationPoseNeedsBodyUnlock,
   clothedHeatUnlockPoseClass,
+  daySuggestiveBeatIsSeated,
 } from '@/lib/day-vacation';
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
 import { planDaySlotPose } from '@/lib/day-slot-pose';
@@ -670,8 +672,35 @@ export function useDayPlannerToolOrchestrationCore() {
               diversified.slots.find(entry => entry.id === queueTarget.id) ?? queueTarget;
           }
         }
-        const wardrobeId = queueTarget.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
         await loadWardrobeGarmentThumbManifest();
+        let wardrobeId = queueTarget.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
+        // No kit, no clothing photo and the undressed Cast plate as Image 1: nothing dressed her,
+        // so everyday / vacation stills came out in the plate's underwear. Pick a real kit.
+        if (
+          !wardrobeId &&
+          hasPlate &&
+          plate?.source !== 'keeper' &&
+          !toolSettings.customGarmentImageUrl?.trim() &&
+          !toolSettings.customGarmentImageFilename?.trim() &&
+          dayMoodWantsAutoKit(toolSettings.dayMood)
+        ) {
+          const picked = pickDayAutoKit({
+            options: wardrobeOptions,
+            dayMood: toolSettings.dayMood,
+            slotId: queueTarget.id,
+            salt: character?.id,
+            hasPackshot: id => Boolean(resolveWardrobeGarmentThumbQueueUrl(id)),
+            exclude: workingSlots.map(entry => entry.wardrobeId),
+          });
+          if (picked) {
+            wardrobeId = picked;
+            queueTarget = { ...queueTarget, wardrobeId: picked };
+            workingSlots = workingSlots.map(entry =>
+              entry.id === queueTarget.id ? { ...entry, wardrobeId: picked } : entry
+            );
+            updateToolSettings({ slots: workingSlots });
+          }
+        }
         const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
         const omitGarment = dayBeatOmitsGarmentPackshot({
           blurb: queueTarget.sceneHints,
@@ -697,6 +726,22 @@ export function useDayPlannerToolOrchestrationCore() {
         // an OpenPose keypoint map is a pose condition Edit-2511 understands, so it stays on.
         const poseGuideStyle = loadPoseGuideStylePreference();
         const lightningDropsPoseGuide = poseGuideStyle === 'legacy';
+        // Seated Suggestive on Rapid with the undressed Cast plate as Image 1: the plate's full
+        // latent kept her in its underwear over the kit 5/6 whatever the brief said. Face-break
+        // (face crop + the garment's latent) dressed her 3/3 and, with the seated lead, sat 3/3.
+        const suggestiveSeatOnUndressedPlate =
+          normalizeDayMood(toolSettings.dayMood) === 'suggestive' &&
+          /^qwen-rapid-aio-/i.test(String(shared.model ?? '')) &&
+          (identityPlate ?? queuePlate)?.source !== 'keeper' &&
+          daySuggestiveBeatIsSeated(queueTarget.sceneHints) &&
+          isClothingOnlyDayGarment(
+            resolveDayGarmentReinforce({
+              plateSource: plate?.source,
+              packshotUrl,
+              customGarmentUrl: toolSettings.customGarmentImageUrl,
+              customGarmentFilename: toolSettings.customGarmentImageFilename,
+            })
+          );
         if (omitGarment && character) {
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const nudeIdentity = await resolveDayNudeIdentityPlateWithFaceCrop({
@@ -711,9 +756,10 @@ export function useDayPlannerToolOrchestrationCore() {
         } else if (
           (normalizeDayMood(toolSettings.dayMood) === 'vacation' ||
             normalizeDayMood(toolSettings.dayMood) === 'suggestive') &&
-          dayClothedHeatPoseNeedsBodyUnlock(queueTarget.sceneHints, toolSettings.dayMood, {
+          (dayClothedHeatPoseNeedsBodyUnlock(queueTarget.sceneHints, toolSettings.dayMood, {
             poseStickyModel: isQwenEdit2511PoseStickyModel(shared.model),
-          }) &&
+          }) ||
+            suggestiveSeatOnUndressedPlate) &&
           (identityPlate ?? queuePlate)
         ) {
           // Upright MID-STRIDE / WAVING / DANCING: full Keep as Image 1 freezes stand.
@@ -1199,6 +1245,7 @@ export function useDayPlannerToolOrchestrationCore() {
       shared.model,
       updateShared,
       updateToolSettings,
+      wardrobeOptions,
     ]
   );
   const suggestDayScenes = useCallback(() => {
