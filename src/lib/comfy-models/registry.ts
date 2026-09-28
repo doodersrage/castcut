@@ -225,7 +225,7 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     comfyNode: 'CLIP Text Encode (Flux)',
     comfyClass: 'Flux2Klein9B',
     description:
-      '4-step distilled 9B Klein — fast T2I/edit. Prefer simple single-subject poses; auto hand/limb anatomy cues on queue. Complex anatomy → Klein 9B Base or UltraReal.',
+      '4-step distilled 9B Klein — fast T2I/edit. Good for single-person stills, edits and Compose; auto hand/limb anatomy cues on queue. Two-person Day/Story scenes often grow an extra person when bodies overlap — use Qwen Rapid AIO Edit for those. Complex anatomy → Klein 9B Base or UltraReal.',
     profile: 'flux_klein',
     referenceTokenLimit: 512,
     limitsByDetail: PROFILE_LIMITS.flux_klein,
