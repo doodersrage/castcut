@@ -2453,6 +2453,12 @@ export function dayBeatOmitsGarmentPackshot(input: {
   intimateMix?: DayIntimateMix | string | null;
 }): boolean {
   const haystack = [input.blurb, input.prompt].filter(Boolean).join(' · ');
+  // Clothed moods never undress. The Story sex-layout reader ran first and read an Everyday
+  // "spooning with her boyfriend in bed" as the spoon sex layout — a nude sex brief on an
+  // Everyday still (live, 2026-09-28).
+  if (!isDayAdultMood(input.dayMood)) {
+    return false;
+  }
   if (
     storyBeatOmitsGarmentPackshot({
       blurb: input.blurb ?? undefined,
@@ -2460,9 +2466,6 @@ export function dayBeatOmitsGarmentPackshot(input: {
     })
   ) {
     return true;
-  }
-  if (!isDayAdultMood(input.dayMood)) {
-    return false;
   }
   // Pure flash / wardrobe-fail gags with no self-touch keep clothes — that is the joke.
   // Raunchy Solo punchlines that name masturbation / fingering still drop Keep kit.

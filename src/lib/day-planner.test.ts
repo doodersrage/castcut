@@ -1985,6 +1985,28 @@ describe('day-planner', () => {
     assert.doesNotMatch(prompt, /\b(vibrator|dildo|wand|sex toy)\b/i);
   });
 
+  it('dayBeatOmitsGarmentPackshot keeps clothes on clothed moods even for a sex-layout word', () => {
+    for (const dayMood of ['everyday', 'suggestive', 'vacation', 'sport']) {
+      assert.equal(
+        dayBeatOmitsGarmentPackshot({
+          blurb: 'spooning with her boyfriend in bed under white sheets, him behind her',
+          dayMood,
+          intimateMix: 'mixed',
+        }),
+        false,
+        dayMood
+      );
+    }
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({
+        blurb: 'spooning with her boyfriend in bed under white sheets, him behind her',
+        dayMood: 'intimate',
+        intimateMix: 'duo',
+      }),
+      true
+    );
+  });
+
   it('dayBeatOmitsGarmentPackshot always drops Keep kit on intimate duo', () => {
     assert.equal(
       dayBeatOmitsGarmentPackshot({

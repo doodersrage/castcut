@@ -1267,4 +1267,30 @@ describe('everyday pose layouts', () => {
     assert.equal(kept.intimate, 'afterglow');
     assert.match(kept.label, /^afterglow-/);
   });
+
+  it('parsePoseGuideIntent draws a clothed spoon on Everyday, not a standing lean', () => {
+    const beat = 'spooning with her boyfriend in bed under white sheets, him behind her';
+    const everyday = parsePoseGuideIntent(beat, 0, { forcePeople: 2, allowIntimate: false });
+    assert.match(everyday.label, /^spoon-/);
+    // Vacation / Suggestive keep their upright-only rule.
+    const upright = parsePoseGuideIntent(beat, 0, {
+      forcePeople: 2,
+      clothedUprightOnly: true,
+      allowIntimate: false,
+    });
+    assert.doesNotMatch(upright.label, /^spoon-/);
+    // Other sex layouts stay adult-only.
+    const wall = parsePoseGuideIntent('leaning against a brick wall waiting for a friend', 0, {
+      forcePeople: 2,
+      allowIntimate: false,
+    });
+    assert.doesNotMatch(wall.label, /^wall-/);
+    // A wooden spoon is not spooning.
+    const cooking = parsePoseGuideIntent(
+      'stirring a pot of pasta sauce at the stove, wooden spoon raised',
+      0,
+      { forcePeople: 1, allowIntimate: false }
+    );
+    assert.doesNotMatch(cooking.label, /^spoon-/);
+  });
 });

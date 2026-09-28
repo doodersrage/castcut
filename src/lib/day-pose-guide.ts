@@ -1700,6 +1700,9 @@ function armChain(
   }
 }
 
+const CLOTHED_SPOON_RE =
+  /\b(?:spooning|spooned|spoons?\s+(?:her|him|them|each\s+other|with)|(?:little|big)\s+spoon)\b/i;
+
 /**
  * Parse scene/beat text into a pose intent, then synthesize joint positions.
  * Same text (+ fallback index) always yields the same skeleton.
@@ -1725,7 +1728,14 @@ export function parsePoseGuideIntent(
   // Sex layouts belong to the adult moods only. Without this gate an everyday beat like
   // "leaning against a brick wall waiting for a friend" draws a two-figure wall-press.
   const intimateAllowed = !options?.clothedUprightOnly && options?.allowIntimate !== false;
-  let intimate = intimateAllowed ? parseIntimateLayout(haystack) : null;
+  // A clothed spoon is still a spoon: without it an Everyday "spooning with her boyfriend in
+  // bed" drew a standing lean pair, and the beat's "him behind her" added a third person (Klein,
+  // 8/8 renders). Clothing is gated on the mood, not on this drawing.
+  let intimate = intimateAllowed
+    ? parseIntimateLayout(haystack)
+    : !options?.clothedUprightOnly && CLOTHED_SPOON_RE.test(haystack)
+      ? 'spoon'
+      : null;
   let social = intimate ? null : parseSocialLayout(haystack);
 
   // Vacation pose-class leads (MID-STRIDE, SEATED, RELAXING, …) must win over prop/glance
