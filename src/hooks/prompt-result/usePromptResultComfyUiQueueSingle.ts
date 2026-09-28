@@ -135,6 +135,8 @@ export function usePromptResultComfyUiQueueSingle(
             ...(options?.sessionLoraStrengthOverrides
               ? { sessionLoraStrengthOverrides: options.sessionLoraStrengthOverrides }
               : {}),
+            // Cast-locked (Day, Story): LoRAs that Check on Cast flagged would pull the face away.
+            ...(options?.identityLock ? { skipFaceChangingLoras: true } : {}),
           });
           vramGuard = await guardQueueQualityForVram({
             profile: options?.qualityProfile ?? baseRuntime.queueQualityProfile,

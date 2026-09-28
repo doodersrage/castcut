@@ -80,6 +80,8 @@ export type ResolveRuntimeOptions = {
   sessionActiveLoraIds?: string[];
   /** Job-pinned strength tweaks (e.g. Story dips SNOFS when Image 3 pose must win). */
   sessionLoraStrengthOverrides?: import('./lora-stack').SessionLoraStrengthOverrides;
+  /** Cast-locked queue (Day, Story): skip LoRAs whose Check on Cast says they change faces. */
+  skipFaceChangingLoras?: boolean;
 };
 
 /**
@@ -323,6 +325,7 @@ export function resolveRuntimeForModel(
         sessionActiveLoraIds: options?.sessionActiveLoraIds,
         sessionLoraStrengthOverrides: options?.sessionLoraStrengthOverrides,
         model,
+        skipFaceChangingLoras: options?.skipFaceChangingLoras,
       }
     );
     const base = applySystemWorkflowToRuntime(
@@ -414,6 +417,7 @@ export function resolveRuntimeForModel(
     sessionActiveLoraIds: options?.sessionActiveLoraIds,
     sessionLoraStrengthOverrides: options?.sessionLoraStrengthOverrides,
     model,
+    skipFaceChangingLoras: options?.skipFaceChangingLoras,
   });
 
   return {

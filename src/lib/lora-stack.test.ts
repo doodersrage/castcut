@@ -9,6 +9,8 @@ import {
   normalizeLoraLibraryEntry,
   resolveActiveLoraStack,
   type LoraLibraryEntry,
+  capLoraStackStrength,
+  withActiveLoraTriggers,
 } from "./lora-stack";
 
 function makeEntry(overrides: Partial<LoraLibraryEntry> = {}): LoraLibraryEntry {
@@ -857,5 +859,67 @@ describe("loraStackLintWarning", () => {
       resolveActiveLoraStack([makeEntry()]),
     );
     assert.equal(warning, null);
+  });
+});
+
+describe("capLoraStackStrength", () => {
+  const entry = (id: string, strength: number, over: Partial<LoraLibraryEntry> = {}) =>
+    ({
+      id,
+      label: id,
+      triggerPhrase: "",
+      tokenValue: `${id}.safetensors`,
+      strengthModel: strength,
+      strengthClip: strength,
+      ...over,
+    }) as LoraLibraryEntry;
+
+  it("scales active LoRAs together past the budget and leaves Lightning alone", () => {
+    const capped = capLoraStackStrength(
+      [
+        entry("a", 1),
+        entry("b", 1),
+        entry("c", 1),
+        entry("d", 1, { enabled: false }),
+        entry("LIGHTNING", 1, { tokenValue: "Qwen-Image-Lightning-8steps.safetensors" }),
+      ],
+      2,
+    );
+    assert.deepEqual(
+      capped.map((item) => item.strengthModel),
+      [0.67, 0.67, 0.67, 1, 1],
+    );
+  });
+
+  it("is a no-op under the budget or with no budget", () => {
+    const library = [entry("a", 0.7), entry("b", 0.8)];
+    assert.equal(capLoraStackStrength(library, 2), library);
+    assert.equal(capLoraStackStrength(library, undefined), library);
+  });
+});
+
+describe("withActiveLoraTriggers", () => {
+  const entry = (id: string, trigger: string, over: Partial<LoraLibraryEntry> = {}) =>
+    ({
+      id,
+      label: id,
+      triggerPhrase: trigger,
+      tokenValue: `${id}.safetensors`,
+      addTriggerToPrompt: true,
+      ...over,
+    }) as LoraLibraryEntry;
+
+  it("prefixes opted-in triggers the prompt lacks, once each", () => {
+    assert.equal(
+      withActiveLoraTriggers("a woman in a cafe", [
+        entry("snap", "amateur photo"),
+        entry("dup", "Amateur Photo"),
+        entry("off", "srx_detail", { enabled: false }),
+        entry("not-opted", "fluxtrait", { addTriggerToPrompt: false }),
+        entry("present", "cafe"),
+      ]),
+      "amateur photo, a woman in a cafe",
+    );
+    assert.equal(withActiveLoraTriggers("plain", undefined), "plain");
   });
 });

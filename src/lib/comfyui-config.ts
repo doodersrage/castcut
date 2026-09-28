@@ -22,6 +22,7 @@ import { buildLightningLoraFilenameMap, loraFilenameImpliesLightning } from './w
 import {
   normalizeLoraLibrary,
   applyLoraStackToWorkflow,
+  withActiveLoraTriggers,
   type LoraLibraryEntry,
 } from './lora-stack';
 import {
@@ -1343,7 +1344,14 @@ export function injectPromptsWithFallbacks(
     samplerOverrides?: import('./model-sampler-defaults').ModelSamplerOverrideFields;
   }
 ): WorkflowInjectionResult {
-  const promptInput = isBooguTurboModel(options?.model) ? { ...input, negative: undefined } : input;
+  // LoRAs marked "add trigger" need their trigger word in the prompt to fire.
+  const withTriggers = {
+    ...input,
+    positive: withActiveLoraTriggers(input.positive, options?.loraLibrary),
+  };
+  const promptInput = isBooguTurboModel(options?.model)
+    ? { ...withTriggers, negative: undefined }
+    : withTriggers;
   const loaderMerged = mergeLoaderTokensIntoCustomTokens(
     promptInput.params,
     promptInput.customTokens

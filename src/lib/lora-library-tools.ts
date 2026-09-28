@@ -163,3 +163,110 @@ export function saveLoraStackPreset(
 export function deleteLoraStackPreset(presets: LoraStackPreset[], id: string): LoraStackPreset[] {
   return presets.filter(preset => preset.id !== id);
 }
+
+export type LoraUsageStats = {
+  /** Finished images queued with this LoRA on a model it applies to. */
+  images: number;
+  favorites: number;
+  /** Images rated 4–5 in gallery review. */
+  wellRated: number;
+  /** Mean Play face match (0–1) of images with this LoRA, and of same-family images without. */
+  faceWith: number | null;
+  faceWithout: number | null;
+  faceSamples: number;
+};
+
+/** Minimum face-checked images on each side before comparing faces with / without a LoRA. */
+export const LORA_USAGE_MIN_FACE_SAMPLES = 3;
+
+type UsageGalleryEntry = {
+  status?: string;
+  model?: string;
+  sessionActiveLoraIds?: string[];
+  favorite?: boolean;
+  reviewRating?: number;
+  playChecks?: { face?: number };
+};
+
+const mean = (values: number[]) =>
+  values.length
+    ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 1000) / 1000
+    : null;
+
+/** How each library LoRA shows up in the gallery: uses, favorites, good ratings, face match. */
+export function loraUsageStats(
+  library: LoraLibraryEntry[],
+  gallery: UsageGalleryEntry[]
+): Map<string, LoraUsageStats> {
+  const finished = gallery.filter(entry => entry.status === 'completed' && entry.model);
+  const stats = new Map<string, LoraUsageStats>();
+  for (const lora of library) {
+    const family = lora.family && lora.familySource !== 'missing' ? lora.family : null;
+    const applies = finished.filter(entry => isLoraCompatibleWithModel(lora, entry.model!));
+    const withIt = applies.filter(entry => entry.sessionActiveLoraIds?.includes(lora.id));
+    if (withIt.length === 0) continue;
+    const withFaces = withIt
+      .map(entry => entry.playChecks?.face)
+      .filter((face): face is number => typeof face === 'number');
+    const withoutFaces = (family ? applies : [])
+      .filter(entry => !entry.sessionActiveLoraIds?.includes(lora.id))
+      .map(entry => entry.playChecks?.face)
+      .filter((face): face is number => typeof face === 'number');
+    const compare =
+      withFaces.length >= LORA_USAGE_MIN_FACE_SAMPLES &&
+      withoutFaces.length >= LORA_USAGE_MIN_FACE_SAMPLES;
+    stats.set(lora.id, {
+      images: withIt.length,
+      favorites: withIt.filter(entry => entry.favorite === true).length,
+      wellRated: withIt.filter(entry => (entry.reviewRating ?? 0) >= 4).length,
+      faceWith: compare ? mean(withFaces) : null,
+      faceWithout: compare ? mean(withoutFaces) : null,
+      faceSamples: withFaces.length,
+    });
+  }
+  return stats;
+}
+
+function loraFileKey(entry: LoraLibraryEntry): string {
+  return (entry.tokenValue ?? '').trim().replace(/\\/g, '/').toLowerCase();
+}
+
+/** Entries whose file is gone from ComfyUI (scan source `missing`). */
+export function missingLoraEntries(library: LoraLibraryEntry[]): LoraLibraryEntry[] {
+  return library.filter(entry => entry.familySource === 'missing');
+}
+
+/** Groups of entries pointing at the same file (first entry first). */
+export function duplicateLoraEntries(library: LoraLibraryEntry[]): LoraLibraryEntry[][] {
+  const groups = new Map<string, LoraLibraryEntry[]>();
+  for (const entry of library) {
+    const key = loraFileKey(entry);
+    if (!key) continue;
+    groups.set(key, [...(groups.get(key) ?? []), entry]);
+  }
+  return [...groups.values()].filter(group => group.length > 1);
+}
+
+/**
+ * Drop `ids` from the library and from every model's session picks. Picks of a removed
+ * duplicate move to the entry that stays (`replaceWith`).
+ */
+export function removeLoraEntries(
+  library: LoraLibraryEntry[],
+  byModel: Partial<Record<string, string[]>> | undefined,
+  ids: Iterable<string>,
+  replaceWith?: Record<string, string>
+): { library: LoraLibraryEntry[]; byModel: Partial<Record<string, string[]>> } {
+  const drop = new Set(ids);
+  const nextByModel: Partial<Record<string, string[]>> = {};
+  for (const [model, picks] of Object.entries(byModel ?? {})) {
+    if (!Array.isArray(picks)) continue;
+    const next: string[] = [];
+    for (const id of picks) {
+      const kept = drop.has(id) ? replaceWith?.[id] : id;
+      if (kept && !next.includes(kept)) next.push(kept);
+    }
+    nextByModel[model] = next;
+  }
+  return { library: library.filter(entry => !drop.has(entry.id)), byModel: nextByModel };
+}

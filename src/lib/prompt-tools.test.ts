@@ -3201,3 +3201,29 @@ describe("api smoke routes", () => {
     assert.ok(data.comfyui);
   });
 });
+
+describe("LoRA triggers at queue", () => {
+  it("prefixes the trigger of an opted-in active LoRA into the positive prompt", async () => {
+    const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui-config");
+    const injected = injectPromptsWithFallbacks(
+      { "1": { class_type: "CLIPTextEncode", inputs: { text: "{{POSITIVE}}" } } },
+      { positive: "A portrait." },
+      resolvePlaceholderTokens(),
+      {
+        loraLibrary: [
+          {
+            id: "snap",
+            label: "Snapshot",
+            triggerPhrase: "amateur photo",
+            tokenValue: "snapshot.safetensors",
+            addTriggerToPrompt: true,
+          },
+        ],
+      },
+    );
+    assert.equal(
+      (injected.workflow["1"] as { inputs: Record<string, unknown> }).inputs.text,
+      "amateur photo, A portrait.",
+    );
+  });
+});

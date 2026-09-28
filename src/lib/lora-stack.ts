@@ -31,6 +31,13 @@ export type LoraLibraryEntry = {
    * that the file is no longer in ComfyUI.
    */
   familySource?: 'metadata' | 'keys' | 'unreadable' | 'missing';
+  /** Last "Check on Cast" result — face drift per strength on real Day stills (lora-check.ts). */
+  faceCheck?: import('./lora-check').LoraFaceCheck;
+  /**
+   * Prefix `triggerPhrase` onto the positive prompt when this LoRA is in the queued stack.
+   * Opt-in: scanned triggers are the most frequent training tag, which is not always the trigger.
+   */
+  addTriggerToPrompt?: boolean;
 };
 
 export type ActiveLoraStackEntry = {
@@ -914,4 +921,100 @@ export function loraStackLintWarning(
   }
 
   return 'Workflow expects a LoRA but the active LoRA stack is empty — enable at least one LoRA in Settings → LoRA library.';
+}
+
+/** On-chain non-Lightning LoRAs a graph already loads (strength above 0). */
+export function readLoraStackFromWorkflow(
+  workflow: Record<string, unknown>
+): ActiveLoraStackEntry[] {
+  const graph = workflow as Record<string, WorkflowNode>;
+  return findLoraAnchorNodeIds(graph).flatMap(nodeId => {
+    const inputs = graph[nodeId]?.inputs ?? {};
+    const filename = typeof inputs.lora_name === 'string' ? inputs.lora_name.trim() : '';
+    const strengthModel = Number(inputs.strength_model);
+    const strengthClip = Number(inputs.strength_clip ?? inputs.strength_model);
+    const model = Number.isFinite(strengthModel) ? strengthModel : 0;
+    const clip = Number.isFinite(strengthClip) ? strengthClip : model;
+    if (!filename || (model <= 0 && clip <= 0)) {
+      return [];
+    }
+    return [
+      {
+        id: filename,
+        label: loraFilenameStem(filename),
+        filename,
+        strengthModel: model,
+        strengthClip: clip,
+      },
+    ];
+  });
+}
+
+/**
+ * Default combined-strength cap. Live A/B on Rapid AIO Day stills (2026-09-28): a 5-LoRA Qwen
+ * stack at its library strengths (total 4.0) turned clothed beats explicit, added tattoos, swapped
+ * the garment and moved the setting, face match 0.197 vs 0.30–0.34 without LoRAs; scaled to 2.5
+ * it held the outfit on most stills and face match rose to 0.231 (3/4 stills closer).
+ */
+export const DEFAULT_LORA_STRENGTH_BUDGET = 2.5;
+
+/**
+ * Scale the active non-Lightning LoRAs down together when their model strengths add up to more
+ * than `budget`, keeping their ratios. Lightning / speed LoRAs are never scaled. A budget of 0
+ * (or none) turns the cap off.
+ */
+export function capLoraStackStrength(
+  library: LoraLibraryEntry[],
+  budget: number | undefined
+): LoraLibraryEntry[] {
+  if (typeof budget !== 'number' || !Number.isFinite(budget) || budget <= 0) {
+    return library;
+  }
+  const counts = (entry: LoraLibraryEntry) =>
+    entry.enabled !== false && Boolean(entry.tokenValue?.trim()) && !isLightningLibraryEntry(entry);
+  const total = library
+    .filter(counts)
+    .reduce((sum, entry) => sum + clampLoraStrength(entry.strengthModel), 0);
+  if (total <= budget) {
+    return library;
+  }
+  const scale = budget / total;
+  const round = (value: number) => Math.round(value * 100) / 100;
+  return library.map(entry =>
+    counts(entry)
+      ? {
+          ...entry,
+          strengthModel: round(clampLoraStrength(entry.strengthModel) * scale),
+          strengthClip: round(clampLoraStrength(entry.strengthClip) * scale),
+        }
+      : entry
+  );
+}
+
+/** Prefix the triggers of active LoRAs marked `addTriggerToPrompt` that the prompt lacks. */
+export function withActiveLoraTriggers(
+  positive: string,
+  library: LoraLibraryEntry[] | undefined
+): string {
+  const triggers: string[] = [];
+  for (const entry of library ?? []) {
+    const trigger = entry.triggerPhrase?.trim() ?? '';
+    if (
+      entry.enabled === false ||
+      entry.addTriggerToPrompt !== true ||
+      !trigger ||
+      !entry.tokenValue?.trim() ||
+      isLightningLibraryEntry(entry) ||
+      promptContainsLoraTrigger(positive, trigger) ||
+      triggers.some(existing => existing.toLowerCase() === trigger.toLowerCase())
+    ) {
+      continue;
+    }
+    triggers.push(trigger);
+  }
+  if (triggers.length === 0) {
+    return positive;
+  }
+  const text = positive.trim();
+  return text ? `${triggers.join(', ')}, ${text}` : triggers.join(', ');
 }

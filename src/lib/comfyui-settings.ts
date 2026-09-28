@@ -27,6 +27,9 @@ import { readBrowserValue, removeBrowserKey, writeBrowserValue } from './browser
 import {
   applySessionLoraSelection,
   applySessionLoraStrengthOverrides,
+  capLoraStackStrength,
+  clampLoraStrength,
+  DEFAULT_LORA_STRENGTH_BUDGET,
   isLightningLibraryEntry,
   normalizeLoraLibrary,
   type LoraLibraryEntry,
@@ -38,6 +41,7 @@ import {
 } from './model-lora-map';
 import { loadSettingsCache } from './settings-cache';
 import { loraFamilyForModel } from './lora-family-detect';
+import { loraChangesFaceAt } from './lora-check';
 
 /**
  * Per-model session → model LoRA map → library enabled flags.
@@ -80,6 +84,11 @@ export type ComfyUiSettings = {
   loraLibrary?: LoraLibraryEntry[];
   /** Named LoRA stacks per model family (lora-library-tools.ts). */
   loraStackPresets?: import('./lora-library-tools').LoraStackPreset[];
+  /**
+   * Scale the active LoRAs down together when their strengths add up to more than this
+   * (Lightning excluded). Unset = DEFAULT_LORA_STRENGTH_BUDGET; 0 = no cap.
+   */
+  loraStrengthBudget?: number;
   notifyOnComplete?: boolean;
   /** Auto-tag completed gallery entries with vision LLM tags. */
   autoVisionTags?: boolean;
@@ -393,6 +402,8 @@ export function comfyUiSettingsToRuntime(
     sessionActiveLoraIds?: string[];
     sessionLoraStrengthOverrides?: import('./lora-stack').SessionLoraStrengthOverrides;
     model?: string;
+    /** Cast-locked queues (Day, Story): drop LoRAs whose Check on Cast says they change faces. */
+    skipFaceChangingLoras?: boolean;
   }
 ): ComfyUiRuntimeConfig | undefined {
   // LoRA library lives in browser settings — always merge into custom tokens so
@@ -414,12 +425,23 @@ export function comfyUiSettingsToRuntime(
   // Session sidebar picks override Settings enabled flags when set;
   // otherwise the per-model LoRA map applies when present.
   const queueModel = options?.model ?? loadSettingsCache().shared.model;
-  const loraLibrary = applySessionLoraStrengthOverrides(
+  const selectedLoras = applySessionLoraStrengthOverrides(
     applySessionLoraSelection(settings.loraLibrary, sessionActiveLoraIds).map(entry =>
       scannedForOtherFamily(entry, queueModel) ? { ...entry, enabled: false } : entry
     ),
     options?.sessionLoraStrengthOverrides ??
       resolveSharedEffectiveSessionLoraStrengthOverrides(options?.model)
+  );
+  const loraLibrary = capLoraStackStrength(
+    options?.skipFaceChangingLoras
+      ? selectedLoras.map(entry =>
+          entry.enabled !== false &&
+          loraChangesFaceAt(entry.faceCheck, clampLoraStrength(entry.strengthModel))
+            ? { ...entry, enabled: false }
+            : entry
+        )
+      : selectedLoras,
+    settings.loraStrengthBudget ?? DEFAULT_LORA_STRENGTH_BUDGET
   );
 
   if (settings.useServerDefaults) {

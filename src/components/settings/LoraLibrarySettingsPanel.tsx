@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/ui/ViewState';
 import {
   createEmptyLoraLibraryEntry,
   createLoraLibraryEntryFromFilename,
+  DEFAULT_LORA_STRENGTH_BUDGET,
   describeLoraStack,
   resolveActiveLoraStack,
   type LoraLibraryEntry,
@@ -19,23 +20,35 @@ import { fetchLoraScanRows } from '@/lib/lora-scan-client';
 import {
   applyLoraScanResults,
   auditLoraStacksByModel,
+  duplicateLoraEntries,
   loraEntriesNeedingScan,
+  loraUsageStats,
   LORA_STACK_WARN_SIZE,
+  missingLoraEntries,
   pruneIncompatibleLoraPicks,
+  removeLoraEntries,
 } from '@/lib/lora-library-tools';
+import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { loraModelFilterLabel } from '@/lib/lora-model-compat';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
 
 type LoraLibrarySettingsPanelProps = {
   library: LoraLibraryEntry[] | undefined;
   comfyUrl?: string;
+  /** Combined strength cap for the active stack (ComfyUiSettings.loraStrengthBudget). */
+  strengthBudget?: number;
+  onStrengthBudgetChange?: (budget: number | undefined) => void;
   onChange: (next: LoraLibraryEntry[]) => void;
   onStatus?: (message: string) => void;
 };
 
+const STRENGTH_BUDGET_OPTIONS = [2, 2.5, 3, 4];
+
 export default function LoraLibrarySettingsPanel({
   library,
   comfyUrl,
+  strengthBudget,
+  onStrengthBudgetChange,
   onChange,
   onStatus,
 }: LoraLibrarySettingsPanelProps) {
@@ -69,6 +82,61 @@ export default function LoraLibrarySettingsPanel({
     },
     [entries, onChange]
   );
+
+  const patchEntryById = useCallback(
+    (id: string, patch: Partial<LoraLibraryEntry>) => {
+      const next = entriesRef.current.map(entry =>
+        entry.id === id ? { ...entry, ...patch } : entry
+      );
+      entriesRef.current = next;
+      onChange(next);
+    },
+    [onChange]
+  );
+
+  const usage = useMemo(() => loraUsageStats(entries, loadComfyGallery()), [entries]);
+
+  // Housekeeping: entries whose file is gone, and several entries for one file.
+  const missing = useMemo(() => missingLoraEntries(entries), [entries]);
+  const duplicates = useMemo(() => duplicateLoraEntries(entries), [entries]);
+  const removeFromLibrary = useCallback(
+    (ids: string[], replaceWith?: Record<string, string>) => {
+      const shared = loadSettingsCache().shared;
+      const next = removeLoraEntries(
+        entriesRef.current,
+        shared.sessionActiveLoraIdsByModel,
+        ids,
+        replaceWith
+      );
+      entriesRef.current = next.library;
+      onChange(next.library);
+      const current = next.byModel[shared.model];
+      saveSharedSettings(
+        {
+          ...shared,
+          sessionActiveLoraIdsByModel: next.byModel as typeof shared.sessionActiveLoraIdsByModel,
+          ...(current ? { sessionActiveLoraIds: current } : {}),
+        },
+        { notify: true }
+      );
+    },
+    [onChange]
+  );
+  const removeMissing = useCallback(() => {
+    removeFromLibrary(missing.map(entry => entry.id));
+    onStatus?.(
+      `Removed ${missing.length} LoRA entr${missing.length === 1 ? 'y' : 'ies'} whose file is gone.`
+    );
+  }, [missing, onStatus, removeFromLibrary]);
+  const mergeDuplicates = useCallback(() => {
+    const replaceWith: Record<string, string> = {};
+    for (const [keep, ...extras] of duplicates) {
+      for (const extra of extras) replaceWith[extra.id] = keep!.id;
+    }
+    const ids = Object.keys(replaceWith);
+    removeFromLibrary(ids, replaceWith);
+    onStatus?.(`Merged ${ids.length} duplicate LoRA entr${ids.length === 1 ? 'y' : 'ies'}.`);
+  }, [duplicates, onStatus, removeFromLibrary]);
 
   const addBlank = useCallback(() => {
     onChange([...entries, createEmptyLoraLibraryEntry()]);
@@ -247,6 +315,65 @@ export default function LoraLibrarySettingsPanel({
         </div>
       ) : null}
 
+      {missing.length > 0 || duplicates.length > 0 ? (
+        <div className="ui-surface-inset space-y-2" data-testid="lora-library-tidy">
+          <p className="text-sm text-[var(--text-primary)]">Tidy the library</p>
+          <ul className="space-y-1 text-xs text-[var(--text-secondary)]">
+            {missing.length > 0 ? (
+              <li>
+                {missing.length} entr{missing.length === 1 ? 'y points' : 'ies point'} at files no
+                longer in ComfyUI.
+              </li>
+            ) : null}
+            {duplicates.map(group => (
+              <li key={group[0]!.id}>
+                {group.length} entries for <span className="font-mono">{group[0]!.tokenValue}</span>{' '}
+                ({group.map(entry => entry.label || entry.id).join(', ')})
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap gap-2">
+            {missing.length > 0 ? (
+              <Button type="button" size="sm" variant="secondary" onClick={removeMissing}>
+                Remove missing files
+              </Button>
+            ) : null}
+            {duplicates.length > 0 ? (
+              <Button type="button" size="sm" variant="secondary" onClick={mergeDuplicates}>
+                Merge duplicates
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {onStrengthBudgetChange ? (
+        <label className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
+          <span>
+            Combined strength cap
+            <span className="block text-[11px]">
+              When the active LoRAs add up to more than this, all are scaled down together
+              (Lightning excluded). Big stacks at full strength leak content, swap outfits and move
+              faces.
+            </span>
+          </span>
+          <select
+            value={String(strengthBudget ?? DEFAULT_LORA_STRENGTH_BUDGET)}
+            onChange={event => onStrengthBudgetChange(Number(event.target.value))}
+            data-testid="lora-strength-budget"
+            className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-base)] px-2 py-1 text-xs text-[var(--text-primary)]"
+          >
+            <option value="0">Off</option>
+            {STRENGTH_BUDGET_OPTIONS.map(value => (
+              <option key={value} value={String(value)}>
+                {value.toFixed(1)}
+                {value === DEFAULT_LORA_STRENGTH_BUDGET ? ' (default)' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-[var(--text-muted)]">Library entries</p>
@@ -304,6 +431,8 @@ export default function LoraLibrarySettingsPanel({
                 inventoryLoras={inventoryLoras}
                 inventoryNames={inventoryNames}
                 comfyUrl={comfyUrl}
+                usage={usage.get(entry.id)}
+                onPatchById={patchEntryById}
                 onUpdate={updateEntry}
                 onMove={moveEntry}
                 onRemove={removeEntry}

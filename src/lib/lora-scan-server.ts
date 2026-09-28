@@ -74,7 +74,7 @@ export async function scanLoraFiles(input: {
       results.push({ filename: raw, family: 'unknown', source: 'unreadable' });
       continue;
     }
-    const localPath = loraDir ? path.join(loraDir, filename) : null;
+    const localPath = loraDir ? path.join(/* turbopackIgnore: true */ loraDir, filename) : null;
     const header = localPath ? readLocalHeader(localPath) : null;
     if (header) {
       const { __metadata__: metadata, ...tensors } = header as {

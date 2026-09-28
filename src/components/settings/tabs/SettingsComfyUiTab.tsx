@@ -286,6 +286,8 @@ export default function SettingsComfyUiTab({
             <LoraLibrarySettingsPanel
               library={settings.loraLibrary}
               comfyUrl={settings.apiUrl}
+              strengthBudget={settings.loraStrengthBudget}
+              onStrengthBudgetChange={loraStrengthBudget => updateSettings({ loraStrengthBudget })}
               onChange={loraLibrary => updateSettings({ loraLibrary })}
               onStatus={setStatus}
             />

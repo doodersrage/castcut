@@ -6,6 +6,7 @@
 import {
   comfyBaseUrl,
   parseComfyViewRef,
+  readComfyImageGraph,
   resolveComfyNode,
   runComfyUtilityGraph,
   stageComfyImageAsInput,
@@ -18,29 +19,10 @@ import {
   resolveFaceFinisher,
   type FaceFinisher,
 } from '@/lib/face-finish';
-import { parseTextChunks } from '@/lib/png-metadata';
 
 export type FaceFinishResult =
   | { available: true; image: ComfyImageRef; finisher: FaceFinisher['kind'] }
   | { available: false; reason: string };
-
-async function readStillGraph(baseUrl: string, ref: ComfyImageRef): Promise<unknown> {
-  const params = new URLSearchParams({
-    filename: ref.filename,
-    subfolder: ref.subfolder,
-    type: ref.type,
-  });
-  const response = await fetch(`${baseUrl}/view?${params.toString()}`, {
-    signal: AbortSignal.timeout(20000),
-  });
-  if (!response.ok) return null;
-  const chunks = parseTextChunks(await response.arrayBuffer());
-  try {
-    return chunks.prompt ? JSON.parse(chunks.prompt) : null;
-  } catch {
-    return null;
-  }
-}
 
 export async function runFaceFinishInComfy(input: {
   imageUrl: string;
@@ -79,7 +61,7 @@ export async function runFaceFinishInComfy(input: {
       clips: options(clipNode, 'clip_name'),
       vaes: options(vaeNode, 'vae_name'),
     },
-    readStillCheckpoint(await readStillGraph(baseUrl, stillRef))
+    readStillCheckpoint(await readComfyImageGraph(baseUrl, stillRef))
   );
   if (!finisher) {
     return {

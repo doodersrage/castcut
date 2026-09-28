@@ -32,6 +32,7 @@ import { ChipButton } from '@/components/ui/Field';
 import ComfyLoraPreviewThumb from '@/components/ComfyLoraPreviewThumb';
 import { scanUnscannedLorasOnce } from '@/lib/lora-scan-client';
 import { LORA_FAMILY_LABELS } from '@/lib/lora-family-detect';
+import { loraChangesFaceAt } from '@/lib/lora-check';
 import {
   deleteLoraStackPreset,
   loraStackPresetsForModel,
@@ -423,6 +424,15 @@ export default function LoraStackSessionPicker({
                           entry.familySource !== 'missing'
                             ? `Made for ${LORA_FAMILY_LABELS[entry.family]}`
                             : 'Family mismatch'}
+                        </span>
+                      ) : null}
+                      {!mismatched &&
+                      loraChangesFaceAt(entry.faceCheck, strengths.strengthModel) ? (
+                        <span
+                          className="block text-[10px] ui-status-danger"
+                          data-testid="lora-row-changes-face"
+                        >
+                          Changes faces — left out of Day and Story
                         </span>
                       ) : null}
                     </span>

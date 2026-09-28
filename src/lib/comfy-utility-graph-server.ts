@@ -10,6 +10,7 @@
 import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
 import { deleteComfyUiHistoryItems } from '@/lib/comfyui-status';
+import { parseTextChunks } from '@/lib/png-metadata';
 
 type NodeInputSpec = [unknown, Record<string, unknown>?];
 
@@ -211,5 +212,28 @@ export async function runComfyUtilityGraph<T>(input: {
     throw new Error(`${label} timed out waiting for ComfyUI.`);
   } finally {
     void deleteComfyUiHistoryItems(baseUrl, [promptId]);
+  }
+}
+
+/** The API graph ComfyUI embedded in an output PNG (`prompt` text chunk), or null. */
+export async function readComfyImageGraph(
+  baseUrl: string,
+  ref: ComfyImageRef
+): Promise<Record<string, unknown> | null> {
+  const params = new URLSearchParams({
+    filename: ref.filename,
+    subfolder: ref.subfolder,
+    type: ref.type,
+  });
+  const response = await fetch(`${baseUrl}/view?${params.toString()}`, {
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!response.ok) return null;
+  const chunks = parseTextChunks(await response.arrayBuffer());
+  try {
+    const graph = chunks.prompt ? (JSON.parse(chunks.prompt) as unknown) : null;
+    return graph && typeof graph === 'object' ? (graph as Record<string, unknown>) : null;
+  } catch {
+    return null;
   }
 }

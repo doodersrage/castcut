@@ -130,3 +130,63 @@ describe("comfyui settings lora migration", () => {
     assert.equal(tokens.has("{{LORA_unscanned}}"), true);
   });
 });
+
+describe("comfyUiSettingsToRuntime LoRA guards", () => {
+  const faceChanger = {
+    id: "boreal",
+    label: "Boreal",
+    triggerPhrase: "",
+    tokenValue: "boreal.safetensors",
+    family: "qwen" as const,
+    familySource: "keys" as const,
+    strengthModel: 1,
+    faceCheck: {
+      checkedAt: 1,
+      stills: 2,
+      baseline: 0.5,
+      points: [{ strength: 1, similarity: 0.38, drop: 0.12, minDrop: 0.1 }],
+      recommendedStrength: null,
+    },
+  };
+  const skin = {
+    id: "skin",
+    label: "Skin",
+    triggerPhrase: "",
+    tokenValue: "skin.safetensors",
+    family: "qwen" as const,
+    familySource: "keys" as const,
+    strengthModel: 1,
+  };
+
+  it("drops face-changing LoRAs only on Cast-locked queues", async () => {
+    const { comfyUiSettingsToRuntime } = await import("./comfyui-settings");
+    const settings = { useServerDefaults: true, loraLibrary: [faceChanger, skin] };
+    const enabledIds = (skip: boolean) =>
+      comfyUiSettingsToRuntime(settings, {
+        model: "qwen-rapid-aio-edit-nsfw",
+        sessionActiveLoraIds: ["boreal", "skin"],
+        sessionLoraStrengthOverrides: {},
+        skipFaceChangingLoras: skip,
+      })
+        ?.loraLibrary?.filter((entry) => entry.enabled !== false)
+        .map((entry) => entry.id);
+    assert.deepEqual(enabledIds(false), ["boreal", "skin"]);
+    assert.deepEqual(enabledIds(true), ["skin"]);
+  });
+
+  it("scales the stack to the strength budget", async () => {
+    const { comfyUiSettingsToRuntime } = await import("./comfyui-settings");
+    const runtime = comfyUiSettingsToRuntime(
+      { useServerDefaults: true, loraLibrary: [faceChanger, skin], loraStrengthBudget: 1 },
+      {
+        model: "qwen-rapid-aio-edit-nsfw",
+        sessionActiveLoraIds: ["boreal", "skin"],
+        sessionLoraStrengthOverrides: {},
+      },
+    );
+    assert.deepEqual(
+      runtime?.loraLibrary?.map((entry) => entry.strengthModel),
+      [0.5, 0.5],
+    );
+  });
+});

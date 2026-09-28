@@ -4,7 +4,11 @@ import {
   applyLoraScanResults,
   auditLoraStacksByModel,
   deleteLoraStackPreset,
+  duplicateLoraEntries,
   loraEntriesNeedingScan,
+  loraUsageStats,
+  missingLoraEntries,
+  removeLoraEntries,
   loraStackPresetsForModel,
   pruneIncompatibleLoraPicks,
   saveLoraStackPreset,
@@ -61,5 +65,74 @@ describe('lora-library-tools', () => {
     assert.equal(loraStackPresetsForModel(presets, 'qwen-image-edit-2511-lightning-8').length, 1);
     assert.equal(loraStackPresetsForModel(presets, 'flux-2-klein-9b-distilled').length, 0);
     assert.equal(deleteLoraStackPreset(presets, presets[0]!.id).length, 0);
+  });
+});
+
+describe('library usage + tidy', () => {
+  const entry = (id: string, over: Partial<LoraLibraryEntry> = {}): LoraLibraryEntry => ({
+    id,
+    label: id,
+    triggerPhrase: '',
+    tokenValue: `${id}.safetensors`,
+    family: 'qwen',
+    familySource: 'keys',
+    ...over,
+  });
+
+  it('counts images, favorites and face match with vs without a LoRA', () => {
+    const library = [entry('skin'), entry('xl', { family: 'sdxl' })];
+    const shot = (ids: string[], face?: number, favorite = false) => ({
+      status: 'completed',
+      model: 'qwen-rapid-aio-edit-nsfw',
+      sessionActiveLoraIds: ids,
+      favorite,
+      ...(face === undefined ? {} : { playChecks: { face } }),
+    });
+    const stats = loraUsageStats(library, [
+      shot(['skin'], 0.4, true),
+      shot(['skin'], 0.5),
+      shot(['skin', 'xl'], 0.6),
+      shot([], 0.7),
+      shot([], 0.6),
+      shot([], 0.5),
+      { status: 'error', model: 'qwen-rapid-aio-edit-nsfw', sessionActiveLoraIds: ['skin'] },
+    ]);
+    assert.deepEqual(stats.get('skin'), {
+      images: 3,
+      favorites: 1,
+      wellRated: 0,
+      faceWith: 0.5,
+      faceWithout: 0.6,
+      faceSamples: 3,
+    });
+    // Picked, but an SDXL LoRA never applies on a Qwen model.
+    assert.equal(stats.has('xl'), false);
+  });
+
+  it('finds missing files and duplicates, and moves picks to the kept entry', () => {
+    const library = [
+      entry('a'),
+      entry('a2', { tokenValue: 'A.safetensors' }),
+      entry('gone', { familySource: 'missing' }),
+    ];
+    assert.deepEqual(
+      missingLoraEntries(library).map(item => item.id),
+      ['gone']
+    );
+    assert.deepEqual(
+      duplicateLoraEntries(library).map(group => group.map(item => item.id)),
+      [['a', 'a2']]
+    );
+    const next = removeLoraEntries(
+      library,
+      { m1: ['a2', 'gone'], m2: ['a', 'a2'] },
+      ['a2', 'gone'],
+      { a2: 'a' }
+    );
+    assert.deepEqual(
+      next.library.map(item => item.id),
+      ['a']
+    );
+    assert.deepEqual(next.byModel, { m1: ['a'], m2: ['a'] });
   });
 });
