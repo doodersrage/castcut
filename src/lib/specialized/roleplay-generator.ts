@@ -25,6 +25,7 @@ import {
   formatRoleplayWardrobeCue,
   isRoleplayAdultContent,
   keepFirstStoryTake,
+  stripRestatedStoryLook,
   lastRoleplayPlotBeat,
   mergeRoleplaySceneOptions,
   normalizeAvoidedRoleplayNames,
@@ -626,7 +627,11 @@ ${
           hasReferenceImage
         )
       ),
-    preProcessPrompt: prompt => keepFirstStoryTake(prompt, bio.name),
+    preProcessPrompt: prompt => {
+      const take = keepFirstStoryTake(prompt, bio.name);
+      // The reference carries face and hair; a restated (often wrong) look overrides it on Rapid.
+      return hasReferenceImage ? stripRestatedStoryLook(take) : take;
+    },
     postProcessPrompt: adultStill,
     metadata: {
       tool: 'roleplay',

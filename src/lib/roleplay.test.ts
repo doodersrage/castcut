@@ -54,6 +54,7 @@ import {
   storyStillPromptSource,
   withStoryEverydayWardrobe,
   keepFirstStoryTake,
+  stripRestatedStoryLook,
   storyStillRetryQueueParamsBase,
   rollRoleplaySetting,
   ROLEPLAY_SETTING_PRESETS,
@@ -1159,3 +1160,28 @@ describe('storyStillPromptSource legacy wording', () => {
   });
 });
 
+describe('stripRestatedStoryLook', () => {
+  it('drops a restated (wrong) hair colour / length, eye colour and freckles', () => {
+    assert.equal(
+      stripRestatedStoryLook(
+        'Lana leans half-in the sunlit doorway, shoulder-length auburn hair catching golden afternoon light as she sips — sleeves rolled up to reveal freckled forearms — and grins.'
+      ),
+      'Lana leans half-in the sunlit doorway, hair catching golden afternoon light as she sips — sleeves rolled up to reveal forearms — and grins.'
+    );
+    assert.equal(
+      stripRestatedStoryLook('She tosses her long wavy blonde hair over one shoulder, green eyes bright.'),
+      'She tosses her hair over one shoulder, eyes bright.'
+    );
+    assert.equal(
+      stripRestatedStoryLook(
+        'A brunette in a red dress walks the red carpet with short hair and a dusting of freckles.'
+      ),
+      'A woman in a red dress walks the red carpet.'
+    );
+  });
+
+  it('leaves clothing colours and plain hair mentions alone', () => {
+    const text = 'Loose Lana kneels in a red dress in the garden, dewdrops on petals and her tousled hair.';
+    assert.equal(stripRestatedStoryLook(text), text);
+  });
+});

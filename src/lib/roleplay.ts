@@ -1177,6 +1177,59 @@ export function keepFirstStoryTake(prompt: string, name?: string | null): string
   return text.slice(0, match.index + 1).trim();
 }
 
+const HAIR_LENGTH = String.raw`(?:shoulder[- ]length|chin[- ]length|waist[- ]length|long|short|cropped|bobbed|pixie[- ]cut)`;
+const HAIR_STYLE = String.raw`(?:wavy|curly|straight|tousled|messy|sleek|silky|braided|loose)`;
+const HAIR_COLOR = String.raw`(?:auburn|blonde?|platinum|golden|honey|strawberry[- ]blonde?|brunette|chestnut|brown|dark|black|jet[- ]black|raven|red|ginger|copper|fiery|silver|gr[ae]y|white|pink|blue|purple)`;
+
+/**
+ * With a reference image, the image carries her face and hair — but the Story writer still
+ * restates them, and wrongly ("shoulder-length auburn hair … freckled forearms" for a long-haired
+ * blonde Cast). Rapid follows the text, so strip hair colour / length, eye colour and freckles.
+ */
+export function stripRestatedStoryLook(prompt: string): string {
+  return (
+    prompt
+      .replace(
+        new RegExp(
+          String.raw`\b(?:(?:${HAIR_LENGTH}|${HAIR_STYLE})[,\s]+){0,3}${HAIR_COLOR}(?:[- ](?:${HAIR_STYLE}|${HAIR_LENGTH}))?\s+(hair|locks|curls|waves|ponytail|braid|bob)\b`,
+          'gi'
+        ),
+        '$1'
+      )
+      .replace(
+        new RegExp(
+          String.raw`\b(?:${HAIR_LENGTH})[,\s]+(?:(?:${HAIR_STYLE})\s+)?(hair|locks)\b`,
+          'gi'
+        ),
+        '$1'
+      )
+      .replace(
+        /\b(?:bright |piercing |deep )?(?:blue|green|hazel|grey|gray|brown|amber)[- ]eyed\s+/gi,
+        ''
+      )
+      .replace(
+        /\b(?:bright |piercing |deep )?(?:blue|green|hazel|grey|gray|brown|amber) (eyes)\b/gi,
+        '$1'
+      )
+      .replace(
+        /\s*(?:,|\band\b|\bwith\b)?\s*(?:a )?(?:dusting|smattering|sprinkle) of freckles\b/gi,
+        ''
+      )
+      .replace(/\bfreckle[ds]?\s+/gi, '')
+      // A length-only mention left bare ("with short hair" → "with hair") says nothing.
+      .replace(/\s*(?:,\s*)?\bwith (?:her )?hair\b(?=\s*(?:and\b|[,.;]|$))/gi, '')
+      .replace(
+        /\b(a|the) (?:brunette|blonde|redhead|platinum blonde)\b/gi,
+        (_match, article: string) =>
+          article[0] === article[0]!.toUpperCase() ? 'A woman' : 'a woman'
+      )
+      .replace(/\s+and\s*([.;])/g, '$1')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+([,.;])/g, '$1')
+      .trim()
+  );
+}
+
 export function normalizeRoleplayIsolateSubject(value: unknown): boolean {
   return value !== false && value !== 'false' && value !== 0;
 }
