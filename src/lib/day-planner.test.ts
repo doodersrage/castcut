@@ -2671,4 +2671,30 @@ describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
     });
     assert.doesNotMatch(everyday, /SCENE: she is in/);
   });
+
+  it('Klein clothed duos drop the extra-person locks and dress the partner', () => {
+    const input = {
+      slot: {
+        id: 'evening' as const,
+        label: 'Evening',
+        sceneHints: 'walking arm-in-arm with her boyfriend on a city sidewalk at dusk',
+        location: 'bookstore reading nook',
+      },
+      hasPlate: true,
+      plateSource: 'cast' as const,
+      poseGuide: true,
+      poseGuideStyle: 'openpose' as const,
+      poseLeadPosition: 'left' as const,
+      allowCompanions: true,
+      dayMood: 'everyday',
+      intimateMix: 'mixed',
+    };
+    const klein = buildDaySlotPrompt({ ...input, model: 'flux-2-klein-9b-distilled' });
+    assert.match(klein, /POSE: the two people match the two OpenPose skeletons/);
+    assert.match(klein, /he has his own male face\. He wears his own plain grey sweater/);
+    assert.doesNotMatch(klein, /COMPANIONS:|Match Image 3 body positions|Image 3 is only a pose map/);
+    const rapid = buildDaySlotPrompt({ ...input, model: 'qwen-rapid-aio-edit' });
+    assert.match(rapid, /COMPANIONS:/);
+    assert.match(rapid, /Match Image 3 body positions/);
+  });
 });

@@ -253,6 +253,20 @@ function isKleinModelId(model: string | null | undefined): boolean {
  */
 export type PoseGuidePartner = 'man' | 'woman';
 
+/**
+ * Klein duos on clothed moods: her outfit leaked onto the partner (night spoon 6/6); naming a
+ * plain outfit for him stopped it (0/6) and kept two people (0/12 extras, 2 beats × 6 seeds).
+ */
+export const KLEIN_MALE_PARTNER_OUTFIT_LINE = 'He wears his own plain grey sweater and dark jeans.';
+
+const KLEIN_MULTI_CUE_RE =
+  /POSE: the (?:two|three) people match the (?:two|three) OpenPose skeletons/i;
+
+/** The prompt carries the Klein multi-figure cue (kleinOpenPoseMultiBlock). */
+export function promptHasKleinMultiPoseCue(prompt: string | null | undefined): boolean {
+  return KLEIN_MULTI_CUE_RE.test(prompt ?? '');
+}
+
 const PARTNER_MALE_RE = /\b(?:man|men|boyfriend|husband|guy|groom|fianc[eé]|he|him|his|himself)\b/i;
 const PARTNER_FEMALE_RE =
   /\b(?:girlfriend|wife|bride|fianc[eé]e|(?:another|second|other) woman|two women)\b/i;
@@ -281,6 +295,8 @@ function kleinOpenPoseMultiBlock(input: {
   leadPosition?: string | null;
   camera?: 'overhead' | 'side' | 'low' | null;
   partner?: PoseGuidePartner | null;
+  /** Clothed moods: what he wears, so her outfit doesn't leak onto him. */
+  partnerOutfit?: string | null;
 }): string {
   const count = Math.max(2, Math.min(3, Math.round(input.headcount)));
   const word = count === 3 ? 'three' : 'two';
@@ -292,7 +308,7 @@ function kleinOpenPoseMultiBlock(input: {
     count === 2 && input.partner
       ? `${lead}; her partner from the scene is the ${otherPosition ?? 'other'} skeleton. Only these two people; ${
           input.partner === 'man' ? 'he has his own male face' : 'she has her own different face'
-        }.`
+        }.${input.partnerOutfit?.trim() ? ` ${input.partnerOutfit.trim()}` : ''}`
       : `${lead}; ${
           count === 3
             ? 'the other skeletons are her partners from the scene, each with their own face'
@@ -321,6 +337,8 @@ export function poseGuidePromptBlock(
     camera?: 'overhead' | 'side' | 'low' | null;
     /** Klein multi-figure: the partner's sex when the scene says (see inferPoseGuidePartner). */
     partner?: PoseGuidePartner | null;
+    /** Klein multi-figure, clothed moods: the partner's outfit line. */
+    partnerOutfit?: string | null;
   }
 ): string {
   // Undefined headcount keeps the legacy duo-aware compact lock (Story).
@@ -334,6 +352,7 @@ export function poseGuidePromptBlock(
         leadPosition: options?.leadPosition,
         camera: options?.camera,
         partner: options?.partner,
+        partnerOutfit: options?.partnerOutfit,
       });
     }
     const lock =
@@ -582,7 +601,11 @@ export function ensurePoseGuideStyleLock(
   if (!trimmed || !promptHasPoseGuideCue(trimmed)) {
     return trimmed;
   }
-  const lock = poseGuideStyleLockLine(mode);
+  const baseLock = poseGuideStyleLockLine(mode);
+  // Klein duos: naming a "translucent ghost person" is one of the lines that added people.
+  const lock = promptHasKleinMultiPoseCue(trimmed)
+    ? baseLock.replace('a translucent ghost person, ', '')
+    : baseLock;
   if (promptHasOpenPoseGuideCue(trimmed)) {
     // Keypoint cue carries its own headcount/lead mapping — never append color locks.
     return trimmed.includes(lock.slice(0, 48)) ? trimmed : `${trimmed}\n${lock}`;

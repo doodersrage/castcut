@@ -231,4 +231,18 @@ describe('pose-guide-prompt', () => {
     });
     assert.match(story, /partner from the scene is the rightmost skeleton.*his own male face/);
   });
+
+  it('leaves the ghost person out of the realism lock on Klein duo cues', () => {
+    const klein = ensurePoseGuideStyleLock(
+      'Scene.\nPOSE: the two people match the two OpenPose skeletons (pose control only, never drawn). She is the leftmost skeleton.',
+      'realistic'
+    );
+    assert.match(klein, /Final still must be a photorealistic/);
+    assert.doesNotMatch(klein, /translucent ghost person/);
+    const qwen = ensurePoseGuideStyleLock(
+      'Scene.\nImage 3 is an OpenPose keypoint skeleton map (pose control only).',
+      'realistic'
+    );
+    assert.match(qwen, /translucent ghost person/);
+  });
 });

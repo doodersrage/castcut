@@ -25,6 +25,7 @@ import {
   POSE_GUIDE_ACTION_LOCK,
   isOpenPoseStyle,
   inferPoseGuidePartner,
+  KLEIN_MALE_PARTNER_OUTFIT_LINE,
   poseGuidePromptBlock,
   type PoseGuideStylePreference,
 } from '@/lib/pose-guide-prompt';
@@ -2853,6 +2854,16 @@ export function buildDaySlotPrompt(input: {
       : input.hasPlate
         ? 'full or three-quarter framing, natural lighting for the time of day'
         : 'single cinematic still, full or three-quarter framing, natural lighting for the time of day';
+  // FLUX.2 Klein, two or more people, clothed moods: the "never a third person / second body /
+  // twin clone" locks summoned extra people and her outfit leaked onto him. Live on the real
+  // Day graphs (2 beats × 6 seeds): trimmed + his outfit named = 0/12 extra people, 0/6 leaks
+  // (as sent: 1/12 extra, 6/6 leaks). Adult moods are untested on Klein and keep their locks.
+  const partner = inferPoseGuidePartner(hints);
+  const kleinClothedDuo =
+    openPoseGuide &&
+    poseHeadcount >= 2 &&
+    /flux-2-klein/i.test(String(input.model ?? '')) &&
+    !isDayAdultMood(dayMood);
   const poseGuideLine = poseGuide
     ? poseGuidePromptBlock(realismMode, {
         headcount: poseHeadcount,
@@ -2860,7 +2871,8 @@ export function buildDaySlotPrompt(input: {
         style: openPoseGuide ? input.poseGuideStyle : 'legacy',
         leadPosition: leadPositionPhrase,
         camera: openPoseGuide ? input.poseCamera : null,
-        partner: inferPoseGuidePartner(hints),
+        partner,
+        partnerOutfit: kleinClothedDuo && partner === 'man' ? KLEIN_MALE_PARTNER_OUTFIT_LINE : null,
       })
     : null;
   const soloLock = soloSubject
@@ -2872,7 +2884,7 @@ export function buildDaySlotPrompt(input: {
     : null;
   const rapidAio = /^qwen-rapid-aio-/i.test(String(input.model ?? '').trim());
   const companionLock =
-    partnersAllowed && poseHeadcount >= 2
+    partnersAllowed && poseHeadcount >= 2 && !kleinClothedDuo
       ? openPoseGuide
         ? isDayAdultMood(dayMood)
           ? intimateMix === 'duo' || poseHeadcount === 2
@@ -2969,26 +2981,28 @@ export function buildDaySlotPrompt(input: {
             : 'HANDS: exactly two hands total mid-self-touch as the beat stance requires — fingers on her vulva and/or clit mid-act; each on a continuous forearm from her own shoulder; bare breasts uncovered; never resting flat on inner thighs framing the crotch; never claw/splayed/heart/V fingers on thighs; never raised rock-on/peace/jazz/middle-finger hands at shoulder or chest height; nothing held; five natural fingers each. ANATOMY: one adult woman — natural vulva and labia only between the thighs; never a penis, phallus, futa, hermaphrodite, or extra fleshy protrusion hanging from the crotch. SKIN TEXTURE: natural matte pores — never oily plastic shine. LIGHTING: natural room/lamp/window light only — never free-floating steam/smoke wisps or schematic vapor; never invent desk clutter on the bed.'
           : 'HANDS: at least one hand on her vulva or breasts mid-act — never both hands flat on a sill/ledge/mattress covering the crotch for a soft pin-up. ANATOMY: one adult woman — natural vulva and labia only between the thighs; never a penis, phallus, futa, hermaphrodite, or extra fleshy protrusion hanging from the crotch. SKIN TEXTURE: natural matte pores. LIGHTING: natural room/lamp/window light only — never free-floating steam/smoke wisps or schematic vapor; never invent desk clutter on the bed.'
         : null;
-  const poseActionLock = poseGuide ? POSE_GUIDE_ACTION_LOCK : null;
+  const poseActionLock = poseGuide && !kleinClothedDuo ? POSE_GUIDE_ACTION_LOCK : null;
   // Heat moods face-break Image 1 instead; everyday/plate keeps the full standing Keep, which
   // an Edit-2511 model copies unless told not to.
   const everydayPoseStickyLock =
     !isDayHeatMood(dayMood) && input.hasPlate && isDayPoseStickyEditModel(input.model)
       ? buildDayEverydayKeepPoseUnlock(hints)
       : null;
-  const poseAntiLeak = poseGuide
-    ? openPoseGuide
-      ? isDayAdultMood(dayMood)
-        ? soloSubject
-          ? 'Image 3 is only a pose map — one finished human adult with bare real skin on the whole body and natural lamp light only; Cast face on the posed body.'
-          : `Image 3 is only a pose map — finished human adults with bare real skin on the whole body and natural lamp light only; Cast face on ${leadSkeleton}; partner is a different bare-skinned adult fully in frame.`
-        : DAY_OPENPOSE_ANTI_LEAK
-      : isDayAdultMood(dayMood)
-        ? rapidAio
-          ? 'Never paint Image 3 as a stick overlay, black morphsuit, zentai, catsuit, black bodysuit, latex void suit, flesh blob, black rubber blob between bodies, cyan/magenta light, smoke stand-in, diagram notebook, or pose diagram — finished human adults with bare real skin on the whole body and natural lamp light only; Cast face on the lead outline; partner is a different bare-skinned adult fully in frame (never only face and hands uncovered on a black suit).'
-          : 'Never paint Image 3 as a black morphsuit/zentai/catsuit, flesh blob, black rubber blob between bodies, featureless torso, cyan/magenta gel light, smoke, diagram notebook, or diagram — finished human adults with bare real skin on the whole body and natural lamp light only; Cast face on the magenta lead pose only (not as scene lights); partner is a different bare-skinned adult fully in frame (never only face and hands uncovered on a black suit).'
-        : DAY_POSE_GUIDE_ANTI_LEAK
-    : null;
+  const poseAntiLeak = kleinClothedDuo
+    ? null
+    : poseGuide
+      ? openPoseGuide
+        ? isDayAdultMood(dayMood)
+          ? soloSubject
+            ? 'Image 3 is only a pose map — one finished human adult with bare real skin on the whole body and natural lamp light only; Cast face on the posed body.'
+            : `Image 3 is only a pose map — finished human adults with bare real skin on the whole body and natural lamp light only; Cast face on ${leadSkeleton}; partner is a different bare-skinned adult fully in frame.`
+          : DAY_OPENPOSE_ANTI_LEAK
+        : isDayAdultMood(dayMood)
+          ? rapidAio
+            ? 'Never paint Image 3 as a stick overlay, black morphsuit, zentai, catsuit, black bodysuit, latex void suit, flesh blob, black rubber blob between bodies, cyan/magenta light, smoke stand-in, diagram notebook, or pose diagram — finished human adults with bare real skin on the whole body and natural lamp light only; Cast face on the lead outline; partner is a different bare-skinned adult fully in frame (never only face and hands uncovered on a black suit).'
+            : 'Never paint Image 3 as a black morphsuit/zentai/catsuit, flesh blob, black rubber blob between bodies, featureless torso, cyan/magenta gel light, smoke, diagram notebook, or diagram — finished human adults with bare real skin on the whole body and natural lamp light only; Cast face on the magenta lead pose only (not as scene lights); partner is a different bare-skinned adult fully in frame (never only face and hands uncovered on a black suit).'
+          : DAY_POSE_GUIDE_ANTI_LEAK
+      : null;
   const photorealOutput =
     poseGuide && (realismMode === 'realistic' || realismMode === 'hyper-realistic');
   const keepOutfitLine =
