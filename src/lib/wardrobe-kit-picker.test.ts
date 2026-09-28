@@ -3,6 +3,8 @@ import { describe, it } from 'node:test';
 import {
   buildWardrobeKitStrip,
   filterWardrobeKitsByQuery,
+  formatWardrobeKitCount,
+  formatWardrobeKitLabel,
 } from './wardrobe-kit-picker';
 
 describe('wardrobe-kit-picker', () => {
@@ -37,5 +39,11 @@ describe('wardrobe-kit-picker', () => {
       ranks,
       [...ranks].sort((left, right) => left - right)
     );
+  });
+
+  it('shows catalog labels in sentence case and counts with separators', () => {
+    assert.equal(formatWardrobeKitLabel('boxy aqua sweater dress'), 'Boxy aqua sweater dress');
+    assert.equal(formatWardrobeKitLabel('  '), '');
+    assert.equal(formatWardrobeKitCount(12319), '12,319');
   });
 });

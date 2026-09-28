@@ -7,7 +7,9 @@ type UiIconName =
   | 'check'
   | 'retry'
   | 'chevronLeft'
-  | 'chevronRight';
+  | 'chevronRight'
+  | 'search'
+  | 'grid';
 
 const common = {
   fill: 'none',
@@ -72,6 +74,20 @@ export default function UiIcon({
       ) : null}
       {name === 'chevronLeft' ? <path d="M10 3.5 5.5 8 10 12.5" /> : null}
       {name === 'chevronRight' ? <path d="M6 3.5 10.5 8 6 12.5" /> : null}
+      {name === 'search' ? (
+        <>
+          <circle cx="7" cy="7" r="4.25" />
+          <path d="m10.25 10.25 3 3" />
+        </>
+      ) : null}
+      {name === 'grid' ? (
+        <>
+          <rect x="2.75" y="2.75" width="4" height="4" rx="1" />
+          <rect x="9.25" y="2.75" width="4" height="4" rx="1" />
+          <rect x="2.75" y="9.25" width="4" height="4" rx="1" />
+          <rect x="9.25" y="9.25" width="4" height="4" rx="1" />
+        </>
+      ) : null}
     </svg>
   );
 }

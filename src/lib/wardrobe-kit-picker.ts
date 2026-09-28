@@ -6,6 +6,17 @@ export const WARDROBE_KIT_STRIP_MAX = 18;
 export const WARDROBE_KIT_BROWSER_PAGE = 48;
 export const WARDROBE_KIT_RECENT_STORAGE_KEY = 'wardrobe-kit-recent-ids';
 
+/** Catalog labels are lowercase ids ("boxy aqua sweater dress") — show them in sentence case. */
+export function formatWardrobeKitLabel(label: string): string {
+  const text = label.trim();
+  return text ? `${text[0]!.toUpperCase()}${text.slice(1)}` : text;
+}
+
+/** "12,319" — the kit catalog is large enough that bare digits read as noise. */
+export function formatWardrobeKitCount(count: number): string {
+  return count.toLocaleString('en-US');
+}
+
 function normalizeQuery(query: string | null | undefined): string {
   return String(query ?? '')
     .trim()

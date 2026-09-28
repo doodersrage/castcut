@@ -3,9 +3,15 @@
 import { useEffect, useId, useMemo, useState, type UIEvent } from 'react';
 import ModalPortal from '@/components/ui/ModalPortal';
 import { Button } from '@/components/ui/Button';
-import { FieldLabel, TextInput } from '@/components/ui/Field';
+import { TextInput } from '@/components/ui/Field';
+import UiIcon from '@/components/ui/UiIcon';
 import type { FittingSwipeKit } from '@/lib/fitting-room';
-import { filterWardrobeKitsByQuery, WARDROBE_KIT_BROWSER_PAGE } from '@/lib/wardrobe-kit-picker';
+import {
+  filterWardrobeKitsByQuery,
+  formatWardrobeKitCount,
+  formatWardrobeKitLabel,
+  WARDROBE_KIT_BROWSER_PAGE,
+} from '@/lib/wardrobe-kit-picker';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe-garment-thumbs';
 import type { WardrobeKitThumbState } from '@/components/wardrobe/WardrobeKitPicker';
@@ -103,31 +109,44 @@ function WardrobeKitBrowserDialog({
                   Browse outfit kits
                 </h2>
                 <p className="type-caption text-[var(--text-muted)]">
-                  Search the filtered catalog, then pick a kit. {kits.length} kit
-                  {kits.length === 1 ? '' : 's'} in this type.
+                  {formatWardrobeKitCount(kits.length)} kit{kits.length === 1 ? '' : 's'} in this
+                  type — search, then tap one to wear it.
                 </p>
               </div>
-              <Button size="sm" variant="ghost" onClick={onClose}>
-                Close
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label="Close"
+                title="Close"
+                className="shrink-0 px-2"
+                onClick={onClose}
+              >
+                <UiIcon name="close" size={16} />
               </Button>
             </div>
-            <label className="block space-y-1.5">
-              <FieldLabel htmlFor={searchId}>Search</FieldLabel>
+            <div className="relative">
+              <UiIcon
+                name="search"
+                size={15}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+              />
               <TextInput
                 id={searchId}
                 value={query}
                 disabled={disabled}
-                placeholder="e.g. tuxedo, monk, hi-vis, sari…"
+                aria-label="Search outfit kits"
+                placeholder="Search — tuxedo, monk, hi-vis, sari…"
+                className="w-full pl-9"
                 onChange={event => {
                   setQuery(event.target.value);
                   setVisibleCount(WARDROBE_KIT_BROWSER_PAGE);
                 }}
               />
-            </label>
+            </div>
             <p className="type-caption text-[var(--text-muted)]">
               {matches.length === kits.length
-                ? `Showing ${visible.length} of ${kits.length}`
-                : `${matches.length} match${matches.length === 1 ? '' : 'es'} · showing ${visible.length}`}
+                ? `Showing ${formatWardrobeKitCount(visible.length)} of ${formatWardrobeKitCount(kits.length)}`
+                : `${formatWardrobeKitCount(matches.length)} match${matches.length === 1 ? '' : 'es'} · showing ${formatWardrobeKitCount(visible.length)}`}
             </p>
           </div>
 
@@ -140,7 +159,7 @@ function WardrobeKitBrowserDialog({
                 No kits match “{query.trim()}”. Try another word or clear search.
               </p>
             ) : (
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
                 {visible.map(kit => {
                   const state = resolveThumb?.(kit) ?? {
                     url: resolveWardrobeGarmentThumbUrl(kit.id),
@@ -149,22 +168,23 @@ function WardrobeKitBrowserDialog({
                   const thumb = state.url?.trim() || '';
                   const pending = Boolean(state.pending);
                   const selected = selectedId === kit.id;
+                  const label = formatWardrobeKitLabel(kit.label);
                   return (
                     <button
                       key={kit.id}
                       type="button"
                       disabled={disabled}
-                      title={kit.label}
-                      aria-label={`${kit.label}${selected ? ' (selected)' : ''}`}
+                      title={label}
+                      aria-label={`${label}${selected ? ' (selected)' : ''}`}
                       aria-current={selected ? 'true' : undefined}
                       onClick={() => {
                         onSelect(kit.id);
                         onClose();
                       }}
-                      className={`overflow-hidden rounded-lg border-2 p-1.5 text-left transition ${
+                      className={`group relative flex flex-col rounded-xl p-1.5 text-left transition duration-150 ${
                         selected
-                          ? 'border-[var(--accent)] bg-[var(--accent-soft)] shadow-[0_0_0_2px_var(--accent-ring)]'
-                          : 'border-[var(--border-default)] bg-transparent hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]'
+                          ? 'bg-[var(--accent-soft)] ring-2 ring-[var(--accent)]'
+                          : 'ring-1 ring-[var(--border-subtle)] hover:-translate-y-0.5 hover:bg-[var(--bg-hover)] hover:ring-[var(--border-strong)]'
                       }`}
                     >
                       {thumb ? (
@@ -174,15 +194,28 @@ function WardrobeKitBrowserDialog({
                           alt=""
                           loading="lazy"
                           decoding="async"
-                          className="aspect-[3/4] w-full rounded object-cover"
+                          className="aspect-[3/4] w-full rounded-lg bg-[var(--bg-muted)] object-cover"
                         />
                       ) : (
-                        <span className="flex aspect-[3/4] w-full items-center justify-center rounded border border-[var(--border-subtle)] type-caption text-[var(--text-muted)]">
+                        <span className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-[var(--bg-muted)] type-caption text-[var(--text-muted)]">
                           {pending ? '…' : '—'}
                         </span>
                       )}
-                      <span className="mt-1.5 line-clamp-2 block type-caption text-[var(--text-secondary)]">
-                        {kit.label}
+                      {selected ? (
+                        <span
+                          aria-hidden
+                          className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-sm"
+                        >
+                          <UiIcon name="check" size={13} />
+                        </span>
+                      ) : null}
+                      {/* Fixed two-line label so every tile in a row is the same height. */}
+                      <span
+                        className={`mt-2 line-clamp-2 min-h-[2lh] px-0.5 type-caption leading-snug ${
+                          selected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        {label}
                       </span>
                     </button>
                   );
