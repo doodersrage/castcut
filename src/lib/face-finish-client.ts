@@ -3,7 +3,8 @@
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 
 export type FaceFinishClientResult =
-  { available: true; imageUrl: string } | { available: false; reason: string };
+  | { available: true; imageUrl: string; finisher: 'qwen-edit' | 'klein-distilled' | 'rapid' }
+  | { available: false; reason: string };
 
 /** Browser: run Face finish on a still via `/api/face-finish`; rejects on errors. */
 export async function runStillFaceFinish(input: {
@@ -21,6 +22,7 @@ export async function runStillFaceFinish(input: {
     available?: boolean;
     reason?: string;
     image?: { filename: string; subfolder?: string; type?: string };
+    finisher?: 'qwen-edit' | 'klein-distilled' | 'rapid';
     error?: string;
   };
   if (!response.ok || typeof data.available !== 'boolean') {
@@ -34,5 +36,9 @@ export async function runStillFaceFinish(input: {
     subfolder: data.image.subfolder ?? '',
     type: data.image.type ?? 'output',
   });
-  return { available: true, imageUrl: `/api/comfyui/view?${params.toString()}` };
+  return {
+    available: true,
+    imageUrl: `/api/comfyui/view?${params.toString()}`,
+    finisher: data.finisher ?? 'rapid',
+  };
 }

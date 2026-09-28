@@ -1083,7 +1083,8 @@ export type DayToolCache = {
   identityBoost?: boolean;
   /**
    * Off by default. After each one-person still lands, re-render its face against the Cast face
-   * crop (face-finish.ts): live on Rapid AIO the face got closer on 6/8 stills (0.659 → 0.581).
+   * crop (face-finish.ts) with the best installed finisher: live, Qwen Edit 2511 + Lightning moved
+   * 8/8 Rapid stills closer to the Cast (0.659 → 0.492).
    */
   faceFinish?: boolean;
   /** Everyday / suggestive / intimate heat for Day stills (intimate is NSFW-gated). */

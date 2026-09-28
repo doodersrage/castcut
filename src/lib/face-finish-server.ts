@@ -14,13 +14,15 @@ import {
 import {
   buildFaceFinishGraph,
   FACE_FINISH_SAVE_NODE,
-  faceFinishSupportsCheckpoint,
   readStillCheckpoint,
+  resolveFaceFinisher,
+  type FaceFinisher,
 } from '@/lib/face-finish';
 import { parseTextChunks } from '@/lib/png-metadata';
 
 export type FaceFinishResult =
-  { available: true; image: ComfyImageRef } | { available: false; reason: string };
+  | { available: true; image: ComfyImageRef; finisher: FaceFinisher['kind'] }
+  | { available: false; reason: string };
 
 async function readStillGraph(baseUrl: string, ref: ComfyImageRef): Promise<unknown> {
   const params = new URLSearchParams({
@@ -53,22 +55,37 @@ export async function runFaceFinishInComfy(input: {
     return { available: false, reason: 'Still or face crop is not a ComfyUI image.' };
   }
   const baseUrl = comfyBaseUrl(input.comfyUrl);
-  const [detailer, detector, encoder] = await Promise.all([
+  const [detailer, detector, unetNode, loraNode, clipNode, vaeNode] = await Promise.all([
     resolveComfyNode(baseUrl, ['FaceDetailer']),
     resolveComfyNode(baseUrl, ['UltralyticsDetectorProvider']),
-    resolveComfyNode(baseUrl, ['TextEncodeQwenImageEditPlus']),
+    resolveComfyNode(baseUrl, ['UNETLoader']),
+    resolveComfyNode(baseUrl, ['LoraLoaderModelOnly']),
+    resolveComfyNode(baseUrl, ['CLIPLoader']),
+    resolveComfyNode(baseUrl, ['VAELoader']),
   ]);
   if (!detailer || !detector) {
     return { available: false, reason: 'Face finish needs ComfyUI Impact Pack + Subpack.' };
   }
-  if (!encoder) {
-    return { available: false, reason: 'Face finish needs the Qwen Image Edit nodes.' };
-  }
-  const checkpoint = readStillCheckpoint(await readStillGraph(baseUrl, stillRef));
-  if (!checkpoint || !faceFinishSupportsCheckpoint(checkpoint)) {
+  const options = (node: typeof unetNode, input: string): string[] => {
+    const spec = node?.info.input?.required?.[input]?.[0];
+    return Array.isArray(spec)
+      ? spec.filter((name): name is string => typeof name === 'string')
+      : [];
+  };
+  const finisher = resolveFaceFinisher(
+    {
+      unets: options(unetNode, 'unet_name'),
+      loras: options(loraNode, 'lora_name'),
+      clips: options(clipNode, 'clip_name'),
+      vaes: options(vaeNode, 'vae_name'),
+    },
+    readStillCheckpoint(await readStillGraph(baseUrl, stillRef))
+  );
+  if (!finisher) {
     return {
       available: false,
-      reason: 'Face finish is tuned for Qwen Rapid AIO stills — skipped for this engine.',
+      reason:
+        'Face finish needs Qwen Edit 2511 + its Lightning LoRA or FLUX.2 Klein 9B Distilled in ComfyUI.',
     };
   }
   const [stillName, faceName] = await Promise.all([
@@ -79,7 +96,7 @@ export async function runFaceFinishInComfy(input: {
     baseUrl,
     label: 'face-finish',
     timeoutMs: input.timeoutMs ?? 240_000,
-    prompt: buildFaceFinishGraph({ stillName, faceName, checkpoint, seed: input.seed }),
+    prompt: buildFaceFinishGraph({ stillName, faceName, finisher, seed: input.seed }),
     read: entry => {
       const image = (
         entry.outputs?.[FACE_FINISH_SAVE_NODE] as { images?: ComfyImageRef[] } | undefined
@@ -97,5 +114,6 @@ export async function runFaceFinishInComfy(input: {
       subfolder: run.result.subfolder ?? '',
       type: run.result.type ?? 'output',
     },
+    finisher: finisher.kind,
   };
 }

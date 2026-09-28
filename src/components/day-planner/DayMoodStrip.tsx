@@ -231,7 +231,7 @@ export default function DayMoodStrip({
               checked={faceFinish}
               disabled={busy}
               data-testid="day-face-finish"
-              title="After each one-person still lands, re-render just her face against the Cast face crop — sharper eyes and a closer likeness on small full-body faces. Rapid AIO stills only; adds a few seconds per still."
+              title="After each one-person still lands, re-render just her face against the Cast face crop — sharper eyes and a closer likeness on small full-body faces. Works on any engine's stills (uses Qwen Edit 2511 or Klein 9B Distilled); adds a few seconds per still."
               onChange={onFaceFinishChange}
             >
               Face finish

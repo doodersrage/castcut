@@ -26,6 +26,12 @@ function stillKey(still: { imageUrl?: string; promptId?: string }): string {
   return still.promptId?.trim() || still.imageUrl?.trim() || '';
 }
 
+const FINISHER_LABEL = {
+  'qwen-edit': 'Qwen Edit 2511',
+  'klein-distilled': 'Klein 9B Distilled',
+  rapid: 'Rapid AIO',
+} as const;
+
 export function useDayFaceFinish(ctx: DayPlannerToolOrchestrationCore) {
   const { busy, character, mounted, plate, shared, slots, stills, stillsRef } = ctx;
   const { poseGuideExpectRef, toolSettings, updateToolSettings } = ctx;
@@ -140,7 +146,7 @@ export function useDayFaceFinish(ctx: DayPlannerToolOrchestrationCore) {
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
-        setStatus(`Face finish applied to ${target.label}.`);
+        setStatus(`Face finish applied to ${target.label} (${FINISHER_LABEL[result.finisher]}).`);
       } catch (error) {
         pausedRef.current = true;
         const message = error instanceof Error ? error.message : 'Face finish failed.';
