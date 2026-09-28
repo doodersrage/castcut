@@ -2697,4 +2697,25 @@ describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
     assert.match(rapid, /COMPANIONS:/);
     assert.match(rapid, /Match Image 3 body positions/);
   });
+
+  it('Klein clothed spoon beats get the compact spoon recipe', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        id: 'night',
+        label: 'Night',
+        sceneHints: 'spooning with her boyfriend in bed under white sheets, him behind her',
+        location: 'bedroom after dark',
+      },
+      hasPlate: true,
+      plateSource: 'cast',
+      wardrobeLabel: 'outfit-tailored-cobalt-slip-dress',
+      allowCompanions: true,
+      dayMood: 'everyday',
+      intimateMix: 'mixed',
+      model: 'flux-2-klein-9b-distilled',
+    });
+    assert.match(prompt, /^Photo of exactly two adults lying on their sides on a bed, spooning\./);
+    assert.match(prompt, /tailored cobalt slip dress/);
+    assert.ok(prompt.length < 700);
+  });
 });

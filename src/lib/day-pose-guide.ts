@@ -1700,7 +1700,7 @@ function armChain(
   }
 }
 
-const CLOTHED_SPOON_RE =
+export const CLOTHED_SPOON_RE =
   /\b(?:spooning|spooned|spoons?\s+(?:her|him|them|each\s+other|with)|(?:little|big)\s+spoon)\b/i;
 
 /**

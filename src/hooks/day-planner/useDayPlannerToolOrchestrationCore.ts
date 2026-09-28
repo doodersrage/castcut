@@ -115,6 +115,7 @@ import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
 import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
 import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
 import { readsPoseGuideImage } from '@/lib/model-denoise-defaults';
+import { kleinSpoonRecipeApplies } from '@/lib/klein-duo-recipe';
 import {
   KLEIN_FACE_REFERENCE_LINE,
   shouldAppendKleinFaceReference,
@@ -888,6 +889,15 @@ export function useDayPlannerToolOrchestrationCore() {
         let poseLeadPosition: PoseLeadPosition | null = null;
         let poseCamera: 'overhead' | 'side' | 'low' | null = null;
         let poseExpectation: DayPoseGuideExpectation | undefined;
+        // Klein clothed spoon: the compact recipe goes out alone — no guide, no face crop.
+        const kleinSpoonRecipe = kleinSpoonRecipeApplies({
+          model: shared.model,
+          adultMood: isDayAdultMood(toolSettings.dayMood) && intimateEnabled,
+          beat: queueTarget.sceneHints,
+        });
+        if (kleinSpoonRecipe) {
+          skipPoseGuideImage = true;
+        }
         if (hasPlate && !skipPoseGuideImage) {
           try {
             const dayMood = normalizeDayMood(
@@ -979,7 +989,9 @@ export function useDayPlannerToolOrchestrationCore() {
                 : skipPoseGuideImage
                   ? {
                       state: 'skipped' as const,
-                      reason: 'Lightning identity path keeps Image 1 whole (stance from text)',
+                      reason: kleinSpoonRecipe
+                        ? 'FLUX.2 Klein spoon reads the overlapping guide as a third person (stance from text)'
+                        : 'Lightning identity path keeps Image 1 whole (stance from text)',
                     }
                   : {
                       state: 'failed' as const,
@@ -1018,6 +1030,7 @@ export function useDayPlannerToolOrchestrationCore() {
         // Solo only — on a two-person guide the extra face reads as an extra head.
         const kleinFaceFilename =
           kleinFaceReference?.filename &&
+          !kleinSpoonRecipe &&
           shouldAppendKleinFaceReference({
             model: shared.model,
             imageOneIsFaceCrop: faceOnlyIdentity,

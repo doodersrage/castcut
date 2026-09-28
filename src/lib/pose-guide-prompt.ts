@@ -285,6 +285,7 @@ export type PoseGuidePartner = 'man' | 'woman';
  * Klein duos on clothed moods: her outfit leaked onto the partner (night spoon 6/6); naming a
  * plain outfit for him stopped it (0/6) and kept two people (0/12 extras, 2 beats × 6 seeds).
  */
+export const KLEIN_MALE_PARTNER_GARMENTS = 'a plain grey sweater and dark jeans';
 export const KLEIN_MALE_PARTNER_OUTFIT_LINE = 'He wears his own plain grey sweater and dark jeans.';
 
 const KLEIN_MULTI_CUE_RE =

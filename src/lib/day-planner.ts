@@ -25,10 +25,12 @@ import {
   POSE_GUIDE_ACTION_LOCK,
   isOpenPoseStyle,
   inferPoseGuidePartner,
+  KLEIN_MALE_PARTNER_GARMENTS,
   KLEIN_MALE_PARTNER_OUTFIT_LINE,
   poseGuidePromptBlock,
   type PoseGuideStylePreference,
 } from '@/lib/pose-guide-prompt';
+import { buildKleinSpoonRecipe, kleinSpoonRecipeApplies } from '@/lib/klein-duo-recipe';
 import { describePoseLeadPosition, type PoseLeadPosition } from '@/lib/pose-guide-openpose';
 import { resolveRoleplaySetting, storyBeatOmitsGarmentPackshot } from '@/lib/roleplay';
 import {
@@ -3027,6 +3029,21 @@ export function buildDaySlotPrompt(input: {
       : null;
 
   if (input.hasPlate) {
+    // FLUX.2 Klein clothed spoon: a compact recipe, sent without a pose guide (see
+    // klein-duo-recipe.ts) — the brief plus the overlapping spoon guide drew a third body.
+    if (
+      kleinSpoonRecipeApplies({
+        model: input.model,
+        adultMood: isDayAdultMood(dayMood),
+        beat: hints,
+      })
+    ) {
+      return buildKleinSpoonRecipe({
+        outfit,
+        setting,
+        partnerOutfit: KLEIN_MALE_PARTNER_GARMENTS,
+      });
+    }
     // Rapid AIO duo nude beats: the full lock brief (~9k chars) drowned the beat and every
     // duo still became the same reclining couple on a bed. Send where each body goes instead.
     if (rapidAio && omitGarment && !soloSubject && isDayAdultMood(dayMood)) {
