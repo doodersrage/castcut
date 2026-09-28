@@ -3,6 +3,7 @@
  * Flat filled figures unlock pose only — wording must block diagram/style bleed into stills.
  */
 
+import { stripNegatedClauses } from '@/lib/negated-clauses';
 import {
   DEFAULT_RENDER_REALISM_MODE,
   normalizeRenderRealismMode,
@@ -250,23 +251,56 @@ function isKleinModelId(model: string | null | undefined): boolean {
  * lines / dots" sentences painted keypoints onto the people in most stills, and the realism
  * lock's "ghost person / pose-diagram" list added people — both are left out here.
  */
+export type PoseGuidePartner = 'man' | 'woman';
+
+const PARTNER_MALE_RE = /\b(?:man|men|boyfriend|husband|guy|groom|fianc[eé]|he|him|his|himself)\b/i;
+const PARTNER_FEMALE_RE =
+  /\b(?:girlfriend|wife|bride|fianc[eé]e|(?:another|second|other) woman|two women)\b/i;
+
+/**
+ * The partner's sex, read off the beat / prompt text (the lead is always "she"), or null when
+ * the text doesn't say or says both. Negated locks ("never invent a man") don't count.
+ */
+export function inferPoseGuidePartner(text: string | null | undefined): PoseGuidePartner | null {
+  const scene = stripNegatedClauses(text ?? '');
+  const male = PARTNER_MALE_RE.test(scene);
+  const female = PARTNER_FEMALE_RE.test(scene);
+  if (male === female) return null;
+  return male ? 'man' : 'woman';
+}
+
+const OPPOSITE_LEAD_POSITION: Record<string, string> = {
+  leftmost: 'rightmost',
+  rightmost: 'leftmost',
+  'upper (on top)': 'lower (underneath)',
+  'lower (underneath)': 'upper (on top)',
+};
+
 function kleinOpenPoseMultiBlock(input: {
   headcount: number;
   leadPosition?: string | null;
   camera?: 'overhead' | 'side' | 'low' | null;
+  partner?: PoseGuidePartner | null;
 }): string {
   const count = Math.max(2, Math.min(3, Math.round(input.headcount)));
   const word = count === 3 ? 'three' : 'two';
-  const lead = input.leadPosition?.trim()
-    ? `She is the ${input.leadPosition.trim()} skeleton`
-    : 'She is one of the skeletons';
-  const others =
-    count === 3
-      ? 'the other skeletons are her partners from the scene, each with their own face'
-      : 'the other skeleton is her partner from the scene, with their own face';
+  const leadPosition = input.leadPosition?.trim() || '';
+  const lead = leadPosition ? `She is the ${leadPosition} skeleton` : 'She is one of the skeletons';
+  // Naming the partner's sex fixed the spoon layout's third head (2/2; neutral wording 0/2).
+  const otherPosition = OPPOSITE_LEAD_POSITION[leadPosition];
+  const who =
+    count === 2 && input.partner
+      ? `${lead}; her partner from the scene is the ${otherPosition ?? 'other'} skeleton. Only these two people; ${
+          input.partner === 'man' ? 'he has his own male face' : 'she has her own different face'
+        }.`
+      : `${lead}; ${
+          count === 3
+            ? 'the other skeletons are her partners from the scene, each with their own face'
+            : 'the other skeleton is her partner from the scene, with their own face'
+        }. Only these ${word} people.`;
   const camera = input.camera === 'overhead' ? 'side' : input.camera;
   return [
-    `POSE: the ${word} people match the ${word} OpenPose skeletons (pose control only, never drawn). ${lead}; ${others}. Only these ${word} people.`,
+    `POSE: the ${word} people match the ${word} OpenPose skeletons (pose control only, never drawn). ${who}`,
     camera ? POSE_GUIDE_CAMERA_LINES[camera] : '',
   ]
     .filter(Boolean)
@@ -285,6 +319,8 @@ export function poseGuidePromptBlock(
     leadPosition?: string | null;
     /** OpenPose only: camera angle the flat skeleton implies. */
     camera?: 'overhead' | 'side' | 'low' | null;
+    /** Klein multi-figure: the partner's sex when the scene says (see inferPoseGuidePartner). */
+    partner?: PoseGuidePartner | null;
   }
 ): string {
   // Undefined headcount keeps the legacy duo-aware compact lock (Story).
@@ -297,6 +333,7 @@ export function poseGuidePromptBlock(
         headcount,
         leadPosition: options?.leadPosition,
         camera: options?.camera,
+        partner: options?.partner,
       });
     }
     const lock =
@@ -506,6 +543,7 @@ function withOpenPoseGuidePrompt(
     style?: PoseGuideStylePreference;
     camera?: 'overhead' | 'side' | 'low' | null;
     model?: string | null;
+    partner?: PoseGuidePartner | null;
   }
 ): string {
   // No fresh headcount = nothing new to say (e.g. a requeue): keep the existing keypoint cue.
@@ -530,6 +568,7 @@ function withOpenPoseGuidePrompt(
     leadPosition: options?.leadPosition,
     camera: options?.camera,
     model: options?.model,
+    partner: options?.partner !== undefined ? options.partner : inferPoseGuidePartner(base),
   });
   return `${base}\n${block}`.trim();
 }

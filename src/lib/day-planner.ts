@@ -24,6 +24,7 @@ import {
 import {
   POSE_GUIDE_ACTION_LOCK,
   isOpenPoseStyle,
+  inferPoseGuidePartner,
   poseGuidePromptBlock,
   type PoseGuideStylePreference,
 } from '@/lib/pose-guide-prompt';
@@ -2856,6 +2857,7 @@ export function buildDaySlotPrompt(input: {
         style: openPoseGuide ? input.poseGuideStyle : 'legacy',
         leadPosition: leadPositionPhrase,
         camera: openPoseGuide ? input.poseCamera : null,
+        partner: inferPoseGuidePartner(hints),
       })
     : null;
   const soloLock = soloSubject

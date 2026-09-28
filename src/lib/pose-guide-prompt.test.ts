@@ -9,6 +9,7 @@ import {
   promptHasOpenPoseGuideCue,
   promptHasPoseGuideCue,
   withPoseGuideEditPrompt,
+  inferPoseGuidePartner,
   poseGuideStyleForModel,
 } from './pose-guide-prompt';
 import { applyQueuePromptSteering } from './queue-prompt-prep';
@@ -199,5 +200,35 @@ describe('pose-guide-prompt', () => {
       style: 'openpose',
     });
     assert.match(solo, /Image 3 has one skeleton/);
+  });
+
+  it('reads the partner off the scene, ignoring negated locks', () => {
+    assert.equal(inferPoseGuidePartner('a dark-haired man hugging her from behind'), 'man');
+    assert.equal(inferPoseGuidePartner('she spoons her girlfriend on the bed'), 'woman');
+    assert.equal(inferPoseGuidePartner('walking arm-in-arm with a companion'), null);
+    assert.equal(inferPoseGuidePartner('alone on the bed, never invent a man'), null);
+    assert.equal(inferPoseGuidePartner('her husband kisses her wife'), null);
+  });
+
+  it('names a male partner and his skeleton in the Klein duo cue', () => {
+    const block = poseGuidePromptBlock('realistic', {
+      headcount: 2,
+      model: 'flux-2-klein-9b-distilled',
+      style: 'openpose',
+      leadPosition: 'lower (underneath)',
+      partner: 'man',
+    });
+    assert.match(
+      block,
+      /She is the lower \(underneath\) skeleton; her partner from the scene is the upper \(on top\) skeleton\. Only these two people; he has his own male face\./
+    );
+    // Story: inferred from the prompt when not passed.
+    const story = withPoseGuideEditPrompt('He spoons her under the sheets.', true, 'realistic', {
+      headcount: 2,
+      model: 'flux-2-klein-9b',
+      style: 'openpose',
+      leadPosition: 'leftmost',
+    });
+    assert.match(story, /partner from the scene is the rightmost skeleton.*his own male face/);
   });
 });
