@@ -33,8 +33,14 @@ export function workflowHasImpactFaceDetailerNodes(
   }
 }
 
-/** Settings chip: Ready (Impact pin) / Partial (scaffold pin) / Detected / Missing. */
-export function getFaceDetailerHealth(): FaceDetailerHealth {
+/**
+ * Settings chip: Ready (Impact pin) / Partial (scaffold pin) / Detected / Missing.
+ * Pass ComfyUI's node types when known so a scaffold pin says whether Impact Pack is actually
+ * missing or only the workflow needs upgrading.
+ */
+export function getFaceDetailerHealth(options?: {
+  availableNodeTypes?: ReadonlySet<string> | null;
+}): FaceDetailerHealth {
   const shared = loadSettingsCache().shared;
   const pinnedId = shared.modelWorkflowMap?.faceDetailer?.trim();
   const files = loadComfyWorkflowFiles();
@@ -55,7 +61,9 @@ export function getFaceDetailerHealth(): FaceDetailerHealth {
       }
       return {
         status: 'partial',
-        label: 'Scaffold · needs Impact Pack',
+        label: options?.availableNodeTypes?.has('FaceDetailer')
+          ? 'Scaffold · Impact Pack found, upgrade the workflow'
+          : 'Scaffold · needs Impact Pack',
         workflowName: pinned.name,
         pinnedId,
         hasImpactNodes: false,

@@ -73,6 +73,7 @@ mock.module('./face-detailer-health', {
           status: 'detected' as const,
           label: 'Detected',
           workflowName: files[0]!.name,
+          hasImpactNodes: /"class_type"\s*:\s*"FaceDetailer"/i.test(files[0]!.workflowJson),
         };
       }
       return { status: 'missing' as const, label: 'Missing' };
@@ -121,5 +122,22 @@ describe('ensureFaceDetailerLibraryPin', async () => {
     assert.equal(second.created, false);
     assert.equal(second.workflowId, first.workflowId);
     assert.equal(files.length, 1);
+  });
+
+  it('upgrades a scaffold to the Impact graph once FaceDetailer is installed', () => {
+    for (const pinned of [true, false]) {
+      files.length = 0;
+      sharedState.modelWorkflowMap = {};
+      ensureFaceDetailerLibraryPin({ availableNodeTypes: ['LoadImage', 'SaveImage'] });
+      // Unpinned: the scaffold is only found in the library (settings not loaded yet).
+      if (!pinned) sharedState.modelWorkflowMap = {};
+      const result = ensureFaceDetailerLibraryPin({
+        availableNodeTypes: ['FaceDetailer', 'UltralyticsDetectorProvider', 'LoadImage', 'SaveImage'],
+      });
+      assert.equal(result.usedAutoGraph, true, `pinned=${pinned}`);
+      assert.match(result.message, /Upgraded FaceDetailer scaffold/);
+      const pin = sharedState.modelWorkflowMap?.faceDetailer;
+      assert.match(files.find(file => file.id === pin)!.workflowJson, /"FaceDetailer"/);
+    }
   });
 });

@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { getFaceDetailerHealth, type FaceDetailerHealth } from '@/lib/face-detailer-health';
-import { ensureFaceDetailerSetup } from '@/lib/face-detailer-setup';
+import { ensureFaceDetailerLibraryPin, ensureFaceDetailerSetup } from '@/lib/face-detailer-setup';
+import { fetchComfyObjectInfoCached } from '@/lib/comfyui-object-info-cache';
+import { canAutoInsertFaceDetailer } from '@/lib/facedetailer-workflow-patch';
+import { loadSettingsCache } from '@/lib/settings-cache';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { Button } from '@/components/ui/Button';
 
@@ -19,10 +22,40 @@ export default function FaceDetailerHealthChip({
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
+  const [impactFound, setImpactFound] = useState(false);
+
   useEffect(() => {
+    let cancelled = false;
     scheduleAfterCommit(() => {
-      setHealth(getFaceDetailerHealth());
+      const current = getFaceDetailerHealth();
+      setHealth(current);
+      const scaffold =
+        current.status === 'partial' ||
+        (current.status === 'detected' && current.hasImpactNodes === false);
+      if (!scaffold) return;
+      // A scaffold pin with Impact Pack installed only needs the real graph — do that now.
+      void fetchComfyObjectInfoCached()
+        .then(info => {
+          if (cancelled || !info?.nodeTypes) return;
+          const found = canAutoInsertFaceDetailer(info.nodeTypes);
+          setImpactFound(found);
+          if (!found) return;
+          const pin = ensureFaceDetailerLibraryPin({
+            availableNodeTypes: info.nodeTypes,
+            model: loadSettingsCache().shared.model,
+          });
+          setHealth(
+            pin.health.status === 'partial'
+              ? getFaceDetailerHealth({ availableNodeTypes: info.nodeTypes })
+              : pin.health
+          );
+          if (pin.usedAutoGraph) setStatus(pin.message);
+        })
+        .catch(() => null);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [refreshKey]);
 
   if (!health) {
@@ -70,7 +103,13 @@ export default function FaceDetailerHealthChip({
             disabled={busy}
             onClick={() => void runSetup()}
           >
-            {busy ? 'Setting up…' : health.status === 'partial' ? 'Retry Impact install' : 'Set up'}
+            {busy
+              ? 'Setting up…'
+              : health.status === 'partial'
+                ? impactFound
+                  ? 'Upgrade workflow'
+                  : 'Retry Impact install'
+                : 'Set up'}
           </Button>
         ) : null}
       </div>
@@ -80,7 +119,7 @@ export default function FaceDetailerHealthChip({
           ComfyUI-Manager). Then Gallery → Face detail works.
         </p>
       ) : null}
-      {health.status === 'partial' && !status ? (
+      {health.status === 'partial' && !status && !impactFound ? (
         <p className="text-xs text-[var(--text-muted)]">
           Workflow is pinned, but Gallery → Face detail needs ComfyUI Impact Pack. Install it in
           ComfyUI (Manager → Impact Pack), or set Manager{' '}

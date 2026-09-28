@@ -69,8 +69,12 @@ describe("getFaceDetailerHealth", async () => {
 
     const health = getFaceDetailerHealth();
     assert.equal(health.status, "partial");
-    assert.match(health.label, /Impact Pack/i);
+    assert.match(health.label, /needs Impact Pack/i);
     assert.equal(health.hasImpactNodes, false);
+    // With Impact Pack installed, only the workflow is stale — say so.
+    const withImpact = getFaceDetailerHealth({ availableNodeTypes: new Set(["FaceDetailer"]) });
+    assert.equal(withImpact.status, "partial");
+    assert.match(withImpact.label, /Impact Pack found, upgrade the workflow/);
   });
 
   it("reports 'missing' with a 'Missing pin' label when the pinned id has no matching file", () => {

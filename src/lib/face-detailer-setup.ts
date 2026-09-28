@@ -86,12 +86,12 @@ export function ensureFaceDetailerLibraryPin(input?: {
     };
   }
 
-  // Upgrade scaffold → Impact auto-graph when nodes just became available.
-  if (
-    existing &&
-    healthBefore.status === 'partial' &&
-    canAutoInsertFaceDetailer(input?.availableNodeTypes)
-  ) {
+  // Upgrade scaffold → Impact auto-graph when nodes just became available (pinned, or found
+  // in the library before the pin loaded).
+  const scaffoldFound =
+    healthBefore.status === 'partial' ||
+    (healthBefore.status === 'detected' && healthBefore.hasImpactNodes === false);
+  if (existing && scaffoldFound && canAutoInsertFaceDetailer(input?.availableNodeTypes)) {
     const auto = buildAutoFaceDetailerWorkflow({
       availableNodeTypes: input?.availableNodeTypes,
       model: input?.model,
