@@ -16,6 +16,7 @@ import { applyQueuePromptSteering } from './queue-prompt-prep';
 import {
   buildRapidDuoRecipe,
   buildRapidSuggestiveRecipe,
+  buildRapidVacationRecipe,
   isRapidDuoRecipePrompt,
   rapidDuoSurface,
   suggestiveBeatClothes,
@@ -363,5 +364,50 @@ describe('Rapid suggestive recipe', () => {
     assert.match(keep, /outfit from the first image/);
     // With a companion allowed the solo recipe must not apply.
     assert.ok(!isRapidDuoRecipePrompt(suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw', { allowCompanions: true })));
+  });
+});
+
+describe('Rapid vacation recipe', () => {
+  it('says the class body plainly and dresses from the beat first', () => {
+    const swim = buildRapidVacationRecipe({
+      beat: 'SWIMMING freestyle mid-stroke in the resort pool — swimsuit, head turned for a breath',
+      outfit: 'outfit-relaxed-fit-fuchsia-wrap-dress',
+      poseGuide: true,
+    })!;
+    assert.match(swim, /^Vacation photo:.*swims face-down.*She wears a swimsuit\..*Moment: swimming freestyle/);
+    const cafe = buildRapidVacationRecipe({
+      beat: 'SEATED at a café terrace sipping morning coffee — hips on the chair, one elbow on the table',
+      outfit: 'outfit-relaxed-fit-fuchsia-wrap-dress',
+    })!;
+    // A kit id reads as words; a table seat is a chair at the table.
+    assert.match(cafe, /She sits on the chair, knees bent\. She wears a relaxed fit fuchsia wrap dress\./);
+    assert.match(
+      buildRapidVacationRecipe({ beat: 'SEATED at a sidewalk café table after dinner — elbows on the table' })!,
+      /on a chair at the (?:sidewalk café )?table/
+    );
+    assert.match(
+      buildRapidVacationRecipe({ beat: 'RELAXING in a lit pool at night — floating on her back', outfit: 'wrap dress' })!,
+      /floats on her back.*She wears a swimsuit\./
+    );
+    assert.match(
+      buildRapidVacationRecipe({ beat: 'KICKING through the morning surf — sundress hem wet' })!,
+      /walks through ankle-deep surf.*She wears a sundress\./
+    );
+  });
+
+  it('uses the right article and a lounge surface, not a side table', () => {
+    const recipe = buildRapidVacationRecipe({
+      beat: 'RELAXING on a pool lounge with an iced drink on the side table — one knee raised, one-piece swimsuit',
+    })!;
+    assert.match(recipe, /lies back on the pool lounge.*She wears a one-piece swimsuit\./);
+    assert.match(buildRapidVacationRecipe({ beat: 'DANCING on a terrace — evening wear' })!, /She wears evening wear\./);
+  });
+
+  it('replaces the Vacation brief only on Rapid solo', () => {
+    const slot = { ...(nightSlot as object), sceneHints: 'PEDALING a rental bike along the promenade — sundress' } as never;
+    const build = (model: string, extra: object = {}) =>
+      buildDaySlotPrompt({ slot, hasPlate: true, plateSource: 'cast', poseGuide: true, model, dayMood: 'vacation', ...extra });
+    assert.match(build('qwen-rapid-aio-edit-nsfw'), /^Vacation photo:.*rides a bicycle/);
+    assert.ok(!isRapidDuoRecipePrompt(build('qwen-image-edit-2511')));
   });
 });

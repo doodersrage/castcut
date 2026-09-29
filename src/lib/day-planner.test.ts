@@ -2623,10 +2623,8 @@ describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
   const firstLine = (prompt: string) => prompt.split('\n')[0] ?? '';
 
   it('Cast plate path: clothed Vacation / Suggestive lead with the scene', () => {
-    for (const [dayMood, model] of [
-      ['vacation', 'qwen-rapid-aio-edit-nsfw'],
-      ['suggestive', 'qwen-image-edit-2511'],
-    ] as const) {
+    for (const dayMood of ['vacation', 'suggestive'] as const) {
+      const model = 'qwen-image-edit-2511';
       const prompt = buildDaySlotPrompt({
         slot,
         hasPlate: true,
@@ -2642,18 +2640,23 @@ describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
         /SCENE: she is in the old-town plaza at golden hour with a fountain — show that place around her\./
       );
     }
-    // Rapid Suggestive sends the compact recipe; the scene rides in its Room line.
-    const rapid = buildDaySlotPrompt({
-      slot,
-      hasPlate: true,
-      plateSource: 'cast',
-      plateIsolated: true,
-      garmentReinforce: true,
-      poseGuide: true,
-      model: 'qwen-rapid-aio-edit-nsfw',
-      dayMood: 'suggestive',
-    });
-    assert.match(rapid, /^Suggestive photo:.*Room: old-town plaza at golden hour with a fountain\./);
+    // Rapid sends the compact recipes; the scene rides in their Room / Place line.
+    const rapid = (dayMood: 'suggestive' | 'vacation') =>
+      buildDaySlotPrompt({
+        slot,
+        hasPlate: true,
+        plateSource: 'cast',
+        plateIsolated: true,
+        garmentReinforce: true,
+        poseGuide: true,
+        model: 'qwen-rapid-aio-edit-nsfw',
+        dayMood,
+      });
+    assert.match(
+      rapid('suggestive'),
+      /^Suggestive photo:.*Room: old-town plaza at golden hour with a fountain\./
+    );
+    assert.match(rapid('vacation'), /^Vacation photo:.*Place: old-town plaza at golden hour with a fountain\./);
   });
 
   it('Keep plate path and face-break carry it too; everyday does not', () => {
@@ -2672,7 +2675,7 @@ describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
       plateSource: 'cast',
       garmentReinforce: true,
       poseGuide: true,
-      model: 'qwen-rapid-aio-edit-nsfw',
+      model: 'qwen-image-edit-2511',
       dayMood: 'vacation',
       faceOnlyIdentity: true,
     });

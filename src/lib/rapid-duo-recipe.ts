@@ -22,6 +22,7 @@ import {
   RAPID_DUO_RECIPE_MARK,
   RAPID_SOLO_RECIPE_MARK,
   RAPID_SUGGESTIVE_RECIPE_MARK,
+  RAPID_VACATION_RECIPE_MARK,
 } from './rapid-duo-recipe-mark';
 
 /** 69 / face-sit wording — Rapid renders these beats as seated oral (recipe + guide). */
@@ -33,6 +34,7 @@ export {
   RAPID_DUO_RECIPE_MARK,
   RAPID_SOLO_RECIPE_MARK,
   RAPID_SUGGESTIVE_RECIPE_MARK,
+  RAPID_VACATION_RECIPE_MARK,
 } from './rapid-duo-recipe-mark';
 
 const SURFACE_RE =
@@ -349,10 +351,14 @@ function soloHands(beat: string, toy: boolean, kind?: SoloMasturbationPoseKind):
 function withArticle(outfit: string | null | undefined): string | null {
   const text = outfit?.trim();
   if (!text) return null;
-  if (/^(?:a|an|the|her|his|some)\b/i.test(text) || /[^s]s$/i.test(text.split(/\s+/).pop() ?? '')) {
+  if (
+    /^(?:a|an|the|her|his|some)\b/i.test(text) ||
+    /[^s]s$/i.test(text.split(/\s+/).pop() ?? '') ||
+    /(?:wear|clothes|lingerie)$/i.test(text)
+  ) {
     return text;
   }
-  return `${/^[aeiou]/i.test(text) ? 'an' : 'a'} ${text}`;
+  return `${/^[aeiu]|^o(?!ne\b)/i.test(text) ? 'an' : 'a'} ${text}`;
 }
 
 /**
@@ -571,6 +577,161 @@ export function buildRapidSuggestiveRecipe(input: {
     recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),
     input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
     input.faceOnly === false && !input.outfitFromFirst
+      ? 'Keep her face from the first image, not its clothes.'
+      : 'Keep her face from the first image.',
+    input.poseGuide
+      ? `Match her body to the ${input.poseGuide === true ? 'second' : input.poseGuide} image (pose map).`
+      : null,
+    'Photorealistic photograph, natural skin.',
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\.\./g, '.');
+}
+
+/**
+ * Vacation beats lead with their pose class ("SWIMMING freestyle …"). Say that body plainly:
+ * the long brief's shared tail ("mid-dance both arms raised overhead …") floated a freestyle
+ * swimmer on her back with her arms up and turned "KICKING through the surf" into a high kick.
+ */
+function vacationPlacement(beat: string): string | null {
+  const b = beat.toLowerCase();
+  const lounge =
+    b.match(
+      /\b(spa chaise|chaise|pool lounge|lounger|daybed|hammock|beach towel|sand towel|towel(?!\s+turban)|sofa|bed|pool float|float)\b/
+    )?.[1] ?? null;
+  const seat = rapidDuoSurface(beat);
+  // "SEATED at a café table / the vanity": on a chair at it, not on top of it.
+  const seatPhrase = !seat
+    ? ''
+    : /\b(?:table|desk|vanity|counter)$/.test(seat)
+      ? ` on a chair at the ${seat}`
+      : /\b(?:door|window|wall|floor)$/.test(seat) &&
+          !/\b(?:stone|harbor|harbour)\s+wall$/.test(seat)
+        ? ''
+        : ` on the ${seat}`;
+  const cls = beat
+    .match(
+      /^(SEATED|MID-STRIDE|RECLINING|RELAXING|DANCING|CLIMBING|WAVING|PERCHED|STRETCHING|KICKING|PADDLING|PEDALING|TOSSING|JUMPING|REACHING|SWIMMING)\b/i
+    )?.[1]
+    ?.toUpperCase();
+  switch (cls) {
+    case 'SWIMMING':
+      return 'She swims face-down in the water, one arm reaching forward out of the water mid-stroke, head turned to the side for a breath.';
+    case 'PEDALING':
+      return 'She rides a bicycle, sitting on the saddle, both hands on the handlebars, feet on the pedals, full body and bike in frame.';
+    case 'PADDLING':
+      return 'She sits in a kayak on the water, holding the paddle with both hands, one blade dipped in the water.';
+    case 'KICKING':
+      return 'She walks through ankle-deep surf, kicking up a splash of water with one foot, arms out for balance.';
+    case 'MID-STRIDE':
+      return 'She walks mid-step, one foot ahead of the other, arms swinging, full body in frame.';
+    case 'CLIMBING':
+      return 'She climbs steps, one foot on the next step up, one hand on the rail or wall.';
+    case 'WAVING':
+      return 'She stands waving, one arm raised high overhead, weight on one hip.';
+    case 'DANCING':
+      return 'She dances, both arms raised, one knee lifted, hips mid-sway.';
+    case 'STRETCHING':
+      return 'She stands stretching both arms overhead, weight on one leg.';
+    case 'JUMPING':
+      return 'She jumps mid-air, knees tucked up, both feet off the ground.';
+    case 'TOSSING':
+    case 'REACHING':
+      return 'She stands reaching up with one arm high, the other arm out.';
+    case 'RECLINING':
+      return `She lies back on the ${lounge ?? 'lounge'}, hips and back on it, one knee raised.`;
+    case 'SEATED':
+    case 'PERCHED':
+      return `She sits${seatPhrase}, knees bent.`;
+    case 'RELAXING':
+      if (/\bfloat/.test(b)) {
+        return 'She floats on her back on the water, arms out.';
+      }
+      if (/\bon\s+her\s+stomach\b/.test(b)) {
+        return `She lies on her stomach on the ${lounge ?? 'beach towel'}.`;
+      }
+      if (lounge && !/\bbench\b/.test(b)) {
+        return `She lies back on the ${lounge}, relaxed.`;
+      }
+      if (/\b(?:booth|counter|bench|upright|tub|paddleboard)\b/.test(b)) {
+        return 'She sits, relaxed, as the moment says.';
+      }
+      return null;
+    default:
+      return null;
+  }
+}
+
+/** "outfit-relaxed-fit-fuchsia-wrap-dress" (a kit id when the label is not loaded) → words. */
+function outfitWords(outfit: string | null | undefined): string | null {
+  const text = outfit?.trim();
+  if (!text) {
+    return null;
+  }
+  return /^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(text)
+    ? text.replace(/^(?:outfit|kit|look)-/, '').replace(/-/g, ' ')
+    : text;
+}
+
+const VACATION_CLOTHES_RE =
+  /\b((?:one-piece\s+|two-piece\s+)?swimsuit|bikini|sundress|evening\s+(?:dress|wear)|(?:short|slip|cocktail|maxi|wrap)\s+dress|dress|robe|sleepwear|travel\s+(?:clothes|hoodie|tank)|linen\s+shirt|silk\s+shirt|cover-up\s+over\s+(?:a\s+)?swimsuit)\b/i;
+
+/**
+ * Compact Vacation recipe for Rapid AIO Edit Day stills — the clothed twin of the Suggestive one.
+ * The ~6–8k Vacation brief (live 2026-09-29, v23) named the auto kit by its id
+ * ("outfit-relaxed-fit-fuchsia-wrap-dress") with no packshot attached, so Rapid put swimsuits
+ * on café beats and sundresses in the pool, cloned a second woman beside a bike, and its shared
+ * dance tail lifted arms on swimmers.
+ */
+export function buildRapidVacationRecipe(input: {
+  beat: string | null | undefined;
+  setting?: string | null;
+  timeOfDay?: string | null;
+  descriptor?: string | null;
+  poseGuide?: boolean | RecipeImage;
+  outfitImage?: RecipeImage | null;
+  outfit?: string | null;
+  faceOnly?: boolean;
+  outfitFromFirst?: boolean;
+}): string | null {
+  const raw = input.beat?.trim();
+  if (!raw) {
+    return null;
+  }
+  const beat = stripNegatedClauses(raw)
+    .replace(/\bCast\s+alone\b/gi, 'alone')
+    .replace(/\s+([,;])/g, '$1')
+    .replace(/([,;—-])(?:\s*[,;—-])+/g, '$1')
+    .replace(/[\s,;—-]+$/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  // The beat's own clothes first: a pool beat wants its swimsuit, whatever kit the Day picked.
+  // Water and beach-lounging beats that name no clothes wear a swimsuit, not the day's kit.
+  const named =
+    beat.match(VACATION_CLOTHES_RE)?.[1] ??
+    (/\b(?:pool|swim\w*|float\w*|surf|paddleboard|beach\s+(?:towel|umbrella)|towel)\b/i.test(beat)
+      ? 'swimsuit'
+      : undefined);
+  const clothes = named
+    ? `She wears ${withArticle(named.replace(/^(?:travel\s+)?clothes$/i, 'travel clothes'))}.`
+    : input.outfitImage
+      ? `She wears the outfit from the ${input.outfitImage} image.`
+      : input.outfitFromFirst
+        ? 'She wears the outfit from the first image.'
+        : outfitWords(input.outfit)
+          ? `She wears ${withArticle(outfitWords(input.outfit))}.`
+          : 'She wears a light summer outfit.';
+  const moment = beat.replace(/^([A-Z][A-Z-]+)\b/, word => word.toLowerCase());
+  return [
+    RAPID_VACATION_RECIPE_MARK,
+    'One woman alone on vacation.',
+    vacationPlacement(beat),
+    clothes,
+    `Moment: ${moment}.`,
+    input.setting?.trim() ? `Place: ${input.setting.trim()}.` : null,
+    input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
+    input.faceOnly === false && !input.outfitFromFirst && !input.outfitImage
       ? 'Keep her face from the first image, not its clothes.'
       : 'Keep her face from the first image.',
     input.poseGuide

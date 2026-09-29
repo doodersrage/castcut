@@ -3,6 +3,7 @@ import {
   buildRapidDuoRecipe,
   buildRapidSoloRecipe,
   buildRapidSuggestiveRecipe,
+  buildRapidVacationRecipe,
 } from './rapid-duo-recipe';
 import { stripNegatedClauses } from './negated-clauses';
 import {
@@ -3058,8 +3059,17 @@ export function buildDaySlotPrompt(input: {
     // Rapid AIO clothed Suggestive: the ~6–7k brief asked for an Image 2 outfit / wardrobe kit
     // that was not attached (Rapid invented bikinis and rompers) and its zip-twist header moved
     // sill and window beats onto the bed. Say the pose, the clothes and the room once.
-    if (rapidAio && !omitGarment && dayMood === 'suggestive' && soloSubject) {
-      const recipe = buildRapidSuggestiveRecipe({
+    // Vacation the same (live 2026-09-29): the kit rode in as a bare id with no packshot, so
+    // swimsuits went to cafés and sundresses into pools, and the shared dance tail lifted arms.
+    if (
+      rapidAio &&
+      !omitGarment &&
+      soloSubject &&
+      (dayMood === 'suggestive' || dayMood === 'vacation')
+    ) {
+      const recipe = (
+        dayMood === 'vacation' ? buildRapidVacationRecipe : buildRapidSuggestiveRecipe
+      )({
         beat: hints,
         setting,
         timeOfDay,
