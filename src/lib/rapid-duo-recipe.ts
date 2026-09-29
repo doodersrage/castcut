@@ -18,7 +18,11 @@ import {
 } from './day-pose-guide';
 import { stripNegatedClauses } from './negated-clauses';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
-import { RAPID_DUO_RECIPE_MARK, RAPID_SOLO_RECIPE_MARK } from './rapid-duo-recipe-mark';
+import {
+  RAPID_DUO_RECIPE_MARK,
+  RAPID_SOLO_RECIPE_MARK,
+  RAPID_SUGGESTIVE_RECIPE_MARK,
+} from './rapid-duo-recipe-mark';
 
 /** 69 / face-sit wording — Rapid renders these beats as seated oral (recipe + guide). */
 export const RAPID_ORAL_FALLBACK_RE =
@@ -28,6 +32,7 @@ export {
   isRapidDuoRecipePrompt,
   RAPID_DUO_RECIPE_MARK,
   RAPID_SOLO_RECIPE_MARK,
+  RAPID_SUGGESTIVE_RECIPE_MARK,
 } from './rapid-duo-recipe-mark';
 
 const SURFACE_RE =
@@ -136,7 +141,7 @@ function recipeRoom(
     Boolean(
       surface && !/^(?:(?:unmade |rumpled |hotel )?(?:bed|daybed)|bed edge|sheets)$/i.test(surface)
     ) ||
-    /\b(?:bathroom|kitchen|hallway|hotel|office|laundry|living[- ]room|shower|fridge|car|balcony|elevator|windowsill|couch|sofa|doorway|bathtub|tub)\b/i.test(
+    /\b(?:bathroom|kitchen|hallway|hotel|office|laundry|living[- ]room|shower|fridge|car|balcony|elevator|windowsill|couch|sofa|doorway|bathtub|tub|patio|terrace|rooftop|garden|street|sidewalk|neon|bar|shop\s+window)\b/i.test(
       beat
     );
   // A bed beat under a bed-less room ("on her back on the bed" + "steamy bathroom") paints both.
@@ -151,7 +156,7 @@ function recipeRoom(
   // ("… in afternoon light" + "Morning light." contradicted each other).
   if (
     !light ||
-    /\b(?:morning|afternoon|evening|dusk|dawn|sunrise|sunset|golden[- ]hour|night|after\s+dark|midnight|light)\b/i.test(
+    /\b(?:morning|afternoon|evening|dusk|dawn|sunrise|sunset|golden[- ]hour|night|after\s+dark|midnight|light|sunlit|sunlight|glow|neon)\b/i.test(
       beat
     )
   ) {
@@ -409,6 +414,165 @@ export function buildRapidSoloRecipe(input: {
       : 'She is completely nude — bare breasts with nipples visible and bare vulva; zero fabric on her body.',
     input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
     'Keep her face from the first image.',
+    input.poseGuide
+      ? `Match her body to the ${input.poseGuide === true ? 'second' : input.poseGuide} image (pose map).`
+      : null,
+    'Photorealistic photograph, natural skin.',
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\.\./g, '.');
+}
+
+const LOOK_BACK_RE = /\b(?:looking\s+back|over\s+(?:her|a|one)\s+shoulder)\b/i;
+
+/** Where a clothed Suggestive beat puts her body — stand, lean, sit, kneel, lie — said once. */
+function suggestivePlacement(beat: string): string {
+  const b = beat.toLowerCase();
+  const surface = rapidDuoSurface(beat);
+  const lookBack = LOOK_BACK_RE.test(beat) ? ', looking back over her shoulder at the camera' : '';
+  const lean = /\bdoor(?:way|frame|\s+jamb|\s+frame)?\b|\bjamb\b/.test(b)
+    ? 'the doorframe'
+    : /\b(?:window)?sill\b/.test(b)
+      ? 'the windowsill'
+      : /\bwindow\s+frame\b/.test(b)
+        ? 'the window frame'
+        : /\brail(?:ing)?\b/.test(b)
+          ? 'the railing'
+          : /\bcounter\b/.test(b)
+            ? 'the counter'
+            : /\bwall\b/.test(b)
+              ? 'the wall'
+              : null;
+  if (/\b(?:lying|lies|lounging|reclining|sprawled|lying\s+back)\b/.test(b)) {
+    const how = /\bon\s+her\s+stomach\b/.test(b)
+      ? ' on her stomach'
+      : /\bon\s+her\s+side\b/.test(b)
+        ? ' on her side'
+        : /\bback\b/.test(b)
+          ? ' back'
+          : '';
+    return `She lies${how} on the ${surface ?? (/\bcouch\b/.test(b) ? 'couch' : /\bdaybed\b/.test(b) ? 'daybed' : 'bed')}${lookBack}.`;
+  }
+  if (/\bkneel/.test(b)) {
+    return `She kneels upright on the ${surface ?? (/\brug\b/.test(b) ? 'rug' : 'bed')}${lookBack}.`;
+  }
+  if (/\b(?:sitting|seated|perched|sits)\b/.test(b)) {
+    const seat = /\bwindowsill\b/.test(b)
+      ? 'windowsill'
+      : /\bchair\s+backwards\b/.test(b)
+        ? 'a chair turned backwards, straddling it'
+        : /\b(?:couch|chair)\s+arm|arm\s+of\s+(?:a|the)\s+(?:\w+\s+)?(?:couch|chair)\b/.test(b)
+          ? 'arm of the ' + (/\bchair\b/.test(b) ? 'chair' : 'couch')
+          : /\bbathtub\b/.test(b)
+            ? 'edge of the bathtub'
+            : /\bstool\b/.test(b)
+              ? 'bar stool'
+              : /\bfloor\b/.test(b)
+                ? 'floor'
+                : (surface ?? 'bed edge');
+    return `She sits on ${/^a\s/.test(seat) ? seat : `the ${seat}`}${lookBack}.`;
+  }
+  if (/\bshop\s+window\b/.test(b)) {
+    return 'She stands on the sidewalk at a shop window, body angled three-quarter to the glass, adjusting her neckline.';
+  }
+  if (/\bdanc/.test(b)) {
+    return `She dances, both arms raised overhead, one knee lifted, hips mid-sway${lookBack}.`;
+  }
+  if (/\b(?:zip|unzip|buttoning|dressing)\w*/.test(b) && !lean) {
+    return `She stands with her torso twisted, both hands at her dress behind her back${lookBack || ', looking over her shoulder'}.`;
+  }
+  if (/\b(?:walking|mid-step|mid-stride|pausing)\b/.test(b)) {
+    return `She walks mid-step${lookBack}.`;
+  }
+  if (/\bstretch/.test(b)) {
+    return `She stands stretching${lean ? ` in ${lean === 'the doorframe' ? 'the doorway' : `front of ${lean}`}` : ''}, one arm overhead, hip cocked${lookBack}.`;
+  }
+  if (lean) {
+    return `She stands leaning on ${lean}, weight on one hip${lookBack}.`;
+  }
+  return `She stands with her weight on one hip${lookBack}.`;
+}
+
+const CLOTHES_RE =
+  /\bin\s+((?:(?:a|an|her)\s+)?(?:(?!\bin\b)[^,;—.])*?\b(?:sleepwear|robe|lingerie|shirt|dress|slip|camisole|shorts|panties|wear|sundress|towel wrap)\b(?:(?!\bin\b)[^,;—.])*?)(?=\s+(?:by|on|at|during|after|eating|pouring|facing|hugging|removing)\b|[,;—.]|$)/i;
+
+/** The outfit a clothed beat names ("in lingerie under an open shirt"), or null. */
+export function suggestiveBeatClothes(beat: string): string | null {
+  const text = stripNegatedClauses(beat);
+  const named = text.match(CLOTHES_RE)?.[1]?.trim();
+  if (named) {
+    return named;
+  }
+  // "unzipping a dress halfway — lingerie visible", "short hem riding up", "dress strap slipping".
+  const lingerie = /\blingerie\b/i.test(text);
+  if (/\bdress\b|\bhem\b/i.test(text)) {
+    const dress = /\bshort\s+hem\b/i.test(text) ? 'a short dress' : 'a dress';
+    return lingerie ? `${dress} over lingerie` : dress;
+  }
+  if (lingerie) {
+    return 'lingerie';
+  }
+  return /\bneckline\b/i.test(text) ? 'a low-cut top' : null;
+}
+
+/**
+ * Compact clothed Suggestive recipe for Rapid AIO Edit Day stills. The ~6–7k Suggestive brief
+ * (live 2026-09-29, v23) told Rapid to wear a "Keep/Image 2 outfit" that was not attached and a
+ * "catalog wardrobe kit" that did not exist, so it invented bikinis and rompers; its zip-twist
+ * header moved sill and window beats onto the bed; one coffee beat cloned a second woman.
+ * The same stills replayed with this (~500 chars) kept the beat's room, pose and clothes.
+ */
+export function buildRapidSuggestiveRecipe(input: {
+  beat: string | null | undefined;
+  setting?: string | null;
+  timeOfDay?: string | null;
+  descriptor?: string | null;
+  poseGuide?: boolean | RecipeImage;
+  /** A garment packshot is attached (second image). */
+  outfitImage?: RecipeImage | null;
+  /** Slot outfit label; the beat's own clothes when absent. */
+  outfit?: string | null;
+  /** First image is a face crop (not a full plate whose clothes could leak). */
+  faceOnly?: boolean;
+  /** First image is an Outfit Keep plate: its clothes are the outfit. */
+  outfitFromFirst?: boolean;
+}): string | null {
+  const raw = input.beat?.trim();
+  if (!raw) {
+    return null;
+  }
+  const beat = stripNegatedClauses(raw)
+    .replace(/\bCast\s+alone\b/gi, 'alone')
+    // "in a shop window reflection" drew the reflection as a second woman (live 2026-09-29, 3/3).
+    .replace(/\bin\s+(?:a|the)\s+shop\s+window\s+reflection\b/gi, 'at a shop window')
+    // A mirror got a second, front-facing "reflection" that reads as another woman (3/3).
+    .replace(/\s+in\s+(?:a|the)\s+mirror\b/gi, '')
+    .replace(/\s+([,;])/g, '$1')
+    .replace(/([,;—-])(?:\s*[,;—-])+/g, '$1')
+    .replace(/[\s,;—-]+$/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  const clothes = input.outfitImage
+    ? `She wears the outfit from the ${input.outfitImage} image.`
+    : input.outfitFromFirst
+      ? 'She wears the outfit from the first image.'
+      : input.outfit?.trim()
+        ? `She wears ${withArticle(input.outfit)}.`
+        : suggestiveBeatClothes(beat)
+          ? `She wears ${suggestiveBeatClothes(beat)}.`
+          : 'She is dressed as the moment says.';
+  return [
+    RAPID_SUGGESTIVE_RECIPE_MARK,
+    'One woman alone, clothed.',
+    suggestivePlacement(beat),
+    clothes,
+    `Moment: ${beat}.`,
+    recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),
+    input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
+    input.faceOnly === false && !input.outfitFromFirst
+      ? 'Keep her face from the first image, not its clothes.'
+      : 'Keep her face from the first image.',
     input.poseGuide
       ? `Match her body to the ${input.poseGuide === true ? 'second' : input.poseGuide} image (pose map).`
       : null,

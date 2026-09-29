@@ -1,5 +1,9 @@
 import { intimateBeatIsOffBed } from './intimate-prompt-clarify';
-import { buildRapidDuoRecipe, buildRapidSoloRecipe } from './rapid-duo-recipe';
+import {
+  buildRapidDuoRecipe,
+  buildRapidSoloRecipe,
+  buildRapidSuggestiveRecipe,
+} from './rapid-duo-recipe';
 import { stripNegatedClauses } from './negated-clauses';
 import {
   clampStillHoldSec,
@@ -3050,6 +3054,26 @@ export function buildDaySlotPrompt(input: {
         setting,
         partnerOutfit: KLEIN_MALE_PARTNER_GARMENTS,
       });
+    }
+    // Rapid AIO clothed Suggestive: the ~6–7k brief asked for an Image 2 outfit / wardrobe kit
+    // that was not attached (Rapid invented bikinis and rompers) and its zip-twist header moved
+    // sill and window beats onto the bed. Say the pose, the clothes and the room once.
+    if (rapidAio && !omitGarment && dayMood === 'suggestive' && soloSubject) {
+      const recipe = buildRapidSuggestiveRecipe({
+        beat: hints,
+        setting,
+        timeOfDay,
+        descriptor,
+        // A garment packshot takes Image 2 and pushes the pose map to Image 3.
+        poseGuide: poseGuide && garmentReinforce ? 'third' : poseGuide,
+        outfitImage: garmentReinforce ? 'second' : null,
+        outfit: input.wardrobeLabel?.trim() || garmentDescription || null,
+        faceOnly: faceOnlyIdentity,
+        outfitFromFirst: !faceOnlyIdentity && keepAsImage1 && !replaceKeepOutfit,
+      });
+      if (recipe) {
+        return recipe;
+      }
     }
     // Rapid AIO duo nude beats: the full lock brief (~9k chars) drowned the beat and every
     // duo still became the same reclining couple on a bed. Send where each body goes instead.

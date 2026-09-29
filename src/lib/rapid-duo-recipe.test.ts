@@ -6,12 +6,20 @@ import {
   DAY_LATE_SLOT_RAUNCHY_BEAT_PRESETS,
   DAY_SLOT_INTIMATE_BEAT_PRESETS,
   DAY_SLOT_RAUNCHY_BEAT_PRESETS,
+  DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS,
+  DAY_SLOT_SUGGESTIVE_BEAT_PRESETS,
   isDayIntimateSoloBeat,
   isDayRaunchySoloBeat,
 } from './day-planner';
 import { reinforceIntimateStillPrompt } from './intimate-prompt-clarify';
 import { applyQueuePromptSteering } from './queue-prompt-prep';
-import { buildRapidDuoRecipe, isRapidDuoRecipePrompt, rapidDuoSurface } from './rapid-duo-recipe';
+import {
+  buildRapidDuoRecipe,
+  buildRapidSuggestiveRecipe,
+  isRapidDuoRecipePrompt,
+  rapidDuoSurface,
+  suggestiveBeatClothes,
+} from './rapid-duo-recipe';
 
 const DUO_BEATS = [
   ...Object.values(DAY_SLOT_INTIMATE_BEAT_PRESETS).flat(),
@@ -296,5 +304,64 @@ describe('Rapid solo recipe', () => {
       reinforceIntimateStillPrompt('solo kneeling on the sheets masturbating, riding her own hand'),
       /riding her own hand/
     );
+  });
+});
+
+describe('Rapid suggestive recipe', () => {
+  const beats = [
+    ...Object.values(DAY_SLOT_SUGGESTIVE_BEAT_PRESETS).flat(),
+    ...Object.values(DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS).flat(),
+  ];
+  const suggestivePrompt = (beat: string, model: string, extra: object = {}) =>
+    buildDaySlotPrompt({
+      slot: { ...(nightSlot as object), sceneHints: beat } as never,
+      characterName: 'Lana',
+      characterDescriptor: 'white woman in her 30s',
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      model,
+      dayMood: 'suggestive',
+      faceOnlyIdentity: true,
+      ...extra,
+    });
+
+  it('names clothes for every preset beat and stays short', () => {
+    for (const beat of beats) {
+      const recipe = buildRapidSuggestiveRecipe({ beat, timeOfDay: 'night', poseGuide: true });
+      assert.ok(recipe && recipe.length < 900, beat);
+      assert.match(recipe, /She wears /, beat);
+      assert.doesNotMatch(recipe, /\bnever\b|Cast alone|Image 2/i, beat);
+    }
+  });
+
+  it('takes the clothes, not the place, from the beat', () => {
+    assert.equal(suggestiveBeatClothes('leaning in a doorway in lingerie and an open robe'), 'lingerie and an open robe');
+    assert.equal(suggestiveBeatClothes('lounging late in bed in an oversized shirt and panties'), 'an oversized shirt and panties');
+    assert.equal(suggestiveBeatClothes('sitting on the hotel bed edge unzipping a dress halfway — lingerie visible'), 'a dress over lingerie');
+  });
+
+  it('keeps window beats at the window instead of the bed', () => {
+    const recipe = buildRapidSuggestiveRecipe({
+      beat: 'leaning on the sill in lingerie under an open shirt, looking back over a shoulder',
+      poseGuide: true,
+    })!;
+    assert.match(recipe, /leaning on the windowsill, weight on one hip, looking back over her shoulder/);
+    assert.match(recipe, /She wears lingerie under an open shirt\./);
+  });
+
+  it('replaces the brief only on Rapid, and names an attached garment or Keep outfit', () => {
+    const beat = 'pouring coffee barefoot in a silk robe loosely tied — leaning on the counter';
+    const rapid = suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw');
+    assert.ok(isRapidDuoRecipePrompt(rapid));
+    assert.doesNotMatch(rapid, /CLOTHING LOCK|catalog wardrobe kit/);
+    assert.match(rapid, /second image \(pose map\)/);
+    assert.ok(!isRapidDuoRecipePrompt(suggestivePrompt(beat, 'qwen-image-edit-2511')));
+    const packshot = suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw', { garmentReinforce: true });
+    assert.match(packshot, /outfit from the second image.*third image \(pose map\)/);
+    const keep = suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw', { faceOnlyIdentity: false, plateSource: 'keeper' });
+    assert.match(keep, /outfit from the first image/);
+    // With a companion allowed the solo recipe must not apply.
+    assert.ok(!isRapidDuoRecipePrompt(suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw', { allowCompanions: true })));
   });
 });

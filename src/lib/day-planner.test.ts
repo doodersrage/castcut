@@ -2623,7 +2623,10 @@ describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
   const firstLine = (prompt: string) => prompt.split('\n')[0] ?? '';
 
   it('Cast plate path: clothed Vacation / Suggestive lead with the scene', () => {
-    for (const dayMood of ['vacation', 'suggestive'] as const) {
+    for (const [dayMood, model] of [
+      ['vacation', 'qwen-rapid-aio-edit-nsfw'],
+      ['suggestive', 'qwen-image-edit-2511'],
+    ] as const) {
       const prompt = buildDaySlotPrompt({
         slot,
         hasPlate: true,
@@ -2631,7 +2634,7 @@ describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
         plateIsolated: true,
         garmentReinforce: true,
         poseGuide: true,
-        model: 'qwen-rapid-aio-edit-nsfw',
+        model,
         dayMood,
       });
       assert.match(
@@ -2639,6 +2642,18 @@ describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
         /SCENE: she is in the old-town plaza at golden hour with a fountain — show that place around her\./
       );
     }
+    // Rapid Suggestive sends the compact recipe; the scene rides in its Room line.
+    const rapid = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'cast',
+      plateIsolated: true,
+      garmentReinforce: true,
+      poseGuide: true,
+      model: 'qwen-rapid-aio-edit-nsfw',
+      dayMood: 'suggestive',
+    });
+    assert.match(rapid, /^Suggestive photo:.*Room: old-town plaza at golden hour with a fountain\./);
   });
 
   it('Keep plate path and face-break carry it too; everyday does not', () => {
@@ -2650,7 +2665,7 @@ describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
       model: 'qwen-rapid-aio-edit-nsfw',
       dayMood: 'suggestive',
     });
-    assert.match(firstLine(keep), /SCENE: she is in the old-town plaza/);
+    assert.match(keep, /Room: old-town plaza.*outfit from the first image|outfit from the first image.*Room: old-town plaza/);
     const faceBreak = buildDaySlotPrompt({
       slot,
       hasPlate: true,
