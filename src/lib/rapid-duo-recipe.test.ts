@@ -237,7 +237,7 @@ describe('Rapid solo recipe', () => {
       beat: 'solo kneeling upright naked after dark — both hands on the base of a dildo, never invent a man',
       toy: true,
     })!;
-    assert.match(toy, /Both of her hands hold the base of a bright purple silicone dildo/);
+    assert.match(toy, /bright purple silicone dildo is pushed halfway inside her vagina/);
     // "penis-shaped … tip of the penis" drew a penis growing from her; the toy stays a toy.
     const penisWords = buildRapidSoloRecipe({
       beat: 'alone on her back with a realistic penis-shaped silicone dildo — the tip of the penis pushed into her vaginal opening, shaft entering her vagina',
@@ -261,6 +261,24 @@ describe('Rapid solo recipe', () => {
     assert.match(
       buildRapidSoloRecipe({ beat: 'alone face-down on the bed masturbating, hips grinding' })!,
       /flat on her stomach .* bare back and buttocks up/
+    );
+  });
+
+  it('anchors side-lying arms to her own body and keeps one light', async () => {
+    const { buildRapidSoloRecipe, buildRapidDuoRecipe } = await import('./rapid-duo-recipe');
+    const side = buildRapidSoloRecipe({
+      beat: 'solo masturbation on her side on the couch, top knee raised, hand between her thighs',
+    })!;
+    assert.match(side, /top arm reaches down across her own belly .* bottom arm is folded under her head/);
+    // The beat's own light wins over the slot's time of day.
+    const duo = buildRapidDuoRecipe({
+      beat: 'spooning sex on the couch, afternoon light',
+      timeOfDay: 'morning',
+    })!;
+    assert.doesNotMatch(duo, /Morning light/);
+    assert.match(
+      buildRapidDuoRecipe({ beat: 'missionary on the rumpled bed', timeOfDay: 'morning' })!,
+      /Morning light/
     );
   });
 

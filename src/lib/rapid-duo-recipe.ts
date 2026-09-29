@@ -74,7 +74,9 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
     case 'prone':
       return `The woman lies flat on her stomach on ${on('bed')}, face turned to the side on the pillow; the man lies on top of her back, propped up on his arms, penetrating her from behind.`;
     case 'spoon':
-      return `Both lie on their sides on ${on('bed')}, facing the camera, both faces in frame: the man lies behind the woman with his chest against her back and one arm around her waist, penetrating her from behind; her top leg is lifted over his.`;
+      // "Both lie on their sides" put her on her back with him beside her head (live
+      // 2026-09-28, most seeds on v23); placing each body in turn gave 6/6 real spooning.
+      return `Spooning, seen from the front. The woman lies on her side on ${on('bed')}, turned toward the camera, her head on her lower arm and her hip up; the man lies on his side right behind her, his chest pressed against her back and his face just behind her shoulder; he penetrates her from behind as she lifts her top leg, bent at the knee, his hand holding it up under her thigh. Both faces in frame.`;
     case 'scissors':
       return `The woman and the man sit on ${on('bed')} facing each other, each leaning back on their hands, their legs scissored together so their hips press together mid-sex; both faces in frame.`;
     case 'wall':
@@ -145,8 +147,14 @@ function recipeRoom(
     return `Room: ${setting.trim()}.`;
   }
   const light = timeOfDay?.trim();
-  // "Night light." reads as a nightlight; skip it when the beat already names its light.
-  if (!light || new RegExp(`\\b${light}\\s+light\\b`, 'i').test(beat)) {
+  // "Night light." reads as a nightlight; skip it when the beat already names its light or time
+  // ("… in afternoon light" + "Morning light." contradicted each other).
+  if (
+    !light ||
+    /\b(?:morning|afternoon|evening|dusk|dawn|sunrise|sunset|golden[- ]hour|night|after\s+dark|midnight|light)\b/i.test(
+      beat
+    )
+  ) {
     return null;
   }
   return /^night$/i.test(light)
@@ -306,12 +314,14 @@ function soloPlacement(
 }
 
 /** Her hands, in the beat's own count — "both hands between her thighs" must not get a breast. */
-function soloHands(beat: string, toy: boolean): string {
+function soloHands(beat: string, toy: boolean, kind?: SoloMasturbationPoseKind): string {
   if (toy) {
     // A bright colour keeps the toy an object: "realistic" flesh tones rendered as her own penis.
+    // Saying where the toy goes ("halfway inside … angled into her body") put its tip in her on
+    // 3/3 on-back seeds, against 1/3 for "its tip pushed into her vagina".
     return /\bone\s+hand\b/i.test(beat)
-      ? 'One hand is braced on the bed; the other holds a bright purple silicone dildo, a separate toy in her hand, its tip pushed into her vagina.'
-      : 'Both of her hands hold the base of a bright purple silicone dildo, a separate toy in her hands, its tip pushed into her vagina.';
+      ? 'One hand is braced on the bed; the other grips only the base of a bright purple silicone dildo pushed halfway inside her vagina between her spread thighs, angled into her body.'
+      : 'A bright purple silicone dildo is pushed halfway inside her vagina between her spread thighs, angled into her body; both of her hands grip only its base, the rest of the toy hidden inside her.';
   }
   if (/\bboth\s+hands\b/i.test(beat)) {
     return 'Both of her hands are between her thighs, her fingers on her vulva.';
@@ -321,6 +331,11 @@ function soloHands(beat: string, toy: boolean): string {
   }
   if (/\breach(?:es|ing)?\s+back\b/i.test(beat)) {
     return 'One hand reaches back between her thighs, her fingers on her vulva; the other is braced on the bed.';
+  }
+  if (kind === 'side_lying') {
+    // Side-lying with the top knee up: a loose "hand between her thighs" rendered as a second
+    // person's hand reaching in (live 2026-09-28, 3/4). Anchor both arms to her own body (4/4).
+    return 'Her top arm reaches down across her own belly to her vulva, her fingers between her thighs; her bottom arm is folded under her head.';
   }
   return 'One hand is between her thighs with her fingers on her vulva; the other hand rests on her breast.';
 }
@@ -385,7 +400,7 @@ export function buildRapidSoloRecipe(input: {
     RAPID_SOLO_RECIPE_MARK,
     'One woman alone, masturbating.',
     soloPlacement(kind, beat, surface),
-    soloHands(beat, input.toy === true),
+    soloHands(beat, input.toy === true, kind),
     ownGaze ? null : 'Eyes half-closed, looking down at her body.',
     `Moment: ${beat}.`,
     recipeRoom(beat, surface, input.setting, input.timeOfDay),
