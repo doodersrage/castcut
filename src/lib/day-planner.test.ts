@@ -11,6 +11,7 @@ import {
   buildDaySlotMotionSubject,
   buildDaySlotPrompt,
   dayEverydayFaceBreakStanceLead,
+  renumberDayPoseGuideAsImage2,
   buildDaySuggestiveKeepPoseUnlock,
   buildDaySuggestivePoseLock,
   dayBeatOmitsGarmentPackshot,
@@ -873,6 +874,30 @@ describe('day-planner', () => {
     );
     // Without the face crop, everyday keeps the plate brief.
     assert.match(build('crouching at a low cupboard', false), /Image 1 is the Cast identity plate/);
+  });
+
+  it('buildDaySlotPrompt leads with the catalog kit on the undressed Cast plate', () => {
+    // Live 2026-09-29: the kit named only at the end of the brief left Rapid in the plate's
+    // underwear 13/16; stated first, the exact kit 16/16.
+    const prompt = buildDaySlotPrompt({
+      slot: { ...DEFAULT_DAY_SLOTS[1]!, location: 'bright bedroom', sceneHints: 'lying across the bed scrolling a phone' },
+      wardrobeLabel: 'relaxed-fit lavender slip dress',
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      dayMood: 'everyday',
+      model: 'qwen-rapid-aio-sfw-v23',
+    });
+    assert.match(prompt, /^OUTFIT \(mandatory\): she wears a relaxed-fit lavender slip dress/);
+  });
+
+  it('renumberDayPoseGuideAsImage2 fixes the guide number only when no Image 2 exists', () => {
+    assert.equal(
+      renumberDayPoseGuideAsImage2('Image 3 is a pose map. Match Image 3.'),
+      'Image 2 is a pose map. Match Image 2.'
+    );
+    const withGarment = 'Image 2 is a packshot. Image 3 is a pose map.';
+    assert.equal(renumberDayPoseGuideAsImage2(withGarment), withGarment);
   });
 
   it('dayEverydayFaceBreakStanceLead names only stances Rapid loses', () => {

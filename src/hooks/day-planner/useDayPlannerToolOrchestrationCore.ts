@@ -30,6 +30,7 @@ import {
   fetchClothingLabels,
   fetchClothingSelectOptions,
   getCachedClothingLabel,
+  humanizeClothingId,
 } from '@/lib/clothing-catalog-client';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import {
@@ -45,6 +46,7 @@ import { STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP } from '@/lib/roleplay';
 import {
   buildDaySlotMotionSubject,
   buildDaySlotPrompt,
+  renumberDayPoseGuideAsImage2,
   dayBeatOmitsGarmentPackshot,
   dayMoodReplacesKeepOutfit,
   dayQueueBlockReason,
@@ -535,9 +537,15 @@ export function useDayPlannerToolOrchestrationCore() {
       if (!id) {
         return '';
       }
-      return wardrobeLabels[id] ?? id;
+      // A kit auto-picked at queue time has no fetched label yet — the raw id went into the brief.
+      return (
+        wardrobeLabels[id] ??
+        getCachedClothingLabel(id) ??
+        wardrobeOptions.find(option => option.value === id)?.label ??
+        humanizeClothingId(id)
+      );
     },
-    [wardrobeLabels]
+    [wardrobeLabels, wardrobeOptions]
   );
 
   const buildSlotPrompt = useCallback(
@@ -1232,7 +1240,13 @@ export function useDayPlannerToolOrchestrationCore() {
         if (plateQueueModel && plateQueueModel !== shared.model) {
           updateShared({ model: plateQueueModel });
         }
-        const promptId = await actions.sendComfyUi(finalized, undefined, undefined, {
+        // No garment: the queue compacts the guide into the second image — say so.
+        const guideIsImage2 =
+          Boolean(extraFilenames[2]?.trim() || extraUrls[2]) &&
+          !extraFilenames[1]?.trim() &&
+          !extraUrls[1];
+        const queuedPrompt = guideIsImage2 ? renumberDayPoseGuideAsImage2(finalized) : finalized;
+        const promptId = await actions.sendComfyUi(queuedPrompt, undefined, undefined, {
           ...(queueOptions ?? {}),
           ...(hasPlate
             ? {

@@ -3522,7 +3522,15 @@ export function buildDaySlotPrompt(input: {
       : null;
     const castEverydayStanceLead =
       castFaceBreakLeads && dayMood === 'everyday' ? dayEverydayFaceBreakStanceLead(hints) : null;
+    // Catalog kit on the undressed Cast plate (no Image 2): named only at the end of the brief,
+    // Rapid kept the plate's underwear 13/16 and never wore the kit; stated first, the exact kit
+    // 16/16 with poses held (live 2026-09-29, same seeds).
+    const castOutfitLead =
+      castOutfitLine && outfit
+        ? `OUTFIT (mandatory): she wears a ${outfit} — fully dressed; the underwear in Image 1 is only the fitting base, never part of the outfit.`
+        : null;
     return [
+      castOutfitLead,
       nudeEditPreamble ??
         (clothedFaceBreak
           ? ((castFaceBreakLeads
@@ -3976,4 +3984,16 @@ export function seedDaySlotsFromKeeperWardrobes(
     ...slot,
     wardrobeId: ids[index] ?? last,
   }));
+}
+
+/**
+ * Day briefs name the pose guide "Image 3" (Image 2 is the garment slot). With no garment the
+ * queue compacts the guide into the second image, so the brief pointed at a picture that did
+ * not exist. Renumber when the brief never mentions an Image 2 (otherwise it is ambiguous).
+ */
+export function renumberDayPoseGuideAsImage2(prompt: string): string {
+  if (/\bImage 2\b/.test(prompt)) {
+    return prompt;
+  }
+  return prompt.replace(/\bImage 3\b/g, 'Image 2');
 }

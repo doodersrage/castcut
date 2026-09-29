@@ -4,6 +4,7 @@ import {
   fetchClothingLabels,
   getCachedClothingLabel,
   fetchClothingSelectOptions,
+  humanizeClothingId,
 } from "./clothing-catalog-client";
 
 function installFetchStub(
@@ -154,5 +155,15 @@ describe("fetchClothingSelectOptions", () => {
     assert.equal(stub.callCount(), callsAfterFirst);
     assert.deepEqual(first, [{ value: "formal", label: "Formal" }]);
     assert.deepEqual(second, [{ value: "formal", label: "Formal" }]);
+  });
+});
+
+describe("humanizeClothingId", () => {
+  it("turns a catalog id into readable clothes", () => {
+    assert.equal(humanizeClothingId("outfit-relaxed-fit-lavender-slip-dress"), "relaxed-fit lavender slip dress");
+    assert.equal(humanizeClothingId("outfit-wide-leg-burgundy-shirt-dress"), "wide-leg burgundy shirt dress");
+    assert.equal(humanizeClothingId("outfit-single-breasted-mustard-shirt-dress"), "single-breasted mustard shirt dress");
+    // Already a label: unchanged.
+    assert.equal(humanizeClothingId("tailored cobalt slip dress"), "tailored cobalt slip dress");
   });
 });

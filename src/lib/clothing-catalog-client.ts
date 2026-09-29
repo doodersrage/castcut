@@ -111,3 +111,26 @@ export async function fetchClothingSelectOptions(
   selectOptionsInflight.set(cacheKey, request);
   return request;
 }
+
+const CLOTHING_ID_CATEGORY_PREFIX =
+  /^(?:outfit|formalwear|casual|streetwear|sportswear|activewear|loungewear|sleepwear|workwear|swimwear|lingerie|outerwear|uniform)-/;
+
+/**
+ * Readable text for a catalog clothing id when its label hasn't loaded yet:
+ * "outfit-relaxed-fit-lavender-slip-dress" → "relaxed-fit lavender slip dress". The raw id in a
+ * Day brief read as a code, not clothes — Rapid kept the plate's underwear (live 2026-09-29).
+ */
+export function humanizeClothingId(id: string): string {
+  const trimmed = id.trim();
+  if (!trimmed || /\s/.test(trimmed)) {
+    return trimmed;
+  }
+  return trimmed
+    .replace(CLOTHING_ID_CATEGORY_PREFIX, '')
+    .split('-')
+    .join(' ')
+    .replace(
+      /\b(relaxed|wide|single|double|high|low|slim|cropped|oversized|long|short) (fit|leg|breasted|waisted|rise|sleeve)\b/g,
+      '$1-$2'
+    );
+}
