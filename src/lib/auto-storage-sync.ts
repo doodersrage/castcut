@@ -1,8 +1,17 @@
 import type { StorageNamespace } from './storage-namespaces';
 import { SYNC_STORAGE_NAMESPACES } from './storage-namespaces';
-import { pullNamespaceFromServer, syncNamespaceToServer } from './storage-sync';
+import {
+  pullNamespaceFromServer,
+  pullNamespaceFromServerResult,
+  syncNamespaceToServer,
+} from './storage-sync';
 import { initAppDb } from './app-db-init';
 import { loadSettingsCache, saveSettingsCache, type SettingsCache } from './settings-cache';
+import {
+  clearSettingsPushPending,
+  isSettingsSyncedWithServer,
+  markSettingsSyncedWithServer,
+} from './settings-push-flush';
 import {
   loadPromptHistoryStore,
   savePromptHistoryStore,
@@ -322,6 +331,11 @@ export async function applyStorageMerge(
  * Avoids blocking the UI with the conflict modal on every visit.
  */
 export async function autoPullStorageIfEmpty(): Promise<AutoSyncResult> {
+  // The inner sync marks settings as synced only after a successful pull.
+  return autoPullStorageIfEmptyInner();
+}
+
+async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
   await initAppDb();
   const health = await fetch('/api/health')
     .then(response => response.json())
@@ -366,15 +380,19 @@ export async function autoPullStorageIfEmpty(): Promise<AutoSyncResult> {
       }
       synced.push(namespace);
     }
-    const serverExtras = await loadStudioExtrasFromServer();
+    // A failed pull is not an empty server: seeding it with this fresh profile's defaults
+    // replaced the saved workflow library, characters and garments (studio-extras) in testing.
+    const extrasPull = await pullNamespaceFromServerResult<StudioExtrasPayload>('studio-extras');
+    const serverExtras = extrasPull.ok ? await loadStudioExtrasFromServer() : null;
     if (serverExtras) {
       applyStudioExtras(serverExtras);
       synced.push('studio-extras');
-    } else {
+    } else if (extrasPull.ok) {
       await syncNamespaceToServer('studio-extras', collectStudioExtras());
       synced.push('studio-extras');
     }
-    const serverSettings = await pullNamespaceFromServer<SettingsCache>('settings-cache');
+    const settingsPull = await pullNamespaceFromServerResult<SettingsCache>('settings-cache');
+    const serverSettings = settingsPull.data;
     if (serverSettings?.shared) {
       const merged = applyServerSessionStack(
         {
@@ -386,8 +404,13 @@ export async function autoPullStorageIfEmpty(): Promise<AutoSyncResult> {
         serverSettings
       );
       saveSettingsCache(merged);
-    } else {
+    } else if (settingsPull.ok) {
+      // The server really has no settings yet — seed it. A failed pull must not: this fresh
+      // profile's copy has no maps, and pushing it replaced the server's.
       await syncNamespaceToServer('settings-cache', localSettings);
+    }
+    if (settingsPull.ok && extrasPull.ok) {
+      markSettingsSyncedWithServer();
     }
     synced.push('settings-cache');
     return { synced, conflicts: [], skipped: false, pulledIntoEmpty: synced.length > 0 };
@@ -396,8 +419,13 @@ export async function autoPullStorageIfEmpty(): Promise<AutoSyncResult> {
   const { pullAndMergeGalleryFromServer } = await import('./gallery-server-sync');
   const galleryPull = await pullAndMergeGalleryFromServer();
 
-  const serverSettings = await pullNamespaceFromServer<SettingsCache>('settings-cache');
+  const settingsPull = await pullNamespaceFromServerResult<SettingsCache>('settings-cache');
+  const serverSettings = settingsPull.data;
   const localSettings = loadSettingsCache();
+  const extrasReachable = (await pullNamespaceFromServerResult<unknown>('studio-extras')).ok;
+  if (settingsPull.ok && extrasReachable) {
+    markSettingsSyncedWithServer();
+  }
   if (
     serverSettings?.shared &&
     localSessionStackLooksEmpty(localSettings.shared as Record<string, unknown>)
@@ -456,7 +484,15 @@ export async function autoPushStorageDebounced(): Promise<void> {
     return;
   }
   await initAppDb();
-  await syncNamespaceToServer('settings-cache', loadSettingsCache());
+  // Until this page has pulled from the server, its copies may be a fresh profile's defaults —
+  // pushing those replaced the server's settings maps and studio-extras (workflow library,
+  // characters, garments). Nothing is pushed before a successful startup pull.
+  if (!isSettingsSyncedWithServer()) {
+    return;
+  }
+  if (await syncNamespaceToServer('settings-cache', loadSettingsCache())) {
+    clearSettingsPushPending();
+  }
   await syncNamespaceToServer('prompt-history', loadPromptHistoryStore());
   const gallery = loadComfyGallery();
   const deletedIds = loadGalleryDeletedIds();
@@ -466,7 +502,6 @@ export async function autoPushStorageDebounced(): Promise<void> {
 }
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
-
 export function scheduleAutoPushStorage(): void {
   if (typeof window === 'undefined') {
     return;
@@ -475,6 +510,7 @@ export function scheduleAutoPushStorage(): void {
     clearTimeout(pushTimer);
   }
   pushTimer = setTimeout(() => {
+    pushTimer = null;
     void autoPushStorageDebounced();
   }, 5000);
 }

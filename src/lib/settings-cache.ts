@@ -1,3 +1,4 @@
+import { markSettingsPushPending } from './settings-push-flush';
 import { DEFAULT_QWEN_MODEL, type ComfyImageModel } from './comfy-models/client';
 import {
   DEFAULT_MODEL_SAMPLER_PRESET_TIER,
@@ -301,6 +302,40 @@ function mergePendingSettingsCache(base: SettingsCache | null, next: SettingsCac
     tools: mergedTools,
     installedPlugins: next.installedPlugins ?? base.installedPlugins,
   };
+}
+
+/**
+ * A save made before storage hydrates was built from defaults: queueing the whole object made
+ * the post-hydrate flush reset every stored setting — all loader maps included — to its default
+ * (live: checkpoint map 46 → 0 on every page load, and a push in that window wiped the server
+ * copy for good). Queue only what the save changed from the pre-hydrate view the caller read.
+ */
+export function preHydrationSavePatch(
+  next: SettingsCache,
+  seen: SettingsCache = loadSettingsCache()
+): SettingsCache {
+  const same = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
+  const seenShared = seen.shared as unknown as Record<string, unknown>;
+  const shared: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(next.shared as unknown as Record<string, unknown>)) {
+    if (!same(value, seenShared[key])) {
+      shared[key] = value;
+    }
+  }
+  const tools: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(next.tools ?? {})) {
+    if (!same(value, (seen.tools as Record<string, unknown> | undefined)?.[key])) {
+      tools[key] = value;
+    }
+  }
+  return {
+    shared: shared as unknown as SharedToolSettings,
+    tools: tools as ToolSettingsCache,
+    installedPlugins: same(next.installedPlugins, seen.installedPlugins)
+      ? undefined
+      : next.installedPlugins,
+    ...(typeof next.updatedAt === 'number' ? { updatedAt: next.updatedAt } : {}),
+  } as SettingsCache;
 }
 
 function schedulePendingSettingsFlush(): void {
@@ -1873,14 +1908,28 @@ export function saveSettingsCache(cache: SettingsCache, options?: SaveSettingsOp
   const shouldNotify = options?.notify !== false;
   const stamped: SettingsCache = { ...cache, updatedAt: Date.now() };
   applySystemWorkflowsSidecar(stamped.shared);
+  // Before any async storage: a navigation right after this save must still reach the server.
+  // Read the cache at flush time, never this snapshot — a fresh profile's first save predates
+  // the server pull and has no maps (pushing it wiped the server's maps in testing).
+  markSettingsPushPending(() => loadSettingsCache());
   if (!isBrowserStorageReady()) {
-    pendingSettingsCache = mergePendingSettingsCache(pendingSettingsCache, stamped);
+    const patch = preHydrationSavePatch(stamped);
+    pendingSettingsCache = mergePendingSettingsCache(pendingSettingsCache, patch);
     schedulePendingSettingsFlush();
     invalidateSettingsCache();
     cachedLoadResult = pendingSettingsCache;
     cachedBrowserVersion = pendingSettingsCache;
-    persistCriticalSharedPrefs(stamped.shared);
-    persistSettingsBlobSidecars(stamped);
+    // No sidecar writes here: `stamped` was built from defaults, and writing its maps / tools /
+    // plugins sidecars (and the system-workflows pref) before hydrate replaced the stored ones
+    // with empty defaults. The post-hydrate flush saves the merged cache through the normal path.
+    // Only prefs this save actually changed are written early (they must survive a reload).
+    if (
+      Object.keys(patch.shared).some(
+        key => key === 'useSystemWorkflows' || key.startsWith('session')
+      )
+    ) {
+      persistCriticalSharedPrefs(stamped.shared);
+    }
     if (shouldNotify) {
       notifySettingsCacheUpdated();
     }
