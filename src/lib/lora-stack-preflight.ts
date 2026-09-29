@@ -1,6 +1,7 @@
 import { resolveSharedEffectiveSessionLoraIds } from './comfyui-settings';
 import { resolveActiveLoraStack, type LoraLibraryEntry } from './lora-stack';
-import { isKleinBaseModel } from './model-sampler-defaults';
+import { isKleinBaseModel, shouldNeutralizeStyleLorasAtQueue } from './model-sampler-defaults';
+import { isQwenLightningModel } from './model-sampling-patch';
 import { isFluxFineTuneCheckpointModel } from './model-checkpoint-map';
 import { hasSessionLoraIdsForModel, resolveModelDefaultLoraIds } from './model-lora-map';
 import { loadSettingsCache } from './settings-cache';
@@ -101,6 +102,21 @@ export function auditLoraStackAtQueueTime(input: {
   const expectedStack = resolveActiveLoraStack(library);
   const activeNodes = collectActiveLoraNodesInWorkflow(input.workflowJson);
   const issues: WorkflowPreflightIssue[] = [];
+
+  // Turbo CFG-1 models (Z-Image / Boogu Turbo, Schnell) drop style LoRAs at queue by design;
+  // say so instead of pointing at filenames and strengths.
+  if (shouldNeutralizeStyleLorasAtQueue(model) && !isQwenLightningModel(model)) {
+    const picked = expectedStack.length > 0 || (sessionIds?.length ?? 0) > 0;
+    return picked
+      ? [
+          {
+            severity: 'warn',
+            message:
+              'This turbo model drops style LoRAs at queue time (CFG-1 turbo melts with them), so your LoRA picks won’t load here. Use the base model to apply them.',
+          },
+        ]
+      : [];
+  }
 
   if (expectedStack.length === 0) {
     const mapped = resolveModelDefaultLoraIds(model, shared.modelLoraMap);

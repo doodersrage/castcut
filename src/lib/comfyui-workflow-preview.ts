@@ -1,4 +1,5 @@
 import { resolveComfyUiConfig } from './comfyui-client';
+import { resolveActiveLoraStack } from './lora-stack';
 import {
   injectPromptsWithFallbacks,
   resolveQueueInjectionContext,
@@ -32,6 +33,11 @@ export type WorkflowPreviewInput = {
   model?: string;
   hasInputImage?: boolean;
   hasMaskImage?: boolean;
+  /**
+   * Return the whole prepared graph. Previews shown on screen are cut at 6k characters; checks
+   * that read the graph (LoRA stack, loader maps) need all of it.
+   */
+  fullWorkflow?: boolean;
   inventory?: WorkflowPreviewInventory;
 };
 
@@ -238,7 +244,9 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
       availableClips: inventoryModels?.clips,
       availableLoras: inventoryModels?.loras,
       qualityProfile: runtime?.queueQualityProfile,
-      loraLibrary: settings.loraLibrary,
+      // The browser forwards its session-filtered library on the runtime; the server has no
+      // LoRA settings of its own, so without this previews were built with no LoRAs at all.
+      loraLibrary: runtime?.loraLibrary ?? settings.loraLibrary,
       samplerOverrides: runtime?.modelSamplerOverrides,
     }
   );
@@ -257,7 +265,7 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
   }
 
   const workflowJson = JSON.stringify(injected.workflow, null, 2);
-  const truncated = workflowJson.length > MAX_PREVIEW_CHARS;
+  const truncated = !input.fullWorkflow && workflowJson.length > MAX_PREVIEW_CHARS;
   const model = modelId;
   const optimizerWarnings: WorkflowPlaceholderAuditIssue[] = (optimized.changes ?? [])
     .filter(change => change.severity === 'warn')
@@ -276,6 +284,9 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
             models: inventoryModels,
             objectInfoUnavailable: input.inventory?.objectInfoUnavailable === true,
             customTokens,
+            stackLoraFilenames: resolveActiveLoraStack(
+              runtime?.loraLibrary ?? settings.loraLibrary
+            ).map(entry => entry.filename),
           }),
         ];
 

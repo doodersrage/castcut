@@ -107,3 +107,12 @@ describe("workflow stack fingerprint", () => {
     assert.equal(resolveModelStackFamily("qwen-image-edit-2511"), "qwen-edit");
   });
 });
+
+describe("Qwen 3 text encoders", () => {
+  it("does not read qwen_3 text encoders as a Qwen-Image stack", async () => {
+    const { classifyLoaderFilenameFamily } = await import("./workflow-stack-fingerprint");
+    assert.equal(classifyLoaderFilenameFamily("qwen_3_4b.safetensors"), "other");
+    assert.equal(classifyLoaderFilenameFamily("qwen_3_8b_fp8mixed.safetensors"), "other");
+    assert.equal(classifyLoaderFilenameFamily("qwen_2.5_vl_7b_fp8_scaled.safetensors"), "qwen-t2i");
+  });
+});

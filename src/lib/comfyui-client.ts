@@ -32,6 +32,7 @@ import {
 } from './url-safety';
 import { optimizeWorkflowForQueue } from './workflow-queue-optimizer';
 import { runWorkflowPreflightSync } from './workflow-preflight-sync';
+import { resolveActiveLoraStack } from './lora-stack';
 import { fetchComfyObjectInfoPayload } from './comfyui-object-info';
 import { formatComfyUiQueueValidationError } from './comfyui-queue-validation-error';
 import { workflowContentHash } from './workflow-content-hash';
@@ -630,6 +631,9 @@ export async function queuePromptToComfyUi(
               objectInfoUnavailable: !objectInfo,
               customTokens: runtime?.customTokens,
               lightningAlreadyPrepared: true,
+              stackLoraFilenames: resolveActiveLoraStack(runtime?.loraLibrary).map(
+                entry => entry.filename
+              ),
             });
             if (!preflight.ok) {
               return {

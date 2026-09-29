@@ -6,22 +6,29 @@ import {
 } from "./workflow-health-audit";
 
 describe("workflow-health-audit", () => {
-  it("flags unresolved loader placeholders as errors", () => {
+  it("accepts placeholders the queue fills and notes unknown ones", () => {
     const report = auditWorkflowLibraryHealth({
       workflowFiles: [
         {
           id: "wf-1",
           name: "Test workflow",
-          workflowJson: '{"1":{"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":"{{CHECKPOINT}}"}}}',
+          workflowJson: JSON.stringify({
+            "1": { class_type: "CheckpointLoaderSimple", inputs: { ckpt_name: "{{CHECKPOINT}}" } },
+            "2": { class_type: "CLIPTextEncode", inputs: { text: "{{POSITIVE}}" } },
+            "3": { class_type: "KSampler", inputs: { seed: "{{SEED}}", steps: "{{STEPS}}" } },
+            "4": { class_type: "LoraLoader", inputs: { lora_name: "{{LORA_skin}}" } },
+            "5": { class_type: "Custom", inputs: { value: "{{MY_THING}}" } },
+          }),
           createdAt: 1753843200000,
         },
       ],
     });
 
     assert.equal(report.scanned, 1);
-    assert.equal(report.healthy, 0);
-    assert.ok(report.issues.some((issue) => issue.severity === "error" && /CHECKPOINT/.test(issue.message)));
-    assert.ok(report.issues.some((issue) => /Not optimized yet/i.test(issue.message)));
+    const messages = report.issues.map((issue) => issue.message);
+    assert.equal(report.issues.some((issue) => issue.severity === "error"), false);
+    assert.ok(messages.some((message) => /Unknown placeholder \{\{MY_THING\}\}/.test(message)));
+    assert.equal(messages.some((message) => /CHECKPOINT|POSITIVE|SEED|LORA_skin/.test(message)), false);
   });
 
   it("summarizes clean libraries", () => {

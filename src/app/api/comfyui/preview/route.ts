@@ -18,6 +18,7 @@ type PreviewRequestBody = {
   model?: string;
   hasInputImage?: boolean;
   hasMaskImage?: boolean;
+  fullWorkflow?: boolean;
 };
 
 export async function GET() {
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
       model: body.model,
       hasInputImage: body.hasInputImage,
       hasMaskImage: body.hasMaskImage,
+      fullWorkflow: body.fullWorkflow === true,
       inventory: {
         models: objectInfo?.models ?? null,
         supportsNeuralUpscaleTileSize: objectInfo?.supportsNeuralUpscaleTileSize,

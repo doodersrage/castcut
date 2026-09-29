@@ -17,6 +17,9 @@ import { auditLoaderFilenamesInWorkflow } from '@/lib/workflow-loader-filename-a
 import { applyLoaderMapRepairs, suggestLoaderMapRepairs } from '@/lib/workflow-loader-map-repair';
 import { saveSharedSettings } from '@/lib/settings-cache';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { queueTestWorkflowFile, workflowNeedsQueueTest } from '@/lib/workflow-health-queue-test';
+import { resolveOptimizeModelForWorkflowFile } from '@/lib/workflow-optimize-model';
+import type { WorkflowHealthIssue } from '@/lib/workflow-health-audit';
 
 type WorkflowHealthPanelProps = {
   refreshKey?: number;
@@ -64,6 +67,54 @@ export default function WorkflowHealthPanel({
   >([]);
   const [loaderStatus, setLoaderStatus] = useState<string | null>(null);
   const [comfyModels, setComfyModels] = useState<ComfyUiModelLists | null>(null);
+  const [queueIssues, setQueueIssues] = useState<WorkflowHealthIssue[]>([]);
+  const [queueStatus, setQueueStatus] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+
+  // Build each model workflow the way a queue would and preflight it — library JSON is a
+  // template, so this is what says whether it will actually run.
+  useEffect(() => {
+    void refreshKey;
+    let cancelled = false;
+    scheduleAfterCommit(() => {
+      const shared = loadSettingsCache().shared;
+      const targets = loadComfyWorkflowFiles().filter(workflowNeedsQueueTest);
+      if (targets.length === 0) return;
+      void (async () => {
+        const found: WorkflowHealthIssue[] = [];
+        for (const [index, file] of targets.entries()) {
+          if (cancelled) return;
+          setQueueStatus(`Queue-testing workflows ${index + 1}/${targets.length}…`);
+          const model = resolveOptimizeModelForWorkflowFile(
+            file,
+            undefined,
+            shared.modelWorkflowMap
+          );
+          try {
+            found.push(...(await queueTestWorkflowFile(file, model)));
+          } catch (error) {
+            found.push({
+              workflowId: file.id,
+              workflowName: file.name,
+              severity: 'error',
+              message: `[${model}] Queue test failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+              action: 'open-workflow',
+            });
+          }
+        }
+        if (cancelled) return;
+        setQueueIssues(found);
+        setQueueStatus(
+          `Queue-tested ${targets.length} model workflow${targets.length === 1 ? '' : 's'}${
+            found.length ? '' : ' — all build and pass preflight'
+          }.`
+        );
+      })();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
 
   const report = useMemo(() => {
     void refreshKey;
@@ -129,13 +180,15 @@ export default function WorkflowHealthPanel({
       });
   }, [refreshKey]);
 
-  const allIssues = [...report.issues, ...loaderIssues];
+  const allIssues = [...report.issues, ...queueIssues, ...loaderIssues].sort((a, b) =>
+    a.severity === b.severity ? 0 : a.severity === 'error' ? -1 : 1
+  );
   const summary = summarizeWorkflowLibraryHealth({
     ...report,
     issues: allIssues,
     healthy: Math.max(0, report.scanned - new Set(allIssues.map(issue => issue.workflowId)).size),
   });
-  const topIssues = allIssues.slice(0, 8);
+  const topIssues = showAll ? allIssues : allIssues.slice(0, 8);
   const loaderMapRepairs = useMemo(() => {
     if (!comfyModels) {
       return [];
@@ -184,6 +237,7 @@ export default function WorkflowHealthPanel({
       <div className="space-y-1">
         <p className="text-sm font-medium text-[var(--text-primary)]">Workflow library health</p>
         <p className="text-xs text-[var(--text-muted)]">{summary}</p>
+        {queueStatus ? <p className="text-xs text-[var(--text-muted)]">{queueStatus}</p> : null}
         {loaderStatus ? <p className="text-xs text-[var(--text-muted)]">{loaderStatus}</p> : null}
         {loaderMapRepairs.length > 0 ? (
           <button
@@ -242,6 +296,18 @@ export default function WorkflowHealthPanel({
               </div>
             </li>
           ))}
+          {allIssues.length > 8 ? (
+            <li>
+              <button
+                type="button"
+                onClick={() => setShowAll(value => !value)}
+                className="type-caption ui-text-link"
+                data-testid="workflow-health-show-all"
+              >
+                {showAll ? 'Show fewer' : `Show all ${allIssues.length}`}
+              </button>
+            </li>
+          ) : null}
         </ul>
       ) : (
         <p className="text-xs text-[var(--tint-success-text)]">

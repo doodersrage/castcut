@@ -954,6 +954,8 @@ export function auditLightningWorkflowIssues(input: {
   loraFilenames?: Record<string, string>;
   /** When true, graph was already run through prepareLightningWorkflowForQueue. */
   alreadyPrepared?: boolean;
+  /** Your LoRA stack's files — Castcut chains these in after Lightning on purpose. */
+  stackLoraFilenames?: string[];
 }): LightningWorkflowAuditIssue[] {
   if (!isQwenLightningModel(input.model)) {
     return [];
@@ -1054,7 +1056,13 @@ export function auditLightningWorkflowIssues(input: {
     });
   }
 
-  for (const node of Object.values(prepared)) {
+  const stackFiles = new Set(
+    (input.stackLoraFilenames ?? []).map(name => name.trim().toLowerCase()).filter(Boolean)
+  );
+  // Raw template: report LoRAs baked into it (queue prep turns them off). Prepared graph: only
+  // an active LoRA that isn't part of your stack is a stray.
+  const loraScanGraph = input.alreadyPrepared ? prepared : parsed;
+  for (const node of Object.values(loraScanGraph)) {
     if (!node?.inputs || !isLoraLoaderClassType(node.class_type)) {
       continue;
     }
@@ -1062,17 +1070,21 @@ export function auditLightningWorkflowIssues(input: {
       continue;
     }
     const filename = resolveLoraLoaderFilename(node.inputs.lora_name, input.loraFilenames ?? {});
-    if (
-      filename &&
-      !loraFilenameImpliesLightning(filename) &&
-      (loraStrengthIsActive(node.inputs.strength_model) ||
-        loraStrengthIsActive(node.inputs.strength_clip) ||
-        loraStrengthIsActive(node.inputs.strength))
-    ) {
+    if (filename && stackFiles.has(filename.trim().toLowerCase())) {
+      continue;
+    }
+    // Only strengths the node has: a missing `strength` (LoraLoader uses strength_model /
+    // strength_clip) read as active and flagged every neutralized LoRA.
+    const inputs = node.inputs;
+    const active = (['strength_model', 'strength_clip', 'strength'] as const).some(
+      key => key in inputs && loraStrengthIsActive(inputs[key])
+    );
+    if (filename && !loraFilenameImpliesLightning(filename) && active) {
       issues.push({
         severity: 'warn',
-        message:
-          'Workflow stacks non-Lightning LoRAs (style/NSFW) on a Lightning model — Castcut disables them at queue time. Remove them in ComfyUI or use a Lightning-only workflow for clean output.',
+        message: input.alreadyPrepared
+          ? 'A style/NSFW LoRA that isn’t in your LoRA stack is still active on this Lightning graph — check the workflow’s LoRA nodes.'
+          : 'Workflow has style/NSFW LoRAs baked in on a Lightning model — Castcut turns them off at queue time (your LoRA stack still applies). Remove them for a cleaner workflow.',
       });
       break;
     }

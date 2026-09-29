@@ -69,6 +69,30 @@ describe("model sampling patch", () => {
     assert.equal(result.patched.samplingShift, 1);
   });
 
+  it("drops Flux-only inputs left on a shift-only AuraFlow node", () => {
+    const workflow = {
+      "7": {
+        class_type: "ModelSamplingAuraFlow",
+        inputs: {
+          model: ["1", 0],
+          shift: "{{SHIFT}}",
+          max_shift: "{{FLUX_MAX_SHIFT}}",
+          base_shift: "{{FLUX_BASE_SHIFT}}",
+          width: "{{WIDTH}}",
+          height: "{{HEIGHT}}",
+        },
+      },
+    };
+    const result = patchModelSamplingInWorkflow(
+      workflow,
+      resolveModelSamplingParams("qwen-image-2512", "optimized"),
+      "qwen-image-2512",
+    );
+    const inputs = (result.workflow["7"] as { inputs: Record<string, unknown> }).inputs;
+    assert.deepEqual(Object.keys(inputs).sort(), ["model", "shift"]);
+    assert.equal(typeof inputs.shift, "number");
+  });
+
   it("returns flux model sampling defaults", () => {
     assert.deepEqual(getModelSamplingPatchDefaults("flux-dev", "base"), {
       fluxMaxShift: 1.15,

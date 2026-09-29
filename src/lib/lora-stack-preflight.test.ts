@@ -95,3 +95,17 @@ describe("lora stack preflight", () => {
     assert.equal(issues.length, 0);
   });
 });
+
+describe("auditLoraStackAtQueueTime on turbo models", () => {
+  it("says turbo models drop style LoRAs instead of blaming filenames", () => {
+    const issues = auditLoraStackAtQueueTime({
+      model: "z-image-turbo",
+      workflowJson: JSON.stringify({ "1": { class_type: "UNETLoader", inputs: {} } }),
+      loraLibrary: [
+        { id: "zit", label: "ZIT", triggerPhrase: "", tokenValue: "zit.safetensors", enabled: true },
+      ],
+    });
+    assert.equal(issues.length, 1);
+    assert.match(issues[0]!.message, /turbo model drops style LoRAs/);
+  });
+});

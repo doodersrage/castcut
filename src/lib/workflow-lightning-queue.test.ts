@@ -597,7 +597,40 @@ describe("workflow-lightning-queue", () => {
         },
       }),
     });
-    assert.ok(issues.some((issue) => /non-Lightning LoRAs/i.test(issue.message)));
+    const baked = /style\/NSFW LoRAs? (baked in|that isn)/i;
+    assert.ok(issues.some((issue) => baked.test(issue.message)));
+    // The same LoRA chained in from your stack is intended, not a stray.
+    const withStack = auditLightningWorkflowIssues({
+      model: "qwen-image-2512-lightning-8",
+      stackLoraFilenames: ["nsfw_style.safetensors"],
+      workflowJson: JSON.stringify({
+        "7": {
+          class_type: "LoraLoader",
+          inputs: { lora_name: "qwen_lightning_8steps.safetensors", strength_model: 1 },
+        },
+        "8": {
+          class_type: "LoraLoader",
+          inputs: { lora_name: "nsfw_style.safetensors", strength_model: 0.7 },
+        },
+      }),
+    });
+    assert.equal(withStack.some((issue) => baked.test(issue.message)), false);
+    // Neutralized (strength 0) template LoRAs are not active.
+    const neutralized = auditLightningWorkflowIssues({
+      model: "qwen-image-2512-lightning-8",
+      alreadyPrepared: true,
+      workflowJson: JSON.stringify({
+        "7": {
+          class_type: "LoraLoader",
+          inputs: { lora_name: "qwen_lightning_8steps.safetensors", strength_model: 1, strength_clip: 0 },
+        },
+        "8": {
+          class_type: "LoraLoader",
+          inputs: { lora_name: "nsfw_style.safetensors", strength_model: 0, strength_clip: 0 },
+        },
+      }),
+    });
+    assert.equal(neutralized.some((issue) => baked.test(issue.message)), false);
   });
 });
 

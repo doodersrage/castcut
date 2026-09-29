@@ -21,6 +21,7 @@ export function runWorkflowPreflightSync(input: {
   objectInfoUnavailable?: boolean;
   customTokens?: Array<{ token: string; value: string }>;
   lightningAlreadyPrepared?: boolean;
+  stackLoraFilenames?: string[];
 }): { ok: boolean; issues: WorkflowPreflightIssue[] } {
   void input.negativePrompt;
   return summarizeWorkflowGraphPreflight(input);

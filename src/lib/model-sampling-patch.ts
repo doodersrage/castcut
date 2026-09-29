@@ -285,6 +285,8 @@ export function formatModelSamplingHint(
   return null;
 }
 
+const FLUX_ONLY_SAMPLING_INPUTS = ['max_shift', 'base_shift', 'width', 'height'] as const;
+
 export function patchModelSamplingInWorkflow(
   workflow: Record<string, unknown>,
   params: WorkflowParamValues,
@@ -362,6 +364,10 @@ export function patchModelSamplingInWorkflow(
           patched.samplingShift = (patched.samplingShift ?? 0) + 1;
         }
       }
+      // Shift-only samplers (AuraFlow, SD3…) take `shift` alone. Some imported Qwen graphs carry
+      // ModelSamplingFlux inputs on them; ComfyUI ignores those, but they stay as unfilled
+      // placeholders in every queued graph.
+      for (const stray of FLUX_ONLY_SAMPLING_INPUTS) delete inputs[stray];
       continue;
     }
 

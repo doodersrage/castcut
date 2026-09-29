@@ -35,6 +35,8 @@ export type WorkflowGraphPreflightInput = {
   customTokens?: Array<{ token: string; value: string }>;
   /** Inject already ran prepareLightningWorkflowForQueue — skip a second prep in audit. */
   lightningAlreadyPrepared?: boolean;
+  /** Files of the queued LoRA stack — chained in on purpose, so not "stray" style LoRAs. */
+  stackLoraFilenames?: string[];
 };
 
 /**
@@ -86,6 +88,7 @@ export function collectWorkflowGraphPreflightIssues(
       model: input.model,
       loraFilenames,
       alreadyPrepared: input.lightningAlreadyPrepared === true,
+      stackLoraFilenames: input.stackLoraFilenames,
     })
   );
 

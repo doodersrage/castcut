@@ -186,3 +186,35 @@ describe("previewWorkflowInjection", () => {
     });
   });
 });
+
+describe("previewWorkflowInjection LoRA stack", () => {
+  it("builds the preview with the LoRA library the browser forwards", () => {
+    const workflow = {
+      "1": { class_type: "UNETLoader", inputs: { unet_name: "flux-2-klein-9b-distilled.safetensors", weight_dtype: "default" } },
+      "2": { class_type: "CLIPTextEncode", inputs: { text: "{{POSITIVE}}", clip: ["3", 0] } },
+      "3": { class_type: "CLIPLoader", inputs: { clip_name: "qwen_3_8b_fp8mixed.safetensors", type: "flux2" } },
+      "4": { class_type: "KSampler", inputs: { model: ["1", 0], positive: ["2", 0], negative: ["2", 0], seed: 1, steps: 4, cfg: 1, sampler_name: "euler", scheduler: "simple", denoise: 1, latent_image: ["5", 0] } },
+      "5": { class_type: "EmptyLatentImage", inputs: { width: 1024, height: 1024, batch_size: 1 } },
+      "6": { class_type: "SaveImage", inputs: { images: ["4", 0], filename_prefix: "t" } },
+    };
+    const result = previewWorkflowInjection({
+      prompt: "A portrait.",
+      model: "flux-2-klein-9b-distilled",
+      comfy: {
+        workflowJson: JSON.stringify(workflow),
+        loraLibrary: [
+          {
+            id: "detail",
+            label: "Detail",
+            triggerPhrase: "",
+            tokenValue: "klein_detail.safetensors",
+            strengthModel: 0.6,
+            enabled: true,
+          },
+        ],
+      },
+    });
+    assert.equal(result.ok, true);
+    assert.match(result.workflowJson ?? "", /klein_detail\.safetensors/);
+  });
+});

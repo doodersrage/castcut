@@ -44,15 +44,31 @@ describe("loader-map-health-audit", () => {
         controlNets: [],
       },
     });
-    assert.equal(issues.length, 2);
-    assert.equal(
-      issues.find((issue) => issue.message.includes("flux-dev"))?.severity,
-      "error",
-    );
-    assert.equal(
-      issues.find((issue) => issue.message.includes("sdxl"))?.severity,
-      "warn",
-    );
+    // Both are untouched defaults for families that aren't installed: one advisory note.
+    assert.equal(issues.length, 1);
+    assert.equal(issues[0]?.severity, "warn");
+    assert.match(issues[0]!.message, /2 models not installed \(flux-dev, sdxl\)/);
+  });
+
+  it("keeps a changed map entry that points at a missing file an error", () => {
+    const issues = auditLoaderMapsAgainstComfyUi({
+      checkpointMap: { sdxl: "my_custom_sdxl.safetensors" },
+      vaeMap: {},
+      upscaleMap: {},
+      models: {
+        checkpoints: ["sd_xl_base_1.0.safetensors"],
+        unets: [],
+        vaes: [],
+        upscaleModels: [],
+        clips: [],
+        dualClipTypes: [],
+        clipLoaderTypes: [],
+        loras: [],
+        controlNets: [],
+      },
+    });
+    assert.equal(issues.length, 1);
+    assert.equal(issues[0]?.severity, "error");
   });
 
   it("flags Flux fine-tunes that only exist under checkpoints/", () => {

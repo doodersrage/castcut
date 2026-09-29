@@ -43,6 +43,8 @@ export function auditLoaderMapsAgainstComfyUi(input: {
   models: ComfyUiModelLists;
 }): WorkflowHealthIssue[] {
   const issues: WorkflowHealthIssue[] = [];
+  // Families you never installed keep their curated default file name — one note for all.
+  const notInstalled: string[] = [];
   const canValidateCheckpoints =
     input.models.checkpoints.length > 0 || input.models.unets.length > 0;
 
@@ -53,6 +55,10 @@ export function auditLoaderMapsAgainstComfyUi(input: {
     const inCheckpoint = filenameInList(filename, input.models.checkpoints);
     const inUnet = isFilenameInUnetLoaderList(filename, input.models.unets);
     if (inUnet) {
+      continue;
+    }
+    if (!inCheckpoint && isSuggestedCheckpointDefault(model, filename)) {
+      notInstalled.push(model);
       continue;
     }
     if (modelUsesUnetLoaderGraph(model)) {
@@ -68,15 +74,21 @@ export function auditLoaderMapsAgainstComfyUi(input: {
       continue;
     }
     if (!inCheckpoint) {
-      // Curated defaults for unused families are advisory; user overrides stay errors.
-      const severity = isSuggestedCheckpointDefault(model, filename) ? 'warn' : 'error';
       issues.push({
         workflowId: 'loader-map',
         workflowName: 'Checkpoint map',
-        severity,
+        severity: 'error',
         message: `${model} → “${filename}” not found in ComfyUI checkpoints or UNET list.`,
       });
     }
+  }
+  if (notInstalled.length > 0) {
+    issues.push({
+      workflowId: 'loader-map',
+      workflowName: 'Checkpoint map',
+      severity: 'warn',
+      message: `${notInstalled.length} model${notInstalled.length === 1 ? '' : 's'} not installed (${notInstalled.join(', ')}) — their default files aren't in ComfyUI. Fine unless you want to use them: Settings → Models → Get models.`,
+    });
   }
 
   for (const [model, filename] of Object.entries(input.vaeMap)) {

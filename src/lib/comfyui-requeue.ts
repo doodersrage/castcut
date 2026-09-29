@@ -1665,6 +1665,8 @@ export async function fetchWorkflowPreview(input: {
   comfy?: ComfyUiRuntimeConfig;
   hasInputImage?: boolean;
   hasMaskImage?: boolean;
+  /** Untruncated graph (for checks that read it); on-screen previews leave this off. */
+  fullWorkflow?: boolean;
 }): Promise<{
   ok?: boolean;
   error?: string;
@@ -1696,6 +1698,7 @@ export async function fetchWorkflowPreview(input: {
       model: input.model,
       hasInputImage: input.hasInputImage,
       hasMaskImage: input.hasMaskImage,
+      ...(input.fullWorkflow ? { fullWorkflow: true } : {}),
       ...(runtime ? { comfy: runtime } : {}),
     }),
   });

@@ -82,6 +82,11 @@ export function classifyLoaderFilenameFamily(filename: string): WorkflowStackFam
   if (/boogu/.test(lower)) {
     return 'qwen-edit';
   }
+  // Qwen 3 LLM text encoders serve other families (qwen_3_4b → Z-Image, qwen_3_8b → Klein);
+  // they say nothing about a Qwen-Image stack.
+  if (/qwen[-_]?3[-_]/.test(lower)) {
+    return 'other';
+  }
   if (/qwen/.test(lower)) {
     return 'qwen-t2i';
   }
@@ -385,12 +390,14 @@ export function auditWorkflowStackCompatibility(input: {
   workflow?: Record<string, unknown> | null;
   model: ComfyImageModel | string;
   syncWorkflowLoadersToModel?: boolean;
+  /** Library template (not a prepared graph): placeholders are expected, the queue fills them. */
+  template?: boolean;
 }): WorkflowStackAuditIssue[] {
   const fingerprint = extractWorkflowStackFingerprint(input.workflowJson, input.workflow);
   const issues: WorkflowStackAuditIssue[] = [];
   const modelFamily = resolveModelStackFamily(input.model);
 
-  if (fingerprint.hasUnresolvedModelSamplingShift) {
+  if (fingerprint.hasUnresolvedModelSamplingShift && !input.template) {
     issues.push({
       severity: 'warn',
       message:

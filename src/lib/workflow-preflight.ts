@@ -9,6 +9,7 @@ import { resolveQueueParams } from './queue-params-settings';
 import type { WorkflowParamValues } from './comfyui-config';
 import { auditLoaderMapsAtQueueTime } from './workflow-queue-loader-preflight';
 import { auditLoraStackAtQueueTime } from './lora-stack-preflight';
+import { resolveActiveLoraStack } from './lora-stack';
 import { fetchComfyObjectInfoCached } from './comfyui-object-info-cache';
 import {
   collectWorkflowGraphPreflightIssues,
@@ -118,6 +119,9 @@ export async function runWorkflowPreflight(input: {
       hasInputImage: input.hasInputImage,
       hasMaskImage: input.hasMaskImage,
       comfy: runtime,
+      // The LoRA and loader-map audits below read this graph — a truncated preview hid
+      // LoRA loaders on bigger (Lightning) graphs and reported them missing.
+      fullWorkflow: true,
     });
     if (!preview.ok) {
       issues.push({
@@ -167,6 +171,9 @@ export async function runWorkflowPreflight(input: {
           models: objectInfo?.models,
           objectInfoUnavailable: !objectInfo,
           customTokens: runtime?.customTokens,
+          stackLoraFilenames: resolveActiveLoraStack(runtime?.loraLibrary).map(
+            entry => entry.filename
+          ),
         })
       );
     }
