@@ -25,6 +25,37 @@ import {
   RAPID_VACATION_RECIPE_MARK,
 } from './rapid-duo-recipe-mark';
 
+const WEARABLE_RE =
+  /\b(?:hoodie|jacket|coat|blazer|dress|gown|robe|cloak|cape|shirt|t-shirt|blouse|top|tank|sweater|cardigan|bikini|swimsuit|lingerie|bra|panties|underwear|straps?|skirt|shorts|pants|trousers|jeans|leggings|stockings|socks|sleeves?(?!\s+tattoo)|boots?|shoes|heels|sneakers|hat|beanie|hood|gloves?|scarf|belt|harness|armou?r|mask|goggles|glasses|sunglasses|jewel(?:le)?ry|necklace|earrings?|bracelets?|rings?|piercings?|backpack|bag|drones?|gadgets?|headphones|outfit|costume|uniform|garments?|clothes|clothing)\b/i;
+
+/**
+ * The Cast descriptor with clothing and props taken out. Recipes name the clothes (or say nude)
+ * themselves; a descriptor like "a half-mushroom humanoid draped in a mossy hoodie, glowing
+ * cap-drones humming where sleeves end, bikini straps woven from bioluminescent mycelium" put a
+ * hoodie and glowing wires on every nude still and pulled the face off the Cast (live 2026-09-29).
+ */
+export function recipeBodyDescriptor(descriptor: string | null | undefined): string {
+  const text = descriptor?.trim().replace(/\.+$/, '') ?? '';
+  if (!text) return '';
+  return text
+    .split(/\s*[,;]\s*/)
+    .map(clause =>
+      // "… draped in a mossy hoodie" / "wearing a red coat" → keep the body before it.
+      clause.replace(
+        /\s+(?:draped|dressed|clad|wrapped|wearing|in)\b(?:\s+in)?\s+(?:a|an|the|her|his|their)?\s*[^,;]*$/i,
+        match => (WEARABLE_RE.test(match) ? '' : match)
+      )
+    )
+    .filter(clause => clause.trim() && !WEARABLE_RE.test(clause))
+    .join(', ')
+    .trim();
+}
+
+function descriptorLine(descriptor: string | null | undefined): string | null {
+  const body = recipeBodyDescriptor(descriptor);
+  return body ? `The woman: ${body}.` : null;
+}
+
 /** 69 / face-sit wording — Rapid renders these beats as seated oral (recipe + guide). */
 export const RAPID_ORAL_FALLBACK_RE =
   /\b(?:sixty[- ]nine|69|face[- ]sitting(?:\s+(?:a|her)\s+partner)?|sitting\s+on\s+(?:his|her|their)\s+face)\b/gi;
@@ -213,7 +244,7 @@ export function buildRapidDuoRecipe(input: {
       )}.`,
     room,
     input.nude === false ? clothedLine(input.outfitImage) : NUDE,
-    input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
+    descriptorLine(input.descriptor),
     'Keep her face from the first image.',
     // Rapid 69 beats get a face-sitting guide (day-slot-pose.ts), matching the fallback above.
     input.poseGuide
@@ -419,7 +450,7 @@ export function buildRapidSoloRecipe(input: {
     input.clothedOutfit !== undefined
       ? `She wears ${withArticle(input.clothedOutfit) ?? 'her outfit'}, pulled down off her breasts and pushed up around her waist — bare breasts with nipples visible and bare vulva.`
       : 'She is completely nude — bare breasts with nipples visible and bare vulva; zero fabric on her body.',
-    input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
+    descriptorLine(input.descriptor),
     'Keep her face from the first image.',
     input.poseGuide
       ? `Match her body to the ${input.poseGuide === true ? 'second' : input.poseGuide} image (pose map).`
@@ -576,7 +607,7 @@ export function buildRapidSuggestiveRecipe(input: {
     clothes,
     `Moment: ${beat}.`,
     recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),
-    input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
+    descriptorLine(input.descriptor),
     input.faceOnly === false && !input.outfitFromFirst
       ? 'Keep her face from the first image, not its clothes.'
       : 'Keep her face from the first image.',
@@ -738,7 +769,7 @@ export function buildRapidVacationRecipe(input: {
     clothes,
     `Moment: ${moment}.`,
     input.setting?.trim() ? `Place: ${input.setting.trim()}.` : null,
-    input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
+    descriptorLine(input.descriptor),
     input.faceOnly === false && !input.outfitFromFirst && !input.outfitImage
       ? 'Keep her face from the first image, not its clothes.'
       : 'Keep her face from the first image.',
@@ -805,7 +836,7 @@ export function buildRapidSuggestiveDuoRecipe(input: {
     `Moment: ${beat}.`,
     `She wears ${withArticle(hers)}; he wears ${partnerClothes(beat)}.`,
     recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),
-    input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
+    descriptorLine(input.descriptor),
     input.faceOnly === false && !input.outfitFromFirst && !input.outfitImage
       ? 'Keep her face from the first image, not its clothes; the man has his own face.'
       : 'Keep her face from the first image; the man has his own face.',

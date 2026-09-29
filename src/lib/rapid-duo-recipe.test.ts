@@ -494,3 +494,32 @@ describe('Rapid clothed recipes and kit labels', () => {
     assert.match(picnic, /he wears a casual shirt and jeans/);
   });
 });
+
+describe('Cast descriptors in recipes', () => {
+  const gloovi =
+    'A half-mushroom humanoid draped in a mossy hoodie, glowing cap-drones humming where sleeves end, bikini straps woven from bioluminescent mycelium that pulse with each beat.';
+
+  it('keep the body, drop clothing and props', async () => {
+    const { recipeBodyDescriptor } = await import('./rapid-duo-recipe');
+    assert.equal(recipeBodyDescriptor(gloovi), 'A half-mushroom humanoid');
+    assert.equal(
+      recipeBodyDescriptor('white woman in her 30s, freckles, athletic build, wearing a red leather jacket'),
+      'white woman in her 30s, freckles, athletic build'
+    );
+    assert.equal(
+      recipeBodyDescriptor('woman with a sleeve tattoo on her left arm, short platinum hair'),
+      'woman with a sleeve tattoo on her left arm, short platinum hair'
+    );
+    assert.equal(recipeBodyDescriptor('young woman with long dark-blonde hair'), 'young woman with long dark-blonde hair');
+  });
+
+  it('never put a costume on a nude still', () => {
+    const recipe = buildRapidDuoRecipe({
+      beat: 'missionary on the rumpled bed with morning light through blinds',
+      descriptor: gloovi,
+      poseGuide: true,
+    })!;
+    assert.match(recipe, /The woman: A half-mushroom humanoid\./);
+    assert.doesNotMatch(recipe, /hoodie|drones|straps|mycelium/);
+  });
+});

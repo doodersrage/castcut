@@ -2833,3 +2833,34 @@ describe('Suggestive keeps typed rooms, rerolls Vacation leftovers', () => {
     assert.equal(check('morning', 'sunny boardwalk with gelato carts and soft dune grass'), false);
   });
 });
+
+describe('adult Mixed stays adult', () => {
+  const ids = ['morning', 'morning-2', 'afternoon', 'afternoon-2', 'evening', 'evening-2', 'night', 'night-2'];
+  let seed = 11;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+  it('rolls only solo and duo adult beats on Mixed', () => {
+    for (const dayMood of ['intimate', 'raunchy'] as const) {
+      const adult = new Set(
+        ids.flatMap(id => (dayMood === 'intimate' ? intimateBeatsForMix : raunchyBeatsForMix)(id as never, 'mixed'))
+      );
+      for (let round = 0; round < 15; round += 1) {
+        const { slots } = diversifyDaySlotScenes(ids.map(id => ({ id, label: id })) as never, {
+          dayMood,
+          intimateMix: 'mixed',
+          forceBeats: true,
+          forceLocations: true,
+          random,
+        });
+        for (const slot of slots) assert.ok(adult.has(slot.sceneHints ?? ''), `${dayMood}: ${slot.sceneHints}`);
+      }
+    }
+  });
+
+  it('rerolls a leftover everyday beat but keeps a typed one', () => {
+    const everyday = { id: 'night', label: 'night', sceneHints: 'sitting cross-legged on the bed eating noodles from the carton', location: 'bedroom' };
+    const typed = { ...everyday, sceneHints: 'slow kiss on the balcony after dinner' };
+    assert.equal(daySlotMatchesAdultMix({ slot: everyday as never, dayMood: 'intimate', intimateMix: 'mixed' }), false);
+    assert.equal(daySlotMatchesAdultMix({ slot: typed as never, dayMood: 'intimate', intimateMix: 'mixed' }), true);
+  });
+});

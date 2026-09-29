@@ -1597,6 +1597,21 @@ function everydayBeatPresets(slotId: DaySlotId | string): string[] {
     : (DAY_SLOT_BEAT_PRESETS[part] ?? []);
 }
 
+let everydayPresetCache: Set<string> | null = null;
+
+/** Every everyday solo and companion beat preset, any slot. */
+function allEverydayBeatPresets(): Set<string> {
+  everydayPresetCache ??= new Set(
+    [
+      DAY_SLOT_BEAT_PRESETS,
+      DAY_LATE_SLOT_BEAT_PRESETS,
+      DAY_SLOT_COMPANION_BEAT_PRESETS,
+      DAY_LATE_SLOT_COMPANION_BEAT_PRESETS,
+    ].flatMap(table => Object.values(table).flat())
+  );
+  return everydayPresetCache;
+}
+
 function everydayCompanionBeatPresets(slotId: DaySlotId | string): string[] {
   const part = dayPartOf(slotId);
   return isLateDaySlot(slotId)
@@ -1953,19 +1968,12 @@ function beatPoolForDayMood(
     return dayVacationBeatPresetsForSlot(slotId);
   }
   if (mood === 'intimate') {
-    const heat = intimateBeatsForMix(slotId, intimateMix);
-    // Solo/Duo mix must stay inside the adult pool — no everyday coffee/walk fallback.
-    if (intimateMix !== 'mixed') {
-      return heat;
-    }
-    return [...heat, ...solo, ...companion];
+    // Every mix stays inside the adult pool: "Mixed" is solo + duo adult beats (its chip says
+    // so), and everyday coffee / sidewalk beats made a quarter of an Intimate Day non-intimate.
+    return intimateBeatsForMix(slotId, intimateMix);
   }
   if (mood === 'raunchy') {
-    const heat = raunchyBeatsForMix(slotId, intimateMix);
-    if (intimateMix !== 'mixed') {
-      return heat;
-    }
-    return [...heat, ...solo, ...companion];
+    return raunchyBeatsForMix(slotId, intimateMix);
   }
   return [...solo, ...companion];
 }
@@ -2038,7 +2046,7 @@ function pickDayBeatPools(
   ) {
     return { primary: heatPool, fallback: heatPool };
   }
-  if (isDayAdultMood(dayMood) && intimateMix !== 'mixed' && heatPool.length > 0) {
+  if (isDayAdultMood(dayMood) && heatPool.length > 0) {
     return { primary: heatPool, fallback: heatPool };
   }
   const companionPool = allowCompanions ? everydayCompanionBeatPresets(slotId) : [];
@@ -2416,9 +2424,10 @@ export function daySlotMatchesAdultMix(input: {
   if (mix === 'duo' && DAY_DUO_UNSAFE_SETTING_RE.test(setting)) {
     return false;
   }
-  // Mixed may keep custom heat beats — only prop/empty checks above apply.
+  // Mixed may keep custom heat beats — but a leftover everyday preset (coffee, sidewalk,
+  // noodles) is not one; reroll it into the solo + duo adult pools.
   if (mix === 'mixed') {
-    return true;
+    return !allEverydayBeatPresets().has(beat);
   }
   const heat = heatBeatPoolForDayMood(input.slot.id, dayMood, mix);
   if (heat.length === 0) {
