@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { gpuSettingsPatch, gpuSettingsSuggestion } from '@/lib/gpu-settings-match';
 import { DEFAULT_SHARED_SETTINGS, type SharedToolSettings } from '@/lib/settings-cache';
 
-/** "24 GB card → Max size · Final quality — Match this GPU" (only while it would change something). */
+/** "24 GB card → Max size · Good quality — Match this GPU" (only while it would change something). */
 export default function GpuMatchCard({
   totalVramGb,
   sharedSettings,

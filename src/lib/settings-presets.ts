@@ -18,7 +18,7 @@ export const SETTINGS_BROWSER_PRESETS: SettingsBrowserPreset[] = [
     id: 'iterate',
     label: 'Iterate',
     description:
-      'Fast draft loop — Draft queueing, no Max hold, VRAM guard on. Calm auto-improve: upscale keepers on 4–5★, no auto mutate/seed spam.',
+      'Fast draft loop — Fast queueing, no Best hold, VRAM guard on. Calm auto-improve: upscale keepers on 4–5★, no auto mutate/seed spam.',
     shared: {
       queueQualityProfile: 'draft',
       sessionQueueMode: 'iterate',
@@ -39,7 +39,7 @@ export const SETTINGS_BROWSER_PRESETS: SettingsBrowserPreset[] = [
     id: 'keeper',
     label: 'Keeper',
     description:
-      'Production renders — Final queueing, VRAM guard on. Balanced auto-improve: Final/Max upscale plus seed experiments on high ratings.',
+      'Production renders — Good queueing, VRAM guard on. Balanced auto-improve: Good/Best upscale plus seed experiments on high ratings.',
     shared: {
       queueQualityProfile: 'final',
       sessionQueueMode: 'keeper',
@@ -60,7 +60,7 @@ export const SETTINGS_BROWSER_PRESETS: SettingsBrowserPreset[] = [
     id: 'lab',
     label: 'Lab',
     description:
-      'Max-quality experiments — Max queueing, hold until idle, VRAM guard on. Aggressive auto-improve: mutate/seed/img2img refine on every high rating.',
+      'Best-quality experiments — Best queueing, hold until idle, VRAM guard on. Aggressive auto-improve: mutate/seed/img2img refine on every high rating.',
     shared: {
       queueQualityProfile: 'max',
       sessionQueueMode: 'off',

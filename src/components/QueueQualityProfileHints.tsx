@@ -100,7 +100,6 @@ export default function QueueQualityProfileHints({
     systemWorkflowLabel:
       systemChoice?.source === 'pack' ? systemChoice.label : systemChoice?.display,
   });
-  const sessionMode = shared.sessionQueueMode ?? 'off';
   const effectiveForTool = toolId
     ? formatQueueQualityProfileHint(
         resolveQueueQualityProfile({
@@ -115,28 +114,6 @@ export default function QueueQualityProfileHints({
       )
     : null;
 
-  function setSessionMode(mode: 'iterate' | 'keeper' | 'off') {
-    const next = loadSettingsCache().shared;
-    saveSharedSettings({ ...next, sessionQueueMode: mode });
-    setSettingsTick(value => value + 1);
-  }
-
-  function handleProfileChange(next: QueueQualityProfile) {
-    if (next === 'draft') {
-      setSessionMode('iterate');
-    } else if (next === 'final') {
-      setSessionMode('keeper');
-    } else {
-      setSessionMode('off');
-    }
-    onProfileChange(next);
-  }
-
-  function handleSessionMode(mode: 'iterate' | 'keeper') {
-    setSessionMode(mode);
-    onProfileChange(mode === 'iterate' ? 'draft' : 'final');
-  }
-
   return (
     <div className="ui-panel-accent px-3 py-2.5">
       <div className="space-y-3">
@@ -148,43 +125,23 @@ export default function QueueQualityProfileHints({
           </p>
         </div>
 
-        <div className="space-y-1.5">
-          <p className="type-caption text-[var(--text-tertiary)]">Session mode</p>
-          <div className="grid min-w-0 grid-cols-2 gap-1.5">
-            <ChipButton
-              active={sessionMode === 'iterate' || profile === 'draft'}
-              onClick={() => handleSessionMode('iterate')}
-              className="w-full justify-center px-2"
-            >
-              Iterate
-            </ChipButton>
-            <ChipButton
-              active={sessionMode === 'keeper' || profile === 'final'}
-              onClick={() => handleSessionMode('keeper')}
-              className="w-full justify-center px-2"
-            >
-              Keeper
-            </ChipButton>
-          </div>
-          <p className="type-caption text-[var(--text-muted)]">
-            {draftBumped
-              ? 'Iterate → Fast (queues as Good for polish on this model). Keeper → Good. Best stays separate.'
-              : 'Iterate → Fast for quick loops. Keeper → Good for keepers. Best stays a separate quality chip.'}
-          </p>
-        </div>
-
         <div className="grid min-w-0 grid-cols-2 gap-1.5">
           {QUEUE_QUALITY_PROFILE_OPTIONS.map(option => (
             <ChipButton
               key={option.id}
               active={profile === option.id}
-              onClick={() => handleProfileChange(option.id)}
+              onClick={() => onProfileChange(option.id)}
               className="w-full justify-center px-2"
             >
               {option.id === 'draft' && draftBumped ? 'Fast → Good' : option.label}
             </ChipButton>
           ))}
         </div>
+        {draftBumped ? (
+          <p className="type-caption text-[var(--text-muted)]">
+            Fast queues as Good on this model so its polish pass runs.
+          </p>
+        ) : null}
 
         {pipelinePreview.length > 0 || heldCount > 0 ? (
           <div className="space-y-1.5">

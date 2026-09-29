@@ -40,8 +40,7 @@ export default function LlmPromptQualityPanel({
             ))}
           </div>
           <p className="type-caption text-[var(--text-muted)]">
-            {DETAIL_OPTIONS.find(entry => entry.id === detail)?.hint}. Also available under ComfyUI
-            → Prompt quality.
+            {DETAIL_OPTIONS.find(entry => entry.id === detail)?.hint}.
           </p>
         </div>
 

@@ -292,7 +292,7 @@ export default function QueueOrchestrationPanel(props: { compact?: boolean }) {
         <StatCard
           label="Held Max jobs"
           value={String(heldJobs.length)}
-          detail={holdMaxUntilIdle ? 'Hold Max until idle is on' : 'Hold Max until idle is off'}
+          detail={holdMaxUntilIdle ? 'Hold Best until idle is on' : 'Hold Best until idle is off'}
         />
         <StatCard
           label="Failed locally"
@@ -308,7 +308,7 @@ export default function QueueOrchestrationPanel(props: { compact?: boolean }) {
       <div className="mt-4 space-y-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 px-3 py-2.5">
         <div className="flex flex-wrap items-center gap-2">
           <ChipButton active={holdMaxUntilIdle} onClick={() => toggleHoldMax(!holdMaxUntilIdle)}>
-            Hold Max until idle
+            Hold Best until idle
           </ChipButton>
           <Button
             variant="secondary"

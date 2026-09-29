@@ -12,9 +12,12 @@ import { poseLayoutLabel } from '@/lib/pose-layout-labels';
 import PoseControlNetStatus from '@/components/settings/PoseControlNetStatus';
 import VramAutoThresholdNote from '@/components/settings/VramAutoThresholdNote';
 import GpuMatchCard from '@/components/settings/GpuMatchCard';
+import KleinEnhancerStatus, {
+  kleinEnhancerInstalled,
+  useKleinEnhancerNodes,
+} from '@/components/settings/KleinEnhancerStatus';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { SharedToolSettings } from '@/lib/settings-cache';
-import type { DetailLevel } from '@/lib/detail-level';
 import {
   MODEL_SAMPLER_PRESET_OPTIONS,
   normalizeModelSamplerPresetTier,
@@ -25,17 +28,14 @@ import {
   normalizeResolutionOrientation,
   normalizeResolutionSizeTier,
 } from '@/lib/model-resolution-defaults';
-import { normalizeQueueQualityProfile } from '@/lib/queue-quality-profile';
+import {
+  normalizeQueueQualityProfile,
+  type QueueQualityProfile,
+} from '@/lib/queue-quality-profile';
 import {
   normalizePoseGuideStylePreference,
   type PoseGuideStylePreference,
 } from '@/lib/pose-guide-prompt';
-
-const DETAIL_OPTIONS: Array<{ id: DetailLevel; label: string }> = [
-  { id: 'concise', label: 'Concise' },
-  { id: 'balanced', label: 'Balanced' },
-  { id: 'rich', label: 'Rich' },
-];
 
 const POSE_GUIDE_STYLE_OPTIONS: Array<{
   id: PoseGuideStylePreference;
@@ -61,6 +61,19 @@ const POSE_GUIDE_STYLE_OPTIONS: Array<{
       'Older colored capsule (or gray outline on Rapid AIO / Edit-2511) mannequins with long anti-leak prompts. Use to compare against OpenPose. FLUX.2 Klein always gets OpenPose — it paints mannequins into the photo.',
   },
 ];
+
+/** What the sampler preset does under the chosen queue quality (see resolveEffectiveSamplerPreset). */
+function samplerPresetEffect(profile: QueueQualityProfile): string {
+  if (profile === 'followSettings') {
+    return 'Used as chosen — queue quality is set to Follow sidebar.';
+  }
+  if (profile === 'final') {
+    return 'Good uses at least Optimized — pick Max compatible or Max quality to go higher.';
+  }
+  return profile === 'draft'
+    ? 'Not used while queue quality is Fast (always Base). Pick Follow sidebar to use it.'
+    : 'Not used while queue quality is Best (always Max quality). Pick Follow sidebar to use it.';
+}
 
 /**
  * Harvested-pose library (Day Auto-review + DWPose). Count and a reset — the entries are
@@ -158,12 +171,15 @@ export default function SettingsPromptQualityPanel({
   freeVramGb,
   totalVramGb,
 }: SettingsPromptQualityPanelProps) {
-  const detail = sharedSettings.detail ?? 'balanced';
   const poseGuideStyle = normalizePoseGuideStylePreference(sharedSettings.poseGuideStyle);
   const vramEnabled = sharedSettings.vramGuardEnabled !== false;
   const minFreeGb = sharedSettings.vramGuardMinFreeGb ?? 6;
   const freeVramAfterMax = sharedSettings.freeVramAfterMax === true;
   const samplerPreset = normalizeModelSamplerPresetTier(sharedSettings.modelSamplerPreset);
+  const queueProfile = normalizeQueueQualityProfile(sharedSettings.queueQualityProfile);
+  const kleinNodes = useKleinEnhancerNodes();
+  // Sub-options only matter when the pack is there (or ComfyUI hasn't said yet).
+  const kleinPackMissing = kleinEnhancerInstalled(kleinNodes) === false;
   const orientation = normalizeResolutionOrientation(sharedSettings.modelResolutionOrientation);
   const coreOrientations = RESOLUTION_ORIENTATION_OPTIONS.filter(option =>
     RESOLUTION_ORIENTATION_CORE.includes(option.id)
@@ -174,27 +190,15 @@ export default function SettingsPromptQualityPanel({
       <ToolSection id="settings-comfyui-prompt-quality" title="Prompt quality">
         <p className="text-sm text-[var(--text-muted)]">
           Defaults applied when generating and when queueing to ComfyUI. Tool sidebars can still
-          override for a single session.
+          override for a single session. Prompt length (concise / balanced / rich) is under{' '}
+          <Link
+            href="/settings?tab=llm"
+            className="text-[var(--accent-text)] underline-offset-2 hover:underline"
+          >
+            LLM → Prompt quality
+          </Link>
+          .
         </p>
-
-        <div className="space-y-2">
-          <p className="type-caption text-[var(--text-muted)]">Default prompt detail</p>
-          <div className="flex flex-wrap gap-1.5">
-            {DETAIL_OPTIONS.map(option => (
-              <ChipButton
-                key={option.id}
-                active={detail === option.id}
-                disabled={!sharedMounted}
-                onClick={() => updateSharedSettings({ detail: option.id })}
-              >
-                {option.label}
-              </ChipButton>
-            ))}
-          </div>
-          <p className="type-caption text-[var(--text-muted)]">
-            Controls LLM length/density budgets (concise / balanced / rich).
-          </p>
-        </div>
 
         <div className="space-y-2">
           <p className="type-caption text-[var(--text-muted)]">Default sampler preset</p>
@@ -211,6 +215,9 @@ export default function SettingsPromptQualityPanel({
               </ChipButton>
             ))}
           </div>
+          <p className="type-caption text-[var(--text-muted)]" data-testid="sampler-preset-effect">
+            {samplerPresetEffect(queueProfile)}
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -240,7 +247,9 @@ export default function SettingsPromptQualityPanel({
         <div className="scroll-mt-28 space-y-2" id="settings-pose-guide">
           <p className="text-sm font-medium text-[var(--text-primary)]">Pose guide style</p>
           <div className="flex flex-wrap gap-1.5">
-            {POSE_GUIDE_STYLE_OPTIONS.map(option => (
+            {POSE_GUIDE_STYLE_OPTIONS.filter(
+              option => option.id !== 'legacy' || poseGuideStyle === 'legacy'
+            ).map(option => (
               <ChipButton
                 key={option.id}
                 active={poseGuideStyle === option.id}
@@ -254,6 +263,20 @@ export default function SettingsPromptQualityPanel({
           </div>
           <p className="type-caption text-[var(--text-muted)]">
             {POSE_GUIDE_STYLE_OPTIONS.find(option => option.id === poseGuideStyle)?.description}
+            {poseGuideStyle !== 'legacy' ? (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  className="ui-text-link"
+                  disabled={!sharedMounted}
+                  data-testid="settings-pose-legacy-compare"
+                  onClick={() => updateSharedSettings({ poseGuideStyle: 'legacy' })}
+                >
+                  Compare with legacy capsules
+                </button>
+              </>
+            ) : null}
           </p>
           <label className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
             <input
@@ -318,9 +341,12 @@ export default function SettingsPromptQualityPanel({
               Color Anchor with few-step ramp tuning. Identity lock strength maps to HARD/MID/SOFT
               (4B caps at MID).
             </span>
+            {sharedMounted && sharedSettings.kleinEnhancerEnabled !== false ? (
+              <KleinEnhancerStatus nodes={kleinNodes} />
+            ) : null}
           </span>
         </label>
-        {sharedSettings.kleinEnhancerEnabled !== false ? (
+        {sharedSettings.kleinEnhancerEnabled !== false && !kleinPackMissing ? (
           <div className="space-y-2 rounded-xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)]/30 px-3 py-3">
             <label className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
               <input
@@ -388,15 +414,10 @@ export default function SettingsPromptQualityPanel({
           updateSharedSettings={updateSharedSettings}
         />
         <QueueQualityProfileHints
-          profile={normalizeQueueQualityProfile(sharedSettings.queueQualityProfile)}
+          profile={queueProfile}
           samplerPreset={samplerPreset}
           resolutionSizeTier={normalizeResolutionSizeTier(sharedSettings.modelResolutionSizeTier)}
-          onProfileChange={profile =>
-            updateSharedSettings({
-              queueQualityProfile: profile,
-              sessionQueueMode: 'off',
-            })
-          }
+          onProfileChange={profile => updateSharedSettings({ queueQualityProfile: profile })}
         />
 
         <p className="type-caption text-[var(--text-muted)]">
@@ -411,10 +432,10 @@ export default function SettingsPromptQualityPanel({
         </p>
       </ToolSection>
 
-      <ToolSection id="settings-comfyui-vram-guard" title="VRAM Max guard">
+      <ToolSection id="settings-comfyui-vram-guard" title="VRAM guard">
         <p className="text-sm text-[var(--text-muted)]">
-          When free VRAM is low, Max enrich automatically downgrades to Final (skips neural upscale
-          / peak refiner load).
+          When free VRAM is low, Best automatically downgrades to Good (skips neural upscale / peak
+          refiner load).
         </p>
         {typeof freeVramGb === 'number' ? (
           <p className="type-caption text-[var(--text-muted)]">
@@ -432,7 +453,7 @@ export default function SettingsPromptQualityPanel({
           />
           <span className="space-y-1">
             <span className="block text-sm font-medium text-[var(--text-primary)]">
-              Downgrade Max → Final when VRAM is tight
+              Downgrade Best → Good when VRAM is tight
             </span>
             <span className="block text-xs text-[var(--text-muted)]">
               Recommended on for 16–24GB cards while other jobs are running.
@@ -441,7 +462,7 @@ export default function SettingsPromptQualityPanel({
         </label>
         <label className="block space-y-2 text-sm">
           <span className="type-caption text-[var(--text-muted)]">
-            Min free VRAM before Max (GB)
+            Min free VRAM before Best (GB)
           </span>
           <input
             type="number"
@@ -494,10 +515,10 @@ export default function SettingsPromptQualityPanel({
           />
           <span className="space-y-1">
             <span className="block text-sm font-medium text-[var(--text-primary)]">
-              Free VRAM after Max jobs
+              Free VRAM after Best jobs
             </span>
             <span className="block text-xs text-[var(--text-muted)]">
-              Calls ComfyUI&apos;s unload/free-memory endpoint once a Max-quality gallery job
+              Calls ComfyUI&apos;s unload/free-memory endpoint once a Best-quality gallery job
               finishes, so the next job on that host starts with a clean slate.
             </span>
           </span>

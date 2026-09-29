@@ -613,6 +613,11 @@ export type SharedToolSettings = {
    * `vramGuardMinFreeGb`. Default on; editing the number turns it off.
    */
   vramGuardAutoThreshold?: boolean;
+  /**
+   * GPU size (GB) that size tier + queue quality were last matched to automatically (see
+   * gpu-settings-match). Set once per card, so a later manual choice is never re-matched.
+   */
+  gpuMatchAutoGb?: number;
   /** When true, call ComfyUI's `/free` (unload + free VRAM) after a Max-quality gallery job completes. */
   freeVramAfterMax?: boolean;
   /** Per-model sampler params learned from 4–5★ gallery ratings. */

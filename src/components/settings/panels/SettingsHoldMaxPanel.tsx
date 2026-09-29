@@ -31,18 +31,18 @@ export default function SettingsHoldMaxPanel({
             updateSharedSettings({ holdMaxUntilIdle: event.target.checked });
             setStatus(
               event.target.checked
-                ? 'Hold Max until idle enabled.'
-                : 'Hold Max until idle disabled.'
+                ? 'Hold Best until idle enabled.'
+                : 'Hold Best until idle disabled.'
             );
           }}
           className={`mt-1 h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-muted)] ${accentFocusClass(ACCENT)}`}
         />
         <span className="space-y-1">
           <span className="block text-sm font-medium text-[var(--text-primary)]">
-            Hold Max until idle
+            Hold Best until idle
           </span>
           <span className="block text-xs text-[var(--text-muted)]">
-            Avoid stacking Max enrich while ComfyUI is already busy. Also shown on Queue →
+            Avoid stacking Best jobs while ComfyUI is already busy. Also shown on Queue →
             Orchestration.
           </span>
         </span>

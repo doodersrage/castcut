@@ -8,7 +8,7 @@ import {
   resolveKeyToCheck,
 } from './engine-key-check';
 import { CLOUD_ENGINE_IDS } from './engine/capabilities';
-import { gpuSettingsPatch, gpuSettingsSuggestion } from './gpu-settings-match';
+import { gpuAutoMatchPlan, gpuSettingsPatch, gpuSettingsSuggestion } from './gpu-settings-match';
 import { DEFAULT_SHARED_SETTINGS } from './settings-cache';
 
 const GB = 2 ** 30;
@@ -24,7 +24,7 @@ describe('match settings to the GPU', () => {
     );
     assert.equal(
       gpuSettingsSuggestion(24 * GB)?.label,
-      '24 GB card → Max size · Final quality'
+      '24 GB card → Max size · Good quality'
     );
     // What an RTX 4090 actually reports to ComfyUI — labelled as the 24 GB card it is sold as.
     assert.equal(gpuSettingsSuggestion(25_333_661_696)?.totalGb, 24);
@@ -53,6 +53,32 @@ describe('match settings to the GPU', () => {
         suggestion
       ),
       {}
+    );
+  });
+
+  it('matches automatically once per card, with the old values for Undo', () => {
+    const suggestion = gpuSettingsSuggestion(24 * GB)!;
+    const fresh = { ...DEFAULT_SHARED_SETTINGS };
+    assert.deepEqual(gpuAutoMatchPlan(fresh, DEFAULT_SHARED_SETTINGS, suggestion), {
+      patch: { modelResolutionSizeTier: 'max', queueQualityProfile: 'final', gpuMatchAutoGb: 24 },
+      previous: {
+        modelResolutionSizeTier: DEFAULT_SHARED_SETTINGS.modelResolutionSizeTier,
+        queueQualityProfile: DEFAULT_SHARED_SETTINGS.queueQualityProfile,
+      },
+    });
+    assert.equal(
+      gpuAutoMatchPlan({ ...fresh, gpuMatchAutoGb: 24 }, DEFAULT_SHARED_SETTINGS, suggestion),
+      null,
+      'already matched to this card'
+    );
+    // A new card is matched again, but still only where settings are at their defaults.
+    assert.deepEqual(
+      gpuAutoMatchPlan(
+        { ...fresh, gpuMatchAutoGb: 12, queueQualityProfile: 'max' },
+        DEFAULT_SHARED_SETTINGS,
+        suggestion
+      )?.patch,
+      { modelResolutionSizeTier: 'max', gpuMatchAutoGb: 24 }
     );
   });
 });

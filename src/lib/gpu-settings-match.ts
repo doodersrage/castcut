@@ -11,7 +11,7 @@ export type GpuSettingsSuggestion = {
   totalGb: number;
   sizeTier: ResolutionSizeTier;
   qualityProfile: Exclude<QueueQualityProfile, 'followSettings'>;
-  /** "24 GB card → Max size · Final quality". */
+  /** "24 GB card → Max size · Good quality". */
   label: string;
 };
 
@@ -21,9 +21,9 @@ const SIZE_LABEL: Record<ResolutionSizeTier, string> = {
   max: 'Max size',
 };
 const QUALITY_LABEL: Record<GpuSettingsSuggestion['qualityProfile'], string> = {
-  draft: 'Draft quality',
-  final: 'Final quality',
-  max: 'Max quality',
+  draft: 'Fast quality',
+  final: 'Good quality',
+  max: 'Best quality',
 };
 
 /** Suggestion for a card with `totalBytes` of VRAM, or null when unknown. */
@@ -78,4 +78,24 @@ export function gpuSettingsPatch(
     patch.queueQualityProfile = suggestion.qualityProfile;
   }
   return patch;
+}
+
+/**
+ * The one-time automatic match for this card: the patch plus the values it replaces (for Undo).
+ * Null when this card was already matched (or offered, before matching went automatic).
+ */
+export function gpuAutoMatchPlan(
+  shared: Partial<SharedToolSettings>,
+  defaults: Partial<SharedToolSettings>,
+  suggestion: GpuSettingsSuggestion
+): { patch: Partial<SharedToolSettings>; previous: Partial<SharedToolSettings> } | null {
+  if (shared.gpuMatchAutoGb === suggestion.totalGb) {
+    return null;
+  }
+  const changes = gpuSettingsPatch(shared, defaults, suggestion);
+  const previous: Partial<SharedToolSettings> = {};
+  for (const key of Object.keys(changes) as Array<keyof typeof changes>) {
+    (previous as Record<string, unknown>)[key] = shared[key];
+  }
+  return { patch: { ...changes, gpuMatchAutoGb: suggestion.totalGb }, previous };
 }
