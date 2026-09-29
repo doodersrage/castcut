@@ -3,10 +3,7 @@
 import dynamic from 'next/dynamic';
 import DiffusersSamplingReadout from '@/components/DiffusersSamplingReadout';
 import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model-resolution-defaults';
-import {
-  formatQueueQualityProfileLabel,
-  type QueueQualityProfile,
-} from '@/lib/queue-quality-profile';
+import { type QueueQualityProfile } from '@/lib/queue-quality-profile';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { SystemWorkflowChoiceDescription } from '@/lib/system-workflow-runtime';
 
@@ -35,7 +32,6 @@ export default function SharedQueueQualityBlock({
   systemPathActive,
   roleplayVariant,
   queueQualityProfile,
-  lockedVariationSeed,
   systemWorkflowChoice,
   toolId,
   shared,
@@ -47,32 +43,15 @@ export default function SharedQueueQualityBlock({
   if (cloudEngine) {
     return (
       <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-        Cloud engines use the prompt and size from this tool. Draft/Final/Max do not patch a Comfy
-        graph.
+        Cloud engines use the prompt and size from this tool. Quality does not patch a Comfy graph.
       </p>
     );
   }
 
-  if (!systemPathActive) {
-    return null;
-  }
-
   return (
     <div className="space-y-2">
-      <p
-        data-testid="queue-seed-quality-clarity"
-        className="rounded-lg border border-[var(--border-subtle)]/70 bg-[var(--bg-base)]/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-[var(--text-secondary)]"
-      >
-        Queue uses{' '}
-        <span className="font-medium text-[var(--text-primary)]">
-          {formatQueueQualityProfileLabel(queueQualityProfile)}
-        </span>
-        {' · '}
-        {lockedVariationSeed?.trim()
-          ? `pinned seed ${lockedVariationSeed.trim().slice(0, 24)}${lockedVariationSeed.trim().length > 24 ? '…' : ''}`
-          : 'new seed each send'}
-      </p>
-      {systemWorkflowChoice ? (
+      {/* The Engine chip and Quality already say the profile; this names the graph only. */}
+      {systemPathActive && systemWorkflowChoice ? (
         <p className="text-xs leading-relaxed text-[var(--text-muted)]">
           Graph:{' '}
           <span className="text-[var(--text-secondary)]">{systemWorkflowChoice.display}</span>

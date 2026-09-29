@@ -124,11 +124,11 @@ export default function SharedToolAdvancedCollapsible({
     <>
       {roleplayVariant ? identitySurface : null}
       <CollapsibleSection
-        title="Advanced settings"
+        title="More"
         summary={
           roleplayVariant
-            ? 'Quality and LoRA stack.'
-            : 'LoRAs, embeddings, identity, sampling, wildcards, and automation.'
+            ? 'Sampler, canvas size, and render style.'
+            : 'Identity lock, workflow, sampler & size, pins.'
         }
         defaultOpen={advancedOpenByDefault}
         persistKey="shared-advanced-settings"

@@ -1,6 +1,6 @@
 'use client';
 
-import { ChipButton } from '@/components/ui/Field';
+import { ChipButton, FieldLabel } from '@/components/ui/Field';
 import {
   formatModelResolutionHint,
   getModelResolutionPreset,
@@ -20,6 +20,8 @@ type ModelResolutionHintsProps = {
   sizeTier: ResolutionSizeTier;
   onOrientationChange: (orientation: ResolutionOrientation) => void;
   onSizeTierChange: (tier: ResolutionSizeTier) => void;
+  /** Engine panel shows aspect up top and canvas size under More; the rest shows both. */
+  part?: 'all' | 'orientation' | 'size';
 };
 
 export default function ModelResolutionHints({
@@ -28,6 +30,7 @@ export default function ModelResolutionHints({
   sizeTier,
   onOrientationChange,
   onSizeTierChange,
+  part = 'all',
 }: ModelResolutionHintsProps) {
   const allowedOrientations = resolutionOrientationsForModel(model);
   const allowedSizeTiers = resolutionSizeTiersForModel(model);
@@ -62,6 +65,52 @@ export default function ModelResolutionHints({
     sizeTierOptions.find(option => option.id === effectiveSizeTier) ??
     sizeTierOptions[0] ??
     RESOLUTION_SIZE_TIER_OPTIONS[1];
+
+  if (part === 'orientation') {
+    return (
+      <div className="space-y-2" data-testid="engine-aspect">
+        <FieldLabel
+          hint={formatModelResolutionHint(model, effectiveOrientation, effectiveSizeTier)}
+        >
+          Aspect
+        </FieldLabel>
+        <div className="flex flex-wrap gap-1.5">
+          {orientationOptions.map(option => (
+            <ChipButton
+              key={option.id}
+              active={effectiveOrientation === option.id}
+              onClick={() => onOrientationChange(option.id)}
+              title={option.description}
+            >
+              {option.label}
+            </ChipButton>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (part === 'size') {
+    return (
+      <div className="space-y-2">
+        <FieldLabel hint={`${activeTier.description} · ${preset.width}×${preset.height}px`}>
+          Canvas size
+        </FieldLabel>
+        <div className="flex flex-wrap gap-1.5">
+          {sizeTierOptions.map(option => (
+            <ChipButton
+              key={option.id}
+              active={effectiveSizeTier === option.id}
+              onClick={() => onSizeTierChange(option.id)}
+              title={option.description}
+            >
+              {option.label}
+            </ChipButton>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-w-0 overflow-hidden rounded-xl border border-[var(--accent-border)] bg-[var(--accent-muted)] px-3 py-2.5">

@@ -2,7 +2,7 @@
 
 import { expandWildcardText, textHasWildcardTokens } from '@/lib/wildcard-expand';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
-import { FieldDivider, FieldLabel } from '@/components/ui/Field';
+import { FieldLabel } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 import type { SharedAdvancedSectionsProps } from '@/components/shared-tool-controls/SharedAdvancedSections';
 
@@ -19,10 +19,6 @@ export type SharedWildcardsRetrySectionProps = Pick<
   | 'wildcardPreview'
   | 'onWildcardPreviewChange'
   | 'shared'
-  | 'autoRetryOnOom'
-  | 'onAutoRetryOnOomChange'
-  | 'oomRetryDowngrade'
-  | 'onOomRetryDowngradeChange'
 >;
 
 export default function SharedWildcardsRetrySection({
@@ -37,20 +33,18 @@ export default function SharedWildcardsRetrySection({
   wildcardPreview,
   onWildcardPreviewChange,
   shared,
-  autoRetryOnOom,
-  onAutoRetryOnOomChange,
-  oomRetryDowngrade,
-  onOomRetryDowngradeChange,
 }: SharedWildcardsRetrySectionProps) {
-  if (roleplayVariant) {
+  // Only when the prompt has __list__ / {a|b} tokens. Auto-retry on OOM lives in Settings →
+  // ComfyUI (a queue behaviour, not a per-image choice).
+  if (roleplayVariant || !textHasWildcardTokens(wildcardPreviewText ?? recommendFromText)) {
     return null;
   }
 
   return (
     <CollapsibleSection
-      title="Wildcards & auto-retry"
-      summary="Dynamic prompt tokens and OOM/execution_error auto-retry."
-      defaultOpen={false}
+      title="Wildcards"
+      summary={expandWildcards ? 'Tokens in this prompt expand on queue.' : 'Tokens stay as typed.'}
+      defaultOpen
       persistKey="shared-wildcards-oom-retry"
     >
       <label className="flex cursor-pointer items-start gap-3">
@@ -125,53 +119,9 @@ export default function SharedWildcardsRetrySection({
                 </pre>
               ) : null}
             </div>
-          ) : (
-            <p className="type-caption text-[var(--text-muted)]">
-              Add <code>__list__</code> or <code>{'{a|b}'}</code> tokens to the draft/hints to
-              preview expansion here.
-            </p>
-          )}
+          ) : null}
         </div>
       )}
-
-      <FieldDivider />
-
-      <label className="flex cursor-pointer items-start gap-3">
-        <input
-          type="checkbox"
-          checked={autoRetryOnOom}
-          onChange={e => onAutoRetryOnOomChange(e.target.checked)}
-          className={checkboxClass}
-        />
-        <span className="space-y-1">
-          <span className="type-heading block">Auto-retry on OOM</span>
-          <span className="type-caption block">
-            When a Best/Good gallery job fails with an OOM/CUDA/execution_error, automatically
-            re-queue it once.
-          </span>
-        </span>
-      </label>
-
-      <label
-        className={`flex items-start gap-3 ${
-          autoRetryOnOom ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
-        }`}
-      >
-        <input
-          type="checkbox"
-          checked={oomRetryDowngrade}
-          disabled={!autoRetryOnOom}
-          onChange={e => onOomRetryDowngradeChange(e.target.checked)}
-          className={checkboxClass}
-        />
-        <span className="space-y-1">
-          <span className="type-heading block">Downgrade quality on retry</span>
-          <span className="type-caption block">
-            Best → Good / Good → Fast on the same host; if a pool has multiple endpoints, an
-            alternate one is also tried.
-          </span>
-        </span>
-      </label>
     </CollapsibleSection>
   );
 }

@@ -1,8 +1,13 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { hasModelSamplerOverrides } from '@/lib/model-sampler-defaults';
-import { formatQueueQualityProfileLabel } from '@/lib/queue-quality-profile';
+import Link from 'next/link';
+import {
+  hasModelSamplerOverrides,
+  MODEL_SAMPLER_PRESET_OPTIONS,
+} from '@/lib/model-sampler-defaults';
+import { ANATOMY_GUARD_OPTIONS } from '@/lib/anatomy-guard';
+import { RENDER_REALISM_OPTIONS } from '@/lib/render-realism';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import type { SharedAdvancedSectionsProps } from '@/components/shared-tool-controls/SharedAdvancedSections';
 
@@ -18,27 +23,10 @@ const ModelResolutionHints = dynamic(() => import('@/components/ModelResolutionH
   ssr: false,
   loading: () => null,
 });
-const RenderRealismHints = dynamic(() => import('@/components/RenderRealismHints'), {
-  ssr: false,
-  loading: () => null,
-});
-const AnatomyGuardHints = dynamic(() => import('@/components/AnatomyGuardHints'), {
-  ssr: false,
-  loading: () => null,
-});
-const QueueQualityProfileHints = dynamic(() => import('@/components/QueueQualityProfileHints'), {
-  ssr: false,
-  loading: () => null,
-});
-const QueueRecipesPanel = dynamic(() => import('@/components/QueueRecipesPanel'), {
-  ssr: false,
-  loading: () => null,
-});
 
 export type SharedQualitySamplingSectionProps = Pick<
   SharedAdvancedSectionsProps,
   | 'cloudEngine'
-  | 'systemPathActive'
   | 'samplerOverrides'
   | 'advancedOpenByDefault'
   | 'shared'
@@ -50,25 +38,30 @@ export type SharedQualitySamplingSectionProps = Pick<
   | 'onResolutionOrientationChange'
   | 'onResolutionSizeTierChange'
   | 'queueQualityProfile'
-  | 'onQueueQualityProfileChange'
-  | 'toolId'
-  | 'toolProfileOverride'
-  | 'onToolQueueQualityChange'
-  | 'lockedVariationSeed'
   | 'roleplayVariant'
-  | 'recipesShared'
-  | 'onRecipesApplied'
   | 'renderRealismMode'
-  | 'onRenderRealismModeChange'
   | 'anatomyGuardMode'
-  | 'onAnatomyGuardModeChange'
   | 'recommendFromText'
   | 'onModelChange'
 >;
 
+/** What the sampler preset and canvas size do under this tool's quality. */
+function samplerSizeEffect(profile: SharedQualitySamplingSectionProps['queueQualityProfile']) {
+  if (profile === 'followSettings') {
+    return 'Quality is Custom — these are used as set.';
+  }
+  if (profile === 'max') {
+    return 'Quality is Best — it uses the Max sampler and the largest canvas; these apply under Custom.';
+  }
+  return 'Quality is Good — these act as a minimum (at least Optimized, medium canvas).';
+}
+
+/**
+ * Sampler & size under More. Queue quality lives at the top of the Engine; render style and
+ * anatomy guard are Settings-wide (Settings → Prompt quality) — one line here says which.
+ */
 export default function SharedQualitySamplingSection({
   cloudEngine,
-  systemPathActive,
   samplerOverrides,
   advancedOpenByDefault,
   shared,
@@ -80,96 +73,59 @@ export default function SharedQualitySamplingSection({
   onResolutionOrientationChange,
   onResolutionSizeTierChange,
   queueQualityProfile,
-  onQueueQualityProfileChange,
-  toolId,
-  toolProfileOverride,
-  onToolQueueQualityChange,
-  lockedVariationSeed,
   roleplayVariant,
-  recipesShared,
-  onRecipesApplied,
   renderRealismMode,
-  onRenderRealismModeChange,
   anatomyGuardMode,
-  onAnatomyGuardModeChange,
   recommendFromText,
   onModelChange,
 }: SharedQualitySamplingSectionProps) {
   if (cloudEngine) {
     return null;
   }
+  const realism = RENDER_REALISM_OPTIONS.find(option => option.id === renderRealismMode)?.label;
+  const presetLabel =
+    MODEL_SAMPLER_PRESET_OPTIONS.find(option => option.id === samplerPreset)?.label ??
+    samplerPreset;
+  const anatomy = ANATOMY_GUARD_OPTIONS.find(option => option.id === anatomyGuardMode)?.label;
 
   return (
-    <CollapsibleSection
-      title="Quality & sampling"
-      summary={
-        systemPathActive
-          ? `Sampler${hasModelSamplerOverrides(samplerOverrides) ? ' · overrides' : ''}, resolution, realism, anatomy.`
-          : `Sampler${hasModelSamplerOverrides(samplerOverrides) ? ' · overrides' : ''}, resolution, queue quality, realism, anatomy.`
-      }
-      defaultOpen={advancedOpenByDefault}
-      persistKey="shared-quality-sampling"
-    >
-      <ModelSamplerHints
-        model={shared.model}
-        preset={samplerPreset}
-        onPresetChange={onSamplerPresetChange}
-        overrides={samplerOverrides}
-        onOverridesChange={onSamplerOverridesChange}
-      />
+    <>
+      <CollapsibleSection
+        title="Sampler & size"
+        summary={`${presetLabel}${hasModelSamplerOverrides(samplerOverrides) ? ' · overrides' : ''} · ${resolutionSizeTier} canvas`}
+        defaultOpen={advancedOpenByDefault || queueQualityProfile === 'followSettings'}
+        persistKey="shared-quality-sampling"
+      >
+        <p className="type-caption text-[var(--text-muted)]" data-testid="sampler-size-effect">
+          {samplerSizeEffect(queueQualityProfile)}
+        </p>
+        <ModelSamplerHints
+          model={shared.model}
+          preset={samplerPreset}
+          onPresetChange={onSamplerPresetChange}
+          overrides={samplerOverrides}
+          onOverridesChange={onSamplerOverridesChange}
+        />
+        <ModelResolutionHints
+          part="size"
+          model={shared.model}
+          orientation={resolutionOrientation}
+          sizeTier={resolutionSizeTier}
+          onOrientationChange={onResolutionOrientationChange}
+          onSizeTierChange={onResolutionSizeTierChange}
+        />
+      </CollapsibleSection>
 
-      <ModelResolutionHints
-        model={shared.model}
-        orientation={resolutionOrientation}
-        sizeTier={resolutionSizeTier}
-        onOrientationChange={onResolutionOrientationChange}
-        onSizeTierChange={onResolutionSizeTierChange}
-      />
-
-      {!systemPathActive ? (
-        <>
-          <QueueQualityProfileHints
-            profile={queueQualityProfile}
-            samplerPreset={samplerPreset}
-            resolutionSizeTier={resolutionSizeTier}
-            onProfileChange={onQueueQualityProfileChange}
-            toolId={toolId}
-            toolProfile={toolProfileOverride}
-            onToolProfileChange={onToolQueueQualityChange}
-          />
-          <p
-            data-testid="queue-seed-quality-clarity"
-            className="rounded-lg border border-[var(--border-subtle)]/70 bg-[var(--bg-base)]/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-[var(--text-secondary)]"
-          >
-            Queue uses{' '}
-            <span className="font-medium text-[var(--text-primary)]">
-              {formatQueueQualityProfileLabel(queueQualityProfile)}
-            </span>
-            {' · '}
-            {lockedVariationSeed?.trim()
-              ? `pinned seed ${lockedVariationSeed.trim().slice(0, 24)}${lockedVariationSeed.trim().length > 24 ? '…' : ''}`
-              : 'new seed each send'}
-          </p>
-          {roleplayVariant ? null : (
-            <QueueRecipesPanel
-              toolId={toolId}
-              shared={recipesShared}
-              qualityProfile={queueQualityProfile}
-              orientation={resolutionOrientation}
-              sizeTier={resolutionSizeTier}
-              onApplied={onRecipesApplied}
-            />
-          )}
-        </>
-      ) : null}
-
-      <RenderRealismHints mode={renderRealismMode} onModeChange={onRenderRealismModeChange} />
-
-      <AnatomyGuardHints
-        mode={anatomyGuardMode}
-        onModeChange={onAnatomyGuardModeChange}
-        model={shared.model}
-      />
+      <p className="type-caption text-[var(--text-muted)]" data-testid="engine-render-style">
+        Render style {realism ?? renderRealismMode} · anatomy guard {anatomy ?? anatomyGuardMode}
+        {' · '}
+        <Link
+          href="/settings?tab=comfyui&section=prompt-quality"
+          className="text-[var(--accent-text)] underline-offset-2 hover:underline"
+        >
+          Settings
+        </Link>
+      </p>
 
       {roleplayVariant ? null : recommendFromText ? (
         <ModelRecommenderHints
@@ -178,6 +134,6 @@ export default function SharedQualitySamplingSection({
           onApplyModel={model => onModelChange(model)}
         />
       ) : null}
-    </CollapsibleSection>
+    </>
   );
 }

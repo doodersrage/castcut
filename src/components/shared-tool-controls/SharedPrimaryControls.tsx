@@ -1,13 +1,13 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/Button';
 import { ChipButton, FieldLabel } from '@/components/ui/Field';
 import { modelSupportsSessionIdentityLock } from '@/lib/compose-identity-lock';
 import type { DetailLevel, DetailLimits } from '@/lib/detail-level';
-import {
-  QUEUE_QUALITY_PROFILE_OPTIONS,
-  type QueueQualityProfile,
-} from '@/lib/queue-quality-profile';
+import type { ComfyImageModel } from '@/lib/comfy-models/client';
+import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model-resolution-defaults';
+import type { QueueQualityProfile } from '@/lib/queue-quality-profile';
 import {
   applySessionRecipeShared,
   latestGenerateLookRecipe,
@@ -16,6 +16,26 @@ import {
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
 
+const ModelResolutionHints = dynamic(() => import('@/components/ModelResolutionHints'), {
+  ssr: false,
+  loading: () => null,
+});
+
+/**
+ * Engine quality: Fast is gone — every queue with a model promotes it to Good
+ * (resolveQueueQualityProfile). Custom follows the sampler/size chips under More; the
+ * system-workflow path resets a global Custom to Good, so it is offered off that path only.
+ */
+const ENGINE_QUALITY_OPTIONS: Array<{ id: QueueQualityProfile; label: string; title: string }> = [
+  {
+    id: 'final',
+    label: 'Good',
+    title: 'Everyday keepers — stronger sampler, medium or larger canvas.',
+  },
+  { id: 'max', label: 'Best', title: 'Full sampler, largest canvas, and extra polish.' },
+  { id: 'followSettings', label: 'Custom', title: 'Use the sampler and canvas size under More.' },
+];
+
 export type SharedPrimaryControlsProps = {
   roleplayVariant: boolean;
   shared: SharedToolSettings;
@@ -23,10 +43,18 @@ export type SharedPrimaryControlsProps = {
   modelLabel: string;
   activeLimits: DetailLimits;
   onDetailChange: (detail: DetailLevel) => void;
-  queueQualityProfile: QueueQualityProfile;
-  onQueueQualityProfileChange: (profile: QueueQualityProfile) => void;
-  systemPathActive: boolean;
-  systemQualityHint: string | null;
+  /** What this tool queues with (tool override, else global; Fast shows as Good). */
+  effectiveQualityProfile: QueueQualityProfile;
+  onEngineQualityChange: (profile: QueueQualityProfile) => void;
+  /** Set when the choice differs from other tools — applies it everywhere. */
+  onQualityApplyAll?: () => void;
+  qualityCaption: string | null;
+  allowCustomQuality: boolean;
+  cloudEngine: boolean;
+  resolutionOrientation: ResolutionOrientation;
+  resolutionSizeTier: ResolutionSizeTier;
+  onResolutionOrientationChange: (orientation: ResolutionOrientation) => void;
+  onResolutionSizeTierChange: (tier: ResolutionSizeTier) => void;
   lastLookRecipe: SessionRecipe | null;
   onRecipesApplied: (next: SharedToolSettings) => void;
   toolId?: string;
@@ -40,10 +68,16 @@ export default function SharedPrimaryControls({
   modelLabel,
   activeLimits,
   onDetailChange,
-  queueQualityProfile,
-  onQueueQualityProfileChange,
-  systemPathActive,
-  systemQualityHint,
+  effectiveQualityProfile,
+  onEngineQualityChange,
+  onQualityApplyAll,
+  qualityCaption,
+  allowCustomQuality,
+  cloudEngine,
+  resolutionOrientation,
+  resolutionSizeTier,
+  onResolutionOrientationChange,
+  onResolutionSizeTierChange,
   lastLookRecipe,
   onRecipesApplied,
   toolId,
@@ -51,28 +85,56 @@ export default function SharedPrimaryControls({
 }: SharedPrimaryControlsProps) {
   return (
     <>
-      {!roleplayVariant ? (
-        <div className="space-y-2">
+      {cloudEngine ? null : (
+        <div className="space-y-2" data-testid="engine-quality">
           <FieldLabel hint="How long the render takes and how much polish it gets.">
             Quality
           </FieldLabel>
           <div className="flex flex-wrap gap-2">
-            {QUEUE_QUALITY_PROFILE_OPTIONS.filter(option => option.id !== 'followSettings').map(
-              option => (
-                <ChipButton
-                  key={option.id}
-                  active={queueQualityProfile === option.id}
-                  onClick={() => onQueueQualityProfileChange(option.id)}
-                >
-                  {option.label}
-                </ChipButton>
-              )
-            )}
+            {ENGINE_QUALITY_OPTIONS.filter(
+              option =>
+                option.id !== 'followSettings' ||
+                allowCustomQuality ||
+                effectiveQualityProfile === 'followSettings'
+            ).map(option => (
+              <ChipButton
+                key={option.id}
+                active={
+                  effectiveQualityProfile === option.id ||
+                  (option.id === 'final' && effectiveQualityProfile === 'draft')
+                }
+                title={option.title}
+                onClick={() => onEngineQualityChange(option.id)}
+              >
+                {option.label}
+              </ChipButton>
+            ))}
           </div>
-          {systemPathActive && systemQualityHint ? (
-            <p className="text-xs leading-relaxed text-[var(--text-muted)]">{systemQualityHint}</p>
+          {qualityCaption ? (
+            <p className="text-xs leading-relaxed text-[var(--text-muted)]">{qualityCaption}</p>
+          ) : null}
+          {onQualityApplyAll ? (
+            <button
+              type="button"
+              className="ui-text-link type-caption"
+              data-testid="engine-quality-apply-all"
+              onClick={onQualityApplyAll}
+            >
+              Use on every tool
+            </button>
           ) : null}
         </div>
+      )}
+
+      {!roleplayVariant && !cloudEngine ? (
+        <ModelResolutionHints
+          part="orientation"
+          model={shared.model as ComfyImageModel}
+          orientation={resolutionOrientation}
+          sizeTier={resolutionSizeTier}
+          onOrientationChange={onResolutionOrientationChange}
+          onSizeTierChange={onResolutionSizeTierChange}
+        />
       ) : null}
 
       {!roleplayVariant ? (

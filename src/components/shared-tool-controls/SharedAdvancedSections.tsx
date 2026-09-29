@@ -13,7 +13,6 @@ import type { RenderRealismMode } from '@/lib/render-realism';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
 import type { SessionActiveLoraIdsByModel } from '@/lib/model-lora-map';
-import SharedLoraEmbeddingsBlock from '@/components/shared-tool-controls/SharedLoraEmbeddingsBlock';
 import SharedQualitySamplingSection from '@/components/shared-tool-controls/SharedQualitySamplingSection';
 import SharedWildcardsRetrySection from '@/components/shared-tool-controls/SharedWildcardsRetrySection';
 import SharedPinsAutomationSection from '@/components/shared-tool-controls/SharedPinsAutomationSection';
@@ -91,16 +90,9 @@ export default function SharedAdvancedSections({
   identitySurface,
   cloudEngine,
   roleplayVariant,
-  systemPathActive,
   advancedOpenByDefault,
   checkboxClass,
   shared,
-  sessionActiveLoraIds,
-  sessionActiveLoraIdsByModel,
-  sessionLoraStrengthOverrides,
-  onSessionActiveLoraIdsChange,
-  onSessionLoraStrengthOverridesChange,
-  onSharedSettingsChange,
   samplerPreset,
   samplerOverrides,
   onSamplerPresetChange,
@@ -110,17 +102,9 @@ export default function SharedAdvancedSections({
   onResolutionOrientationChange,
   onResolutionSizeTierChange,
   queueQualityProfile,
-  onQueueQualityProfileChange,
-  toolId,
-  toolProfileOverride,
-  onToolQueueQualityChange,
   lockedVariationSeed,
-  recipesShared,
-  onRecipesApplied,
   renderRealismMode,
-  onRenderRealismModeChange,
   anatomyGuardMode,
-  onAnatomyGuardModeChange,
   recommendFromText,
   onModelChange,
   expandWildcards,
@@ -130,10 +114,6 @@ export default function SharedAdvancedSections({
   wildcardPreviewText,
   wildcardPreview,
   onWildcardPreviewChange,
-  autoRetryOnOom,
-  onAutoRetryOnOomChange,
-  oomRetryDowngrade,
-  onOomRetryDowngradeChange,
   showWardrobeOption,
   alwaysIncludeClothing,
   onAlwaysIncludeClothingChange,
@@ -153,27 +133,11 @@ export default function SharedAdvancedSections({
 }: SharedAdvancedSectionsProps) {
   return (
     <>
-      {queueQualityBlock}
-      {workflowBlock}
-      <SharedLoraEmbeddingsBlock
-        cloudEngine={cloudEngine}
-        advancedOpenByDefault={advancedOpenByDefault}
-        sessionLoraStrengthOverrides={sessionLoraStrengthOverrides}
-        sessionActiveLoraIds={sessionActiveLoraIds}
-        sessionActiveLoraIdsByModel={sessionActiveLoraIdsByModel}
-        shared={shared}
-        checkboxClass={checkboxClass}
-        onSessionActiveLoraIdsChange={onSessionActiveLoraIdsChange}
-        onSessionLoraStrengthOverridesChange={onSessionLoraStrengthOverridesChange}
-        roleplayVariant={roleplayVariant}
-        onSharedSettingsChange={onSharedSettingsChange}
-      />
-
       {roleplayVariant ? null : identitySurface}
-
+      {workflowBlock}
+      {queueQualityBlock}
       <SharedQualitySamplingSection
         cloudEngine={cloudEngine}
-        systemPathActive={systemPathActive}
         samplerOverrides={samplerOverrides}
         advancedOpenByDefault={advancedOpenByDefault}
         shared={shared}
@@ -185,18 +149,9 @@ export default function SharedAdvancedSections({
         onResolutionOrientationChange={onResolutionOrientationChange}
         onResolutionSizeTierChange={onResolutionSizeTierChange}
         queueQualityProfile={queueQualityProfile}
-        onQueueQualityProfileChange={onQueueQualityProfileChange}
-        toolId={toolId}
-        toolProfileOverride={toolProfileOverride}
-        onToolQueueQualityChange={onToolQueueQualityChange}
-        lockedVariationSeed={lockedVariationSeed}
         roleplayVariant={roleplayVariant}
-        recipesShared={recipesShared}
-        onRecipesApplied={onRecipesApplied}
         renderRealismMode={renderRealismMode}
-        onRenderRealismModeChange={onRenderRealismModeChange}
         anatomyGuardMode={anatomyGuardMode}
-        onAnatomyGuardModeChange={onAnatomyGuardModeChange}
         recommendFromText={recommendFromText}
         onModelChange={onModelChange}
       />
@@ -213,10 +168,6 @@ export default function SharedAdvancedSections({
         wildcardPreview={wildcardPreview}
         onWildcardPreviewChange={onWildcardPreviewChange}
         shared={shared}
-        autoRetryOnOom={autoRetryOnOom}
-        onAutoRetryOnOomChange={onAutoRetryOnOomChange}
-        oomRetryDowngrade={oomRetryDowngrade}
-        onOomRetryDowngradeChange={onOomRetryDowngradeChange}
       />
 
       <SharedPinsAutomationSection

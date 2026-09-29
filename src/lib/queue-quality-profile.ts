@@ -249,7 +249,7 @@ export function formatQueueQualityProfileHint(
       ? ' · Best sharpen'
       : '';
 
-  return `${option.label} queue → ${effectivePreset} sampler · ${effectiveSize} resolution${upscaleNote}${refinerNote}${detailNote}${sharpenNote} (sidebar: ${userPreset} · ${userSizeTier}).`;
+  return `${option.label} queue → ${effectivePreset} sampler · ${effectiveSize} resolution${upscaleNote}${refinerNote}${detailNote}${sharpenNote} (sampler & size: ${userPreset} · ${userSizeTier}).`;
 }
 
 export function resolveQueueQualityProfile(input: {

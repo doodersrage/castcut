@@ -4,6 +4,17 @@ import { useSharedToolGenerationSettings } from '@/hooks/useSharedToolGeneration
 import { useSharedToolModelWorkflow } from '@/hooks/useSharedToolModelWorkflow';
 import { getDetailLimits } from '@/lib/detail-level';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
+import {
+  formatQueueQualityProfileHint,
+  resolveQueueQualityProfile,
+  type QueueQualityProfile,
+} from '@/lib/queue-quality-profile';
+import {
+  loadSettingsCache,
+  notifySettingsCacheUpdated,
+  saveSharedSettings,
+} from '@/lib/settings-cache';
+import SharedLoraEmbeddingsBlock from '@/components/shared-tool-controls/SharedLoraEmbeddingsBlock';
 import { accentRingClass } from '@/lib/tool-theme';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { workspaceControlsDefaultOpen } from '@/lib/workspace-mode';
@@ -105,7 +116,6 @@ export default function SharedToolControls({
     diffusersSelectedAssetId,
     handleShowAllModels,
     systemWorkflowChoice,
-    systemQualityHint,
     systemPathActive,
     cloudEngine,
     categoryLocked,
@@ -124,6 +134,54 @@ export default function SharedToolControls({
     setSessionActiveLoraIds,
     setSessionLoraStrengthOverrides,
   });
+
+  // Quality as this tool queues it: its own profile when it has one (most tools do, from
+  // SUGGESTED_TOOL_QUEUE_QUALITY_PROFILES), else the global one. Editing the global while a
+  // tool profile existed changed nothing on that tool.
+  const effectiveQualityProfile = resolveQueueQualityProfile({
+    tool: toolId,
+    global: queueQualityProfile,
+    toolProfiles: shared.toolQueueQualityProfiles,
+    model: shared.model,
+  });
+  const handleEngineQualityChange = (profile: QueueQualityProfile) => {
+    if (toolId) {
+      handleToolQueueQualityChange(profile);
+    } else {
+      handleQueueQualityProfileChange(profile);
+    }
+    // Those saves are silent; tools without onSharedSettingsChange (Prompt Editor) and the
+    // Engine chip only re-read settings on the update event.
+    notifySettingsCacheUpdated();
+  };
+  const otherToolsDiffer =
+    Boolean(toolId) &&
+    (queueQualityProfile !== effectiveQualityProfile ||
+      Object.values(shared.toolQueueQualityProfiles ?? {}).some(
+        profile => profile !== effectiveQualityProfile
+      ));
+  const handleQualityApplyAll = () => {
+    const current = loadSettingsCache().shared;
+    const toolQueueQualityProfiles = Object.fromEntries(
+      Object.keys(current.toolQueueQualityProfiles ?? {}).map(key => [key, effectiveQualityProfile])
+    );
+    handleQueueQualityProfileChange(effectiveQualityProfile);
+    saveSharedSettings({
+      ...loadSettingsCache().shared,
+      queueQualityProfile: effectiveQualityProfile,
+      toolQueueQualityProfiles,
+    });
+    onSharedSettingsChange?.({
+      queueQualityProfile: effectiveQualityProfile,
+      toolQueueQualityProfiles,
+    });
+    notifySettingsCacheUpdated();
+  };
+  const qualityCaption = cloudEngine
+    ? null
+    : formatQueueQualityProfileHint(effectiveQualityProfile, samplerPreset, resolutionSizeTier, {
+        model: shared.model,
+      });
 
   return (
     <div className="ui-sidebar-dense ui-field-stack space-y-5">
@@ -155,13 +213,34 @@ export default function SharedToolControls({
         modelLabel={selectedModel.label}
         activeLimits={activeLimits}
         onDetailChange={onDetailChange}
-        queueQualityProfile={queueQualityProfile}
-        onQueueQualityProfileChange={handleQueueQualityProfileChange}
-        systemPathActive={systemPathActive}
-        systemQualityHint={systemQualityHint}
+        effectiveQualityProfile={effectiveQualityProfile}
+        onEngineQualityChange={handleEngineQualityChange}
+        onQualityApplyAll={otherToolsDiffer ? handleQualityApplyAll : undefined}
+        qualityCaption={qualityCaption}
+        allowCustomQuality={!systemPathActive}
+        cloudEngine={cloudEngine}
+        resolutionOrientation={resolutionOrientation}
+        resolutionSizeTier={resolutionSizeTier}
+        onResolutionOrientationChange={handleResolutionOrientationChange}
+        onResolutionSizeTierChange={handleResolutionSizeTierChange}
         lastLookRecipe={lastLookRecipe}
         onRecipesApplied={handleRecipesApplied}
         toolId={toolId}
+        onSharedSettingsChange={onSharedSettingsChange}
+      />
+
+      {/* LoRAs change per image and show in the Engine chip — top level, not under More. */}
+      <SharedLoraEmbeddingsBlock
+        cloudEngine={cloudEngine}
+        advancedOpenByDefault={advancedOpenByDefault}
+        sessionLoraStrengthOverrides={sessionLoraStrengthOverrides}
+        sessionActiveLoraIds={sessionActiveLoraIds}
+        sessionActiveLoraIdsByModel={sessionActiveLoraIdsByModel}
+        shared={shared}
+        checkboxClass={checkboxClass}
+        onSessionActiveLoraIdsChange={handleSessionActiveLoraIdsChange}
+        onSessionLoraStrengthOverridesChange={handleSessionLoraStrengthOverridesChange}
+        roleplayVariant={roleplayVariant}
         onSharedSettingsChange={onSharedSettingsChange}
       />
 
@@ -186,7 +265,7 @@ export default function SharedToolControls({
         resolutionSizeTier={resolutionSizeTier}
         onResolutionOrientationChange={handleResolutionOrientationChange}
         onResolutionSizeTierChange={handleResolutionSizeTierChange}
-        queueQualityProfile={queueQualityProfile}
+        queueQualityProfile={effectiveQualityProfile}
         onQueueQualityProfileChange={handleQueueQualityProfileChange}
         toolId={toolId}
         toolProfileOverride={toolProfileOverride}

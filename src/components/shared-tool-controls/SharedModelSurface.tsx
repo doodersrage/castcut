@@ -60,7 +60,6 @@ export type SharedModelSurfaceProps = {
 export default function SharedModelSurface({
   shared,
   cloudEngine,
-  systemPathActive,
   roleplayVariant,
   toolId,
   diffusersSelectedAssetId,
@@ -85,11 +84,7 @@ export default function SharedModelSurface({
             ? `${engineDisplayName(shared.inferenceEngine)} ignores Comfy workflows, LoRAs, and live latents. Image 1 is sent as img2img when present.`
             : shared.inferenceEngine === 'diffusers'
               ? 'Optional Diffusers stills inventory. Prefer ComfyUI for Lightning quality/speed on 24GB and for Film.'
-              : systemPathActive
-                ? undefined
-                : shared.autoSelectWorkflowForModel !== false
-                  ? 'Choosing a model auto-selects its mapped ComfyUI workflow below (when configured).'
-                  : 'Shared across tools and remembered between page reloads.'
+              : undefined
         }
       >
         {cloudEngine
