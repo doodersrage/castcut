@@ -13,6 +13,7 @@ import {
   type ScenePoseSpec,
   type SocialLayout,
 } from '@/lib/day-pose-guide';
+import { RAPID_ORAL_FALLBACK_RE } from '@/lib/rapid-duo-recipe';
 import { isQwenEdit2511PoseStickyModel } from '@/lib/day-plate';
 import {
   dayPoseSpecForBeat,
@@ -124,21 +125,26 @@ export function planDaySlotPose(input: {
     intimateMix: normalizeDayIntimateMix(input.intimateMix),
     allowCompanions: input.allowCompanions === true,
   });
+  // Rapid AIO draws neither a 69 nor face-sitting — its recipe (rapid-duo-recipe.ts) renders
+  // seated oral, so draw that guide too, or the pose check flags every such still and rerolls it.
+  // The guide text is reworded to match: "sitting on his face" reads as a sitting posture and
+  // would override the act back to face-sitting.
+  const rapidOralFallback =
+    isDayAdultMood(dayMood) &&
+    isQwenRapidAioModel(input.model ?? undefined) &&
+    (parseIntimateLayout(beatOnly) === 'sixty_nine' || parseIntimateLayout(beatOnly) === 'facesit');
+  const guideText = rapidOralFallback
+    ? reinforced?.replace(RAPID_ORAL_FALLBACK_RE, 'oral sex')
+    : reinforced;
   // Duo mix must draw exactly two figures — never inflate to a trio.
   const sceneText =
     headcount === 2
-      ? `${reinforced || 'intimate duo mid-sex on the bed'} · exactly two adults only: Cast lead in the beat pose plus one distinct partner — both fully visible mid-contact in frame; never solo Cast; no third person`
-      : reinforced || undefined;
+      ? `${guideText || 'intimate duo mid-sex on the bed'} · exactly two adults only: Cast lead in the beat pose plus one distinct partner — both fully visible mid-contact in frame; never solo Cast; no third person`
+      : guideText || undefined;
 
   const override = daySlotPoseOverride(input.slot.poseLayout);
-  // Rapid AIO cannot draw a 69 — its recipe (rapid-duo-recipe.ts) renders face-sitting, so
-  // draw that guide too, or the pose check flags every 69 still as a miss and rerolls it.
-  const rapidSixtyNine =
-    isDayAdultMood(dayMood) &&
-    isQwenRapidAioModel(input.model ?? undefined) &&
-    parseIntimateLayout(beatOnly) === 'sixty_nine';
-  const beatSpec: ScenePoseSpec | undefined = rapidSixtyNine
-    ? { act: 'facesit' }
+  const beatSpec: ScenePoseSpec | undefined = rapidOralFallback
+    ? { act: 'oral' }
     : dayPoseSpecForBeat(beatOnly, dayMood);
   const pose: ScenePoseSpec | undefined = override
     ? { ...(override.layout ? {} : beatSpec), ...override }

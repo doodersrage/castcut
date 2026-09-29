@@ -93,12 +93,15 @@ describe('Rapid duo recipe', () => {
     assert.equal(rapidDuoSurface('reverse cowgirl on the hotel armchair'), 'hotel armchair');
   });
 
-  it('draws a face-sitting guide for a Rapid 69 beat so the pose check agrees', async () => {
+  it('draws the seated-oral guide for a Rapid 69 / face-sit beat so the pose check agrees', async () => {
     const { planDaySlotPose } = await import('./day-slot-pose');
     const { resolveSceneGuidePlan } = await import('./day-pose-guide');
-    const layoutFor = (model: string) => {
+    const layoutFor = (
+      model: string,
+      beat = 'sixty-nine on the couch in afternoon light — both adults fully visible'
+    ) => {
       const plan = planDaySlotPose({
-        slot: { id: 'afternoon', sceneHints: 'sixty-nine on the couch in afternoon light — both adults fully visible', location: 'apartment' } as never,
+        slot: { id: 'afternoon', sceneHints: beat, location: 'apartment' } as never,
         dayMood: 'raunchy',
         intimateMix: 'duo',
         allowCompanions: true,
@@ -106,8 +109,19 @@ describe('Rapid duo recipe', () => {
       });
       return resolveSceneGuidePlan(plan.sceneText, 0, { ...plan.options, openPose: true }).intent.intimate;
     };
-    assert.equal(layoutFor('qwen-rapid-aio-edit-nsfw'), 'facesit');
+    assert.equal(layoutFor('qwen-rapid-aio-edit-nsfw'), 'oral');
+    assert.equal(
+      layoutFor('qwen-rapid-aio-edit-nsfw', 'sitting on his face on the bed — face-sitting a partner'),
+      'oral'
+    );
     assert.equal(layoutFor('qwen-image-edit-2511'), 'sixty_nine');
+    // v23 draws neither a 69 nor face-sitting: the recipe says seated oral, not the act's name.
+    const { buildRapidDuoRecipe } = await import('./rapid-duo-recipe');
+    const recipe = buildRapidDuoRecipe({
+      beat: 'sixty-nine on the living-room rug with a partner when the pizza arrives',
+    })!;
+    assert.match(recipe, /sits on the edge of the couch.* mouth on her vulva/);
+    assert.doesNotMatch(recipe, /sixty-nine|astride his face/);
   });
 
   it('builds Story recipes only on Rapid, with the right image slots and wardrobe', async () => {
@@ -223,7 +237,26 @@ describe('Rapid solo recipe', () => {
       beat: 'solo kneeling upright naked after dark — both hands on the base of a dildo, never invent a man',
       toy: true,
     })!;
-    assert.match(toy, /Both of her hands hold the base of a realistic silicone dildo/);
+    assert.match(toy, /Both of her hands hold the base of a bright purple silicone dildo/);
+    // "penis-shaped … tip of the penis" drew a penis growing from her; the toy stays a toy.
+    const penisWords = buildRapidSoloRecipe({
+      beat: 'alone on her back with a realistic penis-shaped silicone dildo — the tip of the penis pushed into her vaginal opening, shaft entering her vagina',
+      toy: true,
+    })!;
+    assert.doesNotMatch(penisWords, /penis/);
+    assert.match(penisWords, /tip of the dildo/);
+    // A kitchen sink is a counter, not a bathroom vanity.
+    assert.match(
+      buildRapidSoloRecipe({ beat: 'solo fingering naked against the kitchen sink, one knee on the counter' })!,
+      /kitchen counter beside the sink/
+    );
+    assert.match(
+      buildRapidSoloRecipe({
+        beat: 'solo masturbation reclining on the couch, clothes half off',
+        clothedOutfit: 'low-rise powder blue slip dress',
+      })!,
+      /She wears a low-rise powder blue slip dress, pulled down off her breasts/
+    );
     assert.doesNotMatch(toy, /never|invent a man/);
     assert.match(
       buildRapidSoloRecipe({ beat: 'alone face-down on the bed masturbating, hips grinding' })!,

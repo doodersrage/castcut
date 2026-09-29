@@ -20,6 +20,10 @@ import { stripNegatedClauses } from './negated-clauses';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
 import { RAPID_DUO_RECIPE_MARK, RAPID_SOLO_RECIPE_MARK } from './rapid-duo-recipe-mark';
 
+/** 69 / face-sit wording — Rapid renders these beats as seated oral (recipe + guide). */
+export const RAPID_ORAL_FALLBACK_RE =
+  /\b(?:sixty[- ]nine|69|face[- ]sitting(?:\s+(?:a|her)\s+partner)?|sitting\s+on\s+(?:his|her|their)\s+face)\b/gi;
+
 export {
   isRapidDuoRecipePrompt,
   RAPID_DUO_RECIPE_MARK,
@@ -90,11 +94,11 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
             ? `Full-body view, both faces in frame. The woman sits on the edge of the ${surface?.replace(/^(?:edge|foot|end|arm) of the /, '') ?? 'bed'}, leaning back on her hands with her thighs spread; the man kneels on the floor between her thighs with his mouth on her vulva, licking her, his hands on her thighs.`
             : `Full-body view, both faces in frame. The woman stands with her back against ${on('wall')}, one leg lifted over his shoulder; the man kneels on the floor in front of her with his mouth on her vulva, licking her, his hands on her thighs. She looks down at him.`;
     case 'sixty_nine':
-    // Rapid cannot draw a 69 — every wording and ControlNet Union came back as a kiss, and
-    // "facing his feet" muddled the bodies. Face-sitting keeps the mutual-oral beat readable.
-    // falls through
     case 'facesit':
-      return `Full-length side view from across the room, her whole body from head to knees in frame and his head visible. The man lies on his back on ${on('bed')}; the woman kneels upright astride his face, sitting on his mouth, facing up his body with her hands on his chest, her head tipped back.`;
+      // Rapid cannot draw a 69, and on v23 face-sitting came back as a kiss or cowgirl too
+      // (live 2026-09-28: 0/8 across wordings, with and without the guide). The seated oral
+      // pose lands every time, so the oral beat stays readable (guide: day-slot-pose.ts).
+      return `Full-body view, both faces in frame. The woman sits on the edge of the ${/\b(?:couch|sofa|living[- ]room)\b/i.test(beat) ? 'couch' : 'bed'}, leaning back on her hands with her thighs spread; the man kneels on the floor between her thighs with his mouth on her vulva, licking her, his hands on her thighs.`;
     case 'kneeling':
       return `Both kneel upright on ${on('bed')} facing each other, bodies pressed together mid-sex, her arms around his neck and his hands on her hips; both faces in frame.`;
     case 'lap':
@@ -185,8 +189,13 @@ export function buildRapidDuoRecipe(input: {
   return [
     RAPID_DUO_RECIPE_MARK,
     body,
-    // "doggy" paints literal dogs on Qwen stacks.
-    `Moment: ${beat.replace(/\bdoggy(?:[- ]?style)?\b/gi, 'from behind')}.`,
+    // "doggy" paints literal dogs on Qwen stacks; a 69 / face-sit beat renders as seated oral.
+    `Moment: ${beat
+      .replace(/\bdoggy(?:[- ]?style)?\b/gi, 'from behind')
+      .replace(
+        layout === 'sixty_nine' || layout === 'facesit' ? RAPID_ORAL_FALLBACK_RE : /$^/,
+        'oral sex'
+      )}.`,
     room,
     input.nude === false ? clothedLine(input.outfitImage) : NUDE,
     input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
@@ -284,9 +293,12 @@ function soloPlacement(
           ? 'She stands in the shower with one foot up on the ledge, facing the camera.'
           : 'She stands upright with one knee bent, facing the camera.';
     case 'lean':
-      return /\bsink\b/i.test(beat)
-        ? 'She sits on the edge of the bathroom sink, leaning back against the mirror, thighs apart, facing the camera.'
-        : `She leans back against ${on('counter')}, hips at its edge, thighs apart, facing the camera.`;
+      // A kitchen sink is a counter — "sink" alone drew a bathroom vanity and mirror.
+      return /\bkitchen\b/i.test(beat) && /\bsink\b/i.test(beat)
+        ? 'She leans back against the kitchen counter beside the sink, hips at its edge, thighs apart, facing the camera.'
+        : /\bsink\b/i.test(beat)
+          ? 'She sits on the edge of the bathroom sink, leaning back against the mirror, thighs apart, facing the camera.'
+          : `She leans back against ${on('counter')}, hips at its edge, thighs apart, facing the camera.`;
     case 'seated':
     default:
       return `She sits on ${on('bed edge')}, leaning back on one hand with her thighs spread, facing the camera.`;
@@ -296,9 +308,10 @@ function soloPlacement(
 /** Her hands, in the beat's own count — "both hands between her thighs" must not get a breast. */
 function soloHands(beat: string, toy: boolean): string {
   if (toy) {
+    // A bright colour keeps the toy an object: "realistic" flesh tones rendered as her own penis.
     return /\bone\s+hand\b/i.test(beat)
-      ? 'One hand is braced on the bed; the other pushes a realistic silicone dildo into her vagina.'
-      : 'Both of her hands hold the base of a realistic silicone dildo that is inside her vagina.';
+      ? 'One hand is braced on the bed; the other holds a bright purple silicone dildo, a separate toy in her hand, its tip pushed into her vagina.'
+      : 'Both of her hands hold the base of a bright purple silicone dildo, a separate toy in her hands, its tip pushed into her vagina.';
   }
   if (/\bboth\s+hands\b/i.test(beat)) {
     return 'Both of her hands are between her thighs, her fingers on her vulva.';
@@ -310,6 +323,16 @@ function soloHands(beat: string, toy: boolean): string {
     return 'One hand reaches back between her thighs, her fingers on her vulva; the other is braced on the bed.';
   }
   return 'One hand is between her thighs with her fingers on her vulva; the other hand rests on her breast.';
+}
+
+/** "a low-rise slip dress" — outfit labels come without an article. */
+function withArticle(outfit: string | null | undefined): string | null {
+  const text = outfit?.trim();
+  if (!text) return null;
+  if (/^(?:a|an|the|her|his|some)\b/i.test(text) || /[^s]s$/i.test(text.split(/\s+/).pop() ?? '')) {
+    return text;
+  }
+  return `${/^[aeiou]/i.test(text) ? 'an' : 'a'} ${text}`;
 }
 
 /**
@@ -326,6 +349,12 @@ export function buildRapidSoloRecipe(input: {
   poseGuide?: boolean | RecipeImage;
   /** Beat names a dildo / vibrator. */
   toy?: boolean;
+  /**
+   * Clothes stay on, pushed open ("clothes half off"): the outfit to name. Omit for nude beats.
+   * Without it these beats fell back to the long brief, whose bedroom lock drew over the
+   * beat's own couch.
+   */
+  clothedOutfit?: string | null;
 }): string | null {
   const raw = input.beat?.trim();
   if (!raw) {
@@ -335,6 +364,11 @@ export function buildRapidSoloRecipe(input: {
   // "Cast" is app vocabulary, not a word the image model knows.
   const beat = stripNegatedClauses(raw)
     .replace(/\bCast\s+alone\b/gi, 'alone')
+    // Toy beats say "realistic penis-shaped dildo … the tip of the penis … shaft": Rapid drew a
+    // penis growing from her (live 2026-09-28, 6/6). Call it the toy it is.
+    .replace(/\b(?:realistic\s+)?penis-shaped\s+/gi, '')
+    .replace(/\b(?:tip|head)\s+of\s+the\s+penis\b/gi, 'tip of the dildo')
+    .replace(/,?\s*shaft\s+entering\s+her\s+vagina\b/gi, '')
     .replace(/\s+([,;])/g, '$1')
     .replace(/([,;—-])(?:\s*[,;—-])+/g, '$1')
     .replace(/[\s,;—-]+$/g, '')
@@ -355,7 +389,9 @@ export function buildRapidSoloRecipe(input: {
     ownGaze ? null : 'Eyes half-closed, looking down at her body.',
     `Moment: ${beat}.`,
     recipeRoom(beat, surface, input.setting, input.timeOfDay),
-    'She is completely nude — bare breasts with nipples visible and bare vulva; zero fabric on her body.',
+    input.clothedOutfit !== undefined
+      ? `She wears ${withArticle(input.clothedOutfit) ?? 'her outfit'}, pulled down off her breasts and pushed up around her waist — bare breasts with nipples visible and bare vulva.`
+      : 'She is completely nude — bare breasts with nipples visible and bare vulva; zero fabric on her body.',
     input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
     'Keep her face from the first image.',
     input.poseGuide

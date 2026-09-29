@@ -3080,6 +3080,29 @@ export function buildDaySlotPrompt(input: {
         return recipe;
       }
     }
+    // Self-touch with the clothes still on ("clothes half off"): same recipe, outfit pushed open.
+    // The long brief's bedroom lock drew over the beat's own couch (live 2026-09-28).
+    if (
+      rapidAio &&
+      !omitGarment &&
+      soloSubject &&
+      isDayAdultMood(dayMood) &&
+      /\bmasturbat/i.test(stripNegatedClauses(hints ?? ''))
+    ) {
+      const recipe = buildRapidSoloRecipe({
+        beat: hints,
+        setting,
+        timeOfDay,
+        descriptor,
+        // A garment packshot takes Image 2 and pushes the pose map to Image 3.
+        poseGuide: poseGuide && garmentReinforce ? 'third' : poseGuide,
+        toy: dayBeatUsesSoloSexToy(hints),
+        clothedOutfit: outfit || null,
+      });
+      if (recipe) {
+        return recipe;
+      }
+    }
     const settingLine = setting
       ? isDayAdultMood(dayMood)
         ? soloSubject
