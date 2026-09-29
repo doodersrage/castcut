@@ -4,7 +4,6 @@ import type { ComfyUiSettingsSectionId } from '@/lib/settings-comfyui-nav';
 export const SETTINGS_TOOL_ACCENT = 'neutral' as const;
 
 export const COMFYUI_SECTION_ELEMENT_IDS: Record<ComfyUiSettingsSectionId, string> = {
-  presets: 'settings-comfyui-presets',
   'workflow-map': 'settings-comfyui-workflow-map',
   'model-assets': 'settings-comfyui-model-assets',
   'workflow-patching': 'settings-comfyui-workflow-patching',
@@ -17,7 +16,6 @@ export const COMFYUI_SECTION_ELEMENT_IDS: Record<ComfyUiSettingsSectionId, strin
   'queue-params': 'settings-comfyui-queue-params',
   'prompt-quality': 'settings-comfyui-prompt-quality',
   'vram-guard': 'settings-comfyui-vram-guard',
-  'hold-max': 'settings-comfyui-hold-max',
   'sampler-memory': 'settings-comfyui-sampler-memory',
 };
 

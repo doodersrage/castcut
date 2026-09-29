@@ -144,59 +144,89 @@ export default function SettingsIpAdapterPanel({
           className={`w-full accent-[var(--accent)] ${accentFocusClass(ACCENT)}`}
         />
       </label>
-
-      <div className="mt-4 space-y-2">
-        <FieldLabel htmlFor="settings-ipadapter-model">
-          IP-Adapter model filename (optional)
-        </FieldLabel>
-        <input
-          id="settings-ipadapter-model"
-          value={sharedSettings.ipAdapterModelFilename ?? ''}
-          onChange={event => updateSharedSettings({ ipAdapterModelFilename: event.target.value })}
-          placeholder="ip-adapter-plus_sdxl.safetensors (leave blank to keep the workflow's default)"
-          disabled={!sharedMounted}
-          className={`ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body ${accentFocusClass(ACCENT)}`}
-        />
-      </div>
     </>
   );
 
+  const modelField = (
+    <div className="space-y-2">
+      <FieldLabel htmlFor="settings-ipadapter-model">
+        IP-Adapter model filename (optional)
+      </FieldLabel>
+      <input
+        id="settings-ipadapter-model"
+        value={sharedSettings.ipAdapterModelFilename ?? ''}
+        onChange={event => updateSharedSettings({ ipAdapterModelFilename: event.target.value })}
+        placeholder="ip-adapter-plus_sdxl.safetensors (leave blank to keep the workflow's default)"
+        disabled={!sharedMounted}
+        className={`ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body ${accentFocusClass(ACCENT)}`}
+      />
+    </div>
+  );
+
+  const lockedFile = sharedSettings.ipAdapterImageFilename?.trim();
+  const clearLock = () =>
+    updateSharedSettings({
+      ipAdapterImageFilename: '',
+      ipAdapterImageFilenames: [],
+      ipAdapterImageUrl: '',
+      ipAdapterComfyUrl: '',
+    });
+
+  // Same fields as the Engine's Identity lock (More → Identity lock) — show the lock, keep the
+  // install-level model file here, and fold the manual filename form away.
   return (
-    <ToolSection id="settings-comfyui-ipadapter" title="IP-Adapter identity reference">
-      {castOwnsIdentity ? (
-        <>
-          <div className="mb-3 rounded-xl border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-4 py-3 text-sm text-[var(--tint-success-text)]">
-            Cast identity is active for{' '}
-            <strong className="font-medium">{activeCharacter?.name ?? 'Cast'}</strong>
-            {castFace ? (
-              <>
-                {' '}
-                (<code className="ui-inline-code">{castFace}</code>)
-              </>
-            ) : null}
-            . Prefer Film / Cast Look for face lock — this panel is a global override for Studio
-            Compose.
-            <div className="mt-2">
-              <Link
-                href="/cast"
-                className="text-sm font-medium underline underline-offset-2 hover:opacity-90"
-              >
-                Open Cast →
+    <ToolSection id="settings-comfyui-ipadapter" title="Identity lock (IP-Adapter)">
+      <div
+        className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border-subtle)] px-4 py-3 text-sm"
+        data-testid="settings-identity-lock-status"
+      >
+        {lockedFile && sharedSettings.ipAdapterImageUrl?.trim() ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={sharedSettings.ipAdapterImageUrl}
+            alt=""
+            className="h-10 w-10 rounded-lg object-cover"
+          />
+        ) : null}
+        <span className="min-w-0 flex-1 text-[var(--text-secondary)]">
+          {castOwnsIdentity ? (
+            <>
+              Cast identity for{' '}
+              <strong className="font-medium">{activeCharacter?.name ?? 'Cast'}</strong> (
+              <code className="ui-inline-code">{castFace}</code>) —{' '}
+              <Link href="/cast" className="ui-text-link">
+                Open Cast
               </Link>
-            </div>
-          </div>
-          <CollapsibleSection
-            title="Session IP-Adapter override"
-            summary="Upload / strength / model filename for Studio tools without Cast"
-            defaultOpen={false}
-            persistKey="settings-ipadapter-cast-override"
+            </>
+          ) : lockedFile ? (
+            <>
+              Locked: <code className="ui-inline-code">{lockedFile}</code> · strength{' '}
+              {(sharedSettings.ipAdapterStrength ?? 0.6).toFixed(2)}
+            </>
+          ) : (
+            'No face locked. Lock one from a tool: Engine → More → Identity lock.'
+          )}
+        </span>
+        {lockedFile && !castOwnsIdentity ? (
+          <button
+            type="button"
+            className="ui-btn-secondary ui-btn-sm"
+            disabled={!sharedMounted}
+            onClick={clearLock}
           >
-            {form}
-          </CollapsibleSection>
-        </>
-      ) : (
-        form
-      )}
+            Clear
+          </button>
+        ) : null}
+      </div>
+      {modelField}
+      <CollapsibleSection
+        title="Set a reference here"
+        summary="Filename, upload, extra references, and strength — the Engine does this per tool"
+        defaultOpen={false}
+        persistKey="settings-ipadapter-cast-override"
+      >
+        {form}
+      </CollapsibleSection>
     </ToolSection>
   );
 }

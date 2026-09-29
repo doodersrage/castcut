@@ -38,6 +38,8 @@ type Props = {
   onRefreshInventory: () => void | Promise<void>;
 };
 
+const ROW_PAGE = 30;
+
 const familyOf = (entry: LoraLibraryEntry): LoraFamily =>
   entry.family && entry.familySource !== 'missing' ? entry.family : 'unknown';
 
@@ -65,6 +67,17 @@ export default function LoraLibraryManager({
   const [bulkStrength, setBulkStrength] = useState('0.7');
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [scanned, setScanned] = useState<Map<string, LoraScanRow>>(new Map());
+  // The full list ran ~4,500 px: show a page of rows per filter, and fold files not in the
+  // library away unless the filter asks for them.
+  const filterKey = `${query}|${family}|${status}`;
+  const [paging, setPaging] = useState<{ key: string; limit: number; files: boolean }>({
+    key: '',
+    limit: ROW_PAGE,
+    files: false,
+  });
+  const rowLimit = paging.key === filterKey ? paging.limit : ROW_PAGE;
+  const showFiles =
+    status === 'not-added' || Boolean(query.trim()) || (paging.key === filterKey && paging.files);
 
   const membership = useMemo(() => {
     void entries;
@@ -299,7 +312,7 @@ export default function LoraLibraryManager({
       ) : null}
 
       <ul className="divide-y divide-[var(--border-subtle)]/70 rounded-xl border border-[var(--border-subtle)]/80">
-        {libraryRows.map(({ entry, index }) => {
+        {libraryRows.slice(0, rowLimit).map(({ entry, index }) => {
           const member = membership.get(entry.id);
           const stats = usage.get(entry.id);
           const open = expanded === `${entry.id}-${index}`;
@@ -418,11 +431,32 @@ export default function LoraLibraryManager({
             </li>
           );
         })}
+        {libraryRows.length > rowLimit ? (
+          <li className="px-2 py-1.5 text-center">
+            <button
+              type="button"
+              className="ui-text-link type-caption"
+              data-testid="lora-manager-show-more"
+              onClick={() =>
+                setPaging({ key: filterKey, limit: rowLimit + ROW_PAGE * 3, files: showFiles })
+              }
+            >
+              Show {Math.min(ROW_PAGE * 3, libraryRows.length - rowLimit)} more of{' '}
+              {libraryRows.length - rowLimit}
+            </button>
+          </li>
+        ) : null}
         {fileRows.length > 0 ? (
           <li className="flex flex-wrap items-center justify-between gap-2 bg-[var(--bg-muted)]/40 px-2 py-1.5">
-            <span className="text-[11px] text-[var(--text-muted)]">
-              In ComfyUI, not in the library ({fileRows.length})
-            </span>
+            <button
+              type="button"
+              className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              aria-expanded={showFiles}
+              data-testid="lora-manager-files-toggle"
+              onClick={() => setPaging({ key: filterKey, limit: rowLimit, files: !showFiles })}
+            >
+              {showFiles ? '▾' : '▸'} In ComfyUI, not in the library ({fileRows.length})
+            </button>
             <Button
               size="sm"
               variant="ghost"
@@ -433,7 +467,7 @@ export default function LoraLibraryManager({
             </Button>
           </li>
         ) : null}
-        {fileRows.map(file => {
+        {(showFiles ? fileRows : []).map(file => {
           const scan = scanned.get(file.name);
           return (
             <li

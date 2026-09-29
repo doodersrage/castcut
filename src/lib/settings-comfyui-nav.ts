@@ -1,5 +1,4 @@
 export type ComfyUiSettingsSectionId =
-  | 'presets'
   | 'workflow-map'
   | 'model-assets'
   | 'workflow-patching'
@@ -12,7 +11,6 @@ export type ComfyUiSettingsSectionId =
   | 'queue-params'
   | 'prompt-quality'
   | 'vram-guard'
-  | 'hold-max'
   | 'sampler-memory';
 
 export type ComfyUiSettingsSection = {
@@ -60,19 +58,21 @@ export const COMFYUI_SETTINGS_SECTIONS: ComfyUiSettingsSection[] = [
     ],
   },
   {
-    id: 'presets',
-    label: 'Browser presets',
-    keywords: ['iterate', 'keeper', 'lab', 'preset', 'profile'],
-  },
-  {
-    id: 'workflow-map',
-    label: 'Workflow map',
-    keywords: ['model', 'workflow', 'map', 'assignment'],
-  },
-  {
-    id: 'workflow-library',
-    label: 'Workflow library',
-    keywords: ['library', 'import', 'health', 'diff'],
+    id: 'auto-improve',
+    label: 'Auto-improve',
+    keywords: [
+      'rating',
+      'requeue',
+      'mutate',
+      'seed',
+      'calm',
+      'aggressive',
+      'preset',
+      'iterate',
+      'keeper',
+      'lab',
+      'everyday',
+    ],
   },
   {
     id: 'model-assets',
@@ -98,14 +98,29 @@ export const COMFYUI_SETTINGS_SECTIONS: ComfyUiSettingsSection[] = [
     ],
   },
   {
+    id: 'workflow-map',
+    label: 'Workflow map',
+    keywords: ['model', 'workflow', 'map', 'assignment'],
+  },
+  {
+    id: 'workflow-library',
+    label: 'Workflow library',
+    keywords: ['library', 'import', 'health', 'diff'],
+  },
+  {
+    id: 'workflow-patching',
+    label: 'Patching & maps',
+    keywords: ['checkpoint', 'vae', 'refiner', 'upscale', 'controlnet', 'patch'],
+  },
+  {
     id: 'lora-library',
     label: 'LoRA library',
     keywords: ['lora', 'trigger', 'auto', 'stack', 'lightx2v', 'civitai', 'search', 'download'],
   },
   {
-    id: 'queue-params',
-    label: 'Queue parameters',
-    keywords: ['steps', 'cfg', 'sampler', 'seed', 'params'],
+    id: 'lora-train',
+    label: 'LoRA train',
+    keywords: ['lora', 'train', 'kohya', 'dataset', 'trigger', 'trainer', 'trainer_url'],
   },
   {
     id: 'prompt-quality',
@@ -114,28 +129,23 @@ export const COMFYUI_SETTINGS_SECTIONS: ComfyUiSettingsSection[] = [
   },
   {
     id: 'vram-guard',
-    label: 'VRAM guard',
-    keywords: ['vram', 'max', 'downgrade', 'memory', 'gpu'],
+    label: 'Best jobs',
+    keywords: [
+      'vram',
+      'max',
+      'best',
+      'downgrade',
+      'memory',
+      'gpu',
+      'hold',
+      'idle',
+      'orchestration',
+    ],
   },
   {
-    id: 'hold-max',
-    label: 'Hold Max',
-    keywords: ['hold', 'idle', 'orchestration', 'max'],
-  },
-  {
-    id: 'auto-improve',
-    label: 'Auto-improve',
-    keywords: ['rating', 'requeue', 'mutate', 'seed', 'calm', 'aggressive'],
-  },
-  {
-    id: 'workflow-patching',
-    label: 'Patching & maps',
-    keywords: ['checkpoint', 'vae', 'refiner', 'upscale', 'controlnet', 'patch'],
-  },
-  {
-    id: 'lora-train',
-    label: 'LoRA train',
-    keywords: ['lora', 'train', 'kohya', 'dataset', 'trigger', 'trainer', 'trainer_url'],
+    id: 'queue-params',
+    label: 'Global overrides',
+    keywords: ['steps', 'cfg', 'sampler', 'seed', 'params'],
   },
   {
     id: 'sampler-memory',
@@ -148,14 +158,21 @@ export function settingsComfyUiSectionHref(section: ComfyUiSettingsSectionId): s
   return `/settings?tab=comfyui&section=${section}`;
 }
 
+const SECTION_ALIASES: Record<string, ComfyUiSettingsSectionId> = {
+  presets: 'auto-improve',
+  'hold-max': 'vram-guard',
+};
+
 export function normalizeComfyUiSettingsSection(
   value: string | null | undefined
 ): ComfyUiSettingsSectionId | null {
   if (!value) {
     return null;
   }
-  return COMFYUI_SETTINGS_SECTIONS.some(section => section.id === value)
-    ? (value as ComfyUiSettingsSectionId)
+  // Merged sections keep their old deep links.
+  const aliased = SECTION_ALIASES[value] ?? value;
+  return COMFYUI_SETTINGS_SECTIONS.some(section => section.id === aliased)
+    ? (aliased as ComfyUiSettingsSectionId)
     : null;
 }
 
@@ -164,7 +181,6 @@ export const COMFYUI_ESSENTIAL_SECTION_IDS: ComfyUiSettingsSectionId[] = [
   'inference-engine',
   'connection',
   'model-assets',
-  'queue-params',
 ];
 
 const ESSENTIAL_SECTION_ID_SET = new Set<ComfyUiSettingsSectionId>(COMFYUI_ESSENTIAL_SECTION_IDS);

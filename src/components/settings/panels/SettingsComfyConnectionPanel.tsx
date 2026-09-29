@@ -162,6 +162,8 @@ export default function SettingsComfyConnectionPanel(props: SettingsComfyConnect
           <SettingsComfyConnectionAutoImproveSection
             settings={settings}
             updateSettings={updateSettings}
+            sharedSettings={sharedSettings}
+            updateSharedSettings={updateSharedSettings}
             setStatus={setStatus}
           />
           <SettingsComfyConnectionQueueAutomationSection

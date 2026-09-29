@@ -2,7 +2,6 @@
 
 import dynamic from 'next/dynamic';
 import ComfyUiSettingsJumpNav from '@/components/settings/ComfyUiSettingsJumpNav';
-import SettingsBrowserPresetsPanel from '@/components/settings/SettingsBrowserPresetsPanel';
 import WildcardListsEditor from '@/components/settings/WildcardListsEditor';
 import WorkflowHealthPanel from '@/components/WorkflowHealthPanel';
 import WorkflowDiffPanel from '@/components/settings/WorkflowDiffPanel';
@@ -16,7 +15,6 @@ import SettingsModelAssetsPanel from '@/components/settings/panels/SettingsModel
 import SettingsWorkflowPatchingPanel from '@/components/settings/panels/SettingsWorkflowPatchingPanel';
 import SettingsIpAdapterPanel from '@/components/settings/panels/SettingsIpAdapterPanel';
 import SettingsQueueParamsPanel from '@/components/settings/panels/SettingsQueueParamsPanel';
-import SettingsHoldMaxPanel from '@/components/settings/panels/SettingsHoldMaxPanel';
 import SettingsSamplerMemoryPanel from '@/components/settings/panels/SettingsSamplerMemoryPanel';
 import { validateWorkflowJson, type CustomWorkflowToken } from '@/lib/comfyui-config';
 import { placeholderTokensFromSettings } from '@/lib/comfyui-settings';
@@ -169,8 +167,8 @@ export default function SettingsComfyUiTab({
       {slimSettings ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_90%,transparent)] px-4 py-3 shadow-[inset_0_1px_0_rgb(255_255_255_/0.03)]">
           <p className="type-caption text-[var(--text-secondary)]">
-            Essentials view — inference engine, ComfyUI connection, model downloads, and queue
-            basics. Heal &amp; ready on Overview fills maps automatically.
+            Essentials view — inference engine, ComfyUI connection, and models. Heal &amp; ready on
+            Overview fills maps automatically.
           </p>
           {onShowAllSettings ? (
             <Button type="button" variant="secondary" size="sm" onClick={onShowAllSettings}>
@@ -184,32 +182,43 @@ export default function SettingsComfyUiTab({
         updateSharedSettings={updateSharedSettings}
       />
 
-      {showAdvanced ? (
-        <SettingsBrowserPresetsPanel
-          disabled={!sharedMounted || !mounted}
-          onApply={preset => {
-            updateSharedSettings(preset.shared);
-            updateSettings(preset.comfyUi);
-            setStatus(`Applied ${preset.label} browser preset.`);
-          }}
-        />
-      ) : null}
-
-      {showAdvanced ? (
-        <SettingsWorkflowMapPanel
-          sharedSettings={sharedSettings}
-          sharedMounted={sharedMounted}
-          updateSharedSettings={updateSharedSettings}
-          settings={settings}
-          modelWorkflowMapText={modelWorkflowMapText}
-          setModelWorkflowMapText={setModelWorkflowMapText}
-          setModelCheckpointMapText={setModelCheckpointMapText}
-          setModelVaeMapText={setModelVaeMapText}
-          setModelUpscaleMapText={setModelUpscaleMapText}
-          setWorkflowHealthRefresh={setWorkflowHealthRefresh}
-          setStatus={setStatus}
-        />
-      ) : null}
+      <SettingsComfyConnectionPanel
+        slimSettings={slimSettings}
+        showAdvanced={showAdvanced}
+        sharedSettings={sharedSettings}
+        sharedMounted={sharedMounted}
+        updateSharedSettings={updateSharedSettings}
+        mounted={mounted}
+        settings={settings}
+        updateSettings={updateSettings}
+        workflowError={workflowError}
+        setWorkflowError={setWorkflowError}
+        workflowValidation={workflowValidation}
+        previewPrompt={previewPrompt}
+        setPreviewPrompt={setPreviewPrompt}
+        previewLoading={previewLoading}
+        previewError={previewError}
+        workflowPreview={workflowPreview}
+        handlePreviewWorkflow={handlePreviewWorkflow}
+        handleImportWorkflow={handleImportWorkflow}
+        notificationPermission={notificationPermission}
+        handleEnableNotifications={handleEnableNotifications}
+        handleSaveComfySettings={handleSaveComfySettings}
+        handleResetComfySettings={handleResetComfySettings}
+        refreshHealth={refreshHealth}
+        health={health}
+        healBusy={healBusy}
+        healProgress={healProgress}
+        handleHealAndReady={handleHealAndReady}
+        workflowHealthRefresh={workflowHealthRefresh}
+        setWorkflowHealthRefresh={setWorkflowHealthRefresh}
+        setStatus={setStatus}
+        updateQueueParam={updateQueueParam}
+        updateCustomToken={updateCustomToken}
+        addCustomToken={addCustomToken}
+        removeCustomToken={removeCustomToken}
+        handleComfyUiSectionJump={handleComfyUiSectionJump}
+      />
 
       <SettingsModelAssetsPanel
         setStatus={setStatus}
@@ -218,6 +227,34 @@ export default function SettingsComfyUiTab({
 
       {showAdvanced ? (
         <>
+          <SettingsWorkflowMapPanel
+            sharedSettings={sharedSettings}
+            sharedMounted={sharedMounted}
+            updateSharedSettings={updateSharedSettings}
+            settings={settings}
+            modelWorkflowMapText={modelWorkflowMapText}
+            setModelWorkflowMapText={setModelWorkflowMapText}
+            setModelCheckpointMapText={setModelCheckpointMapText}
+            setModelVaeMapText={setModelVaeMapText}
+            setModelUpscaleMapText={setModelUpscaleMapText}
+            setWorkflowHealthRefresh={setWorkflowHealthRefresh}
+            setStatus={setStatus}
+          />
+
+          <div id="settings-comfyui-workflow-library" className="scroll-mt-28 space-y-6">
+            <ComfyWorkflowLibraryPanel
+              placeholderTokens={placeholderTokensFromSettings(settings)}
+              onStatus={msg => {
+                setStatus(msg);
+                setWorkflowHealthRefresh(n => n + 1);
+              }}
+            />
+
+            <WorkflowHealthPanel refreshKey={workflowHealthRefresh} />
+
+            <WorkflowDiffPanel />
+          </div>
+
           <SettingsWorkflowPatchingPanel
             sharedSettings={sharedSettings}
             sharedMounted={sharedMounted}
@@ -268,20 +305,6 @@ export default function SettingsComfyUiTab({
             />
           </CollapsibleSection>
 
-          <div id="settings-comfyui-workflow-library" className="scroll-mt-28 space-y-6">
-            <ComfyWorkflowLibraryPanel
-              placeholderTokens={placeholderTokensFromSettings(settings)}
-              onStatus={msg => {
-                setStatus(msg);
-                setWorkflowHealthRefresh(n => n + 1);
-              }}
-            />
-
-            <WorkflowHealthPanel refreshKey={workflowHealthRefresh} />
-
-            <WorkflowDiffPanel />
-          </div>
-
           <ToolSection id="settings-comfyui-lora-library" title="LoRA library">
             <LoraLibrarySettingsPanel
               library={settings.loraLibrary}
@@ -306,46 +329,6 @@ export default function SettingsComfyUiTab({
         </>
       ) : null}
 
-      <SettingsComfyConnectionPanel
-        slimSettings={slimSettings}
-        showAdvanced={showAdvanced}
-        sharedSettings={sharedSettings}
-        sharedMounted={sharedMounted}
-        updateSharedSettings={updateSharedSettings}
-        mounted={mounted}
-        settings={settings}
-        updateSettings={updateSettings}
-        workflowError={workflowError}
-        setWorkflowError={setWorkflowError}
-        workflowValidation={workflowValidation}
-        previewPrompt={previewPrompt}
-        setPreviewPrompt={setPreviewPrompt}
-        previewLoading={previewLoading}
-        previewError={previewError}
-        workflowPreview={workflowPreview}
-        handlePreviewWorkflow={handlePreviewWorkflow}
-        handleImportWorkflow={handleImportWorkflow}
-        notificationPermission={notificationPermission}
-        handleEnableNotifications={handleEnableNotifications}
-        handleSaveComfySettings={handleSaveComfySettings}
-        handleResetComfySettings={handleResetComfySettings}
-        refreshHealth={refreshHealth}
-        health={health}
-        healBusy={healBusy}
-        healProgress={healProgress}
-        handleHealAndReady={handleHealAndReady}
-        workflowHealthRefresh={workflowHealthRefresh}
-        setWorkflowHealthRefresh={setWorkflowHealthRefresh}
-        setStatus={setStatus}
-        updateQueueParam={updateQueueParam}
-        updateCustomToken={updateCustomToken}
-        addCustomToken={addCustomToken}
-        removeCustomToken={removeCustomToken}
-        handleComfyUiSectionJump={handleComfyUiSectionJump}
-      />
-
-      <SettingsQueueParamsPanel />
-
       {showAdvanced ? (
         <>
           <SettingsPromptQualityPanel
@@ -362,11 +345,7 @@ export default function SettingsComfyUiTab({
             }
           />
 
-          <SettingsHoldMaxPanel
-            sharedSettings={sharedSettings}
-            updateSharedSettings={updateSharedSettings}
-            setStatus={setStatus}
-          />
+          <SettingsQueueParamsPanel />
 
           <SettingsSamplerMemoryPanel
             sharedSettings={sharedSettings}

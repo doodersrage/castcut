@@ -75,3 +75,25 @@ export function normalizeToolQueueQualityProfiles(value: unknown): ToolQueueQual
   }
   return normalized;
 }
+
+/**
+ * Patch that makes every tool queue at `profile`: the global value plus each tool's own entry
+ * (the suggested ones included — they are merged back on load, and a tool entry beats the
+ * global, so setting the global alone changed nothing on most tools).
+ */
+export function qualityForEveryToolPatch(
+  current: ToolQueueQualityProfiles | undefined,
+  profile: QueueQualityProfile
+): {
+  queueQualityProfile: QueueQualityProfile;
+  toolQueueQualityProfiles: ToolQueueQualityProfiles;
+} {
+  const keys = new Set([
+    ...Object.keys(SUGGESTED_TOOL_QUEUE_QUALITY_PROFILES),
+    ...Object.keys(current ?? {}),
+  ]);
+  return {
+    queueQualityProfile: profile,
+    toolQueueQualityProfiles: Object.fromEntries([...keys].map(key => [key, profile])),
+  };
+}

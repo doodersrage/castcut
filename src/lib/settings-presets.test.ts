@@ -54,76 +54,63 @@ describe("settings-presets", () => {
     restore?.();
   });
 
-  it("lists iterate, keeper, and lab presets with labels/descriptions", async () => {
+  it("lists the Everyday and Best quality bundles", async () => {
     const { SETTINGS_BROWSER_PRESETS } = await import("./settings-presets");
-    const ids = SETTINGS_BROWSER_PRESETS.map((preset) => preset.id);
-    assert.deepEqual(ids, ["iterate", "keeper", "lab"]);
+    assert.deepEqual(
+      SETTINGS_BROWSER_PRESETS.map((preset) => preset.id),
+      ["everyday", "best"],
+    );
     for (const preset of SETTINGS_BROWSER_PRESETS) {
       assert.ok(preset.label.trim().length > 0);
       assert.ok(preset.description.trim().length > 0);
     }
   });
 
-  it("returns undefined for an unknown preset id", async () => {
+  it("maps old Iterate / Keeper / Lab ids and rejects unknown ones", async () => {
     const { getSettingsBrowserPreset } = await import("./settings-presets");
+    assert.equal(getSettingsBrowserPreset("iterate")?.id, "everyday");
+    assert.equal(getSettingsBrowserPreset("keeper")?.id, "everyday");
+    assert.equal(getSettingsBrowserPreset("lab")?.id, "best");
     assert.equal(getSettingsBrowserPreset("bogus"), undefined);
     assert.equal(getSettingsBrowserPreset(undefined), undefined);
   });
 
-  it("applies the iterate preset: draft queueing, no Max hold, calm auto-improve", async () => {
+  it("applies Everyday: Good on every tool, no hold, Calm auto-improve", async () => {
     const { applySettingsBrowserPreset } = await import("./settings-presets");
     const { loadSettingsCache } = await import("./settings-cache");
     const { loadComfyUiSettings } = await import("./comfyui-settings");
 
-    const applied = applySettingsBrowserPreset("iterate");
-    assert.equal(applied, true);
+    assert.equal(applySettingsBrowserPreset("everyday"), true);
 
     const shared = loadSettingsCache().shared;
-    assert.equal(shared.queueQualityProfile, "draft");
-    assert.equal(shared.sessionQueueMode, "iterate");
+    // A tool's own profile beats the global, so the bundle sets every tool.
+    assert.equal(shared.queueQualityProfile, "final");
+    assert.equal(shared.toolQueueQualityProfiles?.generate, "final");
     assert.equal(shared.holdMaxUntilIdle, false);
     assert.equal(shared.vramGuardEnabled, true);
 
     const comfyUi = loadComfyUiSettings();
-    assert.equal(comfyUi.autoMutateOnHighRating, false);
-    assert.equal(comfyUi.autoRequeueMaxOnFiveStar, false);
     assert.equal(comfyUi.autoRequeueFinalOnHighRating, true);
+    assert.equal(comfyUi.autoRequeueMaxOnFiveStar, false);
+    assert.equal(comfyUi.autoMutateOnHighRating, false);
   });
 
-  it("applies the keeper preset: final queueing, balanced auto-improve", async () => {
+  it("applies Best quality: Best on every tool, hold until idle, Aggressive", async () => {
     const { applySettingsBrowserPreset } = await import("./settings-presets");
     const { loadSettingsCache } = await import("./settings-cache");
     const { loadComfyUiSettings } = await import("./comfyui-settings");
 
-    applySettingsBrowserPreset("keeper");
-
-    const shared = loadSettingsCache().shared;
-    assert.equal(shared.queueQualityProfile, "final");
-    assert.equal(shared.sessionQueueMode, "keeper");
-    assert.equal(shared.vramGuardEnabled, true);
-
-    const comfyUi = loadComfyUiSettings();
-    assert.equal(comfyUi.autoMutateOnHighRating, true);
-    assert.equal(comfyUi.autoSeedExperimentOnHighRating, true);
-    assert.equal(comfyUi.autoRequeueMaxOnFiveStar, true);
-  });
-
-  it("applies the lab preset: max queueing, hold until idle, aggressive auto-improve", async () => {
-    const { applySettingsBrowserPreset } = await import("./settings-presets");
-    const { loadSettingsCache } = await import("./settings-cache");
-    const { loadComfyUiSettings } = await import("./comfyui-settings");
-
-    applySettingsBrowserPreset("lab");
+    applySettingsBrowserPreset("best");
 
     const shared = loadSettingsCache().shared;
     assert.equal(shared.queueQualityProfile, "max");
+    assert.equal(shared.toolQueueQualityProfiles?.generate, "max");
+    assert.equal(shared.toolQueueQualityProfiles?.roleplay, "max");
     assert.equal(shared.holdMaxUntilIdle, true);
-    assert.equal(shared.vramGuardEnabled, true);
 
     const comfyUi = loadComfyUiSettings();
-    assert.equal(comfyUi.autoMutateOnHighRating, true);
-    assert.equal(comfyUi.autoSeedExperimentOnFavorite, true);
-    assert.equal(comfyUi.autoImg2imgRefineOnFiveStar, true);
+    assert.equal(comfyUi.autoRequeueFinalOnHighRating, true);
+    assert.equal(comfyUi.autoRequeueMaxOnFiveStar, true);
   });
 
   it("does not clobber unrelated settings when applying a preset", async () => {
@@ -135,7 +122,7 @@ describe("settings-presets", () => {
       lockedLocation: "rooftop bar at dusk",
     });
 
-    applySettingsBrowserPreset("keeper");
+    applySettingsBrowserPreset("everyday");
 
     assert.equal(loadSettingsCache().shared.lockedLocation, "rooftop bar at dusk");
   });

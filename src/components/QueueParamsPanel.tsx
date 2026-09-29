@@ -36,6 +36,22 @@ export default function QueueParamsPanel({ compact = false }: QueueParamsPanelPr
     saveQueueParamsSettings(next);
   };
 
+  // Width/height/CFG/steps apply only while "Override defaults" is on; a seed always applies.
+  const text = (value: unknown) => (value == null ? '' : String(value).trim());
+  const active = [
+    text(settings.seed) ? `seed ${text(settings.seed)}` : null,
+    ...(settings.enabled === true
+      ? (
+          [
+            ['width', 'width'],
+            ['height', 'height'],
+            ['cfg', 'CFG'],
+            ['steps', 'steps'],
+          ] as const
+        ).map(([key, label]) => (text(settings[key]) ? `${label} ${text(settings[key])}` : null))
+      : []),
+  ].filter(Boolean);
+
   return (
     <div
       className={
@@ -56,6 +72,15 @@ export default function QueueParamsPanel({ compact = false }: QueueParamsPanelPr
           Override defaults
         </label>
       </div>
+      {active.length > 0 ? (
+        <p
+          data-testid="queue-params-active-warning"
+          className="rounded-lg border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-3 py-2 text-xs text-[var(--tint-warning-text)]"
+        >
+          Active on every tool: {active.join(' · ')}. These beat each tool&apos;s Engine quality and
+          aspect — clear them unless you mean it.
+        </p>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {(
           [

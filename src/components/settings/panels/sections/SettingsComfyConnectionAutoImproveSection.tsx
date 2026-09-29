@@ -7,6 +7,12 @@ import { useEffect, useState } from 'react';
 import { loadAutoImproveLog, summarizeAutoImproveLog } from '@/lib/auto-improve-log';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import type { ComfyUiSettings } from '@/lib/comfyui-settings';
+import {
+  AUTO_IMPROVE_MODES,
+  SETTINGS_BROWSER_PRESETS,
+  settingsPresetSharedPatch,
+  type SettingsBrowserPreset,
+} from '@/lib/settings-presets';
 
 /** The rating automations that are on, in a few words each. */
 export function activeAutoImproveActions(settings: ComfyUiSettings): string[] {
@@ -21,45 +27,36 @@ export function activeAutoImproveActions(settings: ComfyUiSettings): string[] {
   ].filter((entry): entry is string => Boolean(entry));
 }
 
-type Props = Pick<SettingsComfyConnectionPanelProps, 'settings' | 'updateSettings' | 'setStatus'>;
+type Props = Pick<
+  SettingsComfyConnectionPanelProps,
+  'settings' | 'updateSettings' | 'setStatus' | 'sharedSettings' | 'updateSharedSettings'
+>;
 
 export function SettingsComfyConnectionAutoImproveSection({
   settings,
   updateSettings,
+  sharedSettings,
+  updateSharedSettings,
   setStatus,
 }: Props) {
   const applyCalm = () => {
-    updateSettings({
-      autoRequeueFinalOnHighRating: true,
-      autoRequeueMaxOnFiveStar: false,
-      autoImg2imgRefineOnFiveStar: false,
-      autoMutateOnHighRating: false,
-      autoSeedExperimentOnHighRating: false,
-      autoRefineOnLowRating: true,
-    });
+    updateSettings(AUTO_IMPROVE_MODES.calm);
     setStatus('Auto-improve preset: calm (Final on 4–5★, Max off).');
   };
   const applyAggressive = () => {
-    updateSettings({
-      autoRequeueFinalOnHighRating: true,
-      autoRequeueMaxOnFiveStar: true,
-      autoImg2imgRefineOnFiveStar: false,
-      autoMutateOnHighRating: false,
-      autoSeedExperimentOnHighRating: false,
-      autoRefineOnLowRating: true,
-    });
+    updateSettings(AUTO_IMPROVE_MODES.aggressive);
     setStatus('Auto-improve preset: aggressive (Final + Max).');
   };
   const applyOff = () => {
-    updateSettings({
-      autoRequeueFinalOnHighRating: false,
-      autoRequeueMaxOnFiveStar: false,
-      autoImg2imgRefineOnFiveStar: false,
-      autoMutateOnHighRating: false,
-      autoSeedExperimentOnHighRating: false,
-      autoRefineOnLowRating: false,
-    });
+    updateSettings(AUTO_IMPROVE_MODES.off);
     setStatus('Auto-improve disabled.');
+  };
+  // The old Browser presets section, folded in: quality on every tool + hold + VRAM guard,
+  // and one of the modes below.
+  const applyBundle = (preset: SettingsBrowserPreset) => {
+    updateSharedSettings(settingsPresetSharedPatch(preset, sharedSettings));
+    updateSettings(preset.comfyUi);
+    setStatus(`Applied ${preset.label}.`);
   };
 
   const isOff =
@@ -114,6 +111,27 @@ export function SettingsComfyConnectionAutoImproveSection({
             : ' · nothing queued by these in the last 7 days'
           : ''}
       </p>
+      <div className="mb-4 space-y-2" data-testid="settings-quick-setups">
+        <p className="type-caption text-[var(--text-muted)]">Quick setup</p>
+        <div className="flex flex-wrap gap-2">
+          {SETTINGS_BROWSER_PRESETS.map(preset => (
+            <Button
+              key={preset.id}
+              variant="secondary"
+              size="sm"
+              title={preset.description}
+              onClick={() => applyBundle(preset)}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+        <p className="type-caption text-[var(--text-muted)]">
+          {SETTINGS_BROWSER_PRESETS.map(preset => `${preset.label}: ${preset.description}`).join(
+            ' '
+          )}
+        </p>
+      </div>
       <p className="mb-3 text-sm text-[var(--text-secondary)]">
         Rating-driven queue actions. Prefer Calm if you do not want surprise Max jobs.
       </p>

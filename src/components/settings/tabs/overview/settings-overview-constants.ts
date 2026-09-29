@@ -24,9 +24,9 @@ export const ESSENTIAL_TASKS: Array<{
     section: 'model-assets',
   },
   {
-    title: 'Queue parameters',
-    description: 'Default seed, size, CFG, and steps.',
-    section: 'queue-params',
+    title: 'Quality',
+    description: 'Good or Best on every tool, Best jobs, render style.',
+    section: 'prompt-quality',
   },
   {
     title: 'LLM',

@@ -1,88 +1,104 @@
 import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from './settings-cache';
 import { loadComfyUiSettings, saveComfyUiSettings, type ComfyUiSettings } from './comfyui-settings';
+import { qualityForEveryToolPatch } from './tool-quality-profiles';
 
-export type SettingsBrowserPresetId = 'iterate' | 'keeper' | 'lab';
+export type SettingsBrowserPresetId = 'everyday' | 'best';
+
+/** Auto-improve on ratings — the Calm / Aggressive / Off chips in Settings → Auto-improve. */
+export const AUTO_IMPROVE_MODES = {
+  calm: {
+    autoRequeueFinalOnHighRating: true,
+    autoRequeueMaxOnFiveStar: false,
+    autoImg2imgRefineOnFiveStar: false,
+    autoMutateOnHighRating: false,
+    autoSeedExperimentOnHighRating: false,
+    autoRefineOnLowRating: true,
+  },
+  aggressive: {
+    autoRequeueFinalOnHighRating: true,
+    autoRequeueMaxOnFiveStar: true,
+    autoImg2imgRefineOnFiveStar: false,
+    autoMutateOnHighRating: false,
+    autoSeedExperimentOnHighRating: false,
+    autoRefineOnLowRating: true,
+  },
+  off: {
+    autoRequeueFinalOnHighRating: false,
+    autoRequeueMaxOnFiveStar: false,
+    autoImg2imgRefineOnFiveStar: false,
+    autoMutateOnHighRating: false,
+    autoSeedExperimentOnHighRating: false,
+    autoRefineOnLowRating: false,
+  },
+} satisfies Record<string, Partial<ComfyUiSettings>>;
 
 export type SettingsBrowserPreset = {
   id: SettingsBrowserPresetId;
   label: string;
   description: string;
-  /** Patch applied to shared queue/session settings. */
+  /** Patch applied to shared queue/session settings (quality goes to every tool). */
   shared: Partial<SharedToolSettings>;
-  /** Patch applied to ComfyUI auto-improve (mutate/seed/upscale/refine) flags. */
+  /** One of the Auto-improve modes. */
   comfyUi: Partial<ComfyUiSettings>;
 };
 
+/**
+ * Two bundles on top of Auto-improve. Iterate / Keeper / Lab collapsed: with Fast gone (it
+ * always queued as Good) Iterate and Keeper only differed in auto-improve extras.
+ */
 export const SETTINGS_BROWSER_PRESETS: SettingsBrowserPreset[] = [
   {
-    id: 'iterate',
-    label: 'Iterate',
-    description:
-      'Fast draft loop — Fast queueing, no Best hold, VRAM guard on. Calm auto-improve: upscale keepers on 4–5★, no auto mutate/seed spam.',
-    shared: {
-      queueQualityProfile: 'draft',
-      sessionQueueMode: 'iterate',
-      holdMaxUntilIdle: false,
-      vramGuardEnabled: true,
-    },
-    comfyUi: {
-      autoRefineOnLowRating: true,
-      autoMutateOnHighRating: false,
-      autoSeedExperimentOnHighRating: false,
-      autoSeedExperimentOnFavorite: false,
-      autoRequeueFinalOnHighRating: true,
-      autoRequeueMaxOnFiveStar: false,
-      autoImg2imgRefineOnFiveStar: false,
-    },
-  },
-  {
-    id: 'keeper',
-    label: 'Keeper',
-    description:
-      'Production renders — Good queueing, VRAM guard on. Balanced auto-improve: Good/Best upscale plus seed experiments on high ratings.',
+    id: 'everyday',
+    label: 'Everyday',
+    description: 'Good quality on every tool, no Best hold, VRAM guard on, Calm auto-improve.',
     shared: {
       queueQualityProfile: 'final',
       sessionQueueMode: 'keeper',
       holdMaxUntilIdle: false,
       vramGuardEnabled: true,
     },
-    comfyUi: {
-      autoRefineOnLowRating: true,
-      autoMutateOnHighRating: true,
-      autoSeedExperimentOnHighRating: true,
-      autoSeedExperimentOnFavorite: false,
-      autoRequeueFinalOnHighRating: true,
-      autoRequeueMaxOnFiveStar: true,
-      autoImg2imgRefineOnFiveStar: false,
-    },
+    comfyUi: AUTO_IMPROVE_MODES.calm,
   },
   {
-    id: 'lab',
-    label: 'Lab',
+    id: 'best',
+    label: 'Best quality',
     description:
-      'Best-quality experiments — Best queueing, hold until idle, VRAM guard on. Aggressive auto-improve: mutate/seed/img2img refine on every high rating.',
+      'Best on every tool, held until ComfyUI is idle, VRAM guard on, Aggressive auto-improve.',
     shared: {
       queueQualityProfile: 'max',
       sessionQueueMode: 'off',
       holdMaxUntilIdle: true,
       vramGuardEnabled: true,
     },
-    comfyUi: {
-      autoRefineOnLowRating: true,
-      autoMutateOnHighRating: true,
-      autoSeedExperimentOnHighRating: true,
-      autoSeedExperimentOnFavorite: true,
-      autoRequeueFinalOnHighRating: true,
-      autoRequeueMaxOnFiveStar: true,
-      autoImg2imgRefineOnFiveStar: true,
-    },
+    comfyUi: AUTO_IMPROVE_MODES.aggressive,
   },
 ];
+
+/** Legacy ids from saved links / recipes. */
+const LEGACY_PRESET_IDS: Record<string, SettingsBrowserPresetId> = {
+  iterate: 'everyday',
+  keeper: 'everyday',
+  lab: 'best',
+};
+
+/** Shared patch for a preset: its fields plus its quality on every tool. */
+export function settingsPresetSharedPatch(
+  preset: SettingsBrowserPreset,
+  shared: Pick<SharedToolSettings, 'toolQueueQualityProfiles'>
+): Partial<SharedToolSettings> {
+  return {
+    ...preset.shared,
+    ...(preset.shared.queueQualityProfile
+      ? qualityForEveryToolPatch(shared.toolQueueQualityProfiles, preset.shared.queueQualityProfile)
+      : {}),
+  };
+}
 
 export function getSettingsBrowserPreset(
   id: string | undefined
 ): SettingsBrowserPreset | undefined {
-  return SETTINGS_BROWSER_PRESETS.find(preset => preset.id === id);
+  const resolved = id ? (LEGACY_PRESET_IDS[id] ?? id) : id;
+  return SETTINGS_BROWSER_PRESETS.find(preset => preset.id === resolved);
 }
 
 /**
@@ -97,7 +113,7 @@ export function applySettingsBrowserPreset(id: string): boolean {
   }
 
   const shared = loadSettingsCache().shared;
-  saveSharedSettings({ ...shared, ...preset.shared });
+  saveSharedSettings({ ...shared, ...settingsPresetSharedPatch(preset, shared) });
 
   const comfyUi = loadComfyUiSettings();
   saveComfyUiSettings({ ...comfyUi, ...preset.comfyUi });

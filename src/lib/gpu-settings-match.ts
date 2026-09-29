@@ -36,8 +36,9 @@ export function gpuSettingsSuggestion(
   // Binary GB, as cards are sold: a 24 GB 4090 reports 25.3e9 bytes ("25 GB" in decimal).
   const totalGb = Math.round(totalBytes / 2 ** 30);
   const [sizeTier, qualityProfile]: [ResolutionSizeTier, GpuSettingsSuggestion['qualityProfile']] =
+    // Small canvas does the saving on small cards — Fast (draft) always queued as Good anyway.
     totalGb < 10
-      ? ['small', 'draft']
+      ? ['small', 'final']
       : totalGb < 14
         ? ['small', 'final']
         : totalGb < 20

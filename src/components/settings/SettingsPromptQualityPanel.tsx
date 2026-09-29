@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import RenderRealismHints from '@/components/RenderRealismHints';
 import AnatomyGuardHints from '@/components/AnatomyGuardHints';
-import QueueQualityProfileHints from '@/components/QueueQualityProfileHints';
 import { useState, useSyncExternalStore } from 'react';
 import { ChipButton } from '@/components/ui/Field';
 import { clearPoseLibrary, poseLibraryCount, subscribePoseLibrary } from '@/lib/pose-library';
@@ -26,12 +25,12 @@ import {
   RESOLUTION_ORIENTATION_CORE,
   RESOLUTION_ORIENTATION_OPTIONS,
   normalizeResolutionOrientation,
-  normalizeResolutionSizeTier,
 } from '@/lib/model-resolution-defaults';
 import {
   normalizeQueueQualityProfile,
   type QueueQualityProfile,
 } from '@/lib/queue-quality-profile';
+import { qualityForEveryToolPatch } from '@/lib/tool-quality-profiles';
 import {
   normalizePoseGuideStylePreference,
   type PoseGuideStylePreference,
@@ -62,17 +61,36 @@ const POSE_GUIDE_STYLE_OPTIONS: Array<{
   },
 ];
 
+/** Good / Best / Custom — the Engine's quality choices (Fast always queued as Good). */
+const EVERY_TOOL_QUALITY: Array<{ id: QueueQualityProfile; label: string }> = [
+  { id: 'final', label: 'Good' },
+  { id: 'max', label: 'Best' },
+  { id: 'followSettings', label: 'Custom' },
+];
+
+/** The one quality every tool queues with, or null when tools differ. */
+function everyToolQuality(shared: SharedToolSettings): QueueQualityProfile | null {
+  const values = [
+    shared.queueQualityProfile,
+    ...Object.values(shared.toolQueueQualityProfiles ?? {}),
+  ]
+    .map(profile => normalizeQueueQualityProfile(profile))
+    .map(profile => (profile === 'draft' ? 'final' : profile));
+  return values.every(profile => profile === values[0]) ? (values[0] ?? null) : null;
+}
+
 /** What the sampler preset does under the chosen queue quality (see resolveEffectiveSamplerPreset). */
-function samplerPresetEffect(profile: QueueQualityProfile): string {
+function samplerPresetEffect(profile: QueueQualityProfile | null): string {
+  if (profile === null) {
+    return 'Tools use different qualities — Good treats this as a minimum, Best ignores it, Custom uses it as chosen.';
+  }
   if (profile === 'followSettings') {
-    return 'Used as chosen — queue quality is set to Follow sidebar.';
+    return 'Used as chosen — quality is Custom.';
   }
   if (profile === 'final') {
     return 'Good uses at least Optimized — pick Max compatible or Max quality to go higher.';
   }
-  return profile === 'draft'
-    ? 'Not used while queue quality is Fast (always Base). Pick Follow sidebar to use it.'
-    : 'Not used while queue quality is Best (always Max quality). Pick Follow sidebar to use it.';
+  return 'Not used while quality is Best (always Max quality). Pick Custom to use it.';
 }
 
 /**
@@ -176,7 +194,7 @@ export default function SettingsPromptQualityPanel({
   const minFreeGb = sharedSettings.vramGuardMinFreeGb ?? 6;
   const freeVramAfterMax = sharedSettings.freeVramAfterMax === true;
   const samplerPreset = normalizeModelSamplerPresetTier(sharedSettings.modelSamplerPreset);
-  const queueProfile = normalizeQueueQualityProfile(sharedSettings.queueQualityProfile);
+  const toolsQuality = everyToolQuality(sharedSettings);
   const kleinNodes = useKleinEnhancerNodes();
   // Sub-options only matter when the pack is there (or ComfyUI hasn't said yet).
   const kleinPackMissing = kleinEnhancerInstalled(kleinNodes) === false;
@@ -200,6 +218,36 @@ export default function SettingsPromptQualityPanel({
           .
         </p>
 
+        <div className="space-y-2" data-testid="settings-every-tool-quality">
+          <p className="type-caption text-[var(--text-muted)]">Quality on every tool</p>
+          <div className="flex flex-wrap gap-1.5">
+            {EVERY_TOOL_QUALITY.filter(
+              option =>
+                option.id !== 'followSettings' ||
+                sharedSettings.useSystemWorkflows !== true ||
+                toolsQuality === 'followSettings'
+            ).map(option => (
+              <ChipButton
+                key={option.id}
+                active={toolsQuality === option.id}
+                disabled={!sharedMounted}
+                onClick={() =>
+                  updateSharedSettings(
+                    qualityForEveryToolPatch(sharedSettings.toolQueueQualityProfiles, option.id)
+                  )
+                }
+              >
+                {option.label}
+              </ChipButton>
+            ))}
+          </div>
+          <p className="type-caption text-[var(--text-muted)]">
+            {toolsQuality === null
+              ? 'Tools use different qualities (set per tool in its Engine) — pick one to use it everywhere.'
+              : 'Each tool’s Engine can still pick its own.'}
+          </p>
+        </div>
+
         <div className="space-y-2">
           <p className="type-caption text-[var(--text-muted)]">Default sampler preset</p>
           <div className="flex flex-wrap gap-1.5">
@@ -216,7 +264,7 @@ export default function SettingsPromptQualityPanel({
             ))}
           </div>
           <p className="type-caption text-[var(--text-muted)]" data-testid="sampler-preset-effect">
-            {samplerPresetEffect(queueProfile)}
+            {samplerPresetEffect(toolsQuality)}
           </p>
         </div>
 
@@ -413,12 +461,6 @@ export default function SettingsPromptQualityPanel({
           sharedSettings={sharedSettings}
           updateSharedSettings={updateSharedSettings}
         />
-        <QueueQualityProfileHints
-          profile={queueProfile}
-          samplerPreset={samplerPreset}
-          resolutionSizeTier={normalizeResolutionSizeTier(sharedSettings.modelResolutionSizeTier)}
-          onProfileChange={profile => updateSharedSettings({ queueQualityProfile: profile })}
-        />
 
         <p className="type-caption text-[var(--text-muted)]">
           Theme and density live in{' '}
@@ -432,11 +474,30 @@ export default function SettingsPromptQualityPanel({
         </p>
       </ToolSection>
 
-      <ToolSection id="settings-comfyui-vram-guard" title="VRAM guard">
+      <ToolSection id="settings-comfyui-vram-guard" title="Best jobs">
         <p className="text-sm text-[var(--text-muted)]">
-          When free VRAM is low, Best automatically downgrades to Good (skips neural upscale / peak
-          refiner load).
+          Best runs the heaviest pipeline. Hold it while ComfyUI is busy, drop to Good when VRAM is
+          low (skips neural upscale / peak refiner load), and free VRAM after.
         </p>
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={sharedSettings.holdMaxUntilIdle === true}
+            disabled={!sharedMounted}
+            data-testid="settings-hold-best"
+            onChange={event => updateSharedSettings({ holdMaxUntilIdle: event.target.checked })}
+            className={`mt-1 h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-base)] ${accentFocusClass()}`}
+          />
+          <span className="space-y-1">
+            <span className="block text-sm font-medium text-[var(--text-primary)]">
+              Hold Best until idle
+            </span>
+            <span className="block text-xs text-[var(--text-muted)]">
+              Best Generate / re-queue / Upscale / Moiré / Refine wait for an empty ComfyUI queue,
+              then flush from Queue → Orchestration.
+            </span>
+          </span>
+        </label>
         {typeof freeVramGb === 'number' ? (
           <p className="type-caption text-[var(--text-muted)]">
             ComfyUI now: {freeVramGb.toFixed(1)}

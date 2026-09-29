@@ -20,7 +20,7 @@ describe('match settings to the GPU', () => {
         const s = gpuSettingsSuggestion(gb * GB)!;
         return `${s.sizeTier}/${s.qualityProfile}`;
       }),
-      ['small/draft', 'small/final', 'medium/final', 'max/final', 'max/max']
+      ['small/final', 'small/final', 'medium/final', 'max/final', 'max/max']
     );
     assert.equal(
       gpuSettingsSuggestion(24 * GB)?.label,
