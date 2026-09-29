@@ -747,6 +747,22 @@ export function useDayPlannerToolOrchestrationCore() {
               customGarmentFilename: toolSettings.customGarmentImageFilename,
             })
           );
+        // Everyday on Rapid with a Fitting garment over the undressed Cast plate: the plate's full
+        // latent plus the packshot's turned walk / crouch / kneel / menu beats into the same
+        // legs-apart seated swimsuit pin-up 4/4, with the packshot's rib knit as streaks.
+        // Face-break (face crop + garment latent) is how Suggestive/Vacation already handle it.
+        const everydayGarmentOnUndressedPlate =
+          normalizeDayMood(toolSettings.dayMood) === 'everyday' &&
+          /^qwen-rapid-aio-/i.test(String(shared.model ?? '')) &&
+          (identityPlate ?? queuePlate)?.source !== 'keeper' &&
+          isClothingOnlyDayGarment(
+            resolveDayGarmentReinforce({
+              plateSource: plate?.source,
+              packshotUrl,
+              customGarmentUrl: toolSettings.customGarmentImageUrl,
+              customGarmentFilename: toolSettings.customGarmentImageFilename,
+            })
+          );
         if (omitGarment && character) {
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const nudeIdentity = await resolveDayNudeIdentityPlateWithFaceCrop({
@@ -759,12 +775,13 @@ export function useDayPlannerToolOrchestrationCore() {
             nudeFaceAutoCropped = nudeIdentity.autoCropped;
           }
         } else if (
-          (normalizeDayMood(toolSettings.dayMood) === 'vacation' ||
+          (((normalizeDayMood(toolSettings.dayMood) === 'vacation' ||
             normalizeDayMood(toolSettings.dayMood) === 'suggestive') &&
-          (dayClothedHeatPoseNeedsBodyUnlock(queueTarget.sceneHints, toolSettings.dayMood, {
-            poseStickyModel: isQwenEdit2511PoseStickyModel(shared.model),
-          }) ||
-            suggestiveSeatOnUndressedPlate) &&
+            (dayClothedHeatPoseNeedsBodyUnlock(queueTarget.sceneHints, toolSettings.dayMood, {
+              poseStickyModel: isQwenEdit2511PoseStickyModel(shared.model),
+            }) ||
+              suggestiveSeatOnUndressedPlate)) ||
+            everydayGarmentOnUndressedPlate) &&
           (identityPlate ?? queuePlate)
         ) {
           // Upright MID-STRIDE / WAVING / DANCING: full Keep as Image 1 freezes stand.

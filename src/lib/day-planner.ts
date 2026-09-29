@@ -821,6 +821,17 @@ export function everydayStanceDirective(poseClass: string | null | undefined): s
   }
 }
 
+/**
+ * Everyday face-break: the stance as the first line of the lead. Rapid follows the first
+ * paragraph; with only the generic face-crop lead, crouch and kneel beats stood up.
+ */
+export function dayEverydayFaceBreakStanceLead(beat: string | null | undefined): string | null {
+  const cls = dayEverydayPoseClass(beat);
+  return ['SEATED', 'LYING', 'CROUCH', 'KNEEL', 'LEANING'].includes(cls)
+    ? `${everydayStanceDirective(cls)}.`
+    : null;
+}
+
 export function buildDayEverydayKeepPoseUnlock(beat: string | null | undefined): string {
   const cls = dayEverydayPoseClass(beat);
   const stance = everydayStanceDirective(cls);
@@ -2882,8 +2893,12 @@ export function buildDaySlotPrompt(input: {
     : rawSetting;
   const omitGarment = input.omitGarment === true;
   const faceOnlyIdentity = input.faceOnlyIdentity === true;
+  // Everyday joins when a Fitting garment rides on the undressed Cast plate (see
+  // dayEverydayGarmentNeedsFaceBreak) — the orchestrator only face-breaks it then.
   const clothedFaceBreak =
-    faceOnlyIdentity && !omitGarment && (dayMood === 'vacation' || dayMood === 'suggestive');
+    faceOnlyIdentity &&
+    !omitGarment &&
+    (dayMood === 'vacation' || dayMood === 'suggestive' || dayMood === 'everyday');
   // Rapid follows the first paragraph and ignores the SETTING line deep in the brief —
   // name the place up front on clothed Vacation/Suggestive plate stills too.
   const plateSceneLead =
@@ -3348,7 +3363,7 @@ export function buildDaySlotPrompt(input: {
       : null;
     if (keepAsImage1) {
       const heatUnlockClass =
-        dayMood === 'suggestive' || dayMood === 'vacation'
+        dayMood === 'suggestive' || dayMood === 'vacation' || dayMood === 'everyday'
           ? clothedHeatUnlockPoseClass(hints, dayMood)
           : null;
       const faceBreakLeads = clothedFaceBreak
@@ -3363,7 +3378,11 @@ export function buildDaySlotPrompt(input: {
             }
           )
         : null;
-      const clothedFaceBreakPreamble = faceBreakLeads?.preamble ?? null;
+      const everydayStanceLead =
+        faceBreakLeads && dayMood === 'everyday' ? dayEverydayFaceBreakStanceLead(hints) : null;
+      const clothedFaceBreakPreamble = faceBreakLeads
+        ? [everydayStanceLead, faceBreakLeads.preamble].filter(Boolean).join('\n')
+        : null;
       const clothedFaceBreakImage1 = faceBreakLeads?.image1 ?? null;
       return [
         nudeEditPreamble ??
@@ -3488,7 +3507,7 @@ export function buildDaySlotPrompt(input: {
 
     const castFaceBreakLeads = clothedFaceBreak
       ? buildDayVacationClothedFaceBreakLeads(
-          dayMood === 'suggestive' || dayMood === 'vacation'
+          dayMood === 'suggestive' || dayMood === 'vacation' || dayMood === 'everyday'
             ? clothedHeatUnlockPoseClass(hints, dayMood)
             : vacationLocks?.poseClass,
           'cast',
@@ -3501,10 +3520,14 @@ export function buildDaySlotPrompt(input: {
           }
         )
       : null;
+    const castEverydayStanceLead =
+      castFaceBreakLeads && dayMood === 'everyday' ? dayEverydayFaceBreakStanceLead(hints) : null;
     return [
       nudeEditPreamble ??
         (clothedFaceBreak
-          ? (castFaceBreakLeads?.preamble ??
+          ? ((castFaceBreakLeads
+              ? [castEverydayStanceLead, castFaceBreakLeads.preamble].filter(Boolean).join('\n')
+              : null) ??
             'Edit Image 1. Image 1 is a FACE CROP only (head/shoulders) — keep facial likeness only. Invent the full body pose from Image 3 and the beat. CRITICAL: Image 1 has no standing body — do not invent a square-on fashion stand with arms at her sides. Dress her from Image 2 garment colors/cut only; ignore Image 2 standing pose and room. Aggressively match Image 3 stance and the SETTING backdrop.')
           : plateSceneLead
             ? `${QWEN_POSE_UNLOCK_MODIFY_PREFIX} ${plateSceneLead}`

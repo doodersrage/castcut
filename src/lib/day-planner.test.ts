@@ -10,6 +10,7 @@ import {
   buildDayAdultBeatPoseLock,
   buildDaySlotMotionSubject,
   buildDaySlotPrompt,
+  dayEverydayFaceBreakStanceLead,
   buildDaySuggestiveKeepPoseUnlock,
   buildDaySuggestivePoseLock,
   dayBeatOmitsGarmentPackshot,
@@ -842,6 +843,42 @@ describe('day-planner', () => {
     assert.match(prompt, /FACE CROP only|face likeness only/i);
     assert.doesNotMatch(prompt, /Image 1 is the Cast identity plate/i);
     assert.match(prompt, /mid-stride|one foot/i);
+  });
+
+  it('buildDaySlotPrompt everyday garment face-break leads with the beat stance', () => {
+    // Live 2026-09-29: Rapid everyday + Fitting swimsuit on the undressed Cast plate rendered
+    // every beat as a seated pin-up; face-break fixed it, but crouch/kneel stood until the
+    // stance led the brief.
+    const build = (sceneHints: string, faceOnlyIdentity: boolean) =>
+      buildDaySlotPrompt({
+        slot: { ...DEFAULT_DAY_SLOTS[1]!, location: 'grocery store produce aisle', sceneHints },
+        hasPlate: true,
+        plateSource: 'cast',
+        poseGuide: true,
+        dayMood: 'everyday',
+        faceOnlyIdentity,
+        garmentReinforce: true,
+        garmentDescription: 'pink ribbed one-piece swimsuit',
+        model: 'qwen-rapid-aio-sfw-v23',
+      });
+    const crouch = build('crouching at a low cupboard reaching for a pan, one knee bent', true);
+    assert.match(crouch, /^CROUCHING = knees deeply bent/);
+    assert.match(crouch, /FACE CROP only/);
+    assert.doesNotMatch(crouch, /Image 1 is the Cast identity plate/);
+    assert.match(crouch, /SCENE: she is in the grocery store produce aisle/);
+    // The walk keeps the dedicated mid-stride lead, with no stance line in front.
+    assert.match(
+      build('mid-stride on the sidewalk, coffee in one hand', true),
+      /^Edit Image 1\. Image 1 is a FACE CROP only[\s\S]*mid-stride walk/
+    );
+    // Without the face crop, everyday keeps the plate brief.
+    assert.match(build('crouching at a low cupboard', false), /Image 1 is the Cast identity plate/);
+  });
+
+  it('dayEverydayFaceBreakStanceLead names only stances Rapid loses', () => {
+    assert.match(dayEverydayFaceBreakStanceLead('kneeling to unlace boots') ?? '', /^KNEELING/);
+    assert.match(dayEverydayFaceBreakStanceLead('seated reading a menu') ?? '', /^SEATED/);
+    assert.equal(dayEverydayFaceBreakStanceLead('mid-stride with a coffee'), null);
   });
 
   it('buildDaySlotPrompt vacation dancing face-break demands arms overhead', () => {
