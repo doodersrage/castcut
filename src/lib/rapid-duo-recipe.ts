@@ -120,7 +120,10 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
     case 'wall':
       return /\b(?:partner\s+behind|from\s+behind)\b/i.test(beat)
         ? `The woman stands facing ${on('wall')} with her palms flat against it and her hips pushed back; the man stands pressed against her back, penetrating her from behind; she looks back over her shoulder. Both standing on the floor.`
-        : `The woman stands with her back pressed flat against ${on('wall')}, one leg lifted and hooked around his hip; the man stands facing her, pressed against her, holding her lifted thigh, his penis inside her. Both standing on the floor.`;
+        : // "one leg lifted and hooked around his hip" drew the lifted foot sticking out behind
+          // his back — a third leg on most seeds. Placing each leg: two clear legs 8/8, joined,
+          // facing each other 6/8. Putting his hand on the wall stood him apart (live 2026-09-29).
+          `The woman stands with her back pressed flat against ${on('wall')}. Her right foot is flat on the floor; her left knee is raised to his hip and his right hand holds that leg under the knee. The man stands pressed chest to chest against her, his hips between her thighs, his penis inside her.`;
     case 'lift':
       return `Wide shot, both faces in frame. The man stands holding the woman up by her thighs, facing each other chest to chest; her legs are wrapped around his waist and her arms around his neck, her face beside his, his penis inside her.`;
     case 'oral':
@@ -132,7 +135,10 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
             // Rapid falls back to penetration. At a bed/couch she sits on its edge; else she stands.
             /\b(?:bed|mattress|sheets|couch|sofa|chair|armchair|counter|desk|table)\b/i.test(beat)
             ? `Full-body view, both faces in frame. The woman sits on the edge of the ${surface?.replace(/^(?:edge|foot|end|arm) of the /, '') ?? 'bed'}, leaning back on her hands with her thighs spread; the man kneels on the floor between her thighs with his mouth on her vulva, licking her, his hands on her thighs.`
-            : `Full-body view, both faces in frame. The woman stands with her back against ${on('wall')}, one leg lifted over his shoulder; the man kneels on the floor in front of her with his mouth on her vulva, licking her, his hands on her thighs. She looks down at him.`;
+            : // Placing each of her legs: "one leg lifted over his shoulder" often left the lifted
+              // leg reading as a third limb behind him; with each leg placed both bodies came out
+              // whole with two clear legs, 8/8 seeds (live 2026-09-29).
+              `Full-body view, both faces in frame. The woman stands with her back against ${on('wall')}. Her right foot is flat on the floor; her left leg rests over his right shoulder, her calf down his back. The man kneels on the floor in front of her with his mouth on her vulva, his hands holding her hips. She looks down at him.`;
     case 'sixty_nine':
     case 'facesit':
       // Rapid cannot draw a 69, and on v23 face-sitting came back as a kiss or cowgirl too
