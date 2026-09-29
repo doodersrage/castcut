@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   auditWorkflowLibraryHealth,
   summarizeWorkflowLibraryHealth,
+  swapVersionInWorkflowName,
 } from "./workflow-health-audit";
 
 describe("workflow-health-audit", () => {
@@ -56,6 +57,43 @@ describe("workflow-health-audit", () => {
     assert.equal(report.scanned, 1);
     assert.ok(
       report.issues.some((issue) => /Not optimized yet/i.test(issue.message)),
+    );
+  });
+
+  it("flags a workflow loader override that disagrees with the checkpoint map", () => {
+    const report = auditWorkflowLibraryHealth({
+      workflowFiles: [
+        {
+          id: "wf-rapid",
+          name: "qwen-rapid-aio-nsfw-v21",
+          workflowJson: JSON.stringify({
+            "1": { class_type: "CheckpointLoaderSimple", inputs: { ckpt_name: "{{CHECKPOINT}}" } },
+          }),
+          createdAt: 1,
+          customTokens: [{ token: "{{CHECKPOINT}}", value: "Qwen-Rapid-AIO-NSFW-v21.safetensors" }],
+        },
+      ],
+      modelWorkflowMap: { "qwen-rapid-aio-edit-nsfw": "wf-rapid" },
+      checkpointMap: { "qwen-rapid-aio-edit-nsfw": "Qwen-Rapid-AIO-NSFW-v23.safetensors" },
+    });
+    const issue = report.issues.find((entry) => entry.fix);
+    assert.ok(issue);
+    assert.match(issue.message, /overrides your checkpoint map/);
+    assert.deepEqual(issue.fix, {
+      token: "{{CHECKPOINT}}",
+      value: "Qwen-Rapid-AIO-NSFW-v23.safetensors",
+      name: "qwen-rapid-aio-nsfw-v23",
+    });
+  });
+
+  it("renames only a matching version tag", () => {
+    assert.equal(
+      swapVersionInWorkflowName("rapid v21", "Rapid-AIO-v21.safetensors", "Rapid-AIO-v23.safetensors"),
+      "rapid v23",
+    );
+    assert.equal(
+      swapVersionInWorkflowName("rapid v21", "Rapid-AIO-v21.safetensors", "Other-v23.safetensors"),
+      "rapid v21",
     );
   });
 });

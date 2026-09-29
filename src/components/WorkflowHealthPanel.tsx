@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { loadComfyWorkflowFiles } from '@/lib/comfyui-workflow-files';
+import { loadComfyWorkflowFiles, upsertComfyWorkflowFile } from '@/lib/comfyui-workflow-files';
 import {
   auditWorkflowLibraryHealth,
   dispatchWorkflowHealthSelect,
@@ -70,6 +70,22 @@ export default function WorkflowHealthPanel({
   const [queueIssues, setQueueIssues] = useState<WorkflowHealthIssue[]>([]);
   const [queueStatus, setQueueStatus] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [fixTick, setFixTick] = useState(0);
+
+  const applyFix = (issue: WorkflowHealthIssue) => {
+    const file = loadComfyWorkflowFiles().find(entry => entry.id === issue.workflowId);
+    if (!file || !issue.fix) return;
+    const { token, value, name } = issue.fix;
+    upsertComfyWorkflowFile({
+      ...file,
+      ...(name ? { name } : {}),
+      customTokens: (file.customTokens ?? []).map(entry =>
+        entry.token.trim() === token ? { ...entry, value } : entry
+      ),
+    });
+    setFixTick(tick => tick + 1);
+    onStatus?.(`“${file.name}” now uses ${value}${name ? ` (renamed “${name}”)` : ''}.`);
+  };
 
   // Build each model workflow the way a queue would and preflight it — library JSON is a
   // template, so this is what says whether it will actually run.
@@ -118,12 +134,14 @@ export default function WorkflowHealthPanel({
 
   const report = useMemo(() => {
     void refreshKey;
+    void fixTick;
     const shared = loadSettingsCache().shared;
     return auditWorkflowLibraryHealth({
       workflowFiles: loadComfyWorkflowFiles(),
       modelWorkflowMap: shared.modelWorkflowMap,
+      checkpointMap: shared.modelCheckpointMap as Partial<Record<string, string>> | undefined,
     });
-  }, [refreshKey]);
+  }, [refreshKey, fixTick]);
 
   useEffect(() => {
     void refreshKey;
@@ -269,6 +287,16 @@ export default function WorkflowHealthPanel({
                 </p>
                 {issue.workflowId !== 'loader-map' && issue.action ? (
                   <div className="flex shrink-0 gap-1">
+                    {issue.fix ? (
+                      <button
+                        type="button"
+                        onClick={() => applyFix(issue)}
+                        data-testid="workflow-health-fix"
+                        className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
+                      >
+                        Use {issue.fix.value.replace(/\.(safetensors|ckpt|gguf)$/i, '')}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => {

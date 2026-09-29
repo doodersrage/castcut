@@ -12,7 +12,23 @@ export type WorkflowHealthIssue = {
   message: string;
   /** When set, UI can focus this workflow in the library panel. */
   action?: 'open-workflow' | 'optimize-workflow';
+  /** One-click repair: set a workflow token override (and optionally rename the workflow). */
+  fix?: { token: string; value: string; name?: string };
 };
+
+const LOADER_OVERRIDE_TOKENS = ['{{CHECKPOINT}}', '{{UNET}}'];
+
+/**
+ * The workflow name with its version tag swapped when the old and new files differ only by
+ * version (…-v21 → …-v23); otherwise unchanged.
+ */
+export function swapVersionInWorkflowName(name: string, oldFile: string, newFile: string): string {
+  const oldVersion = /v(\d+(?:\.\d+)?)/i.exec(oldFile)?.[0];
+  const newVersion = /v(\d+(?:\.\d+)?)/i.exec(newFile)?.[0];
+  if (!oldVersion || !newVersion || oldVersion === newVersion) return name;
+  if (oldFile.replace(oldVersion, newVersion) !== newFile) return name;
+  return name.includes(oldVersion) ? name.replace(oldVersion, newVersion) : name;
+}
 
 /**
  * Placeholders the queue (or the tool that owns the workflow) fills in. Library workflows are
@@ -40,6 +56,8 @@ export type WorkflowLibraryHealthReport = {
 export function auditWorkflowLibraryHealth(input: {
   workflowFiles: ComfyWorkflowFile[];
   modelWorkflowMap?: ModelWorkflowMap;
+  /** Settings → model checkpoint map (model id → checkpoint / UNET file). */
+  checkpointMap?: Partial<Record<string, string>>;
 }): WorkflowLibraryHealthReport {
   const issues: WorkflowHealthIssue[] = [];
 
@@ -96,6 +114,27 @@ export function auditWorkflowLibraryHealth(input: {
       undefined,
       input.modelWorkflowMap
     );
+    // A per-workflow loader override beats the checkpoint map — say so when they disagree.
+    const mapped = input.checkpointMap?.[optimizeModel]?.trim();
+    for (const override of file.customTokens ?? []) {
+      const value = override.value?.trim();
+      if (!mapped || !value || !LOADER_OVERRIDE_TOKENS.includes(override.token.trim())) continue;
+      if (value === mapped) continue;
+      const renamed = swapVersionInWorkflowName(file.name, value, mapped);
+      issues.push({
+        workflowId: file.id,
+        workflowName: file.name,
+        severity: 'warn',
+        message: `Pins ${override.token.trim()} to ${value}, which overrides your checkpoint map (${optimizeModel} → ${mapped}).`,
+        action: 'open-workflow',
+        fix: {
+          token: override.token.trim(),
+          value: mapped,
+          ...(renamed !== file.name ? { name: renamed } : {}),
+        },
+      });
+    }
+
     for (const token of findUnresolvedPlaceholderTokens(json)) {
       if (isQueueFilledToken(token)) continue;
       issues.push({
