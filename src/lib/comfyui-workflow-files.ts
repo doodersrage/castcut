@@ -171,12 +171,19 @@ function loadComfyWorkflowFilesRaw(): ComfyWorkflowFile[] {
   }
 }
 
+/** Fired (same tab) after the workflow library is saved — map table, health, list refresh. */
+export const COMFY_WORKFLOW_FILES_UPDATED_EVENT = 'comfy-workflow-files-updated';
+
 function saveComfyWorkflowFilesRaw(files: ComfyWorkflowFile[]): void {
   if (typeof window === 'undefined') {
     return;
   }
 
   writeBrowserValue(COMFY_WORKFLOW_FILES_KEY, files.slice(0, 32));
+  // Test stubs of window may lack dispatchEvent.
+  if (typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event(COMFY_WORKFLOW_FILES_UPDATED_EVENT));
+  }
 }
 
 function presetToWorkflowFile(preset: ComfyWorkflowPreset): ComfyWorkflowFile {

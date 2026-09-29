@@ -1,3 +1,4 @@
+import { workflowFileKind } from './workflow-kind';
 import {
   upsertComfyWorkflowFile,
   loadComfyWorkflowFiles,
@@ -25,13 +26,11 @@ export type EnsureMediaWorkflowResult = {
 };
 
 function looksLikeAudioScaffold(file: ComfyWorkflowFile): boolean {
-  const hay = `${file.name} ${file.filename ?? ''} ${file.workflowJson ?? ''}`;
-  return /audio|stable.?audio|SaveAudio|AUDIO_SECONDS/i.test(hay);
+  return workflowFileKind(file) === 'audio';
 }
 
 function looksLikeMeshScaffold(file: ComfyWorkflowFile): boolean {
-  const hay = `${file.name} ${file.filename ?? ''} ${file.workflowJson ?? ''}`;
-  return /mesh|hunyuan.?3d|MESH_RESOLUTION/i.test(hay);
+  return workflowFileKind(file) === 'mesh';
 }
 
 function withMediaTokens(workflow: ComfyWorkflowFile, kind: 'audio' | 'mesh'): ComfyWorkflowFile {

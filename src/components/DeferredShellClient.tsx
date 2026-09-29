@@ -28,6 +28,9 @@ const SystemTray = dynamic(() => import('@/components/SystemTray'), {
 const AppUpdateWatcher = dynamic(() => import('@/components/AppUpdateWatcher'), {
   ssr: false,
 });
+const WorkflowLibraryWatcher = dynamic(() => import('@/components/WorkflowLibraryWatcher'), {
+  ssr: false,
+});
 
 const WorkspaceWelcome = dynamic(() => import('@/components/WorkspaceWelcome'), {
   ssr: false,
@@ -115,6 +118,7 @@ export default function DeferredShellClient() {
           <WorkspaceWelcome />
           <FirstQueueSetupModal />
           <AppUpdateWatcher />
+          <WorkflowLibraryWatcher />
         </>
       ) : null}
     </>

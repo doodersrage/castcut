@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ComfyUiSettings } from '@/lib/comfyui-settings';
 import { formatModelCheckpointMap, formatModelVaeMap } from '@/lib/model-checkpoint-map';
 import { formatModelUpscaleMap } from '@/lib/model-upscale-map';
@@ -22,6 +22,8 @@ import {
   parseModelWorkflowMap,
 } from '@/components/settings/tabs/settings-tool-shared';
 import { CollapsibleSection, ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
+import ModelWorkflowMapTable from '@/components/settings/panels/ModelWorkflowMapTable';
+import { useComfyWorkflowFilesSnapshot } from '@/hooks/useComfyWorkflowFilesSnapshot';
 
 const ACCENT = SETTINGS_TOOL_ACCENT;
 
@@ -54,6 +56,36 @@ export default function SettingsWorkflowMapPanel({
 }: SettingsWorkflowMapPanelProps) {
   const [systemWorkflowsSaveHint, setSystemWorkflowsSaveHint] = useState<string | null>(null);
   const [systemWorkflowsSaving, setSystemWorkflowsSaving] = useState(false);
+  const workflowFiles = useComfyWorkflowFilesSnapshot();
+  const workflowMap = sharedSettings.modelWorkflowMap ?? {};
+  const mapKey = JSON.stringify(workflowMap);
+  // Health remaps and scaffold helpers write the map directly — keep the text view in step.
+  useEffect(() => {
+    const current = JSON.parse(mapKey) as Record<string, string>;
+    if (JSON.stringify(parseModelWorkflowMap(modelWorkflowMapText)) !== mapKey) {
+      setModelWorkflowMapText(formatModelWorkflowMap(current));
+    }
+    // Only an outside map change should rewrite the text, not typing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapKey]);
+  const setWorkflowMap = (model: string, workflowId: string | null) => {
+    // Apply to the latest saved map: this page's copy can lag the server settings sync.
+    const next = { ...(loadSettingsCache().shared.modelWorkflowMap ?? {}) };
+    if (workflowId) next[model] = workflowId;
+    else delete next[model];
+    updateSharedSettings({ modelWorkflowMap: next });
+    setModelWorkflowMapText(formatModelWorkflowMap(next));
+    setWorkflowHealthRefresh(n => n + 1);
+  };
+  const mapTable = (automaticLabel: string) => (
+    <ModelWorkflowMapTable
+      map={workflowMap}
+      files={workflowFiles}
+      disabled={!sharedMounted}
+      automaticLabel={automaticLabel}
+      onChange={setWorkflowMap}
+    />
+  );
 
   return (
     <ToolSection id="settings-comfyui-workflow-map" title="Model → workflow map">
@@ -192,14 +224,12 @@ export default function SettingsWorkflowMapPanel({
         <p className="mb-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-4 py-3 text-xs leading-relaxed text-[var(--text-muted)]">
           Explicit model→workflow map entries still win at queue time. When a model has no map
           entry, matching pack graphs in your library are preferred automatically, otherwise a
-          built-in scaffold is used. Expand below to edit the map or pin{' '}
-          <code className="ui-inline-code">faceDetailer=</code> for Gallery → Face detail.
+          built-in scaffold is used. Expand below to pin a model (or Face detail) to a workflow.
         </p>
       ) : (
         <p className="mb-3 text-sm text-[var(--text-secondary)]">
-          One mapping per line: <code className="ui-inline-code">modelId=workflowFileId</code>. When
-          you change the target model in a generator, the mapped workflow file is selected
-          automatically.
+          Pin a model to a workflow file below. When you change the target model in a generator, the
+          pinned workflow is selected automatically.
         </p>
       )}
 
@@ -258,53 +288,65 @@ export default function SettingsWorkflowMapPanel({
           summary={
             sharedSettings.systemWorkflowsLimitPicker === false
               ? 'SDXL/other hybrid maps, FaceDetailer pin, and explicit overrides.'
-              : 'FaceDetailer pin and explicit model→workflow overrides.'
+              : `${Object.keys(sharedSettings.modelWorkflowMap ?? {}).length} pinned model(s) — FaceDetailer pin and explicit overrides.`
           }
           defaultOpen={sharedSettings.systemWorkflowsLimitPicker === false}
           persistKey="settings-system-workflow-map-advanced"
         >
-          <textarea
-            value={modelWorkflowMapText}
-            onChange={event => {
-              const text = event.target.value;
-              setModelWorkflowMapText(text);
-              updateSharedSettings({
-                modelWorkflowMap: parseModelWorkflowMap(text),
-              });
-            }}
-            rows={4}
-            spellCheck={false}
-            disabled={!sharedMounted}
-            placeholder={`faceDetailer=my-facedetailer-workflow.json`}
-            className={`ui-input w-full font-mono text-xs leading-relaxed text-[var(--tint-success-text)] ${accentFocusClass(ACCENT)}`}
-          />
-          <p className="mt-2 text-xs text-[var(--text-muted)]">
-            Pin a FaceDetailer/ReActor graph with{' '}
-            <code className="ui-inline-code">faceDetailer=&lt;workflowId&gt;</code>.
-          </p>
+          {mapTable('system workflow')}
+          <details className="mt-3">
+            <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+              Edit as text
+            </summary>
+            <textarea
+              value={modelWorkflowMapText}
+              onChange={event => {
+                const text = event.target.value;
+                setModelWorkflowMapText(text);
+                updateSharedSettings({
+                  modelWorkflowMap: parseModelWorkflowMap(text),
+                });
+              }}
+              rows={4}
+              spellCheck={false}
+              disabled={!sharedMounted}
+              placeholder={`faceDetailer=my-facedetailer-workflow.json`}
+              className={`ui-input w-full font-mono text-xs leading-relaxed text-[var(--tint-success-text)] ${accentFocusClass(ACCENT)}`}
+            />
+            <p className="mt-2 text-xs text-[var(--text-muted)]">
+              Pin a FaceDetailer/ReActor graph with{' '}
+              <code className="ui-inline-code">faceDetailer=&lt;workflowId&gt;</code>.
+            </p>
+          </details>
         </CollapsibleSection>
       ) : (
         <>
-          <textarea
-            value={modelWorkflowMapText}
-            onChange={event => {
-              const text = event.target.value;
-              setModelWorkflowMapText(text);
-              updateSharedSettings({
-                modelWorkflowMap: parseModelWorkflowMap(text),
-              });
-            }}
-            rows={6}
-            spellCheck={false}
-            disabled={!sharedMounted}
-            placeholder={`qwen-image-2512=my-qwen-workflow.json\nflux-2-klein=flux-klein-default.json\nfaceDetailer=my-facedetailer-workflow.json`}
-            className={`ui-input w-full font-mono text-xs leading-relaxed text-[var(--tint-success-text)] ${accentFocusClass(ACCENT)}`}
-          />
-          <p className="text-xs text-[var(--text-muted)]">
-            Pin a FaceDetailer/ReActor graph with{' '}
-            <code className="ui-inline-code">faceDetailer=&lt;workflowId&gt;</code> (required for
-            Gallery → Face detail).
-          </p>
+          {mapTable('filename default')}
+          <details className="mt-3">
+            <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+              Edit as text
+            </summary>
+            <textarea
+              value={modelWorkflowMapText}
+              onChange={event => {
+                const text = event.target.value;
+                setModelWorkflowMapText(text);
+                updateSharedSettings({
+                  modelWorkflowMap: parseModelWorkflowMap(text),
+                });
+              }}
+              rows={6}
+              spellCheck={false}
+              disabled={!sharedMounted}
+              placeholder={`qwen-image-2512=my-qwen-workflow.json\nflux-2-klein=flux-klein-default.json\nfaceDetailer=my-facedetailer-workflow.json`}
+              className={`ui-input w-full font-mono text-xs leading-relaxed text-[var(--tint-success-text)] ${accentFocusClass(ACCENT)}`}
+            />
+            <p className="text-xs text-[var(--text-muted)]">
+              Pin a FaceDetailer/ReActor graph with{' '}
+              <code className="ui-inline-code">faceDetailer=&lt;workflowId&gt;</code> (required for
+              Gallery → Face detail).
+            </p>
+          </details>
           <button
             type="button"
             disabled={!sharedMounted}

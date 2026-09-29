@@ -32,7 +32,7 @@ import { suggestWorkflowNodeMappings } from '@/lib/workflow-node-mapper';
 import { applyWorkflowNodeBindings, summarizeBindingChanges } from '@/lib/workflow-apply-bindings';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { markOnboardingWorkflowImported } from '@/lib/onboarding-hooks';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
 import { resolveQueueParams } from '@/lib/queue-params-settings';
 import { loadComfyUiSettings, syncLightningLoraLibraryEntry } from '@/lib/comfyui-settings';
 import {
@@ -370,13 +370,37 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
 
   const removeFile = useCallback(
     (id: string) => {
+      const shared = loadSettingsCache().shared;
+      const pinned = Object.entries(shared.modelWorkflowMap ?? {})
+        .filter(([, workflowId]) => workflowId?.trim() === id)
+        .map(([model]) => model);
+      if (
+        pinned.length > 0 &&
+        typeof window !== 'undefined' &&
+        typeof window.confirm === 'function' &&
+        !window.confirm(
+          `This workflow is pinned for ${pinned.join(', ')}. Delete it and let those use the automatic pick?`
+        )
+      ) {
+        return;
+      }
       deleteComfyWorkflowFile(id);
+      // A pin to a deleted file only broke queueing later — drop it with the file.
+      if (pinned.length > 0) {
+        const nextMap = { ...(shared.modelWorkflowMap ?? {}) };
+        for (const model of pinned) delete nextMap[model];
+        saveSharedSettings({ ...loadSettingsCache().shared, modelWorkflowMap: nextMap });
+      }
       clearSelectedWorkflowFileIfDeleted(id);
       if (editingId === id) {
         cancelEdit();
       }
       refresh();
-      onStatus?.('Workflow file deleted.');
+      onStatus?.(
+        pinned.length > 0
+          ? `Workflow file deleted — ${pinned.join(', ')} now use the automatic pick.`
+          : 'Workflow file deleted.'
+      );
     },
     [cancelEdit, editingId, onStatus, refresh]
   );

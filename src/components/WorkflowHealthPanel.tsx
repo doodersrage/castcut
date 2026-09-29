@@ -1,14 +1,18 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { loadComfyWorkflowFiles, upsertComfyWorkflowFile } from '@/lib/comfyui-workflow-files';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  COMFY_WORKFLOW_FILES_UPDATED_EVENT,
+  loadComfyWorkflowFiles,
+  upsertComfyWorkflowFile,
+} from '@/lib/comfyui-workflow-files';
 import {
   auditWorkflowLibraryHealth,
   dispatchWorkflowHealthSelect,
   summarizeWorkflowLibraryHealth,
 } from '@/lib/workflow-health-audit';
 import { auditLoaderMapsAgainstComfyUi } from '@/lib/loader-map-health-audit';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
 import { loadComfyUiSettings, mergeLoraLibraryIntoCustomTokens } from '@/lib/comfyui-settings';
 import { resolveComfyUiRuntime } from '@/lib/comfyui-runtime';
 import type { ComfyUiModelLists } from '@/lib/comfyui-object-info';
@@ -58,10 +62,48 @@ function workflowFileLoaderIssues(
   });
 }
 
+/** The map the static audit reads — other settings saves don't re-run it. */
+function workflowMapSignature(): string {
+  return JSON.stringify(loadSettingsCache().shared.modelWorkflowMap ?? {});
+}
+
 export default function WorkflowHealthPanel({
-  refreshKey = 0,
+  refreshKey: externalRefreshKey = 0,
   onStatus,
 }: WorkflowHealthPanelProps) {
+  // Re-check by itself (debounced) so imports, scaffolds and remaps are checked without pressing
+  // anything. A library save re-runs everything; a workflow-map change only the cheap static
+  // audit. Settings events never re-run the queue test: it resolves runtimes the way the queue
+  // does, which can save loader maps, and re-running on that save looped every few seconds.
+  const [filesKey, setFilesKey] = useState(0);
+  const [mapKey, setMapKey] = useState(0);
+  const mapRef = useRef<string | null>(null);
+  useEffect(() => {
+    mapRef.current = workflowMapSignature();
+    let filesTimer: number | undefined;
+    let mapTimer: number | undefined;
+    const onFiles = () => {
+      window.clearTimeout(filesTimer);
+      filesTimer = window.setTimeout(() => setFilesKey(key => key + 1), 1200);
+    };
+    const onSettings = () => {
+      const next = workflowMapSignature();
+      if (next === mapRef.current) return;
+      mapRef.current = next;
+      window.clearTimeout(mapTimer);
+      mapTimer = window.setTimeout(() => setMapKey(key => key + 1), 600);
+    };
+    window.addEventListener(COMFY_WORKFLOW_FILES_UPDATED_EVENT, onFiles);
+    window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, onSettings);
+    return () => {
+      window.clearTimeout(filesTimer);
+      window.clearTimeout(mapTimer);
+      window.removeEventListener(COMFY_WORKFLOW_FILES_UPDATED_EVENT, onFiles);
+      window.removeEventListener(SETTINGS_CACHE_UPDATED_EVENT, onSettings);
+    };
+  }, []);
+  /** Heavy checks (queue test, ComfyUI loader audit): explicit refresh or a library change. */
+  const refreshKey = externalRefreshKey + filesKey;
   const [loaderIssues, setLoaderIssues] = useState<
     ReturnType<typeof auditLoaderMapsAgainstComfyUi>
   >([]);
@@ -85,6 +127,22 @@ export default function WorkflowHealthPanel({
     });
     setFixTick(tick => tick + 1);
     onStatus?.(`“${file.name}” now uses ${value}${name ? ` (renamed “${name}”)` : ''}.`);
+  };
+
+  const applyRemap = (issue: WorkflowHealthIssue) => {
+    if (!issue.remap) return;
+    const { model, workflowId, workflowName } = issue.remap;
+    const shared = loadSettingsCache().shared;
+    const nextMap = { ...(shared.modelWorkflowMap ?? {}) };
+    if (workflowId) nextMap[model] = workflowId;
+    else delete nextMap[model];
+    saveSharedSettings({ ...shared, modelWorkflowMap: nextMap });
+    setFixTick(tick => tick + 1);
+    onStatus?.(
+      workflowId
+        ? `${model} now uses “${workflowName ?? workflowId}”.`
+        : `${model} is unmapped — its tool builds a fresh scaffold on first use.`
+    );
   };
 
   // Build each model workflow the way a queue would and preflight it — library JSON is a
@@ -135,13 +193,14 @@ export default function WorkflowHealthPanel({
   const report = useMemo(() => {
     void refreshKey;
     void fixTick;
+    void mapKey;
     const shared = loadSettingsCache().shared;
     return auditWorkflowLibraryHealth({
       workflowFiles: loadComfyWorkflowFiles(),
       modelWorkflowMap: shared.modelWorkflowMap,
       checkpointMap: shared.modelCheckpointMap as Partial<Record<string, string>> | undefined,
     });
-  }, [refreshKey, fixTick]);
+  }, [refreshKey, fixTick, mapKey]);
 
   useEffect(() => {
     void refreshKey;
@@ -287,6 +346,18 @@ export default function WorkflowHealthPanel({
                 </p>
                 {issue.workflowId !== 'loader-map' && issue.action ? (
                   <div className="flex shrink-0 gap-1">
+                    {issue.remap ? (
+                      <button
+                        type="button"
+                        onClick={() => applyRemap(issue)}
+                        data-testid="workflow-health-remap"
+                        className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
+                      >
+                        {issue.remap.workflowId
+                          ? `Use “${issue.remap.workflowName ?? issue.remap.workflowId}”`
+                          : 'Unmap'}
+                      </button>
+                    ) : null}
                     {issue.fix ? (
                       <button
                         type="button"
@@ -297,16 +368,18 @@ export default function WorkflowHealthPanel({
                         Use {issue.fix.value.replace(/\.(safetensors|ckpt|gguf)$/i, '')}
                       </button>
                     ) : null}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        dispatchWorkflowHealthSelect(issue.workflowId, 'open-workflow');
-                        onStatus?.(`Opened workflow “${issue.workflowName}” in library.`);
-                      }}
-                      className="rounded-lg border border-[var(--border-default)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
-                    >
-                      Open
-                    </button>
+                    {issue.workflowId === 'model-map' ? null : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          dispatchWorkflowHealthSelect(issue.workflowId, 'open-workflow');
+                          onStatus?.(`Opened workflow “${issue.workflowName}” in library.`);
+                        }}
+                        className="rounded-lg border border-[var(--border-default)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
+                      >
+                        Open
+                      </button>
+                    )}
                     {issue.action === 'optimize-workflow' ? (
                       <button
                         type="button"

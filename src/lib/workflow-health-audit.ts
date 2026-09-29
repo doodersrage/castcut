@@ -4,6 +4,7 @@ import { workflowContentHash, workflowJsonContentHash } from './workflow-content
 import { resolveOptimizeModelForWorkflowFile } from './workflow-optimize-model';
 import type { ModelWorkflowMap } from './model-workflow-map';
 import { auditWorkflowStackCompatibility } from './workflow-stack-fingerprint';
+import { modelWorkflowKind, pickWorkflowForModelKind, workflowFileKind } from './workflow-kind';
 
 export type WorkflowHealthIssue = {
   workflowId: string;
@@ -14,6 +15,8 @@ export type WorkflowHealthIssue = {
   action?: 'open-workflow' | 'optimize-workflow';
   /** One-click repair: set a workflow token override (and optionally rename the workflow). */
   fix?: { token: string; value: string; name?: string };
+  /** One-click repair: point a model's map entry at another workflow, or clear it (null). */
+  remap?: { model: string; workflowId: string | null; workflowName?: string };
 };
 
 const LOADER_OVERRIDE_TOKENS = ['{{CHECKPOINT}}', '{{UNET}}'];
@@ -162,6 +165,8 @@ export function auditWorkflowLibraryHealth(input: {
     );
   }
 
+  issues.push(...auditModelWorkflowMapKinds(input.workflowFiles, input.modelWorkflowMap));
+
   const affectedIds = new Set(issues.map(issue => issue.workflowId));
   const scanned = input.workflowFiles.length;
   const healthy = Math.max(0, scanned - affectedIds.size);
@@ -204,4 +209,48 @@ export function dispatchWorkflowHealthSelect(
       detail: { workflowId, action },
     })
   );
+}
+
+const KIND_LABEL = {
+  image: 'an image',
+  video: 'a video',
+  audio: 'an audio',
+  mesh: 'a 3D',
+} as const;
+
+/**
+ * Map entries that point a model at the wrong kind of workflow (a video model at a 3D or image
+ * graph) or at a deleted file. The fix remaps to a library workflow of the right kind, or clears
+ * the entry so the tool builds its own scaffold on first use.
+ */
+export function auditModelWorkflowMapKinds(
+  workflowFiles: ComfyWorkflowFile[],
+  modelWorkflowMap: ModelWorkflowMap | undefined
+): WorkflowHealthIssue[] {
+  const issues: WorkflowHealthIssue[] = [];
+  // An empty library is one that has not loaded yet (fresh browser, sync still pulling) — every
+  // pin would read as missing and the fix would unmap them all.
+  if (workflowFiles.length === 0) return issues;
+  for (const [model, rawId] of Object.entries(modelWorkflowMap ?? {})) {
+    const id = rawId?.trim();
+    const need = modelWorkflowKind(model);
+    if (!id || !need) continue;
+    const file = workflowFiles.find(entry => entry.id === id);
+    const have = file ? workflowFileKind(file) : null;
+    if (file && have === need) continue;
+    const better = pickWorkflowForModelKind(workflowFiles, model, need);
+    issues.push({
+      workflowId: file?.id ?? 'model-map',
+      workflowName: file?.name ?? 'Model → workflow map',
+      severity: 'error',
+      message: file
+        ? `${model} needs ${KIND_LABEL[need]} workflow but is mapped to ${KIND_LABEL[have!]} one.`
+        : `${model} is mapped to a workflow that is no longer in the library.`,
+      action: 'open-workflow',
+      remap: better
+        ? { model, workflowId: better.id, workflowName: better.name }
+        : { model, workflowId: null },
+    });
+  }
+  return issues;
 }

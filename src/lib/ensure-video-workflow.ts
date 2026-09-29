@@ -4,6 +4,7 @@ import {
   type ComfyWorkflowFile,
 } from './comfyui-workflow-files';
 import { assignWorkflowToInferredModels, resolveWorkflowForModel } from './model-workflow-map';
+import { pickWorkflowForModelKind } from './workflow-kind';
 import { buildWorkflowScaffoldForModel, suggestedScaffoldName } from './workflow-scaffold';
 import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from './settings-cache';
 import {
@@ -29,21 +30,6 @@ export type EnsureVideoWorkflowResult = {
   checkpointNote?: string;
 };
 
-function looksLikeVideoScaffold(file: ComfyWorkflowFile): boolean {
-  const json = file.workflowJson ?? '';
-  if (
-    json.includes('EmptyHunyuanLatentVideo') ||
-    json.includes('EmptyHunyuanVideo15Latent') ||
-    json.includes('EmptyLTXVLatentVideo') ||
-    json.includes('WanImageToVideo') ||
-    json.includes('HunyuanImageToVideo') ||
-    json.includes('HunyuanVideo15ImageToVideo')
-  ) {
-    return true;
-  }
-  return /video|wan|hunyuan/i.test(`${file.name} ${file.filename ?? ''}`);
-}
-
 function findReusableVideoWorkflow(
   files: ComfyWorkflowFile[],
   model: ComfyImageModel
@@ -53,7 +39,9 @@ function findReusableVideoWorkflow(
   if (byName) {
     return byName;
   }
-  return files.find(file => looksLikeVideoScaffold(file));
+  // By nodes and tokens, not name: a match on "hunyuan" reused a "Hunyuan 3D scaffold" (an image
+  // graph with MESH_ tokens) for every video model.
+  return pickWorkflowForModelKind(files, model, 'video');
 }
 
 function inventoryHasVideoWeight(

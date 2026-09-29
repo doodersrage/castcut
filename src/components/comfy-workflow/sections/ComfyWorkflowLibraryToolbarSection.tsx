@@ -2,21 +2,39 @@
 
 import ComfyPackImportControl from '@/components/ComfyPackImportControl';
 import { Button } from '@/components/ui/Button';
-import { ChipButton, TextInput } from '@/components/ui/Field';
+import { ChipButton, SelectInput, TextInput } from '@/components/ui/Field';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import type { ComfyWorkflowLibraryViewModel } from '@/hooks/useComfyWorkflowLibrary';
 
 type Props = ComfyWorkflowLibraryViewModel;
 
+type AddAction = 'blank' | 'model' | 'controlnet' | 'facedetailer' | 'instantid' | 'pulid';
+type AddHandlers = Pick<
+  Props,
+  | 'createBlank'
+  | 'createScaffoldForModel'
+  | 'createControlNetScaffold'
+  | 'createFaceDetailerScaffold'
+  | 'createIdentityScaffold'
+>;
+
+/** One "Add workflow…" menu instead of six scaffold buttons. */
+const ADD_ACTIONS: Record<AddAction, (handlers: AddHandlers) => void> = {
+  blank: handlers => handlers.createBlank(),
+  model: handlers => handlers.createScaffoldForModel(),
+  controlnet: handlers => handlers.createControlNetScaffold(),
+  facedetailer: handlers => handlers.createFaceDetailerScaffold(),
+  instantid: handlers => handlers.createIdentityScaffold('instantid'),
+  pulid: handlers => handlers.createIdentityScaffold('pulid'),
+};
+
 export function ComfyWorkflowLibraryToolbarSection({
   newName,
   setNewName,
   selectedId,
-  editingJson,
   importError,
   importErrorDetail,
   importNotice,
-  optimizePreviewSummary,
   selectFile,
   importFile,
   createBlank,
@@ -24,19 +42,11 @@ export function ComfyWorkflowLibraryToolbarSection({
   createControlNetScaffold,
   createFaceDetailerScaffold,
   createIdentityScaffold,
-  cloneAndBindWorkflow,
-  previewOptimizeCopy,
-  optimizeAndSaveCopy,
   optimizeAllInLibrary,
   handlePackImport,
 }: Props) {
   return (
     <>
-      <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4">
-        <p className="type-heading mb-2">Import Comfy pack</p>
-        <ComfyPackImportControl onImported={handlePackImport} />
-      </div>
-
       <ToolActionRow>
         <TextInput
           value={newName}
@@ -59,61 +69,31 @@ export function ComfyWorkflowLibraryToolbarSection({
             }}
           />
         </label>
-        <Button type="button" variant="secondary" size="sm" onClick={createBlank}>
-          New workflow
-        </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={createScaffoldForModel}>
-          Scaffold for model
-        </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={createControlNetScaffold}>
-          ControlNet scaffold
-        </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={createFaceDetailerScaffold}>
-          FaceDetailer scaffold
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => createIdentityScaffold('instantid')}
+        <SelectInput
+          aria-label="Add a workflow"
+          data-testid="workflow-library-add"
+          className="max-w-[14rem] text-xs"
+          value=""
+          onChange={event => {
+            const pick = event.target.value;
+            event.target.value = '';
+            ADD_ACTIONS[pick as AddAction]?.({
+              createBlank,
+              createScaffoldForModel,
+              createControlNetScaffold,
+              createFaceDetailerScaffold,
+              createIdentityScaffold,
+            });
+          }}
         >
-          InstantID scaffold
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => createIdentityScaffold('pulid')}
-        >
-          PuLID scaffold
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={cloneAndBindWorkflow}
-          disabled={!editingJson.trim()}
-        >
-          Clone &amp; bind
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={previewOptimizeCopy}
-          disabled={!editingJson.trim()}
-        >
-          Preview optimize
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={optimizeAndSaveCopy}
-          disabled={!editingJson.trim()}
-        >
-          Optimize &amp; save copy
-        </Button>
+          <option value="">Add workflow…</option>
+          <option value="blank">New blank workflow</option>
+          <option value="model">Scaffold for current model</option>
+          <option value="controlnet">ControlNet scaffold</option>
+          <option value="facedetailer">FaceDetailer scaffold</option>
+          <option value="instantid">InstantID scaffold</option>
+          <option value="pulid">PuLID scaffold</option>
+        </SelectInput>
         <Button type="button" variant="secondary" size="sm" onClick={optimizeAllInLibrary}>
           Optimize all in library
         </Button>
@@ -121,12 +101,17 @@ export function ComfyWorkflowLibraryToolbarSection({
           Use fallback default
         </ChipButton>
       </ToolActionRow>
+      <details className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-2">
+        <summary className="type-caption cursor-pointer text-[var(--text-secondary)]">
+          Import Comfy pack
+        </summary>
+        <div className="pt-2">
+          <ComfyPackImportControl onImported={handlePackImport} />
+        </div>
+      </details>
       <p className="mb-4 text-xs text-[var(--text-muted)]">
-        After importing community JSON, run{' '}
-        <strong className="font-medium text-[var(--text-muted)]">Optimize all in library</strong> so
-        placeholders bind to your checkpoint/VAE maps and queue can skip re-bind/enrich via a fresh
-        hash. Confirm filenames match ComfyUI&apos;s model lists. Workflow Health flags missing or
-        stale optimize hashes.
+        Imports and scaffolds are health-checked automatically. Clone &amp; bind and optimize a
+        single workflow from its Edit JSON panel.
       </p>
 
       {importError ? (
@@ -144,9 +129,6 @@ export function ComfyWorkflowLibraryToolbarSection({
       ) : null}
       {importNotice ? (
         <p className="type-caption text-[var(--tint-warning-text)]">{importNotice}</p>
-      ) : null}
-      {optimizePreviewSummary ? (
-        <p className="type-caption text-[var(--accent-text)]">{optimizePreviewSummary}</p>
       ) : null}
     </>
   );

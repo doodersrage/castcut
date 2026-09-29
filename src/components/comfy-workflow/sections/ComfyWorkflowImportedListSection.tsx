@@ -15,6 +15,15 @@ import type { ComfyWorkflowLibraryViewModel } from '@/hooks/useComfyWorkflowLibr
 import { Button } from '@/components/ui/Button';
 import { SelectInput, TextInput, MonoTextArea } from '@/components/ui/Field';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
+import { workflowFileKind, type WorkflowKind } from '@/lib/workflow-kind';
+import { isWorkflowFileUnused, type WorkflowFileUsage } from '@/lib/workflow-library-usage';
+
+const WORKFLOW_KIND_LABEL: Record<WorkflowKind, string> = {
+  image: 'Image',
+  video: 'Video',
+  audio: 'Audio',
+  mesh: '3D',
+};
 
 type Props = Pick<
   ComfyWorkflowLibraryViewModel,
@@ -34,7 +43,9 @@ type Props = Pick<
   | 'cancelEdit'
   | 'saveEdit'
   | 'optimizeAndSaveCopy'
-  | 'optimizeAllInLibrary'
+  | 'previewOptimizeCopy'
+  | 'optimizePreviewSummary'
+  | 'cloneAndBindWorkflow'
   | 'copyBindingHints'
   | 'applyBindings'
 > & {
@@ -61,7 +72,9 @@ export function ComfyWorkflowEditPanel({
   cancelEdit,
   saveEdit,
   optimizeAndSaveCopy,
-  optimizeAllInLibrary,
+  previewOptimizeCopy,
+  optimizePreviewSummary,
+  cloneAndBindWorkflow,
   copyBindingHints,
   applyBindings,
 }: Props) {
@@ -207,13 +220,19 @@ export function ComfyWorkflowEditPanel({
         <Button type="button" variant="secondary" size="sm" onClick={optimizeAndSaveCopy}>
           Optimize &amp; save copy
         </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={optimizeAllInLibrary}>
-          Optimize all in library
+        <Button type="button" variant="secondary" size="sm" onClick={previewOptimizeCopy}>
+          Preview optimize
+        </Button>
+        <Button type="button" variant="secondary" size="sm" onClick={cloneAndBindWorkflow}>
+          Clone &amp; bind
         </Button>
         <Button type="button" variant="secondary" size="sm" onClick={cancelEdit}>
           Cancel
         </Button>
       </ToolActionRow>
+      {optimizePreviewSummary ? (
+        <p className="type-caption text-[var(--accent-text)]">{optimizePreviewSummary}</p>
+      ) : null}
     </div>
   );
 }
@@ -224,6 +243,7 @@ export function ComfyWorkflowImportedRow({
   isEditing,
   displayName,
   inferredModels,
+  usage,
   selectFile,
   startEdit,
   cancelEdit,
@@ -231,6 +251,7 @@ export function ComfyWorkflowImportedRow({
   assignInferredModels,
   editPanel,
 }: {
+  usage?: WorkflowFileUsage;
   file: ComfyWorkflowFile;
   active: boolean;
   isEditing: boolean;
@@ -267,6 +288,32 @@ export function ComfyWorkflowImportedRow({
             {file.customTokens && file.customTokens.length > 0
               ? ` · ${file.customTokens.length} token override${file.customTokens.length === 1 ? '' : 's'}`
               : ''}
+          </p>
+          <p
+            className="type-caption mt-1 flex flex-wrap items-center gap-1.5"
+            data-testid="workflow-usage"
+          >
+            <span className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--text-secondary)]">
+              {WORKFLOW_KIND_LABEL[workflowFileKind(file)]}
+            </span>
+            {usage?.pinned.length ? (
+              <span className="text-[var(--text-secondary)]">
+                Pinned: {usage.pinned.join(', ')}
+              </span>
+            ) : null}
+            {usage?.auto.length ? (
+              <span className="text-[var(--text-muted)]">
+                Auto-picked for{' '}
+                {usage.auto.length <= 3
+                  ? usage.auto.join(', ')
+                  : `${usage.auto.slice(0, 3).join(', ')} +${usage.auto.length - 3}`}
+              </span>
+            ) : null}
+            {isWorkflowFileUnused(usage) ? (
+              <span className="text-[var(--tint-warning-text)]" data-testid="workflow-unused">
+                Unused — safe to delete if you no longer need it
+              </span>
+            ) : null}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {inferredModels.length > 0 ? (
