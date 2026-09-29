@@ -138,6 +138,18 @@ export function defaultLoaderPrecisionTier(): LoaderPrecisionTier {
   return 'bf16';
 }
 
+/**
+ * Qwen Lightning models whose UNET is pinned to bf16. 2512 Lightning is not: on its Lightning
+ * LoRA the fp8 UNET rendered the same stills as bf16 (houndstooth, wet neon, skin; same seeds,
+ * 2026-09-29) about 1.7× faster on a 24 GB card, where the 40.9 GB bf16 file offloads.
+ */
+export function qwenLightningPinsBf16Unet(model?: string | null): boolean {
+  return (
+    isQwenLightningModel(model ?? undefined) &&
+    !/^qwen-image-2512-lightning-/i.test(String(model ?? '').trim())
+  );
+}
+
 export function resolveLoaderPrecisionTier(input: {
   workflow?: Record<string, unknown>;
   explicit?: LoaderPrecisionTier;
@@ -147,7 +159,7 @@ export function resolveLoaderPrecisionTier(input: {
     return input.explicit;
   }
 
-  if (isQwenLightningModel(input.model)) {
+  if (qwenLightningPinsBf16Unet(input.model)) {
     return 'bf16';
   }
 

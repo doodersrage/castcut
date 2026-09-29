@@ -55,6 +55,7 @@ import {
 } from './tool-quality-profiles';
 import { mergeToolQualityRecipes } from './tool-quality-recipes';
 import {
+  migrateQwen2512LightningUnetMap,
   SUGGESTED_MODEL_CHECKPOINT_MAP,
   SUGGESTED_MODEL_REFINER_MAP,
   SUGGESTED_MODEL_VAE_MAP,
@@ -618,6 +619,8 @@ export type SharedToolSettings = {
    * gpu-settings-match). Set once per card, so a later manual choice is never re-matched.
    */
   gpuMatchAutoGb?: number;
+  /** Set once the saved 2512 Lightning UNET moved off the old bf16 default (see model-checkpoint-map). */
+  qwen2512LightningFp8Migrated?: boolean;
   /** When true, call ComfyUI's `/free` (unload + free VRAM) after a Max-quality gallery job completes. */
   freeVramAfterMax?: boolean;
   /** Per-model sampler params learned from 4–5★ gallery ratings. */
@@ -1825,6 +1828,10 @@ export function loadSettingsCache(): SettingsCache {
 
     const sidecars = loadSettingsBlobSidecars();
     applySettingsMapsSidecar(shared, sidecars.maps ?? null);
+    if (shared.qwen2512LightningFp8Migrated !== true) {
+      shared.modelCheckpointMap = migrateQwen2512LightningUnetMap(shared.modelCheckpointMap);
+      shared.qwen2512LightningFp8Migrated = true;
+    }
 
     const rawTools = sidecars.tools ?? parsed.tools ?? {};
     const migrated = migrateLegacyToolSettings(rawTools);

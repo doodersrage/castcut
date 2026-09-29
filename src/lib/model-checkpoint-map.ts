@@ -21,9 +21,9 @@ import {
   qwenEdit2509UnetFilename,
   qwenEdit2511UnetFilename,
   qwenGenericUnetFilename,
+  qwenLightningPinsBf16Unet,
   type LoaderPrecisionTier,
 } from './model-loader-precision';
-import { isQwenLightningModel } from './model-sampling-patch';
 
 export type ModelLoaderFilenames = {
   checkpoint?: string;
@@ -40,6 +40,9 @@ export type ModelVaeMap = Partial<Record<ComfyImageModel | string, string>>;
 
 export type ModelRefinerMap = Partial<Record<ComfyImageModel | string, string>>;
 
+/** The bf16 UNET 2512 Lightning used to be suggested with (saved maps still carry it). */
+export const LEGACY_QWEN_2512_LIGHTNING_UNET = 'qwen_image_2512_bf16.safetensors';
+
 export const DEFAULT_CHECKPOINT_TOKEN = '{{CHECKPOINT}}';
 export const DEFAULT_UNET_TOKEN = '{{UNET}}';
 export const DEFAULT_VAE_TOKEN = '{{VAE}}';
@@ -50,9 +53,10 @@ export const DEFAULT_SDXL_REFINER_CHECKPOINT = 'sd_xl_refiner_1.0.safetensors';
 /** Suggested checkpoint/UNET filenames for common models (merged into Settings; user entries win). */
 export const SUGGESTED_MODEL_CHECKPOINT_MAP: ModelCheckpointMap = {
   'qwen-image-2512': 'qwen_image_2512_fp8_e4m3fn.safetensors',
-  // Lightning needs bf16 UNET on Comfy (fp8 tends to moiré/grid); keep base on fp8.
-  'qwen-image-2512-lightning-4': 'qwen_image_2512_bf16.safetensors',
-  'qwen-image-2512-lightning-8': 'qwen_image_2512_bf16.safetensors',
+  // fp8 on Lightning too: same stills as bf16 on the Lightning LoRA, no grid or moiré, about
+  // 1.7× faster on 24 GB (see qwenLightningPinsBf16Unet).
+  'qwen-image-2512-lightning-4': 'qwen_image_2512_fp8_e4m3fn.safetensors',
+  'qwen-image-2512-lightning-8': 'qwen_image_2512_fp8_e4m3fn.safetensors',
   'qwen-image-edit-2511': 'qwen_image_edit_2511_bf16.safetensors',
   'qwen-image-edit-2511-lightning-4': 'qwen_image_edit_2511_bf16.safetensors',
   'qwen-image-edit-2511-lightning-8': 'qwen_image_edit_2511_bf16.safetensors',
@@ -584,7 +588,7 @@ export function realignLoaderFilenamesToWorkflowPrecision(
   }
 ): WorkflowParamValues {
   const workflowTier = workflow ? detectLoaderPrecisionTier(workflow) : undefined;
-  const tier = isQwenLightningModel(model) ? 'bf16' : workflowTier;
+  const tier = qwenLightningPinsBf16Unet(model) ? 'bf16' : workflowTier;
   if (!tier || !model.trim()) {
     return params;
   }
@@ -831,3 +835,22 @@ export const formatModelVaeMap = formatModelCheckpointMap;
 export const parseModelVaeMap = parseModelCheckpointMap;
 export const formatModelRefinerMap = formatModelCheckpointMap;
 export const parseModelRefinerMap = parseModelCheckpointMap;
+
+/**
+ * One-time move of 2512 Lightning map entries still on the old bf16 suggestion to the fp8 UNET.
+ * Every load merged the suggestions into the saved map, so a stored bf16 value is usually the
+ * old default rather than a choice; after this runs once, a bf16 pick sticks.
+ */
+export function migrateQwen2512LightningUnetMap(
+  map: ModelCheckpointMap | undefined
+): ModelCheckpointMap | undefined {
+  if (!map) return map;
+  let next: ModelCheckpointMap | undefined;
+  for (const key of ['qwen-image-2512-lightning-4', 'qwen-image-2512-lightning-8']) {
+    if (map[key]?.trim() === LEGACY_QWEN_2512_LIGHTNING_UNET) {
+      next ??= { ...map };
+      next[key] = SUGGESTED_MODEL_CHECKPOINT_MAP[key];
+    }
+  }
+  return next ?? map;
+}

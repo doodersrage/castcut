@@ -635,19 +635,24 @@ describe("workflow-lightning-queue", () => {
 });
 
 describe("lightning queue precision and sampling", () => {
-  it("forces bf16 precision tier for lightning models", () => {
-    const workflow = {
-      "1": {
-        class_type: "UNETLoader",
-        inputs: { unet_name: "qwen_image_2512_fp8_e4m3fn.safetensors" },
-      },
-    };
+  it("forces bf16 precision tier for Edit lightning, not 2512 lightning", () => {
+    const workflow = (unet: string) => ({
+      "1": { class_type: "UNETLoader", inputs: { unet_name: unet } },
+    });
     assert.equal(
       resolveLoaderPrecisionTier({
-        workflow,
-        model: "qwen-image-2512-lightning-8",
+        workflow: workflow("qwen_image_edit_2511_fp8_e4m3fn.safetensors"),
+        model: "qwen-image-edit-2511-lightning-8",
       }),
       "bf16",
+    );
+    // 2512 Lightning runs fp8 (same stills, ~1.7x faster on 24 GB) — follow the graph.
+    assert.equal(
+      resolveLoaderPrecisionTier({
+        workflow: workflow("qwen_image_2512_fp8_e4m3fn.safetensors"),
+        model: "qwen-image-2512-lightning-8",
+      }),
+      "fp8",
     );
   });
 
@@ -731,12 +736,12 @@ describe("lightning queue precision and sampling", () => {
     );
   });
 
-  it("forces UNET bf16 at queue prep but leaves CLIP filenames alone", () => {
+  it("forces Edit lightning UNET bf16 at queue prep but leaves CLIP filenames alone", () => {
     const workflow = {
       "1": {
         class_type: "UNETLoader",
         inputs: {
-          unet_name: "qwen_image_2512_fp8_e4m3fn.safetensors",
+          unet_name: "qwen_image_edit_2511_fp8_e4m3fn.safetensors",
           weight_dtype: "fp8_e4m3fn",
         },
       },
@@ -758,19 +763,19 @@ describe("lightning queue precision and sampling", () => {
     };
     const result = prepareLightningWorkflowForQueue(
       workflow,
-      "qwen-image-2512-lightning-8",
+      "qwen-image-edit-2511-lightning-8",
       {},
       {
         params: { width: 1328, height: 1328 },
         loaders: {
-          unet: "qwen_image_2512_bf16.safetensors",
+          unet: "qwen_image_edit_2511_bf16.safetensors",
           dualClip: "qwen_2.5_vl_7b_fp8_scaled.safetensors",
         },
       },
     );
     assert.equal(
       (result["1"] as { inputs: { unet_name: string; weight_dtype: string } }).inputs.unet_name,
-      "qwen_image_2512_bf16.safetensors",
+      "qwen_image_edit_2511_bf16.safetensors",
     );
     assert.equal(
       (result["1"] as { inputs: { weight_dtype: string } }).inputs.weight_dtype,
@@ -784,6 +789,24 @@ describe("lightning queue precision and sampling", () => {
     assert.deepEqual(
       (result["6"] as { inputs: { width: number; height: number } }).inputs,
       { width: 1328, height: 1328, batch_size: 1 },
+    );
+  });
+
+  it("keeps the fp8 UNET on 2512 lightning at queue prep", () => {
+    const result = prepareLightningWorkflowForQueue(
+      {
+        "1": {
+          class_type: "UNETLoader",
+          inputs: { unet_name: "qwen_image_2512_fp8_e4m3fn.safetensors", weight_dtype: "fp8_e4m3fn" },
+        },
+      },
+      "qwen-image-2512-lightning-8",
+      {},
+      { params: { width: 1328, height: 1328 }, loaders: { unet: "qwen_image_2512_fp8_e4m3fn.safetensors" } },
+    );
+    assert.equal(
+      (result["1"] as { inputs: { unet_name: string } }).inputs.unet_name,
+      "qwen_image_2512_fp8_e4m3fn.safetensors",
     );
   });
 

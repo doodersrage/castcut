@@ -13,6 +13,7 @@ import {
   qwenDualClipFilename,
   qwenEdit2509UnetFilename,
   qwenEdit2511UnetFilename,
+  qwenLightningPinsBf16Unet,
   qwenUnetFamilyFromFilename,
 } from './model-loader-precision';
 import { isLatentSizeNode, patchLoaderNodesInWorkflow } from './workflow-direct-patch';
@@ -413,7 +414,7 @@ const LOADER_FILENAME_FIELDS = [
 ] as const;
 
 function rewriteFp8FilenameToBf16(filename: string, model?: string): string | undefined {
-  if (precisionHintFromFilename(filename) !== 'fp8') {
+  if (!qwenLightningPinsBf16Unet(model) || precisionHintFromFilename(filename) !== 'fp8') {
     return undefined;
   }
   const lower = filename.toLowerCase();
@@ -483,7 +484,7 @@ export function resolveLightningBf16Loaders(
     ? qwenEdit2511UnetFilename('bf16')
     : model?.includes('edit-2509')
       ? qwenEdit2509UnetFilename('bf16')
-      : qwen2512UnetFilename('bf16');
+      : qwen2512UnetFilename(qwenLightningPinsBf16Unet(model) ? 'bf16' : 'fp8');
   const existingUnet =
     typeof next.unet === 'string' && next.unet.trim() && !filenameLooksLikeCheckpointOnly(next.unet)
       ? next.unet.trim()

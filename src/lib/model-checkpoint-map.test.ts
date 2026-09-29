@@ -10,6 +10,7 @@ import {
   SUGGESTED_MODEL_REFINER_MAP,
   SUGGESTED_MODEL_VAE_MAP,
   mergeSuggestedLoaderMaps,
+  migrateQwen2512LightningUnetMap,
   formatSuggestedLoaderMergeMessage,
   isVaeFilenameIncompatibleWithModel,
   pickBooguVaeFromInventory,
@@ -288,10 +289,24 @@ describe("model checkpoint map", () => {
   it("includes suggested checkpoint map entries for common models", () => {
     assert.equal(
       SUGGESTED_MODEL_CHECKPOINT_MAP["qwen-image-2512-lightning-8"],
-      "qwen_image_2512_bf16.safetensors",
+      "qwen_image_2512_fp8_e4m3fn.safetensors",
     );
     assert.equal(SUGGESTED_MODEL_REFINER_MAP.default, "sd_xl_refiner_1.0.safetensors");
     assert.equal(SUGGESTED_MODEL_VAE_MAP["qwen-image-2512"], "qwen_image_vae.safetensors");
+  });
+
+  it("moves saved 2512 lightning maps off the old bf16 default once", () => {
+    const saved = {
+      "qwen-image-2512-lightning-8": "qwen_image_2512_bf16.safetensors",
+      "qwen-image-2512-lightning-4": "my-own-unet.safetensors",
+      "qwen-image-edit-2511-lightning-8": "qwen_image_edit_2511_bf16.safetensors",
+    };
+    assert.deepEqual(migrateQwen2512LightningUnetMap(saved), {
+      ...saved,
+      "qwen-image-2512-lightning-8": "qwen_image_2512_fp8_e4m3fn.safetensors",
+    });
+    const untouched = { "qwen-image-2512-lightning-8": "qwen_image_2512_fp8_e4m3fn.safetensors" };
+    assert.equal(migrateQwen2512LightningUnetMap(untouched), untouched);
   });
 
   it("merges suggested loader maps without clobbering user overrides", () => {
