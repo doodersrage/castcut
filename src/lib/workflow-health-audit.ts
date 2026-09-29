@@ -1,4 +1,4 @@
-import type { ComfyWorkflowFile } from './comfyui-workflow-files';
+import { WORKFLOW_LIBRARY_LARGE_COUNT, type ComfyWorkflowFile } from './comfyui-workflow-files';
 import { findUnresolvedPlaceholderTokens } from './workflow-placeholder-audit';
 import { workflowContentHash, workflowJsonContentHash } from './workflow-content-hash';
 import { resolveOptimizeModelForWorkflowFile } from './workflow-optimize-model';
@@ -166,6 +166,14 @@ export function auditWorkflowLibraryHealth(input: {
   }
 
   issues.push(...auditModelWorkflowMapKinds(input.workflowFiles, input.modelWorkflowMap));
+  if (input.workflowFiles.length > WORKFLOW_LIBRARY_LARGE_COUNT) {
+    issues.push({
+      workflowId: 'library',
+      workflowName: 'Workflow library',
+      severity: 'warn',
+      message: `${input.workflowFiles.length} workflows in the library — large libraries slow settings sync. Files marked Unused below are safe to delete.`,
+    });
+  }
 
   const affectedIds = new Set(issues.map(issue => issue.workflowId));
   const scanned = input.workflowFiles.length;

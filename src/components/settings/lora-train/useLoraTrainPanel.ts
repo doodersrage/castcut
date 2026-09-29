@@ -128,6 +128,12 @@ export function useLoraTrainPanel(onStatus?: (message: string) => void) {
       });
       const local = normalizeTrainJobs(loadSettingsCache().shared.loraTrainJobs);
       const merged = mergeJobs(local, data.jobs ?? []);
+      // This polls every 8 s while Settings is open; saving unchanged jobs re-saved settings
+      // (and pushed them to the server) on every tick.
+      if (JSON.stringify(merged) === JSON.stringify(local)) {
+        setJobs(merged);
+        return;
+      }
       persistJobs(merged);
     } catch {
       // offline / server cold — keep local jobs

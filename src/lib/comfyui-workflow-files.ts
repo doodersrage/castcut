@@ -171,6 +171,9 @@ function loadComfyWorkflowFilesRaw(): ComfyWorkflowFile[] {
   }
 }
 
+/** Past this many files Workflow health suggests cleaning up (large libraries slow sync). */
+export const WORKFLOW_LIBRARY_LARGE_COUNT = 60;
+
 /** Fired (same tab) after the workflow library is saved — map table, health, list refresh. */
 export const COMFY_WORKFLOW_FILES_UPDATED_EVENT = 'comfy-workflow-files-updated';
 
@@ -179,7 +182,9 @@ function saveComfyWorkflowFilesRaw(files: ComfyWorkflowFile[]): void {
     return;
   }
 
-  writeBrowserValue(COMFY_WORKFLOW_FILES_KEY, files.slice(0, 32));
+  // Never truncate: a silent slice(0, 32) here dropped the oldest workflows on the 33rd import,
+  // and on restore / server pull of a larger library. Size is surfaced by Workflow health.
+  writeBrowserValue(COMFY_WORKFLOW_FILES_KEY, files);
   // Test stubs of window may lack dispatchEvent.
   if (typeof window.dispatchEvent === 'function') {
     window.dispatchEvent(new Event(COMFY_WORKFLOW_FILES_UPDATED_EVENT));
@@ -244,7 +249,7 @@ export function upsertComfyWorkflowFile(
     files.unshift(next);
   }
 
-  saveComfyWorkflowFiles(files.slice(0, 32));
+  saveComfyWorkflowFiles(files);
   return next;
 }
 
