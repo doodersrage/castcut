@@ -16,6 +16,12 @@ export type WorkflowFileUsage = {
   /** Models system workflows would pick this file for (unpinned models only). */
   auto: string[];
   selected: boolean;
+  /**
+   * False while system workflows are on but ComfyUI's model list is not known: the pack scorer
+   * then picks nothing, and every unpinned file read as unused (live: six packs in real use were
+   * labelled "safe to delete" and deleted).
+   */
+  autoKnown: boolean;
 };
 
 export function workflowLibraryUsage(input: {
@@ -31,17 +37,24 @@ export function workflowLibraryUsage(input: {
     files: ComfyWorkflowFile[]
   ) => { file: { id: string } } | null;
 }): Map<string, WorkflowFileUsage> {
+  const systemOn = input.shared.useSystemWorkflows === true;
+  const autoKnown = !systemOn || Boolean(input.inventory) || Boolean(input.pickPack);
   const usage = new Map<string, WorkflowFileUsage>(
     input.files.map(file => [
       file.id,
-      { pinned: [], auto: [], selected: input.shared.selectedWorkflowFileId === file.id },
+      {
+        pinned: [],
+        auto: [],
+        selected: input.shared.selectedWorkflowFileId === file.id,
+        autoKnown,
+      },
     ])
   );
   const map = input.shared.modelWorkflowMap ?? {};
   for (const [model, id] of Object.entries(map)) {
     usage.get(id?.trim() ?? '')?.pinned.push(model);
   }
-  if (input.shared.useSystemWorkflows === true) {
+  if (systemOn && autoKnown) {
     const pick =
       input.pickPack ??
       ((model: ComfyImageModel, files: ComfyWorkflowFile[]) =>
@@ -55,6 +68,13 @@ export function workflowLibraryUsage(input: {
   return usage;
 }
 
+/** Only with evidence: never while automatic picks are unknown. */
 export function isWorkflowFileUnused(usage: WorkflowFileUsage | undefined): boolean {
-  return !usage || (usage.pinned.length === 0 && usage.auto.length === 0 && !usage.selected);
+  return Boolean(
+    usage &&
+    usage.autoKnown &&
+    usage.pinned.length === 0 &&
+    usage.auto.length === 0 &&
+    !usage.selected
+  );
 }

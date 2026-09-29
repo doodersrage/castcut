@@ -384,7 +384,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
       ) {
         return;
       }
-      deleteComfyWorkflowFile(id);
+      deleteComfyWorkflowFile(id, Date.now(), { unpinned: pinned });
       // A pin to a deleted file only broke queueing later — drop it with the file.
       if (pinned.length > 0) {
         const nextMap = { ...(shared.modelWorkflowMap ?? {}) };
@@ -398,8 +398,8 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
       refresh();
       onStatus?.(
         pinned.length > 0
-          ? `Workflow file deleted — ${pinned.join(', ')} now use the automatic pick.`
-          : 'Workflow file deleted.'
+          ? `Moved to Recently deleted — ${pinned.join(', ')} now use the automatic pick.`
+          : 'Moved to Recently deleted — restore it from the bottom of the library.'
       );
     },
     [cancelEdit, editingId, onStatus, refresh]

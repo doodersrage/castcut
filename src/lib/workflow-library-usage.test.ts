@@ -64,3 +64,15 @@ describe('workflow library watch', () => {
     assert.equal(comfyModelListFingerprint(null), '');
   });
 });
+
+describe('unused needs evidence', () => {
+  it('never calls a file unused while system workflows are on and ComfyUI models are unknown', () => {
+    const usage = workflowLibraryUsage({
+      files: [file('klein')],
+      shared: { useSystemWorkflows: true },
+      inventory: null,
+    });
+    assert.equal(usage.get('klein')!.autoKnown, false);
+    assert.equal(isWorkflowFileUnused(usage.get('klein')), false);
+  });
+});

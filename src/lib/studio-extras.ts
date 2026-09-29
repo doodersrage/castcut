@@ -17,7 +17,12 @@ import { loadLocationBlocklist, saveLocationBlocklist } from './prompt-history';
 import { loadScenePresets, saveScenePresets } from './scene-presets';
 import { loadUserTemplates, saveUserTemplates } from './user-templates';
 import { loadComfyUiSettings, saveComfyUiSettings } from './comfyui-settings';
-import { loadComfyWorkflowFiles, saveComfyWorkflowFiles } from './comfyui-workflow-files';
+import {
+  loadComfyWorkflowFiles,
+  loadDeletedComfyWorkflowFiles,
+  saveComfyWorkflowFiles,
+  saveDeletedComfyWorkflowFiles,
+} from './comfyui-workflow-files';
 import { loadComfyWorkflowPresets, saveComfyWorkflowPresets } from './comfyui-workflow-presets';
 import { exportAvoidedTokenList, saveAvoidedTokens } from './avoided-tokens';
 import { loadWebhookLog, WEBHOOK_LOG_KEY, type WebhookLogEntry } from './webhook-log';
@@ -144,6 +149,7 @@ export type StudioExtrasPayload = {
   comfyUiSettings?: ReturnType<typeof loadComfyUiSettings>;
   comfyWorkflowPresets?: ReturnType<typeof loadComfyWorkflowPresets>;
   comfyWorkflowFiles?: ReturnType<typeof loadComfyWorkflowFiles>;
+  comfyWorkflowTrash?: ReturnType<typeof loadDeletedComfyWorkflowFiles>;
   avoidedTokens?: string[];
   webhookLog?: WebhookLogEntry[];
   promptProjects?: ReturnType<typeof loadPromptProjects>;
@@ -208,6 +214,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     comfyUiSettings: loadComfyUiSettings(),
     comfyWorkflowPresets: loadComfyWorkflowPresets(),
     comfyWorkflowFiles: loadComfyWorkflowFiles(),
+    comfyWorkflowTrash: loadDeletedComfyWorkflowFiles(),
     avoidedTokens: exportAvoidedTokenList(),
     webhookLog: loadWebhookLog(),
     promptProjects: loadPromptProjects(),
@@ -287,6 +294,9 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.comfyWorkflowFiles) {
       saveComfyWorkflowFiles(payload.comfyWorkflowFiles);
+    }
+    if (payload.comfyWorkflowTrash) {
+      saveDeletedComfyWorkflowFiles(payload.comfyWorkflowTrash);
     }
     if (payload.avoidedTokens) {
       saveAvoidedTokens(payload.avoidedTokens);

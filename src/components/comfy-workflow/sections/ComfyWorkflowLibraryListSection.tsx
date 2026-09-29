@@ -7,8 +7,14 @@ import type { ComfyWorkflowLibraryViewModel } from '@/hooks/useComfyWorkflowLibr
 import { EmptyState } from '@/components/ui/ViewState';
 import { useEffect, useMemo, useState } from 'react';
 import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
-import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
+import {
+  fetchComfyObjectInfoCached,
+  readCachedComfyObjectInfoModels,
+} from '@/lib/comfyui-object-info-cache';
+import type { ComfyUiModelLists } from '@/lib/comfyui-object-info';
+import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { isWorkflowFileUnused, workflowLibraryUsage } from '@/lib/workflow-library-usage';
+import { ComfyWorkflowRecentlyDeleted } from '@/components/comfy-workflow/sections/ComfyWorkflowRecentlyDeleted';
 import { ComfyWorkflowServerListSection } from '@/components/comfy-workflow/sections/ComfyWorkflowServerListSection';
 import {
   ComfyWorkflowEditPanel,
@@ -68,6 +74,25 @@ export function ComfyWorkflowLibraryListSection(props: Props) {
     window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, bump);
     return () => window.removeEventListener(SETTINGS_CACHE_UPDATED_EVENT, bump);
   }, []);
+  // Automatic picks need ComfyUI's model list; load it when the cache is cold so files the
+  // system workflows use are never shown as unused.
+  const [inventory, setInventory] = useState<ComfyUiModelLists | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    scheduleAfterCommit(() => {
+      const cached = readCachedComfyObjectInfoModels();
+      if (cached) {
+        setInventory(cached);
+        return;
+      }
+      void fetchComfyObjectInfoCached().then(payload => {
+        if (!cancelled && payload?.models) setInventory(payload.models);
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const usage = useMemo(() => {
     void settingsTick;
     const shared = loadSettingsCache().shared;
@@ -78,9 +103,9 @@ export function ComfyWorkflowLibraryListSection(props: Props) {
         useSystemWorkflows: shared.useSystemWorkflows,
         selectedWorkflowFileId: selectedId ?? undefined,
       },
-      inventory: readCachedComfyObjectInfoModels(),
+      inventory,
     });
-  }, [files, selectedId, settingsTick]);
+  }, [files, selectedId, settingsTick, inventory]);
   const unusedCount = files.filter(file => isWorkflowFileUnused(usage.get(file.id))).length;
 
   return (
@@ -99,7 +124,7 @@ export function ComfyWorkflowLibraryListSection(props: Props) {
               className="ml-2 normal-case tracking-normal text-[var(--text-muted)]"
               data-testid="workflow-library-unused-count"
             >
-              · {unusedCount} unused (not pinned, selected, or auto-picked)
+              · {unusedCount} not used by any model right now
             </span>
           ) : null}
         </p>
@@ -167,6 +192,8 @@ export function ComfyWorkflowLibraryListSection(props: Props) {
           </ul>
         )}
       </div>
+
+      <ComfyWorkflowRecentlyDeleted />
 
       <p className="text-xs text-[var(--text-muted)]">
         Server env: set <code className="ui-inline-code">COMFYUI_WORKFLOW_DIR</code> or{' '}

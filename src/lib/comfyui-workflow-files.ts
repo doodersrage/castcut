@@ -253,8 +253,63 @@ export function upsertComfyWorkflowFile(
   return next;
 }
 
-export function deleteComfyWorkflowFile(id: string): void {
-  saveComfyWorkflowFiles(loadComfyWorkflowFiles().filter(entry => entry.id !== id));
+export const COMFY_WORKFLOW_TRASH_KEY = 'comfyui-workflow-files-trash-v1';
+const TRASH_MAX = 30;
+const TRASH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+export type DeletedComfyWorkflowFile = {
+  file: ComfyWorkflowFile;
+  deletedAt: number;
+  /** Model → workflow map entries that pointed at it when it was deleted. */
+  unpinned?: string[];
+};
+
+/** Recently deleted workflows (newest first, 30 days / 30 files). */
+export function loadDeletedComfyWorkflowFiles(now = Date.now()): DeletedComfyWorkflowFile[] {
+  if (typeof window === 'undefined') return [];
+  const raw = readBrowserValue<DeletedComfyWorkflowFile[]>(COMFY_WORKFLOW_TRASH_KEY) ?? [];
+  return raw.filter(entry => entry?.file?.id && now - entry.deletedAt < TRASH_TTL_MS);
+}
+
+export function saveDeletedComfyWorkflowFiles(entries: DeletedComfyWorkflowFile[]): void {
+  if (typeof window === 'undefined') return;
+  writeBrowserValue(COMFY_WORKFLOW_TRASH_KEY, entries.slice(0, TRASH_MAX));
+}
+
+/**
+ * Deleting moves the file to Recently deleted instead of dropping it: a mislabelled "unused"
+ * flag once led to six in-use packs being deleted with no way back.
+ */
+export function deleteComfyWorkflowFile(
+  id: string,
+  now = Date.now(),
+  options?: { unpinned?: string[] }
+): void {
+  const files = loadComfyWorkflowFiles();
+  const file = files.find(entry => entry.id === id);
+  if (file) {
+    saveDeletedComfyWorkflowFiles([
+      {
+        file,
+        deletedAt: now,
+        ...(options?.unpinned?.length ? { unpinned: options.unpinned } : {}),
+      },
+      ...loadDeletedComfyWorkflowFiles(now).filter(entry => entry.file.id !== id),
+    ]);
+  }
+  saveComfyWorkflowFiles(files.filter(entry => entry.id !== id));
+}
+
+/** Put a recently deleted workflow back in the library (same id, so old pins match again). */
+export function restoreDeletedComfyWorkflowFile(id: string): DeletedComfyWorkflowFile | undefined {
+  const trash = loadDeletedComfyWorkflowFiles();
+  const entry = trash.find(item => item.file.id === id);
+  if (!entry) return undefined;
+  // Trash first: saving the library fires the refresh that re-reads the trash.
+  saveDeletedComfyWorkflowFiles(trash.filter(item => item.file.id !== id));
+  const files = loadComfyWorkflowFiles().filter(file => file.id !== id);
+  saveComfyWorkflowFiles([entry.file, ...files]);
+  return entry;
 }
 
 export function workflowFileNameFromPath(filename: string): string {

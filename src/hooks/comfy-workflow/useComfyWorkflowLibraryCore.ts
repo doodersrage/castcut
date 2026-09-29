@@ -5,6 +5,7 @@ import { prepareWorkflowJsonImport } from '@/lib/workflow-import';
 import type { CustomWorkflowToken } from '@/lib/comfyui-config';
 import { validateWorkflowJson, type WorkflowPlaceholderTokens } from '@/lib/comfyui-config';
 import {
+  COMFY_WORKFLOW_FILES_UPDATED_EVENT,
   deleteComfyWorkflowFile,
   getWorkflowTokenValue,
   loadComfyWorkflowFiles,
@@ -89,6 +90,12 @@ export function useComfyWorkflowLibraryCore({
     setFiles(loadComfyWorkflowFiles());
     setSelectedId(getSelectedWorkflowFileId());
   }, []);
+
+  // Restores from Recently deleted, pack installs and sync pulls save the library elsewhere.
+  useEffect(() => {
+    window.addEventListener(COMFY_WORKFLOW_FILES_UPDATED_EVENT, refresh);
+    return () => window.removeEventListener(COMFY_WORKFLOW_FILES_UPDATED_EVENT, refresh);
+  }, [refresh]);
 
   useEffect(() => {
     scheduleAfterCommit(() => {

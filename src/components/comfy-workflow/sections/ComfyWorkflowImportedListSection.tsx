@@ -311,7 +311,7 @@ export function ComfyWorkflowImportedRow({
             ) : null}
             {isWorkflowFileUnused(usage) ? (
               <span className="text-[var(--tint-warning-text)]" data-testid="workflow-unused">
-                Unused — safe to delete if you no longer need it
+                Not used by any model right now
               </span>
             ) : null}
           </p>

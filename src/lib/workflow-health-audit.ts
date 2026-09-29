@@ -171,7 +171,7 @@ export function auditWorkflowLibraryHealth(input: {
       workflowId: 'library',
       workflowName: 'Workflow library',
       severity: 'warn',
-      message: `${input.workflowFiles.length} workflows in the library — large libraries slow settings sync. Files marked Unused below are safe to delete.`,
+      message: `${input.workflowFiles.length} workflows in the library — large libraries slow settings sync. Files shown as not used by any model can go if you no longer need them (deleted files stay restorable).`,
     });
   }
 

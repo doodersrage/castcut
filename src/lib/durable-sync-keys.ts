@@ -21,6 +21,7 @@ export const DURABLE_BROWSER_SYNC_KEYS = new Set([
   'comfyui-settings-v4',
   'comfyui-workflow-presets-v1',
   'comfyui-workflow-files-v1',
+  'comfyui-workflow-files-trash-v1',
   'comfy-prompt-avoided-tokens-v1',
   'comfy-prompt-webhook-log-v1',
   'comfy-prompt-projects-v1',
