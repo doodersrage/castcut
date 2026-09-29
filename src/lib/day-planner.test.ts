@@ -2773,3 +2773,47 @@ describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
     assert.equal(requeued.stills[0]!.imageUrl, '/api/gallery/media/raw');
   });
 });
+
+describe('heat mood boards accept their own rolls', () => {
+  const ids = ['morning', 'morning-2', 'afternoon', 'afternoon-2', 'evening', 'evening-2', 'night', 'night-2'];
+  let seed = 3;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+  it('never flags a freshly rolled slot as stale', () => {
+    for (const dayMood of ['suggestive', 'vacation', 'sport', 'intimate', 'raunchy'] as const) {
+      for (const allowCompanions of [false, true]) {
+        for (let round = 0; round < 20; round += 1) {
+          const { slots } = diversifyDaySlotScenes(
+            ids.map(id => ({ id, label: id })) as never,
+            { dayMood, allowCompanions, forceBeats: true, forceLocations: true, random }
+          );
+          for (const slot of slots) {
+            assert.ok(
+              daySlotMatchesAdultMix({ slot, dayMood, allowCompanions }),
+              `${dayMood}: ${slot.location} | ${slot.sceneHints}`
+            );
+          }
+        }
+      }
+    }
+  });
+
+  it('rerolls only the stale slot, keeping what the player typed elsewhere', () => {
+    const { slots } = diversifyDaySlotScenes(ids.slice(0, 4).map(id => ({ id, label: id })) as never, {
+      dayMood: 'suggestive',
+      forceBeats: true,
+      forceLocations: true,
+      random,
+    });
+    const typed = slots.map((slot, index) =>
+      index === 1 ? { ...slot, sceneHints: 'buying groceries with a notebook list' } : slot
+    );
+    const aligned = ensureDaySlotsMatchMood(typed, { dayMood: 'suggestive', random });
+    assert.equal(aligned.changed, true);
+    for (const index of [0, 2, 3]) {
+      assert.equal(aligned.slots[index]!.sceneHints, typed[index]!.sceneHints);
+      assert.equal(aligned.slots[index]!.location, typed[index]!.location);
+    }
+    assert.notEqual(aligned.slots[1]!.sceneHints, typed[1]!.sceneHints);
+  });
+});

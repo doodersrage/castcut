@@ -6,8 +6,12 @@ import {
   DAY_LATE_SLOT_RAUNCHY_BEAT_PRESETS,
   DAY_SLOT_INTIMATE_BEAT_PRESETS,
   DAY_SLOT_RAUNCHY_BEAT_PRESETS,
+  DAY_CLOTHED_MOOD_SEX_LEAK_RE,
   DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS,
   DAY_SLOT_SUGGESTIVE_BEAT_PRESETS,
+  DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS,
+  daySlotMatchesAdultMix,
+  diversifyDaySlotScenes,
   isDayIntimateSoloBeat,
   isDayRaunchySoloBeat,
 } from './day-planner';
@@ -362,8 +366,17 @@ describe('Rapid suggestive recipe', () => {
     assert.match(packshot, /outfit from the second image.*third image \(pose map\)/);
     const keep = suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw', { faceOnlyIdentity: false, plateSource: 'keeper' });
     assert.match(keep, /outfit from the first image/);
-    // With a companion allowed the solo recipe must not apply.
-    assert.ok(!isRapidDuoRecipePrompt(suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw', { allowCompanions: true })));
+    // Companions on: a solo beat keeps the solo recipe; a couple beat gets the couple one.
+    assert.match(
+      suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw', { allowCompanions: true }),
+      /One woman alone, clothed\./
+    );
+    const couple = 'kissing her partner in a doorway, up on her toes in a short dress — his hands on her waist';
+    const duo = suggestivePrompt(couple, 'qwen-rapid-aio-edit-nsfw', { allowCompanions: true });
+    assert.match(duo, /A woman and a man together, both fully clothed.*She wears a short dress; he wears a casual shirt and jeans\..*the man has his own face/);
+    assert.match(duo, /Match their two bodies/);
+    // Companions off: the same beat stays one woman.
+    assert.match(suggestivePrompt(couple, 'qwen-rapid-aio-edit-nsfw'), /One woman alone, clothed\./);
   });
 });
 
@@ -409,5 +422,75 @@ describe('Rapid vacation recipe', () => {
       buildDaySlotPrompt({ slot, hasPlate: true, plateSource: 'cast', poseGuide: true, model, dayMood: 'vacation', ...extra });
     assert.match(build('qwen-rapid-aio-edit-nsfw'), /^Vacation photo:.*rides a bicycle/);
     assert.ok(!isRapidDuoRecipePrompt(build('qwen-image-edit-2511')));
+  });
+});
+
+describe('Suggestive couple beats', () => {
+  const beats = Object.values(DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS).flat();
+
+  it('name two clothed people and never read as a leftover sex beat', () => {
+    for (const beat of beats) {
+      assert.match(beat, /\bher partner\b/, beat);
+      assert.doesNotMatch(beat, DAY_CLOTHED_MOOD_SEX_LEAK_RE, beat);
+    }
+  });
+
+  it('lift the solo-only locks from the long brief on other models', () => {
+    const slot = { id: 'evening', label: 'Evening', sceneHints: beats[10], location: 'rooftop bar' } as never;
+    const prompt = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      model: 'qwen-image-edit-2511',
+      dayMood: 'suggestive',
+      allowCompanions: true,
+    });
+    assert.doesNotMatch(prompt, /never invent a man|second adult or muscular man|one woman alone/i);
+    assert.match(prompt, /her partner stays fully clothed/);
+  });
+
+  it('only fit a Suggestive slot while companions are on', () => {
+    const slot = { id: 'evening', label: 'Evening', sceneHints: beats[10], location: 'rooftop bar' } as never;
+    assert.equal(daySlotMatchesAdultMix({ slot, dayMood: 'suggestive', allowCompanions: true }), true);
+    assert.equal(daySlotMatchesAdultMix({ slot, dayMood: 'suggestive' }), false);
+    const moved = { id: 'morning', label: 'Morning', sceneHints: beats[10], location: 'bedroom' } as never;
+    assert.equal(daySlotMatchesAdultMix({ slot: moved, dayMood: 'suggestive', allowCompanions: true }), true);
+  });
+
+  it('roll into about half the slots with companions on, none without', () => {
+    const slots = ['morning', 'afternoon', 'evening', 'night'].map(id => ({ id, label: id })) as never[];
+    let seed = 7;
+    const random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rolled = (allowCompanions: boolean) =>
+      Array.from({ length: 10 }, () =>
+        diversifyDaySlotScenes(slots, { dayMood: 'suggestive', allowCompanions, forceBeats: true, random } as never)
+          .slots.map(slot => slot.sceneHints ?? '')
+      ).flat();
+    const duoCount = (list: string[]) => list.filter(beat => beats.includes(beat)).length;
+    const on = duoCount(rolled(true));
+    assert.ok(on >= 8 && on <= 32, `${on}/40`);
+    assert.equal(duoCount(rolled(false)), 0);
+  });
+});
+
+describe('Rapid clothed recipes and kit labels', () => {
+  it('drop trouser rise words from dress kits and keep picnics out of sleep pants', () => {
+    const recipe = buildRapidSuggestiveRecipe({ beat: 'leaning in a doorway', outfit: 'low-rise powder blue slip dress' })!;
+    assert.match(recipe, /She wears a powder blue slip dress\./);
+    assert.match(
+      buildRapidVacationRecipe({ beat: 'SEATED at a café', outfit: 'outfit-low-rise-denim-shorts' })!,
+      /low rise denim shorts/
+    );
+    const picnic = buildDaySlotPrompt({
+      slot: { ...(nightSlot as object), sceneHints: DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS.afternoon[3] } as never,
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      model: 'qwen-rapid-aio-edit-nsfw',
+      dayMood: 'suggestive',
+      allowCompanions: true,
+    });
+    assert.match(picnic, /he wears a casual shirt and jeans/);
   });
 });

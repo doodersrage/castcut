@@ -354,7 +354,8 @@ function withArticle(outfit: string | null | undefined): string | null {
   if (
     /^(?:a|an|the|her|his|some)\b/i.test(text) ||
     /[^s]s$/i.test(text.split(/\s+/).pop() ?? '') ||
-    /(?:wear|clothes|lingerie)$/i.test(text)
+    /(?:wear|clothes|lingerie)$/i.test(text) ||
+    /^(?:lingerie|sleepwear|evening\s+wear)\b/i.test(text)
   ) {
     return text;
   }
@@ -501,7 +502,7 @@ function suggestivePlacement(beat: string): string {
 }
 
 const CLOTHES_RE =
-  /\bin\s+((?:(?:a|an|her)\s+)?(?:(?!\bin\b)[^,;—.])*?\b(?:sleepwear|robe|lingerie|shirt|dress|slip|camisole|shorts|panties|wear|sundress|towel wrap)\b(?:(?!\bin\b)[^,;—.])*?)(?=\s+(?:by|on|at|during|after|eating|pouring|facing|hugging|removing)\b|[,;—.]|$)/i;
+  /\bin\s+(?!his\b)((?:(?:a|an|her)\s+)?(?:(?!\bin\b)[^,;—.])*?\b(?:sleepwear|robe|lingerie|shirt|dress|slip|camisole|shorts|panties|wear|sundress|towel wrap)\b(?:(?!\bin\b)[^,;—.])*?)(?=\s+(?:by|on|at|during|after|eating|pouring|facing|hugging|removing|with)\b|[,;—.]|$)/i;
 
 /** The outfit a clothed beat names ("in lingerie under an open shirt"), or null. */
 export function suggestiveBeatClothes(beat: string): string | null {
@@ -563,8 +564,8 @@ export function buildRapidSuggestiveRecipe(input: {
     ? `She wears the outfit from the ${input.outfitImage} image.`
     : input.outfitFromFirst
       ? 'She wears the outfit from the first image.'
-      : input.outfit?.trim()
-        ? `She wears ${withArticle(input.outfit)}.`
+      : outfitWords(input.outfit)
+        ? `She wears ${withArticle(outfitWords(input.outfit))}.`
         : suggestiveBeatClothes(beat)
           ? `She wears ${suggestiveBeatClothes(beat)}.`
           : 'She is dressed as the moment says.';
@@ -669,9 +670,14 @@ function outfitWords(outfit: string | null | undefined): string | null {
   if (!text) {
     return null;
   }
-  return /^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(text)
+  const words = /^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(text)
     ? text.replace(/^(?:outfit|kit|look)-/, '').replace(/-/g, ' ')
     : text;
+  // Kit labels carry trouser fit words: "low-rise powder blue slip dress" rendered a bodysuit
+  // or underwear 9/9 on Rapid, "powder blue slip dress" a dress 6/6 (live 2026-09-29).
+  return /\b(?:dress|gown|robe|romper|jumpsuit|playsuit)\b/i.test(words)
+    ? words.replace(/\b(?:low|mid|high)[- ]rise\s+/gi, '')
+    : words;
 }
 
 const VACATION_CLOTHES_RE =
@@ -736,6 +742,73 @@ export function buildRapidVacationRecipe(input: {
       : 'Keep her face from the first image.',
     input.poseGuide
       ? `Match her body to the ${input.poseGuide === true ? 'second' : input.poseGuide} image (pose map).`
+      : null,
+    'Photorealistic photograph, natural skin.',
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\.\./g, '.');
+}
+
+/** His clothes for a clothed couple beat — the beat only ever dresses her. */
+function partnerClothes(beat: string): string {
+  if (/\b(?:evening|dinner|rooftop|bar|hotel|candlelit|night\s+out)\b/i.test(beat)) {
+    return 'a dark button-up shirt and trousers';
+  }
+  if (
+    /\b(?:sleepwear|pajamas?|pyjamas?|sleep\s+shirt|oversized\s+shirt|bed|(?<!picnic\s)blanket|covers)\b/i.test(
+      beat
+    )
+  ) {
+    return 'a T-shirt and sleep pants';
+  }
+  return 'a casual shirt and jeans';
+}
+
+/**
+ * Compact clothed couple recipe for Rapid Suggestive with "Duo · companions" on. The long
+ * Suggestive brief says "never invent a man" in five places, so a couple beat had nothing to
+ * stand on; this names both people, both outfits, and whose face is kept.
+ */
+export function buildRapidSuggestiveDuoRecipe(input: {
+  beat: string | null | undefined;
+  setting?: string | null;
+  timeOfDay?: string | null;
+  descriptor?: string | null;
+  poseGuide?: boolean | RecipeImage;
+  outfitImage?: RecipeImage | null;
+  outfit?: string | null;
+  faceOnly?: boolean;
+  outfitFromFirst?: boolean;
+}): string | null {
+  const raw = input.beat?.trim();
+  if (!raw) {
+    return null;
+  }
+  const beat = stripNegatedClauses(raw)
+    .replace(/\bCast\b/g, 'she')
+    .replace(/\s+([,;])/g, '$1')
+    .replace(/([,;—-])(?:\s*[,;—-])+/g, '$1')
+    .replace(/[\s,;—-]+$/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  const hers = input.outfitImage
+    ? `the outfit from the ${input.outfitImage} image`
+    : input.outfitFromFirst
+      ? 'the outfit from the first image'
+      : (outfitWords(input.outfit) ?? suggestiveBeatClothes(beat) ?? 'a flirty dress');
+  return [
+    RAPID_SUGGESTIVE_RECIPE_MARK,
+    'A woman and a man together, both fully clothed, affectionate.',
+    `Moment: ${beat}.`,
+    `She wears ${withArticle(hers)}; he wears ${partnerClothes(beat)}.`,
+    recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),
+    input.descriptor?.trim() ? `The woman: ${input.descriptor.trim()}.` : null,
+    input.faceOnly === false && !input.outfitFromFirst && !input.outfitImage
+      ? 'Keep her face from the first image, not its clothes; the man has his own face.'
+      : 'Keep her face from the first image; the man has his own face.',
+    input.poseGuide
+      ? `Match their two bodies to the ${input.poseGuide === true ? 'second' : input.poseGuide} image (pose map).`
       : null,
     'Photorealistic photograph, natural skin.',
   ]

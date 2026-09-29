@@ -2,6 +2,7 @@ import { intimateBeatIsOffBed } from './intimate-prompt-clarify';
 import {
   buildRapidDuoRecipe,
   buildRapidSoloRecipe,
+  buildRapidSuggestiveDuoRecipe,
   buildRapidSuggestiveRecipe,
   buildRapidVacationRecipe,
 } from './rapid-duo-recipe';
@@ -711,7 +712,10 @@ export const DAY_VACATION_KEEP_POSE_UNLOCK_PREFIX =
   'Edit Image 1. IDENTITY CRITICAL: keep the SAME woman as Image 1 — same face, bone structure, eyes, nose, mouth, and exact hair color and length. Inventing a different beauty face or restyling her hair means the edit FAILED. Keep the worn outfit, garments, colors, fabric, and clothing silhouette from Image 1. Image 1 is a standing try-on plate — discard that standing fashion stance entirely. Do not preserve body pose, standing stance, arm or hand positions, camera angle, or background — aggressively refactor into the beat pose. Keep who she is and what she is wearing from Image 1; replace pose and scene only.';
 
 /** Beat-aware suggestive stance lock — names dance/sway so Keep cannot freeze arms-at-sides. */
-export function buildDaySuggestivePoseLock(beat: string | null | undefined): string {
+export function buildDaySuggestivePoseLock(
+  beat: string | null | undefined,
+  options?: { couple?: boolean }
+): string {
   const hay = beat?.trim() || '';
   let stance =
     'match Image 3 and the beat — lean, sit, stretch, hip-cocked asymmetry, or charged upright as written';
@@ -737,7 +741,7 @@ export function buildDaySuggestivePoseLock(beat: string | null | undefined): str
   }
   return (
     `CLOTHING LOCK: wear the exact Keep/Image 2 outfit (same dress/lingerie/robe cut, colors, print, fabric coverage) — never swap in a different garment or strip her; bottoms or panties stay on; charged pin-up heat only. ` +
-    `POSE LOCK: ${stance}. Image 1 Keep is a standing try-on — discard that standing fashion stance; never freeze as a square-on standing catalog model with arms at her sides; never strip to nude; never remove bottoms; never invent a second adult or muscular man.`
+    `POSE LOCK: ${stance}. Image 1 Keep is a standing try-on — discard that standing fashion stance; never freeze as a square-on standing catalog model with arms at her sides; never strip to nude; never remove bottoms; ${options?.couple ? 'her partner stays fully clothed.' : 'never invent a second adult or muscular man.'}`
   );
 }
 
@@ -1532,6 +1536,46 @@ function suggestiveBeatPresets(slotId: DaySlotId | string): string[] {
   return lateOr(DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS, DAY_SLOT_SUGGESTIVE_BEAT_PRESETS, slotId);
 }
 
+/**
+ * Suggestive with "Duo · companions" on: clothed couple heat — dancing close, a lap, a kiss at a
+ * door, a zip at her back. Every beat names "her partner" (so the pose guide counts two) and
+ * stays clothed; none may match DAY_CLOTHED_MOOD_SEX_LEAK_RE ("from behind", "second adult" …).
+ */
+export const DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS: Record<DayPart, string[]> = {
+  morning: [
+    'slow-dancing barefoot in the kitchen with her partner, both in sleepwear — his hands on her waist, her arms around his neck, foreheads touching',
+    "sitting sideways on her partner's lap on the couch in a silk robe — his arm around her waist, her legs draped over his, about to kiss",
+    'lying face to face on the rumpled bed with her partner, both in sleepwear — his hand on her hip, noses almost touching, morning light',
+    'perched on the kitchen counter in an oversized shirt with her partner standing between her knees — her arms around his neck, mid-kiss, both clothed',
+    'her partner zipping up her dress in the bedroom — he stands close at her back, she tips her head toward him with a slow smile, both dressed',
+  ],
+  afternoon: [
+    'pinned playfully against the hallway wall by her partner, both fully dressed — his hand on the wall beside her head, her fingers in his shirt, about to kiss',
+    "lying on a sunlit couch with her head in her partner's lap, in a short sundress — he strokes her hair, she looks up at him smiling",
+    'kissing her partner in a doorway, up on her toes in a short dress — his hands on her waist, her hand on his jaw',
+    'feeding her partner a strawberry on a picnic blanket in a sundress — she leans in on one hand, he lies propped on an elbow, both laughing',
+    "sitting on her partner's lap in an armchair in a short dress, both fully clothed — her arms around his neck, foreheads together",
+  ],
+  evening: [
+    'slow-dancing close with her partner on a dim rooftop in an evening dress — her cheek on his chest, his hand low on her back',
+    'leaning back against her partner at a hotel window in an evening dress — his arms around her waist, his lips on her neck, her eyes closed',
+    'sitting close with her partner in a candlelit bar booth in a short dress — her legs across his lap, his hand on her knee, leaning in to whisper',
+    'her partner unzipping her evening dress halfway at the bedroom door — she looks back at him over her shoulder, lingerie straps showing',
+    'pulled onto the bed by her partner, both still in evening clothes — she lands laughing on top of him, his hands on her waist',
+  ],
+  night: [
+    "lying together on the couch under a blanket with her head on her partner's chest, both in sleepwear — his hand in her hair, TV glow",
+    'kissing her partner against the apartment door after a night out, in a short dress — his hand on the door by her head, her coat slipping off her shoulders',
+    'her partner carrying her to bed in his arms, in a short dress and bare feet — her arms around his neck, both laughing',
+    'sitting on the bed edge in lingerie under an open robe with her partner kneeling in front of her, both clothed — he kisses her knee, her hand in his hair',
+    'cuddling on top of the covers with her partner, both clothed in sleepwear — she lies on her side, he lies close at her back with his arm over her waist, her hand holding his',
+  ],
+};
+
+function suggestiveDuoBeatPresets(slotId: DaySlotId | string): string[] {
+  return DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS[dayPartOf(slotId)] ?? [];
+}
+
 function intimateBeatPresets(slotId: DaySlotId | string): string[] {
   return lateOr(DAY_LATE_SLOT_INTIMATE_BEAT_PRESETS, DAY_SLOT_INTIMATE_BEAT_PRESETS, slotId);
 }
@@ -1897,7 +1941,9 @@ function beatPoolForDayMood(
   const companion = allowCompanions ? everydayCompanionBeatPresets(slotId) : [];
   if (mood === 'suggestive') {
     // Heat-only — everyday coffee/walk beats flatten suggestive into polite portraits.
-    return suggestiveBeatPresets(slotId);
+    return allowCompanions
+      ? [...suggestiveBeatPresets(slotId), ...suggestiveDuoBeatPresets(slotId)]
+      : suggestiveBeatPresets(slotId);
   }
   if (mood === 'sport') {
     return daySportBeatPresetsForSlot(slotId);
@@ -1977,6 +2023,13 @@ function pickDayBeatPools(
 ): { primary: string[]; fallback: string[] } {
   const heatPool = heatBeatPoolForDayMood(slotId, dayMood, intimateMix);
   const fallback = beatPoolForDayMood(slotId, dayMood, allowCompanions, intimateMix);
+  // Suggestive with companions: about half the slots are a clothed couple.
+  if (dayMood === 'suggestive' && allowCompanions && random() < 0.5) {
+    const duo = suggestiveDuoBeatPresets(slotId);
+    if (duo.length > 0) {
+      return { primary: duo, fallback: heatPool };
+    }
+  }
   // Suggestive + sport + adult Solo/Duo: always pick from heat — everyday baselines flatten the mood.
   if (
     (dayMood === 'suggestive' || dayMood === 'sport' || dayMood === 'vacation') &&
@@ -2265,6 +2318,8 @@ export function daySlotMatchesAdultMix(input: {
   slot: DaySlot;
   dayMood: DayMood | string | null | undefined;
   intimateMix?: DayIntimateMix | string | null;
+  /** Suggestive couple beats only fit while "Duo · companions" is on. */
+  allowCompanions?: boolean;
 }): boolean {
   const dayMood = normalizeDayMood(input.dayMood);
   if (!isDayHeatMood(dayMood)) {
@@ -2276,7 +2331,13 @@ export function daySlotMatchesAdultMix(input: {
   if (!beat) {
     return false;
   }
-  if (DAY_STALE_EVERYDAY_PROP_RE.test(beat) || DAY_STALE_EVERYDAY_PROP_RE.test(setting)) {
+  // The mood's own beats pass: Vacation's "sketching in a travel notebook" is not a stale
+  // everyday notebook prop.
+  const ownBeat = heatBeatPoolForDayMood(input.slot.id, dayMood, mix).includes(beat);
+  if (
+    (!ownBeat && DAY_STALE_EVERYDAY_PROP_RE.test(beat)) ||
+    DAY_STALE_EVERYDAY_PROP_RE.test(setting)
+  ) {
     return false;
   }
   // Suggestive: beat must look like clothed heat, not an everyday walk/coffee still
@@ -2295,12 +2356,21 @@ export function daySlotMatchesAdultMix(input: {
     if (vacationBeats.includes(beat)) {
       return false;
     }
-    if (DAY_SUGGESTIVE_VACATION_LEAK_SETTING_RE.test(setting)) {
+    // Suggestive's own pool has hotel suites; only foreign ones are Vacation leftovers
+    // (~10% of its own rolls were flagged and rerolled the board on every Queue).
+    if (
+      DAY_SUGGESTIVE_VACATION_LEAK_SETTING_RE.test(setting) &&
+      !settingPoolForDayMood(input.slot.id, dayMood, mix).includes(setting)
+    ) {
       return false;
     }
     const heat = heatBeatPoolForDayMood(input.slot.id, dayMood, mix);
     if (heat.includes(beat)) {
       return true;
+    }
+    // Any part of the day: a couple beat typed or moved into another slot still fits.
+    if (Object.values(DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS).flat().includes(beat)) {
+      return input.allowCompanions === true;
     }
     return DAY_SUGGESTIVE_BEAT_CUE_RE.test(beat);
   }
@@ -2434,26 +2504,31 @@ export function ensureDaySlotsMatchMood(
   }
   const mix = normalizeDayIntimateMix(options.intimateMix);
   const normalized = normalizeDaySlots(slots);
-  const stale = normalized.some(
+  const stale = normalized.map(
     slot =>
       !daySlotMatchesAdultMix({
         slot,
         dayMood,
         intimateMix: mix,
+        allowCompanions: options.allowCompanions === true,
       })
   );
-  if (!stale) {
+  if (!stale.includes(true)) {
     return { slots: normalized, changed: false };
   }
-  return diversifyDaySlotScenes(normalized, {
-    forceLocations: true,
-    forceBeats: true,
+  // Reroll only the slots that no longer fit: one stale slot used to reroll the whole board,
+  // throwing away every beat and setting the player had typed into the others.
+  const cleared = normalized.map((slot, index) =>
+    stale[index] ? { ...slot, location: undefined, sceneHints: undefined } : slot
+  );
+  const rerolled = diversifyDaySlotScenes(cleared, {
     fillBeats: true,
     allowCompanions: options.allowCompanions === true,
     dayMood,
     intimateMix: mix,
     random: options.random,
   });
+  return { slots: rerolled.slots, changed: true };
 }
 
 /**
@@ -2812,6 +2887,8 @@ export function buildDaySlotPrompt(input: {
   const duoForced = isDayAdultMood(dayMood) && intimateMix === 'duo';
   const partnersAllowed =
     duoForced || allowCompanions || (isDayAdultMood(dayMood) && poseHeadcount >= 2);
+  /** Suggestive couple beat with "Duo · companions" on — the solo-only locks stand down. */
+  const suggestiveCouple = dayMood === 'suggestive' && allowCompanions && poseHeadcount === 2;
   const soloSubject =
     dayMood === 'suggestive'
       ? !allowCompanions
@@ -2849,7 +2926,11 @@ export function buildDaySlotPrompt(input: {
             : 'camera: intimate medium / three-quarter on the beat body pose — prioritize that stance over environment; bare sheets in the foreground; eyes closed or half-lidded looking down at her hands — never a soft fashion pin-up staring at the lens; never raised hands or fingers pointing up; nothing held — fingers only; never beach, sand, ocean, shoreline, pier, or night-beach city lights — indoor rumpled sheets only'
           : 'camera: intimate medium / three-quarter on the beat body pose and sex/action — prioritize stance over environment; empty lap and bare sheets in the foreground; eyes half-lidded or looking at her own body/hands — never a soft fashion pin-up staring at the lens with hands flat on the mattress'
         : dayMood === 'suggestive'
-          ? 'camera: charged medium / three-quarter on the beat body pose — match Image 3 (dance with both arms raised and one knee lifted, zip-twist look-back with hands on her own zipper, lean, sit, stretch, or recline as written); lingerie or dress stays on (top and bottom); one woman alone; never invent a man; never a stiff square-on standing catalog pose with arms at her sides; never a nude or bottomless framing; never a distant establishing landscape'
+          ? 'camera: charged medium / three-quarter on the beat body pose — match Image 3 (dance with both arms raised and one knee lifted, zip-twist look-back with hands on her own zipper, lean, sit, stretch, or recline as written); lingerie or dress stays on (top and bottom); ' +
+            (suggestiveCouple
+              ? 'the woman and her partner both in frame, both fully clothed; '
+              : 'one woman alone; never invent a man; ') +
+            'never a stiff square-on standing catalog pose with arms at her sides; never a nude or bottomless framing; never a distant establishing landscape'
           : dayMood === 'sport'
             ? 'camera: athletic action medium / three-quarter on the sport pose — prioritize mid-play stance and limbs over venue; never a soft fashion pin-up or distant empty stadium establishing shot'
             : dayMood === 'vacation'
@@ -2945,10 +3026,16 @@ export function buildDaySlotPrompt(input: {
             ? 'MOOD: intimate solo sex/self-touch still — follow the beat body pose and hand placement exactly; Cast alone mid-act with readable arousal (open thighs, arched back, head tipped, hands on her own vulva/breasts as the beat says); never invent a second adult, partner torso, or thigh under her; never a soft floral-dress pin-up staring politely at the lens; empty rumpled sheets only — SETTING is backdrop only.'
             : 'MOOD: intimate adult still — follow the beat sex/stance exactly; Cast face on the lead only; never a soft fashion pin-up; bare sheets and skin only in the foreground.'
         : dayMood === 'suggestive'
-          ? 'MOOD: suggestive heat — clothed flirt only: wear the Keep/Image 2 outfit exactly (lingerie/robe/dress as shown — never swap it or strip her); cleavage/straps/unfinished unzip when written; underwear or bottoms stay on; follow the beat body stance exactly (dancing with both arms raised and one knee lifted, twisting to zip a dress looking over a shoulder, leaning, seated, stretching, hip cocked — never a stiff standing fashion plate staring at the lens with arms at her sides); never nude, never bottomless, never invent a man or second adult; never genitals or sex contact; never a polite everyday portrait or grocery/walk still.'
+          ? 'MOOD: suggestive heat — clothed flirt only: wear the Keep/Image 2 outfit exactly (lingerie/robe/dress as shown — never swap it or strip her); cleavage/straps/unfinished unzip when written; underwear or bottoms stay on; follow the beat body stance exactly (dancing with both arms raised and one knee lifted, twisting to zip a dress looking over a shoulder, leaning, seated, stretching, hip cocked — never a stiff standing fashion plate staring at the lens with arms at her sides); never nude, never bottomless, ' +
+            (suggestiveCouple
+              ? 'her partner stays fully clothed too; '
+              : 'never invent a man or second adult; ') +
+            'never genitals or sex contact; never a polite everyday portrait or grocery/walk still.'
           : (vacationLocks?.moodLine ?? sportLocks?.moodLine ?? null);
   const suggestiveClothingLock =
-    dayMood === 'suggestive' ? buildDaySuggestivePoseLock(hints) : null;
+    dayMood === 'suggestive'
+      ? buildDaySuggestivePoseLock(hints, { couple: suggestiveCouple })
+      : null;
   const adultBeatPoseLock = isDayAdultMood(dayMood)
     ? buildDayAdultBeatPoseLock(hints, soloSubject ? 'solo' : 'duo')
     : null;
@@ -3061,14 +3148,20 @@ export function buildDaySlotPrompt(input: {
     // sill and window beats onto the bed. Say the pose, the clothes and the room once.
     // Vacation the same (live 2026-09-29): the kit rode in as a bare id with no packshot, so
     // swimsuits went to cafés and sundresses into pools, and the shared dance tail lifted arms.
+    // With "Duo · companions" on, a solo beat keeps the solo recipe (headcount 1) and a
+    // Suggestive couple beat gets the clothed couple recipe.
     if (
       rapidAio &&
       !omitGarment &&
-      soloSubject &&
-      (dayMood === 'suggestive' || dayMood === 'vacation')
+      (dayMood === 'suggestive' || dayMood === 'vacation') &&
+      (poseHeadcount < 2 || suggestiveCouple)
     ) {
       const recipe = (
-        dayMood === 'vacation' ? buildRapidVacationRecipe : buildRapidSuggestiveRecipe
+        suggestiveCouple
+          ? buildRapidSuggestiveDuoRecipe
+          : dayMood === 'vacation'
+            ? buildRapidVacationRecipe
+            : buildRapidSuggestiveRecipe
       )({
         beat: hints,
         setting,
