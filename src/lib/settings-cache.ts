@@ -619,6 +619,9 @@ export type SharedToolSettings = {
    * gpu-settings-match). Set once per card, so a later manual choice is never re-matched.
    */
   gpuMatchAutoGb?: number;
+  /** Engine model picker: last models picked (most recent first) and starred ones. */
+  modelRecents?: string[];
+  modelStars?: string[];
   /** Set once the saved 2512 Lightning UNET moved off the old bf16 default (see model-checkpoint-map). */
   qwen2512LightningFp8Migrated?: boolean;
   /** When true, call ComfyUI's `/free` (unload + free VRAM) after a Max-quality gallery job completes. */
