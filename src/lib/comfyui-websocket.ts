@@ -53,10 +53,32 @@ type SharedLiveSession = {
   bufferedPreviewUrl: string | null;
   listeners: Set<(progress: ComfyUiWebSocketProgress) => void>;
   errorListeners: Set<(message: string) => void>;
+  /** True once its /api/comfyui/live fetch has started. */
+  streaming: boolean;
 };
 
 /** One browser→app live stream per clientId (server shares the Comfy WS). */
 const sharedSessions = new Map<string, SharedLiveSession>();
+
+/**
+ * Browsers allow ~6 HTTP/1.1 connections per origin and each live stream holds
+ * one open, so a batch queue (Day, Story) that opens a stream per job starves
+ * the queue POSTs and history polls behind it. Cap the streams; extra sessions
+ * wait for a free one (gallery polling still completes their jobs meanwhile).
+ */
+export const MAX_LIVE_STREAMS = 3;
+let openStreams = 0;
+const waitingSessions: SharedLiveSession[] = [];
+
+function releaseStream(): void {
+  openStreams = Math.max(0, openStreams - 1);
+  while (openStreams < MAX_LIVE_STREAMS && waitingSessions.length > 0) {
+    const next = waitingSessions.shift()!;
+    if (sharedSessions.get(next.clientId) === next && !next.abort.signal.aborted) {
+      startLiveStream(next);
+    }
+  }
+}
 
 export function createComfyUiClientId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -235,10 +257,27 @@ function ensureSharedLiveSession(input: {
     bufferedPreviewUrl: null,
     listeners: new Set(),
     errorListeners: new Set(),
+    streaming: false,
   };
 
   sharedSessions.set(clientId, shared);
 
+  if (openStreams < MAX_LIVE_STREAMS) {
+    startLiveStream(shared);
+  } else {
+    waitingSessions.push(shared);
+    // Don't hold queueing on a stream that isn't open yet.
+    shared.resolveReady();
+  }
+
+  return shared;
+}
+
+function startLiveStream(shared: SharedLiveSession): void {
+  const clientId = shared.clientId;
+  shared.streaming = true;
+  openStreams += 1;
+  const abort = shared.abort;
   const params = new URLSearchParams({ clientId });
   if (shared.comfyUrlHint) {
     params.set('comfyUrl', shared.comfyUrlHint);
@@ -280,9 +319,8 @@ function ensureSharedLiveSession(input: {
       if (sharedSessions.get(clientId) === shared) {
         sharedSessions.delete(clientId);
       }
+      releaseStream();
     });
-
-  return shared;
 }
 
 /**
@@ -347,6 +385,10 @@ export function subscribeComfyUiWebSocket(input: {
         }
         sharedSessions.delete(clientId);
         shared.abort.abort();
+        if (!shared.streaming) {
+          const index = waitingSessions.indexOf(shared);
+          if (index >= 0) waitingSessions.splice(index, 1);
+        }
       }
     },
   };

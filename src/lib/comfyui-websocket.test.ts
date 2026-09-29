@@ -490,6 +490,42 @@ describe("comfyui-websocket", async () => {
     });
   });
 
+  describe("live stream cap", () => {
+    it("holds at most MAX_LIVE_STREAMS streams open and starts a waiting one when a slot frees", async () => {
+      const { MAX_LIVE_STREAMS } = await import("./comfyui-websocket");
+      const win = installWindowStub();
+      // Streams stay open until aborted, like the real bridge.
+      const stub = installFetchStub(
+        (_url, init) =>
+          new Promise<Response>((_resolve, reject) => {
+            init.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+          })
+      );
+      const subs = Array.from({ length: MAX_LIVE_STREAMS + 2 }, (_, index) =>
+        subscribeComfyUiWebSocket({ clientId: `cap-${index}`, onProgress: () => {} })
+      );
+      assert.equal(stub.calls.length, MAX_LIVE_STREAMS);
+      // Waiting sessions never block queueing.
+      await subs[MAX_LIVE_STREAMS].ready;
+
+      subs[0].close();
+      await flushMicrotasks();
+      assert.equal(stub.calls.length, MAX_LIVE_STREAMS + 1);
+      assert.equal(stub.calls.at(-1)?.url, `/api/comfyui/live?clientId=cap-${MAX_LIVE_STREAMS}`);
+
+      // A waiting session closed before its turn is dropped, not started.
+      subs[MAX_LIVE_STREAMS + 1].close();
+      subs[1].close();
+      await flushMicrotasks();
+      assert.equal(stub.calls.length, MAX_LIVE_STREAMS + 1);
+
+      for (const sub of subs) sub.close();
+      await flushMicrotasks();
+      stub.restore();
+      win.restore();
+    });
+  });
+
   describe("openComfyPreviewSocketBeforeQueue", () => {
     it("resolves once the underlying bridge becomes ready", async () => {
       const win = installWindowStub({ setTimeout: mock.fn(() => 0) });
