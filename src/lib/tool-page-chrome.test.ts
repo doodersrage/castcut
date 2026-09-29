@@ -11,8 +11,9 @@ import {
 
 describe('tool-page-chrome', () => {
   it('exposes shared sidebar defaults', () => {
-    assert.equal(TOOL_SIDEBAR_TITLE, 'Settings');
-    assert.match(TOOL_SIDEBAR_DESCRIPTION, /Advanced/);
+    // One name for the chip, the docked column and the sheet.
+    assert.equal(TOOL_SIDEBAR_TITLE, 'Engine');
+    assert.match(TOOL_SIDEBAR_DESCRIPTION, /Model, quality, and LoRAs/);
   });
 
   it('picks simple descriptions in simple workspace', () => {

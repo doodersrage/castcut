@@ -52,6 +52,30 @@ export default function SharedPrimaryControls({
   return (
     <>
       {!roleplayVariant ? (
+        <div className="space-y-2">
+          <FieldLabel hint="How long the render takes and how much polish it gets.">
+            Quality
+          </FieldLabel>
+          <div className="flex flex-wrap gap-2">
+            {QUEUE_QUALITY_PROFILE_OPTIONS.filter(option => option.id !== 'followSettings').map(
+              option => (
+                <ChipButton
+                  key={option.id}
+                  active={queueQualityProfile === option.id}
+                  onClick={() => onQueueQualityProfileChange(option.id)}
+                >
+                  {option.label}
+                </ChipButton>
+              )
+            )}
+          </div>
+          {systemPathActive && systemQualityHint ? (
+            <p className="text-xs leading-relaxed text-[var(--text-muted)]">{systemQualityHint}</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!roleplayVariant ? (
         <div className="space-y-3">
           <FieldLabel
             hint={
@@ -78,30 +102,6 @@ export default function SharedPrimaryControls({
               </ChipButton>
             ))}
           </div>
-        </div>
-      ) : null}
-
-      {!roleplayVariant ? (
-        <div className="space-y-2">
-          <FieldLabel hint="How long the render takes and how much polish it gets.">
-            Quality
-          </FieldLabel>
-          <div className="flex flex-wrap gap-2">
-            {QUEUE_QUALITY_PROFILE_OPTIONS.filter(option => option.id !== 'followSettings').map(
-              option => (
-                <ChipButton
-                  key={option.id}
-                  active={queueQualityProfile === option.id}
-                  onClick={() => onQueueQualityProfileChange(option.id)}
-                >
-                  {option.label}
-                </ChipButton>
-              )
-            )}
-          </div>
-          {systemPathActive && systemQualityHint ? (
-            <p className="text-xs leading-relaxed text-[var(--text-muted)]">{systemQualityHint}</p>
-          ) : null}
         </div>
       ) : null}
 

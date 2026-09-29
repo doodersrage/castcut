@@ -96,9 +96,7 @@ export default function SharedModelSurface({
           ? `${engineDisplayName(shared.inferenceEngine)} model`
           : shared.inferenceEngine === 'diffusers'
             ? 'Diffusers model (Qwen / Flux)'
-            : systemPathActive
-              ? 'Model'
-              : 'Target model'}
+            : 'Model'}
       </FieldLabel>
       {cloudEngine ? (
         <div className="space-y-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-base)]/40 px-3 py-2.5">

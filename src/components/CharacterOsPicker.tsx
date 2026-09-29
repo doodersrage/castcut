@@ -236,23 +236,21 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
           </select>
         </div>
       ) : null}
-      {active ? (
-        // Saving looks is occasional — keep it one click away instead of three controls up front.
-        <details className="group" data-testid="cast-picker-save-look">
-          <summary className="type-caption cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-            Save or rename this look…
-          </summary>
-          <div className="mt-2">{saveRow}</div>
-        </details>
-      ) : (
-        saveRow
-      )}
-      {!activeId ? (
-        <p className="type-caption text-[var(--text-muted)]">
-          One record for face lock, wardrobe, looks, and LoRA. Generate, Story, Video, and gallery
-          all stamp the active character.
-        </p>
-      ) : null}
+      {/* Saving is occasional — keep it one click away instead of three controls up front. */}
+      <details className="group" data-testid="cast-picker-save-look">
+        <summary className="type-caption cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+          {active ? 'Save or rename this look…' : 'Save these settings as a character…'}
+        </summary>
+        <div className="mt-2 space-y-2">
+          {saveRow}
+          {!activeId ? (
+            <p className="type-caption text-[var(--text-muted)]">
+              One record for face lock, wardrobe, looks, and LoRA. Generate, Story, Video, and
+              gallery all stamp the active character.
+            </p>
+          ) : null}
+        </div>
+      </details>
     </div>
   );
 }
