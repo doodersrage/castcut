@@ -12,6 +12,7 @@ import {
 import { queueMutatedGalleryJobs } from './gallery-mutations';
 import { queueSeedExperiment } from './seed-experiment-queue';
 import { loadComfyUiSettings } from './comfyui-settings';
+import { recordAutoImproveJobs } from './auto-improve-log';
 import { runLowRatingMutation } from './rating-prompt-mutations';
 import type { ComfyGalleryEntry } from './comfyui-gallery';
 import { isQwenLightningModel } from './model-sampling-patch';
@@ -30,6 +31,20 @@ type ImproveResult = {
 };
 
 async function improveHighRatingEntry(
+  entry: ComfyGalleryEntry,
+  qualityProfile: 'final' | 'max',
+  options?: {
+    refineAfterComplete?: 'final' | 'max';
+  }
+): Promise<ImproveResult> {
+  const result = await improveHighRatingEntryInner(entry, qualityProfile, options);
+  if (result.ok && !result.skipped) {
+    recordAutoImproveJobs(qualityProfile === 'max' ? 'Max re-queues' : 'Final re-queues', 1);
+  }
+  return result;
+}
+
+async function improveHighRatingEntryInner(
   entry: ComfyGalleryEntry,
   qualityProfile: 'final' | 'max',
   options?: {
@@ -117,6 +132,7 @@ async function runFallbackHighRatingImprove(
       kinds: ['variation', 'location', 'wardrobe'],
       count: 3,
     });
+    recordAutoImproveJobs('mutations', queued);
     const prefix = priorNote ? `${priorNote}; ` : 'Auto-improve: ';
     const wardrobe = jobs.find(job => job.kind === 'wardrobe' && job.summary)?.summary;
     const wardrobeNote = wardrobe ? ` · wardrobe ${wardrobe.split(',')[0]?.trim()}` : '';
@@ -132,6 +148,7 @@ async function runFallbackHighRatingImprove(
       hints: entry.prompt.slice(0, 200),
       count: 4,
     });
+    recordAutoImproveJobs('seed experiments', queued);
     const prefix = priorNote ? `${priorNote}; ` : 'Auto-improve: ';
     const heldNote = held > 0 ? ` · held ${held} Max` : '';
     return `${prefix}queued ${queued} seed experiments for ${rating}★ output${heldNote}.`;
@@ -150,6 +167,7 @@ export async function runAutoImproveOnRating(
 
   if (rating <= 2) {
     if (loadComfyUiSettings().autoRefineOnLowRating !== false) {
+      // Opens Refine with a corrective intent — nothing is queued, so nothing to log.
       return runLowRatingMutation(entry, rating);
     }
     return null;
@@ -238,6 +256,7 @@ export async function runAutoImproveOnFavorite(
     hints: entry.prompt.slice(0, 200),
     count: 3,
   });
+  recordAutoImproveJobs('seed experiments', queued);
   const heldNote = held > 0 ? ` · held ${held} Max` : '';
   return `Auto-improve: queued ${queued} seed experiments for favorite${heldNote}.`;
 }

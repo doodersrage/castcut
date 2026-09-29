@@ -1121,13 +1121,19 @@ describe("comfyui workflow files", () => {
       ...DEFAULT_COMFYUI_SETTINGS,
       useServerDefaults: true,
     });
-    // useServerDefaults still ships queue params / LoRA tokens for injection,
-    // but not client workflow JSON or API URL overrides.
-    assert.ok(runtime);
+    // No client workflow JSON or API URL, and no global size: each model uses its own preset
+    // (the old 1328 default forced Klein / SDXL off 1024 and Wan video off 640).
     assert.equal(runtime?.workflowJson, undefined);
     assert.equal(runtime?.apiUrl, undefined);
-    assert.equal(runtime?.queueParams?.width, "1328");
-    assert.equal(runtime?.queueParams?.height, "1328");
+    assert.equal(runtime?.queueParams?.width ?? "", "");
+    assert.equal(runtime?.queueParams?.height ?? "", "");
+    // A size typed on purpose still ships in server-default mode.
+    const typed = comfyUiSettingsToRuntime({
+      ...DEFAULT_COMFYUI_SETTINGS,
+      useServerDefaults: true,
+      queueParams: { width: "896", height: "1152" },
+    });
+    assert.equal(typed?.queueParams?.width, "896");
   });
 
   it("lists server workflow paths from env", () => {

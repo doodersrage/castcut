@@ -19,9 +19,8 @@ export function SettingsComfyConnectionCustomTokensSection({
   removeCustomToken,
   handleComfyUiSectionJump,
 }: Props) {
-  if (settings.useServerDefaults) {
-    return null;
-  }
+  // Custom tokens apply in server-default mode too (see comfyui-settings runtime), so they stay
+  // editable there.
 
   return (
     <CollapsibleSection

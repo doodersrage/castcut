@@ -130,9 +130,10 @@ export const DEFAULT_COMFYUI_SETTINGS: ComfyUiSettings = {
   positiveToken: DEFAULT_POSITIVE_TOKEN,
   negativeToken: DEFAULT_NEGATIVE_TOKEN,
   workflowJson: '',
+  // Blank: each model's own size and sampler preset. A global value overrides every model.
   queueParams: {
-    width: '1328',
-    height: '1328',
+    width: '',
+    height: '',
     cfg: '',
     steps: '',
   },
@@ -334,6 +335,45 @@ function migrateLegacySettings(
   }
 }
 
+/**
+ * Global queue params beat every model's own sampler / size preset where they apply. Older
+ * builds saved the old hard-coded placeholders (1024 × 1024, CFG 7, 20 steps) as real values, so
+ * a CFG-1 Rapid queue on the non-system path would run at CFG 7 / 20 steps, and shipped a
+ * 1328 × 1328 default. Drop exactly those sets; anything else was typed on purpose and is kept.
+ */
+export function dropLegacyDefaultQueueParams(
+  params: ComfyUiSettings['queueParams']
+): ComfyUiSettings['queueParams'] {
+  if (!params) return params;
+  const text = (value: unknown) => (value == null ? '' : String(value).trim());
+  const set = [text(params.width), text(params.height), text(params.cfg), text(params.steps)].join(
+    '|'
+  );
+  // Old placeholders saved as values (1024 · CFG 7 · 20 steps) and the old shipped default
+  // (1328 × 1328, which forced Wan video from 640 and Klein / SDXL from 1024).
+  const legacy = set === '1024|1024|7|20' || set === '1328|1328||';
+  if (!legacy) return params;
+  const rest = { ...params } as Record<string, unknown>;
+  for (const key of ['width', 'height', 'cfg', 'steps']) delete rest[key];
+  return Object.values(rest).some(value => text(value) !== '')
+    ? (rest as ComfyUiSettings['queueParams'])
+    : undefined;
+}
+
+/** Global queue params that override every model's own preset (non-empty ones). */
+export function globalQueueParamOverrides(params: ComfyUiSettings['queueParams']): string[] {
+  const labels: Record<string, string> = {
+    width: 'width',
+    height: 'height',
+    cfg: 'CFG',
+    steps: 'steps',
+    seed: 'seed',
+  };
+  return Object.entries(params ?? {})
+    .filter(([key, value]) => key in labels && value != null && String(value).trim() !== '')
+    .map(([key, value]) => `${labels[key]} ${String(value).trim()}`);
+}
+
 export function loadComfyUiSettings(): ComfyUiSettings {
   if (typeof window === 'undefined') {
     return DEFAULT_COMFYUI_SETTINGS;
@@ -348,6 +388,7 @@ export function loadComfyUiSettings(): ComfyUiSettings {
       });
       return {
         ...migrated,
+        queueParams: dropLegacyDefaultQueueParams(migrated.queueParams),
         loraLibrary: normalizeLoraLibrary(migrated.loraLibrary),
       };
     }

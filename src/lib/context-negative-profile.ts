@@ -152,9 +152,11 @@ export function resolveContextNegativeProfile(
     }
   }
 
+  // The shipped default selection is the SD profile; on a Qwen model that is not a choice, it is
+  // the default — use the Qwen one. A profile the user picked on purpose still wins.
   if (qwenModel) {
     const qwenGeneral = list.find(entry => entry.id === 'qwen-general');
-    if (qwenGeneral && !selectedId?.trim()) {
+    if (qwenGeneral && (!selectedId?.trim() || selectedId.trim() === 'general-sd')) {
       return qwenGeneral;
     }
   }

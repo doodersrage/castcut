@@ -8,6 +8,20 @@ import { loadComfyUiSettings } from './comfyui-settings';
 import { applyRenderRealismToNegative, type RenderRealismMode } from './render-realism';
 import { loadRenderRealismMode } from './render-realism-settings';
 import type { AthleticSport } from './athletic-sport-profiles';
+import { resolveModelSamplerParams, type ModelSamplerPresetTier } from './model-sampler-defaults';
+
+const SAMPLER_TIERS: ModelSamplerPresetTier[] = ['base', 'optimized', 'maxCompatible', 'max'];
+
+/**
+ * CFG 1 skips the unconditional pass in ComfyUI, so a negative prompt does nothing on models that
+ * run at CFG ≤ 1 on every tier (Rapid AIO, Lightning, Wan Rapid) — don't build one for them.
+ */
+export function modelIgnoresNegativeAtCfg(model: ComfyImageModel | string): boolean {
+  return SAMPLER_TIERS.every(tier => {
+    const cfg = Number(resolveModelSamplerParams(model, tier).cfg);
+    return Number.isFinite(cfg) && cfg <= 1;
+  });
+}
 
 export type ResolveQueueNegativeInput = {
   model: ComfyImageModel | string;
@@ -33,7 +47,7 @@ export async function resolveQueueNegativePromptRaw(
     return undefined;
   }
 
-  if (!modelUsesNegativePrompt(input.model)) {
+  if (!modelUsesNegativePrompt(input.model) || modelIgnoresNegativeAtCfg(input.model)) {
     return undefined;
   }
 

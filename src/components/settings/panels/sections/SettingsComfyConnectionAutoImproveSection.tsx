@@ -3,6 +3,23 @@
 import { ToolSection, CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
 import type { SettingsComfyConnectionPanelProps } from '@/components/settings/panels/settings-comfy-connection-types';
+import { useEffect, useState } from 'react';
+import { loadAutoImproveLog, summarizeAutoImproveLog } from '@/lib/auto-improve-log';
+import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import type { ComfyUiSettings } from '@/lib/comfyui-settings';
+
+/** The rating automations that are on, in a few words each. */
+export function activeAutoImproveActions(settings: ComfyUiSettings): string[] {
+  return [
+    settings.autoRequeueFinalOnHighRating !== false ? 'Final on 4–5★' : null,
+    settings.autoRequeueMaxOnFiveStar !== false ? 'Max on 5★' : null,
+    settings.autoImg2imgRefineOnFiveStar === true ? 'refine after 5★ upscale' : null,
+    settings.autoMutateOnHighRating === true ? 'mutations on 4–5★' : null,
+    settings.autoSeedExperimentOnHighRating === true ? 'seed experiments on 4–5★' : null,
+    settings.autoSeedExperimentOnFavorite === true ? 'seed experiments on ♥' : null,
+    settings.autoRefineOnLowRating !== false ? 'open Refine on 1–2★' : null,
+  ].filter((entry): entry is string => Boolean(entry));
+}
 
 type Props = Pick<SettingsComfyConnectionPanelProps, 'settings' | 'updateSettings' | 'setStatus'>;
 
@@ -71,8 +88,32 @@ export function SettingsComfyConnectionAutoImproveSection({
     settings.autoSeedExperimentOnHighRating !== true &&
     settings.autoRefineOnLowRating !== false;
 
+  // Read after mount — the log lives in browser storage.
+  const [recent, setRecent] = useState<ReturnType<typeof summarizeAutoImproveLog> | null>(null);
+  useEffect(() => {
+    scheduleAfterCommit(() => setRecent(summarizeAutoImproveLog(loadAutoImproveLog())));
+  }, []);
+  const active = activeAutoImproveActions(settings);
+  const preset = isOff ? 'Off' : isCalm ? 'Calm' : isAggressive ? 'Aggressive' : 'Custom';
+
   return (
     <ToolSection id="settings-comfyui-auto-improve" title="Auto-improve on gallery ratings">
+      <p
+        className="mb-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-3 py-2 text-xs text-[var(--text-secondary)]"
+        data-testid="auto-improve-summary"
+      >
+        <span className="font-medium text-[var(--text-primary)]">{preset}</span>
+        {active.length
+          ? ` · ${active.length} on: ${active.join(', ')}`
+          : ' · nothing runs on ratings'}
+        {recent
+          ? recent.total > 0
+            ? ` · queued ${recent.total} job${recent.total === 1 ? '' : 's'} in the last 7 days (${recent.byKind
+                .map(([kind, count]) => `${count} ${kind}`)
+                .join(', ')})`
+            : ' · nothing queued by these in the last 7 days'
+          : ''}
+      </p>
       <p className="mb-3 text-sm text-[var(--text-secondary)]">
         Rating-driven queue actions. Prefer Calm if you do not want surprise Max jobs.
       </p>

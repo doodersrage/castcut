@@ -4,7 +4,8 @@ import { useEffect, useRef } from 'react';
 import SettingsConnectionFirstRun from '@/components/settings/SettingsConnectionFirstRun';
 import ServiceDiscoveryCard from '@/components/settings/ServiceDiscoveryCard';
 import QueueExportSettingsPanel from '@/components/settings/QueueExportSettingsPanel';
-import { ToolSection } from '@/components/ui/ToolPageShell';
+import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
+import { SettingsComfyPlaceholderTokens } from '@/components/settings/panels/sections/SettingsComfyPlaceholderTokens';
 import { SettingsComfyConnectionDesktopNotice } from '@/components/settings/panels/sections/SettingsComfyConnectionDesktopNotice';
 import { SettingsComfyConnectionBasicsSection } from '@/components/settings/panels/sections/SettingsComfyConnectionBasicsSection';
 import { SettingsComfyConnectionCustomTokensSection } from '@/components/settings/panels/sections/SettingsComfyConnectionCustomTokensSection';
@@ -54,6 +55,7 @@ export default function SettingsComfyConnectionPanel(props: SettingsComfyConnect
   } = props;
 
   const autoHealStarted = useRef(false);
+  const manualInjectionFolded = sharedSettings.useSystemWorkflows === true;
   useEffect(() => {
     if (!handleHealAndReady || autoHealStarted.current || typeof window === 'undefined') {
       return;
@@ -103,34 +105,56 @@ export default function SettingsComfyConnectionPanel(props: SettingsComfyConnect
         health={health}
         refreshHealth={refreshHealth}
         updateQueueParam={updateQueueParam}
+        showPlaceholderTokens={!manualInjectionFolded}
       />
 
-      {!settings.useServerDefaults ? (
-        <>
-          <SettingsComfyConnectionCustomTokensSection
-            settings={settings}
-            addCustomToken={addCustomToken}
-            updateCustomToken={updateCustomToken}
-            removeCustomToken={removeCustomToken}
-            handleComfyUiSectionJump={handleComfyUiSectionJump}
-          />
-          <SettingsComfyConnectionFallbackWorkflowSection
-            settings={settings}
-            updateSettings={updateSettings}
-            sharedSettings={sharedSettings}
-            workflowError={workflowError}
-            setWorkflowError={setWorkflowError}
-            workflowValidation={workflowValidation}
-            previewPrompt={previewPrompt}
-            setPreviewPrompt={setPreviewPrompt}
-            previewLoading={previewLoading}
-            previewError={previewError}
-            workflowPreview={workflowPreview}
-            handlePreviewWorkflow={handlePreviewWorkflow}
-            handleImportWorkflow={handleImportWorkflow}
-          />
-        </>
-      ) : null}
+      {(() => {
+        const manualInjection = (
+          <>
+            {manualInjectionFolded && !settings.useServerDefaults ? (
+              <SettingsComfyPlaceholderTokens settings={settings} updateSettings={updateSettings} />
+            ) : null}
+            <SettingsComfyConnectionCustomTokensSection
+              settings={settings}
+              addCustomToken={addCustomToken}
+              updateCustomToken={updateCustomToken}
+              removeCustomToken={removeCustomToken}
+              handleComfyUiSectionJump={handleComfyUiSectionJump}
+            />
+            {!settings.useServerDefaults ? (
+              <SettingsComfyConnectionFallbackWorkflowSection
+                settings={settings}
+                updateSettings={updateSettings}
+                sharedSettings={sharedSettings}
+                workflowError={workflowError}
+                setWorkflowError={setWorkflowError}
+                workflowValidation={workflowValidation}
+                previewPrompt={previewPrompt}
+                setPreviewPrompt={setPreviewPrompt}
+                previewLoading={previewLoading}
+                previewError={previewError}
+                workflowPreview={workflowPreview}
+                handlePreviewWorkflow={handlePreviewWorkflow}
+                handleImportWorkflow={handleImportWorkflow}
+              />
+            ) : null}
+          </>
+        );
+        // System workflows build every queue themselves: placeholder tokens, custom tokens and the
+        // fallback workflow only matter for hand-made workflows — keep them out of the way.
+        return manualInjectionFolded ? (
+          <CollapsibleSection
+            title="Manual workflow injection"
+            summary="Placeholder tokens, custom tokens and a fallback workflow — only for hand-made workflows; system workflows don't need them."
+            defaultOpen={false}
+            persistKey="settings-comfy-manual-injection"
+          >
+            {manualInjection}
+          </CollapsibleSection>
+        ) : (
+          manualInjection
+        );
+      })()}
 
       {showAdvanced ? (
         <>
