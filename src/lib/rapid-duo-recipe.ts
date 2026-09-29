@@ -628,7 +628,9 @@ function vacationPlacement(beat: string): string | null {
     case 'MID-STRIDE':
       return 'She walks mid-step, one foot ahead of the other, arms swinging, full body in frame.';
     case 'CLIMBING':
-      return 'She climbs steps, one foot on the next step up, one hand on the rail or wall.';
+      // "one foot on the next step" stood her at the foot of the stairs; side view + a high
+      // knee got the step up 3/3 (live 2026-09-29).
+      return 'She walks up the stairs mid-step, seen from the side: one foot lifted onto the next step, knee bent high, body leaning forward, one hand on the rail.';
     case 'WAVING':
       return 'She stands waving, one arm raised high overhead, weight on one hip.';
     case 'DANCING':

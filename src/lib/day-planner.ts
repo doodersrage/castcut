@@ -1561,7 +1561,8 @@ export const DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS: Record<DayPart, string[]> = {
     'leaning back against her partner at a hotel window in an evening dress — his arms around her waist, his lips on her neck, her eyes closed',
     'sitting close with her partner in a candlelit bar booth in a short dress — her legs across his lap, his hand on her knee, leaning in to whisper',
     'her partner unzipping her evening dress halfway at the bedroom door — she looks back at him over her shoulder, lingerie straps showing',
-    'pulled onto the bed by her partner, both still in evening clothes — she lands laughing on top of him, his hands on her waist',
+    // "pulled onto the bed … lands on top of him" rendered both sitting upright (3/3).
+    'lying on top of her partner on the bed, both still in evening clothes — he lies on his back across the mattress, she lies stretched out on his chest laughing, his hands on her waist',
   ],
   night: [
     "lying together on the couch under a blanket with her head on her partner's chest, both in sleepwear — his hand in her hair, TV glow",
@@ -2348,16 +2349,13 @@ export function daySlotMatchesAdultMix(input: {
     }
     // Leftover Vacation boards (pier/scooter/hotel terrace) survive on shared pose
     // words like perched/reclining — force-reroll catalog travel slots.
-    const vacationSettings = dayVacationSettingPresetsForSlot(input.slot.id);
-    if (vacationSettings.includes(setting)) {
+    // Any slot's Vacation board is a leftover, not just this slot's.
+    const vacation = allDayVacationPresets();
+    if (vacation.settings.has(setting) || vacation.beats.has(beat)) {
       return false;
     }
-    const vacationBeats = dayVacationBeatPresetsForSlot(input.slot.id);
-    if (vacationBeats.includes(beat)) {
-      return false;
-    }
-    // Suggestive's own pool has hotel suites; only foreign ones are Vacation leftovers
-    // (~10% of its own rolls were flagged and rerolled the board on every Queue).
+    // Loose venue words for leftovers typed or edited away from the exact presets. Hotel
+    // suites and hallways are Suggestive rooms too, so they are not in the list.
     if (
       DAY_SUGGESTIVE_VACATION_LEAK_SETTING_RE.test(setting) &&
       !settingPoolForDayMood(input.slot.id, dayMood, mix).includes(setting)
@@ -2466,8 +2464,33 @@ const DAY_SUGGESTIVE_BEAT_CUE_RE =
  * Vacation travel venues that must not survive under Suggestive (shared pose words
  * like perched/reclining otherwise keep pier/scooter/hotel-terrace boards).
  */
+let vacationPresetCache: { settings: Set<string>; beats: Set<string> } | null = null;
+
+/** Every Vacation setting and beat across all slots (the leftovers Suggestive rerolls). */
+function allDayVacationPresets(): { settings: Set<string>; beats: Set<string> } {
+  if (!vacationPresetCache) {
+    const ids = DAY_SLOT_IDS_FOR_PRESET_SCAN;
+    vacationPresetCache = {
+      settings: new Set(ids.flatMap(id => dayVacationSettingPresetsForSlot(id))),
+      beats: new Set(ids.flatMap(id => dayVacationBeatPresetsForSlot(id))),
+    };
+  }
+  return vacationPresetCache;
+}
+
+const DAY_SLOT_IDS_FOR_PRESET_SCAN = [
+  'morning',
+  'morning-2',
+  'afternoon',
+  'afternoon-2',
+  'evening',
+  'evening-2',
+  'night',
+  'night-2',
+] as const;
+
 const DAY_SUGGESTIVE_VACATION_LEAK_SETTING_RE =
-  /\b(pier|fishing\s+pier|bait\s+shops?|cobblestone|hotel\s+(?:terrace|balcony|lobby|suite|hallway)|resort|boardwalk|harbor|ferry|beach\s+(?:bar|club|umbrella|daybed)|scooter|market\s+stall|ice[- ]?cream|gulls|delivery\s+bikes?|ocean\s+breeze|bright\s+afternoon\s+water)\b/i;
+  /\b(pier|fishing\s+pier|bait\s+shops?|cobblestone|hotel\s+(?:terrace|balcony|lobby)|resort|boardwalk|harbor|ferry|beach\s+(?:bar|club|umbrella|daybed)|scooter|market\s+stall|ice[- ]?cream|gulls|delivery\s+bikes?|ocean\s+breeze|bright\s+afternoon\s+water)\b/i;
 
 /** Athletic mid-action cues — custom Sport beats that still read as sport. */
 const DAY_SPORT_BEAT_CUE_RE =

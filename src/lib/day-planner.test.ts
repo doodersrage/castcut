@@ -2817,3 +2817,19 @@ describe('heat mood boards accept their own rolls', () => {
     assert.notEqual(aligned.slots[1]!.sceneHints, typed[1]!.sceneHints);
   });
 });
+
+describe('Suggestive keeps typed rooms, rerolls Vacation leftovers', () => {
+  const beat = DAY_SLOT_SUGGESTIVE_BEAT_PRESETS.evening[0]!;
+  const check = (id: string, location: string) =>
+    daySlotMatchesAdultMix({ slot: { id, label: id, sceneHints: beat, location } as never, dayMood: 'suggestive' });
+
+  it('keeps a typed hotel suite or hallway', () => {
+    assert.equal(check('evening', 'a hotel suite with a big window over the city at dusk'), true);
+    assert.equal(check('evening', 'a quiet hotel hallway with brass lamps'), true);
+  });
+
+  it('rerolls a Vacation setting even from another slot', () => {
+    assert.equal(check('morning', 'resort pool after dark with underwater lights and empty deck chairs'), false);
+    assert.equal(check('morning', 'sunny boardwalk with gelato carts and soft dune grass'), false);
+  });
+});
