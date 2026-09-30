@@ -1678,6 +1678,11 @@ html[data-theme='light'] .page-canvas::before {
 
 .ui-segmented {
   display: inline-flex;
+  /* Labels stay on one line; a control wider than a phone scrolls instead of wrapping
+     "Film & media · 1" into two lines inside its pill. */
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
   gap: 0.15rem;
   padding: 0.2rem;
   border: 1px solid var(--border-default);
@@ -1687,6 +1692,8 @@ html[data-theme='light'] .page-canvas::before {
 }
 
 .ui-segmented-item {
+  flex-shrink: 0;
+  white-space: nowrap;
   border: none;
   border-radius: calc(var(--radius-md) - 2px);
   padding: 0.4rem 0.85rem;

@@ -186,6 +186,10 @@ export function resolveEditStrengthDenoise(
   return SOFT_IMG2IMG_STRENGTH_DENOISE[normalized];
 }
 
+function strengthLabel(strength: string): string {
+  return strength.charAt(0).toUpperCase() + strength.slice(1);
+}
+
 export function formatTurboEditStrengthHint(
   model?: string | null,
   strength?: unknown,
@@ -195,15 +199,15 @@ export function formatTurboEditStrengthHint(
   if (editStrengthUsesDenoiseBands(model, tool ?? 'refine')) {
     const denoise = resolveEditStrengthDenoise(model, normalized, tool);
     if (tool === 'outpaint') {
-      return `${normalized} outpaint denoise ${denoise.toFixed(2)}. The Settings edit-denoise slider does not apply — use Gentle / Balanced / Strong, or a sidebar KSampler denoise override.`;
+      return `${strengthLabel(normalized)}: denoise ${denoise.toFixed(2)} on the new border — higher invents more around the frame.`;
     }
     if (isMaskedPaintStrengthContext(model, { tool, hasMaskImage: tool === 'inpaint' })) {
-      return `${normalized} inpaint denoise ${denoise.toFixed(2)} on the masked region. The Settings edit-denoise slider does not apply — use Gentle / Balanced / Strong, or a sidebar KSampler denoise override.`;
+      return `${strengthLabel(normalized)}: denoise ${denoise.toFixed(2)} inside the mask — Gentle keeps more of what is there, Strong repaints it.`;
     }
     if (isZImageTurboModel(model)) {
-      return `Z-Image Turbo img2img uses ${normalized} denoise ${denoise.toFixed(2)} (8-step CFG 1). The Settings edit-denoise slider does not apply — use Gentle / Balanced / Strong, or a sidebar KSampler denoise override.`;
+      return `${strengthLabel(normalized)}: denoise ${denoise.toFixed(2)} — Gentle keeps the frame, Strong lets it change.`;
     }
-    return `${normalized} denoise ${denoise.toFixed(2)} on this img2img stack. The Settings edit-denoise slider does not apply — use Gentle / Balanced / Strong, or a sidebar KSampler denoise override.`;
+    return `${strengthLabel(normalized)}: denoise ${denoise.toFixed(2)} — Gentle keeps the frame, Strong lets it change.`;
   }
   if (isBooguEditTurboModel(model)) {
     return `Boogu Edit Turbo stays at denoise 1 (instruction + reference latents). ${normalized} rewrites the instruction so the 4-step stack actually holds or lets go of the frame.`;

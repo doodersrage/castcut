@@ -70,7 +70,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {!mobileStudio && !playKiosk ? <MobileStudioOfferBanner /> : null}
       <InventorySyncNotice />
       {playKiosk ? (
-        <div className="pt-[calc(4.25rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+        // The Film header is fixed at every width — sticky docks offset by --header-offset,
+        // which the sidebar layout sets to 0 on desktop.
+        <div className="pt-[calc(4.25rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] [--header-offset:4.35rem]">
           {children}
         </div>
       ) : (

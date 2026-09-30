@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { toastQueueOutcome } from '@/lib/app-toast';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import { RETRY_LAST_FAILED_QUEUE_EVENT, retryLastFailedQueue } from '@/lib/last-failed-queue';
@@ -20,6 +21,7 @@ export const SYSTEM_TRAY_HEIGHT_VAR = '--system-tray-height';
 const SYSTEM_TRAY_CLEARANCE_PX = 12;
 
 export default function SystemTray() {
+  const pathname = usePathname();
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
@@ -149,7 +151,9 @@ export default function SystemTray() {
   const visibleNotices = showAllNotices ? trayMessages : trayMessages.slice(0, 1);
   const hiddenNoticeCount = trayMessages.length - visibleNotices.length;
 
-  const showActivityCard = hasActivity && primary;
+  // The Queue page lists every job itself — the floating card only covered its row buttons.
+  const onQueuePage = pathname === '/queue' || pathname === '/m/queue';
+  const showActivityCard = hasActivity && primary && !onQueuePage;
 
   // Floats just above whatever bar is pinned to the bottom (see useBottomDockRef) — the old
   // fixed 5.5rem lift covered the mobile Queue button when a tool's bar grew, and the Play

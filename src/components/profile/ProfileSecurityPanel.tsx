@@ -10,6 +10,7 @@ import {
   saveKeyboardShortcuts,
 } from '@/lib/keyboard-shortcuts-store';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { userAgentLabel } from '@/lib/user-agent-label';
 
 type ApiKeyRow = {
   id: string;
@@ -162,7 +163,7 @@ export default function ProfileSecurityPanel() {
               key={session.id}
               className="rounded-xl border border-[var(--border-subtle)] px-3 py-2 text-sm text-[var(--text-secondary)]"
             >
-              <p>{session.userAgent ?? 'Unknown device'}</p>
+              <p title={session.userAgent}>{userAgentLabel(session.userAgent)}</p>
               <p className="text-xs text-[var(--text-muted)]">
                 {session.ip ?? 'unknown IP'} · last seen{' '}
                 {new Date(session.lastSeenAt).toLocaleString()}

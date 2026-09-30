@@ -43,7 +43,7 @@ export default function CharacterHomeActionRow({
             data-testid="character-home-look"
             onClick={() => go(`/moodboard?character=${character.id}`)}
           >
-            Open Look
+            Look
           </Button>
           <Button
             size="sm"
@@ -59,7 +59,7 @@ export default function CharacterHomeActionRow({
             data-testid="character-home-day"
             onClick={() => go(`/day?character=${character.id}`)}
           >
-            Open Day
+            Day
           </Button>
           <Button
             size="sm"

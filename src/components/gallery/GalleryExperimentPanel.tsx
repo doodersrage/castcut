@@ -59,7 +59,9 @@ export type GalleryExperimentPanelProps = {
 function GalleryExperimentPanelInner(props: GalleryExperimentPanelProps) {
   const { footer, ...barProps } = props;
   return (
-    <div className="space-y-3">
+    // Sticky here, not only on the bar: a sticky child of a 47px wrapper never stuck, so the
+    // bulk actions scrolled away while picking cards further down.
+    <div className="sticky top-[calc(var(--header-offset,0px)+0.5rem)] z-20 space-y-3">
       <GallerySelectionBar {...barProps} />
       {footer}
     </div>

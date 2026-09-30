@@ -90,11 +90,9 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
           <BrandMark size={28} />
           <div className="min-w-0">
             <p className="type-brand type-heading truncate tracking-tight">Castcut</p>
-            <p className="type-caption text-[var(--text-muted)]">
-              Film · {hint}
-              <span className="mx-1 text-[var(--border-strong)]">·</span>
-              <ReportBugLink className="text-[var(--text-muted)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]" />
-            </p>
+            {/* One truncated line — hint + Report a bug wrapped to four lines on a phone.
+                Report a bug lives in the More menu. */}
+            <p className="type-caption truncate text-[var(--text-muted)]">Film · {hint}</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2" data-testid="mobile-desk-bridge">
@@ -144,43 +142,44 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
               </li>
             );
           })}
-          {moreTabs.length > 0 ? (
-            <li className="min-w-[3.25rem] flex-1">
-              <details className="relative">
-                <summary
-                  data-active={moreActive ? 'true' : 'false'}
-                  data-testid="mobile-tab-more"
-                  className={[
-                    'flex list-none flex-col items-center rounded-[var(--radius-md)] px-1.5 py-2 text-center transition',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
-                    moreActive
-                      ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
-                  ].join(' ')}
-                >
-                  <span className="text-xs font-medium leading-tight">More</span>
-                </summary>
-                <div
-                  className="ui-menu-panel absolute bottom-full right-0 mb-2 min-w-[8rem] rounded-[var(--radius-md)] border border-[var(--border-subtle)] py-1 shadow-lg"
-                  data-testid="mobile-more-menu"
-                >
-                  {moreTabs.map(entry => {
-                    const href = resolvePlayLoopNavHref(entry.href, activeCharacterId);
-                    return (
-                      <Link
-                        key={entry.id}
-                        href={href}
-                        data-testid={`mobile-tab-${entry.id}`}
-                        className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-                      >
-                        {entry.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </details>
-            </li>
-          ) : null}
+          {/* Always shown — it also holds Report a bug. */}
+          <li className="min-w-[3.25rem] flex-1">
+            <details className="relative">
+              <summary
+                data-active={moreActive ? 'true' : 'false'}
+                data-testid="mobile-tab-more"
+                className={[
+                  'flex list-none flex-col items-center rounded-[var(--radius-md)] px-1.5 py-2 text-center transition',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
+                  moreActive
+                    ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
+                ].join(' ')}
+              >
+                <span className="text-xs font-medium leading-tight">More</span>
+              </summary>
+              <div
+                className="ui-menu-panel absolute bottom-full right-0 mb-2 min-w-[8rem] rounded-[var(--radius-md)] border border-[var(--border-subtle)] py-1 shadow-lg"
+                data-testid="mobile-more-menu"
+              >
+                {moreTabs.map(entry => {
+                  const href = resolvePlayLoopNavHref(entry.href, activeCharacterId);
+                  return (
+                    <Link
+                      key={entry.id}
+                      href={href}
+                      data-testid={`mobile-tab-${entry.id}`}
+                      className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                    >
+                      {entry.label}
+                    </Link>
+                  );
+                })}
+                <div className="my-1 border-t border-[var(--border-subtle)]" />
+                <ReportBugLink className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]" />
+              </div>
+            </details>
+          </li>
         </ul>
       </nav>
     </div>

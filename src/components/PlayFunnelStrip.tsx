@@ -103,7 +103,16 @@ export default function PlayFunnelStrip({ compact = false }: PlayFunnelStripProp
 
   return (
     <div className={compact ? 'space-y-2' : 'mt-3 space-y-2'} data-testid="play-funnel-strip">
-      <ol className="flex flex-wrap gap-2" data-testid="play-funnel-steps" aria-label="Film steps">
+      {/* Compact (phone): one scrollable row — wrapped chips took two rows under the header. */}
+      <ol
+        className={
+          compact
+            ? '-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]'
+            : 'flex flex-wrap gap-2'
+        }
+        data-testid="play-funnel-steps"
+        aria-label="Film steps"
+      >
         {PLAY_CAMPAIGN_STEPS.map((step, index) => {
           const done = completed || index < currentIndex;
           const isActiveStep = !completed && index === currentIndex && (hasCampaign || hasFunnel);
@@ -112,12 +121,16 @@ export default function PlayFunnelStrip({ compact = false }: PlayFunnelStripProp
             (stall!.stepId === step.id ||
               (stall!.stepId === 'cut' && (step.id === 'day' || step.id === 'roleplay')));
           const isHighlighted = isActiveStep || isStallStep;
-          const chipClass = `rounded-[var(--radius-md)] border px-2.5 py-1.5 type-caption ${
+          // `!` — the ghost button's own border / padding otherwise win and the chips read as
+          // bare links.
+          const chipClass = `!rounded-[var(--radius-md)] !border ${
+            compact ? '!min-h-8 !px-2 !py-1' : '!px-2.5 !py-1.5'
+          } type-caption whitespace-nowrap ${
             isHighlighted
-              ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
+              ? '!border-[var(--accent-border)] !bg-[var(--accent-muted)] !text-[var(--accent-text)]'
               : done
-                ? 'border-[var(--tint-success-border)] text-[var(--tint-success-text)]'
-                : 'border-[var(--border-subtle)] text-[var(--text-muted)]'
+                ? '!border-[var(--tint-success-border)] !text-[var(--tint-success-text)]'
+                : '!border-[var(--border-subtle)] !text-[var(--text-muted)]'
           }`;
           const label = `${index + 1}. ${step.label}`;
           const stepHref = mapHref(
@@ -131,7 +144,7 @@ export default function PlayFunnelStrip({ compact = false }: PlayFunnelStripProp
           );
 
           return (
-            <li key={step.id}>
+            <li key={step.id} className={compact ? 'shrink-0 snap-start' : undefined}>
               <ButtonLink
                 href={stepHref}
                 size="sm"
