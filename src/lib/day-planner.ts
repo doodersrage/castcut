@@ -2421,7 +2421,10 @@ export function daySlotMatchesAdultMix(input: {
   }
   // Sport: beat must be athletic mid-action AND setting a sport venue — beach/café/garage fight the mood.
   if (dayMood === 'sport') {
-    if (DAY_SPORT_STALE_SETTING_RE.test(setting)) {
+    // "beach" is stale (it drew beach pin-ups) — except beach volleyball, a real venue.
+    if (
+      DAY_SPORT_STALE_SETTING_RE.test(setting.replace(/\bbeach\s+volleyball\b/gi, 'volleyball'))
+    ) {
       return false;
     }
     const heat = heatBeatPoolForDayMood(input.slot.id, dayMood, mix);
@@ -2545,8 +2548,11 @@ const DAY_SPORT_BEAT_CUE_RE =
   /\b(sprint|serve|swing|dunk|tackle|dribble|lunge|parry|vault|hurdle|stride|forehand|backhand|pitch|slide|kick|header|climb|dyno|handstand|tumbling|yoga|pose hold|bike|pedal|stroke|putt|javelin|discus|shot put|martial|fencing|gymnast|ski|carve|slalom|athletic|mid[- ](?:play|stride|action)|court|pitch|piste|dojo|track)\b/i;
 
 /** Sport venue cues — custom Sport settings that still read as athletic venues. */
+// Venues for every sport in the pools: a typed "snowy ski slope", "ocean surf break",
+// "concrete skatepark", "yoga studio" or "open country road" failed the check and the slot was
+// silently rerolled, beat and all (live 2026-09-29).
 const DAY_SPORT_SETTING_CUE_RE =
-  /\b(court|pitch|field|track|stadium|arena|gym|dojo|piste|rink|pool|course|trail|climbing\s+wall|boulder|velodrome|diamond|gridiron|sideline|baseline|lane|mat)\b/i;
+  /\b(court|pitch|field|track|stadium|arena|gym|dojo|piste|rink|pool|course|trail|climbing\s+wall|boulder|velodrome|diamond|gridiron|sideline|baseline|lane|mat|road|slope|skatepark|ramp|halfpipe|surf|reef|point\s+break|(?:yoga|dance|pilates|spin)\s+studio|transition)\b/i;
 
 /**
  * Sport mood must discard Outfit Keep / catalog street clothes and dress the

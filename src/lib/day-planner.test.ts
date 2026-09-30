@@ -923,6 +923,40 @@ describe('day-planner', () => {
     );
   });
 
+  it('keeps typed sport venues for every sport in the pools', () => {
+    // These failed the venue check and the slot was silently rerolled, beat and all.
+    for (const location of [
+      'snowy ski slope',
+      'ocean surf break',
+      'concrete skatepark',
+      'bright yoga studio',
+      'open country road',
+      'beach volleyball court',
+    ]) {
+      assert.equal(
+        daySlotMatchesAdultMix({
+          slot: {
+            id: 'morning',
+            label: 'Morning',
+            location,
+            sceneHints: 'carving a turn mid-run — athletic action in proper kit',
+          } as never,
+          dayMood: 'sport',
+        }),
+        true,
+        location
+      );
+    }
+    // A beach pin-up setting is still stale.
+    assert.equal(
+      daySlotMatchesAdultMix({
+        slot: { id: 'morning', label: 'Morning', location: 'sunny beach', sceneHints: 'sprinting mid-stride — athletic action' } as never,
+        dayMood: 'sport',
+      }),
+      false
+    );
+  });
+
   it('dayEverydayFaceBreakStanceLead names only stances Rapid loses', () => {
     assert.match(dayEverydayFaceBreakStanceLead('kneeling to unlace boots') ?? '', /^KNEELING/);
     assert.match(dayEverydayFaceBreakStanceLead('seated reading a menu') ?? '', /^SEATED/);
