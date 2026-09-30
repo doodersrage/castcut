@@ -91,7 +91,7 @@ test('cast plate Play stills follow the tall plate, not a square sidebar', async
   const { resolveQueueParams } = await import('./queue-params-settings');
 
   const params = resolveQueueParams({
-    model: 'qwen-rapid-aio-edit',
+    model: 'qwen-image-edit-2511',
     tool: 'image-prompt',
     resolutionOrientation: 'square',
     resolutionSizeTier: 'medium',
@@ -109,7 +109,7 @@ test('cast plate Play stills shrink an oversized plate to a 1536 long edge', asy
   const { resolveQueueParams } = await import('./queue-params-settings');
 
   const params = resolveQueueParams({
-    model: 'qwen-rapid-aio-edit',
+    model: 'qwen-image-edit-2511',
     tool: 'image-prompt',
     resolutionOrientation: 'square',
     inputImageFilename: 'cast-plate.png',
@@ -207,4 +207,21 @@ test('Klein Distilled Compose/Refine snaps figure pixels to native portrait', as
     assert.equal(params.width, '896', tool);
     assert.equal(params.height, '1152', tool);
   }
+});
+
+test('Rapid AIO cast plate stills render at 960×1280', async () => {
+  const { resolveQueueParams } = await import('./queue-params-settings');
+
+  const params = resolveQueueParams({
+    model: 'qwen-rapid-aio-edit-nsfw',
+    tool: 'image-prompt',
+    resolutionOrientation: 'square',
+    inputImageFilename: 'cast-plate.png',
+    figurePixelSize: { width: 1104, height: 1472 },
+    castPlateReference: true,
+    base: { seed: '1' },
+  });
+
+  assert.equal(params.width, '960');
+  assert.equal(params.height, '1280');
 });

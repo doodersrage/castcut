@@ -39,16 +39,16 @@ test('enlargePlayCastPlateLatent does not leave the Lightning ladder', () => {
 });
 
 test('fitPlayCastPlateLatent keeps a 1104×1472 plate at its own size', () => {
-  assert.deepEqual(fitPlayCastPlateLatent({ width: 1104, height: 1472 }, 'qwen-rapid-aio-edit'), {
+  assert.deepEqual(fitPlayCastPlateLatent({ width: 1104, height: 1472 }, 'qwen-image-edit-2511'), {
     width: 1104,
     height: 1472,
   });
 });
 
 test('fitPlayCastPlateLatent raises a small plate to 1328 and caps a big one at 1536', () => {
-  const small = fitPlayCastPlateLatent({ width: 600, height: 800 }, 'qwen-rapid-aio-edit');
+  const small = fitPlayCastPlateLatent({ width: 600, height: 800 }, 'qwen-image-edit-2511');
   assert.equal(Math.max(small!.width, small!.height), 1328);
-  const big = fitPlayCastPlateLatent({ width: 1536, height: 2048 }, 'qwen-rapid-aio-edit');
+  const big = fitPlayCastPlateLatent({ width: 1536, height: 2048 }, 'qwen-image-edit-2511');
   assert.deepEqual(big, { width: 1152, height: 1536 });
 });
 
@@ -60,8 +60,17 @@ test('fitPlayCastPlateLatent leaves Lightning to its ladder', () => {
 });
 
 test('face-crop Play stills get the 3:4 portrait canvas, not the square sidebar', () => {
-  assert.deepEqual(fitPlayCastPlateLatent(PLAY_FACE_CROP_CANVAS, 'qwen-rapid-aio-edit'), {
+  assert.deepEqual(fitPlayCastPlateLatent(PLAY_FACE_CROP_CANVAS, 'qwen-image-edit-2511'), {
     width: 1104,
     height: 1472,
   });
+});
+
+test('Rapid AIO plate stills render at a 1280 long edge (fewer skin specks)', () => {
+  for (const plate of [PLAY_FACE_CROP_CANVAS, { width: 600, height: 800 }, { width: 1536, height: 2048 }]) {
+    assert.deepEqual(fitPlayCastPlateLatent(plate, 'qwen-rapid-aio-edit-nsfw'), {
+      width: 960,
+      height: 1280,
+    });
+  }
 });

@@ -1,4 +1,5 @@
 import { isQwenLightningModel } from './model-sampling-patch';
+import { isQwenRapidAioModel } from './model-denoise-defaults';
 import { snapLatentSize } from './browser-image-dimensions';
 
 /**
@@ -36,6 +37,13 @@ export const PLAY_CAST_PLATE_FIT_MIN_LONG_EDGE = 1328;
 export const PLAY_CAST_PLATE_FIT_MAX_LONG_EDGE = 1536;
 
 /**
+ * Rapid AIO plate stills render at a 1280 long edge (960×1280 for the 3:4 plate). Same-seed
+ * sweep 2026-09-30 (Story + Day, 5 beats × 2 seeds): skin speckle 5.6 → 2.3 per 10k skin px
+ * against 1104×1472, face distance 0.92 → 0.85, poses held; 864×1152 lost the face gain.
+ */
+export const PLAY_CAST_PLATE_RAPID_LONG_EDGE = 1280;
+
+/**
  * Latent for a Play still whose Image 1 is the Cast plate: the plate's aspect
  * and roughly its own size, never the sidebar orientation. A square latent pads
  * a tall plate with white bars and the face drifts; stepping a portrait plate up
@@ -54,10 +62,12 @@ export function fitPlayCastPlateLatent(
     return null;
   }
   const longEdge = Math.max(width, height);
-  const target = Math.min(
-    PLAY_CAST_PLATE_FIT_MAX_LONG_EDGE,
-    Math.max(PLAY_CAST_PLATE_FIT_MIN_LONG_EDGE, longEdge)
-  );
+  const target = isQwenRapidAioModel(model ?? undefined)
+    ? PLAY_CAST_PLATE_RAPID_LONG_EDGE
+    : Math.min(
+        PLAY_CAST_PLATE_FIT_MAX_LONG_EDGE,
+        Math.max(PLAY_CAST_PLATE_FIT_MIN_LONG_EDGE, longEdge)
+      );
   const scale = target / longEdge;
   return snapLatentSize(width * scale, height * scale);
 }
