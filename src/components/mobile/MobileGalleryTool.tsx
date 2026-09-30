@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
+import { galleryCardCaption } from '@/lib/gallery-card-caption';
 import GalleryEmptyPanel from '@/components/gallery/GalleryEmptyPanel';
 import GalleryUploadButton from '@/components/gallery/GalleryUploadButton';
 import MotionMedia from '@/components/ui/MotionMedia';
@@ -241,6 +242,8 @@ export default function MobileGalleryTool() {
                 <button
                   key={entry.id}
                   type="button"
+                  aria-label={galleryCardCaption(entry.prompt) || 'Gallery still'}
+                  aria-pressed={active}
                   onClick={() => setSelectedId(entry.id)}
                   className={[
                     'overflow-hidden rounded-2xl border text-left',
