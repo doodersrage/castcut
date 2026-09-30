@@ -1424,7 +1424,7 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
   }
   // Everyday stances — specific body shapes that would otherwise fall through to a plain stand.
   if (
-    /\b(foot\s+(?:up\s+)?(?:propped\s+)?on\s+(?:the\s+|a\s+)?(?:step|stair|ledge|bench|curb|kerb|rail|box)|propp(?:ed|ing)\s+(?:one\s+)?foot|boot\s+up\s+on)\b/i.test(
+    /\b(foot\s+(?:up\s+)?(?:propped\s+)?on\s+(?:the\s+|a\s+)?(?:step|stair|ledge|bench|curb|kerb|rail|box|chair(?:\s+rung)?|rung)|propp(?:ed|ing)\s+(?:one\s+)?foot|boot\s+up\s+on)\b/i.test(
       haystack
     )
   ) {
@@ -1536,6 +1536,10 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
  * standing one. The gesture still sets the arms.
  */
 function posturalBaseFromScene(haystack: string): PoseGuideBase | null {
+  // Sprawled in an armchair is a sit, not a lie (as a lie it moved her onto a bed).
+  if (/\bsprawl(?:ed|ing|s)?\b[^,]*\b(?:armchair|chair)\b/i.test(haystack)) {
+    return 'sit';
+  }
   if (
     /\b(lie|lies|lying|laid|supine|sprawl(?:ed|ing)?|reclin(?:e|es|ed|ing)|flat\s+on\s+(?:the|her|his)\s+(?:bed|floor|back)|on\s+(?:her|his|their)\s+back\s+(?:on|in|across|atop))\b/i.test(
       haystack
@@ -1989,6 +1993,11 @@ export function parsePoseGuideIntent(
   } else if (matched) {
     // Vacation pose-class lead already forced base/arms — skip keyword overrides
     // (e.g. REACHING … "jog" must not become walk).
+  } else if (/\bsprawl(?:ed|ing|s)?\b[^,]*\b(?:armchair|chair)\b/i.test(haystack)) {
+    // Sprawled in an armchair is a sit — as a lie Day put her on a bed.
+    base = 'sit';
+    stride = 0.4;
+    matched = true;
   } else if (
     /\b(lie|lies|lying|laid|sprawl(?:ed|ing|s)?|prone|on\s+the\s+(?:floor|ground|bed)|(?:flat\s+)?on\s+(?:her|his|their)\s+back\s+(?:on|in|across|atop))\b/i.test(
       haystack

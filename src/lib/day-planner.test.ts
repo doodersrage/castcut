@@ -2417,7 +2417,13 @@ describe('everyday pose-class spreading', () => {
     assert.equal(dayEverydayPoseClass('lying across the bed scrolling a phone'), 'LYING');
     assert.equal(dayEverydayPoseClass('checking the phone while leaning on the sill'), 'LEANING');
     assert.equal(dayEverydayPoseClass('walking home mid-stride under neon'), 'WALKING');
-    assert.equal(dayEverydayPoseClass('climbing the stairs with a mug'), 'WALKING');
+    // Climbing, foot-up and standing-with-a-phone are their own classes (live 2026-09-29: as a
+    // walk / lean / still they came back facing the lens, standing, or seated in a booth).
+    assert.equal(dayEverydayPoseClass('climbing the stairs with a mug'), 'CLIMB');
+    assert.equal(dayEverydayPoseClass('climbing the stairs to the rooftop, one hand on the rail'), 'CLIMB');
+    assert.equal(dayEverydayPoseClass('foot up on a chair rung retying a boot'), 'FOOT_UP');
+    assert.equal(dayEverydayPoseClass('checking a phone under neon, weight on one hip'), 'STANDING');
+    assert.equal(dayEverydayPoseClass('sprawled sideways in an armchair still in the coat'), 'SEATED');
     assert.equal(dayEverydayPoseClass('dancing alone for a beat on the patio'), 'DANCING');
     // Standing-with-busy-arms is its own class, so it cannot be picked twice as "upright".
     assert.equal(dayEverydayPoseClass('waving hello from the balcony'), 'GESTURE');

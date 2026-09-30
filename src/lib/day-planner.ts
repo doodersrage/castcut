@@ -812,6 +812,12 @@ export function everydayStanceDirective(poseClass: string | null | undefined): s
       return 'CROUCHING = knees deeply bent, hips low, reaching down — never standing upright';
     case 'KNEEL':
       return 'KNEELING = one or both knees on the ground — never standing on both feet';
+    case 'CLIMB':
+      return 'CLIMBING = going UP the stairs, seen from the side or from below — one foot on a higher step with the knee bent, body leaning into the climb, a hand on the rail — never standing still on the stairs facing the lens, never walking down';
+    case 'FOOT_UP':
+      return 'FOOT UP = one foot raised onto the step, bench, or rung at knee height with the knee bent, torso bent over it and both hands at the laces, the other foot on the ground — never both feet on the floor, never sitting';
+    case 'STANDING':
+      return 'STANDING = on her feet in the SETTING, weight on one hip, relaxed and candid — never sitting, never a stiff square-on catalog stand';
     case 'DANCING':
       return 'DANCING = both arms in motion, weight on one leg or a step — never arms hanging at her sides';
     case 'GESTURE':
@@ -827,7 +833,7 @@ export function everydayStanceDirective(poseClass: string | null | undefined): s
  */
 export function dayEverydayFaceBreakStanceLead(beat: string | null | undefined): string | null {
   const cls = dayEverydayPoseClass(beat);
-  return ['SEATED', 'LYING', 'CROUCH', 'KNEEL', 'LEANING'].includes(cls)
+  return ['SEATED', 'LYING', 'CROUCH', 'KNEEL', 'LEANING', 'CLIMB', 'FOOT_UP'].includes(cls)
     ? `${everydayStanceDirective(cls)}.`
     : null;
 }
@@ -856,7 +862,7 @@ export function isDayPoseStickyEditModel(model?: string | null): boolean {
  */
 export function dayEverydayPoseNeedsBodyUnlock(beat: string | null | undefined): boolean {
   const cls = dayEverydayPoseClass(beat);
-  return cls !== 'STILL' && cls !== 'GESTURE';
+  return cls !== 'STILL' && cls !== 'GESTURE' && cls !== 'STANDING';
 }
 
 const DAY_POSE_CLASS_BODY: Record<string, ScenePoseSpec['body']> = {
@@ -908,6 +914,23 @@ export function dayEverydayPoseClass(beat: string | null | undefined): string {
   if (!hay.trim()) {
     return 'STILL';
   }
+  // Checked before WALKING/LEANING/SEATED: as a walk, lean or sit, 4/4 stair climbs came back
+  // standing on the stairs facing the lens and 3/3 foot-ups stood or sat (live 2026-09-29).
+  if (
+    /\b(climb(?:s|ing)? (?:up )?(?:the )?(?:stairs|steps|staircase)|up the (?:stairs|steps))\b/.test(
+      hay
+    )
+  ) {
+    return 'CLIMB';
+  }
+  if (/\b(foot up|one foot up|boot up on)\b/.test(hay)) {
+    return 'FOOT_UP';
+  }
+  // A sprawl in a chair is a sit — as LYING it moved her onto a bed (and drew someone else in
+  // the chair).
+  if (/\bsprawl(?:ed|ing|s)?\b[^,]*\b(?:armchair|chair)\b/.test(hay)) {
+    return 'SEATED';
+  }
   if (
     /\b(lie|lies|lying|sprawl(?:ed|ing)?|reclin(?:e|es|ed|ing)|stretched out|flat on|propped back on|on (?:her|his|their) (?:stomach|belly|side))\b/.test(
       hay
@@ -948,6 +971,11 @@ export function dayEverydayPoseClass(beat: string | null | undefined): string {
   }
   if (/\b(danc(?:e|es|ing)|spin(?:s|ning)?|twirl(?:s|ing)?)\b/.test(hay)) {
     return 'DANCING';
+  }
+  // Standing still with a phone or hands in pockets: the no-catalog-stand fallback sat both
+  // neon phone beats in a diner booth.
+  if (/\b(weight on one hip|(?:checking|holding) (?:a|the|her) phone|phone at chest)\b/.test(hay)) {
+    return 'STANDING';
   }
   // Standing, but the arms are doing something — distinct enough from a still plate stance that
   // one of each in a day does not read as the same pose twice.
@@ -1233,7 +1261,7 @@ export const DAY_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'climbing the stairs to the rooftop, one hand on the rail',
     'dancing alone for a beat on the patio, arms loose',
     'stretching after a long day, hands behind the head',
-    'waving from across the patio, other hand on the rail',
+    'waving hello with one hand raised, other hand on the patio rail',
     'checking a phone at golden hour, chin slightly tilted toward the screen',
     'arms crossed on a rooftop, looking out at golden hour',
     'tucking hair back while looking in the hall mirror',
