@@ -77,6 +77,10 @@ export type ClothingPickerProps = {
     onChange: (value: string) => void;
   };
   onError: (message: string) => void;
+  /** "Now wearing" line with no kit (Day: the planner picks one; Outfit: pick one to try on). */
+  emptyKitLabel?: string;
+  /** Clear-kit button label (Day: the planner picks one instead). */
+  clearKitLabel?: string;
 };
 
 function UploadTile({
@@ -147,6 +151,8 @@ export default function ClothingPicker({
   resolveKitThumb,
   category,
   onError,
+  emptyKitLabel,
+  clearKitLabel,
 }: ClothingPickerProps) {
   const savedGarments = useSavedFittingGarments();
   const hasPhoto = Boolean(garment.imageUrl?.trim());
@@ -203,7 +209,7 @@ export default function ClothingPicker({
               disabled={!kitsReady || busy || hasPhoto}
               size={kitSize}
               testId={kitPickerTestId}
-              emptyLabel="No kit picked — the planner chooses one for this slot."
+              emptyLabel={emptyKitLabel ?? 'No kit picked — the planner chooses one for this slot.'}
               onSelect={onSelectKit}
               onSwipe={onSwipeKit}
               resolveThumb={resolveKitThumb}
@@ -213,8 +219,8 @@ export default function ClothingPicker({
                     size="sm"
                     variant="ghost"
                     disabled={busy}
-                    aria-label="Clear kit — let the planner pick"
-                    title="Clear kit — let the planner pick"
+                    aria-label={clearKitLabel ?? 'Clear kit — let the planner pick'}
+                    title={clearKitLabel ?? 'Clear kit — let the planner pick'}
                     className="shrink-0 px-1.5"
                     onClick={onClearKit}
                   >

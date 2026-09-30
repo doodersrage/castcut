@@ -2,14 +2,14 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button } from '@/components/ui/Button';
-import { FieldError, FieldLabel } from '@/components/ui/Field';
+import { FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
-import WardrobeKitPicker from '@/components/wardrobe/WardrobeKitPicker';
+import ClothingPicker from '@/components/wardrobe/ClothingPicker';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 import {
@@ -18,12 +18,6 @@ import {
   resolveFittingOutfitPhase,
 } from '@/lib/fitting-room';
 import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
-import {
-  findSavedFittingGarmentByFilename,
-  loadSavedFittingGarments,
-  subscribeSavedFittingGarments,
-  type SavedFittingGarment,
-} from '@/lib/fitting-saved-garments';
 import { galleryPickPath } from '@/lib/gallery-handoff';
 import { toMobileStudioHref, withCharacterQuery } from '@/lib/mobile-studio';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
@@ -34,29 +28,19 @@ import FittingAutoReviewToggle from '@/components/fitting/FittingAutoReviewToggl
 import { TryOnReviewLine } from '@/components/fitting/FittingCompareSection';
 import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnReview';
 import { suggestTryOnToKeep } from '@/lib/fitting-tryon-review';
-import WardrobeCategoryPicker from '@/components/wardrobe/WardrobeCategoryPicker';
-import { GarmentUploadButtons } from '@/components/fitting/CustomGarmentPhotoControls';
 import type { ImageLightboxSlideChrome } from '@/components/ui/ImageLightbox';
-import { normalizeWardrobeCategoryFilter } from '@/lib/wardrobe-catalog-ui';
-import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import {
-  resolveWardrobeGarmentThumbUrl,
-  resolveWardrobeKitThumbUrl,
-} from '@/lib/wardrobe-garment-thumbs';
+  countWardrobeOptionsForFilter,
+  normalizeWardrobeCategoryFilter,
+  wardrobeCategoryFilterOptions,
+} from '@/lib/wardrobe-catalog-ui';
+import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
+import { resolveWardrobeKitThumbUrl } from '@/lib/wardrobe-garment-thumbs';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
   ssr: false,
   loading: () => null,
 });
-
-function useSavedFittingGarments(): SavedFittingGarment[] {
-  const json = useSyncExternalStore(
-    subscribeSavedFittingGarments,
-    () => JSON.stringify(loadSavedFittingGarments()),
-    () => '[]'
-  );
-  return useMemo(() => JSON.parse(json) as SavedFittingGarment[], [json]);
-}
 
 type ViewModel = ReturnType<typeof useFittingRoomToolOrchestration>;
 
@@ -83,12 +67,8 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     wardrobeReady,
     wardrobeCategoryFilter,
     wardrobeOptions,
-    wardrobeKitCount,
     swipeDeck,
-    activeSwipeKit,
     deckSelectionId,
-    deckSelectionIndex,
-    activeThumbRef,
     activeLookId,
     completedPreviewCount,
     inFlightPreviewCount,
@@ -121,11 +101,6 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     referenceUploading,
   } = vm;
 
-  const savedGarments = useSavedFittingGarments();
-  const alreadySavedGarment = Boolean(
-    findSavedFittingGarmentByFilename(toolSettings.customGarmentImageFilename)?.id
-  );
-  const touchStartX = useRef<number | null>(null);
   const mobileContinueDay = continueDayHref ? toMobileStudioHref(continueDayHref) : null;
   const mobileDayHref = toMobileStudioHref(dayPlannerHref);
   const plateUrl = referencePreviewUrl || toolSettings.referenceImageUrl?.trim() || '';
@@ -145,15 +120,6 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         : []
     )
   );
-  const activePreview = activeSwipeKit
-    ? getFittingKitPreview(kitPreviews, activeSwipeKit.id, activeLookId)
-    : undefined;
-  const activeThumb = activePreview?.status === 'completed' ? activePreview.imageUrl?.trim() : '';
-  const activeHeroUrl =
-    activeThumb ||
-    (activeSwipeKit ? resolveWardrobeGarmentThumbUrl(activeSwipeKit.id) : null) ||
-    plateUrl;
-
   const openCompareLightbox = useCallback(
     (promptId: string) => {
       const next = buildFittingCompareLightboxState(compareTryOns, promptId);
@@ -376,264 +342,72 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         </div>
       )}
 
-      <div className="space-y-1.5 text-sm">
-        <WardrobeCategoryPicker
-          value={wardrobeCategoryFilter}
-          options={wardrobeOptions}
-          ready={wardrobeReady}
-          disabled={busy}
-          onChange={filter => updateToolSettings({ wardrobeCategoryFilter: filter })}
-        />
-        {wardrobeReady && wardrobeCategoryFilter !== 'all' && wardrobeKitCount === 0 ? (
-          <div
-            className="rounded-2xl border border-dashed border-[var(--border-subtle)] px-3 py-3"
-            data-testid="fitting-empty-filter"
-          >
-            <p className="type-caption text-[var(--text-muted)]">No kits in this clothing type.</p>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="mt-2"
-              disabled={busy}
-              onClick={() =>
-                updateToolSettings({
-                  wardrobeCategoryFilter: normalizeWardrobeCategoryFilter('all'),
-                })
-              }
-            >
-              Show all types
-            </Button>
-            <p className="type-caption mt-2 text-[var(--text-muted)]">
-              Or upload a clothing photo below.
-            </p>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="space-y-2" data-testid="mobile-fitting-custom-garment">
-        <FieldLabel>Your clothing photo</FieldLabel>
-        <GarmentUploadButtons
-          busy={busy || garmentUploading}
-          onApplyCustomGarment={applyCustomGarment}
+      {/* Same Clothing picker as Day and Story: a catalog kit or your own photo, Browse. */}
+      <div data-testid="mobile-fitting-clothing">
+        <ClothingPicker
+          accent="rose"
+          busy={busy}
+          testIdPrefix="fitting"
+          emptyKitLabel="No kit picked yet — choose one to try on, or use your own photo."
+          clearKitLabel="Clear kit"
+          garment={{
+            uploading: garmentUploading,
+            scanStatus: garmentScanStatus,
+            imageUrl: toolSettings.customGarmentImageUrl,
+            imageFilename: toolSettings.customGarmentImageFilename,
+            description: toolSettings.customGarmentDescription,
+            onApply: applyCustomGarment,
+            onClear: clearCustomGarment,
+            onRescan: rescanCustomGarment,
+            onSave: saveCurrentCustomGarment,
+            onApplySaved: applySavedCustomGarment,
+            onRemoveSaved: removeSavedCustomGarment,
+            onDescriptionChange: value => updateToolSettings({ customGarmentDescription: value }),
+          }}
+          kits={swipeDeck}
+          kitsReady={wardrobeReady}
+          selectedKitId={deckSelectionId}
+          kitSize="sm"
+          kitPickerTestId="mobile-fitting-thumbs"
+          onSelectKit={selectKit}
+          onSwipeKit={delta => swipeKit(delta)}
+          onClearKit={clearKit}
+          resolveKitThumb={kit => {
+            const preview = activeLookId
+              ? getFittingKitPreview(kitPreviews, kit.id, activeLookId)
+              : undefined;
+            const personUrl =
+              preview?.status === 'completed' ? preview.imageUrl?.trim() || null : null;
+            const pending = preview?.status === 'queued' || preview?.status === 'running';
+            return {
+              url: resolveWardrobeKitThumbUrl({ wardrobeId: kit.id, personPreviewUrl: personUrl }),
+              pending: Boolean(pending && !personUrl),
+            };
+          }}
+          category={{
+            value: wardrobeCategoryFilter,
+            options: wardrobeCategoryFilterOptions().map(option => ({
+              value: option.value,
+              label: wardrobeReady
+                ? `${option.label} (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
+                : option.label,
+            })),
+            onChange: value =>
+              updateToolSettings({
+                wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(value),
+              }),
+          }}
           onError={setError}
         />
-        {garmentUploading || garmentScanStatus ? (
-          <p
-            className="type-caption text-[var(--text-muted)]"
-            data-testid="fitting-garment-scan-status"
-          >
-            {garmentScanStatus || 'Working on clothing photo…'}
+        {previewStatus || completedPreviewCount > 0 || inFlightPreviewCount > 0 ? (
+          <p className="mt-2 type-caption text-[var(--text-muted)]">
+            {previewStatus ||
+              `${completedPreviewCount} preview${completedPreviewCount === 1 ? '' : 's'}${
+                inFlightPreviewCount > 0 ? ` · ${inFlightPreviewCount} rendering` : ''
+              }`}
           </p>
         ) : null}
-        {toolSettings.customGarmentImageUrl?.trim() ? (
-          <div className="space-y-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={toolSettings.customGarmentImageUrl}
-              alt="Custom clothing"
-              className="max-h-40 w-full rounded-xl border border-[var(--border-subtle)] object-contain"
-            />
-            {toolSettings.customGarmentDescription?.trim() ? (
-              <p className="type-caption text-[var(--text-secondary)]">
-                {toolSettings.customGarmentDescription}
-              </p>
-            ) : null}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy || garmentUploading || alreadySavedGarment}
-                data-testid="fitting-save-garment"
-                onClick={() => {
-                  try {
-                    saveCurrentCustomGarment();
-                  } catch (err) {
-                    setError(
-                      err instanceof Error ? err.message : 'Could not save that clothing photo.'
-                    );
-                  }
-                }}
-              >
-                {alreadySavedGarment ? 'Saved' : 'Save for later'}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy || garmentUploading}
-                onClick={() => {
-                  void rescanCustomGarment().catch(err => {
-                    setError(err instanceof Error ? err.message : 'Vision scan failed.');
-                  });
-                }}
-              >
-                Rescan
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy || garmentUploading}
-                onClick={clearCustomGarment}
-              >
-                Clear photo
-              </Button>
-            </div>
-          </div>
-        ) : null}
-        {savedGarments.length > 0 ? (
-          <div className="space-y-2" data-testid="fitting-saved-garments">
-            <FieldLabel>Saved clothing</FieldLabel>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {savedGarments.map(entry => {
-                const active =
-                  toolSettings.customGarmentImageFilename?.trim() === entry.imageFilename ||
-                  toolSettings.customGarmentImageUrl?.trim() === entry.imageUrl;
-                return (
-                  <div
-                    key={entry.id}
-                    className={`relative shrink-0 rounded-xl border ${
-                      active ? 'border-[var(--accent-rose)]' : 'border-[var(--border-subtle)]'
-                    } bg-[var(--bg-muted)]/40`}
-                  >
-                    <button
-                      type="button"
-                      disabled={busy || garmentUploading}
-                      className="block w-24 space-y-1 p-1.5 text-left"
-                      title={entry.description || entry.label}
-                      onClick={() => {
-                        try {
-                          applySavedCustomGarment(entry.id);
-                        } catch (err) {
-                          setError(
-                            err instanceof Error
-                              ? err.message
-                              : 'Could not use that saved clothing photo.'
-                          );
-                        }
-                      }}
-                    >
-                      {entry.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={entry.imageUrl}
-                          alt=""
-                          className="h-20 w-full rounded-lg object-contain"
-                        />
-                      ) : (
-                        <div className="flex h-20 items-center justify-center type-caption text-[var(--text-muted)]">
-                          Packshot
-                        </div>
-                      )}
-                      <span className="line-clamp-2 type-caption text-[var(--text-secondary)]">
-                        {entry.label}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Remove ${entry.label}`}
-                      disabled={busy || garmentUploading}
-                      className="absolute right-1 top-1 rounded-full bg-[var(--bg-elevated)]/90 px-1.5 type-caption text-[var(--text-muted)]"
-                      onClick={() => removeSavedCustomGarment(entry.id)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-        {shared.lockedWardrobeId?.trim() ? (
-          <Button size="sm" variant="ghost" disabled={busy} onClick={clearKit}>
-            Clear kit
-          </Button>
-        ) : null}
       </div>
-
-      {swipeDeck.length > 0 ? (
-        <div
-          className="space-y-3"
-          data-testid="mobile-fitting-swipe"
-          onTouchStart={event => {
-            touchStartX.current = event.changedTouches[0]?.clientX ?? null;
-          }}
-          onTouchEnd={event => {
-            const start = touchStartX.current;
-            touchStartX.current = null;
-            if (start == null || swipeDeck.length < 2 || busy) {
-              return;
-            }
-            const end = event.changedTouches[0]?.clientX ?? start;
-            const delta = end - start;
-            if (Math.abs(delta) < 48) {
-              return;
-            }
-            swipeKit(delta < 0 ? 1 : -1);
-          }}
-        >
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40">
-            {activeHeroUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={activeHeroUrl}
-                alt={activeSwipeKit?.label || 'Kit'}
-                className="mx-auto max-h-72 w-full object-contain"
-              />
-            ) : (
-              <div className="flex h-56 items-center justify-center text-sm text-[var(--text-muted)]">
-                Swipe for kits
-              </div>
-            )}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-3 py-3 text-white">
-              <p className="truncate text-sm font-medium">
-                {activeSwipeKit?.label || 'Pick a kit'}
-                {activeSwipeKit?.group ? ` · ${activeSwipeKit.group}` : ''}
-              </p>
-              <p className="type-caption opacity-90">
-                {deckSelectionIndex + 1} / {swipeDeck.length} · swipe left/right
-              </p>
-            </div>
-          </div>
-
-          <WardrobeKitPicker
-            kits={swipeDeck}
-            selectedId={deckSelectionId}
-            disabled={busy || Boolean(toolSettings.customGarmentImageUrl?.trim())}
-            size="sm"
-            activeThumbRef={activeThumbRef}
-            testId="mobile-fitting-thumbs"
-            onSelect={selectKit}
-            onSwipe={delta => swipeKit(delta)}
-            resolveThumb={kit => {
-              const preview = activeLookId
-                ? getFittingKitPreview(kitPreviews, kit.id, activeLookId)
-                : undefined;
-              const personUrl =
-                preview?.status === 'completed' ? preview.imageUrl?.trim() || null : null;
-              const pending = preview?.status === 'queued' || preview?.status === 'running';
-              return {
-                url: resolveWardrobeKitThumbUrl({
-                  wardrobeId: kit.id,
-                  personPreviewUrl: personUrl,
-                }),
-                pending: Boolean(pending && !personUrl),
-              };
-            }}
-          />
-
-          {previewStatus || completedPreviewCount > 0 || inFlightPreviewCount > 0 ? (
-            <p className="type-caption text-[var(--text-muted)]">
-              {previewStatus ||
-                `${completedPreviewCount} preview${completedPreviewCount === 1 ? '' : 's'}${
-                  inFlightPreviewCount > 0 ? ` · ${inFlightPreviewCount} rendering` : ''
-                }`}
-            </p>
-          ) : null}
-        </div>
-      ) : (
-        <p className="type-caption text-[var(--text-muted)]">
-          {wardrobeReady ? 'No kits for this filter.' : 'Loading wardrobe…'}
-        </p>
-      )}
 
       <p className="type-caption text-[var(--text-muted)]" data-testid="fitting-preview-vs-queue">
         Draft thumbs when available · Queue try-on = full quality for Keep → Day.

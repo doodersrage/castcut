@@ -75,10 +75,12 @@ test('outfit first run: Cast card, one plate message, grouped kit controls', asy
   await expect(empty).toContainText(/No plate yet/i);
   await expect(page.getByTestId('fitting-plate')).not.toContainText(/cleared/i);
 
-  // Clothing type quick picks; uploads are labelled buttons.
-  await expect(page.getByTestId('wardrobe-category-all')).toBeVisible();
-  await expect(page.getByText('Upload worn photo')).toBeVisible();
-  await expect(page.getByText('Upload packshot')).toBeVisible();
+  // The same Clothing picker as Day / Story: a clothing-type filter on kits, uploads under My photo.
+  const clothing = page.getByTestId('fitting-clothing-picker');
+  await expect(clothing.getByRole('combobox', { name: 'Clothing type' })).toBeVisible();
+  await clothing.getByRole('tab', { name: 'My photo' }).click();
+  await expect(clothing.getByLabel('Upload clothing photo to extract a packshot')).toBeAttached();
+  await expect(clothing.getByLabel('Upload a ready clothing packshot')).toBeAttached();
   await expect(page.getByTestId('fitting-skip-kit')).toBeDisabled();
 
   const review = page.getByTestId('fitting-auto-review-switch');
