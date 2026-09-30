@@ -9,6 +9,10 @@ import MobileStudioOfferBanner from '@/components/MobileStudioOfferBanner';
 import { isMobileStudioPath } from '@/lib/mobile-studio';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import InventorySyncNotice from '@/components/InventorySyncNotice';
+// Nearly every route renders ToolLayout. Loaded here it ships once in the shared chunk; when the
+// last shell import of it went away (sidebar theme control), Turbopack copied it into ~22 route
+// chunks — +228 KB gzip across the build and the size-limit CI failure.
+import '@/components/ui/ToolPageShell';
 
 function NavFallback() {
   return (
