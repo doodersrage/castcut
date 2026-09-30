@@ -94,9 +94,10 @@ export default function OutpaintInputSection({
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="file"
+            aria-label="Choose an image file"
             accept="image/*"
             onChange={event => onFile(event.target.files?.[0] ?? null)}
-            className={`ui-file-input min-w-0 flex-1 ${accentFocusClass(ACCENT)}`}
+            className={`ui-file-input min-w-[14rem] flex-1 ${accentFocusClass(ACCENT)}`}
           />
           <ButtonLink href={galleryPickPath('outpaint')} variant="secondary" size="sm">
             Choose from Gallery

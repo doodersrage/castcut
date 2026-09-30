@@ -124,6 +124,7 @@ export function RoleplayCastPhotoSection({
           <div className="flex flex-wrap items-center gap-2">
             <input
               type="file"
+              aria-label="Choose an image file"
               accept="image/*"
               disabled={busy}
               className="ui-file-input block min-w-[14rem] flex-1"

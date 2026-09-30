@@ -119,6 +119,7 @@ export default function TopicToolInputSection({
         </div>
         <input
           type="range"
+          aria-label="Topic count"
           min={3}
           max={24}
           step={1}
@@ -139,6 +140,7 @@ export default function TopicToolInputSection({
         </div>
         <input
           type="range"
+          aria-label="Topic variety"
           min={0}
           max={100}
           step={5}

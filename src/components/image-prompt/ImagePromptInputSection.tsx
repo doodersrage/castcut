@@ -120,6 +120,7 @@ export default function ImagePromptInputSection({
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="file"
+            aria-label="Choose an image file"
             accept="image/*"
             onChange={e => onFileChange(e.target.files?.[0] ?? null)}
             className="ui-file-input block min-w-[14rem] flex-1"
@@ -133,6 +134,7 @@ export default function ImagePromptInputSection({
             Add another reference
             <input
               type="file"
+              aria-label="Choose an image file"
               accept="image/*"
               className="ui-file-input mt-1 w-full"
               onChange={event => {

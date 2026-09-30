@@ -138,8 +138,8 @@ export default function CharacterCastRoster() {
         <EmptyState
           icon="catalog"
           title="No characters yet"
-          description="Create a Cast lead on Film to start the loop. Story Save to Cast and Generate looks remain optional paths; identity bundles migrate in automatically."
-          action={{ label: 'Create on Film', href: '/play' }}
+          description="A Cast lead is the person your films follow. Create one on Film — or save one from Story."
+          action={{ label: 'Create a Cast lead', href: '/play' }}
         />
       ) : (
         <ToolSection title="Roster" description={`${characters.length} saved`}>

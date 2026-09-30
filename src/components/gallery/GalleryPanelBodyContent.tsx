@@ -91,7 +91,8 @@ export default function GalleryPanelBodyContent({
       />
 
       <GalleryPanelFiltersSection
-        showFilters={chrome.showFilters}
+        // Nothing to filter yet — the empty state below says what to do instead.
+        showFilters={chrome.showFilters && browse.entries.length > 0}
         leanGallery={chrome.leanGallery}
         pickFor={chrome.pickFor}
         filter={browse.filter}
@@ -164,7 +165,9 @@ export default function GalleryPanelBodyContent({
         selectAllVisible={selection.selectAllVisible}
       />
 
-      <GalleryDerivedKindChips filter={browse.filter} setFilter={browse.setFilter} />
+      {browse.entries.length > 0 ? (
+        <GalleryDerivedKindChips filter={browse.filter} setFilter={browse.setFilter} />
+      ) : null}
 
       <GalleryPanelModalsSlot
         compareOpen={modals.compareOpen}

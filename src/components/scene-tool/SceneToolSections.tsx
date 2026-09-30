@@ -88,6 +88,7 @@ export function VariationSliderField({
         <input
           id={id}
           type="range"
+          aria-label={label || `${minLabel} to ${maxLabel}`}
           min={0}
           max={100}
           step={5}

@@ -33,10 +33,7 @@ export function SettingsOverviewHealthSection({
       <ToolSection title="Appearance & chrome">
         <p className="text-sm text-[var(--text-secondary)]">
           Theme (Auto / Light / Dark), ambient intensity, density, and queue toasts live in{' '}
-          <a
-            href="/profile"
-            className="text-[var(--accent-text)] underline-offset-2 hover:underline"
-          >
+          <a href="/profile" className="text-[var(--accent-text)] underline underline-offset-2">
             Profile → Appearance
           </a>
           . Prompt quality and VRAM guards are under the ComfyUI tab.

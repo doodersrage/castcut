@@ -208,6 +208,7 @@ export default function AudioPromptTool() {
           <div className="space-y-1.5">
             <FieldLabel>Mood</FieldLabel>
             <TextInput
+              aria-label="Mood"
               value={mood}
               onChange={event => updateToolSettings({ mood: event.target.value })}
               className={accentFocusClass(ACCENT)}
@@ -216,6 +217,7 @@ export default function AudioPromptTool() {
           <div className="space-y-1.5">
             <FieldLabel>Instruments / texture</FieldLabel>
             <TextInput
+              aria-label="Instruments / texture"
               value={instruments}
               onChange={event => updateToolSettings({ instruments: event.target.value })}
               className={accentFocusClass(ACCENT)}

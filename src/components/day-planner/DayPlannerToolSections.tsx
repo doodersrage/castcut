@@ -990,6 +990,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 disabled={busy}
                 className={accentFocusClass(ACCENT)}
                 data-testid="day-setting-preset"
+                aria-label="Setting preset"
                 onChange={event => {
                   const preset = ROLEPLAY_SETTING_PRESETS.find(
                     entry => entry.id === event.target.value

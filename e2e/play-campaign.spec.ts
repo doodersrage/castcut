@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
 import { seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { gotoStable } from './helpers/navigation';
-import { seedGalleryPlayFixtures } from './helpers/gallery';
+import { seedGalleryFixture, seedGalleryPlayFixtures } from './helpers/gallery';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
 
@@ -1077,6 +1077,8 @@ test('mobile film funnel routes Moodboard → Fitting → Day', async ({ page })
 });
 
 test('gallery exposes Film derived-kind chip', async ({ page }) => {
+  // Derived-kind chips only show once the gallery has entries.
+  await seedGalleryFixture(page);
   await page.addInitScript(() => {
     try {
       localStorage.setItem('comfy-workspace-mode-v1', 'studio');

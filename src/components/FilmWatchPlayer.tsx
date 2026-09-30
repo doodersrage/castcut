@@ -161,7 +161,7 @@ export default function FilmWatchPlayer({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={shot.url} alt={shot.title} className="h-full w-full object-contain" />
         ) : null}
-        <p className="pointer-events-none absolute left-2 top-2 rounded-full bg-[var(--bg-base)]/75 px-2 py-0.5 type-caption text-[var(--text-secondary)] backdrop-blur-sm">
+        <p className="pointer-events-none absolute right-2 top-2 rounded-full bg-[var(--bg-base)]/75 px-2 py-0.5 type-caption text-[var(--text-secondary)] backdrop-blur-sm">
           {index + 1} / {shots.length}
           {shot ? ` · ${shot.kind === 'clip' ? 'Clip' : 'Still'}` : ''}
         </p>

@@ -166,7 +166,9 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
               <p className="type-caption mt-1 mb-3 text-[var(--text-secondary)]">
                 Four stills — morning to night — cut into a short reel you can watch on Cast.
               </p>
+              {/* Compact: full width, the sample filled the first screen and hid Start. */}
               <FilmWatchPlayer
+                compact
                 shots={welcomeSampleFilmShots()}
                 emptyLabel="Sample reel unavailable."
               />

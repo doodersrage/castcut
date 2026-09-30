@@ -169,7 +169,7 @@ export default function WorkspaceWelcome() {
       aria-modal="true"
       aria-labelledby="workspace-welcome-title"
     >
-      <div className="page-enter ui-welcome-card w-full max-w-lg">
+      <div className="page-enter ui-welcome-card max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain">
         <div className="mb-5 flex items-start justify-between gap-4">
           <BrandMark
             size={36}

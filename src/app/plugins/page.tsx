@@ -268,6 +268,7 @@ export default function PluginsPage() {
           <input
             ref={fileInputRef}
             type="file"
+            aria-label="Plugin manifest JSON"
             accept="application/json,.json"
             className="sr-only"
             onChange={event => {
@@ -431,6 +432,7 @@ export default function PluginsPage() {
               <input
                 ref={serverZipRef}
                 type="file"
+                aria-label="Plugin ZIP or JSON"
                 accept=".zip,application/zip,.json,application/json"
                 className="sr-only"
                 onChange={event => {

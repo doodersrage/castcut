@@ -286,6 +286,7 @@ export default function LogoTool() {
 
         <FieldLabel>Style preset</FieldLabel>
         <select
+          aria-label="Style preset"
           value={stylePreset}
           onChange={event => {
             const next = event.target.value as LogoStylePresetId;
@@ -306,6 +307,7 @@ export default function LogoTool() {
 
         <FieldLabel>SVG motif</FieldLabel>
         <select
+          aria-label="SVG motif"
           value={motif}
           onChange={event => updateToolSettings({ motif: event.target.value as LogoMotifId })}
           className="ui-input w-full px-4 py-2 text-sm"

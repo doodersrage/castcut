@@ -13,8 +13,8 @@
 
   --text-primary: #ececef;
   --text-secondary: #a1a4ad;
-  --text-tertiary: #6b6f7a;
-  --text-muted: #52565f;
+  --text-tertiary: #80848f;
+  --text-muted: #6b6f7a;
 
   --border-subtle: rgb(255 255 255 / 0.06);
   --border-default: rgb(255 255 255 / 0.1);
@@ -2680,8 +2680,8 @@ html[data-theme='light'] .ui-force-dark {
   --bg-active: rgb(255 255 255 / 0.08);
   --text-primary: #ececef;
   --text-secondary: #a1a4ad;
-  --text-tertiary: #6b6f7a;
-  --text-muted: #8a8e98;
+  --text-tertiary: #80848f;
+  --text-muted: #6b6f7a;
   --border-subtle: rgb(255 255 255 / 0.06);
   --border-default: rgb(255 255 255 / 0.1);
   --border-strong: rgb(255 255 255 / 0.14);

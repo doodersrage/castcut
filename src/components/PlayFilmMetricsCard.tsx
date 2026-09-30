@@ -154,14 +154,10 @@ export default function PlayFilmMetricsCard() {
     >
       {empty ? (
         <>
+          {/* The next-step row below already offers Start a film — one button, not two. */}
           <p className="type-caption text-[var(--text-muted)]" data-testid="play-metrics-empty">
-            No film events yet. Queue a still or start a film from Film.
+            No film events yet.
           </p>
-          <div className="mt-2">
-            <ButtonLink href="/play" size="sm" variant="primary" data-testid="play-empty-start">
-              Start a film
-            </ButtonLink>
-          </div>
         </>
       ) : (
         // Two across on a phone — eleven cards stacked one per row ran ~1,300 px.

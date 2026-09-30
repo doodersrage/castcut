@@ -116,6 +116,7 @@ export default function InpaintInputSection({
           <input
             id="inpaint-source-image"
             type="file"
+            aria-label="Choose an image file"
             accept="image/*"
             onChange={event => onFileChange(event.target.files?.[0] ?? null)}
             className="ui-file-input min-w-[14rem] flex-1"

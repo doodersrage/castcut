@@ -122,6 +122,8 @@ export default function HistoryCard({
       }`}
     >
       <pre
+        tabIndex={0}
+        aria-label="Prompt"
         className={`type-code overflow-auto whitespace-pre-wrap border border-[var(--border-subtle)] bg-[var(--bg-muted)] !text-[var(--tint-success-text)] ${
           compact ? 'max-h-28 p-3 text-xs' : 'max-h-56 p-5'
         }`}

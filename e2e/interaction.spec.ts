@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { ensureAuthenticated } from "./helpers/auth";
 import { gotoStable } from "./helpers/navigation";
 import { dismissBlockingOverlays } from "./helpers/overlays";
+import { seedGalleryFixture } from "./helpers/gallery";
 
 test.beforeEach(async ({ page }) => {
   await ensureAuthenticated(page);
@@ -24,6 +25,8 @@ test("generate accepts keywords without server error", async ({ page }) => {
 });
 
 test("gallery review mode toggles", async ({ page }) => {
+  // Filters only show once the gallery has something to filter.
+  await seedGalleryFixture(page);
   await gotoStable(page, "/gallery");
   // Deferred welcome can mount after navigation; clear again before Filters.
   await dismissBlockingOverlays(page);

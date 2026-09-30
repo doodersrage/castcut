@@ -233,7 +233,7 @@ export default function ProfilePanel() {
           Scheduled campaigns, webhooks, and browser batch runs live in{' '}
           <Link
             href={settingsTabHref('automation')}
-            className="text-[var(--accent-text)] transition hover:text-[var(--text-primary)]"
+            className="text-[var(--accent-text)] underline underline-offset-2 transition hover:text-[var(--text-primary)]"
           >
             Settings → Automation
           </Link>

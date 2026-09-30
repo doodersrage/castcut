@@ -51,6 +51,7 @@ export function VariationGridSetupSection({
         <div className="space-y-1">
           <FieldLabel>Generator</FieldLabel>
           <select
+            aria-label="Generator"
             value={target}
             onChange={event =>
               updateToolSettings({
@@ -71,6 +72,7 @@ export function VariationGridSetupSection({
         <div className="space-y-1">
           <FieldLabel>Grid mode</FieldLabel>
           <select
+            aria-label="Grid mode"
             value={gridMode}
             onChange={event =>
               updateToolSettings({
@@ -94,6 +96,7 @@ export function VariationGridSetupSection({
             <FieldLabel>Count ({count})</FieldLabel>
             <input
               type="range"
+              aria-label="Count"
               min={2}
               max={12}
               value={count}
@@ -106,6 +109,7 @@ export function VariationGridSetupSection({
             <div className="space-y-1">
               <FieldLabel>Row axis</FieldLabel>
               <select
+                aria-label="Row axis"
                 value={matrixAxisRow}
                 onChange={event =>
                   updateToolSettings({
@@ -123,6 +127,7 @@ export function VariationGridSetupSection({
             <div className="space-y-1">
               <FieldLabel>Column axis</FieldLabel>
               <select
+                aria-label="Column axis"
                 value={matrixAxisCol}
                 onChange={event =>
                   updateToolSettings({
@@ -141,6 +146,7 @@ export function VariationGridSetupSection({
               <FieldLabel>Rows ({matrixRowCount})</FieldLabel>
               <input
                 type="range"
+                aria-label="Rows"
                 min={2}
                 max={6}
                 value={matrixRowCount}
@@ -155,6 +161,7 @@ export function VariationGridSetupSection({
               <FieldLabel>Columns ({matrixColCount})</FieldLabel>
               <input
                 type="range"
+                aria-label="Columns"
                 min={2}
                 max={6}
                 value={matrixColCount}

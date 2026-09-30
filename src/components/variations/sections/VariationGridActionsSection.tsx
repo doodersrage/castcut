@@ -90,6 +90,7 @@ export function VariationGridActionsSection({
         </FieldLabel>
         <input
           type="range"
+          aria-label="Variation strength"
           min={0}
           max={100}
           value={toolSettings.variationStrength ?? 65}

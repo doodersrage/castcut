@@ -226,6 +226,7 @@ export default function MeshPromptTool() {
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="file"
+            aria-label="Reference image"
             accept="image/*"
             onChange={event => {
               const next = event.target.files?.[0] ?? null;
@@ -263,6 +264,7 @@ export default function MeshPromptTool() {
           <div className="space-y-1.5">
             <FieldLabel>Materials</FieldLabel>
             <TextInput
+              aria-label="Materials"
               value={materials}
               onChange={event => updateToolSettings({ materials: event.target.value })}
               className={accentFocusClass(ACCENT)}
@@ -271,6 +273,7 @@ export default function MeshPromptTool() {
           <div className="space-y-1.5">
             <FieldLabel>Style</FieldLabel>
             <TextInput
+              aria-label="Style"
               value={style}
               onChange={event => updateToolSettings({ style: event.target.value })}
               className={accentFocusClass(ACCENT)}

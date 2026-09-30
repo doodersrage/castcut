@@ -859,6 +859,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
               value=""
               disabled={busy}
               data-testid="day-setting-preset"
+              aria-label="Setting preset"
               onChange={event => {
                 const preset = ROLEPLAY_SETTING_PRESETS.find(
                   entry => entry.id === event.target.value

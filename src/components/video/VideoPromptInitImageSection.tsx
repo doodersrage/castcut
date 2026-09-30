@@ -57,6 +57,7 @@ export default function VideoPromptInitImageSection({
           <input
             id="video-init-image"
             type="file"
+            aria-label="Choose an image file"
             accept="image/*"
             onChange={event => onInitFileChange(event.target.files?.[0] ?? null)}
             className="ui-file-input min-w-[14rem] flex-1"

@@ -155,6 +155,7 @@ export default function NegativeTool() {
       <ToolSection>
         <FieldLabel>Sport context</FieldLabel>
         <select
+          aria-label="Sport context"
           value={toolSettings.sport ?? ''}
           onChange={event => {
             updateToolSettings({ sport: event.target.value });

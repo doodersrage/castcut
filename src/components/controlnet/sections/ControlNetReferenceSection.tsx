@@ -48,6 +48,7 @@ export function ControlNetReferenceSection({
       <div className="flex flex-wrap items-center gap-2">
         <input
           type="file"
+          aria-label="Choose an image file"
           accept="image/*"
           onChange={event => onRefChange(event.target.files?.[0] ?? null)}
           className="ui-file-input min-w-[14rem] flex-1"
@@ -102,6 +103,7 @@ export function ControlNetReferenceSection({
                 <FieldLabel>Control {slotIndex + 1}</FieldLabel>
                 <input
                   type="file"
+                  aria-label="Choose an image file"
                   accept="image/*"
                   onChange={event => onExtraRefChange(index, event.target.files?.[0] ?? null)}
                   className="ui-file-input w-full text-xs"

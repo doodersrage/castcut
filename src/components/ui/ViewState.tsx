@@ -125,14 +125,16 @@ export function EmptyState({
       className={`ui-view-state ${compact ? 'ui-view-state-compact' : ''} ${className}`.trim()}
       role="status"
     >
+      {/* One mark, not two: the brand tile stacked over the icon well read as a glitch. */}
       {branded ? (
         <div className="ui-view-state-brand">
-          <BrandMark size={compact ? 28 : 36} />
+          <BrandMark size={compact ? 32 : 44} />
         </div>
-      ) : null}
-      <div className="ui-view-state-icon">
-        <ViewStateIconGlyph name={icon} />
-      </div>
+      ) : (
+        <div className="ui-view-state-icon">
+          <ViewStateIconGlyph name={icon} />
+        </div>
+      )}
       <div className="max-w-md space-y-2">
         <h3 className={`${compact ? 'type-heading' : 'type-title'}`}>{title}</h3>
         <p className="type-body">{description}</p>
