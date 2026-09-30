@@ -61,3 +61,11 @@ export function fitPlayCastPlateLatent(
   const scale = target / longEdge;
   return snapLatentSize(width * scale, height * scale);
 }
+
+/**
+ * Canvas for a Play still whose Image 1 is only a face crop. The crop's own
+ * shape says nothing about the body, and without a probed size the latent fell
+ * back to the square sidebar (1536²): flat square-on mugshots, crunchy skin.
+ * Same-seed replay at the Cast plate's 3:4 portrait fixed pose, depth and skin.
+ */
+export const PLAY_FACE_CROP_CANVAS = { width: 1104, height: 1472 } as const;

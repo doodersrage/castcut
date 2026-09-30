@@ -4,6 +4,7 @@ import {
   PLAY_CAST_PLATE_MIN_LONG_EDGE,
   enlargePlayCastPlateLatent,
   fitPlayCastPlateLatent,
+  PLAY_FACE_CROP_CANVAS,
 } from './play-plate-render-size';
 
 test('enlargePlayCastPlateLatent steps a 1328 square plate up to 1536', () => {
@@ -56,4 +57,11 @@ test('fitPlayCastPlateLatent leaves Lightning to its ladder', () => {
     fitPlayCastPlateLatent({ width: 1104, height: 1472 }, 'qwen-image-edit-2511-lightning-8'),
     null
   );
+});
+
+test('face-crop Play stills get the 3:4 portrait canvas, not the square sidebar', () => {
+  assert.deepEqual(fitPlayCastPlateLatent(PLAY_FACE_CROP_CANVAS, 'qwen-rapid-aio-edit'), {
+    width: 1104,
+    height: 1472,
+  });
 });

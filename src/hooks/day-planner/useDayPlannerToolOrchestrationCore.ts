@@ -111,6 +111,7 @@ import {
   type FilmCutOptionsValue,
 } from '@/components/FilmCutOptionsControls';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
+import { PLAY_FACE_CROP_CANVAS } from '@/lib/play-plate-render-size';
 import { loadPoseLibrary, type NormalizedBody } from '@/lib/pose-library';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
@@ -956,7 +957,11 @@ export function useDayPlannerToolOrchestrationCore() {
               {
                 ...posePlan.options,
                 stylePreference: poseGuideStyle,
-                aspect: isOpenPoseStyle(poseGuideStyle) ? await probeImage1Size(image1Url) : null,
+                aspect: !isOpenPoseStyle(poseGuideStyle)
+                  ? null
+                  : faceOnlyIdentity
+                    ? PLAY_FACE_CROP_CANVAS
+                    : await probeImage1Size(image1Url),
                 library: isOpenPoseStyle(poseGuideStyle) ? loadPoseLibrary() : [],
               }
             );
@@ -1252,6 +1257,8 @@ export function useDayPlannerToolOrchestrationCore() {
             ? {
                 queueTool: 'image-prompt',
                 castPlateReference: true,
+                // A face crop is filename-only (no size probe) and says nothing about the body.
+                ...(faceOnlyIdentity ? { figurePixelSize: { ...PLAY_FACE_CROP_CANVAS } } : {}),
                 // Strong turbo rewrite fights face lock on Edit-2511 face-break Day.
                 turboEditStrength:
                   vacationFaceBreak || lightningIdentityPath || everydayPoseUnlock
