@@ -61,10 +61,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <HydratedAppNav />
         </Suspense>
       )}
-      {!mobileStudio ? <MobileStudioOfferBanner /> : null}
+      {/* Kiosk is already the phone Film experience — the offer hid under its fixed header and
+          only pushed the page down 43 px. */}
+      {!mobileStudio && !playKiosk ? <MobileStudioOfferBanner /> : null}
       <InventorySyncNotice />
       {playKiosk ? (
-        <div className="pt-[calc(4.75rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+        <div className="pt-[calc(4.25rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
           {children}
         </div>
       ) : (

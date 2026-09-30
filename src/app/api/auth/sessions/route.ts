@@ -1,6 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { readSessionFromRequest } from '@/lib/auth/session';
 import { resolveRequestUser } from '@/lib/auth/access';
+import { SESSION_MAX_AGE_SEC } from '@/lib/auth/config';
 import {
   listUserSessions,
   revokeAllUserSessions,
@@ -15,8 +16,14 @@ export async function GET(request: Request) {
     return apiError('Sign in required.', 401);
   }
   const session = readSessionFromRequest(request);
+  // A session's cookie dies SESSION_MAX_AGE_SEC after sign-in — older rows can't be used, so
+  // listing them only buried the live ones (hundreds after a week of scripted logins).
+  const liveAfter = Date.now() - SESSION_MAX_AGE_SEC * 1000;
+  const sessions = listUserSessions(user.id)
+    .filter(entry => entry.createdAt >= liveAfter || entry.id === session?.sessionId)
+    .sort((a, b) => b.lastSeenAt - a.lastSeenAt);
   return apiJson({
-    sessions: listUserSessions(user.id),
+    sessions,
     currentSessionId: session?.sessionId ?? null,
   });
 }

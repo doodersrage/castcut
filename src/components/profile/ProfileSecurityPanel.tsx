@@ -27,12 +27,16 @@ type SessionRow = {
   ip?: string;
 };
 
+/** Most recent first — the rest behind "Show all". */
+const VISIBLE_SESSIONS = 5;
+
 export default function ProfileSecurityPanel() {
   const [apiKeys, setApiKeys] = useState<ApiKeyRow[]>([]);
   const [newKeyLabel, setNewKeyLabel] = useState('');
   const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [showAllSessions, setShowAllSessions] = useState(false);
   const [totpEnabled, setTotpEnabled] = useState(false);
   const [totpSetup, setTotpSetup] = useState<{ secret: string; uri: string } | null>(null);
   const [totpCode, setTotpCode] = useState('');
@@ -132,8 +136,28 @@ export default function ProfileSecurityPanel() {
       </ToolSection>
 
       <ToolSection title="Active sessions">
+        {sessions.length > 1 ? (
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
+            <span>
+              {sessions.length} signed-in {sessions.length === 1 ? 'device' : 'devices'}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                void fetch('/api/auth/sessions', {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ all: true }),
+                }).then(() => refresh())
+              }
+            >
+              Sign out all others
+            </Button>
+          </div>
+        ) : null}
         <ul className="space-y-2">
-          {sessions.map(session => (
+          {(showAllSessions ? sessions : sessions.slice(0, VISIBLE_SESSIONS)).map(session => (
             <li
               key={session.id}
               className="rounded-xl border border-[var(--border-subtle)] px-3 py-2 text-sm text-[var(--text-secondary)]"
@@ -162,6 +186,15 @@ export default function ProfileSecurityPanel() {
             </li>
           ))}
         </ul>
+        {sessions.length > VISIBLE_SESSIONS ? (
+          <button
+            type="button"
+            className="mt-2 text-sm text-[var(--text-secondary)] underline-offset-2 hover:underline"
+            onClick={() => setShowAllSessions(open => !open)}
+          >
+            {showAllSessions ? 'Show recent only' : `Show all ${sessions.length}`}
+          </button>
+        ) : null}
       </ToolSection>
 
       <ToolSection title="Two-factor authentication">

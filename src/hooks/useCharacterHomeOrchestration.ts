@@ -62,6 +62,10 @@ import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import { buildCastHomeStatus } from '@/lib/cast-home-status';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { useHydrated } from '@/hooks/useHydrated';
+import {
+  isSettingsSyncedWithServer,
+  SETTINGS_SYNCED_WITH_SERVER_EVENT,
+} from '@/lib/settings-push-flush';
 
 export type MediaTab = 'all' | 'stills' | 'clips' | 'films' | 'keepers';
 
@@ -137,6 +141,22 @@ export function useCharacterHomeOrchestration(characterId: string) {
   const character = hydrated
     ? (characters.find(entry => entry.id === characterId) ?? getCharacter(characterId))
     : undefined;
+  // A fresh browser (new phone, cleared site data) gets its Cast from the first server pull —
+  // keep loading until that lands (or a short timeout) instead of flashing "not found".
+  const [serverSyncSettled, setServerSyncSettled] = useState(() => isSettingsSyncedWithServer());
+  useEffect(() => {
+    if (serverSyncSettled) {
+      return;
+    }
+    const settle = () => setServerSyncSettled(true);
+    window.addEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, settle);
+    const timer = window.setTimeout(settle, 8000);
+    return () => {
+      window.removeEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, settle);
+      window.clearTimeout(timer);
+    };
+  }, [serverSyncSettled]);
+  const castReady = hydrated && (Boolean(character) || serverSyncSettled);
 
   // Opening a Cast profile activates that Cast so nav → Story/Film/Outfit matches profile CTAs.
   useEffect(() => {
@@ -490,7 +510,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
   });
 
   return {
-    hydrated,
+    hydrated: castReady,
     homeTab,
     setHomeTab,
     character,
