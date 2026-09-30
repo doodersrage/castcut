@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { requeueComfyJobFromEntry } from '@/lib/comfyui-requeue';
 import FailedJobFixButtons from '@/components/FailedJobFixButtons';
 import { EmptyState, ErrorState } from '@/components/ui/ViewState';
@@ -61,6 +62,11 @@ export default function QueueToolSections({
   retryFailed,
   retryEntry,
 }: QueueToolSectionsProps) {
+  // Fresh failures open the list; old ones stay one click away. (Time read once per visit.)
+  const [openedAt] = useState(() => Date.now());
+  const recentFailure = failed.some(
+    entry => openedAt - (entry.completedAt ?? entry.queuedAt ?? 0) < 24 * 60 * 60 * 1000
+  );
   const filmCta = resolveStudioEmptyCta(generateCta);
   return (
     <ToolLayout
@@ -239,7 +245,7 @@ export default function QueueToolSections({
           summary={
             failed.length > 0 ? 'Retry jobs that errored in ComfyUI.' : 'No failures right now.'
           }
-          defaultOpen={false}
+          defaultOpen={recentFailure}
           persistKey="queue-failed"
         >
           {failed.length === 0 ? (
@@ -302,7 +308,7 @@ export default function QueueToolSections({
           summary={
             failed.length > 0 ? 'Retry or clear jobs that errored in ComfyUI.' : 'No failures.'
           }
-          defaultOpen={false}
+          defaultOpen={recentFailure}
           persistKey="queue-failed-full"
         >
           {failed.length === 0 ? (

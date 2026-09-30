@@ -44,13 +44,9 @@ export function AppNavSidebarContent({ onNavigate }: { onNavigate?: () => void }
         user={vm.user}
         logout={vm.logout}
         navReady={vm.navReady}
-        workspaceMode={vm.workspaceMode}
         settingsVisible={vm.settingsVisible}
         profileVisible={vm.profileVisible}
         guestShell={vm.guestShell}
-        favorites={vm.favorites}
-        handleToggleFavorite={vm.handleToggleFavorite}
-        setExpandedGroups={vm.setExpandedGroups}
         onNavigate={onNavigate}
       />
     </div>

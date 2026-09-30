@@ -1,5 +1,6 @@
 'use client';
 
+import { galleryCardCaption } from '@/lib/gallery-card-caption';
 import { useMemo, type ReactNode } from 'react';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
 import { formatExperimentParamDiffChips } from '@/lib/gallery-param-diff';
@@ -80,7 +81,7 @@ export default function GalleryExperimentBlock({
             {winnerEntryId ? ' · crowned' : ''}
           </p>
           <p className="truncate text-xs text-[var(--text-secondary)]" title={label}>
-            {label}
+            {galleryCardCaption(label) || label}
           </p>
           {paramDiffChips.length > 0 ? (
             <div data-testid="gallery-experiment-param-diff" className="flex flex-wrap gap-1.5">

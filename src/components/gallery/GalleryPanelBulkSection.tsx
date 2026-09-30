@@ -56,7 +56,7 @@ export default function GalleryPanelBulkSection({
       {leanBulkEnabled && visibleEntries.length > 0 && selectedIds.length === 0 ? (
         <div
           data-testid="gallery-multiselect-tip"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-[var(--accent-border)]/60 bg-[var(--accent-muted)]/40 px-4 py-3 text-xs text-[var(--accent-text)]"
+          className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-[var(--text-muted)]"
         >
           <span>
             {leanGallery

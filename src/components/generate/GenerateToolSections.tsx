@@ -1,7 +1,6 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import BrandBars from '@/components/BrandBars';
 import CollabPresenceBar from '@/components/CollabPresenceBar';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import { resolveCollabFieldValue } from '@/lib/collab-presence';
@@ -154,16 +153,6 @@ export default function GenerateToolSections({
       }
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.generate} />
-      {!output.trim() ? (
-        <p className="ui-brand-tagline type-caption flex flex-wrap items-center gap-2 text-[var(--text-tertiary)]">
-          <BrandBars />
-          <span>
-            Castcut
-            <span className="mx-1.5 text-[var(--border-strong)]">·</span>
-            scene → queue → gallery — Random surprise skips the blank page
-          </span>
-        </p>
-      ) : null}
       <CollabPresenceBar
         tool="generate"
         draft={input}

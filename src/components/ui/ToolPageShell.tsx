@@ -189,7 +189,13 @@ export function StatCard({
   return (
     <div className="ui-stat-card">
       <p className="ui-stat-card-label">{label}</p>
-      <p className={`ui-stat-card-value ${valueClassName}`.trim()}>{value}</p>
+      {/* A stat is a number — long text values ("model-a 45% · model-b 62%") drop to body
+          size instead of wrapping in headline type. */}
+      <p
+        className={`ui-stat-card-value ${value.length > 18 ? '!text-sm !leading-snug' : ''} ${valueClassName}`.trim()}
+      >
+        {value}
+      </p>
       {detail ? <p className="type-caption mt-1">{detail}</p> : null}
     </div>
   );

@@ -36,6 +36,7 @@ export default function CollabPresenceBar({
 }: CollabPresenceBarProps) {
   const [peerId] = useState(() => createCollabPeerId());
   const [peers, setPeers] = useState<CollabPresencePeer[]>([]);
+  const [barOpen, setBarOpen] = useState(false);
   const [remoteDraft, setRemoteDraft] = useState<CollabDraftPayload | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [projects] = useState(() => (typeof window === 'undefined' ? [] : loadPromptProjects()));
@@ -216,6 +217,20 @@ export default function CollabPresenceBar({
     }
     return projects.find(project => project.id === projectId)?.name ?? projectId;
   }, [projectId, projects]);
+
+  // Alone in the default room: a small link, not a room picker and share bar on every visit.
+  if (!barOpen && others.length === 0 && projectId === 'default' && !remoteDraft) {
+    return (
+      <button
+        type="button"
+        className="ui-text-link self-start type-caption"
+        data-testid="collab-open"
+        onClick={() => setBarOpen(true)}
+      >
+        Collaborate…
+      </button>
+    );
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)]/50 px-3 py-2 text-[11px] text-[var(--text-muted)]">

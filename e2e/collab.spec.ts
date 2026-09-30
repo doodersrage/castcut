@@ -3,6 +3,14 @@ import { ensureAuthenticated } from './helpers/auth';
 import { gotoStable } from './helpers/navigation';
 
 async function expectCollabPresenceBar(page: Page): Promise<void> {
+  // Alone in the default room the bar is a "Collaborate…" link until opened.
+  const open = page.getByTestId('collab-open');
+  const room = page.getByRole('combobox', { name: 'Collab room' });
+  await expect(open.or(room)).toBeVisible({ timeout: 15_000 });
+  // Another test joining the room expands the bar on its own — the link can vanish mid-click.
+  if (await open.isVisible()) {
+    await open.click({ timeout: 3_000 }).catch(() => undefined);
+  }
   await expect(page.getByRole('combobox', { name: 'Collab room' })).toBeVisible({
     timeout: 15_000,
   });
