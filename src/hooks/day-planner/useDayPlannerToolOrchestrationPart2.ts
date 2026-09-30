@@ -54,7 +54,9 @@ import {
   upsertDaySlotStill,
   type DaySlot,
   type DaySlotId,
+  isDayAdultMood,
 } from '@/lib/day-planner';
+import { buildIntimateClipPrompt } from '@/lib/intimate-clip-prompt';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,
@@ -320,23 +322,31 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         });
         const subject = buildDaySlotMotionSubject(slot, character?.name);
         let prompt = subject;
-        try {
-          const response = await fetch('/api/video-prompt', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              subject: slot.label,
-              motion: slot.sceneHints?.trim() || subject,
-              model: videoModel,
-              durationSec: 4,
-            }),
-          });
-          const data = (await response.json()) as { prompt?: string };
-          if (data.prompt?.trim()) {
-            prompt = data.prompt.trim();
+        // Sex clips: the LLM writer added camera moves, the gag as motion and laughter — clips
+        // turned the rider around, dropped the partner and grew cackles. Same-seed replays held
+        // pose, framing and calm faces with the fixed template instead.
+        const adultClip = isDayAdultMood(toolSettings.dayMood);
+        if (adultClip) {
+          prompt = buildIntimateClipPrompt(slot.sceneHints?.trim() || subject, 4);
+        } else {
+          try {
+            const response = await fetch('/api/video-prompt', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subject: slot.label,
+                motion: slot.sceneHints?.trim() || subject,
+                model: videoModel,
+                durationSec: 4,
+              }),
+            });
+            const data = (await response.json()) as { prompt?: string };
+            if (data.prompt?.trim()) {
+              prompt = data.prompt.trim();
+            }
+          } catch {
+            /* use subject */
           }
-        } catch {
-          /* use subject */
         }
         // 2.0: keep Cast face + pinned LoRAs on Animate — I2V init still is Image 1.
         if (character) {
@@ -394,6 +404,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       shared.activeLookId,
       shared.ipAdapterStrength,
       shared.model,
+      toolSettings.dayMood,
       updateToolSettings,
     ]
   );
