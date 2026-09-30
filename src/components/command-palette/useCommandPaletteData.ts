@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { galleryCardCaption } from '@/lib/gallery-card-caption';
 import type { AppFeatureId } from '@/lib/auth/features';
 import { NSFW_GENERATOR_NAV_LINK } from '@/lib/nsfw-generator-nav';
 import { loadNavFavorites } from '@/lib/nav-favorites';
@@ -280,7 +281,8 @@ export function filterCommandPaletteItems(options: {
     });
   }
   for (const entry of recentGallery) {
-    const preview = entry.prompt.trim().slice(0, 72) || entry.model || 'Gallery output';
+    const preview =
+      galleryCardCaption(entry.prompt).slice(0, 72) || entry.model || 'Gallery output';
     continueItems.push({
       id: `recent-gallery-${entry.id}`,
       label: `Gallery · ${preview}`,

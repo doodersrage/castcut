@@ -1,4 +1,5 @@
 import type { ComfyGalleryEntry } from './comfyui-gallery';
+import { galleryCardCaption } from './gallery-card-caption';
 
 export type ExperimentGroup = {
   id: string;
@@ -56,7 +57,8 @@ export function groupGalleryExperiments(entries: ComfyGalleryEntry[]): Experimen
         // See experimentGroupIdForPrompt's doc comment: this must be the full key, not a
         // truncated prefix, or distinct prompts sharing a common prefix collide onto the same id.
         id: key,
-        label: entry.prompt.slice(0, 80),
+        // Caption the whole prompt — the first 80 chars are edit boilerplate, the beat is later.
+        label: (galleryCardCaption(entry.prompt) || entry.prompt).slice(0, 80),
         parentPrompt: entry.prompt,
         entries: [entry],
         variants: {

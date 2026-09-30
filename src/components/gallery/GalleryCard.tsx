@@ -271,8 +271,13 @@ export default function GalleryCard({
       const padding = 8;
       const menuWidth = 208;
       const estimatedHeight = 360;
-      const spaceBelow = window.innerHeight - rect.bottom - padding;
-      const spaceAbove = rect.top - padding;
+      // Keep clear of the fixed bottom tabs and top header — the menu ran under the Film nav.
+      const rootStyle = getComputedStyle(document.documentElement);
+      const dock = parseFloat(rootStyle.getPropertyValue('--bottom-dock-height')) || 0;
+      const header = document.querySelector('header.fixed')?.getBoundingClientRect().bottom ?? 0;
+      const viewportBottom = window.innerHeight - dock;
+      const spaceBelow = viewportBottom - rect.bottom - padding;
+      const spaceAbove = rect.top - Math.max(header, 0) - padding;
       const openUp = spaceBelow < 240 && spaceAbove > spaceBelow;
       const maxHeight = Math.max(
         160,
@@ -283,8 +288,8 @@ export default function GalleryCard({
         window.innerWidth - menuWidth - padding
       );
       const top = openUp
-        ? Math.max(padding, rect.top - maxHeight - 6)
-        : Math.min(rect.bottom + 6, window.innerHeight - maxHeight - padding);
+        ? Math.max(Math.max(header, 0) + padding, rect.top - maxHeight - 6)
+        : Math.min(rect.bottom + 6, viewportBottom - maxHeight - padding);
 
       setMenuPosition({ top, left, maxHeight });
     };

@@ -203,12 +203,21 @@ export default function ModelSelector({
     const margin = 12;
     const width = Math.min(Math.max(rect.width, 320), window.innerWidth - margin * 2);
     const left = Math.min(Math.max(margin, rect.left), window.innerWidth - width - margin);
-    const below = window.innerHeight - rect.bottom - margin;
-    const above = rect.top - margin;
+    // Clear the fixed bottom tabs / top header (Film layout) as well as the viewport edge.
+    const dock =
+      parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--bottom-dock-height')
+      ) || 0;
+    const header = Math.max(
+      document.querySelector('header.fixed')?.getBoundingClientRect().bottom ?? 0,
+      0
+    );
+    const below = window.innerHeight - dock - rect.bottom - margin;
+    const above = rect.top - header - margin;
     const openAbove = below < 280 && above > below;
     const maxHeight = Math.min(520, openAbove ? above - 6 : below - 6);
     setPosition({
-      top: openAbove ? Math.max(margin, rect.top - 6 - maxHeight) : rect.bottom + 6,
+      top: openAbove ? Math.max(header + margin, rect.top - 6 - maxHeight) : rect.bottom + 6,
       left,
       width,
       maxHeight,

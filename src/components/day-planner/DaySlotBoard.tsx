@@ -382,10 +382,10 @@ export default function DaySlotBoard({
                 onClick={() => onSelectSlot(slot.id)}
               >
                 <div className="flex items-baseline justify-between gap-2">
-                  <p className="type-heading text-sm sm:text-base">{slot.label}</p>
-                  {selected ? (
-                    <span className="type-overline text-[var(--accent-text)]">Editing</span>
-                  ) : null}
+                  <p className="type-heading min-w-0 truncate text-sm sm:text-base">{slot.label}</p>
+                  {/* Screen-reader only: the accent border already marks the slot being edited,
+                      and "EDITING" was clipped in the four-across desktop board. */}
+                  {selected ? <span className="sr-only">Editing</span> : null}
                 </div>
                 <p className="type-caption text-[var(--text-muted)]">{label}</p>
                 {job?.percent != null ? (
@@ -471,15 +471,16 @@ export default function DaySlotBoard({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="w-full justify-center"
+                    className="w-full justify-center whitespace-nowrap"
                     disabled={busy}
+                    aria-label={`Reroll ${slot.label} plan`}
                     data-testid={`day-progress-reroll-${slot.id}`}
                     onClick={() => {
                       onSelectSlot(slot.id);
                       onRerollSlot(slot);
                     }}
                   >
-                    Reroll plan
+                    Reroll
                   </Button>
                 </div>
               ) : null}

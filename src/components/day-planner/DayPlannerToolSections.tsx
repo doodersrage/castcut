@@ -611,7 +611,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             <label className="space-y-2">
               <FieldLabel>Setting · {activeSlot.label}</FieldLabel>
               <TextArea
-                rows={2}
+                rows={3}
                 data-testid="day-slot-location"
                 value={activeSlot.location ?? ''}
                 className={accentFocusClass(ACCENT)}
@@ -622,7 +622,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             <label className="space-y-2">
               <FieldLabel>Beat · {activeSlot.label}</FieldLabel>
               <TextArea
-                rows={2}
+                rows={3}
                 data-testid="day-slot-beat"
                 value={activeSlot.sceneHints ?? ''}
                 className={accentFocusClass(ACCENT)}
