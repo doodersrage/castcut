@@ -1,7 +1,6 @@
 'use client';
 
 import SharedToolControls from '@/components/SharedToolControls';
-import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import ImagePromptInputSection from '@/components/image-prompt/ImagePromptInputSection';
 import ImagePromptResultSection from '@/components/image-prompt/ImagePromptResultSection';
@@ -47,11 +46,7 @@ export default function ImagePromptToolSections({
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={
-        <ToolBadge accent={ACCENT}>
-          {TOOL_SETUP_LABELS.imagePrompt} · {selectedModel.comfyNode}
-        </ToolBadge>
-      }
+      badge={<ToolBadge accent={ACCENT}>Create</ToolBadge>}
       title="Image → Prompt"
       description={description}
       sidebarPersistKey="image-prompt"

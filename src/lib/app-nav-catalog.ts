@@ -11,112 +11,84 @@ export type AppNavGroup = {
   links: AppNavLink[];
 };
 
-/** Sidebar group for soft-deprecated specialty tools (still reachable via ⌘K / direct URL). */
-export const APP_NAV_EXTRAS_GROUP_LABEL = 'Extras';
+/** Collapsed sidebar group for rarely used and parked tools (still reachable via ⌘K / URL). */
+export const APP_NAV_EXTRAS_GROUP_LABEL = 'More tools';
 
+/**
+ * Grouped around the Film loop (Cast → Look → Outfit → Day → Story → Film), then making and
+ * editing images, then the library. Rarely used tools sit under More tools (collapsed).
+ */
 export const APP_NAV_GROUPS: AppNavGroup[] = [
   {
-    label: 'Overview',
+    label: 'Film',
     links: [
-      { href: '/dashboard', label: 'Dashboard', description: 'Jobs, queue & recent outputs' },
-      { href: '/queue', label: 'Queue', description: 'Central ComfyUI job queue' },
-      {
-        href: '/m',
-        label: 'Castcut phone',
-        description: 'Phone film loop — Film hub, Look, Outfit, Day, Story + Cut',
-      },
-    ],
-  },
-  {
-    label: 'Prompt',
-    links: [
-      { href: '/', label: 'Generate', description: 'Keywords or random scene' },
-      { href: '/format', label: 'Format', description: 'Draft → model-ready' },
-      { href: '/prompt', label: 'Prompt Editor', description: 'Edit & optimize' },
-      { href: '/lint', label: 'Lint', description: 'Diagnostics & fix' },
-    ],
-  },
-  {
-    label: 'Scene',
-    links: [
+      { href: '/play', label: 'Film', description: 'Guided Look → Outfit → Day → Cut film loop' },
       {
         href: '/characters',
         label: 'Cast',
         description: 'Character home — looks, stills, clips, and LoRA',
       },
       {
-        href: '/character',
-        label: 'Character',
-        description: 'Person, pet, fantasy, or environment — switch on the page',
+        href: '/moodboard',
+        label: 'Look',
+        description: 'Reference tiles → extract a look for Outfit / Day',
       },
-      {
-        href: '/play',
-        label: 'Film',
-        description: 'Guided Look → Outfit → Day → Cut film loop',
-      },
+      { href: '/fitting', label: 'Outfit', description: 'Try a catalog kit on a Cast plate' },
+      { href: '/day', label: 'Day', description: 'Morning through night — stills, then Cut film' },
       {
         href: '/story',
         label: 'Story',
         description: 'Be someone. Pick a scene. Get a still or clip.',
       },
       {
-        href: '/fitting',
-        label: 'Outfit',
-        description: 'Try a catalog kit on a Cast plate',
+        href: '/character',
+        label: 'Character',
+        description: 'Person, pet, fantasy, or environment — switch on the page',
       },
-      {
-        href: '/day',
-        label: 'Day',
-        description: 'Morning through night — stills, then Cut film',
-      },
-      {
-        href: '/moodboard',
-        label: 'Look',
-        description: 'Reference tiles → extract a look for Outfit / Day',
-      },
+    ],
+  },
+  {
+    label: 'Create',
+    links: [
+      { href: '/', label: 'Generate', description: 'Keywords or random scene' },
+      { href: '/prompt', label: 'Prompt Editor', description: 'Edit & optimize' },
+      { href: '/image-prompt', label: 'Image → Prompt', description: 'Vision upload' },
+      { href: '/video', label: 'Video', description: 'Motion prompts' },
+      { href: '/variations', label: 'Variations', description: 'Grid queue and matrix sweeps' },
     ],
   },
   {
     label: 'Edit',
     links: [
-      { href: '/image-prompt', label: 'Image → Prompt', description: 'Vision upload' },
       { href: '/refine', label: 'Refine', description: 'Image + intent fix' },
       { href: '/inpaint', label: 'Inpaint', description: 'Mask + region prompt' },
-      {
-        href: '/outpaint',
-        label: 'Outpaint',
-        description: 'Expand canvas borders',
-      },
-      {
-        href: '/compose',
-        label: 'Compose',
-        description: 'Multi-image transfer & edit',
-      },
-      {
-        href: '/workflow-editor',
-        label: 'Workflow editor',
-        description: 'Edit Comfy node graphs',
-      },
+      { href: '/outpaint', label: 'Outpaint', description: 'Expand canvas borders' },
+      { href: '/compose', label: 'Compose', description: 'Multi-image transfer & edit' },
       { href: '/controlnet', label: 'ControlNet', description: 'Structure prompts' },
-      { href: '/negative', label: 'Negative', description: 'SD negatives' },
     ],
-  },
-  {
-    label: 'Media',
-    links: [{ href: '/video', label: 'Video', description: 'Motion prompts' }],
   },
   {
     label: 'Library',
     links: [
-      { href: '/studio', label: 'Studio', description: 'History, presets, and compare' },
       { href: '/gallery', label: 'Gallery', description: 'ComfyUI outputs' },
-      { href: '/variations', label: 'Variations', description: 'Grid queue and matrix sweeps' },
-      { href: '/plugins', label: 'Plugins', description: 'Runtime manifests and nav bookmarks' },
+      { href: '/queue', label: 'Queue', description: 'Central ComfyUI job queue' },
+      { href: '/dashboard', label: 'Dashboard', description: 'Jobs, queue & recent outputs' },
+      { href: '/studio', label: 'Studio', description: 'History, presets, and compare' },
     ],
   },
   {
     label: APP_NAV_EXTRAS_GROUP_LABEL,
     links: [
+      { href: '/format', label: 'Format', description: 'Draft → model-ready' },
+      { href: '/lint', label: 'Lint', description: 'Diagnostics & fix' },
+      { href: '/negative', label: 'Negative', description: 'SD negatives' },
+      { href: '/workflow-editor', label: 'Workflow editor', description: 'Edit Comfy node graphs' },
+      { href: '/plugins', label: 'Plugins', description: 'Runtime manifests and nav bookmarks' },
+      {
+        href: '/m',
+        label: 'Castcut phone',
+        description: 'Phone film loop — Film hub, Look, Outfit, Day, Story + Cut',
+      },
       {
         href: '/topics',
         label: 'Topics',

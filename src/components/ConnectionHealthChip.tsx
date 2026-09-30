@@ -97,7 +97,8 @@ export default function ConnectionHealthChip({ compact = false }: { compact?: bo
         aria-hidden
       />
       {compact ? (
-        <span>{label}</span>
+        // Phone headers are tight: dot only below sm, the word beside it from sm up.
+        <span className="sr-only sm:not-sr-only">{label}</span>
       ) : (
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span>{label}</span>

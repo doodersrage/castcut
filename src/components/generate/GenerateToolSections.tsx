@@ -122,7 +122,7 @@ export default function GenerateToolSections({
         <ToolBadge accent={ACCENT}>
           {isCloudEngine(shared.inferenceEngine)
             ? engineDisplayName(shared.inferenceEngine)
-            : `ComfyUI · ${selectedModel.comfyNode}`}
+            : 'Create'}
         </ToolBadge>
       }
       title="Generate"

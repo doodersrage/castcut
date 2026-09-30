@@ -76,8 +76,15 @@ export function clearSettingsPushPending(): void {
 }
 
 /** Called when this page's startup sync with the server has finished. */
+export const SETTINGS_SYNCED_WITH_SERVER_EVENT = 'settings-synced-with-server';
+
 export function markSettingsSyncedWithServer(): void {
+  if (syncedWithServer) return;
   syncedWithServer = true;
+  // Readers that hid "you haven't set this up" until the server copy arrived recheck now.
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event(SETTINGS_SYNCED_WITH_SERVER_EVENT));
+  }
 }
 
 /** Whether this page has pulled the server's settings — pushes of settings wait for it. */

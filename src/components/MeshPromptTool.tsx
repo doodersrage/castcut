@@ -155,7 +155,7 @@ export default function MeshPromptTool() {
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>3D · {selectedModel.comfyNode}</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>More tools</ToolBadge>}
       title="Mesh / 3D prompt"
       description={description}
       sidebarPersistKey="mesh"

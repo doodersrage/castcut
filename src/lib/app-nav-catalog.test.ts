@@ -23,10 +23,10 @@ function assertValidLink(link: AppNavLink) {
 
 describe('app-nav-catalog', () => {
   describe('APP_NAV_GROUPS', () => {
-    it('declares the seven top-level groups in a stable order', () => {
+    it('declares the Film-first top-level groups in a stable order', () => {
       assert.deepEqual(
         APP_NAV_GROUPS.map(group => group.label),
-        ['Overview', 'Prompt', 'Scene', 'Edit', 'Media', 'Library', 'Extras']
+        ['Film', 'Create', 'Edit', 'Library', 'More tools']
       );
     });
 
@@ -52,12 +52,14 @@ describe('app-nav-catalog', () => {
     });
 
     it('includes the expected core routes in their documented groups', () => {
-      const overview = APP_NAV_GROUPS.find(group => group.label === 'Overview')!;
+      const film = APP_NAV_GROUPS.find(group => group.label === 'Film')!;
       const library = APP_NAV_GROUPS.find(group => group.label === 'Library')!;
-      assert.ok(overview.links.some(link => link.href === '/dashboard'));
-      assert.ok(overview.links.some(link => link.href === '/queue'));
+      const more = APP_NAV_GROUPS.find(group => group.label === 'More tools')!;
+      assert.equal(film.links[0]!.href, '/play');
+      assert.ok(library.links.some(link => link.href === '/dashboard'));
+      assert.ok(library.links.some(link => link.href === '/queue'));
       assert.ok(library.links.some(link => link.href === '/gallery'));
-      assert.ok(library.links.some(link => link.href === '/plugins'));
+      assert.ok(more.links.some(link => link.href === '/plugins'));
     });
   });
 

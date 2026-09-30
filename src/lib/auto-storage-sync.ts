@@ -341,6 +341,8 @@ async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
     .then(response => response.json())
     .catch(() => null);
   if (!(health as { storage?: { enabled?: boolean } } | null)?.storage?.enabled) {
+    // No server copy to wait for (health unreachable leaves pushes gated as before).
+    if (health) markSettingsSyncedWithServer();
     return { synced: [], conflicts: [], skipped: true };
   }
 

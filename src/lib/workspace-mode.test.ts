@@ -123,22 +123,19 @@ describe("workspace-mode", () => {
     assert.equal(flatCount, flattenAppNavLinks(APP_NAV_GROUPS).length);
   });
 
-  it("keeps Edit / Media / Library / Extras structure for studio and full", () => {
+  it("keeps Film / Create / Edit / Library / More tools structure for studio and full", () => {
     for (const mode of ["studio", "full"] as const) {
       const groups = navGroupsForWorkspaceMode(mode, APP_NAV_GROUPS);
       const labels = groups.map((group) => group.label);
-      assert.ok(labels.includes("Edit"));
-      assert.ok(labels.includes("Media"));
-      assert.ok(labels.includes("Library"));
-      assert.ok(labels.includes("Extras"));
+      assert.deepEqual(labels, ["Film", "Create", "Edit", "Library", "More tools"]);
       assert.equal(labels.includes("Tools"), false);
     }
   });
 
-  it("defaults Media and Extras collapsed in studio and expands all in full", () => {
+  it("defaults More tools collapsed in studio and expands all in full", () => {
     const studio = defaultExpandedNavGroups("studio", APP_NAV_GROUPS);
-    assert.equal(studio.includes("Media"), false);
-    assert.equal(studio.includes("Extras"), false);
+    assert.equal(studio.includes("More tools"), false);
+    assert.ok(studio.includes("Film"));
     assert.ok(studio.includes("Edit"));
     const full = defaultExpandedNavGroups("full", APP_NAV_GROUPS);
     assert.deepEqual(

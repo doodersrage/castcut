@@ -13,12 +13,12 @@ const ACCENT = 'amber' as const;
 type Props = ReturnType<typeof useOutpaintToolOrchestration> & { description: string };
 
 export default function OutpaintToolSections({ description, ...vm }: Props) {
-  const { shared, selectedModel, updateShared } = vm;
+  const { shared, updateShared } = vm;
 
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Outpaint · {selectedModel.comfyNode}</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Edit</ToolBadge>}
       title="Outpaint / expand"
       description={description}
       sidebarPersistKey="outpaint"

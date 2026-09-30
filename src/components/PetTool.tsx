@@ -206,7 +206,7 @@ export default function PetTool() {
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Pet scene · {selectedModel.comfyNode}</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Film · Character</ToolBadge>}
       title="Pet"
       description={description}
       sidebarPersistKey="pet"

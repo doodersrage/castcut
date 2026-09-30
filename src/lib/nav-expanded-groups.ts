@@ -1,6 +1,7 @@
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 
-const KEY = 'comfy-nav-expanded-groups-v1';
+// v2: groups were renamed (Film / Create / Edit / Library / More tools) — old saved labels no longer match.
+const KEY = 'comfy-nav-expanded-groups-v2';
 
 export function loadExpandedNavGroups(): string[] | null {
   if (typeof window === 'undefined') {

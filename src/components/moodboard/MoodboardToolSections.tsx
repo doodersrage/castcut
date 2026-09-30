@@ -187,7 +187,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Look · {selectedModel?.comfyNode ?? 'model'}</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Film</ToolBadge>}
       title="Look"
       description={description}
       sidebarPersistKey="moodboard"

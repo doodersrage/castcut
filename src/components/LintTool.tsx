@@ -108,7 +108,7 @@ export default function LintTool() {
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Lint · {selectedModel.comfyNode}</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>More tools</ToolBadge>}
       title="Lint"
       description={description}
       sidebarPersistKey="lint"

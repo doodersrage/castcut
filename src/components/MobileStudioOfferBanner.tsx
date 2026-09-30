@@ -27,6 +27,12 @@ export default function MobileStudioOfferBanner() {
     return () => mq.removeEventListener('change', refresh);
   }, [pathname]);
 
+  // Offered once: leaving the page counts as "seen" (it took 100 px of every phone page).
+  useEffect(() => {
+    if (!visible) return;
+    return () => dismissMobileStudioOffer();
+  }, [visible]);
+
   if (!visible) {
     return null;
   }
@@ -36,9 +42,8 @@ export default function MobileStudioOfferBanner() {
       data-testid="mobile-studio-offer"
       className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[var(--accent-border)] bg-[var(--accent-muted)] px-4 py-2 text-xs text-[var(--accent-text)] lg:hidden"
     >
-      <p className="min-w-0 leading-snug">
-        On a phone? <span className="font-medium">Castcut Film</span> is a first-class loop — Film
-        hub, Look / Outfit / Day / Story / Cut — while desk handles heavy Generate.
+      <p className="min-w-0 truncate leading-snug">
+        On a phone? Try <span className="font-medium">Castcut Film</span>.
       </p>
       <div className="flex shrink-0 items-center gap-2">
         <button

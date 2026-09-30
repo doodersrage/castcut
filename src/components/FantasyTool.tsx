@@ -267,7 +267,7 @@ export default function FantasyTool() {
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Fantasy scene · {selectedModel.comfyNode}</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Film · Character</ToolBadge>}
       title="Fantasy"
       description={description}
       sidebarPersistKey="fantasy"

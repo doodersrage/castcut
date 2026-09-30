@@ -54,7 +54,7 @@ export const WORKSPACE_MODE_OPTIONS: {
     label: 'Studio',
     shortTag: 'Control',
     description:
-      'Control how they are made — full catalog in Edit / Media / Library / Extras. Advanced collapsed.',
+      'Control how they are made — full catalog in Create / Edit / Library / More tools. Advanced collapsed.',
   },
   {
     id: 'full',
@@ -179,7 +179,7 @@ function hasExistingChromePrefs(): boolean {
   return Boolean(
     readBrowserString('comfy-nav-favorites-v1') ||
     readBrowserString('comfy-ui-density-v1') ||
-    readBrowserString('comfy-nav-expanded-groups-v1') ||
+    readBrowserString('comfy-nav-expanded-groups-v2') ||
     readBrowserString('comfy-recent-destinations-v1')
   );
 }
@@ -320,8 +320,8 @@ export function defaultExpandedNavGroups(mode: WorkspaceMode, groups: AppNavGrou
     if (groups.some(group => group.label === 'Play')) {
       return ['Play'];
     }
-    if (groups.some(group => group.label === 'Scene')) {
-      return ['Scene'];
+    if (groups.some(group => group.label === 'Film')) {
+      return ['Film'];
     }
     return groups.slice(0, 1).map(group => group.label);
   }
@@ -331,10 +331,8 @@ export function defaultExpandedNavGroups(mode: WorkspaceMode, groups: AppNavGrou
   if (mode === 'full') {
     return groups.map(group => group.label);
   }
-  // Studio: keep Media + parked Extras collapsed by default to reduce noise.
-  return groups
-    .map(group => group.label)
-    .filter(label => label !== 'Media' && label !== APP_NAV_EXTRAS_GROUP_LABEL);
+  // Studio: keep More tools collapsed by default to reduce noise.
+  return groups.map(group => group.label).filter(label => label !== APP_NAV_EXTRAS_GROUP_LABEL);
 }
 
 export function workspaceShowsAdvancedControls(mode: WorkspaceMode): boolean {

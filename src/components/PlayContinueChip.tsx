@@ -15,6 +15,7 @@ import { loadOnboardingState, ONBOARDING_UPDATED_EVENT } from '@/lib/onboarding-
 import { loadLookPack } from '@/lib/look-pack';
 import { resolvePlayHabitNudge } from '@/lib/play-habit-nudge';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
+import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 
 type PlayContinueChipProps = {
   className?: string;
@@ -24,6 +25,8 @@ type PlayContinueChipProps = {
   hideWhenIdle?: boolean;
   /** Hide when the 24h habit nudge is showing (Dashboard owns that voice). */
   hideWhenHabit?: boolean;
+  /** In-page copy: hidden while the Film header (Play kiosk) already shows the chip. */
+  hideUnderKioskHeader?: boolean;
 };
 
 /** Shared Continue CTA used by kiosk, Gallery, Queue, Dashboard, and Mobile Studio. */
@@ -33,7 +36,9 @@ export default function PlayContinueChip({
   hideWhenIdle = true,
   /** When habit owns the 24h remix voice (Dashboard), hide this chip. */
   hideWhenHabit = false,
+  hideUnderKioskHeader = false,
 }: PlayContinueChipProps) {
+  const workspaceMode = useWorkspaceMode();
   const pathname = usePathname();
   const [cta, setCta] = useState<{ label: string; href: string } | null>(null);
 
@@ -85,6 +90,14 @@ export default function PlayContinueChip({
   }, [hideWhenHabit, hideWhenIdle, pathname]);
 
   if (!cta) {
+    return null;
+  }
+  // "Continue to Day" while on Day went nowhere — and the page showed it twice.
+  const targetPath = cta.href.split(/[?#]/)[0] || '/';
+  if (targetPath === pathname || toMobileStudioHref(targetPath) === pathname) {
+    return null;
+  }
+  if (hideUnderKioskHeader && workspaceMode === 'play' && !isMobileStudioPath(pathname)) {
     return null;
   }
 

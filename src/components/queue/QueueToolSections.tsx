@@ -71,7 +71,7 @@ export default function QueueToolSections({
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.queue} />
       <ToolActionRow>
-        <PlayContinueChip variant="secondary" />
+        <PlayContinueChip variant="secondary" hideUnderKioskHeader />
       </ToolActionRow>
       {queueHealth?.ok || poolQueue.anyOk ? (
         <div className="ui-queue-strip">
@@ -113,13 +113,10 @@ export default function QueueToolSections({
               action={filmCta}
             />
           ) : (
-            <EmptyState
-              compact
-              icon="inbox"
-              title="No pending jobs"
-              description="Nothing running. Continue your film on Day, or queue another still."
-              action={filmCta}
-            />
+            // One line, not a card-sized empty box above the history.
+            <p className="text-sm text-[var(--text-muted)]" data-testid="queue-idle">
+              Nothing running.
+            </p>
           )
         ) : (
           <>
@@ -242,7 +239,7 @@ export default function QueueToolSections({
           summary={
             failed.length > 0 ? 'Retry jobs that errored in ComfyUI.' : 'No failures right now.'
           }
-          defaultOpen={failed.length > 0}
+          defaultOpen={false}
           persistKey="queue-failed"
         >
           {failed.length === 0 ? (
@@ -299,7 +296,15 @@ export default function QueueToolSections({
           )}
         </CollapsibleSection>
       ) : (
-        <ToolSection title={`Failed (${failed.length})`}>
+        // Old failures stay one click away instead of filling the page on every visit.
+        <CollapsibleSection
+          title={`Failed (${failed.length})`}
+          summary={
+            failed.length > 0 ? 'Retry or clear jobs that errored in ComfyUI.' : 'No failures.'
+          }
+          defaultOpen={false}
+          persistKey="queue-failed-full"
+        >
           {failed.length === 0 ? (
             <EmptyState
               compact
@@ -348,7 +353,7 @@ export default function QueueToolSections({
               </ul>
             </>
           )}
-        </ToolSection>
+        </CollapsibleSection>
       )}
 
       {isSimple ? (

@@ -157,11 +157,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={
-        <ToolBadge accent={ACCENT}>
-          Outfit · {selectedModel?.label ?? selectedModel?.comfyNode ?? 'model'}
-        </ToolBadge>
-      }
+      badge={<ToolBadge accent={ACCENT}>Film</ToolBadge>}
       title="Outfit"
       description={description}
       sidebarPersistKey="fitting"

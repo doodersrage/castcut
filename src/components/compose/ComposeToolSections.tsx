@@ -49,7 +49,7 @@ export default function ComposeToolSections({
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Compose · {selectedModel.comfyNode}</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Edit</ToolBadge>}
       title="Compose"
       description={description}
       sidebarPersistKey="compose"

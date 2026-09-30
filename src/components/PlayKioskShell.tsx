@@ -67,10 +67,8 @@ function gridColsClass(count: number): string {
   if (count === 5) {
     return 'grid-cols-5';
   }
-  if (count === 6) {
-    return 'grid-cols-6';
-  }
-  return 'grid-cols-4 sm:grid-cols-5';
+  // Six on a phone (five tabs + More); the More cell is hidden from sm up.
+  return 'grid-cols-6 sm:grid-cols-5';
 }
 
 export default function PlayKioskShell() {
@@ -117,7 +115,8 @@ export default function PlayKioskShell() {
   const primaryTabs = useMemo(() => visibleTabs.filter(entry => entry.primary), [visibleTabs]);
   const moreTabs = useMemo(() => visibleTabs.filter(entry => !entry.primary), [visibleTabs]);
   const settingsVisible = canAccessNavFeature(allowed, 'settings');
-  const colClass = gridColsClass(primaryTabs.length);
+  // More sits in the same row on phones — counted, or it wrapped onto a second row.
+  const colClass = gridColsClass(primaryTabs.length + (moreTabs.length > 0 ? 1 : 0));
   const moreActive = moreTabs.some(entry => tabIsActive(entry.href, pathname));
 
   return (
@@ -126,15 +125,21 @@ export default function PlayKioskShell() {
         <div className="flex min-w-0 items-center gap-2">
           <BrandMark size={28} />
           <div className="min-w-0">
-            <p className="type-brand type-heading truncate tracking-tight">Castcut</p>
-            <p className="type-caption text-[var(--text-muted)]" data-testid="play-kiosk-progress">
+            {/* Logo only on phones — beside the Continue button the name truncated to "Ca…". */}
+            <p className="type-brand type-heading hidden truncate tracking-tight sm:block">
+              Castcut
+            </p>
+            {/* One truncated line — beside the buttons on a phone it wrapped word by word into a
+                200 px header. Report a bug lives in More. */}
+            <p
+              className="type-caption truncate whitespace-nowrap text-[var(--text-muted)]"
+              data-testid="play-kiosk-progress"
+            >
               {progressLabel}
-              <span className="mx-1 text-[var(--border-strong)]">·</span>
-              <ReportBugLink className="text-[var(--text-muted)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]" />
             </p>
           </div>
         </div>
-        <div className="relative flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="relative flex shrink-0 items-center justify-end gap-2">
           <ConnectionHealthChip compact />
           <PlayContinueChip />
           <div className="relative">
@@ -186,6 +191,9 @@ export default function PlayKioskShell() {
                 >
                   Profile
                 </Link>
+                <div className="px-3 py-2 text-sm">
+                  <ReportBugLink className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]" />
+                </div>
                 <Link
                   href={ROLEPLAY_FOCUS_ESCAPE_HREF}
                   role="menuitem"
@@ -214,7 +222,7 @@ export default function PlayKioskShell() {
                   href={href}
                   data-active={active ? 'true' : 'false'}
                   className={[
-                    'flex flex-col items-center rounded-[var(--radius-md)] px-2 py-2 text-center transition',
+                    'flex flex-col items-center rounded-[var(--radius-md)] px-1 py-2 text-center transition',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
                     active
                       ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
@@ -232,7 +240,7 @@ export default function PlayKioskShell() {
                 type="button"
                 data-active={moreActive ? 'true' : 'false'}
                 className={[
-                  'flex w-full flex-col items-center rounded-[var(--radius-md)] px-2 py-2 text-center transition',
+                  'flex w-full flex-col items-center rounded-[var(--radius-md)] px-1 py-2 text-center transition',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
                   moreActive
                     ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'

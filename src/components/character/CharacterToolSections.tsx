@@ -27,7 +27,6 @@ export default function CharacterToolSections({ description, ...vm }: CharacterT
     output,
     sceneMode,
     accent,
-    selectedModel,
     lockedWardrobeLabel,
     applyCollabDraft,
   } = vm;
@@ -35,7 +34,7 @@ export default function CharacterToolSections({ description, ...vm }: CharacterT
   return (
     <ToolLayout
       accent={accent}
-      badge={<ToolBadge accent={accent}>Character · {selectedModel.comfyNode}</ToolBadge>}
+      badge={<ToolBadge accent={accent}>Film</ToolBadge>}
       title="Character"
       description={description}
       sidebarPersistKey="character"

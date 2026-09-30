@@ -9,7 +9,7 @@ import { clearLastToolRoute } from './last-tool-route';
 const KEYS_TO_CLEAR = [
   'comfy-nav-favorites-v1',
   'comfy-recent-destinations-v1',
-  'comfy-nav-expanded-groups-v1',
+  'comfy-nav-expanded-groups-v2',
   'comfy-collapsible-open-v1',
   'comfy-tool-context-memory-v1',
   'comfy-last-tool-draft-v1',

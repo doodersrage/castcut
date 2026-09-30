@@ -89,9 +89,20 @@ export function SystemTrayActivityCard({
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-[var(--text-primary)]">
+                <p
+                  className={`truncate text-sm font-medium text-[var(--text-primary)] ${
+                    expanded ? '' : 'max-md:hidden'
+                  }`}
+                >
                   {primaryTitle(primary)}
                 </p>
+                {/* Phones: a small pill until tapped — the full line covered page content. */}
+                {expanded ? null : (
+                  <p className="text-sm font-medium tabular-nums text-[var(--text-primary)] md:hidden">
+                    {Math.max(1, totalActiveCount)} job
+                    {Math.max(1, totalActiveCount) === 1 ? '' : 's'}
+                  </p>
+                )}
                 {subtitle ? (
                   <p
                     className={`mt-0.5 truncate type-caption text-[var(--text-tertiary)] ${
@@ -112,7 +123,7 @@ export function SystemTrayActivityCard({
                 ) : null}
               </div>
               {extraCount > 0 ? (
-                <span className="shrink-0 rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] font-medium tabular-nums text-[var(--accent-text)]">
+                <span className="max-md:hidden shrink-0 rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] font-medium tabular-nums text-[var(--accent-text)]">
                   +{extraCount}
                 </span>
               ) : null}

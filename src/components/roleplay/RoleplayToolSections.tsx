@@ -69,7 +69,6 @@ export default function RoleplayToolSections({
   autoQueue,
   beatOutput,
   playAsResolved,
-  selectedModel,
   lastPrompt,
   busy,
   reference,
@@ -227,7 +226,7 @@ export default function RoleplayToolSections({
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Story · {selectedModel.comfyNode}</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Film</ToolBadge>}
       title="Story"
       description={description}
       sidebarPersistKey="roleplay"

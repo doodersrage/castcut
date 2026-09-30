@@ -1,5 +1,6 @@
 'use client';
 
+import { galleryCardCaption } from '@/lib/gallery-card-caption';
 import GalleryPlayChecksBadge from '@/components/gallery/GalleryPlayChecksBadge';
 import type { RefObject } from 'react';
 import GalleryCardMenu from '@/components/gallery/GalleryCardMenu';
@@ -224,8 +225,9 @@ export default function GalleryCardBodyBlock({
                     ? 'line-clamp-1 text-xs'
                     : 'line-clamp-2 text-sm'
               }`}
+              title={entry.prompt}
             >
-              {entry.prompt}
+              {galleryCardCaption(entry.prompt) || entry.prompt}
             </p>
           )}
           {metaLine ? (
@@ -401,7 +403,11 @@ export default function GalleryCardBodyBlock({
         className={`flex flex-wrap items-center gap-2 pt-0.5 ${
           layout === 'dense'
             ? 'opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-within/card:opacity-100'
-            : ''
+            : layout === 'list'
+              ? ''
+              : // Grid: with a mouse the action row appears on hover / keyboard focus (a wall of
+                // buttons under every still); touch screens keep it visible.
+                '[@media(hover:hover)]:opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-within/card:opacity-100'
         }`}
       >
         <button

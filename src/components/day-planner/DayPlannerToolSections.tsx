@@ -349,7 +349,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       />
       <ToolLayout
         accent={ACCENT}
-        badge={<ToolBadge accent={ACCENT}>Day · {selectedModel?.comfyNode ?? 'model'}</ToolBadge>}
+        badge={<ToolBadge accent={ACCENT}>Film</ToolBadge>}
         title="Day"
         description={description}
         sidebarPersistKey="day"
@@ -567,24 +567,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           description="Tap a time of day to edit Setting & Beat. Suggest day fills a morning→night plan before you Queue."
           data-testid="day-slot-board"
         >
-          <DaySlotBoard
-            slots={slots}
-            stills={stills}
-            activeSlotId={activeSlotId}
-            busy={busy}
-            queueBlocked={queueBlocked}
-            onSelectSlot={setActiveSlotId}
-            onOpenStill={openProgressLightbox}
-            onRetrySlot={slot => void queueSlot(slot)}
-            onAnimateSlot={slot => void animateSlot(slot)}
-            onRerollSlot={slot => {
-              rerollActiveSlotScene({ slotId: slot.id });
-            }}
-            qualityLedger={qualityLedger}
-            clipChecks={clipChecks}
-          />
+          {/* Mood and length decide the board — first, not after six phone-height cards. */}
           <DayMoodStrip
-            className="mt-3"
+            className="mb-3"
             busy={busy}
             allowCompanions={allowCompanions}
             onAllowCompanionsChange={setAllowCompanions}
@@ -605,6 +590,22 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             intimateEnabled={intimateEnabled}
             dayLength={dayLength}
             onDayLengthChange={setDayLength}
+          />
+          <DaySlotBoard
+            slots={slots}
+            stills={stills}
+            activeSlotId={activeSlotId}
+            busy={busy}
+            queueBlocked={queueBlocked}
+            onSelectSlot={setActiveSlotId}
+            onOpenStill={openProgressLightbox}
+            onRetrySlot={slot => void queueSlot(slot)}
+            onAnimateSlot={slot => void animateSlot(slot)}
+            onRerollSlot={slot => {
+              rerollActiveSlotScene({ slotId: slot.id });
+            }}
+            qualityLedger={qualityLedger}
+            clipChecks={clipChecks}
           />
           <div className="mt-3 grid gap-3 sm:grid-cols-2" data-testid="day-active-plan">
             <label className="space-y-2">

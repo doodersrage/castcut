@@ -175,7 +175,7 @@ export default function PromptEditorTool() {
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Manual edit · {selectedModel.comfyNode}</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Create</ToolBadge>}
       title="Prompt Editor"
       description={description}
       sidebarPersistKey="prompt-editor"

@@ -9,6 +9,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings-cache';
+import {
+  isSettingsSyncedWithServer,
+  SETTINGS_SYNCED_WITH_SERVER_EVENT,
+} from '@/lib/settings-push-flush';
 import { loadOnboardingState } from '@/lib/onboarding-store';
 import { runHealAndReady } from '@/lib/first-run-setup';
 import { settingsTabHref } from '@/lib/settings-nav';
@@ -117,10 +121,12 @@ export default function SetupReadinessBanner({
       }
     };
     window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, onSettingsUpdated);
+    window.addEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, onSettingsUpdated);
 
     return () => {
       cancelled = true;
       window.removeEventListener(SETTINGS_CACHE_UPDATED_EVENT, onSettingsUpdated);
+      window.removeEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, onSettingsUpdated);
     };
   }, [refreshSystemWorkflows]);
 
@@ -171,7 +177,8 @@ export default function SetupReadinessBanner({
   }
 
   const comfyDown = readiness.comfyOk === false;
-  const needsSystemWf = !readiness.systemWorkflows;
+  // Before the first server sync a fresh browser's copy says "off" for everyone.
+  const needsSystemWf = !readiness.systemWorkflows && isSettingsSyncedWithServer();
   if (!comfyDown && !needsSystemWf) {
     return null;
   }

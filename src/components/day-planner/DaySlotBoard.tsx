@@ -143,11 +143,15 @@ export default function DaySlotBoard({
       className={
         compact
           ? 'grid grid-cols-2 gap-2'
-          : slots.length === 2
-            ? 'grid gap-2 sm:grid-cols-2'
-            : slots.length === 3 || slots.length === 6
-              ? 'grid gap-2 sm:grid-cols-3'
-              : 'grid gap-2 sm:grid-cols-4'
+          : // Phones: a swipe row (a card plus a peek of the next) instead of a ~1,200 px
+            // column that pushed Setting & Beat off the screen. Grid from sm up.
+            `max-sm:-mx-1 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:overflow-x-auto max-sm:px-1 max-sm:pb-1 max-sm:[&>li]:w-[78%] max-sm:[&>li]:shrink-0 max-sm:[&>li]:snap-start ${
+              slots.length === 2
+                ? 'gap-2 sm:grid sm:grid-cols-2'
+                : slots.length === 3 || slots.length === 6
+                  ? 'gap-2 sm:grid sm:grid-cols-3'
+                  : 'gap-2 sm:grid sm:grid-cols-4'
+            }`
       }
       data-testid="day-progress"
       aria-label="Day slots"

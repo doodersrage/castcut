@@ -131,7 +131,7 @@ export default function AudioPromptTool() {
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Audio · {selectedModel.comfyNode}</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>More tools</ToolBadge>}
       title="Audio prompt"
       description={description}
       sidebarPersistKey="audio"

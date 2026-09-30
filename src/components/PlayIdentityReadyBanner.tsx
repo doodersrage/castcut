@@ -86,17 +86,10 @@ export default function PlayIdentityReadyBanner() {
     );
   }
 
-  if (!ready) {
-    return null;
+  // A green "all good" card on every Film page was noise beside the Ready chip — only a
+  // problem earns space. (Kept as a hidden marker for tests / tooling.)
+  if (ready) {
+    return <span hidden data-testid="play-identity-ready" />;
   }
-
-  return (
-    <div
-      className="rounded-2xl border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-3 py-2"
-      data-testid="play-identity-ready"
-    >
-      <p className="type-caption font-medium text-[var(--tint-success-text)]">Identity ready</p>
-      <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{detail}</p>
-    </div>
-  );
+  return null;
 }
