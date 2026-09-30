@@ -264,6 +264,7 @@ export function whenBrowserStorageReady(): Promise<void> {
 export function resetBrowserStorageCache(): void {
   cache.clear();
   dirtyKeys.clear();
+  localWriteAt.clear();
   // No Dexie (SSR / unit tests): there is nothing to hydrate — treat as ready so
   // settings writes are not refused. Real browsers keep ready=false until init.
   ready = !appDb;
@@ -305,6 +306,46 @@ export function readBrowserString(key: string): string | null {
   return String(value);
 }
 
+/** When this tab last wrote each key itself (writes under a suppressed push are pulls, not edits). */
+const localWriteAt = new Map<string, number>();
+let preserveLocalWritesSince: number | null = null;
+let preservedLocalWriteCount = 0;
+
+/**
+ * Runs a startup pull's writes without clobbering keys this tab edited since `since` — a fresh
+ * browser's first pull landed seconds after load and replaced edits made meanwhile (e.g. a
+ * Scheduled batch toggle). Returns how many writes were skipped so the caller can push them.
+ */
+export function withLocalWritesPreserved(since: number, fn: () => void): number {
+  const previous = preserveLocalWritesSince;
+  preserveLocalWritesSince = since;
+  preservedLocalWriteCount = 0;
+  try {
+    fn();
+    return preservedLocalWriteCount;
+  } finally {
+    preserveLocalWritesSince = previous;
+  }
+}
+
+function skipForPreservedLocalWrite(key: string): boolean {
+  if (preserveLocalWritesSince === null) {
+    return false;
+  }
+  const at = localWriteAt.get(key);
+  if (at === undefined || at < preserveLocalWritesSince) {
+    return false;
+  }
+  preservedLocalWriteCount += 1;
+  return true;
+}
+
+function noteLocalWrite(key: string): void {
+  if (suppressDurableSyncPush === 0) {
+    localWriteAt.set(key, Date.now());
+  }
+}
+
 export function withSuppressedDurableSyncPush<T>(fn: () => T): T {
   suppressDurableSyncPush += 1;
   try {
@@ -328,6 +369,10 @@ export function writeBrowserValue(key: string, value: unknown): void {
     return;
   }
 
+  if (skipForPreservedLocalWrite(key)) {
+    return;
+  }
+  noteLocalWrite(key);
   cache.set(key, value);
   dirtyKeys.add(key);
   mirrorToLocalStorageIfAllowed(key);
@@ -344,6 +389,10 @@ export function removeBrowserKey(key: string): void {
     return;
   }
 
+  if (skipForPreservedLocalWrite(key)) {
+    return;
+  }
+  noteLocalWrite(key);
   cache.delete(key);
   dirtyKeys.add(key);
   if (!usesIndexedDbOnly(key)) {

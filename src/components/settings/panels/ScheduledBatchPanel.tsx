@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { saveScheduledBatchConfig, type ScheduledBatchConfig } from '@/lib/scheduled-batch';
+import {
+  loadScheduledBatchConfig,
+  saveScheduledBatchConfig,
+  type ScheduledBatchConfig,
+} from '@/lib/scheduled-batch';
 import type { ScheduledBatchServerStatus } from '@/lib/scheduled-batch-profile-sync';
 import { detailLevelLabel, type DetailLevel } from '@/lib/detail-level';
 import { QUEUE_QUALITY_PROFILE_OPTIONS } from '@/lib/queue-quality-profile';
@@ -30,6 +34,14 @@ export default function ScheduledBatchPanel({
     enabled?: boolean;
     intervalMinutes?: number;
   }>({});
+
+  // Merge into the stored config, not this render's props: a second control changed before
+  // the re-render landed used to write the stale copy back (Best-of-N reset to Off).
+  const updateScheduledBatch = (patch: Partial<ScheduledBatchConfig>) => {
+    const next = { ...loadScheduledBatchConfig(), ...patch };
+    setScheduledBatch(next);
+    saveScheduledBatchConfig(next);
+  };
 
   const serverScheduler = serverScheduledBatchStatus
     ? {
@@ -148,9 +160,7 @@ export default function ScheduledBatchPanel({
           type="checkbox"
           checked={scheduledBatch.enabled}
           onChange={event => {
-            const next = { ...scheduledBatch, enabled: event.target.checked };
-            setScheduledBatch(next);
-            saveScheduledBatchConfig(next);
+            updateScheduledBatch({ enabled: event.target.checked });
           }}
           className={`h-4 w-4 rounded ${accentFocusClass()}`}
         />
@@ -165,12 +175,7 @@ export default function ScheduledBatchPanel({
             min={5}
             value={scheduledBatch.intervalMinutes}
             onChange={event => {
-              const next = {
-                ...scheduledBatch,
-                intervalMinutes: Number(event.target.value) || 60,
-              };
-              setScheduledBatch(next);
-              saveScheduledBatchConfig(next);
+              updateScheduledBatch({ intervalMinutes: Number(event.target.value) || 60 });
             }}
             className="ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body"
           />
@@ -184,12 +189,7 @@ export default function ScheduledBatchPanel({
             max={12}
             value={scheduledBatch.count}
             onChange={event => {
-              const next = {
-                ...scheduledBatch,
-                count: Number(event.target.value) || 3,
-              };
-              setScheduledBatch(next);
-              saveScheduledBatchConfig(next);
+              updateScheduledBatch({ count: Number(event.target.value) || 3 });
             }}
             className="ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body"
           />
@@ -200,12 +200,7 @@ export default function ScheduledBatchPanel({
         id="scheduled-target"
         value={scheduledBatch.target}
         onChange={event => {
-          const next = {
-            ...scheduledBatch,
-            target: event.target.value as ScheduledBatchConfig['target'],
-          };
-          setScheduledBatch(next);
-          saveScheduledBatchConfig(next);
+          updateScheduledBatch({ target: event.target.value as ScheduledBatchConfig['target'] });
         }}
         className="ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body"
       >
@@ -218,12 +213,7 @@ export default function ScheduledBatchPanel({
           type="checkbox"
           checked={scheduledBatch.autoQueueComfyUi}
           onChange={event => {
-            const next = {
-              ...scheduledBatch,
-              autoQueueComfyUi: event.target.checked,
-            };
-            setScheduledBatch(next);
-            saveScheduledBatchConfig(next);
+            updateScheduledBatch({ autoQueueComfyUi: event.target.checked });
           }}
           className={`h-4 w-4 rounded ${accentFocusClass()}`}
         />
@@ -234,9 +224,7 @@ export default function ScheduledBatchPanel({
         id="scheduled-genre"
         value={scheduledBatch.genre ?? ''}
         onChange={event => {
-          const next = { ...scheduledBatch, genre: event.target.value || undefined };
-          setScheduledBatch(next);
-          saveScheduledBatchConfig(next);
+          updateScheduledBatch({ genre: event.target.value || undefined });
         }}
         className="ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body"
       />
@@ -245,15 +233,12 @@ export default function ScheduledBatchPanel({
           type="checkbox"
           checked={Boolean(scheduledBatch.overrideSharedSettings)}
           onChange={event => {
-            const next = {
-              ...scheduledBatch,
+            updateScheduledBatch({
               overrideSharedSettings: event.target.checked,
               model: scheduledBatch.model ?? sharedSettings.model,
               detail: scheduledBatch.detail ?? sharedSettings.detail,
               qualityProfile: scheduledBatch.qualityProfile ?? sharedSettings.queueQualityProfile,
-            };
-            setScheduledBatch(next);
-            saveScheduledBatchConfig(next);
+            });
           }}
           className={`h-4 w-4 rounded ${accentFocusClass()}`}
         />
@@ -267,9 +252,7 @@ export default function ScheduledBatchPanel({
               id="scheduled-model"
               value={scheduledBatch.model ?? sharedSettings.model}
               onChange={event => {
-                const next = { ...scheduledBatch, model: event.target.value };
-                setScheduledBatch(next);
-                saveScheduledBatchConfig(next);
+                updateScheduledBatch({ model: event.target.value });
               }}
               className="ui-input w-full"
             >
@@ -286,12 +269,7 @@ export default function ScheduledBatchPanel({
               id="scheduled-detail"
               value={scheduledBatch.detail ?? sharedSettings.detail}
               onChange={event => {
-                const next = {
-                  ...scheduledBatch,
-                  detail: event.target.value as DetailLevel,
-                };
-                setScheduledBatch(next);
-                saveScheduledBatchConfig(next);
+                updateScheduledBatch({ detail: event.target.value as DetailLevel });
               }}
               className="ui-input w-full"
             >
@@ -308,12 +286,9 @@ export default function ScheduledBatchPanel({
               id="scheduled-quality"
               value={scheduledBatch.qualityProfile ?? sharedSettings.queueQualityProfile}
               onChange={event => {
-                const next = {
-                  ...scheduledBatch,
+                updateScheduledBatch({
                   qualityProfile: event.target.value as SharedToolSettings['queueQualityProfile'],
-                };
-                setScheduledBatch(next);
-                saveScheduledBatchConfig(next);
+                });
               }}
               className="ui-input w-full"
             >
@@ -338,12 +313,7 @@ export default function ScheduledBatchPanel({
           id="scheduled-best-of-n"
           value={scheduledBatch.bestOfN ?? 1}
           onChange={event => {
-            const next = {
-              ...scheduledBatch,
-              bestOfN: Number(event.target.value) || 1,
-            };
-            setScheduledBatch(next);
-            saveScheduledBatchConfig(next);
+            updateScheduledBatch({ bestOfN: Number(event.target.value) || 1 });
           }}
           className="ui-input w-full max-w-xs"
         >
@@ -362,12 +332,7 @@ export default function ScheduledBatchPanel({
           checked={scheduledBatch.bestOfNVision ?? false}
           disabled={(scheduledBatch.bestOfN ?? 1) <= 1 || !scheduledBatch.autoQueueComfyUi}
           onChange={event => {
-            const next = {
-              ...scheduledBatch,
-              bestOfNVision: event.target.checked,
-            };
-            setScheduledBatch(next);
-            saveScheduledBatchConfig(next);
+            updateScheduledBatch({ bestOfNVision: event.target.checked });
           }}
           className="h-4 w-4 rounded"
         />

@@ -5,6 +5,7 @@ import {
   pullNamespaceFromServerResult,
   syncNamespaceToServer,
 } from './storage-sync';
+import { withLocalWritesPreserved } from './browser-storage';
 import { initAppDb } from './app-db-init';
 import { loadSettingsCache, saveSettingsCache, type SettingsCache } from './settings-cache';
 import {
@@ -336,6 +337,8 @@ export async function autoPullStorageIfEmpty(): Promise<AutoSyncResult> {
 }
 
 async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
+  // Edits made while the pull is in flight beat the server copy it brings back.
+  const pullStartedAt = Date.now();
   await initAppDb();
   const health = await fetch('/api/health')
     .then(response => response.json())
@@ -386,8 +389,11 @@ async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
     // replaced the saved workflow library, characters and garments (studio-extras) in testing.
     const extrasPull = await pullNamespaceFromServerResult<StudioExtrasPayload>('studio-extras');
     const serverExtras = extrasPull.ok ? await loadStudioExtrasFromServer() : null;
+    let keptLocalEdits = 0;
     if (serverExtras) {
-      applyStudioExtras(serverExtras);
+      keptLocalEdits = withLocalWritesPreserved(pullStartedAt, () =>
+        applyStudioExtras(serverExtras)
+      );
       synced.push('studio-extras');
     } else if (extrasPull.ok) {
       await syncNamespaceToServer('studio-extras', collectStudioExtras());
@@ -413,6 +419,9 @@ async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
     }
     if (settingsPull.ok && extrasPull.ok) {
       markSettingsSyncedWithServer();
+      if (keptLocalEdits > 0) {
+        scheduleAutoPushStorage();
+      }
     }
     synced.push('settings-cache');
     return { synced, conflicts: [], skipped: false, pulledIntoEmpty: synced.length > 0 };
@@ -442,7 +451,7 @@ async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
     localStudioExtrasLooksEmpty(localExtras) &&
     !localStudioExtrasLooksEmpty(serverExtras)
   ) {
-    applyStudioExtras(serverExtras);
+    withLocalWritesPreserved(pullStartedAt, () => applyStudioExtras(serverExtras));
   }
 
   const conflicts = await probeStorageConflicts();

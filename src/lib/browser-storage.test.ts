@@ -300,6 +300,41 @@ describe('browser-storage', () => {
     assert.equal(localStorage.getItem('to-remove'), null);
   });
 
+  it('withLocalWritesPreserved keeps keys this tab edited since the pull started', async () => {
+    installFakeWindow();
+    installFakeTimers();
+    const mod = await import('./browser-storage');
+    mod.resetBrowserStorageCache();
+
+    mod.writeBrowserValue('old-key', 'old local');
+    const pullStartedAt = Date.now() + 1;
+    // Pulled values land under a suppressed push; the edit arrives mid-pull.
+    mod.withSuppressedDurableSyncPush(() => mod.writeBrowserValue('pulled-key', 'server'));
+    const originalNow = Date.now;
+    Date.now = () => pullStartedAt + 10;
+    try {
+      mod.writeBrowserValue('edited-key', 'local edit');
+    } finally {
+      Date.now = originalNow;
+    }
+
+    const kept = mod.withLocalWritesPreserved(pullStartedAt, () =>
+      mod.withSuppressedDurableSyncPush(() => {
+        mod.writeBrowserValue('edited-key', 'server');
+        mod.writeBrowserValue('old-key', 'server');
+        mod.writeBrowserValue('pulled-key', 'server 2');
+      })
+    );
+
+    assert.equal(kept, 1);
+    assert.equal(mod.readBrowserValue('edited-key'), 'local edit');
+    assert.equal(mod.readBrowserValue('old-key'), 'server');
+    assert.equal(mod.readBrowserValue('pulled-key'), 'server 2');
+    // Outside the guard, writes apply as usual.
+    mod.writeBrowserValue('edited-key', 'later');
+    assert.equal(mod.readBrowserValue('edited-key'), 'later');
+  });
+
   it('withSuppressedDurableSyncPush runs the callback and returns its value', async () => {
     const mod = await import('./browser-storage');
     mod.resetBrowserStorageCache();

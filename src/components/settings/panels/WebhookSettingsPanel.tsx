@@ -7,7 +7,11 @@ import {
   normalizeWebhookEnabledEvents,
   type WebhookSettings,
 } from '@/lib/webhook-settings';
-import { saveScheduledBatchConfig, type ScheduledBatchConfig } from '@/lib/scheduled-batch';
+import {
+  loadScheduledBatchConfig,
+  saveScheduledBatchConfig,
+  type ScheduledBatchConfig,
+} from '@/lib/scheduled-batch';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { FieldLabel } from '@/components/ui/Field';
 
@@ -60,8 +64,9 @@ export default function WebhookSettingsPanel({
           checked={Boolean(scheduledBatch.webhookAutoRetry)}
           disabled={!webhookSettings.enabled}
           onChange={event => {
+            // Latest stored config — the Scheduled batch panel may have changed it this frame.
             const next = {
-              ...scheduledBatch,
+              ...loadScheduledBatchConfig(),
               webhookAutoRetry: event.target.checked,
             };
             setScheduledBatch(next);

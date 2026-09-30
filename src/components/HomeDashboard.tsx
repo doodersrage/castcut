@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { useEffect, useMemo, useState } from 'react';
 import {
   galleryEntryHeroPreviewUrl,
@@ -320,7 +321,19 @@ export default function HomeDashboard() {
           </ToolActionRow>
         </ToolSection>
       ) : (
-        <QueueOrchestrationPanel compact />
+        // The Queue page has the same controls — closed here so outputs sit near the top.
+        <CollapsibleSection
+          title="Queue controls"
+          summary={
+            pending.length > 0
+              ? `${pending.length} job${pending.length === 1 ? '' : 's'} in flight · hold / flush Max`
+              : 'Nothing in flight · hold / flush Max jobs'
+          }
+          defaultOpen={false}
+          persistKey="dashboard-queue-controls"
+        >
+          <QueueOrchestrationPanel compact />
+        </CollapsibleSection>
       )}
 
       {recentCompleted.length > 0 ? (
