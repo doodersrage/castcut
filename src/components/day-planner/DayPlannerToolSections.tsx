@@ -149,6 +149,13 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     setHideStickyCutCoach,
     dayMood,
     setDayMood,
+    partnerCharacterId,
+    partnerOptions,
+    setPartnerCharacterId,
+    partnerTwoWomen,
+    leadNoun,
+    people,
+    setPeople,
     intimateEnabled,
     intimateMix,
     setIntimateMix,
@@ -586,6 +593,13 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             qualityStatus={qualityStatus}
             dayMood={dayMood}
             onDayMoodChange={setDayMood}
+            partnerId={partnerCharacterId}
+            partnerOptions={partnerOptions}
+            onPartnerChange={setPartnerCharacterId}
+            partnerTwoWomen={partnerTwoWomen}
+            leadNoun={leadNoun}
+            people={people}
+            onPeopleChange={setPeople}
             intimateMix={intimateMix}
             onIntimateMixChange={setIntimateMix}
             intimateEnabled={intimateEnabled}

@@ -76,6 +76,17 @@ import {
 import { isDayVacationFaceRestorePrompt } from '@/lib/day-vacation-face-restore';
 
 import { DAY_PARTS, dayPartOf, isLateDaySlot, type DayPart } from '@/lib/day-parts';
+import {
+  DAY_THEMES,
+  DAY_THEME_OPTIONS,
+  dayThemeOf,
+  dayThemeOwns,
+  dayThemeSettingForBeat,
+  dayThemeSettings,
+  pickDayThemeScenePair,
+  type DayTheme,
+} from '@/lib/day-themes';
+import type { DayPartner, DayPartnerNoun } from '@/lib/day-partner';
 
 export { DAY_PARTS, dayPartOf, isLateDaySlot, type DayPart };
 
@@ -165,6 +176,9 @@ export const DAY_MOOD_OPTIONS: Array<{ id: DayMood; label: string; hint: string 
     hint: 'Crude sexual comedy — wardrobe fails & slapstick — NSFW flag required',
   },
 ];
+
+/** Stored Day mood: a base mood or a theme built on Everyday (see day-themes.ts). */
+export type DayMoodSetting = DayMood | DayTheme;
 
 export function normalizeDayMood(value: unknown): DayMood {
   const id = typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -2088,7 +2102,8 @@ function pickDayBeatPools(
   const heatPool = heatBeatPoolForDayMood(slotId, dayMood, intimateMix);
   const fallback = beatPoolForDayMood(slotId, dayMood, allowCompanions, intimateMix);
   // Suggestive with companions: about half the slots are a clothed couple.
-  if (dayMood === 'suggestive' && allowCompanions && random() < 0.5) {
+  // People → Duo: every slot is the couple.
+  if (dayMood === 'suggestive' && allowCompanions && (intimateMix === 'duo' || random() < 0.5)) {
     const duo = suggestiveDuoBeatPresets(slotId);
     if (duo.length > 0) {
       return { primary: duo, fallback: heatPool };
@@ -2106,9 +2121,15 @@ function pickDayBeatPools(
   }
   const companionPool = allowCompanions ? everydayCompanionBeatPresets(slotId) : [];
   const soloPool = everydayBeatPresets(slotId);
-  const preferHeat = heatPool.length > 0 && random() < preferHeatChance(dayMood);
+  // People → Duo on a clothed mood: every slot is a companion beat.
+  const clothedDuo =
+    !isDayAdultMood(dayMood) &&
+    allowCompanions &&
+    intimateMix === 'duo' &&
+    companionPool.length > 0;
+  const preferHeat = !clothedDuo && heatPool.length > 0 && random() < preferHeatChance(dayMood);
   const preferCompanion =
-    !preferHeat && allowCompanions && companionPool.length > 0 && random() < 0.4;
+    clothedDuo || (!preferHeat && allowCompanions && companionPool.length > 0 && random() < 0.4);
   const primary = preferHeat ? heatPool : preferCompanion ? companionPool : soloPool;
   // Adult Mixed can still roll everyday pools — drop book/reading beats.
   if (isDayAdultMood(dayMood)) {
@@ -2194,6 +2215,7 @@ export function diversifyDaySlotScenes(
   const forceBeats = options?.forceBeats === true;
   const allowCompanions = options?.allowCompanions === true;
   const dayMood = normalizeDayMood(options?.dayMood);
+  const theme = dayThemeOf(options?.dayMood);
   const intimateMix = normalizeDayIntimateMix(options?.intimateMix);
   const usedLocations = new Set<string>();
   const usedBeats = new Set<string>();
@@ -2264,6 +2286,46 @@ export function diversifyDaySlotScenes(
             sceneHints: sceneHints || undefined,
           };
         }
+      }
+    }
+
+    // Themes (Date night, Cosplay…): each beat brings its own room, like Sport and Vacation.
+    if (theme && (forceLocations || forceBeats || !location || !sceneHints)) {
+      const keepBeat = sceneHints && !forceBeats ? dayThemeSettingForBeat(theme, sceneHints) : null;
+      const pair = keepBeat
+        ? { beat: sceneHints, setting: keepBeat, poseClass: dayEverydayPoseClass(sceneHints) }
+        : fillBeats && (forceBeats || !sceneHints)
+          ? pickDayThemeScenePair(theme, slot.id, {
+              companions: allowCompanions,
+              duoOnly: allowCompanions && intimateMix === 'duo',
+              usedBeats,
+              usedPoseClasses: usedEverydayPoseClasses,
+              poseClass: dayEverydayPoseClass,
+              random,
+            })
+          : null;
+      if (pair) {
+        if (pair.beat !== sceneHints) {
+          sceneHints = pair.beat;
+          slotChanged = true;
+        }
+        if ((forceLocations || !location) && pair.setting !== location) {
+          location = pair.setting;
+          slotChanged = true;
+        }
+        usedLocations.add(location.toLowerCase());
+        usedBeats.add(sceneHints.toLowerCase());
+        usedEverydayPoseClasses.add(pair.poseClass);
+        noteLayout(sceneHints);
+        if (slotChanged) {
+          changed = true;
+          return {
+            ...slot,
+            location: location || undefined,
+            sceneHints: sceneHints || undefined,
+          };
+        }
+        return slot;
       }
     }
 
@@ -2592,20 +2654,34 @@ export function ensureDaySlotsMatchMood(
   }
 ): { slots: DaySlot[]; changed: boolean } {
   const dayMood = normalizeDayMood(options.dayMood);
-  if (!isDayHeatMood(dayMood)) {
+  const theme = dayThemeOf(options.dayMood);
+  // Themes (Date night, Cosplay…) are Everyday underneath: their board fits when its beats come
+  // from the theme; plain Everyday rerolls a themed board left over from a theme.
+  const themed = Boolean(theme) || dayMood === 'everyday';
+  if (!isDayHeatMood(dayMood) && !themed) {
     return { slots: normalizeDaySlots(slots), changed: false };
   }
   const mix = normalizeDayIntimateMix(options.intimateMix);
   const normalized = normalizeDaySlots(slots);
-  const stale = normalized.map(
-    slot =>
-      !daySlotMatchesAdultMix({
-        slot,
-        dayMood,
-        intimateMix: mix,
-        allowCompanions: options.allowCompanions === true,
-      })
-  );
+  const stale = normalized.map(slot => {
+    const beat = slot.sceneHints?.trim() || '';
+    const setting = slot.location?.trim() || '';
+    if (theme) {
+      return !beat || !dayThemeOwns(theme, beat, setting);
+    }
+    if (dayMood === 'everyday') {
+      return (
+        Boolean(beat) &&
+        DAY_THEME_OPTIONS.some(option => dayThemeOwns(DAY_THEMES[option.id], beat, ''))
+      );
+    }
+    return !daySlotMatchesAdultMix({
+      slot,
+      dayMood,
+      intimateMix: mix,
+      allowCompanions: options.allowCompanions === true,
+    });
+  });
   if (!stale.includes(true)) {
     return { slots: normalized, changed: false };
   }
@@ -2617,7 +2693,7 @@ export function ensureDaySlotsMatchMood(
   const rerolled = diversifyDaySlotScenes(cleared, {
     fillBeats: true,
     allowCompanions: options.allowCompanions === true,
-    dayMood,
+    dayMood: theme ? theme.id : dayMood,
     intimateMix: mix,
     random: options.random,
   });
@@ -2706,6 +2782,7 @@ export function rerollDaySlotScene(
   const rerollBeat = options?.rerollBeat !== false;
   const allowCompanions = options?.allowCompanions === true;
   const dayMood = normalizeDayMood(options?.dayMood);
+  const theme = dayThemeOf(options?.dayMood);
   const intimateMix = normalizeDayIntimateMix(options?.intimateMix);
 
   const normalized = normalizeDaySlots(slots);
@@ -2733,6 +2810,42 @@ export function rerollDaySlotScene(
   let location = target.location?.trim() || '';
   let sceneHints = target.sceneHints?.trim() || '';
   let changed = false;
+
+  // Themes: a new beat brings its own room; a room-only reroll keeps the beat's room.
+  if (theme) {
+    const usedPoseClasses = new Set(
+      normalized
+        .filter(slot => slot.id !== slotId && slot.sceneHints?.trim())
+        .map(slot => dayEverydayPoseClass(slot.sceneHints!.trim()))
+    );
+    const pair = rerollBeat
+      ? pickDayThemeScenePair(theme, slotId, {
+          companions: allowCompanions,
+          duoOnly: allowCompanions && intimateMix === 'duo',
+          usedBeats: new Set([...usedBeats, sceneHints.toLowerCase()]),
+          usedPoseClasses,
+          poseClass: dayEverydayPoseClass,
+          random,
+        })
+      : null;
+    const beat = pair?.beat ?? sceneHints;
+    const setting =
+      pair?.setting ??
+      (rerollLocation
+        ? pickUnusedPreset(dayThemeSettings(theme, slotId), usedLocations, random)
+        : location);
+    if (beat === sceneHints && (setting ?? '') === location) {
+      return { slots: normalized, changed: false };
+    }
+    return {
+      slots: normalized.map(slot =>
+        slot.id === slotId
+          ? { ...slot, location: setting || undefined, sceneHints: beat || undefined }
+          : slot
+      ),
+      changed: true,
+    };
+  }
 
   if (rerollLocation) {
     const picked = pickUnusedPreset(
@@ -2776,6 +2889,50 @@ export function rerollDaySlotScene(
       : slot
   );
   return { slots: next, changed: true };
+}
+
+/**
+ * People (Solo / Mixed / Duo) on a clothed mood: reroll the slots whose beat no longer fits —
+ * two-person beats on Solo, one-person beats on Duo. Mixed keeps the board. Adult moods realign
+ * through `ensureDaySlotsMatchMood`.
+ */
+export function alignDaySlotsToPeople(
+  slots: DaySlot[] | null | undefined,
+  options: {
+    dayMood: DayMood | string | null | undefined;
+    people: DayIntimateMix;
+    random?: () => number;
+  }
+): { slots: DaySlot[]; changed: boolean } {
+  const normalized = normalizeDaySlots(slots);
+  const dayMood = normalizeDayMood(options.dayMood);
+  if (isDayAdultMood(dayMood) || options.people === 'mixed') {
+    return { slots: normalized, changed: false };
+  }
+  const allowCompanions = options.people === 'duo';
+  const wantTwo = options.people === 'duo';
+  const theme = dayThemeOf(options.dayMood);
+  let stale = false;
+  const cleared = normalized.map(slot => {
+    const beat = slot.sceneHints?.trim();
+    if (!beat) return slot;
+    const two =
+      resolveDayPoseHeadcount({ haystack: beat, beat, dayMood, allowCompanions: true }) >= 2;
+    if (two === wantTwo) return slot;
+    stale = true;
+    return { ...slot, sceneHints: undefined, ...(theme ? { location: undefined } : {}) };
+  });
+  if (!stale) {
+    return { slots: normalized, changed: false };
+  }
+  const filled = diversifyDaySlotScenes(cleared, {
+    fillBeats: true,
+    allowCompanions,
+    dayMood: options.dayMood,
+    intimateMix: options.people,
+    random: options.random,
+  });
+  return { slots: filled.slots, changed: true };
 }
 
 /** Short user-facing reason Day queue is blocked, or null when ready. */
@@ -2922,6 +3079,13 @@ export function buildDaySlotPrompt(input: {
    * (face-only identity — not nude omit).
    */
   replaceKeepOutfit?: boolean;
+  /**
+   * A Cast member as the second person (Day "Partner") — set only on two-person stills where the
+   * queue attached their face as Image 2 (the pose map is then the third image).
+   */
+  partner?: DayPartner | null;
+  /** The Cast lead's gender (default a woman) — a man switches the Rapid adult duo recipe. */
+  leadNoun?: DayPartnerNoun;
 }): string {
   const slot = input.slot;
   const name = input.characterName?.trim();
@@ -3000,6 +3164,9 @@ export function buildDaySlotPrompt(input: {
       ? !allowCompanions
       : !duoForced && !partnersAllowed && poseHeadcount < 2;
   const soloToy = soloSubject && dayBeatUsesSoloSexToy(hints);
+  const duoPartner = !soloSubject ? (input.partner ?? null) : null;
+  /** The partner's face rides in as Image 2 (a Cast partner, not an invented one). */
+  const partnerImage = Boolean(duoPartner && !duoPartner.invented);
   /** Everyday baselines unlock Keep standing plates; heat beats must not fight them. */
   const poseLine = hints
     ? isDayAdultMood(dayMood)
@@ -3280,12 +3447,16 @@ export function buildDaySlotPrompt(input: {
         setting,
         timeOfDay,
         descriptor,
-        // A garment packshot takes Image 2 and pushes the pose map to Image 3.
-        poseGuide: poseGuide && garmentReinforce ? 'third' : poseGuide,
-        outfitImage: garmentReinforce ? 'second' : null,
+        // A garment packshot (or the partner's face) takes Image 2 and pushes the pose map to
+        // Image 3.
+        poseGuide: poseGuide && (garmentReinforce || partnerImage) ? 'third' : poseGuide,
+        outfitImage: garmentReinforce && !partnerImage ? 'second' : null,
         outfit: input.wardrobeLabel?.trim() || garmentDescription || null,
         faceOnly: faceOnlyIdentity,
         outfitFromFirst: !faceOnlyIdentity && keepAsImage1 && !replaceKeepOutfit,
+        ...(duoPartner && suggestiveCouple
+          ? { partner: { partner: duoPartner, image: 'second' as const } }
+          : {}),
       });
       if (recipe) {
         return recipe;
@@ -3299,7 +3470,9 @@ export function buildDaySlotPrompt(input: {
         setting,
         timeOfDay,
         descriptor,
-        poseGuide,
+        poseGuide: poseGuide && partnerImage ? 'third' : poseGuide,
+        ...(duoPartner ? { partner: { partner: duoPartner, image: 'second' as const } } : {}),
+        lead: input.leadNoun === 'man' ? 'man' : 'woman',
       });
       if (recipe) {
         return recipe;

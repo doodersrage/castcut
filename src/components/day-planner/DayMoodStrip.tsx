@@ -1,8 +1,10 @@
 'use client';
 
-import { SwitchButton } from '@/components/ui/Field';
+import { SelectInput, SwitchButton } from '@/components/ui/Field';
 import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
 import { summarizePlayChecks } from '@/lib/play-checks-readiness';
+import { DAY_THEME_OPTIONS, dayThemeOf } from '@/lib/day-themes';
+import { DAY_NEW_PARTNER_OPTIONS, type DayPartnerNoun } from '@/lib/day-partner';
 import {
   DAY_INTIMATE_MIX_OPTIONS,
   DAY_LENGTHS,
@@ -13,13 +15,21 @@ import {
   normalizeDayIntimateMix,
   normalizeDayMood,
   type DayIntimateMix,
-  type DayMood,
+  type DayMoodSetting,
 } from '@/lib/day-planner';
 
 export type DayMoodStripProps = {
   busy?: boolean;
   allowCompanions?: boolean;
   onAllowCompanionsChange?: (next: boolean) => void;
+  /** Cast member who plays the second person on duo stills ('' = an invented stranger). */
+  partnerId?: string;
+  partnerOptions?: Array<{ id: string; name: string; noun: DayPartnerNoun }>;
+  onPartnerChange?: (next: string) => void;
+  /** The engine has two-women adult layouts (Rapid AIO). */
+  partnerTwoWomen?: boolean;
+  /** The Cast lead's gender, from their description. */
+  leadNoun?: DayPartnerNoun;
   /** Default on — loosen the plate's grip on stance when the beat needs a different body. */
   posePriority?: boolean;
   onPosePriorityChange?: (next: boolean) => void;
@@ -36,10 +46,16 @@ export type DayMoodStripProps = {
   onAutoReviewStillsChange?: (next: boolean) => void;
   /** Latest quality-gate line (reviewing / passed / requeueing / paused). */
   qualityStatus?: string | null;
-  dayMood?: DayMood;
-  onDayMoodChange?: (next: DayMood) => void;
+  dayMood?: DayMoodSetting;
+  onDayMoodChange?: (next: DayMoodSetting) => void;
   intimateMix?: DayIntimateMix;
   onIntimateMixChange?: (next: DayIntimateMix) => void;
+  /**
+   * One "People" control for every mood (replaces the companions switch + adult-only Mix):
+   * Solo, Mixed (some stills with a second person) or Duo (every still).
+   */
+  people?: DayIntimateMix;
+  onPeopleChange?: (next: DayIntimateMix) => void;
   /** When false, Intimate / Raunchy chips are hidden (NSFW generator env off). */
   intimateEnabled?: boolean;
   /** Stills on the board (2–8). */
@@ -56,6 +72,11 @@ export default function DayMoodStrip({
   busy = false,
   allowCompanions = false,
   onAllowCompanionsChange,
+  partnerId = '',
+  partnerOptions = [],
+  onPartnerChange,
+  partnerTwoWomen = false,
+  leadNoun = 'woman',
   posePriority = true,
   onPosePriorityChange,
   identityBoost = false,
@@ -70,6 +91,8 @@ export default function DayMoodStrip({
   onDayMoodChange,
   intimateMix = 'mixed',
   onIntimateMixChange,
+  people,
+  onPeopleChange,
   intimateEnabled = false,
   dayLength = DEFAULT_DAY_LENGTH,
   onDayLengthChange,
@@ -80,10 +103,56 @@ export default function DayMoodStrip({
   const { readiness } = usePlayChecksReadiness(undefined, { enabled: autoReviewStills });
   const checksLine = summarizePlayChecks(readiness);
   const mix = normalizeDayIntimateMix(intimateMix);
-  const moodOptions = DAY_MOOD_OPTIONS.filter(
-    option => !isDayAdultMood(option.id) || intimateEnabled
-  );
-  const showAdultMix = isDayAdultMood(mood) && Boolean(onIntimateMixChange);
+  // Themes (Date night, Night out…) sit between the clothed moods and the adult ones.
+  const activeMood: DayMoodSetting = dayThemeOf(dayMood)?.id ?? mood;
+  const moodOptions: Array<{ id: DayMoodSetting; label: string; hint: string }> = [
+    ...DAY_MOOD_OPTIONS.filter(option => !isDayAdultMood(option.id)),
+    ...DAY_THEME_OPTIONS,
+    ...DAY_MOOD_OPTIONS.filter(option => isDayAdultMood(option.id) && intimateEnabled),
+  ];
+  const showAdultMix = isDayAdultMood(mood) && Boolean(onIntimateMixChange) && !onPeopleChange;
+  const peopleValue: DayIntimateMix =
+    people ?? (isDayAdultMood(mood) ? mix : allowCompanions ? 'mixed' : 'solo');
+  const adultPeople = isDayAdultMood(mood);
+  const peopleOptions: Array<{ id: DayIntimateMix; label: string; hint: string }> = [
+    {
+      id: 'solo',
+      label: 'Solo',
+      hint: adultPeople ? 'One adult only' : 'Just her — no second person in any still',
+    },
+    {
+      id: 'mixed',
+      label: 'Mixed',
+      hint: adultPeople
+        ? 'Solo and duo adult beats'
+        : 'Some stills with a friend or partner (different face from Cast)',
+    },
+    {
+      id: 'duo',
+      label: 'Duo',
+      hint: adultPeople ? 'Partner scenes only' : 'Every still with a friend or partner',
+    },
+  ];
+  // Partner: whenever a still can have two people — companions on, or an adult mood not set to Solo.
+  const duoPossible = onPeopleChange
+    ? peopleValue !== 'solo'
+    : allowCompanions || (isDayAdultMood(mood) && mix !== 'solo');
+  const showPartner = Boolean(onPartnerChange) && duoPossible;
+  const partner:
+    { id: string; name: string; noun: DayPartnerNoun; invented?: boolean } | undefined =
+    partnerOptions.find(option => option.id === partnerId) ??
+    (() => {
+      const invented = DAY_NEW_PARTNER_OPTIONS.find(option => option.id === partnerId);
+      return invented
+        ? { id: invented.id, name: invented.label, noun: invented.noun, invented: true }
+        : undefined;
+    })();
+  // Adult duo layouts on this engine: a woman lead with a man everywhere; two women, two men and
+  // a man lead on Rapid AIO.
+  const adultPartnerOk =
+    !partner || partner.noun === 'person'
+      ? false
+      : (leadNoun !== 'man' && partner.noun === 'man') || partnerTwoWomen;
 
   if (
     !onAllowCompanionsChange &&
@@ -144,12 +213,40 @@ export default function DayMoodStrip({
                 type="button"
                 role="radio"
                 className="ui-segmented-item"
-                aria-checked={mood === option.id}
-                data-active={mood === option.id ? 'true' : 'false'}
+                aria-checked={activeMood === option.id}
+                data-active={activeMood === option.id ? 'true' : 'false'}
                 disabled={busy}
                 data-testid={`day-mood-${option.id}`}
                 title={option.hint}
                 onClick={() => onDayMoodChange(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {onPeopleChange ? (
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1.5"
+          role="radiogroup"
+          aria-label="People in each still"
+          data-testid="day-intimate-mix"
+        >
+          <span className={groupLabel}>People</span>
+          <div className="ui-segmented" data-wrap="true">
+            {peopleOptions.map(option => (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                className="ui-segmented-item"
+                aria-checked={peopleValue === option.id}
+                data-active={peopleValue === option.id ? 'true' : 'false'}
+                disabled={busy}
+                data-testid={`day-intimate-mix-${option.id}`}
+                title={option.hint}
+                onClick={() => onPeopleChange(option.id)}
               >
                 {option.label}
               </button>
@@ -185,7 +282,9 @@ export default function DayMoodStrip({
           </div>
         </div>
       ) : null}
-      {onAllowCompanionsChange || onPosePriorityChange || onAutoReviewStillsChange ? (
+      {(onAllowCompanionsChange && !onPeopleChange) ||
+      onPosePriorityChange ||
+      onAutoReviewStillsChange ? (
         <div
           className="flex flex-wrap items-center gap-x-2 gap-y-1"
           role="group"
@@ -193,7 +292,7 @@ export default function DayMoodStrip({
           data-testid="day-options"
         >
           <span className={groupLabel}>Options</span>
-          {onAllowCompanionsChange ? (
+          {onAllowCompanionsChange && !onPeopleChange ? (
             <SwitchButton
               checked={allowCompanions}
               disabled={busy}
@@ -280,7 +379,45 @@ export default function DayMoodStrip({
           {qualityStatus}
         </p>
       ) : null}
-      {allowCompanions ? (
+      {showPartner && onPartnerChange ? (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5" data-testid="day-partner">
+          <label htmlFor="day-partner-select" className={groupLabel}>
+            Partner
+          </label>
+          <SelectInput
+            id="day-partner-select"
+            className="w-auto min-w-[12rem]"
+            value={partner ? partner.id : ''}
+            disabled={busy}
+            data-testid="day-partner-select"
+            onChange={event => onPartnerChange(event.target.value)}
+          >
+            <option value="">Someone new each still</option>
+            {DAY_NEW_PARTNER_OPTIONS.map(option => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+            {partnerOptions.map(option => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </SelectInput>
+        </div>
+      ) : null}
+      {showPartner && partner ? (
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-partner-hint">
+          {partner.invented
+            ? `${partner.name.replace(/ each still$/, '')} with their own face plays the second person on every two-person still.`
+            : `${partner.name} plays the second person on two-person stills. Their face takes the slot the outfit photo would use, so the outfit is described in words on those stills.`}
+          {isDayAdultMood(mood) && !adultPartnerOk
+            ? partner.noun === 'person'
+              ? ' Adult duo stills invent a partner — add "man" or "woman" to their Cast description to use them.'
+              : ' Two women, two men or a man lead in adult poses need Qwen Rapid AIO — on this engine those stills invent the partner.'
+            : ''}
+        </p>
+      ) : (onPeopleChange ? duoPossible && !isDayAdultMood(mood) : allowCompanions) ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-companions-hint">
           Second adults allowed — friend or selfie companion with a different face (not a Cast
           twin).

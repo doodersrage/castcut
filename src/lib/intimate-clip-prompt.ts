@@ -1,4 +1,5 @@
 import { parseIntimateLayout, type IntimateLayout } from './day-pose-guide';
+import { twoMenBeat, twoWomenBeat } from './rapid-duo-recipe';
 
 /**
  * Animate prompt for an Intimate / Raunchy Day still (WAN I2V). The LLM clip writer asked for
@@ -7,8 +8,16 @@ import { parseIntimateLayout, type IntimateLayout } from './day-pose-guide';
  * dropped the partner out of frame, pushed the camera into a crop and grew laughs into cackles.
  * This keeps the first frame: locked camera, one steady motion for the pose, calm faces.
  */
-export function buildIntimateClipPrompt(beat: string, durationSec = 4): string {
-  const act = stripLaughter(stripInterruption(beat))
+export function buildIntimateClipPrompt(
+  beat: string,
+  durationSec = 4,
+  options?: { twoWomen?: boolean; twoMen?: boolean }
+): string {
+  const twoWomen = options?.twoWomen === true;
+  const twoMen = !twoWomen && options?.twoMen === true;
+  const act = stripLaughter(
+    stripInterruption(twoWomen ? twoWomenBeat(beat) : twoMen ? twoMenBeat(beat) : beat)
+  )
     .replace(/\bmid-doggy(?:[- ]?style)?\b/gi, 'mid-sex from behind')
     .replace(/\bdoggy(?:[- ]?style)?\b/gi, 'from behind');
   const layout = parseIntimateLayout(beat);
@@ -16,7 +25,7 @@ export function buildIntimateClipPrompt(beat: string, durationSec = 4): string {
   return [
     `${durationSec}s clip, one continuous shot.`,
     `Scene: ${act}.`,
-    `Motion: ${layoutMotion(layout)}`,
+    `Motion: ${twoWomen ? twoWomenMotion(layout) : twoMen ? twoMenMotion(layout) : layoutMotion(layout)}`,
     solo
       ? 'Her body keeps the exact pose and position of the first frame the whole time — she does not turn around, stand up, or leave the frame.'
       : 'Both bodies keep the exact pose and position of the first frame the whole time — nobody turns around, stands up, slides away, or leaves the frame.',
@@ -50,6 +59,53 @@ function stripLaughter(text: string): string {
     .replace(/[\s,—]+$/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
+}
+
+/** Two women (Day Partner): same steady motions, the partner named instead of "he". */
+function twoWomenMotion(layout: IntimateLayout | null): string {
+  switch (layout) {
+    case 'straddle':
+    case 'reverse_straddle':
+    case 'lap':
+      return 'she rocks her hips slowly on her girlfriend in a small, steady rhythm; her girlfriend stays under her.';
+    case 'missionary':
+    case 'mating_press':
+      return 'her girlfriend moves her hips slowly and steadily against her; she stays on her back.';
+    case 'bent':
+    case 'prone':
+    case 'standing':
+    case 'wall':
+      return 'her girlfriend moves slowly from behind in a small, steady rhythm; she stays in place.';
+    case 'spoon':
+      return "slow, small movements of her girlfriend's hand between her thighs while both lie on their sides.";
+    default:
+      return layoutMotion(layout);
+  }
+}
+
+/** Two men (Day Partner / a man lead): the partner is "his boyfriend". */
+function twoMenMotion(layout: IntimateLayout | null): string {
+  switch (layout) {
+    case 'straddle':
+    case 'reverse_straddle':
+    case 'lap':
+      return 'he rocks his hips slowly on his boyfriend in a small, steady rhythm; his boyfriend stays under him.';
+    case 'missionary':
+    case 'mating_press':
+      return 'his boyfriend thrusts slowly and steadily; he stays on his back.';
+    case 'bent':
+    case 'prone':
+    case 'standing':
+    case 'wall':
+    case 'spoon':
+      return 'his boyfriend thrusts slowly from behind in a small, steady rhythm; he stays in place.';
+    case 'oral':
+    case 'sixty_nine':
+    case 'facesit':
+      return 'slow, steady oral motion of the head; the other body stays still.';
+    default:
+      return 'slow, small, steady rhythmic motion of the hips; bodies stay in place.';
+  }
 }
 
 function layoutMotion(layout: IntimateLayout | null): string {

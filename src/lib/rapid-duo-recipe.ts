@@ -10,6 +10,7 @@
  * Keep each placement concrete (who lies/sits/stands where, facing which way, what touches
  * what). Do not add "never …" locks: CFG 1 has no negative, and naming a thing summons it.
  */
+import { dayPartnerRecipeLine, type DayPartner, type DayPartnerNoun } from '@/lib/day-partner';
 import {
   parseIntimateLayout,
   resolveSoloMasturbationPoseKind,
@@ -154,6 +155,148 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
   }
 }
 
+/**
+ * The same layouts for two women (Day "Partner" is a woman): the drawn geometry stays, the act
+ * becomes fingering, grinding or oral. Live (2026-09-30): "fucking her from behind with a
+ * strap-on" summoned a man as a third person, and naming a harness put one on the oral still.
+ * The lead is "the woman", the partner always "her girlfriend" (two "her"s blur on Rapid).
+ */
+function placementTwoWomen(
+  layout: IntimateLayout,
+  beat: string,
+  surface: string | null
+): string | null {
+  const on = (fallback: string) => `the ${surface ?? fallback}`;
+  const gf = 'her girlfriend';
+  switch (layout) {
+    case 'missionary':
+      return `Side view, both faces in frame. The woman lies on her back on ${on('bed')} with her legs spread and wrapped around ${gf}; ${gf} lies on top of her between her thighs, propped up on her forearms, hips pressed to hers, one hand between her thighs, fingering her; their faces close, looking at each other.`;
+    case 'mating_press':
+      return `The woman lies on her back on ${on('bed')} with her knees pulled up toward her shoulders; ${gf} kneels over her between her legs, holding the backs of her thighs, her mouth on her vulva, licking her; both faces in frame.`;
+    case 'straddle':
+      return `Wide shot, both faces in frame. ${cap(gf)} lies flat on her back on ${on('bed')}; the woman kneels astride her girlfriend's hips with her knees on either side, grinding down on her, hands on her girlfriend's chest, looking down at her.`;
+    case 'reverse_straddle':
+      return `Camera in front of the woman. The woman is closest to the camera, facing the lens, sitting on the lap of ${gf}, who sits back on ${on('couch')} behind her; her back rests against her girlfriend's chest, legs spread; ${gf}'s hand is between her thighs, fingering her; ${gf}'s face is behind her shoulder.`;
+    case 'bent':
+      return `The woman stands bent forward over ${on('bed edge')}, hands braced on it, hips pushed back; ${gf} stands pressed close behind her, one arm around her waist and the other hand between her thighs from behind, fingering her. She looks back over her shoulder.`;
+    case 'standing':
+      return `Both stand. The woman leans forward with her hands braced on ${on('wall')}, hips pushed back; ${gf} stands pressed close behind her, one arm around her waist and the other hand between her thighs from behind, fingering her; she looks back over her shoulder.`;
+    case 'prone':
+      return `The woman lies flat on her stomach on ${on('bed')}, face turned to the side on the pillow; ${gf} lies along her side, pressed against her back, one hand between her thighs from behind, fingering her, kissing her shoulder.`;
+    case 'spoon':
+      return `Spooning, seen from the front. The woman lies on her side on ${on('bed')}, turned toward the camera, her head on her lower arm and her hip up; ${gf} lies on her side right behind her, chest pressed against her back and face just behind her shoulder, one hand reaching around between her thighs, fingering her as she lifts her top leg. Both faces in frame.`;
+    case 'scissors':
+      return `The woman and ${gf} sit on ${on('bed')} facing each other, each leaning back on their hands, their legs scissored together so their bare vulvas press and grind together; both faces in frame.`;
+    case 'wall':
+      return /\b(?:partner\s+behind|from\s+behind)\b/i.test(beat)
+        ? `The woman stands facing ${on('wall')} with her palms flat against it and her hips pushed back; ${gf} stands pressed against her back, one hand between her thighs from behind, fingering her; she looks back over her shoulder. Both standing on the floor.`
+        : `The woman stands with her back pressed flat against ${on('wall')}. Her right foot is flat on the floor; her left knee is raised to her girlfriend's hip. ${cap(gf)} stands pressed chest to chest against her, kissing her, one hand between her thighs, fingering her.`;
+    case 'lift':
+      return `Wide shot, both faces in frame. The woman sits up on ${on('counter')} with her legs wrapped around ${gf}, who stands between her thighs chest to chest; her arms around her girlfriend's neck, faces close; ${gf}'s hand between her thighs, fingering her.`;
+    case 'oral':
+    case 'sixty_nine':
+    case 'facesit':
+      return sheGivesOral(beat)
+        ? `Full-body view, both faces in frame. ${cap(gf)} sits on the edge of ${on('bed')}, leaning back on her hands with her thighs spread; the woman kneels on the floor between her girlfriend's thighs with her mouth on her vulva, licking her, looking up at her.`
+        : `Full-body view, both faces in frame. The woman sits on the edge of ${on('bed')}, leaning back on her hands with her thighs spread; ${gf} kneels on the floor between her thighs with her mouth on her vulva, licking her, hands on her thighs.`;
+    case 'kneeling':
+      return `Both kneel upright on ${on('bed')} facing each other, bodies pressed together, kissing, each with a hand between the other's thighs; both faces in frame.`;
+    case 'lap':
+      return `${cap(gf)} sits on ${on('chair')}; the woman sits on her girlfriend's lap facing her, straddling her with her knees on either side of her hips, arms around her neck; ${gf}'s hand between her thighs, fingering her.`;
+    default:
+      return null;
+  }
+}
+
+function cap(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** Beat wording for two women: the partner is "her girlfriend", the penis her fingers. */
+export function twoWomenBeat(beat: string): string {
+  return beat
+    .replace(/\b(?:a|her|the)\s+(?:partner|man|boyfriend|lover)\b/gi, 'her girlfriend')
+    .replace(/\bpartner(?:'s)?\b/gi, match =>
+      match.endsWith("'s") ? "her girlfriend's" : 'her girlfriend'
+    )
+    .replace(/\bhis\b/gi, "her girlfriend's")
+    .replace(/\b(?:him|he)\b/gi, 'her girlfriend')
+    .replace(
+      /\b(?:(?:her girlfriend's|a|the)\s+)?(?:penis|cock|dick|strap-on)\b/gi,
+      "her girlfriend's fingers"
+    )
+    .replace(/\bblow\s*job\b/gi, 'oral sex');
+}
+
+const NUDE_TWO_WOMEN =
+  'Both women are completely nude — bare breasts with nipples visible and bare vulvas on both; zero fabric on either body.';
+
+/**
+ * Two men (a man Cast lead with a man partner). Same geometry as each layout: the lead is "the
+ * man" (first image) in the receiving place, the partner always "his boyfriend".
+ */
+function placementTwoMen(
+  layout: IntimateLayout,
+  beat: string,
+  surface: string | null
+): string | null {
+  const on = (fallback: string) => `the ${surface ?? fallback}`;
+  const bf = 'his boyfriend';
+  switch (layout) {
+    case 'missionary':
+    case 'mating_press':
+      return `Side view, both faces in frame. The man lies on his back on ${on('bed')} with his knees raised and legs around ${bf}; ${bf} kneels between his thighs, leaning over him on his arms, his penis inside the man; their faces close, looking at each other.`;
+    case 'straddle':
+    case 'lap':
+      return `Wide shot, both faces in frame. ${cap(bf)} lies on his back on ${on('bed')}; the man kneels astride his boyfriend's hips, knees on either side, sitting down on his boyfriend's penis and riding him, hands on his boyfriend's chest.`;
+    case 'reverse_straddle':
+      return `Camera in front of the man. The man is closest to the camera, facing the lens, sitting on the lap of ${bf}, who sits back on ${on('couch')} behind him, riding his boyfriend's penis; ${bf}'s hands on his hips and face behind his shoulder.`;
+    case 'bent':
+    case 'standing':
+    case 'wall':
+      return `The man stands bent forward with his hands braced on ${on(layout === 'bent' ? 'bed edge' : 'wall')}, hips pushed back; ${bf} stands close behind him holding his hips, penetrating him from behind. He looks back over his shoulder.`;
+    case 'prone':
+      return `The man lies flat on his stomach on ${on('bed')}, face turned to the side on the pillow; ${bf} lies on top of his back, propped up on his arms, penetrating him from behind.`;
+    case 'spoon':
+      return `Spooning, seen from the front. The man lies on his side on ${on('bed')}, turned toward the camera, head on his lower arm; ${bf} lies on his side right behind him, chest pressed against his back and face just behind his shoulder, penetrating him from behind. Both faces in frame.`;
+    case 'scissors':
+    case 'kneeling':
+      return `Both men kneel upright on ${on('bed')} facing each other, chests pressed together, kissing, each stroking the other's erect penis; both faces in frame.`;
+    case 'lift':
+      return `Wide shot, both faces in frame. The man sits on the edge of ${on('counter')} with his legs wrapped around ${bf}, who stands between his thighs chest to chest, penetrating him; arms around each other.`;
+    case 'oral':
+    case 'sixty_nine':
+    case 'facesit':
+      return sheGivesOral(beat)
+        ? `Full-body view, both faces in frame. ${cap(bf)} sits on the edge of ${on('bed')}; the man kneels on the floor between his boyfriend's knees with his boyfriend's penis in his mouth, looking up at him.`
+        : `Full-body view, both faces in frame. The man sits on the edge of ${on('bed')}, leaning back on his hands; ${bf} kneels on the floor between his knees with the man's penis in his mouth.`;
+    default:
+      return null;
+  }
+}
+
+/** Beat wording for two men: the lead is "he", the partner "his boyfriend". */
+export function twoMenBeat(beat: string): string {
+  return beat
+    .replace(/\b(?:a|her|the)\s+(?:partner|man|boyfriend|lover|girlfriend)\b/gi, 'his boyfriend')
+    .replace(/\bpartner(?:'s)?\b/gi, match =>
+      match.endsWith("'s") ? "his boyfriend's" : 'his boyfriend'
+    )
+    .replace(/\bhis\b(?!\s+boyfriend)/gi, "his boyfriend's")
+    .replace(/\b(?:him|he)\b/gi, 'his boyfriend')
+    .replace(/\bshe\b/gi, 'he')
+    .replace(/\bherself\b/gi, 'himself')
+    .replace(
+      /\bher\b(?=\s+(?:[a-z-]+\s+)?(?:back|hips?|thighs?|legs?|knees?|face|hands?|arms?|chest|shoulders?|mouth|lips|body|head|neck|ass|butt|feet|side|stomach|eyes|hair|lap|waist|skin|bed|pants|shirt|clothes|nightshirt|robe)\b)/gi,
+      'his'
+    )
+    .replace(/\bher\b/gi, 'him')
+    .replace(/\b(?:pussy|vulva|clit|breasts?|nipples?)\b/gi, 'body');
+}
+
+const NUDE_TWO_MEN =
+  'Both men are completely nude — bare chests and bare penises; zero fabric on either body.';
+
 const NUDE =
   'Both are completely nude — her bare breasts with nipples visible and bare vulva, his bare chest and penis; zero fabric on either body.';
 
@@ -244,6 +387,10 @@ export function buildRapidDuoRecipe(input: {
   nude?: boolean;
   /** Clothed only: the encoder image holding the outfit packshot. */
   outfitImage?: RecipeImage | null;
+  /** A Cast member as the man (Day "Partner"), with the encoder image holding his face. */
+  partner?: { partner: DayPartner; image: RecipeImage } | null;
+  /** The Cast lead (default a woman). A man lead takes the man's place, or two-men layouts. */
+  lead?: DayPartnerNoun;
 }): string | null {
   const beat = input.beat?.trim();
   if (!beat) {
@@ -254,7 +401,15 @@ export function buildRapidDuoRecipe(input: {
     return null;
   }
   const surface = rapidDuoSurface(beat);
-  const body = placement(layout, beat, surface);
+  const leadMan = input.lead === 'man';
+  const partnerNoun = input.partner?.partner.noun ?? (leadMan ? 'woman' : 'man');
+  const twoWomen = !leadMan && partnerNoun === 'woman';
+  const twoMen = leadMan && partnerNoun === 'man';
+  const body = twoWomen
+    ? placementTwoWomen(layout, beat, surface)
+    : twoMen
+      ? placementTwoMen(layout, beat, surface)
+      : placement(layout, beat, surface);
   if (!body) {
     return null;
   }
@@ -263,16 +418,40 @@ export function buildRapidDuoRecipe(input: {
     RAPID_DUO_RECIPE_MARK,
     body,
     // "doggy" paints literal dogs on Qwen stacks; a 69 / face-sit beat renders as seated oral.
-    `Moment: ${calmSexLaughter(beat)
+    `Moment: ${calmSexLaughter(twoWomen ? twoWomenBeat(beat) : twoMen ? twoMenBeat(beat) : beat)
       .replace(/\bdoggy(?:[- ]?style)?\b/gi, 'from behind')
       .replace(
         layout === 'sixty_nine' || layout === 'facesit' ? RAPID_ORAL_FALLBACK_RE : /$^/,
         'oral sex'
       )}.`,
     room,
-    input.nude === false ? clothedLine(input.outfitImage) : NUDE,
-    descriptorLine(input.descriptor),
-    'Keep her face from the first image.',
+    input.nude === false
+      ? twoMen
+        ? 'Clothes pushed open as the beat says: both men with shirts open and trousers pulled down.'
+        : twoWomen
+          ? clothedLine(input.outfitImage).replace(
+              /his trousers open/,
+              "her girlfriend's clothes pushed open too"
+            )
+          : clothedLine(input.outfitImage)
+      : twoWomen
+        ? NUDE_TWO_WOMEN
+        : twoMen
+          ? NUDE_TWO_MEN
+          : NUDE,
+    leadMan
+      ? descriptorLine(input.descriptor)?.replace(/^The woman:/, 'The man:')
+      : descriptorLine(input.descriptor),
+    input.partner
+      ? dayPartnerRecipeLine(
+          input.partner.partner,
+          input.partner.image,
+          twoWomen ? 'her girlfriend' : twoMen ? 'his boyfriend' : undefined,
+          leadMan ? 'man' : 'woman'
+        )
+      : leadMan
+        ? "Keep the man's face from the first image; the woman has her own face."
+        : 'Keep her face from the first image.',
     // Rapid 69 beats get a face-sitting guide (day-slot-pose.ts), matching the fallback above.
     input.poseGuide
       ? `Match the two bodies in the ${input.poseGuide === true ? 'second' : input.poseGuide} image (pose map).`
@@ -811,9 +990,9 @@ export function buildRapidVacationRecipe(input: {
 }
 
 /** His clothes for a clothed couple beat — the beat only ever dresses her. */
-function partnerClothes(beat: string): string {
+function partnerClothes(beat: string, noun: DayPartnerNoun = 'man'): string {
   if (/\b(?:evening|dinner|rooftop|bar|hotel|candlelit|night\s+out)\b/i.test(beat)) {
-    return 'a dark button-up shirt and trousers';
+    return noun === 'woman' ? 'a dark evening dress' : 'a dark button-up shirt and trousers';
   }
   if (
     /\b(?:sleepwear|pajamas?|pyjamas?|sleep\s+shirt|oversized\s+shirt|bed|(?<!picnic\s)blanket|covers)\b/i.test(
@@ -840,6 +1019,8 @@ export function buildRapidSuggestiveDuoRecipe(input: {
   outfit?: string | null;
   faceOnly?: boolean;
   outfitFromFirst?: boolean;
+  /** A Cast member as the second person (Day "Partner"), with the encoder image holding the face. */
+  partner?: { partner: DayPartner; image: RecipeImage } | null;
 }): string | null {
   const raw = input.beat?.trim();
   if (!raw) {
@@ -857,16 +1038,22 @@ export function buildRapidSuggestiveDuoRecipe(input: {
     : input.outfitFromFirst
       ? 'the outfit from the first image'
       : (outfitWords(input.outfit) ?? suggestiveBeatClothes(beat) ?? 'a flirty dress');
+  const noun = input.partner?.partner.noun ?? 'man';
+  const other = noun === 'man' ? 'a man' : noun === 'woman' ? 'another woman' : 'another person';
+  const otherWears =
+    noun === 'man' ? 'he wears' : noun === 'woman' ? 'the other woman wears' : 'the other wears';
   return [
     RAPID_SUGGESTIVE_RECIPE_MARK,
-    'A woman and a man together, both fully clothed, affectionate.',
+    `A woman and ${other} together, both fully clothed, affectionate.`,
     `Moment: ${beat}.`,
-    `She wears ${withArticle(hers)}; he wears ${partnerClothes(beat)}.`,
+    `She wears ${withArticle(hers)}; ${otherWears} ${partnerClothes(beat, noun)}.`,
     recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),
     descriptorLine(input.descriptor),
-    input.faceOnly === false && !input.outfitFromFirst && !input.outfitImage
-      ? 'Keep her face from the first image, not its clothes; the man has his own face.'
-      : 'Keep her face from the first image; the man has his own face.',
+    input.partner
+      ? dayPartnerRecipeLine(input.partner.partner, input.partner.image)
+      : input.faceOnly === false && !input.outfitFromFirst && !input.outfitImage
+        ? 'Keep her face from the first image, not its clothes; the man has his own face.'
+        : 'Keep her face from the first image; the man has his own face.',
     input.poseGuide
       ? `Match their two bodies to the ${input.poseGuide === true ? 'second' : input.poseGuide} image (pose map).`
       : null,

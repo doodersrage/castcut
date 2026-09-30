@@ -148,9 +148,11 @@ test('day without a Cast leads with the get-started card', async ({ page }) => {
     'aria-checked',
     'true'
   );
-  const companions = page.getByRole('switch', { name: /Duo · companions/i });
-  await companions.click();
-  await expect(companions).toHaveAttribute('aria-checked', 'true');
+  // One People control (Solo / Mixed / Duo) on every mood.
+  const people = page.getByRole('radiogroup', { name: 'People in each still' });
+  const mixed = people.getByRole('radio', { name: 'Mixed' });
+  await mixed.click();
+  await expect(mixed).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('radiogroup', { name: 'Day mood' })).toBeVisible();
   // Nothing planned yet: slot cards offer "Add a beat".
   await expect(page.locator('[data-testid^="day-slot-add-beat-"]').first()).toBeVisible();

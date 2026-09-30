@@ -132,6 +132,13 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setHideStickyCutCoach,
     dayMood,
     setDayMood,
+    partnerCharacterId,
+    partnerOptions,
+    setPartnerCharacterId,
+    partnerTwoWomen,
+    leadNoun,
+    people,
+    setPeople,
     intimateEnabled,
     intimateMix,
     setIntimateMix,
@@ -543,6 +550,13 @@ export default function MobileDayToolSections(vm: ViewModel) {
           qualityStatus={qualityStatus}
           dayMood={dayMood}
           onDayMoodChange={setDayMood}
+          partnerId={partnerCharacterId}
+          partnerOptions={partnerOptions}
+          onPartnerChange={setPartnerCharacterId}
+          partnerTwoWomen={partnerTwoWomen}
+          leadNoun={leadNoun}
+          people={people}
+          onPeopleChange={setPeople}
           intimateMix={intimateMix}
           onIntimateMixChange={setIntimateMix}
           intimateEnabled={intimateEnabled}

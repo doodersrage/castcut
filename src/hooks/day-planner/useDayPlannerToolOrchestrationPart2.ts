@@ -327,7 +327,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // pose, framing and calm faces with the fixed template instead.
         const adultClip = isDayAdultMood(toolSettings.dayMood);
         if (adultClip) {
-          prompt = buildIntimateClipPrompt(slot.sceneHints?.trim() || subject, 4);
+          // A Cast woman as the partner (Day Partner on Rapid): the still says so in its prompt.
+          // Same-sex duo (Day Partner / a man lead): the still's recipe names the partner.
+          const stillPrompt = parentEntry?.prompt ?? '';
+          const twoWomen = /\bher girlfriend has (?:the face from|her own face)/.test(stillPrompt);
+          const twoMen = /\bhis boyfriend has (?:the face from|his own face)/.test(stillPrompt);
+          prompt = buildIntimateClipPrompt(slot.sceneHints?.trim() || subject, 4, {
+            twoWomen,
+            twoMen,
+          });
         } else {
           try {
             const response = await fetch('/api/video-prompt', {

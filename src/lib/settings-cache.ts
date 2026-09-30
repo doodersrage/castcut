@@ -1151,7 +1151,9 @@ export type DayToolCache = {
    */
   faceFinish?: boolean;
   /** Everyday / suggestive / intimate heat for Day stills (intimate is NSFW-gated). */
-  dayMood?: import('./day-planner').DayMood;
+  dayMood?: import('./day-planner').DayMoodSetting;
+  /** Cast member who plays the second person on duo stills (unset: an invented stranger). */
+  partnerCharacterId?: string;
   /** Solo / duo / mixed beat filter when dayMood is intimate or raunchy. */
   intimateMix?: import('./day-planner').DayIntimateMix;
   /** True when {@link plateImageUrl} is the isolated cutout for {@link plateIsolateSourceKey}. */

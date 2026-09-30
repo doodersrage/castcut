@@ -8,6 +8,7 @@
 
 import { categoryLabel } from '@/lib/clothing-catalog-fields';
 import { normalizeDayMood, type DayMood } from '@/lib/day-planner';
+import { dayThemeOf } from '@/lib/day-themes';
 
 export type DayAutoKitOption = { value: string; label: string; group?: string };
 
@@ -50,14 +51,19 @@ export function pickDayAutoKit(input: {
   if (!dayMoodWantsAutoKit(input.dayMood)) {
     return undefined;
   }
-  const moodRe = normalizeDayMood(input.dayMood) === 'vacation' ? VACATION_KIT_RE : EVERYDAY_KIT_RE;
+  // Themes dress from their own pool (cocktail dresses, costumes…) — the "not a day out"
+  // filter would drop exactly those.
+  const theme = dayThemeOf(input.dayMood);
+  const moodRe =
+    theme?.kitRe ??
+    (normalizeDayMood(input.dayMood) === 'vacation' ? VACATION_KIT_RE : EVERYDAY_KIT_RE);
   const outfits = categoryLabel('outfit');
   const pool = input.options.filter(
     option =>
       option.value &&
       option.group === outfits &&
       moodRe.test(option.label) &&
-      !NOT_A_DAY_OUT_RE.test(option.label) &&
+      (theme || !NOT_A_DAY_OUT_RE.test(option.label)) &&
       input.hasPackshot(option.value)
   );
   if (pool.length === 0) {

@@ -19,6 +19,7 @@ import {
   applyCharacterRecordFresh,
   castLoraSessionIds,
   getCharacter,
+  getCharactersSnapshot,
   upsertCharacter,
 } from '@/lib/character-os';
 import {
@@ -53,6 +54,7 @@ import {
   dayStillsCachePatch,
   dayWatchPlaylist,
   diversifyDaySlotScenes,
+  alignDaySlotsToPeople,
   ensureDaySlotsMatchMood,
   isDayAdultMood,
   normalizeDayLength,
@@ -111,6 +113,18 @@ import {
   type FilmCutOptionsValue,
 } from '@/components/FilmCutOptionsControls';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
+import { dayThemeOf } from '@/lib/day-themes';
+import { isQwenRapidAioModel } from '@/lib/model-denoise-defaults';
+import {
+  dayPartnerApplies,
+  dayPartnerBriefLine,
+  dayPartnerNoun,
+  dayPartnerRecipeLine,
+  inventedDayPartner,
+  scrubDayPartnerOutfitImageClaims,
+  toDayPartner,
+  type DayPartner,
+} from '@/lib/day-partner';
 import { PLAY_FACE_CROP_CANVAS } from '@/lib/play-plate-render-size';
 import { loadPoseLibrary, type NormalizedBody } from '@/lib/pose-library';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
@@ -258,6 +272,8 @@ export function useDayPlannerToolOrchestrationCore() {
   }, [activeSlotId, slots, stills]);
 
   const character = getCharacter(shared.activeCharacterId);
+  // Day's prompts are written for a woman lead; a man lead switches the adult duo recipe.
+  const leadNoun = dayPartnerNoun(character ?? {});
   const selectedModel = getComfyModelDefinition(shared.model);
   const [galleryEntries, setGalleryEntries] = useState<ComfyGalleryEntry[]>([]);
   const basePlate = useMemo(
@@ -559,18 +575,21 @@ export function useDayPlannerToolOrchestrationCore() {
         poseCamera?: 'overhead' | 'side' | 'low' | null;
         faceOnlyIdentity?: boolean;
         forceGarmentReinforce?: boolean;
+        /** Cast partner whose face is attached as Image 2 on this still (garment goes to text). */
+        partner?: DayPartner | null;
       }
     ) => {
       const wardrobeId = slot.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
       const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
       const garmentReinforce = Boolean(
-        options?.forceGarmentReinforce ||
-        resolveDayGarmentReinforce({
-          plateSource: plate?.source,
-          packshotUrl,
-          customGarmentUrl: toolSettings.customGarmentImageUrl,
-          customGarmentFilename: toolSettings.customGarmentImageFilename,
-        })
+        !(options?.partner && !options.partner.invented) &&
+        (options?.forceGarmentReinforce ||
+          resolveDayGarmentReinforce({
+            plateSource: plate?.source,
+            packshotUrl,
+            customGarmentUrl: toolSettings.customGarmentImageUrl,
+            customGarmentFilename: toolSettings.customGarmentImageFilename,
+          }))
       );
       const dayMood = normalizeDayMood(
         isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
@@ -616,6 +635,8 @@ export function useDayPlannerToolOrchestrationCore() {
         omitGarment,
         faceOnlyIdentity: options?.faceOnlyIdentity === true,
         replaceKeepOutfit,
+        partner: options?.partner ?? null,
+        leadNoun,
       });
     },
     [
@@ -635,6 +656,7 @@ export function useDayPlannerToolOrchestrationCore() {
       toolSettings.intimateMix,
       toolSettings.notes,
       intimateEnabled,
+      leadNoun,
       wardrobeLabelFor,
     ]
   );
@@ -874,8 +896,59 @@ export function useDayPlannerToolOrchestrationCore() {
           customGarmentUrl: toolSettings.customGarmentImageUrl,
           customGarmentFilename: toolSettings.customGarmentImageFilename,
         });
+        // Partner: a chosen Cast member plays the second person on two-person stills — their
+        // face crop takes Image 2 (the outfit is said in words), the pose map stays Image 3 — or
+        // an invented man / woman ("new:…") with their own face and no extra image.
+        const partnerCharacter =
+          toolSettings.partnerCharacterId && toolSettings.partnerCharacterId !== character?.id
+            ? getCharacter(toolSettings.partnerCharacterId)
+            : null;
+        const partnerCandidate =
+          inventedDayPartner(toolSettings.partnerCharacterId) ?? toDayPartner(partnerCharacter);
+        let slotPartner: DayPartner | null = null;
+        let partnerFace: { filename?: string; imageUrl?: string } | null = null;
+        if (partnerCandidate && hasPlate) {
+          const partnerMood = normalizeDayMood(
+            isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+              ? 'everyday'
+              : toolSettings.dayMood
+          );
+          const { headcount } = planDaySlotPose({
+            slot: queueTarget,
+            dayMood: partnerMood,
+            intimateMix: toolSettings.intimateMix,
+            allowCompanions: toolSettings.allowCompanions === true,
+            model: shared.model,
+          });
+          if (
+            dayPartnerApplies({
+              partner: partnerCandidate,
+              headcount,
+              adultMood: isDayAdultMood(partnerMood),
+              lead: leadNoun,
+              sameSexLayouts: isQwenRapidAioModel(shared.model ?? undefined),
+            })
+          ) {
+            if (partnerCandidate.invented) {
+              slotPartner = partnerCandidate;
+            } else if (partnerCharacter) {
+              const resolved = await resolveDayNudeIdentityPlateWithFaceCrop({
+                character: partnerCharacter,
+                model: shared.model,
+                comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+              });
+              if (resolved.plate?.filename?.trim() || resolved.plate?.imageUrl?.trim()) {
+                partnerFace = {
+                  filename: resolved.plate.filename?.trim() || undefined,
+                  imageUrl: resolved.plate.imageUrl?.trim() || undefined,
+                };
+                slotPartner = partnerCandidate;
+              }
+            }
+          }
+        }
         const garmentReinforce =
-          omitGarment || replaceKeepOutfit
+          omitGarment || replaceKeepOutfit || partnerFace
             ? null
             : vacationFaceBreak
               ? isClothingOnlyDayGarment(byoOrPackGarment)
@@ -1030,7 +1103,7 @@ export function useDayPlannerToolOrchestrationCore() {
           })
         );
 
-        const basePrompt = buildSlotPrompt(queueTarget, {
+        const slotPrompt = buildSlotPrompt(queueTarget, {
           poseGuide: Boolean(poseGuideFilename),
           poseGuideStyle: poseGuideDrawnStyle,
           poseLeadPosition,
@@ -1040,7 +1113,9 @@ export function useDayPlannerToolOrchestrationCore() {
           forceGarmentReinforce:
             vacationFaceBreak &&
             Boolean(garmentReinforce?.imageUrl || garmentReinforce?.imageFilename),
+          partner: slotPartner,
         });
+        const basePrompt = slotPartner ? scrubDayPartnerOutfitImageClaims(slotPrompt) : slotPrompt;
         // Quality-gate reroll: append the fix for whatever the reviewer flagged, once.
         const qualityNudge = rerollNudgeRef.current[queueTarget.id]?.trim();
         delete rerollNudgeRef.current[queueTarget.id];
@@ -1070,6 +1145,15 @@ export function useDayPlannerToolOrchestrationCore() {
             : undefined;
         const prompt = [
           basePrompt,
+          // The duo recipes name the partner's image themselves; the long brief (and a recipe
+          // that has no partner wording, e.g. Klein spoon) gets one line.
+          !slotPartner
+            ? ''
+            : !isRapidDuoRecipePrompt(basePrompt)
+              ? dayPartnerBriefLine(slotPartner)
+              : /face from the second image|own face\./.test(basePrompt)
+                ? ''
+                : dayPartnerRecipeLine(slotPartner, 'second', undefined, leadNoun),
           cueLine,
           lookLine,
           kleinFaceFilename ? KLEIN_FACE_REFERENCE_LINE : '',
@@ -1107,7 +1191,10 @@ export function useDayPlannerToolOrchestrationCore() {
         // Image 2 = optional garment packshot; Image 3 = crude pose wireframe.
         const extraUrls: Array<string | undefined> = [undefined];
         const extraFilenames: string[] = [''];
-        if (garmentReinforce?.imageUrl || garmentReinforce?.imageFilename) {
+        if (partnerFace) {
+          extraUrls[1] = partnerFace.imageUrl;
+          extraFilenames[1] = partnerFace.filename || '';
+        } else if (garmentReinforce?.imageUrl || garmentReinforce?.imageFilename) {
           extraUrls[1] = garmentReinforce.imageUrl;
           extraFilenames[1] = garmentReinforce.imageFilename?.trim() || '';
         } else {
@@ -1320,6 +1407,7 @@ export function useDayPlannerToolOrchestrationCore() {
       isolatePending,
       isolateSubject,
       leanChrome,
+      leadNoun,
       plate?.source,
       queuePlate,
       shared.activeCharacterId,
@@ -1333,6 +1421,7 @@ export function useDayPlannerToolOrchestrationCore() {
       toolSettings.dayMood,
       toolSettings.identityBoost,
       toolSettings.intimateMix,
+      toolSettings.partnerCharacterId,
       toolSettings.posePriority,
       intimateEnabled,
       shared.model,
@@ -1472,29 +1561,98 @@ export function useDayPlannerToolOrchestrationCore() {
     setAutoReviewStills: (next: boolean) => updateToolSettings({ autoReviewStills: next }),
     hideStickyCutCoach: toolSettings.hideStickyCutCoach === true,
     setHideStickyCutCoach: (next: boolean) => updateToolSettings({ hideStickyCutCoach: next }),
-    dayMood: normalizeDayMood(
-      isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
-    ),
-    setDayMood: (next: import('@/lib/day-planner').DayMood) => {
-      const mood = isDayAdultMood(next) && !intimateEnabled ? 'everyday' : normalizeDayMood(next);
+    // A theme (Date night, Cosplay…) stays as its own id; it renders as Everyday.
+    dayMood: (dayThemeOf(toolSettings.dayMood)?.id ??
+      normalizeDayMood(
+        isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
+      )) as import('@/lib/day-planner').DayMoodSetting,
+    setDayMood: (next: import('@/lib/day-planner').DayMoodSetting) => {
+      const theme = dayThemeOf(next);
+      const mood: import('@/lib/day-planner').DayMoodSetting =
+        theme?.id ??
+        (isDayAdultMood(next) && !intimateEnabled ? 'everyday' : normalizeDayMood(next));
       const mix = normalizeDayIntimateMix(toolSettings.intimateMix);
+      // Date night / Night out beats need a second person — turn companions on with them.
+      const allowCompanions = theme?.companions ? true : toolSettings.allowCompanions === true;
       const aligned = ensureDaySlotsMatchMood(slots, {
         dayMood: mood,
         intimateMix: mix,
-        allowCompanions: toolSettings.allowCompanions === true,
+        allowCompanions,
       });
+      // A theme dresses from its own pool: kits picked under another mood (a suit on a Cosplay
+      // day, overalls on Date night) are dropped so the queue picks a fitting one.
+      const baseSlots = aligned.changed ? aligned.slots : slots;
+      const redressed = theme
+        ? baseSlots.map(slot =>
+            slot.wardrobeId && !theme.kitRe.test(wardrobeLabelFor(slot.wardrobeId) ?? '')
+              ? { ...slot, wardrobeId: undefined }
+              : slot
+          )
+        : baseSlots;
+      const kitsChanged = redressed.some((slot, index) => slot !== baseSlots[index]);
       updateToolSettings({
         dayMood: mood,
-        ...(aligned.changed ? { slots: aligned.slots } : {}),
+        ...(theme?.companions && toolSettings.allowCompanions !== true
+          ? {
+              allowCompanions: true,
+              ...(normalizeDayIntimateMix(toolSettings.intimateMix) === 'solo'
+                ? { intimateMix: 'mixed' as const }
+                : {}),
+            }
+          : {}),
+        ...(aligned.changed || kitsChanged ? { slots: redressed } : {}),
       });
     },
     intimateEnabled,
+    partnerCharacterId:
+      toolSettings.partnerCharacterId && toolSettings.partnerCharacterId !== character?.id
+        ? toolSettings.partnerCharacterId
+        : '',
+    partnerOptions: getCharactersSnapshot()
+      .filter(record => record.id !== character?.id && record.name?.trim())
+      .map(record => ({ id: record.id, name: record.name.trim(), noun: dayPartnerNoun(record) })),
+    partnerTwoWomen: isQwenRapidAioModel(shared.model ?? undefined),
+    leadNoun,
+    setPartnerCharacterId: (next: string) =>
+      updateToolSettings({ partnerCharacterId: next.trim() || undefined }),
+    // People (Solo / Mixed / Duo) — one control for every mood. Clothed moods: Solo = no
+    // companion, Mixed = some stills with a friend / partner, Duo = every still. Adult moods: the
+    // Solo / Mixed / Duo mix. Both settings move together so switching mood keeps the choice.
+    people: ((): import('@/lib/day-planner').DayIntimateMix => {
+      const mix = normalizeDayIntimateMix(toolSettings.intimateMix);
+      if (isDayAdultMood(toolSettings.dayMood) && intimateEnabled) return mix;
+      if (toolSettings.allowCompanions !== true) return 'solo';
+      return mix === 'solo' ? 'mixed' : mix;
+    })(),
+    setPeople: (next: import('@/lib/day-planner').DayIntimateMix) => {
+      const mix = normalizeDayIntimateMix(next);
+      const rawMood =
+        dayThemeOf(toolSettings.dayMood)?.id ??
+        normalizeDayMood(
+          isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+            ? 'everyday'
+            : toolSettings.dayMood
+        );
+      const allowCompanions = mix !== 'solo';
+      const aligned = isDayAdultMood(rawMood)
+        ? ensureDaySlotsMatchMood(slots, { dayMood: rawMood, intimateMix: mix, allowCompanions })
+        : alignDaySlotsToPeople(slots, { dayMood: rawMood, people: mix });
+      updateToolSettings({
+        intimateMix: mix,
+        allowCompanions,
+        ...(aligned.changed ? { slots: aligned.slots } : {}),
+      });
+    },
     intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
     setIntimateMix: (next: import('@/lib/day-planner').DayIntimateMix) => {
       const mix = normalizeDayIntimateMix(next);
-      const mood = normalizeDayMood(
-        isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
-      );
+      const mood =
+        dayThemeOf(toolSettings.dayMood)?.id ??
+        normalizeDayMood(
+          isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+            ? 'everyday'
+            : toolSettings.dayMood
+        );
       const aligned = ensureDaySlotsMatchMood(slots, {
         dayMood: mood,
         intimateMix: mix,
