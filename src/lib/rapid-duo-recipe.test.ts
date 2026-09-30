@@ -19,6 +19,7 @@ import { reinforceIntimateStillPrompt } from './intimate-prompt-clarify';
 import { applyQueuePromptSteering } from './queue-prompt-prep';
 import {
   buildRapidDuoRecipe,
+  calmSexLaughter,
   buildRapidSuggestiveRecipe,
   buildRapidVacationRecipe,
   isRapidDuoRecipePrompt,
@@ -521,5 +522,29 @@ describe('Cast descriptors in recipes', () => {
     })!;
     assert.match(recipe, /The woman: A half-mushroom humanoid\./);
     assert.doesNotMatch(recipe, /hoodie|drones|straps|mycelium/);
+  });
+});
+
+describe('calmSexLaughter', () => {
+  it('turns Raunchy laughing into closed-lip amusement', () => {
+    assert.equal(
+      calmSexLaughter('mating press on the couch when the doorbell rings — both adults fully visible, laughing'),
+      'mating press on the couch when the doorbell rings — both adults fully visible, amused, lips closed'
+    );
+    assert.match(
+      calmSexLaughter('bent over a desk when the chair rolls away — both scramble laughing'),
+      /both scramble, glancing at the interruption, lips closed, amused/
+    );
+    assert.match(calmSexLaughter('a partner slips and face-plants laughing'), /face-plants, both glancing at each other/);
+    assert.match(calmSexLaughter('fingering herself — laughing mid-act'), /lips closed, amused mid-act/);
+    assert.doesNotMatch(calmSexLaughter('laughing mid-thrust, then laughs again'), /laugh/i);
+  });
+
+  it('reaches the duo recipe Moment line', () => {
+    const recipe = buildRapidDuoRecipe({
+      beat: 'mating press on the couch with a partner when the doorbell rings — both adults fully visible, laughing',
+    });
+    assert.ok(recipe);
+    assert.doesNotMatch(recipe!, /laugh/i);
   });
 });

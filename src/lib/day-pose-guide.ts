@@ -2731,6 +2731,44 @@ function riderOnPelvis(
   return top;
 }
 
+/**
+ * Seat a rider on the bottom partner's hips: her pelvis straight above his (0.19 up — the
+ * 0.18 pelvis gap in separateIntimateFigures stays vertical), knees folded beside his hips,
+ * shins trailing along his thighs (toward his head when she faces away). The old rider sat
+ * 0.17 past his pelvis over his knees with shins hanging below him, and Rapid bridged the gap
+ * by growing his penis out of his belly or seating her on his stomach (live Raunchy 01102/01104).
+ */
+function seatRiderOnHips(
+  top: StickSkeleton,
+  bottom: StickSkeleton,
+  opts: { facingAway?: boolean } = {}
+): StickSkeleton {
+  const px = bottom.pelvis.x + 0.02;
+  const py = bottom.pelvis.y - 0.19;
+  const dx = px - top.pelvis.x;
+  const dy = py - top.pelvis.y;
+  const shift = (p: Point) => point(p.x + dx, p.y + dy);
+  const seated: StickSkeleton = {
+    ...top,
+    head: shift(top.head),
+    neck: shift(top.neck),
+    lShoulder: shift(top.lShoulder),
+    rShoulder: shift(top.rShoulder),
+    lElbow: shift(top.lElbow),
+    rElbow: shift(top.rElbow),
+    lWrist: shift(top.lWrist),
+    rWrist: shift(top.rWrist),
+    pelvis: shift(top.pelvis),
+    lHip: shift(top.lHip),
+    rHip: shift(top.rHip),
+    lKnee: point(px - 0.07, bottom.pelvis.y + 0.01),
+    rKnee: point(px + 0.05, bottom.pelvis.y + 0.02),
+    lAnkle: point(px + (opts.facingAway ? -0.2 : 0.14), bottom.pelvis.y + 0.03),
+    rAnkle: point(px + (opts.facingAway ? -0.16 : 0.18), bottom.pelvis.y + 0.04),
+  };
+  return seated;
+}
+
 function withThird(pair: StickSkeleton[], seed: number, cx = 0.82): StickSkeleton[] {
   return [...pair, uprightFigure(seed, { cx, base: 'stand', salt: 3, lean: -0.15 })];
 }
@@ -3421,10 +3459,15 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
     // Keep pelvis centers farther apart so Edit doesn't fuse into one hip mass.
     // One contact wrist only — two planted wrists often become ghost hands on Edit.
     const bottom = lyingFigure(seed, { cx: 0.34, cy: 0.64, facing: 1, salt: 40 });
-    const top = riderOnPelvis(seed, { cx: 0.64, salt: 2 });
-    top.head = point(0.66, 0.12);
-    top.neck = point(0.64, 0.2);
-    top.rWrist = point(bottom.neck.x + 0.04, (bottom.neck.y + bottom.pelvis.y) / 2);
+    const rider = riderOnPelvis(seed, { cx: 0.64, salt: 2 });
+    rider.head = point(0.66, 0.12);
+    rider.neck = point(0.64, 0.2);
+    const top = seatRiderOnHips(rider, bottom);
+    // One hand on his chest.
+    top.rWrist = point(
+      (bottom.neck.x + bottom.pelvis.x) / 2,
+      (bottom.neck.y + bottom.pelvis.y) / 2 - 0.02
+    );
     top.lWrist = point(top.lHip.x - 0.05, top.lHip.y - 0.02);
     top.rElbow = point((top.rShoulder.x + top.rWrist.x) / 2, (top.rShoulder.y + top.rWrist.y) / 2);
     top.lElbow = point((top.lShoulder.x + top.lWrist.x) / 2, (top.lShoulder.y + top.lWrist.y) / 2);
@@ -3433,10 +3476,11 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
 
   if (layout === 'reverse_straddle') {
     const bottom = lyingFigure(seed, { cx: 0.34, cy: 0.64, facing: 1, salt: 40 });
-    const top = riderOnPelvis(seed, { cx: 0.64, facingAway: true, salt: 2 });
+    const rider = riderOnPelvis(seed, { cx: 0.64, facingAway: true, salt: 2 });
+    rider.head = point(0.68, 0.12);
+    rider.neck = point(0.66, 0.2);
+    const top = seatRiderOnHips(rider, bottom, { facingAway: true });
     top.facing = 'back';
-    top.head = point(0.68, 0.12);
-    top.neck = point(0.66, 0.2);
     // One contact wrist only (same ghost-hand risk as face-to-face straddle).
     top.lWrist = point(bottom.pelvis.x + 0.02, bottom.pelvis.y - 0.04);
     top.rWrist = point(top.rHip.x + 0.05, top.rHip.y - 0.02);

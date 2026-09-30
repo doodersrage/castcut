@@ -1313,3 +1313,25 @@ describe('everyday pose layouts', () => {
     assert.notEqual(walk.openPose.poseKey, 'stand:2');
   });
 });
+
+describe('straddle rider sits on the partner hips', () => {
+  for (const layout of ['straddle', 'reverse_straddle'] as const) {
+    it(`${layout}: rider pelvis straight above his, knees at his hip line`, () => {
+      const [rider, bottom] = synthesizeIntimateStickFigures({
+        base: 'sit',
+        armLeft: 'down',
+        armRight: 'down',
+        lean: 0,
+        stride: 0,
+        seed: 12345,
+        label: 'x',
+        people: 2,
+        intimate: layout,
+        sceneText: 'she straddles him on the bed',
+      });
+      assert.ok(Math.abs(rider!.pelvis.x - bottom!.pelvis.x) < 0.05, 'rider over his pelvis');
+      assert.ok(rider!.pelvis.y < bottom!.pelvis.y - 0.15, 'rider sits above him');
+      assert.ok(Math.abs(rider!.lKnee.y - bottom!.pelvis.y) < 0.05, 'knees beside his hips');
+    });
+  }
+});

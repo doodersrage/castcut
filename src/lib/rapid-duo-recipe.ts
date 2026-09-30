@@ -210,6 +210,27 @@ function recipeRoom(
  * Compact Rapid duo prompt, or null when the beat has no drawable two-person layout
  * (afterglow / undress / generic) — callers keep the full brief then.
  */
+/**
+ * Raunchy beats say "laughing" ("both scramble laughing", "face-plants laughing"). At CFG 1 Rapid
+ * paints wide-open cackles on both faces mid-sex, and the open mouth costs face match. Same-seed
+ * replays (Day Raunchy 01040/01046/01109 × 2 seeds): "lips closed, amused" + a glance at the
+ * interruption kept the gag with calm faces — face distance 0.915 laughing, 0.965 "smile", 0.901 this.
+ */
+export function calmSexLaughter(beat: string): string {
+  return beat
+    .replace(
+      /\bboth\s+(scramble|freeze)\s+laughing\b/gi,
+      'both $1, glancing at the interruption, lips closed, amused'
+    )
+    .replace(
+      /\b(face-plants?)\s+laughing\b/gi,
+      '$1, both glancing at each other, lips closed, amused'
+    )
+    .replace(/\blaughing\s+(mid-(?:thrust|act|sex))\b/gi, 'lips closed, amused $1')
+    .replace(/\bmid-laugh\b/gi, 'amused, lips closed')
+    .replace(/\b(?:laughing|laughs?)\b/gi, 'amused, lips closed');
+}
+
 export function buildRapidDuoRecipe(input: {
   beat: string | null | undefined;
   /** Planner indoor setting — used as the room only when the beat names no place. */
@@ -242,7 +263,7 @@ export function buildRapidDuoRecipe(input: {
     RAPID_DUO_RECIPE_MARK,
     body,
     // "doggy" paints literal dogs on Qwen stacks; a 69 / face-sit beat renders as seated oral.
-    `Moment: ${beat
+    `Moment: ${calmSexLaughter(beat)
       .replace(/\bdoggy(?:[- ]?style)?\b/gi, 'from behind')
       .replace(
         layout === 'sixty_nine' || layout === 'facesit' ? RAPID_ORAL_FALLBACK_RE : /$^/,
@@ -451,7 +472,7 @@ export function buildRapidSoloRecipe(input: {
     soloPlacement(kind, beat, surface),
     soloHands(beat, input.toy === true, kind),
     ownGaze ? null : 'Eyes half-closed, looking down at her body.',
-    `Moment: ${beat}.`,
+    `Moment: ${calmSexLaughter(beat)}.`,
     recipeRoom(beat, surface, input.setting, input.timeOfDay),
     input.clothedOutfit !== undefined
       ? `She wears ${withArticle(input.clothedOutfit) ?? 'her outfit'}, pulled down off her breasts and pushed up around her waist — bare breasts with nipples visible and bare vulva.`
