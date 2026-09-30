@@ -7,6 +7,7 @@ import {
   startReeditRefineFromGalleryEntry,
 } from '@/lib/improve-output';
 import { toastBulkQueueSummary } from '@/lib/app-toast';
+import { firstUnreviewedInRun } from '@/lib/gallery-queue-runs';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import {
   clearExperimentWinner,
@@ -23,6 +24,8 @@ type UseGalleryExperimentGridHandlersArgs = {
   setCompareOpen: (open: boolean) => void;
   setRequeueStatus: (status: string | null) => void;
   galleryCardActionsRef: MutableRefObject<GalleryCardActions>;
+  /** Review mode on/off — Review run switches it on at the run's first unrated still. */
+  setReviewMode: (on: boolean) => void;
 };
 
 export function useGalleryExperimentGridHandlers({
@@ -33,7 +36,20 @@ export function useGalleryExperimentGridHandlers({
   setCompareOpen,
   setRequeueStatus,
   galleryCardActionsRef,
+  setReviewMode,
 }: UseGalleryExperimentGridHandlersArgs) {
+  const onReviewRun = useCallback(
+    (runEntries: ComfyGalleryEntry[]) => {
+      const first = firstUnreviewedInRun(runEntries);
+      if (!first) {
+        return;
+      }
+      setSelectedIds([first.id]);
+      setReviewMode(true);
+    },
+    [setReviewMode, setSelectedIds]
+  );
+
   const onCrownExperiment = useCallback(
     (groupId: string, entryId: string) => {
       if (experimentWinners[groupId]?.entryId === entryId) {
@@ -57,7 +73,7 @@ export function useGalleryExperimentGridHandlers({
 
   const onRequeueExperiment = useCallback(
     (entriesForRequeue: ComfyGalleryEntry[]) => {
-      setRequeueStatus(`Re-queueing ${entriesForRequeue.length} experiment variant(s)…`);
+      setRequeueStatus(`Re-queueing ${entriesForRequeue.length} still(s) with new seeds…`);
       void import('@/lib/comfyui-requeue')
         .then(({ requeueComfyJobs }) =>
           requeueComfyJobs(
@@ -101,6 +117,7 @@ export function useGalleryExperimentGridHandlers({
   );
 
   return {
+    onReviewRun,
     onCrownExperiment,
     onCompareExperiment,
     onRequeueExperiment,

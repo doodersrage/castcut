@@ -183,6 +183,7 @@ export type GalleryPanelGridProps = {
     onCrownExperiment: (groupId: string, entryId: string) => void;
     onCompareExperiment: (entries: ComfyGalleryEntry[]) => void;
     onRequeueExperiment: (entries: ComfyGalleryEntry[]) => void;
+    onReviewRun: (entries: ComfyGalleryEntry[]) => void;
     onWinnerUpscale: (entry: ComfyGalleryEntry) => void;
     onWinnerRefine: (entry: ComfyGalleryEntry) => void;
     onWinnerContinue: (entry: ComfyGalleryEntry) => void;

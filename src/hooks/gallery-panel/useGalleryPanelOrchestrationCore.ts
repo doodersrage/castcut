@@ -315,6 +315,8 @@ export function useGalleryPanelOrchestrationCore({
     setCompareOpen: ui.setCompareOpen,
     setRequeueStatus: ui.setRequeueStatus,
     galleryCardActionsRef,
+    setReviewMode: on =>
+      setFilter(previous => ({ ...previous, reviewMode: on ? true : undefined })),
   });
 
   const showSkeleton = entries.length === 0 && !storeReady;

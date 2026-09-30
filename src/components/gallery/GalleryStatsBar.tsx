@@ -3,7 +3,6 @@
 import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
 import type { GalleryStats } from '@/lib/gallery-stats';
 import { GALLERY_ENTRY_LIMIT } from '@/lib/gallery-stats';
-import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 
 type GalleryStatsBarProps = {
   stats: GalleryStats;
@@ -16,11 +15,6 @@ type GalleryStatsBarProps = {
   projectFilterActive?: boolean;
   onProjectFilter?: (projectId: string) => void;
 };
-
-function topModelLabel(id: string): string {
-  const definition = getComfyModelDefinition(id as never);
-  return definition.id === id ? definition.label : id;
-}
 
 function StatChip(props: {
   label: string;
@@ -83,60 +77,14 @@ export default function GalleryStatsBar({
 }: GalleryStatsBarProps) {
   const nearCapacity = stats.total >= GALLERY_ENTRY_LIMIT - 5;
 
+  const queued = stats.pending + stats.running;
+  const queueFilterOn = filter.status === 'pending' || filter.status === 'running';
+
+  // Four working chips. Averages, success rate, median time, top model and the rating
+  // histogram are analytics — they live on the Dashboard, not above the grid.
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <StatChip
-          label="Total"
-          value={stats.total}
-          emphasis="default"
-          onClick={() => onQuickFilter({ status: 'all' })}
-        />
-        {heldMaxJobs > 0 ? (
-          <div
-            key="held-max"
-            className={`inline-flex min-w-0 items-baseline gap-2 rounded-xl border border-[var(--border-subtle)]/70 bg-[var(--bg-muted)] px-2.5 py-1.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] text-slate-400`}
-          >
-            <span className="type-caption shrink-0 opacity-80">Held Max</span>
-            <span className="type-heading tabular-nums">{heldMaxJobs}</span>
-          </div>
-        ) : null}
-        <StatChip
-          label="Done"
-          value={stats.completed}
-          active={filter.status === 'completed'}
-          onClick={() =>
-            onQuickFilter({
-              status: filter.status === 'completed' ? 'all' : 'completed',
-            })
-          }
-        />
-        <StatChip
-          label="Queue"
-          value={stats.pending + stats.running}
-          emphasis={activeJobs > 0 ? 'warning' : 'default'}
-          active={filter.status === 'pending' || filter.status === 'running'}
-          onClick={() => {
-            if (activeJobs > 0 && onRefreshPending) {
-              onRefreshPending();
-            }
-            onQuickFilter({
-              status:
-                filter.status === 'pending' || filter.status === 'running' ? 'all' : 'pending',
-            });
-          }}
-        />
-        <StatChip
-          label="Favorites"
-          value={stats.favorites}
-          active={Boolean(filter.favoritesOnly)}
-          testId="gallery-stats-favorites"
-          onClick={() =>
-            onQuickFilter({
-              favoritesOnly: filter.favoritesOnly ? undefined : true,
-            })
-          }
-        />
         <StatChip
           label="Unreviewed"
           value={stats.unreviewed}
@@ -150,63 +98,28 @@ export default function GalleryStatsBar({
           }
         />
         <StatChip
-          label="Review"
-          // Same count as Unreviewed beside it — say what the chip does instead.
-          value={filter.reviewMode && !filter.unreviewedOnly ? 'On' : 'Start'}
-          active={Boolean(filter.reviewMode) && !filter.unreviewedOnly}
-          testId="gallery-stats-review"
+          label="Favorites"
+          value={stats.favorites}
+          active={Boolean(filter.favoritesOnly)}
+          testId="gallery-stats-favorites"
           onClick={() =>
             onQuickFilter({
-              reviewMode: filter.reviewMode && !filter.unreviewedOnly ? undefined : true,
-              unreviewedOnly: undefined,
+              favoritesOnly: filter.favoritesOnly ? undefined : true,
             })
           }
         />
-        {activeProjectId && onProjectFilter ? (
+        {queued > 0 || queueFilterOn ? (
           <StatChip
-            label="Project"
-            value="Active"
-            active={projectFilterActive}
-            testId="gallery-stats-active-project"
-            onClick={() => onProjectFilter(projectFilterActive ? '' : 'active')}
-          />
-        ) : null}
-        <StatChip
-          label="Avg"
-          value={stats.avgRating != null ? `${stats.avgRating}★` : '—'}
-          emphasis="muted"
-        />
-        <StatChip
-          label="Untagged"
-          value={stats.untagged}
-          active={Boolean(filter.needsVisionReview)}
-          testId="gallery-stats-untagged"
-          onClick={() =>
-            onQuickFilter({
-              needsVisionReview: filter.needsVisionReview ? undefined : true,
-            })
-          }
-        />
-        {stats.successRate != null ? (
-          <StatChip label="Success" value={`${stats.successRate}%`} emphasis="muted" />
-        ) : null}
-        {stats.medianRenderMs != null ? (
-          <StatChip
-            label="Median"
-            value={`${Math.round(stats.medianRenderMs / 100) / 10}s`}
-            emphasis="muted"
-          />
-        ) : null}
-        {stats.topModel ? (
-          <StatChip
-            label="Top model"
-            value={`${topModelLabel(stats.topModel.id)} · ${stats.topModel.completed}`}
-            active={filter.model === stats.topModel.id}
-            onClick={() =>
-              onQuickFilter({
-                model: filter.model === stats.topModel?.id ? undefined : stats.topModel?.id,
-              })
-            }
+            label="Queue"
+            value={queued}
+            emphasis={activeJobs > 0 ? 'warning' : 'default'}
+            active={queueFilterOn}
+            onClick={() => {
+              if (activeJobs > 0 && onRefreshPending) {
+                onRefreshPending();
+              }
+              onQuickFilter({ status: queueFilterOn ? 'all' : 'pending' });
+            }}
           />
         ) : null}
         {stats.error > 0 ? (
@@ -222,17 +135,19 @@ export default function GalleryStatsBar({
             }
           />
         ) : null}
+        {heldMaxJobs > 0 ? (
+          <StatChip label="Held Max" value={heldMaxJobs} emphasis="muted" />
+        ) : null}
+        {activeProjectId && onProjectFilter ? (
+          <StatChip
+            label="Project"
+            value="Active"
+            active={projectFilterActive}
+            testId="gallery-stats-active-project"
+            onClick={() => onProjectFilter(projectFilterActive ? '' : 'active')}
+          />
+        ) : null}
       </div>
-
-      {stats.topError || stats.ratingHistogram[5] + stats.ratingHistogram[4] > 0 ? (
-        <p className="type-caption text-[var(--text-muted)]">
-          Ratings{' '}
-          {([5, 4, 3, 2, 1] as const)
-            .map(star => `${star}★ ${stats.ratingHistogram[star]}`)
-            .join(' · ')}
-          {stats.topError ? ` · Top error: ${stats.topError.slice(0, 80)}` : ''}
-        </p>
-      ) : null}
 
       {nearCapacity ? (
         <div

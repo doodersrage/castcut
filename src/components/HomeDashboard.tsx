@@ -1,5 +1,6 @@
 'use client';
 
+import GalleryGlanceCard from '@/components/GalleryGlanceCard';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
@@ -145,6 +146,7 @@ export default function HomeDashboard() {
           <PlayContinueChip hideWhenIdle={false} hideWhenHabit hideUnderKioskHeader />
         </div>
         <PlayFilmMetricsCard />
+        <GalleryGlanceCard />
       </div>
 
       {showGoalChooser ? <FirstRunGoalChooser /> : null}

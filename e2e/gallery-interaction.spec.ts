@@ -23,7 +23,8 @@ test("gallery layout toggles and review mode shows banner", async ({ page }) => 
   await listLayout.click();
   await expect(listLayout).toHaveAttribute("data-active", "true");
 
-  const reviewChip = page.getByTestId("gallery-stats-review");
+  // Unreviewed turns review mode on (the separate Review chip was folded into it).
+  const reviewChip = page.getByTestId("gallery-stats-unreviewed");
   await expect(reviewChip).toBeVisible();
   await reviewChip.click();
   await expect(page.getByTestId("gallery-review-banner")).toBeVisible({ timeout: 15_000 });
@@ -34,11 +35,14 @@ test("gallery review mode via filter chip", async ({ page }) => {
   await gotoStable(page, "/gallery");
   await dismissBlockingOverlays(page);
 
+  // The quick-filter row (Review mode chip) lives in Manage.
+  await page.getByRole("tab", { name: "Manage", exact: true }).click();
   const filtersSummary = page.locator("details.ui-collapsible summary").filter({
     hasText: "Filters",
   });
-  await expect(filtersSummary).toBeVisible({ timeout: 15_000 });
-  await filtersSummary.click();
+  if (await filtersSummary.isVisible().catch(() => false)) {
+    await filtersSummary.click();
+  }
   await page.getByTestId("gallery-filter-review-mode").click();
   await expect(page.getByTestId("gallery-review-banner")).toBeVisible({ timeout: 15_000 });
 });

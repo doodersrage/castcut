@@ -19,6 +19,9 @@ export type GalleryExperimentRow = {
   kind: 'experiment';
   groupId: string;
   label: string;
+  /** `run` renders as a Film run block (review / reroll / open in Film), not a sweep. */
+  groupKind?: 'experiment' | 'run';
+  characterId?: string;
   /** Members shown in this block — a page-sized part when the group spans several pages. */
   entries: ComfyGalleryEntry[];
   /** The whole group, for compare / re-queue / winner lookups from any part. */
@@ -104,6 +107,8 @@ export function buildGalleryDisplayRows(
         kind: 'experiment',
         groupId: group.id,
         label: group.label,
+        groupKind: group.kind ?? 'experiment',
+        ...(group.characterId ? { characterId: group.characterId } : {}),
         entries: shown,
         groupEntries: group.entries,
         partStart: group.entries.indexOf(anchor) + 1,

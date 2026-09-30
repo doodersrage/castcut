@@ -1,6 +1,8 @@
 'use client';
 
 import ActionMenu from '@/components/ui/ActionMenu';
+import GalleryModeSwitch from '@/components/gallery/GalleryModeSwitch';
+import { useGalleryManageMode } from '@/lib/gallery-manage-mode';
 
 import { ButtonLink } from '@/components/ui/Button';
 import {
@@ -33,9 +35,11 @@ export function GalleryPanelHeader({
   onUpload?: () => void;
   uploading?: boolean;
 }) {
+  const manage = useGalleryManageMode();
   return (
     // The page header already names and describes the Gallery — only the actions here.
-    <div className="flex flex-wrap items-end justify-end gap-4">
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <GalleryModeSwitch />
       <div className="flex flex-wrap gap-2">
         {onUpload ? (
           <button
@@ -55,7 +59,7 @@ export function GalleryPanelHeader({
             {activeJobs} active
           </span>
         ) : null}
-        {entriesLength > 0 ? (
+        {entriesLength > 0 && manage ? (
           // Three purge actions sat beside Upload / Refresh as top-level buttons, "Purge rest"
           // in red — rare, destructive steps belong one click deeper.
           <ActionMenu

@@ -6,6 +6,7 @@ import GalleryPanelSkeleton from '@/components/gallery/GalleryPanelSkeleton';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { useHubPageDescription } from '@/hooks/useToolPageDescription';
+import { useGalleryManageMode } from '@/lib/gallery-manage-mode';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 
@@ -19,6 +20,7 @@ const ACCENT = 'neutral' as const;
 export default function GalleryTool() {
   const workspaceMode = useWorkspaceMode();
   const isSimple = workspaceMode === 'simple';
+  const manage = useGalleryManageMode();
   const description = useHubPageDescription('gallery');
 
   return (
@@ -31,7 +33,7 @@ export default function GalleryTool() {
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.gallery} />
       <ComfyUiGalleryPanel showFilters />
-      {!isSimple ? <GalleryImportSection /> : null}
+      {!isSimple && manage ? <GalleryImportSection /> : null}
     </ToolLayout>
   );
 }

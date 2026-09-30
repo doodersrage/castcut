@@ -1,10 +1,29 @@
 export function GalleryMenuGroup({
   label,
   children,
+  collapsible = false,
 }: {
   label?: string;
   children: React.ReactNode;
+  /** Closed by default — the full menu listed ~55 actions at once. */
+  collapsible?: boolean;
 }) {
+  if (collapsible && label) {
+    return (
+      <details className="group/menu border-t border-[var(--border-subtle)]/80 py-0.5 first:border-t-0">
+        <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] [&::-webkit-details-marker]:hidden">
+          {label}
+          <span
+            aria-hidden
+            className="text-[10px] text-[var(--text-muted)] transition group-open/menu:rotate-90"
+          >
+            ▸
+          </span>
+        </summary>
+        <div className="pb-1 pl-2">{children}</div>
+      </details>
+    );
+  }
   return (
     <div className="border-t border-[var(--border-subtle)]/80 py-1 first:border-t-0 first:pt-0">
       {label ? (

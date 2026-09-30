@@ -20,7 +20,6 @@ import { loadEngineSettings } from '@/lib/engine-settings';
 import { continueClipActionLabel } from '@/lib/video-clip-mode';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';
 import type { GalleryCardMenuSectionProps } from '@/components/gallery/gallery-card-menu-types';
-import { requestGalleryUsePose } from '@/lib/gallery-pose-event';
 
 export function GalleryEditSection({
   entry,
@@ -38,16 +37,7 @@ export function GalleryEditSection({
   }
 
   return (
-    <GalleryMenuGroup label="Edit">
-      {previewUrl && primaryMediaKind === 'image' ? (
-        <GalleryMenuButton
-          label="Use this pose…"
-          onClick={() => {
-            requestGalleryUsePose(entry.id);
-            setMenuOpen(false);
-          }}
-        />
-      ) : null}
+    <GalleryMenuGroup label="Open in tool" collapsible>
       <GalleryMenuButton
         label="Edit prompt"
         onClick={() => {
@@ -216,16 +206,6 @@ export function GalleryEditSection({
               label="Mesh / 3D"
               onClick={() => {
                 startMeshFromGalleryEntry(entry);
-                setMenuOpen(false);
-              }}
-            />
-          ) : null}
-          {primaryMediaKind === 'image' && entry.status === 'completed' ? (
-            <GalleryMenuButton
-              label="Animate this still"
-              onClick={() => {
-                saveGalleryHandoff(buildGalleryHandoff(entry, 'video'));
-                router.push(galleryHandoffPath('video'));
                 setMenuOpen(false);
               }}
             />

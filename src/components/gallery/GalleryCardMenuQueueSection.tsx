@@ -22,7 +22,7 @@ export function GalleryQueueSection({
   setMenuOpen,
 }: GalleryCardMenuSectionProps) {
   return (
-    <GalleryMenuGroup label="Queue">
+    <GalleryMenuGroup label="Queue & graph" collapsible>
       {entry.status === 'pending' || entry.status === 'running' ? (
         <GalleryMenuButton
           label="Cancel job"
@@ -119,13 +119,6 @@ export function GalleryQueueSection({
           }}
         />
       ) : null}
-      <GalleryMenuButton
-        label="New seed"
-        onClick={() => {
-          onRequeue(true, undefined, { exactGraph: false });
-          setMenuOpen(false);
-        }}
-      />
       <GalleryMenuButton
         label="Variation · Good (hires sampler)"
         onClick={() => {

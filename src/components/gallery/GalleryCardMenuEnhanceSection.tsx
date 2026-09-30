@@ -55,7 +55,7 @@ export function GalleryEnhanceSection({
   }
 
   return (
-    <GalleryMenuGroup label="Enhance">
+    <GalleryMenuGroup label="Fix & improve" collapsible>
       {shouldShowUpscaleFinal ? (
         <GalleryMenuButton
           label="Upscale → Good (~1.25× Lanczos)"
@@ -121,7 +121,7 @@ export function GalleryEnhanceSection({
       ) : null}
       {shouldShowMoireFinal ? (
         <GalleryMenuButton
-          label="Flux polish → Good (blur only)"
+          label="Polish → Good (soft blur)"
           onClick={() => {
             onMoireClean('final');
             setMenuOpen(false);
@@ -130,7 +130,7 @@ export function GalleryEnhanceSection({
       ) : null}
       {shouldShowMoireMax ? (
         <GalleryMenuButton
-          label="Flux polish → Best (blur + resample)"
+          label="Polish → Best (blur + resample)"
           onClick={() => {
             onMoireClean('max');
             setMenuOpen(false);
@@ -139,7 +139,7 @@ export function GalleryEnhanceSection({
       ) : null}
       {shouldShowForceMoireCleanMax ? (
         <GalleryMenuButton
-          label="Force Flux polish → Best"
+          label="Force polish → Best"
           onClick={() => {
             onMoireClean('max', { force: true });
             setMenuOpen(false);

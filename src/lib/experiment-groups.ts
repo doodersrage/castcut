@@ -4,6 +4,10 @@ import { galleryCardCaption } from './gallery-card-caption';
 export type ExperimentGroup = {
   id: string;
   label: string;
+  /** `run`: one Film run (a Cast lead's Day / Story / Outfit session), not a param sweep. */
+  kind?: 'experiment' | 'run';
+  /** Run blocks: the Cast lead the run belongs to. */
+  characterId?: string;
   parentPrompt: string;
   entries: ComfyGalleryEntry[];
   variants: {
@@ -13,8 +17,11 @@ export type ExperimentGroup = {
   };
 };
 
+// The whole prompt: Day / Story / Outfit prompts all open with the same ~120 chars of edit
+// boilerplate, so a prefix key lumped a whole run of different beats into one "66 variants"
+// experiment. Experiments are the same prompt re-run (seed / cfg / steps sweeps).
 function normalizePromptKey(prompt: string): string {
-  return prompt.trim().toLowerCase().slice(0, 120);
+  return prompt.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 /**

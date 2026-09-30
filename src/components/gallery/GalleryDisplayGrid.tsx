@@ -18,6 +18,7 @@ import {
   type GalleryDisplayRow,
 } from '@/lib/gallery-display-rows';
 import { displayRowContainsEntry, scrollGalleryEntryIntoView } from '@/lib/gallery-scroll';
+import { filmRunMisses } from '@/lib/gallery-queue-runs';
 import type { ExperimentGroup } from '@/lib/experiment-groups';
 import type { GalleryLineageGroup } from '@/lib/gallery-lineage-groups';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
@@ -45,6 +46,7 @@ type GalleryDisplayGridProps = {
   onCrownExperiment?: (groupId: string, entryId: string) => void;
   onCompareExperiment?: (entries: ComfyGalleryEntry[]) => void;
   onRequeueExperiment?: (entries: ComfyGalleryEntry[]) => void;
+  onReviewRun?: (entries: ComfyGalleryEntry[]) => void;
   onWinnerUpscale?: (entry: ComfyGalleryEntry) => void;
   onWinnerRefine?: (entry: ComfyGalleryEntry) => void;
   onWinnerContinue?: (entry: ComfyGalleryEntry) => void;
@@ -102,6 +104,7 @@ function DisplayRowView({
   onCrownExperiment,
   onCompareExperiment,
   onRequeueExperiment,
+  onReviewRun,
   onWinnerUpscale,
   onWinnerRefine,
   onWinnerContinue,
@@ -116,6 +119,7 @@ function DisplayRowView({
   onCrownExperiment?: (groupId: string, entryId: string) => void;
   onCompareExperiment?: (entries: ComfyGalleryEntry[]) => void;
   onRequeueExperiment?: (entries: ComfyGalleryEntry[]) => void;
+  onReviewRun?: (entries: ComfyGalleryEntry[]) => void;
   onWinnerUpscale?: (entry: ComfyGalleryEntry) => void;
   onWinnerRefine?: (entry: ComfyGalleryEntry) => void;
   onWinnerContinue?: (entry: ComfyGalleryEntry) => void;
@@ -142,12 +146,20 @@ function DisplayRowView({
         groupEntries={row.groupEntries}
         partStart={row.partStart}
         winnerEntryId={row.winnerEntryId}
+        groupKind={row.groupKind}
+        characterId={row.characterId}
+        onReviewRun={onReviewRun}
         collapsed={row.collapsed}
         onToggle={() => onToggleExperimentGroup?.(row.groupId)}
         onCrown={onCrownExperiment ? entryId => onCrownExperiment(row.groupId, entryId) : undefined}
         onCompare={onCompareExperiment ? () => onCompareExperiment(row.groupEntries) : undefined}
         onRequeueSeeds={
-          onRequeueExperiment ? () => onRequeueExperiment(row.groupEntries) : undefined
+          onRequeueExperiment
+            ? () =>
+                onRequeueExperiment(
+                  row.groupKind === 'run' ? filmRunMisses(row.groupEntries) : row.groupEntries
+                )
+            : undefined
         }
         onWinnerUpscale={onWinnerUpscale}
         onWinnerRefine={onWinnerRefine}
@@ -221,6 +233,7 @@ function VirtualizedDisplayRows({
   onCrownExperiment,
   onCompareExperiment,
   onRequeueExperiment,
+  onReviewRun,
   onWinnerUpscale,
   onWinnerRefine,
   onWinnerContinue,
@@ -240,6 +253,7 @@ function VirtualizedDisplayRows({
   onCrownExperiment?: (groupId: string, entryId: string) => void;
   onCompareExperiment?: (entries: ComfyGalleryEntry[]) => void;
   onRequeueExperiment?: (entries: ComfyGalleryEntry[]) => void;
+  onReviewRun?: (entries: ComfyGalleryEntry[]) => void;
   onWinnerUpscale?: (entry: ComfyGalleryEntry) => void;
   onWinnerRefine?: (entry: ComfyGalleryEntry) => void;
   onWinnerContinue?: (entry: ComfyGalleryEntry) => void;
@@ -359,6 +373,7 @@ function VirtualizedDisplayRows({
                   onCrownExperiment={onCrownExperiment}
                   onCompareExperiment={onCompareExperiment}
                   onRequeueExperiment={onRequeueExperiment}
+                  onReviewRun={onReviewRun}
                   onWinnerUpscale={onWinnerUpscale}
                   onWinnerRefine={onWinnerRefine}
                   onWinnerContinue={onWinnerContinue}
@@ -385,6 +400,7 @@ export default function GalleryDisplayGrid({
   onCrownExperiment,
   onCompareExperiment,
   onRequeueExperiment,
+  onReviewRun,
   onWinnerUpscale,
   onWinnerRefine,
   onWinnerContinue,
@@ -477,6 +493,7 @@ export default function GalleryDisplayGrid({
             onCrownExperiment={onCrownExperiment}
             onCompareExperiment={onCompareExperiment}
             onRequeueExperiment={onRequeueExperiment}
+            onReviewRun={onReviewRun}
             onWinnerUpscale={onWinnerUpscale}
             onWinnerRefine={onWinnerRefine}
             onWinnerContinue={onWinnerContinue}
@@ -502,6 +519,7 @@ export default function GalleryDisplayGrid({
         onCrownExperiment={onCrownExperiment}
         onCompareExperiment={onCompareExperiment}
         onRequeueExperiment={onRequeueExperiment}
+        onReviewRun={onReviewRun}
         onWinnerUpscale={onWinnerUpscale}
         onWinnerRefine={onWinnerRefine}
         onWinnerContinue={onWinnerContinue}

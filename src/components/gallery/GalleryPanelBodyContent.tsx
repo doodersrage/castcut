@@ -12,6 +12,7 @@ import GalleryPanelAuxiliarySection from '@/components/gallery/GalleryPanelAuxil
 import GalleryDerivedKindChips from '@/components/gallery/GalleryDerivedKindChips';
 import { useGalleryLoraExportConfirm } from '@/hooks/useGalleryLoraExportConfirm';
 import type { GalleryPanelBodyProps } from '@/components/gallery/gallery-panel-body-types';
+import { useGalleryManageMode } from '@/lib/gallery-manage-mode';
 
 export default function GalleryPanelBodyContent({
   chrome,
@@ -31,6 +32,8 @@ export default function GalleryPanelBodyContent({
   setFavorites,
   setRequeueStatus,
 }: GalleryPanelBodyProps) {
+  // Browse hides the admin surfaces; Manage shows them (see gallery-manage-mode.ts).
+  const manage = useGalleryManageMode();
   const { onLoraExportCancel, onLoraExportConfirm } = useGalleryLoraExportConfirm({
     loraExportScope: modals.loraExportScope,
     selectedEntries: selection.selectedEntries,
@@ -75,7 +78,7 @@ export default function GalleryPanelBodyContent({
       />
 
       <GalleryPanelAuxiliarySection
-        showFilters={chrome.showFilters}
+        showFilters={chrome.showFilters && manage}
         filter={browse.filter}
         duplicateClusters={auxiliary.duplicateClusters}
         duplicateEntriesById={auxiliary.duplicateEntriesById}
@@ -145,8 +148,9 @@ export default function GalleryPanelBodyContent({
 
       <GalleryPanelBulkSection
         leanGallery={chrome.leanGallery}
-        leanBulkEnabled={chrome.leanBulkEnabled}
-        bulkEnabled={chrome.bulkEnabled}
+        leanBulkEnabled={chrome.leanBulkEnabled && manage}
+        // Browse: the selection bar appears once something is selected, not before.
+        bulkEnabled={chrome.bulkEnabled && (manage || selection.selectedIds.length > 0)}
         visibleEntries={browse.visibleEntries}
         selectedIds={selection.selectedIds}
         selectedEntries={selection.selectedEntries}
@@ -165,7 +169,7 @@ export default function GalleryPanelBodyContent({
         selectAllVisible={selection.selectAllVisible}
       />
 
-      {browse.entries.length > 0 ? (
+      {browse.entries.length > 0 && manage ? (
         <GalleryDerivedKindChips filter={browse.filter} setFilter={browse.setFilter} />
       ) : null}
 

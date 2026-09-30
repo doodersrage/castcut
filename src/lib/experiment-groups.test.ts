@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { experimentGroupIdForPrompt } from "./experiment-groups";
+import { experimentGroupIdForPrompt, groupGalleryExperiments } from "./experiment-groups";
 import type { ComfyGalleryEntry } from "./comfyui-gallery";
 
 function entry(id: string, prompt: string): ComfyGalleryEntry {
@@ -59,5 +59,19 @@ describe("experiment-groups", () => {
     ]);
     assert.equal(groups.length, 2);
     assert.notEqual(groups[0]?.id, groups[1]?.id);
+  });
+});
+
+describe('experiment grouping keys on the whole prompt', () => {
+  it('does not lump different Day beats that share the edit boilerplate', () => {
+    const boiler = 'Carry out this change on Image 1 even if lighting, wardrobe, or background must change. Keep facial likeness only: '.repeat(2);
+    const make = (id: string, beat: string) =>
+      ({ id, promptId: id, prompt: boiler + beat, comfyUrl: '', status: 'completed', queuedAt: 1, images: [] }) as never;
+    const groups = groupGalleryExperiments([make('a', 'missionary'), make('b', 'spoon'), make('c', 'missionary')]);
+    // Only the true re-run (same whole prompt) groups; the spoon beat stays on its own.
+    assert.deepEqual(
+      groups.map(group => group.entries.map(e => (e as { id: string }).id)),
+      [['a', 'c']]
+    );
   });
 });

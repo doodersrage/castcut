@@ -15,6 +15,7 @@ import { GalleryFiltersLayoutGroup } from '@/components/gallery/filters/GalleryF
 import { GalleryFiltersGroupsRail } from '@/components/gallery/filters/GalleryFiltersGroupsRail';
 import { GalleryFiltersRatingModelRow } from '@/components/gallery/filters/GalleryFiltersRatingModelRow';
 import { GalleryFiltersLeanRow } from '@/components/gallery/filters/GalleryFiltersLeanRow';
+import { useGalleryManageMode } from '@/lib/gallery-manage-mode';
 
 export type GalleryFiltersPrimaryRowProps = {
   filter: ComfyGalleryFilter;
@@ -76,6 +77,8 @@ export default function GalleryFiltersPrimaryRow({
   lean = false,
 }: GalleryFiltersPrimaryRowProps) {
   const { queryDraft, setQueryDraft } = useGalleryFilterQueryDraft(filter, setFilter);
+  // Browse: the quick-filter row repeated the stat chips above it; custom groups are Manage work.
+  const manage = useGalleryManageMode();
 
   return (
     <>
@@ -115,7 +118,13 @@ export default function GalleryFiltersPrimaryRow({
         />
       </div>
 
-      <GalleryFiltersGroupsRail filter={filter} setFilter={setFilter} customGroups={customGroups} />
+      {manage ? (
+        <GalleryFiltersGroupsRail
+          filter={filter}
+          setFilter={setFilter}
+          customGroups={customGroups}
+        />
+      ) : null}
 
       <GalleryFiltersRatingModelRow filter={filter} setFilter={setFilter} models={models} />
 
@@ -137,7 +146,7 @@ export default function GalleryFiltersPrimaryRow({
         </div>
       ) : null}
 
-      {lean ? (
+      {lean && manage ? (
         <GalleryFiltersLeanRow
           filter={filter}
           setFilter={setFilter}

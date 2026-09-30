@@ -14,7 +14,7 @@ import {
   galleryLineageGroupingEnabled,
 } from '@/lib/gallery-lineage-groups';
 import { groupGalleryExperiments } from '@/lib/experiment-groups';
-import { groupGalleryQueueRuns } from '@/lib/gallery-queue-runs';
+import { groupGalleryFilmRuns, groupGalleryQueueRuns } from '@/lib/gallery-queue-runs';
 import {
   normalizeExperimentGroupAnchors,
   paginateGalleryEntriesWithGroups,
@@ -89,6 +89,11 @@ export type UseGalleryDisplayPlanResult = {
   galleryVirtualGridClass: string;
 };
 
+/** Cast lead name for a run header — read at render; the roster is small. */
+function castNameFor(characterId: string): string | undefined {
+  return loadCharacters().find(character => character.id === characterId)?.name;
+}
+
 export function useGalleryDisplayPlan({
   showFilters,
   filteredEntries,
@@ -119,12 +124,17 @@ export function useGalleryDisplayPlan({
   );
 
   const experimentGroups = useMemo(() => {
-    const experiments = groupGalleryExperiments(sortedSource);
+    // Film runs first (a Cast lead's Day / Story session reads as one block), then same-prompt
+    // experiments and queue batches among what's left.
+    const filmRuns = groupGalleryFilmRuns(sortedSource, { nameFor: castNameFor });
+    const inRun = new Set(filmRuns.flatMap(group => group.entries.map(entry => entry.id)));
+    const rest = sortedSource.filter(entry => !inRun.has(entry.id));
+    const experiments = groupGalleryExperiments(rest);
     const claimed = new Set(experiments.flatMap(group => group.entries.map(entry => entry.id)));
-    const runs = groupGalleryQueueRuns(sortedSource).filter(
+    const runs = groupGalleryQueueRuns(rest).filter(
       group => !group.entries.some(entry => claimed.has(entry.id))
     );
-    return normalizeExperimentGroupAnchors([...experiments, ...runs], sortedSource);
+    return normalizeExperimentGroupAnchors([...filmRuns, ...experiments, ...runs], sortedSource);
   }, [sortedSource]);
 
   const pagination = useMemo(() => {

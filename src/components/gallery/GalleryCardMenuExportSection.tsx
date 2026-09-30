@@ -14,16 +14,7 @@ export function GalleryExportSection({
   setMenuOpen,
 }: GalleryCardMenuSectionProps) {
   return (
-    <GalleryMenuGroup label="Export">
-      <GalleryMenuButton
-        label="Copy prompt"
-        onClick={() => {
-          void navigator.clipboard.writeText(entry.prompt).catch(() => {
-            onDownloadError('Could not copy prompt.');
-          });
-          setMenuOpen(false);
-        }}
-      />
+    <GalleryMenuGroup label="Export" collapsible>
       {entry.status === 'completed' && previewUrl ? (
         <GalleryMenuButton
           label={galleryDownloadActionLabel(primaryMediaKind)}

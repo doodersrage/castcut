@@ -1089,6 +1089,8 @@ test('gallery exposes Film derived-kind chip', async ({ page }) => {
   });
   await gotoStable(page, '/gallery');
   await dismissBlockingOverlays(page);
+  // Bulk selection and derived-kind chips live in Manage (Browse is the default).
+  await page.getByRole('tab', { name: 'Manage', exact: true }).click();
   await expect(page.getByTestId('gallery-derived-kind-film')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('gallery-derived-kind-i2v')).toBeVisible();
 });

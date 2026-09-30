@@ -11,7 +11,7 @@ export function GalleryLineageSection({
   }
 
   return (
-    <GalleryMenuGroup label="Lineage">
+    <GalleryMenuGroup label="Lineage" collapsible>
       <GalleryMenuButton
         label="Show derivatives"
         onClick={() => {

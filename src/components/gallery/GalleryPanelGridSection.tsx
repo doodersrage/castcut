@@ -26,6 +26,7 @@ type GalleryPanelGridSectionProps = {
     onCrownExperiment: (groupId: string, entryId: string) => void;
     onCompareExperiment: (entries: ComfyGalleryEntry[]) => void;
     onRequeueExperiment: (entries: ComfyGalleryEntry[]) => void;
+    onReviewRun: (entries: ComfyGalleryEntry[]) => void;
     onWinnerUpscale: (entry: ComfyGalleryEntry) => void;
     onWinnerRefine: (entry: ComfyGalleryEntry) => void;
     onWinnerContinue: (entry: ComfyGalleryEntry) => void;
@@ -101,6 +102,7 @@ export default function GalleryPanelGridSection({
           onCrownExperiment={experimentGridHandlers.onCrownExperiment}
           onCompareExperiment={experimentGridHandlers.onCompareExperiment}
           onRequeueExperiment={experimentGridHandlers.onRequeueExperiment}
+          onReviewRun={experimentGridHandlers.onReviewRun}
           onWinnerUpscale={experimentGridHandlers.onWinnerUpscale}
           onWinnerRefine={experimentGridHandlers.onWinnerRefine}
           onWinnerContinue={experimentGridHandlers.onWinnerContinue}

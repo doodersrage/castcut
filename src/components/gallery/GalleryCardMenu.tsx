@@ -11,6 +11,7 @@ import {
   GalleryQueueSection,
   type GalleryCardMenuProps,
 } from '@/components/gallery/GalleryCardMenuSections';
+import { GalleryQuickSection } from '@/components/gallery/GalleryCardMenuQuickSection';
 export { GalleryMenuGroup, GalleryMenuButton } from '@/components/gallery/GalleryMenuPrimitives';
 export type { GalleryCardMenuProps } from '@/components/gallery/GalleryCardMenuSections';
 
@@ -129,10 +130,11 @@ export default function GalleryCardMenu({
               maxHeight: menuPosition.maxHeight,
             }}
           >
-            <GalleryExportSection {...sectionProps} />
+            <GalleryQuickSection {...sectionProps} />
+            <GalleryEnhanceSection {...sectionProps} />
             <GalleryEditSection {...sectionProps} />
             <GalleryQueueSection {...sectionProps} />
-            <GalleryEnhanceSection {...sectionProps} />
+            <GalleryExportSection {...sectionProps} />
             <GalleryLineageSection {...sectionProps} />
             <GalleryManageSection {...sectionProps} />
           </div>

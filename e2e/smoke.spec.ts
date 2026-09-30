@@ -219,6 +219,8 @@ test('gallery selection bar documents bulk upscale actions', async ({ page }) =>
   await gotoStable(page, '/gallery');
   await expect(page.getByRole('heading', { name: /^Gallery$/i, level: 1 })).toBeVisible();
   // Count may be 1 (CI fixture) or higher when a local gallery store already exists.
+  // Bulk selection and derived-kind chips live in Manage (Browse is the default).
+  await page.getByRole('tab', { name: 'Manage', exact: true }).click();
   const selectVisible = page.getByRole('button', { name: /Select visible \(\d+\)/i });
   await expect(selectVisible).toBeVisible({ timeout: 15_000 });
   // Storage sync can reappear after gallery hydrate; clear again before clicking.

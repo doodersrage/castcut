@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import {
   formatGallerySlideshowInterval,
@@ -29,8 +30,25 @@ export default function ImageLightboxSlideshowControls({
   onPauseSlideshow,
   onToggleFullscreen,
 }: ImageLightboxSlideshowControlsProps) {
+  // Hooks before the early return.
+  const [open, setOpen] = useState(false);
   if (!slideshowEnabled) {
     return null;
+  }
+
+  // Inline lightbox: one "Slideshow" button — Play / interval / effect / fullscreen took a row
+  // beside the rating controls on every image. Fullscreen (compact) keeps them all visible.
+  if (!compact && !open && !slideshow?.playing) {
+    return (
+      <Button
+        variant="secondary"
+        className="!min-h-9 px-3 type-caption"
+        data-testid="lightbox-slideshow-open"
+        onClick={() => setOpen(true)}
+      >
+        Slideshow
+      </Button>
+    );
   }
 
   return (

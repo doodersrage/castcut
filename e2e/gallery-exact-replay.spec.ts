@@ -98,8 +98,9 @@ test('gallery replay exact graph queues via mocked Comfy API', async ({ page }) 
   await menu.click();
   const menuPanel = page.getByRole('menu');
   await expect(menuPanel).toBeVisible({ timeout: 10_000 });
+  // Replay lives in the collapsed "Queue & graph" group.
+  await menuPanel.locator('summary', { hasText: 'Queue & graph' }).click();
   const replay = menuPanel.getByTestId('gallery-replay-exact');
-  // Queue actions sit below Export/Edit — the fixed menu panel scrolls.
   await replay.scrollIntoViewIfNeeded();
   await expect(replay).toBeVisible({ timeout: 10_000 });
   await replay.click();
