@@ -1,9 +1,11 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { SelectInput, SwitchButton } from '@/components/ui/Field';
 import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
 import { summarizePlayChecks } from '@/lib/play-checks-readiness';
 import { DAY_THEME_OPTIONS, dayThemeOf } from '@/lib/day-themes';
+import { DAY_WEATHER_OPTIONS } from '@/lib/day-weather';
 import { DAY_NEW_PARTNER_OPTIONS, type DayPartnerNoun } from '@/lib/day-partner';
 import {
   DAY_INTIMATE_MIX_OPTIONS,
@@ -30,6 +32,12 @@ export type DayMoodStripProps = {
   partnerTwoWomen?: boolean;
   /** The Cast lead's gender, from their description. */
   leadNoun?: DayPartnerNoun;
+  /** "Same stranger all day": the invented partner's face, and a reset. */
+  partnerStandInUrl?: string;
+  /** Weather / season on every setting ('' = whatever the setting says). */
+  dayWeather?: string;
+  onDayWeatherChange?: (next: string) => void;
+  onNewPartnerStandIn?: () => void;
   /** Default on — loosen the plate's grip on stance when the beat needs a different body. */
   posePriority?: boolean;
   onPosePriorityChange?: (next: boolean) => void;
@@ -77,6 +85,10 @@ export default function DayMoodStrip({
   onPartnerChange,
   partnerTwoWomen = false,
   leadNoun = 'woman',
+  partnerStandInUrl,
+  dayWeather = '',
+  onDayWeatherChange,
+  onNewPartnerStandIn,
   posePriority = true,
   onPosePriorityChange,
   identityBoost = false,
@@ -219,6 +231,34 @@ export default function DayMoodStrip({
                 data-testid={`day-mood-${option.id}`}
                 title={option.hint}
                 onClick={() => onDayMoodChange(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {onDayWeatherChange ? (
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1.5"
+          role="radiogroup"
+          aria-label="Weather"
+          data-testid="day-weather"
+        >
+          <span className={groupLabel}>Weather</span>
+          <div className="ui-segmented" data-wrap="true">
+            {DAY_WEATHER_OPTIONS.map(option => (
+              <button
+                key={option.id || 'any'}
+                type="button"
+                role="radio"
+                className="ui-segmented-item"
+                aria-checked={dayWeather === option.id}
+                data-active={dayWeather === option.id ? 'true' : 'false'}
+                disabled={busy}
+                data-testid={`day-weather-${option.id || 'any'}`}
+                title={option.hint}
+                onClick={() => onDayWeatherChange(option.id)}
               >
                 {option.label}
               </button>
@@ -409,7 +449,7 @@ export default function DayMoodStrip({
       {showPartner && partner ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-partner-hint">
           {partner.invented
-            ? `${partner.name.replace(/ each still$/, '')} with their own face plays the second person on every two-person still.`
+            ? `The same stranger plays the second person on every two-person still — their face is made once, on the first one. `
             : `${partner.name} plays the second person on two-person stills. Their face takes the slot the outfit photo would use, so the outfit is described in words on those stills.`}
           {isDayAdultMood(mood) && !adultPartnerOk
             ? partner.noun === 'person'
@@ -417,7 +457,38 @@ export default function DayMoodStrip({
               : ' Two women, two men or a man lead in adult poses need Qwen Rapid AIO — on this engine those stills invent the partner.'
             : ''}
         </p>
-      ) : (onPeopleChange ? duoPossible && !isDayAdultMood(mood) : allowCompanions) ? (
+      ) : null}
+      {showPartner && partner?.invented && onNewPartnerStandIn ? (
+        <div className="flex items-center gap-2" data-testid="day-partner-stand-in">
+          {partnerStandInUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={partnerStandInUrl}
+              alt="Today's partner"
+              className="h-12 w-12 rounded-full border border-[var(--border-subtle)] object-cover"
+            />
+          ) : (
+            <span className="type-caption text-[var(--text-muted)]">
+              No face yet — made on the first two-person still.
+            </span>
+          )}
+          {partnerStandInUrl ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              data-testid="day-partner-new-face"
+              title="Use a different stranger from the next two-person still on"
+              onClick={onNewPartnerStandIn}
+            >
+              New face
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {showPartner && partner ? null : (
+          onPeopleChange ? duoPossible && !isDayAdultMood(mood) : allowCompanions
+        ) ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-companions-hint">
           Second adults allowed — friend or selfie companion with a different face (not a Cast
           twin).

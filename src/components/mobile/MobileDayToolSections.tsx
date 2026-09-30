@@ -137,6 +137,10 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setPartnerCharacterId,
     partnerTwoWomen,
     leadNoun,
+    partnerStandInUrl,
+    newPartnerStandIn,
+    dayWeather,
+    setDayWeather,
     people,
     setPeople,
     intimateEnabled,
@@ -555,6 +559,10 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onPartnerChange={setPartnerCharacterId}
           partnerTwoWomen={partnerTwoWomen}
           leadNoun={leadNoun}
+          partnerStandInUrl={partnerStandInUrl}
+          onNewPartnerStandIn={newPartnerStandIn}
+          dayWeather={dayWeather}
+          onDayWeatherChange={setDayWeather}
           people={people}
           onPeopleChange={setPeople}
           intimateMix={intimateMix}

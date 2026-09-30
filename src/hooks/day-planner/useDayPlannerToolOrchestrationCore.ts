@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isRapidDuoRecipePrompt } from '@/lib/rapid-duo-recipe-mark';
+import { isRapidDuoRecipePrompt, RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
@@ -94,7 +94,12 @@ import {
   resolveDayQueueIdentityPlate,
 } from '@/lib/day-plate';
 import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day-nude-face-crop';
-import { dayMoodWantsAutoKit, pickDayAutoKit } from '@/lib/day-auto-kit';
+import {
+  dayMoodWantsAutoKit,
+  pickDayAutoKit,
+  dayOutfitArcKit,
+  dayOutfitBlock,
+} from '@/lib/day-auto-kit';
 import {
   resolveDayVacationFaceBreakPlate,
   resolveDayVacationIdentityVlPlate,
@@ -114,6 +119,13 @@ import {
 } from '@/components/FilmCutOptionsControls';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { dayThemeOf } from '@/lib/day-themes';
+import { restoreText, swapDayPromptGender } from '@/lib/day-lead-gender';
+import { normalizeDayWeather, withDayWeather } from '@/lib/day-weather';
+import {
+  renderDayPartnerStandIn,
+  reusableDayPartnerStandIn,
+  type DayPartnerStandIn,
+} from '@/lib/day-partner-stand-in';
 import { isQwenRapidAioModel } from '@/lib/model-denoise-defaults';
 import {
   dayPartnerApplies,
@@ -228,6 +240,12 @@ export function useDayPlannerToolOrchestrationCore() {
   const deepLinkHandled = useRef(false);
   const stillsRef = useRef(normalizeDaySlotStills(toolSettings.stills));
   const slotStatusRef = useRef<Partial<Record<DaySlotId, string>>>({});
+  // "Same stranger all day": the invented partner's face, rendered once and reused. A ref, since
+  // Queue day runs every slot inside one callback (settings would still hold the old value).
+  const partnerStandInRef = useRef<DayPartnerStandIn | null>(toolSettings.partnerStandIn ?? null);
+  useEffect(() => {
+    partnerStandInRef.current = toolSettings.partnerStandIn ?? null;
+  }, [toolSettings.partnerStandIn]);
   /** One-shot prompt fixes from the quality gate, consumed by the next queue of that slot. */
   const rerollNudgeRef = useRef<Partial<Record<DaySlotId, string>>>({});
   /** Guide layout variant per slot — the quality gate bumps it so a reroll tries a new body. */
@@ -239,6 +257,10 @@ export function useDayPlannerToolOrchestrationCore() {
     () => normalizeDaySlots(toolSettings.slots, toolSettings.dayLength),
     [toolSettings.dayLength, toolSettings.slots]
   );
+  // Latest slots for the outfit arc: Queue day runs every slot in one callback, whose `slots`
+  // never sees the kit the slot before it just picked.
+  const latestSlotsRef = useRef(slots);
+  latestSlotsRef.current = slots;
   const stills = useMemo(
     () => normalizeDaySlotStills(toolSettings.stills, slots),
     [slots, toolSettings.stills]
@@ -612,7 +634,10 @@ export function useDayPlannerToolOrchestrationCore() {
         : queuePlate;
       const poseGuide = options?.poseGuide !== false && Boolean(hasPlate);
       return buildDaySlotPrompt({
-        slot,
+        // Weather / season rides on the Setting (SCENE lead, SETTING line, recipe room).
+        slot: toolSettings.dayWeather
+          ? { ...slot, location: withDayWeather(slot.location, toolSettings.dayWeather) }
+          : slot,
         wardrobeLabel: wardrobeLabelFor(slot.wardrobeId),
         characterName: character?.name,
         characterDescriptor: character?.descriptor || character?.hints,
@@ -655,6 +680,7 @@ export function useDayPlannerToolOrchestrationCore() {
       toolSettings.dayMood,
       toolSettings.intimateMix,
       toolSettings.notes,
+      toolSettings.dayWeather,
       intimateEnabled,
       leadNoun,
       wardrobeLabelFor,
@@ -712,29 +738,64 @@ export function useDayPlannerToolOrchestrationCore() {
         let wardrobeId = queueTarget.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
         // No kit, no clothing photo and the undressed Cast plate as Image 1: nothing dressed her,
         // so everyday / vacation stills came out in the plate's underwear. Pick a real kit.
+        // The catalog list is filtered to the lead's gender, and the kit picker only offers what
+        // is in it — a slot kit missing from it was left by another lead (a man in cocktail
+        // dresses, live 2026-09-30). Treat it as unset.
+        const catalogLoaded = wardrobeOptions.some(option => option.value);
+        const fitsLead = (id: string | undefined) =>
+          !id?.trim() || !catalogLoaded || wardrobeOptions.some(option => option.value === id);
+        if (queueTarget.wardrobeId && !fitsLead(queueTarget.wardrobeId)) {
+          queueTarget = { ...queueTarget, wardrobeId: undefined, wardrobeAuto: undefined };
+          wardrobeId = shared.lockedWardrobeId?.trim() || undefined;
+        }
+        // An auto-picked kit (not one the player chose) follows the outfit arc too.
+        const autoKit = !queueTarget.wardrobeId?.trim() || queueTarget.wardrobeAuto === true;
         if (
-          !wardrobeId &&
+          autoKit &&
+          !shared.lockedWardrobeId?.trim() &&
           hasPlate &&
           plate?.source !== 'keeper' &&
           !toolSettings.customGarmentImageUrl?.trim() &&
           !toolSettings.customGarmentImageFilename?.trim() &&
           dayMoodWantsAutoKit(toolSettings.dayMood)
         ) {
-          const picked = pickDayAutoKit({
-            options: wardrobeOptions,
-            dayMood: toolSettings.dayMood,
-            slotId: queueTarget.id,
-            salt: character?.id,
-            hasPackshot: id => Boolean(resolveWardrobeGarmentThumbQueueUrl(id)),
-            exclude: workingSlots.map(entry => entry.wardrobeId),
-          });
-          if (picked) {
+          // Outfit arc: morning and afternoon share one outfit, evening and night another.
+          // A kit an earlier slot picked in this same Queue day is only in the latest slots.
+          const arcSlots = workingSlots.map(entry =>
+            entry.wardrobeId?.trim()
+              ? entry
+              : (latestSlotsRef.current.find(latest => latest.id === entry.id) ?? entry)
+          );
+          const arcKit = dayOutfitArcKit(
+            arcSlots.filter(entry => fitsLead(entry.wardrobeId)),
+            queueTarget.id,
+            toolSettings.dayMood
+          );
+          const picked =
+            arcKit ??
+            (wardrobeId ||
+              pickDayAutoKit({
+                options: wardrobeOptions,
+                dayMood: toolSettings.dayMood,
+                slotId: queueTarget.id,
+                salt: character?.id,
+                hasPackshot: id => Boolean(resolveWardrobeGarmentThumbQueueUrl(id)),
+                exclude: workingSlots.map(entry => entry.wardrobeId),
+              }));
+          if (picked && (picked !== queueTarget.wardrobeId || !queueTarget.wardrobeAuto)) {
             wardrobeId = picked;
-            queueTarget = { ...queueTarget, wardrobeId: picked };
+            queueTarget = { ...queueTarget, wardrobeId: picked, wardrobeAuto: true };
             workingSlots = workingSlots.map(entry =>
-              entry.id === queueTarget.id ? { ...entry, wardrobeId: picked } : entry
+              entry.id === queueTarget.id
+                ? { ...entry, wardrobeId: picked, wardrobeAuto: true }
+                : entry
             );
             updateToolSettings({ slots: workingSlots });
+            latestSlotsRef.current = latestSlotsRef.current.map(entry =>
+              entry.id === queueTarget.id
+                ? { ...entry, wardrobeId: picked, wardrobeAuto: true }
+                : entry
+            );
           }
         }
         const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
@@ -929,8 +990,45 @@ export function useDayPlannerToolOrchestrationCore() {
               sameSexLayouts: isQwenRapidAioModel(shared.model ?? undefined),
             })
           ) {
-            if (partnerCandidate.invented) {
-              slotPartner = partnerCandidate;
+            if (partnerCandidate.invented && partnerCandidate.noun !== 'person') {
+              let standIn = reusableDayPartnerStandIn(
+                partnerStandInRef.current,
+                partnerCandidate.noun
+              );
+              if (!standIn && character) {
+                const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+                const leadFace = await resolveDayNudeIdentityPlateWithFaceCrop({
+                  character,
+                  model: shared.model,
+                  comfyUrl,
+                });
+                const leadFaceFilename = leadFace.plate?.filename?.trim();
+                if (leadFaceFilename) {
+                  standIn = await renderDayPartnerStandIn({
+                    noun: partnerCandidate.noun,
+                    leadFaceFilename,
+                    model: shared.model,
+                    comfyUrl,
+                    sendComfyUi: actions.sendComfyUi,
+                    characterId: character.id,
+                  }).catch(() => null);
+                  if (standIn) {
+                    partnerStandInRef.current = standIn;
+                    updateToolSettings({ partnerStandIn: standIn });
+                  }
+                }
+              }
+              if (standIn) {
+                partnerFace = { filename: standIn.filename };
+                slotPartner = {
+                  name: '',
+                  noun: standIn.noun,
+                  descriptor: standIn.look.slice(0, 220),
+                };
+              } else {
+                // No face to reuse (render failed): a new stranger with their own face.
+                slotPartner = partnerCandidate;
+              }
             } else if (partnerCharacter) {
               const resolved = await resolveDayNudeIdentityPlateWithFaceCrop({
                 character: partnerCharacter,
@@ -1143,6 +1241,17 @@ export function useDayPlannerToolOrchestrationCore() {
           })
             ? kleinFaceReference.filename
             : undefined;
+        // A man lead: Day's text is written for a woman — swap it (not the adult duo recipe,
+        // which is built for him already; not adult duo briefs, which would swap the roles).
+        const leadHeadcount = poseExpectation?.keypoints.length ?? 1;
+        const adultStill = isDayAdultMood(toolSettings.dayMood) && intimateEnabled;
+        const swapLead =
+          leadNoun === 'man' &&
+          !basePrompt.includes(RAPID_DUO_RECIPE_MARK) &&
+          !(adultStill && leadHeadcount >= 2);
+        // The whole finished prompt is swapped below; the partner line names the partner's own
+        // gender, so it goes in pre-swapped (the swap turns it back).
+        const forLead = (text: string) => (swapLead && text ? swapDayPromptGender(text) : text);
         const prompt = [
           basePrompt,
           // The duo recipes name the partner's image themselves; the long brief (and a recipe
@@ -1150,10 +1259,10 @@ export function useDayPlannerToolOrchestrationCore() {
           !slotPartner
             ? ''
             : !isRapidDuoRecipePrompt(basePrompt)
-              ? dayPartnerBriefLine(slotPartner)
+              ? forLead(dayPartnerBriefLine(slotPartner))
               : /face from the second image|own face\./.test(basePrompt)
                 ? ''
-                : dayPartnerRecipeLine(slotPartner, 'second', undefined, leadNoun),
+                : forLead(dayPartnerRecipeLine(slotPartner, 'second', undefined, leadNoun)),
           cueLine,
           lookLine,
           kleinFaceFilename ? KLEIN_FACE_REFERENCE_LINE : '',
@@ -1175,9 +1284,14 @@ export function useDayPlannerToolOrchestrationCore() {
             ? 'everyday'
             : toolSettings.dayMood
         );
-        const finalized = isDayAdultMood(dayMoodForPrompt)
+        const reinforced = isDayAdultMood(dayMoodForPrompt)
           ? reinforceIntimateStillPrompt(drafted)
           : drafted;
+        // The lead's own description already reads right for him — put it back unswapped.
+        const leadDescriptor = (character?.descriptor || character?.hints || '').trim();
+        const finalized = swapLead
+          ? restoreText(swapDayPromptGender(reinforced, { solo: adultStill }), leadDescriptor)
+          : reinforced;
         setOutput(finalized);
         rememberDraftFields({
           toolKey: TOOL_ID,
@@ -1584,7 +1698,9 @@ export function useDayPlannerToolOrchestrationCore() {
       const baseSlots = aligned.changed ? aligned.slots : slots;
       const redressed = theme
         ? baseSlots.map(slot =>
-            slot.wardrobeId && !theme.kitRe.test(wardrobeLabelFor(slot.wardrobeId) ?? '')
+            slot.wardrobeId &&
+            !(theme.eveningKitOnly && dayOutfitBlock(slot.id, theme.id) !== 'evening') &&
+            !theme.kitRe.test(wardrobeLabelFor(slot.wardrobeId) ?? '')
               ? { ...slot, wardrobeId: undefined }
               : slot
           )
@@ -1613,8 +1729,21 @@ export function useDayPlannerToolOrchestrationCore() {
       .map(record => ({ id: record.id, name: record.name.trim(), noun: dayPartnerNoun(record) })),
     partnerTwoWomen: isQwenRapidAioModel(shared.model ?? undefined),
     leadNoun,
-    setPartnerCharacterId: (next: string) =>
-      updateToolSettings({ partnerCharacterId: next.trim() || undefined }),
+    setPartnerCharacterId: (next: string) => {
+      partnerStandInRef.current = null;
+      updateToolSettings({
+        partnerCharacterId: next.trim() || undefined,
+        partnerStandIn: undefined,
+      });
+    },
+    partnerStandInUrl: toolSettings.partnerStandIn?.imageUrl,
+    dayWeather: normalizeDayWeather(toolSettings.dayWeather) ?? '',
+    setDayWeather: (next: string) =>
+      updateToolSettings({ dayWeather: normalizeDayWeather(next) ?? undefined }),
+    newPartnerStandIn: () => {
+      partnerStandInRef.current = null;
+      updateToolSettings({ partnerStandIn: undefined });
+    },
     // People (Solo / Mixed / Duo) — one control for every mood. Clothed moods: Solo = no
     // companion, Mixed = some stills with a friend / partner, Duo = every still. Adult moods: the
     // Solo / Mixed / Duo mix. Both settings move together so switching mood keeps the choice.

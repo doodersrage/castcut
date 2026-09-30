@@ -21,8 +21,8 @@ export type DayPartner = {
 
 /** Partner setting values for an invented partner (next to Cast ids). */
 export const DAY_NEW_PARTNER_OPTIONS = [
-  { id: 'new:woman', label: 'A new woman each still', noun: 'woman' },
-  { id: 'new:man', label: 'A new man each still', noun: 'man' },
+  { id: 'new:woman', label: 'A woman (same face all day)', noun: 'woman' },
+  { id: 'new:man', label: 'A man (same face all day)', noun: 'man' },
 ] as const;
 
 export function dayPartnerNoun(input: {

@@ -133,3 +133,32 @@ describe('Day themes', () => {
     assert.equal(pick('everyday'), 'b');
   });
 });
+
+describe('Day outfit arc', () => {
+  it('morning + afternoon share one outfit, evening + night another; Vacation keeps its own', async () => {
+    const { dayOutfitArcKit, dayOutfitBlock } = await import('./day-auto-kit');
+    const slots = [
+      { id: 'morning', wardrobeId: 'kit-a' },
+      { id: 'afternoon' },
+      { id: 'evening', wardrobeId: 'kit-b' },
+      { id: 'night' },
+    ];
+    assert.equal(dayOutfitArcKit(slots, 'afternoon', 'everyday'), 'kit-a');
+    assert.equal(dayOutfitArcKit(slots, 'night', 'date-night'), 'kit-b');
+    assert.equal(dayOutfitArcKit(slots, 'night', 'vacation'), undefined);
+    assert.equal(dayOutfitBlock('night-2', 'everyday'), 'evening');
+  });
+
+  it('Date night dresses casually by day; a man falls back to everyday wear', () => {
+    const options = [
+      { value: 'casual', label: 'tapered denim jacket casual', group: 'Full outfits' },
+      { value: 'dress', label: 'slim-fit moss cocktail dress', group: 'Full outfits' },
+    ];
+    const pick = (slotId: string, opts = options) =>
+      pickDayAutoKit({ options: opts, dayMood: 'date-night', slotId, hasPackshot: () => true });
+    assert.equal(pick('morning'), 'casual');
+    assert.equal(pick('evening'), 'dress');
+    // A man's catalog (gender-filtered) has no dresses: everyday wear, not the underwear plate.
+    assert.equal(pick('evening', [options[0]!]), 'casual');
+  });
+});

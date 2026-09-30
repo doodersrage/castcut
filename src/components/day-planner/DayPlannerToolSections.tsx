@@ -154,6 +154,10 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     setPartnerCharacterId,
     partnerTwoWomen,
     leadNoun,
+    partnerStandInUrl,
+    newPartnerStandIn,
+    dayWeather,
+    setDayWeather,
     people,
     setPeople,
     intimateEnabled,
@@ -598,6 +602,10 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onPartnerChange={setPartnerCharacterId}
             partnerTwoWomen={partnerTwoWomen}
             leadNoun={leadNoun}
+            partnerStandInUrl={partnerStandInUrl}
+            onNewPartnerStandIn={newPartnerStandIn}
+            dayWeather={dayWeather}
+            onDayWeatherChange={setDayWeather}
             people={people}
             onPeopleChange={setPeople}
             intimateMix={intimateMix}

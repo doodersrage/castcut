@@ -1,5 +1,8 @@
 'use client';
 
+import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
+import { dayPartnerNoun } from '@/lib/day-partner';
+import { swapDayPromptGender } from '@/lib/day-lead-gender';
 import { applyCutShotEdits, type KeyedShot } from '@/lib/film-cut-plan';
 import { dayPosterSubtitle, loadPlaySeriesStore, nextDayFilmTitleCard } from '@/lib/play-series';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -320,7 +323,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           toolModel: loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).model,
           sharedModel: shared.model,
         });
-        const subject = buildDaySlotMotionSubject(slot, character?.name);
+        // A man lead: the beats are written for a woman (see day-lead-gender).
+        const manLead = dayPartnerNoun(character ?? {}) === 'man';
+        const subject = manLead
+          ? swapDayPromptGender(buildDaySlotMotionSubject(slot, character?.name))
+          : buildDaySlotMotionSubject(slot, character?.name);
         let prompt = subject;
         // Sex clips: the LLM writer added camera moves, the gag as motion and laughter — clips
         // turned the rider around, dropped the partner and grew cackles. Same-seed replays held
@@ -336,6 +343,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             twoWomen,
             twoMen,
           });
+          // A man lead alone (the duo motions already put him right): swap the solo clip.
+          if (manLead && !stillPrompt.includes(RAPID_DUO_RECIPE_MARK)) {
+            prompt = swapDayPromptGender(prompt, { solo: true });
+          }
         } else {
           try {
             const response = await fetch('/api/video-prompt', {
@@ -1089,7 +1100,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   const selectSlotWardrobe = useCallback(
     (slotId: DaySlotId, wardrobeId: string | undefined) => {
       const id = wardrobeId?.trim() || undefined;
-      updateSlot(slotId, { wardrobeId: id });
+      updateSlot(slotId, { wardrobeId: id, wardrobeAuto: undefined });
       if (id) {
         const previousUrl = toolSettings.customGarmentImageUrl?.trim();
         if (previousUrl?.startsWith('blob:')) {

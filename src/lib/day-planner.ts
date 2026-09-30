@@ -308,6 +308,8 @@ export type DaySlot = {
   id: DaySlotId;
   label: string;
   wardrobeId?: string;
+  /** The kit was auto-picked at queue time (not chosen) — the outfit arc may re-align it. */
+  wardrobeAuto?: boolean;
   location?: string;
   sceneHints?: string;
   /**
@@ -609,6 +611,8 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       id: slot.id,
       label: readText(slot.label, 40) || daySlotDefaultLabel(slot.id),
       wardrobeId: readText(slot.wardrobeId, 120) || undefined,
+      wardrobeAuto:
+        (slot.wardrobeAuto === true && Boolean(readText(slot.wardrobeId, 120))) || undefined,
       // Do not trim location/sceneHints here — updateSlot runs on every keystroke.
       location: readEditableText(slot.location, 160) || undefined,
       sceneHints: readEditableText(slot.sceneHints, 320) || undefined,

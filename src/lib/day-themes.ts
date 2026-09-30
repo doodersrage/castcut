@@ -31,6 +31,8 @@ export type DayThemeDefinition = {
   companions: boolean;
   /** Catalog outfit labels this theme dresses from (garment nouns, not fit words). */
   kitRe: RegExp;
+  /** Casual (Everyday) kit by day; the theme kit only for the evening outfit. */
+  eveningKitOnly?: boolean;
   scenes: ThemePools;
   /** Scenes with a partner / friend — used when companions are on. */
   duoScenes: ThemePools;
@@ -40,9 +42,10 @@ const DATE_NIGHT: DayThemeDefinition = {
   id: 'date-night',
   label: 'Date night',
   hint: 'Getting ready, dinner, dancing, the walk home — a romantic evening out',
+  eveningKitOnly: true,
   companions: true,
   kitRe:
-    /\b(cocktail dress|wrap dress|slip dress|evening gown|ballroom dance dress|sweater dress)\b/i,
+    /\b(cocktail dress|wrap dress|slip dress|evening gown|ballroom dance dress|sweater dress|tuxedo|two-piece linen suit|three-piece wool suit|blazer)\b/i,
   scenes: {
     morning: [
       [
@@ -137,9 +140,10 @@ const NIGHT_OUT: DayThemeDefinition = {
   id: 'night-out',
   label: 'Night out',
   hint: 'Pre-drinks, the club, rooftop, karaoke, the taxi home — with friends',
+  eveningKitOnly: true,
   companions: true,
   kitRe:
-    /\b(cocktail dress|punk leather ensemble|y2k outfit|festival rave outfit|streetwear fit|goth layered outfit|slip dress|jumpsuit)\b/i,
+    /\b(cocktail dress|punk leather ensemble|y2k outfit|festival rave outfit|streetwear fit|goth layered outfit|slip dress|jumpsuit|bomber jacket|leather jacket)\b/i,
   scenes: {
     morning: [
       [

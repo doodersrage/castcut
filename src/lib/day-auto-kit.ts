@@ -8,6 +8,7 @@
 
 import { categoryLabel } from '@/lib/clothing-catalog-fields';
 import { normalizeDayMood, type DayMood } from '@/lib/day-planner';
+import { dayPartOf } from '@/lib/day-parts';
 import { dayThemeOf } from '@/lib/day-themes';
 
 export type DayAutoKitOption = { value: string; label: string; group?: string };
@@ -53,19 +54,31 @@ export function pickDayAutoKit(input: {
   }
   // Themes dress from their own pool (cocktail dresses, costumes…) — the "not a day out"
   // filter would drop exactly those.
-  const theme = dayThemeOf(input.dayMood);
+  // Date night / Night out dress casually by day and go out in the evening.
+  const themeKit = dayThemeOf(input.dayMood);
+  const theme =
+    themeKit?.eveningKitOnly && dayOutfitBlock(input.slotId, input.dayMood) !== 'evening'
+      ? null
+      : themeKit;
   const moodRe =
     theme?.kitRe ??
     (normalizeDayMood(input.dayMood) === 'vacation' ? VACATION_KIT_RE : EVERYDAY_KIT_RE);
   const outfits = categoryLabel('outfit');
-  const pool = input.options.filter(
-    option =>
-      option.value &&
-      option.group === outfits &&
-      moodRe.test(option.label) &&
-      (theme || !NOT_A_DAY_OUT_RE.test(option.label)) &&
-      input.hasPackshot(option.value)
-  );
+  const kits = (re: RegExp, costumesOk: boolean) =>
+    input.options.filter(
+      option =>
+        option.value &&
+        option.group === outfits &&
+        re.test(option.label) &&
+        (costumesOk || !NOT_A_DAY_OUT_RE.test(option.label)) &&
+        input.hasPackshot(option.value)
+    );
+  // The catalog list is filtered to the lead's gender: a theme pool of dresses is empty for a
+  // man — dress him from everyday wear rather than leave the plate's underwear on.
+  let pool = kits(moodRe, Boolean(theme));
+  if (pool.length === 0 && theme) {
+    pool = kits(EVERYDAY_KIT_RE, false);
+  }
   if (pool.length === 0) {
     return undefined;
   }
@@ -74,4 +87,39 @@ export function pickDayAutoKit(input: {
   const candidates = fresh.length > 0 ? fresh : pool;
   const index = hashString(`${input.salt ?? ''}\0${input.slotId}`) % candidates.length;
   return candidates[index]?.value;
+}
+
+/**
+ * Outfit arc: which slots wear the same clothes. Morning and afternoon share one outfit and
+ * evening and night another — a Day used to change clothes for every still. Vacation keeps one
+ * per slot (beach in the morning, dinner at night); null means no sharing.
+ */
+export function dayOutfitBlock(
+  slotId: string,
+  dayMood: DayMood | string | null | undefined
+): 'day' | 'evening' | null {
+  if (normalizeDayMood(dayMood) === 'vacation') {
+    return null;
+  }
+  const part = dayPartOf(slotId);
+  return part === 'evening' || part === 'night' ? 'evening' : 'day';
+}
+
+/**
+ * The block's outfit for this slot: the kit the block's first dressed slot wears (in slot order),
+ * unless that slot is this one. The first slot sets the outfit; the rest follow it.
+ */
+export function dayOutfitArcKit(
+  slots: Array<{ id: string; wardrobeId?: string | null }>,
+  slotId: string,
+  dayMood: DayMood | string | null | undefined
+): string | undefined {
+  const block = dayOutfitBlock(slotId, dayMood);
+  if (!block) {
+    return undefined;
+  }
+  const lead = slots.find(
+    slot => slot.wardrobeId?.trim() && dayOutfitBlock(slot.id, dayMood) === block
+  );
+  return lead && lead.id !== slotId ? lead.wardrobeId?.trim() : undefined;
 }
