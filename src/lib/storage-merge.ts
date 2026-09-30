@@ -190,11 +190,10 @@ export function mergeArraysById<T extends { id: string }>(
     const existing = map.get(item.id);
     map.set(item.id, existing ? pick(item, existing) : item);
   }
-  return [...map.values()].sort((a, b) => {
-    const aTime = (a as { updatedAt?: number }).updatedAt ?? 0;
-    const bTime = (b as { updatedAt?: number }).updatedAt ?? 0;
-    return bTime - aTime;
-  });
+  // Prompt history stamps `timestamp`; other records `updatedAt`.
+  const timeOf = (item: T) =>
+    (item as { updatedAt?: number }).updatedAt ?? (item as { timestamp?: number }).timestamp ?? 0;
+  return [...map.values()].sort((a, b) => timeOf(b) - timeOf(a));
 }
 
 export const SERVER_SESSION_STACK_KEYS = [

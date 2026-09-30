@@ -4,6 +4,7 @@ import {
   pullNamespaceFromServer,
   pullNamespaceFromServerResult,
   syncNamespaceToServer,
+  withStoragePullMemo,
 } from './storage-sync';
 import { withLocalWritesPreserved } from './browser-storage';
 import { initAppDb } from './app-db-init';
@@ -116,9 +117,9 @@ export async function probeStorageConflicts(): Promise<StorageNamespaceConflict[
   const [serverSettings, serverHistory, serverGallery, serverDeletedPayload, serverExtras] =
     await Promise.all([
       pullNamespaceFromServer<SettingsCache>('settings-cache'),
-      pullNamespaceFromServer<PromptHistoryEntry[]>('prompt-history'),
-      pullNamespaceFromServer<ComfyGalleryEntry[]>('comfy-gallery'),
-      pullNamespaceFromServer<string[] | { ids?: string[] }>('gallery-deleted-ids'),
+      pullNamespaceFromServer<PromptHistoryEntry[]>('prompt-history', localHistory),
+      pullNamespaceFromServer<ComfyGalleryEntry[]>('comfy-gallery', localGallery),
+      pullNamespaceFromServer<string[] | { ids?: string[] }>('gallery-deleted-ids', localDeleted),
       loadStudioExtrasFromServer(),
     ]);
   const serverDeletedIds = Array.isArray(serverDeletedPayload)
@@ -155,6 +156,23 @@ export async function probeStorageConflicts(): Promise<StorageNamespaceConflict[
   ];
 
   const conflicts = detectStorageConflicts({ namespaces: probes });
+  // History entries carry `timestamp`, not `updatedAt`, so the time probe never fired and this
+  // tab's push replaced entries another device had added. Anything the server has that this tab
+  // lacks is merged in.
+  if (
+    localHistory.length > 0 &&
+    serverHistory?.length &&
+    !conflicts.some(conflict => conflict.namespace === 'prompt-history')
+  ) {
+    const localIds = new Set(localHistory.map(entry => entry.id));
+    if (serverHistory.some(entry => !localIds.has(entry.id))) {
+      conflicts.push({
+        namespace: 'prompt-history',
+        localCount: localHistory.length,
+        serverCount: serverHistory.length,
+      });
+    }
+  }
   const mapDiffKeys = detectLoaderMapDivergence(
     localSettings.shared as Record<string, unknown>,
     serverSettings?.shared as Record<string, unknown> | undefined
@@ -332,8 +350,9 @@ export async function applyStorageMerge(
  * Avoids blocking the UI with the conflict modal on every visit.
  */
 export async function autoPullStorageIfEmpty(): Promise<AutoSyncResult> {
-  // The inner sync marks settings as synced only after a successful pull.
-  return autoPullStorageIfEmptyInner();
+  // The inner sync marks settings as synced only after a successful pull. Its steps pull the
+  // same namespaces more than once; they share one download.
+  return withStoragePullMemo(autoPullStorageIfEmptyInner);
 }
 
 async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
@@ -483,7 +502,8 @@ async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
     synced: result.synced,
     conflicts: [],
     skipped: false,
-    pulledIntoEmpty: galleryPull.changed,
+    // A history merge brought in another device's entries — lists on screen need a refresh.
+    pulledIntoEmpty: galleryPull.changed || result.synced.includes('prompt-history'),
   };
 }
 

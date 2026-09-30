@@ -6,6 +6,7 @@ import {
   type StorageNamespace,
 } from '@/lib/server-storage';
 import { isStorageNamespace } from '@/lib/storage-namespaces';
+import { storageFingerprint } from '@/lib/storage-sync';
 import {
   readUserServerStorage,
   writeUserServerStorage,
@@ -141,6 +142,17 @@ export async function PUT(request: Request) {
       return apiError('Sign in required for user storage sync.', 401);
     }
     throw error;
+  }
+
+  // The client already holds this exact copy — skip resending it (the gallery is ~9 MB).
+  const ifMatch = searchParams.get('ifMatch');
+  if (
+    ifMatch &&
+    data !== null &&
+    data !== undefined &&
+    storageFingerprint(namespace, data) === ifMatch
+  ) {
+    return apiJson({ namespace, unchanged: true, userScoped });
   }
 
   // Empty namespaces are a normal first-run / post-migration state — not 404.

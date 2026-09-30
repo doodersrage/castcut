@@ -13,8 +13,11 @@ import {
   activeLook,
   getCharacter,
   lookFromAppearance,
+  loadCharacters,
   looksOf,
   mergeMigratedCharacters,
+  migrateCharactersFromLegacy,
+  saveCharacters,
   normalizeCharacterRecord,
   roleplayLibraryIdFromCharacter,
   saveCharacterBio,
@@ -26,7 +29,11 @@ import {
 import type { CharacterIdentityBundle } from './character-identity-bundle';
 import type { RoleplayLibrarySession } from './roleplay-library';
 import { loadSettingsCache, saveSettingsCache, type SharedToolSettings } from './settings-cache';
-import { resetBrowserStorageCache } from './browser-storage';
+import {
+  resetBrowserStorageCache,
+  withLocalWritesPreserved,
+  withSuppressedDurableSyncPush,
+} from './browser-storage';
 
 function withMockLocalStorage(run: () => void): void {
   const storage = new Map<string, string>();
@@ -139,6 +146,29 @@ describe('character-os', () => {
     });
     assert.equal(blank.personaId, 'raccoon-pirate');
     assert.equal(blank.playAs, 'photo');
+  });
+
+  it('a fresh-browser migration mid-pull does not keep its empty list over the server Cast', () => {
+    withMockLocalStorage(() => {
+      const pullStartedAt = Date.now() - 1;
+      // Fresh profile: the picker's first-import migration lands while the startup pull runs.
+      migrateCharactersFromLegacy({ bundles: [], roleplaySessions: [] });
+      const server = createBlankCharacter('Rin', {
+        sex: 'woman',
+        ethnicity: 'east-asian',
+        ageBand: 'late-20s',
+        height: 'average',
+        bodyBuild: 'average',
+      });
+      const kept = withLocalWritesPreserved(pullStartedAt, () =>
+        withSuppressedDurableSyncPush(() => saveCharacters([server]))
+      );
+      assert.equal(kept, 0);
+      assert.deepEqual(
+        loadCharacters().map(entry => entry.name),
+        ['Rin']
+      );
+    });
   });
 
   it('saveCharacterBio persists bible and active look descriptor', () => {

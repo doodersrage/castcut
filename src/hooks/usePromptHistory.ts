@@ -49,9 +49,12 @@ export function usePromptHistory() {
 
     const onScopeChanged = () => refresh();
     window.addEventListener(USER_SCOPE_CHANGED_EVENT, onScopeChanged);
+    // Startup sync / another tab brought in entries (dispatched by AutoStorageSyncInit, TabSyncInit).
+    window.addEventListener('prompt-history-updated', onScopeChanged);
     return () => {
       cancelled = true;
       window.removeEventListener(USER_SCOPE_CHANGED_EVENT, onScopeChanged);
+      window.removeEventListener('prompt-history-updated', onScopeChanged);
     };
   }, [refresh]);
 

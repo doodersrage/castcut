@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { beforeEach, describe, it } from 'node:test';
 import {
   syncNamespaceToServer,
   pullNamespaceFromServer,
+  pullNamespaceFromServerResult,
+  resetServerStorageFingerprints,
   serverStorageStatus,
+  storageFingerprint,
 } from './storage-sync';
 import { SYNC_STORAGE_NAMESPACES } from './storage-namespaces';
 
@@ -30,6 +33,72 @@ function jsonResponse(body: unknown, ok = true): Response {
 }
 
 describe('storage-sync', () => {
+  beforeEach(() => resetServerStorageFingerprints());
+
+  describe('upload dedupe', () => {
+    it('skips pushing back what was just pulled', async () => {
+      const gallery = [{ id: 'g1', prompt: 'a' }];
+      const stub = installFetchStub((_url, init) =>
+        init?.method === 'PUT' ? jsonResponse({ data: gallery }) : jsonResponse({})
+      );
+      try {
+        await pullNamespaceFromServer('comfy-gallery');
+        assert.equal(await syncNamespaceToServer('comfy-gallery', [{ id: 'g1', prompt: 'a' }]), true);
+        assert.equal(stub.calls.filter(call => call.init?.method === 'POST').length, 0);
+        await syncNamespaceToServer('comfy-gallery', [{ id: 'g1', prompt: 'b' }]);
+        assert.equal(stub.calls.filter(call => call.init?.method === 'POST').length, 1);
+      } finally {
+        stub.restore();
+      }
+    });
+
+    it('ignores gallery order and a bare updatedAt re-stamp', () => {
+      assert.equal(
+        storageFingerprint('comfy-gallery', [{ id: 'a' }, { id: 'b' }]),
+        storageFingerprint('comfy-gallery', [{ id: 'b' }, { id: 'a' }])
+      );
+      assert.notEqual(
+        storageFingerprint('prompt-history', [{ id: 'a' }, { id: 'b' }]),
+        storageFingerprint('prompt-history', [{ id: 'b' }, { id: 'a' }])
+      );
+      assert.equal(
+        storageFingerprint('studio-extras', { updatedAt: 1, characters: [] }),
+        storageFingerprint('studio-extras', { updatedAt: 2, characters: [] })
+      );
+      assert.notEqual(
+        storageFingerprint('studio-extras', { updatedAt: 1, characters: [] }),
+        storageFingerprint('studio-extras', { updatedAt: 1, characters: [{ id: 'c' }] })
+      );
+    });
+
+    it('skips a repeat push, but not after a failed one', async () => {
+      let ok = false;
+      const stub = installFetchStub(() => jsonResponse({}, ok));
+      try {
+        await syncNamespaceToServer('settings-cache', { a: 1 });
+        ok = true;
+        await syncNamespaceToServer('settings-cache', { a: 1 });
+        await syncNamespaceToServer('settings-cache', { a: 1 });
+        assert.equal(stub.calls.length, 2);
+      } finally {
+        stub.restore();
+      }
+    });
+
+    it('an empty server namespace does not count as matching', async () => {
+      const stub = installFetchStub((_url, init) =>
+        init?.method === 'PUT' ? jsonResponse({ data: null }) : jsonResponse({})
+      );
+      try {
+        await pullNamespaceFromServerResult('studio-extras');
+        await syncNamespaceToServer('studio-extras', null);
+        assert.equal(stub.calls.filter(call => call.init?.method === 'POST').length, 1);
+      } finally {
+        stub.restore();
+      }
+    });
+  });
+
   describe('syncNamespaceToServer', () => {
     it('POSTs the namespace and data, returning true when ok', async () => {
       const stub = installFetchStub(() => jsonResponse({}));

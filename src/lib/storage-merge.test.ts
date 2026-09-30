@@ -6,6 +6,7 @@ import {
   detectLoaderMapDivergence,
   detectStorageConflicts,
   localSessionStackLooksEmpty,
+  mergeArraysById,
   suggestMergeChoice,
 } from "./storage-merge";
 
@@ -147,5 +148,19 @@ describe("isStorageNamespace", () => {
     assert.equal(isStorageNamespace("avoided-tokens"), true);
     assert.equal(isStorageNamespace("prompt-projects"), true);
     assert.equal(isStorageNamespace("not-a-namespace"), false);
+  });
+});
+
+describe("mergeArraysById", () => {
+  it("keeps both sides' history entries, newest timestamp first", () => {
+    const merged = mergeArraysById(
+      [{ id: "local", timestamp: 2 }, { id: "both", timestamp: 1 }],
+      [{ id: "other-device", timestamp: 3 }, { id: "both", timestamp: 1 }],
+      (a) => a,
+    );
+    assert.deepEqual(
+      merged.map((entry) => entry.id),
+      ["other-device", "local", "both"],
+    );
   });
 });

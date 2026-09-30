@@ -122,9 +122,16 @@ export async function pullAndMergeGalleryFromServer(): Promise<GalleryServerPull
     };
   }
 
+  const { loadComfyGallery, saveComfyGalleryAsync } = await import('./comfyui-gallery');
+  // The whole local gallery, not the first-paint page, so an in-sync server can skip resending it.
+  const { awaitFullGalleryHydration } = await import('./gallery-db-store');
+  await awaitFullGalleryHydration();
   const [server, serverDeleted] = await Promise.all([
-    pullNamespaceFromServer<ComfyGalleryEntry[]>(GALLERY_NAMESPACE),
-    pullNamespaceFromServer<string[] | { ids?: string[] }>(DELETED_IDS_NAMESPACE),
+    pullNamespaceFromServer<ComfyGalleryEntry[]>(GALLERY_NAMESPACE, loadComfyGallery()),
+    pullNamespaceFromServer<string[] | { ids?: string[] }>(
+      DELETED_IDS_NAMESPACE,
+      loadGalleryDeletedIds()
+    ),
   ]);
 
   const serverDeletedIds = Array.isArray(serverDeleted)
@@ -145,7 +152,6 @@ export async function pullAndMergeGalleryFromServer(): Promise<GalleryServerPull
     };
   }
 
-  const { loadComfyGallery, saveComfyGalleryAsync } = await import('./comfyui-gallery');
   const local = loadComfyGallery();
   const localClean = filterOutDeletedGalleryEntries(local, deletedIds);
   const droppedLocalDeleted = local.length - localClean.length;

@@ -6,6 +6,7 @@
 import {
   BROWSER_STORAGE_HEALTH_EVENT,
   readBrowserValue,
+  withSuppressedDurableSyncPush,
   writeBrowserValue,
 } from './browser-storage';
 import type { CharacterFilmCut } from './character-film';
@@ -746,12 +747,16 @@ export function migrateCharactersFromLegacy(input: {
   if (!firstImport && !importedNew) {
     return store.characters;
   }
-  writeStore({
-    version: 1,
-    migratedFromBundles: true,
-    characters,
-    removedIds: store.removedIds,
-  });
+  // A migration is not an edit: on a fresh browser it runs while the startup pull is in flight,
+  // and counting its empty list as a local write kept it over the server's characters.
+  withSuppressedDurableSyncPush(() =>
+    writeStore({
+      version: 1,
+      migratedFromBundles: true,
+      characters,
+      removedIds: store.removedIds,
+    })
+  );
   return characters;
 }
 
