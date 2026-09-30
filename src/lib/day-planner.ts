@@ -2933,6 +2933,15 @@ export function buildDaySlotPrompt(input: {
     !faceOnlyIdentity && !omitGarment && (dayMood === 'vacation' || dayMood === 'suggestive')
       ? daySceneLeadLine(setting)
       : '';
+  // Sport: the venue sat deep in a ~5k-char brief and Rapid drew every sport on a football
+  // stadium field; cycling beats without "riding" lost the bike. Scene + action first: venue
+  // right and the bike back 8/8 (live 2026-09-29, same seeds).
+  const sportSceneLead =
+    dayMood === 'sport' && !omitGarment && hints
+      ? [daySceneLeadLine(setting), `ACTION: ${hints.split(' — ')[0]!.trim()}.`]
+          .filter(Boolean)
+          .join(' ')
+      : null;
   const replaceKeepOutfit =
     !omitGarment && (input.replaceKeepOutfit === true || dayMoodReplacesKeepOutfit(dayMood));
   const keepAsImage1 = input.plateSource === 'keeper';
@@ -3413,6 +3422,7 @@ export function buildDaySlotPrompt(input: {
         : null;
       const clothedFaceBreakImage1 = faceBreakLeads?.image1 ?? null;
       return [
+        sportSceneLead,
         nudeEditPreamble ??
           clothedFaceBreakPreamble ??
           (replaceKeepOutfit
@@ -3558,6 +3568,7 @@ export function buildDaySlotPrompt(input: {
         ? `OUTFIT (mandatory): she wears a ${outfit} — fully dressed; the underwear in Image 1 is only the fitting base, never part of the outfit.`
         : null;
     return [
+      sportSceneLead,
       castOutfitLead,
       nudeEditPreamble ??
         (clothedFaceBreak

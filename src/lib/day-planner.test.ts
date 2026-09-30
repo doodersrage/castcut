@@ -900,6 +900,29 @@ describe('day-planner', () => {
     assert.equal(renumberDayPoseGuideAsImage2(withGarment), withGarment);
   });
 
+  it('buildDaySlotPrompt leads sport stills with the venue and the action', () => {
+    // Live 2026-09-29: venue deep in the brief → football stadium for every sport, and cycling
+    // beats without "riding" lost the bike; scene + action first fixed both.
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'forest mountain bike trail',
+        sceneHints:
+          'launching off a small trail drop with knees bent — mountain biking athletic action in proper kit',
+      },
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      dayMood: 'sport',
+      replaceKeepOutfit: true,
+      model: 'qwen-rapid-aio-sfw-v23',
+    });
+    assert.match(
+      prompt,
+      /^SCENE: she is in the forest mountain bike trail — show that place around her\. ACTION: launching off a small trail drop with knees bent\./
+    );
+  });
+
   it('dayEverydayFaceBreakStanceLead names only stances Rapid loses', () => {
     assert.match(dayEverydayFaceBreakStanceLead('kneeling to unlace boots') ?? '', /^KNEELING/);
     assert.match(dayEverydayFaceBreakStanceLead('seated reading a menu') ?? '', /^SEATED/);
