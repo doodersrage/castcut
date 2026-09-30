@@ -3,6 +3,7 @@ import type { WorkflowParamValues } from '@/lib/comfyui-config';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { resolveQueueParams } from '@/lib/queue-params-settings';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
+import { PLAY_FACE_CROP_CANVAS } from '@/lib/play-plate-render-size';
 
 export async function buildQueueSingleParams(input: {
   config: { tool: string };
@@ -52,7 +53,13 @@ export async function buildQueueSingleParams(input: {
     resolutionOrientation: options?.resolutionOrientation,
     preserveInputAspect: options?.preserveInputAspect,
     forceNewSeed: true,
-    figurePixelSize: options?.figurePixelSize ?? uploadedFigureSize,
+    // Cast-plate stills whose Image 1 went by filename (face crops) have no probed size. Per-tool
+    // fixes (Day 852b2681, Story 10b24647) each missed the other path; default here so every
+    // caller gets the plate's 3:4 portrait instead of the square sidebar latent.
+    figurePixelSize:
+      options?.figurePixelSize ??
+      uploadedFigureSize ??
+      (options?.castPlateReference === true ? { ...PLAY_FACE_CROP_CANVAS } : undefined),
     castPlateReference: options?.castPlateReference,
   });
 
