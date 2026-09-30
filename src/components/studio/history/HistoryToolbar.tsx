@@ -82,11 +82,9 @@ export default function HistoryToolbar({
         <p className="type-heading shrink-0">
           {filteredEntries.length}
           {filteredEntries.length !== entries.length ? ` of ${entries.length}` : ''} entries
-          {useVirtualHistory
-            ? ' · virtual scroll'
-            : filteredEntries.length > pageSize
-              ? ` · page ${paginationPage}/${paginationTotalPages}`
-              : ''}
+          {!useVirtualHistory && filteredEntries.length > pageSize
+            ? ` · page ${paginationPage}/${paginationTotalPages}`
+            : ''}
         </p>
         <div className="flex min-w-0 flex-col gap-3 lg:items-end">
           <div className="flex items-center gap-1 rounded-full border border-[var(--border-subtle)] p-0.5">

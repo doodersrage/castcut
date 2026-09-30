@@ -199,7 +199,7 @@ export default function BackgroundTool() {
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Film · Character</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Create</ToolBadge>}
       title="Background"
       description={description}
       sidebarPersistKey="background"

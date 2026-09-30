@@ -122,7 +122,7 @@ export default function ImagePromptInputSection({
             type="file"
             accept="image/*"
             onChange={e => onFileChange(e.target.files?.[0] ?? null)}
-            className="ui-file-input block min-w-0 flex-1"
+            className="ui-file-input block min-w-[14rem] flex-1"
           />
           <ButtonLink href={galleryPickPath('imagePrompt')} variant="secondary" size="sm">
             Choose from Gallery

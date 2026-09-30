@@ -3,7 +3,6 @@
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 
 import { useCallback, useMemo, useState } from 'react';
-import BrandBars from '@/components/BrandBars';
 import EnhancedPromptResult from '@/components/LazyEnhancedPromptResult';
 import MobileStickyQueueBar from '@/components/MobileStickyQueueBar';
 import SharedToolControls from '@/components/SharedToolControls';
@@ -206,12 +205,7 @@ export default function LogoTool() {
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={
-        <ToolBadge accent={ACCENT}>
-          <BrandBars size="sm" className="mr-1" />
-          Logo
-        </ToolBadge>
-      }
+      badge={<ToolBadge accent={ACCENT}>More tools</ToolBadge>}
       title="Logo"
       description={description}
       sidebarPersistKey="logo"

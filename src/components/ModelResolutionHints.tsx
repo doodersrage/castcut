@@ -12,6 +12,7 @@ import {
   type ResolutionSizeTier,
 } from '@/lib/model-resolution-defaults';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
+import { isAudioModel, isMeshModel } from '@/lib/queue-tool-model';
 import { useEffect } from 'react';
 
 type ModelResolutionHintsProps = {
@@ -65,6 +66,11 @@ export default function ModelResolutionHints({
     sizeTierOptions.find(option => option.id === effectiveSizeTier) ??
     sizeTierOptions[0] ??
     RESOLUTION_SIZE_TIER_OPTIONS[1];
+
+  // Sound and 3D meshes have no canvas — "1:1 · Medium · 768×768" on Audio meant nothing.
+  if (isAudioModel(model) || isMeshModel(model)) {
+    return null;
+  }
 
   if (part === 'orientation') {
     return (

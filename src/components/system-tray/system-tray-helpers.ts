@@ -3,6 +3,7 @@ import {
   comfyUiJobStatusLabel,
   formatComfyUiJobProgressLabel,
 } from '@/lib/comfyui-job-status';
+import { galleryCardCaption } from '@/lib/gallery-card-caption';
 import type { SystemTrayAssetJob, SystemTrayPrimary } from '@/hooks/useSystemTrayState';
 
 export function assetStatusLabel(job: SystemTrayAssetJob): string {
@@ -19,7 +20,8 @@ export function assetStatusLabel(job: SystemTrayAssetJob): string {
 export function primaryTitle(primary: SystemTrayPrimary): string {
   switch (primary.kind) {
     case 'gallery':
-      return primary.entry.prompt.trim() || primary.entry.model || 'Generation job';
+      // Day / Story prompts open with the same "Edit Image 1…" boilerplate — show the beat.
+      return galleryCardCaption(primary.entry.prompt) || primary.entry.model || 'Generation job';
     case 'asset':
       return primary.job.label;
     case 'held':

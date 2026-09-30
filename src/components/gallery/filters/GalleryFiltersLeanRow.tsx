@@ -74,7 +74,7 @@ export function GalleryFiltersLeanRow({
         }
       />
       {paginationEnabled ? (
-        <label className="flex items-center gap-1.5 type-caption text-[var(--text-muted)]">
+        <label className="flex items-center gap-1.5 whitespace-nowrap type-caption text-[var(--text-muted)]">
           Page size
           <select
             value={String(pageSize)}

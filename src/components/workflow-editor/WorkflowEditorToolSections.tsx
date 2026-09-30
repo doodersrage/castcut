@@ -18,7 +18,7 @@ export default function WorkflowEditorToolSections({ description, ...vm }: Props
     <div data-testid="workflow-editor">
       <ToolLayout
         accent={ACCENT}
-        badge={<ToolBadge accent={ACCENT}>{TOOL_SETUP_LABELS.workflowEditor}</ToolBadge>}
+        badge={<ToolBadge accent={ACCENT}>More tools</ToolBadge>}
         title="Node graph editor"
         description={description}
       >

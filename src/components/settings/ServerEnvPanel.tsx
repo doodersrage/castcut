@@ -75,8 +75,8 @@ export default function ServerEnvPanel({
                   key={field.key}
                   className="ui-list-row flex-col !items-start gap-2 !min-h-0 py-3 sm:flex-row sm:items-start sm:justify-between"
                 >
-                  <div className="min-w-0 space-y-1">
-                    <p className="type-heading">
+                  <div className="w-full min-w-0 space-y-1 sm:w-auto">
+                    <p className="type-heading break-all">
                       <code className="text-[var(--accent-text)]">{field.key}</code>
                     </p>
                     <p className="type-caption">{field.label}</p>

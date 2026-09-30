@@ -52,7 +52,7 @@ export default function ThemePreferenceControl({ showHint = true }: { showHint?:
 
   return (
     <div className="space-y-2 text-sm">
-      <span className="type-caption text-[var(--text-muted)]">Theme</span>
+      <span className="type-caption block text-[var(--text-muted)]">Theme</span>
       <SegmentedControl
         aria-label="Theme preference"
         value={theme}

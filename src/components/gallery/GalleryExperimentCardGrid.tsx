@@ -21,7 +21,7 @@ function ExperimentCardCell({
   renderCard,
 }: ExperimentCardCellProps) {
   return (
-    <div className="relative min-w-0">
+    <div className="group/crown relative min-w-0">
       {renderCard(entry)}
       {onCrown ? (
         <button
@@ -30,7 +30,7 @@ function ExperimentCardCell({
           className={`absolute left-2 top-2 z-20 rounded-full border px-2 py-0.5 text-[10px] font-medium backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
             winnerEntryId === entry.id
               ? 'border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] text-[var(--tint-warning-text)]'
-              : 'border-[var(--border-subtle)] bg-[var(--bg-base)]/70 text-[var(--text-secondary)] hover:border-[var(--tint-warning-border)] hover:text-[var(--tint-warning-text)]'
+              : 'border-[var(--border-subtle)] bg-[var(--bg-base)]/70 text-[var(--text-secondary)] hover:border-[var(--tint-warning-border)] hover:text-[var(--tint-warning-text)] [@media(hover:hover)]:opacity-0 group-hover/crown:opacity-100 focus-visible:opacity-100'
           }`}
           title={winnerEntryId === entry.id ? 'Crowned winner' : 'Crown as winner'}
         >

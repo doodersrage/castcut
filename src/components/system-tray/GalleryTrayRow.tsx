@@ -6,6 +6,7 @@ import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui-live-preview-store';
+import { galleryCardCaption } from '@/lib/gallery-card-caption';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import UiIcon from '@/components/ui/UiIcon';
 import { TrayProgressBar } from '@/components/system-tray/TrayProgressBar';
@@ -66,7 +67,7 @@ export function GalleryTrayRow({
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex items-start justify-between gap-2">
           <p className="min-w-0 truncate text-sm text-[var(--text-primary)]">
-            {entry.prompt.trim() || entry.model || 'Generation job'}
+            {galleryCardCaption(entry.prompt) || entry.model || 'Generation job'}
           </p>
           <button
             type="button"

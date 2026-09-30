@@ -161,7 +161,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
                   <span className="text-xs font-medium leading-tight">More</span>
                 </summary>
                 <div
-                  className="absolute bottom-full right-0 mb-2 min-w-[8rem] rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] py-1 shadow-lg"
+                  className="ui-menu-panel absolute bottom-full right-0 mb-2 min-w-[8rem] rounded-[var(--radius-md)] border border-[var(--border-subtle)] py-1 shadow-lg"
                   data-testid="mobile-more-menu"
                 >
                   {moreTabs.map(entry => {

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildCollabShareUrl,
   collabChannelName,
-  createCollabPeerId,
+  tabCollabPeerId,
   normalizeCollabProjectId,
   readCollabProjectIdFromSearch,
   shouldWarnRemoteDraft,
@@ -34,7 +34,7 @@ export default function CollabPresenceBar({
   displayName = 'You',
   onApplyRemoteDraft,
 }: CollabPresenceBarProps) {
-  const [peerId] = useState(() => createCollabPeerId());
+  const [peerId] = useState(() => tabCollabPeerId());
   const [peers, setPeers] = useState<CollabPresencePeer[]>([]);
   const [barOpen, setBarOpen] = useState(false);
   const [remoteDraft, setRemoteDraft] = useState<CollabDraftPayload | null>(null);

@@ -18,7 +18,7 @@ export default function SettingsSubNav({
   const active = tabs.find(tab => tab.id === activeTab);
 
   return (
-    <ToolMetaPanel className="sticky top-20 z-20 md:sticky md:top-24">
+    <ToolMetaPanel className="md:sticky md:top-24 md:z-20">
       <nav aria-label="Settings sections">
         {/* Mobile: compact select instead of chip wrap */}
         <div className="space-y-3 md:hidden">

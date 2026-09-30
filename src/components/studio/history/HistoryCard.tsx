@@ -9,6 +9,7 @@ import { studioHistoryUrl } from '@/lib/prompt-lineage';
 import { startPromptEditorFromHistoryEntry } from '@/lib/improve-output';
 import { ToolContentPanel, ToolMetaPanel } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
+import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 
 const PromptDiagnosticsPanel = dynamic(() => import('@/components/PromptDiagnosticsPanel'), {
   loading: () => null,
@@ -133,38 +134,9 @@ export default function HistoryCard({
           <p className="type-caption min-w-0 break-words text-[var(--text-muted)]">
             {entry.tool} · {entry.model} · {new Date(entry.timestamp).toLocaleString()}
           </p>
+          {/* ~22 buttons per row buried the prompt — primary actions stay out, the rest
+              sit one click deeper in "Open in" (tools) and "More" (queue extras, files). */}
           <div className={`ui-list-actions w-full justify-start ${compact ? 'gap-1.5' : ''}`}>
-            <a href={regenerateUrl} className="ui-btn-ghost ui-btn-sm type-caption">
-              Regenerate
-            </a>
-            <a href={useAsHintsUrl} className="ui-btn-ghost ui-btn-sm type-caption">
-              Use as hints
-            </a>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="type-caption"
-              onClick={() => startPromptEditorFromHistoryEntry(entry)}
-            >
-              Edit prompt
-            </Button>
-            <a href={studioHistoryUrl(entry.id)} className="ui-btn-ghost ui-btn-sm type-caption">
-              Link
-            </a>
-            <Button variant="ghost" size="sm" className="type-caption" onClick={onToggleFavorite}>
-              {entry.favorite ? '★' : '☆'}
-            </Button>
-            <Button variant="ghost" size="sm" className="type-caption" onClick={onCopy}>
-              Copy
-            </Button>
-            {onPreview ? (
-              <Button variant="ghost" size="sm" className="type-caption" onClick={onPreview}>
-                Preview
-              </Button>
-            ) : null}
-            <Button variant="ghost" size="sm" className="type-caption" onClick={onExportSidecar}>
-              Sidecar
-            </Button>
             <Button
               variant="accent-outline"
               size="sm"
@@ -179,141 +151,128 @@ export default function HistoryCard({
               className="type-caption"
               onClick={() => onRequeue(true)}
             >
-              New variation (new seed)
+              New seed
             </Button>
-            {onUpscale ? (
-              <>
-                <Button
-                  variant="accent-outline"
-                  size="sm"
-                  className="type-caption"
-                  onClick={() => onUpscale('final')}
-                >
-                  Upscale (Final)
-                </Button>
-                <Button
-                  variant="accent-outline"
-                  size="sm"
-                  className="type-caption"
-                  onClick={() => onUpscale('max')}
-                >
-                  Upscale (Max)
-                </Button>
-              </>
-            ) : null}
-            {onRefine ? (
-              <Button
-                variant="accent-outline"
-                size="sm"
-                className="type-caption"
-                onClick={onRefine}
-              >
-                Refine (low denoise)
-              </Button>
-            ) : null}
-            {onOpenLinkedEdit ? (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="type-caption"
-                  onClick={() => onOpenLinkedEdit('refine')}
-                >
-                  Open Refine
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="type-caption"
-                  onClick={() => onOpenLinkedEdit('inpaint')}
-                >
-                  Open Inpaint
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="type-caption"
-                  onClick={() => onOpenLinkedEdit('outpaint')}
-                >
-                  Open Outpaint
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="type-caption"
-                  onClick={() => onOpenLinkedEdit('compose')}
-                >
-                  Open Compose
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="type-caption"
-                  onClick={() => onOpenLinkedEdit('video')}
-                >
-                  Open Video
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="type-caption"
-                  onClick={() => onOpenLinkedEdit('controlnet')}
-                >
-                  Open ControlNet
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="type-caption"
-                  onClick={() => onOpenLinkedEdit('background')}
-                >
-                  Open Background
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="type-caption"
-                  onClick={() => onOpenLinkedEdit('imagePrompt')}
-                >
-                  Open Image → Prompt
-                </Button>
-              </>
-            ) : null}
-            {batchPromptCount > 1 && onRequeueBatch ? (
-              <Button
-                variant="accent-outline"
-                size="sm"
-                className="type-caption"
-                onClick={onRequeueBatch}
-              >
-                Re-queue batch ({batchPromptCount})
-              </Button>
-            ) : null}
             <Button
               variant="ghost"
               size="sm"
               className="type-caption"
-              onClick={() => {
-                const tag = window.prompt('Add tag');
-                if (tag?.trim()) {
-                  onAddTag(tag.trim());
-                }
-              }}
+              onClick={() => startPromptEditorFromHistoryEntry(entry)}
             >
-              Tag
+              Edit prompt
             </Button>
-            <Button variant="ghost" size="sm" className="type-caption" onClick={onDiffLeft}>
-              Diff A
+            <Button variant="ghost" size="sm" className="type-caption" onClick={onCopy}>
+              Copy
             </Button>
-            <Button variant="ghost" size="sm" className="type-caption" onClick={onDiffRight}>
-              Diff B
+            <Button
+              variant="ghost"
+              size="sm"
+              className="type-caption"
+              aria-label={entry.favorite ? 'Unfavorite' : 'Favorite'}
+              onClick={onToggleFavorite}
+            >
+              {entry.favorite ? '★' : '☆'}
             </Button>
-            <Button variant="ghost" size="sm" className="type-caption" onClick={onSaveTemplate}>
-              Template
-            </Button>
-            <Button variant="danger" size="sm" className="type-caption" onClick={onRemove}>
-              Remove
-            </Button>
+            <ActionMenu label="Open in" align="left">
+              <a href={regenerateUrl} className={ACTION_MENU_ITEM_CLASS}>
+                Regenerate
+              </a>
+              <a href={useAsHintsUrl} className={ACTION_MENU_ITEM_CLASS}>
+                Use as hints
+              </a>
+              {onOpenLinkedEdit
+                ? (
+                    [
+                      ['refine', 'Refine'],
+                      ['inpaint', 'Inpaint'],
+                      ['outpaint', 'Outpaint'],
+                      ['compose', 'Compose'],
+                      ['video', 'Video'],
+                      ['controlnet', 'ControlNet'],
+                      ['background', 'Background'],
+                      ['imagePrompt', 'Image → Prompt'],
+                    ] as const
+                  ).map(([tool, label]) => (
+                    <button
+                      key={tool}
+                      type="button"
+                      className={ACTION_MENU_ITEM_CLASS}
+                      onClick={() => onOpenLinkedEdit(tool)}
+                    >
+                      {label}
+                    </button>
+                  ))
+                : null}
+            </ActionMenu>
+            <ActionMenu label="More" align="left">
+              {onUpscale ? (
+                <>
+                  <button
+                    type="button"
+                    className={ACTION_MENU_ITEM_CLASS}
+                    onClick={() => onUpscale('final')}
+                  >
+                    Upscale (Final)
+                  </button>
+                  <button
+                    type="button"
+                    className={ACTION_MENU_ITEM_CLASS}
+                    onClick={() => onUpscale('max')}
+                  >
+                    Upscale (Max)
+                  </button>
+                </>
+              ) : null}
+              {onRefine ? (
+                <button type="button" className={ACTION_MENU_ITEM_CLASS} onClick={onRefine}>
+                  Refine (low denoise)
+                </button>
+              ) : null}
+              {batchPromptCount > 1 && onRequeueBatch ? (
+                <button type="button" className={ACTION_MENU_ITEM_CLASS} onClick={onRequeueBatch}>
+                  Re-queue batch ({batchPromptCount})
+                </button>
+              ) : null}
+              {onPreview ? (
+                <button type="button" className={ACTION_MENU_ITEM_CLASS} onClick={onPreview}>
+                  Preview
+                </button>
+              ) : null}
+              <a href={studioHistoryUrl(entry.id)} className={ACTION_MENU_ITEM_CLASS}>
+                Link
+              </a>
+              <button
+                type="button"
+                className={ACTION_MENU_ITEM_CLASS}
+                onClick={() => {
+                  const tag = window.prompt('Add tag');
+                  if (tag?.trim()) {
+                    onAddTag(tag.trim());
+                  }
+                }}
+              >
+                Tag
+              </button>
+              <button type="button" className={ACTION_MENU_ITEM_CLASS} onClick={onDiffLeft}>
+                Diff A
+              </button>
+              <button type="button" className={ACTION_MENU_ITEM_CLASS} onClick={onDiffRight}>
+                Diff B
+              </button>
+              <button type="button" className={ACTION_MENU_ITEM_CLASS} onClick={onSaveTemplate}>
+                Save as template
+              </button>
+              <button type="button" className={ACTION_MENU_ITEM_CLASS} onClick={onExportSidecar}>
+                Export sidecar
+              </button>
+              <button
+                type="button"
+                className={`${ACTION_MENU_ITEM_CLASS} !text-[var(--tint-danger-text)]`}
+                onClick={onRemove}
+              >
+                Remove
+              </button>
+            </ActionMenu>
           </div>
         </div>
 

@@ -25,7 +25,7 @@ export default function GalleryTool() {
     <ToolLayout
       accent={ACCENT}
       width="wide"
-      badge={<ToolBadge accent={ACCENT}>Gallery</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Library</ToolBadge>}
       title="Gallery"
       description={description}
     >

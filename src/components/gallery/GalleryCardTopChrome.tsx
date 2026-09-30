@@ -59,7 +59,9 @@ export function GalleryCardTopChrome({
             pointerEvents
           />
         ) : null}
-        <span className="contents opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-within/card:opacity-100">
+        {/* Not `contents` — opacity does not apply to a display:contents box, so these
+            "hover only" chips showed on every card. Touch screens (no hover) always show them. */}
+        <span className="inline-flex flex-wrap items-center gap-1.5 transition-opacity [@media(hover:hover)]:opacity-0 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
           {entry.reviewNote?.trim() ? (
             <span
               className="max-w-[9rem] truncate rounded-full border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-warning-text)]"

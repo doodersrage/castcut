@@ -46,7 +46,7 @@ export default function HistoryToolbarActions({
         <summary className="ui-btn-ghost ui-btn-sm cursor-pointer list-none px-3 [&::-webkit-details-marker]:hidden">
           Export &amp; backup ▾
         </summary>
-        <div className="absolute left-0 z-30 mt-1 flex min-w-[12rem] lg:left-auto lg:right-0 flex-col items-stretch gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-1 shadow-lg [&>*]:justify-start">
+        <div className="ui-menu-panel absolute left-0 z-30 mt-1 flex min-w-[12rem] lg:left-auto lg:right-0 flex-col items-stretch gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-1 shadow-lg [&>*]:!justify-start">
           {entries.length > 0 && (
             <>
               <Button

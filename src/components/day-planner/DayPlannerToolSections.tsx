@@ -503,7 +503,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
 
         {showCutCoach ? (
           <div
-            className="sticky top-20 z-30 rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--bg-elevated)] px-4 py-3 shadow-[var(--shadow-card)]"
+            className="ui-sticky-surface sticky top-20 z-30 rounded-[var(--radius-lg)] border border-[var(--accent-border)] px-4 py-3 shadow-[var(--shadow-card)]"
             data-testid="day-cut-coach"
             role="status"
           >

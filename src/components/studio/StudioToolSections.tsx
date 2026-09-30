@@ -22,7 +22,7 @@ export default function StudioToolSections({ description, ...vm }: StudioToolSec
       <ToolLayout
         accent={ACCENT}
         width="wide"
-        badge={<ToolBadge accent={ACCENT}>Studio</ToolBadge>}
+        badge={<ToolBadge accent={ACCENT}>Library</ToolBadge>}
         title="Studio"
         description={description}
       >
@@ -35,15 +35,15 @@ export default function StudioToolSections({ description, ...vm }: StudioToolSec
     <ToolLayout
       accent={ACCENT}
       width="wide"
-      badge={<ToolBadge accent={ACCENT}>Studio</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Library</ToolBadge>}
       title="Studio"
       description={description}
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.studio} />
       {isNullContext ? null : (
         <div className="flex h-full flex-col gap-4">
-          <ToolMetaPanel title="Studio views" className="overflow-x-auto">
-            <div className="flex min-w-max flex-wrap items-start gap-x-8 gap-y-5">
+          <ToolMetaPanel title="Studio views">
+            <div className="flex flex-wrap items-start gap-x-8 gap-y-5">
               {tabGroups.map(group => (
                 <div key={group.label} className="space-y-2.5">
                   <p className="type-overline text-[var(--text-muted)]">{group.label}</p>

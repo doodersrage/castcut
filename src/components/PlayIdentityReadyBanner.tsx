@@ -12,6 +12,29 @@ import {
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { getCharacter } from '@/lib/character-os';
 import { resolveCastFaceForPlate } from '@/lib/look-outfit-plate';
+import { getComfyModelDefinition } from '@/lib/comfy-models/client';
+import { toolEffectiveModel } from '@/lib/tool-effective-model';
+
+/** Film routes → the tool whose model the page queues. */
+const ROUTE_TOOL_KEY: Record<string, string> = {
+  '/day': 'day',
+  '/fitting': 'fitting',
+  '/moodboard': 'moodboard',
+  '/story': 'roleplay',
+  '/roleplay': 'roleplay',
+  '/character': 'character',
+};
+
+/**
+ * IP-Adapter / InstantID only exist for SD 1.5 / SDXL UNETs. Qwen and instruct-edit models
+ * hold identity through ReferenceLatent — "run Heal so IP-Adapter can apply" misled there.
+ */
+function modelUsesIdentityPack(model: string | undefined): boolean {
+  if (!model?.trim()) return true;
+  const definition = getComfyModelDefinition(model);
+  if (definition.id !== model) return true;
+  return definition.category === 'sdxl' || definition.category === 'stable-diffusion';
+}
 
 /**
  * Play / Film-loop banner: Identity ready when packs are installed, or warn when
@@ -39,7 +62,14 @@ export default function PlayIdentityReadyBanner() {
       );
       const packReady = isIdentityPackReady(nodeTypes);
       setReady(packReady);
-      setWarn(shouldWarnIdentityPackMissing({ hasFaceLock, availableNodeTypes: nodeTypes }));
+      const model = toolEffectiveModel(
+        shared.model,
+        ROUTE_TOOL_KEY[window.location.pathname.replace(/\/+$/, '')] ?? undefined
+      );
+      setWarn(
+        modelUsesIdentityPack(model) &&
+          shouldWarnIdentityPackMissing({ hasFaceLock, availableNodeTypes: nodeTypes })
+      );
       const ip = getIpAdapterHealth(nodeTypes);
       const instant = getInstantIdHealth(nodeTypes);
       if (packReady) {

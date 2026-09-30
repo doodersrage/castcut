@@ -72,7 +72,7 @@ export default function WorkflowEditorGraphSection({
       <ToolSection title="Source">
         <div className="flex flex-wrap gap-2">
           <select
-            className="ui-input min-h-10 min-w-[220px]"
+            className="ui-input ui-select min-h-10 min-w-[220px] px-[var(--input-padding-x)] py-[var(--input-padding-y)] type-body"
             value={selectedId}
             onChange={event => setSelectedId(event.target.value)}
             aria-label="Library workflow"

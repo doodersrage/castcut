@@ -23,7 +23,7 @@ export default function VideoPromptTool() {
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Video · motion prompts</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Create</ToolBadge>}
       title="Video"
       description={description}
       sidebarPersistKey="video"

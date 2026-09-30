@@ -200,6 +200,10 @@ export default function SharedPrimaryControls({
               src={shared.ipAdapterImageUrl}
               alt=""
               className="h-8 w-8 rounded-lg object-cover"
+              // A purged plate file must not leave a broken-image icon beside the chip.
+              onError={event => {
+                event.currentTarget.hidden = true;
+              }}
             />
           ) : null}
           <span className="type-caption rounded-[var(--radius-full)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2.5 py-1 text-[var(--accent-text)]">

@@ -51,7 +51,7 @@ export default function ImageLightboxShell({
     return createPortal(
       <div
         ref={containerRef}
-        className="fixed inset-0 z-[120] flex flex-col bg-black text-white"
+        className="ui-force-dark fixed inset-0 z-[120] flex flex-col bg-black text-white"
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
@@ -77,7 +77,7 @@ export default function ImageLightboxShell({
   return createPortal(
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4"
+      className="ui-force-dark fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 text-[var(--text-primary)]"
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}

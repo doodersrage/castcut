@@ -128,10 +128,9 @@ export function buildLogoSvg(input: LogoSvgInput): string {
   }`
     : '';
 
-  const height = tagline && includeWordmark ? 520 : includeWordmark ? 500 : 512;
-
+  // The wordmark sits inside the 512 tile — a shorter viewBox cut off the tile's rounded bottom.
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 ${height}" role="img" aria-label="${escapeXml(brandName)} logo">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="${escapeXml(brandName)} logo">
 ${defs}
 ${markForMotif(motif, colors, brandName)}
 ${wordmark}

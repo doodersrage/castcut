@@ -23,13 +23,7 @@ export default function GalleryPaginator({
 }: GalleryPaginatorProps) {
   return (
     <div className="ui-gallery-dock flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-      <p
-        className={`type-caption leading-wider text-[var(--text-muted)] ${
-          totalPages <= 3
-            ? ''
-            : ' bg-[var(--accent-muted)] border-[var(--accent-border)] text-[11px] font-medium'
-        }`}
-      >
+      <p className="type-caption leading-wider text-[var(--text-muted)]">
         Showing {rangeStart}–{rangeEnd} of {totalItems}
       </p>
       <div className="flex flex-wrap items-center gap-2">
@@ -42,7 +36,7 @@ export default function GalleryPaginator({
         >
           Previous
         </Button>
-        <span className="type-caption border-[var(--accent-border)] bg-[var(--accent-muted)] px-1 font-medium text-[var(--accent-text)]">
+        <span className="type-caption rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2.5 py-0.5 font-medium text-[var(--accent-text)]">
           Page {page} of {totalPages}
         </span>
         <Button

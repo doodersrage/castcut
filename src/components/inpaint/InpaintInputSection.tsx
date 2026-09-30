@@ -118,7 +118,7 @@ export default function InpaintInputSection({
             type="file"
             accept="image/*"
             onChange={event => onFileChange(event.target.files?.[0] ?? null)}
-            className="ui-file-input min-w-0 flex-1"
+            className="ui-file-input min-w-[14rem] flex-1"
           />
           <ButtonLink href={galleryPickPath('inpaint')} variant="secondary" size="sm">
             Choose from Gallery

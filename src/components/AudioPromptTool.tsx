@@ -35,7 +35,7 @@ const ACCENT = 'sky' as const;
 export default function AudioPromptTool() {
   const description = useToolPageDescription(
     'Describe sound for Stable Audio (or BYO audio packs). Queues with {{AUDIO_SECONDS}} when the workflow exposes it.',
-    'Describe sound for Stable Audio — duration fills {{AUDIO_SECONDS}} when supported.'
+    'Describe a sound or music clip for Stable Audio, then queue it.'
   );
   const { mounted, shared, toolSettings, updateShared, updateToolSettings } = useCachedSettings(
     'audio',

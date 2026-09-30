@@ -185,6 +185,7 @@ const STILL_IMAGE_TOOLS = new Set([
   'pet',
   'promptEditor',
   'refine',
+  'roleplay',
   'topics',
   'variations',
 ]);

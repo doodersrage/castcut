@@ -1,5 +1,7 @@
 'use client';
 
+import ActionMenu from '@/components/ui/ActionMenu';
+
 import { ButtonLink } from '@/components/ui/Button';
 import {
   galleryHandoffHomePath,
@@ -9,7 +11,6 @@ import {
 import type { GalleryCapWarningLevel } from '@/lib/gallery-cap';
 
 export function GalleryPanelHeader({
-  leanGallery,
   activeJobs,
   entriesLength,
   compact,
@@ -21,7 +22,6 @@ export function GalleryPanelHeader({
   onUpload,
   uploading = false,
 }: {
-  leanGallery: boolean;
   activeJobs: number;
   entriesLength: number;
   compact: boolean;
@@ -34,15 +34,8 @@ export function GalleryPanelHeader({
   uploading?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h2 className="type-heading text-[var(--text-primary)]">Gallery</h2>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
-          {leanGallery
-            ? 'Browse ComfyUI outputs, upload stills, and rate results.'
-            : 'Browse ComfyUI outputs, upload stills, rate results, compare variants, and queue follow-up experiments.'}
-        </p>
-      </div>
+    // The page header already names and describes the Gallery — only the actions here.
+    <div className="flex flex-wrap items-end justify-end gap-4">
       <div className="flex flex-wrap gap-2">
         {onUpload ? (
           <button
@@ -65,37 +58,36 @@ export function GalleryPanelHeader({
         {entriesLength > 0 ? (
           // Three purge actions sat beside Upload / Refresh as top-level buttons, "Purge rest"
           // in red — rare, destructive steps belong one click deeper.
-          <details className="relative" data-testid="gallery-cleanup-menu">
-            <summary className="ui-btn-ghost ui-btn-sm cursor-pointer list-none text-xs [&::-webkit-details-marker]:hidden">
-              Clean up ▾
-            </summary>
-            <div className="absolute right-0 z-30 mt-1 flex min-w-[12rem] flex-col items-stretch gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-1 shadow-lg">
-              <button
-                type="button"
-                onClick={onArchiveThenPurge}
-                className="ui-btn-ghost ui-btn-sm justify-start text-xs text-[var(--text-secondary)] hover:text-[var(--tint-danger-text)]"
-                data-testid="gallery-archive-purge"
-              >
-                Archive & purge
-              </button>
-              <button
-                type="button"
-                onClick={onFinishPendingPurge}
-                className="ui-btn-ghost ui-btn-sm justify-start text-xs text-[var(--text-secondary)] hover:text-[var(--tint-danger-text)]"
-                data-testid="gallery-finish-purge"
-              >
-                Finish purge
-              </button>
-              <button
-                type="button"
-                onClick={onPurgeRestOnly}
-                className="ui-btn-ghost ui-btn-sm justify-start text-xs text-[var(--tint-danger-text)]"
-                data-testid="gallery-purge-rest"
-              >
-                Purge rest
-              </button>
-            </div>
-          </details>
+          <ActionMenu
+            label="Clean up"
+            testId="gallery-cleanup-menu"
+            summaryClassName="ui-btn-ghost ui-btn-sm text-xs"
+          >
+            <button
+              type="button"
+              onClick={onArchiveThenPurge}
+              className="ui-btn-ghost ui-btn-sm w-full !justify-start text-xs text-[var(--text-secondary)] hover:text-[var(--tint-danger-text)]"
+              data-testid="gallery-archive-purge"
+            >
+              Archive & purge
+            </button>
+            <button
+              type="button"
+              onClick={onFinishPendingPurge}
+              className="ui-btn-ghost ui-btn-sm w-full !justify-start text-xs text-[var(--text-secondary)] hover:text-[var(--tint-danger-text)]"
+              data-testid="gallery-finish-purge"
+            >
+              Finish purge
+            </button>
+            <button
+              type="button"
+              onClick={onPurgeRestOnly}
+              className="ui-btn-ghost ui-btn-sm w-full !justify-start text-xs text-[var(--tint-danger-text)]"
+              data-testid="gallery-purge-rest"
+            >
+              Purge rest
+            </button>
+          </ActionMenu>
         ) : null}
         {!compact && limit && entriesLength > limit ? (
           <ButtonLink href="/gallery" size="sm">

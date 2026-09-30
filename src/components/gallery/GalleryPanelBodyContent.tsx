@@ -49,7 +49,6 @@ export default function GalleryPanelBodyContent({
 
       <GalleryPanelStatusSection
         showHeader={chrome.showHeader}
-        leanGallery={chrome.leanGallery}
         compact={chrome.compact}
         limit={chrome.limit}
         uploadInputRef={upload.uploadInputRef}
@@ -215,7 +214,13 @@ export default function GalleryPanelBodyContent({
         pageRangeStart={browse.pageRangeStart}
         pageRangeEnd={browse.pageRangeEnd}
         setPage={browse.setPage}
-        scrollToEntryId={review.reviewFocusEntry?.id ?? browse.filter.focusEntryId?.trim() ?? null}
+        // reviewFocusEntry falls back to the first card even outside review mode —
+        // passing it unconditionally scrolled every Gallery load down to the grid.
+        scrollToEntryId={
+          (browse.filter.reviewMode ? review.reviewFocusEntry?.id : undefined) ??
+          browse.filter.focusEntryId?.trim() ??
+          null
+        }
         derivedKind={browse.filter.derivedKind}
         characterId={browse.filter.characterId}
       />

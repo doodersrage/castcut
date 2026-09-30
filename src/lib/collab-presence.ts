@@ -70,6 +70,26 @@ export function buildCollabShareUrl(
   return url.toString();
 }
 
+const TAB_PEER_ID_KEY = 'comfy-collab-peer-id-v1';
+
+/**
+ * One peer id per browser tab. A fresh id per page mount left the previous page's presence
+ * alive for the 15 s TTL, so Character → Compose showed "You · character" as a collaborator.
+ */
+export function tabCollabPeerId(): string {
+  try {
+    const existing = window.sessionStorage.getItem(TAB_PEER_ID_KEY);
+    if (existing) {
+      return existing;
+    }
+    const next = createCollabPeerId();
+    window.sessionStorage.setItem(TAB_PEER_ID_KEY, next);
+    return next;
+  } catch {
+    return createCollabPeerId();
+  }
+}
+
 export function createCollabPeerId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();

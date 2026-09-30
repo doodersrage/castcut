@@ -6,6 +6,7 @@ import { peekCollapsibleOpen, saveCollapsibleOpen } from '@/lib/collapsible-pers
 import { engineSummary, formatEngineSummary } from '@/lib/engine-summary';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
+import { toolEffectiveModel } from '@/lib/tool-effective-model';
 
 const STORAGE_PREFIX = 'tool-engine-sidebar:';
 /** Legacy Play-only keys — still read so preferences survive the rename. */
@@ -76,7 +77,12 @@ function subscribeSettings(onChange: () => void): () => void {
 export function useEngineSummaryText(toolId?: string): string {
   return useSyncExternalStore(
     subscribeSettings,
-    () => formatEngineSummary(engineSummary(loadSettingsCache().shared, toolId)),
+    () => {
+      const shared = loadSettingsCache().shared;
+      // Same model the tool's Engine panel shows — remembered per tool, image-only on still tools.
+      const model = toolEffectiveModel(shared.model, toolId) ?? shared.model;
+      return formatEngineSummary(engineSummary({ ...shared, model }, toolId));
+    },
     () => ''
   );
 }

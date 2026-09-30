@@ -3,6 +3,7 @@
 import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
 import type { GalleryStats } from '@/lib/gallery-stats';
 import { GALLERY_ENTRY_LIMIT } from '@/lib/gallery-stats';
+import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 
 type GalleryStatsBarProps = {
   stats: GalleryStats;
@@ -15,6 +16,11 @@ type GalleryStatsBarProps = {
   projectFilterActive?: boolean;
   onProjectFilter?: (projectId: string) => void;
 };
+
+function topModelLabel(id: string): string {
+  const definition = getComfyModelDefinition(id as never);
+  return definition.id === id ? definition.label : id;
+}
 
 function StatChip(props: {
   label: string;
@@ -145,7 +151,8 @@ export default function GalleryStatsBar({
         />
         <StatChip
           label="Review"
-          value={stats.unreviewed > 0 ? stats.unreviewed : '—'}
+          // Same count as Unreviewed beside it — say what the chip does instead.
+          value={filter.reviewMode && !filter.unreviewedOnly ? 'On' : 'Start'}
           active={Boolean(filter.reviewMode) && !filter.unreviewedOnly}
           testId="gallery-stats-review"
           onClick={() =>
@@ -168,7 +175,6 @@ export default function GalleryStatsBar({
           label="Avg"
           value={stats.avgRating != null ? `${stats.avgRating}★` : '—'}
           emphasis="muted"
-          active={!!stats.avgRating}
         />
         <StatChip
           label="Untagged"
@@ -194,7 +200,7 @@ export default function GalleryStatsBar({
         {stats.topModel ? (
           <StatChip
             label="Top model"
-            value={stats.topModel.completed}
+            value={`${topModelLabel(stats.topModel.id)} · ${stats.topModel.completed}`}
             active={filter.model === stats.topModel.id}
             onClick={() =>
               onQuickFilter({

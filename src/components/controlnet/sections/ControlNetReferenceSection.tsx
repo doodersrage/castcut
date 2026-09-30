@@ -50,7 +50,7 @@ export function ControlNetReferenceSection({
           type="file"
           accept="image/*"
           onChange={event => onRefChange(event.target.files?.[0] ?? null)}
-          className="ui-file-input min-w-0 flex-1"
+          className="ui-file-input min-w-[14rem] flex-1"
         />
         <ButtonLink href={galleryPickPath('controlnet')} variant="secondary" size="sm">
           Choose from Gallery

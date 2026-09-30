@@ -636,6 +636,21 @@ html[data-density='comfortable'] .ui-tool-header {
   top: calc(var(--header-offset, 0px) + 0.5rem);
 }
 
+/* Sticky cards scroll over content — the translucent card token let text show through. */
+:root .ui-gallery-dock.sticky,
+:root .ui-sticky-surface,
+:root .ui-menu-panel {
+  /* Solid: a translucent mix + backdrop blur still showed text through inside the
+     header, whose own backdrop-filter becomes the blur's backdrop root. */
+  background: var(--bg-base);
+}
+
+/* Virtualized rows are translated (each its own stacking context) — lift the row whose
+   menu is open so the next row does not paint over the panel. */
+[data-index]:has(details[open]) {
+  z-index: 30;
+}
+
 /* Calm UI — quieter ambient + less hover motion */
 html[data-calm='true'] {
   --transition-interactive:
@@ -818,15 +833,22 @@ html[data-theme='light'] .ui-media-card:hover {
   isolation: isolate;
 }
 
+/* A fixed-height band: a % fade stretched the wash down tall pages (Studio history
+   greyed ~68k px). Light theme skips the dark wash — it read as a grey scrim. */
 .page-canvas::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: 0 0 auto;
+  height: min(100%, 36rem);
   z-index: -1;
   background:
-    radial-gradient(ellipse 70% 45% at 50% -15%, rgb(56 189 248 / 0.055), transparent 55%),
-    linear-gradient(180deg, rgb(14 14 18 / 0.35) 0%, transparent 28%);
+    radial-gradient(ellipse 70% 70% at 50% -25%, rgb(56 189 248 / 0.055), transparent 55%),
+    linear-gradient(180deg, rgb(14 14 18 / 0.35) 0%, transparent 100%);
   pointer-events: none;
+}
+
+html[data-theme='light'] .page-canvas::before {
+  background: radial-gradient(ellipse 70% 70% at 50% -25%, rgb(56 189 248 / 0.06), transparent 55%);
 }
 
 .ui-card {
@@ -2644,6 +2666,28 @@ html[data-theme='light'] *::-webkit-scrollbar-thumb {
 .ui-overlay {
   background: rgb(12 12 16 / 0.72);
   backdrop-filter: blur(6px);
+}
+
+/* The image lightbox sits on a black backdrop with white chrome text — keep its surfaces
+   on the dark palette in light theme too (pale stage + white controls were unreadable). */
+html[data-theme='light'] .ui-force-dark {
+  color-scheme: dark;
+  --bg-base: #0c0c10;
+  --bg-elevated: rgb(20 20 26 / 0.72);
+  --bg-muted: rgb(14 14 18 / 0.88);
+  --bg-subtle: rgb(255 255 255 / 0.03);
+  --bg-hover: rgb(255 255 255 / 0.05);
+  --bg-active: rgb(255 255 255 / 0.08);
+  --text-primary: #ececef;
+  --text-secondary: #a1a4ad;
+  --text-tertiary: #6b6f7a;
+  --text-muted: #8a8e98;
+  --border-subtle: rgb(255 255 255 / 0.06);
+  --border-default: rgb(255 255 255 / 0.1);
+  --border-strong: rgb(255 255 255 / 0.14);
+  --accent-muted: rgb(69 104 168 / 0.12);
+  --accent-border: rgb(69 104 168 / 0.3);
+  --accent-text: #9eb6e0;
 }
 
 html[data-theme='light'] .ui-overlay {

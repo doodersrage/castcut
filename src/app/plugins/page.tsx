@@ -252,9 +252,9 @@ export default function PluginsPage() {
   return (
     <ToolLayout
       accent="brand"
-      badge={<ToolBadge accent="brand">Tools</ToolBadge>}
+      badge={<ToolBadge accent="brand">More tools</ToolBadge>}
       title="Plugins"
-      description="Two surfaces: installable runtime manifests (iframe tools + queue hooks), and sidebar bookmarks (href-only — not a plugin runtime)."
+      description="Runtime plugins add tools and queue hooks; bookmarks only add sidebar links."
     >
       <ToolSection
         title="Runtime plugins"

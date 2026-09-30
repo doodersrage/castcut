@@ -131,7 +131,7 @@ export default function HomeDashboard() {
     <ToolLayout
       accent={ACCENT}
       width="wide"
-      badge={<ToolBadge accent={ACCENT}>Overview</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Library</ToolBadge>}
       title="Dashboard"
       description={description}
     >

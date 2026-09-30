@@ -237,7 +237,7 @@ export function VariationGridSetupSection({
           });
         }}
         rows={4}
-        placeholder="neon alley, rain, black cat"
+        placeholder="e.g. neon alley, rain, black cat"
         className={accentFocusClass(VARIATION_GRID_ACCENT)}
         disabled={hintSource !== 'manual'}
       />

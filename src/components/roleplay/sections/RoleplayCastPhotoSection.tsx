@@ -126,7 +126,7 @@ export function RoleplayCastPhotoSection({
               type="file"
               accept="image/*"
               disabled={busy}
-              className="ui-file-input block min-w-0 flex-1"
+              className="ui-file-input block min-w-[14rem] flex-1"
               onChange={event => {
                 const file = event.target.files?.[0];
                 event.target.value = '';

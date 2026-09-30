@@ -51,6 +51,7 @@ import {
 } from './gallery-workflow-hygiene';
 import { loadSettingsCache } from './settings-cache';
 import { celebrateSystemTray } from './system-tray-celebrate';
+import { galleryCardCaption } from './gallery-card-caption';
 
 export type { ComfyGalleryEntry, GalleryPlayChecks } from './comfyui-gallery-entry';
 export type { ComfyGalleryJobStatus } from './comfyui-gallery-types';
@@ -1519,7 +1520,8 @@ export function buildGalleryLightboxPlaylist(
       continue;
     }
 
-    const title = entry.prompt.slice(0, titleLength);
+    // Day / Story prompts all open with the same edit boilerplate — title with the beat.
+    const title = (galleryCardCaption(entry.prompt) || entry.prompt).slice(0, titleLength);
     for (let i = 0; i < urls.length; i += 1) {
       images.push(urls[i]!);
       thumbImages.push(thumbs[i] ?? urls[i]!);

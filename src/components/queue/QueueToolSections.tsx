@@ -71,7 +71,7 @@ export default function QueueToolSections({
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Queue</ToolBadge>}
+      badge={<ToolBadge accent={ACCENT}>Library</ToolBadge>}
       title="ComfyUI job queue"
       description={description}
     >

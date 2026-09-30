@@ -156,7 +156,7 @@ export default function PlayKioskShell() {
             {moreOpen ? (
               <div
                 role="menu"
-                className="absolute right-0 top-full z-50 mt-1 min-w-[10rem] rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] py-1 shadow-lg"
+                className="ui-menu-panel absolute right-0 top-full z-50 mt-1 min-w-[10rem] rounded-[var(--radius-md)] border border-[var(--border-subtle)] py-1 shadow-lg"
                 data-testid="play-kiosk-more-menu"
               >
                 {moreTabs.map(entry => {

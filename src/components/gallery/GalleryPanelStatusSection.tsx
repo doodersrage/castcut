@@ -8,7 +8,6 @@ import { toneForStatusText } from '@/lib/status-progress';
 
 type GalleryPanelStatusSectionProps = {
   showHeader: boolean;
-  leanGallery: boolean;
   compact: boolean;
   limit?: number;
   uploadInputRef: RefObject<HTMLInputElement | null>;
@@ -27,7 +26,6 @@ type GalleryPanelStatusSectionProps = {
 
 export default function GalleryPanelStatusSection({
   showHeader,
-  leanGallery,
   compact,
   limit,
   uploadInputRef,
@@ -39,7 +37,6 @@ export default function GalleryPanelStatusSection({
     <>
       {showHeader ? (
         <GalleryPanelHeader
-          leanGallery={leanGallery}
           activeJobs={header.activeJobs}
           entriesLength={header.entriesLength}
           compact={compact}
