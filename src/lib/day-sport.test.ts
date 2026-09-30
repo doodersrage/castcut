@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  daySportFootwear,
   DAY_SLOT_SPORTS,
   DAY_SLOT_SPORT_BEAT_PRESETS,
   DAY_SLOT_SPORT_SETTING_PRESETS,
@@ -88,5 +89,17 @@ describe('day-sport', () => {
     assert.ok(DAY_SLOT_SPORT_BEAT_PRESETS.morning.includes(pair!.beat));
     assert.ok(DAY_SLOT_SPORT_SETTING_PRESETS.morning.includes(pair!.setting));
     assert.equal(DAY_SPORT_STALE_SETTING_RE.test(pair!.setting), false);
+  });
+});
+
+describe("daySportFootwear", () => {
+  it("fits the feet to the sport", () => {
+    assert.equal(daySportFootwear("swimming"), "barefoot");
+    assert.equal(daySportFootwear("surfing"), "barefoot");
+    assert.equal(daySportFootwear("yoga"), "barefoot");
+    assert.equal(daySportFootwear("road cycling"), "cycling shoes");
+    assert.equal(daySportFootwear("ski"), "ski boots");
+    assert.equal(daySportFootwear("tennis"), "court shoes");
+    assert.equal(daySportFootwear("gym strength training"), "sport footwear");
   });
 });

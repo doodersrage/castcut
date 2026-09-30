@@ -51,6 +51,7 @@ import {
   buildDaySportPromptLocks,
   pickDaySportScenePair,
   DAY_SPORT_STALE_SETTING_RE,
+  daySportFootwear,
 } from '@/lib/day-sport';
 import {
   dayVacationBeatPresetsForSlot,
@@ -3205,8 +3206,15 @@ export function buildDaySlotPrompt(input: {
   const nudeOutfitLine = omitGarment
     ? 'outfit: bare skin only (clothes are now gone) — bare breasts with nipples visible and bare vulva; zero fabric on the body; Image 1 fabric is invisible and must not be copied'
     : null;
+  // Footwear and swimwear follow the sport: "sport shoes" and "discard … one-piece swimsuit"
+  // on every sport put sneakers on swimmers and surfers (live 2026-09-29).
+  const sportLabel = replaceKeepOutfit
+    ? /athletic action in proper ([a-z][a-z ]*?) kit/i.exec(hints ?? '')?.[1]
+    : undefined;
+  const sportFeet = daySportFootwear(sportLabel);
+  const sportWearsSwimsuit = /swim|surf|triathlon/i.test(sportLabel ?? '');
   const sportOutfitLine = replaceKeepOutfit
-    ? 'outfit: ATHLETIC KIT ONLY — discard every Image 1 garment including floral dress, mini-dress, sundress, one-piece swimsuit, street clothes, sandals, and barefoot fashion; wear only the SPORT KIT and sport shoes for the beat; mid-play athletic action on a real sport venue — never kneeling on asphalt in a sundress, never a soft fashion pin-up'
+    ? `outfit: ATHLETIC KIT ONLY — discard every Image 1 garment including floral dress, mini-dress, sundress,${sportWearsSwimsuit ? '' : ' one-piece swimsuit,'} street clothes, sandals${sportFeet === 'barefoot' ? '' : ', and barefoot fashion'}; wear only the SPORT KIT ${sportFeet === 'barefoot' ? 'barefoot' : `and ${sportFeet === 'sport footwear' ? 'sport shoes' : sportFeet}`} for the beat; mid-play athletic action on a real sport venue — never kneeling on asphalt in a sundress, never a soft fashion pin-up`
     : null;
   const castOutfitLine =
     !omitGarment && !replaceKeepOutfit && !keepAsImage1

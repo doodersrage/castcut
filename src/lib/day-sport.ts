@@ -111,8 +111,34 @@ export function daySportLabel(sport: AthleticSport): string {
   return SPORT_LABEL[sport] ?? sport;
 }
 
+/**
+ * What she wears on her feet for a sport (by label: "road cycling", "swimming", …). "sport
+ * footwear" on every beat put sneakers on swimmers, surfers and yoga mats (live 2026-09-29).
+ */
+export function daySportFootwear(label: string | null | undefined): string {
+  const l = String(label ?? '').toLowerCase();
+  if (/swim|surf|yoga|gymnast|martial/.test(l)) return 'barefoot';
+  if (/\bski\b/.test(l)) return 'ski boots';
+  if (/cycl|biking|velodrome/.test(l)) return 'cycling shoes';
+  if (/climb/.test(l)) return 'climbing shoes';
+  if (/hockey/.test(l)) return 'ice skates';
+  if (/skateboard/.test(l)) return 'skate shoes';
+  if (/boxing/.test(l)) return 'boxing boots';
+  if (/golf/.test(l)) return 'golf shoes';
+  if (/tennis|basketball|volleyball|fencing/.test(l)) return 'court shoes';
+  if (/running|track|triathlon/.test(l)) return 'running shoes';
+  return 'sport footwear';
+}
+
+export function daySportIsBarefoot(label: string | null | undefined): boolean {
+  return daySportFootwear(label) === 'barefoot';
+}
+
 function buildSportBeatLine(pose: string, label: string): string {
-  return `${pose} — ${label} athletic action in proper ${label} kit and sport footwear, mid-play on a ${label} venue, Cast alone, never a sundress or soft fashion pin-up, never invent a second sport`;
+  const feet = daySportFootwear(label);
+  const kit =
+    feet === 'barefoot' ? `proper ${label} kit, barefoot` : `proper ${label} kit and ${feet}`;
+  return `${pose} — ${label} athletic action in ${kit}, mid-play on a ${label} venue, Cast alone, never a sundress or soft fashion pin-up, never invent a second sport`;
 }
 
 /**
@@ -362,7 +388,8 @@ export function buildDaySportPromptLocks(input: {
 }): { moodLine: string; wardrobeLock: string | null } {
   const sport = inferDaySportFromScene(input.beat, input.setting);
   const label = sport ? daySportLabel(sport) : 'the named sport';
-  const moodLine = `MOOD: sport still — mid-${label} athletic action only; follow the beat pose with committed limbs and sport footwear; Cast alone in proper ${label} kit on a real ${label} venue; never a soft fashion pin-up, sundress, floral dress, barefoot beach portrait, parking-garage standing plate, or café walk; SETTING is the sport venue/lighting only.`;
+  const feet = daySportFootwear(sport ? label : null);
+  const moodLine = `MOOD: sport still — mid-${label} athletic action only; follow the beat pose with committed limbs${feet === 'barefoot' ? ', barefoot' : ` and ${feet}`}; Cast alone in proper ${label} kit on a real ${label} venue; never a soft fashion pin-up, sundress, floral dress, ${feet === 'barefoot' ? 'beach pin-up' : 'barefoot beach portrait'}, parking-garage standing plate, or café walk; SETTING is the sport venue/lighting only.`;
   const wardrobeLock = sport
     ? `SPORT KIT (mandatory — discard Image 1 Keep clothes): ${getAthleticSportGuardrail(sport)} Never a sundress, floral dress, street clothes, sandals, or barefoot fashion look.`
     : 'SPORT KIT (mandatory — discard Image 1 Keep clothes): wear the correct sport-specific athletic kit and footwear for the beat action — never a sundress, floral dress, street clothes, sandals, or soft fashion look.';
