@@ -104,8 +104,8 @@ export function useGenerateToolOrchestrationCore() {
   const variationEnabled = toolSettings.variationEnabled ?? true;
   const variationStrength = toolSettings.variationStrength ?? 65;
   const distinctPeople = toolSettings.distinctPeople ?? true;
-  const alwaysIncludeClothing = shared.alwaysIncludeClothing !== false;
-  const seedLlmWithIngredients = shared.seedLlmWithIngredients !== false;
+  const alwaysIncludeClothing = shared.alwaysIncludeClothing === true;
+  const seedLlmWithIngredients = shared.seedLlmWithIngredients === true;
   const autoFixRules = shared.autoFixRules !== false;
 
   const actions = usePromptResultActions({

@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
   const lockedLocation = normalizeLockedLocation(body.lockedLocation);
   const effectiveInput =
-    mode === 'positive' && settings.seedLlmWithIngredients !== false
+    mode === 'positive' && settings.seedLlmWithIngredients === true
       ? (applyLockedLocation(rawInput, lockedLocation) ?? rawInput)
       : rawInput;
 

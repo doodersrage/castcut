@@ -78,7 +78,7 @@ export async function generateCharacterPrompt(
 ): Promise<ToolGenerateResult> {
   const detail = options.detail === 'concise' ? 'balanced' : options.detail;
   const portraitStyle = options.portraitStyle ?? 'portrait';
-  const seedIngredients = options.seedLlmWithIngredients !== false;
+  const seedIngredients = options.seedLlmWithIngredients === true;
   const effectiveHints = seedIngredients
     ? applyLockedLocation(options.hints, options.lockedLocation)
     : options.hints;
@@ -101,7 +101,7 @@ export async function generateCharacterPrompt(
     options.avoidedTokens
   );
   const seed = applyLockedVariationSeed(rolledSeed, options.variationSeed);
-  const alwaysIncludeClothing = options.alwaysIncludeClothing !== false;
+  const alwaysIncludeClothing = options.alwaysIncludeClothing === true;
   const clothingFilters = buildClothingPickFilters({
     gender: parsed.gender,
     sceneLocation,

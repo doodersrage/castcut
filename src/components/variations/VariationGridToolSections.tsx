@@ -49,7 +49,7 @@ export default function VariationGridToolSections({
           onModelChange={model => updateShared({ model })}
           onDetailChange={detail => updateShared({ detail })}
           onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-          seedLlmWithIngredients={shared.seedLlmWithIngredients !== false}
+          seedLlmWithIngredients={shared.seedLlmWithIngredients === true}
           onSeedLlmWithIngredientsChange={value => updateShared({ seedLlmWithIngredients: value })}
           lockedWardrobeId={shared.lockedWardrobeId}
           lockedLocation={shared.lockedLocation}

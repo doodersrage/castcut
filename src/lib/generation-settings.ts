@@ -27,13 +27,13 @@ export const DEFAULT_GENERATION_SETTINGS: GenerationSettings = {
   distinctPeople: true,
   detail: 'balanced',
   model: DEFAULT_QWEN_MODEL,
-  alwaysIncludeClothing: true,
-  seedLlmWithIngredients: true,
+  alwaysIncludeClothing: false,
+  seedLlmWithIngredients: false,
 };
 
-/** True unless the caller explicitly disables ingredient seeding. */
+/** Only when the caller turns ingredient seeding on — off by default. */
 export function shouldSeedLlmWithIngredients(value?: boolean): boolean {
-  return value !== false;
+  return value === true;
 }
 
 export function normalizeGenerationSettings(

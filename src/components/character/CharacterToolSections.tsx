@@ -52,9 +52,9 @@ export default function CharacterToolSections({ description, ...vm }: CharacterT
               : 'Rich detail recommended for character sheets and portraits.'
           }
           showWardrobeOption
-          alwaysIncludeClothing={shared.alwaysIncludeClothing !== false}
+          alwaysIncludeClothing={shared.alwaysIncludeClothing === true}
           onAlwaysIncludeClothingChange={value => updateShared({ alwaysIncludeClothing: value })}
-          seedLlmWithIngredients={shared.seedLlmWithIngredients !== false}
+          seedLlmWithIngredients={shared.seedLlmWithIngredients === true}
           onSeedLlmWithIngredientsChange={value => updateShared({ seedLlmWithIngredients: value })}
           lockedWardrobeId={shared.lockedWardrobeId}
           lockedWardrobeLabel={

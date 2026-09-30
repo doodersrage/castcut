@@ -236,7 +236,7 @@ describe("multi-person wardrobe assignments", () => {
   it("builds distinct outfits for duo input", () => {
     const assignments = buildGenerateWardrobeAssignments(
       "two women on a rooftop bar",
-      { ...DEFAULT_GENERATION_SETTINGS, distinctPeople: true },
+      { ...DEFAULT_GENERATION_SETTINGS, distinctPeople: true, seedLlmWithIngredients: true, alwaysIncludeClothing: true },
       { assumePeople: true, forcedCount: 2, forcedDistinctPeople: true },
     );
 
@@ -252,7 +252,7 @@ describe("multi-person wardrobe assignments", () => {
 
     const assignments = buildGenerateWardrobeAssignments(
       hint,
-      { ...DEFAULT_GENERATION_SETTINGS, distinctPeople: true },
+      { ...DEFAULT_GENERATION_SETTINGS, distinctPeople: true, seedLlmWithIngredients: true, alwaysIncludeClothing: true },
       { assumePeople: true, forcedCount: 2, forcedDistinctPeople: true },
     );
 
@@ -277,7 +277,7 @@ describe("multi-person wardrobe assignments", () => {
   it("assigns a dress when the brief says in a dress", () => {
     const assignments = buildGenerateWardrobeAssignments(
       "beautiful woman in a dress",
-      DEFAULT_GENERATION_SETTINGS,
+      { ...DEFAULT_GENERATION_SETTINGS, seedLlmWithIngredients: true, alwaysIncludeClothing: true },
       { assumePeople: true },
     );
 
@@ -299,7 +299,7 @@ describe("multi-person wardrobe assignments", () => {
 
     const assignments = buildGenerateWardrobeAssignments(
       hint,
-      DEFAULT_GENERATION_SETTINGS,
+      { ...DEFAULT_GENERATION_SETTINGS, seedLlmWithIngredients: true, alwaysIncludeClothing: true },
       { assumePeople: true },
     );
 
@@ -653,7 +653,7 @@ describe("athletic duo identity", () => {
   it("paints athletic duo fallback scenes without street clothes", () => {
     const painted = paintDistinctPeopleScene(
       "two female gravel cyclists in a fierce competition",
-      DEFAULT_GENERATION_SETTINGS,
+      { ...DEFAULT_GENERATION_SETTINGS, seedLlmWithIngredients: true, alwaysIncludeClothing: true },
     );
     assert.ok(painted);
     assert.doesNotMatch(painted!, /linen dress|bright sari|robes|apron/i);

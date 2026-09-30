@@ -195,7 +195,8 @@ describe("buildDistinctPeopleUserDirective", () => {
 });
 
 describe("ensureDistinctPeoplePrompt", () => {
-  const settings = { ...DEFAULT_GENERATION_SETTINGS };
+  // Seeding is off by default; these cover the seeded (identity / painted scene) path.
+  const settings = { ...DEFAULT_GENERATION_SETTINGS, seedLlmWithIngredients: true };
 
   it("returns the prompt unchanged when distinctPeople is disabled", () => {
     assert.equal(
@@ -275,7 +276,8 @@ describe("buildGroupedPeopleSystemAddendum", () => {
 });
 
 describe("paintDistinctPeopleScene", () => {
-  const settings = { ...DEFAULT_GENERATION_SETTINGS };
+  // Seeding is off by default; these cover the seeded (identity / painted scene) path.
+  const settings = { ...DEFAULT_GENERATION_SETTINGS, seedLlmWithIngredients: true };
 
   it("returns null when seedLlmWithIngredients is false", () => {
     assert.equal(
@@ -349,7 +351,8 @@ describe("paintDistinctPeopleScene", () => {
 });
 
 describe("paintGroupedPeopleScene", () => {
-  const settings = { ...DEFAULT_GENERATION_SETTINGS };
+  // Seeding is off by default; these cover the seeded (identity / painted scene) path.
+  const settings = { ...DEFAULT_GENERATION_SETTINGS, seedLlmWithIngredients: true };
 
   it("returns null when the input implies no couple/pair and count isn't 2", () => {
     assert.equal(paintGroupedPeopleScene("a lone traveler", settings), null);

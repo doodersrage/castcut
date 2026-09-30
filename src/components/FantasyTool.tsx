@@ -209,8 +209,8 @@ export default function FantasyTool() {
           lockedLocation: shared.lockedLocation,
           lockedWardrobeId: shared.lockedWardrobeId,
           variationSeed: shared.lockedVariationSeed,
-          alwaysIncludeClothing: shared.alwaysIncludeClothing !== false,
-          seedLlmWithIngredients: shared.seedLlmWithIngredients !== false,
+          alwaysIncludeClothing: shared.alwaysIncludeClothing === true,
+          seedLlmWithIngredients: shared.seedLlmWithIngredients === true,
           ...avoidedTokensRequestBody(),
           ...sharedLlmRequestBody(shared),
         }),
@@ -278,9 +278,9 @@ export default function FantasyTool() {
           onDetailChange={detail => updateShared({ detail })}
           onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
           showWardrobeOption={includePeople}
-          alwaysIncludeClothing={shared.alwaysIncludeClothing !== false}
+          alwaysIncludeClothing={shared.alwaysIncludeClothing === true}
           onAlwaysIncludeClothingChange={value => updateShared({ alwaysIncludeClothing: value })}
-          seedLlmWithIngredients={shared.seedLlmWithIngredients !== false}
+          seedLlmWithIngredients={shared.seedLlmWithIngredients === true}
           onSeedLlmWithIngredientsChange={value => updateShared({ seedLlmWithIngredients: value })}
           wardrobeHelp="When focus is character or ensemble, rolls catalog outfits for heroes and adventurers."
           lockedWardrobeId={shared.lockedWardrobeId}

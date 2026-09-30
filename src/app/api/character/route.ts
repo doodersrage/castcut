@@ -56,8 +56,8 @@ export async function POST(request: Request) {
         ? body.portraitStyle
         : 'portrait';
 
-    const alwaysIncludeClothing = body.alwaysIncludeClothing !== false;
-    const seedLlmWithIngredients = body.seedLlmWithIngredients !== false;
+    const alwaysIncludeClothing = body.alwaysIncludeClothing === true;
+    const seedLlmWithIngredients = body.seedLlmWithIngredients === true;
 
     const result = await generateCharacterPrompt({
       ...shared,

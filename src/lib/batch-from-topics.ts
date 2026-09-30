@@ -54,7 +54,7 @@ export async function batchGenerateFromTopics(
     .filter(Boolean)
     .slice(0, 12);
 
-  const seedLlmWithIngredients = options.seedLlmWithIngredients !== false;
+  const seedLlmWithIngredients = options.seedLlmWithIngredients === true;
 
   async function generateOne(topic: string): Promise<BatchFromTopicsItem> {
     const hints = seedLlmWithIngredients
@@ -73,7 +73,7 @@ export async function batchGenerateFromTopics(
         portraitStyle: 'action',
         variationStrength: 50,
         presetOptions: { headcount: 'duo' },
-        alwaysIncludeClothing: options.alwaysIncludeClothing !== false,
+        alwaysIncludeClothing: options.alwaysIncludeClothing === true,
         seedLlmWithIngredients,
         teamKit: options.teamKit === true,
         lockedWardrobeId: options.lockedWardrobeId,
@@ -99,7 +99,7 @@ export async function batchGenerateFromTopics(
         hints,
         portraitStyle: 'portrait',
         variationStrength: 50,
-        alwaysIncludeClothing: options.alwaysIncludeClothing !== false,
+        alwaysIncludeClothing: options.alwaysIncludeClothing === true,
         seedLlmWithIngredients,
         lockedWardrobeId: options.lockedWardrobeId,
         lockedLocation: options.lockedLocation,
@@ -148,7 +148,7 @@ export async function batchGenerateFromTopics(
         variationSeed: options.variationSeed,
         recentLocations: options.recentLocations,
         blockedLocations: options.blockedLocations,
-        alwaysIncludeClothing: options.alwaysIncludeClothing !== false,
+        alwaysIncludeClothing: options.alwaysIncludeClothing === true,
         seedLlmWithIngredients,
         llm: options.llm,
         ...avoidance,

@@ -197,19 +197,19 @@ describe('batch-from-topics', async () => {
     assert.equal(result.results[0]!.prompt, 'background:fox in forest');
   });
 
-  it('computes hints via applyLockedLocation when seedLlmWithIngredients is on (default)', async () => {
-    await batchGenerateFromTopics({ ...baseOptions, lockedLocation: 'a rooftop' });
+  it('computes hints via applyLockedLocation when seedLlmWithIngredients is on', async () => {
+    await batchGenerateFromTopics({
+      ...baseOptions,
+      lockedLocation: 'a rooftop',
+      seedLlmWithIngredients: true,
+    });
     assert.equal(applyLockedLocation.mock.calls.length, 1);
     assert.deepEqual(applyLockedLocation.mock.calls[0]!.arguments, ['fox in forest', 'a rooftop']);
     assert.equal(generatePrompt.mock.calls[0]!.arguments[0], 'fox in forest, location: a rooftop');
   });
 
-  it('skips applyLockedLocation and uses the raw topic when seedLlmWithIngredients is false', async () => {
-    await batchGenerateFromTopics({
-      ...baseOptions,
-      lockedLocation: 'a rooftop',
-      seedLlmWithIngredients: false,
-    });
+  it('skips applyLockedLocation and uses the raw topic when seeding is off (default)', async () => {
+    await batchGenerateFromTopics({ ...baseOptions, lockedLocation: 'a rooftop' });
     assert.equal(applyLockedLocation.mock.calls.length, 0);
     assert.equal(generatePrompt.mock.calls[0]!.arguments[0], 'fox in forest');
   });

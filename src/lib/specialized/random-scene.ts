@@ -20,14 +20,14 @@ import type { RandomSceneOptions, ToolGenerateResult } from './types';
 export async function generateRandomScene(
   options: RandomSceneOptions
 ): Promise<ToolGenerateResult> {
-  const seedIngredients = options.seedLlmWithIngredients !== false;
+  const seedIngredients = options.seedLlmWithIngredients === true;
   const effectiveGenre = seedIngredients
     ? applyLockedLocation(options.genre, options.lockedLocation)
     : options.genre;
   const genreHint = parseSettingHint(effectiveGenre);
   const pinnedLocation = options.lockedLocation?.trim() || genreHint.location || null;
   const includePeople = options.includePeople !== false;
-  const alwaysIncludeClothing = options.alwaysIncludeClothing !== false;
+  const alwaysIncludeClothing = options.alwaysIncludeClothing === true;
   const promptModel = resolveModelForPromptGeneration(options.model, 'generate');
   const { seed: rolledSeed, location: sceneLocation } = buildRandomSceneSeed({
     genre: options.genre,

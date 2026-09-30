@@ -2110,7 +2110,7 @@ export function shouldPickRandomCharacterOutfit(input: {
   }
 
   // Unchecked "Always include wardrobe" means do not auto-roll catalog outfits.
-  return input.alwaysIncludeClothing !== false;
+  return input.alwaysIncludeClothing === true;
 }
 
 export { hintsMentionClothing } from './clothing-tags';

@@ -63,7 +63,7 @@ export function shouldPickGenerateWardrobe(
   }
 
   // Unchecked "Always include wardrobe" means do not auto-roll catalog outfits.
-  if (alwaysIncludeClothing === false) {
+  if (alwaysIncludeClothing !== true) {
     return false;
   }
 

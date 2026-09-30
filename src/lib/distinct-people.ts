@@ -293,7 +293,7 @@ export function ensureDistinctPeoplePrompt(
 
   // Keywords-only / no ingredient seeding: never replace the draft with rolled
   // identity seeds ("stocky Mediterranean man…") during optimize.
-  if (settings.seedLlmWithIngredients === false) {
+  if (settings.seedLlmWithIngredients !== true) {
     return prompt;
   }
 
@@ -398,7 +398,7 @@ export function paintDistinctPeopleScene(
   input: string,
   settings: GenerationSettings
 ): string | null {
-  if (settings.seedLlmWithIngredients === false) {
+  if (settings.seedLlmWithIngredients !== true) {
     return null;
   }
 

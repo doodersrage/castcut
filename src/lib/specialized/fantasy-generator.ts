@@ -33,7 +33,7 @@ export async function generateFantasyPrompt(options: FantasyOptions): Promise<To
   const presetOptions = normalizeFantasyPresetOptions(options.presetOptions);
   const hasPresets = hasFantasyPresetOptions(presetOptions);
   const wildness = Math.min(100, Math.max(0, options.wildness ?? 65));
-  const seedIngredients = options.seedLlmWithIngredients !== false;
+  const seedIngredients = options.seedLlmWithIngredients === true;
   const effectiveHints = seedIngredients
     ? applyLockedLocation(options.hints, options.lockedLocation)
     : options.hints;
@@ -56,7 +56,7 @@ export async function generateFantasyPrompt(options: FantasyOptions): Promise<To
   const presetBlock = buildFantasyPresetBlock(presetOptions);
   const presetDirective = buildFantasyPresetUserDirective(presetOptions);
   const locationBlock = seedIngredients ? buildMandatoryLocationBlock(settingHint.location) : null;
-  const alwaysIncludeClothing = options.alwaysIncludeClothing !== false;
+  const alwaysIncludeClothing = options.alwaysIncludeClothing === true;
   const distinctPeople = isMultiPersonInput(
     [effectiveHints, seed, focus].filter(Boolean).join(', ')
   );

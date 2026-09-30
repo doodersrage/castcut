@@ -8,11 +8,11 @@ import {
 import { buildGenerateLlmRequest } from "./prompt-generator";
 
 describe("seedLlmWithIngredients", () => {
-  it("defaults to true when unset", () => {
-    assert.equal(shouldSeedLlmWithIngredients(undefined), true);
+  it("defaults to false when unset", () => {
+    assert.equal(shouldSeedLlmWithIngredients(undefined), false);
     assert.equal(
       normalizeGenerationSettings({}).seedLlmWithIngredients,
-      true,
+      false,
     );
   });
 

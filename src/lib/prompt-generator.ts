@@ -134,7 +134,7 @@ function buildFewShotMessages(
   }
 
   // Completionist local models overfit few-shot scenes (location/wardrobe).
-  if (settings.seedLlmWithIngredients === false) {
+  if (settings.seedLlmWithIngredients !== true) {
     return [];
   }
 
@@ -185,7 +185,7 @@ function buildUserMessage(
     return trimmed;
   }
 
-  const seedIngredients = settings.seedLlmWithIngredients !== false;
+  const seedIngredients = settings.seedLlmWithIngredients === true;
 
   // Keywords-only: send the user's text plus hard fidelity rules—no flavor,
   // wardrobe, environment, or sport seed lines that completionist models latch onto.
@@ -344,7 +344,7 @@ function finalizePromptFromSource(
   const sanitized = sanitizeQwenPrompt(source, settings.detail, input, settings.model, {
     distinctPeople: mode === 'positive' && settings.distinctPeople,
     // Keywords-only: do not invent setting/location beats to hit min length.
-    enforceMinimum: mode !== 'positive' || settings.seedLlmWithIngredients !== false,
+    enforceMinimum: mode !== 'positive' || settings.seedLlmWithIngredients === true,
   });
   const formatted = formatPromptForModel(sanitized, settings.model, input, mode);
   const scenePrompt = mode === 'positive' ? stripEditInstructionLead(formatted, tool) : formatted;
@@ -411,7 +411,7 @@ async function finalizePromptWithSparseExpand(
 ): Promise<string> {
   let source = preparePromptSource(raw, input, mode, settings);
   // Sparse expand explicitly invents garments/locations — skip in keywords-only mode.
-  if (mode === 'positive' && settings.seedLlmWithIngredients !== false) {
+  if (mode === 'positive' && settings.seedLlmWithIngredients === true) {
     const preview = sanitizeQwenPrompt(source, settings.detail, input, settings.model, {
       distinctPeople: settings.distinctPeople,
       enforceMinimum: false,
@@ -454,7 +454,7 @@ export function buildGenerateLlmRequest(
   if (mode === 'positive') {
     systemPrompt = `${systemPrompt}\n\n${buildClaritySystemAddendum(settings.detail, settings.model)}`;
 
-    if (settings.seedLlmWithIngredients === false) {
+    if (settings.seedLlmWithIngredients !== true) {
       systemPrompt = `${systemPrompt}\n\n${KEYWORDS_ONLY_SYSTEM_ADDENDUM}`;
     }
 
@@ -471,7 +471,7 @@ export function buildGenerateLlmRequest(
 
   systemPrompt = `${systemPrompt}\n\nOutput ONLY the raw prompt text. No numbered analysis, thinking steps, labels, markdown, or explanations.`;
 
-  const seedIngredients = settings.seedLlmWithIngredients !== false;
+  const seedIngredients = settings.seedLlmWithIngredients === true;
   const messages: ChatMessage[] = [
     { role: 'system', content: systemPrompt },
     ...buildFewShotMessages(mode, settings, input),
@@ -838,7 +838,7 @@ export async function generatePrompt(
   };
 
   const llmEnabled = resolveRequestLlmEnabled(options?.llm);
-  const seedIngredients = writeSettings.seedLlmWithIngredients !== false;
+  const seedIngredients = writeSettings.seedLlmWithIngredients === true;
   const wardrobeAssignments =
     mode === 'positive' && seedIngredients
       ? buildGenerateWardrobeAssignments(trimmed, writeSettings, {
@@ -932,7 +932,7 @@ export async function* generatePromptStream(
   };
 
   const llmEnabled = resolveRequestLlmEnabled(options?.llm);
-  const seedIngredients = writeSettings.seedLlmWithIngredients !== false;
+  const seedIngredients = writeSettings.seedLlmWithIngredients === true;
   const wardrobeAssignments =
     mode === 'positive' && seedIngredients
       ? buildGenerateWardrobeAssignments(trimmed, writeSettings, {

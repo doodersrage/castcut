@@ -42,8 +42,8 @@ export async function POST(request: Request) {
     const shared = normalizeSharedGenerationOptions(body);
     const avoidance = resolveAvoidanceOptions(body);
 
-    const alwaysIncludeClothing = body.alwaysIncludeClothing !== false;
-    const seedLlmWithIngredients = body.seedLlmWithIngredients !== false;
+    const alwaysIncludeClothing = body.alwaysIncludeClothing === true;
+    const seedLlmWithIngredients = body.seedLlmWithIngredients === true;
 
     const result = await generateRandomScene({
       ...shared,

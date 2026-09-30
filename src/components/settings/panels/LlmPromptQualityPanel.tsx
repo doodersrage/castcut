@@ -66,7 +66,7 @@ export default function LlmPromptQualityPanel({
         <label className="flex cursor-pointer items-start gap-3 text-sm text-[var(--text-secondary)]">
           <input
             type="checkbox"
-            checked={sharedSettings.seedLlmWithIngredients !== false}
+            checked={sharedSettings.seedLlmWithIngredients === true}
             disabled={!sharedMounted}
             onChange={event =>
               updateSharedSettings({
@@ -90,7 +90,7 @@ export default function LlmPromptQualityPanel({
         <label className="flex cursor-pointer items-start gap-3 text-sm text-[var(--text-secondary)]">
           <input
             type="checkbox"
-            checked={sharedSettings.alwaysIncludeClothing !== false}
+            checked={sharedSettings.alwaysIncludeClothing === true}
             disabled={!sharedMounted}
             onChange={event =>
               updateSharedSettings({ alwaysIncludeClothing: event.target.checked })
