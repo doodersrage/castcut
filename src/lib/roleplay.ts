@@ -1075,16 +1075,35 @@ export function storyStillRetryQueueParamsBase(): {
  * Prefer the beat's intimate action over a soft LLM standing tableau.
  * Puts reinforced blurb first so Qwen Edit changes pose instead of decorating the Cast plate.
  */
+/** Pose-guide layouts whose bodies match a rear-entry recipe (all fours, standing, wall, prone). */
+const REAR_RECIPE_GUIDE_LAYOUTS: ReadonlySet<string> = new Set([
+  'bent',
+  'prone',
+  'standing',
+  'wall',
+  'kneeling',
+  'generic',
+]);
+
 export function storyStillPromptSource(input: {
   llmPrompt: string;
   blurb?: string | null;
   title?: string | null;
   /** Story rating is adult. Off: the writer's prompt as-is — "leans against a wall" is no wall-sex. */
   adult?: boolean;
+  /**
+   * Layout the Image 3 pose guide drew (`spoon`, `bent`…). The prompt follows the drawing: a
+   * non-rear guide never gets the canned all-fours rear-entry recipe.
+   */
+  guideLayout?: string | null;
 }): string {
   if (input.adult === false) {
     return input.llmPrompt.trim();
   }
+  const skipRearRecipe = Boolean(
+    input.guideLayout && !REAR_RECIPE_GUIDE_LAYOUTS.has(input.guideLayout)
+  );
+  const reinforce = (text: string) => reinforceIntimateStillPrompt(text, { skipRearRecipe });
   // A stored prompt (reroll) can carry a canned rear-entry recipe from an older rewrite — e.g. the
   // all-fours block on a beat at a railing. Drop it; the final rewrite below re-derives one only
   // if the beat still calls for it.
@@ -1096,7 +1115,7 @@ export function storyStillPromptSource(input: {
   const haystack = [input.title, blurb, llm].filter(Boolean).join(' · ');
   const intimate = Boolean(parseIntimateLayout(haystack)) || intimateTextImpliesAct(haystack);
   if (intimate && blurb) {
-    const action = reinforceIntimateStillPrompt(blurb);
+    const action = reinforce(blurb);
     // Compact wall/chaise/chair/doggy recipes already encode the full beat — appending the LLM
     // standing tableau reintroduces literary bait and prompt bloat.
     if (
@@ -1111,9 +1130,9 @@ export function storyStillPromptSource(input: {
     }
     // Avoid duplicating if LLM already echoed the blurb.
     if (llm.toLowerCase().includes(blurb.slice(0, 40).toLowerCase())) {
-      return reinforceIntimateStillPrompt(`${action}\n${llm}`);
+      return reinforce(`${action}\n${llm}`);
     }
-    return reinforceIntimateStillPrompt(
+    return reinforce(
       `${action}\nKeep face identity from the reference. Change pose and wardrobe to match this beat — not a standing fashion portrait.\n${llm}`
     );
   }

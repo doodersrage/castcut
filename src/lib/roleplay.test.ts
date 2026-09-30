@@ -1185,3 +1185,29 @@ describe('stripRestatedStoryLook', () => {
     assert.equal(stripRestatedStoryLook(text), text);
   });
 });
+
+describe('storyStillPromptSource follows the drawn pose guide', () => {
+  const blurb =
+    'She arches back into his grip on the bed as he drives deeper from behind, mid-thrust, both nude.';
+
+  it('keeps the canned rear-entry recipe for a bent guide', () => {
+    const sourced = storyStillPromptSource({
+      llmPrompt: 'Two nude adults on a bed.',
+      blurb,
+      title: 'Arched',
+      guideLayout: 'bent',
+    });
+    assert.match(sourced, /^Behind:/);
+  });
+
+  it('never forces the all-fours recipe onto a spoon guide', () => {
+    const sourced = storyStillPromptSource({
+      llmPrompt: 'Two nude adults on a bed.',
+      blurb,
+      title: 'Arched',
+      guideLayout: 'spoon',
+    });
+    assert.doesNotMatch(sourced, /^Behind:|on hands and knees/i);
+    assert.match(sourced, /arches back into his grip/i);
+  });
+});

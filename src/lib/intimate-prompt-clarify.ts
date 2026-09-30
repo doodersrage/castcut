@@ -1008,7 +1008,17 @@ export function intimateTextIsSolo(text: string): boolean {
 /**
  * Clarify euphemisms/meta, then lock duo sex poses so models do not invent twin stands.
  */
-export function reinforceIntimateStillPrompt(prompt: string): string {
+export function reinforceIntimateStillPrompt(
+  prompt: string,
+  options?: {
+    /**
+     * A pose guide already drew a non-rear layout (spoon, missionary, straddle…). The canned
+     * all-fours "Behind:" recipe would contradict Image 3 — live Story: a spoon guide plus the
+     * all-fours recipe plus an overhead camera rendered the couple upside down.
+     */
+    skipRearRecipe?: boolean;
+  }
+): string {
   const trimmed = prompt.trim();
   if (!trimmed) {
     return trimmed;
@@ -1111,7 +1121,9 @@ export function reinforceIntimateStillPrompt(prompt: string): string {
     next = rewriteDrawerAfterglowContact(next);
     next = rewriteCabinetDrawerContact(next);
     next = rewriteChairBentContact(next);
-    next = rewriteDoggyBentContact(next);
+    if (!options?.skipRearRecipe) {
+      next = rewriteDoggyBentContact(next);
+    }
   }
   const wallRecipe = /Rear wall press/i.test(next);
   const chaiseRecipe = /Chaise lower:/i.test(next);

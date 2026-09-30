@@ -70,6 +70,7 @@ import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { resolveStoryNudeFaceFilename } from '@/lib/story-nude-face';
+import { PLAY_FACE_CROP_CANVAS } from '@/lib/play-plate-render-size';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { MutableRefObject } from 'react';
 
@@ -471,6 +472,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         blurb: beat.blurb,
         title: beat.title,
         adult,
+        guideLayout: poseLayoutFromKey(poseGuide?.expect.poseKey),
       });
       const promptWithPose = [
         withRoleplayPoseGuidePrompt(
@@ -530,6 +532,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           {
             ...(stillOpts ?? {}),
             ...(stillOpts ? { castPlateReference: true } : {}),
+            // A face crop is filename-only (no size probe) — without this the latent fell back
+            // to a square 1536², squeezed the 3:4 pose guide and flipped a bent pose upside down.
+            ...(stillOpts && nudeFace ? { figurePixelSize: { ...PLAY_FACE_CROP_CANVAS } } : {}),
             ...charOpts,
             ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
               ? {
@@ -625,6 +630,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           blurb: latest.blurb,
           title: latest.title,
           adult,
+          guideLayout: poseLayoutFromKey(poseGuide?.expect.poseKey),
         });
         const queuePrompt = [
           withRoleplayPoseGuidePrompt(
@@ -679,6 +685,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           {
             ...(stillOpts ?? {}),
             ...(stillOpts ? { castPlateReference: true } : {}),
+            // A face crop is filename-only (no size probe) — without this the latent fell back
+            // to a square 1536², squeezed the 3:4 pose guide and flipped a bent pose upside down.
+            ...(stillOpts && nudeFace ? { figurePixelSize: { ...PLAY_FACE_CROP_CANVAS } } : {}),
             ...charOpts,
             ...(stillOpts?.queueParamsBase || charOpts.queueParamsBase
               ? {
