@@ -1,4 +1,4 @@
-import { markSettingsPushPending } from './settings-push-flush';
+import { isSettingsSyncedWithServer, markSettingsPushPending } from './settings-push-flush';
 import { DEFAULT_QWEN_MODEL, type ComfyImageModel } from './comfy-models/client';
 import {
   DEFAULT_MODEL_SAMPLER_PRESET_TIER,
@@ -237,7 +237,18 @@ function persistCriticalSharedPrefs(shared: SharedToolSettings): void {
   if (typeof window === 'undefined') {
     return;
   }
-  writeBrowserString(SYSTEM_WORKFLOWS_PREF_KEY, shared.useSystemWorkflows === true ? '1' : '0');
+  // A fresh profile saves defaults (plugin manifest, migrations) before the server pull. Writing
+  // the sidecar from those made it '0', and every later save re-applies the sidecar — so the
+  // pulled "on" was flipped off and pushed back, and every Rapid still queued an empty graph
+  // ("Prompt has no outputs"). Until the server copy arrives, only an existing sidecar (or the
+  // toggle, which writes it directly) may be turned off; turning it on is always safe.
+  if (
+    shared.useSystemWorkflows === true ||
+    isSettingsSyncedWithServer() ||
+    readBrowserString(SYSTEM_WORKFLOWS_PREF_KEY) != null
+  ) {
+    writeBrowserString(SYSTEM_WORKFLOWS_PREF_KEY, shared.useSystemWorkflows === true ? '1' : '0');
+  }
   const existing = readBrowserValue<SessionLoraPrefs>(SESSION_LORA_PREFS_KEY);
   const nextPrefs = buildSessionLoraPrefsSidecar(shared, existing);
   if (!nextPrefs) {

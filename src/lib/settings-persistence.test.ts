@@ -76,6 +76,20 @@ describe('settings persistence sidecars', () => {
     });
   });
 
+  it('a fresh profile saving defaults before the server pull does not turn system workflows off', async () => {
+    await withMockLocalStorage(async () => {
+      resetBrowserStorageCache();
+      // Plugin manifest / migration save on a fresh profile — defaults, before the server pull.
+      saveSettingsCache(loadSettingsCache());
+      assert.equal(window.localStorage.getItem(SYSTEM_WORKFLOWS_PREF_KEY), null);
+      // The server pull merges the stored "on" and saves it — the sidecar must not undo that.
+      const pulled = loadSettingsCache();
+      saveSettingsCache({ ...pulled, shared: { ...pulled.shared, useSystemWorkflows: true } });
+      assert.equal(loadSettingsCache().shared.useSystemWorkflows, true);
+      assert.equal(window.localStorage.getItem(SYSTEM_WORKFLOWS_PREF_KEY), '1');
+    });
+  });
+
   it('unrelated shared save preserves multi-lora stack', async () => {
     await withMockLocalStorage(async () => {
       resetBrowserStorageCache();
