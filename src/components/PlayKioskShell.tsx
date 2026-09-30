@@ -129,10 +129,10 @@ export default function PlayKioskShell() {
             <p className="type-brand type-heading hidden truncate tracking-tight sm:block">
               Castcut
             </p>
-            {/* One truncated line — beside the buttons on a phone it wrapped word by word into a
-                200 px header. Report a bug lives in More. */}
+            {/* One truncated line from sm up. On a phone it only had room for "Fil…" beside the
+                buttons — the bottom tabs already mark the step. Report a bug lives in More. */}
             <p
-              className="type-caption truncate whitespace-nowrap text-[var(--text-muted)]"
+              className="type-caption hidden truncate whitespace-nowrap text-[var(--text-muted)] sm:block"
               data-testid="play-kiosk-progress"
             >
               {progressLabel}

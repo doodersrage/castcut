@@ -40,6 +40,8 @@ function applyCharacter(character: CharacterRecord) {
 export default function CharacterCastRoster() {
   const router = useRouter();
   const [detailsId, setDetailsId] = useState<string | null>(null);
+  // Plates whose file is gone (deleted media, another machine's copy) — shown as "No plate".
+  const [missingPlates, setMissingPlates] = useState<ReadonlySet<string>>(() => new Set());
   const characters = useSyncExternalStore(
     subscribeCharacters,
     getCharactersSnapshot,
@@ -146,7 +148,9 @@ export default function CharacterCastRoster() {
               const looks = looksOf(character);
               const trigger = loraTriggerFromCharacter(character);
               const detailsOpen = detailsId === character.id;
-              const plateUrl = castPlateThumbUrl(character);
+              const plateUrl = missingPlates.has(character.id)
+                ? undefined
+                : castPlateThumbUrl(character);
               const readiness = castRosterReadinessLine({
                 lookCount: looks.length,
                 hasPlate: Boolean(plateUrl),
@@ -166,6 +170,9 @@ export default function CharacterCastRoster() {
                           src={plateUrl}
                           alt=""
                           className="h-full w-full object-cover object-top"
+                          onError={() =>
+                            setMissingPlates(previous => new Set(previous).add(character.id))
+                          }
                         />
                       </div>
                     ) : (

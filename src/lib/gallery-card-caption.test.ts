@@ -25,6 +25,21 @@ describe('galleryCardCaption', () => {
     );
   });
 
+  it('names outfit try-ons by outfit, else subject', () => {
+    assert.equal(
+      galleryCardCaption(
+        'Edit instruction for an outfit try-on:\nsubject: bikini bandit thief\noutfit name (confirm match): bronze tennis skirt\nbackground: studio'
+      ),
+      'Outfit try-on · bronze tennis skirt'
+    );
+    assert.equal(
+      galleryCardCaption(
+        'Carry out this change on Image 1. Keep facial likeness only: Edit instruction for an outfit try-on:\nImage 1 is the person plate\nsubject: Chrono-Scribe Vaela\nApply the exact outfit'
+      ),
+      'Outfit try-on · Chrono-Scribe Vaela'
+    );
+  });
+
   it('falls back to the prompt without boilerplate', () => {
     assert.equal(galleryCardCaption('A red fox in snow, cinematic light'), 'A red fox in snow, cinematic light');
     assert.equal(galleryCardCaption(''), '');

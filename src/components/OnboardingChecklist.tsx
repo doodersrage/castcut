@@ -18,6 +18,13 @@ import { Button } from '@/components/ui/Button';
 import { settingsTabHref } from '@/lib/settings-nav';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { saveWorkspaceMode } from '@/lib/workspace-mode';
+import {
+  SETTINGS_SYNCED_WITH_SERVER_EVENT,
+  isSettingsSyncedWithServer,
+} from '@/lib/settings-push-flush';
+
+/** Longest wait for the first server sync before showing a new browser's checklist. */
+const CHECKLIST_SYNC_WAIT_MS = 8000;
 
 function StepRow({ step }: { step: OnboardingStep }) {
   const body = (
@@ -59,6 +66,7 @@ export default function OnboardingChecklist() {
   const allowedFeatures = useAllowedFeatures();
   const [steps, setSteps] = useState<OnboardingStep[]>([]);
   const [hidden, setHidden] = useState(false);
+  const [synced, setSynced] = useState(isSettingsSyncedWithServer);
 
   const accessibleSteps = useMemo(() => {
     if (!auth || auth.loading || !auth.authEnabled) {
@@ -80,17 +88,26 @@ export default function OnboardingChecklist() {
       setSteps(state);
       setHidden(state.every(step => step.done));
     };
+    // A new browser has no ticks until the server copy lands — it showed every step as undone.
+    const onSynced = () => {
+      setSynced(true);
+      refresh();
+    };
+    const syncWait = setTimeout(() => setSynced(true), CHECKLIST_SYNC_WAIT_MS);
     window.addEventListener('focus', refresh);
     window.addEventListener('storage', refresh);
     window.addEventListener(ONBOARDING_UPDATED_EVENT, refresh);
+    window.addEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, onSynced);
     return () => {
+      clearTimeout(syncWait);
       window.removeEventListener('focus', refresh);
       window.removeEventListener('storage', refresh);
       window.removeEventListener(ONBOARDING_UPDATED_EVENT, refresh);
+      window.removeEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, onSynced);
     };
   }, []);
 
-  if (hidden || accessibleSteps.every(step => step.done)) {
+  if (!synced || hidden || accessibleSteps.every(step => step.done)) {
     return null;
   }
 

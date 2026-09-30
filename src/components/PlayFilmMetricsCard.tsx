@@ -164,7 +164,8 @@ export default function PlayFilmMetricsCard() {
           </div>
         </>
       ) : (
-        <div className="grid gap-[var(--group-gap)] sm:grid-cols-2 lg:grid-cols-4">
+        // Two across on a phone — eleven cards stacked one per row ran ~1,300 px.
+        <div className="grid grid-cols-2 gap-[var(--group-gap)] lg:grid-cols-4">
           <StatCard label="Film campaign → first cut" value={value} detail={detail} />
           <StatCard
             label="First film cut"

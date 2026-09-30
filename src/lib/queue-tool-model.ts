@@ -163,6 +163,50 @@ export function isMeshModel(model: ComfyImageModel | string): boolean {
   return getComfyModelDefinition(model).category === 'mesh';
 }
 
+/** Tools that only queue still images — a video / audio / 3D model there cannot run. */
+const STILL_IMAGE_TOOLS = new Set([
+  'background',
+  'character',
+  'controlnet',
+  'day',
+  'fantasy',
+  'fitting',
+  'format',
+  'generate',
+  'imageCompose',
+  'imagePrompt',
+  'inpaint',
+  'lint',
+  'logo',
+  'moodboard',
+  'negative',
+  'nsfwGenerator',
+  'outpaint',
+  'pet',
+  'promptEditor',
+  'refine',
+  'topics',
+  'variations',
+]);
+
+/**
+ * A still-image tool must not pick up a video / audio / 3D model — from its own stale memory
+ * or from the shared model another tool (Video, Audio, Mesh) left behind. Returns the model to
+ * use instead, or the model unchanged.
+ */
+export function stillImageToolModel(
+  toolKey: string | undefined,
+  model: ComfyImageModel | string
+): ComfyImageModel {
+  if (
+    STILL_IMAGE_TOOLS.has((toolKey ?? '').trim()) &&
+    (isVideoModel(model) || isAudioModel(model) || isMeshModel(model))
+  ) {
+    return DEFAULT_COMFY_MODEL;
+  }
+  return model as ComfyImageModel;
+}
+
 /** System FLUX/Qwen scaffolds don't cover these tools — don't snap their models away. */
 export function toolIgnoresSystemWorkflowSnap(tool?: string): boolean {
   return tool === 'audio' || tool === 'mesh' || tool === 'video';

@@ -28,6 +28,13 @@ import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
 import { noteWelcomeShownMetric } from '@/lib/local-observability';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  SETTINGS_SYNCED_WITH_SERVER_EVENT,
+  isSettingsSyncedWithServer,
+} from '@/lib/settings-push-flush';
+
+/** Longest wait for the first server sync before judging a browser as brand new. */
+const WELCOME_SYNC_WAIT_MS = 8000;
 
 type WelcomePhase = 'goal' | 'setup' | 'ready';
 
@@ -56,12 +63,34 @@ export default function WorkspaceWelcome() {
     if (auth?.authEnabled && !auth.user) {
       return;
     }
-    scheduleAfterCommit(() => {
+    // A new browser has no local "chosen" flag until the server copy lands — deciding earlier
+    // showed the welcome to returning users on every new device.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let settled = false;
+    const decide = () => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, decide);
+      clearTimeout(timer);
       if (!hasChosenWorkspaceMode()) {
         setPhase('goal');
         noteWelcomeShownMetric();
       }
+    };
+    scheduleAfterCommit(() => {
+      if (settled) return;
+      if (isSettingsSyncedWithServer()) {
+        decide();
+        return;
+      }
+      window.addEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, decide);
+      timer = setTimeout(decide, WELCOME_SYNC_WAIT_MS);
     });
+    return () => {
+      settled = true;
+      window.removeEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, decide);
+      clearTimeout(timer);
+    };
   }, [auth?.authEnabled, auth?.user]);
 
   if (!phase || process.env.NEXT_PUBLIC_PLAYWRIGHT === '1') {
@@ -207,7 +236,7 @@ export default function WorkspaceWelcome() {
             </div>
             <details className="mt-4">
               <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-                Prefer density first? Play (Film focus) / Simple / Studio / Full
+                Prefer density first? Film / Simple / Studio / Full
               </summary>
               <div className="mt-2 grid gap-2">
                 {WORKSPACE_MODE_OPTIONS.map(option => (

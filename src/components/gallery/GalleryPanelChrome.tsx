@@ -63,32 +63,39 @@ export function GalleryPanelHeader({
           </span>
         ) : null}
         {entriesLength > 0 ? (
-          <>
-            <button
-              type="button"
-              onClick={onArchiveThenPurge}
-              className="ui-btn-ghost ui-btn-sm text-xs text-[var(--text-muted)] hover:text-[var(--tint-danger-text)]"
-              data-testid="gallery-archive-purge"
-            >
-              Archive & purge
-            </button>
-            <button
-              type="button"
-              onClick={onFinishPendingPurge}
-              className="ui-btn-ghost ui-btn-sm text-xs text-[var(--text-muted)] hover:text-[var(--tint-danger-text)]"
-              data-testid="gallery-finish-purge"
-            >
-              Finish purge
-            </button>
-            <button
-              type="button"
-              onClick={onPurgeRestOnly}
-              className="ui-btn-ghost ui-btn-sm text-xs text-[var(--tint-danger-text)]"
-              data-testid="gallery-purge-rest"
-            >
-              Purge rest
-            </button>
-          </>
+          // Three purge actions sat beside Upload / Refresh as top-level buttons, "Purge rest"
+          // in red — rare, destructive steps belong one click deeper.
+          <details className="relative" data-testid="gallery-cleanup-menu">
+            <summary className="ui-btn-ghost ui-btn-sm cursor-pointer list-none text-xs [&::-webkit-details-marker]:hidden">
+              Clean up ▾
+            </summary>
+            <div className="absolute right-0 z-30 mt-1 flex min-w-[12rem] flex-col items-stretch gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-1 shadow-lg">
+              <button
+                type="button"
+                onClick={onArchiveThenPurge}
+                className="ui-btn-ghost ui-btn-sm justify-start text-xs text-[var(--text-secondary)] hover:text-[var(--tint-danger-text)]"
+                data-testid="gallery-archive-purge"
+              >
+                Archive & purge
+              </button>
+              <button
+                type="button"
+                onClick={onFinishPendingPurge}
+                className="ui-btn-ghost ui-btn-sm justify-start text-xs text-[var(--text-secondary)] hover:text-[var(--tint-danger-text)]"
+                data-testid="gallery-finish-purge"
+              >
+                Finish purge
+              </button>
+              <button
+                type="button"
+                onClick={onPurgeRestOnly}
+                className="ui-btn-ghost ui-btn-sm justify-start text-xs text-[var(--tint-danger-text)]"
+                data-testid="gallery-purge-rest"
+              >
+                Purge rest
+              </button>
+            </div>
+          </details>
         ) : null}
         {!compact && limit && entriesLength > limit ? (
           <ButtonLink href="/gallery" size="sm">

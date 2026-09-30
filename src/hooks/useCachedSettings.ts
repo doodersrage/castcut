@@ -19,7 +19,7 @@ import {
 } from '@/lib/settings-cache';
 import { loadToolContext, saveToolContext } from '@/lib/tool-context-memory';
 import { COMFY_MODEL_IDS, type ComfyImageModel } from '@/lib/comfy-models/client';
-import { sanitizePreferEditToolModel } from '@/lib/queue-tool-model';
+import { sanitizePreferEditToolModel, stillImageToolModel } from '@/lib/queue-tool-model';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 /** Skip cache→React reloads briefly after local edits so typing is not clobbered. */
@@ -32,6 +32,15 @@ function toolPersistNeedsSyncFlush(partial: Record<string, unknown>): boolean {
 }
 
 function applyToolContext(shared: SharedToolSettings, toolKey: string): SharedToolSettings {
+  const withToolContext = applyRememberedToolContext(shared, toolKey);
+  const model = stillImageToolModel(toolKey, withToolContext.model);
+  return model === withToolContext.model ? withToolContext : { ...withToolContext, model };
+}
+
+function applyRememberedToolContext(
+  shared: SharedToolSettings,
+  toolKey: string
+): SharedToolSettings {
   const memory = loadToolContext(toolKey);
   if (!memory?.model && !memory?.selectedWorkflowFileId) {
     return shared;

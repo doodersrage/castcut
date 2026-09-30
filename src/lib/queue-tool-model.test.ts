@@ -10,6 +10,7 @@ import {
   resolveModelForPromptGeneration,
   resolveModelForQueueTool,
   resolvePreferredImg2imgModel,
+  stillImageToolModel,
   resolvePreferredLookModel,
   resolveRapidAioEditModel,
   resolveDayAdultPlateQueueModel,
@@ -512,5 +513,19 @@ describe("queue-tool-model", () => {
       sanitizePreferEditToolModel("moodboard", "qwen-image-2512"),
       "qwen-image-2512",
     );
+  });
+});
+
+describe("stillImageToolModel", () => {
+  it("keeps video / audio / 3D models out of still-image tools", () => {
+    assert.equal(stillImageToolModel("controlnet", "wan-video-rapid-aio"), "qwen-image-2512");
+    assert.equal(stillImageToolModel("variations", "stable-audio"), "qwen-image-2512");
+    assert.equal(stillImageToolModel("background", "hunyuan-3d"), "qwen-image-2512");
+  });
+
+  it("leaves image models and media tools alone", () => {
+    assert.equal(stillImageToolModel("controlnet", "flux-inpaint"), "flux-inpaint");
+    assert.equal(stillImageToolModel("video", "wan-video-rapid-aio"), "wan-video-rapid-aio");
+    assert.equal(stillImageToolModel(undefined, "wan-video-rapid-aio"), "wan-video-rapid-aio");
   });
 });

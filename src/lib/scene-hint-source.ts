@@ -25,7 +25,7 @@ export const SCENE_HINT_SOURCE_OPTIONS: Array<{
   {
     value: 'manual',
     label: 'Manual hints',
-    description: 'Type breed, species, mood, or location yourself.',
+    description: 'Write the hints yourself.',
   },
   {
     value: 'history',

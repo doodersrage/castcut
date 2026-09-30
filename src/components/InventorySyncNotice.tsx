@@ -4,7 +4,10 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { gpuAutoMatchPlan, gpuSettingsSuggestion } from '@/lib/gpu-settings-match';
-import { isSettingsSyncedWithServer } from '@/lib/settings-push-flush';
+import {
+  SETTINGS_SYNCED_WITH_SERVER_EVENT,
+  isSettingsSyncedWithServer,
+} from '@/lib/settings-push-flush';
 import {
   DEFAULT_SHARED_SETTINGS,
   loadSettingsCache,
@@ -72,6 +75,9 @@ export default function InventorySyncNotice() {
     let cancelled = false;
     let hideTimer: ReturnType<typeof setTimeout> | undefined;
     const run = () => {
+      // Before the first server sync a new browser's maps are empty — the fill "mapped" dozens
+      // of entries the server already had and said so on every new device.
+      if (!isSettingsSyncedWithServer()) return;
       const now = Date.now();
       if (now - lastRunRef.current < RECHECK_MS) return;
       lastRunRef.current = now;
@@ -89,9 +95,11 @@ export default function InventorySyncNotice() {
     };
     run();
     window.addEventListener('focus', run);
+    window.addEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, run);
     return () => {
       cancelled = true;
       window.removeEventListener('focus', run);
+      window.removeEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, run);
       if (hideTimer) clearTimeout(hideTimer);
     };
   }, []);

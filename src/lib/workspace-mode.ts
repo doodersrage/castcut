@@ -38,7 +38,7 @@ export const WORKSPACE_MODE_OPTIONS: {
 }[] = [
   {
     id: 'play',
-    label: 'Play',
+    label: 'Film',
     shortTag: 'Make',
     description:
       'Make a film — Cast, Look, Outfit, Day, Gallery, Queue. One character, one day reel.',

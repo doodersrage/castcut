@@ -17,6 +17,12 @@ function clean(text: string): string {
 export function galleryCardCaption(prompt: string | null | undefined): string {
   const p = String(prompt ?? '');
   if (!p.trim()) return '';
+  if (/Edit instruction for an outfit try-on/i.test(p)) {
+    const outfit =
+      /outfit name[^:\n]*:\s*([^\n]+)/i.exec(p)?.[1] ??
+      /(?:^|\n)\s*subject:\s*([^\n]+)/i.exec(p)?.[1];
+    return outfit ? `Outfit try-on · ${clean(outfit)}` : 'Outfit try-on';
+  }
   const part = /Edit instruction for a Day still — ([^:\n]+):/i.exec(p)?.[1]?.trim();
   const found =
     /(?:^|\n)\s*beat(?: \(mandatory[^)]*\))?:\s*([^\n]+)/i.exec(p)?.[1] ??
