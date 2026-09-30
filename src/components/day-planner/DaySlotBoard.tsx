@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
+import MotionMedia from '@/components/ui/MotionMedia';
 import {
   daySlotBoardCaption,
   daySlotClipProgressState,
@@ -170,6 +171,8 @@ export default function DaySlotBoard({
         const showStillLive = Boolean(stillLive);
         const showClipLive = Boolean(clipLive);
         const thumb = doneThumb || stillLive || (!doneThumb && clipLive) || '';
+        // A finished clip plays in place of its still, like Story — no scroll to the Day reel.
+        const doneClip = clipState === 'done' ? still?.clipUrl?.trim() || '' : '';
         const baseCaption = daySlotBoardCaption(still);
         const planLabel = daySlotPlanLabel(slot, compact ? 72 : 96);
         const planEmpty = !slot.location?.trim() || !slot.sceneHints?.trim();
@@ -228,24 +231,41 @@ export default function DaySlotBoard({
             >
               {thumb ? (
                 <div className="relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={thumb}
-                    alt=""
-                    data-testid={
-                      showStillLive || (showClipLive && !doneThumb)
-                        ? `day-progress-live-${slot.id}`
-                        : undefined
-                    }
-                    className={[
-                      compact
-                        ? 'aspect-video w-full object-cover'
-                        : 'aspect-[4/3] w-full object-cover',
-                      showStillLive || (showClipLive && !doneThumb) ? 'opacity-80' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  />
+                  {doneClip ? (
+                    <MotionMedia
+                      src={doneClip}
+                      alt={slot.label}
+                      className={
+                        compact
+                          ? 'aspect-video w-full object-cover'
+                          : 'aspect-[4/3] w-full object-cover'
+                      }
+                      autoPlay
+                      loop
+                      muted
+                      controls={false}
+                      poster={doneThumb || undefined}
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={thumb}
+                      alt=""
+                      data-testid={
+                        showStillLive || (showClipLive && !doneThumb)
+                          ? `day-progress-live-${slot.id}`
+                          : undefined
+                      }
+                      className={[
+                        compact
+                          ? 'aspect-video w-full object-cover'
+                          : 'aspect-[4/3] w-full object-cover',
+                        showStillLive || (showClipLive && !doneThumb) ? 'opacity-80' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    />
+                  )}
                   {doneThumb && showClipLive ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img

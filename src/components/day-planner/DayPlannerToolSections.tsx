@@ -271,6 +271,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         images: next.images,
         titles: next.titles,
         originalImages: next.images,
+        mediaKinds: next.mediaKinds,
         index: next.index,
         title: next.title,
       });
@@ -737,6 +738,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           <FilmWatchPlayer
             compact
             shots={sampleWatch ? sampleShots : watchPlaylist}
+            onOpenShot={
+              sampleWatch ? undefined : shot => shot.key && openProgressLightbox(shot.key)
+            }
             emptyLabel="Queue the day — Morning through Night fill in here."
           />
           {sampleWatch ? (

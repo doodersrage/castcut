@@ -355,6 +355,8 @@ export function buildDayProgressLightboxState(
   images: string[];
   titles: string[];
   slotIds: DaySlotId[];
+  /** Per slide: 'video' for an mp4/webm clip; animated WebP clips play as images. */
+  mediaKinds: ('image' | 'video')[];
   index: number;
   title: string;
 } | null {
@@ -365,17 +367,29 @@ export function buildDayProgressLightboxState(
   );
   const slides = slots
     .map(slot => {
-      const url = bySlot.get(slot.id)?.imageUrl?.trim();
-      if (!url) {
+      const still = bySlot.get(slot.id);
+      const imageUrl = still?.imageUrl?.trim();
+      if (!imageUrl) {
         return null;
       }
+      // A finished clip replaces its still (as on Story beat cards).
+      const clipUrl = still?.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
+      const url = clipUrl || imageUrl;
       const scene = daySlotSceneSummary(slot, 120);
       const title = scene
         ? `${slot.label.trim() || slot.id} — ${scene}`
         : slot.label.trim() || slot.id;
-      return { slotId: slot.id, url, title };
+      return {
+        slotId: slot.id,
+        url,
+        title,
+        video: Boolean(clipUrl && /\.(mp4|webm|mov)(?:[?&#]|$)|format=video/i.test(clipUrl)),
+      };
     })
-    .filter((slide): slide is { slotId: DaySlotId; url: string; title: string } => slide != null);
+    .filter(
+      (slide): slide is { slotId: DaySlotId; url: string; title: string; video: boolean } =>
+        slide != null
+    );
   if (slides.length === 0) {
     return null;
   }
@@ -388,6 +402,7 @@ export function buildDayProgressLightboxState(
     images: slides.map(slide => slide.url),
     titles: slides.map(slide => slide.title),
     slotIds: slides.map(slide => slide.slotId),
+    mediaKinds: slides.map(slide => (slide.video ? 'video' : 'image')),
     index,
     title: slides[index]?.title ?? 'Day still',
   };

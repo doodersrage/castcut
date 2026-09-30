@@ -254,6 +254,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         images: next.images,
         titles: next.titles,
         originalImages: next.images,
+        mediaKinds: next.mediaKinds,
         index: next.index,
         title: next.title,
       });
@@ -665,6 +666,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         <p className="type-caption text-[var(--text-muted)]">Day reel</p>
         <FilmWatchPlayer
           shots={sampleWatch ? sampleShots : watchPlaylist}
+          onOpenShot={sampleWatch ? undefined : shot => shot.key && openProgressLightbox(shot.key)}
           emptyLabel="Queue day, then Cut film."
         />
         {sampleWatch ? (

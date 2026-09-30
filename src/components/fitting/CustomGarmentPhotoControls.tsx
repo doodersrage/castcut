@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useSyncExternalStore } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/Button';
+import WardrobeKitBrowser from '@/components/wardrobe/WardrobeKitBrowser';
 import { FieldLabel, TextArea } from '@/components/ui/Field';
 import { accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { ToolAccent } from '@/lib/tool-theme';
@@ -139,6 +140,7 @@ export default function CustomGarmentPhotoControls({
   onError,
 }: CustomGarmentPhotoControlsProps) {
   const savedGarments = useSavedFittingGarments();
+  const [browseOpen, setBrowseOpen] = useState(false);
   const hasCustomGarment = Boolean(customGarmentImageUrl?.trim());
   const alreadySaved = Boolean(findSavedFittingGarmentByFilename(customGarmentImageFilename)?.id);
 
@@ -237,10 +239,54 @@ export default function CustomGarmentPhotoControls({
       ) : null}
       {savedGarments.length > 0 ? (
         <div className="space-y-2" data-testid={`${testIdPrefix}-saved-garments`}>
-          <FieldLabel>Saved clothing</FieldLabel>
+          <div className="flex items-center justify-between gap-2">
+            <FieldLabel>Saved clothing</FieldLabel>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy || garmentUploading}
+              data-testid={`${testIdPrefix}-browse-saved-garments`}
+              onClick={() => setBrowseOpen(true)}
+            >
+              Browse
+            </Button>
+          </div>
           <p className="type-caption text-[var(--text-muted)]">
             Reuse a packshot you saved earlier ({savedGarments.length} stored here).
           </p>
+          <WardrobeKitBrowser
+            open={browseOpen}
+            kits={savedGarments.map(entry => ({
+              id: entry.id,
+              label: entry.label,
+              group: entry.description,
+            }))}
+            selectedId={
+              savedGarments.find(
+                entry =>
+                  customGarmentImageFilename?.trim() === entry.imageFilename ||
+                  customGarmentImageUrl?.trim() === entry.imageUrl
+              )?.id
+            }
+            disabled={busy || garmentUploading}
+            title="Browse my clothing photos"
+            description={`${savedGarments.length} saved photo${savedGarments.length === 1 ? '' : 's'} — search, then tap one to wear it.`}
+            searchPlaceholder="Search — dress, denim, red, swimsuit…"
+            thumbFit="contain"
+            resolveThumb={kit => ({
+              url: savedGarments.find(entry => entry.id === kit.id)?.imageUrl ?? null,
+            })}
+            onSelect={id => {
+              try {
+                onApplySavedCustomGarment(id);
+              } catch (err) {
+                onError(
+                  err instanceof Error ? err.message : 'Could not use that saved clothing photo.'
+                );
+              }
+            }}
+            onClose={() => setBrowseOpen(false)}
+          />
           <div className="flex gap-2 overflow-x-auto pb-1">
             {savedGarments.map(entry => {
               const active =

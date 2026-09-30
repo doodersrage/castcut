@@ -11,6 +11,7 @@ export default function FilmWatchPlayer({
   emptyLabel = 'No playable shots yet.',
   onWatchStart,
   compact = false,
+  onOpenShot,
 }: {
   shots: FilmPlaylistShot[];
   emptyLabel?: string;
@@ -18,6 +19,8 @@ export default function FilmWatchPlayer({
   onWatchStart?: () => void;
   /** Cap the viewer width (Day's reel sits under a board that already shows every still). */
   compact?: boolean;
+  /** Open the current shot larger (Day: the slot lightbox). Click the frame or Enlarge. */
+  onOpenShot?: (shot: FilmPlaylistShot, index: number) => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -161,7 +164,16 @@ export default function FilmWatchPlayer({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={shot.url} alt={shot.title} className="h-full w-full object-contain" />
         ) : null}
-        <p className="pointer-events-none absolute right-2 top-2 rounded-full bg-[var(--bg-base)]/75 px-2 py-0.5 type-caption text-[var(--text-secondary)] backdrop-blur-sm">
+        {onOpenShot && shot && !htmlVideo ? (
+          <button
+            type="button"
+            className="absolute inset-0 z-[1] cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]"
+            aria-label={`Open ${shot.title} larger`}
+            data-testid="film-watch-open"
+            onClick={() => onOpenShot(shot, index)}
+          />
+        ) : null}
+        <p className="pointer-events-none absolute right-2 top-2 z-[2] rounded-full bg-[var(--bg-base)]/75 px-2 py-0.5 type-caption text-[var(--text-secondary)] backdrop-blur-sm">
           {index + 1} / {shots.length}
           {shot ? ` · ${shot.kind === 'clip' ? 'Clip' : 'Still'}` : ''}
         </p>
@@ -189,6 +201,11 @@ export default function FilmWatchPlayer({
         >
           Next
         </Button>
+        {onOpenShot && shot ? (
+          <Button size="sm" variant="ghost" onClick={() => onOpenShot(shot, index)}>
+            Enlarge
+          </Button>
+        ) : null}
       </div>
       <p className="type-caption text-[var(--text-muted)]">
         Keyboard: ← → to scrub · Space to watch

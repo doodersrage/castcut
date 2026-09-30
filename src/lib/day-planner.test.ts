@@ -2989,3 +2989,20 @@ describe('adult Mixed stays adult', () => {
     assert.equal(daySlotMatchesAdultMix({ slot: typed as never, dayMood: 'intimate', intimateMix: 'mixed' }), true);
   });
 });
+
+describe('buildDayProgressLightboxState with clips', () => {
+  it('shows a finished clip in place of its still', () => {
+    const state = buildDayProgressLightboxState(
+      DEFAULT_DAY_SLOTS,
+      [
+        { slotId: 'morning', status: 'completed', imageUrl: '/m.png', clipStatus: 'completed', clipUrl: '/m.webp' },
+        { slotId: 'afternoon', status: 'completed', imageUrl: '/a.png', clipStatus: 'completed', clipUrl: '/a.mp4' },
+        { slotId: 'evening', status: 'completed', imageUrl: '/e.png', clipStatus: 'running' },
+      ] as never,
+      'afternoon'
+    );
+    assert.deepEqual(state?.images, ['/m.webp', '/a.mp4', '/e.png']);
+    assert.deepEqual(state?.mediaKinds, ['image', 'video', 'image']);
+    assert.equal(state?.index, 1);
+  });
+});

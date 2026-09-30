@@ -11,6 +11,7 @@ import WardrobeKitPicker, {
   type WardrobeKitThumbState,
 } from '@/components/wardrobe/WardrobeKitPicker';
 import WearingCard from '@/components/wardrobe/WearingCard';
+import WardrobeKitBrowser from '@/components/wardrobe/WardrobeKitBrowser';
 import type { ToolAccent } from '@/lib/tool-theme';
 import {
   findSavedFittingGarmentByFilename,
@@ -151,6 +152,7 @@ export default function ClothingPicker({
   const hasPhoto = Boolean(garment.imageUrl?.trim());
   // Follows the photo unless the player switched tabs themselves.
   const [pickedMode, setPickedMode] = useState<ClothingMode | null>(null);
+  const [browseSavedOpen, setBrowseSavedOpen] = useState(false);
   const mode: ClothingMode = pickedMode ?? (hasPhoto ? 'photo' : 'kit');
   const photoBusy = busy || garment.uploading;
   const alreadySaved = Boolean(findSavedFittingGarmentByFilename(garment.imageFilename)?.id);
@@ -338,9 +340,55 @@ export default function ClothingPicker({
 
           {savedGarments.length > 0 ? (
             <div className="space-y-1" data-testid={`${testIdPrefix}-saved-garments`}>
-              <p className="type-caption text-[var(--text-muted)]">
-                Saved photos · {savedGarments.length}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="type-caption text-[var(--text-muted)]">
+                  Saved photos · {savedGarments.length}
+                </p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={photoBusy}
+                  data-testid={`${testIdPrefix}-browse-saved-garments`}
+                  onClick={() => setBrowseSavedOpen(true)}
+                >
+                  Browse
+                </Button>
+              </div>
+              <WardrobeKitBrowser
+                open={browseSavedOpen}
+                kits={savedGarments.map(entry => ({
+                  id: entry.id,
+                  label: entry.label,
+                  group: entry.description,
+                }))}
+                selectedId={
+                  savedGarments.find(
+                    entry =>
+                      garment.imageFilename?.trim() === entry.imageFilename ||
+                      garment.imageUrl?.trim() === entry.imageUrl
+                  )?.id
+                }
+                disabled={photoBusy}
+                title="Browse my clothing photos"
+                description={`${savedGarments.length} saved photo${savedGarments.length === 1 ? '' : 's'} — search, then tap one to wear it.`}
+                searchPlaceholder="Search — dress, denim, red, swimsuit…"
+                thumbFit="contain"
+                resolveThumb={kit => ({
+                  url: savedGarments.find(entry => entry.id === kit.id)?.imageUrl ?? null,
+                })}
+                onSelect={id => {
+                  try {
+                    garment.onApplySaved(id);
+                  } catch (err) {
+                    onError(
+                      err instanceof Error
+                        ? err.message
+                        : 'Could not use that saved clothing photo.'
+                    );
+                  }
+                }}
+                onClose={() => setBrowseSavedOpen(false)}
+              />
               <div className={CLOTHING_STRIP_CLASS}>
                 {savedGarments.map(entry => {
                   const active =

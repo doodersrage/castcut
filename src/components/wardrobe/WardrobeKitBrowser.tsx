@@ -25,6 +25,12 @@ export type WardrobeKitBrowserProps = {
   resolveThumb?: (kit: FittingSwipeKit) => WardrobeKitThumbState;
   onSelect: (wardrobeId: string) => void;
   onClose: () => void;
+  /** Reused for saved clothing photos — defaults read as the outfit-kit catalog. */
+  title?: string;
+  description?: string;
+  searchPlaceholder?: string;
+  /** Packshots on white read better contained than cropped. */
+  thumbFit?: 'cover' | 'contain';
 };
 
 /** Fresh mount per open so search state resets without setState-in-effect. */
@@ -43,6 +49,10 @@ function WardrobeKitBrowserDialog({
   resolveThumb,
   onSelect,
   onClose,
+  title = 'Browse outfit kits',
+  description,
+  searchPlaceholder = 'Search — tuxedo, monk, hi-vis, sari…',
+  thumbFit = 'cover',
 }: Omit<WardrobeKitBrowserProps, 'open'>) {
   useWardrobeGarmentThumbManifestGeneration();
   const titleId = useId();
@@ -106,11 +116,11 @@ function WardrobeKitBrowserDialog({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">
                 <h2 id={titleId} className="type-heading text-[var(--text-primary)]">
-                  Browse outfit kits
+                  {title}
                 </h2>
                 <p className="type-caption text-[var(--text-muted)]">
-                  {formatWardrobeKitCount(kits.length)} kit{kits.length === 1 ? '' : 's'} in this
-                  type — search, then tap one to wear it.
+                  {description ??
+                    `${formatWardrobeKitCount(kits.length)} kit${kits.length === 1 ? '' : 's'} in this type — search, then tap one to wear it.`}
                 </p>
               </div>
               <Button
@@ -134,8 +144,8 @@ function WardrobeKitBrowserDialog({
                 id={searchId}
                 value={query}
                 disabled={disabled}
-                aria-label="Search outfit kits"
-                placeholder="Search — tuxedo, monk, hi-vis, sari…"
+                aria-label={`Search ${title.replace(/^Browse\s+/i, '')}`}
+                placeholder={searchPlaceholder}
                 className="w-full pl-9"
                 onChange={event => {
                   setQuery(event.target.value);
@@ -194,7 +204,7 @@ function WardrobeKitBrowserDialog({
                           alt=""
                           loading="lazy"
                           decoding="async"
-                          className="aspect-[3/4] w-full rounded-lg bg-[var(--bg-muted)] object-cover"
+                          className={`aspect-[3/4] w-full rounded-lg bg-[var(--bg-muted)] ${thumbFit === 'contain' ? 'object-contain' : 'object-cover'}`}
                         />
                       ) : (
                         <span className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-[var(--bg-muted)] type-caption text-[var(--text-muted)]">
