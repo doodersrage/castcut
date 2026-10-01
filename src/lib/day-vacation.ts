@@ -595,7 +595,7 @@ const VACATION_DUO_SCENES: Record<DayPart, readonly VacationScene[]> = {
     },
     {
       activity: 'hotel',
-      beat: 'hugging her partner at the scenic overlook, her arms around her partner’s neck, both smiling',
+      beat: 'in a hug with her partner at the scenic overlook, her arms around her partner’s neck, both smiling',
       setting: 'clifftop overlook with a low stone wall and a wide view of the coast',
     },
   ],
@@ -629,7 +629,7 @@ const VACATION_DUO_SCENES: Record<DayPart, readonly VacationScene[]> = {
     },
     {
       activity: 'hotel',
-      beat: 'hugging her partner on the hotel balcony at night, cheek to cheek, string lights behind them',
+      beat: 'in a hug with her partner on the hotel balcony at night, cheek to cheek, string lights behind them',
       setting: 'hotel balcony at night with string lights and the lit bay below',
     },
   ],
