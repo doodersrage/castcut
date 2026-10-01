@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   convertQwenEditWorkflowToImage21,
+  isMultiPersonPoseGuide,
   normalizeQwenRenderer,
   pruneUnreachableNodes,
   QWEN_IMAGE_21_FILES,
   qwenImage21Steps,
   toQwenImage21Prompt,
+  withoutDroppedReferences,
 } from './qwen-image-21-renderer';
 
 /** The shape of a live Rapid AIO Day still (two faces + pose map, ReferenceLatent chain). */
@@ -84,5 +86,44 @@ describe('Qwen-Image 2.1 renderer', () => {
     assert.equal(normalizeQwenRenderer('nope'), 'rapid');
     assert.deepEqual(['draft', 'final', 'max'].map(qwenImage21Steps), [20, 30, 40]);
     assert.equal(toQwenImage21Prompt('image 2 and Image 10'), '<image2> and Image 10');
+  });
+});
+
+describe('Qwen-Image 2.1: two-person pose maps', () => {
+  it('drops a duo pose map and the sentences that point at it', () => {
+    const graph = {
+      '4': {
+        class_type: 'TextEncodeQwenImageEditPlus',
+        inputs: {
+          prompt:
+            'Carry out this change on Image 1. Explicit photo: the two lie on the bed. Keep her face from the first image. Match the two bodies in the second image (pose map). Photorealistic.',
+          image1: ['900', 0],
+          image2: ['904', 0],
+        },
+      },
+      '8': { class_type: 'KSampler', inputs: { positive: ['4', 0], latent_image: ['906', 0] } },
+      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+      '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+      '900': { class_type: 'LoadImage', inputs: { image: 'day-nude-face-1.png' } },
+      '904': { class_type: 'LoadImage', inputs: { image: 'day-pose-guide-missionary-d8c99b-x2-17.png' } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+    };
+    const { workflow } = convertQwenEditWorkflowToImage21(graph);
+    const encode = Object.values(workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>).find(
+      node => node.class_type === 'TextEncodeQwenImage21'
+    )!;
+    assert.deepEqual(encode.inputs['images.image_1'], ['900', 0]);
+    assert.equal(encode.inputs['images.image_2'], undefined);
+    assert.doesNotMatch(String(encode.inputs.prompt), /pose map|second image/);
+    assert.match(String(encode.inputs.prompt), /Keep her face from the first image\./);
+  });
+
+  it('keeps one-person maps (Outfit custom pose) and renumbers around a dropped slot', () => {
+    assert.equal(isMultiPersonPoseGuide('day-pose-guide-walk-down-down-e05f5d-photo-1.png'), false);
+    assert.equal(isMultiPersonPoseGuide('day-pose-guide-lap-59c64f-x2-1790.png'), true);
+    assert.equal(
+      withoutDroppedReferences('Face from <image1>. Map <image2> shows it. Outfit from <image3>.', [2], [1, 3]),
+      'Face from <image1>. Outfit from <image2>.'
+    );
   });
 });

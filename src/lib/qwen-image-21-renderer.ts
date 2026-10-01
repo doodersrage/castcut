@@ -23,6 +23,38 @@ export function normalizeQwenRenderer(value: unknown): QwenRenderer {
   return value === 'qwen-image-2.1' ? 'qwen-image-2.1' : 'rapid';
 }
 
+/** Qwen-Edit engines (Rapid AIO edit, Edit 2511…) — the ones whose graph converts. */
+export function isQwenImage21RenderableModel(model: string | null | undefined): boolean {
+  return /qwen.*edit|qwen-rapid-aio-edit/i.test(String(model ?? ''));
+}
+
+/** The renderer is on and this engine's stills will render on Qwen-Image 2.1. */
+export function qwenImage21RendererActive(
+  renderer: unknown,
+  model: string | null | undefined
+): boolean {
+  return (
+    normalizeQwenRenderer(renderer) === 'qwen-image-2.1' && isQwenImage21RenderableModel(model)
+  );
+}
+
+/**
+ * The Qwen-Edit engine that carries the recipes when "Qwen-Image 2.1" is picked from the model
+ * list: stay on the current one if it is Qwen-Edit, else the Rapid AIO edit engine the tool allows.
+ */
+export function qwenImage21BaseModel(current: string, allowed: readonly string[]): string | null {
+  if (isQwenImage21RenderableModel(current) && allowed.includes(current)) return current;
+  for (const id of [
+    'qwen-rapid-aio-edit-nsfw',
+    'qwen-rapid-aio-edit',
+    'qwen-image-edit-2511-lightning-8',
+    'qwen-image-edit-2511',
+  ]) {
+    if (allowed.includes(id)) return id;
+  }
+  return allowed.find(id => isQwenImage21RenderableModel(id)) ?? null;
+}
+
 /** Steps by queue quality: the official pipeline runs ~40–50; 30 held likeness in the A/B. */
 export function qwenImage21Steps(profile?: string | null): number {
   if (profile === 'draft') return 20;
@@ -60,6 +92,51 @@ function findPrimarySampler(workflow: Workflow): string | null {
 /** "Image 2" → "<image2>": Qwen-Image 2.1's own reference syntax. */
 export function toQwenImage21Prompt(prompt: string): string {
   return prompt.replace(/\b[Ii]mage ([1-9])\b/g, '<image$1>');
+}
+
+/** The LoadImage filename behind an image link (through resize / scale nodes). */
+function sourceFilename(workflow: Workflow, ref: [string, number]): string {
+  let current: unknown = ref;
+  for (let hops = 0; hops < 12 && isRef(current); hops += 1) {
+    const node = workflow[current[0]];
+    if (!node) return '';
+    if (node.class_type === 'LoadImage') return String(node.inputs.image ?? '');
+    current = node.inputs.image ?? node.inputs.pixels ?? node.inputs.images;
+  }
+  return '';
+}
+
+/** Day / Story pose guides for two or more people ("day-pose-guide-lap-59c64f-x2-…"). */
+export function isMultiPersonPoseGuide(filename: string): boolean {
+  return /pose-guide.*-x[2-9]\b/i.test(filename);
+}
+
+/**
+ * Remove the sentences that point at dropped references ("Match the two bodies in the second
+ * image (pose map)."), then renumber <imageN> for the references that remain.
+ */
+export function withoutDroppedReferences(
+  prompt: string,
+  dropped: number[],
+  keptSlots: number[]
+): string {
+  if (dropped.length === 0) return prompt;
+  const ordinals = ['first', 'second', 'third'];
+  const mentionsDropped = (sentence: string) =>
+    /pose map/i.test(sentence) ||
+    dropped.some(
+      slot =>
+        sentence.includes(`<image${slot}>`) ||
+        new RegExp(`\\b${ordinals[slot - 1]} image\\b`, 'i').test(sentence)
+    );
+  const kept = prompt
+    .split(/(?<=[.!?])\s+|\n+/)
+    .filter(sentence => sentence.trim() && !mentionsDropped(sentence));
+  const renumbered = kept.join(' ').replace(/<image([1-9])>/g, (match, n: string) => {
+    const index = keptSlots.indexOf(Number(n));
+    return index >= 0 ? `<image${index + 1}>` : match;
+  });
+  return renumbered;
 }
 
 const OUTPUT_CLASS = /^(?:Save|Preview)/;
@@ -122,17 +199,30 @@ export function convertQwenEditWorkflowToImage21(
     class_type: 'QwenImage21Cache',
     inputs: { model: [unet, 0], device: 'auto', dtype: 'default' },
   });
+  // Two-person pose maps go in as a plain reference on 2.1, and it paints them: fused bodies,
+  // a third person, detached anatomy (live, 2026-10-01). Without the map the bodies stay whole.
+  const kept: Array<{ from: number; ref: [string, number] }> = [];
+  const dropped: number[] = [];
+  for (let slot = 1; slot <= 3; slot += 1) {
+    const ref = encoder.inputs[`image${slot}`];
+    if (!isRef(ref)) continue;
+    if (isMultiPersonPoseGuide(sourceFilename(workflow, ref))) dropped.push(slot);
+    else kept.push({ from: slot, ref });
+  }
   const encodeInputs: Record<string, unknown> = {
     clip: [clip, 0],
     vae: [vae, 0],
-    prompt: toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')),
+    prompt: withoutDroppedReferences(
+      toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')),
+      dropped,
+      kept.map(entry => entry.from)
+    ),
     negative_prompt: '',
     resolution: 1024,
   };
-  for (let slot = 1; slot <= 3; slot += 1) {
-    const ref = encoder.inputs[`image${slot}`];
-    if (isRef(ref)) encodeInputs[`images.image_${slot}`] = ref;
-  }
+  kept.forEach((entry, index) => {
+    encodeInputs[`images.image_${index + 1}`] = entry.ref;
+  });
   const encode = add({ class_type: 'TextEncodeQwenImage21', inputs: encodeInputs });
   const latent = add({
     class_type: 'EmptyLatentImage',
