@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
+import MyPosesStrip from '@/components/pose/MyPosesStrip';
 import PoseJointEditor from '@/components/pose/PoseJointEditor';
 import { Button } from '@/components/ui/Button';
 import { SelectInput } from '@/components/ui/Field';
@@ -270,6 +271,13 @@ export default function PosePreview({
             ))}
           </SelectInput>
         </div>
+        <MyPosesStrip
+          disabled={busy}
+          testIdPrefix={`${testIdPrefix}-my-poses`}
+          onPick={pose =>
+            onChange({ posePhoto: pose, poseLayout: undefined, poseVariant: undefined })
+          }
+        />
         <div className="flex flex-wrap items-center gap-2 type-caption text-[var(--text-muted)]">
           <button
             type="button"

@@ -6,6 +6,15 @@ import { Button } from '@/components/ui/Button';
 import type { PhotoPose } from '@/lib/day-pose-guide';
 import type { NormalizedBody } from '@/lib/pose-library';
 import { moveJoint } from '@/lib/pose-joint-edit';
+import { saveMyPose } from '@/lib/my-poses';
+import {
+  addPerson,
+  mirrorBodies,
+  poseStarterBody,
+  POSE_STARTERS,
+  removePerson,
+  type PoseStarterId,
+} from '@/lib/pose-starters';
 
 /** COCO-18 bones drawn while editing (face points follow the nose). */
 const BONES: ReadonlyArray<readonly [number, number]> = [
@@ -53,17 +62,28 @@ export default function PoseJointEditor({
   testIdPrefix,
   onSave,
   onCancel,
+  allowTwo = true,
 }: {
   bodies: NormalizedBody[];
   aspect: number;
   testIdPrefix: string;
   onSave: (pose: PhotoPose) => void;
   onCancel: () => void;
+  /** Allow a second figure (Day / Story duos); Outfit try-ons are one person. */
+  allowTwo?: boolean;
 }) {
   const [bodies, setBodies] = useState<NormalizedBody[]>(() =>
     initial.map(body => body.map(p => (p ? { ...p } : null)))
   );
   const [drag, setDrag] = useState<{ person: number; joint: number } | null>(null);
+  const [saveName, setSaveName] = useState<string | null>(null);
+  const [savedNote, setSavedNote] = useState<string | null>(null);
+  // Start from a base figure — keeps the second person when there is one.
+  const startFrom = (id: PoseStarterId) => {
+    const lead = poseStarterBody(id);
+    setBodies(previous => (previous.length > 1 ? addPerson([lead]) : [lead]));
+    setSavedNote(null);
+  };
   const svgRef = useRef<SVGSVGElement | null>(null);
   const safeAspect = aspect > 0.2 && aspect < 5 ? aspect : 2 / 3;
   const height = 260;
@@ -171,6 +191,92 @@ export default function PoseJointEditor({
           );
         })}
       </svg>
+      <div
+        className="flex flex-wrap items-center gap-1.5"
+        data-testid={`${testIdPrefix}-editor-tools`}
+      >
+        <span className="type-caption text-[var(--text-muted)]">Start from</span>
+        {POSE_STARTERS.map(starter => (
+          <Button
+            key={starter.id}
+            size="sm"
+            variant="ghost"
+            data-testid={`${testIdPrefix}-starter-${starter.id}`}
+            onClick={() => startFrom(starter.id)}
+          >
+            {starter.label}
+          </Button>
+        ))}
+        <Button
+          size="sm"
+          variant="ghost"
+          data-testid={`${testIdPrefix}-mirror`}
+          onClick={() => setBodies(previous => mirrorBodies(previous))}
+        >
+          Mirror
+        </Button>
+        {allowTwo ? (
+          bodies.length < 2 ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid={`${testIdPrefix}-add-person`}
+              onClick={() => setBodies(previous => addPerson(previous))}
+            >
+              Add a person
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid={`${testIdPrefix}-remove-person`}
+              onClick={() => setBodies(previous => removePerson(previous))}
+            >
+              Remove second person
+            </Button>
+          )
+        ) : null}
+      </div>
+      {saveName != null ? (
+        <form
+          className="flex flex-wrap items-center gap-2"
+          onSubmit={event => {
+            event.preventDefault();
+            try {
+              const saved = saveMyPose(
+                { aspect: safeAspect, people: bodies, source: 'edited' },
+                saveName.trim() || 'My pose'
+              );
+              setSavedNote(`Saved to My poses as “${saved.name}”.`);
+              setSaveName(null);
+            } catch (err) {
+              setSavedNote(err instanceof Error ? err.message : 'Could not save that pose.');
+            }
+          }}
+        >
+          <input
+            autoFocus
+            aria-label="Pose name"
+            className="ui-input h-8 w-48 text-sm"
+            placeholder="Name this pose"
+            value={saveName}
+            maxLength={60}
+            data-testid={`${testIdPrefix}-save-name`}
+            onChange={event => setSaveName(event.target.value)}
+          />
+          <Button size="sm" variant="secondary" type="submit">
+            Save
+          </Button>
+          <Button size="sm" variant="ghost" type="button" onClick={() => setSaveName(null)}>
+            Cancel
+          </Button>
+        </form>
+      ) : null}
+      {savedNote ? (
+        <p className="type-caption text-[var(--text-muted)]" role="status">
+          {savedNote}
+        </p>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
@@ -180,6 +286,19 @@ export default function PoseJointEditor({
         >
           Use this pose
         </Button>
+        {saveName == null ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            data-testid={`${testIdPrefix}-save-to-my-poses`}
+            onClick={() => {
+              setSaveName('');
+              setSavedNote(null);
+            }}
+          >
+            Save to My poses
+          </Button>
+        ) : null}
         <Button size="sm" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>

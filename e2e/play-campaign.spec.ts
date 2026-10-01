@@ -89,6 +89,38 @@ test('outfit first run: Cast card, one plate message, grouped kit controls', asy
   await expect(review).toHaveAttribute('aria-checked', 'true');
 });
 
+test('outfit custom pose: drag editor, start figures, save to My poses', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: '' },
+    characters: { version: 1, characters: [], removedIds: [] },
+  });
+  await gotoStable(page, '/fitting');
+  await dismissBlockingOverlays(page);
+  const section = page.getByTestId('outfit-pose');
+  await expect(section).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('outfit-pose-plate')).toHaveAttribute('aria-checked', 'true');
+
+  await page.getByTestId('outfit-pose-custom').click();
+  await expect(page.getByTestId('outfit-pose-editor')).toBeVisible();
+  // One person on Outfit — no "Add a person".
+  await expect(page.getByTestId('outfit-pose-add-person')).toHaveCount(0);
+  await page.getByTestId('outfit-pose-starter-sit').click();
+  await page.getByTestId('outfit-pose-mirror').click();
+
+  await page.getByTestId('outfit-pose-save-to-my-poses').click();
+  await page.getByTestId('outfit-pose-save-name').fill('Chair lean');
+  await page.getByTestId('outfit-pose-save-name').press('Enter');
+  await expect(section).toContainText('Saved to My poses as “Chair lean”');
+
+  await page.getByTestId('outfit-pose-editor-save').click();
+  await expect(page.getByTestId('outfit-pose-custom')).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('outfit-pose-figure')).toBeVisible();
+  await expect(page.getByTestId('outfit-my-poses')).toContainText('Chair lean');
+
+  await page.getByTestId('outfit-pose-plate').click();
+  await expect(page.getByTestId('outfit-pose-figure')).toHaveCount(0);
+});
+
 test('forgetting a Cast lead asks first', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem(

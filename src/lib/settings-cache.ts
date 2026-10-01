@@ -1105,6 +1105,8 @@ export type FittingToolCache = {
   customGarmentDescription?: string;
   /** Opt-in: score each landed try-on (face match vs plate + vision outfit read). */
   autoReviewTryOns?: boolean;
+  /** Outfit → Pose → Custom: the joint editor's skeleton, sent as Image 3 (unset = as the plate). */
+  tryOnPose?: import('./day-pose-guide').PhotoPose;
 };
 
 /** Day Planner — time-of-day slots with wardrobe + scene beats for one character. */

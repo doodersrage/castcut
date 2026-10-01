@@ -527,3 +527,23 @@ export function buildFittingKitPreviewPrompt(input: {
     .filter(Boolean)
     .join(' ');
 }
+
+/**
+ * Outfit custom pose (the joint editor's skeleton as Image 3): the try-on prompt keeps "pose from
+ * Image 1" in several places — take the stance from the pose map instead and keep the rest.
+ */
+export function withFittingCustomPose(prompt: string): string {
+  return [
+    prompt
+      .replace(
+        /\bbody, and pose from Image 1\b/g,
+        'and body from Image 1 — but the stance from the pose map in Image 3'
+      )
+      .replace(
+        /\bbody shape, and pose as the reference photo\b/g,
+        'and body shape as the reference photo, in the pose from Image 3'
+      )
+      .replace(/\band pose\b(?= from Image 1)/g, ''),
+    'POSE: Image 3 is a pose map (a skeleton, not a person) — put her body in exactly that stance: arms, legs, head tilt and weight as drawn. Change only the stance; the outfit, face and setting stay.',
+  ].join('\n');
+}

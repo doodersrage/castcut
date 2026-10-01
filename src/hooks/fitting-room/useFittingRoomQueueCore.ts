@@ -1,5 +1,7 @@
 'use client';
 
+import { buildDayPoseGuide } from '@/lib/day-pose-guide';
+import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import {
@@ -12,6 +14,7 @@ import {
   buildFittingOutfitPrompt,
   clipFittingGarmentLabel,
   pushFittingCompareTryOn,
+  withFittingCustomPose,
   type FittingCompareTryOn,
   type FittingSwipeKit,
 } from '@/lib/fitting-room';
@@ -43,6 +46,15 @@ import type { CharacterRecord } from '@/lib/character-os';
 const TOOL_ID = 'fitting' as const;
 
 type PromptResultActions = ReturnType<typeof usePromptResultActions>;
+
+/** Image 1 plate, Image 2 garment (or empty), Image 3 the custom pose guide. */
+function withPoseGuideSlot(filenames: string[], poseGuide: string | undefined): string[] {
+  if (!poseGuide) return filenames;
+  const next = [...filenames];
+  while (next.length < 2) next.push('');
+  next[2] = poseGuide;
+  return next;
+}
 
 export type FittingRoomQueueInput = {
   mounted: boolean;
@@ -167,7 +179,27 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           customGarmentUrl,
           customGarmentFilename,
         });
-        const prompt = buildPrompt();
+        // Pose → Custom: the joint editor's skeleton rides as Image 3 (VL-only, like Day's guide).
+        const customPose = input.toolSettings.tryOnPose;
+        let poseGuideFilename: string | undefined;
+        if (customPose?.people.length) {
+          try {
+            const build = await buildDayPoseGuide('afternoon', 'custom pose', input.shared.model, {
+              photoPose: customPose,
+              forcePeople: 1,
+            });
+            const uploaded = await resolveQueueInputImage({
+              file: build.file,
+              filename: build.file.name,
+              model: input.shared.model,
+            });
+            poseGuideFilename = uploaded?.filename?.trim() || undefined;
+          } catch (poseError) {
+            console.warn('Outfit custom pose could not be attached:', poseError);
+          }
+        }
+        const builtPrompt = buildPrompt();
+        const prompt = poseGuideFilename ? withFittingCustomPose(builtPrompt) : builtPrompt;
         const finalized = await input.actions.finalizePrompt(
           prompt,
           input.character?.name || 'Fitting'
@@ -207,13 +239,16 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                   : {}),
                 ...(garmentExtras.inputImageFilenames
                   ? {
-                      inputImageFilenames: garmentExtras.inputImageFilenames.map(
-                        name => name?.trim() || ''
+                      inputImageFilenames: withPoseGuideSlot(
+                        garmentExtras.inputImageFilenames.map(name => name?.trim() || ''),
+                        poseGuideFilename
                       ),
                     }
                   : {}),
               }
-            : {}),
+            : poseGuideFilename
+              ? { inputImageFilenames: withPoseGuideSlot([], poseGuideFilename) }
+              : {}),
           characterId: input.shared.activeCharacterId,
           lookId: input.shared.activeLookId ?? input.character?.activeLookId,
         });
@@ -238,6 +273,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
       buildPrompt,
       input.actions,
       input.character,
+      input.toolSettings.tryOnPose,
       input.isolateSubject,
       input.lockedWardrobeLabel,
       input.referenceImageFilename,

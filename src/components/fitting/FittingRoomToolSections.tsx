@@ -9,6 +9,7 @@ import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnRevie
 import FittingPlateSection from '@/components/fitting/FittingPlateSection';
 import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
 import TaskRequirementsCard from '@/components/TaskRequirementsCard';
+import OutfitPoseSection from '@/components/fitting/OutfitPoseSection';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
 import OutfitPlayPhaseStrip from '@/components/fitting/OutfitPlayPhaseStrip';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
@@ -226,6 +227,12 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onClearReference={clearReference}
         onError={message => setError(message)}
         lookHref={withCharacterQuery('/moodboard', shared.activeCharacterId)}
+      />
+
+      <OutfitPoseSection
+        pose={toolSettings.tryOnPose}
+        busy={busy}
+        onChange={pose => updateToolSettings({ tryOnPose: pose })}
       />
 
       <TaskRequirementsCard

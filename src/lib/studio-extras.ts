@@ -2,6 +2,7 @@
  * Durable studio state that is not settings / history / gallery.
  * Synced to PROMPT_DATA_DIR as the `studio-extras` namespace.
  */
+import { loadMyPoses, replaceMyPoses, type MyPose } from '@/lib/my-poses';
 import {
   loadSavedFittingGarments,
   replaceSavedFittingGarments,
@@ -203,6 +204,8 @@ export type StudioExtrasPayload = {
   playCampaignState?: PlayCampaignState | null;
   /** Saved clothing photos (Day / Story / Outfit "Saved photos"). */
   fittingSavedGarments?: SavedFittingGarment[];
+  /** "My poses" — dragged / photo skeletons saved by name. */
+  myPoses?: MyPose[];
 };
 
 export function collectStudioExtras(): StudioExtrasPayload {
@@ -268,6 +271,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     playMetrics: loadPlayMetrics(),
     playCampaignState: loadPlayCampaignState(),
     fittingSavedGarments: loadSavedFittingGarments(),
+    myPoses: loadMyPoses(),
   };
 }
 
@@ -366,6 +370,9 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.fittingSavedGarments) {
       replaceSavedFittingGarments(payload.fittingSavedGarments);
+    }
+    if (payload.myPoses) {
+      replaceMyPoses(payload.myPoses);
     }
     if (payload.queueParams) {
       saveQueueParamsSettings(payload.queueParams);
