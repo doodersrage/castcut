@@ -13,8 +13,9 @@
 
   --text-primary: #ececef;
   --text-secondary: #a1a4ad;
-  --text-tertiary: #80848f;
-  --text-muted: #6b6f7a;
+  --text-tertiary: #8f939e;
+  /* ≥4.6:1 on every dark surface (WCAG AA) — #6b6f7a was 3.4–3.9:1. */
+  --text-muted: #80848f;
 
   --border-subtle: rgb(255 255 255 / 0.06);
   --border-default: rgb(255 255 255 / 0.1);
@@ -2687,8 +2688,9 @@ html[data-theme='light'] .ui-force-dark {
   --bg-active: rgb(255 255 255 / 0.08);
   --text-primary: #ececef;
   --text-secondary: #a1a4ad;
-  --text-tertiary: #80848f;
-  --text-muted: #6b6f7a;
+  --text-tertiary: #8f939e;
+  /* ≥4.6:1 on every dark surface (WCAG AA) — #6b6f7a was 3.4–3.9:1. */
+  --text-muted: #80848f;
   --border-subtle: rgb(255 255 255 / 0.06);
   --border-default: rgb(255 255 255 / 0.1);
   --border-strong: rgb(255 255 255 / 0.14);
