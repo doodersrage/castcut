@@ -31,6 +31,28 @@ export const QWEN_IMAGE_21_POSE_CONTROL_NODE = 'QwenImage21UnionApply';
 export const QWEN_IMAGE_21_FOUR_STEP_NODE = 'T8QwenImage21FunAccPDD4Step';
 export const QWEN_IMAGE_21_FOUR_STEP_FILE = 'Qwen-Image-2.1-Fun-Acc-4Step-PDD-T8.safetensors';
 
+/**
+ * Pruna 8-step LoRA (PrunaAI/Pruna-Qwen-Image-2.1) on its own fixed sigma schedule — core nodes
+ * only (LoraLoaderModelOnly + ManualSigmas + BasicGuider), no custom pack. Live A/B (2026-10-01,
+ * seed 101, 6 Day / try-on stills vs the full 30-step pass, Fun-Acc 4 and Viggle turbo 6):
+ * matched the full pass on hand-in-hand / hug / kneel / lying and held the arms-up try-on that
+ * gave Fun-Acc 4 ghost arms and Viggle a lost pose; 14–28 s vs 51–86 s. A duo selfie added a
+ * third person on every sampler, the full pass included.
+ */
+export const QWEN_IMAGE_21_EIGHT_STEP_LORA = 'p_qwen_image_2.1_8step_v0.1.safetensors';
+/** Pruna's 8-step nodes as given (no shift): 1 → 14/15 → 6/7 → 10/13 → 2/3 → 6/11 → 0.4 → 2/9 → 0. */
+export const QWEN_IMAGE_21_EIGHT_STEP_SIGMAS = [
+  1,
+  14 / 15,
+  6 / 7,
+  10 / 13,
+  2 / 3,
+  6 / 11,
+  0.4,
+  2 / 9,
+  0,
+];
+
 export function normalizeQwenRenderer(value: unknown): QwenRenderer {
   return value === 'qwen-image-2.1' ? 'qwen-image-2.1' : 'rapid';
 }
@@ -38,6 +60,7 @@ export function normalizeQwenRenderer(value: unknown): QwenRenderer {
 /** The picker ids. Lightning is its own model, not a quality step on the base. */
 export const QWEN_IMAGE_21_MODEL = 'qwen-image-2.1-edit';
 export const QWEN_IMAGE_21_LIGHTNING_MODEL = 'qwen-image-2.1-edit-lightning-4';
+export const QWEN_IMAGE_21_PRUNA_8_MODEL = 'qwen-image-2.1-edit-pruna-8';
 
 export function isQwenImage21Model(model: string | null | undefined): boolean {
   return String(model ?? '')
@@ -46,12 +69,23 @@ export function isQwenImage21Model(model: string | null | undefined): boolean {
     .startsWith('qwen-image-2.1');
 }
 
-/** Fun-Acc 4-step. Distinct from Qwen-Image Lightning LoRAs (those do not load on 2.1). */
+/**
+ * A 2.1 fast engine (Fun-Acc 4-step or Pruna 8-step). Distinct from Qwen-Image Lightning LoRAs
+ * (those do not load on 2.1).
+ */
 export function isQwenImage21LightningModel(model: string | null | undefined): boolean {
   const id = String(model ?? '')
     .trim()
     .toLowerCase();
-  return id.startsWith('qwen-image-2.1') && id.includes('lightning-');
+  return id.startsWith('qwen-image-2.1') && (id.includes('lightning-') || id.includes('pruna-'));
+}
+
+/** Which fast sampler a 2.1 engine renders with; null = the full euler pass. */
+export function qwenImage21FastSampler(
+  model: string | null | undefined
+): 'fun-acc-4' | 'pruna-8' | null {
+  if (!isQwenImage21LightningModel(model)) return null;
+  return /pruna-8$/i.test(String(model).trim()) ? 'pruna-8' : 'fun-acc-4';
 }
 
 /** Steps by queue quality: the official pipeline runs ~40–50; 30 held likeness in the A/B. */
@@ -343,6 +377,8 @@ export function convertQwenEditWorkflowToImage21(
      * T8QwenImage21FunAccPDD4Step node and its paired model file in models/loras.
      */
     fourStep?: boolean;
+    /** Pruna 8-step LoRA + its fixed sigmas (core nodes). Ignored when `fourStep` is on. */
+    eightStep?: boolean;
   } = {}
 ): { workflow: Record<string, unknown>; converted: boolean } {
   const workflow = structuredClone(input) as Workflow;
@@ -376,9 +412,16 @@ export function convertQwenEditWorkflowToImage21(
     inputs: { clip_name: QWEN_IMAGE_21_FILES.clip, type: 'qwen_image', device: 'default' },
   });
   const vae = add({ class_type: 'VAELoader', inputs: { vae_name: QWEN_IMAGE_21_FILES.vae } });
+  const eightStep = options.eightStep === true && options.fourStep !== true;
+  const lora = eightStep
+    ? add({
+        class_type: 'LoraLoaderModelOnly',
+        inputs: { model: [unet, 0], lora_name: QWEN_IMAGE_21_EIGHT_STEP_LORA, strength_model: 1 },
+      })
+    : unet;
   const cache = add({
     class_type: 'QwenImage21Cache',
-    inputs: { model: [unet, 0], device: 'auto', dtype: 'default' },
+    inputs: { model: [lora, 0], device: 'auto', dtype: 'default' },
   });
   let samplerModel: [string, number] = [cache, 0];
   // A two-person pose map is a limb diagram. 2.1 paints it: fused bodies, a third person, a
@@ -470,6 +513,33 @@ export function convertQwenEditWorkflowToImage21(
         latent_image: [latent, 0],
         model_file: QWEN_IMAGE_21_FOUR_STEP_FILE,
         seed: sampler.inputs.seed ?? 0,
+      },
+    };
+  }
+  if (eightStep) {
+    const noise = add({
+      class_type: 'RandomNoise',
+      inputs: { noise_seed: sampler.inputs.seed ?? 0 },
+    });
+    const guider = add({
+      class_type: 'BasicGuider',
+      inputs: { model: samplerModel, conditioning: [encode, 0] },
+    });
+    const pick = add({ class_type: 'KSamplerSelect', inputs: { sampler_name: 'euler' } });
+    const sigmas = add({
+      class_type: 'ManualSigmas',
+      inputs: {
+        sigmas: QWEN_IMAGE_21_EIGHT_STEP_SIGMAS.map(value => value.toFixed(6)).join(', '),
+      },
+    });
+    workflow[samplerId] = {
+      class_type: 'SamplerCustomAdvanced',
+      inputs: {
+        noise: [noise, 0],
+        guider: [guider, 0],
+        sampler: [pick, 0],
+        sigmas: [sigmas, 0],
+        latent_image: [latent, 0],
       },
     };
   }

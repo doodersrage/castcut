@@ -403,6 +403,11 @@ const MODEL_SAMPLER_PRESETS: ModelSamplerPresetMap = {
     steps: 4,
     ...QWEN_LIGHTNING_SAMPLER,
   }),
+  // Pruna 8-step: the converter swaps in its fixed sigmas; the steps shown here match them.
+  'qwen-image-2.1-edit-pruna-8': fixedSamplerPresets({
+    steps: 8,
+    ...QWEN_LIGHTNING_SAMPLER,
+  }),
   'qwen-rapid-aio-edit': rapidAioPresets(QWEN_RAPID_AIO_EDIT_SAMPLER),
   // Edit NSFW: same euler_a + simple as SFW Edit (Phr00t community baseline).
   'qwen-rapid-aio-edit-nsfw': rapidAioPresets(QWEN_RAPID_AIO_EDIT_SAMPLER),

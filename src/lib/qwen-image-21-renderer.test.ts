@@ -8,6 +8,8 @@ import {
   pruneUnreachableNodes,
   QWEN_IMAGE_21_FILES,
   isQwenImage21LightningModel,
+  QWEN_IMAGE_21_EIGHT_STEP_LORA,
+  qwenImage21FastSampler,
   qwenImage21Canvas,
   qwenImage21Resolution,
   qwenImage21Steps,
@@ -324,9 +326,58 @@ describe('Qwen-Image 2.1: 4-step sampler', () => {
   });
 });
 
+describe('Qwen-Image 2.1: 8-step sampler (Pruna LoRA)', () => {
+  it('loads the LoRA ahead of the cache and samples on its fixed sigmas', () => {
+    const graph = {
+      '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt: 'Solo still.', image1: ['900', 0] } },
+      '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+      '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+      '900': { class_type: 'LoadImage', inputs: { image: 'plate.png' } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+    };
+    const workflow = convertQwenEditWorkflowToImage21(graph, { eightStep: true }).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+    const byClass = (type: string) => Object.entries(workflow).find(([, node]) => node.class_type === type)!;
+    assert.equal(workflow['8']!.class_type, 'SamplerCustomAdvanced');
+    assert.deepEqual(workflow['9']!.inputs.samples, ['8', 0]);
+    const [loraId, lora] = byClass('LoraLoaderModelOnly');
+    assert.equal(lora.inputs.lora_name, QWEN_IMAGE_21_EIGHT_STEP_LORA);
+    assert.deepEqual(byClass('QwenImage21Cache')[1].inputs.model, [loraId, 0]);
+    assert.equal(String(byClass('ManualSigmas')[1].inputs.sigmas).split(',').length, 9);
+    assert.equal(byClass('RandomNoise')[1].inputs.noise_seed, 7);
+    const latent = byClass('EmptyLatentImage')[1];
+    assert.deepEqual([latent.inputs.width, latent.inputs.height], [1792, 2400]);
+  });
+
+  it('the 4-step node wins if both are asked for; the full pass has no LoRA', () => {
+    const graph = {
+      '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt: 'Solo still.', image1: ['900', 0] } },
+      '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+      '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+      '900': { class_type: 'LoadImage', inputs: { image: 'plate.png' } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+    };
+    const both = convertQwenEditWorkflowToImage21(graph, { fourStep: true, eightStep: true }).workflow as Record<string, { class_type: string }>;
+    assert.equal(both['8']!.class_type, 'T8QwenImage21FunAccPDD4Step');
+    assert.ok(!Object.values(both).some(node => node.class_type === 'LoraLoaderModelOnly'));
+    const full = convertQwenEditWorkflowToImage21(graph).workflow as Record<string, { class_type: string }>;
+    assert.equal(full['8']!.class_type, 'KSampler');
+    assert.ok(!Object.values(full).some(node => node.class_type === 'LoraLoaderModelOnly'));
+  });
+});
+
 describe('Qwen-Image 2.1 Lightning model', () => {
+  it('picks the fast sampler from the engine id', () => {
+    assert.equal(qwenImage21FastSampler('qwen-image-2.1-edit-lightning-4'), 'fun-acc-4');
+    assert.equal(qwenImage21FastSampler('qwen-image-2.1-edit-pruna-8'), 'pruna-8');
+    assert.equal(qwenImage21FastSampler('qwen-image-2.1-edit'), null);
+    assert.equal(qwenImage21FastSampler('qwen-image-2512-lightning-8'), null);
+  });
+
   it('is only the lightning id, not the base model', () => {
     assert.equal(isQwenImage21LightningModel('qwen-image-2.1-edit-lightning-4'), true);
+    assert.equal(isQwenImage21LightningModel('qwen-image-2.1-edit-pruna-8'), true);
     assert.equal(isQwenImage21LightningModel('qwen-image-2.1-edit'), false);
     assert.equal(isQwenImage21LightningModel('qwen-image-2512-lightning-4'), false);
   });

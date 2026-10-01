@@ -45,7 +45,7 @@ export function isQwenLightningModel(model: ComfyImageModel | string | undefined
     return false;
   }
   const id = model.trim();
-  // 2.1 Lightning is the Fun-Acc 4-step sampler, not a Qwen-Image Lightning LoRA.
+  // 2.1 fast engines are Fun-Acc 4-step / Pruna 8-step, not Qwen-Image Lightning LoRAs.
   if (id.toLowerCase().startsWith('qwen-image-2.1')) {
     return false;
   }

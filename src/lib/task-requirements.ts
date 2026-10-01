@@ -41,6 +41,14 @@ const MODEL_ASSETS: Record<string, string[]> = {
     'qwen-image-2.1-vae',
     'qwen-rapid-aio-nsfw-checkpoint',
   ],
+  // Pruna 8-step is a LoRA on core nodes — no custom pack.
+  'qwen-image-2.1-edit-pruna-8': [
+    'qwen-image-2.1-bf16',
+    'qwen-image-2.1-text-encoder',
+    'qwen-image-2.1-vae',
+    'qwen-image-2.1-pruna-8step',
+    'qwen-rapid-aio-nsfw-checkpoint',
+  ],
 };
 
 /** Custom-node packs, named by a node type ComfyUI Manager can resolve to its pack. */
@@ -51,7 +59,7 @@ const NODE_PACKS = {
     nodeTypes: ['FaceAnalysisModels', 'FaceEmbedDistance'],
   },
   qwenImage21FourStep: {
-    label: 'Qwen-Image 2.1 Lightning 4-step sampler (T8)',
+    label: 'Qwen-Image 2.1 Fun-Acc 4-step sampler (T8)',
     nodeTypes: ['T8QwenImage21FunAccPDD4Step'],
   },
 } as const;
@@ -104,7 +112,7 @@ export function taskRequirements(input: TaskRequirementInput): TaskRequirements 
   };
   const model = input.model?.trim() ?? '';
   addModel(model, 'stills');
-  if (model.startsWith('qwen-image-2.1') && model.includes('lightning-')) {
+  if (model.startsWith('qwen-image-2.1') && model.endsWith('lightning-4')) {
     nodePacks.push(NODE_PACKS.qwenImage21FourStep);
     reasons.push('4-step sampler');
   }

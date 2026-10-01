@@ -2,7 +2,7 @@
 
 import { isLtx25Model } from './ltx25-renderer';
 import { poseModelFamily } from './pose/pose-model-profile';
-import { isQwenImage21LightningModel } from './qwen-image-21-renderer';
+import { qwenImage21FastSampler } from './qwen-image-21-renderer';
 import type { ComfyImageModel } from './comfy-models/client';
 import {
   loadComfyWorkflowFiles,
@@ -473,7 +473,12 @@ export function resolveRuntimeForQueue(
     ...(poseModelFamily(model) === 'qwen-image-2.1'
       ? {
           qwenRenderer: 'qwen-image-2.1' as const,
-          ...(isQwenImage21LightningModel(model) ? { qwenImage21FourStep: true as const } : {}),
+          ...(qwenImage21FastSampler(model) === 'fun-acc-4'
+            ? { qwenImage21FourStep: true as const }
+            : {}),
+          ...(qwenImage21FastSampler(model) === 'pruna-8'
+            ? { qwenImage21EightStep: true as const }
+            : {}),
         }
       : {}),
     // The picked clip engine renders on LTX-2.5; the graph above is its WAN base.

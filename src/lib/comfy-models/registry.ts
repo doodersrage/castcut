@@ -366,12 +366,26 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
   },
   {
     id: 'qwen-image-2.1-edit-lightning-4',
-    label: 'Qwen-Image 2.1 Lightning (4-step)',
+    label: 'Qwen-Image 2.1 Fun-Acc (4-step)',
     category: 'qwen',
     comfyNode: 'TextEncodeQwenImage21',
     comfyClass: 'QwenImage21',
     description:
       'Qwen-Image 2.1 + Fun-Acc PDD 4-step, at the same native 2K size as Qwen-Image 2.1. Same Cast recipes, about 7× fewer steps — the T8 4-step sampler, cfg 1. Two-person penetration stills render on Rapid AIO NSFW.',
+    profile: 'qwen_edit_instruction',
+    referenceTokenLimit: 512,
+    limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
+    unetHint: 'qwen_image_2.1_bf16.safetensors',
+    vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
+  },
+  {
+    id: 'qwen-image-2.1-edit-pruna-8',
+    label: 'Qwen-Image 2.1 Pruna (8-step)',
+    category: 'qwen',
+    comfyNode: 'TextEncodeQwenImage21',
+    comfyClass: 'QwenImage21',
+    description:
+      'Qwen-Image 2.1 + the Pruna 8-step LoRA, at the same native 2K size as Qwen-Image 2.1. Closest to the full pass of the fast options — held arms-up poses the 4-step ghosted — at about a third of the time. Core nodes only, cfg 1. Two-person penetration stills render on Rapid AIO NSFW.',
     profile: 'qwen_edit_instruction',
     referenceTokenLimit: 512,
     limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,

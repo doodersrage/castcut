@@ -80,4 +80,11 @@ describe('task requirements: Qwen-Image 2.1 engine', () => {
     assert.ok(req.nodePacks.some(pack => pack.nodeTypes.includes('T8QwenImage21FunAccPDD4Step')));
     assert.equal(taskRequirements({ model: 'qwen-image-2.1-edit' }).nodePacks.length, 0);
   });
+
+  it('Lightning 8 needs the Pruna LoRA and no custom node pack', () => {
+    const req = taskRequirements({ model: 'qwen-image-2.1-edit-pruna-8' });
+    assert.ok(req.assetIds.includes('qwen-image-2.1-bf16'));
+    assert.ok(req.assetIds.includes('qwen-image-2.1-pruna-8step'));
+    assert.equal(req.nodePacks.length, 0);
+  });
 });

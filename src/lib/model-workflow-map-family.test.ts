@@ -12,7 +12,11 @@ describe("modelsInSameFamily", () => {
 
   it("returns the Qwen-Image 2.1 Lightning sibling", () => {
     const family = modelsInSameFamily("qwen-image-2.1-edit");
-    assert.deepEqual(family, ["qwen-image-2.1-edit", "qwen-image-2.1-edit-lightning-4"]);
+    assert.deepEqual(family, [
+      "qwen-image-2.1-edit",
+      "qwen-image-2.1-edit-lightning-4",
+      "qwen-image-2.1-edit-pruna-8",
+    ]);
   });
 
   it("returns Rapid AIO siblings", () => {
