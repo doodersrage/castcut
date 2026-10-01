@@ -82,6 +82,38 @@ describe('Day partner', () => {
     }
   });
 
+  it('two women, lift: beside her on the counter, and the Moment drops "fucked" / wrapped legs', () => {
+    const recipe = buildRapidDuoRecipe({
+      beat: 'picked up and fucked by partner in the laundry room as the dryer buzzes — legs wrapped around him, both adults fully visible',
+      poseGuide: 'third',
+      partner: { partner: lana, image: 'second' },
+    })!;
+    assert.match(recipe, /her girlfriend stands beside her knee/);
+    assert.match(
+      recipe,
+      /Moment: fingered by her girlfriend in the laundry room as the dryer buzzes — both women fully visible\./
+    );
+    assert.doesNotMatch(recipe, /fucked|legs wrapped|chest to chest|both adults/);
+  });
+
+  it('two women, oral: a side view of exactly two women, the receiver seated off the floor', () => {
+    const rug = buildRapidDuoRecipe({
+      beat: 'oral sex on the living-room rug with partner when the pizza arrives — both adults fully visible',
+      poseGuide: 'third',
+      partner: { partner: lana, image: 'second' },
+    })!;
+    assert.match(rug, /Side view, exactly two women\. The woman sits on the edge of the couch/);
+    assert.match(rug, /her girlfriend kneels on the living-room rug between her thighs, her face in profile/);
+    assert.doesNotMatch(rug, /both faces in frame|edge of the living-room rug/);
+    const facesit = buildRapidDuoRecipe({
+      beat: 'sitting on his face on the bed as the alarm clock blares — oral sex partner, both adults fully visible',
+      poseGuide: 'third',
+      partner: { partner: lana, image: 'second' },
+    })!;
+    assert.match(facesit, /Moment: oral sex on the bed/);
+    assert.doesNotMatch(facesit, /sitting on her girlfriend's face/);
+  });
+
   it('adult duo recipe keeps both faces', () => {
     const recipe = buildRapidDuoRecipe({
       beat: 'missionary sex on the bed',

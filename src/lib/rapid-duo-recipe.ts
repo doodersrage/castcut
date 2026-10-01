@@ -60,7 +60,7 @@ function descriptorLine(descriptor: string | null | undefined): string | null {
 
 /** 69 / face-sit wording — Rapid renders these beats as seated oral (recipe + guide). */
 export const RAPID_ORAL_FALLBACK_RE =
-  /\b(?:sixty[- ]nine|69|face[- ]sitting(?:\s+(?:a|her)\s+partner)?|sitting\s+on\s+(?:his|her|their)\s+face)\b/gi;
+  /\b(?:sixty[- ]nine|69|face[- ]sitting(?:\s+(?:a|her)\s+partner)?|sitting\s+on\s+(?:his|her|their|her girlfriend's|his boyfriend's)\s+face)\b/gi;
 
 export {
   isRapidDuoRecipePrompt,
@@ -220,7 +220,10 @@ function placementTwoWomen(
         ? `The woman stands facing ${on('wall')} with her palms flat against it and her hips pushed back; ${gf} stands pressed against her back, one hand between her thighs from behind, fingering her; she looks back over her shoulder. Both standing on the floor.`
         : `The woman stands with her back pressed flat against ${on('wall')}. Her right foot is flat on the floor; her left knee is raised to her girlfriend's hip. ${cap(gf)} stands pressed chest to chest against her, kissing her, one hand between her thighs, fingering her.`;
     case 'lift':
-      return `Wide shot, both faces in frame. The woman sits up on ${on('counter')} with her legs wrapped around ${gf}, who stands between her thighs chest to chest; her arms around her girlfriend's neck, faces close; ${gf}'s hand between her thighs, fingering her.`;
+      // Chest to chest with her legs wrapped, the hidden hand came out as a penis (3/4) or one
+      // merged body; beside her knee, with the softened Moment below, two whole women 4/4 (live
+      // A/B 2026-10-01). Either change alone still drew a penis, a man or a third woman.
+      return `Wide shot, both faces in frame. The woman sits on ${on('counter')} with her thighs apart, leaning back on one hand; ${gf} stands beside her knee, turned toward her — two separate bodies, a gap between their hips — kissing her, one hand between her thighs, fingering her vulva.`;
     case 'oral':
     case 'sixty_nine':
     case 'facesit':
@@ -229,8 +232,17 @@ function placementTwoWomen(
           ? // Standing, two women knelt face to face and kissed (6/6); seating the receiver on a
             // chair gave the oral geometry 3/3 (live A/B 2026-10-01).
             `Full-body view, both faces in frame. ${cap(gf)} sits on a chair, leaning back with her thighs spread; the woman kneels on ${on('floor')} between her girlfriend's thighs with her mouth on her vulva, licking her, looking up at her.`
-          : `Full-body view, both faces in frame. ${cap(gf)} sits on the edge of ${on('bed')}, leaning back on her hands with her thighs spread; the woman kneels on the floor between her girlfriend's thighs with her mouth on her vulva, licking her, looking up at her.`
-        : `Full-body view, both faces in frame. The woman sits on the edge of ${on('bed')}, leaning back on her hands with her thighs spread; ${gf} kneels on the floor between her thighs with her mouth on her vulva, licking her, hands on her thighs.`;
+          : `Side view, exactly two women. ${cap(gf)} sits on the edge of ${on('bed')}, leaning back on her hands with her thighs spread; the woman kneels on the floor between her girlfriend's thighs, her face in profile pressed to her vulva, licking her, hands on her girlfriend's thighs. ${cap(gf)} looks down at her.`
+        : // "Both faces in frame" with one face buried drew a third woman to show it (4/8); a
+          // side view with the licker in profile kept two women 8/8 (live A/B 2026-10-01). On a
+          // floor surface the receiver sits on the couch / bed — "the edge of the rug" isn't a seat.
+          `Side view, exactly two women. The woman sits on the edge of ${
+            isFloorSurface(surface)
+              ? `the ${/\b(?:couch|sofa|living[- ]room|rug)\b/i.test(`${beat} ${surface}`) ? 'couch' : 'bed'}`
+              : on('bed')
+          }, leaning back on her hands with her thighs spread; ${gf} kneels on ${
+            isFloorSurface(surface) ? on('floor') : 'the floor'
+          } between her thighs, her face in profile pressed to her vulva, licking her, hands on her thighs. She looks down at her girlfriend.`;
     case 'kneeling':
       return `Both kneel upright on ${on('bed')} facing each other, bodies pressed together, kissing, each with a hand between the other's thighs; both faces in frame.`;
     case 'lap':
@@ -257,7 +269,21 @@ export function twoWomenBeat(beat: string): string {
       /\b(?:(?:her girlfriend's|a|the)\s+)?(?:penis|cock|dick|strap-on)\b/gi,
       "her girlfriend's fingers"
     )
-    .replace(/\bblow\s*job\b/gi, 'oral sex');
+    .replace(/\b(?:a\s+)?blow\s*job\b/gi, 'oral sex')
+    .replace(/\bboth adults\b/gi, 'both women');
+}
+
+/**
+ * The lift beat for two women: "picked up and fucked by her girlfriend … legs wrapped around
+ * her" drew a penis or a man even with the bodies placed apart (live A/B 2026-10-01).
+ */
+function twoWomenLiftBeat(beat: string): string {
+  return beat
+    .replace(/\b(?:picked up|lifted(?: up)?) and fucked by\b/gi, 'fingered by')
+    .replace(/\blifted onto her girlfriend\b/gi, 'fingered by her girlfriend on the counter')
+    .replace(/\bfucked\b/gi, 'fingered')
+    .replace(/\s*(?:—|,)\s*legs wrapped around her girlfriend(?:'s waist)?\s*(?:—|,)?\s*/gi, ' — ')
+    .replace(/\s*—\s*$/, '');
 }
 
 const NUDE_TWO_WOMEN =
@@ -449,7 +475,15 @@ export function buildRapidDuoRecipe(input: {
     RAPID_DUO_RECIPE_MARK,
     body,
     // "doggy" paints literal dogs on Qwen stacks; a 69 / face-sit beat renders as seated oral.
-    `Moment: ${calmSexLaughter(twoWomen ? twoWomenBeat(beat) : twoMen ? twoMenBeat(beat) : beat)
+    `Moment: ${calmSexLaughter(
+      twoWomen
+        ? layout === 'lift'
+          ? twoWomenLiftBeat(twoWomenBeat(beat))
+          : twoWomenBeat(beat)
+        : twoMen
+          ? twoMenBeat(beat)
+          : beat
+    )
       // "lips closed" fought "in her mouth" — the oral still came out as a kiss (live 2026-09-30).
       .replace(
         layout === 'oral' || layout === 'sixty_nine' || layout === 'facesit'
