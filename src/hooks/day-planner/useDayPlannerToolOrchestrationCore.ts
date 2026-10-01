@@ -1,5 +1,8 @@
 'use client';
 
+import { installedComfyModels } from '@/lib/model-picker';
+import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
+import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -41,7 +44,7 @@ import {
   loadComfyGallery,
   type ComfyGalleryEntry,
 } from '@/lib/comfyui-gallery';
-import { resolveAdultNudePlateQueueModel } from '@/lib/queue-tool-model';
+import { resolveAdultNudePlateQueueModel, resolveDayStillModel } from '@/lib/queue-tool-model';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
 import { STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP } from '@/lib/roleplay';
@@ -823,6 +826,17 @@ export function useDayPlannerToolOrchestrationCore() {
           intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
         });
         const replaceKeepOutfit = dayMoodReplacesKeepOutfit(toolSettings.dayMood);
+        // Qwen Edit 2511 hands adult nude stills to Rapid AIO NSFW — this still only; the picked
+        // engine stays picked (pose-model-profile: adultEngine).
+        const stillModel = resolveDayStillModel(shared.model, {
+          adultNude: isDayAdultMood(toolSettings.dayMood) && intimateEnabled && omitGarment,
+          installed: modelId =>
+            installedComfyModels(
+              COMFY_IMAGE_MODELS,
+              readCachedComfyObjectInfoModels(),
+              shared.modelCheckpointMap
+            )?.has(modelId) === true,
+        });
         let identityPlate = resolveDayQueueIdentityPlate({
           character,
           displayPlate: plate,
@@ -838,14 +852,14 @@ export function useDayPlannerToolOrchestrationCore() {
         let lightningIdentityPath = false;
         // Lightning dropped Image 3 because the legacy capsule/outline art leaked into stills;
         // an OpenPose keypoint map is a pose condition Edit-2511 understands, so it stays on.
-        const poseGuideStyle = loadPoseGuideStylePreference(shared.model);
+        const poseGuideStyle = loadPoseGuideStylePreference(stillModel);
         const lightningDropsPoseGuide = poseGuideStyle === 'legacy';
         // Seated Suggestive on Rapid with the undressed Cast plate as Image 1: the plate's full
         // latent kept her in its underwear over the kit 5/6 whatever the brief said. Face-break
         // (face crop + the garment's latent) dressed her 3/3 and, with the seated lead, sat 3/3.
         const suggestiveSeatOnUndressedPlate =
           normalizeDayMood(toolSettings.dayMood) === 'suggestive' &&
-          poseProfileForModel(shared.model).rapidGraph &&
+          poseProfileForModel(stillModel).rapidGraph &&
           (identityPlate ?? queuePlate)?.source !== 'keeper' &&
           daySuggestiveBeatIsSeated(queueTarget.sceneHints) &&
           isClothingOnlyDayGarment(
@@ -862,7 +876,7 @@ export function useDayPlannerToolOrchestrationCore() {
         // Face-break (face crop + garment latent) is how Suggestive/Vacation already handle it.
         const everydayGarmentOnUndressedPlate =
           normalizeDayMood(toolSettings.dayMood) === 'everyday' &&
-          poseProfileForModel(shared.model).rapidGraph &&
+          poseProfileForModel(stillModel).rapidGraph &&
           (identityPlate ?? queuePlate)?.source !== 'keeper' &&
           isClothingOnlyDayGarment(
             resolveDayGarmentReinforce({
@@ -876,7 +890,7 @@ export function useDayPlannerToolOrchestrationCore() {
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const nudeIdentity = await resolveDayNudeIdentityPlateWithFaceCrop({
             character,
-            model: shared.model,
+            model: stillModel,
             comfyUrl,
           });
           if (nudeIdentity.plate) {
@@ -887,7 +901,7 @@ export function useDayPlannerToolOrchestrationCore() {
           (((normalizeDayMood(toolSettings.dayMood) === 'vacation' ||
             normalizeDayMood(toolSettings.dayMood) === 'suggestive') &&
             (dayClothedHeatPoseNeedsBodyUnlock(queueTarget.sceneHints, toolSettings.dayMood, {
-              poseStickyModel: isQwenEdit2511PoseStickyModel(shared.model),
+              poseStickyModel: isQwenEdit2511PoseStickyModel(stillModel),
             }) ||
               suggestiveSeatOnUndressedPlate)) ||
             everydayGarmentOnUndressedPlate) &&
@@ -898,7 +912,7 @@ export function useDayPlannerToolOrchestrationCore() {
           // Face-crop Image 1; full Keep rides Image 2 for outfit (no re-suggest needed).
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const bodyPlate = identityPlate ?? queuePlate;
-          if (isDayVacationLightningIdentityVlModel(shared.model)) {
+          if (isDayVacationLightningIdentityVlModel(stillModel)) {
             // Face-crop Image 1 invents a new person every slot. Legacy pose-guide Image 3
             // paints a color overlay. Full Keep/Cast as Image 1 with ReferenceLatent.
             skipPoseGuideImage = lightningDropsPoseGuide;
@@ -906,7 +920,7 @@ export function useDayPlannerToolOrchestrationCore() {
             const identityVl = await resolveDayVacationIdentityVlPlate({
               bodyPlate,
               character,
-              model: shared.model,
+              model: stillModel,
               comfyUrl,
             });
             if (identityVl) {
@@ -916,7 +930,7 @@ export function useDayPlannerToolOrchestrationCore() {
             const faceBreak = await resolveDayVacationFaceBreakPlate({
               bodyPlate,
               character,
-              model: shared.model,
+              model: stillModel,
               comfyUrl,
             });
             if (faceBreak.facePlate) {
@@ -931,7 +945,7 @@ export function useDayPlannerToolOrchestrationCore() {
                 identityLatentPlate = await uploadDayIdentityLatentPlate({
                   imageUrl: bodyPlate.imageUrl,
                   filename: bodyPlate.filename,
-                  model: shared.model,
+                  model: stillModel,
                   comfyUrl,
                 });
               }
@@ -939,7 +953,7 @@ export function useDayPlannerToolOrchestrationCore() {
           }
         } else if (
           !isDayHeatMood(normalizeDayMood(toolSettings.dayMood)) &&
-          isDayVacationLightningIdentityVlModel(shared.model) &&
+          isDayVacationLightningIdentityVlModel(stillModel) &&
           (identityPlate ?? queuePlate)
         ) {
           // Everyday Lightning: legacy Image 3 paints speckle rain and a Keep-plate ghost
@@ -951,7 +965,7 @@ export function useDayPlannerToolOrchestrationCore() {
           const identityVl = await resolveDayVacationIdentityVlPlate({
             bodyPlate: identityPlate ?? queuePlate,
             character,
-            model: shared.model,
+            model: stillModel,
             comfyUrl,
           });
           if (identityVl) {
@@ -996,7 +1010,7 @@ export function useDayPlannerToolOrchestrationCore() {
             dayMood: partnerMood,
             intimateMix: toolSettings.intimateMix,
             allowCompanions: toolSettings.allowCompanions === true,
-            model: shared.model,
+            model: stillModel,
           });
           if (
             dayPartnerApplies({
@@ -1004,7 +1018,7 @@ export function useDayPlannerToolOrchestrationCore() {
               headcount,
               adultMood: isDayAdultMood(partnerMood),
               lead: leadNoun,
-              sameSexLayouts: poseProfileForModel(shared.model).sameSexLayouts,
+              sameSexLayouts: poseProfileForModel(stillModel).sameSexLayouts,
             })
           ) {
             if (partnerCandidate.invented && partnerCandidate.noun !== 'person') {
@@ -1016,7 +1030,7 @@ export function useDayPlannerToolOrchestrationCore() {
                 const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
                 const leadFace = await resolveDayNudeIdentityPlateWithFaceCrop({
                   character,
-                  model: shared.model,
+                  model: stillModel,
                   comfyUrl,
                 });
                 const leadFaceFilename = leadFace.plate?.filename?.trim();
@@ -1024,7 +1038,7 @@ export function useDayPlannerToolOrchestrationCore() {
                   standIn = await renderDayPartnerStandIn({
                     noun: partnerCandidate.noun,
                     leadFaceFilename,
-                    model: shared.model,
+                    model: stillModel,
                     comfyUrl,
                     sendComfyUi: actions.sendComfyUi,
                     characterId: character.id,
@@ -1049,7 +1063,7 @@ export function useDayPlannerToolOrchestrationCore() {
             } else if (partnerCharacter) {
               const resolved = await resolveDayNudeIdentityPlateWithFaceCrop({
                 character: partnerCharacter,
-                model: shared.model,
+                model: stillModel,
                 comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
               });
               if (resolved.plate?.filename?.trim() || resolved.plate?.imageUrl?.trim()) {
@@ -1076,7 +1090,7 @@ export function useDayPlannerToolOrchestrationCore() {
         if (
           hasPlate &&
           shouldAppendKleinFaceReference({
-            model: shared.model,
+            model: stillModel,
             imageOneIsFaceCrop: faceOnlyIdentity,
           })
         ) {
@@ -1085,7 +1099,7 @@ export function useDayPlannerToolOrchestrationCore() {
               await resolveDayVacationFaceBreakPlate({
                 bodyPlate: identityPlate ?? queuePlate,
                 character,
-                model: shared.model,
+                model: stillModel,
                 comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
               })
             ).facePlate;
@@ -1105,7 +1119,7 @@ export function useDayPlannerToolOrchestrationCore() {
         let poseExpectation: DayPoseGuideExpectation | undefined;
         // Klein clothed spoon: the compact recipe goes out alone — no guide, no face crop.
         const kleinSpoonRecipe = kleinSpoonRecipeApplies({
-          model: shared.model,
+          model: stillModel,
           adultMood: isDayAdultMood(toolSettings.dayMood) && intimateEnabled,
           beat: queueTarget.sceneHints,
         });
@@ -1125,7 +1139,7 @@ export function useDayPlannerToolOrchestrationCore() {
               dayMood,
               intimateMix: toolSettings.intimateMix,
               allowCompanions: toolSettings.allowCompanions === true,
-              model: shared.model,
+              model: stillModel,
               retryVariant: poseVariantRef.current[queueTarget.id] ?? 0,
               weakLayouts: weakPoseLayouts(),
             });
@@ -1141,7 +1155,7 @@ export function useDayPlannerToolOrchestrationCore() {
             const poseBuild = await buildDayPoseGuide(
               queueTarget.id,
               posePlan.sceneText,
-              shared.model,
+              stillModel,
               {
                 ...posePlan.options,
                 stylePreference: poseGuideStyle,
@@ -1166,7 +1180,7 @@ export function useDayPlannerToolOrchestrationCore() {
             const uploaded = await resolveQueueInputImage({
               file: poseFile,
               filename: poseFile.name,
-              model: shared.model,
+              model: stillModel,
             });
             poseGuideFilename = uploaded?.filename?.trim() || undefined;
             if (poseGuideFilename) {
@@ -1197,8 +1211,8 @@ export function useDayPlannerToolOrchestrationCore() {
             ...(poseGuideFilename
               ? {
                   state: 'attached' as const,
-                  model: shared.model,
-                  editCapableModel: readsPoseGuideImage(shared.model),
+                  model: stillModel,
+                  editCapableModel: readsPoseGuideImage(stillModel),
                   style: poseGuideDrawnStyle,
                   ...(poseGuideUrl ? { previewUrl: poseGuideUrl } : {}),
                 }
@@ -1252,7 +1266,7 @@ export function useDayPlannerToolOrchestrationCore() {
           kleinFaceReference?.filename &&
           !kleinSpoonRecipe &&
           shouldAppendKleinFaceReference({
-            model: shared.model,
+            model: stillModel,
             imageOneIsFaceCrop: faceOnlyIdentity,
             headcount: poseExpectation?.keypoints.length,
           })
@@ -1358,7 +1372,7 @@ export function useDayPlannerToolOrchestrationCore() {
           const vlFace = !adultStill
             ? await uploadDayPartnerVlFace({
                 ...partnerFace,
-                model: shared.model,
+                model: stillModel,
                 comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
               })
             : null;
@@ -1394,7 +1408,7 @@ export function useDayPlannerToolOrchestrationCore() {
         const poseControlNet = resolvePoseGuideControlNetExtras({
           poseGuideFilename,
           poseGuideUrl,
-          model: shared.model,
+          model: stillModel,
           style: poseGuideFilename ? poseGuideDrawnStyle : null,
         });
         const queueImagePlate = omitGarment ? identityPlate : (identityPlate ?? queuePlate);
@@ -1446,7 +1460,7 @@ export function useDayPlannerToolOrchestrationCore() {
         const everydayPoseUnlock =
           toolSettings.posePriority !== false &&
           !isDayHeatMood(dayMood) &&
-          isDayPoseStickyEditModel(shared.model) &&
+          isDayPoseStickyEditModel(stillModel) &&
           (Boolean(poseGuideFilename) || lightningIdentityPath);
         // Nude Solo: always soft-cap identity even without Image 3 — high IP + lingerie
         // face crop is how beige bras win over FULLY NUDE.
@@ -1495,11 +1509,11 @@ export function useDayPlannerToolOrchestrationCore() {
         // Plate + pose Image 3 need an Edit-capable model. Adult nude + Rapid AIO
         // must use Edit NSFW — SFW Edit soft-censors into beige lingerie.
         const plateQueueModel = hasPlate
-          ? resolveAdultNudePlateQueueModel(shared.model, {
+          ? resolveAdultNudePlateQueueModel(stillModel, {
               adultNude: isDayAdultMood(dayMood) && omitGarment,
             })
           : undefined;
-        if (plateQueueModel && plateQueueModel !== shared.model) {
+        if (plateQueueModel && plateQueueModel !== stillModel) {
           updateShared({ model: plateQueueModel });
         }
         // No garment: the queue compacts the guide into the second image — say so.

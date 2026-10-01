@@ -410,6 +410,23 @@ export function resolveEditCounterpartForImg2img(model: ComfyImageModel | string
 }
 
 /**
+ * The engine one Day still renders on. A picked engine with an `adultEngine` (Qwen Edit 2511)
+ * hands its adult nude stills to that engine — for this still only; the picked engine stays
+ * picked. No hand-off when the adult engine is not installed (or the inventory is unknown).
+ */
+export function resolveDayStillModel(
+  model: ComfyImageModel | string,
+  options: { adultNude: boolean; installed?: (modelId: string) => boolean }
+): ComfyImageModel {
+  const picked = normalizeModel(model);
+  const adultEngine = poseProfileForModel(picked).adultEngine;
+  if (!options.adultNude || !adultEngine || !COMFY_MODEL_IDS.has(adultEngine)) {
+    return picked;
+  }
+  return options.installed?.(adultEngine) ? (adultEngine as ComfyImageModel) : picked;
+}
+
+/**
  * Queue uses the selected model as-is for Generate / T2I tools.
  * Edit queue tools (Day/Outfit/Story photo, Refine, Compose, …) snap T2I
  * picks (e.g. Qwen 2512) onto their Edit counterpart — otherwise Image 1–3

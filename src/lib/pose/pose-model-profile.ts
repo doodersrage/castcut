@@ -75,6 +75,12 @@ export type PoseModelProfile = {
    * role-swapped or "beside the act" with every map / ControlNet / LoRA tried).
    */
   penetrationEngine?: string;
+  /**
+   * Adult nude Day stills render on this engine instead, when it is installed. Edit 2511 gets the
+   * layout right with the short recipes but keeps underwear on (live 2026-10-01: 4/4 layouts,
+   * briefs or a bra left in most) — the base model is not an adult one.
+   */
+  adultEngine?: string;
   /** Queues on this engine's graph, then converts (Qwen-Image 2.1 → Rapid AIO NSFW edit). */
   graphBaseModel?: string;
 };
@@ -112,6 +118,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     outlineGrayGuide: true,
     poseStickyClothed: true,
     compactDayRecipes: true,
+    adultEngine: 'qwen-rapid-aio-edit-nsfw',
   },
   'qwen-image-2.1': {
     ...BASE,

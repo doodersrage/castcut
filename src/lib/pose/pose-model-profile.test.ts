@@ -66,3 +66,24 @@ describe('Qwen-Image 2.1 runtime', () => {
     assert.equal(rapid.qwenRenderer, undefined);
   });
 });
+
+describe('Day adult hand-off', () => {
+  it('Edit 2511 sends adult nude stills to Rapid AIO NSFW when it is installed, for that still only', async () => {
+    const { resolveDayStillModel } = await import('../queue-tool-model');
+    const installed = (id: string) => id === 'qwen-rapid-aio-edit-nsfw';
+    const picked = 'qwen-image-edit-2511-lightning-8';
+    assert.equal(
+      resolveDayStillModel(picked, { adultNude: true, installed }),
+      'qwen-rapid-aio-edit-nsfw'
+    );
+    // Clothed stills, a missing adult engine, or an unknown inventory: the picked engine.
+    assert.equal(resolveDayStillModel(picked, { adultNude: false, installed }), picked);
+    assert.equal(resolveDayStillModel(picked, { adultNude: true, installed: () => false }), picked);
+    assert.equal(resolveDayStillModel(picked, { adultNude: true }), picked);
+    // Engines without an adult engine are untouched.
+    assert.equal(
+      resolveDayStillModel('qwen-rapid-aio-edit', { adultNude: true, installed }),
+      'qwen-rapid-aio-edit'
+    );
+  });
+});
