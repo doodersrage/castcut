@@ -24,6 +24,20 @@ describe('Day clothed lead lines', () => {
     assert.match(chosen!, /her partner — a tall man with a short beard, in their own different clothes/);
   });
 
+  it('names the partner kit instead of a generic different outfit', () => {
+    const [line] = dayClothedLeadLines({
+      beat: 'standing in the kitchen with her partner',
+      headcount: 2,
+      dayMood: 'everyday',
+      adult: false,
+      companionLook: 'a woman with dark hair',
+      leadOutfit: 'Rust camisole',
+      partnerOutfit: 'Cream turtleneck',
+    });
+    assert.match(line!, /she \(wearing rust camisole\) and her partner \(wearing cream turtleneck\)/);
+    assert.doesNotMatch(line!, /in their own different clothes/);
+  });
+
   it('puts shoes on outdoors, not indoors, not on Vacation or adult stills', () => {
     const base = { beat: 'walking home', headcount: 1, adult: false };
     assert.deepEqual(

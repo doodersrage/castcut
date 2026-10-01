@@ -2,6 +2,7 @@
 
 import { isLtx25Model } from './ltx25-renderer';
 import { poseModelFamily } from './pose/pose-model-profile';
+import { isQwenImage21LightningModel } from './qwen-image-21-renderer';
 import type { ComfyImageModel } from './comfy-models/client';
 import {
   loadComfyWorkflowFiles,
@@ -472,8 +473,7 @@ export function resolveRuntimeForQueue(
     ...(poseModelFamily(model) === 'qwen-image-2.1'
       ? {
           qwenRenderer: 'qwen-image-2.1' as const,
-          // Outfit try-ons keep the full sampler: 4 steps ghosted extra arms on arms-up poses.
-          ...(tool === 'fitting' ? { qwenImage21FullSampler: true } : {}),
+          ...(isQwenImage21LightningModel(model) ? { qwenImage21FourStep: true as const } : {}),
         }
       : {}),
     // The picked clip engine renders on LTX-2.5; the graph above is its WAN base.

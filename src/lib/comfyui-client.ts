@@ -520,7 +520,7 @@ function injectPromptsIntoWorkflow(
       regionalSlots: runtime?.regionalSlots,
       kleinEnhancerEnabled: runtime?.kleinEnhancerEnabled,
       qwenRenderer: runtime?.qwenRenderer,
-      qwenImage21FullSampler: runtime?.qwenImage21FullSampler,
+      qwenImage21FourStep: runtime?.qwenImage21FourStep,
       videoRenderer: runtime?.videoRenderer,
       kleinEnhancerIdentityPreset: runtime?.kleinEnhancerIdentityPreset,
       kleinEnhancerTextEnabled: runtime?.kleinEnhancerTextEnabled,

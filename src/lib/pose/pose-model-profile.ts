@@ -49,13 +49,16 @@ export type PoseModelProfile = {
   poseControlNetGuessable: boolean;
   /**
    * Where the pose map goes. 'vision' = seen by the text encoder only (Rapid AIO / Edit 2511
-   * VL-only guides); 'reference' = a full reference image (Qwen-Image 2.1 has no VL-only
-   * input); 'none' = left out, pose from the words.
+   * VL-only guides); 'reference' = a full reference image; 'none' = left out, pose from the words.
    */
   mapDelivery: {
     solo: 'vision' | 'reference' | 'none';
     duoClothed: 'vision' | 'reference' | 'none';
-    /** 2.1 painted nude duo maps (fused bodies, a third person, detached anatomy). */
+    /**
+     * 2.1 VAE-encodes every reference, so a duo pose map is painted as a person: fused bodies,
+     * a third figure, a bare arm in the gap. Clothed and nude maps both stay out; the pose is
+     * in the words.
+     */
     duoNude: 'vision' | 'reference' | 'none';
   };
   /**
@@ -108,7 +111,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     seatedOralFallback: true,
     namePartnerOutfit: true,
     dressWhenNoOutfit: true,
-    mapDelivery: { solo: 'reference', duoClothed: 'reference', duoNude: 'none' },
+    mapDelivery: { solo: 'reference', duoClothed: 'none', duoNude: 'none' },
     penetrationEngine: 'qwen-rapid-aio-edit-nsfw',
     graphBaseModel: 'qwen-rapid-aio-edit-nsfw',
   },

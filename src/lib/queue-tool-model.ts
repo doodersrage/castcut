@@ -63,6 +63,9 @@ function inferTxt2iCounterpart(model: ComfyImageModel | string): ComfyImageModel
   }
 
   const id = model.toLowerCase();
+  if (id.startsWith('qwen-image-2.1')) {
+    return 'qwen-image-2512';
+  }
   if (id.includes('lightning-4')) {
     return 'qwen-image-2512-lightning-4';
   }

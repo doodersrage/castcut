@@ -25,7 +25,7 @@ describe('pose model profiles', () => {
     const profile = poseProfileForModel('qwen-image-2.1-edit');
     assert.equal(profile.rapidGraph, true);
     assert.equal(profile.mapDelivery.duoNude, 'none');
-    assert.equal(profile.mapDelivery.duoClothed, 'reference');
+    assert.equal(profile.mapDelivery.duoClothed, 'none');
     assert.equal(profile.namePartnerOutfit, true);
     assert.equal(profile.penetrationEngine, 'qwen-rapid-aio-edit-nsfw');
   });
@@ -34,6 +34,10 @@ describe('pose model profiles', () => {
 describe('Qwen-Image 2.1 engine queueing', () => {
   it('queues on its Rapid graph base', () => {
     assert.equal(resolveModelForQueueTool('qwen-image-2.1-edit', 'image-prompt'), 'qwen-rapid-aio-edit-nsfw');
+    assert.equal(
+      resolveModelForQueueTool('qwen-image-2.1-edit-lightning-4', 'image-prompt'),
+      'qwen-rapid-aio-edit-nsfw'
+    );
   });
 
   it('the adult plate switch keeps the engine the player picked', () => {
@@ -43,13 +47,16 @@ describe('Qwen-Image 2.1 engine queueing', () => {
 });
 
 describe('Qwen-Image 2.1 runtime', () => {
-  it('Outfit try-ons keep the full sampler; other tools may use 4 steps', async () => {
+  it('Lightning is the 4-step model; the base model stays on the full sampler', async () => {
     const { resolveRuntimeForQueue } = await import('../comfyui-runtime-for-model');
-    const fitting = resolveRuntimeForQueue('qwen-image-2.1-edit', 'fitting', { inventory: null });
-    assert.equal(fitting.qwenRenderer, 'qwen-image-2.1');
-    assert.equal(fitting.qwenImage21FullSampler, true);
-    const day = resolveRuntimeForQueue('qwen-image-2.1-edit', 'image-prompt', { inventory: null });
-    assert.equal(day.qwenImage21FullSampler, undefined);
+    const base = resolveRuntimeForQueue('qwen-image-2.1-edit', 'image-prompt', { inventory: null });
+    assert.equal(base.qwenRenderer, 'qwen-image-2.1');
+    assert.equal(base.qwenImage21FourStep, undefined);
+    const lightning = resolveRuntimeForQueue('qwen-image-2.1-edit-lightning-4', 'fitting', {
+      inventory: null,
+    });
+    assert.equal(lightning.qwenRenderer, 'qwen-image-2.1');
+    assert.equal(lightning.qwenImage21FourStep, true);
     const rapid = resolveRuntimeForQueue('qwen-rapid-aio-edit-nsfw', 'fitting', { inventory: null });
     assert.equal(rapid.qwenRenderer, undefined);
   });

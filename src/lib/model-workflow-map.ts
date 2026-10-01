@@ -19,6 +19,7 @@ const ALL_MODELS = COMFY_IMAGE_MODELS.map(entry => entry.id);
 /** When any member is available, keep sibling presets selectable (e.g. vanilla + Lightning). */
 export const MODEL_FAMILY_GROUPS: readonly (readonly ComfyImageModel[])[] = [
   ['qwen-image-2512', 'qwen-image-2512-lightning-4', 'qwen-image-2512-lightning-8'],
+  ['qwen-image-2.1-edit', 'qwen-image-2.1-edit-lightning-4'],
   ['qwen-image-edit-2511', 'qwen-image-edit-2511-lightning-4', 'qwen-image-edit-2511-lightning-8'],
   ['qwen-rapid-aio-edit', 'qwen-rapid-aio-edit-nsfw', 'qwen-rapid-aio-sfw', 'qwen-rapid-aio-nsfw'],
   [

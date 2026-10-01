@@ -357,7 +357,21 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     comfyNode: 'TextEncodeQwenImage21',
     comfyClass: 'QwenImage21',
     description:
-      'Qwen-Image 2.1 (7B) edit — truer Cast faces and body types. Day / Story / Outfit recipes and pose maps carry over; two-person penetration stills render on Rapid AIO NSFW. ~70 s a still.',
+      'Qwen-Image 2.1 (7B) edit at its native 2K size — truer Cast faces and body types. Euler, cfg 1, about 30 steps. Two-person penetration stills render on Rapid AIO NSFW.',
+    profile: 'qwen_edit_instruction',
+    referenceTokenLimit: 512,
+    limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
+    unetHint: 'qwen_image_2.1_bf16.safetensors',
+    vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
+  },
+  {
+    id: 'qwen-image-2.1-edit-lightning-4',
+    label: 'Qwen-Image 2.1 Lightning (4-step)',
+    category: 'qwen',
+    comfyNode: 'TextEncodeQwenImage21',
+    comfyClass: 'QwenImage21',
+    description:
+      'Qwen-Image 2.1 + Fun-Acc PDD 4-step, at the same native 2K size as Qwen-Image 2.1. Same Cast recipes, about 7× fewer steps — the T8 4-step sampler, cfg 1. Two-person penetration stills render on Rapid AIO NSFW.',
     profile: 'qwen_edit_instruction',
     referenceTokenLimit: 512,
     limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,

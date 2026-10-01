@@ -45,6 +45,10 @@ export function isQwenLightningModel(model: ComfyImageModel | string | undefined
     return false;
   }
   const id = model.trim();
+  // 2.1 Lightning is the Fun-Acc 4-step sampler, not a Qwen-Image Lightning LoRA.
+  if (id.toLowerCase().startsWith('qwen-image-2.1')) {
+    return false;
+  }
   if (COMFY_MODEL_IDS.has(id)) {
     const category = getComfyModelDefinition(id)?.category;
     return category === 'qwen' && id.includes('lightning-');

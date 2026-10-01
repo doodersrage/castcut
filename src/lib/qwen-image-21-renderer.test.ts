@@ -7,8 +7,10 @@ import {
   normalizeQwenRenderer,
   pruneUnreachableNodes,
   QWEN_IMAGE_21_FILES,
+  isQwenImage21LightningModel,
+  qwenImage21Canvas,
+  qwenImage21Resolution,
   qwenImage21Steps,
-  qwenImage21UsesFourStep,
   toQwenImage21Prompt,
   withoutDroppedReferences,
   withDistinctPartnerOutfit,
@@ -58,7 +60,8 @@ describe('Qwen-Image 2.1 renderer', () => {
     assert.deepEqual(encode.inputs['images.image_3'], ['905', 0]);
     assert.match(String(encode.inputs.prompt), /Keep <image1> face; partner from <image2>; pose map <image3>\./);
     const latent = nodes.find(n => n.class_type === 'EmptyLatentImage')!;
-    assert.deepEqual([latent.inputs.width, latent.inputs.height], [960, 1280]);
+    assert.deepEqual([latent.inputs.width, latent.inputs.height], [1792, 2400]);
+    assert.equal(encode.inputs.resolution, qwenImage21Resolution(1792, 2400));
     const sampler = (workflow as Record<string, { inputs: Record<string, unknown> }>)['8'];
     assert.equal(sampler.inputs.steps, 30);
     assert.equal(sampler.inputs.sampler_name, 'euler');
@@ -90,6 +93,14 @@ describe('Qwen-Image 2.1 renderer', () => {
     assert.equal(normalizeQwenRenderer('nope'), 'rapid');
     assert.deepEqual(['draft', 'final', 'max'].map(qwenImage21Steps), [20, 30, 30]);
     assert.equal(toQwenImage21Prompt('image 2 and Image 10'), '<image2> and Image 10');
+    assert.equal(
+      toQwenImage21Prompt('face from the first image; the woman has the face from the second image'),
+      'face from the <image1>; the woman has the face from the <image2>'
+    );
+    assert.deepEqual(qwenImage21Canvas(960, 1280), { width: 1792, height: 2400 });
+    assert.deepEqual(qwenImage21Canvas(1280, 960), { width: 2400, height: 1792 });
+    assert.deepEqual(qwenImage21Canvas(1024, 1024), { width: 2048, height: 2048 });
+    assert.equal(qwenImage21Resolution(1792, 2400), 2080);
   });
 });
 
@@ -118,8 +129,8 @@ describe('Qwen-Image 2.1: two-person pose maps', () => {
     )!;
     assert.deepEqual(encode.inputs['images.image_1'], ['900', 0]);
     assert.equal(encode.inputs['images.image_2'], undefined);
-    assert.doesNotMatch(String(encode.inputs.prompt), /pose map|second image/);
-    assert.match(String(encode.inputs.prompt), /Keep her face from the first image\./);
+    assert.doesNotMatch(String(encode.inputs.prompt), /pose map|second image|<image2>/);
+    assert.match(String(encode.inputs.prompt), /Keep her face from the <image1>\./);
   });
 
   it('keeps one-person maps (Outfit custom pose) and renumbers around a dropped slot', () => {
@@ -189,8 +200,8 @@ describe('Qwen-Image 2.1: penetration duos stay on the engine model', () => {
   });
 });
 
-describe('Qwen-Image 2.1: clothed duo maps stay', () => {
-  it('keeps a two-person map for a clothed still', () => {
+describe('Qwen-Image 2.1: clothed duo maps stay out', () => {
+  it('drops a two-person map so the diagram is not painted as an extra arm', () => {
     const graph = {
       '4': {
         class_type: 'TextEncodeQwenImageEditPlus',
@@ -205,27 +216,77 @@ describe('Qwen-Image 2.1: clothed duo maps stay', () => {
     };
     const workflow = convertQwenEditWorkflowToImage21(graph).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
     const encode = Object.values(workflow).find(node => node.class_type === 'TextEncodeQwenImage21')!;
-    assert.deepEqual(encode.inputs['images.image_2'], ['904', 0]);
-    assert.match(String(encode.inputs.prompt), /Match <image2> body positions/);
+    assert.equal(encode.inputs['images.image_2'], undefined);
+    assert.doesNotMatch(String(encode.inputs.prompt), /body positions|pose map/);
+    assert.match(String(encode.inputs.prompt), /exactly two arms/);
+  });
+
+  it('binds each face to its own person when the partner crop is attached', () => {
+    const graph = {
+      '4': {
+        class_type: 'TextEncodeQwenImageEditPlus',
+        inputs: {
+          prompt:
+            'TWO PEOPLE in this photo: she (wearing rust camisole) and her partner — a woman with dark hair, in their own different clothes — together. SECOND PERSON: Image 2 is the face of the woman with the Cast lead. Match Image 3 body positions.',
+          image1: ['900', 0],
+          image2: ['901', 0],
+          image3: ['904', 0],
+        },
+      },
+      '8': { class_type: 'KSampler', inputs: { positive: ['4', 0], latent_image: ['906', 0] } },
+      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+      '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+      '900': { class_type: 'LoadImage', inputs: { image: 'cast-plate.png' } },
+      '901': { class_type: 'LoadImage', inputs: { image: 'day-partner-vl-1.png' } },
+      '904': { class_type: 'LoadImage', inputs: { image: 'day-pose-guide-kitchen-82b0de-x2-17.png' } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+    };
+    const workflow = convertQwenEditWorkflowToImage21(graph).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+    const encode = Object.values(workflow).find(node => node.class_type === 'TextEncodeQwenImage21')!;
+    assert.deepEqual(encode.inputs['images.image_1'], ['900', 0]);
+    assert.deepEqual(encode.inputs['images.image_2'], ['901', 0]);
+    assert.equal(encode.inputs['images.image_3'], undefined);
+    assert.ok(encode.inputs.vae);
+    const prompt = String(encode.inputs.prompt);
+    assert.match(prompt, /^Exactly two people, each with exactly two arms/);
+    assert.match(prompt, /<image1> is only the first person's face/);
+    assert.match(prompt, /<image2> is only the second person's face/);
+    assert.match(prompt, /Only she wears the rust camisole/);
+    assert.doesNotMatch(prompt, /black knit|pose map|body positions/);
   });
 });
 
 describe('Qwen-Image 2.1: clothed duo partner outfit', () => {
-  it('names a different outfit for the partner', () => {
+  it('keeps the lead outfit on the lead and does not invent the partner clothes', () => {
     const out = withDistinctPartnerOutfit(
       'Keep facial likeness only: TWO PEOPLE in this photo: she (wearing tapered forest green two-piece linen suit) and her partner — a South Asian woman, in their own different clothes — are both fully in frame, together — walking hand in hand. Next sentence.'
     );
     assert.match(
       out,
-      /walking hand in hand\. Only she wears the tapered forest green two-piece linen suit; her partner wears a plain black knit top and dark jeans — never the same outfit or color as her\. Next sentence\./
+      /walking hand in hand\. Only she wears the tapered forest green two-piece linen suit\. Her partner does not wear that outfit, any piece of it, or the same color\. Next sentence\./
     );
+    assert.doesNotMatch(out, /black knit|white linen|gray sweater/);
   });
 
-  it('avoids the lead colour, handles a man lead, and runs once', () => {
+  it('uses the partner kit already named on the line', () => {
+    const out = withDistinctPartnerOutfit(
+      'TWO PEOPLE in this photo: she (wearing rust camisole) and her partner (wearing cream turtleneck) — a woman with dark hair — together in the kitchen.'
+    );
+    assert.match(
+      out,
+      /Only she wears the rust camisole; her partner wears the cream turtleneck — never the same outfit or color as her\./
+    );
+    assert.doesNotMatch(out, /black knit/);
+  });
+
+  it('handles a man lead and runs once', () => {
     const man = withDistinctPartnerOutfit(
       'TWO PEOPLE in this photo: he (wearing black tuxedo) and his friend — a tall man, in their own different clothes — together.'
     );
-    assert.match(man, /Only he wears the black tuxedo; his friend wears a white linen shirt and blue jeans — never the same outfit or color as him\./);
+    assert.match(
+      man,
+      /Only he wears the black tuxedo\. His friend does not wear that outfit, any piece of it, or the same color\./
+    );
     assert.equal(withDistinctPartnerOutfit(man), man);
     assert.equal(withDistinctPartnerOutfit('Solo still of her.'), 'Solo still of her.');
   });
@@ -256,16 +317,17 @@ describe('Qwen-Image 2.1: 4-step sampler', () => {
     assert.equal(workflow['8']!.class_type, 'T8QwenImage21FunAccPDD4Step');
     assert.equal(workflow['8']!.inputs.seed, 7);
     assert.deepEqual(workflow['9']!.inputs.samples, ['8', 0]);
+    const latent = Object.values(workflow).find(node => node.class_type === 'EmptyLatentImage')!;
+    assert.deepEqual([latent.inputs.width, latent.inputs.height], [1792, 2400]);
+    const encode = Object.values(workflow).find(node => node.class_type === 'TextEncodeQwenImage21')!;
+    assert.equal(encode.inputs.resolution, qwenImage21Resolution(1792, 2400));
   });
 });
 
-describe('Qwen-Image 2.1: when to use 4 steps', () => {
-  it('Good / Fast use the PDD node when installed; Best keeps the full sampler', () => {
-    const nodes = new Set(['T8QwenImage21FunAccPDD4Step']);
-    assert.equal(qwenImage21UsesFourStep('final', nodes), true);
-    assert.equal(qwenImage21UsesFourStep('draft', nodes), true);
-    assert.equal(qwenImage21UsesFourStep('max', nodes), false);
-    assert.equal(qwenImage21UsesFourStep('final', new Set()), false);
-    assert.equal(qwenImage21UsesFourStep('final', null), false);
+describe('Qwen-Image 2.1 Lightning model', () => {
+  it('is only the lightning id, not the base model', () => {
+    assert.equal(isQwenImage21LightningModel('qwen-image-2.1-edit-lightning-4'), true);
+    assert.equal(isQwenImage21LightningModel('qwen-image-2.1-edit'), false);
+    assert.equal(isQwenImage21LightningModel('qwen-image-2512-lightning-4'), false);
   });
 });

@@ -1,9 +1,5 @@
 import { convertVideoWorkflowToLtx25, LTX25_REQUIRED_NODE } from './ltx25-renderer';
-import {
-  convertQwenEditWorkflowToImage21,
-  qwenImage21Steps,
-  qwenImage21UsesFourStep,
-} from './qwen-image-21-renderer';
+import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
 import { isQwenLightningModel, patchModelSamplingInWorkflow } from './model-sampling-patch';
 import { ensureFluxGuidanceInWorkflow } from './flux-guidance-patch';
 import { isCastcutProtectedSampler, shouldSkipGlobalSamplerPatch } from './workflow-enrich-markers';
@@ -282,8 +278,8 @@ export type ComfyUiRuntimeConfig = {
   compactDraftSaves?: boolean;
   /** Qwen-Edit graphs render on Qwen-Image 2.1 instead of the engine's model. */
   qwenRenderer?: 'rapid' | 'qwen-image-2.1';
-  /** Qwen-Image 2.1 keeps the full sampler on Good too (Outfit try-ons: 4 steps ghosted arms). */
-  qwenImage21FullSampler?: boolean;
+  /** Qwen-Image 2.1 Lightning: Fun-Acc 4-step sampler instead of the full euler pass. */
+  qwenImage21FourStep?: boolean;
   /** WAN clip graphs render on LTX-2.5 instead (ltx25-renderer.ts). */
   videoRenderer?: 'ltx-2.5';
   /** Model id used for queue-time workflow optimize / graph enrich heuristics. */
@@ -1351,7 +1347,7 @@ export function injectPromptsWithFallbacks(
     kleinEnhancerEnabled?: boolean;
     /** Swap the Qwen-Edit sampler onto Qwen-Image 2.1 (Engine → Renderer). */
     qwenRenderer?: 'rapid' | 'qwen-image-2.1';
-    qwenImage21FullSampler?: boolean;
+    qwenImage21FourStep?: boolean;
     /** Swap the WAN clip graph onto LTX-2.5 (when ComfyUI has its nodes). */
     videoRenderer?: 'ltx-2.5';
     kleinEnhancerIdentityPreset?: import('./klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
@@ -1812,12 +1808,7 @@ export function injectPromptsWithFallbacks(
       // Fun ControlNet Union pose control made duo anatomy worse at 0.6–1.0 (live A/B
       // 2026-10-01: extra genitals, merged and role-swapped bodies) — off until a fix lands.
       poseControl: false,
-      fourStep:
-        options.qwenImage21FullSampler !== true &&
-        qwenImage21UsesFourStep(
-          options.qualityProfile,
-          options.availableNodeTypes ? new Set(options.availableNodeTypes) : null
-        ),
+      fourStep: options.qwenImage21FourStep === true,
       ...(width > 0 && height > 0 ? { fallbackSize: { width, height } } : {}),
     });
     if (converted.converted) {
@@ -1972,8 +1963,8 @@ export function stripEmptyComfyUiRuntime(
   if (runtime.qwenRenderer === 'qwen-image-2.1') {
     result.qwenRenderer = 'qwen-image-2.1';
   }
-  if (runtime.qwenImage21FullSampler === true) {
-    result.qwenImage21FullSampler = true;
+  if (runtime.qwenImage21FourStep === true) {
+    result.qwenImage21FourStep = true;
   }
   if (runtime.videoRenderer === 'ltx-2.5') {
     result.videoRenderer = 'ltx-2.5';

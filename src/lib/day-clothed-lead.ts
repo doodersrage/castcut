@@ -43,6 +43,8 @@ export function dayClothedLeadLines(input: {
    * the lead fell back to the plate's underwear while the other model wore the kit (2/4, live).
    */
   leadOutfit?: string | null;
+  /** The partner's own kit. Named here so a later pass does not invent a substitute outfit. */
+  partnerOutfit?: string | null;
 }): string[] {
   const beat = input.beat?.trim();
   const mood = normalizeDayMood(input.dayMood);
@@ -56,17 +58,23 @@ export function dayClothedLeadLines(input: {
       : /\bmodels?\b/i.test(beat)
         ? 'the other model'
         : 'her partner';
-    const outfit = input.leadOutfit
-      ?.trim()
-      .replace(/[.\s]+$/, '')
-      .replace(/^[A-Z](?=[a-z])/, letter => letter.toLowerCase());
+    const outfitName = (label: string | null | undefined) =>
+      label
+        ?.trim()
+        .replace(/[.\s]+$/, '')
+        .replace(/^[A-Z](?=[a-z])/, letter => letter.toLowerCase());
+    const outfit = outfitName(input.leadOutfit);
+    const partnerOutfit = outfitName(input.partnerOutfit);
     // A partner on a romantic beat is a man unless one was chosen (a man lead's prompt is swapped
     // afterwards, so his partner reads as a woman); friends can be anyone.
     const look = (
       input.companionLook?.trim() || pickCompanionLook(who === 'her partner' ? 'man' : 'any', true)
     ).replace(/[.\s]+$/, '');
+    // A named partner kit replaces "in their own different clothes" — that phrase was rewritten
+    // into a generic black sweater and overrode the partner's wardrobe.
+    const clothes = partnerOutfit ? '' : ', in their own different clothes';
     lines.push(
-      `TWO PEOPLE in this photo: she${outfit ? ` (wearing ${outfit})` : ''} and ${who} — ${look}, in their own different clothes — are both fully in frame, together — ${beat.replace(/[.\s]+$/, '')}.`
+      `TWO PEOPLE in this photo: she${outfit ? ` (wearing ${outfit})` : ''} and ${who}${partnerOutfit ? ` (wearing ${partnerOutfit})` : ''} — ${look}${clothes} — are both fully in frame, together — ${beat.replace(/[.\s]+$/, '')}.`
     );
   }
   // Vacation keeps the beach barefoot; Sport has its own footwear line.

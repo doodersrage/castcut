@@ -3,7 +3,9 @@ import { POSE_MODEL_PROFILES } from './pose/pose-model-profile';
 /**
  * "Renderer: Qwen-Image 2.1" — the queue builds the usual Qwen-Edit graph (Rapid AIO recipes,
  * partner faces, pose maps), then this pass swaps the sampler onto Qwen-Image 2.1 with the same
- * prompt, reference images and canvas.
+ * prompt and reference images. Both the full sampler and the Lightning 4-step option
+ * (`qwen-image-2.1-edit-lightning-4`) render at the native 2K size. Lightning is the same graph
+ * with the Fun-Acc 4-step sampler.
  *
  * Live A/B (2026-10-01, 12 stills vs Rapid AIO v23): Cast faces and body types held in every case
  * where Rapid drifted to generic faces and gym bodies; custom poses matched the skeleton; about
@@ -33,6 +35,25 @@ export function normalizeQwenRenderer(value: unknown): QwenRenderer {
   return value === 'qwen-image-2.1' ? 'qwen-image-2.1' : 'rapid';
 }
 
+/** The picker ids. Lightning is its own model, not a quality step on the base. */
+export const QWEN_IMAGE_21_MODEL = 'qwen-image-2.1-edit';
+export const QWEN_IMAGE_21_LIGHTNING_MODEL = 'qwen-image-2.1-edit-lightning-4';
+
+export function isQwenImage21Model(model: string | null | undefined): boolean {
+  return String(model ?? '')
+    .trim()
+    .toLowerCase()
+    .startsWith('qwen-image-2.1');
+}
+
+/** Fun-Acc 4-step. Distinct from Qwen-Image Lightning LoRAs (those do not load on 2.1). */
+export function isQwenImage21LightningModel(model: string | null | undefined): boolean {
+  const id = String(model ?? '')
+    .trim()
+    .toLowerCase();
+  return id.startsWith('qwen-image-2.1') && id.includes('lightning-');
+}
+
 /** Steps by queue quality: the official pipeline runs ~40–50; 30 held likeness in the A/B. */
 export function qwenImage21Steps(profile?: string | null): number {
   if (profile === 'draft') return 20;
@@ -40,15 +61,44 @@ export function qwenImage21Steps(profile?: string | null): number {
 }
 
 /**
- * Good / Fast render 2.1 in 4 steps (Fun-Acc PDD) when ComfyUI has the node; Best keeps the full
- * sampler. Live A/B, 6 stills: 13–22 s vs 38–62 s, equal on hand-in-hand / hug / kneel / lying,
- * better on a selfie (30 steps added a person) — but ghosted extra arms on a fast arms-up try-on.
+ * Official Qwen-Image 2.1 canvases (native ~2K). The Rapid graph this renderer converts is
+ * ~1.2MP (960×1280); sampling there is the soft, shifted look — 2.1's training size is these.
  */
-export function qwenImage21UsesFourStep(
-  profile: string | null | undefined,
-  nodeTypes: ReadonlySet<string> | null
-): boolean {
-  return profile !== 'max' && Boolean(nodeTypes?.has(QWEN_IMAGE_21_FOUR_STEP_NODE));
+const QWEN_IMAGE_21_CANVASES = [
+  { width: 2048, height: 2048 },
+  { width: 2400, height: 1792 },
+  { width: 1792, height: 2400 },
+  { width: 2528, height: 1696 },
+  { width: 1696, height: 2528 },
+  { width: 2752, height: 1536 },
+  { width: 1536, height: 2752 },
+] as const;
+
+/** Nearest official 2K canvas for the requested aspect. */
+export function qwenImage21Canvas(
+  width: number,
+  height: number
+): { width: number; height: number } {
+  const ratio = width / Math.max(1, height);
+  let best: { width: number; height: number } = QWEN_IMAGE_21_CANVASES[0];
+  let bestDelta = Infinity;
+  for (const size of QWEN_IMAGE_21_CANVASES) {
+    const delta = Math.abs(Math.log(size.width / size.height) - Math.log(ratio));
+    if (delta < bestDelta) {
+      best = size;
+      bestDelta = delta;
+    }
+  }
+  return { width: best.width, height: best.height };
+}
+
+/**
+ * TextEncodeQwenImage21 `resolution` is a pixel budget (area), not a side length. Matching it
+ * to the canvas puts a same-aspect reference on the same grid as the sample — a mismatch shifts
+ * the edit.
+ */
+export function qwenImage21Resolution(width: number, height: number): number {
+  return Math.max(32, Math.round(Math.sqrt(width * height) / 32) * 32);
 }
 
 const isRef = (value: unknown): value is [string, number] =>
@@ -78,9 +128,38 @@ function findPrimarySampler(workflow: Workflow): string | null {
   return null;
 }
 
-/** "Image 2" → "<image2>": Qwen-Image 2.1's own reference syntax. */
+const IMAGE_ORDINALS = [
+  'first',
+  'second',
+  'third',
+  'fourth',
+  'fifth',
+  'sixth',
+  'seventh',
+  'eighth',
+  'ninth',
+];
+
+/**
+ * "Image 2" and "the second image" → "<image2>": Qwen-Image 2.1's own reference syntax.
+ * The Day brief says both, and only the "Image N" form was binding a face to a person.
+ */
 export function toQwenImage21Prompt(prompt: string): string {
-  return prompt.replace(/\b[Ii]mage ([1-9])\b/g, '<image$1>');
+  return prompt
+    .replace(/\b[Ii]mage ([1-9])\b/g, '<image$1>')
+    .replace(
+      /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth) image\b/gi,
+      (_match, word: string) => {
+        const index = IMAGE_ORDINALS.indexOf(word.toLowerCase());
+        return index >= 0 ? `<image${index + 1}>` : _match;
+      }
+    );
+}
+
+/** Clothed Day partner face (`day-partner-vl-*`) and the invented stand-in crop. */
+export function isDayPartnerFaceFilename(filename: string): boolean {
+  const name = filename.trim().split(/[/\\]/).pop() ?? '';
+  return /^day-partner-(?:vl|man|woman)-/i.test(name);
 }
 
 /** The LoadImage filename behind an image link (through resize / scale nodes). */
@@ -128,29 +207,56 @@ export function withoutDroppedReferences(
   return renumbered;
 }
 
-const PARTNER_OUTFITS = [
-  { colors: /black/i, text: 'a plain black knit top and dark jeans' },
-  { colors: /white|cream|ivory/i, text: 'a white linen shirt and blue jeans' },
-  { colors: /gr[ae]y|charcoal/i, text: 'a gray sweater and black trousers' },
-];
-
 /**
  * Clothed duos: 2.1 dresses BOTH people in the lead's outfit ("she (wearing X) and her partner…
- * in their own different clothes" → two green suits). Naming what the partner wears instead kept
- * them apart 6/6 (live A/B 2026-10-01, hand-in-hand / hug / selfie).
+ * in their own different clothes" → two green suits). A named partner kit stays on that person.
+ * Inventing a substitute ("a plain black knit top and dark jeans") replaced an assigned wardrobe
+ * (live kitchen duo, 2026-10-01) — when no kit is named, forbid the lead's outfit instead.
  */
 export function withDistinctPartnerOutfit(prompt: string): string {
   const match = prompt.match(
-    /TWO PEOPLE in this photo: (she|he) \(wearing ([^)]+)\) and ((?:her|his|the) [\w-]+(?: [\w-]+)?) —/
+    /TWO PEOPLE in this photo: (she|he) \(wearing ([^)]+)\) and ((?:her|his|the) [\w-]+(?: [\w-]+)?)(?: \(wearing ([^)]+)\))? —/
   );
   if (!match || /\bOnly (?:she|he) wears the\b/.test(prompt)) return prompt;
-  const [, pronoun, outfit, who] = match;
-  const partnerOutfit =
-    PARTNER_OUTFITS.find(option => !option.colors.test(outfit!))?.text ?? PARTNER_OUTFITS[0]!.text;
-  const line = ` Only ${pronoun} wears the ${outfit}; ${who} wears ${partnerOutfit} — never the same outfit or color as ${pronoun === 'he' ? 'him' : 'her'}.`;
+  const [, pronoun, outfit, who, namedPartner] = match;
+  const other = pronoun === 'he' ? 'him' : 'her';
+  const garment = (text: string) => text.trim().replace(/^the\s+/i, '');
+  const partner = namedPartner?.trim();
+  const line = partner
+    ? ` Only ${pronoun} wears the ${garment(outfit!)}; ${who} wears the ${garment(partner)} — never the same outfit or color as ${other}.`
+    : ` Only ${pronoun} wears the ${garment(outfit!)}. ${who![0]!.toUpperCase()}${who!.slice(1)} does not wear that outfit, any piece of it, or the same color.`;
   const sentenceEnd = prompt.indexOf('.', match.index! + match[0].length);
   if (sentenceEnd < 0) return prompt;
   return prompt.slice(0, sentenceEnd + 1) + line + prompt.slice(sentenceEnd + 1);
+}
+
+/**
+ * 2.1 treats `<image1>` as the picture to edit, so a duo copies that face and hair onto both
+ * bodies. The partner crop is a face photo, not a third person, and a dropped pose map must not
+ * leave a spare arm. This leads the prompt, where 2.1 follows it.
+ */
+export function withTwoPersonFaces(
+  prompt: string,
+  faces: { partnerImage: number | null; droppedPoseMap: boolean }
+): string {
+  if (/\bexactly two arms\b/i.test(prompt)) return prompt;
+  let partnerImage = faces.partnerImage;
+  if (partnerImage == null) {
+    const mentioned = prompt.match(/<image([1-9])> is the face\b/);
+    if (mentioned) partnerImage = Number(mentioned[1]);
+  }
+  const duo = /\bTWO PEOPLE\b/.test(prompt) || partnerImage != null;
+  if (!duo) return prompt;
+  if (!faces.droppedPoseMap && partnerImage == null) return prompt;
+  const parts = [
+    'Exactly two people, each with exactly two arms on their own body — no extra, floating, or shared arm.',
+  ];
+  if (partnerImage != null && partnerImage !== 1) {
+    parts.push(
+      `<image1> is only the first person's face, hair and skin — that person alone, never copied onto anyone else, and do not paste that photo into the scene. <image${partnerImage}> is only the second person's face, hair and skin — a different face and different hair, never the same person as the first.`
+    );
+  }
+  return `${parts.join(' ')} ${prompt}`;
 }
 
 const UNNAMED_KIT_LINE = "replace clothing with this slot's catalog wardrobe kit";
@@ -249,8 +355,11 @@ export function convertQwenEditWorkflowToImage21(
 
   const latentRef = sampler.inputs.latent_image;
   const latentNode = isRef(latentRef) ? workflow[latentRef[0]] : undefined;
-  const width = Number(latentNode?.inputs.width) || options.fallbackSize?.width || 1024;
-  const height = Number(latentNode?.inputs.height) || options.fallbackSize?.height || 1024;
+  const requestedWidth = Number(latentNode?.inputs.width) || options.fallbackSize?.width || 1024;
+  const requestedHeight = Number(latentNode?.inputs.height) || options.fallbackSize?.height || 1024;
+  // Both samplers use the native 2K canvas. The 4-step pass used to stay on the Rapid
+  // plate (~960×1280) for speed, and that size is below what these weights hold detail at.
+  const canvas = qwenImage21Canvas(requestedWidth, requestedHeight);
 
   let next = Math.max(0, ...Object.keys(workflow).map(id => Number(id) || 0)) + 1;
   const add = (node: WorkflowNode) => {
@@ -272,9 +381,9 @@ export function convertQwenEditWorkflowToImage21(
     inputs: { model: [unet, 0], device: 'auto', dtype: 'default' },
   });
   let samplerModel: [string, number] = [cache, 0];
-  // Nude two-person pose maps go in as a plain reference on 2.1, and it paints them: fused
-  // bodies, a third person, detached anatomy (live, 2026-10-01). Clothed duo maps are fine and
-  // give the better pose (selfie arm, high five, hug) — keep those.
+  // A two-person pose map is a limb diagram. 2.1 paints it: fused bodies, a third person, a
+  // bare arm in the gap (live, 2026-10-01). Those stay out; a one-person map stays. Fun
+  // ControlNet Union made anatomy worse and stays off unless the caller turns it on.
   const nudeStill = isNudePrompt(String(encoder.inputs.prompt ?? ''));
   const profile = POSE_MODEL_PROFILES['qwen-image-2.1'];
   const duoMapDelivery = nudeStill ? profile.mapDelivery.duoNude : profile.mapDelivery.duoClothed;
@@ -308,19 +417,28 @@ export function convertQwenEditWorkflowToImage21(
     });
     samplerModel = [apply, 0];
   }
+  const partnerKept = kept.findIndex(entry =>
+    isDayPartnerFaceFilename(sourceFilename(workflow, entry.ref))
+  );
   const encodeInputs: Record<string, unknown> = {
     clip: [clip, 0],
     vae: [vae, 0],
-    prompt: withoutDroppedReferences(
-      withProfilePromptFixes(toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')), {
-        namePartnerOutfit: profile.namePartnerOutfit,
-        dressWhenNoOutfit: profile.dressWhenNoOutfit && !nudeStill,
-      }),
-      dropped,
-      kept.map(entry => entry.from)
+    prompt: withTwoPersonFaces(
+      withoutDroppedReferences(
+        withProfilePromptFixes(toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')), {
+          namePartnerOutfit: profile.namePartnerOutfit,
+          dressWhenNoOutfit: profile.dressWhenNoOutfit && !nudeStill,
+        }),
+        dropped,
+        kept.map(entry => entry.from)
+      ),
+      {
+        partnerImage: partnerKept >= 0 ? partnerKept + 1 : null,
+        droppedPoseMap: dropped.length > 0,
+      }
     ),
     negative_prompt: '',
-    resolution: 1024,
+    resolution: qwenImage21Resolution(canvas.width, canvas.height),
   };
   kept.forEach((entry, index) => {
     encodeInputs[`images.image_${index + 1}`] = entry.ref;
@@ -328,7 +446,7 @@ export function convertQwenEditWorkflowToImage21(
   const encode = add({ class_type: 'TextEncodeQwenImage21', inputs: encodeInputs });
   const latent = add({
     class_type: 'EmptyLatentImage',
-    inputs: { width, height, batch_size: 1 },
+    inputs: { width: canvas.width, height: canvas.height, batch_size: 1 },
   });
 
   sampler.inputs = {

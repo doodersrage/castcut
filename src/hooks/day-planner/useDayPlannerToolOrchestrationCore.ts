@@ -1288,6 +1288,13 @@ export function useDayPlannerToolOrchestrationCore() {
                 !omitGarment && !replaceKeepOutfit && wardrobeId
                   ? dayOutfitPromptName(formatWardrobeKitLabel(wardrobeLabelFor(wardrobeId) || ''))
                   : null,
+              partnerOutfit: partnerCharacter?.lockedWardrobeId?.trim()
+                ? dayOutfitPromptName(
+                    formatWardrobeKitLabel(
+                      wardrobeLabelFor(partnerCharacter.lockedWardrobeId.trim()) || ''
+                    )
+                  ) || null
+                : null,
             });
         const prompt = [
           ...clothedLeadLines,

@@ -42,6 +42,7 @@ describe("model sampling patch", () => {
   it("skips shift sampling patch for lightning models", () => {
     assert.equal(isQwenLightningModel("qwen-image-2512-lightning-8"), true);
     assert.equal(isQwenLightningModel("qwen-image-edit-2511-lightning-4"), true);
+    assert.equal(isQwenLightningModel("qwen-image-2.1-edit-lightning-4"), false);
     assert.equal(isQwenLightningModel("qwen-image-2512"), false);
     assert.equal(isQwenLightningModel("wan-video-lightning-4"), false);
     assert.equal(isWanLightningModel("wan-video-lightning-4"), true);

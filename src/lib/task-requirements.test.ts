@@ -73,4 +73,11 @@ describe('task requirements: Qwen-Image 2.1 engine', () => {
     }
     assert.ok(!taskRequirements({ model: 'qwen-rapid-aio-edit-nsfw' }).assetIds.includes('qwen-image-2.1-bf16'));
   });
+
+  it('Lightning needs the same weights plus the 4-step sampler node', () => {
+    const req = taskRequirements({ model: 'qwen-image-2.1-edit-lightning-4' });
+    assert.ok(req.assetIds.includes('qwen-image-2.1-bf16'));
+    assert.ok(req.nodePacks.some(pack => pack.nodeTypes.includes('T8QwenImage21FunAccPDD4Step')));
+    assert.equal(taskRequirements({ model: 'qwen-image-2.1-edit' }).nodePacks.length, 0);
+  });
 });

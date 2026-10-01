@@ -93,6 +93,12 @@ describe("model sampler defaults", () => {
   });
 
   it("returns lightning defaults for qwen 2512 4-step", () => {
+    assert.deepEqual(getModelSamplerDefaults("qwen-image-2.1-edit-lightning-4", "max"), {
+      steps: 4,
+      cfg: 1,
+      samplerName: "euler",
+      scheduler: "simple",
+    });
     assert.deepEqual(getModelSamplerDefaults("qwen-image-2512-lightning-4", "base"), {
       steps: 4,
       cfg: 1,
