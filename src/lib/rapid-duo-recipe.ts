@@ -178,7 +178,9 @@ function placementTwoWomen(
   const gf = 'her girlfriend';
   switch (layout) {
     case 'missionary':
-      return `Side view, both faces in frame. The woman lies on her back on ${on('bed')} with her legs spread and wrapped around ${gf}; ${gf} lies on top of her between her thighs, propped up on her forearms, hips pressed to hers, one hand between her thighs, fingering her; their faces close, looking at each other.`;
+      // Two women on top of each other merged into one body (live, 2026-10-01); side by side
+      // kept two whole bodies 4/4.
+      return `Side view, both faces in frame. The woman lies on her back on ${on('bed')} with her knees up and apart; ${gf} lies on her side right next to her, propped up on one elbow, her body alongside hers — two separate bodies side by side — one hand between her thighs, fingering her; their faces close, looking at each other.`;
     case 'mating_press':
       return `The woman lies on her back on ${on('bed')} with her knees pulled up toward her shoulders; ${gf} kneels over her between her legs, holding the backs of her thighs, her mouth on her vulva, licking her; both faces in frame.`;
     case 'straddle':
@@ -186,9 +188,11 @@ function placementTwoWomen(
     case 'reverse_straddle':
       return `Camera in front of the woman. The woman is closest to the camera, facing the lens, sitting on the lap of ${gf}, who sits back on ${on('couch')} behind her; her back rests against her girlfriend's chest, legs spread; ${gf}'s hand is between her thighs, fingering her; ${gf}'s face is behind her shoulder.`;
     case 'bent':
-      return `The woman stands bent forward over ${on('bed edge')}, hands braced on it, hips pushed back; ${gf} stands pressed close behind her, one arm around her waist and the other hand between her thighs from behind, fingering her. She looks back over her shoulder.`;
+      // "Pressed close behind" hid her girlfriend inside her silhouette (phantom limbs); beside
+      // her hip gave two whole bodies 4/4 (live A/B 2026-10-01).
+      return `The woman stands bent forward over ${on('bed edge')}, hands braced on it, hips pushed back; ${gf} stands at her side next to her hip — two separate bodies side by side, a gap between their torsos — one hand on her lower back and the other between her thighs from behind, fingering her. She looks back over her shoulder at her.`;
     case 'standing':
-      return `Both stand. The woman leans forward with her hands braced on ${on('wall')}, hips pushed back; ${gf} stands pressed close behind her, one arm around her waist and the other hand between her thighs from behind, fingering her; she looks back over her shoulder.`;
+      return `Both stand. The woman leans forward with her hands braced on ${on('wall')}, hips pushed back; ${gf} stands at her side next to her hip — two separate bodies side by side, a gap between their torsos — one hand on her lower back and the other between her thighs from behind, fingering her; she looks back over her shoulder at her.`;
     case 'prone':
       return `The woman lies flat on her stomach on ${on('bed')}, face turned to the side on the pillow; ${gf} lies along her side, pressed against her back, one hand between her thighs from behind, fingering her, kissing her shoulder.`;
     case 'spoon':
