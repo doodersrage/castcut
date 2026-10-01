@@ -362,6 +362,59 @@ test('story mid-flow: Roll leads, settings fold, no default Part', async ({ page
   await expect(page.getByRole('button', { name: 'Cut film', exact: true })).toBeVisible();
 });
 
+test('outfit pose from a photo: reads the pose and selects it', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: '' },
+    characters: { version: 1, characters: [], removedIds: [] },
+  });
+  // ComfyUI upload + DWPose are stubbed: one standing person, right arm raised.
+  await page.route('**/api/comfyui/upload**', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ name: 'pose-plate.png', subfolder: '', type: 'input' }),
+    })
+  );
+  const xy: Array<[number, number]> = [
+    [0.5, 0.12], [0.5, 0.2], [0.42, 0.2], [0.36, 0.1], [0.34, 0.02], [0.58, 0.2], [0.6, 0.34],
+    [0.6, 0.46], [0.45, 0.48], [0.45, 0.67], [0.45, 0.86], [0.55, 0.48], [0.55, 0.67], [0.55, 0.86],
+    [0.48, 0.1], [0.52, 0.1], [0.46, 0.11], [0.54, 0.11],
+  ];
+  await page.route('**/api/pose-detect', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        available: true,
+        pose: { canvas: { width: 512, height: 768 }, people: [xy.map(([x, y]) => ({ x, y }))] },
+      }),
+    })
+  );
+  await gotoStable(page, '/fitting');
+  await dismissBlockingOverlays(page);
+  const section = page.getByTestId('outfit-pose');
+  await expect(section).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('outfit-pose-photo')).toHaveAttribute('aria-checked', 'false');
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+    'base64'
+  );
+  await page
+    .getByTestId('outfit-pose-photo')
+    .locator('input[type=file]')
+    .setInputFiles({ name: 'pose-plate.png', mimeType: 'image/png', buffer: png });
+  await expect(page.getByTestId('outfit-pose-photo-status')).toContainText(
+    'Using the pose from your photo.'
+  );
+  await expect(page.getByTestId('outfit-pose-photo')).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('outfit-pose-custom')).toHaveAttribute('aria-checked', 'false');
+  await expect(page.getByTestId('outfit-pose-figure')).toBeVisible();
+  // Back to the plate's own stance clears it.
+  await page.getByTestId('outfit-pose-plate').click();
+  await expect(page.getByTestId('outfit-pose-figure')).toHaveCount(0);
+  await expect(page.getByTestId('outfit-pose-photo')).toHaveAttribute('aria-checked', 'false');
+});
+
 test('phone story recognises the active Cast before any film is cut', async ({ page }) => {
   await seedStoryMidFlow(page, 'e2e-story-phone');
   await page.setViewportSize({ width: 390, height: 844 });

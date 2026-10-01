@@ -9,8 +9,9 @@ import type { PhotoPose } from '@/lib/day-pose-guide';
 import { poseStarterBody } from '@/lib/pose-starters';
 
 /**
- * Outfit → Pose: try a kit on in the plate's own stance (default) or in a pose you drag into
- * shape — the skeleton goes to the try-on as a pose map (Image 3), like Day's guides.
+ * Outfit → Pose: try a kit on in the plate's own stance (default), in a pose you drag into
+ * shape, or in a pose read from any photo (a pose plate) — the skeleton goes to the try-on as a
+ * pose map (Image 3), like Day's guides.
  */
 export default function OutfitPoseSection({
   pose,
@@ -28,6 +29,31 @@ export default function OutfitPoseSection({
   hideLabel?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoStatus, setPhotoStatus] = useState<string | null>(null);
+  const fromPhoto = Boolean(pose) && pose?.source !== 'edited';
+  // A pose plate: read the pose out of any photo of a person and try the kit on in it.
+  const readPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setPhotoBusy(true);
+    setPhotoStatus('Reading the pose…');
+    try {
+      // Loaded on demand: pulls in the ComfyUI upload + DWPose detection.
+      const { readPoseFromPhoto } = await import('@/lib/pose-library-import');
+      const read = await readPoseFromPhoto(file);
+      setEditing(false);
+      onChange({ ...read, people: read.people.slice(0, 1), source: 'photo' });
+      setPhotoStatus(
+        read.people.length > 1
+          ? 'Using the pose of the largest person in your photo.'
+          : 'Using the pose from your photo.'
+      );
+    } catch (error) {
+      setPhotoStatus(error instanceof Error ? error.message : 'Could not read that photo.');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
   const startPose: PhotoPose = pose ?? {
     aspect: 2 / 3,
     people: [poseStarterBody('stand')],
@@ -52,6 +78,7 @@ export default function OutfitPoseSection({
             title="Keep the plate's own stance — a fitting"
             onClick={() => {
               setEditing(false);
+              setPhotoStatus(null);
               onChange(undefined);
             }}
           >
@@ -61,8 +88,8 @@ export default function OutfitPoseSection({
             type="button"
             role="radio"
             className="ui-segmented-item"
-            aria-checked={Boolean(pose)}
-            data-active={pose ? 'true' : 'false'}
+            aria-checked={Boolean(pose) && !fromPhoto}
+            data-active={pose && !fromPhoto ? 'true' : 'false'}
             disabled={busy}
             data-testid="outfit-pose-custom"
             title="Drag a figure into the pose to try the kit on in"
@@ -73,6 +100,27 @@ export default function OutfitPoseSection({
           >
             Custom pose
           </button>
+          <label
+            role="radio"
+            className="ui-segmented-item cursor-pointer"
+            aria-checked={fromPhoto}
+            data-active={fromPhoto ? 'true' : 'false'}
+            aria-disabled={busy || photoBusy}
+            data-testid="outfit-pose-photo"
+            title="Pick a photo of someone in the pose you want — only the pose is used, not the person or clothes"
+          >
+            {photoBusy ? 'Reading…' : 'Pose from a photo'}
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              disabled={busy || photoBusy}
+              onChange={event => {
+                void readPhoto(event.target.files?.[0]);
+                event.target.value = '';
+              }}
+            />
+          </label>
         </div>
       </div>
       {editing ? (
@@ -95,13 +143,14 @@ export default function OutfitPoseSection({
             layers={[{ bodies: pose.people }]}
             aspect={pose.aspect}
             height={96}
-            label="Custom try-on pose"
+            label={fromPhoto ? 'Try-on pose read from your photo' : 'Custom try-on pose'}
             testId="outfit-pose-figure"
           />
           <div className="space-y-1">
             <p className="type-caption text-[var(--text-muted)]">
               Try-ons render {leadNoun === 'man' ? 'him' : leadNoun === 'woman' ? 'her' : 'them'} in
-              this pose. A clear, simple pose follows best.
+              this pose{fromPhoto ? ' (read from your photo)' : ''}. A clear, simple pose follows
+              best.
             </p>
             <Button
               size="sm"
@@ -114,6 +163,15 @@ export default function OutfitPoseSection({
             </Button>
           </div>
         </div>
+      ) : null}
+      {photoStatus ? (
+        <p
+          className="type-caption text-[var(--text-muted)]"
+          role="status"
+          data-testid="outfit-pose-photo-status"
+        >
+          {photoStatus}
+        </p>
       ) : null}
       {!editing ? (
         <MyPosesStrip
