@@ -213,6 +213,12 @@ export type PoseMatchResult = {
   score: number;
   expectedPeople: number;
   detectedPeople: number;
+  /**
+   * Bodies in the still beyond what the guide drew (a third person in a duo, a stranger beside
+   * a solo). Counts only bodies that fill a real share of the frame, so background passers-by
+   * and stray limb fragments don't count.
+   */
+  extraPeople: number;
   /** Per guide person (lead first); null = no detected body matched it. */
   perPerson: Array<number | null>;
   /** For each guide person, the detected index it matched (or -1). */
@@ -247,6 +253,26 @@ function prominence(body: NormalizedBody, aspect: number): number {
   const ys = points.map(point => point.y);
   const diagonal = Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
   return limbCount(body) >= 2 ? diagonal : diagonal * 0.25;
+}
+
+/** A body counts toward the headcount from two limbs and about a third of the frame's diagonal. */
+const HEADCOUNT_MIN_LIMBS = 2;
+const HEADCOUNT_MIN_PROMINENCE = 0.3;
+
+/**
+ * People clearly in the still. Live (2026-10-01, 19 two-women stills): flagged 3 of 5 with a
+ * third person and 0 of 14 correct ones — it under-counts (a face behind a body, a lone head),
+ * never over-counted, so only "more than expected" is acted on.
+ */
+export function countProminentPeople(detected: DetectedPose): number {
+  const aspect =
+    detected.canvas.width > 0 && detected.canvas.height > 0
+      ? detected.canvas.width / detected.canvas.height
+      : 1;
+  return detected.people.filter(
+    body =>
+      limbCount(body) >= HEADCOUNT_MIN_LIMBS && prominence(body, aspect) >= HEADCOUNT_MIN_PROMINENCE
+  ).length;
 }
 
 /**
@@ -304,6 +330,7 @@ export function scorePoseMatch(input: {
     expectedPeople: guide.length,
     detectedPeople: input.detected.people.filter(body => limbCount(body) >= MIN_SHARED_LIMBS)
       .length,
+    extraPeople: Math.max(0, countProminentPeople(input.detected) - input.guide.length),
     perPerson,
     assignment: guide.map((_, g) => {
       const c = best.picks[g] ?? -1;
@@ -325,6 +352,9 @@ export function describePoseMatch(result: PoseMatchResult): string {
     result.detectedPeople !== result.expectedPeople
       ? ` · ${result.detectedPeople} of ${result.expectedPeople} people found`
       : '';
+  if (result.extraPeople > 0) {
+    return `pose match ${pct}% · ${result.expectedPeople + result.extraPeople} people in frame, expected ${result.expectedPeople}`;
+  }
   return `pose match ${pct}%${heads}`;
 }
 

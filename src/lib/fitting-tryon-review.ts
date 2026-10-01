@@ -1,11 +1,13 @@
 /**
  * Outfit try-on review (pure). With Auto-review on, each landed try-on gets a measured face
  * match against the plate (ComfyUI FaceAnalysis) and a vision read of the outfit, face and
- * hands. Try-ons are only scored, never requeued — the player picks Keep with the numbers.
+ * hands, plus a pose match when a custom pose is set. Try-ons are only scored, never requeued —
+ * the player picks Keep (or Requeue) with the numbers.
  */
 
 import { STILL_MIN_FACE_MATCH, STILL_FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
 import { slotReviewFlagLabel, type SlotQualityReport } from '@/lib/play-slot-quality';
+import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
 
 export type TryOnReview = {
   /** The image that was reviewed — a requeued try-on gets a fresh review. */
@@ -16,6 +18,8 @@ export type TryOnReview = {
   faceMatch?: number;
   /** 1–5 vision score: the visible clothing matches the kit / BYO garment. */
   outfitMatch?: number;
+  /** How closely the try-on follows the custom pose, 0–1 (only with a custom pose set). */
+  poseMatch?: number;
   notes: string[];
 };
 
@@ -26,9 +30,16 @@ export function decideTryOnReview(input: {
   imageUrl: string;
   faceMatch?: number | null;
   report?: SlotQualityReport | null;
+  /** Detected pose vs the custom pose (ComfyUI DWPose); null when there is no custom pose. */
+  poseMatch?: number | null;
 }): TryOnReview {
   const notes: string[] = [];
   let warn = false;
+  const pose = input.poseMatch;
+  if (typeof pose === 'number' && pose < DEFAULT_MIN_POSE_MATCH) {
+    notes.push(`didn't follow your pose (${Math.round(pose * 100)}%)`);
+    warn = true;
+  }
   const face = input.faceMatch;
   if (typeof face === 'number') {
     const pct = Math.round(face * 100);
@@ -76,6 +87,7 @@ export function decideTryOnReview(input: {
     status: warn ? 'warn' : 'ok',
     ...(typeof face === 'number' ? { faceMatch: face } : {}),
     ...(report ? { outfitMatch: report.outfitMatch } : {}),
+    ...(typeof pose === 'number' ? { poseMatch: pose } : {}),
     notes,
   };
 }
@@ -86,6 +98,7 @@ export function tryOnReviewScoreLine(review: TryOnReview | undefined): string | 
   const parts = [
     typeof review.faceMatch === 'number' ? `Face ${Math.round(review.faceMatch * 100)}%` : '',
     typeof review.outfitMatch === 'number' ? `Outfit ${review.outfitMatch}/5` : '',
+    typeof review.poseMatch === 'number' ? `Pose ${Math.round(review.poseMatch * 100)}%` : '',
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(' · ') : null;
 }

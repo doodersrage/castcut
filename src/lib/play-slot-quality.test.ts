@@ -64,6 +64,18 @@ describe('play slot quality', () => {
     assert.match(decision.reasons.join(' '), /ghost or extra hands/);
   });
 
+  it('rerolls on a measured extra person, said once', () => {
+    const decision = decideSlotQuality({ ...CLEAN, flags: ['extra-person'] }, 0, undefined, {
+      extraPeople: { extra: 1, expected: 2 },
+    });
+    assert.equal(decision.action, 'reroll');
+    assert.deepEqual(decision.reasons, ['3 people in frame, expected 2']);
+    assert.equal(
+      decideSlotQuality(CLEAN, 0, undefined, { extraPeople: { extra: 0, expected: 2 } }).action,
+      'keep'
+    );
+  });
+
   it('ignores soft flags such as plastic-skin for the decision', () => {
     assert.equal(decideSlotQuality({ ...CLEAN, flags: ['plastic-skin'] }, 0).action, 'keep');
   });

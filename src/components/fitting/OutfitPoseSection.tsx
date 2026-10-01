@@ -81,6 +81,8 @@ export default function OutfitPoseSection({
           aspect={startPose.aspect}
           testIdPrefix="outfit-pose"
           allowTwo={false}
+          possessive={leadNoun === 'man' ? 'his' : 'her'}
+          leadsPrompt
           onSave={next => {
             onChange({ ...next, people: next.people.slice(0, 1) });
             setEditing(false);

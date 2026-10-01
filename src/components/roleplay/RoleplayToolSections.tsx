@@ -1,5 +1,6 @@
 'use client';
 
+import ClipEngineNote from '@/components/ClipEngineNote';
 import TaskRequirementsCard from '@/components/TaskRequirementsCard';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
@@ -348,6 +349,7 @@ export default function RoleplayToolSections({
                   Animate all ready stills
                 </Button>
               </ToolActionRow>
+              <ClipEngineNote twoPersonAdultPossible />
             </ToolSection>
           ) : null}
 

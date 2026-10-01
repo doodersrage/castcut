@@ -1,5 +1,6 @@
 'use client';
 
+import ClipEngineNote from '@/components/ClipEngineNote';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import SharedToolControls from '@/components/SharedToolControls';
@@ -36,6 +37,7 @@ import {
   buildDayProgressLightboxState,
   daySessionStatusLine,
   isDayAdultMood,
+  normalizeDayIntimateMix,
   type DaySlotId,
 } from '@/lib/day-planner';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
@@ -988,6 +990,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             <p className="type-caption mt-2 text-[var(--text-muted)]">
               Clips optional but preferred — Cut still works from stills alone.
             </p>
+            <ClipEngineNote
+              twoPersonAdultPossible={
+                isDayAdultMood(dayMood) && normalizeDayIntimateMix(intimateMix) !== 'solo'
+              }
+            />
           </ToolSection>
         ) : completedShotCount > 0 && !firstCutCelebrate ? (
           <ToolSection
@@ -1013,6 +1020,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 Animate all ready stills
               </Button>
             </ToolActionRow>
+            <ClipEngineNote
+              twoPersonAdultPossible={
+                isDayAdultMood(dayMood) && normalizeDayIntimateMix(intimateMix) !== 'solo'
+              }
+            />
           </ToolSection>
         ) : null}
 

@@ -25,6 +25,16 @@ describe('Outfit try-on review', () => {
     assert.equal(tryOnReviewScoreLine(review), 'Face 71% · Outfit 5/5');
   });
 
+  it('warns when the try-on ignored the custom pose, and shows the pose score', () => {
+    const missed = decideTryOnReview({ imageUrl: 'a', faceMatch: 0.71, report: report(), poseMatch: 0.42 });
+    assert.equal(missed.status, 'warn');
+    assert.deepEqual(missed.notes, ["didn't follow your pose (42%)"]);
+    assert.equal(tryOnReviewScoreLine(missed), 'Face 71% · Outfit 5/5 · Pose 42%');
+    const held = decideTryOnReview({ imageUrl: 'a', report: report(), poseMatch: 0.83 });
+    assert.equal(held.status, 'ok');
+    assert.equal(tryOnReviewScoreLine(held), 'Outfit 5/5 · Pose 83%');
+  });
+
   it('warns when the face drifted from the plate, notes a weak match', () => {
     const drifted = decideTryOnReview({ imageUrl: 'a', faceMatch: 0.18 });
     assert.equal(drifted.status, 'warn');

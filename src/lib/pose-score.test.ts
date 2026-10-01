@@ -125,6 +125,22 @@ describe('pose-score matching', () => {
     assert.ok(result.score > 0.95);
   });
 
+  it('counts a third body in a duo, but not a small bystander', () => {
+    const a = normalized(figure('stand', 0.25));
+    const b = normalized(figure('walk', 0.5));
+    const c = normalized(figure('stand', 0.75));
+    const three = scorePoseMatch({ guide: [a, b], guideAspect: 2 / 3, detected: detectedFrom([a, b, c]) });
+    assert.equal(three.extraPeople, 1);
+    assert.match(describePoseMatch(three), /3 people in frame, expected 2/);
+    const two = scorePoseMatch({ guide: [a, b], guideAspect: 2 / 3, detected: detectedFrom([a, b]) });
+    assert.equal(two.extraPeople, 0);
+    const tiny = a.map(p => (p ? { x: 0.9 + p.x * 0.08, y: 0.05 + p.y * 0.08 } : null));
+    const passerBy = scorePoseMatch({ guide: [a], guideAspect: 2 / 3, detected: detectedFrom([a, tiny]) });
+    assert.equal(passerBy.extraPeople, 0);
+    // Fewer than drawn is not acted on (a face hidden behind a body).
+    assert.equal(scorePoseMatch({ guide: [a, b], guideAspect: 2 / 3, detected: detectedFrom([a]) }).extraPeople, 0);
+  });
+
   it('matches duo people by best assignment and zeroes a missing partner', () => {
     const a = normalized(figure('stand', 0.3));
     const b = normalized(figure('walk', 0.7));

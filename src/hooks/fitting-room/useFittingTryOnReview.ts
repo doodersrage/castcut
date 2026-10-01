@@ -5,7 +5,10 @@ import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-clien
 import { STILL_MIN_FACE_MATCH } from '@/lib/face-match';
 import type { FittingCompareTryOn } from '@/lib/fitting-room';
 import { decideTryOnReview, type TryOnReview } from '@/lib/fitting-tryon-review';
+import type { PhotoPose } from '@/lib/day-pose-guide';
 import { recordFaceMatchScore } from '@/lib/play-metrics';
+import { detectStillPose } from '@/lib/pose-detect-client';
+import { scorePoseMatch } from '@/lib/pose-score';
 import { reviewOutfitLabel, type SlotQualityReport } from '@/lib/play-slot-quality';
 import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
 import type { SharedToolSettings } from '@/lib/settings-cache';
@@ -14,7 +17,8 @@ import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
 
 /**
  * Outfit Auto-review: once a try-on lands in Compare, measure its face against the plate
- * (ComfyUI_FaceAnalysis) and have the vision model read the outfit, face and hands. One try-on
+ * (ComfyUI_FaceAnalysis), its pose against the custom pose when one is set (DWPose), and have
+ * the vision model read the outfit, face and hands. One try-on
  * at a time; scores only — Keep stays the player's call. Either check switches itself off for
  * the session when its node pack / vision model is missing.
  */
@@ -24,10 +28,19 @@ export function useFittingTryOnReview(input: {
   plateUrl: string;
   plateFilename: string;
   customGarmentDescription?: string;
+  /** The custom pose try-ons are queued in (Outfit → Pose → Custom pose), if any. */
+  customPose?: PhotoPose | null;
   shared: SharedToolSettings;
 }) {
-  const { enabled, compareTryOns, plateUrl, plateFilename, customGarmentDescription, shared } =
-    input;
+  const {
+    enabled,
+    compareTryOns,
+    plateUrl,
+    plateFilename,
+    customGarmentDescription,
+    customPose,
+    shared,
+  } = input;
   const [reviews, setReviews] = useState<Record<string, TryOnReview>>({});
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [checksOff, setChecksOff] = useState<string[]>([]);
@@ -35,6 +48,7 @@ export function useFittingTryOnReview(input: {
   const runningRef = useRef(false);
   const faceOffRef = useRef(false);
   const visionOffRef = useRef(false);
+  const poseOffRef = useRef(false);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -86,6 +100,30 @@ export function useFittingTryOnReview(input: {
             console.warn('Try-on face check skipped:', error);
           }
         }
+        // Custom pose: did the try-on take it? (The words-first line can still lose to the plate.)
+        let poseMatch: number | null = null;
+        const guide = customPose?.people[0];
+        if (guide && customPose && !poseOffRef.current) {
+          try {
+            const detected = await detectStillPose(
+              comfyViewUrlForStill(target, loadComfyGallery()) ?? imageUrl
+            );
+            if (detected.available) {
+              if (detected.pose.people.length > 0) {
+                poseMatch = scorePoseMatch({
+                  guide: [guide],
+                  guideAspect: customPose.aspect,
+                  detected: detected.pose,
+                }).score;
+              }
+            } else {
+              poseOffRef.current = true;
+              setChecksOff(previous => [...previous, `Pose check off — ${detected.reason}`]);
+            }
+          } catch (error) {
+            console.warn('Try-on pose check skipped:', error);
+          }
+        }
         let report: SlotQualityReport | null = null;
         if (!visionOffRef.current) {
           try {
@@ -105,10 +143,10 @@ export function useFittingTryOnReview(input: {
             setChecksOff(previous => [...previous, `Outfit check off — ${message}`]);
           }
         }
-        if (faceMatch === null && !report) {
+        if (faceMatch === null && !report && poseMatch === null) {
           return;
         }
-        const review = decideTryOnReview({ imageUrl, faceMatch, report });
+        const review = decideTryOnReview({ imageUrl, faceMatch, report, poseMatch });
         setReviews(previous => ({ ...previous, [target.promptId]: review }));
       } finally {
         runningRef.current = false;
@@ -116,7 +154,16 @@ export function useFittingTryOnReview(input: {
         setTick(value => value + 1);
       }
     })();
-  }, [compareTryOns, customGarmentDescription, enabled, plateFilename, plateUrl, shared, tick]);
+  }, [
+    compareTryOns,
+    customGarmentDescription,
+    customPose,
+    enabled,
+    plateFilename,
+    plateUrl,
+    shared,
+    tick,
+  ]);
 
   // Keep only reviews of the image each try-on shows now (a requeue replaces it).
   const liveReviews: Record<string, TryOnReview> = {};

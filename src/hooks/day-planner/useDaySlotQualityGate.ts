@@ -254,7 +254,17 @@ export function useDaySlotQualityGate(
           report,
           slotRerollsUsed(ledgerRef.current, target.id),
           undefined,
-          { poseMatch: poseMatch?.score ?? null, faceMatch }
+          {
+            poseMatch: poseMatch?.score ?? null,
+            faceMatch,
+            // A third body in a duo, or a stranger beside a solo. Skipped on clothed days with
+            // companions on and a one-person guide — a friend in frame is allowed there.
+            extraPeople:
+              poseMatch &&
+              !(companionsPossible && !isDayAdultMood(mood) && poseMatch.expectedPeople < 2)
+                ? { extra: poseMatch.extraPeople, expected: poseMatch.expectedPeople }
+                : null,
+          }
         );
         if (faceMatch !== null) {
           recordFaceMatchScore(shared.model, faceMatch, Boolean(decision.faceMiss));

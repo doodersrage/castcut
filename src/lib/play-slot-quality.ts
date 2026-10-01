@@ -289,7 +289,12 @@ export function decideSlotQuality(
   report: SlotQualityReport,
   rerollsUsed: number,
   policy: SlotQualityPolicy = DEFAULT_SLOT_QUALITY_POLICY,
-  extras?: { poseMatch?: number | null; faceMatch?: number | null }
+  extras?: {
+    poseMatch?: number | null;
+    faceMatch?: number | null;
+    /** Measured bodies beyond the guide's headcount (pose detection), with the expected count. */
+    extraPeople?: { extra: number; expected: number } | null;
+  }
 ): SlotQualityDecision {
   const overall = slotQualityOverall(report);
   const reasons: string[] = [];
@@ -304,7 +309,14 @@ export function decideSlotQuality(
     reasons.push(`face match ${Math.round(faceMatch * 100)}% — not the Cast`);
   }
 
+  const crowd = extras?.extraPeople;
+  const headcountMiss = Boolean(crowd && crowd.extra > 0);
+  if (crowd && headcountMiss) {
+    reasons.push(`${crowd.expected + crowd.extra} people in frame, expected ${crowd.expected}`);
+  }
   for (const flag of report.flags) {
+    // The measured headcount already said it — don't list the reviewer's guess as well.
+    if (flag === 'extra-person' && headcountMiss) continue;
     if (policy.hardFlags.includes(flag)) {
       reasons.push(slotReviewFlagLabel(flag));
     }

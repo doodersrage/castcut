@@ -125,6 +125,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     plateUrl: referenceImageUrl,
     plateFilename: referenceImageFilename,
     customGarmentDescription: toolSettings.customGarmentDescription,
+    customPose: toolSettings.tryOnPose,
     shared,
   });
   const outfitPhase = resolveFittingOutfitPhase({

@@ -114,6 +114,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     plateUrl: toolSettings.referenceImageUrl?.trim() || '',
     plateFilename: toolSettings.referenceImageFilename?.trim() || '',
     customGarmentDescription: toolSettings.customGarmentDescription,
+    customPose: toolSettings.tryOnPose,
     shared,
   });
   const suggestedTryOnId = suggestTryOnToKeep(

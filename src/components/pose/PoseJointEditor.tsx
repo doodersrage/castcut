@@ -34,6 +34,7 @@ import { saveMyPose } from '@/lib/my-poses';
 import {
   addPerson,
   mirrorBodies,
+  describePoseBody,
   poseStarterBody,
   POSE_STARTERS,
   removePerson,
@@ -94,6 +95,8 @@ export default function PoseJointEditor({
   onSave,
   onCancel,
   allowTwo = true,
+  possessive = 'her',
+  leadsPrompt = false,
 }: {
   bodies: NormalizedBody[];
   aspect: number;
@@ -102,6 +105,10 @@ export default function PoseJointEditor({
   onCancel: () => void;
   /** Allow a second figure (Day / Story duos); Outfit try-ons are one person. */
   allowTwo?: boolean;
+  /** "her" / "his" for the pose-in-words line. */
+  possessive?: 'her' | 'his';
+  /** The words line opens the prompt (Outfit try-ons); elsewhere it is only how the pose reads. */
+  leadsPrompt?: boolean;
 }) {
   const titleId = useId();
   const [bodies, setBodies] = useState<NormalizedBody[]>(() =>
@@ -543,6 +550,17 @@ export default function PoseJointEditor({
               ))}
               <span>(their right and left, not yours)</span>
             </p>
+            {bodies[0] ? (
+              <p
+                className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2 text-sm text-[var(--text-secondary)]"
+                data-testid={`${testIdPrefix}-words`}
+              >
+                <span className="type-caption block text-[var(--text-muted)]">
+                  {leadsPrompt ? 'The prompt will open with' : 'This pose reads as'}
+                </span>
+                {describePoseBody(bodies[0], { possessive, aspect: safeAspect })}
+              </p>
+            ) : null}
             {focusBody ? (
               <div
                 className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"

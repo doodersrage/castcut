@@ -155,10 +155,15 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
   // Bend at the waist, and the readout says which way the figure faces.
   await page.getByTestId('outfit-pose-reset').click();
   await expect(page.getByTestId('outfit-pose-facing')).toContainText('Facing you');
+  // The words that will open the prompt are shown as you pose.
+  await expect(page.getByTestId('outfit-pose-words')).toContainText('The prompt will open with');
+  await expect(page.getByTestId('outfit-pose-words')).toContainText('standing');
   await page.getByTestId('outfit-pose-bend-forward').click();
   await page.getByTestId('outfit-pose-bend-forward').click();
   await expect(page.getByTestId('outfit-pose-facing')).toContainText('leaning forward 30°');
 
+  await page.getByTestId('outfit-pose-starter-sit').click();
+  await expect(page.getByTestId('outfit-pose-words')).toContainText('seated');
   await page.getByTestId('outfit-pose-save-to-my-poses').click();
   await page.getByTestId('outfit-pose-save-name').fill('Chair lean');
   await page.getByTestId('outfit-pose-save-name').press('Enter');
