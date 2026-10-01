@@ -417,12 +417,15 @@ describe('Rapid vacation recipe', () => {
     assert.match(buildRapidVacationRecipe({ beat: 'DANCING on a terrace — evening wear' })!, /She wears evening wear\./);
   });
 
-  it('replaces the Vacation brief only on Rapid solo', () => {
+  it('replaces the Vacation brief on Rapid solo, and on Edit 2511 when a pose map is attached', () => {
     const slot = { ...(nightSlot as object), sceneHints: 'PEDALING a rental bike along the promenade — sundress' } as never;
     const build = (model: string, extra: object = {}) =>
       buildDaySlotPrompt({ slot, hasPlate: true, plateSource: 'cast', poseGuide: true, model, dayMood: 'vacation', ...extra });
     assert.match(build('qwen-rapid-aio-edit-nsfw'), /^Vacation photo:.*rides a bicycle/);
-    assert.ok(!isRapidDuoRecipePrompt(build('qwen-image-edit-2511')));
+    // Edit 2511 held poses 7/7 with the recipe vs about 2/8 with the brief (live 2026-10-01).
+    assert.match(build('qwen-image-edit-2511'), /Vacation photo:.*rides a bicycle/);
+    assert.ok(!isRapidDuoRecipePrompt(build('qwen-image-edit-2511', { poseGuide: false })));
+    assert.ok(!isRapidDuoRecipePrompt(build('qwen-image-edit')));
   });
 });
 

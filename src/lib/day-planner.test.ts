@@ -807,6 +807,36 @@ describe('day-planner', () => {
     for (const slot of solo.slots) assert.doesNotMatch(slot.sceneHints ?? '', /partner/);
   });
 
+  it('Edit 2511 Vacation: the short recipe with the outfit stated first; Everyday keeps the brief', () => {
+    const base = {
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'sunlit cobblestone street with café awnings',
+        sceneHints: 'SEATED on a scooter saddle parked in the old town — weight shifted, checking a phone map',
+      },
+      hasPlate: true,
+      plateSource: 'keeper' as const,
+      poseGuide: true,
+      faceOnlyIdentity: true,
+      garmentReinforce: true,
+      garmentDescription: 'A black strapless mini dress made of sheer floral lace. The bodice is structured.',
+      model: 'qwen-image-edit-2511-lightning-8',
+    };
+    const vacation = buildDaySlotPrompt({ ...base, dayMood: 'vacation' });
+    assert.match(vacation, /^SCENE: she is in the sunlit cobblestone street with café awnings/);
+    assert.match(
+      vacation,
+      /\nOUTFIT \(mandatory\): she wears a black strapless mini dress made of sheer floral lace — fully dressed;/
+    );
+    assert.match(vacation, /Vacation photo: One woman alone on vacation\. She sits, knees bent\./);
+    assert.ok(vacation.length < 1200, String(vacation.length));
+    const everyday = buildDaySlotPrompt({ ...base, dayMood: 'everyday' });
+    assert.doesNotMatch(everyday, /Vacation photo:/);
+    // A model with no profile keeps the long Vacation brief.
+    const generic = buildDaySlotPrompt({ ...base, dayMood: 'vacation', model: 'qwen-image-edit' });
+    assert.doesNotMatch(generic, /Vacation photo:/);
+  });
+
   it('buildDaySlotPrompt vacation couple beat: both in frame, no "one woman alone" lock', () => {
     const prompt = buildDaySlotPrompt({
       slot: {

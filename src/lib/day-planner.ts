@@ -3466,8 +3466,15 @@ export function buildDaySlotPrompt(input: {
     // swimsuits went to cafés and sundresses into pools, and the shared dance tail lifted arms.
     // With "Duo · companions" on, a solo beat keeps the solo recipe (headcount 1) and a
     // Suggestive couple beat gets the clothed couple recipe.
+    // Edit 2511 takes the Vacation recipe too (pose-model-profile: compactVacationRecipe).
+    const compactVacation =
+      !rapidAio &&
+      dayMood === 'vacation' &&
+      // Tested with the pose map attached; without one the brief's identity locks stay.
+      poseGuide &&
+      poseProfileForModel(input.model).compactVacationRecipe;
     if (
-      rapidAio &&
+      (rapidAio || compactVacation) &&
       !omitGarment &&
       (dayMood === 'suggestive' || dayMood === 'vacation') &&
       (poseHeadcount < 2 || suggestiveCouple)
@@ -3495,6 +3502,24 @@ export function buildDaySlotPrompt(input: {
           : {}),
         ...(suggestiveCouple ? { lead: input.leadNoun === 'man' ? 'man' : 'woman' } : {}),
       });
+      if (recipe && compactVacation) {
+        // Edit 2511 keeps the plate's underwear unless the outfit is stated first and firmly.
+        const kit = (input.wardrobeLabel?.trim() || garmentDescription || '')
+          .split(/(?<=[.!?])\s+/)[0]!
+          .replace(/[.\s]+$/, '')
+          .replace(/^(?:an?|the)\s+/i, '')
+          .replace(/^[A-Z](?=[a-z])/, letter => letter.toLowerCase());
+        // Scene first, as the brief does (the confirmed 4/4 run had it), then the outfit.
+        return [
+          daySceneLeadLine(setting),
+          kit
+            ? `OUTFIT (mandatory): she wears a ${kit} — fully dressed; the underwear in Image 1 is only the fitting base, never part of the outfit.`
+            : null,
+          recipe,
+        ]
+          .filter(Boolean)
+          .join('\n');
+      }
       if (recipe) {
         return recipe;
       }

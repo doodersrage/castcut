@@ -25,6 +25,14 @@ export type PoseModelProfile = {
    * Qwen-Image 2.1 was A/B'd on exactly these recipes.
    */
   rapidGraph: boolean;
+  /**
+   * Clothed Vacation stills use the short "where the body is" recipe instead of the ~6.5k-char
+   * brief, without the rest of the Rapid graph. Edit 2511 Lightning, live A/B on the user's own
+   * graphs (2026-10-01): the brief held the pose about 2/8 (seated, climbing and lying came out
+   * standing or sitting); the recipe plus a mandatory-outfit line got pose and dress 7/7. Without
+   * that line the recipe kept the plate's underwear 3/8.
+   */
+  compactVacationRecipe: boolean;
   /** Two-women / two-men / man-lead adult duo layouts exist for this model. */
   sameSexLayouts: boolean;
   /** No 69 / face-sitting: those beats render as seated oral (and the guide is drawn so). */
@@ -76,6 +84,7 @@ const BASE: PoseModelProfile = {
   family: 'generic',
   outlineGrayGuide: false,
   rapidGraph: false,
+  compactVacationRecipe: false,
   sameSexLayouts: false,
   seatedOralFallback: false,
   poseStickyClothed: false,
@@ -101,6 +110,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     family: 'qwen-edit-2511',
     outlineGrayGuide: true,
     poseStickyClothed: true,
+    compactVacationRecipe: true,
   },
   'qwen-image-2.1': {
     ...BASE,
