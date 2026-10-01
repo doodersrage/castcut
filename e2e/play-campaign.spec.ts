@@ -129,14 +129,30 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
     return Math.abs(right!.x - left!.x);
   };
   const gap = await shoulderGap();
-  await page.getByTestId('outfit-pose-rotate-turn-right').click();
-  await page.getByTestId('outfit-pose-rotate-turn-right').click();
+  // Dragging the empty background sideways turns the figure.
+  const canvas = (await page.getByTestId('outfit-pose-canvas').boundingBox())!;
+  await page.mouse.move(canvas.x + 12, canvas.y + 12);
+  await page.mouse.down();
+  await page.mouse.move(canvas.x + 12 + canvas.width * 0.2, canvas.y + 12, { steps: 4 });
+  await page.mouse.up();
   expect(await shoulderGap()).toBeLessThan(gap * 0.95);
+  // The ↻ handle spins it: the head leaves the vertical line through the neck.
+  const handle = (await page.getByTestId('outfit-pose-spin-handle').boundingBox())!;
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + 90, handle.y + 60, { steps: 4 });
+  await page.mouse.up();
+  const [head, neck] = await Promise.all(
+    [0, 1].map(joint => page.getByTestId(`outfit-pose-joint-0-${joint}`).boundingBox())
+  );
+  expect(Math.abs(head!.x - neck!.x)).toBeGreaterThan(4);
 
   await page.getByTestId('outfit-pose-save-to-my-poses').click();
   await page.getByTestId('outfit-pose-save-name').fill('Chair lean');
   await page.getByTestId('outfit-pose-save-name').press('Enter');
-  await expect(section).toContainText('Saved to My poses as “Chair lean”');
+  await expect(page.getByTestId('outfit-pose-editor')).toContainText(
+    'Saved to My poses as “Chair lean”'
+  );
 
   await page.getByTestId('outfit-pose-editor-save').click();
   await expect(page.getByTestId('outfit-pose-custom')).toHaveAttribute('aria-checked', 'true');
