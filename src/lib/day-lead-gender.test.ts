@@ -43,3 +43,14 @@ describe('Day man lead', () => {
     );
   });
 });
+
+describe('Day man lead clothing', () => {
+  it('turns a woman lead’s clothes into his, leaving "dressed up" alone', async () => {
+    const { masculineClothes } = await import('./day-lead-gender');
+    assert.equal(
+      masculineClothes('up on her toes in a short dress, both dressed up'),
+      'up on her toes in a shirt and trousers, both dressed up'
+    );
+    assert.equal(masculineClothes('in lingerie and heels'), 'in boxer briefs and shoes');
+  });
+});

@@ -11,7 +11,7 @@ import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import type { DayPartnerNoun } from '@/lib/day-partner';
-import { loadImageBlobFromUrls } from '@/lib/isolate-subject';
+import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
 import { cropPortraitFaceRegionFromBlob } from '@/lib/portrait-face-crop';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { pickCompanionLook } from '@/lib/day-clothed-lead';
@@ -95,4 +95,38 @@ export async function renderDayPartnerStandIn(input: {
   });
   const filename = uploaded?.filename?.trim();
   return filename ? { noun: input.noun, look, filename, imageUrl: resultUrl } : null;
+}
+
+/**
+ * The partner's face as a VL-only reference (`day-partner-vl-*`, no ReferenceLatent) for clothed
+ * Day stills — the latent of a lone head crop was painted as a third person. Adult stills keep
+ * the latent (two-person layouts tested clean with it).
+ */
+export async function uploadDayPartnerVlFace(input: {
+  filename?: string;
+  imageUrl?: string;
+  model?: string | null;
+  comfyUrl?: string;
+}): Promise<string | null> {
+  const urls = collectIsolateSourceUrls({
+    imageUrl: input.imageUrl?.trim() || undefined,
+    filename: input.filename?.trim() || undefined,
+    comfyUrl: input.comfyUrl,
+  });
+  if (urls.length === 0) return null;
+  try {
+    const blob = await loadImageBlobFromUrls(urls);
+    const file = new File([blob], `day-partner-vl-${Date.now()}.png`, {
+      type: blob.type || 'image/png',
+    });
+    const uploaded = await resolveQueueInputImage({
+      file,
+      filename: file.name,
+      model: input.model ?? undefined,
+      comfyUrl: input.comfyUrl,
+    });
+    return uploaded?.filename?.trim() || null;
+  } catch {
+    return null;
+  }
 }

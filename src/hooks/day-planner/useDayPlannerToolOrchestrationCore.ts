@@ -119,13 +119,18 @@ import {
 } from '@/components/FilmCutOptionsControls';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { dayThemeOf } from '@/lib/day-themes';
-import { restoreText, swapDayPromptGender } from '@/lib/day-lead-gender';
-import { twoWomenBeat } from '@/lib/rapid-duo-recipe';
+import {
+  masculineClothes,
+  restoreText,
+  sameSexPartnerBeat,
+  swapDayPromptGender,
+} from '@/lib/day-lead-gender';
 import { normalizeDayWeather, withDayWeather } from '@/lib/day-weather';
 import { dayClothedLeadLines, dayOutfitPromptName } from '@/lib/day-clothed-lead';
 import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
 import {
   renderDayPartnerStandIn,
+  uploadDayPartnerVlFace,
   reusableDayPartnerStandIn,
   type DayPartnerStandIn,
 } from '@/lib/day-partner-stand-in';
@@ -643,7 +648,7 @@ export function useDayPlannerToolOrchestrationCore() {
         options?.partner && options.partner.noun !== 'person' && options.partner.noun === leadNoun;
       const beatSlot =
         sameSexPartner && slot.sceneHints
-          ? { ...slot, sceneHints: twoWomenBeat(slot.sceneHints) }
+          ? { ...slot, sceneHints: sameSexPartnerBeat(slot.sceneHints) }
           : slot;
       return buildDaySlotPrompt({
         // Weather / season rides on the Setting (SCENE lead, SETTING line, recipe room).
@@ -1323,7 +1328,10 @@ export function useDayPlannerToolOrchestrationCore() {
         // The lead's own description already reads right for him — put it back unswapped.
         const leadDescriptor = (character?.descriptor || character?.hints || '').trim();
         const finalized = swapLead
-          ? restoreText(swapDayPromptGender(reinforced, { solo: adultStill }), leadDescriptor)
+          ? restoreText(
+              masculineClothes(swapDayPromptGender(reinforced, { solo: adultStill })),
+              leadDescriptor
+            )
           : reinforced;
         setOutput(finalized);
         rememberDraftFields({
@@ -1339,8 +1347,16 @@ export function useDayPlannerToolOrchestrationCore() {
         const extraUrls: Array<string | undefined> = [undefined];
         const extraFilenames: string[] = [''];
         if (partnerFace) {
-          extraUrls[1] = partnerFace.imageUrl;
-          extraFilenames[1] = partnerFace.filename || '';
+          // Clothed stills: the partner face rides VL-only (see uploadDayPartnerVlFace).
+          const vlFace = !adultStill
+            ? await uploadDayPartnerVlFace({
+                ...partnerFace,
+                model: shared.model,
+                comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+              })
+            : null;
+          extraUrls[1] = vlFace ? undefined : partnerFace.imageUrl;
+          extraFilenames[1] = vlFace || partnerFace.filename || '';
         } else if (garmentReinforce?.imageUrl || garmentReinforce?.imageFilename) {
           extraUrls[1] = garmentReinforce.imageUrl;
           extraFilenames[1] = garmentReinforce.imageFilename?.trim() || '';

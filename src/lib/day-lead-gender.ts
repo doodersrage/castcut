@@ -121,3 +121,43 @@ export function restoreText(swapped: string, original: string): string {
   const flipped = swapDayPromptGender(text);
   return flipped === text ? swapped : swapped.split(flipped).join(text);
 }
+
+/**
+ * Women's clothing words in beats written for a woman lead ("in a short sundress", "in lingerie")
+ * turned a man lead back into a woman (3/8 two-men Suggestive stills, live 2026-09-30).
+ * "dressed" / "dressed up" are left alone.
+ */
+export function masculineClothes(text: string): string {
+  return text
+    .replace(
+      /\b(?:a |an )?(?:short |little |long |evening |cocktail |summer |slip |wrap |party )?(?:sun)?dress(?:es)?\b(?!ed)/gi,
+      'a shirt and trousers'
+    )
+    .replace(/\b(?:a )?(?:nightgown|nightie|negligee)\b/gi, 'a sleep shirt')
+    .replace(/\blingerie\b/gi, 'boxer briefs')
+    .replace(/\bbras?\b/gi, 'undershirt')
+    .replace(/\b(?:a )?(?:mini)?skirts?\b/gi, 'shorts')
+    .replace(/\bbikinis?\b/gi, 'swim trunks')
+    .replace(/\b(?:high )?heels\b/gi, 'shoes')
+    .replace(/\ba a shirt\b/gi, 'a shirt');
+}
+
+/** "her" → "his" before a noun ("her toes"), "him" as the object ("kissing her."). */
+export function herToHisHim(text: string): string {
+  return text.replace(/\bher\b/gi, (word: string, offset: number) => {
+    const rest = text.slice(offset + word.length);
+    const next = /^\s*([A-Za-z]+)/.exec(rest)?.[1]?.toLowerCase() ?? '';
+    const objectPosition = !next || /^\s*[^\sA-Za-z]/.test(rest) || OBJECT_FOLLOWERS.has(next);
+    return matchCase(word, objectPosition ? 'him' : 'his');
+  });
+}
+
+/**
+ * A same-sex partner on the long brief: the beat's "him / his" (written for a man partner) becomes
+ * "her partner / her partner's" — keeping the word "partner", which the headcount reads. ("Her
+ * girlfriend's chest" counted as one person — possessives are wardrobe there — and the couple
+ * beat rendered as a solo recipe.) A man lead's prompt is swapped afterwards → "his partner".
+ */
+export function sameSexPartnerBeat(beat: string): string {
+  return beat.replace(/\bhis\b/gi, "her partner's").replace(/\b(?:him|he)\b/gi, 'her partner');
+}

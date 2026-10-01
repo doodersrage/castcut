@@ -10,7 +10,7 @@
  * Keep each placement concrete (who lies/sits/stands where, facing which way, what touches
  * what). Do not add "never …" locks: CFG 1 has no negative, and naming a thing summons it.
  */
-import { swapDayPromptGender } from '@/lib/day-lead-gender';
+import { herToHisHim, masculineClothes, swapDayPromptGender } from '@/lib/day-lead-gender';
 import { dayPartnerRecipeLine, type DayPartner, type DayPartnerNoun } from '@/lib/day-partner';
 import {
   parseIntimateLayout,
@@ -95,6 +95,11 @@ function sheGivesOral(beat: string): boolean {
   );
 }
 
+/** A floor / rug can't be sat on the edge of — oral there has the receiver standing. */
+function isFloorSurface(surface: string | null): boolean {
+  return Boolean(surface && /\b(?:floor|rug|carpet|ground|tiles?|mat)\b/i.test(surface));
+}
+
 function placement(layout: IntimateLayout, beat: string, surface: string | null): string | null {
   const on = (fallback: string) => `the ${surface ?? fallback}`;
   switch (layout) {
@@ -130,7 +135,9 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       return `Wide shot, both faces in frame. The man stands holding the woman up by her thighs, facing each other chest to chest; her legs are wrapped around his waist and her arms around his neck, her face beside his, his penis inside her.`;
     case 'oral':
       return sheGivesOral(beat)
-        ? `The man sits on the edge of ${on('bed')}; the woman kneels on the floor between his knees with his penis in her mouth, holding it at the base, looking up at him.`
+        ? isFloorSurface(surface)
+          ? `Full-body view, both faces in frame. The man stands; the woman kneels on ${on('floor')} in front of him with his penis in her mouth, holding it at the base, looking up at him.`
+          : `The man sits on the edge of ${on('bed')}; the woman kneels on the floor between his knees with his penis in her mouth, holding it at the base, looking up at him.`
         : !/\bkneel/i.test(beat)
           ? `The woman lies on her back on ${on('bed')} with her thighs spread and knees bent; the man lies between her thighs with his mouth on her vulva, licking her, his hands on her thighs. She arches her back, eyes closed.`
           : // The oral guide always draws her upright and him kneeling — the text must agree, or
@@ -198,7 +205,9 @@ function placementTwoWomen(
     case 'sixty_nine':
     case 'facesit':
       return sheGivesOral(beat)
-        ? `Full-body view, both faces in frame. ${cap(gf)} sits on the edge of ${on('bed')}, leaning back on her hands with her thighs spread; the woman kneels on the floor between her girlfriend's thighs with her mouth on her vulva, licking her, looking up at her.`
+        ? isFloorSurface(surface)
+          ? `Full-body view, both faces in frame. ${cap(gf)} stands with her thighs apart; the woman kneels on ${on('floor')} in front of her with her mouth on her vulva, licking her, looking up at her.`
+          : `Full-body view, both faces in frame. ${cap(gf)} sits on the edge of ${on('bed')}, leaning back on her hands with her thighs spread; the woman kneels on the floor between her girlfriend's thighs with her mouth on her vulva, licking her, looking up at her.`
         : `Full-body view, both faces in frame. The woman sits on the edge of ${on('bed')}, leaning back on her hands with her thighs spread; ${gf} kneels on the floor between her thighs with her mouth on her vulva, licking her, hands on her thighs.`;
     case 'kneeling':
       return `Both kneel upright on ${on('bed')} facing each other, bodies pressed together, kissing, each with a hand between the other's thighs; both faces in frame.`;
@@ -269,7 +278,9 @@ function placementTwoMen(
     case 'sixty_nine':
     case 'facesit':
       return sheGivesOral(beat)
-        ? `Full-body view, both faces in frame. ${cap(bf)} sits on the edge of ${on('bed')}; the man kneels on the floor between his boyfriend's knees with his boyfriend's penis in his mouth, looking up at him.`
+        ? isFloorSurface(surface)
+          ? `Full-body view, both faces in frame. ${cap(bf)} stands; the man kneels on ${on('floor')} in front of him with his boyfriend's penis in his mouth, looking up at him.`
+          : `Full-body view, both faces in frame. ${cap(bf)} sits on the edge of ${on('bed')}; the man kneels on the floor between his boyfriend's knees with his boyfriend's penis in his mouth, looking up at him.`
         : `Full-body view, both faces in frame. The man sits on the edge of ${on('bed')}, leaning back on his hands; ${bf} kneels on the floor between his knees with the man's penis in his mouth.`;
     default:
       return null;
@@ -278,21 +289,18 @@ function placementTwoMen(
 
 /** Beat wording for two men: the lead is "he", the partner "his boyfriend". */
 export function twoMenBeat(beat: string): string {
-  return beat
-    .replace(/\b(?:a|her|the)\s+(?:partner|man|boyfriend|lover|girlfriend)\b/gi, 'his boyfriend')
-    .replace(/\bpartner(?:'s)?\b/gi, match =>
-      match.endsWith("'s") ? "his boyfriend's" : 'his boyfriend'
-    )
-    .replace(/\bhis\b(?!\s+boyfriend)/gi, "his boyfriend's")
-    .replace(/\b(?:him|he)\b/gi, 'his boyfriend')
-    .replace(/\bshe\b/gi, 'he')
-    .replace(/\bherself\b/gi, 'himself')
-    .replace(
-      /\bher\b(?=\s+(?:[a-z-]+\s+)?(?:back|hips?|thighs?|legs?|knees?|face|hands?|arms?|chest|shoulders?|mouth|lips|body|head|neck|ass|butt|feet|side|stomach|eyes|hair|lap|waist|skin|bed|pants|shirt|clothes|nightshirt|robe)\b)/gi,
-      'his'
-    )
-    .replace(/\bher\b/gi, 'him')
-    .replace(/\b(?:pussy|vulva|clit|breasts?|nipples?)\b/gi, 'body');
+  return herToHisHim(
+    masculineClothes(beat)
+      .replace(/\b(?:a|her|the)\s+(?:partner|man|boyfriend|lover|girlfriend)\b/gi, 'his boyfriend')
+      .replace(/\bpartner(?:'s)?\b/gi, match =>
+        match.endsWith("'s") ? "his boyfriend's" : 'his boyfriend'
+      )
+      .replace(/\bhis\b(?!\s+boyfriend)/gi, "his boyfriend's")
+      .replace(/\b(?:him|he)\b/gi, 'his boyfriend')
+      .replace(/\bshe\b/gi, 'he')
+      .replace(/\bherself\b/gi, 'himself')
+      .replace(/\b(?:pussy|vulva|clit|breasts?|nipples?)\b/gi, 'body')
+  );
 }
 
 const NUDE_TWO_MEN =
@@ -420,6 +428,13 @@ export function buildRapidDuoRecipe(input: {
     body,
     // "doggy" paints literal dogs on Qwen stacks; a 69 / face-sit beat renders as seated oral.
     `Moment: ${calmSexLaughter(twoWomen ? twoWomenBeat(beat) : twoMen ? twoMenBeat(beat) : beat)
+      // "lips closed" fought "in her mouth" — the oral still came out as a kiss (live 2026-09-30).
+      .replace(
+        layout === 'oral' || layout === 'sixty_nine' || layout === 'facesit'
+          ? /amused, lips closed/g
+          : /$^/,
+        'eyes smiling'
+      )
       .replace(/\bdoggy(?:[- ]?style)?\b/gi, 'from behind')
       .replace(
         layout === 'sixty_nine' || layout === 'facesit' ? RAPID_ORAL_FALLBACK_RE : /$^/,
@@ -1050,7 +1065,7 @@ export function buildRapidSuggestiveDuoRecipe(input: {
       ? twoMenBeat(cleaned)
       : twoWomenBeat(cleaned)
     : leadMan
-      ? swapDayPromptGender(cleaned)
+      ? masculineClothes(swapDayPromptGender(cleaned))
       : cleaned;
   const leadWears = input.outfitImage
     ? `the outfit from the ${input.outfitImage} image`
@@ -1059,28 +1074,23 @@ export function buildRapidSuggestiveDuoRecipe(input: {
       : (outfitWords(input.outfit) ??
         (leadMan ? null : suggestiveBeatClothes(cleaned)) ??
         (leadMan ? 'a fitted shirt and trousers' : 'a flirty dress'));
+  // One name for a same-sex partner in every line — "another woman" up top, "her girlfriend" in
+  // the beat and "the other woman" in the face line read as three people (3 women 6/6 → 4/6).
+  const sameSexName = leadMan ? 'his boyfriend' : 'her girlfriend';
   const other =
-    partnerNoun === 'person'
-      ? 'another person'
-      : sameSex
-        ? `another ${partnerNoun}`
-        : `a ${partnerNoun}`;
+    partnerNoun === 'person' ? 'another person' : sameSex ? sameSexName : `a ${partnerNoun}`;
   const otherWears =
     partnerNoun === 'person'
       ? 'the other wears'
       : sameSex
-        ? `the other ${partnerNoun} wears`
+        ? `${sameSexName} wears`
         : partnerNoun === 'man'
           ? 'he wears'
           : 'she wears';
   const leadPronoun = leadMan ? 'He' : 'She';
   const leadPossessive = leadMan ? 'his' : 'her';
   const otherWho =
-    partnerNoun === 'person'
-      ? 'the other person'
-      : sameSex
-        ? `the other ${partnerNoun}`
-        : `the ${partnerNoun}`;
+    partnerNoun === 'person' ? 'the other person' : sameSex ? sameSexName : `the ${partnerNoun}`;
   const otherPossessive = partnerNoun === 'man' ? 'his' : partnerNoun === 'woman' ? 'her' : 'their';
   const descriptor = descriptorLine(input.descriptor);
   return [

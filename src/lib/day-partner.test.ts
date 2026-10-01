@@ -50,8 +50,8 @@ describe('Day partner', () => {
       outfit: 'cocktail dress',
       partner: { partner: lana, image: 'second' },
     })!;
-    assert.match(recipe, /A woman and another woman together/);
-    assert.match(recipe, /the other woman has the face from the second image/);
+    assert.match(recipe, /A woman and her girlfriend together/);
+    assert.match(recipe, /her girlfriend has the face from the second image/);
     assert.match(recipe, /Match their two bodies to the third image/);
     assert.doesNotMatch(recipe, /the man has his own face/);
   });
@@ -180,15 +180,15 @@ describe('Suggestive couple recipe for any pair', () => {
 
   it('two women never mention a man', () => {
     const text = recipe('woman', woman);
-    assert.match(text, /A woman and another woman together/);
+    assert.match(text, /A woman and her girlfriend together/);
     assert.match(text, /her girlfriend's hands on her waist/);
     assert.doesNotMatch(text, /\b(?:man|he|his|him)\b/i);
-    assert.match(text, /the other woman has her own face/);
+    assert.match(text, /her girlfriend has her own face/);
   });
 
   it('two men never mention a woman', () => {
     const text = recipe('man', man);
-    assert.match(text, /A man and another man together/);
+    assert.match(text, /A man and his boyfriend together/);
     assert.match(text, /He wears a fitted shirt and trousers/);
     assert.doesNotMatch(text, /\b(?:woman|she|her|dress)\b/i);
   });

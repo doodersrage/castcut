@@ -485,7 +485,10 @@ export function isPoseGuideReferenceFilename(filename: string | null | undefined
     /^(?:day|story)-pose-guide/i.test(name) ||
     /^day-outfit-vl[-_]/i.test(name) ||
     /^day-vacation-face[-_]/i.test(name) ||
-    /^day-vacation-id-vl[-_]/i.test(name)
+    /^day-vacation-id-vl[-_]/i.test(name) ||
+    // Day partner face on clothed stills: as a ReferenceLatent the lone head crop came back as
+    // an extra person (three women 6/6 → 2/6 with this + consistent naming, live 2026-09-30).
+    /^day-partner-vl[-_]/i.test(name)
   );
 }
 
