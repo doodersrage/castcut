@@ -129,6 +129,12 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
     return Math.abs(right!.x - left!.x);
   };
   const gap = await shoulderGap();
+  // Undo puts the hand back where it started.
+  const pulled = (await page.getByTestId('outfit-pose-joint-0-4').boundingBox())!;
+  expect(Math.hypot(pulled.x - wristBox.x, pulled.y - wristBox.y)).toBeGreaterThan(20);
+  await page.getByTestId('outfit-pose-undo').click();
+  const undone = (await page.getByTestId('outfit-pose-joint-0-4').boundingBox())!;
+  expect(Math.hypot(undone.x - wristBox.x, undone.y - wristBox.y)).toBeLessThan(2);
   // Dragging the empty background sideways turns the figure.
   const canvas = (await page.getByTestId('outfit-pose-canvas').boundingBox())!;
   await page.mouse.move(canvas.x + 12, canvas.y + 12);

@@ -31,6 +31,19 @@ describe('pose joint editor: keep proportions', () => {
     assert.deepEqual(moved[6], stand[6]);
   });
 
+  it('pulling a hand bends the elbow: the shoulder stays, the hand lands on the pointer', () => {
+    const shoulder = stand[2]!;
+    const to = { x: shoulder.x - 0.12, y: shoulder.y + 0.02 };
+    const moved = moveJointRigid([stand], 0, 4, to, ASPECT)[0]!;
+    assert.deepEqual(moved[2], shoulder);
+    close(moved[4]!.x, to.x);
+    close(moved[4]!.y, to.y);
+    assert.notDeepEqual(moved[3], stand[3]);
+    // Out of reach: the arm straightens toward the pointer.
+    const far = moveJointRigid([stand], 0, 4, { x: 0.02, y: 0.02 }, ASPECT)[0]!;
+    close(length(far, 2, 4), length(stand, 2, 3) + length(stand, 3, 4), 1e-4);
+  });
+
   it('the neck moves the whole figure, stopping at the frame edge without squashing it', () => {
     const moved = moveJointRigid([stand], 0, 1, { x: 5, y: stand[1]!.y }, ASPECT)[0]!;
     assert.ok(Math.max(...moved.map(p => p!.x)) <= 0.99 + 1e-9);

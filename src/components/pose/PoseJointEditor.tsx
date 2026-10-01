@@ -1,7 +1,20 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { POSE_FIGURE_COLORS, PoseFigureShape } from '@/components/pose/PoseBodiesSvg';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent,
+} from 'react';
+import {
+  POSE_FIGURE_COLORS,
+  POSE_PART_COLORS,
+  PoseFigureShape,
+  posePartOfJoint,
+} from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
 import ModalPortal from '@/components/ui/ModalPortal';
 import type { PhotoPose } from '@/lib/day-pose-guide';
@@ -46,6 +59,8 @@ const JOINT_NAMES: Record<number, string> = {
 /** What a drag on the canvas is doing. */
 type Drag =
   | { kind: 'joint'; person: number; joint: number }
+  /** Grabbing the torso: moves the whole figure. */
+  | { kind: 'body'; person: number; x: number; y: number }
   /** Background drag: sideways turns the figure, up / down tilts it. */
   | { kind: 'orbit'; person: number; x: number; y: number }
   /** The round handle above the head: spins the figure in the picture. */
@@ -93,6 +108,9 @@ export default function PoseJointEditor({
     latest.current = next;
     setBodies(next);
   };
+  // Undo: a snapshot before every drag and button press.
+  const history = useRef<Array<{ bodies: NormalizedBody[]; depths: Array<BodyDepth | null> }>>([]);
+  const [undoable, setUndoable] = useState(0);
   const [dragging, setDragging] = useState<Drag['kind'] | null>(null);
   const drag = useRef<Drag | null>(null);
   const [activeJoint, setActiveJoint] = useState<{ person: number; joint: number } | null>(null);
@@ -104,9 +122,23 @@ export default function PoseJointEditor({
   const depths = useRef<Array<BodyDepth | null>>([]);
   const [saveName, setSaveName] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
+  const checkpoint = () => {
+    history.current.push({ bodies: latest.current, depths: [...depths.current] });
+    if (history.current.length > 100) history.current.shift();
+    setUndoable(history.current.length);
+  };
+  const undo = useCallback(() => {
+    const previous = history.current.pop();
+    if (!previous) return;
+    depths.current = previous.depths;
+    latest.current = previous.bodies;
+    setBodies(previous.bodies);
+    setUndoable(history.current.length);
+  }, []);
   // Start from a base figure — keeps the second person when there is one.
   const startFrom = (id: PoseStarterId) => {
     const lead = poseStarterBody(id);
+    checkpoint();
     depths.current = [];
     update(previous => (previous.length > 1 ? addPerson([lead]) : [lead]));
     setSavedNote(null);
@@ -117,10 +149,16 @@ export default function PoseJointEditor({
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') onCancel();
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+        const target = event.target as HTMLElement | null;
+        if (target?.tagName === 'INPUT' && (target as HTMLInputElement).type !== 'checkbox') return;
+        event.preventDefault();
+        undo();
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onCancel]);
+  }, [onCancel, undo]);
 
   const toNormalized = (event: PointerEvent<Element>) => {
     const rect = svgRef.current?.getBoundingClientRect();
@@ -162,6 +200,7 @@ export default function PoseJointEditor({
     event.preventDefault();
     event.stopPropagation();
     svgRef.current?.setPointerCapture?.(event.pointerId);
+    checkpoint();
     drag.current = next;
     setDragging(next.kind);
     setRotatePerson(next.person);
@@ -174,6 +213,13 @@ export default function PoseJointEditor({
     if (!current || !to) return;
     if (current.kind === 'joint') {
       update(previous => move(previous, current.person, current.joint, to));
+    } else if (current.kind === 'body') {
+      const neck = latest.current[current.person]?.[1];
+      if (neck) {
+        const target = { x: neck.x + (to.x - current.x), y: neck.y + (to.y - current.y) };
+        update(previous => moveJointRigid(previous, current.person, 1, target, safeAspect));
+      }
+      drag.current = { ...current, x: to.x, y: to.y };
     } else if (current.kind === 'orbit') {
       // Dragging across the whole canvas is half a turn.
       rotate(
@@ -212,6 +258,7 @@ export default function PoseJointEditor({
     const at = bodies[person]?.[joint];
     if (!delta || !at) return;
     event.preventDefault();
+    checkpoint();
     update(previous => move(previous, person, joint, { x: at.x + delta.x, y: at.y + delta.y }));
   };
 
@@ -288,33 +335,91 @@ export default function PoseJointEditor({
                 const p = body[i];
                 return p ? { x: p.x * safeAspect, y: p.y } : null;
               };
+              const rs = at(2);
+              const ls = at(5);
+              const rh = at(8);
+              const lh = at(11);
+              // The figure being worked on is solid; the other one steps back.
+              const focused = bodies.length < 2 || person === handlePerson;
               return (
-                <g key={person}>
-                  <g opacity={0.85} style={{ pointerEvents: 'none' }}>
-                    <PoseFigureShape body={body} aspect={safeAspect} color={color} weight={0.009} />
+                <g key={person} opacity={focused ? 1 : 0.5}>
+                  <g opacity={0.9} style={{ pointerEvents: 'none' }}>
+                    <PoseFigureShape
+                      body={body}
+                      aspect={safeAspect}
+                      color={color}
+                      weight={0.009}
+                      parts
+                    />
                   </g>
+                  {rs && ls && rh && lh ? (
+                    <polygon
+                      points={[rs, ls, lh, rh].map(p => `${p.x},${p.y}`).join(' ')}
+                      fill="transparent"
+                      className={dragging === 'body' ? 'cursor-grabbing' : 'cursor-grab'}
+                      data-testid={`${testIdPrefix}-torso-${person}`}
+                      onPointerDown={event => {
+                        const from = toNormalized(event);
+                        if (from) startDrag(event, { kind: 'body', person, x: from.x, y: from.y });
+                      }}
+                    >
+                      <title>Drag the body to move the whole figure</title>
+                    </polygon>
+                  ) : null}
                   {EDITABLE.map(joint => {
                     const p = at(joint);
                     if (!p) return null;
                     const active = activeJoint?.person === person && activeJoint.joint === joint;
+                    const part = posePartOfJoint(joint);
+                    // Targets overlap (a hand resting on a thigh): take the joint nearest the
+                    // pointer, not whichever circle happens to be drawn on top.
+                    const grab = (event: PointerEvent<Element>) => {
+                      const from = toNormalized(event);
+                      let nearest = joint;
+                      if (from) {
+                        let best = Infinity;
+                        for (const candidate of EDITABLE) {
+                          const q = body[candidate];
+                          if (!q) continue;
+                          const distance = Math.hypot((q.x - from.x) * safeAspect, q.y - from.y);
+                          if (distance < best) {
+                            best = distance;
+                            nearest = candidate;
+                          }
+                        }
+                      }
+                      startDrag(event, { kind: 'joint', person, joint: nearest });
+                    };
                     return (
-                      <circle
-                        key={joint}
-                        cx={p.x}
-                        cy={p.y}
-                        r={active ? 0.022 : 0.016}
-                        fill={color}
-                        stroke="var(--bg-base)"
-                        strokeWidth={0.004}
-                        tabIndex={0}
-                        role="slider"
-                        aria-label={`${person === 0 ? 'Cast' : `Person ${person + 1}`} ${JOINT_NAMES[joint]}`}
-                        aria-valuetext={`${Math.round((body[joint]?.x ?? 0) * 100)}% across, ${Math.round((body[joint]?.y ?? 0) * 100)}% down`}
-                        className="cursor-grab focus:outline-none focus-visible:stroke-[var(--accent)]"
-                        data-testid={`${testIdPrefix}-joint-${person}-${joint}`}
-                        onPointerDown={event => startDrag(event, { kind: 'joint', person, joint })}
-                        onKeyDown={onKey(person, joint)}
-                      />
+                      <g key={joint}>
+                        {/* A generous invisible target: a near miss used to turn the figure. */}
+                        <circle
+                          cx={p.x}
+                          cy={p.y}
+                          r={0.032}
+                          fill="transparent"
+                          className="cursor-grab"
+                          onPointerDown={grab}
+                        />
+                        <circle
+                          cx={p.x}
+                          cy={p.y}
+                          r={active ? 0.02 : 0.014}
+                          fill={part ? POSE_PART_COLORS[part] : color}
+                          stroke="var(--bg-base)"
+                          strokeWidth={0.004}
+                          tabIndex={0}
+                          role="slider"
+                          aria-label={`${person === 0 ? 'Cast' : `Person ${person + 1}`} ${JOINT_NAMES[joint]}`}
+                          aria-valuetext={`${Math.round((body[joint]?.x ?? 0) * 100)}% across, ${Math.round((body[joint]?.y ?? 0) * 100)}% down`}
+                          className="cursor-grab focus:outline-none focus-visible:stroke-[var(--accent)]"
+                          data-testid={`${testIdPrefix}-joint-${person}-${joint}`}
+                          onPointerDown={grab}
+                          onKeyDown={onKey(person, joint)}
+                        >
+                          <title>{JOINT_NAMES[joint]}</title>
+                        </circle>
+                      </g>
                     );
                   })}
                 </g>
@@ -372,12 +477,33 @@ export default function PoseJointEditor({
               Edit pose
             </h2>
             <ul className="type-caption list-disc space-y-0.5 pl-4 text-[var(--text-muted)]">
-              <li>Drag a joint to bend it; drag the neck to move the whole figure.</li>
-              <li>Drag the empty background to turn (sideways) or tilt (up / down) the figure.</li>
+              <li>Drag a hand or foot — the elbow or knee bends to follow.</li>
+              <li>Drag an elbow, knee, shoulder, hip or the head to swing just that part.</li>
+              <li>Drag the body to move the whole figure.</li>
+              <li>Drag the empty background to turn (sideways) or tilt (up / down) it.</li>
               <li>Drag the ↻ handle above the head to spin it.</li>
-              <li>Arrow keys nudge a focused joint (Shift for bigger steps).</li>
-              {bodies.length > 1 ? <li>The pink figure is your Cast.</li> : null}
+              <li>Made a mistake? Undo, or Ctrl+Z.</li>
             </ul>
+            <p className="type-caption flex flex-wrap gap-x-3 gap-y-0.5 text-[var(--text-muted)]">
+              {(
+                [
+                  ['Right arm', POSE_PART_COLORS.rightArm],
+                  ['Left arm', POSE_PART_COLORS.leftArm],
+                  ['Right leg', POSE_PART_COLORS.rightLeg],
+                  ['Left leg', POSE_PART_COLORS.leftLeg],
+                ] as const
+              ).map(([label, swatch]) => (
+                <span key={label} className="flex items-center gap-1">
+                  <span
+                    aria-hidden
+                    className="inline-block h-2 w-2 rounded-full"
+                    style={{ background: swatch }}
+                  />
+                  {label}
+                </span>
+              ))}
+              <span>(their right and left, not yours)</span>
+            </p>
             <label className="type-caption flex items-center gap-1.5 text-[var(--text-secondary)]">
               <input
                 type="checkbox"
@@ -407,9 +533,19 @@ export default function PoseJointEditor({
             <div className="flex flex-wrap items-center gap-1.5">
               <Button
                 size="sm"
+                variant="secondary"
+                disabled={undoable === 0}
+                data-testid={`${testIdPrefix}-undo`}
+                onClick={undo}
+              >
+                Undo
+              </Button>
+              <Button
+                size="sm"
                 variant="ghost"
                 data-testid={`${testIdPrefix}-mirror`}
                 onClick={() => {
+                  checkpoint();
                   depths.current = [];
                   update(previous => mirrorBodies(previous));
                 }}
@@ -421,6 +557,7 @@ export default function PoseJointEditor({
                 variant="ghost"
                 data-testid={`${testIdPrefix}-reset`}
                 onClick={() => {
+                  checkpoint();
                   depths.current = [];
                   setRotatePerson(0);
                   update(() => initial.map(body => body.map(p => (p ? { ...p } : null))));
@@ -435,6 +572,7 @@ export default function PoseJointEditor({
                     variant="ghost"
                     data-testid={`${testIdPrefix}-add-person`}
                     onClick={() => {
+                      checkpoint();
                       depths.current = [];
                       update(previous => addPerson(previous));
                     }}
@@ -447,6 +585,7 @@ export default function PoseJointEditor({
                     variant="ghost"
                     data-testid={`${testIdPrefix}-remove-person`}
                     onClick={() => {
+                      checkpoint();
                       depths.current = [];
                       setRotatePerson(0);
                       update(previous => removePerson(previous));
@@ -481,7 +620,10 @@ export default function PoseJointEditor({
                     size="sm"
                     variant="ghost"
                     data-testid={`${testIdPrefix}-rotate-${id}`}
-                    onClick={() => rotate(rotation)}
+                    onClick={() => {
+                      checkpoint();
+                      rotate(rotation);
+                    }}
                   >
                     {label}
                   </Button>

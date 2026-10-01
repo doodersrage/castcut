@@ -61,10 +61,10 @@ function descendants(joint: number): number[] {
 }
 
 /**
- * Move a joint without stretching the figure: the bone to its parent keeps its length, and
- * everything further down the limb comes along. An elbow / knee / wrist / ankle swings around
- * its parent; a shoulder, hip or the head swings around the neck and carries its limb; the neck
- * moves the whole figure. `aspect` (width / height) makes lengths true on screen.
+ * Move a joint without stretching the figure: every bone keeps its length. A hand / foot pulls
+ * its limb (the elbow / knee bends to follow, the shoulder / hip stays); an elbow / knee swings
+ * around its parent and carries the forearm / shin; a shoulder, hip or the head swings around
+ * the neck and carries its limb; the neck moves the whole figure. `aspect` (width / height) makes lengths true on screen.
  */
 export function moveJointRigid(
   bodies: NormalizedBody[],
@@ -90,6 +90,42 @@ export function moveJointRigid(
     return replace(body.map(p => (p ? { x: p.x + dx, y: p.y + dy } : null)));
   }
   if (!parent) return moveJoint(bodies, person, joint, to);
+
+  // A hand or foot is pulled like a real limb: the shoulder / hip stays put and the elbow / knee
+  // bends to let it reach (two-bone IK), instead of only swinging the forearm / shin.
+  const rootIndex = parentIndex == null ? undefined : PARENT[parentIndex];
+  const root = rootIndex == null ? null : body[rootIndex];
+  if ((joint === 4 || joint === 7 || joint === 10 || joint === 13) && root) {
+    const upper = Math.hypot((parent.x - root.x) * a, parent.y - root.y);
+    const lower = Math.hypot((from.x - parent.x) * a, from.y - parent.y);
+    const tx0 = (to.x - root.x) * a;
+    const ty0 = to.y - root.y;
+    const want = Math.hypot(tx0, ty0);
+    if (upper > 1e-6 && lower > 1e-6 && want > 1e-6) {
+      const reachTo = Math.min(
+        upper + lower - 1e-6,
+        Math.max(Math.abs(upper - lower) + 1e-6, want)
+      );
+      const ux = tx0 / want;
+      const uy = ty0 / want;
+      const cosAtRoot = Math.min(
+        1,
+        Math.max(-1, (upper * upper + reachTo * reachTo - lower * lower) / (2 * upper * reachTo))
+      );
+      const bend = Math.acos(cosAtRoot);
+      // Keep the elbow / knee on the side it is already bent toward.
+      const cross = ux * (parent.y - root.y) - uy * ((parent.x - root.x) * a);
+      const sign = cross < 0 ? -1 : 1;
+      const cosB = Math.cos(sign * bend);
+      const sinB = Math.sin(sign * bend);
+      const mid = {
+        x: root.x + ((ux * cosB - uy * sinB) * upper) / a,
+        y: root.y + (ux * sinB + uy * cosB) * upper,
+      };
+      const end = { x: root.x + (ux * reachTo) / a, y: root.y + uy * reachTo };
+      return replace(body.map((p, i) => (i === joint ? end : i === parentIndex ? mid : p)));
+    }
+  }
 
   const vx = (from.x - parent.x) * a;
   const vy = from.y - parent.y;

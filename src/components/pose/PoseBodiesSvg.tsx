@@ -2,17 +2,36 @@
 
 import type { NormalizedBody } from '@/lib/pose-library';
 
+type PosePart = 'rightArm' | 'leftArm' | 'rightLeg' | 'leftLeg';
+
+/** One colour per limb, so crossed arms and legs stay readable against the torso. */
+export const POSE_PART_COLORS: Record<PosePart, string> = {
+  rightArm: '#e8590c',
+  leftArm: '#2b8a3e',
+  rightLeg: '#1971c2',
+  leftLeg: '#862e9c',
+};
+
 /** COCO-18 limbs: arms and legs (the torso and head are drawn as shapes). */
-const LIMBS: ReadonlyArray<readonly [number, number, boolean]> = [
-  [2, 3, true],
-  [3, 4, false],
-  [5, 6, true],
-  [6, 7, false],
-  [8, 9, true],
-  [9, 10, false],
-  [11, 12, true],
-  [12, 13, false],
+const LIMBS: ReadonlyArray<readonly [number, number, boolean, PosePart]> = [
+  [2, 3, true, 'rightArm'],
+  [3, 4, false, 'rightArm'],
+  [5, 6, true, 'leftArm'],
+  [6, 7, false, 'leftArm'],
+  [8, 9, true, 'rightLeg'],
+  [9, 10, false, 'rightLeg'],
+  [11, 12, true, 'leftLeg'],
+  [12, 13, false, 'leftLeg'],
 ];
+
+/** The limb a joint belongs to (shoulders and hips count as their limb); null for head / neck. */
+export function posePartOfJoint(joint: number): PosePart | null {
+  if (joint >= 2 && joint <= 4) return 'rightArm';
+  if (joint >= 5 && joint <= 7) return 'leftArm';
+  if (joint >= 8 && joint <= 10) return 'rightLeg';
+  if (joint >= 11 && joint <= 13) return 'leftLeg';
+  return null;
+}
 
 /**
  * One figure as a simple mannequin: a torso with a waist, a head and tapered limbs. A bare
@@ -26,6 +45,7 @@ export function PoseFigureShape({
   color,
   weight = 0.012,
   dashed = false,
+  parts = false,
 }: {
   body: NormalizedBody;
   aspect: number;
@@ -33,6 +53,8 @@ export function PoseFigureShape({
   /** Lower-limb line width; thighs / upper arms are drawn half as thick again. */
   weight?: number;
   dashed?: boolean;
+  /** Colour each limb (with a pale outline) instead of drawing the figure in one colour. */
+  parts?: boolean;
 }) {
   const at = (i: number) => {
     const p = body[i];
@@ -84,19 +106,34 @@ export function PoseFigureShape({
       {nose && neck ? (
         <line x1={neck.x} y1={neck.y} x2={nose.x} y2={nose.y} strokeWidth={weight * 1.5} />
       ) : null}
-      {LIMBS.map(([a, b, upper]) => {
+      {LIMBS.map(([a, b, upper, part]) => {
         const p = at(a);
         const q = at(b);
-        return p && q ? (
-          <line
-            key={`${a}-${b}`}
-            x1={p.x}
-            y1={p.y}
-            x2={q.x}
-            y2={q.y}
-            strokeWidth={upper ? weight * 1.5 : weight}
-          />
-        ) : null;
+        if (!p || !q) return null;
+        const width = upper ? weight * 1.5 : weight;
+        return (
+          <g key={`${a}-${b}`}>
+            {parts ? (
+              <line
+                x1={p.x}
+                y1={p.y}
+                x2={q.x}
+                y2={q.y}
+                stroke="var(--bg-base)"
+                strokeWidth={width + weight * 0.9}
+                strokeDasharray="none"
+              />
+            ) : null}
+            <line
+              x1={p.x}
+              y1={p.y}
+              x2={q.x}
+              y2={q.y}
+              stroke={parts ? POSE_PART_COLORS[part] : undefined}
+              strokeWidth={width}
+            />
+          </g>
+        );
       })}
       {nose ? (
         <circle
@@ -167,6 +204,7 @@ export default function PoseBodiesSvg({
                 color={color}
                 weight={0.016}
                 dashed={layer.dashed}
+                parts={!layer.color}
               />
             </g>
           );
