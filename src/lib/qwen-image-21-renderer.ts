@@ -144,6 +144,28 @@ export function withoutDroppedReferences(
   return renumbered;
 }
 
+/** Penetration between two people (not oral, kissing, touching). */
+const PENETRATION_RE =
+  /\b(?:penetrat\w*|(?:penis|cock|strap-on)\s+(?:is\s+)?inside|inside her|thrust\w*|fuck(?:s|ing)?\s+(?:her|him)|rides?\s+(?:him|her)|riding\s+(?:him|her)|cowgirl|doggy|missionary)\b/i;
+
+/**
+ * Two-person penetration stills stay on the engine's own model (Rapid AIO NSFW is trained for
+ * them). On 2.1 they came out fused or role-swapped, or posed "near" the act — with the pose map,
+ * without it, with the Fun ControlNet Union (0.6–1.0) and with 2.1 NSFW LoRAs (live A/B on the
+ * user's own duos, 2026-10-01).
+ */
+export function isPenetrationDuoPrompt(prompt: string, hasDuoPoseMap: boolean): boolean {
+  return hasDuoPoseMap && PENETRATION_RE.test(prompt);
+}
+
+function keepsOnEngineModel(workflow: Workflow, encoder: WorkflowNode): boolean {
+  const duoMap = [1, 2, 3].some(slot => {
+    const ref = encoder.inputs[`image${slot}`];
+    return isRef(ref) && isMultiPersonPoseGuide(sourceFilename(workflow, ref));
+  });
+  return isPenetrationDuoPrompt(String(encoder.inputs.prompt ?? ''), duoMap);
+}
+
 const OUTPUT_CLASS = /^(?:Save|Preview)/;
 
 /** Drop every node that no longer feeds an output (old loaders, LoRAs, ReferenceLatent chains). */
@@ -187,6 +209,7 @@ export function convertQwenEditWorkflowToImage21(
   const sampler = workflow[samplerId];
   const encoderId = findEncoder(workflow, sampler.inputs.positive)!;
   const encoder = workflow[encoderId];
+  if (keepsOnEngineModel(workflow, encoder)) return { workflow: input, converted: false };
 
   const latentRef = sampler.inputs.latent_image;
   const latentNode = isRef(latentRef) ? workflow[latentRef[0]] : undefined;

@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   convertQwenEditWorkflowToImage21,
   isMultiPersonPoseGuide,
+  isPenetrationDuoPrompt,
   normalizeQwenRenderer,
   pruneUnreachableNodes,
   QWEN_IMAGE_21_FILES,
@@ -158,5 +159,29 @@ describe('Qwen-Image 2.1: pose ControlNet for two-person maps', () => {
   it('leaves the ControlNet out without the nodes', () => {
     const workflow = convertQwenEditWorkflowToImage21(duoGraph(), { poseControl: false }).workflow as Nodes;
     assert.ok(!Object.values(workflow).some(node => node.class_type === 'QwenImage21UnionApply'));
+  });
+});
+
+describe('Qwen-Image 2.1: penetration duos stay on the engine model', () => {
+  it('flags penetration duos only', () => {
+    assert.equal(isPenetrationDuoPrompt('the man lies on top of her, his penis inside her', true), true);
+    assert.equal(isPenetrationDuoPrompt('the man stands behind her, penetrating her from behind', true), true);
+    assert.equal(isPenetrationDuoPrompt('her girlfriend kneels between her thighs, licking her', true), false);
+    assert.equal(isPenetrationDuoPrompt('his penis inside her', false), false);
+  });
+
+  it('returns the graph unconverted for a penetration duo', () => {
+    const graph = {
+      '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt: 'Side view. The man lies on top of her, his penis inside her.', image1: ['900', 0], image2: ['904', 0] } },
+      '8': { class_type: 'KSampler', inputs: { positive: ['4', 0], latent_image: ['906', 0] } },
+      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+      '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+      '900': { class_type: 'LoadImage', inputs: { image: 'day-nude-face-1.png' } },
+      '904': { class_type: 'LoadImage', inputs: { image: 'day-pose-guide-missionary-d8c99b-x2-17.png' } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+    };
+    const result = convertQwenEditWorkflowToImage21(graph);
+    assert.equal(result.converted, false);
+    assert.equal(result.workflow, graph);
   });
 });
