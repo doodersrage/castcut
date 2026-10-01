@@ -112,7 +112,10 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // "Side view… propped up on his forearms" knelt him upright at her side 3/3 (and once
       // beside her, user report); naming the position and his face-down body put him on top 3/3
       // (live A/B on the user's night still, 2026-10-01). A foot-of-bed camera broke anatomy 3/3.
-      return `Missionary position, both faces in frame. The woman lies face up on ${on('bed')}; the man is on top of her: he lies face down over her body, supporting himself on his elbows; she wraps her legs around his waist; his penis inside her; their faces close.`;
+      // Keep "Side view": without it the camera went overhead and upside down, and his body
+      // vanished, 6/6 on the user's Raunchy night still (bed-collapse gag); with it, side-on and
+      // on top 3/3 with the gag intact (2026-10-01).
+      return `Side view, missionary position, both faces in frame. The woman lies face up on ${on('bed')}; the man is on top of her: he lies face down over her body, supporting himself on his elbows; she wraps her legs around his waist; his penis inside her; their faces close.`;
     case 'mating_press':
       return `The woman lies on her back on ${on('bed')} with her knees pulled up toward her shoulders; the man kneels over her between her legs, leaning his weight onto the backs of her thighs, his penis inside her; both faces in frame.`;
     case 'straddle':
