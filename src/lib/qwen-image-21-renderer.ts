@@ -49,9 +49,11 @@ export function qwenImage21RendererActive(
  */
 export function qwenImage21BaseModel(current: string, allowed: readonly string[]): string | null {
   if (isQwenImage21RenderableModel(current) && allowed.includes(current)) return current;
+  // SFW base first: adult Day / Story stills already switch to the NSFW engine on their own
+  // (resolveAdultNudePlateQueueModel), and those are the stills that stay on it.
   for (const id of [
-    'qwen-rapid-aio-edit-nsfw',
     'qwen-rapid-aio-edit',
+    'qwen-rapid-aio-edit-nsfw',
     'qwen-image-edit-2511-lightning-8',
     'qwen-image-edit-2511',
   ]) {

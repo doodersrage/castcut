@@ -380,7 +380,11 @@ export function resolveRuntimeForModel(
       return undefined;
     }
     if (!videoRequest) {
-      return trimmed;
+      // A still queue never runs on the selected clip graph (Animate selects the WAN scaffold
+      // globally) — its {{CHECKPOINT}} put the WAN video model under Qwen Day stills → static.
+      return workflowGraphIsVideo(resolveSelectedWorkflowRuntime(trimmed)?.workflowJson)
+        ? undefined
+        : trimmed;
     }
     return workflowGraphIsVideo(resolveSelectedWorkflowRuntime(trimmed)?.workflowJson)
       ? trimmed

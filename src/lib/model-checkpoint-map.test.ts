@@ -5,6 +5,7 @@ import {
   parseModelCheckpointMap,
   preferKleinBf16FromInventory,
   resolveLoaderFilenamesForModel,
+  isVideoCheckpointFilename,
   resolveRefinerFilenameForModel,
   SUGGESTED_MODEL_CHECKPOINT_MAP,
   SUGGESTED_MODEL_REFINER_MAP,
@@ -360,5 +361,31 @@ describe("model checkpoint map", () => {
       }),
       "sd_xl_refiner_1.0.safetensors",
     );
+  });
+});
+
+describe('video checkpoint tokens never reach image models', () => {
+  const wan = 'wan2.2-i2v-rapid-aio-v10-nsfw.safetensors';
+  const token = [{ token: '{{CHECKPOINT}}', value: wan }];
+
+  it('a clip workflow {{CHECKPOINT}} is ignored for a Qwen Rapid still (was static)', () => {
+    const loaders = resolveLoaderFilenamesForModel('qwen-rapid-aio-edit-nsfw', {
+      checkpointMap: { 'qwen-rapid-aio-edit-nsfw': 'Qwen-Rapid-AIO-NSFW-v23.safetensors' },
+      workflowCustomTokens: token,
+      customTokens: token,
+    });
+    assert.equal(loaders.checkpoint, 'Qwen-Rapid-AIO-NSFW-v23.safetensors');
+  });
+
+  it('video models still take it', () => {
+    const loaders = resolveLoaderFilenamesForModel('wan-video-rapid-aio', { workflowCustomTokens: token });
+    assert.equal(loaders.checkpoint, wan);
+  });
+
+  it('recognizes video weights by filename', () => {
+    assert.equal(isVideoCheckpointFilename(wan), true);
+    assert.equal(isVideoCheckpointFilename('ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors'), true);
+    assert.equal(isVideoCheckpointFilename('Qwen-Rapid-AIO-NSFW-v23.safetensors'), false);
+    assert.equal(isVideoCheckpointFilename('qwen_image_2.1_bf16.safetensors'), false);
   });
 });

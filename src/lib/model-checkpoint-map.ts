@@ -620,6 +620,13 @@ export function realignLoaderFilenamesToWorkflowPrecision(
   return next;
 }
 
+/** Video model weights (WAN, LTX, Hunyuan Video, Mochi, CogVideo) by filename. */
+export function isVideoCheckpointFilename(filename: string): boolean {
+  return /(?:^|[^a-z])(?:wan2(?:\.\d)?|i2v|t2v|ti2v|ltx-?(?:v|video|2)|hunyuan_?video|mochi|cogvideo)/i.test(
+    filename
+  );
+}
+
 export function resolveLoaderFilenamesForModel(
   model: ComfyImageModel | string,
   options?: {
@@ -648,14 +655,22 @@ export function resolveLoaderFilenamesForModel(
   };
   const mappedCheckpoint = trimFilename(options?.checkpointMap?.[model]);
   const mappedUnet = trimFilename(options?.unetMap?.[model]);
-  const workflowCheckpoint = resolveCustomTokenValue(
-    DEFAULT_CHECKPOINT_TOKEN,
-    options?.workflowCustomTokens
+  // Token overrides beat the map — but never hand an image model a video checkpoint (a clip
+  // workflow's {{CHECKPOINT}} leaking into a still queue rendered static).
+  const imageModel = def?.category !== 'video';
+  const fitsModel = (filename: string | undefined) =>
+    filename && imageModel && isVideoCheckpointFilename(filename) ? undefined : filename;
+  const workflowCheckpoint = fitsModel(
+    resolveCustomTokenValue(DEFAULT_CHECKPOINT_TOKEN, options?.workflowCustomTokens)
   );
-  const workflowUnet = resolveCustomTokenValue(DEFAULT_UNET_TOKEN, options?.workflowCustomTokens);
+  const workflowUnet = fitsModel(
+    resolveCustomTokenValue(DEFAULT_UNET_TOKEN, options?.workflowCustomTokens)
+  );
   const workflowVae = resolveCustomTokenValue(DEFAULT_VAE_TOKEN, options?.workflowCustomTokens);
-  const customCheckpoint = resolveCustomTokenValue(DEFAULT_CHECKPOINT_TOKEN, options?.customTokens);
-  const customUnet = resolveCustomTokenValue(DEFAULT_UNET_TOKEN, options?.customTokens);
+  const customCheckpoint = fitsModel(
+    resolveCustomTokenValue(DEFAULT_CHECKPOINT_TOKEN, options?.customTokens)
+  );
+  const customUnet = fitsModel(resolveCustomTokenValue(DEFAULT_UNET_TOKEN, options?.customTokens));
 
   let checkpoint: string | undefined;
   let unet: string | undefined;
