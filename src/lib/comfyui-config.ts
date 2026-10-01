@@ -1,3 +1,4 @@
+import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
 import { isQwenLightningModel, patchModelSamplingInWorkflow } from './model-sampling-patch';
 import { ensureFluxGuidanceInWorkflow } from './flux-guidance-patch';
 import { isCastcutProtectedSampler, shouldSkipGlobalSamplerPatch } from './workflow-enrich-markers';
@@ -274,6 +275,8 @@ export type ComfyUiRuntimeConfig = {
    * node when ComfyUI has one installed; Final/Max stay PNG.
    */
   compactDraftSaves?: boolean;
+  /** Qwen-Edit graphs render on Qwen-Image 2.1 instead of the engine's model. */
+  qwenRenderer?: 'rapid' | 'qwen-image-2.1';
   /** Model id used for queue-time workflow optimize / graph enrich heuristics. */
   queueTargetModel?: string;
   /** Effective queue quality profile for this request (sampler, resolution, upscale). */
@@ -1337,6 +1340,8 @@ export function injectPromptsWithFallbacks(
     /** Multi-slot regional edit prompts/masks. */
     regionalSlots?: import('./regional-prompt-slots').RegionalPromptSlot[];
     kleinEnhancerEnabled?: boolean;
+    /** Swap the Qwen-Edit sampler onto Qwen-Image 2.1 (Engine → Renderer). */
+    qwenRenderer?: 'rapid' | 'qwen-image-2.1';
     kleinEnhancerIdentityPreset?: import('./klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
     kleinEnhancerTextEnabled?: boolean;
     kleinEnhancerColorAnchorEnabled?: boolean;
@@ -1787,6 +1792,18 @@ export function injectPromptsWithFallbacks(
     };
   }
 
+  if (options?.qwenRenderer === 'qwen-image-2.1') {
+    const width = Number(input.params?.width);
+    const height = Number(input.params?.height);
+    const converted = convertQwenEditWorkflowToImage21(injected.workflow, {
+      steps: qwenImage21Steps(options.qualityProfile),
+      ...(width > 0 && height > 0 ? { fallbackSize: { width, height } } : {}),
+    });
+    if (converted.converted) {
+      injected = { ...injected, workflow: converted.workflow };
+    }
+  }
+
   injected = { ...injected, workflow: stripComfyUiOnlyNodes(injected.workflow) };
 
   return injected;
@@ -1916,6 +1933,9 @@ export function stripEmptyComfyUiRuntime(
   }
   if (runtime.compactDraftSaves === false) {
     result.compactDraftSaves = false;
+  }
+  if (runtime.qwenRenderer === 'qwen-image-2.1') {
+    result.qwenRenderer = 'qwen-image-2.1';
   }
 
   if (runtime.queueQualityProfile) {

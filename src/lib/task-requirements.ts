@@ -28,6 +28,12 @@ const MODEL_ASSETS: Record<string, string[]> = {
   ],
   'wan-video-rapid-aio': ['wan-video-rapid-aio'],
   'flux-2-klein-9b-kv': ['flux2-klein-9b-kv', 'flux2-klein-qwen3-8b', 'flux2-vae'],
+  /** Engine → Renderer: Qwen-Image 2.1 (not a model id of its own). */
+  'qwen-image-2.1-renderer': [
+    'qwen-image-2.1-bf16',
+    'qwen-image-2.1-text-encoder',
+    'qwen-image-2.1-vae',
+  ],
 };
 
 /** Custom-node packs, named by a node type ComfyUI Manager can resolve to its pack. */
@@ -60,6 +66,8 @@ export type TaskRequirementInput = {
   faceFinish?: boolean;
   /** Auto-review is on (pose and face checks). */
   autoReview?: boolean;
+  /** Engine → Renderer is Qwen-Image 2.1 (Qwen-Edit stills render on it). */
+  qwenRenderer?: string;
   /**
    * Models already runnable: their mapped checkpoint / UNet (Settings → checkpoint map) is in
    * ComfyUI. A player who points WAN Rapid at the NSFW file is never asked for the SFW one.
@@ -90,6 +98,9 @@ export function taskRequirements(input: TaskRequirementInput): TaskRequirements 
   if (input.adult && isRapidStillModel(model)) {
     // Nude Day / Story stills queue on the NSFW Edit model (resolveAdultNudePlateQueueModel).
     addModel('qwen-rapid-aio-edit-nsfw', 'adult stills');
+  }
+  if (input.qwenRenderer === 'qwen-image-2.1' && /qwen.*edit|qwen-rapid-aio-edit/i.test(model)) {
+    addModel('qwen-image-2.1-renderer', 'the Qwen-Image 2.1 renderer');
   }
   if (input.animate) {
     addModel('wan-video-rapid-aio', 'clips');

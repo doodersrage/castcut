@@ -39,6 +39,18 @@ export type WorkflowGraphPreflightInput = {
   stackLoraFilenames?: string[];
 };
 
+function isQwenImage21Workflow(
+  workflow: Record<string, unknown> | null | undefined,
+  workflowJson: string | undefined
+): boolean {
+  if (workflow) {
+    return Object.values(workflow).some(
+      node => (node as { class_type?: string } | null)?.class_type === 'TextEncodeQwenImage21'
+    );
+  }
+  return Boolean(workflowJson?.includes('"TextEncodeQwenImage21"'));
+}
+
 /**
  * Shared graph audits used by client preview preflight and server queue preflight.
  * Keep Lightning + inventory checks here so UI and /prompt cannot diverge.
@@ -48,6 +60,9 @@ export function collectWorkflowGraphPreflightIssues(
 ): WorkflowPreflightIssue[] {
   const issues: WorkflowPreflightIssue[] = [];
   const { workflow, workflowJson } = resolveWorkflowGraphInput(input);
+  // Engine → Renderer swapped the Qwen-Edit sampler onto Qwen-Image 2.1: the engine's Lightning
+  // LoRA / AuraFlow shift / checkpoint stack are dropped on purpose, so their audits don't apply.
+  const renderedOnImage21 = isQwenImage21Workflow(workflow, workflowJson);
 
   issues.push(
     ...auditWorkflowPreviewIssues({
@@ -58,14 +73,15 @@ export function collectWorkflowGraphPreflightIssues(
     })
   );
 
-  issues.push(
-    ...auditWorkflowStackCompatibility({
-      workflowJson,
-      workflow,
-      model: input.model,
-      syncWorkflowLoadersToModel: input.syncWorkflowLoadersToModel,
-    })
-  );
+  if (!renderedOnImage21)
+    issues.push(
+      ...auditWorkflowStackCompatibility({
+        workflowJson,
+        workflow,
+        model: input.model,
+        syncWorkflowLoadersToModel: input.syncWorkflowLoadersToModel,
+      })
+    );
 
   issues.push(
     ...auditWorkflowNodeTypes({
@@ -81,25 +97,27 @@ export function collectWorkflowGraphPreflightIssues(
     input.models?.loras
   );
 
-  issues.push(
-    ...auditLightningWorkflowIssues({
-      workflowJson,
-      workflow,
-      model: input.model,
-      loraFilenames,
-      alreadyPrepared: input.lightningAlreadyPrepared === true,
-      stackLoraFilenames: input.stackLoraFilenames,
-    })
-  );
+  if (!renderedOnImage21)
+    issues.push(
+      ...auditLightningWorkflowIssues({
+        workflowJson,
+        workflow,
+        model: input.model,
+        loraFilenames,
+        alreadyPrepared: input.lightningAlreadyPrepared === true,
+        stackLoraFilenames: input.stackLoraFilenames,
+      })
+    );
 
-  issues.push(
-    ...auditDistilledTurboWorkflowIssues({
-      workflowJson,
-      workflow,
-      model: input.model,
-      loraFilenames,
-    })
-  );
+  if (!renderedOnImage21)
+    issues.push(
+      ...auditDistilledTurboWorkflowIssues({
+        workflowJson,
+        workflow,
+        model: input.model,
+        loraFilenames,
+      })
+    );
 
   if (input.objectInfoUnavailable) {
     issues.push({

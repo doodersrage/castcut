@@ -15,6 +15,8 @@ import {
 } from '@/lib/session-recipes';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { isQwenEditModel } from '@/lib/model-denoise-defaults';
+import { normalizeQwenRenderer } from '@/lib/qwen-image-21-renderer';
 
 const ModelResolutionHints = dynamic(() => import('@/components/ModelResolutionHints'), {
   ssr: false,
@@ -125,6 +127,51 @@ export default function SharedPrimaryControls({
           ) : null}
         </div>
       )}
+
+      {!cloudEngine && isQwenEditModel(shared.model) ? (
+        <div className="space-y-2" data-testid="engine-renderer">
+          <FieldLabel hint="Fast keeps the engine's own model. Qwen-Image 2.1 uses the same prompts and references but holds Cast faces and body types far better — about 5× slower.">
+            Renderer
+          </FieldLabel>
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                {
+                  id: 'rapid',
+                  label: 'Fast',
+                  title: "The engine's own model — about 15 s a still",
+                },
+                {
+                  id: 'qwen-image-2.1',
+                  label: 'Qwen-Image 2.1',
+                  title:
+                    'Truer faces and bodies — about 70 s a still; needs the Qwen-Image 2.1 files',
+                },
+              ] as const
+            ).map(option => (
+              <ChipButton
+                key={option.id}
+                active={normalizeQwenRenderer(shared.qwenRenderer) === option.id}
+                title={option.title}
+                data-testid={`engine-renderer-${option.id}`}
+                onClick={() => {
+                  const patch = { qwenRenderer: option.id };
+                  if (onSharedSettingsChange) {
+                    onSharedSettingsChange(patch);
+                  } else {
+                    saveSharedSettings(
+                      { ...loadSettingsCache().shared, ...patch },
+                      { notify: true }
+                    );
+                  }
+                }}
+              >
+                {option.label}
+              </ChipButton>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {!roleplayVariant && !cloudEngine ? (
         <ModelResolutionHints

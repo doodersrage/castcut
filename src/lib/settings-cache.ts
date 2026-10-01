@@ -562,6 +562,11 @@ export type SharedToolSettings = {
   modelSamplerOverrides?: ModelSamplerOverrideFields;
   /** When true (default), wire Flux2Klein Enhancer on Klein compose/reference queues when installed. */
   kleinEnhancerEnabled?: boolean;
+  /**
+   * Rapid AIO / Qwen-Edit engines: 'rapid' renders on the engine's own model; 'qwen-image-2.1'
+   * keeps every recipe but swaps the final render onto Qwen-Image 2.1 (truer faces, ~5× slower).
+   */
+  qwenRenderer?: 'rapid' | 'qwen-image-2.1';
   kleinEnhancerIdentityPreset?: KleinEnhancerIdentityPreset;
   /** When true (default), wire Flux2KleinTextEnhancer on Klein T2I + compose positive conditioning. */
   kleinEnhancerTextEnabled?: boolean;

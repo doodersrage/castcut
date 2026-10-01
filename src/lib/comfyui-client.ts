@@ -519,6 +519,7 @@ function injectPromptsIntoWorkflow(
       availableNodeTypes: enrichInventory?.availableNodeTypes,
       regionalSlots: runtime?.regionalSlots,
       kleinEnhancerEnabled: runtime?.kleinEnhancerEnabled,
+      qwenRenderer: runtime?.qwenRenderer,
       kleinEnhancerIdentityPreset: runtime?.kleinEnhancerIdentityPreset,
       kleinEnhancerTextEnabled: runtime?.kleinEnhancerTextEnabled,
       kleinEnhancerColorAnchorEnabled: runtime?.kleinEnhancerColorAnchorEnabled,

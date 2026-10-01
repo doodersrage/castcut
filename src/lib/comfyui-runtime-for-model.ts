@@ -1,5 +1,6 @@
 'use client';
 
+import { isQwenEditModel } from './model-denoise-defaults';
 import type { ComfyImageModel } from './comfy-models/client';
 import {
   loadComfyWorkflowFiles,
@@ -283,6 +284,9 @@ function sharedQueueFlags(
       : shared.workflowSharpenAfterUpscale === true,
     compactDraftSaves: shared.compactDraftSaves !== false,
     kleinEnhancerEnabled: shared.kleinEnhancerEnabled !== false,
+    ...(shared.qwenRenderer === 'qwen-image-2.1' && isQwenEditModel(model)
+      ? { qwenRenderer: 'qwen-image-2.1' as const }
+      : {}),
     kleinEnhancerIdentityPreset: shared.kleinEnhancerIdentityPreset,
     kleinEnhancerTextEnabled: shared.kleinEnhancerTextEnabled !== false,
     kleinEnhancerColorAnchorEnabled: shared.kleinEnhancerColorAnchorEnabled !== false,

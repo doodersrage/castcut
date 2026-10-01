@@ -22,6 +22,10 @@ import {
 
 const ACTIVE_JOB = new Set(['queued', 'downloading', 'verifying']);
 
+function sameMembers(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
+  return a.size === b.size && [...a].every(item => b.has(item));
+}
+
 /**
  * "This needs N files — Download all": the few weights and node packs the tool's current job
  * needs, checked against ComfyUI, fetched with one click through the same downloader as Settings.
@@ -38,10 +42,20 @@ export default function TaskRequirementsCard({
   testId?: string;
 }) {
   const [runnableModels, setRunnableModels] = useState<Set<string> | null>(null);
+  // Engine → Renderer is a global choice; read it here so every tool's card includes its files.
+  const qwenRenderer = input.qwenRenderer ?? loadSettingsCache().shared.qwenRenderer;
   const requirements = useMemo(
-    () => taskRequirements({ ...input, runnableModels: runnableModels ?? undefined }),
+    () => taskRequirements({ ...input, qwenRenderer, runnableModels: runnableModels ?? undefined }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the fields are the identity
-    [input.model, input.adult, input.animate, input.faceFinish, input.autoReview, runnableModels]
+    [
+      input.model,
+      input.adult,
+      input.animate,
+      input.faceFinish,
+      input.autoReview,
+      qwenRenderer,
+      runnableModels,
+    ]
   );
   const [rows, setRows] = useState<TaskAssetState[] | null>(null);
   const [jobs, setJobs] = useState<AssetJob[]>([]);
@@ -78,23 +92,29 @@ export default function TaskRequirementsCard({
     const info = await fetchComfyObjectInfoCached({ comfyUrl: comfyUrl() }).catch(() => null);
     setNodeTypes(info?.nodeTypes ?? null);
     // A model whose mapped checkpoint / UNet is installed needs nothing (see runnableModelsFromMap).
-    setRunnableModels(
-      runnableModelsFromMap(loadSettingsCache().shared.modelCheckpointMap, [
-        ...(info?.models.checkpoints ?? []),
-        ...(info?.models.unets ?? []),
-      ])
+    const nextRunnable = runnableModelsFromMap(loadSettingsCache().shared.modelCheckpointMap, [
+      ...(info?.models.checkpoints ?? []),
+      ...(info?.models.unets ?? []),
+    ]);
+    // Keep the same Set when nothing changed — a fresh one re-derives `requirements`, which
+    // re-ran this load in a loop (~250 API calls in 20 s, then 429s that blocked queueing).
+    setRunnableModels(previous =>
+      previous && sameMembers(previous, nextRunnable) ? previous : nextRunnable
     );
   }, []);
 
+  const requirementsKey = `${requirements.assetIds.join(',')}|${requirements.nodePacks
+    .map(pack => pack.label)
+    .join(',')}`;
   useEffect(() => {
-    if (requirements.assetIds.length === 0 && requirements.nodePacks.length === 0) return;
+    if (requirementsKey === '|') return;
     scheduleAfterCommit(() => {
       void load();
     });
     const onJobs = () => void load();
     window.addEventListener(COMFY_ASSET_JOBS_UPDATED_EVENT, onJobs);
     return () => window.removeEventListener(COMFY_ASSET_JOBS_UPDATED_EVENT, onJobs);
-  }, [load, requirements]);
+  }, [load, requirementsKey]);
 
   const wanted = new Set(requirements.assetIds);
   const activeJobs = jobs.filter(job => wanted.has(job.assetId) && ACTIVE_JOB.has(job.status));

@@ -180,6 +180,32 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     modelIds: [...QWEN_T2I_MODELS],
     notes: 'Lower-VRAM alternative to bf16.',
   },
+  // ── Qwen-Image 2.1 (Engine → Renderer on Qwen-Edit engines) ────────────
+  {
+    id: 'qwen-image-2.1-bf16',
+    label: 'Qwen-Image 2.1 (bf16 diffusion model)',
+    kind: 'unet',
+    filename: 'qwen_image_2.1_bf16.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_bf16.safetensors',
+    bytes: 14230280616,
+    modelIds: [...QWEN_EDIT_MODELS],
+  },
+  {
+    id: 'qwen-image-2.1-text-encoder',
+    label: 'Qwen-Image 2.1 text encoder (Qwen3-VL 8B int8)',
+    kind: 'clip',
+    filename: 'qwen3vl_8b_int8_convrot.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors',
+    modelIds: [...QWEN_EDIT_MODELS],
+  },
+  {
+    id: 'qwen-image-2.1-vae',
+    label: 'Qwen-Image 2.1 VAE',
+    kind: 'vae',
+    filename: 'qwen_image_2.1_vae_bf16.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/vae/qwen_image_2.1_vae_bf16.safetensors',
+    modelIds: [...QWEN_EDIT_MODELS],
+  },
   {
     id: 'qwen-image-vae',
     label: 'Qwen Image VAE',
