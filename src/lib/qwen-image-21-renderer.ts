@@ -25,6 +25,9 @@ export type QwenRenderer = 'rapid' | 'qwen-image-2.1';
 export const QWEN_IMAGE_21_POSE_CONTROLNET =
   'Qwen-Image-2.1-Fun-Controlnet-Union-ComfyUI.safetensors';
 export const QWEN_IMAGE_21_POSE_CONTROL_NODE = 'QwenImage21UnionApply';
+/** T8 "Qwen-Image-2.1 Fun-Acc PDD 4 Step" sampler and its paired file (models/loras). */
+export const QWEN_IMAGE_21_FOUR_STEP_NODE = 'T8QwenImage21FunAccPDD4Step';
+export const QWEN_IMAGE_21_FOUR_STEP_FILE = 'Qwen-Image-2.1-Fun-Acc-4Step-PDD-T8.safetensors';
 
 export function normalizeQwenRenderer(value: unknown): QwenRenderer {
   return value === 'qwen-image-2.1' ? 'qwen-image-2.1' : 'rapid';
@@ -218,6 +221,11 @@ export function convertQwenEditWorkflowToImage21(
      * two-person map drives the pose through the ControlNet instead of being lost.
      */
     poseControl?: { strength?: number; endPercent?: number } | false;
+    /**
+     * Alibaba PAI Fun-Acc PDD 4-step (T8 node): four steps instead of 30. Needs the
+     * T8QwenImage21FunAccPDD4Step node and its paired model file in models/loras.
+     */
+    fourStep?: boolean;
   } = {}
 ): { workflow: Record<string, unknown>; converted: boolean } {
   const workflow = structuredClone(input) as Workflow;
@@ -324,6 +332,18 @@ export function convertQwenEditWorkflowToImage21(
     scheduler: 'simple',
     denoise: 1,
   };
+  if (options.fourStep) {
+    workflow[samplerId] = {
+      class_type: QWEN_IMAGE_21_FOUR_STEP_NODE,
+      inputs: {
+        model: samplerModel,
+        positive: [encode, 0],
+        latent_image: [latent, 0],
+        model_file: QWEN_IMAGE_21_FOUR_STEP_FILE,
+        seed: sampler.inputs.seed ?? 0,
+      },
+    };
+  }
   for (const node of Object.values(workflow)) {
     if (
       node.class_type === 'VAEDecode' &&

@@ -240,3 +240,20 @@ describe('Qwen-Image 2.1: unnamed outfit', () => {
     assert.doesNotMatch(out, /catalog wardrobe kit/);
   });
 });
+
+describe('Qwen-Image 2.1: 4-step sampler', () => {
+  it('swaps the KSampler for the PDD 4-step node when asked', () => {
+    const graph = {
+      '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt: 'Solo still.', image1: ['900', 0] } },
+      '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+      '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+      '900': { class_type: 'LoadImage', inputs: { image: 'plate.png' } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+    };
+    const workflow = convertQwenEditWorkflowToImage21(graph, { fourStep: true }).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+    assert.equal(workflow['8']!.class_type, 'T8QwenImage21FunAccPDD4Step');
+    assert.equal(workflow['8']!.inputs.seed, 7);
+    assert.deepEqual(workflow['9']!.inputs.samples, ['8', 0]);
+  });
+});
