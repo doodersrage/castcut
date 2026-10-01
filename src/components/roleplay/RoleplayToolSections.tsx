@@ -1,5 +1,6 @@
 'use client';
 
+import TaskRequirementsCard from '@/components/TaskRequirementsCard';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 
@@ -272,13 +273,20 @@ export default function RoleplayToolSections({
           )}
 
           {activeCharacterId ? (
-            <RoleplayWardrobeSection
-              busy={busy}
-              toolSettings={toolSettings}
-              onUpdateToolSettings={updateToolSettings}
-              onError={message => setError(message)}
-              wardrobe={wardrobe}
-            />
+            <>
+              <TaskRequirementsCard
+                task="This Story"
+                testId="story-task-requirements"
+                input={{ model: shared.model, adult: content === 'explicit' }}
+              />
+              <RoleplayWardrobeSection
+                busy={busy}
+                toolSettings={toolSettings}
+                onUpdateToolSettings={updateToolSettings}
+                onError={message => setError(message)}
+                wardrobe={wardrobe}
+              />
+            </>
           ) : null}
 
           <RoleplayBeatOutputSection

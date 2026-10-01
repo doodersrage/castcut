@@ -8,6 +8,7 @@ import FittingAutoReviewToggle from '@/components/fitting/FittingAutoReviewToggl
 import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnReview';
 import FittingPlateSection from '@/components/fitting/FittingPlateSection';
 import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
+import TaskRequirementsCard from '@/components/TaskRequirementsCard';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
 import OutfitPlayPhaseStrip from '@/components/fitting/OutfitPlayPhaseStrip';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
@@ -225,6 +226,12 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onClearReference={clearReference}
         onError={message => setError(message)}
         lookHref={withCharacterQuery('/moodboard', shared.activeCharacterId)}
+      />
+
+      <TaskRequirementsCard
+        task="Outfit try-ons"
+        testId="fitting-task-requirements"
+        input={{ model: shared.model, autoReview: toolSettings.autoReviewTryOns === true }}
       />
 
       <FittingWardrobeKitSection

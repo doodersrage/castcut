@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import ClothingPicker from '@/components/wardrobe/ClothingPicker';
+import TaskRequirementsCard from '@/components/TaskRequirementsCard';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 import {
@@ -341,6 +342,12 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           </Link>
         </div>
       )}
+
+      <TaskRequirementsCard
+        task="Outfit try-ons"
+        testId="fitting-task-requirements"
+        input={{ model: shared.model, autoReview: toolSettings.autoReviewTryOns === true }}
+      />
 
       {/* Same Clothing picker as Day and Story: a catalog kit or your own photo, Browse. */}
       <div data-testid="mobile-fitting-clothing">

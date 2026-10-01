@@ -1,5 +1,6 @@
 'use client';
 
+import TaskRequirementsCard from '@/components/TaskRequirementsCard';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
 import { useMemo } from 'react';
@@ -238,13 +239,20 @@ export default function MobilePlayToolSections({ description: _description, ...v
       ) : null}
 
       {castId ? (
-        <RoleplayWardrobeSection
-          busy={busy}
-          toolSettings={toolSettings}
-          onUpdateToolSettings={updateToolSettings}
-          onError={message => setError(message)}
-          wardrobe={wardrobe}
-        />
+        <>
+          <TaskRequirementsCard
+            task="This Story"
+            testId="story-task-requirements"
+            input={{ model: shared.model, adult: content === 'explicit' }}
+          />
+          <RoleplayWardrobeSection
+            busy={busy}
+            toolSettings={toolSettings}
+            onUpdateToolSettings={updateToolSettings}
+            onError={message => setError(message)}
+            wardrobe={wardrobe}
+          />
+        </>
       ) : null}
 
       {plates.length > 1 ? (
