@@ -5594,6 +5594,11 @@ export type PhotoPose = {
   people: NormalizedBody[];
   /** Read from a photo (default) or dragged into shape in the joint editor. */
   source?: 'photo' | 'edited';
+  /**
+   * The pose in words when it is known by name (a Day pose picked on Outfit: "waving: one arm
+   * raised high …"). Dropped as soon as the joints are edited.
+   */
+  words?: string;
 };
 
 export type PoseCameraChoice = 'front' | 'side' | 'overhead' | 'low';

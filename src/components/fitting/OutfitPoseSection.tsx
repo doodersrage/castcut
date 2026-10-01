@@ -128,6 +128,7 @@ export default function OutfitPoseSection({
           allowTwo={false}
           possessive={leadNoun === 'man' ? 'his' : 'her'}
           leadsPrompt
+          words={pose?.words}
           onSave={next => {
             onChange({ ...next, people: next.people.slice(0, 1) });
             setEditing(false);
@@ -160,6 +161,11 @@ export default function OutfitPoseSection({
             </Button>
           </div>
         </div>
+      ) : null}
+      {pose?.words && !editing ? (
+        <p className="type-caption text-[var(--text-muted)]" data-testid="outfit-pose-day-words">
+          Prompt says: {pose.words}
+        </p>
       ) : null}
       {photoStatus ? (
         <p

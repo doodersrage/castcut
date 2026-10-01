@@ -164,6 +164,17 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
 
   await page.getByTestId('outfit-pose-starter-sit').click();
   await expect(page.getByTestId('outfit-pose-words')).toContainText('seated');
+  // Start from one of Day's named poses: the prompt words are the pose's own name and cue…
+  await page.getByTestId('outfit-pose-day-pose').selectOption('wave');
+  await expect(page.getByTestId('outfit-pose-words')).toContainText('waving: one arm raised high');
+  // …until a joint is moved, when the words go back to reading the figure.
+  const waveWrist = page.getByTestId('outfit-pose-joint-0-10');
+  await waveWrist.focus();
+  await page.keyboard.press('Shift+ArrowLeft');
+  await expect(page.getByTestId('outfit-pose-words')).not.toContainText('waving:');
+  await page.getByTestId('outfit-pose-day-pose').selectOption('hands_hips');
+  await expect(page.getByTestId('outfit-pose-words')).toContainText('hands on hips: both hands on');
+
   await page.getByTestId('outfit-pose-save-to-my-poses').click();
   await page.getByTestId('outfit-pose-save-name').fill('Chair lean');
   await page.getByTestId('outfit-pose-save-name').press('Enter');
@@ -174,6 +185,7 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
   await page.getByTestId('outfit-pose-editor-save').click();
   await expect(page.getByTestId('outfit-pose-custom')).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByTestId('outfit-pose-figure')).toBeVisible();
+  await expect(page.getByTestId('outfit-pose-day-words')).toContainText('hands on hips');
   await expect(page.getByTestId('outfit-my-poses')).toContainText('Chair lean');
 
   await page.getByTestId('outfit-pose-plate').click();

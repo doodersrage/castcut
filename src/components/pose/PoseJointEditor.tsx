@@ -17,6 +17,9 @@ import {
   posePartOfJoint,
 } from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
+import { SelectInput } from '@/components/ui/Field';
+import { dayPoseAsPhotoPose, soloDayPoseGroups } from '@/lib/day-pose-presets';
+import { poseLayoutLabel } from '@/lib/pose-layout-labels';
 import ModalPortal from '@/components/ui/ModalPortal';
 import type { PhotoPose } from '@/lib/day-pose-guide';
 import type { NormalizedBody } from '@/lib/pose-library';
@@ -218,6 +221,7 @@ export default function PoseJointEditor({
   allowTwo = true,
   possessive = 'her',
   leadsPrompt = false,
+  words: initialWords,
 }: {
   bodies: NormalizedBody[];
   aspect: number;
@@ -230,6 +234,8 @@ export default function PoseJointEditor({
   possessive?: 'her' | 'his';
   /** The words line opens the prompt (Outfit try-ons); elsewhere it is only how the pose reads. */
   leadsPrompt?: boolean;
+  /** The pose's name and cue when it came from Day's pose list and has not been edited since. */
+  words?: string;
 }) {
   const titleId = useId();
   const [bodies, setBodies] = useState<NormalizedBody[]>(() =>
@@ -312,6 +318,34 @@ export default function PoseJointEditor({
     history.current.push({ bodies: latest.current, depths: [...depths.current] });
     restore(next);
   }, [restore]);
+  // A Day pose keeps its own name and cue as the prompt words for as long as the lead figure is
+  // exactly as picked; any drag, bend or turn goes back to reading the joints.
+  const [preset, setPreset] = useState<{ words: string; key: string } | null>(() =>
+    initialWords?.trim() && initial[0]
+      ? { words: initialWords.trim(), key: JSON.stringify(initial[0]) }
+      : null
+  );
+  const presetWords =
+    preset && bodies[0] && JSON.stringify(bodies[0]) === preset.key ? preset.words : null;
+  const startFromDayPose = (id: string) => {
+    const picked = dayPoseAsPhotoPose(id);
+    const figure = picked?.people[0];
+    if (!picked || !figure) return;
+    // Day draws on its own canvas: keep the figure's shape on this one.
+    const widen = picked.aspect / safeAspect;
+    const lead = figure.map(point =>
+      point
+        ? { x: Math.min(0.99, Math.max(0.01, 0.5 + (point.x - 0.5) * widen)), y: point.y }
+        : null
+    );
+    checkpoint();
+    setDepths([]);
+    update(previous => (previous.length > 1 ? addPerson([lead]) : [lead]));
+    setPreset(
+      picked.words ? { words: picked.words, key: JSON.stringify(latest.current[0]) } : null
+    );
+    setSavedNote(null);
+  };
   // Start from a base figure — keeps the second person when there is one.
   const startFrom = (id: PoseStarterId) => {
     const lead = poseStarterBody(id);
@@ -538,7 +572,9 @@ export default function PoseJointEditor({
         }
       }
     });
-    if (nearest) return { kind: 'joint', person: nearest.person, joint: nearest.joint };
+    // Assigned inside the forEach callback, so TypeScript narrows it to `never` here.
+    const found = nearest as { person: number; joint: number } | null;
+    if (found) return { kind: 'joint', person: found.person, joint: found.joint };
     if (handle) {
       const px = at.x * safeAspect;
       const py = at.y;
@@ -890,6 +926,25 @@ export default function PoseJointEditor({
                       {starter.label}
                     </Button>
                   ))}
+                  {/* Any of Day's named poses, drawn the way Day draws them. */}
+                  <SelectInput
+                    value=""
+                    aria-label="Start from a Day pose"
+                    data-testid={`${testIdPrefix}-day-pose`}
+                    className="w-auto! min-w-[10rem] py-1 text-sm"
+                    onChange={event => startFromDayPose(event.target.value)}
+                  >
+                    <option value="">A Day pose…</option>
+                    {soloDayPoseGroups().map(group => (
+                      <optgroup key={group.label} label={group.label}>
+                        {group.ids.map(id => (
+                          <option key={id} value={id}>
+                            {poseLayoutLabel(id)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </SelectInput>
                 </div>
               </div>
               <p
@@ -929,7 +984,7 @@ export default function PoseJointEditor({
                     <span className="type-caption block text-[var(--text-muted)]">
                       {leadsPrompt ? 'The prompt will open with' : 'This pose reads as'}
                     </span>
-                    {describePoseBody(bodies[0], { possessive, aspect: safeAspect })}
+                    {presetWords ?? describePoseBody(bodies[0], { possessive, aspect: safeAspect })}
                   </p>
                   {focusBody ? (
                     <div
@@ -1225,7 +1280,12 @@ export default function PoseJointEditor({
                       className="whitespace-nowrap"
                       data-testid={`${testIdPrefix}-editor-save`}
                       onClick={() =>
-                        onSave({ aspect: safeAspect, people: bodies, source: 'edited' })
+                        onSave({
+                          aspect: safeAspect,
+                          people: bodies,
+                          source: 'edited',
+                          ...(presetWords ? { words: presetWords } : {}),
+                        })
                       }
                     >
                       Use this pose
