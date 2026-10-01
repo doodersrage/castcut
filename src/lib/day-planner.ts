@@ -5,6 +5,7 @@ import {
   buildRapidSoloRecipe,
   buildRapidSuggestiveDuoRecipe,
   buildRapidSuggestiveRecipe,
+  buildCompactDayDuoRecipe,
   buildCompactDayRecipe,
   buildRapidVacationRecipe,
 } from './rapid-duo-recipe';
@@ -3480,20 +3481,25 @@ export function buildDaySlotPrompt(input: {
     // swimsuits went to cafés and sundresses into pools, and the shared dance tail lifted arms.
     // With "Duo · companions" on, a solo beat keeps the solo recipe (headcount 1) and a
     // Suggestive couple beat gets the clothed couple recipe.
-    // Edit 2511 takes the short recipes for every clothed mood (pose-model-profile:
-    // compactClothedRecipes): Vacation / Suggestive share Rapid's, the rest use the Day recipe.
-    const compactClothed =
-      !rapidAio &&
-      !isDayAdultMood(dayMood) &&
-      // Tested with the pose map attached; without one the brief's identity locks stay.
-      poseGuide &&
-      poseProfileForModel(input.model).compactClothedRecipes;
+    // Edit 2511 takes the short recipes for every Day still (pose-model-profile:
+    // compactDayRecipes): Vacation / Suggestive and the adult moods share Rapid's, the rest use
+    // the Day recipes.
+    const compactDay = !rapidAio && poseProfileForModel(input.model).compactDayRecipes;
+    const compactClothed = compactDay && !isDayAdultMood(dayMood);
+    /** A two-person clothed still outside the Suggestive couple recipe (2511 only). */
+    const compactDuo = compactClothed && poseHeadcount >= 2 && !suggestiveCouple;
     const moodRecipe = dayMood === 'suggestive' || dayMood === 'vacation';
     if (
       (rapidAio ? moodRecipe : compactClothed) &&
       !omitGarment &&
-      (poseHeadcount < 2 || suggestiveCouple)
+      (poseHeadcount < 2 || suggestiveCouple || compactDuo)
     ) {
+      // The Day kit in plain words: a catalog description's first sentence, no leading article.
+      const kit = (input.wardrobeLabel?.trim() || garmentDescription || '')
+        .split(/(?<=[.!?])\s+/)[0]!
+        .replace(/[.\s]+$/, '')
+        .replace(/^(?:an?|the)\s+/i, '')
+        .replace(/^[A-Z](?=[a-z])/, letter => letter.toLowerCase());
       const recipeInput = {
         beat: hints,
         setting,
@@ -3503,41 +3509,41 @@ export function buildDaySlotPrompt(input: {
         // Image 3.
         poseGuide: poseGuide && (garmentReinforce || partnerImage) ? ('third' as const) : poseGuide,
         outfitImage: garmentReinforce && !partnerImage ? ('second' as const) : null,
-        outfit: input.wardrobeLabel?.trim() || garmentDescription || null,
+        outfit: compactDay
+          ? kit || null
+          : input.wardrobeLabel?.trim() || garmentDescription || null,
         faceOnly: faceOnlyIdentity,
         outfitFromFirst: !faceOnlyIdentity && keepAsImage1 && !replaceKeepOutfit,
       };
+      const coupleInput = {
+        ...recipeInput,
+        ...(duoPartner ? { partner: { partner: duoPartner, image: 'second' as const } } : {}),
+        lead: input.leadNoun === 'man' ? ('man' as const) : ('woman' as const),
+      };
       const recipe = suggestiveCouple
-        ? buildRapidSuggestiveDuoRecipe({
-            ...recipeInput,
-            ...(duoPartner ? { partner: { partner: duoPartner, image: 'second' as const } } : {}),
-            lead: input.leadNoun === 'man' ? 'man' : 'woman',
-          })
-        : dayMood === 'vacation'
-          ? buildRapidVacationRecipe(recipeInput)
-          : dayMood === 'suggestive'
-            ? buildRapidSuggestiveRecipe(recipeInput)
-            : buildCompactDayRecipe({
-                ...recipeInput,
-                // Sport presets carry a boilerplate tail after the action ("— tennis athletic
-                // action in proper tennis kit …"): the recipe says kit and venue itself.
-                ...(dayMood === 'sport'
-                  ? {
-                      beat: hints?.split(' — ')[0]?.trim() || hints,
-                      sportKit: compactSportKit(hints, setting),
-                    }
-                  : {}),
-              });
+        ? buildRapidSuggestiveDuoRecipe(coupleInput)
+        : compactDuo
+          ? buildCompactDayDuoRecipe(coupleInput)
+          : dayMood === 'vacation'
+            ? buildRapidVacationRecipe(recipeInput)
+            : dayMood === 'suggestive'
+              ? buildRapidSuggestiveRecipe(recipeInput)
+              : buildCompactDayRecipe({
+                  ...recipeInput,
+                  // Sport presets carry a boilerplate tail after the action ("— tennis athletic
+                  // action in proper tennis kit …"): the recipe says kit and venue itself.
+                  ...(dayMood === 'sport'
+                    ? {
+                        beat: hints?.split(' — ')[0]?.trim() || hints,
+                        sportKit: compactSportKit(hints, setting),
+                      }
+                    : {}),
+                });
       if (recipe && compactClothed) {
         // Edit 2511 keeps the plate's underwear unless the outfit is stated first and firmly.
         // Name the kit when the recipe dresses her from it; else repeat the beat's own clothes
         // (a pool beat's swimsuit must not be overruled by the day's kit).
-        const kit = (input.wardrobeLabel?.trim() || garmentDescription || '')
-          .split(/(?<=[.!?])\s+/)[0]!
-          .replace(/[.\s]+$/, '')
-          .replace(/^(?:an?|the)\s+/i, '')
-          .replace(/^[A-Z](?=[a-z])/, letter => letter.toLowerCase());
-        const worn = recipe.match(/\bShe wears ([^.]+)\./)?.[1] ?? '';
+        const worn = recipe.match(/\b(?:She|He) wears ([^.;]+)[.;]/)?.[1] ?? '';
         const fromKit = /^the outfit from the (?:first|second|third) image$/.test(worn);
         const outfitLead =
           fromKit && kit
@@ -3556,7 +3562,7 @@ export function buildDaySlotPrompt(input: {
     }
     // Rapid AIO duo nude beats: the full lock brief (~9k chars) drowned the beat and every
     // duo still became the same reclining couple on a bed. Send where each body goes instead.
-    if (rapidAio && omitGarment && !soloSubject && isDayAdultMood(dayMood)) {
+    if ((rapidAio || compactDay) && omitGarment && !soloSubject && isDayAdultMood(dayMood)) {
       const recipe = buildRapidDuoRecipe({
         beat: hints,
         setting,
@@ -3572,7 +3578,7 @@ export function buildDaySlotPrompt(input: {
     }
     // Solo too: the 8–13k solo brief missed prone, toy and hands on Rapid, and its rolled room
     // overrode the beat's own ("kitchen floor" rendered in a bathroom).
-    if (rapidAio && omitGarment && soloSubject && isDayAdultMood(dayMood)) {
+    if ((rapidAio || compactDay) && omitGarment && soloSubject && isDayAdultMood(dayMood)) {
       const recipe = buildRapidSoloRecipe({
         beat: hints,
         setting,
@@ -3588,7 +3594,7 @@ export function buildDaySlotPrompt(input: {
     // Self-touch with the clothes still on ("clothes half off"): same recipe, outfit pushed open.
     // The long brief's bedroom lock drew over the beat's own couch (live 2026-09-28).
     if (
-      rapidAio &&
+      (rapidAio || compactDay) &&
       !omitGarment &&
       soloSubject &&
       isDayAdultMood(dayMood) &&

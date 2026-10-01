@@ -857,8 +857,27 @@ describe('day-planner', () => {
     });
     assert.match(pool, /OUTFIT \(mandatory\): she wears a one-piece swimsuit;/);
     assert.doesNotMatch(pool, /\blace\b/);
-    // Adult moods and two-person clothed stills keep their existing prompts.
-    assert.doesNotMatch(buildDaySlotPrompt({ ...base, dayMood: 'intimate' }), /Day photo:/);
+    // Two-person clothed stills get the couple recipe under the Day mark.
+    const couple = buildDaySlotPrompt({
+      ...base,
+      dayMood: 'everyday',
+      allowCompanions: true,
+      slot: { ...base.slot, sceneHints: 'clinking mugs with her partner over breakfast at the counter' },
+    });
+    assert.match(couple, /\nOUTFIT \(mandatory\): she wears a black strapless mini dress/);
+    assert.match(couple, /Day photo: A woman and a man together, both fully clothed, both fully in frame\./);
+    assert.match(couple, /She wears the outfit from the second image; he wears a casual shirt and jeans\./);
+    assert.match(couple, /the man has his own face\./);
+    // Adult moods share Rapid's explicit recipes.
+    const adult = buildDaySlotPrompt({
+      ...base,
+      dayMood: 'intimate',
+      intimateMix: 'duo',
+      omitGarment: true,
+      garmentReinforce: false,
+      slot: { ...base.slot, sceneHints: 'missionary sex on the bed with her partner on top' },
+    });
+    assert.match(adult, /^Explicit sex photo: Side view, missionary position/);
     // A model with no profile keeps the long Vacation brief.
     const generic = buildDaySlotPrompt({ ...base, dayMood: 'vacation', model: 'qwen-image-edit' });
     assert.doesNotMatch(generic, /Vacation photo:/);
@@ -1460,7 +1479,7 @@ describe('day-planner', () => {
     assert.ok(poseIdx >= 0 && settingIdx > poseIdx, 'pose should precede setting');
   });
 
-  it('buildDaySlotPrompt Lightning vacation without pose guide locks identity and hair', () => {
+  it('buildDaySlotPrompt Lightning vacation without pose guide sends the short recipe too', () => {
     const prompt = buildDaySlotPrompt({
       slot: {
         ...DEFAULT_DAY_SLOTS[1]!,
@@ -1474,11 +1493,13 @@ describe('day-planner', () => {
       dayMood: 'vacation',
       model: 'qwen-image-edit-2511-lightning-8',
     });
-    assert.match(prompt, /IDENTITY CRITICAL|same woman|exact hair color/i);
-    assert.match(prompt, /same woman, same hair color and length|Inventing a different face/i);
-    assert.match(prompt, /keep this exact woman from Image 1/i);
-    assert.doesNotMatch(prompt, /match Image 3 and the beat stance/i);
-    assert.doesNotMatch(prompt, /FACE CROP only|face likeness only — invent FULL BODY/i);
+    // Edit 2511 uses the short recipes for every Day still, pose map or not (live 2026-10-01:
+    // no-map Everyday sat on the bench / lay on the blanket as written; the brief used a chair).
+    assert.match(prompt, /^SCENE: she is in the night balcony over the sea with string lights/);
+    assert.match(prompt, /Vacation photo: One woman alone on vacation\. She stands waving, one arm raised high overhead/);
+    assert.match(prompt, /Keep her face from the first image\./);
+    assert.doesNotMatch(prompt, /pose map|Image 3|IDENTITY CRITICAL/);
+    assert.ok(prompt.length < 900, String(prompt.length));
   });
 
   it('ensureDaySlotsMatchMood rerolls office boards under vacation', () => {
@@ -2514,12 +2535,12 @@ describe('buildDaySlotPrompt everyday posing and background', () => {
       plateSource: 'keeper' as const,
       poseGuide: true,
     };
-    // Without a pose map Edit 2511 keeps the long brief and its stance locks…
-    assert.match(
+    // Edit 2511 sends the short Day recipe (poses held 6/6 vs 0/6, live 2026-10-01), with or
+    // without a pose map — the stance locks belonged to the long brief.
+    assert.doesNotMatch(
       buildDaySlotPrompt({ ...base, poseGuide: false, model: 'qwen-image-edit-2511-lightning-8' }),
-      /IDENTITY CRITICAL|discard that stance|standing try-on plate/i
+      /IDENTITY CRITICAL|pose map/
     );
-    // …with one it sends the short Day recipe instead (poses held 6/6 vs 0/6, live 2026-10-01).
     const compact = buildDaySlotPrompt({ ...base, model: 'qwen-image-edit-2511-lightning-8' });
     assert.match(compact, /^SCENE: she is in the sunlit bedroom/);
     assert.match(compact, /Day photo: One woman alone\..*She wears the outfit from the first image\./);
@@ -2841,7 +2862,7 @@ describe('everyday pose unlock', () => {
     assert.ok(DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP < DAY_PLATE_IDENTITY_LOCK_CAP);
   });
 
-  it('buildDaySlotPrompt everyday Lightning names sit/walk stance and bans plate ghosts', () => {
+  it('buildDaySlotPrompt everyday Lightning without a pose map: the short recipe names the stance', () => {
     const prompt = buildDaySlotPrompt({
       slot: {
         ...DEFAULT_DAY_SLOTS[2]!,
@@ -2854,11 +2875,10 @@ describe('everyday pose unlock', () => {
       dayMood: 'everyday',
       model: 'qwen-image-edit-2511-lightning-8',
     });
-    assert.match(prompt, /POSE FIRST:.*SEATED|hips ON a chair/i);
-    assert.match(prompt, /IDENTITY CRITICAL|same woman as Image 1/i);
-    assert.match(prompt, /one finished photograph of this one woman only|never a second body/i);
-    assert.match(prompt, /speckle|lingerie ghost/i);
-    assert.doesNotMatch(prompt, /Image 3 is a/i);
+    assert.match(prompt, /Day photo: One woman alone\. She sits/);
+    assert.match(prompt, /Moment: sitting in a diner booth, elbows on the table, looking out the window\./);
+    assert.match(prompt, /Keep her face from the first image\./);
+    assert.doesNotMatch(prompt, /Image 3 is a|pose map|POSE FIRST/i);
   });
 });
 

@@ -62,13 +62,15 @@ describe('Rapid duo recipe', () => {
     }
   });
 
-  it('replaces the full brief only on Rapid AIO', () => {
+  it('replaces the full brief on Rapid AIO and Edit 2511', () => {
     const beat = 'against the bedroom wall mid-sex, night city glow';
     const rapid = duoPrompt(beat, 'qwen-rapid-aio-edit-nsfw');
     assert.ok(isRapidDuoRecipePrompt(rapid));
     assert.match(rapid, /back pressed flat against the bedroom wall/);
     assert.doesNotMatch(rapid, /DUO ACT:|POSE LOCK:|HEADCOUNT/);
-    assert.ok(!isRapidDuoRecipePrompt(duoPrompt(beat, 'qwen-image-edit-2511')));
+    // Edit 2511 shares the adult recipes (pose-model-profile: compactDayRecipes); others don't.
+    assert.ok(isRapidDuoRecipePrompt(duoPrompt(beat, 'qwen-image-edit-2511')));
+    assert.ok(!isRapidDuoRecipePrompt(duoPrompt(beat, 'qwen-image-edit-2509')));
   });
 
   it('survives reinforce and Rapid queue steering unchanged', () => {
@@ -419,14 +421,16 @@ describe('Rapid vacation recipe', () => {
     assert.match(buildRapidVacationRecipe({ beat: 'DANCING on a terrace — evening wear' })!, /She wears evening wear\./);
   });
 
-  it('replaces the Vacation brief on Rapid solo, and on Edit 2511 when a pose map is attached', () => {
+  it('replaces the Vacation brief on Rapid solo and on Edit 2511', () => {
     const slot = { ...(nightSlot as object), sceneHints: 'PEDALING a rental bike along the promenade — sundress' } as never;
     const build = (model: string, extra: object = {}) =>
       buildDaySlotPrompt({ slot, hasPlate: true, plateSource: 'cast', poseGuide: true, model, dayMood: 'vacation', ...extra });
     assert.match(build('qwen-rapid-aio-edit-nsfw'), /^Vacation photo:.*rides a bicycle/);
     // Edit 2511 held poses 7/7 with the recipe vs about 2/8 with the brief (live 2026-10-01).
     assert.match(build('qwen-image-edit-2511'), /Vacation photo:.*rides a bicycle/);
-    assert.ok(!isRapidDuoRecipePrompt(build('qwen-image-edit-2511', { poseGuide: false })));
+    const noMap = build('qwen-image-edit-2511', { poseGuide: false });
+    assert.match(noMap, /Vacation photo:.*rides a bicycle/);
+    assert.doesNotMatch(noMap, /pose map/);
     assert.ok(!isRapidDuoRecipePrompt(build('qwen-image-edit')));
   });
 });

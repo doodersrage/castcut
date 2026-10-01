@@ -26,13 +26,14 @@ export type PoseModelProfile = {
    */
   rapidGraph: boolean;
   /**
-   * Clothed solo Day stills (every non-adult mood) use the short "where the body is" recipes
-   * instead of the ~5–7k-char brief, without the rest of the Rapid graph. Edit 2511 Lightning,
+   * Every Day still uses the short "where the body is" recipes instead of the ~4–7k-char brief,
+   * without the rest of the Rapid graph: clothed solo and two-person stills, with or without a
+   * pose map, and the adult moods (Rapid's adult recipes). Edit 2511 Lightning,
    * live A/B on the user's own graphs (2026-10-01), Vacation: the brief held the pose about 2/8
    * (seated, climbing and lying came out standing or sitting); the recipe plus a mandatory-outfit
    * line got pose and dress 7/7. Without that line the recipe kept the plate's underwear 3/8.
    */
-  compactClothedRecipes: boolean;
+  compactDayRecipes: boolean;
   /** Two-women / two-men / man-lead adult duo layouts exist for this model. */
   sameSexLayouts: boolean;
   /** No 69 / face-sitting: those beats render as seated oral (and the guide is drawn so). */
@@ -84,7 +85,7 @@ const BASE: PoseModelProfile = {
   family: 'generic',
   outlineGrayGuide: false,
   rapidGraph: false,
-  compactClothedRecipes: false,
+  compactDayRecipes: false,
   sameSexLayouts: false,
   seatedOralFallback: false,
   poseStickyClothed: false,
@@ -110,7 +111,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     family: 'qwen-edit-2511',
     outlineGrayGuide: true,
     poseStickyClothed: true,
-    compactClothedRecipes: true,
+    compactDayRecipes: true,
   },
   'qwen-image-2.1': {
     ...BASE,

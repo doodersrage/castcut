@@ -1062,6 +1062,31 @@ export function buildRapidVacationRecipe(input: {
     .replace(/\.\./g, '.');
 }
 
+/**
+ * Compact two-person recipe for clothed Everyday / Vacation / Sport / themed Day stills (Qwen
+ * Edit 2511): the Suggestive couple recipe's shape without the "affectionate" framing, under the
+ * Day mark. Who is who, what each wears, the moment and the place — once each.
+ */
+export function buildCompactDayDuoRecipe(
+  input: Parameters<typeof buildRapidSuggestiveDuoRecipe>[0]
+): string | null {
+  const recipe = buildRapidSuggestiveDuoRecipe(input);
+  return recipe
+    ? recipe
+        .replace(RAPID_SUGGESTIVE_RECIPE_MARK, DAY_CLOTHED_RECIPE_MARK)
+        .replace('both fully clothed, affectionate.', 'both fully clothed, both fully in frame.')
+        .replace(/\bwears a flirty dress\b/, 'wears everyday clothes')
+        // Vacation beats lead with a CAPS stance word; the room line keeps only indoor rooms.
+        .replace(/Moment: ([A-Z][A-Z-]+)\b/, (_, word: string) => `Moment: ${word.toLowerCase()}`)
+        .replace(
+          ' Photorealistic photograph',
+          input.setting?.trim() && !recipe.includes(input.setting.trim())
+            ? ` Place: ${input.setting.trim().replace(/[.\s]+$/, '')}. Photorealistic photograph`
+            : ' Photorealistic photograph'
+        )
+    : null;
+}
+
 /** A plain-words stance for an everyday beat ("sitting on a park bench …"), when it names one. */
 function everydayPlacement(beat: string): string | null {
   const b = beat.toLowerCase();
