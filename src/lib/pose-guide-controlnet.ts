@@ -10,10 +10,10 @@
  * InstantX / Union read it as an image — it ghosted into stills and locked Image 1 clothing.
  */
 
+import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import type { WorkflowParamValues } from './comfyui-config';
 import { pickQwenPoseControlNetFilename, type ModelControlNetMap } from './model-controlnet-map';
 import { readCachedComfyObjectInfoModels } from './comfyui-object-info-cache';
-import { isFluxKleinModel } from './model-denoise-defaults';
 import { isOpenPoseStyle, type PoseGuideStylePreference } from './pose-guide-prompt';
 import { loadSettingsCache } from './settings-cache';
 
@@ -58,7 +58,7 @@ export function isPoseCapableControlNet(filename: string | null | undefined): bo
  * instead, so only a file the user mapped for the model on purpose is ever attached.
  */
 export function poseControlNetGuessableForModel(model: string | null | undefined): boolean {
-  return !isFluxKleinModel(model);
+  return poseProfileForModel(model).poseControlNetGuessable;
 }
 
 /**

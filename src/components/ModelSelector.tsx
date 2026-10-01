@@ -27,15 +27,7 @@ import {
   loadSettingsCache,
   notifySettingsCacheUpdated,
   saveSharedSettings,
-  SETTINGS_CACHE_UPDATED_EVENT,
 } from '@/lib/settings-cache';
-import {
-  isQwenImage21RenderableModel,
-  normalizeQwenRenderer,
-  qwenImage21BaseModel,
-  qwenImage21RendererActive,
-  type QwenRenderer,
-} from '@/lib/qwen-image-21-renderer';
 
 type ModelSelectorProps = {
   value: ComfyImageModel;
@@ -73,14 +65,7 @@ function useComfyModelInventory(): ComfyUiModelLists | null | undefined {
 }
 
 type Row =
-  | {
-      kind: 'model';
-      key: string;
-      entry: ComfyImageModelDefinition;
-      installed: boolean | null;
-      /** "Qwen-Image 2.1": a Qwen-Edit engine (entry.id) with the 2.1 renderer on. */
-      renderer?: boolean;
-    }
+  | { kind: 'model'; key: string; entry: ComfyImageModelDefinition; installed: boolean | null }
   | { kind: 'more'; key: string; count: number };
 
 type Section = { key: string; label: string; rows: Row[] };
@@ -130,16 +115,6 @@ export default function ModelSelector({
   const popoverRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const inventory = useComfyModelInventory();
-  // Renderer → Qwen-Image 2.1 rides on a Qwen-Edit engine; the list shows it as its own row.
-  const [renderer, setRenderer] = useState<QwenRenderer>(() =>
-    normalizeQwenRenderer(loadSettingsCache().shared.qwenRenderer)
-  );
-  useEffect(() => {
-    const sync = () => setRenderer(normalizeQwenRenderer(loadSettingsCache().shared.qwenRenderer));
-    window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, sync);
-    return () => window.removeEventListener(SETTINGS_CACHE_UPDATED_EVENT, sync);
-  }, []);
-  const rendererOn = qwenImage21RendererActive(renderer, value);
 
   const catalog = useMemo(() => {
     if (!allowedModels?.length) return COMFY_IMAGE_MODELS;
@@ -173,29 +148,6 @@ export default function ModelSelector({
     [installed]
   );
 
-  const qwen21Row = useMemo((): Row | null => {
-    const base = qwenImage21BaseModel(
-      value,
-      catalog.map(entry => entry.id)
-    );
-    const baseEntry = base ? COMFY_IMAGE_MODELS.find(entry => entry.id === base) : undefined;
-    if (!baseEntry) return null;
-    return {
-      kind: 'model',
-      key: 'edit:qwen-image-2.1',
-      renderer: true,
-      entry: {
-        ...baseEntry,
-        label: 'Qwen-Image 2.1',
-        description:
-          'Truer Cast faces and bodies: the same recipes, rendered on Qwen-Image 2.1. About 70 s a still.',
-      },
-      installed: inventory
-        ? (inventory.unets ?? []).some(name => /qwen_image_2\.1/i.test(name))
-        : null,
-    };
-  }, [catalog, inventory, value]);
-
   const sections = useMemo((): Section[] => {
     const modelRow = (entry: ComfyImageModelDefinition, section: string): Row => ({
       kind: 'model',
@@ -203,12 +155,6 @@ export default function ModelSelector({
       entry,
       installed: isInstalled(entry.id),
     });
-    const extra =
-      qwen21Row &&
-      qwen21Row.kind === 'model' &&
-      (showMissing || qwen21Row.installed !== false || rendererOn)
-        ? qwen21Row
-        : null;
     const visible = (entry: ComfyImageModelDefinition) =>
       showMissing || isInstalled(entry.id) !== false || entry.id === value;
     const matches = catalog.filter(entry => modelMatchesQuery(entry, query));
@@ -218,12 +164,11 @@ export default function ModelSelector({
 
     if (query.trim()) {
       const shown = matches.filter(visible);
-      const extraMatch = extra && modelMatchesQuery(extra.entry, query) ? [extra] : [];
       return [
         {
           key: 'results',
           label: 'Results',
-          rows: [...extraMatch, ...shown.map(entry => modelRow(entry, 'r')), ...moreRow],
+          rows: [...shown.map(entry => modelRow(entry, 'r')), ...moreRow],
         },
       ];
     }
@@ -243,12 +188,11 @@ export default function ModelSelector({
       const rows = catalog
         .filter(entry => modelPickerGroup(entry) === group.id && visible(entry))
         .map(entry => modelRow(entry, group.id));
-      if (group.id === 'edit' && extra) rows.unshift(extra);
       if (rows.length) out.push({ key: group.id, label: group.label, rows });
     }
     if (moreRow.length) out.push({ key: 'more', label: '', rows: moreRow });
     return out;
-  }, [catalog, isInstalled, prefs, query, qwen21Row, rendererOn, showMissing, value]);
+  }, [catalog, isInstalled, prefs, query, showMissing, value]);
 
   const flatRows = useMemo(() => sections.flatMap(section => section.rows), [sections]);
 
@@ -334,24 +278,13 @@ export default function ModelSelector({
       ?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex, open]);
 
-  const selectModel = (model: ComfyImageModel, options: { renderer?: boolean } = {}) => {
+  const selectModel = (model: ComfyImageModel) => {
     const shared = loadSettingsCache().shared;
-    // The renderer follows the row: "Qwen-Image 2.1" turns it on, a plain Qwen-Edit row off.
-    const nextRenderer: QwenRenderer | undefined = options.renderer
-      ? 'qwen-image-2.1'
-      : isQwenImage21RenderableModel(model)
-        ? 'rapid'
-        : shared.qwenRenderer;
     // Recents first, then the tool's own save (it reads the cache fresh).
     saveSharedSettings(
-      {
-        ...shared,
-        modelRecents: pushRecentModel(shared.modelRecents, model),
-        ...(nextRenderer ? { qwenRenderer: nextRenderer } : {}),
-      },
+      { ...shared, modelRecents: pushRecentModel(shared.modelRecents, model) },
       { notify: false }
     );
-    setRenderer(normalizeQwenRenderer(nextRenderer));
     onChange(model);
     // Some tools save the model silently; the Engine chip re-reads on the update event.
     notifySettingsCacheUpdated();
@@ -371,7 +304,7 @@ export default function ModelSelector({
       setShowMissing(true);
       return;
     }
-    selectModel(row.entry.id, { renderer: row.renderer === true });
+    selectModel(row.entry.id);
   };
 
   const onKeyDown = (event: React.KeyboardEvent) => {
@@ -390,20 +323,17 @@ export default function ModelSelector({
   // Rows and stars are not focusable: keep typing and arrow keys in the search box.
   const keepSearchFocus = (event: React.MouseEvent) => event.preventDefault();
 
-  const selectedTags = rendererOn
-    ? [`on ${selected.label}`]
-    : modelPickerTags(selected, installed?.get(selected.id));
-  const selectedLabel = rendererOn ? 'Qwen-Image 2.1' : selected.label;
+  const selectedTags = modelPickerTags(selected, installed?.get(selected.id));
   let rowIndex = -1;
 
   return (
     <div id={id}>
       <div ref={anchorRef} className="model-picker-current" title={selected.description}>
         <div className="min-w-0">
-          <p className="model-picker-current-name">{selectedLabel}</p>
+          <p className="model-picker-current-name">{selected.label}</p>
           <div className="flex flex-wrap items-center gap-1.5">
             <Tags tags={selectedTags} />
-            {!rendererOn && isInstalled(selected.id) === false ? (
+            {isInstalled(selected.id) === false ? (
               <span className="model-picker-tag model-picker-tag-missing">Not installed</span>
             ) : null}
           </div>
@@ -494,31 +424,21 @@ export default function ModelSelector({
                       }
                       const { entry } = row;
                       const starred = prefs.stars.includes(entry.id);
-                      const current = row.renderer
-                        ? rendererOn
-                        : entry.id === value &&
-                          !(rendererOn && isQwenImage21RenderableModel(entry.id));
                       return (
                         <div
                           key={row.key}
                           id={`${listId}-${index}`}
                           role="option"
-                          aria-selected={current}
+                          aria-selected={entry.id === value}
                           data-row-index={index}
                           title={entry.description}
-                          className={`model-picker-row ${active ? 'model-picker-row-active' : ''} ${current ? 'model-picker-row-current' : ''} ${row.installed === false ? 'model-picker-row-missing' : ''}`}
+                          className={`model-picker-row ${active ? 'model-picker-row-active' : ''} ${entry.id === value ? 'model-picker-row-current' : ''} ${row.installed === false ? 'model-picker-row-missing' : ''}`}
                           onMouseEnter={() => setActiveIndex(index)}
                           onMouseDown={keepSearchFocus}
                           onClick={() => activate(row)}
                         >
                           <span className="model-picker-row-name">{entry.label}</span>
-                          <Tags
-                            tags={
-                              row.renderer
-                                ? ['Truer faces']
-                                : modelPickerTags(entry, installed?.get(entry.id))
-                            }
-                          />
+                          <Tags tags={modelPickerTags(entry, installed?.get(entry.id))} />
                           {row.installed === false ? (
                             <Link
                               href={MODEL_ASSETS_HREF}
@@ -528,22 +448,20 @@ export default function ModelSelector({
                               Get it
                             </Link>
                           ) : null}
-                          {row.renderer ? null : (
-                            <button
-                              type="button"
-                              className={`model-picker-star ${starred ? 'model-picker-star-on' : ''}`}
-                              aria-label={starred ? `Unstar ${entry.label}` : `Star ${entry.label}`}
-                              aria-pressed={starred}
-                              tabIndex={-1}
-                              onMouseDown={keepSearchFocus}
-                              onClick={event => {
-                                event.stopPropagation();
-                                toggleStar(entry.id);
-                              }}
-                            >
-                              {starred ? '★' : '☆'}
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            className={`model-picker-star ${starred ? 'model-picker-star-on' : ''}`}
+                            aria-label={starred ? `Unstar ${entry.label}` : `Star ${entry.label}`}
+                            aria-pressed={starred}
+                            tabIndex={-1}
+                            onMouseDown={keepSearchFocus}
+                            onClick={event => {
+                              event.stopPropagation();
+                              toggleStar(entry.id);
+                            }}
+                          >
+                            {starred ? '★' : '☆'}
+                          </button>
                         </div>
                       );
                     })}

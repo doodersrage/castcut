@@ -562,10 +562,7 @@ export type SharedToolSettings = {
   modelSamplerOverrides?: ModelSamplerOverrideFields;
   /** When true (default), wire Flux2Klein Enhancer on Klein compose/reference queues when installed. */
   kleinEnhancerEnabled?: boolean;
-  /**
-   * Rapid AIO / Qwen-Edit engines: 'rapid' renders on the engine's own model; 'qwen-image-2.1'
-   * keeps every recipe but swaps the final render onto Qwen-Image 2.1 (truer faces, ~5× slower).
-   */
+  /** @deprecated Migrated to the `qwen-image-2.1-edit` engine on load. */
   qwenRenderer?: 'rapid' | 'qwen-image-2.1';
   kleinEnhancerIdentityPreset?: KleinEnhancerIdentityPreset;
   /** When true (default), wire Flux2KleinTextEnhancer on Klein T2I + compose positive conditioning. */
@@ -1801,6 +1798,14 @@ export function loadSettingsCache(): SettingsCache {
       ...normalizeToolQueueQualityProfiles(shared.toolQueueQualityProfiles),
     };
     shared.toolQualityRecipes = mergeToolQualityRecipes(shared.toolQualityRecipes);
+    // The short-lived global "Renderer: Qwen-Image 2.1" switch is now its own engine.
+    if (
+      shared.qwenRenderer === 'qwen-image-2.1' &&
+      /qwen.*edit|qwen-rapid-aio-edit/i.test(String(shared.model ?? ''))
+    ) {
+      shared.model = 'qwen-image-2.1-edit';
+    }
+    delete shared.qwenRenderer;
     const preferredHost =
       typeof shared.preferredComfyHost === 'string' ? shared.preferredComfyHost.trim() : '';
     shared.preferredComfyHost = preferredHost || undefined;

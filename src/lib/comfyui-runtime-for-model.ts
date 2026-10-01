@@ -1,6 +1,6 @@
 'use client';
 
-import { isQwenEditModel } from './model-denoise-defaults';
+import { poseModelFamily } from './pose/pose-model-profile';
 import type { ComfyImageModel } from './comfy-models/client';
 import {
   loadComfyWorkflowFiles,
@@ -284,9 +284,6 @@ function sharedQueueFlags(
       : shared.workflowSharpenAfterUpscale === true,
     compactDraftSaves: shared.compactDraftSaves !== false,
     kleinEnhancerEnabled: shared.kleinEnhancerEnabled !== false,
-    ...(shared.qwenRenderer === 'qwen-image-2.1' && isQwenEditModel(model)
-      ? { qwenRenderer: 'qwen-image-2.1' as const }
-      : {}),
     kleinEnhancerIdentityPreset: shared.kleinEnhancerIdentityPreset,
     kleinEnhancerTextEnabled: shared.kleinEnhancerTextEnabled !== false,
     kleinEnhancerColorAnchorEnabled: shared.kleinEnhancerColorAnchorEnabled !== false,
@@ -470,6 +467,10 @@ export function resolveRuntimeForQueue(
   });
   const withProfile: ComfyUiRuntimeConfig = {
     ...base,
+    // The picked engine renders on Qwen-Image 2.1; the graph above is its Rapid AIO base.
+    ...(poseModelFamily(model) === 'qwen-image-2.1'
+      ? { qwenRenderer: 'qwen-image-2.1' as const }
+      : {}),
     queueQualityProfile: resolvedProfile,
     modelSamplerOverrides: shared.modelSamplerOverrides,
     // System packs may disable enrich when the *global* profile is Draft. Tool-level
@@ -481,7 +482,8 @@ export function resolveRuntimeForQueue(
       : {}),
   };
 
-  if (!remapped) {
+  // An engine that rides another graph (Qwen-Image 2.1) has no workflow tokens of its own.
+  if (!remapped || poseModelFamily(model) === 'qwen-image-2.1') {
     return withProfile;
   }
 

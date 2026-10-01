@@ -11,6 +11,7 @@ import {
   toQwenImage21Prompt,
   withoutDroppedReferences,
   withDistinctPartnerOutfit,
+  withProfilePromptFixes,
 } from './qwen-image-21-renderer';
 
 /** The shape of a live Rapid AIO Day still (two faces + pose map, ReferenceLatent chain). */
@@ -226,5 +227,16 @@ describe('Qwen-Image 2.1: clothed duo partner outfit', () => {
     assert.match(man, /Only he wears the black tuxedo; his friend wears a white linen shirt and blue jeans — never the same outfit or color as him\./);
     assert.equal(withDistinctPartnerOutfit(man), man);
     assert.equal(withDistinctPartnerOutfit('Solo still of her.'), 'Solo still of her.');
+  });
+});
+
+describe('Qwen-Image 2.1: unnamed outfit', () => {
+  it('dresses her when the slot names no outfit', () => {
+    const out = withProfilePromptFixes("beat: zip a bag\nreplace clothing with this slot's catalog wardrobe kit\n", {
+      namePartnerOutfit: true,
+      dressWhenNoOutfit: true,
+    });
+    assert.match(out, /fully dressed in everyday clothes/);
+    assert.doesNotMatch(out, /catalog wardrobe kit/);
   });
 });

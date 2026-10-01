@@ -12,7 +12,7 @@ import {
 } from './model-sampler-defaults';
 import { QUEUE_QUALITY_PROFILE_OPTIONS, resolveQueueQualityProfile } from './queue-quality-profile';
 import type { SharedToolSettings } from './settings-cache';
-import { qwenImage21RendererActive } from './qwen-image-21-renderer';
+import { poseModelFamily } from './pose/pose-model-profile';
 
 export type EngineSummary = {
   /** "Qwen-Image-2512" or the cloud engine's name. */
@@ -50,9 +50,9 @@ export function engineSummary(shared: Partial<SharedToolSettings>, toolId?: stri
         shared.modelLoraMap,
         shared.sessionActiveLoraIdsByModel
       )?.length ?? 0);
-  // Renderer → Qwen-Image 2.1: that's the model that renders, and the engine's LoRAs are dropped.
-  if (!cloud && qwenImage21RendererActive(shared.qwenRenderer, modelId)) {
-    return { model: 'Qwen-Image 2.1', quality, loras: 0 };
+  // Qwen-Image 2.1 drops the Qwen-Edit (20B) LoRAs at queue time — none of them apply.
+  if (!cloud && poseModelFamily(modelId) === 'qwen-image-2.1') {
+    return { model, quality, loras: 0 };
   }
   return { model, quality, loras };
 }

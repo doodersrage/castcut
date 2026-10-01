@@ -3,6 +3,7 @@
  * Flat filled figures unlock pose only — wording must block diagram/style bleed into stills.
  */
 
+import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { stripNegatedClauses } from '@/lib/negated-clauses';
 import {
   DEFAULT_RENDER_REALISM_MODE,
@@ -222,23 +223,17 @@ export function poseGuideStyleLockLine(
   return POSE_GUIDE_PHOTO_REALISM_LOCK;
 }
 
-function isRapidAioModelId(model: string | null | undefined): boolean {
-  return /^qwen-rapid-aio-/i.test(String(model ?? '').trim());
-}
-
 /**
  * Models whose Image 3 guides are gray outlines (not neon fills) — Rapid AIO and
  * Edit-2511. Cue text and anti-leak packs must match so magenta/purple lines do not
  * paint into the finished still.
  */
 export function usesOutlineGrayPoseGuide(model?: string | null): boolean {
-  const id = String(model ?? '').trim();
-  if (!id) return false;
-  return isRapidAioModelId(id) || /qwen-image-edit-2511/i.test(id);
+  return poseProfileForModel(model).outlineGrayGuide;
 }
 
 function isKleinModelId(model: string | null | undefined): boolean {
-  return /flux-2-klein/i.test(String(model ?? ''));
+  return poseProfileForModel(model).family === 'klein';
 }
 
 /**
@@ -258,14 +253,12 @@ function isKleinModelId(model: string | null | undefined): boolean {
  * people 18/18 and bent-over 16/16.
  */
 export function modelAvoidedPoseLayouts(model: string | null | undefined): ReadonlySet<string> {
-  return isKleinModelId(model) ? KLEIN_AVOIDED_LAYOUTS : NO_AVOIDED_LAYOUTS;
+  return poseProfileForModel(model).avoidedLayouts;
 }
-
-const KLEIN_AVOIDED_LAYOUTS: ReadonlySet<string> = new Set(['hug']);
 
 /** Base to draw a routed-around layout as (see SceneStickOptions.plainPostureBase). */
 export function modelPlainPostureBase(model: string | null | undefined): 'stand' | undefined {
-  return isKleinModelId(model) ? 'stand' : undefined;
+  return poseProfileForModel(model).plainPostureBase;
 }
 const NO_AVOIDED_LAYOUTS: ReadonlySet<string> = new Set();
 

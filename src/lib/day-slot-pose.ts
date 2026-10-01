@@ -4,6 +4,7 @@
  * disagree about the pose.
  */
 
+import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
   SCENE_POSE_BODY_IDS,
   SCENE_POSE_LAYOUT_IDS,
@@ -14,7 +15,6 @@ import {
   type SocialLayout,
 } from '@/lib/day-pose-guide';
 import { RAPID_ORAL_FALLBACK_RE } from '@/lib/rapid-duo-recipe';
-import { isQwenEdit2511PoseStickyModel } from '@/lib/day-plate';
 import {
   dayPoseSpecForBeat,
   isDayAdultMood,
@@ -32,8 +32,7 @@ import {
   vacationStanceDirective,
 } from '@/lib/day-vacation';
 import { clarifyIntimateImageLanguage } from '@/lib/intimate-prompt-clarify';
-import { isQwenRapidAioModel } from '@/lib/model-denoise-defaults';
-import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
+import { mergeAvoidedPoseLayouts } from '@/lib/pose-guide-prompt';
 
 export type DaySlotPosePlan = {
   /** Scene text the guide reads (undefined → the slot's default stance). */
@@ -114,7 +113,7 @@ export function planDaySlotPose(input: {
     clothedMood &&
     base &&
     dayClothedHeatPoseNeedsBodyUnlock(beatOnly, dayMood, {
-      poseStickyModel: isQwenEdit2511PoseStickyModel(input.model),
+      poseStickyModel: poseProfileForModel(input.model).poseStickyClothed,
     })
       ? `${base} · ${vacationStanceDirective(clothedHeatUnlockPoseClass(beatOnly, dayMood))} · nuclear Image 3 silhouette — never planted fashion stand`
       : base;
@@ -131,7 +130,7 @@ export function planDaySlotPose(input: {
   // would override the act back to face-sitting.
   const rapidOralFallback =
     isDayAdultMood(dayMood) &&
-    isQwenRapidAioModel(input.model ?? undefined) &&
+    poseProfileForModel(input.model).seatedOralFallback &&
     (parseIntimateLayout(beatOnly) === 'sixty_nine' || parseIntimateLayout(beatOnly) === 'facesit');
   const guideText = rapidOralFallback
     ? reinforced?.replace(RAPID_ORAL_FALLBACK_RE, 'oral sex')
@@ -164,8 +163,8 @@ export function planDaySlotPose(input: {
       variant,
       // A pose the player picked is drawn as picked, even if its record is poor.
       ...(!override && avoidLayouts.size ? { avoidLayouts } : {}),
-      ...(modelPlainPostureBase(input.model)
-        ? { plainPostureBase: modelPlainPostureBase(input.model) }
+      ...(poseProfileForModel(input.model).plainPostureBase
+        ? { plainPostureBase: poseProfileForModel(input.model).plainPostureBase }
         : {}),
       ...(input.slot.posePhoto ? { photoPose: input.slot.posePhoto } : {}),
       ...(input.slot.poseCamera ? { camera: input.slot.poseCamera } : {}),

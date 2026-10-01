@@ -1,3 +1,4 @@
+import { poseProfileForModel } from './pose/pose-model-profile';
 import {
   COMFY_MODEL_IDS,
   DEFAULT_COMFY_MODEL,
@@ -380,6 +381,8 @@ export function resolveAdultNudePlateQueueModel(
   model: ComfyImageModel | string,
   options?: { adultNude?: boolean }
 ): ComfyImageModel {
+  // An engine that rides another graph (Qwen-Image 2.1) keeps its own id — the queue maps it.
+  if (poseProfileForModel(String(model)).graphBaseModel) return model;
   const resolved = resolveModelForQueueTool(model, 'image-prompt');
   const haystack = `${String(model)} ${resolved}`.toLowerCase();
   if (!options?.adultNude) {
@@ -413,6 +416,10 @@ export function resolveModelForQueueTool(
   tool?: string
 ): ComfyImageModel {
   const normalized = normalizeModel(model);
+  // Qwen-Image 2.1 queues on the Rapid AIO edit graph (its recipes, pose maps and the explicit
+  // fallback); the runtime then converts the sampler to 2.1 (qwen-image-21-renderer.ts).
+  const graphBase = poseProfileForModel(normalized).graphBaseModel;
+  if (graphBase) return graphBase;
   if (isEditQueueTool(tool) && !isImg2imgCapableModel(normalized)) {
     return inferEditCounterpart(normalized);
   }

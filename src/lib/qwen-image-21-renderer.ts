@@ -1,3 +1,5 @@
+import { POSE_MODEL_PROFILES } from './pose/pose-model-profile';
+
 /**
  * "Renderer: Qwen-Image 2.1" — the queue builds the usual Qwen-Edit graph (Rapid AIO recipes,
  * partner faces, pose maps), then this pass swaps the sampler onto Qwen-Image 2.1 with the same
@@ -26,40 +28,6 @@ export const QWEN_IMAGE_21_POSE_CONTROL_NODE = 'QwenImage21UnionApply';
 
 export function normalizeQwenRenderer(value: unknown): QwenRenderer {
   return value === 'qwen-image-2.1' ? 'qwen-image-2.1' : 'rapid';
-}
-
-/** Qwen-Edit engines (Rapid AIO edit, Edit 2511…) — the ones whose graph converts. */
-export function isQwenImage21RenderableModel(model: string | null | undefined): boolean {
-  return /qwen.*edit|qwen-rapid-aio-edit/i.test(String(model ?? ''));
-}
-
-/** The renderer is on and this engine's stills will render on Qwen-Image 2.1. */
-export function qwenImage21RendererActive(
-  renderer: unknown,
-  model: string | null | undefined
-): boolean {
-  return (
-    normalizeQwenRenderer(renderer) === 'qwen-image-2.1' && isQwenImage21RenderableModel(model)
-  );
-}
-
-/**
- * The Qwen-Edit engine that carries the recipes when "Qwen-Image 2.1" is picked from the model
- * list: stay on the current one if it is Qwen-Edit, else the Rapid AIO edit engine the tool allows.
- */
-export function qwenImage21BaseModel(current: string, allowed: readonly string[]): string | null {
-  if (isQwenImage21RenderableModel(current) && allowed.includes(current)) return current;
-  // SFW base first: adult Day / Story stills already switch to the NSFW engine on their own
-  // (resolveAdultNudePlateQueueModel), and those are the stills that stay on it.
-  for (const id of [
-    'qwen-rapid-aio-edit',
-    'qwen-rapid-aio-edit-nsfw',
-    'qwen-image-edit-2511-lightning-8',
-    'qwen-image-edit-2511',
-  ]) {
-    if (allowed.includes(id)) return id;
-  }
-  return allowed.find(id => isQwenImage21RenderableModel(id)) ?? null;
 }
 
 /** Steps by queue quality: the official pipeline runs ~40–50; 30 held likeness in the A/B. */
@@ -171,6 +139,20 @@ export function withDistinctPartnerOutfit(prompt: string): string {
   return prompt.slice(0, sentenceEnd + 1) + line + prompt.slice(sentenceEnd + 1);
 }
 
+const UNNAMED_KIT_LINE = "replace clothing with this slot's catalog wardrobe kit";
+const DRESSED_FALLBACK_LINE =
+  'she is fully dressed in everyday clothes that suit the beat and the setting (a casual top and trousers or jeans, shoes outdoors) — never the underwear or bare skin from <image1>';
+
+/** The per-model prompt fixes Qwen-Image 2.1's profile asks for. */
+export function withProfilePromptFixes(
+  prompt: string,
+  fixes: { namePartnerOutfit: boolean; dressWhenNoOutfit: boolean }
+): string {
+  let next = fixes.namePartnerOutfit ? withDistinctPartnerOutfit(prompt) : prompt;
+  if (fixes.dressWhenNoOutfit) next = next.replace(UNNAMED_KIT_LINE, DRESSED_FALLBACK_LINE);
+  return next;
+}
+
 /** Nude / explicit stills (Day Intimate & Raunchy, Story adult beats). */
 export function isNudePrompt(prompt: string): boolean {
   return /\b(?:nude|naked|explicit|sex(?:ual)?|topless)\b/i.test(prompt);
@@ -195,7 +177,10 @@ function keepsOnEngineModel(workflow: Workflow, encoder: WorkflowNode): boolean 
     const ref = encoder.inputs[`image${slot}`];
     return isRef(ref) && isMultiPersonPoseGuide(sourceFilename(workflow, ref));
   });
-  return isPenetrationDuoPrompt(String(encoder.inputs.prompt ?? ''), duoMap);
+  return (
+    Boolean(POSE_MODEL_PROFILES['qwen-image-2.1'].penetrationEngine) &&
+    isPenetrationDuoPrompt(String(encoder.inputs.prompt ?? ''), duoMap)
+  );
 }
 
 const OUTPUT_CLASS = /^(?:Save|Preview)/;
@@ -272,12 +257,15 @@ export function convertQwenEditWorkflowToImage21(
   // bodies, a third person, detached anatomy (live, 2026-10-01). Clothed duo maps are fine and
   // give the better pose (selfie arm, high five, hug) — keep those.
   const nudeStill = isNudePrompt(String(encoder.inputs.prompt ?? ''));
+  const profile = POSE_MODEL_PROFILES['qwen-image-2.1'];
+  const duoMapDelivery = nudeStill ? profile.mapDelivery.duoNude : profile.mapDelivery.duoClothed;
   const kept: Array<{ from: number; ref: [string, number] }> = [];
   const dropped: number[] = [];
   for (let slot = 1; slot <= 3; slot += 1) {
     const ref = encoder.inputs[`image${slot}`];
     if (!isRef(ref)) continue;
-    if (nudeStill && isMultiPersonPoseGuide(sourceFilename(workflow, ref))) dropped.push(slot);
+    if (duoMapDelivery === 'none' && isMultiPersonPoseGuide(sourceFilename(workflow, ref)))
+      dropped.push(slot);
     else kept.push({ from: slot, ref });
   }
   const poseMap = dropped.length ? encoder.inputs[`image${dropped[0]}`] : undefined;
@@ -305,7 +293,10 @@ export function convertQwenEditWorkflowToImage21(
     clip: [clip, 0],
     vae: [vae, 0],
     prompt: withoutDroppedReferences(
-      withDistinctPartnerOutfit(toQwenImage21Prompt(String(encoder.inputs.prompt ?? ''))),
+      withProfilePromptFixes(toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')), {
+        namePartnerOutfit: profile.namePartnerOutfit,
+        dressWhenNoOutfit: profile.dressWhenNoOutfit && !nudeStill,
+      }),
       dropped,
       kept.map(entry => entry.from)
     ),

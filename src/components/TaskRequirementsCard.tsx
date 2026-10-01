@@ -42,20 +42,10 @@ export default function TaskRequirementsCard({
   testId?: string;
 }) {
   const [runnableModels, setRunnableModels] = useState<Set<string> | null>(null);
-  // Engine → Renderer is a global choice; read it here so every tool's card includes its files.
-  const qwenRenderer = input.qwenRenderer ?? loadSettingsCache().shared.qwenRenderer;
   const requirements = useMemo(
-    () => taskRequirements({ ...input, qwenRenderer, runnableModels: runnableModels ?? undefined }),
+    () => taskRequirements({ ...input, runnableModels: runnableModels ?? undefined }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the fields are the identity
-    [
-      input.model,
-      input.adult,
-      input.animate,
-      input.faceFinish,
-      input.autoReview,
-      qwenRenderer,
-      runnableModels,
-    ]
+    [input.model, input.adult, input.animate, input.faceFinish, input.autoReview, runnableModels]
   );
   const [rows, setRows] = useState<TaskAssetState[] | null>(null);
   const [jobs, setJobs] = useState<AssetJob[]>([]);

@@ -1,3 +1,4 @@
+import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { intimateBeatIsOffBed } from './intimate-prompt-clarify';
 import {
   buildRapidDuoRecipe,
@@ -3254,7 +3255,7 @@ export function buildDaySlotPrompt(input: {
         ? `${buildSinglePersonUserDirective()} CLOTHED SOLO LOCK: exactly one woman — never invent a man, boyfriend, or second adult; clothes stay on; match the beat stance (reclining, seated, mid-stride, dancing with arms raised and one knee lifted, reaching, leaning) — never rear-presenting or hands-and-knees; never a square-on standing catalog pose with arms at her sides.`
         : buildSinglePersonUserDirective()
     : null;
-  const rapidAio = /^qwen-rapid-aio-/i.test(String(input.model ?? '').trim());
+  const rapidAio = poseProfileForModel(input.model).rapidGraph;
   const companionLock =
     partnersAllowed && poseHeadcount >= 2 && !kleinClothedDuo
       ? openPoseGuide

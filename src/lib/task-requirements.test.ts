@@ -65,14 +65,12 @@ describe('Task requirements', () => {
   });
 });
 
-describe('task requirements: Qwen-Image 2.1 renderer', () => {
-  it('adds the 2.1 files on Qwen-Edit engines only when the renderer is on', () => {
-    const on = taskRequirements({ model: 'qwen-rapid-aio-edit-nsfw', qwenRenderer: 'qwen-image-2.1' });
-    assert.ok(on.assetIds.includes('qwen-image-2.1-bf16'));
-    assert.ok(on.reasons.includes('the Qwen-Image 2.1 renderer'));
-    const off = taskRequirements({ model: 'qwen-rapid-aio-edit-nsfw' });
-    assert.ok(!off.assetIds.includes('qwen-image-2.1-bf16'));
-    const klein = taskRequirements({ model: 'flux-2-klein-9b-kv', qwenRenderer: 'qwen-image-2.1' });
-    assert.ok(!klein.assetIds.includes('qwen-image-2.1-bf16'));
+describe('task requirements: Qwen-Image 2.1 engine', () => {
+  it('needs the 2.1 files plus the Rapid NSFW checkpoint it falls back to', () => {
+    const req = taskRequirements({ model: 'qwen-image-2.1-edit' });
+    for (const id of ['qwen-image-2.1-bf16', 'qwen-image-2.1-text-encoder', 'qwen-image-2.1-vae', 'qwen-rapid-aio-nsfw-checkpoint']) {
+      assert.ok(req.assetIds.includes(id), id);
+    }
+    assert.ok(!taskRequirements({ model: 'qwen-rapid-aio-edit-nsfw' }).assetIds.includes('qwen-image-2.1-bf16'));
   });
 });

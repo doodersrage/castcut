@@ -64,6 +64,7 @@ const QWEN_T2I_MODELS = [
 ] as const;
 
 const QWEN_EDIT_MODELS = [
+  'qwen-image-2.1-edit',
   'qwen-image-edit',
   'qwen-image-edit-2511',
   'qwen-image-edit-2511-lightning-4',

@@ -1,5 +1,6 @@
 'use client';
 
+import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
@@ -134,7 +135,6 @@ import {
   reusableDayPartnerStandIn,
   type DayPartnerStandIn,
 } from '@/lib/day-partner-stand-in';
-import { isQwenRapidAioModel } from '@/lib/model-denoise-defaults';
 import {
   dayPartnerApplies,
   dayPartnerBriefLine,
@@ -845,7 +845,7 @@ export function useDayPlannerToolOrchestrationCore() {
         // (face crop + the garment's latent) dressed her 3/3 and, with the seated lead, sat 3/3.
         const suggestiveSeatOnUndressedPlate =
           normalizeDayMood(toolSettings.dayMood) === 'suggestive' &&
-          /^qwen-rapid-aio-/i.test(String(shared.model ?? '')) &&
+          poseProfileForModel(shared.model).rapidGraph &&
           (identityPlate ?? queuePlate)?.source !== 'keeper' &&
           daySuggestiveBeatIsSeated(queueTarget.sceneHints) &&
           isClothingOnlyDayGarment(
@@ -862,7 +862,7 @@ export function useDayPlannerToolOrchestrationCore() {
         // Face-break (face crop + garment latent) is how Suggestive/Vacation already handle it.
         const everydayGarmentOnUndressedPlate =
           normalizeDayMood(toolSettings.dayMood) === 'everyday' &&
-          /^qwen-rapid-aio-/i.test(String(shared.model ?? '')) &&
+          poseProfileForModel(shared.model).rapidGraph &&
           (identityPlate ?? queuePlate)?.source !== 'keeper' &&
           isClothingOnlyDayGarment(
             resolveDayGarmentReinforce({
@@ -1004,7 +1004,7 @@ export function useDayPlannerToolOrchestrationCore() {
               headcount,
               adultMood: isDayAdultMood(partnerMood),
               lead: leadNoun,
-              sameSexLayouts: isQwenRapidAioModel(shared.model ?? undefined),
+              sameSexLayouts: poseProfileForModel(shared.model).sameSexLayouts,
             })
           ) {
             if (partnerCandidate.invented && partnerCandidate.noun !== 'person') {
@@ -1776,7 +1776,7 @@ export function useDayPlannerToolOrchestrationCore() {
     partnerOptions: getCharactersSnapshot()
       .filter(record => record.id !== character?.id && record.name?.trim())
       .map(record => ({ id: record.id, name: record.name.trim(), noun: dayPartnerNoun(record) })),
-    partnerTwoWomen: isQwenRapidAioModel(shared.model ?? undefined),
+    partnerTwoWomen: poseProfileForModel(shared.model).sameSexLayouts,
     leadNoun,
     setPartnerCharacterId: (next: string) => {
       partnerStandInRef.current = null;

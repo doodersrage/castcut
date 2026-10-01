@@ -128,7 +128,7 @@ export function usePromptResultComfyUiQueueSingle(
 
         if (!cloudEngine) {
           const { resolveRuntimeForQueueAsync } = await import('@/lib/comfyui-runtime-for-model');
-          const baseRuntime = await resolveRuntimeForQueueAsync(queueModel, effectiveTool, {
+          const baseRuntime = await resolveRuntimeForQueueAsync(requestedModel, effectiveTool, {
             ...(options?.sessionActiveLoraIds
               ? { sessionActiveLoraIds: options.sessionActiveLoraIds }
               : {}),
