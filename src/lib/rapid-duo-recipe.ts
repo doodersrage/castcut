@@ -24,6 +24,7 @@ import {
   RAPID_DUO_RECIPE_MARK,
   RAPID_SOLO_RECIPE_MARK,
   RAPID_SUGGESTIVE_RECIPE_MARK,
+  DAY_CLOTHED_RECIPE_MARK,
   RAPID_VACATION_RECIPE_MARK,
 } from './rapid-duo-recipe-mark';
 
@@ -1044,6 +1045,95 @@ export function buildRapidVacationRecipe(input: {
     RAPID_VACATION_RECIPE_MARK,
     'One woman alone on vacation.',
     vacationPlacement(beat),
+    clothes,
+    `Moment: ${moment}.`,
+    input.setting?.trim() ? `Place: ${input.setting.trim()}.` : null,
+    descriptorLine(input.descriptor),
+    input.faceOnly === false && !input.outfitFromFirst && !input.outfitImage
+      ? 'Keep her face from the first image, not its clothes.'
+      : 'Keep her face from the first image.',
+    input.poseGuide
+      ? `Match her body to the ${input.poseGuide === true ? 'second' : input.poseGuide} image (pose map).`
+      : null,
+    'Photorealistic photograph, natural skin.',
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\.\./g, '.');
+}
+
+/** A plain-words stance for an everyday beat ("sitting on a park bench …"), when it names one. */
+function everydayPlacement(beat: string): string | null {
+  const b = beat.toLowerCase();
+  const seat = rapidDuoSurface(beat);
+  if (/\b(?:lying|lies|laying)\s+on\s+her\s+side\b/.test(b)) return 'She lies on her side.';
+  if (/\b(?:lying|lies|laying)\s+on\s+her\s+stomach\b/.test(b)) return 'She lies on her stomach.';
+  if (/\b(?:lying|lies|laying|reclining|sprawled)\b/.test(b)) return 'She lies on her back.';
+  if (/\bkneel(?:s|ing)?\b/.test(b)) return 'She kneels on the floor.';
+  if (/\b(?:crouch|squat)(?:es|s|ing|ting)?\b/.test(b)) return 'She crouches low, knees bent deep.';
+  if (/\b(?:sitting|sits|seated|perched)\b/.test(b)) {
+    return `She sits${seat && !/\b(?:door|window|wall|floor)$/.test(seat) ? ` on the ${seat}` : ''}, knees bent.`;
+  }
+  if (/\b(?:walking|walks|strolling|mid-stride|striding)\b/.test(b)) {
+    return 'She walks mid-step, one foot ahead of the other, full body in frame.';
+  }
+  if (/\b(?:running|jogging|sprinting)\b/.test(b)) {
+    return 'She runs mid-stride, one knee driving forward, arms pumping, full body in frame.';
+  }
+  return null;
+}
+
+/**
+ * Compact recipe for clothed Everyday / Sport / themed Day stills on Qwen Edit 2511 — the same
+ * shape as the Vacation one. The ~5k brief lost the pose on 2511 (see pose-model-profile:
+ * compactClothedRecipes); stating the stance, the clothes, the moment and the place once held it.
+ */
+export function buildCompactDayRecipe(input: {
+  beat: string | null | undefined;
+  setting?: string | null;
+  descriptor?: string | null;
+  poseGuide?: boolean | RecipeImage;
+  outfitImage?: RecipeImage | null;
+  outfit?: string | null;
+  faceOnly?: boolean;
+  outfitFromFirst?: boolean;
+  /**
+   * Sport days: what she wears for the sport ("climbing sportswear and climbing shoes"). Sport
+   * replaces the Day outfit, and the still is mid-action, not a posed portrait.
+   */
+  sportKit?: string | null;
+}): string | null {
+  const raw = input.beat?.trim();
+  if (!raw) {
+    return null;
+  }
+  const beat = stripNegatedClauses(raw)
+    .replace(/\s+([,;])/g, '$1')
+    .replace(/([,;—-])(?:\s*[,;—-])+/g, '$1')
+    .replace(/[\s,;—-]+$/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  // A kit can arrive as a full description: keep its first sentence, as plain words.
+  const kit = outfitWords(input.outfit)
+    ?.split(/(?<=[.!?])\s+/)[0]
+    ?.replace(/[.\s]+$/, '')
+    .replace(/^(?:an?|the)\s+/i, '')
+    .replace(/^[A-Z](?=[a-z])/, letter => letter.toLowerCase());
+  const sportKit = input.sportKit?.trim();
+  const clothes = sportKit
+    ? `She wears ${sportKit}.`
+    : input.outfitImage
+      ? `She wears the outfit from the ${input.outfitImage} image.`
+      : input.outfitFromFirst
+        ? 'She wears the outfit from the first image.'
+        : kit
+          ? `She wears ${withArticle(kit)}.`
+          : 'She wears everyday clothes.';
+  const moment = beat.replace(/^([A-Z][A-Z-]+)\b/, word => word.toLowerCase());
+  return [
+    DAY_CLOTHED_RECIPE_MARK,
+    sportKit ? 'One woman alone, mid-action, playing sport.' : 'One woman alone.',
+    vacationPlacement(beat) ?? everydayPlacement(beat),
     clothes,
     `Moment: ${moment}.`,
     input.setting?.trim() ? `Place: ${input.setting.trim()}.` : null,

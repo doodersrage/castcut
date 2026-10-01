@@ -5,6 +5,7 @@ import {
   buildRapidSoloRecipe,
   buildRapidSuggestiveDuoRecipe,
   buildRapidSuggestiveRecipe,
+  buildCompactDayRecipe,
   buildRapidVacationRecipe,
 } from './rapid-duo-recipe';
 import { stripNegatedClauses } from './negated-clauses';
@@ -53,6 +54,8 @@ import {
   pickDaySportScenePair,
   DAY_SPORT_STALE_SETTING_RE,
   daySportFootwear,
+  inferDaySportFromScene,
+  daySportLabel,
 } from '@/lib/day-sport';
 import {
   dayVacationBeatPresetsForSlot,
@@ -3051,6 +3054,17 @@ export function resolveDayPoseHeadcount(input: {
   return counted;
 }
 
+/** Sport days dress her for the sport, not in the Day outfit: "tennis sportswear and tennis shoes". */
+function compactSportKit(
+  beat: string | null | undefined,
+  setting: string | null | undefined
+): string {
+  const sport = inferDaySportFromScene(beat, setting);
+  const label = sport ? daySportLabel(sport) : null;
+  const feet = daySportFootwear(label);
+  return `${label ? `${label} ` : ''}sportswear${feet === 'barefoot' ? ', barefoot' : ` and ${feet}`}`;
+}
+
 /** Scene prompt for one time-of-day still. */
 export function buildDaySlotPrompt(input: {
   slot: DaySlot;
@@ -3466,57 +3480,73 @@ export function buildDaySlotPrompt(input: {
     // swimsuits went to cafés and sundresses into pools, and the shared dance tail lifted arms.
     // With "Duo · companions" on, a solo beat keeps the solo recipe (headcount 1) and a
     // Suggestive couple beat gets the clothed couple recipe.
-    // Edit 2511 takes the Vacation recipe too (pose-model-profile: compactVacationRecipe).
-    const compactVacation =
+    // Edit 2511 takes the short recipes for every clothed mood (pose-model-profile:
+    // compactClothedRecipes): Vacation / Suggestive share Rapid's, the rest use the Day recipe.
+    const compactClothed =
       !rapidAio &&
-      dayMood === 'vacation' &&
+      !isDayAdultMood(dayMood) &&
       // Tested with the pose map attached; without one the brief's identity locks stay.
       poseGuide &&
-      poseProfileForModel(input.model).compactVacationRecipe;
+      poseProfileForModel(input.model).compactClothedRecipes;
+    const moodRecipe = dayMood === 'suggestive' || dayMood === 'vacation';
     if (
-      (rapidAio || compactVacation) &&
+      (rapidAio ? moodRecipe : compactClothed) &&
       !omitGarment &&
-      (dayMood === 'suggestive' || dayMood === 'vacation') &&
       (poseHeadcount < 2 || suggestiveCouple)
     ) {
-      const recipe = (
-        suggestiveCouple
-          ? buildRapidSuggestiveDuoRecipe
-          : dayMood === 'vacation'
-            ? buildRapidVacationRecipe
-            : buildRapidSuggestiveRecipe
-      )({
+      const recipeInput = {
         beat: hints,
         setting,
         timeOfDay,
         descriptor,
         // A garment packshot (or the partner's face) takes Image 2 and pushes the pose map to
         // Image 3.
-        poseGuide: poseGuide && (garmentReinforce || partnerImage) ? 'third' : poseGuide,
-        outfitImage: garmentReinforce && !partnerImage ? 'second' : null,
+        poseGuide: poseGuide && (garmentReinforce || partnerImage) ? ('third' as const) : poseGuide,
+        outfitImage: garmentReinforce && !partnerImage ? ('second' as const) : null,
         outfit: input.wardrobeLabel?.trim() || garmentDescription || null,
         faceOnly: faceOnlyIdentity,
         outfitFromFirst: !faceOnlyIdentity && keepAsImage1 && !replaceKeepOutfit,
-        ...(duoPartner && suggestiveCouple
-          ? { partner: { partner: duoPartner, image: 'second' as const } }
-          : {}),
-        ...(suggestiveCouple ? { lead: input.leadNoun === 'man' ? 'man' : 'woman' } : {}),
-      });
-      if (recipe && compactVacation) {
+      };
+      const recipe = suggestiveCouple
+        ? buildRapidSuggestiveDuoRecipe({
+            ...recipeInput,
+            ...(duoPartner ? { partner: { partner: duoPartner, image: 'second' as const } } : {}),
+            lead: input.leadNoun === 'man' ? 'man' : 'woman',
+          })
+        : dayMood === 'vacation'
+          ? buildRapidVacationRecipe(recipeInput)
+          : dayMood === 'suggestive'
+            ? buildRapidSuggestiveRecipe(recipeInput)
+            : buildCompactDayRecipe({
+                ...recipeInput,
+                // Sport presets carry a boilerplate tail after the action ("— tennis athletic
+                // action in proper tennis kit …"): the recipe says kit and venue itself.
+                ...(dayMood === 'sport'
+                  ? {
+                      beat: hints?.split(' — ')[0]?.trim() || hints,
+                      sportKit: compactSportKit(hints, setting),
+                    }
+                  : {}),
+              });
+      if (recipe && compactClothed) {
         // Edit 2511 keeps the plate's underwear unless the outfit is stated first and firmly.
+        // Name the kit when the recipe dresses her from it; else repeat the beat's own clothes
+        // (a pool beat's swimsuit must not be overruled by the day's kit).
         const kit = (input.wardrobeLabel?.trim() || garmentDescription || '')
           .split(/(?<=[.!?])\s+/)[0]!
           .replace(/[.\s]+$/, '')
           .replace(/^(?:an?|the)\s+/i, '')
           .replace(/^[A-Z](?=[a-z])/, letter => letter.toLowerCase());
-        // Scene first, as the brief does (the confirmed 4/4 run had it), then the outfit.
-        return [
-          daySceneLeadLine(setting),
-          kit
+        const worn = recipe.match(/\bShe wears ([^.]+)\./)?.[1] ?? '';
+        const fromKit = /^the outfit from the (?:first|second|third) image$/.test(worn);
+        const outfitLead =
+          fromKit && kit
             ? `OUTFIT (mandatory): she wears a ${kit} — fully dressed; the underwear in Image 1 is only the fitting base, never part of the outfit.`
-            : null,
-          recipe,
-        ]
+            : worn && !fromKit && !suggestiveCouple
+              ? `OUTFIT (mandatory): she wears ${worn}; the underwear in Image 1 is only the fitting base, never part of the outfit.`
+              : null;
+        // Scene first, as the brief does (the confirmed 4/4 run had it), then the outfit.
+        return [daySceneLeadLine(setting?.replace(/^(?:an?|the)\s+/i, '')), outfitLead, recipe]
           .filter(Boolean)
           .join('\n');
       }

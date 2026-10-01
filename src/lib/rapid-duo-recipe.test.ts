@@ -356,13 +356,15 @@ describe('Rapid suggestive recipe', () => {
     assert.match(recipe, /She wears lingerie under an open shirt\./);
   });
 
-  it('replaces the brief only on Rapid, and names an attached garment or Keep outfit', () => {
+  it('replaces the brief on Rapid and Edit 2511, and names an attached garment or Keep outfit', () => {
     const beat = 'pouring coffee barefoot in a silk robe loosely tied — leaning on the counter';
     const rapid = suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw');
     assert.ok(isRapidDuoRecipePrompt(rapid));
     assert.doesNotMatch(rapid, /CLOTHING LOCK|catalog wardrobe kit/);
     assert.match(rapid, /second image \(pose map\)/);
-    assert.ok(!isRapidDuoRecipePrompt(suggestivePrompt(beat, 'qwen-image-edit-2511')));
+    // Edit 2511 shares the recipe (pose-model-profile: compactClothedRecipes); others keep the brief.
+    assert.match(suggestivePrompt(beat, 'qwen-image-edit-2511'), /Suggestive photo: One woman alone, clothed\./);
+    assert.ok(!isRapidDuoRecipePrompt(suggestivePrompt(beat, 'qwen-image-edit-2509')));
     const packshot = suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw', { garmentReinforce: true });
     assert.match(packshot, /outfit from the second image.*third image \(pose map\)/);
     const keep = suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw', { faceOnlyIdentity: false, plateSource: 'keeper' });
@@ -446,7 +448,7 @@ describe('Suggestive couple beats', () => {
       hasPlate: true,
       plateSource: 'cast',
       poseGuide: true,
-      model: 'qwen-image-edit-2511',
+      model: 'qwen-image-edit-2509',
       dayMood: 'suggestive',
       allowCompanions: true,
     });

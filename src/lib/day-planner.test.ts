@@ -807,7 +807,7 @@ describe('day-planner', () => {
     for (const slot of solo.slots) assert.doesNotMatch(slot.sceneHints ?? '', /partner/);
   });
 
-  it('Edit 2511 Vacation: the short recipe with the outfit stated first; Everyday keeps the brief', () => {
+  it('Edit 2511: every clothed solo mood sends a short recipe with the outfit stated first', () => {
     const base = {
       slot: {
         ...DEFAULT_DAY_SLOTS[0]!,
@@ -831,7 +831,34 @@ describe('day-planner', () => {
     assert.match(vacation, /Vacation photo: One woman alone on vacation\. She sits, knees bent\./);
     assert.ok(vacation.length < 1200, String(vacation.length));
     const everyday = buildDaySlotPrompt({ ...base, dayMood: 'everyday' });
-    assert.doesNotMatch(everyday, /Vacation photo:/);
+    assert.match(everyday, /\nOUTFIT \(mandatory\): she wears a black strapless mini dress[^\n]*\nDay photo: One woman alone\. She sits/);
+    assert.ok(everyday.length < 1200, String(everyday.length));
+    // Sport wears the sport's own kit, never the Day outfit, and drops the preset's boilerplate.
+    const sport = buildDaySlotPrompt({
+      ...base,
+      garmentReinforce: false,
+      dayMood: 'sport',
+      slot: {
+        ...base.slot,
+        location: 'an outdoor sand court with net poles and clear sky',
+        sceneHints:
+          'jump-setting with soft hands high above the forehead — volleyball athletic action in proper volleyball kit and court shoes, mid-play on a volleyball venue, Cast alone',
+      },
+    });
+    assert.match(sport, /^SCENE: she is in the outdoor sand court/);
+    assert.match(sport, /OUTFIT \(mandatory\): she wears volleyball sportswear and court shoes;/);
+    assert.match(sport, /Day photo: One woman alone, mid-action, playing sport\. She wears volleyball sportswear and court shoes\. Moment: jump-setting with soft hands high above the forehead\./);
+    assert.doesNotMatch(sport, /\blace\b|athletic action in proper/);
+    // A beat that names its own clothes is not overruled by the Day kit.
+    const pool = buildDaySlotPrompt({
+      ...base,
+      dayMood: 'vacation',
+      slot: { ...base.slot, sceneHints: 'RELAXING on a pool lounge with an iced drink — one-piece swimsuit' },
+    });
+    assert.match(pool, /OUTFIT \(mandatory\): she wears a one-piece swimsuit;/);
+    assert.doesNotMatch(pool, /\blace\b/);
+    // Adult moods and two-person clothed stills keep their existing prompts.
+    assert.doesNotMatch(buildDaySlotPrompt({ ...base, dayMood: 'intimate' }), /Day photo:/);
     // A model with no profile keeps the long Vacation brief.
     const generic = buildDaySlotPrompt({ ...base, dayMood: 'vacation', model: 'qwen-image-edit' });
     assert.doesNotMatch(generic, /Vacation photo:/);
@@ -2487,10 +2514,17 @@ describe('buildDaySlotPrompt everyday posing and background', () => {
       plateSource: 'keeper' as const,
       poseGuide: true,
     };
+    // Without a pose map Edit 2511 keeps the long brief and its stance locks…
     assert.match(
-      buildDaySlotPrompt({ ...base, model: 'qwen-image-edit-2511-lightning-8' }),
+      buildDaySlotPrompt({ ...base, poseGuide: false, model: 'qwen-image-edit-2511-lightning-8' }),
       /IDENTITY CRITICAL|discard that stance|standing try-on plate/i
     );
+    // …with one it sends the short Day recipe instead (poses held 6/6 vs 0/6, live 2026-10-01).
+    const compact = buildDaySlotPrompt({ ...base, model: 'qwen-image-edit-2511-lightning-8' });
+    assert.match(compact, /^SCENE: she is in the sunlit bedroom/);
+    assert.match(compact, /Day photo: One woman alone\..*She wears the outfit from the first image\./);
+    assert.doesNotMatch(compact, /IDENTITY CRITICAL/);
+    assert.ok(compact.length < 900, String(compact.length));
     // Non-sticky edit models already take the stance from Image 3.
     assert.doesNotMatch(
       buildDaySlotPrompt({ ...base, model: 'qwen-rapid-aio-edit' }),
@@ -2510,9 +2544,20 @@ describe('buildDaySlotPrompt everyday posing and background', () => {
         hasPlate: true,
         plateSource: 'keeper',
         poseGuide: true,
-        model: 'qwen-image-edit-2511-lightning-8',
+        model: 'qwen-image-edit-2509',
       }),
       /Never leave Image 2 or Image 3 white as the scene background/i
+    );
+    // Edit 2511 sends the short recipe: the scene leads it instead.
+    assert.match(
+      buildDaySlotPrompt({
+        slot: { ...slot, sceneHints: 'pouring coffee', location: 'sunlit kitchen' },
+        hasPlate: true,
+        plateSource: 'keeper',
+        poseGuide: true,
+        model: 'qwen-image-edit-2511-lightning-8',
+      }),
+      /^SCENE: she is in the sunlit kitchen — show that place around her\./
     );
     // Nothing white is attached, so the ban would only add noise.
     assert.doesNotMatch(
