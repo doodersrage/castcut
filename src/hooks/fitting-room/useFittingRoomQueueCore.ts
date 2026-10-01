@@ -205,7 +205,8 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           poseGuideFilename && customPose?.people[0]
             ? `${poseFirstLine(
                 customPose.people[0],
-                dayPartnerNoun(input.character ?? {}) === 'man' ? 'he' : 'she'
+                dayPartnerNoun(input.character ?? {}) === 'man' ? 'he' : 'she',
+                customPose.aspect
               )}\n${withFittingCustomPose(builtPrompt)}`
             : builtPrompt;
         const finalized = await input.actions.finalizePrompt(

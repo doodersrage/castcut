@@ -173,45 +173,136 @@ export function removePerson(bodies: NormalizedBody[]): NormalizedBody[] {
   return bodies.length > 1 ? [shiftBody(bodies[0]!, 0)] : bodies;
 }
 
+type Pt = { x: number; y: number };
+
 /**
- * A few words for a dragged skeleton ("seated", "kneeling, one arm raised"), read from where the
- * joints sit — the try-on prompt can lead with the pose instead of only pointing at Image 3.
+ * A dragged skeleton in words ("seated", "standing on her right leg, her left leg kicked up high
+ * out to the side …"), read limb by limb from where the joints sit — the try-on prompt leads with
+ * the pose instead of only pointing at Image 3. Each leg is read on its own: averaging the two
+ * called a standing high kick "kneeling", and the model knelt (live, 2026-10-01).
+ * `aspect` is the canvas width / height so sideways distances are true.
  */
-export function describePoseBody(body: NormalizedBody): string {
-  const at = (i: number) => body[i] ?? null;
+export function describePoseBody(
+  body: NormalizedBody,
+  options: { possessive?: 'her' | 'his'; aspect?: number } = {}
+): string {
+  const whose = options.possessive ?? 'her';
+  const a = options.aspect && options.aspect > 0 ? options.aspect : 2 / 3;
+  const at = (i: number): Pt | null => {
+    const p = body[i];
+    return p ? { x: p.x * a, y: p.y } : null;
+  };
   const neck = at(1);
-  const hips = [at(8), at(11)].filter(Boolean) as Array<{ x: number; y: number }>;
-  const knees = [at(9), at(12)].filter(Boolean) as Array<{ x: number; y: number }>;
-  const ankles = [at(10), at(13)].filter(Boolean) as Array<{ x: number; y: number }>;
-  const wrists = [at(4), at(7)].filter(Boolean) as Array<{ x: number; y: number }>;
+  const hipPoints = [at(8), at(11)].filter(Boolean) as Pt[];
   const head = at(0);
-  if (!neck || hips.length === 0) return 'in the pose shown';
-  const avg = (points: Array<{ x: number; y: number }>) => ({
-    x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
-    y: points.reduce((sum, p) => sum + p.y, 0) / points.length,
-  });
-  const hip = avg(hips);
+  if (!neck || hipPoints.length === 0) return 'in the pose shown';
+  const hip = {
+    x: hipPoints.reduce((sum, p) => sum + p.x, 0) / hipPoints.length,
+    y: hipPoints.reduce((sum, p) => sum + p.y, 0) / hipPoints.length,
+  };
   const torsoDx = Math.abs(hip.x - neck.x);
   const torsoDy = Math.abs(hip.y - neck.y);
+  const torso = Math.hypot(torsoDx, torsoDy) || 0.2;
+
+  // COCO-18: 8–10 are the person's right leg, 11–13 the left.
+  const legs = (
+    [
+      ['right', at(8), at(9), at(10)],
+      ['left', at(11), at(12), at(13)],
+    ] as const
+  ).flatMap(([side, legHip, knee, ankle]) =>
+    legHip && knee && ankle ? [{ side, hip: legHip, knee, ankle }] : []
+  );
+  const ground = Math.max(...legs.flatMap(leg => [leg.knee.y, leg.ankle.y]), hip.y);
+  const legKind = (leg: (typeof legs)[number]) => {
+    const thighDrop = leg.knee.y - leg.hip.y;
+    const shinDrop = leg.ankle.y - leg.knee.y;
+    if (leg.ankle.y > ground - torso * 0.2 && shinDrop > torso * 0.4) {
+      return thighDrop < torso * 0.45 ? 'seated' : 'planted';
+    }
+    // Knee on the ground, shin folded back or out flat.
+    if (leg.knee.y > ground - torso * 0.25 && thighDrop > torso * 0.3) return 'kneel';
+    return 'raised';
+  };
+  const kinds = legs.map(legKind);
+
+  const describeRaised = (leg: (typeof legs)[number]) => {
+    const height =
+      leg.ankle.y < leg.hip.y - torso * 0.15
+        ? 'kicked up high'
+        : leg.ankle.y < leg.hip.y + torso * 0.45
+          ? 'lifted'
+          : 'raised off the floor';
+    const sideways = Math.abs(leg.ankle.x - leg.hip.x);
+    const direction = sideways > torso * 0.45 ? ' out to the side' : '';
+    const thigh = Math.hypot(leg.knee.x - leg.hip.x, leg.knee.y - leg.hip.y);
+    const shin = Math.hypot(leg.ankle.x - leg.knee.x, leg.ankle.y - leg.knee.y);
+    const reach = Math.hypot(leg.ankle.x - leg.hip.x, leg.ankle.y - leg.hip.y);
+    const bent = reach < (thigh + shin) * 0.94 ? 'knee bent' : 'leg straight';
+    const foot =
+      leg.ankle.y < neck.y + torso * 0.25
+        ? 'foot at shoulder height'
+        : leg.ankle.y < leg.hip.y - torso * 0.15
+          ? 'foot above hip height'
+          : leg.ankle.y < leg.hip.y + torso * 0.45
+            ? 'foot at hip height'
+            : 'foot at knee height';
+    return `${whose} ${leg.side} leg ${height}${direction}, ${bent}, ${foot}`;
+  };
+
   let stance: string;
   if (torsoDx > torsoDy * 1.3) {
     stance = 'lying down';
-  } else if (knees.length && ankles.length) {
-    const knee = avg(knees);
-    const ankle = avg(ankles);
-    const thigh = Math.abs(knee.y - hip.y);
-    const shinDrop = ankle.y - knee.y;
-    if (thigh < torsoDy * 0.45 && shinDrop > torsoDy * 0.5) stance = 'seated';
-    else if (shinDrop < torsoDy * 0.3 && knee.y > hip.y) stance = 'kneeling';
-    else if (Math.abs((ankles[0]?.x ?? 0) - (ankles[1]?.x ?? 0)) > torsoDy * 0.6)
-      stance = 'walking mid-stride';
-    else stance = 'standing';
+  } else if (legs.length < 2) {
+    stance = 'standing';
+  } else if (kinds.every(kind => kind === 'seated')) {
+    stance = 'seated';
+  } else if (kinds.every(kind => kind === 'kneel')) {
+    stance = 'kneeling';
+  } else if (
+    kinds.includes('kneel') &&
+    kinds.some(kind => kind === 'planted' || kind === 'seated')
+  ) {
+    const down = legs[kinds.indexOf('kneel')]!;
+    stance = `kneeling on ${whose} ${down.side} knee, the other foot flat on the floor`;
+  } else if (kinds.includes('raised') && kinds.some(kind => kind !== 'raised')) {
+    const up = legs[kinds.indexOf('raised')]!;
+    const support = legs[kinds.findIndex(kind => kind !== 'raised')]!;
+    stance = `standing on ${whose} ${support.side} leg, ${describeRaised(up)}`;
+  } else if (kinds.every(kind => kind === 'raised')) {
+    stance = 'in mid-air, both feet off the floor';
+  } else if (Math.abs(legs[0]!.ankle.x - legs[1]!.ankle.x) > torso * 0.6) {
+    stance = 'walking mid-stride';
   } else {
     stance = 'standing';
   }
-  const raised = head ? wrists.filter(w => w.y < head.y).length : 0;
-  const arms = raised === 2 ? ', both arms raised' : raised === 1 ? ', one arm raised' : '';
-  return `${stance}${arms}`;
+
+  // Arms: 2–4 right, 5–7 left.
+  const arms = (
+    [
+      ['right', at(2), at(4)],
+      ['left', at(5), at(7)],
+    ] as const
+  ).flatMap(([side, shoulder, wrist]) => {
+    if (!shoulder || !wrist) return [];
+    if (head ? wrist.y < head.y : wrist.y < shoulder.y - torso * 0.5)
+      return [{ side, pose: 'raised' }];
+    if (Math.abs(wrist.x - shoulder.x) > torso * 0.55 && wrist.y < hip.y - torso * 0.15) {
+      return [{ side, pose: 'out' }];
+    }
+    return [];
+  });
+  const raised = arms.filter(arm => arm.pose === 'raised');
+  const out = arms.filter(arm => arm.pose === 'out');
+  const armWords = [
+    raised.length === 2 ? 'both arms raised' : raised.length === 1 ? 'one arm raised' : '',
+    out.length === 2
+      ? 'both arms held out to the sides'
+      : out.length === 1
+        ? `${whose} ${out[0]!.side} arm held out to the side`
+        : '',
+  ].filter(Boolean);
+  return [stance, ...armWords].join(', ');
 }
 
 const STANCE_DETAIL: Record<string, string> = {
@@ -227,9 +318,21 @@ const STANCE_DETAIL: Record<string, string> = {
  * Live (Outfit, 3 seeds): the pose line at the end of the prompt left him standing 3/3; this as
  * the first line seated him 3/3 with the kit and face kept.
  */
-export function poseFirstLine(body: NormalizedBody, pronoun: 'she' | 'he' = 'she'): string {
-  const description = describePoseBody(body);
+export function poseFirstLine(
+  body: NormalizedBody,
+  pronoun: 'she' | 'he' = 'she',
+  aspect?: number
+): string {
+  const description = describePoseBody(body, {
+    possessive: pronoun === 'he' ? 'his' : 'her',
+    aspect,
+  });
   const stance = description.split(',')[0]!;
-  const detail = STANCE_DETAIL[stance];
+  // One-legged stances say it twice: the model knelt or stood square without it.
+  const detail =
+    STANCE_DETAIL[stance] ??
+    (stance.startsWith('standing on ')
+      ? 'upright on one straight leg, the other foot off the floor, never kneeling and never both feet down'
+      : undefined);
   return `POSE FIRST: ${pronoun} is ${description}, exactly as the pose map in Image 3 shows${detail ? ` — ${detail}` : ''}.`;
 }
