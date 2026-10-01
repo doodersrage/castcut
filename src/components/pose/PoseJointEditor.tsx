@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { POSE_FIGURE_COLORS } from '@/components/pose/PoseBodiesSvg';
+import { POSE_FIGURE_COLORS, PoseFigureShape } from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
 import ModalPortal from '@/components/ui/ModalPortal';
 import type { PhotoPose } from '@/lib/day-pose-guide';
@@ -23,23 +23,6 @@ import {
   removePerson,
   type PoseStarterId,
 } from '@/lib/pose-starters';
-
-/** COCO-18 bones drawn while editing (face points follow the nose). */
-const BONES: ReadonlyArray<readonly [number, number]> = [
-  [1, 2],
-  [2, 3],
-  [3, 4],
-  [1, 5],
-  [5, 6],
-  [6, 7],
-  [1, 8],
-  [8, 9],
-  [9, 10],
-  [1, 11],
-  [11, 12],
-  [12, 13],
-  [1, 0],
-];
 
 /** Draggable joints: nose, neck, arms, legs (eyes / ears ride along with the nose). */
 const EDITABLE = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const;
@@ -307,14 +290,8 @@ export default function PoseJointEditor({
               };
               return (
                 <g key={person}>
-                  <g stroke={color} strokeWidth={0.01} strokeLinecap="round" opacity={0.8}>
-                    {BONES.map(([a, b]) => {
-                      const p = at(a);
-                      const q = at(b);
-                      return p && q ? (
-                        <line key={`${a}-${b}`} x1={p.x} y1={p.y} x2={q.x} y2={q.y} />
-                      ) : null;
-                    })}
+                  <g opacity={0.85} style={{ pointerEvents: 'none' }}>
+                    <PoseFigureShape body={body} aspect={safeAspect} color={color} weight={0.009} />
                   </g>
                   {EDITABLE.map(joint => {
                     const p = at(joint);
