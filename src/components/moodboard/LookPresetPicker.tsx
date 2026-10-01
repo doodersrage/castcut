@@ -72,11 +72,12 @@ export default function LookPresetPicker({
             </Button>
           </div>
         </div>
-      ) : (
+      ) : compact ? (
+        // Desktop's card header already says this.
         <p className="type-caption text-[var(--text-muted)]">
           Pick a preset to load its tiles, or use it straight for today&rsquo;s Day.
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

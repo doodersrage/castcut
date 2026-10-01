@@ -131,7 +131,12 @@ export default function GalleryFiltersPrimaryRow({
       <GalleryCastFilter filter={filter} setFilter={setFilter} castIds={castIds ?? []} />
 
       {hasPlayChecks ? (
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="Filter by checks"
+        >
+          <span className="type-caption text-[var(--text-muted)]">Checks</span>
           <FilterChip
             active={Boolean(filter.playCheckMissOnly)}
             label="Missed pose / face"

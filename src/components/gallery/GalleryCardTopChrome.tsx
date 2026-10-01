@@ -41,10 +41,13 @@ export function GalleryCardTopChrome({
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span
-          className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${statusTone(entry.status)}`}
-        >
-          {statusLabel(entry.status, entry)}
+        {/* Solid backing: the translucent tint vanished over bright photos. */}
+        <span className="rounded-full bg-[var(--bg-elevated)] shadow-sm">
+          <span
+            className={`block rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${statusTone(entry.status)}`}
+          >
+            {statusLabel(entry.status, entry)}
+          </span>
         </span>
         {entry.reviewRating ? (
           <span className="rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] text-[var(--accent-text)]">
