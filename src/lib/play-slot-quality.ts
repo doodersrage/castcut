@@ -17,6 +17,7 @@ export const SLOT_REVIEW_FLAGS = [
   'extra-person',
   'extra-hands',
   'merged-limbs',
+  'misplaced-genitals',
   'wrong-outfit',
   'face-distorted',
   'plastic-skin',
@@ -90,7 +91,14 @@ export type SlotQualityPolicy = {
 export const DEFAULT_SLOT_QUALITY_POLICY: SlotQualityPolicy = {
   minOverall: 3.5,
   minSingle: 2,
-  hardFlags: ['extra-person', 'extra-hands', 'merged-limbs', 'wrong-outfit', 'face-distorted'],
+  hardFlags: [
+    'extra-person',
+    'extra-hands',
+    'merged-limbs',
+    'misplaced-genitals',
+    'wrong-outfit',
+    'face-distorted',
+  ],
   maxRerolls: 2,
   minIdentity: 3,
   minPoseMatch: 0.6,
@@ -148,7 +156,9 @@ export function buildSlotReviewPrompt(context: SlotReviewContext = {}): {
     expected === 'any'
       ? 'Never use extra-person (companions are allowed); use extra-hands for ghost or duplicated hands;'
       : `Use extra-person when the still does not show ${people}; extra-hands for ghost or duplicated hands;`,
-    'merged-limbs for fused or tangled limbs; plastic-skin for waxy over-smoothed skin;',
+    'merged-limbs for fused or tangled limbs, or two bodies melted into one;',
+    'misplaced-genitals when genitals are on the wrong person, detached or floating, duplicated, or not connected to any body;',
+    'plastic-skin for waxy over-smoothed skin;',
     'text-artifact for garbled lettering; cropped-subject when the subject is cut off awkwardly.',
     pair
       ? 'identityMatch: does the person on the right look like the same individual as the reference on the left (face shape, features, hair)? Judge the person, not the pose, outfit, lighting or crop. If the face on the right is too small or turned away to tell, score 3. Use wrong-face only when they are clearly different people.'
@@ -257,6 +267,7 @@ const FLAG_LABELS: Record<SlotReviewFlag, string> = {
   'extra-person': 'unexpected number of people',
   'extra-hands': 'ghost or extra hands',
   'merged-limbs': 'merged or tangled limbs',
+  'misplaced-genitals': 'genitals on the wrong body or detached',
   'wrong-outfit': 'outfit does not match the Keep',
   'face-distorted': 'distorted face',
   'plastic-skin': 'plastic-looking skin',
@@ -468,5 +479,50 @@ export function flaggedRetryPlan(input: {
   return {
     stills: input.slotOrder.filter(id => stills.has(id)),
     clips: input.slotOrder.filter(id => clips.has(id)),
+  };
+}
+
+/**
+ * Two-person anatomy probe — a second, counting question for duo stills. The general review
+ * scored anatomy 5/5 on fused and phantom-limb duos; asking the model to trace every limb and
+ * genital to a body caught them (live, nsfwvision-qwen3-vl-8b: 4 real failures flagged, 0 of 13
+ * good stills flagged, 2026-10-01).
+ */
+export const DUO_ANATOMY_PROBE_PROMPT =
+  'Inspect the people in this photo carefully, body by body. For EACH person: count their visible arms and legs, and say which body each limb and each set of genitals is attached to. ' +
+  'Then answer in JSON only: {"people":N,"limbProblems":true|false,"bodiesMerged":true|false,"genitalProblems":true|false,"detail":"short"}. ' +
+  'limbProblems = an arm, hand, leg or foot that is extra, missing without being hidden, detached, or cannot be traced to a body. ' +
+  'bodiesMerged = two bodies fused into one shape or impossible to separate. genitalProblems = genitals on the wrong person, detached, floating or duplicated.';
+
+/** Flags from the probe's JSON reply ([] when unreadable — the probe never blocks on its own). */
+export function parseDuoAnatomyProbe(text: string, expectedPeople: number): SlotReviewFlag[] {
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return [];
+  let reply: Record<string, unknown>;
+  try {
+    reply = JSON.parse(match[0]) as Record<string, unknown>;
+  } catch {
+    return [];
+  }
+  const flags: SlotReviewFlag[] = [];
+  const people = Number(reply.people);
+  // Zero people (a static/garbage render) or the wrong count.
+  if (Number.isFinite(people) && people !== expectedPeople) flags.push('extra-person');
+  if (reply.limbProblems === true) flags.push('extra-hands');
+  if (reply.bodiesMerged === true) flags.push('merged-limbs');
+  if (reply.genitalProblems === true) flags.push('misplaced-genitals');
+  return flags;
+}
+
+/** Fold probe flags into a review: add the flags and cap anatomy at 2 when any were raised. */
+export function withDuoAnatomyProbe(
+  report: SlotQualityReport,
+  probeFlags: readonly SlotReviewFlag[]
+): SlotQualityReport {
+  if (probeFlags.length === 0) return report;
+  return {
+    ...report,
+    anatomy: Math.min(report.anatomy, 2),
+    flags: [...new Set([...report.flags, ...probeFlags])],
   };
 }

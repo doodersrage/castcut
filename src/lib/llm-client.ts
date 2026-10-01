@@ -482,7 +482,10 @@ async function ollamaNativeVisionCompletion(options: {
   const body: Record<string, unknown> = {
     model: options.model,
     messages: [
-      { role: 'system', content: options.systemPrompt },
+      // An empty system prompt sends none (the duo anatomy probe reads better without one).
+      ...(options.systemPrompt.trim()
+        ? [{ role: 'system' as const, content: options.systemPrompt }]
+        : []),
       {
         role: 'user',
         content: options.textPrompt,
@@ -1140,7 +1143,10 @@ async function visionCompletionUnsafe(options: {
     apiKey,
     model: visionModel,
     messages: [
-      { role: 'system', content: options.systemPrompt },
+      // An empty system prompt sends none (the duo anatomy probe reads better without one).
+      ...(options.systemPrompt.trim()
+        ? [{ role: 'system' as const, content: options.systemPrompt }]
+        : []),
       {
         role: 'user',
         content: [

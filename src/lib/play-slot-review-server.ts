@@ -7,6 +7,9 @@ import {
 } from './llm-request-options';
 import {
   buildSlotReviewPrompt,
+  DUO_ANATOMY_PROBE_PROMPT,
+  parseDuoAnatomyProbe,
+  withDuoAnatomyProbe,
   parseSlotQualityReport,
   type SlotQualityReport,
   type SlotReviewContext,
@@ -52,6 +55,26 @@ export async function reviewPlaySlotStill(options: {
     throw new Error(
       'Slot review returned an unreadable reply. Try again or use a larger vision model.'
     );
+  }
+  // Two-person stills: a second, counting question catches fused bodies, phantom limbs and
+  // misplaced genitals the general review scores as clean.
+  if (options.context?.expectedPeople === 2 && options.context.referencePair !== true) {
+    try {
+      const probe = await visionCompletion({
+        // No system prompt: with one, the model stopped flagging a phantom-limb duo it caught without.
+        systemPrompt: '',
+        textPrompt: DUO_ANATOMY_PROBE_PROMPT,
+        imageDataUrl: options.imageDataUrl,
+        maxTokens: 400,
+        temperature: 0,
+        model: visionModel,
+        endpoint: resolveRequestLlmEndpoint(options.llm),
+        usageContext: { route: 'play-slot-review' },
+      });
+      return withDuoAnatomyProbe(report, parseDuoAnatomyProbe(probe, 2));
+    } catch {
+      return report;
+    }
   }
   return report;
 }

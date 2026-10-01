@@ -15,6 +15,8 @@ import {
   slotRerollsUsed,
   type SlotQualityLedger,
   type SlotQualityReport,
+  parseDuoAnatomyProbe,
+  withDuoAnatomyProbe,
 } from './play-slot-quality';
 
 const CLEAN: SlotQualityReport = {
@@ -270,5 +272,24 @@ describe('flaggedRetryPlan', () => {
       flaggedRetryPlan({ flaggedStillSlotIds: [], clipChecks: {}, slotOrder: ['morning'] }),
       { stills: [], clips: [] }
     );
+  });
+});
+
+describe('duo anatomy probe', () => {
+  it('maps the probe reply to review flags', () => {
+    assert.deepEqual(
+      parseDuoAnatomyProbe('{"people":2,"limbProblems":false,"bodiesMerged":true,"genitalProblems":true}', 2),
+      ['merged-limbs', 'misplaced-genitals']
+    );
+    assert.deepEqual(parseDuoAnatomyProbe('{"people":0,"limbProblems":false,"bodiesMerged":false,"genitalProblems":false}', 2), ['extra-person']);
+    assert.deepEqual(parseDuoAnatomyProbe('no json here', 2), []);
+  });
+
+  it('caps anatomy and merges flags only when the probe found something', () => {
+    const report = { faceIntegrity: 5, outfitMatch: 5, anatomy: 5, flags: [], note: '' } as unknown as Parameters<typeof withDuoAnatomyProbe>[0];
+    assert.equal(withDuoAnatomyProbe(report, []), report);
+    const flagged = withDuoAnatomyProbe(report, ['merged-limbs']);
+    assert.equal(flagged.anatomy, 2);
+    assert.deepEqual(flagged.flags, ['merged-limbs']);
   });
 });

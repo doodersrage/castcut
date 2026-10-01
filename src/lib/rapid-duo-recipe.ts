@@ -117,7 +117,9 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // on top 3/3 with the gag intact (2026-10-01).
       return `Side view, missionary position, both faces in frame. The woman lies face up on ${on('bed')}; the man is on top of her: he lies face down over her body, supporting himself on his elbows; she wraps her legs around his waist; his penis inside her; their faces close.`;
     case 'mating_press':
-      return `The woman lies on her back on ${on('bed')} with her knees pulled up toward her shoulders; the man kneels over her between her legs, leaning his weight onto the backs of her thighs, his penis inside her; both faces in frame.`;
+      // "Side view" first: without a camera anchor 1/3 flipped overhead and upside down (user's
+      // Raunchy still); with it, side-on 3/3 (2026-10-01).
+      return `Side view, both faces in frame. The woman lies on her back on ${on('bed')} with her knees pulled up toward her shoulders; the man kneels over her between her legs, leaning his weight onto the backs of her thighs, his penis inside her.`;
     case 'straddle':
       return `Wide shot, both faces in frame. The man lies flat on his back on ${on('bed')}; the woman kneels astride his hips with her knees on either side of him, sitting down on his penis and riding him, her hands on his chest, looking down at him.`;
     case 'reverse_straddle':
