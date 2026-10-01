@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { addPerson, mirrorBodies, poseStarterBody, POSE_STARTERS, removePerson } from './pose-starters';
+import {
+  addPerson,
+  describePoseBody,
+  mirrorBodies,
+  poseStarterBody,
+  POSE_STARTERS,
+  removePerson,
+} from './pose-starters';
 
 describe('pose starters', () => {
   it('every starter is a full figure inside the frame', () => {
@@ -26,5 +33,13 @@ describe('pose starters', () => {
     assert.equal(two.length, 2);
     assert.equal(addPerson(two).length, 2);
     assert.equal(removePerson(two).length, 1);
+  });
+
+  it('describes each starter figure in words', () => {
+    assert.equal(describePoseBody(poseStarterBody('stand')), 'standing');
+    assert.equal(describePoseBody(poseStarterBody('sit')), 'seated');
+    assert.equal(describePoseBody(poseStarterBody('kneel')), 'kneeling');
+    assert.equal(describePoseBody(poseStarterBody('lie')), 'lying down');
+    assert.equal(describePoseBody(poseStarterBody('walk')), 'walking mid-stride');
   });
 });

@@ -206,7 +206,9 @@ function placementTwoWomen(
     case 'facesit':
       return sheGivesOral(beat)
         ? isFloorSurface(surface)
-          ? `Full-body view, both faces in frame. ${cap(gf)} stands with her thighs apart; the woman kneels on ${on('floor')} in front of her with her mouth on her vulva, licking her, looking up at her.`
+          ? // Standing, two women knelt face to face and kissed (6/6); seating the receiver on a
+            // chair gave the oral geometry 3/3 (live A/B 2026-10-01).
+            `Full-body view, both faces in frame. ${cap(gf)} sits on a chair, leaning back with her thighs spread; the woman kneels on ${on('floor')} between her girlfriend's thighs with her mouth on her vulva, licking her, looking up at her.`
           : `Full-body view, both faces in frame. ${cap(gf)} sits on the edge of ${on('bed')}, leaning back on her hands with her thighs spread; the woman kneels on the floor between her girlfriend's thighs with her mouth on her vulva, licking her, looking up at her.`
         : `Full-body view, both faces in frame. The woman sits on the edge of ${on('bed')}, leaning back on her hands with her thighs spread; ${gf} kneels on the floor between her thighs with her mouth on her vulva, licking her, hands on her thighs.`;
     case 'kneeling':

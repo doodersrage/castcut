@@ -172,3 +172,64 @@ export function addPerson(bodies: NormalizedBody[]): NormalizedBody[] {
 export function removePerson(bodies: NormalizedBody[]): NormalizedBody[] {
   return bodies.length > 1 ? [shiftBody(bodies[0]!, 0)] : bodies;
 }
+
+/**
+ * A few words for a dragged skeleton ("seated", "kneeling, one arm raised"), read from where the
+ * joints sit — the try-on prompt can lead with the pose instead of only pointing at Image 3.
+ */
+export function describePoseBody(body: NormalizedBody): string {
+  const at = (i: number) => body[i] ?? null;
+  const neck = at(1);
+  const hips = [at(8), at(11)].filter(Boolean) as Array<{ x: number; y: number }>;
+  const knees = [at(9), at(12)].filter(Boolean) as Array<{ x: number; y: number }>;
+  const ankles = [at(10), at(13)].filter(Boolean) as Array<{ x: number; y: number }>;
+  const wrists = [at(4), at(7)].filter(Boolean) as Array<{ x: number; y: number }>;
+  const head = at(0);
+  if (!neck || hips.length === 0) return 'in the pose shown';
+  const avg = (points: Array<{ x: number; y: number }>) => ({
+    x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
+    y: points.reduce((sum, p) => sum + p.y, 0) / points.length,
+  });
+  const hip = avg(hips);
+  const torsoDx = Math.abs(hip.x - neck.x);
+  const torsoDy = Math.abs(hip.y - neck.y);
+  let stance: string;
+  if (torsoDx > torsoDy * 1.3) {
+    stance = 'lying down';
+  } else if (knees.length && ankles.length) {
+    const knee = avg(knees);
+    const ankle = avg(ankles);
+    const thigh = Math.abs(knee.y - hip.y);
+    const shinDrop = ankle.y - knee.y;
+    if (thigh < torsoDy * 0.45 && shinDrop > torsoDy * 0.5) stance = 'seated';
+    else if (shinDrop < torsoDy * 0.3 && knee.y > hip.y) stance = 'kneeling';
+    else if (Math.abs((ankles[0]?.x ?? 0) - (ankles[1]?.x ?? 0)) > torsoDy * 0.6)
+      stance = 'walking mid-stride';
+    else stance = 'standing';
+  } else {
+    stance = 'standing';
+  }
+  const raised = head ? wrists.filter(w => w.y < head.y).length : 0;
+  const arms = raised === 2 ? ', both arms raised' : raised === 1 ? ', one arm raised' : '';
+  return `${stance}${arms}`;
+}
+
+const STANCE_DETAIL: Record<string, string> = {
+  seated: 'hips on a seat, knees bent forward, lower legs down',
+  kneeling: 'upright on both knees',
+  'lying down': 'lying flat along the floor or bed',
+  'walking mid-stride': 'one foot forward mid-step',
+  standing: 'weight on both feet',
+};
+
+/**
+ * Opening line for a custom-pose try-on: the stance in words, then "as the pose map shows".
+ * Live (Outfit, 3 seeds): the pose line at the end of the prompt left him standing 3/3; this as
+ * the first line seated him 3/3 with the kit and face kept.
+ */
+export function poseFirstLine(body: NormalizedBody, pronoun: 'she' | 'he' = 'she'): string {
+  const description = describePoseBody(body);
+  const stance = description.split(',')[0]!;
+  const detail = STANCE_DETAIL[stance];
+  return `POSE FIRST: ${pronoun} is ${description}, exactly as the pose map in Image 3 shows${detail ? ` — ${detail}` : ''}.`;
+}

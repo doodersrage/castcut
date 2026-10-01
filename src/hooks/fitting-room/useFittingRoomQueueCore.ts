@@ -1,6 +1,8 @@
 'use client';
 
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
+import { dayPartnerNoun } from '@/lib/day-partner';
+import { poseFirstLine } from '@/lib/pose-starters';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
@@ -199,7 +201,13 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           }
         }
         const builtPrompt = buildPrompt();
-        const prompt = poseGuideFilename ? withFittingCustomPose(builtPrompt) : builtPrompt;
+        const prompt =
+          poseGuideFilename && customPose?.people[0]
+            ? `${poseFirstLine(
+                customPose.people[0],
+                dayPartnerNoun(input.character ?? {}) === 'man' ? 'he' : 'she'
+              )}\n${withFittingCustomPose(builtPrompt)}`
+            : builtPrompt;
         const finalized = await input.actions.finalizePrompt(
           prompt,
           input.character?.name || 'Fitting'
@@ -237,10 +245,11 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                 ...(garmentExtras.inputImageUrls
                   ? { inputImageUrls: [...garmentExtras.inputImageUrls] }
                   : {}),
-                ...(garmentExtras.inputImageFilenames
+                // A garment sent by URL has no filename list — the pose guide still needs Image 3.
+                ...(garmentExtras.inputImageFilenames || poseGuideFilename
                   ? {
                       inputImageFilenames: withPoseGuideSlot(
-                        garmentExtras.inputImageFilenames.map(name => name?.trim() || ''),
+                        (garmentExtras.inputImageFilenames ?? []).map(name => name?.trim() || ''),
                         poseGuideFilename
                       ),
                     }

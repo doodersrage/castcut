@@ -544,6 +544,6 @@ export function withFittingCustomPose(prompt: string): string {
         'and body shape as the reference photo, in the pose from Image 3'
       )
       .replace(/\band pose\b(?= from Image 1)/g, ''),
-    'POSE: Image 3 is a pose map (a skeleton, not a person) — put her body in exactly that stance: arms, legs, head tilt and weight as drawn. Change only the stance; the outfit, face and setting stay.',
+    'POSE: Image 3 is a pose map (a skeleton, not a person) — the body takes exactly that stance: arms, legs, head tilt and weight as drawn. Change only the stance; the outfit, face and setting stay.',
   ].join('\n');
 }
