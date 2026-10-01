@@ -521,6 +521,7 @@ function injectPromptsIntoWorkflow(
       kleinEnhancerEnabled: runtime?.kleinEnhancerEnabled,
       qwenRenderer: runtime?.qwenRenderer,
       qwenImage21FullSampler: runtime?.qwenImage21FullSampler,
+      videoRenderer: runtime?.videoRenderer,
       kleinEnhancerIdentityPreset: runtime?.kleinEnhancerIdentityPreset,
       kleinEnhancerTextEnabled: runtime?.kleinEnhancerTextEnabled,
       kleinEnhancerColorAnchorEnabled: runtime?.kleinEnhancerColorAnchorEnabled,

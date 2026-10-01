@@ -1,5 +1,6 @@
 'use client';
 
+import { isLtx25Model } from './ltx25-renderer';
 import { poseModelFamily } from './pose/pose-model-profile';
 import type { ComfyImageModel } from './comfy-models/client';
 import {
@@ -475,6 +476,8 @@ export function resolveRuntimeForQueue(
           ...(tool === 'fitting' ? { qwenImage21FullSampler: true } : {}),
         }
       : {}),
+    // The picked clip engine renders on LTX-2.5; the graph above is its WAN base.
+    ...(isLtx25Model(model) ? { videoRenderer: 'ltx-2.5' as const } : {}),
     queueQualityProfile: resolvedProfile,
     modelSamplerOverrides: shared.modelSamplerOverrides,
     // System packs may disable enrich when the *global* profile is Draft. Tool-level
@@ -487,7 +490,7 @@ export function resolveRuntimeForQueue(
   };
 
   // An engine that rides another graph (Qwen-Image 2.1) has no workflow tokens of its own.
-  if (!remapped || poseModelFamily(model) === 'qwen-image-2.1') {
+  if (!remapped || poseModelFamily(model) === 'qwen-image-2.1' || isLtx25Model(model)) {
     return withProfile;
   }
 

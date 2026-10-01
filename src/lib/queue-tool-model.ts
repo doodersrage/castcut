@@ -1,3 +1,4 @@
+import { isLtx25Model } from './ltx25-renderer';
 import { poseProfileForModel } from './pose/pose-model-profile';
 import {
   COMFY_MODEL_IDS,
@@ -420,6 +421,8 @@ export function resolveModelForQueueTool(
   // fallback); the runtime then converts the sampler to 2.1 (qwen-image-21-renderer.ts).
   const graphBase = poseProfileForModel(normalized).graphBaseModel;
   if (graphBase) return graphBase;
+  // LTX-2.5 queues on the WAN clip graph; the runtime converts it (ltx25-renderer.ts).
+  if (isLtx25Model(normalized)) return DEFAULT_VIDEO_MODEL;
   if (isEditQueueTool(tool) && !isImg2imgCapableModel(normalized)) {
     return inferEditCounterpart(normalized);
   }

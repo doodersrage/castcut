@@ -1,3 +1,4 @@
+import { convertVideoWorkflowToLtx25, LTX25_REQUIRED_NODE } from './ltx25-renderer';
 import {
   convertQwenEditWorkflowToImage21,
   qwenImage21Steps,
@@ -283,6 +284,8 @@ export type ComfyUiRuntimeConfig = {
   qwenRenderer?: 'rapid' | 'qwen-image-2.1';
   /** Qwen-Image 2.1 keeps the full sampler on Good too (Outfit try-ons: 4 steps ghosted arms). */
   qwenImage21FullSampler?: boolean;
+  /** WAN clip graphs render on LTX-2.5 instead (ltx25-renderer.ts). */
+  videoRenderer?: 'ltx-2.5';
   /** Model id used for queue-time workflow optimize / graph enrich heuristics. */
   queueTargetModel?: string;
   /** Effective queue quality profile for this request (sampler, resolution, upscale). */
@@ -1349,6 +1352,8 @@ export function injectPromptsWithFallbacks(
     /** Swap the Qwen-Edit sampler onto Qwen-Image 2.1 (Engine → Renderer). */
     qwenRenderer?: 'rapid' | 'qwen-image-2.1';
     qwenImage21FullSampler?: boolean;
+    /** Swap the WAN clip graph onto LTX-2.5 (when ComfyUI has its nodes). */
+    videoRenderer?: 'ltx-2.5';
     kleinEnhancerIdentityPreset?: import('./klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
     kleinEnhancerTextEnabled?: boolean;
     kleinEnhancerColorAnchorEnabled?: boolean;
@@ -1820,6 +1825,20 @@ export function injectPromptsWithFallbacks(
     }
   }
 
+  if (options?.videoRenderer === 'ltx-2.5') {
+    // Older ComfyUI has no LTX-2 nodes — keep the WAN graph rather than queue a broken one.
+    const nodeTypes = options.availableNodeTypes ? new Set(options.availableNodeTypes) : null;
+    if (!nodeTypes || nodeTypes.has(LTX25_REQUIRED_NODE)) {
+      const converted = convertVideoWorkflowToLtx25(injected.workflow, {
+        sizeFromStill:
+          !nodeTypes || (nodeTypes.has('GetImageSize') && nodeTypes.has('ComfyMathExpression')),
+      });
+      if (converted.converted) {
+        injected = { ...injected, workflow: converted.workflow };
+      }
+    }
+  }
+
   injected = { ...injected, workflow: stripComfyUiOnlyNodes(injected.workflow) };
 
   return injected;
@@ -1955,6 +1974,9 @@ export function stripEmptyComfyUiRuntime(
   }
   if (runtime.qwenImage21FullSampler === true) {
     result.qwenImage21FullSampler = true;
+  }
+  if (runtime.videoRenderer === 'ltx-2.5') {
+    result.videoRenderer = 'ltx-2.5';
   }
 
   if (runtime.queueQualityProfile) {

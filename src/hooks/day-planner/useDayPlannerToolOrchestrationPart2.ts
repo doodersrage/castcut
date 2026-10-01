@@ -1,5 +1,6 @@
 'use client';
 
+import { clipEngineForShot } from '@/lib/ltx25-renderer';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { swapDayPromptGender } from '@/lib/day-lead-gender';
@@ -319,9 +320,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         const parentEntry = still?.promptId
           ? loadComfyGallery().find(entry => entry.promptId === still.promptId)
           : undefined;
-        const videoModel = resolvePreferredVideoModel({
+        const pickedVideoModel = resolvePreferredVideoModel({
           toolModel: loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).model,
           sharedModel: shared.model,
+        });
+        // LTX-2.5 drifts off two-person sex acts — those clips stay on WAN.
+        const videoModel = clipEngineForShot(pickedVideoModel, {
+          adultDuo:
+            isDayAdultMood(toolSettings.dayMood) &&
+            (parentEntry?.prompt ?? '').includes(RAPID_DUO_RECIPE_MARK),
         });
         // A man lead: the beats are written for a woman (see day-lead-gender).
         const manLead = dayPartnerNoun(character ?? {}) === 'man';

@@ -811,6 +811,21 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     clipHint: 'gemma_3_12B_it_fp8_scaled.safetensors',
   },
   {
+    id: 'ltx-video-2.5',
+    label: 'LTX-2.5 (fast)',
+    category: 'video',
+    comfyNode: 'LTXVImgToVideoInplace',
+    comfyClass: 'LTXV2',
+    description:
+      'LTX-2.5 distilled (22B) — about 3.5× faster than WAN and holds solo poses well. Two-person adult clips still render on WAN (LTX-2.5 drifts off the act). Rides the WAN clip graph; ~50 s a 4 s clip.',
+    profile: 'video_motion',
+    referenceTokenLimit: 512,
+    limitsByDetail: PROFILE_LIMITS.video_motion,
+    unetHint: 'ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors',
+    vaeHint: 'ltx-2.5-video-vae-bf16.safetensors',
+    clipHint: 'gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors',
+  },
+  {
     id: 'stable-audio',
     label: 'Stable Audio',
     category: 'audio',

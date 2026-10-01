@@ -1,5 +1,7 @@
 'use client';
 
+import { clipEngineForShot } from '@/lib/ltx25-renderer';
+import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
 import { useCallback, useEffect, useRef } from 'react';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { loadEngineSettings } from '@/lib/engine-settings';
@@ -221,11 +223,22 @@ export function useRoleplayBeatQueuePart2(
             ? ('i2v' as const)
             : ('t2v' as const);
 
+      // LTX-2.5 converts image-to-video clips only, and drifts off two-person sex acts — those
+      // (and text-to-video / extend) stay on WAN.
+      const clipModel =
+        queueClipMode === 'i2v'
+          ? clipEngineForShot(videoModel, {
+              adultDuo: [latest.prompt, parentEntry?.prompt].some(text =>
+                (text ?? '').includes(RAPID_DUO_RECIPE_MARK)
+              ),
+            })
+          : clipEngineForShot(videoModel, { adultDuo: true });
+
       let promptId: string | undefined;
       try {
         promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
           queueTool: 'video',
-          queueModel: videoModel,
+          queueModel: clipModel,
           inputImage: hasInit ? inputImage : undefined,
           inputImageUrl: hasInit ? inputImageUrl : undefined,
           parentGalleryEntryId: parentEntry?.id,
