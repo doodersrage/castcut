@@ -10,6 +10,7 @@ import {
   qwenImage21Steps,
   toQwenImage21Prompt,
   withoutDroppedReferences,
+  withDistinctPartnerOutfit,
 } from './qwen-image-21-renderer';
 
 /** The shape of a live Rapid AIO Day still (two faces + pose map, ReferenceLatent chain). */
@@ -133,7 +134,7 @@ describe('Qwen-Image 2.1: pose ControlNet for two-person maps', () => {
   const duoGraph = () => ({
     '4': {
       class_type: 'TextEncodeQwenImageEditPlus',
-      inputs: { prompt: 'Keep her face from the first image. Match the two bodies in the second image (pose map).', image1: ['900', 0], image2: ['904', 0] },
+      inputs: { prompt: 'Nude photo. Keep her face from the first image. Match the two bodies in the second image (pose map).', image1: ['900', 0], image2: ['904', 0] },
     },
     '8': { class_type: 'KSampler', inputs: { positive: ['4', 0], latent_image: ['906', 0] } },
     '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
@@ -183,5 +184,47 @@ describe('Qwen-Image 2.1: penetration duos stay on the engine model', () => {
     const result = convertQwenEditWorkflowToImage21(graph);
     assert.equal(result.converted, false);
     assert.equal(result.workflow, graph);
+  });
+});
+
+describe('Qwen-Image 2.1: clothed duo maps stay', () => {
+  it('keeps a two-person map for a clothed still', () => {
+    const graph = {
+      '4': {
+        class_type: 'TextEncodeQwenImageEditPlus',
+        inputs: { prompt: 'TWO PEOPLE in this photo: selfie together. Match Image 2 body positions.', image1: ['900', 0], image2: ['904', 0] },
+      },
+      '8': { class_type: 'KSampler', inputs: { positive: ['4', 0], latent_image: ['906', 0] } },
+      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+      '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+      '900': { class_type: 'LoadImage', inputs: { image: 'cast-plate.png' } },
+      '904': { class_type: 'LoadImage', inputs: { image: 'day-pose-guide-selfie_duo-82b0de-x2-17.png' } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+    };
+    const workflow = convertQwenEditWorkflowToImage21(graph).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+    const encode = Object.values(workflow).find(node => node.class_type === 'TextEncodeQwenImage21')!;
+    assert.deepEqual(encode.inputs['images.image_2'], ['904', 0]);
+    assert.match(String(encode.inputs.prompt), /Match <image2> body positions/);
+  });
+});
+
+describe('Qwen-Image 2.1: clothed duo partner outfit', () => {
+  it('names a different outfit for the partner', () => {
+    const out = withDistinctPartnerOutfit(
+      'Keep facial likeness only: TWO PEOPLE in this photo: she (wearing tapered forest green two-piece linen suit) and her partner — a South Asian woman, in their own different clothes — are both fully in frame, together — walking hand in hand. Next sentence.'
+    );
+    assert.match(
+      out,
+      /walking hand in hand\. Only she wears the tapered forest green two-piece linen suit; her partner wears a plain black knit top and dark jeans — never the same outfit or color as her\. Next sentence\./
+    );
+  });
+
+  it('avoids the lead colour, handles a man lead, and runs once', () => {
+    const man = withDistinctPartnerOutfit(
+      'TWO PEOPLE in this photo: he (wearing black tuxedo) and his friend — a tall man, in their own different clothes — together.'
+    );
+    assert.match(man, /Only he wears the black tuxedo; his friend wears a white linen shirt and blue jeans — never the same outfit or color as him\./);
+    assert.equal(withDistinctPartnerOutfit(man), man);
+    assert.equal(withDistinctPartnerOutfit('Solo still of her.'), 'Solo still of her.');
   });
 });

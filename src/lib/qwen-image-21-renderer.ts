@@ -146,6 +146,36 @@ export function withoutDroppedReferences(
   return renumbered;
 }
 
+const PARTNER_OUTFITS = [
+  { colors: /black/i, text: 'a plain black knit top and dark jeans' },
+  { colors: /white|cream|ivory/i, text: 'a white linen shirt and blue jeans' },
+  { colors: /gr[ae]y|charcoal/i, text: 'a gray sweater and black trousers' },
+];
+
+/**
+ * Clothed duos: 2.1 dresses BOTH people in the lead's outfit ("she (wearing X) and her partner…
+ * in their own different clothes" → two green suits). Naming what the partner wears instead kept
+ * them apart 6/6 (live A/B 2026-10-01, hand-in-hand / hug / selfie).
+ */
+export function withDistinctPartnerOutfit(prompt: string): string {
+  const match = prompt.match(
+    /TWO PEOPLE in this photo: (she|he) \(wearing ([^)]+)\) and ((?:her|his|the) [\w-]+(?: [\w-]+)?) —/
+  );
+  if (!match || /\bOnly (?:she|he) wears the\b/.test(prompt)) return prompt;
+  const [, pronoun, outfit, who] = match;
+  const partnerOutfit =
+    PARTNER_OUTFITS.find(option => !option.colors.test(outfit!))?.text ?? PARTNER_OUTFITS[0]!.text;
+  const line = ` Only ${pronoun} wears the ${outfit}; ${who} wears ${partnerOutfit} — never the same outfit or color as ${pronoun === 'he' ? 'him' : 'her'}.`;
+  const sentenceEnd = prompt.indexOf('.', match.index! + match[0].length);
+  if (sentenceEnd < 0) return prompt;
+  return prompt.slice(0, sentenceEnd + 1) + line + prompt.slice(sentenceEnd + 1);
+}
+
+/** Nude / explicit stills (Day Intimate & Raunchy, Story adult beats). */
+export function isNudePrompt(prompt: string): boolean {
+  return /\b(?:nude|naked|explicit|sex(?:ual)?|topless)\b/i.test(prompt);
+}
+
 /** Penetration between two people (not oral, kissing, touching). */
 const PENETRATION_RE =
   /\b(?:penetrat\w*|(?:penis|cock|strap-on)\s+(?:is\s+)?inside|inside her|thrust\w*|fuck(?:s|ing)?\s+(?:her|him)|rides?\s+(?:him|her)|riding\s+(?:him|her)|cowgirl|doggy|missionary)\b/i;
@@ -238,14 +268,16 @@ export function convertQwenEditWorkflowToImage21(
     inputs: { model: [unet, 0], device: 'auto', dtype: 'default' },
   });
   let samplerModel: [string, number] = [cache, 0];
-  // Two-person pose maps go in as a plain reference on 2.1, and it paints them: fused bodies,
-  // a third person, detached anatomy (live, 2026-10-01). Without the map the bodies stay whole.
+  // Nude two-person pose maps go in as a plain reference on 2.1, and it paints them: fused
+  // bodies, a third person, detached anatomy (live, 2026-10-01). Clothed duo maps are fine and
+  // give the better pose (selfie arm, high five, hug) — keep those.
+  const nudeStill = isNudePrompt(String(encoder.inputs.prompt ?? ''));
   const kept: Array<{ from: number; ref: [string, number] }> = [];
   const dropped: number[] = [];
   for (let slot = 1; slot <= 3; slot += 1) {
     const ref = encoder.inputs[`image${slot}`];
     if (!isRef(ref)) continue;
-    if (isMultiPersonPoseGuide(sourceFilename(workflow, ref))) dropped.push(slot);
+    if (nudeStill && isMultiPersonPoseGuide(sourceFilename(workflow, ref))) dropped.push(slot);
     else kept.push({ from: slot, ref });
   }
   const poseMap = dropped.length ? encoder.inputs[`image${dropped[0]}`] : undefined;
@@ -273,7 +305,7 @@ export function convertQwenEditWorkflowToImage21(
     clip: [clip, 0],
     vae: [vae, 0],
     prompt: withoutDroppedReferences(
-      toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')),
+      withDistinctPartnerOutfit(toQwenImage21Prompt(String(encoder.inputs.prompt ?? ''))),
       dropped,
       kept.map(entry => entry.from)
     ),
