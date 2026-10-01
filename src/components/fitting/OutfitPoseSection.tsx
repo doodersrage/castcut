@@ -92,11 +92,8 @@ export default function OutfitPoseSection({
             data-active={pose && !fromPhoto ? 'true' : 'false'}
             disabled={busy}
             data-testid="outfit-pose-custom"
-            title="Drag a figure into the pose to try the kit on in"
-            onClick={() => {
-              if (!pose) onChange(startPose);
-              setEditing(true);
-            }}
+            title="Open the pose editor. The try-on uses the pose when you choose Use this pose."
+            onClick={() => setEditing(true)}
           >
             Custom pose
           </button>
