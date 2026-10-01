@@ -1,4 +1,8 @@
-import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
+import {
+  convertQwenEditWorkflowToImage21,
+  QWEN_IMAGE_21_POSE_CONTROL_NODE,
+  qwenImage21Steps,
+} from './qwen-image-21-renderer';
 import { isQwenLightningModel, patchModelSamplingInWorkflow } from './model-sampling-patch';
 import { ensureFluxGuidanceInWorkflow } from './flux-guidance-patch';
 import { isCastcutProtectedSampler, shouldSkipGlobalSamplerPatch } from './workflow-enrich-markers';
@@ -1795,8 +1799,10 @@ export function injectPromptsWithFallbacks(
   if (options?.qwenRenderer === 'qwen-image-2.1') {
     const width = Number(input.params?.width);
     const height = Number(input.params?.height);
+    const nodeTypes = options.availableNodeTypes ? new Set(options.availableNodeTypes) : null;
     const converted = convertQwenEditWorkflowToImage21(injected.workflow, {
       steps: qwenImage21Steps(options.qualityProfile),
+      poseControl: nodeTypes?.has(QWEN_IMAGE_21_POSE_CONTROL_NODE) ? {} : false,
       ...(width > 0 && height > 0 ? { fallbackSize: { width, height } } : {}),
     });
     if (converted.converted) {

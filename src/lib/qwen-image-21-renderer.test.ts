@@ -127,3 +127,36 @@ describe('Qwen-Image 2.1: two-person pose maps', () => {
     );
   });
 });
+
+describe('Qwen-Image 2.1: pose ControlNet for two-person maps', () => {
+  const duoGraph = () => ({
+    '4': {
+      class_type: 'TextEncodeQwenImageEditPlus',
+      inputs: { prompt: 'Keep her face from the first image. Match the two bodies in the second image (pose map).', image1: ['900', 0], image2: ['904', 0] },
+    },
+    '8': { class_type: 'KSampler', inputs: { positive: ['4', 0], latent_image: ['906', 0] } },
+    '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+    '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+    '900': { class_type: 'LoadImage', inputs: { image: 'day-nude-face-1.png' } },
+    '904': { class_type: 'LoadImage', inputs: { image: 'day-pose-guide-bent-7c9821-x2-17.png' } },
+    '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+  });
+  type Nodes = Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+
+  it('routes the map through QwenImage21UnionApply (Pose) when the nodes exist', () => {
+    const workflow = convertQwenEditWorkflowToImage21(duoGraph(), { poseControl: {} }).workflow as Nodes;
+    const apply = Object.values(workflow).find(node => node.class_type === 'QwenImage21UnionApply')!;
+    assert.deepEqual(apply.inputs.control_image, ['904', 0]);
+    assert.equal(apply.inputs.control_mode, 'Pose');
+    assert.equal(apply.inputs.strength, 0.8);
+    const sampler = Object.values(workflow).find(node => node.class_type === 'KSampler')!;
+    assert.equal(workflow[(sampler.inputs.model as [string, number])[0]].class_type, 'QwenImage21UnionApply');
+    const encode = Object.values(workflow).find(node => node.class_type === 'TextEncodeQwenImage21')!;
+    assert.equal(encode.inputs['images.image_2'], undefined);
+  });
+
+  it('leaves the ControlNet out without the nodes', () => {
+    const workflow = convertQwenEditWorkflowToImage21(duoGraph(), { poseControl: false }).workflow as Nodes;
+    assert.ok(!Object.values(workflow).some(node => node.class_type === 'QwenImage21UnionApply'));
+  });
+});

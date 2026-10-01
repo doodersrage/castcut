@@ -19,6 +19,11 @@ export const QWEN_IMAGE_21_FILES = {
 
 export type QwenRenderer = 'rapid' | 'qwen-image-2.1';
 
+/** T8 "Qwen Image 2.1 Fun ControlNet Union" checkpoint (models/controlnet). */
+export const QWEN_IMAGE_21_POSE_CONTROLNET =
+  'Qwen-Image-2.1-Fun-Controlnet-Union-ComfyUI.safetensors';
+export const QWEN_IMAGE_21_POSE_CONTROL_NODE = 'QwenImage21UnionApply';
+
 export function normalizeQwenRenderer(value: unknown): QwenRenderer {
   return value === 'qwen-image-2.1' ? 'qwen-image-2.1' : 'rapid';
 }
@@ -166,7 +171,15 @@ export function pruneUnreachableNodes(workflow: Workflow): Workflow {
  */
 export function convertQwenEditWorkflowToImage21(
   input: Record<string, unknown>,
-  options: { steps?: number; fallbackSize?: { width: number; height: number } } = {}
+  options: {
+    steps?: number;
+    fallbackSize?: { width: number; height: number };
+    /**
+     * The Fun ControlNet Union pose nodes are installed (QwenImage21UnionApply): a dropped
+     * two-person map drives the pose through the ControlNet instead of being lost.
+     */
+    poseControl?: { strength?: number; endPercent?: number } | false;
+  } = {}
 ): { workflow: Record<string, unknown>; converted: boolean } {
   const workflow = structuredClone(input) as Workflow;
   const samplerId = findPrimarySampler(workflow);
@@ -199,6 +212,7 @@ export function convertQwenEditWorkflowToImage21(
     class_type: 'QwenImage21Cache',
     inputs: { model: [unet, 0], device: 'auto', dtype: 'default' },
   });
+  let samplerModel: [string, number] = [cache, 0];
   // Two-person pose maps go in as a plain reference on 2.1, and it paints them: fused bodies,
   // a third person, detached anatomy (live, 2026-10-01). Without the map the bodies stay whole.
   const kept: Array<{ from: number; ref: [string, number] }> = [];
@@ -208,6 +222,27 @@ export function convertQwenEditWorkflowToImage21(
     if (!isRef(ref)) continue;
     if (isMultiPersonPoseGuide(sourceFilename(workflow, ref))) dropped.push(slot);
     else kept.push({ from: slot, ref });
+  }
+  const poseMap = dropped.length ? encoder.inputs[`image${dropped[0]}`] : undefined;
+  if (options.poseControl && isRef(poseMap)) {
+    const union = add({
+      class_type: 'QwenImage21UnionLoader',
+      inputs: { union_model: QWEN_IMAGE_21_POSE_CONTROLNET },
+    });
+    const apply = add({
+      class_type: 'QwenImage21UnionApply',
+      inputs: {
+        model: [cache, 0],
+        union_patch: [union, 0],
+        vae: [vae, 0],
+        control_image: poseMap,
+        control_mode: 'Pose',
+        strength: options.poseControl.strength ?? 0.8,
+        start_percent: 0,
+        end_percent: options.poseControl.endPercent ?? 1,
+      },
+    });
+    samplerModel = [apply, 0];
   }
   const encodeInputs: Record<string, unknown> = {
     clip: [clip, 0],
@@ -231,7 +266,7 @@ export function convertQwenEditWorkflowToImage21(
 
   sampler.inputs = {
     ...sampler.inputs,
-    model: [cache, 0],
+    model: samplerModel,
     positive: [encode, 0],
     negative: [encode, 1],
     latent_image: [latent, 0],
