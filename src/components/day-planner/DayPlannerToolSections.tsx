@@ -650,7 +650,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 rows={3}
                 data-testid="day-slot-location"
                 value={activeSlot.location ?? ''}
-                className={accentFocusClass(ACCENT)}
+                className={`${accentFocusClass(ACCENT)} min-h-[5.5rem] max-h-72 [field-sizing:content]`}
                 placeholder="e.g. sunlit café terrace, rainy commute, rooftop at dusk"
                 onChange={event => updateSlot(activeSlot.id, { location: event.target.value })}
               />
@@ -661,7 +661,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 rows={3}
                 data-testid="day-slot-beat"
                 value={activeSlot.sceneHints ?? ''}
-                className={accentFocusClass(ACCENT)}
+                className={`${accentFocusClass(ACCENT)} min-h-[5.5rem] max-h-72 [field-sizing:content]`}
                 placeholder="What happens in this part of the day?"
                 onChange={event => updateSlot(activeSlot.id, { sceneHints: event.target.value })}
               />
@@ -686,7 +686,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               variant="secondary"
               disabled={busy}
               data-testid="day-suggest"
-              title="Fill Setting & Beat for all four slots — edit before Queue day"
+              title="Fill Setting & Beat for every slot — edit before Queue day"
               onClick={() => suggestDayScenes()}
             >
               Suggest day
@@ -759,7 +759,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           {leanChrome ? (
             <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-draft-hint">
               {firstFilmDone || firstCutCelebrate
-                ? 'Queue day uses final quality after your first cut — Final pass re-queues all four. Model & workflow live in Engine.'
+                ? 'Queue day uses final quality after your first cut — Final pass re-queues every still. Model & workflow live in Engine.'
                 : 'First film queues as draft for speed — or tap Final pass. Model & workflow live in Engine.'}
             </p>
           ) : null}

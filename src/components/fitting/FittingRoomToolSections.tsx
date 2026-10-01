@@ -17,13 +17,19 @@ import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { FieldError } from '@/components/ui/Field';
-import { CollapsibleSection, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import {
+  CollapsibleSection,
+  ToolBadge,
+  ToolLayout,
+  ToolSection,
+} from '@/components/ui/ToolPageShell';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { fittingSessionStatusLine, resolveFittingOutfitPhase } from '@/lib/fitting-room';
 import { fittingNotesCachePatch } from '@/lib/look-pack';
+import { dayPartnerNoun } from '@/lib/day-partner';
 import { withCharacterQuery } from '@/lib/mobile-studio';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 
@@ -229,11 +235,19 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         lookHref={withCharacterQuery('/moodboard', shared.activeCharacterId)}
       />
 
-      <OutfitPoseSection
-        pose={toolSettings.tryOnPose}
-        busy={busy}
-        onChange={pose => updateToolSettings({ tryOnPose: pose })}
-      />
+      <ToolSection
+        title="Pose"
+        description="Try the kit on in the plate's own stance, or drag a figure into a pose."
+        data-testid="fitting-pose-section"
+      >
+        <OutfitPoseSection
+          pose={toolSettings.tryOnPose}
+          busy={busy}
+          hideLabel
+          leadNoun={dayPartnerNoun(character ?? {})}
+          onChange={pose => updateToolSettings({ tryOnPose: pose })}
+        />
+      </ToolSection>
 
       <TaskRequirementsCard
         task="Outfit try-ons"

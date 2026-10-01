@@ -16,10 +16,16 @@ export default function OutfitPoseSection({
   pose,
   busy,
   onChange,
+  leadNoun = 'woman',
+  hideLabel = false,
 }: {
   pose?: PhotoPose;
   busy: boolean;
   onChange: (pose: PhotoPose | undefined) => void;
+  /** Pronoun for the hint ("render him / her"). */
+  leadNoun?: 'woman' | 'man' | 'person';
+  /** The surrounding card already titles this "Pose". */
+  hideLabel?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const startPose: PhotoPose = pose ?? {
@@ -31,7 +37,9 @@ export default function OutfitPoseSection({
   return (
     <div className="space-y-2" data-testid="outfit-pose">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="type-caption w-16 shrink-0 text-[var(--text-muted)]">Pose</span>
+        {hideLabel ? null : (
+          <span className="type-caption w-16 shrink-0 text-[var(--text-muted)]">Pose</span>
+        )}
         <div className="ui-segmented" role="radiogroup" aria-label="Try-on pose">
           <button
             type="button"
@@ -90,7 +98,8 @@ export default function OutfitPoseSection({
           />
           <div className="space-y-1">
             <p className="type-caption text-[var(--text-muted)]">
-              Try-ons render her in this pose. A clear, simple pose follows best.
+              Try-ons render {leadNoun === 'man' ? 'him' : leadNoun === 'woman' ? 'her' : 'them'} in
+              this pose. A clear, simple pose follows best.
             </p>
             <Button
               size="sm"

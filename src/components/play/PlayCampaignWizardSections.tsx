@@ -228,7 +228,8 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
 
         {/* Mission-control chips — shell skips funnel on /m/film to avoid stacking. */}
         <div className="mt-1" data-testid="play-campaign-mission-control">
-          <PlayFunnelStrip compact />
+          {/* The pills track the saved film — hide them while it belongs to someone else. */}
+          {props.campaignCharacterMismatch ? null : <PlayFunnelStrip compact />}
         </div>
 
         {midFilm || props.campaignComplete ? (

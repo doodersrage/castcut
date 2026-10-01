@@ -12,6 +12,7 @@ import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import ClothingPicker from '@/components/wardrobe/ClothingPicker';
 import TaskRequirementsCard from '@/components/TaskRequirementsCard';
 import OutfitPoseSection from '@/components/fitting/OutfitPoseSection';
+import { dayPartnerNoun } from '@/lib/day-partner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 import {
@@ -353,6 +354,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
       <OutfitPoseSection
         pose={toolSettings.tryOnPose}
         busy={busy}
+        leadNoun={dayPartnerNoun(character ?? {})}
         onChange={pose => updateToolSettings({ tryOnPose: pose })}
       />
 

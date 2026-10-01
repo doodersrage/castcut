@@ -117,11 +117,24 @@ export default function DayMoodStrip({
   const mix = normalizeDayIntimateMix(intimateMix);
   // Themes (Date night, Night out…) sit between the clothed moods and the adult ones.
   const activeMood: DayMoodSetting = dayThemeOf(dayMood)?.id ?? mood;
-  const moodOptions: Array<{ id: DayMoodSetting; label: string; hint: string }> = [
-    ...DAY_MOOD_OPTIONS.filter(option => !isDayAdultMood(option.id)),
-    ...DAY_THEME_OPTIONS,
-    ...DAY_MOOD_OPTIONS.filter(option => isDayAdultMood(option.id) && intimateEnabled),
+  // Two rows: what kind of day (everyday, sport, themes…) and how much heat (Suggestive and up).
+  const isHeatMood = (id: DayMoodSetting) => id === 'suggestive' || isDayAdultMood(id);
+  const moodGroups: Array<{
+    label: string;
+    options: Array<{ id: DayMoodSetting; label: string; hint: string }>;
+  }> = [
+    {
+      label: 'Kind of day',
+      options: [...DAY_MOOD_OPTIONS.filter(option => !isHeatMood(option.id)), ...DAY_THEME_OPTIONS],
+    },
+    {
+      label: 'Heat',
+      options: DAY_MOOD_OPTIONS.filter(
+        option => isHeatMood(option.id) && (intimateEnabled || !isDayAdultMood(option.id))
+      ),
+    },
   ];
+  const leadPronoun = leadNoun === 'man' ? 'him' : 'her';
   const showAdultMix = isDayAdultMood(mood) && Boolean(onIntimateMixChange) && !onPeopleChange;
   const peopleValue: DayIntimateMix =
     people ?? (isDayAdultMood(mood) ? mix : allowCompanions ? 'mixed' : 'solo');
@@ -130,7 +143,7 @@ export default function DayMoodStrip({
     {
       id: 'solo',
       label: 'Solo',
-      hint: adultPeople ? 'One adult only' : 'Just her — no second person in any still',
+      hint: adultPeople ? 'One adult only' : `Just ${leadPronoun} — no second person in any still`,
     },
     {
       id: 'mixed',
@@ -217,23 +230,33 @@ export default function DayMoodStrip({
           aria-label="Day mood"
           data-testid="day-mood-group"
         >
-          <span className={groupLabel}>Mood</span>
-          <div className="ui-segmented" data-wrap="true">
-            {moodOptions.map(option => (
-              <button
-                key={option.id}
-                type="button"
-                role="radio"
-                className="ui-segmented-item"
-                aria-checked={activeMood === option.id}
-                data-active={activeMood === option.id ? 'true' : 'false'}
-                disabled={busy}
-                data-testid={`day-mood-${option.id}`}
-                title={option.hint}
-                onClick={() => onDayMoodChange(option.id)}
+          <span className={`${groupLabel} self-start pt-2`}>Mood</span>
+          <div className="min-w-0 flex-1 space-y-1.5">
+            {moodGroups.map(group => (
+              <div
+                key={group.label}
+                className="ui-segmented"
+                data-wrap="true"
+                role="group"
+                aria-label={group.label}
               >
-                {option.label}
-              </button>
+                {group.options.map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    className="ui-segmented-item"
+                    aria-checked={activeMood === option.id}
+                    data-active={activeMood === option.id ? 'true' : 'false'}
+                    disabled={busy}
+                    data-testid={`day-mood-${option.id}`}
+                    title={option.hint}
+                    onClick={() => onDayMoodChange(option.id)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
         </div>
@@ -359,7 +382,7 @@ export default function DayMoodStrip({
               checked={identityBoost}
               disabled={busy}
               data-testid="day-identity-boost"
-              title="Walking, dancing and leaning stills also look at the full plate for her face. Closer likeness, but now and then a second person or the plate's outfit sneaks in — best with Auto-review stills on."
+              title="Walking, dancing and leaning stills also look at the full plate for the face. Closer likeness, but now and then a second person or the plate's outfit sneaks in — best with Auto-review stills on."
               onChange={onIdentityBoostChange}
             >
               Face boost
@@ -370,7 +393,7 @@ export default function DayMoodStrip({
               checked={faceFinish}
               disabled={busy}
               data-testid="day-face-finish"
-              title="After each one-person still lands, re-render just her face against the Cast face crop — sharper eyes and a closer likeness on small full-body faces. Works on any engine's stills (uses Qwen Edit 2511 or Klein 9B Distilled); adds a few seconds per still."
+              title="After each one-person still lands, re-render just the face against the Cast face crop — sharper eyes and a closer likeness on small full-body faces. Works on any engine's stills (uses Qwen Edit 2511 or Klein 9B Distilled); adds a few seconds per still."
               onChange={onFaceFinishChange}
             >
               Face finish
@@ -517,8 +540,8 @@ export default function DayMoodStrip({
           {mix === 'solo'
             ? 'Intimate solo — one adult; self-touch / undress beats.'
             : mix === 'duo'
-              ? 'Intimate duo — partner scenes; partners get different faces from Cast.'
-              : 'Intimate mixed — solo and duo beats; partners get different faces from Cast.'}
+              ? 'Intimate duo — every still is a partner scene.'
+              : 'Intimate mixed — solo and partner beats.'}
         </p>
       ) : null}
       {mood === 'raunchy' ? (
@@ -526,8 +549,8 @@ export default function DayMoodStrip({
           {mix === 'solo'
             ? 'Raunchy solo — wardrobe fails as the setup; crude self-touch is the punchline.'
             : mix === 'duo'
-              ? 'Raunchy duo — slapstick sex and partner comedy; partners get different faces from Cast.'
-              : 'Raunchy mixed — wardrobe fails and slapstick sex; partners get different faces from Cast.'}
+              ? 'Raunchy duo — slapstick sex and partner comedy.'
+              : 'Raunchy mixed — wardrobe fails and slapstick sex.'}
         </p>
       ) : null}
       {!intimateEnabled ? (

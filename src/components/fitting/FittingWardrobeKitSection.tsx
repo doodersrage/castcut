@@ -178,7 +178,7 @@ export default function FittingWardrobeKitSection({
       />
       <CollapsibleSection
         title="Draft previews & notes"
-        summary="Quick draft thumbs of her in each kit, and notes for the try-on."
+        summary="Quick draft thumbs in each kit, and notes for the try-on."
         defaultOpen={false}
         persistKey="fitting-kit-advanced"
         className="mt-3"

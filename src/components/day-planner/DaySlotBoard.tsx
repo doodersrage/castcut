@@ -402,7 +402,9 @@ export default function DaySlotBoard({
                 onClick={() => onSelectSlot(slot.id)}
               >
                 <div className="flex items-baseline justify-between gap-2">
-                  <p className="type-heading min-w-0 truncate text-sm sm:text-base">{slot.label}</p>
+                  <p className="type-heading min-w-0 text-sm leading-snug sm:text-base">
+                    {slot.label}
+                  </p>
                   {/* Screen-reader only: the accent border already marks the slot being edited,
                       and "EDITING" was clipped in the four-across desktop board. */}
                   {selected ? <span className="sr-only">Editing</span> : null}

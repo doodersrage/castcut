@@ -1,6 +1,7 @@
 'use client';
 
-import { playCampaignHref } from '@/lib/play-campaign';
+import { getCharacter } from '@/lib/character-os';
+import { PLAY_CAMPAIGN_STEPS, playCampaignHref } from '@/lib/play-campaign';
 import { remixDayFilmHref } from '@/lib/play-starter';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
@@ -51,7 +52,11 @@ export default function PlayCampaignActionsSection({
           className="type-caption text-[var(--text-muted)]"
           data-testid="play-campaign-resume-mismatch"
         >
-          Saved film is for another Cast character.{' '}
+          {(() => {
+            const other = getCharacter(durableCampaign.characterId)?.name?.trim();
+            const step = PLAY_CAMPAIGN_STEPS[durableCampaign.stepIndex]?.label;
+            return `Your saved film is for ${other || 'another Cast character'}${step ? ` (at ${step})` : ''}.`;
+          })()}{' '}
           <ButtonLink
             href={mapHref(
               playCampaignHref(durableCampaign.characterId, durableCampaign.lookPackId)
@@ -59,9 +64,9 @@ export default function PlayCampaignActionsSection({
             size="sm"
             variant="ghost"
           >
-            Switch to that character
+            Switch back
           </ButtonLink>{' '}
-          or start a new film below.
+          or start a new film with this one below.
         </p>
       ) : null}
 
