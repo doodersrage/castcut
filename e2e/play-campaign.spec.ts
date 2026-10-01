@@ -106,6 +106,32 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
   await expect(page.getByTestId('outfit-pose-add-person')).toHaveCount(0);
   await page.getByTestId('outfit-pose-starter-sit').click();
   await page.getByTestId('outfit-pose-mirror').click();
+  // Keep proportions (on by default): dragging the wrist swings it, the forearm keeps its length.
+  await expect(page.getByTestId('outfit-pose-keep-proportions')).toBeChecked();
+  const boneLength = async () => {
+    const [elbow, wrist] = await Promise.all(
+      [3, 4].map(joint => page.getByTestId(`outfit-pose-joint-0-${joint}`).boundingBox())
+    );
+    return Math.hypot(elbow!.x - wrist!.x, elbow!.y - wrist!.y);
+  };
+  const before = await boneLength();
+  const wristBox = (await page.getByTestId('outfit-pose-joint-0-4').boundingBox())!;
+  await page.mouse.move(wristBox.x + wristBox.width / 2, wristBox.y + wristBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(wristBox.x + 60, wristBox.y - 50, { steps: 4 });
+  await page.mouse.up();
+  expect(Math.abs((await boneLength()) - before)).toBeLessThan(1.5);
+  // 3D turn: the shoulders come closer together.
+  const shoulderGap = async () => {
+    const [right, left] = await Promise.all(
+      [2, 5].map(joint => page.getByTestId(`outfit-pose-joint-0-${joint}`).boundingBox())
+    );
+    return Math.abs(right!.x - left!.x);
+  };
+  const gap = await shoulderGap();
+  await page.getByTestId('outfit-pose-rotate-turn-right').click();
+  await page.getByTestId('outfit-pose-rotate-turn-right').click();
+  expect(await shoulderGap()).toBeLessThan(gap * 0.95);
 
   await page.getByTestId('outfit-pose-save-to-my-poses').click();
   await page.getByTestId('outfit-pose-save-name').fill('Chair lean');

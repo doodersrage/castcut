@@ -5,7 +5,14 @@ import { POSE_FIGURE_COLORS } from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
 import type { PhotoPose } from '@/lib/day-pose-guide';
 import type { NormalizedBody } from '@/lib/pose-library';
-import { moveJoint } from '@/lib/pose-joint-edit';
+import {
+  liftBodyDepth,
+  moveJoint,
+  moveJointRigid,
+  rotateBody,
+  type BodyDepth,
+  type BodyRotation,
+} from '@/lib/pose-joint-edit';
 import { saveMyPose } from '@/lib/my-poses';
 import {
   addPerson,
@@ -76,11 +83,18 @@ export default function PoseJointEditor({
     initial.map(body => body.map(p => (p ? { ...p } : null)))
   );
   const [drag, setDrag] = useState<{ person: number; joint: number } | null>(null);
+  // On: a dragged joint swings on its bone and carries the limb, so the figure never stretches.
+  // Off: joints move freely (to shorten a limb that points at the camera).
+  const [keepProportions, setKeepProportions] = useState(true);
+  const [rotatePerson, setRotatePerson] = useState(0);
+  // Depth per figure, guessed on the first rotation and kept so repeated turns stay consistent.
+  const depths = useRef<Array<BodyDepth | null>>([]);
   const [saveName, setSaveName] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
   // Start from a base figure — keeps the second person when there is one.
   const startFrom = (id: PoseStarterId) => {
     const lead = poseStarterBody(id);
+    depths.current = [];
     setBodies(previous => (previous.length > 1 ? addPerson([lead]) : [lead]));
     setSavedNote(null);
   };
@@ -98,10 +112,32 @@ export default function PoseJointEditor({
     };
   };
 
+  const move = (
+    previous: NormalizedBody[],
+    person: number,
+    joint: number,
+    to: { x: number; y: number }
+  ) =>
+    keepProportions
+      ? moveJointRigid(previous, person, joint, to, safeAspect)
+      : moveJoint(previous, person, joint, to);
+
   const onMove = (event: PointerEvent<SVGSVGElement>) => {
     if (!drag) return;
     const to = toNormalized(event);
-    if (to) setBodies(previous => moveJoint(previous, drag.person, drag.joint, to));
+    if (to) setBodies(previous => move(previous, drag.person, drag.joint, to));
+  };
+
+  const STEP = Math.PI / 12;
+  const rotate = (rotation: BodyRotation) => {
+    const person = Math.min(rotatePerson, bodies.length - 1);
+    const body = bodies[person];
+    if (!body) return;
+    const depth =
+      depths.current[person] ?? liftBodyDepth(body, poseStarterBody('stand'), safeAspect);
+    const turned = rotateBody(body, depth, rotation, safeAspect);
+    depths.current[person] = turned.depth;
+    setBodies(previous => previous.map((b, i) => (i === person ? turned.body : b)));
   };
 
   const onKey = (person: number, joint: number) => (event: KeyboardEvent<SVGCircleElement>) => {
@@ -119,16 +155,14 @@ export default function PoseJointEditor({
     const at = bodies[person]?.[joint];
     if (!delta || !at) return;
     event.preventDefault();
-    setBodies(previous =>
-      moveJoint(previous, person, joint, { x: at.x + delta.x, y: at.y + delta.y })
-    );
+    setBodies(previous => move(previous, person, joint, { x: at.x + delta.x, y: at.y + delta.y }));
   };
 
   return (
     <div className="space-y-2" data-testid={`${testIdPrefix}-editor`}>
       <p className="type-caption text-[var(--text-muted)]">
-        Drag a joint (or focus it and use the arrow keys, Shift for bigger steps). The pink figure
-        is your Cast.
+        Drag a joint (or focus it and use the arrow keys, Shift for bigger steps); drag the neck to
+        move the whole figure. The pink figure is your Cast.
       </p>
       <svg
         ref={svgRef}
@@ -182,6 +216,7 @@ export default function PoseJointEditor({
                       event.preventDefault();
                       svgRef.current?.setPointerCapture?.(event.pointerId);
                       setDrag({ person, joint });
+                      setRotatePerson(person);
                     }}
                     onKeyDown={onKey(person, joint)}
                   />
@@ -211,7 +246,10 @@ export default function PoseJointEditor({
           size="sm"
           variant="ghost"
           data-testid={`${testIdPrefix}-mirror`}
-          onClick={() => setBodies(previous => mirrorBodies(previous))}
+          onClick={() => {
+            depths.current = [];
+            setBodies(previous => mirrorBodies(previous));
+          }}
         >
           Mirror
         </Button>
@@ -221,7 +259,10 @@ export default function PoseJointEditor({
               size="sm"
               variant="ghost"
               data-testid={`${testIdPrefix}-add-person`}
-              onClick={() => setBodies(previous => addPerson(previous))}
+              onClick={() => {
+                depths.current = [];
+                setBodies(previous => addPerson(previous));
+              }}
             >
               Add a person
             </Button>
@@ -230,12 +271,53 @@ export default function PoseJointEditor({
               size="sm"
               variant="ghost"
               data-testid={`${testIdPrefix}-remove-person`}
-              onClick={() => setBodies(previous => removePerson(previous))}
+              onClick={() => {
+                depths.current = [];
+                setRotatePerson(0);
+                setBodies(previous => removePerson(previous));
+              }}
             >
               Remove second person
             </Button>
           )
         ) : null}
+      </div>
+      <div
+        className="flex flex-wrap items-center gap-1.5"
+        data-testid={`${testIdPrefix}-editor-rotate`}
+      >
+        <span className="type-caption text-[var(--text-muted)]">
+          Rotate{bodies.length > 1 ? (rotatePerson === 0 ? ' Cast' : ' person 2') : ''}
+        </span>
+        {(
+          [
+            ['Turn left', { turn: -STEP }, 'turn-left'],
+            ['Turn right', { turn: STEP }, 'turn-right'],
+            ['Tilt forward', { tilt: STEP }, 'tilt-forward'],
+            ['Tilt back', { tilt: -STEP }, 'tilt-back'],
+            ['Spin left', { spin: -STEP }, 'spin-left'],
+            ['Spin right', { spin: STEP }, 'spin-right'],
+          ] as const
+        ).map(([label, rotation, id]) => (
+          <Button
+            key={id}
+            size="sm"
+            variant="ghost"
+            data-testid={`${testIdPrefix}-rotate-${id}`}
+            onClick={() => rotate(rotation)}
+          >
+            {label}
+          </Button>
+        ))}
+        <label className="type-caption ml-1 flex items-center gap-1.5 text-[var(--text-secondary)]">
+          <input
+            type="checkbox"
+            checked={keepProportions}
+            data-testid={`${testIdPrefix}-keep-proportions`}
+            onChange={event => setKeepProportions(event.target.checked)}
+          />
+          Keep proportions
+        </label>
       </div>
       {saveName != null ? (
         <form
