@@ -64,7 +64,8 @@ export function SystemTrayActivityCard({
         expanded
           ? 'ring-1 ring-[var(--accent-ring)]'
           : serverOnly
-            ? 'w-fit max-w-full self-end'
+            ? // Phones: the pill sat over chips and links; the header's status dot covers it.
+              'w-fit max-w-full self-end max-md:hidden'
             : 'max-md:w-fit max-md:max-w-full max-md:self-end'
       }`}
       data-compact={serverOnly ? 'true' : undefined}

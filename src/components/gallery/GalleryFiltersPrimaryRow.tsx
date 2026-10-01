@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import { FilterChip } from '@/components/gallery/GalleryFilterChip';
 import GalleryCastFilter from '@/components/gallery/GalleryCastFilter';
 import type {
@@ -79,11 +81,39 @@ export default function GalleryFiltersPrimaryRow({
   const { queryDraft, setQueryDraft } = useGalleryFilterQueryDraft(filter, setFilter);
   // Browse: the quick-filter row repeated the stat chips above it; custom groups are Manage work.
   const manage = useGalleryManageMode();
+  // Phones: results start ~1400px down behind every filter — fold all but Search.
+  const [phoneFiltersOpen, setPhoneFiltersOpen] = useState(false);
+  const activeFilterCount = [
+    filter.status && filter.status !== 'all',
+    filter.customGroup,
+    filter.minRating,
+    filter.model,
+    filter.characterId,
+    filter.playCheckMissOnly,
+    filter.semanticSearch,
+  ].filter(Boolean).length;
+  const phoneHidden = phoneFiltersOpen ? '' : 'max-md:hidden';
 
   return (
     <>
       <div className="flex flex-wrap items-end gap-3">
         <GalleryFiltersSearchGroup
+          collapsedOnPhone={!phoneFiltersOpen}
+          phoneToggle={
+            // A wrapper owns the breakpoint — .ui-btn sets its own display.
+            <span className="basis-full md:hidden">
+              <button
+                type="button"
+                className="ui-btn-secondary ui-btn-sm whitespace-nowrap"
+                aria-expanded={phoneFiltersOpen}
+                data-testid="gallery-filters-phone-toggle"
+                onClick={() => setPhoneFiltersOpen(open => !open)}
+              >
+                {phoneFiltersOpen ? 'Hide filters' : 'Filters'}
+                {activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''}
+              </button>
+            </span>
+          }
           lean={lean}
           filter={filter}
           setFilter={setFilter}
@@ -96,26 +126,28 @@ export default function GalleryFiltersPrimaryRow({
           onRenameCustomGroup={onRenameCustomGroup}
           onDeleteCustomGroup={onDeleteCustomGroup}
         />
-        <GalleryFiltersLayoutGroup
-          lean={lean}
-          filter={filter}
-          setFilter={setFilter}
-          sort={sort}
-          setSort={setSort}
-          paginationEnabled={paginationEnabled}
-          layout={layout}
-          setLayout={setLayout}
-          density={density}
-          setDensity={setDensity}
-          totalFiltered={totalFiltered}
-          totalEntries={totalEntries}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          showPagination={showPagination}
-          embeddingSearchLoading={embeddingSearchLoading}
-          embeddingSearchUnavailable={embeddingSearchUnavailable}
-          similarSearchLoading={similarSearchLoading}
-        />
+        <div className={`contents ${phoneHidden}`}>
+          <GalleryFiltersLayoutGroup
+            lean={lean}
+            filter={filter}
+            setFilter={setFilter}
+            sort={sort}
+            setSort={setSort}
+            paginationEnabled={paginationEnabled}
+            layout={layout}
+            setLayout={setLayout}
+            density={density}
+            setDensity={setDensity}
+            totalFiltered={totalFiltered}
+            totalEntries={totalEntries}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            showPagination={showPagination}
+            embeddingSearchLoading={embeddingSearchLoading}
+            embeddingSearchUnavailable={embeddingSearchUnavailable}
+            similarSearchLoading={similarSearchLoading}
+          />
+        </div>
       </div>
 
       {manage ? (
@@ -126,13 +158,14 @@ export default function GalleryFiltersPrimaryRow({
         />
       ) : null}
 
-      <GalleryFiltersRatingModelRow filter={filter} setFilter={setFilter} models={models} />
-
-      <GalleryCastFilter filter={filter} setFilter={setFilter} castIds={castIds ?? []} />
+      <div className={`contents ${phoneHidden}`}>
+        <GalleryFiltersRatingModelRow filter={filter} setFilter={setFilter} models={models} />
+        <GalleryCastFilter filter={filter} setFilter={setFilter} castIds={castIds ?? []} />
+      </div>
 
       {hasPlayChecks ? (
         <div
-          className="flex flex-wrap items-center gap-1.5"
+          className={`flex flex-wrap items-center gap-1.5 ${phoneHidden}`}
           role="group"
           aria-label="Filter by checks"
         >

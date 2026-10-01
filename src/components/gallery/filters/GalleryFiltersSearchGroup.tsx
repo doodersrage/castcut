@@ -1,10 +1,16 @@
 'use client';
 
+import type React from 'react';
+
 import type { ComfyGalleryFilter, ComfyGalleryJobStatus } from '@/lib/comfyui-gallery';
 import { GALLERY_UNGROUPED_FILTER } from '@/lib/gallery-custom-groups';
 import { FilterChip } from '@/components/gallery/GalleryFilterChip';
 
 type Props = {
+  /** Phones: hide everything but Search (the Filters toggle opens it). */
+  collapsedOnPhone?: boolean;
+  /** Phones: the Filters toggle, shown right under Search. */
+  phoneToggle?: React.ReactNode;
   lean: boolean;
   filter: ComfyGalleryFilter;
   setFilter: React.Dispatch<React.SetStateAction<ComfyGalleryFilter>>;
@@ -30,7 +36,10 @@ export function GalleryFiltersSearchGroup({
   customGroups,
   onRenameCustomGroup,
   onDeleteCustomGroup,
+  collapsedOnPhone = false,
+  phoneToggle,
 }: Props) {
+  const phoneHidden = collapsedOnPhone ? ' max-md:hidden' : '';
   return (
     <>
       <label className="min-w-[min(100%,20rem)] flex-1 space-y-1.5">
@@ -47,9 +56,10 @@ export function GalleryFiltersSearchGroup({
           className="ui-input block w-full px-(--input-padding-x) py-(--input-padding-y) type-body"
         />
       </label>
+      {phoneToggle}
 
       {!lean ? (
-        <div className="flex min-w-[8rem] flex-col gap-1.5">
+        <div className={`flex min-w-[8rem] flex-col gap-1.5${phoneHidden}`}>
           <span className="type-caption text-[var(--text-muted)]">Match</span>
           <div className="flex flex-wrap items-center gap-2">
             <FilterChip
@@ -76,7 +86,7 @@ export function GalleryFiltersSearchGroup({
         </div>
       ) : null}
 
-      <label className="min-w-[8rem] space-y-1.5">
+      <label className={`min-w-[8rem] space-y-1.5${phoneHidden}`}>
         <span className="type-caption text-[var(--text-muted)]">Status</span>
         <select
           value={filter.status ?? 'all'}
@@ -96,7 +106,7 @@ export function GalleryFiltersSearchGroup({
         </select>
       </label>
 
-      <label className="min-w-[8rem] space-y-1.5">
+      <label className={`min-w-[8rem] space-y-1.5${phoneHidden}`}>
         <span className="type-caption text-[var(--text-muted)]">Gallery group</span>
         <select
           value={filter.customGroup ?? ''}
@@ -122,7 +132,7 @@ export function GalleryFiltersSearchGroup({
       {filter.customGroup &&
       filter.customGroup !== GALLERY_UNGROUPED_FILTER &&
       (onRenameCustomGroup || onDeleteCustomGroup) ? (
-        <div className="flex flex-wrap items-end gap-2 pb-0.5">
+        <div className={`flex flex-wrap items-end gap-2 pb-0.5${phoneHidden}`}>
           {onRenameCustomGroup ? (
             <button
               type="button"
