@@ -558,6 +558,102 @@ const LATE_VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
   ],
 };
 
+/**
+ * Two-person Vacation scenes (People → Duo / Mixed). Vacation used to pick only from the solo
+ * list, so a Duo day was always solo. The partner is always "her partner" — no his / her — so a
+ * chosen Cast partner of either sex fits; the headcount reader keys on "with her partner".
+ * Kept to stances Rapid draws as two people: side by side, seated together, an embrace.
+ */
+const VACATION_DUO_SCENES: Record<DayPart, readonly VacationScene[]> = {
+  morning: [
+    {
+      activity: 'beach',
+      beat: 'standing side by side with her partner at the water’s edge at sunrise, arm in arm, barefoot in the shallows, both looking out to sea',
+      setting: 'quiet beach at sunrise with wet sand, gentle surf, and a pale pink sky',
+    },
+    {
+      activity: 'hotel',
+      beat: 'SEATED across from her partner at a breakfast table, clinking coffee cups with her partner, both smiling',
+      setting: 'hotel breakfast terrace with white tablecloths, fruit plates, and a sea view',
+    },
+    {
+      activity: 'hotel',
+      beat: 'standing at the balcony rail with her partner, her partner’s arm around her waist, both facing the morning view',
+      setting: 'hotel balcony at sunrise with a railing, potted palms, and the bay below',
+    },
+  ],
+  afternoon: [
+    {
+      activity: 'market',
+      beat: 'walking side by side with her partner through the market street, mid-conversation, a paper bag in her hand',
+      setting: 'old-town market street with striped awnings, fruit stalls, and warm stone walls',
+    },
+    {
+      activity: 'beach',
+      beat: 'SEATED knee-to-knee with her partner at a beach bar, sharing one drink with two straws, leaning in',
+      setting: 'thatched beach bar with wooden stools, a sandy floor, and bright afternoon sun',
+    },
+    {
+      activity: 'hotel',
+      beat: 'hugging her partner at the scenic overlook, her arms around her partner’s neck, both smiling',
+      setting: 'clifftop overlook with a low stone wall and a wide view of the coast',
+    },
+  ],
+  evening: [
+    {
+      activity: 'hotel',
+      beat: 'standing with her partner at a rooftop bar rail, clinking cocktail glasses with her partner at sunset',
+      setting: 'rooftop bar at golden hour with string lights and the city skyline behind',
+    },
+    {
+      activity: 'hotel',
+      beat: 'slow dancing with her partner on a terrace at blue hour, her arms around her partner’s neck, her partner’s hands on her waist',
+      setting: 'hotel terrace at blue hour with lanterns, a tiled floor, and the sea beyond',
+    },
+    {
+      activity: 'boat',
+      beat: 'standing arm in arm with her partner on the harbor promenade at golden hour, both watching the boats',
+      setting: 'harbor promenade at golden hour with moored sailboats and warm light on the water',
+    },
+  ],
+  night: [
+    {
+      activity: 'beach',
+      beat: 'SEATED side by side with her partner on the sand by a bonfire, her head on her partner’s shoulder',
+      setting: 'beach at night with a small bonfire, driftwood seats, and stars over dark water',
+    },
+    {
+      activity: 'cafe',
+      beat: 'SEATED close beside her partner at a candlelit table, sharing a dessert with her partner, leaning in',
+      setting: 'candlelit terrace restaurant at night with small tables and hanging lanterns',
+    },
+    {
+      activity: 'hotel',
+      beat: 'hugging her partner on the hotel balcony at night, cheek to cheek, string lights behind them',
+      setting: 'hotel balcony at night with string lights and the lit bay below',
+    },
+  ],
+};
+
+const ALL_VACATION_DUO_SCENES = Object.values(VACATION_DUO_SCENES).flat();
+
+/** A Vacation couple beat from any part of the day (only fits while companions are on). */
+export function isDayVacationDuoBeat(beat: string | null | undefined): boolean {
+  const text = beat?.trim();
+  return Boolean(text) && ALL_VACATION_DUO_SCENES.some(scene => scene.beat === text);
+}
+
+/** A venue that belongs to one of the Vacation couple scenes. */
+export function isDayVacationDuoSetting(setting: string | null | undefined): boolean {
+  const text = setting?.trim();
+  return Boolean(text) && ALL_VACATION_DUO_SCENES.some(scene => scene.setting === text);
+}
+
+/** Vacation couple beats for a slot (the beat picker's Duo list). */
+export function dayVacationDuoBeatPresetsForSlot(slotId: DaySlotId | string): string[] {
+  return (VACATION_DUO_SCENES[dayPartOf(slotId)] ?? []).map(scene => scene.beat);
+}
+
 /** Scenes for a slot: late slots use {@link LATE_VACATION_SCENES}. */
 function vacationScenesFor(slotId: DaySlotId | string): readonly VacationScene[] {
   const part = dayPartOf(slotId);
@@ -771,10 +867,15 @@ export function pickDayVacationScenePair(
     usedLocations?: Set<string>;
     usedPoseClasses?: Set<string>;
     random?: () => number;
+    /** People control: 'only' = every slot a couple scene; 'mix' = about 4 in 10. */
+    duo?: 'only' | 'mix';
   }
 ): { beat: string; setting: string; activity: DayVacationActivity; poseClass: string } | null {
   const random = options?.random ?? Math.random;
-  const scenes = [...vacationScenesFor(slotId)];
+  const duoScenes = VACATION_DUO_SCENES[dayPartOf(slotId)] ?? [];
+  const couple =
+    duoScenes.length > 0 && (options?.duo === 'only' || (options?.duo === 'mix' && random() < 0.4));
+  const scenes = [...(couple ? duoScenes : vacationScenesFor(slotId))];
   if (scenes.length === 0) {
     return null;
   }
@@ -1129,6 +1230,8 @@ function clothedFaceBreakLeadsFor(
 export function buildDayVacationPromptLocks(input: {
   beat?: string | null;
   setting?: string | null;
+  /** A two-person beat with companions on: the solo-only locks stand down. */
+  couple?: boolean;
 }): { moodLine: string; poseLock: string; keepUnlock: string; poseClass: string } {
   const beat = input.beat?.trim() || 'vacation travel pose';
   const poseClass = vacationPoseClassFromBeat(beat);
@@ -1166,8 +1269,12 @@ export function buildDayVacationPromptLocks(input: {
     moodLine:
       `MOOD: vacation travel day — follow the beat body stance exactly (${beat.slice(0, 80)}); ` +
       `lively travel energy — ${stance}; ` +
-      'keep the outfit Image 2 or the beat names; one woman alone in frame; ' +
-      'never hands-and-knees or rear-presenting on a bed; never invent a man or second adult; ' +
+      (input.couple
+        ? 'keep the outfit Image 2 or the beat names; she and her partner both fully in frame, both dressed, no third person; '
+        : 'keep the outfit Image 2 or the beat names; one woman alone in frame; ') +
+      (input.couple
+        ? 'never hands-and-knees or rear-presenting on a bed; '
+        : 'never hands-and-knees or rear-presenting on a bed; never invent a man or second adult; ') +
       'never a stiff square-on standing catalog pose; never office/grocery/bookstore stills.',
   };
 }

@@ -56,6 +56,9 @@ import {
 } from '@/lib/day-sport';
 import {
   dayVacationBeatPresetsForSlot,
+  dayVacationDuoBeatPresetsForSlot,
+  isDayVacationDuoBeat,
+  isDayVacationDuoSetting,
   dayVacationSettingPresetsForSlot,
   buildDayVacationClothedFaceBreakLeads,
   daySceneLeadLine,
@@ -2039,7 +2042,9 @@ function beatPoolForDayMood(
     return daySportBeatPresetsForSlot(slotId);
   }
   if (mood === 'vacation') {
-    return dayVacationBeatPresetsForSlot(slotId);
+    return allowCompanions
+      ? [...dayVacationBeatPresetsForSlot(slotId), ...dayVacationDuoBeatPresetsForSlot(slotId)]
+      : dayVacationBeatPresetsForSlot(slotId);
   }
   if (mood === 'intimate') {
     // Every mix stays inside the adult pool: "Mixed" is solo + duo adult beats (its chip says
@@ -2110,6 +2115,13 @@ function pickDayBeatPools(
   // People → Duo: every slot is the couple.
   if (dayMood === 'suggestive' && allowCompanions && (intimateMix === 'duo' || random() < 0.5)) {
     const duo = suggestiveDuoBeatPresets(slotId);
+    if (duo.length > 0) {
+      return { primary: duo, fallback: heatPool };
+    }
+  }
+  // Vacation with People → Duo (or some Mixed slots): the couple scenes.
+  if (dayMood === 'vacation' && allowCompanions && (intimateMix === 'duo' || random() < 0.4)) {
+    const duo = dayVacationDuoBeatPresetsForSlot(slotId);
     if (duo.length > 0) {
       return { primary: duo, fallback: heatPool };
     }
@@ -2341,6 +2353,10 @@ export function diversifyDaySlotScenes(
         usedLocations,
         usedPoseClasses: usedVacationPoseClasses,
         random,
+        // People → Duo: every slot is the couple; Mixed: some are.
+        ...(allowCompanions
+          ? { duo: intimateMix === 'duo' ? ('only' as const) : ('mix' as const) }
+          : {}),
       });
       if (pair) {
         if (forceLocations || !location) {
@@ -2530,10 +2546,17 @@ export function daySlotMatchesAdultMix(input: {
     if (DAY_CLOTHED_MOOD_SEX_LEAK_RE.test(beat) || DAY_CLOTHED_MOOD_SEX_LEAK_RE.test(setting)) {
       return false;
     }
+    // A couple scene only fits while companions are on (People → Mixed / Duo).
+    if (isDayVacationDuoBeat(beat)) {
+      return input.allowCompanions === true;
+    }
     const heat = heatBeatPoolForDayMood(input.slot.id, dayMood, mix);
     const beatOk = heat.includes(beat) || DAY_VACATION_BEAT_CUE_RE.test(beat);
     if (!beatOk) {
       return false;
+    }
+    if (isDayVacationDuoSetting(setting)) {
+      return true;
     }
     const vacationSettings = dayVacationSettingPresetsForSlot(input.slot.id);
     if (vacationSettings.includes(setting)) {
@@ -3212,7 +3235,9 @@ export function buildDaySlotPrompt(input: {
           : dayMood === 'sport'
             ? 'camera: athletic action medium / three-quarter on the sport pose — prioritize mid-play stance and limbs over venue; never a soft fashion pin-up or distant empty stadium establishing shot'
             : dayMood === 'vacation'
-              ? 'camera: travel medium / three-quarter on the beat vacation pose — if RELAXING/RECLINING show her lying ON what the beat names (hips down, knees drawn up), not standing beside it; if SEATED/PERCHED show hips ON the seat with knees bent; if DANCING show both arms raised overhead and one knee lifted mid-kick with hips mid-sway; if MID-STRIDE show FULL BODY walking with both feet visible, one foot clearly ahead, opposite arm swing — never a mid-thigh portrait crop; if WAVING show one arm raised high overhead with weight shift full body; if REACHING show one arm high; one woman alone; never invent a man; never hands-and-knees or rear-presenting on a bed; never a stiff square-on standing catalog pose with both feet planted and arms at her sides or empty postcard establishing shot'
+              ? allowCompanions && poseHeadcount >= 2
+                ? 'camera: travel medium / full-body shot of the couple — she and her partner both fully in frame, both dressed, doing what the beat says; no third person; never a stiff square-on standing catalog pose or empty postcard establishing shot'
+                : 'camera: travel medium / three-quarter on the beat vacation pose — if RELAXING/RECLINING show her lying ON what the beat names (hips down, knees drawn up), not standing beside it; if SEATED/PERCHED show hips ON the seat with knees bent; if DANCING show both arms raised overhead and one knee lifted mid-kick with hips mid-sway; if MID-STRIDE show FULL BODY walking with both feet visible, one foot clearly ahead, opposite arm swing — never a mid-thigh portrait crop; if WAVING show one arm raised high overhead with weight shift full body; if REACHING show one arm high; one woman alone; never invent a man; never hands-and-knees or rear-presenting on a bed; never a stiff square-on standing catalog pose with both feet planted and arms at her sides or empty postcard establishing shot'
               : `camera: ${cameraCue}`;
   const framingLine = soloSubject
     ? isDayAdultMood(dayMood)
@@ -3287,7 +3312,13 @@ export function buildDaySlotPrompt(input: {
   const sportLocks =
     dayMood === 'sport' ? buildDaySportPromptLocks({ beat: hints, setting }) : null;
   const vacationLocks =
-    dayMood === 'vacation' ? buildDayVacationPromptLocks({ beat: hints, setting }) : null;
+    dayMood === 'vacation'
+      ? buildDayVacationPromptLocks({
+          beat: hints,
+          setting,
+          couple: allowCompanions && poseHeadcount >= 2,
+        })
+      : null;
   const moodLine =
     dayMood === 'raunchy'
       ? intimateMix === 'duo'

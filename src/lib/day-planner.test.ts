@@ -777,6 +777,55 @@ describe('day-planner', () => {
     assert.match(prompt, /BACKGROUND CRITICAL|blank white.*edit FAILED|missing background means the edit FAILED/i);
   });
 
+  it('Vacation with People → Duo fills every slot with a couple scene; Solo stays solo', () => {
+    const duo = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+      dayMood: 'vacation',
+      allowCompanions: true,
+      intimateMix: 'duo',
+      forceBeats: true,
+      forceLocations: true,
+    });
+    for (const slot of duo.slots) {
+      assert.match(slot.sceneHints ?? '', /with her partner/, slot.id);
+      assert.ok(slot.location, slot.id);
+      assert.equal(
+        resolveDayPoseHeadcount({
+          haystack: slot.sceneHints ?? '',
+          beat: slot.sceneHints,
+          dayMood: 'vacation',
+          allowCompanions: true,
+        }),
+        2,
+        slot.sceneHints
+      );
+    }
+    const solo = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+      dayMood: 'vacation',
+      forceBeats: true,
+      forceLocations: true,
+    });
+    for (const slot of solo.slots) assert.doesNotMatch(slot.sceneHints ?? '', /partner/);
+  });
+
+  it('buildDaySlotPrompt vacation couple beat: both in frame, no "one woman alone" lock', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[2]!,
+        location: 'rooftop bar at golden hour with string lights and the city skyline behind',
+        sceneHints:
+          'standing with her partner at a rooftop bar rail, clinking cocktail glasses with her partner at sunset',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'vacation',
+      allowCompanions: true,
+      intimateMix: 'duo',
+    });
+    assert.match(prompt, /her partner both fully in frame/);
+    assert.doesNotMatch(prompt, /one woman alone|never invent a man/);
+  });
+
   it('buildDaySlotPrompt vacation mid-stride face-break invents body from Image 3', () => {
     const prompt = buildDaySlotPrompt({
       slot: {
