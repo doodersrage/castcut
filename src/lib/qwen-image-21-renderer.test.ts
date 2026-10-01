@@ -8,6 +8,7 @@ import {
   pruneUnreachableNodes,
   QWEN_IMAGE_21_FILES,
   qwenImage21Steps,
+  qwenImage21UsesFourStep,
   toQwenImage21Prompt,
   withoutDroppedReferences,
   withDistinctPartnerOutfit,
@@ -87,7 +88,7 @@ describe('Qwen-Image 2.1 renderer', () => {
   it('normalizes the setting and maps quality to steps', () => {
     assert.equal(normalizeQwenRenderer('qwen-image-2.1'), 'qwen-image-2.1');
     assert.equal(normalizeQwenRenderer('nope'), 'rapid');
-    assert.deepEqual(['draft', 'final', 'max'].map(qwenImage21Steps), [20, 30, 40]);
+    assert.deepEqual(['draft', 'final', 'max'].map(qwenImage21Steps), [20, 30, 30]);
     assert.equal(toQwenImage21Prompt('image 2 and Image 10'), '<image2> and Image 10');
   });
 });
@@ -255,5 +256,16 @@ describe('Qwen-Image 2.1: 4-step sampler', () => {
     assert.equal(workflow['8']!.class_type, 'T8QwenImage21FunAccPDD4Step');
     assert.equal(workflow['8']!.inputs.seed, 7);
     assert.deepEqual(workflow['9']!.inputs.samples, ['8', 0]);
+  });
+});
+
+describe('Qwen-Image 2.1: when to use 4 steps', () => {
+  it('Good / Fast use the PDD node when installed; Best keeps the full sampler', () => {
+    const nodes = new Set(['T8QwenImage21FunAccPDD4Step']);
+    assert.equal(qwenImage21UsesFourStep('final', nodes), true);
+    assert.equal(qwenImage21UsesFourStep('draft', nodes), true);
+    assert.equal(qwenImage21UsesFourStep('max', nodes), false);
+    assert.equal(qwenImage21UsesFourStep('final', new Set()), false);
+    assert.equal(qwenImage21UsesFourStep('final', null), false);
   });
 });

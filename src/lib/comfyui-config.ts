@@ -1,4 +1,8 @@
-import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
+import {
+  convertQwenEditWorkflowToImage21,
+  qwenImage21Steps,
+  qwenImage21UsesFourStep,
+} from './qwen-image-21-renderer';
 import { isQwenLightningModel, patchModelSamplingInWorkflow } from './model-sampling-patch';
 import { ensureFluxGuidanceInWorkflow } from './flux-guidance-patch';
 import { isCastcutProtectedSampler, shouldSkipGlobalSamplerPatch } from './workflow-enrich-markers';
@@ -1800,6 +1804,10 @@ export function injectPromptsWithFallbacks(
       // Fun ControlNet Union pose control made duo anatomy worse at 0.6–1.0 (live A/B
       // 2026-10-01: extra genitals, merged and role-swapped bodies) — off until a fix lands.
       poseControl: false,
+      fourStep: qwenImage21UsesFourStep(
+        options.qualityProfile,
+        options.availableNodeTypes ? new Set(options.availableNodeTypes) : null
+      ),
       ...(width > 0 && height > 0 ? { fallbackSize: { width, height } } : {}),
     });
     if (converted.converted) {

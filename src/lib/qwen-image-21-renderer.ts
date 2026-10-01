@@ -36,8 +36,19 @@ export function normalizeQwenRenderer(value: unknown): QwenRenderer {
 /** Steps by queue quality: the official pipeline runs ~40–50; 30 held likeness in the A/B. */
 export function qwenImage21Steps(profile?: string | null): number {
   if (profile === 'draft') return 20;
-  if (profile === 'max') return 40;
   return 30;
+}
+
+/**
+ * Good / Fast render 2.1 in 4 steps (Fun-Acc PDD) when ComfyUI has the node; Best keeps the full
+ * sampler. Live A/B, 6 stills: 13–22 s vs 38–62 s, equal on hand-in-hand / hug / kneel / lying,
+ * better on a selfie (30 steps added a person) — but ghosted extra arms on a fast arms-up try-on.
+ */
+export function qwenImage21UsesFourStep(
+  profile: string | null | undefined,
+  nodeTypes: ReadonlySet<string> | null
+): boolean {
+  return profile !== 'max' && Boolean(nodeTypes?.has(QWEN_IMAGE_21_FOUR_STEP_NODE));
 }
 
 const isRef = (value: unknown): value is [string, number] =>
