@@ -10,6 +10,7 @@
  * Keep each placement concrete (who lies/sits/stands where, facing which way, what touches
  * what). Do not add "never …" locks: CFG 1 has no negative, and naming a thing summons it.
  */
+import { swapDayPromptGender } from '@/lib/day-lead-gender';
 import { dayPartnerRecipeLine, type DayPartner, type DayPartnerNoun } from '@/lib/day-partner';
 import {
   parseIntimateLayout,
@@ -1021,39 +1022,79 @@ export function buildRapidSuggestiveDuoRecipe(input: {
   outfitFromFirst?: boolean;
   /** A Cast member as the second person (Day "Partner"), with the encoder image holding the face. */
   partner?: { partner: DayPartner; image: RecipeImage } | null;
+  /**
+   * The Cast lead (default a woman). The couple is written for this pair — two women, two men,
+   * or either way round — so the finished prompt is not gender-swapped afterwards.
+   */
+  lead?: DayPartnerNoun;
 }): string | null {
   const raw = input.beat?.trim();
   if (!raw) {
     return null;
   }
-  const beat = stripNegatedClauses(raw)
+  const leadMan = input.lead === 'man';
+  const lead: 'man' | 'woman' = leadMan ? 'man' : 'woman';
+  const partnerNoun: DayPartnerNoun = input.partner?.partner.noun ?? (leadMan ? 'woman' : 'man');
+  const sameSex = partnerNoun === lead;
+  const cleaned = stripNegatedClauses(raw)
     .replace(/\bCast\b/g, 'she')
     .replace(/\s+([,;])/g, '$1')
     .replace(/([,;—-])(?:\s*[,;—-])+/g, '$1')
     .replace(/[\s,;—-]+$/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
-  const hers = input.outfitImage
+  // Beats are written for a woman with a man: two women / two men name the partner instead of
+  // "him", and a man lead takes her part.
+  const beat = sameSex
+    ? leadMan
+      ? twoMenBeat(cleaned)
+      : twoWomenBeat(cleaned)
+    : leadMan
+      ? swapDayPromptGender(cleaned)
+      : cleaned;
+  const leadWears = input.outfitImage
     ? `the outfit from the ${input.outfitImage} image`
     : input.outfitFromFirst
       ? 'the outfit from the first image'
-      : (outfitWords(input.outfit) ?? suggestiveBeatClothes(beat) ?? 'a flirty dress');
-  const noun = input.partner?.partner.noun ?? 'man';
-  const other = noun === 'man' ? 'a man' : noun === 'woman' ? 'another woman' : 'another person';
+      : (outfitWords(input.outfit) ??
+        (leadMan ? null : suggestiveBeatClothes(cleaned)) ??
+        (leadMan ? 'a fitted shirt and trousers' : 'a flirty dress'));
+  const other =
+    partnerNoun === 'person'
+      ? 'another person'
+      : sameSex
+        ? `another ${partnerNoun}`
+        : `a ${partnerNoun}`;
   const otherWears =
-    noun === 'man' ? 'he wears' : noun === 'woman' ? 'the other woman wears' : 'the other wears';
+    partnerNoun === 'person'
+      ? 'the other wears'
+      : sameSex
+        ? `the other ${partnerNoun} wears`
+        : partnerNoun === 'man'
+          ? 'he wears'
+          : 'she wears';
+  const leadPronoun = leadMan ? 'He' : 'She';
+  const leadPossessive = leadMan ? 'his' : 'her';
+  const otherWho =
+    partnerNoun === 'person'
+      ? 'the other person'
+      : sameSex
+        ? `the other ${partnerNoun}`
+        : `the ${partnerNoun}`;
+  const otherPossessive = partnerNoun === 'man' ? 'his' : partnerNoun === 'woman' ? 'her' : 'their';
+  const descriptor = descriptorLine(input.descriptor);
   return [
     RAPID_SUGGESTIVE_RECIPE_MARK,
-    `A woman and ${other} together, both fully clothed, affectionate.`,
+    `A ${lead} and ${other} together, both fully clothed, affectionate.`,
     `Moment: ${beat}.`,
-    `She wears ${withArticle(hers)}; ${otherWears} ${partnerClothes(beat, noun)}.`,
+    `${leadPronoun} wears ${withArticle(leadWears)}; ${otherWears} ${partnerClothes(beat, partnerNoun)}.`,
     recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),
-    descriptorLine(input.descriptor),
+    leadMan ? descriptor?.replace(/^The woman:/, 'The man:') : descriptor,
     input.partner
-      ? dayPartnerRecipeLine(input.partner.partner, input.partner.image)
+      ? dayPartnerRecipeLine(input.partner.partner, input.partner.image, otherWho, lead)
       : input.faceOnly === false && !input.outfitFromFirst && !input.outfitImage
-        ? 'Keep her face from the first image, not its clothes; the man has his own face.'
-        : 'Keep her face from the first image; the man has his own face.',
+        ? `Keep ${leadPossessive} face from the first image, not its clothes; ${otherWho} has ${otherPossessive} own face.`
+        : `Keep ${leadPossessive} face from the first image; ${otherWho} has ${otherPossessive} own face.`,
     input.poseGuide
       ? `Match their two bodies to the ${input.poseGuide === true ? 'second' : input.poseGuide} image (pose map).`
       : null,

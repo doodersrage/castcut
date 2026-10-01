@@ -120,7 +120,10 @@ import {
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { dayThemeOf } from '@/lib/day-themes';
 import { restoreText, swapDayPromptGender } from '@/lib/day-lead-gender';
+import { twoWomenBeat } from '@/lib/rapid-duo-recipe';
 import { normalizeDayWeather, withDayWeather } from '@/lib/day-weather';
+import { dayClothedLeadLines, dayOutfitPromptName } from '@/lib/day-clothed-lead';
+import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
 import {
   renderDayPartnerStandIn,
   reusableDayPartnerStandIn,
@@ -633,12 +636,21 @@ export function useDayPlannerToolOrchestrationCore() {
           })
         : queuePlate;
       const poseGuide = options?.poseGuide !== false && Boolean(hasPlate);
+      // A same-sex partner: beats are written for a woman with a man ("her arms around his
+      // neck") — name the partner instead. For a man lead the whole prompt is swapped later, so
+      // "her girlfriend" comes out as "his boyfriend".
+      const sameSexPartner =
+        options?.partner && options.partner.noun !== 'person' && options.partner.noun === leadNoun;
+      const beatSlot =
+        sameSexPartner && slot.sceneHints
+          ? { ...slot, sceneHints: twoWomenBeat(slot.sceneHints) }
+          : slot;
       return buildDaySlotPrompt({
         // Weather / season rides on the Setting (SCENE lead, SETTING line, recipe room).
         slot: toolSettings.dayWeather
-          ? { ...slot, location: withDayWeather(slot.location, toolSettings.dayWeather) }
-          : slot,
-        wardrobeLabel: wardrobeLabelFor(slot.wardrobeId),
+          ? { ...beatSlot, location: withDayWeather(beatSlot.location, toolSettings.dayWeather) }
+          : beatSlot,
+        wardrobeLabel: dayOutfitPromptName(wardrobeLabelFor(slot.wardrobeId)),
         characterName: character?.name,
         characterDescriptor: character?.descriptor || character?.hints,
         lockedLocation: shared.lockedLocation,
@@ -1248,11 +1260,32 @@ export function useDayPlannerToolOrchestrationCore() {
         const swapLead =
           leadNoun === 'man' &&
           !basePrompt.includes(RAPID_DUO_RECIPE_MARK) &&
+          // The Suggestive couple recipe is written for the pair already (see its `lead`).
+          !/ together, both fully clothed, affectionate\./.test(basePrompt) &&
           !(adultStill && leadHeadcount >= 2);
         // The whole finished prompt is swapped below; the partner line names the partner's own
         // gender, so it goes in pre-swapped (the swap turns it back).
         const forLead = (text: string) => (swapLead && text ? swapDayPromptGender(text) : text);
+        // Clothed stills: Rapid follows the opening lines, and the brief's opening only names
+        // her — duo beats lost the partner (4/10) and outdoor beats went barefoot. Live A/B
+        // (2026-09-30, same seeds): a TWO PEOPLE opening line kept the partner 10/10; a
+        // footwear line put shoes on 4/4 outdoors.
+        const clothedLeadLines = isRapidDuoRecipePrompt(basePrompt)
+          ? []
+          : dayClothedLeadLines({
+              beat: queueTarget.sceneHints,
+              setting: queueTarget.location,
+              headcount: leadHeadcount,
+              dayMood: toolSettings.dayMood,
+              adult: adultStill,
+              companionLook: slotPartner?.descriptor,
+              leadOutfit:
+                !omitGarment && !replaceKeepOutfit && wardrobeId
+                  ? dayOutfitPromptName(formatWardrobeKitLabel(wardrobeLabelFor(wardrobeId) || ''))
+                  : null,
+            });
         const prompt = [
+          ...clothedLeadLines,
           basePrompt,
           // The duo recipes name the partner's image themselves; the long brief (and a recipe
           // that has no partner wording, e.g. Klein spoon) gets one line.

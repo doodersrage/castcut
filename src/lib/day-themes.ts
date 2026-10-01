@@ -143,7 +143,7 @@ const NIGHT_OUT: DayThemeDefinition = {
   eveningKitOnly: true,
   companions: true,
   kitRe:
-    /\b(cocktail dress|punk leather ensemble|y2k outfit|festival rave outfit|streetwear fit|goth layered outfit|slip dress|jumpsuit|bomber jacket|leather jacket)\b/i,
+    /\b(cocktail dress|punk leather ensemble|y2k outfit|festival rave outfit|goth layered outfit|slip dress|jumpsuit|bomber jacket|leather jacket)\b/i,
   scenes: {
     morning: [
       [
@@ -151,7 +151,7 @@ const NIGHT_OUT: DayThemeDefinition = {
         'messy living room the morning after a party',
       ],
       [
-        "sitting on the kitchen counter eating toast in last night's outfit, legs dangling",
+        "perched on the kitchen countertop eating toast in last night's outfit, legs dangling off the edge",
         'bright kitchen with party leftovers',
       ],
     ],
@@ -161,7 +161,7 @@ const NIGHT_OUT: DayThemeDefinition = {
         'bathroom with a big mirror and warm vanity lights',
       ],
       [
-        'sitting on the bed edge pulling on boots, one foot up on the mattress',
+        'sitting on the bed edge pulling on an ankle boot, that foot raised onto the mattress',
         'bedroom with outfits laid on the bed',
       ],
     ],
@@ -286,8 +286,8 @@ const LAZY_SUNDAY: DayThemeDefinition = {
     ],
     night: [
       [
-        'sitting in a bubble bath with a candle lit, knees drawn up, eyes closed',
-        'candlelit bathroom with a bubble bath',
+        'standing at the bathroom mirror smoothing on a face mask, hair wrapped up in a towel, candles lit',
+        'candlelit bathroom with a big mirror',
       ],
       [
         'lying in bed reading by the bedside lamp, propped on pillows',
@@ -337,7 +337,7 @@ const PHOTOSHOOT: DayThemeDefinition = {
         'photo studio with a seamless pale gray backdrop and softboxes',
       ],
       [
-        'sitting on a wooden stool in the studio, one leg crossed, leaning forward toward the camera',
+        'sitting on a wooden stool in the studio with one leg crossed over the other knee, leaning forward toward the camera',
         'daylight studio with a wooden stool and a big window',
       ],
     ],
@@ -371,7 +371,7 @@ const PHOTOSHOOT: DayThemeDefinition = {
         'city street under a pink neon sign',
       ],
       [
-        'kneeling on one knee on a black studio floor under a single spotlight',
+        'down on one knee on a dark studio floor under a single spotlight, the other foot planted forward',
         'dark studio with a single hard spotlight',
       ],
     ],
@@ -410,7 +410,7 @@ const COSPLAY: DayThemeDefinition = {
   hint: 'Costumes and themed sets — convention floor, photo shoots, fantasy locations',
   companions: false,
   kitRe:
-    /\b(wizard robe outfit|knight armor cuirass look|samurai hakama set|belly dance costume|circus ringmaster coat outfit|magician tailcoat|ballet tutu outfit|renaissance faire outfit|flamenco dress|sailor deck outfit|dirndl dress|hanbok set|goth layered outfit|pilot uniform|barbarian furs|necromancer robes|dwarven mail|rogue leather armor|battle mage robes|elven (?:ranger|gown)|druid woven vestments|knight plate armor|oracle ceremonial vestments|wizard robes|witch ritual robes|cleric vestments|sorceress gown|paladin cuirass)\b/i,
+    /\b(wizard robe outfit|knight armor cuirass look|samurai hakama set|circus ringmaster coat outfit|magician tailcoat|renaissance faire outfit|flamenco dress|sailor deck outfit|dirndl dress|hanbok set|goth layered outfit|pilot uniform|barbarian furs|necromancer robes|dwarven mail|rogue leather armor|battle mage robes|elven (?:ranger|gown)|druid woven vestments|knight plate armor|oracle ceremonial vestments|wizard robes|witch ritual robes|cleric vestments|sorceress gown|paladin cuirass)\b/i,
   scenes: {
     morning: [
       [

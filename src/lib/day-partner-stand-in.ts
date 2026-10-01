@@ -14,7 +14,7 @@ import type { DayPartnerNoun } from '@/lib/day-partner';
 import { loadImageBlobFromUrls } from '@/lib/isolate-subject';
 import { cropPortraitFaceRegionFromBlob } from '@/lib/portrait-face-crop';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import { pickDistinctSubjects } from '@/lib/variation-seed';
+import { pickCompanionLook } from '@/lib/day-clothed-lead';
 
 export type DayPartnerStandIn = {
   noun: 'man' | 'woman';
@@ -31,16 +31,8 @@ type SendComfyUi = (
   options?: SendComfyUiOptions
 ) => Promise<string | undefined | void>;
 
-/** Marks on the body ride into every still and read as wounds ("a faded scar on one forearm"). */
-const BODY_MARK_CLAUSE_RE =
-  /,?\s*(?:and\s+)?(?:an?\s+)?[^,]*\b(?:scar|tattoo|birthmark|burn|bruise|wound|mole)s?\b[^,]*/gi;
-
 export function pickDayPartnerStandInLook(noun: 'man' | 'woman'): string {
-  const look = pickDistinctSubjects(1, noun === 'man' ? 'men' : 'women')[0] ?? `a ${noun}`;
-  return look
-    .replace(BODY_MARK_CLAUSE_RE, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
+  return pickCompanionLook(noun);
 }
 
 export function buildDayPartnerStandInPrompt(look: string): string {

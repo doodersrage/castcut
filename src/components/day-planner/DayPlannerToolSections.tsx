@@ -35,6 +35,7 @@ import { fittingSwipeNeighbor } from '@/lib/fitting-room';
 import {
   buildDayProgressLightboxState,
   daySessionStatusLine,
+  isDayAdultMood,
   type DaySlotId,
 } from '@/lib/day-planner';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
@@ -45,6 +46,7 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
+import TaskRequirementsCard from '@/components/TaskRequirementsCard';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import DayMoodStrip from '@/components/day-planner/DayMoodStrip';
 import DayRemixMenu from '@/components/day-planner/DayRemixMenu';
@@ -579,6 +581,17 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           description="Tap a time of day to edit Setting & Beat. Suggest day fills a morning→night plan before you Queue."
           data-testid="day-slot-board"
         >
+          {/* The few files this Day needs, one Download all (hidden when installed). */}
+          <TaskRequirementsCard
+            task="This Day"
+            testId="day-task-requirements"
+            input={{
+              model: shared.model,
+              adult: isDayAdultMood(dayMood) && intimateEnabled,
+              faceFinish,
+              autoReview: autoReviewStills,
+            }}
+          />
           {/* Mood and length decide the board — first, not after six phone-height cards. */}
           <DayMoodStrip
             className="mb-3"
@@ -757,6 +770,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           description="Stills and clips land here as you Queue — watch them in order."
           data-testid="day-reel"
         >
+          <TaskRequirementsCard
+            task="Animate"
+            testId="day-animate-requirements"
+            input={{ animate: true, adult: isDayAdultMood(dayMood) && intimateEnabled }}
+          />
           <FilmWatchPlayer
             compact
             shots={sampleWatch ? sampleShots : watchPlaylist}

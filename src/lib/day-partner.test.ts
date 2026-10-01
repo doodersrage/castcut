@@ -165,3 +165,41 @@ describe('Day partner: two men and a man lead', () => {
     assert.doesNotMatch(clip, /\b(?:she|her)\b/);
   });
 });
+
+describe('Suggestive couple recipe for any pair', () => {
+  const beat = 'straddling her partner on the couch, his hands on her waist, laughing';
+  const woman = inventedDayPartner('new:woman')!;
+  const man = inventedDayPartner('new:man')!;
+  const recipe = (lead: 'man' | 'woman', partner?: typeof man) =>
+    buildRapidSuggestiveDuoRecipe({
+      beat,
+      poseGuide: true,
+      lead,
+      ...(partner ? { partner: { partner, image: 'second' as const } } : {}),
+    })!;
+
+  it('two women never mention a man', () => {
+    const text = recipe('woman', woman);
+    assert.match(text, /A woman and another woman together/);
+    assert.match(text, /her girlfriend's hands on her waist/);
+    assert.doesNotMatch(text, /\b(?:man|he|his|him)\b/i);
+    assert.match(text, /the other woman has her own face/);
+  });
+
+  it('two men never mention a woman', () => {
+    const text = recipe('man', man);
+    assert.match(text, /A man and another man together/);
+    assert.match(text, /He wears a fitted shirt and trousers/);
+    assert.doesNotMatch(text, /\b(?:woman|she|her|dress)\b/i);
+  });
+
+  it('a man lead with no partner chosen gets a woman', () => {
+    const text = recipe('man');
+    assert.match(text, /A man and a woman together/);
+    assert.match(text, /Keep his face from the first image; the woman has her own face/);
+  });
+
+  it('the default pair is unchanged', () => {
+    assert.match(recipe('woman'), /A woman and a man together/);
+  });
+});

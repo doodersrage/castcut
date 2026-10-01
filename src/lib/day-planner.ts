@@ -3461,6 +3461,7 @@ export function buildDaySlotPrompt(input: {
         ...(duoPartner && suggestiveCouple
           ? { partner: { partner: duoPartner, image: 'second' as const } }
           : {}),
+        ...(suggestiveCouple ? { lead: input.leadNoun === 'man' ? 'man' : 'woman' } : {}),
       });
       if (recipe) {
         return recipe;

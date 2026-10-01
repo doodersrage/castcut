@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
+import TaskRequirementsCard from '@/components/TaskRequirementsCard';
 import DayMoodStrip from '@/components/day-planner/DayMoodStrip';
 import DayRemixMenu from '@/components/day-planner/DayRemixMenu';
 import DaySeriesPanel from '@/components/day-planner/DaySeriesPanel';
@@ -31,6 +32,7 @@ import {
   buildDayProgressLightboxState,
   daySessionStatusLine,
   type DaySlotId,
+  isDayAdultMood,
 } from '@/lib/day-planner';
 import { fittingSwipeNeighbor } from '@/lib/fitting-room';
 import { ROLEPLAY_SETTING_PRESETS } from '@/lib/roleplay';
@@ -538,6 +540,16 @@ export default function MobileDayToolSections(vm: ViewModel) {
           qualityLedger={qualityLedger}
           clipChecks={clipChecks}
         />
+        <TaskRequirementsCard
+          task="This Day"
+          testId="day-task-requirements"
+          input={{
+            model: shared.model,
+            adult: isDayAdultMood(dayMood) && intimateEnabled,
+            faceFinish,
+            autoReview: autoReviewStills,
+          }}
+        />
         <DayMoodStrip
           busy={busy}
           allowCompanions={allowCompanions}
@@ -686,6 +698,11 @@ export default function MobileDayToolSections(vm: ViewModel) {
 
       <div className="space-y-2" data-testid="day-reel">
         <p className="type-caption text-[var(--text-muted)]">Day reel</p>
+        <TaskRequirementsCard
+          task="Animate"
+          testId="day-animate-requirements"
+          input={{ animate: true, adult: isDayAdultMood(dayMood) && intimateEnabled }}
+        />
         <FilmWatchPlayer
           shots={sampleWatch ? sampleShots : watchPlaylist}
           onOpenShot={sampleWatch ? undefined : shot => shot.key && openProgressLightbox(shot.key)}
