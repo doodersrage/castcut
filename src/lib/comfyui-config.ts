@@ -281,6 +281,8 @@ export type ComfyUiRuntimeConfig = {
   compactDraftSaves?: boolean;
   /** Qwen-Edit graphs render on Qwen-Image 2.1 instead of the engine's model. */
   qwenRenderer?: 'rapid' | 'qwen-image-2.1';
+  /** Qwen-Image 2.1 keeps the full sampler on Good too (Outfit try-ons: 4 steps ghosted arms). */
+  qwenImage21FullSampler?: boolean;
   /** Model id used for queue-time workflow optimize / graph enrich heuristics. */
   queueTargetModel?: string;
   /** Effective queue quality profile for this request (sampler, resolution, upscale). */
@@ -1346,6 +1348,7 @@ export function injectPromptsWithFallbacks(
     kleinEnhancerEnabled?: boolean;
     /** Swap the Qwen-Edit sampler onto Qwen-Image 2.1 (Engine → Renderer). */
     qwenRenderer?: 'rapid' | 'qwen-image-2.1';
+    qwenImage21FullSampler?: boolean;
     kleinEnhancerIdentityPreset?: import('./klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
     kleinEnhancerTextEnabled?: boolean;
     kleinEnhancerColorAnchorEnabled?: boolean;
@@ -1804,10 +1807,12 @@ export function injectPromptsWithFallbacks(
       // Fun ControlNet Union pose control made duo anatomy worse at 0.6–1.0 (live A/B
       // 2026-10-01: extra genitals, merged and role-swapped bodies) — off until a fix lands.
       poseControl: false,
-      fourStep: qwenImage21UsesFourStep(
-        options.qualityProfile,
-        options.availableNodeTypes ? new Set(options.availableNodeTypes) : null
-      ),
+      fourStep:
+        options.qwenImage21FullSampler !== true &&
+        qwenImage21UsesFourStep(
+          options.qualityProfile,
+          options.availableNodeTypes ? new Set(options.availableNodeTypes) : null
+        ),
       ...(width > 0 && height > 0 ? { fallbackSize: { width, height } } : {}),
     });
     if (converted.converted) {
@@ -1947,6 +1952,9 @@ export function stripEmptyComfyUiRuntime(
   }
   if (runtime.qwenRenderer === 'qwen-image-2.1') {
     result.qwenRenderer = 'qwen-image-2.1';
+  }
+  if (runtime.qwenImage21FullSampler === true) {
+    result.qwenImage21FullSampler = true;
   }
 
   if (runtime.queueQualityProfile) {

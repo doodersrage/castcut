@@ -41,3 +41,16 @@ describe('Qwen-Image 2.1 engine queueing', () => {
     assert.equal(resolveAdultNudePlateQueueModel('qwen-image-2.1-edit', { adultNude: false }), 'qwen-image-2.1-edit');
   });
 });
+
+describe('Qwen-Image 2.1 runtime', () => {
+  it('Outfit try-ons keep the full sampler; other tools may use 4 steps', async () => {
+    const { resolveRuntimeForQueue } = await import('../comfyui-runtime-for-model');
+    const fitting = resolveRuntimeForQueue('qwen-image-2.1-edit', 'fitting', { inventory: null });
+    assert.equal(fitting.qwenRenderer, 'qwen-image-2.1');
+    assert.equal(fitting.qwenImage21FullSampler, true);
+    const day = resolveRuntimeForQueue('qwen-image-2.1-edit', 'image-prompt', { inventory: null });
+    assert.equal(day.qwenImage21FullSampler, undefined);
+    const rapid = resolveRuntimeForQueue('qwen-rapid-aio-edit-nsfw', 'fitting', { inventory: null });
+    assert.equal(rapid.qwenRenderer, undefined);
+  });
+});

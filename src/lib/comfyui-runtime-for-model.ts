@@ -469,7 +469,11 @@ export function resolveRuntimeForQueue(
     ...base,
     // The picked engine renders on Qwen-Image 2.1; the graph above is its Rapid AIO base.
     ...(poseModelFamily(model) === 'qwen-image-2.1'
-      ? { qwenRenderer: 'qwen-image-2.1' as const }
+      ? {
+          qwenRenderer: 'qwen-image-2.1' as const,
+          // Outfit try-ons keep the full sampler: 4 steps ghosted extra arms on arms-up poses.
+          ...(tool === 'fitting' ? { qwenImage21FullSampler: true } : {}),
+        }
       : {}),
     queueQualityProfile: resolvedProfile,
     modelSamplerOverrides: shared.modelSamplerOverrides,
