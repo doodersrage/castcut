@@ -109,7 +109,10 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
   const on = (fallback: string) => `the ${surface ?? fallback}`;
   switch (layout) {
     case 'missionary':
-      return `Side view, both faces in frame. The woman lies on her back on ${on('bed')} with her legs spread and wrapped around him; the man lies on top of her, his chest over her chest and his hips between her thighs, propped up on his forearms, his penis inside her; their faces close, looking at each other.`;
+      // "Side view… propped up on his forearms" knelt him upright at her side 3/3 (and once
+      // beside her, user report); naming the position and his face-down body put him on top 3/3
+      // (live A/B on the user's night still, 2026-10-01). A foot-of-bed camera broke anatomy 3/3.
+      return `Missionary position, both faces in frame. The woman lies face up on ${on('bed')}; the man is on top of her: he lies face down over her body, supporting himself on his elbows; she wraps her legs around his waist; his penis inside her; their faces close.`;
     case 'mating_press':
       return `The woman lies on her back on ${on('bed')} with her knees pulled up toward her shoulders; the man kneels over her between her legs, leaning his weight onto the backs of her thighs, his penis inside her; both faces in frame.`;
     case 'straddle':
