@@ -96,6 +96,11 @@ function sheGivesOral(beat: string): boolean {
 }
 
 /** A floor / rug can't be sat on the edge of — oral there has the receiver standing. */
+/** Windows, glass doors and mirrors — a back-to-the-glass pose turns into a sill perch. */
+function isGlassSurface(surface: string | null): boolean {
+  return /\b(?:window|glass|mirror)\b/i.test(surface ?? '');
+}
+
 function isFloorSurface(surface: string | null): boolean {
   return Boolean(surface && /\b(?:floor|rug|carpet|ground|tiles?|mat)\b/i.test(surface));
 }
@@ -125,8 +130,11 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
     case 'scissors':
       return `The woman and the man sit on ${on('bed')} facing each other, each leaning back on their hands, their legs scissored together so their hips press together mid-sex; both faces in frame.`;
     case 'wall':
-      return /\b(?:partner\s+behind|from\s+behind)\b/i.test(beat)
-        ? `The woman stands facing ${on('wall')} with her palms flat against it and her hips pushed back; the man stands pressed against her back, penetrating her from behind; she looks back over her shoulder. Both standing on the floor.`
+      // Glass: back-to-the-window face-to-face put her perched on the sill, twisted, with a
+      // reflection clone 3/3; facing the glass from behind (as the wall map draws it) was clean
+      // 3/3 (live A/B on the user's hotel-window still, 2026-10-01).
+      return /\b(?:partner\s+behind|from\s+behind)\b/i.test(beat) || isGlassSurface(surface)
+        ? `The woman stands facing ${on('wall')} with her palms flat against it and her hips pushed back; the man stands pressed against her back, penetrating her from behind; she looks back over her shoulder at him. Both standing on the floor.`
         : // "one leg lifted and hooked around his hip" drew the lifted foot sticking out behind
           // his back — a third leg on most seeds. Placing each leg: two clear legs 8/8, joined,
           // facing each other 6/8. Putting his hand on the wall stood him apart (live 2026-09-29).
@@ -200,7 +208,7 @@ function placementTwoWomen(
     case 'scissors':
       return `The woman and ${gf} sit on ${on('bed')} facing each other, each leaning back on their hands, their legs scissored together so their bare vulvas press and grind together; both faces in frame.`;
     case 'wall':
-      return /\b(?:partner\s+behind|from\s+behind)\b/i.test(beat)
+      return /\b(?:partner\s+behind|from\s+behind)\b/i.test(beat) || isGlassSurface(surface)
         ? `The woman stands facing ${on('wall')} with her palms flat against it and her hips pushed back; ${gf} stands pressed against her back, one hand between her thighs from behind, fingering her; she looks back over her shoulder. Both standing on the floor.`
         : `The woman stands with her back pressed flat against ${on('wall')}. Her right foot is flat on the floor; her left knee is raised to her girlfriend's hip. ${cap(gf)} stands pressed chest to chest against her, kissing her, one hand between her thighs, fingering her.`;
     case 'lift':

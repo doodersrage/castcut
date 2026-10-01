@@ -548,3 +548,13 @@ describe('calmSexLaughter', () => {
     assert.doesNotMatch(recipe!, /laugh/i);
   });
 });
+
+describe('wall layout on glass', () => {
+  it('a window wall turns to face the glass from behind; a plain wall stays face to face', () => {
+    const glass = String(buildRapidDuoRecipe({ beat: 'pressed against a hotel window wall mid-sex at dusk', poseGuide: true }));
+    assert.match(glass, /stands facing the hotel window with her palms flat against it/);
+    assert.doesNotMatch(glass, /back pressed flat against/);
+    const wall = String(buildRapidDuoRecipe({ beat: 'pressed against the hallway wall mid-sex', poseGuide: true }));
+    assert.match(wall, /back pressed flat against the hallway wall/);
+  });
+});
