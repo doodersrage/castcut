@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { liftBodyDepth, moveJointRigid, rotateBody } from './pose-joint-edit';
+import {
+  bendBody,
+  bodyFacing,
+  liftBodyDepth,
+  moveJointRigid,
+  moveWholeBody,
+  rotateBody,
+} from './pose-joint-edit';
 import type { NormalizedBody } from './pose-library';
 import { poseStarterBody } from './pose-starters';
 
@@ -24,7 +31,7 @@ describe('pose joint editor: keep proportions', () => {
   });
 
   it('an elbow swings around the shoulder and the wrist comes with it', () => {
-    const moved = moveJointRigid([stand], 0, 3, { x: 0.05, y: stand[2]!.y }, ASPECT)[0]!;
+    const moved = moveJointRigid([stand], 0, 3, { x: stand[2]!.x - 0.05, y: stand[2]!.y }, ASPECT)[0]!;
     assert.deepEqual(moved[2], stand[2]);
     close(moved[3]!.y, stand[2]!.y);
     assert.notDeepEqual(moved[4], stand[4]);
@@ -44,11 +51,33 @@ describe('pose joint editor: keep proportions', () => {
     close(length(far, 2, 4), length(stand, 2, 3) + length(stand, 3, 4), 1e-4);
   });
 
-  it('the neck moves the whole figure, stopping at the frame edge without squashing it', () => {
-    const moved = moveJointRigid([stand], 0, 1, { x: 5, y: stand[1]!.y }, ASPECT)[0]!;
+  it('pulling a hand or knee past full stretch drags the whole body after it', () => {
+    const pulledHand = moveJointRigid([stand], 0, 4, { x: 0.1, y: 0.5 }, ASPECT)[0]!;
+    assert.ok(pulledHand[2]!.x < stand[2]!.x - 0.05, 'shoulder follows');
+    assert.ok(pulledHand[10]!.x < stand[10]!.x - 0.05, 'feet follow');
+    for (const [a, b] of BONES) close(length(pulledHand, a, b), length(stand, a, b), 1e-4);
+    const pulledKnee = moveJointRigid([stand], 0, 9, { x: 0.15, y: 0.75 }, ASPECT)[0]!;
+    assert.ok(pulledKnee[1]!.x < stand[1]!.x - 0.03, 'neck follows');
+    // Within reach nothing else moves.
+    const near = moveJointRigid([stand], 0, 4, { x: stand[4]!.x - 0.03, y: stand[4]!.y - 0.05 }, ASPECT)[0]!;
+    assert.deepEqual(near[10], stand[10]);
+  });
+
+  it('the whole figure slides, stopping at the frame edge without squashing', () => {
+    const moved = moveWholeBody([stand], 0, 5, 0)[0]!;
     assert.ok(Math.max(...moved.map(p => p!.x)) <= 0.99 + 1e-9);
     for (const [a, b] of BONES) close(length(moved, a, b), length(stand, a, b));
     assert.ok(moved[1]!.x > stand[1]!.x);
+  });
+
+  it('dragging the neck bends at the waist: the legs stay, the upper body swings', () => {
+    const hipY = (stand[8]!.y + stand[11]!.y) / 2;
+    const bent = moveJointRigid([stand], 0, 1, { x: 0.95, y: hipY }, ASPECT)[0]!;
+    for (const leg of [8, 9, 10, 11, 12, 13]) assert.deepEqual(bent[leg], stand[leg]);
+    close(bent[1]!.y, hipY, 1e-6);
+    assert.ok(bent[0]!.x > bent[1]!.x, 'head leads past the neck');
+    for (const [a, b] of [[1, 2], [2, 3], [3, 4], [1, 5], [5, 6], [6, 7], [1, 0]] as const)
+      close(length(bent, a, b), length(stand, a, b));
   });
 });
 
@@ -71,6 +100,30 @@ describe('pose joint editor: 3D rotation', () => {
       close(p!.x, stand[i]!.x, 1e-6);
       close(p!.y, stand[i]!.y, 1e-6);
     });
+  });
+
+  it('bends forward at the waist in 3D: toward the camera when facing it, a bow when side-on', () => {
+    const front = bendBody(stand, depth, Math.PI / 3, ASPECT);
+    assert.ok(front.depth[1]! > 0.05, 'neck comes toward the camera');
+    assert.ok(length(front.body, 1, 8) < length(stand, 1, 8) * 0.75, 'torso foreshortens');
+    for (const leg of [8, 9, 10, 11, 12, 13]) assert.deepEqual(front.body[leg], stand[leg]);
+    const side = rotateBody(stand, depth, { turn: Math.PI / 2 }, ASPECT);
+    const bow = bendBody(side.body, side.depth, Math.PI / 3, ASPECT);
+    // Facing your right: the head goes right and down.
+    assert.ok(bow.body[0]!.x > side.body[0]!.x + 0.05);
+    assert.ok(bow.body[0]!.y > side.body[0]!.y);
+  });
+
+  it('says which way the figure faces after turning and tilting', () => {
+    assert.equal(bodyFacing(stand, depth, ASPECT)!.label, 'Facing you');
+    const right = rotateBody(stand, depth, { turn: Math.PI / 6 }, ASPECT);
+    assert.equal(bodyFacing(right.body, right.depth, ASPECT)!.label, 'Facing you, turned 30° to your right');
+    const side = rotateBody(stand, depth, { turn: -Math.PI / 2 }, ASPECT);
+    assert.equal(bodyFacing(side.body, side.depth, ASPECT)!.label, 'Side-on, facing your left');
+    const away = rotateBody(stand, depth, { turn: Math.PI }, ASPECT);
+    assert.equal(bodyFacing(away.body, away.depth, ASPECT)!.label, 'Back to you');
+    const tilted = rotateBody(stand, depth, { tilt: Math.PI / 6 }, ASPECT);
+    assert.match(bodyFacing(tilted.body, tilted.depth, ASPECT)!.label, /^Facing you, leaning forward 30°$/);
   });
 
   it('spinning keeps every bone length; tilting shortens the figure', () => {

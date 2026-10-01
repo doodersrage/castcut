@@ -142,16 +142,22 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
   await page.mouse.move(canvas.x + 12 + canvas.width * 0.2, canvas.y + 12, { steps: 4 });
   await page.mouse.up();
   expect(await shoulderGap()).toBeLessThan(gap * 0.95);
-  // The ↻ handle spins it: the head leaves the vertical line through the neck.
+  // The ↻ handle spins it: the head swings away from where it was.
+  const headBefore = (await page.getByTestId('outfit-pose-joint-0-0').boundingBox())!;
   const handle = (await page.getByTestId('outfit-pose-spin-handle').boundingBox())!;
   await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
   await page.mouse.down();
-  await page.mouse.move(handle.x + 90, handle.y + 60, { steps: 4 });
+  await page.mouse.move(handle.x + 120, handle.y + 80, { steps: 4 });
   await page.mouse.up();
-  const [head, neck] = await Promise.all(
-    [0, 1].map(joint => page.getByTestId(`outfit-pose-joint-0-${joint}`).boundingBox())
-  );
-  expect(Math.abs(head!.x - neck!.x)).toBeGreaterThan(4);
+  const headAfter = (await page.getByTestId('outfit-pose-joint-0-0').boundingBox())!;
+  expect(Math.hypot(headAfter.x - headBefore.x, headAfter.y - headBefore.y)).toBeGreaterThan(8);
+
+  // Bend at the waist, and the readout says which way the figure faces.
+  await page.getByTestId('outfit-pose-reset').click();
+  await expect(page.getByTestId('outfit-pose-facing')).toContainText('Facing you');
+  await page.getByTestId('outfit-pose-bend-forward').click();
+  await page.getByTestId('outfit-pose-bend-forward').click();
+  await expect(page.getByTestId('outfit-pose-facing')).toContainText('leaning forward 30°');
 
   await page.getByTestId('outfit-pose-save-to-my-poses').click();
   await page.getByTestId('outfit-pose-save-name').fill('Chair lean');

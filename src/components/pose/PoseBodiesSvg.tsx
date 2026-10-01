@@ -24,6 +24,8 @@ const LIMBS: ReadonlyArray<readonly [number, number, boolean, PosePart]> = [
   [12, 13, false, 'leftLeg'],
 ];
 
+const LIMB_ROOT: Record<PosePart, number> = { rightArm: 2, leftArm: 5, rightLeg: 8, leftLeg: 11 };
+
 /** The limb a joint belongs to (shoulders and hips count as their limb); null for head / neck. */
 export function posePartOfJoint(joint: number): PosePart | null {
   if (joint >= 2 && joint <= 4) return 'rightArm';
@@ -46,6 +48,7 @@ export function PoseFigureShape({
   weight = 0.012,
   dashed = false,
   parts = false,
+  depth,
 }: {
   body: NormalizedBody;
   aspect: number;
@@ -55,7 +58,15 @@ export function PoseFigureShape({
   dashed?: boolean;
   /** Colour each limb (with a pale outline) instead of drawing the figure in one colour. */
   parts?: boolean;
+  /**
+   * Depth per joint (+ toward the camera). Nearer limbs are drawn thicker and on top, limbs
+   * behind the torso thinner, paler and underneath.
+   */
+  depth?: ReadonlyArray<number | null>;
 }) {
+  const zOf = (i: number) => depth?.[i] ?? 0;
+  // ±0.2 of the figure's height in depth is about ±45% in thickness.
+  const near = (z: number) => Math.min(1.6, Math.max(0.55, 1 + z * 2.2));
   const at = (i: number) => {
     const p = body[i];
     return p ? { x: p.x * aspect, y: p.y } : null;
@@ -77,8 +88,49 @@ export function PoseFigureShape({
   }
   const headRadius =
     nose && neck ? Math.max(0.018, Math.hypot(nose.x - neck.x, nose.y - neck.y) * 0.62) : 0.03;
+  // Far limbs first, so nearer ones overlap them; `behind` picks the side of the torso.
+  const limbs = (behind: boolean) =>
+    [...LIMBS]
+      .map(limb => ({
+        limb,
+        z: (zOf(limb[0]) + zOf(limb[1])) / 2,
+        // Behind = further back than the shoulder / hip the limb hangs from.
+        rootZ: zOf(LIMB_ROOT[limb[3]]),
+      }))
+      .filter(({ z, rootZ }) => (depth ? z < rootZ - 0.02 : false) === behind)
+      .sort((p, q) => p.z - q.z)
+      .map(({ limb: [a, b, upper, part], z }) => {
+        const p = at(a);
+        const q = at(b);
+        if (!p || !q) return null;
+        const width = (upper ? weight * 1.5 : weight) * near(z);
+        return (
+          <g key={`${a}-${b}`} opacity={behind ? 0.6 : 1}>
+            {parts ? (
+              <line
+                x1={p.x}
+                y1={p.y}
+                x2={q.x}
+                y2={q.y}
+                stroke="var(--bg-base)"
+                strokeWidth={width + weight * 0.9}
+                strokeDasharray="none"
+              />
+            ) : null}
+            <line
+              x1={p.x}
+              y1={p.y}
+              x2={q.x}
+              y2={q.y}
+              stroke={parts ? POSE_PART_COLORS[part] : undefined}
+              strokeWidth={width}
+            />
+          </g>
+        );
+      });
   return (
     <g stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={dash}>
+      {limbs(true)}
       {torso ? (
         <path d={torso} fill={color} fillOpacity={0.22} strokeWidth={weight} />
       ) : neck ? (
@@ -106,35 +158,7 @@ export function PoseFigureShape({
       {nose && neck ? (
         <line x1={neck.x} y1={neck.y} x2={nose.x} y2={nose.y} strokeWidth={weight * 1.5} />
       ) : null}
-      {LIMBS.map(([a, b, upper, part]) => {
-        const p = at(a);
-        const q = at(b);
-        if (!p || !q) return null;
-        const width = upper ? weight * 1.5 : weight;
-        return (
-          <g key={`${a}-${b}`}>
-            {parts ? (
-              <line
-                x1={p.x}
-                y1={p.y}
-                x2={q.x}
-                y2={q.y}
-                stroke="var(--bg-base)"
-                strokeWidth={width + weight * 0.9}
-                strokeDasharray="none"
-              />
-            ) : null}
-            <line
-              x1={p.x}
-              y1={p.y}
-              x2={q.x}
-              y2={q.y}
-              stroke={parts ? POSE_PART_COLORS[part] : undefined}
-              strokeWidth={width}
-            />
-          </g>
-        );
-      })}
+      {limbs(false)}
       {nose ? (
         <circle
           cx={nose.x}

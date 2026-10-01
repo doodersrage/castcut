@@ -20,7 +20,10 @@ import ModalPortal from '@/components/ui/ModalPortal';
 import type { PhotoPose } from '@/lib/day-pose-guide';
 import type { NormalizedBody } from '@/lib/pose-library';
 import {
+  bendBody,
+  bodyFacing,
   liftBodyDepth,
+  moveWholeBody,
   moveJoint,
   moveJointRigid,
   rotateBody,
@@ -41,7 +44,7 @@ import {
 const EDITABLE = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const;
 const JOINT_NAMES: Record<number, string> = {
   0: 'head',
-  1: 'neck',
+  1: 'neck — drag to bend at the waist',
   2: 'right shoulder',
   3: 'right elbow',
   4: 'right wrist',
@@ -65,6 +68,9 @@ type Drag =
   | { kind: 'orbit'; person: number; x: number; y: number }
   /** The round handle above the head: spins the figure in the picture. */
   | { kind: 'spin'; person: number; angle: number };
+
+/** The unforeshortened figure depth is guessed against. */
+const STAND = poseStarterBody('stand');
 
 const hipCentre = (body: NormalizedBody) => {
   const hips = [body[8], body[11]].filter(Boolean) as Array<{ x: number; y: number }>;
@@ -120,6 +126,12 @@ export default function PoseJointEditor({
   const [rotatePerson, setRotatePerson] = useState(0);
   // Depth per figure, guessed on the first rotation and kept so repeated turns stay consistent.
   const depths = useRef<Array<BodyDepth | null>>([]);
+  // The same depths as state, for drawing (nearer limbs bigger, the facing readout, the top view).
+  const [shownDepths, setShownDepths] = useState<Array<BodyDepth | null>>([]);
+  const setDepths = (next: Array<BodyDepth | null>) => {
+    depths.current = next;
+    setShownDepths(next);
+  };
   const [saveName, setSaveName] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
   const checkpoint = () => {
@@ -131,6 +143,7 @@ export default function PoseJointEditor({
     const previous = history.current.pop();
     if (!previous) return;
     depths.current = previous.depths;
+    setShownDepths(previous.depths);
     latest.current = previous.bodies;
     setBodies(previous.bodies);
     setUndoable(history.current.length);
@@ -139,7 +152,7 @@ export default function PoseJointEditor({
   const startFrom = (id: PoseStarterId) => {
     const lead = poseStarterBody(id);
     checkpoint();
-    depths.current = [];
+    setDepths([]);
     update(previous => (previous.length > 1 ? addPerson([lead]) : [lead]));
     setSavedNote(null);
   };
@@ -184,11 +197,20 @@ export default function PoseJointEditor({
     const person = Math.min(who, latest.current.length - 1);
     const body = latest.current[person];
     if (!body) return;
-    const depth =
-      depths.current[person] ?? liftBodyDepth(body, poseStarterBody('stand'), safeAspect);
+    const depth = depths.current[person] ?? liftBodyDepth(body, STAND, safeAspect);
     const turned = rotateBody(body, depth, rotation, safeAspect);
-    depths.current[person] = turned.depth;
+    setDepths(Object.assign([...depths.current], { [person]: turned.depth }));
     update(previous => previous.map((b, i) => (i === person ? turned.body : b)));
+  };
+
+  const bend = (angle: number) => {
+    const person = Math.min(rotatePerson, latest.current.length - 1);
+    const body = latest.current[person];
+    if (!body) return;
+    const depth = depths.current[person] ?? liftBodyDepth(body, STAND, safeAspect);
+    const bent = bendBody(body, depth, angle, safeAspect);
+    setDepths(Object.assign([...depths.current], { [person]: bent.depth }));
+    update(previous => previous.map((b, i) => (i === person ? bent.body : b)));
   };
 
   const spinAngle = (person: number, at: { x: number; y: number }) => {
@@ -214,11 +236,9 @@ export default function PoseJointEditor({
     if (current.kind === 'joint') {
       update(previous => move(previous, current.person, current.joint, to));
     } else if (current.kind === 'body') {
-      const neck = latest.current[current.person]?.[1];
-      if (neck) {
-        const target = { x: neck.x + (to.x - current.x), y: neck.y + (to.y - current.y) };
-        update(previous => moveJointRigid(previous, current.person, 1, target, safeAspect));
-      }
+      update(previous =>
+        moveWholeBody(previous, current.person, to.x - current.x, to.y - current.y)
+      );
       drag.current = { ...current, x: to.x, y: to.y };
     } else if (current.kind === 'orbit') {
       // Dragging across the whole canvas is half a turn.
@@ -282,6 +302,13 @@ export default function PoseJointEditor({
     };
   })();
 
+  const focusBody = bodies[handlePerson] ?? null;
+  const focusDepth = focusBody
+    ? (shownDepths[handlePerson] ?? liftBodyDepth(focusBody, STAND, safeAspect))
+    : [];
+  const facing = focusBody ? bodyFacing(focusBody, focusDepth, safeAspect) : null;
+  const focusColor = POSE_FIGURE_COLORS[handlePerson % POSE_FIGURE_COLORS.length]!;
+
   return (
     <ModalPortal>
       <div
@@ -341,6 +368,7 @@ export default function PoseJointEditor({
               const lh = at(11);
               // The figure being worked on is solid; the other one steps back.
               const focused = bodies.length < 2 || person === handlePerson;
+              const depth = shownDepths[person] ?? liftBodyDepth(body, STAND, safeAspect);
               return (
                 <g key={person} opacity={focused ? 1 : 0.5}>
                   <g opacity={0.9} style={{ pointerEvents: 'none' }}>
@@ -350,6 +378,7 @@ export default function PoseJointEditor({
                       color={color}
                       weight={0.009}
                       parts
+                      depth={depth}
                     />
                   </g>
                   {rs && ls && rh && lh ? (
@@ -404,7 +433,10 @@ export default function PoseJointEditor({
                         <circle
                           cx={p.x}
                           cy={p.y}
-                          r={active ? 0.02 : 0.014}
+                          r={
+                            (active ? 0.02 : 0.014) *
+                            Math.min(1.5, Math.max(0.65, 1 + (depth[joint] ?? 0) * 2.2))
+                          }
                           fill={part ? POSE_PART_COLORS[part] : color}
                           stroke="var(--bg-base)"
                           strokeWidth={0.004}
@@ -479,6 +511,10 @@ export default function PoseJointEditor({
             <ul className="type-caption list-disc space-y-0.5 pl-4 text-[var(--text-muted)]">
               <li>Drag a hand or foot — the elbow or knee bends to follow.</li>
               <li>Drag an elbow, knee, shoulder, hip or the head to swing just that part.</li>
+              <li>
+                Drag the neck to bend at the waist (the legs stay); Bend forward / back folds the
+                body toward or away from where it faces.
+              </li>
               <li>Drag the body to move the whole figure.</li>
               <li>Drag the empty background to turn (sideways) or tilt (up / down) it.</li>
               <li>Drag the ↻ handle above the head to spin it.</li>
@@ -504,6 +540,28 @@ export default function PoseJointEditor({
               ))}
               <span>(their right and left, not yours)</span>
             </p>
+            {focusBody ? (
+              <div
+                className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+                data-testid={`${testIdPrefix}-facing`}
+              >
+                <PoseTopView
+                  body={focusBody}
+                  depth={focusDepth}
+                  aspect={safeAspect}
+                  color={focusColor}
+                />
+                <div className="min-w-0 space-y-0.5">
+                  <p className="type-caption text-[var(--text-muted)]">Seen from above</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)]" role="status">
+                    {facing?.label ?? 'Facing you'}
+                  </p>
+                  <p className="type-caption text-[var(--text-muted)]">
+                    Nearer limbs are drawn thicker; limbs behind the body are thin and pale.
+                  </p>
+                </div>
+              </div>
+            ) : null}
             <label className="type-caption flex items-center gap-1.5 text-[var(--text-secondary)]">
               <input
                 type="checkbox"
@@ -546,7 +604,7 @@ export default function PoseJointEditor({
                 data-testid={`${testIdPrefix}-mirror`}
                 onClick={() => {
                   checkpoint();
-                  depths.current = [];
+                  setDepths([]);
                   update(previous => mirrorBodies(previous));
                 }}
               >
@@ -558,7 +616,7 @@ export default function PoseJointEditor({
                 data-testid={`${testIdPrefix}-reset`}
                 onClick={() => {
                   checkpoint();
-                  depths.current = [];
+                  setDepths([]);
                   setRotatePerson(0);
                   update(() => initial.map(body => body.map(p => (p ? { ...p } : null))));
                 }}
@@ -573,7 +631,7 @@ export default function PoseJointEditor({
                     data-testid={`${testIdPrefix}-add-person`}
                     onClick={() => {
                       checkpoint();
-                      depths.current = [];
+                      setDepths([]);
                       update(previous => addPerson(previous));
                     }}
                   >
@@ -586,7 +644,7 @@ export default function PoseJointEditor({
                     data-testid={`${testIdPrefix}-remove-person`}
                     onClick={() => {
                       checkpoint();
-                      depths.current = [];
+                      setDepths([]);
                       setRotatePerson(0);
                       update(previous => removePerson(previous));
                     }}
@@ -595,6 +653,28 @@ export default function PoseJointEditor({
                   </Button>
                 )
               ) : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="type-caption text-[var(--text-muted)]">Waist</span>
+              {(
+                [
+                  ['Bend forward', STEP, 'bend-forward'],
+                  ['Bend back', -STEP, 'bend-back'],
+                ] as const
+              ).map(([label, angle, id]) => (
+                <Button
+                  key={id}
+                  size="sm"
+                  variant="secondary"
+                  data-testid={`${testIdPrefix}-${id}`}
+                  onClick={() => {
+                    checkpoint();
+                    bend(angle);
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
             </div>
             <details className="type-caption text-[var(--text-muted)]">
               <summary className="cursor-pointer">Rotate in exact 15° steps</summary>
@@ -700,5 +780,111 @@ export default function PoseJointEditor({
         </div>
       </div>
     </ModalPortal>
+  );
+}
+
+/**
+ * The figure from straight above, the camera at the bottom: shoulders, hips, head, hands and
+ * feet, with an arrow out of the chest. Shows at a glance which way it faces and what is nearer.
+ */
+function PoseTopView({
+  body,
+  depth,
+  aspect,
+  color,
+}: {
+  body: NormalizedBody;
+  depth: BodyDepth;
+  aspect: number;
+  color: string;
+}) {
+  const centre = hipCentre(body);
+  const facing = bodyFacing(body, depth, aspect);
+  if (!centre) return null;
+  const centreZ = ((depth[8] ?? 0) + (depth[11] ?? 0)) / 2;
+  // x: left–right as on the canvas; y: depth, nearer the camera = lower. Scaled to fill the box.
+  const raw = (i: number) => {
+    const p = body[i];
+    return p ? { x: (p.x - centre.x) * aspect, y: (depth[i] ?? 0) - centreZ } : null;
+  };
+  const extent = Math.max(
+    0.14,
+    ...body.map((_, i) => {
+      const p = raw(i);
+      return p ? Math.max(Math.abs(p.x), Math.abs(p.y)) : 0;
+    })
+  );
+  const scale = 0.27 / extent;
+  const at = (i: number) => {
+    const p = raw(i);
+    return p ? { x: p.x * scale, y: p.y * scale } : null;
+  };
+  const line = (a: number, b: number, stroke: string, width: number) => {
+    const p = at(a);
+    const q = at(b);
+    return p && q ? (
+      <line
+        key={`${a}-${b}`}
+        x1={p.x}
+        y1={p.y}
+        x2={q.x}
+        y2={q.y}
+        stroke={stroke}
+        strokeWidth={width}
+      />
+    ) : null;
+  };
+  const head = at(0);
+  const chest = at(1);
+  return (
+    <svg
+      viewBox="-0.4 -0.4 0.8 0.8"
+      width={96}
+      height={96}
+      role="img"
+      aria-label={`Seen from above: ${facing?.label ?? 'facing you'}`}
+      className="shrink-0 rounded-[var(--radius-md)] bg-[var(--bg-muted)]"
+      strokeLinecap="round"
+    >
+      {/* The camera: a small wedge at the bottom edge. */}
+      <path d="M-0.05 0.39 L0 0.31 L0.05 0.39 Z" fill="var(--text-muted)" />
+      {[
+        [8, 9, POSE_PART_COLORS.rightLeg],
+        [9, 10, POSE_PART_COLORS.rightLeg],
+        [11, 12, POSE_PART_COLORS.leftLeg],
+        [12, 13, POSE_PART_COLORS.leftLeg],
+        [2, 3, POSE_PART_COLORS.rightArm],
+        [3, 4, POSE_PART_COLORS.rightArm],
+        [5, 6, POSE_PART_COLORS.leftArm],
+        [6, 7, POSE_PART_COLORS.leftArm],
+      ].map(([a, b, stroke]) => line(a as number, b as number, stroke as string, 0.022))}
+      {line(8, 11, color, 0.035)}
+      {line(2, 5, color, 0.05)}
+      {head ? <circle cx={head.x} cy={head.y} r={0.055} fill={color} /> : null}
+      {chest && facing ? (
+        <line
+          x1={chest.x}
+          y1={chest.y}
+          x2={chest.x + facing.normal.x * 0.2}
+          y2={chest.y + facing.normal.z * 0.2}
+          stroke="var(--text-primary)"
+          strokeWidth={0.02}
+          markerEnd="url(#pose-top-arrow)"
+        />
+      ) : null}
+      <defs>
+        <marker
+          id="pose-top-arrow"
+          viewBox="0 0 10 10"
+          refX="6"
+          refY="5"
+          markerWidth="5"
+          markerHeight="5"
+          orient="auto"
+        >
+          <path d="M0 0 L10 5 L0 10 Z" fill="var(--text-primary)" />
+        </marker>
+      </defs>
+    </svg>
   );
 }

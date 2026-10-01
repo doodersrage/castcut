@@ -52,6 +52,30 @@ const PARENT: Readonly<Record<number, number>> = {
   17: 0,
 };
 
+/** Everything above the waist: head, face points, neck, shoulders and arms. */
+const UPPER_BODY: ReadonlySet<number> = new Set([0, 1, 2, 3, 4, 5, 6, 7, 14, 15, 16, 17]);
+
+/** Slide a whole figure, stopping at the frame edge without squashing it. */
+export function moveWholeBody(
+  bodies: NormalizedBody[],
+  person: number,
+  dx: number,
+  dy: number
+): NormalizedBody[] {
+  const body = bodies[person];
+  if (!body) return bodies;
+  const xs = body.filter(Boolean).map(p => p!.x);
+  const ys = body.filter(Boolean).map(p => p!.y);
+  const sx = Math.min(0.99 - Math.max(...xs), Math.max(0.01 - Math.min(...xs), dx));
+  const sy = Math.min(0.99 - Math.max(...ys), Math.max(0.01 - Math.min(...ys), dy));
+  return bodies.map((b, i) =>
+    i === person ? b.map(p => (p ? { x: p.x + sx, y: p.y + sy } : null)) : b
+  );
+}
+
+/** How far past a limb's reach the pointer goes before the body follows (screen heights). */
+const PULL_SLACK = 0.012;
+
 function descendants(joint: number): number[] {
   const out: number[] = [];
   for (const [child, parent] of Object.entries(PARENT)) {
@@ -64,7 +88,7 @@ function descendants(joint: number): number[] {
  * Move a joint without stretching the figure: every bone keeps its length. A hand / foot pulls
  * its limb (the elbow / knee bends to follow, the shoulder / hip stays); an elbow / knee swings
  * around its parent and carries the forearm / shin; a shoulder, hip or the head swings around
- * the neck and carries its limb; the neck moves the whole figure. `aspect` (width / height) makes lengths true on screen.
+ * the neck and carries its limb; the neck bends the upper body at the waist. `aspect` (width / height) makes lengths true on screen.
  */
 export function moveJointRigid(
   bodies: NormalizedBody[],
@@ -82,12 +106,30 @@ export function moveJointRigid(
   const replace = (next: NormalizedBody) => bodies.map((b, i) => (i === person ? next : b));
 
   if (joint === 1) {
-    // Whole figure: clamp the shift, not the points, so nothing is squashed at the frame edge.
-    const xs = body.filter(Boolean).map(p => p!.x);
-    const ys = body.filter(Boolean).map(p => p!.y);
-    const dx = Math.min(0.99 - Math.max(...xs), Math.max(0.01 - Math.min(...xs), to.x - from.x));
-    const dy = Math.min(0.99 - Math.max(...ys), Math.max(0.01 - Math.min(...ys), to.y - from.y));
-    return replace(body.map(p => (p ? { x: p.x + dx, y: p.y + dy } : null)));
+    // The neck bends the figure at the waist: head, shoulders and arms swing around the middle
+    // of the hips, the legs stay where they are.
+    const hips = [body[8], body[11]].filter(Boolean) as Array<{ x: number; y: number }>;
+    if (hips.length === 0) return moveWholeBody(bodies, person, to.x - from.x, to.y - from.y);
+    const pivot = {
+      x: hips.reduce((sum, p) => sum + p.x, 0) / hips.length,
+      y: hips.reduce((sum, p) => sum + p.y, 0) / hips.length,
+    };
+    const fx = (from.x - pivot.x) * a;
+    const fy = from.y - pivot.y;
+    const gx = (to.x - pivot.x) * a;
+    const gy = to.y - pivot.y;
+    if (Math.hypot(fx, fy) < 1e-6 || Math.hypot(gx, gy) < 1e-6) return bodies;
+    const angle = Math.atan2(gy, gx) - Math.atan2(fy, fx);
+    const c = Math.cos(angle);
+    const sn = Math.sin(angle);
+    return replace(
+      body.map((p, i) => {
+        if (!p || !UPPER_BODY.has(i)) return p;
+        const rx = (p.x - pivot.x) * a;
+        const ry = p.y - pivot.y;
+        return { x: pivot.x + (rx * c - ry * sn) / a, y: pivot.y + rx * sn + ry * c };
+      })
+    );
   }
   if (!parent) return moveJoint(bodies, person, joint, to);
 
@@ -123,7 +165,10 @@ export function moveJointRigid(
         y: root.y + (ux * sinB + uy * cosB) * upper,
       };
       const end = { x: root.x + (ux * reachTo) / a, y: root.y + uy * reachTo };
-      return replace(body.map((p, i) => (i === joint ? end : i === parentIndex ? mid : p)));
+      const posed = replace(body.map((p, i) => (i === joint ? end : i === parentIndex ? mid : p)));
+      // Pulled past full stretch: the rest of the body comes along.
+      const over = want - (upper + lower) - PULL_SLACK;
+      return over > 0 ? moveWholeBody(posed, person, (ux * over) / a, uy * over) : posed;
     }
   }
 
@@ -139,6 +184,18 @@ export function moveJointRigid(
     x: parent.x + ((tx / reach) * length) / a,
     y: parent.y + (ty / reach) * length,
   };
+  // An elbow / knee pulled well past its bone drags the body too.
+  const pulled = reach - length - PULL_SLACK * 4;
+  if (parentIndex !== 1 && pulled > 0) {
+    const swung = moveJointRigid(
+      bodies,
+      person,
+      joint,
+      { x: parent.x + ((tx / reach) * length) / a, y: parent.y + (ty / reach) * length },
+      aspect
+    );
+    return moveWholeBody(swung, person, ((tx / reach) * pulled) / a, (ty / reach) * pulled);
+  }
   const riders = new Set(descendants(joint));
   // Off the neck (shoulder, hip, head) the limb is carried; further down it swings.
   const swing = parentIndex !== 1;
@@ -233,7 +290,8 @@ export function rotateBody(
     let y = p.y - anchor.y;
     let z = depth[i] ?? 0;
     [x, z] = [x * ct + z * st, -x * st + z * ct];
-    [y, z] = [y * cp - z * sp, y * sp + z * cp];
+    // + tilt brings the head toward the camera (leaning forward).
+    [y, z] = [y * cp + z * sp, -y * sp + z * cp];
     [x, y] = [x * cr - y * sr, x * sr + y * cr];
     nextDepth.push(z);
     return { x: anchor.x + x / a, y: anchor.y + y };
@@ -247,4 +305,112 @@ export function rotateBody(
     body: points.map(p => (p ? { x: clamp01(p.x + dx), y: clamp01(p.y + dy) } : null)),
     depth: nextDepth,
   };
+}
+
+export type BodyFacing = {
+  /** Unit chest normal: x to the viewer's right, y down the screen, z toward the camera. */
+  normal: { x: number; y: number; z: number };
+  /** Degrees the chest is turned from facing the camera: + toward the viewer's right. */
+  turn: number;
+  /** Degrees the chest tips: + leaning forward (chest toward the floor), − leaning back. */
+  lean: number;
+  /** In words, for the editor readout. */
+  label: string;
+};
+
+/** Which way a figure's chest points, from its shoulders, hips and their depths. */
+export function bodyFacing(
+  body: NormalizedBody,
+  depth: BodyDepth,
+  aspect: number
+): BodyFacing | null {
+  const a = aspect > 0 ? aspect : 1;
+  const at = (i: number) => {
+    const p = body[i];
+    return p ? { x: p.x * a, y: p.y, z: depth[i] ?? 0 } : null;
+  };
+  const [neck, rs, ls] = [at(1), at(2), at(5)];
+  const hips = [at(8), at(11)].filter(Boolean) as Array<{ x: number; y: number; z: number }>;
+  if (!neck || !rs || !ls || hips.length === 0) return null;
+  const hip = {
+    x: hips.reduce((sum, p) => sum + p.x, 0) / hips.length,
+    y: hips.reduce((sum, p) => sum + p.y, 0) / hips.length,
+    z: hips.reduce((sum, p) => sum + p.z, 0) / hips.length,
+  };
+  // Across (her right shoulder → left) × down (neck → hips) points out of the chest.
+  const across = { x: ls.x - rs.x, y: ls.y - rs.y, z: ls.z - rs.z };
+  const down = { x: hip.x - neck.x, y: hip.y - neck.y, z: hip.z - neck.z };
+  const n = {
+    x: across.y * down.z - across.z * down.y,
+    y: across.z * down.x - across.x * down.z,
+    z: across.x * down.y - across.y * down.x,
+  };
+  const size = Math.hypot(n.x, n.y, n.z);
+  if (size < 1e-9) return null;
+  const normal = { x: n.x / size, y: n.y / size, z: n.z / size };
+  const turn = (Math.atan2(normal.x, normal.z) * 180) / Math.PI;
+  const lean = (Math.asin(Math.max(-1, Math.min(1, normal.y))) * 180) / Math.PI;
+  const round = (value: number) => Math.round(Math.abs(value) / 5) * 5;
+  const side = turn > 0 ? 'your right' : 'your left';
+  const facing =
+    Math.abs(turn) < 12
+      ? 'Facing you'
+      : Math.abs(turn) > 168
+        ? 'Back to you'
+        : Math.abs(turn) < 78
+          ? `Facing you, turned ${round(turn)}° to ${side}`
+          : Math.abs(turn) <= 102
+            ? `Side-on, facing ${side}`
+            : `Back to you, turned ${round(180 - Math.abs(turn))}° to ${side}`;
+  const tip =
+    Math.abs(lean) < 8 ? '' : `, leaning ${lean > 0 ? 'forward' : 'back'} ${round(lean)}°`;
+  return { normal, turn, lean, label: `${facing}${tip}` };
+}
+
+/**
+ * Bend at the waist in 3D: the upper body (head, shoulders, arms) folds around the line through
+ * the hips, toward where the chest points (`angle` > 0 = forward), the legs stay. Facing the
+ * camera this foreshortens the torso; side-on it is a plain bow.
+ */
+export function bendBody(
+  body: NormalizedBody,
+  depth: BodyDepth,
+  angle: number,
+  aspect: number
+): { body: NormalizedBody; depth: BodyDepth } {
+  const a = aspect > 0 ? aspect : 1;
+  const at = (i: number) => {
+    const p = body[i];
+    return p ? { x: p.x * a, y: p.y, z: depth[i] ?? 0 } : null;
+  };
+  const rh = at(8);
+  const lh = at(11);
+  if (!rh || !lh) return { body, depth };
+  const pivot = { x: (rh.x + lh.x) / 2, y: (rh.y + lh.y) / 2, z: (rh.z + lh.z) / 2 };
+  const size = Math.hypot(lh.x - rh.x, lh.y - rh.y, lh.z - rh.z);
+  if (size < 1e-6) return { body, depth };
+  const u = { x: (lh.x - rh.x) / size, y: (lh.y - rh.y) / size, z: (lh.z - rh.z) / size };
+  // Rodrigues' rotation; a positive turn about (her right hip → left hip) tips the head back.
+  const c = Math.cos(-angle);
+  const sn = Math.sin(-angle);
+  const nextDepth = [...depth];
+  const next = body.map((p, i) => {
+    const v = at(i);
+    if (!p || !v || !UPPER_BODY.has(i)) return p;
+    const r = { x: v.x - pivot.x, y: v.y - pivot.y, z: v.z - pivot.z };
+    const dot = u.x * r.x + u.y * r.y + u.z * r.z;
+    const cross = {
+      x: u.y * r.z - u.z * r.y,
+      y: u.z * r.x - u.x * r.z,
+      z: u.x * r.y - u.y * r.x,
+    };
+    const out = {
+      x: r.x * c + cross.x * sn + u.x * dot * (1 - c),
+      y: r.y * c + cross.y * sn + u.y * dot * (1 - c),
+      z: r.z * c + cross.z * sn + u.z * dot * (1 - c),
+    };
+    nextDepth[i] = pivot.z + out.z;
+    return { x: clamp01((pivot.x + out.x) / a), y: clamp01(pivot.y + out.y) };
+  });
+  return { body: next, depth: nextDepth };
 }
