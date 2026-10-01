@@ -18,6 +18,8 @@ const length = (body: NormalizedBody, a: number, b: number) =>
 const BONES: Array<[number, number]> = [
   [1, 2], [2, 3], [3, 4], [1, 5], [5, 6], [6, 7], [1, 8], [8, 9], [9, 10], [1, 11], [11, 12], [12, 13], [1, 0],
 ];
+/** Real bones: the neck→hip lines skew when the body bends at the waist. */
+const LIMB_BONES = BONES.filter(([a, b]) => !(a === 1 && (b === 8 || b === 11)));
 const close = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} vs ${b}`);
 
 describe('pose joint editor: keep proportions', () => {
@@ -26,7 +28,7 @@ describe('pose joint editor: keep proportions', () => {
   it('dragging a wrist, elbow, knee or shoulder never changes a bone length', () => {
     for (const joint of [4, 3, 9, 2, 0, 13]) {
       const moved = moveJointRigid([stand], 0, joint, { x: 0.8, y: 0.3 }, ASPECT)[0]!;
-      for (const [a, b] of BONES) close(length(moved, a, b), length(stand, a, b));
+      for (const [a, b] of LIMB_BONES) close(length(moved, a, b), length(stand, a, b));
     }
   });
 
@@ -51,16 +53,28 @@ describe('pose joint editor: keep proportions', () => {
     close(length(far, 2, 4), length(stand, 2, 3) + length(stand, 3, 4), 1e-4);
   });
 
-  it('pulling a hand or knee past full stretch drags the whole body after it', () => {
-    const pulledHand = moveJointRigid([stand], 0, 4, { x: 0.1, y: 0.5 }, ASPECT)[0]!;
-    assert.ok(pulledHand[2]!.x < stand[2]!.x - 0.05, 'shoulder follows');
-    assert.ok(pulledHand[10]!.x < stand[10]!.x - 0.05, 'feet follow');
-    for (const [a, b] of BONES) close(length(pulledHand, a, b), length(stand, a, b), 1e-4);
-    const pulledKnee = moveJointRigid([stand], 0, 9, { x: 0.15, y: 0.75 }, ASPECT)[0]!;
-    assert.ok(pulledKnee[1]!.x < stand[1]!.x - 0.03, 'neck follows');
+  it('a hand pulled past its reach bends the upper body toward it; the legs stay planted', () => {
+    const to = { x: 0.05, y: stand[8]!.y };
+    const pulled = moveJointRigid([stand], 0, 4, to, ASPECT)[0]!;
+    for (const leg of [8, 9, 10, 11, 12, 13]) assert.deepEqual(pulled[leg], stand[leg]);
+    assert.ok(pulled[1]!.x < stand[1]!.x - 0.05, 'the neck leans toward the hand');
+    assert.ok(pulled[0]!.y > stand[0]!.y, 'the head comes down');
+    for (const [a, b] of LIMB_BONES) close(length(pulled, a, b), length(stand, a, b), 1e-4);
+    // The hand gets closer to the pointer than a straight arm alone could.
+    const straight = length(stand, 2, 3) + length(stand, 3, 4);
+    const gap = Math.hypot((pulled[4]!.x - to.x) * ASPECT, pulled[4]!.y - to.y);
+    const before = Math.hypot((stand[2]!.x - to.x) * ASPECT, stand[2]!.y - to.y) - straight;
+    assert.ok(gap < before - 0.03, `${gap} vs ${before}`);
     // Within reach nothing else moves.
     const near = moveJointRigid([stand], 0, 4, { x: stand[4]!.x - 0.03, y: stand[4]!.y - 0.05 }, ASPECT)[0]!;
-    assert.deepEqual(near[10], stand[10]);
+    assert.deepEqual(near[1], stand[1]);
+  });
+
+  it('a foot pulled past its reach leans the body over the other, planted foot', () => {
+    const pulled = moveJointRigid([stand], 0, 10, { x: 0.05, y: stand[10]!.y }, ASPECT)[0]!;
+    assert.deepEqual(pulled[13], stand[13]);
+    assert.ok(pulled[1]!.x < stand[1]!.x - 0.03, 'the body leans toward the pulled foot');
+    for (const [a, b] of BONES) close(length(pulled, a, b), length(stand, a, b), 1e-4);
   });
 
   it('the whole figure slides, stopping at the frame edge without squashing', () => {

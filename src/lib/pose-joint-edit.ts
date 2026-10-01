@@ -73,8 +73,116 @@ export function moveWholeBody(
   );
 }
 
-/** How far past a limb's reach the pointer goes before the body follows (screen heights). */
+/** How far past a limb's reach the pointer goes before the body leans (screen heights). */
 const PULL_SLACK = 0.012;
+
+/** Limb joints → [the shoulder / hip the limb hangs from, the planted foot to lean over]. */
+const LIMB_ROOT: Readonly<Record<number, readonly [number, number | null]>> = {
+  3: [2, null],
+  4: [2, null],
+  6: [5, null],
+  7: [5, null],
+  9: [8, 13],
+  10: [8, 13],
+  12: [11, 10],
+  13: [11, 10],
+};
+
+/**
+ * When the pointer is further from a limb's shoulder / hip than the limb can reach, rotate the
+ * rest of the body just enough to bring it within reach — the body adjusts instead of sliding:
+ * - an arm bends the upper body at the waist (head, shoulders, both arms around the hips);
+ * - a leg leans the whole body over the other, planted foot.
+ * Returns null when no lean is needed or possible. Works in aspect-true space (`a`).
+ */
+function leanForPull(
+  body: NormalizedBody,
+  joint: number,
+  to: { x: number; y: number },
+  a: number
+): NormalizedBody | null {
+  const limb = LIMB_ROOT[joint];
+  if (!limb) return null;
+  const [rootIndex, plantedIndex] = limb;
+  const pt = (i: number) => {
+    const p = body[i];
+    return p ? { x: p.x * a, y: p.y } : null;
+  };
+  const root = pt(rootIndex);
+  if (!root) return null;
+  const end = joint === 4 || joint === 7 || joint === 10 || joint === 13;
+  const span = (i: number, j: number) => {
+    const p = pt(i);
+    const q = pt(j);
+    return p && q ? Math.hypot(p.x - q.x, p.y - q.y) : 0;
+  };
+  const mid = end ? PARENT[joint]! : joint;
+  const reach = end
+    ? span(rootIndex, mid) + span(mid, joint)
+    : span(rootIndex, joint) + PULL_SLACK * 4;
+  const target = { x: to.x * a, y: to.y };
+  if (Math.hypot(target.x - root.x, target.y - root.y) <= reach + (end ? PULL_SLACK : 0)) {
+    return null;
+  }
+
+  let pivot: { x: number; y: number } | null;
+  let moves: (i: number) => boolean;
+  let limit: number;
+  if (plantedIndex == null) {
+    const hips = [pt(8), pt(11)].filter(Boolean) as Array<{ x: number; y: number }>;
+    pivot = hips.length
+      ? {
+          x: hips.reduce((sum, p) => sum + p.x, 0) / hips.length,
+          y: hips.reduce((sum, p) => sum + p.y, 0) / hips.length,
+        }
+      : null;
+    moves = i => UPPER_BODY.has(i);
+    limit = Math.PI / 2;
+  } else {
+    pivot = pt(plantedIndex);
+    // Everything leans over the planted foot as one piece; the pulled leg is then re-posed.
+    moves = () => true;
+    limit = Math.PI / 4;
+  }
+  if (!pivot) return null;
+
+  // Where on its circle around the pivot must the root sit to be exactly `reach` from the target?
+  const radius = Math.hypot(root.x - pivot.x, root.y - pivot.y);
+  const dx = target.x - pivot.x;
+  const dy = target.y - pivot.y;
+  const distance = Math.hypot(dx, dy);
+  if (radius < 1e-6 || distance < 1e-6) return null;
+  const current = Math.atan2(root.y - pivot.y, root.x - pivot.x);
+  const toward = Math.atan2(dy, dx);
+  const cosOffset =
+    (radius * radius + distance * distance - reach * reach) / (2 * radius * distance);
+  // Out of range even at full lean → point straight at the target.
+  const offset = cosOffset >= 1 ? 0 : cosOffset <= -1 ? Math.PI : Math.acos(cosOffset);
+  const wrap = (angle: number) => Math.atan2(Math.sin(angle), Math.cos(angle));
+  const options = [wrap(toward + offset - current), wrap(toward - offset - current)];
+  const least = Math.abs(options[0]!) <= Math.abs(options[1]!) ? options[0]! : options[1]!;
+  const rotated = (angle: number) => {
+    const c = Math.cos(angle);
+    const sn = Math.sin(angle);
+    return body.map((p, i) => {
+      if (!p || !moves(i)) return p;
+      const rx = p.x * a - pivot.x;
+      const ry = p.y - pivot.y;
+      return { x: (pivot.x + rx * c - ry * sn) / a, y: pivot.y + rx * sn + ry * c };
+    });
+  };
+  // Lean only as far as keeps the whole figure on the canvas.
+  let angle = Math.max(-limit, Math.min(limit, least));
+  for (let tries = 0; tries < 14; tries += 1) {
+    if (Math.abs(angle) < 1e-4) return null;
+    const next = rotated(angle);
+    if (next.every(p => !p || (p.x >= 0.01 && p.x <= 0.99 && p.y >= 0.01 && p.y <= 0.99))) {
+      return next;
+    }
+    angle *= 0.8;
+  }
+  return null;
+}
 
 function descendants(joint: number): number[] {
   const out: number[] = [];
@@ -88,14 +196,17 @@ function descendants(joint: number): number[] {
  * Move a joint without stretching the figure: every bone keeps its length. A hand / foot pulls
  * its limb (the elbow / knee bends to follow, the shoulder / hip stays); an elbow / knee swings
  * around its parent and carries the forearm / shin; a shoulder, hip or the head swings around
- * the neck and carries its limb; the neck bends the upper body at the waist. `aspect` (width / height) makes lengths true on screen.
+ * the neck and carries its limb; the neck bends the upper body at the waist. A limb pulled past
+ * its reach makes the rest of the body lean toward it (see leanForPull) — nothing slides. `aspect` (width / height) makes lengths true on screen.
  */
 export function moveJointRigid(
   bodies: NormalizedBody[],
   person: number,
   joint: number,
   to: { x: number; y: number },
-  aspect: number
+  aspect: number,
+  /** Internal: the body has already leaned for this pull. */
+  leaned = false
 ): NormalizedBody[] {
   const body = bodies[person];
   const from = body?.[joint];
@@ -104,6 +215,14 @@ export function moveJointRigid(
   const parentIndex = PARENT[joint];
   const parent = parentIndex == null ? null : body[parentIndex];
   const replace = (next: NormalizedBody) => bodies.map((b, i) => (i === person ? next : b));
+
+  // A limb pulled past its reach: the body leans to let it get there, feet planted.
+  if (!leaned) {
+    const adjusted = leanForPull(body, joint, to, a);
+    if (adjusted) {
+      return moveJointRigid(replace(adjusted), person, joint, to, aspect, true);
+    }
+  }
 
   if (joint === 1) {
     // The neck bends the figure at the waist: head, shoulders and arms swing around the middle
@@ -165,10 +284,7 @@ export function moveJointRigid(
         y: root.y + (ux * sinB + uy * cosB) * upper,
       };
       const end = { x: root.x + (ux * reachTo) / a, y: root.y + uy * reachTo };
-      const posed = replace(body.map((p, i) => (i === joint ? end : i === parentIndex ? mid : p)));
-      // Pulled past full stretch: the rest of the body comes along.
-      const over = want - (upper + lower) - PULL_SLACK;
-      return over > 0 ? moveWholeBody(posed, person, (ux * over) / a, uy * over) : posed;
+      return replace(body.map((p, i) => (i === joint ? end : i === parentIndex ? mid : p)));
     }
   }
 
@@ -184,18 +300,6 @@ export function moveJointRigid(
     x: parent.x + ((tx / reach) * length) / a,
     y: parent.y + (ty / reach) * length,
   };
-  // An elbow / knee pulled well past its bone drags the body too.
-  const pulled = reach - length - PULL_SLACK * 4;
-  if (parentIndex !== 1 && pulled > 0) {
-    const swung = moveJointRigid(
-      bodies,
-      person,
-      joint,
-      { x: parent.x + ((tx / reach) * length) / a, y: parent.y + (ty / reach) * length },
-      aspect
-    );
-    return moveWholeBody(swung, person, ((tx / reach) * pulled) / a, (ty / reach) * pulled);
-  }
   const riders = new Set(descendants(joint));
   // Off the neck (shoulder, hip, head) the limb is carried; further down it swings.
   const swing = parentIndex !== 1;

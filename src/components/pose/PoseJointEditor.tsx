@@ -509,7 +509,10 @@ export default function PoseJointEditor({
               Edit pose
             </h2>
             <ul className="type-caption list-disc space-y-0.5 pl-4 text-[var(--text-muted)]">
-              <li>Drag a hand or foot — the elbow or knee bends to follow.</li>
+              <li>
+                Drag a hand or foot — the elbow or knee bends to follow. Pull further and the body
+                leans toward it, feet planted.
+              </li>
               <li>Drag an elbow, knee, shoulder, hip or the head to swing just that part.</li>
               <li>
                 Drag the neck to bend at the waist (the legs stay); Bend forward / back folds the
