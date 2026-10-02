@@ -6341,6 +6341,10 @@ export function sceneTextFromStoryPoseInput(input: StoryPoseGuideInput): string 
   }
   // Clarify so legacy "taken from behind / bent over" meta still maps to the bent layout.
   const whole = parts.join(' · ');
+  // …on adult stories only: a clean scene has nothing to clarify.
+  if (input.allowIntimate === false) {
+    return whole;
+  }
   return parts.map(part => clarifyIntimateImageLanguage(part, whole)).join(' · ');
 }
 

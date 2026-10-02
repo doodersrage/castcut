@@ -21,6 +21,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Story with a man as the lead.** The fixed lines Story adds to a still ("she wears exactly the outfit…", "One woman alone") and the built-in scenes are worded for him.
 - **Fix: empty navigation after a failed or rate-limited session check.** One dropped or "too many requests" answer at page load left the app with no tabs or menu until a reload. It is now tried again, and a session that had loaded is kept. (This was also behind three browser tests that failed now and then.)
 - **Phone Story** remembers the scenes you did not pick (they could be offered again on the next roll) and applies the adult switch to the rating, as desk does.
+- **Fix: sexual wording spliced into a clean Story scene.** A rule that turns euphemisms into plain words for adult stills treated "joined" as one ("the stranger's joined hands" became "…penetrating in sex hands"), and the still was then queued as an adult one — outfit line dropped, extra people drawn. The rule now needs sexual context, clean stories skip the rewriter, and a new sweep runs every clean Day scene and a list of ordinary sentences through it.
+- **Story writer: one pronoun for the lead.** The local model liked "they / their" for a lead with an unusual name, and image models read that as more people. The writer is told to use "she" (or "he").
 - **Pose editor:** the figure has eyes, and a head turned to the side is drawn in profile, so the *Head* row shows what it did.
 - **Day:** a "spooning" scene planned for one person draws her lying down, not a pair next to "one woman alone".
 

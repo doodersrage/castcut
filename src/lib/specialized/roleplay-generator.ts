@@ -266,8 +266,23 @@ function stampFinaleScenes(scenes: RoleplayScene[], finale: boolean): RoleplaySc
   return scenes.map(scene => ({ ...scene, kind: 'ending' as const }));
 }
 
+/**
+ * One person, one pronoun. Left to itself the local model writes "they lower their cup" for a
+ * lead with an unusual name, and an image model reads "they" as more than one person (a
+ * two-person scene came out with three).
+ */
+function leadPronounLine(bio: { name: string; look?: string }): string {
+  const [subject, possessive] = storyLeadIsMan({ look: bio.look }) ? ['he', 'his'] : ['she', 'her'];
+  return `- ${bio.name} is ONE person: write "${subject}" and "${possessive}" for ${bio.name}, never "they" or "their".`;
+}
+
 /** Clarify intimate euphemisms/meta on option cards before the player picks a beat. */
-function clarifyRoleplaySceneBlurbs(scenes: RoleplayScene[]): RoleplayScene[] {
+function clarifyRoleplaySceneBlurbs(scenes: RoleplayScene[], adult: boolean): RoleplayScene[] {
+  // Adult ratings only: on a clean story there is nothing to clarify, and a rule that misreads
+  // an ordinary word would put sexual wording on the card (and into the still written from it).
+  if (!adult) {
+    return scenes;
+  }
   return scenes.map(scene => ({
     ...scene,
     blurb: clarifyIntimateImageLanguage(scene.blurb),
@@ -472,6 +487,7 @@ ${
     : '- Keep the character and plot continuous. Continuity is not the same room and pose.'
 }
 - Each beat should make a distinct still image of THIS character.
+${leadPronounLine(bio)}
 - ${sceneGuard(content, allowGore)}`,
       user: [
         formatRoleplayBio(bio),
@@ -493,7 +509,10 @@ ${
   const raw = await writeScenes();
   if (!raw) {
     return {
-      scenes: clarifyRoleplaySceneBlurbs(stampFinaleScenes(fallback, finale)),
+      scenes: clarifyRoleplaySceneBlurbs(
+        stampFinaleScenes(fallback, finale),
+        isRoleplayAdultContent(content)
+      ),
       provider: 'template',
     };
   }
@@ -520,7 +539,7 @@ ${
   const scenes = mergeRoleplaySceneOptions(parsed, fallback, options.story, 4, rejectedScenes);
   const next = stampFinaleScenes(scenes.length > 0 ? scenes : fallback, finale);
   return {
-    scenes: clarifyRoleplaySceneBlurbs(next),
+    scenes: clarifyRoleplaySceneBlurbs(next, isRoleplayAdultContent(content)),
     provider: parsed.length > 0 ? 'llm' : 'template',
   };
 }
@@ -588,7 +607,8 @@ ${adultStillGuard(content)}
 ${identityLine}
 - Name (${bio.name}) can appear once; do not invent a new cast unless the beat requires one extra figure.
 - Write ONE take of this beat — never a second version, alternates, or a list. At most ${maxChars} characters, 2–3 sentences.
-- Open with what ${bio.name} is doing and where (this beat's pose and place), then what they are wearing and the props; light last, briefly.${
+${leadPronounLine(bio)}
+- Open with what ${bio.name} is doing and where (this beat's pose and place), then the clothes and the props; light last, briefly.${
       hasReferenceImage
         ? isolatedSubject
           ? "\n- This still is img2img from a subject cut-out on white: keep face/hair/body identity, replace clothing with this beat's outfit, fill the white with the beat's environment — do not leave a studio backdrop or the photo's clothes."

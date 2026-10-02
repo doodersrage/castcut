@@ -307,6 +307,10 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
     pattern:
       /\b(?:joined|joining|coupled|coupling|became\s+one|becoming\s+one|sheathed\s+(?:himself|herself|themselves)|buried\s+(?:himself|herself|themselves)|rocked\s+together|moved\s+as\s+one)\b/gi,
     replace: 'penetrating in sex',
+    // "the stranger's joined hands", "they moved as one across the floor": ordinary words. A
+    // PG-13 Story scene came out as "the stranger's penetrating in sex hands" and was then
+    // queued as an adult still (outfit line dropped, three people drawn).
+    ambiguous: true,
   },
   {
     pattern: /\bmaking\s+love\b/gi,
