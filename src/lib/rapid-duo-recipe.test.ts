@@ -386,6 +386,30 @@ describe('Rapid suggestive recipe', () => {
 });
 
 describe('Rapid vacation recipe', () => {
+  it('a passing "sundress" does not overrule the outfit the Day picked', () => {
+    const beat = 'WAVING from the hotel balcony rail in a sundress — one arm raised high overhead';
+    // A clothing photo (Image 2) or a kit is what she wears; the moment no longer names another.
+    const photo = buildRapidVacationRecipe({ beat, outfitImage: 'second' })!;
+    assert.match(photo, /She wears the outfit from the second image\./);
+    assert.match(photo, /Moment: waving from the hotel balcony rail in her outfit —/);
+    assert.doesNotMatch(photo, /sundress/);
+    const kit = buildRapidVacationRecipe({ beat, outfit: 'black lace mini dress' })!;
+    assert.match(kit, /She wears a black lace mini dress\./);
+    assert.doesNotMatch(kit, /sundress/);
+    // No outfit picked: the scene's own words dress her, as before.
+    assert.match(buildRapidVacationRecipe({ beat })!, /She wears a sundress\./);
+    // Clothes the scene needs still win over the Day's outfit.
+    for (const [scene, worn] of [
+      ['FLOATING on her back in the hotel pool in a swimsuit', 'a swimsuit'],
+      ['STRETCHING by the window in a hotel robe', 'a robe'],
+    ] as const) {
+      assert.match(
+        buildRapidVacationRecipe({ beat: scene, outfitImage: 'second' })!,
+        new RegExp(`She wears ${worn}\\.`)
+      );
+    }
+  });
+
   it('says the class body plainly and dresses from the beat first', () => {
     const swim = buildRapidVacationRecipe({
       beat: 'SWIMMING freestyle mid-stroke in the resort pool — swimsuit, head turned for a breath',

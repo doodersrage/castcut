@@ -995,6 +995,9 @@ function outfitWords(outfit: string | null | undefined): string | null {
 const VACATION_CLOTHES_RE =
   /\b((?:one-piece\s+|two-piece\s+)?swimsuit|bikini|sundress|evening\s+(?:dress|wear)|(?:short|slip|cocktail|maxi|wrap)\s+dress|dress|robe|sleepwear|travel\s+(?:clothes|hoodie|tank)|linen\s+shirt|silk\s+shirt|cover-up\s+over\s+(?:a\s+)?swimsuit)\b/i;
 
+/** Clothes a scene needs whatever the Day's outfit is (the pool wants its swimsuit). */
+const VACATION_SCENE_CLOTHES_RE = /\b(?:swimsuit|bikini|robe|sleepwear)\b/i;
+
 /**
  * Compact Vacation recipe for Rapid AIO Edit Day stills — the clothed twin of the Suggestive one.
  * The ~6–8k Vacation brief (live 2026-09-29, v23) named the auto kit by its id
@@ -1026,11 +1029,22 @@ export function buildRapidVacationRecipe(input: {
     .trim();
   // The beat's own clothes first: a pool beat wants its swimsuit, whatever kit the Day picked.
   // Water and beach-lounging beats that name no clothes wear a swimsuit, not the day's kit.
-  const named =
-    beat.match(VACATION_CLOTHES_RE)?.[1] ??
-    (/\b(?:pool|swim\w*|float\w*|surf|paddleboard|beach\s+(?:towel|umbrella)|towel)\b/i.test(beat)
-      ? 'swimsuit'
-      : undefined);
+  // A garment the scene needs (swimsuit, robe, sleepwear) always wins. A passing "sundress" or
+  // "dress" — about 30 of the 110 Vacation scenes say one — only dresses her when the Day has no
+  // outfit of its own: with a clothing photo or kit picked it used to overrule it ("she wears a
+  // sundress"), and the chosen dress was lost.
+  const beatClothes = beat.match(VACATION_CLOTHES_RE)?.[1];
+  const hasDayOutfit = Boolean(
+    input.outfitImage || input.outfitFromFirst || outfitWords(input.outfit)
+  );
+  const deferToDayOutfit =
+    Boolean(beatClothes) && hasDayOutfit && !VACATION_SCENE_CLOTHES_RE.test(beatClothes ?? '');
+  const named = deferToDayOutfit
+    ? undefined
+    : (beatClothes ??
+      (/\b(?:pool|swim\w*|float\w*|surf|paddleboard|beach\s+(?:towel|umbrella)|towel)\b/i.test(beat)
+        ? 'swimsuit'
+        : undefined));
   const clothes = named
     ? `She wears ${withArticle(named.replace(/^(?:travel\s+)?clothes$/i, 'travel clothes'))}.`
     : input.outfitImage
@@ -1040,7 +1054,18 @@ export function buildRapidVacationRecipe(input: {
         : outfitWords(input.outfit)
           ? `She wears ${withArticle(outfitWords(input.outfit))}.`
           : 'She wears a light summer outfit.';
-  const moment = beat.replace(/^([A-Z][A-Z-]+)\b/, word => word.toLowerCase());
+  const moment = (
+    deferToDayOutfit
+      ? // The moment must not name a different garment than the one she is dressed in.
+        beat.replace(
+          new RegExp(
+            String.raw`(?:\b(?:an?|the|her)\s+)?(?:short\s+)?` + VACATION_CLOTHES_RE.source,
+            'gi'
+          ),
+          'her outfit'
+        )
+      : beat
+  ).replace(/^([A-Z][A-Z-]+)\b/, word => word.toLowerCase());
   return [
     RAPID_VACATION_RECIPE_MARK,
     'One woman alone on vacation.',
