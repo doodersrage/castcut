@@ -357,7 +357,7 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     comfyNode: 'TextEncodeQwenImage21',
     comfyClass: 'QwenImage21',
     description:
-      'Qwen-Image 2.1 (7B) edit at about 1.6 MP — truer Cast faces and body types. Euler, cfg 1, about 30 steps. Two-person penetration stills render on Rapid AIO NSFW.',
+      'Qwen-Image 2.1 (7B) edit at about 1.6 MP — truer Cast faces and body types. Euler, cfg 1, about 30 steps. Clothed two-person stills and two-person penetration stills render on Rapid AIO NSFW.',
     profile: 'qwen_edit_instruction',
     referenceTokenLimit: 512,
     limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
@@ -371,7 +371,7 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     comfyNode: 'TextEncodeQwenImage21',
     comfyClass: 'QwenImage21',
     description:
-      'Qwen-Image 2.1 + Fun-Acc PDD 4-step, at the same size as Qwen-Image 2.1. Same Cast recipes, about 7× fewer steps — the T8 4-step sampler, cfg 1. Two-person penetration stills render on Rapid AIO NSFW.',
+      'Qwen-Image 2.1 + Fun-Acc PDD 4-step, at the same size as Qwen-Image 2.1. Same Cast recipes, about 7× fewer steps — the T8 4-step sampler, cfg 1. Clothed two-person stills and two-person penetration stills render on Rapid AIO NSFW.',
     profile: 'qwen_edit_instruction',
     referenceTokenLimit: 512,
     limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
@@ -385,7 +385,7 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     comfyNode: 'TextEncodeQwenImage21',
     comfyClass: 'QwenImage21',
     description:
-      'Qwen-Image 2.1 + the Pruna 8-step LoRA, at the same size as Qwen-Image 2.1. Closest to the full pass of the fast options — held arms-up poses the 4-step ghosted — at about a third of the time. Core nodes only, cfg 1. Two-person penetration stills render on Rapid AIO NSFW.',
+      'Qwen-Image 2.1 + the Pruna 8-step LoRA, at the same size as Qwen-Image 2.1. Closest to the full pass of the fast options — held arms-up poses the 4-step ghosted — at about a third of the time. Core nodes only, cfg 1. Clothed two-person stills and two-person penetration stills render on Rapid AIO NSFW.',
     profile: 'qwen_edit_instruction',
     referenceTokenLimit: 512,
     limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,

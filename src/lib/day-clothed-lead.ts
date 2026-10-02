@@ -100,3 +100,18 @@ export function dayOutfitPromptName(label: string | null | undefined): string {
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
+
+/**
+ * A clothing photo's vision description as an outfit name: its first sentence, no leading
+ * article, no full stop ("black strapless mini dress made of sheer floral lace …"). '' when
+ * there is no description.
+ */
+export function dayGarmentPromptName(description: string | null | undefined): string | null {
+  const first = (description ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(/(?<=[.!?])\s+/)[0]!
+    .replace(/[.\s]+$/, '')
+    .replace(/^(?:an?|the)\s+/i, '');
+  return first ? dayOutfitPromptName(first) : null;
+}

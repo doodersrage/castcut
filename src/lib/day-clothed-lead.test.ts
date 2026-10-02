@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dayClothedLeadLines, dayOutfitPromptName } from './day-clothed-lead';
+import {
+  dayClothedLeadLines,
+  dayGarmentPromptName,
+  dayOutfitPromptName,
+} from './day-clothed-lead';
 
 describe('Day clothed lead lines', () => {
   it('names both people on a two-person beat', () => {
@@ -65,6 +69,25 @@ describe('Day clothed lead lines', () => {
       dayClothedLeadLines({ ...base, setting: 'city street', dayMood: 'raunchy', adult: true }),
       []
     );
+  });
+
+  it('names a clothing photo by the first sentence of its description', () => {
+    assert.equal(
+      dayGarmentPromptName(
+        'A black strapless mini dress made of sheer floral lace with a fitted silhouette. The bodice is structured.'
+      ),
+      'black strapless mini dress made of sheer floral lace with a fitted silhouette'
+    );
+    assert.equal(dayGarmentPromptName('  '), null);
+    const [line] = dayClothedLeadLines({
+      beat: 'walking hand in hand with a friend to the café',
+      setting: 'corner café',
+      headcount: 2,
+      dayMood: 'everyday',
+      adult: false,
+      leadOutfit: dayGarmentPromptName('A black strapless mini dress. Lace.'),
+    });
+    assert.match(line!, /she \(wearing black strapless mini dress\) and her friend/);
   });
 
   it('drops revealing fit words from outfit names', () => {

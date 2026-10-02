@@ -130,7 +130,11 @@ import {
   swapDayPromptGender,
 } from '@/lib/day-lead-gender';
 import { normalizeDayWeather, withDayWeather } from '@/lib/day-weather';
-import { dayClothedLeadLines, dayOutfitPromptName } from '@/lib/day-clothed-lead';
+import {
+  dayClothedLeadLines,
+  dayGarmentPromptName,
+  dayOutfitPromptName,
+} from '@/lib/day-clothed-lead';
 import {
   beatOwnsFootwear,
   footwearIsBarefoot,
@@ -1353,10 +1357,15 @@ export function useDayPlannerToolOrchestrationCore() {
               dayMood: toolSettings.dayMood,
               adult: adultStill,
               companionLook: slotPartner?.descriptor,
+              // Her own clothing photo counts too: on a two-person still the partner's face takes
+              // the clothing image's slot, and unnamed she fell back to a plain top (sweep
+              // 2026-10-02: a beige tank on 4 of 6 Rapid duo stills).
               leadOutfit:
                 !omitGarment && !replaceKeepOutfit && wardrobeId
                   ? dayOutfitPromptName(formatWardrobeKitLabel(wardrobeLabelFor(wardrobeId) || ''))
-                  : null,
+                  : !omitGarment && !replaceKeepOutfit
+                    ? dayGarmentPromptName(toolSettings.customGarmentDescription)
+                    : null,
               partnerOutfit: partnerCharacter?.lockedWardrobeId?.trim()
                 ? dayOutfitPromptName(
                     formatWardrobeKitLabel(

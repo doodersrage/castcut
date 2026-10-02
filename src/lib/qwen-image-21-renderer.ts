@@ -347,14 +347,26 @@ export function isPenetrationDuoPrompt(prompt: string, hasDuoPoseMap: boolean): 
   return hasDuoPoseMap && PENETRATION_RE.test(prompt);
 }
 
+/**
+ * Clothed two-person stills also stay on the engine's own model. On 2.1 (Pruna and the full
+ * sampler, ~1.6 MP, 2026-10-02) the pair fused into one body, the partner showed as a ghost
+ * behind the lead, or one person vanished — 6 of 6 Everyday beats in the sweep; with the
+ * two-person map back they were two people in 2 of 3 but twins in the same dress. Rapid renders
+ * the same beats as two distinct people with the partner's own face.
+ */
+export function isClothedDuoStill(prompt: string, hasDuoPoseMap: boolean): boolean {
+  return hasDuoPoseMap && !isNudePrompt(prompt);
+}
+
 function keepsOnEngineModel(workflow: Workflow, encoder: WorkflowNode): boolean {
   const duoMap = [1, 2, 3].some(slot => {
     const ref = encoder.inputs[`image${slot}`];
     return isRef(ref) && isMultiPersonPoseGuide(sourceFilename(workflow, ref));
   });
+  const prompt = String(encoder.inputs.prompt ?? '');
   return (
     Boolean(POSE_MODEL_PROFILES['qwen-image-2.1'].penetrationEngine) &&
-    isPenetrationDuoPrompt(String(encoder.inputs.prompt ?? ''), duoMap)
+    (isPenetrationDuoPrompt(prompt, duoMap) || isClothedDuoStill(prompt, duoMap))
   );
 }
 

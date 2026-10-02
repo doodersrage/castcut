@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   convertQwenEditWorkflowToImage21,
+  isClothedDuoStill,
   isMultiPersonPoseGuide,
   isPlayerPoseGuide,
   isPoseGuideFilename,
@@ -234,59 +235,51 @@ describe('Qwen-Image 2.1: penetration duos stay on the engine model', () => {
   });
 });
 
-describe('Qwen-Image 2.1: clothed duo maps stay out', () => {
-  it('drops a two-person map so the diagram is not painted as an extra arm', () => {
-    const graph = {
-      '4': {
-        class_type: 'TextEncodeQwenImageEditPlus',
-        inputs: { prompt: 'TWO PEOPLE in this photo: selfie together. Match Image 2 body positions.', image1: ['900', 0], image2: ['904', 0] },
-      },
-      '8': { class_type: 'KSampler', inputs: { positive: ['4', 0], latent_image: ['906', 0] } },
-      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
-      '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
-      '900': { class_type: 'LoadImage', inputs: { image: 'cast-plate.png' } },
-      '904': { class_type: 'LoadImage', inputs: { image: 'day-pose-guide-selfie_duo-82b0de-x2-17.png' } },
-      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
-    };
-    const workflow = convertQwenEditWorkflowToImage21(graph).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
-    const encode = Object.values(workflow).find(node => node.class_type === 'TextEncodeQwenImage21')!;
-    assert.equal(encode.inputs['images.image_2'], undefined);
-    assert.doesNotMatch(String(encode.inputs.prompt), /body positions|pose map/);
-    assert.match(String(encode.inputs.prompt), /exactly two arms/);
-  });
-
-  it('binds each face to its own person when the partner crop is attached', () => {
-    const graph = {
+describe('Qwen-Image 2.1: clothed two-person stills stay on the engine model', () => {
+  const duo = (prompt: string, images: Record<string, string>) => {
+    const slots = Object.keys(images);
+    return {
       '4': {
         class_type: 'TextEncodeQwenImageEditPlus',
         inputs: {
-          prompt:
-            'TWO PEOPLE in this photo: she (wearing rust camisole) and her partner — a woman with dark hair, in their own different clothes — together. SECOND PERSON: Image 2 is the face of the woman with the Cast lead. Match Image 3 body positions.',
-          image1: ['900', 0],
-          image2: ['901', 0],
-          image3: ['904', 0],
+          prompt,
+          ...Object.fromEntries(slots.map((id, index) => [`image${index + 1}`, [id, 0]])),
         },
       },
       '8': { class_type: 'KSampler', inputs: { positive: ['4', 0], latent_image: ['906', 0] } },
       '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
       '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
-      '900': { class_type: 'LoadImage', inputs: { image: 'cast-plate.png' } },
-      '901': { class_type: 'LoadImage', inputs: { image: 'day-partner-vl-1.png' } },
-      '904': { class_type: 'LoadImage', inputs: { image: 'day-pose-guide-kitchen-82b0de-x2-17.png' } },
+      ...Object.fromEntries(
+        Object.entries(images).map(([id, image]) => [id, { class_type: 'LoadImage', inputs: { image } }])
+      ),
       '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
     };
-    const workflow = convertQwenEditWorkflowToImage21(graph).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
-    const encode = Object.values(workflow).find(node => node.class_type === 'TextEncodeQwenImage21')!;
-    assert.deepEqual(encode.inputs['images.image_1'], ['900', 0]);
-    assert.deepEqual(encode.inputs['images.image_2'], ['901', 0]);
-    assert.equal(encode.inputs['images.image_3'], undefined);
-    assert.ok(encode.inputs.vae);
-    const prompt = String(encode.inputs.prompt);
-    assert.match(prompt, /^Exactly two people, each with exactly two arms/);
-    assert.match(prompt, /<image1> is only the first person's face/);
-    assert.match(prompt, /<image2> is only the second person's face/);
-    assert.match(prompt, /Only she wears the rust camisole/);
-    assert.doesNotMatch(prompt, /black knit|pose map|body positions/);
+  };
+
+  it('flags a clothed still with a two-person map, not a nude one or a solo one', () => {
+    assert.equal(isClothedDuoStill('TWO PEOPLE in this photo: selfie together.', true), true);
+    assert.equal(isClothedDuoStill('Explicit sex photo: she kneels between her thighs.', true), false);
+    assert.equal(isClothedDuoStill('Day photo: One woman alone.', false), false);
+  });
+
+  it('returns a clothed two-person graph unconverted, with or without a partner face', () => {
+    // Sweep 2026-10-02: on 2.1 the pair fused or the partner ghosted behind the lead (6 of 6).
+    const plain = duo('TWO PEOPLE in this photo: selfie together. Match Image 2 body positions.', {
+      '900': 'cast-plate.png',
+      '904': 'day-pose-guide-selfie_duo-82b0de-x2-17.png',
+    });
+    assert.equal(convertQwenEditWorkflowToImage21(plain).converted, false);
+    const withPartner = duo(
+      'TWO PEOPLE in this photo: she (wearing rust camisole) and her partner — a woman with dark hair — together. SECOND PERSON: Image 2 is the face of the woman with the Cast lead. Match Image 3 body positions.',
+      {
+        '900': 'cast-plate.png',
+        '901': 'day-partner-vl-1.png',
+        '904': 'day-pose-guide-kitchen-82b0de-x2-17.png',
+      }
+    );
+    const result = convertQwenEditWorkflowToImage21(withPartner);
+    assert.equal(result.converted, false);
+    assert.equal(result.workflow, withPartner);
   });
 });
 
