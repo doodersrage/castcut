@@ -8,7 +8,7 @@ import {
 } from '@/lib/footwear-image';
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
 import { dayPartnerNoun } from '@/lib/day-partner';
-import { poseFirstLine } from '@/lib/pose-starters';
+import { poseFirstLine, poseFramingLine } from '@/lib/pose-starters';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
@@ -248,14 +248,30 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           }
         }
         const builtPrompt = buildPrompt(footwearImage);
+        const posePronoun = dayPartnerNoun(input.character ?? {}) === 'man' ? 'he' : 'she';
+        // A limb drawn near the edge of the pose map needs a wider frame than the plate's.
+        const framing = poseFramingLine(customPose?.people[0], posePronoun);
         const prompt =
           poseGuideFilename && customPose?.people[0]
-            ? `${poseFirstLine(
-                customPose.people[0],
-                dayPartnerNoun(input.character ?? {}) === 'man' ? 'he' : 'she',
-                customPose.aspect,
-                customPose.words
-              )}\n${withFittingCustomPose(builtPrompt)}`
+            ? [
+                poseFirstLine(
+                  customPose.people[0],
+                  posePronoun,
+                  customPose.aspect,
+                  customPose.words
+                ),
+                framing,
+                withFittingCustomPose(
+                  framing
+                    ? builtPrompt.replace(
+                        'single full-body or three-quarter fashion still',
+                        'single full-body fashion still'
+                      )
+                    : builtPrompt
+                ),
+              ]
+                .filter(Boolean)
+                .join('\n')
             : builtPrompt;
         const finalized = await input.actions.finalizePrompt(
           prompt,

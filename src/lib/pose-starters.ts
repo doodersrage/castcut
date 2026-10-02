@@ -361,7 +361,8 @@ export function describePoseBody(
       return !lying && !handsDown && wrist.y > ground - unit * 0.3 ? [{ side, pose: 'down' }] : [];
     }
     if (head ? wrist.y < head.y - unit * 0.05 : wrist.y < shoulder.y - unit * 0.5) {
-      return [{ side, pose: 'raised' }];
+      // Above the head but far out to the side is a diagonal reach, not an arm straight up.
+      return [{ side, pose: Math.abs(wrist.x - shoulder.x) > unit * 0.6 ? 'upout' : 'raised' }];
     }
     if (head && dist(wrist, head) < unit * 0.4 && elbow && elbow.y < shoulder.y + unit * 0.15) {
       return [{ side, pose: 'head' }];
@@ -393,6 +394,11 @@ export function describePoseBody(
     ? []
     : [
         armPhrase('raised', 'both arms raised', () => 'one arm raised'),
+        armPhrase(
+          'upout',
+          'both arms raised out wide',
+          side => `${side} arm reaching up and out to the side`
+        ),
         armPhrase('head', 'both hands behind the head', side => `${side} hand behind the head`),
         // Lying down, hands near the hips are just arms at rest.
         lying ? '' : armPhrase('hip', 'both hands on hips', side => `${side} hand on hip`),
@@ -460,4 +466,30 @@ export function poseFirstLine(
     return `POSE FIRST: ${pronoun} is ${words.trim().replace(/[.\s]+$/, '')}, exactly as the pose map in Image 3 shows.`;
   }
   return `POSE FIRST: ${pronoun} is ${description}, exactly as the pose map in Image 3 shows${detail ? ` — ${detail}` : ''}.`;
+}
+
+/** Hands, elbows, knees and feet: 3–4 and 6–7 the arms, 9–10 and 12–13 the legs. */
+const REACH_JOINTS = [3, 4, 6, 7, 9, 10, 12, 13] as const;
+
+/**
+ * True when a limb is drawn close to the edge of the pose canvas — arms straight out, arms
+ * overhead, a wide kick. A try-on keeps the plate's tight framing, so such a limb was cropped by
+ * the frame or bent to fit inside it (a T-pose rendered with drooping arms on Rapid and Edit
+ * 2511, both seeds, 2026-10-01).
+ */
+export function poseReachesFar(body: NormalizedBody | null | undefined): boolean {
+  return REACH_JOINTS.some(index => {
+    const point = body?.[index];
+    return Boolean(point) && (point!.x < 0.12 || point!.x > 0.88 || point!.y < 0.07);
+  });
+}
+
+/** Asks for room around a far-reaching pose; '' for a pose that fits the plate's framing. */
+export function poseFramingLine(
+  body: NormalizedBody | null | undefined,
+  pronoun: 'she' | 'he' = 'she'
+): string {
+  if (!poseReachesFar(body)) return '';
+  const whose = pronoun === 'he' ? 'his' : 'her';
+  return `FRAMING: pull the camera back and show ${whose} whole body from head to feet with clear space around ${pronoun === 'he' ? 'him' : 'her'} — both hands and both feet inside the picture, nothing cropped by the frame.`;
 }

@@ -10,6 +10,8 @@ import {
   poseStarterBody,
   POSE_STARTERS,
   removePerson,
+  poseFramingLine,
+  poseReachesFar,
 } from './pose-starters';
 
 describe('pose starters', () => {
@@ -168,6 +170,32 @@ describe('pose starters', () => {
     assert.ok(offered.includes('hands_hips') && offered.includes('sport_yoga_warrior'));
     assert.ok(!offered.includes('hug') && !offered.includes('hold_hands'));
     for (const id of offered) assert.ok(dayPoseAsPhotoPose(id)!.words!.length < 140, id);
+  });
+
+  it('a far-reaching pose asks for room; one that fits the frame does not', () => {
+    const stand = poseStarterBody('stand');
+    assert.equal(poseReachesFar(stand), false);
+    assert.equal(poseFramingLine(stand), '');
+    // Arms straight out to the canvas edges.
+    const tPose = stand.map((point, index) =>
+      index === 4 ? { x: 0.03, y: 0.21 } : index === 7 ? { x: 0.97, y: 0.21 } : point
+    );
+    assert.equal(poseReachesFar(tPose), true);
+    assert.match(poseFramingLine(tPose), /^FRAMING: pull the camera back and show her whole body/);
+    assert.match(poseFramingLine(tPose, 'he'), /show his whole body .* around him —/);
+    // Hands straight overhead near the top edge.
+    const armsUp = stand.map((point, index) =>
+      index === 4 ? { x: 0.33, y: 0.02 } : index === 7 ? { x: 0.67, y: 0.02 } : point
+    );
+    assert.equal(poseReachesFar(armsUp), true);
+    // An arm up and far out to the side is a diagonal reach, not "raised".
+    const reach = stand.map((point, index) =>
+      index === 6 ? { x: 0.8, y: 0.16 } : index === 7 ? { x: 0.99, y: 0.09 } : point
+    );
+    assert.equal(
+      describePoseBody(reach, { aspect: 0.75 }),
+      'standing, left arm reaching up and out to the side'
+    );
   });
 
   it('one knee down with the other foot planted is kneeling on one knee', () => {
