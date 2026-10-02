@@ -54,3 +54,54 @@ describe('Story scene pose variety', () => {
     assert.equal(chatCompletion.mock.callCount(), 1);
   });
 });
+
+describe('Story scene cards are checked before the player picks', () => {
+  const four = (blurbs: string[]) =>
+    JSON.stringify({
+      scenes: blurbs.map((blurb, i) => ({ title: PLACES[i]![0], blurb })),
+    });
+
+  it('rewrites "they" for the lead without asking again', async () => {
+    const { generateRoleplayScenes } = await import('./roleplay-generator');
+    chatCompletion.mock.resetCalls();
+    replies.length = 0;
+    replies.push(
+      four([
+        'Mara lowers their cup on the rooftop ledge.',
+        'She reads alone in the locked reading room.',
+        'She waters the ferns under the glass roof.',
+        'She watches fields roll past the window.',
+      ])
+    );
+    const result = await generateRoleplayScenes({
+      content: 'pg13',
+      bio: { name: 'Mara', look: 'a woman in a yellow raincoat', personality: 'curious' },
+      llm: { llmEnabled: true, allowTemplateFallback: false },
+      story: [],
+    } as never);
+    assert.equal(chatCompletion.mock.callCount(), 1);
+    assert.equal(result.scenes[0]!.blurb, 'Mara lowers her cup on the rooftop ledge.');
+  });
+
+  it('asks once more about a sexual card on a clean story, and drops it if it stays', async () => {
+    const { generateRoleplayScenes } = await import('./roleplay-generator');
+    chatCompletion.mock.resetCalls();
+    replies.length = 0;
+    const bad = four([
+      'She is naked on the rooftop ledge.',
+      'She reads alone in the locked reading room.',
+      'She waters the ferns under the glass roof.',
+      'She watches fields roll past the window.',
+    ]);
+    replies.push(bad, bad);
+    const result = await generateRoleplayScenes({
+      content: 'pg13',
+      bio: { name: 'Mara', look: 'a woman in a yellow raincoat', personality: 'curious' },
+      llm: { llmEnabled: true, allowTemplateFallback: false },
+      story: [],
+    } as never);
+    assert.equal(chatCompletion.mock.callCount(), 2);
+    assert.match(prompts.at(-1)!, /A clean story scene has sexual wording/);
+    assert.ok(result.scenes.every(scene => !/naked/.test(scene.blurb)));
+  });
+});

@@ -8,6 +8,7 @@ import {
 } from '../llm-request-options';
 import { stripPromptArtifacts } from '../prompt-cleanup';
 import { storyLeadIsMan, storySceneForManLead } from '../story-lead-gender';
+import { repairStoryScene } from '../story-scene-check';
 import {
   clarifyIntimateImageLanguage,
   reinforceIntimateStillPrompt,
@@ -536,6 +537,30 @@ ${leadPronounLine(bio)}
       parsed = retry;
     }
   }
+  // The cards are checked before the player picks: "they" for the lead is rewritten; a partner
+  // in a Solo story or sexual words on a clean one sends the writer back once, naming them, and
+  // a card still wrong after that is dropped (built-in scenes fill its place).
+  const checkContext = {
+    adult: isRoleplayAdultContent(content),
+    solo: options.intimateMix === 'solo',
+    manLead: storyLeadIsMan({ look: bio.look }),
+  };
+  const checkScenes = (list: RoleplayScene[]) =>
+    list.map(scene => repairStoryScene(scene, checkContext));
+  let checked = checkScenes(parsed);
+  const wrong = checked.flatMap(entry => entry.remaining.map(issue => issue.message));
+  if (wrong.length > 0) {
+    const retryRaw = await writeScenes(
+      `- Your last options broke these rules: ${[...new Set(wrong)].join(' ')} Write four that do not.`
+    );
+    const retry = retryRaw ? checkScenes(parseRoleplayScenes(extractJsonValue(retryRaw))) : [];
+    const stillWrong = (list: typeof checked) =>
+      list.filter(entry => entry.remaining.length > 0).length;
+    if (retry.length >= checked.length && stillWrong(retry) < stillWrong(checked)) {
+      checked = retry;
+    }
+  }
+  parsed = checked.filter(entry => entry.remaining.length === 0).map(entry => entry.scene);
   const scenes = mergeRoleplaySceneOptions(parsed, fallback, options.story, 4, rejectedScenes);
   const next = stampFinaleScenes(scenes.length > 0 ? scenes : fallback, finale);
   return {
