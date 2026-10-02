@@ -45,7 +45,7 @@ export type DayMoodStripProps = {
   /** Opt-in: full plate as an extra identity reference on face-break stills. */
   identityBoost?: boolean;
   onIdentityBoostChange?: (next: boolean) => void;
-  /** Opt-in: re-render each one-person still's face against the Cast face crop. */
+  /** Opt-in: re-render the lead's face on each still against the Cast face crop. */
   faceFinish?: boolean;
   onFaceFinishChange?: (next: boolean) => void;
   /** Latest Face finish line (running / applied / skipped / paused). */

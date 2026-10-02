@@ -1159,7 +1159,7 @@ export type DayToolCache = {
    */
   identityBoost?: boolean;
   /**
-   * Off by default. After each one-person still lands, re-render its face against the Cast face
+   * Off by default. After each still lands (one or two people), re-render the lead's face against the Cast face
    * crop (face-finish.ts) with the best installed finisher: live, Qwen Edit 2511 + Lightning moved
    * 8/8 Rapid stills closer to the Cast (0.659 → 0.492).
    */
