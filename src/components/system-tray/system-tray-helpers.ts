@@ -25,7 +25,7 @@ export function primaryTitle(primary: SystemTrayPrimary): string {
     case 'asset':
       return primary.job.label;
     case 'held':
-      return `${primary.count} held Max job${primary.count === 1 ? '' : 's'}`;
+      return `${primary.count} held Best job${primary.count === 1 ? '' : 's'}`;
     case 'queue':
       return `${primary.running} running · ${primary.pending} queued on ComfyUI`;
   }

@@ -1,5 +1,6 @@
 'use client';
 
+import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/browser-storage';
 import { useEffect, useState } from 'react';
 import type { AmbientIntensity } from '@/lib/ambient-settings';
 import { loadAmbientIntensity, saveAmbientIntensity } from '@/lib/ambient-settings';
@@ -23,12 +24,17 @@ export default function ProfileAppearancePanel() {
   const [resetNote, setResetNote] = useState<string | null>(null);
 
   useEffect(() => {
-    scheduleAfterCommit(() => {
+    const read = () => {
       setAmbient(loadAmbientIntensity());
       setDensity(loadUiDensity());
       setCalm(loadCalmUi());
       setToastsEnabled(loadToastPreferenceEnabled());
-    });
+    };
+    scheduleAfterCommit(read);
+    // Read again once browser storage has hydrated / synced: the first read could run before
+    // the synced values landed, and the selects then showed "Subtle" on a "Vivid" page.
+    window.addEventListener(BROWSER_STORAGE_HEALTH_EVENT, read);
+    return () => window.removeEventListener(BROWSER_STORAGE_HEALTH_EVENT, read);
   }, []);
 
   return (
@@ -49,7 +55,7 @@ export default function ProfileAppearancePanel() {
               setAmbient(next);
               saveAmbientIntensity(next);
             }}
-            className="ui-input w-full"
+            className="ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body"
           >
             <option value="off">Off</option>
             <option value="subtle">Subtle</option>
@@ -66,7 +72,7 @@ export default function ProfileAppearancePanel() {
               setDensity(next);
               saveUiDensity(next);
             }}
-            className="ui-input w-full"
+            className="ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body"
           >
             <option value="comfortable">Comfortable — roomy type & padding</option>
             <option value="compact">Compact — denser tools & gallery</option>
@@ -125,8 +131,8 @@ export default function ProfileAppearancePanel() {
             Activity notifications
           </span>
           <span className="type-caption text-[var(--text-muted)]">
-            Show queue confirmations, held Max warnings, and other activity in the bottom-right
-            system tray.
+            Show queue confirmations, held Best-quality warnings, and other activity in the
+            bottom-right system tray.
           </span>
         </span>
       </label>
@@ -136,8 +142,8 @@ export default function ProfileAppearancePanel() {
         <p className="type-caption text-[var(--text-muted)]">
           Clears pinned tools, recent destinations, expanded nav groups, remembered collapsibles,
           per-tool model/workflow memory, last draft, and last tool route. Density returns to
-          Comfortable. Workspace returns to Simple. Theme, ambient, Calm UI, and toast preference
-          stay unchanged.
+          Comfortable. Workspace returns to Simple (the button above resets it to Studio instead).
+          Theme, ambient, Calm UI, and toast preference stay unchanged.
         </p>
         <Button
           variant="secondary"

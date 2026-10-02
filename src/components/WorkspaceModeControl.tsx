@@ -1,11 +1,18 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import {
+  WORKSPACE_MODE_CHANGED_EVENT,
   WORKSPACE_MODE_OPTIONS,
   hasChosenWorkspaceMode,
   saveWorkspaceMode,
   type WorkspaceMode,
 } from '@/lib/workspace-mode';
+
+function subscribeWorkspaceChosen(onChange: () => void): () => void {
+  window.addEventListener(WORKSPACE_MODE_CHANGED_EVENT, onChange);
+  return () => window.removeEventListener(WORKSPACE_MODE_CHANGED_EVENT, onChange);
+}
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { Button } from '@/components/ui/Button';
 
@@ -19,6 +26,9 @@ export default function WorkspaceModeControl({
   variant = 'panel',
   onChanged,
 }: WorkspaceModeControlProps) {
+  // Read through the store: called during render it said "chosen" on the server and "not
+  // chosen" in a fresh browser, and the tip paragraph broke hydration (React #418 on Profile).
+  const chosen = useSyncExternalStore(subscribeWorkspaceChosen, hasChosenWorkspaceMode, () => true);
   const mode = useWorkspaceMode();
 
   function apply(next: WorkspaceMode) {
@@ -92,7 +102,7 @@ export default function WorkspaceModeControl({
           );
         })}
       </div>
-      {!hasChosenWorkspaceMode() ? (
+      {!chosen ? (
         <p className="type-caption text-[var(--text-muted)]">
           Tip: pick once here — you can change anytime from the sidebar or Profile.
         </p>

@@ -35,6 +35,8 @@ export default function OutfitPoseSection({
   hideLabel?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  // The drawn pose survives a trip to "As the plate" and back (it was discarded with no undo).
+  const [stashedPose, setStashedPose] = useState<PhotoPose | undefined>(undefined);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoStatus, setPhotoStatus] = useState<string | null>(null);
@@ -61,11 +63,12 @@ export default function OutfitPoseSection({
       setPhotoBusy(false);
     }
   };
-  const startPose: PhotoPose = pose ?? {
-    aspect: 2 / 3,
-    people: [poseStarterBody('stand')],
-    source: 'edited',
-  };
+  const startPose: PhotoPose = pose ??
+    stashedPose ?? {
+      aspect: 2 / 3,
+      people: [poseStarterBody('stand')],
+      source: 'edited',
+    };
 
   return (
     <div className="space-y-2" data-testid="outfit-pose">
@@ -86,6 +89,7 @@ export default function OutfitPoseSection({
             onClick={() => {
               setEditing(false);
               setPhotoStatus(null);
+              if (pose) setStashedPose(pose);
               onChange(undefined);
             }}
           >

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { galleryCardCaption } from '@/lib/gallery-card-caption';
 import GalleryEmptyPanel from '@/components/gallery/GalleryEmptyPanel';
@@ -66,6 +66,14 @@ export default function MobileGalleryTool() {
     ...(characterId ? { characterId } : {}),
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The panel for the tapped still sits under the whole grid — bring it into view, or a tap
+  // looked like it did nothing.
+  const selectedPanelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (selectedId) {
+      selectedPanelRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [selectedId]);
 
   useEffect(() => {
     setFilter(previous => ({
@@ -142,7 +150,7 @@ export default function MobileGalleryTool() {
             ? watchCharacter
               ? `${watchCharacter.name} — play Day films, then jump back into the reel.`
               : 'Play your Day films. Remix the same look when you want another cut.'
-            : 'Rate stills. Upload your own. Open one in Play or Compose.'}
+            : 'Rate stills. Upload your own. Tap one to rate it or open it in Story or Compose.'}
         </p>
         {!filmMode ? (
           <GalleryUploadButton className="ui-btn-secondary mt-2 px-3 py-2 text-xs" />
@@ -277,7 +285,10 @@ export default function MobileGalleryTool() {
       )}
 
       {selected && !filmMode ? (
-        <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] p-3">
+        <div
+          ref={selectedPanelRef}
+          className="space-y-3 rounded-2xl border border-[var(--border-subtle)] p-3"
+        >
           <p className="type-caption text-[var(--text-muted)]">Selected</p>
           <div className="flex flex-wrap gap-1">
             {RATINGS.map(rating => (

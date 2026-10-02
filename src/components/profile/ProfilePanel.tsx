@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, useAuthLoading } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
@@ -16,6 +16,7 @@ import { settingsTabHref } from '@/lib/settings-nav';
 
 export default function ProfilePanel() {
   const auth = useAuth();
+  const authLoading = useAuthLoading();
   const [password, setPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [comfyUiUrl, setComfyUiUrl] = useState('');
@@ -97,6 +98,15 @@ export default function ProfilePanel() {
     }
   }
 
+  // Until the session answers, say nothing about sign-in: "Sign-in is disabled" flashed on
+  // every load (and was in the server HTML) for signed-in users.
+  if (authLoading) {
+    return (
+      <div className="space-y-8">
+        <ProfileAppearancePanel />
+      </div>
+    );
+  }
   if (!authEnabled) {
     return (
       <div className="space-y-8">

@@ -1,5 +1,6 @@
 'use client';
 
+import { isCancelledJob } from '@/lib/comfyui-queue-cancel';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadComfyGallery, type ComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import { toastBulkQueueSummary, toastQueueOutcome } from '@/lib/app-toast';
@@ -339,12 +340,14 @@ export function useQueueToolOrchestration() {
   }, [orphanHostJobs, queueHealth?.url, refreshEntries, refreshHealth]);
 
   const retryFailed = useCallback(async () => {
-    if (failed.length === 0) {
+    // Not the ones the player cancelled — "Retry all failed" used to queue those again.
+    const retryable = failed.filter(entry => !isCancelledJob(entry));
+    if (retryable.length === 0) {
       return;
     }
-    setStatus(`Retrying ${failed.length} failed job(s)…`);
+    setStatus(`Retrying ${retryable.length} failed job(s)…`);
     const results = await requeueComfyJobs(
-      failed.map(entry => {
+      retryable.map(entry => {
         const urls = resolveRequeueImageUrlsFromEntry(entry);
         return {
           prompt: entry.prompt,
@@ -358,7 +361,7 @@ export function useQueueToolOrchestration() {
       })
     );
     markOnboardingFirstQueue();
-    setStatus(`Retried ${results.queued}/${failed.length}.`);
+    setStatus(`Retried ${results.queued}/${retryable.length}.`);
     toastBulkQueueSummary({
       label: 'Retry failed finished',
       queued: results.queued,

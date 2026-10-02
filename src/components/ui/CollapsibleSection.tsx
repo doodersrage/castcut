@@ -36,7 +36,9 @@ export function CollapsibleSection({
   return (
     <details
       open={open}
-      className={`ui-collapsible group ${className}`.trim()}
+      // A named group: inside an open section, a closed nested one matched the parent's plain
+      // `group` and showed its arrow flipped.
+      className={`ui-collapsible group/collapsible ${className}`.trim()}
       onToggle={event => {
         const nextOpen = event.currentTarget.open;
         setOpen(nextOpen);
@@ -53,7 +55,7 @@ export function CollapsibleSection({
           </div>
           <span
             aria-hidden
-            className="type-caption mt-0.5 shrink-0 transition group-open:rotate-180"
+            className="type-caption mt-0.5 shrink-0 transition group-open/collapsible:rotate-180"
           >
             ▾
           </span>

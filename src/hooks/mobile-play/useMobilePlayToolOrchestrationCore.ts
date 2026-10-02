@@ -1,6 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  getCharacter,
+  getCharactersSnapshot,
+  getServerCharactersSnapshot,
+  subscribeCharacters,
+} from '@/lib/character-os';
+import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRoleplayFilmActions } from '@/hooks/useRoleplayFilmActions';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
@@ -145,6 +152,28 @@ export function useMobilePlayToolOrchestrationCore() {
   const referenceOriginalUrl = toolSettings.referenceOriginalUrl?.trim() || '';
   const referenceOriginalFilename = toolSettings.referenceOriginalFilename?.trim() || '';
   const hasReferenceImage = Boolean(referenceImageUrl || referenceImageFilename);
+
+  // Take the active Cast's look plate when Story has none (as desk Story does). Without this the
+  // phone page said "no plate" and blocked rolling until desk Story had been opened once in the
+  // same browser. Re-runs when the Cast roster arrives (it can hydrate after this page mounts).
+  const castRoster = useSyncExternalStore(
+    subscribeCharacters,
+    getCharactersSnapshot,
+    getServerCharactersSnapshot
+  );
+  useEffect(() => {
+    if (!mounted || hasReferenceImage) {
+      return;
+    }
+    const characterId = shared.activeCharacterId?.trim();
+    if (!characterId) {
+      return;
+    }
+    const fields = roleplayLookPlateFieldsFromCharacter(getCharacter(characterId));
+    if (fields) {
+      updateToolSettings(fields);
+    }
+  }, [castRoster, hasReferenceImage, mounted, shared.activeCharacterId, updateToolSettings]);
 
   useEffect(() => {
     const refresh = () => {

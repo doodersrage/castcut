@@ -166,8 +166,8 @@ export default function MobilePlayToolSections({ description: _description, ...v
       <div className="space-y-1">
         <h1 className="type-display text-2xl tracking-tight">Story</h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-          Optional beats after Day — continues your Cast lead. Part and From photo live on Film /
-          Cast.
+          Optional beats after Day — continues your Cast lead. Change the lead or their photo on
+          Film / Cast.
         </p>
       </div>
 

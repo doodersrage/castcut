@@ -1002,6 +1002,24 @@ export function removeLook(characterId: string, lookId: string): CharacterRecord
   return getCharacter(characterId);
 }
 
+/** Rename the Cast's active look (the Cast keeps its own name). */
+export function renameActiveLook(characterId: string, name: string): CharacterRecord | undefined {
+  const character = getCharacter(characterId);
+  const nextName = name.trim();
+  if (!character || !nextName) {
+    return character;
+  }
+  const target = activeLook(character);
+  upsertCharacter({
+    ...character,
+    looks: looksOf(character).map(look =>
+      look.id === target.id ? { ...look, name: nextName } : look
+    ),
+    updatedAt: Date.now(),
+  });
+  return getCharacter(characterId);
+}
+
 export function setLookKeepers(
   characterId: string,
   lookId: string,

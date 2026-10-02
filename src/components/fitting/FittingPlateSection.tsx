@@ -73,7 +73,7 @@ export default function FittingPlateSection({
   return (
     <ToolSection
       title="Plate"
-      description="Identity still for img2img. Isolate on white so the photo’s clothes and scene do not leak."
+      description="The picture every try-on starts from. Isolate on white so the photo’s clothes and scene do not leak."
       data-testid="fitting-plate"
     >
       <div className="flex flex-wrap gap-2">

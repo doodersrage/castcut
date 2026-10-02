@@ -70,7 +70,7 @@ export function resolveQueueFailureFixes(
     if (next) {
       add({
         kind: 'downgrade-quality',
-        label: next === 'final' ? 'Retry as Final' : 'Retry as Draft',
+        label: next === 'final' ? 'Retry as Good' : 'Retry as Draft',
         reason: 'Lower quality to reduce VRAM.',
       });
     } else {
@@ -108,7 +108,7 @@ export function resolveQueueFailureFixes(
   if (fixes.length === 0 && normalizeQueueQualityProfile(entry.queueQualityProfile) === 'max') {
     add({
       kind: 'downgrade-quality',
-      label: 'Retry as Final',
+      label: 'Retry as Good',
       reason: 'Max often OOMs; Final is the usual recovery.',
     });
   }

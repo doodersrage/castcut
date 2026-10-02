@@ -188,7 +188,7 @@ export default function StudioCompareTab({
               ) : (
                 <p className="text-sm text-[var(--tint-warning-text)]">
                   {visualA.held
-                    ? 'Held Max until ComfyUI is idle'
+                    ? 'Held Best until ComfyUI is idle'
                     : (visualA.error ?? 'No preview')}
                 </p>
               )}
@@ -207,7 +207,7 @@ export default function StudioCompareTab({
               ) : (
                 <p className="text-sm text-[var(--tint-warning-text)]">
                   {visualB.held
-                    ? 'Held Max until ComfyUI is idle'
+                    ? 'Held Best until ComfyUI is idle'
                     : (visualB.error ?? 'No preview')}
                 </p>
               )}

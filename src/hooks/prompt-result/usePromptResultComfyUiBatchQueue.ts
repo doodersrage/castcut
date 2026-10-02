@@ -108,7 +108,7 @@ export function usePromptResultComfyUiBatchQueue(
             }
             setComfyUiStatus(`Held ${prepared.length} Max job(s) until ComfyUI queue is idle.`);
             toastHeldMax({
-              text: 'Max jobs held until ComfyUI is idle',
+              text: 'Best-quality jobs held until ComfyUI is idle',
               count: prepared.length,
             });
             return;

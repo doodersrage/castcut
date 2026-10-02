@@ -1,3 +1,4 @@
+import { isCancelledJob } from './comfyui-queue-cancel';
 import type { ComfyGalleryEntry } from './comfyui-gallery';
 
 export { MAX_GALLERY_ENTRIES as GALLERY_ENTRY_LIMIT } from './comfyui-gallery';
@@ -35,13 +36,16 @@ export function computeGalleryStats(entries: ComfyGalleryEntry[]): GalleryStats 
   const modelCompleted = new Map<string, number>();
 
   for (const entry of entries) {
+    const cancelled = isCancelledJob(entry);
     if (entry.status === 'completed') {
       completed += 1;
     } else if (entry.status === 'pending') {
       pending += 1;
     } else if (entry.status === 'running') {
       running += 1;
-    } else if (entry.status === 'error') {
+    } else if (entry.status === 'error' && !cancelled) {
+      // A job the player cancelled is not a failure (it dragged the success rate down and
+      // "Cancelled" showed as the top error).
       error += 1;
     }
 
@@ -67,7 +71,7 @@ export function computeGalleryStats(entries: ComfyGalleryEntry[]): GalleryStats 
       durations.push(entry.renderDurationMs);
     }
 
-    if (entry.status === 'error') {
+    if (entry.status === 'error' && !cancelled) {
       const message = entry.statusMessage?.trim() || 'Unknown error';
       errorCounts.set(message, (errorCounts.get(message) ?? 0) + 1);
     }

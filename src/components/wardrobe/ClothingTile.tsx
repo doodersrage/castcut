@@ -93,7 +93,8 @@ export default function ClothingTile({
           disabled={disabled}
           onClick={onRemove}
           // Always visible — phones have no hover to reveal it.
-          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-[var(--text-muted)] shadow-sm ring-1 ring-[var(--border-default)] transition hover:text-[var(--text-primary)]"
+          // The ::before widens the touch target to 36 px without growing the visible button.
+          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center before:absolute before:-inset-2 before:content-[''] justify-center rounded-full bg-[var(--bg-elevated)] text-[var(--text-muted)] shadow-sm ring-1 ring-[var(--border-default)] transition hover:text-[var(--text-primary)]"
         >
           <UiIcon name="close" size={10} />
         </button>

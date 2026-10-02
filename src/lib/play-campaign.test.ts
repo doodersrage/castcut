@@ -168,3 +168,19 @@ describe('play campaign helpers', () => {
     assert.equal(fromRoleplay?.stepIndex, 4);
   });
 });
+
+describe('playEffectiveProgressLabel', () => {
+  it('names the step the artifacts have reached, not the stale saved index', async () => {
+    const { playEffectiveProgressLabel, playCampaignProgressLabel } = await import(
+      './play-campaign'
+    );
+    const campaign = { version: 1 as const, characterId: 'c1', stepIndex: 2, updatedAt: 1 };
+    assert.equal(playCampaignProgressLabel(campaign), 'Film · 3 of 4 · Outfit');
+    // A kept try-on means Outfit is done — the strip shows Day, and so must the header.
+    assert.equal(
+      playEffectiveProgressLabel({ campaign, funnel: { keepTryOn: 1 } }),
+      'Film · 4 of 4 · Day'
+    );
+    assert.equal(playEffectiveProgressLabel({ campaign: null, funnel: { keepTryOn: 1 } }), 'Film · start');
+  });
+});

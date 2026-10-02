@@ -1,5 +1,6 @@
 'use client';
 
+import { galleryCardCaption } from '@/lib/gallery-card-caption';
 import Link from 'next/link';
 import type { QueueJobLabel } from '@/lib/queue-job-context';
 
@@ -12,7 +13,11 @@ export default function QueueJobTitle({
   prompt?: string;
 }) {
   if (!label) {
-    return <p className="truncate text-sm text-[var(--text-primary)]">{prompt}</p>;
+    return (
+      <p className="truncate text-sm text-[var(--text-primary)]">
+        {galleryCardCaption(prompt) || prompt}
+      </p>
+    );
   }
   return (
     <>

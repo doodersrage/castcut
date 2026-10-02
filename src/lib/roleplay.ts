@@ -2626,7 +2626,8 @@ export function storySessionStatusLine(input: {
 }): string {
   const lead = input.hasCharacter ? input.characterName?.trim() || 'Cast lead' : 'No Cast lead';
   const plate = input.hasPlate ? 'plate ready' : 'no plate';
-  const wardrobe = input.hasWardrobe ? 'kit' : null;
+  // "outfit", not "kit": the clothes may be a photo.
+  const wardrobe = input.hasWardrobe ? 'outfit' : null;
   const stills = Math.max(0, input.completedStills ?? 0);
   const clips = Math.max(0, input.completedClips ?? 0);
   const beats = Math.max(0, input.beatTotal ?? 0);

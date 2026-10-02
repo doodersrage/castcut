@@ -99,7 +99,7 @@ export default function CharacterMediaSection({
       title="Media"
       description={
         mediaTab === 'clips'
-          ? 'Playable reel. Continue labels Extend / last-frame / Stitch by engine.'
+          ? 'Clips you can play here. Continue a clip from its last frame, or stitch clips into one.'
           : mediaTab === 'films'
             ? 'Assembled Day / Story films stamped on this character.'
             : 'Jobs stamped with this character. Click a still or clip to open it here.'
@@ -201,6 +201,13 @@ export default function CharacterMediaSection({
               </ButtonLink>
             </ToolActionRow>
           </div>
+        ) : mediaTab === 'keepers' ? (
+          <EmptyState
+            compact
+            icon="inbox"
+            title="No keepers yet"
+            description="Press Keep on a still (here under All, or in Outfit / Day) to collect the best ones."
+          />
         ) : (
           <EmptyState
             compact

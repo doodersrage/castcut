@@ -272,9 +272,13 @@ export default function ImageLightboxBottomChrome({
     ) : null;
 
   const shortcutsHint = compact ? (
-    <p className="type-caption text-white/45">Press ? for shortcuts</p>
+    <p className="type-caption text-white/45 [@media(pointer:coarse)]:hidden">
+      Press ? for shortcuts
+    </p>
   ) : (
-    <p className="type-caption text-[var(--text-muted)]">Press ? for shortcuts</p>
+    <p className="type-caption text-[var(--text-muted)] [@media(pointer:coarse)]:hidden">
+      Press ? for shortcuts
+    </p>
   );
 
   if (compact) {

@@ -9,6 +9,7 @@ import type { LookPack } from './look-pack';
 import { saveLookPack } from './look-pack';
 import {
   canEnterPlayStep,
+  derivePlayProgress,
   PLAY_CAMPAIGN_STEPS,
   PLAY_CORE_STEP_IDS,
   type PlayArtifacts,
@@ -72,7 +73,9 @@ export function resolvePlayLoopNavHref(href: string, activeCharacterId?: string 
   return `${path}${next ? `?${next}` : ''}${hash}`;
 }
 
-export function playCampaignProgressLabel(state: PlayCampaignState | null): string {
+export function playCampaignProgressLabel(
+  state: Pick<PlayCampaignState, 'stepIndex' | 'completedAt'> | null
+): string {
   if (!state) {
     return 'Film · start';
   }
@@ -83,6 +86,22 @@ export function playCampaignProgressLabel(state: PlayCampaignState | null): stri
   const coreCount = PLAY_CORE_STEP_IDS.length;
   const displayIndex = Math.min(state.stepIndex + 1, coreCount);
   return `Film · ${displayIndex} of ${coreCount}${step ? ` · ${step.label}` : ''}`;
+}
+
+/**
+ * The header's "Film · 3 of 4 · Outfit" for the same step the step strip shows: the saved step
+ * is only a cache that artifacts can advance, and reading it raw named an earlier step than
+ * the strip beside it.
+ */
+export function playEffectiveProgressLabel(artifacts: PlayArtifacts = {}): string {
+  const campaign = artifacts.campaign ?? null;
+  if (!campaign || campaign.completedAt) {
+    return playCampaignProgressLabel(campaign);
+  }
+  return playCampaignProgressLabel({
+    ...campaign,
+    stepIndex: derivePlayProgress(artifacts).effectiveStepIndex,
+  });
 }
 
 export const PLAY_CAMPAIGN_KEY = 'play-campaign-v1';

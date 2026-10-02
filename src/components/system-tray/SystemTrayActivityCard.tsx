@@ -239,7 +239,7 @@ export function SystemTrayActivityCard({
           {heldJobs.length > 0 ? (
             <section className="mb-3 space-y-2">
               <h3 className="type-caption font-medium text-[var(--text-muted)]">
-                Held Max ({heldJobs.length})
+                Held Best ({heldJobs.length})
               </h3>
               <ul className="space-y-1.5">
                 {heldJobs.slice(0, 5).map(job => (

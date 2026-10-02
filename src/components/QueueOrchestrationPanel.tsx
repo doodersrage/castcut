@@ -1,5 +1,6 @@
 'use client';
 
+import { isCancelledJob } from '@/lib/comfyui-queue-cancel';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
@@ -128,7 +129,7 @@ export default function QueueOrchestrationPanel(props: { compact?: boolean }) {
     }
     flushingRef.current = true;
     setFlushing(true);
-    setStatus(`Flushing ${jobs.length} held Max job(s)…`);
+    setStatus(`Flushing ${jobs.length} held Best job(s)…`);
     const gallery = loadComfyGallery();
     let flushed = 0;
     try {
@@ -207,8 +208,8 @@ export default function QueueOrchestrationPanel(props: { compact?: boolean }) {
       }
       setStatus(
         flushed > 0
-          ? `Flushed ${flushed} held Max job(s).`
-          : 'No held Max jobs could be flushed yet.'
+          ? `Flushed ${flushed} held Best job(s).`
+          : 'No held Best jobs could be flushed yet.'
       );
     } finally {
       flushingRef.current = false;
@@ -290,15 +291,17 @@ export default function QueueOrchestrationPanel(props: { compact?: boolean }) {
           detail={`${runningLocal.length} running · ${pendingLocal.length - runningLocal.length} pending`}
         />
         <StatCard
-          label="Held Max jobs"
+          label="Held Best jobs"
           value={String(heldJobs.length)}
           detail={holdMaxUntilIdle ? 'Hold Best until idle is on' : 'Hold Best until idle is off'}
         />
         <StatCard
           label="Failed locally"
-          value={String(localJobs.filter(entry => entry.status === 'error').length)}
+          value={String(
+            localJobs.filter(entry => entry.status === 'error' && !isCancelledJob(entry)).length
+          )}
           detail={
-            localJobs.filter(entry => entry.status === 'error').length
+            localJobs.filter(entry => entry.status === 'error' && !isCancelledJob(entry)).length
               ? 'Check Gallery for details'
               : undefined
           }
@@ -317,7 +320,7 @@ export default function QueueOrchestrationPanel(props: { compact?: boolean }) {
             disabled={heldJobs.length === 0}
             onClick={() => void flushHeldJobs(heldJobs)}
           >
-            Flush held Max
+            Flush held Best
           </Button>
           <Button
             variant="ghost"
@@ -325,7 +328,7 @@ export default function QueueOrchestrationPanel(props: { compact?: boolean }) {
             disabled={heldJobs.length === 0}
             onClick={() => {
               clearHeldMaxJobs();
-              setStatus('Cleared held Max jobs.');
+              setStatus('Cleared held Best jobs.');
             }}
           >
             Clear held
@@ -342,8 +345,8 @@ export default function QueueOrchestrationPanel(props: { compact?: boolean }) {
           </p>
         ) : (
           <p className="type-caption text-[var(--text-muted)]">
-            When on, Max Generate / re-queue / gallery Upscale / Moiré / Refine wait until the
-            ComfyUI queue is empty, then flush automatically (VRAM is re-checked on flush).
+            When on, Best-quality Generate / re-queue / gallery Upscale / Moiré / Refine wait until
+            the ComfyUI queue is empty, then flush automatically (VRAM is re-checked on flush).
           </p>
         )}
       </div>

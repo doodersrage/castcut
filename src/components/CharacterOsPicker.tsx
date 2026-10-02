@@ -21,6 +21,7 @@ import {
   migrateCharactersFromLegacy,
   removeCharacter,
   subscribeCharacters,
+  renameActiveLook,
   upsertCharacter,
 } from '@/lib/character-os';
 import { listSavedIdentityBundles, type SharedToolSettings } from '@/lib/settings-cache';
@@ -111,7 +112,9 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
   };
 
   const saveCurrent = () => {
-    const resolvedName = name.trim() || active?.name || 'Untitled character';
+    // With a Cast active the field names the LOOK. The typed text used to become the Cast's
+    // name — renaming the character, and replacing any other Cast with that name.
+    const resolvedName = active?.name || name.trim() || 'Untitled character';
     const record = characterFromShared(shared, {
       name: resolvedName,
       hints,
@@ -121,6 +124,9 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
       record.id = activeId;
     }
     upsertCharacter(record);
+    if (active && name.trim()) {
+      renameActiveLook(record.id, name);
+    }
     const saved = getCharacter(record.id);
     onApply(saved ? applyCharacterRecordFresh(saved) : applyCharacterRecordFresh(record));
     setName('');
@@ -189,7 +195,7 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
               variant="secondary"
               data-testid="cast-picker-open-home"
             >
-              Go to home
+              Open Cast page
             </ButtonLink>
             <Button
               size="sm"

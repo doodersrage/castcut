@@ -119,31 +119,35 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
         aria-label="Film"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border-subtle)] bg-[var(--bg-muted)] pb-[env(safe-area-inset-bottom)]"
       >
-        <ul className="mx-auto flex max-w-lg gap-0.5 overflow-x-auto px-2 py-2">
-          {primaryTabs.map(entry => {
-            const active = entry.id === tab;
-            const href = resolvePlayLoopNavHref(entry.href, activeCharacterId);
-            return (
-              <li key={entry.id} className="min-w-[3.25rem] flex-1">
-                <Link
-                  href={href}
-                  data-active={active ? 'true' : 'false'}
-                  data-testid={`mobile-tab-${entry.id}`}
-                  className={[
-                    'flex flex-col items-center rounded-[var(--radius-md)] px-1.5 py-2 text-center transition',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
-                    active
-                      ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
-                  ].join(' ')}
-                >
-                  <span className="text-xs font-medium leading-tight">{entry.label}</span>
-                </Link>
-              </li>
-            );
-          })}
+        {/* The More menu sits beside the scrolling tab list, not inside it: overflow-x on the
+            list also clips vertically, and the menu (which opens upward) was never drawn. */}
+        <div className="mx-auto flex max-w-lg gap-0.5 px-2 py-2">
+          <ul className="flex min-w-0 flex-[6_1_0%] gap-0.5 overflow-x-auto">
+            {primaryTabs.map(entry => {
+              const active = entry.id === tab;
+              const href = resolvePlayLoopNavHref(entry.href, activeCharacterId);
+              return (
+                <li key={entry.id} className="min-w-[3.25rem] flex-1">
+                  <Link
+                    href={href}
+                    data-active={active ? 'true' : 'false'}
+                    data-testid={`mobile-tab-${entry.id}`}
+                    className={[
+                      'flex flex-col items-center rounded-[var(--radius-md)] px-1.5 py-2 text-center transition',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
+                      active
+                        ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
+                    ].join(' ')}
+                  >
+                    <span className="text-xs font-medium leading-tight">{entry.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
           {/* Always shown — it also holds Report a bug. */}
-          <li className="min-w-[3.25rem] flex-1">
+          <div className="min-w-[3.25rem] flex-[1_1_0%]">
             <details className="relative">
               <summary
                 data-active={moreActive ? 'true' : 'false'}
@@ -179,8 +183,8 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
                 <ReportBugLink className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]" />
               </div>
             </details>
-          </li>
-        </ul>
+          </div>
+        </div>
       </nav>
     </div>
   );

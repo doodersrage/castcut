@@ -25,7 +25,8 @@ export default function ImageLightboxTutorialTip({
 
   return (
     <div
-      className="ui-lightbox-panel flex flex-wrap items-center justify-between gap-3 px-3 py-2 text-[12px]"
+      // A keyboard tip: not shown on touch devices.
+      className="ui-lightbox-panel flex flex-wrap items-center justify-between gap-3 px-3 py-2 text-[12px] [@media(pointer:coarse)]:hidden"
       data-immersive={compact ? 'true' : undefined}
     >
       <p>

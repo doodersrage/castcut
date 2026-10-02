@@ -92,7 +92,9 @@ export default function PlaySoftAdvanceBanner({ target, onCancel }: PlaySoftAdva
               router.push(alt.href);
             }}
           >
-            Go to {alt.label} instead
+            {/* Callers pass the whole phrase ("Go to Day instead") — wrapping it again read
+                "Go to Go to Day instead instead". */}
+            {/^go to\b/i.test(alt.label) ? alt.label : `Go to ${alt.label} instead`}
           </Button>
         ))}
         <Button size="sm" variant="ghost" data-testid="play-soft-advance-cancel" onClick={onCancel}>

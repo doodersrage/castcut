@@ -27,7 +27,7 @@ export default function PlayCampaignStepsSection({
   return (
     <ToolSection
       title="Steps"
-      description="Open any film step — primary path stays the Continue card above."
+      description="Open any film step. The button at the top of the page is the next one."
       data-testid="play-campaign-steps"
     >
       <ol className="space-y-2">

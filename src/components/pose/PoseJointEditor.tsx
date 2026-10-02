@@ -638,7 +638,9 @@ export default function PoseJointEditor({
           className="flex max-h-[calc(100dvh-1.5rem)] min-h-0 w-full max-w-6xl flex-col gap-4 overflow-hidden rounded-2xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.45)] outline-none max-md:h-[calc(100dvh-1.5rem)] md:flex-row md:items-stretch md:gap-6 md:p-5"
           onClick={event => event.stopPropagation()}
         >
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-1.5">
+          {/* Phone: the figure keeps its height and the controls below scroll — the controls
+              used to take their full height and squeeze the figure to 82×122 px. */}
+          <div className="flex min-w-0 flex-col items-center justify-center gap-1.5 max-md:shrink-0 md:min-h-0 md:flex-1">
             <svg
               ref={svgRef}
               viewBox={`0 0 ${safeAspect} 1`}
@@ -648,7 +650,7 @@ export default function PoseJointEditor({
                   '--pose-aspect': String(safeAspect),
                 } as CSSProperties
               }
-              className={`h-[min(22vh,200px)] w-auto max-w-full touch-none self-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)] md:h-auto md:max-h-[min(68vh,640px)] md:w-[min(100%,calc(min(68vh,640px)*var(--pose-aspect)))] ${
+              className={`h-[min(46dvh,420px)] w-auto max-w-full touch-none self-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)] md:h-auto md:max-h-[min(68vh,640px)] md:w-[min(100%,calc(min(68vh,640px)*var(--pose-aspect)))] ${
                 dragging ? 'cursor-grabbing' : 'cursor-grab'
               }`}
               role="group"
@@ -906,7 +908,7 @@ export default function PoseJointEditor({
               ) : null}
             </svg>
           </div>
-          <div className="flex min-h-0 w-full shrink-0 flex-col md:w-[26rem]">
+          <div className="flex min-h-0 w-full flex-col max-md:flex-1 md:w-[26rem] md:shrink-0">
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
               <h2 id={titleId} className="type-heading">
                 Edit pose

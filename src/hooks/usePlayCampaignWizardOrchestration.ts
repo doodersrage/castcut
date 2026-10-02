@@ -136,7 +136,9 @@ export function usePlayCampaignWizardOrchestration({
     return PLAY_CAMPAIGN_STEPS[savedCampaign.stepIndex]?.id ?? 'character';
   }, [mounted, savedCampaign]);
 
-  const activeStep = stepOverride ?? restoredStep ?? 'character';
+  // With a Cast picked and no film in progress the next step is Look (the page's own button
+  // says "Start at Look"), not Cast again.
+  const activeStep = stepOverride ?? restoredStep ?? (characterId ? 'moodboard' : 'character');
 
   const resumeStep = savedCampaign ? (PLAY_CAMPAIGN_STEPS[savedCampaign.stepIndex] ?? null) : null;
   const campaignComplete = Boolean(savedCampaign?.completedAt);

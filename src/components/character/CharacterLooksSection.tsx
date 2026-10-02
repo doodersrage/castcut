@@ -35,7 +35,7 @@ export default function CharacterLooksSection({
   return (
     <ToolSection
       title="Looks"
-      description="Switching a look keeps the others. Save the live session as a new era."
+      description="Switching a look keeps the others. Save the current settings as a new look."
     >
       <ul className="ui-list">
         {looks.map(look => {

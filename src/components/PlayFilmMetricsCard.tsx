@@ -244,14 +244,14 @@ export default function PlayFilmMetricsCard() {
             />
           ) : null}
           <StatCard
-            label="Welcome → starter"
+            label="Starter films started"
             value={formatRate(rates.welcomeToStarterRate)}
-            detail={`${funnel?.welcomeShown ?? 0} welcome · ${funnel?.starterFilm ?? 0} starters`}
+            detail={`${funnel?.starterFilm ?? 0} started from ${funnel?.welcomeShown ?? 0} welcome screens`}
           />
           <StatCard
-            label="Starter → cut"
+            label="Starter films cut"
             value={formatRate(rates.starterToCutRate)}
-            detail={`${funnel?.starterDayQueue ?? 0} auto-queues · ${funnel?.demoDayStills ?? 0} demos`}
+            detail={`${funnel?.starterDayQueue ?? 0} queued automatically · ${funnel?.demoDayStills ?? 0} demo days`}
           />
         </div>
       )}
@@ -260,8 +260,8 @@ export default function PlayFilmMetricsCard() {
 
       {(rates.dayShare != null || rates.roleplayShare != null || rates.maxStep > 0) && (
         <p className="mt-2 type-caption text-[var(--text-muted)]" data-testid="play-funnel-source">
-          Day {formatRate(rates.dayShare)} · Story {formatRate(rates.roleplayShare)} · max step{' '}
-          {rates.maxStep}
+          Films cut from Day {formatRate(rates.dayShare)} · from Story{' '}
+          {formatRate(rates.roleplayShare)}
         </p>
       )}
 

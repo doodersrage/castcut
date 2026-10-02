@@ -1045,7 +1045,7 @@ describe('roleplay Story UX helpers', () => {
         completedClips: 1,
         beatTotal: 4,
       }),
-      /Sam · plate ready · kit · 2\/4 stills · 1 clip/
+      /Sam · plate ready · outfit · 2\/4 stills · 1 clip/
     );
   });
 

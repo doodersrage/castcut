@@ -1,5 +1,6 @@
 'use client';
 
+import { hasCompletedFirstFilm } from '@/lib/play-metrics';
 import { useEffect, useMemo, useState } from 'react';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import Link from 'next/link';
@@ -57,6 +58,21 @@ function StepRow({ step }: { step: OnboardingStep }) {
   );
 }
 
+/**
+ * A film that was cut is ticked whatever the stored ticks say — a new browser or device showed
+ * "Start a film" unticked right above "First film cut: Done".
+ */
+function withFilmFacts(state: OnboardingStep[]): OnboardingStep[] {
+  if (!hasCompletedFirstFilm()) {
+    return state;
+  }
+  return state.map(step =>
+    step.id === 'first-play-campaign' || step.id === 'first-film-cut'
+      ? { ...step, done: true }
+      : step
+  );
+}
+
 export default function OnboardingChecklist() {
   const auth = useAuth();
   const router = useRouter();
@@ -79,12 +95,12 @@ export default function OnboardingChecklist() {
 
   useEffect(() => {
     scheduleAfterCommit(() => {
-      const state = loadOnboardingState();
+      const state = withFilmFacts(loadOnboardingState());
       setSteps(state);
       setHidden(state.every(step => step.done));
     });
     const refresh = () => {
-      const state = loadOnboardingState();
+      const state = withFilmFacts(loadOnboardingState());
       setSteps(state);
       setHidden(state.every(step => step.done));
     };

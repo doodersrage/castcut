@@ -1,5 +1,8 @@
 'use client';
 
+import { loadLocalObservability } from '@/lib/local-observability';
+import { loadLookPack } from '@/lib/look-pack';
+import { playEffectiveProgressLabel } from '@/lib/play-campaign';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
@@ -87,7 +90,14 @@ export default function PlayKioskShell() {
       const metrics = loadPlayMetrics();
       const campaign = loadPlayCampaignState();
       setFirstFilmDone(hasCompletedFirstFilm(metrics));
-      setProgressLabel(playCampaignProgressLabel(campaign));
+      setProgressLabel(
+        playEffectiveProgressLabel({
+          metrics,
+          funnel: loadLocalObservability(),
+          campaign,
+          lookPack: loadLookPack(),
+        })
+      );
     };
     scheduleAfterCommit(refresh);
     window.addEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);

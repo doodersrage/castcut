@@ -214,7 +214,7 @@ export default function StudioCampaignTab({
                 onCampaignStatusChange(
                   [
                     `Batch finished · ${queued}/${results.length} queued`,
-                    held > 0 ? `${held} held Max` : null,
+                    held > 0 ? `${held} held Best` : null,
                     errors > 0 ? `${errors} errors` : null,
                   ]
                     .filter(Boolean)
@@ -248,7 +248,7 @@ export default function StudioCampaignTab({
               <p className="type-caption text-[var(--text-muted)]">
                 Step {step.index + 1}
                 {step.queued ? ' · queued' : ''}
-                {step.held ? ' · held Max until idle' : ''}
+                {step.held ? ' · held Best until idle' : ''}
                 {step.promptId ? ` · ${step.promptId}` : ''}
                 {step.error ? ` · ${step.error}` : ''}
               </p>

@@ -1,5 +1,8 @@
 'use client';
 
+import { loadLocalObservability } from '@/lib/local-observability';
+import { loadPlayMetrics } from '@/lib/play-metrics';
+import { playEffectiveProgressLabel } from '@/lib/play-campaign';
 import { useEffect, useState } from 'react';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadLookPack } from '@/lib/look-pack';
@@ -31,7 +34,14 @@ export default function PlayPersistenceTriad({ compact = false }: PlayPersistenc
         const pack = loadLookPack();
         setSessionLook(Boolean(pack?.vibePrompt?.trim() || pack?.savedAt));
         const campaign = loadPlayCampaignState();
-        setResume(playCampaignProgressLabel(campaign));
+        setResume(
+          playEffectiveProgressLabel({
+            metrics: loadPlayMetrics(),
+            funnel: loadLocalObservability(),
+            campaign,
+            lookPack: pack,
+          })
+        );
         const characterId =
           campaign?.characterId?.trim() ||
           pack?.characterId?.trim() ||

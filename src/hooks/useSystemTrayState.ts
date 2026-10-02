@@ -105,7 +105,7 @@ function resolvePrimary(
     return {
       kind: 'held',
       count: heldJobs.length,
-      label: heldJobs[0]?.label ?? 'Held Max job',
+      label: heldJobs[0]?.label ?? 'Held Best job',
     };
   }
 

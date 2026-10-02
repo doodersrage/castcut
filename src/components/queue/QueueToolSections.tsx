@@ -1,5 +1,6 @@
 'use client';
 
+import { isCancelledJob } from '@/lib/comfyui-queue-cancel';
 import { useState } from 'react';
 import { requeueComfyJobFromEntry } from '@/lib/comfyui-requeue';
 import FailedJobFixButtons from '@/components/FailedJobFixButtons';
@@ -64,6 +65,13 @@ export default function QueueToolSections({
 }: QueueToolSectionsProps) {
   // Fresh failures open the list; old ones stay one click away. (Time read once per visit.)
   const [openedAt] = useState(() => Date.now());
+  // Cancelled jobs are stored as errors and listed here, but they are not failures.
+  const cancelledCount = failed.filter(isCancelledJob).length;
+  const failedCount = failed.length - cancelledCount;
+  const failedTitle =
+    cancelledCount > 0
+      ? `Failed (${failedCount}) · cancelled (${cancelledCount})`
+      : `Failed (${failedCount})`;
   const recentFailure = failed.some(
     entry => openedAt - (entry.completedAt ?? entry.queuedAt ?? 0) < 24 * 60 * 60 * 1000
   );
@@ -244,7 +252,7 @@ export default function QueueToolSections({
 
       {isSimple ? (
         <CollapsibleSection
-          title={`Failed (${failed.length})`}
+          title={failedTitle}
           summary={
             failed.length > 0 ? 'Retry jobs that errored in ComfyUI.' : 'No failures right now.'
           }
@@ -266,7 +274,7 @@ export default function QueueToolSections({
           ) : (
             <>
               <Button variant="secondary" className="mb-3" onClick={() => void retryFailed()}>
-                Retry all failed
+                {cancelledCount > 0 ? `Retry ${failedCount} failed` : 'Retry all failed'}
               </Button>
               <ul className="ui-list ui-scroll-region max-h-[min(24rem,50vh)] overflow-y-auto">
                 {failed.map(entry => (
@@ -307,10 +315,8 @@ export default function QueueToolSections({
       ) : (
         // Old failures stay one click away instead of filling the page on every visit.
         <CollapsibleSection
-          title={`Failed (${failed.length})`}
-          summary={
-            failed.length > 0 ? 'Retry or clear jobs that errored in ComfyUI.' : 'No failures.'
-          }
+          title={failedTitle}
+          summary={failed.length > 0 ? 'Retry jobs that errored in ComfyUI.' : 'No failures.'}
           defaultOpen={recentFailure}
           persistKey="queue-failed-full"
         >
@@ -329,11 +335,16 @@ export default function QueueToolSections({
           ) : (
             <>
               <Button variant="secondary" className="mb-3" onClick={() => void retryFailed()}>
-                Retry all failed
+                {cancelledCount > 0 ? `Retry ${failedCount} failed` : 'Retry all failed'}
               </Button>
               <ul className="ui-list">
                 {failed.map(entry => (
-                  <li key={entry.id} className="ui-list-row items-start">
+                  <li
+                    key={entry.id}
+                    // Stacked on phones: beside a long error the buttons squeezed the text
+                    // into a one-word column 1,600 px tall.
+                    className="ui-list-row flex-col items-stretch gap-2 sm:flex-row sm:items-start"
+                  >
                     <div className="ui-list-primary min-w-0 space-y-1">
                       <QueueJobTitle label={jobLabels.get(entry.id)} prompt={entry.prompt} />
                       <p className="type-caption ui-status-danger">

@@ -13,6 +13,7 @@ import {
   activeLook,
   getCharacter,
   lookFromAppearance,
+  renameActiveLook,
   loadCharacters,
   looksOf,
   mergeMigratedCharacters,
@@ -320,6 +321,19 @@ describe('character-os', () => {
     assert.equal(converted?.name, 'Kai');
     assert.equal(converted?.reference?.isolatedFilename, 'kai.png');
     assert.equal(converted?.playAs, 'photo');
+  });
+
+  it('renameActiveLook renames the look and leaves the Cast name alone', () => {
+    withMockLocalStorage(() => {
+      const record = normalizeCharacterRecord(
+        characterFromShared({ model: 'qwen-image-2512' } as SharedToolSettings, { name: 'Mara' })
+      );
+      upsertCharacter(record);
+      const renamed = renameActiveLook(record.id, '  Beach day ');
+      assert.equal(renamed?.name, 'Mara');
+      assert.equal(activeLook(getCharacter(record.id)!).name, 'Beach day');
+      assert.equal(renameActiveLook(record.id, '  ')?.name, 'Mara');
+    });
   });
 
   it('keeps prior looks when activating a new era', () => {

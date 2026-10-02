@@ -42,3 +42,8 @@ export async function cancelComfyGalleryJob(
 
   return cancelled;
 }
+
+/** A job the player cancelled (stored as an error with this message) — not a failure. */
+export function isCancelledJob(entry: { status?: string; statusMessage?: string | null }): boolean {
+  return entry.status === 'error' && entry.statusMessage?.trim().toLowerCase() === 'cancelled';
+}

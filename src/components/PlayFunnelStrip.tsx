@@ -95,7 +95,9 @@ export default function PlayFunnelStrip({ compact = false }: PlayFunnelStripProp
     campaign: campaignStep,
     lookPack: packForLinks,
   });
-  const currentIndex = progress.effectiveStepIndex;
+  // Lifetime stats (films cut before) are not this film's progress: with no film in progress
+  // the strip starts at Cast, like the header ("Film · start") and the Steps list.
+  const currentIndex = hasCampaign ? progress.effectiveStepIndex : 0;
   const completed = Boolean(campaignStep?.completedAt);
   const mobile = isMobileStudioPath(pathname);
 

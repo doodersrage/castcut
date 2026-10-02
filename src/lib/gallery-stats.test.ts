@@ -45,3 +45,16 @@ describe("gallery entry cap", () => {
     assert.ok(MAX_GALLERY_ENTRIES >= 5000);
   });
 });
+
+describe("cancelled jobs", () => {
+  it("are not failures: not counted as errors and never the top error", () => {
+    const stats = computeGalleryStats([
+      entry({ id: "1", status: "completed" }),
+      entry({ id: "2", status: "error", statusMessage: "Cancelled" }),
+      entry({ id: "3", status: "error", statusMessage: "Cancelled" }),
+      entry({ id: "4", status: "error", statusMessage: "Out of memory" }),
+    ]);
+    assert.equal(stats.error, 1);
+    assert.equal(stats.topError, "Out of memory");
+  });
+});

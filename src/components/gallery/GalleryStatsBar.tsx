@@ -136,7 +136,7 @@ export default function GalleryStatsBar({
           />
         ) : null}
         {heldMaxJobs > 0 ? (
-          <StatChip label="Held Max" value={heldMaxJobs} emphasis="muted" />
+          <StatChip label="Held Best" value={heldMaxJobs} emphasis="muted" />
         ) : null}
         {activeProjectId && onProjectFilter ? (
           <StatChip

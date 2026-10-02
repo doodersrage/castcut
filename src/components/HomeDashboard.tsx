@@ -1,5 +1,6 @@
 'use client';
 
+import { galleryCardCaption } from '@/lib/gallery-card-caption';
 import GalleryGlanceCard from '@/components/GalleryGlanceCard';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -329,7 +330,7 @@ export default function HomeDashboard() {
           summary={
             pending.length > 0
               ? `${pending.length} job${pending.length === 1 ? '' : 's'} in flight · hold / flush Max`
-              : 'Nothing in flight · hold / flush Max jobs'
+              : 'Nothing in flight · hold / flush Best jobs'
           }
           defaultOpen={false}
           persistKey="dashboard-queue-controls"
@@ -368,12 +369,13 @@ export default function HomeDashboard() {
                       className="absolute inset-0 z-[1]"
                       aria-label={
                         entry.prompt.trim()
-                          ? `Open ${entry.prompt.slice(0, 80)}`
+                          ? `Open ${(galleryCardCaption(entry.prompt) || entry.prompt).slice(0, 80)}`
                           : 'Open in gallery'
                       }
                     />
                     <p className="pointer-events-none relative z-[2] line-clamp-2 p-2 text-[11px] text-[var(--text-tertiary)]">
-                      {entry.prompt}
+                      {/* The beat, not the internal edit instruction the still was queued with. */}
+                      {galleryCardCaption(entry.prompt) || entry.prompt}
                     </p>
                   </div>
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex translate-y-1 gap-1 bg-gradient-to-t from-[var(--bg-base)] via-[var(--bg-base)]/80 to-transparent p-2 pt-8 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">

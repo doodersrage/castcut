@@ -591,3 +591,25 @@ describe('wall layout on glass', () => {
     assert.match(wall, /back pressed flat against the hallway wall/);
   });
 });
+
+describe('vacationBeatDressesItself', () => {
+  it('water, robe and beach-lounging scenes dress her themselves; named street clothes do not', async () => {
+    const { vacationBeatDressesItself } = await import('./rapid-duo-recipe');
+    for (const beat of [
+      'SWIMMING freestyle mid-stroke in the resort pool — swimsuit, head turned for a breath',
+      'FLOATING on her back in a lit pool at night',
+      'stretching on the bed in a hotel robe',
+      'lounging on a beach towel under an umbrella',
+    ]) {
+      assert.equal(vacationBeatDressesItself(beat), true, beat);
+    }
+    for (const beat of [
+      'KICKING through the morning surf — sundress hem wet',
+      'SEATED at a café terrace sipping morning coffee',
+      'WAVING from the hotel balcony rail in a sundress',
+      '',
+    ]) {
+      assert.equal(vacationBeatDressesItself(beat), false, beat);
+    }
+  });
+});

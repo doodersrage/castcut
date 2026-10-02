@@ -78,7 +78,7 @@ export function RoleplayCastPhotoSection({
       {playAs === 'photo' ? (
         <div className="space-y-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
           <p className="text-xs text-[var(--text-muted)]">
-            Stills use this reference (img2img). Isolate on white keeps face/body and drops the
+            Every still starts from this picture. Isolate on white keeps face/body and drops the
             photo&apos;s room — pair with Setting for a new place.
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -127,7 +127,9 @@ export function RoleplayCastPhotoSection({
               aria-label="Choose an image file"
               accept="image/*"
               disabled={busy}
-              className="ui-file-input block min-w-[14rem] flex-1"
+              // A flex basis, not min-width: .ui-file-input sets min-width 0 and the input shrank to a
+              // 21 px sliver beside the Gallery button.
+              className="ui-file-input block flex-[1_1_14rem]"
               onChange={event => {
                 const file = event.target.files?.[0];
                 event.target.value = '';

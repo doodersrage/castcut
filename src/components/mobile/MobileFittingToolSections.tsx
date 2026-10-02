@@ -435,7 +435,8 @@ export default function MobileFittingToolSections(vm: ViewModel) {
       </div>
 
       <p className="type-caption text-[var(--text-muted)]" data-testid="fitting-preview-vs-queue">
-        Draft thumbs when available · Queue try-on = full quality for Keep → Day.
+        Small previews show when ready. Queue a try-on for the full-quality picture you Keep for
+        Day.
       </p>
 
       <FittingAutoReviewToggle

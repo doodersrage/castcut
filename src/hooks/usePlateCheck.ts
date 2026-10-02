@@ -10,8 +10,43 @@ export type PlateCheckOutcome =
   /** DWPose (comfyui_controlnet_aux) missing, or the plate isn't a ComfyUI image. */
   | { state: 'off'; reason: string };
 
-// One check per plate per session — the plate rarely changes and DWPose is a ComfyUI run.
+// One check per plate — the plate rarely changes and DWPose is a ComfyUI run. Finished checks are
+// also kept in this browser: every load of a Cast page used to queue the DWPose job again (and
+// wait behind whatever ComfyUI was rendering).
 const sessionResults = new Map<string, PlateCheckOutcome>();
+const STORED_KEY = 'plate-check-v1';
+const STORED_MAX = 80;
+
+function readStored(key: string): PlateCheckOutcome | null {
+  try {
+    const all = JSON.parse(window.localStorage.getItem(STORED_KEY) || '{}') as Record<
+      string,
+      PlateCheck
+    >;
+    const check = all[key];
+    return check ? { state: 'done', check } : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(key: string, check: PlateCheck): void {
+  try {
+    const all = JSON.parse(window.localStorage.getItem(STORED_KEY) || '{}') as Record<
+      string,
+      PlateCheck
+    >;
+    delete all[key];
+    all[key] = check;
+    const keys = Object.keys(all);
+    for (const stale of keys.slice(0, Math.max(0, keys.length - STORED_MAX))) {
+      delete all[stale];
+    }
+    window.localStorage.setItem(STORED_KEY, JSON.stringify(all));
+  } catch {
+    /* storage unavailable — the session cache still applies */
+  }
+}
 
 function imageSize(url: string): Promise<{ width: number; height: number }> {
   return new Promise(resolve => {
@@ -39,7 +74,7 @@ export function usePlateCheck(plate: { imageUrl?: string; filename?: string } | 
     if (!key || results[key]) {
       return;
     }
-    const cached = sessionResults.get(key);
+    const cached = sessionResults.get(key) ?? readStored(key);
     let cancelled = false;
     void (async () => {
       let outcome: PlateCheckOutcome;
@@ -68,6 +103,9 @@ export function usePlateCheck(plate: { imageUrl?: string; filename?: string } | 
                 }
               : { state: 'off', reason: detected.reason };
             sessionResults.set(key, outcome);
+            if (outcome.state === 'done') {
+              writeStored(key, outcome.check);
+            }
           } catch (error) {
             // Not cached: a network blip shouldn't switch the check off for the session.
             outcome = {

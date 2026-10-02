@@ -111,7 +111,7 @@ export async function runPromptRecipeSteps(
         ],
       });
       if (held.held) {
-        log.push('Held Max until ComfyUI queue is idle');
+        log.push('Held Best until ComfyUI queue is idle');
         continue;
       }
       const queued = await postComfyUiPrompt({

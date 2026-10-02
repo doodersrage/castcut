@@ -436,11 +436,11 @@ export function summarizePlayFunnel(counters = loadLocalObservability()): {
   const starterToCutRate = starter > 0 ? Math.min(1, cuts / starter) : null;
   const maxStep = Math.max(0, counters.campaignMaxStep || 0);
 
-  let headline = 'No Play funnel events yet.';
+  let headline = 'No films started yet.';
   if (starterToCutRate != null && starterToCutRate >= 0.4) {
-    headline = 'Strong starter → film conversion.';
+    headline = 'Most starter films get cut.';
   } else if (cutRate != null && cutRate >= 0.5) {
-    headline = 'Strong campaign → film conversion.';
+    headline = 'Most films you start get cut.';
   } else if (starts > 0 && cuts === 0) {
     headline = 'Film started — Cut film in Day to close the loop.';
   } else if (cuts > 0 && saves === 0) {
@@ -448,7 +448,7 @@ export function summarizePlayFunnel(counters = loadLocalObservability()): {
   } else if (keeps > 0 && cuts === 0) {
     headline = 'Keepers saved — Continue in Day and Cut film.';
   } else if (sourced > 0) {
-    headline = `${dayCuts} Day · ${roleplayCuts} Story cuts · max step ${maxStep}.`;
+    headline = `${dayCuts} Day · ${roleplayCuts} Story cut${roleplayCuts === 1 ? '' : 's'}.`;
   } else if (cuts > 0) {
     headline = `${cuts} film cut${cuts === 1 ? '' : 's'} · ${saves} save${saves === 1 ? '' : 's'} to Cast.`;
   } else if (starter > 0) {
