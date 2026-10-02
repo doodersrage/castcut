@@ -1,5 +1,6 @@
 'use client';
 
+import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
 import { installedComfyModels } from '@/lib/model-picker';
 import {
   fetchComfyObjectInfoModelsCached,
@@ -7,7 +8,7 @@ import {
 } from '@/lib/comfyui-object-info-cache';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
@@ -27,6 +28,8 @@ import {
   castLoraSessionIds,
   getCharacter,
   getCharactersSnapshot,
+  getServerCharactersSnapshot,
+  subscribeCharacters,
   upsertCharacter,
 } from '@/lib/character-os';
 import {
@@ -325,6 +328,13 @@ export function useDayPlannerToolOrchestrationCore() {
   const character = getCharacter(shared.activeCharacterId);
   // Day's prompts are written for a woman lead; a man lead switches the adult duo recipe.
   const leadNoun = dayPartnerNoun(character ?? {});
+  // The Cast store hydrates after first render; a one-off read left the partner picker without
+  // the Cast until something else re-rendered Day.
+  const castRoster = useSyncExternalStore(
+    subscribeCharacters,
+    getCharactersSnapshot,
+    getServerCharactersSnapshot
+  );
   const selectedModel = getComfyModelDefinition(shared.model);
   const [galleryEntries, setGalleryEntries] = useState<ComfyGalleryEntry[]>([]);
   const basePlate = useMemo(
@@ -1902,9 +1912,14 @@ export function useDayPlannerToolOrchestrationCore() {
       toolSettings.partnerCharacterId && toolSettings.partnerCharacterId !== character?.id
         ? toolSettings.partnerCharacterId
         : '',
-    partnerOptions: getCharactersSnapshot()
+    partnerOptions: castRoster
       .filter(record => record.id !== character?.id && record.name?.trim())
-      .map(record => ({ id: record.id, name: record.name.trim(), noun: dayPartnerNoun(record) })),
+      .map(record => ({
+        id: record.id,
+        name: record.name.trim(),
+        noun: dayPartnerNoun(record),
+        thumb: castPlateThumbUrl(record) || undefined,
+      })),
     partnerTwoWomen: poseProfileForModel(shared.model).sameSexLayouts,
     leadNoun,
     setPartnerCharacterId: (next: string) => {

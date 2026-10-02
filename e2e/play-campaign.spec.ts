@@ -89,6 +89,42 @@ test('outfit first run: Cast card, one plate message, grouped kit controls', asy
   await expect(review).toHaveAttribute('aria-checked', 'true');
 });
 
+test('day partner: picked from tiles — someone new, the same stranger, or a Cast member', async ({
+  page,
+}) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-lead' },
+    characters: {
+      version: 1,
+      characters: [
+        { id: 'e2e-lead', name: 'Lead', version: 1, updatedAt: Date.now(), descriptor: 'a woman' },
+        { id: 'e2e-friend', name: 'Robin', version: 1, updatedAt: Date.now(), descriptor: 'a man' },
+      ],
+      removedIds: [],
+    },
+    tools: { day: { stillsCharacterId: 'e2e-lead' } },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  // Two-person stills on: the partner row only shows when a still can have two people.
+  await page.getByTestId('day-intimate-mix-duo').click({ timeout: 30_000 });
+  const partner = page.getByTestId('day-partner');
+  await expect(partner).toBeVisible();
+  const group = partner.getByRole('radiogroup', { name: 'Partner' });
+  await expect(group.getByRole('radio', { name: 'Same woman' })).toBeVisible();
+  await expect(group.getByRole('radio', { name: 'Robin' })).toBeVisible();
+  await expect(group.getByRole('radio', { name: 'Someone new' })).toBeChecked();
+  await expect(page.getByTestId('day-partner-hint')).toHaveCount(0);
+
+  await group.getByRole('radio', { name: 'Same man' }).click();
+  await expect(group.getByRole('radio', { name: 'Same man' })).toBeChecked();
+  await expect(page.getByTestId('day-partner-hint')).toContainText('The same stranger');
+
+  await group.getByRole('radio', { name: 'Robin' }).click();
+  await expect(group.getByRole('radio', { name: 'Robin' })).toBeChecked();
+  await expect(page.getByTestId('day-partner-hint')).toContainText('Robin plays the second person');
+});
+
 test('outfit footwear: saved shoes are kept, re-picked and removed', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: '' },

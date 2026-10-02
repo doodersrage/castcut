@@ -95,6 +95,17 @@ export async function seedSettingsCacheOnNextLoad(
     await putAppKv(page, entries);
   }
   await page.addInitScript(async pairs => {
+    // The Cast store also keeps a localStorage mirror, and an empty one left by an earlier page
+    // load could win over the IndexedDB seed at boot (the Cast came up empty in about a third of
+    // parallel runs). Seed the mirror too, synchronously, before any app code runs.
+    const cast = (pairs as Record<string, unknown>)['comfy-prompt-characters-v1'];
+    if (cast !== undefined) {
+      try {
+        window.localStorage.setItem('comfy-prompt-characters-v1', JSON.stringify(cast));
+      } catch {
+        /* storage unavailable on this page */
+      }
+    }
     await new Promise<void>((resolve, reject) => {
       const request = indexedDB.open('comfy-prompt-studio-v1');
       request.onerror = () => reject(request.error ?? new Error('idb open failed'));

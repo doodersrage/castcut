@@ -1,11 +1,12 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-import { SelectInput, SwitchButton } from '@/components/ui/Field';
+import { SwitchButton } from '@/components/ui/Field';
 import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
 import { summarizePlayChecks } from '@/lib/play-checks-readiness';
 import { DAY_THEME_OPTIONS, dayThemeOf } from '@/lib/day-themes';
 import { DAY_WEATHER_OPTIONS } from '@/lib/day-weather';
+import DayPartnerPicker, { type DayPartnerOption } from '@/components/day-planner/DayPartnerPicker';
 import { DAY_NEW_PARTNER_OPTIONS, type DayPartnerNoun } from '@/lib/day-partner';
 import {
   DAY_INTIMATE_MIX_OPTIONS,
@@ -26,7 +27,7 @@ export type DayMoodStripProps = {
   onAllowCompanionsChange?: (next: boolean) => void;
   /** Cast member who plays the second person on duo stills ('' = an invented stranger). */
   partnerId?: string;
-  partnerOptions?: Array<{ id: string; name: string; noun: DayPartnerNoun }>;
+  partnerOptions?: DayPartnerOption[];
   onPartnerChange?: (next: string) => void;
   /** The engine has two-women adult layouts (Rapid AIO). */
   partnerTwoWomen?: boolean;
@@ -443,30 +444,18 @@ export default function DayMoodStrip({
         </p>
       ) : null}
       {showPartner && onPartnerChange ? (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5" data-testid="day-partner">
-          <label htmlFor="day-partner-select" className={groupLabel}>
-            Partner
-          </label>
-          <SelectInput
-            id="day-partner-select"
-            className="w-auto min-w-[12rem]"
+        <div
+          className="flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-x-2"
+          data-testid="day-partner"
+        >
+          <span className={`${groupLabel} sm:pt-6`}>Partner</span>
+          <DayPartnerPicker
             value={partner ? partner.id : ''}
+            options={partnerOptions}
+            standInUrl={partnerStandInUrl}
             disabled={busy}
-            data-testid="day-partner-select"
-            onChange={event => onPartnerChange(event.target.value)}
-          >
-            <option value="">Someone new each still</option>
-            {DAY_NEW_PARTNER_OPTIONS.map(option => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-            {partnerOptions.map(option => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-              </option>
-            ))}
-          </SelectInput>
+            onChange={onPartnerChange}
+          />
         </div>
       ) : null}
       {showPartner && partner ? (
