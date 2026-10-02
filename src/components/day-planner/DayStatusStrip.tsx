@@ -14,6 +14,8 @@ type DayStatusStripProps = {
   /** The current dressed plate, and a way to make it again (a new seed) if it came out wrong. */
   dressPlatePreviewUrl?: string | null;
   onRedoDressPlate?: () => void;
+  /** Open the dressed plate large (the page's lightbox). */
+  onOpenDressPlate?: (url: string) => void;
   className?: string;
 };
 
@@ -28,6 +30,7 @@ export default function DayStatusStrip({
   dressPlateStatus = null,
   dressPlatePreviewUrl = null,
   onRedoDressPlate,
+  onOpenDressPlate,
   className = '',
 }: DayStatusStripProps) {
   return (
@@ -57,12 +60,30 @@ export default function DayStatusStrip({
       ) : null}
       {dressPlatePreviewUrl && !dressPlateStatus?.busy ? (
         <div className="mt-1.5 flex items-center gap-2" data-testid="day-dress-plate">
-          {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI proxy URL */}
-          <img
-            src={dressPlatePreviewUrl}
-            alt="Dressed plate the clothed stills start from"
-            className="h-16 w-12 rounded-lg border border-[var(--border-subtle)] bg-white object-cover object-top"
-          />
+          {onOpenDressPlate ? (
+            <button
+              type="button"
+              className="shrink-0 rounded-lg transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              aria-label="View the dressed plate larger"
+              title="View larger"
+              data-testid="day-dress-plate-open"
+              onClick={() => onOpenDressPlate(dressPlatePreviewUrl)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI proxy URL */}
+              <img
+                src={dressPlatePreviewUrl}
+                alt="Dressed plate the clothed stills start from"
+                className="h-16 w-12 cursor-zoom-in rounded-lg border border-[var(--border-subtle)] bg-white object-cover object-top"
+              />
+            </button>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element -- ComfyUI proxy URL
+            <img
+              src={dressPlatePreviewUrl}
+              alt="Dressed plate the clothed stills start from"
+              className="h-16 w-12 rounded-lg border border-[var(--border-subtle)] bg-white object-cover object-top"
+            />
+          )}
           <div className="min-w-0">
             <p className="type-caption text-[var(--text-secondary)]">
               Dressed plate — clothed stills start from it while the outfit and shoes stay the same.

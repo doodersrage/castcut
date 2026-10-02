@@ -72,12 +72,19 @@ export default function PortraitTileStrip({
             disabled={disabled}
             data-testid={`${testIdPrefix}-${tile.id || 'none'}`}
             onClick={() => onChange(tile.id)}
-            className="group flex w-[4.75rem] shrink-0 flex-col items-center gap-1 rounded-xl p-1 text-center transition hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
+            className={`group relative flex w-[4.75rem] shrink-0 flex-col items-center gap-1 rounded-xl border p-1 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50 ${
+              // The pick has to read at a glance: tinted tile, heavy ring, a tick.
+              selected
+                ? 'border-[var(--accent)] bg-[var(--accent-muted)]'
+                : 'border-transparent hover:bg-[var(--bg-hover)]'
+            }`}
           >
             <span
               // 3:4 like the Cast roster: look plates are full-body, a circle showed a speck.
               className={`flex h-16 w-12 items-center justify-center overflow-hidden rounded-lg border-2 bg-[var(--bg-subtle)] text-base font-medium text-[var(--text-muted)] ${
-                selected ? 'border-[var(--accent)]' : 'border-[var(--border-subtle)]'
+                selected
+                  ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]'
+                  : 'border-[var(--border-subtle)] opacity-80 group-hover:opacity-100'
               }`}
             >
               {tile.thumb ? (
@@ -92,9 +99,19 @@ export default function PortraitTileStrip({
                 <span aria-hidden>{tile.glyph ?? tile.label.slice(0, 1).toUpperCase()}</span>
               )}
             </span>
+            {selected ? (
+              <span
+                aria-hidden
+                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-bold leading-none text-white shadow"
+              >
+                ✓
+              </span>
+            ) : null}
             <span
               className={`line-clamp-2 w-full text-[11px] leading-tight ${
-                selected ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
+                selected
+                  ? 'font-semibold text-[var(--accent-text)]'
+                  : 'text-[var(--text-secondary)]'
               }`}
             >
               {tile.label}

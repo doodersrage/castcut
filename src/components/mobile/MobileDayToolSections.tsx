@@ -367,6 +367,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
             dressPlateStatus={dressPlateStatus}
             dressPlatePreviewUrl={dressPlatePreviewUrl}
             onRedoDressPlate={redoDressPlate}
+            onOpenDressPlate={url =>
+              setProgressLightbox({ images: [url], index: 0, title: 'Dressed plate' })
+            }
             poseGuidePreviews={poseGuidePreviews}
           />
         </div>

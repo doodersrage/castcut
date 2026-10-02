@@ -405,6 +405,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               dressPlateStatus={dressPlateStatus}
               dressPlatePreviewUrl={dressPlatePreviewUrl}
               onRedoDressPlate={redoDressPlate}
+              onOpenDressPlate={url =>
+                setProgressLightbox({ images: [url], index: 0, title: 'Dressed plate' })
+              }
               poseGuidePreviews={poseGuidePreviews}
             />
           </div>
