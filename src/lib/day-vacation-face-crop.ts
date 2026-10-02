@@ -34,6 +34,21 @@ export function clearDayVacationFaceBreakCache(): void {
   identityVlCache = null;
 }
 
+/**
+ * A short stable id for one plate + Cast, used in the uploaded filenames. They were all
+ * `…-day-shared.png`: a second plate (another outfit's dressed plate, another browser session on
+ * the same ComfyUI) overwrote the file while earlier stills that named it were still waiting in
+ * the queue, and those stills rendered from the wrong person or outfit.
+ */
+export function dayPlateUploadStamp(key: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < key.length; index += 1) {
+    hash ^= key.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `day-${(hash >>> 0).toString(36)}`;
+}
+
 function faceBreakCacheKey(input: {
   bodyPlate: DayPlate | null | undefined;
   character?: CharacterRecord | null;
@@ -193,7 +208,7 @@ export async function resolveDayVacationIdentityVlPlate(input: {
   }
   try {
     const blob = await loadImageBlobFromUrls(urls);
-    const stamp = 'day-shared';
+    const stamp = dayPlateUploadStamp(cacheKey);
     // day-vacation-keep-* is NOT in the VL-only skip list — ReferenceLatent holds face.
     const file = new File([blob], `day-vacation-keep-${stamp}.png`, {
       type: blob.type || 'image/png',
@@ -280,8 +295,8 @@ export async function resolveDayVacationFaceBreakPlate(input: {
 
   try {
     const comfyUrl = input.comfyUrl?.trim() || undefined;
-    // Stable name across slots — cache still guarantees one crop/upload path.
-    const stamp = 'day-shared';
+    // Stable name across slots for one plate — cache still guarantees one crop/upload path.
+    const stamp = dayPlateUploadStamp(cacheKey);
 
     const castFace = resolveDayFaceOnlyPlate(input.character);
     let facePlate: DayPlate | null = null;
