@@ -2,7 +2,11 @@
  * Rewrite literary intimate euphemisms into direct anatomical language
  * image models parse reliably (Qwen/Flux often miss "slick core", "manhood", etc.).
  *
- * Patterns are sexual-context only — weather like "rain-slick asphalt" is left alone.
+ * The possessive and "the/a" forms use everyday words (center, entrance, opening, heat, private,
+ * pride, tool, button, release …), so those rules only run on text that is sexual, or on a phrase
+ * that cannot mean anything else ("her slick folds"). Without that gate a PG-13 story card read
+ * "the vagina mess of …" (from "The private mess of …"), and "the entrance of the hotel",
+ * "her center of gravity" and "his tool belt" were rewritten the same way.
  */
 
 import { stripNegatedClauses } from './negated-clauses';
@@ -10,6 +14,8 @@ import { isRapidDuoRecipePrompt } from './rapid-duo-recipe-mark';
 import { softenQwenRapidNudeSafetyTriggers } from '@/lib/qwen-rapid-nude-edit';
 
 type ClarifyRule = {
+  /** Everyday words: applies only in sexual context or to a self-evident phrase. */
+  ambiguous?: boolean;
   pattern: RegExp;
   replace: string | ((match: string, ...groups: string[]) => string);
 };
@@ -50,6 +56,17 @@ function vaginaFor(pronoun: string): string {
 function penetrateFor(pronoun: string, lead = 'penetrating'): string {
   return pronoun.toLowerCase() === 'his' ? `${lead} ${pronoun} ass` : `${lead} ${pronoun} vagina`;
 }
+
+/** Text that is about sex or nudity — the gate for the ambiguous rules. */
+const SEXUAL_CONTEXT_RE =
+  /\b(?:sex(?:ual|ually)?|nude|naked|topless|erotic\w*|arous\w*|orgasm\w*|climax\w*|moan\w*|thrust\w*|penetrat\w*|oral|blowjob|handjob|finger(?:ing|ed)|straddl\w*|grind(?:s|ing)?|cock|dick|penis|pussy|vagina|clit\w*|nipples?|cum(?:s|ming)?|fuck\w*|lingerie|undress\w*|mak(?:e|es|ing)\s+love|lovemaking|between\s+(?:her|his|their)\s+(?:legs|thighs)|missionary|doggy\w*|cowgirl|bare\s+breasts?|explicit|foreplay|masturbat\w*|rear-entry|mid-sex)\b/i;
+
+/** Adjectives and nouns that only read one way, so the phrase needs no other context. */
+const SELF_EVIDENT_RE =
+  /\b(?:wet\s+(?:core|folds?|channel|slit)|slick\w*|molten|dripping|soaked|swollen|aching|needy|quivering|clenching|pulsing|throbbing|drenched|honey\s*pot|love\s*canal|womanhood|cunny|cunt|snatch|quim|nethers?|womanly\s+parts?|most\s+intimate\s+place|manhood|cockstand|erection|clit(?:oris)?|nipples?|asshole|anus|tits?|funbags?)\b/i;
+
+/** "the/a" + an everyday noun with no adjective ("the entrance", "a flower") is never rewritten. */
+const BARE_DETERMINER_RE = /^(?:the|that|this|an?)\s+\S+$/i;
 
 /**
  * Longer / more specific patterns first.
@@ -135,14 +152,17 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
 
   // ——— Possessive anatomy ———
   {
+    ambiguous: true,
     pattern: new RegExp(String.raw`\b${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${FEMALE_CORE}\b`, 'gi'),
     replace: (_m, p: string) => vaginaFor(p),
   },
   {
+    ambiguous: true,
     pattern: new RegExp(String.raw`\b${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${CLIT_NOUN}\b`, 'gi'),
     replace: (_m, p: string) => `${p} clit`,
   },
   {
+    ambiguous: true,
     pattern: new RegExp(
       String.raw`\b${PRONOUN}\s+(?:thick\s+|hard\s+|rigid\s+|throbbing\s+|aching\s+|swollen\s+|heavy\s+|stiff\s+)?${MALE_MEMBER}\b`,
       'gi'
@@ -150,6 +170,7 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
     replace: (_m, p: string) => `${p} erect penis`,
   },
   {
+    ambiguous: true,
     pattern: new RegExp(
       String.raw`\b${PRONOUN}\s+(?:full\s+|soft\s+|heavy\s+|bare\s+|naked\s+|exposed\s+)?${BREAST_NOUN}\b`,
       'gi'
@@ -157,6 +178,7 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
     replace: (_m, p: string) => `${p} breasts`,
   },
   {
+    ambiguous: true,
     pattern: new RegExp(
       String.raw`\b${PRONOUN}\s+(?:hard\s+|stiff\s+|peaked\s+|pebbled\s+|sensitive\s+)?(?:nipples?|buds?|tips?)\b`,
       'gi'
@@ -164,10 +186,12 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
     replace: (_m, p: string) => `${p} nipples`,
   },
   {
+    ambiguous: true,
     pattern: new RegExp(String.raw`\b${PRONOUN}\s+${ASS_NOUN}\b`, 'gi'),
     replace: (_m, p: string) => `${p} ass`,
   },
   {
+    ambiguous: true,
     pattern: new RegExp(
       String.raw`\b${PRONOUN}\s+(?:tight\s+|puckered\s+|eager\s+)?(?:asshole|anus|ring|back\s*door|rosebud)\b`,
       'gi'
@@ -175,6 +199,7 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
     replace: (_m, p: string) => `${p} asshole`,
   },
   {
+    ambiguous: true,
     pattern: new RegExp(
       String.raw`\b${PRONOUN}\s+(?:heavy\s+|tight\s+|full\s+)?(?:balls?|sac|stones?|nuts?)\b`,
       'gi'
@@ -182,12 +207,14 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
     replace: (_m, p: string) => `${p} balls`,
   },
   {
+    ambiguous: true,
     pattern: new RegExp(String.raw`\b${PRONOUN}\s+${CUM_NOUN}\b`, 'gi'),
     replace: (_m, p: string) => `${p} cum`,
   },
 
   // ——— Determiner / bare core (the wet core, slick core) ———
   {
+    ambiguous: true,
     pattern: new RegExp(
       String.raw`\b(?:the|that|this|a|an)\s+(?:${CORE_ADJ_RUN})?${FEMALE_CORE}\b`,
       'gi'
@@ -195,14 +222,17 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
     replace: 'the vagina',
   },
   {
+    ambiguous: true,
     pattern: new RegExp(String.raw`\b${CORE_ADJ_RUN}core\b`, 'gi'),
     replace: 'wet vagina',
   },
   {
+    ambiguous: true,
     pattern: new RegExp(String.raw`\b${CORE_ADJ_RUN}folds?\b`, 'gi'),
     replace: 'wet vagina',
   },
   {
+    ambiguous: true,
     pattern: new RegExp(String.raw`\b${CORE_ADJ_RUN}(?:channel|entrance|slit|quim|cunny)\b`, 'gi'),
     replace: 'wet vagina',
   },
@@ -398,21 +428,37 @@ const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
 
 /**
  * Convert literary intimate euphemisms to direct words for image models.
- * Idempotent for already-direct language. Safe on SFW text (patterns are sexual).
+ * Idempotent for already-direct language. `contextText` is the wider text a fragment came from
+ * (a title, blurb and prompt clarified one by one), used to decide whether it is sexual.
  */
-export function clarifyIntimateImageLanguage(prompt: string): string {
+export function clarifyIntimateImageLanguage(prompt: string, contextText?: string): string {
   const trimmed = prompt.trim();
   if (!trimmed) {
     return trimmed;
   }
 
+  const context = contextText ? `${contextText} ${trimmed}` : trimmed;
+  const sexual = SEXUAL_CONTEXT_RE.test(context) || SELF_EVIDENT_RE.test(context);
   let next = trimmed;
   for (const rule of INTIMATE_CLARIFY_RULES) {
     rule.pattern.lastIndex = 0;
-    next =
-      typeof rule.replace === 'function'
-        ? next.replace(rule.pattern, rule.replace)
-        : next.replace(rule.pattern, rule.replace);
+    const replace = rule.replace;
+    if (!rule.ambiguous) {
+      next =
+        typeof replace === 'function'
+          ? next.replace(rule.pattern, replace)
+          : next.replace(rule.pattern, replace);
+      continue;
+    }
+    next = next.replace(rule.pattern, (match: string, ...groups: unknown[]) => {
+      const selfEvident = SELF_EVIDENT_RE.test(match);
+      if (!selfEvident && (!sexual || BARE_DETERMINER_RE.test(match))) {
+        return match;
+      }
+      return typeof replace === 'function'
+        ? replace(match, ...(groups.filter(group => typeof group === 'string') as string[]))
+        : replace;
+    });
   }
 
   return next

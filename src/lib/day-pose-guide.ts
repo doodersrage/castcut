@@ -6005,11 +6005,9 @@ export function resolveStoryPoseGuideKeyFromBeat(input: StoryPoseGuideInput): Po
 export function sceneTextFromStoryPoseInput(input: StoryPoseGuideInput): string {
   // Clarify first so legacy "taken from behind / bent over" meta still maps to bent layout
   // without feeding poetic prior-title decoys into the pose matcher.
-  return [input.title, input.blurb, input.prompt]
-    .map(part => part?.trim())
-    .filter(Boolean)
-    .map(part => clarifyIntimateImageLanguage(part!))
-    .join(' · ');
+  const parts = [input.title, input.blurb, input.prompt].map(part => part?.trim()).filter(Boolean);
+  const whole = parts.join(' · ');
+  return parts.map(part => clarifyIntimateImageLanguage(part!, whole)).join(' · ');
 }
 
 /** Browser-only: synthesize a stance from the beat scene text for Story Image 3. */

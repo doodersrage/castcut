@@ -6,7 +6,44 @@ import {
   reinforceIntimateStillPrompt,
 } from './intimate-prompt-clarify';
 
+/** The wider text a euphemism fragment came from — the ambiguous rules need it. */
+const SEXUAL = 'two nude adults mid-sex';
+
 describe('intimate-prompt-clarify', () => {
+  it('leaves everyday wording alone when the text is not sexual', () => {
+    for (const text of [
+      'The private mess of a door appears spills into a crowded or exposed place.',
+      'a private room at the back of the club',
+      'she reads in the heat of the afternoon',
+      'standing at the entrance of the hotel',
+      'the center of the dance floor',
+      'a flower in her hair',
+      'her center of gravity shifts',
+      'their opening night at the theatre',
+      'her private life is quiet',
+      'his tool belt',
+      'her pearl necklace',
+      'her button-up shirt',
+      'her bust in profile',
+      'his pride in the work shows',
+      'her release date is near',
+      'the folds of her dress',
+    ]) {
+      assert.equal(clarifyIntimateImageLanguage(text), text);
+    }
+    // Sexual text still never rewrites a bare "the/a" + everyday noun.
+    assert.equal(
+      clarifyIntimateImageLanguage('nude at the entrance of the hotel'),
+      'nude at the entrance of the hotel'
+    );
+    // A phrase that reads one way needs no other context; a fragment takes its context from
+    // the wider text it came from.
+    assert.match(clarifyIntimateImageLanguage('her slick folds'), /her vagina/);
+    assert.match(clarifyIntimateImageLanguage('the slick core'), /the vagina/);
+    assert.equal(clarifyIntimateImageLanguage('her center'), 'her center');
+    assert.match(clarifyIntimateImageLanguage('her center', 'two adults mid-sex'), /her vagina/);
+  });
+
   it('covers core / folds / entrance variants across adjectives and acts', () => {
     const cases: Array<[string, RegExp]> = [
       ['fingers into her slick core', /fingers penetrating her vagina/i],
@@ -35,7 +72,7 @@ describe('intimate-prompt-clarify', () => {
       ['rain-slick asphalt', /rain-slick asphalt/i],
     ];
     for (const [input, expect] of cases) {
-      const out = clarifyIntimateImageLanguage(input);
+      const out = clarifyIntimateImageLanguage(input, SEXUAL);
       assert.match(out, expect, `${input} → ${out}`);
       if (!/rain-slick/i.test(input)) {
         assert.doesNotMatch(
