@@ -491,8 +491,10 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
       'driving up out of the bottom of a goblet squat with a kettlebell at the chest',
       'pulling a deadlift from the floor with a flat back and the bar close to the shins',
       'locking out a kettlebell swing hip hinge at chest height',
-      'holding the top of a push-up with arms straight and body in one line',
-      'lowering into a push-up with elbows tucked',
+      // "on the mat … on the floor": without it Rapid stood her at the rack with a barbell (0/4);
+      // with it 6/6 on Rapid and on Qwen-Image 2.1 (live 2026-10-02). The plank always said it.
+      'holding the top of a push-up on the mat, hands and toes on the floor, body straight from heels to head',
+      'lowering into a push-up on the mat with elbows tucked, hands and toes on the floor',
       'holding a forearm plank on the mat, body straight from heels to head',
       'grinding out strict pull-ups with the chin over the bar',
     ],
