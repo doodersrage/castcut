@@ -31,6 +31,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Phone and desk polish.** Ten UI passes: Film-first navigation, calmer headers and first run, menus that clear the Film tabs, readable status badges, dark-theme contrast that meets WCAG AA, accessible controls, and an idle job pill that no longer covers buttons.
 - **Fix: gallery sync stopped at 10 MB.** Saves larger than 10 MB were cut off by the proxy's body limit and failed, so the server copy of a large gallery stopped updating. The limit is now 80 MB.
 - **Fix: storage sync could wipe data.** A fresh browser, an early save or a failed pull no longer overwrites the Cast or settings on the server, and page loads stop moving ~25 MB.
+- **Two-person stills keep her outfit.** With your own clothing photo, the lead's outfit is now named on two-person stills (the partner's face uses the clothing image's slot, and she used to fall back to a plain top). With Qwen-Image 2.1 picked, clothed two-person stills render on Rapid AIO — 2.1 fused the pair.
 - **Fix: companion beats drawn solo.** *Piggyback ride on a friend's back*, *high-fiving a friend*, *head resting on a friend's shoulder* and *across a table from a friend* were planned as one person even with Duo on; they are two-person stills now.
 - **Fix: Day pose map shape.** With no stored plate URL, the pose map could be drawn square for a portrait still.
 - **Fix: hydration errors for returning users** on Queue, Dashboard and Plugins (React #418).
