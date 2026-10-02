@@ -35,7 +35,7 @@ import {
   upsertCharacterFromRoleplaySession,
 } from '@/lib/character-os';
 import { buildRoleplayQueueStillOptions, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
-import { buildStoryRapidDuoRecipe } from '@/lib/rapid-duo-recipe';
+import { buildStoryClothedDuoRecipe, buildStoryRapidDuoRecipe } from '@/lib/rapid-duo-recipe';
 import {
   loadSettingsCache,
   saveSharedSettings,
@@ -331,22 +331,38 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     (
       beat: RoleplayStoryBeat,
       stillOpts: ReturnType<typeof buildRoleplayQueueStillOptions>,
-      extra?: string
+      extra?: string,
+      clothed?: { people?: number; fromDressedPlate: boolean }
     ) => {
+      const hasGarmentImage = Boolean(
+        stillOpts?.inputImageFilenames?.[1]?.trim() || stillOpts?.inputImageUrls?.[1]
+      );
+      const hasPoseGuide = Boolean(
+        stillOpts?.inputImageFilenames?.[2]?.trim() || stillOpts?.inputImageUrls?.[2]
+      );
       if (!adult) {
-        return null;
+        // A clothed two-person still on Rapid: the compact couple recipe holds the headcount.
+        if (!clothed || (clothed.people ?? 0) < 2) {
+          return null;
+        }
+        const recipe = buildStoryClothedDuoRecipe({
+          model: stillOpts?.queueModel ?? shared.model,
+          title: beat.title,
+          blurb: beat.blurb,
+          fromDressedPlate: clothed.fromDressedPlate,
+          hasGarmentImage,
+          hasPoseGuide,
+          lead: leadIsMan() ? 'man' : 'woman',
+        });
+        return recipe && extra?.trim() ? `${recipe} ${extra.trim()}` : recipe;
       }
       const recipe = buildStoryRapidDuoRecipe({
         model: stillOpts?.queueModel ?? shared.model,
         title: beat.title,
         blurb: beat.blurb,
         omitGarment: storyBeatOmitsGarmentPackshot(beat),
-        hasGarmentImage: Boolean(
-          stillOpts?.inputImageFilenames?.[1]?.trim() || stillOpts?.inputImageUrls?.[1]
-        ),
-        hasPoseGuide: Boolean(
-          stillOpts?.inputImageFilenames?.[2]?.trim() || stillOpts?.inputImageUrls?.[2]
-        ),
+        hasGarmentImage,
+        hasPoseGuide,
       });
       return recipe && extra?.trim() ? `${recipe} ${extra.trim()}` : recipe;
     },
@@ -776,7 +792,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           kleinFace,
           nudeFace ? null : dressPlate
         );
-        const rapidRecipe = storyRapidDuoRecipeFor(beat, stillOpts, poseGuide?.cueLine);
+        const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
+        const rapidRecipe = storyRapidDuoRecipeFor(beat, stillOpts, poseGuide?.cueLine, {
+          people: poseGuide?.prompt.headcount,
+          fromDressedPlate: fromDressPlate,
+        });
         const charOpts = roleplayCharacterQueueFields(
           { bio: nextBio, story: currentStory },
           stillOpts?.queueParamsBase,
@@ -785,7 +805,6 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             hasPoseGuide: Boolean(poseGuide),
           }
         );
-        const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
         const { prompt: sentPrompt, promptCheck } = checkedStoryPrompt(
           rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(prompt) : prompt),
           beat.title,
@@ -963,7 +982,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             afterPoseMiss && poseGuide ? `QUALITY FIX: ${POSE_MISMATCH_NUDGE}` : '',
           ]
             .filter(Boolean)
-            .join(' ')
+            .join(' '),
+          {
+            people: poseGuide?.prompt.headcount,
+            fromDressedPlate: Boolean(dressPlate) && dressAsPlate && !nudeFace,
+          }
         );
         const charOpts = roleplayCharacterQueueFields(
           undefined,

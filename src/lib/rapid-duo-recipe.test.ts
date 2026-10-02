@@ -613,3 +613,48 @@ describe('vacationBeatDressesItself', () => {
     }
   });
 });
+
+describe('Story clothed two-person stills on Rapid', () => {
+  it('use the compact couple recipe with the right image numbers', async () => {
+    const { buildStoryClothedDuoRecipe } = await import('./rapid-duo-recipe');
+    const blurb = 'She pours a second cup for the man beside her at the kitchen window.';
+    const dressed = buildStoryClothedDuoRecipe({
+      model: 'qwen-rapid-aio-edit',
+      blurb,
+      fromDressedPlate: true,
+      hasGarmentImage: false,
+      hasPoseGuide: true,
+    });
+    assert.match(dressed ?? '', /A woman and a man together, both fully clothed, both fully in frame/);
+    assert.match(dressed ?? '', /outfit from the first image/);
+    assert.match(dressed ?? '', /second image \(pose map\)/);
+    const withClothing = buildStoryClothedDuoRecipe({
+      model: 'qwen-rapid-aio-edit',
+      blurb,
+      fromDressedPlate: false,
+      hasGarmentImage: true,
+      hasPoseGuide: true,
+    });
+    assert.match(withClothing ?? '', /outfit from the second image/);
+    assert.match(withClothing ?? '', /third image \(pose map\)/);
+    const man = buildStoryClothedDuoRecipe({
+      model: 'qwen-rapid-aio-edit',
+      blurb: 'He pours a second cup for the woman beside him.',
+      fromDressedPlate: true,
+      hasGarmentImage: false,
+      hasPoseGuide: true,
+      lead: 'man',
+    });
+    assert.match(man ?? '', /Keep his face from the first image/);
+    assert.equal(
+      buildStoryClothedDuoRecipe({
+        model: 'qwen-image-edit-2511-lightning-8',
+        blurb,
+        fromDressedPlate: true,
+        hasGarmentImage: false,
+        hasPoseGuide: true,
+      }),
+      null
+    );
+  });
+});

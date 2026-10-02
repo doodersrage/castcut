@@ -567,6 +567,39 @@ export function buildStoryRapidDuoRecipe(input: {
   });
 }
 
+/**
+ * Story's clothed two-person stills on Rapid AIO: Day's compact couple recipe instead of the long
+ * brief. Replaying three Story duo stills two seeds each, the brief drew a third (or fourth)
+ * person in 2 of 6 (and 2 of the 3 originals); the compact recipe 0 of 6.
+ */
+export function buildStoryClothedDuoRecipe(input: {
+  model: string | null | undefined;
+  title?: string | null;
+  blurb?: string | null;
+  /** Image 1 is the dressed plate: the outfit is the one she has on there. */
+  fromDressedPlate: boolean;
+  hasGarmentImage: boolean;
+  hasPoseGuide: boolean;
+  lead?: DayPartnerNoun;
+}): string | null {
+  if (!isQwenRapidAioModel(input.model ?? undefined)) {
+    return null;
+  }
+  const beat = input.blurb?.trim() || input.title?.trim();
+  if (!beat) {
+    return null;
+  }
+  const outfitImage: RecipeImage | null =
+    input.hasGarmentImage && !input.fromDressedPlate ? 'second' : null;
+  return buildCompactDayDuoRecipe({
+    beat,
+    outfitImage,
+    outfitFromFirst: input.fromDressedPlate,
+    poseGuide: input.hasPoseGuide ? (input.hasGarmentImage ? 'third' : 'second') : false,
+    lead: input.lead,
+  });
+}
+
 /** Where her body is, per solo stance — the same stances the solo pose guide draws. */
 function soloPlacement(
   kind: SoloMasturbationPoseKind,
