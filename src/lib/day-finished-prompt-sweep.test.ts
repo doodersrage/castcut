@@ -843,13 +843,6 @@ type KnownIssue = {
  * it describes; everything else still fails. Remove the entry with the fix.
  */
 const KNOWN_ISSUES: KnownIssue[] = [
-  {
-    id: 'adult-beat-played-as-everyday-draws-two-says-alone',
-    invariant: AUDIT_NAME,
-    why: 'An adult mood with Intimate off plays as Everyday but keeps its adult beats. "spooning sex on the couch" is planned for one person (resolveDayPoseHeadcount: no partner word a clothed mood counts, so forcePeople is 1), yet day-pose-guide.ts parsePoseGuideIntent reads "spooning" as the clothed spoon (CLOTHED_SPOON_RE, allowed where sex layouts are off) and synthesizeSceneStickFiguresBase draws every sex layout as a pair whatever forcePeople says: guide spoon:2 on all three engines. The Edit 2511 recipe says "One woman alone".',
-    matches: failure =>
-      failure.still.setup.id === 'adult mood, Intimate off' && /duo-says-alone/.test(failure.detail),
-  },
 ];
 
 const hitKnownIssues = new Set<string>();

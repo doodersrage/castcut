@@ -18,6 +18,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Fix: Story's pose preview** follows the content rating, like the still does.
 - **Day:** ten couple scenes now state their posture (they were drawn in a default stance); an Outfit try-on with a custom pose and no clothing picture calls the pose map by the right image number; an adult mood with Intimate off is treated as Everyday when deciding whether the clothing picture is dropped.
 - **Phone Outfit** shows the prompt the last try-on was sent with.
+- **Story with a man as the lead.** The fixed lines Story adds to a still ("she wears exactly the outfit…", "One woman alone") and the built-in scenes are worded for him.
+- **Fix: empty navigation after a failed or rate-limited session check.** One dropped or "too many requests" answer at page load left the app with no tabs or menu until a reload. It is now tried again, and a session that had loaded is kept. (This was also behind three browser tests that failed now and then.)
+- **Phone Story** remembers the scenes you did not pick (they could be offered again on the next roll) and applies the adult switch to the rating, as desk does.
+- **Pose editor:** the figure has eyes, and a head turned to the side is drawn in profile, so the *Head* row shows what it did.
+- **Day:** a "spooning" scene planned for one person draws her lying down, not a pair next to "one woman alone".
 
 ## [v2.2.0] - 2026-10-02
 

@@ -58,6 +58,10 @@ export default defineConfig({
     env: {
       ...process.env,
       NEXT_PUBLIC_PLAYWRIGHT: '1',
+      // Every worker is the same client to the server: a full parallel run makes more than
+      // the default 120 requests a minute to one route and gets 429s (an empty navigation,
+      // "No Cast lead"…) that look like flaky tests.
+      API_RATE_LIMIT_MAX: process.env.API_RATE_LIMIT_MAX ?? '100000',
     },
   },
 });

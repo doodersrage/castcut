@@ -88,6 +88,14 @@ export function PoseFigureShape({
   }
   const headRadius =
     nose && neck ? Math.max(0.018, Math.hypot(nose.x - neck.x, nose.y - neck.y) * 0.62) : 0.03;
+  // The face, on the editor's figure only: eyes where the pose has them, and a head seen in
+  // profile (one ear) sits behind its nose — otherwise turning the head moved nothing you could
+  // see. Thumbnails keep the plain round head.
+  const [rEye, lEye, rEar, lEar] = [at(14), at(15), at(16), at(17)];
+  const profileEar = parts && nose && Boolean(rEar) !== Boolean(lEar) ? (rEar ?? lEar) : null;
+  const head =
+    nose && profileEar ? { x: (nose.x + profileEar.x) / 2, y: (nose.y + profileEar.y) / 2 } : nose;
+  const eyes = parts ? [rEye, lEye].filter((eye): eye is { x: number; y: number } => !!eye) : [];
   // Far limbs first, so nearer ones overlap them; `behind` picks the side of the torso.
   const limbs = (behind: boolean) =>
     [...LIMBS]
@@ -159,15 +167,29 @@ export function PoseFigureShape({
         <line x1={neck.x} y1={neck.y} x2={nose.x} y2={nose.y} strokeWidth={weight * 1.5} />
       ) : null}
       {limbs(false)}
-      {nose ? (
+      {head ? (
         <circle
-          cx={nose.x}
-          cy={nose.y}
+          cx={head.x}
+          cy={head.y}
           r={headRadius}
           fill={color}
           fillOpacity={0.22}
           strokeWidth={weight}
         />
+      ) : null}
+      {eyes.map((eye, index) => (
+        <circle
+          key={`eye-${index}`}
+          data-pose-eye=""
+          cx={eye.x}
+          cy={eye.y}
+          r={weight * 0.8}
+          fill="var(--text-primary, #1f2937)"
+          stroke="none"
+        />
+      ))}
+      {nose && profileEar ? (
+        <circle cx={nose.x} cy={nose.y} r={weight * 0.7} fill={color} stroke="none" />
       ) : null}
     </g>
   );

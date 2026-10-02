@@ -54,12 +54,40 @@ export type AuthContextValue = AuthState & {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const SESSION_RETRY_DELAYS_MS = [400, 1200, 3000];
+
+/**
+ * The session request, tried again when it fails. One dropped or rate-limited request at page
+ * load used to leave the app with an empty feature list — no tabs, no navigation — until a
+ * reload.
+ */
+async function fetchSessionWithRetry(): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= SESSION_RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      const response = await fetch('/api/auth/session', { cache: 'no-store' });
+      // 429 (rate limit) and 5xx are worth another try; their body is an error, and read as
+      // a session it means "no features allowed".
+      if (response.ok || (response.status < 500 && response.status !== 429)) {
+        return response;
+      }
+      lastError = new Error(`session ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+    const delay = SESSION_RETRY_DELAYS_MS[attempt];
+    if (delay == null) break;
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  throw lastError;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(INITIAL);
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch('/api/auth/session', { cache: 'no-store' });
+      const response = await fetchSessionWithRetry();
       const data = (await response.json()) as AuthSessionResponse & {
         defaultAdminUsername?: string;
         impersonating?: boolean;
@@ -86,7 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserComfyUiUrlOverride(null);
       }
     } catch {
-      setState({ ...INITIAL, loading: false });
+      // A session that was already loaded stays as it was: a failed refresh is not a logout.
+      setState(previous => (previous.loading ? { ...INITIAL, loading: false } : previous));
     }
   }, []);
 

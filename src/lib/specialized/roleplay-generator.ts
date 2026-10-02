@@ -7,6 +7,7 @@ import {
   resolveRequestTemplateFallback,
 } from '../llm-request-options';
 import { stripPromptArtifacts } from '../prompt-cleanup';
+import { storyLeadIsMan, storySceneForManLead } from '../story-lead-gender';
 import {
   clarifyIntimateImageLanguage,
   reinforceIntimateStillPrompt,
@@ -409,7 +410,7 @@ export async function generateRoleplayScenes(
     return { scenes: [], provider: 'template' };
   }
   const finale = phase === 'finale';
-  const fallback = templateRoleplayScenes(
+  const builtIn = templateRoleplayScenes(
     options.personaId,
     options.customPersona,
     options.story,
@@ -418,6 +419,8 @@ export async function generateRoleplayScenes(
     content,
     options.intimateMix
   );
+  // The built-in scenes are written for a woman.
+  const fallback = storyLeadIsMan({ look: bio.look }) ? builtIn.map(storySceneForManLead) : builtIn;
   const settingCue = formatRoleplaySettingCue({
     setting,
     hasReferenceImage,

@@ -1826,9 +1826,18 @@ export function parsePoseGuideIntent(
   // A clothed spoon is still a spoon: without it an Everyday "spooning with her boyfriend in
   // bed" drew a standing lean pair, and the beat's "him behind her" added a third person (Klein,
   // 8/8 renders). Clothing is gated on the mood, not on this drawing.
+  // …but only when a second person is in the picture: a spoon is always drawn as a pair, and a
+  // still planned for one (an adult beat played as Everyday, no partner) was told "one woman
+  // alone" next to a two-figure map. Alone, she lies down instead.
+  const soloForced = options?.forcePeople === 1;
+  const soloSpoon =
+    soloForced &&
+    !intimateAllowed &&
+    !options?.clothedUprightOnly &&
+    CLOTHED_SPOON_RE.test(haystack);
   let intimate = intimateAllowed
     ? parseIntimateLayout(haystack)
-    : !options?.clothedUprightOnly && CLOTHED_SPOON_RE.test(haystack)
+    : !options?.clothedUprightOnly && soloForced !== true && CLOTHED_SPOON_RE.test(haystack)
       ? 'spoon'
       : null;
   let social = intimate ? null : parseSocialLayout(haystack);
@@ -1920,6 +1929,11 @@ export function parsePoseGuideIntent(
       lean = (jitterA - 0.5) * 0.25;
       matched = true;
     }
+  }
+
+  if (soloSpoon && !social) {
+    base = 'lie';
+    matched = true;
   }
 
   const forcedPeople =

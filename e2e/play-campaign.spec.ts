@@ -1663,12 +1663,32 @@ test('mobile desk bridge links to Film on desk', async ({ page }) => {
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('mobile-desk-bridge')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('mobile-desk-play')).toHaveAttribute('href', /\/play/);
-  // The tabs appear once the session's features have loaded — under a full parallel run that
-  // took longer than the default 5 s and the test failed there.
+  // The tabs appear once the session's features have loaded.
   await expect(page.getByTestId('mobile-tab-moodboard')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('mobile-tab-fitting')).toBeVisible();
   await expect(page.getByTestId('mobile-tab-day')).toBeVisible();
   await expect(page.getByTestId('mobile-tab-film')).toBeVisible();
+});
+
+test('navigation survives a session request that fails or is rate-limited', async ({ page }) => {
+  let calls = 0;
+  await page.route('**/api/auth/session', route => {
+    calls += 1;
+    // Dropped once, rate-limited once, then served.
+    if (calls === 1) return route.abort('failed');
+    if (calls === 2)
+      return route.fulfill({
+        status: 429,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }),
+      });
+    return route.continue();
+  });
+  await gotoStable(page, '/m');
+  await dismissBlockingOverlays(page);
+  // It used to stay on an empty tab bar until a reload.
+  await expect(page.getByTestId('mobile-tab-moodboard')).toBeVisible({ timeout: 30_000 });
+  expect(calls).toBeGreaterThan(2);
 });
 
 test('mobile play page exposes phone Day/Fitting and optional desk handoff', async ({ page }) => {

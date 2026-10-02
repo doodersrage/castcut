@@ -2,6 +2,7 @@
 
 import { composedPoseForScene } from '@/lib/pose-compose';
 import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
+import { storyLeadIsMan, storyPromptForManLead } from '@/lib/story-lead-gender';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
   beatOwnsFootwear,
@@ -25,6 +26,7 @@ import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import {
   applyCharacterRecord,
   castLoraSessionIds,
+  getCharacter,
   upsertCharacterFromRoleplaySession,
 } from '@/lib/character-os';
 import { buildRoleplayQueueStillOptions, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
@@ -104,12 +106,31 @@ function nudeFaceIdentityParams(nudeFace: string | null): Record<string, unknown
 
 const TOOL_ID = 'roleplay';
 
+/** Whether the story's lead reads as a man (Cast record first, then the bible's look). */
+function leadIsMan(): boolean {
+  const cache = loadSettingsCache();
+  const castId = cache.shared.activeCharacterId?.trim();
+  const cast = castId ? getCharacter(castId) : null;
+  return storyLeadIsMan({
+    look: cache.tools.roleplay?.bio?.look,
+    descriptor: cast?.descriptor,
+    hints: cast?.hints,
+  });
+}
+
 /**
  * Text contradictions in a still's prompt (still-prompt-audit): what can be repaired without
  * guessing is repaired, the rest raises a notice. Never a block — returns the prompt to queue.
  */
-function checkedStoryPrompt(prompt: string, label: string | undefined, people?: number): string {
-  const checked = repairStillPrompt(prompt, { people: people || undefined });
+function checkedStoryPrompt(
+  prompt: string,
+  label: string | undefined,
+  people?: number,
+  manLead = false
+): string {
+  const checked = repairStillPrompt(manLead ? storyPromptForManLead(prompt) : prompt, {
+    people: people || undefined,
+  });
   if (checked.remaining.length > 0) {
     console.warn('Story prompt check:', label, checked.remaining, checked.prompt);
     pushSystemTrayMessage({
@@ -457,7 +478,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
               imageUrl: toolSettings.footwearImageUrl,
               imageFilename: toolSettings.footwearImageFilename,
             },
-            subject: 'she',
+            subject: leadIsMan() ? 'he' : 'she',
             characterName: leadName,
             characterId: shared.activeCharacterId,
             lookId: shared.activeLookId,
@@ -741,7 +762,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         const sentPrompt = checkedStoryPrompt(
           rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(prompt) : prompt),
           beat.title,
-          poseGuide?.prompt.headcount
+          poseGuide?.prompt.headcount,
+          leadIsMan()
         );
         const promptId = await actions.sendComfyUi(
           kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
@@ -923,7 +945,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         const sentPrompt = checkedStoryPrompt(
           rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(queuePrompt) : queuePrompt),
           latest.title,
-          poseGuide?.prompt.headcount
+          poseGuide?.prompt.headcount,
+          leadIsMan()
         );
         promptId = await actions.sendComfyUi(
           kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,

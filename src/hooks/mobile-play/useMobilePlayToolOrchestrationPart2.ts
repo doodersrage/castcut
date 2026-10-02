@@ -8,6 +8,7 @@ import {
   selectRoleplayClipTakePatch,
   pinRoleplayStillTakePatch,
   lastRoleplayPlotBeat,
+  mergeRoleplayRejectedScenes,
   roleplayStoryPhase,
   type RoleplayBio,
   type RoleplayScene,
@@ -20,6 +21,8 @@ import { useStoryBeatEdit } from '@/hooks/roleplay/useStoryBeatEdit';
 export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestrationCore) {
   const {
     updateToolSettings,
+    toolSettings,
+    scenes,
     setScenes,
     setError,
     setBioLoading,
@@ -140,7 +143,14 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
         setPlayingId(null);
         return;
       }
-      updateToolSettings({ story: writingStory });
+      // The three not picked are remembered, as on desk — otherwise the next roll could offer
+      // them again.
+      const rejectedScenes = mergeRoleplayRejectedScenes(
+        toolSettings.rejectedScenes,
+        scenes,
+        playing
+      );
+      updateToolSettings({ story: writingStory, rejectedScenes });
       try {
         const data = await requestRoleplayStillPrompt(requestBody('prompt', playing));
         const nextStory = await commitStill(data, beat, bio, writingStory);
@@ -154,6 +164,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
           body: JSON.stringify({
             ...requestBody('scenes'),
             story: nextStory,
+            rejectedScenes,
           }),
         });
         const nextPayload = (await nextScenes.json()) as RoleplayApiPayload;
@@ -174,6 +185,8 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
       commitStill,
       hasReferenceImage,
       requestBody,
+      scenes,
+      toolSettings.rejectedScenes,
       setError,
       setPlayingId,
       setScenes,

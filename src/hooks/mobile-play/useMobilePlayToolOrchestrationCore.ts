@@ -1,5 +1,6 @@
 'use client';
 
+import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import {
   getCharacter,
   getCharactersSnapshot,
@@ -99,7 +100,11 @@ export function useMobilePlayToolOrchestrationCore() {
   });
 
   const personaId = toolSettings.personaId ?? '';
-  const { tone, content } = resolveRoleplayToneAndContent(toolSettings.tone, toolSettings.content);
+  // As on desk: with the adult gate off, a saved adult rating plays as the clean one.
+  const adultEnabled = useNsfwGeneratorEnabled();
+  const { tone, content } = resolveRoleplayToneAndContent(toolSettings.tone, toolSettings.content, {
+    adultEnabled,
+  });
   const playAs = normalizeRoleplayPlayAs(toolSettings.playAs);
   const isolateSubject = normalizeRoleplayIsolateSubject(toolSettings.isolateSubject);
   const bio = toolSettings.bio;
