@@ -1,12 +1,18 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useRef, useState } from 'react';
 import MyPosesStrip from '@/components/pose/MyPosesStrip';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
-import PoseJointEditor from '@/components/pose/PoseJointEditor';
 import { Button } from '@/components/ui/Button';
 import type { PhotoPose } from '@/lib/day-pose-guide';
 import { poseStarterBody } from '@/lib/pose-starters';
+
+// A modal used now and then: its own chunk, shared by every page, instead of a copy in each
+// tool page's bundle.
+const PoseJointEditor = dynamic(() => import('@/components/pose/PoseJointEditor'), {
+  ssr: false,
+});
 
 /**
  * Outfit → Pose: try a kit on in the plate's own stance (default), in a pose you drag into

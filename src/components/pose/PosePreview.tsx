@@ -1,9 +1,9 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
 import MyPosesStrip from '@/components/pose/MyPosesStrip';
-import PoseJointEditor from '@/components/pose/PoseJointEditor';
 import { Button } from '@/components/ui/Button';
 import { SelectInput } from '@/components/ui/Field';
 import { usePoseLibrary } from '@/hooks/usePoseLibrary';
@@ -17,6 +17,12 @@ import {
   type PoseGuideBuildOptions,
 } from '@/lib/day-pose-guide';
 import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose-layout-labels';
+
+// A modal used now and then: its own chunk, shared by every page, instead of a copy in each
+// tool page's bundle.
+const PoseJointEditor = dynamic(() => import('@/components/pose/PoseJointEditor'), {
+  ssr: false,
+});
 
 /** What the player can set on a slot / beat pose. */
 export type PosePicks = {

@@ -67,11 +67,11 @@ describe('footwear', () => {
     const base = { outfitLabel: 'red wrap dress', hasGarmentReference: true };
     assert.ok(!/footwear \(mandatory\)/.test(buildFittingOutfitPrompt(base)));
     assert.match(
-      buildFittingOutfitPrompt({ ...base, footwear: 'white low-top sneakers' }),
+      buildFittingOutfitPrompt({ ...base, footwearLine: footwearPromptLine('white low-top sneakers') }),
       /\nfootwear \(mandatory\): on her feet she wears white low-top sneakers — exactly these, on both feet\n/
     );
     assert.match(
-      buildFittingOutfitPrompt({ ...base, footwear: 'barefoot' }),
+      buildFittingOutfitPrompt({ ...base, footwearLine: footwearPromptLine('barefoot') }),
       /\nfootwear \(mandatory\): she is barefoot — bare feet, no shoes and no socks\n/
     );
   });

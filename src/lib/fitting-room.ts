@@ -1,7 +1,6 @@
 import type { CharacterRecord } from '@/lib/character-os';
 import { activeLook } from '@/lib/character-os';
 import { buildSinglePersonUserDirective } from '@/lib/single-person';
-import { footwearPromptLine } from '@/lib/footwear';
 import type { RoleplayToolCache } from '@/lib/settings-cache';
 
 export type FittingCompareTryOn = {
@@ -493,13 +492,16 @@ export function buildFittingOutfitPrompt(input: {
   hasGarmentReference?: boolean;
   /** Vision (or manual) description of the BYO clothing photo. */
   garmentDescription?: string;
-  /** Footwear picked beside the clothing ('' = leave it to the outfit). */
-  footwear?: string;
+  /**
+   * The footwear line (footwearPromptLine), when shoes were picked beside the clothing. Passed in
+   * ready-made: this module is in most tool pages' chunks and must not pull footwear.ts into them.
+   */
+  footwearLine?: string;
   /** The shoes are pictured in Image 2: under the clothing, or as Image 2 on their own. */
   footwearImage?: 'combined' | 'alone' | null;
 }): string {
   const outfit = input.outfitLabel.trim();
-  const footwear = footwearPromptLine(input.footwear, 'she', input.footwearImage)
+  const footwear = (input.footwearLine ?? '')
     // The try-on brief is a list of short lower-case instructions.
     .replace(/^FOOTWEAR \(mandatory\): /, 'footwear (mandatory): ')
     .replace(/\.$/, '');

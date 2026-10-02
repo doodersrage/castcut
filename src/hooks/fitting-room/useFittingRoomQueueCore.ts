@@ -1,6 +1,6 @@
 'use client';
 
-import { footwearIsBarefoot } from '@/lib/footwear';
+import { footwearIsBarefoot, footwearPromptLine } from '@/lib/footwear';
 import {
   buildFootwearReferenceImage,
   footwearImageSuitsModel,
@@ -145,7 +145,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
         isolated: input.toolSettings.referenceIsolated === true,
         hasGarmentReference: Boolean(garmentExtras),
         garmentDescription: hasCustomGarment ? garmentDescription : undefined,
-        footwear: input.toolSettings.footwear,
+        footwearLine: footwearPromptLine(input.toolSettings.footwear, 'she', footwearImage),
         footwearImage,
       });
     },

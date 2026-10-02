@@ -13,6 +13,29 @@ import InventorySyncNotice from '@/components/InventorySyncNotice';
 // last shell import of it went away (sidebar theme control), Turbopack copied it into ~22 route
 // chunks — +228 KB gzip across the build and the size-limit CI failure.
 import '@/components/ui/ToolPageShell';
+// The same for the small modules nearly every tool page uses. Under Next 16.2 (what CI and the
+// release image build with) each sat in 12–33 route chunks; here they ship once. Measured on
+// that build: 3.61 MB → under the 3.5 MB budget, for a few KB of first-load JS.
+import '@/components/CharacterOsPicker';
+import '@/components/ui/Button';
+import '@/components/ui/Field';
+import '@/components/ui/GalleryKindPreview';
+import '@/components/ui/MotionMedia';
+import '@/components/ui/UiIcon';
+import '@/components/ui/ViewState';
+import '@/hooks/useCachedSettings';
+import '@/hooks/usePromptHistory';
+import '@/lib/diffusers-defaults';
+import '@/lib/diffusers-workflow-support';
+import '@/lib/experiment-groups';
+import '@/lib/fitting-room';
+import '@/lib/generate-handoff';
+import '@/lib/plugin-queue-hooks';
+import '@/lib/prompt-lineage-session';
+import '@/lib/prompt-versioning';
+import '@/lib/roleplay-library';
+import '@/lib/session-recipes';
+import '@/lib/video-last-frame';
 
 function NavFallback() {
   return (
