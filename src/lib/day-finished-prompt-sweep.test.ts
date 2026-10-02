@@ -4,8 +4,9 @@
  * and the pose-map renumbering — for every planner beat, on three engines, in the situations the
  * queue hook can be in. No render, no ComfyUI.
  *
- * `decideStill` mirrors `queueSlot` (useDayPlannerToolOrchestrationCore.ts) decision by decision,
- * with the hook's own pure predicates; where the hook waits on an upload or a render, the setup
+ * `decideStill` follows `queueSlot` (useDayPlannerToolOrchestrationCore.ts) step by step. The
+ * decisions themselves are the hook's own functions (day-still-plan.ts: dress plate, Image 1
+ * route, clothing image, footwear); where the hook waits on an upload or a render, the setup
  * says how it came out (the dress plate rendered, the pose map was accepted, the face crop
  * exists). The text itself comes from the same functions the hook calls:
  * `buildDaySlotPromptForStill`, `assembleDayStillPrompt`, `finishDayStillPrompt`,
@@ -22,14 +23,18 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { dayGarmentPromptName, dayOutfitPromptName } from './day-clothed-lead';
-import { dayDressPlateApplies } from './day-dress-plate';
+import {
+  dayStillClothingReinforce,
+  dayStillDressedPlateUse,
+  dayStillFootwearApplies,
+  dayStillIdentityRoute,
+  dayStillWantsDressPlate,
+} from './day-still-plan';
 import { dayPartnerApplies, inventedDayPartner, type DayPartner } from './day-partner';
 import type { CharacterRecord } from './character-os';
 import {
   type DayPlate,
   isClothingOnlyDayGarment,
-  isDayVacationLightningIdentityVlModel,
-  isQwenEdit2511PoseStickyModel,
   resolveDayGarmentReinforce,
   resolveDayQueueIdentityPlate,
 } from './day-plate';
@@ -72,18 +77,15 @@ import {
 } from './day-still-prompt';
 import { DAY_THEMES } from './day-themes';
 import {
-  dayClothedHeatPoseNeedsBodyUnlock,
-  daySuggestiveBeatIsSeated,
   dayVacationBeatPresetsForSlot,
   dayVacationDuoBeatPresetsForSlot,
   dayVacationSettingPresetsForSlot,
 } from './day-vacation';
-import { beatOwnsFootwear, footwearIsBarefoot, normalizeFootwear } from './footwear';
+import { normalizeFootwear } from './footwear';
 import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from './play-metrics';
 import { DEFAULT_POSE_GUIDE_STYLE } from './pose-guide-prompt';
 import { poseModelFamily, poseProfileForModel } from './pose/pose-model-profile';
 import { resolveDayStillModel } from './queue-tool-model';
-import { vacationBeatDressesItself } from './rapid-duo-recipe';
 import { auditStillPrompt } from './still-prompt-audit';
 import { formatWardrobeKitLabel } from './wardrobe-kit-picker';
 
@@ -543,24 +545,25 @@ function decideStill(
 
   // Dress plate.
   const pickedShoes = normalizeFootwear(shoesPicked ? SHOES : '');
-  const hasShoes = Boolean(pickedShoes) && !footwearIsBarefoot(pickedShoes);
   let dressPlate = false;
   let dressClothingFilename: string | null = null;
   const dressedPlate =
     setup.plate === 'cast' &&
     setup.dressPlateRenders &&
-    dayDressPlateApplies({
+    dayStillWantsDressPlate({
+      castPlateAvailable: true,
       model: stillModel,
-      dayMood: playedMood,
+      dayMood: toolMood,
+      intimateEnabled: setup.intimate,
       plateSource: setup.plate,
-      clothingPicked: customGarmentPicked || setup.clothing === 'kit-picked',
-      footwearPicked: hasShoes,
+      customGarmentPicked,
+      kitPicked: setup.clothing === 'kit-picked',
+      packshotUrl,
+      pickedShoes,
       omitGarment,
       replaceOutfit: replaceKeepOutfit,
-    }) &&
-    Boolean(customGarmentPicked || packshotUrl) &&
-    !(normalizeDayMood(toolMood) === 'vacation' && vacationBeatDressesItself(beat.beat)) &&
-    !(hasShoes && beatOwnsFootwear(beat.beat))
+      sceneHints: beat.beat,
+    })
       ? { filename: 'day-dress-plate-lana-1.png' }
       : null;
   if (dressedPlate) {
@@ -575,52 +578,40 @@ function decideStill(
   let identitySource: 'cast' | 'keeper' =
     replaceKeepOutfit || omitGarment ? 'cast' : slotPlateSource;
 
-  const undressedPlateGarment = isClothingOnlyDayGarment(
-    resolveDayGarmentReinforce({
-      plateSource: slotPlateSource,
-      packshotUrl: slotPackshotUrl,
-      customGarmentFilename: slotCustomGarmentFilename,
-    })
-  );
-  const suggestiveSeatOnUndressedPlate =
-    normalizeDayMood(toolMood) === 'suggestive' &&
-    profile.rapidGraph &&
-    identitySource !== 'keeper' &&
-    daySuggestiveBeatIsSeated(beat.beat) &&
-    undressedPlateGarment;
-  const everydayGarmentOnUndressedPlate =
-    normalizeDayMood(toolMood) === 'everyday' &&
-    profile.rapidGraph &&
-    identitySource !== 'keeper' &&
-    undressedPlateGarment;
   // OpenPose is the default guide style: the Lightning identity path keeps the pose map.
   const skipPoseGuideImage = false;
-  let vacationFaceBreak = false;
-  if (!omitGarment) {
-    const heat = normalizeDayMood(toolMood);
-    if (
-      ((heat === 'vacation' || heat === 'suggestive') &&
-        (dayClothedHeatPoseNeedsBodyUnlock(beat.beat, toolMood, {
-          poseStickyModel: isQwenEdit2511PoseStickyModel(stillModel),
-        }) ||
-          suggestiveSeatOnUndressedPlate)) ||
-      everydayGarmentOnUndressedPlate
-    ) {
-      // Lightning keeps the full plate as Image 1; the others crop the face (the crop exists).
-      vacationFaceBreak = !isDayVacationLightningIdentityVlModel(stillModel);
-    }
-  }
+  // Lightning keeps the full plate as Image 1; the others crop the face (the crop exists).
+  const vacationFaceBreak =
+    dayStillIdentityRoute({
+      dayMood: toolMood,
+      model: stillModel,
+      sceneHints: beat.beat,
+      omitGarment,
+      hasCharacter: true,
+      hasIdentityPlate: true,
+      identitySource,
+      clothingOnlyGarment: isClothingOnlyDayGarment(
+        resolveDayGarmentReinforce({
+          plateSource: slotPlateSource,
+          packshotUrl: slotPackshotUrl,
+          customGarmentFilename: slotCustomGarmentFilename,
+        })
+      ),
+    }) === 'face-break';
   // Nude stills start from a face crop (a distinct Cast face, or the auto crop).
   const faceOnlyIdentity = omitGarment || vacationFaceBreak;
-  if (dressedPlate && !omitGarment) {
-    if (faceOnlyIdentity) {
-      dressPlate = false;
-      dressClothingFilename = dressedPlate.filename;
-    } else {
-      dressPlate = true;
-      identitySource = 'keeper';
-      dressClothingFilename = null;
-    }
+  const dressedPlateUse = dayStillDressedPlateUse({
+    hasDressedPlate: Boolean(dressedPlate),
+    omitGarment,
+    faceOnlyIdentity,
+  });
+  if (dressedPlate && dressedPlateUse === 'clothing') {
+    dressPlate = false;
+    dressClothingFilename = dressedPlate.filename;
+  } else if (dressedPlate && dressedPlateUse === 'plate') {
+    dressPlate = true;
+    identitySource = 'keeper';
+    dressClothingFilename = null;
   }
   const byoOrPackGarment = resolveDayGarmentReinforce({
     plateSource: dressPlate ? 'keeper' : dressClothingFilename ? 'cast' : slotPlateSource,
@@ -656,19 +647,18 @@ function decideStill(
       partnerFace = !partnerCandidate.invented;
     }
   }
-  const clothingReinforce =
-    omitGarment || replaceKeepOutfit || partnerFace
-      ? null
-      : vacationFaceBreak
-        ? isClothingOnlyDayGarment(byoOrPackGarment)
-          ? byoOrPackGarment
-          : null
-        : byoOrPackGarment;
-  const footwearApplies =
-    !adultStill &&
-    normalizeDayMood(toolMood) !== 'sport' &&
-    !beatOwnsFootwear(beat.beat) &&
-    !(normalizeDayMood(toolMood) === 'vacation' && vacationBeatDressesItself(beat.beat));
+  const clothingReinforce = dayStillClothingReinforce({
+    omitGarment,
+    replaceOutfit: replaceKeepOutfit,
+    partnerFace,
+    faceBreak: vacationFaceBreak,
+    garment: byoOrPackGarment,
+  });
+  const footwearApplies = dayStillFootwearApplies({
+    dayMood: toolMood,
+    intimateEnabled: setup.intimate,
+    sceneHints: beat.beat,
+  });
   const footwear = footwearApplies ? pickedShoes : '';
   // Shoes in words (no shoe picture), so the clothing image is the garment's own.
   const garmentReinforce = clothingReinforce;

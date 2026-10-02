@@ -100,8 +100,6 @@ import {
 import {
   castFaceDuplicatesBodyPlate,
   isClothingOnlyDayGarment,
-  isDayVacationLightningIdentityVlModel,
-  isQwenEdit2511PoseStickyModel,
   resolveDayFaceOnlyPlate,
   resolveDayGarmentReinforce,
   resolveDayPlate,
@@ -119,12 +117,7 @@ import {
   resolveDayVacationIdentityVlPlate,
   uploadDayIdentityLatentPlate,
 } from '@/lib/day-vacation-face-crop';
-import {
-  dayClothedHeatPoseNeedsBodyUnlock,
-  dayVacationPoseNeedsBodyUnlock,
-  clothedHeatUnlockPoseClass,
-  daySuggestiveBeatIsSeated,
-} from '@/lib/day-vacation';
+import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day-vacation';
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
 import { planDaySlotPose } from '@/lib/day-slot-pose';
 import {
@@ -135,7 +128,7 @@ import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { dayThemeOf } from '@/lib/day-themes';
 import { normalizeDayWeather } from '@/lib/day-weather';
 import { dayGarmentPromptName, dayOutfitPromptName } from '@/lib/day-clothed-lead';
-import { beatOwnsFootwear, footwearIsBarefoot, normalizeFootwear } from '@/lib/footwear';
+import { footwearIsBarefoot, normalizeFootwear } from '@/lib/footwear';
 import {
   buildFootwearReferenceImage,
   footwearImageSuitsModel,
@@ -179,14 +172,16 @@ import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
 import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import { IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import {
-  dayDressPlateApplies,
-  dayDressPlateStatus,
-  type DayDressPlateEntry,
-} from '@/lib/day-dress-plate';
+import { dayDressPlateStatus, type DayDressPlateEntry } from '@/lib/day-dress-plate';
 import { loadDressPlates, removeDressPlate, subscribeDressPlates } from '@/lib/dress-plate-store';
 import { dayDressPlateRequestKey, ensureDayDressPlate } from '@/lib/day-dress-plate-client';
-import { vacationBeatDressesItself } from '@/lib/rapid-duo-recipe';
+import {
+  dayStillClothingReinforce,
+  dayStillDressedPlateUse,
+  dayStillFootwearApplies,
+  dayStillIdentityRoute,
+  dayStillWantsDressPlate,
+} from '@/lib/day-still-plan';
 import type { DayPlate } from '@/lib/day-plate';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import {
@@ -932,36 +927,22 @@ export function useDayPlannerToolOrchestrationCore() {
         if (
           hasPlate &&
           castPlate &&
-          (castPlate.filename?.trim() || castPlate.imageUrl?.trim()) &&
-          dayDressPlateApplies({
+          dayStillWantsDressPlate({
+            castPlateAvailable: Boolean(castPlate.filename?.trim() || castPlate.imageUrl?.trim()),
             model: stillModel,
-            // An adult mood with Intimate off plays as Everyday everywhere else.
-            dayMood:
-              isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
-                ? 'everyday'
-                : toolSettings.dayMood,
+            dayMood: toolSettings.dayMood,
+            intimateEnabled,
             plateSource: plate?.source,
-            clothingPicked:
-              customGarmentPicked ||
+            customGarmentPicked,
+            kitPicked:
               Boolean(queueTarget.wardrobeId?.trim() && queueTarget.wardrobeAuto !== true) ||
               Boolean(shared.lockedWardrobeId?.trim()),
-            footwearPicked: Boolean(pickedShoes) && !footwearIsBarefoot(pickedShoes),
+            packshotUrl,
+            pickedShoes,
             omitGarment,
             replaceOutfit: replaceKeepOutfit,
-          }) &&
-          (customGarmentPicked || packshotUrl) &&
-          // A scene that brings its own clothes (the pool's swimsuit) or is about the feet
-          // ("barefoot on the sand", "heels in one hand") cannot start from a plate that wears
-          // the picked outfit and shoes — those stills are dressed per still, as before.
-          !(
-            normalizeDayMood(toolSettings.dayMood) === 'vacation' &&
-            vacationBeatDressesItself(queueTarget.sceneHints)
-          ) &&
-          !(
-            Boolean(pickedShoes) &&
-            !footwearIsBarefoot(pickedShoes) &&
-            beatOwnsFootwear(queueTarget.sceneHints)
-          )
+            sceneHints: queueTarget.sceneHints,
+          })
         ) {
           const clothing = customGarmentPicked
             ? {
@@ -1058,39 +1039,31 @@ export function useDayPlannerToolOrchestrationCore() {
         // an OpenPose keypoint map is a pose condition Edit-2511 understands, so it stays on.
         const poseGuideStyle = loadPoseGuideStylePreference(stillModel);
         const lightningDropsPoseGuide = poseGuideStyle === 'legacy';
-        // Seated Suggestive on Rapid with the undressed Cast plate as Image 1: the plate's full
-        // latent kept her in its underwear over the kit 5/6 whatever the brief said. Face-break
-        // (face crop + the garment's latent) dressed her 3/3 and, with the seated lead, sat 3/3.
-        const suggestiveSeatOnUndressedPlate =
-          normalizeDayMood(toolSettings.dayMood) === 'suggestive' &&
-          poseProfileForModel(stillModel).rapidGraph &&
-          (identityPlate ?? slotQueuePlate)?.source !== 'keeper' &&
-          daySuggestiveBeatIsSeated(queueTarget.sceneHints) &&
-          isClothingOnlyDayGarment(
+        // How Image 1 is chosen (day-still-plan.ts). Findings behind the face-break cases:
+        // - Seated Suggestive on Rapid with the undressed Cast plate as Image 1: the plate's full
+        //   latent kept her in its underwear over the kit 5/6 whatever the brief said. Face-break
+        //   (face crop + the garment's latent) dressed her 3/3 and, with the seated lead, sat 3/3.
+        // - Everyday on Rapid with a Fitting garment over the undressed Cast plate: the plate's
+        //   full latent plus the packshot's turned walk / crouch / kneel / menu beats into the
+        //   same legs-apart seated swimsuit pin-up 4/4, with the packshot's rib knit as streaks.
+        const identityRoute = dayStillIdentityRoute({
+          dayMood: toolSettings.dayMood,
+          model: stillModel,
+          sceneHints: queueTarget.sceneHints,
+          omitGarment,
+          hasCharacter: Boolean(character),
+          hasIdentityPlate: Boolean(identityPlate ?? slotQueuePlate),
+          identitySource: (identityPlate ?? slotQueuePlate)?.source,
+          clothingOnlyGarment: isClothingOnlyDayGarment(
             resolveDayGarmentReinforce({
               plateSource: slotPlate?.source,
               packshotUrl: slotPackshotUrl,
               customGarmentUrl: slotCustomGarmentUrl,
               customGarmentFilename: slotCustomGarmentFilename,
             })
-          );
-        // Everyday on Rapid with a Fitting garment over the undressed Cast plate: the plate's full
-        // latent plus the packshot's turned walk / crouch / kneel / menu beats into the same
-        // legs-apart seated swimsuit pin-up 4/4, with the packshot's rib knit as streaks.
-        // Face-break (face crop + garment latent) is how Suggestive/Vacation already handle it.
-        const everydayGarmentOnUndressedPlate =
-          normalizeDayMood(toolSettings.dayMood) === 'everyday' &&
-          poseProfileForModel(stillModel).rapidGraph &&
-          (identityPlate ?? slotQueuePlate)?.source !== 'keeper' &&
-          isClothingOnlyDayGarment(
-            resolveDayGarmentReinforce({
-              plateSource: slotPlate?.source,
-              packshotUrl: slotPackshotUrl,
-              customGarmentUrl: slotCustomGarmentUrl,
-              customGarmentFilename: slotCustomGarmentFilename,
-            })
-          );
-        if (omitGarment && character) {
+          ),
+        });
+        if (identityRoute === 'nude' && character) {
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const nudeIdentity = await resolveDayNudeIdentityPlateWithFaceCrop({
             character,
@@ -1101,22 +1074,13 @@ export function useDayPlannerToolOrchestrationCore() {
             identityPlate = nudeIdentity.plate;
             nudeFaceAutoCropped = nudeIdentity.autoCropped;
           }
-        } else if (
-          (((normalizeDayMood(toolSettings.dayMood) === 'vacation' ||
-            normalizeDayMood(toolSettings.dayMood) === 'suggestive') &&
-            (dayClothedHeatPoseNeedsBodyUnlock(queueTarget.sceneHints, toolSettings.dayMood, {
-              poseStickyModel: isQwenEdit2511PoseStickyModel(stillModel),
-            }) ||
-              suggestiveSeatOnUndressedPlate)) ||
-            everydayGarmentOnUndressedPlate) &&
-          (identityPlate ?? slotQueuePlate)
-        ) {
+        } else if (identityRoute === 'heat-full-plate' || identityRoute === 'face-break') {
           // Upright MID-STRIDE / WAVING / DANCING: full Keep as Image 1 freezes stand.
           // On Edit-2511, sit/lounge freezes the same way — face-break every clothed-heat beat.
           // Face-crop Image 1; full Keep rides Image 2 for outfit (no re-suggest needed).
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const bodyPlate = identityPlate ?? slotQueuePlate;
-          if (isDayVacationLightningIdentityVlModel(stillModel)) {
+          if (identityRoute === 'heat-full-plate') {
             // Face-crop Image 1 invents a new person every slot. Legacy pose-guide Image 3
             // paints a color overlay. Full Keep/Cast as Image 1 with ReferenceLatent.
             skipPoseGuideImage = lightningDropsPoseGuide;
@@ -1155,11 +1119,7 @@ export function useDayPlannerToolOrchestrationCore() {
               }
             }
           }
-        } else if (
-          !isDayHeatMood(normalizeDayMood(toolSettings.dayMood)) &&
-          isDayVacationLightningIdentityVlModel(stillModel) &&
-          (identityPlate ?? slotQueuePlate)
-        ) {
+        } else if (identityRoute === 'everyday-full-plate') {
           // Everyday Lightning: legacy Image 3 paints speckle rain and a Keep-plate ghost
           // (second woman / beige lingerie). Full Keep as Image 1; stance from text (legacy)
           // or from the OpenPose map.
@@ -1192,17 +1152,20 @@ export function useDayPlannerToolOrchestrationCore() {
         // Otherwise Rapid's full-plate Vacation stills started from the undressed Cast plate
         // (its underwear won over the clothing image), and plain Edit 2511's face-crop stills
         // carried the dressed plate nowhere.
-        if (dressedPlate && !omitGarment) {
-          if (faceOnlyIdentity) {
-            dressPlate = null;
-            dressClothingFilename = dressedPlate.filename ?? null;
-          } else {
-            if (!dressPlate) {
-              identityPlate = dressedPlate;
-            }
-            dressPlate = dressedPlate;
-            dressClothingFilename = null;
+        const dressedPlateUse = dayStillDressedPlateUse({
+          hasDressedPlate: Boolean(dressedPlate),
+          omitGarment,
+          faceOnlyIdentity,
+        });
+        if (dressedPlate && dressedPlateUse === 'clothing') {
+          dressPlate = null;
+          dressClothingFilename = dressedPlate.filename ?? null;
+        } else if (dressedPlate && dressedPlateUse === 'plate') {
+          if (!dressPlate) {
+            identityPlate = dressedPlate;
           }
+          dressPlate = dressedPlate;
+          dressClothingFilename = null;
         }
         const byoOrPackGarment = resolveDayGarmentReinforce({
           plateSource: dressPlate ? 'keeper' : dressClothingFilename ? 'cast' : slotPlate?.source,
@@ -1300,26 +1263,20 @@ export function useDayPlannerToolOrchestrationCore() {
             }
           }
         }
-        const clothingReinforce =
-          omitGarment || replaceKeepOutfit || partnerFace
-            ? null
-            : vacationFaceBreak
-              ? isClothingOnlyDayGarment(byoOrPackGarment)
-                ? byoOrPackGarment
-                : null
-              : byoOrPackGarment;
-        // Footwear picked beside the clothing: clothed stills only, not Sport (the sport's own
-        // shoes) and not a beat that is about the feet ("heels in one hand").
-        const footwearApplies =
-          !(isDayAdultMood(toolSettings.dayMood) && intimateEnabled) &&
-          normalizeDayMood(toolSettings.dayMood) !== 'sport' &&
-          !beatOwnsFootwear(queueTarget.sceneHints) &&
-          // A swimming / pool / robe scene dresses her itself — the picked heels in a swim still
-          // came out as loose feet and shoes in the foreground.
-          !(
-            normalizeDayMood(toolSettings.dayMood) === 'vacation' &&
-            vacationBeatDressesItself(queueTarget.sceneHints)
-          );
+        const clothingReinforce = dayStillClothingReinforce({
+          omitGarment,
+          replaceOutfit: replaceKeepOutfit,
+          partnerFace: Boolean(partnerFace),
+          faceBreak: vacationFaceBreak,
+          garment: byoOrPackGarment,
+        });
+        // Footwear picked beside the clothing (day-still-plan.ts: clothed stills, not Sport, not a
+        // beat about the feet, not a scene that dresses her itself).
+        const footwearApplies = dayStillFootwearApplies({
+          dayMood: toolSettings.dayMood,
+          intimateEnabled,
+          sceneHints: queueTarget.sceneHints,
+        });
         const footwear = footwearApplies ? normalizeFootwear(toolSettings.footwear) : '';
         // With a picture (a kit's, or your own photo) the shoes share Image 2 with the clothing.
         // Only when the still has a clothing image: other paths use Image 2 for something else
