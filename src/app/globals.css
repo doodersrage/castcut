@@ -192,6 +192,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Phones: the floating job pill / notices sit over the page's bottom-right corner. Leave that
+   much room after the last control so it can always be scrolled clear of them (capped — an
+   opened tray is an overlay, not something to scroll past). */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: min(var(--system-tray-height, 0px), 5rem);
+  }
+}
+
 ::selection {
   background: var(--accent-ring);
   color: var(--text-primary);

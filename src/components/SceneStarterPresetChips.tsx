@@ -239,7 +239,7 @@ export default function SceneStarterPresetChips({
             key={item.value}
             type="button"
             onClick={() => setCategory(item.value)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition max-md:min-h-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
               activeCategory === item.value
                 ? activeChipClass
                 : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
@@ -256,7 +256,7 @@ export default function SceneStarterPresetChips({
             key={option.value}
             type="button"
             onClick={() => patchFilter({ framing: option.value })}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition max-md:min-h-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
               activeFilter.framing === option.value
                 ? activeChipClass
                 : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
@@ -273,7 +273,7 @@ export default function SceneStarterPresetChips({
             key={tag.id}
             type="button"
             onClick={() => toggleTag(tag.id)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition max-md:min-h-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
               activeFilter.tags.includes(tag.id)
                 ? activeChipClass
                 : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'

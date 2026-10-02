@@ -17,6 +17,14 @@ import { resolvePlayHabitNudge } from '@/lib/play-habit-nudge';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 
+/** The film steps in order; a page that is not a step (Gallery, Queue, …) is -1. */
+const FILM_STEP_PATHS = ['/characters', '/moodboard', '/fitting', '/day', '/story'] as const;
+
+function filmStepIndex(path: string | null | undefined): number {
+  const clean = (path ?? '').replace(/^\/m(?=\/)/, '').replace(/^\/roleplay/, '/story');
+  return FILM_STEP_PATHS.findIndex(step => clean === step || clean.startsWith(`${step}/`));
+}
+
 type PlayContinueChipProps = {
   className?: string;
   /** Prefer primary styling in headers. */
@@ -95,6 +103,12 @@ export default function PlayContinueChip({
   // "Continue to Day" while on Day went nowhere — and the page showed it twice.
   const targetPath = cta.href.split(/[?#]/)[0] || '/';
   if (targetPath === pathname || toMobileStudioHref(targetPath) === pathname) {
+    return null;
+  }
+  // On Story the header said "Continue to Day" — a primary button pointing a step back.
+  const here = filmStepIndex(pathname);
+  const there = filmStepIndex(targetPath);
+  if (there >= 0 && here > there) {
     return null;
   }
   if (hideUnderKioskHeader && workspaceMode === 'play' && !isMobileStudioPath(pathname)) {

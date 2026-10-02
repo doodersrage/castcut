@@ -98,7 +98,7 @@ export default function HistoryToolbar({
                 key={value}
                 type="button"
                 aria-pressed={density === value}
-                className={`rounded-full px-2.5 py-1 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                className={`rounded-full px-2.5 py-1 text-xs transition max-md:min-h-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
                   density === value
                     ? 'bg-[var(--accent)] text-white'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'

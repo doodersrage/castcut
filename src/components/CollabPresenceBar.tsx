@@ -223,7 +223,7 @@ export default function CollabPresenceBar({
     return (
       <button
         type="button"
-        className="ui-text-link self-start type-caption"
+        className="ui-text-link self-start type-caption max-md:inline-flex max-md:min-h-8 max-md:items-center"
         data-testid="collab-open"
         onClick={() => setBarOpen(true)}
       >

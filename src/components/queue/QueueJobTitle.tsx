@@ -18,7 +18,10 @@ export default function QueueJobTitle({
     <>
       <p className="text-sm text-[var(--text-primary)]" data-testid="queue-job-label">
         <span className="font-medium">{label.label}</span>{' '}
-        <Link href={label.href} className="ui-text-link type-caption">
+        <Link
+          href={label.href}
+          className="ui-text-link type-caption max-md:inline-block! max-md:py-2!"
+        >
           {label.openLabel}
         </Link>
       </p>
