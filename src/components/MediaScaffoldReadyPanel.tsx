@@ -66,6 +66,12 @@ export default function MediaScaffoldReadyPanel({
         (workflowId ? files.find(file => file.id === workflowId)?.workflowJson : undefined) ||
         files.find(file => file.id === shared.selectedWorkflowFileId)?.workflowJson;
       if (!workflowJson?.trim()) {
+        // System workflows build the graph at queue time — nothing in the library to audit, and
+        // Queue works. Saying "no workflow selected yet" here sent people to import a pack.
+        if (shared.useSystemWorkflows === true) {
+          setStatus(`Ready — the system ${kind} workflow is used for this model.`);
+          return;
+        }
         const message = `No ${kind} workflow selected yet — import a pack below or enable system workflows.`;
         setStatus(message);
         setStatusHref(settingsComfyUiSectionHref('workflow-map'));

@@ -31,7 +31,7 @@ export default function FantasyPresetChips({
             key={item.value}
             type="button"
             onClick={() => onCategoryChange?.(item.value)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition max-md:min-h-8 ${
               category === item.value
                 ? 'border-[var(--accent)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
                 : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'

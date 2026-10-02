@@ -111,7 +111,7 @@ export default function TopicToolResultsSection({
                       'generate' | 'duo' | 'character' | 'pet' | 'fantasy' | 'background',
                   })
                 }
-                className="ui-input min-h-11 w-full px-3 py-(--input-padding-y) type-body sm:min-w-240 sm:flex-1 lg:w-auto lg:flex-none"
+                className="ui-input min-h-11 w-full px-3 py-(--input-padding-y) type-body sm:min-w-60 sm:flex-1 lg:w-auto lg:flex-none"
               >
                 <option value="generate">Batch → Generate prompts</option>
                 <option value="duo">Batch → Character (duo) prompts</option>

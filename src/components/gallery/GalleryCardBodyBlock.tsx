@@ -194,7 +194,7 @@ export default function GalleryCardBodyBlock({
             </span>
           ) : null}
           {entry.hasStoredWorkflow || entry.workflowJson ? (
-            <span className="rounded-full border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-info-text)]">
+            <span className="rounded-full border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] max-md:min-h-7 max-md:px-2.5 text-[var(--tint-info-text)]">
               Exact graph
             </span>
           ) : entry.workflowJsonOmitted ? (
@@ -258,7 +258,7 @@ export default function GalleryCardBodyBlock({
                   key={tag}
                   type="button"
                   onClick={() => onVisionTagClick?.(tag)}
-                  className="rounded-full border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-info-text)] transition hover:border-[var(--tint-info-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                  className="rounded-full border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] max-md:min-h-7 max-md:px-2.5 text-[var(--tint-info-text)] transition hover:border-[var(--tint-info-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                 >
                   {tag}
                 </button>

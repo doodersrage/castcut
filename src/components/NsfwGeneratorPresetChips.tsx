@@ -232,7 +232,7 @@ export default function NsfwGeneratorPresetChips({
             key={item.value}
             type="button"
             onClick={() => onCategoryChange?.(item.value)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition max-md:min-h-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
               category === item.value
                 ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
                 : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:bg-[var(--bg-muted)]/40 hover:text-[var(--text-primary)]'

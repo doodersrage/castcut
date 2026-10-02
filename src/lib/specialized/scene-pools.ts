@@ -1309,7 +1309,8 @@ export function buildRandomTopicPhrase(
       !sameThemeAndLocation ? `${theme} — ${resolvedLocation}` : null,
       `${theme}, ${pickFiltered(MOODS, avoidedTokens)}`,
       `${theme} under ${pickFiltered(LIGHTING, avoidedTokens)}`,
-      `${pickFiltered(SUBJECTS, avoidedTokens)} in a ${theme} setting`,
+      // "in a ${theme} setting" read "in a a red fox setting" for a theme with its own article.
+      `${pickFiltered(SUBJECTS, avoidedTokens)}, with ${theme}`,
       `${theme} ${pickFiltered(SEED_TOPIC_ANGLES, avoidedTokens)}`,
       `${theme} meets ${pickFiltered(BACKDROP_TYPES, avoidedTokens)} at ${resolvedLocation}`,
       settingHint.location && !sameThemeAndLocation ? `${theme} in ${settingHint.location}` : null,

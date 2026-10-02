@@ -287,7 +287,7 @@ export default function ComfyClusterSettingsPanel({
                 comfyPoolBusyThreshold: Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined,
               });
             }}
-            className="ui-input max-w-[8rem] text-sm"
+            className="ui-input mt-1.5 block max-w-[8rem] text-sm"
           />
         </label>
       ) : null}

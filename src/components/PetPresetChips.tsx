@@ -46,7 +46,7 @@ export default function PetPresetChips({
             key={item.value}
             type="button"
             onClick={() => setCategory(item.value)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition max-md:min-h-8 ${
               activeCategory === item.value
                 ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
                 : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'

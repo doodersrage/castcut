@@ -51,6 +51,14 @@ export function readCachedComfyObjectInfo(comfyUrl?: string): ComfyObjectInfoCac
   };
 }
 
+/** Requests under way, by ComfyUI URL — callers that arrive before the first answer share it. */
+const inFlight = new Map<string, Promise<ComfyObjectInfoCachePayload | null>>();
+
+/**
+ * ComfyUI's model lists and node types, cached. A page's panels all ask for it on mount, before
+ * any answer is cached: each sent its own request (7 on a Day load), and a few page changes used
+ * up the route's rate limit (HTTP 429). Concurrent callers now wait on one request.
+ */
 export async function fetchComfyObjectInfoCached(input?: {
   comfyUrl?: string;
   forceRefresh?: boolean;
@@ -62,15 +70,29 @@ export async function fetchComfyObjectInfoCached(input?: {
     if (cached) {
       return cached;
     }
+    const pending = inFlight.get(comfyUrl);
+    if (pending) {
+      return pending;
+    }
   } else {
     clearComfyObjectInfoCache();
   }
+  const request = requestComfyObjectInfo(comfyUrl, input?.forceRefresh === true).finally(() => {
+    if (inFlight.get(comfyUrl) === request) inFlight.delete(comfyUrl);
+  });
+  inFlight.set(comfyUrl, request);
+  return request;
+}
 
+async function requestComfyObjectInfo(
+  comfyUrl: string,
+  forceRefresh: boolean
+): Promise<ComfyObjectInfoCachePayload | null> {
   const params = new URLSearchParams();
   if (comfyUrl) {
     params.set('comfyUrl', comfyUrl);
   }
-  if (input?.forceRefresh) {
+  if (forceRefresh) {
     params.set('forceRefresh', '1');
   }
   const query = params.toString() ? `?${params.toString()}` : '';

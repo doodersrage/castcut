@@ -51,7 +51,7 @@ export function GalleryCardHoverActions({
         <button
           type="button"
           onClick={() => onOpenImage(playbackIndex)}
-          className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--border-default)]/80 bg-[var(--bg-base)]/80 px-2 py-0.5 text-[10px] text-[var(--text-primary)] backdrop-blur transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--border-default)]/80 bg-[var(--bg-base)]/80 px-2 py-0.5 text-[10px] text-[var(--text-primary)] backdrop-blur transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           Open
         </button>
@@ -62,7 +62,7 @@ export function GalleryCardHoverActions({
                 <button
                   type="button"
                   onClick={() => startImproveFromGalleryEntry(entry)}
-                  className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-success-text)] backdrop-blur transition hover:bg-[var(--tint-success-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tint-success-border)]"
+                  className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-success-text)] backdrop-blur transition hover:bg-[var(--tint-success-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tint-success-border)]"
                 >
                   Improve
                 </button>
@@ -70,7 +70,7 @@ export function GalleryCardHoverActions({
                   <button
                     type="button"
                     onClick={() => startInpaintFromGalleryEntry(entry)}
-                    className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-warning-text)] backdrop-blur transition hover:bg-[var(--tint-warning-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-warning-text)] backdrop-blur transition hover:bg-[var(--tint-warning-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   >
                     Inpaint
                   </button>
@@ -79,7 +79,7 @@ export function GalleryCardHoverActions({
                   <button
                     type="button"
                     onClick={() => onRequeue(false, undefined, { exactGraph: true })}
-                    className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-info-text)] backdrop-blur transition hover:bg-[var(--tint-info-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-info-text)] backdrop-blur transition hover:bg-[var(--tint-info-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   >
                     Exact
                   </button>
@@ -87,7 +87,7 @@ export function GalleryCardHoverActions({
                   <button
                     type="button"
                     onClick={() => onRequeue(false)}
-                    className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   >
                     Requeue
                   </button>
@@ -102,7 +102,7 @@ export function GalleryCardHoverActions({
                   applyGalleryStackToSession(entry);
                   router.push(galleryToolHrefForEntry(entry));
                 }}
-                className={`shrink-0 whitespace-nowrap rounded-lg border px-2 py-0.5 text-[10px] backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                className={`shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 px-2 py-0.5 text-[10px] backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
                   (entry.reviewRating ?? 0) >= 4
                     ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)] hover:bg-[var(--accent-soft)]'
                     : 'border-[var(--border-subtle)] bg-[var(--bg-base)]/70 text-[var(--text-secondary)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
@@ -120,7 +120,7 @@ export function GalleryCardHoverActions({
                   applyGalleryPromptAndStackToSession(entry);
                   router.push(galleryToolHrefForEntry(entry));
                 }}
-                className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               >
                 Prompt+
               </button>
@@ -136,7 +136,7 @@ export function GalleryCardHoverActions({
                     }
                   });
                 }}
-                className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               >
                 Lock
               </button>
@@ -150,7 +150,7 @@ export function GalleryCardHoverActions({
                     onClick={() => {
                       saveGalleryLookFromEntry(entry);
                     }}
-                    className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   >
                     Look
                   </button>
@@ -159,7 +159,7 @@ export function GalleryCardHoverActions({
                   <button
                     type="button"
                     onClick={() => onFaceDetail()}
-                    className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] text-[var(--accent-text)] backdrop-blur transition hover:bg-[var(--accent-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] text-[var(--accent-text)] backdrop-blur transition hover:bg-[var(--accent-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   >
                     Face
                   </button>
@@ -171,7 +171,7 @@ export function GalleryCardHoverActions({
                       onDownloadError(error instanceof Error ? error.message : 'Download failed');
                     });
                   }}
-                  className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                  className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                 >
                   ↓
                 </button>

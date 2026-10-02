@@ -59,7 +59,7 @@ export default function UsersAdminSharedProjectsPanel({
                     : [...prev.groupIds, group.id],
                 }))
               }
-              className={`rounded-full border px-3 py-1 text-xs transition ${
+              className={`rounded-full border px-3 py-1 text-xs transition max-md:min-h-8 ${
                 active
                   ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
                   : 'border-[var(--border-default)]/80 text-[var(--text-muted)] hover:border-[var(--border-default)]'

@@ -129,7 +129,9 @@ export async function refineImagePrompt(
   ToolGenerateResult & { diagnostics: ReturnType<typeof enrichGenerateResult>['diagnostics'] }
 > {
   if (!resolveRequestLlmEnabled(options.llm)) {
-    throw new Error('Image refine requires LLM_ENABLED=true.');
+    throw new Error(
+      'Refine needs a language model to rewrite the prompt — turn one on in Settings → LLM (LLM_ENABLED=true on the server).'
+    );
   }
 
   const visionModel = await resolveVisionModel(options.llm);

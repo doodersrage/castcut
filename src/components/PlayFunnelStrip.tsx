@@ -143,17 +143,23 @@ export default function PlayFunnelStrip({ compact = false }: PlayFunnelStripProp
                 )
           );
 
+          // The tint marks the film's next step; the ring marks the page you are on. Without it
+          // Outfit showed "4. Day" highlighted and nothing said where you were.
+          const isHere = (stepHref.split(/[?#]/)[0] || '') === pathname;
+
           return (
             <li key={step.id} className={compact ? 'shrink-0 snap-start' : undefined}>
               <ButtonLink
                 href={stepHref}
+                aria-current={isHere ? 'page' : undefined}
+                data-here={isHere ? 'true' : 'false'}
                 size="sm"
                 variant="ghost"
                 data-testid={`play-funnel-step-${step.id}`}
                 data-active={isActiveStep ? 'true' : 'false'}
                 data-stall={isStallStep ? 'true' : 'false'}
                 data-done={done ? 'true' : 'false'}
-                className={`${chipClass} no-underline hover:no-underline`}
+                className={`${chipClass} ${isHere ? '!font-semibold !ring-2 !ring-[var(--accent)] ' : ''}no-underline hover:no-underline`}
               >
                 {label}
               </ButtonLink>

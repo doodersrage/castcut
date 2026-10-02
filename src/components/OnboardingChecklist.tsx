@@ -49,7 +49,7 @@ function StepRow({ step }: { step: OnboardingStep }) {
     <li>
       <Link
         href={step.href}
-        className="flex items-center gap-2 rounded-[var(--radius-md)] text-sm text-[var(--accent-text)] transition hover:bg-[var(--accent-soft)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+        className="flex items-center gap-2 rounded-[var(--radius-md)] text-sm text-[var(--accent-text)] max-md:min-h-8 transition hover:bg-[var(--accent-soft)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
       >
         {body}
       </Link>

@@ -25,6 +25,7 @@ import {
 } from '@/lib/workflow-react-flow';
 import { parseWorkflowJson } from '@/lib/comfyui-config';
 import {
+  COMFY_WORKFLOW_FILES_UPDATED_EVENT,
   loadComfyWorkflowFiles,
   saveComfyWorkflowFiles,
   type ComfyWorkflowFile,
@@ -46,9 +47,15 @@ export function useWorkflowEditorToolOrchestration() {
     tool: 'workflow-editor',
     model: shared.model,
   });
-  const [library, setLibrary] = useState<ComfyWorkflowFile[]>(() =>
-    typeof window === 'undefined' ? [] : loadComfyWorkflowFiles()
-  );
+  // Empty on first render, like the server's: reading the library in the initializer made the
+  // browser's first render differ from the server HTML (React #418 on every load).
+  const [library, setLibrary] = useState<ComfyWorkflowFile[]>([]);
+  useEffect(() => {
+    const sync = () => setLibrary(loadComfyWorkflowFiles());
+    sync();
+    window.addEventListener(COMFY_WORKFLOW_FILES_UPDATED_EVENT, sync);
+    return () => window.removeEventListener(COMFY_WORKFLOW_FILES_UPDATED_EVENT, sync);
+  }, []);
   const [selectedId, setSelectedId] = useState<string>('');
   const [rawJson, setRawJsonState] = useState('');
   const rawJsonRef = useRef('');

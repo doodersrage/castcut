@@ -4,7 +4,6 @@ import EnhancedPromptResult from '@/components/LazyEnhancedPromptResult';
 import MobileStickyQueueBar from '@/components/MobileStickyQueueBar';
 import { promptResultPreviewProps } from '@/lib/prompt-result-preview-props';
 import { continueEditResultProps } from '@/lib/continue-edit-result-props';
-import { getReformatTargetLabel } from '@/lib/reformat-target';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 
 type PromptActions = ReturnType<typeof usePromptResultActions>;
@@ -52,8 +51,8 @@ export default function VideoPromptResultSection({
           {...continueEditResultProps(actions, output)}
           onFixPrompt={() => void actions.fixPrompt(output, onOutputChange, motion)}
           onCopyPair={() => void actions.copyPromptPair(output, null)}
-          onReformat={() => void actions.reformatForModel(output, onOutputChange)}
-          reformatTargetLabel={getReformatTargetLabel(model)}
+          // No "Reformat for <image model>": a clip prompt has no image-model twin (it offered
+          // FLUX.2 Klein on a WAN prompt).
           onCompact={() => void actions.compactPrompt(output, onOutputChange)}
           comfyUiStatus={actions.comfyUiStatus}
           comfyUiJob={actions.comfyUiJob}
