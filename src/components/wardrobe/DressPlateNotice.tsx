@@ -35,7 +35,17 @@ export default function DressPlateNotice({
     () => JSON.stringify(loadDressPlates()),
     () => '[]'
   );
-  const newest = useMemo(() => (JSON.parse(json) as DayDressPlateEntry[])[0] ?? null, [json]);
+  // Only the plate this page is using (the store is shared with other tools and other Casts);
+  // nothing is shown until a still here has used one.
+  const activeKey = activity?.key;
+  const newest = useMemo(
+    () =>
+      activeKey
+        ? ((JSON.parse(json) as DayDressPlateEntry[]).find(entry => entry.key === activeKey) ??
+          null)
+        : null,
+    [activeKey, json]
+  );
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   if (!activity && !newest?.imageUrl) return null;
   return (

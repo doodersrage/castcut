@@ -85,6 +85,17 @@ function plateIdentity(plate: { filename?: string; imageUrl?: string }): string 
 /** Cached plates checked this session — a cleaned-out ComfyUI input folder makes one stale. */
 const verified = new Set<string>();
 const inFlight = new Map<string, Promise<DayDressPlateEntry>>();
+/**
+ * A plate job that was queued but had not finished when its wait ran out (a busy ComfyUI queue).
+ * The next still re-attaches to it instead of queueing another, and only looks briefly: without
+ * this each still of a Queue day queued its own plate and waited the full time again.
+ */
+const pendingJobs = new Map<string, { promptId: string; gaveUpAt: number | null }>();
+const FIRST_WAIT_MS = 8 * 60_000;
+const RECHECK_WAIT_MS = 6_000;
+/** After a failed render, later stills skip the plate for this long. */
+const FAILURE_COOLDOWN_MS = 5 * 60_000;
+const failedAt = new Map<string, number>();
 
 async function inputFileExists(filename: string): Promise<boolean> {
   const url = comfyInputViewUrl(filename);
@@ -103,6 +114,14 @@ async function renderDayDressPlate(
   deps: DayDressPlateDeps,
   key: string
 ): Promise<DayDressPlateEntry> {
+  const pending = pendingJobs.get(key);
+  if (pending) {
+    return finishDressPlateJob(request, key, pending.promptId, RECHECK_WAIT_MS);
+  }
+  const failed = failedAt.get(key);
+  if (failed && Date.now() - failed < FAILURE_COOLDOWN_MS) {
+    throw new Error('the last attempt failed a moment ago');
+  }
   deps.onRender?.();
   const barefoot = footwearIsBarefoot(request.footwear);
   const hasClothingImage = Boolean(
@@ -113,6 +132,9 @@ async function renderDayDressPlate(
     ? { filename: request.clothing?.imageFilename?.trim(), url: request.clothing?.imageUrl?.trim() }
     : null;
   let footwearImage: 'combined' | 'alone' | null = null;
+  // The shoe picture rides along on every engine here, unlike in a Day still (where on Rapid the
+  // smaller clothing image let the dress drift): the try-on on white is a plainer job — the
+  // plates rendered on Rapid AIO and Qwen-Image 2.1 came out with the exact dress and shoes.
   if (!barefoot && request.footwearImage && hasFootwearImage(request.footwearImage)) {
     try {
       const reference = await buildFootwearReferenceImage({
@@ -158,9 +180,27 @@ async function renderDayDressPlate(
   if (!id) {
     throw new Error('The dress plate could not be queued.');
   }
-  const [entry] = await waitForGalleryPromptIds([id], { timeoutMs: 8 * 60_000, pollMs: 2_500 });
-  const resultUrl = entry?.status === 'completed' ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
+  pendingJobs.set(key, { promptId: id, gaveUpAt: null });
+  return finishDressPlateJob(request, key, id, FIRST_WAIT_MS);
+}
+
+/** Wait for a queued plate job, then stage its image as a ComfyUI input. */
+async function finishDressPlateJob(
+  request: DayDressPlateRequest,
+  key: string,
+  promptId: string,
+  timeoutMs: number
+): Promise<DayDressPlateEntry> {
+  const [entry] = await waitForGalleryPromptIds([promptId], { timeoutMs, pollMs: 2_500 });
+  if (!entry || (entry.status !== 'completed' && entry.status !== 'error')) {
+    // Still queued or rendering: keep the job so the next still picks it up.
+    pendingJobs.set(key, { promptId, gaveUpAt: Date.now() });
+    throw new Error('it is still waiting in the ComfyUI queue');
+  }
+  pendingJobs.delete(key);
+  const resultUrl = entry.status === 'completed' ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
   if (!resultUrl) {
+    failedAt.set(key, Date.now());
     throw new Error('The dress plate did not render.');
   }
   const blob = await loadImageBlobFromUrls([resultUrl]);
@@ -172,8 +212,10 @@ async function renderDayDressPlate(
   });
   const filename = uploaded?.filename?.trim();
   if (!filename) {
+    failedAt.set(key, Date.now());
     throw new Error('The dress plate upload did not return a filename.');
   }
+  failedAt.delete(key);
   verified.add(`${key}::${filename}`);
   return { key, filename, imageUrl: comfyInputViewUrl(filename) ?? resultUrl, at: Date.now() };
 }
@@ -216,16 +258,13 @@ export async function ensureDayDressPlate(
  * Best-effort: a failure only means the plate is rendered when a tool first needs it.
  */
 export async function registerDressPlateFromImage(
-  request: Pick<
-    DayDressPlateRequest,
-    'model' | 'plate' | 'clothing' | 'clothingKey' | 'clothingLabel' | 'footwear' | 'footwearImage'
-  >,
+  request: { key: string; model: string },
   imageUrl: string
 ): Promise<DayDressPlateEntry | null> {
   const url = imageUrl.trim();
   if (!url) return null;
   try {
-    const key = dayDressPlateRequestKey(request as DayDressPlateRequest);
+    const key = request.key;
     const blob = await loadImageBlobFromUrls([url]);
     const name = `day-dress-plate-${Date.now()}.png`;
     const uploaded = await resolveQueueInputImage({

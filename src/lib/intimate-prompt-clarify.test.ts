@@ -31,6 +31,16 @@ describe('intimate-prompt-clarify', () => {
     ]) {
       assert.equal(clarifyIntimateImageLanguage(text), text);
     }
+    // Everyday words that also turn up in sex scenes do not open the gate.
+    for (const text of [
+      'On the rain-soaked street she adjusts her button and he straightens his tool belt.',
+      'At the story climax she finds her center of gravity and steps into the light.',
+      'He thrust the door open; she swallowed her pride and followed.',
+      'Grinding coffee in an explicit breach of the rules, she checks her private notes.',
+      'In cowgirl boots she tips her hat, her pearl earrings catching the light.',
+    ]) {
+      assert.equal(clarifyIntimateImageLanguage(text), text);
+    }
     // Sexual text still never rewrites a bare "the/a" + everyday noun.
     assert.equal(
       clarifyIntimateImageLanguage('nude at the entrance of the hotel'),

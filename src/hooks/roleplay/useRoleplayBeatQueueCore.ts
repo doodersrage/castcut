@@ -12,6 +12,7 @@ import {
   DRESS_PLATE_OUTFIT_LINE,
   storyDressPlateApplies,
   storyDressPlatePrompt,
+  stripOutfitLeadLines,
 } from '@/lib/day-dress-plate';
 import { ensureDayDressPlate } from '@/lib/day-dress-plate-client';
 import { setDressPlateActivity } from '@/lib/dress-plate-status';
@@ -305,8 +306,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     [adult, shared.model]
   );
 
-  /** Edit 2511 starts from the dressed plate; Rapid / 2.1 use it as the clothing image. */
-  const dressAsPlate = poseProfileForModel(shared.model).dressPlate === 'plate';
+  // Story's clothed stills start from the full reference plate on every engine, so the dressed
+  // plate simply takes its place (as the clothing image it would sit beside the undressed one).
+  const dressAsPlate = Boolean(poseProfileForModel(shared.model).dressPlate);
 
   const queueStillOptions = useCallback(
     (
@@ -387,6 +389,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       const wardrobeId = (toolSettings.wardrobeId || shared.lockedWardrobeId)?.trim();
       const shoes = normalizeFootwear(toolSettings.footwear);
       const hasShoes = Boolean(shoes) && !footwearIsBarefoot(shoes);
+      // A beat about the feet ("heels in one hand", "barefoot on the sand") cannot start from a
+      // plate that has the shoes on.
+      if (hasShoes && beatOwnsFootwear(beat.blurb)) {
+        return null;
+      }
       if (
         !storyDressPlateApplies({
           model: shared.model,
@@ -452,6 +459,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         setDressPlateActivity({
           text: 'Dressed plate ready — the clothed stills start from it.',
           busy: false,
+          key: entry.key,
         });
         return { filename: entry.filename, imageUrl: entry.imageUrl };
       } catch (dressError) {
@@ -790,16 +798,22 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         });
         poseGuideUrl = poseGuide?.imageUrl;
         poseGuideExpectBase = poseGuide?.expect;
-        const promptSource = storyStillPromptSource({
-          llmPrompt: prompt,
-          blurb: latest.blurb,
-          title: latest.title,
-          adult,
-          guideLayout: poseLayoutFromKey(poseGuide?.expect.poseKey),
-        });
+        // The stored prompt carries the outfit / footwear lines of its first queue — drop them
+        // and say what is true now.
+        const promptSource = stripOutfitLeadLines(
+          storyStillPromptSource({
+            llmPrompt: prompt,
+            blurb: latest.blurb,
+            title: latest.title,
+            adult,
+            guideLayout: poseLayoutFromKey(poseGuide?.expect.poseKey),
+          })
+        );
         const dressPlate = await resolveDressPlateForBeat(latest);
+        const retryFootwear =
+          adult || beatOwnsFootwear(latest.blurb) ? '' : normalizeFootwear(toolSettings.footwear);
         const queuePrompt = [
-          dressPlate && dressAsPlate ? DRESS_PLATE_OUTFIT_LINE : '',
+          dressPlate && dressAsPlate ? DRESS_PLATE_OUTFIT_LINE : footwearPromptLine(retryFootwear),
           withRoleplayPoseGuidePrompt(
             dressForRating(promptSource, poseGuide?.prompt.headcount),
             Boolean(poseGuide),
@@ -912,6 +926,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       resolvePoseGuideForBeat,
       resolveDressPlateForBeat,
       dressAsPlate,
+      toolSettings.footwear,
       roleplayCharacterQueueFields,
       setError,
       shared.model,

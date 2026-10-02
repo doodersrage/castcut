@@ -71,7 +71,11 @@ export default function PortraitTileStrip({
             title={tile.title ?? tile.label}
             disabled={disabled}
             data-testid={`${testIdPrefix}-${tile.id || 'none'}`}
-            onClick={() => onChange(tile.id)}
+            // Re-tapping the pick must do nothing: a dropdown never fired for the same value, and
+            // here it reset the partner's face and re-applied the Cast over unsaved changes.
+            onClick={() => {
+              if (!selected) onChange(tile.id);
+            }}
             className={`group relative flex w-[4.75rem] shrink-0 flex-col items-center gap-1 rounded-xl border p-1 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50 ${
               // The pick has to read at a glance: tinted tile, heavy ring, a tick.
               selected

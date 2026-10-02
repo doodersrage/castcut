@@ -1,5 +1,7 @@
 'use client';
 
+import { normalizeFootwear } from '@/lib/footwear';
+import { dayDressPlateRequestKey } from '@/lib/day-dress-plate-client';
 import { footwearIsBarefoot, footwearPromptLine } from '@/lib/footwear';
 import {
   buildFootwearReferenceImage,
@@ -105,6 +107,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
     promptId: string;
     wardrobeId: string;
     wardrobeLabel?: string;
+    dressPlateKey?: string;
   } | null>(null);
   const previewQueueBusyRef = useRef(false);
   const kitPreviewsRef = useRef(normalizeFittingKitPreviews(input.toolSettings.kitPreviews));
@@ -333,6 +336,32 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
             wardrobeLabel: hasCustomGarment
               ? clipFittingGarmentLabel(garmentDescription || 'Uploaded clothing')
               : input.lockedWardrobeLabel,
+            // What it was rendered with, for Keep (a posed try-on is no base plate).
+            ...(!customPose?.people.length &&
+            (hasCustomGarment
+              ? Boolean(input.toolSettings.customGarmentImageFilename?.trim())
+              : Boolean(wardrobeIdForQueue?.trim()))
+              ? {
+                  dressPlateKey: dayDressPlateRequestKey({
+                    model: input.shared.model,
+                    plate: {
+                      filename: input.referenceImageFilename,
+                      imageUrl: input.referenceImageUrl,
+                    },
+                    clothing: hasCustomGarment
+                      ? { imageFilename: input.toolSettings.customGarmentImageFilename?.trim() }
+                      : null,
+                    clothingKey: hasCustomGarment ? undefined : `kit:${wardrobeIdForQueue?.trim()}`,
+                    clothingLabel: '',
+                    footwear: normalizeFootwear(input.toolSettings.footwear),
+                    footwearImage: {
+                      imageUrl: input.toolSettings.footwearImageUrl,
+                      imageFilename: input.toolSettings.footwearImageFilename,
+                    },
+                    subject: 'she',
+                  }),
+                }
+              : {}),
           };
         }
         return true;
@@ -387,6 +416,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                 wardrobeLabel: pending.wardrobeLabel,
                 imageUrl,
                 galleryEntryId: entry.id,
+                ...(pending.dressPlateKey ? { dressPlateKey: pending.dressPlateKey } : {}),
               })
             );
           }

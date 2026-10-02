@@ -85,8 +85,30 @@ export function storyDressPlatePrompt(prompt: string): string {
     .replace(
       /\bdiscard Image 1 (?:clothes|clothing|wardrobe|outfit)\b/gi,
       'keep the Image 1 outfit'
+    )
+    // No clothing image rides along: a sentence that calls Image 2 the clothing would point at
+    // the pose map.
+    .replace(
+      /[^.\n]*\bImage 2\b[^.\n]*\b(?:packshot|clothing|garment|outfit)\b[^.\n]*\.?[ \t]*/gi,
+      ''
     );
-  return /\bImage 2\b/.test(reworded) ? reworded : reworded.replace(/\bImage 3\b/g, 'Image 2');
+  return reworded.replace(/\bImage 3\b/g, 'Image 2');
+}
+
+/**
+ * A stored still prompt without its outfit / footwear lead lines. A retry re-adds the lines
+ * that are true now: the stored ones went stale when the shoes changed, the dressed plate stopped
+ * applying, or simply piled up (each retry prepended another).
+ */
+export function stripOutfitLeadLines(prompt: string): string {
+  return prompt
+    .split('\n')
+    .filter(line => !/^\s*(?:OUTFIT|FOOTWEAR) \(mandatory\):/.test(line))
+    .join('\n')
+    .replace(
+      /(?:OUTFIT|FOOTWEAR) \(mandatory\):[^\n]*?(?:unchanged, fully dressed\.|on both feet\.|no socks\.)\s*/g,
+      ''
+    );
 }
 
 /** One key per plate + clothing + shoes + engine family: any change makes a new dress plate. */

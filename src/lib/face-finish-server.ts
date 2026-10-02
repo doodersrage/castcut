@@ -18,6 +18,7 @@ import {
   buildLeadFaceProbeGraph,
   FACE_FINISH_SAVE_NODE,
   LEAD_FACE_PROBE_NODES,
+  leadFaceDistance,
   pickLeadFace,
   readStillCheckpoint,
   resolveFaceFinisher,
@@ -140,8 +141,13 @@ export async function runFaceFinishInComfy(input: {
     }
     const probe = await probeLeadFace(baseUrl, stillName, faceName);
     lead = probe ? pickLeadFace(probe) : null;
-    // One visible face that is hers: the ordinary pass (below) is safe.
-    if (!lead && !(probe && soleFaceIsLead(probe))) {
+    // One visible face that is plausibly hers: still the one-face pass (the largest detected
+    // face), never the all-faces detailer — its own detector may find a partner this probe
+    // missed, and would give them her face.
+    if (!lead && probe && soleFaceIsLead(probe)) {
+      lead = { side: 'largest', distance: probe[0]?.distance ?? 100 };
+    }
+    if (!lead) {
       return {
         available: false,
         reason: 'could not tell which face is the lead — the still is unchanged.',
@@ -180,9 +186,7 @@ export async function runFaceFinishInComfy(input: {
       await stageComfyImageAsInput(baseUrl, finished, 'face-finish-check'),
       faceName
     );
-    const closest = Math.min(
-      ...(after ?? []).map(face => (typeof face.distance === 'number' ? face.distance : 100))
-    );
+    const closest = (after ? leadFaceDistance(after, lead.side) : null) ?? 100;
     if (!(closest < lead.distance)) {
       return {
         available: false,

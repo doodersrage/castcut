@@ -4,7 +4,12 @@
  * progress, nothing worth persisting.
  */
 
-export type DressPlateActivity = { text: string; busy: boolean } | null;
+export type DressPlateActivity = {
+  text: string;
+  busy: boolean;
+  /** The store key of the plate this page is using — what the notice shows and redoes. */
+  key?: string;
+} | null;
 
 let current: DressPlateActivity = null;
 const listeners = new Set<() => void>();

@@ -139,6 +139,30 @@ describe('Face finish on a two-person still', () => {
     assert.equal(soleFaceIsLead([{ x: null, distance: null }]), false);
   });
 
+  it('one probed face: only the largest detected face is finished, and her side is what is re-checked', async () => {
+    const { buildFaceFinishGraph, leadFaceDistance } = await import('./face-finish');
+    const graph = buildFaceFinishGraph({
+      stillName: 'still.png',
+      faceName: 'face.png',
+      finisher,
+      onlyFace: 'largest',
+    });
+    assert.deepEqual(
+      [graph['25']!.inputs.target, graph['25']!.inputs.order, graph['25']!.inputs.take_count],
+      ['area(=w*h)', true, 1]
+    );
+    assert.equal(graph['23']!.class_type, 'DetailerForEach');
+    // After the pass the partner (x 547) is the closer face — her side (left) is what counts.
+    const after = [
+      { x: 547, distance: 0.3 },
+      { x: 373, distance: 0.6 },
+    ];
+    assert.equal(leadFaceDistance(after, 'leftmost'), 0.6);
+    assert.equal(leadFaceDistance(after, 'rightmost'), 0.3);
+    assert.equal(leadFaceDistance(after, 'largest'), 0.3);
+    assert.equal(leadFaceDistance([{ x: null, distance: null }], 'leftmost'), null);
+  });
+
   it('probes the two largest faces against the Cast face', async () => {
     const { buildLeadFaceProbeGraph, LEAD_FACE_PROBE_NODES } = await import('./face-finish');
     const graph = buildLeadFaceProbeGraph({ stillName: 'still.png', faceName: 'face.png' });

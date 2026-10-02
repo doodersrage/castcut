@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { resetBrowserStorageCache } from './browser-storage';
-import { storyDressPlateApplies, DRESS_PLATE_OUTFIT_LINE } from './day-dress-plate';
+import {
+  DRESS_PLATE_OUTFIT_LINE,
+  storyDressPlateApplies,
+  storyDressPlatePrompt,
+  stripOutfitLeadLines,
+} from './day-dress-plate';
 import {
   clearDressPlates,
   findDressPlate,
@@ -107,3 +112,30 @@ describe('Story dress plate', () => {
     assert.match(DRESS_PLATE_OUTFIT_LINE, /the outfit and the shoes she has on in Image 1/);
   });
 });
+
+describe('Story prompts from a dressed plate', () => {
+  it('keeps the plate outfit and points the pose map at the second image', () => {
+    const out = storyDressPlatePrompt(
+      'new environment, replace the reference clothing with the beat outfit, a barista finds a door.\nImage 2 is a clothing-only packshot — apply that exact outfit. Image 3 is an OpenPose map. Pose the people to match Image 3.'
+    );
+    assert.match(out, /keep the exact outfit and shoes she wears in the reference photo/);
+    assert.doesNotMatch(out, /packshot|Image 3|replace the reference clothing/);
+    assert.match(out, /Image 2 is an OpenPose map\. Pose the people to match Image 2\./);
+  });
+
+  it('a retry drops the stored outfit and footwear lines', () => {
+    const stored = [
+      DRESS_PLATE_OUTFIT_LINE,
+      'FOOTWEAR (mandatory): on her feet she wears white sneakers — exactly these, on both feet.',
+      'a barista finds a door, cozy light',
+    ].join('\n');
+    assert.equal(stripOutfitLeadLines(stored), 'a barista finds a door, cozy light');
+    // Also when a finalizer joined them onto one line.
+    assert.equal(
+      stripOutfitLeadLines(`Edit Image 1: ${DRESS_PLATE_OUTFIT_LINE} a barista finds a door`),
+      'Edit Image 1: a barista finds a door'
+    );
+    assert.equal(stripOutfitLeadLines('plain prompt'), 'plain prompt');
+  });
+});
+

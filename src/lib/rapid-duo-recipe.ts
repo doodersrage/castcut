@@ -999,6 +999,20 @@ const VACATION_CLOTHES_RE =
 const VACATION_SCENE_CLOTHES_RE = /\b(?:swimsuit|bikini|robe|sleepwear)\b/i;
 
 /**
+ * A Vacation scene that dresses her itself, whatever the Day's outfit is: it names a swimsuit,
+ * robe or sleepwear, or it is a water / beach-lounging scene that names no clothes (a swimsuit).
+ * Such a still cannot start from the dressed plate — the plate wears the picked outfit.
+ */
+export function vacationBeatDressesItself(beat: string | null | undefined): boolean {
+  const text = beat ?? '';
+  const named = text.match(VACATION_CLOTHES_RE)?.[1];
+  if (named) return VACATION_SCENE_CLOTHES_RE.test(named);
+  return /\b(?:pool|swim\w*|float\w*|surf|paddleboard|beach\s+(?:towel|umbrella)|towel)\b/i.test(
+    text
+  );
+}
+
+/**
  * Compact Vacation recipe for Rapid AIO Edit Day stills — the clothed twin of the Suggestive one.
  * The ~6–8k Vacation brief (live 2026-09-29, v23) named the auto kit by its id
  * ("outfit-relaxed-fit-fuchsia-wrap-dress") with no packshot attached, so Rapid put swimsuits

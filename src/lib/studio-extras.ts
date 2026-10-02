@@ -380,10 +380,15 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     if (payload.fittingSavedGarments) {
       replaceSavedFittingGarments(payload.fittingSavedGarments);
     }
-    if (payload.dressPlates) {
+    // An empty list from the server never empties a local one: these are replaced whole, and a
+    // copy that has not caught up yet would wipe shoes saved on this device.
+    if (payload.dressPlates && (payload.dressPlates.length > 0 || loadDressPlates().length === 0)) {
       replaceDressPlates(payload.dressPlates);
     }
-    if (payload.savedFootwear) {
+    if (
+      payload.savedFootwear &&
+      (payload.savedFootwear.length > 0 || loadSavedFootwear().length === 0)
+    ) {
       replaceSavedFootwear(payload.savedFootwear);
     }
     if (payload.myPoses) {

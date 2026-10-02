@@ -202,7 +202,8 @@ import {
   type DayDressPlateEntry,
 } from '@/lib/day-dress-plate';
 import { loadDressPlates, removeDressPlate, subscribeDressPlates } from '@/lib/dress-plate-store';
-import { ensureDayDressPlate } from '@/lib/day-dress-plate-client';
+import { dayDressPlateRequestKey, ensureDayDressPlate } from '@/lib/day-dress-plate-client';
+import { vacationBeatDressesItself } from '@/lib/rapid-duo-recipe';
 import type { DayPlate } from '@/lib/day-plate';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import {
@@ -292,10 +293,6 @@ export function useDayPlannerToolOrchestrationCore() {
     subscribeDressPlates,
     () => JSON.stringify(loadDressPlates()),
     () => '[]'
-  );
-  const newestDressPlate = useMemo(
-    () => (JSON.parse(dressPlatesJson) as DayDressPlateEntry[])[0] ?? null,
-    [dressPlatesJson]
   );
   const [dressPlateStatus, setDressPlateStatus] = useState<{
     text: string;
@@ -393,6 +390,67 @@ export function useDayPlannerToolOrchestrationCore() {
       }),
     [character, plate, preferCastPlate]
   );
+
+  // The plate for what is picked NOW (this Cast plate, clothing, shoes, engine). The store is
+  // shared with Story and Outfit and holds other Casts' plates too: showing its newest entry
+  // put another Cast's plate under this Day, and "Dress her again" removed that one.
+  const currentDressPlate = useMemo(() => {
+    const entries = JSON.parse(dressPlatesJson) as DayDressPlateEntry[];
+    if (entries.length === 0 || plate?.source !== 'cast') return null;
+    const castPlate = resolveDayQueueIdentityPlate({
+      character,
+      displayPlate: plate,
+      preferCastPlate: true,
+    });
+    if (!castPlate) return null;
+    const customFilename = toolSettings.customGarmentImageFilename?.trim();
+    const customUrl = toolSettings.customGarmentImageUrl?.trim();
+    const clothing =
+      customFilename || customUrl
+        ? [{ clothing: { imageFilename: customFilename, imageUrl: customUrl } }]
+        : [
+            ...new Set(
+              [shared.lockedWardrobeId, ...slots.map(slot => slot.wardrobeId)]
+                .map(id => id?.trim())
+                .filter((id): id is string => Boolean(id))
+            ),
+          ].map(id => ({ clothingKey: `kit:${id}` }));
+    // 2.1 hands clothed two-person stills to Rapid, which keys its own plate.
+    const models = [shared.model, poseProfileForModel(shared.model).clothedDuoEngine].filter(
+      (model): model is string => Boolean(model)
+    );
+    const keys = new Set(
+      models.flatMap(model =>
+        clothing.map(pick =>
+          dayDressPlateRequestKey({
+            model,
+            plate: { filename: castPlate.filename, imageUrl: castPlate.imageUrl },
+            clothingLabel: '',
+            footwear: normalizeFootwear(toolSettings.footwear),
+            footwearImage: {
+              imageUrl: toolSettings.footwearImageUrl,
+              imageFilename: toolSettings.footwearImageFilename,
+            },
+            subject: 'she',
+            ...pick,
+          })
+        )
+      )
+    );
+    return entries.find(entry => keys.has(entry.key)) ?? null;
+  }, [
+    character,
+    dressPlatesJson,
+    plate,
+    shared.lockedWardrobeId,
+    shared.model,
+    slots,
+    toolSettings.customGarmentImageFilename,
+    toolSettings.customGarmentImageUrl,
+    toolSettings.footwear,
+    toolSettings.footwearImageFilename,
+    toolSettings.footwearImageUrl,
+  ]);
 
   useEffect(() => {
     if (!mounted || typeof window === 'undefined') {
@@ -898,6 +956,9 @@ export function useDayPlannerToolOrchestrationCore() {
           // Qwen-Image 2.1 hands clothed two-person stills to Rapid (it fuses the pair).
           clothedDuo:
             !adultNudeStill &&
+            // Not on the adult moods: their two-person beats that keep clothes on (a flash, a
+            // wardrobe slip) belong on the adult engine, not plain Rapid.
+            !(isDayAdultMood(toolSettings.dayMood) && intimateEnabled) &&
             planDaySlotPose({
               slot: queueTarget,
               dayMood: normalizeDayMood(
@@ -921,6 +982,9 @@ export function useDayPlannerToolOrchestrationCore() {
         let dressPlate: DayPlate | null = null;
         // Face-crop engines (Rapid AIO): the dressed plate rides in the clothing image's place.
         let dressClothingFilename: string | null = null;
+        // The dressed plate itself, whichever way this still ends up using it (decided below,
+        // once it is known whether Image 1 is a face crop or the full plate).
+        let dressedPlate: DayPlate | null = null;
         const customGarmentPicked = Boolean(
           toolSettings.customGarmentImageUrl?.trim() ||
           toolSettings.customGarmentImageFilename?.trim()
@@ -940,7 +1004,11 @@ export function useDayPlannerToolOrchestrationCore() {
           (castPlate.filename?.trim() || castPlate.imageUrl?.trim()) &&
           dayDressPlateApplies({
             model: stillModel,
-            dayMood: toolSettings.dayMood,
+            // An adult mood with Intimate off plays as Everyday everywhere else.
+            dayMood:
+              isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+                ? 'everyday'
+                : toolSettings.dayMood,
             plateSource: plate?.source,
             clothingPicked:
               customGarmentPicked ||
@@ -950,7 +1018,19 @@ export function useDayPlannerToolOrchestrationCore() {
             omitGarment,
             replaceOutfit: replaceKeepOutfit,
           }) &&
-          (customGarmentPicked || packshotUrl)
+          (customGarmentPicked || packshotUrl) &&
+          // A scene that brings its own clothes (the pool's swimsuit) or is about the feet
+          // ("barefoot on the sand", "heels in one hand") cannot start from a plate that wears
+          // the picked outfit and shoes — those stills are dressed per still, as before.
+          !(
+            normalizeDayMood(toolSettings.dayMood) === 'vacation' &&
+            vacationBeatDressesItself(queueTarget.sceneHints)
+          ) &&
+          !(
+            Boolean(pickedShoes) &&
+            !footwearIsBarefoot(pickedShoes) &&
+            beatOwnsFootwear(queueTarget.sceneHints)
+          )
         ) {
           const clothing = customGarmentPicked
             ? {
@@ -995,16 +1075,19 @@ export function useDayPlannerToolOrchestrationCore() {
                 },
               }
             );
+            dressedPlate = {
+              filename: entry.filename,
+              imageUrl: entry.imageUrl,
+              isolated: false,
+              isolateSubject: false,
+              source: 'keeper',
+            };
+            // The engine's usual way in, for the routing below: Edit 2511 treats it as the
+            // plate, the face-crop engines as the clothing image.
             if (poseProfileForModel(stillModel).dressPlate === 'clothing') {
               dressClothingFilename = entry.filename;
             } else {
-              dressPlate = {
-                filename: entry.filename,
-                imageUrl: entry.imageUrl,
-                isolated: false,
-                isolateSubject: false,
-                source: 'keeper',
-              };
+              dressPlate = dressedPlate;
             }
             setDressPlateStatus({
               text: 'Dressed plate ready — the clothed stills start from it.',
@@ -1172,11 +1255,31 @@ export function useDayPlannerToolOrchestrationCore() {
         // The packshot keeps its own name so it gets a ReferenceLatent like the Keep path:
         // as a VL-only `day-outfit-vl` Image 2, Rapid kept the print but invented the cut
         // (live: exact collar/sleeves/tiers 12/12 with the latent, poses still held).
+        // Where the dressed plate goes on THIS still. The engine mode above is only the usual
+        // case: a still that starts from a face crop takes the plate as its clothing image, and
+        // a still that starts from the full plate takes the dressed plate as that plate.
+        // Otherwise Rapid's full-plate Vacation stills started from the undressed Cast plate
+        // (its underwear won over the clothing image), and plain Edit 2511's face-crop stills
+        // carried the dressed plate nowhere.
+        if (dressedPlate && !omitGarment) {
+          if (faceOnlyIdentity) {
+            dressPlate = null;
+            dressClothingFilename = dressedPlate.filename ?? null;
+          } else {
+            if (!dressPlate) {
+              identityPlate = dressedPlate;
+            }
+            dressPlate = dressedPlate;
+            dressClothingFilename = null;
+          }
+        }
         const byoOrPackGarment = resolveDayGarmentReinforce({
-          plateSource: slotPlate?.source,
-          packshotUrl: slotPackshotUrl,
-          customGarmentUrl: slotCustomGarmentUrl,
-          customGarmentFilename: slotCustomGarmentFilename,
+          plateSource: dressPlate ? 'keeper' : dressClothingFilename ? 'cast' : slotPlate?.source,
+          packshotUrl: dressedPlate ? undefined : slotPackshotUrl,
+          customGarmentUrl: dressedPlate ? undefined : slotCustomGarmentUrl,
+          customGarmentFilename: dressedPlate
+            ? (dressClothingFilename ?? undefined)
+            : slotCustomGarmentFilename,
         });
         // Partner: a chosen Cast member plays the second person on two-person stills — their
         // face crop takes Image 2 (the outfit is said in words), the pose map stays Image 3 — or
@@ -1481,12 +1584,23 @@ export function useDayPlannerToolOrchestrationCore() {
         const scrubbedPrompt = slotPartner
           ? scrubDayPartnerOutfitImageClaims(slotPrompt)
           : slotPrompt;
-        // The clothing image is the dressed plate: say that it shows her, and the shoes too.
+        // The clothing image is the dressed plate: a picture of her, dressed — not a packshot.
+        // Every way the prompts name that image is reworded (the solo recipes' sentence, the
+        // couple recipe's clause, the long brief's "clothing-only packshot").
+        const dressedWorn =
+          Boolean(pickedShoes) && !footwearIsBarefoot(pickedShoes)
+            ? 'the outfit and the shoes'
+            : 'the outfit';
         const basePrompt = dressClothingFilename
-          ? scrubbedPrompt.replace(
-              /\b(She|He) wears the outfit from the second image\./,
-              '$1 wears the outfit and the shoes shown in the second image (the same person, dressed, standing).'
-            )
+          ? scrubbedPrompt
+              .replace(
+                /\bthe outfit from the second image\b/gi,
+                `${dressedWorn} shown in the second image (the same person, dressed, standing)`
+              )
+              .replace(
+                /\bImage 2 is (?:a|the) clothing-only packshot\b/gi,
+                'Image 2 is a picture of her already dressed'
+              )
           : scrubbedPrompt;
         // Quality-gate reroll: append the fix for whatever the reviewer flagged, once.
         const qualityNudge = rerollNudgeRef.current[queueTarget.id]?.trim();
@@ -2143,10 +2257,10 @@ export function useDayPlannerToolOrchestrationCore() {
       poseProfileForModel(shared.model).dressPlate &&
       !isDayAdultMood(toolSettings.dayMood) &&
       normalizeDayMood(toolSettings.dayMood) !== 'sport'
-        ? (newestDressPlate?.imageUrl ?? null)
+        ? (currentDressPlate?.imageUrl ?? null)
         : null,
     redoDressPlate: () => {
-      if (newestDressPlate) removeDressPlate(newestDressPlate.key);
+      if (currentDressPlate) removeDressPlate(currentDressPlate.key);
       setDressPlateStatus({ text: 'The next Queue dresses her again first.', busy: false });
     },
     poseGuidePreviews: poseGuidePreviews(poseGuideOutcomes),

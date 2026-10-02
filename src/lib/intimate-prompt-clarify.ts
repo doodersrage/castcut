@@ -57,11 +57,19 @@ function penetrateFor(pronoun: string, lead = 'penetrating'): string {
   return pronoun.toLowerCase() === 'his' ? `${lead} ${pronoun} ass` : `${lead} ${pronoun} vagina`;
 }
 
-/** Text that is about sex or nudity — the gate for the ambiguous rules. */
+/**
+ * Text that is about sex or nudity — the gate for the ambiguous rules. Only words that mean one
+ * thing: "climax", "thrust", "moan", "grind", "oral", "explicit", "soaked" and the like also
+ * describe a story's climax, a door thrust open or a rain-soaked street, and with them in the
+ * list those sentences were rewritten ("her center of gravity" → "her vagina of gravity").
+ */
 const SEXUAL_CONTEXT_RE =
-  /\b(?:sex(?:ual|ually)?|nude|naked|topless|erotic\w*|arous\w*|orgasm\w*|climax\w*|moan\w*|thrust\w*|penetrat\w*|oral|blowjob|handjob|finger(?:ing|ed)|straddl\w*|grind(?:s|ing)?|cock|dick|penis|pussy|vagina|clit\w*|nipples?|cum(?:s|ming)?|fuck\w*|lingerie|undress\w*|mak(?:e|es|ing)\s+love|lovemaking|between\s+(?:her|his|their)\s+(?:legs|thighs)|missionary|doggy\w*|cowgirl|bare\s+breasts?|explicit|foreplay|masturbat\w*|rear-entry|mid-sex)\b/i;
+  /\b(?:sex(?:ual|ually)?|nude|naked|topless|erotic\w*|aroused|arousal|orgasm\w*|penetrat\w*|blowjob|handjob|finger(?:ing|ed)\s+(?:her|him|them)|cock|penis|pussy|vagina|clit\w*|nipples?|cum(?:s|ming)?|fuck\w*|mak(?:e|es|ing)\s+love|lovemaking|between\s+(?:her|his|their)\s+(?:legs|thighs)|doggy[- ]?style|reverse\s+cowgirl|cowgirl\s+position|bare\s+breasts?|foreplay|masturbat\w*|rear-entry|mid-sex|manhood|womanhood|cunny|cunt|quim|honey\s*pot|love\s*canal|cockstand|erection|asshole|anus|tits?)\b/i;
 
-/** Adjectives and nouns that only read one way, so the phrase needs no other context. */
+/**
+ * Adjectives and nouns that make ONE phrase unmistakable ("her slick folds", "the dripping
+ * entrance"). Checked against the matched phrase only — never the surrounding text.
+ */
 const SELF_EVIDENT_RE =
   /\b(?:wet\s+(?:core|folds?|channel|slit)|slick\w*|molten|dripping|soaked|swollen|aching|needy|quivering|clenching|pulsing|throbbing|drenched|honey\s*pot|love\s*canal|womanhood|cunny|cunt|snatch|quim|nethers?|womanly\s+parts?|most\s+intimate\s+place|manhood|cockstand|erection|clit(?:oris)?|nipples?|asshole|anus|tits?|funbags?)\b/i;
 
@@ -438,7 +446,7 @@ export function clarifyIntimateImageLanguage(prompt: string, contextText?: strin
   }
 
   const context = contextText ? `${contextText} ${trimmed}` : trimmed;
-  const sexual = SEXUAL_CONTEXT_RE.test(context) || SELF_EVIDENT_RE.test(context);
+  const sexual = SEXUAL_CONTEXT_RE.test(context);
   let next = trimmed;
   for (const rule of INTIMATE_CLARIFY_RULES) {
     rule.pattern.lastIndex = 0;

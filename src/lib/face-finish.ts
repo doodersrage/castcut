@@ -25,7 +25,8 @@ export const FACE_FINISH_DUO_DENOISE = 0.5;
 /** The lead must be this much closer to the Cast face than the other person to be told apart. */
 export const LEAD_FACE_MARGIN = 0.05;
 
-export type LeadFaceSide = 'leftmost' | 'rightmost';
+/** Which detected face is hers: by side, or the largest when only one face was probed. */
+export type LeadFaceSide = 'leftmost' | 'rightmost' | 'largest';
 
 export const FACE_FINISH_PROMPT =
   'Photorealistic close-up of the same woman as image 1: her exact face, eyes, nose, lips and hairline, natural skin texture, sharp natural detail.';
@@ -186,11 +187,12 @@ function leadOnlyDetailerNodes(all: GraphNode, side: LeadFaceSide): Record<strin
     },
     '25': {
       class_type: 'ImpactSEGSOrderedFilter',
-      // order true = descending: the largest x1 is the rightmost face.
+      // order true = descending: the largest x1 is the rightmost face, the largest area the
+      // biggest one.
       inputs: {
         segs: ['24', 0],
-        target: 'x1',
-        order: side === 'rightmost',
+        target: side === 'largest' ? 'area(=w*h)' : 'x1',
+        order: side !== 'leftmost',
         take_start: 0,
         take_count: 1,
       },
@@ -309,6 +311,23 @@ export function soleFaceIsLead(probe: LeadFaceProbe): boolean {
   );
   const distinct = new Set(faces.map(face => face.x));
   return distinct.size === 1 && faces[0]!.distance < SOLE_FACE_MAX_DISTANCE;
+}
+
+/**
+ * Her face's distance in a probe taken after the pass: the face on her side (not simply the
+ * closest one — that could be the partner's face drifting toward hers).
+ */
+export function leadFaceDistance(probe: LeadFaceProbe, side: LeadFaceSide): number | null {
+  const faces = probe.filter(
+    (face): face is { x: number; distance: number } =>
+      typeof face.x === 'number' && typeof face.distance === 'number'
+  );
+  if (faces.length === 0) return null;
+  if (side === 'largest' || new Set(faces.map(face => face.x)).size === 1) {
+    return faces[0]!.distance;
+  }
+  const ordered = [...faces].sort((a, b) => a.x - b.x);
+  return (side === 'leftmost' ? ordered[0] : ordered[ordered.length - 1])!.distance;
 }
 
 export function buildFaceFinishGraph(input: {

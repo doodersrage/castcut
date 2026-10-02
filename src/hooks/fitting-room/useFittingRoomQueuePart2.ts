@@ -1,7 +1,6 @@
 'use client';
 
 import { registerDressPlateFromImage } from '@/lib/day-dress-plate-client';
-import { normalizeFootwear } from '@/lib/footwear';
 import { useCallback, useEffect } from 'react';
 import { activeLook, toggleLookKeeper } from '@/lib/character-os';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
@@ -252,39 +251,15 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
       }
       const updated = toggleLookKeeper(characterId, lookId, entryId);
       const wardrobeId = tryOn.wardrobeId?.trim();
-      // The kept try-on is a dressed plate: share it with Day and Story (same Cast plate,
-      // clothing and shoes → no second render there). Not for a custom-posed try-on — a base
-      // plate has to be the plain standing one.
+      // The kept try-on is a dressed plate: share it with Day and Story, under the key of what
+      // it was rendered with (recorded when it was queued — the clothing, shoes or pose may have
+      // been changed since, and a wrong key would start their stills from the wrong outfit).
       const keptNow = updated ? activeLook(updated)?.keeperEntryIds?.includes(entryId) : false;
-      const custom = wardrobeId === 'custom-garment';
-      if (
-        keptNow &&
-        tryOn.imageUrl?.trim() &&
-        !input.toolSettings.tryOnPose?.people.length &&
-        (custom
-          ? Boolean(input.toolSettings.customGarmentImageFilename?.trim())
-          : Boolean(wardrobeId))
-      ) {
+      if (keptNow && tryOn.imageUrl?.trim() && tryOn.dressPlateKey) {
         void registerDressPlateFromImage(
-          {
-            model: input.shared.model,
-            plate: { filename: input.referenceImageFilename, imageUrl: input.referenceImageUrl },
-            clothing: custom
-              ? { imageFilename: input.toolSettings.customGarmentImageFilename?.trim() }
-              : null,
-            clothingKey: custom ? undefined : `kit:${wardrobeId}`,
-            clothingLabel: tryOn.wardrobeLabel ?? '',
-            footwear: normalizeFootwear(input.toolSettings.footwear),
-            footwearImage: {
-              imageUrl: input.toolSettings.footwearImageUrl,
-              imageFilename: input.toolSettings.footwearImageFilename,
-            },
-          },
+          { key: tryOn.dressPlateKey, model: input.shared.model },
           tryOn.imageUrl
         );
-      }
-      if (wardrobeId) {
-        input.updateShared({ lockedWardrobeId: wardrobeId });
       }
       const existing = loadLookPack();
       const nextPack = {
@@ -352,7 +327,8 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
         noteKeepTryOnMetric();
       });
       const kitCount = keeperWardrobes.length || 1;
-      const sharedPlate = keptNow ? ' Day and Story start from this dressed plate.' : '';
+      const sharedPlate =
+        keptNow && tryOn.dressPlateKey ? ' Day and Story start from this dressed plate.' : '';
       input.setSaveStatus(
         (kitCount > 1
           ? `Kept ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} · ${kitCount} keeper kits mapped to Day slots.`

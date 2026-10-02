@@ -9,6 +9,12 @@ export type FittingCompareTryOn = {
   wardrobeLabel?: string;
   imageUrl?: string;
   galleryEntryId?: string;
+  /**
+   * The dressed-plate store key for what this try-on was RENDERED with (plate, clothing, shoes,
+   * engine) — absent for a custom-posed try-on, which is no base plate. Keep stores the try-on
+   * under this key; the settings may have changed since it was queued.
+   */
+  dressPlateKey?: string;
 };
 
 export const FITTING_COMPARE_LIMIT = 4;
