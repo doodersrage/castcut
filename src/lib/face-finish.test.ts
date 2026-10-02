@@ -64,3 +64,93 @@ describe('face-finish', () => {
     assert.equal(readStillCheckpoint({ '1': { class_type: 'UNETLoader', inputs: {} } }), null);
   });
 });
+
+describe('Face finish on a two-person still', () => {
+  const finisher = { kind: 'rapid', checkpoint: 'Qwen-Rapid-AIO-SFW-v23.safetensors' } as const;
+
+  it('re-renders only the face on the lead\'s side, a little harder', async () => {
+    const { buildFaceFinishGraph, FACE_FINISH_DUO_DENOISE } = await import('./face-finish');
+    const all = buildFaceFinishGraph({ stillName: 'still.png', faceName: 'face.png', finisher });
+    assert.equal(all['23']!.class_type, 'FaceDetailer');
+    for (const [side, descending] of [
+      ['leftmost', false],
+      ['rightmost', true],
+    ] as const) {
+      const graph = buildFaceFinishGraph({
+        stillName: 'still.png',
+        faceName: 'face.png',
+        finisher,
+        onlyFace: side,
+      });
+      assert.equal(graph['24']!.class_type, 'BboxDetectorSEGS');
+      assert.deepEqual(
+        [graph['25']!.inputs.target, graph['25']!.inputs.order, graph['25']!.inputs.take_count],
+        ['x1', descending, 1]
+      );
+      // The detailer works on the filtered face only, with the same model and conditioning.
+      assert.equal(graph['23']!.class_type, 'DetailerForEach');
+      assert.deepEqual(graph['23']!.inputs.segs, ['25', 0]);
+      assert.deepEqual(graph['23']!.inputs.positive, all['23']!.inputs.positive);
+      assert.equal(graph['23']!.inputs.denoise, FACE_FINISH_DUO_DENOISE);
+      assert.deepEqual(graph['99']!.inputs.images, ['23', 0]);
+    }
+  });
+
+  it('tells the lead from the partner by distance to the Cast face', async () => {
+    const { pickLeadFace, soleFaceIsLead } = await import('./face-finish');
+    // The larger face (first) is the partner; she is the closer one, on the left.
+    assert.deepEqual(
+      pickLeadFace([
+        { x: 547, distance: 0.798 },
+        { x: 373, distance: 0.207 },
+      ]),
+      { side: 'leftmost', distance: 0.207 }
+    );
+    assert.equal(
+      pickLeadFace([
+        { x: 120, distance: 0.9 },
+        { x: 640, distance: 0.55 },
+      ])?.side,
+      'rightmost'
+    );
+    // Too close to call, one face only (the node repeats it), or no reading: leave the still.
+    assert.equal(
+      pickLeadFace([
+        { x: 100, distance: 0.62 },
+        { x: 500, distance: 0.6 },
+      ]),
+      null
+    );
+    const one = [
+      { x: 300, distance: 0.5 },
+      { x: 300, distance: 0.5 },
+    ];
+    assert.equal(pickLeadFace(one), null);
+    assert.equal(pickLeadFace([{ x: null, distance: null }]), null);
+    // One visible face that is plausibly hers may take the ordinary pass; a stranger's may not.
+    assert.equal(soleFaceIsLead(one), true);
+    assert.equal(
+      soleFaceIsLead([
+        { x: 300, distance: 0.93 },
+        { x: 300, distance: 0.93 },
+      ]),
+      false
+    );
+    assert.equal(soleFaceIsLead([{ x: null, distance: null }]), false);
+  });
+
+  it('probes the two largest faces against the Cast face', async () => {
+    const { buildLeadFaceProbeGraph, LEAD_FACE_PROBE_NODES } = await import('./face-finish');
+    const graph = buildLeadFaceProbeGraph({ stillName: 'still.png', faceName: 'face.png' });
+    assert.deepEqual(
+      [graph.b0!.inputs.index, graph.b1!.inputs.index],
+      [0, 1]
+    );
+    assert.deepEqual(graph.d1!.inputs.reference, ['2', 0]);
+    for (const ids of LEAD_FACE_PROBE_NODES) {
+      assert.equal(graph[ids.distance]!.class_type, 'PreviewAny');
+      assert.equal(graph[ids.x]!.class_type, 'PreviewAny');
+    }
+  });
+});
+

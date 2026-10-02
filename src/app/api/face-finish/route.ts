@@ -12,7 +12,13 @@ export async function GET() {
  * `available: false` + reason when the node packs or the still's engine don't fit.
  */
 export async function POST(request: Request) {
-  let body: { imageUrl?: string; faceUrl?: string; comfyUrl?: string; seed?: number } = {};
+  let body: {
+    imageUrl?: string;
+    faceUrl?: string;
+    comfyUrl?: string;
+    seed?: number;
+    people?: number;
+  } = {};
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -30,6 +36,7 @@ export async function POST(request: Request) {
         faceUrl,
         comfyUrl: body.comfyUrl,
         seed: typeof body.seed === 'number' ? body.seed : undefined,
+        people: typeof body.people === 'number' ? body.people : undefined,
       })
     );
   } catch (error) {

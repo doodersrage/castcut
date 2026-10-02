@@ -10,6 +10,8 @@ export type FaceFinishClientResult =
 export async function runStillFaceFinish(input: {
   imageUrl: string;
   faceUrl: string;
+  /** People in the still (2 = finish only the lead's face). */
+  people?: number;
 }): Promise<FaceFinishClientResult> {
   const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
   const response = await fetch('/api/face-finish', {

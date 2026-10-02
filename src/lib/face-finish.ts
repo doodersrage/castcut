@@ -13,6 +13,20 @@
 
 export const FACE_FINISH_DENOISE = 0.35;
 
+/**
+ * Two-person stills: only the lead's face is re-rendered, a little harder (the faces are smaller).
+ * Live on 8 Edit 2511 Vacation couple stills (2026-10-02, per-face distance to the Cast face):
+ * the lead 0.563 before, 0.543 at 0.35 and 0.507 at 0.5; the partner's face unchanged (0.89).
+ * The pass helped 5 of 8 and hurt profile faces, so the server keeps it only when the lead comes
+ * out closer — 0.480 on the same eight, never worse than the original.
+ */
+export const FACE_FINISH_DUO_DENOISE = 0.5;
+
+/** The lead must be this much closer to the Cast face than the other person to be told apart. */
+export const LEAD_FACE_MARGIN = 0.05;
+
+export type LeadFaceSide = 'leftmost' | 'rightmost';
+
 export const FACE_FINISH_PROMPT =
   'Photorealistic close-up of the same woman as image 1: her exact face, eyes, nose, lips and hairline, natural skin texture, sharp natural detail.';
 
@@ -151,6 +165,152 @@ function detailerNode(input: {
   };
 }
 
+/**
+ * The lead-only detailer for a two-person still: detect the faces, keep the one on the lead's
+ * side, re-render just that one. Replaces node 23 (and adds 24 / 25).
+ */
+function leadOnlyDetailerNodes(all: GraphNode, side: LeadFaceSide): Record<string, GraphNode> {
+  const a = all.inputs;
+  return {
+    '24': {
+      class_type: 'BboxDetectorSEGS',
+      inputs: {
+        bbox_detector: a.bbox_detector,
+        image: a.image,
+        threshold: a.bbox_threshold,
+        dilation: a.bbox_dilation,
+        crop_factor: a.bbox_crop_factor,
+        drop_size: a.drop_size,
+        labels: 'all',
+      },
+    },
+    '25': {
+      class_type: 'ImpactSEGSOrderedFilter',
+      // order true = descending: the largest x1 is the rightmost face.
+      inputs: {
+        segs: ['24', 0],
+        target: 'x1',
+        order: side === 'rightmost',
+        take_start: 0,
+        take_count: 1,
+      },
+    },
+    '23': {
+      class_type: 'DetailerForEach',
+      inputs: {
+        image: a.image,
+        segs: ['25', 0],
+        model: a.model,
+        clip: a.clip,
+        vae: a.vae,
+        guide_size: a.guide_size,
+        guide_size_for: a.guide_size_for,
+        max_size: a.max_size,
+        seed: a.seed,
+        steps: a.steps,
+        cfg: a.cfg,
+        sampler_name: a.sampler_name,
+        scheduler: a.scheduler,
+        positive: a.positive,
+        negative: a.negative,
+        denoise: FACE_FINISH_DUO_DENOISE,
+        feather: a.feather,
+        noise_mask: a.noise_mask,
+        force_inpaint: a.force_inpaint,
+        wildcard: '',
+        cycle: 1,
+      },
+    },
+  };
+}
+
+/** Node ids the lead-face probe reports from (distance and x of the two largest faces). */
+export const LEAD_FACE_PROBE_NODES = [
+  { distance: 'pd0', x: 'px0' },
+  { distance: 'pd1', x: 'px1' },
+] as const;
+
+/**
+ * Which of the two largest faces in a still is the lead: each face is cropped and compared with
+ * the Cast face crop (InsightFace cosine distance, lower = closer).
+ */
+export function buildLeadFaceProbeGraph(input: {
+  stillName: string;
+  faceName: string;
+}): Record<string, GraphNode> {
+  const graph: Record<string, GraphNode> = {
+    '1': { class_type: 'LoadImage', inputs: { image: input.stillName } },
+    '2': { class_type: 'LoadImage', inputs: { image: input.faceName } },
+    '4': { class_type: 'FaceAnalysisModels', inputs: { library: 'insightface', provider: 'CUDA' } },
+  };
+  LEAD_FACE_PROBE_NODES.forEach((ids, index) => {
+    graph[`b${index}`] = {
+      class_type: 'FaceBoundingBox',
+      inputs: {
+        analysis_models: ['4', 0],
+        image: ['1', 0],
+        padding: 0,
+        padding_percent: 0.3,
+        index,
+      },
+    };
+    graph[`d${index}`] = {
+      class_type: 'FaceEmbedDistance',
+      inputs: {
+        analysis_models: ['4', 0],
+        reference: ['2', 0],
+        image: [`b${index}`, 0],
+        similarity_metric: 'cosine',
+        filter_thresh: 100,
+        filter_best: 0,
+        generate_image_overlay: false,
+      },
+    };
+    graph[ids.distance] = { class_type: 'PreviewAny', inputs: { source: [`d${index}`, 1] } };
+    graph[ids.x] = { class_type: 'PreviewAny', inputs: { source: [`b${index}`, 1] } };
+  });
+  return graph;
+}
+
+export type LeadFaceProbe = Array<{ x: number | null; distance: number | null }>;
+
+/**
+ * The lead among the probed faces: the one closest to the Cast face, when there are two distinct
+ * faces and she is clearly the closer one. Null when the still shows one face, or the two cannot
+ * be told apart — re-rendering the wrong face would give both people her face.
+ */
+export function pickLeadFace(
+  probe: LeadFaceProbe
+): { side: LeadFaceSide; distance: number } | null {
+  const faces = probe.filter(
+    (face): face is { x: number; distance: number } =>
+      typeof face.x === 'number' && typeof face.distance === 'number' && face.distance < 50
+  );
+  if (faces.length !== 2 || faces[0]!.x === faces[1]!.x) return null;
+  const [lead, other] = [...faces].sort((a, b) => a.distance - b.distance) as [
+    { x: number; distance: number },
+    { x: number; distance: number },
+  ];
+  if (other.distance - lead.distance < LEAD_FACE_MARGIN) return null;
+  return { side: lead.x < other.x ? 'leftmost' : 'rightmost', distance: lead.distance };
+}
+
+/** A single visible face must be at least this close to the Cast face to be taken for hers. */
+export const SOLE_FACE_MAX_DISTANCE = 0.8;
+
+/**
+ * True when the probe saw one face only and it is plausibly the lead's (the partner faces away,
+ * or the still has one person after all) — the ordinary all-faces pass is then safe.
+ */
+export function soleFaceIsLead(probe: LeadFaceProbe): boolean {
+  const faces = probe.filter(
+    (face): face is { x: number; distance: number } =>
+      typeof face.x === 'number' && typeof face.distance === 'number'
+  );
+  const distinct = new Set(faces.map(face => face.x));
+  return distinct.size === 1 && faces[0]!.distance < SOLE_FACE_MAX_DISTANCE;
+}
+
 export function buildFaceFinishGraph(input: {
   /** ComfyUI input filename of the finished still. */
   stillName: string;
@@ -158,6 +318,8 @@ export function buildFaceFinishGraph(input: {
   faceName: string;
   finisher: FaceFinisher;
   seed?: number;
+  /** Two-person still: re-render only the face on this side (see pickLeadFace). */
+  onlyFace?: LeadFaceSide;
 }): Record<string, GraphNode> {
   const seed = input.seed ?? 777;
   const graph: Record<string, GraphNode> = {
@@ -243,6 +405,9 @@ export function buildFaceFinishGraph(input: {
       sampler: f.kind === 'qwen-edit' ? 'euler' : 'euler_ancestral',
       seed,
     });
+  }
+  if (input.onlyFace) {
+    Object.assign(graph, leadOnlyDetailerNodes(graph['23']!, input.onlyFace));
   }
   graph[FACE_FINISH_SAVE_NODE] = {
     class_type: 'SaveImage',

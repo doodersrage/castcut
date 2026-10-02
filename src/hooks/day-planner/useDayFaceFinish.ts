@@ -90,16 +90,17 @@ export function useDayFaceFinish(ctx: DayPlannerToolOrchestrationCore) {
     const sourceKey = stillKey(targetStill);
     handledRef.current.add(sourceKey);
 
-    // One person only: the drawn guide's headcount when there was one, else the Day's
-    // companion settings.
+    // Headcount: the drawn guide's when there was one, else the Day's companion settings.
     const drawn = poseGuideExpectRef.current[target.id]?.keypoints.length;
     const mood = normalizeDayMood(toolSettings.dayMood);
     const companionsPossible =
       toolSettings.allowCompanions === true ||
       (isDayAdultMood(mood) && normalizeDayIntimateMix(toolSettings.intimateMix) !== 'solo');
-    const solo = drawn != null ? drawn <= 1 : !companionsPossible;
-    if (!solo) {
-      setStatus(`Face finish skipped on ${target.label} — more than one person in frame.`);
+    // Two people: only the lead's face is finished (the server tells the faces apart and keeps
+    // the pass only when it brings her closer). More than two is left alone.
+    const people = drawn != null ? drawn : companionsPossible ? 2 : 1;
+    if (people > 2) {
+      setStatus(`Face finish skipped on ${target.label} — more than two people in frame.`);
       setTick(value => value + 1);
       return;
     }
@@ -126,7 +127,11 @@ export function useDayFaceFinish(ctx: DayPlannerToolOrchestrationCore) {
           );
           return;
         }
-        const result = await runStillFaceFinish({ imageUrl: comfyStillUrl, faceUrl });
+        const result = await runStillFaceFinish({
+          imageUrl: comfyStillUrl,
+          faceUrl,
+          ...(people === 2 ? { people } : {}),
+        });
         if (!result.available) {
           setStatus(`Face finish skipped on ${target.label} — ${result.reason}`);
           return;
