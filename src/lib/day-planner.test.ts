@@ -987,15 +987,28 @@ describe('day-planner', () => {
         garmentDescription: 'pink ribbed one-piece swimsuit',
         model: 'qwen-rapid-aio-sfw-v23',
       });
+    // Pose sweep 2026-10-01: the brief still dropped the action on Rapid (a standing portrait
+    // in the right place, about 1 beat in 14); the short recipe got 30 of 32. On this path —
+    // face crop + clothing image — Rapid Everyday solo now sends the recipe, led by what Image 1
+    // is, then the scene and the outfit.
     const crouch = build('crouching at a low cupboard reaching for a pan, one knee bent', true);
-    assert.match(crouch, /^CROUCHING = knees deeply bent/);
-    assert.match(crouch, /FACE CROP only/);
-    assert.doesNotMatch(crouch, /Image 1 is the Cast identity plate/);
-    assert.match(crouch, /SCENE: she is in the grocery store produce aisle/);
-    // The walk keeps the dedicated mid-stride lead, with no stance line in front.
+    const lines = crouch.split('\n');
+    assert.match(lines[0]!, /^Image 1 is a FACE CROP only .* IDENTITY CRITICAL: /);
+    assert.equal(
+      lines[1],
+      'SCENE: she is in the grocery store produce aisle — show that place around her.'
+    );
+    assert.equal(
+      lines[2],
+      'OUTFIT (mandatory): she wears a pink ribbed one-piece swimsuit — fully dressed.'
+    );
+    assert.match(lines[3]!, /^Day photo: One woman alone\./);
+    assert.match(lines[3]!, /Moment: crouching at a low cupboard reaching for a pan, one knee bent\./);
+    assert.doesNotMatch(crouch, /Image 1 is the Cast identity plate|underwear/);
+    assert.ok(crouch.length < 1100, `recipe is short (${crouch.length})`);
     assert.match(
       build('mid-stride on the sidewalk, coffee in one hand', true),
-      /^Edit Image 1\. Image 1 is a FACE CROP only[\s\S]*mid-stride walk/
+      /\nDay photo: [\s\S]*Moment: mid-stride on the sidewalk, coffee in one hand\./
     );
     // Without the face crop, everyday keeps the plate brief.
     assert.match(build('crouching at a low cupboard', false), /Image 1 is the Cast identity plate/);

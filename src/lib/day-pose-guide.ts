@@ -2105,7 +2105,7 @@ export function parsePoseGuideIntent(
     armLeft = 'out';
     matched = true;
   } else if (
-    /\b(run(?:ning|s)?|sprint(?:ing|s)?|dash(?:ing|es)?|flee(?:ing|s)?|chase(?:s|ing)?)\b/i.test(
+    /\b(run(?:ning|s)?|jog(?:ging|s)?|sprint(?:ing|s)?|dash(?:ing|es)?|flee(?:ing|s)?|chase(?:s|ing)?)\b/i.test(
       haystack
     )
   ) {

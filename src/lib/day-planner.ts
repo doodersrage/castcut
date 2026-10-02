@@ -1131,6 +1131,7 @@ export const DAY_SLOT_COMPANION_BEAT_PRESETS: Record<DayPart, string[]> = {
     "piggyback ride on a friend's back across the park, both laughing",
   ],
   evening: [
+    'slow dancing with a friend in the living room, one hand on her waist',
     'selfie double at a bar rail with a friend leaning in, different faces',
     'seated knee-to-knee with a companion sharing a menu',
     'arm around a friend on a rooftop at golden hour',
@@ -1248,6 +1249,7 @@ export const DAY_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'kneeling on the rug to zip a bag by the door',
     'tying a lace with one foot up on the step',
     'leaning against the door frame with a mug, shoulder on the jamb',
+    'out for a morning run through the park, ponytail swinging',
     'checking the phone while leaning on the sill, one elbow propped',
     'climbing the stairs with a mug, one hand on the banister',
     'heading out the door mid-stride with a tote, keys in the other hand',
@@ -3067,6 +3069,13 @@ function compactSportKit(
 }
 
 /** Scene prompt for one time-of-day still. */
+/**
+ * Opening line for a Rapid recipe whose Image 1 is the Cast's face crop: what the long brief says
+ * about identity, without the rest of the brief.
+ */
+const RAPID_FACE_CROP_IDENTITY_LEAD =
+  'Image 1 is a FACE CROP only (head/shoulders) — keep facial likeness only. IDENTITY CRITICAL: the finished still must show the SAME woman as the Image 1 face crop — identical face shape, hair color and length, eye color, nose, and mouth; inventing a different beauty face means the edit FAILED.';
+
 export function buildDaySlotPrompt(input: {
   slot: DaySlot;
   wardrobeLabel?: string;
@@ -3489,8 +3498,19 @@ export function buildDaySlotPrompt(input: {
     /** A two-person clothed still outside the Suggestive couple recipe (2511 only). */
     const compactDuo = compactClothed && poseHeadcount >= 2 && !suggestiveCouple;
     const moodRecipe = dayMood === 'suggestive' || dayMood === 'vacation';
+    // Rapid Everyday solo: the brief drops the action (pose-model-profile:
+    // compactEverydayRecipe). Two-person Everyday stills stay on the brief, which holds them.
+    // Only the path that was swept: the Cast's face crop as Image 1 with a clothing image as
+    // Image 2. A catalog kit in words and a Keep plate stay on the brief until they are tested.
+    const rapidEveryday =
+      rapidAio &&
+      poseProfileForModel(input.model).compactEverydayRecipe &&
+      dayMood === 'everyday' &&
+      poseHeadcount < 2 &&
+      faceOnlyIdentity &&
+      Boolean(garmentReinforce);
     if (
-      (rapidAio ? moodRecipe : compactClothed) &&
+      (rapidAio ? moodRecipe || rapidEveryday : compactClothed) &&
       !omitGarment &&
       (poseHeadcount < 2 || suggestiveCouple || compactDuo)
     ) {
@@ -3509,9 +3529,10 @@ export function buildDaySlotPrompt(input: {
         // Image 3.
         poseGuide: poseGuide && (garmentReinforce || partnerImage) ? ('third' as const) : poseGuide,
         outfitImage: garmentReinforce && !partnerImage ? ('second' as const) : null,
-        outfit: compactDay
-          ? kit || null
-          : input.wardrobeLabel?.trim() || garmentDescription || null,
+        outfit:
+          compactDay || rapidEveryday
+            ? kit || null
+            : input.wardrobeLabel?.trim() || garmentDescription || null,
         faceOnly: faceOnlyIdentity,
         outfitFromFirst: !faceOnlyIdentity && keepAsImage1 && !replaceKeepOutfit,
       };
@@ -3539,20 +3560,36 @@ export function buildDaySlotPrompt(input: {
                       }
                     : {}),
                 });
-      if (recipe && compactClothed) {
+      if (recipe && (compactClothed || rapidEveryday)) {
         // Edit 2511 keeps the plate's underwear unless the outfit is stated first and firmly.
         // Name the kit when the recipe dresses her from it; else repeat the beat's own clothes
         // (a pool beat's swimsuit must not be overruled by the day's kit).
         const worn = recipe.match(/\b(?:She|He) wears ([^.;]+)[.;]/)?.[1] ?? '';
         const fromKit = /^the outfit from the (?:first|second|third) image$/.test(worn);
+        // Rapid on a face-crop Image 1 has no underwear to explain away (2511 keeps the clause:
+        // it was confirmed with it).
+        const base =
+          rapidEveryday && faceOnlyIdentity
+            ? ''
+            : '; the underwear in Image 1 is only the fitting base, never part of the outfit';
         const outfitLead =
           fromKit && kit
-            ? `OUTFIT (mandatory): she wears a ${kit} — fully dressed; the underwear in Image 1 is only the fitting base, never part of the outfit.`
+            ? `OUTFIT (mandatory): she wears a ${kit} — fully dressed${base}.`
             : worn && !fromKit && !suggestiveCouple
-              ? `OUTFIT (mandatory): she wears ${worn}; the underwear in Image 1 is only the fitting base, never part of the outfit.`
+              ? `OUTFIT (mandatory): she wears ${worn}${base}.`
               : null;
+        // Rapid on a face crop: the brief's identity sentence first. It says what Image 1 is; the
+        // likeness gain is small (InsightFace distance 0.61 against 0.64 without it, 32 stills —
+        // the brief's standing portraits scored 0.48).
+        const identityLead =
+          rapidEveryday && faceOnlyIdentity ? RAPID_FACE_CROP_IDENTITY_LEAD : null;
         // Scene first, as the brief does (the confirmed 4/4 run had it), then the outfit.
-        return [daySceneLeadLine(setting?.replace(/^(?:an?|the)\s+/i, '')), outfitLead, recipe]
+        return [
+          identityLead,
+          daySceneLeadLine(setting?.replace(/^(?:an?|the)\s+/i, '')),
+          outfitLead,
+          recipe,
+        ]
           .filter(Boolean)
           .join('\n');
       }

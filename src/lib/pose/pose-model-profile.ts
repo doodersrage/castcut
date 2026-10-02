@@ -34,6 +34,17 @@ export type PoseModelProfile = {
    * line got pose and dress 7/7. Without that line the recipe kept the plate's underwear 3/8.
    */
   compactDayRecipes: boolean;
+  /**
+   * Everyday (and the themes built on it) solo clothed stills use the short Day recipe instead of
+   * the long brief, on the Rapid graph. Rapid AIO, pose sweep 2026-10-01 (16 action beats, two
+   * seeds): the brief rendered a standing portrait in the right place and dropped the action —
+   * walking, running, arms up, cooking, reading, the camera, the laptop — about 1 beat in 14; the
+   * recipe got 30 of 32 with the exact dress and scene. The price is likeness on the face-match
+   * score: 0.48 for the brief's near-frontal portraits against 0.61–0.64 for the recipe's action
+   * shots (the brief with the action stated first: 0.57, but the outfit drifted in 8 of 32).
+   * Face finish is the fix for likeness; a wrong picture has none.
+   */
+  compactEverydayRecipe: boolean;
   /** Two-women / two-men / man-lead adult duo layouts exist for this model. */
   sameSexLayouts: boolean;
   /** No 69 / face-sitting: those beats render as seated oral (and the guide is drawn so). */
@@ -92,6 +103,7 @@ const BASE: PoseModelProfile = {
   outlineGrayGuide: false,
   rapidGraph: false,
   compactDayRecipes: false,
+  compactEverydayRecipe: false,
   sameSexLayouts: false,
   seatedOralFallback: false,
   poseStickyClothed: false,
@@ -109,6 +121,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     family: 'rapid-aio',
     outlineGrayGuide: true,
     rapidGraph: true,
+    compactEverydayRecipe: true,
     sameSexLayouts: true,
     seatedOralFallback: true,
   },
