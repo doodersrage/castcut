@@ -72,6 +72,14 @@ export type PoseModelProfile = {
    * VL-only guides); 'reference' = a full reference image; 'none' = left out, pose from the words.
    */
   mapDelivery: {
+    /**
+     * 2.1: 'none' for the planner's own one-person maps. On a face-crop Day still the map was
+     * painted as the body — a stiff figure, an extra or folded leg in 3 of 6 beats; without it
+     * and with the short recipe, 5 of 6 beats were natural and right, the closest likeness of
+     * any engine (InsightFace distance 0.055) at 21 s a still (Pruna, 2026-10-01). A pose the
+     * player drew or took from a photo is still sent: on a full-body plate (Outfit) 2.1 followed
+     * those maps exactly and ignored the pose without them.
+     */
     solo: 'vision' | 'reference' | 'none';
     duoClothed: 'vision' | 'reference' | 'none';
     /**
@@ -142,7 +150,8 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     seatedOralFallback: true,
     namePartnerOutfit: true,
     dressWhenNoOutfit: true,
-    mapDelivery: { solo: 'reference', duoClothed: 'none', duoNude: 'none' },
+    compactEverydayRecipe: true,
+    mapDelivery: { solo: 'none', duoClothed: 'none', duoNude: 'none' },
     penetrationEngine: 'qwen-rapid-aio-edit-nsfw',
     graphBaseModel: 'qwen-rapid-aio-edit-nsfw',
   },

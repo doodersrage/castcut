@@ -3,6 +3,8 @@ import { describe, it } from 'node:test';
 import {
   convertQwenEditWorkflowToImage21,
   isMultiPersonPoseGuide,
+  isPlayerPoseGuide,
+  isPoseGuideFilename,
   isPenetrationDuoPrompt,
   normalizeQwenRenderer,
   pruneUnreachableNodes,
@@ -42,7 +44,7 @@ function rapidDayGraph() {
     '902': { class_type: 'ImageBlur', inputs: { image: ['9', 0], blur_radius: 1, sigma: 0.45 } },
     '903': { class_type: 'LoraLoader', inputs: { model: ['1', 0], clip: ['1', 1], lora_name: 'skin.safetensors' } },
     '904': { class_type: 'LoadImage', inputs: { image: 'partner.png' } },
-    '905': { class_type: 'LoadImage', inputs: { image: 'day-pose-guide-x.png' } },
+    '905': { class_type: 'LoadImage', inputs: { image: 'day-pose-guide-walk-down-down-e05f5d-photo-1.png' } },
     '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280, batch_size: 1 } },
     '907': { class_type: 'VAEEncode', inputs: { pixels: ['900', 0], vae: ['1', 2] } },
     '913': { class_type: 'ReferenceLatent', inputs: { conditioning: ['4', 0], latent: ['907', 0] } },
@@ -62,8 +64,8 @@ describe('Qwen-Image 2.1 renderer', () => {
     assert.deepEqual(encode.inputs['images.image_3'], ['905', 0]);
     assert.match(String(encode.inputs.prompt), /Keep <image1> face; partner from <image2>; pose map <image3>\./);
     const latent = nodes.find(n => n.class_type === 'EmptyLatentImage')!;
-    assert.deepEqual([latent.inputs.width, latent.inputs.height], [1792, 2400]);
-    assert.equal(encode.inputs.resolution, qwenImage21Resolution(1792, 2400));
+    assert.deepEqual([latent.inputs.width, latent.inputs.height], [1104, 1472]);
+    assert.equal(encode.inputs.resolution, qwenImage21Resolution(1104, 1472));
     const sampler = (workflow as Record<string, { inputs: Record<string, unknown> }>)['8'];
     assert.equal(sampler.inputs.steps, 30);
     assert.equal(sampler.inputs.sampler_name, 'euler');
@@ -99,10 +101,40 @@ describe('Qwen-Image 2.1 renderer', () => {
       toQwenImage21Prompt('face from the first image; the woman has the face from the second image'),
       'face from the <image1>; the woman has the face from the <image2>'
     );
-    assert.deepEqual(qwenImage21Canvas(960, 1280), { width: 1792, height: 2400 });
-    assert.deepEqual(qwenImage21Canvas(1280, 960), { width: 2400, height: 1792 });
-    assert.deepEqual(qwenImage21Canvas(1024, 1024), { width: 2048, height: 2048 });
-    assert.equal(qwenImage21Resolution(1792, 2400), 2080);
+    assert.deepEqual(qwenImage21Canvas(960, 1280), { width: 1104, height: 1472 });
+    assert.deepEqual(qwenImage21Canvas(1280, 960), { width: 1472, height: 1104 });
+    assert.deepEqual(qwenImage21Canvas(1024, 1024), { width: 1280, height: 1280 });
+    assert.deepEqual(qwenImage21Canvas(1920, 1080), { width: 1664, height: 928 });
+    assert.equal(qwenImage21Resolution(1104, 1472), 1280);
+  });
+});
+
+describe('Qwen-Image 2.1: one-person pose maps', () => {
+  type Node = { class_type: string; inputs: Record<string, unknown> };
+  const encoderOf = (workflow: unknown) =>
+    (Object.values(workflow as Record<string, Node>) as Node[]).find(
+      node => node.class_type === 'TextEncodeQwenImage21'
+    )!;
+  it('leaves out a planned map and its sentences; keeps a pose the player drew', () => {
+    const planned = rapidDayGraph();
+    planned['905']!.inputs.image = 'day-pose-guide-cook-82b0de-x1-17.png';
+    planned['4']!.inputs.prompt =
+      'Day photo: One woman alone. Keep her face from the first image. She wears the outfit from the second image. Match her body to the third image (pose map). Photorealistic photograph.';
+    const { workflow } = convertQwenEditWorkflowToImage21(planned, { steps: 30 });
+    const encode = encoderOf(workflow);
+    assert.deepEqual(encode.inputs['images.image_1'], ['900', 0]);
+    assert.deepEqual(encode.inputs['images.image_2'], ['904', 0]);
+    assert.equal(encode.inputs['images.image_3'], undefined);
+    assert.doesNotMatch(String(encode.inputs.prompt), /pose map|<image3>/);
+    assert.match(String(encode.inputs.prompt), /Keep her face from the <image1>\./);
+
+    // The fixture's own map is a player pose ("-photo-"): sent as the third reference.
+    const drawn = convertQwenEditWorkflowToImage21(rapidDayGraph(), { steps: 30 }).workflow;
+    const kept = encoderOf(drawn);
+    assert.deepEqual(kept.inputs['images.image_3'], ['905', 0]);
+    assert.equal(isPlayerPoseGuide('day-pose-guide-walk-down-down-e05f5d-photo-1.png'), true);
+    assert.equal(isPlayerPoseGuide('day-pose-guide-cook-82b0de-x1-17.png'), false);
+    assert.equal(isPoseGuideFilename('fitting-garment-packshot-1.png'), false);
   });
 });
 
@@ -320,9 +352,9 @@ describe('Qwen-Image 2.1: 4-step sampler', () => {
     assert.equal(workflow['8']!.inputs.seed, 7);
     assert.deepEqual(workflow['9']!.inputs.samples, ['8', 0]);
     const latent = Object.values(workflow).find(node => node.class_type === 'EmptyLatentImage')!;
-    assert.deepEqual([latent.inputs.width, latent.inputs.height], [1792, 2400]);
+    assert.deepEqual([latent.inputs.width, latent.inputs.height], [1104, 1472]);
     const encode = Object.values(workflow).find(node => node.class_type === 'TextEncodeQwenImage21')!;
-    assert.equal(encode.inputs.resolution, qwenImage21Resolution(1792, 2400));
+    assert.equal(encode.inputs.resolution, qwenImage21Resolution(1104, 1472));
   });
 });
 
@@ -346,7 +378,7 @@ describe('Qwen-Image 2.1: 8-step sampler (Pruna LoRA)', () => {
     assert.equal(String(byClass('ManualSigmas')[1].inputs.sigmas).split(',').length, 9);
     assert.equal(byClass('RandomNoise')[1].inputs.noise_seed, 7);
     const latent = byClass('EmptyLatentImage')[1];
-    assert.deepEqual([latent.inputs.width, latent.inputs.height], [1792, 2400]);
+    assert.deepEqual([latent.inputs.width, latent.inputs.height], [1104, 1472]);
   });
 
   it('the 4-step node wins if both are asked for; the full pass has no LoRA', () => {

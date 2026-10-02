@@ -3,9 +3,8 @@ import { POSE_MODEL_PROFILES } from './pose/pose-model-profile';
 /**
  * "Renderer: Qwen-Image 2.1" — the queue builds the usual Qwen-Edit graph (Rapid AIO recipes,
  * partner faces, pose maps), then this pass swaps the sampler onto Qwen-Image 2.1 with the same
- * prompt and reference images. Both the full sampler and the Lightning 4-step option
- * (`qwen-image-2.1-edit-lightning-4`) render at the native 2K size. Lightning is the same graph
- * with the Fun-Acc 4-step sampler.
+ * prompt and reference images. Every 2.1 sampler renders at about 1.6 MP (see
+ * QWEN_IMAGE_21_CANVASES). Lightning is the same graph with the Fun-Acc 4-step sampler.
  *
  * Live A/B (2026-10-01, 12 stills vs Rapid AIO v23): Cast faces and body types held in every case
  * where Rapid drifted to generic faces and gym bodies; custom poses matched the skeleton; about
@@ -95,20 +94,29 @@ export function qwenImage21Steps(profile?: string | null): number {
 }
 
 /**
- * Official Qwen-Image 2.1 canvases (native ~2K). The Rapid graph this renderer converts is
- * ~1.2MP (960×1280); sampling there is the soft, shifted look — 2.1's training size is these.
+ * Qwen-Image 2.1 canvases, about 1.6 MP. The official template's default budget is 1024 with
+ * "up to 2048" supported; the app rendered at the 2K maximum for a day (879d0387) and the stills
+ * were the complaint. Same seed, Day cooking beat, 2026-10-01:
+ *
+ *   sampler          1792×2400            1104×1472
+ *   Pruna 8-step     dim and hazy, 169 s  bright and clean, 35 s
+ *   Fun-Acc 4-step   fine, 105 s          fine, 35 s
+ *   full 30-step     fine, 518 s          fine, 65 s
+ *
+ * Close crops showed only marginally more detail at 2K, and a walking beat came apart there
+ * (face distance 0.91). The Pruna schedule is not made for 2K at all.
  */
 const QWEN_IMAGE_21_CANVASES = [
-  { width: 2048, height: 2048 },
-  { width: 2400, height: 1792 },
-  { width: 1792, height: 2400 },
-  { width: 2528, height: 1696 },
-  { width: 1696, height: 2528 },
-  { width: 2752, height: 1536 },
-  { width: 1536, height: 2752 },
+  { width: 1280, height: 1280 },
+  { width: 1472, height: 1104 },
+  { width: 1104, height: 1472 },
+  { width: 1536, height: 1024 },
+  { width: 1024, height: 1536 },
+  { width: 1664, height: 928 },
+  { width: 928, height: 1664 },
 ] as const;
 
-/** Nearest official 2K canvas for the requested aspect. */
+/** Nearest 2.1 canvas for the requested aspect. */
 export function qwenImage21Canvas(
   width: number,
   height: number
@@ -206,6 +214,19 @@ function sourceFilename(workflow: Workflow, ref: [string, number]): string {
     current = node.inputs.image ?? node.inputs.pixels ?? node.inputs.images;
   }
   return '';
+}
+
+/** A Day / Story pose guide image of any headcount. */
+export function isPoseGuideFilename(filename: string): boolean {
+  return /pose-guide/i.test(filename);
+}
+
+/**
+ * A pose the player drew in the editor or took from a photo ("…-photo-…"): the map is the only
+ * place that pose exists, so it is always sent.
+ */
+export function isPlayerPoseGuide(filename: string): boolean {
+  return /pose-guide.*-photo-/i.test(filename);
 }
 
 /** Day / Story pose guides for two or more people ("day-pose-guide-lap-59c64f-x2-…"). */
@@ -393,8 +414,7 @@ export function convertQwenEditWorkflowToImage21(
   const latentNode = isRef(latentRef) ? workflow[latentRef[0]] : undefined;
   const requestedWidth = Number(latentNode?.inputs.width) || options.fallbackSize?.width || 1024;
   const requestedHeight = Number(latentNode?.inputs.height) || options.fallbackSize?.height || 1024;
-  // Both samplers use the native 2K canvas. The 4-step pass used to stay on the Rapid
-  // plate (~960×1280) for speed, and that size is below what these weights hold detail at.
+  // Every sampler uses the ~1.6 MP canvas for the requested aspect (see QWEN_IMAGE_21_CANVASES).
   const canvas = qwenImage21Canvas(requestedWidth, requestedHeight);
 
   let next = Math.max(0, ...Object.keys(workflow).map(id => Number(id) || 0)) + 1;
@@ -435,7 +455,15 @@ export function convertQwenEditWorkflowToImage21(
   for (let slot = 1; slot <= 3; slot += 1) {
     const ref = encoder.inputs[`image${slot}`];
     if (!isRef(ref)) continue;
-    if (duoMapDelivery === 'none' && isMultiPersonPoseGuide(sourceFilename(workflow, ref)))
+    const filename = sourceFilename(workflow, ref);
+    // A planned one-person map on a face-crop still is painted as limbs too (see the profile);
+    // the player's own pose is kept — on a full-body plate 2.1 follows it exactly.
+    const droppedSolo =
+      profile.mapDelivery.solo === 'none' &&
+      isPoseGuideFilename(filename) &&
+      !isMultiPersonPoseGuide(filename) &&
+      !isPlayerPoseGuide(filename);
+    if (droppedSolo || (duoMapDelivery === 'none' && isMultiPersonPoseGuide(filename)))
       dropped.push(slot);
     else kept.push({ from: slot, ref });
   }

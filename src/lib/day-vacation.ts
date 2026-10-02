@@ -1030,7 +1030,11 @@ export function buildDayVacationClothedFaceBreakLeads(
  * and a bed); face-break: plaza / balcony 4/4.
  */
 export function daySceneLeadLine(setting: string | null | undefined): string {
-  const place = setting?.trim().replace(/[.\s]+$/, '');
+  // "the an indoor tennis court": sport venues arrive with their own article.
+  const place = setting
+    ?.trim()
+    .replace(/[.\s]+$/, '')
+    .replace(/^(?:an?|the)\s+/i, '');
   return place ? `SCENE: she is in the ${place} — show that place around her.` : '';
 }
 
