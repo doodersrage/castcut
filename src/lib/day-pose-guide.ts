@@ -651,6 +651,25 @@ export function countPoseGuidePeople(text: string | null | undefined): number {
   if (/\band (?:another|a second|someone else)\b/i.test(haystack)) {
     return 2;
   }
+  // Contact with a named friend: "piggyback ride on a friend's back", "head resting on a friend's
+  // shoulder", "high-fiving a friend". These companion beats were planned and drawn solo. A friend
+  // who is only waited for, texted or waved at stays off-frame.
+  if (
+    /\b(?:on|onto|against|around|over)\s+(?:a|her|his|their|the)\s+(?:best\s+)?(?:friend|mate|sister|brother|bestie)['’]s\s+(?:back|shoulders?|lap|arm|waist|neck)\b/i.test(
+      haystack
+    ) ||
+    /\bhigh[- ]?fiv(?:e|es|ed|ing)\s+(?:with\s+)?(?:a|her|his|their|the)\s+(?:best\s+)?(?:friend|mate|sister|brother|bestie|stranger|teammate)\b/i.test(
+      haystack
+    ) ||
+    // "seated across a brunch table from a friend", "diner booth across from a friend".
+    /\bacross\s+(?:[\w’'-]+\s+){0,4}?from\s+(?:a|her|his|their|the)\s+(?:best\s+)?(?:friend|mate|sister|brother|bestie|date|stranger|colleague)\b/i.test(
+      haystack
+    ) ||
+    // "walking a friend's bike alongside them".
+    /\balongside\s+(?:them|him|her)\b/i.test(haystack)
+  ) {
+    return 2;
+  }
   // "She and her date lean in for a kiss" — but "her boyfriend's shirt" is wardrobe, not a person.
   if (
     /\b(?:her|his|their)\s+(?:date|boyfriend|girlfriend|husband|wife|fianc[eé]e?|best\s+friend|crush)\b(?!['’]s)/i.test(
