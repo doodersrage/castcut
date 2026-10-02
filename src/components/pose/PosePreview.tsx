@@ -284,17 +284,21 @@ export default function PosePreview({
             onChange({ posePhoto: pose, poseLayout: undefined, poseVariant: undefined })
           }
         />
-        <div className="flex flex-wrap items-center gap-2 type-caption text-[var(--text-muted)]">
+        {/* Tap targets 32 px tall: as bare text links they were 18 px on a phone. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-0 type-caption text-[var(--text-muted)]">
           <button
             type="button"
-            className="underline"
+            className="inline-flex min-h-8 items-center underline"
             disabled={busy}
             data-testid={`${testIdPrefix}-edit`}
             onClick={() => setEditing(true)}
           >
             Edit joints
           </button>
-          <label className="cursor-pointer underline" data-testid={`${testIdPrefix}-photo`}>
+          <label
+            className="inline-flex min-h-8 cursor-pointer items-center underline"
+            data-testid={`${testIdPrefix}-photo`}
+          >
             {photoBusy ? 'Reading…' : fromPhoto ? 'Use another photo…' : 'Use a photo…'}
             <input
               type="file"
