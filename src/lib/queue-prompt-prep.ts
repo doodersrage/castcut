@@ -222,7 +222,8 @@ function appendUniqueCsv(base: string | undefined, extra: string): string {
   if (missing.length === 0) {
     return existing;
   }
-  return `${existing}, ${missing.join(', ')}`;
+  // A prompt that ends a sentence must not read "natural skin., natural photograph".
+  return `${existing.replace(/[.\s]+$/, '')}, ${missing.join(', ')}`;
 }
 
 function dayPromptHasSuggestiveHeat(positive: string): boolean {

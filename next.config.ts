@@ -60,6 +60,11 @@ const baseConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '80mb',
     },
+    // src/proxy.ts runs on every /api request, and Next buffers request bodies for the proxy
+    // only up to 10 MB by default — the rest is cut off. The gallery sync push (the whole
+    // gallery with saved workflows) passes that in normal use and then failed with a 500, and
+    // large uploads were at risk the same way.
+    proxyClientMaxBodySize: '80mb',
     optimizeCss: true,
   },
   serverExternalPackages: ['onnxruntime-web', 'onnxruntime-node', '@huggingface/transformers'],
