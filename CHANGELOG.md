@@ -9,6 +9,33 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Footwear.** Outfit, Day and Story have a Footwear picker under Clothing: 36 kits with packshots (sneakers, heels, boots, flats, sandals, at home), your own shoes from a worn photo (the shoes are read and cut out) or a packshot, or your own words — plus Auto and Barefoot. The shoes are named on every clothed still, and on Qwen Edit 2511 they are also shown to the model beside the clothing.
+- **Pose editor.** A large editor with a figure you can read: a mannequin with a torso and tapered limbs, each limb in its own colour, and depth you can see. Drag a hand or foot and the elbow or knee follows; a limb pulled past its reach makes the body lean. Turn, tilt and spin the figure in 3D by dragging, bend it at the waist, Undo / Redo, Mirror. Start from Stand / Sit / Kneel / Lie down / Walk or from any of Day's named poses, and save your own under **My poses**.
+- **Custom pose on Outfit.** Try-ons can keep the plate's stance, use a **Custom pose** from the editor, or take the pose **From a photo**. The prompt opens with the pose in words — bends, squats, back views, a kick — because the models follow the words over the pose map; a Day pose says its own name and cue.
+- **Day: more moods and people.** Five new moods on Everyday (Date night, Night out, Lazy Sunday, Photoshoot, Cosplay), one **People** control (Solo / Mixed / Duo), a Cast **partner** who plays the second person with their own face, same-sex duos, a man as the Cast lead, the same stranger all day, an outfit arc, weather, and Vacation couple scenes.
+- **Qwen-Image 2.1.** Three engines on the Qwen-Edit graphs: the full sampler, **Fun-Acc (4-step)** and **Pruna (8-step)**. Each person keeps their own face and clothes on duos.
+- **LTX-2.5 (fast)** clip engine for Animate; two-person adult clips stay on WAN, and a note says which engine a clip will use.
+- **Day on Qwen Edit 2511.** Every still uses short recipes instead of the long brief, led by the scene and the outfit — poses hold and the outfit is worn (Everyday 6/6, was 0/6 on the same seeds). Adult nude stills render on Rapid AIO NSFW when it is installed.
+- **Pose system per model.** Each model family has its own pose profile (how the pose map is delivered, what it is told), instead of one set of rules guessed from model names.
+- **Engine panel.** A header chip opens it; it docks beside the page on wide screens and is a bottom sheet on phones. The model picker lists installed models first with recent and starred, grouped by job; there is one quality control (Good / Best), with aspect and LoRAs up top.
+- **Clothing picker.** Outfit, Day and Story share one Clothing tool: an outfit kit or your own photo, the same "now wearing" card and 3:4 tiles, saved photos with Browse, and Rescan. A Cast look plate gains **Remove clothing**.
+- **Gallery.** Runs group a session's stills, the card menu is short, four stat chips replace the stats block, the lightbox is slimmer, and Browse / Manage separate looking from housekeeping. On phones the filters fold behind a Filters toggle.
+- **LoRAs and models.** LoRA family is read from the file, with clean-up, saved stacks, **Check on Cast**, a default strength cap and trigger opt-in. The Models manager shows what is on disk, what you use, and deletes what you don't. **Get what this needs** downloads a job's missing files in one go.
+- **Workflow library.** Kind checks, a map table, automatic health checks that test workflows the way the queue builds them, trustworthy "unused" flags and deletes you can undo.
+- **Face and review.** Opt-in **Face finish** (works on every engine with the best installed finisher) and **Face boost** for Day; Auto-review measures headcount, probes two-person stills for fused bodies and extra limbs, and scores the pose on Outfit try-ons. Stills reroll below a 0.4 face match.
+- **Sharper Rapid stills.** Cast-plate stills render on a 3:4 portrait canvas at 960×1280 (fewer skin specks); Day's pose map is drawn to the still's shape.
+- **Day stills, many fixes from live sweeps.** Sport leads with the venue and the action, with footwear and swimwear that fit the sport; Everyday wears the catalog kit and gains climbing, foot-up and standing classes; Suggestive and Vacation use compact recipes on Rapid; two-person stills keep the partner; two-women and two-men pairings were tested and reworded.
+- **Clips.** Day clips play in their slot and the reel opens the lightbox; Intimate / Raunchy Animate uses a fixed clip prompt with a locked camera and the pose held.
+- **Settings.** Quality that applies everywhere, one order, fewer duplicate sections; prompt quality has one control with automatic GPU match; the ComfyUI connection has model-aware defaults and clearer overrides.
+- **Phone and desk polish.** Ten UI passes: Film-first navigation, calmer headers and first run, menus that clear the Film tabs, readable status badges, dark-theme contrast that meets WCAG AA, accessible controls, and an idle job pill that no longer covers buttons.
+- **Fix: gallery sync stopped at 10 MB.** Saves larger than 10 MB were cut off by the proxy's body limit and failed, so the server copy of a large gallery stopped updating. The limit is now 80 MB.
+- **Fix: storage sync could wipe data.** A fresh browser, an early save or a failed pull no longer overwrites the Cast or settings on the server, and page loads stop moving ~25 MB.
+- **Fix: hydration errors for returning users** on Queue, Dashboard and Plugins (React #418).
+- **Fix: static Rapid stills** — a clip workflow's checkpoint leaked into still queues.
+- **Fix: Settings save loop** and the silent 32-workflow library cap.
+- **Fix: a fresh browser** no longer turns "Use system workflows" off or re-runs onboarding.
+- **Fix: Qwen 2512 Lightning** uses the fp8 UNET instead of the 40.9 GB bf16.
+
 ## [v2.1.1] - 2026-09-27
 
 - Look plates stay on the Cast that owns them instead of sharing one identity file.
