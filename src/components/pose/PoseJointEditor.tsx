@@ -17,7 +17,6 @@ import {
   posePartOfJoint,
 } from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
-import { SelectInput } from '@/components/ui/Field';
 import { dayPoseAsPhotoPose, soloDayPoseGroups } from '@/lib/day-pose-presets';
 import { poseLayoutLabel } from '@/lib/pose-layout-labels';
 import ModalPortal from '@/components/ui/ModalPortal';
@@ -35,6 +34,15 @@ import {
   type BodyRotation,
 } from '@/lib/pose-joint-edit';
 import { saveMyPose } from '@/lib/my-poses';
+import {
+  ARM_PRESETS,
+  LEG_PRESETS,
+  applyArmPreset,
+  applyLegPreset,
+  legsAreStanding,
+  matchLimb,
+  type LimbSide,
+} from '@/lib/pose-limb-presets';
 import {
   addPerson,
   mirrorBodies,
@@ -282,6 +290,26 @@ export default function PoseJointEditor({
     setShownDepths(next);
     noteDirty(latest.current, next);
   };
+  const [coarsePointer, setCoarsePointer] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia?.('(pointer: coarse)');
+    if (!query) return;
+    const read = () => setCoarsePointer(query.matches);
+    read();
+    query.addEventListener?.('change', read);
+    return () => query.removeEventListener?.('change', read);
+  }, []);
+  const [limbSide, setLimbSide] = useState<LimbSide>('both');
+  const [posePickerOpen, setPosePickerOpen] = useState(false);
+  // A quick arm / leg position on the figure being posed. Flat (picture-plane) positions, so a
+  // turned figure goes back to its drawn depth, as Mirror does.
+  const applyLimbs = (change: (body: NormalizedBody) => NormalizedBody) => {
+    const person = Math.min(rotatePerson, latest.current.length - 1);
+    checkpoint();
+    setDepths([]);
+    update(previous => previous.map((body, index) => (index === person ? change(body) : body)));
+    setSavedNote(null);
+  };
   const [saveName, setSaveName] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
   const rememberHistory = () => {
@@ -357,6 +385,8 @@ export default function PoseJointEditor({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const safeAspect = aspect > 0.2 && aspect < 5 ? aspect : 2 / 3;
+  const posedBody = bodies[Math.min(rotatePerson, bodies.length - 1)];
+  const standing = posedBody ? legsAreStanding(posedBody, safeAspect) : false;
 
   const requestClose = (source: 'escape' | 'backdrop' = 'backdrop') => {
     if (confirmClose) {
@@ -797,7 +827,8 @@ export default function PoseJointEditor({
                           <circle
                             cx={p.x}
                             cy={p.y}
-                            r={0.032}
+                            // A finger needs a bigger target than a mouse pointer.
+                            r={coarsePointer ? 0.05 : 0.032}
                             fill="transparent"
                             className="cursor-grab"
                             onPointerDown={grab}
@@ -928,25 +959,121 @@ export default function PoseJointEditor({
                       {starter.label}
                     </Button>
                   ))}
-                  {/* Any of Day's named poses, drawn the way Day draws them. */}
-                  <SelectInput
-                    value=""
-                    aria-label="Start from a Day pose"
+                  {/* Any of Day's named poses, drawn the way Day draws them — picked by picture
+                      (a list of names said nothing about what "Lean on a rail" looks like). */}
+                  <Button
+                    size="sm"
+                    variant={posePickerOpen ? 'primary' : 'secondary'}
+                    className="whitespace-nowrap"
+                    aria-expanded={posePickerOpen}
                     data-testid={`${testIdPrefix}-day-pose`}
-                    className="w-auto! min-w-[10rem] py-1 text-sm"
-                    onChange={event => startFromDayPose(event.target.value)}
+                    onClick={() => setPosePickerOpen(open => !open)}
                   >
-                    <option value="">A Day pose…</option>
-                    {soloDayPoseGroups().map(group => (
-                      <optgroup key={group.label} label={group.label}>
-                        {group.ids.map(id => (
-                          <option key={id} value={id}>
-                            {poseLayoutLabel(id)}
-                          </option>
-                        ))}
-                      </optgroup>
+                    {posePickerOpen ? 'Hide poses' : 'More poses…'}
+                  </Button>
+                </div>
+                {posePickerOpen ? (
+                  <DayPosePicker
+                    testIdPrefix={testIdPrefix}
+                    onPick={id => {
+                      startFromDayPose(id);
+                      setPosePickerOpen(false);
+                    }}
+                  />
+                ) : null}
+              </div>
+              {/* One tap instead of dragging elbow and wrist on each side. */}
+              <div
+                className="space-y-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+                data-testid={`${testIdPrefix}-limb-presets`}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="type-caption text-[var(--text-muted)]">Quick positions for</span>
+                  <div className="ui-segmented" role="radiogroup" aria-label="Which side">
+                    {(
+                      [
+                        ['both', 'Both'],
+                        ['right', 'Their right'],
+                        ['left', 'Their left'],
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        role="radio"
+                        className="ui-segmented-item"
+                        aria-checked={limbSide === id}
+                        data-active={limbSide === id ? 'true' : 'false'}
+                        data-testid={`${testIdPrefix}-limb-side-${id}`}
+                        onClick={() => setLimbSide(id)}
+                      >
+                        {label}
+                      </button>
                     ))}
-                  </SelectInput>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="type-caption w-9 shrink-0 text-[var(--text-muted)]">Arms</span>
+                  {ARM_PRESETS.map(option => (
+                    <Button
+                      key={option.id}
+                      size="sm"
+                      variant="secondary"
+                      className="whitespace-nowrap"
+                      data-testid={`${testIdPrefix}-arms-${option.id}`}
+                      onClick={() =>
+                        applyLimbs(body => applyArmPreset(body, option.id, limbSide, safeAspect))
+                      }
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="type-caption w-9 shrink-0 text-[var(--text-muted)]">Legs</span>
+                  {LEG_PRESETS.map(option => (
+                    <Button
+                      key={option.id}
+                      size="sm"
+                      variant="secondary"
+                      className="whitespace-nowrap"
+                      data-testid={`${testIdPrefix}-legs-${option.id}`}
+                      disabled={!standing}
+                      title={
+                        standing ? undefined : 'For a figure on its feet — start from Stand or Walk'
+                      }
+                      onClick={() =>
+                        applyLimbs(body => applyLegPreset(body, option.id, limbSide, safeAspect))
+                      }
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                  <span className="type-caption text-[var(--text-muted)]">
+                    Copy a side you posed by hand:
+                  </span>
+                  {(
+                    [
+                      ['arm', 'right', 'R arm → L'],
+                      ['arm', 'left', 'L arm → R'],
+                      ['leg', 'right', 'R leg → L'],
+                      ['leg', 'left', 'L leg → R'],
+                    ] as const
+                  ).map(([limb, from, label]) => (
+                    <Button
+                      key={`${limb}-${from}`}
+                      size="sm"
+                      variant="ghost"
+                      className="whitespace-nowrap px-2!"
+                      title={`Make their ${from === 'right' ? 'left' : 'right'} ${limb} mirror their ${from} ${limb}`}
+                      data-testid={`${testIdPrefix}-match-${limb}-${from}`}
+                      onClick={() => applyLimbs(body => matchLimb(body, limb, from))}
+                    >
+                      {label}
+                    </Button>
+                  ))}
                 </div>
               </div>
               <p
@@ -957,6 +1084,27 @@ export default function PoseJointEditor({
               >
                 {liveText}
               </p>
+              {/* Everything the figure responds to, in one place — the line above only names
+                  what is under the pointer, which a touch screen never shows. */}
+              <details
+                className="type-caption text-[var(--text-muted)]"
+                data-testid={`${testIdPrefix}-how-to`}
+              >
+                <summary className="flex min-h-8 cursor-pointer items-center text-[var(--text-secondary)]">
+                  How to pose
+                </summary>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  <li>Drag a hand or foot: the elbow or knee bends to follow.</li>
+                  <li>Drag an elbow, knee or shoulder to swing just that part.</li>
+                  <li>Drag the neck to bend at the waist; the head to tilt it.</li>
+                  <li>Drag the body to move the whole figure.</li>
+                  <li>Drag empty space sideways to turn the figure, up or down to tilt it.</li>
+                  <li>Drag the ↻ handle above the head to spin it in the picture.</li>
+                  <li>
+                    Arrow keys nudge the selected joint (Tab moves between joints); Ctrl+Z undoes.
+                  </li>
+                </ul>
+              </details>
               <p className="type-caption flex flex-wrap gap-x-3 gap-y-0.5 text-[var(--text-muted)]">
                 {(
                   [
@@ -1424,5 +1572,74 @@ function PoseTopView({
         </marker>
       </defs>
     </svg>
+  );
+}
+
+const dayPoseFigures = new Map<string, { body: NormalizedBody; aspect: number } | null>();
+function dayPoseFigure(id: string) {
+  if (!dayPoseFigures.has(id)) {
+    const pose = dayPoseAsPhotoPose(id);
+    const body = pose?.people[0];
+    dayPoseFigures.set(id, pose && body ? { body, aspect: pose.aspect } : null);
+  }
+  return dayPoseFigures.get(id) ?? null;
+}
+
+/** Day's named poses as small drawn figures, grouped as in Day's own pose list. */
+function DayPosePicker({
+  testIdPrefix,
+  onPick,
+}: {
+  testIdPrefix: string;
+  onPick: (id: string) => void;
+}) {
+  return (
+    <div
+      className="max-h-72 space-y-2 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+      data-testid={`${testIdPrefix}-day-pose-grid`}
+    >
+      {soloDayPoseGroups().map(group => (
+        <div key={group.label} className="space-y-1">
+          <p className="type-caption text-[var(--text-muted)]">{group.label}</p>
+          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
+            {group.ids.map(id => {
+              const figure = dayPoseFigure(id);
+              const label = poseLayoutLabel(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  title={label}
+                  data-testid={`${testIdPrefix}-day-pose-${id}`}
+                  onClick={() => onPick(id)}
+                  className="flex flex-col items-center gap-0.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)] p-1 text-center transition hover:border-[var(--accent)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                >
+                  {figure ? (
+                    <svg
+                      viewBox={`0 0 ${figure.aspect} 1`}
+                      aria-hidden
+                      className="h-16 w-full rounded bg-white"
+                    >
+                      <PoseFigureShape
+                        body={figure.body}
+                        aspect={figure.aspect}
+                        color={POSE_FIGURE_COLORS[0]!}
+                        weight={0.02}
+                        parts
+                      />
+                    </svg>
+                  ) : (
+                    <span className="h-16 w-full rounded bg-white" />
+                  )}
+                  <span className="line-clamp-2 min-h-[2lh] text-[10px] leading-tight text-[var(--text-secondary)]">
+                    {label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

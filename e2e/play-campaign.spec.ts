@@ -304,17 +304,37 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
   await page.getByTestId('outfit-pose-bend-forward').click();
   await expect(page.getByTestId('outfit-pose-facing')).toContainText('leaning forward 30°');
 
+  // Quick arm and leg positions: one tap, and the words follow.
+  await page.getByTestId('outfit-pose-reset').click();
+  await page.getByTestId('outfit-pose-arms-hips').click();
+  await expect(page.getByTestId('outfit-pose-words')).toContainText('hands on hips');
+  await page.getByTestId('outfit-pose-legs-wide').click();
+  await expect(page.getByTestId('outfit-pose-words')).toContainText('legs wide apart');
+  // One side only, then copied to the other.
+  await page.getByTestId('outfit-pose-arms-sides').click();
+  await page.getByTestId('outfit-pose-limb-side-right').click();
+  await page.getByTestId('outfit-pose-arms-up').click();
+  const leftWristBefore = await page.getByTestId('outfit-pose-joint-0-7').getAttribute('cy');
+  await page.getByTestId('outfit-pose-match-arm-right').click();
+  const leftWristAfter = await page.getByTestId('outfit-pose-joint-0-7').getAttribute('cy');
+  expect(Number(leftWristAfter)).toBeLessThan(Number(leftWristBefore));
+  await page.getByTestId('outfit-pose-limb-side-both').click();
+
   await page.getByTestId('outfit-pose-starter-sit').click();
   await expect(page.getByTestId('outfit-pose-words')).toContainText('seated');
+  // Leg positions are for a figure on its feet.
+  await expect(page.getByTestId('outfit-pose-legs-apart')).toBeDisabled();
   // Start from one of Day's named poses: the prompt words are the pose's own name and cue…
-  await page.getByTestId('outfit-pose-day-pose').selectOption('wave');
+  await page.getByTestId('outfit-pose-day-pose').click();
+  await page.getByTestId('outfit-pose-day-pose-wave').click();
   await expect(page.getByTestId('outfit-pose-words')).toContainText('waving: one arm raised high');
   // …until a joint is moved, when the words go back to reading the figure.
   const waveWrist = page.getByTestId('outfit-pose-joint-0-10');
   await waveWrist.focus();
   await page.keyboard.press('Shift+ArrowLeft');
   await expect(page.getByTestId('outfit-pose-words')).not.toContainText('waving:');
-  await page.getByTestId('outfit-pose-day-pose').selectOption('hands_hips');
+  await page.getByTestId('outfit-pose-day-pose').click();
+  await page.getByTestId('outfit-pose-day-pose-hands_hips').click();
   await expect(page.getByTestId('outfit-pose-words')).toContainText('hands on hips: both hands on');
 
   await page.getByTestId('outfit-pose-save-to-my-poses').click();
