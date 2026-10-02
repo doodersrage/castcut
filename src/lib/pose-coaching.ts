@@ -121,8 +121,23 @@ export function poseLayoutCue(layout: string | null | undefined): string | null 
  * camera and foot-up 7 of 7 (pose sweep 2026-10-02). In the sentence, not as a "POSE DETAIL (as
  * Image 3 shows)" line: engines that drop the pose map drop every sentence that names it.
  */
-export function withRecipePoseCue(prompt: string, layout: string | null | undefined): string {
-  const cue = poseLayoutCue(layout);
+/**
+ * Plain postures the recipes still lost. A pool-ledge jump rendered as a crouch at the water's
+ * edge on Rapid and Edit 2511 although the recipe says "She jumps mid-air"; with this cue it was
+ * in the air 2 of 2 (Rapid, 2026-10-02).
+ */
+const RECIPE_POSTURE_CUES: Record<string, string> = {
+  jump: 'in mid-air, both feet off the ground, knees tucked up',
+};
+
+export function withRecipePoseCue(
+  prompt: string,
+  layout: string | null | undefined,
+  /** The drawn guide's pose key ("jump:1") — plain postures with a recipe cue of their own. */
+  poseKey?: string | null
+): string {
+  const cue =
+    poseLayoutCue(layout) ?? RECIPE_POSTURE_CUES[poseKey?.split(':')[0]?.trim() ?? ''] ?? null;
   if (!cue || /\bPose: /.test(prompt)) return prompt;
   const sentence = `Pose: ${cue}. `;
   if (prompt.includes(' Place: ')) return prompt.replace(' Place: ', ` ${sentence}Place: `);

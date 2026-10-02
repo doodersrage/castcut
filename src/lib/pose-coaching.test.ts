@@ -52,6 +52,12 @@ describe('recipe pose cue', () => {
 
   it('leaves plain postures, unknown layouts and an already-cued prompt alone', () => {
     assert.equal(withRecipePoseCue(recipe, 'sit'), recipe);
+    // A jump is a plain posture with a recipe cue of its own.
+    assert.match(
+      withRecipePoseCue(recipe, null, 'jump:1'),
+      / Pose: in mid-air, both feet off the ground, knees tucked up\. Place: /
+    );
+    assert.equal(withRecipePoseCue(recipe, null, 'sit:2'), recipe);
     assert.equal(withRecipePoseCue(recipe, null), recipe);
     const cued = withRecipePoseCue(recipe, 'photograph');
     assert.equal(withRecipePoseCue(cued, 'photograph'), cued);

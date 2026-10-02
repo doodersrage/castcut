@@ -1384,7 +1384,9 @@ export function useDayPlannerToolOrchestrationCore() {
             line => !(footwear && /^She wears shoes that suit/.test(line))
           ),
           withFootwearLine(
-            recipeCue ? withRecipePoseCue(basePrompt, drawnLayout) : basePrompt,
+            recipeCue
+              ? withRecipePoseCue(basePrompt, drawnLayout, poseExpectation?.poseKey)
+              : basePrompt,
             footwear,
             'she',
             footwearImage
