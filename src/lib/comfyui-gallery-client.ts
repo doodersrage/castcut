@@ -103,6 +103,19 @@ export type PollComfyGalleryJobOptions = {
 const DEFAULT_POLL_INTERVAL_MS = 2000;
 const DEFAULT_MAX_POLL_ATTEMPTS = 450;
 
+/** Poll loops running now — every queued job has its own. */
+let activePollLoops = 0;
+
+/**
+ * Wait between one job's status polls. Each waiting job polls on its own, so at a fixed 2 s a
+ * queued 8-still Day made ~240 status requests a minute against the API limit of 120 a minute per
+ * route — the surplus came back 429 and statuses lagged. Spread out as more jobs wait, keeping
+ * the total near 85 a minute; the running job's progress still arrives live over the websocket.
+ */
+export function pollIntervalForActiveJobs(baseMs: number, activeJobs: number): number {
+  return Math.max(baseMs, Math.max(1, Math.floor(activeJobs)) * 700);
+}
+
 /** Prompt IDs whose in-flight poll loop should stop on the next tick (e.g. cancelled jobs). */
 const cancelledPollPromptIds = new Set<string>();
 
@@ -968,6 +981,7 @@ export async function pollComfyGalleryJob(
 
   let cancelled = false;
 
+  activePollLoops += 1;
   try {
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       if (cancelledPollPromptIds.has(promptId)) {
@@ -976,7 +990,7 @@ export async function pollComfyGalleryJob(
       }
 
       if (attempt > 0) {
-        await sleep(wsFinished ? 250 : intervalMs);
+        await sleep(wsFinished ? 250 : pollIntervalForActiveJobs(intervalMs, activePollLoops));
         if (cancelledPollPromptIds.has(promptId)) {
           cancelled = true;
           break;
@@ -1025,6 +1039,7 @@ export async function pollComfyGalleryJob(
       }
     }
   } finally {
+    activePollLoops = Math.max(0, activePollLoops - 1);
     clearTrailingProgress();
     wsSubscription?.close();
     cancelledPollPromptIds.delete(promptId);
