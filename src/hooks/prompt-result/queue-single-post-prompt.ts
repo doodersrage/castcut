@@ -173,7 +173,8 @@ export async function postQueueSinglePrompt(input: {
     );
     toastQueueOutcome({
       ok: true,
-      text: `Queued to ${engineDisplayName(actualEngineId)} · ${queued.promptId}`,
+      // No job id: it means nothing to the reader, and the Queue page lists the job.
+      text: `Queued to ${engineDisplayName(actualEngineId)}`,
       href: '/gallery',
     });
 

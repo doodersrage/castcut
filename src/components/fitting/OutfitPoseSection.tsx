@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import MyPosesStrip from '@/components/pose/MyPosesStrip';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
 import PoseJointEditor from '@/components/pose/PoseJointEditor';
@@ -29,6 +29,7 @@ export default function OutfitPoseSection({
   hideLabel?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoStatus, setPhotoStatus] = useState<string | null>(null);
   const fromPhoto = Boolean(pose) && pose?.source !== 'edited';
@@ -97,28 +98,35 @@ export default function OutfitPoseSection({
           >
             Custom pose
           </button>
-          <label
+          <button
+            type="button"
             role="radio"
-            className="ui-segmented-item cursor-pointer"
+            className="ui-segmented-item"
             aria-checked={fromPhoto}
             data-active={fromPhoto ? 'true' : 'false'}
-            aria-disabled={busy || photoBusy}
+            disabled={busy || photoBusy}
             data-testid="outfit-pose-photo"
             title="Pick a photo of someone in the pose you want — only the pose is used, not the person or clothes"
+            onClick={() => photoInputRef.current?.click()}
           >
-            {photoBusy ? 'Reading…' : 'Pose from a photo'}
-            <input
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              disabled={busy || photoBusy}
-              onChange={event => {
-                void readPhoto(event.target.files?.[0]);
-                event.target.value = '';
-              }}
-            />
-          </label>
+            {photoBusy ? 'Reading…' : 'From a photo'}
+          </button>
         </div>
+        {/* Outside the radio group: a file input inside a radio is a control within a control. */}
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden
+          data-testid="outfit-pose-photo-input"
+          disabled={busy || photoBusy}
+          onChange={event => {
+            void readPhoto(event.target.files?.[0]);
+            event.target.value = '';
+          }}
+        />
       </div>
       {editing ? (
         <PoseJointEditor

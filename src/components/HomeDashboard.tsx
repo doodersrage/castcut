@@ -36,7 +36,7 @@ import PlayContinueChip from '@/components/PlayContinueChip';
 import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
-import { resolveStudioEmptyCta } from '@/lib/empty-cta';
+import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import { loadPlayCampaignState } from '@/lib/play-campaign';
 import { loadPlayMetrics } from '@/lib/play-metrics';
 import {
@@ -122,7 +122,7 @@ export default function HomeDashboard() {
         .slice(0, isSimple ? 4 : 6),
     [gallery, isSimple]
   );
-  const studioEmptyCta = resolveStudioEmptyCta();
+  const studioEmptyCta = useStudioEmptyCta();
   const activeProject = projects.find(project => project.id === activeProjectId);
   const showContinue =
     Boolean(draft) ||

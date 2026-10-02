@@ -20,7 +20,7 @@ import QueueActiveJobRow from '@/components/queue/QueueActiveJobRow';
 import QueueJobTitle from '@/components/queue/QueueJobTitle';
 import { formatEta } from '@/lib/queue-eta';
 import QueueCompletedRow from '@/components/queue/QueueCompletedRow';
-import { resolveStudioEmptyCta } from '@/lib/empty-cta';
+import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import type { useQueueToolOrchestration } from '@/hooks/useQueueToolOrchestration';
 
 const ACCENT = 'brand' as const;
@@ -67,7 +67,7 @@ export default function QueueToolSections({
   const recentFailure = failed.some(
     entry => openedAt - (entry.completedAt ?? entry.queuedAt ?? 0) < 24 * 60 * 60 * 1000
   );
-  const filmCta = resolveStudioEmptyCta(generateCta);
+  const filmCta = useStudioEmptyCta(generateCta);
   return (
     <ToolLayout
       accent={ACCENT}
@@ -169,13 +169,16 @@ export default function QueueToolSections({
                           {running ? `${running} rendering · ` : ''}
                           {lastEta ? `done in ${formatEta(lastEta)}` : ''}
                         </span>
+                      </summary>
+                      {/* Under the summary, not in it: a button inside <summary> is a control
+                          within a control (keyboard and screen readers can't reach it cleanly). */}
+                      <div className="flex justify-end px-3 pb-2">
                         <Button
                           size="sm"
                           variant="danger"
-                          className="ml-auto"
+                          className="shrink-0"
                           data-testid="queue-cancel-batch"
-                          onClick={event => {
-                            event.preventDefault();
+                          onClick={() => {
                             if (
                               window.confirm(
                                 `Cancel all ${group.entries.length} jobs in this batch?`
@@ -187,7 +190,7 @@ export default function QueueToolSections({
                         >
                           Cancel batch
                         </Button>
-                      </summary>
+                      </div>
                       <ul className="ui-list">{rows}</ul>
                     </details>
                   </li>

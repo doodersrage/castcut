@@ -17,7 +17,7 @@ import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui-live-preview-store';
-import { resolveStudioEmptyCta } from '@/lib/empty-cta';
+import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import { toMobileStudioHref } from '@/lib/mobile-studio';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { subscribeSharedHealth, type RawHealthResponse } from '@/lib/shared-health-poll';
@@ -103,7 +103,7 @@ export default function MobileQueueTool() {
     }
   }, [active, refresh]);
 
-  const filmCta = useMemo(() => resolveStudioEmptyCta(), []);
+  const filmCta = useStudioEmptyCta();
 
   return (
     <div className="space-y-4" data-testid="mobile-queue">

@@ -11,7 +11,7 @@ import {
   toggleUserSceneStarterFavorite,
   deleteUserSceneStarterPreset,
 } from '@/lib/user-scene-starter-presets';
-import { resolveGenerateEmptyCta } from '@/lib/empty-cta';
+import { useGenerateEmptyCta } from '@/hooks/useEmptyCta';
 import { Button } from '@/components/ui/Button';
 import { DataList, DataListPrimary, DataListRow } from '@/components/ui/DataList';
 import { EmptyState } from '@/components/ui/ViewState';
@@ -24,6 +24,7 @@ export function StudioPresetsStartersSection({
   onUserSceneStartersChange,
   onBackupStatusChange,
 }: StudioPresetsTabProps) {
+  const generateCta = useGenerateEmptyCta();
   return (
     <div className="space-y-3 border-t border-[var(--border-subtle)] pt-4">
       <p className="text-sm font-medium text-[var(--text-primary)]">Scene starter presets</p>
@@ -86,10 +87,7 @@ export function StudioPresetsStartersSection({
           icon="preset"
           title="No scene starters yet"
           description="Save a starter from Generate or Character, or promote high-scoring tokens from Analytics. They appear in those tools’ preset catalogs."
-          action={resolveGenerateEmptyCta({
-            label: 'Open Generate',
-            href: '/',
-          })}
+          action={generateCta}
         />
       ) : (
         <DataList scrollable={false}>

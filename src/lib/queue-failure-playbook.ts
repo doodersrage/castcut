@@ -112,6 +112,10 @@ export function resolveQueueFailureGuideLabel(href: string): string {
   if (path === '/queue' || path.startsWith('/queue?')) {
     return 'Open Queue';
   }
+  // A success notice links to where the result lands — not a "fix".
+  if (path === '/gallery' || path.startsWith('/gallery?')) {
+    return 'Open Gallery';
+  }
   if (/workflow-map/i.test(path)) {
     return 'Workflow map';
   }

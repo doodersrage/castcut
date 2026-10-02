@@ -6,7 +6,7 @@ import BrandStudioIllustration from '@/components/BrandStudioIllustration';
 import PlayContinueChip from '@/components/PlayContinueChip';
 import { ButtonLink } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
-import { resolveStudioEmptyCta } from '@/lib/empty-cta';
+import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 import { remixDayFilmHref, startStarterPlayFilm } from '@/lib/play-starter';
 
@@ -27,6 +27,7 @@ export default function GalleryEmptyPanel({
   characterId,
 }: GalleryEmptyPanelProps) {
   const pathname = usePathname();
+  const filmCta = useStudioEmptyCta();
   const mobile = isMobileStudioPath(pathname);
   const href = (desk: string) => (mobile ? toMobileStudioHref(desk) : desk);
   const filmFilter = filtered && derivedKind === 'film';
@@ -78,8 +79,6 @@ export default function GalleryEmptyPanel({
       />
     );
   }
-
-  const filmCta = resolveStudioEmptyCta();
 
   return (
     <div className="ui-brand-empty relative space-y-4 overflow-hidden">

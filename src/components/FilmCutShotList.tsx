@@ -108,10 +108,11 @@ export default function FilmCutShotList({
                   s
                 </label>
               ) : null}
-              <span className="ml-auto flex gap-1">
+              {/* 32 px squares: the bare arrows were 9×16 px, too small to tap on a phone. */}
+              <span className="ml-auto flex gap-0.5">
                 <button
                   type="button"
-                  className="ui-text-link px-1"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-base text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={disabled || index === 0}
                   aria-label={`Move ${shot.title} earlier`}
                   onClick={() => onChange({ ...edits, order: moveCutShot(keys, shot.key, -1) })}
@@ -120,7 +121,7 @@ export default function FilmCutShotList({
                 </button>
                 <button
                   type="button"
-                  className="ui-text-link px-1"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-base text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={disabled || index === ordered.length - 1}
                   aria-label={`Move ${shot.title} later`}
                   data-testid={`${testIdPrefix}-shot-down-${shot.key}`}

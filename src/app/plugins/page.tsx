@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldLabel, MonoTextArea, SelectInput, TextInput } from '@/components/ui/Field';
@@ -46,6 +46,8 @@ const EMPTY_HOOK = {
   url: '',
 };
 
+const subscribeNothing = () => () => {};
+
 export default function PluginsPage() {
   const [plugins, setPlugins] = useState<ToolPlugin[]>(BUILTIN_TOOL_PLUGINS);
   const [customJson, setCustomJson] = useState('[]');
@@ -68,8 +70,12 @@ export default function PluginsPage() {
   const [serverStatus, setServerStatus] = useState<string | null>(null);
   const [serverOpenHref, setServerOpenHref] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [pageOrigin] = useState(() =>
-    typeof window !== 'undefined' ? window.location.origin : '—'
+  // The server cannot know the origin, so it renders the placeholder and the browser fills it in
+  // after hydration (reading it during render made the two disagree — React error #418).
+  const pageOrigin = useSyncExternalStore(
+    subscribeNothing,
+    () => window.location.origin,
+    () => '—'
   );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const serverZipRef = useRef<HTMLInputElement | null>(null);

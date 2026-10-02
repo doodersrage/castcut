@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadComfyGallery, type ComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import { toastBulkQueueSummary, toastQueueOutcome } from '@/lib/app-toast';
-import { resolveStudioEmptyCta } from '@/lib/empty-cta';
+import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import { requeueComfyJobFromEntry, requeueComfyJobs } from '@/lib/comfyui-requeue';
 import { resolveRequeueImageUrlsFromEntry } from '@/lib/queue-requeue-images';
 import { markOnboardingFirstQueue } from '@/lib/onboarding-hooks';
@@ -388,7 +388,7 @@ export function useQueueToolOrchestration() {
     [refreshEntries]
   );
 
-  const generateCta = resolveStudioEmptyCta();
+  const generateCta = useStudioEmptyCta();
   const poolQueue = useMemo(
     () =>
       summarizePoolQueueDepth(poolEndpoints, {

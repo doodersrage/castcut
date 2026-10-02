@@ -17,7 +17,7 @@ export function TrayProgressBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
-        aria-label={label ?? `Progress ${percent}%`}
+        aria-label={label || `Progress ${percent}%`}
       >
         <div className="ui-progress-fill" style={{ width: `${percent}%` }} />
       </div>

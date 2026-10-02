@@ -5,10 +5,11 @@ import { usePromptHistory } from '@/hooks/usePromptHistory';
 import { findDuplicatePrompts } from '@/lib/prompt-duplicate-detection';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
-import { resolveGenerateEmptyCta } from '@/lib/empty-cta';
+import { useGenerateEmptyCta } from '@/hooks/useEmptyCta';
 import { Button } from '@/components/ui/Button';
 
 export default function DuplicatePromptsPanel() {
+  const generateCta = useGenerateEmptyCta();
   const { entries, removeEntries } = usePromptHistory();
   const [threshold, setThreshold] = useState(0.85);
   const groups = useMemo(
@@ -43,11 +44,7 @@ export default function DuplicatePromptsPanel() {
           icon="compare"
           title="No duplicate clusters"
           description="Near-identical history prompts will group here. Save more variations or lower the similarity threshold."
-          action={
-            entries.length === 0
-              ? resolveGenerateEmptyCta({ label: 'Open Generate', href: '/' })
-              : undefined
-          }
+          action={entries.length === 0 ? generateCta : undefined}
         />
       ) : (
         <ul className="space-y-3">

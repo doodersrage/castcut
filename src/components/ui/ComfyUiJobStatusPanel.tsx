@@ -54,7 +54,7 @@ function ProgressBar({ percent, label }: { percent: number; label?: string | nul
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
-        aria-label={label ?? `Generation progress ${percent}%`}
+        aria-label={label || `Generation progress ${percent}%`}
       >
         <div className="ui-progress-fill" style={{ width: `${percent}%` }} />
       </div>
@@ -356,6 +356,7 @@ export function ComfyUiGalleryJobPlaceholder({
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={percent}
+              aria-label={progressLabel || `Generation progress ${percent}%`}
             >
               <div className="ui-progress-fill" style={{ width: `${percent}%` }} />
             </div>
