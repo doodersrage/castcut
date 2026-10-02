@@ -30,7 +30,9 @@ export default function ServerEnvPanel({
       setCopyStatus('Copied .env snippet to clipboard.');
       onStatus?.('Copied .env snippet to clipboard.');
     } catch {
-      setCopyStatus('Could not copy — select and copy manually from the snippet below.');
+      setCopyStatus(
+        'Could not copy — the browser refused clipboard access. Copy the values from the table instead.'
+      );
     }
   }, [groups, onStatus]);
 

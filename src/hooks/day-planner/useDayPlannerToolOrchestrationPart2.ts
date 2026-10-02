@@ -197,6 +197,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         ...dayStillsCachePatch([], undefined),
         referenceIsolated: false,
         plateIsolateSourceKey: undefined,
+        plateCharacterId: undefined,
         plateImageUrl: undefined,
         plateImageFilename: undefined,
         plateOriginalUrl: undefined,
@@ -219,8 +220,12 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       );
       const stillsMismatch =
         stillsRef.current.length > 0 && !dayStillsBelongToCharacter(owner, nextId);
+      // The plate's own owner first (stamped when it was isolated); the stills' owner covers
+      // plates from before that stamp existed.
+      const plateOwner = toolSettings.plateCharacterId?.trim() || owner;
       const plateMismatch =
-        hasStalePlate && ((owner && owner !== nextId) || (!owner && Boolean(nextId)));
+        hasStalePlate &&
+        ((plateOwner && plateOwner !== nextId) || (!plateOwner && Boolean(nextId)));
       if (stillsMismatch || plateMismatch) {
         clearStills();
       }
@@ -239,6 +244,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     stillsRef,
     toolSettings.plateImageFilename,
     toolSettings.plateImageUrl,
+    toolSettings.plateCharacterId,
     toolSettings.plateIsolateSourceKey,
     toolSettings.stillsCharacterId,
     updateToolSettings,

@@ -1178,6 +1178,11 @@ export type DayToolCache = {
   referenceIsolated?: boolean;
   /** Fingerprint of the source plate the isolate override was built from. */
   plateIsolateSourceKey?: string;
+  /**
+   * The Cast the isolated plate was built for. Without it a plate isolated before any still
+   * existed had no owner, was dropped as stale on every Day load, and was isolated again.
+   */
+  plateCharacterId?: string;
   plateImageUrl?: string;
   plateImageFilename?: string;
   plateOriginalUrl?: string;
@@ -2030,6 +2035,7 @@ export function scrubPlayToolCachesOnCastChange(tools: ToolSettingsCache): ToolS
         stillsCharacterId: undefined,
         referenceIsolated: false,
         plateIsolateSourceKey: undefined,
+        plateCharacterId: undefined,
         plateImageUrl: undefined,
         plateImageFilename: undefined,
         plateOriginalUrl: undefined,

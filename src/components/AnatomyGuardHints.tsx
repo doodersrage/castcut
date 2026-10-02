@@ -41,8 +41,8 @@ export default function AnatomyGuardHints({ mode, onModeChange, model }: Anatomy
       </div>
       <p className="mt-2 type-caption text-[var(--text-muted)]">{activeOption.description}</p>
       <p className="mt-1.5 type-caption text-[var(--text-muted)]">
-        Adds anti-mutation and anti–extra-limb terms when you Send to ComfyUI or copy a prompt pair.
-        Works alongside render realism; Flux models get anatomy cues in the positive prompt.
+        Adds anti-mutation and anti–extra-limb terms when you Queue or copy a prompt pair. Works
+        alongside render realism; Flux models get anatomy cues in the positive prompt.
       </p>
     </div>
   );

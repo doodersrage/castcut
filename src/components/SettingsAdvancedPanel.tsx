@@ -1,5 +1,6 @@
 'use client';
 
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
 import { useEffect, useState } from 'react';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
@@ -61,7 +62,11 @@ export default function SettingsAdvancedPanel() {
         }
       })
       .catch(() => setStorageEnabled(false));
-    void Promise.resolve().then(() => setLocalGalleryCount(loadComfyGallery().length));
+    // Count again when the gallery loads: the first read ran before it had hydrated and showed
+    // "Local gallery: 0 entries" next to Push gallery to server.
+    const countLocal = () => setLocalGalleryCount(loadComfyGallery().length);
+    void Promise.resolve().then(countLocal);
+    window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, countLocal);
     void fetch('/api/auth/llm-usage')
       .then(response => (response.ok ? response.json() : null))
       .then(
@@ -72,6 +77,7 @@ export default function SettingsAdvancedPanel() {
         ) => setLlmUsage(data?.summary ?? null)
       )
       .catch(() => setLlmUsage(null));
+    return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, countLocal);
   }, []);
 
   async function runServerBatch() {

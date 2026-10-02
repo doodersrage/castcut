@@ -692,7 +692,7 @@ export function buildWorkflowScaffoldForModel(
                                         ? 'PixArt starter uses CheckpointLoader — import pack-accurate PixArt DiT graph when available.'
                                         : model === 'lumina2'
                                           ? 'Lumina2 scaffold uses UNETLoader + CLIPLoader (type lumina2) + ModelSamplingAuraFlow + EmptySD3LatentImage.'
-                                          : 'Use Settings → model checkpoint map so Send to ComfyUI can patch loader nodes automatically.',
+                                          : 'Use Settings → model checkpoint map so Queue can patch loader nodes automatically.',
   ];
 
   return {

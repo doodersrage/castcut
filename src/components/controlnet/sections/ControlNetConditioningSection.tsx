@@ -45,7 +45,11 @@ export function ControlNetConditioningSection({
             key={entry.id}
             type="button"
             onClick={() => setMode(entry.id)}
-            className={`ui-chip ${mode === entry.id ? 'ui-chip-active' : ''} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]`}
+            // The active style is [data-active] — the old `ui-chip-active` class does not exist, so
+            // the chosen mode was never highlighted.
+            data-active={mode === entry.id ? 'true' : 'false'}
+            aria-pressed={mode === entry.id}
+            className="ui-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
           >
             {entry.label}
           </button>

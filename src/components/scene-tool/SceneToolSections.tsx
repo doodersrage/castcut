@@ -83,7 +83,9 @@ export function VariationSliderField({
   return (
     <>
       {showLabel && label ? <FieldLabel hint={hint}>{label}</FieldLabel> : null}
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 text-xs text-[var(--text-muted)]">
+      {/* The slider keeps at least 7rem and the value wraps under it: a long value label on a
+          phone used to shrink the slider to its thumb. */}
+      <div className="grid grid-cols-[auto_minmax(7rem,1fr)] items-center gap-x-3 gap-y-1 text-xs text-[var(--text-muted)] sm:grid-cols-[auto_minmax(7rem,1fr)_auto]">
         <span className="type-caption">{minLabel}</span>
         <input
           id={id}
@@ -96,7 +98,7 @@ export function VariationSliderField({
           onChange={event => onChange(Number(event.target.value))}
           className={`h-8 w-full min-w-0 cursor-pointer accent-[var(--accent)] ${accentRingClassName}`.trim()}
         />
-        <span className="type-caption text-right font-medium text-[var(--text-primary)]">
+        <span className="type-caption col-span-2 text-right font-medium text-[var(--text-primary)] sm:col-span-1">
           {valueLabel}
         </span>
       </div>

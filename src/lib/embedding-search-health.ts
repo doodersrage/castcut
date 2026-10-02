@@ -17,6 +17,23 @@ export async function checkEmbeddingSearchHealth(): Promise<EmbeddingSearchHealt
         items: [{ id: 'probe', text: 'semantic search health probe' }],
       }),
     });
+    // A 200 also comes back when the route fell back to plain word matching (no embed model).
+    const probe = response.ok
+      ? ((await response
+          .clone()
+          .json()
+          .catch(() => null)) as { results?: Array<{ method?: string }> } | null)
+      : null;
+    const embedded = probe?.results?.some(result => result.method === 'embedding') ?? false;
+    if (response.ok && !embedded) {
+      return {
+        available: false,
+        model,
+        baseUrl: '/api/search/embeddings',
+        message:
+          'Semantic gallery search needs an Ollama embed model (e.g. nomic-embed-text). Text search still works.',
+      };
+    }
     if (response.ok) {
       return {
         available: true,

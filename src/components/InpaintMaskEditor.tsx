@@ -339,12 +339,11 @@ export default function InpaintMaskEditor({
 
       {hasMask ? (
         <p className="rounded-xl border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-3 py-2 text-xs text-[var(--tint-success-text)]">
-          Mask ready — white regions will be sent as{' '}
-          <code className="text-[var(--tint-success-text)]">{`{{MASK_IMAGE}}`}</code> on queue.
+          Mask ready — the white regions are what gets repainted.
         </p>
       ) : (
         <p className="rounded-xl border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-3 py-2.5 text-xs text-[var(--tint-warning-text)]">
-          Draw or upload a mask before Send to ComfyUI.
+          Draw or upload a mask before you Queue.
         </p>
       )}
     </div>

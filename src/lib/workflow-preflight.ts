@@ -79,7 +79,7 @@ export async function runWorkflowPreflight(input: {
     issues.push({
       severity: 'warn',
       message:
-        'Inpaint model queued without a source image or mask — upload both before Send to ComfyUI.',
+        'Inpaint model queued without a source image or mask — upload both before you Queue.',
     });
   } else if (isInpaintModel(input.model) && !input.hasMaskImage) {
     issues.push({

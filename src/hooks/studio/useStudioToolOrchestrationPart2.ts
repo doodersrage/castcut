@@ -343,7 +343,12 @@ export function useStudioToolOrchestrationPart2(ctx: StudioToolOrchestrationCore
   }, [compareA, compareHints, shared.model, toolSettings.compareModelB]);
 
   const copyText = useCallback(async (text: string) => {
-    await navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard refused (permissions, insecure origin) — not an unhandled page error.
+      return;
+    }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   }, []);

@@ -117,7 +117,9 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
       <nav
         ref={dockRef}
         aria-label="Film"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border-subtle)] bg-[var(--bg-muted)] pb-[env(safe-area-inset-bottom)]"
+        // While the More menu is open the bar goes above the floating job pill (z-90), which
+        // otherwise covers the menu's items.
+        className="fixed inset-x-0 bottom-0 z-40 has-[details[open]]:z-[95] border-t border-[var(--border-subtle)] bg-[var(--bg-muted)] pb-[env(safe-area-inset-bottom)]"
       >
         {/* The More menu sits beside the scrolling tab list, not inside it: overflow-x on the
             list also clips vertically, and the menu (which opens upward) was never drawn. */}

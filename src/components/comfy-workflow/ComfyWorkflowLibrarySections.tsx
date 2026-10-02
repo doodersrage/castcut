@@ -12,10 +12,9 @@ export default function ComfyWorkflowLibrarySections(props: ComfyWorkflowLibrary
         <h2 className="type-heading">ComfyUI workflow library</h2>
         <p className="type-caption">
           Manage multiple ComfyUI API workflow JSON files. Pick the active file from the dropdown
-          next to{' '}
-          <strong className="font-medium text-[var(--text-secondary)]">Send to ComfyUI</strong> on
-          any result panel. URL, tokens, and queue params still come from the connection settings
-          below (or server env).
+          next to <strong className="font-medium text-[var(--text-secondary)]">Queue</strong> on any
+          result panel. URL, tokens, and queue params still come from the connection settings below
+          (or server env).
         </p>
       </div>
 

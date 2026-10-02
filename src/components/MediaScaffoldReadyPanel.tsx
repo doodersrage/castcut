@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ComfyPackImportControl from '@/components/ComfyPackImportControl';
 import { Button } from '@/components/ui/Button';
 import { fetchComfyObjectInfoCached } from '@/lib/comfyui-object-info-cache';
 import { auditWorkflowNodeTypes } from '@/lib/workflow-node-type-audit';
 import { loadComfyWorkflowFiles } from '@/lib/comfyui-workflow-files';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings-cache';
 import { resolveWorkflowForModelSelection } from '@/lib/model-workflow-map';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import type { PackImportResult } from '@/lib/workflow-pack-import';
@@ -40,10 +40,14 @@ export default function MediaScaffoldReadyPanel({
 
   const preferKind = kind === 'controlnet' ? undefined : kind;
 
+  const noWorkflowRef = useRef(false);
+  const settingsRechecksRef = useRef(0);
+
   const runAudit = useCallback(async () => {
     setBusy(true);
     setStatus(null);
     setStatusHref(undefined);
+    noWorkflowRef.current = false;
     try {
       await ensureScaffold?.();
       const objectInfo = await fetchComfyObjectInfoCached({ forceRefresh: false });
@@ -73,6 +77,7 @@ export default function MediaScaffoldReadyPanel({
           return;
         }
         const message = `No ${kind} workflow selected yet — import a pack below or enable system workflows.`;
+        noWorkflowRef.current = true;
         setStatus(message);
         setStatusHref(settingsComfyUiSectionHref('workflow-map'));
         return;
@@ -113,6 +118,19 @@ export default function MediaScaffoldReadyPanel({
     return () => {
       cancelled = true;
     };
+  }, [runAudit]);
+
+  // The first check can run before the settings have loaded (system workflows looked off) and
+  // said "No workflow selected yet" on a set-up that is ready. Check again when they arrive.
+  useEffect(() => {
+    const onSettings = () => {
+      if (noWorkflowRef.current && settingsRechecksRef.current < 3) {
+        settingsRechecksRef.current += 1;
+        void runAudit();
+      }
+    };
+    window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, onSettings);
+    return () => window.removeEventListener(SETTINGS_CACHE_UPDATED_EVENT, onSettings);
   }, [runAudit]);
 
   return (

@@ -37,7 +37,7 @@ export default function ComfyWorkflowSelector({
           <p className="text-sm font-medium text-[var(--text-primary)]">ComfyUI workflow file</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
             {helpText ??
-              'Choose which workflow JSON to inject when you Send to ComfyUI. URL, tokens, and queue params still come from Settings or server env.'}
+              'Choose which workflow JSON to use when you Queue. URL, tokens, and queue params still come from Settings or server env.'}
           </p>
         </div>
       )}

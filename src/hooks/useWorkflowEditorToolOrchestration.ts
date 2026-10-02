@@ -259,7 +259,8 @@ export function useWorkflowEditorToolOrchestration() {
     setBusyAction('dry-run');
     setStatus('Dry-run preview…');
     try {
-      const saved = onSaveLibrary();
+      // A dry run must not write: it used to save the editor's graph over the selected library
+      // workflow first.
       const workflow = buildWorkflowFromGraph();
       const positive = Object.values(workflow).find(node => {
         const n = node as { class_type?: string; inputs?: { text?: string } };
@@ -276,7 +277,7 @@ export function useWorkflowEditorToolOrchestration() {
         comfy: {
           ...loadComfyUiSettings(),
           workflowJson: JSON.stringify(workflow),
-          workflowFileId: saved?.id,
+          workflowFileId: selectedId || undefined,
         },
       });
       if (preview.error) {
@@ -292,7 +293,7 @@ export function useWorkflowEditorToolOrchestration() {
     } finally {
       setBusyAction(null);
     }
-  }, [buildWorkflowFromGraph, nodes.length, onSaveLibrary, shared.model]);
+  }, [buildWorkflowFromGraph, nodes.length, selectedId, shared.model]);
 
   const onQueue = useCallback(async () => {
     const workflow = buildWorkflowFromGraph();

@@ -1911,6 +1911,23 @@ test('mobile studio first-class film loop tabs and desk bridge', async ({ page }
   await expect(page.getByRole('link', { name: /^Desk$/i })).toBeVisible();
 });
 
+test('mobile More menu is drawn and its links can be tapped', async ({ page }) => {
+  await seedFirstFilmDone(page);
+  await gotoStable(page, '/m');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('mobile-tab-more').click({ timeout: 30_000 });
+  const menu = page.getByTestId('mobile-more-menu');
+  await expect(menu).toBeVisible();
+  // toBeVisible passes for a clipped element (the menu was once cut off by the scrolling tab
+  // list) — the top-most element at its centre must be inside the menu.
+  const hit = await menu.evaluate(el => {
+    const box = el.getBoundingClientRect();
+    const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    return Boolean(top && el.contains(top));
+  });
+  expect(hit).toBe(true);
+});
+
 test('completed campaign offers Cast watch and cut-another Day CTAs', async ({ page }) => {
   await page.addInitScript(() => {
     try {

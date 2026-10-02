@@ -84,11 +84,8 @@ export function GenerateToolOutputSection({
           includeStickyBar={false}
           hints={hintSource === 'random' ? genre : input}
           extraMeta={
-            hintSource === 'random' && randomSeed
-              ? `seed: ${randomSeed}`
-              : resultMeta
-                ? `${resultMeta.limits.minChars ? `${resultMeta.limits.minChars}–` : ''}${resultMeta.limits.maxChars} char limit · ${output.length} chars`
-                : undefined
+            // Limit and length are already on the panel's own line.
+            hintSource === 'random' && randomSeed ? `seed: ${randomSeed}` : undefined
           }
           variationSeed={variationSeed}
           preDiagnostics={actions.preDiagnostics}
@@ -134,13 +131,7 @@ export function GenerateToolOutputSection({
       )}
 
       {output && hintSource !== 'random' && mode === 'positive' && (
-        <p className="-mt-4 text-xs text-[var(--text-muted)]">
-          Paste into{' '}
-          <code className="rounded bg-[var(--bg-muted)] px-1 text-[var(--accent-text)]">
-            {resultMeta?.comfyNode ?? selectedModel.comfyNode}
-          </code>
-          . Press Ctrl+Enter to regenerate.
-        </p>
+        <p className="-mt-4 text-xs text-[var(--text-muted)]">Press Ctrl+Enter to regenerate.</p>
       )}
 
       <CollapsibleSection

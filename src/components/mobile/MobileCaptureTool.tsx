@@ -2,7 +2,13 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
+import {
+  getCharactersSnapshot,
+  getServerCharactersSnapshot,
+  subscribeCharacters,
+} from '@/lib/character-os';
 import { Button, PrimaryButton } from '@/components/ui/Button';
 import { FieldError, TextInput } from '@/components/ui/Field';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
@@ -46,6 +52,11 @@ export default function MobileCaptureTool() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance({ mobile: true });
 
+  const castRoster = useSyncExternalStore(
+    subscribeCharacters,
+    getCharactersSnapshot,
+    getServerCharactersSnapshot
+  );
   const plates = useMemo(() => toolSettings.plates ?? [], [toolSettings.plates]);
   const active = plates.find(plate => plate.id === toolSettings.activePlateId) ?? plates[0] ?? null;
 
@@ -191,6 +202,9 @@ export default function MobileCaptureTool() {
     return <p className="type-caption text-[var(--text-muted)]">Loading capture…</p>;
   }
 
+  const activeCastId = shared.activeCharacterId?.trim() || '';
+  const activeCast = (mounted && castRoster.find(entry => entry.id === activeCastId)) || null;
+  const castPlateUrl = activeCast ? castPlateThumbUrl(activeCast) : '';
   const displayUrl = previewUrl || (active?.isolated ? active.isolatedUrl : active?.originalUrl);
 
   return (
@@ -272,6 +286,31 @@ export default function MobileCaptureTool() {
             alt={active?.name || 'Character plate'}
             className="max-h-80 w-full object-contain"
           />
+        </div>
+      ) : castPlateUrl && activeCast ? (
+        // Nothing captured on this phone, but the active Cast already has a look plate — the
+        // step strip's "1. Cast" landed here on "No plate yet".
+        <div
+          className="flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-2"
+          data-testid="mobile-capture-active-cast"
+        >
+          <div className="h-24 w-[4.5rem] shrink-0 overflow-hidden rounded-xl bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={castPlateUrl} alt="" className="h-full w-full object-cover object-top" />
+          </div>
+          <div className="min-w-0 space-y-1">
+            <p className="truncate text-sm font-medium">{activeCast.name}</p>
+            <p className="type-caption text-[var(--text-muted)]">
+              Your active Cast already has a look plate. Take a photo below only to start someone
+              new.
+            </p>
+            <Link
+              href={`/characters/${encodeURIComponent(activeCast.id)}`}
+              className="ui-text-link type-caption inline-block py-2"
+            >
+              Open {activeCast.name}
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-[var(--border-subtle)] px-4 py-10 text-center text-sm text-[var(--text-muted)]">

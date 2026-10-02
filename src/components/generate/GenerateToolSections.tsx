@@ -69,8 +69,13 @@ export default function GenerateToolSections({
   generate,
   generateRandom,
   copyOutput,
+  ...rest
 }: GenerateToolSectionsProps) {
+  // Everything else on the view model rides along: this list used to be the whole of `vm`, so
+  // the fields Scene setup reads (wildness, distinct people, variation, their setters) were
+  // undefined — "Distinct individuals" threw and the wildness label read NaN.
   const vm = {
+    ...rest,
     mounted,
     shared,
     toolSettings,

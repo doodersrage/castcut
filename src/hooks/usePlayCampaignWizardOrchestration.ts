@@ -1,5 +1,8 @@
 'use client';
 
+import { loadLocalObservability } from '@/lib/local-observability';
+import { loadPlayMetrics } from '@/lib/play-metrics';
+import { derivePlayProgress } from '@/lib/play-step-machine';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
@@ -108,10 +111,25 @@ export function usePlayCampaignWizardOrchestration({
       return null;
     }
     const saved = loadPlayCampaignState();
-    if (!saved || saved.stepIndex <= 0) {
+    if (!saved) {
       return null;
     }
-    return saved;
+    // The saved step is a cache that the film's artifacts can advance (a kept try-on, Day
+    // stills) — the header and the step strip read it that way, and this page offered
+    // "Start at Look" under a header that said "Film · 4 of 4 · Day".
+    const stepIndex = Math.max(
+      saved.stepIndex,
+      derivePlayProgress({
+        metrics: loadPlayMetrics(),
+        funnel: loadLocalObservability(),
+        campaign: saved,
+        lookPack: loadLookPack(),
+      }).effectiveStepIndex
+    );
+    if (stepIndex <= 0) {
+      return null;
+    }
+    return stepIndex === saved.stepIndex ? saved : { ...saved, stepIndex };
   }, [mounted]);
 
   const campaignCharacterMismatch = Boolean(

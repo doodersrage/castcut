@@ -177,7 +177,7 @@ export default function EnhancedPromptResultActions({
               </Button>
             ) : null}
             {onCompact ? (
-              <Button variant="danger" onClick={onCompact}>
+              <Button variant="secondary" onClick={onCompact}>
                 {limits && outputLength > limits.maxChars ? 'Compact to limit' : 'Compact prompt'}
               </Button>
             ) : null}

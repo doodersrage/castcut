@@ -421,6 +421,11 @@ export default function ModelFilesView({
       ) : null}
       {bulkNote ? <p className="type-caption text-[var(--text-secondary)]">{bulkNote}</p> : null}
 
+      {groups.length === 0 ? (
+        <p className="type-caption text-[var(--text-muted)]" data-testid="model-files-empty">
+          No files match this view. Clear the search or pick another filter.
+        </p>
+      ) : null}
       <ul className="space-y-2">
         {groups.map(group => {
           const expanded = narrowed || open.has(group.id);

@@ -50,15 +50,19 @@ export default function PromptResultPanel({
           <h2 className="type-heading">Generated prompt</h2>
           {(provider || editable) && (
             <p className="type-caption mt-1">
-              {provider
-                ? `via ${provider === 'llm' ? 'LLM' : provider === 'rules' ? 'rules' : 'template'}`
-                : null}
-              {provider && limits
-                ? ` · ${limits.minChars ? `${limits.minChars}–` : ''}${limits.maxChars} char limit`
-                : null}
-              {` · ${output.length} chars`}
-              {editable ? ' · editable' : ''}
-              {extraMeta ? ` · ${extraMeta}` : ''}
+              {[
+                provider
+                  ? `via ${provider === 'llm' ? 'LLM' : provider === 'rules' ? 'rules' : 'template'}`
+                  : null,
+                provider && limits
+                  ? `${limits.minChars ? `${limits.minChars}–` : ''}${limits.maxChars} char limit`
+                  : null,
+                `${output.length} chars`,
+                editable ? 'editable' : null,
+                extraMeta || null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </p>
           )}
         </div>
@@ -83,7 +87,9 @@ export default function PromptResultPanel({
         </pre>
       )}
 
-      {comfyNode && (
+      {/* Not for the all-in-one checkpoints: their registry node is the loader, and "Paste into
+          Load Checkpoint" sent people to the wrong node. */}
+      {comfyNode && comfyNode !== 'Load Checkpoint' && (
         <p className="type-caption">
           Paste into <code className="type-code">{comfyNode}</code>
         </p>

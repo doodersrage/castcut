@@ -118,7 +118,7 @@ export function useComfyWorkflowLibraryCore({
       setSelectedId(id);
       onStatus?.(
         id
-          ? `Default for Send to ComfyUI: “${label}”.`
+          ? `Default workflow for Queue: “${label}”.`
           : 'Using fallback workflow (Settings / server env).'
       );
     },

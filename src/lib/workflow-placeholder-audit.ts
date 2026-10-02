@@ -55,7 +55,7 @@ export function auditWorkflowPreviewIssues(input: {
         issues.push({
           severity: 'error',
           message:
-            'Workflow expects an input image ({{INPUT_IMAGE}}) but none was provided — upload a source image before Send to ComfyUI.',
+            'Workflow expects an input image ({{INPUT_IMAGE}}) but none was provided — upload a source image before you Queue.',
         });
       } else {
         issues.push({

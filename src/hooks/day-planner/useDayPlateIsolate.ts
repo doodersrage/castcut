@@ -38,12 +38,15 @@ type DayPlateIsolateCacheFields = Pick<
 export function useDayPlateIsolate(input: {
   mounted: boolean;
   model?: string | null;
+  /** The active Cast — stamped on the isolated plate as its owner. */
+  characterId?: string | null;
   basePlate: DayPlate | null;
   toolSettings: DayPlateIsolateCacheFields;
   updateToolSettings: (patch: Partial<DayToolCache>) => void;
   setError: (message: string | null) => void;
 }) {
-  const { mounted, model, basePlate, toolSettings, updateToolSettings, setError } = input;
+  const { mounted, model, characterId, basePlate, toolSettings, updateToolSettings, setError } =
+    input;
   const [isolateStatus, setIsolateStatus] = useState<string | null>(null);
   const [isolateBusy, setIsolateBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -241,6 +244,7 @@ export function useDayPlateIsolate(input: {
           isolateSubject: shouldIsolate,
           referenceIsolated: isolated,
           plateIsolateSourceKey: sourceKey,
+          plateCharacterId: characterId?.trim() || undefined,
           plateOriginalFilename: uploadedOriginalFilename,
           plateOriginalUrl: durableOriginal,
           plateImageFilename: queueFilename,
@@ -263,7 +267,16 @@ export function useDayPlateIsolate(input: {
         }
       }
     },
-    [basePlate, clearPreview, isolateSubject, model, setError, sourceKey, updateToolSettings]
+    [
+      basePlate,
+      characterId,
+      clearPreview,
+      isolateSubject,
+      model,
+      setError,
+      sourceKey,
+      updateToolSettings,
+    ]
   );
 
   const setIsolateSubject = useCallback(

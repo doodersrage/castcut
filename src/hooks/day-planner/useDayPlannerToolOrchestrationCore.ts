@@ -373,6 +373,7 @@ export function useDayPlannerToolOrchestrationCore() {
   } = useDayPlateIsolate({
     mounted,
     model: shared.model,
+    characterId: shared.activeCharacterId,
     basePlate,
     toolSettings,
     updateToolSettings,

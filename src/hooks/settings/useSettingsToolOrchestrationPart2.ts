@@ -344,7 +344,9 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
   }, [refreshHealth, settings.apiUrl, settings.useServerDefaults, updateSharedSettings]);
 
   useEffect(() => {
-    if (tab !== 'overview' && tab !== 'comfyui') {
+    // The LLM tab needs the health snapshot too: opened directly, its Test button stayed
+    // disabled on "Testing…" (loading starts true and only this refresh clears it).
+    if (tab !== 'overview' && tab !== 'comfyui' && tab !== 'llm') {
       return;
     }
     scheduleAfterCommit(() => {

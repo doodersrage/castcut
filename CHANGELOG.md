@@ -48,6 +48,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Cast: the plate check runs once per plate, not on every page load; the Keepers filter has its own empty state.
   - Vacation water scenes (swim, pool, robe, beach towel) keep their own clothes and do not get the picked shoes.
   - Smaller: "Go to Go to Day instead instead", nested section arrows, Story's clipped photo button, the first-film checklist, plain-language stats and labels.
+- **Per-tool scan fixes (Studio side).**
+  - Generate: *Scene setup* works again — *Distinct individuals*, *Negative / Preserve* and the variation controls threw when clicked and the wildness label read "NaN". The line under the result no longer repeats the limit and length, and the "Paste into Load Checkpoint" hint is gone. The wildness slider keeps its width on phones.
+  - Workflow editor: *Dry-run* no longer saves over the selected library workflow.
+  - Settings: *Test LLM connection* is usable when the LLM tab is opened directly; the Advanced tab's local gallery count no longer shows 0 before the gallery loads; "Semantic search active" is only shown when an embed model really answered; empty model-file views say so.
+  - Image → Prompt: a clear "needs a vision model" message when no language model is reachable (was a bare server error).
+  - ControlNet: the chosen conditioning mode is highlighted; the readiness line no longer says "No workflow selected yet" on a set-up that is ready.
+  - Day: after switching Cast and back, the plate was isolated again on every page load. Fixed.
+  - Phone Cast page shows the active Cast's plate instead of "No plate yet".
+  - Wording: the old "Send to ComfyUI" button name is replaced by "Queue" everywhere.
 - **Dress plate fixes from review.** The dressed plate is now placed per still: a still that starts from a face crop takes it as the clothing image, one that starts from the full plate starts from the dressed plate (Rapid's full-plate Vacation stills were still starting from the undressed plate; plain Edit 2511's face-crop stills carried it nowhere). Scenes that bring their own clothes (a pool's swimsuit) or are about bare feet skip it. A plate job stuck in a busy queue no longer blocks every following still or gets queued again. An Outfit Keep is stored under what it was rendered with, not the current settings. The preview and *Dress her again* follow the current Cast, clothing and shoes. Story retries no longer repeat stale outfit / shoe lines.
 - **Face finish, two people:** always one face (hers), and the re-check compares her side, not whichever face ended up closest.
 - **Fix: re-tapping a selected Cast / look / partner tile** no longer re-applies it (it reset the partner's face and discarded unsaved Cast changes).

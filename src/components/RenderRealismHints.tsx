@@ -37,8 +37,8 @@ export default function RenderRealismHints({ mode, onModeChange }: RenderRealism
       </div>
       <p className="mt-2 type-caption text-[var(--text-muted)]">{activeOption.description}</p>
       <p className="mt-1.5 type-caption text-[var(--text-muted)]">
-        Auto-adjusts positive and negative prompts when you Send to ComfyUI or copy a prompt pair.
-        Flux-family models receive style cues in the positive prompt.
+        Auto-adjusts positive and negative prompts when you Queue or copy a prompt pair. Flux-family
+        models receive style cues in the positive prompt.
       </p>
     </div>
   );

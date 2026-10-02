@@ -130,7 +130,19 @@ export async function POST(request: Request) {
     return apiJson(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Image prompt generation failed.';
-    const status = /required|must be|too large|could not read|re-upload/i.test(message) ? 400 : 500;
+    // No language model reachable is a setup problem, not a server fault: say so plainly.
+    if (/ECONNREFUSED|fetch failed|ENOTFOUND|socket hang up|network/i.test(message)) {
+      return apiError(
+        'Could not reach the language model. Image → Prompt needs a vision model — check Settings → LLM.',
+        503
+      );
+    }
+    const status =
+      /required|must be|too large|could not read|re-upload|not set|needs a vision|unknown/i.test(
+        message
+      )
+        ? 400
+        : 500;
     return apiError(message, status);
   }
 }

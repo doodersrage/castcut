@@ -74,7 +74,7 @@ test.describe('Queue failure recovery', () => {
     await dismissBlockingOverlays(page);
     await expect(page.getByTestId('gallery-failed-recovery')).toBeVisible({ timeout: 30_000 });
     await expect(
-      page.getByRole('button', { name: /Retry as (Draft|Final)/i }).first()
+      page.getByRole('button', { name: /Retry as (Draft|Good)/i }).first()
     ).toBeVisible({ timeout: 15_000 });
   });
 
@@ -107,7 +107,7 @@ test.describe('Queue failure recovery', () => {
     await expect(settingsLink).toBeVisible({ timeout: 15_000 });
     await expect(settingsLink).toHaveAttribute('href', /vram|settings/i);
     await expect(
-      page.getByRole('button', { name: /Retry as (Draft|Final)/i }).first()
+      page.getByRole('button', { name: /Retry as (Draft|Good)/i }).first()
     ).toBeVisible({ timeout: 15_000 });
   });
 
