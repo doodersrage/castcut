@@ -221,7 +221,7 @@ import {
   poseLayoutFromKey,
   weakPoseLayouts,
 } from '@/lib/play-metrics';
-import { poseLayoutCueLine, poseLookLine } from '@/lib/pose-coaching';
+import { poseLayoutCueLine, poseLookLine, withRecipePoseCue } from '@/lib/pose-coaching';
 import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
@@ -1310,7 +1310,11 @@ export function useDayPlannerToolOrchestrationCore() {
         // Spell the drawn pose out in words after a pose miss, and always for layouts Edit has
         // a poor record with (step one before the guide falls back to a plainer pose).
         const drawnLayout = poseExpectation ? poseLayoutFromKey(poseExpectation.poseKey) : null;
+        // A one-person recipe always carries the cue, inside the recipe (withRecipePoseCue).
+        const recipeCue =
+          isRapidDuoRecipePrompt(basePrompt) && (poseExpectation?.keypoints.length ?? 0) === 1;
         const cueLine =
+          !recipeCue &&
           drawnLayout &&
           (cuePoseLayouts().has(drawnLayout) ||
             Boolean(qualityNudge?.includes(POSE_MISMATCH_NUDGE)))
@@ -1379,7 +1383,12 @@ export function useDayPlannerToolOrchestrationCore() {
           ...clothedLeadLines.filter(
             line => !(footwear && /^She wears shoes that suit/.test(line))
           ),
-          withFootwearLine(basePrompt, footwear, 'she', footwearImage),
+          withFootwearLine(
+            recipeCue ? withRecipePoseCue(basePrompt, drawnLayout) : basePrompt,
+            footwear,
+            'she',
+            footwearImage
+          ),
           // The duo recipes name the partner's image themselves; the long brief (and a recipe
           // that has no partner wording, e.g. Klein spoon) gets one line.
           !slotPartner

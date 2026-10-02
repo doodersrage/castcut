@@ -113,6 +113,24 @@ export function poseLayoutCue(layout: string | null | undefined): string | null 
   return key ? (POSE_LAYOUT_CUES[key] ?? null) : null;
 }
 
+/**
+ * A short recipe with the layout's cue in it: "… Moment: photographing brunch. Pose: both hands
+ * hold a camera up to one eye, elbows raised. Place: …". The recipes state the beat but not the
+ * gesture, and the gesture was what went missing: the camera lay on the table, hair-touching
+ * became a phone selfie, hands missed the pockets. With the cue, Rapid AIO: hair touch, jump,
+ * camera and foot-up 7 of 7 (pose sweep 2026-10-02). In the sentence, not as a "POSE DETAIL (as
+ * Image 3 shows)" line: engines that drop the pose map drop every sentence that names it.
+ */
+export function withRecipePoseCue(prompt: string, layout: string | null | undefined): string {
+  const cue = poseLayoutCue(layout);
+  if (!cue || /\bPose: /.test(prompt)) return prompt;
+  const sentence = `Pose: ${cue}. `;
+  if (prompt.includes(' Place: ')) return prompt.replace(' Place: ', ` ${sentence}Place: `);
+  return prompt.includes(' Moment: ')
+    ? prompt.replace(' Moment: ', ` ${sentence}Moment: `)
+    : prompt;
+}
+
 /** Prompt line for a cued layout. */
 export function poseLayoutCueLine(layout: string | null | undefined): string {
   const cue = poseLayoutCue(layout);

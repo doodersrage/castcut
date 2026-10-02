@@ -20,6 +20,7 @@ import {
   ALWAYS_CUED_DUO_LAYOUTS,
   poseLayoutCueLine,
   poseLimbFixNudge,
+  withRecipePoseCue,
 } from './pose-coaching';
 import { POSE_IMPORT_GROUPS, POSE_IMPORT_LAYOUTS } from './pose-import-layouts';
 import { poseLayoutLabel } from './pose-layout-labels';
@@ -35,6 +36,27 @@ const lead = (text: string): { body: NormalizedBody; aspect: number } => {
     aspect: plan.openPose.canvas.width / plan.openPose.canvas.height,
   };
 };
+
+describe('recipe pose cue', () => {
+  const recipe =
+    'Day photo: One woman alone. She wears the outfit from the second image. Moment: photographing brunch on the table with a film camera. Place: corner café. Keep her face from the first image.';
+
+  it('puts the cue between the moment and the place', () => {
+    assert.equal(
+      withRecipePoseCue(recipe, 'photograph'),
+      'Day photo: One woman alone. She wears the outfit from the second image. Moment: photographing brunch on the table with a film camera. Pose: both hands hold a camera up to one eye, elbows raised. Place: corner café. Keep her face from the first image.'
+    );
+    // No sentence about Image 3: an engine that drops the pose map keeps the cue.
+    assert.doesNotMatch(withRecipePoseCue(recipe, 'photograph'), /Image 3|pose map/);
+  });
+
+  it('leaves plain postures, unknown layouts and an already-cued prompt alone', () => {
+    assert.equal(withRecipePoseCue(recipe, 'sit'), recipe);
+    assert.equal(withRecipePoseCue(recipe, null), recipe);
+    const cued = withRecipePoseCue(recipe, 'photograph');
+    assert.equal(withRecipePoseCue(cued, 'photograph'), cued);
+  });
+});
 
 describe('pose in words', () => {
   it('has a cue for every everyday, two-person and sport layout, and none for postures', () => {
