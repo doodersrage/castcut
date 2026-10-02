@@ -3,6 +3,7 @@
 import { useCallback, useState, type MutableRefObject } from 'react';
 import {
   confirmRoleplayRestart,
+  confirmRoleplayUndoScene,
   CUSTOM_ROLEPLAY_PERSONA_ID,
   ROLEPLAY_CONTENT,
   ROLEPLAY_TONES,
@@ -169,7 +170,19 @@ export function useRoleplaySessionActions({
     setScenes([]);
   }, [setScenes, storyRef, updateToolSettings]);
 
+  /** Take the last scene back out of the reel — the step before it is open again. */
+  const undoLastScene = useCallback(() => {
+    const story = storyRef.current;
+    const last = story[story.length - 1];
+    if (!last || !confirmRoleplayUndoScene(last.title)) {
+      return;
+    }
+    updateToolSettings({ story: story.slice(0, -1) });
+    setScenes([]);
+  }, [setScenes, storyRef, updateToolSettings]);
+
   return {
+    undoLastScene,
     exporting,
     selectStillTake,
     setBeatPose,

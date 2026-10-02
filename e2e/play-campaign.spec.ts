@@ -562,6 +562,46 @@ test('story mid-flow: start the story over after changing its settings', async (
   await expect(picker.getByTestId('story-settings-midway')).toHaveCount(0);
 });
 
+test('story mid-flow: write your own scene, then take it back', async ({ page }) => {
+  await seedStoryMidFlow(page, 'e2e-story-own');
+  let situation = '';
+  await page.route('**/api/roleplay', async route => {
+    const body = route.request().postDataJSON() as { action?: string; situation?: { blurb?: string } };
+    if (body.action === 'prompt') {
+      situation = body.situation?.blurb ?? '';
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ prompt: `Story still: ${situation}`, provider: 'template' }),
+      });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{"scenes":[]}' });
+  });
+  await gotoStable(page, '/story?character=e2e-story-own');
+  await dismissBlockingOverlays(page);
+  const picker = page.getByTestId('story-beat-picker');
+  await expect(picker).toBeVisible({ timeout: 30_000 });
+  const own = picker.getByTestId('story-own-scene');
+  await own.locator('summary').click();
+  await expect(own.getByTestId('story-own-scene-play')).toBeDisabled();
+  await own
+    .getByTestId('story-own-scene-text')
+    .fill('she misses the last ferry and talks her way onto a fishing boat');
+  await own.getByTestId('story-own-scene-play').click();
+  await expect.poll(() => situation).toContain('misses the last ferry');
+  await expect(page.getByText('She misses the last ferry and…').first()).toBeVisible({
+    timeout: 15_000,
+  });
+  // Take it back: the scene leaves the reel.
+  page.once('dialog', dialog => {
+    expect(dialog.message()).toContain('Take back the last scene');
+    void dialog.accept();
+  });
+  await picker.getByTestId('story-undo-scene').click();
+  await expect(page.getByText('She misses the last ferry and…')).toHaveCount(0);
+});
+
 test('outfit pose from a photo: reads the pose and selects it', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: '' },

@@ -1,5 +1,6 @@
 'use client';
 
+import StoryOwnScene from '@/components/roleplay/StoryOwnScene';
 import type { ReactNode } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton, FieldError } from '@/components/ui/Field';
@@ -47,6 +48,8 @@ export type RoleplayBeatOutputSectionProps = {
   onRestartStory: () => void;
   /** Beats already in the story — start-over is offered once there is one. */
   storyBeatCount?: number;
+  /** Take the last scene back (the step before it opens again). */
+  onUndoLastScene?: () => void;
   onBeatOutputChange: (beatOutput: RoleplayBeatOutput) => void;
   onAutoQueueChange: (autoQueue: boolean) => void;
   onRollScenes: () => void;
@@ -75,6 +78,7 @@ export default function RoleplayBeatOutputSection({
   onIntimateMixChange,
   onRestartStory,
   storyBeatCount = 0,
+  onUndoLastScene,
   onBeatOutputChange,
   onAutoQueueChange,
   onRollScenes,
@@ -109,15 +113,28 @@ export default function RoleplayBeatOutputSection({
           {/* Mid-story there was no way back to the first scene: rerolling only replaced the
               next four cards. */}
           {storyBeatCount > 0 ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={busy}
-              data-testid="story-start-over"
-              onClick={onRestartStory}
-            >
-              Start the story over
-            </Button>
+            <div className="flex flex-wrap gap-1.5">
+              {onUndoLastScene ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy}
+                  data-testid="story-undo-scene"
+                  onClick={onUndoLastScene}
+                >
+                  Take back the last scene
+                </Button>
+              ) : null}
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy}
+                data-testid="story-start-over"
+                onClick={onRestartStory}
+              >
+                Start the story over
+              </Button>
+            </div>
           ) : null}
           {queueBlockReason ? (
             <p
@@ -161,6 +178,13 @@ export default function RoleplayBeatOutputSection({
                 </button>
               ))}
             </div>
+          ) : null}
+          {bioPresent && !rollBlocked ? (
+            <StoryOwnScene
+              disabled={busy}
+              ending={storyProgress.phase === 'finale'}
+              onPlay={onPlayScene}
+            />
           ) : null}
           <div className="space-y-2 border-t border-[var(--border-subtle)] pt-3">
             <div className="flex flex-wrap gap-2">

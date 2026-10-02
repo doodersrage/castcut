@@ -1,5 +1,6 @@
 'use client';
 
+import StoryOwnScene from '@/components/roleplay/StoryOwnScene';
 import { RoleplayCastToneSettingSection } from '@/components/roleplay/sections/RoleplayCastToneSettingSection';
 import { useNsfwGeneratorStatus } from '@/hooks/useNsfwGeneratorEnabled';
 import { roleplayMoodSummary } from '@/lib/roleplay';
@@ -39,7 +40,7 @@ import {
 } from '@/lib/mobile-studio';
 import StoryRetryFlagged from '@/components/roleplay/StoryRetryFlagged';
 import { getCharacter } from '@/lib/character-os';
-import { confirmRoleplayRestart } from '@/lib/roleplay';
+import { confirmRoleplayRestart, confirmRoleplayUndoScene } from '@/lib/roleplay';
 import { remixDayFilmHref } from '@/lib/play-starter';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import {
@@ -107,6 +108,14 @@ export default function MobilePlayToolSections({ description: _description, ...v
   } = vm;
 
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance({ mobile: true });
+  const undoLastScene = () => {
+    const last = story[story.length - 1];
+    if (!last || !confirmRoleplayUndoScene(last.title)) {
+      return;
+    }
+    updateToolSettings({ story: story.slice(0, -1) });
+    setScenes([]);
+  };
   const startStoryOver = () => {
     if (!confirmRoleplayRestart(story.length)) {
       return;
@@ -439,15 +448,26 @@ export default function MobilePlayToolSections({ description: _description, ...v
             {scenes.length > 0 ? storyProgress.rerollLabel : storyProgress.rollLabel}
           </Button>
           {story.length > 0 ? (
-            <Button
-              variant="ghost"
-              disabled={busy}
-              data-testid="story-start-over"
-              onClick={startStoryOver}
-              className="w-full justify-center"
-            >
-              Start the story over
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="ghost"
+                disabled={busy}
+                data-testid="story-undo-scene"
+                onClick={undoLastScene}
+                className="justify-center"
+              >
+                Take back last scene
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={busy}
+                data-testid="story-start-over"
+                onClick={startStoryOver}
+                className="justify-center"
+              >
+                Start over
+              </Button>
+            </div>
           ) : null}
           {queueBlockReason ? (
             <p
@@ -475,6 +495,13 @@ export default function MobilePlayToolSections({ description: _description, ...v
                 </button>
               ))}
             </div>
+          ) : null}
+          {bio && !queueBlockReason ? (
+            <StoryOwnScene
+              disabled={playingId !== null || busy}
+              ending={storyProgress.phase === 'finale'}
+              onPlay={scene => void playScene(scene)}
+            />
           ) : null}
         </div>
       ) : null}

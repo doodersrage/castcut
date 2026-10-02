@@ -310,6 +310,7 @@ export default function RoleplayToolSections({
             }
             onRestartStory={session.restartStory}
             storyBeatCount={story.length}
+            onUndoLastScene={session.undoLastScene}
             onBeatOutputChange={next => updateToolSettings({ beatOutput: next })}
             onAutoQueueChange={next => updateToolSettings({ autoQueue: next })}
             onRollScenes={() => void sceneFlow.rollScenes()}
