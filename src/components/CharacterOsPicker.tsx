@@ -3,6 +3,9 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldLabel } from '@/components/ui/Field';
+import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
+import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
+import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
 import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import {
   activateLook,
@@ -158,23 +161,26 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
   return (
     <div className="space-y-2">
       <FieldLabel>Character</FieldLabel>
+      {/* Picked by picture: a dropdown hid the Cast behind a list of names. */}
+      <PortraitTileStrip
+        label="Active character"
+        value={activeId ?? ''}
+        onChange={applyId}
+        testIdPrefix="cast-picker-character"
+        tiles={[
+          { id: '', label: 'None', title: 'None — session only', glyph: '–' },
+          ...characters.map(character => {
+            const trigger = loraTriggerFromCharacter(character);
+            return {
+              id: character.id,
+              label: character.name,
+              title: trigger ? `${character.name} · ${trigger}` : character.name,
+              thumb: castPlateThumbUrl(character) || undefined,
+            };
+          }),
+        ]}
+      />
       <div className="flex flex-wrap gap-2">
-        <select
-          className="ui-input min-w-[12rem] flex-1 px-[var(--input-padding-x)] py-[var(--input-padding-y)] type-body"
-          value={activeId ?? ''}
-          onChange={event => applyId(event.target.value)}
-          aria-label="Active character"
-        >
-          <option value="">None — session only</option>
-          {characters.map(character => (
-            <option key={character.id} value={character.id}>
-              {character.name}
-              {loraTriggerFromCharacter(character)
-                ? ` · ${loraTriggerFromCharacter(character)}`
-                : ''}
-            </option>
-          ))}
-        </select>
         {activeId ? (
           <>
             <ButtonLink
@@ -222,18 +228,21 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
       {active && looks.length > 0 ? (
         <div className="space-y-1.5">
           <FieldLabel>Look</FieldLabel>
-          <select
-            className="ui-input w-full px-[var(--input-padding-x)] py-[var(--input-padding-y)] type-body"
+          <PortraitTileStrip
+            label="Active look"
             value={activeLookId ?? ''}
-            onChange={event => applyLookId(event.target.value)}
-            aria-label="Active look"
-          >
-            {looks.map(look => (
-              <option key={look.id} value={look.id}>
-                {look.name}
-              </option>
-            ))}
-          </select>
+            onChange={applyLookId}
+            testIdPrefix="cast-picker-look"
+            tiles={looks.map(look => {
+              const plate =
+                look.reference?.isolatedUrl?.trim() || look.reference?.originalUrl?.trim() || '';
+              return {
+                id: look.id,
+                label: look.name,
+                thumb: plate ? cacheBustIdentityMediaUrl(plate) : undefined,
+              };
+            })}
+          />
         </div>
       ) : null}
       {/* Saving is occasional — keep it one click away instead of three controls up front. */}

@@ -649,6 +649,7 @@ html[data-density='comfortable'] .ui-tool-header {
 /* Sticky cards scroll over content — the translucent card token let text show through. */
 :root .ui-gallery-dock.sticky,
 :root .ui-sticky-surface,
+:root .ui-menu,
 :root .ui-menu-panel {
   /* Solid: a translucent mix + backdrop blur still showed text through inside the
      header, whose own backdrop-filter becomes the blur's backdrop root. */

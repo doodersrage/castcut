@@ -329,14 +329,16 @@ test('forgetting a Cast lead asks first', async ({ page }) => {
   });
   await gotoStable(page, '/fitting?character=e2e-forget');
   await dismissBlockingOverlays(page);
-  const picker = page.getByLabel('Active character');
-  await expect(picker).toHaveValue('e2e-forget', { timeout: 30_000 });
+  const picked = page
+    .getByRole('radiogroup', { name: 'Active character' })
+    .getByTestId('cast-picker-character-e2e-forget');
+  await expect(picked).toBeChecked({ timeout: 30_000 });
   page.once('dialog', dialog => {
     expect(dialog.message()).toMatch(/Forget Keep Me\?/);
     void dialog.dismiss();
   });
   await page.getByTestId('fitting-character').getByRole('button', { name: 'Forget' }).click();
-  await expect(picker).toHaveValue('e2e-forget');
+  await expect(picked).toBeChecked();
 });
 
 test('day planner happy path chrome loads', async ({ page }) => {

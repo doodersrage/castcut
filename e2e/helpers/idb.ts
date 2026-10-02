@@ -95,13 +95,26 @@ export async function seedSettingsCacheOnNextLoad(
     await putAppKv(page, entries);
   }
   await page.addInitScript(async pairs => {
-    // The Cast store also keeps a localStorage mirror, and an empty one left by an earlier page
-    // load could win over the IndexedDB seed at boot (the Cast came up empty in about a third of
-    // parallel runs). Seed the mirror too, synchronously, before any app code runs.
-    const cast = (pairs as Record<string, unknown>)['comfy-prompt-characters-v1'];
-    if (cast !== undefined) {
+    // Each store also keeps a localStorage mirror, and an empty one left by an earlier page load
+    // could win over the IndexedDB seed at boot (the Cast or a tool's settings came up empty in
+    // about a third of parallel runs). Seed the mirrors too, synchronously, before app code runs.
+    const all = pairs as Record<string, unknown>;
+    const mirrors: Record<string, unknown> = {
+      'comfy-prompt-characters-v1': all['comfy-prompt-characters-v1'],
+      'comfy-prompt-tool-settings-tools-v1': all['comfy-prompt-tool-settings-tools-v1'],
+      'comfy-prompt-tool-settings-v1': all['comfy-prompt-tool-settings-v1']
+        ? {
+            ...(all['comfy-prompt-tool-settings-v1'] as Record<string, unknown>),
+            tools:
+              (all['comfy-prompt-tool-settings-tools-v1'] as { tools?: unknown } | undefined)
+                ?.tools ?? {},
+          }
+        : undefined,
+    };
+    for (const [key, value] of Object.entries(mirrors)) {
+      if (value === undefined) continue;
       try {
-        window.localStorage.setItem('comfy-prompt-characters-v1', JSON.stringify(cast));
+        window.localStorage.setItem(key, JSON.stringify(value));
       } catch {
         /* storage unavailable on this page */
       }
