@@ -538,6 +538,30 @@ test('story mid-flow: Roll leads, settings fold, no default Part', async ({ page
   await expect(page.getByRole('button', { name: 'Cut film', exact: true })).toBeVisible();
 });
 
+test('story mid-flow: start the story over after changing its settings', async ({ page }) => {
+  await seedStoryMidFlow(page, 'e2e-story-over');
+  await gotoStable(page, '/story?character=e2e-story-over');
+  await dismissBlockingOverlays(page);
+  const picker = page.getByTestId('story-beat-picker');
+  await expect(picker).toBeVisible({ timeout: 30_000 });
+  // The settings say when they take effect, and offer the way back to scene one.
+  await picker.getByTestId('story-settings').locator('summary').click();
+  await expect(picker.getByTestId('story-settings-midway')).toContainText(
+    'Changes apply from the next scene'
+  );
+  // Declining the confirmation keeps the story.
+  page.once('dialog', dialog => void dialog.dismiss());
+  await picker.getByTestId('story-start-over').click();
+  await expect(picker.getByTestId('story-start-over')).toBeVisible();
+  page.once('dialog', dialog => {
+    expect(dialog.message()).toContain('Restart the story?');
+    void dialog.accept();
+  });
+  await picker.getByTestId('story-start-over').click();
+  await expect(picker.getByTestId('story-start-over')).toHaveCount(0);
+  await expect(picker.getByTestId('story-settings-midway')).toHaveCount(0);
+});
+
 test('outfit pose from a photo: reads the pose and selects it', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: '' },

@@ -309,6 +309,7 @@ export default function RoleplayToolSections({
               updateToolSettings({ intimateMix: normalizeDayIntimateMix(next) })
             }
             onRestartStory={session.restartStory}
+            storyBeatCount={story.length}
             onBeatOutputChange={next => updateToolSettings({ beatOutput: next })}
             onAutoQueueChange={next => updateToolSettings({ autoQueue: next })}
             onRollScenes={() => void sceneFlow.rollScenes()}

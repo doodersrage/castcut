@@ -107,6 +107,13 @@ export default function MobilePlayToolSections({ description: _description, ...v
   } = vm;
 
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance({ mobile: true });
+  const startStoryOver = () => {
+    if (!confirmRoleplayRestart(story.length)) {
+      return;
+    }
+    updateToolSettings({ story: [], rejectedScenes: [] });
+    setScenes([]);
+  };
   const { ready: adultGateReady } = useNsfwGeneratorStatus();
   // The active Cast lead (as desktop Story does). filmCharacterId is only set once a film is
   // cut, so gating on it alone told every phone player "Story needs a Cast lead" until then.
@@ -283,6 +290,24 @@ export default function MobilePlayToolSections({ description: _description, ...v
                 toolSettings={toolSettings}
                 onUpdateToolSettings={updateToolSettings}
               />
+              {story.length > 0 ? (
+                <p
+                  className="type-caption text-[var(--text-muted)]"
+                  data-testid="mobile-story-settings-midway"
+                >
+                  Changes apply from the next scene — the {story.length} scene
+                  {story.length === 1 ? '' : 's'} so far stay as they are.{' '}
+                  <button
+                    type="button"
+                    className="ui-text-link inline-block py-2"
+                    disabled={busy}
+                    onClick={startStoryOver}
+                  >
+                    Start the story over
+                  </button>{' '}
+                  to use them from the first scene.
+                </p>
+              ) : null}
             </div>
           </details>
         </>
@@ -413,6 +438,17 @@ export default function MobilePlayToolSections({ description: _description, ...v
           >
             {scenes.length > 0 ? storyProgress.rerollLabel : storyProgress.rollLabel}
           </Button>
+          {story.length > 0 ? (
+            <Button
+              variant="ghost"
+              disabled={busy}
+              data-testid="story-start-over"
+              onClick={startStoryOver}
+              className="w-full justify-center"
+            >
+              Start the story over
+            </Button>
+          ) : null}
           {queueBlockReason ? (
             <p
               className="type-caption text-[var(--text-muted)]"
@@ -449,13 +485,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
           <Button
             variant="secondary"
             disabled={busy}
-            onClick={() => {
-              if (!confirmRoleplayRestart(story.length)) {
-                return;
-              }
-              updateToolSettings({ story: [], rejectedScenes: [] });
-              setScenes([]);
-            }}
+            onClick={startStoryOver}
             className="w-full justify-center"
           >
             Restart story

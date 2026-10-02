@@ -45,6 +45,8 @@ export type RoleplayBeatOutputSectionProps = {
   intimateMix?: DayIntimateMix;
   onIntimateMixChange?: (next: DayIntimateMix) => void;
   onRestartStory: () => void;
+  /** Beats already in the story — start-over is offered once there is one. */
+  storyBeatCount?: number;
   onBeatOutputChange: (beatOutput: RoleplayBeatOutput) => void;
   onAutoQueueChange: (autoQueue: boolean) => void;
   onRollScenes: () => void;
@@ -72,6 +74,7 @@ export default function RoleplayBeatOutputSection({
   intimateMix = 'mixed',
   onIntimateMixChange,
   onRestartStory,
+  storyBeatCount = 0,
   onBeatOutputChange,
   onAutoQueueChange,
   onRollScenes,
@@ -103,6 +106,19 @@ export default function RoleplayBeatOutputSection({
           >
             {scenes.length > 0 ? storyProgress.rerollLabel : storyProgress.rollLabel}
           </Button>
+          {/* Mid-story there was no way back to the first scene: rerolling only replaced the
+              next four cards. */}
+          {storyBeatCount > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              data-testid="story-start-over"
+              onClick={onRestartStory}
+            >
+              Start the story over
+            </Button>
+          ) : null}
           {queueBlockReason ? (
             <p
               className="type-caption text-[var(--text-muted)]"
@@ -197,6 +213,24 @@ export default function RoleplayBeatOutputSection({
             <div className="space-y-3" data-testid="story-active-plan">
               {moodControls}
             </div>
+          ) : null}
+          {storyBeatCount > 0 ? (
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              data-testid="story-settings-midway"
+            >
+              Changes apply from the next scene — the {storyBeatCount} scene
+              {storyBeatCount === 1 ? '' : 's'} so far stay as they are.{' '}
+              <button
+                type="button"
+                className="ui-text-link"
+                disabled={busy}
+                onClick={onRestartStory}
+              >
+                Start the story over
+              </button>{' '}
+              to use them from the first scene.
+            </p>
           ) : null}
           {showIntimateMix ? (
             <div className="space-y-2" data-testid="story-intimate-mix">
