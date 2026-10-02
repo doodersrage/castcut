@@ -16,7 +16,7 @@ const PARTS = ['morning', 'afternoon', 'evening', 'night'] as const;
 /** How many figures Day draws for a beat, through the same planner the slot editor uses. */
 function figuresFor(beat: string, dayMood: string, duo: boolean): number {
   const plan = planDaySlotPose({
-    slot: { id: 'morning', label: 'Morning', sceneHints: beat, location: 'city park' },
+    slot: { id: 'morning', sceneHints: beat, location: 'city park' },
     dayMood,
     intimateMix: duo ? 'duo' : 'solo',
     allowCompanions: duo,
