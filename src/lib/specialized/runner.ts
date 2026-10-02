@@ -160,6 +160,9 @@ Output ONLY the raw prompt text. No quotes around the whole prompt, labels, mark
     options.soloSubject,
     options.enforceMinimum,
     options.postProcessPrompt,
+    false,
+    undefined,
+    // The app's own template text, not model output: nothing in it is "reasoning".
     false
   );
 
@@ -182,10 +185,16 @@ async function finalizeSpecializedPrompt(
     llmProvider?: import('../llm-providers').SessionLlmProvider;
     llmApiKey?: string;
     llmModel?: string;
-  }
+  },
+  /**
+   * False for a template draft. The reasoning check is for model output: it took the labelled
+   * lines of Story's adult "Oral interruption" template ("ORAL: …", "FOREGROUND: …") for a
+   * model's checklist, and with no language model that still could not be written.
+   */
+  fromModel = true
 ): Promise<string> {
   const cleaned = stripPromptArtifacts(raw);
-  if (!cleaned.trim() || isThinkingOnlyArtifact(cleaned)) {
+  if (!cleaned.trim() || (fromModel && isThinkingOnlyArtifact(cleaned))) {
     throw new Error('LLM returned reasoning text instead of a prompt.');
   }
 

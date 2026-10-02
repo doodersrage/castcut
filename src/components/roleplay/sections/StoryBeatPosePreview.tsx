@@ -1,5 +1,6 @@
 'use client';
 
+import { composedPoseForScene } from '@/lib/pose-compose';
 import { useMemo } from 'react';
 import PosePreview, { type PosePicks } from '@/components/pose/PosePreview';
 import { useWeakPoseLayouts } from '@/hooks/useWeakPoseLayouts';
@@ -38,18 +39,34 @@ export default function StoryBeatPosePreview({
     () => mergeAvoidedPoseLayouts(playWeakLayouts, model),
     [model, playWeakLayouts]
   );
+  // The other beats' titles, as the queue passes them: a blurb that quotes one ("…the fallout
+  // of milk pitcher duel") does not take its pose from the quote.
+  const quotedTitles = ((loadSettingsCache().tools.roleplay?.story ?? []) as RoleplayStoryBeat[])
+    .filter(entry => !(entry.id === beat.id && entry.at === beat.at))
+    .map(entry => entry.title)
+    .join('\n');
   const sceneText = useMemo(
     () =>
-      sceneTextFromStoryPoseInput({ title: beat.title, blurb: beat.blurb, prompt: beat.prompt }),
-    [beat.blurb, beat.prompt, beat.title]
+      sceneTextFromStoryPoseInput({
+        title: beat.title,
+        blurb: beat.blurb,
+        prompt: beat.prompt,
+        quotedTitles: quotedTitles ? quotedTitles.split('\n') : [],
+      }),
+    [beat.blurb, beat.prompt, beat.title, quotedTitles]
   );
   // Same options the queue passes to buildStoryPoseGuide.
   const options = useMemo((): PoseGuideBuildOptions => {
-    const pose = mergePickedPose(beat.poseLayout, beat.pose);
+    const pose = mergePickedPose(beat.poseLayout, beat.pose, beat.blurb);
+    const composed = composedPoseForScene({
+      pose,
+      sceneText: beat.blurb,
+      playerPosed: Boolean(beat.poseLayout || beat.posePhoto),
+    });
     return {
       ...(pose ? { pose } : {}),
       variant: beat.poseVariant ?? 0,
-      ...(beat.posePhoto ? { photoPose: beat.posePhoto } : {}),
+      ...(beat.posePhoto ? { photoPose: beat.posePhoto } : composed ? { photoPose: composed } : {}),
       ...(beat.poseCamera ? { camera: beat.poseCamera } : {}),
       ...(beat.poseLead ? { leadSide: beat.poseLead } : {}),
       ...(beat.poseLook ? { look: beat.poseLook } : {}),
@@ -57,6 +74,7 @@ export default function StoryBeatPosePreview({
     };
   }, [
     model,
+    beat.blurb,
     beat.pose,
     beat.poseCamera,
     beat.poseLayout,

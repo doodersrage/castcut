@@ -1411,3 +1411,171 @@ describe('pose words that are not a pose (Day prompt sweep findings)', () => {
     assert.equal(sceneTextStatesPose(''), false);
   });
 });
+
+describe('reconcileWrittenPose — the scene writer\'s pose against the scene\'s words', () => {
+  it('drops a named pose the words give no support for', async () => {
+    const { reconcileWrittenPose } = await import('./day-pose-guide');
+    // What a local 8B model actually returned (2026-10-02).
+    for (const [layout, text] of [
+      ['hands_hips', 'Mara lifts her lantern high above her head, the beam cutting the dark.'],
+      ['rail', 'Mara balances on one leg atop a crumbling brick wall.'],
+      ['dance', 'She sits at the bar, nursing a drink.'],
+      ['sport_serve', 'She waits under the awning, watching the street.'],
+    ] as const) {
+      const result = reconcileWrittenPose({ layout, body: 'stand' }, text);
+      assert.equal(result.spec?.layout, undefined, text);
+      assert.match(result.changed.join(' '), /not what the scene says/, text);
+    }
+  });
+
+  it('drops a full-body layout the words contradict, and draws the stated posture', async () => {
+    const { reconcileWrittenPose } = await import('./day-pose-guide');
+    const lying = reconcileWrittenPose({ layout: 'stairs' }, 'She lies on the stairs, staring up.');
+    assert.deepEqual(lying.spec, { body: 'lie' });
+    assert.equal(lying.changed.length, 1);
+    assert.deepEqual(
+      reconcileWrittenPose({ body: 'lie' }, 'She is sitting on the kitchen counter.').spec,
+      { body: 'sit' }
+    );
+  });
+
+  it('keeps a hand gesture, on the posture the words state', async () => {
+    const { reconcileWrittenPose } = await import('./day-pose-guide');
+    assert.deepEqual(
+      reconcileWrittenPose({ layout: 'phone' }, 'She sits on the stairs scrolling her phone.').spec,
+      { layout: 'phone', body: 'sit' }
+    );
+  });
+
+  it('leaves an agreeing pose alone', async () => {
+    const { reconcileWrittenPose } = await import('./day-pose-guide');
+    for (const [spec, text] of [
+      [{ layout: 'dance' }, 'She dances alone in the empty ballroom.'],
+      [{ layout: 'laptop' }, 'She sits at the desk, typing.'],
+      [{ layout: 'lie_side' }, 'She is lying on her side on the sofa with a book.'],
+      [{ layout: 'wave' }, 'She stands on the platform and waves.'],
+      [{ layout: 'wave' }, 'She hails a cab in the rain.'],
+      [{ layout: 'arms_up' }, 'She lifts the lantern high overhead.'],
+      [{ body: 'kneel' }, 'She is sitting back on her heels in the garden.'],
+      [{ layout: 'stairs' }, 'She takes the stairs two at a time.'],
+      [{ layout: 'sport_cycle' }, 'She sits on the bike at the lights.'],
+      [{ limbs: { right_arm: ['up', 'up'] } }, 'She lifts the lantern.'],
+    ] as const) {
+      const result = reconcileWrittenPose(spec, text);
+      assert.deepEqual(result.spec, spec, text);
+      assert.deepEqual(result.changed, [], text);
+    }
+  });
+
+  it('a two-person layout in a one-person scene is dropped', async () => {
+    const { reconcileWrittenPose } = await import('./day-pose-guide');
+    assert.deepEqual(
+      reconcileWrittenPose({ layout: 'hug', people: 1 }, 'She hugs herself against the cold.').spec,
+      { people: 1 }
+    );
+    assert.deepEqual(reconcileWrittenPose({ layout: 'hug', people: 2 }, 'They hug at the gate.').spec, {
+      layout: 'hug',
+      people: 2,
+    });
+  });
+});
+
+describe('Story pose text and the lead\'s posture (Story pose sweep findings)', () => {
+  it('reads the pose from the scene, not from the stored still prompt', async () => {
+    const { sceneTextFromStoryPoseInput } = await import('./day-pose-guide');
+    const stored =
+      'Replace the scene with a walled garden with climbing vines. Final still must be a photorealistic live-action photograph.';
+    assert.equal(
+      sceneTextFromStoryPoseInput({ title: 'Fog', blurb: 'Nothing moves.', prompt: stored }),
+      'Fog · Nothing moves.'
+    );
+    // A retry (prompt stored) draws what the first take drew.
+    assert.equal(
+      resolveStoryPoseGuideKeyFromBeat({ title: 'Fog', blurb: 'Nothing moves.', prompt: stored, storyIndex: 1 }),
+      resolveStoryPoseGuideKeyFromBeat({ title: 'Fog', blurb: 'Nothing moves.', storyIndex: 1 })
+    );
+    // Legacy beat with neither title nor blurb: the prompt is all there is.
+    assert.equal(sceneTextFromStoryPoseInput({ prompt: 'She sits on a crate.' }), 'She sits on a crate.');
+  });
+
+  it('treats a title as a label: its own, and one quoted from an earlier beat', async () => {
+    const { sceneTextFromStoryPoseInput } = await import('./day-pose-guide');
+    assert.equal(
+      sceneTextFromStoryPoseInput({
+        title: 'Sunrise punch-out',
+        blurb: 'You freeze mid-stretch because that is the job.',
+        allowIntimate: false,
+      }),
+      'You freeze mid-stretch because that is the job.'
+    );
+    // No pose in the blurb: the title may supply one.
+    assert.equal(
+      sceneTextFromStoryPoseInput({ title: 'Couch talk', blurb: 'An honest hour.' }),
+      'Couch talk · An honest hour.'
+    );
+    const fork = {
+      title: 'Walk away',
+      blurb: 'Doppio leaves milk pitcher duel for good, one look back, no one following.',
+      allowIntimate: false,
+    };
+    assert.equal(parseSocialLayout(sceneTextFromStoryPoseInput(fork)), 'fight');
+    assert.equal(
+      parseSocialLayout(sceneTextFromStoryPoseInput({ ...fork, quotedTitles: ['Milk pitcher duel'] })),
+      'look_back'
+    );
+  });
+
+  it('counts the people the words name', () => {
+    assert.equal(countPoseGuidePeople('Two consenting adults in a doorway — close enough to kiss.'), 2);
+    assert.equal(countPoseGuidePeople('two naked adults on the bed'), 2);
+    assert.equal(countPoseGuidePeople('Lana with two distinct adult partners — three nude bodies on a bed'), 3);
+    assert.equal(countPoseGuidePeople('two cups of coffee on the counter'), 1);
+    // SFW: a dance floor or a "punch-out" is not a second person.
+    const sfw = { allowIntimate: false as const };
+    assert.equal(parsePoseGuideIntent('The dance floor is a stump. You are killing it.', 0, sfw).people, 1);
+    assert.equal(parsePoseGuideIntent('She dances with a stranger under the lights.', 0, sfw).people, 2);
+    // Where sex layouts are on, a dance is still a pair unless she is alone.
+    assert.equal(parsePoseGuideIntent('The ballroom is empty and she dances.', 0).people, 2);
+  });
+
+  it('finds the lead\'s posture in more wordings, and only the lead\'s', async () => {
+    const { textLeadPosture } = await import('./day-pose-guide');
+    for (const [text, posture] of [
+      ['She sat on the steps.', 'sit'],
+      ['She perches on a stool at the counter.', 'sit'],
+      ['She stood by the door.', 'stand'],
+      ['She rises from the chair and stands at the window.', 'stand'],
+      ['She lay on the rug.', 'lie'],
+      ['She reclines on the chaise.', 'lie'],
+      ['Lana kneels to tie a shoe.', 'kneel'],
+      ['She knelt in the garden.', 'kneel'],
+      ['She crouches behind the crates.', 'kneel'],
+      ['Squatting by the campfire.', 'kneel'],
+      ['Kneeling on the rug to wrap a present.', 'kneel'],
+      ['Empty lot, moths, you stand like a tiny lighthouse of rules.', 'stand'],
+      // Not the lead.
+      ['Windblown courier in a cracked-leather jacket, hair standing on end.', null],
+      ['A sentient stew in a chipped bowl, spoon standing at attention.', null],
+      ['The statue stands in the square.', null],
+      ['The door is standing open.', null],
+      ['A distinct adult partner kneeling for oral sex on Lana.', null],
+      // A partner's posture does not count against hers.
+      ['She straddles a bench as he kneels behind her', 'sit'],
+    ] as const) {
+      assert.equal(textLeadPosture(text), posture, text);
+    }
+  });
+
+  it('checks a written sport layout against the stated posture too', async () => {
+    const { reconcileWrittenPose } = await import('./day-pose-guide');
+    assert.deepEqual(
+      reconcileWrittenPose({ layout: 'sport_pushup' }, 'She stands at the gym door, towel over one shoulder.').spec,
+      { body: 'stand' }
+    );
+    // A seat on a bike survives: the cycling pose is a low one.
+    assert.deepEqual(
+      reconcileWrittenPose({ layout: 'sport_cycle' }, 'She sits on the bike at the lights.').spec,
+      { layout: 'sport_cycle' }
+    );
+  });
+});

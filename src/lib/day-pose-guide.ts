@@ -9,6 +9,7 @@
  * contact read clearly — still face-free / clothing-free.
  */
 
+import { normalizePoseLimbs, type PoseLimbsSpec } from '@/lib/pose-limb-presets';
 import type { DaySlotId } from '@/lib/day-planner';
 import {
   clarifyIntimateImageLanguage,
@@ -174,6 +175,11 @@ export type ScenePoseSpec = {
    * instead of being guessed from the blurb. `body` still sets the posture for hand gestures.
    */
   layout?: SocialLayout;
+  /**
+   * The limbs described one by one, for a pose that is none of the named layouts — composed
+   * into a skeleton (pose-compose.ts). Only used when there is no layout and no act.
+   */
+  limbs?: PoseLimbsSpec;
 };
 
 /** Accept only known values from an LLM `pose` object; undefined when nothing usable. */
@@ -201,6 +207,12 @@ export function normalizeScenePoseSpec(raw: unknown): ScenePoseSpec | undefined 
       ? { act: act as IntimateLayout | 'none' }
       : {}),
   };
+  // Small models put a leg beside `limbs` as often as inside it — read both places.
+  const limbs = normalizePoseLimbs({
+    ...record,
+    ...(record.limbs && typeof record.limbs === 'object' ? (record.limbs as object) : {}),
+  });
+  if (limbs) spec.limbs = limbs;
   return Object.keys(spec).length > 0 ? spec : undefined;
 }
 
@@ -612,15 +624,24 @@ export function countPoseGuidePeople(
   if (
     /\b(threesome|three[- ]way|mmf|ffm|mmm|fff|spit[- ]?roast|double\s+team|crowd|group of|among (?:the )?crowd|three (?:people|persons|figures|friends|strangers|lovers)|a trio)\b/i.test(
       haystack
+    ) ||
+    // "Lana with two distinct adult partners — three nude bodies on a bed".
+    /\b(?:two\s+(?:[\w-]+\s+){0,2}partners|three\s+(?:[\w-]+\s+){0,2}(?:adults|bodies))\b/i.test(
+      haystack
     )
   ) {
     return 3;
   }
   if (
-    /\b(duo|pair|couple|both of (?:you|them)|the two|two (?:people|persons|figures|strangers|friends|lovers|adults)|knee[- ]to[- ]knee|face[- ]to[- ]face|side by side|arm in arm|hand in hand|each other|one another)\b/i.test(
+    /\b(duo|pair|couple|both of (?:you|them)|the two|two (?:people|persons|figures|strangers|friends|lovers|adults)|both adults|knee[- ]to[- ]knee|face[- ]to[- ]face|side by side|arm in arm|hand in hand|each other|one another)\b/i.test(
       haystack
     )
   ) {
+    return 2;
+  }
+  // "Two consenting adults in a doorway", "two naked adults": the Story opening "Heat at the
+  // door" was drawn with one figure.
+  if (/\btwo\s+(?:[\w-]+\s+){1,2}adults\b/i.test(haystack)) {
     return 2;
   }
   if (
@@ -1438,7 +1459,7 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
     return 'selfie';
   }
   if (
-    /\b((?:takes?|taking|snaps?|snapping|shoots?|shooting)\s+(?:a\s+)?(?:photo|picture|pic)s?|photograph(?:s|ing)?|lines?\s+up\s+(?:a|the)\s+shot|camera\s+(?:raised\s+|up\s+)?to\s+(?:her|his|their|one)\s+eye|film\s+camera|(?:through|into)\s+the\s+viewfinder|polaroid)\b/i.test(
+    /\b((?:takes?|taking|snaps?|snapping|shoots?|shooting)\s+(?:a\s+)?(?:photo|picture|pic)s?|photograph(?:s|ing)?|lines?\s+up\s+(?:a|the)\s+shot|camera\s+(?:raised\s+|up\s+)?to\s+(?:her|his|their|one)\s+eye|camera\s+(?:raised|poised|aimed|up)|(?:raises?|lifts?|aims?)\s+(?:her|his|the)\s+camera|film\s+camera|(?:through|into)\s+(?:the|her|his)\s+(?:viewfinder|lens)|polaroid)\b/i.test(
       haystack
     )
   ) {
@@ -2292,6 +2313,10 @@ export function parsePoseGuideIntent(
     } else if (
       social &&
       people < 2 &&
+      // Where sex layouts are off (SFW Story, clothed Day), a dance or a fight is as many people
+      // as the words name: "The dance floor is a stump. You are killing it." and a gargoyle's
+      // "Sunrise punch-out" were drawn as a pair because nothing said "alone".
+      !(options?.allowIntimate === false && (social === 'dance' || social === 'fight')) &&
       // "She dances alone in the kitchen" — a solo dance, not a ballroom pair.
       !/\b(alone|solo|by\s+(?:herself|himself|themselves)|on\s+(?:her|his|their)\s+own)\b/i.test(
         haystack
@@ -5026,30 +5051,73 @@ export function textLeadPosture(text: string | null | undefined): LeadPosture | 
   if (!sample.trim()) return null;
   const found = new Set<LeadPosture>();
   if (
-    /\b(stands?|standing|on\s+(?:her|his|their)\s+feet|balanc(?:e|es|ing)\s+on\s+one\s+foot|(?:on|at)\s+(?:a|the)\s+(?:[\w'-]+\s+){0,3}(?:ledge|railing|pier|plank|balcony)|gripping\s+the\s+(?:railing|rail|ledge)|(?:up\s+)?against\s+(?:the\s+)?(?:[\w'-]+\s+){0,3}(?:wall|railing|door|glass|window))\b/i.test(
+    leadDoes(sample, /\b(?:stands?|stood)\b/gi, 'finite') ||
+    leadDoes(
+      sample,
+      /\bstanding\b(?!\s+(?:on\s+end|ovation|orders?|room|stones?))/gi,
+      'participle'
+    ) ||
+    /\b(standing\s+sex|on\s+(?:her|his|their)\s+feet|balanc(?:e|es|ing)\s+on\s+one\s+foot|(?:on|at)\s+(?:a|the)\s+(?:[\w'-]+\s+){0,3}(?:ledge|railing|pier|plank|balcony)|gripping\s+the\s+(?:railing|rail|ledge)|(?:up\s+)?against\s+(?:the\s+)?(?:[\w'-]+\s+){0,3}(?:wall|railing|door|glass|window))\b/i.test(
       sample
     )
   ) {
     found.add('stand');
   }
   if (
-    /\b(lies|lying|lays?\s+(?:back|down)|on\s+(?:her|his|their)\s+back|supine|prone|face[- ]down|sprawl(?:s|ed|ing)|(?:into|onto)\s+her\s+from\s+above|on\s+top\s+of\s+her)\b/i.test(
+    leadDoes(sample, /\b(?:lies|reclines|lay\s+(?:on|in|across|back|down))\b/gi, 'finite') ||
+    leadDoes(sample, /\b(?:lying|reclining)\b/gi, 'participle') ||
+    /\b(lays?\s+(?:back|down)|on\s+(?:her|his|their)\s+back|supine|prone|face[- ]down|sprawl(?:s|ed|ing)|(?:into|onto)\s+her\s+from\s+above|on\s+top\s+of\s+her)\b/i.test(
       sample
     )
   ) {
     found.add('lie');
   }
   if (
-    /\b(sits?|sitting|seated|straddl(?:e|es|ing)\s+(?:a|an|the)\s+(?:[\w'-]+\s+)?(?:bench|chair|stool|seat|sofa|couch|bike|saddle))\b/i.test(
+    leadDoes(sample, /\b(?:sits?|sat|perches)\b/gi, 'finite') ||
+    leadDoes(sample, /\b(?:sitting|seated|perched|perching)\b/gi, 'participle') ||
+    /\bstraddl(?:e|es|ing)\s+(?:a|an|the)\s+(?:[\w'-]+\s+)?(?:bench|chair|stool|seat|sofa|couch|bike|saddle)\b/i.test(
       sample
     )
   ) {
     found.add('sit');
   }
-  if (/\b(hands\s+and\s+knees|all\s+fours|she\s+kneels|kneeling\s+on)\b/i.test(sample)) {
+  if (
+    leadDoes(sample, /\b(?:kneels|knelt|crouches|squats)\b/gi, 'finite') ||
+    leadDoes(sample, /\b(?:kneeling|crouching|crouched|squatting)\b/gi, 'participle') ||
+    /\b(hands\s+and\s+knees|all\s+fours)\b/i.test(sample)
+  ) {
     found.add('kneel');
   }
   return found.size === 1 ? [...found][0]! : null;
+}
+
+/**
+ * Who a posture word belongs to. The lead's name is not known here, so: a finite verb needs a
+ * personal subject right before it ("she sits", "Lana stood", "you stand" — not "the statue
+ * stands"); a participle needs one too ("she is lying", "her kneeling"), or to open its clause
+ * ("Sitting on the stairs…", "…, standing at the window"). A spoon "standing at attention" and
+ * hair "standing on end" in a Part's look were read as the lead standing.
+ */
+const LEAD_SUBJECT =
+  "(?:\\b(?:[Ss]he|[Hh]e|[Tt]hey|[Yy]ou|[Ww]e|I|who|woman|man|girl|boy|lady)|\\b[A-Z][\\w'’-]*[\"”’']?)";
+const LEAD_BEFORE_FINITE = new RegExp(
+  `(?:${LEAD_SUBJECT}(?:\\s+(?:\\w+ly|just|still|now|then|also|both|all|each))?|\\b(?:and|then))\\s+$`
+);
+/** "…as he kneels behind her": with a "she" in the scene, "he" is the partner. */
+const PARTNER_BEFORE = /\b[Hh]e(?:['’]s)?(?:\s+(?:is|was|\w+ly|just|still|now|then))?\s+$/;
+const LEAD_BEFORE_PARTICIPLE = new RegExp(
+  `(?:^|[.,;:!?—–(]\\s*|\\b(?:and|while|then|but|still|now|her)\\s+|${LEAD_SUBJECT}(?:['’](?:s|re|m)|\\s+(?:is|are|was|were|am|stays?|remains?|keeps?))?(?:\\s+(?:\\w+ly|just|still|now))?\\s+)$`
+);
+
+function leadDoes(sample: string, word: RegExp, form: 'finite' | 'participle'): boolean {
+  const context = form === 'finite' ? LEAD_BEFORE_FINITE : LEAD_BEFORE_PARTICIPLE;
+  const leadIsShe = /\b(?:she|her)\b/i.test(sample);
+  for (const match of sample.matchAll(word)) {
+    const before = sample.slice(0, match.index ?? 0);
+    if (leadIsShe && PARTNER_BEFORE.test(before)) continue;
+    if (context.test(before)) return true;
+  }
+  return false;
 }
 
 const POSTURE_FREE_LAYOUTS: ReadonlySet<IntimateLayout> = new Set(['undress', 'solo', 'generic']);
@@ -5065,6 +5133,175 @@ function layoutFitsPosture(layout: IntimateLayout, posture: LeadPosture): boolea
   const base = intimateBaseForLayout(layout);
   // Bent covers a standing bend, all fours, and leaning forward astride a seat.
   return base === posture || (base === 'lean' && posture !== 'lie');
+}
+
+/** How a posture base stands: on the feet, on a seat, low (kneel / crouch), or lying. */
+function postureGroup(base: PoseGuideBase): 'upright' | 'sit' | 'low' | 'lie' {
+  if (base === 'lie') return 'lie';
+  if (base === 'sit') return 'sit';
+  if (base === 'kneel' || base === 'crouch') return 'low';
+  return 'upright';
+}
+
+function baseFitsPosture(base: PoseGuideBase, posture: LeadPosture): boolean {
+  const group = postureGroup(base);
+  if (posture === 'lie') return group === 'lie';
+  if (posture === 'stand') return group === 'upright' || group === 'low';
+  // Seated or kneeling: anything but upright full-body poses and lying.
+  return group === 'sit' || group === 'low';
+}
+
+/** Hand and arm gestures: they sit on whatever posture the scene states. */
+const GESTURE_LAYOUTS: ReadonlySet<string> = new Set([
+  'phone',
+  'drink',
+  'read',
+  'wave',
+  'point',
+  'cross_arms',
+  'hands_hips',
+  'hair_touch',
+  'shrug',
+  'selfie',
+  'photograph',
+  'eat',
+  'toast',
+  'hands_behind_head',
+  'arms_up',
+]);
+
+/**
+ * Words a scene must contain for a named layout to be what it shows. Generous on purpose —
+ * paraphrases count — but a layout with no support at all in the words is the writer guessing:
+ * a local 8B model named "hands on hips" for "lifts her lantern high above her head" and
+ * "leaning on a rail" for "balances on one leg on a wall" (2026-10-02).
+ */
+const LAYOUT_EVIDENCE: Record<string, RegExp> = {
+  phone: /\b(phone|text(s|ing)?|scroll\w*|call(s|ing)?|screen|messag\w*)\b/i,
+  drink:
+    /\b(drink\w*|sip\w*|cup|mug|glass|coffee|tea|wine|cocktail|beer|bottle|espresso|juice|water)\b/i,
+  read: /\b(read\w*|book|novel|pages?|magazine|newspaper|letter|map|menu|note|script)\b/i,
+  carry:
+    /\b(carr\w*|bags?|tote|suitcase|box|basket|groceries|luggage|backpack|crate|haul\w*|lug\w*)\b/i,
+  wave: /\b(wav(e|es|ed|ing)|hail\w*|flag(s|ging)?\s+down|greet\w*|beckon\w*)\b/i,
+  point: /\bpoint\w*\b/i,
+  pockets: /\bpockets?\b/i,
+  cross_arms:
+    /\b((arms|forearms)\s+(crossed|folded)|(cross|fold)(es|ing|ed|s)?\s+(her|his|their)\s+arms)\b/i,
+  hands_hips: /\b(hands?\s+on\s+(her|his|their|the)?\s*hips?|akimbo)\b/i,
+  hair_touch: /\b(hair|behind\s+(her|his)\s+ear|ponytail|braid|curls?)\b/i,
+  shrug: /\bshrug\w*\b/i,
+  look_back:
+    /\b((look|glanc|peer|star)\w*\s+(back|behind|over)|over\s+(her|his|their)\s+shoulder)\b/i,
+  stretch: /\b(stretch\w*|yawn\w*|arch(es|ing)?\s+(her|his)\s+back)\b/i,
+  lean_wall:
+    /\b(lean\w*|against\s+(a|the)\s+(\w+\s+)?(wall|door|pillar|tree|post|car|doorframe|counter))\b/i,
+  rail: /\b(rail\w*|balustrade|banister|fence|parapet|bridge|balcony|gate)\b/i,
+  foot_up: /\b(foot|boot|heel|sneaker)\s+(up|on|onto|propped|planted)\b/i,
+  bend_pick: /\b(bend\w*|bent|stoop\w*|pick\w*\s+up|crouch\w*|reach\w*\s+down|scoop\w*)\b/i,
+  stairs: /\b(stairs?|steps|staircase|stairwell|escalator)\b/i,
+  climb: /\b(climb\w*|ladder|scal(e|es|ing)|clamber\w*|haul\w*\s+(herself|himself)\s+up)\b/i,
+  sit_floor: /\b((on|onto)\s+the\s+(floor|ground|rug|carpet|grass|sand|deck|mat)|cross-legged)\b/i,
+  lounge_elbows: /\b(elbows|loung\w*|reclin\w*|leans?\s+back)\b/i,
+  lie_front: /\b((on|onto)\s+(her|his)\s+(stomach|front|belly)|face[- ]down|prone)\b/i,
+  lie_side: /\bon\s+(her|his|one)\s+side\b/i,
+  perch_edge:
+    /\b(perch\w*|edge|dangl\w*|sits?\s+on\s+(a|the)\s+(counter|ledge|wall|table|desk|windowsill|hood|tailgate|dock))\b/i,
+  hands_behind_head: /\bbehind\s+(her|his|their)\s+head\b/i,
+  arms_up:
+    /\b(arms?\s+(up|raised|overhead|above|in\s+the\s+air|aloft|high|outstretched)|(rais|lift|throw|fling)\w*\s+(both\s+)?(her\s+|his\s+)?(arms?|hands?|fists?)|cheer\w*|triumph\w*|aloft|overhead)\b/i,
+  selfie: /\bselfie\b/i,
+  photograph:
+    /\b(photograph\w*|camera|viewfinder|lens|snap\w*|takes?\s+a\s+(photo|picture|shot))\b/i,
+  cook: /\b(cook\w*|stir\w*|chop\w*|fr(y|ies|ying)|stove|pan|pot|bak\w*|knead\w*|whisk\w*|grill\w*)\b/i,
+  laptop: /\b(laptop|typ(e|es|ing)|keyboard|computer)\b/i,
+  eat: /\b(eat\w*|bit(e|es|ing)|fork|spoon|chopsticks|noodles|sandwich|meal|breakfast|lunch|dinner|snack\w*|tast\w*)\b/i,
+  hug: /\b(hug\w*|embrac\w*|arms\s+around)\b/i,
+  dance: /\b(danc\w*|waltz\w*|twirl\w*|sway\w*|spin\w*)\b/i,
+  fight: /\b(fight\w*|spar\w*|punch\w*|duel\w*|brawl\w*|struggl\w*|wrestl\w*)\b/i,
+  hold_hands: /\b(hand\s+in\s+hand|hold\w*\s+hands|holding\s+(her|his)\s+hand|by\s+the\s+hand)\b/i,
+  piggyback: /\b(piggyback|on\s+(her|his)\s+back|carr\w*\s+(her|him))\b/i,
+  high_five: /\bhigh[- ]fiv\w*\b/i,
+  toast: /\b(toast\w*|clink\w*|cheers|rais\w*\s+(a|their|her|his)\s+glass)\b/i,
+  head_shoulder: /\bshoulder\b/i,
+  selfie_duo: /\bselfie\b/i,
+};
+const SPORT_EVIDENCE =
+  /\b(sprint\w*|run\w*|yoga|pose|bik\w*|cycl\w*|golf|tennis|racket|serve\w*|ball|kick\w*|throw\w*|lunge\w*|handstand|pitch\w*|hockey|block\w*|hurdl\w*|slid\w*|dunk\w*|ski\w*|putt\w*|swim\w*|spik\w*|box\w*|surf\w*|squat\w*|deadlift\w*|barbell|push-?ups?|plank\w*|pull-?ups?|skat\w*|gym|court|field|track|pool|workout|training|match|game)\b/i;
+
+/** Layouts that are two people by definition. */
+const TWO_PERSON_ONLY_LAYOUTS: ReadonlySet<string> = new Set([
+  'hug',
+  'hold_hands',
+  'piggyback',
+  'high_five',
+  'head_shoulder',
+  'selfie_duo',
+  'fight',
+]);
+
+/**
+ * Check the scene writer's pose against the scene's own words, and keep only what agrees.
+ *
+ * The writer is a language model: its `pose` is restricted to known names
+ * (normalizeScenePoseSpec), but nothing stopped it naming a pose the scene contradicts — a
+ * "dance" for "she sits at the bar", a lying layout for a scene on her feet, a two-person hug in
+ * a scene with one person. The still's prompt carries the words, the guide carried the pose, and
+ * the model was pulled both ways. When the scene plainly states one posture, the words win: a
+ * full-body layout or posture that contradicts it is dropped (the text is read instead), and a
+ * hand gesture is kept on the stated posture. Sex acts have their own check in
+ * applyScenePoseSpec. Returns the spec to draw and what was changed, for the tests and the log.
+ */
+export function reconcileWrittenPose(
+  spec: ScenePoseSpec | null | undefined,
+  sceneText: string | null | undefined,
+  options?: { people?: number }
+): { spec: ScenePoseSpec | undefined; changed: string[] } {
+  if (!spec) return { spec: undefined, changed: [] };
+  const changed: string[] = [];
+  let next: ScenePoseSpec = { ...spec };
+  const posture = textLeadPosture(sceneText);
+  const people = options?.people ?? next.people;
+
+  if (next.layout && TWO_PERSON_ONLY_LAYOUTS.has(next.layout) && people === 1) {
+    changed.push(`layout ${next.layout} needs two people; the scene has one`);
+    const { layout: _dropped, ...rest } = next;
+    next = rest;
+  }
+
+  if (next.layout && sceneText?.trim()) {
+    const evidence = next.layout.startsWith('sport_')
+      ? SPORT_EVIDENCE
+      : LAYOUT_EVIDENCE[next.layout];
+    if (evidence && !evidence.test(sceneText)) {
+      changed.push(`layout ${next.layout} is not what the scene says`);
+      const { layout: _dropped, ...rest } = next;
+      next = rest;
+    }
+  }
+
+  // Sport layouts too: a "sport_pushup" on "you stand like a tiny lighthouse" was drawn lying.
+  // (A seat on a bike survives — sport_cycle is drawn low, which fits a seat.)
+  if (posture && next.layout) {
+    const base = socialBaseForLayout(next.layout);
+    if (!baseFitsPosture(base, posture)) {
+      if (GESTURE_LAYOUTS.has(next.layout)) {
+        changed.push(`gesture ${next.layout} kept on the stated posture (${posture})`);
+        next = { ...next, body: posture };
+      } else {
+        changed.push(`layout ${next.layout} contradicts the stated posture (${posture})`);
+        const { layout: _dropped, ...rest } = next;
+        next = { ...rest, body: posture };
+      }
+    }
+  }
+
+  if (posture && next.body && !next.layout && !baseFitsPosture(next.body, posture)) {
+    changed.push(`posture ${next.body} contradicts the stated posture (${posture})`);
+    next = { ...next, body: posture };
+  }
+
+  return { spec: Object.keys(next).length > 0 ? next : undefined, changed };
 }
 
 function relabel(intent: PoseGuideIntent, layout: string): string {
@@ -6038,7 +6275,10 @@ export async function buildDayPoseGuide(
 export type StoryPoseGuideInput = PoseGuideBuildOptions & {
   title?: string | null;
   blurb?: string | null;
+  /** The stored still prompt — not pose text; read only when title and blurb are both empty. */
   prompt?: string | null;
+  /** Titles of the story's other beats: a blurb that quotes one does not take its pose from it. */
+  quotedTitles?: readonly string[];
   /** Fallback cycle index when the scene text has no stance cue. */
   storyIndex?: number;
   /** Active Comfy model — legacy style gives Rapid AIO / Edit-2511 outline-gray guides. */
@@ -6047,19 +6287,47 @@ export type StoryPoseGuideInput = PoseGuideBuildOptions & {
 
 /** Prefer scene text stance; otherwise cycle by story index. */
 export function resolveStoryPoseGuideKeyFromBeat(input: StoryPoseGuideInput): PoseGuideKey {
-  const sceneText = [input.title, input.blurb, input.prompt]
-    .map(part => part?.trim())
-    .filter(Boolean)
-    .join(' · ');
-  return resolvePoseGuideKeyFromScene(sceneText, input.storyIndex ?? 0);
+  return resolvePoseGuideKeyFromScene(sceneTextFromStoryPoseInput(input), input.storyIndex ?? 0);
 }
 
+/** Titles as plain words, longest first, for removal from a blurb that quotes them. */
+function withoutQuotedTitles(text: string, titles: readonly string[] | undefined): string {
+  let next = text;
+  for (const title of [...(titles ?? [])].sort((a, b) => b.length - a.length)) {
+    const words = title.trim();
+    if (words.length < 3) continue;
+    const pattern = words.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+    next = next.replace(new RegExp(`["“”']?(?<![\\w-])${pattern}(?![\\w-])["“”']?`, 'gi'), ' ');
+  }
+  return next.replace(/\s{2,}/g, ' ').trim();
+}
+
+/**
+ * The text a Story beat's pose is read from: the scene — its blurb, and its title when the blurb
+ * gives no pose. The same on the first take and on a retry.
+ *
+ * - Not the stored still prompt: it carries the Setting, the Part's look and the queue's locks.
+ *   A retry read "photorealistic live-action photograph" as the photograph layout (camera to
+ *   one eye, 1,461 of 1,644 retries in the Story sweep), "sprawling city" as lying and
+ *   "climbing vines" as a climb. It is only read for a legacy beat with no title and no blurb.
+ * - A title is a label: "Sunrise punch-out — You freeze mid-stretch because that is the job"
+ *   is a stretch, not a punch.
+ * - A title the blurb quotes from an earlier beat is a label too: "Walk away — Doppio leaves
+ *   milk pitcher duel for good" was drawn as a two-person fight.
+ */
 export function sceneTextFromStoryPoseInput(input: StoryPoseGuideInput): string {
-  // Clarify first so legacy "taken from behind / bent over" meta still maps to bent layout
-  // without feeding poetic prior-title decoys into the pose matcher.
-  const parts = [input.title, input.blurb, input.prompt].map(part => part?.trim()).filter(Boolean);
+  const title = input.title?.trim() || '';
+  const blurb = withoutQuotedTitles(input.blurb?.trim() || '', input.quotedTitles);
+  const parts =
+    blurb && sceneTextStatesPose(blurb, { allowIntimate: input.allowIntimate })
+      ? [blurb]
+      : [title, blurb].filter(Boolean);
+  if (parts.length === 0 && input.prompt?.trim()) {
+    parts.push(input.prompt.trim());
+  }
+  // Clarify so legacy "taken from behind / bent over" meta still maps to the bent layout.
   const whole = parts.join(' · ');
-  return parts.map(part => clarifyIntimateImageLanguage(part!, whole)).join(' · ');
+  return parts.map(part => clarifyIntimateImageLanguage(part, whole)).join(' · ');
 }
 
 /** Browser-only: synthesize a stance from the beat scene text for Story Image 3. */

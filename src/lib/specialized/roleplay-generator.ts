@@ -1,3 +1,4 @@
+import { LIMB_DIRECTIONS } from '../pose-limb-presets';
 import { chatCompletion } from '../llm-client';
 import {
   resolveRequestLlmEnabled,
@@ -247,7 +248,14 @@ function scenePoseFieldLine(content: RoleplayContentId): string {
     ? `the sex position shown, one of ${SCENE_POSE_ACT_IDS.filter(id => id !== 'none').join(', ')}, or "none"`
     : '"none"';
   const layouts = SCENE_POSE_LAYOUT_IDS.join(', ');
-  return `- pose describes the still's main body: body is one of ${bodies}; people is how many people are in frame (1–3); act is ${acts}; layout (optional) is the specific action or gesture, one of ${layouts} — pick the one the blurb shows, or leave it out when none fits. It must agree with the blurb.`;
+  const directions = LIMB_DIRECTIONS.join(', ');
+  // Limbs first, named layout only when exact: asked the other way round, a local 8B model never
+  // described the limbs and named a layout for every scene — often a wrong one ("hands on hips"
+  // for a lantern held overhead). The layout is also checked against the blurb afterwards
+  // (reconcileWrittenPose).
+  return `- pose describes the still's main body: body is one of ${bodies}; people is how many people are in frame (1–3); act is ${acts}. It must agree with the blurb.
+- pose.limbs: for a scene with ONE person, say where each arm points in the picture as [upper arm, forearm], each one of ${directions}. "out" is away from the body, "in" is across the chest, "forward" is toward the camera; "down","down" is an arm hanging at the side. Keys right_arm and left_arm (their own right and left). Add right_leg / left_leg as [thigh, shin] only when a leg is lifted or the stance is wide. Examples: hand raised to hail a cab = "right_arm": ["up_out","up"]; hand shading the eyes = "right_arm": ["out","up_in"]; holding something high overhead = "right_arm": ["up","up"]; hand on the hip = "left_arm": ["down_out","in"]; standing on one leg = "right_leg": ["out","down_in"]. Leave limbs out when two or more people are in frame.
+- pose.layout (optional): ONLY when the blurb is exactly one of these named actions, add it: ${layouts}. If unsure, leave layout out.`;
 }
 
 function stampFinaleScenes(scenes: RoleplayScene[], finale: boolean): RoleplayScene[] {
@@ -432,7 +440,8 @@ export async function generateRoleplayScenes(
   const writeScenes = (extraRule = '') =>
     llmJson({
       llm: options.llm,
-      maxTokens: 700,
+      // Four scenes with a pose each (limbs included) need the room.
+      maxTokens: 950,
       temperature: continuing ? 0.98 : 1.08,
       system: `You write choose-your-own-adventure forks for an image roleplay.
 ${toneLine(tone)}
@@ -441,7 +450,7 @@ ${settingCue}
 ${wardrobeCue}
 ${poseGuideCue}
 ${intimateMixCue}
-Return ONLY JSON: {"scenes":[{"title":"","blurb":"","pose":{"body":"","people":1,"act":""}${finale ? ',"kind":"ending"' : ''}}]}
+Return ONLY JSON: {"scenes":[{"title":"","blurb":"","pose":{"body":"","people":1,"act":"","limbs":{"right_arm":["",""],"left_arm":["",""]}}${finale ? ',"kind":"ending"' : ''}}]}
 - Exactly 4 scenes. Titles 2–6 words. Blurbs one sentence, visual, actionable.
 ${scenePoseFieldLine(content)}
 ${formatRoleplayPoseVarietyCue(recentPoses)}${extraRule ? `\n${extraRule}` : ''}

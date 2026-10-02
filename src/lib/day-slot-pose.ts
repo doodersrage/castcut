@@ -11,6 +11,7 @@ import {
   type PoseGuideBase,
   type PoseGuideBuildOptions,
   parseIntimateLayout,
+  reconcileWrittenPose,
   sceneTextStatesPose,
   type ScenePoseSpec,
   type SocialLayout,
@@ -61,8 +62,12 @@ export function daySlotPoseOverride(poseLayout: string | null | undefined): Scen
  */
 export function mergePickedPose(
   poseLayout: string | null | undefined,
-  written: ScenePoseSpec | null | undefined
+  writtenByModel: ScenePoseSpec | null | undefined,
+  /** The scene's own words: the writer's pose is kept only where it agrees with them. */
+  sceneText?: string | null
 ): ScenePoseSpec | undefined {
+  const written =
+    sceneText == null ? writtenByModel : reconcileWrittenPose(writtenByModel, sceneText).spec;
   const override = daySlotPoseOverride(poseLayout);
   if (!override) return written ?? undefined;
   return {

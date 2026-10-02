@@ -1,5 +1,6 @@
 'use client';
 
+import { composedPoseForScene } from '@/lib/pose-compose';
 import { auditStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
@@ -527,16 +528,29 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           openPose && referenceUrl
             ? await probeImageUrlDimensions(referenceUrl).catch(() => null)
             : null;
+        const writtenPose = mergePickedPose(beat.poseLayout, beat.pose, beat.blurb);
+        // A pose that is none of the named layouts, described limb by limb by the writer and
+        // composed into a skeleton — drawn exactly, like a pose from a photo.
+        const composedPose = composedPoseForScene({
+          pose: writtenPose,
+          sceneText: beat.blurb,
+          playerPosed: Boolean(beat.poseLayout || beat.posePhoto),
+        });
         const poseBuild = await buildStoryPoseGuide({
           title: beat.title,
           blurb: beat.blurb,
           prompt: beat.prompt,
+          // A fork's blurb quotes the beat before it ("…the fallout of milk pitcher duel"):
+          // those titles are labels, not this still's pose.
+          quotedTitles: storyRef.current
+            .filter(entry => !(entry.id === beat.id && entry.at === beat.at))
+            .map(entry => entry.title),
           storyIndex: storyIndex >= 0 ? storyIndex : 0,
           model: shared.model,
           stylePreference,
           // A pose picked on the beat card wins over the writer's; it's drawn even if Edit has
           // a poor record with it (weak layouts are only routed around when nothing was picked).
-          pose: mergePickedPose(beat.poseLayout, beat.pose),
+          pose: writtenPose,
           variant: (options?.variant ?? 0) + (beat.poseVariant ?? 0),
           ...(beat.poseLayout
             ? {}
@@ -544,7 +558,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           ...(modelPlainPostureBase(shared.model)
             ? { plainPostureBase: modelPlainPostureBase(shared.model) }
             : {}),
-          ...(beat.posePhoto ? { photoPose: beat.posePhoto } : {}),
+          ...(beat.posePhoto
+            ? { photoPose: beat.posePhoto }
+            : composedPose
+              ? { photoPose: composedPose }
+              : {}),
           ...(beat.poseCamera ? { camera: beat.poseCamera } : {}),
           ...(beat.poseLead ? { leadSide: beat.poseLead } : {}),
           ...(beat.poseLook ? { look: beat.poseLook } : {}),

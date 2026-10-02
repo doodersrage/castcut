@@ -46,11 +46,18 @@ function span(a: XY, b: XY, aspect: number): number {
 }
 
 /** A point `length` from `from`, at `angle` from straight down, swinging toward `out` (±1). */
-function swing(from: XY, length: number, angle: number, out: number, aspect: number): XY {
-  return {
-    x: clamp(from.x + (Math.sin(rad(angle)) * out * length) / aspect),
-    y: clamp(from.y + Math.cos(rad(angle)) * length),
-  };
+function swing(
+  from: XY,
+  length: number,
+  angle: number,
+  out: number,
+  aspect: number,
+  /** Keep the point inside the picture (off for composed poses, which are fitted as a whole). */
+  inside = true
+): XY {
+  const x = from.x + (Math.sin(rad(angle)) * out * length) / aspect;
+  const y = from.y + Math.cos(rad(angle)) * length;
+  return inside ? { x: clamp(x), y: clamp(y) } : { x, y };
 }
 
 /** A point `length` from `from` toward `target` (never past it by more than the bone allows). */
@@ -303,4 +310,111 @@ export function legsAreStanding(body: NormalizedBody, aspect: number): boolean {
         return Boolean(hip && knee && knee.y - hip.y > (span(hip, knee, a) || 1) * 0.55);
       })
     : false;
+}
+
+/**
+ * Where a limb segment points in the picture, relative to the body: "out" is away from the
+ * body's middle, "in" across it. "forward" is toward the camera (drawn short).
+ */
+export const LIMB_DIRECTIONS = [
+  'down',
+  'down_out',
+  'out',
+  'up_out',
+  'up',
+  'up_in',
+  'in',
+  'down_in',
+  'forward',
+] as const;
+export type LimbDirection = (typeof LIMB_DIRECTIONS)[number];
+
+/** A limb as two segments: [upper arm, forearm] or [thigh, shin]. */
+export type LimbDirections = readonly [LimbDirection, LimbDirection];
+
+/** Angle from straight down, positive outward. */
+const DIRECTION_ANGLE: Record<Exclude<LimbDirection, 'forward'>, number> = {
+  down: 0,
+  down_out: 45,
+  out: 90,
+  up_out: 135,
+  up: 180,
+  up_in: -135,
+  in: -90,
+  down_in: -40,
+};
+
+/** A segment pointing at the camera is drawn at this fraction of its length, hanging down. */
+const FORESHORTENED = 0.35;
+
+/**
+ * Point one arm or leg where the two directions say, keeping its bone lengths — the building
+ * block for poses composed from a description instead of picked from the list.
+ */
+export function setLimbDirections(
+  body: NormalizedBody,
+  limb: 'arm' | 'leg',
+  side: 'right' | 'left',
+  directions: LimbDirections,
+  aspect: number
+): NormalizedBody {
+  const a = aspect > 0 ? aspect : 1;
+  const next = body.map(point => (point ? { ...point } : null));
+  const [rootIndex, midIndex, endIndex] = (limb === 'arm' ? ARM : LEG)[side];
+  const root = next[rootIndex];
+  const mid = next[midIndex];
+  const end = next[endIndex];
+  if (!root || !mid || !end) return next;
+  const lengths = [span(root, mid, a) || 0.13, span(mid, end, a) || 0.12];
+  const out = outward(next, root, side === 'right' ? -1 : 1);
+  const place = (from: XY, direction: LimbDirection, length: number) =>
+    direction === 'forward'
+      ? swing(from, length * FORESHORTENED, 8, out, a, false)
+      : swing(from, length, DIRECTION_ANGLE[direction], out, a, false);
+  const joint = place(root, directions[0], lengths[0]!);
+  const tip = place(joint, directions[1], lengths[1]!);
+  next[midIndex] = { ...mid, ...joint };
+  next[endIndex] = { ...end, ...tip };
+  return next;
+}
+
+/** The limbs a writer may describe. Each is [upper, lower]: upper arm + forearm, thigh + shin. */
+export type PoseLimbsSpec = {
+  right_arm?: LimbDirections;
+  left_arm?: LimbDirections;
+  right_leg?: LimbDirections;
+  left_leg?: LimbDirections;
+};
+
+const LIMB_KEYS = ['right_arm', 'left_arm', 'right_leg', 'left_leg'] as const;
+const DIRECTION_SET: ReadonlySet<string> = new Set(LIMB_DIRECTIONS);
+
+/** Accept only known limbs and directions from an LLM; undefined when nothing usable. */
+export function normalizePoseLimbs(raw: unknown): PoseLimbsSpec | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const record = raw as Record<string, unknown>;
+  const word = (value: unknown) =>
+    typeof value === 'string'
+      ? value
+          .trim()
+          .toLowerCase()
+          .replace(/[\s-]+/g, '_')
+      : '';
+  const spec: PoseLimbsSpec = {};
+  for (const key of LIMB_KEYS) {
+    const value = record[key] ?? record[key.replace('_', '')] ?? record[key.replace('_', ' ')];
+    const pair = Array.isArray(value)
+      ? value.map(word)
+      : typeof value === 'string'
+        ? value.split(/[,/>]+/).map(word)
+        : [];
+    const [upper, lower] = pair;
+    if (upper && DIRECTION_SET.has(upper)) {
+      spec[key] = [
+        upper as LimbDirection,
+        (lower && DIRECTION_SET.has(lower) ? lower : upper) as LimbDirection,
+      ];
+    }
+  }
+  return Object.keys(spec).length > 0 ? spec : undefined;
 }
