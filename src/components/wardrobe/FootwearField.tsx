@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipButton, FieldLabel, SelectInput, TextInput } from '@/components/ui/Field';
 import { SegmentedControl, accentFocusClass } from '@/components/ui/ToolPageShell';
@@ -16,6 +16,15 @@ import {
   footwearKitImageUrl,
   type FootwearKitGroup,
 } from '@/lib/footwear-kits';
+import {
+  findSavedFootwearByFilename,
+  loadSavedFootwear,
+  removeSavedFootwear,
+  saveFootwear,
+  subscribeSavedFootwear,
+  updateSavedFootwearWords,
+  type SavedFootwear,
+} from '@/lib/footwear-saved';
 import type { ToolAccent } from '@/lib/tool-theme';
 
 type FootwearMode = 'kit' | 'photo' | 'words';
@@ -40,6 +49,15 @@ const GROUPS: ReadonlyArray<FootwearKitGroup | 'All'> = [
   'Sandals',
   'At home',
 ];
+
+function useSavedFootwear(): SavedFootwear[] {
+  const json = useSyncExternalStore(
+    subscribeSavedFootwear,
+    () => JSON.stringify(loadSavedFootwear()),
+    () => '[]'
+  );
+  return useMemo(() => JSON.parse(json) as SavedFootwear[], [json]);
+}
 
 const NO_IMAGE: FootwearPatch = { footwearImageUrl: undefined, footwearImageFilename: undefined };
 
@@ -79,6 +97,8 @@ export default function FootwearField({
   const mode: FootwearMode =
     pickedMode ?? (ownPhoto ? 'photo' : stored && !kit && !barefoot ? 'words' : 'kit');
   const busy = Boolean(disabled) || photoBusy;
+  const savedShoes = useSavedFootwear();
+  const alreadySaved = savedShoes.some(entry => entry.imageFilename === imageFilename?.trim());
   const kits = useMemo(
     () => (group === 'All' ? FOOTWEAR_KITS : FOOTWEAR_KITS.filter(entry => entry.group === group)),
     [group]
@@ -205,8 +225,35 @@ export default function FootwearField({
               }
             />
           ) : (
-            <WearingCard emptyLabel="No shoe photo yet — upload one below." />
+            <WearingCard
+              emptyLabel={
+                savedShoes.length > 0
+                  ? 'No shoe photo yet — upload one, or reuse a saved one below.'
+                  : 'No shoe photo yet — upload one below.'
+              }
+            />
           )}
+          {ownPhoto ? (
+            <div className="flex flex-wrap items-center gap-1 px-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || alreadySaved}
+                data-testid={`${testIdPrefix}-footwear-save`}
+                onClick={() => {
+                  try {
+                    saveFootwear({ imageFilename: imageFilename ?? '', imageUrl, words: stored });
+                  } catch (err) {
+                    onError?.(
+                      err instanceof Error ? err.message : 'Could not save that shoe photo.'
+                    );
+                  }
+                }}
+              >
+                {alreadySaved ? 'Saved' : 'Save for later'}
+              </Button>
+            </div>
+          ) : null}
           <div className="grid gap-2 sm:grid-cols-2">
             <UploadTile
               title={ownPhoto ? 'Replace with a worn photo' : 'Worn photo'}
@@ -225,6 +272,34 @@ export default function FootwearField({
               onFile={file => applyPhoto(file, true)}
             />
           </div>
+          {savedShoes.length > 0 ? (
+            <div className="space-y-1" data-testid={`${testIdPrefix}-footwear-saved`}>
+              <p className="type-caption text-[var(--text-muted)]">
+                Saved shoes · {savedShoes.length}
+              </p>
+              <div className={CLOTHING_STRIP_CLASS}>
+                {savedShoes.map(entry => (
+                  <ClothingTile
+                    key={entry.id}
+                    label={entry.label}
+                    thumbUrl={entry.imageUrl}
+                    selected={entry.imageFilename === imageFilename?.trim()}
+                    disabled={busy}
+                    size={tileSize}
+                    fit="contain"
+                    onSelect={() =>
+                      onChange({
+                        footwear: entry.words ?? '',
+                        footwearImageUrl: entry.imageUrl,
+                        footwearImageFilename: entry.imageFilename,
+                      })
+                    }
+                    onRemove={() => removeSavedFootwear(entry.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
           {photoBusy || photoStatus ? (
             <p
               className="type-caption text-[var(--text-muted)]"
@@ -260,7 +335,13 @@ export default function FootwearField({
                   : { footwear: words, ...NO_IMAGE }
               );
             }}
-            onBlur={() => onChange({ footwear: normalizeFootwear(value) })}
+            onBlur={() => {
+              onChange({ footwear: normalizeFootwear(value) });
+              // A saved photo follows an edit to its words, or re-picking it brings back the old text.
+              if (ownPhoto && findSavedFootwearByFilename(imageFilename)) {
+                updateSavedFootwearWords(imageFilename, value);
+              }
+            }}
           />
         </label>
       ) : null}

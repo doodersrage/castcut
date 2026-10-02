@@ -89,6 +89,49 @@ test('outfit first run: Cast card, one plate message, grouped kit controls', asy
   await expect(review).toHaveAttribute('aria-checked', 'true');
 });
 
+test('outfit footwear: saved shoes are kept, re-picked and removed', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: '' },
+    characters: { version: 1, characters: [], removedIds: [] },
+    tools: {
+      fitting: {
+        footwear: 'brown suede desert boots',
+        footwearImageFilename: 'my-boots.png',
+        footwearImageUrl: '/footwear/hiking-boots.webp',
+      },
+    },
+  });
+  await gotoStable(page, '/fitting');
+  await dismissBlockingOverlays(page);
+  const footwear = page.getByTestId('fitting-footwear');
+  await expect(footwear).toBeVisible({ timeout: 30_000 });
+  // A shoe photo opens on "My shoes" with Save for later, like a clothing photo.
+  const save = page.getByTestId('fitting-footwear-save');
+  await expect(save).toHaveText('Save for later');
+  await save.click();
+  await expect(save).toHaveText('Saved');
+  await expect(save).toBeDisabled();
+  const saved = page.getByTestId('fitting-footwear-saved');
+  await expect(saved).toContainText('Saved shoes · 1');
+  const tile = saved.getByRole('button', { name: 'brown suede desert boots (selected)' });
+  await expect(tile).toBeVisible();
+
+  // Remove the photo from the outfit: the saved copy stays and puts it back with its words.
+  await footwear.getByRole('button', { name: 'Remove shoe photo' }).click();
+  const hint = page.getByTestId('fitting-footwear-hint');
+  await expect(hint).toContainText('Auto');
+  await footwear.getByRole('tab', { name: 'My shoes' }).click();
+  await saved.getByRole('button', { name: 'brown suede desert boots', exact: true }).click();
+  await expect(hint).toHaveText('Worn on every clothed still: brown suede desert boots.');
+  await expect(save).toHaveText('Saved');
+
+  // The pair being worn shows its tick; take it off, then it can be removed from the list.
+  await footwear.getByRole('button', { name: 'Remove shoe photo' }).click();
+  await footwear.getByRole('tab', { name: 'My shoes' }).click();
+  await saved.getByRole('button', { name: 'Remove brown suede desert boots' }).click();
+  await expect(saved).toHaveCount(0);
+});
+
 test('outfit footwear: a kit, barefoot, own words, own photo', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: '' },
