@@ -1382,7 +1382,13 @@ export function useDayPlannerToolOrchestrationCore() {
         const footwearApplies =
           !(isDayAdultMood(toolSettings.dayMood) && intimateEnabled) &&
           normalizeDayMood(toolSettings.dayMood) !== 'sport' &&
-          !beatOwnsFootwear(queueTarget.sceneHints);
+          !beatOwnsFootwear(queueTarget.sceneHints) &&
+          // A swimming / pool / robe scene dresses her itself — the picked heels in a swim still
+          // came out as loose feet and shoes in the foreground.
+          !(
+            normalizeDayMood(toolSettings.dayMood) === 'vacation' &&
+            vacationBeatDressesItself(queueTarget.sceneHints)
+          );
         const footwear = footwearApplies ? normalizeFootwear(toolSettings.footwear) : '';
         // With a picture (a kit's, or your own photo) the shoes share Image 2 with the clothing.
         // Only when the still has a clothing image: other paths use Image 2 for something else
