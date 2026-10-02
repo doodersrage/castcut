@@ -1,4 +1,5 @@
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
+import { beatOwnsFootwear } from './footwear';
 import { intimateBeatIsOffBed } from './intimate-prompt-clarify';
 import {
   buildRapidDuoRecipe,
@@ -3581,7 +3582,9 @@ export function buildDaySlotPrompt(input: {
         // she has on there — there is no fitting underwear to explain away.
         const outfitLead =
           fromKit && kit && recipeInput.outfitFromFirst
-            ? `OUTFIT (mandatory): she wears a ${kit} — exactly the outfit and shoes she has on in Image 1, unchanged.`
+            ? `OUTFIT (mandatory): she wears a ${kit} — exactly the outfit${
+                beatOwnsFootwear(hints) ? '' : ' and shoes'
+              } she has on in Image 1, unchanged.`
             : fromKit && kit
               ? `OUTFIT (mandatory): she wears a ${kit} — fully dressed${base}.`
               : worn && !fromKit && !suggestiveCouple

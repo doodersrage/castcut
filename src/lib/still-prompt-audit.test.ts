@@ -142,3 +142,26 @@ describe('repairStillPrompt', () => {
     assert.deepEqual(repairStillPrompt(clean), { prompt: clean, repaired: [], remaining: [] });
   });
 });
+
+describe('a dressed plate on a barefoot scene', () => {
+  it("drops the plate's shoes, keeps its outfit", () => {
+    const prompt =
+      'Edit Image 1: OUTFIT (mandatory): she wears exactly the outfit and the shoes she has on in Image 1 — unchanged, fully dressed.\n' +
+      'Replace the scene with her on mossy stones at dawn, the stones cool beneath her bare feet.';
+    assert.deepEqual(
+      auditStillPrompt(prompt, { people: 1 }).map(issue => issue.code),
+      ['shoes-on-barefoot']
+    );
+    const fixed = repairStillPrompt(prompt, { people: 1 });
+    assert.match(fixed.prompt, /exactly the outfit she has on in Image 1 — unchanged/);
+    assert.doesNotMatch(fixed.prompt, /shoes/);
+    assert.deepEqual(fixed.remaining, []);
+  });
+
+  it('leaves a shod scene alone', () => {
+    const prompt =
+      'Edit Image 1: OUTFIT (mandatory): she wears exactly the outfit and the shoes she has on in Image 1 — unchanged, fully dressed.\n' +
+      'Replace the scene with her walking through the market with a coffee.';
+    assert.deepEqual(auditStillPrompt(prompt, { people: 1 }), []);
+  });
+});

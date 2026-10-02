@@ -46,6 +46,9 @@ const NEGATED_BEFORE_RE = /\b(?:no|not|never|without|nobody|avoid|do not show)\b
 const FOOTWEAR_LINE_RE =
   /FOOTWEAR \(mandatory\):[^\n]*|\bon (?:her|his) feet (?:she|he) wears[^.\n]*/i;
 const BAREFOOT_RE = /\bbarefoot\b|\bbare feet\b|\bshoes? (?:kicked )?off\b/i;
+/** The dressed plate's own shoes, kept by the outfit line. */
+const KEEP_PLATE_SHOES_RE =
+  /\b(?:the outfit and (?:the )?shoes (?:she|he) (?:has on|wears) in (?:Image 1|the reference photo)|the exact outfit and shoes (?:she|he) wears in the reference photo)\b/i;
 // "swimming pool", "swimming costume" and "wading pool" are places and things, not swimming.
 const WATER_SCENE_RE =
   /\b(?:swims\b|swimming\b(?! (?:pool|costume|trunks|suit|cap|goggles|lesson))|float(?:s|ing)? on (?:her|his) back\b|underwater\b(?! lights?)|wading\b(?! pool)|treading water\b)/i;
@@ -122,7 +125,10 @@ export function auditStillPrompt(
     }
   }
 
-  const footwearLine = FOOTWEAR_LINE_RE.exec(text)?.[0] ?? '';
+  // Shoes are ordered by a FOOTWEAR line, or by the dressed plate's "the outfit and the shoes
+  // she has on in Image 1" (a scene written "beneath her bare feet" got both).
+  const footwearLine =
+    FOOTWEAR_LINE_RE.exec(text)?.[0] ?? KEEP_PLATE_SHOES_RE.exec(text)?.[0] ?? '';
   const shoesOrdered = Boolean(footwearLine) && !BAREFOOT_RE.test(footwearLine);
   if (shoesOrdered) {
     const rest = text.replace(footwearLine, ' ');
@@ -192,7 +198,13 @@ export function repairStillPrompt(
     next = next
       .replace(/^[ \t]*FOOTWEAR \(mandatory\):[^\n]*\n?/gm, '')
       .replace(/\s*\b(?:On|on) (?:her|his) feet (?:she|he) wears[^.\n]*\./g, '')
-      .replace(/\bthe outfit and the shoes shown in\b/g, 'the outfit shown in');
+      .replace(/\bthe outfit and the shoes shown in\b/g, 'the outfit shown in')
+      // The dressed plate keeps its outfit, not its shoes, on a barefoot or swimming scene.
+      .replace(
+        /\bthe outfit and (?:the )?shoes ((?:she|he) (?:has on|wears) in)\b/g,
+        'the outfit $1'
+      )
+      .replace(/\bthe exact outfit and shoes ((?:she|he) wears in)\b/g, 'the exact outfit $1');
   }
   if (has('duo-says-alone')) {
     next = next
