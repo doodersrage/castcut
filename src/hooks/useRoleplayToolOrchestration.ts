@@ -15,6 +15,7 @@ import { useRoleplaySceneFlow } from '@/hooks/useRoleplaySceneFlow';
 import { useRoleplaySessionActions } from '@/hooks/useRoleplaySessionActions';
 import { useRoleplayRequestBody } from '@/hooks/useRoleplayRequestBody';
 import { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
+import { useStoryBeatEdit } from '@/hooks/roleplay/useStoryBeatEdit';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { getCharacter } from '@/lib/character-os';
 import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
@@ -219,6 +220,19 @@ export function useRoleplayToolOrchestration() {
     setError,
   });
 
+  const beatEdit = useStoryBeatEdit({
+    storyRef,
+    updateToolSettings,
+    bio,
+    requestBody,
+    commitStill: beatQueue.commitStill,
+    referenceMissingMessage:
+      playAsResolved === 'photo' && !reference.hasReferenceImage
+        ? 'Upload a photo or pick a gallery still first.'
+        : null,
+    setError,
+  });
+
   const extendBeat = useCallback(
     (beat: RoleplayStoryBeat) => {
       const source =
@@ -238,6 +252,8 @@ export function useRoleplayToolOrchestration() {
     bioFlow.bioLoading ||
     sceneFlow.scenesLoading ||
     Boolean(sceneFlow.playingId) ||
+    // One scene is written at a time: picking a card mid-rewrite would save over its result.
+    Boolean(beatEdit.rewritingKey) ||
     session.exporting ||
     film.assemblingFilm ||
     reference.scanning ||
@@ -275,6 +291,7 @@ export function useRoleplayToolOrchestration() {
     sceneFlow,
     bioFlow,
     session,
+    beatEdit,
     extendBeat,
     wardrobe,
   };

@@ -5,6 +5,8 @@ import type { KeyedShot } from '@/lib/film-cut-plan';
 import type { ReactNode } from 'react';
 import RoleplayFilmCutActions from '@/components/RoleplayFilmCutActions';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
+import { StoryBeatEditProvider } from '@/components/roleplay/StoryBeatEditContext';
+import type { StoryBeatEditActions } from '@/hooks/roleplay/useStoryBeatEdit';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow, ToolSection } from '@/components/ui/ToolPageShell';
 import { remixDayFilmHref } from '@/lib/play-starter';
@@ -48,6 +50,8 @@ export type RoleplayStorySectionProps = {
   ) => void;
   onSelectClipTake: (beat: RoleplayStoryBeat, index: number) => void;
   onCopy: (beat: RoleplayStoryBeat) => void;
+  /** Edit a scene's text on its card, then write and queue its still again. */
+  beatEdit?: StoryBeatEditActions;
   onRollScenes?: () => void;
   /** Cast home where bible rewrite/edit/clear live. */
   castBibleHref?: string;
@@ -88,6 +92,7 @@ export default function RoleplayStorySection({
   onPoseChange,
   onSelectClipTake,
   onCopy,
+  beatEdit,
   onRollScenes,
   castBibleHref,
   filmCutOptions,
@@ -206,23 +211,25 @@ export default function RoleplayStorySection({
       >
         {firstCutCelebrate ? null : downloadAction}
       </RoleplayFilmCutActions>
-      <RoleplayStoryReel
-        story={story}
-        busy={busy}
-        bioPresent={bioPresent}
-        castBibleHref={castBibleHref}
-        scenesLoading={scenesLoading}
-        onQueue={onQueue}
-        onRetry={onRetry}
-        onRetryClip={onRetryClip}
-        onAnimate={onAnimate}
-        onExtend={onExtend}
-        onSelectTake={onSelectTake}
-        onPoseChange={onPoseChange}
-        onSelectClipTake={onSelectClipTake}
-        onCopy={onCopy}
-        onRollScenes={onRollScenes}
-      />
+      <StoryBeatEditProvider value={beatEdit ?? null}>
+        <RoleplayStoryReel
+          story={story}
+          busy={busy}
+          bioPresent={bioPresent}
+          castBibleHref={castBibleHref}
+          scenesLoading={scenesLoading}
+          onQueue={onQueue}
+          onRetry={onRetry}
+          onRetryClip={onRetryClip}
+          onAnimate={onAnimate}
+          onExtend={onExtend}
+          onSelectTake={onSelectTake}
+          onPoseChange={onPoseChange}
+          onSelectClipTake={onSelectClipTake}
+          onCopy={onCopy}
+          onRollScenes={onRollScenes}
+        />
+      </StoryBeatEditProvider>
     </ToolSection>
   );
 }

@@ -25,6 +25,7 @@ export default function OutfitPoseSection({
   onChange,
   leadNoun = 'woman',
   hideLabel = false,
+  plateUrl,
 }: {
   pose?: PhotoPose;
   busy: boolean;
@@ -33,6 +34,8 @@ export default function OutfitPoseSection({
   leadNoun?: 'woman' | 'man' | 'person';
   /** The surrounding card already titles this "Pose". */
   hideLabel?: boolean;
+  /** The try-on plate, shown behind the figure in the pose editor as a guide to proportions. */
+  plateUrl?: string | null;
 }) {
   const [editing, setEditing] = useState(false);
   // The drawn pose survives a trip to "As the plate" and back (it was discarded with no undo).
@@ -147,6 +150,8 @@ export default function OutfitPoseSection({
           possessive={leadNoun === 'man' ? 'his' : 'her'}
           leadsPrompt
           words={pose?.words}
+          backdropUrl={plateUrl}
+          backdropLabel="Try-on plate"
           onSave={next => {
             onChange({ ...next, people: next.people.slice(0, 1) });
             setEditing(false);

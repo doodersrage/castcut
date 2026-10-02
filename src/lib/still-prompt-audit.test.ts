@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { auditStillPrompt, highestImageReference, stillPromptIssuesLine } from './still-prompt-audit';
+import {
+  auditStillPrompt,
+  highestImageReference,
+  repairStillPrompt,
+  stillPromptIssuesLine,
+} from './still-prompt-audit';
 
 const codes = (prompt: string, context?: Parameters<typeof auditStillPrompt>[1]) =>
   auditStillPrompt(prompt, context).map(issue => issue.code);
@@ -97,5 +102,43 @@ describe('auditStillPrompt', () => {
       stillPromptIssuesLine(auditStillPrompt('One woman alone. The two people hug.'), 'evening'),
       /^Prompt check \(evening\): A one-person still describes two people/
     );
+  });
+});
+
+describe('repairStillPrompt', () => {
+  it('drops the shoe line on a barefoot or swimming scene', () => {
+    const prompt =
+      'Edit Image 1: SCENE: the shoreline.\nFOOTWEAR (mandatory): on her feet she wears gold heels — exactly these, on both feet.\nVacation photo: One woman alone on vacation. She wears the outfit and the shoes shown in the second image (the same person, dressed, standing). Moment: walking barefoot on wet sand.';
+    const result = repairStillPrompt(prompt, { people: 1 });
+    assert.deepEqual(result.repaired.map(issue => issue.code), ['shoes-on-barefoot']);
+    assert.deepEqual(result.remaining, []);
+    assert.doesNotMatch(result.prompt, /FOOTWEAR|gold heels|and the shoes/);
+    assert.match(result.prompt, /the outfit shown in the second image/);
+    assert.match(result.prompt, /Moment: walking barefoot on wet sand\./);
+  });
+
+  it('removes "one woman alone" from a two-person still', () => {
+    const prompt =
+      'TWO PEOPLE in this photo: she and her partner hug.\nvacation travel still, clothes stay on, one woman alone, same face and hair as Image 1.';
+    const result = repairStillPrompt(prompt, { people: 2 });
+    assert.deepEqual(result.remaining, []);
+    assert.match(result.prompt, /clothes stay on, same face and hair/);
+  });
+
+  it('keeps the first of a repeated line', () => {
+    const prompt = 'SCENE: the harbour.\nOUTFIT (mandatory): a red dress.\nSCENE: the harbour at dusk.\nMoment: waiting.';
+    const result = repairStillPrompt(prompt);
+    assert.deepEqual(result.remaining, []);
+    assert.equal(result.prompt.match(/SCENE:/g)?.length, 1);
+    assert.match(result.prompt, /SCENE: the harbour\.\n/);
+  });
+
+  it('leaves what it cannot repair for the notice, and a clean prompt untouched', () => {
+    const solo = 'Day photo: One woman alone. Pose: the two people face each other.';
+    const result = repairStillPrompt(solo);
+    assert.equal(result.prompt, solo);
+    assert.deepEqual(result.remaining.map(issue => issue.code), ['solo-mentions-two']);
+    const clean = 'Day photo: One woman alone. Moment: reading on the sofa.';
+    assert.deepEqual(repairStillPrompt(clean), { prompt: clean, repaired: [], remaining: [] });
   });
 });

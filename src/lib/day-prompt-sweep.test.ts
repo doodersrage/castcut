@@ -315,16 +315,6 @@ type KnownIssue = {
  * it describes; everything else still fails. Remove the entry with the fix.
  */
 const KNOWN_ISSUES: KnownIssue[] = [
-  {
-    id: 'couple-beats-without-a-pose',
-    invariant: 'the beat states its pose',
-    why: 'Ten couple beats (Suggestive couple, theme couple scenes) have no word the pose guide reads — "her partner carrying her to bed in his arms", "clinking coffee mugs with her partner", "singing karaoke with a friend", "posing back to back with a friend"… — so the pair is drawn in the stance of the slot index, or in one read from the room ("…laid out on the bed" lays the cosplay pair down). Found by the invariant added with the Setting fix; the beats or the guide need the words.',
-    matches: run =>
-      run.beat.two &&
-      /^(?:her partner (?:carrying her to bed|fixing her necklace)|clinking coffee mugs|singing karaoke|side by side with a friend in the back of a taxi|sharing breakfast in bed|reading side by side in bed|the two models posing face to face|getting into costumes with a friend|posing back to back with a friend)/.test(
-        run.beat.beat
-      ),
-  },
 ];
 
 const hitKnownIssues = new Set<string>();

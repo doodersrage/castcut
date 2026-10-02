@@ -16,6 +16,10 @@ import StoryStatusStrip from '@/components/roleplay/StoryStatusStrip';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import StoryRetryFlagged from '@/components/roleplay/StoryRetryFlagged';
+import StoryStartOverDialog from '@/components/roleplay/StoryStartOverDialog';
+import { storyBeatAwaitsRewrite } from '@/hooks/roleplay/story-beat-edit';
+import { useStoryScenePoses } from '@/hooks/roleplay/useStoryScenePoses';
+import { useStoryStartOver } from '@/hooks/roleplay/useStoryStartOver';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
@@ -36,9 +40,11 @@ import { deriveStoryPhase } from '@/lib/play-step-machine';
 import {
   countRoleplayCompletedClips,
   countRoleplayCompletedStills,
+  isRoleplayAdultContent,
   roleplayQueueBlockReason,
   storySessionStatusLine,
   roleplayMoodSummary,
+  type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 import { useCallback, useMemo } from 'react';
@@ -77,7 +83,9 @@ export default function RoleplayToolSections({
   film,
   beatQueue,
   sceneFlow,
+  bioFlow,
   session,
+  beatEdit,
   extendBeat,
   wardrobe,
 }: RoleplayToolSectionsProps) {
@@ -90,6 +98,22 @@ export default function RoleplayToolSections({
     [activeCharacterId]
   );
   const castCharacterName = castCharacter?.name?.trim() || '';
+  const startOver = useStoryStartOver({
+    clearStory: session.restartStory,
+    clearScenes: () => sceneFlow.setScenes([]),
+    writeBio: bioFlow.writeBio,
+    leadName: toolSettings.characterName?.trim() || castCharacterName,
+  });
+  // The figure on each scene card: the pose its still would be drawn in. Only From photo
+  // stories queue a pose guide, so only they show one.
+  const scenePoses = useStoryScenePoses({
+    scenes: sceneFlow.scenes,
+    story,
+    model: shared.model,
+    poseGuideStyle: shared.poseGuideStyle,
+    adult: isRoleplayAdultContent(content),
+    enabled: playAsResolved === 'photo',
+  });
   const castHomeHref = activeCharacterId
     ? `/characters/${encodeURIComponent(activeCharacterId)}`
     : '/characters';
@@ -164,6 +188,16 @@ export default function RoleplayToolSections({
     }
   }, [beatQueue, story]);
 
+  // "Retry flagged" / "Retry them first": a scene whose text was edited has no still prompt to
+  // retry with — its fresh take is the scene written again.
+  const retryStill = useCallback(
+    (beat: RoleplayStoryBeat) =>
+      storyBeatAwaitsRewrite(beat)
+        ? beatEdit.rewriteBeat(beat)
+        : beatQueue.queueBeat(beat, { retry: true }),
+    [beatEdit, beatQueue]
+  );
+
   const castProps = {
     busy,
     bio,
@@ -200,7 +234,7 @@ export default function RoleplayToolSections({
     onIsolateStatusChange: reference.setIsolateStatus,
     onError: setError,
     onScanWithVision: () => void reference.scanWithVision(),
-    onRestartStory: session.restartStory,
+    onRestartStory: startOver.ask,
     hideMoodSection: true as const,
   };
 
@@ -242,6 +276,12 @@ export default function RoleplayToolSections({
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
         onCancel={cancelSoftAdvance}
+      />
+      <StoryStartOverDialog
+        open={startOver.open}
+        sceneCount={story.length}
+        leadName={bio?.name || castCharacterName}
+        onResolve={startOver.resolve}
       />
 
       {needsCastGate ? (
@@ -298,6 +338,7 @@ export default function RoleplayToolSections({
             bioPresent={Boolean(bio)}
             scenesLoading={sceneFlow.scenesLoading}
             scenes={sceneFlow.scenes}
+            scenePoses={scenePoses}
             playingId={sceneFlow.playingId}
             error={error}
             filmError={film.filmError}
@@ -308,7 +349,7 @@ export default function RoleplayToolSections({
             onIntimateMixChange={next =>
               updateToolSettings({ intimateMix: normalizeDayIntimateMix(next) })
             }
-            onRestartStory={session.restartStory}
+            onRestartStory={startOver.ask}
             storyBeatCount={story.length}
             onUndoLastScene={session.undoLastScene}
             onBeatOutputChange={next => updateToolSettings({ beatOutput: next })}
@@ -355,19 +396,11 @@ export default function RoleplayToolSections({
             </ToolSection>
           ) : null}
 
-          <StoryRetryFlagged
-            story={story}
-            busy={busy}
-            onRetry={beat => beatQueue.queueBeat(beat, { retry: true })}
-          />
+          <StoryRetryFlagged story={story} busy={busy} onRetry={retryStill} />
 
           <CutProblemsDialog
             problems={film.cutProblems}
-            onResolve={action =>
-              void film.resolveCutProblems(action, beat =>
-                beatQueue.queueBeat(beat, { retry: true })
-              )
-            }
+            onResolve={action => void film.resolveCutProblems(action, retryStill)}
           />
           <RoleplayStorySection
             beatOutput={beatOutput}
@@ -415,6 +448,7 @@ export default function RoleplayToolSections({
             onPoseChange={session.setBeatPose}
             onSelectClipTake={session.selectClipTake}
             onCopy={beat => void session.copyBeatPrompt(beat)}
+            beatEdit={beatEdit}
             onRollScenes={() => void sceneFlow.rollScenes()}
           />
         </>

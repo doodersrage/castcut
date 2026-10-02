@@ -23,10 +23,6 @@ const ASPECT = 2 / 3;
 /** The figure a composed pose starts from: facing the camera, so "out" and "in" mean something. */
 function frontFigure(body: string | undefined): NormalizedBody | null {
   const stand = poseStarterBody('stand');
-  if (body === 'lie') {
-    // Lying is drawn side-on; limb directions relative to an upright body do not apply.
-    return null;
-  }
   if (body === 'sit') {
     // Seated, facing the camera: thighs come toward it, shins hang down.
     let seated = stand.map(point => (point ? { x: point.x, y: point.y + 0.1 } : null));
@@ -44,6 +40,25 @@ function frontFigure(body: string | undefined): NormalizedBody | null {
     return kneeling;
   }
   return stand;
+}
+
+/** Turn an upright figure a quarter turn about its hips so it lies along the ground. */
+function layDown(body: NormalizedBody): NormalizedBody {
+  const hips = [body[8], body[11]].filter(Boolean) as Array<{ x: number; y: number }>;
+  const pivot = hips.length
+    ? {
+        x: hips.reduce((sum, p) => sum + p.x, 0) / hips.length,
+        y: hips.reduce((sum, p) => sum + p.y, 0) / hips.length,
+      }
+    : { x: 0.5, y: 0.5 };
+  // On the ground, in the lower part of the picture.
+  const ground = { x: 0.5, y: 0.72 };
+  return body.map(point => {
+    if (!point) return null;
+    const dx = (point.x - pivot.x) * ASPECT;
+    const dy = point.y - pivot.y;
+    return { ...point, x: ground.x + dy / ASPECT, y: ground.y - dx };
+  });
 }
 
 /** Keep every joint inside the picture: shift, and shrink only if the figure is too large. */
@@ -79,9 +94,9 @@ function fitToCanvas(body: NormalizedBody): NormalizedBody {
 }
 
 /**
- * The skeleton for a described pose, or null when there is nothing to compose (no limbs, or a
- * lying body). Legs are only composed on a standing figure — on a seat or the knees they are
- * where the posture puts them.
+ * The skeleton for a described pose, or null when there is nothing to compose (no limbs). Legs
+ * are composed on a standing or lying figure — on a seat or the knees they are where the
+ * posture puts them.
  */
 export function composeWrittenPose(input: {
   body?: string;
@@ -105,9 +120,9 @@ export function composeWrittenPose(input: {
     const leg = limbs[`${side}_leg`];
     if (leg && legsUsable) figure = setLimbDirections(figure, 'leg', side, leg, ASPECT);
   }
-  // A raised foot must not sink below the standing one: drop the figure so the lowest foot
-  // stays on the ground line the starter stands on.
-  const fitted = fitToCanvas(figure);
+  // Lying: the limbs are placed on the upright figure (directions are relative to the body),
+  // then the whole figure is laid down — head to the left, feet to the right — low in the frame.
+  const fitted = fitToCanvas(input.body === 'lie' ? layDown(figure) : figure);
   return {
     aspect: ASPECT,
     people: [fitted],

@@ -24,6 +24,41 @@ export type RoleplayApiPayload = EnrichedToolGenerateResult & {
   provider?: 'llm' | 'template';
 };
 
+/**
+ * A bible request for the same Cast lead: the lead keeps their name (as Rewrite bible on Cast
+ * does), everything else is written anew. A name already locked on the request stays.
+ */
+export function roleplayBioRequestForLead(
+  body: Record<string, unknown>,
+  leadName: string | null | undefined
+): Record<string, unknown> {
+  const name = resolveRoleplayLockedCharacterName(leadName);
+  if (!name || body.characterName) {
+    return body;
+  }
+  return { ...body, characterName: name, avoidCharacterNames: [] };
+}
+
+/**
+ * Ask the scene writer for a still prompt. One call for every place a scene's still is written —
+ * picking a card, typing your own scene, and writing an edited scene again — so they cannot
+ * drift apart on what counts as a failed write.
+ */
+export async function requestRoleplayStillPrompt(
+  body: Record<string, unknown>
+): Promise<RoleplayApiPayload> {
+  const response = await fetch('/api/roleplay', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = (await response.json()) as RoleplayApiPayload;
+  if (!response.ok || !data.prompt?.trim()) {
+    throw new Error(data.error ?? 'Could not write a still.');
+  }
+  return data;
+}
+
 export type RoleplayQueueStillOptions = {
   inputImageFilename?: string;
   inputImageUrl?: string;

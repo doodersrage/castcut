@@ -415,7 +415,8 @@ export async function generateRoleplayScenes(
     options.story,
     bio.name,
     rejectedScenes,
-    content
+    content,
+    options.intimateMix
   );
   const settingCue = formatRoleplaySettingCue({
     setting,

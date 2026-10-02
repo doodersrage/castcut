@@ -689,6 +689,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               model={shared.model}
               busy={busy}
               poseMiss={poseMissViews[activeSlot.id]}
+              plateUrl={platePreviewUrl || plate?.imageUrl}
               updateSlot={updateSlot}
             />
           </div>

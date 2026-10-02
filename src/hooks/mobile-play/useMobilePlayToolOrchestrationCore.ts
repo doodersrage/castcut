@@ -54,6 +54,7 @@ import {
 import {
   buildRoleplayRequestBody,
   resolveRoleplayWardrobeFields,
+  roleplayBioRequestForLead,
   type RoleplayApiPayload,
 } from '@/lib/roleplay-play-core';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
@@ -388,6 +389,8 @@ export function useMobilePlayToolOrchestrationCore() {
         playAs: 'photo',
         bio: nextBio,
         story: writingStory,
+        // As desk Story: a story that opens again must not avoid the cards of the one before.
+        rejectedScenes: [],
       });
       if (!introBeat) {
         return;
@@ -432,30 +435,38 @@ export function useMobilePlayToolOrchestrationCore() {
     [commitStill, requestBody, updateToolSettings]
   );
 
-  const writeBio = useCallback(async () => {
-    if (!hasReferenceImage) {
-      setError('Capture a plate first.');
-      return;
-    }
-    setBioLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/roleplay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody('bio')),
-      });
-      const data = (await response.json()) as RoleplayApiPayload;
-      if (!response.ok || !data.bio) {
-        throw new Error(data.error ?? 'Could not write a bio.');
+  const writeBio = useCallback(
+    async (options?: {
+      /** Starting over for the same Cast lead: the new bible keeps this name. */
+      characterName?: string;
+    }) => {
+      if (!hasReferenceImage) {
+        setError('Capture a plate first.');
+        return;
       }
-      await beginStoryFromBio(data.bio);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not write a bio.');
-    } finally {
-      setBioLoading(false);
-    }
-  }, [beginStoryFromBio, hasReferenceImage, requestBody]);
+      setBioLoading(true);
+      setError(null);
+      try {
+        const response = await fetch('/api/roleplay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            roleplayBioRequestForLead(requestBody('bio'), options?.characterName)
+          ),
+        });
+        const data = (await response.json()) as RoleplayApiPayload;
+        if (!response.ok || !data.bio) {
+          throw new Error(data.error ?? 'Could not write a bio.');
+        }
+        await beginStoryFromBio(data.bio);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not write a bio.');
+      } finally {
+        setBioLoading(false);
+      }
+    },
+    [beginStoryFromBio, hasReferenceImage, requestBody]
+  );
   return {
     mounted,
     shared,

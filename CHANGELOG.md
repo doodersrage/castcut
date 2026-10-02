@@ -9,6 +9,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Prompt check, extended.** Day's finished prompt is now built by code a test can run, and a sweep builds it for every planner beat on all three Day engines across the ways a still can be put together (56,000 prompts). It found and fixed: a clothing photo that is dropped on a face-crop still was still named ("the outfit from the second image" — which was then the pose map); the long brief named a third image with no pose map attached; a two-person Vacation brief took the outfit from the partner's face picture. The queue-time check now repairs what it safely can (shoes ordered on a barefoot or swimming scene, "one woman alone" on a two-person still, a line that appears twice) instead of only warning, and it also runs on Outfit try-ons.
+- **Story: edit a scene, start over with a new bible, see the pose before you pick.** *Edit scene* on a scene in the reel changes its text and offers *Write and queue again* (the earlier still stays as a take). *Start the story over* asks in the page whether to keep the character's bible or have a new one written for the same lead. Each of the four offered scene cards shows a small figure of the pose its still would be drawn in.
+- **Story: built-in adult scenes follow Solo / Duo.** With no language model connected, Solo was offered partner scenes and Duo a solo one. The built-in set now has solo openings, scenes and endings, and four cards for each setting.
+- **Pose editor.** The Cast's picture can be shown faintly behind the figure; a dashed outline shows the pose you started from; a *Head* row turns the head (straight, left, right, up, down). Composed Story poses now cover lying figures.
+- **Fix: phone Story stuck on "No Cast lead".** If the Cast list loaded a moment after the page, the page never noticed and *Roll four scenes* stayed disabled.
+- **Fix: a restored Story** keeps each scene's continuity brief, pose and face checks and the picked take (they were dropped when a saved story was loaded).
+- **Fix: Story's pose preview** follows the content rating, like the still does.
+- **Day:** ten couple scenes now state their posture (they were drawn in a default stance); an Outfit try-on with a custom pose and no clothing picture calls the pose map by the right image number; an adult mood with Intimate off is treated as Everyday when deciding whether the clothing picture is dropped.
+- **Phone Outfit** shows the prompt the last try-on was sent with.
+
 ## [v2.2.0] - 2026-10-02
 
 - **Footwear.** Outfit, Day and Story have a Footwear picker under Clothing: 36 kits with packshots (sneakers, heels, boots, flats, sandals, at home), your own shoes from a worn photo (the shoes are read and cut out) or a packshot, or your own words — plus Auto and Barefoot. The shoes are named on every clothed still, and on Qwen Edit 2511 they are also shown to the model beside the clothing. A shoe photo can be **saved for later** and re-picked from **Saved shoes** (kept across sessions and synced, like saved clothing).

@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   ARM_PRESETS,
+  HEAD_DIRECTIONS,
   LEG_PRESETS,
   applyArmPreset,
+  applyHeadDirection,
   applyLegPreset,
   legsAreStanding,
   matchLimb,
+  readHeadDirection,
 } from './pose-limb-presets';
 import { poseStarterBody } from './pose-starters';
 
@@ -108,5 +111,128 @@ describe('legsAreStanding', () => {
     assert.equal(legsAreStanding(applyLegPreset(stand(), 'knee', 'both', ASPECT), ASPECT), true);
     assert.equal(legsAreStanding(poseStarterBody('sit'), ASPECT), false);
     assert.equal(legsAreStanding(poseStarterBody('lie'), ASPECT), false);
+  });
+});
+
+describe('head direction', () => {
+  const FACE = [0, 14, 15, 16, 17];
+  const BODY = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+  const close = (a: ReturnType<typeof stand>, b: ReturnType<typeof stand>, within: number) =>
+    a.every((point, index) => {
+      const other = b[index];
+      return point && other ? span(point, other) < within : !point === !other;
+    });
+  // Front and tipped faces: ear to ear. A profile: nose to the one ear, 1.13 of a head radius
+  // where ear to ear is 1.7.
+  const headSize = (body: ReturnType<typeof stand>) =>
+    body[16] && body[17] ? span(body[16], body[17]) : (span(body[0]!, (body[16] ?? body[17])!) * 1.7) / 1.13;
+
+  it('moves only the face: the neck and the rest of the body stay', () => {
+    for (const starter of ['stand', 'walk', 'sit', 'kneel', 'lie'] as const) {
+      const before = poseStarterBody(starter);
+      for (const { id } of HEAD_DIRECTIONS) {
+        const after = applyHeadDirection(before, id, ASPECT);
+        for (const joint of BODY) {
+          assert.deepEqual(after[joint], before[joint], `${starter} ${id} moved joint ${joint}`);
+        }
+      }
+    }
+  });
+
+  it('straight leaves the standing starter as it is', () => {
+    const before = stand();
+    assert.ok(close(applyHeadDirection(before, 'straight', ASPECT), before, 0.001));
+    assert.equal(readHeadDirection(before, ASPECT).direction, 'straight');
+  });
+
+  it('left and right are theirs: a profile with the far eye and ear hidden', () => {
+    const before = stand();
+    const left = applyHeadDirection(before, 'left', ASPECT);
+    // Their left is the picture's right when they face the camera.
+    assert.ok(left[0]!.x > before[0]!.x + 0.02, 'nose toward the picture right');
+    assert.ok(left[14] && left[16], 'their right eye and ear still show');
+    assert.deepEqual([left[15], left[17]], [null, null], 'the far side is hidden');
+    assert.ok(left[16]!.x < left[14]!.x && left[14]!.x < left[0]!.x, 'ear, eye, nose in a row');
+    const right = applyHeadDirection(before, 'right', ASPECT);
+    assert.deepEqual([right[14], right[16]], [null, null]);
+    // The standing starter is symmetric, so right is left in a mirror.
+    for (const [mine, theirs] of [
+      [0, 0],
+      [15, 14],
+      [17, 16],
+    ] as const) {
+      assert.ok(Math.abs(right[mine]!.x - (1 - left[theirs]!.x)) < 1e-9);
+      assert.ok(Math.abs(right[mine]!.y - left[theirs]!.y) < 1e-9);
+    }
+  });
+
+  it('seen from behind, their left is the picture left', () => {
+    // Shoulders swapped across the picture without renaming: a back view.
+    const back = stand().map(point => (point ? { x: 1 - point.x, y: point.y } : null));
+    const left = applyHeadDirection(back, 'left', ASPECT);
+    assert.ok(left[0]!.x < back[0]!.x - 0.02);
+  });
+
+  it('up and down move the nose against the eye line, ears where they were', () => {
+    const before = stand();
+    const eyeLine = (body: typeof before) => (body[14]!.y + body[15]!.y) / 2;
+    const gap = (body: typeof before) => body[0]!.y - eyeLine(body);
+    const up = applyHeadDirection(before, 'up', ASPECT);
+    const down = applyHeadDirection(before, 'down', ASPECT);
+    assert.ok(up[0]!.y < before[0]!.y && down[0]!.y > before[0]!.y);
+    assert.ok(gap(up) < gap(before) && gap(before) < gap(down));
+    for (const tipped of [up, down]) {
+      assert.ok(span(tipped[16]!, before[16]!) < 1e-9 && span(tipped[17]!, before[17]!) < 1e-9);
+    }
+  });
+
+  it('keeps the head size and does not drift, whatever the order of taps', () => {
+    const before = stand();
+    const size = headSize(before);
+    let body = before;
+    for (const id of ['left', 'left', 'up', 'right', 'down', 'right', 'left', 'straight', 'down', 'up']) {
+      body = applyHeadDirection(body, id as (typeof HEAD_DIRECTIONS)[number]['id'], ASPECT);
+      assert.ok(Math.abs(headSize(body) - size) < 1e-9, `${id} changed the head size`);
+      assert.equal(readHeadDirection(body, ASPECT).direction, id);
+      assert.ok(close(applyHeadDirection(body, id as never, ASPECT), body, 1e-9), `${id} twice moved`);
+    }
+    assert.ok(close(applyHeadDirection(body, 'straight', ASPECT), before, 0.001), 'back where it began');
+  });
+
+  it('a hidden far side comes back for straight', () => {
+    const turned = applyHeadDirection(stand(), 'right', ASPECT);
+    const straight = applyHeadDirection(turned, 'straight', ASPECT);
+    assert.ok(FACE.every(index => straight[index]));
+  });
+
+  it('a body seen from the side keeps its profile; left and right do not apply', () => {
+    const before = poseStarterBody('sit');
+    assert.equal(readHeadDirection(before, ASPECT).sideOn, true);
+    assert.deepEqual(applyHeadDirection(before, 'left', ASPECT), before);
+    assert.deepEqual(applyHeadDirection(before, 'right', ASPECT), before);
+    const straight = applyHeadDirection(before, 'straight', ASPECT);
+    // Still facing the picture's right, where the starter looks.
+    assert.ok(span(straight[0]!, before[0]!) < 0.02);
+    assert.ok(straight[16] && !straight[17] && straight[16]!.x < straight[0]!.x);
+    const up = applyHeadDirection(before, 'up', ASPECT);
+    const down = applyHeadDirection(up, 'down', ASPECT);
+    assert.ok(up[0]!.y < straight[0]!.y && down[0]!.y > straight[0]!.y);
+    assert.equal(readHeadDirection(up, ASPECT).direction, 'up');
+    assert.equal(readHeadDirection(down, ASPECT).direction, 'down');
+    assert.ok(close(applyHeadDirection(down, 'straight', ASPECT), straight, 1e-9));
+    // Lying down is side-on too, with no nose out in front to say which way the face points.
+    const lying = poseStarterBody('lie');
+    assert.equal(readHeadDirection(lying, ASPECT).sideOn, true);
+    assert.deepEqual(applyHeadDirection(lying, 'left', ASPECT), lying);
+    assert.ok(span(applyHeadDirection(lying, 'straight', ASPECT)[0]!, lying[0]!) < 1e-9);
+  });
+
+  it('leaves a figure without a neck alone, and a dragged head lights no chip', () => {
+    const headless = stand().map((point, index) => (index === 1 ? null : point));
+    assert.deepEqual(applyHeadDirection(headless, 'left', ASPECT), headless);
+    const dragged = stand().map((point, index) =>
+      index === 0 && point ? { x: point.x + 0.03, y: point.y + 0.03 } : point
+    );
+    assert.equal(readHeadDirection(dragged, ASPECT).direction, null);
   });
 });

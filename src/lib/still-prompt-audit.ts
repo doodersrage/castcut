@@ -172,6 +172,56 @@ export function auditStillPrompt(
   return issues;
 }
 
+/**
+ * Repair what can be repaired without guessing, so the still goes out right instead of with a
+ * warning: shoes ordered where the scene rules them out (the footwear line goes), a two-person
+ * still that also says she is alone (that phrase goes), a line that appears twice (the first
+ * stays). Everything else — a one-person still describing two people, an image that is not
+ * attached — needs the cause fixed and is left for the notice. Returns the prompt to queue, what
+ * was repaired, and what is still wrong.
+ */
+export function repairStillPrompt(
+  prompt: string,
+  context: StillPromptContext = {}
+): { prompt: string; repaired: StillPromptIssue[]; remaining: StillPromptIssue[] } {
+  const issues = auditStillPrompt(prompt, context);
+  if (issues.length === 0) return { prompt, repaired: [], remaining: [] };
+  let next = prompt;
+  const has = (code: StillPromptIssueCode) => issues.some(issue => issue.code === code);
+  if (has('shoes-on-barefoot') || has('shoes-in-water')) {
+    next = next
+      .replace(/^[ \t]*FOOTWEAR \(mandatory\):[^\n]*\n?/gm, '')
+      .replace(/\s*\b(?:On|on) (?:her|his) feet (?:she|he) wears[^.\n]*\./g, '')
+      .replace(/\bthe outfit and the shoes shown in\b/g, 'the outfit shown in');
+  }
+  if (has('duo-says-alone')) {
+    next = next
+      .replace(/,\s*one (?:wo)?man alone(?=,|\.|;|$)/gi, '')
+      .replace(/\bOne (?:wo)?man alone[.,]?\s*/g, '');
+  }
+  if (has('repeated-line')) {
+    for (const label of ['FOOTWEAR (mandatory):', 'OUTFIT (mandatory):', 'SCENE:']) {
+      let seen = false;
+      next = next
+        .split('\n')
+        .filter(line => {
+          if (!line.trimStart().startsWith(label)) return true;
+          if (seen) return false;
+          seen = true;
+          return true;
+        })
+        .join('\n');
+    }
+  }
+  const remaining = auditStillPrompt(next, context);
+  const stillWrong = new Set(remaining.map(issue => issue.code));
+  return {
+    prompt: next,
+    repaired: issues.filter(issue => !stillWrong.has(issue.code)),
+    remaining,
+  };
+}
+
 /** One line for a notice: "Prompt check (afternoon): …; …". */
 export function stillPromptIssuesLine(issues: StillPromptIssue[], label?: string): string {
   if (issues.length === 0) return '';

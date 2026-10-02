@@ -97,7 +97,15 @@ describe('composeWrittenPose', () => {
     })!;
     assert.match(seated.words ?? '', /seated/);
     assert.match(composeWrittenPose({ body: 'kneel', limbs: { left_arm: ['up', 'up'] } })!.words ?? '', /kneel/);
-    assert.equal(composeWrittenPose({ body: 'lie', limbs: { left_arm: ['up', 'up'] } }), null);
+    // Lying: the same figure laid down — wider than tall, head at one end, low in the frame.
+    const lying = composeWrittenPose({ body: 'lie', limbs: { left_arm: ['up', 'up'] } })!;
+    const body = lying.people[0]!;
+    const xs = body.filter(Boolean).map(point => point!.x * ASPECT);
+    const ys = body.filter(Boolean).map(point => point!.y);
+    assert.ok(Math.max(...xs) - Math.min(...xs) > Math.max(...ys) - Math.min(...ys), 'wider than tall');
+    assert.ok(body[0]!.x < body[10]!.x, 'head left of the feet');
+    assert.ok(Math.min(...ys) > 0.4, 'low in the frame');
+    assert.match(lying.words ?? '', /lying/);
     assert.equal(composeWrittenPose({ body: 'stand', limbs: {} }), null);
   });
 });

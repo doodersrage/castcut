@@ -36,11 +36,15 @@ import {
 import { saveMyPose } from '@/lib/my-poses';
 import {
   ARM_PRESETS,
+  HEAD_DIRECTIONS,
   LEG_PRESETS,
   applyArmPreset,
+  applyHeadDirection,
   applyLegPreset,
   legsAreStanding,
   matchLimb,
+  readHeadDirection,
+  type HeadDirection,
   type LimbSide,
 } from '@/lib/pose-limb-presets';
 import {
@@ -202,6 +206,30 @@ type Drag =
   /** The round handle above the head: spins the figure in the picture. */
   | { kind: 'spin'; person: number; angle: number };
 
+/**
+ * What is drawn behind the figure is a taste, not part of a pose: remembered across slots and
+ * sessions, so the picture does not have to be switched off again for every pose.
+ */
+const SHOW_BACKDROP_KEY = 'comfy-pose-editor-backdrop-v1';
+const SHOW_START_KEY = 'comfy-pose-editor-start-ghost-v1';
+
+/** On unless switched off; private windows and blocked storage read as on. */
+function readShown(key: string): boolean {
+  try {
+    return window.localStorage.getItem(key) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+function rememberShown(key: string, shown: boolean) {
+  try {
+    window.localStorage.setItem(key, shown ? '1' : '0');
+  } catch {
+    // Not remembered: the toggle still works for this session.
+  }
+}
+
 /** The unforeshortened figure depth is guessed against. */
 const STAND = poseStarterBody('stand');
 
@@ -230,6 +258,8 @@ export default function PoseJointEditor({
   possessive = 'her',
   leadsPrompt = false,
   words: initialWords,
+  backdropUrl,
+  backdropLabel,
 }: {
   bodies: NormalizedBody[];
   aspect: number;
@@ -244,6 +274,13 @@ export default function PoseJointEditor({
   leadsPrompt?: boolean;
   /** The pose's name and cue when it came from Day's pose list and has not been edited since. */
   words?: string;
+  /**
+   * A picture of the person being posed (their plate), drawn faintly behind the figure so the
+   * pose can be set against their real proportions. A guide only: never saved with the pose.
+   */
+  backdropUrl?: string | null;
+  /** What that picture is ("Try-on plate"), for the toggle's tooltip and screen readers. */
+  backdropLabel?: string;
 }) {
   const titleId = useId();
   const [bodies, setBodies] = useState<NormalizedBody[]>(() =>
@@ -256,11 +293,22 @@ export default function PoseJointEditor({
   // Depth per figure, guessed on the first rotation and kept so repeated turns stay consistent.
   const depths = useRef<Array<BodyDepth | null>>([]);
   const [dirty, setDirty] = useState(false);
+  // The figure as the editor opened, kept to draw behind the one being posed. "Start from" and
+  // Reset replace the figure, never this.
+  const [opened] = useState(bodies);
+  // Joints differ from that figure — the ghost would otherwise sit exactly under the figure.
+  const [moved, setMoved] = useState(false);
   const noteDirty = (nextBodies: NormalizedBody[], nextDepths: Array<BodyDepth | null>) => {
-    const changed =
-      JSON.stringify(nextBodies) !== baselineKey.current || nextDepths.some(depth => depth != null);
-    setDirty(changed);
+    const differs = JSON.stringify(nextBodies) !== baselineKey.current;
+    setMoved(differs);
+    setDirty(differs || nextDepths.some(depth => depth != null));
   };
+  const [showStart, setShowStart] = useState(() => readShown(SHOW_START_KEY));
+  const [showBackdrop, setShowBackdrop] = useState(() => readShown(SHOW_BACKDROP_KEY));
+  // A picture that will not load (a plate deleted from ComfyUI) takes its toggle with it.
+  const [failedBackdrop, setFailedBackdrop] = useState<string | null>(null);
+  const backdrop =
+    backdropUrl?.trim() && backdropUrl.trim() !== failedBackdrop ? backdropUrl.trim() : null;
   const update = (change: (previous: NormalizedBody[]) => NormalizedBody[]) => {
     const next = change(latest.current);
     latest.current = next;
@@ -310,6 +358,29 @@ export default function PoseJointEditor({
     update(previous => previous.map((body, index) => (index === person ? change(body) : body)));
     setSavedNote(null);
   };
+  // Turn or tip the head of the figure being posed. Only the face points move, so a figure that
+  // has been turned keeps its depth; the face takes the head's.
+  const turnHead = (direction: HeadDirection) => {
+    const person = Math.min(rotatePerson, latest.current.length - 1);
+    const body = latest.current[person];
+    // Already there (the lit chip): no step to undo, no "close without using this pose?".
+    if (!body || readHeadDirection(body, safeAspect).direction === direction) return;
+    checkpoint();
+    const turned = applyHeadDirection(body, direction, safeAspect);
+    const depth = depths.current[person];
+    if (depth) {
+      const headDepth = depth[0] ?? depth[1] ?? 0;
+      setDepths(
+        Object.assign([...depths.current], {
+          [person]: turned.map((point, joint) =>
+            joint >= 14 ? (point ? headDepth : null) : (depth[joint] ?? null)
+          ),
+        })
+      );
+    }
+    update(previous => previous.map((b, index) => (index === person ? turned : b)));
+    setSavedNote(null);
+  };
   const [saveName, setSaveName] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
   const rememberHistory = () => {
@@ -327,10 +398,9 @@ export default function PoseJointEditor({
     setShownDepths(shot.depths);
     latest.current = shot.bodies;
     setBodies(shot.bodies);
-    const changed =
-      JSON.stringify(shot.bodies) !== baselineKey.current ||
-      shot.depths.some(depth => depth != null);
-    setDirty(changed);
+    const differs = JSON.stringify(shot.bodies) !== baselineKey.current;
+    setMoved(differs);
+    setDirty(differs || shot.depths.some(depth => depth != null));
     setUndoable(history.current.length);
     setRedoable(future.current.length);
   }, []);
@@ -387,6 +457,9 @@ export default function PoseJointEditor({
   const safeAspect = aspect > 0.2 && aspect < 5 ? aspect : 2 / 3;
   const posedBody = bodies[Math.min(rotatePerson, bodies.length - 1)];
   const standing = posedBody ? legsAreStanding(posedBody, safeAspect) : false;
+  const head = posedBody
+    ? readHeadDirection(posedBody, safeAspect)
+    : { direction: null, sideOn: false };
 
   const requestClose = (source: 'escape' | 'backdrop' = 'backdrop') => {
     if (confirmClose) {
@@ -717,6 +790,45 @@ export default function PoseJointEditor({
                 if (!drag.current) setHover({ kind: 'idle' });
               }}
             >
+              {/* Their picture, fitted whole into the canvas. Under everything and deaf to the
+                  pointer: a drag over it still turns the figure. */}
+              {backdrop && showBackdrop ? (
+                <image
+                  href={backdrop}
+                  x={0}
+                  y={0}
+                  width={safeAspect}
+                  height={1}
+                  preserveAspectRatio="xMidYMid meet"
+                  opacity={0.3}
+                  style={{ pointerEvents: 'none' }}
+                  aria-hidden
+                  data-testid={`${testIdPrefix}-backdrop`}
+                  onError={() => setFailedBackdrop(backdrop)}
+                />
+              ) : null}
+              {/* Where the pose started. Butt caps: the round caps the figure is drawn with
+                  close the gaps and the dashes read as a solid line. */}
+              {showStart && moved ? (
+                <g
+                  opacity={0.55}
+                  style={{ pointerEvents: 'none' }}
+                  className="[&_g]:[stroke-linecap:butt]"
+                  aria-hidden
+                  data-testid={`${testIdPrefix}-start-ghost`}
+                >
+                  {opened.map((body, person) => (
+                    <PoseFigureShape
+                      key={person}
+                      body={body}
+                      aspect={safeAspect}
+                      color="var(--text-muted)"
+                      weight={0.006}
+                      dashed
+                    />
+                  ))}
+                </g>
+              ) : null}
               {bodies.map((body, person) => {
                 const color = POSE_FIGURE_COLORS[person % POSE_FIGURE_COLORS.length]!;
                 const at = (i: number) => {
@@ -1050,6 +1162,41 @@ export default function PoseJointEditor({
                     </Button>
                   ))}
                 </div>
+                {/* Not a side: the head turns whichever "Quick positions for" is picked. */}
+                <div
+                  className="flex flex-wrap items-center gap-1.5"
+                  role="group"
+                  aria-label="Head direction"
+                >
+                  <span className="type-caption w-9 shrink-0 text-[var(--text-muted)]">Head</span>
+                  {HEAD_DIRECTIONS.map(option => {
+                    const sideways = option.id === 'left' || option.id === 'right';
+                    const unavailable = sideways && head.sideOn;
+                    const active = head.direction === option.id;
+                    return (
+                      <Button
+                        key={option.id}
+                        size="sm"
+                        variant={active ? 'accent-outline' : 'secondary'}
+                        className="whitespace-nowrap"
+                        aria-pressed={active}
+                        aria-label={sideways ? `Their ${option.id}` : undefined}
+                        data-testid={`${testIdPrefix}-head-${option.id}`}
+                        disabled={unavailable}
+                        title={
+                          unavailable
+                            ? 'For a figure facing you or away — seen from the side, turn the whole figure'
+                            : sideways
+                              ? `Turn the head to their ${option.id}`
+                              : undefined
+                        }
+                        onClick={() => turnHead(option.id)}
+                      >
+                        {option.label}
+                      </Button>
+                    );
+                  })}
+                </div>
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                   <span className="type-caption text-[var(--text-muted)]">
                     Copy a side you posed by hand:
@@ -1212,6 +1359,41 @@ export default function PoseJointEditor({
                 >
                   Reset
                 </Button>
+              </div>
+              {/* What is drawn behind the figure. Guides only: neither is part of the pose. */}
+              <div
+                className="flex flex-wrap items-center gap-x-4 text-sm text-[var(--text-secondary)]"
+                data-testid={`${testIdPrefix}-guides`}
+              >
+                {backdrop ? (
+                  <label
+                    className="inline-flex min-h-8 cursor-pointer items-center gap-1.5"
+                    title={backdropLabel}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={showBackdrop}
+                      data-testid={`${testIdPrefix}-show-backdrop`}
+                      onChange={event => {
+                        setShowBackdrop(event.target.checked);
+                        rememberShown(SHOW_BACKDROP_KEY, event.target.checked);
+                      }}
+                    />
+                    Show {possessive} picture
+                  </label>
+                ) : null}
+                <label className="inline-flex min-h-8 cursor-pointer items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={showStart}
+                    data-testid={`${testIdPrefix}-show-start`}
+                    onChange={event => {
+                      setShowStart(event.target.checked);
+                      rememberShown(SHOW_START_KEY, event.target.checked);
+                    }}
+                  />
+                  Show where it started
+                </label>
               </div>
               {allowTwo ? (
                 <div className="flex flex-wrap items-center gap-2">

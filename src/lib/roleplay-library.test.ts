@@ -469,3 +469,35 @@ describe('withRoleplayCacheFromCastCharacter Part', () => {
     assert.equal(next.personaId, 'hoodie-dragon');
   });
 });
+
+describe('a restored story keeps what the next scene and the checks need', () => {
+  it('continuity brief, pose guide, pose / face checks and the picked take survive', async () => {
+    const { normalizeRoleplayLibrarySnapshot } = await import('./roleplay-library');
+    const snapshot = normalizeRoleplayLibrarySnapshot({
+      bio: { name: 'Mara', look: 'yellow raincoat', personality: 'curious' },
+      story: [
+        {
+          id: 'b1',
+          at: 1,
+          title: 'The pier',
+          blurb: 'She crouches on the pier.',
+          stillBrief: 'yellow raincoat, wet hair, pier at dusk',
+          poseGuideUrl: '/api/comfyui/view?filename=guide.png&type=input',
+          poseGuideExpect: { poseKey: 'crouch:1', aspect: 0.66 },
+          poseMatch: { score: 0.71 },
+          faceMatch: { distance: 0.42 },
+          stillTakePinned: true,
+          stillTakeAutoPicked: true,
+        },
+      ],
+    });
+    const beat = snapshot?.story?.[0];
+    assert.equal(beat?.stillBrief, 'yellow raincoat, wet hair, pier at dusk');
+    assert.match(beat?.poseGuideUrl ?? '', /guide\.png/);
+    assert.deepEqual(beat?.poseGuideExpect, { poseKey: 'crouch:1', aspect: 0.66 });
+    assert.deepEqual(beat?.poseMatch, { score: 0.71 });
+    assert.deepEqual(beat?.faceMatch, { distance: 0.42 });
+    assert.equal(beat?.stillTakePinned, true);
+    assert.equal(beat?.stillTakeAutoPicked, true);
+  });
+});

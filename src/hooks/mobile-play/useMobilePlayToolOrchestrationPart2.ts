@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { type RoleplayApiPayload } from '@/lib/roleplay-play-core';
+import { requestRoleplayStillPrompt, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 import {
   appendRoleplayStoryBeat,
   patchRoleplayStoryBeat,
@@ -15,6 +15,7 @@ import {
 } from '@/lib/roleplay';
 import { lastRoleplayMotionSource } from '@/lib/roleplay-film';
 import type { MobilePlayToolOrchestrationCore } from '@/hooks/mobile-play/useMobilePlayToolOrchestrationCore';
+import { useStoryBeatEdit } from '@/hooks/roleplay/useStoryBeatEdit';
 
 export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestrationCore) {
   const {
@@ -141,15 +142,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
       }
       updateToolSettings({ story: writingStory });
       try {
-        const response = await fetch('/api/roleplay', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody('prompt', playing)),
-        });
-        const data = (await response.json()) as RoleplayApiPayload;
-        if (!response.ok || !data.prompt?.trim()) {
-          throw new Error(data.error ?? 'Could not write a still.');
-        }
+        const data = await requestRoleplayStillPrompt(requestBody('prompt', playing));
         const nextStory = await commitStill(data, beat, bio, writingStory);
         if (roleplayStoryPhase(nextStory) === 'complete') {
           setScenes([]);
@@ -190,6 +183,17 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
   );
 
   const queueBeat = beatQueue.queueBeat;
+
+  // Edit a scene in the reel and write its still again — the same hook desk Story uses.
+  const beatEdit = useStoryBeatEdit({
+    storyRef,
+    updateToolSettings,
+    bio,
+    requestBody,
+    commitStill,
+    referenceMissingMessage: hasReferenceImage ? null : 'Capture a plate first.',
+    setError,
+  });
 
   const selectStillTake = useCallback(
     (beat: RoleplayStoryBeat, index: number) => {
@@ -278,6 +282,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     animateAllReady,
     playScene,
     queueBeat,
+    beatEdit,
     selectStillTake,
     setBeatPose,
     selectClipTake,

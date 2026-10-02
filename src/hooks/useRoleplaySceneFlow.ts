@@ -1,7 +1,11 @@
 'use client';
 
 import { useCallback, useState, type MutableRefObject } from 'react';
-import { buildRoleplayRequestBody, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
+import {
+  buildRoleplayRequestBody,
+  requestRoleplayStillPrompt,
+  type RoleplayApiPayload,
+} from '@/lib/roleplay-play-core';
 import {
   appendRoleplayStoryBeat,
   mergeRoleplayRejectedScenes,
@@ -125,15 +129,7 @@ export function useRoleplaySceneFlow({
       }
       updateToolSettings({ story: writingStory, rejectedScenes });
       try {
-        const response = await fetch('/api/roleplay', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody('prompt', playing)),
-        });
-        const data = (await response.json()) as RoleplayApiPayload;
-        if (!response.ok || !data.prompt?.trim()) {
-          throw new Error(data.error ?? 'Could not write a still.');
-        }
+        const data = await requestRoleplayStillPrompt(requestBody('prompt', playing));
         const nextStory = await commitStill(data, beat, bio, writingStory, {
           queueStill: autoQueue && !skipStillForClip,
         });

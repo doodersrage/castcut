@@ -1,7 +1,8 @@
 /**
- * One-tap arm and leg positions for the pose editor ("Arms: on hips", "Legs: apart"), and
- * "match the other side". Dragging four joints to put both hands on the hips is the slow part
- * of posing by hand; these set a limb in one go and keep its bone lengths.
+ * One-tap arm and leg positions for the pose editor ("Arms: on hips", "Legs: apart"), "match
+ * the other side", and head directions ("Head: left"). Dragging four joints to put both hands
+ * on the hips is the slow part of posing by hand; these set a limb in one go and keep its bone
+ * lengths. The head has no joints to drag at all: its eyes and ears only ride with the nose.
  *
  * Flat (in the picture plane): they place the limb as seen from the front. `aspect` is canvas
  * width / height, so lengths are true on screen.
@@ -310,6 +311,258 @@ export function legsAreStanding(body: NormalizedBody, aspect: number): boolean {
         return Boolean(hip && knee && knee.y - hip.y > (span(hip, knee, a) || 1) * 0.55);
       })
     : false;
+}
+
+// ── Head direction ───────────────────────────────────────────────────────────────────────
+
+export const HEAD_DIRECTIONS = [
+  { id: 'straight', label: 'Straight' },
+  { id: 'left', label: 'Left' },
+  { id: 'right', label: 'Right' },
+  { id: 'up', label: 'Up' },
+  { id: 'down', label: 'Down' },
+] as const;
+export type HeadDirection = (typeof HEAD_DIRECTIONS)[number]['id'];
+
+/** COCO-18 face points: nose, their right / left eye, their right / left ear. */
+const NOSE = 0;
+const R_EYE = 14;
+const L_EYE = 15;
+const R_EAR = 16;
+const L_EAR = 17;
+
+/**
+ * The head, in head radii from its centre (the middle of the ear line). Face-on is the standing
+ * starter's own face, so "Straight" leaves that figure as it is; the profile is the head the
+ * guide draws for Day's Look: away (`stickToOpenPoseKeypoints`).
+ */
+const EAR_OUT = 0.85;
+const EYE_OUT = 0.425;
+/** [nose, eye line] above the ear line. Up closes the gap between them, Down opens it. */
+const FACE_RISE: Record<'straight' | 'up' | 'down', readonly [number, number]> = {
+  straight: [0, 0.32],
+  up: [0.3, 0.47],
+  down: [-0.4, 0.08],
+};
+const PROFILE_NOSE = 0.85;
+const PROFILE_EAR = 0.28;
+const PROFILE_EYE = [0.5, 0.28] as const;
+/** How far a head seen from the side tips for Up / Down. */
+const PROFILE_NOD = rad(35);
+/**
+ * Smallest head, as a share of the neck → head-centre distance. A side-on starter stacks both
+ * ears on one spot, which measured as a head a few pixels wide.
+ */
+const MIN_HEAD = 0.28;
+/** Shoulders closer together than this share of the torso: the body is seen from the side. */
+const SIDE_ON_SHOULDERS = 0.2;
+
+type HeadFrame = {
+  /** All in screen-true space (x × aspect). */
+  centre: XY;
+  radius: number;
+  /** Unit vector from the neck through the head. */
+  up: XY;
+  /** Unit vector toward their left in the picture, across the head. */
+  left: XY;
+  /** The body is seen from the side (shoulders one behind the other). */
+  sideOn: boolean;
+  /** Seen from the side with the nose out in front: the way the face points. */
+  facing: XY | null;
+  nose: XY | null;
+  eyes: XY[];
+  ears: number;
+};
+
+const scaled = (v: XY, by: number): XY => ({ x: v.x * by, y: v.y * by });
+const minus = (a: XY, b: XY): XY => ({ x: a.x - b.x, y: a.y - b.y });
+const dot = (a: XY, b: XY) => a.x * b.x + a.y * b.y;
+
+/**
+ * Where the head is and how big, read back from the face points. The ears anchor it: every head
+ * direction puts them a fixed way from the centre, so a second tap finds the same head and
+ * nothing drifts.
+ */
+function readHeadFrame(body: NormalizedBody, a: number): HeadFrame | null {
+  const at = (index: number): XY | null => {
+    const point = body[index];
+    return point ? { x: point.x * a, y: point.y } : null;
+  };
+  const neck = at(1);
+  if (!neck) return null;
+  const nose = at(NOSE);
+  const [rightEar, leftEar] = [at(R_EAR), at(L_EAR)];
+  const pair =
+    rightEar && leftEar
+      ? {
+          middle: { x: (rightEar.x + leftEar.x) / 2, y: (rightEar.y + leftEar.y) / 2 },
+          radius: Math.hypot(rightEar.x - leftEar.x, rightEar.y - leftEar.y) / (2 * EAR_OUT),
+        }
+      : null;
+  // Both ears on one spot (the side-on starters): no width to measure a face-on head from.
+  const stacked =
+    pair != null &&
+    pair.radius < (MIN_HEAD / 2) * Math.hypot(pair.middle.x - neck.x, pair.middle.y - neck.y);
+  let centre: XY | null;
+  let measured = 0;
+  if (pair && !stacked) {
+    centre = pair.middle;
+    measured = pair.radius;
+  } else {
+    const ear = pair?.middle ?? rightEar ?? leftEar;
+    const reach = ear && nose ? minus(nose, ear) : null;
+    const length = reach ? Math.hypot(reach.x, reach.y) : 0;
+    // Stacked ears are a profile only with the nose out to one side of them; with the nose
+    // further along the neck line (the lying starter) the head stays where it is drawn.
+    const stem = ear ? minus(ear, neck) : null;
+    const sideways =
+      !stacked ||
+      (reach != null &&
+        stem != null &&
+        Math.abs(reach.x * stem.y - reach.y * stem.x) > Math.abs(dot(reach, stem)));
+    if (ear && reach && length > 1e-6 && sideways) {
+      // A profile: the one ear sits behind the centre, on the line back from the nose.
+      measured = length / (PROFILE_NOSE + PROFILE_EAR);
+      const back = scaled(reach, (PROFILE_EAR * measured) / length);
+      centre = { x: ear.x + back.x, y: ear.y + back.y };
+    } else {
+      centre = nose ?? ear;
+    }
+  }
+  if (!centre) return null;
+  const stem = Math.hypot(centre.x - neck.x, centre.y - neck.y);
+  if (stem < 1e-6) return null;
+  const up = { x: (centre.x - neck.x) / stem, y: (centre.y - neck.y) / stem };
+  const radius = Math.max(measured, MIN_HEAD * stem);
+  // Facing the camera, their left is the picture's right; seen from behind the shoulders have
+  // swapped sides, and so has their left.
+  const across = { x: -up.y, y: up.x };
+  const [rightShoulder, leftShoulder] = [at(2), at(5)];
+  const shoulders = rightShoulder && leftShoulder ? minus(leftShoulder, rightShoulder) : null;
+  const left = shoulders && dot(shoulders, across) < -1e-6 ? scaled(across, -1) : across;
+  // Side-on: narrow shoulders, and a nose clearly out in front of the ears to say which way.
+  const hips = [at(8), at(11)].filter(Boolean) as XY[];
+  const torso = hips.length
+    ? Math.hypot(
+        hips.reduce((sum, p) => sum + p.x, 0) / hips.length - neck.x,
+        hips.reduce((sum, p) => sum + p.y, 0) / hips.length - neck.y
+      )
+    : 0;
+  const narrow =
+    shoulders != null && Math.hypot(shoulders.x, shoulders.y) < SIDE_ON_SHOULDERS * torso;
+  const ahead = nose ? dot(minus(nose, centre), across) / radius : 0;
+  const facing = narrow && Math.abs(ahead) > 0.3 ? scaled(across, Math.sign(ahead)) : null;
+  return {
+    centre,
+    radius,
+    up,
+    left,
+    sideOn: narrow,
+    facing,
+    nose,
+    eyes: [at(R_EYE), at(L_EYE)].filter(Boolean) as XY[],
+    ears: [rightEar, leftEar].filter(Boolean).length,
+  };
+}
+
+/**
+ * Turn or tip the head: moves only the nose, eyes and ears. The neck stays put and the head
+ * keeps its size, so the chips can be tapped in any order without the head wandering.
+ *
+ * Left / Right are theirs, as in the rest of the editor. They draw a profile the way the guide
+ * does (nose, one eye, one ear — the far eye and ear are null, "not visible"): a pose map says
+ * "turned" by the missing far side, not by a nose a few pixels off centre. Up / Down keep the
+ * ears and move the nose against the eye line.
+ *
+ * A body seen from the side already shows its head in profile, so Straight / Up / Down keep the
+ * profile; Left / Right would face the camera or the back of the head, which a flat skeleton
+ * cannot tell apart — those leave the figure as it is (see `readHeadDirection().sideOn`).
+ */
+export function applyHeadDirection(
+  body: NormalizedBody,
+  direction: HeadDirection,
+  aspect: number
+): NormalizedBody {
+  const a = aspect > 0 ? aspect : 1;
+  const next = body.map(point => (point ? { ...point } : null));
+  const frame = readHeadFrame(body, a);
+  if (!frame) return next;
+  while (next.length <= L_EAR) next.push(null);
+  const { centre, radius, up, left, facing } = frame;
+  const sideways = direction === 'left' || direction === 'right';
+  if (frame.sideOn && sideways) return next;
+  const place = (index: number, along: XY, alongAmount: number, rise: XY, riseAmount: number) => {
+    const x = centre.x + (along.x * alongAmount + rise.x * riseAmount) * radius;
+    const y = centre.y + (along.y * alongAmount + rise.y * riseAmount) * radius;
+    next[index] = { x: clamp(x / a), y: clamp(y) };
+  };
+  const profile = (toward: XY, nod: number) => {
+    const [cos, sin] = [Math.cos(nod), Math.sin(nod)];
+    const forward = { x: toward.x * cos + up.x * sin, y: toward.y * cos + up.y * sin };
+    const crown = { x: up.x * cos - toward.x * sin, y: up.y * cos - toward.y * sin };
+    // Facing the picture's right shows their right side (the guide's rule, any head tilt).
+    const rightSide = up.x * toward.y - up.y * toward.x > 0;
+    const [eye, ear, farEye, farEar] = rightSide
+      ? [R_EYE, R_EAR, L_EYE, L_EAR]
+      : [L_EYE, L_EAR, R_EYE, R_EAR];
+    place(NOSE, forward, PROFILE_NOSE, crown, 0);
+    place(eye, forward, PROFILE_EYE[0], crown, PROFILE_EYE[1]);
+    place(ear, forward, -PROFILE_EAR, crown, 0);
+    next[farEye] = null;
+    next[farEar] = null;
+  };
+  if (sideways) {
+    profile(direction === 'left' ? left : scaled(left, -1), 0);
+  } else if (facing) {
+    profile(facing, direction === 'up' ? PROFILE_NOD : direction === 'down' ? -PROFILE_NOD : 0);
+  } else {
+    const [noseRise, eyeRise] = FACE_RISE[direction];
+    place(NOSE, left, 0, up, noseRise);
+    place(R_EYE, left, -EYE_OUT, up, eyeRise);
+    place(L_EYE, left, EYE_OUT, up, eyeRise);
+    place(R_EAR, left, -EAR_OUT, up, 0);
+    place(L_EAR, left, EAR_OUT, up, 0);
+  }
+  return next;
+}
+
+/**
+ * Which head direction a figure shows now (null when it is none of them — a head dragged by
+ * hand, a detected three-quarter face), and whether the body is seen from the side, where
+ * Left / Right do not apply.
+ */
+export function readHeadDirection(
+  body: NormalizedBody,
+  aspect: number
+): { direction: HeadDirection | null; sideOn: boolean } {
+  const frame = readHeadFrame(body, aspect > 0 ? aspect : 1);
+  if (!frame?.nose) return { direction: null, sideOn: Boolean(frame?.sideOn) };
+  const { centre, radius, up, left, sideOn, facing, nose, eyes, ears } = frame;
+  const offset = scaled(minus(nose, centre), 1 / radius);
+  if (facing) {
+    const nod = Math.atan2(dot(offset, up), dot(offset, facing));
+    const direction = nod > PROFILE_NOD / 2 ? 'up' : nod < -PROFILE_NOD / 2 ? 'down' : 'straight';
+    return { direction, sideOn };
+  }
+  const sideways = dot(offset, left);
+  const rise = dot(offset, up);
+  if (ears === 1) {
+    const turned = Math.abs(sideways) > PROFILE_NOSE / 2;
+    return { direction: turned ? (sideways > 0 ? 'left' : 'right') : null, sideOn };
+  }
+  if (ears !== 2 || Math.abs(sideways) > 0.3) return { direction: null, sideOn };
+  // Nose and eye line both where the chip puts them: a face read from a photo has its nose
+  // below the ears without looking down, and should light none of the chips.
+  const eyeRise = eyes.length
+    ? eyes.reduce((sum, eye) => sum + dot(minus(eye, centre), up), 0) / eyes.length / radius
+    : null;
+  const direction =
+    (['straight', 'up', 'down'] as const).find(
+      id =>
+        Math.abs(rise - FACE_RISE[id][0]) < 0.12 &&
+        (eyeRise == null || Math.abs(eyeRise - FACE_RISE[id][1]) < 0.12)
+    ) ?? null;
+  return { direction, sideOn };
 }
 
 /**

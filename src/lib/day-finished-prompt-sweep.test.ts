@@ -1,0 +1,1056 @@
+/**
+ * Sweeps Day's FINISHED prompts — the text that is queued, after the brief or recipe, the opening
+ * lines, the footwear and partner lines, the pose cue, the adult reinforcement, the man-lead swap
+ * and the pose-map renumbering — for every planner beat, on three engines, in the situations the
+ * queue hook can be in. No render, no ComfyUI.
+ *
+ * `decideStill` mirrors `queueSlot` (useDayPlannerToolOrchestrationCore.ts) decision by decision,
+ * with the hook's own pure predicates; where the hook waits on an upload or a render, the setup
+ * says how it came out (the dress plate rendered, the pose map was accepted, the face crop
+ * exists). The text itself comes from the same functions the hook calls:
+ * `buildDaySlotPromptForStill`, `assembleDayStillPrompt`, `finishDayStillPrompt`,
+ * `queuedDayStillPrompt`.
+ *
+ * The sweep runs once at module load; each test asserts one invariant. A failure names the mood,
+ * beat, engine and situation. Genuine app defects go in KNOWN_ISSUES (so the suite stays green);
+ * the last test fails on an entry that no longer matches anything.
+ *
+ * `DAY_FINISHED_SWEEP_STATS=1` prints the prompt-length distribution (nothing is printed
+ * otherwise).
+ */
+
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { dayGarmentPromptName, dayOutfitPromptName } from './day-clothed-lead';
+import { dayDressPlateApplies } from './day-dress-plate';
+import { dayPartnerApplies, inventedDayPartner, type DayPartner } from './day-partner';
+import type { CharacterRecord } from './character-os';
+import {
+  type DayPlate,
+  isClothingOnlyDayGarment,
+  isDayVacationLightningIdentityVlModel,
+  isQwenEdit2511PoseStickyModel,
+  resolveDayGarmentReinforce,
+  resolveDayQueueIdentityPlate,
+} from './day-plate';
+import {
+  DAY_LATE_SLOT_BEAT_PRESETS,
+  DAY_LATE_SLOT_COMPANION_BEAT_PRESETS,
+  DAY_LATE_SLOT_HEAT_SETTING_PRESETS,
+  DAY_LATE_SLOT_SETTING_PRESETS,
+  DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS,
+  DAY_PARTS,
+  DAY_SLOT_BEAT_PRESETS,
+  DAY_SLOT_COMPANION_BEAT_PRESETS,
+  DAY_SLOT_HEAT_SETTING_PRESETS,
+  DAY_SLOT_SETTING_PRESETS,
+  DAY_SLOT_SUGGESTIVE_BEAT_PRESETS,
+  DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS,
+  dayBeatOmitsGarmentPackshot,
+  dayMoodReplacesKeepOutfit,
+  daySlotDefaultLabel,
+  daySlotsForLength,
+  intimateBeatsForMix,
+  isDayAdultMood,
+  normalizeDayMood,
+  raunchyBeatsForMix,
+  type DayIntimateMix,
+  type DayMood,
+  type DayPart,
+  type DaySlot,
+  type DaySlotId,
+} from './day-planner';
+import { dayPoseGuideFallbackIndex, resolveSceneGuidePlan } from './day-pose-guide';
+import { planDaySlotPose } from './day-slot-pose';
+import { daySportBeatPresetsForSlot, daySportSettingPresetsForSlot } from './day-sport';
+import {
+  assembleDayStillPrompt,
+  buildDaySlotPromptForStill,
+  dayPlayedMood,
+  finishDayStillPrompt,
+  queuedDayStillPrompt,
+} from './day-still-prompt';
+import { DAY_THEMES } from './day-themes';
+import {
+  dayClothedHeatPoseNeedsBodyUnlock,
+  daySuggestiveBeatIsSeated,
+  dayVacationBeatPresetsForSlot,
+  dayVacationDuoBeatPresetsForSlot,
+  dayVacationSettingPresetsForSlot,
+} from './day-vacation';
+import { beatOwnsFootwear, footwearIsBarefoot, normalizeFootwear } from './footwear';
+import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from './play-metrics';
+import { DEFAULT_POSE_GUIDE_STYLE } from './pose-guide-prompt';
+import { poseModelFamily, poseProfileForModel } from './pose/pose-model-profile';
+import { resolveDayStillModel } from './queue-tool-model';
+import { vacationBeatDressesItself } from './rapid-duo-recipe';
+import { auditStillPrompt } from './still-prompt-audit';
+import { formatWardrobeKitLabel } from './wardrobe-kit-picker';
+
+// ── Engines ──────────────────────────────────────────────────────────────────────────────
+
+const RAPID = 'qwen-rapid-aio-edit';
+const EDIT_2511 = 'qwen-image-edit-2511-lightning-8';
+const QWEN_21 = 'qwen-image-2.1-edit';
+const ENGINES = [RAPID, EDIT_2511, QWEN_21] as const;
+type Engine = (typeof ENGINES)[number];
+
+// ── Beats (the planner's pools; one Setting per beat) ────────────────────────────────────
+
+type Beat = {
+  /** The stored Day mood: a base mood or a theme id (themes run as Everyday). */
+  mood: string;
+  kind: DayMood;
+  pool: string;
+  /** From a two-person pool (companion / couple beats). */
+  two: boolean;
+  slotId: DaySlotId;
+  beat: string;
+  location: string;
+};
+
+function collectBeats(): Beat[] {
+  const beats: Beat[] = [];
+  const seen = new Set<string>();
+  const add = (beat: Omit<Beat, 'kind'>) => {
+    const key = `${beat.mood}|${beat.beat}`;
+    if (!beat.beat.trim() || seen.has(key)) return;
+    seen.add(key);
+    beats.push({ ...beat, kind: normalizeDayMood(beat.mood) });
+  };
+  const late = (part: DayPart): DaySlotId => `${part}-2`;
+  // The planner draws a Setting from the slot's pool; the sweep takes them in turn.
+  const turn = (pool: readonly string[] | undefined, index: number) =>
+    pool?.length ? pool[index % pool.length]! : '';
+
+  for (const part of DAY_PARTS) {
+    const everyday: Array<[string, boolean, DaySlotId, string[], string[]]> = [
+      ['everyday', false, part, DAY_SLOT_BEAT_PRESETS[part], DAY_SLOT_SETTING_PRESETS[part]],
+      [
+        'everyday companions',
+        true,
+        part,
+        DAY_SLOT_COMPANION_BEAT_PRESETS[part],
+        DAY_SLOT_SETTING_PRESETS[part],
+      ],
+      [
+        'everyday late',
+        false,
+        late(part),
+        DAY_LATE_SLOT_BEAT_PRESETS[part],
+        DAY_LATE_SLOT_SETTING_PRESETS[part],
+      ],
+      [
+        'everyday late companions',
+        true,
+        late(part),
+        DAY_LATE_SLOT_COMPANION_BEAT_PRESETS[part],
+        DAY_LATE_SLOT_SETTING_PRESETS[part],
+      ],
+    ];
+    for (const [pool, two, slotId, presets, settings] of everyday) {
+      (presets ?? []).forEach((beat, index) =>
+        add({ mood: 'everyday', pool, two, slotId, beat, location: turn(settings, index) })
+      );
+    }
+    const heat = DAY_SLOT_HEAT_SETTING_PRESETS[part];
+    const lateHeat = DAY_LATE_SLOT_HEAT_SETTING_PRESETS[part] ?? heat;
+    (DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[part] ?? []).forEach((beat, index) =>
+      add({
+        mood: 'suggestive',
+        pool: 'suggestive',
+        two: false,
+        slotId: part,
+        beat,
+        location: turn(heat, index),
+      })
+    );
+    (DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS[part] ?? []).forEach((beat, index) =>
+      add({
+        mood: 'suggestive',
+        pool: 'suggestive late',
+        two: false,
+        slotId: late(part),
+        beat,
+        location: turn(lateHeat, index),
+      })
+    );
+    (DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS[part] ?? []).forEach((beat, index) =>
+      add({
+        mood: 'suggestive',
+        pool: 'suggestive couple',
+        two: true,
+        slotId: part,
+        beat,
+        location: turn(heat, index),
+      })
+    );
+  }
+
+  for (const slotId of daySlotsForLength(8).map(slot => slot.id)) {
+    const part = slotId.split('-')[0] as DayPart;
+    const vacationSettings = dayVacationSettingPresetsForSlot(slotId);
+    const sportSettings = daySportSettingPresetsForSlot(slotId);
+    const heat =
+      (slotId === part ? undefined : DAY_LATE_SLOT_HEAT_SETTING_PRESETS[part]) ??
+      DAY_SLOT_HEAT_SETTING_PRESETS[part];
+    dayVacationBeatPresetsForSlot(slotId).forEach((beat, index) =>
+      add({
+        mood: 'vacation',
+        pool: 'vacation',
+        two: false,
+        slotId,
+        beat,
+        location: turn(vacationSettings, index),
+      })
+    );
+    dayVacationDuoBeatPresetsForSlot(slotId).forEach((beat, index) =>
+      add({
+        mood: 'vacation',
+        pool: 'vacation couple',
+        two: true,
+        slotId,
+        beat,
+        location: turn(vacationSettings, index),
+      })
+    );
+    daySportBeatPresetsForSlot(slotId).forEach((beat, index) =>
+      add({
+        mood: 'sport',
+        pool: 'sport',
+        two: false,
+        slotId,
+        beat,
+        location: turn(sportSettings, index),
+      })
+    );
+    intimateBeatsForMix(slotId, 'mixed').forEach((beat, index) =>
+      add({
+        mood: 'intimate',
+        pool: 'intimate',
+        two: false,
+        slotId,
+        beat,
+        location: turn(heat, index),
+      })
+    );
+    raunchyBeatsForMix(slotId, 'mixed').forEach((beat, index) =>
+      add({
+        mood: 'raunchy',
+        pool: 'raunchy',
+        two: false,
+        slotId,
+        beat,
+        location: turn(heat, index),
+      })
+    );
+  }
+
+  for (const theme of Object.values(DAY_THEMES)) {
+    for (const part of DAY_PARTS) {
+      for (const [beat, location] of theme.scenes[part]) {
+        add({ mood: theme.id, pool: `theme ${theme.id}`, two: false, slotId: part, beat, location });
+      }
+      for (const [beat, location] of theme.duoScenes[part]) {
+        add({
+          mood: theme.id,
+          pool: `theme ${theme.id} couple`,
+          two: true,
+          slotId: part,
+          beat,
+          location,
+        });
+      }
+    }
+  }
+  return beats;
+}
+
+// ── Setups: what the player has, and how the uploads / renders came out ──────────────────
+
+type LeadNoun = 'woman' | 'man';
+
+type Setup = {
+  id: string;
+  /** The Day plate shown on the page: the Cast look plate, or an Outfit Keep. */
+  plate: 'cast' | 'keeper';
+  /**
+   * Clothing: a catalog kit (auto-picked by the Day, or picked by the player), the player's own
+   * clothing photo, a Fitting Room packshot picked as the clothing image, or none.
+   */
+  clothing: 'none' | 'kit-auto' | 'kit-picked' | 'photo' | 'packshot';
+  /** The dress plate rendered (when the hook asks for one). */
+  dressPlateRenders: boolean;
+  partner: 'none' | 'cast' | 'invented';
+  /** People: companions on (Mixed) — the planner's two-person beats draw two. */
+  companions: boolean;
+  /** The pose map was drawn and accepted by ComfyUI. */
+  poseMap: boolean;
+  /** Intimate is on (the adult moods play as adult). */
+  intimate: boolean;
+  /** Which beats this setup is swept on. */
+  beats: (beat: Beat) => boolean;
+};
+
+const clothedBeat = (beat: Beat) => !isDayAdultMood(beat.kind);
+/** People → Solo: the planner offers no two-person beat (it rerolls them, alignDaySlotsToPeople). */
+const soloClothedBeat = (beat: Beat) => clothedBeat(beat) && !beat.two;
+const BASE = {
+  dressPlateRenders: true,
+  partner: 'none',
+  companions: false,
+  poseMap: true,
+  intimate: false,
+  beats: soloClothedBeat,
+} as const;
+
+const SETUPS: Setup[] = [
+  // a. Cast plate + the player's clothing photo (and b. where a face-break beat takes it).
+  { ...BASE, id: 'cast plate + clothing photo', plate: 'cast', clothing: 'photo', dressPlateRenders: false },
+  // b. Cast plate + a clothing-only packshot: face-crop stills keep the packshot as Image 2.
+  { ...BASE, id: 'cast plate + packshot', plate: 'cast', clothing: 'packshot', dressPlateRenders: false },
+  // The default first Day: Cast plate, the Day picks a kit, nothing attaches for it.
+  { ...BASE, id: 'cast plate + auto kit', plate: 'cast', clothing: 'kit-auto' },
+  // c / d. A picked kit: the Cast is dressed once, the stills start from that plate.
+  { ...BASE, id: 'dressed plate (picked kit)', plate: 'cast', clothing: 'kit-picked' },
+  // e. Outfit Keep as Image 1, no clothing image.
+  { ...BASE, id: 'Keep plate', plate: 'keeper', clothing: 'none' },
+  // Keep + the kit's packshot as Image 2.
+  { ...BASE, id: 'Keep plate + packshot', plate: 'keeper', clothing: 'kit-picked' },
+  // f. Two-person beats with a Cast partner and with an invented one.
+  {
+    ...BASE,
+    id: 'Cast partner (dressed plate)',
+    plate: 'cast',
+    clothing: 'kit-picked',
+    partner: 'cast',
+    companions: true,
+    beats: beat => clothedBeat(beat) && beat.two,
+  },
+  {
+    ...BASE,
+    id: 'invented partner (auto kit)',
+    plate: 'cast',
+    clothing: 'kit-auto',
+    partner: 'invented',
+    companions: true,
+    beats: beat => clothedBeat(beat) && beat.two,
+  },
+  {
+    ...BASE,
+    id: 'companions on, no partner picked',
+    plate: 'cast',
+    clothing: 'photo',
+    dressPlateRenders: false,
+    companions: true,
+    beats: beat => clothedBeat(beat) && beat.two,
+  },
+  // g. The pose map failed or was not drawn.
+  {
+    ...BASE,
+    id: 'no pose map (dressed plate)',
+    plate: 'cast',
+    clothing: 'kit-picked',
+    poseMap: false,
+  },
+  {
+    ...BASE,
+    id: 'no pose map (clothing photo)',
+    plate: 'cast',
+    clothing: 'photo',
+    dressPlateRenders: false,
+    poseMap: false,
+  },
+  // h. Adult moods with Intimate on: nude solo and duo, with and without a Cast partner.
+  {
+    ...BASE,
+    id: 'adult (Intimate on)',
+    plate: 'cast',
+    clothing: 'kit-auto',
+    companions: true,
+    intimate: true,
+    beats: beat => isDayAdultMood(beat.kind),
+  },
+  {
+    ...BASE,
+    id: 'adult + Cast partner',
+    plate: 'cast',
+    clothing: 'kit-auto',
+    partner: 'cast',
+    companions: true,
+    intimate: true,
+    beats: beat => isDayAdultMood(beat.kind),
+  },
+  // An adult mood with Intimate off plays as Everyday.
+  {
+    ...BASE,
+    id: 'adult mood, Intimate off',
+    plate: 'cast',
+    clothing: 'kit-auto',
+    companions: true,
+    beats: beat => isDayAdultMood(beat.kind),
+  },
+];
+
+const KIT_ID = 'navy-wrap-dress';
+const KIT_LABEL = 'Navy wrap dress';
+const PACKSHOT_URL = 'https://example.test/wardrobe/navy-wrap-dress.png';
+const PHOTO_DESCRIPTION = 'a red satin slip dress with thin straps';
+const SHOES = 'white leather sneakers';
+
+const CAST_PLATE_FILENAME = 'cast-look-plate.png';
+/** A Cast member with a look plate and a face crop of their own. */
+const leadCharacter = (lead: LeadNoun): CharacterRecord => ({
+  id: `cast-${lead}`,
+  name: LEADS[lead].name,
+  version: 1,
+  updatedAt: 0,
+  descriptor: LEADS[lead].descriptor,
+  reference: { originalFilename: CAST_PLATE_FILENAME },
+  ipAdapter: { imageFilename: 'cast-face-crop.png' },
+});
+
+const LEADS: Record<LeadNoun, { name: string; descriptor: string }> = {
+  woman: { name: 'Lana', descriptor: 'a woman with shoulder-length dark hair and green eyes' },
+  man: { name: 'Marco', descriptor: 'a tall man with short dark hair and a trimmed beard' },
+};
+/** The Cast partner: the other gender (same-sex pairs reword the beat; not swept here). */
+const CAST_PARTNERS: Record<LeadNoun, DayPartner> = {
+  woman: { name: 'Theo', noun: 'man', descriptor: 'a man with short brown hair and a square jaw' },
+  man: { name: 'Mia', noun: 'woman', descriptor: 'a woman with long auburn hair and freckles' },
+};
+const PARTNER_KIT_LABEL = 'Grey linen suit';
+
+// ── One still, decided as queueSlot decides it ───────────────────────────────────────────
+
+type Still = {
+  beat: Beat;
+  setup: Setup;
+  engine: Engine;
+  /** The engine this still renders on (per-still hand-offs). */
+  stillModel: string;
+  lead: LeadNoun;
+  shoesPicked: boolean;
+  footwearApplies: boolean;
+  /** What is Image 1, the second and the third image. */
+  image1: 'face crop' | 'dressed plate' | 'Keep plate' | 'Cast plate';
+  second: 'partner face' | 'dressed plate' | 'clothing image' | 'none';
+  third: 'pose map' | 'none';
+  situation: string;
+  adultStill: boolean;
+  omitGarment: boolean;
+  partner: DayPartner | null;
+  figures: number;
+  imageCount: number;
+  swapLead: boolean;
+  recipe: boolean;
+  prompt: string;
+};
+
+type PosePlan = {
+  headcount: number;
+  layout: string | null;
+  poseKey: string;
+  figures: number;
+  camera: 'overhead' | 'side' | 'low' | null;
+  rawLeadPosition: ReturnType<typeof resolveSceneGuidePlan>['openPose']['leadPosition'];
+};
+
+const posePlans = new Map<string, PosePlan>();
+function posePlanFor(beat: Beat, playedMood: string, setup: Setup, model: string): PosePlan {
+  const intimateMix: DayIntimateMix = setup.companions ? 'mixed' : 'solo';
+  const key = `${beat.mood}|${beat.beat}|${playedMood}|${intimateMix}|${setup.companions}|${model}`;
+  let plan = posePlans.get(key);
+  if (!plan) {
+    const slotPlan = planDaySlotPose({
+      slot: { id: beat.slotId, sceneHints: beat.beat, location: beat.location },
+      dayMood: playedMood,
+      intimateMix,
+      allowCompanions: setup.companions,
+      model,
+      retryVariant: 0,
+      weakLayouts: weakPoseLayouts(),
+    });
+    // buildDayPoseGuide → buildSceneGuide (OpenPose style): the pure part.
+    const guide = resolveSceneGuidePlan(slotPlan.sceneText, dayPoseGuideFallbackIndex(beat.slotId), {
+      ...slotPlan.options,
+      openPose: true,
+    });
+    plan = {
+      headcount: slotPlan.headcount,
+      layout: poseLayoutFromKey(guide.openPose.poseKey),
+      poseKey: guide.openPose.poseKey,
+      figures: guide.openPose.keypoints.length,
+      rawLeadPosition: guide.openPose.leadPosition,
+      camera: guide.openPose.camera,
+    };
+    posePlans.set(key, plan);
+  }
+  return plan;
+}
+
+const CUE_LAYOUTS = cuePoseLayouts();
+
+function decideStill(
+  beat: Beat,
+  setup: Setup,
+  engine: Engine,
+  lead: LeadNoun,
+  shoesPicked: boolean
+): Still {
+  const toolMood = beat.mood;
+  const intimateMix: DayIntimateMix = setup.companions ? 'mixed' : 'solo';
+  // An adult mood with Intimate off plays as Everyday.
+  const playedMood = dayPlayedMood(toolMood, setup.intimate);
+  const slot: DaySlot = {
+    id: beat.slotId,
+    label: daySlotDefaultLabel(beat.slotId),
+    sceneHints: beat.beat,
+    location: beat.location,
+    ...(setup.clothing === 'kit-auto' || setup.clothing === 'kit-picked'
+      ? { wardrobeId: KIT_ID, wardrobeAuto: setup.clothing === 'kit-auto' }
+      : {}),
+  };
+  const wardrobeId = slot.wardrobeId;
+  const packshotUrl = wardrobeId ? PACKSHOT_URL : undefined;
+  const customGarmentPicked = setup.clothing === 'photo' || setup.clothing === 'packshot';
+  const customGarmentFilename =
+    setup.clothing === 'photo'
+      ? 'my-dress-photo.png'
+      : setup.clothing === 'packshot'
+        ? 'fitting-garment-packshot-7.png'
+        : undefined;
+  const customGarmentDescription = customGarmentPicked ? PHOTO_DESCRIPTION : undefined;
+
+  const omitGarment = dayBeatOmitsGarmentPackshot({
+    blurb: beat.beat,
+    prompt: [beat.location, beat.beat].filter(Boolean).join(' · '),
+    // The mood the still plays as (an adult mood with Intimate off is Everyday).
+    dayMood: playedMood,
+    intimateMix,
+  });
+  const replaceKeepOutfit = dayMoodReplacesKeepOutfit(toolMood);
+  const adultStill = isDayAdultMood(toolMood) && setup.intimate;
+  const adultNudeStill = adultStill && omitGarment;
+  // Per-still hand-offs, with every engine installed.
+  const stillModel = resolveDayStillModel(engine, {
+    adultNude: adultNudeStill,
+    clothedDuo:
+      !adultNudeStill && !adultStill && posePlanFor(beat, playedMood, setup, engine).headcount >= 2,
+    installed: () => true,
+  });
+  const profile = poseProfileForModel(stillModel);
+
+  // Dress plate.
+  const pickedShoes = normalizeFootwear(shoesPicked ? SHOES : '');
+  const hasShoes = Boolean(pickedShoes) && !footwearIsBarefoot(pickedShoes);
+  let dressPlate = false;
+  let dressClothingFilename: string | null = null;
+  const dressedPlate =
+    setup.plate === 'cast' &&
+    setup.dressPlateRenders &&
+    dayDressPlateApplies({
+      model: stillModel,
+      dayMood: playedMood,
+      plateSource: setup.plate,
+      clothingPicked: customGarmentPicked || setup.clothing === 'kit-picked',
+      footwearPicked: hasShoes,
+      omitGarment,
+      replaceOutfit: replaceKeepOutfit,
+    }) &&
+    Boolean(customGarmentPicked || packshotUrl) &&
+    !(normalizeDayMood(toolMood) === 'vacation' && vacationBeatDressesItself(beat.beat)) &&
+    !(hasShoes && beatOwnsFootwear(beat.beat))
+      ? { filename: 'day-dress-plate-lana-1.png' }
+      : null;
+  if (dressedPlate) {
+    if (profile.dressPlate === 'clothing') dressClothingFilename = dressedPlate.filename;
+    else dressPlate = true;
+  }
+  const slotPlateSource: 'cast' | 'keeper' = dressPlate ? 'keeper' : setup.plate;
+  const slotCustomGarmentFilename =
+    dressClothingFilename ?? (dressPlate ? undefined : customGarmentFilename);
+  const slotPackshotUrl = dressPlate || dressClothingFilename ? undefined : packshotUrl;
+  // resolveDayQueueIdentityPlate: the Cast plate when the outfit is dropped or replaced.
+  let identitySource: 'cast' | 'keeper' =
+    replaceKeepOutfit || omitGarment ? 'cast' : slotPlateSource;
+
+  const undressedPlateGarment = isClothingOnlyDayGarment(
+    resolveDayGarmentReinforce({
+      plateSource: slotPlateSource,
+      packshotUrl: slotPackshotUrl,
+      customGarmentFilename: slotCustomGarmentFilename,
+    })
+  );
+  const suggestiveSeatOnUndressedPlate =
+    normalizeDayMood(toolMood) === 'suggestive' &&
+    profile.rapidGraph &&
+    identitySource !== 'keeper' &&
+    daySuggestiveBeatIsSeated(beat.beat) &&
+    undressedPlateGarment;
+  const everydayGarmentOnUndressedPlate =
+    normalizeDayMood(toolMood) === 'everyday' &&
+    profile.rapidGraph &&
+    identitySource !== 'keeper' &&
+    undressedPlateGarment;
+  // OpenPose is the default guide style: the Lightning identity path keeps the pose map.
+  const skipPoseGuideImage = false;
+  let vacationFaceBreak = false;
+  if (!omitGarment) {
+    const heat = normalizeDayMood(toolMood);
+    if (
+      ((heat === 'vacation' || heat === 'suggestive') &&
+        (dayClothedHeatPoseNeedsBodyUnlock(beat.beat, toolMood, {
+          poseStickyModel: isQwenEdit2511PoseStickyModel(stillModel),
+        }) ||
+          suggestiveSeatOnUndressedPlate)) ||
+      everydayGarmentOnUndressedPlate
+    ) {
+      // Lightning keeps the full plate as Image 1; the others crop the face (the crop exists).
+      vacationFaceBreak = !isDayVacationLightningIdentityVlModel(stillModel);
+    }
+  }
+  // Nude stills start from a face crop (a distinct Cast face, or the auto crop).
+  const faceOnlyIdentity = omitGarment || vacationFaceBreak;
+  if (dressedPlate && !omitGarment) {
+    if (faceOnlyIdentity) {
+      dressPlate = false;
+      dressClothingFilename = dressedPlate.filename;
+    } else {
+      dressPlate = true;
+      identitySource = 'keeper';
+      dressClothingFilename = null;
+    }
+  }
+  const byoOrPackGarment = resolveDayGarmentReinforce({
+    plateSource: dressPlate ? 'keeper' : dressClothingFilename ? 'cast' : slotPlateSource,
+    packshotUrl: dressedPlate ? undefined : slotPackshotUrl,
+    customGarmentFilename: dressedPlate
+      ? (dressClothingFilename ?? undefined)
+      : slotCustomGarmentFilename,
+  });
+
+  // Partner.
+  const partnerCandidate =
+    setup.partner === 'invented'
+      ? inventedDayPartner(lead === 'man' ? 'new:woman' : 'new:man')
+      : setup.partner === 'cast'
+        ? CAST_PARTNERS[lead]
+        : null;
+  let slotPartner: DayPartner | null = null;
+  let partnerFace = false;
+  if (partnerCandidate) {
+    const { headcount } = posePlanFor(beat, playedMood, setup, stillModel);
+    if (
+      dayPartnerApplies({
+        partner: partnerCandidate,
+        headcount,
+        adultMood: isDayAdultMood(playedMood),
+        lead,
+        sameSexLayouts: profile.sameSexLayouts,
+      })
+    ) {
+      slotPartner = partnerCandidate;
+      // A Cast partner's face crop takes the second image; the invented one here is "a new
+      // stranger with their own face" (the stand-in render is not part of this sweep).
+      partnerFace = !partnerCandidate.invented;
+    }
+  }
+  const clothingReinforce =
+    omitGarment || replaceKeepOutfit || partnerFace
+      ? null
+      : vacationFaceBreak
+        ? isClothingOnlyDayGarment(byoOrPackGarment)
+          ? byoOrPackGarment
+          : null
+        : byoOrPackGarment;
+  const footwearApplies =
+    !adultStill &&
+    normalizeDayMood(toolMood) !== 'sport' &&
+    !beatOwnsFootwear(beat.beat) &&
+    !(normalizeDayMood(toolMood) === 'vacation' && vacationBeatDressesItself(beat.beat));
+  const footwear = footwearApplies ? pickedShoes : '';
+  // Shoes in words (no shoe picture), so the clothing image is the garment's own.
+  const garmentReinforce = clothingReinforce;
+  const garmentAttached = Boolean(garmentReinforce?.imageUrl || garmentReinforce?.imageFilename);
+
+  // Pose map.
+  const pose =
+    setup.poseMap && !skipPoseGuideImage ? posePlanFor(beat, playedMood, setup, stillModel) : null;
+
+  // The brief / recipe: the hook's buildSlotPrompt hands the Day state to
+  // buildDaySlotPromptForStill, with what this still has attached.
+  const character = leadCharacter(lead);
+  const displayPlate: DayPlate =
+    setup.plate === 'keeper'
+      ? { filename: 'lana-outfit-keep.png', source: 'keeper' }
+      : { filename: CAST_PLATE_FILENAME, source: 'cast' };
+  const slotPrompt = buildDaySlotPromptForStill(
+    slot,
+    {
+      plate: displayPlate,
+      queuePlate: resolveDayQueueIdentityPlate({ character, displayPlate }),
+      character,
+      hasPlate: true,
+      leadNoun: lead,
+      packshotUrl,
+      wardrobeLabel: dayOutfitPromptName(wardrobeId ? KIT_LABEL : ''),
+      customGarmentFilename,
+      customGarmentDescription,
+      dayMood: toolMood,
+      intimateEnabled: setup.intimate,
+      intimateMix,
+      allowCompanions: setup.companions,
+      model: engine,
+      defaultPoseGuideStyle: DEFAULT_POSE_GUIDE_STYLE,
+    },
+    {
+      poseGuide: Boolean(pose),
+      poseGuideStyle: DEFAULT_POSE_GUIDE_STYLE,
+      poseLeadPosition: pose?.rawLeadPosition ?? null,
+      poseCamera: pose?.camera ?? null,
+      faceOnlyIdentity,
+      forceGarmentReinforce: (vacationFaceBreak || Boolean(dressClothingFilename)) && garmentAttached,
+      clothingImageAttached: garmentAttached,
+      partner: slotPartner,
+      dressPlate: dressPlate && dressedPlate ? { filename: dressedPlate.filename, source: 'keeper' } : null,
+    }
+  );
+
+  const assembled = assembleDayStillPrompt({
+    slotPrompt,
+    beat: beat.beat,
+    setting: beat.location,
+    dayMood: toolMood,
+    adult: adultStill,
+    leadNoun: lead,
+    leadDescriptor: LEADS[lead].descriptor,
+    partner: slotPartner,
+    // A Cast partner with a kit of their own.
+    partnerOutfit:
+      setup.partner === 'cast'
+        ? dayOutfitPromptName(formatWardrobeKitLabel(PARTNER_KIT_LABEL)) || null
+        : null,
+    leadOutfit:
+      !omitGarment && !replaceKeepOutfit && wardrobeId
+        ? dayOutfitPromptName(formatWardrobeKitLabel(KIT_LABEL))
+        : !omitGarment && !replaceKeepOutfit
+          ? dayGarmentPromptName(customGarmentDescription)
+          : null,
+    dressedPlateIsClothingImage: Boolean(dressClothingFilename),
+    pickedShoes,
+    footwear,
+    footwearImage: null,
+    pose: pose ? { layout: pose.layout, poseKey: pose.poseKey, figures: pose.figures } : null,
+    cueLayouts: CUE_LAYOUTS,
+    poseLook: undefined,
+    kleinFace: false,
+    qualityNudge: undefined,
+  });
+  // Play / Simple mode and the recipes skip the lint round-trip (actions.finalizePrompt).
+  const finalized = finishDayStillPrompt(assembled.prompt, {
+    adultMood: isDayAdultMood(playedMood),
+    adult: adultStill,
+    swapLead: assembled.swapLead,
+    leadDescriptor: LEADS[lead].descriptor,
+  });
+  // extraFilenames: [1] the partner's face, else the clothing image; [2] the pose map.
+  const second = partnerFace || garmentAttached;
+  const third = Boolean(pose);
+  const queued = queuedDayStillPrompt(finalized, { second, third });
+
+  const image1: Still['image1'] = faceOnlyIdentity
+    ? 'face crop'
+    : dressPlate
+      ? 'dressed plate'
+      : identitySource === 'keeper'
+        ? 'Keep plate'
+        : 'Cast plate';
+  const secondIs: Still['second'] = partnerFace
+    ? 'partner face'
+    : !garmentAttached
+      ? 'none'
+      : dressClothingFilename
+        ? 'dressed plate'
+        : 'clothing image';
+  const thirdIs: Still['third'] = third ? 'pose map' : 'none';
+  return {
+    beat,
+    setup,
+    engine,
+    stillModel,
+    lead,
+    shoesPicked,
+    footwearApplies,
+    image1,
+    second: secondIs,
+    third: thirdIs,
+    situation: `${setup.id}${shoesPicked ? ', shoes' : ''}, ${lead} lead: ${image1} + ${secondIs} + ${thirdIs}`,
+    adultStill,
+    omitGarment,
+    partner: slotPartner,
+    figures: pose?.figures ?? 0,
+    imageCount: queued.imageCount,
+    swapLead: assembled.swapLead,
+    recipe: assembled.recipe,
+    prompt: queued.prompt,
+  };
+}
+
+// ── The sweep ────────────────────────────────────────────────────────────────────────────
+
+const BEATS = collectBeats();
+const STILLS: Still[] = [];
+for (const setup of SETUPS) {
+  for (const beat of BEATS) {
+    if (!setup.beats(beat)) continue;
+    for (const engine of ENGINES) {
+      for (const lead of ['woman', 'man'] as const) {
+        for (const shoesPicked of [false, true]) {
+          STILLS.push(decideStill(beat, setup, engine, lead, shoesPicked));
+        }
+      }
+    }
+  }
+}
+
+// ── Failures and the known-issue allow-list ──────────────────────────────────────────────
+
+type Failure = { invariant: string; still: Still; detail: string };
+
+const FAILURES: Failure[] = [];
+const fail = (invariant: string, still: Still, detail: string) => {
+  FAILURES.push({ invariant, still, detail });
+};
+
+function describeFailure({ invariant, still, detail }: Failure): string {
+  return `[${invariant}] mood ${still.beat.mood} (${still.beat.pool}) · engine ${still.engine}${still.stillModel === still.engine ? '' : ` → ${still.stillModel}`} · ${still.situation} · beat "${still.beat.beat}" — ${detail}`;
+}
+
+const AUDIT_NAME = 'prompt audit';
+const OUTFIT_SOURCE_NAME = 'outfit source';
+
+type KnownIssue = {
+  id: string;
+  invariant: string;
+  /** Where the defect is and what it does. */
+  why: string;
+  matches: (failure: Failure) => boolean;
+};
+
+/**
+ * KNOWN_ISSUES — genuine app defects this sweep found. Each entry excuses exactly the failures
+ * it describes; everything else still fails. Remove the entry with the fix.
+ */
+const KNOWN_ISSUES: KnownIssue[] = [
+  {
+    id: 'adult-beat-played-as-everyday-draws-two-says-alone',
+    invariant: AUDIT_NAME,
+    why: 'An adult mood with Intimate off plays as Everyday but keeps its adult beats. "spooning sex on the couch" is planned for one person (resolveDayPoseHeadcount: no partner word a clothed mood counts, so forcePeople is 1), yet day-pose-guide.ts parsePoseGuideIntent reads "spooning" as the clothed spoon (CLOTHED_SPOON_RE, allowed where sex layouts are off) and synthesizeSceneStickFiguresBase draws every sex layout as a pair whatever forcePeople says: guide spoon:2 on all three engines. The Edit 2511 recipe says "One woman alone".',
+    matches: failure =>
+      failure.still.setup.id === 'adult mood, Intimate off' && /duo-says-alone/.test(failure.detail),
+  },
+];
+
+const hitKnownIssues = new Set<string>();
+function unexpected(invariant: string): string[] {
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  for (const failure of FAILURES) {
+    if (failure.invariant !== invariant) continue;
+    const known = KNOWN_ISSUES.find(
+      issue => issue.invariant === invariant && issue.matches(failure)
+    );
+    if (known) {
+      hitKnownIssues.add(known.id);
+      continue;
+    }
+    const line = describeFailure(failure);
+    if (!seen.has(line)) {
+      seen.add(line);
+      lines.push(line);
+    }
+  }
+  return lines;
+}
+
+function assertHolds(invariant: string): void {
+  const lines = unexpected(invariant);
+  assert.equal(
+    lines.length,
+    0,
+    `${lines.length} failure(s):\n${lines.slice(0, 30).join('\n')}${lines.length > 30 ? '\n…' : ''}`
+  );
+}
+
+// ── Invariants ───────────────────────────────────────────────────────────────────────────
+
+const AUDIT = AUDIT_NAME;
+const PARTNER_LINE = 'partner line';
+const FOOTWEAR = 'footwear line';
+const OUTFIT_SOURCE = OUTFIT_SOURCE_NAME;
+const MAN_LEAD = 'man lead wording';
+const NO_POSE_MAP = 'no pose map';
+
+const count = (text: string, pattern: RegExp) => (text.match(pattern) ?? []).length;
+
+for (const still of STILLS) {
+  const { prompt } = still;
+
+  // I1 — the audit the hook runs before queueing.
+  for (const issue of auditStillPrompt(prompt, {
+    people: still.figures || undefined,
+    imageCount: still.imageCount,
+  })) {
+    fail(AUDIT, still, `${issue.code}: ${issue.message} ("${issue.evidence}")`);
+  }
+
+  // I2 — the partner's line only on a two-person still.
+  if (still.figures === 1 && /SECOND PERSON:/.test(prompt)) {
+    fail(PARTNER_LINE, still, 'a one-figure still carries the SECOND PERSON line');
+  }
+  if (!still.partner && /SECOND PERSON: Image 2 is the face/.test(prompt)) {
+    fail(PARTNER_LINE, still, 'no partner picked, but the prompt names a partner face image');
+  }
+
+  // I3 — shoes: one FOOTWEAR line when they apply and are picked, none otherwise.
+  const footwearLines = count(prompt, /FOOTWEAR \(mandatory\):/g);
+  const expectedLines = still.shoesPicked && still.footwearApplies ? 1 : 0;
+  if (footwearLines !== expectedLines) {
+    fail(
+      FOOTWEAR,
+      still,
+      `${footwearLines} FOOTWEAR line(s), expected ${expectedLines} (shoes ${still.shoesPicked ? 'picked' : 'not picked'}, ${still.footwearApplies ? 'apply' : 'do not apply'})`
+    );
+  }
+
+  // I4 — the outfit comes from the image that carries it.
+  if (!still.adultStill || !still.omitGarment) {
+    const fromSecond =
+      /\b(?:outfit|clothes|clothing|garments?)\s+(?:from|shown in|in|of)\s+(?:the\s+)?(?:second image|Image 2)\b|\bkeep the outfit Image 2\b|\bImage 2 is (?:a|the) clothing|\bImage 2 is a picture of her already dressed|\bsecond image \(the same person, dressed/i.exec(
+        prompt
+      );
+    const clothingInSecond = still.second === 'clothing image' || still.second === 'dressed plate';
+    if (fromSecond && !clothingInSecond) {
+      const at = fromSecond.index;
+      fail(
+        OUTFIT_SOURCE,
+        still,
+        `the second image is ${still.second === 'none' ? (still.third === 'pose map' ? 'the pose map' : 'not attached') : `the ${still.second}`}, but the prompt takes the outfit from it: "…${prompt.slice(Math.max(0, at - 60), at + 90).replace(/\s+/g, ' ')}…"`
+      );
+    }
+  }
+
+  // I5 — a one-figure still of a man lead has no "she / her / woman" left in it.
+  // Clothed stills only: the adult solo beats are written for a woman's body, and what a swap
+  // should make of them is not a wording question.
+  if (
+    still.lead === 'man' &&
+    still.swapLead &&
+    !still.adultStill &&
+    still.figures <= 1 &&
+    !still.partner
+  ) {
+    const left = /\b(?:she|her|hers|herself|woman|women|girl)\b/i.exec(prompt);
+    if (left) {
+      const at = left.index;
+      fail(
+        MAN_LEAD,
+        still,
+        `"${left[0]}" left for a man lead: "…${prompt.slice(Math.max(0, at - 50), at + 50).replace(/\s+/g, ' ')}…"`
+      );
+    }
+  }
+
+  // I6 — with no pose map attached, the prompt does not refer to a pose image.
+  if (still.third === 'none') {
+    const refers = /\b(?:pose map|pose guide|OpenPose|skeleton|stick[- ]figure|wireframe)\b/i.exec(
+      prompt
+    );
+    if (refers) {
+      const at = refers.index;
+      fail(
+        NO_POSE_MAP,
+        still,
+        `no pose map attached, the prompt says "…${prompt.slice(Math.max(0, at - 40), at + 60).replace(/\s+/g, ' ')}…"`
+      );
+    }
+  }
+}
+
+// ── Length statistics (reported, not asserted) ───────────────────────────────────────────
+
+function lengthStats(stills: Still[]): { n: number; median: number; p95: number; max: number } {
+  const lengths = stills.map(still => still.prompt.length).sort((a, b) => a - b);
+  const at = (q: number) => lengths[Math.min(lengths.length - 1, Math.floor(q * lengths.length))]!;
+  return { n: lengths.length, median: at(0.5), p95: at(0.95), max: lengths[lengths.length - 1]! };
+}
+
+if (process.env.DAY_FINISHED_SWEEP_STATS) {
+  const rows: Record<string, ReturnType<typeof lengthStats>> = {};
+  for (const engine of ENGINES) {
+    rows[engine] = lengthStats(STILLS.filter(still => still.engine === engine));
+    for (const setup of SETUPS) {
+      const stills = STILLS.filter(still => still.engine === engine && still.setup === setup);
+      if (stills.length) rows[`${engine} · ${setup.id}`] = lengthStats(stills);
+    }
+  }
+  console.table(rows);
+  const shapes: Record<string, number> = {};
+  for (const still of STILLS) {
+    const shape = `${still.image1} + ${still.second} + ${still.third}${still.partner ? (still.partner.invented ? ' (invented partner)' : ' (Cast partner)') : ''}${still.adultStill ? ' (adult)' : ''}`;
+    shapes[shape] = (shapes[shape] ?? 0) + 1;
+  }
+  console.table(shapes);
+  console.log({ beats: BEATS.length, stills: STILLS.length, recipes: STILLS.filter(s => s.recipe).length });
+  const byInvariant: Record<string, number> = {};
+  for (const failure of FAILURES) byInvariant[failure.invariant] = (byInvariant[failure.invariant] ?? 0) + 1;
+  console.table(byInvariant);
+}
+
+// ── Tests ────────────────────────────────────────────────────────────────────────────────
+
+describe('Day finished prompt sweep', () => {
+  it('covers every mood, engine and image arrangement', () => {
+    assert.deepEqual(ENGINES.map(poseModelFamily), ['rapid-aio', 'qwen-edit-2511', 'qwen-image-2.1']);
+    for (const kind of ['everyday', 'suggestive', 'vacation', 'sport', 'intimate', 'raunchy']) {
+      assert.ok(BEATS.filter(beat => beat.kind === kind).length >= 20, `${kind} beats`);
+    }
+    const has = (test: (still: Still) => boolean, what: string) =>
+      assert.ok(STILLS.some(test), `no still with ${what}`);
+    // a–h.
+    has(s => s.image1 === 'Cast plate' && s.second === 'clothing image' && s.third === 'pose map', 'a');
+    has(s => s.image1 === 'face crop' && s.second === 'clothing image' && s.third === 'pose map', 'b');
+    has(s => s.image1 === 'dressed plate' && s.second === 'none' && s.imageCount === 2, 'c');
+    has(s => s.image1 === 'face crop' && s.second === 'dressed plate', 'd');
+    has(s => s.image1 === 'Keep plate' && s.second === 'none', 'e');
+    has(s => s.second === 'partner face' && s.figures === 2, 'f (Cast partner)');
+    has(s => Boolean(s.partner?.invented) && s.second !== 'partner face' && s.figures === 2, 'f (invented)');
+    has(s => s.third === 'none', 'g');
+    has(s => s.adultStill && s.omitGarment && s.figures === 1, 'h (solo)');
+    has(s => s.adultStill && s.omitGarment && s.figures === 2, 'h (duo)');
+    has(s => s.lead === 'man' && s.swapLead, 'a swapped man lead');
+    has(s => s.shoesPicked && s.footwearApplies, 'shoes ordered');
+    has(s => s.shoesPicked && !s.footwearApplies, 'shoes ruled out');
+    has(s => s.stillModel !== s.engine, 'a per-still engine hand-off');
+  });
+
+  it('passes the queue-time prompt audit', () => assertHolds(AUDIT));
+  it('names a partner only on a two-person still with one', () => assertHolds(PARTNER_LINE));
+  it('orders shoes exactly once where they apply, and never where they do not', () =>
+    assertHolds(FOOTWEAR));
+  it('takes the outfit from the image that carries it', () => assertHolds(OUTFIT_SOURCE));
+  it('leaves no "she" in a one-person still of a man lead', () => assertHolds(MAN_LEAD));
+  it('does not refer to a pose image that is not attached', () => assertHolds(NO_POSE_MAP));
+
+  it('has no stale KNOWN_ISSUES entry', () => {
+    for (const invariant of new Set(KNOWN_ISSUES.map(issue => issue.invariant))) {
+      unexpected(invariant);
+    }
+    assert.deepEqual(
+      KNOWN_ISSUES.filter(issue => !hitKnownIssues.has(issue.id)).map(issue => issue.id),
+      [],
+      'fixed — delete these KNOWN_ISSUES entries'
+    );
+  });
+});

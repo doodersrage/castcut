@@ -2,7 +2,6 @@
 
 import { useCallback, useState, type MutableRefObject } from 'react';
 import {
-  confirmRoleplayRestart,
   confirmRoleplayUndoScene,
   CUSTOM_ROLEPLAY_PERSONA_ID,
   ROLEPLAY_CONTENT,
@@ -162,13 +161,11 @@ export function useRoleplaySessionActions({
     setOwnBibleOpen(false);
   }, [setOwnBibleOpen, setScenes, updateToolSettings]);
 
+  /** Clear the scenes, keep the bible. The question is asked in the page (StoryStartOverDialog). */
   const restartStory = useCallback(() => {
-    if (!confirmRoleplayRestart(storyRef.current.length)) {
-      return;
-    }
     updateToolSettings({ story: [], rejectedScenes: [] });
     setScenes([]);
-  }, [setScenes, storyRef, updateToolSettings]);
+  }, [setScenes, updateToolSettings]);
 
   /** Take the last scene back out of the reel — the step before it is open again. */
   const undoLastScene = useCallback(() => {

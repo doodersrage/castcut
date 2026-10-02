@@ -1,6 +1,8 @@
 'use client';
 
 import StoryOwnScene from '@/components/roleplay/StoryOwnScene';
+import StoryScenePoseFigure from '@/components/roleplay/StoryScenePoseFigure';
+import type { StoryScenePose } from '@/hooks/roleplay/story-scene-pose';
 import type { ReactNode } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton, FieldError } from '@/components/ui/Field';
@@ -37,6 +39,8 @@ export type RoleplayBeatOutputSectionProps = {
   bioPresent: boolean;
   scenesLoading: boolean;
   scenes: RoleplayScene[];
+  /** The pose each offered scene's still would be drawn in, by scene id. */
+  scenePoses?: ReadonlyMap<string, StoryScenePose>;
   playingId: string | null;
   error: string | null;
   filmError: string | null | undefined;
@@ -68,6 +72,7 @@ export default function RoleplayBeatOutputSection({
   bioPresent,
   scenesLoading,
   scenes,
+  scenePoses,
   playingId,
   error,
   filmError,
@@ -152,29 +157,35 @@ export default function RoleplayBeatOutputSection({
                   type="button"
                   disabled={busy}
                   onClick={() => onPlayScene(scene)}
-                  className={`rounded-[var(--radius-lg)] border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                  data-testid="story-scene-card"
+                  className={`flex items-start gap-3 rounded-[var(--radius-lg)] border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
                     playingId === scene.id
                       ? 'border-[var(--accent-border)] bg-[var(--accent-soft)]'
                       : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]'
                   }`}
                 >
-                  <span className="block text-sm font-medium text-[var(--text-primary)]">
-                    {scene.title}
-                  </span>
-                  <span className="type-caption mt-1 block text-[var(--text-muted)]">
-                    {scene.blurb}
-                  </span>
-                  {playingId === scene.id ? (
-                    <span className="type-caption mt-2 block text-[var(--accent-text)]">
-                      {beatOutput === 'clip'
-                        ? scene.kind === 'ending'
-                          ? 'Writing ending clip…'
-                          : 'Writing clip…'
-                        : scene.kind === 'ending'
-                          ? 'Writing ending…'
-                          : 'Writing still…'}
+                  <span className="block min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-[var(--text-primary)]">
+                      {scene.title}
                     </span>
-                  ) : null}
+                    <span className="type-caption mt-1 block text-[var(--text-muted)]">
+                      {scene.blurb}
+                    </span>
+                    {playingId === scene.id ? (
+                      <span className="type-caption mt-2 block text-[var(--accent-text)]">
+                        {beatOutput === 'clip'
+                          ? scene.kind === 'ending'
+                            ? 'Writing ending clip…'
+                            : 'Writing clip…'
+                          : scene.kind === 'ending'
+                            ? 'Writing ending…'
+                            : 'Writing still…'}
+                      </span>
+                    ) : null}
+                  </span>
+                  {/* At the side, in a fixed box: the text column keeps its width whether or
+                      not a card has a figure. */}
+                  <StoryScenePoseFigure pose={scenePoses?.get(scene.id)} />
                 </button>
               ))}
             </div>

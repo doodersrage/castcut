@@ -64,6 +64,8 @@ export default function PosePreview({
   disabled = false,
   compact = false,
   testIdPrefix = 'pose-preview',
+  backdropUrl,
+  backdropLabel,
   onChange,
 }: {
   sceneText?: string;
@@ -76,6 +78,9 @@ export default function PosePreview({
   disabled?: boolean;
   compact?: boolean;
   testIdPrefix?: string;
+  /** The Cast's plate, shown behind the figure in the pose editor as a guide to proportions. */
+  backdropUrl?: string | null;
+  backdropLabel?: string;
   onChange: (patch: PosePicks) => void;
 }) {
   const library = usePoseLibrary();
@@ -138,6 +143,8 @@ export default function PosePreview({
         bodies={openPose.keypoints}
         aspect={openPose.canvas.width / openPose.canvas.height}
         testIdPrefix={testIdPrefix}
+        backdropUrl={backdropUrl}
+        backdropLabel={backdropLabel}
         onCancel={() => setEditing(false)}
         onSave={pose => {
           onChange({ posePhoto: pose, poseLayout: undefined, poseVariant: undefined });

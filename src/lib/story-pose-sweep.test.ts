@@ -494,12 +494,6 @@ type KnownIssue = {
  */
 const KNOWN_ISSUES: KnownIssue[] = [
   {
-    id: 'template-scenes-ignore-the-people-mix',
-    invariant: 'template scenes follow Solo / Duo',
-    why: 'roleplay.ts templateRoleplayScenes / continueRoleplayScenes take no People mix (only the language model is told, roleplayIntimateMixLine): with no model, Solo is offered partner scenes ("Against the wall", "On the bed"…) and Duo the solo "Strip the costume". Not fixed: the adult pools hold one solo opening, no solo "next" fork and three solo endings, so four Solo offers need new scenes written; and the mix has to be passed in from specialized/roleplay-generator.ts.',
-    matches: () => true,
-  },
-  {
     id: 'adult-solo-scene-drawn-as-two',
     invariant: 'headcount',
     why: 'day-pose-guide.ts parsePoseGuideIntent: a sex layout with nobody else named counts two, and the afterglow / undress / generic layouts only have pair drawings. "Tangled sheets and Lana\'s bare body — empty room", "Lana leaving after sex" and "Strip the costume" are drawn with a partner. Not fixed: there is no one-person drawing to fall back to, and the People mix (Solo) does not reach the pose guide.',

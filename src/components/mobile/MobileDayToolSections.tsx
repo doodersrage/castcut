@@ -637,6 +637,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           busy={busy}
           compact
           poseMiss={poseMissViews[activeSlot.id]}
+          plateUrl={platePreviewUrl || plate?.imageUrl}
           updateSlot={updateSlot}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">

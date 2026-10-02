@@ -20,6 +20,7 @@ export default function DaySlotPosePreview({
   busy,
   compact,
   poseMiss,
+  plateUrl,
   updateSlot,
 }: {
   slot: DaySlot;
@@ -32,6 +33,8 @@ export default function DaySlotPosePreview({
   compact?: boolean;
   /** Auto-review's last pose miss on this slot. */
   poseMiss?: PoseMissView;
+  /** The Day plate, shown behind the figure in the pose editor. */
+  plateUrl?: string | null;
   updateSlot: (id: DaySlotId, patch: Partial<DaySlot>) => void;
 }) {
   const weakLayouts = useWeakPoseLayouts();
@@ -58,6 +61,8 @@ export default function DaySlotPosePreview({
         disabled={busy}
         compact={compact}
         testIdPrefix="day-slot-pose-preview"
+        backdropUrl={plateUrl}
+        backdropLabel="Day plate"
         onChange={patch => updateSlot(slot.id, patch)}
       />
       {poseMiss ? <PoseMissPanel view={poseMiss} testId="day-slot-pose-miss" /> : null}

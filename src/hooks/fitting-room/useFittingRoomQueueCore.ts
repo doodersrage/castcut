@@ -1,5 +1,7 @@
 'use client';
 
+import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
+import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import { normalizeFootwear } from '@/lib/footwear';
 import { dayDressPlateRequestKey } from '@/lib/day-dress-plate-client';
 import { footwearIsBarefoot, footwearPromptLine } from '@/lib/footwear';
@@ -276,10 +278,31 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                 .filter(Boolean)
                 .join('\n')
             : builtPrompt;
-        const finalized = await input.actions.finalizePrompt(
+        const drafted = await input.actions.finalizePrompt(
           prompt,
           input.character?.name || 'Fitting'
         );
+        // The same check Day and Story run at queue time: a try-on is one person, with the
+        // clothing as Image 2 and a custom pose as Image 3 when they are attached.
+        // A custom pose with no clothing image: the queue moves the pose map up into the second
+        // slot, so the text must call it Image 2 (it always said "Image 3").
+        const numbered =
+          poseGuideFilename && !garmentExtras
+            ? drafted.replace(/\bImage 3\b/g, 'Image 2')
+            : drafted;
+        const checked = repairStillPrompt(numbered, {
+          people: 1,
+          imageCount: 1 + Number(Boolean(garmentExtras)) + Number(Boolean(poseGuideFilename)),
+        });
+        const finalized = checked.prompt;
+        if (checked.remaining.length > 0) {
+          console.warn('Outfit prompt check:', checked.remaining, finalized);
+          pushSystemTrayMessage({
+            text: stillPromptIssuesLine(checked.remaining, 'try-on'),
+            tone: 'warning',
+            ttlMs: 20_000,
+          });
+        }
         input.setOutput(finalized);
         rememberDraftFields({
           toolKey: TOOL_ID,

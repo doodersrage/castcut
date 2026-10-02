@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { continueClipActionLabel } from '@/lib/video-clip-mode';
 import { loadEngineSettings } from '@/lib/engine-settings';
@@ -13,6 +14,13 @@ import {
 } from '@/lib/roleplay';
 import PoseMissPanel from '@/components/pose/PoseMissPanel';
 import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
+import { useStoryBeatEditActions } from '@/components/roleplay/StoryBeatEditContext';
+import StoryBeatTextEditor from '@/components/roleplay/StoryBeatTextEditor';
+import {
+  storyBeatAwaitsRewrite,
+  storyBeatKey,
+  storyBeatTextLocked,
+} from '@/hooks/roleplay/story-beat-edit';
 import { RoleplayStillFrame } from '@/components/roleplay/sections/RoleplayStillFrame';
 import { storyFaceMatchLabel, storyPoseMatchLabel } from '@/lib/roleplay-pose-check';
 import { STORY_MIN_FACE_MATCH, STORY_FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
@@ -63,6 +71,14 @@ export function RoleplayStoryBeatCard({
   onPoseChange,
 }: Props) {
   const takes = roleplayStillTakes(beat);
+  const edit = useStoryBeatEditActions();
+  const [editing, setEditing] = useState(false);
+  const rewriting = edit?.rewritingKey === storyBeatKey(beat);
+  // The job in flight was sent with the text as it was — it cannot change underneath it.
+  const textLocked = storyBeatTextLocked(beat) || rewriting;
+  const awaitsRewrite = storyBeatAwaitsRewrite(beat);
+  const hasStill = takes.some(take => take.imageUrl?.trim() || take.promptId?.trim());
+  const canEdit = Boolean(edit) && !editing;
   const poseMatch = storyPoseMatchLabel(beat, DEFAULT_MIN_POSE_MATCH);
   const faceMatch = storyFaceMatchLabel(beat, {
     miss: STORY_MIN_FACE_MATCH,
@@ -125,11 +141,47 @@ export function RoleplayStoryBeatCard({
           }
         />
         <div className="space-y-1">
-          <p className="text-sm font-medium text-[var(--text-primary)]">
-            <span className="type-caption mr-2 text-[var(--text-muted)]">{index + 1}.</span>
-            {beat.title}
-          </p>
-          <p className="type-caption text-[var(--text-muted)]">{beat.blurb}</p>
+          {editing && edit ? (
+            <StoryBeatTextEditor
+              beat={beat}
+              disabled={busy || textLocked}
+              onSave={text => edit.saveBeatText(beat, text)}
+              onCancel={() => setEditing(false)}
+            />
+          ) : (
+            <>
+              <p className="text-sm font-medium text-[var(--text-primary)]">
+                <span className="type-caption mr-2 text-[var(--text-muted)]">{index + 1}.</span>
+                {beat.title}
+              </p>
+              <p className="type-caption text-[var(--text-muted)]">{beat.blurb}</p>
+            </>
+          )}
+          {edit && awaitsRewrite && !editing ? (
+            <div
+              className="space-y-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2"
+              data-testid="story-beat-rewrite"
+            >
+              <p className="type-caption text-[var(--text-muted)]">
+                {rewriting
+                  ? 'Writing this scene again from its new text…'
+                  : hasStill
+                    ? 'Scene text changed — the still shows the earlier text. Write it again to match; the earlier still stays as a take.'
+                    : 'Scene text changed — its still has not been written yet.'}
+              </p>
+              <Button
+                size="sm"
+                variant="primary"
+                loading={rewriting}
+                loadingLabel="Writing the scene again"
+                disabled={busy || textLocked}
+                data-testid="story-beat-rewrite-button"
+                onClick={() => void edit.rewriteBeat(beat)}
+              >
+                Write and queue again
+              </Button>
+            </div>
+          ) : null}
           {beat.stillTakeAutoPicked && takes.length > 1 ? (
             <p
               className="type-caption text-[var(--text-muted)]"
@@ -190,7 +242,7 @@ export function RoleplayStoryBeatCard({
             </details>
           ) : null}
         </div>
-        {canQueue || canCopy || canAnimate || canExtend || canRetryClipAction ? (
+        {canQueue || canCopy || canAnimate || canExtend || canRetryClipAction || canEdit ? (
           <div className="flex flex-wrap gap-2">
             {canQueue ? (
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => onQueue?.(beat)}>
@@ -233,6 +285,22 @@ export function RoleplayStoryBeatCard({
             {canCopy ? (
               <Button size="sm" variant="ghost" disabled={busy} onClick={() => onCopy?.(beat)}>
                 Copy prompt
+              </Button>
+            ) : null}
+            {canEdit ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || textLocked}
+                title={
+                  textLocked
+                    ? 'This scene is being written or queued — edit it once that is done.'
+                    : undefined
+                }
+                data-testid="story-beat-edit"
+                onClick={() => setEditing(true)}
+              >
+                Edit scene
               </Button>
             ) : null}
           </div>

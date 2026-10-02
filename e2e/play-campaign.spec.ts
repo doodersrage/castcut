@@ -320,8 +320,32 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
   expect(Number(leftWristAfter)).toBeLessThan(Number(leftWristBefore));
   await page.getByTestId('outfit-pose-limb-side-both').click();
 
+  // Head direction: one tap, their left is the picture's right, and the chip shows it.
+  await page.getByTestId('outfit-pose-reset').click();
+  // Back on the pose the editor opened with: nothing to show a ghost of.
+  await expect(page.getByTestId('outfit-pose-start-ghost')).toHaveCount(0);
+  const noseBefore = await page.getByTestId('outfit-pose-joint-0-0').getAttribute('cx');
+  await page.getByTestId('outfit-pose-head-left').click();
+  const noseAfter = await page.getByTestId('outfit-pose-joint-0-0').getAttribute('cx');
+  expect(Number(noseAfter)).toBeGreaterThan(Number(noseBefore));
+  await expect(page.getByTestId('outfit-pose-head-left')).toHaveAttribute('aria-pressed', 'true');
+  // The head is not part of the pose in words.
+  await expect(page.getByTestId('outfit-pose-words')).toContainText('standing');
+  // The starting pose stays behind the figure as a dashed ghost, until it is switched off.
+  await expect(page.getByTestId('outfit-pose-start-ghost')).toHaveCount(1);
+  await page.getByTestId('outfit-pose-show-start').uncheck();
+  await expect(page.getByTestId('outfit-pose-start-ghost')).toHaveCount(0);
+  await page.getByTestId('outfit-pose-show-start').check();
+  await expect(page.getByTestId('outfit-pose-start-ghost')).toHaveCount(1);
+  await page.getByTestId('outfit-pose-undo').click();
+  await expect(page.getByTestId('outfit-pose-start-ghost')).toHaveCount(0);
+
   await page.getByTestId('outfit-pose-starter-sit').click();
   await expect(page.getByTestId('outfit-pose-words')).toContainText('seated');
+  // A figure seen from the side has no left or right to turn its head to.
+  await expect(page.getByTestId('outfit-pose-head-left')).toBeDisabled();
+  // "Start from" replaces the figure, not the ghost: it still shows where the pose began.
+  await expect(page.getByTestId('outfit-pose-start-ghost')).toHaveCount(1);
   // Leg positions are for a figure on its feet.
   await expect(page.getByTestId('outfit-pose-legs-apart')).toBeDisabled();
   // Start from one of Day's named poses: the prompt words are the pose's own name and cue…
@@ -474,7 +498,13 @@ test('day mid-flow: one Cut, folded cut options, honest render status', async ({
   await expect(page.getByTestId('day-plate-upload')).toBeAttached();
 });
 
-async function seedStoryMidFlow(page: Page, id: string) {
+async function seedStoryMidFlow(
+  page: Page,
+  id: string,
+  /** Extra Story settings for one test (a photo story, a first scene with a still prompt). */
+  roleplay: Record<string, unknown> = {},
+  firstBeat: Record<string, unknown> = {}
+) {
   const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
   await page.addInitScript(castId => {
     window.localStorage.setItem(
@@ -492,6 +522,14 @@ async function seedStoryMidFlow(page: Page, id: string) {
   }, id);
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: id },
+    // The Cast goes into IndexedDB as well as the localStorage mirror above: with the mirror
+    // alone, a second page in the same test could come up with an empty Cast list (the phone
+    // Story page then says "No Cast lead").
+    characters: {
+      version: 1,
+      characters: [{ id, name: 'Story Mid', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
     tools: {
       roleplay: {
         activeSessionId: `cast-${id}`,
@@ -506,6 +544,7 @@ async function seedStoryMidFlow(page: Page, id: string) {
             blurb: 'A letter under the door.',
             stillStatus: 'completed',
             imageUrl: thumb,
+            ...firstBeat,
           },
           {
             id: 'b2',
@@ -516,6 +555,7 @@ async function seedStoryMidFlow(page: Page, id: string) {
             stillStatus: 'running',
           },
         ],
+        ...roleplay,
       },
     },
   });
@@ -549,17 +589,214 @@ test('story mid-flow: start the story over after changing its settings', async (
   await expect(picker.getByTestId('story-settings-midway')).toContainText(
     'Changes apply from the next scene'
   );
-  // Declining the confirmation keeps the story.
-  page.once('dialog', dialog => void dialog.dismiss());
+  // The question is asked in the page (no browser dialog): what goes, what stays, two ways on.
+  const dialog = page.getByTestId('story-start-over-dialog');
   await picker.getByTestId('story-start-over').click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('This clears 2 scenes from the reel');
+  await expect(dialog).toContainText('Stills and clips stay in the Gallery');
+  await expect(dialog.getByTestId('story-start-over-keep')).toBeVisible();
+  await expect(dialog.getByTestId('story-start-over-new-bible')).toBeVisible();
+  // Cancel keeps the story.
+  await dialog.getByTestId('story-start-over-cancel').click();
+  await expect(dialog).toHaveCount(0);
   await expect(picker.getByTestId('story-start-over')).toBeVisible();
-  page.once('dialog', dialog => {
-    expect(dialog.message()).toContain('Restart the story?');
-    void dialog.accept();
-  });
+  // Visible ones only: the title is also in the folded Cut options shot list.
+  await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible();
+  // Keep the bible: the scenes go, the character stays.
   await picker.getByTestId('story-start-over').click();
+  await dialog.getByTestId('story-start-over-keep').click();
+  await expect(dialog).toHaveCount(0);
   await expect(picker.getByTestId('story-start-over')).toHaveCount(0);
   await expect(picker.getByTestId('story-settings-midway')).toHaveCount(0);
+  await expect(page.getByTestId('roleplay-story-empty')).toBeVisible();
+});
+
+test('story mid-flow: start over with a new bible for the same Cast lead', async ({ page }) => {
+  await seedStoryMidFlow(page, 'e2e-story-newbible');
+  let bioRequest: { characterName?: string; tone?: string } | null = null;
+  await page.route('**/api/roleplay', async route => {
+    const body = route.request().postDataJSON() as {
+      action?: string;
+      characterName?: string;
+      tone?: string;
+    };
+    const json = (payload: unknown) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(payload),
+      });
+    if (body.action === 'bio') {
+      bioRequest = { characterName: body.characterName, tone: body.tone };
+      await json({
+        bio: { name: 'Story Mid', look: 'red scarf, grey coat', personality: 'restless' },
+        provider: 'template',
+      });
+      return;
+    }
+    if (body.action === 'prompt') {
+      await json({ prompt: 'Story still: first look', provider: 'template' });
+      return;
+    }
+    await json({ scenes: [] });
+  });
+  await gotoStable(page, '/story?character=e2e-story-newbible');
+  await dismissBlockingOverlays(page);
+  const picker = page.getByTestId('story-beat-picker');
+  await expect(picker).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible();
+  await picker.getByTestId('story-start-over').click();
+  await page
+    .getByTestId('story-start-over-dialog')
+    .getByTestId('story-start-over-new-bible')
+    .click();
+  // The bible is written for the same lead (the name is kept) with the current settings…
+  await expect.poll(() => bioRequest?.characterName).toBe('Story Mid');
+  expect(bioRequest?.tone).toBeTruthy();
+  // …and the story opens again from it: the old scenes are gone, the first look is back.
+  await expect(page.getByText('First look').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('The letter')).toHaveCount(0);
+});
+
+test('story mid-flow: edit a scene in the reel, then write its still again', async ({ page }) => {
+  await seedStoryMidFlow(page, 'e2e-story-edit', {}, { prompt: 'Story still: a letter under the door' });
+  let rewrite: { blurb?: string; storyTitles?: string[] } | null = null;
+  await page.route('**/api/roleplay', async route => {
+    const body = route.request().postDataJSON() as {
+      action?: string;
+      situation?: { blurb?: string };
+      story?: Array<{ title?: string }>;
+    };
+    if (body.action === 'prompt') {
+      rewrite = {
+        blurb: body.situation?.blurb,
+        storyTitles: (body.story ?? []).map(beat => beat.title ?? ''),
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ prompt: 'Story still: she reads it on the stairs', provider: 'template' }),
+      });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{"scenes":[]}' });
+  });
+  await gotoStable(page, '/story?character=e2e-story-edit');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
+  const editButtons = page.getByTestId('story-beat-edit');
+  await expect(editButtons).toHaveCount(2);
+  // A scene whose still is rendering cannot be edited underneath its job.
+  await expect(editButtons.nth(1)).toBeDisabled();
+  // Nothing to write again until the text changes.
+  await expect(page.getByTestId('story-beat-rewrite')).toHaveCount(0);
+  await editButtons.first().click();
+  const editor = page.getByTestId('story-beat-editor');
+  await expect(editor.getByTestId('story-beat-edit-title')).toHaveValue('The letter');
+  await expect(editor.getByTestId('story-beat-edit-text')).toHaveValue('A letter under the door.');
+  // Too short to be a scene: no save.
+  await editor.getByTestId('story-beat-edit-text').fill('no');
+  await expect(editor.getByTestId('story-beat-edit-save')).toBeDisabled();
+  // Cancel leaves the scene as it was.
+  await editor.getByTestId('story-beat-edit-cancel').click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByText('A letter under the door.').first()).toBeVisible();
+
+  await editButtons.first().click();
+  await editor.getByTestId('story-beat-edit-title').fill('The note');
+  await editor
+    .getByTestId('story-beat-edit-text')
+    .fill('She sits on the stairs and reads the letter twice.');
+  await editor.getByTestId('story-beat-edit-save').click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByText('She sits on the stairs and reads the letter twice.').first()).toBeVisible();
+  await expect(page.getByText('A letter under the door.')).toHaveCount(0);
+  // The pose is read from the new text.
+  const firstPose = page.getByTestId('story-beat-pose').first();
+  await firstPose.locator('summary').click();
+  await expect(firstPose.getByTestId('story-beat-pose-preview')).toHaveAttribute(
+    'data-pose',
+    /sit|perch/
+  );
+  // The still is offered again; asking for it sends the new text and only the story before it.
+  const again = page.getByTestId('story-beat-rewrite');
+  await expect(again).toContainText('Scene text changed');
+  await again.getByTestId('story-beat-rewrite-button').click();
+  await expect.poll(() => rewrite?.blurb).toBe('She sits on the stairs and reads the letter twice.');
+  expect(rewrite?.storyTitles).toEqual([]);
+});
+
+test('story scene cards show the pose each still would be drawn in', async ({ page }) => {
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  // A From photo story: only those queue a pose guide, so only those show a figure.
+  await seedStoryMidFlow(page, 'e2e-story-cardpose', {
+    playAs: 'photo',
+    isolateSubject: false,
+    referenceImageUrl: thumb,
+    referenceImageFilename: 'e2e-story-plate.webp',
+  });
+  const scenes = [
+    { id: 's1', title: 'The dock', blurb: 'She sits on the edge of the dock with her feet in the water.' },
+    { id: 's2', title: 'The hill', blurb: 'She runs up the hill behind the station.' },
+    { id: 's3', title: 'The bench', blurb: 'She lies on a park bench and watches the clouds.' },
+    { id: 's4', title: 'The wave', blurb: 'She waves at the ferry from the pier.' },
+  ];
+  await page.route('**/api/roleplay', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ scenes, provider: 'template' }),
+    })
+  );
+  await gotoStable(page, '/story?character=e2e-story-cardpose');
+  await dismissBlockingOverlays(page);
+  const picker = page.getByTestId('story-beat-picker');
+  await expect(picker).toBeVisible({ timeout: 30_000 });
+  await picker.getByTestId('story-roll-scenes').click();
+  const cards = picker.getByTestId('story-scene-card');
+  await expect(cards).toHaveCount(4, { timeout: 15_000 });
+  const figures = picker.getByTestId('story-scene-pose');
+  await expect(figures).toHaveCount(4);
+  // Each card's own pose, not one figure four times.
+  const poses = await figures.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-pose')));
+  expect(new Set(poses).size).toBeGreaterThan(1);
+  // A fixed small box at the card's side.
+  for (const box of await figures.evaluateAll(nodes =>
+    nodes.map(node => {
+      const rect = node.getBoundingClientRect();
+      return { width: Math.round(rect.width), height: Math.round(rect.height) };
+    })
+  )) {
+    expect(box).toEqual({ width: 44, height: 56 });
+  }
+
+  // Phone: the same figures, and the box does not push the card wider than the page.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoStable(page, '/m/story?character=e2e-story-cardpose');
+  await dismissBlockingOverlays(page);
+  const phonePicker = page.getByTestId('story-beat-picker');
+  await expect(phonePicker).toBeVisible({ timeout: 30_000 });
+  await phonePicker.getByTestId('story-roll-scenes').click();
+  await expect(phonePicker.getByTestId('story-scene-card')).toHaveCount(4, { timeout: 15_000 });
+  await expect(phonePicker.getByTestId('story-scene-pose')).toHaveCount(4);
+  // The figure sits inside its card, and the card inside the page.
+  const layout = await phonePicker.getByTestId('story-scene-card').evaluateAll(nodes =>
+    nodes.map(node => {
+      const card = node.getBoundingClientRect();
+      const figure = node.querySelector('[data-testid="story-scene-pose"]')!.getBoundingClientRect();
+      return {
+        cardRight: card.right,
+        figureInside: figure.right <= card.right && figure.bottom <= card.bottom,
+        figure: { width: Math.round(figure.width), height: Math.round(figure.height) },
+      };
+    })
+  );
+  for (const entry of layout) {
+    expect(entry.cardRight).toBeLessThanOrEqual(390);
+    expect(entry.figureInside).toBe(true);
+    expect(entry.figure).toEqual({ width: 44, height: 56 });
+  }
 });
 
 test('story mid-flow: write your own scene, then take it back', async ({ page }) => {
@@ -660,7 +897,8 @@ test('phone story recognises the active Cast before any film is cut', async ({ p
   await gotoStable(page, '/m/story?character=e2e-story-phone');
   await dismissBlockingOverlays(page);
   await expect(page.getByText('The letter').first()).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('story-needs-cast')).toHaveCount(0);
+  // The Cast gate can show for a moment before the roster loads.
+  await expect(page.getByTestId('story-needs-cast')).toHaveCount(0, { timeout: 15_000 });
 });
 
 test('look: one preset row, tile board, paste adds a tile', async ({ page }) => {
@@ -1425,7 +1663,9 @@ test('mobile desk bridge links to Film on desk', async ({ page }) => {
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('mobile-desk-bridge')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('mobile-desk-play')).toHaveAttribute('href', /\/play/);
-  await expect(page.getByTestId('mobile-tab-moodboard')).toBeVisible();
+  // The tabs appear once the session's features have loaded — under a full parallel run that
+  // took longer than the default 5 s and the test failed there.
+  await expect(page.getByTestId('mobile-tab-moodboard')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('mobile-tab-fitting')).toBeVisible();
   await expect(page.getByTestId('mobile-tab-day')).toBeVisible();
   await expect(page.getByTestId('mobile-tab-film')).toBeVisible();

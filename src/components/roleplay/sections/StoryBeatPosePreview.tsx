@@ -7,7 +7,11 @@ import { useWeakPoseLayouts } from '@/hooks/useWeakPoseLayouts';
 import { sceneTextFromStoryPoseInput, type PoseGuideBuildOptions } from '@/lib/day-pose-guide';
 import { mergePickedPose } from '@/lib/day-slot-pose';
 import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
-import type { RoleplayStoryBeat } from '@/lib/roleplay';
+import {
+  isRoleplayAdultContent,
+  resolveRoleplayToneAndContent,
+  type RoleplayStoryBeat,
+} from '@/lib/roleplay';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
 /** Whether a beat has any pose choice set (keeps its Pose section open). */
@@ -45,6 +49,15 @@ export default function StoryBeatPosePreview({
     .filter(entry => !(entry.id === beat.id && entry.at === beat.at))
     .map(entry => entry.title)
     .join('\n');
+  // The rating decides whether a sex layout may be drawn, as in the queue. Without it a clean
+  // story's "leans against a brick wall" previewed as the two-person wall layout while the
+  // still (and the scene card's figure) drew a lean.
+  const roleplayCache = loadSettingsCache().tools.roleplay;
+  const adult = isRoleplayAdultContent(
+    resolveRoleplayToneAndContent(roleplayCache?.tone, roleplayCache?.content).content
+  );
+  // Her picture behind the figure in the editor: the story's reference image.
+  const backdropUrl = roleplayCache?.referenceImageUrl?.trim() || undefined;
   const sceneText = useMemo(
     () =>
       sceneTextFromStoryPoseInput({
@@ -52,8 +65,9 @@ export default function StoryBeatPosePreview({
         blurb: beat.blurb,
         prompt: beat.prompt,
         quotedTitles: quotedTitles ? quotedTitles.split('\n') : [],
+        allowIntimate: adult,
       }),
-    [beat.blurb, beat.prompt, beat.title, quotedTitles]
+    [adult, beat.blurb, beat.prompt, beat.title, quotedTitles]
   );
   // Same options the queue passes to buildStoryPoseGuide.
   const options = useMemo((): PoseGuideBuildOptions => {
@@ -71,8 +85,10 @@ export default function StoryBeatPosePreview({
       ...(beat.poseLead ? { leadSide: beat.poseLead } : {}),
       ...(beat.poseLook ? { look: beat.poseLook } : {}),
       ...(modelPlainPostureBase(model) ? { plainPostureBase: modelPlainPostureBase(model) } : {}),
+      allowIntimate: adult,
     };
   }, [
+    adult,
     model,
     beat.blurb,
     beat.pose,
@@ -101,6 +117,8 @@ export default function StoryBeatPosePreview({
           disabled={busy}
           compact
           testIdPrefix="story-beat-pose-preview"
+          backdropUrl={backdropUrl}
+          backdropLabel="the story's picture"
           onChange={patch => onPoseChange(beat, patch)}
         />
       </div>

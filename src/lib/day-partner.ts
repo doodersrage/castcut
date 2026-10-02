@@ -127,11 +127,15 @@ export function dayPartnerRecipeLine(
  * outfit (non-Rapid Suggestive mood line, the generic face-crop fallback) — the outfit is in words.
  */
 export function scrubDayPartnerOutfitImageClaims(prompt: string): string {
-  return prompt
-    .replace(/\bthe Keep\/Image 2 outfit\b/g, 'the day outfit')
-    .replace(/;?\s*outfit colors from Image 2 only/g, '')
-    .replace(
-      /Image 2 white is packshot only — do not use Image 2 or Image 3 white as the scene background\./g,
-      'Do not use Image 3 white as the scene background.'
-    );
+  return (
+    prompt
+      .replace(/\bthe Keep\/Image 2 outfit\b/g, 'the day outfit')
+      // Vacation couple brief: with the partner's face in the second slot the outfit is in words.
+      .replace(/\bkeep the outfit Image 2 or the beat names\b/g, 'keep the outfit the brief names')
+      .replace(/;?\s*outfit colors from Image 2 only/g, '')
+      .replace(
+        /Image 2 white is packshot only — do not use Image 2 or Image 3 white as the scene background\./g,
+        'Do not use Image 3 white as the scene background.'
+      )
+  );
 }

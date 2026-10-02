@@ -247,6 +247,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
           busy={busy}
           hideLabel
           leadNoun={dayPartnerNoun(character ?? {})}
+          plateUrl={referencePreviewUrl || referenceImageUrl}
           onChange={pose => updateToolSettings({ tryOnPose: pose })}
         />
       </ToolSection>

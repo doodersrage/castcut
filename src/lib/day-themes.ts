@@ -91,7 +91,7 @@ const DATE_NIGHT: DayThemeDefinition = {
   duoScenes: {
     morning: [
       [
-        'clinking coffee mugs with her partner at the kitchen counter, making plans for tonight',
+        'standing at the kitchen counter clinking coffee mugs with her partner, making plans for tonight',
         'bright kitchen with coffee on the counter',
       ],
     ],
@@ -101,7 +101,7 @@ const DATE_NIGHT: DayThemeDefinition = {
         'city sidewalk at golden hour with shop windows',
       ],
       [
-        'her partner fixing her necklace clasp from behind at the mirror, both smiling at the reflection',
+        'standing at the mirror while her partner fixes her necklace clasp from behind, both smiling at the reflection',
         'bedroom with a full-length mirror',
       ],
     ],
@@ -219,7 +219,7 @@ const NIGHT_OUT: DayThemeDefinition = {
     ],
     night: [
       [
-        'singing karaoke with a friend, sharing one mic, different faces',
+        'standing side by side with a friend singing karaoke, sharing one mic, different faces',
         'karaoke booth with neon lights',
       ],
       [
@@ -227,7 +227,7 @@ const NIGHT_OUT: DayThemeDefinition = {
         'empty city street at 2 a.m. under orange streetlights',
       ],
       [
-        "side by side with a friend in the back of a taxi, her head on the friend's shoulder, different faces",
+        "seated side by side with a friend in the back of a taxi, her head on the friend's shoulder, different faces",
         'back seat of a taxi at night with city lights outside',
       ],
     ],
@@ -298,7 +298,7 @@ const LAZY_SUNDAY: DayThemeDefinition = {
   duoScenes: {
     morning: [
       [
-        'sharing breakfast in bed with her partner, trays on their laps, different faces',
+        'sitting up in bed with her partner sharing breakfast, trays on their laps, different faces',
         'sunlit bedroom with rumpled white sheets',
       ],
     ],
@@ -316,7 +316,7 @@ const LAZY_SUNDAY: DayThemeDefinition = {
     ],
     night: [
       [
-        'reading side by side in bed with her partner, lamp on, different faces',
+        'sitting up side by side in bed with her partner, reading, lamp on, different faces',
         'bedroom lit by a single bedside lamp',
       ],
     ],
@@ -397,7 +397,7 @@ const PHOTOSHOOT: DayThemeDefinition = {
     ],
     night: [
       [
-        'the two models posing face to face under neon lights, different faces',
+        'the two models standing face to face under neon lights, posing, different faces',
         'city street under a pink neon sign',
       ],
     ],
@@ -460,13 +460,13 @@ const COSPLAY: DayThemeDefinition = {
   duoScenes: {
     morning: [
       [
-        "getting into costumes with a friend in the hotel room, adjusting each other's straps, different faces",
+        "standing with a friend in the hotel room getting into costumes, adjusting each other's straps, different faces",
         'hotel room with costume pieces laid out on the bed',
       ],
     ],
     afternoon: [
       [
-        'posing back to back with a friend in costume on the convention floor, different faces',
+        'standing back to back with a friend in costume on the convention floor, posing, different faces',
         'busy convention hall with banners and booths',
       ],
       [

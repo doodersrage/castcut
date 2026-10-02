@@ -1650,7 +1650,7 @@ export const DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS: Record<DayPart, string[]> = {
   night: [
     "lying together on the couch under a blanket with her head on her partner's chest, both in sleepwear — his hand in her hair, TV glow",
     'kissing her partner against the apartment door after a night out, in a short dress — his hand on the door by her head, her coat slipping off her shoulders',
-    'her partner carrying her to bed in his arms, in a short dress and bare feet — her arms around his neck, both laughing',
+    'her partner standing with her lifted in his arms, carrying her to bed — short dress and bare feet, her arms around his neck, both laughing',
     'sitting on the bed edge in lingerie under an open robe with her partner kneeling in front of her, both clothed — he kisses her knee, her hand in his hair',
     'cuddling on top of the covers with her partner, both clothed in sleepwear — she lies on her side, he lies close at her back with his arm over her waist, her hand holding his',
   ],

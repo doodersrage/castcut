@@ -1,6 +1,13 @@
 'use client';
 
-import { auditStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
+import {
+  assembleDayStillPrompt,
+  buildDaySlotPromptForStill,
+  finishDayStillPrompt,
+  queuedDayStillPrompt,
+  type DayStillSlotOptions,
+} from '@/lib/day-still-prompt';
+import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
 import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
 import { installedComfyModels } from '@/lib/model-picker';
 import {
@@ -13,7 +20,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isRapidDuoRecipePrompt, RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
@@ -53,12 +59,9 @@ import {
 } from '@/lib/comfyui-gallery';
 import { resolveAdultNudePlateQueueModel, resolveDayStillModel } from '@/lib/queue-tool-model';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
-import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
 import { STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP } from '@/lib/roleplay';
 import {
   buildDaySlotMotionSubject,
-  buildDaySlotPrompt,
-  renumberDayPoseGuideAsImage2,
   dayBeatOmitsGarmentPackshot,
   dayMoodReplacesKeepOutfit,
   dayQueueBlockReason,
@@ -130,24 +133,9 @@ import {
 } from '@/components/FilmCutOptionsControls';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { dayThemeOf } from '@/lib/day-themes';
-import {
-  masculineClothes,
-  restoreText,
-  sameSexPartnerBeat,
-  swapDayPromptGender,
-} from '@/lib/day-lead-gender';
-import { normalizeDayWeather, withDayWeather } from '@/lib/day-weather';
-import {
-  dayClothedLeadLines,
-  dayGarmentPromptName,
-  dayOutfitPromptName,
-} from '@/lib/day-clothed-lead';
-import {
-  beatOwnsFootwear,
-  footwearIsBarefoot,
-  normalizeFootwear,
-  withFootwearLine,
-} from '@/lib/footwear';
+import { normalizeDayWeather } from '@/lib/day-weather';
+import { dayGarmentPromptName, dayOutfitPromptName } from '@/lib/day-clothed-lead';
+import { beatOwnsFootwear, footwearIsBarefoot, normalizeFootwear } from '@/lib/footwear';
 import {
   buildFootwearReferenceImage,
   footwearImageSuitsModel,
@@ -162,11 +150,8 @@ import {
 } from '@/lib/day-partner-stand-in';
 import {
   dayPartnerApplies,
-  dayPartnerBriefLine,
   dayPartnerNoun,
-  dayPartnerRecipeLine,
   inventedDayPartner,
-  scrubDayPartnerOutfitImageClaims,
   toDayPartner,
   type DayPartner,
 } from '@/lib/day-partner';
@@ -178,10 +163,7 @@ import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
 import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
 import { readsPoseGuideImage } from '@/lib/model-denoise-defaults';
 import { kleinSpoonRecipeApplies } from '@/lib/klein-duo-recipe';
-import {
-  KLEIN_FACE_REFERENCE_LINE,
-  shouldAppendKleinFaceReference,
-} from '@/lib/klein-face-reference';
+import { shouldAppendKleinFaceReference } from '@/lib/klein-face-reference';
 import {
   poseGuideFailureReason,
   recordPoseGuideOutcome,
@@ -237,8 +219,6 @@ import {
   poseLayoutFromKey,
   weakPoseLayouts,
 } from '@/lib/play-metrics';
-import { poseLayoutCueLine, poseLookLine, withRecipePoseCue } from '@/lib/pose-coaching';
-import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
@@ -709,95 +689,38 @@ export function useDayPlannerToolOrchestrationCore() {
     [wardrobeLabels, wardrobeOptions]
   );
 
+  // The brief / recipe for one still is written in day-still-prompt.ts (the same code the
+  // finished-prompt sweep runs); this only hands it the Day state.
   const buildSlotPrompt = useCallback(
-    (
-      slot: DaySlot,
-      options?: {
-        poseGuide?: boolean;
-        poseGuideStyle?: PoseGuideStylePreference;
-        poseLeadPosition?: PoseLeadPosition | null;
-        poseCamera?: 'overhead' | 'side' | 'low' | null;
-        faceOnlyIdentity?: boolean;
-        forceGarmentReinforce?: boolean;
-        /** Cast partner whose face is attached as Image 2 on this still (garment goes to text). */
-        partner?: DayPartner | null;
-        /** This still starts from a dressed plate: Image 1 wears the outfit, no clothing image. */
-        dressPlate?: DayPlate | null;
-      }
-    ) => {
-      const wardrobeId = slot.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
-      const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
-      const garmentReinforce = Boolean(
-        !options?.dressPlate &&
-        !(options?.partner && !options.partner.invented) &&
-        (options?.forceGarmentReinforce ||
-          resolveDayGarmentReinforce({
-            plateSource: plate?.source,
-            packshotUrl,
-            customGarmentUrl: toolSettings.customGarmentImageUrl,
-            customGarmentFilename: toolSettings.customGarmentImageFilename,
-          }))
-      );
-      const dayMood = normalizeDayMood(
-        isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
-      );
-      const omitGarment = dayBeatOmitsGarmentPackshot({
-        blurb: slot.sceneHints,
-        prompt: [slot.location, slot.sceneHints].filter(Boolean).join(' · '),
-        dayMood,
-        intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
-      });
-      const replaceKeepOutfit = dayMoodReplacesKeepOutfit(dayMood);
-      const preferCastPlate = replaceKeepOutfit || omitGarment;
-      const identityPlate = preferCastPlate
-        ? resolveDayQueueIdentityPlate({
-            character,
-            displayPlate: plate,
-            preferCastPlate: true,
-            preferFaceOnlyPlate: omitGarment,
-          })
-        : (options?.dressPlate ?? queuePlate);
-      const poseGuide = options?.poseGuide !== false && Boolean(hasPlate);
-      // A same-sex partner: beats are written for a woman with a man ("her arms around his
-      // neck") — name the partner instead. For a man lead the whole prompt is swapped later, so
-      // "her girlfriend" comes out as "his boyfriend".
-      const sameSexPartner =
-        options?.partner && options.partner.noun !== 'person' && options.partner.noun === leadNoun;
-      const beatSlot =
-        sameSexPartner && slot.sceneHints
-          ? { ...slot, sceneHints: sameSexPartnerBeat(slot.sceneHints) }
-          : slot;
-      return buildDaySlotPrompt({
-        // Weather / season rides on the Setting (SCENE lead, SETTING line, recipe room).
-        slot: toolSettings.dayWeather
-          ? { ...beatSlot, location: withDayWeather(beatSlot.location, toolSettings.dayWeather) }
-          : beatSlot,
-        wardrobeLabel: dayOutfitPromptName(wardrobeLabelFor(slot.wardrobeId)),
-        characterName: character?.name,
-        characterDescriptor: character?.descriptor || character?.hints,
-        lockedLocation: shared.lockedLocation,
-        notes: toolSettings.notes,
-        hasPlate,
-        plateSource: identityPlate?.source,
-        plateIsolated: identityPlate?.isolated === true,
-        garmentReinforce: garmentReinforce && !omitGarment && !replaceKeepOutfit,
-        garmentDescription: toolSettings.customGarmentDescription,
-        poseGuide,
-        poseGuideStyle: options?.poseGuideStyle ?? loadPoseGuideStylePreference(shared.model),
-        poseLeadPosition: options?.poseLeadPosition ?? null,
-        poseCamera: options?.poseCamera ?? null,
-        model: shared.model,
-        realismMode: shared.renderRealismMode,
-        allowCompanions: toolSettings.allowCompanions === true,
-        dayMood,
-        intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
-        omitGarment,
-        faceOnlyIdentity: options?.faceOnlyIdentity === true,
-        replaceKeepOutfit,
-        partner: options?.partner ?? null,
-        leadNoun,
-      });
-    },
+    (slot: DaySlot, options?: DayStillSlotOptions) =>
+      buildDaySlotPromptForStill(
+        slot,
+        {
+          plate,
+          queuePlate,
+          character,
+          hasPlate: Boolean(hasPlate),
+          leadNoun,
+          packshotUrl: resolveWardrobeGarmentThumbQueueUrl(
+            slot.wardrobeId?.trim() || shared.lockedWardrobeId?.trim()
+          ),
+          wardrobeLabel: dayOutfitPromptName(wardrobeLabelFor(slot.wardrobeId)),
+          customGarmentUrl: toolSettings.customGarmentImageUrl,
+          customGarmentFilename: toolSettings.customGarmentImageFilename,
+          customGarmentDescription: toolSettings.customGarmentDescription,
+          dayMood: toolSettings.dayMood,
+          intimateEnabled,
+          intimateMix: toolSettings.intimateMix,
+          allowCompanions: toolSettings.allowCompanions === true,
+          dayWeather: toolSettings.dayWeather,
+          lockedLocation: shared.lockedLocation,
+          notes: toolSettings.notes,
+          model: shared.model,
+          realismMode: shared.renderRealismMode,
+          defaultPoseGuideStyle: loadPoseGuideStylePreference(shared.model),
+        },
+        options
+      ),
     [
       character,
       hasPlate,
@@ -936,7 +859,13 @@ export function useDayPlannerToolOrchestrationCore() {
         const omitGarment = dayBeatOmitsGarmentPackshot({
           blurb: queueTarget.sceneHints,
           prompt: [queueTarget.location, queueTarget.sceneHints].filter(Boolean).join(' · '),
-          dayMood: toolSettings.dayMood,
+          // The mood the still plays as: an adult mood with Intimate off is Everyday, as the
+          // prompt builder already treats it — on the raw mood these stills started from a
+          // face crop under an Everyday prompt.
+          dayMood:
+            isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+              ? 'everyday'
+              : toolSettings.dayMood,
           intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
         });
         const replaceKeepOutfit = dayMoodReplacesKeepOutfit(toolSettings.dayMood);
@@ -1586,50 +1515,16 @@ export function useDayPlannerToolOrchestrationCore() {
           forceGarmentReinforce:
             (vacationFaceBreak || Boolean(dressClothingFilename)) &&
             Boolean(garmentReinforce?.imageUrl || garmentReinforce?.imageFilename),
+          clothingImageAttached: Boolean(
+            garmentReinforce?.imageUrl || garmentReinforce?.imageFilename
+          ),
           partner: slotPartner,
           dressPlate,
         });
-        const scrubbedPrompt = slotPartner
-          ? scrubDayPartnerOutfitImageClaims(slotPrompt)
-          : slotPrompt;
-        // The clothing image is the dressed plate: a picture of her, dressed — not a packshot.
-        // Every way the prompts name that image is reworded (the solo recipes' sentence, the
-        // couple recipe's clause, the long brief's "clothing-only packshot").
-        const dressedWorn =
-          Boolean(pickedShoes) && !footwearIsBarefoot(pickedShoes)
-            ? 'the outfit and the shoes'
-            : 'the outfit';
-        const basePrompt = dressClothingFilename
-          ? scrubbedPrompt
-              .replace(
-                /\bthe outfit from the second image\b/gi,
-                `${dressedWorn} shown in the second image (the same person, dressed, standing)`
-              )
-              .replace(
-                /\bImage 2 is (?:a|the) clothing-only packshot\b/gi,
-                'Image 2 is a picture of her already dressed'
-              )
-          : scrubbedPrompt;
         // Quality-gate reroll: append the fix for whatever the reviewer flagged, once.
         const qualityNudge = rerollNudgeRef.current[queueTarget.id]?.trim();
         delete rerollNudgeRef.current[queueTarget.id];
-        // Spell the drawn pose out in words after a pose miss, and always for layouts Edit has
-        // a poor record with (step one before the guide falls back to a plainer pose).
         const drawnLayout = poseExpectation ? poseLayoutFromKey(poseExpectation.poseKey) : null;
-        // A one-person recipe always carries the cue, inside the recipe (withRecipePoseCue).
-        const recipeCue =
-          isRapidDuoRecipePrompt(basePrompt) && (poseExpectation?.keypoints.length ?? 0) === 1;
-        const cueLine =
-          !recipeCue &&
-          drawnLayout &&
-          (cuePoseLayouts().has(drawnLayout) ||
-            Boolean(qualityNudge?.includes(POSE_MISMATCH_NUDGE)))
-            ? poseLayoutCueLine(drawnLayout, poseExpectation?.keypoints.length)
-            : '';
-        if (cueLine && poseExpectation) {
-          poseExpectation.cued = true;
-        }
-        const lookLine = poseLookLine(queueTarget.poseLook, poseExpectation?.keypoints.length ?? 1);
         // Solo only — on a two-person guide the extra face reads as an extra head.
         const kleinFaceFilename =
           kleinFaceReference?.filename &&
@@ -1641,103 +1536,72 @@ export function useDayPlannerToolOrchestrationCore() {
           })
             ? kleinFaceReference.filename
             : undefined;
-        // A man lead: Day's text is written for a woman — swap it (not the adult duo recipe,
-        // which is built for him already; not adult duo briefs, which would swap the roles).
-        const leadHeadcount = poseExpectation?.keypoints.length ?? 1;
         const adultStill = isDayAdultMood(toolSettings.dayMood) && intimateEnabled;
-        const swapLead =
-          leadNoun === 'man' &&
-          !basePrompt.includes(RAPID_DUO_RECIPE_MARK) &&
-          // The Suggestive couple recipe is written for the pair already (see its `lead`).
-          !/ together, both fully clothed, affectionate\./.test(basePrompt) &&
-          !(adultStill && leadHeadcount >= 2);
-        // The whole finished prompt is swapped below; the partner line names the partner's own
-        // gender, so it goes in pre-swapped (the swap turns it back).
-        const forLead = (text: string) => (swapLead && text ? swapDayPromptGender(text) : text);
-        // Clothed stills: Rapid follows the opening lines, and the brief's opening only names
-        // her — duo beats lost the partner (4/10) and outdoor beats went barefoot. Live A/B
-        // (2026-09-30, same seeds): a TWO PEOPLE opening line kept the partner 10/10; a
-        // footwear line put shoes on 4/4 outdoors.
-        const clothedLeadLines = isRapidDuoRecipePrompt(basePrompt)
-          ? []
-          : dayClothedLeadLines({
-              beat: queueTarget.sceneHints,
-              setting: queueTarget.location,
-              headcount: leadHeadcount,
-              dayMood: toolSettings.dayMood,
-              adult: adultStill,
-              companionLook: slotPartner?.descriptor,
-              // Her own clothing photo counts too: on a two-person still the partner's face takes
-              // the clothing image's slot, and unnamed she fell back to a plain top (sweep
-              // 2026-10-02: a beige tank on 4 of 6 Rapid duo stills).
-              leadOutfit:
-                !omitGarment && !replaceKeepOutfit && wardrobeId
-                  ? dayOutfitPromptName(formatWardrobeKitLabel(wardrobeLabelFor(wardrobeId) || ''))
-                  : !omitGarment && !replaceKeepOutfit
-                    ? dayGarmentPromptName(toolSettings.customGarmentDescription)
-                    : null,
-              partnerOutfit: partnerCharacter?.lockedWardrobeId?.trim()
-                ? dayOutfitPromptName(
-                    formatWardrobeKitLabel(
-                      wardrobeLabelFor(partnerCharacter.lockedWardrobeId.trim()) || ''
-                    )
-                  ) || null
+        const leadDescriptor = (character?.descriptor || character?.hints || '').trim();
+        // The text itself is assembled in day-still-prompt.ts (the same code the beat sweep
+        // runs), from the decisions made above.
+        const assembled = assembleDayStillPrompt({
+          slotPrompt,
+          beat: queueTarget.sceneHints,
+          setting: queueTarget.location,
+          dayMood: toolSettings.dayMood,
+          adult: adultStill,
+          leadNoun,
+          leadDescriptor,
+          partner: slotPartner,
+          partnerOutfit: partnerCharacter?.lockedWardrobeId?.trim()
+            ? dayOutfitPromptName(
+                formatWardrobeKitLabel(
+                  wardrobeLabelFor(partnerCharacter.lockedWardrobeId.trim()) || ''
+                )
+              ) || null
+            : null,
+          // Her own clothing photo counts too: on a two-person still the partner's face takes
+          // the clothing image's slot, and unnamed she fell back to a plain top (sweep
+          // 2026-10-02: a beige tank on 4 of 6 Rapid duo stills).
+          leadOutfit:
+            !omitGarment && !replaceKeepOutfit && wardrobeId
+              ? dayOutfitPromptName(formatWardrobeKitLabel(wardrobeLabelFor(wardrobeId) || ''))
+              : !omitGarment && !replaceKeepOutfit
+                ? dayGarmentPromptName(toolSettings.customGarmentDescription)
                 : null,
-            });
-        const prompt = [
-          // The picked footwear replaces the automatic "shoes that suit the outfit" line.
-          ...clothedLeadLines.filter(
-            line => !(footwear && /^She wears shoes that suit/.test(line))
-          ),
-          withFootwearLine(
-            recipeCue
-              ? withRecipePoseCue(basePrompt, drawnLayout, poseExpectation?.poseKey)
-              : basePrompt,
-            footwear,
-            'she',
-            footwearImage
-          ),
-          // The duo recipes name the partner's image themselves; the long brief (and a recipe
-          // that has no partner wording, e.g. Klein spoon) gets one line.
-          !slotPartner
-            ? ''
-            : !isRapidDuoRecipePrompt(basePrompt)
-              ? forLead(dayPartnerBriefLine(slotPartner))
-              : /face from the second image|own face\./.test(basePrompt)
-                ? ''
-                : forLead(dayPartnerRecipeLine(slotPartner, 'second', undefined, leadNoun)),
-          cueLine,
-          lookLine,
-          kleinFaceFilename ? KLEIN_FACE_REFERENCE_LINE : '',
-          qualityNudge ? `QUALITY FIX: ${qualityNudge}` : '',
-        ]
-          .filter(Boolean)
-          .join('\n');
+          dressedPlateIsClothingImage: Boolean(dressClothingFilename),
+          pickedShoes,
+          footwear,
+          footwearImage,
+          pose: poseExpectation
+            ? {
+                layout: drawnLayout,
+                poseKey: poseExpectation.poseKey,
+                figures: poseExpectation.keypoints.length,
+              }
+            : null,
+          cueLayouts: cuePoseLayouts(),
+          poseLook: queueTarget.poseLook,
+          kleinFace: Boolean(kleinFaceFilename),
+          qualityNudge,
+        });
+        if (assembled.cued && poseExpectation) {
+          poseExpectation.cued = true;
+        }
+        const prompt = assembled.prompt;
         // Play/Simple: skip lint round-trip — Day stills are draft-speed first film.
         // Rapid duo recipe skips it too — its length is the point.
         const drafted =
-          leanChrome || isRapidDuoRecipePrompt(prompt)
+          leanChrome || assembled.recipe
             ? prompt
             : await actions.finalizePrompt(prompt, character?.name || slot.label);
-        // Adult moods only — reinforceIntimateStillPrompt false-positives on Suggestive/
-        // Vacation ("hands on" zipper, "sex contact" bans) and injects nude/duo locks
-        // that fight CLOTHING LOCK → bikini/beach drift.
         const dayMoodForPrompt = normalizeDayMood(
           isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
             ? 'everyday'
             : toolSettings.dayMood
         );
-        const reinforced = isDayAdultMood(dayMoodForPrompt)
-          ? reinforceIntimateStillPrompt(drafted)
-          : drafted;
-        // The lead's own description already reads right for him — put it back unswapped.
-        const leadDescriptor = (character?.descriptor || character?.hints || '').trim();
-        const finalized = swapLead
-          ? restoreText(
-              masculineClothes(swapDayPromptGender(reinforced, { solo: adultStill })),
-              leadDescriptor
-            )
-          : reinforced;
+        const finalized = finishDayStillPrompt(drafted, {
+          adultMood: isDayAdultMood(dayMoodForPrompt),
+          adult: adultStill,
+          swapLead: assembled.swapLead,
+          leadDescriptor,
+        });
         setOutput(finalized);
         rememberDraftFields({
           toolKey: TOOL_ID,
@@ -1901,25 +1765,29 @@ export function useDayPlannerToolOrchestrationCore() {
           updateShared({ model: plateQueueModel });
         }
         // No garment: the queue compacts the guide into the second image — say so.
-        const guideIsImage2 =
-          Boolean(extraFilenames[2]?.trim() || extraUrls[2]) &&
-          !extraFilenames[1]?.trim() &&
-          !extraUrls[1];
-        const queuedPrompt = guideIsImage2 ? renumberDayPoseGuideAsImage2(finalized) : finalized;
+        const numbered = queuedDayStillPrompt(finalized, {
+          second: Boolean(extraFilenames[1]?.trim() || extraUrls[1]),
+          third: Boolean(extraFilenames[2]?.trim() || extraUrls[2]),
+        });
         // Text contradictions that only ever showed up as a bad render (a solo still that talks
         // about "the two people", shoes ordered on a barefoot beat, a third image that is not
-        // attached). A warning, never a block — the still is queued either way.
-        const promptIssues = auditStillPrompt(queuedPrompt, {
+        // attached). What can be repaired without guessing is repaired; the rest raises a
+        // notice. Never a block — the still is queued either way.
+        const checked = repairStillPrompt(numbered.prompt, {
           people: poseExpectation?.keypoints.length || undefined,
           imageCount:
             1 +
             [1, 2, 3].filter(index => Boolean(extraFilenames[index]?.trim() || extraUrls[index]))
               .length,
         });
-        if (promptIssues.length > 0) {
-          console.warn('Day prompt check:', queueTarget.label, promptIssues, queuedPrompt);
+        const queuedPrompt = checked.prompt;
+        if (checked.repaired.length > 0) {
+          console.info('Day prompt check repaired:', queueTarget.label, checked.repaired);
+        }
+        if (checked.remaining.length > 0) {
+          console.warn('Day prompt check:', queueTarget.label, checked.remaining, queuedPrompt);
           pushSystemTrayMessage({
-            text: stillPromptIssuesLine(promptIssues, queueTarget.label),
+            text: stillPromptIssuesLine(checked.remaining, queueTarget.label),
             tone: 'warning',
             ttlMs: 20_000,
           });

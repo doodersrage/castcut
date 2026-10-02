@@ -156,6 +156,33 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
   if (poseLook) {
     beat.poseLook = poseLook;
   }
+  // Without it a restored story would lose "write this scene's still again" on an edited scene.
+  if (record.textEdited === true) {
+    beat.textEdited = true;
+  }
+  // A saved story used to come back without these: the next scene lost the continuity brief of
+  // the one before it, and the pose / face checks and the picked take were forgotten.
+  if (typeof record.stillBrief === 'string' && record.stillBrief.trim()) {
+    beat.stillBrief = record.stillBrief.trim().slice(0, 600);
+  }
+  if (typeof record.poseGuideUrl === 'string' && record.poseGuideUrl.trim()) {
+    beat.poseGuideUrl = record.poseGuideUrl.trim();
+  }
+  if (record.poseGuideExpect && typeof record.poseGuideExpect === 'object') {
+    beat.poseGuideExpect = record.poseGuideExpect as RoleplayStoryBeat['poseGuideExpect'];
+  }
+  if (record.poseMatch && typeof record.poseMatch === 'object') {
+    beat.poseMatch = record.poseMatch as RoleplayStoryBeat['poseMatch'];
+  }
+  if (record.faceMatch && typeof record.faceMatch === 'object') {
+    beat.faceMatch = record.faceMatch as RoleplayStoryBeat['faceMatch'];
+  }
+  if (record.stillTakePinned === true) {
+    beat.stillTakePinned = true;
+  }
+  if (record.stillTakeAutoPicked === true) {
+    beat.stillTakeAutoPicked = true;
+  }
   return beat;
 }
 

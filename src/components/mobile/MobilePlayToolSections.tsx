@@ -1,6 +1,12 @@
 'use client';
 
 import StoryOwnScene from '@/components/roleplay/StoryOwnScene';
+import { StoryBeatEditProvider } from '@/components/roleplay/StoryBeatEditContext';
+import StoryScenePoseFigure from '@/components/roleplay/StoryScenePoseFigure';
+import StoryStartOverDialog from '@/components/roleplay/StoryStartOverDialog';
+import { storyBeatAwaitsRewrite } from '@/hooks/roleplay/story-beat-edit';
+import { useStoryScenePoses } from '@/hooks/roleplay/useStoryScenePoses';
+import { useStoryStartOver } from '@/hooks/roleplay/useStoryStartOver';
 import { RoleplayCastToneSettingSection } from '@/components/roleplay/sections/RoleplayCastToneSettingSection';
 import { useNsfwGeneratorStatus } from '@/hooks/useNsfwGeneratorEnabled';
 import { roleplayMoodSummary } from '@/lib/roleplay';
@@ -10,7 +16,7 @@ import type { KeyedShot } from '@/lib/film-cut-plan';
 import TaskRequirementsCard from '@/components/TaskRequirementsCard';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
 import RoleplayWardrobeSection from '@/components/roleplay/RoleplayWardrobeSection';
 import StoryPlayPhaseStrip from '@/components/roleplay/StoryPlayPhaseStrip';
@@ -39,8 +45,13 @@ import {
   withCharacterQuery,
 } from '@/lib/mobile-studio';
 import StoryRetryFlagged from '@/components/roleplay/StoryRetryFlagged';
-import { getCharacter } from '@/lib/character-os';
-import { confirmRoleplayRestart, confirmRoleplayUndoScene } from '@/lib/roleplay';
+import {
+  getCharacter,
+  getCharactersSnapshot,
+  getServerCharactersSnapshot,
+  subscribeCharacters,
+} from '@/lib/character-os';
+import { confirmRoleplayUndoScene, type RoleplayStoryBeat } from '@/lib/roleplay';
 import { remixDayFilmHref } from '@/lib/play-starter';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import {
@@ -94,6 +105,8 @@ export default function MobilePlayToolSections({ description: _description, ...v
     scenesLoading,
     animateAllReady,
     queueBeat,
+    beatEdit,
+    writeBio,
     selectStillTake,
     setBeatPose,
     selectClipTake,
@@ -116,19 +129,45 @@ export default function MobilePlayToolSections({ description: _description, ...v
     updateToolSettings({ story: story.slice(0, -1) });
     setScenes([]);
   };
-  const startStoryOver = () => {
-    if (!confirmRoleplayRestart(story.length)) {
-      return;
-    }
-    updateToolSettings({ story: [], rejectedScenes: [] });
-    setScenes([]);
-  };
   const { ready: adultGateReady } = useNsfwGeneratorStatus();
   // The active Cast lead (as desktop Story does). filmCharacterId is only set once a film is
   // cut, so gating on it alone told every phone player "Story needs a Cast lead" until then.
   const activeCastId = shared.activeCharacterId?.trim() || '';
+  // Follow the Cast list: it can load a moment after this page, and read once the page stayed
+  // on "No Cast lead" with Roll disabled until something else re-rendered it.
+  const castRoster = useSyncExternalStore(
+    subscribeCharacters,
+    getCharactersSnapshot,
+    getServerCharactersSnapshot
+  );
   const castId =
-    filmCharacterId?.trim() || (activeCastId && getCharacter(activeCastId) ? activeCastId : '');
+    filmCharacterId?.trim() ||
+    (activeCastId && castRoster.some(entry => entry.id === activeCastId) ? activeCastId : '');
+  // Asked in the page, as on desk: keep the bible, or have a new one written for this lead.
+  const startOver = useStoryStartOver({
+    clearStory: () => {
+      updateToolSettings({ story: [], rejectedScenes: [] });
+      setScenes([]);
+    },
+    clearScenes: () => setScenes([]),
+    writeBio,
+    leadName:
+      toolSettings.characterName?.trim() || (castId ? getCharacter(castId)?.name?.trim() : ''),
+  });
+  const startStoryOver = startOver.ask;
+  // "Retry flagged" / "Retry them first": a scene whose text was edited has no still prompt to
+  // retry with — its fresh take is the scene written again (as desk Story).
+  const retryStill = (beat: RoleplayStoryBeat) =>
+    storyBeatAwaitsRewrite(beat) ? beatEdit.rewriteBeat(beat) : queueBeat(beat, { retry: true });
+  // The figure on each scene card: the pose its still would be drawn in (as desk Story).
+  const scenePoses = useStoryScenePoses({
+    scenes,
+    story,
+    model: shared.model,
+    poseGuideStyle: shared.poseGuideStyle,
+    adult: isRoleplayAdultContent(content),
+    enabled: playAs === 'photo',
+  });
   const castBibleHref = castId ? `/characters/${encodeURIComponent(castId)}` : '/characters';
   const busy =
     bioLoading ||
@@ -136,7 +175,9 @@ export default function MobilePlayToolSections({ description: _description, ...v
     isolating ||
     assemblingFilm ||
     wardrobe.garmentUploading ||
-    scenesLoading;
+    scenesLoading ||
+    // One scene is written at a time: picking a card mid-rewrite would save over its result.
+    Boolean(beatEdit.rewritingKey);
   const adultEnabled = useNsfwGeneratorEnabled();
   const completedShotCount = useMemo(() => countRoleplayCompletedStills(story), [story]);
   const completedClipCount = useMemo(() => countRoleplayCompletedClips(story), [story]);
@@ -185,9 +226,13 @@ export default function MobilePlayToolSections({ description: _description, ...v
     <div className="space-y-4" data-testid="mobile-play">
       <CutProblemsDialog
         problems={cutProblems}
-        onResolve={action =>
-          void resolveCutProblems(action, beat => queueBeat(beat, { retry: true }))
-        }
+        onResolve={action => void resolveCutProblems(action, retryStill)}
+      />
+      <StoryStartOverDialog
+        open={startOver.open}
+        sceneCount={story.length}
+        leadName={bio?.name}
+        onResolve={startOver.resolve}
       />
       <div className="space-y-1">
         <h1 className="type-display text-2xl tracking-tight">Story</h1>
@@ -485,13 +530,23 @@ export default function MobilePlayToolSections({ description: _description, ...v
                   type="button"
                   disabled={playingId !== null || busy}
                   onClick={() => void playScene(scene)}
-                  className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-3 py-3 text-left transition hover:border-[var(--accent-border)] disabled:opacity-50"
+                  data-testid="story-scene-card"
+                  className="flex items-start gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-3 py-3 text-left transition hover:border-[var(--accent-border)] disabled:opacity-50"
                 >
-                  <p className="text-sm font-medium">{scene.title}</p>
-                  <p className="mt-1 text-xs text-[var(--text-muted)]">{scene.blurb}</p>
-                  {playingId === scene.id ? (
-                    <p className="mt-1 type-caption text-[var(--accent-text)]">Writing still…</p>
-                  ) : null}
+                  <span className="block min-w-0 flex-1">
+                    <span className="block text-sm font-medium">{scene.title}</span>
+                    <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                      {scene.blurb}
+                    </span>
+                    {playingId === scene.id ? (
+                      <span className="mt-1 block type-caption text-[var(--accent-text)]">
+                        Writing still…
+                      </span>
+                    ) : null}
+                  </span>
+                  {/* At the side, in a fixed box: the text keeps its width and the card its
+                      height whether or not it has a figure. */}
+                  <StoryScenePoseFigure pose={scenePoses.get(scene.id)} />
                 </button>
               ))}
             </div>
@@ -541,29 +596,26 @@ export default function MobilePlayToolSections({ description: _description, ...v
         </div>
       ) : null}
 
-      <StoryRetryFlagged
-        story={story}
-        busy={busy}
-        fullWidth
-        onRetry={beat => queueBeat(beat, { retry: true })}
-      />
+      <StoryRetryFlagged story={story} busy={busy} fullWidth onRetry={retryStill} />
 
-      <RoleplayStoryReel
-        story={story}
-        busy={busy}
-        bioPresent={Boolean(bio)}
-        scenesLoading={scenesLoading}
-        castBibleHref={castBibleHref}
-        onQueue={beat => void queueBeat(beat)}
-        onRetry={beat => void queueBeat(beat, { retry: true })}
-        onRetryClip={retryClip}
-        onAnimate={animateBeat}
-        onExtend={extendBeat}
-        onSelectTake={selectStillTake}
-        onPoseChange={setBeatPose}
-        onSelectClipTake={selectClipTake}
-        onRollScenes={() => void rollScenes()}
-      />
+      <StoryBeatEditProvider value={beatEdit}>
+        <RoleplayStoryReel
+          story={story}
+          busy={busy}
+          bioPresent={Boolean(bio)}
+          scenesLoading={scenesLoading}
+          castBibleHref={castBibleHref}
+          onQueue={beat => void queueBeat(beat)}
+          onRetry={beat => void queueBeat(beat, { retry: true })}
+          onRetryClip={retryClip}
+          onAnimate={animateBeat}
+          onExtend={extendBeat}
+          onSelectTake={selectStillTake}
+          onPoseChange={setBeatPose}
+          onSelectClipTake={selectClipTake}
+          onRollScenes={() => void rollScenes()}
+        />
+      </StoryBeatEditProvider>
 
       <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-3">
         <p className="type-caption text-[var(--text-muted)]">Film</p>

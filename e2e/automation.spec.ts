@@ -30,12 +30,16 @@ test.describe('Settings automation', () => {
       .filter({ has: page.getByRole('heading', { name: 'Scheduled batch', exact: true }) });
     await expect(scheduled.getByRole('heading', { name: 'Scheduled batch' })).toBeVisible();
     const bestOfN = scheduled.getByLabel(/Best-of-N ranking/i);
-    await bestOfN.selectOption('3');
-    // Vision-rank stays disabled until auto-queue is on.
     const autoQueue = scheduled.getByLabel(/Auto-queue to ComfyUI/i);
-    await autoQueue.check();
     const vision = scheduled.getByLabel(/Vision-rank queued outputs/i);
-    await expect(vision).toBeEnabled({ timeout: 10_000 });
+    // Vision-rank stays disabled until auto-queue is on. Settings that finish loading after
+    // the first clicks put both controls back (seen only under a full parallel run), so set
+    // them until they hold.
+    await expect(async () => {
+      await bestOfN.selectOption('3');
+      await autoQueue.check();
+      await expect(vision).toBeEnabled({ timeout: 2_000 });
+    }).toPass({ timeout: 30_000 });
     await vision.check();
     await expect(vision).toBeChecked();
   });

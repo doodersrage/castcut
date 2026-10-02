@@ -58,6 +58,9 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     toolSettings,
     updateShared,
     updateToolSettings,
+    output,
+    copied,
+    setCopied,
     error,
     setError,
     isolateStatus,
@@ -409,6 +412,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         pose={toolSettings.tryOnPose}
         busy={busy}
         leadNoun={dayPartnerNoun(character ?? {})}
+        plateUrl={plateUrl}
         onChange={pose => updateToolSettings({ tryOnPose: pose })}
       />
 
@@ -698,6 +702,47 @@ export default function MobileFittingToolSections(vm: ViewModel) {
 
       {saveStatus ? <p className="type-caption text-[var(--text-muted)]">{saveStatus}</p> : null}
       <FieldError>{error}</FieldError>
+
+      {/* Desk Outfit shows the try-on prompt under "Prompt (advanced)"; the phone page had no
+          way to see what was sent. */}
+      <details
+        className="rounded-2xl border border-[var(--border-subtle)] px-4 py-3"
+        data-testid="mobile-fitting-prompt"
+      >
+        <summary className="flex min-h-8 cursor-pointer items-center text-sm text-[var(--text-secondary)]">
+          Prompt (advanced)
+        </summary>
+        {output?.trim() ? (
+          <div className="mt-2 space-y-2">
+            <TextArea
+              rows={8}
+              readOnly
+              value={output}
+              aria-label="The prompt the last try-on was queued with"
+              className="font-mono text-xs"
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(output)
+                  .then(() => {
+                    setCopied(true);
+                    window.setTimeout(() => setCopied(false), 2000);
+                  })
+                  .catch(() => setError('Could not copy — the browser refused clipboard access.'));
+              }}
+            >
+              {copied ? 'Copied' : 'Copy prompt'}
+            </Button>
+          </div>
+        ) : (
+          <p className="mt-2 type-caption text-[var(--text-muted)]">
+            Queue a try-on to see the prompt it was sent with.
+          </p>
+        )}
+      </details>
     </div>
   );
 }

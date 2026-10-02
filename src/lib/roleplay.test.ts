@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import type { RoleplayStoryBeat } from './roleplay';
 import {
   appendRoleplayStoryBeat,
   continueRoleplayScenes,
@@ -1209,5 +1210,40 @@ describe('storyStillPromptSource follows the drawn pose guide', () => {
     });
     assert.doesNotMatch(sourced, /^Behind:|on hands and knees/i);
     assert.match(sourced, /arches back into his grip/i);
+  });
+});
+
+describe('adult template scenes follow the People setting', () => {
+  const plot = (title: string, index: number): RoleplayStoryBeat =>
+    ({ id: `b${index}`, at: index, kind: 'plot', title, blurb: title }) as RoleplayStoryBeat;
+
+  it('Solo offers one-person scenes only, Duo only scenes with a partner — four cards each', async () => {
+    const { adultTemplateScenePeople } = await import('./roleplay');
+    for (const rating of ['sultry', 'explicit', 'raunchy'] as const) {
+      const story = [plot('First look', 0), plot('The hallway', 1)];
+      const finale = Array.from({ length: 10 }, (_, index) => plot(`Plot ${index}`, index));
+      for (const [label, scenes] of [
+        ['opening', (mix: string) => templateRoleplayScenes('', undefined, [], 'Lana', [], rating, mix)],
+        ['next', (mix: string) => templateRoleplayScenes('', undefined, story, 'Lana', [], rating, mix)],
+        ['ending', (mix: string) => templateRoleplayScenes('', undefined, finale, 'Lana', [], rating, mix)],
+      ] as const) {
+        const solo = scenes('solo');
+        const duo = scenes('duo');
+        assert.equal(solo.length, 4, `${rating} ${label} solo`);
+        assert.equal(duo.length, 4, `${rating} ${label} duo`);
+        for (const scene of solo) {
+          assert.equal(adultTemplateScenePeople(scene.blurb), 1, `${rating} ${label}: ${scene.title}`);
+        }
+        for (const scene of duo) {
+          assert.ok(adultTemplateScenePeople(scene.blurb) >= 2, `${rating} ${label}: ${scene.title}`);
+        }
+        assert.equal(scenes('mixed').length, 4);
+      }
+    }
+  });
+
+  it('leaves SFW ratings alone', () => {
+    const sfw = templateRoleplayScenes('raccoon-pirate', undefined, [], 'Crisp', [], 'pg13', 'solo');
+    assert.deepEqual(sfw, templateRoleplayScenes('raccoon-pirate', undefined, [], 'Crisp', [], 'pg13'));
   });
 });

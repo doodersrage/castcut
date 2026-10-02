@@ -1,7 +1,7 @@
 'use client';
 
 import { composedPoseForScene } from '@/lib/pose-compose';
-import { auditStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
+import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
   beatOwnsFootwear,
@@ -104,16 +104,21 @@ function nudeFaceIdentityParams(nudeFace: string | null): Record<string, unknown
 
 const TOOL_ID = 'roleplay';
 
-/** Text contradictions in a still's prompt (still-prompt-audit): warn, never block. */
-function warnOnPromptIssues(prompt: string, label: string | undefined, people?: number): void {
-  const issues = auditStillPrompt(prompt, { people: people || undefined });
-  if (issues.length === 0) return;
-  console.warn('Story prompt check:', label, issues, prompt);
-  pushSystemTrayMessage({
-    text: stillPromptIssuesLine(issues, label),
-    tone: 'warning',
-    ttlMs: 20_000,
-  });
+/**
+ * Text contradictions in a still's prompt (still-prompt-audit): what can be repaired without
+ * guessing is repaired, the rest raises a notice. Never a block — returns the prompt to queue.
+ */
+function checkedStoryPrompt(prompt: string, label: string | undefined, people?: number): string {
+  const checked = repairStillPrompt(prompt, { people: people || undefined });
+  if (checked.remaining.length > 0) {
+    console.warn('Story prompt check:', label, checked.remaining, checked.prompt);
+    pushSystemTrayMessage({
+      text: stillPromptIssuesLine(checked.remaining, label),
+      tone: 'warning',
+      ttlMs: 20_000,
+    });
+  }
+  return checked.prompt;
 }
 
 /** What the Story still prompt needs to know about the Image 3 guide that was drawn. */
@@ -645,7 +650,15 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       beat: RoleplayStoryBeat,
       nextBio: RoleplayBio,
       currentStory: RoleplayStoryBeat[],
-      options?: { queueStill?: boolean }
+      options?: {
+        queueStill?: boolean;
+        /**
+         * Patch the reel as it is when the write finishes, not `currentStory`. For a scene
+         * written again mid-reel: while it was being written the other scenes kept moving
+         * (stills finishing, pose checks landing), and a snapshot would put them back.
+         */
+        liveStory?: boolean;
+      }
     ) => {
       if (!data.prompt?.trim()) {
         throw new Error(data.error ?? 'Could not write a still.');
@@ -697,6 +710,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       const stillBrief = roleplayStillBrief(promptSource);
       let stillPatch: Partial<RoleplayStoryBeat> = {
         prompt,
+        // The prompt now says what the scene says — an edited scene is no longer waiting.
+        textEdited: undefined,
         ...(stillBrief ? { stillBrief } : {}),
       };
       if (queueStill) {
@@ -723,8 +738,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           }
         );
         const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
-        const sentPrompt = rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(prompt) : prompt);
-        warnOnPromptIssues(sentPrompt, beat.title, poseGuide?.prompt.headcount);
+        const sentPrompt = checkedStoryPrompt(
+          rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(prompt) : prompt),
+          beat.title,
+          poseGuide?.prompt.headcount
+        );
         const promptId = await actions.sendComfyUi(
           kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
           undefined,
@@ -761,7 +779,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         // Prompt is ready — clear writing so the reel does not say "Queueing…" with no Comfy job.
         stillPatch = { ...stillPatch, stillStatus: undefined };
       }
-      const nextStory = patchRoleplayStoryBeat(currentStory, beat, stillPatch);
+      const nextStory = patchRoleplayStoryBeat(
+        options?.liveStory ? storyRef.current : currentStory,
+        beat,
+        stillPatch
+      );
       updateToolSettings({ bio: nextBio, story: nextStory });
       return nextStory;
     },
@@ -781,6 +803,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       roleplayCharacterQueueFields,
       shared.model,
       shared.renderRealismMode,
+      storyRef,
       toolSettings.footwear,
       updateToolSettings,
     ]
@@ -897,9 +920,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           { beat: latest, hasPoseGuide: Boolean(poseGuide) }
         );
         const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
-        const sentPrompt =
-          rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(queuePrompt) : queuePrompt);
-        warnOnPromptIssues(sentPrompt, latest.title, poseGuide?.prompt.headcount);
+        const sentPrompt = checkedStoryPrompt(
+          rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(queuePrompt) : queuePrompt),
+          latest.title,
+          poseGuide?.prompt.headcount
+        );
         promptId = await actions.sendComfyUi(
           kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
           undefined,

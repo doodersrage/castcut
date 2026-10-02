@@ -148,6 +148,11 @@ export type RoleplayStoryBeat = RoleplayScene & {
    * fed to the next still so a Story doesn't jump wardrobe or location between beats.
    */
   stillBrief?: string;
+  /**
+   * The player rewrote this scene's text after it joined the reel and its still has not been
+   * written again yet: the stored prompt is gone and any shown still is from the earlier text.
+   */
+  textEdited?: boolean;
 };
 
 const STILL_BRIEF_MAX = 360;
@@ -2187,6 +2192,38 @@ const ROLEPLAY_ADULT_CONTINUATION_FORKS: RoleplayContinuationFork[] = [
     blurb: (name, _last) =>
       `${name} having quick standing sex with a distinct adult partner in a half-hidden public spot — clothes open, risk of being seen.`,
   },
+  // One person. With People set to Solo these are the whole pool: the template set had no solo
+  // scene to continue with, and a Solo story was offered partner sex.
+  {
+    titlePrefix: 'Slow undress',
+    blurb: (name, _last) =>
+      `${name} alone in front of a mirror, peeling off the last of the clothes — bare skin, lingerie half on, nobody else in the room.`,
+  },
+  {
+    titlePrefix: 'Hands wander',
+    blurb: (name, _last) =>
+      `${name} alone and nude on the bed — one hand between the thighs, the other on the chest, eyes closed, back arching, solo.`,
+  },
+  {
+    titlePrefix: 'Shower heat',
+    blurb: (name, _last) =>
+      `${name} alone under a hot shower — nude, water running down bare skin, one hand braced on the tiles, head tipped back.`,
+  },
+  {
+    titlePrefix: 'From the drawer',
+    blurb: (name, _last) =>
+      `${name} alone on the bed with a toy — nude, knees apart, flushed and lost in it, nobody else in frame.`,
+  },
+  {
+    titlePrefix: 'On the edge',
+    blurb: (name, _last) =>
+      `${name} alone, kneeling naked on the bed, hips rocking, one hand gripping the headboard — close to climax, solo.`,
+  },
+  {
+    titlePrefix: 'Window light',
+    blurb: (name, _last) =>
+      `${name} alone and nude at a sunlit window — stretching, bare back and hips, curtains half drawn, unhurried.`,
+  },
 ];
 
 const ROLEPLAY_ENDING_FORKS: RoleplayContinuationFork[] = [
@@ -2253,6 +2290,21 @@ const ROLEPLAY_ADULT_ENDING_FORKS: RoleplayContinuationFork[] = [
     blurb: (name, _last) =>
       `${name} alone and nude after sex — flushed, quiet bedroom, soft erotic portrait.`,
   },
+  {
+    titlePrefix: 'Spent and smiling',
+    blurb: (name, _last) =>
+      `${name} alone and spent on rumpled sheets — nude, flushed, one arm over the eyes, a slow satisfied smile.`,
+  },
+  {
+    titlePrefix: 'Shower together',
+    blurb: (name, _last) =>
+      `${name} and a distinct adult partner under the shower afterwards — wet skin, arms around each other, laughing in the steam.`,
+  },
+  {
+    titlePrefix: 'Robe and coffee',
+    blurb: (name, _last) =>
+      `${name} alone the morning after, a robe hanging open over bare skin — a mug in hand at the window, glowing.`,
+  },
 ];
 
 const ROLEPLAY_ADULT_OPENING_SCENES: Array<{ title: string; blurb: string }> = [
@@ -2276,14 +2328,87 @@ const ROLEPLAY_ADULT_OPENING_SCENES: Array<{ title: string; blurb: string }> = [
     blurb:
       'A closed-door lesson turning sexual — nude posing, touching, or sex starting, two adults, readable bodies.',
   },
+  // One person (see the solo forks above).
+  {
+    title: 'Mirror, door locked',
+    blurb:
+      'Alone in front of a bedroom mirror with the door locked — robe slipping off the shoulders, bare skin, eyes on the reflection.',
+  },
+  {
+    title: 'Bath run hot',
+    blurb:
+      'Alone in a steaming bath — nude, wet skin, one knee above the water, head tipped back, unhurried.',
+  },
+  {
+    title: 'Sheets to yourself',
+    blurb:
+      'Alone and naked on an unmade bed — one hand sliding down between the thighs, back arched, eyes closed.',
+  },
+  {
+    title: 'Undressing for no one',
+    blurb:
+      'Alone at the end of the day, undressing slowly by lamplight — clothes dropped on the floor, lingerie last, solo.',
+  },
+  // A fourth partner opening, so Duo has four of its own ("Strip the costume" names nobody).
+  {
+    title: 'Back seat',
+    blurb:
+      'Two adults in the back seat of a parked car — mouths together, shirts pushed up, hands under clothes, windows fogging.',
+  },
 ];
+
+/** How many people an adult template scene shows, from its own words. */
+export function adultTemplateScenePeople(blurb: string): 1 | 2 | 3 {
+  if (/\btwo distinct adult partners\b|\bthree\b/i.test(blurb)) return 3;
+  if (/\bpartner\b|\btwo (?:consenting )?adults\b|\btwo adults\b/i.test(blurb)) return 2;
+  return 1;
+}
+
+/**
+ * Adult template scenes for the People setting: Solo offers one-person scenes only, Duo only
+ * scenes with a partner, Mixed everything. Without this only the language model was told the
+ * mix, so with no model connected a Solo story was offered partner sex (and Duo a solo strip).
+ */
+function forPeopleMix<T>(
+  rows: T[],
+  blurbOf: (row: T) => string,
+  mix: string | null | undefined
+): T[] {
+  const wanted = String(mix ?? '')
+    .trim()
+    .toLowerCase();
+  if (wanted !== 'solo' && wanted !== 'duo') return rows;
+  const kept = rows.filter(row => {
+    const people = adultTemplateScenePeople(blurbOf(row));
+    return wanted === 'solo' ? people === 1 : people >= 2;
+  });
+  // Never an empty hand of cards.
+  return kept.length >= 4 ? kept : rows;
+}
+
+/** Mixed: partner and solo scenes alternate, so four cards show both kinds. */
+function alternatePeople<T>(rows: T[], blurbOf: (row: T) => string): T[] {
+  const duo = rows.filter(row => adultTemplateScenePeople(blurbOf(row)) >= 2);
+  const solo = rows.filter(row => adultTemplateScenePeople(blurbOf(row)) === 1);
+  const mixed: T[] = [];
+  for (let index = 0; index < Math.max(duo.length, solo.length); index += 1) {
+    if (duo[index]) mixed.push(duo[index]!);
+    if (solo[index]) mixed.push(solo[index]!);
+  }
+  return mixed;
+}
 
 function roleplayForksForContent(
   content: RoleplayContentId | undefined,
-  kind: 'continue' | 'ending'
+  kind: 'continue' | 'ending',
+  mix?: string | null
 ): RoleplayContinuationFork[] {
   if (content && isRoleplayAdultContent(content)) {
-    return kind === 'ending' ? ROLEPLAY_ADULT_ENDING_FORKS : ROLEPLAY_ADULT_CONTINUATION_FORKS;
+    return forPeopleMix(
+      kind === 'ending' ? ROLEPLAY_ADULT_ENDING_FORKS : ROLEPLAY_ADULT_CONTINUATION_FORKS,
+      fork => fork.blurb('Lead', { title: '' } as RoleplayStoryBeat),
+      mix
+    );
   }
   return kind === 'ending' ? ROLEPLAY_ENDING_FORKS : ROLEPLAY_CONTINUATION_FORKS;
 }
@@ -2307,11 +2432,13 @@ export function continueRoleplayScenes(
   story?: RoleplayStoryBeat[],
   characterName?: string,
   avoid?: Array<{ title: string; blurb?: string }>,
-  content?: RoleplayContentId
+  content?: RoleplayContentId,
+  /** People setting (solo / duo / mixed) — adult ratings only. */
+  mix?: string | null
 ): RoleplayScene[] {
   const name = characterName?.trim() || 'You';
   const used = usedRoleplaySceneTitles([...(story ?? []), ...(avoid ?? [])]);
-  const forks = roleplayForksForContent(content, 'continue');
+  const forks = roleplayForksForContent(content, 'continue', mix);
   const start = ((story?.length ?? 0) + (avoid?.length ?? 0)) % forks.length;
   const rotated = [...forks.slice(start), ...forks.slice(0, start)];
   const scenes: RoleplayScene[] = [];
@@ -2344,11 +2471,12 @@ export function continueRoleplayEndings(
   story?: RoleplayStoryBeat[],
   characterName?: string,
   avoid?: Array<{ title: string; blurb?: string }>,
-  content?: RoleplayContentId
+  content?: RoleplayContentId,
+  mix?: string | null
 ): RoleplayScene[] {
   const name = characterName?.trim() || 'You';
   const used = usedRoleplaySceneTitles([...(story ?? []), ...(avoid ?? [])]);
-  const forks = roleplayForksForContent(content, 'ending');
+  const forks = roleplayForksForContent(content, 'ending', mix);
   const start = ((story?.length ?? 0) + (avoid?.length ?? 0)) % forks.length;
   const rotated = [...forks.slice(start), ...forks.slice(0, start)];
   const scenes: RoleplayScene[] = [];
@@ -2449,7 +2577,9 @@ export function templateRoleplayScenes(
   story?: RoleplayStoryBeat[],
   characterName?: string,
   avoid?: Array<{ title: string; blurb?: string }>,
-  content?: RoleplayContentId
+  content?: RoleplayContentId,
+  /** People setting (solo / duo / mixed) — adult ratings only. */
+  mix?: string | null
 ): RoleplayScene[] {
   const phase = roleplayStoryPhase(story);
   if (phase === 'complete') {
@@ -2457,21 +2587,31 @@ export function templateRoleplayScenes(
   }
   const lastPlot = lastRoleplayPlotBeat(story);
   if (phase === 'finale' && lastPlot) {
-    return continueRoleplayEndings(lastPlot, story, characterName, avoid, content);
+    return continueRoleplayEndings(lastPlot, story, characterName, avoid, content, mix);
   }
   if (lastPlot) {
-    return continueRoleplayScenes(lastPlot, story, characterName, avoid, content);
+    return continueRoleplayScenes(lastPlot, story, characterName, avoid, content, mix);
   }
   if (content && isRoleplayAdultContent(content)) {
+    const wanted = String(mix ?? '')
+      .trim()
+      .toLowerCase();
+    const pool =
+      wanted === 'solo' || wanted === 'duo'
+        ? forPeopleMix(ROLEPLAY_ADULT_OPENING_SCENES, row => row.blurb, mix)
+        : wanted === 'mixed'
+          ? alternatePeople(ROLEPLAY_ADULT_OPENING_SCENES, row => row.blurb)
+          : // No People setting given: the partner openings, as before.
+            ROLEPLAY_ADULT_OPENING_SCENES.slice(0, 4);
     return filterFreshRoleplayScenes(
-      ROLEPLAY_ADULT_OPENING_SCENES.map((row, index) => ({
+      pool.map((row, index) => ({
         id: slugId(row.title, index),
         title: row.title,
         blurb: row.blurb,
       })),
       story,
       avoid
-    );
+    ).slice(0, 4);
   }
   const archetype = getRoleplayArchetype(personaId);
   // A custom Part names itself; otherwise the Cast's name (never an archetype it didn't pick).
@@ -2774,6 +2914,64 @@ export function patchRoleplayStoryBeat(
   );
 }
 
+/** Longest scene title / blurb a saved story keeps (see roleplay-library's beat normaliser). */
+export const MAX_ROLEPLAY_SCENE_TITLE = 80;
+export const MAX_ROLEPLAY_SCENE_BLURB = 400;
+
+/**
+ * A scene's title and blurb as typed by the player, tidied the way a saved story stores them.
+ * Null when the blurb is too short to describe a scene.
+ */
+export function normalizeRoleplaySceneText(
+  text: { title?: string | null; blurb?: string | null },
+  fallbackTitle?: string
+): { title: string; blurb: string } | null {
+  const tidy = (value: string | null | undefined) =>
+    String(value ?? '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  const blurb = tidy(text.blurb).slice(0, MAX_ROLEPLAY_SCENE_BLURB).trim();
+  if (blurb.length < 4) {
+    return null;
+  }
+  const title = (tidy(text.title) || tidy(fallbackTitle)).slice(0, MAX_ROLEPLAY_SCENE_TITLE).trim();
+  return title ? { title, blurb } : null;
+}
+
+/**
+ * The patch for a scene whose text the player rewrote in the reel; null when nothing changed or
+ * the text is unusable.
+ *
+ * - The stored still prompt and continuity brief were written from the old text, so both go: the
+ *   still is written again from the new text, and the next scene must not inherit a brief of
+ *   something that no longer happens.
+ * - The scene writer's structured pose goes with a changed blurb: it described the old words
+ *   (its limbs, headcount and act are not re-checked against the text), so the pose is read from
+ *   the new ones. A pose the player picked on the card stays — that was their choice.
+ * - Stills and takes are untouched: the earlier still stays in the reel as a take.
+ */
+export function editRoleplayStoryBeatPatch(
+  beat: Pick<RoleplayStoryBeat, 'title' | 'blurb'>,
+  text: { title?: string | null; blurb?: string | null }
+): Partial<RoleplayStoryBeat> | null {
+  const next = normalizeRoleplaySceneText(text, beat.title);
+  if (!next) {
+    return null;
+  }
+  const blurbChanged = next.blurb !== beat.blurb;
+  if (!blurbChanged && next.title === beat.title) {
+    return null;
+  }
+  return {
+    title: next.title,
+    blurb: next.blurb,
+    prompt: undefined,
+    stillBrief: undefined,
+    textEdited: true,
+    ...(blurbChanged ? { pose: undefined } : {}),
+  };
+}
+
 // Gallery take management (still/clip takes, retry/patch helpers, queue-result
 // merging) lives in roleplay-gallery-takes.ts; re-exported here unchanged so
 // existing importers are unaffected.
@@ -2817,13 +3015,16 @@ export function confirmRoleplayUndoScene(title: string | undefined): boolean {
   );
 }
 
+/** What starting over loses and keeps — shared by the in-page dialog and the browser confirm. */
+export function roleplayRestartNotice(beatCount: number): string {
+  return `This clears ${beatCount} scene${beatCount === 1 ? '' : 's'} from the reel. Stills and clips stay in the Gallery.`;
+}
+
 export function confirmRoleplayRestart(beatCount: number): boolean {
   if (beatCount <= 0 || typeof window === 'undefined') {
     return true;
   }
-  return window.confirm(
-    `Restart the story? This clears ${beatCount} beat${beatCount === 1 ? '' : 's'} from the reel. Stills and clips stay in the Gallery.`
-  );
+  return window.confirm(`Restart the story? ${roleplayRestartNotice(beatCount)}`);
 }
 
 /** "Silly · PG-13 · rooftop bar" — the Story settings line when the controls are folded. */
