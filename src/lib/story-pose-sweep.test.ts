@@ -493,13 +493,6 @@ type KnownIssue = {
  * it describes; everything else still fails. Remove the entry with the fix.
  */
 const KNOWN_ISSUES: KnownIssue[] = [
-  {
-    id: 'adult-solo-scene-drawn-as-two',
-    invariant: 'headcount',
-    why: 'day-pose-guide.ts parsePoseGuideIntent: a sex layout with nobody else named counts two, and the afterglow / undress / generic layouts only have pair drawings. "Tangled sheets and Lana\'s bare body — empty room", "Lana leaving after sex" and "Strip the costume" are drawn with a partner. Not fixed: there is no one-person drawing to fall back to, and the People mix (Solo) does not reach the pose guide.',
-    matches: failure =>
-      ['Tangled sheets', 'Walk of shame glow', 'Strip the costume'].includes(failure.scene.title),
-  },
 ];
 
 const hitKnownIssues = new Set<string>();

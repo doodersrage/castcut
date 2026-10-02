@@ -44,6 +44,8 @@ export function resolveStoryScenePose(input: {
   model: string | null | undefined;
   /** Adult rating — only then may a sex layout be drawn. */
   adult: boolean;
+  /** Adult story with People → Solo: one figure, whatever the scene's act. */
+  solo?: boolean;
   stylePreference?: PoseGuideStylePreference | null;
   /** Play-metrics layouts with a poor record (the model's own are added here). */
   weakLayouts?: ReadonlySet<string>;
@@ -76,6 +78,7 @@ export function resolveStoryScenePose(input: {
       ...(composed ? { photoPose: composed } : {}),
       library: openPose ? (input.library ?? []) : [],
       allowIntimate: input.adult,
+      ...(input.adult && input.solo ? { forcePeople: 1 } : {}),
       hands: poseGuideStyleDrawsHands(input.stylePreference),
       openPose,
     });

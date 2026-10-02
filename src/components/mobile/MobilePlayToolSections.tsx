@@ -166,6 +166,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
     model: shared.model,
     poseGuideStyle: shared.poseGuideStyle,
     adult: isRoleplayAdultContent(content),
+    solo: toolSettings.intimateMix === 'solo',
     enabled: playAs === 'photo',
   });
   const castBibleHref = castId ? `/characters/${encodeURIComponent(castId)}` : '/characters';

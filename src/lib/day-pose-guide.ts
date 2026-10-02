@@ -124,6 +124,13 @@ export type IntimateLayout =
 
 const INTIMATE_SOLO_LAYOUTS: ReadonlySet<IntimateLayout> = new Set(['solo']);
 
+/** Sex layouts that are one person unless the text names someone else. */
+const INTIMATE_ONE_PERSON_LAYOUTS: ReadonlySet<IntimateLayout> = new Set([
+  'afterglow',
+  'undress',
+  'generic',
+]);
+
 const INTIMATE_LAYOUT_IDS: ReadonlySet<string> = new Set<IntimateLayout>([
   'missionary',
   'mating_press',
@@ -2296,19 +2303,21 @@ export function parsePoseGuideIntent(
     }
   }
 
-  let people = countPoseGuidePeople(haystack, { sexVocabulary: intimateAllowed });
+  // "Leaving after sex" is one person walking out: sex that is over names nobody in the frame.
+  const peopleText =
+    intimate && INTIMATE_ONE_PERSON_LAYOUTS.has(intimate)
+      ? haystack.replace(/\b(?:after|post)[- ](?:the\s+)?sex\b/gi, ' ')
+      : haystack;
+  let people = countPoseGuidePeople(peopleText, { sexVocabulary: intimateAllowed });
   if (options?.clothedUprightOnly) {
     people = forcedPeople != null && forcedPeople >= 2 ? forcedPeople : 1;
   } else if (intimate && INTIMATE_SOLO_LAYOUTS.has(intimate)) {
     people = 1;
   } else if (intimate && people < 2) {
-    if (intimate === 'generic' && /\b(solo|alone|masturbat)\b/i.test(haystack)) {
-      people = 1;
-    } else if (intimate === 'undress' && /\b(solo|alone)\b/i.test(haystack)) {
-      people = 1;
-    } else {
-      people = 2;
-    }
+    // Afterglow, undressing and unspecific heat are one person unless someone else is named:
+    // "Tangled sheets and her bare body — empty room" and "Strip the costume" were drawn with
+    // a partner. The acts themselves (missionary, straddle…) take two.
+    people = INTIMATE_ONE_PERSON_LAYOUTS.has(intimate) ? 1 : 2;
   }
   if (
     !options?.clothedUprightOnly &&
@@ -2342,6 +2351,24 @@ export function parsePoseGuideIntent(
   // Caller force wins last (Day Intimate Duo chip → always two Image 3 figures).
   if (forcedPeople != null) {
     people = forcedPeople;
+  }
+  // One person and a layout that is only ever drawn as a pair: draw her alone instead — lying
+  // back after, standing to undress, or the solo figure for an act (Story with People → Solo).
+  if (
+    people === 1 &&
+    intimate &&
+    !INTIMATE_SOLO_LAYOUTS.has(intimate) &&
+    !options?.clothedUprightOnly
+  ) {
+    if (intimate === 'afterglow' || intimate === 'undress') {
+      if (!matched) {
+        base = intimate === 'afterglow' ? 'lie' : 'stand';
+        matched = true;
+      }
+      intimate = null;
+    } else {
+      intimate = 'solo';
+    }
   }
 
   return {

@@ -74,6 +74,32 @@ describe('scene card pose (story-scene-pose)', () => {
     assert.equal(pose?.poseId, 'kneel');
   });
 
+  it('draws one figure on an adult story with People → Solo', () => {
+    const scene = { title: 'On the edge', blurb: 'She rides him on the edge of the bed, head back.' };
+    const anyMix = resolveStoryScenePose({ ...base, adult: true, scene });
+    const solo = resolveStoryScenePose({ ...base, adult: true, solo: true, scene });
+    assert.equal(anyMix?.bodies.length, 2, 'an act takes two unless the story is Solo');
+    assert.equal(solo?.bodies.length, 1);
+    // The setting belongs to adult stories; a clean one is untouched by it.
+    const hug = { title: 'Reunion', blurb: 'She hugs her brother at the station.' };
+    assert.equal(resolveStoryScenePose({ ...base, solo: true, scene: hug })?.bodies.length, 2);
+  });
+
+  it('afterglow and undressing are one person unless someone else is named', () => {
+    const alone = resolveStoryScenePose({
+      ...base,
+      adult: true,
+      scene: { title: 'Tangled sheets', blurb: 'Tangled sheets and her bare body — empty room.' },
+    });
+    assert.equal(alone?.bodies.length, 1);
+    const leaving = resolveStoryScenePose({
+      ...base,
+      adult: true,
+      scene: { title: 'Walk of shame glow', blurb: 'She is leaving after sex — mussed hair, clothes half on.' },
+    });
+    assert.equal(leaving?.bodies.length, 1);
+  });
+
   it('is nothing when there is no scene to read', () => {
     assert.equal(resolveStoryScenePose({ ...base, scene: { title: '', blurb: '' } }), null);
   });

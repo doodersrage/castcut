@@ -20,10 +20,12 @@ export function useStoryScenePoses(input: {
   /** The shared pose-guide style setting (the model may override it). */
   poseGuideStyle: unknown;
   adult: boolean;
+  /** Adult story with People → Solo: one figure, whatever the scene's act. */
+  solo?: boolean;
   /** False when stills are queued without a pose guide (Story from bio, no photo). */
   enabled: boolean;
 }): ReadonlyMap<string, StoryScenePose> {
-  const { scenes, story, model, poseGuideStyle, adult, enabled } = input;
+  const { scenes, story, model, poseGuideStyle, adult, solo, enabled } = input;
   const library = usePoseLibrary();
   const weakLayouts = useWeakPoseLayouts();
   // A string, so a reel that re-renders with the same titles keeps the memo.
@@ -44,6 +46,7 @@ export function useStoryScenePoses(input: {
         storyIndex,
         model,
         adult,
+        solo,
         stylePreference,
         weakLayouts,
         library,
@@ -53,5 +56,16 @@ export function useStoryScenePoses(input: {
       }
     }
     return poses;
-  }, [adult, enabled, library, model, poseGuideStyle, scenes, storyIndex, titlesKey, weakLayouts]);
+  }, [
+    adult,
+    enabled,
+    library,
+    model,
+    poseGuideStyle,
+    scenes,
+    solo,
+    storyIndex,
+    titlesKey,
+    weakLayouts,
+  ]);
 }

@@ -112,6 +112,7 @@ export default function RoleplayToolSections({
     model: shared.model,
     poseGuideStyle: shared.poseGuideStyle,
     adult: isRoleplayAdultContent(content),
+    solo: toolSettings.intimateMix === 'solo',
     enabled: playAsResolved === 'photo',
   });
   const castHomeHref = activeCharacterId

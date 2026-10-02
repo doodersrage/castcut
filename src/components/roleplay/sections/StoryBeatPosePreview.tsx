@@ -56,6 +56,8 @@ export default function StoryBeatPosePreview({
   const adult = isRoleplayAdultContent(
     resolveRoleplayToneAndContent(roleplayCache?.tone, roleplayCache?.content).content
   );
+  // People → Solo on an adult story draws one figure, as the queue does.
+  const soloStory = adult && roleplayCache?.intimateMix === 'solo';
   // Her picture behind the figure in the editor: the story's reference image.
   const backdropUrl = roleplayCache?.referenceImageUrl?.trim() || undefined;
   const sceneText = useMemo(
@@ -86,9 +88,11 @@ export default function StoryBeatPosePreview({
       ...(beat.poseLook ? { look: beat.poseLook } : {}),
       ...(modelPlainPostureBase(model) ? { plainPostureBase: modelPlainPostureBase(model) } : {}),
       allowIntimate: adult,
+      ...(soloStory && !beat.poseLayout && !beat.posePhoto ? { forcePeople: 1 } : {}),
     };
   }, [
     adult,
+    soloStory,
     model,
     beat.blurb,
     beat.pose,

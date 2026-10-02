@@ -595,6 +595,10 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           aspect,
           library: openPose ? loadPoseLibrary() : [],
           allowIntimate: adult,
+          // People → Solo on an adult story: one figure, unless the player picked a pose.
+          ...(adult && toolSettings.intimateMix === 'solo' && !beat.poseLayout && !beat.posePhoto
+            ? { forcePeople: 1 }
+            : {}),
         });
         const poseFile = poseBuild.file;
         // The pose lock reads ComfyUI's ControlNet list from the object_info cache — fill it.
@@ -660,7 +664,15 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         return undefined;
       }
     },
-    [adult, playAs, referenceImageFilename, referenceImageUrl, shared.model, storyRef]
+    [
+      adult,
+      playAs,
+      referenceImageFilename,
+      referenceImageUrl,
+      shared.model,
+      storyRef,
+      toolSettings.intimateMix,
+    ]
   );
 
   const skipStillForClip = beatOutput === 'clip' && autoQueue;
