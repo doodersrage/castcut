@@ -8,9 +8,9 @@ import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import {
   buildDayDressPlatePrompt,
   dayDressPlateKey,
-  findDayDressPlate,
   type DayDressPlateEntry,
 } from '@/lib/day-dress-plate';
+import { findDressPlate, saveDressPlate } from '@/lib/dress-plate-store';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import { footwearIsBarefoot, footwearPromptLine } from '@/lib/footwear';
 import { buildFootwearReferenceImage, hasFootwearImage } from '@/lib/footwear-image';
@@ -23,6 +23,11 @@ export type DayDressPlateRequest = {
   plate: { filename?: string; imageUrl?: string };
   /** Clothing image (your photo or a kit packshot), when there is one. */
   clothing?: { imageUrl?: string; imageFilename?: string } | null;
+  /**
+   * What identifies the clothing across tools: `kit:<id>` for a catalog kit (Day resolves a
+   * packshot URL, Story and Outfit an id), else the photo's filename.
+   */
+  clothingKey?: string;
   /** What the clothing is called: the photo's description or the kit's label. */
   clothingLabel: string;
   /** Vision description of a clothing photo. */
@@ -37,7 +42,6 @@ export type DayDressPlateRequest = {
 };
 
 export type DayDressPlateDeps = {
-  cache: readonly DayDressPlateEntry[] | null | undefined;
   sendComfyUi: (
     prompt: string,
     a?: undefined,
@@ -51,8 +55,10 @@ export type DayDressPlateDeps = {
 export function dayDressPlateRequestKey(request: DayDressPlateRequest): string {
   return dayDressPlateKey({
     model: request.model,
-    plate: request.plate.filename?.trim() || request.plate.imageUrl?.trim() || '',
+    // The same Cast plate reaches the tools as a filename or a view URL of that filename.
+    plate: plateIdentity(request.plate),
     clothing:
+      request.clothingKey?.trim() ||
       request.clothing?.imageFilename?.trim() ||
       request.clothing?.imageUrl?.trim() ||
       request.clothingLabel,
@@ -61,6 +67,19 @@ export function dayDressPlateRequestKey(request: DayDressPlateRequest): string {
       request.footwearImage?.imageFilename?.trim() || request.footwearImage?.imageUrl?.trim() || '',
     ].join('#'),
   });
+}
+
+function plateIdentity(plate: { filename?: string; imageUrl?: string }): string {
+  const filename = plate.filename?.trim();
+  if (filename) return filename.split('/').pop() ?? filename;
+  const url = plate.imageUrl?.trim() ?? '';
+  try {
+    const fromQuery = new URL(url, 'http://local').searchParams.get('filename')?.trim();
+    if (fromQuery) return fromQuery;
+  } catch {
+    /* not a URL */
+  }
+  return url;
 }
 
 /** Cached plates checked this session — a cleaned-out ComfyUI input folder makes one stale. */
@@ -160,15 +179,16 @@ async function renderDayDressPlate(
 }
 
 /**
- * The dress plate for this plate + clothing + shoes: the cached one when its file is still in
- * ComfyUI, else a fresh render (concurrent callers share it). `fresh` tells the caller to store it.
+ * The dress plate for this plate + clothing + shoes: the shared store's (dress-plate-store.ts)
+ * when its file is still in ComfyUI, else a fresh render, stored for Day, Story and Outfit alike.
+ * Concurrent callers share one render.
  */
 export async function ensureDayDressPlate(
   request: DayDressPlateRequest,
   deps: DayDressPlateDeps
 ): Promise<{ entry: DayDressPlateEntry; fresh: boolean }> {
   const key = dayDressPlateRequestKey(request);
-  const cached = findDayDressPlate(deps.cache, key);
+  const cached = findDressPlate(key);
   if (cached) {
     const mark = `${key}::${cached.filename}`;
     if (verified.has(mark) || (await inputFileExists(cached.filename))) {
@@ -180,7 +200,52 @@ export async function ensureDayDressPlate(
   if (running) {
     return { entry: await running, fresh: false };
   }
-  const job = renderDayDressPlate(request, deps, key).finally(() => inFlight.delete(key));
+  const job = renderDayDressPlate(request, deps, key)
+    .then(entry => {
+      saveDressPlate(entry);
+      return entry;
+    })
+    .finally(() => inFlight.delete(key));
   inFlight.set(key, job);
   return { entry: await job, fresh: true };
+}
+
+/**
+ * Outfit → Keep: the kept try-on is a dressed plate. Stage it as an input image and store it
+ * under the same key Day and Story look up, so they start from it instead of rendering their own.
+ * Best-effort: a failure only means the plate is rendered when a tool first needs it.
+ */
+export async function registerDressPlateFromImage(
+  request: Pick<
+    DayDressPlateRequest,
+    'model' | 'plate' | 'clothing' | 'clothingKey' | 'clothingLabel' | 'footwear' | 'footwearImage'
+  >,
+  imageUrl: string
+): Promise<DayDressPlateEntry | null> {
+  const url = imageUrl.trim();
+  if (!url) return null;
+  try {
+    const key = dayDressPlateRequestKey(request as DayDressPlateRequest);
+    const blob = await loadImageBlobFromUrls([url]);
+    const name = `day-dress-plate-${Date.now()}.png`;
+    const uploaded = await resolveQueueInputImage({
+      file: new File([blob], name, { type: blob.type || 'image/png', lastModified: Date.now() }),
+      filename: name,
+      model: request.model,
+    });
+    const filename = uploaded?.filename?.trim();
+    if (!filename) return null;
+    const entry: DayDressPlateEntry = {
+      key,
+      filename,
+      imageUrl: comfyInputViewUrl(filename) ?? url,
+      at: Date.now(),
+    };
+    verified.add(`${key}::${filename}`);
+    saveDressPlate(entry);
+    return entry;
+  } catch (error) {
+    console.warn('Kept try-on could not be stored as the dressed plate:', error);
+    return null;
+  }
 }

@@ -199,9 +199,9 @@ import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import {
   dayDressPlateApplies,
   dayDressPlateStatus,
-  rememberDayDressPlate,
   type DayDressPlateEntry,
 } from '@/lib/day-dress-plate';
+import { loadDressPlates, removeDressPlate, subscribeDressPlates } from '@/lib/dress-plate-store';
 import { ensureDayDressPlate } from '@/lib/day-dress-plate-client';
 import type { DayPlate } from '@/lib/day-plate';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
@@ -287,11 +287,16 @@ export function useDayPlannerToolOrchestrationCore() {
   useEffect(() => {
     partnerStandInRef.current = toolSettings.partnerStandIn ?? null;
   }, [toolSettings.partnerStandIn]);
-  /** Dressed plates (day-dress-plate.ts) — a ref, because a Queue day loop outlives one render. */
-  const dressPlatesRef = useRef<DayDressPlateEntry[]>(toolSettings.dressPlates ?? []);
-  useEffect(() => {
-    dressPlatesRef.current = toolSettings.dressPlates ?? [];
-  }, [toolSettings.dressPlates]);
+  /** Dressed plates shared with Story and Outfit (dress-plate-store.ts), newest first. */
+  const dressPlatesJson = useSyncExternalStore(
+    subscribeDressPlates,
+    () => JSON.stringify(loadDressPlates()),
+    () => '[]'
+  );
+  const newestDressPlate = useMemo(
+    () => (JSON.parse(dressPlatesJson) as DayDressPlateEntry[])[0] ?? null,
+    [dressPlatesJson]
+  );
   const [dressPlateStatus, setDressPlateStatus] = useState<{
     text: string;
     busy: boolean;
@@ -914,6 +919,8 @@ export function useDayPlannerToolOrchestrationCore() {
         // Dress plate: dress her once (the picked clothing and shoes on the Cast plate), then
         // start this still from that plate — no clothing image, the outfit is on Image 1.
         let dressPlate: DayPlate | null = null;
+        // Face-crop engines (Rapid AIO): the dressed plate rides in the clothing image's place.
+        let dressClothingFilename: string | null = null;
         const customGarmentPicked = Boolean(
           toolSettings.customGarmentImageUrl?.trim() ||
           toolSettings.customGarmentImageFilename?.trim()
@@ -953,11 +960,12 @@ export function useDayPlannerToolOrchestrationCore() {
             : { imageUrl: packshotUrl ?? undefined };
           const hasShoes = Boolean(pickedShoes) && !footwearIsBarefoot(pickedShoes);
           try {
-            const { entry, fresh } = await ensureDayDressPlate(
+            const { entry } = await ensureDayDressPlate(
               {
                 model: stillModel,
                 plate: { filename: castPlate.filename, imageUrl: castPlate.imageUrl },
                 clothing,
+                clothingKey: customGarmentPicked ? undefined : `kit:${wardrobeId ?? ''}`,
                 clothingLabel: customGarmentPicked
                   ? dayGarmentPromptName(toolSettings.customGarmentDescription) || 'the outfit'
                   : dayOutfitPromptName(wardrobeLabelFor(wardrobeId)) || 'the outfit',
@@ -975,7 +983,6 @@ export function useDayPlannerToolOrchestrationCore() {
                 lookId: shared.activeLookId ?? character?.activeLookId,
               },
               {
-                cache: dressPlatesRef.current,
                 sendComfyUi: actions.sendComfyUi,
                 onRender: () => {
                   const text = dayDressPlateStatus({
@@ -988,18 +995,17 @@ export function useDayPlannerToolOrchestrationCore() {
                 },
               }
             );
-            if (fresh) {
-              const next = rememberDayDressPlate(dressPlatesRef.current, entry);
-              dressPlatesRef.current = next;
-              updateToolSettings({ dressPlates: next });
+            if (poseProfileForModel(stillModel).dressPlate === 'clothing') {
+              dressClothingFilename = entry.filename;
+            } else {
+              dressPlate = {
+                filename: entry.filename,
+                imageUrl: entry.imageUrl,
+                isolated: false,
+                isolateSubject: false,
+                source: 'keeper',
+              };
             }
-            dressPlate = {
-              filename: entry.filename,
-              imageUrl: entry.imageUrl,
-              isolated: false,
-              isolateSubject: false,
-              source: 'keeper',
-            };
             setDressPlateStatus({
               text: 'Dressed plate ready — the clothed stills start from it.',
               busy: false,
@@ -1015,11 +1021,12 @@ export function useDayPlannerToolOrchestrationCore() {
         // From here on, this still's plate is the dressed one when there is one.
         const slotPlate = dressPlate ?? plate;
         const slotQueuePlate = dressPlate ?? queuePlate;
-        const slotCustomGarmentUrl = dressPlate ? undefined : toolSettings.customGarmentImageUrl;
-        const slotCustomGarmentFilename = dressPlate
-          ? undefined
-          : toolSettings.customGarmentImageFilename;
-        const slotPackshotUrl = dressPlate ? undefined : packshotUrl;
+        const slotCustomGarmentUrl =
+          dressPlate || dressClothingFilename ? undefined : toolSettings.customGarmentImageUrl;
+        const slotCustomGarmentFilename =
+          dressClothingFilename ??
+          (dressPlate ? undefined : toolSettings.customGarmentImageFilename);
+        const slotPackshotUrl = dressPlate || dressClothingFilename ? undefined : packshotUrl;
         let identityPlate = resolveDayQueueIdentityPlate({
           character,
           displayPlate: slotPlate,
@@ -1466,12 +1473,21 @@ export function useDayPlannerToolOrchestrationCore() {
           faceOnlyIdentity,
           // Only force Image 2 language when a clothing-only packshot is actually attached.
           forceGarmentReinforce:
-            vacationFaceBreak &&
+            (vacationFaceBreak || Boolean(dressClothingFilename)) &&
             Boolean(garmentReinforce?.imageUrl || garmentReinforce?.imageFilename),
           partner: slotPartner,
           dressPlate,
         });
-        const basePrompt = slotPartner ? scrubDayPartnerOutfitImageClaims(slotPrompt) : slotPrompt;
+        const scrubbedPrompt = slotPartner
+          ? scrubDayPartnerOutfitImageClaims(slotPrompt)
+          : slotPrompt;
+        // The clothing image is the dressed plate: say that it shows her, and the shoes too.
+        const basePrompt = dressClothingFilename
+          ? scrubbedPrompt.replace(
+              /\b(She|He) wears the outfit from the second image\./,
+              '$1 wears the outfit and the shoes shown in the second image (the same person, dressed, standing).'
+            )
+          : scrubbedPrompt;
         // Quality-gate reroll: append the fix for whatever the reviewer flagged, once.
         const qualityNudge = rerollNudgeRef.current[queueTarget.id]?.trim();
         delete rerollNudgeRef.current[queueTarget.id];
@@ -2127,11 +2143,10 @@ export function useDayPlannerToolOrchestrationCore() {
       poseProfileForModel(shared.model).dressPlate &&
       !isDayAdultMood(toolSettings.dayMood) &&
       normalizeDayMood(toolSettings.dayMood) !== 'sport'
-        ? (toolSettings.dressPlates?.[0]?.imageUrl ?? null)
+        ? (newestDressPlate?.imageUrl ?? null)
         : null,
     redoDressPlate: () => {
-      dressPlatesRef.current = [];
-      updateToolSettings({ dressPlates: [] });
+      if (newestDressPlate) removeDressPlate(newestDressPlate.key);
       setDressPlateStatus({ text: 'The next Queue dresses her again first.', busy: false });
     },
     poseGuidePreviews: poseGuidePreviews(poseGuideOutcomes),

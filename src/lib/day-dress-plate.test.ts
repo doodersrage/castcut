@@ -11,6 +11,7 @@ import {
   rememberDayDressPlate,
 } from './day-dress-plate';
 import { buildDaySlotPrompt } from './day-planner';
+import { poseProfileForModel } from './pose/pose-model-profile';
 
 const EDIT = 'qwen-image-edit-2511-lightning-8';
 
@@ -23,10 +24,16 @@ describe('Day dress plate', () => {
     footwearPicked: true,
   };
 
-  it('applies to clothed stills with clothing or shoes picked, on the engine it was measured on', () => {
+  it('applies to clothed stills with clothing or shoes picked, on the engines it was measured on', () => {
     assert.equal(dayDressPlateApplies(picked), true);
     assert.equal(dayDressPlateApplies({ ...picked, footwearPicked: false }), true);
     assert.equal(dayDressPlateApplies({ ...picked, clothingPicked: false }), true);
+    // Face-crop engines use the plate as the clothing reference; Edit 2511 as the starting image.
+    for (const model of ['qwen-rapid-aio-edit', 'qwen-image-2.1-edit-pruna-8']) {
+      assert.equal(dayDressPlateApplies({ ...picked, model }), true, model);
+      assert.equal(poseProfileForModel(model).dressPlate, 'clothing');
+    }
+    assert.equal(poseProfileForModel(EDIT).dressPlate, 'plate');
     for (const mood of ['everyday', 'suggestive', 'date-night', 'photoshoot']) {
       assert.equal(dayDressPlateApplies({ ...picked, dayMood: mood }), true, mood);
     }
@@ -45,7 +52,8 @@ describe('Day dress plate', () => {
     assert.equal(dayDressPlateApplies({ ...picked, replaceOutfit: true }), false);
     assert.equal(dayDressPlateApplies({ ...picked, plateSource: 'keeper' }), false);
     assert.equal(dayDressPlateApplies({ ...picked, plateSource: null }), false);
-    for (const model of ['qwen-rapid-aio-edit', 'qwen-image-2.1-edit-pruna-8']) {
+    // Engines without a measured dress-plate mode keep dressing her per still.
+    for (const model of ['flux-2-klein-9b-distilled', 'z-image-turbo']) {
       assert.equal(dayDressPlateApplies({ ...picked, model }), false, model);
     }
   });
@@ -112,3 +120,15 @@ describe('Day dress plate', () => {
     assert.doesNotMatch(prompt, /underwear in Image 1|sundress/);
   });
 });
+
+describe('Day plate upload names', () => {
+  it('each plate gets its own filename stamp, stable for the same plate', async () => {
+    const { dayPlateUploadStamp } = await import('./day-vacation-face-crop');
+    const cast = dayPlateUploadStamp('char-1\0cast-plate.png');
+    assert.equal(cast, dayPlateUploadStamp('char-1\0cast-plate.png'));
+    assert.notEqual(cast, dayPlateUploadStamp('char-1\0day-dress-plate-1.png'));
+    assert.notEqual(cast, dayPlateUploadStamp('char-2\0cast-plate.png'));
+    assert.match(cast, /^day-[a-z0-9]+$/);
+  });
+});
+

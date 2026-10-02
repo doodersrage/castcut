@@ -2,6 +2,8 @@
  * Durable studio state that is not settings / history / gallery.
  * Synced to PROMPT_DATA_DIR as the `studio-extras` namespace.
  */
+import type { DayDressPlateEntry } from '@/lib/dress-plate-cache';
+import { loadDressPlates, replaceDressPlates } from '@/lib/dress-plate-store';
 import { loadSavedFootwear, replaceSavedFootwear, type SavedFootwear } from '@/lib/footwear-saved';
 import { loadMyPoses, replaceMyPoses, type MyPose } from '@/lib/my-poses';
 import {
@@ -207,6 +209,8 @@ export type StudioExtrasPayload = {
   fittingSavedGarments?: SavedFittingGarment[];
   /** Saved shoe photos (the footwear picker's "Saved shoes"). */
   savedFootwear?: SavedFootwear[];
+  /** Dressed plates shared by Day, Story and Outfit. */
+  dressPlates?: DayDressPlateEntry[];
   /** "My poses" — dragged / photo skeletons saved by name. */
   myPoses?: MyPose[];
 };
@@ -275,6 +279,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     playCampaignState: loadPlayCampaignState(),
     fittingSavedGarments: loadSavedFittingGarments(),
     savedFootwear: loadSavedFootwear(),
+    dressPlates: loadDressPlates(),
     myPoses: loadMyPoses(),
   };
 }
@@ -374,6 +379,9 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.fittingSavedGarments) {
       replaceSavedFittingGarments(payload.fittingSavedGarments);
+    }
+    if (payload.dressPlates) {
+      replaceDressPlates(payload.dressPlates);
     }
     if (payload.savedFootwear) {
       replaceSavedFootwear(payload.savedFootwear);

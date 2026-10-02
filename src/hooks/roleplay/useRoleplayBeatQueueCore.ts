@@ -1,6 +1,22 @@
 'use client';
 
-import { beatOwnsFootwear, footwearPromptLine, normalizeFootwear } from '@/lib/footwear';
+import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
+import {
+  beatOwnsFootwear,
+  footwearIsBarefoot,
+  footwearPromptLine,
+  normalizeFootwear,
+} from '@/lib/footwear';
+import {
+  dayDressPlateStatus,
+  DRESS_PLATE_OUTFIT_LINE,
+  storyDressPlateApplies,
+  storyDressPlatePrompt,
+} from '@/lib/day-dress-plate';
+import { ensureDayDressPlate } from '@/lib/day-dress-plate-client';
+import { setDressPlateActivity } from '@/lib/dress-plate-status';
+import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
+import { getCachedClothingLabel, humanizeClothingId } from '@/lib/clothing-catalog-client';
 import { useCallback } from 'react';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import {
@@ -40,7 +56,10 @@ import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { dispatchWebhook } from '@/lib/webhook-settings';
 import { snapshotRoleplaySession } from '@/lib/roleplay-library';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
-import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs';
+import {
+  loadWardrobeGarmentThumbManifest,
+  resolveWardrobeGarmentThumbQueueUrl,
+} from '@/lib/wardrobe-garment-thumbs';
 import { buildStoryPoseGuide } from '@/lib/day-pose-guide';
 import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
 import {
@@ -286,6 +305,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     [adult, shared.model]
   );
 
+  /** Edit 2511 starts from the dressed plate; Rapid / 2.1 use it as the clothing image. */
+  const dressAsPlate = poseProfileForModel(shared.model).dressPlate === 'plate';
+
   const queueStillOptions = useCallback(
     (
       poseGuide?: {
@@ -295,24 +317,36 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       },
       beat?: RoleplayStoryBeat,
       nudeFaceFilename?: string | null,
-      kleinFaceFilename?: string | null
+      kleinFaceFilename?: string | null,
+      /** The dressed plate: Image 1 wears the outfit, so no clothing image rides along. */
+      dressPlate?: { filename: string; imageUrl?: string } | null
     ) =>
       buildRoleplayQueueStillOptions({
         photoMode: playAs === 'photo',
         isolateSubject,
         referenceIsolated: toolSettings.referenceIsolated === true,
         // Nude beats: face-only Image 1 so the plate's underwear never reaches the reference.
-        filename: nudeFaceFilename || referenceImageFilename,
-        imageUrl: nudeFaceFilename ? undefined : referenceImageUrl,
+        filename:
+          nudeFaceFilename || (dressAsPlate ? dressPlate?.filename : '') || referenceImageFilename,
+        imageUrl: nudeFaceFilename
+          ? undefined
+          : dressAsPlate && dressPlate
+            ? dressPlate.imageUrl
+            : referenceImageUrl,
         identityLockStrength: storyIdentityLockStrengthForBeat(shared.ipAdapterStrength, {
           beat,
           hasPoseGuide: Boolean(poseGuide?.filename || poseGuide?.imageUrl),
           adult,
         }),
         identityKind: shared.identityKind,
-        wardrobeId: toolSettings.wardrobeId || shared.lockedWardrobeId,
-        customGarmentUrl: toolSettings.customGarmentImageUrl,
-        customGarmentFilename: toolSettings.customGarmentImageFilename,
+        wardrobeId: dressPlate ? undefined : toolSettings.wardrobeId || shared.lockedWardrobeId,
+        customGarmentUrl: dressPlate ? undefined : toolSettings.customGarmentImageUrl,
+        // Face-crop engines: the dressed plate rides in the clothing image's place.
+        customGarmentFilename: dressPlate
+          ? dressAsPlate
+            ? undefined
+            : dressPlate.filename
+          : toolSettings.customGarmentImageFilename,
         poseGuideFilename: poseGuide?.filename,
         poseGuideUrl: poseGuide?.imageUrl,
         poseGuideStyle: poseGuide?.prompt?.style,
@@ -333,6 +367,118 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       toolSettings.customGarmentImageFilename,
       toolSettings.customGarmentImageUrl,
       toolSettings.referenceIsolated,
+      dressAsPlate,
+      toolSettings.wardrobeId,
+    ]
+  );
+
+  const leadName = toolSettings.bio?.name;
+  /**
+   * Dress plate (day-dress-plate.ts): on a clothed photo story with clothing or shoes picked,
+   * dress the Cast once and start each still from that plate. Null keeps the per-still outfit
+   * image — also when the plate could not be rendered.
+   */
+  const resolveDressPlateForBeat = useCallback(
+    async (beat: RoleplayStoryBeat): Promise<{ filename: string; imageUrl?: string } | null> => {
+      const customPicked = Boolean(
+        toolSettings.customGarmentImageUrl?.trim() ||
+        toolSettings.customGarmentImageFilename?.trim()
+      );
+      const wardrobeId = (toolSettings.wardrobeId || shared.lockedWardrobeId)?.trim();
+      const shoes = normalizeFootwear(toolSettings.footwear);
+      const hasShoes = Boolean(shoes) && !footwearIsBarefoot(shoes);
+      if (
+        !storyDressPlateApplies({
+          model: shared.model,
+          adult,
+          photoMode: playAs === 'photo',
+          hasPlate: Boolean(referenceImageFilename?.trim() || referenceImageUrl?.trim()),
+          clothingPicked: customPicked || Boolean(wardrobeId),
+          footwearPicked: hasShoes,
+          omitGarment: storyBeatOmitsGarmentPackshot(beat, adult),
+        })
+      ) {
+        return null;
+      }
+      await loadWardrobeGarmentThumbManifest();
+      const packshotUrl = customPicked
+        ? undefined
+        : resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
+      if (!customPicked && !packshotUrl) {
+        // Shoes alone on the undressed plate are not an outfit.
+        return null;
+      }
+      try {
+        const { entry } = await ensureDayDressPlate(
+          {
+            model: shared.model,
+            plate: { filename: referenceImageFilename, imageUrl: referenceImageUrl },
+            clothing: customPicked
+              ? {
+                  imageUrl: toolSettings.customGarmentImageUrl?.trim() || undefined,
+                  imageFilename: toolSettings.customGarmentImageFilename?.trim() || undefined,
+                }
+              : { imageUrl: packshotUrl ?? undefined },
+            clothingKey: customPicked ? undefined : `kit:${wardrobeId ?? ''}`,
+            clothingLabel: customPicked
+              ? toolSettings.customGarmentDescription?.trim() || 'the outfit'
+              : (wardrobeId &&
+                  (getCachedClothingLabel(wardrobeId) ?? humanizeClothingId(wardrobeId))) ||
+                'the outfit',
+            clothingDescription: customPicked ? toolSettings.customGarmentDescription : undefined,
+            footwear: shoes,
+            footwearImage: {
+              imageUrl: toolSettings.footwearImageUrl,
+              imageFilename: toolSettings.footwearImageFilename,
+            },
+            subject: 'she',
+            characterName: leadName,
+            characterId: shared.activeCharacterId,
+            lookId: shared.activeLookId,
+          },
+          {
+            sendComfyUi: actions.sendComfyUi,
+            onRender: () => {
+              const text = dayDressPlateStatus({
+                name: leadName,
+                clothing: true,
+                footwear: hasShoes,
+              });
+              setDressPlateActivity({ text, busy: true });
+              pushSystemTrayMessage({ text, tone: 'info' });
+            },
+          }
+        );
+        setDressPlateActivity({
+          text: 'Dressed plate ready — the clothed stills start from it.',
+          busy: false,
+        });
+        return { filename: entry.filename, imageUrl: entry.imageUrl };
+      } catch (dressError) {
+        setDressPlateActivity({
+          text: `Dress plate skipped (${dressError instanceof Error ? dressError.message : 'it did not render'}) — the stills dress her from the clothing image instead.`,
+          busy: false,
+        });
+        return null;
+      }
+    },
+    [
+      actions,
+      adult,
+      playAs,
+      referenceImageFilename,
+      referenceImageUrl,
+      shared.activeCharacterId,
+      shared.activeLookId,
+      shared.lockedWardrobeId,
+      shared.model,
+      leadName,
+      toolSettings.customGarmentDescription,
+      toolSettings.customGarmentImageFilename,
+      toolSettings.customGarmentImageUrl,
+      toolSettings.footwear,
+      toolSettings.footwearImageFilename,
+      toolSettings.footwearImageUrl,
       toolSettings.wardrobeId,
     ]
   );
@@ -478,8 +624,10 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       // Footwear picked beside the clothing: clothed stories only, and not a beat about the feet.
       const footwear =
         adult || beatOwnsFootwear(beat.blurb) ? '' : normalizeFootwear(toolSettings.footwear);
+      // Dress plate: she is dressed once, and this still starts from that plate.
+      const dressPlate = queueStill ? await resolveDressPlateForBeat(beat) : null;
       const promptWithPose = [
-        footwearPromptLine(footwear),
+        dressPlate && dressAsPlate ? DRESS_PLATE_OUTFIT_LINE : footwearPromptLine(footwear),
         withRoleplayPoseGuidePrompt(
           dressForRating(promptSource, poseGuide?.prompt.headcount),
           Boolean(poseGuide) || (!queueStill && playAs === 'photo'),
@@ -519,7 +667,13 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           nudeFace,
           poseGuide?.prompt.headcount
         );
-        const stillOpts = queueStillOptions(poseGuide, beat, nudeFace, kleinFace);
+        const stillOpts = queueStillOptions(
+          poseGuide,
+          beat,
+          nudeFace,
+          kleinFace,
+          nudeFace ? null : dressPlate
+        );
         const rapidRecipe = storyRapidDuoRecipeFor(beat, stillOpts, poseGuide?.cueLine);
         const charOpts = roleplayCharacterQueueFields(
           { bio: nextBio, story: currentStory },
@@ -529,7 +683,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             hasPoseGuide: Boolean(poseGuide),
           }
         );
-        const sentPrompt = rapidRecipe ?? prompt;
+        const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
+        const sentPrompt = rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(prompt) : prompt);
         const promptId = await actions.sendComfyUi(
           kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
           undefined,
@@ -537,6 +692,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           {
             ...(stillOpts ?? {}),
             ...(stillOpts ? { castPlateReference: true } : {}),
+            // The strong edit opener says the wardrobe may change — not from a dressed plate.
+            ...(stillOpts && fromDressPlate ? { turboEditStrength: 'balanced' as const } : {}),
             // A face crop is filename-only (no size probe) — without this the latent fell back
             // to a square 1536², squeezed the 3:4 pose guide and flipped a bent pose upside down.
             ...(stillOpts && nudeFace ? { figurePixelSize: { ...PLAY_FACE_CROP_CANVAS } } : {}),
@@ -579,6 +736,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       playAs,
       queueStillOptions,
       resolvePoseGuideForBeat,
+      resolveDressPlateForBeat,
+      dressAsPlate,
       roleplayCharacterQueueFields,
       shared.model,
       shared.renderRealismMode,
@@ -638,7 +797,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           adult,
           guideLayout: poseLayoutFromKey(poseGuide?.expect.poseKey),
         });
+        const dressPlate = await resolveDressPlateForBeat(latest);
         const queuePrompt = [
+          dressPlate && dressAsPlate ? DRESS_PLATE_OUTFIT_LINE : '',
           withRoleplayPoseGuidePrompt(
             dressForRating(promptSource, poseGuide?.prompt.headcount),
             Boolean(poseGuide),
@@ -664,7 +825,13 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           nudeFace,
           poseGuide?.prompt.headcount
         );
-        const stillOpts = queueStillOptions(poseGuide, latest, nudeFace, kleinFace);
+        const stillOpts = queueStillOptions(
+          poseGuide,
+          latest,
+          nudeFace,
+          kleinFace,
+          nudeFace ? null : dressPlate
+        );
         const rapidRecipe = storyRapidDuoRecipeFor(
           latest,
           stillOpts,
@@ -683,7 +850,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           },
           { beat: latest, hasPoseGuide: Boolean(poseGuide) }
         );
-        const sentPrompt = rapidRecipe ?? queuePrompt;
+        const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
+        const sentPrompt =
+          rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(queuePrompt) : queuePrompt);
         promptId = await actions.sendComfyUi(
           kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
           undefined,
@@ -691,6 +860,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           {
             ...(stillOpts ?? {}),
             ...(stillOpts ? { castPlateReference: true } : {}),
+            ...(stillOpts && fromDressPlate ? { turboEditStrength: 'balanced' as const } : {}),
             // A face crop is filename-only (no size probe) — without this the latent fell back
             // to a square 1536², squeezed the 3:4 pose guide and flipped a bent pose upside down.
             ...(stillOpts && nudeFace ? { figurePixelSize: { ...PLAY_FACE_CROP_CANVAS } } : {}),
@@ -740,6 +910,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       storyRapidDuoRecipeFor,
       queueStillOptions,
       resolvePoseGuideForBeat,
+      resolveDressPlateForBeat,
+      dressAsPlate,
       roleplayCharacterQueueFields,
       setError,
       shared.model,

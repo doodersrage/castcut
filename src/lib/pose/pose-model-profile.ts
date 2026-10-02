@@ -108,11 +108,16 @@ export type PoseModelProfile = {
    */
   clothedDuoEngine?: string;
   /**
-   * Day dresses the Cast once (clothing + shoes on the look plate) and starts clothed stills from
-   * that plate (day-dress-plate.ts). Edit 2511 only so far: it is where it was measured, and on
-   * Rapid a full dressed plate as Image 1 froze upright poses when it was last tried.
+   * The Cast is dressed once (clothing + shoes on the look plate, day-dress-plate.ts) and clothed
+   * stills use that plate:
+   * - `plate`: as Image 1, the starting image (Edit 2511 — it re-poses a full plate from the
+   *   recipe; live 8/8 exact dress and shoes with the pose held).
+   * - `clothing`: in the clothing image's place, with the face crop still Image 1 (Rapid AIO —
+   *   a full plate as Image 1 freezes upright poses there; as the clothing reference, live
+   *   2026-10-02: 8/8 poses held, exact dress, likeness 0.58 → 0.46 — and Qwen-Image 2.1, same
+   *   test: 8/8 poses, exact dress, shoes wherever feet show, likeness 0.05 → 0.09).
    */
-  dressPlate?: boolean;
+  dressPlate?: 'plate' | 'clothing';
   /** Queues on this engine's graph, then converts (Qwen-Image 2.1 → Rapid AIO NSFW edit). */
   graphBaseModel?: string;
 };
@@ -145,6 +150,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     compactEverydayRecipe: true,
     sameSexLayouts: true,
     seatedOralFallback: true,
+    dressPlate: 'clothing',
   },
   'qwen-edit-2511': {
     ...BASE,
@@ -153,7 +159,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     poseStickyClothed: true,
     compactDayRecipes: true,
     adultEngine: 'qwen-rapid-aio-edit-nsfw',
-    dressPlate: true,
+    dressPlate: 'plate',
   },
   'qwen-image-2.1': {
     ...BASE,
@@ -166,6 +172,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     dressWhenNoOutfit: true,
     compactEverydayRecipe: true,
     clothedDuoEngine: 'qwen-rapid-aio-edit',
+    dressPlate: 'clothing',
     mapDelivery: { solo: 'none', duoClothed: 'none', duoNude: 'none' },
     penetrationEngine: 'qwen-rapid-aio-edit-nsfw',
     graphBaseModel: 'qwen-rapid-aio-edit-nsfw',

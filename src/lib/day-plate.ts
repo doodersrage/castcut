@@ -61,7 +61,9 @@ export function resolveDayGarmentReinforce(input: {
   return url ? { imageUrl: url, source: 'packshot' } : null;
 }
 
-const FITTING_GARMENT_PACKSHOT_RE = /(?:^|[/\\=])fitting-garment-packshot[-_]/i;
+// A Day dress plate (day-dress-plate.ts) stands in for the packshot on face-crop engines: it
+// is the Cast herself, dressed, on white — measured to hold poses there, unlike a BYO worn photo.
+const FITTING_GARMENT_PACKSHOT_RE = /(?:^|[/\\=])(?:fitting-garment-packshot|day-dress-plate)[-_]/i;
 
 /**
  * Clothing-only garment image (no worn body): the Keep packshot, or a custom

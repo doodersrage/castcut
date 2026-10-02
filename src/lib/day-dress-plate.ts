@@ -14,17 +14,13 @@ import { buildFittingOutfitPrompt } from '@/lib/fitting-room';
 import { isDayAdultMood, normalizeDayMood } from '@/lib/day-planner';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 
-export type DayDressPlateEntry = {
-  /** What it was made from (dayDressPlateKey). */
-  key: string;
-  /** ComfyUI input filename of the dressed plate. */
-  filename: string;
-  imageUrl?: string;
-  at: number;
-};
-
-/** Outfit arcs use two kits a day; keep a few so switching back does not re-render. */
-export const DAY_DRESS_PLATE_CACHE_LIMIT = 6;
+export {
+  DAY_DRESS_PLATE_CACHE_LIMIT,
+  findDayDressPlate,
+  forgetDayDressPlate,
+  rememberDayDressPlate,
+  type DayDressPlateEntry,
+} from '@/lib/dress-plate-cache';
 
 /**
  * Whether this still starts from a dress plate. Not for the adult moods (Intimate / Raunchy),
@@ -51,6 +47,48 @@ export function dayDressPlateApplies(input: {
   return input.clothingPicked || input.footwearPicked;
 }
 
+/**
+ * Story's version of the rule: clothed (not an adult-rated) photo stories with a plate and
+ * clothing or shoes picked, on an engine with a dress plate, for a beat that keeps its clothes.
+ */
+export function storyDressPlateApplies(input: {
+  model: string | null | undefined;
+  adult: boolean;
+  photoMode: boolean;
+  hasPlate: boolean;
+  clothingPicked: boolean;
+  footwearPicked: boolean;
+  omitGarment?: boolean;
+}): boolean {
+  if (!poseProfileForModel(input.model).dressPlate) return false;
+  if (input.adult || !input.photoMode || !input.hasPlate || input.omitGarment) return false;
+  return input.clothingPicked || input.footwearPicked;
+}
+
+/** The outfit line for a still that starts from a dressed plate (Story; Day's recipes say it). */
+export const DRESS_PLATE_OUTFIT_LINE =
+  'OUTFIT (mandatory): she wears exactly the outfit and the shoes she has on in Image 1 — unchanged, fully dressed.';
+
+/**
+ * A Story still's prompt, reworded for a dressed plate. The scene writer's fallback says
+ * "replace the reference clothing with the beat outfit" and, with no clothing image, the pose
+ * map is the second image, not the third — live, the first still from a dressed plate came out
+ * in a sequin dress until both were fixed (and the edit opener stopped saying the wardrobe may
+ * change: queue these with the balanced edit strength).
+ */
+export function storyDressPlatePrompt(prompt: string): string {
+  const reworded = prompt
+    .replace(
+      /replace the reference clothing with the beat outfit,?\s*/gi,
+      'keep the exact outfit and shoes she wears in the reference photo, '
+    )
+    .replace(
+      /\bdiscard Image 1 (?:clothes|clothing|wardrobe|outfit)\b/gi,
+      'keep the Image 1 outfit'
+    );
+  return /\bImage 2\b/.test(reworded) ? reworded : reworded.replace(/\bImage 3\b/g, 'Image 2');
+}
+
 /** One key per plate + clothing + shoes + engine family: any change makes a new dress plate. */
 export function dayDressPlateKey(input: {
   plate: string;
@@ -64,32 +102,6 @@ export function dayDressPlateKey(input: {
     input.clothing.trim(),
     input.footwear.trim(),
   ].join('|');
-}
-
-export function findDayDressPlate(
-  cache: readonly DayDressPlateEntry[] | null | undefined,
-  key: string
-): DayDressPlateEntry | null {
-  return cache?.find(entry => entry.key === key && entry.filename?.trim()) ?? null;
-}
-
-/** Newest first, one entry per key, capped. */
-export function rememberDayDressPlate(
-  cache: readonly DayDressPlateEntry[] | null | undefined,
-  entry: DayDressPlateEntry
-): DayDressPlateEntry[] {
-  return [entry, ...(cache ?? []).filter(item => item.key !== entry.key)].slice(
-    0,
-    DAY_DRESS_PLATE_CACHE_LIMIT
-  );
-}
-
-/** Drop one key (its file is gone from ComfyUI's input folder). */
-export function forgetDayDressPlate(
-  cache: readonly DayDressPlateEntry[] | null | undefined,
-  key: string
-): DayDressPlateEntry[] {
-  return (cache ?? []).filter(item => item.key !== key);
 }
 
 /**

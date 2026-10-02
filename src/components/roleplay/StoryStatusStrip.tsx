@@ -1,5 +1,7 @@
 'use client';
 
+import DressPlateNotice from '@/components/wardrobe/DressPlateNotice';
+
 type StoryStatusStripProps = {
   statusLine: string;
   queueBlockReason?: string | null;
@@ -19,6 +21,7 @@ export default function StoryStatusStrip({
       <p className="type-caption text-[var(--text-secondary)]" data-testid="story-status-line">
         {statusLine}
       </p>
+      <DressPlateNotice testIdPrefix="story" className="mt-1" />
       {queueBlockReason ? (
         <p
           className="type-caption mt-1 text-[var(--tint-warning-text,var(--text-muted))]"
