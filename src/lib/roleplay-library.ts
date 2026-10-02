@@ -37,6 +37,7 @@ import {
   type RoleplayBio,
   type RoleplayStoryBeat,
 } from './roleplay';
+import { normalizeStillPromptCheck } from './still-prompt-audit';
 export const ROLEPLAY_LIBRARY_KEY = 'comfy-prompt-roleplay-library-v1';
 export const ROLEPLAY_LIBRARY_UPDATED_EVENT = 'roleplay-library-updated';
 export const MAX_ROLEPLAY_LIBRARY_SESSIONS = 24;
@@ -182,6 +183,10 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
   }
   if (record.stillTakeAutoPicked === true) {
     beat.stillTakeAutoPicked = true;
+  }
+  const promptCheck = normalizeStillPromptCheck(record.promptCheck);
+  if (promptCheck) {
+    beat.promptCheck = promptCheck;
   }
   return beat;
 }

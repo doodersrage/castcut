@@ -126,6 +126,115 @@ export function dayDressPlateKey(input: {
   ].join('|');
 }
 
+/** What identifies a dress plate: the fields of a plate request the key is made from. */
+export type DayDressPlateKeyInput = {
+  model: string;
+  /** The undressed Cast plate. */
+  plate: { filename?: string; imageUrl?: string };
+  /** Clothing image (your photo or a kit packshot), when there is one. */
+  clothing?: { imageUrl?: string; imageFilename?: string } | null;
+  /**
+   * What identifies the clothing across tools: `kit:<id>` for a catalog kit (Day resolves a
+   * packshot URL, Story and Outfit an id), else the photo's filename.
+   */
+  clothingKey?: string;
+  /** What the clothing is called: the photo's description or the kit's label. */
+  clothingLabel: string;
+  /** Vision description of a clothing photo (edited by the player, it re-words the try-on). */
+  clothingDescription?: string;
+  /** Picked shoes in words ('' = none picked). */
+  footwear: string;
+  footwearImage?: { imageUrl?: string | null; imageFilename?: string | null };
+};
+
+/**
+ * The store key of a dress-plate request. A clothing photo's description is part of it (the
+ * try-on is worded from it, so an edited description is a different plate); a kit's is not.
+ */
+export function dayDressPlateRequestKey(request: DayDressPlateKeyInput): string {
+  const description = request.clothingKey?.trim()
+    ? ''
+    : (request.clothingDescription ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const clothing =
+    request.clothingKey?.trim() ||
+    request.clothing?.imageFilename?.trim() ||
+    request.clothing?.imageUrl?.trim() ||
+    request.clothingLabel;
+  return dayDressPlateKey({
+    model: request.model,
+    // The same Cast plate reaches the tools as a filename or a view URL of that filename.
+    plate: dressPlateIdentity(request.plate),
+    clothing: description ? `${clothing}~${textHash(description)}` : clothing,
+    footwear: [
+      request.footwear,
+      request.footwearImage?.imageFilename?.trim() || request.footwearImage?.imageUrl?.trim() || '',
+    ].join('#'),
+  });
+}
+
+function dressPlateIdentity(plate: { filename?: string; imageUrl?: string }): string {
+  const filename = plate.filename?.trim();
+  if (filename) return filename.split('/').pop() ?? filename;
+  const url = plate.imageUrl?.trim() ?? '';
+  try {
+    const fromQuery = new URL(url, 'http://local').searchParams.get('filename')?.trim();
+    if (fromQuery) return fromQuery;
+  } catch {
+    /* not a URL */
+  }
+  return url;
+}
+
+/** Short, stable FNV-1a hash (keys stay short; a description can run to a paragraph). */
+function textHash(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+export type DayDressPlateChange = 'outfit' | 'shoes' | 'outfit and shoes';
+
+/**
+ * Why a new plate is being dressed: the newest stored plate for the same Cast plate and engine
+ * was dressed in other clothing and/or shoes. Null when this Cast plate has no plate yet.
+ */
+export function dayDressPlateChange(
+  entries: readonly { key: string; at: number }[],
+  key: string
+): DayDressPlateChange | null {
+  const parts = splitDressPlateKey(key);
+  if (!parts) return null;
+  let previous: { clothing: string; footwear: string; at: number } | null = null;
+  for (const entry of entries) {
+    if (entry.key === key) continue;
+    const other = splitDressPlateKey(entry.key);
+    if (!other || other.family !== parts.family || other.plate !== parts.plate) continue;
+    if (!previous || entry.at > previous.at) previous = { ...other, at: entry.at };
+  }
+  if (!previous) return null;
+  const outfit = previous.clothing !== parts.clothing;
+  const shoes = previous.footwear !== parts.footwear;
+  return outfit && shoes ? 'outfit and shoes' : outfit ? 'outfit' : shoes ? 'shoes' : null;
+}
+
+function splitDressPlateKey(
+  key: string
+): { family: string; plate: string; clothing: string; footwear: string } | null {
+  const first = key.indexOf('|');
+  const second = first < 0 ? -1 : key.indexOf('|', first + 1);
+  const last = key.lastIndexOf('|');
+  if (first < 0 || second < 0 || last <= second) return null;
+  return {
+    family: key.slice(0, first),
+    plate: key.slice(first + 1, second),
+    clothing: key.slice(second + 1, last),
+    footwear: key.slice(last + 1),
+  };
+}
+
 /**
  * The try-on that makes the dress plate: Outfit's own try-on brief, full body with both feet in
  * frame (a three-quarter crop would lose the shoes) in the plate's plain standing pose.
@@ -149,6 +258,8 @@ export function dayDressPlateStatus(input: {
   name?: string | null;
   clothing: boolean;
   footwear: boolean;
+  /** What changed since the last plate for this Cast plate (dayDressPlateChange). */
+  change?: DayDressPlateChange | null;
 }): string {
   const who = input.name?.trim() || 'the lead';
   const what =
@@ -157,5 +268,9 @@ export function dayDressPlateStatus(input: {
       : input.clothing
         ? 'the outfit'
         : 'the shoes';
+  if (input.change) {
+    const changed = input.change.charAt(0).toUpperCase() + input.change.slice(1);
+    return `${changed} changed — dressing ${who} again: one plate with ${what} (about a minute), then the stills start from it.`;
+  }
   return `Dressing ${who} first — one plate with ${what} (about a minute), then the stills start from it.`;
 }

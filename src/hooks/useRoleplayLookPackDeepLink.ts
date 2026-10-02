@@ -1,17 +1,22 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { roleplayWatchPlaylist } from '@/lib/character-film';
 import {
   applyCharacterRecord,
   applyCharacterRecordFresh,
   getCharacter,
   getCharacterLookPack,
+  getCharactersSnapshot,
+  getServerCharactersSnapshot,
+  subscribeCharacters,
 } from '@/lib/character-os';
 import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
 import { applyLookPackToRoleplaySettings, loadLookPack, saveLookPack } from '@/lib/look-pack';
 import {
+  persistRoleplayLibraryFromCache,
   resolveRoleplayContinueFromCharacter,
+  startNewRoleplaySession,
   roleplayLibraryIdForCharacter,
   shouldSyncRoleplaySessionToCharacter,
   withRoleplayCacheFromCastCharacter,
@@ -33,6 +38,78 @@ type UseRoleplayLookPackDeepLinkOptions = {
   onMessage?: (message: string) => void;
 };
 
+/**
+ * Point Story at a Cast lead: its own library session (or one made from the Cast), its bible,
+ * Part and picture. A reel in progress for this lead is kept; a reel that belongs to another lead
+ * is saved to the library first and replaced, so the new lead never inherits the old one's bible
+ * or picture.
+ */
+function bindStoryToCast(
+  record: NonNullable<ReturnType<typeof getCharacter>>,
+  options: {
+    activeSessionId?: string | null;
+    fromQuery: boolean;
+    updateShared: (patch: Partial<SharedToolSettings>) => void;
+    updateToolSettings: (patch: Partial<RoleplayToolCache>) => void;
+    onMessage?: (message: string) => void;
+  }
+): void {
+  const { updateShared, updateToolSettings } = options;
+  const characterId = record.id;
+  const liveStory = loadToolSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
+  if (!shouldSyncRoleplaySessionToCharacter(characterId, options.activeSessionId)) {
+    // Same Cast session — still refresh bible/persona from Cast (source of truth).
+    updateShared(applyCharacterRecord(record));
+    updateToolSettings(withRoleplayCacheFromCastCharacter(liveStory, record));
+    return;
+  }
+  const expectedSession = roleplayLibraryIdForCharacter(characterId);
+  // The live draft is another lead's when it is tied to another session and its bible names
+  // someone else. Without this check a new Cast took over the previous lead's bible and picture.
+  const liveName = liveStory.bio?.name?.trim().toLowerCase() || '';
+  const castNames = [record.name, record.characterName, record.bio?.name]
+    .map(name => name?.trim().toLowerCase())
+    .filter(Boolean);
+  const liveIsAnotherLead =
+    Boolean(liveStory.activeSessionId?.trim()) &&
+    liveStory.activeSessionId !== expectedSession &&
+    Boolean(liveName) &&
+    !castNames.includes(liveName);
+  if (liveIsAnotherLead) {
+    persistRoleplayLibraryFromCache(liveStory);
+  }
+  const result = resolveRoleplayContinueFromCharacter(characterId);
+  if (result.ok) {
+    // Don't wipe an in-progress Story reel when binding Cast identity —
+    // synthesize-from-Cast returns bio-only with an empty story.
+    const liveHasReel =
+      !liveIsAnotherLead && roleplayWatchPlaylist(liveStory.story ?? []).length > 0;
+    if (liveHasReel) {
+      const sessionId =
+        result.cache.activeSessionId ?? expectedSession ?? liveStory.activeSessionId;
+      updateToolSettings({
+        ...withRoleplayCacheFromCastCharacter(liveStory, record),
+        activeSessionId: sessionId,
+      });
+    } else {
+      updateToolSettings(result.cache);
+    }
+    updateShared(applyCharacterRecordFresh(record));
+    return;
+  }
+  const base = liveIsAnotherLead
+    ? { ...startNewRoleplaySession(liveStory), activeSessionId: expectedSession ?? undefined }
+    : liveStory;
+  if (options.fromQuery) {
+    options.onMessage?.(result.message);
+    updateShared(applyCharacterRecord(record));
+  } else {
+    // Nav entry: still bind shared Cast identity even if Story bio can’t synthesize yet.
+    updateShared(applyCharacterRecordFresh(record));
+  }
+  updateToolSettings(withRoleplayCacheFromCastCharacter(base, record));
+}
+
 export function useRoleplayLookPackDeepLink({
   mounted,
   activeCharacterId,
@@ -42,19 +119,31 @@ export function useRoleplayLookPackDeepLink({
   onMessage,
 }: UseRoleplayLookPackDeepLinkOptions) {
   const deepLinkHandled = useRef(false);
+  const boundCastRef = useRef<string | null>(null);
+  // The Cast list can load a moment after the page. Binding Story to the active Cast before it
+  // had loaded found no record, gave up for good, and left the previous lead's bible and picture
+  // in place under the new lead's name ("Continue as Gloovi" with Tomas active).
+  const castRoster = useSyncExternalStore(
+    subscribeCharacters,
+    getCharactersSnapshot,
+    getServerCharactersSnapshot
+  );
 
   useEffect(() => {
     if (!mounted || typeof window === 'undefined' || deepLinkHandled.current) {
       return;
     }
-    deepLinkHandled.current = true;
     const params = new URLSearchParams(window.location.search);
     const queryCharacterId = params.get('character')?.trim() || '';
+    const pendingCastId = queryCharacterId || activeCharacterId?.trim() || '';
+    if (pendingCastId && castRoster.length === 0 && !getCharacter(pendingCastId)) {
+      // Not loaded yet — this runs again when the Cast list arrives.
+      return;
+    }
+    deepLinkHandled.current = true;
     const wardrobeId = params.get('wardrobe')?.trim();
     const lookPackId = params.get('lookPack')?.trim();
     const fromLook = params.get('from')?.trim() === 'look';
-    const liveStory = loadToolSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
-
     const characterId = resolvePlayLoopEntryCharacterId({
       queryCharacterId,
       activeCharacterId,
@@ -68,38 +157,15 @@ export function useRoleplayLookPackDeepLink({
             'That Cast character isn’t on this device — pick one here or open Film to create one.'
           );
         }
-      } else if (shouldSyncRoleplaySessionToCharacter(characterId, activeSessionId)) {
-        const result = resolveRoleplayContinueFromCharacter(characterId);
-        if (result.ok) {
-          // Don't wipe an in-progress Story reel when binding Cast identity —
-          // synthesize-from-Cast returns bio-only with an empty story.
-          const liveHasReel = roleplayWatchPlaylist(liveStory.story ?? []).length > 0;
-          if (liveHasReel) {
-            const sessionId =
-              result.cache.activeSessionId ??
-              roleplayLibraryIdForCharacter(characterId) ??
-              liveStory.activeSessionId;
-            updateToolSettings({
-              ...withRoleplayCacheFromCastCharacter(liveStory, record),
-              activeSessionId: sessionId,
-            });
-          } else {
-            updateToolSettings(result.cache);
-          }
-          updateShared(applyCharacterRecordFresh(record));
-        } else if (queryCharacterId) {
-          onMessage?.(result.message);
-          updateShared(applyCharacterRecord(record));
-          updateToolSettings(withRoleplayCacheFromCastCharacter(liveStory, record));
-        } else {
-          // Nav entry: still bind shared Cast identity even if Story bio can’t synthesize yet.
-          updateShared(applyCharacterRecordFresh(record));
-          updateToolSettings(withRoleplayCacheFromCastCharacter(liveStory, record));
-        }
       } else {
-        // Same Cast session — still refresh bible/persona from Cast (source of truth).
-        updateShared(applyCharacterRecord(record));
-        updateToolSettings(withRoleplayCacheFromCastCharacter(liveStory, record));
+        boundCastRef.current = characterId;
+        bindStoryToCast(record, {
+          activeSessionId,
+          fromQuery: Boolean(queryCharacterId),
+          updateShared,
+          updateToolSettings,
+          onMessage,
+        });
       }
     }
 
@@ -139,5 +205,46 @@ export function useRoleplayLookPackDeepLink({
         }
       }
     }
-  }, [mounted, activeCharacterId, activeSessionId, onMessage, updateShared, updateToolSettings]);
+  }, [
+    mounted,
+    activeCharacterId,
+    activeSessionId,
+    castRoster,
+    onMessage,
+    updateShared,
+    updateToolSettings,
+  ]);
+
+  // The active Cast can change after the page opened: picked on another tab, or (on a fresh
+  // browser or a phone) arriving from the server a moment after the first render, when this page
+  // had already bound Story to no one. Bind again whenever it changes.
+  useEffect(() => {
+    if (!mounted || !deepLinkHandled.current) {
+      return;
+    }
+    const id = activeCharacterId?.trim();
+    if (!id || id === boundCastRef.current) {
+      return;
+    }
+    const record = getCharacter(id);
+    if (!record) {
+      return;
+    }
+    boundCastRef.current = id;
+    bindStoryToCast(record, {
+      activeSessionId,
+      fromQuery: false,
+      updateShared,
+      updateToolSettings,
+      onMessage,
+    });
+  }, [
+    mounted,
+    activeCharacterId,
+    activeSessionId,
+    castRoster,
+    onMessage,
+    updateShared,
+    updateToolSettings,
+  ]);
 }

@@ -1,6 +1,12 @@
 'use client';
 
-import { useCallback, useState, type MutableRefObject } from 'react';
+import {
+  useCallback,
+  useState,
+  type Dispatch,
+  type MutableRefObject,
+  type SetStateAction,
+} from 'react';
 import {
   buildRoleplayRequestBody,
   requestRoleplayStillPrompt,
@@ -15,6 +21,7 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import type { RoleplayPlayAs } from '@/lib/roleplay';
+import { storyHasBeat, storyWithoutUnwrittenBeat } from '@/lib/roleplay-story-write';
 import type { RoleplayToolCache } from '@/lib/settings-cache';
 
 type UseRoleplaySceneFlowOptions = {
@@ -32,13 +39,20 @@ type UseRoleplaySceneFlowOptions = {
     beat: RoleplayStoryBeat,
     bio: RoleplayBio,
     writingStory: RoleplayStoryBeat[],
-    options: { queueStill: boolean }
+    options: { queueStill: boolean; liveStory?: boolean }
   ) => Promise<RoleplayStoryBeat[]>;
   skipStillForClip: boolean;
   autoQueue: boolean;
   playAsResolved: RoleplayPlayAs;
   hasReferenceImage: boolean;
   setError: (value: string | null) => void;
+  /**
+   * The offered cards, when the page keeps them itself (phone Story: its request body and bible
+   * flow read them). Without it the flow keeps its own.
+   */
+  scenesState?: [RoleplayScene[], Dispatch<SetStateAction<RoleplayScene[]>>];
+  /** What picking a card says when a From photo story has no photo (desk wording by default). */
+  referenceMissingMessage?: string;
 };
 
 export function useRoleplaySceneFlow({
@@ -53,8 +67,11 @@ export function useRoleplaySceneFlow({
   playAsResolved,
   hasReferenceImage,
   setError,
+  scenesState,
+  referenceMissingMessage = 'Upload a photo or pick a gallery still first.',
 }: UseRoleplaySceneFlowOptions) {
-  const [scenes, setScenes] = useState<RoleplayScene[]>([]);
+  const ownScenes = useState<RoleplayScene[]>([]);
+  const [scenes, setScenes] = scenesState ?? ownScenes;
   const [scenesLoading, setScenesLoading] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
 
@@ -98,7 +115,7 @@ export function useRoleplaySceneFlow({
     } finally {
       setScenesLoading(false);
     }
-  }, [bio, rememberRejectedScenes, requestBody, scenes, setError, storyRef]);
+  }, [bio, rememberRejectedScenes, requestBody, scenes, setError, setScenes, storyRef]);
 
   const playScene = useCallback(
     async (scene: RoleplayScene) => {
@@ -107,7 +124,7 @@ export function useRoleplaySceneFlow({
         return;
       }
       if (playAsResolved === 'photo' && !hasReferenceImage) {
-        setError('Upload a photo or pick a gallery still first.');
+        setError(referenceMissingMessage);
         return;
       }
       if (roleplayStoryPhase(storyRef.current) === 'complete') {
@@ -128,11 +145,22 @@ export function useRoleplaySceneFlow({
         return;
       }
       updateToolSettings({ story: writingStory, rejectedScenes });
+      // The reel the write patches when it finishes is the live one (see below); it holds the
+      // new scene from now, not from the next render.
+      storyRef.current = writingStory;
       try {
         const data = await requestRoleplayStillPrompt(requestBody('prompt', playing));
+        // Patched into the reel as it is when the write finishes: while the scene was written,
+        // stills finished and pose checks landed on the other scenes — the snapshot taken here
+        // would put them back.
         const nextStory = await commitStill(data, beat, bio, writingStory, {
           queueStill: autoQueue && !skipStillForClip,
+          liveStory: true,
         });
+        // Taken back or started over meanwhile: no next cards for a story that moved on.
+        if (!storyHasBeat(nextStory, beat)) {
+          return;
+        }
         if (roleplayStoryPhase(nextStory) === 'complete') {
           setScenes([]);
           return;
@@ -151,9 +179,7 @@ export function useRoleplaySceneFlow({
           setScenes(nextPayload.scenes);
         }
       } catch (err) {
-        updateToolSettings({
-          story: writingStory.filter(entry => entry.at !== beat.at || entry.prompt),
-        });
+        updateToolSettings({ story: storyWithoutUnwrittenBeat(storyRef.current, beat) });
         setError(err instanceof Error ? err.message : 'Could not play that scene.');
       } finally {
         setPlayingId(null);
@@ -165,9 +191,11 @@ export function useRoleplaySceneFlow({
       commitStill,
       hasReferenceImage,
       playAsResolved,
+      referenceMissingMessage,
       rememberRejectedScenes,
       requestBody,
       scenes,
+      setScenes,
       skipStillForClip,
       setError,
       storyRef,

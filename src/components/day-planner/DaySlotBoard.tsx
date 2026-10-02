@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore, type MouseEvent } f
 import { Button } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
 import MotionMedia from '@/components/ui/MotionMedia';
+import StillPromptCheckNote from '@/components/StillPromptCheckNote';
 import {
   daySlotBoardCaption,
   daySlotClipProgressState,
@@ -488,6 +489,12 @@ export default function DaySlotBoard({
                   </p>
                 ) : null}
               </button>
+              {/* Outside the select button: the note opens on its own tap. */}
+              <StillPromptCheckNote
+                check={still?.promptCheck}
+                testId={`day-slot-prompt-check-${slot.id}`}
+                className={compact ? 'px-2.5 pb-2' : 'px-3 pb-2.5'}
+              />
               {onRerollSlot && state === 'idle' ? (
                 <div className={compact ? 'px-2.5 pb-2' : 'px-3 pb-2.5'}>
                   <Button

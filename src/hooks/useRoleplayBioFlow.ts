@@ -23,6 +23,7 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import type { RoleplayPlayAs } from '@/lib/roleplay';
+import { storyHasBeat } from '@/lib/roleplay-story-write';
 import type { RoleplayToolCache } from '@/lib/settings-cache';
 
 const TOOL_ID = 'roleplay';
@@ -39,7 +40,7 @@ type UseRoleplayBioFlowOptions = {
     beat: RoleplayStoryBeat,
     bio: RoleplayBio,
     writingStory: RoleplayStoryBeat[],
-    options: { queueStill: boolean }
+    options: { queueStill: boolean; liveStory?: boolean }
   ) => Promise<RoleplayStoryBeat[]>;
   skipStillForClip: boolean;
   autoQueue: boolean;
@@ -48,6 +49,10 @@ type UseRoleplayBioFlowOptions = {
   setError: (value: string | null) => void;
   setScenes: Dispatch<SetStateAction<RoleplayScene[]>>;
   setOwnBibleOpen: (open: boolean) => void;
+  /** What writing a bible says when a From photo story has no photo (desk wording by default). */
+  referenceMissingMessage?: string;
+  /** Phone Story plays From photo only: a story it opens is a From photo story. */
+  photoOnly?: boolean;
 };
 
 export function useRoleplayBioFlow({
@@ -62,6 +67,8 @@ export function useRoleplayBioFlow({
   setError,
   setScenes,
   setOwnBibleOpen,
+  referenceMissingMessage = 'Upload a photo or pick a gallery still first.',
+  photoOnly = false,
 }: UseRoleplayBioFlowOptions) {
   const [bioLoading, setBioLoading] = useState(false);
 
@@ -73,10 +80,13 @@ export function useRoleplayBioFlow({
       });
       const introBeat = writingStory[writingStory.length - 1];
       updateToolSettings({
+        ...(photoOnly ? { playAs: 'photo' as const } : {}),
         bio: nextBio,
         story: writingStory,
         rejectedScenes: [],
       });
+      // The write below patches the live reel; it holds the opening scene from now.
+      storyRef.current = writingStory;
       rememberDraftFields({
         toolKey: TOOL_ID,
         label: 'Story',
@@ -118,9 +128,14 @@ export function useRoleplayBioFlow({
                 : 'Bio saved, but the first still failed.')
           );
         }
-        await commitStill(stillData, introBeat, nextBio, writingStory, {
+        const nextStory = await commitStill(stillData, introBeat, nextBio, writingStory, {
           queueStill: autoQueue && !skipStillForClip,
+          // Patch the reel as it is then — a start-over meanwhile is not undone.
+          liveStory: true,
         });
+        if (!storyHasBeat(nextStory, introBeat)) {
+          return;
+        }
         if (scenesResponse) {
           const scenesData = (await scenesResponse.json()) as RoleplayApiPayload;
           setScenes(scenesResponse.ok && Array.isArray(scenesData.scenes) ? scenesData.scenes : []);
@@ -130,7 +145,7 @@ export function useRoleplayBioFlow({
       } catch (err) {
         updateToolSettings({
           story: patchRoleplayStoryBeat(
-            writingStory,
+            storyRef.current,
             introBeat,
             skipStillForClip ? {} : { stillStatus: 'error' }
           ),
@@ -138,7 +153,16 @@ export function useRoleplayBioFlow({
         throw err;
       }
     },
-    [autoQueue, commitStill, requestBody, skipStillForClip, setScenes, updateToolSettings]
+    [
+      autoQueue,
+      commitStill,
+      photoOnly,
+      requestBody,
+      skipStillForClip,
+      setScenes,
+      storyRef,
+      updateToolSettings,
+    ]
   );
 
   const writeBio = useCallback(
@@ -147,7 +171,7 @@ export function useRoleplayBioFlow({
       characterName?: string;
     }) => {
       if (playAsResolved === 'photo' && !hasReferenceImage) {
-        setError('Upload a photo or pick a gallery still first.');
+        setError(referenceMissingMessage);
         return;
       }
       setBioLoading(true);
@@ -171,13 +195,20 @@ export function useRoleplayBioFlow({
         setBioLoading(false);
       }
     },
-    [beginStoryFromBio, hasReferenceImage, playAsResolved, requestBody, setError]
+    [
+      beginStoryFromBio,
+      hasReferenceImage,
+      playAsResolved,
+      referenceMissingMessage,
+      requestBody,
+      setError,
+    ]
   );
 
   const applyOwnBible = useCallback(
     async (nextBio: RoleplayBio) => {
       if (playAsResolved === 'photo' && !hasReferenceImage) {
-        setError('Upload a photo or pick a gallery still first.');
+        setError(referenceMissingMessage);
         return;
       }
       setError(null);
@@ -201,6 +232,7 @@ export function useRoleplayBioFlow({
       beginStoryFromBio,
       hasReferenceImage,
       playAsResolved,
+      referenceMissingMessage,
       setError,
       setOwnBibleOpen,
       storyRef,

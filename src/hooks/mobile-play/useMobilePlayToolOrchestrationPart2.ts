@@ -1,19 +1,13 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import { requestRoleplayStillPrompt, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
+import { useCallback, useMemo } from 'react';
 import {
-  appendRoleplayStoryBeat,
   patchRoleplayStoryBeat,
   selectRoleplayClipTakePatch,
   pinRoleplayStillTakePatch,
-  lastRoleplayPlotBeat,
-  mergeRoleplayRejectedScenes,
-  roleplayStoryPhase,
-  type RoleplayBio,
-  type RoleplayScene,
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
+import { useRoleplaySceneFlow } from '@/hooks/useRoleplaySceneFlow';
 import { lastRoleplayMotionSource } from '@/lib/roleplay-film';
 import type { MobilePlayToolOrchestrationCore } from '@/hooks/mobile-play/useMobilePlayToolOrchestrationCore';
 import { useStoryBeatEdit } from '@/hooks/roleplay/useStoryBeatEdit';
@@ -25,85 +19,44 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     scenes,
     setScenes,
     setError,
-    setBioLoading,
-    setPlayingId,
-    setOwnBibleOpen,
     bio,
     storyRef,
     story,
     beatQueue,
     requestBody,
     commitStill,
-    beginStoryFromBio,
+    autoQueue,
     hasReferenceImage,
     referenceImageUrl,
     activePlate,
   } = ctx;
 
-  const applyOwnBible = useCallback(
-    async (nextBio: RoleplayBio) => {
-      if (!hasReferenceImage) {
-        setError('Capture a plate first.');
-        return;
-      }
-      setError(null);
-      const hasPlot = Boolean(lastRoleplayPlotBeat(storyRef.current));
-      if (hasPlot || storyRef.current.length > 0) {
-        updateToolSettings({ bio: nextBio });
-        setOwnBibleOpen(false);
-        return;
-      }
-      setBioLoading(true);
-      try {
-        await beginStoryFromBio(nextBio);
-        setOwnBibleOpen(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not start from this bible.');
-      } finally {
-        setBioLoading(false);
-      }
-    },
-    [
-      beginStoryFromBio,
-      hasReferenceImage,
-      setBioLoading,
-      setError,
-      setOwnBibleOpen,
-      storyRef,
-      updateToolSettings,
-    ]
+  const rejectedScenesMemory = useMemo(
+    () => toolSettings.rejectedScenes ?? [],
+    [toolSettings.rejectedScenes]
   );
 
-  const [scenesLoading, setScenesLoading] = useState(false);
-
-  const rollScenes = useCallback(async () => {
-    if (!bio) {
-      setError('Write a bio first — the scenes need someone to happen to.');
-      return;
-    }
-    if (roleplayStoryPhase(storyRef.current) === 'complete') {
-      setScenes([]);
-      return;
-    }
-    setScenesLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/roleplay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody('scenes')),
-      });
-      const data = (await response.json()) as RoleplayApiPayload;
-      if (!response.ok) {
-        throw new Error(data.error ?? 'Could not roll scenes.');
-      }
-      setScenes(Array.isArray(data.scenes) ? data.scenes : []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not roll scenes.');
-    } finally {
-      setScenesLoading(false);
-    }
-  }, [bio, requestBody, setError, setScenes, storyRef]);
+  // Roll and play scenes through the flow desk Story uses: the same guards, the same rejected
+  // cards memory, the clip-only mode ("Clip" output queued on pick writes no still) and the
+  // same write into the live reel.
+  const sceneFlow = useRoleplaySceneFlow({
+    storyRef,
+    toolSettings,
+    updateToolSettings,
+    bio,
+    rejectedScenesMemory,
+    requestBody,
+    commitStill,
+    skipStillForClip: beatQueue.skipStillForClip,
+    autoQueue,
+    // The phone page plays From photo only.
+    playAsResolved: 'photo',
+    hasReferenceImage,
+    setError,
+    scenesState: [scenes, setScenes],
+    referenceMissingMessage: 'Capture a plate first.',
+  });
+  const { rollScenes, playScene, scenesLoading, playingId } = sceneFlow;
 
   const animateAllReady = useCallback(async () => {
     for (const beat of story) {
@@ -116,84 +69,6 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
       }
     }
   }, [beatQueue, story]);
-
-  const playScene = useCallback(
-    async (scene: RoleplayScene) => {
-      if (!bio) {
-        setError('Write a bio first.');
-        return;
-      }
-      if (!hasReferenceImage) {
-        setError('Capture a plate first.');
-        return;
-      }
-      if (roleplayStoryPhase(storyRef.current) === 'complete') {
-        setError('This story already ended. Start a new session to play another.');
-        return;
-      }
-      setPlayingId(scene.id);
-      setError(null);
-      const playing: RoleplayScene =
-        roleplayStoryPhase(storyRef.current) === 'finale' ? { ...scene, kind: 'ending' } : scene;
-      const writingStory = appendRoleplayStoryBeat(storyRef.current, playing, {
-        stillStatus: 'writing',
-      });
-      const beat = writingStory[writingStory.length - 1];
-      if (!beat) {
-        setPlayingId(null);
-        return;
-      }
-      // The three not picked are remembered, as on desk — otherwise the next roll could offer
-      // them again.
-      const rejectedScenes = mergeRoleplayRejectedScenes(
-        toolSettings.rejectedScenes,
-        scenes,
-        playing
-      );
-      updateToolSettings({ story: writingStory, rejectedScenes });
-      try {
-        const data = await requestRoleplayStillPrompt(requestBody('prompt', playing));
-        const nextStory = await commitStill(data, beat, bio, writingStory);
-        if (roleplayStoryPhase(nextStory) === 'complete') {
-          setScenes([]);
-          return;
-        }
-        const nextScenes = await fetch('/api/roleplay', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...requestBody('scenes'),
-            story: nextStory,
-            rejectedScenes,
-          }),
-        });
-        const nextPayload = (await nextScenes.json()) as RoleplayApiPayload;
-        if (nextScenes.ok && Array.isArray(nextPayload.scenes)) {
-          setScenes(nextPayload.scenes);
-        }
-      } catch (err) {
-        updateToolSettings({
-          story: writingStory.filter(entry => entry.at !== beat.at || entry.prompt),
-        });
-        setError(err instanceof Error ? err.message : 'Could not play that scene.');
-      } finally {
-        setPlayingId(null);
-      }
-    },
-    [
-      bio,
-      commitStill,
-      hasReferenceImage,
-      requestBody,
-      scenes,
-      toolSettings.rejectedScenes,
-      setError,
-      setPlayingId,
-      setScenes,
-      storyRef,
-      updateToolSettings,
-    ]
-  );
 
   const queueBeat = beatQueue.queueBeat;
 
@@ -289,9 +164,9 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     referenceImageUrl;
 
   return {
-    applyOwnBible,
     rollScenes,
     scenesLoading,
+    playingId,
     animateAllReady,
     playScene,
     queueBeat,

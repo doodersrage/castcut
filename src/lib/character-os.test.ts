@@ -25,6 +25,8 @@ import {
   clearCharacterBio,
   slugCharacterName,
   upsertCharacter,
+  upsertCharacterFromRoleplaySession,
+  castIdForRoleplaySession,
   type CharacterRecord,
 } from './character-os';
 import type { CharacterIdentityBundle } from './character-identity-bundle';
@@ -460,5 +462,76 @@ describe('character-os', () => {
     const merged = { model: 'qwen-image-2512', detail: 'balanced' as const, ...patch };
     assert.equal(merged.model, 'qwen-image-2512');
     assert.equal(merged.detail, 'balanced');
+  });
+});
+
+describe('a Story session saved back onto its Cast', () => {
+  const session = (id: string, name: string) =>
+    ({
+      id,
+      createdAt: 1,
+      updatedAt: 5,
+      title: name,
+      beatCount: 0,
+      snapshot: {
+        characterName: name,
+        bio: { name, look: 'a man in a grey coat', personality: 'patient' },
+      },
+    }) as RoleplayLibrarySession;
+
+  it('maps the session id back to the Cast it was opened from', () => {
+    assert.equal(castIdForRoleplaySession('cast-char-abc'), 'char-abc');
+    assert.equal(castIdForRoleplaySession('roleplay-123'), 'char-rp-roleplay-123');
+    assert.equal(castIdForRoleplaySession('char-rp-roleplay-123'), 'char-rp-roleplay-123');
+  });
+
+  it('updates a Film-made Cast in place instead of replacing it with a copy', () => {
+    withMockLocalStorage(() => {
+      const tomas = createBlankCharacter('Tomas', {
+        sex: 'man',
+        ethnicity: 'random',
+        ageBand: '30s',
+        height: 'average',
+        bodyBuild: 'average',
+      } as never);
+      upsertCharacter(tomas);
+      const looksBefore = looksOf(getCharacter(tomas.id)!).length;
+      const saved = upsertCharacterFromRoleplaySession(session(`cast-${tomas.id}`, 'Tomas'));
+      assert.equal(saved?.id, tomas.id);
+      const all = loadCharacters().filter(entry => slugCharacterName(entry.name) === 'tomas');
+      assert.deepEqual(all.map(entry => entry.id), [tomas.id]);
+      assert.equal(looksOf(getCharacter(tomas.id)!).length, looksBefore);
+      assert.equal(getCharacter(tomas.id)?.bio?.personality, 'patient');
+    });
+  });
+
+  it('folds an older "char-rp-cast-" copy into the real Cast', () => {
+    withMockLocalStorage(() => {
+      const tomas = createBlankCharacter('Tomas', undefined as never);
+      upsertCharacter(tomas);
+      saveCharacters([
+        ...loadCharacters(),
+        { ...tomas, id: `char-rp-cast-${tomas.id}`, updatedAt: Date.now() - 10 },
+      ]);
+      const saved = upsertCharacterFromRoleplaySession(session(`cast-${tomas.id}`, 'Tomas'));
+      assert.equal(saved?.id, tomas.id);
+      assert.deepEqual(
+        loadCharacters()
+          .filter(entry => slugCharacterName(entry.name) === 'tomas')
+          .map(entry => entry.id),
+        [tomas.id]
+      );
+    });
+  });
+});
+
+describe('a reference to a Cast an older version replaced', () => {
+  it('finds its "char-rp-cast-" copy', () => {
+    withMockLocalStorage(() => {
+      const copy = createBlankCharacter('Tomas', undefined as never);
+      saveCharacters([{ ...copy, id: 'char-rp-cast-char-lost' }]);
+      assert.equal(getCharacter('char-lost')?.id, 'char-rp-cast-char-lost');
+      assert.equal(getCharacter('char-rp-missing'), undefined);
+    });
   });
 });

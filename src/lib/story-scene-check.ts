@@ -27,10 +27,24 @@ const THEY_RE =
 const SEXUAL_RE =
   /\b(?:sex|sexual|penetrat\w*|cock|penis|pussy|vagina|clit\w*|nipples?|naked|nude|orgasm\w*|masturbat\w*|blowjob|handjob|cum(?:s|ming)?|erection|aroused|arousal)\b/i;
 
-/** Someone besides the lead, named in the scene. */
-function namesSomeoneElse(text: string): boolean {
+/** Words that put a second person in the scene even when the pose counter would not. */
+const OTHER_PERSON_RE =
+  /\b(?:figure|stranger|someone|somebody|anyone|other[’']s|each other|both|together|partner|lover|friend|man|woman|guy|girl|boy|he|him|his)\b/i;
+
+/**
+ * Someone besides the lead, named in the scene. Sex words alone do not count: in a Solo story
+ * "straddles the ledge" or touching herself is one person (the writer's real Solo scenes were
+ * flagged one in fifteen for exactly that).
+ */
+function namesSomeoneElse(text: string, manLead = false): boolean {
   // "they" is the question being asked, so it does not count as a second person here.
-  return countPoseGuidePeople(text.replace(new RegExp(THEY_RE.source, 'gi'), 'she')) >= 2;
+  const withoutThey = text.replace(new RegExp(THEY_RE.source, 'gi'), 'she');
+  if (countPoseGuidePeople(withoutThey, { sexVocabulary: false }) >= 2) return true;
+  // A man lead's own "he / his" is not someone else.
+  const other = manLead
+    ? new RegExp(OTHER_PERSON_RE.source.replace('|he|him|his', ''), 'i')
+    : OTHER_PERSON_RE;
+  return other.test(withoutThey);
 }
 
 export function checkStoryScene(
@@ -39,13 +53,13 @@ export function checkStoryScene(
 ): StorySceneIssue[] {
   const issues: StorySceneIssue[] = [];
   const text = `${scene.title}. ${scene.blurb}`;
-  if (THEY_RE.test(scene.blurb) && !namesSomeoneElse(scene.blurb)) {
+  if (THEY_RE.test(scene.blurb) && !namesSomeoneElse(scene.blurb, context.manLead)) {
     issues.push({
       code: 'lead-they',
       message: 'The lead is called "they", which an image model reads as more people.',
     });
   }
-  if (context.adult && context.solo && namesSomeoneElse(scene.blurb)) {
+  if (context.adult && context.solo && namesSomeoneElse(scene.blurb, context.manLead)) {
     issues.push({ code: 'solo-names-partner', message: 'A Solo story scene names a partner.' });
   }
   if (!context.adult && SEXUAL_RE.test(text)) {

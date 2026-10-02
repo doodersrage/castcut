@@ -13,6 +13,7 @@ import { useRoleplayFilmActions } from '@/hooks/useRoleplayFilmActions';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useRoleplayBeatQueue } from '@/hooks/useRoleplayBeatQueue';
+import { useRoleplayBioFlow } from '@/hooks/useRoleplayBioFlow';
 import { useRoleplayLookPackDeepLink } from '@/hooks/useRoleplayLookPackDeepLink';
 import { useRoleplayStorySync } from '@/hooks/useRoleplayStorySync';
 import { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
@@ -32,15 +33,11 @@ import { normalizeCharacterPlates, type CharacterPlate } from '@/lib/mobile-stud
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import {
-  appendRoleplayStoryBeat,
   formatRoleplayStoryProgress,
   mergeRoleplayRejectedScenes,
   normalizeRoleplayIsolateSubject,
   normalizeRoleplayPlayAs,
-  patchRoleplayStoryBeat,
   resolveRoleplayToneAndContent,
-  roleplayIntroScene,
-  type RoleplayBio,
   type RoleplayScene,
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
@@ -52,12 +49,7 @@ import {
   loadToolSettings,
   SETTINGS_CACHE_UPDATED_EVENT,
 } from '@/lib/settings-cache';
-import {
-  buildRoleplayRequestBody,
-  resolveRoleplayWardrobeFields,
-  roleplayBioRequestForLead,
-  type RoleplayApiPayload,
-} from '@/lib/roleplay-play-core';
+import { buildRoleplayRequestBody, resolveRoleplayWardrobeFields } from '@/lib/roleplay-play-core';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
 
 const TOOL_ID = 'roleplay';
@@ -84,8 +76,6 @@ export function useMobilePlayToolOrchestrationCore() {
   const [activePlate, setActivePlate] = useState<CharacterPlate | null>(null);
   const [scenes, setScenes] = useState<RoleplayScene[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [bioLoading, setBioLoading] = useState(false);
-  const [playingId, setPlayingId] = useState<string | null>(null);
   const [isolating, setIsolating] = useState(false);
   const [ownBibleOpen, setOwnBibleOpen] = useState(false);
   const autoIsolateAttemptedRef = useRef(false);
@@ -385,93 +375,25 @@ export function useMobilePlayToolOrchestrationCore() {
   // 2.0: reuse desk Story beat queue so mobile stills get Cast face + LoRA pins.
   const commitStill = beatQueue.commitStill;
 
-  const beginStoryFromBio = useCallback(
-    async (nextBio: RoleplayBio) => {
-      const intro = roleplayIntroScene(nextBio);
-      const writingStory = appendRoleplayStoryBeat([], intro, { stillStatus: 'writing' });
-      const introBeat = writingStory[writingStory.length - 1];
-      updateToolSettings({
-        playAs: 'photo',
-        bio: nextBio,
-        story: writingStory,
-        // As desk Story: a story that opens again must not avoid the cards of the one before.
-        rejectedScenes: [],
-      });
-      if (!introBeat) {
-        return;
-      }
-      try {
-        const [stillResponse, scenesResponse] = await Promise.all([
-          fetch('/api/roleplay', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...requestBody('prompt', intro),
-              bio: nextBio,
-              story: [],
-            }),
-          }),
-          fetch('/api/roleplay', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...requestBody('scenes'),
-              bio: nextBio,
-              story: writingStory,
-            }),
-          }).catch(() => null),
-        ]);
-        const stillData = (await stillResponse.json()) as RoleplayApiPayload;
-        if (!stillResponse.ok || !stillData.prompt?.trim()) {
-          throw new Error(stillData.error ?? 'Bio saved, but the first still failed.');
-        }
-        await commitStill(stillData, introBeat, nextBio, writingStory);
-        if (scenesResponse) {
-          const scenesData = (await scenesResponse.json()) as RoleplayApiPayload;
-          setScenes(scenesResponse.ok && Array.isArray(scenesData.scenes) ? scenesData.scenes : []);
-        }
-      } catch (err) {
-        updateToolSettings({
-          story: patchRoleplayStoryBeat(writingStory, introBeat, { stillStatus: 'error' }),
-        });
-        throw err;
-      }
-    },
-    [commitStill, requestBody, updateToolSettings]
-  );
+  // The bible flow desk Story uses: same guards, same still write (and its clip-only mode).
+  const bioFlow = useRoleplayBioFlow({
+    storyRef,
+    updateToolSettings,
+    requestBody,
+    commitStill,
+    skipStillForClip: beatQueue.skipStillForClip,
+    autoQueue,
+    // The phone page plays From photo only.
+    playAsResolved: 'photo',
+    photoOnly: true,
+    hasReferenceImage,
+    setError,
+    setScenes,
+    setOwnBibleOpen,
+    referenceMissingMessage: 'Capture a plate first.',
+  });
+  const { bioLoading, writeBio, applyOwnBible } = bioFlow;
 
-  const writeBio = useCallback(
-    async (options?: {
-      /** Starting over for the same Cast lead: the new bible keeps this name. */
-      characterName?: string;
-    }) => {
-      if (!hasReferenceImage) {
-        setError('Capture a plate first.');
-        return;
-      }
-      setBioLoading(true);
-      setError(null);
-      try {
-        const response = await fetch('/api/roleplay', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(
-            roleplayBioRequestForLead(requestBody('bio'), options?.characterName)
-          ),
-        });
-        const data = (await response.json()) as RoleplayApiPayload;
-        if (!response.ok || !data.bio) {
-          throw new Error(data.error ?? 'Could not write a bio.');
-        }
-        await beginStoryFromBio(data.bio);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not write a bio.');
-      } finally {
-        setBioLoading(false);
-      }
-    },
-    [beginStoryFromBio, hasReferenceImage, requestBody]
-  );
   return {
     mounted,
     shared,
@@ -484,9 +406,6 @@ export function useMobilePlayToolOrchestrationCore() {
     error,
     setError,
     bioLoading,
-    setBioLoading,
-    playingId,
-    setPlayingId,
     isolating,
     ownBibleOpen,
     setOwnBibleOpen,
@@ -522,10 +441,10 @@ export function useMobilePlayToolOrchestrationCore() {
     requestBody,
     queueStillOptions,
     commitStill,
-    beginStoryFromBio,
     hasReferenceImage,
     referenceImageUrl,
     writeBio,
+    applyOwnBible,
     autoIsolateAttemptedRef,
     setPlates,
     setActivePlate,

@@ -3,7 +3,10 @@ import { describe, it } from 'node:test';
 import {
   auditStillPrompt,
   highestImageReference,
+  normalizeStillPromptCheck,
+  promptCheckSummary,
   repairStillPrompt,
+  stillPromptCheckRecord,
   stillPromptIssuesLine,
 } from './still-prompt-audit';
 
@@ -163,5 +166,53 @@ describe('a dressed plate on a barefoot scene', () => {
       'Edit Image 1: OUTFIT (mandatory): she wears exactly the outfit and the shoes she has on in Image 1 — unchanged, fully dressed.\n' +
       'Replace the scene with her walking through the market with a coffee.';
     assert.deepEqual(auditStillPrompt(prompt, { people: 1 }), []);
+  });
+});
+
+describe('the prompt check kept on the card', () => {
+  it('records the messages of what was fixed and what is left', () => {
+    const prompt =
+      'Edit Image 1: OUTFIT (mandatory): she wears exactly the outfit and the shoes she has on in Image 1 — unchanged.\n' +
+      'Pose: the two people face each other on the sand, barefoot.';
+    const check = stillPromptCheckRecord(repairStillPrompt(prompt, { people: 1 }));
+    assert.deepEqual(check, {
+      repaired: ['Shoes are ordered on a barefoot scene.'],
+      remaining: ['A one-person still describes two people — it may render her twice.'],
+    });
+    assert.deepEqual(promptCheckSummary(check), {
+      label: 'Prompt check: 1 problem, fixed 1',
+      tone: 'warning',
+    });
+  });
+
+  it('nothing to say on a clean prompt', () => {
+    const clean = repairStillPrompt('Day photo: One woman alone. Moment: reading on the sofa.');
+    assert.equal(stillPromptCheckRecord(clean), undefined);
+    assert.equal(promptCheckSummary(undefined), null);
+    assert.equal(promptCheckSummary({ repaired: [], remaining: [] }), null);
+  });
+
+  it('a fix alone is quiet; counts are plural', () => {
+    assert.deepEqual(promptCheckSummary({ repaired: ['a', 'b'], remaining: [] }), {
+      label: 'Prompt check: fixed 2',
+      tone: 'muted',
+    });
+    assert.equal(
+      promptCheckSummary({ repaired: [], remaining: ['a', 'b'] })?.label,
+      'Prompt check: 2 problems'
+    );
+  });
+
+  it('tidies a stored record and drops junk', () => {
+    assert.equal(normalizeStillPromptCheck(null), undefined);
+    assert.equal(normalizeStillPromptCheck('fixed'), undefined);
+    assert.equal(normalizeStillPromptCheck({ repaired: [' ', 3], remaining: 'x' }), undefined);
+    assert.deepEqual(
+      normalizeStillPromptCheck({ repaired: [' Fixed it. ', null], remaining: undefined }),
+      { repaired: ['Fixed it.'], remaining: [] }
+    );
+    const long = normalizeStillPromptCheck({ remaining: Array(20).fill('x'.repeat(500)) });
+    assert.equal(long?.remaining.length, 8);
+    assert.equal(long?.remaining[0]?.length, 200);
   });
 });

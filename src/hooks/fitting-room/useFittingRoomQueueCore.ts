@@ -376,6 +376,9 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                       : null,
                     clothingKey: hasCustomGarment ? undefined : `kit:${wardrobeIdForQueue?.trim()}`,
                     clothingLabel: '',
+                    clothingDescription: hasCustomGarment
+                      ? input.toolSettings.customGarmentDescription
+                      : undefined,
                     footwear: normalizeFootwear(input.toolSettings.footwear),
                     footwearImage: {
                       imageUrl: input.toolSettings.footwearImageUrl,

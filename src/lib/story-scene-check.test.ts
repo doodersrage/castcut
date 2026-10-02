@@ -53,3 +53,34 @@ describe('Story scene check', () => {
     assert.equal(repairStoryScene(scene, clean).scene, scene);
   });
 });
+
+describe('Story scene check on real writer output', () => {
+  const soloAdult = { adult: true, solo: true };
+  it('a Solo scene with sex words is still one person', () => {
+    for (const blurb of [
+      'She lifts her dress to straddle a ledge, bare legs dangling.',
+      'Gloovi straddles the train’s threshold barefoot, back arched against the door frame.',
+      'She straddles the edge of her bed, lace dress slipping as she traces her clit with one finger.',
+      'She leans on the railing, one hand cupping her breast while the other slips under her skirt.',
+      'Gloovi steps into the carriage, one hand on her hip, the other holding a black lace glove.',
+    ]) {
+      assert.deepEqual(checkStoryScene({ title: 'Solo', blurb }, soloAdult), [], blurb);
+    }
+    assert.deepEqual(
+      checkStoryScene(
+        { title: 'Platform', blurb: 'She leans into a stranger who kisses her neck on the platform.' },
+        soloAdult
+      ).map(issue => issue.code),
+      ['solo-names-partner']
+    );
+  });
+
+  it('"they" for two people is left alone', () => {
+    for (const blurb of [
+      'She kneels by the tracks as a hooded figure approaches — they both vanish into the mist.',
+      'Rook presses his forehead against the other’s chest — candle smoke curls around them.',
+    ]) {
+      assert.deepEqual(checkStoryScene({ title: 'Two', blurb }, { adult: true }), [], blurb);
+    }
+  });
+});

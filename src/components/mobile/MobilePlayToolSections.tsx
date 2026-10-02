@@ -80,8 +80,10 @@ export default function MobilePlayToolSections({ description: _description, ...v
     isolateSubject,
     bio,
     story,
+    storyRef,
     storyProgress,
     beatOutput,
+    autoQueue,
     content,
     tone,
     assemblingFilm,
@@ -121,12 +123,14 @@ export default function MobilePlayToolSections({ description: _description, ...v
   } = vm;
 
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance({ mobile: true });
+  // As desk Story: the reel as it is now (a still that just finished is not put back).
   const undoLastScene = () => {
-    const last = story[story.length - 1];
+    const current = storyRef.current;
+    const last = current[current.length - 1];
     if (!last || !confirmRoleplayUndoScene(last.title)) {
       return;
     }
-    updateToolSettings({ story: story.slice(0, -1) });
+    updateToolSettings({ story: current.slice(0, -1) });
     setScenes([]);
   };
   const { ready: adultGateReady } = useNsfwGeneratorStatus();
@@ -541,7 +545,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
                     </span>
                     {playingId === scene.id ? (
                       <span className="mt-1 block type-caption text-[var(--accent-text)]">
-                        Writing still…
+                        {beatOutput === 'clip' && autoQueue ? 'Writing clip…' : 'Writing still…'}
                       </span>
                     ) : null}
                   </span>

@@ -13,6 +13,7 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import PoseMissPanel from '@/components/pose/PoseMissPanel';
+import StillPromptCheckNote from '@/components/StillPromptCheckNote';
 import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
 import { useStoryBeatEditActions } from '@/components/roleplay/StoryBeatEditContext';
 import StoryBeatTextEditor from '@/components/roleplay/StoryBeatTextEditor';
@@ -218,6 +219,7 @@ export function RoleplayStoryBeatCard({
               {faceMatch.text}
             </p>
           ) : null}
+          <StillPromptCheckNote check={beat.promptCheck} testId="story-beat-prompt-check" />
           {onPoseChange ? (
             <StoryBeatPosePreview
               beat={beat}

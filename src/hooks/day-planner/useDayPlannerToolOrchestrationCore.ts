@@ -7,7 +7,11 @@ import {
   queuedDayStillPrompt,
   type DayStillSlotOptions,
 } from '@/lib/day-still-prompt';
-import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
+import {
+  repairStillPrompt,
+  stillPromptCheckRecord,
+  stillPromptIssuesLine,
+} from '@/lib/still-prompt-audit';
 import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
 import { installedComfyModels } from '@/lib/model-picker';
 import {
@@ -384,7 +388,12 @@ export function useDayPlannerToolOrchestrationCore() {
     const customUrl = toolSettings.customGarmentImageUrl?.trim();
     const clothing =
       customFilename || customUrl
-        ? [{ clothing: { imageFilename: customFilename, imageUrl: customUrl } }]
+        ? [
+            {
+              clothing: { imageFilename: customFilename, imageUrl: customUrl },
+              clothingDescription: toolSettings.customGarmentDescription,
+            },
+          ]
         : [
             ...new Set(
               [shared.lockedWardrobeId, ...slots.map(slot => slot.wardrobeId)]
@@ -422,6 +431,7 @@ export function useDayPlannerToolOrchestrationCore() {
     shared.lockedWardrobeId,
     shared.model,
     slots,
+    toolSettings.customGarmentDescription,
     toolSettings.customGarmentImageFilename,
     toolSettings.customGarmentImageUrl,
     toolSettings.footwear,
@@ -976,11 +986,12 @@ export function useDayPlannerToolOrchestrationCore() {
               },
               {
                 sendComfyUi: actions.sendComfyUi,
-                onRender: () => {
+                onRender: ({ change }) => {
                   const text = dayDressPlateStatus({
                     name: character?.name,
                     clothing: true,
                     footwear: hasShoes,
+                    change,
                   });
                   setDressPlateStatus({ text, busy: true });
                   pushSystemTrayMessage({ text, tone: 'info' });
@@ -1793,6 +1804,8 @@ export function useDayPlannerToolOrchestrationCore() {
           clipPromptId: undefined,
           clipUrl: undefined,
           clipStatus: undefined,
+          // Shown on the slot card ("Prompt check: fixed 1"); a clean prompt clears the last one.
+          promptCheck: stillPromptCheckRecord(checked),
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
@@ -1801,6 +1814,7 @@ export function useDayPlannerToolOrchestrationCore() {
         const nextStills = upsertDaySlotStill(stillsRef.current, {
           slotId: slot.id,
           status: 'error',
+          promptCheck: undefined,
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));

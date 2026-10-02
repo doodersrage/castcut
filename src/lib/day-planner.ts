@@ -11,6 +11,7 @@ import {
   buildRapidVacationRecipe,
 } from './rapid-duo-recipe';
 import { stripNegatedClauses } from './negated-clauses';
+import { normalizeStillPromptCheck, type StillPromptCheck } from './still-prompt-audit';
 import {
   clampStillHoldSec,
   DEFAULT_STILL_HOLD_SEC,
@@ -359,6 +360,8 @@ export type DaySlotStill = {
    */
   finishedUrl?: string;
   finishedFor?: string;
+  /** What the queue-time prompt check fixed / found on this take (still-prompt-audit). */
+  promptCheck?: StillPromptCheck;
 };
 
 export const DEFAULT_DAY_SLOTS: DaySlot[] = [
@@ -4078,6 +4081,12 @@ function readClipStatus(value: unknown): DaySlotClipStatus | undefined {
   return undefined;
 }
 
+/** Only a non-empty check is kept — no `promptCheck: undefined` key on every still. */
+function withPromptCheck(value: unknown): Pick<DaySlotStill, 'promptCheck'> {
+  const promptCheck = normalizeStillPromptCheck(value);
+  return promptCheck ? { promptCheck } : {};
+}
+
 export function normalizeDaySlotStills(
   input?: DaySlotStill[] | null,
   slots?: Array<Pick<DaySlot, 'id'>> | null
@@ -4097,6 +4106,7 @@ export function normalizeDaySlotStills(
       clipStatus: readClipStatus(still.clipStatus),
       finishedUrl: readText(still.finishedUrl, 2048) || undefined,
       finishedFor: readText(still.finishedFor, 160) || undefined,
+      ...withPromptCheck(still.promptCheck),
     });
   }
   const order = slots?.length

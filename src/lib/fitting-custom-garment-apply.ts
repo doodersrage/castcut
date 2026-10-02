@@ -22,6 +22,7 @@ import {
   loadImageBlobFromUrls,
 } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import { stampedUploadName } from '@/lib/upload-name';
 
 export type ApplyCustomGarmentInput = {
   file?: File | null;
@@ -104,18 +105,25 @@ export async function applyCustomGarmentUpload(
       });
     })());
 
+  // Its own name in ComfyUI: another photo called the same would overwrite it (upload-name.ts).
+  const uploadName = stampedUploadName(originalName);
+  const uploadFile = new File([sourceFile], uploadName, {
+    type: sourceFile.type || 'image/png',
+    lastModified: Date.now(),
+  });
+
   if (asPackshot) {
     deps.onStatus('Uploading packshot…');
     const uploaded = await resolveQueueInputImage({
-      file: sourceFile,
-      filename: originalName,
+      file: uploadFile,
+      filename: uploadName,
       model: deps.model,
     });
     const filename = uploaded?.filename?.trim();
     if (!filename) {
       throw new Error('Upload did not return a filename.');
     }
-    const previewUrl = previewUrlForFilename(filename, comfyUrl, imageUrl, sourceFile);
+    const previewUrl = previewUrlForFilename(filename, comfyUrl, imageUrl, uploadFile);
     let description: string | undefined;
     try {
       deps.onStatus('Scanning packshot with vision…');
@@ -133,18 +141,18 @@ export async function applyCustomGarmentUpload(
     return { filename, previewUrl, description };
   }
 
-  let garmentFile = sourceFile;
+  let garmentFile = uploadFile;
   deps.onStatus(`Extracting ${noun} onto white…`);
   try {
-    garmentFile = await isolateSubjectOnWhite(sourceFile, originalName);
+    garmentFile = await isolateSubjectOnWhite(sourceFile, uploadName);
   } catch {
-    garmentFile = sourceFile;
+    garmentFile = uploadFile;
   }
 
-  const uploadName = garmentFile.name || originalName.replace(/\.[^.]+$/, '') + '-cutout.png';
+  const cutoutUploadName = garmentFile.name || uploadName.replace(/\.[^.]+$/, '') + '-cutout.png';
   let uploaded = await resolveQueueInputImage({
     file: garmentFile,
-    filename: uploadName,
+    filename: cutoutUploadName,
     model: deps.model,
   });
   let filename = uploaded?.filename?.trim();

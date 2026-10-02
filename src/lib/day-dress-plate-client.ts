@@ -7,34 +7,20 @@ import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import {
   buildDayDressPlatePrompt,
-  dayDressPlateKey,
+  dayDressPlateChange,
+  dayDressPlateRequestKey as dressPlateKeyFor,
+  type DayDressPlateChange,
   type DayDressPlateEntry,
+  type DayDressPlateKeyInput,
 } from '@/lib/day-dress-plate';
-import { findDressPlate, saveDressPlate } from '@/lib/dress-plate-store';
+import { findDressPlate, loadDressPlates, saveDressPlate } from '@/lib/dress-plate-store';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import { footwearIsBarefoot, footwearPromptLine } from '@/lib/footwear';
 import { buildFootwearReferenceImage, hasFootwearImage } from '@/lib/footwear-image';
 import { loadImageBlobFromUrls } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 
-export type DayDressPlateRequest = {
-  model: string;
-  /** The undressed Cast plate. */
-  plate: { filename?: string; imageUrl?: string };
-  /** Clothing image (your photo or a kit packshot), when there is one. */
-  clothing?: { imageUrl?: string; imageFilename?: string } | null;
-  /**
-   * What identifies the clothing across tools: `kit:<id>` for a catalog kit (Day resolves a
-   * packshot URL, Story and Outfit an id), else the photo's filename.
-   */
-  clothingKey?: string;
-  /** What the clothing is called: the photo's description or the kit's label. */
-  clothingLabel: string;
-  /** Vision description of a clothing photo. */
-  clothingDescription?: string;
-  /** Picked shoes in words ('' = none picked). */
-  footwear: string;
-  footwearImage?: { imageUrl?: string | null; imageFilename?: string | null };
+export type DayDressPlateRequest = DayDressPlateKeyInput & {
   subject: 'she' | 'he';
   characterName?: string;
   characterId?: string;
@@ -48,40 +34,20 @@ export type DayDressPlateDeps = {
     b?: undefined,
     options?: Record<string, unknown>
   ) => Promise<string | void>;
-  /** Called when the plate starts rendering (not on a cache hit). */
-  onRender?: () => void;
+  /**
+   * Called when the plate starts rendering (not on a cache hit), with what changed since this
+   * Cast plate's last dressed plate (null: its first).
+   */
+  onRender?: (info: { change: DayDressPlateChange | null }) => void;
   /** Waits for the queued job (tests replace it; defaults to the gallery poller). */
   waitForPromptIds?: typeof waitForGalleryPromptIds;
 };
 
-export function dayDressPlateRequestKey(request: DayDressPlateRequest): string {
-  return dayDressPlateKey({
-    model: request.model,
-    // The same Cast plate reaches the tools as a filename or a view URL of that filename.
-    plate: plateIdentity(request.plate),
-    clothing:
-      request.clothingKey?.trim() ||
-      request.clothing?.imageFilename?.trim() ||
-      request.clothing?.imageUrl?.trim() ||
-      request.clothingLabel,
-    footwear: [
-      request.footwear,
-      request.footwearImage?.imageFilename?.trim() || request.footwearImage?.imageUrl?.trim() || '',
-    ].join('#'),
-  });
-}
-
-function plateIdentity(plate: { filename?: string; imageUrl?: string }): string {
-  const filename = plate.filename?.trim();
-  if (filename) return filename.split('/').pop() ?? filename;
-  const url = plate.imageUrl?.trim() ?? '';
-  try {
-    const fromQuery = new URL(url, 'http://local').searchParams.get('filename')?.trim();
-    if (fromQuery) return fromQuery;
-  } catch {
-    /* not a URL */
-  }
-  return url;
+/** The store key of a plate request (day-dress-plate.ts); the who-is-it fields do not count. */
+export function dayDressPlateRequestKey(
+  request: DayDressPlateKeyInput & { subject?: string }
+): string {
+  return dressPlateKeyFor(request);
 }
 
 /** Cached plates checked this session — a cleaned-out ComfyUI input folder makes one stale. */
@@ -124,7 +90,7 @@ async function renderDayDressPlate(
   if (failed && Date.now() - failed < FAILURE_COOLDOWN_MS) {
     throw new Error('the last attempt failed a moment ago');
   }
-  deps.onRender?.();
+  deps.onRender?.({ change: dayDressPlateChange(loadDressPlates(), key) });
   const barefoot = footwearIsBarefoot(request.footwear);
   const hasClothingImage = Boolean(
     request.clothing?.imageUrl?.trim() || request.clothing?.imageFilename?.trim()

@@ -36,6 +36,7 @@ import {
   type ScenePoseSpec,
 } from '@/lib/day-pose-guide';
 import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
+import type { StillPromptCheck } from '@/lib/still-prompt-audit';
 import type {
   StoryFaceMatch,
   StoryPoseGuideExpect,
@@ -153,6 +154,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
    * written again yet: the stored prompt is gone and any shown still is from the earlier text.
    */
   textEdited?: boolean;
+  /** What the queue-time prompt check fixed / found on the latest still (still-prompt-audit). */
+  promptCheck?: StillPromptCheck;
 };
 
 const STILL_BRIEF_MAX = 360;

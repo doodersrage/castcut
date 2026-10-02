@@ -35,6 +35,13 @@ import {
 } from '@/lib/pose-joint-edit';
 import { saveMyPose } from '@/lib/my-poses';
 import {
+  ASSUMED_SUBJECT,
+  fitBodyToBox,
+  imageBoxOnCanvas,
+  subjectBoxFromPixels,
+  type FitBox,
+} from '@/lib/pose-fit';
+import {
   ARM_PRESETS,
   HEAD_DIRECTIONS,
   LEG_PRESETS,
@@ -230,6 +237,46 @@ function rememberShown(key: string, shown: boolean) {
   }
 }
 
+/**
+ * Where the person stands in their picture (fractions of the picture) and its shape. Measured on
+ * a small copy: plates on a flat ground give their pixel box; a picture that cannot be read back
+ * (another origin taints the canvas), a busy photo, or one that will not load falls back to "the
+ * whole height, centred".
+ */
+function measureBackdrop(url: string): Promise<{ box: FitBox; aspect: number | null }> {
+  return new Promise(resolve => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => {
+      const aspect =
+        image.naturalWidth > 0 && image.naturalHeight > 0
+          ? image.naturalWidth / image.naturalHeight
+          : null;
+      try {
+        const longest = Math.max(image.naturalWidth, image.naturalHeight, 1);
+        const shrink = Math.min(1, 160 / longest);
+        const width = Math.max(1, Math.round(image.naturalWidth * shrink));
+        const height = Math.max(1, Math.round(image.naturalHeight * shrink));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        if (!context) throw new Error('no 2d context');
+        context.drawImage(image, 0, 0, width, height);
+        const pixels = context.getImageData(0, 0, width, height);
+        resolve({
+          box: subjectBoxFromPixels(pixels.data, width, height) ?? ASSUMED_SUBJECT,
+          aspect,
+        });
+      } catch {
+        resolve({ box: ASSUMED_SUBJECT, aspect });
+      }
+    };
+    image.onerror = () => resolve({ box: ASSUMED_SUBJECT, aspect: null });
+    image.src = url;
+  });
+}
+
 /** The unforeshortened figure depth is guessed against. */
 const STAND = poseStarterBody('stand');
 
@@ -381,6 +428,49 @@ export default function PoseJointEditor({
     update(previous => previous.map((b, index) => (index === person ? turned : b)));
     setSavedNote(null);
   };
+  // Fit the lead figure (the picture is the lead's) onto the person in the picture: scaled and
+  // moved as a whole, so the pose itself is unchanged and stays inside the canvas. One step to
+  // undo. The picture is measured once per URL.
+  const measured = useRef(new Map<string, Promise<{ box: FitBox; aspect: number | null }>>());
+  const [fitting, setFitting] = useState(false);
+  const fitToBackdrop = async () => {
+    if (!backdrop || fitting) return;
+    let measuring = measured.current.get(backdrop);
+    if (!measuring) {
+      measuring = measureBackdrop(backdrop);
+      measured.current.set(backdrop, measuring);
+    }
+    setFitting(true);
+    const { box, aspect: imageAspect } = await measuring;
+    setFitting(false);
+    const lead = latest.current[0];
+    if (!lead) return;
+    const fit = fitBodyToBox(
+      lead,
+      imageBoxOnCanvas(box, imageAspect ?? safeAspect, safeAspect),
+      safeAspect
+    );
+    if (!fit || JSON.stringify(fit.body) === JSON.stringify(lead)) return;
+    checkpoint();
+    // Depth is in canvas heights: it grows and shrinks with the figure.
+    const depth = depths.current[0];
+    if (depth) {
+      setDepths(
+        Object.assign([...depths.current], {
+          0: depth.map(z => (z == null ? null : z * fit.scale)),
+        })
+      );
+    }
+    update(previous => previous.map((body, index) => (index === 0 ? fit.body : body)));
+    // A Day pose fitted is still that pose: keep its words (and after Undo, too).
+    const leadKey = JSON.stringify(lead);
+    setPreset(previous =>
+      previous?.keys.includes(leadKey)
+        ? { ...previous, keys: [...previous.keys, JSON.stringify(fit.body)] }
+        : previous
+    );
+    setSavedNote(null);
+  };
   const [saveName, setSaveName] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
   const rememberHistory = () => {
@@ -417,14 +507,15 @@ export default function PoseJointEditor({
     restore(next);
   }, [restore]);
   // A Day pose keeps its own name and cue as the prompt words for as long as the lead figure is
-  // exactly as picked; any drag, bend or turn goes back to reading the joints.
-  const [preset, setPreset] = useState<{ words: string; key: string } | null>(() =>
+  // exactly as picked (or as picked and then fitted to the picture, which only scales and moves
+  // it); any drag, bend or turn goes back to reading the joints.
+  const [preset, setPreset] = useState<{ words: string; keys: string[] } | null>(() =>
     initialWords?.trim() && initial[0]
-      ? { words: initialWords.trim(), key: JSON.stringify(initial[0]) }
+      ? { words: initialWords.trim(), keys: [JSON.stringify(initial[0])] }
       : null
   );
   const presetWords =
-    preset && bodies[0] && JSON.stringify(bodies[0]) === preset.key ? preset.words : null;
+    preset && bodies[0] && preset.keys.includes(JSON.stringify(bodies[0])) ? preset.words : null;
   const startFromDayPose = (id: string) => {
     const picked = dayPoseAsPhotoPose(id);
     const figure = picked?.people[0];
@@ -440,7 +531,7 @@ export default function PoseJointEditor({
     setDepths([]);
     update(previous => (previous.length > 1 ? addPerson([lead]) : [lead]));
     setPreset(
-      picked.words ? { words: picked.words, key: JSON.stringify(latest.current[0]) } : null
+      picked.words ? { words: picked.words, keys: [JSON.stringify(latest.current[0])] } : null
     );
     setSavedNote(null);
   };
@@ -1381,6 +1472,18 @@ export default function PoseJointEditor({
                     />
                     Show {possessive} picture
                   </label>
+                ) : null}
+                {backdrop && showBackdrop ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={fitting}
+                    title={`Size and place the ${bodies.length > 1 ? 'first figure' : 'figure'} over the person in the picture — the pose itself stays as it is`}
+                    data-testid={`${testIdPrefix}-fit-backdrop`}
+                    onClick={() => void fitToBackdrop()}
+                  >
+                    Fit to {possessive} picture
+                  </Button>
                 ) : null}
                 <label className="inline-flex min-h-8 cursor-pointer items-center gap-1.5">
                   <input

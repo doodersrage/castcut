@@ -212,7 +212,7 @@ export function repairStillPrompt(
       .replace(/\bOne (?:wo)?man alone[.,]?\s*/g, '');
   }
   if (has('repeated-line')) {
-    for (const label of ['FOOTWEAR (mandatory):', 'OUTFIT (mandatory):', 'SCENE:']) {
+    for (const label of ['Pose: ', 'FOOTWEAR (mandatory):', 'OUTFIT (mandatory):', 'SCENE:']) {
       let seen = false;
       next = next
         .split('\n')
@@ -231,6 +231,68 @@ export function repairStillPrompt(
     prompt: next,
     repaired: issues.filter(issue => !stillWrong.has(issue.code)),
     remaining,
+  };
+}
+
+/**
+ * What the queue-time check did to a still's prompt, kept on the Day slot / Story beat so its
+ * card can say so after the tray notice is gone. Replaced each time the still is queued.
+ */
+export type StillPromptCheck = {
+  /** Plain sentences: what was wrong and got fixed before the still was sent. */
+  repaired: string[];
+  /** What is still wrong — the still was sent with it. */
+  remaining: string[];
+};
+
+const PROMPT_CHECK_MAX_ITEMS = 8;
+const PROMPT_CHECK_MAX_TEXT = 200;
+
+function promptCheckMessages(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry): entry is string => typeof entry === 'string' && Boolean(entry.trim()))
+    .map(entry => entry.trim().slice(0, PROMPT_CHECK_MAX_TEXT))
+    .slice(0, PROMPT_CHECK_MAX_ITEMS);
+}
+
+/** The record for a `repairStillPrompt` result; undefined when the prompt was clean. */
+export function stillPromptCheckRecord(result: {
+  repaired: StillPromptIssue[];
+  remaining: StillPromptIssue[];
+}): StillPromptCheck | undefined {
+  return normalizeStillPromptCheck({
+    repaired: result.repaired.map(issue => issue.message),
+    remaining: result.remaining.map(issue => issue.message),
+  });
+}
+
+/** A stored record, tidied (saved settings / a restored story); undefined when empty or junk. */
+export function normalizeStillPromptCheck(value: unknown): StillPromptCheck | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const record = value as Record<string, unknown>;
+  const repaired = promptCheckMessages(record.repaired);
+  const remaining = promptCheckMessages(record.remaining);
+  return repaired.length > 0 || remaining.length > 0 ? { repaired, remaining } : undefined;
+}
+
+/**
+ * The card's one-line note: "Prompt check: fixed 1" (quiet) or "Prompt check: 1 problem"
+ * (warning). Null when there is nothing to say.
+ */
+export function promptCheckSummary(
+  check: StillPromptCheck | null | undefined
+): { label: string; tone: 'muted' | 'warning' } | null {
+  const fixed = check?.repaired.length ?? 0;
+  const problems = check?.remaining.length ?? 0;
+  if (fixed === 0 && problems === 0) return null;
+  const parts = [
+    problems > 0 ? `${problems} ${problems === 1 ? 'problem' : 'problems'}` : '',
+    fixed > 0 ? `fixed ${fixed}` : '',
+  ].filter(Boolean);
+  return {
+    label: `Prompt check: ${parts.join(', ')}`,
+    tone: problems > 0 ? 'warning' : 'muted',
   };
 }
 

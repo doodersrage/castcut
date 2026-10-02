@@ -596,7 +596,7 @@ export function characterFromRoleplaySession(
     return null;
   }
   return {
-    id: session.id.startsWith('char-') ? session.id : `char-rp-${session.id}`,
+    id: castIdForRoleplaySession(session.id),
     name,
     version: 1,
     updatedAt: session.updatedAt || Date.now(),
@@ -761,6 +761,30 @@ export function migrateCharactersFromLegacy(input: {
 }
 
 /** Create or refresh a Cast record from a Roleplay library session without clobbering looks. */
+/**
+ * The Story session id for a Cast id (as roleplay-library's roleplayLibraryIdForCharacter): a
+ * Story-made Cast "char-rp-<session>" owns "<session>", any other Cast "<id>" owns "cast-<id>".
+ */
+function roleplaySessionIdForCast(characterId: string): string {
+  return characterId.startsWith('char-rp-')
+    ? characterId.slice('char-rp-'.length)
+    : `cast-${characterId}`;
+}
+
+/**
+ * The Cast id for a Story session — the inverse of roleplaySessionIdForCast. Session
+ * "cast-<id>" belongs to Cast "<id>": mapping it to "char-rp-cast-<id>" made a second Cast
+ * with the same name, and the name clean-up in upsertCharacter then dropped the real one (its
+ * looks and plates with it).
+ */
+export function castIdForRoleplaySession(sessionId: string): string {
+  if (sessionId.startsWith('char-')) return sessionId;
+  if (sessionId.startsWith('cast-') && sessionId.length > 'cast-'.length) {
+    return sessionId.slice('cast-'.length);
+  }
+  return `char-rp-${sessionId}`;
+}
+
 export function upsertCharacterFromRoleplaySession(
   session: RoleplayLibrarySession
 ): CharacterRecord | undefined {
@@ -769,7 +793,14 @@ export function upsertCharacterFromRoleplaySession(
     return undefined;
   }
   const existing = loadCharacters();
-  const prev = existing.find(entry => entry.id === converted.id);
+  // The Cast this session belongs to: the one it was opened from (session "cast-<id>" for Cast
+  // "<id>"), or a copy an older version made under "char-rp-cast-<id>". The Cast's own record
+  // wins over that copy.
+  const owners = existing.filter(entry => roleplaySessionIdForCast(entry.id) === session.id);
+  const prev =
+    owners.find(entry => !entry.id.startsWith('char-rp-')) ??
+    owners[0] ??
+    existing.find(entry => entry.id === converted.id);
   if (prev) {
     upsertCharacter({
       ...converted,
@@ -1166,7 +1197,15 @@ export function getCharacter(id: string | undefined): CharacterRecord | undefine
   if (!key) {
     return undefined;
   }
-  return loadCharacters().find(entry => entry.id === key);
+  const characters = loadCharacters();
+  return (
+    characters.find(entry => entry.id === key) ??
+    // An older version replaced a Film-made Cast "<id>" with a copy "char-rp-cast-<id>" when its
+    // Story was saved; a reference to the old id finds that copy.
+    (key.startsWith('char-rp-')
+      ? undefined
+      : characters.find(entry => entry.id === `char-rp-cast-${key}`))
+  );
 }
 
 export function loraTriggerFromCharacter(

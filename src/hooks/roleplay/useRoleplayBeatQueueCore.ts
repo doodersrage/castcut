@@ -1,7 +1,12 @@
 'use client';
 
 import { composedPoseForScene } from '@/lib/pose-compose';
-import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
+import {
+  repairStillPrompt,
+  stillPromptCheckRecord,
+  stillPromptIssuesLine,
+  type StillPromptCheck,
+} from '@/lib/still-prompt-audit';
 import { storyLeadIsMan, storyPromptForManLead } from '@/lib/story-lead-gender';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
@@ -57,6 +62,7 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import type { RoleplayBeatOutput } from '@/lib/roleplay-film';
+import { roleplaySceneWritePlan, storyHasBeat } from '@/lib/roleplay-story-write';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { dispatchWebhook } from '@/lib/webhook-settings';
 import { snapshotRoleplaySession } from '@/lib/roleplay-library';
@@ -120,14 +126,15 @@ function leadIsMan(): boolean {
 
 /**
  * Text contradictions in a still's prompt (still-prompt-audit): what can be repaired without
- * guessing is repaired, the rest raises a notice. Never a block — returns the prompt to queue.
+ * guessing is repaired, the rest raises a notice. Never a block — returns the prompt to queue
+ * and the record the beat card shows (undefined when the prompt was clean).
  */
 function checkedStoryPrompt(
   prompt: string,
   label: string | undefined,
   people?: number,
   manLead = false
-): string {
+): { prompt: string; promptCheck: StillPromptCheck | undefined } {
   const checked = repairStillPrompt(manLead ? storyPromptForManLead(prompt) : prompt, {
     people: people || undefined,
   });
@@ -139,7 +146,7 @@ function checkedStoryPrompt(
       ttlMs: 20_000,
     });
   }
-  return checked.prompt;
+  return { prompt: checked.prompt, promptCheck: stillPromptCheckRecord(checked) };
 }
 
 /** What the Story still prompt needs to know about the Image 3 guide that was drawn. */
@@ -485,11 +492,12 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           },
           {
             sendComfyUi: actions.sendComfyUi,
-            onRender: () => {
+            onRender: ({ change }) => {
               const text = dayDressPlateStatus({
                 name: leadName,
                 clothing: true,
                 footwear: hasShoes,
+                change,
               });
               setDressPlateActivity({ text, busy: true });
               pushSystemTrayMessage({ text, tone: 'info' });
@@ -675,7 +683,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     ]
   );
 
-  const skipStillForClip = beatOutput === 'clip' && autoQueue;
+  const skipStillForClip = roleplaySceneWritePlan({ beatOutput, autoQueue }).skipStill;
 
   const commitStill = useCallback(
     async (
@@ -726,6 +734,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         .filter(Boolean)
         .join('\n');
       const prompt = await actions.finalizePrompt(promptWithPose, beat.title);
+      // Taken back or started over while it was written: queue nothing, save nothing (the bible
+      // too may have been replaced since).
+      if (options?.liveStory && !storyHasBeat(storyRef.current, beat)) {
+        return storyRef.current;
+      }
       rememberDraftFields({
         toolKey: TOOL_ID,
         label: 'Story',
@@ -745,6 +758,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         prompt,
         // The prompt now says what the scene says — an edited scene is no longer waiting.
         textEdited: undefined,
+        // The last check was of the previous prompt; the queue below records this one's.
+        promptCheck: undefined,
         ...(stillBrief ? { stillBrief } : {}),
       };
       if (queueStill) {
@@ -771,7 +786,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           }
         );
         const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
-        const sentPrompt = checkedStoryPrompt(
+        const { prompt: sentPrompt, promptCheck } = checkedStoryPrompt(
           rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(prompt) : prompt),
           beat.title,
           poseGuide?.prompt.headcount,
@@ -804,6 +819,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         stillPatch = {
           ...stillPatch,
           ...roleplayStillQueueResultPatch({ ...beat, prompt }, promptId),
+          promptCheck,
           ...(poseGuide?.imageUrl ? { poseGuideUrl: poseGuide.imageUrl } : {}),
           ...(poseGuide?.expect && promptId
             ? { poseGuideExpect: { ...poseGuide.expect, promptId } }
@@ -812,6 +828,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       } else {
         // Prompt is ready — clear writing so the reel does not say "Queueing…" with no Comfy job.
         stillPatch = { ...stillPatch, stillStatus: undefined };
+      }
+      if (options?.liveStory && !storyHasBeat(storyRef.current, beat)) {
+        return storyRef.current;
       }
       const nextStory = patchRoleplayStoryBeat(
         options?.liveStory ? storyRef.current : currentStory,
@@ -869,6 +888,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         ? loadComfyGallery().find(entry => entry.promptId === parentPromptId)
         : undefined;
       let promptId: string | undefined;
+      let promptCheck: StillPromptCheck | undefined;
       let poseGuideUrl: string | undefined;
       let poseGuideExpectBase: Omit<StoryPoseGuideExpect, 'promptId'> | undefined;
       try {
@@ -954,12 +974,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           { beat: latest, hasPoseGuide: Boolean(poseGuide) }
         );
         const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
-        const sentPrompt = checkedStoryPrompt(
+        const checked = checkedStoryPrompt(
           rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(queuePrompt) : queuePrompt),
           latest.title,
           poseGuide?.prompt.headcount,
           leadIsMan()
         );
+        const sentPrompt = checked.prompt;
+        promptCheck = checked.promptCheck;
         promptId = await actions.sendComfyUi(
           kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
           undefined,
@@ -1001,6 +1023,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       updateToolSettings({
         story: patchRoleplayStoryBeat(storyRef.current, latest, {
           ...roleplayStillQueueResultPatch(after, promptId),
+          promptCheck,
           ...(poseGuideUrl ? { poseGuideUrl } : {}),
           ...(poseGuideExpectBase && promptId
             ? { poseGuideExpect: { ...poseGuideExpectBase, promptId } }

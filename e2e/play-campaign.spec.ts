@@ -891,6 +891,142 @@ test('outfit pose from a photo: reads the pose and selects it', async ({ page })
   await expect(page.getByTestId('outfit-pose-photo')).toHaveAttribute('aria-checked', 'false');
 });
 
+/** A phone Story with a plate (writing a bible or a still needs one there). */
+const PHONE_STORY_PLATE = {
+  isolateSubject: false,
+  referenceImageUrl: '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp',
+  referenceImageFilename: 'e2e-story-plate.webp',
+};
+
+test('phone story: edit a scene in the reel, then write its still again', async ({ page }) => {
+  await seedStoryMidFlow(page, 'e2e-story-phone-edit', PHONE_STORY_PLATE, {
+    prompt: 'Story still: a letter under the door',
+  });
+  let rewrite: { blurb?: string; storyTitles?: string[] } | null = null;
+  await page.route('**/api/roleplay', async route => {
+    const body = route.request().postDataJSON() as {
+      action?: string;
+      situation?: { blurb?: string };
+      story?: Array<{ title?: string }>;
+    };
+    if (body.action === 'prompt') {
+      rewrite = {
+        blurb: body.situation?.blurb,
+        storyTitles: (body.story ?? []).map(beat => beat.title ?? ''),
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ prompt: 'Story still: she reads it on the stairs', provider: 'template' }),
+      });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{"scenes":[]}' });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoStable(page, '/m/story?character=e2e-story-phone-edit');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible({
+    timeout: 30_000,
+  });
+  const editButtons = page.getByTestId('story-beat-edit');
+  await expect(editButtons).toHaveCount(2);
+  // The scene whose still is rendering cannot be edited (as on desk).
+  await expect(editButtons.nth(1)).toBeDisabled();
+  await expect(page.getByTestId('story-beat-rewrite')).toHaveCount(0);
+  await editButtons.first().click();
+  const editor = page.getByTestId('story-beat-editor');
+  await expect(editor.getByTestId('story-beat-edit-text')).toHaveValue('A letter under the door.');
+  await editor.getByTestId('story-beat-edit-title').fill('The note');
+  await editor
+    .getByTestId('story-beat-edit-text')
+    .fill('She sits on the stairs and reads the letter twice.');
+  await editor.getByTestId('story-beat-edit-save').click();
+  await expect(editor).toHaveCount(0);
+  await expect(
+    page.getByText('She sits on the stairs and reads the letter twice.').first()
+  ).toBeVisible();
+  await expect(page.getByText('A letter under the door.')).toHaveCount(0);
+  const again = page.getByTestId('story-beat-rewrite');
+  await expect(again).toContainText('Scene text changed');
+  await again.getByTestId('story-beat-rewrite-button').click();
+  // The same request as desk: the new text, and only the story before the scene.
+  await expect.poll(() => rewrite?.blurb).toBe('She sits on the stairs and reads the letter twice.');
+  expect(rewrite?.storyTitles).toEqual([]);
+});
+
+test('phone story: start over — keep the bible, or a new bible for the same lead', async ({
+  page,
+}) => {
+  await seedStoryMidFlow(page, 'e2e-story-phone-over', PHONE_STORY_PLATE);
+  let bioRequest: { characterName?: string } | null = null;
+  await page.route('**/api/roleplay', async route => {
+    const body = route.request().postDataJSON() as { action?: string; characterName?: string };
+    const json = (payload: unknown) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
+    if (body.action === 'bio') {
+      bioRequest = { characterName: body.characterName };
+      await json({
+        bio: { name: 'Story Mid', look: 'red scarf, grey coat', personality: 'restless' },
+        provider: 'template',
+      });
+      return;
+    }
+    if (body.action === 'prompt') {
+      await json({ prompt: 'Story still: first look', provider: 'template' });
+      return;
+    }
+    await json({ scenes: [] });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoStable(page, '/m/story?character=e2e-story-phone-over');
+  await dismissBlockingOverlays(page);
+  const picker = page.getByTestId('story-beat-picker');
+  await expect(picker).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible();
+
+  // Asked in the page, as on desk; Cancel keeps the story.
+  const dialog = page.getByTestId('story-start-over-dialog');
+  await picker.getByTestId('story-start-over').click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('This clears 2 scenes from the reel');
+  await dialog.getByTestId('story-start-over-cancel').click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible();
+
+  // A new bible: written for the same lead, and the story opens again from it.
+  await picker.getByTestId('story-start-over').click();
+  await dialog.getByTestId('story-start-over-new-bible').click();
+  await expect.poll(() => bioRequest?.characterName).toBe('Story Mid');
+  await expect(page.getByText('First look').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('The letter')).toHaveCount(0);
+
+  // Keep the bible: the scenes go, the bible stays.
+  await picker.getByTestId('story-start-over').click();
+  await dialog.getByTestId('story-start-over-keep').click();
+  await expect(dialog).toHaveCount(0);
+  await expect(picker.getByTestId('story-start-over')).toHaveCount(0);
+  await expect(page.getByTestId('roleplay-story-empty')).toBeVisible();
+  await expect(page.getByText('Continuing as Story Mid')).toBeVisible();
+});
+
+test('phone story: take back the last scene', async ({ page }) => {
+  await seedStoryMidFlow(page, 'e2e-story-phone-undo', PHONE_STORY_PLATE);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoStable(page, '/m/story?character=e2e-story-phone-undo');
+  await dismissBlockingOverlays(page);
+  const picker = page.getByTestId('story-beat-picker');
+  await expect(picker).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('The station').filter({ visible: true }).first()).toBeVisible();
+  page.once('dialog', dialog => {
+    expect(dialog.message()).toContain('Take back the last scene');
+    void dialog.accept();
+  });
+  await picker.getByTestId('story-undo-scene').click();
+  await expect(page.getByText('The station').filter({ visible: true })).toHaveCount(0);
+  await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible();
+});
+
 test('phone story recognises the active Cast before any film is cut', async ({ page }) => {
   await seedStoryMidFlow(page, 'e2e-story-phone');
   await page.setViewportSize({ width: 390, height: 844 });
@@ -942,7 +1078,9 @@ test('look: one preset row, tile board, paste adds a tile', async ({ page }) => 
   await expect(board.getByTestId('look-tile-0')).toBeVisible();
 });
 
-test('day and story show a running job as Rendering, and Story Retry flagged', async ({ page }) => {
+test('day and story show a running job as Rendering, Story Retry flagged, and the prompt check', async ({
+  page,
+}) => {
   const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
   const now = Date.now();
   await seedSettingsCacheOnNextLoad(page, {
@@ -957,7 +1095,12 @@ test('day and story show a running job as Rendering, and Story Retry flagged', a
           { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'sleeps' },
         ],
         stills: [
-          { slotId: 'morning', status: 'completed', imageUrl: thumb },
+          {
+            slotId: 'morning',
+            status: 'completed',
+            imageUrl: thumb,
+            promptCheck: { repaired: ['Shoes are ordered on a barefoot scene.'], remaining: [] },
+          },
           { slotId: 'evening', status: 'queued', promptId: 'p-evening' },
         ],
       },
@@ -975,6 +1118,10 @@ test('day and story show a running job as Rendering, and Story Retry flagged', a
             stillStatus: 'completed',
             imageUrl: thumb,
             poseMatch: { imageUrl: thumb, score: 0.2, expectedPeople: 1, detectedPeople: 1 },
+            promptCheck: {
+              repaired: [],
+              remaining: ['A one-person still describes two people — it may render her twice.'],
+            },
           },
           {
             id: 'b2',
@@ -1032,11 +1179,28 @@ test('day and story show a running job as Rendering, and Story Retry flagged', a
   await expect(page.getByTestId('day-progress-evening')).toContainText('Rendering', {
     timeout: 30_000,
   });
+  // The queue-time prompt check stays on the card: one quiet line that opens to the details.
+  const dayCheck = page.getByTestId('day-slot-prompt-check-morning');
+  await expect(dayCheck.locator('summary')).toHaveText('Prompt check: fixed 1');
+  await expect(dayCheck).toHaveAttribute('data-tone', 'muted');
+  await dayCheck.locator('summary').click();
+  await expect(page.getByTestId('day-slot-prompt-check-morning-repaired')).toHaveText(
+    'Fixed: Shoes are ordered on a barefoot scene.'
+  );
+  await expect(page.getByTestId('day-slot-prompt-check-evening')).toHaveCount(0);
 
   await gotoStable(page, '/story?character=e2e-progress');
   await dismissBlockingOverlays(page);
   await expect(page.getByText(/^Rendering/).first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('story-retry-flagged-button')).toHaveText('Retry 1 flagged');
+  const storyCheck = page.getByTestId('story-beat-prompt-check');
+  await expect(storyCheck).toHaveCount(1);
+  await expect(storyCheck).toHaveAttribute('data-tone', 'warning');
+  await expect(storyCheck.locator('summary')).toHaveText('Prompt check: 1 problem');
+  await storyCheck.locator('summary').click();
+  await expect(page.getByTestId('story-beat-prompt-check-remaining')).toContainText(
+    'describes two people'
+  );
 });
 
 test('moodboard look extract controls load', async ({ page }) => {

@@ -24,6 +24,7 @@ import {
 } from '@/lib/comfyui-gallery';
 import { castPlateMediaId, persistOwnedPlateImage } from '@/lib/gallery-media-client';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import { stampedUploadName } from '@/lib/upload-name';
 import {
   DEFAULT_FITTING_TOOL_CACHE,
   loadSettingsCache,
@@ -904,12 +905,20 @@ export async function applyCastLookPlateFromSource(
       });
     })());
 
+  // Its own name in ComfyUI: another photo called the same would overwrite it, and the dressed
+  // plates (keyed by the Cast plate's filename) would start from the old one (upload-name.ts).
+  const uploadName = stampedUploadName(originalName);
+  const uploadFile = new File([sourceFile], uploadName, {
+    type: sourceFile.type || 'image/png',
+    lastModified: Date.now(),
+  });
+
   // Best-effort Comfy input upload — never block saving the Cast plate on it.
   let comfyFilename: string | undefined;
   try {
     const originalUploaded = await resolveQueueInputImage({
-      file: sourceFile,
-      filename: originalName,
+      file: uploadFile,
+      filename: uploadName,
       model: input.model,
     });
     comfyFilename = originalUploaded?.filename?.trim() || undefined;
@@ -925,7 +934,7 @@ export async function applyCastLookPlateFromSource(
     : '';
   const originalUrl = incomingDurable || originalViewUrl || imageUrl;
 
-  let queueFilename = comfyFilename || originalName;
+  let queueFilename = comfyFilename || uploadName;
   let queueUrl = originalUrl || incomingDurable;
   let isolated = false;
 
@@ -943,7 +952,7 @@ export async function applyCastLookPlateFromSource(
     isolated = input.alreadyIsolated === true;
   } else {
     try {
-      const cutout = await isolateSubjectOnWhite(sourceFile, originalName);
+      const cutout = await isolateSubjectOnWhite(sourceFile, uploadName);
       let cutoutFilename = cutout.name;
       try {
         const cutoutUploaded = await resolveQueueInputImage({
