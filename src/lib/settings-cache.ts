@@ -1170,6 +1170,8 @@ export type DayToolCache = {
   partnerCharacterId?: string;
   /** "Same stranger all day": the invented partner's rendered face (see day-partner-stand-in). */
   partnerStandIn?: import('./day-partner-stand-in').DayPartnerStandIn;
+  /** Dressed plates made for this Day (clothing + shoes on the Cast plate), newest first. */
+  dressPlates?: import('./day-dress-plate').DayDressPlateEntry[];
   /** Weather / season on every setting (unset: whatever the setting says). */
   dayWeather?: import('./day-weather').DayWeather;
   /** Solo / duo / mixed beat filter when dayMood is intimate or raunchy. */

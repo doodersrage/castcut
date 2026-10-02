@@ -171,6 +171,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     rerollActiveSlotScene,
     queueBlockReason,
     poseGuideLine,
+    dressPlateStatus,
+    dressPlatePreviewUrl,
+    redoDressPlate,
     poseGuidePreviews,
     wardrobeOptions,
     wardrobeReady,
@@ -399,6 +402,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               // The get-started card already says what's missing.
               queueBlockReason={character && hasPlate ? queueBlockReason : null}
               poseGuideLine={poseGuideLine}
+              dressPlateStatus={dressPlateStatus}
+              dressPlatePreviewUrl={dressPlatePreviewUrl}
+              onRedoDressPlate={redoDressPlate}
               poseGuidePreviews={poseGuidePreviews}
             />
           </div>

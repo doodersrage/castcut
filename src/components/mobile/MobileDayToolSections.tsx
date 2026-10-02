@@ -152,6 +152,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
     rerollActiveSlotScene,
     queueBlockReason,
     poseGuideLine,
+    dressPlateStatus,
+    dressPlatePreviewUrl,
+    redoDressPlate,
     poseGuidePreviews,
     wardrobeOptions,
     wardrobeReady,
@@ -361,6 +364,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
             // The get-started card already says what's missing.
             queueBlockReason={character && hasPlate ? queueBlockReason : null}
             poseGuideLine={poseGuideLine}
+            dressPlateStatus={dressPlateStatus}
+            dressPlatePreviewUrl={dressPlatePreviewUrl}
+            onRedoDressPlate={redoDressPlate}
             poseGuidePreviews={poseGuidePreviews}
           />
         </div>

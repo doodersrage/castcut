@@ -3572,12 +3572,16 @@ export function buildDaySlotPrompt(input: {
           rapidEveryday && faceOnlyIdentity
             ? ''
             : '; the underwear in Image 1 is only the fitting base, never part of the outfit';
+        // Image 1 is a dressed plate (an Outfit Keep or Day's dress plate): the outfit is the one
+        // she has on there — there is no fitting underwear to explain away.
         const outfitLead =
-          fromKit && kit
-            ? `OUTFIT (mandatory): she wears a ${kit} — fully dressed${base}.`
-            : worn && !fromKit && !suggestiveCouple
-              ? `OUTFIT (mandatory): she wears ${worn}${base}.`
-              : null;
+          fromKit && kit && recipeInput.outfitFromFirst
+            ? `OUTFIT (mandatory): she wears a ${kit} — exactly the outfit and shoes she has on in Image 1, unchanged.`
+            : fromKit && kit
+              ? `OUTFIT (mandatory): she wears a ${kit} — fully dressed${base}.`
+              : worn && !fromKit && !suggestiveCouple
+                ? `OUTFIT (mandatory): she wears ${worn}${base}.`
+                : null;
         // Rapid on a face crop: the brief's identity sentence first. It says what Image 1 is; the
         // likeness gain is small (InsightFace distance 0.61 against 0.64 without it, 32 stills —
         // the brief's standing portraits scored 0.48).

@@ -107,6 +107,12 @@ export type PoseModelProfile = {
    * beats came out in lace two-pieces and bodysuits instead of the named dress.
    */
   clothedDuoEngine?: string;
+  /**
+   * Day dresses the Cast once (clothing + shoes on the look plate) and starts clothed stills from
+   * that plate (day-dress-plate.ts). Edit 2511 only so far: it is where it was measured, and on
+   * Rapid a full dressed plate as Image 1 froze upright poses when it was last tried.
+   */
+  dressPlate?: boolean;
   /** Queues on this engine's graph, then converts (Qwen-Image 2.1 → Rapid AIO NSFW edit). */
   graphBaseModel?: string;
 };
@@ -147,6 +153,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     poseStickyClothed: true,
     compactDayRecipes: true,
     adultEngine: 'qwen-rapid-aio-edit-nsfw',
+    dressPlate: true,
   },
   'qwen-image-2.1': {
     ...BASE,
