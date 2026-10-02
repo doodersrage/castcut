@@ -1,5 +1,11 @@
 'use client';
 
+import { footwearIsBarefoot } from '@/lib/footwear';
+import {
+  buildFootwearReferenceImage,
+  footwearImageSuitsModel,
+  hasFootwearImage,
+} from '@/lib/footwear-image';
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { poseFirstLine } from '@/lib/pose-starters';
@@ -107,49 +113,55 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
     kitPreviewsRef.current = input.kitPreviews;
   }, [input.kitPreviews]);
 
-  const buildPrompt = useCallback(() => {
-    const customGarmentUrl = input.toolSettings.customGarmentImageUrl?.trim();
-    const customGarmentFilename = input.toolSettings.customGarmentImageFilename?.trim();
-    const garmentDescription = input.toolSettings.customGarmentDescription?.trim();
-    const hasCustomGarment = Boolean(customGarmentUrl || customGarmentFilename);
-    const outfitLabel = hasCustomGarment
-      ? garmentDescription || 'uploaded clothing reference'
-      : input.lockedWardrobeLabel?.trim() || input.shared.lockedWardrobeId?.trim() || '';
-    if (!outfitLabel) {
-      throw new Error('Pick a wardrobe kit or upload a clothing photo first.');
-    }
-    if (!input.hasReference) {
-      throw new Error('Add a plate — Cast look, upload, or Gallery still.');
-    }
-    const garmentExtras = buildFittingGarmentReferenceExtras({
-      wardrobeId: hasCustomGarment ? undefined : input.shared.lockedWardrobeId,
-      customGarmentUrl,
-      customGarmentFilename,
-    });
-    return buildFittingOutfitPrompt({
-      outfitLabel: hasCustomGarment
-        ? garmentDescription
-          ? clipFittingGarmentLabel(garmentDescription)
-          : 'uploaded clothing reference'
-        : outfitLabel,
-      characterName: input.character?.name,
-      // Deliberately omit Cast descriptor/hints — clothing in look notes fights the kit.
-      notes: input.toolSettings.notes,
-      isolated: input.toolSettings.referenceIsolated === true,
-      hasGarmentReference: Boolean(garmentExtras),
-      garmentDescription: hasCustomGarment ? garmentDescription : undefined,
-    });
-  }, [
-    input.character?.name,
-    input.hasReference,
-    input.lockedWardrobeLabel,
-    input.shared.lockedWardrobeId,
-    input.toolSettings.customGarmentDescription,
-    input.toolSettings.customGarmentImageFilename,
-    input.toolSettings.customGarmentImageUrl,
-    input.toolSettings.notes,
-    input.toolSettings.referenceIsolated,
-  ]);
+  const buildPrompt = useCallback(
+    (footwearImage?: 'combined' | 'alone' | null) => {
+      const customGarmentUrl = input.toolSettings.customGarmentImageUrl?.trim();
+      const customGarmentFilename = input.toolSettings.customGarmentImageFilename?.trim();
+      const garmentDescription = input.toolSettings.customGarmentDescription?.trim();
+      const hasCustomGarment = Boolean(customGarmentUrl || customGarmentFilename);
+      const outfitLabel = hasCustomGarment
+        ? garmentDescription || 'uploaded clothing reference'
+        : input.lockedWardrobeLabel?.trim() || input.shared.lockedWardrobeId?.trim() || '';
+      if (!outfitLabel) {
+        throw new Error('Pick a wardrobe kit or upload a clothing photo first.');
+      }
+      if (!input.hasReference) {
+        throw new Error('Add a plate — Cast look, upload, or Gallery still.');
+      }
+      const garmentExtras = buildFittingGarmentReferenceExtras({
+        wardrobeId: hasCustomGarment ? undefined : input.shared.lockedWardrobeId,
+        customGarmentUrl,
+        customGarmentFilename,
+      });
+      return buildFittingOutfitPrompt({
+        outfitLabel: hasCustomGarment
+          ? garmentDescription
+            ? clipFittingGarmentLabel(garmentDescription)
+            : 'uploaded clothing reference'
+          : outfitLabel,
+        characterName: input.character?.name,
+        // Deliberately omit Cast descriptor/hints — clothing in look notes fights the kit.
+        notes: input.toolSettings.notes,
+        isolated: input.toolSettings.referenceIsolated === true,
+        hasGarmentReference: Boolean(garmentExtras),
+        garmentDescription: hasCustomGarment ? garmentDescription : undefined,
+        footwear: input.toolSettings.footwear,
+        footwearImage,
+      });
+    },
+    [
+      input.character?.name,
+      input.hasReference,
+      input.lockedWardrobeLabel,
+      input.shared.lockedWardrobeId,
+      input.toolSettings.customGarmentDescription,
+      input.toolSettings.customGarmentImageFilename,
+      input.toolSettings.customGarmentImageUrl,
+      input.toolSettings.footwear,
+      input.toolSettings.notes,
+      input.toolSettings.referenceIsolated,
+    ]
+  );
 
   const queueTryOn = useCallback(
     async (options?: { wardrobeId?: string }): Promise<boolean> => {
@@ -176,11 +188,46 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           input.updateShared({ lockedWardrobeId: overrideWardrobeId });
         }
         await loadWardrobeGarmentThumbManifest();
-        const garmentExtras = buildFittingGarmentReferenceExtras({
+        const garmentOnly = buildFittingGarmentReferenceExtras({
           wardrobeId: hasCustomGarment ? undefined : wardrobeIdForQueue,
           customGarmentUrl,
           customGarmentFilename,
         });
+        // Footwear with a picture (a kit's, or your own photo) shares Image 2 with the clothing.
+        let garmentExtras: {
+          inputImageUrls?: [undefined, string];
+          inputImageFilenames?: [undefined, string];
+        } | null = garmentOnly;
+        let footwearImage: 'combined' | 'alone' | null = null;
+        const footwearRef = {
+          imageUrl: input.toolSettings.footwearImageUrl,
+          imageFilename: input.toolSettings.footwearImageFilename,
+        };
+        if (
+          footwearImageSuitsModel(input.shared.model) &&
+          hasFootwearImage(footwearRef) &&
+          !footwearIsBarefoot(input.toolSettings.footwear)
+        ) {
+          try {
+            const reference = await buildFootwearReferenceImage({
+              garment: garmentOnly
+                ? {
+                    imageUrl: garmentOnly.inputImageUrls?.[1],
+                    imageFilename: garmentOnly.inputImageFilenames?.[1],
+                  }
+                : null,
+              footwear: footwearRef,
+              model: input.shared.model,
+            });
+            if (reference) {
+              garmentExtras = { inputImageFilenames: [undefined, reference.filename] };
+              footwearImage = reference.combined ? 'combined' : 'alone';
+            }
+          } catch (footwearError) {
+            // The shoes still go out in words.
+            console.warn('Outfit footwear image could not be attached:', footwearError);
+          }
+        }
         // Pose → Custom: the joint editor's skeleton rides as Image 3 (VL-only, like Day's guide).
         const customPose = input.toolSettings.tryOnPose;
         let poseGuideFilename: string | undefined;
@@ -200,7 +247,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
             console.warn('Outfit custom pose could not be attached:', poseError);
           }
         }
-        const builtPrompt = buildPrompt();
+        const builtPrompt = buildPrompt(footwearImage);
         const prompt =
           poseGuideFilename && customPose?.people[0]
             ? `${poseFirstLine(
@@ -285,6 +332,9 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
       input.actions,
       input.character,
       input.toolSettings.tryOnPose,
+      input.toolSettings.footwear,
+      input.toolSettings.footwearImageFilename,
+      input.toolSettings.footwearImageUrl,
       input.isolateSubject,
       input.lockedWardrobeLabel,
       input.referenceImageFilename,

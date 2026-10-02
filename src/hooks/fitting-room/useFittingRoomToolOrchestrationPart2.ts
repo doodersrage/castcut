@@ -1,5 +1,6 @@
 'use client';
 
+import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -211,6 +212,16 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     },
     [shared]
   );
+
+  const applyFootwearPhoto = useFootwearPhoto({
+    shared,
+    lookId: character?.activeLookId,
+    currentFootwear: toolSettings.footwear,
+    sendComfyUi: (prompt, _a, _b, options) =>
+      actions.sendComfyUi(prompt, undefined, undefined, options),
+    onPatch: updateToolSettings,
+    onError: setError,
+  });
 
   const applyCustomGarment = useCallback(
     async (input: {
@@ -778,6 +789,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     garmentUploading,
     garmentScanStatus,
     applyCustomGarment,
+    applyFootwearPhoto,
     rescanCustomGarment,
     clearCustomGarment,
     saveCurrentCustomGarment,

@@ -1,5 +1,6 @@
 'use client';
 
+import type { FootwearFieldValue } from '@/components/wardrobe/FootwearField';
 import type { RefObject } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipButton, FieldLabel, TextArea } from '@/components/ui/Field';
@@ -68,6 +69,7 @@ export type FittingWardrobeKitSectionProps = {
   onApplySavedCustomGarment: (garmentId: string) => void;
   onRemoveSavedCustomGarment: (garmentId: string) => void;
   onCustomGarmentDescriptionChange: (description: string) => void;
+  footwear: FootwearFieldValue;
   onError: (message: string) => void;
 };
 
@@ -115,6 +117,7 @@ export default function FittingWardrobeKitSection({
   onApplySavedCustomGarment,
   onRemoveSavedCustomGarment,
   onCustomGarmentDescriptionChange,
+  footwear,
   onError,
 }: FittingWardrobeKitSectionProps) {
   useWardrobeGarmentThumbManifestGeneration();
@@ -156,6 +159,7 @@ export default function FittingWardrobeKitSection({
           onRemoveSaved: onRemoveSavedCustomGarment,
           onDescriptionChange: onCustomGarmentDescriptionChange,
         }}
+        footwear={footwear}
         kits={swipeDeck}
         kitsReady={wardrobeReady}
         selectedKitId={deckSelectionId}

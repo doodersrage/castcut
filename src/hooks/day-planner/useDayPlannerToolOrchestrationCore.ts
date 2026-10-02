@@ -131,6 +131,17 @@ import {
 } from '@/lib/day-lead-gender';
 import { normalizeDayWeather, withDayWeather } from '@/lib/day-weather';
 import { dayClothedLeadLines, dayOutfitPromptName } from '@/lib/day-clothed-lead';
+import {
+  beatOwnsFootwear,
+  footwearIsBarefoot,
+  normalizeFootwear,
+  withFootwearLine,
+} from '@/lib/footwear';
+import {
+  buildFootwearReferenceImage,
+  footwearImageSuitsModel,
+  hasFootwearImage,
+} from '@/lib/footwear-image';
 import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
 import {
   renderDayPartnerStandIn,
@@ -174,6 +185,7 @@ import {
 import { fetchComfyObjectInfoModelsCached } from '@/lib/comfyui-object-info-cache';
 import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
 import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
+import { IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import {
   loadWardrobeGarmentThumbManifest,
@@ -1076,7 +1088,7 @@ export function useDayPlannerToolOrchestrationCore() {
             }
           }
         }
-        const garmentReinforce =
+        const clothingReinforce =
           omitGarment || replaceKeepOutfit || partnerFace
             ? null
             : vacationFaceBreak
@@ -1084,6 +1096,47 @@ export function useDayPlannerToolOrchestrationCore() {
                 ? byoOrPackGarment
                 : null
               : byoOrPackGarment;
+        // Footwear picked beside the clothing: clothed stills only, not Sport (the sport's own
+        // shoes) and not a beat that is about the feet ("heels in one hand").
+        const footwearApplies =
+          !(isDayAdultMood(toolSettings.dayMood) && intimateEnabled) &&
+          normalizeDayMood(toolSettings.dayMood) !== 'sport' &&
+          !beatOwnsFootwear(queueTarget.sceneHints);
+        const footwear = footwearApplies ? normalizeFootwear(toolSettings.footwear) : '';
+        // With a picture (a kit's, or your own photo) the shoes share Image 2 with the clothing.
+        // Only when the still has a clothing image: other paths use Image 2 for something else
+        // (a partner's face, the pose map), and there the shoes go out in words alone.
+        let garmentReinforce = clothingReinforce;
+        let footwearImage: 'combined' | null = null;
+        const footwearRef = {
+          imageUrl: toolSettings.footwearImageUrl,
+          imageFilename: toolSettings.footwearImageFilename,
+        };
+        if (
+          footwearApplies &&
+          footwearImageSuitsModel(stillModel) &&
+          !footwearIsBarefoot(footwear) &&
+          hasFootwearImage(footwearRef) &&
+          (clothingReinforce?.imageUrl || clothingReinforce?.imageFilename)
+        ) {
+          try {
+            const reference = await buildFootwearReferenceImage({
+              garment: clothingReinforce,
+              footwear: footwearRef,
+              model: stillModel,
+            });
+            if (reference?.combined) {
+              garmentReinforce = {
+                ...clothingReinforce,
+                imageUrl: undefined,
+                imageFilename: reference.filename,
+              };
+              footwearImage = 'combined';
+            }
+          } catch (footwearError) {
+            console.warn('Day footwear image could not be attached:', footwearError);
+          }
+        }
         // FLUX.2 Klein holds a full-body plate's face loosely — the head crop rides along as the
         // last reference (see klein-face-reference.ts). Same cached crop as face-break.
         let kleinFaceReference: { filename?: string } | null = null;
@@ -1146,12 +1199,14 @@ export function useDayPlannerToolOrchestrationCore() {
             // The still renders at Image 1's aspect, so draw the guide at that aspect too —
             // a portrait guide squeezed onto a square latent lands the body in the wrong place.
             const image1Plate = omitGarment ? identityPlate : (identityPlate ?? queuePlate);
+            // Only URLs of that file: the shared identity image can be another shape (a square
+            // face), and a guide drawn to it is squeezed onto the portrait still.
             const image1Url =
               image1Plate?.imageUrl?.trim() ||
               collectIsolateSourceUrls({
                 filename: image1Plate?.filename?.trim() || undefined,
                 comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
-              })[0];
+              }).find(url => url !== IDENTITY_MEDIA_URL);
             const poseBuild = await buildDayPoseGuide(
               queueTarget.id,
               posePlan.sceneText,
@@ -1311,8 +1366,11 @@ export function useDayPlannerToolOrchestrationCore() {
                 : null,
             });
         const prompt = [
-          ...clothedLeadLines,
-          basePrompt,
+          // The picked footwear replaces the automatic "shoes that suit the outfit" line.
+          ...clothedLeadLines.filter(
+            line => !(footwear && /^She wears shoes that suit/.test(line))
+          ),
+          withFootwearLine(basePrompt, footwear, 'she', footwearImage),
           // The duo recipes name the partner's image themselves; the long brief (and a recipe
           // that has no partner wording, e.g. Klein spoon) gets one line.
           !slotPartner
@@ -1603,6 +1661,9 @@ export function useDayPlannerToolOrchestrationCore() {
       toolSettings.customGarmentImageFilename,
       toolSettings.customGarmentImageUrl,
       toolSettings.dayMood,
+      toolSettings.footwear,
+      toolSettings.footwearImageFilename,
+      toolSettings.footwearImageUrl,
       toolSettings.identityBoost,
       toolSettings.intimateMix,
       toolSettings.partnerCharacterId,

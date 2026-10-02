@@ -1065,6 +1065,11 @@ export type RoleplayToolCache = {
   customGarmentImageFilename?: string;
   /** Vision scan of the BYO clothing photo — text cue for Story stills. */
   customGarmentDescription?: string;
+  /** Footwear worn with the outfit, in words ('' / unset = auto). See footwear.ts. */
+  footwear?: string;
+  /** Footwear packshot (a kit's, or your own photo) — rides in Image 2 with the clothing. */
+  footwearImageUrl?: string;
+  footwearImageFilename?: string;
   /** Adult roll mix: solo / duo / mixed (same chips as Day Intimate). */
   intimateMix?: import('./day-planner').DayIntimateMix;
 };
@@ -1105,6 +1110,11 @@ export type FittingToolCache = {
   customGarmentImageFilename?: string;
   /** Vision scan of the BYO clothing photo — text cue for try-on. */
   customGarmentDescription?: string;
+  /** Footwear worn with the outfit, in words ('' / unset = auto). See footwear.ts. */
+  footwear?: string;
+  /** Footwear packshot (a kit's, or your own photo) — rides in Image 2 with the clothing. */
+  footwearImageUrl?: string;
+  footwearImageFilename?: string;
   /** Opt-in: score each landed try-on (face match vs plate + vision outfit read). */
   autoReviewTryOns?: boolean;
   /** Outfit → Pose → Custom: the joint editor's skeleton, sent as Image 3 (unset = as the plate). */
@@ -1177,6 +1187,11 @@ export type DayToolCache = {
   customGarmentImageFilename?: string;
   /** Vision scan of the BYO clothing photo — text cue for Day stills. */
   customGarmentDescription?: string;
+  /** Footwear worn with the outfit, in words ('' / unset = auto). See footwear.ts. */
+  footwear?: string;
+  /** Footwear packshot (a kit's, or your own photo) — rides in Image 2 with the clothing. */
+  footwearImageUrl?: string;
+  footwearImageFilename?: string;
   /**
    * When true, hide the sticky “Ready to cut” coach so it doesn’t cover the
    * board on scroll. Cut film stays available on the Day reel section.

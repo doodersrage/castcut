@@ -11,7 +11,9 @@ import {
 } from '@/lib/fitting-kit-previews';
 import {
   buildFittingGarmentPackshotExtractPrompt,
+  buildFootwearPackshotExtractPrompt,
   FITTING_GARMENT_PACKSHOT_EXTRACT_NEGATIVE,
+  FOOTWEAR_PACKSHOT_EXTRACT_NEGATIVE,
   isCollapsedFittingGarmentDescription,
 } from '@/lib/fitting-room';
 import {
@@ -27,6 +29,8 @@ export type ApplyCustomGarmentInput = {
   filename?: string;
   /** Skip isolate + extract — use the file as Image 2 as-is. */
   asPackshot?: boolean;
+  /** What the photo shows (default clothing). Footwear extracts the shoes instead. */
+  kind?: 'clothing' | 'footwear';
 };
 
 export type ApplyCustomGarmentResult = {
@@ -74,11 +78,15 @@ export async function applyCustomGarmentUpload(
   const file = input.file ?? null;
   const imageUrl = input.imageUrl?.trim() || '';
   const asPackshot = input.asPackshot === true;
+  const shoes = input.kind === 'footwear';
+  // Same steps for clothing and shoes; only the words and the extract prompt differ.
+  const noun = shoes ? 'footwear' : 'clothing';
+  const stem = shoes ? 'fitting-footwear' : 'fitting-garment';
   if (!file && !imageUrl) {
-    throw new Error('Choose a clothing photo first.');
+    throw new Error(`Choose a ${noun} photo first.`);
   }
 
-  const originalName = input.filename || file?.name || `fitting-garment-${Date.now()}.png`;
+  const originalName = input.filename || file?.name || `${stem}-${Date.now()}.png`;
   const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
   const sourceFile =
     file ??
@@ -126,7 +134,7 @@ export async function applyCustomGarmentUpload(
   }
 
   let garmentFile = sourceFile;
-  deps.onStatus('Extracting clothing onto white…');
+  deps.onStatus(`Extracting ${noun} onto white…`);
   try {
     garmentFile = await isolateSubjectOnWhite(sourceFile, originalName);
   } catch {
@@ -149,12 +157,31 @@ export async function applyCustomGarmentUpload(
   const cutoutFilename = filename;
   const cutoutPreviewUrl = previewUrl;
 
+  // Shoes are read first: the extract needs their name to keep the right pair (see
+  // buildFootwearPackshotExtractPrompt), and a guessed pair is worse than no picture.
+  let shoeWords = '';
+  if (shoes) {
+    deps.onStatus('Reading the shoes…');
+    try {
+      shoeWords = (await deps.scanDescription(sourceFile))?.trim() ?? '';
+    } catch {
+      shoeWords = '';
+    }
+    if (!shoeWords) {
+      throw new Error(
+        'Could not read the shoes in that photo — a worn photo needs a vision model (Settings → LLM). Upload a packshot of the shoes, or type them under In words.'
+      );
+    }
+  }
+
   const packshotModel = resolveFittingGarmentPackshotModel(deps.model);
   if (packshotModel) {
-    deps.onStatus('Building clothing-only packshot…');
+    deps.onStatus(shoes ? 'Building shoes-only packshot…' : 'Building clothing-only packshot…');
     try {
       const promptId = await deps.sendComfyUi(
-        buildFittingGarmentPackshotExtractPrompt(),
+        shoes
+          ? buildFootwearPackshotExtractPrompt({ description: shoeWords })
+          : buildFittingGarmentPackshotExtractPrompt(),
         undefined,
         undefined,
         {
@@ -164,7 +191,9 @@ export async function applyCustomGarmentUpload(
           queueModel: packshotModel,
           qualityProfile: 'draft',
           turboEditStrength: 'strong',
-          explicitNegative: FITTING_GARMENT_PACKSHOT_EXTRACT_NEGATIVE,
+          explicitNegative: shoes
+            ? FOOTWEAR_PACKSHOT_EXTRACT_NEGATIVE
+            : FITTING_GARMENT_PACKSHOT_EXTRACT_NEGATIVE,
           queueParamsBase: fittingGarmentPackshotQueueParams(),
           queueHints: '',
           characterId: deps.characterId,
@@ -181,14 +210,10 @@ export async function applyCustomGarmentUpload(
         const packshotUrl = entry ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
         if (packshotUrl) {
           const packshotBlob = await loadImageBlobFromUrls([packshotUrl]);
-          const packshotFile = new File(
-            [packshotBlob],
-            `fitting-garment-packshot-${Date.now()}.png`,
-            {
-              type: packshotBlob.type || 'image/png',
-              lastModified: Date.now(),
-            }
-          );
+          const packshotFile = new File([packshotBlob], `${stem}-packshot-${Date.now()}.png`, {
+            type: packshotBlob.type || 'image/png',
+            lastModified: Date.now(),
+          });
           uploaded = await resolveQueueInputImage({
             file: packshotFile,
             filename: packshotFile.name,
@@ -208,10 +233,16 @@ export async function applyCustomGarmentUpload(
             }).find(url => url.includes('/api/comfyui/view?')) ?? packshotUrl;
 
           let description: string | undefined;
-          deps.onStatus('Checking clothing packshot…');
+          deps.onStatus(`Checking ${noun} packshot…`);
           try {
-            const probeDescription = await deps.scanDescription(packshotFile);
-            if (isCollapsedFittingGarmentDescription(probeDescription)) {
+            // Shoes keep the words read from the worn photo — they named the extract.
+            const probeDescription = shoes ? shoeWords : await deps.scanDescription(packshotFile);
+            // Shoes: an empty read means the edit lost them — keep the cutout, as for clothing.
+            if (
+              shoes
+                ? !probeDescription?.trim()
+                : isCollapsedFittingGarmentDescription(probeDescription)
+            ) {
               garmentFile = cutoutFile;
               filename = cutoutFilename;
               previewUrl = cutoutPreviewUrl;
@@ -243,8 +274,8 @@ export async function applyCustomGarmentUpload(
 
   let description: string | undefined;
   try {
-    deps.onStatus('Scanning clothing packshot with vision…');
-    const scanned = await deps.scanDescription(garmentFile);
+    deps.onStatus(`Scanning ${noun} packshot with vision…`);
+    const scanned = shoeWords || (await deps.scanDescription(garmentFile));
     if (scanned?.trim()) {
       description = scanned.trim();
     }

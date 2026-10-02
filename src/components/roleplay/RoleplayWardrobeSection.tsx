@@ -42,6 +42,7 @@ export default function RoleplayWardrobeSection({
     garmentUploading,
     garmentScanStatus,
     applyCustomGarment,
+    applyFootwearPhoto,
     clearCustomGarment,
     rescanCustomGarment,
     saveCurrentCustomGarment,
@@ -94,6 +95,13 @@ export default function RoleplayWardrobeSection({
               onRemoveSaved: removeSavedCustomGarment,
               onDescriptionChange: value =>
                 onUpdateToolSettings({ customGarmentDescription: value }),
+            }}
+            footwear={{
+              value: toolSettings.footwear,
+              imageUrl: toolSettings.footwearImageUrl,
+              imageFilename: toolSettings.footwearImageFilename,
+              onChange: patch => onUpdateToolSettings(patch),
+              onApplyPhoto: applyFootwearPhoto,
             }}
             kits={wardrobeKitDeck}
             kitsReady={wardrobeReady}

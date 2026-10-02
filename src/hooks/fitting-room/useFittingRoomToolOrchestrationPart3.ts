@@ -166,6 +166,7 @@ export function useFittingRoomToolOrchestrationPart3(
     clearReference,
     garmentUploading,
     applyCustomGarment,
+    applyFootwearPhoto,
     clearCustomGarment,
     clearKit,
     selectKit,

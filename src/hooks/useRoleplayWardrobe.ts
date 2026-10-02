@@ -1,5 +1,6 @@
 'use client';
 
+import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { parseCharacterHints } from '@/lib/character-hints';
 import { getCharacter } from '@/lib/character-os';
@@ -123,6 +124,16 @@ export function useRoleplayWardrobe({
     },
     [shared]
   );
+
+  const applyFootwearPhoto = useFootwearPhoto({
+    shared,
+    lookId: character?.activeLookId,
+    currentFootwear: toolSettings.footwear,
+    sendComfyUi: (prompt, _a, _b, options) =>
+      actions.sendComfyUi(prompt, undefined, undefined, options),
+    onPatch: updateToolSettings,
+    onError: setError,
+  });
 
   const applyCustomGarment = useCallback(
     async (input: {
@@ -303,6 +314,7 @@ export function useRoleplayWardrobe({
     garmentUploading,
     garmentScanStatus,
     applyCustomGarment,
+    applyFootwearPhoto,
     clearCustomGarment,
     rescanCustomGarment,
     saveCurrentCustomGarment,

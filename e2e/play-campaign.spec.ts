@@ -89,6 +89,47 @@ test('outfit first run: Cast card, one plate message, grouped kit controls', asy
   await expect(review).toHaveAttribute('aria-checked', 'true');
 });
 
+test('outfit footwear: a kit, barefoot, own words, own photo', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: '' },
+    characters: { version: 1, characters: [], removedIds: [] },
+  });
+  await gotoStable(page, '/fitting');
+  await dismissBlockingOverlays(page);
+  const footwear = page.getByTestId('fitting-footwear');
+  await expect(footwear).toBeVisible({ timeout: 30_000 });
+  const hint = page.getByTestId('fitting-footwear-hint');
+  await expect(hint).toContainText('Auto');
+  await expect(page.getByTestId('fitting-footwear-auto')).toHaveAttribute('aria-pressed', 'true');
+
+  // A kit is picked like a clothing kit: its tile, with its packshot.
+  const boots = page.getByTestId('fitting-footwear-kit-rain-boots');
+  await expect(boots.locator('img')).toHaveAttribute('src', '/footwear/rain-boots.webp');
+  await boots.getByRole('button').click();
+  await expect(hint).toHaveText('Worn on every clothed still: bright yellow rubber rain boots.');
+  await expect(boots.getByRole('button')).toHaveAttribute('aria-current', 'true');
+  // The type filter narrows the strip.
+  await footwear.getByRole('combobox', { name: 'Footwear type' }).selectOption('Heels');
+  await expect(page.getByTestId('fitting-footwear-kit-black-pumps')).toBeVisible();
+  await expect(boots).toHaveCount(0);
+
+  await page.getByTestId('fitting-footwear-barefoot').click();
+  await expect(hint).toHaveText('Barefoot on every clothed still.');
+
+  await footwear.getByRole('tab', { name: 'In words' }).click();
+  await page.getByTestId('fitting-footwear-custom').fill('red suede block-heel sandals');
+  await expect(hint).toHaveText('Worn on every clothed still: red suede block-heel sandals.');
+
+  // Your own shoes: a worn photo or a packshot, as for clothing.
+  await footwear.getByRole('tab', { name: 'My shoes' }).click();
+  await expect(footwear.getByLabel('Upload a photo of shoes being worn')).toBeAttached();
+  await expect(footwear.getByLabel('Upload a ready shoe packshot')).toBeAttached();
+
+  await footwear.getByRole('tab', { name: 'Kits' }).click();
+  await page.getByTestId('fitting-footwear-auto').click();
+  await expect(hint).toContainText('Auto');
+});
+
 test('outfit custom pose: drag editor, start figures, save to My poses', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: '' },
@@ -412,8 +453,7 @@ test('outfit pose from a photo: reads the pose and selects it', async ({ page })
     'base64'
   );
   await page
-    .getByTestId('outfit-pose-photo')
-    .locator('input[type=file]')
+    .getByTestId('outfit-pose-photo-input')
     .setInputFiles({ name: 'pose-plate.png', mimeType: 'image/png', buffer: png });
   await expect(page.getByTestId('outfit-pose-photo-status')).toContainText(
     'Using the pose from your photo.'

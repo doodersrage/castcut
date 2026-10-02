@@ -1,5 +1,6 @@
 'use client';
 
+import { beatOwnsFootwear, footwearPromptLine, normalizeFootwear } from '@/lib/footwear';
 import { useCallback } from 'react';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import {
@@ -474,7 +475,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         adult,
         guideLayout: poseLayoutFromKey(poseGuide?.expect.poseKey),
       });
+      // Footwear picked beside the clothing: clothed stories only, and not a beat about the feet.
+      const footwear =
+        adult || beatOwnsFootwear(beat.blurb) ? '' : normalizeFootwear(toolSettings.footwear);
       const promptWithPose = [
+        footwearPromptLine(footwear),
         withRoleplayPoseGuidePrompt(
           dressForRating(promptSource, poseGuide?.prompt.headcount),
           Boolean(poseGuide) || (!queueStill && playAs === 'photo'),
@@ -577,6 +582,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       roleplayCharacterQueueFields,
       shared.model,
       shared.renderRealismMode,
+      toolSettings.footwear,
       updateToolSettings,
     ]
   );

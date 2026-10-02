@@ -17,6 +17,7 @@ export const STILL_SCAN_PURPOSES = [
   'controlnet',
   'roleplay-photo',
   'fitting-garment',
+  'footwear',
 ] as const;
 
 export type StillScanPurpose = (typeof STILL_SCAN_PURPOSES)[number];
@@ -70,6 +71,15 @@ Return ONLY JSON: {"prompt":""}
 - Prefer what is visible on the clothing itself. Ignore face, body, pose, and background. Do not invent garments that are not visible.
 - Prefer concrete nouns (blazer, chino, chelsea boot) over brand names. No markdown, no commentary.`,
     user: 'Describe the clothing in this extracted reference for an outfit try-on.',
+  },
+  footwear: {
+    system: `You read a photo of shoes (a product shot, or shoes on someone's feet) for an outfit try-on.
+Return ONLY JSON: {"prompt":""}
+- prompt: ONE short noun phrase naming the footwear only — colour, material, type, heel or sole, closures. Under 18 words, lower case, no full stop.
+- Example: "red suede block-heel sandals with ankle straps".
+- Ignore the person, clothes, pose and background. No brand names. If no footwear is visible return {"prompt":""}.
+- No markdown, no commentary.`,
+    user: 'Name the footwear in this photo in one short phrase.',
   },
 };
 

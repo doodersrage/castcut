@@ -1,5 +1,6 @@
 'use client';
 
+import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { clipEngineForShot } from '@/lib/ltx25-renderer';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
 import { dayPartnerNoun } from '@/lib/day-partner';
@@ -951,6 +952,16 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     });
   }, [slots, updateShared, updateToolSettings]);
 
+  const applyFootwearPhoto = useFootwearPhoto({
+    shared,
+    lookId: character?.activeLookId,
+    currentFootwear: toolSettings.footwear,
+    sendComfyUi: (prompt, _a, _b, options) =>
+      actions.sendComfyUi(prompt, undefined, undefined, options),
+    onPatch: updateToolSettings,
+    onError: setError,
+  });
+
   const applyCustomGarment = useCallback(
     async (input: {
       file?: File | null;
@@ -1145,6 +1156,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     garmentUploading,
     garmentScanStatus,
     applyCustomGarment,
+    applyFootwearPhoto,
     clearCustomGarment,
     rescanCustomGarment,
     saveCurrentCustomGarment,

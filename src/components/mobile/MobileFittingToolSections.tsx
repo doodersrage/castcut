@@ -93,6 +93,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     garmentUploading,
     garmentScanStatus,
     applyCustomGarment,
+    applyFootwearPhoto,
     clearCustomGarment,
     rescanCustomGarment,
     saveCurrentCustomGarment,
@@ -380,6 +381,13 @@ export default function MobileFittingToolSections(vm: ViewModel) {
             onApplySaved: applySavedCustomGarment,
             onRemoveSaved: removeSavedCustomGarment,
             onDescriptionChange: value => updateToolSettings({ customGarmentDescription: value }),
+          }}
+          footwear={{
+            value: toolSettings.footwear,
+            imageUrl: toolSettings.footwearImageUrl,
+            imageFilename: toolSettings.footwearImageFilename,
+            onChange: patch => updateToolSettings(patch),
+            onApplyPhoto: applyFootwearPhoto,
           }}
           kits={swipeDeck}
           kitsReady={wardrobeReady}

@@ -91,6 +91,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     garmentUploading,
     garmentScanStatus,
     applyCustomGarment,
+    applyFootwearPhoto,
     clearCustomGarment,
     rescanCustomGarment,
     saveCurrentCustomGarment,
@@ -308,6 +309,13 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onCustomGarmentDescriptionChange={value =>
           updateToolSettings({ customGarmentDescription: value })
         }
+        footwear={{
+          value: toolSettings.footwear,
+          imageUrl: toolSettings.footwearImageUrl,
+          imageFilename: toolSettings.footwearImageFilename,
+          onChange: patch => updateToolSettings(patch),
+          onApplyPhoto: applyFootwearPhoto,
+        }}
         onError={message => setError(message)}
       />
 

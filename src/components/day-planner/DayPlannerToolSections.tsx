@@ -205,6 +205,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     garmentUploading,
     garmentScanStatus,
     applyCustomGarment,
+    applyFootwearPhoto,
     clearCustomGarment,
     rescanCustomGarment,
     saveCurrentCustomGarment,
@@ -1095,6 +1096,13 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     onRemoveSaved: removeSavedCustomGarment,
                     onDescriptionChange: value =>
                       updateToolSettings({ customGarmentDescription: value }),
+                  }}
+                  footwear={{
+                    value: toolSettings.footwear,
+                    imageUrl: toolSettings.footwearImageUrl,
+                    imageFilename: toolSettings.footwearImageFilename,
+                    onChange: patch => updateToolSettings(patch),
+                    onApplyPhoto: applyFootwearPhoto,
                   }}
                   kits={wardrobeKitDeck}
                   kitsReady={wardrobeReady}

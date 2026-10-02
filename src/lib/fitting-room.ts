@@ -1,6 +1,7 @@
 import type { CharacterRecord } from '@/lib/character-os';
 import { activeLook } from '@/lib/character-os';
 import { buildSinglePersonUserDirective } from '@/lib/single-person';
+import { footwearPromptLine } from '@/lib/footwear';
 import type { RoleplayToolCache } from '@/lib/settings-cache';
 
 export type FittingCompareTryOn = {
@@ -101,8 +102,11 @@ export function fittingSessionStatusLine(input: {
 }): string {
   const plate = input.hasPlate ? 'Plate ready' : 'No plate';
   if (input.hasByo) {
-    const byo = input.byoLabel?.trim() || 'Your clothing photo';
-    return `${plate} · ${byo}`;
+    // The vision description runs to a paragraph; a status line takes its opening words.
+    const described = input.byoLabel?.replace(/\s+/g, ' ').trim() ?? '';
+    const first = (described.split(/(?<=[.!?])\s/)[0] ?? described).replace(/[.!?]+$/, '');
+    const byo = first.length > 64 ? `${first.slice(0, 63).trimEnd()}…` : first;
+    return `${plate} · ${byo || 'Your clothing photo'}`;
   }
   const kit = input.kitLabel?.trim();
   if (kit) {
@@ -418,6 +422,28 @@ export function buildFittingGarmentPackshotExtractPrompt(input?: {
   ].join(' ');
 }
 
+/**
+ * Edit that turns a photo of someone wearing shoes into a shoes-only product shot.
+ *
+ * The shoes must be named: they are a few pixels of a full-body photo, and unnamed the edit
+ * invents a pair (yellow rain boots came back as yellow heels 3/4, live 2026-10-01; named, the
+ * right type 8/8).
+ */
+export function buildFootwearPackshotExtractPrompt(input?: { description?: string }): string {
+  const named = input?.description?.trim().replace(/[.\s]+$/, '');
+  return [
+    `Replace Image 1 with a photoreal ecommerce product photograph of only the shoes worn in Image 1${named ? ` — ${named}` : ''}:`,
+    'the same pair, both shoes side by side seen from a three-quarter angle, centered on a seamless pure white studio background.',
+    'Keep the exact shoe type, colour, material, heel and straps.',
+    'No person, no legs, no feet, no socks, no clothing.',
+    'Soft even studio light, sharp detail.',
+    'A real shoe photo — not a pattern, texture, grid or text.',
+  ].join(' ');
+}
+
+export const FOOTWEAR_PACKSHOT_EXTRACT_NEGATIVE =
+  'person, legs, feet, skin, dress, clothing, repeating pattern, tiled texture, wallpaper, illegible text, grid of icons, kaleidoscope, empty white frame';
+
 /** Negatives for the packshot extract edit — fights the tiled/glyph collapse mode. */
 export const FITTING_GARMENT_PACKSHOT_EXTRACT_NEGATIVE =
   'repeating pattern, tiled texture, seamless wallpaper, abstract geometry, glyph wall, illegible text, hieroglyphs, noise field, grid of icons, procedural texture, kaleidoscope, no clothing, empty frame';
@@ -467,11 +493,20 @@ export function buildFittingOutfitPrompt(input: {
   hasGarmentReference?: boolean;
   /** Vision (or manual) description of the BYO clothing photo. */
   garmentDescription?: string;
+  /** Footwear picked beside the clothing ('' = leave it to the outfit). */
+  footwear?: string;
+  /** The shoes are pictured in Image 2: under the clothing, or as Image 2 on their own. */
+  footwearImage?: 'combined' | 'alone' | null;
 }): string {
   const outfit = input.outfitLabel.trim();
+  const footwear = footwearPromptLine(input.footwear, 'she', input.footwearImage)
+    // The try-on brief is a list of short lower-case instructions.
+    .replace(/^FOOTWEAR \(mandatory\): /, 'footwear (mandatory): ')
+    .replace(/\.$/, '');
   const name = input.characterName?.trim();
   const notes = input.notes?.trim();
-  const garmentDescription = input.garmentDescription?.trim();
+  // No trailing full stop: the description is followed by one ("throughout.. Keep face").
+  const garmentDescription = input.garmentDescription?.trim().replace(/[.\s]+$/, '');
   const garmentLine = input.hasGarmentReference
     ? garmentDescription
       ? `Apply the exact outfit from Image 2 (ghost-mannequin / flat-lay clothing packshot). Match silhouette, color, fabric, and accessories. Visible garments: ${garmentDescription}. Keep face, hair, body, and pose from Image 1.`
@@ -480,8 +515,12 @@ export function buildFittingOutfitPrompt(input: {
   return [
     'Edit instruction for an outfit try-on:',
     input.hasGarmentReference
-      ? 'Image 1 is the person plate; Image 2 is the clothing-only packshot (no person)'
-      : null,
+      ? input.footwearImage === 'combined'
+        ? 'Image 1 is the person plate; Image 2 is the clothing-only packshot with the shoes underneath it (no person)'
+        : 'Image 1 is the person plate; Image 2 is the clothing-only packshot (no person)'
+      : input.footwearImage === 'alone'
+        ? 'Image 1 is the person plate; Image 2 is a packshot of the shoes only (no person)'
+        : null,
     'keep: face, hair, body identity, skin tone, and likeness from the reference plate only',
     name ? `subject: ${name}` : null,
     // Never inject Cast look / bible notes — they often name the plate's clothes and
@@ -489,6 +528,7 @@ export function buildFittingOutfitPrompt(input: {
     'ignore Cast look notes, character bible clothing, and any wardrobe described on the character record',
     garmentLine,
     input.hasGarmentReference ? `outfit name (confirm match): ${outfit}` : null,
+    footwear || null,
     'discard every garment, uniform, shoe, bag, hat, and accessory from Image 1 unless the new outfit explicitly includes them',
     'do not restore the reference photo street clothes even if they match older look notes',
     input.isolated
