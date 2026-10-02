@@ -1036,6 +1036,20 @@ describe('day-planner', () => {
     );
     const withGarment = 'Image 2 is a packshot. Image 3 is a pose map.';
     assert.equal(renumberDayPoseGuideAsImage2(withGarment), withGarment);
+    // Stock outfit phrases name Image 2 even when no clothing image is attached.
+    assert.equal(
+      renumberDayPoseGuideAsImage2(
+        'CLOTHING LOCK: wear the exact Keep/Image 2 outfit. keep the outfit Image 2 or the beat names; Match Image 3. Wear the Keep outfit from Image 2 exactly.'
+      ),
+      'CLOTHING LOCK: wear the exact Keep outfit. keep the outfit worn in Image 1; Match Image 2. Wear the Keep outfit from Image 1 exactly.'
+    );
+    // The general "Image 2 or Image 3" line is not a second image.
+    assert.equal(
+      renumberDayPoseGuideAsImage2(
+        'Match Image 3. Never leave Image 2 or Image 3 white as the scene background.'
+      ),
+      'Match Image 2. Never leave Image 2 white as the scene background.'
+    );
   });
 
   it('buildDaySlotPrompt leads sport stills with the venue and the action', () => {

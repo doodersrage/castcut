@@ -124,6 +124,8 @@ export function useMobilePlayToolOrchestrationCore() {
     shareLastCut,
     filmError,
     filmGuideHref,
+    filmCutOptions,
+    setFilmCutOptions,
   } = useRoleplayFilmActions({
     toolSettings,
     storyRef,
@@ -496,6 +498,8 @@ export function useMobilePlayToolOrchestrationCore() {
     shareLastCut,
     filmError,
     filmGuideHref,
+    filmCutOptions,
+    setFilmCutOptions,
     actions,
     beatQueue,
     wardrobe,

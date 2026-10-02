@@ -166,7 +166,7 @@ function WardrobeKitBrowserDialog({
           >
             {matches.length === 0 ? (
               <p className="type-caption text-[var(--text-muted)]">
-                No kits match “{query.trim()}”. Try another word or clear search.
+                Nothing matches “{query.trim()}”. Try another word or clear search.
               </p>
             ) : (
               <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">

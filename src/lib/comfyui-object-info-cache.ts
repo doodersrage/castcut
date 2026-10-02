@@ -32,6 +32,22 @@ export function readCachedComfyObjectInfoModels(comfyUrl?: string): ComfyUiModel
   return readCachedComfyObjectInfo(comfyUrl)?.models ?? null;
 }
 
+/**
+ * The cached model lists whatever URL they were fetched under — including the server-configured
+ * default, which {@link readCachedComfyObjectInfoModels} cannot see when no URL is set in the
+ * browser. For display decisions only (is this model installed?), not for queue routing.
+ */
+export function readAnyCachedComfyObjectInfoModels(): ComfyUiModelLists | null {
+  if (!memoryCache || Date.now() - memoryCache.fetchedAt > CACHE_TTL_MS) {
+    return null;
+  }
+  const resolved = resolveCacheUrl();
+  if (resolved && memoryCache.comfyUrl !== resolved && memoryCache.comfyUrl !== 'default') {
+    return null;
+  }
+  return memoryCache.models;
+}
+
 export function readCachedComfyObjectInfo(comfyUrl?: string): ComfyObjectInfoCachePayload | null {
   const resolved = resolveCacheUrl(comfyUrl);
   if (!resolved || !memoryCache) {

@@ -130,14 +130,28 @@ const RECIPE_POSTURE_CUES: Record<string, string> = {
   jump: 'in mid-air, both feet off the ground, knees tucked up',
 };
 
+/** One-person wording for layouts whose own cue describes two people. */
+const SOLO_RECIPE_CUES: Record<string, string> = {
+  dance: 'dancing alone: both arms raised, one knee lifted mid-step, nobody else beside her',
+  toast: 'one hand raises a glass at shoulder height, the other arm relaxed',
+  high_five: 'one arm raised high with an open palm',
+  selfie_duo: 'one arm extended up and out holding a phone toward the face, looking at it',
+};
+
 export function withRecipePoseCue(
   prompt: string,
   layout: string | null | undefined,
   /** The drawn guide's pose key ("jump:1") — plain postures with a recipe cue of their own. */
   poseKey?: string | null
 ): string {
-  const cue =
-    poseLayoutCue(layout) ?? RECIPE_POSTURE_CUES[poseKey?.split(':')[0]?.trim() ?? ''] ?? null;
+  // These recipes are one-person stills. A layout that also exists for two ("dance", "toast")
+  // has a cue about "the two people" — in a solo recipe it put a second copy of her on the
+  // dance floor. Use the solo wording, or no cue.
+  const key = layout?.trim() ?? '';
+  const layoutCue = ALWAYS_CUED_DUO_LAYOUTS.has(key)
+    ? (SOLO_RECIPE_CUES[key] ?? null)
+    : poseLayoutCue(layout);
+  const cue = layoutCue ?? RECIPE_POSTURE_CUES[poseKey?.split(':')[0]?.trim() ?? ''] ?? null;
   if (!cue || /\bPose: /.test(prompt)) return prompt;
   const sentence = `Pose: ${cue}. `;
   if (prompt.includes(' Place: ')) return prompt.replace(' Place: ', ` ${sentence}Place: `);
@@ -147,8 +161,16 @@ export function withRecipePoseCue(
 }
 
 /** Prompt line for a cued layout. */
-export function poseLayoutCueLine(layout: string | null | undefined): string {
-  const cue = poseLayoutCue(layout);
+export function poseLayoutCueLine(
+  layout: string | null | undefined,
+  /** Figures on the drawn guide — a one-person still never gets a "the two people…" cue. */
+  people?: number
+): string {
+  const key = layout?.trim() ?? '';
+  const cue =
+    people === 1 && ALWAYS_CUED_DUO_LAYOUTS.has(key)
+      ? (SOLO_RECIPE_CUES[key] ?? null)
+      : poseLayoutCue(layout);
   return cue ? `POSE DETAIL (as Image 3 shows): ${cue}.` : '';
 }
 

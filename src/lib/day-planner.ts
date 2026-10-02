@@ -3025,10 +3025,15 @@ export function resolveDayPoseHeadcount(input: {
   intimateMix?: DayIntimateMix;
   allowCompanions?: boolean;
 }): number {
-  const counted = countPoseGuidePeople(input.haystack);
+  const adult = isDayAdultMood(input.dayMood);
+  // Clothed moods count the people the beat names: a Setting adds nobody ("sunset pier railing
+  // with long shadows" made every solo beat a pair), and sex verbs are not a partner there.
+  const counted = countPoseGuidePeople(!adult && input.beat?.trim() ? input.beat : input.haystack, {
+    sexVocabulary: adult,
+  });
   const allowCompanions = input.allowCompanions === true;
-  // Suggestive / Vacation / Sport / Everyday: never invent a partner from
-  // furniture "straddle"/sex-vocab false positives unless Duo · companions is on.
+  // Suggestive / Vacation / Sport / Everyday: one person unless Duo · companions is on — and
+  // then only a partner the beat names (see `counted`).
   if (!isDayAdultMood(input.dayMood)) {
     if (!allowCompanions) {
       return 1;
@@ -4372,8 +4377,18 @@ export function seedDaySlotsFromKeeperWardrobes(
  * not exist. Renumber when the brief never mentions an Image 2 (otherwise it is ambiguous).
  */
 export function renumberDayPoseGuideAsImage2(prompt: string): string {
-  if (/\bImage 2\b/.test(prompt)) {
+  // The brief's general line "Never leave Image 2 or Image 3 white…" is not a second image:
+  // it used to stop the renumbering, and a still with two images kept calling the pose map
+  // "Image 3".
+  // The same goes for the briefs' stock outfit phrases: with no clothing image attached the
+  // outfit is the one worn in Image 1 (the Keep or dressed plate), not "Image 2".
+  const merged = prompt
+    .replace(/\bImage 2 or Image 3\b/g, 'Image 3')
+    .replace(/\bKeep\/Image 2 outfit\b/g, 'Keep outfit')
+    .replace(/\bthe outfit Image 2 or the beat names\b/g, 'the outfit worn in Image 1')
+    .replace(/\bthe Keep outfit from Image 2\b/g, 'the Keep outfit from Image 1');
+  if (/\bImage 2\b/.test(merged)) {
     return prompt;
   }
-  return prompt.replace(/\bImage 3\b/g, 'Image 2');
+  return merged.replace(/\bImage 3\b/g, 'Image 2');
 }

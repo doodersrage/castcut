@@ -1856,6 +1856,14 @@ html[data-theme='light'] .page-canvas::before {
   will-change: box-shadow, border-color;
 }
 
+/* Default padding, in the base layer so any px-/py- utility still wins. About forty inputs and
+   selects used `ui-input` without padding classes and rendered as thin unpadded controls. */
+@layer base {
+  .ui-input {
+    padding: var(--input-padding-y) var(--input-padding-x);
+  }
+}
+
 .ui-input::placeholder {
   color: var(--text-muted);
 }

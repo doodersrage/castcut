@@ -7,6 +7,7 @@ import { SegmentedControl, accentFocusClass } from '@/components/ui/ToolPageShel
 import UiIcon from '@/components/ui/UiIcon';
 import ClothingTile, { CLOTHING_STRIP_CLASS } from '@/components/wardrobe/ClothingTile';
 import UploadTile from '@/components/wardrobe/UploadTile';
+import WardrobeKitBrowser from '@/components/wardrobe/WardrobeKitBrowser';
 import WearingCard from '@/components/wardrobe/WearingCard';
 import type { ApplyFootwearPhoto, FootwearPatch } from '@/hooks/useFootwearPhoto';
 import { FOOTWEAR_MAX_LENGTH, footwearIsBarefoot, normalizeFootwear } from '@/lib/footwear';
@@ -98,6 +99,7 @@ export default function FootwearField({
     pickedMode ?? (ownPhoto ? 'photo' : stored && !kit && !barefoot ? 'words' : 'kit');
   const busy = Boolean(disabled) || photoBusy;
   const savedShoes = useSavedFootwear();
+  const [browse, setBrowse] = useState<'kits' | 'saved' | null>(null);
   const alreadySaved = savedShoes.some(entry => entry.imageFilename === imageFilename?.trim());
   const kits = useMemo(
     () => (group === 'All' ? FOOTWEAR_KITS : FOOTWEAR_KITS.filter(entry => entry.group === group)),
@@ -178,7 +180,45 @@ export default function FootwearField({
                 </option>
               ))}
             </SelectInput>
+            {/* The strip shows a handful at a time; Browse shows them all, searchable — as the
+                clothing kits have. */}
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              data-testid={`${testIdPrefix}-footwear-browse`}
+              onClick={() => setBrowse('kits')}
+            >
+              Browse
+            </Button>
           </div>
+          <WardrobeKitBrowser
+            open={browse === 'kits'}
+            kits={kits.map(entry => ({
+              id: entry.id,
+              label: entry.label,
+              group: `${entry.group} ${entry.words}`,
+            }))}
+            selectedId={!ownPhoto ? kit?.id : undefined}
+            disabled={busy}
+            title="Browse footwear"
+            description={`${kits.length} pair${kits.length === 1 ? '' : 's'}${
+              group === 'All' ? '' : ` in ${group}`
+            } — search, then tap one to wear it.`}
+            searchPlaceholder="Search — heels, boots, white, strappy…"
+            thumbFit="contain"
+            resolveThumb={entry => ({ url: footwearKitImageUrl(entry.id) })}
+            onSelect={id => {
+              const picked = FOOTWEAR_KITS.find(entry => entry.id === id);
+              if (!picked) return;
+              onChange({
+                footwear: picked.words,
+                footwearImageUrl: footwearKitImageUrl(picked.id),
+                footwearImageFilename: undefined,
+              });
+            }}
+            onClose={() => setBrowse(null)}
+          />
           <div className={CLOTHING_STRIP_CLASS} data-testid={`${testIdPrefix}-footwear-kits`}>
             {kits.map(entry => (
               <ClothingTile
@@ -274,9 +314,49 @@ export default function FootwearField({
           </div>
           {savedShoes.length > 0 ? (
             <div className="space-y-1" data-testid={`${testIdPrefix}-footwear-saved`}>
-              <p className="type-caption text-[var(--text-muted)]">
-                Saved shoes · {savedShoes.length}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="type-caption text-[var(--text-muted)]">
+                  Saved shoes · {savedShoes.length}
+                </p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  data-testid={`${testIdPrefix}-footwear-browse-saved`}
+                  onClick={() => setBrowse('saved')}
+                >
+                  Browse
+                </Button>
+              </div>
+              <WardrobeKitBrowser
+                open={browse === 'saved'}
+                kits={savedShoes.map(entry => ({
+                  id: entry.id,
+                  label: entry.label,
+                  group: entry.words,
+                }))}
+                selectedId={
+                  savedShoes.find(entry => entry.imageFilename === imageFilename?.trim())?.id
+                }
+                disabled={busy}
+                title="Browse my shoes"
+                description={`${savedShoes.length} saved pair${savedShoes.length === 1 ? '' : 's'} — search, then tap one to wear it.`}
+                searchPlaceholder="Search — heels, boots, white, strappy…"
+                thumbFit="contain"
+                resolveThumb={entry => ({
+                  url: savedShoes.find(saved => saved.id === entry.id)?.imageUrl ?? null,
+                })}
+                onSelect={id => {
+                  const picked = savedShoes.find(entry => entry.id === id);
+                  if (!picked) return;
+                  onChange({
+                    footwear: picked.words ?? '',
+                    footwearImageUrl: picked.imageUrl,
+                    footwearImageFilename: picked.imageFilename,
+                  });
+                }}
+                onClose={() => setBrowse(null)}
+              />
               <div className={CLOTHING_STRIP_CLASS}>
                 {savedShoes.map(entry => (
                   <ClothingTile

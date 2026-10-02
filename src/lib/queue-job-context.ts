@@ -81,8 +81,24 @@ export type QueueJobLabel = {
   source: string;
 };
 
+/**
+ * Day and Outfit stills are queued through the edit pipeline, so their gallery entry says
+ * "image-prompt". Once a still is no longer in the current Day plan the Queue labelled it
+ * "Image → Prompt" and linked there. The prompt says what it was.
+ */
+export function inferPlayToolFromPrompt(
+  prompt: string | null | undefined
+): 'day' | 'fitting' | null {
+  const text = String(prompt ?? '');
+  if (/Edit instruction for an outfit try-on/i.test(text)) return 'fitting';
+  if (/Edit instruction for a Day still|\b(?:Day|Vacation|Suggestive) photo:/i.test(text)) {
+    return 'day';
+  }
+  return null;
+}
+
 export function describeQueueJob(
-  entry: Pick<ComfyGalleryEntry, 'promptId' | 'tool' | 'characterId'>,
+  entry: Pick<ComfyGalleryEntry, 'promptId' | 'tool' | 'characterId'> & { prompt?: string },
   index: PlayJobIndex,
   castName?: string | null
 ): QueueJobLabel {
@@ -117,12 +133,18 @@ export function describeQueueJob(
       source: 'story',
     };
   }
-  const tool = galleryToolLabel(entry.tool);
+  const inferred =
+    entry.tool === 'image-prompt' || entry.tool === 'imagePrompt'
+      ? inferPlayToolFromPrompt(entry.prompt)
+      : null;
+  const tool = galleryToolLabel(inferred ?? entry.tool);
   return {
     label: [tool, cast].filter(Boolean).join(' · '),
-    href,
+    href: inferred
+      ? galleryToolHrefForEntry({ tool: inferred, characterId: entry.characterId })
+      : href,
     openLabel: `Open in ${tool}`,
-    source: entry.tool?.trim() || 'generate',
+    source: inferred ?? (entry.tool?.trim() || 'generate'),
   };
 }
 

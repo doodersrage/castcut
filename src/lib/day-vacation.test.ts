@@ -16,6 +16,7 @@ import {
   dayVacationPoseNeedsBodyUnlock,
   pickDayVacationScenePair,
   suggestiveUnlockPoseClass,
+  vacationPoseClassFromBeat,
   vacationStanceDirective,
 } from './day-vacation';
 
@@ -339,5 +340,38 @@ describe('day-vacation', () => {
       hasOutfitImage: true,
     });
     assert.doesNotMatch(generic.preamble, /^SEATED/);
+  });
+});
+
+describe('vacation pose class from the beat lead', () => {
+  it('takes the class from an ALL-CAPS lead only', () => {
+    assert.equal(vacationPoseClassFromBeat('KICKING through the surf at the shoreline'), 'KICKING');
+    // Prose: "kicking off heels" got the roundhouse-kick directive and was drawn as yoga.
+    const heels =
+      'kicking off heels on the bed after dinner — lying back across the mattress in a cocktail dress';
+    assert.equal(vacationPoseClassFromBeat(heels), 'OTHER');
+    assert.equal(suggestiveUnlockPoseClass(heels), 'OTHER');
+    // Suggestive prose still maps through its own rules.
+    assert.equal(suggestiveUnlockPoseClass('stretching in thin sleepwear by the window'), 'STRETCHING');
+  });
+
+  it('seats a RELAXING beat that sits upright', () => {
+    for (const beat of [
+      'RELAXING at a wine-bar counter with a glass — evening dress, chin on hand',
+      'RELAXING upright against the hotel headboard with a room-service tray',
+      'RELAXING in a jazz-bar booth with a cocktail — evening dress, chin on hand',
+      'RELAXING on a pier bench watching the sunset',
+      'RELAXING on the balcony with a breakfast tray — croissant in hand',
+      'RELAXING on the balcony writing a postcard',
+    ]) {
+      assert.equal(vacationPoseClassFromBeat(beat), 'SEATED', beat);
+    }
+    for (const beat of [
+      'RELAXING on a beach towel with a sunhat over her face',
+      'RELAXING on a pool lounge with an iced drink on the side table',
+      'RELAXING in a lit pool at night — floating on her back with arms out',
+    ]) {
+      assert.equal(vacationPoseClassFromBeat(beat), 'RELAXING', beat);
+    }
   });
 });

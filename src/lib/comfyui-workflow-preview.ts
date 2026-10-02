@@ -257,8 +257,19 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
     snippets.push(...findValuePaths(injected.workflow, input.negativePrompt.trim(), '', 2));
   }
 
+  // One line per place: two params with the same value (width and height on a square canvas)
+  // each found the first match, so the list repeated "6.inputs.width → 1328".
+  const shownPaths = new Set(snippets.map(snippet => snippet.path));
   for (const value of Object.values(resolvedParams)) {
-    snippets.push(...findValuePaths(injected.workflow, String(value), '', 1));
+    // Exact matches only when looking past the first place: "8" (steps) is also inside
+    // "model_fp8_v1.safetensors", which is not a place the value was put.
+    const next = findValuePaths(injected.workflow, String(value), '', 12).find(
+      snippet => !shownPaths.has(snippet.path) && snippet.value === String(value)
+    );
+    if (next) {
+      shownPaths.add(next.path);
+      snippets.push(next);
+    }
     if (snippets.length >= 8) {
       break;
     }

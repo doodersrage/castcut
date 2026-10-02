@@ -43,6 +43,46 @@ describe('Day beat headcount', () => {
     assert.deepEqual(solo, []);
   });
 
+  it('plans two people — not only draws them — for a hugged friend', () => {
+    // The hug guide drew a pair while the plan said one (so no partner was attached).
+    for (const beat of [
+      'hugging a friend hello on the sidewalk, both smiling',
+      'arm around a friend on a rooftop at golden hour',
+    ]) {
+      const plan = planDaySlotPose({
+        slot: { id: 'morning', sceneHints: beat, location: 'city park' },
+        dayMood: 'everyday',
+        intimateMix: 'mixed',
+        allowCompanions: true,
+        model: 'qwen-rapid-aio-edit',
+      });
+      assert.equal(plan.headcount, 2, beat);
+    }
+  });
+
+  it('adds nobody for a Setting or a sex verb on a clothed beat with companions on', () => {
+    const headcount = (beat: string, location: string, dayMood: string) =>
+      planDaySlotPose({
+        slot: { id: 'evening', sceneHints: beat, location },
+        dayMood,
+        intimateMix: 'mixed',
+        allowCompanions: true,
+        model: 'qwen-rapid-aio-edit',
+      }).headcount;
+    const rail = 'sunset pier railing with long shadows and cool wind';
+    assert.equal(headcount('reclining on the couch with feet up on the cushion', rail, 'everyday'), 1);
+    assert.equal(
+      headcount('leaning on a balcony railing with a breeze lifting a short hem', '', 'suggestive'),
+      1
+    );
+    assert.equal(
+      headcount('driving the final meters of a sprint with chest thrust forward', '', 'sport'),
+      1
+    );
+    // Adult moods keep the sex vocabulary.
+    assert.equal(headcount('grinding on the bed mid-thrust', '', 'intimate'), 2);
+  });
+
   it('no solo Everyday beat is read as two people', () => {
     const beats = PARTS.flatMap(part => [
       ...(DAY_SLOT_BEAT_PRESETS[part] ?? []),

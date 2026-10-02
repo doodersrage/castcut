@@ -106,7 +106,7 @@ export function footwearPromptLine(
  * "kicking off her shoes") — a footwear line would contradict the scene.
  */
 export function beatOwnsFootwear(beat: string | null | undefined): boolean {
-  return /\b(?:barefoot|bare feet|heels in (?:one |her |his )?hands?|shoes? in (?:one |her |his )?hands?|(?:kick|kicking|kicks|took|taking|takes|slipping|slips) off (?:her |his )?(?:heels|shoes|boots|sneakers))\b/i.test(
+  return /\b(?:barefoot|bare feet|heels in (?:one |her |his )?hands?|shoes? in (?:one |her |his )?hands?|(?:kick|kicking|kicks|took|taking|takes|slipping|slips) off (?:her |his )?(?:heels|shoes|boots|sneakers)|(?:heels|shoes|boots|sneakers|sandals) (?:kicked |slipped |taken )?off|feet (?:dangling )?in the water|toes in the (?:sand|water))\b/i.test(
     beat ?? ''
   );
 }

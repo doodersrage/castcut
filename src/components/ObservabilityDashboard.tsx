@@ -87,7 +87,7 @@ export default function ObservabilityDashboard() {
 
       {data?.llm ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label="LLM calls (24h)" value={String(data.llm.last24h)} />
+          <Metric label="LLM calls, whole server (24h)" value={String(data.llm.last24h)} />
           <Metric label="Vision ranks (24h)" value={String(data.llm.visionRank24h ?? 0)} />
           <Metric label="Text best-of-N (24h)" value={String(data.llm.bestOfNRank24h ?? 0)} />
           <Metric label="LLM avg duration" value={`${data.llm.avgDurationMs}ms`} />

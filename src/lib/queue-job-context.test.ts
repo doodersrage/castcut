@@ -139,6 +139,33 @@ describe('time left', () => {
     assert.equal(two.totalSec, 40);
   });
 
+  it('a Day or Outfit still filed under the edit pipeline is labelled by what it is', () => {
+    const index = buildPlayJobIndex({ daySlots: [], dayStills: [], story: [] });
+    const day = describeQueueJob(
+      {
+        promptId: 'gone',
+        tool: 'image-prompt',
+        characterId: 'c1',
+        prompt: 'Edit Image 1: Vacation photo: One woman alone on vacation. She walks.',
+      },
+      index,
+      'Robin'
+    );
+    assert.equal(day.label, 'Day · Robin');
+    assert.equal(day.openLabel, 'Open in Day');
+    assert.match(day.href, /^\/day\?character=c1/);
+    const outfit = describeQueueJob(
+      { promptId: 'x', tool: 'image-prompt', prompt: 'Edit instruction for an outfit try-on.' },
+      index
+    );
+    assert.equal(outfit.openLabel, 'Open in Outfit');
+    // A real Image → Prompt job keeps its label.
+    assert.equal(
+      describeQueueJob({ promptId: 'y', tool: 'image-prompt', prompt: 'a cat' }, index).openLabel,
+      'Open in Image → Prompt'
+    );
+  });
+
   it('formats short and long waits', () => {
     assert.equal(formatEta(12), '~10 s');
     assert.equal(formatEta(360), '~6 min');

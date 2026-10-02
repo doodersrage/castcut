@@ -1,5 +1,6 @@
 'use client';
 
+import { auditStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
   beatOwnsFootwear,
@@ -101,6 +102,18 @@ function nudeFaceIdentityParams(nudeFace: string | null): Record<string, unknown
 }
 
 const TOOL_ID = 'roleplay';
+
+/** Text contradictions in a still's prompt (still-prompt-audit): warn, never block. */
+function warnOnPromptIssues(prompt: string, label: string | undefined, people?: number): void {
+  const issues = auditStillPrompt(prompt, { people: people || undefined });
+  if (issues.length === 0) return;
+  console.warn('Story prompt check:', label, issues, prompt);
+  pushSystemTrayMessage({
+    text: stillPromptIssuesLine(issues, label),
+    tone: 'warning',
+    ttlMs: 20_000,
+  });
+}
 
 /** What the Story still prompt needs to know about the Image 3 guide that was drawn. */
 type StoryPoseGuidePromptMeta = {
@@ -569,7 +582,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           (options?.afterPoseMiss ||
             ALWAYS_CUED_DUO_LAYOUTS.has(drawnLayout) ||
             cuePoseLayouts().has(drawnLayout))
-            ? poseLayoutCueLine(drawnLayout)
+            ? poseLayoutCueLine(drawnLayout, poseBuild.figureCount)
             : '') || postureCueLine(poseBuild.poseKey);
         return {
           cueLine: [cueLine, poseLookLine(beat.poseLook, poseBuild.figureCount)]
@@ -693,6 +706,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         );
         const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
         const sentPrompt = rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(prompt) : prompt);
+        warnOnPromptIssues(sentPrompt, beat.title, poseGuide?.prompt.headcount);
         const promptId = await actions.sendComfyUi(
           kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
           undefined,
@@ -867,6 +881,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
         const sentPrompt =
           rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(queuePrompt) : queuePrompt);
+        warnOnPromptIssues(sentPrompt, latest.title, poseGuide?.prompt.headcount);
         promptId = await actions.sendComfyUi(
           kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
           undefined,

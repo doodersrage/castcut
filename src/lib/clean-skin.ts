@@ -47,6 +47,16 @@ export function mergeCleanSkinNegatives(
   return merged || undefined;
 }
 
+/**
+ * A product shot with nobody in it (the shoe and clothing packshot extracts). Skin wording
+ * appended to such a prompt asks for skin: the shoe extract came back with the feet still in
+ * the sandals on 4 of 6 renders, and with the wording left off, 0 of 40 (live 2026-10-02).
+ */
+export function promptHasNoPerson(positive: string | null | undefined): boolean {
+  const text = positive ?? '';
+  return /\bproduct photograph\b/i.test(text) && /\bNo person\b/.test(text);
+}
+
 /** Append a short clean-skin lock on I2I stills unless ink is intentional. */
 export function appendCleanSkinPositive(
   positive: string,
@@ -57,6 +67,7 @@ export function appendCleanSkinPositive(
     return trimmed;
   }
   if (
+    promptHasNoPerson(trimmed) ||
     appearanceAllowsTattoos(trimmed) ||
     appearanceAllowsTattoos(appearanceOrPrompt) ||
     /clean unmarked skin/i.test(trimmed)

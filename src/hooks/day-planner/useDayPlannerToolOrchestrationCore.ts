@@ -1,5 +1,6 @@
 'use client';
 
+import { auditStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
 import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
 import { installedComfyModels } from '@/lib/model-picker';
 import {
@@ -1623,7 +1624,7 @@ export function useDayPlannerToolOrchestrationCore() {
           drawnLayout &&
           (cuePoseLayouts().has(drawnLayout) ||
             Boolean(qualityNudge?.includes(POSE_MISMATCH_NUDGE)))
-            ? poseLayoutCueLine(drawnLayout)
+            ? poseLayoutCueLine(drawnLayout, poseExpectation?.keypoints.length)
             : '';
         if (cueLine && poseExpectation) {
           poseExpectation.cued = true;
@@ -1905,6 +1906,24 @@ export function useDayPlannerToolOrchestrationCore() {
           !extraFilenames[1]?.trim() &&
           !extraUrls[1];
         const queuedPrompt = guideIsImage2 ? renumberDayPoseGuideAsImage2(finalized) : finalized;
+        // Text contradictions that only ever showed up as a bad render (a solo still that talks
+        // about "the two people", shoes ordered on a barefoot beat, a third image that is not
+        // attached). A warning, never a block — the still is queued either way.
+        const promptIssues = auditStillPrompt(queuedPrompt, {
+          people: poseExpectation?.keypoints.length || undefined,
+          imageCount:
+            1 +
+            [1, 2, 3].filter(index => Boolean(extraFilenames[index]?.trim() || extraUrls[index]))
+              .length,
+        });
+        if (promptIssues.length > 0) {
+          console.warn('Day prompt check:', queueTarget.label, promptIssues, queuedPrompt);
+          pushSystemTrayMessage({
+            text: stillPromptIssuesLine(promptIssues, queueTarget.label),
+            tone: 'warning',
+            ttlMs: 20_000,
+          });
+        }
         const promptId = await actions.sendComfyUi(queuedPrompt, undefined, undefined, {
           ...(queueOptions ?? {}),
           ...(hasPlate

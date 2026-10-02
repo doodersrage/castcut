@@ -11,6 +11,7 @@ import {
   type PoseGuideBase,
   type PoseGuideBuildOptions,
   parseIntimateLayout,
+  sceneTextStatesPose,
   type ScenePoseSpec,
   type SocialLayout,
 } from '@/lib/day-pose-guide';
@@ -32,6 +33,7 @@ import {
   vacationStanceDirective,
 } from '@/lib/day-vacation';
 import { clarifyIntimateImageLanguage } from '@/lib/intimate-prompt-clarify';
+import { stripNegatedClauses } from '@/lib/negated-clauses';
 import { mergeAvoidedPoseLayouts } from '@/lib/pose-guide-prompt';
 
 export type DaySlotPosePlan = {
@@ -70,6 +72,20 @@ export function mergePickedPose(
   };
 }
 
+/**
+ * The stance directive as pose-guide text. A beat with a pose class gets that class's directive;
+ * a beat without one gets nothing — the general directive lists every stance ("seated,
+ * reclining, dancing, climbing, or waving as written"), and the guide read "dancing" out of it:
+ * lying and sitting beats on Edit 2511 were drawn (and described) as a dance.
+ */
+function stanceDirectiveForGuide(poseClass: string | null | undefined): string {
+  const directive = vacationStanceDirective(poseClass);
+  if (directive === vacationStanceDirective(null)) return '';
+  // Only what the stance is, not what it is not: the guide text is read for a pose, and the
+  // KICKING directive's "never a yoga tree pose" was read as yoga.
+  return ` · ${stripNegatedClauses(directive).replace(/\s+/g, ' ').trim()}`;
+}
+
 export function planDaySlotPose(input: {
   slot: Pick<
     DaySlot,
@@ -95,10 +111,13 @@ export function planDaySlotPose(input: {
   const dayMood = normalizeDayMood(input.dayMood);
   const beatOnly = input.slot.sceneHints?.trim() || '';
   // Beat first on every mood: the stance keywords live in the beat. Heat moods read the beat
-  // only — a Setting must not rewrite the Image 3 stance.
-  const rawPoseScene = (
-    isDayHeatMood(dayMood) ? [beatOnly] : [input.slot.sceneHints, input.slot.location]
-  )
+  // only — a Setting must not rewrite the Image 3 stance. On Everyday the Setting may supply a
+  // pose only when the beat gives none: read together, "bedroom at midnight with the laptop
+  // glow" sat every late-night beat (cooking, lying on the floor, walking home) at a laptop, and
+  // a laundromat's "bench along the wall" sat "standing in line at the post office".
+  const beatOwnsPose =
+    isDayHeatMood(dayMood) || sceneTextStatesPose(beatOnly, { allowIntimate: false });
+  const rawPoseScene = (beatOwnsPose ? [beatOnly] : [input.slot.sceneHints, input.slot.location])
     .map(part => part?.trim())
     .filter(Boolean)
     .join(' · ');
@@ -115,7 +134,7 @@ export function planDaySlotPose(input: {
     dayClothedHeatPoseNeedsBodyUnlock(beatOnly, dayMood, {
       poseStickyModel: poseProfileForModel(input.model).poseStickyClothed,
     })
-      ? `${base} · ${vacationStanceDirective(clothedHeatUnlockPoseClass(beatOnly, dayMood))} · nuclear Image 3 silhouette — never planted fashion stand`
+      ? `${base}${stanceDirectiveForGuide(clothedHeatUnlockPoseClass(beatOnly, dayMood))} · nuclear Image 3 silhouette — never planted fashion stand`
       : base;
   const headcount = resolveDayPoseHeadcount({
     haystack: reinforced,

@@ -4,6 +4,8 @@
  * not state (active Cast, locks, history), secrets (API keys) or loader maps (inventory-driven).
  */
 
+import { MODEL_SAMPLER_PRESET_OPTIONS } from './model-sampler-defaults';
+import { QUEUE_QUALITY_PROFILE_OPTIONS } from './queue-quality-profile';
 import type { SharedToolSettings } from './settings-cache';
 import type { SettingsTab } from './settings-nav';
 import type { ComfyUiSettingsSectionId } from './settings-comfyui-nav';
@@ -103,6 +105,29 @@ export function formatSettingValue(value: unknown): string {
   return `${size} entr${size === 1 ? 'y' : 'ies'}`;
 }
 
+/** The words the controls use for option ids ("final" is shown as Good everywhere else). */
+const VALUE_LABELS: Record<string, Record<string, string>> = {
+  queueQualityProfile: Object.fromEntries(
+    QUEUE_QUALITY_PROFILE_OPTIONS.map(option => [option.id, option.label])
+  ),
+  modelSamplerPreset: Object.fromEntries(
+    MODEL_SAMPLER_PRESET_OPTIONS.map(option => [option.id, option.label])
+  ),
+};
+
+/** A setting's value in the control's own words; other ids read as words, not camelCase. */
+export function labelledSettingValue(key: string, value: unknown): string {
+  if (typeof value === 'string') {
+    const known = VALUE_LABELS[key]?.[value];
+    if (known) return known;
+    if (/^[a-z]+(?:[A-Z][a-z0-9]*)+$/.test(value)) {
+      const words = value.replace(/([A-Z])/g, ' $1').toLowerCase();
+      return words[0]!.toUpperCase() + words.slice(1);
+    }
+  }
+  return formatSettingValue(value);
+}
+
 function same(a: unknown, b: unknown): boolean {
   // Unset means "the default" for these preferences.
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -122,8 +147,8 @@ export function changedSettings(
         key,
         label,
         area,
-        value: formatSettingValue(current),
-        defaultValue: formatSettingValue(fallback),
+        value: labelledSettingValue(key, current),
+        defaultValue: labelledSettingValue(key, fallback),
       },
     ];
   });

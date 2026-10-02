@@ -168,6 +168,28 @@ test('outfit footwear: saved shoes are kept, re-picked and removed', async ({ pa
   await expect(saved).toHaveCount(0);
 });
 
+test('outfit footwear: Browse shows every pair, searchable, and wears the pick', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: '' },
+    characters: { version: 1, characters: [], removedIds: [] },
+  });
+  await gotoStable(page, '/fitting');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('fitting-footwear')).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId('fitting-footwear-browse').click();
+  const browser = page.getByTestId('wardrobe-kit-browser');
+  await expect(browser).toBeVisible();
+  await expect(browser.getByRole('heading', { name: 'Browse footwear' })).toBeVisible();
+  await browser.getByRole('textbox').fill('white sneakers');
+  await browser.getByRole('button', { name: /^White sneakers/ }).click();
+  await expect(browser).toHaveCount(0);
+  await expect(page.getByTestId('fitting-footwear-hint')).toContainText(/white .*sneakers/i);
+  // Nothing matching says so.
+  await page.getByTestId('fitting-footwear-browse').click();
+  await page.getByTestId('wardrobe-kit-browser').getByRole('textbox').fill('zzzqq');
+  await expect(page.getByTestId('wardrobe-kit-browser')).toContainText('Nothing matches');
+});
+
 test('outfit footwear: a kit, barefoot, own words, own photo', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: '' },

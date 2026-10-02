@@ -1,5 +1,11 @@
 'use client';
 
+import { RoleplayCastToneSettingSection } from '@/components/roleplay/sections/RoleplayCastToneSettingSection';
+import { useNsfwGeneratorStatus } from '@/hooks/useNsfwGeneratorEnabled';
+import { roleplayMoodSummary } from '@/lib/roleplay';
+import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
+import { roleplayWatchPlaylist } from '@/lib/character-film';
+import type { KeyedShot } from '@/lib/film-cut-plan';
 import TaskRequirementsCard from '@/components/TaskRequirementsCard';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
@@ -65,6 +71,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
     storyProgress,
     beatOutput,
     content,
+    tone,
     assemblingFilm,
     filmStatus,
     filmNeedsCast,
@@ -78,6 +85,8 @@ export default function MobilePlayToolSections({ description: _description, ...v
     shareLastCut,
     filmError,
     filmGuideHref,
+    filmCutOptions,
+    setFilmCutOptions,
     hasReferenceImage,
     playScene,
     rollScenes,
@@ -98,6 +107,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
   } = vm;
 
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance({ mobile: true });
+  const { ready: adultGateReady } = useNsfwGeneratorStatus();
   // The active Cast lead (as desktop Story does). filmCharacterId is only set once a film is
   // cut, so gating on it alone told every phone player "Story needs a Cast lead" until then.
   const activeCastId = shared.activeCharacterId?.trim() || '';
@@ -252,6 +262,29 @@ export default function MobilePlayToolSections({ description: _description, ...v
             onError={message => setError(message)}
             wardrobe={wardrobe}
           />
+          {/* Tone / content rating / setting — desk Story had these; the phone page could only
+              use whatever was last set on desk. */}
+          <details
+            className="rounded-2xl border border-[var(--border-subtle)] px-4 py-3"
+            data-testid="mobile-story-settings"
+          >
+            <summary className="flex min-h-8 cursor-pointer items-center text-sm text-[var(--text-secondary)]">
+              Story settings ·{' '}
+              {roleplayMoodSummary(tone, content, toolSettings.setting, toolSettings.allowGore)}
+            </summary>
+            <div className="mt-3 space-y-3">
+              <RoleplayCastToneSettingSection
+                busy={busy}
+                playAs={playAs}
+                tone={tone}
+                content={content}
+                adultEnabled={adultEnabled}
+                adultGateReady={adultGateReady}
+                toolSettings={toolSettings}
+                onUpdateToolSettings={updateToolSettings}
+              />
+            </div>
+          </details>
         </>
       ) : null}
 
@@ -537,6 +570,17 @@ export default function MobilePlayToolSections({ description: _description, ...v
               ) : null}
             </div>
           </div>
+        ) : null}
+        {/* Cut options (vertical, crossfade, titles, length, music) — desk Story had them, the
+            phone page cut with defaults only. */}
+        {!firstCutCelebrate && story.length > 0 ? (
+          <FilmCutOptionsDisclosure
+            value={filmCutOptions}
+            onChange={setFilmCutOptions}
+            disabled={assemblingFilm}
+            testIdPrefix="mobile-story-cut"
+            shots={roleplayWatchPlaylist(story) as KeyedShot[]}
+          />
         ) : null}
         {!firstCutCelebrate ? (
           <PrimaryButton

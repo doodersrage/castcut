@@ -138,7 +138,7 @@ export async function POST(request: Request) {
       );
     }
     const status =
-      /required|must be|too large|could not read|re-upload|not set|needs a vision|unknown/i.test(
+      /required|must be|too large|could not read|re-upload|not set|needs a vision|requires a vision|unknown/i.test(
         message
       )
         ? 400

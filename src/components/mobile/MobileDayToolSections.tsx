@@ -1,5 +1,7 @@
 'use client';
 
+import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
+import type { KeyedShot } from '@/lib/film-cut-plan';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
 import Link from 'next/link';
@@ -89,6 +91,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     activeSlotId,
     setActiveSlotId,
     assemblingFilm,
+    filmCutOptions,
+    setFilmCutOptions,
     filmStatus,
     season,
     seasonStitching,
@@ -495,6 +499,14 @@ export default function MobileDayToolSections(vm: ViewModel) {
               : 'All stills ready — cut the reel.'}
           </p>
           <div className="mt-3 grid gap-2">
+            {/* Same cut options as desk Day (vertical, crossfade, titles, length, music). */}
+            <FilmCutOptionsDisclosure
+              value={filmCutOptions}
+              onChange={setFilmCutOptions}
+              disabled={assemblingFilm}
+              testIdPrefix="mobile-day-cut"
+              shots={watchPlaylist as KeyedShot[]}
+            />
             <PrimaryButton
               disabled={busy || assemblingFilm}
               loading={assemblingFilm}

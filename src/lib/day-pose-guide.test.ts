@@ -12,6 +12,7 @@ import {
   resolvePoseGuideVisualStyle,
   resolveStoryPoseGuideKey,
   resolveStoryPoseGuideKeyFromBeat,
+  sceneTextStatesPose,
   synthesizeIntimateStickFigures,
   synthesizeSceneStickFigures,
   synthesizeStickSkeleton,
@@ -1334,4 +1335,79 @@ describe('straddle rider sits on the partner hips', () => {
       assert.ok(Math.abs(rider!.lKnee.y - bottom!.pelvis.y) < 0.05, 'knees beside his hips');
     });
   }
+});
+
+describe('pose words that are not a pose (Day prompt sweep findings)', () => {
+  const clothed = { allowIntimate: false as const, forcePeople: 1 };
+
+  it('twirling or hugging a thing is one person doing neither', () => {
+    assert.equal(
+      parseSocialLayout('sitting at a dinner table twirling pasta, one elbow on the table'),
+      null
+    );
+    assert.equal(parseSocialLayout('twirling a glass of white wine, leaning toward the candle'), null);
+    assert.equal(parseSocialLayout('twirling once under a streetlight, coat flaring'), 'dance');
+    assert.equal(parseSocialLayout('twirling her around the dance floor'), 'dance');
+    assert.equal(
+      parseSocialLayout('hugging a pillow while standing by the window, looking out at the city'),
+      null
+    );
+    assert.equal(parseSocialLayout('hugging her knees on the sofa'), null);
+    assert.equal(parseSocialLayout('hugging a friend hello on the sidewalk, both smiling'), 'hug');
+  });
+
+  it('does not read a negated clause as the pose', () => {
+    assert.equal(
+      parseSocialLayout('one leg locked straight at hip height — never a yoga tree pose'),
+      null
+    );
+    assert.equal(parseSocialLayout('standing by the door, not waving, no dancing'), null);
+    // The drawing's seed stays on the text as written.
+    const text = 'sitting on the sill in a short robe — never a standing fashion plate';
+    assert.equal(parsePoseGuideIntent(text, 0, clothed).base, 'sit');
+    assert.equal(parsePoseGuideIntent(text, 0, clothed).sceneText, text);
+  });
+
+  it('seats a kayak paddler; "mid-stroke" is a swimmer only in the water', () => {
+    const options = { clothedUprightOnly: true as const, forcePeople: 1 };
+    assert.equal(
+      parsePoseGuideIntent('PADDLING a kayak mid-stroke — paddle dipped', 0, options).base,
+      'sit'
+    );
+    assert.equal(
+      parsePoseGuideIntent('SWIMMING a lap mid-stroke in the hotel pool', 0, options).base,
+      'lie'
+    );
+  });
+
+  it('counts a hugged friend, and sex verbs only where sex layouts are allowed', () => {
+    assert.equal(countPoseGuidePeople('hugging a friend hello on the sidewalk, both smiling'), 2);
+    assert.equal(countPoseGuidePeople('arm around a friend on a rooftop at golden hour'), 2);
+    assert.equal(countPoseGuidePeople("one arm around a friend's dog on the porch"), 1);
+    for (const beat of [
+      'leaning on a balcony railing with a breeze lifting a short hem',
+      'unzipping a dress halfway, lingerie visible underneath',
+      'driving the final meters of a sprint with chest thrust forward',
+      'seated power climb grinding big gears with elbows in',
+      'mounting the bike in transition with a flying leap onto the saddle',
+    ]) {
+      assert.equal(countPoseGuidePeople(beat, { sexVocabulary: false }), 1, beat);
+      assert.equal(parsePoseGuideIntent(beat, 0, { allowIntimate: false }).people, 1, beat);
+    }
+    // A named partner still counts on a clothed beat; the adult read is unchanged.
+    assert.equal(
+      countPoseGuidePeople("sitting sideways on her partner's lap on the couch", {
+        sexVocabulary: false,
+      }),
+      2
+    );
+    assert.equal(countPoseGuidePeople('grinding on the bed mid-thrust'), 2);
+  });
+
+  it('knows whether a text states a pose', () => {
+    assert.equal(sceneTextStatesPose('humming along to a song in her head'), false);
+    assert.equal(sceneTextStatesPose('standing in line at the post office'), true);
+    assert.equal(sceneTextStatesPose('stirring a pot of pasta sauce at the stove'), true);
+    assert.equal(sceneTextStatesPose(''), false);
+  });
 });

@@ -90,7 +90,10 @@ export default function ServerEnvPanel({
                     {field.hint ? <p className="type-caption">{field.hint}</p> : null}
                   </div>
                   <p
-                    className={`type-body max-w-full break-all text-right sm:max-w-[45%] ${
+                    // Short values ("not set") stay on one line; only long ones may break anywhere.
+                    className={`type-body max-w-full text-right sm:max-w-[45%] ${
+                      String(field.value).length <= 24 ? 'shrink-0 whitespace-nowrap' : 'break-all'
+                    } ${
                       field.configured ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'
                     }`}
                   >

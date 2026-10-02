@@ -1249,7 +1249,7 @@ export default function PoseJointEditor({
                       <input
                         autoFocus
                         aria-label="Pose name"
-                        className="ui-input h-8 w-full text-sm sm:w-48"
+                        className="ui-input h-8 w-full py-0 text-sm sm:w-48"
                         placeholder="Name this pose"
                         value={saveName}
                         maxLength={60}

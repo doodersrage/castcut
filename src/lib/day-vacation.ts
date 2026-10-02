@@ -732,14 +732,30 @@ export const DAY_VACATION_BEAT_CUE_RE =
 export const DAY_VACATION_SETTING_CUE_RE =
   /\b(hotel|resort|pool|beach|shore|shoreline|harbor|ferry|rooftop|terrace|market|balcony|suite|cabana|boardwalk|skyline|cobblestone|museum|patio|restaurant|lounge|umbrella|dune|boat|deck|hallway|elevator|lobby|plaza|spa|airport|pier|convertible|hammock|cathedral|theater|jazz|fountain|cove|bay|garden|alley|gate|bakery|street|tub|chaise|daybed|quay|marquee|overlook|wine|bar|counter|shutter|lane|path|court|promenade|shadow|sky)\b|caf[eé]/i;
 
-/** Lead pose class from a Vacation beat (SEATED, MID-STRIDE, …). */
+/**
+ * A RELAXING beat that sits upright: at a bar counter, in a booth, on a bench, against the
+ * headboard, at the balcony table with a tray or a postcard. As a lying class these were drawn
+ * (and described) lying down — "RELAXING at a wine-bar counter with a glass — chin on hand".
+ */
+export const RELAXING_UPRIGHT_RE =
+  /\b(upright\s+against|headboard|(?:wine-?bar\s+)?counter|chin\s+on\s+hand|bench|booth|stool|(?:breakfast|room-service)\s+tray|writing\s+a\s+postcard)\b/i;
+
+/**
+ * Lead pose class from a beat (SEATED, MID-STRIDE, …), in any case. "kicking off heels on the
+ * bed…" is not the KICKING class — it got the roundhouse-kick directive.
+ */
 export function vacationPoseClassFromBeat(beat: string | null | undefined): string {
-  const lead = beat
-    ?.trim()
-    .match(
-      /^(SEATED|MID-STRIDE|RECLINING|RELAXING|DANCING|CLIMBING|WAVING|PERCHED|STRETCHING|KICKING|PADDLING|PEDALING|TOSSING|JUMPING|REACHING|SWIMMING)\b/i
-    );
-  return lead?.[1]?.toUpperCase() ?? 'OTHER';
+  const text = beat?.trim() ?? '';
+  // Any case: the Suggestive and Everyday pools write these leads in lower case ("dancing with
+  // both arms up…", "reclining on the couch…") and rely on the class for the body unlock and
+  // the stance directive. The one prose lead that is not a pose class is taking shoes off.
+  const lead = /^kicking off\b/i.test(text)
+    ? null
+    : text.match(
+        /^(SEATED|MID-STRIDE|RECLINING|RELAXING|DANCING|CLIMBING|WAVING|PERCHED|STRETCHING|KICKING|PADDLING|PEDALING|TOSSING|JUMPING|REACHING|SWIMMING)\b/i
+      );
+  const cls = lead?.[1]?.toUpperCase() ?? 'OTHER';
+  return cls === 'RELAXING' && RELAXING_UPRIGHT_RE.test(text) ? 'SEATED' : cls;
 }
 
 /**

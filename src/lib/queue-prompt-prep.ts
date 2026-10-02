@@ -25,7 +25,7 @@ import {
   usesOutlineGrayPoseGuide,
   type PoseGuideStylePreference,
 } from './pose-guide-prompt';
-import { appendCleanSkinPositive, mergeCleanSkinNegatives } from './clean-skin';
+import { appendCleanSkinPositive, mergeCleanSkinNegatives, promptHasNoPerson } from './clean-skin';
 import { intimateBeatIsOffBed, intimatePoseSample } from './intimate-prompt-clarify';
 import { isRapidDuoRecipePrompt } from './rapid-duo-recipe-mark';
 import { inferAthleticSport, type AthleticSport } from './athletic-sport-profiles';
@@ -88,6 +88,7 @@ const RAPID_AIO_MOIRE_NEGATIVE =
 
 const RAPID_AIO_MOIRE_POSITIVE =
   'clean continuous tones, smooth natural skin texture, even gradients';
+const RAPID_AIO_MOIRE_POSITIVE_NO_PERSON = 'clean continuous tones, even gradients';
 
 /**
  * Compact Image 3 anti-leak pack for Rapid AIO (CFG-1).
@@ -248,6 +249,16 @@ function dayPromptHasEverydayMood(positive: string): boolean {
  * Lightning used to skip these (early photo-pack return), so Vacation pose/outfit/white-void
  * locks were Rapid-only and Edit-2511 Lightning felt inconsistent after switching back.
  */
+/** Pack terms that only hold for a one-person still. */
+const SOLO_ONLY_PACK_TERMS: ReadonlySet<string> = new Set([
+  'one woman alone',
+  'muscular man',
+  'male partner',
+  'boyfriend',
+  'second adult',
+  'second person',
+]);
+
 function applyDayClothedHeatSteering(input: {
   positive: string;
   negative?: string;
@@ -261,9 +272,20 @@ function applyDayClothedHeatSteering(input: {
 
   let positive = input.positive;
   let negative = input.negative;
+  // The packs are written for a solo still. On a two-person still (a friend or partner in the
+  // beat) "one woman alone" and "second person, male partner" contradict the brief.
+  const duo = /\bTWO PEOPLE\b|\bCOMPANIONS:/.test(input.steeredPositive);
+  const forPeople = (pack: string) =>
+    duo
+      ? pack
+          .split(',')
+          .map(term => term.trim())
+          .filter(term => term && !SOLO_ONLY_PACK_TERMS.has(term))
+          .join(', ')
+      : pack;
   if (suggestiveHeat) {
-    positive = appendUniqueCsv(positive, RAPID_AIO_SUGGESTIVE_PROP_POSITIVE);
-    negative = appendUniqueCsv(negative, RAPID_AIO_SUGGESTIVE_PROP_NEGATIVE);
+    positive = appendUniqueCsv(positive, forPeople(RAPID_AIO_SUGGESTIVE_PROP_POSITIVE));
+    negative = appendUniqueCsv(negative, forPeople(RAPID_AIO_SUGGESTIVE_PROP_NEGATIVE));
     // Only when the beat names DANCING — camera templates mention "dance" as an example.
     if (
       /\bDANCING\b/.test(input.steeredPositive) ||
@@ -275,8 +297,8 @@ function applyDayClothedHeatSteering(input: {
       );
     }
   } else {
-    positive = appendUniqueCsv(positive, RAPID_AIO_VACATION_PROP_POSITIVE);
-    negative = appendUniqueCsv(negative, RAPID_AIO_VACATION_PROP_NEGATIVE);
+    positive = appendUniqueCsv(positive, forPeople(RAPID_AIO_VACATION_PROP_POSITIVE));
+    negative = appendUniqueCsv(negative, forPeople(RAPID_AIO_VACATION_PROP_NEGATIVE));
     if (/\bDANCING\b/i.test(input.steeredPositive)) {
       positive = appendUniqueCsv(
         positive,
@@ -373,6 +395,12 @@ export function applyQueuePromptSteering(input: {
   tool?: string;
   turboEditStrength?: TurboEditStrength;
 }): { positive: string; negative?: string } {
+  // A product shot with nobody in it (shoe / clothing packshot extract): none of the packs
+  // apply — they are about skin, anatomy and identity, and skin wording brought the feet back
+  // into the shoes. The prompt goes out as written.
+  if (promptHasNoPerson(input.positive)) {
+    return { positive: input.positive, negative: input.negative };
+  }
   const realismMode = input.realismMode ?? loadRenderRealismMode();
   const anatomyMode = input.anatomyMode ?? loadAnatomyGuardMode();
   const turboEditStrength = normalizeTurboEditStrength(input.turboEditStrength);
@@ -412,9 +440,16 @@ export function applyQueuePromptSteering(input: {
       );
     const withSkin = {
       positive:
-        shouldCleanSkin && !isWanLightningModel(input.model) && !isWanRapidAioModel(input.model)
-          ? appendCleanSkinPositive(result.positive)
-          : result.positive,
+        // A product shot with nobody in it: no pack may ask for skin (it brings the feet back
+        // into the shoes).
+        promptHasNoPerson(result.positive)
+          ? result.positive.replace(
+              /,?\s*(?:realistic skin texture|lifelike skin pores|smooth natural skin texture|clean natural skin)\b/gi,
+              ''
+            )
+          : shouldCleanSkin && !isWanLightningModel(input.model) && !isWanRapidAioModel(input.model)
+            ? appendCleanSkinPositive(result.positive)
+            : result.positive,
       negative: usesNegative
         ? shouldCleanSkin
           ? mergeCleanSkinNegatives(result.negative, result.positive)
@@ -524,7 +559,13 @@ export function applyQueuePromptSteering(input: {
         negative: appendUniqueCsv(shortExplicit, RAPID_AIO_MOIRE_NEGATIVE),
       });
     }
-    let positive = appendUniqueCsv(steeredPositive, RAPID_AIO_MOIRE_POSITIVE);
+    let positive = appendUniqueCsv(
+      steeredPositive,
+      // No "skin texture" on a product shot with nobody in it (see promptHasNoPerson).
+      promptHasNoPerson(steeredPositive)
+        ? RAPID_AIO_MOIRE_POSITIVE_NO_PERSON
+        : RAPID_AIO_MOIRE_POSITIVE
+    );
     let negative = appendUniqueCsv(shortExplicit, RAPID_AIO_MOIRE_NEGATIVE);
     // Adult Day/Story: empty-bed positives + prop bans in negatives (saying "planner"
     // in the long positive tends to summon lined notebooks on CFG-1 stacks).

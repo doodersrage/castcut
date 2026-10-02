@@ -592,11 +592,23 @@ function seededUnit(seed: number, salt: number): number {
  * Infer stick-figure count from scene copy. Caps at 3 so the wireframe stays readable.
  * Prefers explicit duo/crowd cues over bare "they" (often singular in Story blurbs).
  */
-export function countPoseGuidePeople(text: string | null | undefined): number {
+export function countPoseGuidePeople(
+  text: string | null | undefined,
+  options?: {
+    /**
+     * False for clothed scenes (Day's Everyday / Suggestive / Vacation / Sport, SFW Story): sex
+     * verbs do not name a partner there. With companions on, "leaning on a balcony railing with a
+     * breeze", "lingerie visible underneath", a sprint "with chest thrust forward", "grinding big
+     * gears" and "mounting the bike" were all planned as two people.
+     */
+    sexVocabulary?: boolean;
+  }
+): number {
   const haystack = text?.trim() || '';
   if (!haystack) {
     return 1;
   }
+  const sexVocabulary = options?.sexVocabulary !== false;
   if (
     /\b(threesome|three[- ]way|mmf|ffm|mmm|fff|spit[- ]?roast|double\s+team|crowd|group of|among (?:the )?crowd|three (?:people|persons|figures|friends|strangers|lovers)|a trio)\b/i.test(
       haystack
@@ -627,13 +639,22 @@ export function countPoseGuidePeople(text: string | null | undefined): number {
     return 2;
   }
   if (
-    /\b(?:hug(?:s|ging)?|embrace(?:s|d|ing)?|kiss(?:es|ing)?|argue(?:s|ing)?|talk(?:s|ing)?|speak(?:s|ing)?|dance(?:s|ing)?|fight(?:s|ing)?|chase(?:s|ing)?|confront(?:s|ing)?|fuck(?:s|ing)?|screw(?:s|ing)?|rail(?:s|ing)?|breed(?:s|ing)?)\s+(?:with|to|against)\b/i.test(
+    /\b(?:hug(?:s|ging)?|embrace(?:s|d|ing)?|kiss(?:es|ing)?|argue(?:s|ing)?|talk(?:s|ing)?|speak(?:s|ing)?|dance(?:s|ing)?|fight(?:s|ing)?|chase(?:s|ing)?|confront(?:s|ing)?)\s+(?:with|to|against)\b/i.test(
       haystack
     )
   ) {
     return 2;
   }
   if (
+    sexVocabulary &&
+    /\b(?:fuck(?:s|ing)?|screw(?:s|ing)?|rail(?:s|ing)?|breed(?:s|ing)?)\s+(?:with|to|against)\b/i.test(
+      haystack
+    )
+  ) {
+    return 2;
+  }
+  if (
+    sexVocabulary &&
     /\b(sex|sexual|intercourse|make\s+love|lovemaking|hook(?:ing)?\s+up|get(?:ting)?\s+it\s+on|climax|orgasm|penetrat(?:e|es|ed|ing|ion)?|thrust(?:s|ing)?|grind(?:s|ing)?|mount(?:s|ing|ed)?|straddl(?:e|es|ed|ing)?|cowgirl|missionary|doggy|from\s+behind|on\s+top|underneath|oral|cunnilingus|fellatio|clit|fingering)\b/i.test(
       haystack
     )
@@ -666,7 +687,12 @@ export function countPoseGuidePeople(text: string | null | undefined): number {
       haystack
     ) ||
     // "walking a friend's bike alongside them".
-    /\balongside\s+(?:them|him|her)\b/i.test(haystack)
+    /\balongside\s+(?:them|him|her)\b/i.test(haystack) ||
+    // "hugging a friend hello", "arm around a friend on a rooftop": the hug guide drew two while
+    // the plan said one person (no partner attached). "her arm around a friend's dog" is not one.
+    /\b(?:hug(?:s|ging|ged)?|embrac(?:e|es|ed|ing)|arms?\s+around)\s+(?:a|her|his|their|the)\s+(?:best\s+)?(?:friend|mate|sister|brother|bestie|roommate|date|stranger)\b(?!['’]s)/i.test(
+      haystack
+    )
   ) {
     return 2;
   }
@@ -1261,7 +1287,9 @@ export function parseSportLayout(text: string | null | undefined): SocialLayout 
  * Intimate layouts win first; these catch sport, hug/dance/fight/climb/phone/look-back.
  */
 export function parseSocialLayout(text: string | null | undefined): SocialLayout | null {
-  const haystack = text?.trim() || '';
+  // Negated clauses are locks, not the pose: the KICKING directive's "never a yoga tree pose"
+  // drew a yoga warrior, and "never a planted fashion stand" is not a stand.
+  const haystack = stripNegatedClauses(text?.trim() || '').trim();
   if (!haystack) {
     return null;
   }
@@ -1309,14 +1337,17 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
     return 'toast';
   }
   if (
-    /\b(hug(?:s|ging|ged)?|embrace(?:s|d|ing)?|hold(?:s|ing)?\s+(?:them|her|him|each other)\s+close|wrapped\s+(?:in\s+)?(?:arms?|an embrace)|bear[- ]hug|arm[-\s]?in[-\s]?arm|arm\s+around\s+(?:a|her|his|their|the)|link(?:s|ing)?\s+arms)\b/i.test(
+    // Hugging a thing is one person: "hugging a pillow while standing by the window" drew a pair.
+    /\b(hug(?:s|ging|ged)?(?!\s+(?:(?:a|an|the|her|his|their|both)\s+)?(?:\w+\s+)?(?:pillows?|cushions?|blanket|duvet|knees?|legs|shins|mug|book|teddy|bag|coat|jacket|sweater|towel|herself|himself)\b)|embrace(?:s|d|ing)?|hold(?:s|ing)?\s+(?:them|her|him|each other)\s+close|wrapped\s+(?:in\s+)?(?:arms?|an embrace)|bear[- ]hug|arm[-\s]?in[-\s]?arm|arm\s+around\s+(?:a|her|his|their|the)|link(?:s|ing)?\s+arms)\b/i.test(
       haystack
     )
   ) {
     return 'hug';
   }
   if (
-    /\b(danc(?:e|es|ing)|waltz(?:es|ing)?|twirl(?:s|ing)?|spin(?:s|ning)?\s+(?:together|with)|slow\s+dance)\b/i.test(
+    // Twirling a thing is not a dance: "twirling pasta" and "twirling a glass of white wine" at a
+    // dinner table were drawn (and cued) as dancing. "twirling her around" still is one.
+    /\b(danc(?:e|es|ing)|waltz(?:es|ing)?|twirl(?:s|ing)?(?!\s+(?:pasta|spaghetti|noodles|linguine|(?:a|an|the|some|her|his|their)\s+(?!around\b|partner\b|date\b|friend\b)\w))|spin(?:s|ning)?\s+(?:together|with)|slow\s+dance)\b/i.test(
       haystack
     ) ||
     (/\bballroom\b/i.test(haystack) &&
@@ -1723,6 +1754,23 @@ function armChain(
   }
 }
 
+/**
+ * True when the text itself gives a pose: a layout, an act, or a posture word. An unmatched text
+ * takes its base from the fallback index, so it reads differently at two indexes.
+ */
+export function sceneTextStatesPose(
+  text: string | null | undefined,
+  options?: { clothedUprightOnly?: boolean; allowIntimate?: boolean }
+): boolean {
+  if (!text?.trim()) {
+    return false;
+  }
+  const first = parsePoseGuideIntent(text, 0, options);
+  return Boolean(
+    first.intimate || first.social || first.base === parsePoseGuideIntent(text, 1, options).base
+  );
+}
+
 export const CLOTHED_SPOON_RE =
   /\b(?:spooning|spooned|spoons?\s+(?:her|him|them|each\s+other|with)|(?:little|big)\s+spoon)\b/i;
 
@@ -1735,8 +1783,11 @@ export function parsePoseGuideIntent(
   fallbackIndex = 0,
   options?: { forcePeople?: number; clothedUprightOnly?: boolean; allowIntimate?: boolean }
 ): PoseGuideIntent {
-  const haystack = text?.trim() || '';
-  const seed = hashString(`${haystack}::${fallbackIndex}`) || 1;
+  const written = text?.trim() || '';
+  // The seed stays on the text as written (the same beat keeps its drawing); the pose is read
+  // without the negated clauses — "never standing beside the towel" is not a stand.
+  const seed = hashString(`${written}::${fallbackIndex}`) || 1;
+  const haystack = stripNegatedClauses(written).trim();
   const jitterA = seededUnit(seed, 1);
   const jitterB = seededUnit(seed, 2);
 
@@ -2068,6 +2119,13 @@ export function parsePoseGuideIntent(
     armLeft = 'hold';
     armRight = 'hold';
     matched = true;
+  } else if (/\b(paddl(?:e|es|ing)|kayak)\b/i.test(haystack)) {
+    // Before the swim branch: "PADDLING a kayak mid-stroke" was drawn as a lying swimmer.
+    base = 'sit';
+    stride = 0.4;
+    armLeft = 'forward';
+    armRight = 'forward';
+    matched = true;
   } else if (
     /\b(swim(?:s|ming)?|freestyle|backstroke|breaststroke|mid[- ]stroke|treading\s+water|swimming\s+a\s+lap)\b/i.test(
       haystack
@@ -2085,12 +2143,6 @@ export function parsePoseGuideIntent(
     stride = 0.7;
     armLeft = 'out';
     armRight = 'out';
-    matched = true;
-  } else if (/\b(paddl(?:e|es|ing)|kayak)\b/i.test(haystack)) {
-    base = 'sit';
-    stride = 0.4;
-    armLeft = 'forward';
-    armRight = 'forward';
     matched = true;
   } else if (/\b(pedal(?:s|ing)?|bik(?:e|es|ing)|bicycl(?:e|es|ing)|cycling)\b/i.test(haystack)) {
     base = 'sit';
@@ -2209,7 +2261,7 @@ export function parsePoseGuideIntent(
     }
   }
 
-  let people = countPoseGuidePeople(haystack);
+  let people = countPoseGuidePeople(haystack, { sexVocabulary: intimateAllowed });
   if (options?.clothedUprightOnly) {
     people = forcedPeople != null && forcedPeople >= 2 ? forcedPeople : 1;
   } else if (intimate && INTIMATE_SOLO_LAYOUTS.has(intimate)) {
@@ -2263,7 +2315,7 @@ export function parsePoseGuideIntent(
     people,
     intimate,
     social,
-    sceneText: haystack || undefined,
+    sceneText: written || undefined,
     label: intimate
       ? `${intimate}-${seed.toString(16).slice(0, 6)}`
       : social

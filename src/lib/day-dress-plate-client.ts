@@ -50,6 +50,8 @@ export type DayDressPlateDeps = {
   ) => Promise<string | void>;
   /** Called when the plate starts rendering (not on a cache hit). */
   onRender?: () => void;
+  /** Waits for the queued job (tests replace it; defaults to the gallery poller). */
+  waitForPromptIds?: typeof waitForGalleryPromptIds;
 };
 
 export function dayDressPlateRequestKey(request: DayDressPlateRequest): string {
@@ -116,7 +118,7 @@ async function renderDayDressPlate(
 ): Promise<DayDressPlateEntry> {
   const pending = pendingJobs.get(key);
   if (pending) {
-    return finishDressPlateJob(request, key, pending.promptId, RECHECK_WAIT_MS);
+    return finishDressPlateJob(request, deps, key, pending.promptId, RECHECK_WAIT_MS);
   }
   const failed = failedAt.get(key);
   if (failed && Date.now() - failed < FAILURE_COOLDOWN_MS) {
@@ -181,17 +183,19 @@ async function renderDayDressPlate(
     throw new Error('The dress plate could not be queued.');
   }
   pendingJobs.set(key, { promptId: id, gaveUpAt: null });
-  return finishDressPlateJob(request, key, id, FIRST_WAIT_MS);
+  return finishDressPlateJob(request, deps, key, id, FIRST_WAIT_MS);
 }
 
 /** Wait for a queued plate job, then stage its image as a ComfyUI input. */
 async function finishDressPlateJob(
   request: DayDressPlateRequest,
+  deps: DayDressPlateDeps,
   key: string,
   promptId: string,
   timeoutMs: number
 ): Promise<DayDressPlateEntry> {
-  const [entry] = await waitForGalleryPromptIds([promptId], { timeoutMs, pollMs: 2_500 });
+  const wait = deps.waitForPromptIds ?? waitForGalleryPromptIds;
+  const [entry] = await wait([promptId], { timeoutMs, pollMs: 2_500 });
   if (!entry || (entry.status !== 'completed' && entry.status !== 'error')) {
     // Still queued or rendering: keep the job so the next still picks it up.
     pendingJobs.set(key, { promptId, gaveUpAt: Date.now() });

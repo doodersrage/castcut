@@ -77,22 +77,39 @@ export function SystemTrayActivityCard({
           aria-controls={panelId}
           data-testid="system-tray-toggle"
           onClick={() => setExpanded(value => !value)}
-          className={`flex min-w-0 flex-1 items-start gap-3 px-3.5 ${serverOnly ? 'py-2' : 'py-3'} text-left max-md:gap-2 max-md:py-2 transition hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]`}
+          className={`flex min-w-0 flex-1 items-start gap-3 px-3.5 ${serverOnly ? 'py-2' : 'py-3'} ${expanded ? '' : 'max-md:px-2'} text-left max-md:gap-2 max-md:py-2 transition hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]`}
         >
           <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center max-md:h-7 max-md:w-7 justify-center rounded-xl border border-[var(--accent-border)] bg-gradient-to-br from-[var(--accent-muted)] to-[var(--tint-info-bg)] text-[var(--accent-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-            {primary.kind === 'asset' ? (
-              <UiIcon name="download" size={14} />
-            ) : primary.kind === 'held' ? (
-              <UiIcon name="pause" size={14} />
-            ) : (
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)]/50" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
+            {/* Phones, collapsed: the count stands in for the icon (every kind of job). */}
+            {!expanded && primary.kind !== 'queue' ? (
+              <span
+                className="text-xs font-semibold tabular-nums text-[var(--accent-text)] md:hidden"
+                data-testid="system-tray-count"
+              >
+                {Math.max(1, totalActiveCount)}
+                <span className="sr-only">
+                  {' '}
+                  job{Math.max(1, totalActiveCount) === 1 ? '' : 's'} — show
+                </span>
               </span>
-            )}
+            ) : null}
+            <span className={!expanded && primary.kind !== 'queue' ? 'max-md:hidden' : 'contents'}>
+              {primary.kind === 'asset' ? (
+                <UiIcon name="download" size={14} />
+              ) : primary.kind === 'held' ? (
+                <UiIcon name="pause" size={14} />
+              ) : (
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)]/50" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
+                </span>
+              )}
+            </span>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-1.5">
+          {/* Phones, collapsed: just the round badge with the count (below) — the "3 jobs ▾"
+              pill still sat over buttons and text at the bottom right. */}
+          <div className={`min-w-0 flex-1 space-y-1.5 ${expanded ? '' : 'max-md:hidden'}`}>
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <p
@@ -102,13 +119,6 @@ export function SystemTrayActivityCard({
                 >
                   {primaryTitle(primary)}
                 </p>
-                {/* Phones: a small pill until tapped — the full line covered page content. */}
-                {expanded ? null : (
-                  <p className="text-sm font-medium tabular-nums text-[var(--text-primary)] md:hidden">
-                    {Math.max(1, totalActiveCount)} job
-                    {Math.max(1, totalActiveCount) === 1 ? '' : 's'}
-                  </p>
-                )}
                 {subtitle ? (
                   <p
                     className={`mt-0.5 truncate type-caption text-[var(--text-tertiary)] ${
@@ -140,7 +150,7 @@ export function SystemTrayActivityCard({
           <span
             aria-hidden
             className={`mt-1 shrink-0 text-[var(--text-muted)] transition-transform duration-200 ${
-              expanded ? 'rotate-180' : ''
+              expanded ? 'rotate-180' : 'max-md:hidden'
             }`}
           >
             ▾

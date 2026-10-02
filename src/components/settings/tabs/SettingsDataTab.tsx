@@ -354,7 +354,11 @@ export default function SettingsDataTab({
             Reset local data
           </button>
         </div>
-        <p className="text-xs text-[var(--text-muted)]">Keys: {LOCAL_DATA_KEYS.join(', ')}</p>
+        {/* The storage key names are for support, not for reading — folded away. */}
+        <details className="text-xs text-[var(--text-muted)]">
+          <summary className="cursor-pointer">What this clears (storage keys)</summary>
+          <p className="mt-1 break-words font-mono">{LOCAL_DATA_KEYS.join(', ')}</p>
+        </details>
       </ToolSection>
     </>
   );

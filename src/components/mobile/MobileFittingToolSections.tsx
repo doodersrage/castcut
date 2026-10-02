@@ -7,7 +7,9 @@ import CharacterOsPicker from '@/components/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button } from '@/components/ui/Button';
-import { FieldError } from '@/components/ui/Field';
+import { FieldError, FieldLabel, TextArea } from '@/components/ui/Field';
+import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
+import { fittingNotesCachePatch } from '@/lib/look-pack';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import ClothingPicker from '@/components/wardrobe/ClothingPicker';
 import TaskRequirementsCard from '@/components/TaskRequirementsCard';
@@ -64,6 +66,12 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     saveStatus,
     continueDayHref,
     isolateSubject,
+    referenceImageFilename,
+    referenceImageUrl,
+    referenceOriginalFilename,
+    referenceOriginalUrl,
+    setReferencePreviewUrl,
+    setIsolateStatus,
     kitPreviews,
     hasReference,
     character,
@@ -305,6 +313,50 @@ export default function MobileFittingToolSections(vm: ViewModel) {
                 Clear
               </Button>
             ) : null}
+            {/* Desk Outfit's toggle: off uses the photo as it is, on cuts her out on white. */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isolateSubject}
+              disabled={busy || referenceUploading}
+              data-testid="mobile-fitting-isolate"
+              className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1.5 text-sm transition disabled:opacity-50 ${
+                isolateSubject
+                  ? 'border-[var(--accent)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
+                  : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
+              }`}
+              onClick={() => {
+                const next = !isolateSubject;
+                const originalUrl = referenceOriginalUrl || referenceImageUrl;
+                const originalFilename = referenceOriginalFilename || referenceImageFilename;
+                if (!next) {
+                  updateToolSettings({
+                    isolateSubject: false,
+                    referenceIsolated: false,
+                    referenceImageFilename: originalFilename,
+                    referenceImageUrl: originalUrl,
+                  });
+                  if (originalUrl) {
+                    setReferencePreviewUrl(cacheBustIdentityMediaUrl(originalUrl));
+                  }
+                  setIsolateStatus(null);
+                  return;
+                }
+                updateToolSettings({ isolateSubject: true });
+                if (!originalUrl && !originalFilename) {
+                  return;
+                }
+                void applyReference({
+                  imageUrl: originalUrl || IDENTITY_MEDIA_URL,
+                  filename: originalFilename || 'fitting-ref.png',
+                  isolate: true,
+                }).catch(err => {
+                  setError(err instanceof Error ? err.message : 'Could not update the plate.');
+                });
+              }}
+            >
+              Isolate on white{isolateSubject ? ' ✓' : ''}
+            </button>
           </div>
         </div>
       ) : (
@@ -433,6 +485,19 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           </p>
         ) : null}
       </div>
+
+      <label className="block space-y-2">
+        <FieldLabel>Notes for the try-on (optional)</FieldLabel>
+        <TextArea
+          data-testid="mobile-fitting-notes"
+          rows={2}
+          value={toolSettings.notes ?? ''}
+          placeholder="e.g. slightly oversized blazer, sleeves pushed up"
+          onChange={event =>
+            updateToolSettings(fittingNotesCachePatch(event.target.value, shared.activeCharacterId))
+          }
+        />
+      </label>
 
       <p className="type-caption text-[var(--text-muted)]" data-testid="fitting-preview-vs-queue">
         Small previews show when ready. Queue a try-on for the full-quality picture you Keep for

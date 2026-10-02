@@ -230,10 +230,12 @@ export default function SettingsAdvancedPanel() {
 
   return (
     <>
-      <ToolSection title="LLM usage">
+      {/* Scopes named: this list is the signed-in user's calls, Observability below counts the
+          whole server (background vision ranking included) — unlabelled, "0" sat beside "89". */}
+      <ToolSection title="Your LLM usage">
         {llmUsage ? (
           <ul className="space-y-1 text-sm text-[var(--text-muted)]">
-            <li>Last 24h LLM calls: {llmUsage.last24h}</li>
+            <li>Your LLM calls, last 24 hours: {llmUsage.last24h}</li>
             <li>Estimated tokens: {llmUsage.last24hTokens}</li>
             <li>
               By model:{' '}
@@ -256,7 +258,7 @@ export default function SettingsAdvancedPanel() {
       <ToolSection title="API usage">
         {usage ? (
           <ul className="space-y-1 text-sm text-[var(--text-muted)]">
-            <li>Recent requests (in-memory): {usage.total}</li>
+            <li>Recent requests kept (the last 500 at most): {usage.total}</li>
             <li>Last hour: {usage.lastHour}</li>
             <li>Rate limited: {usage.rateLimited}</li>
             <li>Average duration: {usage.avgDurationMs}ms</li>

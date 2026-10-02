@@ -291,3 +291,23 @@ describe('import any pose from a photo', () => {
     );
   });
 });
+
+describe('two-person layouts on a one-person still', () => {
+  const recipe =
+    'Edit Image 1: Day photo: One woman alone. She dances. Moment: dancing under club lights. Place: nightclub dance floor. Keep her face.';
+
+  it('the recipe cue never says "the two people" — a solo dance got a second copy of her', () => {
+    const cued = withRecipePoseCue(recipe, 'dance');
+    assert.doesNotMatch(cued, /two people|each other/);
+    assert.match(cued, /Pose: dancing alone: both arms raised/);
+    // No solo wording for a hug: no cue at all.
+    assert.equal(withRecipePoseCue(recipe, 'hug'), recipe);
+  });
+
+  it('the long-brief cue line follows the number of drawn figures', () => {
+    assert.match(poseLayoutCueLine('dance', 2), /the two people face each other/);
+    assert.match(poseLayoutCueLine('dance'), /the two people face each other/);
+    assert.doesNotMatch(poseLayoutCueLine('dance', 1), /two people/);
+    assert.equal(poseLayoutCueLine('hug', 1), '');
+  });
+});
