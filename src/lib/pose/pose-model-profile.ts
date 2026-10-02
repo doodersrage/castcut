@@ -100,6 +100,13 @@ export type PoseModelProfile = {
    * briefs or a bra left in most) — the base model is not an adult one.
    */
   adultEngine?: string;
+  /**
+   * Day's clothed two-person stills render on this engine instead (for that still only). Set for
+   * Qwen-Image 2.1, which fuses a clothed pair (see qwen-image-21-renderer: isClothedDuoStill).
+   * The plain Rapid engine, not 2.1's own NSFW graph base: on the NSFW checkpoint the same
+   * beats came out in lace two-pieces and bodysuits instead of the named dress.
+   */
+  clothedDuoEngine?: string;
   /** Queues on this engine's graph, then converts (Qwen-Image 2.1 → Rapid AIO NSFW edit). */
   graphBaseModel?: string;
 };
@@ -151,6 +158,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     namePartnerOutfit: true,
     dressWhenNoOutfit: true,
     compactEverydayRecipe: true,
+    clothedDuoEngine: 'qwen-rapid-aio-edit',
     mapDelivery: { solo: 'none', duoClothed: 'none', duoNude: 'none' },
     penetrationEngine: 'qwen-rapid-aio-edit-nsfw',
     graphBaseModel: 'qwen-rapid-aio-edit-nsfw',

@@ -1,7 +1,10 @@
 'use client';
 
 import { installedComfyModels } from '@/lib/model-picker';
-import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
+import {
+  fetchComfyObjectInfoModelsCached,
+  readCachedComfyObjectInfoModels,
+} from '@/lib/comfyui-object-info-cache';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -186,7 +189,6 @@ import {
   loadPoseGuideControlNetEnabled,
   resolvePoseGuideControlNetExtras,
 } from '@/lib/pose-guide-controlnet';
-import { fetchComfyObjectInfoModelsCached } from '@/lib/comfyui-object-info-cache';
 import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
 import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import { IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
@@ -844,12 +846,37 @@ export function useDayPlannerToolOrchestrationCore() {
         const replaceKeepOutfit = dayMoodReplacesKeepOutfit(toolSettings.dayMood);
         // Qwen Edit 2511 hands adult nude stills to Rapid AIO NSFW — this still only; the picked
         // engine stays picked (pose-model-profile: adultEngine).
+        const adultNudeStill =
+          isDayAdultMood(toolSettings.dayMood) && intimateEnabled && omitGarment;
+        // What is installed, for the per-still hand-offs. The list is only in memory once
+        // something has asked ComfyUI for it; in a fresh session it was missing and the hand-off
+        // silently did not happen, so ask for it here when the picked engine has one.
+        const handOffProfile = poseProfileForModel(shared.model);
+        const handOffInventory =
+          handOffProfile.adultEngine || handOffProfile.clothedDuoEngine
+            ? (readCachedComfyObjectInfoModels() ??
+              (await fetchComfyObjectInfoModelsCached().catch(() => null)))
+            : null;
         const stillModel = resolveDayStillModel(shared.model, {
-          adultNude: isDayAdultMood(toolSettings.dayMood) && intimateEnabled && omitGarment,
+          adultNude: adultNudeStill,
+          // Qwen-Image 2.1 hands clothed two-person stills to Rapid (it fuses the pair).
+          clothedDuo:
+            !adultNudeStill &&
+            planDaySlotPose({
+              slot: queueTarget,
+              dayMood: normalizeDayMood(
+                isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+                  ? 'everyday'
+                  : toolSettings.dayMood
+              ),
+              intimateMix: toolSettings.intimateMix,
+              allowCompanions: toolSettings.allowCompanions === true,
+              model: shared.model,
+            }).headcount >= 2,
           installed: modelId =>
             installedComfyModels(
               COMFY_IMAGE_MODELS,
-              readCachedComfyObjectInfoModels(),
+              handOffInventory,
               shared.modelCheckpointMap
             )?.has(modelId) === true,
         });

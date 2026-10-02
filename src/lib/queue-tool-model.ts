@@ -411,14 +411,30 @@ export function resolveEditCounterpartForImg2img(model: ComfyImageModel | string
 
 /**
  * The engine one Day still renders on. A picked engine with an `adultEngine` (Qwen Edit 2511)
- * hands its adult nude stills to that engine — for this still only; the picked engine stays
- * picked. No hand-off when the adult engine is not installed (or the inventory is unknown).
+ * hands its adult nude stills to that engine, and one with a `clothedDuoEngine` (Qwen-Image 2.1)
+ * its clothed two-person stills — for this still only; the picked engine stays picked. No
+ * hand-off when the other engine is not installed (or the inventory is unknown).
  */
 export function resolveDayStillModel(
   model: ComfyImageModel | string,
-  options: { adultNude: boolean; installed?: (modelId: string) => boolean }
+  options: {
+    adultNude: boolean;
+    /** A clothed still with two people in it (see pose-model-profile: clothedDuoEngine). */
+    clothedDuo?: boolean;
+    installed?: (modelId: string) => boolean;
+  }
 ): ComfyImageModel {
   const picked = normalizeModel(model);
+  const duoEngine = poseProfileForModel(picked).clothedDuoEngine;
+  if (
+    options.clothedDuo &&
+    !options.adultNude &&
+    duoEngine &&
+    COMFY_MODEL_IDS.has(duoEngine) &&
+    options.installed?.(duoEngine)
+  ) {
+    return duoEngine as ComfyImageModel;
+  }
   const adultEngine = poseProfileForModel(picked).adultEngine;
   if (!options.adultNude || !adultEngine || !COMFY_MODEL_IDS.has(adultEngine)) {
     return picked;
