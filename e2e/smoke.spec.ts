@@ -293,7 +293,7 @@ test('settings server storage says when this browser last synced', async ({ page
   const line = page.getByTestId('sync-status-line');
   if (!health.storage?.enabled) {
     // No server storage (CI runs without PROMPT_DATA_DIR): nothing to sync, no line.
-    await expect(page.getByText('disabled (browser database only)')).toBeVisible({
+    await expect(page.getByText('Status: disabled (browser database only)')).toBeVisible({
       timeout: 30_000,
     });
     await expect(line).toHaveCount(0);
