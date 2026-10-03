@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
 import MotionMedia from '@/components/ui/MotionMedia';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
+import OpenInComfyButton from '@/components/OpenInComfyButton';
 import {
   daySlotBoardCaption,
   daySlotClipProgressState,
@@ -536,6 +537,15 @@ export default function DaySlotBoard({
                   >
                     View larger
                   </Button>
+                </div>
+              ) : null}
+              {openable && stillPromptId && !compact ? (
+                <div className="px-3 pb-2.5">
+                  <OpenInComfyButton
+                    promptId={stillPromptId}
+                    className="w-full justify-center"
+                    testId={`day-progress-comfy-${slot.id}`}
+                  />
                 </div>
               ) : null}
               {canAnimate ? (

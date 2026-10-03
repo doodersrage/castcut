@@ -14,6 +14,7 @@ import {
 } from '@/lib/roleplay';
 import PoseMissPanel from '@/components/pose/PoseMissPanel';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
+import OpenInComfyButton from '@/components/OpenInComfyButton';
 import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
 import { useStoryBeatEditActions } from '@/components/roleplay/StoryBeatEditContext';
 import StoryBeatTextEditor from '@/components/roleplay/StoryBeatTextEditor';
@@ -126,6 +127,9 @@ export function RoleplayStoryBeatCard({
   const canRetryClipAction = Boolean(
     onRetryClip && canRetryRoleplayClip(beat) && !beatMotionUrl(beat)
   );
+  // The shown take's exact graph can go to ComfyUI's editor once it has rendered.
+  const comfyPromptId =
+    beat.stillStatus === 'completed' && beat.promptId?.trim() ? beat.promptId.trim() : '';
 
   return (
     <li key={`${beat.id}-${beat.at}`}>
@@ -246,7 +250,13 @@ export function RoleplayStoryBeatCard({
             </details>
           ) : null}
         </div>
-        {canQueue || canCopy || canAnimate || canExtend || canRetryClipAction || canEdit ? (
+        {canQueue ||
+        canCopy ||
+        canAnimate ||
+        canExtend ||
+        canRetryClipAction ||
+        canEdit ||
+        comfyPromptId ? (
           <div className="flex flex-wrap gap-2">
             {canQueue ? (
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => onQueue?.(beat)}>
@@ -306,6 +316,9 @@ export function RoleplayStoryBeatCard({
               >
                 Edit scene
               </Button>
+            ) : null}
+            {comfyPromptId ? (
+              <OpenInComfyButton promptId={comfyPromptId} testId="story-beat-open-in-comfy" />
             ) : null}
           </div>
         ) : null}

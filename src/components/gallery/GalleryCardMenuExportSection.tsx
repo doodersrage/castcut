@@ -4,6 +4,7 @@ import { galleryDownloadActionLabel } from '@/lib/comfyui-outputs';
 import { studioHistoryUrl } from '@/lib/prompt-lineage';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';
 import type { GalleryCardMenuSectionProps } from '@/components/gallery/gallery-card-menu-types';
+import { useOpenInComfy } from '@/components/OpenInComfyButton';
 
 export function GalleryExportSection({
   entry,
@@ -13,6 +14,7 @@ export function GalleryExportSection({
   onViewWorkflow,
   setMenuOpen,
 }: GalleryCardMenuSectionProps) {
+  const { busy: openingInComfy, open: openInComfy } = useOpenInComfy();
   return (
     <GalleryMenuGroup label="Export" collapsible>
       {entry.status === 'completed' && previewUrl ? (
@@ -39,6 +41,19 @@ export function GalleryExportSection({
           label="View workflow"
           onClick={() => {
             onViewWorkflow();
+            setMenuOpen(false);
+          }}
+        />
+      ) : null}
+      {entry.status === 'completed' &&
+      (entry.engineId ?? 'comfyui') === 'comfyui' &&
+      (entry.promptId?.trim() || entry.hasStoredWorkflow || entry.workflowJson?.trim()) ? (
+        <GalleryMenuButton
+          label={openingInComfy ? 'Opening in ComfyUI…' : 'Open in ComfyUI'}
+          data-testid="gallery-open-in-comfy"
+          onClick={() => {
+            if (openingInComfy) return;
+            openInComfy({ entry });
             setMenuOpen(false);
           }}
         />
