@@ -44,3 +44,20 @@ describe("formatComfyUiQueueValidationError", () => {
     assert.match(formatted, /flux1_vae_bf16|ae\.safetensors/i);
   });
 });
+
+describe('a stub graph with no outputs', () => {
+  it('says to set up a workflow instead of quoting ComfyUI', async () => {
+    const { formatComfyUiQueueValidationError, NO_WORKFLOW_MESSAGE } = await import(
+      './comfyui-queue-validation-error'
+    );
+    assert.equal(
+      formatComfyUiQueueValidationError(
+        JSON.stringify({
+          error: { type: 'prompt_no_outputs', message: 'Prompt has no outputs', details: '' },
+          node_errors: [],
+        })
+      ),
+      NO_WORKFLOW_MESSAGE
+    );
+  });
+});

@@ -43,6 +43,9 @@ function summarizeNodeError(nodeId: string, nodeError: ComfyUiNodeError): string
   return `${classType}(node ${nodeId}): ${detail}`;
 }
 
+export const NO_WORKFLOW_MESSAGE =
+  'No ComfyUI workflow is set up for this engine yet. Run Heal & ready (Settings → Overview) or pick a workflow for this model in Settings.';
+
 export function formatComfyUiQueueValidationError(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed.startsWith('{')) {
@@ -51,6 +54,11 @@ export function formatComfyUiQueueValidationError(raw: string): string {
 
   try {
     const parsed = JSON.parse(trimmed) as ComfyUiValidationPayload;
+    // No workflow set up for this engine: the app falls back to a stub graph with nothing to
+    // save, and ComfyUI's own words ("Prompt has no outputs") gave no clue what to do.
+    if (/no outputs/i.test(parsed.error?.message ?? '')) {
+      return NO_WORKFLOW_MESSAGE;
+    }
     const nodeErrors = parsed.node_errors;
     if (!nodeErrors || typeof nodeErrors !== 'object') {
       return trimmed;
