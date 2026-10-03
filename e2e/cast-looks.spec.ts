@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
 import { gotoStable } from './helpers/navigation';
 import { seedGalleryLookFixtures } from './helpers/gallery';
+import { seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
 
@@ -46,6 +47,22 @@ test('gallery: with a Cast picked, look chips narrow to one look', async ({ page
 });
 
 test('Cast page: What next checklist, and Film & media by look', async ({ page }) => {
+  const png =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  // The Day board owns the Day stills (gallery entries carry no Day marker).
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-look-cast' },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-look-cast',
+        stills: ['morning', 'afternoon', 'evening', 'night'].map(slotId => ({
+          slotId,
+          status: 'completed',
+          imageUrl: png,
+        })),
+      },
+    },
+  });
   await seedGalleryLookFixtures(page);
   await gotoStable(page, '/characters/e2e-look-cast');
   await dismissBlockingOverlays(page);

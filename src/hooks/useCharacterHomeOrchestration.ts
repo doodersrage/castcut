@@ -676,9 +676,6 @@ export function useCharacterHomeOrchestration(characterId: string) {
       typeof value === 'string' ? value.trim() !== '' : value != null
     );
     const bio = character.bio;
-    const galleryDayStillCount = stillEntries.filter(
-      entry => entry.tool === 'day' && entry.status === 'completed' && entry.images.length > 0
-    ).length;
     const storyId = roleplayLibraryIdForCharacter(character.id);
     return castChecklist({
       characterId: character.id,
@@ -691,8 +688,9 @@ export function useCharacterHomeOrchestration(characterId: string) {
       dayStillCount: countCastDayStills({
         characterId: character.id,
         activeCharacterId: loadSettingsCache().shared.activeCharacterId,
+        // The Day board (and the Cast's parked Days): gallery entries carry no Day marker —
+        // Day stills are stored as image-prompt jobs.
         day: loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE),
-        galleryDayStillCount,
       }),
       filmCount: filmEntries.length,
       cutShotCount: character.filmCut?.items.filter(item => item.included).length ?? 0,
