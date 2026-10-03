@@ -199,6 +199,12 @@ export type StudioExtrasPayload = {
   localObservability?: LocalObservabilityCounters;
   studioBackupLastExport?: string | null;
   characters?: CharacterRecord[];
+  /**
+   * Story's saved stories (roleplay-library). Kept in the browser only, they never reached the
+   * server: opening Story on another device, or a fresh browser, lost every story set aside when
+   * the Cast changed.
+   */
+  roleplayLibrary?: StoredRoleplaySession[];
   appTheme?: AppTheme;
   ambientIntensity?: AmbientIntensity;
   uiDensity?: UiDensity;
@@ -271,6 +277,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     localObservability: loadLocalObservability(),
     studioBackupLastExport: readBrowserValue<string>(STUDIO_BACKUP_LAST_EXPORT_KEY) ?? null,
     characters: loadCharacters(),
+    roleplayLibrary: readStoredRoleplayLibrary(),
     appTheme: loadAppTheme(),
     ambientIntensity: loadAmbientIntensity(),
     uiDensity: loadUiDensity(),
@@ -334,6 +341,9 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.characters) {
       saveCharacters(payload.characters);
+    }
+    if (payload.roleplayLibrary) {
+      writeBrowserValue(ROLEPLAY_LIBRARY_STORAGE_KEY, payload.roleplayLibrary);
     }
     if (payload.userNsfwGeneratorPresets) {
       saveUserNsfwGeneratorPresets(payload.userNsfwGeneratorPresets);
@@ -554,6 +564,17 @@ export function mergeStudioExtras(
   local: StudioExtrasPayload,
   server: StudioExtrasPayload
 ): StudioExtrasPayload {
+  const merged = mergeStudioExtrasWhole(local, server);
+  // Stories merge one by one (the newest copy of each wins): a story set aside on one device
+  // must not be dropped because the other device saved something else later.
+  const stories = mergeRoleplayLibraries(local.roleplayLibrary, server.roleplayLibrary);
+  return stories ? { ...merged, roleplayLibrary: stories } : merged;
+}
+
+function mergeStudioExtrasWhole(
+  local: StudioExtrasPayload,
+  server: StudioExtrasPayload
+): StudioExtrasPayload {
   const localAt = local.updatedAt ?? 0;
   const serverAt = server.updatedAt ?? 0;
   if (localStudioExtrasLooksEmpty(local) && !localStudioExtrasLooksEmpty(server)) {
@@ -563,4 +584,36 @@ export function mergeStudioExtras(
     return { ...local, ...server, updatedAt: Math.max(localAt, serverAt) };
   }
   return { ...server, ...local, updatedAt: Math.max(localAt, serverAt) };
+}
+
+/** A saved story as stored (roleplay-library's RoleplayLibrarySession, read loosely). */
+export type StoredRoleplaySession = { id: string; updatedAt?: number } & Record<string, unknown>;
+
+/** Same key as roleplay-library's ROLEPLAY_LIBRARY_KEY (not imported: it pulls in the Story tool). */
+const ROLEPLAY_LIBRARY_STORAGE_KEY = 'comfy-prompt-roleplay-library-v1';
+
+function readStoredRoleplayLibrary(): StoredRoleplaySession[] {
+  const raw = readBrowserValue<unknown>(ROLEPLAY_LIBRARY_STORAGE_KEY);
+  return Array.isArray(raw)
+    ? raw.filter(
+        (entry): entry is StoredRoleplaySession =>
+          Boolean(entry) && typeof (entry as { id?: unknown }).id === 'string'
+      )
+    : [];
+}
+
+/** Union of two story lists by id, newest copy of each; null when neither side has any. */
+export function mergeRoleplayLibraries(
+  local: StoredRoleplaySession[] | undefined,
+  server: StoredRoleplaySession[] | undefined
+): StoredRoleplaySession[] | null {
+  if (!local?.length && !server?.length) return null;
+  const byId = new Map<string, StoredRoleplaySession>();
+  for (const entry of [...(server ?? []), ...(local ?? [])]) {
+    const existing = byId.get(entry.id);
+    if (!existing || (entry.updatedAt ?? 0) >= (existing.updatedAt ?? 0)) {
+      byId.set(entry.id, entry);
+    }
+  }
+  return [...byId.values()].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 }

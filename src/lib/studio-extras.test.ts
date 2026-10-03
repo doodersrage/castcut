@@ -106,3 +106,24 @@ describe('studio-extras merge', () => {
     assert.equal(merged.playCampaignState?.lookPackId, 'lp-1');
   });
 });
+
+describe('saved stories in the server copy', () => {
+  it('merge story by story, newest copy of each', async () => {
+    const { mergeRoleplayLibraries } = await import('./studio-extras');
+    const merged = mergeRoleplayLibraries(
+      [
+        { id: 'nora', updatedAt: 5, title: 'Nora (phone)' },
+        { id: 'tomas', updatedAt: 1, title: 'Tomas (old)' },
+      ],
+      [
+        { id: 'tomas', updatedAt: 9, title: 'Tomas (desk)' },
+        { id: 'sam', updatedAt: 3, title: 'Sam' },
+      ]
+    );
+    assert.deepEqual(
+      merged?.map(entry => entry.title),
+      ['Tomas (desk)', 'Nora (phone)', 'Sam']
+    );
+    assert.equal(mergeRoleplayLibraries([], undefined), null);
+  });
+});
