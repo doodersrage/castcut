@@ -168,6 +168,63 @@ test('outfit footwear: saved shoes are kept, re-picked and removed', async ({ pa
   await expect(saved).toHaveCount(0);
 });
 
+test('outfit front and back: a try-on card shows its front and its back view', async ({
+  page,
+}) => {
+  const frontPng =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const backPng =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-front-back' },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-front-back',
+          name: 'Front Back',
+          version: 1,
+          updatedAt: Date.now(),
+          descriptor: 'a woman',
+        },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      fitting: {
+        compareTryOns: [
+          {
+            promptId: 'e2e-front-back-tryon',
+            wardrobeId: 'custom-garment',
+            wardrobeLabel: 'Red dress',
+            imageUrl: frontPng,
+            backImageUrl: backPng,
+            backPromptId: 'e2e-front-back-back',
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/fitting');
+  await dismissBlockingOverlays(page);
+  const card = page.getByTestId('fitting-compare-card').first();
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  await expect(card.getByTestId('fitting-compare-front').locator('img')).toHaveAttribute(
+    'src',
+    frontPng
+  );
+  await expect(card.getByTestId('fitting-compare-back').locator('img')).toHaveAttribute(
+    'src',
+    backPng
+  );
+  await expect(card.getByRole('button', { name: 'View the back of Red dress larger' })).toBeVisible();
+  // The switch is on by default.
+  await expect(page.getByTestId('fitting-front-back-switch')).toHaveAttribute(
+    'aria-checked',
+    'true'
+  );
+});
+
 test('outfit footwear: Browse shows every pair, searchable, and wears the pick', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: '' },

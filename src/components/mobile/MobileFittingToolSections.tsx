@@ -31,6 +31,7 @@ import OutfitPlayPhaseStrip from '@/components/fitting/OutfitPlayPhaseStrip';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
 import FittingAutoReviewToggle from '@/components/fitting/FittingAutoReviewToggle';
+import FittingFrontBackToggle from '@/components/fitting/FittingFrontBackToggle';
 import { TryOnReviewLine } from '@/components/fitting/FittingCompareSection';
 import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnReview';
 import { suggestTryOnToKeep } from '@/lib/fitting-tryon-review';
@@ -139,8 +140,8 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     )
   );
   const openCompareLightbox = useCallback(
-    (promptId: string) => {
-      const next = buildFittingCompareLightboxState(compareTryOns, promptId);
+    (promptId: string, options?: { back?: boolean }) => {
+      const next = buildFittingCompareLightboxState(compareTryOns, promptId, options);
       if (!next) {
         return;
       }
@@ -175,7 +176,11 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     }
     const url = lightbox.images[lightbox.index];
     return (
-      compareTryOns.find(tryOn => tryOn.imageUrl === url) || compareTryOns[lightbox.index] || null
+      compareTryOns.find(tryOn => tryOn.imageUrl === url) ||
+      // A back view's slide: Keep / Pass / ↻ act on its try-on (Keep uses the front).
+      compareTryOns.find(tryOn => tryOn.backImageUrl === url) ||
+      compareTryOns[lightbox.index] ||
+      null
     );
   }, [compareTryOns, lightbox]);
 
@@ -520,6 +525,10 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         checksOff={tryOnReview.checksOff}
         onChange={next => updateToolSettings({ autoReviewTryOns: next })}
       />
+      <FittingFrontBackToggle
+        enabled={toolSettings.tryOnFrontBack !== false}
+        onChange={next => updateToolSettings({ tryOnFrontBack: next })}
+      />
 
       {compareTryOns.length > 0 ? (
         <div className="space-y-2" data-testid="mobile-fitting-compare">
@@ -532,7 +541,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
                 key={tryOn.promptId}
                 data-testid="fitting-compare-card"
                 data-review={tryOnReview.reviews[tryOn.promptId]?.status ?? 'none'}
-                className={`w-[9rem] shrink-0 rounded-2xl border bg-[var(--bg-muted)]/40 p-2 ${
+                className={`${tryOn.backImageUrl ? 'w-[15rem]' : 'w-[9rem]'} shrink-0 rounded-2xl border bg-[var(--bg-muted)]/40 p-2 ${
                   suggestedTryOnId === tryOn.promptId
                     ? 'border-[var(--accent-border)] ring-2 ring-[var(--accent-ring)]'
                     : tryOnReview.reviews[tryOn.promptId]?.status === 'warn'
@@ -541,19 +550,38 @@ export default function MobileFittingToolSections(vm: ViewModel) {
                 }`}
               >
                 {tryOn.imageUrl ? (
-                  <button
-                    type="button"
-                    className="mb-2 block w-full cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-                    aria-label={`View ${tryOn.wardrobeLabel || 'try-on'} larger`}
-                    onClick={() => openCompareLightbox(tryOn.promptId)}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={tryOn.imageUrl}
-                      alt={tryOn.wardrobeLabel || 'Try-on'}
-                      className="h-32 w-full rounded-xl object-cover"
-                    />
-                  </button>
+                  <div className={tryOn.backImageUrl ? 'mb-2 grid grid-cols-2 gap-1' : 'mb-2'}>
+                    <button
+                      type="button"
+                      className="block w-full cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      aria-label={`View ${tryOn.wardrobeLabel || 'try-on'} larger`}
+                      data-testid="fitting-compare-front"
+                      onClick={() => openCompareLightbox(tryOn.promptId)}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={tryOn.imageUrl}
+                        alt={tryOn.wardrobeLabel || 'Try-on'}
+                        className="h-32 w-full rounded-xl object-cover"
+                      />
+                    </button>
+                    {tryOn.backImageUrl ? (
+                      <button
+                        type="button"
+                        className="block w-full cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                        aria-label={`View the back of ${tryOn.wardrobeLabel || 'try-on'} larger`}
+                        data-testid="fitting-compare-back"
+                        onClick={() => openCompareLightbox(tryOn.promptId, { back: true })}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={tryOn.backImageUrl}
+                          alt={`${tryOn.wardrobeLabel || 'Try-on'} — back`}
+                          className="h-32 w-full rounded-xl object-cover"
+                        />
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
                 <figcaption className="type-caption truncate text-[var(--text-muted)]">
                   {tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on'}

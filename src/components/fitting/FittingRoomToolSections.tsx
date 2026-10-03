@@ -6,6 +6,7 @@ import FittingCharacterSection from '@/components/fitting/FittingCharacterSectio
 import FittingCompareSection from '@/components/fitting/FittingCompareSection';
 import FittingActionRow from '@/components/fitting/FittingActionRow';
 import FittingAutoReviewToggle from '@/components/fitting/FittingAutoReviewToggle';
+import FittingFrontBackToggle from '@/components/fitting/FittingFrontBackToggle';
 import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnReview';
 import FittingPlateSection from '@/components/fitting/FittingPlateSection';
 import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
@@ -359,6 +360,10 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         enabled={autoReviewTryOns}
         checksOff={tryOnReview.checksOff}
         onChange={next => updateToolSettings({ autoReviewTryOns: next })}
+      />
+      <FittingFrontBackToggle
+        enabled={toolSettings.tryOnFrontBack !== false}
+        onChange={next => updateToolSettings({ tryOnFrontBack: next })}
       />
       {saveStatus ? <p className="type-caption text-[var(--text-muted)]">{saveStatus}</p> : null}
       {error ? <FieldError>{error}</FieldError> : null}

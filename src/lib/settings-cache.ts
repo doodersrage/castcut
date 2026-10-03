@@ -1124,6 +1124,8 @@ export type FittingToolCache = {
   footwearImageFilename?: string;
   /** Opt-in: score each landed try-on (face match vs plate + vision outfit read). */
   autoReviewTryOns?: boolean;
+  /** Front and back: each try-on is followed by a back view of it (unset = on). */
+  tryOnFrontBack?: boolean;
   /** Outfit → Pose → Custom: the joint editor's skeleton, sent as Image 3 (unset = as the plate). */
   tryOnPose?: import('./day-pose-guide').PhotoPose;
 };

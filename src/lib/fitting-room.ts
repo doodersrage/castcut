@@ -15,6 +15,14 @@ export type FittingCompareTryOn = {
    * under this key; the settings may have changed since it was queued.
    */
   dressPlateKey?: string;
+  /**
+   * Front and back: a second render of this try-on seen from behind, shown beside the front.
+   * Keep, the review and the dressed plate always use {@link imageUrl} (Day and Story need the
+   * front).
+   */
+  backImageUrl?: string;
+  backPromptId?: string;
+  backGalleryEntryId?: string;
 };
 
 /**
@@ -32,7 +40,40 @@ export type FittingPendingTryOn = FittingCompareTryOn & {
   };
   /** This job is the feet pass for the Compare card with this prompt id. */
   replacesPromptId?: string;
+  /**
+   * Front and back was on when the try-on was queued: once the front is final (after the feet
+   * pass, when there is one) a back view is rendered from it.
+   */
+  backView?: { subject: 'she' | 'he' };
+  /** This job is the back view for the Compare card with this prompt id. */
+  backOfPromptId?: string;
 };
+
+/** What follows a job of Outfit's chain that just landed: try-on → (feet pass) → back view. */
+export type FittingChainStep = 'feet-pass' | 'back-view' | null;
+
+/**
+ * Whether Outfit should follow the saved in-flight job. Not when it already follows one, and not
+ * when that job already landed here: the settings echo of "nothing pending" can arrive after the
+ * landing, and putting the old job back landed it twice (two shoe passes for one try-on, live).
+ */
+export function shouldFollowFittingPending(
+  saved: FittingPendingTryOn | null | undefined,
+  following: FittingPendingTryOn | null | undefined,
+  handledPromptIds: ReadonlySet<string>
+): saved is FittingPendingTryOn {
+  const id = saved?.promptId?.trim();
+  if (!id || following) return false;
+  return !handledPromptIds.has(id);
+}
+
+export function fittingNextChainStep(landed: FittingPendingTryOn): FittingChainStep {
+  // The back view ends the chain.
+  if (landed.backOfPromptId?.trim()) return null;
+  // The try-on itself (not its feet pass) may still need its shoes put on.
+  if (landed.feetPass && !landed.replacesPromptId?.trim()) return 'feet-pass';
+  return landed.backView ? 'back-view' : null;
+}
 
 export const FITTING_COMPARE_LIMIT = 4;
 
@@ -152,29 +193,40 @@ export function clipFittingGarmentLabel(description: string, max = 96): string {
 /** Build ImageLightbox state for the compare strip (newest-first order preserved). */
 export function buildFittingCompareLightboxState(
   tryOns: FittingCompareTryOn[],
-  openPromptId: string
+  openPromptId: string,
+  /** Open on the try-on's back view (when it has one) instead of its front. */
+  options?: { back?: boolean }
 ): {
   images: string[];
   titles: string[];
   index: number;
   title: string;
 } | null {
-  const slides = tryOns
-    .map(tryOn => {
-      const url = tryOn.imageUrl?.trim();
-      if (!url) {
-        return null;
-      }
-      const title = tryOn.wardrobeLabel?.trim() || tryOn.wardrobeId?.trim() || 'Try-on';
-      return { promptId: tryOn.promptId, url, title };
-    })
-    .filter((slide): slide is { promptId: string; url: string; title: string } => slide != null);
+  // Each try-on's front, then its back view when it has one.
+  const slides = tryOns.flatMap(tryOn => {
+    const url = tryOn.imageUrl?.trim();
+    if (!url) {
+      return [];
+    }
+    const title = tryOn.wardrobeLabel?.trim() || tryOn.wardrobeId?.trim() || 'Try-on';
+    const back = tryOn.backImageUrl?.trim();
+    return [
+      { promptId: tryOn.promptId, url, title, back: false },
+      ...(back
+        ? [{ promptId: tryOn.promptId, url: back, title: `${title} · back`, back: true }]
+        : []),
+    ];
+  });
   if (slides.length === 0) {
     return null;
   }
+  const wantBack = options?.back === true;
+  const exact = slides.findIndex(
+    slide => slide.promptId === openPromptId && slide.back === wantBack
+  );
   const index = Math.max(
     0,
-    slides.findIndex(slide => slide.promptId === openPromptId)
+    exact >= 0 ? exact : slides.findIndex(slide => slide.promptId === openPromptId)
   );
   return {
     images: slides.map(slide => slide.url),
@@ -693,8 +745,18 @@ export function replaceFittingCompareTryOnImage(
   if (!id || !current.some(item => item.promptId === id)) return current;
   return current.map(item => {
     if (item.promptId !== id) return item;
-    const { dressPlateKey: _posedTryOnsHaveNone, ...rest } = item;
+    const {
+      dressPlateKey: _posedTryOnsHaveNone,
+      // A back view of the old front would show the wrong shoes; the new front gets its own.
+      backImageUrl: _staleBack,
+      backPromptId: _staleBackPrompt,
+      backGalleryEntryId: _staleBackEntry,
+      ...rest
+    } = item;
     void _posedTryOnsHaveNone;
+    void _staleBack;
+    void _staleBackPrompt;
+    void _staleBackEntry;
     return {
       ...rest,
       promptId: next.promptId.trim() || id,
@@ -702,4 +764,41 @@ export function replaceFittingCompareTryOnImage(
       ...(next.galleryEntryId ? { galleryEntryId: next.galleryEntryId } : {}),
     };
   });
+}
+
+/**
+ * Front and back: asked for in the try-on prompt, the two panels came 0 of 2. A second edit of
+ * the finished try-on (Image 1 alone, Edit 2511) turned her around with the dress and heels on,
+ * 4 of 4 live.
+ */
+export function buildFittingBackViewPrompt(input: { subject?: 'she' | 'he' }): string {
+  const possessive = input.subject === 'he' ? 'his' : 'her';
+  return [
+    'Edit Image 1: the same person in exactly the same outfit and shoes, seen from directly behind — a back view, standing, full body head to feet,',
+    `${possessive} hair and the back of the outfit and the shoes visible.`,
+    'Same body, same proportions, same light and same plain background as Image 1. One person.',
+  ].join(' ');
+}
+
+/**
+ * The back view landed: it goes beside the front on that try-on's card. A card dismissed (or
+ * whose front changed) meanwhile is left alone.
+ */
+export function setFittingCompareTryOnBackImage(
+  current: FittingCompareTryOn[],
+  frontPromptId: string,
+  back: { promptId: string; imageUrl: string; galleryEntryId?: string }
+): FittingCompareTryOn[] {
+  const id = frontPromptId.trim();
+  if (!id || !back.imageUrl.trim() || !current.some(item => item.promptId === id)) return current;
+  return current.map(item =>
+    item.promptId === id
+      ? {
+          ...item,
+          backImageUrl: back.imageUrl.trim(),
+          ...(back.promptId.trim() ? { backPromptId: back.promptId.trim() } : {}),
+          ...(back.galleryEntryId ? { backGalleryEntryId: back.galleryEntryId } : {}),
+        }
+      : item
+  );
 }

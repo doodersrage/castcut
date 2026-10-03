@@ -100,8 +100,8 @@ export default function FittingCompareSection({
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
 
   const openLightbox = useCallback(
-    (tryOn: FittingCompareTryOn) => {
-      const next = buildFittingCompareLightboxState(compareTryOns, tryOn.promptId);
+    (tryOn: FittingCompareTryOn, options?: { back?: boolean }) => {
+      const next = buildFittingCompareLightboxState(compareTryOns, tryOn.promptId, options);
       if (!next) {
         return;
       }
@@ -124,6 +124,8 @@ export default function FittingCompareSection({
     const url = lightbox.images[lightbox.index];
     return (
       compareTryOns.find(tryOn => tryOn.imageUrl === url) ||
+      // A back view's slide: Keep / Pass / ↻ act on its try-on (Keep uses the front).
+      compareTryOns.find(tryOn => tryOn.backImageUrl === url) ||
       compareTryOns.find(tryOn => (tryOn.wardrobeLabel || tryOn.wardrobeId) === title) ||
       compareTryOns[lightbox.index] ||
       null
@@ -185,7 +187,7 @@ export default function FittingCompareSection({
                 key={tryOn.promptId}
                 data-testid="fitting-compare-card"
                 data-review={reviews[tryOn.promptId]?.status ?? 'none'}
-                className={`w-[9rem] shrink-0 rounded-[var(--radius-md)] border p-2 ${
+                className={`${tryOn.backImageUrl ? 'w-[15rem]' : 'w-[9rem]'} shrink-0 rounded-[var(--radius-md)] border p-2 ${
                   suggestedId === tryOn.promptId
                     ? 'border-[var(--accent-border)] ring-2 ring-[var(--accent-ring)]'
                     : reviews[tryOn.promptId]?.status === 'warn'
@@ -194,19 +196,38 @@ export default function FittingCompareSection({
                 }`}
               >
                 {tryOn.imageUrl ? (
-                  <button
-                    type="button"
-                    className="mb-2 block w-full cursor-zoom-in rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-                    aria-label={`View ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} larger`}
-                    onClick={() => openLightbox(tryOn)}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={tryOn.imageUrl}
-                      alt={tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on'}
-                      className="h-28 w-full rounded object-cover"
-                    />
-                  </button>
+                  <div className={tryOn.backImageUrl ? 'mb-2 grid grid-cols-2 gap-1' : 'mb-2'}>
+                    <button
+                      type="button"
+                      className="block w-full cursor-zoom-in rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      aria-label={`View ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} larger`}
+                      data-testid="fitting-compare-front"
+                      onClick={() => openLightbox(tryOn)}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={tryOn.imageUrl}
+                        alt={tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on'}
+                        className="h-28 w-full rounded object-cover"
+                      />
+                    </button>
+                    {tryOn.backImageUrl ? (
+                      <button
+                        type="button"
+                        className="block w-full cursor-zoom-in rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                        aria-label={`View the back of ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} larger`}
+                        data-testid="fitting-compare-back"
+                        onClick={() => openLightbox(tryOn, { back: true })}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={tryOn.backImageUrl}
+                          alt={`${tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on'} — back`}
+                          className="h-28 w-full rounded object-cover"
+                        />
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
                 <figcaption className="type-caption truncate text-[var(--text-muted)]">
                   {tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on'}

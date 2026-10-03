@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  buildFittingBackViewPrompt,
   buildFittingCompareLightboxState,
   buildFittingFeetPassPrompt,
   buildFittingGarmentPackshotExtractPrompt,
@@ -9,6 +10,7 @@ import {
   buildFittingSwipeDeck,
   dismissFittingCompareTryOn,
   fittingNeedsFeetPass,
+  fittingNextChainStep,
   fittingQueueBlockReason,
   fittingSessionStatusLine,
   fittingSwipeIndex,
@@ -21,6 +23,8 @@ import {
   resolveFittingOutfitPhase,
   resolveFittingPlateFromCharacter,
   roleplayLookPlateFieldsFromCharacter,
+  setFittingCompareTryOnBackImage,
+  shouldFollowFittingPending,
   withRoleplayLookPlateFromCast,
 } from './fitting-room';
 import type { CharacterRecord } from './character-os';
@@ -466,5 +470,125 @@ describe('Outfit feet pass', () => {
       replaceFittingCompareTryOnImage(current, 'gone', { promptId: 'x', imageUrl: '/x.png' }),
       current
     );
+  });
+});
+
+describe('Outfit front and back', () => {
+  it('buildFittingBackViewPrompt is the live recipe, his for a man', () => {
+    assert.equal(
+      buildFittingBackViewPrompt({ subject: 'she' }),
+      'Edit Image 1: the same person in exactly the same outfit and shoes, seen from directly behind — a back view, standing, full body head to feet, her hair and the back of the outfit and the shoes visible. Same body, same proportions, same light and same plain background as Image 1. One person.'
+    );
+    const his = buildFittingBackViewPrompt({ subject: 'he' });
+    assert.match(his, /, his hair and the back of the outfit/);
+    assert.doesNotMatch(his, /\bher\b/);
+    assert.match(buildFittingBackViewPrompt({}), /, her hair/);
+  });
+
+  it('fittingNextChainStep: try-on → feet pass → back view → done', () => {
+    const backView = { subject: 'she' as const };
+    const feetPass = { shoeWords: 'red heels', subject: 'she' as const };
+    const base = { promptId: 'p', wardrobeId: 'kit' };
+    // A plain try-on with Front and back on, or off.
+    assert.equal(fittingNextChainStep({ ...base, backView }), 'back-view');
+    assert.equal(fittingNextChainStep(base), null);
+    // A posed try-on on Edit 2511: shoes first, whatever the back view says.
+    assert.equal(fittingNextChainStep({ ...base, feetPass, backView }), 'feet-pass');
+    assert.equal(fittingNextChainStep({ ...base, feetPass }), 'feet-pass');
+    // The feet pass landed: then the back view, if it was asked for.
+    assert.equal(fittingNextChainStep({ ...base, replacesPromptId: 'a', backView }), 'back-view');
+    assert.equal(fittingNextChainStep({ ...base, replacesPromptId: 'a' }), null);
+    // The back view ends the chain (it keeps its subject for the status line).
+    assert.equal(fittingNextChainStep({ ...base, backOfPromptId: 'a', backView }), null);
+  });
+
+  it('shouldFollowFittingPending never follows a job that already landed', () => {
+    const saved = { promptId: 'try', wardrobeId: 'kit', feetPass: { shoeWords: 'pumps', subject: 'she' as const } };
+    assert.equal(shouldFollowFittingPending(saved, null, new Set()), true);
+    // The late settings echo of a landed try-on: following it again queued a second shoe pass.
+    assert.equal(shouldFollowFittingPending(saved, null, new Set(['try'])), false);
+    // Already following a job (the pass that try-on started): keep it.
+    assert.equal(
+      shouldFollowFittingPending(saved, { promptId: 'feet', wardrobeId: 'kit' }, new Set()),
+      false
+    );
+    assert.equal(shouldFollowFittingPending(undefined, null, new Set()), false);
+    assert.equal(shouldFollowFittingPending({ promptId: ' ', wardrobeId: 'k' }, null, new Set()), false);
+    // The back view that a landed feet pass started is new: followed.
+    assert.equal(
+      shouldFollowFittingPending(
+        { promptId: 'back', wardrobeId: 'kit', backOfPromptId: 'feet' },
+        null,
+        new Set(['try', 'feet'])
+      ),
+      true
+    );
+  });
+
+  it('setFittingCompareTryOnBackImage puts the back beside the front, front untouched', () => {
+    const current = [
+      { promptId: 'a', wardrobeId: 'k', imageUrl: '/a.png', dressPlateKey: 'key-a' },
+      { promptId: 'b', wardrobeId: 'k', imageUrl: '/b.png' },
+    ];
+    const next = setFittingCompareTryOnBackImage(current, 'a', {
+      promptId: 'back',
+      imageUrl: '/back.png',
+      galleryEntryId: 'gb',
+    });
+    assert.deepEqual(next[0], {
+      promptId: 'a',
+      wardrobeId: 'k',
+      imageUrl: '/a.png',
+      dressPlateKey: 'key-a',
+      backImageUrl: '/back.png',
+      backPromptId: 'back',
+      backGalleryEntryId: 'gb',
+    });
+    assert.equal(next[1], current[1]);
+    // Dismissed meanwhile: nothing comes back.
+    assert.equal(
+      setFittingCompareTryOnBackImage(current, 'gone', { promptId: 'x', imageUrl: '/x.png' }),
+      current
+    );
+  });
+
+  it('a feet pass replacing the front drops a stale back view', () => {
+    const next = replaceFittingCompareTryOnImage(
+      [
+        {
+          promptId: 'a',
+          wardrobeId: 'k',
+          imageUrl: '/a.png',
+          backImageUrl: '/old-back.png',
+          backPromptId: 'ob',
+        },
+      ],
+      'a',
+      { promptId: 'feet', imageUrl: '/feet.png' }
+    );
+    assert.equal(next[0]?.backImageUrl, undefined);
+    assert.equal(next[0]?.backPromptId, undefined);
+    assert.equal(next[0]?.imageUrl, '/feet.png');
+  });
+
+  it('the lightbox shows each back right after its front and can open on it', () => {
+    const tryOns = [
+      {
+        promptId: 'a',
+        wardrobeId: 'k',
+        wardrobeLabel: 'Red dress',
+        imageUrl: '/a.png',
+        backImageUrl: '/a-back.png',
+      },
+      { promptId: 'b', wardrobeId: 'k2', imageUrl: '/b.png' },
+    ];
+    const front = buildFittingCompareLightboxState(tryOns, 'a');
+    assert.deepEqual(front?.images, ['/a.png', '/a-back.png', '/b.png']);
+    assert.deepEqual(front?.titles, ['Red dress', 'Red dress · back', 'k2']);
+    assert.equal(front?.index, 0);
+    assert.equal(buildFittingCompareLightboxState(tryOns, 'a', { back: true })?.index, 1);
+    assert.equal(buildFittingCompareLightboxState(tryOns, 'b')?.index, 2);
+    // No back view: opens on the front.
+    assert.equal(buildFittingCompareLightboxState(tryOns, 'b', { back: true })?.index, 2);
   });
 });
