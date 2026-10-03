@@ -3253,3 +3253,30 @@ describe('a same-seed redo', () => {
     assert.equal(restored[0]?.previousTake, undefined);
   });
 });
+
+describe('intimate solo beats with partners allowed (People: Mixed)', () => {
+  it('a beat that says it is solo gets no invented partner; a sex beat keeps one', async () => {
+    const { buildDaySlotPrompt, DEFAULT_DAY_SLOTS } = await import('./day-planner');
+    const slot = DEFAULT_DAY_SLOTS[0]!;
+    const build = (sceneHints: string) =>
+      buildDaySlotPrompt({
+        slot: { ...slot, sceneHints, location: 'bedroom with warm lamp light' },
+        characterName: 'Nora',
+        hasPlate: true,
+        dayMood: 'intimate',
+        intimateEnabled: true,
+        intimateMix: 'mixed',
+        allowCompanions: true,
+        faceOnlyIdentity: true,
+        model: 'qwen-rapid-aio-edit-nsfw',
+        plateSource: 'cast',
+        poseGuide: true,
+      } as never);
+    const solo = build('alone kneeling at the foot of the bed masturbating, back arched — Cast alone');
+    // Live (user's renders 2026-10-03): this line put a man into solo beats 3/3.
+    assert.doesNotMatch(solo, /invent two bare-skin|one distinct partner/i);
+    assert.match(solo, /One woman alone, masturbating/);
+    const duo = build('against the bedroom wall mid-sex, night city glow');
+    assert.doesNotMatch(duo, /One woman alone, masturbating/);
+  });
+});

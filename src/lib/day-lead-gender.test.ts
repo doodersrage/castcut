@@ -71,3 +71,12 @@ describe('a beat typed for a man lead', () => {
     assert.equal(inDayPromptVoice(builtIn, 'man'), builtIn);
   });
 });
+
+describe('a man lead alone', () => {
+  it('rests a hand on his chest, not "his breast"', () => {
+    assert.equal(
+      swapDayPromptGender('the other hand rests on her breast.', { solo: true }),
+      'the other hand rests on his chest.'
+    );
+  });
+});

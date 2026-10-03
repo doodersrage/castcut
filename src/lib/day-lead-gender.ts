@@ -40,6 +40,7 @@ const PAIRS: Record<string, string> = {
 const SOLO_ANATOMY: Array<[RegExp, string]> = [
   [/\bbare breasts with nipples visible\b/gi, 'bare chest'],
   [/\bbreasts\b/gi, 'chest'],
+  [/\b(his|her) breast\b/gi, '$1 chest'],
   [/\b(?:bare\s+)?(?:vulva|pussy|clit(?:oris)?)\b/gi, 'penis'],
   [/\bbras?\b/gi, 'undershirt'],
   [/\bpanties\b/gi, 'briefs'],

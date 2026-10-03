@@ -3249,10 +3249,17 @@ export function buildDaySlotPrompt(input: {
     duoForced || allowCompanions || (isDayAdultMood(dayMood) && poseHeadcount >= 2);
   /** Suggestive couple beat with "Duo · companions" on — the solo-only locks stand down. */
   const suggestiveCouple = dayMood === 'suggestive' && allowCompanions && poseHeadcount === 2;
+  // A beat that says it is solo is solo even when partners are allowed (People: Mixed).
+  // Keyed on "partners allowed", a Mixed day's masturbation beats got "invent two bare-skin
+  // bodies … one distinct partner" beside "Cast alone" and a solo pose map — a man appeared in
+  // them 3/3 (user's renders, 2026-10-03).
+  // Only beats that say so ("alone", "solo", masturbating): the headcount alone misses a
+  // partner a sex beat implies ("against the wall mid-sex").
+  const beatSaysSolo = Boolean(hints) && isDayIntimateSoloBeat(hints ?? '') && poseHeadcount < 2;
   const soloSubject =
     dayMood === 'suggestive'
-      ? !allowCompanions
-      : !duoForced && !partnersAllowed && poseHeadcount < 2;
+      ? !allowCompanions || beatSaysSolo
+      : !duoForced && (partnersAllowed ? beatSaysSolo : poseHeadcount < 2);
   const soloToy = soloSubject && dayBeatUsesSoloSexToy(hints);
   const duoPartner = !soloSubject ? (input.partner ?? null) : null;
   /** The partner's face rides in as Image 2 (a Cast partner, not an invented one). */
