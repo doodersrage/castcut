@@ -89,6 +89,8 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
   the lead only.
 - [ ] **Redo pose misses once** — switch next to Auto-review (works with Auto-review off): a still
   that missed its pose is redone once and marked *Redone for the pose*.
+- [ ] **Seated oral** — an intimate oral beat on a couch / bed edge: she sits on the edge, he
+  kneels between her knees (your afternoon still's seed now comes out right; 6/7 seeds vs 4/7).
 - [ ] **Solo intimate scenes on Mixed** — Intimate, People → Mixed: solo scenes come out alone,
   couple scenes with the partner. Checked live (the bug you saw).
 - [ ] **Lying scenes** — Everyday lying beats (bed, picnic, sofa) on Qwen-Image 2.1: lying
@@ -127,6 +129,25 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
 
 - [ ] **Filter by look** — with a character filter, look chips (with counts) narrow the stills
   to one look; also on the Cast's Film & media tab. Checked live.
+
+## ComfyUI integration
+
+- [ ] **Engine dot** — the header Engine chip shows a green dot when that engine's nodes and
+  models are on your ComfyUI; otherwise "Missing node / model" with Install or download.
+- [ ] **Open in ComfyUI** — Gallery menu → Export (also Day / Story cards): ComfyUI opens in a new
+  tab; pick *Castcut/…json* in its Workflows sidebar; the graph is wired with the plate images and
+  a fixed seed, and Run reproduces the still. Not yet opened in the editor live.
+- [ ] **Import from ComfyUI** — Settings → ComfyUI → *Import a workflow from ComfyUI*: edit steps /
+  CFG in ComfyUI, save, pick the file: the changes are listed and can be applied to the Engine.
+- [ ] **Fewer re-uploads** — run a Day twice: the second run adds almost no files to ComfyUI's
+  input folder (names end in a 16-letter content code).
+- [ ] **Input folder report** — Settings → ComfyUI → *Input folder* → Scan: unused app files and
+  a command to remove them yourself; the app deletes nothing.
+- [ ] **Model-aware order** — *Queue all* on a mixed Day (clothed + nude slots): stills on the
+  same model run back to back; status says "Loading …" then "Rendering".
+- [ ] **Warm-up** (off by default) — Settings → ComfyUI → *Warm up the engine when I open a tool*.
+- [ ] **Castcut nodes** (optional install, restarts ComfyUI) — `comfyui-nodes/castcut/README.md`.
+  Once installed, Best of two is one job and cut-outs run inside ComfyUI.
 
 ## Settings and sync
 
