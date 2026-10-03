@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import { Button } from '@/components/ui/Button';
+import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { isRolledAppearanceDescriptor } from '@/lib/character-appearance';
 import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision-still-scan-client';
@@ -37,6 +38,8 @@ import {
 } from '@/lib/settings-cache';
 
 const ACCENT = 'sky' as const;
+
+const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), { ssr: false });
 
 const CastBiblePictureButton = dynamic(
   () => import('@/components/character/CastBiblePictureButton'),
@@ -99,6 +102,7 @@ export default function CharacterBibleSection({
   const [rewriting, setRewriting] = useState(false);
   const [describing, setDescribing] = useState(false);
   const [pictureError, setPictureError] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   /** Optimistic preview so a successful save is visible even if the parent re-renders late. */
   const [savedBio, setSavedBio] = useState<RoleplayBio | undefined>(character.bio);
   const [syncedKey, setSyncedKey] = useState(`${character.id}:${character.updatedAt}`);
@@ -356,13 +360,28 @@ export default function CharacterBibleSection({
               </p>
             ) : null}
             {biblePictureUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- ComfyUI / gallery media URL
-              <img
-                src={biblePictureUrl}
-                alt={`${bio.name} as the bible describes them`}
-                className="mt-3 max-h-[28rem] max-w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
-                data-testid="cast-bible-picture-image"
-              />
+              <button
+                type="button"
+                className="mt-3 block max-w-full cursor-zoom-in rounded-[var(--radius-md)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                aria-label="Open the bible picture full size"
+                title="View larger"
+                data-testid="cast-bible-picture-open"
+                onClick={() =>
+                  setLightbox({
+                    images: [biblePictureUrl],
+                    index: 0,
+                    title: `${bio.name} · bible picture`,
+                  })
+                }
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI / gallery media URL */}
+                <img
+                  src={biblePictureUrl}
+                  alt={`${bio.name} as the bible describes them`}
+                  className="max-h-[28rem] max-w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
+                  data-testid="cast-bible-picture-image"
+                />
+              </button>
             ) : null}
           </div>
         </>
@@ -431,6 +450,13 @@ export default function CharacterBibleSection({
         <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="cast-bible-status">
           {status}
         </p>
+      ) : null}
+      {lightbox ? (
+        <ImageLightbox
+          state={lightbox}
+          onClose={() => setLightbox(null)}
+          onIndexChange={() => {}}
+        />
       ) : null}
     </ToolSection>
   );

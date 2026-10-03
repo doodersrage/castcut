@@ -2399,6 +2399,12 @@ test('a Cast with a bible and a picture offers Picture this bible', async ({ pag
   await expect(page.getByTestId('cast-bible-picture-hint')).toHaveCount(0);
   // The last picture shows again on a revisit.
   await expect(page.getByTestId('cast-bible-picture-image')).toBeVisible();
+  // The picture opens full size in the lightbox; Escape closes it.
+  await page.getByRole('button', { name: 'Open the bible picture full size' }).click();
+  const lightbox = page.getByTestId('image-lightbox');
+  await expect(lightbox).toBeVisible({ timeout: 15_000 });
+  await page.keyboard.press('Escape');
+  await expect(lightbox).toHaveCount(0);
 });
 
 test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => {
