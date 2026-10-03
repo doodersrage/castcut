@@ -537,3 +537,31 @@ describe('a reference to a Cast an older version replaced', () => {
     });
   });
 });
+
+describe('switching the active Cast', () => {
+  it("drops the previous Cast's face lock when the new one has none", () => {
+    withMockLocalStorage(() => {
+      const cache = loadSettingsCache();
+      saveSettingsCache({
+        ...cache,
+        shared: {
+          ...cache.shared,
+          activeCharacterId: 'char-tomas',
+          ipAdapterImageFilenames: ['tomas-cutout.png'],
+          ipAdapterImageUrl: '/api/comfyui/view?filename=tomas-cutout.png',
+          identityKind: 'ipadapter',
+        } as SharedToolSettings,
+      });
+      const nora = createBlankCharacter('Nora', undefined as never);
+      const patch = applyCharacterRecord({ ...nora, id: 'char-nora' });
+      assert.equal(patch.activeCharacterId, 'char-nora');
+      assert.ok('ipAdapterImageFilenames' in patch);
+      assert.equal(patch.ipAdapterImageFilenames, undefined);
+      assert.equal(patch.ipAdapterImageUrl, undefined);
+      assert.equal(patch.identityKind, undefined);
+      // Re-applying the same Cast keeps its lock.
+      const again = applyCharacterRecord({ ...nora, id: 'char-tomas' });
+      assert.ok(!('ipAdapterImageFilenames' in again));
+    });
+  });
+});

@@ -538,7 +538,24 @@ export function applyCharacterRecord(character: CharacterRecord): Partial<Shared
           ),
         }
       : {};
-  return omitUndefinedSettings({
+  // Switching to another Cast: the previous one's face lock and identity go, whatever this
+  // record defines. Left in place (undefined fields are omitted below), a Cast with no face
+  // lock of her own was rendered with the previous lead's locked face.
+  const previous = shared.activeCharacterId?.trim();
+  const switching = Boolean(previous) && previous !== normalized.id;
+  const clearPrevious: Partial<SharedToolSettings> = switching
+    ? {
+        activeCharacterDescriptor: undefined,
+        ipAdapterImageFilename: undefined,
+        ipAdapterImageFilenames: undefined,
+        ipAdapterImageUrl: undefined,
+        ipAdapterComfyUrl: undefined,
+        ipAdapterStrength: undefined,
+        ipAdapterModelFilename: undefined,
+        identityKind: undefined,
+      }
+    : {};
+  const applied = omitUndefinedSettings({
     ...bundlePatch,
     activeCharacterId: normalized.id,
     activeLookId: normalized.activeLookId,
@@ -551,6 +568,7 @@ export function applyCharacterRecord(character: CharacterRecord): Partial<Shared
     ...(loraIds ? { sessionActiveLoraIds: loraIds } : {}),
     ...byModelPatch,
   });
+  return { ...clearPrevious, ...applied };
 }
 
 /**
