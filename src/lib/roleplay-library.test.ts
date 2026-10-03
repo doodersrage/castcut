@@ -501,3 +501,25 @@ describe('a restored story keeps what the next scene and the checks need', () =>
     assert.equal(beat?.stillTakeAutoPicked, true);
   });
 });
+
+describe('saving an unchanged story', () => {
+  it('keeps the stored copy and its time', () => {
+    withMockLocalStorage(() => {
+      const session = {
+        id: 'cast-nora',
+        createdAt: 1,
+        updatedAt: 100,
+        title: 'Nora',
+        beatCount: 1,
+        snapshot: {
+          bio: { name: 'Nora', look: 'a woman', personality: 'curious' },
+          story: [{ id: 'b1', at: 1, title: 'The door', blurb: 'A door appears.' }],
+          activeSessionId: 'cast-nora',
+        },
+      } as never;
+      upsertRoleplayLibrarySession(session);
+      const kept = upsertRoleplayLibrarySession({ ...(session as object), updatedAt: 999 } as never);
+      assert.equal(kept.updatedAt, 100);
+    });
+  });
+});

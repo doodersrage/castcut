@@ -367,6 +367,12 @@ export function snapshotRoleplaySession(
   });
 }
 
+function sameStoryIgnoringTime(a: RoleplayLibrarySession, b: RoleplayLibrarySession): boolean {
+  const strip = (session: RoleplayLibrarySession) =>
+    JSON.stringify({ ...session, updatedAt: 0, snapshot: { ...session.snapshot } });
+  return strip(a) === strip(b);
+}
+
 export function upsertRoleplayLibrarySession(
   session: RoleplayLibrarySession
 ): RoleplayLibrarySession {
@@ -374,10 +380,18 @@ export function upsertRoleplayLibrarySession(
   if (!normalized) {
     return session;
   }
-  const next = [
-    normalized,
-    ...loadRoleplayLibrary().filter(entry => entry.id !== normalized.id),
-  ].slice(0, MAX_ROLEPLAY_LIBRARY_SESSIONS);
+  // Unchanged but for the time: keep the stored copy. Story saved itself on every visit, and
+  // stories now merge across devices by time — a fresh time on unchanged data would beat a real
+  // edit made on another device.
+  const library = loadRoleplayLibrary();
+  const stored = library.find(entry => entry.id === normalized.id);
+  if (stored && sameStoryIgnoringTime(stored, normalized)) {
+    return stored;
+  }
+  const next = [normalized, ...library.filter(entry => entry.id !== normalized.id)].slice(
+    0,
+    MAX_ROLEPLAY_LIBRARY_SESSIONS
+  );
   saveRoleplayLibrary(next);
   return normalized;
 }
