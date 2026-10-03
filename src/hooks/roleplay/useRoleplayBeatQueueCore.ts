@@ -1,5 +1,6 @@
 'use client';
 
+import { releaseInterruptedStoryWrites } from '@/hooks/roleplay/story-beat-edit';
 import { storyPoseForcePeople } from '@/lib/story-scene-people';
 
 import { composedPoseForScene } from '@/lib/pose-compose';
@@ -28,7 +29,7 @@ import { ensureDayDressPlate } from '@/lib/day-dress-plate-client';
 import { setDressPlateActivity } from '@/lib/dress-plate-status';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import { getCachedClothingLabel, humanizeClothingId } from '@/lib/clothing-catalog-client';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import {
   applyCharacterRecord,
@@ -206,6 +207,22 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     toolSettings.customGarmentImageUrl
   );
   /** Clean-rated still with no outfit image: name everyday clothes when the writer named none. */
+  // A scene left "Writing still…" by a page that closed mid-write is released once, so Retry
+  // can write it again (story-beat-edit: releaseInterruptedStoryWrites).
+  const [openedAt] = useState(() => Date.now());
+  const releasedWritesRef = useRef(false);
+  useEffect(() => {
+    if (releasedWritesRef.current || storyRef.current.length === 0) {
+      return;
+    }
+    releasedWritesRef.current = true;
+    const released = releaseInterruptedStoryWrites(storyRef.current, openedAt);
+    if (released) {
+      storyRef.current = released;
+      updateToolSettings({ story: released });
+    }
+  }, [openedAt, storyRef, toolSettings.story, updateToolSettings]);
+
   const dressForRating = useCallback(
     (prompt: string, headcount?: number) =>
       adult || hasOutfitImage ? prompt : withStoryEverydayWardrobe(prompt, headcount),

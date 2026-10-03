@@ -77,3 +77,24 @@ export function storyBeatRewriteRevertPatch(before: RoleplayStoryBeat): Partial<
     stillTakeAutoPicked: before.stillTakeAutoPicked,
   };
 }
+
+/**
+ * Scenes whose still was still being written when the page closed. Nothing finishes that write
+ * once the page is gone, so the card span "Writing still…" for good, with Edit and Retry locked.
+ * Each one is marked failed and set to be written again (Retry writes it from the scene's text).
+ * Only scenes from before `before` — a write this page started is left alone. Null when none.
+ */
+export function releaseInterruptedStoryWrites(
+  story: readonly RoleplayStoryBeat[],
+  before: number
+): RoleplayStoryBeat[] | null {
+  let changed = false;
+  const next = story.map(beat => {
+    if (beat.stillStatus !== 'writing' || beat.prompt?.trim() || !(beat.at < before)) {
+      return beat;
+    }
+    changed = true;
+    return { ...beat, stillStatus: 'error' as const, textEdited: true };
+  });
+  return changed ? next : null;
+}

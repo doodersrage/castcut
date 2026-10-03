@@ -196,3 +196,22 @@ describe('starting the story over', () => {
     assert.equal(roleplayBioRequestForLead(locked, 'Story Mid'), locked);
   });
 });
+
+describe('a scene left writing by a closed page', () => {
+  it('is released for Retry, unless this page started it', async () => {
+    const { releaseInterruptedStoryWrites } = await import('../hooks/roleplay/story-beat-edit');
+    const stuck = { id: 'a', at: 100, title: 'A', blurb: 'a', stillStatus: 'writing' as const };
+    const fresh = { id: 'b', at: 900, title: 'B', blurb: 'b', stillStatus: 'writing' as const };
+    const queued = { id: 'c', at: 50, title: 'C', blurb: 'c', stillStatus: 'writing' as const, prompt: 'p' };
+    const next = releaseInterruptedStoryWrites([stuck, fresh, queued], 500);
+    assert.deepEqual(
+      next?.map(beat => [beat.id, beat.stillStatus, beat.textEdited ?? false]),
+      [
+        ['a', 'error', true],
+        ['b', 'writing', false],
+        ['c', 'writing', false],
+      ]
+    );
+    assert.equal(releaseInterruptedStoryWrites([fresh], 500), null);
+  });
+});
