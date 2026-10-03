@@ -1,9 +1,9 @@
 'use client';
 
-import { handOffOutfitPicks, realKitId } from '@/lib/outfit-handoff';
+import { handOffOutfitPicks, keptLookOutfitFromTryOn, realKitId } from '@/lib/outfit-handoff';
 import { registerDressPlateFromImage } from '@/lib/day-dress-plate-client';
 import { useCallback, useEffect } from 'react';
-import { activeLook, toggleLookKeeper } from '@/lib/character-os';
+import { activeLook, setLookKeptOutfit, toggleLookKeeper } from '@/lib/character-os';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
 import { buildFittingKitPreviewPrompt, type FittingCompareTryOn } from '@/lib/fitting-room';
 import {
@@ -250,7 +250,7 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
         input.setError('Pick a Cast character with a look before keeping a try-on.');
         return null;
       }
-      const updated = toggleLookKeeper(characterId, lookId, entryId);
+      let updated = toggleLookKeeper(characterId, lookId, entryId);
       // A try-on from a clothing photo records 'custom-garment' — not a kit. Seeded into Day's
       // slots and the shared kit it left Day with no packshot and the wrong outfit.
       const wardrobeId = realKitId(tryOn.wardrobeId);
@@ -258,6 +258,25 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
       // it was rendered with (recorded when it was queued — the clothing, shoes or pose may have
       // been changed since, and a wrong key would start their stills from the wrong outfit).
       const keptNow = updated ? activeLook(updated)?.keeperEntryIds?.includes(entryId) : false;
+      // The look records the kept try-on as its outfit (its kit, or the clothing photo and the
+      // shoes), so switching back to the look — or a Day slot wearing it — dresses her in it.
+      // Un-keeping drops it when it was this try-on.
+      if (updated) {
+        const lockBefore = activeLook(updated).lockedWardrobeId?.trim() || undefined;
+        updated =
+          setLookKeptOutfit(
+            characterId,
+            activeLook(updated).id,
+            keptNow
+              ? { outfit: keptLookOutfitFromTryOn(tryOn, input.toolSettings) }
+              : { removeEntryId: entryId }
+          ) ?? updated;
+        const lockAfter = activeLook(updated).lockedWardrobeId?.trim() || undefined;
+        if (lockAfter !== lockBefore) {
+          // The session's outfit lock is the active look's.
+          input.updateShared({ lockedWardrobeId: lockAfter });
+        }
+      }
       if (keptNow && tryOn.imageUrl?.trim() && tryOn.dressPlateKey) {
         void registerDressPlateFromImage(
           { key: tryOn.dressPlateKey, model: input.shared.model },
@@ -351,7 +370,7 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
       input.setSaveStatus,
       input.shared.activeCharacterId,
       input.shared.activeLookId,
-      input.toolSettings.notes,
+      input.toolSettings,
       input.updateShared,
     ]
   );

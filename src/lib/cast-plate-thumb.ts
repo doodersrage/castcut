@@ -49,12 +49,41 @@ export function nextCastLookName(character: CharacterRecord): string {
 }
 
 /** Readable outfit-lock name: the catalog label when loaded, else the humanized kit id. */
-export function castLookOutfitLabel(wardrobeId: string | undefined): string {
+export function castLookOutfitLabel(
+  wardrobeId: string | undefined,
+  keptOutfit?: CharacterLook['keptOutfit']
+): string {
   const id = wardrobeId?.trim();
   if (!id) {
-    return '';
+    return keptPhotoOutfitLabel(keptOutfit);
   }
   return getCachedClothingLabel(id) ?? humanizeClothingId(id);
+}
+
+/** Longest caption a kept clothing photo's description gets under a look's tile. */
+export const CAST_LOOK_OUTFIT_CAPTION_MAX = 40;
+
+/**
+ * A look's kept clothing photo, in words: its description, clipped at a word for the tile
+ * caption ("a clothing photo" when it was never described). '' without a kept photo.
+ */
+export function keptPhotoOutfitLabel(keptOutfit: CharacterLook['keptOutfit']): string {
+  if (
+    !keptOutfit?.customGarmentImageFilename?.trim() &&
+    !keptOutfit?.customGarmentImageUrl?.trim()
+  ) {
+    return '';
+  }
+  const words = keptOutfit.customGarmentDescription?.replace(/\s+/g, ' ').trim() ?? '';
+  if (!words) {
+    return 'Clothing photo';
+  }
+  if (words.length <= CAST_LOOK_OUTFIT_CAPTION_MAX) {
+    return words;
+  }
+  const cut = words.slice(0, CAST_LOOK_OUTFIT_CAPTION_MAX - 1);
+  const atWord = cut.lastIndexOf(' ');
+  return `${(atWord > 12 ? cut.slice(0, atWord) : cut).replace(/[\s,;:.-]+$/, '')}…`;
 }
 
 export type CastPlateTile = {
@@ -63,7 +92,7 @@ export type CastPlateTile = {
   label: string;
   thumb?: string;
   hasPlate: boolean;
-  /** The look's locked outfit, as words (absent with no lock). */
+  /** The look's outfit, as words: its lock, else its kept clothing photo (absent with neither). */
   outfit?: string;
 };
 
@@ -82,7 +111,9 @@ export function castPlateTiles(
     const plate = resolveLookPlate(look);
     const url = plate?.imageUrl?.trim() || '';
     const wardrobeId = look.lockedWardrobeId?.trim();
-    const outfit = wardrobeId ? outfitLabel(wardrobeId).trim() : '';
+    const outfit = wardrobeId
+      ? outfitLabel(wardrobeId).trim()
+      : keptPhotoOutfitLabel(look.keptOutfit);
     return {
       id: look.id,
       label: castLookDisplayName(look.name, looks.length - index),

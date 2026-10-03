@@ -5,14 +5,25 @@ import { addBlankCastLook, removeCastPlate, switchCastPlate } from './cast-plate
 import {
   castLookDisplayName,
   castLookPortraitTile,
+  castLookOutfitLabel,
   castPlateTiles,
+  keptPhotoOutfitLabel,
   nextCastLookName,
 } from './cast-plate-thumb';
-import { activeLook, getCharacter, looksOf, upsertCharacter } from './character-os';
+import {
+  activeLook,
+  applyCharacterRecordFresh,
+  getCharacter,
+  looksOf,
+  setLookKeptOutfit,
+  upsertCharacter,
+} from './character-os';
 import { dayDressPlateRequestKey } from './day-dress-plate';
 import { resolveFittingPlateFromCharacter } from './fitting-room';
 import { assignOutfitPlateToCastAndFitting } from './look-outfit-plate';
+import { keptLookOutfitFromTryOn } from './outfit-handoff';
 import {
+  DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_FITTING_TOOL_CACHE,
   DEFAULT_ROLEPLAY_TOOL_CACHE,
   loadSettingsCache,
@@ -279,5 +290,110 @@ describe('several look plates per Cast', () => {
     const tiles = castPlateTiles(next);
     assert.equal(tiles[0]!.id, fresh.id);
     assert.equal(tiles[0]!.hasPlate, false);
+  });
+
+  it('Keep saves the outfit to the look; switching back restores it; un-keeping clears it', () => {
+    installMemoryWindow();
+    const { lookA, lookB } = seedTwoPlates('char-keep');
+    // Look B (active) keeps a try-on from a clothing photo, with shoes.
+    const photoPicks = {
+      customGarmentImageFilename: 'red-dress.png',
+      customGarmentDescription: 'a red satin slip dress with thin straps and a low back',
+      footwear: 'black heels',
+    };
+    setLookKeptOutfit('char-keep', lookB, {
+      outfit: keptLookOutfitFromTryOn(
+        { wardrobeId: 'custom-garment', galleryEntryId: 'g-photo', dressPlateKey: 'dress-key-b' },
+        photoPicks
+      ),
+    });
+    // Look A keeps a kit.
+    setLookKeptOutfit('char-keep', lookA, {
+      outfit: keptLookOutfitFromTryOn({ wardrobeId: 'denim-01', galleryEntryId: 'g-kit' }, {}),
+    });
+    let cast = getCharacter('char-keep')!;
+    const b = looksOf(cast).find(look => look.id === lookB)!;
+    assert.equal(b.keptOutfit?.customGarmentImageFilename, 'red-dress.png');
+    assert.equal(b.keptOutfit?.entryId, 'g-photo');
+    assert.equal(b.keptOutfit?.dressPlateKey, 'dress-key-b');
+    assert.equal(b.lockedWardrobeId, undefined);
+    assert.equal(looksOf(cast).find(look => look.id === lookA)?.lockedWardrobeId, 'denim-01');
+
+    // The tiles say what each look wears.
+    const tiles = castPlateTiles(cast, { outfitLabel: id => (id === 'denim-01' ? 'Denim' : id) });
+    assert.equal(tiles.find(tile => tile.id === lookA)?.outfit, 'Denim');
+    assert.equal(tiles.find(tile => tile.id === lookB)?.outfit, 'a red satin slip dress with thin…');
+
+    // Switch to the kit look: the photo goes from Outfit, Day and Story; the kit is the lock.
+    saveToolSettings('day', {
+      ...loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE),
+      ...photoPicks,
+    });
+    cast = switchCastPlate('char-keep', lookA)!;
+    assert.equal(applyCharacterRecordFresh(cast).lockedWardrobeId, 'denim-01');
+    for (const tool of ['day', 'roleplay', 'fitting'] as const) {
+      const settings = loadToolSettings(tool, DEFAULT_DAY_TOOL_CACHE as never) as {
+        customGarmentImageFilename?: string;
+        footwear?: string;
+      };
+      assert.equal(settings.customGarmentImageFilename, undefined, tool);
+    }
+    assert.equal(loadToolSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE).wardrobeId, 'denim-01');
+
+    // And back: the photo and shoes come back everywhere.
+    cast = switchCastPlate('char-keep', lookB)!;
+    assert.equal(applyCharacterRecordFresh(cast).lockedWardrobeId, undefined);
+    const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+    assert.equal(day.customGarmentImageFilename, 'red-dress.png');
+    assert.equal(day.footwear, 'black heels');
+    assert.equal(
+      loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE).customGarmentImageFilename,
+      'red-dress.png'
+    );
+    const story = loadToolSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
+    assert.equal(story.customGarmentImageFilename, 'red-dress.png');
+    assert.equal(story.wardrobeId, undefined);
+
+    // Un-keeping another try-on leaves it; un-keeping this one clears it (and the kit's lock).
+    setLookKeptOutfit('char-keep', lookB, { removeEntryId: 'g-other' });
+    assert.ok(activeLook(getCharacter('char-keep')!).keptOutfit);
+    setLookKeptOutfit('char-keep', lookB, { removeEntryId: 'g-photo' });
+    assert.equal(activeLook(getCharacter('char-keep')!).keptOutfit, undefined);
+    setLookKeptOutfit('char-keep', lookA, { removeEntryId: 'g-kit' });
+    const a = looksOf(getCharacter('char-keep')!).find(look => look.id === lookA)!;
+    assert.equal(a.keptOutfit, undefined);
+    assert.equal(a.lockedWardrobeId, undefined);
+  });
+
+  it('a kept outfit survives a Cast save that does not carry the looks', () => {
+    installMemoryWindow();
+    const { lookB } = seedTwoPlates('char-merge');
+    setLookKeptOutfit('char-merge', lookB, {
+      outfit: { entryId: 'g-1', customGarmentImageFilename: 'dress.png' },
+    });
+    const cast = getCharacter('char-merge')!;
+    // A save from the session (no looks array) rebuilds the active look from the record.
+    upsertCharacter({ ...cast, looks: undefined, notes: 'edited' });
+    assert.equal(activeLook(getCharacter('char-merge')!).keptOutfit?.entryId, 'g-1');
+  });
+
+  it('a kept clothing photo captions its look: the description, clipped at a word', () => {
+    assert.equal(keptPhotoOutfitLabel(undefined), '');
+    assert.equal(keptPhotoOutfitLabel({ customGarmentDescription: 'no photo' }), '');
+    assert.equal(keptPhotoOutfitLabel({ customGarmentImageUrl: '/x.png' }), 'Clothing photo');
+    assert.equal(
+      keptPhotoOutfitLabel({ customGarmentImageFilename: 'x.png', customGarmentDescription: ' a  red dress ' }),
+      'a red dress'
+    );
+    const long = keptPhotoOutfitLabel({
+      customGarmentImageFilename: 'x.png',
+      customGarmentDescription: 'a floor-length emerald velvet gown with long sleeves and a slit',
+    });
+    assert.ok(long.length <= 40 && long.endsWith('…'), long);
+    // A kit lock wins over the photo caption.
+    assert.equal(
+      castLookOutfitLabel('outfit-denim-jacket', { customGarmentImageFilename: 'x.png' }),
+      'denim jacket'
+    );
   });
 });

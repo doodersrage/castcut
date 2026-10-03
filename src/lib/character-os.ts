@@ -128,6 +128,28 @@ export type CharacterLook = {
   keeperEntryIds?: string[];
   /** Whether this look's plate stands full body (DWPose read; see plate-stance.ts). */
   plateStance?: PlateStance;
+  /**
+   * The outfit kept for this look in Outfit (Keep). A catalog kit is also the look's
+   * {@link lockedWardrobeId}; a clothing photo and the shoes live only here. Switching to the look
+   * puts them back in Outfit, Day and Story; a Day slot wearing the look queues with them.
+   */
+  keptOutfit?: CharacterLookOutfit;
+};
+
+/** What a look wears, from the try-on kept on it (Outfit → Keep). */
+export type CharacterLookOutfit = {
+  /** Gallery entry of the kept try-on. */
+  entryId?: string;
+  /** The dressed-plate store key the kept try-on was registered under. */
+  dressPlateKey?: string;
+  /** The catalog kit kept (absent for a clothing photo). */
+  wardrobeId?: string;
+  customGarmentImageUrl?: string;
+  customGarmentImageFilename?: string;
+  customGarmentDescription?: string;
+  footwear?: string;
+  footwearImageUrl?: string;
+  footwearImageFilename?: string;
 };
 
 type CharacterStore = {
@@ -924,6 +946,8 @@ function mergeCharacterUpdate(prev: CharacterRecord, incoming: CharacterRecord):
     keeperEntryIds: current.keeperEntryIds,
     // Keyed to the plate it was read from: a replaced plate makes it stale, not wrong.
     ...(current.plateStance ? { plateStance: current.plateStance } : {}),
+    // Only when set — an extra undefined key would differ in strict deep-equal checks.
+    ...(current.keptOutfit ? { keptOutfit: current.keptOutfit } : {}),
   };
   const nextLooks = looks.some(look => look.id === nextLook.id)
     ? looks.map(look => (look.id === nextLook.id ? nextLook : look))
@@ -1123,6 +1147,74 @@ export function withNewPlateLook(
   // The new plate leads, so the look cap never cuts it.
   const nextLooks = [look, ...looks.filter(entry => entry.id !== look.id)].slice(0, MAX_LOOKS);
   return applyLookFields({ ...character, looks: nextLooks, updatedAt: Date.now() }, look);
+}
+
+/**
+ * A look after a try-on was kept on it: the try-on is its outfit. A kit becomes its outfit lock;
+ * a clothing photo replaces the lock (the look wears the photo now).
+ */
+export function withLookKeptOutfit(
+  look: CharacterLook,
+  outfit: CharacterLookOutfit
+): CharacterLook {
+  const kept: CharacterLookOutfit = {};
+  for (const [key, value] of Object.entries(outfit) as Array<
+    [keyof CharacterLookOutfit, unknown]
+  >) {
+    const text = typeof value === 'string' ? value.trim() : '';
+    if (text) kept[key] = text;
+  }
+  return {
+    ...look,
+    keptOutfit: kept,
+    lockedWardrobeId: kept.wardrobeId,
+  };
+}
+
+/**
+ * A look after a try-on was un-kept: its outfit goes when it was that try-on (with the kit lock
+ * it set). Another try-on's outfit, or one set before, stays.
+ */
+export function withoutLookKeptOutfit(look: CharacterLook, entryId: string): CharacterLook {
+  const id = entryId.trim();
+  if (!id || look.keptOutfit?.entryId !== id) {
+    return look;
+  }
+  const { keptOutfit, ...rest } = look;
+  const kit = keptOutfit.wardrobeId?.trim();
+  return kit && rest.lockedWardrobeId?.trim() === kit
+    ? { ...rest, lockedWardrobeId: undefined }
+    : rest;
+}
+
+/** Record (or with `outfit` null, drop when it was `entryId`) the kept outfit of one look. */
+export function setLookKeptOutfit(
+  characterId: string,
+  lookId: string,
+  change: { outfit: CharacterLookOutfit } | { removeEntryId: string }
+): CharacterRecord | undefined {
+  const character = getCharacter(characterId);
+  if (!character) {
+    return undefined;
+  }
+  const looks = looksOf(character);
+  const target = looks.find(look => look.id === lookId) ?? looks[0];
+  if (!target) {
+    return character;
+  }
+  const nextLook =
+    'outfit' in change
+      ? withLookKeptOutfit(target, change.outfit)
+      : withoutLookKeptOutfit(target, change.removeEntryId);
+  if (nextLook === target) {
+    return character;
+  }
+  upsertCharacter({
+    ...character,
+    looks: looks.map(look => (look.id === target.id ? nextLook : look)),
+    updatedAt: Date.now(),
+  });
+  return getCharacter(characterId);
 }
 
 export function activateLook(characterId: string, lookId: string): CharacterRecord | undefined {

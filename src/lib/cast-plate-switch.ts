@@ -6,6 +6,7 @@
 
 import {
   activateLook,
+  activeLook,
   getCharacter,
   removeLook,
   upsertCharacter,
@@ -18,6 +19,13 @@ import {
   type FittingPlate,
 } from '@/lib/fitting-room';
 import {
+  keptOutfitHasPhoto,
+  lookOutfitSwitchPatch,
+  slotsForOutfitPhoto,
+  type KeptLookOutfit,
+} from '@/lib/outfit-handoff';
+import {
+  DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_FITTING_TOOL_CACHE,
   DEFAULT_ROLEPLAY_TOOL_CACHE,
   loadSettingsCache,
@@ -91,6 +99,53 @@ export function followCastPlateInSessions(
   );
 }
 
+/**
+ * After the Cast's active look changed: the new look's kept outfit (Outfit → Keep: a clothing
+ * photo and shoes) goes into Outfit, Day and Story, as Outfit's own picks do. A kit look's kit
+ * reaches them as the Cast's outfit lock (shared.lockedWardrobeId, written by the caller with
+ * the Cast); its kept shoes come here, and a photo the previous look put in goes. A look with no
+ * kept outfit leaves the tools alone, except what the previous look put in.
+ */
+export function followLookOutfitInSessions(
+  characterId: string,
+  previous: KeptLookOutfit | null | undefined,
+  next: KeptLookOutfit | null | undefined
+): void {
+  const activeId = loadSettingsCache().shared.activeCharacterId?.trim();
+  if ((activeId && activeId !== characterId) || (!previous && !next)) {
+    return;
+  }
+  const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+  const fittingPatch = lookOutfitSwitchPatch(fitting, previous, next);
+  if (fittingPatch) {
+    saveToolSettings('fitting', { ...fitting, ...fittingPatch });
+  }
+  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  const dayPatch = lookOutfitSwitchPatch(day, previous, next);
+  if (dayPatch) {
+    saveToolSettings('day', {
+      ...day,
+      ...dayPatch,
+      slots: slotsForOutfitPhoto(day.slots ?? [], keptOutfitHasPhoto(dayPatch)),
+    });
+  }
+  const story = loadToolSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
+  const storyPatch = lookOutfitSwitchPatch(story, previous, next);
+  const storyKit = next?.wardrobeId?.trim();
+  if (storyPatch || (storyKit && story.wardrobeId !== storyKit)) {
+    saveToolSettings('roleplay', {
+      ...story,
+      ...(storyPatch ?? {}),
+      // A photo is the outfit (Story's kit would outrank it); a kit look's kit is Story's.
+      ...(storyPatch && keptOutfitHasPhoto(storyPatch)
+        ? { wardrobeId: undefined }
+        : storyKit
+          ? { wardrobeId: storyKit }
+          : {}),
+    });
+  }
+}
+
 /** Make one of the Cast's plates (looks) the one Outfit, Day and Story start from. */
 export function switchCastPlate(characterId: string, lookId: string): CharacterRecord | undefined {
   const before = getCharacter(characterId);
@@ -101,6 +156,11 @@ export function switchCastPlate(characterId: string, lookId: string): CharacterR
   const next = activateLook(before.id, lookId);
   if (next && next.activeLookId !== before.activeLookId) {
     followCastPlateInSessions(before.id, previous, next);
+    followLookOutfitInSessions(
+      before.id,
+      activeLook(before).keptOutfit,
+      activeLook(next).keptOutfit
+    );
   }
   return next;
 }
@@ -115,6 +175,11 @@ export function removeCastPlate(characterId: string, lookId: string): CharacterR
   const next = removeLook(before.id, lookId);
   if (next && next.activeLookId !== before.activeLookId) {
     followCastPlateInSessions(before.id, previous, next);
+    followLookOutfitInSessions(
+      before.id,
+      activeLook(before).keptOutfit,
+      activeLook(next).keptOutfit
+    );
   }
   return next;
 }
