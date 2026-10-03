@@ -136,7 +136,9 @@ test('settings looks for ComfyUI at the usual addresses when it is not answering
   // Nothing runs locally in CI: it says so rather than offering a wrong address.
   await expect(
     card.getByTestId('service-discovery-no-comfy').or(card.getByTestId('service-discovery-use-comfy').first())
-  ).toBeVisible({ timeout: 20_000 });
+    // Probing the usual ports times out one by one; under a full parallel run it took longer
+    // than 20 s once.
+  ).toBeVisible({ timeout: 45_000 });
 });
 
 test('settings shows what changed from defaults and resets it', async ({ page }) => {
