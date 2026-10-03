@@ -16,9 +16,11 @@ Castcut 2.3 is mostly about catching a bad still before it is rendered: every Da
 
 **Day partners and men as the lead.** With a Cast partner, clothed two-person stills on Rapid AIO draw the two of you, not a stranger, and the partner wears their own shoes. A man lead's stills and his partner's description are no longer reworded for a woman, and a scene you type reaches the prompt as typed (marked *Your words*).
 
+**Outfit's picks reach Day and Story.** A clothing photo and shoes picked in Outfit now go to Day and Story when you change them (a later choice in Day still stands until Outfit changes again). Shoes are worn rather than drawn on the floor beside her, and try-ons with shoes are framed head to feet.
+
 **Cast files.** *Export Cast file* (character page → More) saves the character, picture, looks, bible, Part, story and Day plan in one file; *Import a Cast file* on the Characters page adds it to another install or restores a backup. An import never replaces an existing character ("Name (imported)").
 
-**Appearance traits, separate from the Story bible.** A character's Bible tab starts with *Appearance*: sex, ethnicity, age, height and body type, editable at any time. These alone describe the body in Day, Look and Outfit pictures; on a Cast with a picture, anything left unset is the picture's to show. The bible is now Story's only — its look (clothes, mood, story details) no longer leaks into Day prompts. *Describe from photo* writes Story's look from the Cast's picture.
+**Appearance traits, separate from the Story bible.** A character's Bible tab starts with *Appearance*: sex, ethnicity, age, height, body type and hair (colour, length, style), editable at any time. These alone describe the body in Day, Look and Outfit pictures; on a Cast with a picture, anything left unset is the picture's to show. The bible is now Story's only — its look (clothes, mood, story details) no longer leaks into Day prompts. *Describe from photo* writes Story's look from the Cast's picture, *Rewrite bible* keeps the look in line with the traits, and *Picture this bible* renders the character as the bible describes them, with the Cast's face. The Bible tab also shows the Story rating the bible is written at (a Story set to Explicit used to leave every rewrite adult with nothing on the page to say why).
 
 **Sync you can see.** Settings → Server storage shows when this browser last synced, what is waiting, and why a push failed. Failed pushes retry every minute, and waiting changes are sent when you leave the tab. Saved stories and learned poses now sync between devices.
 
@@ -46,9 +48,12 @@ Castcut 2.3 is mostly about catching a bad still before it is rendered: every Da
 - Opening Story, Day or Outfit no longer clears the face lock or a locked kit.
 - Saving a Story no longer replaces a Film-made Cast with a copy (losing its looks).
 - A Cast made from a photo describes only the traits you picked, not invented ones.
+- Rewrite bible no longer dresses a character with no Part in corsets and thigh-high boots at PG-13.
+- *New character* on the Characters page opens the create form.
 
 **Outfit / Look**
 - A try-on that came back unchanged is flagged.
+- With a custom pose on Edit 2511, picked shoes tend not to appear; Outfit now says so.
 - A changed clothing photo, plate or description dresses a new plate.
 
 **Sync**
