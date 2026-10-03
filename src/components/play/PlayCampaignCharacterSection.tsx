@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useSearchParams } from 'next/navigation';
 import CastPersonaPartChips from '@/components/cast/CastPersonaPartChips';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import { Button, ButtonLink } from '@/components/ui/Button';
@@ -57,6 +58,21 @@ export default function PlayCampaignCharacterSection({
   const [customPersona, setCustomPersona] = useState('');
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
+  const createNameRef = useRef<HTMLInputElement>(null);
+  // Characters' "New character" opens Film with ?new=1: bring the create form to the front.
+  const wantsNewCharacter = useSearchParams().get('new') === '1';
+  const showCreateForm = !character;
+  useEffect(() => {
+    if (!wantsNewCharacter || !showCreateForm) {
+      return;
+    }
+    const input = createNameRef.current;
+    if (!input) {
+      return;
+    }
+    input.scrollIntoView({ block: 'center' });
+    input.focus({ preventScroll: true });
+  }, [wantsNewCharacter, showCreateForm]);
   const characters = useSyncExternalStore(
     subscribeCharacters,
     getCharactersSnapshot,
@@ -111,6 +127,7 @@ export default function PlayCampaignCharacterSection({
           <div className="space-y-2">
             <FieldLabel htmlFor="play-campaign-create-name">New character</FieldLabel>
             <input
+              ref={createNameRef}
               id="play-campaign-create-name"
               data-testid="play-campaign-create-name"
               value={draftName}

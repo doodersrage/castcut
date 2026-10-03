@@ -2276,8 +2276,39 @@ test('Characters: New character opens Film with the create form', async ({ page 
   await gotoStable(page, '/characters');
   await dismissBlockingOverlays(page);
   await page.getByTestId('cast-roster-new-character').click();
-  await page.waitForURL(/\/play/, { waitUntil: 'commit' });
+  await page.waitForURL(/\/play\?new=1/, { waitUntil: 'commit' });
   await expect(page.getByTestId('play-campaign-create-name')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('play-campaign-create-name')).toBeFocused();
+});
+
+test('Characters: Start a film opens Film with a named character', async ({ page }) => {
+  const now = Date.now();
+  await seedSettingsCacheOnNextLoad(page, {
+    characters: {
+      version: 1,
+      characters: [
+        { id: 'e2e-film-older', name: 'Older Lead', version: 1, updatedAt: now - 60_000, descriptor: 'a man' },
+        { id: 'e2e-film-newer', name: 'Newer Lead', version: 1, updatedAt: now, descriptor: 'a woman' },
+      ],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, '/characters');
+  await dismissBlockingOverlays(page);
+  // No Cast active: the most recently updated one is named on the button.
+  const startFilm = page.getByTestId('cast-roster-start-film');
+  await expect(startFilm).toHaveText('Start a film with Newer Lead', { timeout: 30_000 });
+  await startFilm.click();
+  await page.waitForURL(/\/play\?character=e2e-film-newer/, { waitUntil: 'commit' });
+  await expect(page.getByText('Active: Newer Lead')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('play-campaign-create-name')).toHaveCount(0);
+
+  // A card's own Start a film opens that character.
+  await gotoStable(page, '/characters');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('cast-roster-start-film-e2e-film-older').click();
+  await page.waitForURL(/\/play\?character=e2e-film-older/, { waitUntil: 'commit' });
+  await expect(page.getByText('Active: Older Lead')).toBeVisible({ timeout: 30_000 });
 });
 
 test('a Cast with a bible and a picture offers Picture this bible', async ({ page }) => {

@@ -221,6 +221,28 @@ export function stagePlayCampaignHandoff(pack: LookPack): void {
   saveLookPack(pack);
 }
 
+/**
+ * The Cast a roster's "Start a film" opens: the active Cast when it is on the roster,
+ * else the most recently updated one.
+ */
+export function rosterFilmLead<T extends { id: string; updatedAt?: number }>(
+  characters: readonly T[],
+  activeCharacterId?: string | null
+): T | undefined {
+  const activeId = activeCharacterId?.trim();
+  const active = activeId ? characters.find(entry => entry.id === activeId) : undefined;
+  if (active) {
+    return active;
+  }
+  let latest: T | undefined;
+  for (const entry of characters) {
+    if (!latest || (Number(entry.updatedAt) || 0) > (Number(latest.updatedAt) || 0)) {
+      latest = entry;
+    }
+  }
+  return latest;
+}
+
 export function playCampaignHref(characterId: string, lookPackId?: string): string {
   const params = new URLSearchParams();
   params.set('character', characterId);

@@ -9,9 +9,22 @@ import {
   resolveCampaignLookPackId,
   resolvePlayLoopEntryCharacterId,
   resolvePlayLoopNavHref,
+  rosterFilmLead,
 } from './play-campaign';
 
 describe('play campaign helpers', () => {
+  it('rosterFilmLead prefers the active Cast, else the most recently updated', () => {
+    const roster = [
+      { id: 'old', updatedAt: 10 },
+      { id: 'new', updatedAt: 30 },
+      { id: 'mid', updatedAt: 20 },
+    ];
+    assert.equal(rosterFilmLead(roster, 'mid')?.id, 'mid');
+    assert.equal(rosterFilmLead(roster, 'gone')?.id, 'new');
+    assert.equal(rosterFilmLead(roster, undefined)?.id, 'new');
+    assert.equal(rosterFilmLead([], 'mid'), undefined);
+  });
+
   it('resolveCampaignLookPackId prefers query over saved', () => {
     assert.equal(
       resolveCampaignLookPackId({ queryLookPackId: ' query ', savedLookPackId: 'saved' }),

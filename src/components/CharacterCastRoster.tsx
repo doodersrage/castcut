@@ -3,7 +3,7 @@
 import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, ButtonLink } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
 import { CastImportButton } from '@/components/cast/CastTransferControls';
 import { ToolBadge, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
@@ -21,10 +21,12 @@ import {
   type CharacterRecord,
 } from '@/lib/character-os';
 import { castRosterReadinessLine } from '@/lib/cast-home-status';
+import { playCampaignHref, rosterFilmLead } from '@/lib/play-campaign';
 import {
   listSavedIdentityBundles,
   loadSettingsCache,
   saveSharedSettings,
+  SETTINGS_CACHE_UPDATED_EVENT,
 } from '@/lib/settings-cache';
 import {
   deleteRoleplayLibrarySession,
@@ -43,6 +45,7 @@ export default function CharacterCastRoster() {
   const [detailsId, setDetailsId] = useState<string | null>(null);
   // Plates whose file is gone (deleted media, another machine's copy) — shown as "No plate".
   const [missingPlates, setMissingPlates] = useState<ReadonlySet<string>>(() => new Set());
+  const [activeCharacterId, setActiveCharacterId] = useState('');
   const characters = useSyncExternalStore(
     subscribeCharacters,
     getCharactersSnapshot,
@@ -51,6 +54,8 @@ export default function CharacterCastRoster() {
 
   useEffect(() => {
     let cancelled = false;
+    const readActive = () =>
+      setActiveCharacterId(loadSettingsCache().shared.activeCharacterId || '');
     void whenBrowserStorageReady().then(() => {
       if (cancelled) {
         return;
@@ -59,11 +64,16 @@ export default function CharacterCastRoster() {
         bundles: listSavedIdentityBundles(),
         roleplaySessions: roleplaySessionsForCharacterSync(),
       });
+      readActive();
     });
+    window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, readActive);
     return () => {
       cancelled = true;
+      window.removeEventListener(SETTINGS_CACHE_UPDATED_EVENT, readActive);
     };
   }, []);
+
+  const filmLead = rosterFilmLead(characters, activeCharacterId);
 
   const forgetCharacter = (id: string) => {
     const character = characters.find(entry => entry.id === id);
@@ -100,7 +110,16 @@ export default function CharacterCastRoster() {
       ipAdapterModelFilename: undefined,
       identityKind: undefined,
     });
-    router.push('/play');
+    router.push('/play?new=1');
+  };
+
+  const applyAndStartFilm = (id: string) => {
+    const character = characters.find(entry => entry.id === id);
+    if (!character) {
+      return;
+    }
+    applyCharacter(character);
+    router.push(playCampaignHref(id));
   };
 
   const applyAndOpenHome = (id: string) => {
@@ -148,11 +167,21 @@ export default function CharacterCastRoster() {
       description="The character is the project. Open a home for looks, stills, clips, and LoRA — or start a film."
     >
       {characters.length > 0 ? (
-        <ToolSection title="Film loop" description="Guided Look → Outfit → Day → Story.">
+        <ToolSection
+          title="Film loop"
+          description="Guided Look → Outfit → Day → Story. Start a film with a character from the roster, or make a new one first."
+        >
           <div className="flex flex-wrap gap-2">
-            <ButtonLink href="/play" size="sm" variant="primary">
-              Start a film
-            </ButtonLink>
+            {filmLead ? (
+              <Button
+                size="sm"
+                variant="primary"
+                data-testid="cast-roster-start-film"
+                onClick={() => applyAndStartFilm(filmLead.id)}
+              >
+                {`Start a film with ${filmLead.name?.trim() || 'this character'}`}
+              </Button>
+            ) : null}
             <Button
               size="sm"
               variant="secondary"
@@ -169,7 +198,7 @@ export default function CharacterCastRoster() {
           icon="catalog"
           title="No characters yet"
           description="A Cast lead is the person your films follow. Create one on Film — or save one from Story."
-          action={{ label: 'Create a Cast lead', href: '/play' }}
+          action={{ label: 'Create a Cast lead', href: '/play?new=1' }}
         />
       ) : (
         <ToolSection title="Roster" description={`${characters.length} saved`}>
@@ -287,6 +316,14 @@ export default function CharacterCastRoster() {
                       onClick={() => applyAndOpenHome(character.id)}
                     >
                       Open home
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      data-testid={`cast-roster-start-film-${character.id}`}
+                      onClick={() => applyAndStartFilm(character.id)}
+                    >
+                      Start a film
                     </Button>
                     <Button
                       size="sm"
