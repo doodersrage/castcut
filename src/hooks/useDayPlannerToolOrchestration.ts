@@ -11,7 +11,13 @@ import { applyCharacterRecordFresh } from '@/lib/character-os';
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import { dayWatchPlaylist } from '@/lib/day-planner';
+import {
+  dayStillsCachePatch,
+  dayWatchPlaylist,
+  restorePreviousDayTake,
+  upsertDaySlotStill,
+  type DaySlotId,
+} from '@/lib/day-planner';
 import {
   applyCutShotEdits,
   cutShotProblems,
@@ -136,6 +142,34 @@ export function useDayPlannerToolOrchestration() {
     [cutDayFilmNow, cutProblems, retryFlagged]
   );
 
+  // Same-seed redo: the slot as it reads now (edited beat, outfit…), the take's seed — and the
+  // old take kept beside it until one of the two is chosen.
+  const { updateToolSettings } = core;
+  const activeCharacterId = core.shared.activeCharacterId;
+  const redoSlotSameSeed = useCallback(
+    async (slotId: string) => {
+      const slot = slots.find(entry => entry.id === slotId);
+      if (slot) await queueSlot(slot, { sameSeed: true });
+    },
+    [queueSlot, slots]
+  );
+  const keepPreviousTake = useCallback(
+    (slotId: DaySlotId) => {
+      const next = restorePreviousDayTake(stillsRef.current, slotId);
+      stillsRef.current = next;
+      updateToolSettings(dayStillsCachePatch(next, activeCharacterId));
+    },
+    [activeCharacterId, stillsRef, updateToolSettings]
+  );
+  const dropPreviousTake = useCallback(
+    (slotId: DaySlotId) => {
+      const next = upsertDaySlotStill(stillsRef.current, { slotId, previousTake: undefined });
+      stillsRef.current = next;
+      updateToolSettings(dayStillsCachePatch(next, activeCharacterId));
+    },
+    [activeCharacterId, stillsRef, updateToolSettings]
+  );
+
   return {
     ...core,
     ...part2,
@@ -151,5 +185,8 @@ export function useDayPlannerToolOrchestration() {
     plateUploading,
     plateUploadError,
     uploadCastPlate,
+    redoSlotSameSeed,
+    keepPreviousTake,
+    dropPreviousTake,
   };
 }

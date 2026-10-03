@@ -3195,3 +3195,23 @@ describe('a beat the player types', () => {
     assert.equal(dayBeatIsTyped(slot), false);
   });
 });
+
+describe('a same-seed redo', () => {
+  it('keeps the replaced take and can put it back', async () => {
+    const { normalizeDaySlotStills, restorePreviousDayTake } = await import('./day-planner');
+    const stills = normalizeDaySlotStills([
+      {
+        slotId: 'morning',
+        status: 'completed',
+        promptId: 'new',
+        imageUrl: '/new.png',
+        previousTake: { imageUrl: '/old.png', promptId: 'old' },
+      },
+    ]);
+    assert.equal(stills[0]?.previousTake?.imageUrl, '/old.png');
+    const restored = restorePreviousDayTake(stills, 'morning');
+    assert.equal(restored[0]?.imageUrl, '/old.png');
+    assert.equal(restored[0]?.promptId, 'old');
+    assert.equal(restored[0]?.previousTake, undefined);
+  });
+});

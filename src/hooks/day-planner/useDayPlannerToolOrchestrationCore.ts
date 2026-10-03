@@ -89,6 +89,9 @@ import {
   rerollDaySlotScene,
   seedDaySlotsWardrobe,
   upsertDaySlotStill,
+  dayStillShownImage,
+  restorePreviousDayTake,
+  type DaySlotStill,
   DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP,
   DAY_EVERYDAY_POSE_DENOISE,
   DAY_PLATE_IDENTITY_LOCK_CAP,
@@ -757,7 +760,12 @@ export function useDayPlannerToolOrchestrationCore() {
   const queueSlot = useCallback(
     async (
       slot: DaySlot,
-      options?: { manageBusy?: boolean; qualityProfile?: 'draft' | 'final' | 'max' }
+      options?: {
+        manageBusy?: boolean;
+        qualityProfile?: 'draft' | 'final' | 'max';
+        /** Redo with the current take's seed, keeping that take to compare (and restore). */
+        sameSeed?: boolean;
+      }
     ) => {
       const manageBusy = options?.manageBusy !== false;
       if (manageBusy) {
@@ -1767,8 +1775,28 @@ export function useDayPlannerToolOrchestrationCore() {
             ttlMs: 20_000,
           });
         }
+        // Same seed: the take's seed from its gallery entry. Without one the redo would be a
+        // fresh roll that only looks like a comparison, so it stops instead.
+        let sameSeed: string | undefined;
+        let previousTake: DaySlotStill['previousTake'];
+        if (options?.sameSeed) {
+          const current = stillsRef.current.find(entry => entry.slotId === queueTarget.id);
+          const takeId = current?.promptId?.trim();
+          const entry = takeId
+            ? loadComfyGallery().find(galleryEntry => galleryEntry.promptId === takeId)
+            : undefined;
+          sameSeed = entry?.queueParams?.seed?.toString().trim() || undefined;
+          const shown = dayStillShownImage(current);
+          if (!sameSeed || !shown) {
+            throw new Error(
+              `${queueTarget.label}: this take's seed isn't in the gallery any more — use Requeue for a new take.`
+            );
+          }
+          previousTake = { imageUrl: shown, promptId: takeId };
+        }
         const promptId = await actions.sendComfyUi(queuedPrompt, undefined, undefined, {
           ...(queueOptions ?? {}),
+          ...(sameSeed ? { seed: sameSeed } : {}),
           ...(hasPlate
             ? {
                 queueTool: 'image-prompt',
@@ -1813,6 +1841,7 @@ export function useDayPlannerToolOrchestrationCore() {
           clipStatus: undefined,
           // Shown on the slot card ("Prompt check: fixed 1"); a clean prompt clears the last one.
           promptCheck: stillPromptCheckRecord(checked),
+          previousTake,
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));

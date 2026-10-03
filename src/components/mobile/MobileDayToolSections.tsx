@@ -1,5 +1,6 @@
 'use client';
 
+import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
 import { typedDayBeatPatch } from '@/lib/day-planner';
 import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
@@ -134,6 +135,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
     flaggedRetryCount,
     retryFlagged,
     uploadCastPlate,
+    redoSlotSameSeed,
+    keepPreviousTake,
+    dropPreviousTake,
     plateUploading,
     plateUploadError,
     hideStickyCutCoach,
@@ -634,6 +638,15 @@ export default function MobileDayToolSections(vm: ViewModel) {
             />
           </label>
         </div>
+        <DaySameSeedRedo
+          slot={activeSlot}
+          still={stills.find(entry => entry.slotId === activeSlot.id)}
+          busy={busy}
+          blocked={queueBlocked}
+          onRedo={() => void redoSlotSameSeed(activeSlot.id)}
+          onKeepOld={() => keepPreviousTake(activeSlot.id)}
+          onKeepNew={() => dropPreviousTake(activeSlot.id)}
+        />
         <DaySlotPosePreview
           slot={activeSlot}
           dayMood={dayMood}

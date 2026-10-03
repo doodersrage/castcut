@@ -41,7 +41,9 @@ export async function buildQueueSingleParams(input: {
   const queueParams = resolveQueueParams({
     model: queueModel,
     tool: effectiveTool,
-    base: options?.queueParamsBase,
+    base: options?.seed
+      ? { ...options?.queueParamsBase, seed: options.seed }
+      : options?.queueParamsBase,
     workflow,
     inputImageFilename,
     inputImageFilenames: inputImageFilenames.some(Boolean) ? inputImageFilenames : undefined,
@@ -52,7 +54,7 @@ export async function buildQueueSingleParams(input: {
     resolutionSizeTier: options?.resolutionSizeTier,
     resolutionOrientation: options?.resolutionOrientation,
     preserveInputAspect: options?.preserveInputAspect,
-    forceNewSeed: true,
+    forceNewSeed: !options?.seed,
     // Cast-plate stills whose Image 1 went by filename (face crops) have no probed size. Per-tool
     // fixes (Day 852b2681, Story 10b24647) each missed the other path; default here so every
     // caller gets the plate's 3:4 portrait instead of the square sidebar latent.

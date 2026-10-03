@@ -47,6 +47,11 @@ export type SendComfyUiOptions = {
    * sidebar orientation); Lightning snaps to its ladder.
    */
   castPlateReference?: boolean;
+  /**
+   * Queue with this seed instead of a fresh one (every queue rolls a new seed otherwise). Day's
+   * "Same seed" redo: change the scene, keep the take.
+   */
+  seed?: string;
   /** Skip graph enrich passes for tiny fitting draft thumbs. */
   draftPreviewLite?: boolean;
   /** Merged into runtime customTokens before inject (e.g. {{REGION_*}}). */

@@ -370,6 +370,11 @@ export type DaySlotStill = {
   finishedFor?: string;
   /** What the queue-time prompt check fixed / found on this take (still-prompt-audit). */
   promptCheck?: StillPromptCheck;
+  /**
+   * The take this one replaced when it was redone with the same seed — shown beside it, and
+   * "Keep the old take" puts it back.
+   */
+  previousTake?: { imageUrl: string; promptId?: string };
 };
 
 export const DEFAULT_DAY_SLOTS: DaySlot[] = [
@@ -4129,6 +4134,14 @@ export function normalizeDaySlotStills(
       finishedUrl: readText(still.finishedUrl, 2048) || undefined,
       finishedFor: readText(still.finishedFor, 160) || undefined,
       ...withPromptCheck(still.promptCheck),
+      ...(readText(still.previousTake?.imageUrl, 2048)
+        ? {
+            previousTake: {
+              imageUrl: readText(still.previousTake?.imageUrl, 2048),
+              promptId: readText(still.previousTake?.promptId, 160) || undefined,
+            },
+          }
+        : {}),
     });
   }
   const order = slots?.length
@@ -4449,4 +4462,34 @@ export function restoreDayBeatPatch(
   slot: Pick<DaySlot, 'sceneHintsDay'>
 ): Pick<DaySlot, 'sceneHints' | 'sceneHintsTyped' | 'sceneHintsDay'> {
   return { sceneHints: slot.sceneHintsDay, sceneHintsTyped: undefined, sceneHintsDay: undefined };
+}
+
+/** The image a still shows: its face finish when that belongs to this take, else the take. */
+export function dayStillShownImage(still: DaySlotStill | null | undefined): string {
+  if (!still) return '';
+  const finished = still.finishedUrl?.trim();
+  if (finished && still.finishedFor && still.finishedFor === still.promptId) return finished;
+  return still.imageUrl?.trim() || '';
+}
+
+/** Put the take a same-seed redo replaced back. */
+export function restorePreviousDayTake(
+  stills: DaySlotStill[] | null | undefined,
+  slotId: DaySlotId
+): DaySlotStill[] {
+  const still = normalizeDaySlotStills(stills).find(entry => entry.slotId === slotId);
+  const previous = still?.previousTake;
+  if (!previous) return normalizeDaySlotStills(stills);
+  return upsertDaySlotStill(stills, {
+    slotId,
+    promptId: previous.promptId,
+    imageUrl: previous.imageUrl,
+    status: 'completed',
+    finishedUrl: undefined,
+    finishedFor: undefined,
+    clipPromptId: undefined,
+    clipUrl: undefined,
+    clipStatus: undefined,
+    previousTake: undefined,
+  });
 }

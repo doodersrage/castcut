@@ -2275,12 +2275,15 @@ test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => 
   };
   await gotoStable(page, '/characters');
   await dismissBlockingOverlays(page);
-  await page.getByTestId('cast-import-input').setInputFiles({
-    name: 'imported-ines.castcut-cast.json',
-    mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(file)),
-  });
-  await page.waitForURL(/\/characters\/e2e-imported-cast/, { timeout: 30_000 });
+  // The file input only reacts once the page has hydrated; a file set before that is dropped.
+  await expect(async () => {
+    await page.getByTestId('cast-import-input').setInputFiles({
+      name: 'imported-ines.castcut-cast.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(file)),
+    });
+    await page.waitForURL(/\/characters\/e2e-imported-cast/, { timeout: 5_000, waitUntil: 'commit' });
+  }).toPass({ timeout: 45_000 });
   await expect(page.getByRole('heading', { name: 'Imported Ines' }).first()).toBeVisible();
   // Picking the imported Cast on Day brings its plan back.
   await page.getByTestId('character-home-day').click();
@@ -2288,6 +2291,55 @@ test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => 
   await expect(page.getByTestId('day-slot-beat').first()).toHaveValue('watching the boats', {
     timeout: 30_000,
   });
+});
+
+test('a same-seed redo shows old and new takes and can keep the old one', async ({ page }) => {
+  const oldPng =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const newPng =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-same-seed' },
+    characters: {
+      version: 1,
+      characters: [
+        { id: 'e2e-same-seed', name: 'Same Seed', version: 1, updatedAt: Date.now(), descriptor: 'a woman' },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        activeSlotId: 'morning',
+        stillsCharacterId: 'e2e-same-seed',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'park', sceneHints: 'reading on a bench' },
+          { id: 'afternoon', label: 'Afternoon', location: 'café', sceneHints: 'coffee' },
+          { id: 'evening', label: 'Evening', location: 'market', sceneHints: 'apples' },
+          { id: 'night', label: 'Night', location: 'home', sceneHints: 'cooking' },
+        ],
+        stills: [
+          {
+            slotId: 'morning',
+            status: 'completed',
+            imageUrl: newPng,
+            previousTake: { imageUrl: oldPng, promptId: 'e2e-old-take' },
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  // Select Morning (a finished card opens its still full size too — close that).
+  await page.getByTestId('day-slot-select-morning').click();
+  await page.keyboard.press('Escape');
+  const compare = page.getByTestId('day-same-seed-compare');
+  await expect(compare).toBeVisible({ timeout: 30_000 });
+  await expect(compare.getByRole('img', { name: /old take/ })).toHaveAttribute('src', oldPng);
+  await page.getByTestId('day-same-seed-keep-old').click();
+  await expect(compare).toHaveCount(0);
+  // The old take is the slot's still again, and the redo is offered.
+  await expect(page.getByTestId('day-same-seed-redo')).toBeVisible();
 });
 
 test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async ({ page }) => {
