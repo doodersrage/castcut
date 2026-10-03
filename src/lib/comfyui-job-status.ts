@@ -90,7 +90,14 @@ export function formatComfyUiJobStatusLine(job: ComfyUiJobTrackerState): string 
   if (job.status === 'running') {
     const progress = formatComfyUiJobProgressLabel(job);
     const engine = comfyUiJobEngineLabel(job);
-    parts.push(progress ? `Running · ${progress}` : `Running in ${engine}`);
+    // "Loading Qwen Edit 2511…" (the live bridge saw a loader node run) says it all.
+    parts.push(
+      progress
+        ? `Running · ${progress}`
+        : isLoadingStatusMessage(job.statusMessage)
+          ? job.statusMessage!.trim()
+          : `Running in ${engine}`
+    );
   } else if (job.status === 'pending') {
     if (job.queuePosition != null && job.queuePosition > 0) {
       parts.push(`Queued · position ${job.queuePosition}`);
@@ -125,6 +132,11 @@ export function formatComfyUiJobStatusLine(job: ComfyUiJobTrackerState): string 
   return parts.filter(Boolean).join(' · ');
 }
 
+/** The live bridge's "Loading <engine>…" message (a loader node is executing). */
+export function isLoadingStatusMessage(message: string | null | undefined): boolean {
+  return /^Loading .+…$/.test(message?.trim() ?? '');
+}
+
 export function comfyUiJobStatusLabel(job: ComfyUiJobTrackerState): string {
   if (job.status === 'running') {
     const percent = comfyUiJobProgressPercent(job);
@@ -133,6 +145,9 @@ export function comfyUiJobStatusLabel(job: ComfyUiJobTrackerState): string {
     }
     if (job.progressValue != null && job.progressMax != null && job.progressMax > 0) {
       return `Running · ${job.progressValue}/${job.progressMax}`;
+    }
+    if (isLoadingStatusMessage(job.statusMessage)) {
+      return job.statusMessage!.trim();
     }
     return 'Running';
   }

@@ -1,6 +1,7 @@
 'use client';
 
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
+import { useEngineWarmUp } from '@/hooks/useEngineWarmUp';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
@@ -97,6 +98,7 @@ export function useFittingRoomToolOrchestrationCore() {
     'fitting',
     DEFAULT_FITTING_TOOL_CACHE
   );
+  useEngineWarmUp({ mounted, model: shared.model });
 
   const [output, setOutput] = useState('');
   const [copied, setCopied] = useState(false);

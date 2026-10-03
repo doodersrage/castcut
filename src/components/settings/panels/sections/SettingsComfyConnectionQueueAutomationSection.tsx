@@ -109,6 +109,20 @@ export function SettingsComfyConnectionQueueAutomationSection({
         Use ComfyUI WebSocket for faster job progress updates
       </label>
 
+      <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+        <input
+          type="checkbox"
+          checked={settings.warmUpOnToolOpen === true}
+          onChange={event => updateSettings({ warmUpOnToolOpen: event.target.checked })}
+          className="h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-muted)] accent-[var(--accent)]"
+        />
+        Warm up the engine when I open a tool
+      </label>
+      <p className="-mt-2 pl-6 text-xs text-[var(--text-muted)]">
+        Day, Story and Outfit load their engine while you set up — only when ComfyUI is idle, the
+        engine isn&apos;t already loaded and there is VRAM to spare. Nothing is saved.
+      </p>
+
       <div className="ui-surface-inset space-y-2">
         <p className="text-xs font-medium text-[var(--text-secondary)]">Negative profile library</p>
         <select

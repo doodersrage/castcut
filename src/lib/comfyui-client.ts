@@ -205,6 +205,14 @@ async function dispatchServerQueuePost(input: {
   }
 }
 
+/** Keep the graph as its engine's warm-up template (comfy-warm-up-server.ts); best-effort. */
+function rememberQueuedGraphForWarmUp(graph: unknown, model: string | undefined): void {
+  if (!graph || typeof graph !== 'object') return;
+  void import('./comfy-warm-up-server')
+    .then(module => module.rememberWarmUpTemplate({ graph, model }))
+    .catch(() => undefined);
+}
+
 /** Max prompts accepted by /api/comfyui in one request. */
 export const COMFYUI_MAX_BATCH_PROMPTS = 12;
 
@@ -933,6 +941,7 @@ export async function queuePromptToComfyUi(
         workflow: graph,
       });
 
+      rememberQueuedGraphForWarmUp(graph, activeRequest.model);
       const success: ComfyQueueResult = {
         ok: true,
         promptId: data.prompt_id,
@@ -1029,6 +1038,7 @@ export async function queuePromptToComfyUi(
           : undefined,
     });
 
+    rememberQueuedGraphForWarmUp(activePromptBody.prompt, activeRequest.model);
     const success: ComfyQueueResult = {
       ok: true,
       promptId: data.prompt_id,

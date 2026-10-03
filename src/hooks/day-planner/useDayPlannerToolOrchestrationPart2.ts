@@ -86,6 +86,7 @@ import { recordDayFilmEpisode } from '@/lib/play-series';
 import { exportFilmPoster, pickPosterStillUrl } from '@/lib/film-poster';
 import { dayToolHref, dayToolPathname, toMobileStudioHref } from '@/lib/mobile-studio';
 import { markComfyQueueIntent } from '@/lib/comfy-setup-intent';
+import { planAppBurst } from '@/lib/comfy-model-turn';
 import { buildDemoDayStills } from '@/lib/welcome-sample-film';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
@@ -169,6 +170,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     updateSlot,
     wardrobeLabelFor,
     queueSlot,
+    resolveSlotStillModel,
     leanChrome,
   } = ctx;
 
@@ -273,9 +275,22 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         if (moodAligned.changed || diversified.changed) {
           updateToolSettings({ slots: queueSlots });
         }
+        // Model-aware queue: a mixed Day (Rapid SFW clothed + NSFW nude stills, 2511 handing
+        // nude stills to Rapid, 2.1 handing clothed duos to Rapid) runs each engine's stills
+        // together instead of switching models between them.
+        const engines = await Promise.all(
+          queueSlots.map(async slot => ({
+            id: slot.id,
+            slot,
+            model: await resolveSlotStillModel(slot)
+              .then(resolved => resolved.queueModel)
+              .catch(() => null),
+          }))
+        );
+        const burst = await planAppBurst(engines);
         // Sequential submit — sendComfyUi is single-flight; Promise.all only queues morning
         // and marks the other Day slots as error.
-        for (const slot of queueSlots) {
+        for (const { slot } of burst.submit) {
           await queueSlot(slot, {
             manageBusy: false,
             qualityProfile: options?.qualityProfile,
@@ -287,6 +302,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     },
     [
       queueSlot,
+      resolveSlotStillModel,
       slots,
       toolSettings.allowCompanions,
       toolSettings.dayMood,
@@ -469,14 +485,27 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         const still = stillsRef.current.find(entry => entry.slotId === slot.id);
         return still?.status === 'completed' && still.clipStatus !== 'completed';
       });
+      // Model-aware queue: adult duo clips stay on WAN, the rest may be LTX — each engine's
+      // clips run together.
+      const burst = await planAppBurst(
+        pending.map(slot => ({
+          id: slot.id,
+          slot,
+          model: resolveDayClipEngine({
+            stillPromptId: stillsRef.current.find(entry => entry.slotId === slot.id)?.promptId,
+            dayMood: toolSettings.dayMood,
+            sharedModel: shared.model,
+          }),
+        }))
+      );
       // Sequential — same single-flight Comfy lock as queueAll.
-      for (const slot of pending) {
+      for (const { slot } of burst.submit) {
         await animateSlot(slot, { manageBusy: false });
       }
     } finally {
       setBusy(false);
     }
-  }, [animateSlot, slots]);
+  }, [animateSlot, shared.model, slots, stillsRef, toolSettings.dayMood]);
 
   const cutDayFilm = useCallback(
     async (options?: { excludeKeys?: string[] }) => {

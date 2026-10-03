@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
+import { useEngineWarmUp } from '@/hooks/useEngineWarmUp';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useRoleplayBeatQueue } from '@/hooks/useRoleplayBeatQueue';
@@ -38,6 +39,7 @@ export function useRoleplayToolOrchestration() {
     'roleplay',
     DEFAULT_ROLEPLAY_TOOL_CACHE
   );
+  useEngineWarmUp({ mounted, model: shared.model });
   const [error, setError] = useState<string | null>(null);
   const [ownBibleOpen, setOwnBibleOpen] = useState(false);
 

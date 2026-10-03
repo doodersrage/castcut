@@ -1,6 +1,7 @@
 'use client';
 
 import { realKitId } from '@/lib/outfit-handoff';
+import { useEngineWarmUp } from '@/hooks/useEngineWarmUp';
 import {
   type DayStillSlotOptions,
   assembleDayStillPrompt,
@@ -255,6 +256,7 @@ export function useDayPlannerToolOrchestrationCore() {
     'day',
     DEFAULT_DAY_TOOL_CACHE
   );
+  useEngineWarmUp({ mounted, model: shared.model });
 
   const [output, setOutput] = useState('');
   const [copied, setCopied] = useState(false);
@@ -813,6 +815,79 @@ export function useDayPlannerToolOrchestrationCore() {
     ]
   );
 
+  // The engine one still renders on (its hand-offs: Edit 2511 adult nude → Rapid, 2.1 clothed duo
+  // → Rapid), and the model it is queued as — Queue all groups stills by it (model-aware queue).
+  const resolveSlotStillModel = useCallback(
+    async (queueTarget: DaySlot) => {
+      const omitGarment = dayBeatOmitsGarmentPackshot({
+        blurb: queueTarget.sceneHints,
+        prompt: [queueTarget.location, queueTarget.sceneHints].filter(Boolean).join(' · '),
+        // The mood the still plays as: an adult mood with Intimate off is Everyday, as the
+        // prompt builder already treats it — on the raw mood these stills started from a
+        // face crop under an Everyday prompt.
+        dayMood:
+          isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+            ? 'everyday'
+            : toolSettings.dayMood,
+        intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
+      });
+      // Qwen Edit 2511 hands adult nude stills to Rapid AIO NSFW — this still only; the picked
+      // engine stays picked (pose-model-profile: adultEngine).
+      const adultNudeStill = isDayAdultMood(toolSettings.dayMood) && intimateEnabled && omitGarment;
+      // What is installed, for the per-still hand-offs. The list is only in memory once
+      // something has asked ComfyUI for it; in a fresh session it was missing and the hand-off
+      // silently did not happen, so ask for it here when the picked engine has one.
+      const handOffProfile = poseProfileForModel(shared.model);
+      const handOffInventory =
+        handOffProfile.adultEngine || handOffProfile.clothedDuoEngine
+          ? (readCachedComfyObjectInfoModels() ??
+            (await fetchComfyObjectInfoModelsCached().catch(() => null)))
+          : null;
+      const stillModel = resolveDayStillModel(shared.model, {
+        adultNude: adultNudeStill,
+        // Qwen-Image 2.1 hands clothed two-person stills to Rapid (it fuses the pair).
+        clothedDuo:
+          !adultNudeStill &&
+          // Not on the adult moods: their two-person beats that keep clothes on (a flash, a
+          // wardrobe slip) belong on the adult engine, not plain Rapid.
+          !(isDayAdultMood(toolSettings.dayMood) && intimateEnabled) &&
+          planDaySlotPose({
+            slot: queueTarget,
+            dayMood: normalizeDayMood(
+              isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+                ? 'everyday'
+                : toolSettings.dayMood
+            ),
+            intimateMix: toolSettings.intimateMix,
+            allowCompanions: toolSettings.allowCompanions === true,
+            model: shared.model,
+          }).headcount >= 2,
+        installed: modelId =>
+          installedComfyModels(
+            COMFY_IMAGE_MODELS,
+            handOffInventory,
+            shared.modelCheckpointMap
+          )?.has(modelId) === true,
+      });
+      // As queueSlot sends it: with a plate, the Edit-capable (and adult nude: NSFW) variant.
+      const queueModel = resolveSlotLook(queueTarget).hasPlate
+        ? resolveAdultNudePlateQueueModel(stillModel, {
+            adultNude: isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) && omitGarment,
+          })
+        : stillModel;
+      return { omitGarment, stillModel, queueModel };
+    },
+    [
+      intimateEnabled,
+      resolveSlotLook,
+      shared.model,
+      shared.modelCheckpointMap,
+      toolSettings.allowCompanions,
+      toolSettings.dayMood,
+      toolSettings.intimateMix,
+    ]
+  );
+
   const queueSlot = useCallback(
     async (
       slot: DaySlot,
@@ -946,58 +1021,8 @@ export function useDayPlannerToolOrchestrationCore() {
           }
         }
         const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
-        const omitGarment = dayBeatOmitsGarmentPackshot({
-          blurb: queueTarget.sceneHints,
-          prompt: [queueTarget.location, queueTarget.sceneHints].filter(Boolean).join(' · '),
-          // The mood the still plays as: an adult mood with Intimate off is Everyday, as the
-          // prompt builder already treats it — on the raw mood these stills started from a
-          // face crop under an Everyday prompt.
-          dayMood:
-            isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
-              ? 'everyday'
-              : toolSettings.dayMood,
-          intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
-        });
+        const { omitGarment, stillModel } = await resolveSlotStillModel(queueTarget);
         const replaceKeepOutfit = dayMoodReplacesKeepOutfit(toolSettings.dayMood);
-        // Qwen Edit 2511 hands adult nude stills to Rapid AIO NSFW — this still only; the picked
-        // engine stays picked (pose-model-profile: adultEngine).
-        const adultNudeStill =
-          isDayAdultMood(toolSettings.dayMood) && intimateEnabled && omitGarment;
-        // What is installed, for the per-still hand-offs. The list is only in memory once
-        // something has asked ComfyUI for it; in a fresh session it was missing and the hand-off
-        // silently did not happen, so ask for it here when the picked engine has one.
-        const handOffProfile = poseProfileForModel(shared.model);
-        const handOffInventory =
-          handOffProfile.adultEngine || handOffProfile.clothedDuoEngine
-            ? (readCachedComfyObjectInfoModels() ??
-              (await fetchComfyObjectInfoModelsCached().catch(() => null)))
-            : null;
-        const stillModel = resolveDayStillModel(shared.model, {
-          adultNude: adultNudeStill,
-          // Qwen-Image 2.1 hands clothed two-person stills to Rapid (it fuses the pair).
-          clothedDuo:
-            !adultNudeStill &&
-            // Not on the adult moods: their two-person beats that keep clothes on (a flash, a
-            // wardrobe slip) belong on the adult engine, not plain Rapid.
-            !(isDayAdultMood(toolSettings.dayMood) && intimateEnabled) &&
-            planDaySlotPose({
-              slot: queueTarget,
-              dayMood: normalizeDayMood(
-                isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
-                  ? 'everyday'
-                  : toolSettings.dayMood
-              ),
-              intimateMix: toolSettings.intimateMix,
-              allowCompanions: toolSettings.allowCompanions === true,
-              model: shared.model,
-            }).headcount >= 2,
-          installed: modelId =>
-            installedComfyModels(
-              COMFY_IMAGE_MODELS,
-              handOffInventory,
-              shared.modelCheckpointMap
-            )?.has(modelId) === true,
-        });
         // Dress plate: dress her once (the picked clothing and shoes on the Cast plate), then
         // start this still from that plate — no clothing image, the outfit is on Image 1.
         let dressPlate: DayPlate | null = null;
@@ -1981,6 +2006,7 @@ export function useDayPlannerToolOrchestrationCore() {
       leanChrome,
       leadNoun,
       resolveSlotLook,
+      resolveSlotStillModel,
       shared.activeCharacterId,
       shared.activeLookId,
       shared.ipAdapterStrength,
@@ -2284,6 +2310,7 @@ export function useDayPlannerToolOrchestrationCore() {
     updateSlot,
     wardrobeLabelFor,
     queueSlot,
+    resolveSlotStillModel,
     leanChrome,
   };
 }

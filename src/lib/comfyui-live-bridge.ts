@@ -2,6 +2,7 @@ import 'server-only';
 
 import { getComfyUiBaseUrl } from './comfyui-client';
 import { stripEmptyComfyUiRuntime } from './comfyui-config';
+import { executingPhaseMessage } from './comfyui-loader-phase';
 import { parseComfyPreviewBinary } from './comfyui-preview-binary';
 
 const CLIENT_FEATURE_FLAGS = {
@@ -37,7 +38,73 @@ type BridgeSession = {
   socket: WebSocket;
   subscribers: Set<Subscriber>;
   ready: boolean;
+  /** Graphs of jobs seen executing (null = not found), for "Loading <engine>…" vs "Rendering". */
+  graphs: Map<string, unknown | null>;
+  lastExecuting?: { promptId?: string; node: string };
 };
+
+const MAX_SESSION_GRAPHS = 8;
+
+/** The running job's graph from ComfyUI's `/queue`, once per prompt; republishes the phase. */
+async function loadExecutingGraph(session: BridgeSession, promptId: string): Promise<void> {
+  session.graphs.set(promptId, null);
+  while (session.graphs.size > MAX_SESSION_GRAPHS) {
+    session.graphs.delete(session.graphs.keys().next().value!);
+  }
+  try {
+    const response = await fetch(`${session.comfyUrl.replace(/\/+$/, '')}/queue`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!response.ok) return;
+    const queue = (await response.json()) as {
+      queue_running?: unknown[];
+      queue_pending?: unknown[];
+    };
+    const entry = [...(queue.queue_running ?? []), ...(queue.queue_pending ?? [])].find(
+      item => Array.isArray(item) && item[1] === promptId
+    ) as unknown[] | undefined;
+    if (!entry?.[2]) return;
+    session.graphs.set(promptId, entry[2]);
+    const last = session.lastExecuting;
+    if (last && last.promptId === promptId) {
+      const phase = executingPhaseMessage(entry[2], last.node);
+      if (phase) publishExecuting(session, promptId, last.node);
+    }
+  } catch {
+    // stays "Running node N"
+  }
+}
+
+/** An `executing` event, worded by phase when the job's graph is known. */
+function publishExecuting(
+  session: BridgeSession,
+  promptId: string | undefined,
+  node: string | null
+): void {
+  if (!node) {
+    session.lastExecuting = undefined;
+    publish(session, {
+      type: 'progress',
+      status: 'finished',
+      promptId,
+      node,
+      message: 'Execution finished',
+    });
+    return;
+  }
+  session.lastExecuting = { promptId, node };
+  const graph = promptId ? session.graphs.get(promptId) : undefined;
+  const phase = graph ? executingPhaseMessage(graph, node) : null;
+  publish(session, {
+    type: 'progress',
+    status: 'executing',
+    promptId,
+    node,
+    message: phase === 'Rendering' ? `Rendering · node ${node}` : (phase ?? `Running node ${node}`),
+  });
+  if (promptId && graph === undefined) void loadExecutingGraph(session, promptId);
+}
 
 const sessions = new Map<string, BridgeSession>();
 
@@ -141,13 +208,8 @@ function handleText(session: BridgeSession, raw: string): void {
     if (eventType === 'executing') {
       const nodeMatch = raw.slice(firstBracket).match(/"node"\s*:\s*(?:null|"([^"]*)")/);
       const node = nodeMatch && nodeMatch[1] !== undefined ? (nodeMatch[1] ?? null) : null;
-      publish(session, {
-        type: 'progress',
-        status: node ? 'executing' : 'finished',
-        promptId: undefined,
-        node,
-        message: node ? `Running node ${node}` : 'Execution finished',
-      });
+      const promptMatch = raw.slice(firstBracket).match(/"prompt_id"\s*:\s*"([^"]+)"/);
+      publishExecuting(session, promptMatch?.[1], node);
       return;
     }
 
@@ -238,14 +300,7 @@ function handleText(session: BridgeSession, raw: string): void {
     }
 
     if (payload.type === 'executing') {
-      const node = payload.data?.node ?? null;
-      publish(session, {
-        type: 'progress',
-        status: node ? 'executing' : 'finished',
-        promptId: payload.data?.prompt_id,
-        node,
-        message: node ? `Running node ${node}` : 'Execution finished',
-      });
+      publishExecuting(session, payload.data?.prompt_id, payload.data?.node ?? null);
       return;
     }
 
@@ -330,6 +385,7 @@ function ensureSession(clientId: string, comfyUrl: string): BridgeSession {
     socket,
     subscribers: new Set(),
     ready: false,
+    graphs: new Map(),
   };
 
   socket.addEventListener('open', () => {

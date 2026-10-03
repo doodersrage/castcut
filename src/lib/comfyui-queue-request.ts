@@ -6,6 +6,7 @@
  */
 
 import { parseEngineId } from './engine/capabilities';
+import { registerAppComfyJob } from './comfy-model-turn';
 import { loadComfyUiSettings } from './comfyui-settings';
 import {
   createComfyUiClientId,
@@ -105,6 +106,11 @@ export async function postComfyUiPrompt(
 
     if (previewPromptId) {
       early?.setPromptId(previewPromptId);
+    }
+    // Model-aware queue: the app's own jobs, told apart from everyone else's in ComfyUI.
+    registerAppComfyJob(promptId);
+    for (const entry of batchResults ?? []) {
+      if (typeof entry?.promptId === 'string') registerAppComfyJob(entry.promptId);
     }
 
     return {

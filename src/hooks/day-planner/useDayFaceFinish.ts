@@ -11,7 +11,8 @@ import {
 } from '@/lib/day-planner';
 import { resolveDayVacationFaceBreakPlate } from '@/lib/day-vacation-face-crop';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
-import { runStillFaceFinish } from '@/lib/face-finish-client';
+import { planStillFaceFinishModel, runStillFaceFinish } from '@/lib/face-finish-client';
+import { waitForModelTurn } from '@/lib/comfy-model-turn';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
@@ -25,6 +26,9 @@ import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
 function stillKey(still: { imageUrl?: string; promptId?: string }): string {
   return still.promptId?.trim() || still.imageUrl?.trim() || '';
 }
+
+/** Longest a pass waits for the app's stills on another model (about three stills). */
+const FACE_FINISH_MODEL_HOLD_MS = 120_000;
 
 const FINISHER_LABEL = {
   'qwen-edit': 'Qwen Edit 2511',
@@ -126,6 +130,22 @@ export function useDayFaceFinish(ctx: DayPlannerToolOrchestrationCore) {
             `Face finish skipped on ${target.label} — its ComfyUI output isn't in the Gallery.`
           );
           return;
+        }
+        // Model-aware queue: the pass jumps to the front of ComfyUI's queue, so on another model
+        // it would run between this Day's waiting stills — a switch there and one back. Hold it
+        // until the app's stills on the current model have run (capped so it is not held long).
+        const finishModel = await planStillFaceFinishModel(comfyStillUrl);
+        if (finishModel) {
+          await waitForModelTurn({
+            modelKey: finishModel,
+            maxWaitMs: FACE_FINISH_MODEL_HOLD_MS,
+            onWait: blocking =>
+              setStatus(
+                `Face finish: ${target.label} waits for ${blocking} still${blocking === 1 ? '' : 's'} on the loaded engine…`
+              ),
+            isCancelled: () => !enabledRef.current,
+          });
+          setStatus(`Face finish: ${target.label}…`);
         }
         const result = await runStillFaceFinish({
           imageUrl: comfyStillUrl,

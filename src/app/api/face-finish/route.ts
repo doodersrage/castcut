@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { runFaceFinishInComfy } from '@/lib/face-finish-server';
+import { planFaceFinishInComfy, runFaceFinishInComfy } from '@/lib/face-finish-server';
 
 export const runtime = 'nodejs';
 
@@ -18,6 +18,8 @@ export async function POST(request: Request) {
     comfyUrl?: string;
     seed?: number;
     people?: number;
+    /** Only say which finisher (and main model) the still would get — nothing is queued. */
+    plan?: boolean;
   } = {};
   try {
     body = (await request.json()) as typeof body;
@@ -26,6 +28,13 @@ export async function POST(request: Request) {
   }
   const imageUrl = body.imageUrl?.trim();
   const faceUrl = body.faceUrl?.trim();
+  if (body.plan === true && imageUrl) {
+    try {
+      return apiJson(await planFaceFinishInComfy({ imageUrl, comfyUrl: body.comfyUrl }));
+    } catch (error) {
+      return apiError(error instanceof Error ? error.message : 'Face finish plan failed.', 502);
+    }
+  }
   if (!imageUrl || !faceUrl) {
     return apiError('imageUrl and faceUrl are required.', 400);
   }

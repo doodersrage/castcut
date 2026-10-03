@@ -6,6 +6,27 @@ export type FaceFinishClientResult =
   | { available: true; imageUrl: string; finisher: 'qwen-edit' | 'klein-distilled' | 'rapid' }
   | { available: false; reason: string };
 
+/**
+ * Browser: the main model the Face finish pass on this still would load (nothing is queued), or
+ * null when unknown — for holding the pass while the app's stills on another model still wait.
+ */
+export async function planStillFaceFinishModel(imageUrl: string): Promise<string | null> {
+  try {
+    const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+    const response = await fetch('/api/face-finish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ imageUrl, plan: true, ...(comfyUrl ? { comfyUrl } : {}) }),
+    });
+    if (!response.ok) return null;
+    const data = (await response.json().catch(() => ({}))) as { modelKey?: unknown };
+    return typeof data.modelKey === 'string' && data.modelKey ? data.modelKey : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Browser: run Face finish on a still via `/api/face-finish`; rejects on errors. */
 export async function runStillFaceFinish(input: {
   imageUrl: string;

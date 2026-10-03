@@ -119,6 +119,11 @@ export type ComfyUiSettings = {
   autoSkinRefineModel?: string;
   /** Prefer ComfyUI WebSocket progress updates over polling-only status. */
   useWebSocketProgress?: boolean;
+  /**
+   * Pre-load the tool's engine when Day / Story / Outfit opens on an idle ComfyUI (a tiny copy of
+   * the last still on it, nothing saved). Off by default.
+   */
+  warmUpOnToolOpen?: boolean;
   /** Saved negative presets for queue / copy pair. */
   negativeProfiles?: import('./negative-profiles').NegativeProfile[];
   selectedNegativeProfileId?: string;
@@ -153,6 +158,7 @@ export const DEFAULT_COMFYUI_SETTINGS: ComfyUiSettings = {
   autoSkinRefineOnPlayStill: false,
   autoSkinRefineModel: 'flux-2-klein-9b',
   useWebSocketProgress: true,
+  warmUpOnToolOpen: false,
   negativeProfiles: [],
   selectedNegativeProfileId: 'general-sd',
 };

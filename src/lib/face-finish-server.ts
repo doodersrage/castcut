@@ -26,6 +26,7 @@ import {
   type FaceFinisher,
   type LeadFaceProbe,
 } from '@/lib/face-finish';
+import { normalizeModelKey } from '@/lib/comfy-model-batch';
 
 export type FaceFinishResult =
   | { available: true; image: ComfyImageRef; finisher: FaceFinisher['kind'] }
@@ -66,21 +67,11 @@ async function probeLeadFace(
   }
 }
 
-export async function runFaceFinishInComfy(input: {
-  imageUrl: string;
-  faceUrl: string;
-  comfyUrl?: string;
-  seed?: number;
-  timeoutMs?: number;
-  /** People in the still. Two: only the lead's face is finished, and only kept when closer. */
-  people?: number;
-}): Promise<FaceFinishResult> {
-  const stillRef = parseComfyViewRef(input.imageUrl);
-  const faceRef = parseComfyViewRef(input.faceUrl);
-  if (!stillRef || !faceRef) {
-    return { available: false, reason: 'Still or face crop is not a ComfyUI image.' };
-  }
-  const baseUrl = comfyBaseUrl(input.comfyUrl);
+/** The finisher a still would get (installed packs + the still's own checkpoint). */
+async function resolveFinisherForStill(
+  baseUrl: string,
+  stillRef: ComfyImageRef
+): Promise<{ finisher: FaceFinisher } | { reason: string }> {
   const [detailer, detector, unetNode, loraNode, clipNode, vaeNode] = await Promise.all([
     resolveComfyNode(baseUrl, ['FaceDetailer']),
     resolveComfyNode(baseUrl, ['UltralyticsDetectorProvider']),
@@ -90,7 +81,7 @@ export async function runFaceFinishInComfy(input: {
     resolveComfyNode(baseUrl, ['VAELoader']),
   ]);
   if (!detailer || !detector) {
-    return { available: false, reason: 'Face finish needs ComfyUI Impact Pack + Subpack.' };
+    return { reason: 'Face finish needs ComfyUI Impact Pack + Subpack.' };
   }
   const options = (node: typeof unetNode, input: string): string[] => {
     const spec = node?.info.input?.required?.[input]?.[0];
@@ -109,11 +100,56 @@ export async function runFaceFinishInComfy(input: {
   );
   if (!finisher) {
     return {
-      available: false,
       reason:
         'Face finish needs Qwen Edit 2511 + its Lightning LoRA or FLUX.2 Klein 9B Distilled in ComfyUI.',
     };
   }
+  return { finisher };
+}
+
+/**
+ * Which finisher (and main model) a still would get, without running the pass — Day holds the
+ * pass back while the app's stills on another model still wait (comfy-model-batch.ts).
+ */
+export async function planFaceFinishInComfy(input: {
+  imageUrl: string;
+  comfyUrl?: string;
+}): Promise<
+  | { available: true; finisher: FaceFinisher['kind']; modelKey: string | null }
+  | { available: false; reason: string }
+> {
+  const stillRef = parseComfyViewRef(input.imageUrl);
+  if (!stillRef) return { available: false, reason: 'Still is not a ComfyUI image.' };
+  const resolved = await resolveFinisherForStill(comfyBaseUrl(input.comfyUrl), stillRef);
+  if ('reason' in resolved) return { available: false, reason: resolved.reason };
+  const { finisher } = resolved;
+  return {
+    available: true,
+    finisher: finisher.kind,
+    modelKey: normalizeModelKey('unet' in finisher ? finisher.unet : finisher.checkpoint) || null,
+  };
+}
+
+export async function runFaceFinishInComfy(input: {
+  imageUrl: string;
+  faceUrl: string;
+  comfyUrl?: string;
+  seed?: number;
+  timeoutMs?: number;
+  /** People in the still. Two: only the lead's face is finished, and only kept when closer. */
+  people?: number;
+}): Promise<FaceFinishResult> {
+  const stillRef = parseComfyViewRef(input.imageUrl);
+  const faceRef = parseComfyViewRef(input.faceUrl);
+  if (!stillRef || !faceRef) {
+    return { available: false, reason: 'Still or face crop is not a ComfyUI image.' };
+  }
+  const baseUrl = comfyBaseUrl(input.comfyUrl);
+  const resolved = await resolveFinisherForStill(baseUrl, stillRef);
+  if ('reason' in resolved) {
+    return { available: false, reason: resolved.reason };
+  }
+  const { finisher } = resolved;
   const [stillName, faceName] = await Promise.all([
     stageComfyImageAsInput(baseUrl, stillRef, 'face-finish'),
     stageComfyImageAsInput(baseUrl, faceRef, 'face-finish-ref'),
