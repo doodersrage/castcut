@@ -12,7 +12,12 @@ import {
 } from '@/lib/day-pose-redo';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { buildPoseMissView, poseLimbFixNudge, type PoseMissView } from '@/lib/pose-coaching';
-import { DEFAULT_MIN_POSE_MATCH, POSE_MISMATCH_NUDGE, scorePoseMatch } from '@/lib/pose-score';
+import {
+  DEFAULT_MIN_POSE_MATCH,
+  POSE_MISMATCH_NUDGE,
+  posturePairWords,
+  scorePoseMatch,
+} from '@/lib/pose-score';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
 
 /**
@@ -154,6 +159,7 @@ export function useDayPoseMissRedo(
                 guideAspect: expectation.aspect,
                 still: match.assignment.map(index => detected.pose.people[index]),
                 stillAspect: width > 0 && height > 0 ? width / height : expectation.aspect,
+                posture: posturePairWords(match),
               })
             : null;
         setMissViews(previous => {

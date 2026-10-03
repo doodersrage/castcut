@@ -52,11 +52,11 @@ const REASONS = new Set<PlateStanceReason>([
 ]);
 
 /** Torso more than this far off upright (degrees) reads as lying down. */
-const LYING_TILT_DEG = 50;
+export const LYING_TILT_DEG = 50;
 /** Knees less than this far below the hips (in torso lengths) read as seated. */
-const SEATED_KNEE_DROP = 0.45;
+export const SEATED_KNEE_DROP = 0.45;
 /** Ankles less than this far below the knees (in torso lengths) read as kneeling. */
-const KNEELING_SHIN_DROP = 0.35;
+export const KNEELING_SHIN_DROP = 0.35;
 /** Hip–knee–ankle angle under this (degrees) is a deep bend: crouching. */
 const CROUCH_KNEE_ANGLE_DEG = 115;
 /** An ankle this close to the bottom edge (fraction of height) has its foot cut off. */

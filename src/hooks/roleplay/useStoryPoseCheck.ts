@@ -11,7 +11,12 @@ import { nextStoryPoseCheck } from '@/lib/roleplay-pose-check';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
-import { DEFAULT_MIN_POSE_MATCH, POSE_LIBRARY_MIN_SCORE, scorePoseMatch } from '@/lib/pose-score';
+import {
+  DEFAULT_MIN_POSE_MATCH,
+  POSE_LIBRARY_MIN_SCORE,
+  posturePairWords,
+  scorePoseMatch,
+} from '@/lib/pose-score';
 import { poseLayoutFromKey, recordFaceMatchScore, recordPoseMatchScore } from '@/lib/play-metrics';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
 import { STORY_MIN_FACE_MATCH } from '@/lib/face-match';
@@ -79,6 +84,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
               guideAspect: expect.aspect,
               still: ordered,
               stillAspect: width > 0 && height > 0 ? width / height : expect.aspect,
+              posture: posturePairWords(match),
             })
           : null;
         if (

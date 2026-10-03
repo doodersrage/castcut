@@ -22,9 +22,12 @@ import {
   describePoseMatch,
   POSE_LIBRARY_MIN_SCORE,
   POSE_MISMATCH_NUDGE,
+  posturePairWords,
   scorePoseMatch,
   type PoseMatchResult,
 } from '@/lib/pose-score';
+import { applyVisionPosture, wantsVisionPosture } from '@/lib/pose-posture-vision';
+import { askStillPosture } from '@/lib/pose-posture-vision-client';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import {
   decideSlotQuality,
@@ -199,6 +202,12 @@ export function useDaySlotQualityGate(
                 guideAspect: expectation.aspect,
                 detected: detected.pose,
               });
+              // Keypoints can't tell this posture (a reclined seat vs lying, legs hidden): ask
+              // the vision model. Never blocks the check — any failure keeps the keypoint read.
+              if (wantsVisionPosture(poseMatch)) {
+                const vision = await askStillPosture({ imageUrl, shared }).catch(() => null);
+                poseMatch = applyVisionPosture(poseMatch, vision);
+              }
               detectedPeople = detected.pose.people;
               const { width, height } = detected.pose.canvas;
               detectedAspect = width > 0 && height > 0 ? width / height : expectation.aspect;
@@ -288,6 +297,7 @@ export function useDaySlotQualityGate(
                 guideAspect: expectation.aspect,
                 still: ordered,
                 stillAspect: detectedAspect,
+                posture: posturePairWords(poseMatch),
               })
             : null;
           poseLimbNudge = missView ? poseLimbFixNudge(missView.misses) : '';

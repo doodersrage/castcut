@@ -5,13 +5,24 @@
  * this module parses that and scores it against the guide's own keypoints. Pure — detection
  * lives in `pose-detect-server.ts` behind `/api/pose-score`.
  *
- * The score aligns the two skeletons first (position and size drop out), then measures how far
- * each joint lands from the guide: a still that is framed or scaled differently but holds the
- * same body pose passes; one that kept Image 1's standing pose when the guide said "walk",
- * "reach" or "lie" does not.
+ * The check (`limb-angle`, {@link POSE_SCORE_METHOD}) compares the direction each limb points
+ * (`pose-limb-score.ts`) and the posture class of each body (`pose-posture.ts`): a still that
+ * is framed, sized or cropped differently but holds the same posture passes; one sitting where
+ * the guide lies down, or standing where it kneels, misses whatever its limbs score. The old
+ * joint-distance score (skeletons aligned, then joint-by-joint distance) is kept on every result
+ * as `jointScore` for comparison.
  */
 
 import type { NormalizedBody } from '@/lib/pose-library';
+import { scoreLimbAngles, type LimbDelta, type LimbPart } from '@/lib/pose-limb-score';
+import {
+  classifyPosture,
+  postureMismatch,
+  postureUnsure,
+  postureWord,
+  withoutEdgeJoints,
+  type PostureRead,
+} from '@/lib/pose-posture';
 
 type Point = { x: number; y: number };
 
@@ -208,9 +219,40 @@ export function scoreBodyMatch(
   return Math.max(straight, swapped);
 }
 
+/**
+ * Which score drives the pose check. `limb-angle` (limb directions + posture class) replaced
+ * `joint-distance` (aligned joint positions, {@link scoreBodyMatch}) after the 2026-10 calibration
+ * below; flip it back to compare — the other score is still on every result.
+ */
+export type PoseScoreMethod = 'limb-angle' | 'joint-distance';
+export const POSE_SCORE_METHOD: PoseScoreMethod = 'limb-angle';
+
+/** One guide person's posture against the body matched to it. */
+export type PosturePair = {
+  guide: PostureRead;
+  /** Null when no detected body matched this guide person. */
+  still: PostureRead | null;
+  /** Confident reads in incompatible groups (lying vs sitting, standing vs kneeling…). */
+  mismatch: boolean;
+  /**
+   * The guide's posture is clear but the still's read is a guess in another group: worth the
+   * optional vision question ({@link applyVisionPosture} in `pose-posture-vision.ts`).
+   */
+  unsure: boolean;
+};
+
 export type PoseMatchResult = {
-  /** Mean over guide people of their best-matched detected person (0–1). */
+  /**
+   * The pose check's score (0–1), by {@link POSE_SCORE_METHOD}. Limb-angle: the verdict (posture,
+   * gesture, missing person) puts it under or over {@link DEFAULT_MIN_POSE_MATCH}, the limb score
+   * places it within that band ({@link limbVerdictScore}).
+   */
   score: number;
+  method: PoseScoreMethod;
+  /** Old joint-distance score (mean over guide people), kept for comparison. */
+  jointScore: number;
+  /** Limb-angle score (mean over guide people) before any posture cap. */
+  limbScore: number;
   expectedPeople: number;
   detectedPeople: number;
   /**
@@ -223,6 +265,22 @@ export type PoseMatchResult = {
   perPerson: Array<number | null>;
   /** For each guide person, the detected index it matched (or -1). */
   assignment: number[];
+  /** Per guide person: posture read of the guide and of its matched body. */
+  posture: PosturePair[];
+  /** Some guide person's matched body is in another posture: a miss whatever the angles say. */
+  postureMiss: boolean;
+  /** No miss called, but a posture read is unsure: the optional vision check can settle it. */
+  postureUnsure: boolean;
+  /**
+   * Some guide person's matched body holds three or more of the guide's defining segments far
+   * elsewhere (both raised arms down, the kicking leg planted…). Reported only — it isn't a
+   * reliable miss (see `GESTURE_MISS_COUNT`).
+   */
+  gestureMiss: boolean;
+  /** The lead's segments that point clearly elsewhere than the guide's, worst first. */
+  offLimbs: LimbPart[];
+  /** The lead's per-segment direction differences. */
+  limbDeltas: LimbDelta[];
 };
 
 function permutations(items: number[], size: number): number[][] {
@@ -284,11 +342,15 @@ export function scorePoseMatch(input: {
   guide: NormalizedBody[];
   guideAspect: number;
   detected: DetectedPose;
+  /** Defaults to {@link POSE_SCORE_METHOD}. */
+  method?: PoseScoreMethod;
 }): PoseMatchResult {
+  const method = input.method ?? POSE_SCORE_METHOD;
   const detectedAspect =
     input.detected.canvas.width > 0 && input.detected.canvas.height > 0
       ? input.detected.canvas.width / input.detected.canvas.height
       : input.guideAspect;
+  const aspects = { guide: input.guideAspect, detected: detectedAspect };
   const guide = input.guide.slice(0, 3);
   // Only as many detections as the guide has people, largest first — otherwise a small bystander
   // in the background could "match" the guide better than the lead and inflate the score.
@@ -296,11 +358,12 @@ export function scorePoseMatch(input: {
     .map((body, index) => ({ body, index, size: prominence(body, detectedAspect) }))
     .sort((a, b) => b.size - a.size)
     .slice(0, Math.max(1, Math.min(3, input.guide.length)));
-  const matrix = guide.map(g =>
-    candidates.map(c =>
-      scoreBodyMatch(g, c.body, { guide: input.guideAspect, detected: detectedAspect })
-    )
-  );
+  const joint = guide.map(g => candidates.map(c => scoreBodyMatch(g, c.body, aspects)));
+  // Limb angles and posture skip joints clamped onto the frame edge (cropped legs).
+  const seen = candidates.map(c => withoutEdgeJoints(c.body));
+  const limb = guide.map(g => seen.map(body => scoreLimbAngles(g, body, aspects)));
+  const matrix =
+    method === 'limb-angle' ? limb.map(row => row.map(match => match?.score ?? null)) : joint;
   const slots = Math.min(guide.length, candidates.length);
   let best: { total: number; picks: number[] } = { total: -1, picks: [] };
   for (const guideOrder of permutations([...guide.keys()], slots)) {
@@ -317,33 +380,130 @@ export function scorePoseMatch(input: {
       }
     }
   }
-  const perPerson = guide.map((_, g) => {
-    const c = best.picks[g] ?? -1;
-    return c >= 0 ? (matrix[g]![c] ?? null) : null;
-  });
-  const score =
+  const pick = (g: number) => best.picks[g] ?? -1;
+  const meanOver = (values: Array<number | null>) =>
     guide.length === 0
       ? 0
-      : perPerson.reduce<number>((sum, value) => sum + (value ?? 0), 0) / guide.length;
+      : values.reduce<number>((sum, value) => sum + (value ?? 0), 0) / guide.length;
+  const jointPer = guide.map((_, g) => (pick(g) >= 0 ? (joint[g]![pick(g)] ?? null) : null));
+  const limbPer = guide.map((_, g) => (pick(g) >= 0 ? (limb[g]![pick(g)]?.score ?? null) : null));
+  const posture = guide.map((body, g): PosturePair => {
+    const guideRead = classifyPosture(body, input.guideAspect);
+    const c = pick(g);
+    const stillRead = c >= 0 ? classifyPosture(seen[c]!, detectedAspect) : null;
+    return {
+      guide: guideRead,
+      still: stillRead,
+      mismatch: stillRead ? postureMismatch(guideRead, stillRead) : false,
+      unsure: stillRead ? postureUnsure(guideRead, stillRead) : false,
+    };
+  });
+  const postureMiss = posture.some(pair => pair.mismatch);
+  const gestureMiss = guide.some((_, g) => pick(g) >= 0 && limb[g]![pick(g)]?.gestureMiss === true);
+  const jointScore = meanOver(jointPer);
+  // Over the people actually read: DWPose under-counts (a partner hidden behind the lead), and
+  // a missing body is never acted on here — the headcount checks report it.
+  const readLimbs = limbPer.filter((value): value is number => value !== null);
+  const limbScore =
+    readLimbs.length > 0 ? readLimbs.reduce((sum, value) => sum + value, 0) / readLimbs.length : 0;
+  // Nobody found: a miss, as before. Somebody found but too little of them read to compare
+  // (a dim still, a body mostly out of frame): no verdict — it sits on the gate and passes.
+  const anyone = guide.some((_, g) => pick(g) >= 0);
+  const score =
+    method !== 'limb-angle'
+      ? jointScore
+      : readLimbs.length > 0
+        ? limbVerdictScore(limbScore, postureMiss)
+        : anyone && !postureMiss
+          ? LIMB_ANGLE_MIN_POSE_MATCH
+          : 0;
+  const lead = pick(0) >= 0 ? limb[0]![pick(0)] : null;
+  const round = (value: number) => Math.round(value * 100) / 100;
   return {
-    score: Math.round(score * 100) / 100,
+    score: round(score),
+    method,
+    jointScore: round(jointScore),
+    limbScore: round(limbScore),
+    gestureMiss,
     expectedPeople: guide.length,
     detectedPeople: input.detected.people.filter(body => limbCount(body) >= MIN_SHARED_LIMBS)
       .length,
     extraPeople: Math.max(0, countProminentPeople(input.detected) - input.guide.length),
-    perPerson,
-    assignment: guide.map((_, g) => {
-      const c = best.picks[g] ?? -1;
-      return c >= 0 ? candidates[c]!.index : -1;
-    }),
+    perPerson: method === 'limb-angle' ? limbPer : jointPer,
+    assignment: guide.map((_, g) => (pick(g) >= 0 ? candidates[pick(g)]!.index : -1)),
+    posture,
+    postureMiss,
+    postureUnsure: !postureMiss && posture.some(pair => pair.unsure),
+    offLimbs: lead?.off ?? [],
+    limbDeltas: lead?.limbs ?? [],
   };
 }
 
-/** Below this the still is treated as not following its guide (reroll while budget remains). */
-export const DEFAULT_MIN_POSE_MATCH = 0.6;
+/** Old joint-distance gate: below it a still missed its guide. */
+export const JOINT_DISTANCE_MIN_POSE_MATCH = 0.6;
 
-/** A kept still at or above this is good enough to add its detected pose to the library. */
-export const POSE_LIBRARY_MIN_SCORE = 0.8;
+/**
+ * Limb-angle gate. The limb-angle check decides by verdict, not by a cut on the angle score:
+ * a still misses when its posture differs from the guide's (sitting where the guide lies down,
+ * standing where it kneels) — confident keypoint reads, or the vision model confirming an
+ * unsure one — or when nobody was found. The score carries that verdict across the gate: a hit
+ * maps the limb score into [gate, 1], a miss into [0, gate × 0.8], so every consumer comparing a
+ * stored score with the gate (Day review, redo, Story, Outfit review, the Gallery badge,
+ * best-take restore) keeps working, and a closer still scores higher on its side. A body found
+ * but too little of it read to compare sits on the gate (no verdict).
+ *
+ * Calibrated 2026-10-03 (scripts/pose-check-calibrate.mts) on 206 stills judged by eye against
+ * their intended pose — 39 wrong, 167 right: the Rapid 2026-10-01 sweep before the recipe fix
+ * (62) and after it (74), Qwen-Image 2.1 without a map (61), live Day lying stills (9):
+ *
+ *   check                               caught wrong   precision   false alarms on right
+ *   joint-distance < 0.6 (old gate)     26/39 (67%)        21%        96/167 (57%)
+ *   joint-distance < 0.4                13/39 (33%)        22%        45/167 (27%)
+ *   limb-angle score alone < 0.5        13/39 (33%)        29%        32/167 (19%)
+ *   limb-angle score alone < 0.3         5/39 (13%)        38%         8/167  (5%)
+ *   3+ defining segments 110°+ off       1/39  (3%)        25%         3/167  (2%)
+ *   posture class (this check)           6/39 (15%)        75%         2/167  (1%)
+ *
+ * The old score's precision (21%) is the base rate (39/206 = 19%): it flagged at random. Of the
+ * 15 wrong stills whose posture was wrong (sat / knelt / stood instead), the check catches 5; the
+ * other 24 wrong ones kept the posture and missed a gesture (an arm left down for cook, drink,
+ * point, selfie) — no 2D-skeleton cut separated those from right stills' natural variation, so
+ * they're left to the vision review. Raise recall here only with new labelled data.
+ */
+export const LIMB_ANGLE_MIN_POSE_MATCH = 0.5;
+export const DEFAULT_MIN_POSE_MATCH =
+  POSE_SCORE_METHOD === 'limb-angle' ? LIMB_ANGLE_MIN_POSE_MATCH : JOINT_DISTANCE_MIN_POSE_MATCH;
+
+/** Top of the miss band (a miss never scores above this). */
+export const POSE_MISS_SCORE_CAP = Math.round(LIMB_ANGLE_MIN_POSE_MATCH * 0.8 * 100) / 100;
+
+/** Limb score (0–1) and verdict → the one 0–1 pose score consumers compare with the gate. */
+export function limbVerdictScore(limbScore: number, miss: boolean): number {
+  const limb = Math.max(0, Math.min(1, limbScore));
+  return miss
+    ? limb * POSE_MISS_SCORE_CAP
+    : LIMB_ANGLE_MIN_POSE_MATCH + (1 - LIMB_ANGLE_MIN_POSE_MATCH) * limb;
+}
+
+/**
+ * A kept still at or above this is good enough to add its detected pose to the library
+ * (limb-angle: a hit whose limbs score ≥ 0.7).
+ */
+export const POSE_LIBRARY_MIN_SCORE =
+  POSE_SCORE_METHOD === 'limb-angle' ? limbVerdictScore(0.7, false) : 0.8;
+
+/**
+ * The first posture miss in words, for the miss panel and the redo nudge
+ * (`{ guide: 'lying on the back', still: 'sitting' }`); null when no posture differs.
+ */
+export function posturePairWords(
+  result: Pick<PoseMatchResult, 'posture'> | null | undefined
+): { guide: string; still: string } | null {
+  const pair = result?.posture.find(entry => entry.mismatch && entry.still);
+  return pair?.still
+    ? { guide: postureWord(pair.guide.posture), still: postureWord(pair.still.posture) }
+    : null;
+}
 
 /** One readable line for the Day status strip / slot badge. */
 export function describePoseMatch(result: PoseMatchResult): string {
@@ -354,6 +514,10 @@ export function describePoseMatch(result: PoseMatchResult): string {
       : '';
   if (result.extraPeople > 0) {
     return `pose match ${pct}% · ${result.expectedPeople + result.extraPeople} people in frame, expected ${result.expectedPeople}`;
+  }
+  const posture = result.postureMiss ? posturePairWords(result) : null;
+  if (posture) {
+    return `pose match ${pct}% · ${posture.still}, guide ${posture.guide}${heads}`;
   }
   return `pose match ${pct}%${heads}`;
 }

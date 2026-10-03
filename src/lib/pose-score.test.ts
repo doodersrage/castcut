@@ -18,6 +18,7 @@ import {
   type PoseLibraryEntry,
 } from './pose-library';
 import {
+  DEFAULT_MIN_POSE_MATCH,
   describePoseMatch,
   parseOpenPoseJson,
   scoreBodyMatch,
@@ -148,7 +149,17 @@ describe('pose-score matching', () => {
     assert.ok(both.score > 0.95);
     assert.deepEqual(both.assignment, [1, 0]);
     const solo = scorePoseMatch({ guide: [a, b], guideAspect: 2 / 3, detected: detectedFrom([a]) });
-    assert.ok(solo.score < 0.55);
+    // Limb angles score the people read (DWPose under-counts; the headcount line reports it)…
+    assert.equal(solo.perPerson[1], null);
+    assert.ok(solo.score >= DEFAULT_MIN_POSE_MATCH);
+    // …the old joint-distance score zeroed the missing partner.
+    const soloJoint = scorePoseMatch({
+      guide: [a, b],
+      guideAspect: 2 / 3,
+      detected: detectedFrom([a]),
+      method: 'joint-distance',
+    });
+    assert.ok(soloJoint.score < 0.55);
     assert.equal(solo.detectedPeople, 1);
     assert.match(describePoseMatch(solo), /1 of 2 people found/);
   });

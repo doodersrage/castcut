@@ -457,10 +457,18 @@ export function buildPoseMissView(input: {
   /** Detected people in guide order (lead first), as the pose score assigned them. */
   still: Array<NormalizedBody | undefined>;
   stillAspect: number;
+  /** A posture miss in words (`posturePairWords` in pose-score.ts) — leads the misses. */
+  posture?: { guide: string; still: string } | null;
 }): PoseMissView | null {
   const guide = input.guide[0];
   const still = input.still[0];
   if (!guide || !still) return null;
+  const limbMisses = describePoseLimbMisses({
+    guide,
+    guideAspect: input.guideAspect,
+    still,
+    stillAspect: input.stillAspect,
+  });
   return {
     imageUrl: input.imageUrl,
     score: input.score,
@@ -472,12 +480,13 @@ export function buildPoseMissView(input: {
       guide,
       guideAspect: input.guideAspect,
     }),
-    misses: describePoseLimbMisses({
-      guide,
-      guideAspect: input.guideAspect,
-      still,
-      stillAspect: input.stillAspect,
-    }),
+    // A different posture explains the body and the limbs: it replaces the torso-tilt line.
+    misses: input.posture
+      ? [
+          { part: 'body', guide: input.posture.guide, still: input.posture.still },
+          ...limbMisses.filter(miss => miss.part !== 'body'),
+        ]
+      : limbMisses,
   };
 }
 

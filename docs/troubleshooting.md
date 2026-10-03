@@ -93,8 +93,15 @@ Auto-review is on. After installing a pack, restart ComfyUI, Re-check, then relo
 
 With **Auto-review stills** on and the **comfyui_controlnet_aux** node pack installed in ComfyUI
 (it provides `DWPreprocessor`), Day reads the body pose back out of every finished still and
-scores it against the guide it was sent: `pose match 82%` in the review line. Below 60% the
-slot is requeued with a "match the Image 3 skeleton" fix. If the pack is missing, the review
+compares it with the guide it was sent: `pose match 82%` in the review line. The check compares
+the direction each limb points and the body's posture (standing, sitting, kneeling, crouching,
+lying, bending), so a smaller or differently framed figure still matches; a still in another
+posture than its guide (sitting where the guide lies down) reads `pose match 20% · sitting,
+guide lying on the back` and is under the 50% gate — the slot is requeued with a "match the
+Image 3 skeleton" fix. When the keypoints can't tell (a seat reclined on cushions, legs out of
+frame), the vision model is asked what the person is doing. A missed hand gesture with the right
+posture (an arm left down where the guide points) usually still passes — the vision review
+catches the missing prop or action instead. If the pack is missing, the review
 line says `Pose check off: DWPose not installed…` and everything else keeps working.
 
 Each score is also logged per guide style, and **Film loop → Pose match by guide** shows the
@@ -102,7 +109,7 @@ average and miss rate for OpenPose, OpenPose + hands and Legacy. Run a few Days 
 and switch to the one with the higher match.
 
 Story runs the same check on every still that was queued with a guide and shows `Pose match …%`
-on the beat card; under 60% it suggests **Retry**, which draws a reseeded / mirrored variant.
+on the beat card; under 50% it suggests **Retry**, which draws a reseeded / mirrored variant.
 You can also seed the library yourself: **Settings → Prompt quality → Import pose as … from
 photo** reads the pose from any picture and files it under the layout you pick.
 

@@ -12,6 +12,7 @@
  */
 
 import { STILL_FACE_MATCH_WARN_BELOW, STILL_MIN_FACE_MATCH } from '@/lib/face-match';
+import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
 
 export const SLOT_REVIEW_FLAGS = [
   'extra-person',
@@ -77,7 +78,7 @@ export type SlotQualityPolicy = {
   minIdentity: number;
   /**
    * Pose match (DWPose vs the Image 3 guide, 0–1) below this rerolls while budget remains.
-   * Only applies when a pose check ran; uncalibrated starting value.
+   * Only applies when a pose check ran; the pose check's own gate (calibrated in pose-score.ts).
    */
   minPoseMatch: number;
   /**
@@ -101,7 +102,7 @@ export const DEFAULT_SLOT_QUALITY_POLICY: SlotQualityPolicy = {
   ],
   maxRerolls: 2,
   minIdentity: 3,
-  minPoseMatch: 0.6,
+  minPoseMatch: DEFAULT_MIN_POSE_MATCH,
   minFaceMatch: STILL_MIN_FACE_MATCH,
   warnFaceMatch: STILL_FACE_MATCH_WARN_BELOW,
 };
