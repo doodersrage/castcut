@@ -522,16 +522,21 @@ export async function autoPushStorageDebounced(): Promise<void> {
   if (!isSettingsSyncedWithServer()) {
     return;
   }
-  const settingsOk = await syncNamespaceToServer('settings-cache', loadSettingsCache());
+  // Settings and studio-extras (Cast, stories, libraries) first and together: a page being
+  // hidden or closed may not live through the gallery and history uploads that came before.
+  const [settingsOk, extrasOk] = await Promise.all([
+    syncNamespaceToServer('settings-cache', loadSettingsCache()),
+    syncNamespaceToServer('studio-extras', collectStudioExtras()),
+  ]);
   if (settingsOk) {
     clearSettingsPushPending();
   }
   const results = [
     settingsOk,
+    extrasOk,
+    await syncNamespaceToServer('gallery-deleted-ids', loadGalleryDeletedIds()),
     await syncNamespaceToServer('prompt-history', loadPromptHistoryStore()),
     await syncNamespaceToServer('comfy-gallery', loadComfyGallery()),
-    await syncNamespaceToServer('gallery-deleted-ids', loadGalleryDeletedIds()),
-    await syncNamespaceToServer('studio-extras', collectStudioExtras()),
   ];
   // A failed push waited for the next edit; with nothing edited the server stayed behind.
   if (results.includes(false)) {
@@ -567,10 +572,44 @@ export function autoPushDelayMs(now: number, pendingSince: number | null): numbe
   return Math.max(0, Math.min(PUSH_QUIET_MS, pendingSince + PUSH_MAX_WAIT_MS - now));
 }
 
+/**
+ * Push now instead of waiting out the quiet period: the page is going away (closed, reloaded,
+ * or hidden — a phone tab hidden may never come back). An edit made in the last few seconds
+ * before closing the tab never reached the server.
+ */
+export function flushAutoPushStorage(): void {
+  if (!pushTimer) return;
+  clearTimeout(pushTimer);
+  pushTimer = null;
+  pushPendingSince = null;
+  void autoPushStorageDebounced().finally(() => {
+    if (!pushTimer) noteSyncPending(false);
+  });
+}
+
+let flushListening = false;
+function listenForPageHide(): void {
+  if (
+    flushListening ||
+    typeof window === 'undefined' ||
+    typeof window.addEventListener !== 'function' ||
+    typeof document === 'undefined' ||
+    typeof document.addEventListener !== 'function'
+  ) {
+    return;
+  }
+  flushListening = true;
+  window.addEventListener('pagehide', flushAutoPushStorage);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushAutoPushStorage();
+  });
+}
+
 export function scheduleAutoPushStorage(): void {
   if (typeof window === 'undefined') {
     return;
   }
+  listenForPageHide();
   if (pushTimer) {
     clearTimeout(pushTimer);
   }

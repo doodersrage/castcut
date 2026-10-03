@@ -66,10 +66,14 @@ export async function syncNamespaceToServer<T>(
     return true;
   }
   try {
+    const body = JSON.stringify({ namespace, data });
     const response = await fetch('/api/storage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ namespace, data }),
+      body,
+      // Small pushes outlive the page (a push started as the tab closes); browsers cap keepalive
+      // bodies at 64 KB, so bigger ones go as a normal request.
+      keepalive: body.length < 60_000,
     });
     if (response.ok) {
       serverFingerprints.set(namespace, fingerprint);
