@@ -79,6 +79,17 @@ function isGlassSurface(surface: string | null): boolean {
   return /\b(?:window|glass|mirror)\b/i.test(surface ?? '');
 }
 
+/**
+ * "the edge of the couch", from a surface that may already name its edge: "bed edge" made "the
+ * edge of the bed edge", and "edge of the bed" made "the edge of the edge of the bed".
+ */
+function edgeOf(surface: string | null, fallback: string): string {
+  const seat = (surface ?? fallback)
+    .replace(/^(?:edge|foot|end|arm)\s+of\s+the\s+/i, '')
+    .replace(/\s+edge$/i, '');
+  return `the edge of the ${seat}`;
+}
+
 function placement(layout: IntimateLayout, beat: string, surface: string | null): string | null {
   const on = (fallback: string) => `the ${surface ?? fallback}`;
   switch (layout) {
@@ -99,7 +110,11 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
     case 'reverse_straddle':
       return `Reverse cowgirl, camera in front of the woman. The woman is closest to the camera, facing the lens, sitting on the lap of the man who sits back on ${on('couch')} behind her; her back rests against his chest, legs spread, riding his penis; his face is behind her shoulder and his hands on her hips.`;
     case 'bent':
-      return `The woman stands bent forward over ${on('bed edge')}, hands braced on it, hips pushed back; the man stands close behind her holding her hips, penetrating her from behind. She looks back over her shoulder.`;
+      // A rug or floor is no edge to bend over ("stands bent forward over the rug"): on all fours
+      // there, as the bent map draws an unsupported bend (hands down, rear partner kneeling).
+      return isFloorSurface(surface)
+        ? `The woman is on all fours on ${on('floor')}, hips raised, back arched; the man kneels close behind her holding her hips, penetrating her from behind. She looks back over her shoulder.`
+        : `The woman stands bent forward over ${on('bed edge')}, hands braced on it, hips pushed back; the man stands close behind her holding her hips, penetrating her from behind. She looks back over her shoulder.`;
     case 'standing':
       // Story's standing guide is two upright bodies side by side — say how they join.
       return `Both stand. The woman leans forward with her hands braced on ${on('wall')}, hips pushed back; the man stands close behind her holding her hips, penetrating her from behind; she looks back over her shoulder.`;
@@ -127,13 +142,13 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       return sheGivesOral(beat)
         ? isFloorSurface(surface)
           ? `Full-body view, both faces in frame. The man stands; the woman kneels on ${on('floor')} in front of him with his penis in her mouth, holding it at the base, looking up at him.`
-          : `The man sits on the edge of ${on('bed')}; the woman kneels on the floor between his knees with his penis in her mouth, holding it at the base, looking up at him.`
+          : `The man sits on ${edgeOf(surface, 'bed')}; the woman kneels on the floor between his knees with his penis in her mouth, holding it at the base, looking up at him.`
         : !/\bkneel/i.test(beat)
           ? `The woman lies on her back on ${on('bed')} with her thighs spread and knees bent; the man lies between her thighs with his mouth on her vulva, licking her, his hands on her thighs. She arches her back, eyes closed.`
           : // At a bed/couch she sits on its edge (the oral map draws that seated pose too —
             // oralReceiverSeated, rapid-oral-pose.ts); else she stands.
             ORAL_SEAT_RE.test(beat)
-            ? `Full-body view, both faces in frame. The woman sits on the edge of the ${surface?.replace(/^(?:edge|foot|end|arm) of the /, '') ?? 'bed'}, leaning back on her hands with her thighs spread; the man kneels on the floor between her thighs with his mouth on her vulva, licking her, his hands on her thighs.`
+            ? `Full-body view, both faces in frame. The woman sits on ${edgeOf(surface, 'bed')}, leaning back on her hands with her thighs spread; the man kneels on the floor between her thighs with his mouth on her vulva, licking her, his hands on her thighs.`
             : // Placing each of her legs: "one leg lifted over his shoulder" often left the lifted
               // leg reading as a third limb behind him; with each leg placed both bodies came out
               // whole with two clear legs, 8/8 seeds (live 2026-09-29).
@@ -180,7 +195,7 @@ function placementTwoWomen(
     case 'bent':
       // "Pressed close behind" hid her girlfriend inside her silhouette (phantom limbs); beside
       // her hip gave two whole bodies 4/4 (live A/B 2026-10-01).
-      return `The woman stands bent forward over ${on('bed edge')}, hands braced on it, hips pushed back; ${gf} stands at her side next to her hip — two separate bodies side by side, a gap between their torsos — one hand on her lower back and the other between her thighs from behind, fingering her. She looks back over her shoulder at her.`;
+      return `${isFloorSurface(surface) ? `The woman is on all fours on ${on('floor')}, hips raised, back arched; ${gf} kneels` : `The woman stands bent forward over ${on('bed edge')}, hands braced on it, hips pushed back; ${gf} stands`} at her side next to her hip — two separate bodies side by side, a gap between their torsos — one hand on her lower back and the other between her thighs from behind, fingering her. She looks back over her shoulder at her.`;
     case 'standing':
       return `Both stand. The woman leans forward with her hands braced on ${on('wall')}, hips pushed back; ${gf} stands at her side next to her hip — two separate bodies side by side, a gap between their torsos — one hand on her lower back and the other between her thighs from behind, fingering her; she looks back over her shoulder at her.`;
     case 'prone':
@@ -206,14 +221,14 @@ function placementTwoWomen(
           ? // Standing, two women knelt face to face and kissed (6/6); seating the receiver on a
             // chair gave the oral geometry 3/3 (live A/B 2026-10-01).
             `Full-body view, both faces in frame. ${cap(gf)} sits on a chair, leaning back with her thighs spread; the woman kneels on ${on('floor')} between her girlfriend's thighs with her mouth on her vulva, licking her, looking up at her.`
-          : `Side view, exactly two women. ${cap(gf)} sits on the edge of ${on('bed')}, leaning back on her hands with her thighs spread; the woman kneels on the floor between her girlfriend's thighs, her face in profile pressed to her vulva, licking her, hands on her girlfriend's thighs. ${cap(gf)} looks down at her.`
+          : `Side view, exactly two women. ${cap(gf)} sits on ${edgeOf(surface, 'bed')}, leaning back on her hands with her thighs spread; the woman kneels on the floor between her girlfriend's thighs, her face in profile pressed to her vulva, licking her, hands on her girlfriend's thighs. ${cap(gf)} looks down at her.`
         : // "Both faces in frame" with one face buried drew a third woman to show it (4/8); a
           // side view with the licker in profile kept two women 8/8 (live A/B 2026-10-01). On a
           // floor surface the receiver sits on the couch / bed — "the edge of the rug" isn't a seat.
-          `Side view, exactly two women. The woman sits on the edge of ${
+          `Side view, exactly two women. The woman sits on ${
             isFloorSurface(surface)
-              ? `the ${/\b(?:couch|sofa|living[- ]room|rug)\b/i.test(`${beat} ${surface}`) ? 'couch' : 'bed'}`
-              : on('bed')
+              ? `the edge of the ${/\b(?:couch|sofa|living[- ]room|rug)\b/i.test(`${beat} ${surface}`) ? 'couch' : 'bed'}`
+              : edgeOf(surface, 'bed')
           }, leaning back on her hands with her thighs spread; ${gf} kneels on ${
             isFloorSurface(surface) ? on('floor') : 'the floor'
           } between her thighs, her face in profile pressed to her vulva, licking her, hands on her thighs. She looks down at her girlfriend.`;
@@ -286,7 +301,9 @@ function placementTwoMen(
     case 'bent':
     case 'standing':
     case 'wall':
-      return `The man stands bent forward with his hands braced on ${on(layout === 'bent' ? 'bed edge' : 'wall')}, hips pushed back; ${bf} stands close behind him holding his hips, penetrating him from behind. He looks back over his shoulder.`;
+      return layout === 'bent' && isFloorSurface(surface)
+        ? `The man is on all fours on ${on('floor')}, hips raised; ${bf} kneels close behind him holding his hips, penetrating him from behind. He looks back over his shoulder.`
+        : `The man stands bent forward with his hands braced on ${on(layout === 'bent' ? 'bed edge' : 'wall')}, hips pushed back; ${bf} stands close behind him holding his hips, penetrating him from behind. He looks back over his shoulder.`;
     case 'prone':
       return `The man lies flat on his stomach on ${on('bed')}, face turned to the side on the pillow; ${bf} lies on top of his back, propped up on his arms, penetrating him from behind.`;
     case 'spoon':
@@ -295,15 +312,15 @@ function placementTwoMen(
     case 'kneeling':
       return `Both men kneel upright on ${on('bed')} facing each other, chests pressed together, kissing, each stroking the other's erect penis; both faces in frame.`;
     case 'lift':
-      return `Wide shot, both faces in frame. The man sits on the edge of ${on('counter')} with his legs wrapped around ${bf}, who stands between his thighs chest to chest, penetrating him; arms around each other.`;
+      return `Wide shot, both faces in frame. The man sits on ${edgeOf(surface, 'counter')} with his legs wrapped around ${bf}, who stands between his thighs chest to chest, penetrating him; arms around each other.`;
     case 'oral':
     case 'sixty_nine':
     case 'facesit':
       return sheGivesOral(beat)
         ? isFloorSurface(surface)
           ? `Full-body view, both faces in frame. ${cap(bf)} stands; the man kneels on ${on('floor')} in front of him with his boyfriend's penis in his mouth, looking up at him.`
-          : `Full-body view, both faces in frame. ${cap(bf)} sits on the edge of ${on('bed')}; the man kneels on the floor between his boyfriend's knees with his boyfriend's penis in his mouth, looking up at him.`
-        : `Full-body view, both faces in frame. The man sits on the edge of ${on('bed')}, leaning back on his hands; ${bf} kneels on the floor between his knees with the man's penis in his mouth.`;
+          : `Full-body view, both faces in frame. ${cap(bf)} sits on ${edgeOf(surface, 'bed')}; the man kneels on the floor between his boyfriend's knees with his boyfriend's penis in his mouth, looking up at him.`
+        : `Full-body view, both faces in frame. The man sits on ${edgeOf(surface, 'bed')}, leaning back on his hands; ${bf} kneels on the floor between his knees with the man's penis in his mouth.`;
     default:
       return null;
   }

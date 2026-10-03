@@ -769,8 +769,10 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
   if (/\b(69|sixty[- ]?nine|mutual\s+oral|head[- ]to[- ]crotch|sixty\s+nine)\b/i.test(haystack)) {
     return 'sixty_nine';
   }
+  // "phone glow on her face" / "sun on her face" is light, not a pose (a clothed lying beat was
+  // read as face-sitting).
   if (
-    /\b(face[- ]?sit(?:ting|s)?|sitting\s+on\s+(?:their|her|his)\s+face|on\s+(?:their|her|his)\s+face)\b/i.test(
+    /\b(face[- ]?sit(?:ting|s)?|sitting\s+on\s+(?:their|her|his)\s+face|(?<!\b(?:glow|light|lights|sun|sunlight|sunshine|lamplight|moonlight|shadows?|smile|grin|look|expression|tears?|water|spray|rain|steam|makeup|blush|warmth|breeze)\s+)on\s+(?:their|her|his)\s+face)\b/i.test(
       haystack
     )
   ) {

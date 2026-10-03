@@ -19,7 +19,14 @@ export function rapidDuoSurface(beat: string): string | null {
     return null;
   }
   const noun = match.replace(/\s+/g, ' ').toLowerCase();
-  return noun === 'sheets' || noun === 'mattress' ? 'bed' : noun;
+  // Sheets and a mattress are the bed: "in the late-morning sheets" made "the edge of the
+  // late-morning sheets". A bed word before them stays ("the rumpled sheets" → "rumpled bed").
+  const sheets = noun.match(/^(?:(.+)\s+)?(?:sheets|mattress)$/);
+  if (sheets) {
+    const kind = sheets[1]?.match(/\b(?:unmade|rumpled|hotel|tangled)$/)?.[0];
+    return kind ? `${kind} bed` : 'bed';
+  }
+  return noun;
 }
 
 /** A floor / rug can't be sat on the edge of — oral there has the receiver standing. */

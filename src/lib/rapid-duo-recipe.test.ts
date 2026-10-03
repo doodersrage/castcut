@@ -16,6 +16,7 @@ import {
   isDayIntimateSoloBeat,
   isDayRaunchySoloBeat,
 } from './day-planner';
+import { parseIntimateLayout } from './day-pose-guide';
 import { reinforceIntimateStillPrompt } from './intimate-prompt-clarify';
 import { applyQueuePromptSteering } from './queue-prompt-prep';
 import {
@@ -723,5 +724,73 @@ describe('Day recipe: lying beats', () => {
     assert.equal(beatLiesDown('sitting on the bed, never lying down'), false);
     assert.equal(beatLiesDown('leaning on the rail, propped on her elbows'), false);
     assert.equal(placement('sprawled sideways in an armchair still in the coat'), null);
+  });
+});
+
+describe('Rapid duo recipe: surface wording', () => {
+  const recipe = (beat: string, partner?: 'woman' | 'man', lead?: 'man') =>
+    buildRapidDuoRecipe({
+      beat,
+      ...(partner ? { partner: { partner: { noun: partner } as never, image: 'third' as const } } : {}),
+      ...(lead ? { lead } : {}),
+    }) ?? '';
+  const body = (beat: string, partner?: 'woman' | 'man', lead?: 'man') =>
+    recipe(beat, partner, lead).split('Moment:')[0]!;
+
+  it('names the edge once, whatever the beat calls it', () => {
+    for (const beat of [
+      'he kneels and goes down on her on the bed edge — both adults fully visible',
+      'he kneels and goes down on her at the edge of the bed — both adults fully visible',
+    ]) {
+      assert.match(body(beat), /sits on the edge of the bed,/, beat);
+    }
+    for (const beat of [
+      'her partner goes down on her at the edge of the bed — both adults fully visible',
+      'she goes down on her partner on the bed edge — both adults fully visible',
+    ]) {
+      const text = body(beat, 'woman');
+      assert.match(text, /sits on the edge of the bed,/, beat);
+      assert.doesNotMatch(text, /edge of the (?:edge|bed edge)/, beat);
+    }
+    assert.match(
+      body('she goes down on him at the edge of the bed — both adults fully visible', undefined, 'man'),
+      /sits on the edge of the bed\b/
+    );
+    for (const beat of DUO_BEATS) {
+      for (const partner of [undefined, 'woman'] as const) {
+        assert.doesNotMatch(recipe(beat, partner), /edge of the (?:edge\b|[\w-]+ edge\b)/, beat);
+      }
+    }
+  });
+
+  it('reads sheets and a mattress as the bed', () => {
+    assert.equal(rapidDuoSurface('going down on her in the late-morning sheets'), 'bed');
+    assert.equal(rapidDuoSurface('tangled up on the rumpled sheets'), 'rumpled bed');
+    assert.equal(rapidDuoSurface('on the bare mattress'), 'bed');
+    assert.match(
+      body('going down on her in the late-morning sheets, partner between her thighs — both adults fully visible'),
+      /lies on her back on the bed /
+    );
+  });
+
+  it('puts rear entry on a rug or floor on all fours, not bent over the rug', () => {
+    const beat = 'on all fours on the rug, partner behind her — both adults fully visible';
+    for (const text of [body(beat), body(beat, 'woman'), body(beat, 'man', 'man')]) {
+      assert.match(text, /on all fours on the rug/);
+      assert.match(text, /kneels/);
+      assert.doesNotMatch(text, /bent forward over the rug/);
+    }
+    assert.match(body('bent over the desk from behind with a partner'), /stands bent forward over the desk/);
+  });
+
+  it('does not read light on her face as face-sitting', () => {
+    assert.equal(
+      parseIntimateLayout(
+        'lying on her stomach across the bed in a silk camisole and shorts, ankles crossed in the air, chin on her hands, phone glow on her face, clothes stay on'
+      ),
+      null
+    );
+    assert.equal(parseIntimateLayout('sun on her face as she rides him'), 'straddle');
+    assert.equal(parseIntimateLayout('sitting on his face on the bed'), 'facesit');
   });
 });
