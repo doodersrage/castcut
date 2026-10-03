@@ -83,6 +83,60 @@ describe('LTX-2.5 clip renderer', () => {
     assert.match(String(workflow['31']!.inputs!.expression), /768 \* a \/ max\(a, b\)/);
   });
 
+  it('pins the last frame to an end pose on both passes and crops the guide off', () => {
+    const { workflow } = convertVideoWorkflowToLtx25(wanClipGraph(), {
+      sizeFromStill: true,
+      endImage: 'end-pose.png',
+    });
+    const loads = byClass(workflow, 'LoadImage').map(node => node.inputs!.image);
+    assert.deepEqual(loads, ['day-still.png', 'end-pose.png']);
+    // The end still is scaled like the start (same size refs).
+    assert.deepEqual(workflow['41']!.inputs!.width, workflow['9']!.inputs!.width);
+    const guides = byClass(workflow, 'LTXVAddGuide');
+    assert.equal(guides.length, 2);
+    for (const guide of guides) {
+      assert.equal(guide.inputs!.frame_idx, -1);
+      assert.equal(guide.inputs!.strength, 1);
+      assert.deepEqual(guide.inputs!.image, ['42', 0]);
+    }
+    assert.deepEqual(workflow['43']!.inputs!.latent, ['12', 0]);
+    assert.deepEqual(workflow['14']!.inputs!.video_latent, ['43', 2]);
+    assert.deepEqual(workflow['15']!.inputs!.positive, ['43', 0]);
+    // Crop after each separate: before the upsampler and before the decode.
+    assert.deepEqual(workflow['44']!.inputs!.latent, ['20', 0]);
+    assert.deepEqual(workflow['22']!.inputs!.samples, ['44', 2]);
+    assert.deepEqual(workflow['45']!.inputs!.positive, ['44', 0]);
+    assert.deepEqual(workflow['45']!.inputs!.latent, ['23', 0]);
+    assert.deepEqual(workflow['24']!.inputs!.video_latent, ['45', 2]);
+    // Pass 2 has its own guider on the second guide's conditioning.
+    assert.deepEqual(workflow['27']!.inputs!.guider, ['46', 0]);
+    assert.deepEqual(workflow['46']!.inputs!.positive, ['45', 0]);
+    assert.deepEqual(workflow['47']!.inputs!.latent, ['28', 0]);
+    assert.deepEqual(workflow['29']!.inputs!.samples, ['47', 2]);
+  });
+
+  it('reads the end pose off a WAN first+last-frame graph', () => {
+    const graph = wanClipGraph();
+    graph['902'] = { class_type: 'LoadImage', inputs: { image: 'end-pose.png' } };
+    graph['901']!.class_type = 'WanFirstLastFrameToVideo';
+    graph['901']!.inputs.end_image = ['902', 0];
+    const { workflow, converted } = convertVideoWorkflowToLtx25(graph);
+    assert.equal(converted, true);
+    assert.equal(workflow['8']!.inputs!.image, 'day-still.png');
+    assert.equal(workflow['40']!.inputs!.image, 'end-pose.png');
+    assert.equal(byClass(workflow, 'LTXVCropGuides').length, 2);
+  });
+
+  it('builds the same graph as before when no end pose is set', () => {
+    const plain = convertVideoWorkflowToLtx25(wanClipGraph(), { sizeFromStill: true });
+    const blank = convertVideoWorkflowToLtx25(wanClipGraph(), { sizeFromStill: true, endImage: ' ' });
+    assert.deepEqual(blank.workflow, plain.workflow);
+    assert.equal(byClass(plain.workflow, 'LTXVAddGuide').length, 0);
+    assert.deepEqual(plain.workflow['15']!.inputs!.positive, ['7', 0]);
+    assert.deepEqual(plain.workflow['27']!.inputs!.guider, ['15', 0]);
+    assert.deepEqual(plain.workflow['29']!.inputs!.samples, ['28', 0]);
+  });
+
   it('leaves graphs without a start still or a video save alone', () => {
     const noStill = wanClipGraph();
     delete noStill['900'];

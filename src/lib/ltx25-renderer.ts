@@ -24,6 +24,12 @@ export const LTX25_FILES = {
 /** Node only LTX-2 era ComfyUI has — the graph can't load without it. */
 export const LTX25_REQUIRED_NODE = 'LTXVImgToVideoInplace';
 
+/** WAN's end-pose node (start + end frame), spliced in place of WanImageToVideo. */
+export const WAN_FIRST_LAST_FRAME_NODE = 'WanFirstLastFrameToVideo';
+
+/** Nodes an LTX-2.5 end pose (last-frame guide) needs on top of the base graph. */
+export const LTX25_END_GUIDE_NODES = ['LTXVAddGuide', 'LTXVCropGuides'] as const;
+
 export const LTX25_FPS = 24;
 const LTX25_NEGATIVE = 'pc game, console game, video game, cartoon, childish, ugly';
 /** Long side of the full-size (second pass) clip. */
@@ -64,7 +70,7 @@ const isRef = (value: unknown): value is [string, number] =>
 
 const SAMPLERS = new Set(['KSampler', 'KSamplerAdvanced']);
 const SAVES = new Set(['SaveAnimatedWEBP', 'VHS_VideoCombine', 'SaveVideo', 'SaveWEBM']);
-const I2V = /ImageToVideo|ImgToVideo/;
+const I2V = /ImageToVideo|ImgToVideo|FrameToVideo/;
 
 /** Follow a conditioning link back to its prompt text (through WanImageToVideo and the like). */
 function traceText(workflow: Workflow, ref: unknown, depth = 0): string | undefined {
@@ -82,8 +88,24 @@ function traceText(workflow: Workflow, ref: unknown, depth = 0): string | undefi
   return undefined;
 }
 
-function findStartImage(workflow: Workflow): string | undefined {
-  const loads = Object.entries(workflow).filter(([, node]) => node?.class_type === 'LoadImage');
+/** The LoadImage behind an I2V node's `end_image` (WAN first+last frame), through resizes. */
+function findEndImageLoader(workflow: Workflow): string | undefined {
+  for (const node of Object.values(workflow)) {
+    if (!I2V.test(node?.class_type ?? '')) continue;
+    let ref = node.inputs?.end_image;
+    for (let depth = 0; isRef(ref) && depth < 4; depth += 1) {
+      const source = workflow[ref[0]];
+      if (source?.class_type === 'LoadImage') return ref[0];
+      ref = source?.inputs?.image;
+    }
+  }
+  return undefined;
+}
+
+function findStartImage(workflow: Workflow, skipLoader?: string): string | undefined {
+  const loads = Object.entries(workflow).filter(
+    ([id, node]) => node?.class_type === 'LoadImage' && id !== skipLoader
+  );
   const fed = new Set<string>();
   for (const node of Object.values(workflow)) {
     if (!I2V.test(node?.class_type ?? '')) continue;
@@ -116,13 +138,25 @@ export function convertVideoWorkflowToLtx25(
      * and cut off heads. Off → the WAN graph's width / height.
      */
     sizeFromStill?: boolean;
+    /**
+     * End pose: a ComfyUI input image the clip should land on, added as an LTXVAddGuide on the
+     * last frame of both passes (and cropped off again before upscale / decode). Also read from
+     * a WAN first+last-frame graph's `end_image`. Live (2026-10-03): smooth when the end keeps
+     * the start's framing; a big framing change hard-cuts.
+     */
+    endImage?: string;
   } = {}
 ): Ltx25ConvertResult {
   const workflow = input as Workflow;
   const entries = Object.entries(workflow);
   const sampler = entries.find(([, node]) => SAMPLERS.has(node?.class_type ?? ''))?.[1];
   const save = entries.find(([, node]) => SAVES.has(node?.class_type ?? ''))?.[1];
-  const image = findStartImage(workflow);
+  const endLoader = findEndImageLoader(workflow);
+  const image = findStartImage(workflow, endLoader);
+  const endFromGraph = endLoader ? workflow[endLoader]?.inputs?.image : undefined;
+  const endImage = [options.endImage, endFromGraph]
+    .map(value => (typeof value === 'string' ? value.trim() : ''))
+    .find(value => value && !value.includes('{{'));
   if (!sampler?.inputs || !save?.inputs || !image) {
     return { workflow, converted: false, reason: 'not an image-to-video clip graph' };
   }
@@ -297,5 +331,54 @@ export function convertVideoWorkflowToLtx25(
     next['33'] = math('a // 2', { a: ['31', 1] });
     next['34'] = math('a // 2', { a: ['32', 1] });
   }
+  if (endImage) addLtx25EndGuide(next, endImage);
   return { workflow: next, converted: true };
+}
+
+/**
+ * Pin the clip's last frame to `endImage` on both passes: LTXVAddGuide (frame -1, strength 1)
+ * after each in-place start frame, the guiders on the guide's conditioning, and LTXVCropGuides
+ * after each separate so the guide frames never reach the upscaler or the decode.
+ */
+function addLtx25EndGuide(next: Workflow, endImage: string): void {
+  const scale = next['9']!.inputs!;
+  next['40'] = { class_type: 'LoadImage', inputs: { image: endImage } };
+  next['41'] = {
+    class_type: 'ImageScale',
+    inputs: { ...scale, image: ['40', 0] },
+  };
+  next['42'] = { class_type: 'LTXVPreprocess', inputs: { image: ['41', 0], img_compression: 18 } };
+  const guide = (positive: [string, number], negative: [string, number], latent: string) => ({
+    class_type: 'LTXVAddGuide',
+    inputs: {
+      positive,
+      negative,
+      vae: ['3', 0],
+      latent: [latent, 0],
+      image: ['42', 0],
+      frame_idx: -1,
+      strength: 1,
+    },
+  });
+  const crop = (guideId: string, latent: string): WorkflowNode => ({
+    class_type: 'LTXVCropGuides',
+    inputs: { positive: [guideId, 0], negative: [guideId, 1], latent: [latent, 0] },
+  });
+  // Pass 1.
+  next['43'] = guide(['7', 0], ['7', 1], '12');
+  next['14']!.inputs!.video_latent = ['43', 2];
+  next['15']!.inputs!.positive = ['43', 0];
+  next['15']!.inputs!.negative = ['43', 1];
+  next['44'] = crop('43', '20');
+  next['22']!.inputs!.samples = ['44', 2];
+  // Pass 2 — on the cropped conditioning, with its own guider.
+  next['45'] = guide(['44', 0], ['44', 1], '23');
+  next['24']!.inputs!.video_latent = ['45', 2];
+  next['46'] = {
+    class_type: 'LTXVDualCFGGuider',
+    inputs: { ...next['15']!.inputs, positive: ['45', 0], negative: ['45', 1] },
+  };
+  next['27']!.inputs!.guider = ['46', 0];
+  next['47'] = crop('45', '28');
+  next['29']!.inputs!.samples = ['47', 2];
 }

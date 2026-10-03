@@ -555,6 +555,78 @@ test('day mid-flow: one Cut, folded cut options, honest render status', async ({
   await expect(page.getByTestId('day-plate-upload')).toBeAttached();
 });
 
+test("day end pose: pick another still as the clip's last frame, warn on framing, clear", async ({
+  page,
+}) => {
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  // A ComfyUI with both engines' last-frame nodes (End pose hides without them).
+  await page.route('**/api/comfyui/object-info**', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        models: {},
+        nodeTypes: [
+          'WanImageToVideo',
+          'WanFirstLastFrameToVideo',
+          'LTXVImgToVideoInplace',
+          'LTXVAddGuide',
+          'LTXVCropGuides',
+        ],
+      }),
+    })
+  );
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: 'e2e-day-end', name: 'Day End', version: 1, updatedAt: Date.now() }],
+        removedIds: [],
+      })
+    );
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-day-end' },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-day-end',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
+          { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'e2e-m' },
+          { slotId: 'afternoon', status: 'completed', imageUrl: thumb, promptId: 'e2e-a' },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/day?character=e2e-day-end');
+  await dismissBlockingOverlays(page);
+  // Day opens on the first slot still to render; End pose belongs to a finished one.
+  await page.getByTestId('day-slot-select-morning').first().click();
+  // Selecting a finished slot can open its still full size.
+  const lightbox = page.getByTestId('image-lightbox');
+  if (await lightbox.isVisible().catch(() => false)) await page.keyboard.press('Escape');
+  await expect(lightbox).toHaveCount(0);
+  const endPose = page.getByTestId('day-end-pose');
+  await expect(endPose).toBeVisible({ timeout: 30_000 });
+  await expect(endPose).toContainText(/End pose · Morning/);
+  // Another slot's still as the last frame: start → end preview and the framing warning.
+  await endPose.getByTestId('day-end-pose-still-afternoon').click();
+  await expect(endPose.getByTestId('day-end-pose-preview')).toBeVisible();
+  await expect(endPose).toContainText(/different camera framing makes the clip cut/);
+  // Re-pose needs words before it can queue.
+  await expect(endPose.getByTestId('day-end-pose-repose')).toBeDisabled();
+  await endPose.getByTestId('day-end-pose-words').fill('arms raised');
+  await expect(endPose.getByTestId('day-end-pose-repose')).toBeEnabled();
+  await endPose.getByTestId('day-end-pose-clear').click();
+  await expect(endPose.getByTestId('day-end-pose-preview')).toHaveCount(0);
+});
+
 async function seedStoryMidFlow(
   page: Page,
   id: string,

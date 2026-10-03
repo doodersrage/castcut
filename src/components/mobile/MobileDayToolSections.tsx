@@ -1,6 +1,7 @@
 'use client';
 
 import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
+import DayEndPoseControl from '@/components/day-planner/DayEndPoseControl';
 import DaySlotLookPicker from '@/components/day-planner/DaySlotLookPicker';
 import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
@@ -185,6 +186,13 @@ export default function MobileDayToolSections(vm: ViewModel) {
     queueAll,
     animateSlot,
     animateAllClips,
+    endPoseStatus,
+    endPoseReposingSlotId,
+    endPoseSupportedFor,
+    activeEndPoseFor,
+    pickEndPoseStill,
+    clearEndPose,
+    reposeEndPose,
     cutDayFilm,
     cutProblems,
     resolveCutProblems,
@@ -251,6 +259,22 @@ export default function MobileDayToolSections(vm: ViewModel) {
     completedClipCount < completedShotCount &&
     !firstCutCelebrate &&
     !assemblingFilm;
+  // End pose beside Animate — only when this ComfyUI can pin a last frame on the clip engine.
+  const endPoseControl = endPoseSupportedFor(activeSlot.id) ? (
+    <DayEndPoseControl
+      key={activeSlot.id}
+      slot={activeSlot}
+      slots={slots}
+      stills={stills}
+      endPose={activeEndPoseFor(activeSlot.id)}
+      busy={busy}
+      reposing={endPoseReposingSlotId === activeSlot.id}
+      status={endPoseStatus}
+      onPick={fromSlotId => pickEndPoseStill(activeSlot.id, fromSlotId)}
+      onRepose={words => void reposeEndPose(activeSlot.id, words)}
+      onClear={() => clearEndPose(activeSlot.id)}
+    />
+  ) : null;
   const showDemoEscape = completedShotCount === 0;
   const showSampleEscape = watchPlaylist.length === 0;
   const setupDefaultOpen = !character || !hasPlate;
@@ -938,6 +962,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
               Skip to Cut film
             </Button>
           ) : null}
+          {endPoseControl}
         </div>
       ) : completedShotCount > 0 && !firstCutCelebrate ? (
         <div className="space-y-2" data-testid="day-animate">
@@ -960,6 +985,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           >
             Animate all ready stills
           </Button>
+          {endPoseControl}
         </div>
       ) : null}
 

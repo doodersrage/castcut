@@ -2,7 +2,10 @@
 
 import { swapDayForCast } from '@/lib/day-cast-park';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
-import { clipEngineForShot } from '@/lib/ltx25-renderer';
+import { resolveDayClipEngine } from '@/hooks/day-planner/useDayEndPose';
+import { activeDayEndPose, dayEndPoseSupported, withDayEndPoseMotion } from '@/lib/day-end-pose';
+import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
+import { resolveQueueInputImageFilename } from '@/lib/queue-input-image';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { swapDayPromptGender } from '@/lib/day-lead-gender';
@@ -88,7 +91,6 @@ import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
-import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
@@ -106,7 +108,6 @@ import { scanStillWithVision } from '@/lib/vision-still-scan-client';
 import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
 import {
   DEFAULT_DAY_TOOL_CACHE,
-  DEFAULT_VIDEO_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
   saveSharedSettings,
@@ -323,16 +324,29 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         const parentEntry = still?.promptId
           ? loadComfyGallery().find(entry => entry.promptId === still.promptId)
           : undefined;
-        const pickedVideoModel = resolvePreferredVideoModel({
-          toolModel: loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).model,
+        // LTX-2.5 drifts off two-person sex acts — those clips stay on WAN.
+        const videoModel = resolveDayClipEngine({
+          stillPromptId: still?.promptId,
+          dayMood: toolSettings.dayMood,
           sharedModel: shared.model,
         });
-        // LTX-2.5 drifts off two-person sex acts — those clips stay on WAN.
-        const videoModel = clipEngineForShot(pickedVideoModel, {
-          adultDuo:
-            isDayAdultMood(toolSettings.dayMood) &&
-            (parentEntry?.prompt ?? '').includes(RAPID_DUO_RECIPE_MARK),
-        });
+        // End pose: the clip lands on a second picture (first+last frame) when this ComfyUI
+        // has the node for the engine; otherwise the plain clip, said once.
+        const endPose = activeDayEndPose(still);
+        let endImageFilename: string | undefined;
+        let endPoseNote = '';
+        if (endPose) {
+          const nodeTypes = await fetchComfyObjectInfoNodeTypesCached().catch(() => null);
+          if (dayEndPoseSupported(videoModel, nodeTypes)) {
+            endImageFilename = await resolveQueueInputImageFilename({
+              imageUrl: endPose.imageUrl,
+              filename: `ffab-day-end-pose-${slot.id}-${Date.now()}.png`,
+              model: videoModel,
+            });
+          } else {
+            endPoseNote = ' End pose skipped — this ComfyUI can’t pin a last frame on that engine.';
+          }
+        }
         // A man lead: the beats are written for a woman (see day-lead-gender).
         const manLead = dayPartnerNoun(character ?? {}) === 'man';
         const subject = manLead
@@ -364,7 +378,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 subject: slot.label,
-                motion: slot.sceneHints?.trim() || subject,
+                motion: withDayEndPoseMotion(
+                  slot.sceneHints?.trim() || subject,
+                  endImageFilename ? endPose : undefined
+                ),
                 model: videoModel,
                 durationSec: 4,
               }),
@@ -391,7 +408,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           clipMode: 'i2v',
           qualityProfile: 'final',
           queueParamsBase: withCastFaceQueueParams(
-            { videoFrames: 64, videoFps: 16 },
+            {
+              videoFrames: 64,
+              videoFps: 16,
+              ...(endImageFilename ? { videoEndImageFilename: endImageFilename } : {}),
+            },
             character,
             shared.ipAdapterStrength ?? 0.75
           ),
@@ -409,7 +430,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
         if (promptId) {
           setFilmStatus(
-            `Queued ${slot.label.toLowerCase()} clip — motion reel prefers clips when ready.`
+            `Queued ${slot.label.toLowerCase()} clip${
+              endImageFilename ? ' (ending on its end pose)' : ''
+            } — motion reel prefers clips when ready.${endPoseNote}`
           );
         }
       } catch (err) {

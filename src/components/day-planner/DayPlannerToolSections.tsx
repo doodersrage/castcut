@@ -61,6 +61,7 @@ import DaySeriesPanel from '@/components/day-planner/DaySeriesPanel';
 import DayPlateSection from '@/components/day-planner/DayPlateSection';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DayPosePackPicker from '@/components/day-planner/DayPosePackPicker';
+import DayEndPoseControl from '@/components/day-planner/DayEndPoseControl';
 import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
@@ -200,6 +201,13 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     queueAll,
     animateSlot,
     animateAllClips,
+    endPoseStatus,
+    endPoseReposingSlotId,
+    endPoseSupportedFor,
+    activeEndPoseFor,
+    pickEndPoseStill,
+    clearEndPose,
+    reposeEndPose,
     cutDayFilm,
     cutProblems,
     resolveCutProblems,
@@ -266,6 +274,22 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     completedClipCount < completedShotCount &&
     !firstCutCelebrate &&
     !assemblingFilm;
+  // End pose beside Animate — only when this ComfyUI can pin a last frame on the clip engine.
+  const endPoseControl = endPoseSupportedFor(activeSlot.id) ? (
+    <DayEndPoseControl
+      key={activeSlot.id}
+      slot={activeSlot}
+      slots={slots}
+      stills={stills}
+      endPose={activeEndPoseFor(activeSlot.id)}
+      busy={busy}
+      reposing={endPoseReposingSlotId === activeSlot.id}
+      status={endPoseStatus}
+      onPick={fromSlotId => pickEndPoseStill(activeSlot.id, fromSlotId)}
+      onRepose={words => void reposeEndPose(activeSlot.id, words)}
+      onClear={() => clearEndPose(activeSlot.id)}
+    />
+  ) : null;
   const showReelCut = !showCutCoach && !firstCutCelebrate;
   const showDemoEscape = completedShotCount === 0;
   const showSampleEscape = watchPlaylist.length === 0;
@@ -1080,6 +1104,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 isDayAdultMood(dayMood) && normalizeDayIntimateMix(intimateMix) !== 'solo'
               }
             />
+            {endPoseControl}
           </ToolSection>
         ) : completedShotCount > 0 && !firstCutCelebrate ? (
           <ToolSection
@@ -1110,6 +1135,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 isDayAdultMood(dayMood) && normalizeDayIntimateMix(intimateMix) !== 'solo'
               }
             />
+            {endPoseControl}
           </ToolSection>
         ) : null}
 

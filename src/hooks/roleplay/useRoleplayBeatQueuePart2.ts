@@ -1,5 +1,6 @@
 'use client';
 
+import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
 import { clipEngineForShot } from '@/lib/ltx25-renderer';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
 import { useCallback, useEffect, useRef } from 'react';
@@ -193,7 +194,10 @@ export function useRoleplayBeatQueuePart2(
       if (!pathNote) {
         setError(null);
       }
-      let prompt = reinforceIntimateStillPrompt(latest.prompt?.trim() || latest.blurb || '');
+      // The still prompt talks to the edit model (Image 1 / Image 3 pose map) — not the clip's.
+      let prompt = reinforceIntimateStillPrompt(
+        stripStillPromptForClip(latest.prompt) || latest.blurb || ''
+      );
       try {
         const response = await fetch('/api/video-prompt', {
           method: 'POST',

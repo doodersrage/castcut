@@ -1,4 +1,8 @@
-import { convertVideoWorkflowToLtx25, LTX25_REQUIRED_NODE } from './ltx25-renderer';
+import {
+  convertVideoWorkflowToLtx25,
+  LTX25_END_GUIDE_NODES,
+  LTX25_REQUIRED_NODE,
+} from './ltx25-renderer';
 import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
 import { isQwenLightningModel, patchModelSamplingInWorkflow } from './model-sampling-patch';
 import { ensureFluxGuidanceInWorkflow } from './flux-guidance-patch';
@@ -202,6 +206,11 @@ export type WorkflowParamValues = {
   videoFrames?: string | number;
   /** Video output frame rate — feeds {{VIDEO_FPS}}. */
   videoFps?: string | number;
+  /**
+   * End pose: a ComfyUI input image an image-to-video clip lands on (WAN first+last frame,
+   * LTX-2.5 last-frame guide). Unset = the plain I2V graph.
+   */
+  videoEndImageFilename?: string;
   /** Skip Lightning native ladder upsnap — use exact queue width/height (Fitting draft thumbs). */
   lockLatentSize?: boolean | string;
   /**
@@ -490,6 +499,9 @@ export function resolveQueueParams(
   }
   if (merged.videoFps != null && merged.videoFps.toString().trim() !== '') {
     result.videoFps = merged.videoFps;
+  }
+  if (merged.videoEndImageFilename?.trim()) {
+    result.videoEndImageFilename = merged.videoEndImageFilename.trim();
   }
   if (isLockLatentSizeParams(merged)) {
     result.lockLatentSize = merged.lockLatentSize;
@@ -1825,9 +1837,14 @@ export function injectPromptsWithFallbacks(
     // Older ComfyUI has no LTX-2 nodes — keep the WAN graph rather than queue a broken one.
     const nodeTypes = options.availableNodeTypes ? new Set(options.availableNodeTypes) : null;
     if (!nodeTypes || nodeTypes.has(LTX25_REQUIRED_NODE)) {
+      const endImage = input.params?.videoEndImageFilename?.trim();
       const converted = convertVideoWorkflowToLtx25(injected.workflow, {
         sizeFromStill:
           !nodeTypes || (nodeTypes.has('GetImageSize') && nodeTypes.has('ComfyMathExpression')),
+        // End pose only when this ComfyUI has the guide nodes (else the plain clip).
+        ...(endImage && (!nodeTypes || LTX25_END_GUIDE_NODES.every(type => nodeTypes.has(type)))
+          ? { endImage }
+          : {}),
       });
       if (converted.converted) {
         injected = { ...injected, workflow: converted.workflow };

@@ -12,6 +12,7 @@ import {
   buildRapidVacationRecipe,
 } from './rapid-duo-recipe';
 import { stripNegatedClauses } from './negated-clauses';
+import { normalizeDayEndPose, type DayEndPose } from './day-end-pose';
 import { normalizeStillPromptCheck, type StillPromptCheck } from './still-prompt-audit';
 import {
   clampStillHoldSec,
@@ -380,6 +381,8 @@ export type DaySlotStill = {
    * "Keep the old take" puts it back.
    */
   previousTake?: { imageUrl: string; promptId?: string };
+  /** End pose: the picture this slot's clip lands on (day-end-pose.ts). */
+  endPose?: DayEndPose;
 };
 
 export const DEFAULT_DAY_SLOTS: DaySlot[] = [
@@ -4142,6 +4145,12 @@ function withPromptCheck(value: unknown): Pick<DaySlotStill, 'promptCheck'> {
   return promptCheck ? { promptCheck } : {};
 }
 
+/** Only a usable end pose is kept — no `endPose: undefined` key on every still. */
+function withEndPose(value: unknown): Pick<DaySlotStill, 'endPose'> {
+  const endPose = normalizeDayEndPose(value);
+  return endPose ? { endPose } : {};
+}
+
 export function normalizeDaySlotStills(
   input?: DaySlotStill[] | null,
   slots?: Array<Pick<DaySlot, 'id'>> | null
@@ -4170,6 +4179,7 @@ export function normalizeDaySlotStills(
             },
           }
         : {}),
+      ...withEndPose(still.endPose),
     });
   }
   const order = slots?.length

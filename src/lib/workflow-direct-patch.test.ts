@@ -812,6 +812,58 @@ describe("video I2V auto-wiring (patchVideoImageToVideoWiringInWorkflow)", () =>
     );
   });
 
+  it("wires an end pose through WanFirstLastFrameToVideo (start + end image)", () => {
+    const scaffold = buildWorkflowScaffoldForModel("wan-video");
+    const workflow = JSON.parse(scaffold.json) as Record<string, unknown>;
+
+    const result = patchVideoImageToVideoWiringInWorkflow(workflow, {
+      model: "wan-video",
+      inputImageFilename: "start-frame.png",
+      endImageFilename: "end-pose.png",
+      availableNodeTypes: ["WanImageToVideo", "WanFirstLastFrameToVideo"],
+      params: { width: 960, height: 1280, videoFrames: 64 },
+    });
+
+    assert.equal(result.patched.videoImageToVideoWired, 1);
+    const sampler = result.workflow["5"] as AnyNode;
+    const wireNodeId = (sampler.inputs?.latent_image as [string, number])[0];
+    const wireNode = result.workflow[wireNodeId] as AnyNode;
+    assert.equal(wireNode.class_type, "WanFirstLastFrameToVideo");
+    assert.deepEqual(wireNode.inputs?.start_image, ["900", 0]);
+    const endRef = wireNode.inputs?.end_image as [string, number];
+    const endLoad = result.workflow[endRef[0]] as AnyNode;
+    assert.equal(endLoad.class_type, "LoadImage");
+    assert.equal(endLoad.inputs?.image, "end-pose.png");
+    assert.deepEqual(sampler.inputs?.positive, [wireNodeId, 0]);
+    assert.deepEqual(sampler.inputs?.negative, [wireNodeId, 1]);
+    assert.equal(
+      Object.values(result.workflow).some(
+        (node) => (node as AnyNode).class_type === "WanImageToVideo",
+      ),
+      false,
+    );
+  });
+
+  it("keeps the plain WanImageToVideo graph when the server lacks the first+last node", () => {
+    const build = (extra: Record<string, unknown>) =>
+      patchVideoImageToVideoWiringInWorkflow(
+        JSON.parse(buildWorkflowScaffoldForModel("wan-video").json) as Record<string, unknown>,
+        {
+          model: "wan-video",
+          inputImageFilename: "start-frame.png",
+          params: { width: 960, height: 1280, videoFrames: 64 },
+          ...extra,
+        },
+      ).workflow;
+    const plain = build({});
+    assert.deepEqual(
+      build({ endImageFilename: "end-pose.png", availableNodeTypes: ["WanImageToVideo"] }),
+      plain,
+    );
+    assert.deepEqual(build({ endImageFilename: "  " }), plain);
+    assert.deepEqual(build({ endImageFilename: "{{END_IMAGE}}" }), plain);
+  });
+
   it("is a no-op for non-video models even when an init image is queued", () => {
     const workflow = {
       "1": { class_type: "CheckpointLoaderSimple", inputs: { ckpt_name: "sdxl.safetensors" } },

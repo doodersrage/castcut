@@ -43,6 +43,7 @@ import {
 } from './klein-enhancer-workflow-patch';
 import { ensureFluxGuidanceInWorkflow } from './flux-guidance-patch';
 import { isVideoCheckpointMapKey } from './video-checkpoint-pick';
+import { WAN_FIRST_LAST_FRAME_NODE } from './ltx25-renderer';
 import {
   buildBuiltInVideoI2vWorkflow,
   resolveInstalledVideoWeight,
@@ -1356,6 +1357,13 @@ export function patchVideoImageToVideoWiringInWorkflow(
   input: {
     model?: string;
     inputImageFilename?: string;
+    /**
+     * End pose (WAN only): a second ComfyUI input image the clip lands on — wired through
+     * WanFirstLastFrameToVideo instead of WanImageToVideo. Ignored when `availableNodeTypes`
+     * is known and lacks that node.
+     */
+    endImageFilename?: string;
+    availableNodeTypes?: Iterable<string> | null;
     params?: Pick<WorkflowParamValues, 'width' | 'height' | 'videoFrames'>;
   }
 ): {
@@ -1560,6 +1568,33 @@ export function patchVideoImageToVideoWiringInWorkflow(
     };
     samplerInputs.positive = [newNodeId, 0];
     samplerInputs.latent_image = [newNodeId, 1];
+  } else if (wanEndImageFilename(input)) {
+    const endLoadId = String(Number(newNodeId) + 1);
+    next[endLoadId] = {
+      class_type: 'LoadImage',
+      inputs: { image: wanEndImageFilename(input) },
+      _meta: { title: 'End Image (end pose)' },
+    };
+    next[newNodeId] = {
+      class_type: WAN_FIRST_LAST_FRAME_NODE,
+      inputs: {
+        positive: positiveRef,
+        negative: negativeRef ?? positiveRef,
+        vae: vaeRef,
+        width,
+        height,
+        length,
+        batch_size: batchSize,
+        start_image: startImageRef,
+        end_image: [endLoadId, 0],
+      },
+      _meta: { title: 'Wan First → Last Frame (end pose)' },
+    };
+    samplerInputs.positive = [newNodeId, 0];
+    if (negativeRef) {
+      samplerInputs.negative = [newNodeId, 1];
+    }
+    samplerInputs.latent_image = [newNodeId, 2];
   } else {
     next[newNodeId] = {
       class_type: 'WanImageToVideo',
@@ -1584,6 +1619,20 @@ export function patchVideoImageToVideoWiringInWorkflow(
 
   patched.videoImageToVideoWired = 1;
   return { workflow: next, patched };
+}
+
+/** The end pose filename when this server can wire it (WanFirstLastFrameToVideo). */
+function wanEndImageFilename(input: {
+  endImageFilename?: string;
+  availableNodeTypes?: Iterable<string> | null;
+}): string {
+  const name = input.endImageFilename?.trim() ?? '';
+  if (!name || isUnresolvedWorkflowPlaceholder(name)) return '';
+  if (input.availableNodeTypes) {
+    const types = new Set(input.availableNodeTypes);
+    if (types.size > 0 && !types.has(WAN_FIRST_LAST_FRAME_NODE)) return '';
+  }
+  return name;
 }
 
 function nextAvailableWorkflowNodeId(workflow: Record<string, unknown>): string {
@@ -1853,6 +1902,12 @@ export function patchWorkflowDirectParams(
   const videoWirePatch = patchVideoImageToVideoWiringInWorkflow(regionalEdit.workflow, {
     model: input.model,
     inputImageFilename: input.params?.inputImageFilename,
+    ...(input.params?.videoEndImageFilename?.trim()
+      ? {
+          endImageFilename: input.params.videoEndImageFilename,
+          availableNodeTypes: input.availableNodeTypes,
+        }
+      : {}),
     params: input.params,
   });
   const kleinRefWire = ensureKleinReferenceLatentWiringInWorkflow(videoWirePatch.workflow, {

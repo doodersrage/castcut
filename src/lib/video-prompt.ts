@@ -14,6 +14,7 @@ import {
   type LlmRequestOptions,
 } from './llm-request-options';
 import { stripPromptArtifacts } from './prompt-cleanup';
+import { stripStillPromptForClip } from './clip-prompt-from-still';
 
 export type VideoPromptRequest = {
   subject: string;
@@ -31,8 +32,8 @@ function isWanCfg1DistilledModel(model?: string): boolean {
 }
 
 export function buildVideoPrompt(request: VideoPromptRequest): string {
-  const subject = request.subject.trim();
-  const motion = request.motion?.trim();
+  const subject = stripStillPromptForClip(request.subject);
+  const motion = stripStillPromptForClip(request.motion);
   const camera = request.camera?.trim();
   const style = request.style?.trim();
   const duration =
@@ -90,9 +91,10 @@ function buildVideoLlmSystemPrompt(model?: string): string {
 }
 
 function buildVideoLlmUserPrompt(request: VideoPromptRequest): string {
+  const motion = stripStillPromptForClip(request.motion);
   const lines = [
-    `Subject/action: ${request.subject.trim()}`,
-    request.motion?.trim() ? `Motion: ${request.motion.trim()}` : '',
+    `Subject/action: ${stripStillPromptForClip(request.subject)}`,
+    motion ? `Motion: ${motion}` : '',
     request.camera?.trim()
       ? `Camera: ${request.camera.trim()}`
       : 'Camera: stable cinematic framing with gentle movement',

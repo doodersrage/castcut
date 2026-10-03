@@ -8,6 +8,7 @@ import { useDaySlotQualityGate } from '@/hooks/day-planner/useDaySlotQualityGate
 import { useDayFaceFinish } from '@/hooks/day-planner/useDayFaceFinish';
 import { useDayPoseMissRedo } from '@/hooks/day-planner/useDayPoseMissRedo';
 import { useDayClipQualityCheck } from '@/hooks/day-planner/useDayClipQualityCheck';
+import { useDayEndPose } from '@/hooks/day-planner/useDayEndPose';
 import { applyCharacterRecordFresh } from '@/lib/character-os';
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
@@ -45,6 +46,7 @@ export function useDayPlannerToolOrchestration() {
     [poseRedoMissViews, reviewPoseMissViews]
   );
   const clips = useDayClipQualityCheck(core);
+  const endPose = useDayEndPose(core);
   const season = useDaySeries(core.character?.id);
 
   // "Retry flagged": everything Auto-review flagged, in one tap instead of card by card.
@@ -188,6 +190,7 @@ export function useDayPlannerToolOrchestration() {
     poseRedoMarks: poseRedo.poseRedoMarks,
     faceFinishStatus: faceFinish.faceFinishStatus,
     ...clips,
+    ...endPose,
     ...season,
     cutDayFilm,
     cutProblems,

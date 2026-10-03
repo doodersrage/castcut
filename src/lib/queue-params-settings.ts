@@ -320,6 +320,9 @@ export function resolveQueueParams(
   if (base?.videoFps != null && base.videoFps.toString().trim() !== '') {
     merged.videoFps = base.videoFps;
   }
+  if (base?.videoEndImageFilename?.trim()) {
+    merged.videoEndImageFilename = base.videoEndImageFilename.trim();
+  }
 
   for (const key of Object.keys(merged) as Array<keyof WorkflowParamValues>) {
     const value = merged[key];
