@@ -60,14 +60,39 @@ async function makeSolidPng(width: number, height: number): Promise<Buffer> {
     .toBuffer();
 }
 
+// MODNet only: never reach for a real ComfyUI from unit tests.
+const LOCAL = { matte: 'local' } as const;
+
 describe('isolate-subject-server', async () => {
-  const { isolateSubjectOnWhiteBuffer } = await import('./isolate-subject-server');
+  const { isolateSubjectOnWhiteBuffer, isolateSubjectOnFillDetailed } = await import(
+    './isolate-subject-server'
+  );
+
+  it('keeps a photo that already sits on white as it is (no second matte)', async () => {
+    const width = 24;
+    const height = 24;
+    const pixels = Buffer.alloc(width * height * 3, 255);
+    for (let y = 4; y < height; y++) {
+      for (let x = 8; x < 16; x++) {
+        const o = (y * width + x) * 3;
+        pixels[o] = 30;
+        pixels[o + 1] = 20;
+        pixels[o + 2] = 10;
+      }
+    }
+    const bytes = await sharp(pixels, { raw: { width, height, channels: 3 } }).png().toBuffer();
+    const blob = new Blob([bytes as unknown as BlobPart], { type: 'image/png' });
+    const result = await isolateSubjectOnFillDetailed(blob, { r: 255, g: 255, b: 255 }, LOCAL);
+    assert.equal(result.matte, 'already-on-fill');
+    const out = await sharp(result.png).removeAlpha().raw().toBuffer();
+    assert.deepEqual([...out], [...pixels]);
+  });
 
   it('returns a decodable PNG buffer when the (forced-isolated) cutout succeeds', async () => {
     cutoutOverride = true;
     const bytes = await makeSolidPng(8, 8);
     const blob = new Blob([bytes as unknown as BlobPart], { type: 'image/png' });
-    const result = await isolateSubjectOnWhiteBuffer(blob);
+    const result = await isolateSubjectOnWhiteBuffer(blob, LOCAL);
     assert.ok(Buffer.isBuffer(result));
     const meta = await sharp(result).metadata();
     assert.equal(meta.format, 'png');
@@ -77,7 +102,7 @@ describe('isolate-subject-server', async () => {
 
   it('rejects when the input blob is not a decodable image', async () => {
     const blob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
-    await assert.rejects(() => isolateSubjectOnWhiteBuffer(blob));
+    await assert.rejects(() => isolateSubjectOnWhiteBuffer(blob, LOCAL));
   });
 
   it('throws a clear error when cutoutLooksIsolated reports the background was not removed', async () => {
@@ -85,7 +110,7 @@ describe('isolate-subject-server', async () => {
     const bytes = await makeSolidPng(8, 8);
     const blob = new Blob([bytes as unknown as BlobPart], { type: 'image/png' });
     await assert.rejects(
-      () => isolateSubjectOnWhiteBuffer(blob),
+      () => isolateSubjectOnWhiteBuffer(blob, LOCAL),
       /Could not cut the subject out of that photo\./
     );
   });

@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   collectIsolateSourceUrls,
   compositeRgbaOnFill,
+  cutoutFilename,
   cutoutLooksIsolated,
   ISOLATE_FILL_NEUTRAL,
   ISOLATE_FILL_WHITE,
@@ -89,5 +90,19 @@ describe('isolate-subject', () => {
       '/api/comfyui/view?filename=sam.png&subfolder=&type=input&comfyUrl=http%3A%2F%2F127.0.0.1%3A8188',
       '/api/comfyui/view?filename=sam.png&subfolder=&type=output&comfyUrl=http%3A%2F%2F127.0.0.1%3A8188',
     ]);
+  });
+
+  it('gives every cut-out its own name (ComfyUI uploads overwrite)', () => {
+    const now = 1_790_000_000_000;
+    const stamp = now.toString(36);
+    assert.equal(cutoutFilename('image.jpg', now), `image-cutout-u${stamp}.png`);
+    assert.notEqual(cutoutFilename('image.jpg', now), cutoutFilename('image.jpg', now + 1));
+    // A cut-out of a cut-out does not grow "-cutout-cutout".
+    assert.equal(cutoutFilename('Nora-umuro9zni-cutout.png', now), `Nora-umuro9zni-cutout-u${stamp}.png`);
+    assert.equal(
+      cutoutFilename(`nora-cutout-u${(now - 5).toString(36)}.png`, now),
+      `nora-cutout-u${stamp}.png`
+    );
+    assert.equal(cutoutFilename('', now), `roleplay-ref-cutout-u${stamp}.png`);
   });
 });

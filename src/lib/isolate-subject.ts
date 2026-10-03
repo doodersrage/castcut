@@ -1,4 +1,5 @@
 import { IDENTITY_MEDIA_URL } from './gallery-media-client';
+import { stampedUploadName } from './upload-name';
 
 export const ISOLATE_FILL_WHITE = { r: 255, g: 255, b: 255 } as const;
 
@@ -117,9 +118,16 @@ export function compositeRgbaOnFill(
   return out;
 }
 
-function cutoutFilename(name: string): string {
-  const base = name.replace(/\.[^.]+$/, '') || 'roleplay-ref';
-  return `${base}-cutout.png`;
+/**
+ * Its own name per cut-out: ComfyUI uploads overwrite, so two photos both called "image.jpg"
+ * (or one plate cut twice) shared "image-cutout.png" — and one person's plate showed the other.
+ */
+export function cutoutFilename(name: string, now: number = Date.now()): string {
+  const base =
+    (name.trim().split('/').pop() ?? '')
+      .replace(/\.[^.]+$/, '')
+      .replace(/-cutout(-u[0-9a-z]{6,})?$/, '') || 'roleplay-ref';
+  return stampedUploadName(`${base}-cutout.png`, now);
 }
 
 export const ISOLATE_QUEUE_BLOCKED_MESSAGE =
@@ -145,8 +153,8 @@ export function cutoutLooksIsolated(data: Uint8ClampedArray): boolean {
 }
 
 /**
- * Cut the subject out and flatten onto white via the studio isolate API
- * (Node MODNet — browser ONNX cannot load inside Next).
+ * Cut the subject out and flatten onto white via the studio isolate API — a matte (ComfyUI
+ * BiRefNet, Node MODNet fallback), so the person's pixels are never redrawn.
  */
 export async function isolateSubjectOnWhite(source: Blob, filename: string): Promise<File> {
   return isolateSubjectOnFill(source, filename, ISOLATE_FILL_WHITE);
@@ -164,6 +172,12 @@ export async function isolateSubjectOnFill(
   const uploadName = filename.trim() || 'isolate.png';
   body.append('image', source, uploadName);
   body.append('fill', `${fill.r},${fill.g},${fill.b}`);
+  // The server mattes in ComfyUI (BiRefNet) when it can — on the ComfyUI the player set up.
+  const { loadComfyUiSettings } = await import('./comfyui-settings');
+  const comfyUrl = loadComfyUiSettings().apiUrl?.trim();
+  if (comfyUrl) {
+    body.append('comfyUrl', comfyUrl);
+  }
   const response = await fetch('/api/isolate-subject', {
     method: 'POST',
     credentials: 'same-origin',
