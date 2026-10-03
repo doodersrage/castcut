@@ -1,0 +1,1478 @@
+[
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "opening",
+  "title": "Stitching Starlight into Hats",
+  "blurb": "Gloovi hums while threading glowing thread through a hat brim, suspended mid-air by her fingertips.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up_out",
+     "up"
+    ],
+    "left_arm": [
+     "down_in",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "opening",
+  "title": "Cafe Corner with a Cat",
+  "blurb": "She sips herbal tea at a sunlit café, her lap cat batting at loose lace from her dress.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "out",
+     "up_in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "opening",
+  "title": "Window Shopping in Rain-Slicked Streets",
+  "blurb": "Gloovi skips down a wet sidewalk, umbrella tucked under her arm as she eyes a boutique window.",
+  "pose": {
+   "body": "walk",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "out",
+     "up"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "opening",
+  "title": "Dancing with a Dandelion",
+  "blurb": "She twirls barefoot in a field of wildflowers, one hand brushing the petals as she spins.",
+  "pose": {
+   "body": "run",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up",
+     "up"
+    ],
+    "left_arm": [
+     "out",
+     "up_out"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "continuing",
+  "title": "Midnight Market Lights",
+  "blurb": "Gloovi’s coat flutters as she steps off the train into a cobblestone square lit by lanterns and street musicians.",
+  "pose": {
+   "body": "walk",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "continuing",
+  "title": "Gloovi’s Raincoat Moment",
+  "blurb": "She pulls a wide-brimmed hat low over her eyes and tucks her lace dress inside a long, velvet coat as rain begins to fall.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down_out",
+     "in"
+    ],
+    "left_arm": [
+     "out",
+     "up_in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "continuing",
+  "title": "The Baker’s Window",
+  "blurb": "Gloovi leans into a bakery window, watching warm bread rise as steam curls from the oven — her fingers tap on glass.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "out",
+     "up_out"
+    ],
+    "left_arm": [
+     "down_in",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "continuing",
+  "title": "Sitting by the Clock",
+  "blurb": "She sits cross-legged on a bench beneath an old clock tower, sketching cap designs in her notebook as pigeons circle.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up_out",
+     "down_in"
+    ],
+    "left_arm": [
+     "out",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "finale",
+  "title": "Cap in Hand, Lights Out",
+  "blurb": "Gloovi stops at dusk by a flickering lamppost, cap dangling from her fingers as she smiles up at the stars.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "out",
+     "up_out"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "finale",
+  "title": "Wine and Whimsy, Rooftop",
+  "blurb": "Gloovi leans over a stone parapet at twilight, one hand cradling a wine glass as she watches the sky blush.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "out",
+     "up_out"
+    ],
+    "left_arm": [
+     "down_out",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "finale",
+  "title": "Cap’s Final Stitch",
+  "blurb": "Gloovi sits cross-legged on a mossy bench, threading needle and humming as moonlight spills over her shoulders.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up_out",
+     "up"
+    ],
+    "left_arm": [
+     "down_in",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "finale",
+  "title": "Gone with the Glow",
+  "blurb": "Gloovi stands barefoot on a dewy bridge at dawn, cap tucked under her arm as mist curls around her ankles.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "in",
+     "up_out"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "finale",
+  "title": "Cap’s Last Thread",
+  "blurb": "Gloovi stops at a dusty attic window, sunlight catching the lace of her dress as she traces a pattern in the air with her fingertip.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "out",
+     "up_in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "finale",
+  "title": "Twilight’s Lullaby",
+  "blurb": "She sits cross-legged on a mossy stone bench, cap tucked under her arm, humming as fireflies blink around her bare feet.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "finale",
+  "title": "Woven Into the Night",
+  "blurb": "Gloovi leans against a lantern-lit bridge railing, her dress glowing faintly as moonlight spills over the river below.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "out",
+     "down"
+    ],
+    "left_arm": [
+     "down_out",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Gloovi the Cap-Weaver",
+  "man": true,
+  "phase": "finale",
+  "title": "The Weaver’s Final Thread",
+  "blurb": "Gloovi stands atop a spiral staircase, cap perched high on her head, one arm raised as if casting the last stitch into the wind.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up",
+     "up"
+    ],
+    "left_arm": [
+     "down_out",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "opening",
+  "title": "Rain-Slicked Library",
+  "blurb": "She peeks around the corner of a bookshelf, grinning as she spots a glowing stained-glass cat on the third floor.",
+  "pose": {
+   "body": "crouch",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "out",
+     "up_in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "opening",
+  "title": "Sunlit Rooftop Hideaway",
+  "blurb": "She leans back on a velvet cushion, sipping tea as the sun warms her shoulders — and the city sprawls below.",
+  "pose": {
+   "body": "lie",
+   "people": 1,
+   "act": "lounge_elbows",
+   "limbs": {
+    "right_arm": [
+     "in",
+     "up_in"
+    ],
+    "left_arm": [
+     "in",
+     "up_in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "opening",
+  "title": "Night Market Surprise",
+  "blurb": "She twirls under a paper lantern, laughing as she dodges a vendor’s spinning umbrella — and catches her own reflection in it.",
+  "pose": {
+   "body": "run",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up",
+     "forward"
+    ],
+    "left_arm": [
+     "down_out",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "opening",
+  "title": "Window of a Coffee Shop",
+  "blurb": "She’s perched on the windowsill, sketching steam curls from her mug — and the barista waves hello with a grin.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up_out",
+     "up"
+    ],
+    "left_arm": [
+     "down_in",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "continuing",
+  "title": "Morning Station",
+  "blurb": "Mara’s raincoat is dry now, and she sips tea from a chipped mug as dawn spills gold over the platform—she’s here early to catch the first train of the day.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "continuing",
+  "title": "Dining Car Surprise",
+  "blurb": "Mara’s coat is off now—she’s in a cozy vest and scarf, laughing as the conductor hands her a plate of warm bread with butter. She’s not waiting for anyone anymore.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "out",
+     "down_out"
+    ],
+    "left_arm": [
+     "up_in",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "continuing",
+  "title": "The Baggage Car",
+  "blurb": "Mara’s boots are muddy now, and she’s perched on a crate with a flashlight in hand—she’s looking under the train car where someone left behind a suitcase with her initials.",
+  "pose": {
+   "body": "crouch",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up_out",
+     "forward"
+    ],
+    "left_arm": [
+     "down_in",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "continuing",
+  "title": "Rain Again, But Different",
+  "blurb": "Mara’s raincoat is back on—this time with a fox-print scarf tucked under her arm. She’s walking toward the station door as a new train pulls in behind her, steam curling like a promise.",
+  "pose": {
+   "body": "walk",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "out",
+     "down_out"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "finale",
+  "title": "She Found the Key",
+  "blurb": "Mara turns a rusted key in an old door’s lock—warm light spills out as she steps into a forgotten bakery.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "finale",
+  "title": "The Cat’s Tale",
+  "blurb": "A ginger cat curls in Mara’s lap as she sits cross-legged on a porch swing, rain misting the streetlamp glow.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down_in",
+     "in"
+    ],
+    "left_arm": [
+     "down_in",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "finale",
+  "title": "Late Night Surprise",
+  "blurb": "Mara leans against a brick wall in the alley, raincoat hood up—she smiles as a warm mug steams beside her.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down_out",
+     "out"
+    ],
+    "left_arm": [
+     "down_out",
+     "out"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "finale",
+  "title": "The Last Light",
+  "blurb": "Mara stands alone on a bridge at dusk, raincoat flapping—she turns to watch the last train vanish into mist.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "up_out",
+     "up"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "finale",
+  "title": "She Finds Her Umbrella",
+  "blurb": "Mara stops at a lamppost as a stray umbrella clatters to the cobblestones — she picks it up, smiling, its handle warm from someone’s hand.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "out",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "finale",
+  "title": "The Clock Strikes Nine",
+  "blurb": "Mara leans against a bakery doorframe, watching the hour hand creep past nine — the shopkeeper waves her inside with a wink.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "in",
+     "up_in"
+    ],
+    "left_arm": [
+     "down_out",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "finale",
+  "title": "Her Boots Are Dry Now",
+  "blurb": "Mara sits on a windowsill in a sunlit attic, boots propped up — she’s changed into warm socks and is sipping tea from a chipped mug.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "out",
+     "down_out"
+    ],
+    "left_arm": [
+     "in",
+     "down_in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Mara",
+  "man": true,
+  "phase": "finale",
+  "title": "The Map Is Smudged, But She’s Home",
+  "blurb": "Mara stands at the edge of the old town square, map tucked under her arm — she turns to wave goodbye to a neighbor who just pulled out a pie.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "wave",
+   "limbs": {
+    "right_arm": [
+     "up_out",
+     "up"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "opening",
+  "title": "Coffee & Clouds",
+  "blurb": "Tomas sips black coffee at an outdoor cafe as rain patters the awning, his coat still warm from a brisk walk.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "opening",
+  "title": "Window Watcher",
+  "blurb": "He leans against a library window, fingers tracing the glass as he watches pigeons on the street below.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "out",
+     "up_out"
+    ],
+    "left_arm": [
+     "in",
+     "down_in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "opening",
+  "title": "Book in Hand",
+  "blurb": "Tomas reads a worn copy of 'The Little Prince' under an awning, sunlight catching the dust on his coat sleeve.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "read",
+   "limbs": {
+    "right_arm": [
+     "up",
+     "up"
+    ],
+    "left_arm": [
+     "down_in",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "opening",
+  "title": "Clock Tower Pause",
+  "blurb": "He stands at the base of a clock tower, one hand raised to shield his eyes from the late afternoon sun.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up_out",
+     "up"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "continuing",
+  "title": "Morning Coffee & Mist",
+  "blurb": "Tomas sips lukewarm coffee on a damp station bench as dawn bleeds gold through fogged glass windows.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "continuing",
+  "title": "The Latecomer’s Apology",
+  "blurb": "A woman in a trench coat hurries past, tripping over her own bag — Tomas offers his hand with a raised eyebrow.",
+  "pose": {
+   "body": "lean",
+   "people": 2,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up_out",
+     "up"
+    ],
+    "left_arm": [
+     "down_out",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "continuing",
+  "title": "The Train’s Last Whistle",
+  "blurb": "Tomas watches the last carriage roll past, coat flapping like a flag — he adjusts his collar and tucks the letter away.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "out",
+     "forward"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "continuing",
+  "title": "Bodega & Broken Alarm",
+  "blurb": "Tomas buys a warm croissant from a sleepy vendor — the alarm clock ticks 6:17, and he’s already half an hour late.",
+  "pose": {
+   "body": "walk",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "out",
+     "forward"
+    ],
+    "left_arm": [
+     "down_out",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "finale",
+  "title": "He Paused at the Bell",
+  "blurb": "Tomas stops beside a weathered bell tower just as dusk paints the rooftops gold, his grey coat catching the last light like a quiet confession.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "finale",
+  "title": "Coffee & Clouds",
+  "blurb": "Tomas sits cross-legged on a café step, sipping from a chipped mug while the last streetlamp flickers — his coat’s collar turned up against the cooling air.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down_out",
+     "in"
+    ],
+    "left_arm": [
+     "down_out",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "finale",
+  "title": "The Bookshop’s Secret",
+  "blurb": "Tomas leans against a glass door, peering into the dim glow of a bookstore — his coat open now to reveal an old leather-bound book tucked beneath his arm.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up_in",
+     "in"
+    ],
+    "left_arm": [
+     "down_out",
+     "out"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Tomas",
+  "man": true,
+  "phase": "finale",
+  "title": "He Left the Key Behind",
+  "blurb": "Tomas walks away from a wooden door, his grey coat brushing the handle as he pauses — just once — before turning to leave it unlocked.",
+  "pose": {
+   "body": "walk",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "out"
+    ],
+    "left_arm": [
+     "down",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "opening",
+  "title": "Midnight Rooftop Watch",
+  "blurb": "Rook stands alone on a city rooftop, binoculars to his eyes, scanning the skyline as fog curls around streetlights.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up_in",
+     "down_out"
+    ],
+    "left_arm": [
+     "out",
+     "up"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "opening",
+  "title": "Coffee Shop Window Seat",
+  "blurb": "Rook sits hunched over a steaming mug, eyes narrowed at a sketchbook while rain taps the window behind him.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "in",
+     "up_out"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "opening",
+  "title": "Sunrise Library Stacks",
+  "blurb": "Rook stands between towering bookshelves, one hand brushing a dusty spine as golden light spills through high windows.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "out",
+     "up_out"
+    ],
+    "left_arm": [
+     "down_in",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "opening",
+  "title": "Balcony with a Book and Cat",
+  "blurb": "Rook leans against rail, holding an open novel while a ginger cat curls on his lap, watching birds fly past.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up_out",
+     "up"
+    ],
+    "left_arm": [
+     "down_in",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "opening",
+  "title": "Coffee Break at Dawn",
+  "blurb": "Rook sips black coffee while staring into the steam, his tattooed forearms resting on a worn wooden table.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "opening",
+  "title": "Window Lounger",
+  "blurb": "Rook leans against a sunlit windowsill, watching rain streak the glass as he taps his temple with one finger.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down_out",
+     "in"
+    ],
+    "left_arm": [
+     "up_in",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "opening",
+  "title": "Staircase Stroll",
+  "blurb": "Rook walks up a spiral staircase, one hand on the railing while the other hangs loose as he glances back over his shoulder.",
+  "pose": {
+   "body": "walk",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up",
+     "out"
+    ],
+    "left_arm": [
+     "down_out",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "opening",
+  "title": "Bookshop Study",
+  "blurb": "Rook sits cross-legged on a rug, brows furrowed as he reads a thick book under the glow of a desk lamp.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "read",
+   "limbs": {
+    "right_arm": [
+     "down_in",
+     "up_out"
+    ],
+    "left_arm": [
+     "in",
+     "up"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "continuing",
+  "title": "Dawn’s First Light",
+  "blurb": "Rook Vantablack stands alone on the platform as dawn bleeds gold over the rails, his coat collar turned up against the chill.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "continuing",
+  "title": "Coffee and a Cigarette",
+  "blurb": "Rook Vantablack leans against the bench, one hand gripping a steaming mug while smoke curls from his lips as he watches the arriving train.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down_in",
+     "in"
+    ],
+    "left_arm": [
+     "up_out",
+     "up"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "continuing",
+  "title": "The Latecomer’s Arrival",
+  "blurb": "A woman with a suitcase steps off the train, and Rook Vantablack watches her approach without moving — eyes sharp, posture still.",
+  "pose": {
+   "body": "stand",
+   "people": 2,
+   "act": "none"
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "continuing",
+  "title": "Backpack & Breadcrumbs",
+  "blurb": "Rook Vantablack crouches to tie his bootlace, a backpack slung over one shoulder as he glances up at the platform clock — 7:12 AM.",
+  "pose": {
+   "body": "crouch",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down_out",
+     "out"
+    ],
+    "left_arm": [
+     "in",
+     "up_in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "continuing",
+  "title": "Coffee and Curiosity",
+  "blurb": "Rook sips black coffee at a dim café corner while scanning a local newspaper’s classifieds.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "continuing",
+  "title": "Sunrise on the Docks",
+  "blurb": "Rook stands at the water’s edge as dawn breaks over the harbor, coat flapping slightly in breeze.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "continuing",
+  "title": "The Bookshop Surprise",
+  "blurb": "Rook leans against a bookshelf, thumbing through a worn copy of ‘The Martian’ while a barista hands him a pastry.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "out",
+     "down"
+    ],
+    "left_arm": [
+     "in",
+     "up_in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "continuing",
+  "title": "Cafe Table, Two Figures",
+  "blurb": "Rook and a stranger sit opposite each other over steaming mugs — the stranger gestures while Rook listens with crossed arms.",
+  "pose": {
+   "body": "sit",
+   "people": 2,
+   "act": "none"
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "finale",
+  "title": "Rain on the Roof",
+  "blurb": "Rook Vantablack stands under a porch awning as rain streaks down, his arms folded over his chest while he watches the last light fade behind rooftops.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down_in",
+     "down"
+    ],
+    "left_arm": [
+     "down_in",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "finale",
+  "title": "Café at Dusk",
+  "blurb": "Rook Vantablack leans back in a worn armchair, sipping coffee while the café’s glow spills over his tattooed forearms and the steam curls near his lips.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "drink",
+   "limbs": {
+    "right_arm": [
+     "down_out",
+     "up_in"
+    ],
+    "left_arm": [
+     "out",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "finale",
+  "title": "Barefoot on the Bridge",
+  "blurb": "Rook Vantablack stands barefoot atop a stone bridge at twilight, arms spread wide as he lets the wind ruffle his hair and cool his skin.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "out",
+     "up"
+    ],
+    "left_arm": [
+     "out",
+     "up"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "finale",
+  "title": "Final Light Fades",
+  "blurb": "Rook Vantablack kneels in the grass at the edge of a quiet park, hands cupped around his face as he watches the last golden ray slip behind the trees.",
+  "pose": {
+   "body": "kneel",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "in",
+     "up_out"
+    ],
+    "left_arm": [
+     "in",
+     "up_out"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "finale",
+  "title": "Silent Watch at Dusk",
+  "blurb": "Rook stands atop the stone bridge, watching the last light bleed over the rooftops as a lone crow lands beside him.",
+  "pose": {
+   "body": "stand",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "down"
+    ],
+    "left_arm": [
+     "down",
+     "down"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "finale",
+  "title": "Coffee in the Alley",
+  "blurb": "He leans against a brick wall, sipping dark coffee from a chipped mug as steam curls around his shaved head.",
+  "pose": {
+   "body": "lean",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down",
+     "in"
+    ],
+    "left_arm": [
+     "down",
+     "out"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "finale",
+  "title": "Moon Over the Train Tracks",
+  "blurb": "Rook crouches by rusted rails, tracing a glowing graffiti tag with his finger as moonlight spills across his tattooed forearms.",
+  "pose": {
+   "body": "crouch",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "down_out",
+     "out"
+    ],
+    "left_arm": [
+     "down_in",
+     "in"
+    ]
+   }
+  }
+ },
+ {
+  "lead": "Rook Vantablack",
+  "man": true,
+  "phase": "finale",
+  "title": "Books and Silence",
+  "blurb": "He sits cross-legged on a worn wooden bench, holding an open book with both hands as shadows stretch long behind him.",
+  "pose": {
+   "body": "sit",
+   "people": 1,
+   "act": "none",
+   "limbs": {
+    "right_arm": [
+     "up_in",
+     "in"
+    ],
+    "left_arm": [
+     "up_in",
+     "in"
+    ]
+   }
+  }
+ }
+]
