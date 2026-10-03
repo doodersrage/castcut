@@ -37,6 +37,18 @@ On Linux, prefer the **`.deb`** (system WebKit, snappier UI). The AppImage is po
 
 > **Product focus:** prefer workflow reliability, first-run UX, and character consistency. Optional engines (Diffusers stills, Fal / Replicate / Grok / Gemini / Runway / Luma / ChatGPT) stay available; cloud model presets are maintained in Settings → Inference engine.
 
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Film: pick a Cast lead and start a film](docs/screenshots/film.png) | ![Day: four stills of one character from morning to night, ready to cut](docs/screenshots/day.png) |
+| **Film** — pick or create a Cast lead; Look → Outfit → Day → Cut. | **Day** — one character from morning to night, stills in a reel, then **Cut film**. |
+| ![Story: a reel of scenes picked one at a time](docs/screenshots/story.png) | ![Pose editor: a figure fitted over the Cast's picture](docs/screenshots/pose-editor.png) |
+| **Story** — pick what happens next; each scene becomes a still (and a clip). | **Pose editor** — drag joints, quick positions, the Cast's picture behind the figure. |
+
+<p align="center"><img src="docs/screenshots/phone-day.png" alt="Day on a phone: the same stills and Cut film" width="260"></p>
+<p align="center"><b>Mobile Studio</b> (<code>/m</code>) — the same film loop on a phone.</p>
+
 ## Quick start
 
 Requires **Node.js 22+**.
