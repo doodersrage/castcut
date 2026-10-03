@@ -6,12 +6,14 @@ import ImageLightbox, { type ImageLightboxState } from '@/components/ui/ImageLig
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
+import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
 import UploadButton from '@/components/ui/UploadButton';
 import { usePlateCheck } from '@/hooks/usePlateCheck';
 import type { FittingPlate } from '@/lib/fitting-room';
 import { galleryPickPath } from '@/lib/gallery-handoff';
 import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
 import type { stripCastPlateClothing } from '@/lib/cast-plate-strip';
+import type { CastPlateTile } from '@/lib/cast-plate-thumb';
 
 const CastPlateStripButton = dynamic(() => import('@/components/character/CastPlateStripButton'), {
   ssr: false,
@@ -32,7 +34,48 @@ export type CharacterLookPlateSectionProps = {
   ) => void;
   canUndoStrip?: boolean;
   onUndoStrip?: () => void;
+  /** Every plate of the Cast (one per look) — picked from tiles when there are several. */
+  plates?: CastPlateTile[];
+  activePlateId?: string;
+  onSelectPlate?: (lookId: string) => void;
+  /** Upload another plate beside this one (it becomes the active plate). */
+  onAddPlate?: (file: File) => void;
+  /** Drop the active plate (only offered with several). */
+  onRemovePlate?: () => void;
+  onRenamePlate?: (name: string) => void;
 };
+
+/** Name of the active plate, saved on blur or Enter. */
+function PlateNameField({ name, onRename }: { name: string; onRename: (name: string) => void }) {
+  const [draft, setDraft] = useState(name);
+  const commit = () => {
+    const next = draft.trim();
+    if (!next) {
+      setDraft(name);
+      return;
+    }
+    if (next !== name) {
+      onRename(next);
+    }
+  };
+  return (
+    <input
+      value={draft}
+      onChange={event => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          commit();
+        }
+      }}
+      maxLength={80}
+      aria-label="Plate name"
+      data-testid="cast-plate-name"
+      className="ui-input w-full max-w-[16rem] px-[var(--input-padding-x)] py-[var(--input-padding-y)] type-body"
+    />
+  );
+}
 
 /** DWPose read of the plate: one person, face visible and big enough, sharp enough. */
 function PlateCheckLine({ plate }: { plate: FittingPlate | null }) {
@@ -103,19 +146,53 @@ export default function CharacterLookPlateSection({
   onStripClothing,
   canUndoStrip = false,
   onUndoStrip,
+  plates = [],
+  activePlateId,
+  onSelectPlate,
+  onAddPlate,
+  onRemovePlate,
+  onRenamePlate,
 }: CharacterLookPlateSectionProps) {
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const previewUrl = plate?.imageUrl?.trim()
     ? cacheBustIdentityMediaUrl(plate.imageUrl.trim())
     : '';
   const hasPlate = Boolean(previewUrl || plate?.filename?.trim());
+  const severalPlates = plates.length > 1;
+  const activePlate = plates.find(entry => entry.id === activePlateId);
 
   return (
     <ToolSection
-      title="Look plate"
-      description="Identity still for Outfit, Day, and Story — checked for one clear, visible face."
+      title={severalPlates ? 'Look plates' : 'Look plate'}
+      description={
+        severalPlates
+          ? 'Tap a plate to use it in Outfit, Day and Story. Each plate keeps its own dressed plates.'
+          : 'Identity still for Outfit, Day, and Story — checked for one clear, visible face.'
+      }
       data-testid="cast-look-plate"
     >
+      {severalPlates && onSelectPlate ? (
+        <PortraitTileStrip
+          label="Active plate"
+          value={activePlateId ?? ''}
+          onChange={onSelectPlate}
+          disabled={uploading}
+          testIdPrefix="cast-plate-tile"
+          tiles={plates.map(entry => ({
+            id: entry.id,
+            label: entry.label,
+            title: entry.hasPlate ? entry.label : `${entry.label} — no picture yet`,
+            thumb: entry.thumb,
+          }))}
+        />
+      ) : null}
+      {severalPlates && activePlate && onRenamePlate ? (
+        <PlateNameField
+          key={`${activePlate.id}:${activePlate.label}`}
+          name={activePlate.label}
+          onRename={onRenamePlate}
+        />
+      ) : null}
       {status ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="cast-look-plate-status">
           {status}
@@ -155,6 +232,15 @@ export default function CharacterLookPlateSection({
                 testId="cast-look-plate-upload"
                 onFile={onUpload}
               />
+              {onAddPlate ? (
+                <UploadButton
+                  label="Add plate"
+                  disabled={uploading}
+                  ariaLabel="Add another look plate"
+                  testId="cast-plate-add"
+                  onFile={onAddPlate}
+                />
+              ) : null}
               <ButtonLink
                 href={galleryPickPath('cast', { characterId })}
                 variant="secondary"
@@ -182,9 +268,9 @@ export default function CharacterLookPlateSection({
                 size="sm"
                 disabled={uploading}
                 data-testid="cast-look-plate-clear"
-                onClick={onClear}
+                onClick={severalPlates && onRemovePlate ? onRemovePlate : onClear}
               >
-                Remove
+                {severalPlates && onRemovePlate ? 'Remove plate' : 'Remove'}
               </Button>
             </div>
           </div>
@@ -222,6 +308,17 @@ export default function CharacterLookPlateSection({
             >
               Extract a look in Look
             </ButtonLink>
+            {severalPlates && onRemovePlate ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={uploading}
+                data-testid="cast-look-plate-clear"
+                onClick={onRemovePlate}
+              >
+                Remove plate
+              </Button>
+            ) : null}
           </div>
         </div>
       )}

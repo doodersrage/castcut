@@ -223,8 +223,11 @@ export async function persistGalleryOriginal(
 const OWNED_PLATE_ID = /^[A-Za-z0-9._-]{1,128}$/;
 
 /** Per-Cast look plate file. Replaces only this character, never the identity lock. */
-export function castPlateMediaId(characterId: string): string | null {
-  const id = `cast-plate-${characterId.trim()}`;
+export function castPlateMediaId(characterId: string, lookId?: string): string | null {
+  // A Cast can hold several plates (one per look): each needs its own file, or adding a plate
+  // would overwrite the bytes the other plates' URLs point at.
+  const look = lookId?.trim();
+  const id = `cast-plate-${characterId.trim()}${look ? `-${look}` : ''}`;
   if (!OWNED_PLATE_ID.test(id) || id === '.' || id === '..') {
     return null;
   }

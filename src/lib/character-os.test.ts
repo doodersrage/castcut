@@ -11,7 +11,10 @@ import {
   characterFromShared,
   createBlankCharacter,
   activeLook,
+  activateLook,
   getCharacter,
+  renameLook,
+  withNewPlateLook,
   lookFromAppearance,
   renameActiveLook,
   loadCharacters,
@@ -621,6 +624,88 @@ describe('Cast traits', () => {
       const cleared = saveCharacterTraits('char-traits', undefined);
       assert.equal(cleared?.descriptor, undefined);
       assert.equal(cleared?.traits, undefined);
+    });
+  });
+});
+
+describe('several look plates per Cast', () => {
+  it('an added plate is a new active look; the old plate and the Cast traits stay', () => {
+    withMockLocalStorage(() => {
+      upsertCharacter({
+        id: 'char-plates',
+        name: 'Plates',
+        version: 1,
+        updatedAt: 1,
+        descriptor: 'a woman in her thirties',
+        lockedWardrobeId: 'denim-01',
+        ipAdapter: { imageFilename: 'plate-a.png', imageUrl: '/a.png' },
+        reference: { originalFilename: 'plate-a.png', originalUrl: '/a.png' },
+      });
+      const first = activeLook(getCharacter('char-plates')!);
+      saveCharacterTraits('char-plates', { sex: 'woman', ageBand: '30s' });
+      const stored = getCharacter('char-plates')!;
+      const withPlate = withNewPlateLook(stored, {
+        id: 'look-plate-b',
+        reference: { originalFilename: 'plate-b.png', originalUrl: '/b.png' },
+        ipAdapter: { imageFilename: 'plate-b.png', imageUrl: '/b.png' },
+      });
+      assert.equal(withPlate.activeLookId, 'look-plate-b');
+      assert.equal(withPlate.ipAdapter?.imageFilename, 'plate-b.png');
+      assert.equal(withPlate.reference?.originalFilename, 'plate-b.png');
+      // The description and wardrobe come along from the active look.
+      assert.equal(withPlate.descriptor, stored.descriptor);
+      assert.equal(withPlate.lockedWardrobeId, 'denim-01');
+      upsertCharacter(withPlate);
+      const saved = getCharacter('char-plates')!;
+      const looks = looksOf(saved);
+      assert.equal(looks.length, 2);
+      assert.equal(looks.find(look => look.id === 'look-plate-b')?.name, 'Plate 2');
+      assert.equal(looks.find(look => look.id === 'look-plate-b')?.keeperEntryIds, undefined);
+      assert.equal(
+        looks.find(look => look.id === first.id)?.ipAdapter?.imageFilename,
+        'plate-a.png'
+      );
+      // Traits are the Cast's, not a plate's.
+      assert.equal(saved.traits?.sex, 'woman');
+    });
+  });
+
+  it('switching back to a plate brings its own picture back', () => {
+    withMockLocalStorage(() => {
+      upsertCharacter({
+        id: 'char-swap',
+        name: 'Swap',
+        version: 1,
+        updatedAt: 1,
+        ipAdapter: { imageFilename: 'swap-a.png', imageUrl: '/a.png' },
+      });
+      const first = activeLook(getCharacter('char-swap')!);
+      upsertCharacter(
+        withNewPlateLook(getCharacter('char-swap')!, {
+          name: 'Beach',
+          reference: undefined,
+          ipAdapter: { imageFilename: 'swap-b.png', imageUrl: '/b.png' },
+        })
+      );
+      assert.equal(getCharacter('char-swap')?.ipAdapter?.imageFilename, 'swap-b.png');
+      assert.equal(activeLook(getCharacter('char-swap')!).name, 'Beach');
+      const back = activateLook('char-swap', first.id);
+      assert.equal(back?.activeLookId, first.id);
+      assert.equal(back?.ipAdapter?.imageFilename, 'swap-a.png');
+    });
+  });
+
+  it('renameLook names any plate; a blank name or unknown look is ignored', () => {
+    withMockLocalStorage(() => {
+      upsertCharacter({ id: 'char-name', name: 'Name', version: 1, updatedAt: 1 });
+      const look = activeLook(getCharacter('char-name')!);
+      assert.equal(
+        renameLook('char-name', look.id, '  Winter coat  ')?.looks?.[0]?.name,
+        'Winter coat'
+      );
+      assert.equal(renameLook('char-name', look.id, '   ')?.looks?.[0]?.name, 'Winter coat');
+      assert.equal(renameLook('char-name', 'look-missing', 'X')?.looks?.[0]?.name, 'Winter coat');
+      assert.equal(getCharacter('char-name')?.name, 'Name');
     });
   });
 });

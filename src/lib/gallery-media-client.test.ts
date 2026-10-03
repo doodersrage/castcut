@@ -42,6 +42,13 @@ describe('castPlateMediaId', () => {
     assert.equal(castPlateMediaId('  char-abc  '), 'cast-plate-char-abc');
     assert.equal(castPlateMediaId('../etc'), null);
   });
+
+  it('gives each plate of a Cast its own file id', () => {
+    assert.equal(castPlateMediaId('char-abc', 'look-1'), 'cast-plate-char-abc-look-1');
+    assert.notEqual(castPlateMediaId('char-abc', 'look-1'), castPlateMediaId('char-abc', 'look-2'));
+    assert.equal(castPlateMediaId('char-abc', '  '), 'cast-plate-char-abc');
+    assert.equal(castPlateMediaId('char-abc', '../x'), null);
+  });
 });
 
 describe('resolveDurableGalleryStillUrl', () => {

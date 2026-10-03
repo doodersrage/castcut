@@ -195,6 +195,11 @@ function newLookId(): string {
   return `look-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** A look id made before the look is (an added plate's file is named after it). */
+export function createLookId(): string {
+  return newLookId();
+}
+
 function newLookPackId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `lp-${crypto.randomUUID()}`;
@@ -1074,6 +1079,36 @@ export function addLookFromShared(
   return getCharacter(characterId);
 }
 
+/**
+ * Several look plates per Cast: an added plate is a new look carrying the picture, made from the
+ * active look (description, wardrobe lock, model) and made active. The description comes from
+ * the Cast's traits on every look, so it stays the Cast's, not the plate's; keepers start empty.
+ */
+export function withNewPlateLook(
+  character: CharacterRecord,
+  input: {
+    id?: string;
+    name?: string;
+    reference: CharacterRecord['reference'];
+    ipAdapter: CharacterRecord['ipAdapter'];
+  }
+): CharacterRecord {
+  const looks = looksOf(character);
+  const current = looks.find(look => look.id === character.activeLookId) ?? looks[0]!;
+  const look: CharacterLook = {
+    ...lookFromAppearance(
+      { ...current, keeperEntryIds: undefined },
+      readName(input.name) || `Plate ${looks.length + 1}`,
+      input.id
+    ),
+    reference: input.reference,
+    ipAdapter: input.ipAdapter,
+  };
+  // The new plate leads, so the look cap never cuts it.
+  const nextLooks = [look, ...looks.filter(entry => entry.id !== look.id)].slice(0, MAX_LOOKS);
+  return applyLookFields({ ...character, looks: nextLooks, updatedAt: Date.now() }, look);
+}
+
 export function activateLook(characterId: string, lookId: string): CharacterRecord | undefined {
   const character = getCharacter(characterId);
   if (!character) {
@@ -1119,22 +1154,36 @@ export function removeLook(characterId: string, lookId: string): CharacterRecord
   return getCharacter(characterId);
 }
 
-/** Rename the Cast's active look (the Cast keeps its own name). */
-export function renameActiveLook(characterId: string, name: string): CharacterRecord | undefined {
+/** Rename one of the Cast's looks / plates (the Cast keeps its own name). */
+export function renameLook(
+  characterId: string,
+  lookId: string,
+  name: string
+): CharacterRecord | undefined {
   const character = getCharacter(characterId);
-  const nextName = name.trim();
+  const nextName = readName(name);
   if (!character || !nextName) {
     return character;
   }
-  const target = activeLook(character);
+  const looks = looksOf(character);
+  if (!looks.some(look => look.id === lookId)) {
+    return character;
+  }
   upsertCharacter({
     ...character,
-    looks: looksOf(character).map(look =>
-      look.id === target.id ? { ...look, name: nextName } : look
-    ),
+    looks: looks.map(look => (look.id === lookId ? { ...look, name: nextName } : look)),
     updatedAt: Date.now(),
   });
   return getCharacter(characterId);
+}
+
+/** Rename the Cast's active look (the Cast keeps its own name). */
+export function renameActiveLook(characterId: string, name: string): CharacterRecord | undefined {
+  const character = getCharacter(characterId);
+  if (!character) {
+    return character;
+  }
+  return renameLook(characterId, activeLook(character).id, name);
 }
 
 export function setLookKeepers(

@@ -2407,6 +2407,55 @@ test('a Cast with a bible and a picture offers Picture this bible', async ({ pag
   await expect(lightbox).toHaveCount(0);
 });
 
+test('a Cast with two look plates: tap a plate tile to use it', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-two-plates', activeLookId: 'e2e-plate-a' },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-two-plates',
+          name: 'Juno',
+          version: 1,
+          updatedAt: Date.now(),
+          activeLookId: 'e2e-plate-a',
+          ipAdapter: { imageFilename: 'e2e-plate-a.png', imageUrl: '/icon.svg' },
+          looks: [
+            {
+              id: 'e2e-plate-a',
+              name: 'Studio',
+              createdAt: 2,
+              ipAdapter: { imageFilename: 'e2e-plate-a.png', imageUrl: '/icon.svg' },
+            },
+            {
+              id: 'e2e-plate-b',
+              name: 'Beach',
+              createdAt: 1,
+              ipAdapter: { imageFilename: 'e2e-plate-b.png', imageUrl: '/icon.svg' },
+            },
+          ],
+        },
+      ],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, '/characters/e2e-two-plates');
+  await dismissBlockingOverlays(page);
+  const plates = page.getByRole('radiogroup', { name: 'Active plate' });
+  await expect(plates).toBeVisible({ timeout: 30_000 });
+  const studio = plates.getByTestId('cast-plate-tile-e2e-plate-a');
+  const beach = plates.getByTestId('cast-plate-tile-e2e-plate-b');
+  await expect(studio).toHaveAttribute('aria-checked', 'true');
+  await expect(beach).toHaveAttribute('aria-checked', 'false');
+  await expect(page.getByTestId('cast-plate-add')).toBeAttached();
+
+  await beach.click();
+  await expect(beach).toHaveAttribute('aria-checked', 'true');
+  await expect(studio).toHaveAttribute('aria-checked', 'false');
+  await expect(page.getByTestId('cast-plate-name')).toHaveValue('Beach');
+  await expect(page.getByTestId('cast-look-plate-status')).toContainText('Beach');
+});
+
 test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => {
   const file = {
     kind: 'castcut-cast',

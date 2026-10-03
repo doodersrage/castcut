@@ -108,6 +108,14 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
             onUndoStrip={() => {
               void props.undoLookPlateStrip();
             }}
+            plates={props.plateTiles}
+            activePlateId={character.activeLookId}
+            onSelectPlate={props.selectPlate}
+            onAddPlate={file => {
+              void props.applyLookPlate({ file, newPlate: true });
+            }}
+            onRemovePlate={props.removeActivePlate}
+            onRenamePlate={props.renameActivePlate}
           />
           <CharacterLooksSection
             character={character}

@@ -2,11 +2,14 @@ import {
   activeLook,
   applyCharacterRecord,
   castLoraSessionIds,
+  createLookId,
   getCharacter,
   upsertCharacter,
+  withNewPlateLook,
   type CharacterRecord,
 } from '@/lib/character-os';
 import { sanitizeCharacterAppearanceDescriptor } from '@/lib/character-appearance';
+import { followCastPlateInSessions } from '@/lib/cast-plate-switch';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
 import {
   collectIsolateSourceUrls,
@@ -571,6 +574,8 @@ export function assignOutfitPlateToCastAndFitting(input: {
    * Their record updates; the Outfit session plate stays with the current Cast.
    */
   syncFitting?: boolean;
+  /** Add the picture as another plate (a new look, made active) instead of replacing this one. */
+  newLook?: { id?: string; name?: string };
 }): CharacterRecord | null {
   const characterId = input.characterId.trim();
   const imageUrl = input.imageUrl.trim();
@@ -607,18 +612,30 @@ export function assignOutfitPlateToCastAndFitting(input: {
     : {
         imageUrl,
       };
-  const ipAdapter = input.syncFace === true || !hasFace ? plateAsFace : existingFace;
-  const looks = (character.looks ?? [look]).map(entry =>
-    entry.id === look.id ? { ...entry, reference, ipAdapter } : entry
-  );
-  upsertCharacter({
-    ...character,
-    reference,
-    ipAdapter,
-    looks,
-    activeLookId: look.id,
-    updatedAt: Date.now(),
-  });
+  if (input.newLook) {
+    // A new plate is a new person-picture end to end: its own face, never the other plate's.
+    upsertCharacter(
+      withNewPlateLook(character, {
+        id: input.newLook.id,
+        name: input.newLook.name,
+        reference,
+        ipAdapter: plateAsFace,
+      })
+    );
+  } else {
+    const ipAdapter = input.syncFace === true || !hasFace ? plateAsFace : existingFace;
+    const looks = (character.looks ?? [look]).map(entry =>
+      entry.id === look.id ? { ...entry, reference, ipAdapter } : entry
+    );
+    upsertCharacter({
+      ...character,
+      reference,
+      ipAdapter,
+      looks,
+      activeLookId: look.id,
+      updatedAt: Date.now(),
+    });
+  }
 
   const previous = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
   if (input.syncFitting === false) {
@@ -860,6 +877,8 @@ export type ApplyCastLookPlateInput = {
   /** With `isolate: false`: the image is already a white cutout (an edit of an isolated plate). */
   alreadyIsolated?: boolean;
   model?: string;
+  /** Add the picture as another plate of the Cast (a new look) rather than replace this one. */
+  newPlate?: { name?: string };
 };
 
 /**
@@ -876,9 +895,14 @@ export async function applyCastLookPlateFromSource(
   if (!characterId) {
     throw new Error('Pick a Cast character first.');
   }
-  if (!getCharacter(characterId)) {
+  const target = getCharacter(characterId);
+  if (!target) {
     throw new Error('That Cast character is not on this device.');
   }
+  // Each plate keeps its own file. A record with no saved looks yet keeps the Cast-wide name
+  // (its one look's id is not stable until saved).
+  const newLookId = input.newPlate ? createLookId() : undefined;
+  const plateLookId = newLookId ?? (target.looks?.length ? activeLook(target).id : undefined);
   const file = input.file ?? null;
   const imageUrl = input.imageUrl?.trim() || '';
   if (!file && !imageUrl && !input.filename?.trim()) {
@@ -939,7 +963,7 @@ export async function applyCastLookPlateFromSource(
   let isolated = false;
 
   const persistPlate = (file: Blob, filename: string) => {
-    const mediaId = castPlateMediaId(characterId);
+    const mediaId = castPlateMediaId(characterId, plateLookId);
     if (!mediaId) {
       return Promise.resolve(null);
     }
@@ -983,16 +1007,20 @@ export async function applyCastLookPlateFromSource(
     throw new Error('Could not resolve a plate image URL.');
   }
 
+  const previousPlate = resolveFittingPlateFromCharacter(getCharacter(characterId));
   const character = assignOutfitPlateToCastAndFitting({
     characterId,
     imageUrl: queueUrl,
     filename: queueFilename,
     isolated,
     syncFace: true,
+    ...(newLookId ? { newLook: { id: newLookId, name: input.newPlate?.name } } : {}),
   });
   if (!character) {
     throw new Error('Could not save the look plate to Cast.');
   }
+  // Outfit's session plate was written above; Story's follows when it showed the old plate.
+  followCastPlateInSessions(characterId, previousPlate, character, { fitting: false });
   return { character, imageUrl: queueUrl, filename: queueFilename, isolated };
 }
 

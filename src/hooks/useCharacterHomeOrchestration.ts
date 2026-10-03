@@ -19,6 +19,7 @@ import {
   forgetCharacterRecord,
   removeLook,
   removeCharacterLookPack,
+  renameLook,
   subscribeCharacters,
   toggleLookKeeper,
 } from '@/lib/character-os';
@@ -49,6 +50,8 @@ import {
   saveLookPack,
 } from '@/lib/look-pack';
 import { applyCastLookPlateFromSource, clearCharacterLookPlate } from '@/lib/look-outfit-plate';
+import { removeCastPlate, switchCastPlate } from '@/lib/cast-plate-switch';
+import { castPlateTiles } from '@/lib/cast-plate-thumb';
 import {
   restoreCastPlateSnapshot,
   stripCastPlateClothing,
@@ -341,7 +344,13 @@ export function useCharacterHomeOrchestration(characterId: string) {
   };
 
   const applyLookPlate = useCallback(
-    async (input: { file?: File | null; imageUrl?: string; filename?: string }) => {
+    async (input: {
+      file?: File | null;
+      imageUrl?: string;
+      filename?: string;
+      /** Keep the current plate and add this one beside it (made active). */
+      newPlate?: boolean;
+    }) => {
       if (!character) {
         return false;
       }
@@ -356,12 +365,12 @@ export function useCharacterHomeOrchestration(characterId: string) {
           filename: input.filename,
           isolate: true,
           model: loadSettingsCache().shared.model,
+          ...(input.newPlate ? { newPlate: {} } : {}),
         });
         persistApply(result.character);
         setPlateUndo(null);
-        setPlateStatus(
-          result.isolated ? 'Look plate saved (isolated on white).' : 'Look plate saved.'
-        );
+        const saved = input.newPlate ? 'Plate added and in use' : 'Look plate saved';
+        setPlateStatus(result.isolated ? `${saved} (isolated on white).` : `${saved}.`);
         softAdvanceHref(
           `/fitting?character=${encodeURIComponent(character.id)}`,
           'Outfit',
@@ -468,6 +477,59 @@ export function useCharacterHomeOrchestration(characterId: string) {
     }
   }, [characterId]);
 
+  const plateTiles = character ? castPlateTiles(character) : [];
+
+  /** A plate change re-applies the Cast fresh: the old plate's face lock must not stay. */
+  const applyPlateChange = (next: ReturnType<typeof getCharacter>, message: string) => {
+    if (!next) {
+      return;
+    }
+    saveSharedSettings({
+      ...loadSettingsCache().shared,
+      ...applyCharacterRecordFresh(next),
+    });
+    // Undo restored the plate as it was before a strip — onto whichever plate is active.
+    setPlateUndo(null);
+    setPlateError(null);
+    setPlateStatus(message);
+  };
+
+  const selectPlate = (lookId: string) => {
+    if (!character || lookId === character.activeLookId) {
+      return;
+    }
+    const next = switchCastPlate(character.id, lookId);
+    applyPlateChange(next, `Using the plate “${next ? activeLook(next).name : ''}”.`);
+  };
+
+  const removeActivePlate = () => {
+    if (!character || looks.length < 2) {
+      return;
+    }
+    const target = activeLook(character);
+    if (
+      !window.confirm(
+        `Remove the plate “${target.name}” from ${character.name}? The other plates stay.`
+      )
+    ) {
+      return;
+    }
+    const next = removeCastPlate(character.id, target.id);
+    applyPlateChange(next, `Plate “${target.name}” removed.`);
+  };
+
+  const renameActivePlate = (name: string) => {
+    if (!character) {
+      return;
+    }
+    const target = activeLook(character);
+    const nextName = name.trim();
+    if (!nextName || nextName === target.name) {
+      return;
+    }
+    persistApply(renameLook(character.id, target.id, nextName));
+  };
+
   const onGalleryPlateHandoff = useCallback(
     async (handoff: {
       file: File | null;
@@ -535,6 +597,10 @@ export function useCharacterHomeOrchestration(characterId: string) {
     plateError,
     applyLookPlate,
     clearLookPlate,
+    plateTiles,
+    selectPlate,
+    removeActivePlate,
+    renameActivePlate,
     stripLookPlateClothing,
     undoLookPlateStrip,
     canUndoPlateStrip: plateUndo !== null,

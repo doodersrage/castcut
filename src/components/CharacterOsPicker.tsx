@@ -4,11 +4,9 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldLabel } from '@/components/ui/Field';
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
-import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
-import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
+import { castPlateThumbUrl, castPlateTiles } from '@/lib/cast-plate-thumb';
 import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import {
-  activateLook,
   addLookFromShared,
   applyCharacterRecord,
   applyCharacterRecordFresh,
@@ -25,6 +23,7 @@ import {
   renameActiveLook,
   upsertCharacter,
 } from '@/lib/character-os';
+import { switchCastPlate } from '@/lib/cast-plate-switch';
 import { listSavedIdentityBundles, type SharedToolSettings } from '@/lib/settings-cache';
 import { roleplaySessionsForCharacterSync } from '@/lib/roleplay-library';
 
@@ -108,7 +107,8 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
       return;
     }
     try {
-      const next = activateLook(activeId, lookId);
+      // Outfit / Story follow the look's plate (switchCastPlate), as on the Cast page.
+      const next = switchCastPlate(activeId, lookId);
       if (next) {
         onApply(applyCharacterRecordFresh(next));
       }
@@ -247,15 +247,12 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
             value={activeLookId ?? ''}
             onChange={applyLookId}
             testIdPrefix="cast-picker-look"
-            tiles={looks.map(look => {
-              const plate =
-                look.reference?.isolatedUrl?.trim() || look.reference?.originalUrl?.trim() || '';
-              return {
-                id: look.id,
-                label: look.name,
-                thumb: plate ? cacheBustIdentityMediaUrl(plate) : undefined,
-              };
-            })}
+            // A look's plate (its own photo or face) — the Cast page adds plates as looks.
+            tiles={castPlateTiles(active).map(tile => ({
+              id: tile.id,
+              label: tile.label,
+              thumb: tile.thumb,
+            }))}
           />
         </div>
       ) : null}
