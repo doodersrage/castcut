@@ -117,15 +117,21 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
   // only, and a reload (or another device) lost the try-ons the player was choosing between.
   const compareRestoredRef = useRef(false);
   useEffect(() => {
-    if (!input.mounted || compareRestoredRef.current) {
+    if (!input.mounted) {
       return;
     }
     compareRestoredRef.current = true;
+    // Also when the saved list arrives after the page opened (a fresh browser pulls it from the
+    // server a moment later) — but never over try-ons this page already has.
     const saved = (input.toolSettings.compareTryOns ?? []).filter(
       entry => entry?.promptId && entry.imageUrl
     );
     if (saved.length > 0) {
-      scheduleAfterCommit(() => setCompareTryOns(saved.slice(-FITTING_COMPARE_LIMIT)));
+      scheduleAfterCommit(() =>
+        setCompareTryOns(current =>
+          current.length === 0 ? saved.slice(-FITTING_COMPARE_LIMIT) : current
+        )
+      );
     }
     if (input.toolSettings.pendingTryOn?.promptId && !pendingTryOnRef.current) {
       pendingTryOnRef.current = input.toolSettings.pendingTryOn;
