@@ -286,8 +286,19 @@ test('play pages hydrate without mismatches', async ({ page }) => {
 });
 
 test('settings server storage says when this browser last synced', async ({ page }) => {
+  const health = (await (await page.request.get('/api/health')).json()) as {
+    storage?: { enabled?: boolean };
+  };
   await gotoStable(page, '/settings?tab=advanced');
   const line = page.getByTestId('sync-status-line');
+  if (!health.storage?.enabled) {
+    // No server storage (CI runs without PROMPT_DATA_DIR): nothing to sync, no line.
+    await expect(page.getByText('disabled (browser database only)')).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(line).toHaveCount(0);
+    return;
+  }
   await expect(line).toBeVisible({ timeout: 30_000 });
   // The startup pull reaches the server, so a fresh page reads as synced, not as an error.
   await expect(line).toHaveAttribute('data-tone', /ok|waiting/, { timeout: 30_000 });
