@@ -18,11 +18,17 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
   looks keep their own pictures. Checked live.
 - [ ] **Switching looks while Outfit is open** — open Outfit, change the look in the Cast picker's
   Look row: Outfit's plate changes without a reload. Checked live.
-- [ ] **Prepare plate** *(in progress)* — on a seated or clothed plate the page suggests *Prepare
-  plate*; it stands her up, gives plain base-layer underwear and a white background (each can be
-  unticked). *Undo* puts the old plate back. Watch that the face stays hers.
-- [ ] **What's next checklist** *(in progress)* — top of the Cast page: plate, traits, bible,
-  outfit kept, Day, film, Story; the first open step is marked *Next*.
+- [ ] **Uploading a plate stays on the Cast page** — no jump to Outfit; the status line says to
+  look it over first. Checked live.
+- [ ] **Prepare plate** — on a seated or clothed plate the page says so (*Seated — …*); *Prepare
+  plate* stands her up, gives plain base-layer underwear and a white background (each can be
+  unticked). *Undo* puts the old plate back; a face that drifted is flagged. Seen working on your
+  own Cast's run.
+- [ ] **Clean cut-outs** — upload a plate in dark clothes, or light clothes on a light background:
+  no white holes, the person intact (BiRefNet in ComfyUI). A plate already on white isn't cut
+  again. Old plates keep their holes until uploaded again.
+- [ ] **What's next checklist** — top of the Cast page: plate (prepared), traits, bible, outfit
+  kept, Day, film, Story; the first open step is marked *Next*. Checked live.
 - [ ] **Appearance traits** — Bible tab → *Appearance*: sex, ethnicity, age, height, body,
   hair colour / length / style. Save, then queue a Day still: the prompt describes only the
   traits (and the picture shows the rest). A made-up or bible-copied description is flagged.
@@ -46,8 +52,9 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
 
 - [ ] **Start a film with …** — names the character and opens that film. Checked live.
 - [ ] **New character** — opens Film's create form with the name field focused. Checked live.
-- [ ] **Story writer he / she** — a male Cast with a bible that never says "man": Story scenes
-  use he / his.
+- [ ] **Story writer he / she** — a male Cast (Sex trait) with a bible that never says "man":
+  Story scenes use he / his.
+- [ ] **Story pose from a photo** — a scene's pose → *From a photo…*.
 
 ## Outfit
 
@@ -57,8 +64,10 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
   head to feet, not set beside her.
 - [ ] **Shoe pass** — Edit 2511 + a custom pose + shoes: after the try-on, "Putting the shoes
   on…" runs once and the card switches to the shod picture. Checked live.
-- [ ] **Keep saves to the look** *(in progress)* — Keep a try-on: the active look's tile shows
-  that outfit; switching back to the look restores it in Outfit / Day / Story.
+- [ ] **Keep saves to the look** — Keep a try-on: the active look's tile shows that outfit;
+  switching looks and back restores it in Outfit / Day / Story. *New look* copies the outfit.
+- [ ] **Seated-plate note** — with a seated look plate, Outfit's plate (and Day → Setup) show
+  *Seated plate — … Prepare plate →*; ✕ hides it for that plate.
 - [ ] **Picks reach Day and Story** — change the clothing photo or shoes in Outfit, open Day: they
   are used there (and in Story).
 - [ ] **Unchanged try-on** — a try-on that came back as the plate is flagged.
@@ -66,8 +75,18 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
 
 ## Day
 
-- [ ] **A look per slot** *(in progress)* — in a slot's editor pick a different look: that still
-  uses its plate and outfit; other slots keep the active look.
+- [ ] **A look per slot** — with two or more looks, a slot's editor shows look tiles; pick one:
+  that still uses its plate and outfit; other slots keep the active look.
+- [ ] **Pose packs** — Day plan area → *Pose pack* (Fitness, Dance, Portrait, Lounging, Street
+  style, Beach): every slot gets a pose; empty beats get matching words; *Save as pack* keeps
+  your own. Watch Fitness (warrior, plank, deadlift) and Lounging (lying on the front).
+- [ ] **From a photo** — a slot's pose → *From a photo…*: any photo's pose is used (two people on
+  a two-person slot; a one-person photo there is refused).
+- [ ] **Two-person pose editor** — a duo slot's pose → edit: *Add partner* / *Mirrored partner*,
+  Lead / Partner tabs, *Swap sides*; the still follows who is left and right. A solo slot uses
+  the lead only.
+- [ ] **Redo pose misses once** — switch next to Auto-review (works with Auto-review off): a still
+  that missed its pose is redone once and marked *Redone for the pose*.
 - [ ] **Solo intimate scenes on Mixed** — Intimate, People → Mixed: solo scenes come out alone,
   couple scenes with the partner. Checked live (the bug you saw).
 - [ ] **Lying scenes** — Everyday lying beats (bed, picnic, sofa) on Qwen-Image 2.1: lying
@@ -78,8 +97,10 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
   A beat typed for a man lead stays "he".
 - [ ] **Each Cast keeps its own Day** — switch Cast and back: the Day and its stills return.
 - [ ] **Partner shoes** — a Day with a Cast partner: each wears their own shoes. Checked live.
-- [ ] **Continue as a story** *(in progress)* — from Day's reel, open Story primed with the Day's
-  setting and outfit.
+- [ ] **Continue as a story** — from Day's reel, Story opens primed with the Day's setting
+  ("…, later that night") and outfit. Checked live.
+- [ ] **End pose for a clip** *(in progress)* — pick an end still (or re-pose this one) before
+  *Animate*: the clip moves from the start pose to the end pose.
 
 ## Story
 
@@ -90,13 +111,13 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
 
 ## Film
 
-- [ ] **Episode cut** *(in progress)* — Cast → Film & media → cut one film from the Day's stills
-  then the Story's scenes.
+- [ ] **Episode cut** — Cast → Film & media → *Episode*: "N shots · X from the Day, Y from the
+  Story"; cut it and it lands in Gallery and the Cast's films. Shot count checked live.
 
 ## Gallery
 
-- [ ] **Filter by look** *(in progress)* — with a character filter, look chips narrow the stills
-  to one look.
+- [ ] **Filter by look** — with a character filter, look chips (with counts) narrow the stills
+  to one look; also on the Cast's Film & media tab. Checked live.
 
 ## Settings and sync
 
