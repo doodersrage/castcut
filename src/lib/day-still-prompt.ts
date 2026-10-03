@@ -196,19 +196,31 @@ export function finishDayStillPrompt(
     adult: boolean;
     swapLead: boolean;
     leadDescriptor?: string;
+    /** The partner's own description (a Cast partner) — already right, never swapped. */
+    partnerDescriptor?: string;
   }
 ): string {
   // Adult moods only — reinforceIntimateStillPrompt false-positives on Suggestive / Vacation
   // ("hands on" zipper, "sex contact" bans) and injects nude/duo locks that fight CLOTHING LOCK
   // → bikini/beach drift.
   const reinforced = input.adultMood ? reinforceIntimateStillPrompt(drafted) : drafted;
-  // The lead's own description already reads right for him — put it back unswapped.
-  return input.swapLead
-    ? restoreText(
-        masculineClothes(swapDayPromptGender(reinforced, { solo: input.adult })),
-        (input.leadDescriptor ?? '').trim()
-      )
-    : reinforced;
+  if (!input.swapLead) return reinforced;
+  // The lead's and the partner's own descriptions already read right — set them aside while
+  // the rest is reworded for a man lead. Swapped too, a man partner was written as "a White
+  // woman … with a ginger beard" (live, two men on Day).
+  const kept = [input.partnerDescriptor, input.leadDescriptor]
+    .map(text => text?.trim() ?? '')
+    .filter(text => text.length > 0);
+  let held = reinforced;
+  kept.forEach((text, index) => {
+    held = held.split(text).join(`\u0000${index}\u0000`);
+  });
+  let swapped = masculineClothes(swapDayPromptGender(held, { solo: input.adult }));
+  kept.forEach((text, index) => {
+    swapped = swapped.split(`\u0000${index}\u0000`).join(text);
+  });
+  // A description quoted in another form (the lead's inside a sentence) is still put back.
+  return restoreText(swapped, (input.leadDescriptor ?? '').trim());
 }
 
 /**

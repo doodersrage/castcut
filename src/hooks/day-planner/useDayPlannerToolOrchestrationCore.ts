@@ -1569,6 +1569,7 @@ export function useDayPlannerToolOrchestrationCore() {
           adult: adultStill,
           swapLead: assembled.swapLead,
           leadDescriptor,
+          partnerDescriptor: slotPartner?.descriptor,
         });
         setOutput(finalized);
         rememberDraftFields({

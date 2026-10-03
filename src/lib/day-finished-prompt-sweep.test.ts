@@ -283,7 +283,7 @@ type Setup = {
   clothing: 'none' | 'kit-auto' | 'kit-picked' | 'photo' | 'packshot';
   /** The dress plate rendered (when the hook asks for one). */
   dressPlateRenders: boolean;
-  partner: 'none' | 'cast' | 'invented';
+  partner: 'none' | 'cast' | 'cast-same' | 'invented';
   /** People: companions on (Mixed) — the planner's two-person beats draw two. */
   companions: boolean;
   /** The pose map was drawn and accepted by ComfyUI. */
@@ -326,6 +326,16 @@ const SETUPS: Setup[] = [
     plate: 'cast',
     clothing: 'kit-picked',
     partner: 'cast',
+    companions: true,
+    beats: beat => clothedBeat(beat) && beat.two,
+  },
+  // Two men / two women: the lead's own sex as the Cast partner.
+  {
+    ...BASE,
+    id: 'Cast partner, same sex',
+    plate: 'cast',
+    clothing: 'kit-picked',
+    partner: 'cast-same',
     companions: true,
     beats: beat => clothedBeat(beat) && beat.two,
   },
@@ -416,10 +426,14 @@ const LEADS: Record<LeadNoun, { name: string; descriptor: string }> = {
   woman: { name: 'Lana', descriptor: 'a woman with shoulder-length dark hair and green eyes' },
   man: { name: 'Marco', descriptor: 'a tall man with short dark hair and a trimmed beard' },
 };
-/** The Cast partner: the other gender (same-sex pairs reword the beat; not swept here). */
+/** The Cast partner: the other gender (SAME_SEX_PARTNERS below for two men / two women). */
 const CAST_PARTNERS: Record<LeadNoun, DayPartner> = {
   woman: { name: 'Theo', noun: 'man', descriptor: 'a man with short brown hair and a square jaw' },
   man: { name: 'Mia', noun: 'woman', descriptor: 'a woman with long auburn hair and freckles' },
+};
+const SAME_SEX_PARTNERS: Record<LeadNoun, DayPartner> = {
+  woman: { name: 'Ada', noun: 'woman', descriptor: 'a woman with a black bob and round glasses' },
+  man: { name: 'Sam', noun: 'man', descriptor: 'a man with short curly black hair and a navy sweater' },
 };
 const PARTNER_KIT_LABEL = 'Grey linen suit';
 
@@ -627,7 +641,9 @@ function decideStill(
       ? inventedDayPartner(lead === 'man' ? 'new:woman' : 'new:man')
       : setup.partner === 'cast'
         ? CAST_PARTNERS[lead]
-        : null;
+        : setup.partner === 'cast-same'
+          ? SAME_SEX_PARTNERS[lead]
+          : null;
   let slotPartner: DayPartner | null = null;
   let partnerFace = false;
   if (partnerCandidate) {
@@ -743,6 +759,7 @@ function decideStill(
     adult: adultStill,
     swapLead: assembled.swapLead,
     leadDescriptor: LEADS[lead].descriptor,
+    partnerDescriptor: slotPartner?.descriptor,
   });
   // extraFilenames: [1] the partner's face, else the clothing image; [2] the pose map.
   const second = partnerFace || garmentAttached;
@@ -886,6 +903,16 @@ for (const still of STILLS) {
     imageCount: still.imageCount,
   })) {
     fail(AUDIT, still, `${issue.code}: ${issue.message} ("${issue.evidence}")`);
+  }
+
+  // I2b — a Cast partner is described as they are: the man-lead rewording once turned a man
+  // partner into "a woman … with a ginger beard".
+  if (still.partner && !still.partner.invented && still.partner.descriptor) {
+    const shown = still.partner.descriptor.slice(0, 40);
+    const swapped = /\bman\b/.test(shown) ? shown.replace(/\bman\b/, 'woman') : shown.replace(/\bwoman\b/, 'man');
+    if (!prompt.includes(shown) && prompt.includes(swapped)) {
+      fail(PARTNER_LINE, still, `the partner's description was reworded: "${swapped}"`);
+    }
   }
 
   // I2 — the partner's line only on a two-person still.
