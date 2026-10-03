@@ -248,6 +248,13 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
       // LoRA settings of its own, so without this previews were built with no LoRAs at all.
       loraLibrary: runtime?.loraLibrary ?? settings.loraLibrary,
       samplerOverrides: runtime?.modelSamplerOverrides,
+      // Same renderer swaps as the queue (Engine → Qwen-Image 2.1, LTX-2.5 clips), so the
+      // preview — and the engine health check that reads it — shows the graph that renders.
+      availableNodeTypes: input.inventory?.nodeTypes,
+      qwenRenderer: runtime?.qwenRenderer,
+      qwenImage21FourStep: runtime?.qwenImage21FourStep,
+      qwenImage21EightStep: runtime?.qwenImage21EightStep,
+      videoRenderer: runtime?.videoRenderer,
     }
   );
 

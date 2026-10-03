@@ -1,6 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { EngineHealthNote } from '@/components/EngineHealth';
 import { isLtx25Model } from '@/lib/ltx25-renderer';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import {
@@ -31,12 +32,19 @@ export default function ClipEngineNote({
   twoPersonAdultPossible: boolean;
 }) {
   const model = useSyncExternalStore(subscribe, pickedVideoModel, () => '');
-  if (!isLtx25Model(model)) return null;
+  // Says so here, before Animate fails, when this ComfyUI can't run the clip engine.
+  const health = (
+    <EngineHealthNote model={model} hideReady className="mt-2" testId="clip-engine-health" />
+  );
+  if (!isLtx25Model(model)) return health;
   return (
-    <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="clip-engine-note">
-      {twoPersonAdultPossible
-        ? 'Clips: LTX-2.5 (fast) for solo and clothed stills; two-person adult stills render on WAN, about 3× slower.'
-        : 'Clips render on LTX-2.5 (fast).'}
-    </p>
+    <>
+      <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="clip-engine-note">
+        {twoPersonAdultPossible
+          ? 'Clips: LTX-2.5 (fast) for solo and clothed stills; two-person adult stills render on WAN, about 3× slower.'
+          : 'Clips render on LTX-2.5 (fast).'}
+      </p>
+      {health}
+    </>
   );
 }

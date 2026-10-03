@@ -1076,6 +1076,29 @@ html[data-theme='light'] .page-canvas::before {
   color: var(--text-muted);
 }
 
+/* Engine health (lib/engine-health): can this ComfyUI run the picked engine? */
+.tool-engine-chip-health {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--tint-warning-text);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.tool-engine-chip-health::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.tool-engine-chip-health[data-state='ready'] {
+  color: var(--tint-success-text);
+}
+
 .tool-engine-chip-caret {
   flex-shrink: 0;
   color: var(--text-muted);

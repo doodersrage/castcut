@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import type { DiffusersCheckpointOption } from '@/components/DiffusersCheckpointSelector';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
+import { EngineHealthNote } from '@/components/EngineHealth';
 import { Button } from '@/components/ui/Button';
 import { FieldLabel } from '@/components/ui/Field';
 import {
@@ -129,6 +130,7 @@ export default function SharedModelSurface({
             }
             onChange={onModelChange}
           />
+          <EngineHealthNote model={shared.model} />
         </>
       )}
       {!roleplayVariant && toolId !== 'audio' && toolId !== 'mesh' ? (

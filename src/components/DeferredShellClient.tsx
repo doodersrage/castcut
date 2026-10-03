@@ -32,6 +32,10 @@ const WorkflowLibraryWatcher = dynamic(() => import('@/components/WorkflowLibrar
   ssr: false,
 });
 
+const EngineHealthWatcher = dynamic(() => import('@/components/EngineHealthWatcher'), {
+  ssr: false,
+});
+
 const WorkspaceWelcome = dynamic(() => import('@/components/WorkspaceWelcome'), {
   ssr: false,
 });
@@ -119,6 +123,7 @@ export default function DeferredShellClient() {
           <FirstQueueSetupModal />
           <AppUpdateWatcher />
           <WorkflowLibraryWatcher />
+          {playwright ? null : <EngineHealthWatcher />}
         </>
       ) : null}
     </>

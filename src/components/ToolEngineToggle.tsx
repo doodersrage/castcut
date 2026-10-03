@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { EngineHealthChipBadge } from '@/components/EngineHealth';
 import { peekCollapsibleOpen, saveCollapsibleOpen } from '@/lib/collapsible-persist';
 import { engineSummary, formatEngineSummary } from '@/lib/engine-summary';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
@@ -87,6 +88,18 @@ export function useEngineSummaryText(toolId?: string): string {
   );
 }
 
+/** The model this tool will run, kept current (same resolution as the summary above). */
+function useToolEffectiveModel(toolId?: string): string {
+  return useSyncExternalStore(
+    subscribeSettings,
+    () => {
+      const shared = loadSettingsCache().shared;
+      return toolEffectiveModel(shared.model, toolId) ?? shared.model ?? '';
+    },
+    () => ''
+  );
+}
+
 function EngineGlyph() {
   return (
     <svg
@@ -124,6 +137,7 @@ export function ToolEngineChip({
   controls?: string;
 }) {
   const summary = useEngineSummaryText(toolId);
+  const model = useToolEffectiveModel(toolId);
   return (
     <button
       type="button"
@@ -137,6 +151,7 @@ export function ToolEngineChip({
       <EngineGlyph />
       <span className="tool-engine-chip-label">Engine</span>
       {summary ? <span className="tool-engine-chip-summary">{summary}</span> : null}
+      <EngineHealthChipBadge model={model} />
       <svg
         viewBox="0 0 12 12"
         width="10"
