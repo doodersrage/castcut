@@ -10,7 +10,7 @@ export async function dismissBlockingOverlays(page: Page): Promise<void> {
 
   // Multi-step welcome: Skip → setup → ready. Keep timeouts short — CI builds with
   // NEXT_PUBLIC_PLAYWRIGHT skip the welcome entirely; this path covers local/dev.
-  const skipWelcome = page.getByRole('button', { name: /Skip — use Play/i });
+  const skipWelcome = page.getByRole('button', { name: /Skip — (?:use Play|start a film)/i });
   if (await skipWelcome.isVisible({ timeout: 800 }).catch(() => false)) {
     await skipWelcome.click();
   }

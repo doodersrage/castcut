@@ -2250,6 +2250,46 @@ test('a Cast whose look was made up offers Describe from photo', async ({ page }
   await expect(page.getByTestId('cast-bible-describe-photo')).toBeVisible();
 });
 
+test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => {
+  const file = {
+    kind: 'castcut-cast',
+    version: 1,
+    exportedAt: Date.now(),
+    character: {
+      id: 'e2e-imported-cast',
+      name: 'Imported Ines',
+      version: 1,
+      updatedAt: Date.now(),
+      descriptor: 'a woman with short grey hair',
+    },
+    stories: [],
+    day: {
+      slots: [
+        { id: 'morning', label: 'Morning', location: 'harbour', sceneHints: 'watching the boats' },
+        { id: 'midday', label: 'Midday', location: 'market', sceneHints: 'buying figs' },
+        { id: 'afternoon', label: 'Afternoon', location: 'beach', sceneHints: 'a swim' },
+        { id: 'evening', label: 'Evening', location: 'terrace', sceneHints: 'dinner outside' },
+      ],
+      dayMood: 'everyday',
+    },
+  };
+  await gotoStable(page, '/characters');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('cast-import-input').setInputFiles({
+    name: 'imported-ines.castcut-cast.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(file)),
+  });
+  await page.waitForURL(/\/characters\/e2e-imported-cast/, { timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: 'Imported Ines' }).first()).toBeVisible();
+  // Picking the imported Cast on Day brings its plan back.
+  await page.getByTestId('character-home-day').click();
+  await page.waitForURL(/\/day/);
+  await expect(page.getByTestId('day-slot-beat').first()).toHaveValue('watching the boats', {
+    timeout: 30_000,
+  });
+});
+
 test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async ({ page }) => {
   const tinyPng =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

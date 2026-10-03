@@ -5,6 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
+import { CastImportButton } from '@/components/cast/CastTransferControls';
 import { ToolBadge, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
 import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import {
@@ -300,6 +301,12 @@ export default function CharacterCastRoster() {
           </ul>
         </ToolSection>
       )}
+      <ToolSection
+        title="Cast files"
+        description="Move a character to another install, or keep a backup: Export on a character's page, Import here. Its picture, looks, bible, story and Day plan come along; stills stay in the gallery they were made in."
+      >
+        <CastImportButton />
+      </ToolSection>
     </ToolLayout>
   );
 }

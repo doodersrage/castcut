@@ -2,6 +2,7 @@
 
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
+import { CastExportButton } from '@/components/cast/CastTransferControls';
 import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrchestration';
 
 type CharacterHomeActionRowProps = Pick<
@@ -86,6 +87,7 @@ export default function CharacterHomeActionRow({
           <ButtonLink href="/characters" size="sm" variant="ghost">
             All characters
           </ButtonLink>
+          <CastExportButton characterId={character.id} />
           <Button size="sm" variant="ghost" onClick={removeFromCast}>
             Remove from cast
           </Button>
