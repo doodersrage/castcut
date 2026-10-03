@@ -8,6 +8,9 @@ import {
   CHARACTER_AGE_BAND_OPTIONS,
   CHARACTER_BODY_BUILD_OPTIONS,
   CHARACTER_ETHNICITY_OPTIONS,
+  CHARACTER_HAIR_COLOR_OPTIONS,
+  CHARACTER_HAIR_LENGTH_OPTIONS,
+  CHARACTER_HAIR_STYLE_OPTIONS,
   CHARACTER_HEIGHT_OPTIONS,
   CHARACTER_SEX_OPTIONS,
   isRolledAppearanceDescriptor,
@@ -26,6 +29,9 @@ const FIELDS: Array<{
   { key: 'ageBand', label: 'Age', options: CHARACTER_AGE_BAND_OPTIONS },
   { key: 'height', label: 'Height', options: CHARACTER_HEIGHT_OPTIONS },
   { key: 'bodyBuild', label: 'Body type', options: CHARACTER_BODY_BUILD_OPTIONS },
+  { key: 'hairColor', label: 'Hair colour', options: CHARACTER_HAIR_COLOR_OPTIONS },
+  { key: 'hairLength', label: 'Hair length', options: CHARACTER_HAIR_LENGTH_OPTIONS },
+  { key: 'hairStyle', label: 'Hair style', options: CHARACTER_HAIR_STYLE_OPTIONS },
 ];
 
 /**

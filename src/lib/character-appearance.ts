@@ -602,13 +602,17 @@ export function sanitizeCharacterAppearanceDescriptor(descriptor: string): strin
 }
 
 /** Compose a Cast descriptor from discrete appearance picks (face/hair still roll for variety). */
-export function composeCharacterAppearanceDescriptor(draft: CharacterAppearanceDraft): string {
+export function composeCharacterAppearanceDescriptor(
+  draft: CharacterAppearanceDraft,
+  /** Picked hair, in place of the rolled hair. */
+  hairOverride?: string
+): string {
   const ancestry = ancestryWord(draft.ethnicity, draft.sex);
   const noun = nounForSex(draft.sex);
   const age = agePhrase(draft.ageBand, draft.sex);
   const skin = SKIN_TONE_BY_ETHNICITY[draft.ethnicity];
   const face = faceForEthnicity(draft.ethnicity);
-  const hair = hairForSex(draft.sex, draft.ethnicity);
+  const hair = hairOverride?.trim() || hairForSex(draft.sex, draft.ethnicity);
   const height = heightPhrase(draft.height);
   const body = bodyBuildPhrase(draft.bodyBuild);
   return `${articleFor(ancestry)} ${ancestry} ${noun} ${age} with ${skin}, ${face}, ${hair}, and a body that is ${height}, ${body}`;
@@ -711,7 +715,131 @@ export function isRolledAppearanceDescriptor(text: string | null | undefined): b
  * Story bible's look is Story's (it used to overwrite the description, and story wording —
  * clothes, mood, backstory — ended up in Day prompts).
  */
-export type CharacterTraits = Partial<CharacterAppearanceDraft>;
+export type CharacterTraits = Partial<CharacterAppearanceDraft> & {
+  hairColor?: CharacterHairColor;
+  hairLength?: CharacterHairLength;
+  hairStyle?: CharacterHairStyle;
+};
+
+export type CharacterHairColor =
+  | 'black'
+  | 'dark-brown'
+  | 'brown'
+  | 'light-brown'
+  | 'auburn'
+  | 'red'
+  | 'strawberry-blonde'
+  | 'blonde'
+  | 'platinum-blonde'
+  | 'grey'
+  | 'white';
+export type CharacterHairLength =
+  'bald' | 'buzzed' | 'short' | 'chin-length' | 'shoulder-length' | 'long' | 'very-long';
+export type CharacterHairStyle =
+  | 'straight'
+  | 'wavy'
+  | 'curly'
+  | 'coily'
+  | 'afro'
+  | 'braids'
+  | 'locs'
+  | 'ponytail'
+  | 'bun'
+  | 'pixie'
+  | 'undercut'
+  | 'slicked-back';
+
+export const CHARACTER_HAIR_COLOR_OPTIONS: CharacterAppearanceOption<CharacterHairColor>[] = [
+  { value: 'black', label: 'Black' },
+  { value: 'dark-brown', label: 'Dark brown' },
+  { value: 'brown', label: 'Brown' },
+  { value: 'light-brown', label: 'Light brown' },
+  { value: 'auburn', label: 'Auburn' },
+  { value: 'red', label: 'Red' },
+  { value: 'strawberry-blonde', label: 'Strawberry blonde' },
+  { value: 'blonde', label: 'Blonde' },
+  { value: 'platinum-blonde', label: 'Platinum blonde' },
+  { value: 'grey', label: 'Grey' },
+  { value: 'white', label: 'White' },
+];
+export const CHARACTER_HAIR_LENGTH_OPTIONS: CharacterAppearanceOption<CharacterHairLength>[] = [
+  { value: 'bald', label: 'Bald / shaved' },
+  { value: 'buzzed', label: 'Buzzed' },
+  { value: 'short', label: 'Short' },
+  { value: 'chin-length', label: 'Chin-length' },
+  { value: 'shoulder-length', label: 'Shoulder-length' },
+  { value: 'long', label: 'Long' },
+  { value: 'very-long', label: 'Very long' },
+];
+export const CHARACTER_HAIR_STYLE_OPTIONS: CharacterAppearanceOption<CharacterHairStyle>[] = [
+  { value: 'straight', label: 'Straight' },
+  { value: 'wavy', label: 'Wavy' },
+  { value: 'curly', label: 'Curly' },
+  { value: 'coily', label: 'Coily' },
+  { value: 'afro', label: 'Afro' },
+  { value: 'braids', label: 'Braids' },
+  { value: 'locs', label: 'Locs' },
+  { value: 'ponytail', label: 'Ponytail' },
+  { value: 'bun', label: 'Bun' },
+  { value: 'pixie', label: 'Pixie cut' },
+  { value: 'undercut', label: 'Undercut' },
+  { value: 'slicked-back', label: 'Slicked back' },
+];
+
+const HAIR_COLOR_WORDS: Record<CharacterHairColor, string> = {
+  black: 'black',
+  'dark-brown': 'dark brown',
+  brown: 'brown',
+  'light-brown': 'light brown',
+  auburn: 'auburn',
+  red: 'red',
+  'strawberry-blonde': 'strawberry-blonde',
+  blonde: 'blonde',
+  'platinum-blonde': 'platinum-blonde',
+  grey: 'grey',
+  white: 'white',
+};
+const HAIR_LENGTH_WORDS: Record<Exclude<CharacterHairLength, 'bald'>, string> = {
+  buzzed: 'buzzed',
+  short: 'short',
+  'chin-length': 'chin-length',
+  'shoulder-length': 'shoulder-length',
+  long: 'long',
+  'very-long': 'very long',
+};
+/** Texture words go before "hair"; the rest say how it is worn. */
+const HAIR_TEXTURE: Partial<Record<CharacterHairStyle, string>> = {
+  straight: 'straight',
+  wavy: 'wavy',
+  curly: 'curly',
+  coily: 'tightly coiled',
+};
+const HAIR_WORN: Partial<Record<CharacterHairStyle, string>> = {
+  afro: 'worn in an afro',
+  braids: 'in braids',
+  locs: 'in locs',
+  ponytail: 'tied in a ponytail',
+  bun: 'pulled up in a bun',
+  pixie: 'in a pixie cut',
+  undercut: 'with an undercut',
+  'slicked-back': 'slicked back',
+};
+
+/** "shoulder-length wavy auburn hair", "long black hair in braids", "a shaved head"; '' if unset. */
+export function hairPhrase(traits: CharacterTraits | undefined): string {
+  if (!traits) return '';
+  const { hairColor, hairLength, hairStyle } = traits;
+  if (hairLength === 'bald') return 'a shaved head';
+  if (!hairColor && !hairLength && !hairStyle) return '';
+  const words = [
+    hairLength ? HAIR_LENGTH_WORDS[hairLength] : '',
+    hairStyle ? (HAIR_TEXTURE[hairStyle] ?? '') : '',
+    hairColor ? HAIR_COLOR_WORDS[hairColor] : '',
+    'hair',
+    hairStyle ? (HAIR_WORN[hairStyle] ?? '') : '',
+  ].filter(Boolean);
+  return words.join(' ');
+}
 
 const TRAIT_OPTIONS = {
   sex: CHARACTER_SEX_OPTIONS,
@@ -719,6 +847,9 @@ const TRAIT_OPTIONS = {
   ageBand: CHARACTER_AGE_BAND_OPTIONS,
   height: CHARACTER_HEIGHT_OPTIONS,
   bodyBuild: CHARACTER_BODY_BUILD_OPTIONS,
+  hairColor: CHARACTER_HAIR_COLOR_OPTIONS,
+  hairLength: CHARACTER_HAIR_LENGTH_OPTIONS,
+  hairStyle: CHARACTER_HAIR_STYLE_OPTIONS,
 } as const;
 
 export const CHARACTER_TRAIT_KEYS = Object.keys(TRAIT_OPTIONS) as Array<keyof CharacterTraits>;
@@ -747,14 +878,27 @@ export function physicalDescriptionFromTraits(
   traits: CharacterTraits | undefined,
   options: { hasPicture: boolean }
 ): { descriptor?: string; hints?: string; traits?: CharacterTraits } {
+  const hair = hairPhrase(traits);
+  const hairPicks = {
+    ...(traits?.hairColor ? { hairColor: traits.hairColor } : {}),
+    ...(traits?.hairLength ? { hairLength: traits.hairLength } : {}),
+    ...(traits?.hairStyle ? { hairStyle: traits.hairStyle } : {}),
+  };
+  const hairHint = hair ? hair.replace(/^a /, '') : '';
   if (options.hasPicture) {
     const chosen = describeChosenAppearance(traits ?? {});
-    return { ...chosen, traits: normalizeCharacterTraits(traits) };
+    if (!hair) return { ...chosen, traits: normalizeCharacterTraits(traits) };
+    const base = chosen.descriptor ?? 'a person';
+    return {
+      descriptor: `${base}${base.includes(',') ? ',' : ''} with ${hair}`,
+      hints: [chosen.hints, hairHint].filter(Boolean).join(', '),
+      traits: normalizeCharacterTraits(traits),
+    };
   }
   const resolved = resolveCharacterAppearance(traits ?? {});
   return {
-    descriptor: composeCharacterAppearanceDescriptor(resolved),
-    hints: characterAppearanceHints(resolved),
-    traits: resolved,
+    descriptor: composeCharacterAppearanceDescriptor(resolved, hair || undefined),
+    hints: [characterAppearanceHints(resolved), hairHint].filter(Boolean).join(', '),
+    traits: { ...resolved, ...hairPicks },
   };
 }

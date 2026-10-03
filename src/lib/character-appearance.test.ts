@@ -176,3 +176,33 @@ describe('a Cast made from a photo', () => {
     assert.doesNotMatch(more.descriptor ?? '', /hair|beard|skin|eyes/);
   });
 });
+
+describe('hair traits', () => {
+  it('read as one phrase, only what was picked', async () => {
+    const { hairPhrase, normalizeCharacterTraits, physicalDescriptionFromTraits } = await import(
+      './character-appearance'
+    );
+    assert.equal(
+      hairPhrase({ hairColor: 'auburn', hairLength: 'shoulder-length', hairStyle: 'wavy' }),
+      'shoulder-length wavy auburn hair'
+    );
+    assert.equal(hairPhrase({ hairColor: 'black', hairStyle: 'braids' }), 'black hair in braids');
+    assert.equal(hairPhrase({ hairLength: 'bald', hairColor: 'red' }), 'a shaved head');
+    assert.equal(hairPhrase({ sex: 'woman' }), '');
+    assert.deepEqual(normalizeCharacterTraits({ hairColor: 'teal', hairStyle: 'bun' }), {
+      hairStyle: 'bun',
+    });
+    // With a picture: the picked hair is said; without: it replaces the rolled hair.
+    assert.equal(
+      physicalDescriptionFromTraits({ sex: 'woman', hairColor: 'blonde' }, { hasPicture: true })
+        .descriptor,
+      'a woman with blonde hair'
+    );
+    const rolled = physicalDescriptionFromTraits(
+      { sex: 'man', hairColor: 'grey', hairLength: 'short' },
+      { hasPicture: false }
+    );
+    assert.match(rolled.descriptor ?? '', /short grey hair/);
+    assert.equal(rolled.traits?.hairColor, 'grey');
+  });
+});
