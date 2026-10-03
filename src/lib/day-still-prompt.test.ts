@@ -96,3 +96,43 @@ describe('queuedDayStillPrompt', () => {
     assert.equal(three.imageCount, 3);
   });
 });
+
+describe('a beat the player typed for a man lead', () => {
+  it('reaches the prompt as typed, a built-in beat is left to the usual swap', async () => {
+    const { buildDaySlotPromptForStill, dayBeatIsTyped } = await import('./day-still-prompt');
+    const { resolveDayQueueIdentityPlate } = await import('./day-plate');
+    const typed = 'he fixes his bike in the garage, grease on his hands';
+    const plate = { filename: 'cast-plate-tomas.png', source: 'cast' as const };
+    const character = {
+      id: 'char-tomas',
+      name: 'Tomas',
+      version: 1,
+      updatedAt: 1,
+      descriptor: 'a man with a short beard',
+    };
+    const build = (slot: Record<string, unknown>) =>
+      buildDaySlotPromptForStill(
+        { id: 'morning', label: 'morning', location: 'garage', ...slot } as never,
+        {
+          plate,
+          queuePlate: resolveDayQueueIdentityPlate({ character, displayPlate: plate } as never),
+          character,
+          hasPlate: true,
+          leadNoun: 'man',
+          dayMood: 'everyday',
+          intimateEnabled: false,
+          allowCompanions: false,
+          model: 'qwen-image-edit-2511-lightning-8',
+          defaultPoseGuideStyle: 'openpose',
+        } as never
+      );
+    assert.equal(dayBeatIsTyped({ sceneHints: typed, sceneHintsTyped: typed }), true);
+    assert.equal(dayBeatIsTyped({ sceneHints: 'lying on her side', sceneHintsTyped: typed }), false);
+    const prompt = build({ sceneHints: typed, sceneHintsTyped: typed });
+    // In the prompt's working voice (swapped back for him at the end).
+    assert.match(prompt, /she fixes her bike/);
+    const finished = finishDayStillPrompt(prompt, { adultMood: false, adult: false, swapLead: true });
+    assert.match(finished, /he fixes his bike in the garage, grease on his hands/);
+    assert.doesNotMatch(finished, /she fixes|her bike/);
+  });
+});

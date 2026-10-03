@@ -1,11 +1,12 @@
 'use client';
 
 import {
+  type DayStillSlotOptions,
   assembleDayStillPrompt,
   buildDaySlotPromptForStill,
+  dayBeatIsTyped,
   finishDayStillPrompt,
   queuedDayStillPrompt,
-  type DayStillSlotOptions,
 } from '@/lib/day-still-prompt';
 import {
   repairStillPrompt,
@@ -1515,6 +1516,7 @@ export function useDayPlannerToolOrchestrationCore() {
         const assembled = assembleDayStillPrompt({
           slotPrompt,
           beat: queueTarget.sceneHints,
+          beatTyped: dayBeatIsTyped(queueTarget),
           setting: queueTarget.location,
           dayMood: toolSettings.dayMood,
           adult: adultStill,

@@ -10,7 +10,12 @@
  */
 
 import { dayClothedLeadLines } from '@/lib/day-clothed-lead';
-import { masculineClothes, restoreText, swapDayPromptGender } from '@/lib/day-lead-gender';
+import {
+  inDayPromptVoice,
+  masculineClothes,
+  restoreText,
+  swapDayPromptGender,
+} from '@/lib/day-lead-gender';
 import {
   dayPartnerBriefLine,
   dayPartnerRecipeLine,
@@ -48,6 +53,8 @@ export type DayStillPromptFacts = {
   /** The slot's brief or recipe (buildDaySlotPrompt). */
   slotPrompt: string;
   beat?: string | null;
+  /** The beat is the player's own words (dayBeatIsTyped). */
+  beatTyped?: boolean;
   setting?: string | null;
   dayMood: string | null | undefined;
   /** An adult mood with Intimate on. */
@@ -147,7 +154,7 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
   const clothedLeadLines = recipe
     ? []
     : dayClothedLeadLines({
-        beat: facts.beat ?? undefined,
+        beat: facts.beatTyped ? inDayPromptVoice(facts.beat, facts.leadNoun) : facts.beat,
         setting: facts.setting ?? undefined,
         headcount: leadHeadcount,
         dayMood: facts.dayMood,
@@ -313,11 +320,24 @@ export function dayPlayedMood(dayMood: string | null | undefined, intimateEnable
  * state and what the queue has attached. The Day hook and the finished-prompt sweep both call
  * this, so a rule changed here is the rule that is tested.
  */
+/** The slot's beat is the player's own words (typed, not changed since). */
+export function dayBeatIsTyped(slot: Pick<DaySlot, 'sceneHints' | 'sceneHintsTyped'>): boolean {
+  return Boolean(slot.sceneHintsTyped && slot.sceneHintsTyped === slot.sceneHints);
+}
+
 export function buildDaySlotPromptForStill(
   slot: DaySlot,
   state: DayStillSlotState,
   options?: DayStillSlotOptions
 ): string {
+  // A beat or Setting the player typed for a man lead, in the voice the prompt is built in.
+  // Only the player's own words: Day's beats for a man lead are stored already reworded.
+  if (state.leadNoun === 'man') {
+    if (dayBeatIsTyped(slot)) {
+      slot = { ...slot, sceneHints: inDayPromptVoice(slot.sceneHints, state.leadNoun) };
+    }
+    state = { ...state, notes: inDayPromptVoice(state.notes, state.leadNoun) };
+  }
   const garmentReinforce = Boolean(
     !options?.dressPlate &&
     options?.clothingImageAttached !== false &&

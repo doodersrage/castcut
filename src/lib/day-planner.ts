@@ -324,6 +324,11 @@ export type DaySlot = {
   location?: string;
   sceneHints?: string;
   /**
+   * The beat as the player typed it. While it still equals {@link sceneHints}, the beat is the
+   * player's words (written for the lead as they are), not one of Day's (written for a woman).
+   */
+  sceneHintsTyped?: string;
+  /**
    * Pose picked in the slot editor — a layout (`cook`, `selfie`, `sport_squat`, …) or a plain
    * posture (`sit`, `lie`, …). Unset = read the pose from the beat.
    */
@@ -629,6 +634,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       // Do not trim location/sceneHints here — updateSlot runs on every keystroke.
       location: readEditableText(slot.location, 160) || undefined,
       sceneHints: readEditableText(slot.sceneHints, 320) || undefined,
+      sceneHintsTyped: readEditableText(slot.sceneHintsTyped, 320) || undefined,
       poseLayout: readText(slot.poseLayout, 40) || undefined,
       poseVariant:
         typeof slot.poseVariant === 'number' && slot.poseVariant > 0

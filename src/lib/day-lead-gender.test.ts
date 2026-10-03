@@ -54,3 +54,20 @@ describe('Day man lead clothing', () => {
     assert.equal(masculineClothes('in lingerie and heels'), 'in boxer briefs and shoes');
   });
 });
+
+describe('a beat typed for a man lead', () => {
+  it('is read by its first pronoun', async () => {
+    const { writtenAboutHim, inDayPromptVoice, swapDayPromptGender } = await import(
+      './day-lead-gender'
+    );
+    assert.equal(writtenAboutHim('he fixes his bike in the garage'), true);
+    assert.equal(writtenAboutHim('dancing with her boyfriend, his hand on her waist'), false);
+    assert.equal(writtenAboutHim('reading on a bench'), false);
+    const typed = 'he fixes his bike, grease on his hands';
+    // Put in the prompt's voice, then flipped for the man at the end: back as typed.
+    assert.equal(swapDayPromptGender(inDayPromptVoice(typed, 'man')!), typed);
+    assert.equal(inDayPromptVoice(typed, 'woman'), typed);
+    const builtIn = 'lying on her side on the sofa, reading';
+    assert.equal(inDayPromptVoice(builtIn, 'man'), builtIn);
+  });
+});

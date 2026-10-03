@@ -161,3 +161,28 @@ export function herToHisHim(text: string): string {
 export function sameSexPartnerBeat(beat: string): string {
   return beat.replace(/\bhis\b/gi, "her partner's").replace(/\b(?:him|he)\b/gi, 'her partner');
 }
+
+/**
+ * Who a piece of Day text is written about, by its first subject pronoun: Day's own beats are
+ * written for a woman ("lying on her side", "with her boyfriend, his hand on her waist"), a beat
+ * the player typed for a man lead starts with him ("he fixes his bike").
+ */
+export function writtenAboutHim(text: string | null | undefined): boolean {
+  // The subject decides: Day's own beats name the partner as "his" / "him" ("sitting on his lap
+  // facing him") without ever making him the subject before her.
+  const first = /\b(she|he)\b/i.exec(text ?? '');
+  return Boolean(first && first[1]!.toLowerCase() === 'he');
+}
+
+/**
+ * Text in the voice the Day prompt is assembled in (a woman lead; the whole prompt is swapped
+ * for a man at the end). A beat typed for a man is swapped first, so the final swap turns it
+ * back — before, "he fixes his bike" came out "she fixes her bike".
+ */
+export function inDayPromptVoice(
+  text: string | null | undefined,
+  leadNoun: string | null | undefined
+): string | undefined {
+  if (!text) return text ?? undefined;
+  return leadNoun === 'man' && writtenAboutHim(text) ? swapDayPromptGender(text) : text;
+}

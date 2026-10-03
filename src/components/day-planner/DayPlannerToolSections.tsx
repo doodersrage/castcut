@@ -675,7 +675,12 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 value={activeSlot.sceneHints ?? ''}
                 className={`${accentFocusClass(ACCENT)} min-h-[5.5rem] max-h-72 [field-sizing:content]`}
                 placeholder="What happens in this part of the day?"
-                onChange={event => updateSlot(activeSlot.id, { sceneHints: event.target.value })}
+                onChange={event =>
+                  updateSlot(activeSlot.id, {
+                    sceneHints: event.target.value,
+                    sceneHintsTyped: event.target.value,
+                  })
+                }
               />
             </label>
           </div>

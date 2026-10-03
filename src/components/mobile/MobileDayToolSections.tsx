@@ -623,7 +623,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
               data-testid="day-slot-beat"
               value={activeSlot.sceneHints ?? ''}
               placeholder="What happens in this part of the day?"
-              onChange={event => updateSlot(activeSlot.id, { sceneHints: event.target.value })}
+              onChange={event =>
+                updateSlot(activeSlot.id, {
+                  sceneHints: event.target.value,
+                  sceneHintsTyped: event.target.value,
+                })
+              }
             />
           </label>
         </div>
