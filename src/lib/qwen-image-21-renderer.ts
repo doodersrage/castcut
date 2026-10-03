@@ -1,4 +1,5 @@
 import { POSE_MODEL_PROFILES } from './pose/pose-model-profile';
+import { beatLiesDown } from './rapid-duo-recipe';
 
 /**
  * "Renderer: Qwen-Image 2.1" — the queue builds the usual Qwen-Edit graph (Rapid AIO recipes,
@@ -85,6 +86,27 @@ export function qwenImage21FastSampler(
 ): 'fun-acc-4' | 'pruna-8' | null {
   if (!isQwenImage21LightningModel(model)) return null;
   return /pruna-8$/i.test(String(model).trim()) ? 'pruna-8' : 'fun-acc-4';
+}
+
+/**
+ * A one-person lying / reclining still on Best quality renders with the full 30-step pass instead
+ * of the Pruna 8-step LoRA. Pruna sometimes melted a reclining body or drew a twin of her on
+ * the bed / beach / sofa (live, Day Everyday, 2026-10-03); the same graphs at the full 30 steps
+ * were clean 4 of 4, at 47–78 s against 17–40 s — worth it when the player asked for Best.
+ * Good and Fast keep the 8-step speed. Two-person stills are left alone.
+ */
+export function qwenImage21FullStepsForStill(input: {
+  qualityProfile?: string | null;
+  prompt: string;
+  /** One person on the still (no partner face, no two-person map). */
+  solo: boolean;
+}): boolean {
+  return (
+    input.qualityProfile === 'max' &&
+    input.solo &&
+    !/\bTWO PEOPLE\b/.test(input.prompt) &&
+    beatLiesDown(input.prompt)
+  );
 }
 
 /** Steps by queue quality: the official pipeline runs ~40–50; 30 held likeness in the A/B. */
@@ -412,6 +434,8 @@ export function convertQwenEditWorkflowToImage21(
     fourStep?: boolean;
     /** Pruna 8-step LoRA + its fixed sigmas (core nodes). Ignored when `fourStep` is on. */
     eightStep?: boolean;
+    /** Queue quality: Best renders a solo lying still on the full pass (see above). */
+    qualityProfile?: string | null;
   } = {}
 ): { workflow: Record<string, unknown>; converted: boolean } {
   const workflow = structuredClone(input) as Workflow;
@@ -444,7 +468,20 @@ export function convertQwenEditWorkflowToImage21(
     inputs: { clip_name: QWEN_IMAGE_21_FILES.clip, type: 'qwen_image', device: 'default' },
   });
   const vae = add({ class_type: 'VAELoader', inputs: { vae_name: QWEN_IMAGE_21_FILES.vae } });
-  const eightStep = options.eightStep === true && options.fourStep !== true;
+  const referenceFiles = [1, 2, 3]
+    .map(slot => encoder.inputs[`image${slot}`])
+    .filter(isRef)
+    .map(ref => sourceFilename(workflow, ref));
+  const eightStep =
+    options.eightStep === true &&
+    options.fourStep !== true &&
+    !qwenImage21FullStepsForStill({
+      qualityProfile: options.qualityProfile,
+      prompt: String(encoder.inputs.prompt ?? ''),
+      solo: !referenceFiles.some(
+        name => isMultiPersonPoseGuide(name) || isDayPartnerFaceFilename(name)
+      ),
+    });
   const lora = eightStep
     ? add({
         class_type: 'LoraLoaderModelOnly',

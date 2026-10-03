@@ -116,6 +116,9 @@ export type PoseModelProfile = {
    *   a full plate as Image 1 freezes upright poses there; as the clothing reference, live
    *   2026-10-02: 8/8 poses held, exact dress, likeness 0.58 → 0.46 — and Qwen-Image 2.1, same
    *   test: 8/8 poses, exact dress, shoes wherever feet show, likeness 0.05 → 0.09).
+   *   2.1 lying solo stills, replay 2026-10-03 (4 beats × 2 seeds, Pruna 8): the dressed plate as
+   *   Image 1 with the face crop as Image 2 was one clean body 8/8 like the current order, but
+   *   farther on the face (mean 0.30 vs 0.23, closer in 2 of 8); the plate alone 0.43. Kept as is.
    */
   dressPlate?: 'plate' | 'clothing';
   /** Queues on this engine's graph, then converts (Qwen-Image 2.1 → Rapid AIO NSFW edit). */

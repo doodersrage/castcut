@@ -13,6 +13,7 @@ import {
   isQwenImage21LightningModel,
   QWEN_IMAGE_21_EIGHT_STEP_LORA,
   qwenImage21FastSampler,
+  qwenImage21FullStepsForStill,
   qwenImage21Canvas,
   qwenImage21Resolution,
   qwenImage21Steps,
@@ -389,6 +390,69 @@ describe('Qwen-Image 2.1: 8-step sampler (Pruna LoRA)', () => {
     const full = convertQwenEditWorkflowToImage21(graph).workflow as Record<string, { class_type: string }>;
     assert.equal(full['8']!.class_type, 'KSampler');
     assert.ok(!Object.values(full).some(node => node.class_type === 'LoraLoaderModelOnly'));
+  });
+});
+
+describe('Qwen-Image 2.1: Best lying solo stills take the full pass', () => {
+  const lying = 'Day photo: One woman alone. She lies on her side on the sofa, whole body horizontal along it — not sitting.';
+
+  it('only Best, only one person, only lying', () => {
+    assert.equal(qwenImage21FullStepsForStill({ qualityProfile: 'max', prompt: lying, solo: true }), true);
+    assert.equal(qwenImage21FullStepsForStill({ qualityProfile: 'final', prompt: lying, solo: true }), false);
+    assert.equal(qwenImage21FullStepsForStill({ qualityProfile: 'draft', prompt: lying, solo: true }), false);
+    assert.equal(qwenImage21FullStepsForStill({ qualityProfile: null, prompt: lying, solo: true }), false);
+    assert.equal(qwenImage21FullStepsForStill({ qualityProfile: 'max', prompt: lying, solo: false }), false);
+    assert.equal(
+      qwenImage21FullStepsForStill({ qualityProfile: 'max', prompt: `TWO PEOPLE in this photo. ${lying}`, solo: true }),
+      false
+    );
+    assert.equal(
+      qwenImage21FullStepsForStill({ qualityProfile: 'max', prompt: 'She sits on the sofa, not lying down.', solo: true }),
+      false
+    );
+    assert.equal(
+      qwenImage21FullStepsForStill({ qualityProfile: 'max', prompt: 'She is reclining on a lounger.', solo: true }),
+      true
+    );
+  });
+
+  const graph = (prompt: string, image2?: string) => ({
+    '4': {
+      class_type: 'TextEncodeQwenImageEditPlus',
+      inputs: { prompt, image1: ['900', 0], ...(image2 ? { image2: ['901', 0] } : {}) },
+    },
+    '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+    '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+    '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+    '900': { class_type: 'LoadImage', inputs: { image: 'face.png' } },
+    ...(image2 ? { '901': { class_type: 'LoadImage', inputs: { image: image2 } } } : {}),
+    '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+  });
+  const sampler = (workflow: Record<string, unknown>) =>
+    (workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>)['8']!;
+
+  it('drops the Pruna LoRA for that still and samples 30 steps', () => {
+    const best = convertQwenEditWorkflowToImage21(graph(lying, 'day-dress-plate-1.png'), {
+      eightStep: true,
+      steps: 30,
+      qualityProfile: 'max',
+    }).workflow;
+    assert.equal(sampler(best).class_type, 'KSampler');
+    assert.equal(sampler(best).inputs.steps, 30);
+    assert.ok(!Object.values(best).some(node => (node as { class_type: string }).class_type === 'LoraLoaderModelOnly'));
+    const good = convertQwenEditWorkflowToImage21(graph(lying, 'day-dress-plate-1.png'), {
+      eightStep: true,
+      qualityProfile: 'final',
+    }).workflow;
+    assert.equal(sampler(good).class_type, 'SamplerCustomAdvanced');
+  });
+
+  it('a partner face keeps the 8-step pass', () => {
+    const duo = convertQwenEditWorkflowToImage21(graph(lying, 'day-partner-vl-1.png'), {
+      eightStep: true,
+      qualityProfile: 'max',
+    }).workflow;
+    assert.equal(sampler(duo).class_type, 'SamplerCustomAdvanced');
   });
 });
 

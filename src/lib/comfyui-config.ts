@@ -1813,6 +1813,7 @@ export function injectPromptsWithFallbacks(
       poseControl: false,
       fourStep: options.qwenImage21FourStep === true,
       eightStep: options.qwenImage21EightStep === true,
+      qualityProfile: options.qualityProfile ?? null,
       ...(width > 0 && height > 0 ? { fallbackSize: { width, height } } : {}),
     });
     if (converted.converted) {
