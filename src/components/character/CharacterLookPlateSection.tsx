@@ -169,14 +169,15 @@ export default function CharacterLookPlateSection({
       data-testid="cast-look-plate"
     >
       {plates.length > 0 && onSelectPlate ? (
-        <div className="flex min-w-0 items-start gap-2">
+        // Stacked on a phone: side by side, New look covered the third tile at 390 px.
+        <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row">
           <PortraitTileStrip
             label="Active look"
             value={activePlate?.id ?? ''}
             onChange={onSelectPlate}
             disabled={uploading}
             testIdPrefix="cast-plate-tile"
-            className="flex-1"
+            className="w-full sm:w-auto sm:flex-1"
             tiles={plates.map(tile => castLookPortraitTile(tile))}
           />
           {onNewLook ? (
