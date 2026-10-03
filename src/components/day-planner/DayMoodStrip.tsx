@@ -60,6 +60,11 @@ export type DayMoodStripProps = {
   onRedoPoseMissesChange?: (next: boolean) => void;
   /** Latest pose-redo line (checking / matched / redoing). */
   poseRedoStatus?: string | null;
+  /** Opt-in: hard-pose stills get a second take; the closer pose is kept. */
+  bestOfTwoHardPoses?: boolean;
+  onBestOfTwoHardPosesChange?: (next: boolean) => void;
+  /** Latest best-of-two line (checking / second take / kept). */
+  bestOfTwoStatus?: string | null;
   dayMood?: DayMoodSetting;
   onDayMoodChange?: (next: DayMoodSetting) => void;
   intimateMix?: DayIntimateMix;
@@ -108,6 +113,9 @@ export default function DayMoodStrip({
   redoPoseMisses = false,
   onRedoPoseMissesChange,
   poseRedoStatus = null,
+  bestOfTwoHardPoses = false,
+  onBestOfTwoHardPosesChange,
+  bestOfTwoStatus = null,
   dayMood = 'everyday',
   onDayMoodChange,
   intimateMix = 'mixed',
@@ -121,7 +129,7 @@ export default function DayMoodStrip({
 }: DayMoodStripProps) {
   const mood = normalizeDayMood(dayMood);
   // What Auto-review can measure on this setup (DWPose / FaceAnalysis installed in ComfyUI).
-  const checksOn = autoReviewStills || redoPoseMisses;
+  const checksOn = autoReviewStills || redoPoseMisses || bestOfTwoHardPoses;
   const { readiness } = usePlayChecksReadiness(undefined, { enabled: checksOn });
   const checksLine = summarizePlayChecks(readiness);
   const mix = normalizeDayIntimateMix(intimateMix);
@@ -435,6 +443,21 @@ export default function DayMoodStrip({
               Redo pose misses once
             </SwitchButton>
           ) : null}
+          {onBestOfTwoHardPosesChange ? (
+            <SwitchButton
+              checked={bestOfTwoHardPoses}
+              disabled={busy}
+              data-testid="day-best-of-two"
+              title={
+                autoReviewStills
+                  ? 'Auto-review is on and already rerolls stills that missed their pose — this takes over when Auto-review is off.'
+                  : 'Lying, kneeling, floor, climbing and bending stills get a second take with a new seed; the one whose pose reads closer to the guide (DWPose) is kept and the other shown beside it. Never more than two.'
+              }
+              onChange={onBestOfTwoHardPosesChange}
+            >
+              Best of two for hard poses
+            </SwitchButton>
+          ) : null}
         </div>
       ) : null}
       {!posePriority ? (
@@ -474,6 +497,15 @@ export default function DayMoodStrip({
           data-testid="day-pose-redo-status"
         >
           {poseRedoStatus}
+        </p>
+      ) : null}
+      {bestOfTwoHardPoses && !autoReviewStills && bestOfTwoStatus ? (
+        <p
+          className="type-caption text-[var(--text-muted)]"
+          role="status"
+          data-testid="day-best-of-two-status"
+        >
+          {bestOfTwoStatus}
         </p>
       ) : null}
       {showPartner && onPartnerChange ? (

@@ -7,6 +7,7 @@ import { useDaySeries } from '@/hooks/day-planner/useDaySeries';
 import { useDaySlotQualityGate } from '@/hooks/day-planner/useDaySlotQualityGate';
 import { useDayFaceFinish } from '@/hooks/day-planner/useDayFaceFinish';
 import { useDayPoseMissRedo } from '@/hooks/day-planner/useDayPoseMissRedo';
+import { useDayBestOfTwo } from '@/hooks/day-planner/useDayBestOfTwo';
 import { useDayClipQualityCheck } from '@/hooks/day-planner/useDayClipQualityCheck';
 import { useDayEndPose } from '@/hooks/day-planner/useDayEndPose';
 import { applyCharacterRecordFresh } from '@/lib/character-os';
@@ -38,6 +39,7 @@ export function useDayPlannerToolOrchestration() {
   );
   const quality = useDaySlotQualityGate(core, faceFinishHold);
   const poseRedo = useDayPoseMissRedo(core, faceFinishHold);
+  const bestOfTwo = useDayBestOfTwo(core, faceFinishHold);
   const { poseMissViews: reviewPoseMissViews } = quality;
   const { poseRedoMissViews } = poseRedo;
   // Auto-review's pose misses, else the pose-redo check's (only one of the two runs).
@@ -174,7 +176,11 @@ export function useDayPlannerToolOrchestration() {
   );
   const dropPreviousTake = useCallback(
     (slotId: DaySlotId) => {
-      const next = upsertDaySlotStill(stillsRef.current, { slotId, previousTake: undefined });
+      const next = upsertDaySlotStill(stillsRef.current, {
+        slotId,
+        previousTake: undefined,
+        bestOfTwo: undefined,
+      });
       stillsRef.current = next;
       updateToolSettings(dayStillsCachePatch(next, activeCharacterId));
     },
@@ -187,7 +193,9 @@ export function useDayPlannerToolOrchestration() {
     ...quality,
     poseMissViews,
     poseRedoStatus: poseRedo.poseRedoStatus,
-    poseRedoMarks: poseRedo.poseRedoMarks,
+    // One mark line per card: a hard-pose slot is paired (best of two), never pose-redone.
+    poseRedoMarks: { ...poseRedo.poseRedoMarks, ...bestOfTwo.bestOfTwoMarks },
+    bestOfTwoStatus: bestOfTwo.bestOfTwoStatus,
     faceFinishStatus: faceFinish.faceFinishStatus,
     ...clips,
     ...endPose,

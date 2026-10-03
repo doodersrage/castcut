@@ -1162,6 +1162,12 @@ export type DayToolCache = {
    */
   redoPoseMisses?: boolean;
   /**
+   * Opt-in: a still whose pose guide draws a hard pose (lying, kneeling, floor, climbing,
+   * bending) gets a second take with a new seed; the one whose pose reads closer is kept and the
+   * other shown beside it (day-best-of-two.ts). Idle while Auto-review is on.
+   */
+  bestOfTwoHardPoses?: boolean;
+  /**
    * Default on. Loosens the identity lock and raises denoise when a beat needs a body the
    * standing plate cannot give, so Edit-2511 stops copying Image 1's stance. Turn off if faces
    * drift more than the posing is worth.

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import { isDayHardPose } from '@/lib/day-best-of-two';
 import {
   notePoseRedoTake,
   poseRedoDecision,
@@ -35,6 +36,7 @@ export function useDayPoseMissRedo(
   }
 ) {
   const { autoReviewStills, busy, mounted, queueBlockReason, queueSlot, redoPoseMisses } = ctx;
+  const { bestOfTwoHardPoses } = ctx;
   const { poseGuideExpectRef, rerollNudgeRef, slots, stills } = ctx;
   const active = redoPoseMisses && !autoReviewStills;
 
@@ -115,8 +117,9 @@ export function useDayPoseMissRedo(
     const take = poseRedoTakeId(still);
     checkedRef.current[target.id] = take;
     const expectation = poseGuideExpectRef.current[target.id];
-    // No guide queued with this still: nothing to check it against.
-    if (!expectation) {
+    // No guide queued with this still: nothing to check it against. A hard pose with Best of two
+    // on is paired instead (useDayBestOfTwo) — never both.
+    if (!expectation || (bestOfTwoHardPoses && isDayHardPose(expectation.poseKey))) {
       setTick(value => value + 1);
       return;
     }
@@ -200,6 +203,7 @@ export function useDayPoseMissRedo(
   }, [
     active,
     autoReviewStills,
+    bestOfTwoHardPoses,
     redoPoseMisses,
     busy,
     faceFinish,

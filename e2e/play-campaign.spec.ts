@@ -2878,6 +2878,69 @@ test('a same-seed redo shows old and new takes and can keep the old one', async 
   await expect(page.getByTestId('day-same-seed-redo')).toBeVisible();
 });
 
+test('a best-of-two pair shows the kept take and can switch to the other one', async ({
+  page,
+}) => {
+  const keptPng =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  const otherPng =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-best-of-two' },
+    characters: {
+      version: 1,
+      characters: [
+        { id: 'e2e-best-of-two', name: 'Best Of Two', version: 1, updatedAt: Date.now(), descriptor: 'a woman' },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        activeSlotId: 'morning',
+        stillsCharacterId: 'e2e-best-of-two',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'living room', sceneHints: 'lying on her side on the sofa' },
+          { id: 'afternoon', label: 'Afternoon', location: 'café', sceneHints: 'coffee' },
+          { id: 'evening', label: 'Evening', location: 'market', sceneHints: 'apples' },
+          { id: 'night', label: 'Night', location: 'home', sceneHints: 'cooking' },
+        ],
+        stills: [
+          {
+            slotId: 'morning',
+            status: 'completed',
+            promptId: 'e2e-second-take',
+            imageUrl: keptPng,
+            previousTake: {
+              imageUrl: otherPng,
+              promptId: 'e2e-first-take',
+              kind: 'best-of-two',
+              poseScore: 0.41,
+            },
+            bestOfTwo: { keptScore: 0.72, otherScore: 0.41 },
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('day-slot-select-morning').click();
+  await page.keyboard.press('Escape');
+  const compare = page.getByTestId('day-same-seed-compare');
+  await expect(compare).toBeVisible({ timeout: 30_000 });
+  await expect(compare).toContainText('best of two');
+  await expect(compare.getByRole('img', { name: /kept take · pose 72%/ })).toHaveAttribute(
+    'src',
+    keptPng
+  );
+  await expect(page.getByTestId('day-progress-pose-redo-morning')).toContainText(
+    'Best of two · pose 72% (other 41%)'
+  );
+  await page.getByTestId('day-same-seed-keep-old').click();
+  await expect(compare).toHaveCount(0);
+  await expect(page.getByTestId('day-same-seed-redo')).toBeVisible();
+});
+
 test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async ({ page }) => {
   const tinyPng =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

@@ -131,6 +131,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setRedoPoseMisses,
     poseRedoStatus,
     poseRedoMarks,
+    bestOfTwoHardPoses,
+    setBestOfTwoHardPoses,
+    bestOfTwoStatus,
     posePriority,
     setPosePriority,
     identityBoost,
@@ -628,6 +631,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
           redoPoseMisses={redoPoseMisses}
           onRedoPoseMissesChange={setRedoPoseMisses}
           poseRedoStatus={poseRedoStatus}
+          bestOfTwoHardPoses={bestOfTwoHardPoses}
+          onBestOfTwoHardPosesChange={setBestOfTwoHardPoses}
+          bestOfTwoStatus={bestOfTwoStatus}
           dayMood={dayMood}
           onDayMoodChange={setDayMood}
           partnerId={partnerCharacterId}

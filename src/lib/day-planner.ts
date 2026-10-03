@@ -378,9 +378,17 @@ export type DaySlotStill = {
   promptCheck?: StillPromptCheck;
   /**
    * The take this one replaced when it was redone with the same seed — shown beside it, and
-   * "Keep the old take" puts it back.
+   * "Keep the old take" puts it back. `kind: 'best-of-two'`: the other take of a hard-pose pair
+   * (day-best-of-two.ts), with its pose score.
    */
-  previousTake?: { imageUrl: string; promptId?: string };
+  previousTake?: {
+    imageUrl: string;
+    promptId?: string;
+    kind?: 'best-of-two';
+    poseScore?: number;
+  };
+  /** Best of two for hard poses: both takes landed and this one read closer to the guide. */
+  bestOfTwo?: { keptScore: number; otherScore: number };
   /** End pose: the picture this slot's clip lands on (day-end-pose.ts). */
   endPose?: DayEndPose;
 };
@@ -4132,6 +4140,28 @@ function readStillStatus(value: unknown): DaySlotStillStatus | undefined {
   return undefined;
 }
 
+/** A 0–1 score (pose match), else null. */
+function readScore(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(1, Math.max(0, value))
+    : null;
+}
+
+/** A Best of two pair's other take: its kind and pose score. */
+function readPairTake(
+  take: DaySlotStill['previousTake']
+): Pick<NonNullable<DaySlotStill['previousTake']>, 'kind' | 'poseScore'> {
+  if (take?.kind !== 'best-of-two') return {};
+  const poseScore = readScore(take.poseScore);
+  return { kind: 'best-of-two', ...(poseScore != null ? { poseScore } : {}) };
+}
+
+function readBestOfTwo(value: DaySlotStill['bestOfTwo']): Pick<DaySlotStill, 'bestOfTwo'> {
+  const keptScore = readScore(value?.keptScore);
+  const otherScore = readScore(value?.otherScore);
+  return keptScore != null && otherScore != null ? { bestOfTwo: { keptScore, otherScore } } : {};
+}
+
 function readClipStatus(value: unknown): DaySlotClipStatus | undefined {
   if (value === 'queued' || value === 'running' || value === 'completed' || value === 'error') {
     return value;
@@ -4176,10 +4206,12 @@ export function normalizeDaySlotStills(
             previousTake: {
               imageUrl: readText(still.previousTake?.imageUrl, 2048),
               promptId: readText(still.previousTake?.promptId, 160) || undefined,
+              ...readPairTake(still.previousTake),
             },
           }
         : {}),
       ...withEndPose(still.endPose),
+      ...readBestOfTwo(still.bestOfTwo),
     });
   }
   const order = slots?.length
@@ -4529,5 +4561,6 @@ export function restorePreviousDayTake(
     clipUrl: undefined,
     clipStatus: undefined,
     previousTake: undefined,
+    bestOfTwo: undefined,
   });
 }

@@ -818,6 +818,11 @@ export function useDayPlannerToolOrchestrationCore() {
         qualityProfile?: 'draft' | 'final' | 'max';
         /** Redo with the current take's seed, keeping that take to compare (and restore). */
         sameSeed?: boolean;
+        /**
+         * Best of two for hard poses: a new seed, with the current take kept beside it as the
+         * other take of the pair (day-best-of-two.ts).
+         */
+        keepTake?: DaySlotStill['previousTake'];
       }
     ) => {
       const manageBusy = options?.manageBusy !== false;
@@ -1874,6 +1879,8 @@ export function useDayPlannerToolOrchestrationCore() {
             );
           }
           previousTake = { imageUrl: shown, promptId: takeId };
+        } else if (options?.keepTake?.imageUrl) {
+          previousTake = options.keepTake;
         }
         const promptId = await actions.sendComfyUi(queuedPrompt, undefined, undefined, {
           ...(queueOptions ?? {}),
@@ -1924,6 +1931,7 @@ export function useDayPlannerToolOrchestrationCore() {
           // Shown on the slot card ("Prompt check: fixed 1"); a clean prompt clears the last one.
           promptCheck: stillPromptCheckRecord(checked),
           previousTake,
+          bestOfTwo: undefined,
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
@@ -2099,6 +2107,8 @@ export function useDayPlannerToolOrchestrationCore() {
     setAutoReviewStills: (next: boolean) => updateToolSettings({ autoReviewStills: next }),
     redoPoseMisses: toolSettings.redoPoseMisses === true,
     setRedoPoseMisses: (next: boolean) => updateToolSettings({ redoPoseMisses: next }),
+    bestOfTwoHardPoses: toolSettings.bestOfTwoHardPoses === true,
+    setBestOfTwoHardPoses: (next: boolean) => updateToolSettings({ bestOfTwoHardPoses: next }),
     hideStickyCutCoach: toolSettings.hideStickyCutCoach === true,
     setHideStickyCutCoach: (next: boolean) => updateToolSettings({ hideStickyCutCoach: next }),
     // A theme (Date night, Cosplay…) stays as its own id; it renders as Everyday.

@@ -145,6 +145,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     setRedoPoseMisses,
     poseRedoStatus,
     poseRedoMarks,
+    bestOfTwoHardPoses,
+    setBestOfTwoHardPoses,
+    bestOfTwoStatus,
     posePriority,
     setPosePriority,
     identityBoost,
@@ -660,6 +663,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             redoPoseMisses={redoPoseMisses}
             onRedoPoseMissesChange={setRedoPoseMisses}
             poseRedoStatus={poseRedoStatus}
+            bestOfTwoHardPoses={bestOfTwoHardPoses}
+            onBestOfTwoHardPosesChange={setBestOfTwoHardPoses}
+            bestOfTwoStatus={bestOfTwoStatus}
             dayMood={dayMood}
             onDayMoodChange={setDayMood}
             partnerId={partnerCharacterId}

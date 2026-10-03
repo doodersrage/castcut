@@ -11,6 +11,7 @@ import {
 /**
  * Redo one still with the same seed after changing its beat or outfit, then pick the old or the
  * new take. A plain requeue rolls a new seed, so a change and luck can't be told apart.
+ * The same compare shows a Best of two pair (hard poses): the kept take and the other one.
  */
 export function DaySameSeedRedo({
   slot,
@@ -34,21 +35,45 @@ export function DaySameSeedRedo({
   const current = dayStillShownImage(still);
   if (previous) {
     const waiting = state !== 'done' || !current;
+    const pair = previous.kind === 'best-of-two';
+    const pct = (score: number | undefined) =>
+      typeof score === 'number' ? ` · pose ${Math.round(score * 100)}%` : '';
+    const takes = pair
+      ? [
+          {
+            label: waiting
+              ? 'Second take'
+              : still?.bestOfTwo
+                ? `Kept take${pct(still.bestOfTwo.keptScore)}`
+                : 'Second take',
+            url: waiting ? '' : current,
+          },
+          {
+            label: `${waiting || !still?.bestOfTwo ? 'First take' : 'Other take'}${pct(previous.poseScore)}`,
+            url: previous.imageUrl,
+          },
+        ]
+      : [
+          { label: 'Old take', url: previous.imageUrl },
+          { label: 'New take', url: waiting ? '' : current },
+        ];
+    const caption = pair
+      ? waiting
+        ? `${slot.label}: a second take for the hard pose — the closer one is kept.`
+        : still?.bestOfTwo
+          ? `${slot.label}, best of two: the take whose pose reads closer is kept.`
+          : `${slot.label}, two takes of the hard pose — keep one.`
+      : waiting
+        ? `Redoing ${slot.label} with the same seed — the old take stays until you choose.`
+        : `${slot.label}, same seed: old take and new take.`;
     return (
       <div
         className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] p-3"
         data-testid="day-same-seed-compare"
       >
-        <p className="type-caption text-[var(--text-muted)]">
-          {waiting
-            ? `Redoing ${slot.label} with the same seed — the old take stays until you choose.`
-            : `${slot.label}, same seed: old take and new take.`}
-        </p>
+        <p className="type-caption text-[var(--text-muted)]">{caption}</p>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          {[
-            { label: 'Old take', url: previous.imageUrl },
-            { label: 'New take', url: waiting ? '' : current },
-          ].map(take => (
+          {takes.map(take => (
             <figure key={take.label} className="min-w-0">
               <div className="aspect-[3/4] overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-muted)]">
                 {take.url ? (
@@ -74,7 +99,7 @@ export function DaySameSeedRedo({
               data-testid="day-same-seed-keep-new"
               onClick={onKeepNew}
             >
-              Keep the new take
+              {pair ? 'Keep this take' : 'Keep the new take'}
             </Button>
             <Button
               size="sm"
@@ -82,7 +107,7 @@ export function DaySameSeedRedo({
               data-testid="day-same-seed-keep-old"
               onClick={onKeepOld}
             >
-              Keep the old take
+              {pair ? 'Use the other take' : 'Keep the old take'}
             </Button>
           </div>
         )}
