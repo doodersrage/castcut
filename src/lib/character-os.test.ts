@@ -579,3 +579,41 @@ describe('saving an unchanged Cast', () => {
     });
   });
 });
+
+describe('the Story bible look follows the Cast description', () => {
+  it('a rolled bible look gives way to the Cast description', async () => {
+    const { castBibleLook } = await import('./character-os');
+    const rolled =
+      'a White man in his 40s with fair skin, a square jaw, short ginger hair and a ginger beard, and a body that is average height, stocky';
+    assert.equal(
+      castBibleLook({ bio: { name: 'Sam', look: rolled, personality: 'calm' }, descriptor: 'a young Black man' }),
+      'a young Black man'
+    );
+    // A bible look someone wrote stays.
+    assert.equal(
+      castBibleLook({ bio: { name: 'Sam', look: 'tall, in a green coat', personality: 'calm' }, descriptor: 'a man' }),
+      'tall, in a green coat'
+    );
+  });
+});
+
+describe('editing a Cast description', () => {
+  it('carries the bible look along when it was a copy of the description', () => {
+    withMockLocalStorage(() => {
+      upsertCharacter({
+        id: 'char-desc',
+        name: 'Desc',
+        version: 1,
+        updatedAt: 1,
+        descriptor: 'a man with a grey beard',
+        bio: { name: 'Desc', look: 'a man with a grey beard', personality: 'calm' },
+      });
+      const stored = getCharacter('char-desc')!;
+      upsertCharacter({
+        ...stored,
+        looks: (stored.looks ?? []).map(look => ({ ...look, descriptor: 'a young man, clean-shaven' })),
+      });
+      assert.equal(getCharacter('char-desc')?.bio?.look, 'a young man, clean-shaven');
+    });
+  });
+});

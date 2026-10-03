@@ -2222,6 +2222,34 @@ test('a Day beat you type is marked as yours and can go back to Day\'s', async (
   await expect(page.getByTestId('day-beat-typed-badge')).toHaveCount(0);
 });
 
+test('a Cast whose look was made up offers Describe from photo', async ({ page }) => {
+  const rolled =
+    'an Indigenous woman in her forties with warm skin, high cheekbones, straight black hair, and a body that is short, muscular';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-made-up' },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-made-up',
+          name: 'Made Up',
+          version: 1,
+          updatedAt: Date.now(),
+          descriptor: rolled,
+          bio: { name: 'Made Up', look: rolled, personality: 'curious' },
+          ipAdapter: { imageFilename: 'e2e-face.png', imageUrl: '/icon.svg' },
+        },
+      ],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, '/characters/e2e-made-up');
+  await dismissBlockingOverlays(page);
+  await page.getByText('Bible', { exact: true }).first().click();
+  await expect(page.getByTestId('cast-bible-look-made-up')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('cast-bible-describe-photo')).toBeVisible();
+});
+
 test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async ({ page }) => {
   const tinyPng =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

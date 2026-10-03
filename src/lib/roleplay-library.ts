@@ -6,6 +6,7 @@ import {
 } from '@/lib/day-pose-guide';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import {
+  castBibleLook,
   getCharacter,
   upsertCharacterFromRoleplaySession,
   type CharacterRecord,
@@ -526,7 +527,7 @@ export function synthesizeRoleplaySessionFromCharacter(
   const name =
     character.characterName?.trim() || character.bio?.name?.trim() || character.name?.trim() || '';
   const look =
-    character.bio?.look?.trim() ||
+    castBibleLook(character) ||
     character.descriptor?.trim() ||
     character.looks?.[0]?.descriptor?.trim() ||
     'a character';
@@ -580,7 +581,8 @@ export function withRoleplayCacheFromCastCharacter(
   }
   const next: RoleplayToolCache = { ...cache };
   if (character.bio && isRoleplayBioComplete(character.bio)) {
-    next.bio = character.bio;
+    const look = castBibleLook(character) ?? character.bio.look;
+    next.bio = look === character.bio.look ? character.bio : { ...character.bio, look };
     next.characterName = character.bio.name;
   } else if (character.characterName?.trim() || character.name?.trim()) {
     next.characterName =

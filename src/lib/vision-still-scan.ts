@@ -18,6 +18,7 @@ export const STILL_SCAN_PURPOSES = [
   'roleplay-photo',
   'fitting-garment',
   'footwear',
+  'cast-face',
 ] as const;
 
 export type StillScanPurpose = (typeof STILL_SCAN_PURPOSES)[number];
@@ -80,6 +81,15 @@ Return ONLY JSON: {"prompt":""}
 - Ignore the person, clothes, pose and background. No brand names. If no footwear is visible return {"prompt":""}.
 - No markdown, no commentary.`,
     user: 'Name the footwear in this photo in one short phrase.',
+  },
+  'cast-face': {
+    system: `You read a photo of one person to describe how they look, for a character's lasting description.
+Return ONLY JSON: {"prompt":""}
+- prompt: ONE noun phrase starting with "a" or "an": woman / man / person, approximate age ("in her 30s"), skin tone, hair colour, length and style, facial hair, eye colour if clear, build.
+- Example: "a woman in her 30s with light olive skin, shoulder-length wavy dark brown hair, brown eyes and a slim build".
+- Only what is visible. No clothing, accessories, pose, expression, setting or name. Under 45 words, no full stop.
+- No markdown, no commentary.`,
+    user: 'Describe how this person looks in one phrase.',
   },
 };
 

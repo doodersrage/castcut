@@ -4,6 +4,8 @@ import { useState } from 'react';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import { Button } from '@/components/ui/Button';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
+import { isRolledAppearanceDescriptor } from '@/lib/character-appearance';
+import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision-still-scan-client';
 import {
   activeLook,
   clearCharacterBio,
@@ -35,6 +37,29 @@ type CharacterBibleSectionProps = {
   onUpdated?: (character: CharacterRecord) => void;
 };
 
+/** The Cast's own picture: its face lock, else its reference photo. */
+function castReferenceImage(character: CharacterRecord): { filename: string; imageUrl: string } {
+  const look = activeLook(character);
+  return {
+    filename:
+      look.ipAdapter?.imageFilename?.trim() ||
+      character.ipAdapter?.imageFilename?.trim() ||
+      look.reference?.isolatedFilename?.trim() ||
+      look.reference?.originalFilename?.trim() ||
+      character.reference?.isolatedFilename?.trim() ||
+      character.reference?.originalFilename?.trim() ||
+      '',
+    imageUrl:
+      look.ipAdapter?.imageUrl?.trim() ||
+      character.ipAdapter?.imageUrl?.trim() ||
+      look.reference?.isolatedUrl?.trim() ||
+      look.reference?.originalUrl?.trim() ||
+      character.reference?.isolatedUrl?.trim() ||
+      character.reference?.originalUrl?.trim() ||
+      '',
+  };
+}
+
 function clearActiveStorySessionBio(characterId: string) {
   const shared = loadSettingsCache().shared;
   if (shared.activeCharacterId?.trim() !== characterId.trim()) {
@@ -61,6 +86,7 @@ export default function CharacterBibleSection({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rewriting, setRewriting] = useState(false);
+  const [describing, setDescribing] = useState(false);
   /** Optimistic preview so a successful save is visible even if the parent re-renders late. */
   const [savedBio, setSavedBio] = useState<RoleplayBio | undefined>(character.bio);
   const [syncedKey, setSyncedKey] = useState(`${character.id}:${character.updatedAt}`);
@@ -83,6 +109,31 @@ export default function CharacterBibleSection({
     onUpdated?.(saved);
     setEditorOpen(false);
     setStatus('Bible saved on Cast — Story will continue from this.');
+  };
+
+  const photoUrl = castReferenceImage(character).imageUrl;
+  // Casts made from a photo before 2.3 were given a made-up description (every trait rolled).
+  const lookIsMadeUp = Boolean(photoUrl && isRolledAppearanceDescriptor(bio?.look));
+
+  const describeFromPhoto = async () => {
+    if (!bio || !photoUrl) return;
+    setError(null);
+    setStatus(null);
+    setDescribing(true);
+    try {
+      const image = await resolveLocalImageFile(null, photoUrl, `${character.id}-face.png`);
+      const look = await scanStillWithVision({
+        image,
+        purpose: 'cast-face',
+        shared: loadSettingsCache().shared,
+      });
+      persistBio({ ...bio, look: look.replace(/\.\s*$/, '') });
+      setStatus('Look described from the photo — Story and Day use it from now on.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not read the photo.');
+    } finally {
+      setDescribing(false);
+    }
   };
 
   const clearBible = () => {
@@ -108,22 +159,7 @@ export default function CharacterBibleSection({
     try {
       const shared = loadSettingsCache().shared;
       const look = activeLook(character);
-      const filename =
-        look.ipAdapter?.imageFilename?.trim() ||
-        character.ipAdapter?.imageFilename?.trim() ||
-        look.reference?.isolatedFilename?.trim() ||
-        look.reference?.originalFilename?.trim() ||
-        character.reference?.isolatedFilename?.trim() ||
-        character.reference?.originalFilename?.trim() ||
-        '';
-      const imageUrl =
-        look.ipAdapter?.imageUrl?.trim() ||
-        character.ipAdapter?.imageUrl?.trim() ||
-        look.reference?.isolatedUrl?.trim() ||
-        look.reference?.originalUrl?.trim() ||
-        character.reference?.isolatedUrl?.trim() ||
-        character.reference?.originalUrl?.trim() ||
-        '';
+      const { filename, imageUrl } = castReferenceImage(character);
       const hasReferenceImage = Boolean(filename || imageUrl);
       const response = await fetch('/api/roleplay', {
         method: 'POST',
@@ -173,6 +209,15 @@ export default function CharacterBibleSection({
           >
             {formatRoleplayBio(bio)}
           </p>
+          {lookIsMadeUp ? (
+            <p
+              className="mt-2 text-sm text-[var(--tint-warning-text)]"
+              data-testid="cast-bible-look-made-up"
+            >
+              This look was made up when the Cast was created and may not match the photo.{' '}
+              <em>Describe from photo</em> replaces it with what the picture shows.
+            </p>
+          ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
             <Button
               type="button"
@@ -185,6 +230,20 @@ export default function CharacterBibleSection({
             >
               Rewrite bible
             </Button>
+            {photoUrl ? (
+              <Button
+                type="button"
+                variant={lookIsMadeUp ? 'primary' : 'secondary'}
+                size="sm"
+                disabled={rewriting}
+                loading={describing}
+                loadingLabel="Reading the photo"
+                data-testid="cast-bible-describe-photo"
+                onClick={() => void describeFromPhoto()}
+              >
+                Describe from photo
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="secondary"

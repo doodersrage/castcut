@@ -26,6 +26,7 @@ import {
   characterAppearanceHints,
   composeCharacterAppearanceDescriptor,
   describeChosenAppearance,
+  isRolledAppearanceDescriptor,
   resolveCharacterAppearance,
   sanitizeCharacterAppearanceDescriptor,
 } from './character-appearance';
@@ -921,7 +922,19 @@ export function upsertCharacter(record: CharacterRecord): CharacterRecord[] {
     id,
     updatedAt: Date.now(),
   };
-  const nextRecord = prev ? mergeCharacterUpdate(prev, drafted) : normalizeCharacterRecord(drafted);
+  let nextRecord = prev ? mergeCharacterUpdate(prev, drafted) : normalizeCharacterRecord(drafted);
+  // The bible's look is a copy of the description: edited on Cast, the description changed and
+  // Story kept describing the old person.
+  const prevDescriptor = prev?.descriptor?.trim();
+  const nextDescriptor = nextRecord.descriptor?.trim();
+  if (
+    prevDescriptor &&
+    nextDescriptor &&
+    prevDescriptor !== nextDescriptor &&
+    nextRecord.bio?.look?.trim() === prevDescriptor
+  ) {
+    nextRecord = { ...nextRecord, bio: { ...nextRecord.bio, look: nextDescriptor } };
+  }
   // Nothing but the time changed: keep the stored record. Story re-saved its lead on every
   // visit, and a fresh timestamp on unchanged data can win a sync over a real edit made on
   // another device.
@@ -1277,4 +1290,26 @@ export function buildBundleFromShared(
   hints?: string
 ): CharacterIdentityBundle {
   return buildCharacterIdentityBundle({ name, shared, hints });
+}
+
+/**
+ * The look a Story bible should use for a Cast. A bible still holding a rolled description
+ * ("a White man in his forties with … and a body that is …") from before the Cast's own
+ * description changed — older Casts made from a photo — gives way to the Cast's description.
+ */
+export function castBibleLook(
+  character: Pick<CharacterRecord, 'bio' | 'descriptor'>
+): string | undefined {
+  const look = character.bio?.look?.trim();
+  const descriptor = character.descriptor?.trim();
+  if (
+    look &&
+    descriptor &&
+    look !== descriptor &&
+    isRolledAppearanceDescriptor(look) &&
+    !isRolledAppearanceDescriptor(descriptor)
+  ) {
+    return descriptor;
+  }
+  return look || undefined;
 }

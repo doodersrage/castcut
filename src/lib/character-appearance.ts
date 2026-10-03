@@ -699,3 +699,8 @@ export function summarizeCharacterAppearanceForm(form: CharacterAppearanceFormDr
     labelForPick(form.bodyBuild, CHARACTER_BODY_BUILD_OPTIONS),
   ].join(' · ');
 }
+
+/** Written by composeCharacterAppearanceDescriptor (every trait rolled or picked). */
+export function isRolledAppearanceDescriptor(text: string | null | undefined): boolean {
+  return /^an? [^,]+ with [^.]+, and a body that is [^.]+$/i.test(text?.trim() ?? '');
+}
