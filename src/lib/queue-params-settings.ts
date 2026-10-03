@@ -323,6 +323,9 @@ export function resolveQueueParams(
   if (base?.videoEndImageFilename?.trim()) {
     merged.videoEndImageFilename = base.videoEndImageFilename.trim();
   }
+  if (base?.castcutPoseGuide?.trim()) {
+    merged.castcutPoseGuide = base.castcutPoseGuide.trim();
+  }
 
   for (const key of Object.keys(merged) as Array<keyof WorkflowParamValues>) {
     const value = merged[key];

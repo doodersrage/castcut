@@ -18,6 +18,7 @@ import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
 import { installedComfyModels } from '@/lib/model-picker';
 import {
   fetchComfyObjectInfoModelsCached,
+  fetchComfyObjectInfoNodeTypesCached,
   readCachedComfyObjectInfoModels,
 } from '@/lib/comfyui-object-info-cache';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
@@ -129,6 +130,8 @@ import {
 } from '@/lib/day-vacation-face-crop';
 import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day-vacation';
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
+import { bestOfTwoAsOneJob } from '@/lib/day-best-of-two';
+import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut-nodes';
 import { planDaySlotPose } from '@/lib/day-slot-pose';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
@@ -1882,6 +1885,23 @@ export function useDayPlannerToolOrchestrationCore() {
         } else if (options?.keepTake?.imageUrl) {
           previousTake = options.keepTake;
         }
+        // Best of two for hard poses in ONE job when the Castcut node pack is installed: both
+        // takes render as a batch, the pose check runs in the job and the closer take is saved
+        // (castcut-nodes.ts). Without the pack the second take is queued after the first lands.
+        let castcutPoseGuide: string | undefined;
+        const pairRule = {
+          enabled: toolSettings.bestOfTwoHardPoses === true,
+          autoReview: toolSettings.autoReviewStills === true,
+          poseKey: poseExpectation?.poseKey,
+          keepsATake: Boolean(sameSeed || previousTake),
+        };
+        if (
+          poseExpectation &&
+          bestOfTwoAsOneJob({ ...pairRule, packInstalled: true }) &&
+          castcutBestOfTwoAvailable(await fetchComfyObjectInfoNodeTypesCached().catch(() => null))
+        ) {
+          castcutPoseGuide = castcutGuideJson(poseExpectation.keypoints, poseExpectation.aspect);
+        }
         const promptId = await actions.sendComfyUi(queuedPrompt, undefined, undefined, {
           ...(queueOptions ?? {}),
           ...(sameSeed ? { seed: sameSeed } : {}),
@@ -1905,12 +1925,13 @@ export function useDayPlannerToolOrchestrationCore() {
             : {}),
           characterId: shared.activeCharacterId,
           lookId: slotLook.lookId ?? shared.activeLookId ?? character?.activeLookId,
-          ...(faceQueueParams || poseControlNet || poseUnlockDenoise != null
+          ...(faceQueueParams || poseControlNet || poseUnlockDenoise != null || castcutPoseGuide
             ? {
                 queueParamsBase: {
                   ...poseControlNet?.queueParamsBase,
                   ...faceQueueParams,
                   ...(poseUnlockDenoise != null ? { denoise: poseUnlockDenoise } : {}),
+                  ...(castcutPoseGuide ? { castcutPoseGuide } : {}),
                 },
               }
             : {}),
@@ -1932,6 +1953,7 @@ export function useDayPlannerToolOrchestrationCore() {
           promptCheck: stillPromptCheckRecord(checked),
           previousTake,
           bestOfTwo: undefined,
+          bestOfTwoJob: castcutPoseGuide ? true : undefined,
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
@@ -1964,6 +1986,8 @@ export function useDayPlannerToolOrchestrationCore() {
       shared.ipAdapterStrength,
       slots,
       toolSettings.allowCompanions,
+      toolSettings.autoReviewStills,
+      toolSettings.bestOfTwoHardPoses,
       toolSettings.dayMood,
       toolSettings.identityBoost,
       toolSettings.intimateMix,

@@ -53,6 +53,7 @@ import { matchInventoryFilenameNearMiss } from './loader-map-inventory-sync';
 import { isVideoCheckpointMapKey, pickVideoCheckpointFromInventory } from './video-checkpoint-pick';
 import { ensureLtxClipLoaderForQueue } from './video-i2v-scaffold';
 import { stripComfyUiOnlyNodes } from './workflow-node-type-audit';
+import { applyCastcutBestOfTwo, castcutBestOfTwoAvailable } from './castcut-nodes';
 import {
   normalizeComfyApiWorkflow,
   parseWorkflowJson,
@@ -211,6 +212,11 @@ export type WorkflowParamValues = {
    * LTX-2.5 last-frame guide). Unset = the plain I2V graph.
    */
   videoEndImageFilename?: string;
+  /**
+   * Best of two in one job (castcut-nodes.ts): the pose guide as CastcutPoseScore reads it. Only
+   * acted on when ComfyUI has the Castcut nodes; otherwise the graph is left as it is.
+   */
+  castcutPoseGuide?: string;
   /** Skip Lightning native ladder upsnap — use exact queue width/height (Fitting draft thumbs). */
   lockLatentSize?: boolean | string;
   /**
@@ -502,6 +508,9 @@ export function resolveQueueParams(
   }
   if (merged.videoEndImageFilename?.trim()) {
     result.videoEndImageFilename = merged.videoEndImageFilename.trim();
+  }
+  if (merged.castcutPoseGuide?.trim()) {
+    result.castcutPoseGuide = merged.castcutPoseGuide.trim();
   }
   if (isLockLatentSizeParams(merged)) {
     result.lockLatentSize = merged.lockLatentSize;
@@ -1849,6 +1858,16 @@ export function injectPromptsWithFallbacks(
       if (converted.converted) {
         injected = { ...injected, workflow: converted.workflow };
       }
+    }
+  }
+
+  // Best of two in one job — only when this ComfyUI is known to have the Castcut nodes (an
+  // unknown node list keeps today's graph: a missing node would fail the whole still).
+  const castcutGuide = input.params?.castcutPoseGuide?.trim();
+  if (castcutGuide && castcutBestOfTwoAvailable(options?.availableNodeTypes)) {
+    const rewritten = applyCastcutBestOfTwo(injected.workflow, castcutGuide);
+    if (rewritten.applied) {
+      injected = { ...injected, workflow: rewritten.workflow };
     }
   }
 

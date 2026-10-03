@@ -3,7 +3,7 @@ import 'server-only';
 import sharp from 'sharp';
 import { cutoutLooksIsolated } from './isolate-subject';
 import { compositeThroughMask, imageAlreadyOnFill, repairSubjectMask } from './isolate-mask';
-import { comfySubjectMask } from './isolate-matte-comfy-server';
+import { comfyCastcutCutout, comfySubjectMask } from './isolate-matte-comfy-server';
 
 const ISOLATE_MODEL_ID = 'Xenova/modnet';
 const ISOLATE_DTYPES = ['q8', 'uint8', 'fp32'] as const;
@@ -162,10 +162,30 @@ export async function isolateSubjectOnFillDetailed(
   let matte: IsolateMatteSource = 'modnet';
   let model: string | undefined;
   if (options.matte !== 'local') {
+    const png = await sharp(decoded.data, { raw: { width, height, channels: 4 } })
+      .png()
+      .toBuffer();
+    // Castcut node pack installed: matte, repair and composite in one ComfyUI job.
+    let castcut: Awaited<ReturnType<typeof comfyCastcutCutout>> = null;
     try {
-      const png = await sharp(decoded.data, { raw: { width, height, channels: 4 } })
-        .png()
-        .toBuffer();
+      castcut = await comfyCastcutCutout({ png, fill, comfyUrl: options.comfyUrl });
+    } catch {
+      // The pack's job failed — the mask path below still works.
+      castcut = null;
+    }
+    if (castcut) {
+      if (!castcut.report.looksIsolated) {
+        throw new Error('Could not cut the subject out of that photo.');
+      }
+      return {
+        png: castcut.png,
+        matte: 'comfy',
+        model: castcut.model,
+        filledHolePixels: castcut.report.filledHolePixels,
+        regrownPixels: castcut.report.regrownPixels,
+      };
+    }
+    try {
       const comfy = await comfySubjectMask({ png, width, height, comfyUrl: options.comfyUrl });
       if (comfy) {
         mask = comfy.mask;

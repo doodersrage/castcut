@@ -52,6 +52,11 @@ next-env.d.ts
 **/.venv/
 services/**/.venv/
 
+# Castcut node pack test runs
+comfyui-nodes/**/__pycache__/
+/__pycache__/
+.pytest_cache/
+
 .cursor/
 
 .pnpm-store/

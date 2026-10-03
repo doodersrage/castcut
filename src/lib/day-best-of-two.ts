@@ -7,8 +7,13 @@
  *
  * The state lives on the still itself — `previousTake.kind === 'best-of-two'` marks the second
  * take, `bestOfTwo` the finished pick — so a reload mid-pair still finishes the pair once.
+ *
+ * With the Castcut node pack installed the pair is ONE job (castcut-nodes.ts): both takes render
+ * as a batch, the pose check runs inside the job and the closer take is saved as the still;
+ * `bestOfTwoJob` marks it until the job's report fills the same fields.
  */
 
+import { castcutViewUrl, type CastcutBestOfTwoReport } from '@/lib/castcut-nodes';
 import type { DaySlotStill } from '@/lib/day-planner';
 import type { NormalizedBody } from '@/lib/pose-library';
 import { scorePoseMatch, type DetectedPose } from '@/lib/pose-score';
@@ -234,8 +239,76 @@ export function bestOfTwoFailedPatch(
   };
 }
 
+/**
+ * Queue this take as Best of two in ONE job (the Castcut node pack)? Same rules as queueing the
+ * second take today — the switch on, Auto-review off, a hard-pose guide, a fresh take (not a
+ * same-seed redo or the second take of an old-style pair) — plus the pack being installed.
+ */
+export function bestOfTwoAsOneJob(input: {
+  enabled: boolean;
+  autoReview: boolean;
+  poseKey: string | null | undefined;
+  /** A same-seed redo or a kept take rides along: never batched. */
+  keepsATake: boolean;
+  packInstalled: boolean;
+}): boolean {
+  return (
+    input.enabled &&
+    !input.autoReview &&
+    input.packInstalled &&
+    !input.keepsATake &&
+    isDayHardPose(input.poseKey)
+  );
+}
+
+/** Is this landed still a one-job pair whose report hasn't been read yet? */
+export function bestOfTwoJobPending(
+  still:
+    | Pick<DaySlotStill, 'status' | 'promptId' | 'bestOfTwoJob' | 'previousTake' | 'bestOfTwo'>
+    | null
+    | undefined
+): boolean {
+  return Boolean(
+    still?.bestOfTwoJob &&
+    still.status === 'completed' &&
+    still.promptId?.trim() &&
+    !still.previousTake &&
+    !still.bestOfTwo
+  );
+}
+
+/**
+ * The still patch from a one-job pair's report: the job already saved the closer take as the
+ * still; the other take goes beside it as the alternate (as a two-job pair leaves it). Null when
+ * the report has fewer than two takes — the still then goes on as a plain first take.
+ */
+export function bestOfTwoJobPatch(
+  still: Pick<DaySlotStill, 'slotId'>,
+  report: Pick<CastcutBestOfTwoReport, 'bestIndex' | 'otherIndex' | 'scores' | 'alternate'>
+): DaySlotStill | null {
+  if (report.scores.length < 2 || report.bestIndex === report.otherIndex || !report.alternate) {
+    return null;
+  }
+  const kept = report.scores[report.bestIndex] ?? null;
+  const other = report.scores[report.otherIndex] ?? null;
+  return {
+    slotId: still.slotId,
+    previousTake: {
+      imageUrl: castcutViewUrl(report.alternate),
+      kind: 'best-of-two',
+      poseScore: other ?? 0,
+    },
+    bestOfTwo: { keptScore: kept ?? 0, otherScore: other ?? 0 },
+  };
+}
+
 /** The slot card's mark: the second take rendering, or the pick. */
-export function bestOfTwoMark(still: StillForPair | null | undefined): string | null {
+export function bestOfTwoMark(
+  still: (StillForPair & Pick<DaySlotStill, 'bestOfTwoJob'>) | null | undefined
+): string | null {
+  if (still?.bestOfTwoJob && !still.previousTake && !still.bestOfTwo) {
+    return still.status === 'completed' ? null : 'Two takes for the pose…';
+  }
   if (still?.previousTake?.kind !== 'best-of-two') return null;
   const pick = still.bestOfTwo;
   if (!pick) return 'Second take for the pose…';

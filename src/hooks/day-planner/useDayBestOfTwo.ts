@@ -7,6 +7,8 @@ import {
   bestOfTwoDecision,
   bestOfTwoFailedPatch,
   bestOfTwoFirstTake,
+  bestOfTwoJobPatch,
+  bestOfTwoJobPending,
   bestOfTwoMark,
   bestOfTwoPending,
   bestOfTwoPickPatch,
@@ -14,6 +16,7 @@ import {
   isDayHardPose,
   scoreTakePose,
 } from '@/lib/day-best-of-two';
+import { fetchCastcutBestOfTwoReport } from '@/lib/castcut-report-client';
 import { dayStillShownImage, dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day-planner';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
@@ -25,6 +28,9 @@ import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
  * pose is closer; the other stays as the alternate take (Keep this take / Use the other take).
  * Never more than two takes (day-best-of-two.ts). Only while the Day queue is idle, and never on a
  * still Face finish is about to replace.
+ *
+ * With the Castcut node pack the pair was rendered as ONE job (queueSlot): the job already saved
+ * the closer take, so this only reads the job's report and puts the other take beside it.
  */
 export function useDayBestOfTwo(
   ctx: DayPlannerToolOrchestrationCore,
@@ -59,7 +65,12 @@ export function useDayBestOfTwo(
     if (!baselinedRef.current) {
       baselinedRef.current = true;
       for (const still of stills) {
-        if (still.status === 'completed' && still.imageUrl && !bestOfTwoPending(still)) {
+        if (
+          still.status === 'completed' &&
+          still.imageUrl &&
+          !bestOfTwoPending(still) &&
+          !bestOfTwoJobPending(still)
+        ) {
           checkedRef.current[still.slotId] = bestOfTwoTakeId(still);
         }
       }
@@ -106,6 +117,44 @@ export function useDayBestOfTwo(
     if (!target || !still?.imageUrl) return;
     const take = bestOfTwoTakeId(still);
     checkedRef.current[target.id] = take;
+    if (bestOfTwoJobPending(still) && still.promptId) {
+      const promptId = still.promptId;
+      runningRef.current = true;
+      void (async () => {
+        try {
+          const report = await fetchCastcutBestOfTwoReport(promptId);
+          const current = stillsRef.current.find(entry => entry.slotId === target.id);
+          if (!current || bestOfTwoTakeId(current) !== take) return;
+          const patch = report ? bestOfTwoJobPatch(current, report) : null;
+          if (patch?.bestOfTwo) {
+            const next = upsertDaySlotStill(stillsRef.current, patch);
+            stillsRef.current = next;
+            updateToolSettings(dayStillsCachePatch(next, characterId));
+            recordGalleryPlayChecks(promptId, { pose: patch.bestOfTwo.keptScore });
+            setStatus(
+              `${target.label}: kept the closer of two takes for the pose (${Math.round(patch.bestOfTwo.keptScore * 100)}% vs ${Math.round(patch.bestOfTwo.otherScore * 100)}%).`
+            );
+            return;
+          }
+          // No report (ComfyUI ran the plain graph): a first take like any other — look again.
+          const next = upsertDaySlotStill(stillsRef.current, {
+            slotId: target.id,
+            bestOfTwoJob: undefined,
+          });
+          stillsRef.current = next;
+          updateToolSettings(dayStillsCachePatch(next, characterId));
+          delete checkedRef.current[target.id];
+        } catch (error) {
+          setStatus(
+            `${target.label} best of two skipped (${error instanceof Error ? error.message : 'error'}).`
+          );
+        } finally {
+          runningRef.current = false;
+          setTick(value => value + 1);
+        }
+      })();
+      return;
+    }
     const expectation = poseGuideExpectRef.current[target.id];
     // Nothing to decide without a hard-pose guide, or with a same-seed compare open (it reads
     // the guide anyway for a pair's second take, queued with the same guide).

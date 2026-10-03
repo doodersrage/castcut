@@ -4,6 +4,8 @@ export type ComfyManagerPackSpec = {
   install_type: 'git-clone' | 'copy' | 'unzip';
   title?: string;
   id?: string;
+  /** What the pack adds, for install prompts (optional packs say what works without them). */
+  description?: string;
 };
 
 const IMPACT_PACK: ComfyManagerPackSpec = {
@@ -71,6 +73,20 @@ const FACE_ANALYSIS: ComfyManagerPackSpec = {
   install_type: 'git-clone',
 };
 
+/**
+ * Castcut's own node pack (comfyui-nodes/castcut in this repo) — optional. The Manager clones the
+ * repo (its root __init__.py loads the pack); copying the one file castcut_nodes.py into
+ * custom_nodes/ does the same with less on disk (comfyui-nodes/castcut/README.md).
+ */
+export const CASTCUT_PACK: ComfyManagerPackSpec = {
+  name: 'castcut',
+  title: 'Castcut checks',
+  files: ['https://github.com/doodersrage/castcut'],
+  install_type: 'git-clone',
+  description:
+    "Optional. Runs Castcut's post-render checks inside the job: Best of two for hard poses in one job (both takes, the pose check, the closer one kept) and the cut-out repair beside the BiRefNet matte. Without it the same checks run as separate ComfyUI calls.",
+};
+
 /** Well-known class_type → Manager pack, used when getmappings has no hit. */
 export const KNOWN_COMFY_NODE_PACK_BY_CLASS: Record<string, ComfyManagerPackSpec> = {
   FaceDetailer: IMPACT_PACK,
@@ -99,6 +115,11 @@ export const KNOWN_COMFY_NODE_PACK_BY_CLASS: Record<string, ComfyManagerPackSpec
   SaveImageExtended: SAVE_IMAGE_EXTENDED,
   AttentionCouple: ATTENTION_COUPLE,
   RegionalPrompt: ATTENTION_COUPLE,
+  CastcutPoseScore: CASTCUT_PACK,
+  CastcutPickBest: CASTCUT_PACK,
+  CastcutFaceDistance: CASTCUT_PACK,
+  CastcutMaskRepair: CASTCUT_PACK,
+  CastcutReport: CASTCUT_PACK,
 };
 
 export function lookupKnownComfyNodePack(classType: string): ComfyManagerPackSpec | null {

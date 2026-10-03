@@ -18,6 +18,11 @@ import {
 } from '@/lib/comfy-utility-graph-server';
 import { readComboOptionList } from '@/lib/comfyui-combo';
 import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
+import {
+  buildCastcutCutoutGraph,
+  parseCastcutMaskRepairReport,
+  type CastcutMaskRepairReport,
+} from '@/lib/castcut-nodes';
 
 const LOADER_NODE = 'LoadBackgroundRemovalModel';
 const REMOVE_NODE = 'RemoveBackground';
@@ -64,6 +69,80 @@ async function uploadMatteSource(baseUrl: string, png: Buffer): Promise<string> 
     }
     throw error;
   }
+}
+
+/**
+ * The whole cut-out in ComfyUI when the Castcut node pack is installed: BiRefNet matte, the
+ * isolate-mask.ts repair (CastcutMaskRepair, a port kept in step by shared test vectors) and the
+ * original pixels composited onto `fill` — one job, no mask round trip. Null when the pack (or
+ * the matte nodes / a model) is missing, so the caller takes the mask path below. Throws only on
+ * a run that started and then failed.
+ */
+export async function comfyCastcutCutout(input: {
+  png: Buffer;
+  fill: { r: number; g: number; b: number };
+  comfyUrl?: string;
+  timeoutMs?: number;
+}): Promise<{ png: Buffer; model: string; report: CastcutMaskRepairReport } | null> {
+  let baseUrl: string;
+  try {
+    baseUrl = comfyBaseUrl(input.comfyUrl);
+  } catch {
+    return null;
+  }
+  const [loader, remove, repair, report] = await Promise.all([
+    resolveComfyNode(baseUrl, [LOADER_NODE]),
+    resolveComfyNode(baseUrl, [REMOVE_NODE]),
+    resolveComfyNode(baseUrl, ['CastcutMaskRepair']),
+    resolveComfyNode(baseUrl, ['CastcutReport']),
+  ]);
+  if (!loader || !remove || !repair || !report) {
+    return null;
+  }
+  const [modelInput, modelSpec] = Object.entries(loader.info.input?.required ?? {})[0] ?? [];
+  const modelName = modelInput ? pickBackgroundRemovalModel(readComboOptionList(modelSpec)) : null;
+  if (!modelInput || !modelName) {
+    return null;
+  }
+  const imageName = await uploadMatteSource(baseUrl, input.png);
+  const run = await runComfyUtilityGraph<{ image: ComfyImageRef; report: CastcutMaskRepairReport }>(
+    {
+      baseUrl,
+      label: 'isolate-cutout',
+      timeoutMs: input.timeoutMs ?? 60_000,
+      prompt: buildCastcutCutoutGraph({ imageName, modelInput, modelName, fill: input.fill }),
+      read: entry => {
+        const image = entry.outputs?.['5']?.images?.[0] as Partial<ComfyImageRef> | undefined;
+        const repaired = parseCastcutMaskRepairReport(entry.outputs);
+        return image?.filename && repaired
+          ? {
+              image: {
+                filename: image.filename,
+                subfolder: image.subfolder ?? '',
+                type: image.type ?? 'temp',
+              },
+              report: repaired,
+            }
+          : undefined;
+      },
+    }
+  );
+  if (run.result === undefined) {
+    return null;
+  }
+  const params = new URLSearchParams({ ...run.result.image });
+  const view = await fetch(`${baseUrl}/view?${params.toString()}`, {
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!view.ok) {
+    throw new Error(`Could not read the cut-out from ComfyUI (HTTP ${view.status}).`);
+  }
+  // Same PNG shape as the local composite (RGBA, opaque).
+  const png = await sharp(Buffer.from(await view.arrayBuffer()))
+    .ensureAlpha()
+    .png()
+    .toBuffer();
+  return { png, model: modelName, report: run.result.report };
 }
 
 /**

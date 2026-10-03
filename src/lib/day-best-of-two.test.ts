@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  bestOfTwoAsOneJob,
   bestOfTwoDecision,
   bestOfTwoFailedPatch,
   bestOfTwoFirstTake,
+  bestOfTwoJobPatch,
+  bestOfTwoJobPending,
   bestOfTwoMark,
   bestOfTwoPending,
   bestOfTwoPickPatch,
@@ -238,5 +241,80 @@ describe('day best of two — score adapter', () => {
       },
     });
     assert.ok(score > 0.9, String(score));
+  });
+});
+
+describe('day best of two — one job (Castcut node pack)', () => {
+  const rule = {
+    enabled: true,
+    autoReview: false,
+    poseKey: 'kneel:1',
+    keepsATake: false,
+    packInstalled: true,
+  };
+
+  it('batches a fresh hard-pose take only when the pack is installed', () => {
+    assert.equal(bestOfTwoAsOneJob(rule), true);
+    assert.equal(bestOfTwoAsOneJob({ ...rule, packInstalled: false }), false);
+    assert.equal(bestOfTwoAsOneJob({ ...rule, enabled: false }), false);
+    assert.equal(bestOfTwoAsOneJob({ ...rule, autoReview: true }), false);
+    assert.equal(bestOfTwoAsOneJob({ ...rule, poseKey: 'stand:1' }), false);
+    assert.equal(bestOfTwoAsOneJob({ ...rule, keepsATake: true }), false);
+  });
+
+  const jobLanded: DaySlotStill = { ...landed, bestOfTwoJob: true };
+  const report = {
+    bestIndex: 1,
+    otherIndex: 0,
+    scores: [0.42, 0.81],
+    alternate: { filename: 'Castcut-alt_00003_.png', subfolder: '', type: 'output' },
+  };
+
+  it('reads the report once the job lands, and only then', () => {
+    assert.equal(bestOfTwoJobPending(jobLanded), true);
+    assert.equal(bestOfTwoJobPending({ ...jobLanded, status: 'running' }), false);
+    assert.equal(bestOfTwoJobPending(landed), false);
+    assert.equal(
+      bestOfTwoJobPending({ ...jobLanded, bestOfTwo: { keptScore: 0.8, otherScore: 0.4 } }),
+      false
+    );
+    assert.equal(bestOfTwoMark({ ...jobLanded, status: 'running' }), 'Two takes for the pose…');
+  });
+
+  it('puts the other take beside the kept one, as a two-job pair leaves it', () => {
+    const patch = bestOfTwoJobPatch(jobLanded, report)!;
+    assert.deepEqual(patch.bestOfTwo, { keptScore: 0.81, otherScore: 0.42 });
+    assert.deepEqual(patch.previousTake, {
+      imageUrl: '/api/comfyui/view?filename=Castcut-alt_00003_.png&subfolder=&type=output',
+      kind: 'best-of-two',
+      poseScore: 0.42,
+    });
+    const [still] = normalizeDaySlotStills(upsertDaySlotStill([jobLanded], patch));
+    assert.equal(still?.imageUrl, '/first.png');
+    assert.equal(bestOfTwoJobPending(still), false);
+    assert.equal(bestOfTwoMark(still), 'Best of two · pose 81% (other 42%)');
+    // The decision code treats it as a finished pair.
+    assert.deepEqual(bestOfTwoDecision({ ...base, still, poseScore: 0.81 }), {
+      action: 'none',
+      skip: 'picked',
+    });
+    // "Use the other take" swaps them like any pair.
+    const [swapped] = restorePreviousDayTake([still!], 'morning');
+    assert.equal(swapped?.imageUrl, patch.previousTake!.imageUrl);
+    assert.equal(swapped?.bestOfTwoJob, undefined);
+  });
+
+  it('a report without two takes leaves a plain first take', () => {
+    assert.equal(bestOfTwoJobPatch(jobLanded, { ...report, scores: [0.5] }), null);
+    assert.equal(bestOfTwoJobPatch(jobLanded, { ...report, alternate: null }), null);
+    const unread = bestOfTwoJobPatch(jobLanded, { ...report, scores: [null, null] })!;
+    assert.deepEqual(unread.bestOfTwo, { keptScore: 0, otherScore: 0 });
+  });
+
+  it('keeps the job mark through a save and load', () => {
+    const [still] = normalizeDaySlotStills([jobLanded]);
+    assert.equal(still?.bestOfTwoJob, true);
+    const [plain] = normalizeDaySlotStills([landed]);
+    assert.equal('bestOfTwoJob' in (plain ?? {}), false);
   });
 });

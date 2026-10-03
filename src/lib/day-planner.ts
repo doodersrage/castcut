@@ -389,6 +389,11 @@ export type DaySlotStill = {
   };
   /** Best of two for hard poses: both takes landed and this one read closer to the guide. */
   bestOfTwo?: { keptScore: number; otherScore: number };
+  /**
+   * Queued as Best of two in ONE job (the Castcut node pack, castcut-nodes.ts): when it lands, the
+   * job's report fills `previousTake` (the other take) and `bestOfTwo` — no second queue.
+   */
+  bestOfTwoJob?: boolean;
   /** End pose: the picture this slot's clip lands on (day-end-pose.ts). */
   endPose?: DayEndPose;
 };
@@ -4212,6 +4217,7 @@ export function normalizeDaySlotStills(
         : {}),
       ...withEndPose(still.endPose),
       ...readBestOfTwo(still.bestOfTwo),
+      ...(still.bestOfTwoJob === true ? { bestOfTwoJob: true } : {}),
     });
   }
   const order = slots?.length
@@ -4562,5 +4568,6 @@ export function restorePreviousDayTake(
     clipStatus: undefined,
     previousTake: undefined,
     bestOfTwo: undefined,
+    bestOfTwoJob: undefined,
   });
 }

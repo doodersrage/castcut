@@ -225,3 +225,14 @@ test('Rapid AIO cast plate stills render at 960×1280', async () => {
   assert.equal(params.width, '960');
   assert.equal(params.height, '1280');
 });
+
+test('castcutPoseGuide (one-job Best of two) rides through from the base params', async () => {
+  const { resolveQueueParams } = await import('./queue-params-settings');
+
+  const guide = '{"guide":[],"aspect":0.75}';
+  assert.equal(
+    resolveQueueParams({ base: { seed: '1', castcutPoseGuide: guide } }).castcutPoseGuide,
+    guide
+  );
+  assert.equal('castcutPoseGuide' in resolveQueueParams({ base: { seed: '1' } }), false);
+});
