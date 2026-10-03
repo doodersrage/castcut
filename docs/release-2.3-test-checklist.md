@@ -55,6 +55,8 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
 - [ ] **Story writer he / she** — a male Cast (Sex trait) with a bible that never says "man":
   Story scenes use he / his.
 - [ ] **Story pose from a photo** — a scene's pose → *From a photo…*.
+- [ ] **Story / Play clips** — a clip's prompt no longer carries the still's "Image 3 skeleton"
+  pose-map wording.
 
 ## Outfit
 
@@ -99,8 +101,15 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
 - [ ] **Partner shoes** — a Day with a Cast partner: each wears their own shoes. Checked live.
 - [ ] **Continue as a story** — from Day's reel, Story opens primed with the Day's setting
   ("…, later that night") and outfit. Checked live.
-- [ ] **End pose for a clip** *(in progress)* — pick an end still (or re-pose this one) before
-  *Animate*: the clip moves from the start pose to the end pose.
+- [ ] **End pose for a clip** — select a finished slot; under *Animate*, pick another still (or
+  type a pose and *Re-pose this still*): the clip moves into that picture. Another slot's still
+  warns that a different camera framing makes the clip cut. Rendered by the app's graphs on WAN
+  (smooth) and LTX-2.5 (gets there, messier middle); not yet clicked through in the app.
+- [ ] **Best of two for hard poses** — switch next to Auto-review: a lying / kneeling / floor
+  still gets a second take; the closer pose is kept and the other shown beside it.
+- [ ] **Pose check** — Auto-review / Redo pose misses now flag a still for the wrong posture
+  (sitting instead of lying), not for small differences; far fewer needless rerolls. Gesture
+  misses (a selfie with the arm down) are left to Auto-review's vision check.
 
 ## Story
 
