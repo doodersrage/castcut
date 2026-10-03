@@ -44,7 +44,7 @@ function summarizeNodeError(nodeId: string, nodeError: ComfyUiNodeError): string
 }
 
 export const NO_WORKFLOW_MESSAGE =
-  'No ComfyUI workflow is set up for this engine yet. Run Heal & ready (Settings → Overview) or pick a workflow for this model in Settings.';
+  'No ComfyUI workflow is set up for this engine yet. Run Heal & ready in Settings → ComfyUI, or pick a workflow for this model there.';
 
 export function formatComfyUiQueueValidationError(raw: string): string {
   const trimmed = raw.trim();
