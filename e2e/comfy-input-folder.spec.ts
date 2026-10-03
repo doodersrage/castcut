@@ -53,7 +53,13 @@ test('settings input folder reports unused uploads and only offers a command', a
   }).toPass({ timeout: 30_000 });
   await scan.click();
 
-  await expect(section.getByText(/2 unused files/)).toBeVisible({ timeout: 20_000 });
+  // The remembered open/closed state can load late and fold the section — reopen to read it.
+  await expect(async () => {
+    if ((await section.getAttribute('open')) === null) {
+      await section.locator('summary').first().click();
+    }
+    await expect(section.getByText(/2 unused files/)).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
   await expect(section.getByText(/1 newer than 7 days stay/)).toBeVisible();
   const command = section.getByRole('textbox', { name: /Command that removes/i });
   await expect(command).toHaveValue(/^rm -- '\/var\/lib\/comfyui\/input\/day-nude-face-1\.png'/);

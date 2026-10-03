@@ -4,6 +4,7 @@ import { ensureStudioWorkspace } from './helpers/gallery';
 import { replaceGalleryIdb } from './helpers/idb';
 import { gotoStable, openComfyUiSettingsTab } from './helpers/navigation';
 import { dismissBlockingOverlays } from './helpers/overlays';
+import { isolateServerStorage } from './helpers/storage';
 
 const GRAPH = {
   '1': { class_type: 'UNETLoader', inputs: { unet_name: 'model.safetensors', weight_dtype: 'default' } },
@@ -30,6 +31,8 @@ const ENTRY = {
 };
 
 test.beforeEach(async ({ page }) => {
+  // The server's gallery would replace the seeded entry (and its stored graph).
+  await isolateServerStorage(page);
   await ensureAuthenticated(page);
 });
 
