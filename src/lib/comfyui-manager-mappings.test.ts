@@ -41,6 +41,28 @@ describe('parseComfyManagerNodeList', () => {
     assert.equal(packs.length, 1);
     assert.equal(packs[0]?.name, 'comfyui-impact-pack');
   });
+
+  it("reads V3 getlist's node_packs map (keyed by id) with the version", () => {
+    const packs = parseComfyManagerNodeList({
+      channel: 'default',
+      node_packs: {
+        'comfyui-impact-pack': {
+          id: 'comfyui-impact-pack',
+          title: 'ComfyUI Impact Pack',
+          files: ['https://github.com/ltdrdata/ComfyUI-Impact-Pack'],
+          version: '8.28.3',
+        },
+        'ComfyUI-Persona-Director': {
+          files: ['https://github.com/18yz153/ComfyUI-Persona-Director'],
+          version: 'unknown',
+        },
+      },
+    });
+    assert.equal(packs.length, 2);
+    assert.equal(packs[0]?.version, '8.28.3');
+    assert.equal(packs[1]?.id, 'ComfyUI-Persona-Director');
+    assert.equal(packs[1]?.version, 'unknown');
+  });
 });
 
 describe('resolvePacksForMissingNodeTypes', () => {

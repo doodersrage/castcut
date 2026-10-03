@@ -18,6 +18,7 @@ import SettingsQueueParamsPanel from '@/components/settings/panels/SettingsQueue
 import SettingsSamplerMemoryPanel from '@/components/settings/panels/SettingsSamplerMemoryPanel';
 import SettingsComfyInputFolderPanel from '@/components/settings/panels/SettingsComfyInputFolderPanel';
 import SettingsComfyEditorImportPanel from '@/components/settings/panels/SettingsComfyEditorImportPanel';
+import SettingsCastcutNodesPanel from '@/components/settings/panels/SettingsCastcutNodesPanel';
 import { validateWorkflowJson, type CustomWorkflowToken } from '@/lib/comfyui-config';
 import { placeholderTokensFromSettings } from '@/lib/comfyui-settings';
 import type { ComfyUiSettings } from '@/lib/comfyui-settings';
@@ -221,6 +222,8 @@ export default function SettingsComfyUiTab({
         removeCustomToken={removeCustomToken}
         handleComfyUiSectionJump={handleComfyUiSectionJump}
       />
+
+      <SettingsCastcutNodesPanel comfyUrl={settings.apiUrl} setStatus={setStatus} />
 
       <SettingsModelAssetsPanel
         setStatus={setStatus}

@@ -1,18 +1,39 @@
+/**
+ * Manager V3 (`/manager/reboot`, POST with a non-form Content-Type since its CSRF fix; GET on old
+ * builds) and Manager V4 (`/v2/manager/reboot`). See comfyui-manager-api.ts.
+ */
 export const COMFYUI_MANAGER_RESTART_ATTEMPTS = [
   { path: '/api/manager/reboot', method: 'POST' as const },
+  { path: '/api/v2/manager/reboot', method: 'POST' as const },
   { path: '/api/manager/reboot', method: 'GET' as const },
   { path: '/manager/reboot', method: 'POST' as const },
+  { path: '/v2/manager/reboot', method: 'POST' as const },
   { path: '/manager/reboot', method: 'GET' as const },
 ];
 
 export const COMFYUI_RESTART_UNAVAILABLE =
   'ComfyUI has no restart API on this host. Install ComfyUI-Manager (reboot) or restart the ComfyUI process, then refresh LoRA inventory.';
 
+export const COMFYUI_RESTART_FORBIDDEN =
+  "ComfyUI-Manager's security level does not allow a restart from the app (it needs security_level normal or lower in the Manager's config.ini). Restart ComfyUI by hand.";
+
 export type ComfyUiRestartResult =
   { ok: true; via: string } | { ok: false; error: string; missingManager?: boolean };
 
-function isRestartInProgressError(message: string): boolean {
-  return /econnreset|socket hang up/i.test(message);
+/** The Manager re-execs ComfyUI, so the reboot request itself often dies mid-answer. */
+function isRestartInProgressError(error: unknown): boolean {
+  const parts: string[] = [];
+  let current: unknown = error;
+  for (let depth = 0; current && depth < 3; depth += 1) {
+    if (current instanceof Error) {
+      parts.push(current.message, (current as { code?: string }).code ?? '');
+      current = (current as { cause?: unknown }).cause;
+    } else {
+      parts.push(String(current));
+      break;
+    }
+  }
+  return /econnreset|socket hang up|other side closed|UND_ERR_SOCKET/i.test(parts.join(' '));
 }
 
 /**
@@ -48,7 +69,10 @@ export async function requestComfyUiRestart(
         }
         continue;
       }
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 403) {
+        return { ok: false, error: COMFYUI_RESTART_FORBIDDEN };
+      }
+      if (response.status === 401) {
         return {
           ok: false,
           error: `ComfyUI-Manager restart requires auth (HTTP ${response.status}).`,
@@ -56,11 +80,10 @@ export async function requestComfyUiRestart(
       }
       return { ok: false, error: `ComfyUI restart failed: HTTP ${response.status}` };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'ComfyUI restart failed.';
-      if (isRestartInProgressError(message)) {
+      if (isRestartInProgressError(error)) {
         return { ok: true, via: attempt.path };
       }
-      lastNetworkError = message;
+      lastNetworkError = error instanceof Error ? error.message : 'ComfyUI restart failed.';
     }
   }
 

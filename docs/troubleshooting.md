@@ -15,6 +15,8 @@ Jump to: [Heal & ComfyUI](#heal-comfyui) · [Queue & VRAM](#queue-vram) · [LLM 
 | Jobs stuck “waiting for output” | Slow GPU, orphan queue | Open **Queue** — claim orphans, import history, retry |
 | Half-healed / restart timeout | Host still booting | Overview heal again; check Comfy logs |
 | Wrong host picked in pool | Pool order / sticky host | Settings → ComfyUI → cluster hosts; use **Retry on another host** on failed jobs |
+| Best of two runs as two jobs; Castcut nodes *Missing* / *Outdated* | The optional Castcut node pack isn't in ComfyUI (or is older than the app's) | Settings → ComfyUI → **Castcut nodes** — see [Castcut nodes](castcut-nodes.md) |
+| ComfyUI-Manager refuses an install (“security error”, `allow_git_url_install`) | Manager security settings | Git-URL installs need `allow_git_url_install = true` in `user/__manager/config.ini` and `--listen 127.0.0.1`; restart ComfyUI — or copy the file ([Castcut nodes](castcut-nodes.md#when-comfyui-manager-says-no)) |
 
 !!! note "SSRF hardening"
     Production: set `COMFYUI_ALLOW_CLIENT_URL=false` and pin `COMFYUI_API_URL` or pool — see [configuration](configuration.md).

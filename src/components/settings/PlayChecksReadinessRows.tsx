@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import CastcutNodesHint from '@/components/CastcutNodesHint';
 import type { PlayCheckReadiness, PlayChecksReadiness } from '@/lib/play-checks-readiness';
 
 const ROWS: Array<{ key: keyof Omit<PlayChecksReadiness, 'comfyReachable'>; label: string }> = [
@@ -142,6 +143,11 @@ export default function PlayChecksReadinessRows({
           {checking ? 'Checking ComfyUI node packs and ffmpeg…' : 'Not checked yet.'}
         </p>
       )}
+      {readiness?.comfyReachable ? (
+        <CastcutNodesHint testId="play-checks-castcut-hint">
+          Castcut nodes are not on this ComfyUI: Best of two and cut-outs take extra jobs.
+        </CastcutNodesHint>
+      ) : null}
       {installNote ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="play-checks-install-note">
           {installNote}

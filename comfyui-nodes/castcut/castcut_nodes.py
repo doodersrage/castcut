@@ -32,7 +32,17 @@ try:  # numpy ships with ComfyUI; the pose functions below don't need it.
 except ImportError:  # pragma: no cover - only without numpy
     np = None
 
-CASTCUT_VERSION = "1.0.0"
+CASTCUT_VERSION = "1.1.0"
+
+# Every node's object_info `description` ends with this marker, so the app can tell which version
+# is installed without running anything (src/lib/castcut-nodes-setup.ts parses it). Keep the
+# format. Bump CASTCUT_VERSION together with pyproject.toml and the app's
+# CASTCUT_NODES_BUNDLED_VERSION whenever a node's inputs, outputs or results change.
+VERSION_MARKER = f"[castcut-nodes {CASTCUT_VERSION}]"
+
+
+def _describe(text):
+    return f"{text} {VERSION_MARKER}"
 
 # --------------------------------------------------------------------------------------------
 # JS-compatible number helpers (the TS code runs on JS numbers)
@@ -1209,6 +1219,10 @@ CATEGORY = "Castcut"
 class CastcutPoseScore:
     """DWPose keypoints of each image in a batch scored against the pose guide."""
 
+    DESCRIPTION = _describe(
+        "Scores each image's DWPose keypoints against Castcut's pose guide (limb angles + posture)."
+    )
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -1241,6 +1255,10 @@ class CastcutPoseScore:
 
 class CastcutPickBest:
     """Keep the take whose score is highest (ties: the later take)."""
+
+    DESCRIPTION = _describe(
+        "Keeps the take with the higher pose score; the other take goes to Castcut Report."
+    )
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -1284,6 +1302,10 @@ class CastcutPickBest:
 
 class CastcutFaceDistance:
     """Cosine distance of each image's largest face to the reference (100 = no face)."""
+
+    DESCRIPTION = _describe(
+        "Cosine distance of each image's largest face to a reference (needs ComfyUI_FaceAnalysis)."
+    )
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -1332,6 +1354,10 @@ class CastcutFaceDistance:
 
 class CastcutMaskRepair:
     """Repair a matte from the photo's colours and composite the original pixels onto a fill."""
+
+    DESCRIPTION = _describe(
+        "Repairs a background-removal matte from the photo's colours and composites onto a fill."
+    )
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -1395,6 +1421,10 @@ class CastcutMaskRepair:
 
 class CastcutReport:
     """Put the scores in the job's history (`outputs[id].castcut`) and save the other take."""
+
+    DESCRIPTION = _describe(
+        "Writes Castcut's check results into the job's history and saves the alternate take."
+    )
 
     @classmethod
     def INPUT_TYPES(cls):

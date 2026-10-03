@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { SwitchButton } from '@/components/ui/Field';
+import CastcutNodesHint from '@/components/CastcutNodesHint';
 import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
 import { summarizePlayChecks } from '@/lib/play-checks-readiness';
 import { DAY_THEME_OPTIONS, dayThemeOf } from '@/lib/day-themes';
@@ -507,6 +508,11 @@ export default function DayMoodStrip({
         >
           {bestOfTwoStatus}
         </p>
+      ) : null}
+      {bestOfTwoHardPoses && !autoReviewStills ? (
+        <CastcutNodesHint testId="day-best-of-two-castcut-hint">
+          Best of two runs as two jobs here — with the Castcut nodes both takes render in one job.
+        </CastcutNodesHint>
       ) : null}
       {showPartner && onPartnerChange ? (
         <div

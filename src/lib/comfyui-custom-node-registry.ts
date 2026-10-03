@@ -6,6 +6,13 @@ export type ComfyManagerPackSpec = {
   id?: string;
   /** What the pack adds, for install prompts (optional packs say what works without them). */
   description?: string;
+  /**
+   * From the Manager's list: a registry version, or "unknown" for a pack that is only a Git repo.
+   * Unset for the known packs below, which install by registry id (`name`) unless `gitUrlOnly`.
+   */
+  version?: string;
+  /** In neither the Comfy Registry nor the Manager's list: only a Git-URL install reaches it. */
+  gitUrlOnly?: boolean;
 };
 
 const IMPACT_PACK: ComfyManagerPackSpec = {
@@ -83,6 +90,7 @@ export const CASTCUT_PACK: ComfyManagerPackSpec = {
   title: 'Castcut checks',
   files: ['https://github.com/doodersrage/castcut'],
   install_type: 'git-clone',
+  gitUrlOnly: true,
   description:
     "Optional. Runs Castcut's post-render checks inside the job: Best of two for hard poses in one job (both takes, the pose check, the closer one kept) and the cut-out repair beside the BiRefNet matte. Without it the same checks run as separate ComfyUI calls.",
 };

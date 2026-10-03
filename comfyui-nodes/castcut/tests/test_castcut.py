@@ -261,6 +261,42 @@ class Registration(unittest.TestCase):
                 self.assertTrue(callable(getattr(cls(), cls.FUNCTION)))
                 self.assertEqual(cls.CATEGORY, "Castcut")
 
+    def test_every_description_carries_the_version_marker(self):
+        # The app reads the installed version from object_info's `description`.
+        marker = f"[castcut-nodes {castcut.CASTCUT_VERSION}]"
+        for name, cls in castcut.NODE_CLASS_MAPPINGS.items():
+            with self.subTest(name):
+                self.assertTrue(cls.DESCRIPTION.endswith(marker), cls.DESCRIPTION)
+
+    def test_versions_agree(self):
+        # pyproject.toml (Comfy Registry), castcut_nodes.py and the app's bundled version.
+        import re  # noqa: PLC0415
+
+        with open(os.path.join(PACK, "pyproject.toml"), encoding="utf8") as handle:
+            pyproject = handle.read()
+        match = re.search(r'^version\s*=\s*"([^"]+)"', pyproject, re.M)
+        self.assertIsNotNone(match)
+        self.assertEqual(match.group(1), castcut.CASTCUT_VERSION)
+        app_constant = os.path.join(PACK, "..", "..", "src", "lib", "castcut-nodes-setup.ts")
+        if os.path.exists(app_constant):  # absent in the standalone repo
+            with open(app_constant, encoding="utf8") as handle:
+                app = handle.read()
+            self.assertIn(f"CASTCUT_NODES_BUNDLED_VERSION = '{castcut.CASTCUT_VERSION}'", app)
+
+    def test_package_init_exports_the_mappings(self):
+        # ComfyUI imports a custom_nodes folder as a package (`castcut/__init__.py`).
+        spec_pkg = importlib.util.spec_from_file_location(
+            "castcut_pkg", os.path.join(PACK, "__init__.py"), submodule_search_locations=[PACK]
+        )
+        package = importlib.util.module_from_spec(spec_pkg)
+        sys.modules["castcut_pkg"] = package
+        try:
+            spec_pkg.loader.exec_module(package)
+        finally:
+            del sys.modules["castcut_pkg"]
+        self.assertEqual(set(package.NODE_CLASS_MAPPINGS), set(castcut.NODE_CLASS_MAPPINGS))
+        self.assertEqual(package.__version__, castcut.CASTCUT_VERSION)
+
 
 if __name__ == "__main__":
     unittest.main()

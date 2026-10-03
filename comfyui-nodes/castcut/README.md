@@ -36,32 +36,57 @@ insightface and fails with a clear message without it.
 
 ## Install
 
-The pack is one file, `castcut_nodes.py`. Any of:
+The pack is one file, `castcut_nodes.py` (plus this folder's `__init__.py` when installed as a
+folder). Pick one way and restart ComfyUI afterwards.
 
-1. **Copy the file** (smallest; works when the ComfyUI service user can't read your home folder):
+**From the Castcut app** (easiest): Settings → ComfyUI → **Castcut nodes** shows whether ComfyUI
+has the pack and which version, installs it with ComfyUI-Manager when it can, restarts ComfyUI
+(after asking, and only when its queue is empty), or hands you a copy-paste command for your
+setup. See [docs/castcut-nodes.md](https://github.com/doodersrage/castcut/blob/main/docs/castcut-nodes.md).
+
+1. **ComfyUI-Manager by name** (once the pack is in the Comfy Registry): Manager → Custom Nodes
+   Manager → search *Castcut nodes* → Install; or `comfy node install castcut-nodes`.
+
+2. **ComfyUI-Manager → Install via Git URL**: `https://github.com/doodersrage/castcut`. Manager
+   3.41+ allows Git-URL installs only with `allow_git_url_install = true` under `[default]` in
+   `ComfyUI/user/__manager/config.ini` and ComfyUI listening on 127.0.0.1. This clones the whole
+   Castcut repo; its root `__init__.py` loads only this pack. (A standalone repo of just this
+   folder can be made with `scripts/castcut-nodes-release.sh`.)
+
+3. **Copy the file** (smallest; works when the ComfyUI service user can't read your home folder):
 
    ```bash
-   sudo install -o comfy -g comfy -m 644 comfyui-nodes/castcut/castcut_nodes.py \
+   sudo install -m 644 comfyui-nodes/castcut/castcut_nodes.py \
      /opt/comfyui/custom_nodes/castcut_nodes.py
    sudo systemctl restart comfyui
    ```
 
-   (Use your ComfyUI path and service user; a desktop ComfyUI: copy into `ComfyUI/custom_nodes/`
-   and restart it.)
+   (Use your ComfyUI path; a desktop ComfyUI: copy into `ComfyUI/custom_nodes/`; Windows
+   portable: `ComfyUI_windows_portable\ComfyUI\custom_nodes\`. A running Castcut serves the file at
+   `/api/castcut-nodes/file`.)
 
-2. **Symlink the folder** (ComfyUI must be able to read the repo):
+4. **Symlink the folder** (ComfyUI must be able to read the repo):
 
    ```bash
    ln -s "$PWD/comfyui-nodes/castcut" /path/to/ComfyUI/custom_nodes/castcut
    ```
 
-3. **ComfyUI-Manager → Install via Git URL** `https://github.com/doodersrage/castcut` (needs
-   `allow_git_url_install` / a security level that permits it). This clones the whole Castcut
-   repo; its root `__init__.py` loads only this pack. Castcut's own "install missing nodes" flow
-   knows the pack under the same URL.
+Check `http://127.0.0.1:8188/object_info/CastcutPoseScore` returns the node; its `description`
+ends with `[castcut-nodes 1.1.0]`, which is how the app reads the installed version. To update,
+copy / pull / update again and restart. Install it one way only — a `castcut_nodes.py` file and a
+`castcut` folder side by side both load.
 
-Restart ComfyUI, then check `http://127.0.0.1:8188/object_info/CastcutPoseScore` returns the node.
-To update, copy / pull again and restart.
+**Without the pack** the app checks `object_info`, finds the nodes missing and queues exactly the
+graphs it always did: Best of two as two jobs, cut-outs repaired in the app.
+
+## Versions and publishing
+
+`CASTCUT_VERSION` in `castcut_nodes.py`, `version` in `pyproject.toml` and the app's
+`CASTCUT_NODES_BUNDLED_VERSION` (`src/lib/castcut-nodes-setup.ts`) move together; the tests check
+it. `pyproject.toml` carries the Comfy Registry metadata (`[tool.comfy]`, `PublisherId` is a
+placeholder until a publisher exists). `scripts/castcut-nodes-release.sh <dir>` copies this folder,
+the licence and a standalone README note into `<dir>`, ready to push as its own repository and
+publish with `comfy node publish`.
 
 ## Tests
 

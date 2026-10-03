@@ -32,6 +32,10 @@ const baseConfig: NextConfig = {
       './_to_delete/**/*',
     ],
   },
+  // The Castcut node pack the app serves for copy-install (src/app/api/castcut-nodes/file).
+  outputFileTracingIncludes: {
+    '/api/castcut-nodes/file': ['./comfyui-nodes/castcut/castcut_nodes.py'],
+  },
 
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,

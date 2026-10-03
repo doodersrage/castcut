@@ -12,6 +12,7 @@ export const COMFYUI_SECTION_ELEMENT_IDS: Record<ComfyUiSettingsSectionId, strin
   'workflow-library': 'settings-comfyui-workflow-library',
   'inference-engine': 'settings-comfyui-inference-engine',
   connection: 'settings-comfyui-connection',
+  'castcut-nodes': 'settings-comfyui-castcut-nodes',
   'auto-improve': 'settings-comfyui-auto-improve',
   'queue-params': 'settings-comfyui-queue-params',
   'prompt-quality': 'settings-comfyui-prompt-quality',

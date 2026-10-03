@@ -46,25 +46,33 @@ export function parseComfyManagerMappings(raw: unknown): Map<string, string> {
   return map;
 }
 
+/**
+ * The Manager's pack list: `custom_nodes[]` (custom-node-list.json), or getlist's `node_packs` —
+ * an array on old Managers, an object keyed by pack id on V3.x.
+ */
 export function parseComfyManagerNodeList(raw: unknown): ComfyManagerPackSpec[] {
   const record = asRecord(raw);
-  const list = Array.isArray(record?.custom_nodes)
-    ? record.custom_nodes
+  const nodePackMap = Array.isArray(record?.node_packs) ? null : asRecord(record?.node_packs);
+  const list: Array<[string | null, unknown]> = Array.isArray(record?.custom_nodes)
+    ? record.custom_nodes.map(item => [null, item])
     : Array.isArray(record?.node_packs)
-      ? record.node_packs
-      : Array.isArray(raw)
-        ? raw
-        : [];
+      ? record.node_packs.map(item => [null, item])
+      : nodePackMap
+        ? Object.entries(nodePackMap)
+        : Array.isArray(raw)
+          ? raw.map(item => [null, item])
+          : [];
   const packs: ComfyManagerPackSpec[] = [];
-  for (const item of list) {
+  for (const [key, item] of list) {
     const entry = asRecord(item);
     if (!entry) {
       continue;
     }
     const files = asStringArray(entry.files);
+    const id = (typeof entry.id === 'string' && entry.id.trim()) || key?.trim() || undefined;
     const name =
       (typeof entry.name === 'string' && entry.name.trim()) ||
-      (typeof entry.id === 'string' && entry.id.trim()) ||
+      id ||
       (typeof entry.title === 'string' && entry.title.trim()) ||
       '';
     if (!name && files.length === 0) {
@@ -79,7 +87,10 @@ export function parseComfyManagerNodeList(raw: unknown): ComfyManagerPackSpec[] 
       files: files.length > 0 ? files : name ? [name] : [],
       install_type: installType,
       ...(typeof entry.title === 'string' ? { title: entry.title } : {}),
-      ...(typeof entry.id === 'string' ? { id: entry.id } : {}),
+      ...(id ? { id } : {}),
+      ...(typeof entry.version === 'string' && entry.version.trim()
+        ? { version: entry.version.trim() }
+        : {}),
     });
   }
   return packs;

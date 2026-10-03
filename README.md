@@ -69,6 +69,8 @@ reachable LLM. Actually queuing a render needs a real backend — pick up at ste
 
 1. Set `COMFYUI_API_URL`, `LLM_MODEL`, and ideally `LLM_VISION_MODEL` in `.env.local`.
 2. Use **Heal & ready** on first launch (Welcome dialog or Settings → Overview).
+   Optional: install the [Castcut nodes](docs/castcut-nodes.md) in ComfyUI (Settings → ComfyUI →
+   **Castcut nodes**) so Best of two and cut-outs run in one job.
 3. Choose **Character / Scene·Film / Image / Surprise** on first run, or open **Film** (`/play`).
 
 **10-minute film loop:** Heal & ready → **Play** → create character → Look extract → Outfit Keep → Day stills/clips → **Cut film** → Save to Cast. Walkthrough: [Play guide](docs/play-guide.md) · [Operator guide — 10-minute loop](docs/operator.md#10-minute-loop).
@@ -168,6 +170,7 @@ Legacy URLs `/duo` and `/random-scene` redirect to Character and Generate.
 
 - **Workflow takeover** at queue time — [docs/workflow-takeover.md](docs/workflow-takeover.md)
 - **Custom nodes** — [comfyui/comfyui_image_prompt_tools/README.md](comfyui/comfyui_image_prompt_tools/README.md)
+- **Castcut nodes** (optional checks inside the job) — [docs/castcut-nodes.md](docs/castcut-nodes.md)
 - **HTTP API** — [docs/http-api.md](docs/http-api.md) (live catalog: `GET /api`; health, probe, invite, SMTP)
 - **Architecture** — [docs/architecture.md](docs/architecture.md)
 - **Operator guide** — [docs/operator.md](docs/operator.md)

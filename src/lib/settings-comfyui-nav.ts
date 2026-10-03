@@ -6,6 +6,7 @@ export type ComfyUiSettingsSectionId =
   | 'lora-train'
   | 'workflow-library'
   | 'connection'
+  | 'castcut-nodes'
   | 'inference-engine'
   | 'auto-improve'
   | 'queue-params'
@@ -55,6 +56,21 @@ export const COMFYUI_SETTINGS_SECTIONS: ComfyUiSettingsSection[] = [
       'restart',
       'reboot',
       'manager',
+    ],
+  },
+  {
+    id: 'castcut-nodes',
+    label: 'Castcut nodes',
+    keywords: [
+      'castcut',
+      'node pack',
+      'custom nodes',
+      'best of two',
+      'pose check',
+      'cut-out',
+      'install',
+      'manager',
+      'castcut_nodes.py',
     ],
   },
   {
@@ -180,6 +196,7 @@ export function normalizeComfyUiSettingsSection(
 export const COMFYUI_ESSENTIAL_SECTION_IDS: ComfyUiSettingsSectionId[] = [
   'inference-engine',
   'connection',
+  'castcut-nodes',
   'model-assets',
 ];
 

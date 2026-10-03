@@ -1,12 +1,18 @@
 import type { ComfyManagerPackSpec } from './comfyui-custom-node-registry';
 import {
+  detectComfyManager,
+  runManagerInstall,
+  waitForManagerQueueIdle,
+  type ComfyManagerInfo,
+  type ManagerInstallTarget,
+} from './comfyui-manager-api';
+import {
   parseComfyManagerMappings,
   parseComfyManagerNodeList,
   resolvePacksForMissingNodeTypes,
 } from './comfyui-manager-mappings';
 
-const MANAGER_PREFIXES = ['/api/manager', '/manager'] as const;
-const CUSTOMNODE_PREFIXES = ['/api/customnode', '/customnode'] as const;
+const API_PREFIXES = ['/api', ''] as const;
 
 export type ComfyUiManagerInstallResult = {
   ok: boolean;
@@ -17,98 +23,41 @@ export type ComfyUiManagerInstallResult = {
   error?: string;
 };
 
-async function managerFetch(
-  origin: string,
-  path: string,
-  init: RequestInit,
-  fetchImpl: typeof fetch
-): Promise<Response | null> {
-  try {
-    return await fetchImpl(`${origin}${path}`, {
-      ...init,
-      signal: init.signal ?? AbortSignal.timeout(20_000),
-      redirect: 'manual',
-    });
-  } catch {
-    return null;
-  }
-}
-
 async function firstOkJson(
   origin: string,
-  paths: string[],
-  init: RequestInit,
+  path: string,
   fetchImpl: typeof fetch
 ): Promise<unknown | null> {
-  for (const path of paths) {
-    const response = await managerFetch(origin, path, init, fetchImpl);
-    if (response?.ok) {
-      return await response.json().catch(() => null);
+  for (const prefix of API_PREFIXES) {
+    try {
+      const response = await fetchImpl(`${origin}${prefix}${path}`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(20_000),
+        redirect: 'manual',
+      });
+      if (response?.ok) {
+        return await response.json().catch(() => null);
+      }
+    } catch {
+      // next prefix
     }
   }
   return null;
 }
 
-async function firstOkPost(
-  origin: string,
-  paths: string[],
-  body: unknown,
-  fetchImpl: typeof fetch
-): Promise<boolean> {
-  for (const path of paths) {
-    const response = await managerFetch(
-      origin,
-      path,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      },
-      fetchImpl
-    );
-    if (response && (response.ok || response.status === 202)) {
-      return true;
-    }
+/**
+ * How the Manager should install `pack`: a registry pack by id (latest), a Manager-list Git pack
+ * as version "unknown" with its URL, a pack nobody lists by Git URL.
+ */
+export function managerInstallTargetForPack(pack: ComfyManagerPackSpec): ManagerInstallTarget {
+  if (pack.gitUrlOnly && pack.files[0]) {
+    return { kind: 'git-url', url: pack.files[0] };
   }
-  return false;
-}
-
-function queueIdle(raw: unknown): boolean {
-  if (!raw || typeof raw !== 'object') {
-    return false;
+  const id = pack.id || pack.name;
+  if (pack.version === 'unknown' || pack.version === 'nightly') {
+    return { kind: 'listed', id, files: pack.files };
   }
-  const record = raw as {
-    is_processing?: boolean;
-    total_count?: number;
-    done_count?: number;
-    in_progress_count?: number;
-  };
-  if (record.is_processing === true) {
-    return false;
-  }
-  if ((record.in_progress_count ?? 0) > 0) {
-    return false;
-  }
-  const total = record.total_count ?? 0;
-  const done = record.done_count ?? 0;
-  return total === 0 || done >= total;
-}
-
-async function waitForManagerQueueIdle(
-  origin: string,
-  fetchImpl: typeof fetch,
-  timeoutMs = 60_000
-): Promise<boolean> {
-  const started = Date.now();
-  const statusPaths = MANAGER_PREFIXES.map(prefix => `${prefix}/queue/status`);
-  while (Date.now() - started < timeoutMs) {
-    const status = await firstOkJson(origin, statusPaths, { method: 'GET' }, fetchImpl);
-    if (status && queueIdle(status)) {
-      return true;
-    }
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  }
-  return false;
+  return { kind: 'registry', id };
 }
 
 /**
@@ -119,6 +68,8 @@ export async function installComfyUiMissingNodePacks(input: {
   baseUrl: string;
   classTypes: string[];
   fetchImpl?: typeof fetch;
+  /** Manager queue wait (tests shorten it). */
+  waitOptions?: { timeoutMs?: number; intervalMs?: number };
 }): Promise<ComfyUiManagerInstallResult> {
   const origin = input.baseUrl.replace(/\/+$/, '');
   const fetchImpl = input.fetchImpl ?? fetch;
@@ -127,36 +78,29 @@ export async function installComfyUiMissingNodePacks(input: {
     return { ok: true, installed: [], unresolved: [], restartNeeded: false };
   }
 
+  const manager: ComfyManagerInfo | null = await detectComfyManager(origin, fetchImpl);
+  if (!manager) {
+    return {
+      ok: false,
+      installed: [],
+      unresolved: classTypes,
+      restartNeeded: false,
+      missingManager: true,
+      error: 'ComfyUI-Manager is not available on this host.',
+    };
+  }
+
+  const v = manager.api === 'v2' ? '/v2' : '';
   const mappingsRaw = await firstOkJson(
     origin,
-    CUSTOMNODE_PREFIXES.map(prefix => `${prefix}/getmappings?mode=local`),
-    { method: 'GET' },
+    `${v}/customnode/getmappings?mode=local`,
     fetchImpl
   );
   const listRaw = await firstOkJson(
     origin,
-    CUSTOMNODE_PREFIXES.map(prefix => `${prefix}/getlist?mode=local&skip_update=true`),
-    { method: 'GET' },
+    `${v}/customnode/getlist?mode=local&skip_update=true`,
     fetchImpl
   );
-
-  if (mappingsRaw == null && listRaw == null) {
-    const knownOnly = resolvePacksForMissingNodeTypes({
-      classTypes,
-      mappings: new Map(),
-      catalog: [],
-    });
-    if (knownOnly.packs.length === 0) {
-      return {
-        ok: false,
-        installed: [],
-        unresolved: classTypes,
-        restartNeeded: false,
-        missingManager: true,
-        error: 'ComfyUI-Manager is not available on this host.',
-      };
-    }
-  }
 
   const resolved = resolvePacksForMissingNodeTypes({
     classTypes,
@@ -178,23 +122,22 @@ export async function installComfyUiMissingNodePacks(input: {
   }
 
   const installed: string[] = [];
+  const errors: string[] = [];
+  let queuedAny = false;
   for (const pack of resolved.packs) {
-    const queued = await firstOkPost(
+    const result = await runManagerInstall({
       origin,
-      MANAGER_PREFIXES.map(prefix => `${prefix}/queue/install`),
-      packToInstallBody(pack),
-      fetchImpl
-    );
-    const direct =
-      queued ||
-      (await firstOkPost(
-        origin,
-        CUSTOMNODE_PREFIXES.map(prefix => `${prefix}/install`),
-        packToInstallBody(pack),
-        fetchImpl
-      ));
-    if (direct) {
+      info: manager,
+      target: managerInstallTargetForPack(pack),
+      fetchImpl,
+      uiId: pack.id || pack.name,
+      wait: false,
+    });
+    if (result.ok) {
       installed.push(pack.title || pack.name);
+      queuedAny ||= result.queued;
+    } else if (!errors.includes(result.error.message)) {
+      errors.push(result.error.message);
     }
   }
 
@@ -204,32 +147,19 @@ export async function installComfyUiMissingNodePacks(input: {
       installed: [],
       unresolved: resolved.unresolved,
       restartNeeded: false,
-      error: 'ComfyUI-Manager refused the install queue (security_level or missing Manager).',
+      error: errors[0] ?? 'ComfyUI-Manager refused the install.',
     };
   }
 
-  await firstOkPost(
-    origin,
-    MANAGER_PREFIXES.map(prefix => `${prefix}/queue/start`),
-    {},
-    fetchImpl
-  );
-  await waitForManagerQueueIdle(origin, fetchImpl);
+  if (queuedAny) {
+    await waitForManagerQueueIdle(origin, manager, fetchImpl, input.waitOptions);
+  }
 
   return {
     ok: true,
     installed,
     unresolved: resolved.unresolved,
     restartNeeded: true,
-  };
-}
-
-function packToInstallBody(pack: ComfyManagerPackSpec): Record<string, unknown> {
-  return {
-    ...(pack.id ? { id: pack.id } : {}),
-    name: pack.name,
-    ...(pack.title ? { title: pack.title } : {}),
-    files: pack.files,
-    install_type: pack.install_type,
+    ...(errors.length > 0 ? { error: errors.join(' ') } : {}),
   };
 }

@@ -24,6 +24,8 @@
 # production
 /build
 /site
+# scripts/castcut-nodes-release.sh default output
+/dist/castcut-nodes/
 
 # misc
 .DS_Store

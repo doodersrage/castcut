@@ -91,6 +91,7 @@ nav:
   - Using the app:
       - Features: features.md
       - Troubleshooting: troubleshooting.md
+      - Castcut nodes: castcut-nodes.md
       - Workflow takeover: workflow-takeover.md
       - HTTP API: http-api.md
       - Data catalogs: data-catalogs.md
