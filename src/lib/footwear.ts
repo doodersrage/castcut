@@ -70,6 +70,22 @@ export function footwearPresetWords(id: FootwearPresetId | string): string {
 }
 
 /**
+ * Shoes for the other person in a duo, named and unlike the lead's. "Their own different shoes"
+ * left the partner in the lead's sneakers 1 still in 4 (live, two men on Day).
+ */
+export function partnerShoesUnlike(leadShoes: string): string {
+  // Sneakers first: "white leather low-top sneakers" are sneakers, not leather shoes.
+  if (/\b(?:sneakers?|trainers?|runners?|running shoes|high-tops?|plimsolls?)\b/i.test(leadShoes)) {
+    return 'dark brown leather shoes';
+  }
+  return /\b(?:leather|loafers?|oxfords?|brogues?|derbys?|dress shoes|heels|pumps|boots?)\b/i.test(
+    leadShoes
+  )
+    ? 'plain white sneakers'
+    : 'dark brown leather shoes';
+}
+
+/**
  * The footwear line for a prompt, or '' on auto. `subject` is "she" / "he".
  *
  * Kept as its own short sentence: tacked onto the end of the outfit clause the shoes were the
@@ -104,7 +120,7 @@ export function footwearPromptLine(
         : '';
   const named = shown ? `the ${words || 'shoes'}${shown}` : words;
   return pair
-    ? `FOOTWEAR (mandatory): on ${possessive} own feet (the person from the first image) ${subject} wears ${named} — exactly these, on both feet; the other person wears their own different shoes.`
+    ? `FOOTWEAR (mandatory): on ${possessive} own feet (the person from the first image) ${subject} wears ${named} — exactly these, on both feet; the other person wears ${partnerShoesUnlike(words)} — never the same pair.`
     : `FOOTWEAR (mandatory): on ${possessive} feet ${subject} wears ${named} — exactly these, on both feet.`;
 }
 

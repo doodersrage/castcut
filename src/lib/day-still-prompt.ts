@@ -176,7 +176,9 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
       // (the couple recipes), which keep it as written.
       facts.leadNoun === 'man' && !swapLead ? 'he' : 'she',
       facts.footwearImage,
-      figures >= 2
+      // Whose shoes these are, whenever the still has a partner — the pose count alone missed a
+      // duo whose guide was planned with one figure (partner in the lead's sneakers, live).
+      figures >= 2 || Boolean(facts.partner)
     ),
     // The duo recipes name the partner's image themselves; the long brief (and a recipe that has
     // no partner wording, e.g. Klein spoon) gets one line.

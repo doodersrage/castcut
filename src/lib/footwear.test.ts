@@ -7,6 +7,7 @@ import {
   footwearPresetWords,
   footwearPromptLine,
   normalizeFootwear,
+  partnerShoesUnlike,
   withFootwearLine,
 } from './footwear';
 import { buildFittingOutfitPrompt, buildFootwearPackshotExtractPrompt } from './fitting-room';
@@ -131,5 +132,17 @@ describe('footwear', () => {
     assert.ok(beatOwnsFootwear('walking the shoreline barefoot, heels in one hand'));
     assert.ok(beatOwnsFootwear('kicking off her shoes by the door'));
     assert.ok(!beatOwnsFootwear('waving hello from the balcony'));
+  });
+});
+
+describe('the partner in a duo', () => {
+  it('is given shoes unlike the lead\'s', () => {
+    assert.equal(partnerShoesUnlike('white leather low-top sneakers'), 'dark brown leather shoes');
+    assert.equal(partnerShoesUnlike('black leather ankle boots'), 'plain white sneakers');
+    assert.equal(partnerShoesUnlike('red sandals'), 'dark brown leather shoes');
+    assert.match(
+      footwearPromptLine('white leather low-top sneakers', 'he', null, true),
+      /the other person wears dark brown leather shoes — never the same pair/
+    );
   });
 });
