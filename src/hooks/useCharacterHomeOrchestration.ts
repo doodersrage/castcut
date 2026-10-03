@@ -36,9 +36,17 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { selectCharacterKeepers } from '@/lib/gallery-lora-dataset-export';
 import {
   deleteRoleplayLibrarySession,
+  getRoleplayLibrarySession,
   resolveRoleplayContinueFromCharacter,
+  roleplayLibraryIdForCharacter,
 } from '@/lib/roleplay-library';
-import { loadSettingsCache, saveSharedSettings, saveToolSettings } from '@/lib/settings-cache';
+import {
+  DEFAULT_DAY_TOOL_CACHE,
+  loadSettingsCache,
+  loadToolSettings,
+  saveSharedSettings,
+  saveToolSettings,
+} from '@/lib/settings-cache';
 import {
   downloadLookPackFile,
   lookPackDayHref,
@@ -64,6 +72,7 @@ import { continueClipActionLabel } from '@/lib/video-clip-mode';
 import { loadEngineSettings } from '@/lib/engine-settings';
 import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import { buildCastHomeStatus } from '@/lib/cast-home-status';
+import { castChecklist, countCastDayStills } from '@/lib/cast-checklist';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { useHydrated } from '@/hooks/useHydrated';
 import {
@@ -659,6 +668,36 @@ export function useCharacterHomeOrchestration(characterId: string) {
     plateError,
   });
 
+  const checklist = useMemo(() => {
+    if (!character) {
+      return null;
+    }
+    const traits = Object.values(character.traits ?? {}).some(value =>
+      typeof value === 'string' ? value.trim() !== '' : value != null
+    );
+    const bio = character.bio;
+    const galleryDayStillCount = stillEntries.filter(
+      entry => entry.tool === 'day' && entry.status === 'completed' && entry.images.length > 0
+    ).length;
+    const storyId = roleplayLibraryIdForCharacter(character.id);
+    return castChecklist({
+      characterId: character.id,
+      plateReady: hasLookPlate,
+      traitsSet: traits,
+      bibleWritten: Boolean(bio?.look?.trim() || bio?.personality?.trim()),
+      keeperCount: activeLook(character).keeperEntryIds?.length ?? 0,
+      dayStillCount: countCastDayStills({
+        characterId: character.id,
+        activeCharacterId: loadSettingsCache().shared.activeCharacterId,
+        day: loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE),
+        galleryDayStillCount,
+      }),
+      filmCount: filmEntries.length,
+      cutShotCount: character.filmCut?.items.filter(item => item.included).length ?? 0,
+      storyBeatCount: storyId ? (getRoleplayLibrarySession(storyId)?.beatCount ?? 0) : 0,
+    });
+  }, [character, hasLookPlate, stillEntries, filmEntries]);
+
   return {
     hydrated: castReady,
     homeTab,
@@ -676,6 +715,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
     lookPlate,
     hasLookPlate,
     castStatus,
+    checklist,
     softAdvance,
     cancelSoftAdvance,
     plateUploading,

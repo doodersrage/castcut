@@ -7,6 +7,7 @@ import { ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import { SegmentedControl, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
+import CastChecklist from '@/components/character/CastChecklist';
 import CastStatusStrip from '@/components/character/CastStatusStrip';
 import CharacterAppearanceSection from '@/components/character/CharacterAppearanceSection';
 import CharacterBibleSection from '@/components/character/CharacterBibleSection';
@@ -58,6 +59,9 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
         plateStatus={props.plateStatus}
         plateError={props.castStatus.plateError}
       />
+      {props.checklist ? (
+        <CastChecklist checklist={props.checklist} onTab={props.setHomeTab} go={props.go} />
+      ) : null}
       <PlaySoftAdvanceBanner
         key={props.softAdvance?.nonce ?? 'idle'}
         target={props.softAdvance}
