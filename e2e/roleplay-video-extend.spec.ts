@@ -29,8 +29,10 @@ test('roleplay still/clip toggle is visible', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Still', exact: true })).toBeVisible();
   const clip = page.getByRole('button', { name: 'Clip', exact: true });
   await expect(clip).toBeVisible();
-  await clip.click();
-  await expect(clip).toHaveAttribute('data-active', 'true');
+  await expect(async () => {
+    await clip.click();
+    await expect(clip).toHaveAttribute('data-active', 'true', { timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
 });
 
 test('video tool exposes the extend clip chip', async ({ page }) => {
@@ -40,7 +42,10 @@ test('video tool exposes the extend clip chip', async ({ page }) => {
   });
   const extend = page.getByRole('button', { name: 'Extend clip', exact: true });
   await expect(extend).toBeVisible();
-  await extend.click();
-  await expect(extend).toHaveAttribute('data-active', 'true');
+  // A click before hydration is dropped (failed 2 runs in ~10 under load): retry until it takes.
+  await expect(async () => {
+    await extend.click();
+    await expect(extend).toHaveAttribute('data-active', 'true', { timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
   await expect(page.getByText(/Parent clip/i).first()).toBeVisible();
 });
