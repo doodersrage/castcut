@@ -81,8 +81,13 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
       return;
     }
     try {
-      // Fresh clears prior Cast face/wardrobe so Look/Extract cannot keep a stale IP lock.
-      onApply(applyCharacterRecordFresh(character));
+      // A different Cast: its own face and wardrobe, nothing of the previous one's (fresh).
+      // The Cast already active: keep its face lock and settings.
+      onApply(
+        character.id === activeId
+          ? applyCharacterRecord(character)
+          : applyCharacterRecordFresh(character)
+      );
     } catch (error) {
       console.error('CharacterOsPicker: failed to apply character', error);
       onApply({

@@ -449,7 +449,10 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       const record = getCharacter(characterId);
       if (record) {
         try {
-          updateShared(applyCharacterRecordFresh(record));
+          // Not the "fresh" apply: opening the page re-binds the active Cast, and the fresh one
+          // dropped its face lock, lock strength and locked kit on every visit. A switch to
+          // another Cast clears those anyway (applyCharacterRecord).
+          updateShared(applyCharacterRecord(record));
         } catch (err) {
           scheduleAfterCommit(() =>
             setError(err instanceof Error ? err.message : 'Could not apply that character.')
