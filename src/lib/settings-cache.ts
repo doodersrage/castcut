@@ -1082,7 +1082,7 @@ export type FittingToolCache = {
    * opening Outfit on another device, still has the try-ons to choose between.
    */
   compareTryOns?: import('./fitting-room').FittingCompareTryOn[];
-  pendingTryOn?: import('./fitting-room').FittingCompareTryOn;
+  pendingTryOn?: import('./fitting-room').FittingPendingTryOn;
   isolateSubject?: boolean;
   referenceIsolated?: boolean;
   referenceImageUrl?: string;

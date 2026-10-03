@@ -24,14 +24,20 @@ import {
   loadComfyGallery,
 } from '@/lib/comfyui-gallery';
 import {
+  buildFittingFeetPassPrompt,
   buildFittingOutfitPrompt,
   clipFittingGarmentLabel,
   FITTING_COMPARE_LIMIT,
+  fittingNeedsFeetPass,
   pushFittingCompareTryOn,
+  replaceFittingCompareTryOnImage,
   withFittingCustomPose,
   type FittingCompareTryOn,
+  type FittingPendingTryOn,
   type FittingSwipeKit,
 } from '@/lib/fitting-room';
+import { comfyInputViewUrl } from '@/lib/face-match-client';
+import { loadImageBlobFromUrls } from '@/lib/isolate-subject';
 import {
   buildFittingGarmentReferenceExtras,
   loadWardrobeGarmentThumbManifest,
@@ -58,6 +64,10 @@ import type { WorkflowParamValues } from '@/lib/comfyui-config';
 import type { CharacterRecord } from '@/lib/character-os';
 
 const TOOL_ID = 'fitting' as const;
+
+const FEET_PASS_STATUS = 'Putting the shoes on…';
+const FEET_PASS_FAILED_STATUS =
+  'The shoe pass did not work — the try-on is kept as it came (the feet may be bare).';
 
 type PromptResultActions = ReturnType<typeof usePromptResultActions>;
 
@@ -107,12 +117,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
   const [busy, setBusy] = useState(false);
   const [compareTryOns, setCompareTryOns] = useState<FittingCompareTryOn[]>([]);
   const [previewStatus, setPreviewStatus] = useState<string | null>(null);
-  const pendingTryOnRef = useRef<{
-    promptId: string;
-    wardrobeId: string;
-    wardrobeLabel?: string;
-    dressPlateKey?: string;
-  } | null>(null);
+  const pendingTryOnRef = useRef<FittingPendingTryOn | null>(null);
   // Compare and the try-on in flight are saved with Outfit's settings: they lived in page memory
   // only, and a reload (or another device) lost the try-ons the player was choosing between.
   const compareRestoredRef = useRef(false);
@@ -135,8 +140,17 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
     }
     if (input.toolSettings.pendingTryOn?.promptId && !pendingTryOnRef.current) {
       pendingTryOnRef.current = input.toolSettings.pendingTryOn;
+      if (input.toolSettings.pendingTryOn.replacesPromptId) {
+        // A reload while the shoes go on: the pass is still in ComfyUI, keep saying so.
+        scheduleAfterCommit(() => input.setSaveStatus(FEET_PASS_STATUS));
+      }
     }
-  }, [input.mounted, input.toolSettings.compareTryOns, input.toolSettings.pendingTryOn]);
+  }, [
+    input.mounted,
+    input.setSaveStatus,
+    input.toolSettings.compareTryOns,
+    input.toolSettings.pendingTryOn,
+  ]);
   useEffect(() => {
     if (!compareRestoredRef.current) {
       return;
@@ -297,7 +311,8 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           }
         }
         const builtPrompt = buildPrompt(footwearImage);
-        const posePronoun = dayPartnerNoun(input.character ?? {}) === 'man' ? 'he' : 'she';
+        const posePronoun: 'he' | 'she' =
+          dayPartnerNoun(input.character ?? {}) === 'man' ? 'he' : 'she';
         // A limb drawn near the edge of the pose map needs a wider frame than the plate's.
         const framing = poseFramingLine(customPose?.people[0], posePronoun);
         const prompt =
@@ -397,7 +412,27 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           lookId: input.shared.activeLookId ?? input.character?.activeLookId,
         });
         if (typeof promptId === 'string' && promptId.trim()) {
-          const pending: FittingCompareTryOn = {
+          // Edit 2511 draws the pose map's figure barefoot: a second edit puts the shoes on.
+          const feetPass =
+            poseGuideFilename &&
+            fittingNeedsFeetPass({
+              model: input.shared.model,
+              hasCustomPose: true,
+              footwear: input.toolSettings.footwear,
+              hasShoeImage: Boolean(footwearImage),
+            })
+              ? {
+                  shoeWords: normalizeFootwear(input.toolSettings.footwear),
+                  ...(footwearImage && garmentExtras?.inputImageFilenames?.[1]
+                    ? {
+                        imagePlacement: footwearImage,
+                        shoeImageFilename: garmentExtras.inputImageFilenames[1],
+                      }
+                    : {}),
+                  subject: posePronoun,
+                }
+              : null;
+          const pending: FittingPendingTryOn = {
             promptId: promptId.trim(),
             wardrobeId: hasCustomGarment ? 'custom-garment' : wardrobeIdForQueue?.trim() || '',
             wardrobeLabel: hasCustomGarment
@@ -432,7 +467,12 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                   }),
                 }
               : {}),
+            ...(feetPass ? { feetPass } : {}),
           };
+          if (pendingTryOnRef.current?.replacesPromptId) {
+            // Only one job is followed: the shoe pass in flight is let go, its try-on stays.
+            input.setSaveStatus(null);
+          }
           pendingTryOnRef.current = pending;
           input.updateToolSettings({ pendingTryOn: pending });
         }
@@ -459,6 +499,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
       input.setCopied,
       input.setError,
       input.setOutput,
+      input.setSaveStatus,
       input.updateShared,
       input.shared.activeCharacterId,
       input.shared.activeLookId,
@@ -472,26 +513,142 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
     ]
   );
 
+  /**
+   * The feet pass for a posed try-on that just landed (Edit 2511): Image 1 the try-on itself,
+   * Image 2 the shoe picture it was given, no pose map; the same Cast identity and queue options.
+   * The try-on is already in Compare — on any failure it simply stays there.
+   */
+  const queueFeetPass = useCallback(
+    async (
+      tryOn: FittingPendingTryOn,
+      landed: { imageUrl: string; galleryEntryId: string }
+    ): Promise<void> => {
+      const feetPass = tryOn.feetPass;
+      if (!feetPass) return;
+      input.setSaveStatus(FEET_PASS_STATUS);
+      try {
+        const blob = await loadImageBlobFromUrls([landed.imageUrl]);
+        const name = `outfit-feet-pass-${Date.now()}.png`;
+        const uploaded = await resolveQueueInputImage({
+          file: new File([blob], name, {
+            type: blob.type || 'image/png',
+            lastModified: Date.now(),
+          }),
+          filename: name,
+          model: input.shared.model,
+        });
+        const filename = uploaded?.filename?.trim();
+        if (!filename) throw new Error('The try-on could not be staged for the shoe pass.');
+        const shoeImage = feetPass.shoeImageFilename?.trim();
+        const prompt = buildFittingFeetPassPrompt({
+          shoeWords: feetPass.shoeWords,
+          imagePlacement: shoeImage ? feetPass.imagePlacement : null,
+          subject: feetPass.subject,
+        });
+        const queueOptions = buildRoleplayQueueStillOptions({
+          photoMode: true,
+          // The try-on is the plate now; it was rendered from the (isolated) plate already.
+          isolateSubject: false,
+          referenceIsolated: false,
+          filename,
+          imageUrl: comfyInputViewUrl(filename) ?? undefined,
+          identityLockStrength: input.shared.ipAdapterStrength,
+          identityKind: input.shared.identityKind,
+        });
+        const promptId = await input.actions.sendComfyUi(prompt, undefined, undefined, {
+          ...(queueOptions ?? {}),
+          castPlateReference: true,
+          ...withCastIdentityQueueFields(input.character, input.shared.ipAdapterStrength ?? 0.75),
+          ...(shoeImage ? { inputImageFilenames: ['', shoeImage] } : {}),
+          // A short edit: Outfit's tool notes (clothing swaps) would fight "change nothing else".
+          queueHints: '',
+          parentGalleryEntryId: landed.galleryEntryId,
+          characterId: input.shared.activeCharacterId,
+          lookId: input.shared.activeLookId ?? input.character?.activeLookId,
+        });
+        if (typeof promptId !== 'string' || !promptId.trim()) {
+          throw new Error('The shoe pass was not queued.');
+        }
+        if (pendingTryOnRef.current) {
+          // Another try-on was queued meanwhile; follow that one, this card keeps its picture.
+          input.setSaveStatus(null);
+          return;
+        }
+        const pending: FittingPendingTryOn = {
+          promptId: promptId.trim(),
+          wardrobeId: tryOn.wardrobeId,
+          wardrobeLabel: tryOn.wardrobeLabel,
+          replacesPromptId: tryOn.promptId,
+        };
+        pendingTryOnRef.current = pending;
+        input.updateToolSettings({ pendingTryOn: pending });
+      } catch (error) {
+        console.warn('Outfit shoe pass failed:', error);
+        input.setSaveStatus(FEET_PASS_FAILED_STATUS);
+      }
+    },
+    [
+      input.actions,
+      input.character,
+      input.setSaveStatus,
+      input.shared.activeCharacterId,
+      input.shared.activeLookId,
+      input.shared.identityKind,
+      input.shared.ipAdapterStrength,
+      input.shared.model,
+      input.updateToolSettings,
+    ]
+  );
+  // The gallery listener below is registered once; it reaches the current queue through this.
+  const queueFeetPassRef = useRef(queueFeetPass);
+  useEffect(() => {
+    queueFeetPassRef.current = queueFeetPass;
+  }, [queueFeetPass]);
+
   useEffect(() => {
     const syncGallery = () => {
       const pending = pendingTryOnRef.current;
       if (pending?.promptId) {
         const entry = loadComfyGallery().find(item => item.promptId === pending.promptId);
-        if (entry?.status === 'completed') {
+        const replaces = pending.replacesPromptId?.trim();
+        if (replaces && entry?.status === 'error') {
+          // Said once: the pending pass is cleared with it.
+          pendingTryOnRef.current = null;
+          input.updateToolSettings({ pendingTryOn: undefined });
+          input.setSaveStatus(FEET_PASS_FAILED_STATUS);
+        } else if (entry?.status === 'completed') {
           const imageUrl = galleryEntryPrimaryViewUrl(entry);
           if (imageUrl) {
             pendingTryOnRef.current = null;
             input.updateToolSettings({ pendingTryOn: undefined });
-            setCompareTryOns(current =>
-              pushFittingCompareTryOn(current, {
-                promptId: pending.promptId,
-                wardrobeId: pending.wardrobeId,
-                wardrobeLabel: pending.wardrobeLabel,
-                imageUrl,
-                galleryEntryId: entry.id,
-                ...(pending.dressPlateKey ? { dressPlateKey: pending.dressPlateKey } : {}),
-              })
-            );
+            if (replaces) {
+              // The shoes are on: the pass takes the try-on's card (a posed try-on has no
+              // dressPlateKey, and neither does this).
+              setCompareTryOns(current =>
+                replaceFittingCompareTryOnImage(current, replaces, {
+                  promptId: pending.promptId,
+                  imageUrl,
+                  galleryEntryId: entry.id,
+                })
+              );
+              input.setSaveStatus(null);
+            } else {
+              setCompareTryOns(current =>
+                pushFittingCompareTryOn(current, {
+                  promptId: pending.promptId,
+                  wardrobeId: pending.wardrobeId,
+                  wardrobeLabel: pending.wardrobeLabel,
+                  imageUrl,
+                  galleryEntryId: entry.id,
+                  ...(pending.dressPlateKey ? { dressPlateKey: pending.dressPlateKey } : {}),
+                })
+              );
+              if (pending.feetPass) {
+                // Cleared above first: a reload while the pass is being staged keeps the try-on
+                // in Compare and nothing half-done in flight.
+                void queueFeetPassRef.current(pending, { imageUrl, galleryEntryId: entry.id });
+              }
+            }
           }
         }
       }
@@ -520,7 +677,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
     window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, syncGallery);
     syncGallery();
     return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, syncGallery);
-  }, [input.updateToolSettings]);
+  }, [input.setSaveStatus, input.updateToolSettings]);
 
   return {
     busy,

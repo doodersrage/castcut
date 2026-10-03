@@ -2,17 +2,20 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   buildFittingCompareLightboxState,
+  buildFittingFeetPassPrompt,
   buildFittingGarmentPackshotExtractPrompt,
   buildFittingKitPreviewPrompt,
   buildFittingOutfitPrompt,
   buildFittingSwipeDeck,
   dismissFittingCompareTryOn,
+  fittingNeedsFeetPass,
   fittingQueueBlockReason,
   fittingSessionStatusLine,
   fittingSwipeIndex,
   fittingSwipeNeighbor,
   isCollapsedFittingGarmentDescription,
   isPlausibleFittingGarmentDescription,
+  replaceFittingCompareTryOnImage,
   resolveFittingDeckWardrobeId,
   resolveFittingKitPreviewPlate,
   resolveFittingOutfitPhase,
@@ -381,5 +384,87 @@ describe('Story look plate from Cast', () => {
     );
     assert.equal(forced.referenceImageUrl, 'https://example.com/cut.jpg');
     assert.equal(forced.playAs, 'photo');
+  });
+});
+
+describe('Outfit feet pass', () => {
+  const EDIT_2511 = 'qwen-image-edit-2511-lightning-4';
+
+  it('runs only for Edit 2511 with a custom pose and real shoes', () => {
+    assert.equal(
+      fittingNeedsFeetPass({ model: EDIT_2511, hasCustomPose: true, footwear: 'red heels' }),
+      true
+    );
+    assert.equal(
+      fittingNeedsFeetPass({ model: EDIT_2511, hasCustomPose: false, footwear: 'red heels' }),
+      false
+    );
+    assert.equal(
+      fittingNeedsFeetPass({ model: 'qwen-image-edit-rapid-aio', hasCustomPose: true, footwear: 'red heels' }),
+      false
+    );
+    assert.equal(
+      fittingNeedsFeetPass({ model: EDIT_2511, hasCustomPose: true, footwear: 'Barefoot.' }),
+      false
+    );
+    assert.equal(fittingNeedsFeetPass({ model: EDIT_2511, hasCustomPose: true, footwear: '' }), false);
+    assert.equal(
+      fittingNeedsFeetPass({ model: EDIT_2511, hasCustomPose: true, footwear: ' ', hasShoeImage: true }),
+      true
+    );
+    assert.equal(
+      fittingNeedsFeetPass({
+        model: EDIT_2511,
+        hasCustomPose: true,
+        footwear: 'no shoes',
+        hasShoeImage: true,
+      }),
+      false
+    );
+  });
+
+  it('names the shoes under the clothing in Image 2 and keeps everything else', () => {
+    assert.equal(
+      buildFittingFeetPassPrompt({
+        shoeWords: 'red strappy heels.',
+        imagePlacement: 'combined',
+        subject: 'she',
+      }),
+      'Edit Image 1: put the shoes shown at the bottom of Image 2 — red strappy heels — on her bare feet, worn on both feet. Change nothing else: the same person, face, outfit, pose, framing, light and background as Image 1, pixel for pixel away from the feet.'
+    );
+  });
+
+  it('shoes alone in Image 2, words alone, and a man lead', () => {
+    assert.match(
+      buildFittingFeetPassPrompt({ shoeWords: '', imagePlacement: 'alone', subject: 'she' }),
+      /^Edit Image 1: put the shoes shown in Image 2 on her bare feet/
+    );
+    const words = buildFittingFeetPassPrompt({ shoeWords: 'white sneakers', subject: 'he' });
+    assert.match(words, /^Edit Image 1: put white sneakers on his bare feet/);
+    assert.doesNotMatch(words, /Image 2/);
+  });
+
+  it('replaces the try-on card in place with the pass result', () => {
+    const current = [
+      { promptId: 'b', wardrobeId: 'kit-b', imageUrl: '/b.png', galleryEntryId: 'gb' },
+      { promptId: 'a', wardrobeId: 'kit-a', wardrobeLabel: 'A', imageUrl: '/a.png', galleryEntryId: 'ga' },
+    ];
+    const next = replaceFittingCompareTryOnImage(current, 'a', {
+      promptId: 'feet',
+      imageUrl: '/feet.png',
+      galleryEntryId: 'gf',
+    });
+    assert.deepEqual(next[1], {
+      promptId: 'feet',
+      wardrobeId: 'kit-a',
+      wardrobeLabel: 'A',
+      imageUrl: '/feet.png',
+      galleryEntryId: 'gf',
+    });
+    assert.equal(next[0], current[0]);
+    assert.equal(
+      replaceFittingCompareTryOnImage(current, 'gone', { promptId: 'x', imageUrl: '/x.png' }),
+      current
+    );
   });
 });

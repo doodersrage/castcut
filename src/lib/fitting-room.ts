@@ -17,6 +17,23 @@ export type FittingCompareTryOn = {
   dressPlateKey?: string;
 };
 
+/**
+ * The try-on in flight (saved with Outfit's settings so a reload picks it up). A posed try-on on
+ * Edit 2511 carries what its feet pass needs; the feet pass itself names the card it replaces.
+ */
+export type FittingPendingTryOn = FittingCompareTryOn & {
+  feetPass?: {
+    shoeWords: string;
+    /** Where Image 2 shows the shoes; absent when they go in words alone. */
+    imagePlacement?: 'combined' | 'alone';
+    /** The try-on's own Image 2 (the shoes, or the clothing with the shoes under it). */
+    shoeImageFilename?: string;
+    subject: 'she' | 'he';
+  };
+  /** This job is the feet pass for the Compare card with this prompt id. */
+  replacesPromptId?: string;
+};
+
 export const FITTING_COMPARE_LIMIT = 4;
 
 /** Outfit micro-funnel chips: Look plate → try-on → Keep → Day. */
@@ -607,4 +624,82 @@ export function withFittingCustomPose(prompt: string): string {
       .replace(/\band pose\b(?= from Image 1)/g, ''),
     'POSE: Image 3 is a pose map (a skeleton, not a person) — the body takes exactly that stance: arms, legs, head tilt and weight as drawn. Change only the stance; the outfit, face and setting stay.',
   ].join('\n');
+}
+
+/** Stored footwear words that mean no shoes (mirrors footwear.ts, which this module must not pull in). */
+const FITTING_BAREFOOT_RE = /^(?:barefoot|bare feet|no shoes|none|nothing)$/i;
+
+/**
+ * Edit 2511 paints a custom pose's figure barefoot: picked shoes came back 0 of 12 with the pose
+ * map. A second, short edit of the finished try-on (no pose map) put them on 4 of 4 — needed only
+ * there, and only for real shoes (not barefoot or left to the model). Shoes pictured with no words
+ * still count: the try-on named them "the shoes shown in Image 2".
+ */
+export function fittingNeedsFeetPass(input: {
+  model?: string | null;
+  hasCustomPose: boolean;
+  footwear?: string | null;
+  hasShoeImage?: boolean;
+}): boolean {
+  if (!input.hasCustomPose) return false;
+  if (!String(input.model ?? '').includes('qwen-image-edit-2511')) return false;
+  const words = (input.footwear ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[.;,\s]+$/, '');
+  if (FITTING_BAREFOOT_RE.test(words)) return false;
+  return Boolean(words) || input.hasShoeImage === true;
+}
+
+/**
+ * The feet pass: Image 1 is the finished try-on, Image 2 the shoe picture when there is one (the
+ * shoes alone, or under the clothing), no pose map. Everything away from the feet stays. Live
+ * (heels, "strapped on both feet", "dress"): 4 of 4; "worn" and "outfit" so trainers and trousers
+ * read right too.
+ */
+export function buildFittingFeetPassPrompt(input: {
+  shoeWords?: string | null;
+  imagePlacement?: 'combined' | 'alone' | null;
+  subject?: 'she' | 'he';
+}): string {
+  const words = (input.shoeWords ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[.;,\s]+$/, '');
+  const possessive = input.subject === 'he' ? 'his' : 'her';
+  const shown =
+    input.imagePlacement === 'combined'
+      ? 'the shoes shown at the bottom of Image 2'
+      : input.imagePlacement === 'alone'
+        ? 'the shoes shown in Image 2'
+        : '';
+  const shoes = shown ? (words ? `${shown} — ${words} —` : shown) : words || 'the shoes';
+  return [
+    `Edit Image 1: put ${shoes} on ${possessive} bare feet, worn on both feet.`,
+    `Change nothing else: the same person, face, outfit, pose, framing, light and background as Image 1, pixel for pixel away from the feet.`,
+  ].join(' ');
+}
+
+/**
+ * The feet pass landed: its picture takes the try-on's card in place (same spot in Compare), with
+ * the pass's job and gallery entry. A card dismissed meanwhile stays gone.
+ */
+export function replaceFittingCompareTryOnImage(
+  current: FittingCompareTryOn[],
+  replacesPromptId: string,
+  next: { promptId: string; imageUrl: string; galleryEntryId?: string }
+): FittingCompareTryOn[] {
+  const id = replacesPromptId.trim();
+  if (!id || !current.some(item => item.promptId === id)) return current;
+  return current.map(item => {
+    if (item.promptId !== id) return item;
+    const { dressPlateKey: _posedTryOnsHaveNone, ...rest } = item;
+    void _posedTryOnsHaveNone;
+    return {
+      ...rest,
+      promptId: next.promptId.trim() || id,
+      imageUrl: next.imageUrl,
+      ...(next.galleryEntryId ? { galleryEntryId: next.galleryEntryId } : {}),
+    };
+  });
 }
