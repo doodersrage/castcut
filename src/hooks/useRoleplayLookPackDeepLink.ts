@@ -4,7 +4,6 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { roleplayWatchPlaylist } from '@/lib/character-film';
 import {
   applyCharacterRecord,
-  applyCharacterRecordFresh,
   getCharacter,
   getCharacterLookPack,
   getCharactersSnapshot,
@@ -94,7 +93,9 @@ function bindStoryToCast(
     } else {
       updateToolSettings(result.cache);
     }
-    updateShared(applyCharacterRecordFresh(record));
+    // Not the "fresh" variant: binding the Cast that is already active must keep its face lock
+    // and strength (they were cleared on every Story visit); a switch clears them anyway.
+    updateShared(applyCharacterRecord(record));
     return;
   }
   const base = liveIsAnotherLead
@@ -105,7 +106,7 @@ function bindStoryToCast(
     updateShared(applyCharacterRecord(record));
   } else {
     // Nav entry: still bind shared Cast identity even if Story bio can’t synthesize yet.
-    updateShared(applyCharacterRecordFresh(record));
+    updateShared(applyCharacterRecord(record));
   }
   updateToolSettings(withRoleplayCacheFromCastCharacter(base, record));
 }

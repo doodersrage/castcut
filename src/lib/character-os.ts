@@ -564,6 +564,11 @@ export function applyCharacterRecord(character: CharacterRecord): Partial<Shared
         ipAdapterStrength: undefined,
         ipAdapterModelFilename: undefined,
         identityKind: undefined,
+        activeLookId: undefined,
+        lockedWardrobeId: undefined,
+        lockedLocation: undefined,
+        lockedVariationSeed: undefined,
+        alwaysIncludeClothing: undefined,
       }
     : {};
   const applied = omitUndefinedSettings({
