@@ -104,5 +104,10 @@ describe('isolate-subject', () => {
       `nora-cutout-u${stamp}.png`
     );
     assert.equal(cutoutFilename('', now), `roleplay-ref-cutout-u${stamp}.png`);
+    // A content-named cut-out (upload route) re-cut stays one "-cutout".
+    assert.equal(
+      cutoutFilename('nora-cutout-0123456789abcdef.png', now),
+      `nora-cutout-u${stamp}.png`
+    );
   });
 });

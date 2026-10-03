@@ -9,7 +9,6 @@ import 'server-only';
  * can fall back to the local MODNet matte.
  */
 
-import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import {
   comfyBaseUrl,
@@ -18,6 +17,7 @@ import {
   type ComfyImageRef,
 } from '@/lib/comfy-utility-graph-server';
 import { readComboOptionList } from '@/lib/comfyui-combo';
+import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
 
 const LOADER_NODE = 'LoadBackgroundRemovalModel';
 const REMOVE_NODE = 'RemoveBackground';
@@ -47,29 +47,23 @@ export function buildComfyMatteGraph(input: {
 }
 
 async function uploadMatteSource(baseUrl: string, png: Buffer): Promise<string> {
-  const form = new FormData();
-  const body = new Uint8Array(png.byteLength);
-  body.set(png);
-  form.append(
-    'image',
-    new Blob([body], { type: 'image/png' }),
-    `castcut-isolate-${randomUUID()}.png`
-  );
-  form.append('overwrite', 'true');
-  const upload = await fetch(`${baseUrl}/upload/image`, {
-    method: 'POST',
-    body: form,
-    signal: AbortSignal.timeout(30000),
-  });
-  if (!upload.ok) {
-    throw new Error(`ComfyUI upload for isolate failed (HTTP ${upload.status}).`);
+  try {
+    // Named by content: one name per source picture, and a re-cut reuses the staged copy.
+    const staged = await uploadComfyInputContent({
+      baseUrl,
+      bytes: png,
+      filename: 'castcut-isolate.png',
+      mimeType: 'image/png',
+      timeoutMs: 30000,
+    });
+    return staged.subfolder ? `${staged.subfolder}/${staged.name}` : staged.name;
+  } catch (error) {
+    const status = (error as { status?: unknown }).status;
+    if (typeof status === 'number') {
+      throw new Error(`ComfyUI upload for isolate failed (HTTP ${status}).`);
+    }
+    throw error;
   }
-  const data = (await upload.json()) as { name?: string; subfolder?: string };
-  const name = data.name?.trim();
-  if (!name) {
-    throw new Error('ComfyUI upload for isolate returned no filename.');
-  }
-  return data.subfolder?.trim() ? `${data.subfolder.trim()}/${name}` : name;
 }
 
 /**

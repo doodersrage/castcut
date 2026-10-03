@@ -18,7 +18,7 @@ export type ComfyUploadedImage = {
 async function uploadJson(
   file: File,
   comfyUrl: string | undefined,
-  extra?: { kind?: 'image' | 'mask'; originalRef?: ComfyUploadedImage }
+  extra?: { kind?: 'image' | 'mask'; originalRef?: ComfyUploadedImage; keepName?: boolean }
 ): Promise<ComfyUploadedImage> {
   const image = await fileToDataUrl(file);
   // ~10MB proxy/Next truncation — refuse before a cryptic JSON parse error.
@@ -37,6 +37,7 @@ async function uploadJson(
       filename: file.name || 'prompt-studio-upload.png',
       ...(comfyUrl ? { comfyUrl } : {}),
       ...(extra?.kind ? { kind: extra.kind } : {}),
+      ...(extra?.keepName ? { keepName: true } : {}),
       ...(extra?.originalRef?.name
         ? {
             originalRef: {
@@ -65,7 +66,7 @@ async function uploadJson(
 async function uploadMultipart(
   file: File,
   comfyUrl: string | undefined,
-  extra?: { kind?: 'image' | 'mask'; originalRef?: ComfyUploadedImage }
+  extra?: { kind?: 'image' | 'mask'; originalRef?: ComfyUploadedImage; keepName?: boolean }
 ): Promise<ComfyUploadedImage> {
   const formData = new FormData();
   formData.append('image', file, file.name);
@@ -74,6 +75,9 @@ async function uploadMultipart(
   }
   if (extra?.kind) {
     formData.append('kind', extra.kind);
+  }
+  if (extra?.keepName) {
+    formData.append('keepName', 'true');
   }
   if (extra?.originalRef?.name) {
     formData.append(
@@ -110,12 +114,19 @@ export async function uploadComfyInputImage(input: {
   comfyUrl?: string;
   kind?: 'image' | 'mask';
   originalRef?: ComfyUploadedImage;
+  /**
+   * Store under `file.name` exactly, overwriting. Off by default: ComfyUI gets a name made from
+   * the picture's bytes (`<prefix>-<sha256[:16]>.<ext>`) and a picture it already has is not
+   * sent again — so use the returned `name`, never `file.name`.
+   */
+  keepName?: boolean;
 }): Promise<ComfyUploadedImage> {
   const runtime = input.model ? resolveRuntimeForModel(input.model as ComfyImageModel) : undefined;
   const comfyUrl = input.comfyUrl?.trim() || runtime?.apiUrl?.trim() || undefined;
   const extra = {
     kind: input.kind,
     originalRef: input.originalRef,
+    keepName: input.keepName,
   };
 
   // Masks stay lossless so inpaint edges remain sharp. Compress figures only.

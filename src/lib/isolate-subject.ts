@@ -121,12 +121,14 @@ export function compositeRgbaOnFill(
 /**
  * Its own name per cut-out: ComfyUI uploads overwrite, so two photos both called "image.jpg"
  * (or one plate cut twice) shared "image-cutout.png" — and one person's plate showed the other.
+ * The upload route then swaps the stamp for a hash of the cut-out's bytes, so different cut-outs
+ * still never share a name; a re-cut of "nora-cutout-<hash>.png" stays "nora-cutout-…".
  */
 export function cutoutFilename(name: string, now: number = Date.now()): string {
   const base =
     (name.trim().split('/').pop() ?? '')
       .replace(/\.[^.]+$/, '')
-      .replace(/-cutout(-u[0-9a-z]{6,})?$/, '') || 'roleplay-ref';
+      .replace(/-cutout(-u[0-9a-z]{6,}|-[0-9a-f]{16})?$/, '') || 'roleplay-ref';
   return stampedUploadName(`${base}-cutout.png`, now);
 }
 

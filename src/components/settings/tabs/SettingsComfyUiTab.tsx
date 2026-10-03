@@ -16,6 +16,7 @@ import SettingsWorkflowPatchingPanel from '@/components/settings/panels/Settings
 import SettingsIpAdapterPanel from '@/components/settings/panels/SettingsIpAdapterPanel';
 import SettingsQueueParamsPanel from '@/components/settings/panels/SettingsQueueParamsPanel';
 import SettingsSamplerMemoryPanel from '@/components/settings/panels/SettingsSamplerMemoryPanel';
+import SettingsComfyInputFolderPanel from '@/components/settings/panels/SettingsComfyInputFolderPanel';
 import { validateWorkflowJson, type CustomWorkflowToken } from '@/lib/comfyui-config';
 import { placeholderTokensFromSettings } from '@/lib/comfyui-settings';
 import type { ComfyUiSettings } from '@/lib/comfyui-settings';
@@ -352,6 +353,8 @@ export default function SettingsComfyUiTab({
             updateSharedSettings={updateSharedSettings}
             setStatus={setStatus}
           />
+
+          <SettingsComfyInputFolderPanel comfyUrl={settings.apiUrl} setStatus={setStatus} />
         </>
       ) : null}
     </>

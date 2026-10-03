@@ -7,6 +7,7 @@
  * its history entry is deleted afterwards so checks never show up as gallery items.
  */
 
+import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
 import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
 import { deleteComfyUiHistoryItems } from '@/lib/comfyui-status';
@@ -140,24 +141,25 @@ export async function stageComfyImageAsInput(
   if (!view.ok) {
     throw new Error(`Could not read the image from ComfyUI (HTTP ${view.status}).`);
   }
-  const blob = await view.blob();
-  const form = new FormData();
-  form.append('image', blob, `${prefix}-${ref.filename}`);
-  form.append('overwrite', 'true');
-  const upload = await fetch(`${baseUrl}/upload/image`, {
-    method: 'POST',
-    body: form,
-    signal: AbortSignal.timeout(30000),
-  });
-  if (!upload.ok) {
-    throw new Error(`ComfyUI upload for ${prefix} failed (HTTP ${upload.status}).`);
+  const bytes = new Uint8Array(await view.arrayBuffer());
+  const extension = /\.[A-Za-z0-9]{1,5}$/.exec(ref.filename)?.[0] ?? '.png';
+  try {
+    // Named by content: checking the same still twice reuses the copy already staged.
+    const staged = await uploadComfyInputContent({
+      baseUrl,
+      bytes,
+      filename: `${prefix}${extension}`,
+      mimeType: view.headers.get('content-type') || undefined,
+      timeoutMs: 30000,
+    });
+    return staged.subfolder ? `${staged.subfolder}/${staged.name}` : staged.name;
+  } catch (error) {
+    const status = (error as { status?: unknown }).status;
+    if (typeof status === 'number') {
+      throw new Error(`ComfyUI upload for ${prefix} failed (HTTP ${status}).`);
+    }
+    throw error;
   }
-  const data = (await upload.json()) as { name?: string; subfolder?: string };
-  const name = data.name?.trim();
-  if (!name) {
-    throw new Error(`ComfyUI upload for ${prefix} returned no filename.`);
-  }
-  return data.subfolder?.trim() ? `${data.subfolder.trim()}/${name}` : name;
 }
 
 /**

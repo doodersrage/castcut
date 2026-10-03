@@ -12,6 +12,8 @@ export type ParsedEngineUpload = {
   engineUrl?: string;
   kind?: 'image' | 'mask';
   originalRef?: ComfyUploadOriginalRef;
+  /** Upload under the given filename (overwriting) instead of a content-addressed name. */
+  keepName?: boolean;
 };
 
 const MAX_JSON_IMAGE_CHARS = 35_000_000;
@@ -109,8 +111,9 @@ async function parseMultipartUpload(request: Request): Promise<ParsedEngineUploa
   const engineUrl = formData.get('engineUrl')?.toString().trim() || comfyUrl || undefined;
   const kind = formData.get('kind')?.toString().trim() === 'mask' ? 'mask' : undefined;
   const originalRef = parseOriginalRef(formData.get('originalRef')?.toString());
+  const keepName = formData.get('keepName')?.toString().trim() === 'true' || undefined;
 
-  return { file: image, comfyUrl, engineUrl, kind, originalRef };
+  return { file: image, comfyUrl, engineUrl, kind, originalRef, ...(keepName ? { keepName } : {}) };
 }
 
 async function parseJsonUpload(request: Request): Promise<ParsedEngineUpload> {
@@ -122,6 +125,7 @@ async function parseJsonUpload(request: Request): Promise<ParsedEngineUpload> {
     engineUrl?: string;
     kind?: string;
     originalRef?: unknown;
+    keepName?: unknown;
   };
 
   if (!body.image?.trim()) {
@@ -136,7 +140,8 @@ async function parseJsonUpload(request: Request): Promise<ParsedEngineUpload> {
   const engineUrl = body.engineUrl?.trim() || comfyUrl || undefined;
   const kind = body.kind?.trim() === 'mask' ? 'mask' : undefined;
   const originalRef = parseOriginalRef(body.originalRef);
-  return { file, comfyUrl, engineUrl, kind, originalRef };
+  const keepName = body.keepName === true || undefined;
+  return { file, comfyUrl, engineUrl, kind, originalRef, ...(keepName ? { keepName } : {}) };
 }
 
 /**
