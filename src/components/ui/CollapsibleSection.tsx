@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { loadCollapsibleOpen, saveCollapsibleOpen } from '@/lib/collapsible-persist';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
@@ -23,12 +23,16 @@ export function CollapsibleSection({
 }) {
   const storageId = persistKey?.trim() || '';
   const [open, setOpen] = useState(defaultOpen);
+  // A toggle made before the saved state is restored wins — the deferred restore used to fold
+  // a section the user had just opened (and reset what was inside it).
+  const toggledRef = useRef(false);
 
   useEffect(() => {
     if (!storageId) {
       return;
     }
     scheduleAfterCommit(() => {
+      if (toggledRef.current) return;
       setOpen(loadCollapsibleOpen(storageId, defaultOpen));
     });
   }, [defaultOpen, storageId]);
@@ -41,6 +45,7 @@ export function CollapsibleSection({
       className={`ui-collapsible group/collapsible ${className}`.trim()}
       onToggle={event => {
         const nextOpen = event.currentTarget.open;
+        if (nextOpen !== open) toggledRef.current = true;
         setOpen(nextOpen);
         if (storageId) {
           saveCollapsibleOpen(storageId, nextOpen);
