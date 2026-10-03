@@ -2280,6 +2280,39 @@ test('Characters: New character opens Film with the create form', async ({ page 
   await expect(page.getByTestId('play-campaign-create-name')).toBeVisible({ timeout: 30_000 });
 });
 
+test('a Cast with a bible and a picture offers Picture this bible', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-bible-picture' },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-bible-picture',
+          name: 'Mara',
+          version: 1,
+          updatedAt: Date.now(),
+          descriptor: 'a slim woman in her late 20s with long auburn hair',
+          bio: {
+            name: 'Mara',
+            look: 'a weathered green field coat over a cream knit sweater',
+            personality: 'restless, kind',
+          },
+          ipAdapter: { imageFilename: 'e2e-face.png', imageUrl: '/icon.svg' },
+          biblePicture: { imageUrl: '/icon.svg', promptId: 'e2e-prompt', at: Date.now() },
+        },
+      ],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, '/characters/e2e-bible-picture');
+  await dismissBlockingOverlays(page);
+  await page.getByText('Bible', { exact: true }).first().click();
+  await expect(page.getByTestId('cast-bible-picture')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('cast-bible-picture-hint')).toHaveCount(0);
+  // The last picture shows again on a revisit.
+  await expect(page.getByTestId('cast-bible-picture-image')).toBeVisible();
+});
+
 test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => {
   const file = {
     kind: 'castcut-cast',

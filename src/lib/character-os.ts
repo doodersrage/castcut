@@ -9,6 +9,7 @@ import {
   withSuppressedDurableSyncPush,
   writeBrowserValue,
 } from './browser-storage';
+import { normalizeCastBiblePicture, type CastBiblePicture } from './cast-bible-picture';
 import type { CharacterFilmCut } from './character-film';
 import type { CharacterIdentityBundle } from './character-identity-bundle';
 import type { LookPack } from './look-pack';
@@ -66,6 +67,8 @@ export type CharacterRecord = {
    */
   traits?: CharacterTraits;
   bio?: RoleplayBio;
+  /** Last "Picture this bible" still (Cast → Bible), shown again on a revisit. */
+  biblePicture?: CastBiblePicture;
   ipAdapter?: {
     imageFilename?: string;
     imageFilenames?: string[];
@@ -391,6 +394,10 @@ export function normalizeCharacterRecord(character: CharacterRecord): CharacterR
       loraLibraryIds: uniqueIds(character.loraLibraryIds),
       looks,
       lookPacks: normalizeLookPacks(character.lookPacks),
+      // Only when set — an extra undefined key would differ in strict deep-equal checks.
+      ...('biblePicture' in character
+        ? { biblePicture: normalizeCastBiblePicture(character.biblePicture) }
+        : {}),
       activeLookId: current.id,
     },
     current
@@ -1015,10 +1022,26 @@ export function clearCharacterBio(characterId: string): CharacterRecord | undefi
   upsertCharacter({
     ...character,
     bio: undefined,
+    // The picture showed that bible.
+    biblePicture: undefined,
     looks: looksOf(character),
     updatedAt: Date.now(),
   });
   return getCharacter(id);
+}
+
+/** Remember the last "Picture this bible" still on the Cast. */
+export function saveCharacterBiblePicture(
+  characterId: string,
+  picture: CastBiblePicture
+): CharacterRecord | undefined {
+  const character = getCharacter(characterId.trim());
+  const normalized = normalizeCastBiblePicture(picture);
+  if (!character || !normalized) {
+    return undefined;
+  }
+  upsertCharacter({ ...character, biblePicture: normalized, looks: looksOf(character) });
+  return getCharacter(character.id);
 }
 
 export function addLookFromShared(

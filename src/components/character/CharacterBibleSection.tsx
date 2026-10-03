@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import { Button } from '@/components/ui/Button';
@@ -36,6 +37,11 @@ import {
 } from '@/lib/settings-cache';
 
 const ACCENT = 'sky' as const;
+
+const CastBiblePictureButton = dynamic(
+  () => import('@/components/character/CastBiblePictureButton'),
+  { ssr: false, loading: () => null }
+);
 
 type CharacterBibleSectionProps = {
   character: CharacterRecord;
@@ -92,6 +98,7 @@ export default function CharacterBibleSection({
   const [error, setError] = useState<string | null>(null);
   const [rewriting, setRewriting] = useState(false);
   const [describing, setDescribing] = useState(false);
+  const [pictureError, setPictureError] = useState<string | null>(null);
   /** Optimistic preview so a successful save is visible even if the parent re-renders late. */
   const [savedBio, setSavedBio] = useState<RoleplayBio | undefined>(character.bio);
   const [syncedKey, setSyncedKey] = useState(`${character.id}:${character.updatedAt}`);
@@ -116,7 +123,10 @@ export default function CharacterBibleSection({
     setStatus('Bible saved on Cast — Story will continue from this.');
   };
 
-  const photoUrl = castReferenceImage(character).imageUrl;
+  const castPicture = castReferenceImage(character);
+  const photoUrl = castPicture.imageUrl;
+  const hasPicture = Boolean(castPicture.filename || castPicture.imageUrl);
+  const biblePictureUrl = character.biblePicture?.imageUrl;
   // A bible look still holding the rolled description a photo Cast was given before 2.3.
   const lookIsMadeUp = Boolean(photoUrl && isRolledAppearanceDescriptor(bio?.look));
 
@@ -315,6 +325,45 @@ export default function CharacterBibleSection({
             >
               Clear bible
             </Button>
+          </div>
+          <div className="mt-4" data-testid="cast-bible-picture-block">
+            {hasPicture ? (
+              <CastBiblePictureButton
+                character={character}
+                bio={bio}
+                pictureUrl={castPicture}
+                onPictured={next => {
+                  onUpdated?.(next);
+                  setStatus('Pictured — the still is in the gallery too.');
+                }}
+                onError={setPictureError}
+              />
+            ) : (
+              <p
+                className="type-caption text-[var(--text-muted)]"
+                data-testid="cast-bible-picture-hint"
+              >
+                Add a look plate on Overview first to picture this bible — the picture keeps the
+                face from it.
+              </p>
+            )}
+            {pictureError ? (
+              <p
+                className="type-caption mt-2 text-[var(--danger-text)]"
+                data-testid="cast-bible-picture-error"
+              >
+                {pictureError}
+              </p>
+            ) : null}
+            {biblePictureUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- ComfyUI / gallery media URL
+              <img
+                src={biblePictureUrl}
+                alt={`${bio.name} as the bible describes them`}
+                className="mt-3 max-h-[28rem] max-w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
+                data-testid="cast-bible-picture-image"
+              />
+            ) : null}
           </div>
         </>
       ) : (
