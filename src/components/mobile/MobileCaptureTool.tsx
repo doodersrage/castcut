@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
 import {
+  getCharacter,
   getCharactersSnapshot,
   getServerCharactersSnapshot,
   subscribeCharacters,
@@ -203,7 +204,10 @@ export default function MobileCaptureTool() {
   }
 
   const activeCastId = shared.activeCharacterId?.trim() || '';
-  const activeCast = (mounted && castRoster.find(entry => entry.id === activeCastId)) || null;
+  // getCharacter also finds a Cast an older version re-saved under another id.
+  const activeCast =
+    (mounted && castRoster.length > 0 && activeCastId ? getCharacter(activeCastId) : undefined) ??
+    null;
   const castPlateUrl = activeCast ? castPlateThumbUrl(activeCast) : '';
   const displayUrl = previewUrl || (active?.isolated ? active.isolatedUrl : active?.originalUrl);
 

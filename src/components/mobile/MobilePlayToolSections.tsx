@@ -146,7 +146,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
   );
   const castId =
     filmCharacterId?.trim() ||
-    (activeCastId && castRoster.some(entry => entry.id === activeCastId) ? activeCastId : '');
+    (activeCastId && castRoster.length > 0 ? getCharacter(activeCastId)?.id || '' : '');
   // Asked in the page, as on desk: keep the bible, or have a new one written for this lead.
   const startOver = useStoryStartOver({
     clearStory: () => {

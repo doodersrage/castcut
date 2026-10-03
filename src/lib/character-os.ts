@@ -1202,9 +1202,12 @@ export function getCharacter(id: string | undefined): CharacterRecord | undefine
     characters.find(entry => entry.id === key) ??
     // An older version replaced a Film-made Cast "<id>" with a copy "char-rp-cast-<id>" when its
     // Story was saved; a reference to the old id finds that copy.
-    (key.startsWith('char-rp-')
-      ? undefined
-      : characters.find(entry => entry.id === `char-rp-cast-${key}`))
+    // and the other way round once the copy has been folded back into the real Cast.
+    (key.startsWith('char-rp-cast-')
+      ? characters.find(entry => entry.id === key.slice('char-rp-cast-'.length))
+      : key.startsWith('char-rp-')
+        ? undefined
+        : characters.find(entry => entry.id === `char-rp-cast-${key}`))
   );
 }
 

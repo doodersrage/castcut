@@ -532,6 +532,8 @@ describe('a reference to a Cast an older version replaced', () => {
       saveCharacters([{ ...copy, id: 'char-rp-cast-char-lost' }]);
       assert.equal(getCharacter('char-lost')?.id, 'char-rp-cast-char-lost');
       assert.equal(getCharacter('char-rp-missing'), undefined);
+      saveCharacters([{ ...copy, id: 'char-real' }]);
+      assert.equal(getCharacter('char-rp-cast-char-real')?.id, 'char-real');
     });
   });
 });
