@@ -12,13 +12,15 @@ import { usePlateCheck } from '@/hooks/usePlateCheck';
 import type { FittingPlate } from '@/lib/fitting-room';
 import { galleryPickPath } from '@/lib/gallery-handoff';
 import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
-import type { stripCastPlateClothing } from '@/lib/cast-plate-strip';
+import type { CastPlatePrepareOptions, prepareCastPlate } from '@/lib/cast-plate-prepare';
 import { castLookPortraitTile, type CastPlateTile } from '@/lib/cast-plate-thumb';
+import type { DayPartnerNoun } from '@/lib/day-partner';
+import { plateStanceNote, type PlateStance } from '@/lib/plate-stance';
 
-const CastPlateStripButton = dynamic(() => import('@/components/character/CastPlateStripButton'), {
-  ssr: false,
-  loading: () => null,
-});
+const CastPlatePrepareControl = dynamic(
+  () => import('@/components/character/CastPlatePrepareControl'),
+  { ssr: false, loading: () => null }
+);
 
 export type CharacterLookPlateSectionProps = {
   characterId: string;
@@ -28,12 +30,19 @@ export type CharacterLookPlateSectionProps = {
   error: string | null;
   onClear: () => void;
   onUpload: (file: File) => void;
-  /** Edit the plate down to a plain base layer (hidden when omitted). */
-  onStripClothing?: (
-    sendComfyUi: Parameters<typeof stripCastPlateClothing>[0]['sendComfyUi']
+  /** One edit to standing / base layer / white, per the ticked options (hidden when omitted). */
+  onPreparePlate?: (
+    sendComfyUi: Parameters<typeof prepareCastPlate>[0]['sendComfyUi'],
+    options: CastPlatePrepareOptions
   ) => void;
-  canUndoStrip?: boolean;
-  onUndoStrip?: () => void;
+  canUndoPrepare?: boolean;
+  onUndoPrepare?: () => void;
+  /** The active plate's stance (null until read, or when it can't be). */
+  stance?: PlateStance | null;
+  /** Who the plate shows — her / him in the wording. */
+  noun?: DayPartnerNoun;
+  /** The prepared plate's face scored under the bar against the previous one. */
+  faceDrift?: boolean;
   /** Every look of the Cast, one picture tile each (a look with no plate shows Add plate). */
   plates?: CastPlateTile[];
   activePlateId?: string;
@@ -143,9 +152,12 @@ export default function CharacterLookPlateSection({
   error,
   onClear,
   onUpload,
-  onStripClothing,
-  canUndoStrip = false,
-  onUndoStrip,
+  onPreparePlate,
+  canUndoPrepare = false,
+  onUndoPrepare,
+  stance = null,
+  noun = 'person',
+  faceDrift = false,
   plates = [],
   activePlateId,
   onSelectPlate,
@@ -161,6 +173,15 @@ export default function CharacterLookPlateSection({
   const severalLooks = plates.length > 1;
   const activePlate = plates.find(entry => entry.id === activePlateId) ?? plates[0];
   const removeLook = severalLooks && onRemovePlate ? onRemovePlate : undefined;
+  const pronoun = noun === 'man' ? 'him' : noun === 'woman' ? 'her' : 'them';
+  const stanceNote = plateStanceNote(stance);
+  const prepareHint = onPreparePlate
+    ? stanceNote
+      ? `${stanceNote} Prepare plate stands ${pronoun} up.`
+      : plate?.isolated === false && stance?.standing
+        ? `Not on white — Prepare plate puts ${pronoun} on plain white.`
+        : null
+    : stanceNote;
 
   return (
     <ToolSection
@@ -237,6 +258,24 @@ export default function CharacterLookPlateSection({
           ) : null}
           <div className="min-w-[12rem] flex-1 space-y-3">
             <PlateCheckLine plate={plate} />
+            {prepareHint ? (
+              <p
+                className="type-caption text-[var(--tint-warning-text)]"
+                data-testid="cast-look-plate-stance"
+                data-reason={stance?.reason}
+              >
+                {prepareHint}
+              </p>
+            ) : null}
+            {faceDrift ? (
+              <p
+                className="type-caption text-[var(--tint-warning-text)]"
+                data-testid="cast-look-plate-face-drift"
+                role="status"
+              >
+                The face may have drifted — Undo to keep the original.
+              </p>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <UploadButton
                 label="Replace"
@@ -253,16 +292,13 @@ export default function CharacterLookPlateSection({
               >
                 Choose from Gallery
               </ButtonLink>
-              {onStripClothing ? (
-                <CastPlateStripButton disabled={uploading} onStrip={onStripClothing} />
-              ) : null}
-              {canUndoStrip && onUndoStrip ? (
+              {canUndoPrepare && onUndoPrepare ? (
                 <Button
                   variant="ghost"
                   size="sm"
                   disabled={uploading}
-                  data-testid="cast-look-plate-strip-undo"
-                  onClick={onUndoStrip}
+                  data-testid="cast-look-plate-prepare-undo"
+                  onClick={onUndoPrepare}
                 >
                   Undo
                 </Button>
@@ -278,6 +314,13 @@ export default function CharacterLookPlateSection({
                 {removeLook ? 'Remove look' : 'Remove plate'}
               </Button>
             </div>
+            {onPreparePlate ? (
+              <CastPlatePrepareControl
+                disabled={uploading}
+                noun={noun}
+                onPrepare={onPreparePlate}
+              />
+            ) : null}
           </div>
         </div>
       ) : (

@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { comfyInputViewUrl } from '@/lib/face-match-client';
 import { checkLookPlate, type PlateCheck } from '@/lib/plate-check';
-import { detectStillPose } from '@/lib/pose-detect-client';
+import { detectStillPoseShared, plateDetectUrl } from '@/lib/pose-detect-client';
 
 export type PlateCheckOutcome =
   | { state: 'done'; check: PlateCheck }
@@ -81,15 +80,13 @@ export function usePlateCheck(plate: { imageUrl?: string; filename?: string } | 
       if (cached) {
         outcome = cached;
       } else {
-        const comfyUrl = imageUrl.includes('/api/comfyui/view?')
-          ? imageUrl
-          : comfyInputViewUrl(filename);
+        const comfyUrl = plateDetectUrl({ imageUrl, filename });
         if (!comfyUrl) {
           outcome = { state: 'off', reason: 'Plate check needs the plate in ComfyUI.' };
         } else {
           try {
             const [detected, size] = await Promise.all([
-              detectStillPose(comfyUrl),
+              detectStillPoseShared(comfyUrl),
               imageSize(imageUrl || comfyUrl),
             ]);
             outcome = detected.available

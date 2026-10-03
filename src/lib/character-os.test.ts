@@ -26,6 +26,7 @@ import {
   roleplayLibraryIdFromCharacter,
   saveCharacterBio,
   saveCharacterTraits,
+  setLookPlateStance,
   clearCharacterBio,
   slugCharacterName,
   upsertCharacter,
@@ -692,6 +693,40 @@ describe('several look plates per Cast', () => {
       const back = activateLook('char-swap', first.id);
       assert.equal(back?.activeLookId, first.id);
       assert.equal(back?.ipAdapter?.imageFilename, 'swap-a.png');
+    });
+  });
+
+  it('setLookPlateStance stores the plate stance on the look and keeps it through edits', () => {
+    withMockLocalStorage(() => {
+      upsertCharacter({
+        id: 'char-stance',
+        name: 'Stance',
+        version: 1,
+        updatedAt: 1,
+        ipAdapter: { imageFilename: 'stance-a.png', imageUrl: '/a.png' },
+      });
+      const look = activeLook(getCharacter('char-stance')!);
+      const stored = setLookPlateStance('char-stance', look.id, {
+        standing: false,
+        reason: 'seated',
+        checkedAt: 7,
+        plate: 'stance-a.png',
+      });
+      assert.deepEqual(activeLook(stored!).plateStance, {
+        standing: false,
+        reason: 'seated',
+        checkedAt: 7,
+        plate: 'stance-a.png',
+      });
+      // An appearance save (no looks passed) rebuilds the look — the stance stays.
+      upsertCharacter({ ...getCharacter('char-stance')!, looks: undefined, hints: 'freckles' });
+      assert.equal(activeLook(getCharacter('char-stance')!).plateStance?.reason, 'seated');
+      // A broken stored stance is dropped.
+      const broken = normalizeCharacterRecord({
+        ...getCharacter('char-stance')!,
+        looks: [{ ...look, plateStance: { reason: 'dancing' } as never }],
+      });
+      assert.equal('plateStance' in activeLook(broken), false);
     });
   });
 

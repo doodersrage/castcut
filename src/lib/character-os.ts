@@ -13,6 +13,7 @@ import { normalizeCastBiblePicture, type CastBiblePicture } from './cast-bible-p
 import type { CharacterFilmCut } from './character-film';
 import type { CharacterIdentityBundle } from './character-identity-bundle';
 import type { LookPack } from './look-pack';
+import { normalizePlateStance, type PlateStance } from './plate-stance';
 import {
   applyCharacterIdentityBundle,
   buildCharacterIdentityBundle,
@@ -125,6 +126,8 @@ export type CharacterLook = {
   negativeProfileId?: string;
   /** Gallery still ids marked as LoRA keepers for this era. Undefined = fall back to favorites. */
   keeperEntryIds?: string[];
+  /** Whether this look's plate stands full body (DWPose read; see plate-stance.ts). */
+  plateStance?: PlateStance;
 };
 
 type CharacterStore = {
@@ -386,7 +389,18 @@ export function normalizeCharacterRecord(character: CharacterRecord): CharacterR
     const descriptor = look.descriptor?.trim()
       ? sanitizeCharacterAppearanceDescriptor(look.descriptor)
       : look.descriptor;
-    return descriptor === look.descriptor ? look : { ...look, descriptor };
+    let next = descriptor === look.descriptor ? look : { ...look, descriptor };
+    if ('plateStance' in next) {
+      const plateStance = normalizePlateStance(next.plateStance);
+      if (!plateStance) {
+        const { plateStance: _dropped, ...rest } = next;
+        void _dropped;
+        next = rest;
+      } else if (JSON.stringify(plateStance) !== JSON.stringify(next.plateStance)) {
+        next = { ...next, plateStance };
+      }
+    }
+    return next;
   });
   const current = looks.find(look => look.id === character.activeLookId) ?? looks[0]!;
   const rootDescriptor = character.descriptor?.trim()
@@ -908,6 +922,8 @@ function mergeCharacterUpdate(prev: CharacterRecord, incoming: CharacterRecord):
   const nextLook = {
     ...lookFromAppearance(incoming, current.name, current.id, current.createdAt),
     keeperEntryIds: current.keeperEntryIds,
+    // Keyed to the plate it was read from: a replaced plate makes it stale, not wrong.
+    ...(current.plateStance ? { plateStance: current.plateStance } : {}),
   };
   const nextLooks = looks.some(look => look.id === nextLook.id)
     ? looks.map(look => (look.id === nextLook.id ? nextLook : look))
@@ -1207,6 +1223,32 @@ export function setLookKeepers(
   upsertCharacter({
     ...character,
     looks: looks.map(look => (look.id === nextLook.id ? nextLook : look)),
+    updatedAt: Date.now(),
+  });
+  return getCharacter(characterId);
+}
+
+/** Remember how a look's plate stands (read from its pose, or set by Prepare plate). */
+export function setLookPlateStance(
+  characterId: string,
+  lookId: string,
+  stance: PlateStance
+): CharacterRecord | undefined {
+  const character = getCharacter(characterId);
+  const normalized = normalizePlateStance(stance);
+  if (!character || !normalized) {
+    return character;
+  }
+  const looks = looksOf(character);
+  // A Cast with no saved looks has one made up on each read — its id is never stable.
+  const target =
+    looks.find(look => look.id === lookId) ?? (character.looks?.length ? undefined : looks[0]);
+  if (!target) {
+    return character;
+  }
+  upsertCharacter({
+    ...character,
+    looks: looks.map(look => (look.id === target.id ? { ...look, plateStance: normalized } : look)),
     updatedAt: Date.now(),
   });
   return getCharacter(characterId);

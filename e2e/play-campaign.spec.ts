@@ -2479,6 +2479,62 @@ test('a Cast with three looks: one Looks strip, Add plate on the plate-less one'
   await expect(empty.getByTestId('cast-look-plate-clear')).toHaveText('Remove look');
 });
 
+test('a seated Cast plate recommends Prepare plate, with its three steps ticked', async ({
+  page,
+}) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-seated-plate', activeLookId: 'e2e-seated-look' },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-seated-plate',
+          name: 'Ines',
+          version: 1,
+          updatedAt: Date.now(),
+          activeLookId: 'e2e-seated-look',
+          traits: { sex: 'woman' },
+          ipAdapter: { imageFilename: 'e2e-seated.png', imageUrl: '/icon.svg' },
+          looks: [
+            {
+              id: 'e2e-seated-look',
+              name: 'Sofa',
+              createdAt: 1,
+              ipAdapter: { imageFilename: 'e2e-seated.png', imageUrl: '/icon.svg' },
+              plateStance: { standing: false, reason: 'seated', checkedAt: 1 },
+            },
+          ],
+        },
+      ],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, '/characters/e2e-seated-plate');
+  await dismissBlockingOverlays(page);
+  const note = page.getByTestId('cast-look-plate-stance');
+  await expect(note).toBeVisible({ timeout: 30_000 });
+  await expect(note).toHaveAttribute('data-reason', 'seated');
+  await expect(note).toContainText('Seated — Day and Outfit pose a standing, full-body plate');
+  await expect(note).toContainText('Prepare plate stands her up.');
+  const prepare = page.getByTestId('cast-look-plate-prepare');
+  await expect(prepare).toBeVisible({ timeout: 30_000 });
+  await expect(prepare).toHaveText('Prepare plate');
+  // Remove clothing is now the base-layer step of Prepare plate.
+  await expect(page.getByRole('button', { name: 'Remove clothing' })).toHaveCount(0);
+  for (const step of ['stand', 'baseLayer', 'whiteBackground']) {
+    await expect(page.getByTestId(`cast-look-plate-prepare-${step}`)).toBeChecked();
+  }
+  // Nothing ticked, nothing to do.
+  for (const step of ['stand', 'baseLayer', 'whiteBackground']) {
+    await page.getByTestId(`cast-look-plate-prepare-${step}`).uncheck();
+  }
+  await expect(prepare).toBeDisabled();
+  await page.getByTestId('cast-look-plate-prepare-stand').check();
+  await expect(prepare).toBeEnabled();
+  // Never automatic, and no Undo until a plate was prepared.
+  await expect(page.getByTestId('cast-look-plate-prepare-undo')).toHaveCount(0);
+});
+
 test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => {
   const file = {
     kind: 'castcut-cast',

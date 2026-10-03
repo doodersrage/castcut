@@ -99,13 +99,16 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
           onUpload={file => {
             void props.applyLookPlate({ file });
           }}
-          onStripClothing={sendComfyUi => {
-            void props.stripLookPlateClothing(sendComfyUi);
+          onPreparePlate={(sendComfyUi, options) => {
+            void props.prepareLookPlate(sendComfyUi, options);
           }}
-          canUndoStrip={props.canUndoPlateStrip}
-          onUndoStrip={() => {
-            void props.undoLookPlateStrip();
+          canUndoPrepare={props.canUndoPlatePrepare}
+          onUndoPrepare={() => {
+            void props.undoLookPlatePrepare();
           }}
+          stance={props.plateStance}
+          noun={props.plateSubjectNoun}
+          faceDrift={props.plateFaceDrift}
           plates={props.plateTiles}
           activePlateId={character.activeLookId}
           onSelectPlate={props.selectPlate}

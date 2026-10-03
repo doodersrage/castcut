@@ -51,10 +51,13 @@ import { addBlankCastLook, removeCastPlate, switchCastPlate } from '@/lib/cast-p
 import { castPlateTiles, nextCastLookName } from '@/lib/cast-plate-thumb';
 import { fetchClothingLabels } from '@/lib/clothing-catalog-client';
 import {
+  prepareCastPlate,
   restoreCastPlateSnapshot,
-  stripCastPlateClothing,
+  type CastPlatePrepareOptions,
   type CastPlateSnapshot,
-} from '@/lib/cast-plate-strip';
+} from '@/lib/cast-plate-prepare';
+import { dayPartnerNoun } from '@/lib/day-partner';
+import { usePlateStance } from '@/hooks/usePlateStance';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
 import { playCampaignHref } from '@/lib/play-campaign';
 import { continueClipActionLabel } from '@/lib/video-clip-mode';
@@ -110,8 +113,10 @@ export function useCharacterHomeOrchestration(characterId: string) {
   const [plateUploading, setPlateUploading] = useState(false);
   const [plateStatus, setPlateStatus] = useState<string | null>(null);
   const [plateError, setPlateError] = useState<string | null>(null);
-  /** The plate as it was before "Remove clothing" — offered back as Undo. */
+  /** The plate as it was before "Prepare plate" — offered back as Undo. */
   const [plateUndo, setPlateUndo] = useState<CastPlateSnapshot | null>(null);
+  /** The prepared plate's face scored under the bar against the one before. */
+  const [plateFaceDrift, setPlateFaceDrift] = useState(false);
   const lookPackFileRef = useRef<HTMLInputElement | null>(null);
   const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance();
 
@@ -210,6 +215,13 @@ export function useCharacterHomeOrchestration(characterId: string) {
   const savedLookPacks = character ? lookPacksOf(character) : [];
   const currentLook = character ? activeLook(character) : undefined;
   const lookPlate = resolveFittingPlateFromCharacter(character);
+  const plateStance = usePlateStance({
+    characterId: character?.id,
+    look: currentLook,
+    plate: lookPlate,
+    paused: plateUploading,
+  });
+  const plateSubjectNoun = character ? dayPartnerNoun(character) : 'person';
   const entries = useMemo(
     () => filterComfyGalleryEntries(gallery, { characterId }),
     [gallery, characterId]
@@ -385,6 +397,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
         });
         persistApply(result.character);
         setPlateUndo(null);
+        setPlateFaceDrift(false);
         const saved = input.newPlate
           ? `New look “${input.newPlate.name || 'look'}” made and in use`
           : 'Look plate saved';
@@ -412,35 +425,44 @@ export function useCharacterHomeOrchestration(characterId: string) {
     [character, softAdvanceHref]
   );
 
-  const stripLookPlateClothing = async (
-    sendComfyUi: Parameters<typeof stripCastPlateClothing>[0]['sendComfyUi']
+  const prepareLookPlate = async (
+    sendComfyUi: Parameters<typeof prepareCastPlate>[0]['sendComfyUi'],
+    options: CastPlatePrepareOptions
   ) => {
     if (!character || !lookPlate) {
       return;
     }
     setPlateUploading(true);
     setPlateError(null);
+    setPlateFaceDrift(false);
     try {
-      const { character: next, before } = await stripCastPlateClothing({
+      const {
+        character: next,
+        before,
+        faceDrift,
+      } = await prepareCastPlate({
         characterId: character.id,
         lookId: character.activeLookId,
         plate: lookPlate,
+        options,
+        noun: plateSubjectNoun,
         model: loadSettingsCache().shared.model,
         sendComfyUi,
         onStatus: setPlateStatus,
       });
       persistApply(next);
       setPlateUndo(before);
-      setPlateStatus('Clothing removed — the plate now wears a plain base layer.');
+      setPlateFaceDrift(faceDrift);
+      setPlateStatus('Plate prepared — Undo puts the previous one back.');
     } catch (err) {
       setPlateStatus(null);
-      setPlateError(err instanceof Error ? err.message : 'Could not remove the clothing.');
+      setPlateError(err instanceof Error ? err.message : 'Could not prepare the plate.');
     } finally {
       setPlateUploading(false);
     }
   };
 
-  const undoLookPlateStrip = async () => {
+  const undoLookPlatePrepare = async () => {
     if (!character || !plateUndo) {
       return;
     }
@@ -455,6 +477,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
         })
       );
       setPlateUndo(null);
+      setPlateFaceDrift(false);
       setPlateStatus('Look plate restored.');
     } catch (err) {
       setPlateError(err instanceof Error ? err.message : 'Could not restore the previous plate.');
@@ -488,6 +511,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
         });
       }
       setPlateUndo(null);
+      setPlateFaceDrift(false);
       setPlateStatus('Look plate removed.');
       setPlateError(null);
     } else {
@@ -506,8 +530,9 @@ export function useCharacterHomeOrchestration(characterId: string) {
       ...loadSettingsCache().shared,
       ...applyCharacterRecordFresh(next),
     });
-    // Undo restored the plate as it was before a strip — onto whichever plate is active.
+    // Undo restored the plate as it was before Prepare — onto whichever plate is active.
     setPlateUndo(null);
+    setPlateFaceDrift(false);
     setPlateError(null);
     setPlateStatus(message);
   };
@@ -663,9 +688,12 @@ export function useCharacterHomeOrchestration(characterId: string) {
     removeActivePlate,
     renameActivePlate,
     newLookFromCurrent,
-    stripLookPlateClothing,
-    undoLookPlateStrip,
-    canUndoPlateStrip: plateUndo !== null,
+    prepareLookPlate,
+    undoLookPlatePrepare,
+    canUndoPlatePrepare: plateUndo !== null,
+    plateFaceDrift,
+    plateStance,
+    plateSubjectNoun,
     entries,
     keepers,
     fallbackKeeperIds,
