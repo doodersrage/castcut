@@ -1,6 +1,7 @@
 'use client';
 
 import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
+import DaySlotLookPicker from '@/components/day-planner/DaySlotLookPicker';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
 import { typedDayBeatPatch } from '@/lib/day-planner';
 import { continueDayAsStoryHref } from '@/lib/day-story-seed';
@@ -639,6 +640,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
             />
           </label>
         </div>
+        <DaySlotLookPicker
+          character={character}
+          slot={activeSlot}
+          disabled={busy}
+          updateSlot={updateSlot}
+        />
         <DaySameSeedRedo
           slot={activeSlot}
           still={stills.find(entry => entry.slotId === activeSlot.id)}

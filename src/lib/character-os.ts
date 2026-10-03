@@ -1150,6 +1150,24 @@ export function withNewPlateLook(
 }
 
 /**
+ * The Cast as if `lookId` were its active look (its plate, face, description and outfit lock),
+ * without storing anything — a Day slot that wears another look. The same record when the look
+ * is already active or is not one of the Cast's.
+ */
+export function characterWithLook(
+  character: CharacterRecord,
+  lookId: string | null | undefined
+): CharacterRecord {
+  const id = lookId?.trim();
+  if (!id || id === activeLook(character).id) {
+    return character;
+  }
+  const looks = looksOf(character);
+  const look = looks.find(entry => entry.id === id);
+  return look ? applyLookFields({ ...character, looks }, look) : character;
+}
+
+/**
  * A look after a try-on was kept on it: the try-on is its outfit. A kit becomes its outfit lock;
  * a clothing photo replaces the lock (the look wears the photo now).
  */

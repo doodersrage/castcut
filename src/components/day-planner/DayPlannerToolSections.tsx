@@ -1,6 +1,7 @@
 'use client';
 
 import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
+import DaySlotLookPicker from '@/components/day-planner/DaySlotLookPicker';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
 import { typedDayBeatPatch } from '@/lib/day-planner';
 import { continueDayAsStoryHref } from '@/lib/day-story-seed';
@@ -690,6 +691,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 }
               />
             </label>
+          </div>
+          <div className="mt-3">
+            <DaySlotLookPicker
+              character={character}
+              slot={activeSlot}
+              disabled={busy}
+              updateSlot={updateSlot}
+            />
           </div>
           <DaySameSeedRedo
             slot={activeSlot}

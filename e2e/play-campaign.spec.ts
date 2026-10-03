@@ -3254,3 +3254,103 @@ test('film create includes Part and From photo cast identity', async ({ page }) 
   await page.getByTestId('play-campaign-create-more-traits').locator('summary').click();
   await expect(page.getByTestId('play-campaign-create-persona')).toBeVisible();
 });
+
+test('a Day slot can be made in another of the Cast’s looks, and keeps it', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: {
+      activeCharacterId: 'e2e-day-looks',
+      activeLookId: 'e2e-day-look-a',
+      lockedWardrobeId: 'outfit-relaxed-fit-lavender-slip-dress',
+    },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-day-looks',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'café terrace', sceneHints: 'sipping coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reading a book' },
+          { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'watching the sunset' },
+          { id: 'night', label: 'Night', location: 'living room', sceneHints: 'reading on the sofa' },
+        ],
+      },
+    },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-day-looks',
+          name: 'Juno',
+          version: 1,
+          updatedAt: Date.now(),
+          activeLookId: 'e2e-day-look-a',
+          ipAdapter: { imageFilename: 'e2e-day-look-a.png', imageUrl: '/icon.svg' },
+          lockedWardrobeId: 'outfit-relaxed-fit-lavender-slip-dress',
+          looks: [
+            {
+              id: 'e2e-day-look-a',
+              name: 'Studio',
+              createdAt: 2,
+              ipAdapter: { imageFilename: 'e2e-day-look-a.png', imageUrl: '/icon.svg' },
+              lockedWardrobeId: 'outfit-relaxed-fit-lavender-slip-dress',
+            },
+            {
+              id: 'e2e-day-look-b',
+              name: 'Beach',
+              createdAt: 1,
+              ipAdapter: { imageFilename: 'e2e-day-look-b.png', imageUrl: '/icon.svg' },
+              lockedWardrobeId: 'outfit-denim-jacket',
+            },
+          ],
+        },
+      ],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, '/day?character=e2e-day-looks');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('day-slot-select-morning').first().click();
+  const morningLooks = () => page.getByRole('radiogroup', { name: 'Look for Morning' });
+  await expect(morningLooks()).toBeVisible({ timeout: 30_000 });
+  // "Active look" first (the default), then each look by its plate.
+  await expect(morningLooks().getByRole('radio')).toHaveCount(3);
+  const followActive = morningLooks().getByTestId('day-slot-look-none');
+  const beach = morningLooks().getByTestId('day-slot-look-e2e-day-look-b');
+  await expect(followActive).toHaveAttribute('aria-checked', 'true');
+  await expect(beach).toHaveAttribute('aria-checked', 'false');
+  await expect(beach).toContainText('Beach');
+
+  await beach.click();
+  await expect(beach).toHaveAttribute('aria-checked', 'true');
+  await expect(followActive).toHaveAttribute('aria-checked', 'false');
+
+  // Another slot still follows the active look; back on Morning, Beach is still picked.
+  await page.getByTestId('day-slot-select-afternoon').first().click();
+  await expect(
+    page.getByRole('radiogroup', { name: 'Look for Afternoon' }).getByTestId('day-slot-look-none')
+  ).toHaveAttribute('aria-checked', 'true');
+  await page.getByTestId('day-slot-select-morning').first().click();
+  await expect(morningLooks().getByTestId('day-slot-look-e2e-day-look-b')).toHaveAttribute(
+    'aria-checked',
+    'true'
+  );
+
+  // Saved with Day's slots; the Cast's active look is unchanged.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = window.localStorage.getItem('comfy-prompt-tool-settings-tools-v1');
+        const parsed = JSON.parse(raw ?? '{}') as {
+          tools?: { day?: { slots?: Array<{ id: string; lookId?: string }> } };
+        };
+        return parsed.tools?.day?.slots?.find(slot => slot.id === 'morning')?.lookId ?? null;
+      })
+    )
+    .toBe('e2e-day-look-b');
+  const activeLookId = await page.evaluate(() => {
+    const raw = window.localStorage.getItem('comfy-prompt-characters-v1');
+    const store = JSON.parse(raw ?? '{}') as {
+      characters?: Array<{ id: string; activeLookId?: string }>;
+    };
+    return store.characters?.find(entry => entry.id === 'e2e-day-looks')?.activeLookId;
+  });
+  expect(activeLookId).toBe('e2e-day-look-a');
+});

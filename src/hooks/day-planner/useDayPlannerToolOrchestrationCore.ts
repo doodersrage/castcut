@@ -219,6 +219,7 @@ import {
   resolvePlayLoopEntryCharacterId,
 } from '@/lib/play-campaign';
 import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/look-outfit-plate';
+import { resolveDaySlotLook } from '@/lib/day-slot-look';
 import {
   cuePoseLayouts,
   hasCompletedFirstFilm,
@@ -706,25 +707,79 @@ export function useDayPlannerToolOrchestrationCore() {
     [wardrobeLabels, wardrobeOptions]
   );
 
+  // A slot can be made in another of the Cast's looks — its plate, face, outfit and dressed
+  // plate — without changing the active look (day-slot-look.ts). Unset (or the active look):
+  // the same character, plates and outfit picks as before, so those stills are unchanged.
+  const resolveSlotLook = useCallback(
+    (slot: Pick<DaySlot, 'lookId'>) => {
+      const resolved = resolveDaySlotLook({
+        character,
+        slot,
+        gallery: galleryEntries,
+        isolateSubject,
+        outfit: {
+          lockedWardrobeId: shared.lockedWardrobeId,
+          customGarmentImageUrl: toolSettings.customGarmentImageUrl,
+          customGarmentImageFilename: toolSettings.customGarmentImageFilename,
+          customGarmentDescription: toolSettings.customGarmentDescription,
+          footwear: toolSettings.footwear,
+          footwearImageUrl: toolSettings.footwearImageUrl,
+          footwearImageFilename: toolSettings.footwearImageFilename,
+        },
+      });
+      if (!resolved.lookId) {
+        return { ...resolved, plate, hasPlate: Boolean(hasPlate), queuePlate };
+      }
+      const lookPlate = resolved.plate ?? null;
+      return {
+        ...resolved,
+        plate: lookPlate,
+        hasPlate: Boolean(lookPlate?.filename?.trim() || lookPlate?.imageUrl?.trim()),
+        queuePlate: resolveDayQueueIdentityPlate({
+          character: resolved.character,
+          displayPlate: lookPlate,
+          preferCastPlate,
+        }),
+      };
+    },
+    [
+      character,
+      galleryEntries,
+      hasPlate,
+      isolateSubject,
+      plate,
+      preferCastPlate,
+      queuePlate,
+      shared.lockedWardrobeId,
+      toolSettings.customGarmentDescription,
+      toolSettings.customGarmentImageFilename,
+      toolSettings.customGarmentImageUrl,
+      toolSettings.footwear,
+      toolSettings.footwearImageFilename,
+      toolSettings.footwearImageUrl,
+    ]
+  );
+
   // The brief / recipe for one still is written in day-still-prompt.ts (the same code the
   // finished-prompt sweep runs); this only hands it the Day state.
   const buildSlotPrompt = useCallback(
-    (slot: DaySlot, options?: DayStillSlotOptions) =>
-      buildDaySlotPromptForStill(
+    (slot: DaySlot, options?: DayStillSlotOptions) => {
+      const look = resolveSlotLook(slot);
+      return buildDaySlotPromptForStill(
         slot,
         {
-          plate,
-          queuePlate,
-          character,
-          hasPlate: Boolean(hasPlate),
+          plate: look.plate,
+          queuePlate: look.queuePlate,
+          character: look.character,
+          hasPlate: look.hasPlate,
           leadNoun,
           packshotUrl: resolveWardrobeGarmentThumbQueueUrl(
-            slot.wardrobeId?.trim() || shared.lockedWardrobeId?.trim()
+            slot.wardrobeId?.trim() || look.outfit.lockedWardrobeId?.trim()
           ),
           wardrobeLabel: dayOutfitPromptName(wardrobeLabelFor(slot.wardrobeId)),
-          customGarmentUrl: toolSettings.customGarmentImageUrl,
-          customGarmentFilename: toolSettings.customGarmentImageFilename,
-          customGarmentDescription: toolSettings.customGarmentDescription,
+          customGarmentUrl: look.outfit.customGarmentImageUrl,
+          customGarmentFilename: look.outfit.customGarmentImageFilename,
+          customGarmentDescription: look.outfit.customGarmentDescription,
           dayMood: toolSettings.dayMood,
           intimateEnabled,
           intimateMix: toolSettings.intimateMix,
@@ -737,20 +792,14 @@ export function useDayPlannerToolOrchestrationCore() {
           defaultPoseGuideStyle: loadPoseGuideStylePreference(shared.model),
         },
         options
-      ),
+      );
+    },
     [
-      character,
-      hasPlate,
-      plate,
-      queuePlate,
+      resolveSlotLook,
       shared.lockedLocation,
-      shared.lockedWardrobeId,
       shared.model,
       shared.renderRealismMode,
       toolSettings.allowCompanions,
-      toolSettings.customGarmentDescription,
-      toolSettings.customGarmentImageFilename,
-      toolSettings.customGarmentImageUrl,
       toolSettings.dayMood,
       toolSettings.intimateMix,
       toolSettings.notes,
@@ -813,8 +862,19 @@ export function useDayPlannerToolOrchestrationCore() {
               diversified.slots.find(entry => entry.id === queueTarget.id) ?? queueTarget;
           }
         }
+        // The look this still is made in (day-slot-look.ts): the slot's own look, else the active
+        // one. From here on the Cast, its plates and the outfit are that look's; the active look
+        // itself is not changed.
+        const slotLook = resolveSlotLook(queueTarget);
+        const {
+          character: lookCharacter,
+          plate: lookPlate,
+          hasPlate: lookHasPlate,
+          queuePlate: lookQueuePlate,
+          outfit,
+        } = slotLook;
         await loadWardrobeGarmentThumbManifest();
-        let wardrobeId = queueTarget.wardrobeId?.trim() || shared.lockedWardrobeId?.trim();
+        let wardrobeId = queueTarget.wardrobeId?.trim() || outfit.lockedWardrobeId?.trim();
         // No kit, no clothing photo and the undressed Cast plate as Image 1: nothing dressed her,
         // so everyday / vacation stills came out in the plate's underwear. Pick a real kit.
         // The catalog list is filtered to the lead's gender, and the kit picker only offers what
@@ -825,17 +885,17 @@ export function useDayPlannerToolOrchestrationCore() {
           !id?.trim() || !catalogLoaded || wardrobeOptions.some(option => option.value === id);
         if (queueTarget.wardrobeId && !fitsLead(queueTarget.wardrobeId)) {
           queueTarget = { ...queueTarget, wardrobeId: undefined, wardrobeAuto: undefined };
-          wardrobeId = shared.lockedWardrobeId?.trim() || undefined;
+          wardrobeId = outfit.lockedWardrobeId?.trim() || undefined;
         }
         // An auto-picked kit (not one the player chose) follows the outfit arc too.
         const autoKit = !queueTarget.wardrobeId?.trim() || queueTarget.wardrobeAuto === true;
         if (
           autoKit &&
-          !shared.lockedWardrobeId?.trim() &&
-          hasPlate &&
-          plate?.source !== 'keeper' &&
-          !toolSettings.customGarmentImageUrl?.trim() &&
-          !toolSettings.customGarmentImageFilename?.trim() &&
+          !outfit.lockedWardrobeId?.trim() &&
+          lookHasPlate &&
+          lookPlate?.source !== 'keeper' &&
+          !outfit.customGarmentImageUrl?.trim() &&
+          !outfit.customGarmentImageFilename?.trim() &&
           dayMoodWantsAutoKit(toolSettings.dayMood)
         ) {
           // Outfit arc: morning and afternoon share one outfit, evening and night another.
@@ -857,7 +917,7 @@ export function useDayPlannerToolOrchestrationCore() {
                 options: wardrobeOptions,
                 dayMood: toolSettings.dayMood,
                 slotId: queueTarget.id,
-                salt: character?.id,
+                salt: lookCharacter?.id,
                 hasPackshot: id => Boolean(resolveWardrobeGarmentThumbQueueUrl(id)),
                 exclude: workingSlots.map(entry => entry.wardrobeId),
               }));
@@ -939,31 +999,30 @@ export function useDayPlannerToolOrchestrationCore() {
         // once it is known whether Image 1 is a face crop or the full plate).
         let dressedPlate: DayPlate | null = null;
         const customGarmentPicked = Boolean(
-          toolSettings.customGarmentImageUrl?.trim() ||
-          toolSettings.customGarmentImageFilename?.trim()
+          outfit.customGarmentImageUrl?.trim() || outfit.customGarmentImageFilename?.trim()
         );
-        const pickedShoes = normalizeFootwear(toolSettings.footwear);
+        const pickedShoes = normalizeFootwear(outfit.footwear);
         const castPlate =
-          plate?.source === 'cast'
+          lookPlate?.source === 'cast'
             ? resolveDayQueueIdentityPlate({
-                character,
-                displayPlate: plate,
+                character: lookCharacter,
+                displayPlate: lookPlate,
                 preferCastPlate: true,
               })
             : null;
         if (
-          hasPlate &&
+          lookHasPlate &&
           castPlate &&
           dayStillWantsDressPlate({
             castPlateAvailable: Boolean(castPlate.filename?.trim() || castPlate.imageUrl?.trim()),
             model: stillModel,
             dayMood: toolSettings.dayMood,
             intimateEnabled,
-            plateSource: plate?.source,
+            plateSource: lookPlate?.source,
             customGarmentPicked,
             kitPicked:
               Boolean(queueTarget.wardrobeId?.trim() && queueTarget.wardrobeAuto !== true) ||
-              Boolean(shared.lockedWardrobeId?.trim()),
+              Boolean(outfit.lockedWardrobeId?.trim()),
             packshotUrl,
             pickedShoes,
             omitGarment,
@@ -973,8 +1032,8 @@ export function useDayPlannerToolOrchestrationCore() {
         ) {
           const clothing = customGarmentPicked
             ? {
-                imageUrl: toolSettings.customGarmentImageUrl?.trim() || undefined,
-                imageFilename: toolSettings.customGarmentImageFilename?.trim() || undefined,
+                imageUrl: outfit.customGarmentImageUrl?.trim() || undefined,
+                imageFilename: outfit.customGarmentImageFilename?.trim() || undefined,
               }
             : { imageUrl: packshotUrl ?? undefined };
           const hasShoes = Boolean(pickedShoes) && !footwearIsBarefoot(pickedShoes);
@@ -986,26 +1045,26 @@ export function useDayPlannerToolOrchestrationCore() {
                 clothing,
                 clothingKey: customGarmentPicked ? undefined : `kit:${wardrobeId ?? ''}`,
                 clothingLabel: customGarmentPicked
-                  ? dayGarmentPromptName(toolSettings.customGarmentDescription) || 'the outfit'
+                  ? dayGarmentPromptName(outfit.customGarmentDescription) || 'the outfit'
                   : dayOutfitPromptName(wardrobeLabelFor(wardrobeId)) || 'the outfit',
                 clothingDescription: customGarmentPicked
-                  ? toolSettings.customGarmentDescription
+                  ? outfit.customGarmentDescription
                   : undefined,
                 footwear: pickedShoes,
                 footwearImage: {
-                  imageUrl: toolSettings.footwearImageUrl,
-                  imageFilename: toolSettings.footwearImageFilename,
+                  imageUrl: outfit.footwearImageUrl,
+                  imageFilename: outfit.footwearImageFilename,
                 },
                 subject: leadNoun === 'man' ? 'he' : 'she',
-                characterName: character?.name,
+                characterName: lookCharacter?.name,
                 characterId: shared.activeCharacterId,
-                lookId: shared.activeLookId ?? character?.activeLookId,
+                lookId: slotLook.lookId ?? shared.activeLookId ?? character?.activeLookId,
               },
               {
                 sendComfyUi: actions.sendComfyUi,
                 onRender: ({ change }) => {
                   const text = dayDressPlateStatus({
-                    name: character?.name,
+                    name: lookCharacter?.name,
                     clothing: true,
                     footwear: hasShoes,
                     change,
@@ -1042,16 +1101,15 @@ export function useDayPlannerToolOrchestrationCore() {
           }
         }
         // From here on, this still's plate is the dressed one when there is one.
-        const slotPlate = dressPlate ?? plate;
-        const slotQueuePlate = dressPlate ?? queuePlate;
+        const slotPlate = dressPlate ?? lookPlate;
+        const slotQueuePlate = dressPlate ?? lookQueuePlate;
         const slotCustomGarmentUrl =
-          dressPlate || dressClothingFilename ? undefined : toolSettings.customGarmentImageUrl;
+          dressPlate || dressClothingFilename ? undefined : outfit.customGarmentImageUrl;
         const slotCustomGarmentFilename =
-          dressClothingFilename ??
-          (dressPlate ? undefined : toolSettings.customGarmentImageFilename);
+          dressClothingFilename ?? (dressPlate ? undefined : outfit.customGarmentImageFilename);
         const slotPackshotUrl = dressPlate || dressClothingFilename ? undefined : packshotUrl;
         let identityPlate = resolveDayQueueIdentityPlate({
-          character,
+          character: lookCharacter,
           displayPlate: slotPlate,
           preferCastPlate: replaceKeepOutfit || omitGarment,
           preferFaceOnlyPlate: omitGarment,
@@ -1079,7 +1137,7 @@ export function useDayPlannerToolOrchestrationCore() {
           model: stillModel,
           sceneHints: queueTarget.sceneHints,
           omitGarment,
-          hasCharacter: Boolean(character),
+          hasCharacter: Boolean(lookCharacter),
           hasIdentityPlate: Boolean(identityPlate ?? slotQueuePlate),
           identitySource: (identityPlate ?? slotQueuePlate)?.source,
           clothingOnlyGarment: isClothingOnlyDayGarment(
@@ -1091,10 +1149,10 @@ export function useDayPlannerToolOrchestrationCore() {
             })
           ),
         });
-        if (identityRoute === 'nude' && character) {
+        if (identityRoute === 'nude' && lookCharacter) {
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const nudeIdentity = await resolveDayNudeIdentityPlateWithFaceCrop({
-            character,
+            character: lookCharacter,
             model: stillModel,
             comfyUrl,
           });
@@ -1115,7 +1173,7 @@ export function useDayPlannerToolOrchestrationCore() {
             lightningIdentityPath = true;
             const identityVl = await resolveDayVacationIdentityVlPlate({
               bodyPlate,
-              character,
+              character: lookCharacter,
               model: stillModel,
               comfyUrl,
             });
@@ -1125,7 +1183,7 @@ export function useDayPlannerToolOrchestrationCore() {
           } else {
             const faceBreak = await resolveDayVacationFaceBreakPlate({
               bodyPlate,
-              character,
+              character: lookCharacter,
               model: stillModel,
               comfyUrl,
             });
@@ -1156,7 +1214,7 @@ export function useDayPlannerToolOrchestrationCore() {
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
           const identityVl = await resolveDayVacationIdentityVlPlate({
             bodyPlate: identityPlate ?? slotQueuePlate,
-            character,
+            character: lookCharacter,
             model: stillModel,
             comfyUrl,
           });
@@ -1166,7 +1224,8 @@ export function useDayPlannerToolOrchestrationCore() {
         }
         // Distinct Cast face lock OR auto crop → face-only Image 1 language + IP pin.
         const faceOnlyIdentity =
-          (omitGarment && (nudeFaceAutoCropped || Boolean(resolveDayFaceOnlyPlate(character)))) ||
+          (omitGarment &&
+            (nudeFaceAutoCropped || Boolean(resolveDayFaceOnlyPlate(lookCharacter)))) ||
           vacationFaceBreak;
         // Face-break: clothing-only packshot Image 2 is OK (no standing body silhouette),
         // including a Fitting Room packshot picked as the custom garment. Full-body Keep /
@@ -1207,14 +1266,14 @@ export function useDayPlannerToolOrchestrationCore() {
         // face crop takes Image 2 (the outfit is said in words), the pose map stays Image 3 — or
         // an invented man / woman ("new:…") with their own face and no extra image.
         const partnerCharacter =
-          toolSettings.partnerCharacterId && toolSettings.partnerCharacterId !== character?.id
+          toolSettings.partnerCharacterId && toolSettings.partnerCharacterId !== lookCharacter?.id
             ? getCharacter(toolSettings.partnerCharacterId)
             : null;
         const partnerCandidate =
           inventedDayPartner(toolSettings.partnerCharacterId) ?? toDayPartner(partnerCharacter);
         let slotPartner: DayPartner | null = null;
         let partnerFace: { filename?: string; imageUrl?: string } | null = null;
-        if (partnerCandidate && hasPlate) {
+        if (partnerCandidate && lookHasPlate) {
           const partnerMood = normalizeDayMood(
             isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
               ? 'everyday'
@@ -1241,10 +1300,10 @@ export function useDayPlannerToolOrchestrationCore() {
                 partnerStandInRef.current,
                 partnerCandidate.noun
               );
-              if (!standIn && character) {
+              if (!standIn && lookCharacter) {
                 const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
                 const leadFace = await resolveDayNudeIdentityPlateWithFaceCrop({
-                  character,
+                  character: lookCharacter,
                   model: stillModel,
                   comfyUrl,
                 });
@@ -1256,7 +1315,7 @@ export function useDayPlannerToolOrchestrationCore() {
                     model: stillModel,
                     comfyUrl,
                     sendComfyUi: actions.sendComfyUi,
-                    characterId: character.id,
+                    characterId: lookCharacter.id,
                   }).catch(() => null);
                   if (standIn) {
                     partnerStandInRef.current = standIn;
@@ -1305,15 +1364,15 @@ export function useDayPlannerToolOrchestrationCore() {
           intimateEnabled,
           sceneHints: queueTarget.sceneHints,
         });
-        const footwear = footwearApplies ? normalizeFootwear(toolSettings.footwear) : '';
+        const footwear = footwearApplies ? normalizeFootwear(outfit.footwear) : '';
         // With a picture (a kit's, or your own photo) the shoes share Image 2 with the clothing.
         // Only when the still has a clothing image: other paths use Image 2 for something else
         // (a partner's face, the pose map), and there the shoes go out in words alone.
         let garmentReinforce = clothingReinforce;
         let footwearImage: 'combined' | null = null;
         const footwearRef = {
-          imageUrl: toolSettings.footwearImageUrl,
-          imageFilename: toolSettings.footwearImageFilename,
+          imageUrl: outfit.footwearImageUrl,
+          imageFilename: outfit.footwearImageFilename,
         };
         if (
           footwearApplies &&
@@ -1344,7 +1403,7 @@ export function useDayPlannerToolOrchestrationCore() {
         // last reference (see klein-face-reference.ts). Same cached crop as face-break.
         let kleinFaceReference: { filename?: string } | null = null;
         if (
-          hasPlate &&
+          lookHasPlate &&
           shouldAppendKleinFaceReference({
             model: stillModel,
             imageOneIsFaceCrop: faceOnlyIdentity,
@@ -1354,7 +1413,7 @@ export function useDayPlannerToolOrchestrationCore() {
             kleinFaceReference = (
               await resolveDayVacationFaceBreakPlate({
                 bodyPlate: identityPlate ?? slotQueuePlate,
-                character,
+                character: lookCharacter,
                 model: stillModel,
                 comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
               })
@@ -1407,7 +1466,7 @@ export function useDayPlannerToolOrchestrationCore() {
               outfitLine: DAY_OUTFIT_LINE_RE.test(buildSlotPrompt(queueTarget, slotPromptOptions)),
             })
           : null;
-        if (hasPlate && !skipPoseGuideImage) {
+        if (lookHasPlate && !skipPoseGuideImage) {
           try {
             const dayMood = normalizeDayMood(
               isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
@@ -1499,7 +1558,7 @@ export function useDayPlannerToolOrchestrationCore() {
                   style: poseGuideDrawnStyle,
                   ...(poseGuideUrl ? { previewUrl: poseGuideUrl } : {}),
                 }
-              : !hasPlate
+              : !lookHasPlate
                 ? { state: 'skipped' as const, reason: 'no Day plate' }
                 : skipPoseGuideImage
                   ? {
@@ -1538,7 +1597,7 @@ export function useDayPlannerToolOrchestrationCore() {
             ? kleinFaceReference.filename
             : undefined;
         const adultStill = isDayAdultMood(toolSettings.dayMood) && intimateEnabled;
-        const leadDescriptor = (character?.descriptor || character?.hints || '').trim();
+        const leadDescriptor = (lookCharacter?.descriptor || lookCharacter?.hints || '').trim();
         // The text itself is assembled in day-still-prompt.ts (the same code the beat sweep
         // runs), from the decisions made above.
         const assembled = assembleDayStillPrompt({
@@ -1565,7 +1624,7 @@ export function useDayPlannerToolOrchestrationCore() {
             !omitGarment && !replaceKeepOutfit && wardrobeId
               ? dayOutfitPromptName(formatWardrobeKitLabel(wardrobeLabelFor(wardrobeId) || ''))
               : !omitGarment && !replaceKeepOutfit
-                ? dayGarmentPromptName(toolSettings.customGarmentDescription)
+                ? dayGarmentPromptName(outfit.customGarmentDescription)
                 : null,
           dressedPlateIsClothingImage: Boolean(dressClothingFilename),
           pickedShoes,
@@ -1592,7 +1651,7 @@ export function useDayPlannerToolOrchestrationCore() {
         const drafted =
           leanChrome || assembled.recipe
             ? prompt
-            : await actions.finalizePrompt(prompt, character?.name || slot.label);
+            : await actions.finalizePrompt(prompt, lookCharacter?.name || slot.label);
         const dayMoodForPrompt = normalizeDayMood(
           isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
             ? 'everyday'
@@ -1610,7 +1669,7 @@ export function useDayPlannerToolOrchestrationCore() {
           toolKey: TOOL_ID,
           label: 'Day',
           href: '/day',
-          fields: [character?.name ?? '', queueTarget.label, finalized],
+          fields: [lookCharacter?.name ?? '', queueTarget.label, finalized],
         });
         // Everyday: Keep as Image 1 for worn-kit fidelity on Qwen 2511.
         // Sport / nude adult beats: Cast as Image 1 so Keep lingerie cannot stick.
@@ -1663,7 +1722,7 @@ export function useDayPlannerToolOrchestrationCore() {
           style: poseGuideFilename ? poseGuideDrawnStyle : null,
         });
         const queueImagePlate = omitGarment ? identityPlate : (identityPlate ?? slotQueuePlate);
-        const queueOptions = !hasPlate
+        const queueOptions = !lookHasPlate
           ? undefined
           : queueImagePlate?.filename?.trim() || queueImagePlate?.imageUrl?.trim()
             ? {
@@ -1695,6 +1754,8 @@ export function useDayPlannerToolOrchestrationCore() {
                 : 'draft';
         // 2.0: pin Cast face onto Day stills the same way Outfit plates already do —
         // don't rely on whatever leftover session IP-Adapter shared happens to hold.
+        // The active look's: a slot made in another look must not switch the session to it (its
+        // own face goes on the job, below).
         if (character) {
           syncSharedIdentityToCast(character);
         }
@@ -1744,10 +1805,10 @@ export function useDayPlannerToolOrchestrationCore() {
               ipAdapterImageFilenames: [croppedFaceFilename],
               ipAdapterStrength: identityStrength,
             }
-          : omitGarment && castFaceDuplicatesBodyPlate(character)
+          : omitGarment && castFaceDuplicatesBodyPlate(lookCharacter)
             ? undefined
-            : castFaceQueueParamsBase(character, identityStrength);
-        const castLoras = castLoraSessionIds(character);
+            : castFaceQueueParamsBase(lookCharacter, identityStrength);
+        const castLoras = castLoraSessionIds(lookCharacter);
         const poseUnlockDenoise = uprightHardFaceBreak
           ? DAY_VACATION_UPRIGHT_FACE_DENOISE
           : vacationFaceBreak
@@ -1759,7 +1820,7 @@ export function useDayPlannerToolOrchestrationCore() {
                 : undefined;
         // Plate + pose Image 3 need an Edit-capable model. Adult nude + Rapid AIO
         // must use Edit NSFW — SFW Edit soft-censors into beige lingerie.
-        const plateQueueModel = hasPlate
+        const plateQueueModel = lookHasPlate
           ? resolveAdultNudePlateQueueModel(stillModel, {
               adultNude: isDayAdultMood(dayMood) && omitGarment,
             })
@@ -1817,7 +1878,7 @@ export function useDayPlannerToolOrchestrationCore() {
         const promptId = await actions.sendComfyUi(queuedPrompt, undefined, undefined, {
           ...(queueOptions ?? {}),
           ...(sameSeed ? { seed: sameSeed } : {}),
-          ...(hasPlate
+          ...(lookHasPlate
             ? {
                 queueTool: 'image-prompt',
                 castPlateReference: true,
@@ -1836,7 +1897,7 @@ export function useDayPlannerToolOrchestrationCore() {
               }
             : {}),
           characterId: shared.activeCharacterId,
-          lookId: shared.activeLookId ?? character?.activeLookId,
+          lookId: slotLook.lookId ?? shared.activeLookId ?? character?.activeLookId,
           ...(faceQueueParams || poseControlNet || poseUnlockDenoise != null
             ? {
                 queueParamsBase: {
@@ -1885,25 +1946,17 @@ export function useDayPlannerToolOrchestrationCore() {
       actions,
       buildSlotPrompt,
       character,
-      hasPlate,
       isolatePending,
       isolateSubject,
       leanChrome,
       leadNoun,
-      plate?.source,
-      queuePlate,
+      resolveSlotLook,
       shared.activeCharacterId,
       shared.activeLookId,
       shared.ipAdapterStrength,
-      shared.lockedWardrobeId,
       slots,
       toolSettings.allowCompanions,
-      toolSettings.customGarmentImageFilename,
-      toolSettings.customGarmentImageUrl,
       toolSettings.dayMood,
-      toolSettings.footwear,
-      toolSettings.footwearImageFilename,
-      toolSettings.footwearImageUrl,
       toolSettings.identityBoost,
       toolSettings.intimateMix,
       toolSettings.partnerCharacterId,

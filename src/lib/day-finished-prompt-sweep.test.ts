@@ -31,7 +31,7 @@ import {
   dayStillWantsDressPlate,
 } from './day-still-plan';
 import { dayPartnerApplies, inventedDayPartner, type DayPartner } from './day-partner';
-import type { CharacterRecord } from './character-os';
+import { activeLook, normalizeCharacterRecord, type CharacterRecord } from './character-os';
 import {
   type DayPlate,
   isClothingOnlyDayGarment,
@@ -66,6 +66,7 @@ import {
   type DaySlotId,
 } from './day-planner';
 import { dayPoseGuideFallbackIndex, resolveSceneGuidePlan } from './day-pose-guide';
+import { resolveDaySlotLook, type DaySlotOutfit } from './day-slot-look';
 import { planDaySlotPose } from './day-slot-pose';
 import { daySportBeatPresetsForSlot, daySportSettingPresetsForSlot } from './day-sport';
 import {
@@ -425,6 +426,33 @@ const leadCharacter = (lead: LeadNoun): CharacterRecord => ({
   ipAdapter: { imageFilename: 'cast-face-crop.png' },
 });
 
+/**
+ * The lead with a second look (another plate and kit) beside the active one: a slot with no look
+ * of its own, or the active one, must build the very same prompt as before looks per slot.
+ */
+const twoLookCharacter = (lead: LeadNoun): CharacterRecord => {
+  const cast = normalizeCharacterRecord(leadCharacter(lead));
+  return normalizeCharacterRecord({
+    ...cast,
+    looks: [
+      ...(cast.looks ?? []),
+      {
+        id: 'look-beach',
+        name: 'Beach',
+        createdAt: -1,
+        reference: { originalFilename: 'beach-plate.png' },
+        ipAdapter: { imageFilename: 'beach-face.png' },
+        lockedWardrobeId: 'beach-kaftan',
+      },
+    ],
+  });
+};
+/** Every this-many stills, the slot prompt is built again through resolveDaySlotLook. */
+const LOOK_CHECK_EVERY = 25;
+let lookCheckCount = 0;
+let lookChecked = 0;
+const LOOK_MISMATCHES: string[] = [];
+
 const LEADS: Record<LeadNoun, { name: string; descriptor: string }> = {
   woman: { name: 'Lana', descriptor: 'a woman with shoulder-length dark hair and green eyes' },
   man: { name: 'Marco', descriptor: 'a tall man with short dark hair and a trimmed beard' },
@@ -728,6 +756,52 @@ function decideStill(
       clothingIsDressedPlate: Boolean(dressClothingFilename),
     }
   );
+
+  lookCheckCount += 1;
+  if (lookCheckCount % LOOK_CHECK_EVERY === 0) {
+    // Looks per slot: what the hook's buildSlotPrompt hands over, through the slot-look resolver.
+    const cast = twoLookCharacter(lead);
+    const outfit: DaySlotOutfit = {
+      customGarmentImageFilename: customGarmentFilename,
+      customGarmentDescription,
+    };
+    const build = (look: { character: CharacterRecord | null | undefined; outfit: DaySlotOutfit }) =>
+      buildDaySlotPromptForStill(
+        slot,
+        {
+          plate: displayPlate,
+          queuePlate: resolveDayQueueIdentityPlate({ character: look.character, displayPlate }),
+          character: look.character,
+          hasPlate: true,
+          leadNoun: lead,
+          packshotUrl,
+          wardrobeLabel: dayOutfitPromptName(wardrobeId ? KIT_LABEL : ''),
+          customGarmentFilename: look.outfit.customGarmentImageFilename,
+          customGarmentDescription: look.outfit.customGarmentDescription,
+          dayMood: toolMood,
+          intimateEnabled: setup.intimate,
+          intimateMix,
+          allowCompanions: setup.companions,
+          model: engine,
+          defaultPoseGuideStyle: DEFAULT_POSE_GUIDE_STYLE,
+        },
+        { poseGuide: Boolean(pose), faceOnlyIdentity, partner: slotPartner }
+      );
+    const before = build({ character: cast, outfit });
+    for (const lookId of [undefined, activeLook(cast).id]) {
+      const resolved = resolveDaySlotLook({ character: cast, slot: { ...slot, lookId }, outfit });
+      lookChecked += 1;
+      if (
+        resolved.lookId ||
+        resolved.plate !== undefined ||
+        resolved.character !== cast ||
+        resolved.outfit !== outfit ||
+        build(resolved) !== before
+      ) {
+        LOOK_MISMATCHES.push(`${beat.mood} · ${beat.beat} · ${engine} · lookId ${lookId ?? 'unset'}`);
+      }
+    }
+  }
 
   const assembled = assembleDayStillPrompt({
     slotPrompt,
@@ -1075,6 +1149,11 @@ describe('Day finished prompt sweep', () => {
   it('takes the outfit from the image that carries it', () => assertHolds(OUTFIT_SOURCE));
   it('leaves no "she" in a one-person still of a man lead', () => assertHolds(MAN_LEAD));
   it('does not refer to a pose image that is not attached', () => assertHolds(NO_POSE_MAP));
+
+  it('builds byte-identical prompts for slots with no look of their own (or the active one)', () => {
+    assert.ok(lookChecked > 100, `only ${lookChecked} look checks ran`);
+    assert.deepEqual(LOOK_MISMATCHES.slice(0, 5), []);
+  });
 
   it('has no stale KNOWN_ISSUES entry', () => {
     for (const invariant of new Set(KNOWN_ISSUES.map(issue => issue.invariant))) {

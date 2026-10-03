@@ -345,6 +345,11 @@ export type DaySlot = {
   poseLead?: 'left' | 'right';
   /** Where the Cast looks (unset = as the pose draws it). */
   poseLook?: PoseLookChoice;
+  /**
+   * One of the Cast's looks this still is made in — its plate, outfit and dressed plate — without
+   * changing the active look (day-slot-look.ts). Unset = the active look.
+   */
+  lookId?: string;
 };
 
 export type DaySlotStillStatus = 'queued' | 'running' | 'completed' | 'error';
@@ -652,6 +657,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       poseCamera: normalizePoseCameraChoice(slot.poseCamera),
       poseLead: slot.poseLead === 'left' || slot.poseLead === 'right' ? slot.poseLead : undefined,
       poseLook: normalizePoseLookChoice(slot.poseLook),
+      lookId: readText(slot.lookId, 120) || undefined,
     });
   }
   const resolvedLength =
