@@ -17,6 +17,7 @@ import {
   type SocialLayout,
 } from '@/lib/day-pose-guide';
 import { RAPID_ORAL_FALLBACK_RE } from '@/lib/rapid-duo-recipe';
+import { SEATED_ORAL_GUIDE_TEXT } from '@/lib/rapid-oral-pose';
 import {
   dayPoseSpecForBeat,
   isDayAdultMood,
@@ -151,13 +152,14 @@ export function planDaySlotPose(input: {
   // Rapid AIO draws neither a 69 nor face-sitting — its recipe (rapid-duo-recipe.ts) renders
   // seated oral, so draw that guide too, or the pose check flags every such still and rerolls it.
   // The guide text is reworded to match: "sitting on his face" reads as a sitting posture and
-  // would override the act back to face-sitting.
+  // would override the act back to face-sitting. "Seated oral sex" makes the map seat her on
+  // the edge with him kneeling between her knees, as the recipe says (oralReceiverSeated).
   const rapidOralFallback =
     isDayAdultMood(dayMood) &&
     poseProfileForModel(input.model).seatedOralFallback &&
     (parseIntimateLayout(beatOnly) === 'sixty_nine' || parseIntimateLayout(beatOnly) === 'facesit');
   const guideText = rapidOralFallback
-    ? reinforced?.replace(RAPID_ORAL_FALLBACK_RE, 'oral sex')
+    ? reinforced?.replace(RAPID_ORAL_FALLBACK_RE, SEATED_ORAL_GUIDE_TEXT)
     : reinforced;
   // Duo mix must draw exactly two figures — never inflate to a trio.
   const sceneText =

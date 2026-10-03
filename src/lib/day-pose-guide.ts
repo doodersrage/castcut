@@ -18,6 +18,7 @@ import {
   intimateTextImpliesStandingRear,
 } from '@/lib/intimate-prompt-clarify';
 import { stripNegatedClauses } from '@/lib/negated-clauses';
+import { oralReceiverSeated } from '@/lib/rapid-oral-pose';
 import {
   drawOpenPoseFigures,
   drawOpenPosePeople,
@@ -3348,6 +3349,59 @@ function wallPressStandingFigures(): StickSkeleton[] {
   return [lead, partner];
 }
 
+/**
+ * Seated oral, three-quarter side view: the receiver sits on an edge (hips at seat height, thighs
+ * forward and spread, shins down, torso leaning back on straight arms); the giver kneels on the
+ * floor between her knees, facing her, head at her pelvis, hands on her thighs. The upright
+ * kneel-up map under the recipe's "sits on the edge of the couch" read as two standing figures,
+ * and Rapid laid the man upside down on his back under her (live 2026-10-03).
+ */
+function seatedOralFigures(): StickSkeleton[] {
+  const receiver: StickSkeleton = {
+    facing: 'left',
+    // Torso leans back from the seat toward the image right.
+    head: point(0.78, 0.2),
+    neck: point(0.75, 0.29),
+    pelvis: point(0.66, 0.55),
+    lShoulder: point(0.7, 0.3),
+    rShoulder: point(0.8, 0.31),
+    // Straight arms planted behind her on the seat.
+    lElbow: point(0.75, 0.43),
+    rElbow: point(0.85, 0.43),
+    lWrist: point(0.8, 0.56),
+    rWrist: point(0.9, 0.55),
+    lHip: point(0.63, 0.55),
+    rHip: point(0.69, 0.56),
+    // Thighs forward and spread (far knee up, near knee low), shins straight down.
+    lKnee: point(0.5, 0.5),
+    rKnee: point(0.52, 0.63),
+    lAnkle: point(0.47, 0.79),
+    rAnkle: point(0.5, 0.88),
+  };
+  const giver: StickSkeleton = {
+    facing: 'right',
+    // Head between her knees at her pelvis height.
+    head: point(0.58, 0.55),
+    neck: point(0.5, 0.57),
+    pelvis: point(0.33, 0.71),
+    lShoulder: point(0.46, 0.55),
+    rShoulder: point(0.52, 0.6),
+    // Hands on her outer thighs — clear of his own mouth.
+    lElbow: point(0.5, 0.47),
+    rElbow: point(0.53, 0.68),
+    lWrist: point(0.56, 0.45),
+    rWrist: point(0.58, 0.64),
+    lHip: point(0.31, 0.71),
+    rHip: point(0.35, 0.72),
+    // Knees on the floor line, shins back along it.
+    lKnee: point(0.33, 0.9),
+    rKnee: point(0.39, 0.91),
+    lAnkle: point(0.17, 0.92),
+    rAnkle: point(0.23, 0.93),
+  };
+  return [receiver, giver];
+}
+
 /** Solo masturbation Image 3 stance kinds — one adult, hand toward pelvis. */
 export type SoloMasturbationPoseKind =
   'on_back' | 'side_lying' | 'prone' | 'kneeling' | 'all_fours' | 'standing' | 'lean' | 'seated';
@@ -3729,9 +3783,14 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   }
 
   if (layout === 'oral') {
+    const scene = intent.sceneText || '';
+    // Receiver seated on the edge, giver kneeling between her knees — what the Rapid recipe says
+    // for a couch / bed (and every 69 / face-sit fallback).
+    if (oralReceiverSeated(scene)) {
+      return pairOrTrio(seatedOralFigures());
+    }
     // Both kneeling: receiver upright on knees (optionally elevated on a bench);
     // giver kneeling lower BESIDE toward pelvis — never behind bent-over.
-    const scene = intent.sceneText || '';
     const onBench = /\b(piano\s+bench|piano\s+stool|bench)\b/i.test(scene);
     const receiver = uprightFigure(seed, {
       cx: 0.58,
@@ -5171,6 +5230,8 @@ const POSTURE_DEFAULT_LAYOUT: Record<LeadPosture, IntimateLayout> = {
 
 function layoutFitsPosture(layout: IntimateLayout, posture: LeadPosture): boolean {
   if (POSTURE_FREE_LAYOUTS.has(layout)) return true;
+  // Oral is drawn seated on an edge too (receiver sits, giver kneels — oralReceiverSeated).
+  if (layout === 'oral' && posture === 'sit') return true;
   const base = intimateBaseForLayout(layout);
   // Bent covers a standing bend, all fours, and leaning forward astride a seat.
   return base === posture || (base === 'lean' && posture !== 'lie');

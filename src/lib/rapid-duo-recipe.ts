@@ -19,6 +19,7 @@ import {
   type SoloMasturbationPoseKind,
 } from './day-pose-guide';
 import { stripNegatedClauses } from './negated-clauses';
+import { isFloorSurface, ORAL_SEAT_RE, rapidDuoSurface, sheGivesOral } from './rapid-oral-pose';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
 import {
   RAPID_DUO_RECIPE_MARK,
@@ -71,39 +72,11 @@ export {
   RAPID_VACATION_RECIPE_MARK,
 } from './rapid-duo-recipe-mark';
 
-const SURFACE_RE =
-  /\b(?:on|onto|against|over|across|in|into|off|at)\s+(?:the|a|an|his|her|their)\s+((?:(?:arm|edge|foot|end)\s+of\s+the\s+(?:bed|couch|sofa|chair))|(?:(?!(?:at|on|in|of|the|a|an|to|by|with)\b)[\w’'-]+\s+){0,2}?(?:bed(?:\s+edge)?|daybed|couch|sofa|armchair|chair|sink|counter|desk|table|wall|floor|rug|shower|window|door|fridge|wardrobe|cabinet|stairs|bench|vanity|dresser|mattress|sheets))\b/i;
+export { rapidDuoSurface } from './rapid-oral-pose';
 
-/** The furniture the beat puts them on ("the hotel armchair", "the bathroom sink"). */
-export function rapidDuoSurface(beat: string): string | null {
-  const match = stripNegatedClauses(beat).match(SURFACE_RE)?.[1]?.trim();
-  if (!match) {
-    return null;
-  }
-  const noun = match.replace(/\s+/g, ' ').toLowerCase();
-  return noun === 'sheets' || noun === 'mattress' ? 'bed' : noun;
-}
-
-/** She gives ("she goes down on him", "giving her partner oral") vs he gives ("going down on her"). */
-function sheGivesOral(beat: string): boolean {
-  return (
-    /\b(?:she|her)\s+(?:goes|going|went)\s+down\s+on\s+(?:him|her\s+partner|a\s+partner)\b|\bgiving\s+(?:him|her\s+partner|a\s+partner)\s+(?:oral|head|a\s+blow)|\bbetween\s+his\s+(?:legs|knees|thighs)\b|\b(?:blow\s*job|fellatio|sucking\s+(?:him|his))\b/i.test(
-      beat
-    ) &&
-    !/\b(?:down\s+on\s+her\b(?!\s+partner)|between\s+her\s+thighs|mouth\s+on\s+her\b|cunnilingus)/i.test(
-      beat
-    )
-  );
-}
-
-/** A floor / rug can't be sat on the edge of — oral there has the receiver standing. */
 /** Windows, glass doors and mirrors — a back-to-the-glass pose turns into a sill perch. */
 function isGlassSurface(surface: string | null): boolean {
   return /\b(?:window|glass|mirror)\b/i.test(surface ?? '');
-}
-
-function isFloorSurface(surface: string | null): boolean {
-  return Boolean(surface && /\b(?:floor|rug|carpet|ground|tiles?|mat)\b/i.test(surface));
 }
 
 function placement(layout: IntimateLayout, beat: string, surface: string | null): string | null {
@@ -157,9 +130,9 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
           : `The man sits on the edge of ${on('bed')}; the woman kneels on the floor between his knees with his penis in her mouth, holding it at the base, looking up at him.`
         : !/\bkneel/i.test(beat)
           ? `The woman lies on her back on ${on('bed')} with her thighs spread and knees bent; the man lies between her thighs with his mouth on her vulva, licking her, his hands on her thighs. She arches her back, eyes closed.`
-          : // The oral guide always draws her upright and him kneeling — the text must agree, or
-            // Rapid falls back to penetration. At a bed/couch she sits on its edge; else she stands.
-            /\b(?:bed|mattress|sheets|couch|sofa|chair|armchair|counter|desk|table)\b/i.test(beat)
+          : // At a bed/couch she sits on its edge (the oral map draws that seated pose too —
+            // oralReceiverSeated, rapid-oral-pose.ts); else she stands.
+            ORAL_SEAT_RE.test(beat)
             ? `Full-body view, both faces in frame. The woman sits on the edge of the ${surface?.replace(/^(?:edge|foot|end|arm) of the /, '') ?? 'bed'}, leaning back on her hands with her thighs spread; the man kneels on the floor between her thighs with his mouth on her vulva, licking her, his hands on her thighs.`
             : // Placing each of her legs: "one leg lifted over his shoulder" often left the lifted
               // leg reading as a third limb behind him; with each leg placed both bodies came out
