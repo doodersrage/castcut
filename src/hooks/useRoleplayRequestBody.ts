@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, type MutableRefObject } from 'react';
+import { getCharacter } from '@/lib/character-os';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
 import { buildRoleplayRequestBody, resolveRoleplayWardrobeFields } from '@/lib/roleplay-play-core';
 import {
@@ -77,6 +78,7 @@ export function useRoleplayRequestBody({
         garmentDescription: wardrobe.garmentDescription,
         hasGarmentReference: wardrobe.hasGarmentReference,
         intimateMix: toolSettings.intimateMix,
+        lead: getCharacter(shared.activeCharacterId),
       });
     },
     [

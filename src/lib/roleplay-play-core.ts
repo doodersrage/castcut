@@ -82,6 +82,25 @@ export type RoleplayQueueStillOptions = {
   queueModel?: string;
 };
 
+/** What the writer reads from the Cast lead to decide he / she. */
+export type RoleplayLeadCast = {
+  descriptor?: string;
+  traits?: { sex?: string };
+};
+
+/** The lead's Sex trait (when picked) and descriptor for a /api/roleplay body. */
+export function roleplayLeadFields(lead: RoleplayLeadCast | null | undefined): {
+  leadSex?: 'woman' | 'man' | 'nonbinary';
+  leadDescriptor?: string;
+} {
+  const sex = lead?.traits?.sex;
+  const descriptor = lead?.descriptor?.trim();
+  return {
+    ...(sex === 'woman' || sex === 'man' || sex === 'nonbinary' ? { leadSex: sex } : {}),
+    ...(descriptor ? { leadDescriptor: descriptor } : {}),
+  };
+}
+
 export function buildRoleplayRequestBody(input: {
   action: 'bio' | 'scenes' | 'prompt';
   situation?: RoleplayScene;
@@ -107,6 +126,8 @@ export function buildRoleplayRequestBody(input: {
   hasGarmentReference?: boolean;
   /** Adult Solo/Duo/Mixed mix for rolled scenes. */
   intimateMix?: import('./day-planner').DayIntimateMix | string | null;
+  /** The active Cast lead (its Sex trait and descriptor decide he / she over the bible's look). */
+  lead?: RoleplayLeadCast | null;
 }): Record<string, unknown> {
   const nameLock = resolveRoleplayLockedCharacterName(input.characterName);
   const writingBio = input.action === 'bio';
@@ -131,6 +152,7 @@ export function buildRoleplayRequestBody(input: {
     garmentDescription: input.garmentDescription?.trim() || undefined,
     hasGarmentReference: input.hasGarmentReference === true,
     intimateMix: input.intimateMix ?? undefined,
+    ...roleplayLeadFields(input.lead),
     bio: writingBio ? undefined : input.bio,
     story: writingBio ? [] : input.story,
     rejectedScenes: input.action === 'scenes' ? input.rejectedScenes : undefined,

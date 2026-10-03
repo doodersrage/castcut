@@ -77,7 +77,20 @@ export type RoleplaySharedOptions = SharedGenerationOptions & {
   garmentDescription?: string;
   hasGarmentReference?: boolean;
   intimateMix?: string | null;
+  /** The Cast lead's picked Sex trait; it beats the bible's look when deciding he / she. */
+  leadSex?: 'woman' | 'man' | 'nonbinary';
+  /** The Cast lead's physical descriptor ("a tall man, 30s"), read when no Sex is picked. */
+  leadDescriptor?: string;
 };
+
+/** Whether the Story lead is a man: the Cast's Sex and descriptor first, then the bible's look. */
+function roleplayLeadIsMan(bio: { look?: string }, options: RoleplaySharedOptions): boolean {
+  return storyLeadIsMan({
+    look: bio.look,
+    descriptor: options.leadDescriptor,
+    traits: options.leadSex ? { sex: options.leadSex } : undefined,
+  });
+}
 
 function toneLine(tone: RoleplayTone): string {
   return roleplayToneLine(tone);
@@ -282,8 +295,8 @@ function stampFinaleScenes(scenes: RoleplayScene[], finale: boolean): RoleplaySc
  * lead with an unusual name, and an image model reads "they" as more than one person (a
  * two-person scene came out with three).
  */
-function leadPronounLine(bio: { name: string; look?: string }): string {
-  const [subject, possessive] = storyLeadIsMan({ look: bio.look }) ? ['he', 'his'] : ['she', 'her'];
+function leadPronounLine(bio: { name: string }, manLead: boolean): string {
+  const [subject, possessive] = manLead ? ['he', 'his'] : ['she', 'her'];
   return `- ${bio.name} is ONE person: write "${subject}" and "${possessive}" for ${bio.name}, never "they" or "their".`;
 }
 
@@ -448,7 +461,7 @@ export async function generateRoleplayScenes(
     options.intimateMix
   );
   // The built-in scenes are written for a woman.
-  const fallback = storyLeadIsMan({ look: bio.look }) ? builtIn.map(storySceneForManLead) : builtIn;
+  const fallback = roleplayLeadIsMan(bio, options) ? builtIn.map(storySceneForManLead) : builtIn;
   const settingCue = formatRoleplaySettingCue({
     setting,
     hasReferenceImage,
@@ -500,7 +513,7 @@ ${
     : '- Keep the character and plot continuous. Continuity is not the same room and pose.'
 }
 - Each beat should make a distinct still image of THIS character.
-${leadPronounLine(bio)}
+${leadPronounLine(bio, roleplayLeadIsMan(bio, options))}
 - ${sceneGuard(content, allowGore)}`,
       user: [
         formatRoleplayBio(bio),
@@ -555,7 +568,7 @@ ${leadPronounLine(bio)}
   const checkContext = {
     adult: isRoleplayAdultContent(content),
     solo: options.intimateMix === 'solo',
-    manLead: storyLeadIsMan({ look: bio.look }),
+    manLead: roleplayLeadIsMan(bio, options),
   };
   const checkScenes = (list: RoleplayScene[]) =>
     list.map(scene => repairStoryScene(scene, checkContext));
@@ -644,7 +657,7 @@ ${adultStillGuard(content)}
 ${identityLine}
 - Name (${bio.name}) can appear once; do not invent a new cast unless the beat requires one extra figure.
 - Write ONE take of this beat — never a second version, alternates, or a list. At most ${maxChars} characters, 2–3 sentences.
-${leadPronounLine(bio)}
+${leadPronounLine(bio, roleplayLeadIsMan(bio, options))}
 - Open with what ${bio.name} is doing and where (this beat's pose and place), then the clothes and the props; light last, briefly.${
       hasReferenceImage
         ? isolatedSubject

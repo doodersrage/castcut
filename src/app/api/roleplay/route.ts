@@ -59,7 +59,14 @@ type RoleplayRequestBody = {
   wardrobeLabel?: string;
   garmentDescription?: string;
   hasGarmentReference?: boolean;
+  leadSex?: unknown;
+  leadDescriptor?: unknown;
 };
+
+/** The Cast lead's Sex trait, only one of the three Cast values. */
+function parseLeadSex(value: unknown): 'woman' | 'man' | 'nonbinary' | undefined {
+  return value === 'woman' || value === 'man' || value === 'nonbinary' ? value : undefined;
+}
 
 function parseAction(value: unknown): RoleplayAction {
   if (value === 'bio' || value === 'scenes' || value === 'prompt') {
@@ -135,6 +142,11 @@ export async function POST(request: Request) {
       wardrobeLabel: body.wardrobeLabel?.trim(),
       garmentDescription: body.garmentDescription?.trim(),
       hasGarmentReference: body.hasGarmentReference === true,
+      leadSex: parseLeadSex(body.leadSex),
+      leadDescriptor:
+        typeof body.leadDescriptor === 'string'
+          ? body.leadDescriptor.trim().slice(0, 300) || undefined
+          : undefined,
       bio: body.bio ? parseRoleplayBio(body.bio) : undefined,
       story: parseStory(body.story),
       rejectedScenes: parseRoleplayScenes(body.rejectedScenes),

@@ -341,6 +341,7 @@ export function useMobilePlayToolOrchestrationCore() {
         garmentDescription: wardrobeFields.garmentDescription,
         hasGarmentReference: wardrobeFields.hasGarmentReference,
         intimateMix: toolSettings.intimateMix,
+        lead: getCharacter(shared.activeCharacterId),
       });
     },
     [

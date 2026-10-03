@@ -209,6 +209,7 @@ export default function CharacterBibleSection({
             hasReferenceImage,
             isolatedSubject: Boolean(look.reference?.isolated || character.reference?.isolated),
             bio: character.bio,
+            lead: character,
           })
         ),
       });

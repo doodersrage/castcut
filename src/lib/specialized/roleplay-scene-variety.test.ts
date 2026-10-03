@@ -7,7 +7,8 @@ const chatCompletion = mock.fn(async (input: { messages: Array<{ content: string
   prompts.push(input.messages.map(message => message.content).join('\n'));
   return replies.shift() ?? '';
 });
-mock.module('../llm-client', { namedExports: { chatCompletion } });
+// isLlmEnabled: a still prompt's finishing pass asks it (no server LLM: the pass is skipped).
+mock.module('../llm-client', { namedExports: { chatCompletion, isLlmEnabled: () => false } });
 
 const PLACES = [
   ['Rooftop at dusk', 'They slip onto the rooftop as the city lights come on'],
@@ -120,5 +121,88 @@ describe('Story bible for a photo story', () => {
       llm: { llmEnabled: true, allowTemplateFallback: false },
     } as never);
     assert.match(prompts[0]!, /never face, hair, skin, age or body/);
+  });
+});
+
+describe('Story writer reads the Cast lead Sex trait', () => {
+  const genderlessBio = {
+    name: 'Sam',
+    look: 'a grey wool coat and a red scarf',
+    personality: 'patient',
+  };
+  const cards = JSON.stringify({
+    scenes: PLACES.map(([title]) => ({ title, blurb: 'Sam waits by the window.' })),
+  });
+
+  it('writes "he" for a man lead whose look says nothing about gender', async () => {
+    const { generateRoleplayScenes, generateRoleplayPrompt } = await import('./roleplay-generator');
+    replies.length = 0;
+    prompts.length = 0;
+    replies.push(cards, 'Sam waits by the rain-streaked window in a grey wool coat.');
+    await generateRoleplayScenes({
+      content: 'pg13',
+      bio: genderlessBio,
+      leadSex: 'man',
+      llm: { llmEnabled: true, allowTemplateFallback: false },
+      story: [],
+    } as never);
+    assert.match(prompts[0]!, /write "he" and "his" for Sam/);
+    const { normalizeSharedGenerationOptions } = await import('./normalize');
+    await generateRoleplayPrompt({
+      ...normalizeSharedGenerationOptions({ llmEnabled: true, allowTemplateFallback: false }),
+      content: 'pg13',
+      bio: genderlessBio,
+      leadSex: 'man',
+      situation: { title: 'Rainy window', blurb: 'Sam waits by the window.' },
+      story: [],
+    } as never);
+    assert.match(prompts.at(-1)!, /write "he" and "his" for Sam/);
+  });
+
+  it('maps the built-in scenes for a man lead from the Sex trait', async () => {
+    const { generateRoleplayScenes } = await import('./roleplay-generator');
+    const { storySceneForManLead } = await import('../story-lead-gender');
+    const builtIn = (leadSex: string) =>
+      generateRoleplayScenes({
+        // A continued adult story: one built-in card says "behind her".
+        content: 'explicit',
+        bio: genderlessBio,
+        leadSex,
+        llm: { llmEnabled: false },
+        story: [{ id: 'b1', title: 'Hotel bar', blurb: 'A drink at the hotel bar', at: 1 }],
+      } as never);
+    const woman = await builtIn('woman');
+    const man = await builtIn('man');
+    assert.equal(man.provider, 'template');
+    assert.deepEqual(man.scenes, woman.scenes.map(storySceneForManLead));
+    assert.notDeepEqual(man.scenes, woman.scenes);
+  });
+
+  it('keeps a woman lead "she" when her look mentions his boyfriend', async () => {
+    const { generateRoleplayScenes } = await import('./roleplay-generator');
+    const bio = {
+      name: 'Mara',
+      look: 'a yellow raincoat, holding his boyfriend’s umbrella',
+      personality: 'curious',
+    };
+    replies.length = 0;
+    prompts.length = 0;
+    replies.push(cards, cards);
+    await generateRoleplayScenes({
+      content: 'pg13',
+      bio,
+      leadSex: 'woman',
+      llm: { llmEnabled: true, allowTemplateFallback: false },
+      story: [],
+    } as never);
+    assert.match(prompts[0]!, /write "she" and "her" for Mara/);
+    // Without the trait the look alone reads as a man: the trait is what keeps her.
+    await generateRoleplayScenes({
+      content: 'pg13',
+      bio,
+      llm: { llmEnabled: true, allowTemplateFallback: false },
+      story: [],
+    } as never);
+    assert.match(prompts.at(-1)!, /write "he" and "his" for Mara/);
   });
 });
