@@ -55,6 +55,17 @@ describe('assembleDayStillPrompt', () => {
     assert.match(prompt, /FOOTWEAR \(mandatory\)/);
   });
 
+  it('a lying still does not call the dressed plate standing', () => {
+    const lying = facts({
+      dressedPlateIsClothingImage: true,
+      beat: 'lying on her back on a picnic blanket',
+      pose: { layout: 'lie', poseKey: 'lie:1', figures: 1 },
+    });
+    const { prompt } = assembleDayStillPrompt(lying);
+    assert.match(prompt, /the outfit shown in the second image \(the same person, dressed\)/);
+    assert.doesNotMatch(prompt, /standing/);
+  });
+
   it('a reroll nudge is appended once, and a pose-miss nudge spells the pose out', () => {
     const brief =
       'Edit instruction for a Day still — evening: she leans on the rail.\nMatch Image 3 silhouette exactly.';

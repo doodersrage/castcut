@@ -3100,6 +3100,12 @@ function compactSportKit(
  * Opening line for a Rapid recipe whose Image 1 is the Cast's face crop: what the long brief says
  * about identity, without the rest of the brief.
  */
+/** "the outfit from the second image" → 2. */
+function dayRecipeImageNumber(worn: string): number {
+  const ordinal = /\b(first|second|third)\b/.exec(worn)?.[1];
+  return ordinal === 'first' ? 1 : ordinal === 'third' ? 3 : 2;
+}
+
 const RAPID_FACE_CROP_IDENTITY_LEAD =
   'Image 1 is a FACE CROP only (head/shoulders) — keep facial likeness only. IDENTITY CRITICAL: the finished still must show the SAME woman as the Image 1 face crop — identical face shape, hair color and length, eye color, nose, and mouth; inventing a different beauty face means the edit FAILED.';
 
@@ -3165,6 +3171,11 @@ export function buildDaySlotPrompt(input: {
   partner?: DayPartner | null;
   /** The Cast lead's gender (default a woman) — a man switches the Rapid adult duo recipe. */
   leadNoun?: DayPartnerNoun;
+  /**
+   * The outfit image is the Day's dressed plate (a picture of her, dressed) — the clothing
+   * image on Rapid / Qwen-Image 2.1, Image 1 on Edit 2511.
+   */
+  outfitIsDressedPlate?: boolean;
 }): string {
   const slot = input.slot;
   const name = input.characterName?.trim();
@@ -3619,7 +3630,11 @@ export function buildDaySlotPrompt(input: {
               ? `OUTFIT (mandatory): she wears a ${kit} — fully dressed${base}.`
               : worn && !fromKit && !suggestiveCouple
                 ? `OUTFIT (mandatory): she wears ${worn}${base}.`
-                : null;
+                : fromKit && input.outfitIsDressedPlate && !suggestiveCouple
+                  ? // A dressed plate with no kit name or description: the outfit was never said
+                    // in words, and Qwen-Image 2.1 drew lying beats nude (live 2026-10-03).
+                    `OUTFIT (mandatory): she is fully clothed in exactly the outfit shown in Image ${dayRecipeImageNumber(worn)}, covering her body as it does there; no bare body.`
+                  : null;
         // Rapid on a face crop: the brief's identity sentence first. It says what Image 1 is; the
         // likeness gain is small (InsightFace distance 0.61 against 0.64 without it, 32 stills —
         // the brief's standing portraits scored 0.48).

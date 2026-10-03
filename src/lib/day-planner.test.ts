@@ -1014,6 +1014,44 @@ describe('day-planner', () => {
     assert.match(build('crouching at a low cupboard', false), /Image 1 is the Cast identity plate/);
   });
 
+  it('buildDaySlotPrompt names a dressed plate with no kit name as the outfit, in words', () => {
+    // Live 2026-10-03, Qwen-Image 2.1 Day Everyday lying beats: with the dressed plate as the
+    // clothing image and no kit name or description, no line said she is clothed — nude 9/9.
+    const build = (outfitIsDressedPlate: boolean, model = 'qwen-image-2.1-edit') =>
+      buildDaySlotPrompt({
+        slot: {
+          ...DEFAULT_DAY_SLOTS[1]!,
+          location: 'park lawn',
+          sceneHints: 'lying on her back on a picnic blanket',
+        },
+        hasPlate: true,
+        plateSource: 'cast',
+        poseGuide: true,
+        dayMood: 'everyday',
+        faceOnlyIdentity: true,
+        garmentReinforce: true,
+        model,
+        outfitIsDressedPlate,
+      });
+    const line =
+      'OUTFIT (mandatory): she is fully clothed in exactly the outfit shown in Image 2, covering her body as it does there; no bare body.';
+    assert.equal(build(true).split('\n')[2], line);
+    assert.match(build(true, 'qwen-rapid-aio-sfw-v23'), /^OUTFIT \(mandatory\): she is fully clothed/m);
+    // A packshot is not a picture of her: unchanged.
+    assert.doesNotMatch(build(false), /OUTFIT \(mandatory\)/);
+    // Edit 2511: the dressed plate is Image 1.
+    const plate = buildDaySlotPrompt({
+      slot: { ...DEFAULT_DAY_SLOTS[1]!, location: 'park lawn', sceneHints: 'reading on a bench' },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'everyday',
+      model: 'qwen-image-edit-2511-lightning-8',
+      outfitIsDressedPlate: true,
+    });
+    assert.match(plate, /^OUTFIT \(mandatory\): .* the outfit shown in Image 1,/m);
+  });
+
   it('buildDaySlotPrompt leads with the catalog kit on the undressed Cast plate', () => {
     // Live 2026-09-29: the kit named only at the end of the brief left Rapid in the plate's
     // underwear 13/16; stated first, the exact kit 16/16.

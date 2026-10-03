@@ -142,9 +142,13 @@ function applyVariant(graph, variant, seed, prefix) {
     }
   }
   for (const node of nodes) {
+    // Every seed in the graph, not only KSampler's: Qwen-Image 2.1 graphs draw their noise from
+    // a RandomNoise node (noise_seed) and replayed the same take for every seed. A linked input
+    // (an [id, slot] pair) is left alone.
+    for (const key of ['seed', 'noise_seed']) {
+      if (typeof node.inputs?.[key] === 'number') node.inputs[key] = seed;
+    }
     if (node.class_type === 'KSampler' || node.class_type === 'KSamplerAdvanced') {
-      if ('seed' in node.inputs) node.inputs.seed = seed;
-      if ('noise_seed' in node.inputs) node.inputs.noise_seed = seed;
       if (variant.steps) node.inputs.steps = variant.steps;
     }
     if (node.class_type === 'SaveImage') {

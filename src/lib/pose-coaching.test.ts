@@ -62,6 +62,22 @@ describe('recipe pose cue', () => {
     const cued = withRecipePoseCue(recipe, 'photograph');
     assert.equal(withRecipePoseCue(cued, 'photograph'), cued);
   });
+
+  it('cues a plain lie in the Day recipe when she lies on her back, nowhere else', () => {
+    // "lying on her back on a picnic blanket" had no Pose: sentence and sat up on Qwen-Image 2.1.
+    const lying =
+      'Day photo: One woman alone. She lies flat on her back on the picnic blanket. Moment: lying on her back on a picnic blanket. Place: park.';
+    assert.match(
+      withRecipePoseCue(lying, 'lie', 'lie:1'),
+      / Pose: lying on the back, hips and back down on the surface, whole body horizontal\. Place: /
+    );
+    // A side beat drawn with the plain guide, a beat that never says she lies, other recipes.
+    const side = lying.replace(/on her back/g, 'on her side');
+    assert.equal(withRecipePoseCue(side, 'lie', 'lie:1'), side);
+    assert.equal(withRecipePoseCue(recipe, 'lie', 'lie:1'), recipe);
+    const vacation = lying.replace('Day photo:', 'Vacation photo:');
+    assert.equal(withRecipePoseCue(vacation, 'lie', 'lie:1'), vacation);
+  });
 });
 
 describe('pose in words', () => {

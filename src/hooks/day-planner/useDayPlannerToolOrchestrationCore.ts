@@ -158,7 +158,6 @@ import {
   toDayPartner,
   type DayPartner,
 } from '@/lib/day-partner';
-import { PLAY_FACE_CROP_CANVAS } from '@/lib/play-plate-render-size';
 import { loadPoseLibrary, type NormalizedBody } from '@/lib/pose-library';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
@@ -186,10 +185,13 @@ import { dayDressPlateStatus, type DayDressPlateEntry } from '@/lib/day-dress-pl
 import { loadDressPlates, removeDressPlate, subscribeDressPlates } from '@/lib/dress-plate-store';
 import { dayDressPlateRequestKey, ensureDayDressPlate } from '@/lib/day-dress-plate-client';
 import {
+  DAY_OUTFIT_LINE_RE,
   dayStillClothingReinforce,
   dayStillDressedPlateUse,
+  dayStillFaceCropCanvas,
   dayStillFootwearApplies,
   dayStillIdentityRoute,
+  dayStillLiesDown,
   dayStillWantsDressPlate,
 } from '@/lib/day-still-plan';
 import type { DayPlate } from '@/lib/day-plate';
@@ -1380,6 +1382,31 @@ export function useDayPlannerToolOrchestrationCore() {
         if (kleinSpoonRecipe) {
           skipPoseGuideImage = true;
         }
+        // Clothing options for this still's brief / recipe (the pose map's are added below).
+        const slotPromptOptions = {
+          faceOnlyIdentity,
+          // Only force Image 2 language when a clothing-only packshot is actually attached.
+          forceGarmentReinforce:
+            (vacationFaceBreak || Boolean(dressClothingFilename)) &&
+            Boolean(garmentReinforce?.imageUrl || garmentReinforce?.imageFilename),
+          clothingImageAttached: Boolean(
+            garmentReinforce?.imageUrl || garmentReinforce?.imageFilename
+          ),
+          partner: slotPartner,
+          dressPlate,
+          clothingIsDressedPlate: Boolean(dressClothingFilename),
+        };
+        // The face-crop canvas: landscape for one person lying down on Qwen-Image 2.1 when the
+        // text names her outfit (day-still-plan.ts). Decided before the pose map, which is drawn
+        // at the still's aspect; the outfit line does not depend on the map.
+        const faceCropCanvas = faceOnlyIdentity
+          ? dayStillFaceCropCanvas({
+              model: stillModel,
+              solo: !slotPartner,
+              lying: dayStillLiesDown({ beat: queueTarget.sceneHints }),
+              outfitLine: DAY_OUTFIT_LINE_RE.test(buildSlotPrompt(queueTarget, slotPromptOptions)),
+            })
+          : null;
         if (hasPlate && !skipPoseGuideImage) {
           try {
             const dayMood = normalizeDayMood(
@@ -1417,8 +1444,8 @@ export function useDayPlannerToolOrchestrationCore() {
                 stylePreference: poseGuideStyle,
                 aspect: !isOpenPoseStyle(poseGuideStyle)
                   ? null
-                  : faceOnlyIdentity
-                    ? PLAY_FACE_CROP_CANVAS
+                  : faceCropCanvas
+                    ? faceCropCanvas
                     : await probeImage1Size(image1Url),
                 library: isOpenPoseStyle(poseGuideStyle) ? loadPoseLibrary() : [],
               }
@@ -1489,20 +1516,11 @@ export function useDayPlannerToolOrchestrationCore() {
         );
 
         const slotPrompt = buildSlotPrompt(queueTarget, {
+          ...slotPromptOptions,
           poseGuide: Boolean(poseGuideFilename),
           poseGuideStyle: poseGuideDrawnStyle,
           poseLeadPosition,
           poseCamera,
-          faceOnlyIdentity,
-          // Only force Image 2 language when a clothing-only packshot is actually attached.
-          forceGarmentReinforce:
-            (vacationFaceBreak || Boolean(dressClothingFilename)) &&
-            Boolean(garmentReinforce?.imageUrl || garmentReinforce?.imageFilename),
-          clothingImageAttached: Boolean(
-            garmentReinforce?.imageUrl || garmentReinforce?.imageFilename
-          ),
-          partner: slotPartner,
-          dressPlate,
         });
         // Quality-gate reroll: append the fix for whatever the reviewer flagged, once.
         const qualityNudge = rerollNudgeRef.current[queueTarget.id]?.trim();
@@ -1804,7 +1822,8 @@ export function useDayPlannerToolOrchestrationCore() {
                 queueTool: 'image-prompt',
                 castPlateReference: true,
                 // A face crop is filename-only (no size probe) and says nothing about the body.
-                ...(faceOnlyIdentity ? { figurePixelSize: { ...PLAY_FACE_CROP_CANVAS } } : {}),
+                // Lying solo stills on Qwen-Image 2.1: landscape (see faceCropCanvas).
+                ...(faceCropCanvas ? { figurePixelSize: { ...faceCropCanvas } } : {}),
                 // Strong turbo rewrite fights face lock on Edit-2511 face-break Day.
                 turboEditStrength:
                   vacationFaceBreak || lightningIdentityPath || everydayPoseUnlock

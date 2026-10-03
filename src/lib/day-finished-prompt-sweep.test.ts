@@ -278,9 +278,10 @@ type Setup = {
   plate: 'cast' | 'keeper';
   /**
    * Clothing: a catalog kit (auto-picked by the Day, or picked by the player), the player's own
-   * clothing photo, a Fitting Room packshot picked as the clothing image, or none.
+   * clothing photo (with or without a description), a Fitting Room packshot picked as the
+   * clothing image, or none.
    */
-  clothing: 'none' | 'kit-auto' | 'kit-picked' | 'photo' | 'packshot';
+  clothing: 'none' | 'kit-auto' | 'kit-picked' | 'photo' | 'photo-unnamed' | 'packshot';
   /** The dress plate rendered (when the hook asks for one). */
   dressPlateRenders: boolean;
   partner: 'none' | 'cast' | 'cast-same' | 'invented';
@@ -315,6 +316,8 @@ const SETUPS: Setup[] = [
   { ...BASE, id: 'cast plate + auto kit', plate: 'cast', clothing: 'kit-auto' },
   // c / d. A picked kit: the Cast is dressed once, the stills start from that plate.
   { ...BASE, id: 'dressed plate (picked kit)', plate: 'cast', clothing: 'kit-picked' },
+  // The player's own clothing photo with no description: the dress plate is the only word of it.
+  { ...BASE, id: 'dressed plate (unnamed photo)', plate: 'cast', clothing: 'photo-unnamed' },
   // e. Outfit Keep as Image 1, no clothing image.
   { ...BASE, id: 'Keep plate', plate: 'keeper', clothing: 'none' },
   // Keep + the kit's packshot as Image 2.
@@ -529,14 +532,16 @@ function decideStill(
   };
   const wardrobeId = slot.wardrobeId;
   const packshotUrl = wardrobeId ? PACKSHOT_URL : undefined;
-  const customGarmentPicked = setup.clothing === 'photo' || setup.clothing === 'packshot';
+  const customGarmentPicked =
+    setup.clothing === 'photo' || setup.clothing === 'photo-unnamed' || setup.clothing === 'packshot';
   const customGarmentFilename =
-    setup.clothing === 'photo'
+    setup.clothing === 'photo' || setup.clothing === 'photo-unnamed'
       ? 'my-dress-photo.png'
       : setup.clothing === 'packshot'
         ? 'fitting-garment-packshot-7.png'
         : undefined;
-  const customGarmentDescription = customGarmentPicked ? PHOTO_DESCRIPTION : undefined;
+  const customGarmentDescription =
+    customGarmentPicked && setup.clothing !== 'photo-unnamed' ? PHOTO_DESCRIPTION : undefined;
 
   const omitGarment = dayBeatOmitsGarmentPackshot({
     blurb: beat.beat,
@@ -720,6 +725,7 @@ function decideStill(
       clothingImageAttached: garmentAttached,
       partner: slotPartner,
       dressPlate: dressPlate && dressedPlate ? { filename: dressedPlate.filename, source: 'keeper' } : null,
+      clothingIsDressedPlate: Boolean(dressClothingFilename),
     }
   );
 

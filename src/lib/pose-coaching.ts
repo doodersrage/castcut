@@ -10,6 +10,7 @@
  */
 
 import type { NormalizedBody } from '@/lib/pose-library';
+import { DAY_CLOTHED_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
 
 /** Body-part description per layout — what must be true of the joints, not the scene. */
 const POSE_LAYOUT_CUES: Record<string, string> = {
@@ -130,6 +131,23 @@ const RECIPE_POSTURE_CUES: Record<string, string> = {
   jump: 'in mid-air, both feet off the ground, knees tucked up',
 };
 
+/**
+ * The plain lie guide is also drawn for side and front beats and for beats that never say she
+ * lies (a windowsill sit) — only a recipe that has her lying, not on her side or front, gets it.
+ */
+const LIES_RE = /\b(?:lies|lying|reclining)\b/i;
+const LIES_SIDE_OR_FRONT_RE = /\bon (?:her|his) (?:side|stomach|front)\b|\bface[\s-]down\b/i;
+
+/**
+ * Plain postures cued in the clothed Day recipe only. Lying on the back had no cue at all ("lying
+ * on her back on a picnic blanket" sent no Pose: sentence) and came out sitting on Qwen-Image 2.1
+ * (live 2026-10-03). Not in the Vacation / Suggestive / adult recipes, whose reclining beats prop
+ * her up or raise a knee.
+ */
+const DAY_RECIPE_POSTURE_CUES: Record<string, string> = {
+  lie: 'lying on the back, hips and back down on the surface, whole body horizontal',
+};
+
 /** One-person wording for layouts whose own cue describes two people. */
 const SOLO_RECIPE_CUES: Record<string, string> = {
   dance: 'dancing alone: both arms raised, one knee lifted mid-step, nobody else beside her',
@@ -151,7 +169,16 @@ export function withRecipePoseCue(
   const layoutCue = ALWAYS_CUED_DUO_LAYOUTS.has(key)
     ? (SOLO_RECIPE_CUES[key] ?? null)
     : poseLayoutCue(layout);
-  const cue = layoutCue ?? RECIPE_POSTURE_CUES[poseKey?.split(':')[0]?.trim() ?? ''] ?? null;
+  const posture = poseKey?.split(':')[0]?.trim() ?? '';
+  const cue =
+    layoutCue ??
+    RECIPE_POSTURE_CUES[posture] ??
+    (prompt.includes(DAY_CLOTHED_RECIPE_MARK) &&
+    LIES_RE.test(prompt) &&
+    !LIES_SIDE_OR_FRONT_RE.test(prompt)
+      ? DAY_RECIPE_POSTURE_CUES[posture]
+      : undefined) ??
+    null;
   if (!cue || /\bPose: /.test(prompt)) return prompt;
   const sentence = `Pose: ${cue}. `;
   if (prompt.includes(' Place: ')) return prompt.replace(' Place: ', ` ${sentence}Place: `);

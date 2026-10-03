@@ -40,6 +40,7 @@ import {
   resolveDayQueueIdentityPlate,
   type DayPlate,
 } from '@/lib/day-plate';
+import { dayStillLiesDown } from '@/lib/day-still-plan';
 import { withDayWeather } from '@/lib/day-weather';
 import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
 import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
@@ -108,11 +109,19 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
     Boolean(facts.pickedShoes) && !footwearIsBarefoot(facts.pickedShoes)
       ? 'the outfit and the shoes'
       : 'the outfit';
+  // Not "standing" on a lying still: the plate's stance pulled lying beats upright.
+  const dressedStance = dayStillLiesDown({
+    beat: facts.beat,
+    layout: facts.pose?.layout,
+    figures: facts.pose?.figures || (facts.partner ? 2 : 1),
+  })
+    ? 'dressed'
+    : 'dressed, standing';
   const basePrompt = facts.dressedPlateIsClothingImage
     ? scrubbed
         .replace(
           /\bthe outfit from the second image\b/gi,
-          `${dressedWorn} shown in the second image (the same person, dressed, standing)`
+          `${dressedWorn} shown in the second image (the same person, ${dressedStance})`
         )
         .replace(
           /\bImage 2 is (?:a|the) clothing-only packshot\b/gi,
@@ -281,6 +290,8 @@ export type DayStillSlotOptions = {
   partner?: DayPartner | null;
   /** This still starts from a dressed plate: Image 1 wears the outfit, no clothing image. */
   dressPlate?: DayPlate | null;
+  /** The clothing image is the dressed plate (Rapid / Qwen-Image 2.1 with a face-crop Image 1). */
+  clothingIsDressedPlate?: boolean;
 };
 
 /** What the Day tool knows when it writes a slot's brief or recipe. */
@@ -408,5 +419,8 @@ export function buildDaySlotPromptForStill(
     replaceKeepOutfit,
     partner: options?.partner ?? null,
     leadNoun: state.leadNoun,
+    outfitIsDressedPlate:
+      Boolean(options?.dressPlate) ||
+      (garmentReinforce && options?.clothingIsDressedPlate === true),
   });
 }

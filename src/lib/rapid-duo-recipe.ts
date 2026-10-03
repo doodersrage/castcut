@@ -1172,13 +1172,64 @@ export function buildCompactDayDuoRecipe(
     : null;
 }
 
+/**
+ * A beat that has her lying down ("lying on the rug", "propped back on her elbows on the grass").
+ * Not a sprawl in a chair — that is a sit.
+ */
+export function beatLiesDown(beat: string | null | undefined): boolean {
+  const text = stripNegatedClauses(beat ?? '');
+  return (
+    /\b(?:lying|lies|laying|reclining)\b|\bpropped\s+back\s+on\s+(?:her|both)\s+elbows\b/i.test(
+      text
+    ) ||
+    (/\bsprawled\b/i.test(text) && !/\b(?:arm)?chair\b/i.test(text))
+  );
+}
+
+/** What she lies on: the beat's furniture, else a blanket, towel or the grass. */
+function lyingSurface(beat: string): string | null {
+  return (
+    rapidDuoSurface(beat) ??
+    stripNegatedClauses(beat)
+      .match(
+        /\b(?:on|onto|across|in)\s+(?:the|a|an|her)\s+((?:[\w-]+\s+)?(?:blanket|towel|grass|lawn|sand|mat|hammock|lounger|deck|dock|pier|meadow))\b/i
+      )?.[1]
+      ?.toLowerCase() ??
+    null
+  );
+}
+
+/**
+ * A lying beat as a whole-body sentence. "She lies on her back." alone came out sitting up on
+ * Qwen-Image 2.1 (Day Everyday, live 2026-10-03): the body has to be said horizontal, along the
+ * surface, with the head down on it.
+ */
+function lyingPlacement(beat: string): string | null {
+  const b = stripNegatedClauses(beat).toLowerCase();
+  if (!beatLiesDown(b)) return null;
+  const surface = lyingSurface(beat);
+  const on = surface ? ` on the ${surface}` : '';
+  const along = surface ? ' along it' : '';
+  // The beat's own legs win ("one knee up", "ankles crossed", "feet up on the armrest").
+  const legs = /\b(?:knees?|ankles?|feet|legs?)\b/.test(b) ? '' : ', legs stretched out';
+  if (/\b(?:lying|lies|laying)\s+on\s+her\s+side\b/.test(b)) {
+    return `She lies on her side${on}, whole body horizontal${along}, head propped on one hand — not sitting.`;
+  }
+  if (/\b(?:lying|lies|laying)\s+(?:on\s+her\s+(?:stomach|front)|face[\s-]down)\b/.test(b)) {
+    return `She lies on her stomach${on}, whole body horizontal${along}, propped on her forearms — not sitting.`;
+  }
+  if (/\bpropped\s+(?:back\s+|up\s+)?on\s+(?:her|both)\s+elbows\b/.test(b)) {
+    return `She lies back${on}, propped up on both elbows, whole body horizontal${along}${legs} — not sitting.`;
+  }
+  return `She lies flat on her back${on}, whole body horizontal, head resting ${surface ? 'on it' : 'down'}${legs} — not sitting.`;
+}
+
 /** A plain-words stance for an everyday beat ("sitting on a park bench …"), when it names one. */
 function everydayPlacement(beat: string): string | null {
   const b = beat.toLowerCase();
   const seat = rapidDuoSurface(beat);
-  if (/\b(?:lying|lies|laying)\s+on\s+her\s+side\b/.test(b)) return 'She lies on her side.';
-  if (/\b(?:lying|lies|laying)\s+on\s+her\s+stomach\b/.test(b)) return 'She lies on her stomach.';
-  if (/\b(?:lying|lies|laying|reclining|sprawled)\b/.test(b)) return 'She lies on her back.';
+  const lying = lyingPlacement(beat);
+  if (lying) return lying;
   if (/\bkneel(?:s|ing)?\b/.test(b)) return 'She kneels on the floor.';
   if (/\b(?:crouch|squat)(?:es|s|ing|ting)?\b/.test(b)) return 'She crouches low, knees bent deep.';
   if (/\b(?:sitting|sits|seated|perched)\b/.test(b)) {

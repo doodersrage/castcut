@@ -1,12 +1,17 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  DAY_LYING_WIDE_CANVAS,
+  DAY_OUTFIT_LINE_RE,
   dayStillClothingReinforce,
   dayStillDressedPlateUse,
+  dayStillFaceCropCanvas,
   dayStillFootwearApplies,
   dayStillIdentityRoute,
+  dayStillLiesDown,
   dayStillWantsDressPlate,
 } from './day-still-plan';
+import { PLAY_FACE_CROP_CANVAS } from './play-plate-render-size';
 
 const RAPID = 'qwen-rapid-aio-edit';
 const EDIT_2511 = 'qwen-image-edit-2511-lightning-8';
@@ -171,5 +176,45 @@ describe('dayStillFootwearApplies', () => {
       }),
       false
     );
+  });
+});
+
+describe('dayStillLiesDown', () => {
+  it('reads the drawn layout, or the beat on a one-person still', () => {
+    assert.equal(dayStillLiesDown({ beat: 'reading in the sun', layout: 'lie_side' }), true);
+    assert.equal(dayStillLiesDown({ beat: 'lying on the picnic blanket', layout: 'read' }), true);
+    assert.equal(dayStillLiesDown({ beat: 'sitting on a park bench', layout: 'sit' }), false);
+    // On a pair the beat's lying can be the partner's.
+    assert.equal(
+      dayStillLiesDown({ beat: 'she leans in, he lies propped on an elbow', layout: 'sit', figures: 2 }),
+      false
+    );
+  });
+});
+
+describe('dayStillFaceCropCanvas', () => {
+  const QWEN_21 = 'qwen-image-2.1-edit';
+  const lying = { model: QWEN_21, solo: true, lying: true, outfitLine: true };
+
+  it('keeps Qwen-Image 2.1 lying stills portrait (the wide canvas drew twins)', () => {
+    // Live 2026-10-03: landscape drew a second copy of her 2 of 3; portrait 6/6 clean.
+    assert.deepEqual(dayStillFaceCropCanvas(lying), { ...PLAY_FACE_CROP_CANVAS });
+    assert.equal(DAY_LYING_WIDE_CANVAS.width, 1472);
+  });
+
+  it('keeps the portrait face-crop canvas otherwise', () => {
+    const portrait = { ...PLAY_FACE_CROP_CANVAS };
+    // Wide without an outfit line drew her nude 2 of 3.
+    assert.deepEqual(dayStillFaceCropCanvas({ ...lying, outfitLine: false }), portrait);
+    assert.deepEqual(dayStillFaceCropCanvas({ ...lying, lying: false }), portrait);
+    assert.deepEqual(dayStillFaceCropCanvas({ ...lying, solo: false }), portrait);
+    // Only Qwen-Image 2.1 was tested.
+    assert.deepEqual(dayStillFaceCropCanvas({ ...lying, model: RAPID }), portrait);
+    assert.deepEqual(dayStillFaceCropCanvas({ ...lying, model: EDIT_2511 }), portrait);
+  });
+
+  it('finds the outfit line in a finished prompt', () => {
+    assert.equal(DAY_OUTFIT_LINE_RE.test('SCENE: a park.\nOUTFIT (mandatory): she wears a dress.'), true);
+    assert.equal(DAY_OUTFIT_LINE_RE.test('Day photo: She wears the outfit (mandatory).'), false);
   });
 });

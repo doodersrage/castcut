@@ -13,8 +13,9 @@ import {
 } from './day-plate';
 import { dayClothedHeatPoseNeedsBodyUnlock, daySuggestiveBeatIsSeated } from './day-vacation';
 import { beatOwnsFootwear, footwearIsBarefoot } from './footwear';
+import { PLAY_FACE_CROP_CANVAS } from './play-plate-render-size';
 import { poseProfileForModel } from './pose/pose-model-profile';
-import { vacationBeatDressesItself } from './rapid-duo-recipe';
+import { beatLiesDown, vacationBeatDressesItself } from './rapid-duo-recipe';
 
 /** The mood a still plays as: an adult mood with Intimate off is Everyday. */
 function playedMood(dayMood: string | null | undefined, intimateEnabled: boolean) {
@@ -181,4 +182,59 @@ export function dayStillFootwearApplies(input: {
     !beatOwnsFootwear(input.sceneHints) &&
     !sceneDressesItself(input.dayMood, input.sceneHints)
   );
+}
+
+/** Pose layouts that have her lying down. */
+const LYING_LAYOUTS: ReadonlySet<string> = new Set([
+  'lie',
+  'lie_side',
+  'lie_front',
+  'lounge_elbows',
+  'prone',
+]);
+
+/**
+ * Whether this still has her lying down: the drawn layout says so, or — on a one-person still —
+ * the beat does (on a pair, "he lies propped on an elbow" is about him).
+ */
+export function dayStillLiesDown(input: {
+  beat: string | null | undefined;
+  layout?: string | null;
+  /** People on the still (default one). */
+  figures?: number;
+}): boolean {
+  return (
+    LYING_LAYOUTS.has(input.layout?.trim() ?? '') ||
+    ((input.figures ?? 1) < 2 && beatLiesDown(input.beat))
+  );
+}
+
+/** A finished Day prompt names her clothes on a line of its own. */
+export const DAY_OUTFIT_LINE_RE = /^OUTFIT \(mandatory\):/m;
+
+/** Landscape canvas for a lying solo still on a face crop (pose-model-profile: wideLyingSolo). */
+export const DAY_LYING_WIDE_CANVAS = {
+  width: PLAY_FACE_CROP_CANVAS.height,
+  height: PLAY_FACE_CROP_CANVAS.width,
+} as const;
+
+/**
+ * The canvas for a Day still whose Image 1 is a face crop: the portrait face-crop canvas, or
+ * landscape for one person lying down on an engine that wants it — only when the prompt names
+ * her outfit (wide without that line drew her nude).
+ */
+export function dayStillFaceCropCanvas(input: {
+  model: string | null | undefined;
+  /** One person on the still. */
+  solo: boolean;
+  lying: boolean;
+  /** The still's prompt has an OUTFIT (mandatory) line. */
+  outfitLine: boolean;
+}): { width: number; height: number } {
+  return poseProfileForModel(input.model).wideLyingSolo &&
+    input.solo &&
+    input.lying &&
+    input.outfitLine
+    ? { ...DAY_LYING_WIDE_CANVAS }
+    : { ...PLAY_FACE_CROP_CANVAS };
 }

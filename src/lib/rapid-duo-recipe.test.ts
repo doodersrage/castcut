@@ -18,6 +18,8 @@ import {
 import { reinforceIntimateStillPrompt } from './intimate-prompt-clarify';
 import { applyQueuePromptSteering } from './queue-prompt-prep';
 import {
+  beatLiesDown,
+  buildCompactDayRecipe,
   buildRapidDuoRecipe,
   calmSexLaughter,
   buildRapidSuggestiveRecipe,
@@ -670,5 +672,46 @@ describe('Day couple recipe for friends', () => {
     } as never);
     assert.doesNotMatch(recipe ?? '', /boyfriend/);
     assert.match(recipe ?? '', /his friend/);
+  });
+});
+
+describe('Day recipe: lying beats', () => {
+  const placement = (beat: string) =>
+    /One woman alone\. (.*?) She wears/.exec(
+      buildCompactDayRecipe({ beat, setting: 'park', outfitImage: 'second', faceOnly: true }) ?? ''
+    )?.[1] ?? null;
+
+  it('says the whole body, horizontal on the surface, not sitting', () => {
+    // Live 2026-10-03, Qwen-Image 2.1: "She lies on her back." alone came out sitting up.
+    assert.equal(
+      placement('lying on her back on a picnic blanket'),
+      'She lies flat on her back on the picnic blanket, whole body horizontal, head resting on it, legs stretched out — not sitting.'
+    );
+    assert.equal(
+      placement('lying on her side on the sofa, head propped on one hand, reading'),
+      'She lies on her side on the sofa, whole body horizontal along it, head propped on one hand — not sitting.'
+    );
+    assert.equal(
+      placement('lying on her stomach on the bed, feet kicked up behind, scrolling the news'),
+      'She lies on her stomach on the bed, whole body horizontal along it, propped on her forearms — not sitting.'
+    );
+    assert.equal(
+      placement('propped back on her elbows on the grass watching the sunset'),
+      'She lies back on the grass, propped up on both elbows, whole body horizontal along it, legs stretched out — not sitting.'
+    );
+    // The beat's own legs are left to it.
+    assert.equal(
+      placement('lying on the park lawn with sunglasses on, one knee up'),
+      'She lies flat on her back on the park lawn, whole body horizontal, head resting on it — not sitting.'
+    );
+  });
+
+  it('knows a lie from a chair sprawl or a negated one', () => {
+    assert.equal(beatLiesDown('lying on the rug mid-stretch'), true);
+    assert.equal(beatLiesDown('reclining on the couch with feet up'), true);
+    assert.equal(beatLiesDown('sprawled sideways in an armchair still in the coat'), false);
+    assert.equal(beatLiesDown('sitting on the bed, never lying down'), false);
+    assert.equal(beatLiesDown('leaning on the rail, propped on her elbows'), false);
+    assert.equal(placement('sprawled sideways in an armchair still in the coat'), null);
   });
 });

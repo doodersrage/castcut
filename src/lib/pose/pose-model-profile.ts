@@ -120,6 +120,17 @@ export type PoseModelProfile = {
   dressPlate?: 'plate' | 'clothing';
   /** Queues on this engine's graph, then converts (Qwen-Image 2.1 → Rapid AIO NSFW edit). */
   graphBaseModel?: string;
+  /**
+   * A one-person lying still on a face crop renders on a landscape canvas, when an OUTFIT line
+   * names her clothes. Qwen-Image 2.1, Day Everyday lying beats (live 2026-10-03): on the
+   * portrait face-crop canvas she sat up; landscape with the outfit line and a whole-body pose
+   * sentence, 9/9 lying and dressed — landscape without the outfit line drew her nude 2 of 3.
+   * Off for every engine since: through the app the landscape canvas drew a twin (a second copy
+   * of her) 2 of 3, and a replay A/B gave portrait 6/6 clean against landscape 4/6 (the face crop
+   * is centred on the canvas and was pasted into the sky); the outfit line and the whole-body
+   * sentence alone hold the pose and the clothes. Kept as a switch for engines that need it.
+   */
+  wideLyingSolo: boolean;
 };
 
 const NONE: ReadonlySet<string> = new Set();
@@ -138,6 +149,7 @@ const BASE: PoseModelProfile = {
   dressWhenNoOutfit: false,
   poseControlNetGuessable: true,
   mapDelivery: { solo: 'vision', duoClothed: 'vision', duoNude: 'vision' },
+  wideLyingSolo: false,
 };
 
 export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
@@ -176,6 +188,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     mapDelivery: { solo: 'none', duoClothed: 'none', duoNude: 'none' },
     penetrationEngine: 'qwen-rapid-aio-edit-nsfw',
     graphBaseModel: 'qwen-rapid-aio-edit-nsfw',
+    wideLyingSolo: false,
   },
   klein: {
     ...BASE,

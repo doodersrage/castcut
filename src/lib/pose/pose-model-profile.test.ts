@@ -28,6 +28,10 @@ describe('pose model profiles', () => {
     assert.equal(profile.mapDelivery.duoClothed, 'none');
     assert.equal(profile.namePartnerOutfit, true);
     assert.equal(profile.penetrationEngine, 'qwen-rapid-aio-edit-nsfw');
+    // Lying solo stills stay portrait everywhere (landscape drew twins on 2.1).
+    assert.equal(profile.wideLyingSolo, false);
+    assert.equal(poseProfileForModel('qwen-rapid-aio-edit').wideLyingSolo, false);
+    assert.equal(poseProfileForModel('qwen-image-edit-2511').wideLyingSolo, false);
   });
 });
 
