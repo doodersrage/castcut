@@ -387,7 +387,7 @@ Return ONLY JSON: {"name":"","look":"","personality":"","catchphrase":""}
           'one visual sentence of clothes, colors and distinctive props only — never face, hair, skin, age or body; those come from the reference photo. Clothes from the part — not the photo location or the photo outfit.'
         : 'one visual sentence (species/body, clothes, colors, distinctive props).'
     }${adultLookHint(content)}${everydayLookHint(content)}
-- personality: one or two sentences, first or close third person.
+- personality: who they are, in two or three short sentences of close third person — temperament, what they care about, habits and quirks, how they talk and treat people (e.g. "Dry-witted and fiercely loyal. Hates being rushed, apologises to furniture. Talks to strangers like old friends."). A character sketch, not a scene: no setting, no weather, nothing they are doing right now, no "she walks…" or "when the rain…".
 - ${contentLine(content, allowGore)}`,
     user: [
       `Play as: ${persona}`,
