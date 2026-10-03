@@ -161,8 +161,37 @@ export function savePoseLibraryEntry(entry: PoseLibraryEntry): void {
   try {
     store.setItem(STORAGE_KEY, JSON.stringify(withPoseLibraryEntry(loadPoseLibrary(), entry)));
     notifyChange();
+    // Not a browser-storage key: ask for the server push itself.
+    void import('./auto-storage-sync').then(({ scheduleAutoPushStorage }) =>
+      scheduleAutoPushStorage()
+    );
   } catch {
     // Storage full or blocked — the library is a nicety, never a failure.
+  }
+}
+
+/**
+ * Merge a library from another device (the server copy): every pose kept, folded in with the
+ * same per-layout and overall limits. The library lived in this browser only.
+ */
+export function mergePoseLibraries(
+  local: PoseLibraryEntry[],
+  incoming: unknown
+): PoseLibraryEntry[] {
+  const others = Array.isArray(incoming) ? incoming.filter(isEntry) : [];
+  const seen = new Set(local.map(entry => entry.id));
+  return others
+    .filter(entry => !seen.has(entry.id))
+    .reduce((list, entry) => withPoseLibraryEntry(list, entry), local);
+}
+
+/** Replace the stored library (applying the server copy). */
+export function replacePoseLibrary(entries: PoseLibraryEntry[]): void {
+  try {
+    storage()?.setItem(STORAGE_KEY, JSON.stringify(entries));
+    notifyChange();
+  } catch {
+    // ignore
   }
 }
 

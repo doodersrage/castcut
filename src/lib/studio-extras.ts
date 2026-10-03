@@ -2,6 +2,7 @@
  * Durable studio state that is not settings / history / gallery.
  * Synced to PROMPT_DATA_DIR as the `studio-extras` namespace.
  */
+import { loadPoseLibrary, mergePoseLibraries, replacePoseLibrary } from './pose-library';
 import type { DayDressPlateEntry } from '@/lib/dress-plate-cache';
 import { loadDressPlates, replaceDressPlates } from '@/lib/dress-plate-store';
 import { loadSavedFootwear, replaceSavedFootwear, type SavedFootwear } from '@/lib/footwear-saved';
@@ -205,6 +206,8 @@ export type StudioExtrasPayload = {
    * the Cast changed.
    */
   roleplayLibrary?: StoredRoleplaySession[];
+  /** Poses learned from kept stills (pose-library) — browser-only before. */
+  poseLibrary?: import('./pose-library').PoseLibraryEntry[];
   appTheme?: AppTheme;
   ambientIntensity?: AmbientIntensity;
   uiDensity?: UiDensity;
@@ -278,6 +281,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     studioBackupLastExport: readBrowserValue<string>(STUDIO_BACKUP_LAST_EXPORT_KEY) ?? null,
     characters: loadCharacters(),
     roleplayLibrary: readStoredRoleplayLibrary(),
+    poseLibrary: loadPoseLibrary(),
     appTheme: loadAppTheme(),
     ambientIntensity: loadAmbientIntensity(),
     uiDensity: loadUiDensity(),
@@ -344,6 +348,9 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.roleplayLibrary) {
       writeBrowserValue(ROLEPLAY_LIBRARY_STORAGE_KEY, payload.roleplayLibrary);
+    }
+    if (payload.poseLibrary) {
+      replacePoseLibrary(mergePoseLibraries(loadPoseLibrary(), payload.poseLibrary));
     }
     if (payload.userNsfwGeneratorPresets) {
       saveUserNsfwGeneratorPresets(payload.userNsfwGeneratorPresets);
