@@ -1,5 +1,6 @@
 'use client';
 
+import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import { normalizeFootwear } from '@/lib/footwear';
@@ -25,6 +26,7 @@ import {
 import {
   buildFittingOutfitPrompt,
   clipFittingGarmentLabel,
+  FITTING_COMPARE_LIMIT,
   pushFittingCompareTryOn,
   withFittingCustomPose,
   type FittingCompareTryOn,
@@ -111,6 +113,37 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
     wardrobeLabel?: string;
     dressPlateKey?: string;
   } | null>(null);
+  // Compare and the try-on in flight are saved with Outfit's settings: they lived in page memory
+  // only, and a reload (or another device) lost the try-ons the player was choosing between.
+  const compareRestoredRef = useRef(false);
+  useEffect(() => {
+    if (!input.mounted || compareRestoredRef.current) {
+      return;
+    }
+    compareRestoredRef.current = true;
+    const saved = (input.toolSettings.compareTryOns ?? []).filter(
+      entry => entry?.promptId && entry.imageUrl
+    );
+    if (saved.length > 0) {
+      scheduleAfterCommit(() => setCompareTryOns(saved.slice(-FITTING_COMPARE_LIMIT)));
+    }
+    if (input.toolSettings.pendingTryOn?.promptId && !pendingTryOnRef.current) {
+      pendingTryOnRef.current = input.toolSettings.pendingTryOn;
+    }
+  }, [input.mounted, input.toolSettings.compareTryOns, input.toolSettings.pendingTryOn]);
+  useEffect(() => {
+    if (!compareRestoredRef.current) {
+      return;
+    }
+    const saved = input.toolSettings.compareTryOns ?? [];
+    if (JSON.stringify(saved) !== JSON.stringify(compareTryOns)) {
+      input.updateToolSettings({
+        compareTryOns: compareTryOns.length > 0 ? compareTryOns : undefined,
+      });
+    }
+    // Only the list itself decides a save; the settings echo back the same value.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compareTryOns]);
   const previewQueueBusyRef = useRef(false);
   const kitPreviewsRef = useRef(normalizeFittingKitPreviews(input.toolSettings.kitPreviews));
 
@@ -353,7 +386,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           lookId: input.shared.activeLookId ?? input.character?.activeLookId,
         });
         if (typeof promptId === 'string' && promptId.trim()) {
-          pendingTryOnRef.current = {
+          const pending: FittingCompareTryOn = {
             promptId: promptId.trim(),
             wardrobeId: hasCustomGarment ? 'custom-garment' : wardrobeIdForQueue?.trim() || '',
             wardrobeLabel: hasCustomGarment
@@ -389,6 +422,8 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                 }
               : {}),
           };
+          pendingTryOnRef.current = pending;
+          input.updateToolSettings({ pendingTryOn: pending });
         }
         return true;
       } catch (err) {
@@ -435,6 +470,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           const imageUrl = galleryEntryPrimaryViewUrl(entry);
           if (imageUrl) {
             pendingTryOnRef.current = null;
+            input.updateToolSettings({ pendingTryOn: undefined });
             setCompareTryOns(current =>
               pushFittingCompareTryOn(current, {
                 promptId: pending.promptId,

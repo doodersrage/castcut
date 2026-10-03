@@ -1076,6 +1076,12 @@ export type RoleplayToolCache = {
 
 /** Fitting Room — outfit try-on from a Cast plate + locked wardrobe kit. */
 export type FittingToolCache = {
+  /**
+   * The try-ons in Compare (finished ones) and the one still rendering. Kept so a reload, or
+   * opening Outfit on another device, still has the try-ons to choose between.
+   */
+  compareTryOns?: import('./fitting-room').FittingCompareTryOn[];
+  pendingTryOn?: import('./fitting-room').FittingCompareTryOn;
   isolateSubject?: boolean;
   referenceIsolated?: boolean;
   referenceImageUrl?: string;
@@ -2061,6 +2067,9 @@ export function scrubPlayToolCachesOnCastChange(tools: ToolSettingsCache): ToolS
         // not the Cast being activated, and must not be dropped or stamped here.
         // Allow Cast look reseed after switch (user clear still sets this true).
         suppressAutoPlateSeed: false,
+        // Another Cast's try-ons are not this one's to keep.
+        compareTryOns: undefined,
+        pendingTryOn: undefined,
       },
     };
   }
