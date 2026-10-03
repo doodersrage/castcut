@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { resetBrowserStorageCache } from './browser-storage';
-import { removeCastPlate, switchCastPlate } from './cast-plate-switch';
-import { castPlateTiles } from './cast-plate-thumb';
+import { addBlankCastLook, removeCastPlate, switchCastPlate } from './cast-plate-switch';
+import {
+  castLookDisplayName,
+  castLookPortraitTile,
+  castPlateTiles,
+  nextCastLookName,
+} from './cast-plate-thumb';
 import { activeLook, getCharacter, looksOf, upsertCharacter } from './character-os';
 import { dayDressPlateRequestKey } from './day-dress-plate';
 import { resolveFittingPlateFromCharacter } from './fitting-room';
@@ -184,5 +189,95 @@ describe('several look plates per Cast', () => {
         ['look-empty', 'Empty', undefined, false],
       ]
     );
+  });
+
+  it('Looks tiles: every look, plate-less ones offer Add plate, names and outfit locks', () => {
+    installMemoryWindow();
+    upsertCharacter({
+      id: 'char-looks',
+      name: 'Juno',
+      version: 1,
+      updatedAt: 1,
+      activeLookId: 'look-studio',
+      looks: [
+        {
+          id: 'look-studio',
+          name: 'Studio',
+          createdAt: 4,
+          ipAdapter: { imageFilename: 'studio.png', imageUrl: '/icon.svg' },
+          lockedWardrobeId: 'outfit-relaxed-fit-lavender-slip-dress',
+        },
+        {
+          id: 'look-old',
+          name: 'New look',
+          createdAt: 3,
+          ipAdapter: { imageFilename: 'old.png', imageUrl: '/icon.svg' },
+        },
+        // No plate of its own: shows an Add plate box, never another look's picture.
+        { id: 'look-bare', name: 'New look', createdAt: 2 },
+        { id: 'look-first', name: 'Default', createdAt: 1 },
+      ],
+    });
+    const cast = getCharacter('char-looks')!;
+    const tiles = castPlateTiles(cast, {
+      outfitLabel: id => (id === 'outfit-relaxed-fit-lavender-slip-dress' ? 'Lavender slip' : id),
+    });
+    assert.deepEqual(
+      tiles.map(tile => [tile.id, tile.label, tile.thumb, tile.hasPlate, tile.outfit]),
+      [
+        ['look-studio', 'Studio', '/icon.svg', true, 'Lavender slip'],
+        // Old "New look" names read as "Look N" by place, oldest first; the record keeps its name.
+        ['look-old', 'Look 3', '/icon.svg', true, undefined],
+        ['look-bare', 'Look 2', undefined, false, undefined],
+        ['look-first', 'Default', undefined, false, undefined],
+      ]
+    );
+    assert.equal(looksOf(cast).find(look => look.id === 'look-old')?.name, 'New look');
+    // Without a loaded catalog label the kit id reads as words.
+    assert.equal(castPlateTiles(cast)[0]!.outfit, 'relaxed-fit lavender slip dress');
+
+    const bare = castLookPortraitTile(tiles[2]!);
+    assert.equal(bare.placeholder, 'Add plate');
+    assert.equal(bare.thumb, undefined);
+    assert.equal(castLookPortraitTile(tiles[2]!, { placeholder: 'No plate' }).placeholder, 'No plate');
+    const studio = castLookPortraitTile(tiles[0]!);
+    assert.equal(studio.placeholder, undefined);
+    assert.equal(studio.caption, 'Lavender slip');
+    assert.equal(studio.title, 'Studio · Lavender slip');
+
+    // Next free number past the ones on show.
+    assert.equal(nextCastLookName(cast), 'Look 5');
+  });
+
+  it('look names: blank and "New look" are numbered, real names stay', () => {
+    assert.equal(castLookDisplayName('Beach', 2), 'Beach');
+    assert.equal(castLookDisplayName('  New look ', 4), 'Look 4');
+    assert.equal(castLookDisplayName('new LOOK', 1), 'Look 1');
+    assert.equal(castLookDisplayName('', 3), 'Look 3');
+    assert.equal(castLookDisplayName(undefined, 7), 'Look 7');
+    assert.equal(castLookDisplayName('New look 2', 1), 'New look 2');
+  });
+
+  it('a new look from a plate-less look copies its outfit lock, no picture, and is active', () => {
+    installMemoryWindow();
+    upsertCharacter({
+      id: 'char-blank',
+      name: 'Ines',
+      version: 1,
+      updatedAt: 1,
+      activeLookId: 'look-a',
+      looks: [{ id: 'look-a', name: 'Coat', createdAt: 1, lockedWardrobeId: 'outfit-coat' }],
+    });
+    const next = addBlankCastLook('char-blank', 'Look 2')!;
+    const fresh = activeLook(next);
+    assert.notEqual(fresh.id, 'look-a');
+    assert.equal(fresh.name, 'Look 2');
+    assert.equal(fresh.lockedWardrobeId, 'outfit-coat');
+    assert.equal(fresh.reference, undefined);
+    assert.equal(fresh.ipAdapter, undefined);
+    assert.equal(looksOf(next).length, 2);
+    const tiles = castPlateTiles(next);
+    assert.equal(tiles[0]!.id, fresh.id);
+    assert.equal(tiles[0]!.hasPlate, false);
   });
 });

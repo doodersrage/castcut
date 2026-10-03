@@ -5,9 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { BROWSER_STORAGE_HEALTH_EVENT, whenBrowserStorageReady } from '@/lib/browser-storage';
 import { isAssembledFilmEntry } from '@/lib/character-film';
 import {
-  activateLook,
   activeLook,
-  addLookFromShared,
   addCharacterLookPack,
   applyCharacterRecord,
   applyCharacterRecordFresh,
@@ -17,7 +15,6 @@ import {
   lookPacksOf,
   looksOf,
   forgetCharacterRecord,
-  removeLook,
   removeCharacterLookPack,
   renameLook,
   subscribeCharacters,
@@ -50,8 +47,9 @@ import {
   saveLookPack,
 } from '@/lib/look-pack';
 import { applyCastLookPlateFromSource, clearCharacterLookPlate } from '@/lib/look-outfit-plate';
-import { removeCastPlate, switchCastPlate } from '@/lib/cast-plate-switch';
-import { castPlateTiles } from '@/lib/cast-plate-thumb';
+import { addBlankCastLook, removeCastPlate, switchCastPlate } from '@/lib/cast-plate-switch';
+import { castPlateTiles, nextCastLookName } from '@/lib/cast-plate-thumb';
+import { fetchClothingLabels } from '@/lib/clothing-catalog-client';
 import {
   restoreCastPlateSnapshot,
   stripCastPlateClothing,
@@ -103,7 +101,8 @@ export function useCharacterHomeOrchestration(characterId: string) {
     getServerCharactersSnapshot
   );
   const gallery = useSyncExternalStore(subscribeGallery, getGalleryCache, () => EMPTY_GALLERY);
-  const [lookName, setLookName] = useState('');
+  /** Bumped when outfit-lock labels arrive from the catalog (tiles read them from its cache). */
+  const [, setOutfitLabelsLoaded] = useState(0);
   const [mediaTab, setMediaTab] = useState<MediaTab>('all');
   const [homeTab, setHomeTab] = useState<CharacterHomeTab>('overview');
   const [continueError, setContinueError] = useState<string | null>(null);
@@ -191,6 +190,23 @@ export function useCharacterHomeOrchestration(characterId: string) {
   }, []);
 
   const looks = character ? looksOf(character) : [];
+  const lookWardrobeIds = [
+    ...new Set(looks.map(look => look.lockedWardrobeId?.trim() || '').filter(Boolean)),
+  ].join(',');
+  useEffect(() => {
+    if (!lookWardrobeIds) {
+      return;
+    }
+    let cancelled = false;
+    void fetchClothingLabels(lookWardrobeIds.split(',')).then(() => {
+      if (!cancelled) {
+        setOutfitLabelsLoaded(count => count + 1);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [lookWardrobeIds]);
   const savedLookPacks = character ? lookPacksOf(character) : [];
   const currentLook = character ? activeLook(character) : undefined;
   const lookPlate = resolveFittingPlateFromCharacter(character);
@@ -348,8 +364,8 @@ export function useCharacterHomeOrchestration(characterId: string) {
       file?: File | null;
       imageUrl?: string;
       filename?: string;
-      /** Keep the current plate and add this one beside it (made active). */
-      newPlate?: boolean;
+      /** Keep the current plate and add this one as a new look (made active). */
+      newPlate?: { name?: string };
     }) => {
       if (!character) {
         return false;
@@ -365,11 +381,13 @@ export function useCharacterHomeOrchestration(characterId: string) {
           filename: input.filename,
           isolate: true,
           model: loadSettingsCache().shared.model,
-          ...(input.newPlate ? { newPlate: {} } : {}),
+          ...(input.newPlate ? { newPlate: input.newPlate } : {}),
         });
         persistApply(result.character);
         setPlateUndo(null);
-        const saved = input.newPlate ? 'Plate added and in use' : 'Look plate saved';
+        const saved = input.newPlate
+          ? `New look “${input.newPlate.name || 'look'}” made and in use`
+          : 'Look plate saved';
         setPlateStatus(result.isolated ? `${saved} (isolated on white).` : `${saved}.`);
         softAdvanceHref(
           `/fitting?character=${encodeURIComponent(character.id)}`,
@@ -494,12 +512,16 @@ export function useCharacterHomeOrchestration(characterId: string) {
     setPlateStatus(message);
   };
 
+  /** The name a look shows on its tile ("Look 3" for an unnamed one). */
+  const lookLabel = (record: NonNullable<typeof character>, lookId: string) =>
+    castPlateTiles(record).find(tile => tile.id === lookId)?.label ?? '';
+
   const selectPlate = (lookId: string) => {
     if (!character || lookId === character.activeLookId) {
       return;
     }
     const next = switchCastPlate(character.id, lookId);
-    applyPlateChange(next, `Using the plate “${next ? activeLook(next).name : ''}”.`);
+    applyPlateChange(next, `Using the look “${next ? lookLabel(next, activeLook(next).id) : ''}”.`);
   };
 
   const removeActivePlate = () => {
@@ -507,15 +529,56 @@ export function useCharacterHomeOrchestration(characterId: string) {
       return;
     }
     const target = activeLook(character);
+    const label = lookLabel(character, target.id);
     if (
       !window.confirm(
-        `Remove the plate “${target.name}” from ${character.name}? The other plates stay.`
+        `Remove the look “${label}” and its plate from ${character.name}? The other looks stay.`
       )
     ) {
       return;
     }
     const next = removeCastPlate(character.id, target.id);
-    applyPlateChange(next, `Plate “${target.name}” removed.`);
+    applyPlateChange(next, `Look “${label}” removed.`);
+  };
+
+  /**
+   * "New look": a copy of the active look — its outfit lock and description, and its plate as a
+   * file of its own (so replacing either plate later leaves the other alone). A look with no
+   * plate makes a plate-less copy whose tile offers Add plate.
+   */
+  const newLookFromCurrent = async () => {
+    if (!character || plateUploading) {
+      return;
+    }
+    const name = nextCastLookName(character);
+    const source = lookPlate;
+    const sourceUrl = source?.imageUrl?.trim() || '';
+    if (!source || (!sourceUrl && !source.filename?.trim())) {
+      const next = addBlankCastLook(character.id, name);
+      applyPlateChange(next, `New look “${name}” made — add its plate.`);
+      return;
+    }
+    setPlateUploading(true);
+    setPlateError(null);
+    setPlateStatus('Making a new look from this one…');
+    try {
+      const result = await applyCastLookPlateFromSource({
+        characterId: character.id,
+        imageUrl: sourceUrl || undefined,
+        filename: source.filename,
+        // The plate is already what this look uses — copy it as it is.
+        isolate: false,
+        alreadyIsolated: source.isolated === true,
+        model: loadSettingsCache().shared.model,
+        newPlate: { name },
+      });
+      applyPlateChange(result.character, `New look “${name}” made and in use.`);
+    } catch (err) {
+      setPlateStatus(null);
+      setPlateError(err instanceof Error ? err.message : 'Could not make the new look.');
+    } finally {
+      setPlateUploading(false);
+    }
   };
 
   const renameActivePlate = (name: string) => {
@@ -524,7 +587,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
     }
     const target = activeLook(character);
     const nextName = name.trim();
-    if (!nextName || nextName === target.name) {
+    if (!nextName || nextName === target.name || nextName === lookLabel(character, target.id)) {
       return;
     }
     persistApply(renameLook(character.id, target.id, nextName));
@@ -577,8 +640,6 @@ export function useCharacterHomeOrchestration(characterId: string) {
     setHomeTab,
     character,
     router,
-    lookName,
-    setLookName,
     mediaTab,
     setMediaTab,
     continueError,
@@ -601,6 +662,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
     selectPlate,
     removeActivePlate,
     renameActivePlate,
+    newLookFromCurrent,
     stripLookPlateClothing,
     undoLookPlateStrip,
     canUndoPlateStrip: plateUndo !== null,
@@ -630,9 +692,5 @@ export function useCharacterHomeOrchestration(characterId: string) {
     loadEngineSettings,
     galleryEntryPrimaryViewUrl,
     removeCharacterLookPack,
-    activateLook,
-    removeLook,
-    addLookFromShared,
-    loadSettingsCache,
   };
 }

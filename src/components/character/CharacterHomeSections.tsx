@@ -13,7 +13,6 @@ import CharacterBibleSection from '@/components/character/CharacterBibleSection'
 import CharacterHomeActionRow from '@/components/character/CharacterHomeActionRow';
 import CharacterLookPacksSection from '@/components/character/CharacterLookPacksSection';
 import CharacterLookPlateSection from '@/components/character/CharacterLookPlateSection';
-import CharacterLooksSection from '@/components/character/CharacterLooksSection';
 import CharacterMediaSection from '@/components/character/CharacterMediaSection';
 import CharacterPersonaSection from '@/components/character/CharacterPersonaSection';
 import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrchestration';
@@ -90,45 +89,32 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
         ]}
       />
       {props.homeTab === 'overview' ? (
-        <>
-          <CharacterLookPlateSection
-            characterId={character.id}
-            plate={props.lookPlate}
-            uploading={props.plateUploading}
-            status={props.plateStatus}
-            error={props.plateError}
-            onClear={props.clearLookPlate}
-            onUpload={file => {
-              void props.applyLookPlate({ file });
-            }}
-            onStripClothing={sendComfyUi => {
-              void props.stripLookPlateClothing(sendComfyUi);
-            }}
-            canUndoStrip={props.canUndoPlateStrip}
-            onUndoStrip={() => {
-              void props.undoLookPlateStrip();
-            }}
-            plates={props.plateTiles}
-            activePlateId={character.activeLookId}
-            onSelectPlate={props.selectPlate}
-            onAddPlate={file => {
-              void props.applyLookPlate({ file, newPlate: true });
-            }}
-            onRemovePlate={props.removeActivePlate}
-            onRenamePlate={props.renameActivePlate}
-          />
-          <CharacterLooksSection
-            character={character}
-            looks={props.looks}
-            lookName={props.lookName}
-            setLookName={props.setLookName}
-            persistApply={props.persistApply}
-            activateLook={props.activateLook}
-            removeLook={props.removeLook}
-            addLookFromShared={props.addLookFromShared}
-            loadSettingsCache={props.loadSettingsCache}
-          />
-        </>
+        <CharacterLookPlateSection
+          characterId={character.id}
+          plate={props.lookPlate}
+          uploading={props.plateUploading}
+          status={props.plateStatus}
+          error={props.plateError}
+          onClear={props.clearLookPlate}
+          onUpload={file => {
+            void props.applyLookPlate({ file });
+          }}
+          onStripClothing={sendComfyUi => {
+            void props.stripLookPlateClothing(sendComfyUi);
+          }}
+          canUndoStrip={props.canUndoPlateStrip}
+          onUndoStrip={() => {
+            void props.undoLookPlateStrip();
+          }}
+          plates={props.plateTiles}
+          activePlateId={character.activeLookId}
+          onSelectPlate={props.selectPlate}
+          onNewLook={() => {
+            void props.newLookFromCurrent();
+          }}
+          onRemovePlate={props.removeActivePlate}
+          onRenamePlate={props.renameActivePlate}
+        />
       ) : null}
       {props.homeTab === 'bible' ? (
         <>

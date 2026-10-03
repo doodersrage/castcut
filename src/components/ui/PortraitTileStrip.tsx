@@ -10,6 +10,10 @@ export type PortraitTile = {
   /** A 3:4 picture — a look plate or face; the glyph shows when there is none. */
   thumb?: string;
   glyph?: string;
+  /** A second, smaller line under the name (a look's locked outfit). */
+  caption?: string;
+  /** With no thumb: a dashed "missing picture" box with this text (a look with no plate). */
+  placeholder?: string;
 };
 
 /**
@@ -71,6 +75,7 @@ export default function PortraitTileStrip({
             title={tile.title ?? tile.label}
             disabled={disabled}
             data-testid={`${testIdPrefix}-${tile.id || 'none'}`}
+            data-placeholder={!tile.thumb && tile.placeholder ? 'true' : undefined}
             // Re-tapping the pick must do nothing: a dropdown never fired for the same value, and
             // here it reset the partner's face and re-applied the Cast over unsaved changes.
             onClick={() => {
@@ -86,6 +91,8 @@ export default function PortraitTileStrip({
             <span
               // 3:4 like the Cast roster: look plates are full-body, a circle showed a speck.
               className={`flex h-16 w-12 items-center justify-center overflow-hidden rounded-lg border-2 bg-[var(--bg-subtle)] text-base font-medium text-[var(--text-muted)] ${
+                !tile.thumb && tile.placeholder ? 'border-dashed' : ''
+              } ${
                 selected
                   ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]'
                   : 'border-[var(--border-subtle)] opacity-80 group-hover:opacity-100'
@@ -99,6 +106,13 @@ export default function PortraitTileStrip({
                   loading="lazy"
                   className="h-full w-full object-cover object-top"
                 />
+              ) : tile.placeholder ? (
+                <span className="flex flex-col items-center px-0.5 text-[10px] font-normal leading-tight">
+                  <span aria-hidden className="text-base leading-none">
+                    +
+                  </span>
+                  {tile.placeholder}
+                </span>
               ) : (
                 <span aria-hidden>{tile.glyph ?? tile.label.slice(0, 1).toUpperCase()}</span>
               )}
@@ -120,6 +134,11 @@ export default function PortraitTileStrip({
             >
               {tile.label}
             </span>
+            {tile.caption ? (
+              <span className="line-clamp-1 w-full text-[10px] leading-tight text-[var(--text-muted)]">
+                {tile.caption}
+              </span>
+            ) : null}
           </button>
         );
       })}

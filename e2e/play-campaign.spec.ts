@@ -2407,7 +2407,9 @@ test('a Cast with a bible and a picture offers Picture this bible', async ({ pag
   await expect(lightbox).toHaveCount(0);
 });
 
-test('a Cast with two look plates: tap a plate tile to use it', async ({ page }) => {
+test('a Cast with three looks: one Looks strip, Add plate on the plate-less one', async ({
+  page,
+}) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: 'e2e-two-plates', activeLookId: 'e2e-plate-a' },
     characters: {
@@ -2433,6 +2435,8 @@ test('a Cast with two look plates: tap a plate tile to use it', async ({ page })
               createdAt: 1,
               ipAdapter: { imageFilename: 'e2e-plate-b.png', imageUrl: '/icon.svg' },
             },
+            // Saved by an old build with no picture of its own — and its "New look" name.
+            { id: 'e2e-plate-c', name: 'New look', createdAt: 0 },
           ],
         },
       ],
@@ -2441,19 +2445,38 @@ test('a Cast with two look plates: tap a plate tile to use it', async ({ page })
   });
   await gotoStable(page, '/characters/e2e-two-plates');
   await dismissBlockingOverlays(page);
-  const plates = page.getByRole('radiogroup', { name: 'Active plate' });
-  await expect(plates).toBeVisible({ timeout: 30_000 });
-  const studio = plates.getByTestId('cast-plate-tile-e2e-plate-a');
-  const beach = plates.getByTestId('cast-plate-tile-e2e-plate-b');
+  const looks = page.getByRole('radiogroup', { name: 'Active look' });
+  await expect(looks).toBeVisible({ timeout: 30_000 });
+  await expect(looks.getByRole('radio')).toHaveCount(3);
+  const studio = looks.getByTestId('cast-plate-tile-e2e-plate-a');
+  const beach = looks.getByTestId('cast-plate-tile-e2e-plate-b');
+  const bare = looks.getByTestId('cast-plate-tile-e2e-plate-c');
   await expect(studio).toHaveAttribute('aria-checked', 'true');
   await expect(beach).toHaveAttribute('aria-checked', 'false');
-  await expect(page.getByTestId('cast-plate-add')).toBeAttached();
+  await expect(studio.locator('img')).toHaveCount(1);
+  // The plate-less look offers Add plate — never a borrowed picture — and reads as "Look 1".
+  await expect(bare).toHaveAttribute('data-placeholder', 'true');
+  await expect(bare.locator('img')).toHaveCount(0);
+  await expect(bare).toContainText('Add plate');
+  await expect(bare).toContainText('Look 1');
+  await expect(page.getByTestId('cast-look-new')).toBeVisible();
+  // The old text list of looks is gone.
+  await expect(page.getByRole('button', { name: 'Save current as look' })).toHaveCount(0);
 
   await beach.click();
   await expect(beach).toHaveAttribute('aria-checked', 'true');
   await expect(studio).toHaveAttribute('aria-checked', 'false');
   await expect(page.getByTestId('cast-plate-name')).toHaveValue('Beach');
   await expect(page.getByTestId('cast-look-plate-status')).toContainText('Beach');
+
+  // Tapping the plate-less look makes it active; its Add plate uploads into that look.
+  await bare.click();
+  await expect(bare).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('cast-plate-name')).toHaveValue('Look 1');
+  const empty = page.getByTestId('cast-look-plate-empty');
+  await expect(empty).toBeVisible();
+  await expect(empty.getByText('Add plate')).toBeVisible();
+  await expect(empty.getByTestId('cast-look-plate-clear')).toHaveText('Remove look');
 });
 
 test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => {
@@ -2758,7 +2781,7 @@ test('cast home: tabs, plate empty state, no server/client title swap', async ({
   // Overview leads with the plate: a real empty state, not a bare file input.
   const empty = page.getByTestId('cast-look-plate-empty');
   await expect(empty).toBeVisible();
-  await expect(empty.getByText('Upload plate')).toBeVisible();
+  await expect(empty.getByText('Add plate')).toBeVisible();
   await expect(page.getByTestId('character-film-studio')).toHaveCount(0);
 
   await page.getByRole('tab', { name: 'Bible' }).click();

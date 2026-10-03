@@ -4,7 +4,14 @@
  * because the Cast picker in the app shell uses it.
  */
 
-import { activateLook, getCharacter, removeLook, type CharacterRecord } from '@/lib/character-os';
+import {
+  activateLook,
+  getCharacter,
+  removeLook,
+  upsertCharacter,
+  withNewPlateLook,
+  type CharacterRecord,
+} from '@/lib/character-os';
 import {
   resolveFittingPlateFromCharacter,
   withRoleplayLookPlateFromCast,
@@ -107,6 +114,25 @@ export function removeCastPlate(characterId: string, lookId: string): CharacterR
   const previous = resolveFittingPlateFromCharacter(before);
   const next = removeLook(before.id, lookId);
   if (next && next.activeLookId !== before.activeLookId) {
+    followCastPlateInSessions(before.id, previous, next);
+  }
+  return next;
+}
+
+/**
+ * A new look made from the active one when that look has no plate to copy: same description and
+ * outfit lock, no picture (its tile offers Add plate). It becomes the active look. A look with a
+ * plate is copied through applyCastLookPlateFromSource instead, so the copy owns its own file.
+ */
+export function addBlankCastLook(characterId: string, name: string): CharacterRecord | undefined {
+  const before = getCharacter(characterId);
+  if (!before) {
+    return undefined;
+  }
+  const previous = resolveFittingPlateFromCharacter(before);
+  upsertCharacter(withNewPlateLook(before, { name, reference: undefined, ipAdapter: undefined }));
+  const next = getCharacter(before.id);
+  if (next) {
     followCastPlateInSessions(before.id, previous, next);
   }
   return next;

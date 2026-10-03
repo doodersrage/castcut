@@ -13,7 +13,7 @@ import type { FittingPlate } from '@/lib/fitting-room';
 import { galleryPickPath } from '@/lib/gallery-handoff';
 import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
 import type { stripCastPlateClothing } from '@/lib/cast-plate-strip';
-import type { CastPlateTile } from '@/lib/cast-plate-thumb';
+import { castLookPortraitTile, type CastPlateTile } from '@/lib/cast-plate-thumb';
 
 const CastPlateStripButton = dynamic(() => import('@/components/character/CastPlateStripButton'), {
   ssr: false,
@@ -34,18 +34,18 @@ export type CharacterLookPlateSectionProps = {
   ) => void;
   canUndoStrip?: boolean;
   onUndoStrip?: () => void;
-  /** Every plate of the Cast (one per look) — picked from tiles when there are several. */
+  /** Every look of the Cast, one picture tile each (a look with no plate shows Add plate). */
   plates?: CastPlateTile[];
   activePlateId?: string;
   onSelectPlate?: (lookId: string) => void;
-  /** Upload another plate beside this one (it becomes the active plate). */
-  onAddPlate?: (file: File) => void;
-  /** Drop the active plate (only offered with several). */
+  /** Make a new look from the active one (its plate and outfit lock), made active. */
+  onNewLook?: () => void;
+  /** Drop the active look and its plate (only offered with several looks; asks first). */
   onRemovePlate?: () => void;
   onRenamePlate?: (name: string) => void;
 };
 
-/** Name of the active plate, saved on blur or Enter. */
+/** Name of the active look, saved on blur or Enter. */
 function PlateNameField({ name, onRename }: { name: string; onRename: (name: string) => void }) {
   const [draft, setDraft] = useState(name);
   const commit = () => {
@@ -70,7 +70,7 @@ function PlateNameField({ name, onRename }: { name: string; onRename: (name: str
         }
       }}
       maxLength={80}
-      aria-label="Plate name"
+      aria-label="Look name"
       data-testid="cast-plate-name"
       className="ui-input w-full max-w-[16rem] px-[var(--input-padding-x)] py-[var(--input-padding-y)] type-body"
     />
@@ -149,7 +149,7 @@ export default function CharacterLookPlateSection({
   plates = [],
   activePlateId,
   onSelectPlate,
-  onAddPlate,
+  onNewLook,
   onRemovePlate,
   onRenamePlate,
 }: CharacterLookPlateSectionProps) {
@@ -158,40 +158,52 @@ export default function CharacterLookPlateSection({
     ? cacheBustIdentityMediaUrl(plate.imageUrl.trim())
     : '';
   const hasPlate = Boolean(previewUrl || plate?.filename?.trim());
-  const severalPlates = plates.length > 1;
-  const activePlate = plates.find(entry => entry.id === activePlateId);
+  const severalLooks = plates.length > 1;
+  const activePlate = plates.find(entry => entry.id === activePlateId) ?? plates[0];
+  const removeLook = severalLooks && onRemovePlate ? onRemovePlate : undefined;
 
   return (
     <ToolSection
-      title={severalPlates ? 'Look plates' : 'Look plate'}
-      description={
-        severalPlates
-          ? 'Tap a plate to use it in Outfit, Day and Story. Each plate keeps its own dressed plates.'
-          : 'Identity still for Outfit, Day, and Story — checked for one clear, visible face.'
-      }
+      title="Looks"
+      description="Each look is a plate (and its outfit lock). Tap one to use it in Outfit, Day and Story — each keeps its own dressed plates."
       data-testid="cast-look-plate"
     >
-      {severalPlates && onSelectPlate ? (
-        <PortraitTileStrip
-          label="Active plate"
-          value={activePlateId ?? ''}
-          onChange={onSelectPlate}
-          disabled={uploading}
-          testIdPrefix="cast-plate-tile"
-          tiles={plates.map(entry => ({
-            id: entry.id,
-            label: entry.label,
-            title: entry.hasPlate ? entry.label : `${entry.label} — no picture yet`,
-            thumb: entry.thumb,
-          }))}
-        />
+      {plates.length > 0 && onSelectPlate ? (
+        <div className="flex min-w-0 items-start gap-2">
+          <PortraitTileStrip
+            label="Active look"
+            value={activePlate?.id ?? ''}
+            onChange={onSelectPlate}
+            disabled={uploading}
+            testIdPrefix="cast-plate-tile"
+            className="flex-1"
+            tiles={plates.map(tile => castLookPortraitTile(tile))}
+          />
+          {onNewLook ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={uploading}
+              data-testid="cast-look-new"
+              title="A copy of this look — its plate and outfit lock — to change from there"
+              onClick={onNewLook}
+            >
+              New look
+            </Button>
+          ) : null}
+        </div>
       ) : null}
-      {severalPlates && activePlate && onRenamePlate ? (
+      {activePlate && onRenamePlate ? (
         <PlateNameField
           key={`${activePlate.id}:${activePlate.label}`}
           name={activePlate.label}
           onRename={onRenamePlate}
         />
+      ) : null}
+      {activePlate?.outfit ? (
+        <p className="type-caption text-[var(--text-muted)]" data-testid="cast-look-outfit">
+          Outfit lock: {activePlate.outfit}
+        </p>
       ) : null}
       {status ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="cast-look-plate-status">
@@ -232,15 +244,6 @@ export default function CharacterLookPlateSection({
                 testId="cast-look-plate-upload"
                 onFile={onUpload}
               />
-              {onAddPlate ? (
-                <UploadButton
-                  label="Add plate"
-                  disabled={uploading}
-                  ariaLabel="Add another look plate"
-                  testId="cast-plate-add"
-                  onFile={onAddPlate}
-                />
-              ) : null}
               <ButtonLink
                 href={galleryPickPath('cast', { characterId })}
                 variant="secondary"
@@ -268,9 +271,10 @@ export default function CharacterLookPlateSection({
                 size="sm"
                 disabled={uploading}
                 data-testid="cast-look-plate-clear"
-                onClick={severalPlates && onRemovePlate ? onRemovePlate : onClear}
+                // The last look can't go — Remove takes its plate off instead (asks first).
+                onClick={removeLook ?? onClear}
               >
-                {severalPlates && onRemovePlate ? 'Remove plate' : 'Remove'}
+                {removeLook ? 'Remove look' : 'Remove plate'}
               </Button>
             </div>
           </div>
@@ -281,15 +285,19 @@ export default function CharacterLookPlateSection({
           data-testid="cast-look-plate-empty"
         >
           <p className="text-sm text-[var(--text-muted)]">
-            No look plate yet — Outfit, Day and Story need one. Use a clear photo of this character,
-            one person, face visible.
+            {severalLooks && activePlate
+              ? `“${activePlate.label}” has no plate yet — add one for this look.`
+              : 'No look plate yet — Outfit, Day and Story need one.'}{' '}
+            Use a clear photo of this character, one person, face visible.
           </p>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
             <UploadButton
-              label="Upload plate"
+              label="Add plate"
               variant="primary"
               disabled={uploading}
-              ariaLabel="Upload a look plate"
+              ariaLabel={
+                activePlate ? `Add a plate to the look ${activePlate.label}` : 'Add a look plate'
+              }
               testId="cast-look-plate-upload"
               onFile={onUpload}
             />
@@ -308,15 +316,15 @@ export default function CharacterLookPlateSection({
             >
               Extract a look in Look
             </ButtonLink>
-            {severalPlates && onRemovePlate ? (
+            {removeLook ? (
               <Button
                 variant="ghost"
                 size="sm"
                 disabled={uploading}
                 data-testid="cast-look-plate-clear"
-                onClick={onRemovePlate}
+                onClick={removeLook}
               >
-                Remove plate
+                Remove look
               </Button>
             ) : null}
           </div>

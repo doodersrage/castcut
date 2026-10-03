@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldLabel } from '@/components/ui/Field';
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
-import { castPlateThumbUrl, castPlateTiles } from '@/lib/cast-plate-thumb';
+import { castLookPortraitTile, castPlateThumbUrl, castPlateTiles } from '@/lib/cast-plate-thumb';
 import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import {
   addLookFromShared,
@@ -247,12 +247,11 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
             value={activeLookId ?? ''}
             onChange={applyLookId}
             testIdPrefix="cast-picker-look"
-            // A look's plate (its own photo or face) — the Cast page adds plates as looks.
-            tiles={castPlateTiles(active).map(tile => ({
-              id: tile.id,
-              label: tile.label,
-              thumb: tile.thumb,
-            }))}
+            // The Cast page's Looks tiles: each look's own plate, name and outfit lock. A look with
+            // no plate is added to on the Cast page, so its box here only says so.
+            tiles={castPlateTiles(active).map(tile =>
+              castLookPortraitTile(tile, { placeholder: 'No plate' })
+            )}
           />
         </div>
       ) : null}
