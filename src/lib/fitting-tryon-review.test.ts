@@ -108,3 +108,11 @@ describe('Outfit try-on review', () => {
     );
   });
 });
+
+describe('a try-on that came back as the plate', () => {
+  it('is flagged to try again', () => {
+    const review = decideTryOnReview({ imageUrl: '/x.png', unchanged: true });
+    assert.equal(review.status, 'warn');
+    assert.match(review.notes.join(' '), /didn't change/);
+  });
+});

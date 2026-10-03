@@ -14,6 +14,7 @@ import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { picturesLookTheSame } from '@/lib/image-similarity-client';
 
 /**
  * Outfit Auto-review: once a try-on lands in Compare, measure its face against the plate
@@ -24,6 +25,11 @@ import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
  */
 export function useFittingTryOnReview(input: {
   enabled: boolean;
+  /**
+   * Auto-review's face, pose and vision checks. Without them only the cheap check runs: a
+   * try-on that came back as the plate is flagged whatever the setting.
+   */
+  fullChecks?: boolean;
   compareTryOns: FittingCompareTryOn[];
   plateUrl: string;
   plateFilename: string;
@@ -34,6 +40,7 @@ export function useFittingTryOnReview(input: {
 }) {
   const {
     enabled,
+    fullChecks = true,
     compareTryOns,
     plateUrl,
     plateFilename,
@@ -78,6 +85,24 @@ export function useFittingTryOnReview(input: {
     void (async () => {
       setReviewingId(target.promptId);
       try {
+        // The model can ignore the clothing and hand back the plate (one seed in four live on
+        // Qwen-Image 2.1). Nothing else is worth measuring then.
+        const unchanged = referenceUrl
+          ? await picturesLookTheSame(
+              referenceUrl,
+              comfyViewUrlForStill(target, loadComfyGallery()) ?? imageUrl
+            )
+          : null;
+        if (unchanged) {
+          setReviews(previous => ({
+            ...previous,
+            [target.promptId]: decideTryOnReview({ imageUrl, unchanged: true }),
+          }));
+          return;
+        }
+        if (!fullChecks) {
+          return;
+        }
         let faceMatch: number | null = null;
         if (referenceUrl && !faceOffRef.current) {
           try {
@@ -159,6 +184,7 @@ export function useFittingTryOnReview(input: {
     customGarmentDescription,
     customPose,
     enabled,
+    fullChecks,
     plateFilename,
     plateUrl,
     shared,

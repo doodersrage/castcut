@@ -32,9 +32,15 @@ export function decideTryOnReview(input: {
   report?: SlotQualityReport | null;
   /** Detected pose vs the custom pose (ComfyUI DWPose); null when there is no custom pose. */
   poseMatch?: number | null;
+  /** The try-on came back as the plate it started from (image-similarity). */
+  unchanged?: boolean;
 }): TryOnReview {
   const notes: string[] = [];
   let warn = false;
+  if (input.unchanged) {
+    notes.push("the outfit didn't change — it came back as the plate; try again");
+    warn = true;
+  }
   const pose = input.poseMatch;
   if (typeof pose === 'number' && pose < DEFAULT_MIN_POSE_MATCH) {
     notes.push(`didn't follow your pose (${Math.round(pose * 100)}%)`);

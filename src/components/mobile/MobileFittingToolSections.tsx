@@ -121,7 +121,8 @@ export default function MobileFittingToolSections(vm: ViewModel) {
   const plateUrl = referencePreviewUrl || toolSettings.referenceImageUrl?.trim() || '';
   const autoReviewTryOns = toolSettings.autoReviewTryOns === true;
   const tryOnReview = useFittingTryOnReview({
-    enabled: autoReviewTryOns,
+    enabled: true,
+    fullChecks: autoReviewTryOns,
     compareTryOns,
     plateUrl: toolSettings.referenceImageUrl?.trim() || '',
     plateFilename: toolSettings.referenceImageFilename?.trim() || '',

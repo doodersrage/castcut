@@ -121,7 +121,8 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
   const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance();
   const autoReviewTryOns = toolSettings.autoReviewTryOns === true;
   const tryOnReview = useFittingTryOnReview({
-    enabled: autoReviewTryOns,
+    enabled: true,
+    fullChecks: autoReviewTryOns,
     compareTryOns,
     plateUrl: referenceImageUrl,
     plateFilename: referenceImageFilename,
