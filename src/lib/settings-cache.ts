@@ -1157,6 +1157,11 @@ export type DayToolCache = {
    */
   autoReviewStills?: boolean;
   /**
+   * Opt-in: when a still's pose check (DWPose vs its guide) says it missed, queue that slot once
+   * more with the pose spelled out. Idle while Auto-review is on (it rerolls pose misses itself).
+   */
+  redoPoseMisses?: boolean;
+  /**
    * Default on. Loosens the identity lock and raises denoise when a beat needs a body the
    * standing plate cannot give, so Edit-2511 stops copying Image 1's stance. Turn off if faces
    * drift more than the posing is worth.

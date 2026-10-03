@@ -2097,6 +2097,8 @@ export function useDayPlannerToolOrchestrationCore() {
     setFaceFinish: (next: boolean) => updateToolSettings({ faceFinish: next }),
     autoReviewStills: toolSettings.autoReviewStills === true,
     setAutoReviewStills: (next: boolean) => updateToolSettings({ autoReviewStills: next }),
+    redoPoseMisses: toolSettings.redoPoseMisses === true,
+    setRedoPoseMisses: (next: boolean) => updateToolSettings({ redoPoseMisses: next }),
     hideStickyCutCoach: toolSettings.hideStickyCutCoach === true,
     setHideStickyCutCoach: (next: boolean) => updateToolSettings({ hideStickyCutCoach: next }),
     // A theme (Date night, Cosplay…) stays as its own id; it renders as Everyday.

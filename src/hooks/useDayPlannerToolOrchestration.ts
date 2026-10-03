@@ -6,6 +6,7 @@ import { useDayPlannerToolOrchestrationPart2 } from '@/hooks/day-planner/useDayP
 import { useDaySeries } from '@/hooks/day-planner/useDaySeries';
 import { useDaySlotQualityGate } from '@/hooks/day-planner/useDaySlotQualityGate';
 import { useDayFaceFinish } from '@/hooks/day-planner/useDayFaceFinish';
+import { useDayPoseMissRedo } from '@/hooks/day-planner/useDayPoseMissRedo';
 import { useDayClipQualityCheck } from '@/hooks/day-planner/useDayClipQualityCheck';
 import { applyCharacterRecordFresh } from '@/lib/character-os';
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
@@ -35,6 +36,14 @@ export function useDayPlannerToolOrchestration() {
     [faceFinishTick, holdsStillForFaceFinish]
   );
   const quality = useDaySlotQualityGate(core, faceFinishHold);
+  const poseRedo = useDayPoseMissRedo(core, faceFinishHold);
+  const { poseMissViews: reviewPoseMissViews } = quality;
+  const { poseRedoMissViews } = poseRedo;
+  // Auto-review's pose misses, else the pose-redo check's (only one of the two runs).
+  const poseMissViews = useMemo(
+    () => ({ ...poseRedoMissViews, ...reviewPoseMissViews }),
+    [poseRedoMissViews, reviewPoseMissViews]
+  );
   const clips = useDayClipQualityCheck(core);
   const season = useDaySeries(core.character?.id);
 
@@ -174,6 +183,9 @@ export function useDayPlannerToolOrchestration() {
     ...core,
     ...part2,
     ...quality,
+    poseMissViews,
+    poseRedoStatus: poseRedo.poseRedoStatus,
+    poseRedoMarks: poseRedo.poseRedoMarks,
     faceFinishStatus: faceFinish.faceFinishStatus,
     ...clips,
     ...season,

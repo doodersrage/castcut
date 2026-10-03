@@ -125,6 +125,10 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setDayLength,
     autoReviewStills,
     setAutoReviewStills,
+    redoPoseMisses,
+    setRedoPoseMisses,
+    poseRedoStatus,
+    poseRedoMarks,
     posePriority,
     setPosePriority,
     identityBoost,
@@ -569,6 +573,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             rerollActiveSlotScene({ slotId: slot.id });
           }}
           qualityLedger={qualityLedger}
+          poseRedoMarks={poseRedoMarks}
           clipChecks={clipChecks}
         />
         <TaskRequirementsCard
@@ -595,6 +600,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
           autoReviewStills={autoReviewStills}
           onAutoReviewStillsChange={setAutoReviewStills}
           qualityStatus={qualityStatus}
+          redoPoseMisses={redoPoseMisses}
+          onRedoPoseMissesChange={setRedoPoseMisses}
+          poseRedoStatus={poseRedoStatus}
           dayMood={dayMood}
           onDayMoodChange={setDayMood}
           partnerId={partnerCharacterId}

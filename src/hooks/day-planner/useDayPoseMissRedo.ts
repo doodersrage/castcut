@@ -1,0 +1,221 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
+import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import {
+  notePoseRedoTake,
+  poseRedoDecision,
+  poseRedoMark,
+  poseRedoTakeId,
+  type PoseRedoLedger,
+} from '@/lib/day-pose-redo';
+import { detectStillPose } from '@/lib/pose-detect-client';
+import { buildPoseMissView, poseLimbFixNudge, type PoseMissView } from '@/lib/pose-coaching';
+import { DEFAULT_MIN_POSE_MATCH, POSE_MISMATCH_NUDGE, scorePoseMatch } from '@/lib/pose-score';
+import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+
+/**
+ * Day "Redo pose misses once" (opt-in, Auto-review off): when a still lands, read its pose back
+ * (DWPose) against the slot's guide and, on a miss, queue the slot once more with the pose spelled
+ * out — the nudge Auto-review's pose reroll uses (POSE_MISMATCH_NUDGE plus the limbs that were
+ * off; it also turns on the pose cue line). One redo per take (day-pose-redo.ts), only while the
+ * Day queue is idle, and never on a still Face finish is about to replace.
+ */
+export function useDayPoseMissRedo(
+  ctx: DayPlannerToolOrchestrationCore,
+  faceFinish?: {
+    holdsStill: (still: { imageUrl?: string; promptId?: string }) => boolean;
+    tick: number;
+  }
+) {
+  const { autoReviewStills, busy, mounted, queueBlockReason, queueSlot, redoPoseMisses } = ctx;
+  const { poseGuideExpectRef, rerollNudgeRef, slots, stills } = ctx;
+  const active = redoPoseMisses && !autoReviewStills;
+
+  const [ledger, setLedger] = useState<PoseRedoLedger>({});
+  const [missViews, setMissViews] = useState<Record<string, PoseMissView>>({});
+  const [status, setStatus] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+  const stillsEmpty = stills.length === 0;
+  const [wasStillsEmpty, setWasStillsEmpty] = useState(stillsEmpty);
+  // A new Day clears the stills — and the redo marks with them.
+  if (stillsEmpty !== wasStillsEmpty) {
+    setWasStillsEmpty(stillsEmpty);
+    if (stillsEmpty) {
+      setLedger({});
+      setMissViews({});
+      setStatus(null);
+    }
+  }
+  const ledgerRef = useRef<PoseRedoLedger>({});
+  /** The take each slot's pose was last checked on. */
+  const checkedRef = useRef<Record<string, string>>({});
+  const baselinedRef = useRef(false);
+  const runningRef = useRef(false);
+  /** Set once DWPose reports it is not installed — no pose checks this session. */
+  const poseCheckOffRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (stills.length === 0) {
+      baselinedRef.current = true;
+      checkedRef.current = {};
+      ledgerRef.current = {};
+      return;
+    }
+    // Stills already finished when Day mounted belong to an earlier session — never redo them.
+    if (!baselinedRef.current) {
+      baselinedRef.current = true;
+      for (const still of stills) {
+        if (still.status === 'completed' && still.imageUrl) {
+          checkedRef.current[still.slotId] = poseRedoTakeId(still);
+        }
+      }
+    }
+  }, [mounted, stills]);
+
+  // Every landed take: the first one after a redo is that redo's result (its card mark). While
+  // the switch is off (or Auto-review owns it), landed takes count as seen, so turning it on
+  // only acts on stills that land from then on.
+  useEffect(() => {
+    let next = ledgerRef.current;
+    for (const still of stills) {
+      if (still.status === 'completed' && still.imageUrl) {
+        const take = poseRedoTakeId(still);
+        next = notePoseRedoTake(next, still.slotId, take);
+        if (!active) checkedRef.current[still.slotId] = take;
+      }
+    }
+    if (next !== ledgerRef.current) {
+      ledgerRef.current = next;
+      setLedger(next);
+    }
+  }, [active, stills]);
+
+  useEffect(() => {
+    if (!active || !mounted || busy || queueBlockReason || runningRef.current) return;
+    if (!baselinedRef.current || poseCheckOffRef.current) return;
+    const target = slots.find(slot => {
+      const still = stills.find(entry => entry.slotId === slot.id);
+      return (
+        still?.status === 'completed' &&
+        Boolean(still.imageUrl) &&
+        checkedRef.current[slot.id] !== poseRedoTakeId(still) &&
+        !faceFinish?.holdsStill(still)
+      );
+    });
+    const still = target ? stills.find(entry => entry.slotId === target.id) : undefined;
+    if (!target || !still?.imageUrl) return;
+    const take = poseRedoTakeId(still);
+    checkedRef.current[target.id] = take;
+    const expectation = poseGuideExpectRef.current[target.id];
+    // No guide queued with this still: nothing to check it against.
+    if (!expectation) {
+      setTick(value => value + 1);
+      return;
+    }
+    const imageUrl = still.imageUrl;
+    const checkUrl = comfyViewUrlForStill(still, loadComfyGallery()) ?? imageUrl;
+    runningRef.current = true;
+
+    void (async () => {
+      try {
+        setStatus(`Checking ${target.label} pose…`);
+        const detected = await detectStillPose(checkUrl);
+        if (!detected.available) {
+          poseCheckOffRef.current = detected.reason;
+          setStatus(`Pose check off: ${detected.reason}`);
+          return;
+        }
+        const match = scorePoseMatch({
+          guide: expectation.keypoints,
+          guideAspect: expectation.aspect,
+          detected: detected.pose,
+        });
+        const decision = poseRedoDecision({
+          enabled: redoPoseMisses,
+          autoReview: autoReviewStills,
+          slotId: target.id,
+          take,
+          poseScore: match.score,
+          minPoseMatch: DEFAULT_MIN_POSE_MATCH,
+          ledger: ledgerRef.current,
+        });
+        const pct = Math.round(match.score * 100);
+        recordGalleryPlayChecks(still.promptId, { pose: match.score, poseMiss: decision.redo });
+        const { width, height } = detected.pose.canvas;
+        const missView =
+          match.score < DEFAULT_MIN_POSE_MATCH
+            ? buildPoseMissView({
+                imageUrl,
+                score: match.score,
+                guide: expectation.keypoints,
+                guideAspect: expectation.aspect,
+                still: match.assignment.map(index => detected.pose.people[index]),
+                stillAspect: width > 0 && height > 0 ? width / height : expectation.aspect,
+              })
+            : null;
+        setMissViews(previous => {
+          if (!missView && !previous[target.id]) return previous;
+          const next = { ...previous };
+          if (missView) next[target.id] = missView;
+          else delete next[target.id];
+          return next;
+        });
+        if (!decision.redo) {
+          setStatus(
+            !missView
+              ? `${target.label} pose matched (${pct}%).`
+              : `${target.label} missed the pose again (${pct}%) — redone once already; retry it or pick another pose.`
+          );
+          return;
+        }
+        // The same nudge Auto-review's pose reroll sends — it spells the pose out in words.
+        rerollNudgeRef.current[target.id] = [
+          POSE_MISMATCH_NUDGE,
+          missView ? poseLimbFixNudge(missView.misses) : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
+        ledgerRef.current = { ...ledgerRef.current, [target.id]: { missedTake: take } };
+        setLedger(ledgerRef.current);
+        setStatus(`Redoing ${target.label} for the pose (${pct}% match).`);
+        await queueSlot(target);
+      } catch (error) {
+        setStatus(
+          `${target.label} pose check skipped (${error instanceof Error ? error.message : 'error'}).`
+        );
+      } finally {
+        runningRef.current = false;
+        setTick(value => value + 1);
+      }
+    })();
+  }, [
+    active,
+    autoReviewStills,
+    redoPoseMisses,
+    busy,
+    faceFinish,
+    mounted,
+    poseGuideExpectRef,
+    queueBlockReason,
+    queueSlot,
+    rerollNudgeRef,
+    slots,
+    stills,
+    tick,
+  ]);
+
+  const poseRedoMarks: Record<string, string> = {};
+  for (const still of stills) {
+    const mark = poseRedoMark(ledger, still.slotId, poseRedoTakeId(still));
+    if (mark) poseRedoMarks[still.slotId] = mark;
+  }
+
+  return {
+    poseRedoStatus: active ? status : null,
+    poseRedoMarks,
+    poseRedoMissViews: missViews,
+  };
+}

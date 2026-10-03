@@ -139,6 +139,10 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     setDayLength,
     autoReviewStills,
     setAutoReviewStills,
+    redoPoseMisses,
+    setRedoPoseMisses,
+    poseRedoStatus,
+    poseRedoMarks,
     posePriority,
     setPosePriority,
     identityBoost,
@@ -628,6 +632,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             autoReviewStills={autoReviewStills}
             onAutoReviewStillsChange={setAutoReviewStills}
             qualityStatus={qualityStatus}
+            redoPoseMisses={redoPoseMisses}
+            onRedoPoseMissesChange={setRedoPoseMisses}
+            poseRedoStatus={poseRedoStatus}
             dayMood={dayMood}
             onDayMoodChange={setDayMood}
             partnerId={partnerCharacterId}
@@ -661,6 +668,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               rerollActiveSlotScene({ slotId: slot.id });
             }}
             qualityLedger={qualityLedger}
+            poseRedoMarks={poseRedoMarks}
             clipChecks={clipChecks}
           />
           <div className="mt-3 grid gap-3 sm:grid-cols-2" data-testid="day-active-plan">

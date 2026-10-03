@@ -55,6 +55,11 @@ export type DayMoodStripProps = {
   onAutoReviewStillsChange?: (next: boolean) => void;
   /** Latest quality-gate line (reviewing / passed / requeueing / paused). */
   qualityStatus?: string | null;
+  /** Opt-in: a still that missed its pose guide is queued once more with the pose spelled out. */
+  redoPoseMisses?: boolean;
+  onRedoPoseMissesChange?: (next: boolean) => void;
+  /** Latest pose-redo line (checking / matched / redoing). */
+  poseRedoStatus?: string | null;
   dayMood?: DayMoodSetting;
   onDayMoodChange?: (next: DayMoodSetting) => void;
   intimateMix?: DayIntimateMix;
@@ -100,6 +105,9 @@ export default function DayMoodStrip({
   autoReviewStills = false,
   onAutoReviewStillsChange,
   qualityStatus = null,
+  redoPoseMisses = false,
+  onRedoPoseMissesChange,
+  poseRedoStatus = null,
   dayMood = 'everyday',
   onDayMoodChange,
   intimateMix = 'mixed',
@@ -113,7 +121,8 @@ export default function DayMoodStrip({
 }: DayMoodStripProps) {
   const mood = normalizeDayMood(dayMood);
   // What Auto-review can measure on this setup (DWPose / FaceAnalysis installed in ComfyUI).
-  const { readiness } = usePlayChecksReadiness(undefined, { enabled: autoReviewStills });
+  const checksOn = autoReviewStills || redoPoseMisses;
+  const { readiness } = usePlayChecksReadiness(undefined, { enabled: checksOn });
   const checksLine = summarizePlayChecks(readiness);
   const mix = normalizeDayIntimateMix(intimateMix);
   // Themes (Date night, Night out…) sit between the clothed moods and the adult ones.
@@ -411,6 +420,21 @@ export default function DayMoodStrip({
               Auto-review stills
             </SwitchButton>
           ) : null}
+          {onRedoPoseMissesChange ? (
+            <SwitchButton
+              checked={redoPoseMisses}
+              disabled={busy}
+              data-testid="day-redo-pose-misses"
+              title={
+                autoReviewStills
+                  ? 'Auto-review is on and already rerolls stills that missed their pose — this takes over when Auto-review is off.'
+                  : "Read each finished still's pose back (DWPose) and, when it missed the pose guide, queue that slot once more with the pose spelled out. Once per still — never loops."
+              }
+              onChange={onRedoPoseMissesChange}
+            >
+              Redo pose misses once
+            </SwitchButton>
+          ) : null}
         </div>
       ) : null}
       {!posePriority ? (
@@ -429,7 +453,7 @@ export default function DayMoodStrip({
           {faceFinishStatus}
         </p>
       ) : null}
-      {autoReviewStills && checksLine ? (
+      {checksOn && checksLine ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-play-checks">
           {checksLine}
         </p>
@@ -441,6 +465,15 @@ export default function DayMoodStrip({
           data-testid="day-quality-status"
         >
           {qualityStatus}
+        </p>
+      ) : null}
+      {redoPoseMisses && !autoReviewStills && poseRedoStatus ? (
+        <p
+          className="type-caption text-[var(--text-muted)]"
+          role="status"
+          data-testid="day-pose-redo-status"
+        >
+          {poseRedoStatus}
         </p>
       ) : null}
       {showPartner && onPartnerChange ? (

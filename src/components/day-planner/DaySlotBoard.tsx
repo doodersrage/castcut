@@ -40,6 +40,8 @@ export type DaySlotBoardProps = {
   onRerollSlot?: (slot: DaySlot) => void;
   /** Quality-gate outcomes per slot — drives the review badge on each card. */
   qualityLedger?: SlotQualityLedger;
+  /** "Redo pose misses once" marks by slot id ("Redone for the pose"). */
+  poseRedoMarks?: Record<string, string>;
   /** Animate clip checks by slot id (Auto-review). */
   clipChecks?: Record<string, ClipCheck>;
 };
@@ -79,6 +81,7 @@ export default function DaySlotBoard({
   onAnimateSlot,
   onRerollSlot,
   qualityLedger,
+  poseRedoMarks,
   clipChecks,
 }: DaySlotBoardProps) {
   const promptKey = useMemo(
@@ -198,6 +201,7 @@ export default function DaySlotBoard({
             : null;
         const canRequeue = openable && Boolean(onRetrySlot) && !queueBlocked && state === 'done';
         const reviewBadge = qualityLedger ? slotQualityBadge(qualityLedger, slot.id) : null;
+        const poseRedoMark = poseRedoMarks?.[slot.id];
         const clipCheck = clipChecks?.[slot.id];
         const clipNote = clipCheckLabel(clipCheck);
 
@@ -451,6 +455,14 @@ export default function DaySlotBoard({
                   >
                     {reviewBadge.label}
                     {reviewBadge.detail ? ` · ${reviewBadge.detail}` : ''}
+                  </p>
+                ) : null}
+                {poseRedoMark ? (
+                  <p
+                    className="type-overline mt-1 text-[var(--text-muted)]"
+                    data-testid={`day-progress-pose-redo-${slot.id}`}
+                  >
+                    {poseRedoMark}
                   </p>
                 ) : null}
                 {clipNote ? (
