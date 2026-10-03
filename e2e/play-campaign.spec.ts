@@ -3333,18 +3333,18 @@ test('a Day slot can be made in another of the Cast’s looks, and keeps it', as
     'true'
   );
 
-  // Saved with Day's slots; the Cast's active look is unchanged.
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const raw = window.localStorage.getItem('comfy-prompt-tool-settings-tools-v1');
-        const parsed = JSON.parse(raw ?? '{}') as {
-          tools?: { day?: { slots?: Array<{ id: string; lookId?: string }> } };
-        };
-        return parsed.tools?.day?.slots?.find(slot => slot.id === 'morning')?.lookId ?? null;
-      })
-    )
-    .toBe('e2e-day-look-b');
+  // Saved with Day's slots: leave Day in-app (a page load would re-apply this test's seed) and
+  // come back. The Cast's active look is unchanged.
+  await page.getByRole('link', { name: 'Story', exact: true }).first().click();
+  await page.waitForURL(/\/story/);
+  await page.getByRole('link', { name: 'Day', exact: true }).first().click();
+  await page.waitForURL(/\/day/);
+  await page.getByTestId('day-slot-select-morning').first().click();
+  await expect(morningLooks().getByTestId('day-slot-look-e2e-day-look-b')).toHaveAttribute(
+    'aria-checked',
+    'true',
+    { timeout: 30_000 }
+  );
   const activeLookId = await page.evaluate(() => {
     const raw = window.localStorage.getItem('comfy-prompt-characters-v1');
     const store = JSON.parse(raw ?? '{}') as {

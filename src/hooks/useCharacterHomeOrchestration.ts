@@ -41,6 +41,7 @@ import {
   roleplayLibraryIdForCharacter,
 } from '@/lib/roleplay-library';
 import {
+  SETTINGS_CACHE_UPDATED_EVENT,
   DEFAULT_DAY_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
@@ -173,6 +174,21 @@ export function useCharacterHomeOrchestration(characterId: string) {
     };
   }, [serverSyncSettled]);
   const castReady = hydrated && (Boolean(character) || serverSyncSettled);
+  // The checklist reads Day's and Story's saved state, which loads from browser storage after
+  // the first render — recount when it arrives or changes (it read the empty defaults before).
+  const [settingsTick, setSettingsTick] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const bump = () => setSettingsTick(tick => tick + 1);
+    void whenBrowserStorageReady().then(() => {
+      if (!cancelled) bump();
+    });
+    window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, bump);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(SETTINGS_CACHE_UPDATED_EVENT, bump);
+    };
+  }, []);
 
   // Opening a Cast profile activates that Cast so nav → Story/Film/Outfit matches profile CTAs.
   useEffect(() => {
@@ -696,7 +712,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
       cutShotCount: character.filmCut?.items.filter(item => item.included).length ?? 0,
       storyBeatCount: storyId ? (getRoleplayLibrarySession(storyId)?.beatCount ?? 0) : 0,
     });
-  }, [character, hasLookPlate, stillEntries, filmEntries]);
+  }, [character, hasLookPlate, stillEntries, filmEntries, settingsTick]);
 
   return {
     hydrated: castReady,
