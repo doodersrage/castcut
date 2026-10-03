@@ -4,9 +4,12 @@ import type { NormalizedBody } from './pose-library';
 import {
   currentPlateStance,
   normalizePlateStance,
+  parseDismissedPlateKeys,
   plateStanceKey,
   plateStanceNote,
+  plateStanceNudge,
   readPlateStance,
+  withDismissedPlateKey,
 } from './plate-stance';
 
 type Joints = Partial<Record<number, [number, number]>>;
@@ -153,5 +156,32 @@ describe('plate stance storage', () => {
     assert.match(plateStanceNote({ standing: false, reason: 'lying', checkedAt: 0 }) ?? '', /^Lying down/);
     assert.equal(plateStanceNote({ standing: true, reason: 'standing', checkedAt: 0 }), null);
     assert.equal(plateStanceNote(null), null);
+  });
+
+  it('writes the Day / Outfit nudge only for a plate that is not standing', () => {
+    assert.equal(
+      plateStanceNudge({ standing: false, reason: 'seated', checkedAt: 0 }),
+      'Seated plate — poses come out better from a standing one.'
+    );
+    assert.match(
+      plateStanceNudge({ standing: false, reason: 'feet-cropped', checkedAt: 0 }) ?? '',
+      /^Feet cut off the plate — /
+    );
+    assert.equal(plateStanceNudge({ standing: true, reason: 'prepared', checkedAt: 0 }), null);
+    assert.equal(plateStanceNudge({ standing: true, reason: 'no-person', checkedAt: 0 }), null);
+    assert.equal(plateStanceNudge(undefined), null);
+  });
+
+  it('remembers dismissed plates newest first, deduped and capped', () => {
+    assert.deepEqual(parseDismissedPlateKeys(null), []);
+    assert.deepEqual(parseDismissedPlateKeys('not json'), []);
+    assert.deepEqual(parseDismissedPlateKeys('{"a":1}'), []);
+    assert.deepEqual(parseDismissedPlateKeys('[" a.png ", 3, "a.png", "", "b.png"]'), [
+      'a.png',
+      'b.png',
+    ]);
+    assert.deepEqual(withDismissedPlateKey(['a.png', 'b.png'], 'b.png'), ['b.png', 'a.png']);
+    assert.deepEqual(withDismissedPlateKey(['a.png'], '  '), ['a.png']);
+    assert.deepEqual(withDismissedPlateKey(['a', 'b', 'c'], 'd', 3), ['d', 'a', 'b']);
   });
 });

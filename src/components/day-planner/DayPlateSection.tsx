@@ -7,11 +7,14 @@ import type { DayPlate } from '@/lib/day-plate';
 import { lookPackFittingHref } from '@/lib/look-pack';
 import { galleryPickPath } from '@/lib/gallery-handoff';
 import UploadButton from '@/components/ui/UploadButton';
+import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 
 export type DayPlateSectionProps = {
   plate: DayPlate | null;
   platePreviewUrl?: string | null;
   characterId?: string | null;
+  /** The active slot's own look (its plate's stance note); unset: the active look. */
+  lookId?: string | null;
   lockedWardrobeId?: string | null;
   busy?: boolean;
   isolateSubject?: boolean;
@@ -29,6 +32,7 @@ export default function DayPlateSection({
   plate,
   platePreviewUrl,
   characterId,
+  lookId,
   lockedWardrobeId,
   busy = false,
   isolateSubject = true,
@@ -89,6 +93,9 @@ export default function DayPlateSection({
           pick one from Gallery, or Keep a try-on in Outfit.
         </p>
       )}
+      {previewUrl ? (
+        <PlateStanceNudge characterId={characterId} lookId={lookId} className="mt-2" />
+      ) : null}
       {isolateStatus ? (
         <p
           className="type-caption mt-2 text-[var(--text-muted)]"

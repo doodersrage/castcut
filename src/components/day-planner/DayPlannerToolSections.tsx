@@ -1231,6 +1231,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               plate={plate}
               platePreviewUrl={platePreviewUrl}
               characterId={shared.activeCharacterId}
+              lookId={activeSlot.lookId}
               lockedWardrobeId={activeSlot.wardrobeId || shared.lockedWardrobeId}
               busy={busy}
               isolateSubject={isolateSubject}

@@ -2568,6 +2568,70 @@ test('a seated Cast plate recommends Prepare plate, with its three steps ticked'
   await expect(page.getByTestId('cast-look-plate-prepare-undo')).toHaveCount(0);
 });
 
+test('Day notes a seated look plate and links to Prepare plate; dismissed per plate', async ({
+  page,
+}) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-day-seated', activeLookId: 'e2e-day-seated-look' },
+    tools: { day: { stillsCharacterId: 'e2e-day-seated' } },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-day-seated',
+          name: 'Ines',
+          version: 1,
+          updatedAt: Date.now(),
+          activeLookId: 'e2e-day-seated-look',
+          traits: { sex: 'woman' },
+          ipAdapter: { imageFilename: 'e2e-day-seated.png', imageUrl: '/icon.svg' },
+          looks: [
+            {
+              id: 'e2e-day-seated-look',
+              name: 'Sofa',
+              createdAt: 1,
+              ipAdapter: { imageFilename: 'e2e-day-seated.png', imageUrl: '/icon.svg' },
+              plateStance: {
+                standing: false,
+                reason: 'seated',
+                checkedAt: 1,
+                plate: 'e2e-day-seated.png',
+              },
+            },
+          ],
+        },
+      ],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, '/day?character=e2e-day-seated');
+  await dismissBlockingOverlays(page);
+  // The note lives with the plate, in Setup (folded once a plate is ready).
+  const setup = page.locator('details.day-character-section').first();
+  await expect(setup).toBeAttached({ timeout: 30_000 });
+  if ((await setup.getAttribute('open')) === null) {
+    await setup.locator('summary').first().click();
+  }
+  const note = page.getByTestId('plate-stance-nudge');
+  await expect(note).toBeVisible({ timeout: 30_000 });
+  await expect(note).toHaveAttribute('data-reason', 'seated');
+  await expect(note).toContainText('Seated plate — poses come out better from a standing one.');
+  await expect(note.getByTestId('plate-stance-nudge-prepare')).toHaveAttribute(
+    'href',
+    '/characters/e2e-day-seated?tab=overview#looks'
+  );
+
+  // Dismissed for this plate: gone, and still gone after a reload.
+  await note.getByTestId('plate-stance-nudge-dismiss').click();
+  await expect(page.getByTestId('plate-stance-nudge')).toHaveCount(0);
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(page.locator('details.day-character-section').first()).toBeAttached({
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('plate-stance-nudge')).toHaveCount(0);
+});
+
 test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => {
   const file = {
     kind: 'castcut-cast',

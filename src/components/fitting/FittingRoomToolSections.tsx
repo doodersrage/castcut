@@ -238,6 +238,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onClearReference={clearReference}
         onError={message => setError(message)}
         lookHref={withCharacterQuery('/moodboard', shared.activeCharacterId)}
+        characterId={shared.activeCharacterId}
       />
 
       <ToolSection

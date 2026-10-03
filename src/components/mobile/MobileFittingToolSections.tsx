@@ -1,6 +1,7 @@
 'use client';
 
 import OutfitPoseShoesNote from '@/components/fitting/OutfitPoseShoesNote';
+import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
@@ -289,6 +290,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
               : 'Plate locked'}
             {lockedWardrobeLabel ? ` · ${lockedWardrobeLabel}` : ''}
           </p>
+          <PlateStanceNudge characterId={shared.activeCharacterId} className="px-3 pb-2" />
           <div className="flex flex-wrap gap-2 border-t border-[var(--border-subtle)] px-3 py-2">
             <label className="ui-btn-secondary inline-flex cursor-pointer items-center justify-center px-3 py-1.5 text-sm">
               Upload

@@ -219,3 +219,56 @@ export function plateStanceNote(stance: PlateStance | null | undefined): string 
   const label = REASON_LABEL[stance.reason] ?? 'Not standing';
   return `${label} — Day and Outfit pose a standing, full-body plate more easily.`;
 }
+
+const NUDGE_LABEL: Partial<Record<PlateStanceReason, string>> = {
+  seated: 'Seated plate',
+  kneeling: 'Kneeling plate',
+  crouching: 'Crouching plate',
+  lying: 'Lying-down plate',
+  'feet-cropped': 'Feet cut off the plate',
+  'not-full-body': 'Not a full-body plate',
+};
+
+/**
+ * The short note Day and Outfit show over a look plate that isn't standing (null when it is):
+ * "Seated plate — poses come out better from a standing one." The Cast page's Prepare plate
+ * stands it up.
+ */
+export function plateStanceNudge(stance: PlateStance | null | undefined): string | null {
+  if (!stance || stance.standing) return null;
+  const label = NUDGE_LABEL[stance.reason] ?? 'Plate not standing';
+  return `${label} — poses come out better from a standing one.`;
+}
+
+/** Most plates whose stance note a viewer dismissed that are remembered (oldest drop off). */
+export const PLATE_STANCE_DISMISSED_LIMIT = 40;
+
+/** Dismissed plate keys from their stored JSON (an empty list when it doesn't hold up). */
+export function parseDismissedPlateKeys(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return [
+      ...new Set(
+        parsed
+          .filter((entry): entry is string => typeof entry === 'string')
+          .map(entry => entry.trim())
+          .filter(Boolean)
+      ),
+    ];
+  } catch {
+    return [];
+  }
+}
+
+/** The list with `key` dismissed (newest first, capped). */
+export function withDismissedPlateKey(
+  keys: readonly string[],
+  key: string,
+  limit = PLATE_STANCE_DISMISSED_LIMIT
+): string[] {
+  const id = key.trim();
+  if (!id) return [...keys];
+  return [id, ...keys.filter(entry => entry !== id)].slice(0, Math.max(1, limit));
+}

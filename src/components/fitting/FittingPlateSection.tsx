@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import UploadButton from '@/components/ui/UploadButton';
+import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
@@ -41,6 +42,8 @@ export type FittingPlateSectionProps = {
   onError: (message: string) => void;
   /** Look link for the empty state (extract a look → new plate). */
   lookHref?: string;
+  /** The Cast whose active look plate this is (its stance note). */
+  characterId?: string | null;
 };
 
 export default function FittingPlateSection({
@@ -61,6 +64,7 @@ export default function FittingPlateSection({
   onClearReference,
   onError,
   lookHref,
+  characterId,
 }: FittingPlateSectionProps) {
   // Only say "cleared" after the player cleared it here — a fresh session has nothing to clear.
   const [justCleared, setJustCleared] = useState(false);
@@ -126,6 +130,7 @@ export default function FittingPlateSection({
             alt="Fitting plate"
             className="max-h-64 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
           />
+          <PlateStanceNudge characterId={characterId} />
           <div className="flex flex-wrap items-center gap-2">
             <UploadButton
               ariaLabel="Upload Cast plate photo"

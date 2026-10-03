@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ImageLightbox, { type ImageLightboxState } from '@/components/ui/ImageLightbox';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
@@ -166,6 +166,13 @@ export default function CharacterLookPlateSection({
   onRenamePlate,
 }: CharacterLookPlateSectionProps) {
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
+  // Day / Outfit's "Prepare plate →" lands on #looks; the section mounts after the Cast store
+  // hydrates, so the browser's own jump to the hash has already missed it.
+  useEffect(() => {
+    if (window.location.hash === '#looks') {
+      document.getElementById('looks')?.scrollIntoView({ block: 'start' });
+    }
+  }, []);
   const previewUrl = plate?.imageUrl?.trim()
     ? cacheBustIdentityMediaUrl(plate.imageUrl.trim())
     : '';
@@ -186,6 +193,7 @@ export default function CharacterLookPlateSection({
   return (
     <ToolSection
       title="Looks"
+      id="looks"
       description="Each look is a plate (and its outfit lock). Tap one to use it in Outfit, Day and Story — each keeps its own dressed plates."
       data-testid="cast-look-plate"
     >

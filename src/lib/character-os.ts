@@ -323,6 +323,11 @@ export function characterHomeHref(id: string): string {
   return `/characters/${encodeURIComponent(id.trim())}`;
 }
 
+/** The Cast page's Looks section (Overview tab), where Prepare plate stands a plate up. */
+export function characterLooksHref(id: string): string {
+  return `${characterHomeHref(id)}?tab=overview#looks`;
+}
+
 function uniqueIds(ids: string[] | undefined): string[] | undefined {
   const next = [...new Set((ids ?? []).map(id => id.trim()).filter(Boolean))];
   return next.length > 0 ? next : undefined;

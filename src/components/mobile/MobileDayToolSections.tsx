@@ -2,6 +2,7 @@
 
 import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
 import DaySlotLookPicker from '@/components/day-planner/DaySlotLookPicker';
+import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
 import { typedDayBeatPatch } from '@/lib/day-planner';
 import { continueDayAsStoryHref } from '@/lib/day-story-seed';
@@ -1125,6 +1126,13 @@ export default function MobileDayToolSections(vm: ViewModel) {
               data-testid="mobile-day-plate-preview"
               data-source={plate?.source}
               data-isolated={plate?.isolated === true ? 'true' : 'false'}
+            />
+          ) : null}
+          {hasPlate ? (
+            <PlateStanceNudge
+              characterId={shared.activeCharacterId}
+              lookId={activeSlot.lookId}
+              className="mt-2"
             />
           ) : null}
         </div>
