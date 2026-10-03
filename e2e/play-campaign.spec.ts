@@ -1595,6 +1595,74 @@ test('day slot editor previews the pose and lets you change it', async ({ page }
   await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Your edit');
 });
 
+test('day pose pack poses every slot, fills only empty beats, saves and clears', async ({
+  page,
+}) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-day-pack' },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-day-pack',
+        slots: [
+          { id: 'morning', label: 'Morning' },
+          {
+            id: 'afternoon',
+            label: 'Afternoon',
+            location: 'my rooftop',
+            sceneHints: 'my own beat on the roof',
+            sceneHintsTyped: 'my own beat on the roof',
+          },
+          { id: 'evening', label: 'Evening' },
+          { id: 'night', label: 'Night' },
+        ],
+      },
+    },
+  });
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: 'e2e-day-pack', name: 'Day Pack', version: 1, updatedAt: Date.now() }],
+        removedIds: [],
+      })
+    );
+  });
+  await gotoStable(page, '/day?character=e2e-day-pack');
+  await dismissBlockingOverlays(page);
+  const picker = page.getByTestId('day-pose-pack');
+  await expect(picker).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId('day-pose-pack-select').selectOption('fitness');
+  await expect(picker).toHaveAttribute('data-active-pack', 'fitness');
+  await expect(page.getByTestId('day-pose-pack-status')).toContainText('4 slots posed');
+  await expect(page.getByTestId('day-pose-pack-status')).toContainText('3 empty beats filled');
+  await expect(page.getByTestId('day-pose-pack-figure').first()).toBeVisible();
+  // Morning (the open slot) takes the pack's first pose and its beat.
+  await page.getByTestId('day-slot-select-morning').first().click();
+  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Yoga warrior');
+  await expect(page.getByTestId('day-slot-beat')).toHaveValue(/warrior two/);
+  // The typed beat is untouched; its pose still comes from the pack.
+  await page.getByTestId('day-slot-select-afternoon').first().click();
+  await expect(page.getByTestId('day-slot-beat')).toHaveValue('my own beat on the roof');
+  await expect(page.getByTestId('day-slot-location')).toHaveValue('my rooftop');
+  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Squat');
+  // Save as my own pack: it shows under My packs and is the active pack.
+  await page.getByTestId('day-pose-pack-save').click();
+  await page.getByTestId('day-pose-pack-name').fill('Gym day');
+  await page.getByTestId('day-pose-pack-save-confirm').click();
+  await expect(page.getByTestId('day-pose-pack-status')).toContainText('Saved “Gym day”');
+  await expect(
+    page.getByTestId('day-pose-pack-select').locator('optgroup[label="My packs"] option')
+  ).toHaveText(['Gym day']);
+  // Clear: every slot back to the beat; the pack's beats go, the typed one stays.
+  await page.getByTestId('day-pose-pack-clear').click();
+  await expect(picker).toHaveAttribute('data-active-pack', '');
+  await expect(page.getByTestId('day-slot-beat')).toHaveValue('my own beat on the roof');
+  await page.getByTestId('day-slot-select-morning').first().click();
+  await expect(page.getByTestId('day-slot-beat')).toHaveValue('');
+  await expect(page.getByTestId('day-slot-pose-preview')).toContainText('From the beat');
+});
+
 test('dashboard shows pose match by layout and the words-first ladder', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem(

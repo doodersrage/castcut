@@ -9,6 +9,7 @@ import { continueDayAsStoryHref } from '@/lib/day-story-seed';
 import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
+import DayPosePackPicker from '@/components/day-planner/DayPosePackPicker';
 import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -621,6 +622,16 @@ export default function MobileDayToolSections(vm: ViewModel) {
           intimateEnabled={intimateEnabled}
           dayLength={dayLength}
           onDayLengthChange={setDayLength}
+        />
+        <DayPosePackPicker
+          slots={slots}
+          dayMood={dayMood}
+          intimateEnabled={intimateEnabled}
+          intimateMix={intimateMix}
+          allowCompanions={allowCompanions}
+          model={shared.model}
+          busy={busy}
+          onSlotsChange={next => updateToolSettings({ slots: next })}
         />
         <div className="grid gap-2" data-testid="day-active-plan">
           <label className="block space-y-1.5 text-sm">

@@ -37,6 +37,7 @@ export const DURABLE_BROWSER_SYNC_KEYS = new Set([
   'footwear-saved',
   'dress-plates',
   'comfy-my-poses-v1',
+  'comfy-my-pose-packs-v1',
   'comfy-prompt-characters-v1',
   'comfy-prompt-recipes-v1',
   'prompt-campaign-templates-v1',

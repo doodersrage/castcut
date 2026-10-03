@@ -7,6 +7,8 @@ import type { DayDressPlateEntry } from '@/lib/dress-plate-cache';
 import { loadDressPlates, replaceDressPlates } from '@/lib/dress-plate-store';
 import { loadSavedFootwear, replaceSavedFootwear, type SavedFootwear } from '@/lib/footwear-saved';
 import { loadMyPoses, replaceMyPoses, type MyPose } from '@/lib/my-poses';
+import { loadMyPosePacks, replaceMyPosePacks } from '@/lib/my-pose-packs';
+import type { PosePack } from '@/lib/day-pose-packs';
 import {
   loadSavedFittingGarments,
   replaceSavedFittingGarments,
@@ -222,6 +224,8 @@ export type StudioExtrasPayload = {
   dressPlates?: DayDressPlateEntry[];
   /** "My poses" — dragged / photo skeletons saved by name. */
   myPoses?: MyPose[];
+  /** "My packs" — Day slot poses saved as a pose pack. */
+  myPosePacks?: PosePack[];
 };
 
 export function collectStudioExtras(): StudioExtrasPayload {
@@ -292,6 +296,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     savedFootwear: loadSavedFootwear(),
     dressPlates: loadDressPlates(),
     myPoses: loadMyPoses(),
+    myPosePacks: loadMyPosePacks(),
   };
 }
 
@@ -410,6 +415,9 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.myPoses) {
       replaceMyPoses(payload.myPoses);
+    }
+    if (payload.myPosePacks) {
+      replaceMyPosePacks(payload.myPosePacks);
     }
     if (payload.queueParams) {
       saveQueueParamsSettings(payload.queueParams);

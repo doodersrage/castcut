@@ -60,6 +60,7 @@ import DayRemixMenu from '@/components/day-planner/DayRemixMenu';
 import DaySeriesPanel from '@/components/day-planner/DaySeriesPanel';
 import DayPlateSection from '@/components/day-planner/DayPlateSection';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
+import DayPosePackPicker from '@/components/day-planner/DayPosePackPicker';
 import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
@@ -671,6 +672,18 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             poseRedoMarks={poseRedoMarks}
             clipChecks={clipChecks}
           />
+          <div className="mt-3">
+            <DayPosePackPicker
+              slots={slots}
+              dayMood={dayMood}
+              intimateEnabled={intimateEnabled}
+              intimateMix={intimateMix}
+              allowCompanions={allowCompanions}
+              model={shared.model}
+              busy={busy}
+              onSlotsChange={next => updateToolSettings({ slots: next })}
+            />
+          </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2" data-testid="day-active-plan">
             <label className="space-y-2">
               <FieldLabel>Setting · {activeSlot.label}</FieldLabel>
