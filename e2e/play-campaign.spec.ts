@@ -201,7 +201,7 @@ test('outfit footwear: a kit, barefoot, own words, own photo', async ({ page }) 
   await expect(footwear).toBeVisible({ timeout: 30_000 });
   const hint = page.getByTestId('fitting-footwear-hint');
   await expect(hint).toContainText('Auto');
-  await expect(page.getByTestId('fitting-footwear-auto')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('fitting-footwear-auto')).toHaveAttribute('aria-checked', 'true');
 
   // A kit is picked like a clothing kit: its tile, with its packshot.
   const boots = page.getByTestId('fitting-footwear-kit-rain-boots');
@@ -328,7 +328,7 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
   await page.getByTestId('outfit-pose-head-left').click();
   const noseAfter = await page.getByTestId('outfit-pose-joint-0-0').getAttribute('cx');
   expect(Number(noseAfter)).toBeGreaterThan(Number(noseBefore));
-  await expect(page.getByTestId('outfit-pose-head-left')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('outfit-pose-head-left')).toHaveAttribute('aria-checked', 'true');
   // The head is not part of the pose in words.
   await expect(page.getByTestId('outfit-pose-words')).toContainText('standing');
   // The starting pose stays behind the figure as a dashed ghost, until it is switched off.
@@ -2144,6 +2144,47 @@ test('day cut film with mocked MediaRecorder shows Save to Cast', async ({ page 
   if ((await watch.count()) > 0) {
     await expect(watch).toHaveAttribute('href', /media=films/);
   }
+});
+
+test('each Cast keeps its own Day across a Cast switch', async ({ page }) => {
+  const tinyPng =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-park-a' },
+    characters: {
+      version: 1,
+      characters: [
+        { id: 'e2e-park-a', name: 'Park A', version: 1, updatedAt: Date.now(), descriptor: 'a woman' },
+        { id: 'e2e-park-b', name: 'Park B', version: 1, updatedAt: Date.now() - 1, descriptor: 'a man' },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-park-a',
+        stills: [{ slotId: 'morning', status: 'completed', imageUrl: tinyPng }],
+      },
+    },
+  });
+  await gotoStable(page, '/play');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('cast-picker-character-e2e-park-b').click();
+  await expect(page.getByTestId('cast-picker-character-e2e-park-b')).toHaveAttribute(
+    'aria-checked',
+    'true'
+  );
+  await page.waitForTimeout(1500);
+  await page.getByTestId('cast-picker-character-e2e-park-a').click();
+  await expect(page.getByTestId('cast-picker-character-e2e-park-a')).toHaveAttribute(
+    'aria-checked',
+    'true'
+  );
+  await page.waitForTimeout(1500);
+  // In-app navigation: a page load would re-apply this test's seed (it is an init script).
+  await page.getByRole('link', { name: 'Day', exact: true }).first().click();
+  await page.waitForURL(/\/day/);
+  // Park A's still came back with her (it used to be thrown away on the switch).
+  await expect(page.getByText('1/4 stills').first()).toBeVisible({ timeout: 30_000 });
 });
 
 test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async ({ page }) => {
