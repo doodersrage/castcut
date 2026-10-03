@@ -545,6 +545,37 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     toolSettings.suppressAutoPlateSeed,
   ]);
 
+  // Another plate (look) picked while Outfit is open — in the Cast picker on this page. The
+  // switch writes Outfit's saved settings, but this page holds its own copy and kept trying on
+  // over the old plate until a reload. Re-seed from the Cast when the active look changes.
+  const seededLookRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!mounted || !shared.activeCharacterId) return;
+    const lookKey = `${shared.activeCharacterId}:${shared.activeLookId ?? ''}`;
+    const previous = seededLookRef.current;
+    seededLookRef.current = lookKey;
+    // First run, or another Cast (its own seeding path handles that): nothing to follow.
+    if (!previous || !previous.startsWith(`${shared.activeCharacterId}:`) || previous === lookKey) {
+      return;
+    }
+    let resolvedPlate;
+    try {
+      resolvedPlate = resolveFittingPlateFromCharacter(getCharacter(shared.activeCharacterId));
+    } catch {
+      return;
+    }
+    if (!resolvedPlate?.filename && !resolvedPlate?.imageUrl) return;
+    scheduleAfterCommit(() => {
+      void applyReference({
+        imageUrl: resolvedPlate.imageUrl,
+        filename: resolvedPlate.filename,
+        isolate: resolvedPlate.isolateSubject !== false,
+      }).catch(() => {
+        /* plate may be missing — user can upload */
+      });
+    });
+  }, [applyReference, mounted, shared.activeCharacterId, shared.activeLookId]);
+
   // Outfit notes are tool-session state with Cast ownership. Remount + Cast swap both
   // must re-seed (in-memory prev-id refs miss remounts after switching Cast elsewhere).
   useEffect(() => {
