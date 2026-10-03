@@ -683,6 +683,8 @@ export function useCharacterHomeOrchestration(characterId: string) {
     return castChecklist({
       characterId: character.id,
       plateReady: hasLookPlate,
+      // Prepare plate saves its result as read 'prepared' (standing, base layer, white).
+      platePrepared: activeLook(character).plateStance?.reason === 'prepared',
       traitsSet: traits,
       bibleWritten: Boolean(bio?.look?.trim() || bio?.personality?.trim()),
       keeperCount: activeLook(character).keeperEntryIds?.length ?? 0,
