@@ -7,6 +7,7 @@
  * Not carried over from the queue: the reference photo's aspect (probed from the image when the
  * still is queued). The stance is the same; only the canvas it sits on can differ.
  */
+import { storyPoseForcePeople } from '@/lib/story-scene-people';
 import {
   resolveSceneGuidePlan,
   sceneTextFromStoryPoseInput,
@@ -78,7 +79,15 @@ export function resolveStoryScenePose(input: {
       ...(composed ? { photoPose: composed } : {}),
       library: openPose ? (input.library ?? []) : [],
       allowIntimate: input.adult,
-      ...(input.adult && input.solo ? { forcePeople: 1 } : {}),
+      ...(() => {
+        const people = storyPoseForcePeople({
+          text: scene.blurb,
+          adult: input.adult,
+          solo: Boolean(input.solo),
+          playerPosed: false,
+        });
+        return people ? { forcePeople: people } : {};
+      })(),
       hands: poseGuideStyleDrawsHands(input.stylePreference),
       openPose,
     });

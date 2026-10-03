@@ -1,5 +1,6 @@
 'use client';
 
+import { storyPoseForcePeople } from '@/lib/story-scene-people';
 import { composedPoseForScene } from '@/lib/pose-compose';
 import { useMemo } from 'react';
 import PosePreview, { type PosePicks } from '@/components/pose/PosePreview';
@@ -88,7 +89,15 @@ export default function StoryBeatPosePreview({
       ...(beat.poseLook ? { look: beat.poseLook } : {}),
       ...(modelPlainPostureBase(model) ? { plainPostureBase: modelPlainPostureBase(model) } : {}),
       allowIntimate: adult,
-      ...(soloStory && !beat.poseLayout && !beat.posePhoto ? { forcePeople: 1 } : {}),
+      ...(() => {
+        const people = storyPoseForcePeople({
+          text: beat.blurb,
+          adult,
+          solo: soloStory,
+          playerPosed: Boolean(beat.poseLayout || beat.posePhoto),
+        });
+        return people ? { forcePeople: people } : {};
+      })(),
     };
   }, [
     adult,

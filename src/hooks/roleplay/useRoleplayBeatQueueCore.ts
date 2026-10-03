@@ -1,5 +1,7 @@
 'use client';
 
+import { storyPoseForcePeople } from '@/lib/story-scene-people';
+
 import { composedPoseForScene } from '@/lib/pose-compose';
 import {
   repairStillPrompt,
@@ -104,6 +106,9 @@ import { resolveStoryNudeFaceFilename } from '@/lib/story-nude-face';
 import { PLAY_FACE_CROP_CANVAS } from '@/lib/play-plate-render-size';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { MutableRefObject } from 'react';
+
+/** The pose guide's forcePeople option, when Story's words settle the headcount. */
+const withForcedPeople = (people: 1 | 2 | undefined) => (people ? { forcePeople: people } : {});
 
 /** The Cast face pin must not be the underwear plate on a nude beat either. */
 function nudeFaceIdentityParams(nudeFace: string | null): Record<string, unknown> {
@@ -620,9 +625,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           library: openPose ? loadPoseLibrary() : [],
           allowIntimate: adult,
           // People → Solo on an adult story: one figure, unless the player picked a pose.
-          ...(adult && toolSettings.intimateMix === 'solo' && !beat.poseLayout && !beat.posePhoto
-            ? { forcePeople: 1 }
-            : {}),
+          ...withForcedPeople(
+            storyPoseForcePeople({
+              text: beat.blurb,
+              adult,
+              solo: toolSettings.intimateMix === 'solo',
+              playerPosed: Boolean(beat.poseLayout || beat.posePhoto),
+            })
+          ),
         });
         const poseFile = poseBuild.file;
         // The pose lock reads ComfyUI's ControlNet list from the object_info cache — fill it.
