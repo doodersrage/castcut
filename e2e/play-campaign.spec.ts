@@ -201,7 +201,7 @@ test('outfit footwear: a kit, barefoot, own words, own photo', async ({ page }) 
   await expect(footwear).toBeVisible({ timeout: 30_000 });
   const hint = page.getByTestId('fitting-footwear-hint');
   await expect(hint).toContainText('Auto');
-  await expect(page.getByTestId('fitting-footwear-auto')).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('fitting-footwear-auto')).toHaveAttribute('aria-pressed', 'true');
 
   // A kit is picked like a clothing kit: its tile, with its packshot.
   const boots = page.getByTestId('fitting-footwear-kit-rain-boots');
@@ -328,7 +328,7 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
   await page.getByTestId('outfit-pose-head-left').click();
   const noseAfter = await page.getByTestId('outfit-pose-joint-0-0').getAttribute('cx');
   expect(Number(noseAfter)).toBeGreaterThan(Number(noseBefore));
-  await expect(page.getByTestId('outfit-pose-head-left')).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('outfit-pose-head-left')).toHaveAttribute('aria-pressed', 'true');
   // The head is not part of the pose in words.
   await expect(page.getByTestId('outfit-pose-words')).toContainText('standing');
   // The starting pose stays behind the figure as a dashed ghost, until it is switched off.
