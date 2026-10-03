@@ -1,4 +1,5 @@
 import type { StorageNamespace } from './storage-namespaces';
+import { noteSyncPending } from './sync-status';
 import { SYNC_STORAGE_NAMESPACES } from './storage-namespaces';
 import {
   pullNamespaceFromServer,
@@ -521,15 +522,32 @@ export async function autoPushStorageDebounced(): Promise<void> {
   if (!isSettingsSyncedWithServer()) {
     return;
   }
-  if (await syncNamespaceToServer('settings-cache', loadSettingsCache())) {
+  const settingsOk = await syncNamespaceToServer('settings-cache', loadSettingsCache());
+  if (settingsOk) {
     clearSettingsPushPending();
   }
-  await syncNamespaceToServer('prompt-history', loadPromptHistoryStore());
-  const gallery = loadComfyGallery();
-  const deletedIds = loadGalleryDeletedIds();
-  await syncNamespaceToServer('comfy-gallery', gallery);
-  await syncNamespaceToServer('gallery-deleted-ids', deletedIds);
-  await syncNamespaceToServer('studio-extras', collectStudioExtras());
+  const results = [
+    settingsOk,
+    await syncNamespaceToServer('prompt-history', loadPromptHistoryStore()),
+    await syncNamespaceToServer('comfy-gallery', loadComfyGallery()),
+    await syncNamespaceToServer('gallery-deleted-ids', loadGalleryDeletedIds()),
+    await syncNamespaceToServer('studio-extras', collectStudioExtras()),
+  ];
+  // A failed push waited for the next edit; with nothing edited the server stayed behind.
+  if (results.includes(false)) {
+    scheduleAutoPushRetry();
+  }
+}
+
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+const PUSH_RETRY_MS = 60_000;
+
+function scheduleAutoPushRetry(): void {
+  if (typeof window === 'undefined' || retryTimer) return;
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    scheduleAutoPushStorage();
+  }, PUSH_RETRY_MS);
 }
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -559,9 +577,12 @@ export function scheduleAutoPushStorage(): void {
   const now = Date.now();
   const delay = autoPushDelayMs(now, pushPendingSince);
   pushPendingSince ??= now;
+  noteSyncPending(true);
   pushTimer = setTimeout(() => {
     pushTimer = null;
     pushPendingSince = null;
-    void autoPushStorageDebounced();
+    void autoPushStorageDebounced().finally(() => {
+      if (!pushTimer) noteSyncPending(false);
+    });
   }, delay);
 }

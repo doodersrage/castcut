@@ -6,6 +6,7 @@ import { ToolSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
 import { Button } from '@/components/ui/Button';
 import { syncNamespaceToServer, pullNamespaceFromServer } from '@/lib/storage-sync';
+import { SyncStatusLine } from '@/components/SyncStatusLine';
 import ObservabilityDashboard from '@/components/ObservabilityDashboard';
 import PromptRecipesPanel from '@/components/settings/PromptRecipesPanel';
 import NegativeLearnerPanel from '@/components/settings/NegativeLearnerPanel';
@@ -300,6 +301,7 @@ export default function SettingsAdvancedPanel() {
         <p className="mt-2 text-sm text-[var(--text-muted)]">
           Status: {storageEnabled ? 'enabled' : 'disabled (browser database only)'}
         </p>
+        {storageEnabled ? <SyncStatusLine /> : null}
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="secondary" onClick={() => void pushLocalStorageToServer()}>
             Push browser data to server

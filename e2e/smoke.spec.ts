@@ -284,3 +284,12 @@ test('play pages hydrate without mismatches', async ({ page }) => {
   }
   expect(hydrationErrors).toEqual([]);
 });
+
+test('settings server storage says when this browser last synced', async ({ page }) => {
+  await gotoStable(page, '/settings?tab=advanced');
+  const line = page.getByTestId('sync-status-line');
+  await expect(line).toBeVisible({ timeout: 30_000 });
+  // The startup pull reaches the server, so a fresh page reads as synced, not as an error.
+  await expect(line).toHaveAttribute('data-tone', /ok|waiting/, { timeout: 30_000 });
+  await expect(line).toContainText(/Synced|waiting/);
+});

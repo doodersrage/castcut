@@ -1,5 +1,6 @@
 import type { StorageNamespace } from './storage-namespaces';
 import { SYNC_STORAGE_NAMESPACES } from './storage-namespaces';
+import { noteSyncPull, noteSyncPush } from './sync-status';
 
 /**
  * What this tab last pulled from or pushed to the server, per namespace. Every save schedules a
@@ -61,6 +62,7 @@ export async function syncNamespaceToServer<T>(
 ): Promise<boolean> {
   const fingerprint = storageFingerprint(namespace, data);
   if (serverFingerprints.get(namespace) === fingerprint) {
+    noteSyncPush(namespace, true);
     return true;
   }
   try {
@@ -73,8 +75,10 @@ export async function syncNamespaceToServer<T>(
       serverFingerprints.set(namespace, fingerprint);
     }
     pullMemo?.delete(namespace);
+    noteSyncPush(namespace, response.ok);
     return response.ok;
   } catch {
+    noteSyncPush(namespace, false);
     return false;
   }
 }
@@ -110,6 +114,7 @@ async function fetchNamespace(
     const payload = (await response.json()) as { data?: unknown; unchanged?: boolean };
     const data = payload.unchanged && ifMatch ? localCopy : payload.data;
     noteServerCopy(namespace, data);
+    noteSyncPull(true);
     return { ok: true, data: data ?? null };
   } catch {
     return { ok: false, data: null };
