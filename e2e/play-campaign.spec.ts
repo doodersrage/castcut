@@ -2187,6 +2187,41 @@ test('each Cast keeps its own Day across a Cast switch', async ({ page }) => {
   await expect(page.getByText('1/4 stills').first()).toBeVisible({ timeout: 30_000 });
 });
 
+test('a Day beat you type is marked as yours and can go back to Day\'s', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-beat-own' },
+    characters: {
+      version: 1,
+      characters: [
+        { id: 'e2e-beat-own', name: 'Beat Own', version: 1, updatedAt: Date.now(), descriptor: 'a man' },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        activeSlotId: 'morning',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'park', sceneHints: 'reading on a bench' },
+          { id: 'midday', label: 'Midday', location: 'café', sceneHints: 'coffee at the window' },
+          { id: 'afternoon', label: 'Afternoon', location: 'market', sceneHints: 'buying apples' },
+          { id: 'evening', label: 'Evening', location: 'home', sceneHints: 'cooking dinner' },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  const beat = page.getByTestId('day-slot-beat').first();
+  await expect(beat).toBeVisible({ timeout: 30_000 });
+  const dayBeat = await beat.inputValue();
+  await expect(page.getByTestId('day-beat-typed-badge')).toHaveCount(0);
+  await beat.fill('he fixes his bike in the garage');
+  await expect(page.getByTestId('day-beat-typed-badge').first()).toBeVisible();
+  await page.getByTestId('day-beat-restore').first().click();
+  await expect(beat).toHaveValue(dayBeat);
+  await expect(page.getByTestId('day-beat-typed-badge')).toHaveCount(0);
+});
+
 test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async ({ page }) => {
   const tinyPng =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

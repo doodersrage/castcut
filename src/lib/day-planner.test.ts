@@ -3177,3 +3177,21 @@ describe('buildDayProgressLightboxState with clips', () => {
     assert.equal(state?.index, 1);
   });
 });
+
+describe('a beat the player types', () => {
+  it('keeps Day\'s beat from before the first edit and can go back to it', async () => {
+    const { dayBeatIsTyped, typedDayBeatPatch, restoreDayBeatPatch } = await import('./day-planner');
+    let slot = { sceneHints: 'reading on a bench' } as {
+      sceneHints?: string;
+      sceneHintsTyped?: string;
+      sceneHintsDay?: string;
+    };
+    slot = { ...slot, ...typedDayBeatPatch(slot, 'he') };
+    slot = { ...slot, ...typedDayBeatPatch(slot, 'he fixes his bike') };
+    assert.equal(dayBeatIsTyped(slot), true);
+    assert.equal(slot.sceneHintsDay, 'reading on a bench');
+    slot = { ...slot, ...restoreDayBeatPatch(slot) };
+    assert.equal(slot.sceneHints, 'reading on a bench');
+    assert.equal(dayBeatIsTyped(slot), false);
+  });
+});

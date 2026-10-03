@@ -328,6 +328,8 @@ export type DaySlot = {
    * player's words (written for the lead as they are), not one of Day's (written for a woman).
    */
   sceneHintsTyped?: string;
+  /** Day's own beat from before the player's first edit — "Use Day's scene" puts it back. */
+  sceneHintsDay?: string;
   /**
    * Pose picked in the slot editor — a layout (`cook`, `selfie`, `sport_squat`, …) or a plain
    * posture (`sit`, `lie`, …). Unset = read the pose from the beat.
@@ -635,6 +637,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       location: readEditableText(slot.location, 160) || undefined,
       sceneHints: readEditableText(slot.sceneHints, 320) || undefined,
       sceneHintsTyped: readEditableText(slot.sceneHintsTyped, 320) || undefined,
+      sceneHintsDay: readEditableText(slot.sceneHintsDay, 320) || undefined,
       poseLayout: readText(slot.poseLayout, 40) || undefined,
       poseVariant:
         typeof slot.poseVariant === 'number' && slot.poseVariant > 0
@@ -4423,4 +4426,27 @@ export function renumberDayPoseGuideAsImage2(prompt: string): string {
     return prompt;
   }
   return merged.replace(/\bImage 3\b/g, 'Image 2');
+}
+
+/** The slot's beat is the player's own words (typed, not changed by Day since). */
+export function dayBeatIsTyped(slot: Pick<DaySlot, 'sceneHints' | 'sceneHintsTyped'>): boolean {
+  return Boolean(slot.sceneHintsTyped && slot.sceneHintsTyped === slot.sceneHints);
+}
+
+/** The slot patch for a beat the player typed; Day's beat is kept from before the first edit. */
+export function typedDayBeatPatch(
+  slot: Pick<DaySlot, 'sceneHints' | 'sceneHintsTyped' | 'sceneHintsDay'>,
+  value: string
+): Pick<DaySlot, 'sceneHints' | 'sceneHintsTyped' | 'sceneHintsDay'> {
+  const sceneHintsDay = dayBeatIsTyped(slot)
+    ? slot.sceneHintsDay
+    : slot.sceneHints?.trim() || undefined;
+  return { sceneHints: value, sceneHintsTyped: value, sceneHintsDay };
+}
+
+/** Back to Day's beat (undefined when Day had none: the slot plans one again). */
+export function restoreDayBeatPatch(
+  slot: Pick<DaySlot, 'sceneHintsDay'>
+): Pick<DaySlot, 'sceneHints' | 'sceneHintsTyped' | 'sceneHintsDay'> {
+  return { sceneHints: slot.sceneHintsDay, sceneHintsTyped: undefined, sceneHintsDay: undefined };
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
+import { typedDayBeatPatch } from '@/lib/day-planner';
 import ClipEngineNote from '@/components/ClipEngineNote';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import type { KeyedShot } from '@/lib/film-cut-plan';
@@ -668,7 +670,10 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               />
             </label>
             <label className="space-y-2">
-              <FieldLabel>Beat · {activeSlot.label}</FieldLabel>
+              <FieldLabel>
+                Beat · {activeSlot.label}
+                <DayBeatOwnership slot={activeSlot} updateSlot={updateSlot} />
+              </FieldLabel>
               <TextArea
                 rows={3}
                 data-testid="day-slot-beat"
@@ -676,10 +681,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 className={`${accentFocusClass(ACCENT)} min-h-[5.5rem] max-h-72 [field-sizing:content]`}
                 placeholder="What happens in this part of the day?"
                 onChange={event =>
-                  updateSlot(activeSlot.id, {
-                    sceneHints: event.target.value,
-                    sceneHintsTyped: event.target.value,
-                  })
+                  updateSlot(activeSlot.id, typedDayBeatPatch(activeSlot, event.target.value))
                 }
               />
             </label>

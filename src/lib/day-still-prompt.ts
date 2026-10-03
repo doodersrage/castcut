@@ -26,6 +26,7 @@ import {
 import { sameSexPartnerBeat } from '@/lib/day-lead-gender';
 import {
   buildDaySlotPrompt,
+  dayBeatIsTyped,
   dayBeatOmitsGarmentPackshot,
   dayMoodReplacesKeepOutfit,
   isDayAdultMood,
@@ -320,10 +321,7 @@ export function dayPlayedMood(dayMood: string | null | undefined, intimateEnable
  * state and what the queue has attached. The Day hook and the finished-prompt sweep both call
  * this, so a rule changed here is the rule that is tested.
  */
-/** The slot's beat is the player's own words (typed, not changed since). */
-export function dayBeatIsTyped(slot: Pick<DaySlot, 'sceneHints' | 'sceneHintsTyped'>): boolean {
-  return Boolean(slot.sceneHintsTyped && slot.sceneHintsTyped === slot.sceneHints);
-}
+export { dayBeatIsTyped } from '@/lib/day-planner';
 
 export function buildDaySlotPromptForStill(
   slot: DaySlot,

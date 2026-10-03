@@ -1,5 +1,7 @@
 'use client';
 
+import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
+import { typedDayBeatPatch } from '@/lib/day-planner';
 import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
@@ -617,17 +619,17 @@ export default function MobileDayToolSections(vm: ViewModel) {
             />
           </label>
           <label className="block space-y-1.5 text-sm">
-            <FieldLabel>Beat · {activeSlot.label}</FieldLabel>
+            <FieldLabel>
+              Beat · {activeSlot.label}
+              <DayBeatOwnership slot={activeSlot} updateSlot={updateSlot} />
+            </FieldLabel>
             <TextArea
               rows={2}
               data-testid="day-slot-beat"
               value={activeSlot.sceneHints ?? ''}
               placeholder="What happens in this part of the day?"
               onChange={event =>
-                updateSlot(activeSlot.id, {
-                  sceneHints: event.target.value,
-                  sceneHintsTyped: event.target.value,
-                })
+                updateSlot(activeSlot.id, typedDayBeatPatch(activeSlot, event.target.value))
               }
             />
           </label>
