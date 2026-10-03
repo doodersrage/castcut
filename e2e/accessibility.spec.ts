@@ -44,6 +44,9 @@ const ROUTES: Array<{ path: string; label: string }> = [
 ];
 
 test.beforeEach(async ({ page }) => {
+  // Reduced motion: no entrance fades for axe to sample half-blended (a fade can start after
+  // the wait below — /play's Watch button failed color-contrast at 2.0:1 mid-fade).
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await ensureAuthenticated(page);
 });
 
