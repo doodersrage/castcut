@@ -370,11 +370,13 @@ Return ONLY JSON: {"name":"","look":"","personality":"","catchphrase":""}
               : 'a reused name'
           }.`
     }
-- look: one visual sentence (species/body, clothes, colors, distinctive props).${adultLookHint(content)}${
+- look: ${
       hasReferenceImage
-        ? ' Face, hair, and body from the reference; clothes from the part — not the photo location or the photo outfit.'
-        : ''
-    }
+        ? // The writer cannot see the photo: a face, hair or body it invented ("heavyset, hair
+          // tied back") fought the photo in every still. It describes what the photo does not.
+          'one visual sentence of clothes, colors and distinctive props only — never face, hair, skin, age or body; those come from the reference photo. Clothes from the part — not the photo location or the photo outfit.'
+        : 'one visual sentence (species/body, clothes, colors, distinctive props).'
+    }${adultLookHint(content)}
 - personality: one or two sentences, first or close third person.
 - ${contentLine(content, allowGore)}`,
     user: [

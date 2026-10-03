@@ -105,3 +105,20 @@ describe('Story scene cards are checked before the player picks', () => {
     assert.ok(result.scenes.every(scene => !/naked/.test(scene.blurb)));
   });
 });
+
+describe('Story bible for a photo story', () => {
+  it('asks the writer for clothes and props only, never the face or body', async () => {
+    const { generateRoleplayBio } = await import('./roleplay-generator');
+    chatCompletion.mock.resetCalls();
+    replies.length = 0;
+    prompts.length = 0;
+    replies.push(JSON.stringify({ name: 'Tomas', look: 'a grey wool coat and a red scarf', personality: 'patient' }));
+    await generateRoleplayBio({
+      content: 'pg13',
+      characterName: 'Tomas',
+      hasReferenceImage: true,
+      llm: { llmEnabled: true, allowTemplateFallback: false },
+    } as never);
+    assert.match(prompts[0]!, /never face, hair, skin, age or body/);
+  });
+});
