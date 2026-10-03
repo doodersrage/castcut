@@ -565,3 +565,17 @@ describe('switching the active Cast', () => {
     });
   });
 });
+
+describe('saving an unchanged Cast', () => {
+  it('keeps the stored record and its time', () => {
+    withMockLocalStorage(() => {
+      const tomas = { ...createBlankCharacter('Tomas', undefined as never), id: 'char-tomas' };
+      upsertCharacter(tomas);
+      const before = getCharacter('char-tomas')!;
+      upsertCharacter({ ...before });
+      assert.equal(getCharacter('char-tomas')!.updatedAt, before.updatedAt);
+      upsertCharacter({ ...before, notes: 'likes trains' });
+      assert.notEqual(getCharacter('char-tomas')!.notes, undefined);
+    });
+  });
+});

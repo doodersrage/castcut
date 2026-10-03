@@ -900,6 +900,12 @@ function mergeCharacterUpdate(prev: CharacterRecord, incoming: CharacterRecord):
   });
 }
 
+function sameCharacterIgnoringTime(a: CharacterRecord, b: CharacterRecord): boolean {
+  const strip = (record: CharacterRecord) =>
+    JSON.stringify({ ...normalizeCharacterRecord(record), updatedAt: 0 });
+  return strip(a) === strip(b);
+}
+
 export function upsertCharacter(record: CharacterRecord): CharacterRecord[] {
   const name = readName(record.name);
   if (!name) {
@@ -916,6 +922,12 @@ export function upsertCharacter(record: CharacterRecord): CharacterRecord[] {
     updatedAt: Date.now(),
   };
   const nextRecord = prev ? mergeCharacterUpdate(prev, drafted) : normalizeCharacterRecord(drafted);
+  // Nothing but the time changed: keep the stored record. Story re-saved its lead on every
+  // visit, and a fresh timestamp on unchanged data can win a sync over a real edit made on
+  // another device.
+  if (prev && sameCharacterIgnoringTime(prev, nextRecord)) {
+    return existing;
+  }
   const incomingIsRoleplay = nextRecord.id.startsWith('char-rp-');
   const without = existing.filter(entry => {
     if (entry.id === nextRecord.id) {
