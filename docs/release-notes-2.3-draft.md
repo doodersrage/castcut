@@ -16,7 +16,9 @@ Castcut 2.3 is mostly about catching a bad still before it is rendered: every Da
 
 **Day partners and men as the lead.** With a Cast partner, clothed two-person stills on Rapid AIO draw the two of you, not a stranger, and the partner wears their own shoes. A man lead's stills and his partner's description are no longer reworded for a woman, and a scene you type reaches the prompt as typed (marked *Your words*).
 
-**Outfit's picks reach Day and Story.** A clothing photo and shoes picked in Outfit now go to Day and Story when you change them (a later choice in Day still stands until Outfit changes again). Shoes are worn rather than drawn on the floor beside her, and try-ons with shoes are framed head to feet.
+**Outfit's picks reach Day and Story.** A clothing photo and shoes picked in Outfit now go to Day and Story when you change them (a later choice in Day still stands until Outfit changes again). Shoes are worn rather than drawn on the floor beside her, and try-ons with shoes are framed head to feet. On Edit 2511 a custom pose used to leave the feet bare; a short shoe pass now runs after the try-on and puts the shoes on.
+
+**Outfit: front and back.** Every try-on is followed by a back view of the same outfit, shown beside the front on its card (switch it off under *Front and back*). Keep and Day use the front.
 
 **Cast files.** *Export Cast file* (character page → More) saves the character, picture, looks, bible, Part, story and Day plan in one file; *Import a Cast file* on the Characters page adds it to another install or restores a backup. An import never replaces an existing character ("Name (imported)").
 
@@ -49,7 +51,8 @@ Castcut 2.3 is mostly about catching a bad still before it is rendered: every Da
 - Saving a Story no longer replaces a Film-made Cast with a copy (losing its looks).
 - A Cast made from a photo describes only the traits you picked, not invented ones.
 - Rewrite bible no longer dresses a character with no Part in corsets and thigh-high boots at PG-13.
-- *New character* on the Characters page opens the create form.
+- *New character* on the Characters page opens the create form; *Start a film* names the character it starts with.
+- The bible's personality describes the person (temperament, values, habits), not a scene.
 
 **Outfit / Look**
 - A try-on that came back unchanged is flagged.
