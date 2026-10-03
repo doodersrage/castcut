@@ -1143,6 +1143,16 @@ export function withNewPlateLook(
     ),
     reference: input.reference,
     ipAdapter: input.ipAdapter,
+    // A copy wears the same outfit; the kept try-on and its dressed plate were the old plate's.
+    ...(current.keptOutfit
+      ? {
+          keptOutfit: {
+            ...current.keptOutfit,
+            entryId: undefined,
+            dressPlateKey: undefined,
+          },
+        }
+      : {}),
   };
   // The new plate leads, so the look cap never cuts it.
   const nextLooks = [look, ...looks.filter(entry => entry.id !== look.id)].slice(0, MAX_LOOKS);

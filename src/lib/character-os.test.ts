@@ -744,3 +744,31 @@ describe('several look plates per Cast', () => {
     });
   });
 });
+
+describe('a new look made from the active one', () => {
+  it('wears the same kept outfit, without the old plate’s kept try-on', async () => {
+    const { withNewPlateLook, looksOf } = await import('./character-os');
+    const character = {
+      id: 'char-copy',
+      name: 'Copy',
+      version: 1,
+      updatedAt: 1,
+      activeLookId: 'look-a',
+      looks: [
+        {
+          id: 'look-a',
+          name: 'A',
+          createdAt: 1,
+          lockedWardrobeId: 'kit-1',
+          keptOutfit: { entryId: 'g-1', dressPlateKey: 'k-1', wardrobeId: 'kit-1', footwear: 'red heels' },
+        },
+      ],
+    } as never;
+    const next = withNewPlateLook(character, { id: 'look-b', reference: undefined, ipAdapter: undefined });
+    const copy = looksOf(next).find(look => look.id === 'look-b');
+    assert.equal(copy?.keptOutfit?.wardrobeId, 'kit-1');
+    assert.equal(copy?.keptOutfit?.footwear, 'red heels');
+    assert.equal(copy?.keptOutfit?.entryId, undefined);
+    assert.equal(copy?.keptOutfit?.dressPlateKey, undefined);
+  });
+});
