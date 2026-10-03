@@ -157,3 +157,22 @@ describe('character-appearance', () => {
     assert.match(next, /fair to light Caucasian skin|waves|pixie|bun|blonde/i);
   });
 });
+
+describe('a Cast made from a photo', () => {
+  it('describes only the traits picked', async () => {
+    const { describeChosenAppearance, CHARACTER_APPEARANCE_RANDOM } = await import(
+      './character-appearance'
+    );
+    const R = CHARACTER_APPEARANCE_RANDOM;
+    assert.deepEqual(
+      describeChosenAppearance({ sex: R, ethnicity: R, ageBand: R, height: R, bodyBuild: R }),
+      {}
+    );
+    const man = describeChosenAppearance({ sex: 'man', ethnicity: R, ageBand: R, height: R, bodyBuild: R });
+    assert.equal(man.descriptor, 'a man');
+    assert.equal(man.hints, 'man');
+    const more = describeChosenAppearance({ sex: 'woman', ageBand: '30s', ethnicity: R, height: R, bodyBuild: R });
+    assert.match(more.descriptor ?? '', /^a woman in her 30s|^a woman /);
+    assert.doesNotMatch(more.descriptor ?? '', /hair|beard|skin|eyes/);
+  });
+});

@@ -614,6 +614,47 @@ export function composeCharacterAppearanceDescriptor(draft: CharacterAppearanceD
   return `${articleFor(ancestry)} ${ancestry} ${noun} ${age} with ${skin}, ${face}, ${hair}, and a body that is ${height}, ${body}`;
 }
 
+/**
+ * A Cast made from a photo: only what the player picked, nothing rolled. Random traits filled in
+ * a whole invented person ("a White man in his forties … a ginger beard") that the photo then
+ * contradicted — in prompts and in the Day partner line. Empty when nothing was picked.
+ */
+export function describeChosenAppearance(form: Partial<CharacterAppearanceFormDraft> = {}): {
+  descriptor?: string;
+  hints?: string;
+} {
+  const chosen = <T extends string>(value: CharacterAppearancePick<T> | undefined) =>
+    value && value !== CHARACTER_APPEARANCE_RANDOM ? value : undefined;
+  const sex = chosen(form.sex);
+  const ethnicity = chosen(form.ethnicity);
+  const ageBand = chosen(form.ageBand);
+  const height = chosen(form.height);
+  const bodyBuild = chosen(form.bodyBuild);
+  if (!sex && !ethnicity && !ageBand && !height && !bodyBuild) return {};
+  const noun = sex ? nounForSex(sex) : 'person';
+  const ancestry = ethnicity ? ancestryWord(ethnicity, sex ?? 'nonbinary') : '';
+  const age = ageBand ? ` ${agePhrase(ageBand, sex ?? 'nonbinary')}` : '';
+  const head = [ancestry, noun].filter(Boolean).join(' ');
+  const build = [height ? heightPhrase(height) : '', bodyBuild ? bodyBuildPhrase(bodyBuild) : '']
+    .filter(Boolean)
+    .join(', ');
+  const descriptor = `${articleFor(head)} ${head}${age}${build ? `, ${build}` : ''}`;
+  const label = <T extends string>(
+    value: T | undefined,
+    options: CharacterAppearanceOption<T>[]
+  ) => (value ? options.find(option => option.value === value)?.label : undefined);
+  const hints = [
+    sex === 'woman' ? 'woman' : sex === 'man' ? 'man' : sex ? 'nonbinary person' : undefined,
+    label(ethnicity, CHARACTER_ETHNICITY_OPTIONS),
+    label(ageBand, CHARACTER_AGE_BAND_OPTIONS),
+    label(height, CHARACTER_HEIGHT_OPTIONS),
+    label(bodyBuild, CHARACTER_BODY_BUILD_OPTIONS),
+  ]
+    .filter(Boolean)
+    .join(', ');
+  return { descriptor, hints };
+}
+
 /** Short hints string so wardrobe / gender helpers can read sex without parsing the full descriptor. */
 export function characterAppearanceHints(draft: CharacterAppearanceDraft): string {
   const sexLabel =

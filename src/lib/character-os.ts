@@ -21,12 +21,13 @@ import type { RoleplayLibrarySession } from './roleplay-library';
 import type { RoleplayBio, RoleplayContentId, RoleplayPlayAs, RoleplayTone } from './roleplay';
 import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from './settings-cache';
 import {
-  composeCharacterAppearanceDescriptor,
-  characterAppearanceHints,
-  resolveCharacterAppearance,
-  sanitizeCharacterAppearanceDescriptor,
   type CharacterAppearanceDraft,
   type CharacterAppearanceFormDraft,
+  characterAppearanceHints,
+  composeCharacterAppearanceDescriptor,
+  describeChosenAppearance,
+  resolveCharacterAppearance,
+  sanitizeCharacterAppearanceDescriptor,
 } from './character-appearance';
 import { setSessionLoraIdsForModel } from './model-lora-map';
 
@@ -483,6 +484,8 @@ export type CreateBlankCharacterOptions = {
   personaId?: string;
   customPersona?: string;
   playAs?: RoleplayPlayAs;
+  /** Made from a photo: describe only the traits picked (describeChosenAppearance). */
+  fromPhoto?: boolean;
 };
 
 /** Fresh Cast record — name plus a rolled (or chosen) face descriptor so Day/Generate are not blank. */
@@ -492,7 +495,8 @@ export function createBlankCharacter(
   options?: CreateBlankCharacterOptions
 ): CharacterRecord {
   const trimmed = name.trim() || 'Untitled character';
-  const draft = resolveCharacterAppearance(appearance ?? {});
+  const fromPhoto = options?.fromPhoto ? describeChosenAppearance(appearance ?? {}) : null;
+  const draft = fromPhoto ? null : resolveCharacterAppearance(appearance ?? {});
   const personaId = options?.personaId?.trim() || undefined;
   const customPersona = options?.customPersona?.trim() || undefined;
   return {
@@ -501,8 +505,15 @@ export function createBlankCharacter(
     version: 1,
     updatedAt: Date.now(),
     characterName: trimmed,
-    descriptor: composeCharacterAppearanceDescriptor(draft),
-    hints: characterAppearanceHints(draft),
+    ...(draft
+      ? {
+          descriptor: composeCharacterAppearanceDescriptor(draft),
+          hints: characterAppearanceHints(draft),
+        }
+      : {
+          ...(fromPhoto?.descriptor ? { descriptor: fromPhoto.descriptor } : {}),
+          ...(fromPhoto?.hints ? { hints: fromPhoto.hints } : {}),
+        }),
     ...(personaId ? { personaId } : {}),
     ...(customPersona ? { customPersona } : {}),
     ...(options?.playAs ? { playAs: options.playAs } : {}),

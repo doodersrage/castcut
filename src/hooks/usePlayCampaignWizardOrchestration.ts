@@ -381,6 +381,7 @@ export function usePlayCampaignWizardOrchestration({
         personaId: input.personaId,
         customPersona: input.customPersona,
         playAs,
+        fromPhoto: Boolean(input.referenceFile),
       });
       upsertCharacter(record);
       let saved = getCharacter(record.id) ?? record;
