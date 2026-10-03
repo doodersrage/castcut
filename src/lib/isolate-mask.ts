@@ -153,14 +153,17 @@ export type MaskRepair = {
  *    cape patch) becomes person again; a hole that IS the backdrop (gap between arm and hip) stays;
  * 2. on a plain backdrop (studio wall, white sweep), "background" pixels clearly unlike the
  *    backdrop that touch the person (dark jeans near the floor, skin on a white sheet) become
- *    person again.
+ *    person again. Only for a weak matte (`regrowEdges`): after a good one (BiRefNet) it would
+ *    only pull in the contact shadow under the shoes.
  */
 export function repairSubjectMask(
   alphaIn: ArrayLike<number>,
   rgba: ArrayLike<number>,
   width: number,
-  height: number
+  height: number,
+  options: { regrowEdges?: boolean } = {}
 ): MaskRepair {
+  const regrowEdges = options.regrowEdges !== false;
   const pixels = width * height;
   const alpha = new Uint8Array(pixels);
   for (let i = 0; i < pixels; i++) {
@@ -234,7 +237,7 @@ export function repairSubjectMask(
 
   // 2. Plain backdrop: regrow person-coloured "background" that touches the person.
   let regrownPixels = 0;
-  if (plainBackdrop) {
+  if (plainBackdrop && regrowEdges) {
     const far = new Uint8Array(pixels);
     for (let i = 0; i < pixels; i++) {
       // Soft (half-kept) pixels too: the model's haze over a dark cape is as wrong as a hole.

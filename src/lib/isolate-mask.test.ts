@@ -116,6 +116,23 @@ describe('isolate-mask', () => {
     assert.equal(repaired.alpha[36 * w + 3], 0);
   });
 
+  it('regrowEdges: false keeps the matte edges (a good matte) but still fills holes', () => {
+    const w = 40;
+    const h = 40;
+    const photo = image(w, h, [240, 240, 240], (x, y) =>
+      inBox(x, y, 12, 4, 28, 40) ? [20, 20, 25] : null
+    );
+    const matte = mask(
+      w,
+      h,
+      (x, y) => inBox(x, y, 12, 4, 28, 30) && !inBox(x, y, 16, 10, 24, 18)
+    );
+    const repaired = repairSubjectMask(matte, photo, w, h, { regrowEdges: false });
+    assert.equal(repaired.regrownPixels, 0);
+    assert.equal(repaired.alpha[36 * w + 20], 0);
+    assert.equal(repaired.alpha[14 * w + 20], 255);
+  });
+
   it('does not pull in a dark object that does not touch the person', () => {
     const w = 40;
     const h = 40;

@@ -181,7 +181,11 @@ export async function isolateSubjectOnFillDetailed(
     mask = await modnetSubjectMask(new Blob([new Uint8Array(sourceBytes)]), width, height);
   }
 
-  const repaired = repairSubjectMask(mask, rgba, width, height);
+  // Edge regrowth is for MODNet's misses; BiRefNet's edges are right and it would only add the
+  // shadow under the shoes. Hole filling runs for both.
+  const repaired = repairSubjectMask(mask, rgba, width, height, {
+    regrowEdges: matte === 'modnet',
+  });
   const maskRgba = new Uint8ClampedArray(repaired.alpha.length * 4);
   for (let i = 0; i < repaired.alpha.length; i++) {
     maskRgba[i * 4 + 3] = repaired.alpha[i]!;
