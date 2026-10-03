@@ -1151,18 +1151,24 @@ export function buildCompactDayDuoRecipe(
       input.beat ?? ''
     );
   return recipe
-    ? (friends ? recipe.replace(/\b(boy|girl)friend\b/g, 'friend') : recipe)
-        .replace(RAPID_SUGGESTIVE_RECIPE_MARK, DAY_CLOTHED_RECIPE_MARK)
-        .replace('both fully clothed, affectionate.', 'both fully clothed, both fully in frame.')
-        .replace(/\bwears a flirty dress\b/, 'wears everyday clothes')
-        // Vacation beats lead with a CAPS stance word; the room line keeps only indoor rooms.
-        .replace(/Moment: ([A-Z][A-Z-]+)\b/, (_, word: string) => `Moment: ${word.toLowerCase()}`)
-        .replace(
-          ' Photorealistic photograph',
-          input.setting?.trim() && !recipe.includes(input.setting.trim())
-            ? ` Place: ${input.setting.trim().replace(/[.\s]+$/, '')}. Photorealistic photograph`
-            : ' Photorealistic photograph'
-        )
+    ? friends
+      ? recipe
+          .replace(/\b(boy|girl)friend\b/g, 'friend')
+          // A beat typed for a man lead ("from his friend") comes through the two-men rewrite
+          // as "his friend's friend".
+          .replace(/\b(his|her) friend's friend\b/g, '$1 friend')
+      : recipe
+          .replace(RAPID_SUGGESTIVE_RECIPE_MARK, DAY_CLOTHED_RECIPE_MARK)
+          .replace('both fully clothed, affectionate.', 'both fully clothed, both fully in frame.')
+          .replace(/\bwears a flirty dress\b/, 'wears everyday clothes')
+          // Vacation beats lead with a CAPS stance word; the room line keeps only indoor rooms.
+          .replace(/Moment: ([A-Z][A-Z-]+)\b/, (_, word: string) => `Moment: ${word.toLowerCase()}`)
+          .replace(
+            ' Photorealistic photograph',
+            input.setting?.trim() && !recipe.includes(input.setting.trim())
+              ? ` Place: ${input.setting.trim().replace(/[.\s]+$/, '')}. Photorealistic photograph`
+              : ' Photorealistic photograph'
+          )
     : null;
 }
 

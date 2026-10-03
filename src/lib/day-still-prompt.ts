@@ -164,8 +164,11 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
     withFootwearLine(
       recipeCue ? withRecipePoseCue(basePrompt, drawnLayout, facts.pose?.poseKey) : basePrompt,
       facts.footwear,
-      'she',
-      facts.footwearImage
+      // Written for a woman and swapped later — except where the prompt is already the man's
+      // (the couple recipes), which keep it as written.
+      facts.leadNoun === 'man' && !swapLead ? 'he' : 'she',
+      facts.footwearImage,
+      figures >= 2
     ),
     // The duo recipes name the partner's image themselves; the long brief (and a recipe that has
     // no partner wording, e.g. Klein spoon) gets one line.

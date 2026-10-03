@@ -83,7 +83,12 @@ export function footwearPromptLine(
    * Image 2 on their own (`alone`). The words still name them — image and words together held
    * the shoes 4/4, the image alone 3/4 (live, Edit 2511).
    */
-  image?: 'combined' | 'alone' | null
+  image?: 'combined' | 'alone' | null,
+  /**
+   * Two people in the still: say whose shoes these are. "On his feet he wears white sneakers"
+   * put the sneakers on both men (live, two men on Day).
+   */
+  pair = false
 ): string {
   const words = normalizeFootwear(value);
   if (!words && !image) return '';
@@ -98,7 +103,9 @@ export function footwearPromptLine(
         ? ' shown in Image 2'
         : '';
   const named = shown ? `the ${words || 'shoes'}${shown}` : words;
-  return `FOOTWEAR (mandatory): on ${possessive} feet ${subject} wears ${named} — exactly these, on both feet.`;
+  return pair
+    ? `FOOTWEAR (mandatory): on ${possessive} own feet (the person from the first image) ${subject} wears ${named} — exactly these, on both feet; the other person wears their own different shoes.`
+    : `FOOTWEAR (mandatory): on ${possessive} feet ${subject} wears ${named} — exactly these, on both feet.`;
 }
 
 /**
@@ -119,9 +126,10 @@ export function withFootwearLine(
   prompt: string,
   value: unknown,
   subject: 'she' | 'he' = 'she',
-  image?: 'combined' | 'alone' | null
+  image?: 'combined' | 'alone' | null,
+  pair = false
 ): string {
-  const line = footwearPromptLine(value, subject, image);
+  const line = footwearPromptLine(value, subject, image, pair);
   if (!line || !prompt.trim() || prompt.includes('FOOTWEAR (mandatory):')) return prompt;
   const lines = prompt.split('\n');
   const outfitIndex = lines.findIndex(text => /^\s*OUTFIT \(mandatory\):/.test(text));

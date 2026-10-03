@@ -980,6 +980,14 @@ for (const still of STILLS) {
       fail(MAN_LEAD, still, `a man lead written as a woman: "${wrong[0]}"`);
     }
   }
+  // …and so are his shoes ("on her feet she wears" was left on the couple recipe).
+  if (still.lead === 'man' && !still.adultStill && /FOOTWEAR \(mandatory\): on her\b/.test(prompt)) {
+    fail(MAN_LEAD, still, 'the shoe line is written for a woman');
+  }
+  // Two people: the shoe line says whose shoes they are.
+  if (still.figures === 2 && /FOOTWEAR \(mandatory\): on (?:his|her) feet\b/.test(prompt)) {
+    fail(FOOTWEAR, still, 'a two-person shoe line does not say whose shoes they are');
+  }
 
   // I6 — with no pose map attached, the prompt does not refer to a pose image.
   if (still.third === 'none') {
