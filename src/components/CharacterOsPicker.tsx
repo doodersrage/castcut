@@ -10,6 +10,7 @@ import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import {
   activateLook,
   addLookFromShared,
+  applyCharacterRecord,
   applyCharacterRecordFresh,
   characterFromShared,
   characterHomeHref,
@@ -137,9 +138,11 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
       saveCurrent();
       return;
     }
-    const next = addLookFromShared(activeId, shared, name.trim() || 'New look');
+    // An unnamed look is numbered ("Look 3"); every one used to be called "New look".
+    const next = addLookFromShared(activeId, shared, name.trim());
     if (next) {
-      onApply(applyCharacterRecordFresh(next));
+      // Same Cast: keep its face lock and strength (the "fresh" apply dropped them).
+      onApply(applyCharacterRecord(next));
     }
     setName('');
   };
