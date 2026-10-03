@@ -110,9 +110,18 @@ test('Settings lists Castcut workflows and diffs the sampler change', async ({ p
 
   await gotoStable(page, '/settings?tab=comfyui&section=connection');
   await openComfyUiSettingsTab(page);
-  await page.locator('summary', { hasText: 'Import a workflow from ComfyUI' }).click();
-  await page.getByTestId('comfy-editor-import-list').click();
-  await page.getByRole('button', { name: /day-2026-10-03-e2eopenp\.json/ }).click();
+  // The section's remembered open state loads late and can fold it — open → list is retried.
+  const summary = page.locator('summary', { hasText: 'Import a workflow from ComfyUI' });
+  const fileButton = page.getByRole('button', { name: /day-2026-10-03-e2eopenp\.json/ });
+  await expect(async () => {
+    const details = summary.locator('xpath=..');
+    if ((await details.getAttribute('open')) === null) await summary.click();
+    if (!(await fileButton.isVisible())) {
+      await page.getByTestId('comfy-editor-import-list').click({ timeout: 2_000 });
+    }
+    await expect(fileButton).toBeVisible({ timeout: 3_000 });
+  }).toPass({ timeout: 45_000 });
+  await fileButton.click();
   const diff = page.getByTestId('comfy-editor-import-diff');
   await expect(diff).toContainText('Steps');
   await expect(diff).toContainText('CFG');
