@@ -801,6 +801,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         prompt,
         // The prompt now says what the scene says — an edited scene is no longer waiting.
         textEdited: undefined,
+        stillWriteInterrupted: undefined,
         // The last check was of the previous prompt; the queue below records this one's.
         promptCheck: undefined,
         ...(stillBrief ? { stillBrief } : {}),

@@ -154,6 +154,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
    * written again yet: the stored prompt is gone and any shown still is from the earlier text.
    */
   textEdited?: boolean;
+  /** Its still was being written when the page closed (story-beat-edit: releaseInterruptedStoryWrites). */
+  stillWriteInterrupted?: boolean;
   /** What the queue-time prompt check fixed / found on the latest still (still-prompt-audit). */
   promptCheck?: StillPromptCheck;
 };

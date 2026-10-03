@@ -94,7 +94,12 @@ export function releaseInterruptedStoryWrites(
       return beat;
     }
     changed = true;
-    return { ...beat, stillStatus: 'error' as const, textEdited: true };
+    return {
+      ...beat,
+      stillStatus: 'error' as const,
+      textEdited: true,
+      stillWriteInterrupted: true,
+    };
   });
   return changed ? next : null;
 }

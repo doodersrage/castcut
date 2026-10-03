@@ -166,9 +166,11 @@ export function RoleplayStoryBeatCard({
               <p className="type-caption text-[var(--text-muted)]">
                 {rewriting
                   ? 'Writing this scene again from its new text…'
-                  : hasStill
-                    ? 'Scene text changed — the still shows the earlier text. Write it again to match; the earlier still stays as a take.'
-                    : 'Scene text changed — its still has not been written yet.'}
+                  : beat.stillWriteInterrupted
+                    ? 'Its still was not written — the page closed while it was being written.'
+                    : hasStill
+                      ? 'Scene text changed — the still shows the earlier text. Write it again to match; the earlier still stays as a take.'
+                      : 'Scene text changed — its still has not been written yet.'}
               </p>
               <Button
                 size="sm"

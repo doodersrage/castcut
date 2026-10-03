@@ -161,6 +161,9 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
   if (record.textEdited === true) {
     beat.textEdited = true;
   }
+  if (record.stillWriteInterrupted === true) {
+    beat.stillWriteInterrupted = true;
+  }
   // A saved story used to come back without these: the next scene lost the continuity brief of
   // the one before it, and the pose / face checks and the picked take were forgotten.
   if (typeof record.stillBrief === 'string' && record.stillBrief.trim()) {
