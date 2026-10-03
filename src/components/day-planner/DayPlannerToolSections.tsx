@@ -3,6 +3,7 @@
 import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
 import { typedDayBeatPatch } from '@/lib/day-planner';
+import { continueDayAsStoryHref } from '@/lib/day-story-seed';
 import ClipEngineNote from '@/components/ClipEngineNote';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import type { KeyedShot } from '@/lib/film-cut-plan';
@@ -840,6 +841,16 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               >
                 {assemblingFilm ? 'Cutting…' : 'Cut film'}
               </Button>
+              {character && completedShotCount > 0 ? (
+                <ButtonLink
+                  href={continueDayAsStoryHref(character.id)}
+                  size="sm"
+                  variant="secondary"
+                  data-testid="day-continue-story"
+                >
+                  Continue as a story
+                </ButtonLink>
+              ) : null}
               {cutCoachEligible && hideStickyCutCoach ? (
                 <Button
                   size="sm"

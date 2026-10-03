@@ -11,6 +11,7 @@ import {
   getServerCharactersSnapshot,
   subscribeCharacters,
 } from '@/lib/character-os';
+import { storySeedFromDay } from '@/lib/day-story-seed';
 import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
 import { applyLookPackToRoleplaySettings, loadLookPack, saveLookPack } from '@/lib/look-pack';
 import {
@@ -23,7 +24,9 @@ import {
 } from '@/lib/roleplay-library';
 import { resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
 import {
+  DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_ROLEPLAY_TOOL_CACHE,
+  loadSettingsCache,
   loadToolSettings,
   type SharedToolSettings,
   type RoleplayToolCache,
@@ -147,6 +150,9 @@ export function useRoleplayLookPackDeepLink({
     const wardrobeId = realKitId(params.get('wardrobe')) || undefined;
     const lookPackId = params.get('lookPack')?.trim();
     const fromLook = params.get('from')?.trim() === 'look';
+    // Day → "Continue as a story": read the Day's outfit before binding the Cast changes it.
+    const fromDay = params.get('from')?.trim() === 'day';
+    const sharedBeforeBind = fromDay ? loadSettingsCache().shared : null;
     const characterId = resolvePlayLoopEntryCharacterId({
       queryCharacterId,
       activeCharacterId,
@@ -195,6 +201,25 @@ export function useRoleplayLookPackDeepLink({
       updateToolSettings(applied.tool);
       if (pack.wardrobeId?.trim() && !wardrobeId) {
         updateShared({ lockedWardrobeId: pack.wardrobeId.trim() });
+      }
+    }
+
+    // Day → Story: tonight's story starts where the Day ended — its last setting, its mood,
+    // and the outfit it was in. No beats are written; the player rolls the first one.
+    if (fromDay && characterId && sharedBeforeBind) {
+      const seed = storySeedFromDay({
+        day: loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE),
+        characterId,
+        activeCharacterId: sharedBeforeBind.activeCharacterId,
+        lockedWardrobeId: wardrobeId || sharedBeforeBind.lockedWardrobeId,
+      });
+      if (seed) {
+        updateToolSettings(seed);
+        if (seed.wardrobeId) {
+          updateShared({ lockedWardrobeId: seed.wardrobeId });
+        }
+      } else {
+        onMessage?.('No Day for this Cast yet — Story opens with its own setting.');
       }
     }
 

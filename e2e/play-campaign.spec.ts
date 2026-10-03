@@ -2880,6 +2880,79 @@ test('cast media=films deep-link opens Films tab and Film studio', async ({ page
   await expect(page.getByTestId('character-film-studio-empty')).toBeVisible();
 });
 
+test('cast film tab offers Cut episode: the Day, then the Story, as one film', async ({ page }) => {
+  // 1×1 PNG — the shots only need a URL; nothing is encoded here.
+  const tinyPng =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const now = Date.now();
+  const beat = (id: string, at: number, title: string, done: boolean) => ({
+    id,
+    at,
+    kind: 'plot',
+    title,
+    blurb: '',
+    stillStatus: done ? 'completed' : 'queued',
+    ...(done ? { imageUrl: tinyPng } : { promptId: `p-${id}` }),
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-episode' },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-episode',
+          name: 'Episode Cast',
+          version: 1,
+          updatedAt: now,
+          descriptor: 'episode look',
+        },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-episode',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
+          { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'sleeps' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: tinyPng, promptId: 'p-m' },
+          { slotId: 'evening', status: 'completed', imageUrl: tinyPng, promptId: 'p-e' },
+          { slotId: 'night', status: 'queued', promptId: 'p-n' },
+        ],
+      },
+      roleplay: {
+        // The Cast's own Story session — the episode reads its reel.
+        activeSessionId: 'cast-e2e-episode',
+        characterName: 'Episode Cast',
+        story: [
+          beat('s1', now - 3000, 'Late call', true),
+          beat('s2', now - 2000, 'Walk home', true),
+          beat('s3', now - 1000, 'Still rendering', false),
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/characters/e2e-episode?media=films');
+  await dismissBlockingOverlays(page);
+  const episode = page.getByTestId('character-episode');
+  await expect(episode).toBeVisible({ timeout: 30_000 });
+  // Two finished Day stills, then two finished Story beats; queued ones stay out.
+  const summary = episode.getByTestId('character-episode-summary');
+  await expect(summary).toContainText('4 shots · 2 from the Day, 2 from the Story');
+  const cut = episode.getByTestId('character-episode-cut');
+  await expect(cut).toHaveText(/Cut episode · 4 shots/);
+  await expect(cut).toBeEnabled();
+  // The same shot list as Day / Story: leave a shot out and the count follows.
+  await episode.getByTestId('character-episode-options').locator('summary').click();
+  await episode.getByTestId('character-episode-shot-include-day:evening').uncheck();
+  await expect(cut).toHaveText(/Cut episode · 3 shots/);
+  await expect(summary).toContainText('1 from the Day, 2 from the Story');
+});
+
 test('play campaign empty cast offers create character CTA', async ({ page }) => {
   await page.addInitScript(() => {
     try {

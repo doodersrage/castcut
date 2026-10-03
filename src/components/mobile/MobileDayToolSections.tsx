@@ -3,6 +3,7 @@
 import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
 import { typedDayBeatPatch } from '@/lib/day-planner';
+import { continueDayAsStoryHref } from '@/lib/day-story-seed';
 import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
@@ -777,6 +778,15 @@ export default function MobileDayToolSections(vm: ViewModel) {
               >
                 Cut film
               </PrimaryButton>
+            ) : null}
+            {character && completedShotCount > 0 ? (
+              <Link
+                href={toMobileStudioHref(continueDayAsStoryHref(character.id))}
+                className="ui-btn-secondary w-full justify-center text-center text-sm"
+                data-testid="day-continue-story"
+              >
+                Continue as a story
+              </Link>
             ) : null}
             {cutCoachEligible && hideStickyCutCoach ? (
               <Button

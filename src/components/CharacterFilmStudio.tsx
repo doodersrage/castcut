@@ -7,6 +7,7 @@ import { FieldError, FieldLabel } from '@/components/ui/Field';
 import { ToolActionRow, ToolSection } from '@/components/ui/ToolPageShell';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
+import CharacterEpisodeCut from '@/components/CharacterEpisodeCut';
 import FilmCutOptionsControls, {
   type FilmCutOptionsValue,
   DEFAULT_FILM_CUT_OPTIONS,
@@ -529,6 +530,11 @@ export default function CharacterFilmStudio({
           <FieldError>{error}</FieldError>
         </div>
       ) : null}
+      <CharacterEpisodeCut
+        characterId={characterId}
+        characterName={characterName}
+        lookId={lookId}
+      />
       <ImageLightbox
         state={lightbox}
         onClose={() => setLightbox(null)}
