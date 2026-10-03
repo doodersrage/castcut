@@ -133,7 +133,8 @@ import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/li
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
 import { bestOfTwoAsOneJob } from '@/lib/day-best-of-two';
 import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut-nodes';
-import { planDaySlotPose } from '@/lib/day-slot-pose';
+import { planDaySlotPose, plannedDaySlotPoseKey } from '@/lib/day-slot-pose';
+import { notePoseTakeQueued } from '@/lib/pose-outcome-stats';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
   type FilmCutOptionsValue,
@@ -1966,6 +1967,39 @@ export function useDayPlannerToolOrchestrationCore() {
             ? { qualityProfile: options.qualityProfile }
             : {}),
         });
+        // Pose × engine stats: the take, and whether it redoes the slot's last one.
+        if (typeof promptId === 'string') {
+          const lastTake = stillsRef.current.find(entry => entry.slotId === queueTarget.id);
+          let trackedPoseKey = poseExpectation?.poseKey;
+          if (!trackedPoseKey && lookHasPlate) {
+            try {
+              trackedPoseKey = plannedDaySlotPoseKey(
+                planDaySlotPose({
+                  slot: queueTarget,
+                  dayMood:
+                    isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+                      ? 'everyday'
+                      : toolSettings.dayMood,
+                  intimateMix: toolSettings.intimateMix,
+                  allowCompanions: toolSettings.allowCompanions === true,
+                  model: stillModel,
+                }),
+                queueTarget.id
+              );
+            } catch {
+              trackedPoseKey = undefined;
+            }
+          }
+          notePoseTakeQueued({
+            takeId: promptId,
+            poseKey: trackedPoseKey,
+            model: stillModel,
+            surface: 'day',
+            // A pair's second take leaves the first to the pair's pick.
+            replaces:
+              !options?.keepTake && lastTake?.status === 'completed' ? lastTake.promptId : null,
+          });
+        }
         const nextStills = upsertDaySlotStill(stillsRef.current, {
           slotId: queueTarget.id,
           promptId: typeof promptId === 'string' ? promptId : undefined,

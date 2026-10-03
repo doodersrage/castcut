@@ -14,6 +14,7 @@ import { applyCharacterRecordFresh } from '@/lib/character-os';
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { notePoseTakePair } from '@/lib/pose-outcome-stats';
 import {
   dayStillsCachePatch,
   dayWatchPlaylist,
@@ -168,6 +169,9 @@ export function useDayPlannerToolOrchestration() {
   );
   const keepPreviousTake = useCallback(
     (slotId: DaySlotId) => {
+      const shown = stillsRef.current.find(entry => entry.slotId === slotId);
+      // The player picked the old take over the new one (pose × engine stats).
+      if (shown?.previousTake) notePoseTakePair(shown.previousTake.promptId, shown.promptId);
       const next = restorePreviousDayTake(stillsRef.current, slotId);
       stillsRef.current = next;
       updateToolSettings(dayStillsCachePatch(next, activeCharacterId));
@@ -176,6 +180,9 @@ export function useDayPlannerToolOrchestration() {
   );
   const dropPreviousTake = useCallback(
     (slotId: DaySlotId) => {
+      const shown = stillsRef.current.find(entry => entry.slotId === slotId);
+      // The player kept the shown take and let the other go.
+      if (shown?.previousTake) notePoseTakePair(shown.promptId, shown.previousTake.promptId);
       const next = upsertDaySlotStill(stillsRef.current, {
         slotId,
         previousTake: undefined,

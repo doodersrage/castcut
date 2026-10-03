@@ -4,6 +4,7 @@ import { useMemo, useState, useSyncExternalStore } from 'react';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
 import { SelectInput, SwitchButton, TextInput } from '@/components/ui/Field';
+import { usePoseOutcomeStats } from '@/hooks/usePoseOutcomeStats';
 import { useWeakPoseLayouts } from '@/hooks/useWeakPoseLayouts';
 import { isDayAdultMood, type DaySlot } from '@/lib/day-planner';
 import { dayPoseAsPhotoPose } from '@/lib/day-pose-presets';
@@ -25,6 +26,7 @@ import {
 } from '@/lib/my-pose-packs';
 import { mergeAvoidedPoseLayouts } from '@/lib/pose-guide-prompt';
 import { poseLayoutLabel } from '@/lib/pose-layout-labels';
+import { learnedWeakPoseLayouts } from '@/lib/pose-outcome-stats';
 
 function useMyPosePacks(): PosePack[] {
   const json = useSyncExternalStore(
@@ -63,7 +65,13 @@ export default function DayPosePackPicker({
   onSlotsChange: (slots: DaySlot[]) => void;
 }) {
   const mine = useMyPosePacks();
-  const weak = useWeakPoseLayouts();
+  const metricsWeak = useWeakPoseLayouts();
+  const outcomes = usePoseOutcomeStats();
+  // Poses this engine keeps needing a second try on for this player are skipped too.
+  const weak = useMemo(
+    () => new Set([...metricsWeak, ...learnedWeakPoseLayouts(model, outcomes)]),
+    [metricsWeak, model, outcomes]
+  );
   const [fillBeats, setFillBeats] = useState(true);
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');

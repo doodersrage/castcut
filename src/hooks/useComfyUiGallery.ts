@@ -36,6 +36,22 @@ import { scheduleComfyGalleryPoll } from '@/lib/comfyui-gallery-poller';
 import { fetchEmbeddingRankIds, galleryEntryCorpus, sortByRankIds } from '@/lib/embedding-rank';
 import { galleryVisualCorpus } from '@/lib/gallery-similarity';
 import { loadSettingsCache } from '@/lib/settings-cache';
+import { notePoseTakeOutcomes, type PoseOutcome } from '@/lib/pose-outcome-stats';
+
+/**
+ * A Gallery judgment on Day / Story takes, for the pose × engine stats: a keeper (favorite or
+ * 4★+) or a delete. Takes the stats never saw (other tools) are ignored there.
+ */
+function notePoseOutcomeForEntries(ids: readonly string[], outcome: PoseOutcome): void {
+  if (ids.length === 0) return;
+  const wanted = new Set(ids);
+  notePoseTakeOutcomes(
+    loadComfyGallery()
+      .filter(entry => wanted.has(entry.id))
+      .map(entry => entry.promptId),
+    outcome
+  );
+}
 
 /** Guards the opportunistic server-gallery merge to run once per page session. */
 let serverGalleryMergeAttempted = false;
@@ -252,6 +268,7 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
 
   const removeEntry = useCallback(
     (id: string) => {
+      notePoseOutcomeForEntries([id], 'deleted');
       removeComfyGalleryEntry(id);
       refresh();
     },
@@ -260,7 +277,9 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
 
   const toggleFavorite = useCallback(
     (id: string) => {
+      const wasFavorite = loadComfyGallery().find(entry => entry.id === id)?.favorite === true;
       toggleComfyGalleryFavorite(id);
+      if (!wasFavorite) notePoseOutcomeForEntries([id], 'keeper');
       refresh();
     },
     [refresh]
@@ -268,6 +287,7 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
 
   const removeEntries = useCallback(
     (ids: string[]) => {
+      notePoseOutcomeForEntries(ids, 'deleted');
       removeComfyGalleryEntries(ids);
       refresh();
     },
@@ -277,6 +297,7 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
   const setFavorites = useCallback(
     (ids: string[], favorite: boolean) => {
       setComfyGalleryFavorites(ids, favorite);
+      if (favorite) notePoseOutcomeForEntries(ids, 'keeper');
       refresh();
     },
     [refresh]
@@ -285,6 +306,7 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
   const setReviewRatings = useCallback(
     (ids: string[], rating: ComfyGalleryEntry['reviewRating']) => {
       setComfyGalleryReviewRatings(ids, rating);
+      if ((rating ?? 0) >= 4) notePoseOutcomeForEntries(ids, 'keeper');
       refresh();
     },
     [refresh]
@@ -348,6 +370,7 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
   const setReviewRating = useCallback(
     (id: string, rating: ComfyGalleryEntry['reviewRating']) => {
       setGalleryReviewRating(id, rating);
+      if ((rating ?? 0) >= 4) notePoseOutcomeForEntries([id], 'keeper');
       refresh();
     },
     [refresh]

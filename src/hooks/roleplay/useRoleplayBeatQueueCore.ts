@@ -84,6 +84,7 @@ import { loadPoseGuideControlNetEnabled } from '@/lib/pose-guide-controlnet';
 import { fetchComfyObjectInfoModelsCached } from '@/lib/comfyui-object-info-cache';
 import { mergePickedPose } from '@/lib/day-slot-pose';
 import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play-metrics';
+import { notePoseTakeQueued } from '@/lib/pose-outcome-stats';
 import {
   ALWAYS_CUED_DUO_LAYOUTS,
   poseLayoutCueLine,
@@ -870,6 +871,13 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
               : {}),
           }
         );
+        notePoseTakeQueued({
+          takeId: typeof promptId === 'string' ? promptId : null,
+          poseKey: poseGuide?.expect.poseKey,
+          model: shared.model,
+          surface: 'story',
+          replaces: beat.imageUrl?.trim() ? beat.promptId : null,
+        });
         stillPatch = {
           ...stillPatch,
           ...roleplayStillQueueResultPatch({ ...beat, prompt }, promptId),
@@ -1069,6 +1077,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
               : {}),
           }
         );
+        // Pose × engine stats: a retry with the same pose redoes the last take.
+        notePoseTakeQueued({
+          takeId: promptId,
+          poseKey: poseGuide?.expect.poseKey,
+          model: shared.model,
+          surface: 'story',
+          replaces: parentPromptId,
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not queue a still.');
       }

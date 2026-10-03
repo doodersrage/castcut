@@ -53,6 +53,7 @@ import {
 import { loadSettingsCache } from './settings-cache';
 import { celebrateSystemTray } from './system-tray-celebrate';
 import { galleryCardCaption } from './gallery-card-caption';
+import { notePoseTakeOutcome } from './pose-outcome-stats';
 
 export type { ComfyGalleryEntry, GalleryPlayChecks } from './comfyui-gallery-entry';
 export type { ComfyGalleryJobStatus } from './comfyui-gallery-types';
@@ -977,6 +978,10 @@ export function recordGalleryPlayChecks(
     return { ...entry, playChecks: merged };
   });
   if (changed) saveComfyGallery(next);
+  // A judged pose check is a signal for the pose × engine stats (a bare score is not).
+  if (typeof checks.pose === 'number' && typeof checks.poseMiss === 'boolean') {
+    notePoseTakeOutcome(id, checks.poseMiss ? 'pose-miss' : 'pose-pass');
+  }
   return changed;
 }
 

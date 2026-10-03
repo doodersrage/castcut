@@ -10,8 +10,10 @@ import {
   SCENE_POSE_LAYOUT_IDS,
   type PoseGuideBase,
   type PoseGuideBuildOptions,
+  dayPoseGuideFallbackIndex,
   parseIntimateLayout,
   reconcileWrittenPose,
+  resolveSceneGuidePlan,
   sceneTextStatesPose,
   type ScenePoseSpec,
   type SocialLayout,
@@ -198,4 +200,15 @@ export function planDaySlotPose(input: {
       ...(input.slot.poseLook ? { look: input.slot.poseLook } : {}),
     },
   };
+}
+
+/**
+ * The pose key (`kneel:1`) a slot's plan draws — what the pose × engine stats count a take under
+ * when no map was attached (an engine that takes no map), and what the slot hint reads. Pure.
+ */
+export function plannedDaySlotPoseKey(plan: DaySlotPosePlan, slotId: DaySlot['id']): string {
+  return resolveSceneGuidePlan(plan.sceneText, dayPoseGuideFallbackIndex(slotId), {
+    ...plan.options,
+    openPose: true,
+  }).openPose.poseKey;
 }

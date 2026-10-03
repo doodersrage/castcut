@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import { notePoseTakePair } from '@/lib/pose-outcome-stats';
 import {
   bestOfTwoDecision,
   bestOfTwoFailedPatch,
@@ -201,6 +202,7 @@ export function useDayBestOfTwo(
           // A swap back puts the first take on the card; it was already seen.
           const kept = next.find(entry => entry.slotId === target.id);
           if (kept) checkedRef.current[target.id] = bestOfTwoTakeId(kept);
+          notePoseTakePair(kept?.promptId, kept?.previousTake?.promptId);
           const keptPct = Math.round(
             (decision.keep === 'first' ? decision.firstScore : decision.secondScore) * 100
           );

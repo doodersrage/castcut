@@ -60,6 +60,7 @@ export const DURABLE_BROWSER_SYNC_KEYS = new Set([
   'plugin-queue-hooks-v1',
   'comfy-onboarding-v2',
   'comfy-play-metrics-v1',
+  'comfy-pose-outcomes-v1',
   'play-campaign-v1',
   'play-series-v1',
   'comfy-workspace-mode-v1',

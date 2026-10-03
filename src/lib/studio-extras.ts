@@ -3,6 +3,12 @@
  * Synced to PROMPT_DATA_DIR as the `studio-extras` namespace.
  */
 import { loadPoseLibrary, mergePoseLibraries, replacePoseLibrary } from './pose-library';
+import {
+  applyServerPoseOutcomeStats,
+  loadPoseOutcomeStats,
+  poseOutcomeStatsForSync,
+  type PoseOutcomeStats,
+} from './pose-outcome-stats';
 import type { DayDressPlateEntry } from '@/lib/dress-plate-cache';
 import { loadDressPlates, replaceDressPlates } from '@/lib/dress-plate-store';
 import { loadSavedFootwear, replaceSavedFootwear, type SavedFootwear } from '@/lib/footwear-saved';
@@ -210,6 +216,8 @@ export type StudioExtrasPayload = {
   roleplayLibrary?: StoredRoleplaySession[];
   /** Poses learned from kept stills (pose-library) — browser-only before. */
   poseLibrary?: import('./pose-library').PoseLibraryEntry[];
+  /** What the player keeps per pose × engine (pose-outcome-stats) — counts per device. */
+  poseOutcomes?: PoseOutcomeStats;
   appTheme?: AppTheme;
   ambientIntensity?: AmbientIntensity;
   uiDensity?: UiDensity;
@@ -286,6 +294,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     characters: loadCharacters(),
     roleplayLibrary: readStoredRoleplayLibrary(),
     poseLibrary: loadPoseLibrary(),
+    poseOutcomes: poseOutcomeStatsForSync(loadPoseOutcomeStats()),
     appTheme: loadAppTheme(),
     ambientIntensity: loadAmbientIntensity(),
     uiDensity: loadUiDensity(),
@@ -356,6 +365,10 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.poseLibrary) {
       replacePoseLibrary(mergePoseLibraries(loadPoseLibrary(), payload.poseLibrary));
+    }
+    // Merged per device, never replaced: a copy that has not caught up can't roll counts back.
+    if (payload.poseOutcomes) {
+      applyServerPoseOutcomeStats(payload.poseOutcomes);
     }
     if (payload.userNsfwGeneratorPresets) {
       saveUserNsfwGeneratorPresets(payload.userNsfwGeneratorPresets);
