@@ -76,3 +76,28 @@ describe("comfyui-object-info", () => {
     ]);
   });
 });
+
+describe('combo inputs in every ComfyUI shape', () => {
+  it('reads the classic, current ("COMBO") and options-object forms', async () => {
+    const { readComboOptionList } = await import('./comfyui-combo');
+    assert.deepEqual(readComboOptionList([['a.pth', 'b.pth'], {}]), ['a.pth', 'b.pth']);
+    assert.deepEqual(
+      readComboOptionList(['COMBO', { multiselect: false, options: ['4x-UltraSharp.pth'] }]),
+      ['4x-UltraSharp.pth']
+    );
+    assert.deepEqual(readComboOptionList({ options: ['x'] }), ['x']);
+    assert.deepEqual(readComboOptionList(['INT', { default: 1 }]), []);
+  });
+
+  it('finds upscale models listed in the current form', async () => {
+    const { parseComfyObjectInfoModelLists } = await import('./comfyui-object-info');
+    const lists = parseComfyObjectInfoModelLists({
+      UpscaleModelLoader: {
+        input: {
+          required: { model_name: ['COMBO', { multiselect: false, options: ['4x-UltraSharp.pth'] }] },
+        },
+      },
+    } as never);
+    assert.deepEqual(lists.upscaleModels, ['4x-UltraSharp.pth']);
+  });
+});

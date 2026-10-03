@@ -1,4 +1,5 @@
 import type { QueueQualityProfile } from './queue-quality-profile';
+import { readComboOptionList } from './comfyui-combo';
 import { normalizeQueueQualityProfile } from './queue-quality-profile';
 
 type WorkflowNode = {
@@ -132,15 +133,14 @@ function readComboOptions(node: Record<string, unknown>, inputName: string): str
     return [];
   }
   const record = input as Record<string, unknown>;
-  const direct = record[inputName];
-  if (Array.isArray(direct) && Array.isArray(direct[0])) {
-    return direct[0].filter((item): item is string => typeof item === 'string');
+  const direct = readComboOptionList(record[inputName]);
+  if (direct.length > 0) {
+    return direct;
   }
   for (const group of ['required', 'optional'] as const) {
-    const section = readInputSection(node, group);
-    const entry = section?.[inputName];
-    if (Array.isArray(entry) && Array.isArray(entry[0])) {
-      return entry[0].filter((item): item is string => typeof item === 'string');
+    const entry = readComboOptionList(readInputSection(node, group)?.[inputName]);
+    if (entry.length > 0) {
+      return entry;
     }
   }
   return [];

@@ -1,4 +1,5 @@
 import { getComfyUiBaseUrl } from './comfyui-client';
+import { readComboOptionList } from './comfyui-combo';
 import type { ComfyUiRuntimeConfig } from './comfyui-config';
 import { fetchComfyModelFilenames } from './comfyui-models';
 import { readStringNameList } from './comfyui-features';
@@ -19,13 +20,6 @@ export type ComfyUiModelLists = {
   /** Textual-inversion embedding stems from `GET /embeddings`. */
   embeddings?: string[];
 };
-
-function readStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
-}
 
 function readNodeInputOptions(
   objectInfo: Record<string, unknown>,
@@ -50,20 +44,9 @@ function readNodeInputOptions(
   }
 
   for (const candidate of candidates) {
-    // Classic combo: [["a.safetensors", "b.safetensors"], { … }]
-    if (Array.isArray(candidate) && Array.isArray(candidate[0])) {
-      const list = readStringList(candidate[0]);
-      if (list.length > 0) {
-        return list;
-      }
-    }
-    // Newer combo object: { options: [...], default: "…" }
-    if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
-      const options = (candidate as { options?: unknown }).options;
-      const list = readStringList(options);
-      if (list.length > 0) {
-        return list;
-      }
+    const list = readComboOptionList(candidate);
+    if (list.length > 0) {
+      return list;
     }
   }
 
