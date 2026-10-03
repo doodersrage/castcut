@@ -45,6 +45,8 @@ On Linux, prefer the **`.deb`** (system WebKit, snappier UI). The AppImage is po
 | **Film** — pick or create a Cast lead; Look → Outfit → Day → Cut. | **Day** — one character from morning to night, stills in a reel, then **Cut film**. |
 | ![Story: a reel of scenes picked one at a time](docs/screenshots/story.png) | ![Pose editor: a figure fitted over the Cast's picture](docs/screenshots/pose-editor.png) |
 | **Story** — pick what happens next; each scene becomes a still (and a clip). | **Pose editor** — drag joints, quick positions, the Cast's picture behind the figure. |
+| ![Cast page: the Bible tab's Appearance traits for one character](docs/screenshots/cast.png) | |
+| **Cast** — the Bible tab's Appearance: sex, ethnicity, age, height, body and hair, used in every picture. | |
 
 <p align="center"><img src="docs/screenshots/phone-day.png" alt="Day on a phone: the same stills and Cut film" width="260"></p>
 <p align="center"><b>Mobile Studio</b> (<code>/m</code>) — the same film loop on a phone.</p>
