@@ -1560,6 +1560,39 @@ test('day slot editor previews the pose and lets you change it', async ({ page }
   await page.keyboard.press('Shift+ArrowUp');
   await page.getByTestId('day-slot-pose-preview-editor-save').click();
   await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Your edit');
+  // Two people: add a partner, see both figures, pick each, swap sides.
+  await page.getByTestId('day-slot-pose-preview-edit').click();
+  await expect(page.getByTestId('day-slot-pose-preview-figure-1')).toHaveCount(0);
+  await page.getByTestId('day-slot-pose-preview-add-person').click();
+  await expect(page.getByTestId('day-slot-pose-preview-figure-0')).toBeVisible();
+  await expect(page.getByTestId('day-slot-pose-preview-figure-1')).toBeVisible();
+  await expect(page.getByTestId('day-slot-pose-preview-joint-1-4')).toBeVisible();
+  await expect(page.getByTestId('day-slot-pose-preview-figure-tab-1')).toHaveAttribute(
+    'aria-checked',
+    'true'
+  );
+  await page.getByTestId('day-slot-pose-preview-figure-tab-0').click();
+  await expect(page.getByTestId('day-slot-pose-preview-figure-tab-0')).toHaveAttribute(
+    'aria-checked',
+    'true'
+  );
+  const leadNeckX = async () =>
+    Number(await page.getByTestId('day-slot-pose-preview-joint-0-1').getAttribute('cx'));
+  const partnerNeckX = async () =>
+    Number(await page.getByTestId('day-slot-pose-preview-joint-1-1').getAttribute('cx'));
+  expect(await leadNeckX()).toBeLessThan(await partnerNeckX());
+  await page.getByTestId('day-slot-pose-preview-swap-sides').click();
+  expect(await leadNeckX()).toBeGreaterThan(await partnerNeckX());
+  // This slot has no partner: the editor says only the lead is drawn.
+  await expect(page.getByTestId('day-slot-pose-preview-figures')).toContainText(
+    'only the lead is drawn'
+  );
+  await page.getByTestId('day-slot-pose-preview-remove-person').click();
+  await expect(page.getByTestId('day-slot-pose-preview-figure-1')).toHaveCount(0);
+  await page.getByTestId('day-slot-pose-preview-add-mirrored').click();
+  await expect(page.getByTestId('day-slot-pose-preview-figure-1')).toBeVisible();
+  await page.getByTestId('day-slot-pose-preview-editor-save').click();
+  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Your edit');
 });
 
 test('dashboard shows pose match by layout and the words-first ladder', async ({ page }) => {

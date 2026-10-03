@@ -74,7 +74,7 @@ import {
   loadWardrobeGarmentThumbManifest,
   resolveWardrobeGarmentThumbQueueUrl,
 } from '@/lib/wardrobe-garment-thumbs';
-import { buildStoryPoseGuide } from '@/lib/day-pose-guide';
+import { buildStoryPoseGuide, photoPoseForStill } from '@/lib/day-pose-guide';
 import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
 import {
   KLEIN_FACE_REFERENCE_LINE,
@@ -631,8 +631,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           ...(modelPlainPostureBase(shared.model)
             ? { plainPostureBase: modelPlainPostureBase(shared.model) }
             : {}),
+          // A two-figure custom pose is a duo; People → Solo draws its lead only.
           ...(beat.posePhoto
-            ? { photoPose: beat.posePhoto }
+            ? {
+                photoPose: photoPoseForStill(
+                  beat.posePhoto,
+                  adult && toolSettings.intimateMix === 'solo' ? 1 : undefined
+                ),
+              }
             : composedPose
               ? { photoPose: composedPose }
               : {}),

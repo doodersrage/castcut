@@ -22,12 +22,15 @@ export default function MyPosesStrip({
   onPick,
   disabled = false,
   maxPeople,
+  leadOnly = false,
   testIdPrefix = 'my-poses',
 }: {
   onPick: (pose: PhotoPose, name: string) => void;
   disabled?: boolean;
   /** Hide poses with more figures than the tool draws (Outfit: 1). */
   maxPeople?: number;
+  /** The tool draws one person: a two-person pose gives its lead (Outfit try-ons). */
+  leadOnly?: boolean;
   testIdPrefix?: string;
 }) {
   const poses = useMyPoses().filter(entry => !maxPeople || entry.pose.people.length <= maxPeople);
@@ -36,41 +39,57 @@ export default function MyPosesStrip({
     <div className="space-y-1" data-testid={testIdPrefix}>
       <p className="type-caption text-[var(--text-muted)]">My poses</p>
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {poses.map(entry => (
-          <div
-            key={entry.id}
-            className="relative shrink-0 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40"
-          >
-            <button
-              type="button"
-              disabled={disabled}
-              className="block space-y-0.5 p-1.5 text-left"
-              title={`Use “${entry.name}”`}
-              data-testid={`${testIdPrefix}-pick`}
-              onClick={() => onPick(entry.pose, entry.name)}
+        {poses.map(entry => {
+          const duo = entry.pose.people.length > 1;
+          return (
+            <div
+              key={entry.id}
+              className="relative shrink-0 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40"
             >
-              <PoseBodiesSvg
-                layers={[{ bodies: entry.pose.people }]}
-                aspect={entry.pose.aspect}
-                height={72}
-                label={entry.name}
-                testId={`${testIdPrefix}-figure`}
-              />
-              <span className="block max-w-[4.5rem] truncate type-caption text-[var(--text-secondary)]">
-                {entry.name}
-              </span>
-            </button>
-            <button
-              type="button"
-              aria-label={`Remove ${entry.name} from My poses`}
-              disabled={disabled}
-              className="absolute right-0.5 top-0.5 rounded-full bg-[var(--bg-elevated)]/90 px-1.5 type-caption text-[var(--text-muted)]"
-              onClick={() => removeMyPose(entry.id)}
-            >
-              ×
-            </button>
-          </div>
-        ))}
+              <button
+                type="button"
+                disabled={disabled}
+                className="block space-y-0.5 p-1.5 text-left"
+                title={
+                  duo && leadOnly
+                    ? `Use the lead of “${entry.name}” (two people)`
+                    : `Use “${entry.name}”${duo ? ' (two people)' : ''}`
+                }
+                data-testid={`${testIdPrefix}-pick`}
+                data-people={entry.pose.people.length}
+                onClick={() => onPick(entry.pose, entry.name)}
+              >
+                <PoseBodiesSvg
+                  layers={[{ bodies: entry.pose.people }]}
+                  aspect={entry.pose.aspect}
+                  height={72}
+                  label={duo ? `${entry.name}, two people` : entry.name}
+                  testId={`${testIdPrefix}-figure`}
+                />
+                {duo ? (
+                  <span
+                    aria-hidden
+                    className="absolute left-0.5 top-0.5 rounded-full bg-[var(--bg-elevated)]/90 px-1.5 type-caption text-[var(--text-muted)]"
+                  >
+                    2
+                  </span>
+                ) : null}
+                <span className="block max-w-[4.5rem] truncate type-caption text-[var(--text-secondary)]">
+                  {entry.name}
+                </span>
+              </button>
+              <button
+                type="button"
+                aria-label={`Remove ${entry.name} from My poses`}
+                disabled={disabled}
+                className="absolute right-0.5 top-0.5 rounded-full bg-[var(--bg-elevated)]/90 px-1.5 type-caption text-[var(--text-muted)]"
+                onClick={() => removeMyPose(entry.id)}
+              >
+                ×
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

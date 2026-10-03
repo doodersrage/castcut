@@ -100,6 +100,27 @@ export default function PosePreview({
   );
 
   const { intent, routedAround, openPose } = plan;
+  // A still the plan draws with one figure (a Day slot with no partner): a partner posed here is
+  // kept with the pose, but only the lead is drawn.
+  const soloStill = options.forcePeople === 1;
+  // What the editor opens on: the whole custom pose (a solo still draws only its lead, but the
+  // partner is not lost by editing), and the beat's duo layout to seed a partner from.
+  const editorPlan = useMemo(() => {
+    if (!editing) return { bodies: openPose.keypoints, duoSeed: undefined };
+    const plannedWith = (extra: PoseGuideBuildOptions) =>
+      resolveSceneGuidePlan(sceneText, fallbackIndex, {
+        ...options,
+        ...extra,
+        library,
+        openPose: true,
+      }).openPose.keypoints;
+    const bodies =
+      picks.posePhoto && picks.posePhoto.people.length > openPose.keypoints.length
+        ? plannedWith({ forcePeople: undefined })
+        : openPose.keypoints;
+    const duo = bodies.length < 2 ? plannedWith({ photoPose: undefined, forcePeople: 2 }) : [];
+    return { bodies, duoSeed: duo.length === 2 ? duo : undefined };
+  }, [editing, fallbackIndex, library, openPose.keypoints, options, picks.posePhoto, sceneText]);
   const drawnId = intent.intimate ?? intent.social ?? intent.base;
   const fromPhoto = Boolean(picks.posePhoto);
   const edited = picks.posePhoto?.source === 'edited';
@@ -140,9 +161,11 @@ export default function PosePreview({
   if (editing) {
     return (
       <PoseJointEditor
-        bodies={openPose.keypoints}
+        bodies={editorPlan.bodies}
         aspect={openPose.canvas.width / openPose.canvas.height}
         testIdPrefix={testIdPrefix}
+        duoSeed={editorPlan.duoSeed}
+        soloStill={soloStill}
         backdropUrl={backdropUrl}
         backdropLabel={backdropLabel}
         onCancel={() => setEditing(false)}

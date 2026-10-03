@@ -5963,6 +5963,31 @@ export function photoPoseKey(people: number): string {
   return `photo:${Math.max(1, Math.min(3, Math.round(people)))}`;
 }
 
+/**
+ * The custom pose (photo / joint editor / My poses) a still draws. A two-figure pose is a duo:
+ * lead first, then the partner, each where it was posed, so the map and the prompt's "lead on the
+ * left / right" follow it. On a solo still (`people` 1) only the lead figure is drawn.
+ */
+export function photoPoseForStill(
+  photo: PhotoPose | null | undefined,
+  people: number | null | undefined
+): PhotoPose | null {
+  if (!photo?.people.length) return null;
+  if (people === 1 && photo.people.length > 1) {
+    return { ...photo, people: photo.people.slice(0, 1) };
+  }
+  return photo;
+}
+
+/**
+ * The guide's file tag for a custom pose: the headcount suffix (`-x2`) says how many figures are
+ * drawn, not how many the beat asked for — the Qwen-Image 2.1 graph keeps or drops a map by it.
+ */
+export function photoPoseGuideLabel(label: string, people: number): string {
+  const base = label.replace(/-x\d+$/, '');
+  return `${people > 1 ? `${base}-x${people}` : base}-photo`;
+}
+
 export function normalizePhotoPose(raw: unknown): PhotoPose | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   const record = raw as { aspect?: unknown; people?: unknown; source?: unknown };
@@ -6138,7 +6163,9 @@ export function resolveSceneGuidePlan(
 } {
   let { intent, figures } = synthesizeSceneStickFigures(sceneText, fallbackIndex, options);
   const photo =
-    options?.openPose !== false && options?.photoPose?.people.length ? options.photoPose : null;
+    options?.openPose !== false
+      ? photoPoseForStill(options?.photoPose, options?.forcePeople)
+      : null;
   // A layout Edit keeps ignoring: use a harvested real pose if there is one, else the plain
   // posture (a sit / stand / lie it does follow) rather than the same failing drawing.
   let routedAround: SocialLayout | undefined;
@@ -6202,7 +6229,7 @@ async function buildSceneGuide(
       ctx => {
         drawOpenPosePeople(ctx, plan.people, plan.canvas.width, plan.canvas.height);
         return options?.photoPose?.people.length
-          ? `${intent.label}-photo`
+          ? photoPoseGuideLabel(intent.label, plan.people.length)
           : plan.libraryEntryId
             ? `${intent.label}-lib`
             : intent.label;

@@ -55,14 +55,21 @@ import {
   type LimbSide,
 } from '@/lib/pose-limb-presets';
 import {
-  addPerson,
+  addPartner,
   mirrorBodies,
   describePoseBody,
   poseStarterBody,
   POSE_STARTERS,
   removePerson,
+  replaceLead,
+  swapSides,
   type PoseStarterId,
 } from '@/lib/pose-starters';
+
+/** The figures' names: the Cast is the lead (Image 1), the second figure their partner. */
+function figureName(person: number): string {
+  return person === 0 ? 'Lead' : 'Partner';
+}
 
 /** Draggable joints: nose, neck, arms, legs (eyes / ears ride along with the nose). */
 const EDITABLE = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const;
@@ -307,6 +314,8 @@ export default function PoseJointEditor({
   words: initialWords,
   backdropUrl,
   backdropLabel,
+  duoSeed,
+  soloStill = false,
 }: {
   bodies: NormalizedBody[];
   aspect: number;
@@ -328,6 +337,10 @@ export default function PoseJointEditor({
   backdropUrl?: string | null;
   /** What that picture is ("Try-on plate"), for the toggle's tooltip and screen readers. */
   backdropLabel?: string;
+  /** The beat's two-person layout (lead first, this canvas), offered to start a duo from. */
+  duoSeed?: NormalizedBody[];
+  /** The still draws one person: a partner is kept with the pose but not drawn. */
+  soloStill?: boolean;
 }) {
   const titleId = useId();
   const [bodies, setBodies] = useState<NormalizedBody[]>(() =>
@@ -529,18 +542,27 @@ export default function PoseJointEditor({
     );
     checkpoint();
     setDepths([]);
-    update(previous => (previous.length > 1 ? addPerson([lead]) : [lead]));
+    update(previous => replaceLead(previous, lead));
     setPreset(
       picked.words ? { words: picked.words, keys: [JSON.stringify(latest.current[0])] } : null
     );
     setSavedNote(null);
   };
-  // Start from a base figure — keeps the second person when there is one.
+  // Start from a base figure — keeps the partner when there is one.
   const startFrom = (id: PoseStarterId) => {
     const lead = poseStarterBody(id);
     checkpoint();
     setDepths([]);
-    update(previous => (previous.length > 1 ? addPerson([lead]) : [lead]));
+    update(previous => replaceLead(previous, lead));
+    setSavedNote(null);
+  };
+  // The partner: added beside the lead, as a mirrored copy of it, or both from the beat's duo
+  // layout. The figure being posed switches to the partner.
+  const changeFigures = (change: (previous: NormalizedBody[]) => NormalizedBody[], pose = 0) => {
+    checkpoint();
+    setDepths([]);
+    setRotatePerson(pose);
+    update(change);
     setSavedNote(null);
   };
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -802,8 +824,7 @@ export default function PoseJointEditor({
         : hover.kind === 'joint' || hover.kind === 'torso'
           ? hover.person
           : null;
-    const who =
-      bodies.length > 1 && person != null ? `${person === 0 ? 'Cast' : 'Person 2'} · ` : '';
+    const who = bodies.length > 1 && person != null ? `${figureName(person)} · ` : '';
     if (dragging === 'joint' && activeJoint) return `${who}${jointHint(activeJoint.joint)}`;
     if (dragging === 'body') return `${who}Moving the whole figure`;
     if (dragging === 'orbit') return `${who}${orbitAxis === 'tilt' ? 'Tilting' : 'Turning'}`;
@@ -949,8 +970,34 @@ export default function PoseJointEditor({
                   hips &&
                   Math.abs((neckPoint.x - hips.x) * safeAspect) > Math.abs(neckPoint.y - hips.y);
                 const showSideLetters = shoulderGap > 0.08 && !lyingDown;
+                const nameAt = (() => {
+                  if (bodies.length < 2) return null;
+                  const top = body.reduce<{ x: number; y: number } | null>(
+                    (best, p) => (p && (!best || p.y < best.y) ? p : best),
+                    null
+                  );
+                  return top ? { x: top.x * safeAspect, y: Math.max(0.03, top.y - 0.05) } : null;
+                })();
                 return (
-                  <g key={person} opacity={focused ? 1 : 0.5}>
+                  <g
+                    key={person}
+                    opacity={focused ? 1 : 0.5}
+                    data-testid={`${testIdPrefix}-figure-${person}`}
+                  >
+                    {nameAt ? (
+                      <text
+                        x={nameAt.x}
+                        y={nameAt.y}
+                        fontSize={0.03}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fill={color}
+                        style={{ pointerEvents: 'none', userSelect: 'none', fontWeight: 700 }}
+                        aria-hidden
+                      >
+                        {figureName(person)}
+                      </text>
+                    ) : null}
                     <g opacity={0.9} style={{ pointerEvents: 'none' }}>
                       <PoseFigureShape
                         body={body}
@@ -1048,7 +1095,7 @@ export default function PoseJointEditor({
                             strokeWidth={0.004}
                             tabIndex={0}
                             role="slider"
-                            aria-label={`${person === 0 ? 'Cast' : `Person ${person + 1}`} ${JOINT_NAMES[joint]}`}
+                            aria-label={`${figureName(person)} ${JOINT_NAMES[joint]}`}
                             aria-valuetext={`${Math.round((body[joint]?.x ?? 0) * 100)}% across, ${Math.round((body[joint]?.y ?? 0) * 100)}% down`}
                             className="cursor-grab focus:outline-none focus-visible:stroke-[var(--accent)]"
                             data-testid={`${testIdPrefix}-joint-${person}-${joint}`}
@@ -1499,58 +1546,113 @@ export default function PoseJointEditor({
                 </label>
               </div>
               {allowTwo ? (
-                <div className="flex flex-wrap items-center gap-2">
+                <div
+                  className="space-y-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+                  data-testid={`${testIdPrefix}-figures`}
+                >
                   {bodies.length > 1 ? (
-                    <div
-                      className="ui-segmented"
-                      role="radiogroup"
-                      aria-label="Person you are posing"
-                    >
-                      {bodies.map((_, person) => (
-                        <button
-                          key={person}
-                          type="button"
-                          role="radio"
-                          className="ui-segmented-item"
-                          aria-checked={handlePerson === person}
-                          data-active={handlePerson === person ? 'true' : 'false'}
-                          onClick={() => setRotatePerson(person)}
-                        >
-                          {person === 0 ? 'Cast' : 'Person 2'}
-                        </button>
-                      ))}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div
+                        className="ui-segmented"
+                        role="radiogroup"
+                        aria-label="Person you are posing"
+                      >
+                        {bodies.map((_, person) => (
+                          <button
+                            key={person}
+                            type="button"
+                            role="radio"
+                            className="ui-segmented-item"
+                            aria-checked={handlePerson === person}
+                            data-active={handlePerson === person ? 'true' : 'false'}
+                            data-testid={`${testIdPrefix}-figure-tab-${person}`}
+                            onClick={() => setRotatePerson(person)}
+                          >
+                            <span
+                              aria-hidden
+                              className="mr-1 inline-block h-2 w-2 rounded-full"
+                              style={{
+                                background: POSE_FIGURE_COLORS[person % POSE_FIGURE_COLORS.length],
+                              }}
+                            />
+                            {figureName(person)}
+                          </button>
+                        ))}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="whitespace-nowrap"
+                        title="Swap where the lead and the partner stand — both keep their pose"
+                        data-testid={`${testIdPrefix}-swap-sides`}
+                        onClick={() => {
+                          // Only where they stand changes: each keeps its turn.
+                          checkpoint();
+                          update(previous => swapSides(previous));
+                          setSavedNote(null);
+                        }}
+                      >
+                        Swap sides
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="whitespace-nowrap"
+                        data-testid={`${testIdPrefix}-remove-person`}
+                        onClick={() => changeFigures(previous => removePerson(previous))}
+                      >
+                        Remove partner
+                      </Button>
                     </div>
-                  ) : null}
-                  {bodies.length < 2 ? (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="whitespace-nowrap"
-                      data-testid={`${testIdPrefix}-add-person`}
-                      onClick={() => {
-                        checkpoint();
-                        setDepths([]);
-                        update(previous => addPerson(previous));
-                      }}
-                    >
-                      Add a person
-                    </Button>
                   ) : (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="whitespace-nowrap"
-                      data-testid={`${testIdPrefix}-remove-person`}
-                      onClick={() => {
-                        checkpoint();
-                        setDepths([]);
-                        setRotatePerson(0);
-                        update(previous => removePerson(previous));
-                      }}
-                    >
-                      Remove second person
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="type-caption text-[var(--text-muted)]">Partner</span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="whitespace-nowrap"
+                        title="A standing partner beside the lead"
+                        data-testid={`${testIdPrefix}-add-person`}
+                        onClick={() => changeFigures(previous => addPartner(previous), 1)}
+                      >
+                        Add partner
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="whitespace-nowrap"
+                        title="A mirrored copy of the lead, facing them"
+                        data-testid={`${testIdPrefix}-add-mirrored`}
+                        onClick={() => changeFigures(previous => addPartner(previous, 'mirror'), 1)}
+                      >
+                        Mirrored partner
+                      </Button>
+                      {duoSeed && duoSeed.length === 2 ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="whitespace-nowrap"
+                          title="Both figures as this beat's two-person layout draws them"
+                          data-testid={`${testIdPrefix}-add-duo-layout`}
+                          onClick={() =>
+                            changeFigures(
+                              () => duoSeed.map(body => body.map(p => (p ? { ...p } : null))),
+                              1
+                            )
+                          }
+                        >
+                          Use the duo layout
+                        </Button>
+                      ) : null}
+                    </div>
                   )}
+                  <p className="type-caption text-[var(--text-muted)]">
+                    {bodies.length > 1
+                      ? soloStill
+                        ? 'This still has no partner: only the lead is drawn. The partner stays with the pose for duo stills and My poses.'
+                        : 'The prompt puts the lead where the lead figure stands.'
+                      : 'Add a partner for a two-person still. A solo still uses the lead only.'}
+                  </p>
                 </div>
               ) : null}
               <div className="flex flex-wrap items-center gap-1.5">
@@ -1601,9 +1703,7 @@ export default function PoseJointEditor({
                     className="flex flex-wrap items-center gap-1.5"
                     data-testid={`${testIdPrefix}-editor-rotate`}
                   >
-                    {bodies.length > 1 ? (
-                      <span>{handlePerson === 0 ? 'Cast' : 'Person 2'}:</span>
-                    ) : null}
+                    {bodies.length > 1 ? <span>{figureName(handlePerson)}:</span> : null}
                     {(
                       [
                         ['Turn left', { turn: -STEP }, 'turn-left'],

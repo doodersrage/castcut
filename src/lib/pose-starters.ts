@@ -173,6 +173,62 @@ export function removePerson(bodies: NormalizedBody[]): NormalizedBody[] {
   return bodies.length > 1 ? [shiftBody(bodies[0]!, 0)] : bodies;
 }
 
+/** Where a figure stands across the picture: the middle of its shoulders and hips (0–1). */
+export function bodyCentreX(body: NormalizedBody): number | null {
+  const points = [body[1], body[2], body[5], body[8], body[11]].filter(
+    (p): p is { x: number; y: number } => p != null
+  );
+  const any = points.length ? points : body.filter((p): p is { x: number; y: number } => !!p);
+  if (any.length === 0) return null;
+  return any.reduce((sum, p) => sum + p.x, 0) / any.length;
+}
+
+/** Move a figure sideways so its centre sits at `x` (kept inside the frame). */
+function centreBodyAt(body: NormalizedBody, x: number): NormalizedBody {
+  const centre = bodyCentreX(body);
+  return centre == null ? body : shiftBody(body, x - centre);
+}
+
+/**
+ * Add the partner (the second figure) beside the lead, keeping the lead's pose: `beside` is a
+ * standing figure, `mirror` a mirrored copy of the lead so the two face each other. The lead
+ * goes left and the partner right; Swap sides changes that. Max two figures.
+ */
+export function addPartner(
+  bodies: NormalizedBody[],
+  kind: 'beside' | 'mirror' = 'beside'
+): NormalizedBody[] {
+  if (bodies.length >= 2) return bodies;
+  const lead = bodies[0] ?? poseStarterBody('stand');
+  if (kind === 'beside') return addPerson([lead]);
+  const [mirrored] = mirrorBodies([lead]);
+  return [centreBodyAt(lead, 0.32), centreBodyAt(mirrored!, 0.68)];
+}
+
+/**
+ * Swap where the lead and the partner stand, keeping both poses (Mirror flips the whole
+ * picture instead). The lead stays first, so the prompt's "lead on the left / right" follows.
+ */
+export function swapSides(bodies: NormalizedBody[]): NormalizedBody[] {
+  if (bodies.length !== 2) return bodies;
+  const [lead, partner] = bodies as [NormalizedBody, NormalizedBody];
+  const leadX = bodyCentreX(lead);
+  const partnerX = bodyCentreX(partner);
+  if (leadX == null || partnerX == null) return bodies;
+  return [centreBodyAt(lead, partnerX), centreBodyAt(partner, leadX)];
+}
+
+/**
+ * A new lead figure (Start from / a Day pose) with the partner kept where it stands: the lead
+ * goes on the other side of the partner.
+ */
+export function replaceLead(bodies: NormalizedBody[], lead: NormalizedBody): NormalizedBody[] {
+  const partner = bodies[1];
+  if (!partner) return [lead];
+  const partnerX = bodyCentreX(partner) ?? 0.68;
+  return [centreBodyAt(lead, partnerX >= 0.5 ? 0.32 : 0.68), partner];
+}
+
 type Pt = { x: number; y: number };
 
 /**

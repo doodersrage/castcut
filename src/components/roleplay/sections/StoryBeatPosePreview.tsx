@@ -5,7 +5,11 @@ import { composedPoseForScene } from '@/lib/pose-compose';
 import { useMemo } from 'react';
 import PosePreview, { type PosePicks } from '@/components/pose/PosePreview';
 import { useWeakPoseLayouts } from '@/hooks/useWeakPoseLayouts';
-import { sceneTextFromStoryPoseInput, type PoseGuideBuildOptions } from '@/lib/day-pose-guide';
+import {
+  photoPoseForStill,
+  sceneTextFromStoryPoseInput,
+  type PoseGuideBuildOptions,
+} from '@/lib/day-pose-guide';
 import { mergePickedPose } from '@/lib/day-slot-pose';
 import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
 import {
@@ -83,7 +87,12 @@ export default function StoryBeatPosePreview({
     return {
       ...(pose ? { pose } : {}),
       variant: beat.poseVariant ?? 0,
-      ...(beat.posePhoto ? { photoPose: beat.posePhoto } : composed ? { photoPose: composed } : {}),
+      // A two-figure custom pose is a duo; People → Solo draws its lead only.
+      ...(beat.posePhoto
+        ? { photoPose: photoPoseForStill(beat.posePhoto, soloStory ? 1 : undefined) }
+        : composed
+          ? { photoPose: composed }
+          : {}),
       ...(beat.poseCamera ? { camera: beat.poseCamera } : {}),
       ...(beat.poseLead ? { leadSide: beat.poseLead } : {}),
       ...(beat.poseLook ? { look: beat.poseLook } : {}),

@@ -202,7 +202,7 @@ export default function OutfitPoseSection({
       {!editing ? (
         <MyPosesStrip
           disabled={busy}
-          maxPeople={1}
+          leadOnly
           testIdPrefix="outfit-my-poses"
           onPick={picked => onChange({ ...picked, people: picked.people.slice(0, 1) })}
         />
