@@ -1,4 +1,5 @@
 import { isSettingsSyncedWithServer, markSettingsPushPending } from './settings-push-flush';
+import { swapDayForCast } from './day-cast-park';
 import { DEFAULT_QWEN_MODEL, type ComfyImageModel } from './comfy-models/client';
 import {
   DEFAULT_MODEL_SAMPLER_PRESET_TIER,
@@ -1129,6 +1130,8 @@ export type FittingToolCache = {
 
 /** Day Planner — time-of-day slots with wardrobe + scene beats for one character. */
 export type DayToolCache = {
+  /** Other Casts' Days, parked when the Cast changed (day-cast-park). */
+  parkedDays?: Record<string, import('./day-cast-park').ParkedDay>;
   slots?: import('./day-planner').DaySlot[];
   /** Stills on the Day board (2, 3, 4, 6 or 8); default four dayparts. */
   dayLength?: import('./day-planner').DayLength;
@@ -2029,7 +2032,11 @@ export function saveSettingsCache(cache: SettingsCache, options?: SaveSettingsOp
  * Clear Cast-bound Play tool plates when activeCharacterId changes.
  * Outfit/Day/Story otherwise keep the previous look plate or isolate cutout.
  */
-export function scrubPlayToolCachesOnCastChange(tools: ToolSettingsCache): ToolSettingsCache {
+export function scrubPlayToolCachesOnCastChange(
+  tools: ToolSettingsCache,
+  previousCast = '',
+  nextCast = ''
+): ToolSettingsCache {
   let next: ToolSettingsCache = { ...tools };
 
   if (next.day) {
@@ -2037,8 +2044,8 @@ export function scrubPlayToolCachesOnCastChange(tools: ToolSettingsCache): ToolS
       ...next,
       day: {
         ...next.day,
-        stills: [],
-        stillsCharacterId: undefined,
+        // The Day is parked under the Cast it belongs to and the next Cast's comes back.
+        ...swapDayForCast(next.day, previousCast, nextCast),
         referenceIsolated: false,
         plateIsolateSourceKey: undefined,
         plateCharacterId: undefined,
@@ -2116,7 +2123,7 @@ export function saveSharedSettings(
   const nextCharacterId = merged.activeCharacterId?.trim() || '';
   let tools = cache.tools;
   if (prevCharacterId !== nextCharacterId) {
-    tools = scrubPlayToolCachesOnCastChange(tools);
+    tools = scrubPlayToolCachesOnCastChange(tools, prevCharacterId, nextCharacterId);
   }
 
   saveSettingsCache({ ...cache, shared: merged, tools }, options);

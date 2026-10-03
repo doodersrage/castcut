@@ -1,5 +1,6 @@
 'use client';
 
+import { swapDayForCast } from '@/lib/day-cast-park';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { clipEngineForShot } from '@/lib/ltx25-renderer';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
@@ -192,9 +193,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     const owner = toolSettings.stillsCharacterId?.trim() || '';
     const prevId = prevCharacterIdRef.current;
     const clearStills = () => {
-      stillsRef.current = [];
+      // Park this Day under the Cast it belongs to; the active Cast's parked Day comes back.
+      const swapped = swapDayForCast(toolSettings, owner, nextId);
+      stillsRef.current = swapped.stills ?? [];
       updateToolSettings({
-        ...dayStillsCachePatch([], undefined),
+        ...swapped,
         referenceIsolated: false,
         plateIsolateSourceKey: undefined,
         plateCharacterId: undefined,
@@ -239,11 +242,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     setFilmStatus,
     shared.activeCharacterId,
     stillsRef,
-    toolSettings.plateImageFilename,
-    toolSettings.plateImageUrl,
-    toolSettings.plateCharacterId,
-    toolSettings.plateIsolateSourceKey,
-    toolSettings.stillsCharacterId,
+    toolSettings,
     updateToolSettings,
   ]);
 
