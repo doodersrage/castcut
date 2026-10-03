@@ -704,3 +704,57 @@ export function summarizeCharacterAppearanceForm(form: CharacterAppearanceFormDr
 export function isRolledAppearanceDescriptor(text: string | null | undefined): boolean {
   return /^an? [^,]+ with [^.]+, and a body that is [^.]+$/i.test(text?.trim() ?? '');
 }
+
+/**
+ * A Cast's physical traits as picked — only what was chosen (a trait left out is the picture's
+ * to show). The physical description Day, Look and Outfit use is built from these alone; the
+ * Story bible's look is Story's (it used to overwrite the description, and story wording —
+ * clothes, mood, backstory — ended up in Day prompts).
+ */
+export type CharacterTraits = Partial<CharacterAppearanceDraft>;
+
+const TRAIT_OPTIONS = {
+  sex: CHARACTER_SEX_OPTIONS,
+  ethnicity: CHARACTER_ETHNICITY_OPTIONS,
+  ageBand: CHARACTER_AGE_BAND_OPTIONS,
+  height: CHARACTER_HEIGHT_OPTIONS,
+  bodyBuild: CHARACTER_BODY_BUILD_OPTIONS,
+} as const;
+
+export const CHARACTER_TRAIT_KEYS = Object.keys(TRAIT_OPTIONS) as Array<keyof CharacterTraits>;
+
+/** Only known values; 'random' and unknown values drop out. Undefined when nothing is left. */
+export function normalizeCharacterTraits(input: unknown): CharacterTraits | undefined {
+  if (!input || typeof input !== 'object') return undefined;
+  const source = input as Record<string, unknown>;
+  const traits: Record<string, string> = {};
+  for (const key of CHARACTER_TRAIT_KEYS) {
+    const value = source[key];
+    const options = TRAIT_OPTIONS[key] as ReadonlyArray<{ value: string }>;
+    if (typeof value === 'string' && options.some(option => option.value === value)) {
+      traits[key] = value;
+    }
+  }
+  return Object.keys(traits).length ? (traits as CharacterTraits) : undefined;
+}
+
+/**
+ * The physical description for a set of traits. With a picture, only the picked traits are said
+ * (the picture shows the rest; rolled traits contradicted it). Without one, the unpicked traits
+ * are rolled once and returned so the description stays the same from then on.
+ */
+export function physicalDescriptionFromTraits(
+  traits: CharacterTraits | undefined,
+  options: { hasPicture: boolean }
+): { descriptor?: string; hints?: string; traits?: CharacterTraits } {
+  if (options.hasPicture) {
+    const chosen = describeChosenAppearance(traits ?? {});
+    return { ...chosen, traits: normalizeCharacterTraits(traits) };
+  }
+  const resolved = resolveCharacterAppearance(traits ?? {});
+  return {
+    descriptor: composeCharacterAppearanceDescriptor(resolved),
+    hints: characterAppearanceHints(resolved),
+    traits: resolved,
+  };
+}

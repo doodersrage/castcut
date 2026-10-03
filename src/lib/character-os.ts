@@ -27,6 +27,9 @@ import {
   composeCharacterAppearanceDescriptor,
   describeChosenAppearance,
   isRolledAppearanceDescriptor,
+  normalizeCharacterTraits,
+  physicalDescriptionFromTraits,
+  type CharacterTraits,
   resolveCharacterAppearance,
   sanitizeCharacterAppearanceDescriptor,
 } from './character-appearance';
@@ -57,6 +60,11 @@ export type CharacterRecord = {
   loraLibraryIds?: string[];
   descriptor?: string;
   hints?: string;
+  /**
+   * Sex, ethnicity, age, height and build as picked (character-appearance: CharacterTraits).
+   * The physical description comes from these; the bible's look is Story's.
+   */
+  traits?: CharacterTraits;
   bio?: RoleplayBio;
   ipAdapter?: {
     imageFilename?: string;
@@ -498,6 +506,8 @@ export function createBlankCharacter(
   const trimmed = name.trim() || 'Untitled character';
   const fromPhoto = options?.fromPhoto ? describeChosenAppearance(appearance ?? {}) : null;
   const draft = fromPhoto ? null : resolveCharacterAppearance(appearance ?? {});
+  // What was picked (from a photo) or rolled (no photo), so the Cast page can show and edit it.
+  const traits = normalizeCharacterTraits(draft ?? appearance);
   const personaId = options?.personaId?.trim() || undefined;
   const customPersona = options?.customPersona?.trim() || undefined;
   return {
@@ -506,6 +516,7 @@ export function createBlankCharacter(
     version: 1,
     updatedAt: Date.now(),
     characterName: trimmed,
+    ...(traits ? { traits } : {}),
     ...(draft
       ? {
           descriptor: composeCharacterAppearanceDescriptor(draft),
@@ -922,19 +933,7 @@ export function upsertCharacter(record: CharacterRecord): CharacterRecord[] {
     id,
     updatedAt: Date.now(),
   };
-  let nextRecord = prev ? mergeCharacterUpdate(prev, drafted) : normalizeCharacterRecord(drafted);
-  // The bible's look is a copy of the description: edited on Cast, the description changed and
-  // Story kept describing the old person.
-  const prevDescriptor = prev?.descriptor?.trim();
-  const nextDescriptor = nextRecord.descriptor?.trim();
-  if (
-    prevDescriptor &&
-    nextDescriptor &&
-    prevDescriptor !== nextDescriptor &&
-    nextRecord.bio?.look?.trim() === prevDescriptor
-  ) {
-    nextRecord = { ...nextRecord, bio: { ...nextRecord.bio, look: nextDescriptor } };
-  }
+  const nextRecord = prev ? mergeCharacterUpdate(prev, drafted) : normalizeCharacterRecord(drafted);
   // Nothing but the time changed: keep the stored record. Story re-saved its lead on every
   // visit, and a fresh timestamp on unchanged data can win a sync over a real edit made on
   // another device.
@@ -978,7 +977,12 @@ export function saveCharacterBio(
   const look = bio.look.trim();
   const looks = looksOf(character);
   const current = looks.find(entry => entry.id === character.activeLookId) ?? looks[0]!;
-  const nextLooks = look
+  // The bible is Story's. Its look became the Cast's physical description too, and story
+  // wording (clothes, mood, a raccoon's tricorn) went into Day and Look prompts. It still seeds
+  // the description of a Cast that has none (one made from a Story).
+  const seedsDescription =
+    Boolean(look) && !current.descriptor?.trim() && !character.descriptor?.trim();
+  const nextLooks = seedsDescription
     ? looks.map(entry => (entry.id === current.id ? { ...entry, descriptor: look } : entry))
     : looks;
   upsertCharacter({
@@ -991,7 +995,7 @@ export function saveCharacterBio(
       personality: bio.personality.trim(),
       ...(bio.catchphrase?.trim() ? { catchphrase: bio.catchphrase.trim() } : {}),
     },
-    descriptor: look || character.descriptor,
+    descriptor: seedsDescription ? look : character.descriptor,
     looks: nextLooks,
     activeLookId: current.id,
   });
@@ -1312,4 +1316,44 @@ export function castBibleLook(
     return descriptor;
   }
   return look || undefined;
+}
+
+/** The Cast has a picture of its own (face lock or reference photo) on any look. */
+export function castHasPicture(character: CharacterRecord): boolean {
+  const has = (entry: Pick<CharacterRecord, 'ipAdapter' | 'reference'>) =>
+    Boolean(
+      entry.ipAdapter?.imageFilename?.trim() ||
+      entry.ipAdapter?.imageUrl?.trim() ||
+      entry.reference?.isolatedFilename?.trim() ||
+      entry.reference?.originalFilename?.trim() ||
+      entry.reference?.isolatedUrl?.trim() ||
+      entry.reference?.originalUrl?.trim()
+    );
+  return has(character) || looksOf(character).some(has);
+}
+
+/**
+ * Set a Cast's traits: they become its physical description (every look), which Day, Look and
+ * Outfit use. The Story bible is left alone.
+ */
+export function saveCharacterTraits(
+  characterId: string,
+  traits: CharacterTraits | undefined
+): CharacterRecord | undefined {
+  const character = getCharacter(characterId.trim());
+  if (!character) return undefined;
+  const physical = physicalDescriptionFromTraits(traits, { hasPicture: castHasPicture(character) });
+  const looks = looksOf(character).map(look => ({
+    ...look,
+    descriptor: physical.descriptor,
+    hints: physical.hints,
+  }));
+  upsertCharacter({
+    ...character,
+    traits: physical.traits,
+    descriptor: physical.descriptor,
+    hints: physical.hints,
+    looks,
+  });
+  return getCharacter(character.id);
 }

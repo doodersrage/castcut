@@ -2248,6 +2248,16 @@ test('a Cast whose look was made up offers Describe from photo', async ({ page }
   await page.getByText('Bible', { exact: true }).first().click();
   await expect(page.getByTestId('cast-bible-look-made-up')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('cast-bible-describe-photo')).toBeVisible();
+  // Appearance: the made-up body is replaced by the picked traits only; the bible stays.
+  await expect(page.getByTestId('cast-appearance-made-up')).toBeVisible();
+  await page.getByTestId('cast-trait-sex').selectOption('woman');
+  await page.getByTestId('cast-trait-ageBand').selectOption('30s');
+  await page.getByTestId('cast-appearance-save').click();
+  await expect(page.getByTestId('cast-appearance-description')).toContainText(
+    'Description: a woman in her thirties'
+  );
+  await expect(page.getByTestId('cast-appearance-made-up')).toHaveCount(0);
+  await expect(page.getByTestId('cast-bible-preview')).toContainText('Indigenous woman');
 });
 
 test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => {

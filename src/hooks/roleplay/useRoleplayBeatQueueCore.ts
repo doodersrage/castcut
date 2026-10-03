@@ -127,6 +127,7 @@ function leadIsMan(): boolean {
     look: cache.tools.roleplay?.bio?.look,
     descriptor: cast?.descriptor,
     hints: cast?.hints,
+    traits: cast?.traits,
   });
 }
 

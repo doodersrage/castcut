@@ -28,7 +28,11 @@ export const DAY_NEW_PARTNER_OPTIONS = [
 export function dayPartnerNoun(input: {
   descriptor?: string | null;
   hints?: string | null;
+  /** The Cast's picked sex wins over the wording (a photo Cast may have no description). */
+  traits?: { sex?: string } | null;
 }): DayPartnerNoun {
+  if (input.traits?.sex === 'man') return 'man';
+  if (input.traits?.sex === 'woman') return 'woman';
   const text = [input.descriptor, input.hints].filter(Boolean).join(' ');
   const gender = inferSubjectGenderFromHints(text);
   if (gender === 'men') return 'man';

@@ -74,7 +74,6 @@ export function resolveCharacterAppearanceForPlate(character: CharacterRecord | 
   const lookDescriptorRaw = look?.descriptor?.trim() || character?.descriptor?.trim() || '';
   const sharedDescriptor = shared?.activeCharacterDescriptor?.trim() || '';
   const hints = look?.hints?.trim() || character?.hints?.trim() || '';
-  const bioLook = character?.bio?.look?.trim() || '';
   const lookDescriptor = lookDescriptorRaw
     ? sanitizeCharacterAppearanceDescriptor(lookDescriptorRaw)
     : '';
@@ -83,7 +82,8 @@ export function resolveCharacterAppearanceForPlate(character: CharacterRecord | 
     : '';
   // Look/character descriptor is authoritative. Shared is fallback only — never let a
   // stale session descriptor fight the active look (e.g. vibe-adjacent leftovers).
-  const parts = [lookDescriptor || sharedSanitized || null, hints || null, bioLook || null]
+  // Not the Story bible's look: that is Story's (clothes, mood); the body comes from the traits.
+  const parts = [lookDescriptor || sharedSanitized || null, hints || null]
     .filter((part): part is string => Boolean(part && part.trim()))
     .map(part => part.trim());
   // Dedupe while preserving order.

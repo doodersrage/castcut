@@ -112,7 +112,7 @@ export default function CharacterBibleSection({
   };
 
   const photoUrl = castReferenceImage(character).imageUrl;
-  // Casts made from a photo before 2.3 were given a made-up description (every trait rolled).
+  // A bible look still holding the rolled description a photo Cast was given before 2.3.
   const lookIsMadeUp = Boolean(photoUrl && isRolledAppearanceDescriptor(bio?.look));
 
   const describeFromPhoto = async () => {
@@ -128,7 +128,7 @@ export default function CharacterBibleSection({
         shared: loadSettingsCache().shared,
       });
       persistBio({ ...bio, look: look.replace(/\.\s*$/, '') });
-      setStatus('Look described from the photo — Story and Day use it from now on.');
+      setStatus('Look described from the photo — Story uses it from now on.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not read the photo.');
     } finally {
@@ -214,8 +214,9 @@ export default function CharacterBibleSection({
               className="mt-2 text-sm text-[var(--tint-warning-text)]"
               data-testid="cast-bible-look-made-up"
             >
-              This look was made up when the Cast was created and may not match the photo.{' '}
-              <em>Describe from photo</em> replaces it with what the picture shows.
+              Story&apos;s look still holds the description made up when the Cast was created.{' '}
+              <em>Describe from photo</em> replaces it with what the picture shows (the body in
+              every picture comes from Appearance above).
             </p>
           ) : null}
           <div className="mt-3 flex flex-wrap gap-2">

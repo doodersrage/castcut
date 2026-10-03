@@ -8,6 +8,7 @@ import { FieldError } from '@/components/ui/Field';
 import { SegmentedControl, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import CastStatusStrip from '@/components/character/CastStatusStrip';
+import CharacterAppearanceSection from '@/components/character/CharacterAppearanceSection';
 import CharacterBibleSection from '@/components/character/CharacterBibleSection';
 import CharacterHomeActionRow from '@/components/character/CharacterHomeActionRow';
 import CharacterLookPacksSection from '@/components/character/CharacterLookPacksSection';
@@ -123,6 +124,7 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
       ) : null}
       {props.homeTab === 'bible' ? (
         <>
+          <CharacterAppearanceSection character={character} onUpdated={props.persistApply} />
           <CharacterPersonaSection character={character} onUpdated={props.persistApply} />
           <CharacterBibleSection character={character} onUpdated={props.persistApply} />
         </>

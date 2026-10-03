@@ -22,6 +22,7 @@ import {
   normalizeCharacterRecord,
   roleplayLibraryIdFromCharacter,
   saveCharacterBio,
+  saveCharacterTraits,
   clearCharacterBio,
   slugCharacterName,
   upsertCharacter,
@@ -174,7 +175,7 @@ describe('character-os', () => {
     });
   });
 
-  it('saveCharacterBio persists bible and active look descriptor', () => {
+  it('saveCharacterBio persists the bible and leaves the physical description alone', () => {
     withMockLocalStorage(() => {
       const blank = createBlankCharacter('Nova', {
         sex: 'woman',
@@ -192,8 +193,10 @@ describe('character-os', () => {
       });
       assert.ok(saved?.bio);
       assert.equal(saved?.bio?.look, 'ink coat, gold glasses, satchel');
-      assert.equal(saved?.descriptor, 'ink coat, gold glasses, satchel');
-      assert.equal(saved?.looks?.[0]?.descriptor, 'ink coat, gold glasses, satchel');
+      // The bible is Story's: its look no longer becomes what Day and Look draw.
+      assert.equal(saved?.descriptor, blank.descriptor);
+      assert.equal(saved?.looks?.[0]?.descriptor, blank.descriptor);
+      assert.equal(saved?.traits?.sex, 'woman');
       const reloaded = getCharacter(blank.id);
       assert.equal(reloaded?.bio?.personality, 'dry, loyal, always late');
       assert.equal(reloaded?.bio?.catchphrase, 'notes first');
@@ -597,23 +600,27 @@ describe('the Story bible look follows the Cast description', () => {
   });
 });
 
-describe('editing a Cast description', () => {
-  it('carries the bible look along when it was a copy of the description', () => {
+describe('Cast traits', () => {
+  it('are the physical description; the bible stays Story\'s', () => {
     withMockLocalStorage(() => {
       upsertCharacter({
-        id: 'char-desc',
-        name: 'Desc',
+        id: 'char-traits',
+        name: 'Traits',
         version: 1,
         updatedAt: 1,
-        descriptor: 'a man with a grey beard',
-        bio: { name: 'Desc', look: 'a man with a grey beard', personality: 'calm' },
+        descriptor: 'an Indigenous woman in her forties with warm skin, and a body that is short, muscular',
+        ipAdapter: { imageFilename: 'traits-face.png' },
+        bio: { name: 'Traits', look: 'a red raincoat, always muddy boots', personality: 'calm' },
       });
-      const stored = getCharacter('char-desc')!;
-      upsertCharacter({
-        ...stored,
-        looks: (stored.looks ?? []).map(look => ({ ...look, descriptor: 'a young man, clean-shaven' })),
-      });
-      assert.equal(getCharacter('char-desc')?.bio?.look, 'a young man, clean-shaven');
+      const saved = saveCharacterTraits('char-traits', { sex: 'woman', ageBand: '30s' });
+      assert.match(saved?.descriptor ?? '', /^a woman/);
+      assert.doesNotMatch(saved?.descriptor ?? '', /Indigenous|hair|skin/);
+      assert.equal(saved?.looks?.[0]?.descriptor, saved?.descriptor);
+      assert.equal(saved?.bio?.look, 'a red raincoat, always muddy boots');
+      // Nothing picked, with a picture: no description at all — the picture shows the person.
+      const cleared = saveCharacterTraits('char-traits', undefined);
+      assert.equal(cleared?.descriptor, undefined);
+      assert.equal(cleared?.traits, undefined);
     });
   });
 });

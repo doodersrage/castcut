@@ -13,8 +13,13 @@ export function storyLeadIsMan(input: {
   look?: string | null;
   descriptor?: string | null;
   hints?: string | null;
+  traits?: { sex?: string } | null;
 }): boolean {
-  const fromCast = dayPartnerNoun({ descriptor: input.descriptor, hints: input.hints });
+  const fromCast = dayPartnerNoun({
+    descriptor: input.descriptor,
+    hints: input.hints,
+    traits: input.traits,
+  });
   if (fromCast !== 'person') return fromCast === 'man';
   return dayPartnerNoun({ descriptor: input.look }) === 'man';
 }
