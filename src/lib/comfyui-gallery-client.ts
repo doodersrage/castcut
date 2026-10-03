@@ -35,7 +35,7 @@ import { getCharacter } from './character-os';
 import { attemptGalleryHostFailover } from './oom-retry';
 import { resolveGalleryRenderDurationMs } from './comfyui-render-duration';
 import { forgetPendingGalleryPoll } from './gallery-pending-polls';
-import { resolveGalleryCharacterStamp } from './gallery-character-stamp';
+import { resolveGalleryCharacterStamp, resolveGalleryLookStamp } from './gallery-character-stamp';
 
 /** Cap stored workflow graphs so gallery IndexedDB stays bounded. */
 export const MAX_GALLERY_WORKFLOW_CHARS = 400_000;
@@ -159,19 +159,18 @@ function resolveGalleryLookId(input: RegisterComfyGalleryJobInput): string | und
   if (!characterId) {
     return undefined;
   }
-  const explicit = input.lookId?.trim();
-  if (explicit) {
-    return explicit;
-  }
   const parentId = input.parentGalleryEntryId?.trim();
   const parent = parentId ? loadComfyGallery().find(entry => entry.id === parentId) : undefined;
-  if (parent?.lookId?.trim()) {
-    return parent.lookId.trim();
-  }
   const shared = loadSettingsCache().shared;
-  return (
-    shared.activeLookId?.trim() || getCharacter(characterId)?.activeLookId?.trim() || undefined
-  );
+  return resolveGalleryLookStamp({
+    characterId,
+    lookId: input.lookId,
+    parent,
+    derivedKind: input.derivedKind,
+    sharedActiveCharacterId: shared.activeCharacterId,
+    sharedActiveLookId: shared.activeLookId,
+    castActiveLookId: getCharacter(characterId)?.activeLookId,
+  });
 }
 
 export function inheritGallerySessionFields(

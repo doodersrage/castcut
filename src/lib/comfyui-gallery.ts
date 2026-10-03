@@ -34,7 +34,8 @@ import { initGalleryStore } from './app-db-init';
 import { getActiveUserId } from './user-scope';
 import { scheduleUserAnalyticsSync } from './user-analytics-sync';
 import { capGalleryEntriesForLocalStorage } from './gallery-cap';
-import { loadCharacters } from './character-os';
+import { loadCharacters, looksOf } from './character-os';
+import { galleryEntryMatchesLook } from './gallery-look-filter';
 import { collectGalleryProtectedEntryIds } from './gallery-protected-ids';
 import { rememberGalleryDeletedIds } from './gallery-deleted-ids';
 import { galleryEntryCorpus } from './embedding-rank';
@@ -102,6 +103,11 @@ export type ComfyGalleryFilter = {
   customGroup?: string;
   /** Character OS record this job was queued as. */
   characterId?: string;
+  /**
+   * With a Cast filter: only that Cast's stills made in this look (`GALLERY_NO_LOOK` = stills
+   * with no look or a removed one). Ignored without `characterId`.
+   */
+  lookId?: string;
   /** Only stills whose pose or face check missed. */
   playCheckMissOnly?: boolean;
 };
@@ -414,6 +420,16 @@ export function filterComfyGalleryEntries(
       )
     : null;
 
+  const lookFilterCast = filter.lookId?.trim() ? filter.characterId?.trim() : '';
+  const knownLookIds = lookFilterCast
+    ? new Set(
+        (() => {
+          const cast = loadCharacters().find(character => character.id === lookFilterCast);
+          return cast ? looksOf(cast).map(look => look.id) : [];
+        })()
+      )
+    : null;
+
   let filtered: ComfyGalleryEntry[] = [];
   let idx = 0;
   for (const entry of entries) {
@@ -506,6 +522,10 @@ export function filterComfyGalleryEntries(
       continue;
     }
     if (filter.characterId?.trim() && entry.characterId !== filter.characterId.trim()) {
+      idx += 1;
+      continue;
+    }
+    if (knownLookIds && !galleryEntryMatchesLook(entry, filter.lookId, knownLookIds)) {
       idx += 1;
       continue;
     }

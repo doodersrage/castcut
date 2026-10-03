@@ -4,6 +4,7 @@ import {
   inheritsActiveCharacterStamp,
   isForeignCharacterStamp,
   resolveGalleryCharacterStamp,
+  resolveGalleryLookStamp,
 } from './gallery-character-stamp';
 
 describe('gallery-character-stamp', () => {
@@ -79,6 +80,68 @@ describe('gallery-character-stamp', () => {
         tool: 'compose',
       }),
       undefined
+    );
+  });
+});
+
+describe('resolveGalleryLookStamp', () => {
+  it('no Cast, no look', () => {
+    assert.equal(resolveGalleryLookStamp({ lookId: 'look-a' }), undefined);
+  });
+
+  it('a derived job keeps its parent still\'s look over the active one', () => {
+    assert.equal(
+      resolveGalleryLookStamp({
+        characterId: 'nora',
+        lookId: 'look-active',
+        parent: { characterId: 'nora', lookId: 'look-beach' },
+        derivedKind: 'i2v',
+      }),
+      'look-beach'
+    );
+  });
+
+  it("ignores another Cast's parent look", () => {
+    assert.equal(
+      resolveGalleryLookStamp({
+        characterId: 'nora',
+        parent: { characterId: 'tomas', lookId: 'look-tomas' },
+        derivedKind: 'upscale',
+        castActiveLookId: 'look-nora',
+      }),
+      'look-nora'
+    );
+  });
+
+  it('the named look wins for a fresh job', () => {
+    assert.equal(
+      resolveGalleryLookStamp({
+        characterId: 'nora',
+        lookId: 'look-studio',
+        parent: { characterId: 'nora', lookId: 'look-beach' },
+      }),
+      'look-studio'
+    );
+  });
+
+  it("uses the shared active look only when it is this Cast's", () => {
+    assert.equal(
+      resolveGalleryLookStamp({
+        characterId: 'nora',
+        sharedActiveCharacterId: 'tomas',
+        sharedActiveLookId: 'look-tomas',
+        castActiveLookId: 'look-nora',
+      }),
+      'look-nora'
+    );
+    assert.equal(
+      resolveGalleryLookStamp({
+        characterId: 'nora',
+        sharedActiveCharacterId: 'nora',
+        sharedActiveLookId: 'look-shared',
+        castActiveLookId: 'look-nora',
+      }),
+      'look-shared'
     );
   });
 });

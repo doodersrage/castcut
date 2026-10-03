@@ -55,7 +55,9 @@ export default function GalleryCastFilter({
         type="button"
         className={chip(!active)}
         aria-pressed={!active}
-        onClick={() => setFilter(previous => ({ ...previous, characterId: undefined }))}
+        onClick={() =>
+          setFilter(previous => ({ ...previous, characterId: undefined, lookId: undefined }))
+        }
       >
         All
       </button>
@@ -70,6 +72,8 @@ export default function GalleryCastFilter({
             setFilter(previous => ({
               ...previous,
               characterId: previous.characterId === cast.id ? undefined : cast.id,
+              // A look is one Cast's — switching Cast drops it.
+              lookId: undefined,
             }))
           }
         >

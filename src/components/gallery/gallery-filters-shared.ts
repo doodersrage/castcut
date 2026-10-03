@@ -2,6 +2,8 @@ import type { PromptProject } from '@/lib/prompt-projects';
 import type { ComfyGalleryFilter, ComfyGallerySort } from '@/lib/comfyui-gallery';
 import { GALLERY_UNGROUPED_FILTER } from '@/lib/gallery-custom-groups';
 import { getCharacter } from '@/lib/character-os';
+import { castPlateTiles } from '@/lib/cast-plate-thumb';
+import { GALLERY_NO_LOOK, GALLERY_NO_LOOK_LABEL } from '@/lib/gallery-look-filter';
 
 export const GALLERY_SORT_OPTIONS: { value: ComfyGallerySort; label: string }[] = [
   { value: 'queued-desc', label: 'Newest' },
@@ -71,8 +73,22 @@ export function buildActiveFilterChips({
     chips.push({
       key: 'cast',
       label: `Cast: ${getCharacter(castId)?.name?.trim() || castId}`,
-      clear: () => setFilter(previous => ({ ...previous, characterId: undefined })),
+      clear: () =>
+        setFilter(previous => ({ ...previous, characterId: undefined, lookId: undefined })),
     });
+    const lookId = filter.lookId?.trim();
+    if (lookId) {
+      const cast = getCharacter(castId);
+      chips.push({
+        key: 'look',
+        label: `Look: ${
+          lookId === GALLERY_NO_LOOK
+            ? GALLERY_NO_LOOK_LABEL
+            : (cast ? castPlateTiles(cast).find(tile => tile.id === lookId)?.label : '') || lookId
+        }`,
+        clear: () => setFilter(previous => ({ ...previous, lookId: undefined })),
+      });
+    }
   }
   if (filter.model) {
     chips.push({

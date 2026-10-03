@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { FilterChip } from '@/components/gallery/GalleryFilterChip';
 import GalleryCastFilter from '@/components/gallery/GalleryCastFilter';
+import GalleryLookFilter from '@/components/gallery/GalleryLookFilter';
 import type {
   ComfyGalleryFilter,
   ComfyGallerySort,
@@ -89,6 +90,7 @@ export default function GalleryFiltersPrimaryRow({
     filter.minRating,
     filter.model,
     filter.characterId,
+    filter.characterId && filter.lookId,
     filter.playCheckMissOnly,
     filter.semanticSearch,
   ].filter(Boolean).length;
@@ -161,6 +163,7 @@ export default function GalleryFiltersPrimaryRow({
       <div className={`contents ${phoneHidden}`}>
         <GalleryFiltersRatingModelRow filter={filter} setFilter={setFilter} models={models} />
         <GalleryCastFilter filter={filter} setFilter={setFilter} castIds={castIds ?? []} />
+        <GalleryLookFilter filter={filter} setFilter={setFilter} />
       </div>
 
       {hasPlayChecks ? (

@@ -88,6 +88,24 @@ describe('gallery-url-state', () => {
     assert.equal(parsed.sort, 'eviction-risk-desc');
   });
 
+  it('round-trips a look only with its Cast', () => {
+    const params = new URLSearchParams();
+    applyGalleryUrlState(params, {
+      filter: { characterId: 'char-rin', lookId: 'look-beach' },
+      ...DEFAULT_PAGE_STATE,
+    });
+    assert.equal(params.get('look'), 'look-beach');
+    assert.equal(parseGalleryUrlState(params).filter.lookId, 'look-beach');
+
+    const orphan = new URLSearchParams();
+    applyGalleryUrlState(orphan, { filter: { lookId: 'look-beach' }, ...DEFAULT_PAGE_STATE });
+    assert.equal(orphan.get('look'), null);
+    assert.equal(
+      parseGalleryUrlState(new URLSearchParams('look=look-beach')).filter.lookId,
+      undefined
+    );
+  });
+
   it('round-trips audio and mesh media filters', () => {
     const params = new URLSearchParams();
     applyGalleryUrlState(params, {

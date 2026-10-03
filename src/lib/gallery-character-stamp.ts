@@ -80,6 +80,51 @@ export function resolveGalleryCharacterStamp(input: {
   return undefined;
 }
 
+/**
+ * The look a Cast job is stamped with, so the still remembers which look it was made in.
+ * - A derived job (face pass, upscale, clip of a still…) is its parent's look, when the parent
+ *   is the same Cast's — animating last week's beach still is the beach look, whichever look
+ *   is active now.
+ * - Otherwise the look the caller named, then the parent's.
+ * - Otherwise the shared active look, but only when the shared active Cast is this Cast (the
+ *   shared look of another Cast is not one of this Cast's looks), then the Cast's own active look.
+ */
+export function resolveGalleryLookStamp(input: {
+  /** The resolved Cast stamp (resolveGalleryCharacterStamp). */
+  characterId?: string;
+  lookId?: string;
+  parent?: { characterId?: string; lookId?: string } | null;
+  derivedKind?: ComfyGalleryEntry['derivedKind'];
+  sharedActiveCharacterId?: string;
+  sharedActiveLookId?: string;
+  /** The Cast record's own active look. */
+  castActiveLookId?: string;
+}): string | undefined {
+  const characterId = input.characterId?.trim();
+  if (!characterId) {
+    return undefined;
+  }
+  const parentLook =
+    input.parent?.characterId?.trim() === characterId
+      ? input.parent.lookId?.trim() || undefined
+      : undefined;
+  if (input.derivedKind && parentLook) {
+    return parentLook;
+  }
+  const explicit = input.lookId?.trim();
+  if (explicit) {
+    return explicit;
+  }
+  if (parentLook) {
+    return parentLook;
+  }
+  const sharedLook = input.sharedActiveLookId?.trim();
+  if (sharedLook && input.sharedActiveCharacterId?.trim() === characterId) {
+    return sharedLook;
+  }
+  return input.castActiveLookId?.trim() || undefined;
+}
+
 /** Strip leftover Compose (and other foreign-tool) stamps. Keepers stay. */
 export function unstampForeignCharacterGalleryEntries(): number {
   const keep = new Set(

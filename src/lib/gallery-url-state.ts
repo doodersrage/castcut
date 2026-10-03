@@ -141,6 +141,10 @@ export function parseGalleryUrlState(params: URLSearchParams): GalleryUrlState {
   const characterId = params.get('character')?.trim();
   if (characterId) {
     filter.characterId = characterId;
+    const lookId = params.get('look')?.trim();
+    if (lookId) {
+      filter.lookId = lookId;
+    }
   }
   const derivedKind = params.get('derivedKind')?.trim();
   if (
@@ -207,6 +211,7 @@ export function applyGalleryUrlState(
   setOrDelete('group', filter.customGroup?.trim() || undefined);
   setOrDelete('derivedKind', filter.derivedKind || undefined);
   setOrDelete('character', filter.characterId?.trim() || undefined);
+  setOrDelete('look', filter.characterId?.trim() ? filter.lookId?.trim() || undefined : undefined);
   setOrDelete('sort', sort !== 'queued-desc' ? sort : undefined);
   setOrDelete('project', projectFilterId.trim() || undefined);
   setOrDelete('page', page > 1 ? String(page) : undefined);

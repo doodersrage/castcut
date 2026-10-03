@@ -43,6 +43,8 @@ export default function MobileGalleryTool() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const characterId = searchParams.get('character')?.trim() || '';
+  /** One look of that Cast (`look=`), as on the desk Gallery. */
+  const lookId = (characterId && searchParams.get('look')?.trim()) || '';
   const derivedKind = searchParams.get('derivedKind')?.trim() || '';
   const filmMode = derivedKind === 'film';
   const characters = useSyncExternalStore(
@@ -64,6 +66,7 @@ export default function MobileGalleryTool() {
     status: 'completed',
     ...(filmMode ? { derivedKind: 'film' as const } : {}),
     ...(characterId ? { characterId } : {}),
+    ...(lookId ? { lookId } : {}),
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // The panel for the tapped still sits under the whole grid — bring it into view, or a tap
@@ -81,17 +84,19 @@ export default function MobileGalleryTool() {
       status: 'completed',
       derivedKind: filmMode ? 'film' : undefined,
       characterId: characterId || undefined,
+      lookId: lookId || undefined,
     }));
-  }, [characterId, filmMode, setFilter]);
+  }, [characterId, lookId, filmMode, setFilter]);
 
   const entries = useMemo(() => {
     const filtered = filterComfyGalleryEntries(allEntries, {
       status: 'completed',
       ...(filmMode ? { derivedKind: 'film' as const } : {}),
       ...(characterId ? { characterId } : {}),
+      ...(lookId ? { lookId } : {}),
     }).filter(entry => galleryEntryPrimaryThumbUrl(entry) || galleryEntryPrimaryViewUrl(entry));
     return filtered.slice(0, filmMode ? 24 : 48);
-  }, [allEntries, characterId, filmMode]);
+  }, [allEntries, characterId, lookId, filmMode]);
 
   const selected = entries.find(entry => entry.id === selectedId) ?? entries[0] ?? null;
   const selectedUrl = selected

@@ -166,3 +166,58 @@ export async function seedGalleryPlayFixtures(page: Page): Promise<void> {
   await page.addInitScript(seed, { items: entries, characters: cast });
   await page.evaluate(seed, { items: entries, characters: cast });
 }
+
+/**
+ * One Cast with two looks (Studio, Beach) and four of its Day stills: two made in Studio, one
+ * in Beach, one from before looks were stamped (no lookId).
+ */
+export async function seedGalleryLookFixtures(page: Page): Promise<void> {
+  await ensureStudioWorkspace(page);
+  const now = Date.now();
+  const still = (id: string, lookId: string | undefined, offset: number) => ({
+    ...FIXTURE,
+    id,
+    promptId: id,
+    prompt: `e2e ${id}`,
+    tool: 'day',
+    characterId: 'e2e-look-cast',
+    ...(lookId ? { lookId } : {}),
+    queuedAt: now - offset,
+    completedAt: now - offset,
+    images: [{ filename: `${id}.png`, subfolder: '', type: 'output' }],
+  });
+  const entries = [
+    still('e2e-look-studio-1', 'e2e-look-studio', 0),
+    still('e2e-look-studio-2', 'e2e-look-studio', 1_000),
+    still('e2e-look-beach-1', 'e2e-look-beach', 2_000),
+    still('e2e-look-none-1', undefined, 3_000),
+  ];
+  const cast = {
+    version: 1,
+    characters: [
+      {
+        id: 'e2e-look-cast',
+        name: 'Look Cast',
+        version: 1,
+        updatedAt: now,
+        activeLookId: 'e2e-look-studio',
+        looks: [
+          { id: 'e2e-look-studio', name: 'Studio', createdAt: 2 },
+          { id: 'e2e-look-beach', name: 'Beach', createdAt: 1 },
+        ],
+      },
+    ],
+    removedIds: [],
+  };
+  const seed = ({ items, characters }: { items: unknown[]; characters: unknown }) => {
+    try {
+      localStorage.setItem('comfyui-gallery-v1', JSON.stringify(items));
+      localStorage.setItem('comfy-prompt-characters-v1', JSON.stringify(characters));
+      window.dispatchEvent(new Event('comfyui-gallery-updated'));
+    } catch {
+      // ignore
+    }
+  };
+  await page.addInitScript(seed, { items: entries, characters: cast });
+  await page.evaluate(seed, { items: entries, characters: cast });
+}
