@@ -84,3 +84,13 @@ describe("auto-storage-sync", () => {
     });
   });
 });
+
+describe('autoPushDelayMs', () => {
+  it('waits for quiet, but never past the longest wait', async () => {
+    const { autoPushDelayMs } = await import('./auto-storage-sync');
+    assert.equal(autoPushDelayMs(1000, null), 5000);
+    assert.equal(autoPushDelayMs(10_000, 0), 5000);
+    assert.equal(autoPushDelayMs(17_000, 0), 3000);
+    assert.equal(autoPushDelayMs(25_000, 0), 0);
+  });
+});

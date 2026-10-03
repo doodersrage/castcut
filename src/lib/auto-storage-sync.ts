@@ -533,6 +533,22 @@ export async function autoPushStorageDebounced(): Promise<void> {
 }
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
+/** When the first write since the last push was scheduled. */
+let pushPendingSince: number | null = null;
+const PUSH_QUIET_MS = 5000;
+/**
+ * Longest a change waits for the server. Every write restarted the 5 s wait, and a Day or Story
+ * that is rendering writes progress every second or two — nothing reached the server until the
+ * page went quiet, and a tab closed soon after the renders left the server without the stills.
+ */
+const PUSH_MAX_WAIT_MS = 20_000;
+
+/** Delay before the next push: the quiet wait, capped by how long the oldest change has waited. */
+export function autoPushDelayMs(now: number, pendingSince: number | null): number {
+  if (pendingSince == null) return PUSH_QUIET_MS;
+  return Math.max(0, Math.min(PUSH_QUIET_MS, pendingSince + PUSH_MAX_WAIT_MS - now));
+}
+
 export function scheduleAutoPushStorage(): void {
   if (typeof window === 'undefined') {
     return;
@@ -540,8 +556,12 @@ export function scheduleAutoPushStorage(): void {
   if (pushTimer) {
     clearTimeout(pushTimer);
   }
+  const now = Date.now();
+  const delay = autoPushDelayMs(now, pushPendingSince);
+  pushPendingSince ??= now;
   pushTimer = setTimeout(() => {
     pushTimer = null;
+    pushPendingSince = null;
     void autoPushStorageDebounced();
-  }, 5000);
+  }, delay);
 }
