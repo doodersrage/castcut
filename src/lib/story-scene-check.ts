@@ -52,14 +52,15 @@ export function checkStoryScene(
   context: StorySceneCheckContext
 ): StorySceneIssue[] {
   const issues: StorySceneIssue[] = [];
-  const text = `${scene.title}. ${scene.blurb}`;
-  if (THEY_RE.test(scene.blurb) && !namesSomeoneElse(scene.blurb, context.manLead)) {
+  const blurb = scene.blurb ?? '';
+  const text = `${scene.title ?? ''}. ${blurb}`;
+  if (THEY_RE.test(blurb) && !namesSomeoneElse(blurb, context.manLead)) {
     issues.push({
       code: 'lead-they',
       message: 'The lead is called "they", which an image model reads as more people.',
     });
   }
-  if (context.adult && context.solo && namesSomeoneElse(scene.blurb, context.manLead)) {
+  if (context.adult && context.solo && namesSomeoneElse(blurb, context.manLead)) {
     issues.push({ code: 'solo-names-partner', message: 'A Solo story scene names a partner.' });
   }
   if (!context.adult && SEXUAL_RE.test(text)) {

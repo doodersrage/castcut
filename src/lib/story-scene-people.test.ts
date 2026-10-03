@@ -20,6 +20,7 @@ describe('Story scene people', () => {
       'She waits alone on the platform; a conductor’s whistle sounds far off.',
       'She and a friend sit side by side on a bench.',
       'She reads on the windowsill.',
+      undefined as unknown as string,
     ]) {
       assert.equal(storySceneNamesSecondPerson(text), false, text);
     }

@@ -21,8 +21,9 @@ const ALONE_RE =
   /\b(?:alone|by (?:her|him|them)sel(?:f|ves)|on (?:her|his) own|no one else|nobody else|empty (?:room|street|station|platform|carriage))\b/i;
 
 /** True when the scene names a second person the pose counter does not count. */
-export function storySceneNamesSecondPerson(text: string): boolean {
-  const scene = text.trim();
+export function storySceneNamesSecondPerson(text: string | null | undefined): boolean {
+  // Older saved scenes can have a title and no description.
+  const scene = text?.trim() || '';
   if (!scene || ALONE_RE.test(scene)) return false;
   return countPoseGuidePeople(scene, { sexVocabulary: false }) < 2 && SECOND_PERSON_RE.test(scene);
 }
@@ -33,7 +34,7 @@ export function storySceneNamesSecondPerson(text: string): boolean {
  * picked is drawn as picked.
  */
 export function storyPoseForcePeople(input: {
-  text: string;
+  text: string | null | undefined;
   adult: boolean;
   solo: boolean;
   playerPosed: boolean;

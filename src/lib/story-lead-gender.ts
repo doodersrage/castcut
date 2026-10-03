@@ -41,5 +41,5 @@ export function storyPromptForManLead(prompt: string): string {
 
 /** A built-in scene (written for a woman) reworded for a man lead. */
 export function storySceneForManLead<T extends { title: string; blurb: string }>(scene: T): T {
-  return { ...scene, blurb: swapDayPromptGender(scene.blurb) };
+  return scene.blurb ? { ...scene, blurb: swapDayPromptGender(scene.blurb) } : scene;
 }

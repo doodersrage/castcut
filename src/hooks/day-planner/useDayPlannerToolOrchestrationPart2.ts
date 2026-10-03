@@ -210,7 +210,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       pendingAutoCutRef.current = false;
     };
 
-    if (prevId === undefined) {
+    // Clear only what belongs to another Cast. A change of the active Cast is not enough: on a
+    // fresh browser or a phone it goes from none to the real lead when the server copy arrives,
+    // and clearing then wiped the stills just pulled (and saved the empty list back).
+    if (prevId === undefined || prevId !== nextId) {
       prevCharacterIdRef.current = nextId;
       // Returning to Day after Cast changed off-page (or legacy unowned stills/plates).
       const hasStalePlate = Boolean(
@@ -229,13 +232,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       if (stillsMismatch || plateMismatch) {
         clearStills();
       }
-      return;
     }
-    if (prevId === nextId) {
-      return;
-    }
-    prevCharacterIdRef.current = nextId;
-    clearStills();
   }, [
     assembledFilmRef,
     mounted,
