@@ -69,7 +69,7 @@ describe('footwear', () => {
     assert.ok(!/footwear \(mandatory\)/.test(buildFittingOutfitPrompt(base)));
     assert.match(
       buildFittingOutfitPrompt({ ...base, footwearLine: footwearPromptLine('white low-top sneakers') }),
-      /\nfootwear \(mandatory\): on her feet she wears white low-top sneakers — exactly these, on both feet\n/
+      /\nfootwear \(mandatory\): on her feet she wears white low-top sneakers — exactly these, worn on both feet \(on her feet, not set down beside her\); no bare feet\n/
     );
     assert.match(
       buildFittingOutfitPrompt({ ...base, footwearLine: footwearPromptLine('barefoot') }),

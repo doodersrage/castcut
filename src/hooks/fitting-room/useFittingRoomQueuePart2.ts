@@ -1,5 +1,6 @@
 'use client';
 
+import { handOffOutfitPicks, realKitId } from '@/lib/outfit-handoff';
 import { registerDressPlateFromImage } from '@/lib/day-dress-plate-client';
 import { useCallback, useEffect } from 'react';
 import { activeLook, toggleLookKeeper } from '@/lib/character-os';
@@ -250,7 +251,9 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
         return null;
       }
       const updated = toggleLookKeeper(characterId, lookId, entryId);
-      const wardrobeId = tryOn.wardrobeId?.trim();
+      // A try-on from a clothing photo records 'custom-garment' — not a kit. Seeded into Day's
+      // slots and the shared kit it left Day with no packshot and the wrong outfit.
+      const wardrobeId = realKitId(tryOn.wardrobeId);
       // The kept try-on is a dressed plate: share it with Day and Story, under the key of what
       // it was rendered with (recorded when it was queued — the clothing, shoes or pose may have
       // been changed since, and a wrong key would start their stills from the wrong outfit).
@@ -272,7 +275,7 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
         locationNotes: existing?.locationNotes,
         styleNotes: existing?.styleNotes,
         moodNotes: existing?.moodNotes,
-        wardrobeId: wardrobeId || existing?.wardrobeId,
+        wardrobeId: wardrobeId || realKitId(existing?.wardrobeId) || undefined,
         instruction: existing?.instruction,
         vibePrompt: existing?.vibePrompt,
         tileSummaries: existing?.tileSummaries,
@@ -285,13 +288,15 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
         ...new Set(
           compareTryOns
             .filter(entry => entry.galleryEntryId && keeperIds.has(entry.galleryEntryId))
-            .map(entry => entry.wardrobeId?.trim())
+            .map(entry => realKitId(entry.wardrobeId))
             .filter((id): id is string => Boolean(id))
         ),
       ];
       if (wardrobeId && !keeperWardrobes.includes(wardrobeId)) {
         keeperWardrobes.push(wardrobeId);
       }
+      // The kept outfit's clothing photo and shoes go to Day and Story with it.
+      void handOffOutfitPicks(input.toolSettings);
       const daySettings = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
       const seededSlots = applyLookPackToDaySlots(
         seedDaySlotsFromKeeperWardrobes(

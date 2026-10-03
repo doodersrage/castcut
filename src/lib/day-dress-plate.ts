@@ -248,7 +248,7 @@ export function buildDayDressPlatePrompt(input: {
   footwearImage?: 'combined' | 'alone' | null;
 }): string {
   return buildFittingOutfitPrompt({ ...input, isolated: true }).replace(
-    'output: single full-body or three-quarter fashion still of the same person in the new kit',
+    /^output: single full-body (?:or three-quarter )?fashion still of the same person in the new kit.*$/m,
     'output: single full-body still of the same person in the new kit — head to feet in frame, both feet and shoes visible, the same relaxed standing pose facing the camera'
   );
 }

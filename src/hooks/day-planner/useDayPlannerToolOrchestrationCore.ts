@@ -1,5 +1,6 @@
 'use client';
 
+import { realKitId } from '@/lib/outfit-handoff';
 import {
   type DayStillSlotOptions,
   assembleDayStillPrompt,
@@ -521,7 +522,8 @@ export function useDayPlannerToolOrchestrationCore() {
     deepLinkHandled.current = true;
     const params = new URLSearchParams(window.location.search);
     const queryCharacterId = params.get('character')?.trim() || '';
-    const wardrobeId = params.get('wardrobe')?.trim();
+    // 'custom-garment' (a clothing-photo try-on) is not a kit.
+    const wardrobeId = realKitId(params.get('wardrobe')) || undefined;
     const fromLook = params.get('from')?.trim() === 'look';
     const characterId = resolvePlayLoopEntryCharacterId({
       queryCharacterId,

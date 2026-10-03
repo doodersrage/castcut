@@ -2262,6 +2262,24 @@ test('a Cast whose look was made up offers Describe from photo', async ({ page }
   await expect(page.getByTestId('cast-bible-preview')).toContainText('Indigenous woman');
 });
 
+test('Characters: New character opens Film with the create form', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-new-char-existing' },
+    characters: {
+      version: 1,
+      characters: [
+        { id: 'e2e-new-char-existing', name: 'Already Here', version: 1, updatedAt: Date.now(), descriptor: 'a man' },
+      ],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, '/characters');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('cast-roster-new-character').click();
+  await page.waitForURL(/\/play/, { waitUntil: 'commit' });
+  await expect(page.getByTestId('play-campaign-create-name')).toBeVisible({ timeout: 30_000 });
+});
+
 test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => {
   const file = {
     kind: 'castcut-cast',

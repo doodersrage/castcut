@@ -189,7 +189,12 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
         isolated: input.toolSettings.referenceIsolated === true,
         hasGarmentReference: Boolean(garmentExtras),
         garmentDescription: hasCustomGarment ? garmentDescription : undefined,
-        footwearLine: footwearPromptLine(input.toolSettings.footwear, 'she', footwearImage),
+        // A man's try-on said "on her feet she wears".
+        footwearLine: footwearPromptLine(
+          input.toolSettings.footwear,
+          dayPartnerNoun(input.character ?? {}) === 'man' ? 'he' : 'she',
+          footwearImage
+        ),
         footwearImage,
       });
     },

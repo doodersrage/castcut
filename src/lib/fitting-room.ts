@@ -510,7 +510,15 @@ export function buildFittingOutfitPrompt(input: {
   const footwear = (input.footwearLine ?? '')
     // The try-on brief is a list of short lower-case instructions.
     .replace(/^FOOTWEAR \(mandatory\): /, 'footwear (mandatory): ')
-    .replace(/\.$/, '');
+    .replace(/\.$/, '')
+    // Pictured shoes were drawn as a pair set down beside a barefoot model (Edit 2511, heels
+    // under the dress in Image 2, 3/3 of the user's try-ons): say they are on her feet.
+    .replace(
+      /— exactly these, on both feet$/,
+      (match, offset, whole: string) =>
+        `— exactly these, worn on both feet (on ${/\bon his\b/.test(whole) ? 'his' : 'her'} feet, not set down beside ${/\bon his\b/.test(whole) ? 'him' : 'her'}); no bare feet`
+    );
+  const hasShoes = Boolean(footwear) && !/barefoot/i.test(footwear);
   const name = input.characterName?.trim();
   const notes = input.notes?.trim();
   // No trailing full stop: the description is followed by one ("throughout.. Keep face").
@@ -537,7 +545,9 @@ export function buildFittingOutfitPrompt(input: {
     garmentLine,
     input.hasGarmentReference ? `outfit name (confirm match): ${outfit}` : null,
     footwear || null,
-    'discard every garment, uniform, shoe, bag, hat, and accessory from Image 1 unless the new outfit explicitly includes them',
+    hasShoes
+      ? 'discard every garment, uniform, shoe, bag, hat, and accessory from Image 1 unless the new outfit explicitly includes them — the footwear above replaces its shoes'
+      : 'discard every garment, uniform, shoe, bag, hat, and accessory from Image 1 unless the new outfit explicitly includes them',
     'do not restore the reference photo street clothes even if they match older look notes',
     input.isolated
       ? 'background: clean plain studio / white seamless; no scene from the original photo'
@@ -545,7 +555,10 @@ export function buildFittingOutfitPrompt(input: {
     notes
       ? `styling tweaks for the new outfit only (never restore Image 1 clothes): ${notes}`
       : null,
-    'output: single full-body or three-quarter fashion still of the same person in the new kit',
+    hasShoes
+      ? // A three-quarter crop cuts off the shoes that were picked.
+        'output: single full-body fashion still of the same person in the new kit — head to feet in frame, both feet and the shoes on them visible'
+      : 'output: single full-body or three-quarter fashion still of the same person in the new kit',
   ]
     .filter(Boolean)
     .join('\n');

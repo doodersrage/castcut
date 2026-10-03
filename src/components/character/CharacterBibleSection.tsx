@@ -9,9 +9,12 @@ import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision-still-s
 import {
   activeLook,
   clearCharacterBio,
+  getCharacter,
   saveCharacterBio,
+  upsertCharacter,
   type CharacterRecord,
 } from '@/lib/character-os';
+import { FieldLabel, SelectInput } from '@/components/ui/Field';
 import { buildRoleplayRequestBody, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 import {
   clearRoleplayLibraryBioFromCharacter,
@@ -19,7 +22,9 @@ import {
 } from '@/lib/roleplay-library';
 import {
   formatRoleplayBio,
+  isRoleplayAdultContent,
   normalizeRoleplayContent,
+  ROLEPLAY_CONTENT,
   normalizeRoleplayTone,
   type RoleplayBio,
 } from '@/lib/roleplay';
@@ -174,7 +179,15 @@ export default function CharacterBibleSection({
             personaId: character.personaId?.trim() || '',
             customPersona: character.customPersona,
             characterName: character.characterName || character.name,
-            extraHints: character.hints || character.notes,
+            // Appearance (the traits) is who this person is: the bible's look agrees with it.
+            extraHints: [
+              character.descriptor?.trim()
+                ? `Appearance (fixed — the look must agree with it, never contradict it): ${character.descriptor.trim()}`
+                : character.hints?.trim(),
+              character.notes?.trim(),
+            ]
+              .filter(Boolean)
+              .join('\n'),
             setting: character.setting,
             tone: normalizeRoleplayTone(character.tone),
             content: normalizeRoleplayContent(character.content),
@@ -204,6 +217,36 @@ export default function CharacterBibleSection({
       description="Name, look, and personality for Story. Rewrite, edit, or clear here on Cast — Story continues whatever you save."
       data-testid="cast-bible-section"
     >
+      {/* The rating the bible is written at — the Cast's Story rating. Set by a Story and never
+          shown here, an Explicit Story left every rewrite adult with no way to see why. */}
+      <div className="mb-3 flex flex-wrap items-end gap-3" data-testid="cast-bible-rating">
+        <label className="block space-y-1.5">
+          <FieldLabel htmlFor="cast-bible-rating-select">Story rating</FieldLabel>
+          <SelectInput
+            id="cast-bible-rating-select"
+            data-testid="cast-bible-rating-select"
+            value={normalizeRoleplayContent(character.content)}
+            onChange={event => {
+              const fresh = getCharacter(character.id);
+              if (!fresh) return;
+              upsertCharacter({ ...fresh, content: normalizeRoleplayContent(event.target.value) });
+              const saved = getCharacter(character.id);
+              if (saved) onUpdated?.(saved);
+            }}
+          >
+            {ROLEPLAY_CONTENT.map(option => (
+              <option key={option.id} value={option.id}>
+                {option.label} — {option.hint}
+              </option>
+            ))}
+          </SelectInput>
+        </label>
+        <p className="type-caption max-w-md text-[var(--text-muted)]">
+          {isRoleplayAdultContent(normalizeRoleplayContent(character.content))
+            ? 'Adult: the bible and Story are written uncensored at this rating.'
+            : 'The bible and this character’s Story are written at this rating.'}
+        </p>
+      </div>
       {bio && !editorOpen ? (
         <>
           <p

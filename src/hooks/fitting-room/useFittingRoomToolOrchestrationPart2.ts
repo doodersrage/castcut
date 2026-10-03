@@ -1,5 +1,6 @@
 'use client';
 
+import { realKitId } from '@/lib/outfit-handoff';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -438,7 +439,8 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     deepLinkHandled.current = true;
     const params = new URLSearchParams(window.location.search);
     const queryCharacterId = params.get('character')?.trim() || '';
-    const wardrobeId = params.get('wardrobe')?.trim();
+    // 'custom-garment' (a clothing-photo try-on) is not a kit.
+    const wardrobeId = realKitId(params.get('wardrobe')) || undefined;
     const fromLook = params.get('from')?.trim() === 'look';
     const characterId = resolvePlayLoopEntryCharacterId({
       queryCharacterId,

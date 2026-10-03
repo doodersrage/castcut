@@ -84,6 +84,25 @@ export default function CharacterCastRoster() {
     }
   };
 
+  // Film's create form shows while no Cast is picked: put the current one down (as Film's own
+  // "None" does) and open it there.
+  const startNewCharacter = () => {
+    saveSharedSettings({
+      ...loadSettingsCache().shared,
+      activeCharacterId: undefined,
+      activeLookId: undefined,
+      activeCharacterDescriptor: undefined,
+      ipAdapterImageFilename: undefined,
+      ipAdapterImageFilenames: undefined,
+      ipAdapterImageUrl: undefined,
+      ipAdapterComfyUrl: undefined,
+      ipAdapterStrength: undefined,
+      ipAdapterModelFilename: undefined,
+      identityKind: undefined,
+    });
+    router.push('/play');
+  };
+
   const applyAndOpenHome = (id: string) => {
     const character = characters.find(entry => entry.id === id);
     if (!character) {
@@ -130,9 +149,19 @@ export default function CharacterCastRoster() {
     >
       {characters.length > 0 ? (
         <ToolSection title="Film loop" description="Guided Look → Outfit → Day → Story.">
-          <ButtonLink href="/play" size="sm" variant="primary">
-            Start a film
-          </ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/play" size="sm" variant="primary">
+              Start a film
+            </ButtonLink>
+            <Button
+              size="sm"
+              variant="secondary"
+              data-testid="cast-roster-new-character"
+              onClick={startNewCharacter}
+            >
+              New character
+            </Button>
+          </div>
         </ToolSection>
       ) : null}
       {characters.length === 0 ? (

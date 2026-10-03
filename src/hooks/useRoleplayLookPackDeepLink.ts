@@ -1,5 +1,6 @@
 'use client';
 
+import { realKitId } from '@/lib/outfit-handoff';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { roleplayWatchPlaylist } from '@/lib/character-film';
 import {
@@ -142,7 +143,8 @@ export function useRoleplayLookPackDeepLink({
       return;
     }
     deepLinkHandled.current = true;
-    const wardrobeId = params.get('wardrobe')?.trim();
+    // 'custom-garment' (a clothing-photo try-on) is not a kit.
+    const wardrobeId = realKitId(params.get('wardrobe')) || undefined;
     const lookPackId = params.get('lookPack')?.trim();
     const fromLook = params.get('from')?.trim() === 'look';
     const characterId = resolvePlayLoopEntryCharacterId({
