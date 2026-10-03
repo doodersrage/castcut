@@ -387,6 +387,8 @@ export default function LoraStackSessionPicker({
                   <input
                     type="checkbox"
                     checked={checked}
+                    // The name is on the button beside it; a screen reader read a bare checkbox.
+                    aria-label={`Use ${entry.label || entry.id}`}
                     onChange={() => {
                       const next = new Set(activeIds);
                       if (checked) {
