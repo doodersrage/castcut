@@ -1,5 +1,6 @@
 'use client';
 
+import OutfitPoseShoesNote from '@/components/fitting/OutfitPoseShoesNote';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
 import FittingCompareSection from '@/components/fitting/FittingCompareSection';
@@ -250,6 +251,11 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
           leadNoun={dayPartnerNoun(character ?? {})}
           plateUrl={referencePreviewUrl || referenceImageUrl}
           onChange={pose => updateToolSettings({ tryOnPose: pose })}
+        />
+        <OutfitPoseShoesNote
+          model={shared.model}
+          hasCustomPose={Boolean(toolSettings.tryOnPose?.people?.length)}
+          footwear={toolSettings.footwear}
         />
       </ToolSection>
 

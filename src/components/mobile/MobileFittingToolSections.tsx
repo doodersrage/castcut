@@ -1,5 +1,6 @@
 'use client';
 
+import OutfitPoseShoesNote from '@/components/fitting/OutfitPoseShoesNote';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
@@ -415,6 +416,11 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         leadNoun={dayPartnerNoun(character ?? {})}
         plateUrl={plateUrl}
         onChange={pose => updateToolSettings({ tryOnPose: pose })}
+      />
+      <OutfitPoseShoesNote
+        model={shared.model}
+        hasCustomPose={Boolean(toolSettings.tryOnPose?.people?.length)}
+        footwear={toolSettings.footwear}
       />
 
       {/* Same Clothing picker as Day and Story: a catalog kit or your own photo, Browse. */}

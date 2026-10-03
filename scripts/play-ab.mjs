@@ -16,7 +16,7 @@
  *       "square":   { "latent": [1328, 1328] },
  *       "portrait": { "latent": [1104, 1472], "steps": 8,
  *                     "replace": [["old prompt text", "new prompt text"]],
- *                     "inputs": { "900": { "image": "other-plate.png" } },
+ *                     "inputs": { "900": { "image": "other-plate.png" }, "4": { "image3": null } },
  *                     "nodes": { "990": { "class_type": "ImageCrop", "inputs": { ... } } } }
  *     }
  *   }]
@@ -136,6 +136,10 @@ function applyVariant(graph, variant, seed, prefix) {
       throw new Error(`inputs: node ${nodeId} is not in the graph`);
     }
     Object.assign(next[nodeId].inputs, inputs);
+    // null removes an input (e.g. drop a reference image from the encoder).
+    for (const [key, value] of Object.entries(inputs)) {
+      if (value === null) delete next[nodeId].inputs[key];
+    }
   }
   for (const node of nodes) {
     if (node.class_type === 'KSampler' || node.class_type === 'KSamplerAdvanced') {
