@@ -20,9 +20,11 @@ Castcut 2.3 is mostly about catching a bad still before it is rendered: every Da
 
 **Outfit: front and back.** Every try-on is followed by a back view of the same outfit, shown beside the front on its card (switch it off under *Front and back*). Keep and Day use the front.
 
+**Several look plates per character.** Add more than one plate on a character's page and switch between them from picture tiles there or in the Cast picker; Outfit, Day and Story use the one picked, and each keeps its own dressed outfits.
+
 **Cast files.** *Export Cast file* (character page → More) saves the character, picture, looks, bible, Part, story and Day plan in one file; *Import a Cast file* on the Characters page adds it to another install or restores a backup. An import never replaces an existing character ("Name (imported)").
 
-**Appearance traits, separate from the Story bible.** A character's Bible tab starts with *Appearance*: sex, ethnicity, age, height, body type and hair (colour, length, style), editable at any time. These alone describe the body in Day, Look and Outfit pictures; on a Cast with a picture, anything left unset is the picture's to show. The bible is now Story's only — its look (clothes, mood, story details) no longer leaks into Day prompts. *Describe from photo* writes Story's look from the Cast's picture, *Rewrite bible* keeps the look in line with the traits, and *Picture this bible* renders the character as the bible describes them, with the Cast's face. The Bible tab also shows the Story rating the bible is written at (a Story set to Explicit used to leave every rewrite adult with nothing on the page to say why).
+**Appearance traits, separate from the Story bible.** A character's Bible tab starts with *Appearance*: sex, ethnicity, age, height, body type and hair (colour, length, style), editable at any time. These alone describe the body in Day, Look and Outfit pictures; on a Cast with a picture, anything left unset is the picture's to show. The bible is now Story's only — its look (clothes, mood, story details) no longer leaks into Day prompts. *Describe from photo* writes Story's look from the Cast's picture, *Rewrite bible* keeps the look in line with the traits, and *Picture this bible* renders the character as the bible describes them, with the Cast's face (click it to see it full size). The Bible tab also shows the Story rating the bible is written at (a Story set to Explicit used to leave every rewrite adult with nothing on the page to say why).
 
 **Sync you can see.** Settings → Server storage shows when this browser last synced, what is waiting, and why a push failed. Failed pushes retry every minute, and waiting changes are sent when you leave the tab. Saved stories and learned poses now sync between devices.
 
@@ -31,6 +33,7 @@ Castcut 2.3 is mostly about catching a bad still before it is rendered: every Da
 ## Fixes
 
 **Day**
+- Lying scenes (on the back, side or stomach) are drawn lying down and dressed; on Qwen-Image 2.1 they were often sitting up or undressed.
 - Prompts no longer name a clothing photo or third image that isn't attached.
 - Two-person Vacation stills no longer take the outfit from the partner's face picture.
 - Barefoot scenes no longer keep the dressed plate's shoes.
