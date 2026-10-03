@@ -972,6 +972,15 @@ for (const still of STILLS) {
     }
   }
 
+  // I5b — a man lead in a clothed two-person still is the man: the couple recipe is written
+  // for him, and re-wording it turned "A man and his friend" into "A woman and her friend".
+  if (still.lead === 'man' && still.figures === 2 && !still.adultStill) {
+    const wrong = /\bA woman and (?:her|his) \w+|\bShe wears\b[^.]*;\s*(?:his|her) (?:friend|boyfriend|partner)/.exec(prompt);
+    if (wrong) {
+      fail(MAN_LEAD, still, `a man lead written as a woman: "${wrong[0]}"`);
+    }
+  }
+
   // I6 — with no pose map attached, the prompt does not refer to a pose image.
   if (still.third === 'none') {
     const refers = /\b(?:pose map|pose guide|OpenPose|skeleton|stick[- ]figure|wireframe)\b/i.exec(

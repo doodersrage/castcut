@@ -132,8 +132,10 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
   const swapLead =
     facts.leadNoun === 'man' &&
     !basePrompt.includes(RAPID_DUO_RECIPE_MARK) &&
-    // The Suggestive couple recipe is written for the pair already (see its `lead`).
-    !/ together, both fully clothed, affectionate\./.test(basePrompt) &&
+    // The couple recipes (Suggestive, and the everyday one Day uses for a pair) are written for
+    // the pair already (see their `lead`); swapped again, "A man and his friend" came out as
+    // "A woman and her friend" with a man lead (live, two men on Day).
+    !/ together, both fully clothed, (?:affectionate|both fully in frame)\./.test(basePrompt) &&
     !(facts.adult && leadHeadcount >= 2);
   // The whole finished prompt is swapped later; the partner line names the partner's own gender,
   // so it goes in pre-swapped (the swap turns it back).
