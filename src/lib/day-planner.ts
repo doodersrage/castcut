@@ -1,4 +1,5 @@
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
+import { storySceneNamesSecondPerson } from './story-scene-people';
 import { beatOwnsFootwear } from './footwear';
 import { intimateBeatIsOffBed } from './intimate-prompt-clarify';
 import {
@@ -3042,7 +3043,10 @@ export function resolveDayPoseHeadcount(input: {
     if (!allowCompanions) {
       return 1;
     }
-    return Math.min(2, Math.max(1, counted));
+    // "across a café table from her friend", "clinking bottles with his friend": a person named
+    // by a plain noun is someone in the picture (the counter reads pair words, not nouns).
+    const named = counted < 2 && storySceneNamesSecondPerson(input.beat?.trim() || input.haystack);
+    return Math.min(2, Math.max(1, named ? 2 : counted));
   }
   const mix = normalizeDayIntimateMix(input.intimateMix);
   if (mix === 'solo') {

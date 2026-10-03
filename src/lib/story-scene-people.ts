@@ -7,8 +7,23 @@
  */
 import { countPoseGuidePeople } from './day-pose-guide';
 
+/** Words that are always a person. */
 const PERSON_NOUNS =
-  '(?:man|woman|men|women|guy|girl|boy|stranger|friend|brother|sister|mother|father|mom|dad|partner|lover|boyfriend|girlfriend|husband|wife|neighbou?r|florist|barista|waiter|waitress|bartender|vendor|clerk|driver|officer|doctor|nurse|teacher|customer|child|kid|companion|colleague|co-?worker|boss|grand(?:mother|father|ma|pa)|aunt|uncle|cousin|son|daughter|figure|passenger|conductor|librarian|musician|dancer|chef|fisherman|sailor|guard|shopkeeper|baker|postman|courier|tourist)';
+  '(?:man|woman|men|women|guy|girl|boy|stranger|friend|brother|sister|mother|father|mom|dad|partner|lover|boyfriend|girlfriend|husband|wife|neighbou?r|child|kid|companion|colleague|co-?worker|boss|grand(?:mother|father|ma|pa)|aunt|uncle|cousin|son|daughter|figure)';
+
+/**
+ * Jobs and roles, which also name places and things ("outside the florist", "the passenger
+ * seat", "a vendor tray"): a person only while doing something — "the barista hands him a
+ * pastry", "a vendor who waves".
+ */
+const ROLE_NOUNS =
+  '(?:florist|barista|waiter|waitress|bartender|vendor|clerk|driver|officer|doctor|nurse|teacher|customer|passenger|conductor|librarian|musician|dancer|chef|fisherman|sailor|guard|shopkeeper|baker|postman|courier|tourist)';
+
+/** A role followed by what the person does: "who …" or a present-tense verb. */
+const ROLE_ACTING_RE = new RegExp(
+  `\\b(?:a|an|the|her|his|their|another|one|some)\\s+(?:[a-z’'-]+\\s+){0,2}${ROLE_NOUNS}\\s+(?:who\\b|(?!is\\b|was\\b|has\\b)[a-z]+(?:s|es)\\b)`,
+  'i'
+);
 
 /** "a man in a velvet vest", "the barista", "her brother" — not "the man's coat". */
 const SECOND_PERSON_RE = new RegExp(
@@ -20,12 +35,23 @@ const SECOND_PERSON_RE = new RegExp(
 const ALONE_RE =
   /\b(?:alone|by (?:her|him|them)sel(?:f|ves)|on (?:her|his) own|no one else|nobody else|empty (?:room|street|station|platform|carriage))\b/i;
 
+/**
+ * Someone named but not in the picture: "waiting for a friend", "waving down a friend across the
+ * plaza", "texting her sister". Day's own solo beats read like this.
+ */
+const ABSENT_PERSON_RE = new RegExp(
+  `\\b(?:waiting (?:for|on)|waits for|waving(?: down| to| at| goodbye to)?|waves(?: down| to| at)?|looking for|searching for|text(?:ing|s)?|call(?:ing|s)?|messag(?:ing|es)|thinking (?:about|of)|miss(?:ing|es)|writ(?:ing|es) to|on the phone (?:with|to)|a photo of|a picture of)\\s+(?:a|an|the|her|his|their|another|one|some)\\s+(?:[a-z’'-]+\\s+){0,2}(?:${PERSON_NOUNS}|${ROLE_NOUNS})\\b`,
+  'gi'
+);
+
 /** True when the scene names a second person the pose counter does not count. */
 export function storySceneNamesSecondPerson(text: string | null | undefined): boolean {
   // Older saved scenes can have a title and no description.
   const scene = text?.trim() || '';
   if (!scene || ALONE_RE.test(scene)) return false;
-  return countPoseGuidePeople(scene, { sexVocabulary: false }) < 2 && SECOND_PERSON_RE.test(scene);
+  if (countPoseGuidePeople(scene, { sexVocabulary: false }) >= 2) return false;
+  const present = scene.replace(ABSENT_PERSON_RE, ' ');
+  return SECOND_PERSON_RE.test(present) || ROLE_ACTING_RE.test(present);
 }
 
 /**
