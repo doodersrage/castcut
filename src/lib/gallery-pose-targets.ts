@@ -1,6 +1,6 @@
 /**
  * Where a pose read from a gallery still can go: a Day slot or a Story beat (as its photo
- * pose), mirroring what "Use a photo…" does in the pose preview. Pure list updates plus thin
+ * pose), mirroring what "From a photo…" does in the pose preview. Pure list updates plus thin
  * settings wrappers.
  */
 

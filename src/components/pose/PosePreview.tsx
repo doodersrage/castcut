@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
 import MyPosesStrip from '@/components/pose/MyPosesStrip';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +17,7 @@ import {
   type PoseGuideBuildOptions,
 } from '@/lib/day-pose-guide';
 import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose-layout-labels';
+import { fitPhotoPoseToHeadcount } from '@/lib/photo-pose-fit';
 
 // A modal used now and then: its own chunk, shared by every page, instead of a copy in each
 // tool page's bundle.
@@ -66,6 +67,7 @@ export default function PosePreview({
   testIdPrefix = 'pose-preview',
   backdropUrl,
   backdropLabel,
+  photoPeople,
   onChange,
 }: {
   sceneText?: string;
@@ -81,12 +83,28 @@ export default function PosePreview({
   /** The Cast's plate, shown behind the figure in the pose editor as a guide to proportions. */
   backdropUrl?: string | null;
   backdropLabel?: string;
+  /**
+   * How many people this still draws (1 solo, 2 duo): "From a photo" keeps that many from the
+   * photo, and a duo needs two. Unset = as many as the photo has.
+   */
+  photoPeople?: number;
   onChange: (patch: PosePicks) => void;
 }) {
   const library = usePoseLibrary();
   const [photoStatus, setPhotoStatus] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [editing, setEditing] = useState(false);
+  // The picture the pose was read from, shown beside the figure while that pose is in use. Kept
+  // for this visit only (an object URL): the slot / beat stores the skeleton, not the photo.
+  const [photoThumb, setPhotoThumb] = useState<{ url: string; pose: PhotoPose } | null>(null);
+  const thumbUrlRef = useRef<string | null>(null);
+  useEffect(
+    () => () => {
+      if (thumbUrlRef.current) URL.revokeObjectURL(thumbUrlRef.current);
+    },
+    []
+  );
 
   const plan = useMemo(
     () =>
@@ -135,16 +153,19 @@ export default function PosePreview({
   const readPhoto = async (file: File | undefined) => {
     if (!file) return;
     setPhotoBusy(true);
+    setPhotoError(false);
     setPhotoStatus('Reading the pose…');
     try {
       // Loaded on demand: pulls in ComfyUI upload + DWPose.
       const { readPoseFromPhoto } = await import('@/lib/pose-library-import');
-      const pose = await readPoseFromPhoto(file);
+      const { pose, note } = fitPhotoPoseToHeadcount(await readPoseFromPhoto(file), photoPeople);
       onChange({ posePhoto: pose, poseLayout: undefined, poseVariant: undefined });
-      setPhotoStatus(
-        `Using your photo (${pose.people.length} ${pose.people.length === 1 ? 'person' : 'people'}).`
-      );
+      if (thumbUrlRef.current) URL.revokeObjectURL(thumbUrlRef.current);
+      thumbUrlRef.current = URL.createObjectURL(file);
+      setPhotoThumb({ url: thumbUrlRef.current, pose });
+      setPhotoStatus(note);
     } catch (error) {
+      setPhotoError(true);
       setPhotoStatus(error instanceof Error ? error.message : 'Could not read that photo.');
     } finally {
       setPhotoBusy(false);
@@ -155,8 +176,18 @@ export default function PosePreview({
     if (!picks.posePhoto) return;
     const { savePhotoPoseToLibrary } = await import('@/lib/pose-library-import');
     const { key } = savePhotoPoseToLibrary(picks.posePhoto, drawnId);
+    setPhotoError(false);
     setPhotoStatus(`Saved to the pose library as ${poseLayoutLabel(drawnId)} (${key}).`);
   };
+
+  // The photo beside the figure only while the pose read from it is still the one in use.
+  const thumbUrl =
+    photoThumb &&
+    picks.posePhoto &&
+    !edited &&
+    JSON.stringify(picks.posePhoto.people) === JSON.stringify(photoThumb.pose.people)
+      ? photoThumb.url
+      : null;
 
   if (editing) {
     return (
@@ -171,6 +202,7 @@ export default function PosePreview({
         onCancel={() => setEditing(false)}
         onSave={pose => {
           onChange({ posePhoto: pose, poseLayout: undefined, poseVariant: undefined });
+          setPhotoError(false);
           setPhotoStatus('Using your edited pose.');
           setEditing(false);
         }}
@@ -184,12 +216,25 @@ export default function PosePreview({
       data-testid={testIdPrefix}
       data-pose={fromPhoto ? 'photo' : drawnId}
     >
-      <PoseBodiesSvg
-        layers={[{ bodies: openPose.keypoints }]}
-        aspect={openPose.canvas.width / openPose.canvas.height}
-        height={compact ? 96 : 120}
-        label={`Pose guide: ${name}`}
-      />
+      <div className="flex shrink-0 gap-1.5">
+        {thumbUrl ? (
+          // An object URL of the player's own file: next/image cannot optimise it.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={thumbUrl}
+            alt="The photo this pose was read from"
+            className="w-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-cover"
+            style={{ height: compact ? 96 : 120, maxWidth: compact ? 72 : 90 }}
+            data-testid={`${testIdPrefix}-photo-thumb`}
+          />
+        ) : null}
+        <PoseBodiesSvg
+          layers={[{ bodies: openPose.keypoints }]}
+          aspect={openPose.canvas.width / openPose.canvas.height}
+          height={compact ? 96 : 120}
+          label={`Pose guide: ${name}`}
+        />
+      </div>
       <div className="min-w-0 flex-1 space-y-1.5">
         <p className="type-caption text-[var(--text-secondary)]">
           <span className="type-overline mr-1 text-[var(--text-muted)]">
@@ -328,12 +373,18 @@ export default function PosePreview({
           <label
             className="inline-flex min-h-8 cursor-pointer items-center underline"
             data-testid={`${testIdPrefix}-photo`}
+            title={
+              photoPeople === 2
+                ? 'Pick a photo of two people in the pose you want — only the pose is used, not the people or clothes'
+                : 'Pick a photo of someone in the pose you want — only the pose is used, not the person or clothes'
+            }
           >
-            {photoBusy ? 'Reading…' : fromPhoto ? 'Use another photo…' : 'Use a photo…'}
+            {photoBusy ? 'Reading…' : fromPhoto && !edited ? 'Another photo…' : 'From a photo…'}
             <input
               type="file"
               accept="image/*"
               className="sr-only"
+              data-testid={`${testIdPrefix}-photo-input`}
               disabled={busy}
               onChange={event => {
                 void readPhoto(event.target.files?.[0]);
@@ -351,6 +402,7 @@ export default function PosePreview({
                 onClick={() => {
                   onChange({ posePhoto: undefined });
                   setPhotoStatus(null);
+                  setPhotoError(false);
                 }}
               >
                 {edited ? 'Clear edit' : 'Clear photo'}
@@ -369,7 +421,13 @@ export default function PosePreview({
         </div>
         {photoStatus ? (
           <p
-            className="type-caption text-[var(--text-muted)]"
+            className={`type-caption ${
+              photoError
+                ? 'text-[var(--tint-warning-text,var(--accent-text))]'
+                : 'text-[var(--text-muted)]'
+            }`}
+            role={photoError ? 'alert' : undefined}
+            data-error={photoError ? 'true' : undefined}
             data-testid={`${testIdPrefix}-photo-status`}
           >
             {photoStatus}

@@ -121,6 +121,14 @@ export default function StoryBeatPosePreview({
     beat.posePhoto,
     beat.poseVariant,
   ]);
+  // "From a photo": how many people this scene draws, read from the scene as if nothing were
+  // picked (a solo story is one; a scene naming a second person is two; else the photo decides).
+  const photoPeople = storyPoseForcePeople({
+    text: beat.blurb,
+    adult,
+    solo: soloStory,
+    playerPosed: false,
+  });
   const picked = storyBeatHasPosePicks(beat);
   return (
     <details
@@ -141,6 +149,7 @@ export default function StoryBeatPosePreview({
           testIdPrefix="story-beat-pose-preview"
           backdropUrl={backdropUrl}
           backdropLabel="the story's picture"
+          photoPeople={photoPeople}
           onChange={patch => onPoseChange(beat, patch)}
         />
       </div>

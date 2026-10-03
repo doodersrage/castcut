@@ -63,6 +63,7 @@ export default function DaySlotPosePreview({
         testIdPrefix="day-slot-pose-preview"
         backdropUrl={plateUrl}
         backdropLabel="Day plate"
+        photoPeople={plan.headcount}
         onChange={patch => updateSlot(slot.id, patch)}
       />
       {poseMiss ? <PoseMissPanel view={poseMiss} testId="day-slot-pose-miss" /> : null}

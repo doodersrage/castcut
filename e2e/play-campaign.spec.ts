@@ -1550,7 +1550,21 @@ test('day slot editor previews the pose and lets you change it', async ({ page }
   await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Waving');
   await page.getByTestId('day-slot-pose-preview-camera').selectOption('low');
   await expect(page.getByTestId('day-slot-pose-preview-camera')).toHaveValue('low');
-  await expect(page.getByTestId('day-slot-pose-preview-photo')).toContainText('Use a photo');
+  await expect(page.getByTestId('day-slot-pose-preview-photo')).toContainText('From a photo');
+  // No ComfyUI here: the read fails, and says so plainly instead of changing the pose.
+  await page.getByTestId('day-slot-pose-preview-photo-input').setInputFiles({
+    name: 'pose.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64'
+    ),
+  });
+  const photoStatus = page.getByTestId('day-slot-pose-preview-photo-status');
+  await expect(photoStatus).toHaveAttribute('data-error', 'true', { timeout: 20_000 });
+  await expect(photoStatus).toHaveAttribute('role', 'alert');
+  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Waving');
+  await expect(page.getByTestId('day-slot-pose-preview-photo-thumb')).toHaveCount(0);
   await page.getByTestId('day-slot-pose-preview-look').selectOption('down');
   await expect(page.getByTestId('day-slot-pose-preview-look')).toHaveValue('down');
   // Edit joints: nudge the Cast's right wrist with the keyboard and use the edited pose.
