@@ -168,7 +168,10 @@ export default function CharacterBibleSection({
           buildRoleplayRequestBody({
             action: 'bio',
             shared,
-            personaId: character.personaId?.trim() || 'custom',
+            // No Part: an original character built from the name and notes. 'custom' with no
+            // text meant "an unexpected character with a secret inner life", which the writer
+            // dressed in corsets and thigh-high boots even at PG-13.
+            personaId: character.personaId?.trim() || '',
             customPersona: character.customPersona,
             characterName: character.characterName || character.name,
             extraHints: character.hints || character.notes,

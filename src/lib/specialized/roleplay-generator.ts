@@ -213,6 +213,16 @@ function adultStillGuard(content: RoleplayContentId): string {
 - Prior beat titles in the blurb are continuity labels only — do not turn them into curtains, props, signage, or room theme.`;
 }
 
+/**
+ * Below the adult ratings the clothes are everyday ones unless the Part says otherwise. With a
+ * vague Part the writer (an NSFW-tuned local model in testing) reached for lace bodices, corsets
+ * and thigh-high boots at PG-13, 4 bibles in 4.
+ */
+function everydayLookHint(content: RoleplayContentId): string {
+  if (isRoleplayAdultContent(content)) return '';
+  return ' Clothes are everyday, real-world ones for this person unless the part calls for a costume — no corsets, bodices, lingerie or thigh-high boots.';
+}
+
 function adultLookHint(content: RoleplayContentId): string {
   if (content === 'explicit') {
     return ' For look: include body and sexual presentation (nude or mid-sex wardrobe), not just an outfit.';
@@ -376,7 +386,7 @@ Return ONLY JSON: {"name":"","look":"","personality":"","catchphrase":""}
           // tied back") fought the photo in every still. It describes what the photo does not.
           'one visual sentence of clothes, colors and distinctive props only — never face, hair, skin, age or body; those come from the reference photo. Clothes from the part — not the photo location or the photo outfit.'
         : 'one visual sentence (species/body, clothes, colors, distinctive props).'
-    }${adultLookHint(content)}
+    }${adultLookHint(content)}${everydayLookHint(content)}
 - personality: one or two sentences, first or close third person.
 - ${contentLine(content, allowGore)}`,
     user: [
