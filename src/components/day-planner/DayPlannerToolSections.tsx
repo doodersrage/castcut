@@ -882,6 +882,19 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               ) : null}
             </ToolActionRow>
           ) : null}
+          {/* The cut banner hides the row above; the way on to Story stays. */}
+          {!showReelCut && character && completedShotCount > 0 ? (
+            <ToolActionRow>
+              <ButtonLink
+                href={continueDayAsStoryHref(character.id)}
+                size="sm"
+                variant="secondary"
+                data-testid="day-continue-story"
+              >
+                Continue as a story
+              </ButtonLink>
+            </ToolActionRow>
+          ) : null}
           {filmStatus && !firstCutCelebrate ? (
             <CollapsibleSection
               title="After cut"

@@ -128,7 +128,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
   /** The prepared plate's face scored under the bar against the one before. */
   const [plateFaceDrift, setPlateFaceDrift] = useState(false);
   const lookPackFileRef = useRef<HTMLInputElement | null>(null);
-  const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance();
+  const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance();
 
   useEffect(() => {
     const media = searchParams.get('media')?.trim().toLowerCase();
@@ -426,17 +426,10 @@ export function useCharacterHomeOrchestration(characterId: string) {
         const saved = input.newPlate
           ? `New look “${input.newPlate.name || 'look'}” made and in use`
           : 'Look plate saved';
-        setPlateStatus(result.isolated ? `${saved} (isolated on white).` : `${saved}.`);
-        softAdvanceHref(
-          `/fitting?character=${encodeURIComponent(character.id)}`,
-          'Outfit',
-          'Look plate ready — continuing to Outfit (or stay on Cast)',
-          [
-            {
-              href: `/day?character=${encodeURIComponent(character.id)}`,
-              label: 'Go to Day instead',
-            },
-          ]
+        // Stay here to look it over (and Prepare plate) — the upload used to move on to Outfit
+        // by itself. The checklist's Next step points onward.
+        setPlateStatus(
+          `${result.isolated ? `${saved} (isolated on white)` : saved} — look it over, Prepare plate if it needs it, then try outfits.`
         );
         return true;
       } catch (err) {
@@ -447,7 +440,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
         setPlateUploading(false);
       }
     },
-    [character, softAdvanceHref]
+    [character]
   );
 
   const prepareLookPlate = async (
