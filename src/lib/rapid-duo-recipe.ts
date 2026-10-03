@@ -1143,8 +1143,15 @@ export function buildCompactDayDuoRecipe(
   input: Parameters<typeof buildRapidSuggestiveDuoRecipe>[0]
 ): string | null {
   const recipe = buildRapidSuggestiveDuoRecipe(input);
+  // A friends beat stays friends: the couple recipe names a same-sex partner "his boyfriend" /
+  // "her girlfriend", and two men walking with coffees were drawn holding hands.
+  const friends =
+    /\bfriends?\b/i.test(input.beat ?? '') &&
+    !/\b(?:date|dating|kiss\w*|romantic|lover|boyfriend|girlfriend|husband|wife|couple)\b/i.test(
+      input.beat ?? ''
+    );
   return recipe
-    ? recipe
+    ? (friends ? recipe.replace(/\b(boy|girl)friend\b/g, 'friend') : recipe)
         .replace(RAPID_SUGGESTIVE_RECIPE_MARK, DAY_CLOTHED_RECIPE_MARK)
         .replace('both fully clothed, affectionate.', 'both fully clothed, both fully in frame.')
         .replace(/\bwears a flirty dress\b/, 'wears everyday clothes')

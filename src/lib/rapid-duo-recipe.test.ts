@@ -658,3 +658,17 @@ describe('Story clothed two-person stills on Rapid', () => {
     );
   });
 });
+
+describe('Day couple recipe for friends', () => {
+  it('keeps a friends beat as friends for a same-sex pair', async () => {
+    const { buildCompactDayDuoRecipe } = await import('./rapid-duo-recipe');
+    const recipe = buildCompactDayDuoRecipe({
+      beat: 'walking side by side through the park with her friend, takeaway coffees in hand',
+      poseGuide: 'third',
+      partner: { partner: { name: 'Sam', noun: 'man', descriptor: 'a man with curly hair' }, image: 'second' },
+      lead: 'man',
+    } as never);
+    assert.doesNotMatch(recipe ?? '', /boyfriend/);
+    assert.match(recipe ?? '', /his friend/);
+  });
+});

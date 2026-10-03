@@ -3518,10 +3518,19 @@ export function buildDaySlotPrompt(input: {
       poseHeadcount < 2 &&
       faceOnlyIdentity &&
       Boolean(garmentReinforce);
+    // Rapid, a clothed two-person still with a Cast partner's face: the compact couple recipe.
+    // Replayed live (two seeds), the brief drew a stranger or a third person instead of the
+    // partner; the couple recipe drew the lead and the partner, faces right, both times.
+    const rapidPartnerDuo =
+      rapidAio &&
+      !isDayAdultMood(dayMood) &&
+      poseHeadcount >= 2 &&
+      partnerImage &&
+      !suggestiveCouple;
     if (
-      (rapidAio ? moodRecipe || rapidEveryday : compactClothed) &&
+      (rapidAio ? moodRecipe || rapidEveryday || rapidPartnerDuo : compactClothed) &&
       !omitGarment &&
-      (poseHeadcount < 2 || suggestiveCouple || compactDuo)
+      (poseHeadcount < 2 || suggestiveCouple || compactDuo || rapidPartnerDuo)
     ) {
       // The Day kit in plain words: a catalog description's first sentence, no leading article.
       const kit = (input.wardrobeLabel?.trim() || garmentDescription || '')
@@ -3552,7 +3561,7 @@ export function buildDaySlotPrompt(input: {
       };
       const recipe = suggestiveCouple
         ? buildRapidSuggestiveDuoRecipe(coupleInput)
-        : compactDuo
+        : compactDuo || rapidPartnerDuo
           ? buildCompactDayDuoRecipe(coupleInput)
           : dayMood === 'vacation'
             ? buildRapidVacationRecipe(recipeInput)
