@@ -55,12 +55,18 @@ const words = (body: NormalizedBody, sceneText?: string) =>
 
 describe('custom pose in words', () => {
   it('leads with the base posture, then the telling limbs, on her own sides', () => {
-    assert.equal(words(ARM_UP), 'standing, her right arm raised overhead, her left hand on her hip');
-    assert.match(words(KNEEL_ONE), /^on one knee: her right knee down on the floor, her left foot planted in front with that knee up, both hands on her left knee$/);
+    assert.equal(
+      words(ARM_UP),
+      'standing, her right arm (on the left of the picture) raised overhead, her left hand (on the right of the picture) on her hip'
+    );
+    assert.match(
+      words(KNEEL_ONE),
+      /^on one knee: her right knee \(on the left of the picture\) down on the floor, her left foot \(on the right of the picture\) planted in front with that knee up, both hands on her left knee$/
+    );
     assert.equal(words(CROSS_LEGGED), 'sitting cross-legged on the floor, leaning back on her hands');
     assert.match(
       words(SIDE_LUNGE),
-      /^in a deep lunge, her right knee bent, her left leg straight out to the side/
+      /^in a deep lunge, her right knee \(on the left of the picture\) bent, her left leg \(on the right of the picture\) straight out to the side/
     );
     assert.equal(
       words(LYING_HANDS_HEAD),
@@ -71,7 +77,7 @@ describe('custom pose in words', () => {
   it('seen from behind her right is the picture right: looking back over her right shoulder', () => {
     assert.equal(
       words(BACK_OVER_SHOULDER),
-      'standing, her back to the camera, looking back over her right shoulder'
+      'standing, her back to the camera, looking back over her right shoulder (on the right of the picture)'
     );
   });
 
@@ -79,7 +85,7 @@ describe('custom pose in words', () => {
     const [mirrored] = mirrorBodies([ARM_UP]);
     assert.equal(
       words(mirrored!),
-      'standing, her left arm raised overhead, her right hand on her hip'
+      'standing, her left arm (on the right of the picture) raised overhead, her right hand (on the left of the picture) on her hip'
     );
   });
 
@@ -88,7 +94,9 @@ describe('custom pose in words', () => {
     assert.match(describePoseFigure(poseStarterBody('sit')).text, /^seated/);
     assert.match(describePoseFigure(poseStarterBody('lie')).text, /^lying on her/);
     for (const body of [ARM_UP, KNEEL_ONE, CROSS_LEGGED, SIDE_LUNGE, BACK_OVER_SHOULDER]) {
-      assert.ok(words(body).split(/\s+/).length <= POSE_WORDS_SOLO_MAX, words(body));
+      // The picture sides are clarifications, outside the cap.
+      const capped = words(body).replace(/ \(on the (?:left|right) of the picture\)/g, '');
+      assert.ok(capped.split(/\s+/).length <= POSE_WORDS_SOLO_MAX, words(body));
       const short = describePoseFigure(body, { aspect: A, maxWords: 10 });
       // The stance always stays; facts are dropped to fit.
       assert.ok(short.facts.length <= describePoseFigure(body, { aspect: A }).facts.length);

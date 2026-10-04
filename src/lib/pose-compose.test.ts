@@ -75,7 +75,7 @@ describe('composeWrittenPose', () => {
     ] as const) {
       assert.ok(Math.abs(ratio(b, i, j, 1, 8) - ratio(a, i, j, 1, 8)) < 0.02, `bone ${i}-${j}`);
     }
-    assert.match(wild.words ?? '', /arm raised/);
+    assert.match(wild.words ?? '', /arm (?:\(on the (?:left|right) of the picture\) )?raised/);
   });
 
   it('puts the limbs where the words say', () => {

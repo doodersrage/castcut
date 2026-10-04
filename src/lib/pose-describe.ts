@@ -9,10 +9,16 @@
  * editor, "From a photo", My poses, Day pose packs, the Outfit try-on, Story's composed poses —
  * goes out with this description as its first pose line.
  *
- * Sides are hers, never the picture's: COCO-18 joints are labelled by the person's own side
- * (DWPose and the joint editor both), so joint 2–4 is her right arm whichever way she faces —
- * facing the camera it is on the picture's left, seen from behind on its right. Only where she
- * looks or faces sideways is said against the picture ("facing the left of the picture").
+ * Sides are hers, with the picture's side the first time each is named: COCO-18 joints are
+ * labelled by the person's own side (DWPose and the joint editor both), so joint 2–4 is her right
+ * arm whichever way she faces — facing the camera it is on the picture's left, seen from behind
+ * on its right. Body sides alone were mirrored on one-knee poses (Rapid and Edit 2511 put the
+ * other knee down 4/4), so the first "her right …" and "her left …" also say where that limb is
+ * in the picture ("her right knee (on the left of the picture) down on the floor"). A/B
+ * 2026-10-04, one-knee / over-the-shoulder / arm-up poses × 2 seeds × Rapid and Edit 2511, sides
+ * right by eye: body sides 8/12, picture sides only 10/12, both 12/12, no sides 6/12 (the engines
+ * pick their own, and Edit 2511 then looked over the other shoulder). Where she looks or faces
+ * sideways is said against the picture only ("facing the left of the picture").
  *
  * Pure geometry, no props and no places, so it cannot contradict a beat's setting; "on the
  * floor" is dropped when the scene names something else to sit or lie on.
@@ -51,6 +57,11 @@ export type PoseDescribeOptions = {
   /** The beat / scene words: a seat or bed named there replaces "the floor". */
   sceneText?: string | null;
   maxWords?: number;
+  /**
+   * Say the picture's side after the first "her right …" / "her left …" (default true). Off for
+   * the two figures of a duo, whose lines are already long and were not A/B'd with it.
+   */
+  pictureSides?: boolean;
 };
 
 const dist = (p: Pt, q: Pt) => Math.hypot(p.x - q.x, p.y - q.y);
@@ -92,6 +103,8 @@ export function describePoseFigure(
   const read = readPoseStance(body, { possessive: readAs, aspect: a });
   const ownWords = (text: string) =>
     whose === 'their' ? text.replace(/\bher\b/g, 'their').replace(/\bshe\b/g, 'they') : text;
+  // Lying, her limbs are stacked across the picture: its left and right say nothing about them.
+  let pictureSides = options.pictureSides !== false;
   const finish = (stance: string, view: string | null, facts: string[]) => {
     const text = [stance, view, ...facts].filter(Boolean).join(', ');
     const placed =
@@ -101,7 +114,12 @@ export function describePoseFigure(
             .replace(/\bflat on the floor\b/g, 'flat')
             .replace(/ to the floor\b/g, ' down')
         : text;
-    return { stance, view, facts, text: ownWords(placed) };
+    return {
+      stance,
+      view,
+      facts,
+      text: ownWords(pictureSides ? withPictureSides(placed, body, a) : placed),
+    };
   };
   const neck = at(1);
   const rHip = at(8);
@@ -111,6 +129,7 @@ export function describePoseFigure(
   const hip = rHip && lHip ? mid(rHip, lHip) : (rHip ?? lHip)!;
   const posture = classifyPosture(body, a);
   const lying = read.stance === 'lying down' || posture.group === 'lying';
+  if (lying) pictureSides = false;
 
   const legs = (
     [
@@ -497,6 +516,64 @@ export function describePoseFigure(
   );
 }
 
+/** COCO-18 joints that say where a named limb is, her right first: wrist / knee / … per noun. */
+const SIDE_JOINTS: Array<[RegExp, Array<[number, number]>]> = [
+  [
+    /^(?:arm|hand|wrist|elbow)$/,
+    [
+      [4, 7],
+      [3, 6],
+      [2, 5],
+    ],
+  ],
+  [
+    /^(?:knee|thigh)$/,
+    [
+      [9, 12],
+      [8, 11],
+    ],
+  ],
+  [
+    /^(?:leg|foot|ankle|shin)$/,
+    [
+      [10, 13],
+      [9, 12],
+    ],
+  ],
+  [/^shoulder$/, [[2, 5]]],
+  [/^hip$/, [[8, 11]]],
+];
+
+/**
+ * After the first "her right <limb>" and the first "her left <limb>", say which side of the
+ * picture that limb is on, read from the joints themselves (facing the camera her right is the
+ * picture's left; from behind, its right). Skipped when the two sides sit too close to tell
+ * (a side-on view) or the joints weren't drawn.
+ */
+function withPictureSides(text: string, body: NormalizedBody, aspect: number): string {
+  const said = new Set<string>();
+  return text.replace(
+    /\b(her|his) (right|left) (arm|hand|wrist|elbow|knee|thigh|leg|foot|ankle|shin|shoulder|hip)\b/g,
+    (match, _whose: string, side: 'right' | 'left', noun: string) => {
+      if (said.has(side)) return match;
+      const pairs = SIDE_JOINTS.find(([pattern]) => pattern.test(noun))?.[1] ?? [];
+      for (const [rightIndex, leftIndex] of pairs) {
+        const right = body[rightIndex];
+        const left = body[leftIndex];
+        if (!right || !left) continue;
+        const dx = (right.x - left.x) * aspect;
+        if (Math.abs(dx) < 0.03) return match;
+        said.add(side);
+        // Her right limb on the picture's left when it sits left of her left one.
+        const rightOnLeft = dx < 0;
+        const picture = (side === 'right') === rightOnLeft ? 'left' : 'right';
+        return `${match} (on the ${picture} of the picture)`;
+      }
+      return match;
+    }
+  );
+}
+
 /** Lying on the back, side or front, from the shoulders and the face. */
 function lyingStance(
   posture: string,
@@ -572,6 +649,7 @@ export function describePhotoPose(
     ...options,
     aspect: photo.aspect,
     maxWords: options.maxWords ?? POSE_WORDS_DUO_MAX,
+    pictureSides: false,
   };
   const leadWords = describePoseFigure(lead, { ...each, possessive }).text;
   const partnerWords = describePoseFigure(partner, { ...each, possessive: 'their' }).text;
