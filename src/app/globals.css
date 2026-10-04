@@ -647,6 +647,14 @@ html[data-density='comfortable'] .ui-tool-header {
 }
 
 /* Sticky cards scroll over content — the translucent card token let text show through. */
+/* An open menu can drop below its card: lift the section (or collapsible) holding it above the
+   cards after it, which otherwise paint over the panel (Day's After cut menu under More). */
+section:has(details[open] > .ui-menu-panel),
+.ui-collapsible:has(details[open] > .ui-menu-panel) {
+  position: relative;
+  z-index: 30;
+}
+
 :root .ui-gallery-dock.sticky,
 :root .ui-sticky-surface,
 :root .ui-menu,
