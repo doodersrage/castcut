@@ -111,7 +111,12 @@ describe('Rapid duo recipe', () => {
     );
     assert.match(
       buildRapidDuoRecipe({ beat: 'going down on her in the late-morning sheets, partner between her thighs' })!,
-      /man lies between her thighs/
+      /sits on the edge of the bed, leaning back.*the man kneels on the floor between her thighs/
+    );
+    // No kneel and a rug: she sits on the couch edge, not on "the edge of the rug".
+    assert.match(
+      buildRapidDuoRecipe({ beat: 'oral sex on the living-room rug with a partner when the pizza arrives' })!,
+      /sits on the edge of the couch,/
     );
     assert.match(
       buildRapidDuoRecipe({ beat: 'A distinct adult partner kneeling for oral sex on Lana — head between thighs' })!,
@@ -769,7 +774,7 @@ describe('Rapid duo recipe: surface wording', () => {
     assert.equal(rapidDuoSurface('on the bare mattress'), 'bed');
     assert.match(
       body('going down on her in the late-morning sheets, partner between her thighs — both adults fully visible'),
-      /lies on her back on the bed /
+      /sits on the edge of the bed,/
     );
   });
 

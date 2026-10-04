@@ -57,9 +57,20 @@ export const ORAL_SEAT_RE =
 export const SEATED_ORAL_GUIDE_TEXT = 'seated oral sex';
 
 /**
+ * The seat for seated oral: the beat's own seat, else its couch, else the bed ("oral sex on the
+ * living-room rug" sits her on the couch — a rug has no edge).
+ */
+export function oralSeat(beat: string, surface: string | null): string {
+  if (surface && ORAL_SEAT_RE.test(surface)) {
+    return surface;
+  }
+  return /\b(?:couch|sofa|living[- ]room)\b/i.test(beat) ? 'couch' : 'bed';
+}
+
+/**
  * True when the man + woman Rapid recipe seats the receiver on an edge with the giver kneeling
- * between her knees: she gives anywhere but on a floor (he sits on the bed edge), or he gives
- * kneeling at a seat. A piano bench keeps its own kneel-up drawing.
+ * between her knees: she gives anywhere but on a floor (he sits on the bed edge), he gives with
+ * no kneel named, or he gives kneeling at a seat. A piano bench keeps its own kneel-up drawing.
  */
 export function oralReceiverSeated(text: string | null | undefined): boolean {
   const beat = text?.trim() || '';
@@ -72,5 +83,7 @@ export function oralReceiverSeated(text: string | null | undefined): boolean {
   if (sheGivesOral(beat)) {
     return !isFloorSurface(rapidDuoSurface(beat));
   }
-  return /\bkneel/i.test(beat) && ORAL_SEAT_RE.test(beat);
+  // He goes down on her with no kneel named: she sits on the edge (it used to be "she lies on
+  // her back … he lies between her thighs" under the kneel-up map).
+  return !/\bkneel/i.test(beat) || ORAL_SEAT_RE.test(beat);
 }

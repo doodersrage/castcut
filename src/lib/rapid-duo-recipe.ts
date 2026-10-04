@@ -19,7 +19,13 @@ import {
   type SoloMasturbationPoseKind,
 } from './day-pose-guide';
 import { stripNegatedClauses } from './negated-clauses';
-import { isFloorSurface, ORAL_SEAT_RE, rapidDuoSurface, sheGivesOral } from './rapid-oral-pose';
+import {
+  isFloorSurface,
+  ORAL_SEAT_RE,
+  oralSeat,
+  rapidDuoSurface,
+  sheGivesOral,
+} from './rapid-oral-pose';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
 import {
   RAPID_DUO_RECIPE_MARK,
@@ -144,7 +150,9 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
           ? `Full-body view, both faces in frame. The man stands; the woman kneels on ${on('floor')} in front of him with his penis in her mouth, holding it at the base, looking up at him.`
           : `The man sits on ${edgeOf(surface, 'bed')}; the woman kneels on the floor between his knees with his penis in her mouth, holding it at the base, looking up at him.`
         : !/\bkneel/i.test(beat)
-          ? `The woman lies on her back on ${on('bed')} with her thighs spread and knees bent; the man lies between her thighs with his mouth on her vulva, licking her, his hands on her thighs. She arches her back, eyes closed.`
+          ? // "She lies on her back … he lies between her thighs" disagreed with the kneel-up map;
+            // seated on the edge, words and map agree (oralReceiverSeated). Live A/B: see CHANGELOG.
+            `Full-body view, both faces in frame. The woman sits on ${edgeOf(oralSeat(beat, surface), 'bed')}, leaning back on her hands with her thighs spread; the man kneels on the floor between her thighs with his mouth on her vulva, licking her, his hands on her thighs.`
           : // At a bed/couch she sits on its edge (the oral map draws that seated pose too —
             // oralReceiverSeated, rapid-oral-pose.ts); else she stands.
             ORAL_SEAT_RE.test(beat)

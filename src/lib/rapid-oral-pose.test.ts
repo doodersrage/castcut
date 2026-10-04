@@ -59,6 +59,32 @@ describe('seated oral pose map', () => {
     assert.ok(giver.pelvis.y > receiver.pelvis.y, 'giver kneels below her seat');
   });
 
+  it('seats her on the edge when he goes down on her and nobody kneels in the words', () => {
+    // Castcut_01482 replay: "she lies on her back … he lies between her thighs" under the kneel-up
+    // map put his mouth on her hip with their legs merged 4/4; seated words + map were right 4/4.
+    for (const beat of [
+      'oral sex on the bed as the alarm clock blares — oral sex, both adults fully visible',
+      'going down on her in the late-morning sheets, partner between her thighs — both adults fully visible',
+      'oral sex on the living-room rug with a partner when the pizza arrives — both adults fully visible',
+    ]) {
+      assert.equal(oralReceiverSeated(beat), true, beat);
+      assert.match(buildRapidDuoRecipe({ beat }) ?? '', /The woman sits on the edge of the (?:bed|couch),/, beat);
+      const { resolved } = guideFor(beat);
+      assert.equal(resolved.intent.intimate, 'oral', beat);
+      const [receiver, giver] = resolved.figures;
+      assert.ok(receiver && giver);
+      // Her hips at seat height, above his kneeling hips; his knees on the floor; head at her pelvis.
+      assert.ok(receiver.pelvis.y > 0.45 && receiver.pelvis.y < giver.pelvis.y, beat);
+      for (const knee of [giver.lKnee, giver.rKnee]) {
+        assert.ok(knee.y >= 0.86, `giver knee on the floor (${knee.y})`);
+      }
+      assert.ok(
+        Math.hypot(giver.head.x - receiver.pelvis.x, giver.head.y - receiver.pelvis.y) < 0.12,
+        'giver head at her pelvis'
+      );
+    }
+  });
+
   it('keeps the kneel-up drawing where the words do not seat her', () => {
     // How far the receiver's torso leans back: seated on her hands vs upright.
     const lean = (beat: string) => {
