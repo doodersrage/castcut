@@ -582,9 +582,37 @@ export function flushAutoPushStorage(): void {
   clearTimeout(pushTimer);
   pushTimer = null;
   pushPendingSince = null;
-  void autoPushStorageDebounced().finally(() => {
+  void Promise.all([
+    startPageExitPush({
+      synced: isSettingsSyncedWithServer(),
+      push: syncNamespaceToServer,
+      settings: loadSettingsCache,
+      extras: collectStudioExtras,
+    }),
+    autoPushStorageDebounced(),
+  ]).finally(() => {
     if (!pushTimer) noteSyncPending(false);
   });
+}
+
+/**
+ * The page is going away: send settings and studio-extras in this same tick. The full push
+ * first awaits `/api/health`, and a page navigating away (a link, `location.assign`, reload)
+ * never got past that — the welcome's goal pick was lost, and the next page's pull brought the
+ * welcome back. Small bodies go as keepalive (storage-sync), so they outlive the page.
+ */
+export function startPageExitPush(deps: {
+  synced: boolean;
+  push: (namespace: StorageNamespace, data: unknown) => Promise<boolean>;
+  settings: () => unknown;
+  extras: () => unknown;
+}): Promise<boolean[]> {
+  // Before the startup pull these are a fresh profile's defaults — never pushed (see above).
+  if (!deps.synced) return Promise.resolve([]);
+  return Promise.all([
+    deps.push('settings-cache', deps.settings()),
+    deps.push('studio-extras', deps.extras()),
+  ]);
 }
 
 let flushListening = false;

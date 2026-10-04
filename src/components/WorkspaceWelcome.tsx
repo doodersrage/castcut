@@ -274,8 +274,10 @@ export default function WorkspaceWelcome() {
               Ready when you are
             </h2>
             <p className="type-body mt-2 text-[var(--text-secondary)]">
-              Optional one-click setup enables system workflows and checks Comfy + LLM health. Skip
-              and explore — we&apos;ll nudge you when you queue.
+              Optional one-click setup enables system workflows and checks Comfy + LLM health. It
+              also installs missing custom nodes through ComfyUI-Manager, which restarts ComfyUI —
+              skip it if a render is running. Skip and explore — we&apos;ll nudge you when you
+              queue.
             </p>
             {setupMessage ? (
               <p

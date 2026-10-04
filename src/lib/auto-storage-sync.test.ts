@@ -94,3 +94,38 @@ describe('autoPushDelayMs', () => {
     assert.equal(autoPushDelayMs(25_000, 0), 0);
   });
 });
+
+describe('startPageExitPush', () => {
+  it('starts the settings and studio-extras pushes in the same tick (no await first)', async () => {
+    const { startPageExitPush } = await import('./auto-storage-sync');
+    const started: string[] = [];
+    const done = startPageExitPush({
+      synced: true,
+      push: async namespace => {
+        started.push(namespace);
+        return true;
+      },
+      settings: () => ({ shared: {} }),
+      extras: () => ({ workspaceModeChosen: true }),
+    });
+    // A page navigating away runs no further ticks: both requests must already be on their way.
+    assert.deepEqual(started, ['settings-cache', 'studio-extras']);
+    assert.deepEqual(await done, [true, true]);
+  });
+
+  it('pushes nothing before the startup pull (a fresh profile holds defaults)', async () => {
+    const { startPageExitPush } = await import('./auto-storage-sync');
+    let calls = 0;
+    const result = await startPageExitPush({
+      synced: false,
+      push: async () => {
+        calls += 1;
+        return true;
+      },
+      settings: () => ({}),
+      extras: () => ({}),
+    });
+    assert.deepEqual(result, []);
+    assert.equal(calls, 0);
+  });
+});
