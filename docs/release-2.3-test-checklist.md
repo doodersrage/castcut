@@ -54,6 +54,11 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
 
 ### Day
 
+- [ ] **Looked computer-made** — with a vision model set up and Redo pose misses once (or
+  Auto-review) on, a still that reads drawn or CGI is redone once on a new seed and marked
+  *Redone — looked computer-made*; an ordinary still is not. With Best of two, a computer-made
+  take loses to the other. A fantasy beat with floating props usually still looks made after the
+  redo — that's the beat, not the engine.
 - [ ] **Board first** — Day opens on the plan bar (Stills · Mood · People · Weather · Quality ·
   Advanced) and the cards; no Setting / Beat form, Edit, Setup or Advanced sections under the
   board. `/m/day` is the same in one column.

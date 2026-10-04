@@ -19,7 +19,8 @@ import {
   type PoseMissView,
 } from '@/lib/pose-coaching';
 import { gestureFixNudge } from '@/lib/pose-gesture';
-import { checkStillPoseVision } from '@/lib/pose-gesture-vision-client';
+import { checkStillPoseVision, checkStillRealism } from '@/lib/pose-gesture-vision-client';
+import type { RealismVerdict } from '@/lib/still-realism';
 import {
   DEFAULT_MIN_POSE_MATCH,
   POSE_MISMATCH_NUDGE,
@@ -36,6 +37,11 @@ import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
  * gesture (pose-gesture.ts: hands + one vision question) is a miss too, redone with a GESTURE
  * line naming what it dropped. One redo per take (day-pose-redo.ts), only while the
  * Day queue is idle, and never on a still Face finish is about to replace.
+ *
+ * The same vision call rates how real the still looks (still-realism.ts); a take that looks drawn
+ * or computer-made is redone once too, on a new seed ("Redone — looked computer-made"; a real-photo
+ * line in the prompt changed nothing in replays, so none is added).
+ * A still with no guide is rated alone (its only vision call).
  */
 export function useDayPoseMissRedo(
   ctx: DayPlannerToolOrchestrationCore,
@@ -127,15 +133,59 @@ export function useDayPoseMissRedo(
     const take = poseRedoTakeId(still);
     checkedRef.current[target.id] = take;
     const expectation = poseGuideExpectRef.current[target.id];
-    // No guide queued with this still: nothing to check it against. A hard pose with Best of two
-    // on is paired instead (useDayBestOfTwo) — never both.
-    if (!expectation || (bestOfTwoHardPoses && isDayHardPose(expectation.poseKey))) {
+    // A hard pose with Best of two on is paired instead (useDayBestOfTwo) — never both.
+    if (expectation && bestOfTwoHardPoses && isDayHardPose(expectation.poseKey)) {
       setTick(value => value + 1);
       return;
     }
     const imageUrl = still.imageUrl;
     const checkUrl = comfyViewUrlForStill(still, loadComfyGallery()) ?? imageUrl;
     runningRef.current = true;
+
+    /** Queue the redo the decision asked for, with its nudge. */
+    const redoFor = async (reason: 'pose' | 'realism', nudge: string, message: string) => {
+      if (nudge) rerollNudgeRef.current[target.id] = nudge;
+      ledgerRef.current = { ...ledgerRef.current, [target.id]: { missedTake: take, reason } };
+      setLedger(ledgerRef.current);
+      setStatus(message);
+      await queueSlot(target);
+    };
+
+    // No guide queued with this still: no pose to check — only how real it looks.
+    if (!expectation) {
+      void (async () => {
+        try {
+          setStatus(`Checking ${target.label}…`);
+          const realism = await checkStillRealism({ imageUrl, shared });
+          const decision = poseRedoDecision({
+            enabled: redoPoseMisses,
+            autoReview: autoReviewStills,
+            slotId: target.id,
+            take,
+            poseScore: null,
+            realismMiss: realism?.computerMade === true,
+            ledger: ledgerRef.current,
+          });
+          if (!decision.redo) {
+            setStatus(null);
+            return;
+          }
+          await redoFor(
+            'realism',
+            '',
+            `Redoing ${target.label}: it looked computer-made (${realism?.rating}/10).`
+          );
+        } catch (error) {
+          setStatus(
+            `${target.label} check skipped (${error instanceof Error ? error.message : 'error'}).`
+          );
+        } finally {
+          runningRef.current = false;
+          setTick(value => value + 1);
+        }
+      })();
+      return;
+    }
 
     void (async () => {
       try {
@@ -151,10 +201,12 @@ export function useDayPoseMissRedo(
           guideAspect: expectation.aspect,
           detected: detected.pose,
         });
-        // Posture unread or the beat has an action: one vision call checks both.
+        // Posture unread or the beat has an action: one vision call checks both, and rates how
+        // real the still looks.
+        let realism: RealismVerdict | null = null;
         if (match.score >= DEFAULT_MIN_POSE_MATCH) {
           setStatus(`Checking ${target.label} gesture…`);
-          ({ match } = await checkStillPoseVision({
+          ({ match, realism } = await checkStillPoseVision({
             imageUrl,
             beat: expectation.beat ?? target.sceneHints,
             poseKey: expectation.poseKey,
@@ -163,6 +215,7 @@ export function useDayPoseMissRedo(
             guideAspect: expectation.aspect,
             detected: detected.pose,
             match,
+            realism: true,
             shared,
           }));
         }
@@ -174,10 +227,12 @@ export function useDayPoseMissRedo(
           take,
           poseScore: match.score,
           minPoseMatch: DEFAULT_MIN_POSE_MATCH,
+          realismMiss: realism?.computerMade === true,
           ledger: ledgerRef.current,
         });
         const pct = Math.round(match.score * 100);
-        recordGalleryPlayChecks(still.promptId, { pose: match.score, poseMiss: decision.redo });
+        const poseRedo = decision.redo && decision.reason === 'pose';
+        recordGalleryPlayChecks(still.promptId, { pose: match.score, poseMiss: poseRedo });
         const { width, height } = detected.pose.canvas;
         const missView =
           match.score < DEFAULT_MIN_POSE_MATCH
@@ -207,23 +262,29 @@ export function useDayPoseMissRedo(
           );
           return;
         }
+        if (decision.reason === 'realism') {
+          await redoFor(
+            'realism',
+            '',
+            `Redoing ${target.label}: it looked computer-made (${realism?.rating}/10).`
+          );
+          return;
+        }
         // The same nudge Auto-review's pose reroll sends — it spells the pose out in words — plus
         // the gesture it dropped, with the layout's cue.
-        rerollNudgeRef.current[target.id] = [
-          POSE_MISMATCH_NUDGE,
-          missView ? poseLimbFixNudge(missView.misses) : '',
-          gestureFixNudge(gestureMissed, expectation.poseKey, leadNoun),
-        ]
-          .filter(Boolean)
-          .join(' ');
-        ledgerRef.current = { ...ledgerRef.current, [target.id]: { missedTake: take } };
-        setLedger(ledgerRef.current);
-        setStatus(
+        await redoFor(
+          'pose',
+          [
+            POSE_MISMATCH_NUDGE,
+            missView ? poseLimbFixNudge(missView.misses) : '',
+            gestureFixNudge(gestureMissed, expectation.poseKey, leadNoun),
+          ]
+            .filter(Boolean)
+            .join(' '),
           gestureMissed
             ? `Redoing ${target.label} for the gesture (missed: ${gestureMissed}).`
             : `Redoing ${target.label} for the pose (${pct}% match).`
         );
-        await queueSlot(target);
       } catch (error) {
         setStatus(
           `${target.label} pose check skipped (${error instanceof Error ? error.message : 'error'}).`

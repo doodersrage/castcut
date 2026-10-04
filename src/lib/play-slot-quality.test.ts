@@ -305,3 +305,29 @@ describe('duo anatomy probe', () => {
     assert.deepEqual(flagged.flags, ['merged-limbs']);
   });
 });
+
+describe('play slot quality — realism', () => {
+  it('keeps the realism question out of the review prompt (its own call)', () => {
+    assert.doesNotMatch(buildSlotReviewPrompt().system, /photo_?look/i);
+  });
+
+  it('redoes a computer-made-looking still once, then only warns', () => {
+    const first = decideSlotQuality(CLEAN, 0, undefined, { photoLook: 4 });
+    assert.equal(first.action, 'reroll');
+    assert.equal(first.realismMiss, true);
+    assert.deepEqual(first.reasons, ['looked computer-made']);
+    const ledger = recordSlotDecision({}, 'morning', first);
+    assert.equal(ledger.morning?.realismRedone, true);
+    const second = decideSlotQuality(CLEAN, slotRerollsUsed(ledger, 'morning'), undefined, {
+      photoLook: 4,
+      realismRedone: ledger.morning?.realismRedone,
+    });
+    assert.equal(second.action, 'keep');
+    assert.deepEqual(second.warnings, ['looked computer-made']);
+    // The flag stays on the ledger through later decisions.
+    assert.equal(recordSlotDecision(ledger, 'morning', second).morning?.realismRedone, true);
+    // An ordinary or retouched photo passes.
+    assert.equal(decideSlotQuality(CLEAN, 0, undefined, { photoLook: 7 }).action, 'keep');
+    assert.equal(decideSlotQuality(CLEAN, 0).realismMiss, undefined);
+  });
+});

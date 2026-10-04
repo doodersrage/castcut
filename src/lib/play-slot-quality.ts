@@ -13,6 +13,7 @@
 
 import { STILL_FACE_MATCH_WARN_BELOW, STILL_MIN_FACE_MATCH } from '@/lib/face-match';
 import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
+import { decideRealism, REALISM_MISS_REASON } from '@/lib/still-realism';
 
 export const SLOT_REVIEW_FLAGS = [
   'extra-person',
@@ -63,6 +64,8 @@ export type SlotQualityDecision = {
   poseMiss?: boolean;
   /** True when the measured face match says this is a different person. */
   faceMiss?: boolean;
+  /** True when the still looked drawn or computer-made and is redone for it (once per slot). */
+  realismMiss?: boolean;
 };
 
 export type SlotQualityPolicy = {
@@ -295,6 +298,13 @@ export function decideSlotQuality(
     faceMatch?: number | null;
     /** Measured bodies beyond the guide's headcount (pose detection), with the expected count. */
     extraPeople?: { extra: number; expected: number } | null;
+    /**
+     * The realism rating (0–10, `still-realism.ts`), asked in its own vision call — folded into
+     * this review's prompt it never called a still computer-made (0 of 20 drawn / CGI stills).
+     */
+    photoLook?: number | null;
+    /** This slot was already redone once for looking computer-made (it only warns now). */
+    realismRedone?: boolean;
   }
 ): SlotQualityDecision {
   const overall = slotQualityOverall(report);
@@ -337,6 +347,14 @@ export function decideSlotQuality(
   }
 
   const warnings: string[] = [];
+  // Looked drawn / computer-made: redone once (like a pose miss), then only a warning.
+  const realism = decideRealism(extras?.photoLook);
+  const realismMiss = Boolean(realism?.computerMade) && extras?.realismRedone !== true;
+  if (realismMiss) {
+    reasons.push(REALISM_MISS_REASON);
+  } else if (realism?.computerMade) {
+    warnings.push(REALISM_MISS_REASON);
+  }
   if (typeof faceMatch === 'number') {
     // A measured score outranks the vision reviewer's guess about the same question.
     if (!faceMiss && faceMatch < policy.warnFaceMatch) {
@@ -365,6 +383,7 @@ export function decideSlotQuality(
     overall,
     ...(poseMiss ? { poseMiss: true } : {}),
     ...(faceMiss ? { faceMiss: true } : {}),
+    ...(realismMiss ? { realismMiss: true } : {}),
   };
 }
 
@@ -399,6 +418,8 @@ export type SlotQualityLedger = Record<
     lastDecision?: SlotQualityAction;
     lastReasons?: string[];
     lastWarnings?: string[];
+    /** Rerolled once already because a take looked computer-made. */
+    realismRedone?: boolean;
   }
 >;
 
@@ -415,6 +436,9 @@ export function recordSlotDecision(
       lastDecision: decision.action,
       lastReasons: decision.reasons,
       lastWarnings: decision.warnings,
+      ...(prev.realismRedone || (decision.action === 'reroll' && decision.realismMiss)
+        ? { realismRedone: true }
+        : {}),
     },
   };
 }

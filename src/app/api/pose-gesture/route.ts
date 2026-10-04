@@ -28,7 +28,8 @@ function readQuestions(raw: unknown): GestureQuestion[] {
 }
 
 /**
- * The pose check's yes/no questions (the beat's actions, the posture): `{ answers: GestureAnswer[] | null }`.
+ * The pose check's yes/no questions (the beat's actions, the posture), and with `realism: true` the
+ * realism rating in the same call: `{ answers: GestureAnswer[] | null, realism: number | null }`.
  */
 export async function POST(request: Request) {
   try {
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
       image?: string;
       mimeType?: string;
       questions?: unknown;
+      realism?: boolean;
       llmTemperature?: number;
       allowTemplateFallback?: boolean;
       llmModel?: string;
@@ -51,15 +53,17 @@ export async function POST(request: Request) {
       return apiError('Image payload is too large.', 400);
     }
     const questions = readQuestions(body.questions);
-    if (questions.length === 0) {
+    const realism = body.realism === true;
+    if (questions.length === 0 && !realism) {
       return apiError('At least one question is required.', 400);
     }
-    const answers = await askGestureVision({
+    const reply = await askGestureVision({
       imageDataUrl: normalizeImageDataUrl(body.image.trim(), body.mimeType),
       questions,
+      realism,
       llm: parseLlmRequestOptions(body),
     });
-    return apiJson({ answers });
+    return apiJson(reply);
   } catch (error) {
     return apiError(error instanceof Error ? error.message : 'Gesture check failed.', 500);
   }

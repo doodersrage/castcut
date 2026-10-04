@@ -4,15 +4,24 @@
  * sends on a pose reroll (POSE_MISMATCH_NUDGE, which also turns on the pose cue line). Once per
  * take: the redo's own take is never redone, so it can't loop; a take queued later by hand gets
  * its own one redo.
+ *
+ * A take that looks drawn or computer-made (the realism rating, still-realism.ts) is redone the
+ * the same way, once (a new seed) — "Redone — looked computer-made" on the card.
  */
 
 import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
+import { REALISM_REDO_MARK, REALISM_REDOING_MARK } from '@/lib/still-realism';
+
+/** What a redo was for. */
+export type PoseRedoReason = 'pose' | 'realism';
 
 export type PoseRedoEntry = {
   /** The take whose pose missed and was queued again. */
   missedTake: string;
   /** The take that redo produced — unset while it renders. */
   redoTake?: string;
+  /** What the redo was for (unset = the pose). */
+  reason?: PoseRedoReason;
 };
 
 /** Per slot: the last pose redo. */
@@ -34,7 +43,8 @@ export type PoseRedoSkip =
   /** The pose matched its guide. */
   | 'matched';
 
-export type PoseRedoDecision = { redo: true } | { redo: false; skip: PoseRedoSkip };
+export type PoseRedoDecision =
+  { redo: true; reason: PoseRedoReason } | { redo: false; skip: PoseRedoSkip };
 
 /** The id of a still's take: its prompt id, else its image. */
 export function poseRedoTakeId(
@@ -68,6 +78,8 @@ export function poseRedoDecision(input: {
   /** The pose check's match (0–1); null when no check ran. */
   poseScore: number | null | undefined;
   minPoseMatch?: number;
+  /** The take looked drawn or computer-made (the realism rating). */
+  realismMiss?: boolean;
   ledger: PoseRedoLedger;
 }): PoseRedoDecision {
   if (!input.enabled) return { redo: false, skip: 'off' };
@@ -81,19 +93,21 @@ export function poseRedoDecision(input: {
     return { redo: false, skip: 'redo-take' };
   }
   const score = input.poseScore;
-  if (typeof score !== 'number' || !Number.isFinite(score)) {
-    return { redo: false, skip: 'no-check' };
+  const checked = typeof score === 'number' && Number.isFinite(score);
+  // A pose miss outranks the look: its redo spells the pose out (and is a new take anyway).
+  if (checked && score < (input.minPoseMatch ?? DEFAULT_MIN_POSE_MATCH)) {
+    return { redo: true, reason: 'pose' };
   }
-  if (score >= (input.minPoseMatch ?? DEFAULT_MIN_POSE_MATCH)) {
-    return { redo: false, skip: 'matched' };
-  }
-  return { redo: true };
+  if (input.realismMiss === true) return { redo: true, reason: 'realism' };
+  return { redo: false, skip: checked ? 'matched' : 'no-check' };
 }
 
 /** The slot card's mark: the redo rendering, or the take it produced. */
 export function poseRedoMark(ledger: PoseRedoLedger, slotId: string, take: string): string | null {
   const entry = ledger[slotId];
   if (!entry || !take) return null;
-  if (!entry.redoTake) return 'Redoing for the pose…';
-  return entry.redoTake === take ? 'Redone for the pose' : null;
+  const realism = entry.reason === 'realism';
+  if (!entry.redoTake) return realism ? REALISM_REDOING_MARK : 'Redoing for the pose…';
+  if (entry.redoTake !== take) return null;
+  return realism ? REALISM_REDO_MARK : 'Redone for the pose';
 }

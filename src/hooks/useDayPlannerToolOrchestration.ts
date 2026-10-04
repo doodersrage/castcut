@@ -205,8 +205,13 @@ export function useDayPlannerToolOrchestration() {
     ...quality,
     poseMissViews,
     poseRedoStatus: poseRedo.poseRedoStatus,
-    // One mark line per card: a hard-pose slot is paired (best of two), never pose-redone.
-    poseRedoMarks: { ...poseRedo.poseRedoMarks, ...bestOfTwo.bestOfTwoMarks },
+    // One mark line per card: a hard-pose slot is paired (best of two), never pose-redone; with
+    // Auto-review on (the other two off) its "looked computer-made" redo marks.
+    poseRedoMarks: {
+      ...poseRedo.poseRedoMarks,
+      ...bestOfTwo.bestOfTwoMarks,
+      ...quality.realismMarks,
+    },
     bestOfTwoStatus: bestOfTwo.bestOfTwoStatus,
     faceFinishStatus: faceFinish.faceFinishStatus,
     adultGateStatus: adultGate.adultGateStatus,

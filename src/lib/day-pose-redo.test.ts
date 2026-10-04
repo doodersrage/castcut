@@ -19,7 +19,7 @@ const base = {
 
 describe('day pose redo', () => {
   it('redoes a missed pose once the switch is on', () => {
-    assert.deepEqual(poseRedoDecision(base), { redo: true });
+    assert.deepEqual(poseRedoDecision(base), { redo: true, reason: 'pose' });
     assert.deepEqual(poseRedoDecision({ ...base, enabled: false }), { redo: false, skip: 'off' });
   });
 
@@ -59,9 +59,9 @@ describe('day pose redo', () => {
     // Noting again does not move it.
     assert.equal(notePoseRedoTake(ledger, 'morning', 'p3'), ledger);
     // A later take queued by hand gets its own one redo.
-    assert.deepEqual(poseRedoDecision({ ...base, take: 'p3', ledger }), { redo: true });
+    assert.deepEqual(poseRedoDecision({ ...base, take: 'p3', ledger }), { redo: true, reason: 'pose' });
     // Other slots are untouched.
-    assert.deepEqual(poseRedoDecision({ ...base, slotId: 'night', ledger }), { redo: true });
+    assert.deepEqual(poseRedoDecision({ ...base, slotId: 'night', ledger }), { redo: true, reason: 'pose' });
   });
 
   it('notes only a new take as the redo result', () => {
@@ -78,6 +78,36 @@ describe('day pose redo', () => {
     assert.equal(poseRedoMark(done, 'morning', 'p2'), 'Redone for the pose');
     assert.equal(poseRedoMark(done, 'morning', 'p3'), null);
     assert.equal(poseRedoMark(done, 'night', 'p2'), null);
+  });
+
+  it('redoes a computer-made-looking take once, after a pose miss', () => {
+    // Pose matched (or no guide checked it), but it looked computer-made: redo for the look.
+    assert.deepEqual(poseRedoDecision({ ...base, poseScore: 0.9, realismMiss: true }), {
+      redo: true,
+      reason: 'realism',
+    });
+    assert.deepEqual(poseRedoDecision({ ...base, poseScore: null, realismMiss: true }), {
+      redo: true,
+      reason: 'realism',
+    });
+    // A pose miss outranks it: that redo spells the pose out.
+    assert.deepEqual(poseRedoDecision({ ...base, realismMiss: true }), {
+      redo: true,
+      reason: 'pose',
+    });
+    assert.deepEqual(poseRedoDecision({ ...base, poseScore: null }), {
+      redo: false,
+      skip: 'no-check',
+    });
+    // Its own redo is never redone again.
+    const ledger: PoseRedoLedger = { morning: { missedTake: 'p1', reason: 'realism' } };
+    assert.deepEqual(
+      poseRedoDecision({ ...base, take: 'p2', poseScore: 0.9, realismMiss: true, ledger }),
+      { redo: false, skip: 'redo-take' }
+    );
+    assert.equal(poseRedoMark(ledger, 'morning', 'p1'), 'Redoing — looked computer-made…');
+    const done = notePoseRedoTake(ledger, 'morning', 'p2');
+    assert.equal(poseRedoMark(done, 'morning', 'p2'), 'Redone — looked computer-made');
   });
 
   it('identifies a take by prompt id, else image', () => {

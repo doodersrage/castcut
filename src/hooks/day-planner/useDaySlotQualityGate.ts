@@ -48,9 +48,10 @@ import {
   type PoseMissView,
 } from '@/lib/pose-coaching';
 import { gestureFixNudge } from '@/lib/pose-gesture';
-import { checkStillPoseVision } from '@/lib/pose-gesture-vision-client';
+import { checkStillPoseVision, checkStillRealism } from '@/lib/pose-gesture-vision-client';
 import { betterTakeIndex, type TakeScores } from '@/lib/take-scoring';
 import { STILL_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face-match';
+import { REALISM_MISS_REASON, REALISM_REDO_MARK, REALISM_REDOING_MARK } from '@/lib/still-realism';
 
 type DaySlotAttempt = {
   imageUrl: string;
@@ -69,6 +70,10 @@ import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
  * When the slot had an Image 3 guide and ComfyUI has DWPose, the still's pose is also read back
  * and scored against the guide: a still that ignored its guide is rerolled, every score is logged
  * per guide style (the OpenPose-vs-legacy record), and well-matched stills feed the pose library.
+ *
+ * A vision call of its own rates how real the still looks (still-realism.ts): a still that looks drawn or
+ * computer-made is redone once on a new seed ("Redone — looked computer-made" on the
+ * card); a second computer-made take only warns.
  */
 export function useDaySlotQualityGate(
   ctx: DayPlannerToolOrchestrationCore,
@@ -262,6 +267,8 @@ export function useDaySlotQualityGate(
           }
         }
         setQualityStatus(`Reviewing ${target.label}…`);
+        // How real it looks: its own vision call (in the review prompt it never fired).
+        const realism = await checkStillRealism({ imageUrl: checkUrl, shared }).catch(() => null);
         const report = await reviewDaySlotStill({
           imageUrl: pair ?? imageUrl,
           context: {
@@ -289,6 +296,8 @@ export function useDaySlotQualityGate(
               !(companionsPossible && !isDayAdultMood(mood) && poseMatch.expectedPeople < 2)
                 ? { extra: poseMatch.extraPeople, expected: poseMatch.expectedPeople }
                 : null,
+            photoLook: realism?.rating ?? null,
+            realismRedone: ledgerRef.current[target.id]?.realismRedone === true,
           }
         );
         if (faceMatch !== null) {
@@ -488,7 +497,20 @@ export function useDaySlotQualityGate(
     wardrobeLabelFor,
   ]);
 
+  // Card marks for a slot redone because a take looked computer-made.
+  const realismMarks: Record<string, string> = {};
+  if (autoReviewStills) {
+    for (const [slotId, entry] of Object.entries(qualityLedger)) {
+      if (!entry.realismRedone) continue;
+      realismMarks[slotId] =
+        entry.lastDecision === 'reroll' && entry.lastReasons?.includes(REALISM_MISS_REASON)
+          ? REALISM_REDOING_MARK
+          : REALISM_REDO_MARK;
+    }
+  }
+
   return {
+    realismMarks,
     qualityStatus: autoReviewStills
       ? qualityStatus
         ? [

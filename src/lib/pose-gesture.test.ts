@@ -186,7 +186,9 @@ describe('gesture vision prompt and answers', () => {
     assert.match(prompt, /point: Is she pointing/);
     assert.match(prompt, /drink: Is she holding a mug/);
     assert.match(prompt, /strict JSON only/);
+    assert.doesNotMatch(prompt, /photo_look/);
   });
+
 
   it('reads the reply, fenced or not, and drops unknown ids', () => {
     const answers = parseGestureAnswers(

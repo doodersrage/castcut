@@ -18,6 +18,7 @@ import {
 } from '@/lib/day-best-of-two';
 import { checkStillPoseVision } from '@/lib/pose-gesture-vision-client';
 import { DEFAULT_MIN_POSE_MATCH, scorePoseMatch } from '@/lib/pose-score';
+import { realismRankedScore } from '@/lib/still-realism';
 import { fetchCastcutBestOfTwoReport } from '@/lib/castcut-report-client';
 import { dayStillShownImage, dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day-planner';
 import { detectStillPose } from '@/lib/pose-detect-client';
@@ -33,6 +34,9 @@ import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
  *
  * With the Castcut node pack the pair was rendered as ONE job (queueSlot): the job already saved
  * the closer take, so this only reads the job's report and puts the other take beside it.
+ *
+ * The pose check's vision call also rates how real each take looks (still-realism.ts): a take
+ * that looks drawn or computer-made ranks below one that doesn't, so the pair keeps the realer.
  */
 export function useDayBestOfTwo(
   ctx: DayPlannerToolOrchestrationCore,
@@ -185,7 +189,7 @@ export function useDayBestOfTwo(
           guideAspect: expectation.aspect,
           detected: detected.pose,
         });
-        const { match } = await checkStillPoseVision({
+        const { match, realism } = await checkStillPoseVision({
           imageUrl: still.imageUrl!,
           beat: expectation.beat ?? target.sceneHints,
           poseKey: expectation.poseKey,
@@ -194,10 +198,12 @@ export function useDayBestOfTwo(
           guideAspect: expectation.aspect,
           detected: detected.pose,
           match: scored,
+          realism: true,
           shared,
         });
-        const score = match.score;
-        recordGalleryPlayChecks(still.promptId, { pose: score });
+        recordGalleryPlayChecks(still.promptId, { pose: match.score });
+        // The pair's ranking: a computer-made take sits below any take that isn't.
+        const score = realismRankedScore(match.score, realism, DEFAULT_MIN_POSE_MATCH);
         // The still may have moved on while DWPose ran (a requeue, a pick by hand).
         const current = stillsRef.current.find(entry => entry.slotId === target.id);
         if (!current || bestOfTwoTakeId(current) !== take) return;
@@ -226,7 +232,9 @@ export function useDayBestOfTwo(
             (decision.keep === 'first' ? decision.secondScore : decision.firstScore) * 100
           );
           setStatus(
-            `${target.label}: kept the ${decision.keep} take for the pose (${keptPct}% vs ${otherPct}%).`
+            realism?.computerMade && decision.keep === 'first'
+              ? `${target.label}: kept the first take — the second looked computer-made.`
+              : `${target.label}: kept the ${decision.keep} take for the pose (${keptPct}% vs ${otherPct}%).`
           );
           return;
         }

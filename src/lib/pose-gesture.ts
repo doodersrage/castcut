@@ -282,7 +282,10 @@ export function gestureQuestions(input: {
 
 // ── Vision question ──────────────────────────────────────────────────────────────────────
 
-/** One call, every question, strict JSON back. */
+/**
+ * One call, every question, strict JSON back. (The realism rating, `still-realism.ts`, is never
+ * folded in here: asked in the same prompt it stopped seeing computer-made stills.)
+ */
 export function gestureVisionPrompt(questions: readonly GestureQuestion[]): string {
   return [
     'Look at the main person in this image (the largest, most central one) and answer each question about what is actually visible in the picture.',
