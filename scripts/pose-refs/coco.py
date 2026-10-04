@@ -9,10 +9,12 @@ Only the annotations are read (`annotations_trainval2017.zip`, CC BY 4.0) — ne
 what ships is the 17 labelled joints mapped to the app's COCO-18 body (neck = shoulder midpoint,
 `src/lib/pose-reference-sources.ts` over bridge.mts). Kept: single people labelled nearly whole
 (≥ 13 keypoints, every major joint, not a crowd, tall enough, nobody else of their size in the
-picture), or two people whose boxes overlap for the duo poses; the picture's captions must name
-the pose (a kneel, a hug) and no child; then the photo harvest's own checks (`checks.py`):
-posture class, limb angles against the app's drawn figure, near-duplicates — the best-matching
-3–5 per pose, different from each other.
+picture), or two people whose boxes overlap for the duo poses (`core_body` poses — people in
+contact, an arm hidden behind the other — need only the body's core joints labelled and ≥ 12 in
+all); the picture's captions must name the pose (a kneel, a hug) and no child; then the photo
+harvest's own checks (`checks.py`): posture class, limb angles against the app's drawn figure,
+near-duplicates, and for two people the contact the pose needs (arms round the other, a head on
+a shoulder…) — the best-matching 3–5 per pose, different from each other.
 """
 
 from __future__ import annotations
@@ -41,6 +43,9 @@ CACHE = Path(os.environ.get("POSE_REFS_CACHE", Path.home() / ".cache" / "castcut
 COCO = CACHE / "coco" / "annotations"
 TARGET = 5
 MIN_KEYPOINTS = 13
+# Two people in contact (`core_body`): labelled keypoints each, and the core ones that must be.
+MIN_KEYPOINTS_CORE = 12
+CORE_COCO = [5, 6, 11, 12, 13, 14, 15, 16]
 MIN_PERSON_PX = 150
 BYSTANDER = 0.6
 # Candidates per pose sent through the full gate, best limb match first.
@@ -67,12 +72,12 @@ SPECS: dict[str, dict] = {
     "photograph": {"caption": r"(taking|takes|take) a (picture|photo\w*)|holding (a|his|her|their) camera|photographing", "postures": ["upright"]},
     "eat": {"caption": r"\b(man|woman|person|guy|lady|people|someone|he|she)\b[^.]*\b(eating|eats|biting|bites|taking a bite)\b", "postures": ["upright"]},
     "reach": {"caption": r"\breach\w* (up|for|out)\b", "postures": ["upright"]},
-    "hug": {"caption": r"\b(hugging|hugs|hug each other|embracing|embrace)\b", "close": 0.3},
+    "hug": {"caption": r"\b(hugging|hugs|hug each other|hug|embracing|embrace[sd]?|arms around each other)\b", "close": 0.35, "core_body": True},
     "dance": {"caption": r"\bdanc\w*"},
-    "fight": {"caption": r"\b(fight\w*|boxing|boxers?|sparring|punch\w*|karate|martial|wrestl\w*|kung fu|kick\w* (each other|at))\b", "min_drawn": 0.5},
-    "piggyback": {"caption": r"\b(piggy ?back|on (his|her|their) back|carrying (a|another) (man|woman|person|girl|guy) on)\b", "close": 0.3},
-    "toast": {"caption": r"\b(toast\w*|cheers|clink\w*)\b"},
-    "head_shoulder": {"caption": r"head on (his|her|their) shoulder|leaning on (his|her|their) shoulder|resting (his|her|their) head", "close": 0.35},
+    "fight": {"caption": r"\b(fight\w*|boxing|boxers?|sparring|punch\w*|karate|martial|kickbox\w*|taekwondo|wrestl\w*|kung fu|kick\w* (each other|at))\b", "min_drawn": 0.5, "core_body": True},
+    "piggyback": {"caption": r"\b(piggy ?-?back\w*|on (his|her|their|a man's|a woman's) (back|shoulders)|riding on (his|her) back|carrying (a|another) (man|woman|person|guy) on)\b", "close": 0.4, "core_body": True},
+    "toast": {"caption": r"\b(toast\w*|cheers|clink\w*|raising (their|wine|beer) glasses)\b", "core_body": True},
+    "head_shoulder": {"caption": r"head on (his|her|their|the other's) shoulder|leaning on (his|her|their) shoulder|resting (his|her|their) head|head resting on", "close": 0.35, "core_body": True},
     "selfie_duo": {"caption": r"\b(selfie|self.?portrait)\b"},
     "high_five": {"caption": r"high.?fiv\w*"},
     "sport_yoga_dog": {"caption": r"\b(yoga|downward)\b", "min_drawn": 0.55},
@@ -92,6 +97,7 @@ EXCLUDE: dict[str, str] = {
     "train:250136": "sport_handstand: a motorcycle stunt, not a handstand",
     "train:139987": "sport_handstand: hanging upside down from a post",
     "train:139215": "eat: the giraffe is eating, the man stands in front",
+    "train:456640": "fight: two footballers contending for the ball, not sparring",
 }
 
 MAJOR_COCO = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
@@ -110,12 +116,12 @@ def load_split(split: str):
     return images, people, text
 
 
-def whole(ann: dict) -> bool:
+def whole(ann: dict, core: bool = False) -> bool:
     kp = ann["keypoints"]
     return (
         not ann["iscrowd"]
-        and ann["num_keypoints"] >= MIN_KEYPOINTS
-        and all(kp[i * 3 + 2] >= 1 for i in MAJOR_COCO)
+        and ann["num_keypoints"] >= (MIN_KEYPOINTS_CORE if core else MIN_KEYPOINTS)
+        and all(kp[i * 3 + 2] >= 1 for i in (CORE_COCO if core else MAJOR_COCO))
         and ann["bbox"][3] >= MIN_PERSON_PX
     )
 
@@ -161,13 +167,13 @@ def boxes_overlap(a: list[float], b: list[float]) -> bool:
     return a[0] < b[0] + b[2] and b[0] < a[0] + a[2] and a[1] < b[1] + b[3] and b[1] < a[1] + a[3]
 
 
-def candidates(images, people, text, headcount: int):
+def candidates(images, people, text, headcount: int, core: bool = False):
     """(image, [annotations], caption text) for every well-labelled single person or close pair."""
     for image_id, anns in people.items():
         caption = " ".join(text.get(image_id, []))
         if not caption or YOUTH.search(caption):
             continue
-        good = [a for a in anns if whole(a)]
+        good = [a for a in anns if whole(a, core)]
         if not good:
             continue
         image = images[image_id]
@@ -228,7 +234,7 @@ class CocoHarvester:
         seen = 0
         for split in self.splits:
             images, people, text = self.data[split]
-            for image, anns, caption in candidates(images, people, text, pose["people"]):
+            for image, anns, caption in candidates(images, people, text, pose["people"], bool(spec.get("core_body"))):
                 if not pattern.search(caption):
                     continue
                 key = f"{split}:{image['id']}:{'+'.join(str(a['id']) for a in anns)}"
@@ -242,7 +248,8 @@ class CocoHarvester:
                 if not result:
                     continue
                 mapped, frame = result
-                if any(full_body_gaps(m["body"], m["confidence"]) for m in mapped):
+                core = pose["people"] == 2 and bool(spec.get("core_body"))
+                if any(full_body_gaps(m["body"], m["confidence"], core=core) for m in mapped):
                     reasons["full-body"] = reasons.get("full-body", 0) + 1
                     continue
                 aspect = round(frame["width"] / frame["height"], 4)

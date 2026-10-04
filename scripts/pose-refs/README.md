@@ -5,12 +5,15 @@ list — postures, everyday, two-person and sport layouts; pose packs use the sa
 people in that pose in three open sources and keeps 3–5 good, different skeletons:
 
 - **Photos** (`harvest.py`): openly licensed photos from Wikimedia Commons and Openverse, the
-  skeleton read with DWPose.
+  skeleton read with DWPose. Two people (and a hurdler among other runners) are read one person
+  at a time (`people.py`, below), so a hug is not merged into one body.
 - **CMU motion capture** (`mocap.py`): clips from the CMU Graphics Lab Motion Capture Database,
   frames matching the pose by joint geometry, projected through a perspective camera from a few
   views (joints hidden behind the body marked low confidence, as a detector reads them). Fills
   the floor, lying and bending poses photos could not (DWPose merged overlapping people) and
-  real two-person captures (a salsa, a high five).
+  real two-person captures (a salsa, a high five). It has no two-person sparring, so the
+  sparring pairs (`fight`) are two solo boxing captures, each at a held guard-up moment, set
+  facing each other at sparring distance (`SPAR` in `mocap.py`).
 - **COCO keypoints** (`coco.py`): the COCO 2017 person keypoint annotations (17 labelled joints
   → the app's body), gated by the picture's captions naming the pose; the photographs are never
   downloaded.
@@ -43,6 +46,30 @@ vision model looks at them, and a hand-curated `EXCLUDE` list each. Their contac
 `<cache>/sheets/cmu-sheet.jpg` and `coco-sheet.jpg` (skeletons only). The COCO annotations go
 under `<cache>/coco/annotations/` (`annotations_trainval2017.zip`, person keypoints and
 captions, unzipped); CMU clips are fetched politely (one request a second) into `<cache>/cmu/`.
+
+### Per-person reads (two people)
+
+DWPose's person boxes put two people who touch in one box and its keypoint model then draws one
+body out of the pair — the first harvest found no hug, toast, piggyback or head-on-shoulder it
+could read. `people.py` reads each person on their own:
+
+1. `segment.py` masks every person (YOLOv8 person segmentation, `person_yolov8m-seg.pt`, on the
+   CPU in a helper process — default ComfyUI's own venv, which ships `ultralytics` and the model;
+   `POSE_REFS_SEG_PYTHON` / `POSE_REFS_SEG_MODEL` to change). Nothing goes through the shared
+   ComfyUI queue.
+2. A mask that holds another person's mask and as much again is two people: what is left after
+   taking the other out is the second person; a person found twice is kept once.
+3. DWPose reads each person's crop with everyone else greyed out; joints that still landed on
+   someone else's mask are marked, and the app's `mergePersonReads`
+   (`src/lib/pose-reference-duo.ts`, over the bridge) moves the reads back to image pixels,
+   drops the marked joints and any second read of one body. A read whose joints are not on its
+   own mask is dropped.
+
+Two-person references then need each person's core joints (neck, shoulders, hips, knees, ankles)
+and ≥ 12 joints read (an arm round the other's back is hidden), and the contact the pose is about
+(`duoRelation`, same file): a hug's arms round the other's torso, a head within a short reach of
+the other's shoulder, a piggyback rider's hips above the carrier's with the knees at the waist, a
+toast's raised hands meeting, a sparring pair's guards up at arm's length with no fist on a face.
 
 Needs Python 3 with `opencv-python` (5.x; its DNN module runs the ONNX models) and `numpy`,
 Node with the repo's `node_modules` (the harvester runs `bridge.mts` with `tsx`), the DWPose ONNX
@@ -82,6 +109,11 @@ rerun after changing a threshold is quick and asks the services nothing twice.
 ## Licence policy
 
 Kept: **CC0**, **Public Domain Mark / public domain**, **CC BY** and **CC BY-SA** (any version).
+Motion capture: the CMU database (free for all uses, credit requested). The ACCAD Open Motion
+Project (Ohio State, CC BY 3.0, credit "ACCAD/The Ohio State University") would be allowed, but
+its martial-arts files are single-performer C3D marker data with no skeleton; CMU's boxing clips
+already give the guard stances, so none is used. Research-only two-person sets (InterHuman, CHI3D,
+Hi4D…) are not used.
 Dropped: anything NonCommercial or NoDerivatives, GFDL-only, unknown or missing. A skeleton is a
 handful of joint coordinates, not the photo, but every reference is credited anyway (creator,
 licence, link) in the data file, in `docs/pose-reference-credits.md` (linked from Settings →
@@ -95,11 +127,12 @@ Cheapest first; each rejection is logged with its reason (`log.jsonl`, `report.t
 | `title-words` | the title names a child, nudity, or a painting / statue / drawing |
 | `download` | could not fetch or decode, or under 320 px on the short side |
 | `people:N` | DWPose found too few people, or a bystander ≥ 60% of a subject's size; on the crop the app's `countProminentPeople` must count exactly 1 (2 for two-person poses) |
-| `full-body` | neck, shoulders, elbows, wrists, hips, knees and ankles each read at ≥ 0.45; ankles inside the frame |
+| `full-body` | neck, shoulders, elbows, wrists, hips, knees and ankles each read at ≥ 0.45; ankles inside the frame (two people read per person: the core joints and ≥ 12 in all) |
 | `person-too-small` | the person spans under 260 px |
 | `posture:…` | `posture-classifier.mts` (the pose check's classes, `pose-posture.ts`) reads a group the pose doesn't allow — `poses.py`, else the group of the app's own figure when that read is confident; athletic and in-air poses skip it |
 | `unlike-drawing` | the pose check's limb-angle match (`pose-limb-score.ts`) against the app's hand-drawn figure is a gesture miss (its defining limbs held elsewhere) or under 0.35 (`min_drawn` per pose) |
 | `near-duplicate` | limb angles ≥ 0.93 like a reference already kept for the pose |
+| `relation:…` | two people without the contact the pose needs (`duoRelation`) |
 | `not-a-photo` / `not-clearly-adult` / `nudity` / `pose-mismatch` | yes/no questions to the vision model; "unsure" rejects |
 
 The posture classifier is a hook: any module exporting

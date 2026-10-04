@@ -13,14 +13,21 @@ cheapest first, logging the reason for each rejection:
   title-words    the title names a child, nudity or a non-photo (painting, statue …)
   download       could not fetch / decode, or too small
   people         DWPose (dwpose.py, same models as ComfyUI's DWPreprocessor) + the app's
-                 `countProminentPeople` must find exactly 1 (2 for duo poses)
+                 `countProminentPeople` must find exactly 1 (2 for duo poses). Two-person poses
+                 (and `per_person` specs) read each person on their own (people.py: a person
+                 mask each, the others greyed out) so touching people are not merged into one
   full-body      every major joint (neck, shoulders, elbows, wrists, hips, knees, ankles) read
-                 at ≥ MIN_JOINT_SCORE, ankles inside the frame, the person ≥ MIN_PERSON_PX tall
+                 at ≥ MIN_JOINT_SCORE, ankles inside the frame, the person ≥ MIN_PERSON_PX tall;
+                 per-person duo reads: the body's core joints (neck, shoulders, hips, knees,
+                 ankles) and ≥ MIN_DUO_JOINTS joints in all (an arm round a back is hidden)
   posture        posture-classifier.mts (the pose check's classes, pose-posture.ts) must read a
                  group the pose allows (poses.py, else the app figure's own group)
   unlike-drawing the pose check's limb-angle match (pose-limb-score.ts) against the app's figure
                  is a gesture miss or under MIN_DRAWN_SCORE
   near-duplicate the limb angles match one already kept for this pose
+  relation       two-person poses: the contact the pose needs (pose-reference-duo `duoRelation`:
+                 arms round the other, a head on a shoulder, a rider up on a back, glasses
+                 meeting)
   not-a-photo / not-clearly-adult / nudity / pose-mismatch
                  yes/no questions to the local vision LLM (vision.py); "unsure" rejects
 
@@ -49,6 +56,7 @@ sys.path.insert(0, str(HERE))
 
 import sources  # noqa: E402
 from dwpose import DETECT_THRESHOLD, DWPose  # noqa: E402
+from people import PersonReader  # noqa: E402
 from poses import EXCLUDE, POSES  # noqa: E402
 from vision import Vision  # noqa: E402
 
@@ -64,13 +72,17 @@ DUPLICATE_SCORE = 0.93
 MIN_DRAWN_SCORE = 0.35
 # Neck, shoulders, elbows, wrists, hips, knees, ankles (COCO-18).
 MAJOR_JOINTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+# Neck, shoulders, hips, knees, ankles: what a two-person reference must have (pose-references.ts
+# `readBody`); an arm round the other's back may be hidden.
+CORE_JOINTS = [1, 2, 5, 8, 9, 10, 11, 12, 13]
+MIN_DUO_JOINTS = 12
 JOINT_NAMES = [
     "nose", "neck", "r-shoulder", "r-elbow", "r-wrist", "l-shoulder", "l-elbow", "l-wrist",
     "r-hip", "r-knee", "r-ankle", "l-hip", "l-knee", "l-ankle", "r-eye", "l-eye", "r-ear", "l-ear",
 ]
 TITLE_REJECT = re.compile(
     r"\b(child|children|kid|kids|baby|babies|toddler|teen|teens|teenager|boy|boys|girl|girls|"
-    r"schoolgirl|schoolboy|youth|junior|juniors|minor|minors|infant|son|daughter|"
+    r"schoolgirl|schoolboy|youth|junior|juniors|minor|minors|infant|son|daughter|prep|high school|summer games|youth games|tetradecathlon|"
     r"nude|nudes|naked|topless|erotic|nsfw|lingerie|sexy|"
     r"painting|drawing|illustration|sketch|statue|sculpture|engraving|lithograph|etching|"
     r"cartoon|comic|figurine|mannequin|doll|render|3d)\b",
@@ -122,6 +134,7 @@ class Harvester:
         self.dw = DWPose()
         self.vision = Vision(CACHE / "vision")
         self.bridge = Bridge()
+        self.reader: PersonReader | None = None
         self.crops = CACHE / "crops"
         self.crops.mkdir(parents=True, exist_ok=True)
         self.manifest_path = CACHE / "manifest.json"
@@ -136,21 +149,33 @@ class Harvester:
         seen: set[str] = set()
         lists: list[list[sources.Photo]] = []
         for cat in spec.get("cats", []):
-            try:
-                lists.append(sources.search_commons(self.http, f'deepcat:"{cat}"', limit=50))
-            except Exception as error:  # noqa: BLE001
-                print(f"  commons category failed ({cat}): {error}")
+            # `cat_depth`: how far into a big category to page (50 a page).
+            for offset in range(0, spec.get("cat_depth", 50), 50):
+                try:
+                    lists.append(sources.search_commons(self.http, f'deepcat:"{cat}"', limit=50, offset=offset))
+                except Exception as error:  # noqa: BLE001
+                    print(f"  commons category failed ({cat}): {error}")
+                    break
         for i, query in enumerate(spec["q"]):
             for offset in range(0, self.commons_depth, 40):
                 try:
                     lists.append(sources.search_commons(self.http, query, offset=offset))
                 except Exception as error:  # noqa: BLE001
                     print(f"  commons search failed ({query}): {error}")
-            if i < 2:
-                try:
-                    lists.append(sources.search_openverse(self.http, query))
-                except Exception as error:  # noqa: BLE001
-                    print(f"  openverse search failed ({query}): {error}")
+            # Openverse: the first two queries (`openverse_queries`), `openverse_pages` pages each
+            # (paged searches also take uncategorized images — most of Flickr).
+            if i < spec.get("openverse_queries", 2):
+                for page in range(1, spec.get("openverse_pages", 1) + 1):
+                    try:
+                        found_page = sources.search_openverse(
+                            self.http, query, page=page, photos_only=spec.get("openverse_pages", 1) == 1
+                        )
+                    except Exception as error:  # noqa: BLE001
+                        print(f"  openverse search failed ({query}): {error}")
+                        break
+                    lists.append(found_page)
+                    if len(found_page) < 10:
+                        break
         # Interleave so every query's best hits come first.
         for rank in range(max((len(l) for l in lists), default=0)):
             for l in lists:
@@ -178,8 +203,16 @@ class Harvester:
         if img is None or min(img.shape[:2]) < MIN_SHORT_SIDE:
             return "download", None
         h, w = img.shape[:2]
-        # People with at least a few joints read; the subjects are the largest of them.
-        people = [p for p in self.dw.detect(img) if sum(s >= DETECT_THRESHOLD for _, _, s in p) >= 4]
+        # People with at least a few joints read; the subjects are the largest of them. Two
+        # people (or a crowded start line) are read one person at a time, so a hug stays two.
+        per_person = people_wanted == 2 or spec.get("per_person", False)
+        if per_person:
+            self.reader = self.reader or PersonReader(self.dw, self.bridge)
+            read, masks = self.reader.detect(img)
+        else:
+            read, masks = self.dw.detect(img), []
+        people = [p for p in read if sum(s >= DETECT_THRESHOLD for _, _, s in p) >= 4]
+        mask_of = {id(p): m for p, m in zip(read, masks)}
 
         def size(p):
             x0, y0, x1, y1 = person_extent(p)
@@ -189,11 +222,18 @@ class Harvester:
         if len(ranked) < people_wanted:
             return f"people:{len(ranked)}", None
         chosen = ranked[:people_wanted]
-        # Nobody else close to a subject's size anywhere in the picture.
-        if len(ranked) > people_wanted and size(ranked[people_wanted]) > 0.6 * size(chosen[-1]):
+        # Nobody else close to a subject's size anywhere in the picture (a race may have other
+        # runners: `bystanders` specs grey them out of the crop instead).
+        bystanders = spec.get("bystanders", False) and per_person
+        if not bystanders and len(ranked) > people_wanted and size(ranked[people_wanted]) > 0.6 * size(chosen[-1]):
             return f"people:{people_wanted}+bystander", None
         for p in chosen:
-            weak = [JOINT_NAMES[i] for i in MAJOR_JOINTS if p[i][2] < MIN_JOINT_SCORE]
+            if per_person and people_wanted == 2:
+                weak = [JOINT_NAMES[i] for i in CORE_JOINTS if p[i][2] < MIN_JOINT_SCORE]
+                if not weak and sum(s >= MIN_JOINT_SCORE for _, _, s in p) < MIN_DUO_JOINTS:
+                    weak = ["joints"]
+            else:
+                weak = [JOINT_NAMES[i] for i in MAJOR_JOINTS if p[i][2] < MIN_JOINT_SCORE]
             if weak:
                 return "full-body:" + ",".join(weak[:3]), None
             if max(p[10][1], p[13][1]) > h * 0.985:
@@ -239,6 +279,17 @@ class Harvester:
         cy0 = int(max(0, by0 - 0.16 * span))
         cy1 = int(min(h, by1 + 0.08 * span))
         crop = img[cy0:cy1, cx0:cx1]
+        if bystanders:
+            # Everyone but the subject greyed out: the vision checks and the record see one runner.
+            crop = crop.copy()
+            others = np.zeros(img.shape[:2], bool)
+            for p in people:
+                if all(p is not c for c in chosen) and id(p) in mask_of:
+                    others |= mask_of[id(p)]
+            for c in chosen:
+                if id(c) in mask_of:
+                    others &= ~mask_of[id(c)]
+            crop[others[cy0:cy1, cx0:cx1]] = 114
         cw, ch = cx1 - cx0, cy1 - cy0
         skeleton = [norm_body(p, cw, ch, cx0, cy0) for p in chosen]
         aspect = round(cw / ch, 4)
@@ -249,7 +300,7 @@ class Harvester:
             for body in in_crop
         ]
         prominent = self.bridge.call(cmd="prominent", people=in_crop, width=cw, height=ch)
-        if prominent != people_wanted:
+        if not bystanders and prominent != people_wanted:
             return f"people:{prominent}-in-crop", None
 
         # Same pose as the app's figure by the pose check's limb angles: the defining limbs (a
@@ -277,6 +328,12 @@ class Harvester:
             ]
             if min(sims) >= DUPLICATE_SCORE:
                 return "near-duplicate", None
+
+        # Two people: the contact the pose is about, from the skeletons (pose-reference-duo).
+        if people_wanted == 2:
+            relation = self.bridge.call(cmd="relation", pose=pose["id"], people=skeleton, aspect=aspect)
+            if not relation["ok"]:
+                return f"relation:{relation['why']}", None
 
         # Vision checks (slowest) last. The crop is what would ever be shipped.
         if self.vision.ask(
@@ -336,7 +393,7 @@ class Harvester:
             group = reason.split(":")[0] if not reason.startswith("people") else "people"
             if reason.startswith("posture"):
                 group = "posture"
-            if reason.startswith(("full-body", "unlike-drawing")):
+            if reason.startswith(("full-body", "unlike-drawing", "relation")):
                 group = reason.split(":")[0]
             if reason != "kept":
                 reasons[group] = reasons.get(group, 0) + 1

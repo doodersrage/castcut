@@ -238,14 +238,18 @@ def search_commons(http: Http, query: str, limit: int = 40, offset: int = 0) -> 
     return photos
 
 
-def search_openverse(http: Http, query: str, limit: int = 20) -> list[Photo]:
+def search_openverse(
+    http: Http, query: str, limit: int = 20, page: int = 1, photos_only: bool = True
+) -> list[Photo]:
+    """`photos_only=False` drops Openverse's `category=photograph` filter: most Flickr images carry
+    no category, so it hides them (the title filter and the vision check still catch drawings)."""
     params = {
         "q": query,
-        "license_type": "commercial,modification",
         "license": ",".join(ALLOWED_LICENCES),
         "page_size": str(min(limit, 20)),
         "mature": "false",
-        "category": "photograph",
+        **({"license_type": "commercial,modification", "category": "photograph"} if photos_only else {}),
+        **({"page": str(page)} if page > 1 else {}),
     }
     url = "https://api.openverse.org/v1/images/?" + urllib.parse.urlencode(params)
     data = http.get(url)

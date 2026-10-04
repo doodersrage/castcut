@@ -20,6 +20,10 @@
  *   {"cmd":"coco","keypoints":[x,y,v × 17],"frame":{x,y,width,height}}
  *                                                              → {body, confidence} | null
  *   {"cmd":"describe","body":body,"aspect":a}                  → the pose in words (pose-describe)
+ *   {"cmd":"merge","reads":[{joints,crop,onOther}…]}          → the people, image pixels (pose-reference-duo:
+ *                                                                 per-person DWPose reads merged)
+ *   {"cmd":"relation","pose":id,"people":[body,body],"aspect":a}
+ *                                                              → {ok, why}: the pair's contact rule
  *   {"cmd":"batch","requests":[request…]}                      → [{ok, result | error}…]
  */
 
@@ -38,6 +42,7 @@ import {
   type CameraView,
   type Skeleton3D,
 } from '@/lib/pose-reference-sources';
+import { duoRelation, mergePersonReads, type PersonRead } from '@/lib/pose-reference-duo';
 import { countProminentPeople } from '@/lib/pose-score';
 import type { NormalizedBody } from '@/lib/pose-library';
 
@@ -145,6 +150,14 @@ function handle(request: Record<string, unknown>): unknown {
       return describePoseFigure(request.body as NormalizedBody, {
         aspect: Number(request.aspect) || undefined,
       }).text;
+    case 'merge':
+      return mergePersonReads(request.reads as PersonRead[]);
+    case 'relation':
+      return duoRelation(
+        String(request.pose),
+        request.people as NormalizedBody[],
+        Number(request.aspect) || 1
+      );
     case 'batch':
       return (request.requests as Array<Record<string, unknown>>).map(inner => {
         try {

@@ -8,6 +8,11 @@ this file only says how to find each pose in a photo library.
            ~200 anonymous searches a day; all of them go to Commons)
   ask      finishes "Is the person …?" / "Are the two people …?" for the vision check
   min_drawn limb-angle floor against the app figure (default MIN_DRAWN_SCORE in harvest.py)
+  cat_depth how many of each category's files to page through (default 50)
+  openverse_queries / openverse_pages  how many queries go to Openverse (default 2) and how many
+           pages of 20 each (default 1) — for poses Commons barely has
+  per_person read each person on their own (people.py) — two-person poses always are
+  bystanders other people may be in the picture (greyed out of the crop): a race's other lanes
   postures posture groups (posture-classifier.mts → pose-posture.ts: upright, bent, seated, low,
            lying, inverted) a reference may read as; None = skip (in-air and athletic poses the
            posture read can't name). Default: the group of the app's hand-drawn figure, when that
@@ -59,14 +64,14 @@ POSES: dict[str, dict] = {
     "laptop": {"cats": ["People using laptops"], "q": ["woman working on laptop", "man using laptop sitting", "sitting with laptop"], "ask": "sitting and using a laptop"},
     "eat": {"cats": ["People eating"], "q": ["woman eating sandwich", "man eating ice cream", "eating street food standing"], "ask": "eating, bringing food up to the mouth"},
     # Two people
-    "hug": {"cats": ["People hugging", "Side hugs"], "q": ["couple hugging", "two friends hugging", "embrace couple standing"], "ask": "hugging each other"},
+    "hug": {"cats": ["People hugging", "Hugging", "Bear hugs", "Free Hugs", "Embracing", "Embrace", "Side hugs"], "cat_depth": 150, "q": ["couple hugging", "two friends hugging", "embrace couple standing", "two people hugging full length", "hug reunion airport", "friends embrace"], "ask": "hugging each other, arms around each other", "openverse_queries": 6, "openverse_pages": 4},
     "dance": {"cats": ["Dancing couples"], "q": ["couple dancing", "ballroom dance couple", "tango dancers couple"], "ask": "dancing together as a couple", "postures": None},
     "fight": {"cats": ["Sparring"], "q": ["sparring boxing two", "martial arts sparring", "kickboxing sparring partners"], "ask": "sparring or fighting each other", "postures": None},
     "hold_hands": {"cats": ["People holding hands", "Holding hands"], "q": ["couple holding hands walking", "couple walking hand in hand", "holding hands walking beach"], "ask": "holding hands"},
-    "piggyback": {"cats": ["Piggyback", "Piggy-back riding"], "q": ["piggyback ride couple", "piggyback ride", "carrying on back piggyback"], "ask": "doing a piggyback ride, one carrying the other on the back", "postures": None},
+    "piggyback": {"cats": ["Piggy-back riding", "Riding piggyback", "Piggyback", "Piggybacking"], "cat_depth": 200, "q": ["piggyback ride couple", "piggyback ride", "carrying on back piggyback", "piggyback woman man", "piggy back ride friends", "carrying girlfriend on back"], "ask": "doing a piggyback ride, one adult carrying the other on their back", "postures": None, "openverse_queries": 6, "openverse_pages": 4},
     "high_five": {"cats": ["High fives"], "q": ["high five", "two people high five", "giving high five"], "ask": "giving each other a high five"},
-    "toast": {"cats": ["People toasting", "Toasting"], "q": ["couple toasting glasses", "two people toast champagne", "cheers clinking glasses couple"], "ask": "toasting, clinking glasses together"},
-    "head_shoulder": {"q": ["head on shoulder couple sitting", "couple sitting bench head on shoulder", "resting head on his shoulder"], "ask": "sitting side by side with one resting their head on the other's shoulder"},
+    "toast": {"cats": ["People toasting", "Toasting", "Clinking glasses"], "cat_depth": 150, "q": ["couple toasting glasses", "two people toast champagne", "cheers clinking glasses couple", "toast wedding couple glasses", "two men toasting beer", "clinking glasses standing"], "ask": "toasting, raising glasses so they meet between them", "openverse_queries": 6, "openverse_pages": 4},
+    "head_shoulder": {"cats": ["People leaning their head"], "cat_depth": 100, "q": ["head on shoulder couple sitting", "couple sitting bench head on shoulder", "resting head on his shoulder", "head on her shoulder", "couple sitting on bench", "leaning head on shoulder friends"], "ask": "sitting side by side with one resting their head on the other's shoulder", "openverse_queries": 6, "openverse_pages": 4},
     "selfie_duo": {"cats": ["Group selfies"], "q": ["couple taking selfie", "two friends taking selfie", "selfie together couple"], "ask": "taking a selfie together"},
     # Sport
     "sport_sprint": {"cats": ["Sprinting", "Sprinters"], "q": ["sprinter track race", "sprint athletics", "woman sprinting track"], "ask": "sprinting"},
@@ -84,7 +89,7 @@ POSES: dict[str, dict] = {
     "sport_pitch": {"cats": ["Baseball pitchers"], "q": ["baseball pitcher pitching", "softball pitcher", "pitcher windup"], "ask": "pitching a baseball or softball", "postures": None},
     "sport_stick": {"cats": ["Field hockey players"], "q": ["field hockey player", "ice hockey player stick", "lacrosse player"], "ask": "playing hockey, holding the stick low", "postures": None},
     "sport_block": {"cats": ["Beach volleyball blockers"], "q": ["volleyball block", "volleyball blocking net", "volleyball players block"], "ask": "blocking at a volleyball net with both arms up", "postures": None},
-    "sport_hurdle": {"cats": ["Hurdling", "Hurdlers"], "q": ["hurdles race athlete", "hurdler clearing hurdle", "woman hurdles"], "ask": "jumping over a hurdle", "postures": None},
+    "sport_hurdle": {"cats": ["Hurdling", "Hurdlers", "110 m hurdles", "100 m hurdles", "400 m hurdles", "Hurdles (athletics)", "60 m hurdles"], "cat_depth": 300, "q": ["hurdles race athlete", "hurdler clearing hurdle", "woman hurdles", "110m hurdles", "100m hurdles", "400m hurdles"], "ask": "jumping over a hurdle, in the air above it", "postures": None, "per_person": True, "bystanders": True},
     "sport_slide": {"cats": ["Slide (baseball)", "Sliding (baseball)"], "q": ["baseball slide base", "sliding into base", "softball slide"], "ask": "sliding along the ground into a base", "postures": None},
     "sport_dunk": {"cats": ["Slam dunk"], "q": ["basketball dunk", "slam dunk player", "dunking basketball"], "ask": "dunking a basketball", "postures": None},
     "sport_ski": {"cats": ["Alpine skiers"], "q": ["skier skiing downhill", "alpine skiing woman", "skiing slope skier"], "ask": "skiing", "postures": None},
@@ -111,4 +116,13 @@ EXCLUDE: dict[str, str] = {
     "commons:file:arthur_sleasman,_md._state,_'23_loc_npcc.08558.jpg": "sport_stick: a baseball catcher",
     "commons:file:fawad_ahmad_afghan_national_powerlifting.jpg": "sport_deadlift: standing upright",
     "commons:file:atleta_júlio_ferraz_no_campeonato_brasileiro_2017.jpg": "sport_deadlift: standing upright",
+    "commons:file:yahiko_mishima_and_paul_zerling_1912.jpg": "sport_hurdle: two sprinters standing, no hurdle",
+    "commons:file:2017_08_04_ron_gilfillan_wpg_track_095_(36316101691).jpg": "sport_hurdle: a running stride between hurdles",
+    "flickr:14565349492": "sport_hurdle: a prep-school (high-school) meet — not clearly adult",
+    "commons:file:110_m_hurdles.jpg": "sport_hurdle: running upright before the hurdle, not clearing it",
+    "commons:file:couple_at_beach002.jpg": "hug: standing close holding hands, not a hug",
+    "commons:file:wkbo3570_100mh_w_semifinal_(53173530830).jpg": "sport_hurdle: back view, legs misread (crossed at the ankles)",
+    "commons:file:100m_hurdles_-_tetradecathlon_championship_2016.jpg": "sport_hurdle: tetradecathlon is a youth multi-event — not clearly adult",
+    "commons:file:2017_08_04_ron_gilfillan_wpg_track_093_(36056242220).jpg": "sport_hurdle: Canada Summer Games — youth athletes, not clearly adult",
+    "commons:file:tiff_2014_alumni_reception_(15024007840).jpg": "hug: side by side posing for the camera, not a hug",
 }

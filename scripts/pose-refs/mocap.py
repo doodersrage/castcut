@@ -14,9 +14,12 @@ views (front, three-quarter, side; slightly high for floor poses; from behind fo
 mapped to the app's COCO-18 body with joints hidden behind the torso, head or a limb marked low
 confidence (`src/lib/pose-reference-sources.ts`, over bridge.mts). Two-subject captures (subjects
 18/19, 20/21, 22/23, 60/61 — real partners in one room) project both performers into one frame
-for the duo poses (a salsa, a high five; the database has no hug, fight or toast — those come
-from COCO). Then the photo harvest's own checks (`checks.py`): full body, headcount,
-posture class, limb angles against the app's drawn figure, near-duplicates.
+for the duo poses (a salsa, a high five; the database has no hug or toast — those come from
+photos and COCO). It has no two-person fight either, so a sparring pair is composed (`SPAR`):
+two solo boxing captures, each at a held guard-up moment (fists up by the face, elbows bent — not
+a punch thrown), set facing each other at sparring distance on one floor. Then the photo
+harvest's own checks (`checks.py`): full body, headcount, posture class, limb angles against the
+app's drawn figure, near-duplicates and the pair's contact rule (guards up, no fist on a face).
 
 Clips are fetched politely (one request a second, cached under ~/.cache/castcut-pose-refs/cmu).
 The database is free for all uses; its credit line is in docs/pose-reference-credits.md.
@@ -95,6 +98,18 @@ CLIPS: dict[str, dict] = {
     "toast": {"clips": ["22_13"], "views": VIEWS_DUO, "speed": 1.2},
     "high_five": {"clips": ["20_11"], "views": VIEWS_DUO, "speed": 2.5},
 }
+
+# Two-person poses composed from solo captures: the clips to find a moment in, and how far apart
+# (hip to hip, metres) the two stand.
+SPAR: dict[str, dict] = {
+    "fight": {
+        "clips": ["13_17", "13_18", "14_01", "14_02", "14_03", "15_13", "17_10", "79_08", "80_10"],
+        "views": [20, -20, 35, -35, 65, -65, 90, -90],
+        "distances": [1.3, 1.5],
+        "speed": 1.2,
+    },
+}
+MAX_PAIRS_PER_CLIP = 2
 
 
 # -- ASF / AMC -----------------------------------------------------------------------------------
@@ -332,6 +347,8 @@ class Body:
         hn = np.linalg.norm(head_h)
         self.head_yaw = math.degrees(math.acos(max(-1, min(1, float(np.dot(head_h / hn, self.facing)))))) if hn else 0.0
         self.shoulder_w = float(np.linalg.norm(j[2] - j[5])) / height
+        # Where the face looks, level (a boxer's hips are bladed; the face is on the opponent).
+        self.gaze = head_h / hn if hn else self.facing
 
     def feet_down(self, limit=0.1) -> bool:
         return self.y[10] < limit and self.y[13] < limit
@@ -367,6 +384,72 @@ TESTS = {
     "sport_swim": lambda b: b.tilt > 60 and b.hip_y < 0.4 and b.face_up < 0.2 and (b.y[4] > b.y[1] + 0.1 or b.y[7] > b.y[1] + 0.1),
     "sport_hurdle": lambda b: b.y[10] > 0.12 and b.y[13] > 0.12 and max(b.y[9], b.y[12]) > 0.42,
 }
+
+
+def guard_up(b: Body) -> bool:
+    """A sparring stance: on the feet, upright, both fists held up by the face with the elbows
+    bent (a guard, not a punch thrown)."""
+    if not (b.feet_down(0.12) and b.hip_y > 0.38 and b.tilt < 35):
+        return False
+    # Feet about shoulder width or a stride apart, knees a little bent: not a lunge, a kneel or a
+    # knee lifted for a kick.
+    if np.linalg.norm((b.j[10] - b.j[13]) * [1, 0, 1]) > 0.5 * b.h:
+        return False
+    if min(b.knee.values()) < 125 or abs(b.y[9] - b.y[12]) > 0.08:
+        return False
+    for shoulder, elbow, wrist in ((2, 3, 4), (5, 6, 7)):
+        if angle_deg(b.j[shoulder], b.j[elbow], b.j[wrist]) > 100:
+            return False
+        if not (b.neck_y - 0.06 < b.y[wrist] < b.head_top_y + 0.02):
+            return False
+        # The fist out in front of the face, where the eyes look.
+        if float(np.dot((b.j[wrist] - b.j[1]) * [1, 0, 1], b.gaze)) < 0.04 * b.h:
+            return False
+    return True
+
+
+def facing_angle(v) -> float:
+    """A horizontal direction's angle about the vertical axis (atan2 of x over z)."""
+    return math.atan2(float(v[0]), float(v[2]))
+
+
+def compose_facing(lead: dict, lead_floor: float, other: dict, other_floor: float, distance: float) -> list[dict]:
+    """Two solo skeletons on one floor, the other turned to face the lead `distance` metres in
+    front of the lead (hip midpoint to hip midpoint)."""
+    def moved(skel: dict, floor: float, turn: float, shift) -> dict:
+        c, s_ = math.cos(turn), math.sin(turn)
+
+        def tf(p):
+            x, y, z = p
+            return [round(x * c + z * s_ + shift[0], 4), round(y - floor, 4), round(-x * s_ + z * c + shift[2], 4)]
+
+        return {
+            "joints": [tf(p) for p in skel["joints"]],
+            "headTop": tf(skel["headTop"]),
+            "headBase": tf(skel["headBase"]),
+        }
+
+    a = moved(lead, lead_floor, 0.0, (0.0, 0.0, 0.0))
+    fa = Body(lead, lead_floor, 1.0).gaze
+    fb = Body(other, other_floor, 1.0).gaze
+    turn = facing_angle(-fa) - facing_angle(fb)
+    b = moved(other, other_floor, turn, (0.0, 0.0, 0.0))
+    hip_a = (np.array(a["joints"][8]) + np.array(a["joints"][11])) / 2
+    hip_b = (np.array(b["joints"][8]) + np.array(b["joints"][11])) / 2
+    target = hip_a + fa * distance
+    shift = (float(target[0] - hip_b[0]), 0.0, float(target[2] - hip_b[2]))
+    b = moved(b, 0.0, 0.0, shift)
+    return [a, b]
+
+
+def no_contact(skeletons: list[dict], reach: float = 0.3) -> bool:
+    """Nobody's fist within `reach` metres of the other's face."""
+    for i, j in ((0, 1), (1, 0)):
+        nose = np.array(skeletons[j]["joints"][0])
+        for w in (4, 7):
+            if np.linalg.norm(np.array(skeletons[i]["joints"][w]) - nose) < reach:
+                return False
+    return True
 
 
 def duo_test(lead: Body, partner: Body) -> bool:
@@ -472,8 +555,112 @@ class MocapHarvester:
                 moments.append((frame, speed))
         return moments
 
+    def harvest_composed(self, pose: dict, used: set[str]) -> dict:
+        """A two-person pose from two solo clips (`SPAR`): held guard-up moments, paired across
+        clips (different performers first), set facing each other and seen from a few views."""
+        pid = pose["id"]
+        spec = SPAR[pid]
+        shipped = [r for r in shipped_references() if r["pose"] == pid and r.get("source", "photo") != "cmu-mocap"]
+        want = max(0, self.target - len(shipped))
+        checker = Checker(self.bridge, pose, shipped, overrides=spec)
+        print(f"\n== {pid} (composed, {len(shipped)} shipped, want {want}) ==", flush=True)
+        reasons: dict[str, int] = {}
+        moments: list[tuple[str, int, float]] = []
+        for trial in spec["clips"]:
+            try:
+                clip = self.clip(trial)
+            except Exception as error:  # noqa: BLE001
+                print(f"  {trial}: {error}")
+                continue
+            hits = []
+            for i in range(6, len(clip.frames) - 6, STEP):
+                if guard_up(Body(clip.skeleton(i), clip.floor, clip.height)):
+                    speed = clip.speed(i)
+                    if speed <= spec["speed"]:
+                        hits.append((i, speed))
+            # One per held moment, the stillest.
+            window = int(MOMENT_S * FPS)
+            held: list[tuple[int, float]] = []
+            for frame, speed in hits:
+                if held and frame - held[-1][0] < window:
+                    if speed < held[-1][1]:
+                        held[-1] = (frame, speed)
+                else:
+                    held.append((frame, speed))
+            print(f"  {trial}: {len(held)} guard-up moments ({self.index.get(trial, {}).get('desc', '')[:40]})", flush=True)
+            moments += [(trial, f, sp) for f, sp in sorted(held, key=lambda m: m[1])[:4]]
+        pairs = []
+        for i, (ta, fa, sa) in enumerate(moments):
+            for tb, fb, sb in moments[i + 1:]:
+                if ta == tb:
+                    continue
+                other_subject = ta.split("_")[0] != tb.split("_")[0]
+                pairs.append((not other_subject, sa + sb, (ta, fa), (tb, fb)))
+        pairs.sort(key=lambda p: (p[0], p[1]))
+        kept: list[dict] = []
+        tried = 0
+        per_clip: dict[str, int] = {}
+        moments_used: set[tuple[str, int]] = set()
+        for n, (_, speed, (ta, fa), (tb, fb)) in enumerate(pairs):
+            if len(kept) >= want:
+                break
+            if per_clip.get(ta, 0) >= MAX_PAIRS_PER_CLIP or per_clip.get(tb, 0) >= MAX_PAIRS_PER_CLIP:
+                continue
+            # Each held moment stands in one pair only.
+            if (ta, fa) in moments_used or (tb, fb) in moments_used:
+                continue
+            a, b = self.clips[ta], self.clips[tb]
+            distance = spec["distances"][n % len(spec["distances"])]
+            skeletons = compose_facing(a.skeleton(fa), a.floor, b.skeleton(fb), b.floor, distance)
+            if not no_contact(skeletons):
+                reasons["contact"] = reasons.get("contact", 0) + 1
+                continue
+            best = None
+            for az in spec["views"]:
+                key = f"{ta}:{fa}+{tb}:{fb}:{az}"
+                if key in used:
+                    continue
+                tried += 1
+                shot = self.bridge.call(cmd="project", skeletons=skeletons, view={"azimuthDeg": az, "elevationDeg": 8})
+                reason, entry = ("project", None) if not shot else checker.evaluate(shot["people"], shot["confidence"], shot["aspect"])
+                if reason != "kept":
+                    group = reason.split(":")[0]
+                    reasons[group] = reasons.get(group, 0) + 1
+                self.log.write(json.dumps({"t": time.time(), "pose": pid, "clip": ta, "frame": fa, "with": f"{tb}:{fb}", "az": az, "reason": reason}) + "\n")
+                if entry and (best is None or entry["drawnScore"] > best[1]["drawnScore"]):
+                    best = (az, entry, shot, key)
+            if not best:
+                continue
+            az, entry, shot, key = best
+            used.add(key)
+            entry.update({
+                "pose": pid,
+                "base": pose["base"],
+                "aspect": shot["aspect"],
+                "source": "cmu-mocap",
+                "clip": ta,
+                "subject": a.subject,
+                "trial": int(ta.split("_")[1]),
+                "frame": fa,
+                "view": shot["view"],
+                "desc": self.index.get(ta, {}).get("desc", ""),
+                "composed": {"clip": tb, "subject": b.subject, "trial": int(tb.split("_")[1]), "frame": fb,
+                             "desc": self.index.get(tb, {}).get("desc", ""), "distance": distance},
+                "speed": round(speed, 3),
+            })
+            kept.append(entry)
+            checker.keep(entry)
+            per_clip[ta] = per_clip.get(ta, 0) + 1
+            moments_used.update({(ta, fa), (tb, fb)})
+            per_clip[tb] = per_clip.get(tb, 0) + 1
+            print(f"  kept {len(shipped) + len(kept)}: {ta} f{fa} + {tb} f{fb} az{az} {distance} m, drawn {entry['drawnScore']} {entry['postures']}", flush=True)
+        print(f"  {len(pairs)} pairs, tried {tried}, kept {len(kept)}; {reasons}", flush=True)
+        return {"kept": kept, "tried": tried, "rejected": reasons}
+
     def harvest(self, pose: dict, used: set[str]) -> dict:
         pid = pose["id"]
+        if pid in SPAR:
+            return self.harvest_composed(pose, used)
         spec = CLIPS[pid]
         # References the app ships from the other sources (this source's own are being redone).
         shipped = [r for r in shipped_references() if r["pose"] == pid and r.get("source", "photo") != "cmu-mocap"]
@@ -562,7 +749,8 @@ def contact_sheet(manifest: dict, labels: dict[str, str]) -> Path:
     for pid, result in manifest["poses"].items():
         tiles = []
         for ref in result["kept"]:
-            tiles.append(draw_tile(ref["people"], ref["aspect"], f"{ref['clip']} f{ref['frame']} az{ref['view']['azimuthDeg']}", tile_h))
+            pair = f"+{ref['composed']['clip']}" if ref.get("composed") else ""
+            tiles.append(draw_tile(ref["people"], ref["aspect"], f"{ref['clip']}{pair} f{ref['frame']} az{ref['view']['azimuthDeg']}", tile_h))
             tiles.append(np.full((tile_h, 6, 3), 255, np.uint8))
         label = np.full((tile_h, label_w, 3), 255, np.uint8)
         for i, text in enumerate([pid, labels.get(pid, ""), f"kept {len(result['kept'])}"]):
@@ -588,7 +776,7 @@ def main() -> None:
     h = MocapHarvester(args.target)
     poses = h.bridge.call(cmd="poses")
     (CACHE / "poses.json").write_text(json.dumps(poses))
-    wanted = [p for p in poses if p["id"] in CLIPS and (not args.pose or p["id"] in args.pose)]
+    wanted = [p for p in poses if (p["id"] in CLIPS or p["id"] in SPAR) and (not args.pose or p["id"] in args.pose)]
     used: set[str] = {
         f"{ref['clip']}:{ref['frame']}:{ref['view']['azimuthDeg']}"
         for pid, result in h.manifest["poses"].items()

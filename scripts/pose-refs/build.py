@@ -91,6 +91,13 @@ def cmu_credit(ref: dict) -> dict:
     title += f", frame {ref['frame']}, {view_label(ref['view'])}"
     if ref.get("partnerClip"):
         title += f", with subject {ref['partnerClip'].split('_')[0]}"
+    if ref.get("composed"):
+        other = ref["composed"]
+        title += (
+            f", facing subject {other['subject']} trial {other['trial']:02d}"
+            f"{' (' + other['desc'] + ')' if other.get('desc') else ''}, frame {other['frame']}"
+            " (two solo captures set facing each other)"
+        )
     return {
         "title": title,
         "creator": CMU_CREATOR,
@@ -197,7 +204,9 @@ def write_credits(refs: list[dict], labels: dict[str, str]) -> None:
         f"[{CMU_CREATOR}](<http://mocap.cs.cmu.edu/>) — free for all uses under its",
         f"[terms](<{CMU_TERMS_URL}>); credit requested: \"{CMU_CREDIT}\"",
         "",
-        "References (pose variant: subject and trial, frame, camera view):",
+        "References (pose variant: subject and trial, frame, camera view). The database has no",
+        "two-person sparring, so the sparring pairs (`fight`) are two solo boxing captures, each at",
+        "a guard-up moment, set facing each other at sparring distance:",
         "",
     ]
     cmu = [r for r in refs if r["source"] == "cmu-mocap"]

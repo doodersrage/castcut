@@ -7,6 +7,7 @@ import { dayPoseAsPhotoPose, dayPoseWords } from './day-pose-presets';
 import { planDaySlotPose } from './day-slot-pose';
 import { POSE_PICKER_GROUPS } from './pose-layout-labels';
 import type { NormalizedBody } from './pose-library';
+import { duoRelation } from './pose-reference-duo';
 import { bodyCentreX } from './pose-starters';
 import {
   normalizePoseReference,
@@ -148,6 +149,14 @@ describe('pose reference data file', () => {
         : { layout: reference.pose as SocialLayout };
       const plan = resolveSceneGuidePlan(undefined, 0, { forcePeople: people, pose, references });
       assert.equal(reference.base, plan.intent.base, reference.id);
+    }
+  });
+
+  it('shows two people in the contact their pose is about (a hug, a toast, sparring…)', () => {
+    for (const reference of references) {
+      if (reference.people.length !== 2) continue;
+      const relation = duoRelation(reference.pose, reference.people, reference.aspect);
+      assert.ok(relation.ok, `${reference.id}: ${relation.why}`);
     }
   });
 
