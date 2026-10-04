@@ -8,7 +8,6 @@ import {
   CLOTHED_GATE_REQUEUE_MESSAGE,
   CLOTHED_GATE_WITHHELD_MESSAGE,
 } from '@/lib/adult-appearance-gate';
-import { checkStillAdultAppearance } from '@/lib/adult-appearance-gate-client';
 import { dayMoodMustStayClothed } from '@/lib/clothed-coverage';
 import {
   galleryEntryPrimaryViewUrl,
@@ -63,6 +62,7 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
       try {
         const strongTake = entry.adultCheck?.strong === true;
         const coveredTake = entry.adultCheck?.covered === true;
+        const { checkStillAdultAppearance } = await import('@/lib/adult-appearance-gate-client');
         const decision = await checkStillAdultAppearance({
           imageUrl,
           strongTake,

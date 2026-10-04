@@ -191,7 +191,7 @@ describe('custom pose in words', () => {
 describe('deep squat vs cross-legged sit (reference skeletons)', () => {
   const refs = (
     JSON.parse(
-      readFileSync(join(process.cwd(), 'src/lib/data/pose-references.json'), 'utf8')
+      readFileSync(join(process.cwd(), 'public/pose-references.json'), 'utf8')
     ) as { references: { id: string; aspect: number; people: NormalizedBody[] }[] }
   ).references;
   const words = (id: string) => {

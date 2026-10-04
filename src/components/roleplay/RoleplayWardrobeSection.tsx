@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import ClothingPicker from '@/components/wardrobe/ClothingPicker';
+import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
 import { clothingSummaryLine, clothingSummaryThumbs } from '@/lib/clothing-summary';
 import { fittingSwipeNeighbor } from '@/lib/fitting-room';

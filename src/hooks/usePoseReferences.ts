@@ -11,7 +11,7 @@ import {
 const NONE: readonly PoseReference[] = [];
 
 /**
- * The real-world reference poses, loaded on first use (their own chunk). Empty on the server,
+ * The real-world reference poses, loaded on first use (a static file). Empty on the server,
  * during hydration and until the data file arrives.
  */
 export function usePoseReferences(): readonly PoseReference[] {

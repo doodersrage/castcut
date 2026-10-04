@@ -150,8 +150,11 @@ export type DayDressPlateKeyInput = {
 /**
  * The store key of a dress-plate request. A clothing photo's description is part of it (the
  * try-on is worded from it, so an edited description is a different plate); a kit's is not.
+ * The who-is-it fields of a full request (`subject`) do not count.
  */
-export function dayDressPlateRequestKey(request: DayDressPlateKeyInput): string {
+export function dayDressPlateRequestKey(
+  request: DayDressPlateKeyInput & { subject?: string }
+): string {
   const description = request.clothingKey?.trim()
     ? ''
     : (request.clothingDescription ?? '').replace(/\s+/g, ' ').trim().toLowerCase();

@@ -26,7 +26,6 @@ import {
   storyDressPlatePrompt,
   stripOutfitLeadLines,
 } from '@/lib/day-dress-plate';
-import { ensureDayDressPlate } from '@/lib/day-dress-plate-client';
 import { setDressPlateActivity } from '@/lib/dress-plate-status';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import { getCachedClothingLabel, humanizeClothingId } from '@/lib/clothing-catalog-client';
@@ -536,6 +535,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         return null;
       }
       try {
+        const { ensureDayDressPlate } = await import('@/lib/day-dress-plate-client');
         const { entry } = await ensureDayDressPlate(
           {
             model: shared.model,

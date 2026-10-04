@@ -1,7 +1,7 @@
 'use client';
 
 import ClipEngineNote from '@/components/ClipEngineNote';
-import TaskRequirementsCard from '@/components/TaskRequirementsCard';
+import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 

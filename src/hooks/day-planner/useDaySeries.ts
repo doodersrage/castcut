@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { stitchSelectedGalleryVideos } from '@/lib/character-film-assemble';
+import { stitchSelectedGalleryVideos } from '@/lib/character-film-assemble-lazy';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import {
   activeSeriesForCast,

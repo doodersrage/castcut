@@ -13,7 +13,7 @@ import { roleplayMoodSummary } from '@/lib/roleplay';
 import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
 import { roleplayWatchPlaylist } from '@/lib/character-film';
 import type { KeyedShot } from '@/lib/film-cut-plan';
-import TaskRequirementsCard from '@/components/TaskRequirementsCard';
+import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
 import { useMemo, useSyncExternalStore } from 'react';

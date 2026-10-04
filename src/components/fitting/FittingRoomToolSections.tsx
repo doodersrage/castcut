@@ -11,7 +11,7 @@ import { useOutfitQualityPreset } from '@/hooks/fitting-room/useOutfitQualityPre
 import { outfitQualityPresetLabel } from '@/lib/outfit-quality-preset';
 import FittingPlateSection from '@/components/fitting/FittingPlateSection';
 import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
-import TaskRequirementsCard from '@/components/TaskRequirementsCard';
+import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import OutfitPoseSection from '@/components/fitting/OutfitPoseSection';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
 import OutfitPlayPhaseStrip from '@/components/fitting/OutfitPlayPhaseStrip';

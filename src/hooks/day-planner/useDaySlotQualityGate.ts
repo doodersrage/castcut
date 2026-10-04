@@ -48,7 +48,6 @@ import {
   type PoseMissView,
 } from '@/lib/pose-coaching';
 import { gestureFixNudge } from '@/lib/pose-gesture';
-import { checkStillPoseVision, checkStillRealism } from '@/lib/pose-gesture-vision-client';
 import { betterTakeIndex, type TakeScores } from '@/lib/take-scoring';
 import { STILL_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face-match';
 import { REALISM_MISS_REASON, REALISM_REDO_MARK, REALISM_REDOING_MARK } from '@/lib/still-realism';
@@ -217,6 +216,7 @@ export function useDaySlotQualityGate(
               // visible action (the cup at the mouth, the phone up): one vision call asks both.
               if (poseMatch.score >= DEFAULT_MIN_POSE_MATCH) {
                 setQualityStatus(`Checking ${target.label} gesture…`);
+                const { checkStillPoseVision } = await import('@/lib/pose-gesture-vision-client');
                 ({ match: poseMatch } = await checkStillPoseVision({
                   imageUrl,
                   beat: expectation.beat ?? target.sceneHints,
@@ -268,6 +268,7 @@ export function useDaySlotQualityGate(
         }
         setQualityStatus(`Reviewing ${target.label}…`);
         // How real it looks: its own vision call (in the review prompt it never fired).
+        const { checkStillRealism } = await import('@/lib/pose-gesture-vision-client');
         const realism = await checkStillRealism({ imageUrl: checkUrl, shared }).catch(() => null);
         const report = await reviewDaySlotStill({
           imageUrl: pair ?? imageUrl,

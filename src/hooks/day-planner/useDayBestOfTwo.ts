@@ -16,7 +16,6 @@ import {
   bestOfTwoTakeId,
   isDayHardPose,
 } from '@/lib/day-best-of-two';
-import { checkStillPoseVision } from '@/lib/pose-gesture-vision-client';
 import { DEFAULT_MIN_POSE_MATCH, scorePoseMatch } from '@/lib/pose-score';
 import { realismRankedScore } from '@/lib/still-realism';
 import { fetchCastcutBestOfTwoReport } from '@/lib/castcut-report-client';
@@ -189,6 +188,7 @@ export function useDayBestOfTwo(
           guideAspect: expectation.aspect,
           detected: detected.pose,
         });
+        const { checkStillPoseVision } = await import('@/lib/pose-gesture-vision-client');
         const { match, realism } = await checkStillPoseVision({
           imageUrl: still.imageUrl!,
           beat: expectation.beat ?? target.sceneHints,

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { FieldError, TextArea } from '@/components/ui/Field';
 import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
 import { fittingNotesCachePatch } from '@/lib/look-pack';
-import TaskRequirementsCard from '@/components/TaskRequirementsCard';
+import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import OutfitPoseSection from '@/components/fitting/OutfitPoseSection';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';

@@ -3,7 +3,7 @@
  * Registers a pending parent+child pair; Roleplay sync stitches when the child completes.
  */
 
-import { assembleFilmBlob } from './character-film-assemble';
+import { assembleFilmBlob } from './character-film-assemble-lazy';
 import type { FilmPlaylistShot } from './character-film';
 
 export type PendingContinueStitch = {

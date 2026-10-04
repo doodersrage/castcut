@@ -1,7 +1,6 @@
 'use client';
 
 import { handOffOutfitPicks, keptLookOutfitFromTryOn, realKitId } from '@/lib/outfit-handoff';
-import { registerDressPlateFromImage } from '@/lib/day-dress-plate-client';
 import { useCallback, useEffect } from 'react';
 import { activeLook, looksOf, setLookKeptOutfit, toggleLookKeeper } from '@/lib/character-os';
 import { dayAfterOutfitHandoff } from '@/lib/day-outfit-scope';
@@ -272,9 +271,10 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
         }
       }
       if (keptNow && tryOn.imageUrl?.trim() && tryOn.dressPlateKey) {
-        void registerDressPlateFromImage(
-          { key: tryOn.dressPlateKey, model: input.shared.model },
-          tryOn.imageUrl
+        const plate = { key: tryOn.dressPlateKey, model: input.shared.model };
+        const imageUrl = tryOn.imageUrl;
+        void import('@/lib/day-dress-plate-client').then(({ registerDressPlateFromImage }) =>
+          registerDressPlateFromImage(plate, imageUrl)
         );
       }
       const existing = loadLookPack();

@@ -22,7 +22,7 @@ The app draws them as variants of the pose (variant 0 stays the hand-drawn figur
 walks through the real ones) and lists them under *Real poses…* in the pose editor. See
 `src/lib/pose-references.ts` (`source` says where each came from).
 
-**Only skeletons ship** (`src/lib/data/pose-references.json`, with each item's credit). The
+**Only skeletons ship** (`public/pose-references.json`, with each item's credit). The
 cropped photos stay in the local cache below as the harvest's record — never committed, never in
 the app: the Edit 2511 A/B (2026-10) found a cropped photo as the pose image did no better than
 the OpenPose figure (6/8 each; the model takes the pose mostly from the words). A reference only
@@ -85,7 +85,7 @@ Outputs:
 
 | Where | What |
 | --- | --- |
-| `src/lib/data/pose-references.json` | skeletons + credits (commit) |
+| `public/pose-references.json` | skeletons + credits (commit) |
 | `docs/pose-reference-credits.md` | one credit line per reference (commit) |
 | `~/.cache/castcut-pose-refs/manifest.json` | everything kept, with the crop box and joint scores |
 | `~/.cache/castcut-pose-refs/crops/<pose>-<n>.jpg` | the cropped photos (not committed) |

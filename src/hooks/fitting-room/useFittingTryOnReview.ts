@@ -8,7 +8,6 @@ import { decideTryOnReview, type TryOnReview } from '@/lib/fitting-tryon-review'
 import type { PhotoPose } from '@/lib/day-pose-guide';
 import { recordFaceMatchScore } from '@/lib/play-metrics';
 import { detectStillPose } from '@/lib/pose-detect-client';
-import { checkStillPoseVision } from '@/lib/pose-gesture-vision-client';
 import { scorePoseMatch } from '@/lib/pose-score';
 import { reviewOutfitLabel, type SlotQualityReport } from '@/lib/play-slot-quality';
 import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
@@ -137,6 +136,7 @@ export function useFittingTryOnReview(input: {
             if (detected.available) {
               if (detected.pose.people.length > 0) {
                 // An unsure posture read (standing for a kneel) gets the vision yes/no.
+                const { checkStillPoseVision } = await import('@/lib/pose-gesture-vision-client');
                 const checked = await checkStillPoseVision({
                   imageUrl,
                   lead: 'person',

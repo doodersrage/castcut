@@ -4,7 +4,7 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import { normalizeFootwear } from '@/lib/footwear';
-import { dayDressPlateRequestKey } from '@/lib/day-dress-plate-client';
+import { dayDressPlateRequestKey } from '@/lib/day-dress-plate';
 import { footwearIsBarefoot, footwearPromptLine } from '@/lib/footwear';
 import {
   buildFootwearReferenceImage,

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
-import ClothingPicker from '@/components/wardrobe/ClothingPicker';
+import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
 import { clothingSummaryLine, clothingSummaryThumbs } from '@/lib/clothing-summary';
 import type { FittingKitPreview } from '@/lib/fitting-kit-previews';

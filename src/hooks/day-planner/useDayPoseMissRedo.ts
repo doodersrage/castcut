@@ -19,7 +19,6 @@ import {
   type PoseMissView,
 } from '@/lib/pose-coaching';
 import { gestureFixNudge } from '@/lib/pose-gesture';
-import { checkStillPoseVision, checkStillRealism } from '@/lib/pose-gesture-vision-client';
 import type { RealismVerdict } from '@/lib/still-realism';
 import {
   DEFAULT_MIN_POSE_MATCH,
@@ -156,6 +155,7 @@ export function useDayPoseMissRedo(
       void (async () => {
         try {
           setStatus(`Checking ${target.label}…`);
+          const { checkStillRealism } = await import('@/lib/pose-gesture-vision-client');
           const realism = await checkStillRealism({ imageUrl, shared });
           const decision = poseRedoDecision({
             enabled: redoPoseMisses,
@@ -206,6 +206,7 @@ export function useDayPoseMissRedo(
         let realism: RealismVerdict | null = null;
         if (match.score >= DEFAULT_MIN_POSE_MATCH) {
           setStatus(`Checking ${target.label} gesture…`);
+          const { checkStillPoseVision } = await import('@/lib/pose-gesture-vision-client');
           ({ match, realism } = await checkStillPoseVision({
             imageUrl,
             beat: expectation.beat ?? target.sceneHints,

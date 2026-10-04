@@ -30,7 +30,7 @@ from harvest import (  # noqa: E402
 )
 from poses import POSES  # noqa: E402
 
-DATA = ROOT / "src" / "lib" / "data" / "pose-references.json"
+DATA = ROOT / "public" / "pose-references.json"
 
 # The app's own words for each source, and where its terms live (build.py writes the credits).
 SOURCE_CREDITS = {

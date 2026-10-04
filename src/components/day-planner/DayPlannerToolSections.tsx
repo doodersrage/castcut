@@ -19,7 +19,7 @@ import {
   ToolLayout,
   ToolSection,
 } from '@/components/ui/ToolPageShell';
-import ClothingPicker from '@/components/wardrobe/ClothingPicker';
+import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
 import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
@@ -50,7 +50,7 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
-import TaskRequirementsCard from '@/components/TaskRequirementsCard';
+import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import DayAdvancedDrawer, {
   DayQualityStatusLines,

@@ -27,7 +27,7 @@ import {
   type CharacterFilmCut,
   type FilmMediaRef,
 } from '@/lib/character-film';
-import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/character-film-assemble';
+import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/character-film-assemble-lazy';
 import { saveCharacterFilmCut } from '@/lib/character-os';
 import { filmResolutionForCutOptions } from '@/lib/film-resolution';
 import { exportFilmPoster, pickPosterShotUrl } from '@/lib/film-poster';

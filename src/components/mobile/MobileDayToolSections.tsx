@@ -11,7 +11,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
-import TaskRequirementsCard from '@/components/TaskRequirementsCard';
+import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import DayAdvancedDrawer, {
   DayQualityStatusLines,
 } from '@/components/day-planner/DayAdvancedDrawer';
@@ -37,7 +37,7 @@ import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 import SideSheet from '@/components/ui/SideSheet';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
-import ClothingPicker from '@/components/wardrobe/ClothingPicker';
+import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { useDayQualityPreset } from '@/hooks/day-planner/useDayQualityPreset';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';

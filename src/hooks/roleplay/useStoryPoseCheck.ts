@@ -9,7 +9,6 @@ import {
 } from '@/lib/roleplay';
 import { nextStoryPoseCheck } from '@/lib/roleplay-pose-check';
 import { detectStillPose } from '@/lib/pose-detect-client';
-import { checkStillPoseVision } from '@/lib/pose-gesture-vision-client';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
 import {
@@ -69,6 +68,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
         }
         // Posture unreadable from the keypoints against a clear guide (a standing still before a
         // kneeling guide often reads unsure): the vision model's yes/no settles it.
+        const { checkStillPoseVision } = await import('@/lib/pose-gesture-vision-client');
         const { match } = await checkStillPoseVision({
           imageUrl: shownUrl,
           lead: 'person',

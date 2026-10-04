@@ -24,7 +24,7 @@ import {
   downloadFilmBlob,
   shareFilmBlob,
   stampAssembledFilm,
-} from '@/lib/character-film-assemble';
+} from '@/lib/character-film-assemble-lazy';
 import { filmDownloadFilename } from '@/lib/character-film';
 import {
   applyCharacterRecord,

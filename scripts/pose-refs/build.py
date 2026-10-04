@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turn the harvest manifests into what the app and the docs use:
 
-  src/lib/data/pose-references.json   skeletons + credit, no photos (committed)
+  public/pose-references.json   skeletons + credit, no photos (committed)
   docs/pose-reference-credits.md      one line per photo, one credit per data set (committed)
   <cache>/sheets/sheet-NN.jpg         contact sheets: each kept photo crop with its skeleton drawn
   <cache>/report.txt                  counts per pose and source (kept / searched / rejected)
@@ -28,7 +28,7 @@ sys.path.insert(0, str(HERE))
 from sources import ALLOWED_LICENCES  # noqa: E402
 
 CACHE = Path(os.environ.get("POSE_REFS_CACHE", Path.home() / ".cache" / "castcut-pose-refs"))
-DATA = ROOT / "src" / "lib" / "data" / "pose-references.json"
+DATA = ROOT / "public" / "pose-references.json"
 CREDITS = ROOT / "docs" / "pose-reference-credits.md"
 TARGET = 5
 

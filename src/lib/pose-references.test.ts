@@ -21,7 +21,7 @@ import {
   type PoseReference,
 } from './pose-references';
 
-const DATA_PATH = join(process.cwd(), 'src/lib/data/pose-references.json');
+const DATA_PATH = join(process.cwd(), 'public/pose-references.json');
 const raw = JSON.parse(readFileSync(DATA_PATH, 'utf8')) as { references: unknown[] };
 const references = parsePoseReferences(raw);
 

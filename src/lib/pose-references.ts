@@ -1,6 +1,6 @@
 /**
  * Real-world reference poses: skeletons of people in Day's named poses, harvested by
- * `scripts/pose-refs/` into `data/pose-references.json` with their credit — read (DWPose) from
+ * `scripts/pose-refs/` into `public/pose-references.json` with their credit — read (DWPose) from
  * openly licensed photos, projected from CMU motion-capture clips, or mapped from COCO keypoint
  * annotations (`source`). No photo ships — only the joints.
  *
@@ -10,8 +10,9 @@
  * stands in for the drawing only on the posture it was harvested for — a phone call drawn
  * seated ("on the phone on the sofa") keeps its drawing rather than borrowing a standing caller.
  *
- * The data file is ~100 KB, so it loads on demand: `loadPoseReferences()` (the pose previews and
- * the guide builders call it), with a synchronous snapshot for the pure planners.
+ * The data file (`public/pose-references.json`, ~250 KB) loads on demand: `loadPoseReferences()`
+ * (the pose previews and the guide builders call it), with a synchronous snapshot for the pure
+ * planners.
  */
 
 import type { NormalizedBody, PoseLibraryEntry } from '@/lib/pose-library';
@@ -246,16 +247,42 @@ export function loadedPoseReferences(): readonly PoseReference[] {
   return loaded ?? EMPTY;
 }
 
-/** Load the data file once (its own chunk). Never rejects: no references on failure. */
+/**
+ * The data file, served from `public/` rather than bundled: as an imported JSON module it was a
+ * ~46 KB gzip JS chunk counted against the client bundle budget (size-limit), and a static file
+ * is cached by the browser like any other asset.
+ */
+export const POSE_REFERENCES_PATH = '/pose-references.json';
+
+async function readPoseReferencesPayload(): Promise<unknown> {
+  if (typeof window === 'undefined') {
+    const { readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    return JSON.parse(
+      await readFile(join(process.cwd(), 'public', POSE_REFERENCES_PATH), 'utf8')
+    ) as unknown;
+  }
+  const response = await fetch(POSE_REFERENCES_PATH);
+  if (!response.ok) throw new Error(`Pose references failed (${response.status})`);
+  return response.json();
+}
+
+/**
+ * Load the data file once. Never rejects: no references on failure (and a later call tries
+ * again, so one dropped request does not hide them for the session).
+ */
 export function loadPoseReferences(): Promise<PoseReference[]> {
   if (loaded) return Promise.resolve(loaded);
-  pending ??= import('@/lib/data/pose-references.json')
-    .then(module => parsePoseReferences((module as { default?: unknown }).default ?? module))
-    .catch(() => [] as PoseReference[])
-    .then(references => {
+  pending ??= readPoseReferencesPayload()
+    .then(raw => {
+      const references = parsePoseReferences(raw);
       loaded = references;
       for (const listener of listeners) listener();
       return references;
+    })
+    .catch(() => {
+      pending = null;
+      return [] as PoseReference[];
     });
   return pending;
 }

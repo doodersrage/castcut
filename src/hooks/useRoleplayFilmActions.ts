@@ -19,7 +19,7 @@ import {
   downloadFilmBlob,
   shareFilmBlob,
   stampAssembledFilm,
-} from '@/lib/character-film-assemble';
+} from '@/lib/character-film-assemble-lazy';
 import { roleplayWatchPlaylist } from '@/lib/character-film';
 import {
   applyCharacterRecord,

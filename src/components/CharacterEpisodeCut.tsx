@@ -9,7 +9,7 @@ import FilmCutOptionsControls, {
   type FilmCutOptionsValue,
   DEFAULT_FILM_CUT_OPTIONS,
 } from '@/components/FilmCutOptionsControls';
-import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/character-film-assemble';
+import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/character-film-assemble-lazy';
 import { filmResolutionForCutOptions } from '@/lib/film-resolution';
 import {
   castEpisodeSources,

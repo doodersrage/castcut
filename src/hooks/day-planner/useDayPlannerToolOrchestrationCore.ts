@@ -39,7 +39,7 @@ import {
   assembleAndStampFilm,
   downloadFilmBlob,
   stampAssembledFilm,
-} from '@/lib/character-film-assemble';
+} from '@/lib/character-film-assemble-lazy';
 import { filmDownloadFilename } from '@/lib/character-film';
 import { dayAfterOutfitHandoff } from '@/lib/day-outfit-scope';
 import {
@@ -200,7 +200,7 @@ import {
   type DayDressPlateEntry,
 } from '@/lib/day-dress-plate';
 import { loadDressPlates, removeDressPlate, subscribeDressPlates } from '@/lib/dress-plate-store';
-import { dayDressPlateRequestKey, ensureDayDressPlate } from '@/lib/day-dress-plate-client';
+import { dayDressPlateRequestKey } from '@/lib/day-dress-plate';
 import {
   DAY_OUTFIT_LINE_RE,
   dayStillClothingReinforce,
@@ -1128,6 +1128,7 @@ export function useDayPlannerToolOrchestrationCore() {
             : { imageUrl: packshotUrl ?? undefined };
           const hasShoes = Boolean(pickedShoes) && !footwearIsBarefoot(pickedShoes);
           try {
+            const { ensureDayDressPlate } = await import('@/lib/day-dress-plate-client');
             const { entry } = await ensureDayDressPlate(
               {
                 model: stillModel,

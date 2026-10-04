@@ -9,7 +9,6 @@ import {
   ADULT_GATE_REQUEUE_MESSAGE,
   ADULT_GATE_WITHHELD_MESSAGE,
 } from '@/lib/adult-appearance-gate';
-import { checkStillAdultAppearance } from '@/lib/adult-appearance-gate-client';
 import {
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
@@ -62,6 +61,7 @@ export function useStoryAdultGate(
     void (async () => {
       try {
         const strongTake = entry.adultCheck?.strong === true;
+        const { checkStillAdultAppearance } = await import('@/lib/adult-appearance-gate-client');
         const decision = await checkStillAdultAppearance({ imageUrl, strongTake, shared });
         decidedRef.current.add(promptId);
         if (decision.verdict === 'pass' || decision.verdict === 'unchecked') {

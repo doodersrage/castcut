@@ -16,7 +16,7 @@ import { parsePoseReferences, poseReferencesFor } from '@/lib/pose-references';
 
 const references = parsePoseReferences(
   JSON.parse(
-    readFileSync(new URL('../../src/lib/data/pose-references.json', import.meta.url), 'utf8')
+    readFileSync(new URL('../../public/pose-references.json', import.meta.url), 'utf8')
   )
 );
 const BODY_IDS = new Set(POSE_PICKER_GROUPS.find(group => group.label === 'Postures')?.ids ?? []);
