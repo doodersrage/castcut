@@ -16,7 +16,8 @@ import type { NormalizedBody } from '@/lib/pose-library';
 import { setLimbDirections, type PoseLimbsSpec } from '@/lib/pose-limb-presets';
 
 export { normalizePoseLimbs, type PoseLimbsSpec } from '@/lib/pose-limb-presets';
-import { describePoseBody, poseStarterBody } from '@/lib/pose-starters';
+import { describePoseFigure } from '@/lib/pose-describe';
+import { poseStarterBody } from '@/lib/pose-starters';
 
 const ASPECT = 2 / 3;
 
@@ -127,7 +128,9 @@ export function composeWrittenPose(input: {
     aspect: ASPECT,
     people: [fitted],
     source: 'edited',
-    words: describePoseBody(fitted, { possessive: input.possessive ?? 'her', aspect: ASPECT }),
+    // Stance first, then the limb facts the writer asked for (pose-describe.ts).
+    words: describePoseFigure(fitted, { possessive: input.possessive ?? 'her', aspect: ASPECT })
+      .text,
   };
 }
 

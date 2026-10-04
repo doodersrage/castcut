@@ -13,6 +13,7 @@ import {
 } from '@/lib/footwear-image';
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
 import { dayPartnerNoun } from '@/lib/day-partner';
+import { customPoseWords } from '@/lib/pose-describe';
 import { poseFirstLine, poseFramingLine } from '@/lib/pose-starters';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -337,7 +338,12 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                   customPose.people[0],
                   posePronoun,
                   customPose.aspect,
-                  customPose.words
+                  customPose.words,
+                  // Stance first, then the limb facts that make it this pose (pose-describe.ts).
+                  customPoseWords({
+                    photo: { ...customPose, people: customPose.people.slice(0, 1) },
+                    lead: posePronoun,
+                  })
                 ),
                 framing,
                 withFittingCustomPose(

@@ -134,6 +134,7 @@ import {
 } from '@/lib/day-vacation-face-crop';
 import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day-vacation';
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
+import { customPoseWords } from '@/lib/pose-describe';
 import { bestOfTwoAsOneJob } from '@/lib/day-best-of-two';
 import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut-nodes';
 import { planDaySlotPose, plannedDaySlotPoseKey } from '@/lib/day-slot-pose';
@@ -1475,6 +1476,8 @@ export function useDayPlannerToolOrchestrationCore() {
         let poseLeadPosition: PoseLeadPosition | null = null;
         let poseCamera: 'overhead' | 'side' | 'low' | null = null;
         let poseExpectation: DayPoseGuideExpectation | undefined;
+        // A custom pose in words (pose-describe.ts) — set once its guide is drawn.
+        let customPose = '';
         // Klein clothed spoon: the compact recipe goes out alone — no guide, no face crop.
         const kleinSpoonRecipe = kleinSpoonRecipeApplies({
           model: stillModel,
@@ -1556,6 +1559,21 @@ export function useDayPlannerToolOrchestrationCore() {
             poseGuideDrawnStyle = poseBuild.stylePreference;
             poseLeadPosition = poseBuild.leadPosition;
             poseCamera = poseBuild.camera;
+            if (
+              posePlan.options.photoPose?.people.length &&
+              poseBuild.poseKey.startsWith('photo:')
+            ) {
+              customPose = customPoseWords({
+                photo: posePlan.options.photoPose,
+                drawn: {
+                  keypoints: poseBuild.keypoints,
+                  aspect: poseBuild.canvas.width / poseBuild.canvas.height,
+                },
+                sceneText: [queueTarget.sceneHints, queueTarget.location]
+                  .filter(Boolean)
+                  .join(' · '),
+              });
+            }
             poseExpectation = {
               keypoints: poseBuild.keypoints,
               aspect: poseBuild.canvas.width / poseBuild.canvas.height,
@@ -1681,6 +1699,7 @@ export function useDayPlannerToolOrchestrationCore() {
                 figures: poseExpectation.keypoints.length,
               }
             : null,
+          customPose: customPose || null,
           cueLayouts: cuePoseLayouts(),
           poseLook: queueTarget.poseLook,
           kleinFace: Boolean(kleinFaceFilename),

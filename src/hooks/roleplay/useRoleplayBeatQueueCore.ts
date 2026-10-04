@@ -79,6 +79,7 @@ import {
   resolveWardrobeGarmentThumbQueueUrl,
 } from '@/lib/wardrobe-garment-thumbs';
 import { buildStoryPoseGuide, photoPoseForStill } from '@/lib/day-pose-guide';
+import { customPoseFirstLine, customPoseWords } from '@/lib/pose-describe';
 import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
 import {
   KLEIN_FACE_REFERENCE_LINE,
@@ -714,6 +715,19 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         // Spell the pose out in words after a pose miss, and always for layouts Edit has a
         // poor record with (step one before the guide falls back to a plainer pose), for
         // two-person layouts (no extra face in a hug) and for a kneel (Rapid squats otherwise).
+        // A custom pose (the player's own, or one composed from the writer's limbs) leads the
+        // prompt with its stance in words — the engines pose from the words, not the map.
+        const customPose = poseBuild.poseKey.startsWith('photo:')
+          ? customPoseWords({
+              photo: beat.posePhoto ?? composedPose,
+              drawn: {
+                keypoints: poseBuild.keypoints,
+                aspect: poseBuild.canvas.width / poseBuild.canvas.height,
+              },
+              sceneText: beat.blurb,
+              lead: leadIsMan() ? 'he' : 'she',
+            })
+          : '';
         const drawnLayout = poseLayoutFromKey(poseBuild.poseKey);
         const cueLine =
           (drawnLayout &&
@@ -726,6 +740,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           cueLine: [cueLine, poseLookLine(beat.poseLook, poseBuild.figureCount)]
             .filter(Boolean)
             .join('\n'),
+          poseFirstLine: customPose
+            ? customPoseFirstLine(customPose, leadIsMan() ? 'he' : 'she')
+            : '',
           filename: poseGuideFilename,
           imageUrl: poseGuideUrl,
           prompt: {
@@ -802,6 +819,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       // Dress plate: she is dressed once, and this still starts from that plate.
       const dressPlate = queueStill ? await resolveDressPlateForBeat(beat) : null;
       const promptWithPose = [
+        poseGuide?.poseFirstLine ?? '',
         dressPlate && dressAsPlate ? DRESS_PLATE_OUTFIT_LINE : footwearPromptLine(footwear),
         withRoleplayPoseGuidePrompt(
           dressForRating(promptSource, poseGuide?.prompt.headcount),
@@ -860,10 +878,15 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           nudeFace ? null : dressPlate
         );
         const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
-        const rapidRecipe = storyRapidDuoRecipeFor(beat, stillOpts, poseGuide?.cueLine, {
-          people: poseGuide?.prompt.headcount,
-          fromDressedPlate: fromDressPlate,
-        });
+        const rapidRecipe = storyRapidDuoRecipeFor(
+          beat,
+          stillOpts,
+          [poseGuide?.poseFirstLine, poseGuide?.cueLine].filter(Boolean).join(' ') || undefined,
+          {
+            people: poseGuide?.prompt.headcount,
+            fromDressedPlate: fromDressPlate,
+          }
+        );
         const charOpts = roleplayCharacterQueueFields(
           { bio: nextBio, story: currentStory },
           stillOpts?.queueParamsBase,
@@ -1029,6 +1052,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         const retryFootwear =
           adult || beatOwnsFootwear(latest.blurb) ? '' : normalizeFootwear(toolSettings.footwear);
         const queuePrompt = [
+          poseGuide?.poseFirstLine ?? '',
           dressPlate && dressAsPlate ? DRESS_PLATE_OUTFIT_LINE : footwearPromptLine(retryFootwear),
           withRoleplayPoseGuidePrompt(
             dressForRating(promptSource, poseGuide?.prompt.headcount),
@@ -1066,6 +1090,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           latest,
           stillOpts,
           [
+            poseGuide?.poseFirstLine ?? '',
             poseGuide?.cueLine ?? '',
             afterPoseMiss && poseGuide ? `QUALITY FIX: ${POSE_MISMATCH_NUDGE}` : '',
           ]

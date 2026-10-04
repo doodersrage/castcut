@@ -57,10 +57,10 @@ import {
   type HeadDirection,
   type LimbSide,
 } from '@/lib/pose-limb-presets';
+import { describePhotoPose } from '@/lib/pose-describe';
 import {
   addPartner,
   mirrorBodies,
-  describePoseBody,
   poseStarterBody,
   POSE_STARTERS,
   removePerson,
@@ -1468,7 +1468,14 @@ export default function PoseJointEditor({
                     <span className="type-caption block text-[var(--text-muted)]">
                       {leadsPrompt ? 'The prompt will open with' : 'This pose reads as'}
                     </span>
-                    {presetWords ?? describePoseBody(bodies[0], { possessive, aspect: safeAspect })}
+                    {describePhotoPose(
+                      {
+                        aspect: safeAspect,
+                        people: bodies,
+                        ...(presetWords ? { words: presetWords } : {}),
+                      },
+                      { lead: possessive === 'his' ? 'he' : 'she' }
+                    )}
                   </p>
                   {focusBody ? (
                     <div

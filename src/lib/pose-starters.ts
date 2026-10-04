@@ -244,6 +244,28 @@ export function describePoseBody(
   body: NormalizedBody,
   options: { possessive?: 'her' | 'his'; aspect?: number } = {}
 ): string {
+  const read = readPoseStance(body, options);
+  return [...(read.backTurned ? ['seen from behind'] : []), read.stance, ...read.armWords].join(
+    ', '
+  );
+}
+
+/** What `describePoseBody` reads, before it is joined into words (pose-describe.ts builds on it). */
+export type PoseStanceRead = {
+  /** Her right shoulder and hip on the picture's right: her back to the camera. */
+  backTurned: boolean;
+  /** The stance alone ("seated", "standing on her right leg, …", "lying down"). */
+  stance: string;
+  /** Arm words when the torso is upright ("both hands on hips", "one arm raised"). */
+  armWords: string[];
+  /** The body's size unit (canvas height = 1, sideways scaled by the aspect). */
+  unit: number;
+};
+
+export function readPoseStance(
+  body: NormalizedBody,
+  options: { possessive?: 'her' | 'his'; aspect?: number } = {}
+): PoseStanceRead {
   const whose = options.possessive ?? 'her';
   const a = options.aspect && options.aspect > 0 ? options.aspect : 2 / 3;
   const at = (i: number): Pt | null => {
@@ -254,7 +276,9 @@ export function describePoseBody(
   const neck = at(1);
   const hipPoints = [at(8), at(11)].filter(Boolean) as Pt[];
   const head = at(0);
-  if (!neck || hipPoints.length === 0) return 'in the pose shown';
+  if (!neck || hipPoints.length === 0) {
+    return { backTurned: false, stance: 'in the pose shown', armWords: [], unit: 0 };
+  }
   const hip = {
     x: hipPoints.reduce((sum, p) => sum + p.x, 0) / hipPoints.length,
     y: hipPoints.reduce((sum, p) => sum + p.y, 0) / hipPoints.length,
@@ -474,12 +498,13 @@ export function describePoseBody(
     rs!.x - ls!.x > unit * 0.12 &&
     rh!.x - lh!.x > unit * 0.04 &&
     !lying;
-  return [...(backTurned ? ['seen from behind'] : []), stance, ...armWords].join(', ');
+  return { backTurned, stance, armWords, unit };
 }
 
 /** Extra words for a stance the model tends to get wrong; matched on how the stance starts. */
 const STANCE_DETAILS: ReadonlyArray<readonly [RegExp, string]> = [
   [/^seen from behind/, 'her back to the camera, never facing it'],
+  [/\b(?:her|his) back to the camera\b/, 'never facing the camera'],
   [/^seated/, 'hips on a seat, knees bent'],
   [/^kneeling$/, 'upright on both knees'],
   [/^lying down/, 'flat on the floor or bed'],
@@ -503,12 +528,16 @@ export function poseFirstLine(
   pronoun: 'she' | 'he' = 'she',
   aspect?: number,
   /** The pose in words when it is already known (a named Day pose). */
-  words?: string | null
+  words?: string | null,
+  /** The pose as `describePhotoPose` reads it (stance first, then limb facts). */
+  described?: string | null
 ): string {
-  const description = describePoseBody(body, {
-    possessive: pronoun === 'he' ? 'his' : 'her',
-    aspect,
-  });
+  const description =
+    described?.trim() ||
+    describePoseBody(body, {
+      possessive: pronoun === 'he' ? 'his' : 'her',
+      aspect,
+    });
   // Every matching note: a back view of a bend needs both.
   const stanceOnly = description.replace(/^seen from behind, /, '');
   const detail = [description, stanceOnly]

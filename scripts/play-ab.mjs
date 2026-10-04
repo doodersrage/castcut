@@ -4,6 +4,10 @@
  * changed, face-score every still against the Cast plate, and write a contact sheet.
  *
  *   node scripts/play-ab.mjs spec.json [--out play-ab-out] [--comfy http://127.0.0.1:8188]
+ *     [--client my-ab] [--upload-prefix my-ab-]
+ *
+ * The ComfyUI queue is shared: --client tags every job's client_id so others can tell your jobs
+ * apart, and --upload-prefix names the scored stills uploaded to ComfyUI's input folder.
  *
  * Spec:
  * {
@@ -46,6 +50,8 @@ const COMFY = (flag('comfy') ?? process.env.COMFYUI_URL ?? 'http://127.0.0.1:818
   ''
 );
 const spec = JSON.parse(readFileSync(specPath, 'utf8'));
+const clientId = flag('client');
+const uploadPrefix = flag('upload-prefix') ?? 'play-ab-';
 const runId = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const outDir = resolve(flag('out') ?? join('play-ab-out', runId));
 mkdirSync(outDir, { recursive: true });
@@ -56,7 +62,10 @@ async function comfy(path, body) {
   const response = await fetch(`${COMFY}${path}`, {
     method: body === undefined ? 'GET' : 'POST',
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body:
+      body === undefined
+        ? undefined
+        : JSON.stringify(path === '/prompt' && clientId ? { ...body, client_id: clientId } : body),
   });
   if (!response.ok) {
     throw new Error(`${path}: ${response.status} ${await response.text()}`);
@@ -282,7 +291,7 @@ for (const [index, job] of jobs.entries()) {
   job.file = local;
   job.buffer = buffer;
   if (spec.reference) {
-    const inputName = `play-ab-${runId}-${basename(local)}`;
+    const inputName = `${uploadPrefix}${runId}-${basename(local)}`;
     await uploadInput(buffer, inputName);
     job.faceDistance = await faceDistance(spec.reference, inputName);
   }

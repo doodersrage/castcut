@@ -48,6 +48,7 @@ import { footwearIsBarefoot, withFootwearLine } from '@/lib/footwear';
 import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
 import { KLEIN_FACE_REFERENCE_LINE } from '@/lib/klein-face-reference';
 import { poseLayoutCueLine, poseLookLine, withRecipePoseCue } from '@/lib/pose-coaching';
+import { customPoseFirstLine, withCustomPoseSentence } from '@/lib/pose-describe';
 import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { RAPID_DUO_RECIPE_MARK, isRapidDuoRecipePrompt } from '@/lib/rapid-duo-recipe-mark';
 import { applyAdultAgeSafeguards, type AgePerson } from '@/lib/adult-age-safeguard';
@@ -80,6 +81,11 @@ export type DayStillPromptFacts = {
   footwearImage: 'combined' | null;
   /** The pose guide that was drawn, if any. */
   pose: { layout: string | null; poseKey?: string | null; figures: number } | null;
+  /**
+   * A custom pose (joint editor, a photo, My poses, a pose pack) in words — `describePhotoPose`.
+   * Sent as the recipe's Pose: sentence, or the brief's first line.
+   */
+  customPose?: string | null;
   /** Layouts whose pose is always spelled out in words (play metrics). */
   cueLayouts: ReadonlySet<string>;
   poseLook?: Parameters<typeof poseLookLine>[0];
@@ -175,13 +181,25 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
         leadOutfit: facts.leadOutfit,
         partnerOutfit: facts.partnerOutfit,
       });
+  // A custom pose leads with its own words: in the recipe's Pose: sentence, or as the brief's
+  // first line. Edit 2511 and Rapid take the pose from the words, not the map (live A/B,
+  // 2026-10-03).
+  const customPose = facts.customPose?.trim() || '';
+  const posedBase = !customPose
+    ? recipeCue
+      ? withRecipePoseCue(basePrompt, drawnLayout, facts.pose?.poseKey)
+      : basePrompt
+    : recipe
+      ? withCustomPoseSentence(basePrompt, customPose)
+      : basePrompt;
   const prompt = [
+    customPose && !recipe ? customPoseFirstLine(customPose) : '',
     // The picked footwear replaces the automatic "shoes that suit the outfit" line.
     ...clothedLeadLines.filter(
       line => !(facts.footwear && /^She wears shoes that suit/.test(line))
     ),
     withFootwearLine(
-      recipeCue ? withRecipePoseCue(basePrompt, drawnLayout, facts.pose?.poseKey) : basePrompt,
+      posedBase,
       facts.footwear,
       // Written for a woman and swapped later — except where the prompt is already the man's
       // (the couple recipes), which keep it as written.
