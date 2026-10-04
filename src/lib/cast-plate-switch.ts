@@ -4,10 +4,12 @@
  * because the Cast picker in the app shell uses it.
  */
 
+import { dayAfterOutfitHandoff } from '@/lib/day-outfit-scope';
 import {
   activateLook,
   activeLook,
   getCharacter,
+  looksOf,
   removeLook,
   upsertCharacter,
   withNewPlateLook,
@@ -109,10 +111,16 @@ export function followCastPlateInSessions(
 export function followLookOutfitInSessions(
   characterId: string,
   previous: KeptLookOutfit | null | undefined,
-  next: KeptLookOutfit | null | undefined
+  next: KeptLookOutfit | null | undefined,
+  /**
+   * The Cast after the switch. Given, Day's slots follow the new look as a hand-off
+   * (day-outfit-scope.ts): what an earlier Day-wide choice left on them goes, hand-picked ones
+   * stay — listed for Day's notice unless `dayNotice` is false (the switch was made on Day).
+   */
+  after?: { record: CharacterRecord; dayNotice?: boolean }
 ): void {
   const activeId = loadSettingsCache().shared.activeCharacterId?.trim();
-  if ((activeId && activeId !== characterId) || (!previous && !next)) {
+  if ((activeId && activeId !== characterId) || (!previous && !next && !after)) {
     return;
   }
   const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
@@ -122,7 +130,20 @@ export function followLookOutfitInSessions(
   }
   const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
   const dayPatch = lookOutfitSwitchPatch(day, previous, next);
-  if (dayPatch) {
+  if (after) {
+    const look = activeLook(after.record);
+    saveToolSettings('day', {
+      ...day,
+      ...dayAfterOutfitHandoff(day, {
+        ...(dayPatch ? { picks: dayPatch } : {}),
+        kitId: look.lockedWardrobeId,
+        activeLookId: look.id,
+        lookIds: looksOf(after.record).map(entry => entry.id),
+        at: Date.now(),
+        notice: after.dayNotice !== false,
+      }),
+    });
+  } else if (dayPatch) {
     saveToolSettings('day', {
       ...day,
       ...dayPatch,
@@ -146,8 +167,15 @@ export function followLookOutfitInSessions(
   }
 }
 
-/** Make one of the Cast's plates (looks) the one Outfit, Day and Story start from. */
-export function switchCastPlate(characterId: string, lookId: string): CharacterRecord | undefined {
+/**
+ * Make one of the Cast's plates (looks) the one Outfit, Day and Story start from. `dayNotice`
+ * false: the switch was made on Day (its Look & clothing row), so Day shows no hand-off notice.
+ */
+export function switchCastPlate(
+  characterId: string,
+  lookId: string,
+  options?: { dayNotice?: boolean }
+): CharacterRecord | undefined {
   const before = getCharacter(characterId);
   if (!before) {
     return undefined;
@@ -159,7 +187,8 @@ export function switchCastPlate(characterId: string, lookId: string): CharacterR
     followLookOutfitInSessions(
       before.id,
       activeLook(before).keptOutfit,
-      activeLook(next).keptOutfit
+      activeLook(next).keptOutfit,
+      { record: next, dayNotice: options?.dayNotice }
     );
   }
   return next;
@@ -178,7 +207,8 @@ export function removeCastPlate(characterId: string, lookId: string): CharacterR
     followLookOutfitInSessions(
       before.id,
       activeLook(before).keptOutfit,
-      activeLook(next).keptOutfit
+      activeLook(next).keptOutfit,
+      { record: next }
     );
   }
   return next;

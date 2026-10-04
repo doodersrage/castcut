@@ -23,7 +23,7 @@ export async function openDaySlotSheet(page: Page, slotId: string): Promise<void
 export async function closeDaySheets(page: Page): Promise<void> {
   for (let i = 0; i < 4; i += 1) {
     const open = page.locator(
-      '[data-testid="clothing-sheet"], [data-testid="day-slot-sheet"], [data-testid="day-setup-sheet"]'
+      '[data-testid="clothing-sheet"], [data-testid="day-slot-sheet"], [data-testid="day-setup-sheet"], [data-testid="day-outfit-sheet"]'
     );
     if ((await open.count()) === 0) {
       return;

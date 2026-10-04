@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
 import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
 import DaySlotLookPicker from '@/components/day-planner/DaySlotLookPicker';
@@ -11,6 +11,7 @@ import SideSheet from '@/components/ui/SideSheet';
 import UiIcon from '@/components/ui/UiIcon';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
 import type { CharacterRecord } from '@/lib/character-os';
+import type { ClothingSummaryThumb } from '@/lib/clothing-summary';
 import {
   daySlotProgressState,
   typedDayBeatPatch,
@@ -41,8 +42,14 @@ export type DaySlotSheetProps = {
   /** The Day plate, shown behind the figure in the pose editor. */
   plateUrl?: string | null;
   updateSlot: (slotId: DaySlotId, patch: Partial<DaySlot>) => void;
-  /** "Outfit kit for this slot · black pumps" — the Clothing row's one line. */
+  /** "Boxy chocolate habit · black pumps" — the Clothing row's one line. */
   clothingSummary: string;
+  /** Kit packshot / photo / shoe photo beside it (clothing-summary). */
+  clothingThumbs?: ClothingSummaryThumb[];
+  /** The slot's look or kit is not the whole Day's (day-outfit-scope.ts). */
+  differsFromDay?: boolean;
+  /** "Use the Day's": this slot back on the Day's look and clothing. */
+  onUseDayOutfit?: () => void;
   /** The full picker, rendered inside the Clothing sheet only while it is open. */
   renderClothingPicker: () => ReactNode;
   onRedoSameSeed: () => void;
@@ -80,6 +87,9 @@ export default function DaySlotSheet({
   plateUrl,
   updateSlot,
   clothingSummary,
+  clothingThumbs,
+  differsFromDay = false,
+  onUseDayOutfit,
   renderClothingPicker,
   onRedoSameSeed,
   onKeepOldTake,
@@ -90,6 +100,7 @@ export default function DaySlotSheet({
   compact = false,
 }: DaySlotSheetProps) {
   const [clothingOpen, setClothingOpen] = useState(false);
+  const outfitRef = useRef<HTMLDivElement>(null);
   const still = stills.find(entry => entry.slotId === slot.id);
   const done = daySlotProgressState(still) === 'done';
   const index = slots.findIndex(entry => entry.id === slot.id);
@@ -201,18 +212,47 @@ export default function DaySlotSheet({
           plateUrl={plateUrl}
           updateSlot={updateSlot}
         />
-        <DaySlotLookPicker
-          character={character}
-          slot={slot}
-          disabled={busy}
-          updateSlot={updateSlot}
-        />
-        <ClothingSummaryRow
-          summary={clothingSummary}
-          disabled={busy}
-          testId="day-slot-clothing"
-          onOpen={() => setClothingOpen(true)}
-        />
+        {differsFromDay ? (
+          <p
+            className="type-caption flex flex-wrap items-center gap-x-1 text-[var(--text-muted)]"
+            data-testid="day-slot-differs"
+          >
+            Different from the Day ·
+            <button
+              type="button"
+              className="ui-text-link"
+              disabled={busy}
+              data-testid="day-slot-use-day"
+              onClick={() => {
+                onUseDayOutfit?.();
+                // The line goes with the override: keep focus in the sheet (its look tiles or
+                // the Clothing row), not on the page behind it.
+                window.requestAnimationFrame(() =>
+                  outfitRef.current
+                    ?.querySelector<HTMLElement>('[aria-checked="true"], button')
+                    ?.focus()
+                );
+              }}
+            >
+              Use the Day&apos;s
+            </button>
+          </p>
+        ) : null}
+        <div ref={outfitRef} className="space-y-3">
+          <DaySlotLookPicker
+            character={character}
+            slot={slot}
+            disabled={busy}
+            updateSlot={updateSlot}
+          />
+          <ClothingSummaryRow
+            summary={clothingSummary}
+            thumbs={clothingThumbs}
+            disabled={busy}
+            testId="day-slot-clothing"
+            onOpen={() => setClothingOpen(true)}
+          />
+        </div>
         <div
           className="flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] py-2"
           data-testid="day-setting-presets"

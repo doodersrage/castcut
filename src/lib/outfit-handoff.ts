@@ -172,22 +172,62 @@ export function lookOutfitSwitchPatch(
   });
 }
 
-/** Write Outfit's picks into Day's and Story's settings (browser only). */
-export async function handOffOutfitPicks(source: OutfitPicks): Promise<void> {
-  const {
-    DEFAULT_DAY_TOOL_CACHE,
-    DEFAULT_ROLEPLAY_TOOL_CACHE,
-    loadToolSettings,
-    saveToolSettings,
-  } = await import('./settings-cache');
+export type OutfitHandoffOptions = {
+  /** The Day's kit after the hand-off (default: the session's outfit lock as saved). */
+  kitId?: string | null;
+  /** The Cast whose Day this is (default: the active Cast). */
+  characterId?: string | null;
+  /** Leave Story alone. */
+  story?: boolean;
+  /** Leave Day alone (Keep writes Day's settings itself, in one write with its slots). */
+  day?: boolean;
+};
+
+/**
+ * Write Outfit's picks into Day's and Story's settings (browser only). Day's slots follow the
+ * new outfit (day-outfit-scope.ts): what an earlier Day-wide choice left on them goes, a slot's
+ * own look or kit picked by hand stays and is listed for Day's notice. `source` null: only the
+ * kit or the look changed — Day's slots follow, the photo / shoes and Story are untouched.
+ */
+export async function handOffOutfitPicks(
+  source: OutfitPicks | null,
+  options: OutfitHandoffOptions = {}
+): Promise<void> {
+  const [
+    {
+      DEFAULT_DAY_TOOL_CACHE,
+      DEFAULT_ROLEPLAY_TOOL_CACHE,
+      loadSettingsCache,
+      loadToolSettings,
+      saveToolSettings,
+    },
+    { activeLook, getCharacter, looksOf },
+    { dayAfterOutfitHandoff },
+  ] = await Promise.all([
+    import('./settings-cache'),
+    import('./character-os'),
+    import('./day-outfit-scope'),
+  ]);
+  if (options.day !== false) {
+    const shared = loadSettingsCache().shared;
+    const character = getCharacter(options.characterId?.trim() || shared.activeCharacterId);
+    const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+    saveToolSettings('day', {
+      ...day,
+      ...dayAfterOutfitHandoff(day, {
+        ...(source ? { picks: source } : {}),
+        kitId: options.kitId !== undefined ? options.kitId : shared.lockedWardrobeId,
+        activeLookId: character ? activeLook(character).id : undefined,
+        lookIds: character ? looksOf(character).map(look => look.id) : undefined,
+        at: Date.now(),
+      }),
+    });
+  }
+  if (!source || options.story === false) {
+    return;
+  }
   const patch = outfitHandoffPatch(source);
   const hasPhoto = Boolean(patch.customGarmentImageFilename || patch.customGarmentImageUrl);
-  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
-  saveToolSettings('day', {
-    ...day,
-    ...patch,
-    slots: slotsForOutfitPhoto(day.slots ?? [], hasPhoto),
-  });
   const story = loadToolSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
   saveToolSettings('roleplay', {
     ...story,

@@ -6,8 +6,9 @@ import { activeLook, looksOf, type CharacterRecord } from '@/lib/character-os';
 import type { DaySlot, DaySlotId } from '@/lib/day-planner';
 
 /**
- * Which of the Cast's looks a Day slot is made in, picked by its plate: "Active look" (the
- * default — follows whichever look is active), or one look for this slot only — its plate, its
+ * Which of the Cast's looks a Day slot is made in, picked by its plate: "Day's look" (the
+ * default — the Cast's active look, chosen for the whole Day on the Look & clothing row), or one
+ * look for this slot only — its plate, its
  * outfit and its dressed plate, without changing the active look (day-slot-look.ts). Shown only
  * for a Cast with more than one look.
  */
@@ -36,15 +37,21 @@ export default function DaySlotLookPicker({
         label={`Look for ${slot.label}`}
         value={value}
         disabled={disabled}
-        onChange={next => updateSlot(slot.id, { lookId: next || undefined })}
+        onChange={next =>
+          updateSlot(slot.id, {
+            lookId: next || undefined,
+            // Picked by hand: a new Day-wide outfit leaves it (day-outfit-scope.ts).
+            outfitByHand: next || (slot.outfitByHand && slot.wardrobeId) ? true : undefined,
+          })
+        }
         testIdPrefix="day-slot-look"
         tiles={[
           {
             id: '',
-            label: 'Active look',
+            label: "Day's look",
             title: active
-              ? `The Cast's active look (now ${active.label}) — follows it when it changes`
-              : "The Cast's active look",
+              ? `The whole Day's look (now ${active.label}) — follows it when it changes`
+              : "The whole Day's look",
             thumb: active?.thumb,
             caption: active?.label,
           },

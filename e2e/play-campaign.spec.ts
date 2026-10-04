@@ -3754,6 +3754,161 @@ test('a Day slot can be made in another of the Cast’s looks, and keeps it', as
   expect(activeLookId).toBe('e2e-day-look-a');
 });
 
+/** A Cast with two looks (Studio, active; Beach) for the Day-wide Look & clothing tests. */
+function dayScopeCast() {
+  return {
+    version: 1,
+    characters: [
+      {
+        id: 'e2e-day-scope',
+        name: 'Juno',
+        version: 1,
+        updatedAt: Date.now(),
+        activeLookId: 'e2e-scope-look-a',
+        ipAdapter: { imageFilename: 'e2e-scope-look-a.png', imageUrl: '/icon.svg' },
+        lockedWardrobeId: 'outfit-relaxed-fit-lavender-slip-dress',
+        looks: [
+          {
+            id: 'e2e-scope-look-a',
+            name: 'Studio',
+            createdAt: 2,
+            ipAdapter: { imageFilename: 'e2e-scope-look-a.png', imageUrl: '/icon.svg' },
+            lockedWardrobeId: 'outfit-relaxed-fit-lavender-slip-dress',
+          },
+          {
+            id: 'e2e-scope-look-b',
+            name: 'Beach',
+            createdAt: 1,
+            ipAdapter: { imageFilename: 'e2e-scope-look-b.png', imageUrl: '/icon.svg' },
+            lockedWardrobeId: 'outfit-denim-jacket',
+          },
+        ],
+      },
+    ],
+    removedIds: [],
+  };
+}
+
+const DAY_SCOPE_SHARED = {
+  activeCharacterId: 'e2e-day-scope',
+  activeLookId: 'e2e-scope-look-a',
+  lockedWardrobeId: 'outfit-relaxed-fit-lavender-slip-dress',
+};
+
+test('Day: one look and clothing for every slot, and slots that differ go back in one tap', async ({
+  page,
+}) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: DAY_SCOPE_SHARED,
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-day-scope',
+        footwear: 'black leather pointed-toe stiletto pumps',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'café', sceneHints: 'coffee', lookId: 'e2e-scope-look-b', outfitByHand: true },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reading', wardrobeId: 'outfit-denim-jacket', outfitByHand: true },
+          { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'sunset' },
+          { id: 'night', label: 'Night', location: 'home', sceneHints: 'sofa' },
+        ],
+      },
+    },
+    characters: dayScopeCast(),
+  });
+  await gotoStable(page, '/day?character=e2e-day-scope');
+  await dismissBlockingOverlays(page);
+  // What the whole Day wears reads without opening anything: look, kit, shoes, and pictures.
+  const summary = page.getByTestId('day-outfit-row-summary');
+  await expect(summary).toContainText('Studio', { timeout: 30_000 });
+  await expect(summary).toContainText(/lavender slip dress/i);
+  await expect(summary).toContainText('stiletto pumps');
+  await expect(summary).toHaveAttribute('title', /Studio · .*lavender slip dress/i);
+  await expect(
+    page.getByTestId('day-outfit-row-thumbs').locator('img[src="/footwear/black-pumps.webp"]')
+  ).toHaveCount(1);
+  await expect(page.getByTestId('day-outfit-differ')).toContainText('2 slots differ');
+
+  // A slot that differs says so in its sheet, and its Clothing row shows its own kit.
+  await openDaySlotSheet(page, 'afternoon');
+  await expect(page.getByTestId('day-slot-differs')).toContainText('Different from the Day');
+  await expect(page.getByTestId('day-slot-clothing-summary')).toContainText(/denim jacket/i);
+  await openDaySlotSheet(page, 'evening');
+  await expect(page.getByTestId('day-slot-differs')).toHaveCount(0);
+  await expect(page.getByTestId('day-slot-clothing-summary')).toContainText(/lavender slip dress/i);
+  // "Use the Day's" resets that slot alone.
+  await openDaySlotSheet(page, 'afternoon');
+  await page.getByTestId('day-slot-use-day').click();
+  await expect(page.getByTestId('day-slot-differs')).toHaveCount(0);
+  await closeDaySheets(page);
+  await expect(page.getByTestId('day-outfit-differ')).toContainText('1 slot differs');
+
+  // "Use for every slot": the rest follow the Day in one write.
+  await page.getByTestId('day-outfit-use-everywhere').click();
+  await expect(page.getByTestId('day-outfit-differ')).toHaveCount(0);
+  await openDaySlotSheet(page, 'morning');
+  await expect(
+    page.getByRole('radiogroup', { name: 'Look for Morning' }).getByTestId('day-slot-look-none')
+  ).toHaveAttribute('aria-checked', 'true');
+  await closeDaySheets(page);
+
+  // Choose… opens the look tiles and the Clothing picker for the whole Day.
+  await page.getByTestId('day-outfit-choose').click();
+  const sheet = page.getByTestId('day-outfit-sheet');
+  await expect(sheet).toBeVisible();
+  await expect(
+    sheet.getByRole('radiogroup', { name: 'Look for the whole Day' }).getByRole('radio')
+  ).toHaveCount(2);
+  await expect(sheet.getByTestId('day-outfit-clothing')).toBeVisible();
+  await closeDaySheets(page);
+});
+
+test('Outfit hands a new outfit to Day: stale slot kits go, hand-picked slots stay and are flagged', async ({
+  page,
+}) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: DAY_SCOPE_SHARED,
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-day-scope',
+        slots: [
+          // Stamped on the slot by an earlier Day-wide choice (an older Keep / Use on Day).
+          { id: 'morning', label: 'Morning', location: 'café', sceneHints: 'coffee', wardrobeId: 'outfit-denim-jacket' },
+          // Picked by hand in the slot sheet.
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reading', wardrobeId: 'outfit-denim-jacket', outfitByHand: true },
+          { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'sunset', lookId: 'e2e-scope-look-b' },
+          { id: 'night', label: 'Night', location: 'home', sceneHints: 'sofa' },
+        ],
+      },
+    },
+    characters: dayScopeCast(),
+  });
+  await gotoStable(page, '/fitting');
+  await dismissBlockingOverlays(page);
+  // Outfit picks new shoes: that is a hand-off to Day.
+  await openOutfitClothing(page);
+  await expect(page.getByTestId('fitting-footwear')).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId('fitting-footwear-barefoot').click();
+  await closeOutfitSheets(page);
+  await expect(page.getByTestId('fitting-clothing-summary')).toContainText('barefoot');
+
+  // In-app to Day (a page load would re-apply this test's seed).
+  await page.getByRole('link', { name: 'Day', exact: true }).first().click();
+  await page.waitForURL(/\/day/);
+  await dismissBlockingOverlays(page);
+  const notice = page.getByTestId('day-outfit-handoff-notice');
+  await expect(notice).toContainText('2 slots keep their own outfit', { timeout: 30_000 });
+  await expect(page.getByTestId('day-outfit-row-summary')).toContainText('barefoot');
+  await expect(page.getByTestId('day-outfit-differ')).toContainText('2 slots differ');
+  // Morning's stamped kit went: it wears the Day's outfit now.
+  await openDaySlotSheet(page, 'morning');
+  await expect(page.getByTestId('day-slot-differs')).toHaveCount(0);
+  await expect(page.getByTestId('day-slot-clothing-summary')).toContainText(/lavender slip dress/i);
+  await closeDaySheets(page);
+
+  await page.getByTestId('day-outfit-handoff-use').click();
+  await expect(notice).toHaveCount(0);
+  await expect(page.getByTestId('day-outfit-differ')).toHaveCount(0);
+});
+
 test('pick the best engine per pose: the switch saves and a moved still says why', async ({
   page,
 }) => {

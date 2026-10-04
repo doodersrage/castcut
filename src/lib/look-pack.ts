@@ -631,7 +631,17 @@ export function clearLookPackShareHash(): void {
 }
 
 /** Seed every Day slot location / beat / wardrobe from a look pack (pack wardrobe wins). */
-export function applyLookPackToDaySlots(slots: DaySlot[], pack: LookPack): DaySlot[] {
+export function applyLookPackToDaySlots(
+  slots: DaySlot[],
+  pack: LookPack,
+  options?: {
+    /**
+     * Stamp the pack's kit on every slot (default). False: the kit is the Day's own outfit
+     * (the session's outfit lock), so slots are left to follow it (day-outfit-scope.ts).
+     */
+    wardrobe?: boolean;
+  }
+): DaySlot[] {
   const location = pack.locationNotes?.trim();
   const beatParts = [
     pack.moodNotes,
@@ -643,7 +653,7 @@ export function applyLookPackToDaySlots(slots: DaySlot[], pack: LookPack): DaySl
     .map(part => part?.trim())
     .filter(Boolean);
   const beat = beatParts.join(' · ').slice(0, 320) || undefined;
-  const wardrobeId = pack.wardrobeId?.trim();
+  const wardrobeId = options?.wardrobe === false ? undefined : pack.wardrobeId?.trim();
 
   return slots.map(slot => ({
     ...slot,

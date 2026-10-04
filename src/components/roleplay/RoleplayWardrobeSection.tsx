@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import ClothingPicker from '@/components/wardrobe/ClothingPicker';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
-import { clothingSummaryLine } from '@/lib/clothing-summary';
+import { clothingSummaryLine, clothingSummaryThumbs } from '@/lib/clothing-summary';
 import { fittingSwipeNeighbor } from '@/lib/fitting-room';
 import {
   buildWardrobeKitPickerDeck,
@@ -61,13 +61,21 @@ export default function RoleplayWardrobeSection({
     () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, selectedWardrobeId),
     [filteredWardrobeOptions, selectedWardrobeId]
   );
+  const kitLabel = selectedWardrobeId
+    ? (wardrobeKitDeck.find(kit => kit.id === selectedWardrobeId)?.label ?? selectedWardrobeId)
+    : '';
   const summary = clothingSummaryLine({
-    kitLabel: selectedWardrobeId
-      ? (wardrobeKitDeck.find(kit => kit.id === selectedWardrobeId)?.label ?? selectedWardrobeId)
-      : '',
+    kitLabel,
     hasPhoto: hasCustomGarment,
     footwear: toolSettings.footwear,
     emptyLabel: 'No kit or photo yet — the bible’s look dresses her',
+  });
+  const thumbs = clothingSummaryThumbs({
+    kitLabel,
+    kitThumbUrl: resolveWardrobeGarmentThumbUrl(selectedWardrobeId),
+    photoUrl: hasCustomGarment ? toolSettings.customGarmentImageUrl : null,
+    footwear: toolSettings.footwear,
+    footwearImageUrl: toolSettings.footwearImageUrl,
   });
 
   return (
@@ -78,6 +86,7 @@ export default function RoleplayWardrobeSection({
       <ClothingSummaryRow
         label="Outfit for stills"
         summary={summary}
+        thumbs={thumbs}
         disabled={busy}
         testId="story-clothing"
         className="py-2"

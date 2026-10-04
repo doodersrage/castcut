@@ -23,6 +23,7 @@ import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DaySetupChip from '@/components/day-planner/DaySetupChip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import DaySlotSheet from '@/components/day-planner/DaySlotSheet';
+import DayOutfitRow, { dayClothingView } from '@/components/day-planner/DayOutfitRow';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
 import UploadButton from '@/components/ui/UploadButton';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
@@ -37,7 +38,6 @@ import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/ty
 import SideSheet from '@/components/ui/SideSheet';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import ClothingPicker from '@/components/wardrobe/ClothingPicker';
-import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { useDayQualityPreset } from '@/hooks/day-planner/useDayQualityPreset';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
@@ -229,6 +229,15 @@ export default function MobileDayToolSections(vm: ViewModel) {
     applySavedCustomGarment,
     removeSavedCustomGarment,
     selectSlotWardrobe,
+    differingSlotIds,
+    handoffKeptSlotIds,
+    slotDiffers,
+    applyDayOutfitEverywhere,
+    applyHandoffOutfitEverywhere,
+    dismissHandoffNotice,
+    applyDayOutfitToSlot,
+    chooseDayLook,
+    selectDayWardrobe,
   } = vm;
 
   const hasCustomGarment = Boolean(toolSettings.customGarmentImageUrl?.trim());
@@ -309,10 +318,15 @@ export default function MobileDayToolSections(vm: ViewModel) {
   const watchCastHref = character
     ? toMobileStudioHref(`/characters/${encodeURIComponent(character.id)}?media=films`)
     : toMobileStudioHref('/characters');
-  const clothingSummary = hasCustomGarment
-    ? 'Your clothing photo'
-    : formatWardrobeKitLabel(wardrobeLabelFor(activeSlot.wardrobeId) || '') ||
-      'Outfit kit for this slot';
+  // What is worn, readable without opening a sheet: the whole Day's, and this slot's.
+  const clothingView = dayClothingView({
+    dayKitId: shared.lockedWardrobeId,
+    slotKitId: activeSlot.wardrobeId,
+    photoUrl: hasCustomGarment ? toolSettings.customGarmentImageUrl : null,
+    footwear: toolSettings.footwear,
+    footwearImageUrl: toolSettings.footwearImageUrl,
+    labelFor: wardrobeLabelFor,
+  });
 
   const openSlotSheet = useCallback(
     (slotId: DaySlotId) => {
@@ -384,64 +398,74 @@ export default function MobileDayToolSections(vm: ViewModel) {
     };
   }, []);
 
-  const clothingPicker = () => (
-    <div data-testid="day-clothing">
-      <ClothingPicker
-        accent="teal"
-        busy={busy}
-        testIdPrefix="day"
-        garment={{
-          uploading: garmentUploading,
-          scanStatus: garmentScanStatus,
-          imageUrl: toolSettings.customGarmentImageUrl,
-          imageFilename: toolSettings.customGarmentImageFilename,
-          description: toolSettings.customGarmentDescription,
-          onApply: applyCustomGarment,
-          onClear: clearCustomGarment,
-          onRescan: rescanCustomGarment,
-          onSave: saveCurrentCustomGarment,
-          onApplySaved: applySavedCustomGarment,
-          onRemoveSaved: removeSavedCustomGarment,
-          onDescriptionChange: value => updateToolSettings({ customGarmentDescription: value }),
-        }}
-        footwear={{
-          value: toolSettings.footwear,
-          imageUrl: toolSettings.footwearImageUrl,
-          imageFilename: toolSettings.footwearImageFilename,
-          onChange: patch => updateToolSettings(patch),
-          onApplyPhoto: applyFootwearPhoto,
-        }}
-        kits={wardrobeKitDeck}
-        kitsReady={wardrobeReady}
-        selectedKitId={activeSlot.wardrobeId}
-        kitSize="sm"
-        kitPickerTestId="mobile-day-wardrobe-kit-picker"
-        onSelectKit={wardrobeId => selectSlotWardrobe(activeSlot.id, wardrobeId)}
-        onSwipeKit={delta => {
-          const next = fittingSwipeNeighbor(wardrobeKitDeck, activeSlot.wardrobeId, delta);
-          if (next) {
-            selectSlotWardrobe(activeSlot.id, next.id);
+  // The Clothing picker for this slot (its own kit) or, from the Look & clothing row, for the
+  // whole Day (the session's outfit lock). The photo and the shoes are the Day's either way.
+  const clothingPicker = (scope: 'slot' | 'day' = 'slot') => {
+    const dayScope = scope === 'day';
+    const selectedKitId = dayScope ? shared.lockedWardrobeId : activeSlot.wardrobeId;
+    const selectKit = (wardrobeId: string | undefined) =>
+      dayScope ? selectDayWardrobe(wardrobeId) : selectSlotWardrobe(activeSlot.id, wardrobeId);
+    return (
+      <div data-testid={dayScope ? 'day-outfit-clothing' : 'day-clothing'}>
+        <ClothingPicker
+          accent="teal"
+          busy={busy}
+          testIdPrefix="day"
+          garment={{
+            uploading: garmentUploading,
+            scanStatus: garmentScanStatus,
+            imageUrl: toolSettings.customGarmentImageUrl,
+            imageFilename: toolSettings.customGarmentImageFilename,
+            description: toolSettings.customGarmentDescription,
+            onApply: applyCustomGarment,
+            onClear: clearCustomGarment,
+            onRescan: rescanCustomGarment,
+            onSave: saveCurrentCustomGarment,
+            onApplySaved: applySavedCustomGarment,
+            onRemoveSaved: removeSavedCustomGarment,
+            onDescriptionChange: value => updateToolSettings({ customGarmentDescription: value }),
+          }}
+          footwear={{
+            value: toolSettings.footwear,
+            imageUrl: toolSettings.footwearImageUrl,
+            imageFilename: toolSettings.footwearImageFilename,
+            onChange: patch => updateToolSettings(patch),
+            onApplyPhoto: applyFootwearPhoto,
+          }}
+          kits={wardrobeKitDeck}
+          kitsReady={wardrobeReady}
+          selectedKitId={selectedKitId}
+          kitSize="sm"
+          kitPickerTestId={
+            dayScope ? 'mobile-day-outfit-kit-picker' : 'mobile-day-wardrobe-kit-picker'
           }
-        }}
-        onClearKit={() => selectSlotWardrobe(activeSlot.id, undefined)}
-        resolveKitThumb={kit => ({ url: resolveWardrobeGarmentThumbUrl(kit.id) })}
-        category={{
-          value: wardrobeCategoryFilter,
-          options: wardrobeCategoryFilterOptions().map(option => ({
-            value: option.value,
-            label: wardrobeReady
-              ? `${option.label} (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
-              : option.label,
-          })),
-          onChange: value =>
-            updateToolSettings({
-              wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(value),
-            }),
-        }}
-        onError={message => setError(message)}
-      />
-    </div>
-  );
+          onSelectKit={wardrobeId => selectKit(wardrobeId)}
+          onSwipeKit={delta => {
+            const next = fittingSwipeNeighbor(wardrobeKitDeck, selectedKitId, delta);
+            if (next) {
+              selectKit(next.id);
+            }
+          }}
+          onClearKit={() => selectKit(undefined)}
+          resolveKitThumb={kit => ({ url: resolveWardrobeGarmentThumbUrl(kit.id) })}
+          category={{
+            value: wardrobeCategoryFilter,
+            options: wardrobeCategoryFilterOptions().map(option => ({
+              value: option.value,
+              label: wardrobeReady
+                ? `${option.label} (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
+                : option.label,
+            })),
+            onChange: value =>
+              updateToolSettings({
+                wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(value),
+              }),
+          }}
+          onError={message => setError(message)}
+        />
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4" data-testid="mobile-day">
@@ -692,6 +716,20 @@ export default function MobileDayToolSections(vm: ViewModel) {
           advancedOpen={advancedOpen}
           onAdvancedToggle={() => setAdvancedOpen(open => !open)}
           advancedId={advancedId}
+        />
+        <DayOutfitRow
+          character={character}
+          slots={slots}
+          busy={busy}
+          clothingSummary={clothingView.day.summary}
+          clothingThumbs={clothingView.day.thumbs}
+          differingSlotIds={differingSlotIds}
+          handoffKeptSlotIds={handoffKeptSlotIds}
+          onChooseLook={chooseDayLook}
+          onUseForEverySlot={applyDayOutfitEverywhere}
+          onUseHandoffEverywhere={applyHandoffOutfitEverywhere}
+          onDismissHandoff={dismissHandoffNotice}
+          renderClothingPicker={() => clothingPicker('day')}
         />
         <DayMoodHints
           dayMood={dayMood}
@@ -1144,8 +1182,11 @@ export default function MobileDayToolSections(vm: ViewModel) {
         poseMiss={poseMissViews[activeSlot.id]}
         plateUrl={platePreviewUrl || plate?.imageUrl}
         updateSlot={updateSlot}
-        clothingSummary={clothingSummary}
-        renderClothingPicker={clothingPicker}
+        clothingSummary={clothingView.slot.summary}
+        clothingThumbs={clothingView.slot.thumbs}
+        differsFromDay={slotDiffers(activeSlot)}
+        onUseDayOutfit={() => applyDayOutfitToSlot(activeSlot.id)}
+        renderClothingPicker={() => clothingPicker('slot')}
         onRedoSameSeed={() => void redoSlotSameSeed(activeSlot.id)}
         onKeepOldTake={() => keepPreviousTake(activeSlot.id)}
         onKeepNewTake={() => dropPreviousTake(activeSlot.id)}

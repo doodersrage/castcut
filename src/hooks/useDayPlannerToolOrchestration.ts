@@ -11,6 +11,7 @@ import { useDayBestOfTwo } from '@/hooks/day-planner/useDayBestOfTwo';
 import { useDayClipQualityCheck } from '@/hooks/day-planner/useDayClipQualityCheck';
 import { useDayEndPose } from '@/hooks/day-planner/useDayEndPose';
 import { useDayAdultGate } from '@/hooks/day-planner/useDayAdultGate';
+import { useDayOutfitScope } from '@/hooks/day-planner/useDayOutfitScope';
 import { applyCharacterRecordFresh } from '@/lib/character-os';
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
@@ -54,6 +55,7 @@ export function useDayPlannerToolOrchestration() {
   const clips = useDayClipQualityCheck(core);
   const endPose = useDayEndPose(core);
   const season = useDaySeries(core.character?.id);
+  const outfitScope = useDayOutfitScope(core);
 
   // "Retry flagged": everything Auto-review flagged, in one tap instead of card by card.
   const retryPlan = flaggedRetryPlan({
@@ -211,6 +213,7 @@ export function useDayPlannerToolOrchestration() {
     ...clips,
     ...endPose,
     ...season,
+    ...outfitScope,
     cutDayFilm,
     cutProblems,
     resolveCutProblems,

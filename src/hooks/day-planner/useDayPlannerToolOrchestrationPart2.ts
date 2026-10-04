@@ -59,7 +59,6 @@ import {
   mergeDaySlotStills,
   normalizeDaySlotStills,
   normalizeDaySlots,
-  seedDaySlotsWardrobe,
   upsertDaySlotStill,
   type DaySlot,
   type DaySlotId,
@@ -1175,7 +1174,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   const selectSlotWardrobe = useCallback(
     (slotId: DaySlotId, wardrobeId: string | undefined) => {
       const id = wardrobeId?.trim() || undefined;
-      updateSlot(slotId, { wardrobeId: id, wardrobeAuto: undefined });
+      const slot = slots.find(entry => entry.id === slotId);
+      // Picked by hand in the slot's sheet: a new Day-wide outfit leaves it (day-outfit-scope).
+      updateSlot(slotId, {
+        wardrobeId: id,
+        wardrobeAuto: undefined,
+        outfitByHand: id || slot?.lookId ? true : undefined,
+      });
       if (id) {
         const previousUrl = toolSettings.customGarmentImageUrl?.trim();
         if (previousUrl?.startsWith('blob:')) {
@@ -1188,7 +1193,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         });
       }
     },
-    [toolSettings.customGarmentImageUrl, updateSlot, updateToolSettings]
+    [slots, toolSettings.customGarmentImageUrl, updateSlot, updateToolSettings]
   );
 
   return {

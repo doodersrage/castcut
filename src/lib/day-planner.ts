@@ -351,6 +351,11 @@ export type DaySlot = {
    * changing the active look (day-slot-look.ts). Unset = the active look.
    */
   lookId?: string;
+  /**
+   * The slot's own look / kit was picked by hand in its sheet: a new Day-wide outfit (Outfit's
+   * Keep, Use on Day) leaves it and says so, instead of clearing it (day-outfit-scope.ts).
+   */
+  outfitByHand?: boolean;
 };
 
 export type DaySlotStillStatus = 'queued' | 'running' | 'completed' | 'error';
@@ -691,6 +696,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       poseLead: slot.poseLead === 'left' || slot.poseLead === 'right' ? slot.poseLead : undefined,
       poseLook: normalizePoseLookChoice(slot.poseLook),
       lookId: readText(slot.lookId, 120) || undefined,
+      outfitByHand: slot.outfitByHand === true || undefined,
     });
   }
   const resolvedLength =

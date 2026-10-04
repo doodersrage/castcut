@@ -1135,6 +1135,8 @@ export type DayToolCache = {
   /** Other Casts' Days, parked when the Cast changed (day-cast-park). */
   parkedDays?: Record<string, import('./day-cast-park').ParkedDay>;
   slots?: import('./day-planner').DaySlot[];
+  /** Slots that kept their own (hand-picked) outfit through Outfit's last hand-off. */
+  outfitHandoffKept?: import('./day-outfit-scope').DayOutfitHandoffNotice;
   /** Stills on the Day board (2, 3, 4, 6 or 8); default four dayparts. */
   dayLength?: import('./day-planner').DayLength;
   /** Completed / in-flight stills for the day reel and Cut film. */

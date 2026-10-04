@@ -3,7 +3,8 @@
 import { handOffOutfitPicks, keptLookOutfitFromTryOn, realKitId } from '@/lib/outfit-handoff';
 import { registerDressPlateFromImage } from '@/lib/day-dress-plate-client';
 import { useCallback, useEffect } from 'react';
-import { activeLook, setLookKeptOutfit, toggleLookKeeper } from '@/lib/character-os';
+import { activeLook, looksOf, setLookKeptOutfit, toggleLookKeeper } from '@/lib/character-os';
+import { dayAfterOutfitHandoff } from '@/lib/day-outfit-scope';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
 import { buildFittingKitPreviewPrompt, type FittingCompareTryOn } from '@/lib/fitting-room';
 import {
@@ -29,7 +30,7 @@ import {
   saveLookPack,
 } from '@/lib/look-pack';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
-import { ensureDaySlotsMatchMood, seedDaySlotsFromKeeperWardrobes } from '@/lib/day-planner';
+import { ensureDaySlotsMatchMood } from '@/lib/day-planner';
 import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
 import { DEFAULT_DAY_TOOL_CACHE, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
 import type {
@@ -38,14 +39,7 @@ import type {
 } from '@/hooks/fitting-room/useFittingRoomQueueCore';
 
 export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: FittingRoomQueueCore) {
-  const {
-    compareTryOns,
-    previewStatus,
-    setPreviewStatus,
-    previewQueueBusyRef,
-    kitPreviewsRef,
-    queueTryOn,
-  } = core;
+  const { previewStatus, setPreviewStatus, previewQueueBusyRef, kitPreviewsRef, queueTryOn } = core;
 
   const queueKitPreview = useCallback(
     async (wardrobeId: string, wardrobeLabel: string) => {
@@ -301,38 +295,36 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
         savedAt: Date.now(),
       };
       saveLookPack(nextPack);
-      const look = updated ? activeLook(updated) : undefined;
-      const keeperIds = new Set(look?.keeperEntryIds ?? [entryId]);
-      const keeperWardrobes = [
-        ...new Set(
-          compareTryOns
-            .filter(entry => entry.galleryEntryId && keeperIds.has(entry.galleryEntryId))
-            .map(entry => realKitId(entry.wardrobeId))
-            .filter((id): id is string => Boolean(id))
-        ),
-      ];
-      if (wardrobeId && !keeperWardrobes.includes(wardrobeId)) {
-        keeperWardrobes.push(wardrobeId);
+      // The kept outfit is the whole Day's: its kit is the session's outfit lock (a clothing
+      // photo try-on: the photo and shoes), and Day's slots follow it — what an earlier Day-wide
+      // choice left on a slot goes, a slot's own look or kit picked by hand stays and Day says
+      // so (day-outfit-scope.ts). One write, so nothing races the hand-off.
+      let dayKit = input.shared.lockedWardrobeId?.trim() || undefined;
+      if (keptNow && wardrobeId && dayKit !== wardrobeId) {
+        dayKit = wardrobeId;
+        input.updateShared({ lockedWardrobeId: wardrobeId });
       }
-      // The kept outfit's clothing photo and shoes go to Day and Story with it.
-      void handOffOutfitPicks(input.toolSettings);
       const daySettings = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
-      const seededSlots = applyLookPackToDaySlots(
-        seedDaySlotsFromKeeperWardrobes(
-          daySettings.slots,
-          keeperWardrobes.length > 0 ? keeperWardrobes : [wardrobeId || nextPack.wardrobeId || '']
-        ),
-        nextPack
-      );
-      const moodAligned = ensureDaySlotsMatchMood(seededSlots, {
-        dayMood: daySettings.dayMood,
-        intimateMix: daySettings.intimateMix,
-        allowCompanions: daySettings.allowCompanions === true,
+      const handed = dayAfterOutfitHandoff(daySettings, {
+        picks: input.toolSettings,
+        kitId: dayKit,
+        activeLookId: updated ? activeLook(updated).id : lookId,
+        lookIds: updated ? looksOf(updated).map(entry => entry.id) : undefined,
+        at: Date.now(),
       });
+      const moodAligned = ensureDaySlotsMatchMood(
+        applyLookPackToDaySlots(handed.slots, nextPack, { wardrobe: false }),
+        {
+          dayMood: daySettings.dayMood,
+          intimateMix: daySettings.intimateMix,
+          allowCompanions: daySettings.allowCompanions === true,
+        }
+      );
       // Preserve dayMood/intimateMix from disk — never reset chips on Keep→Day.
       // Soft-advance remount hydrates these; rewriting only slots/notes.
       saveToolSettings('day', {
         ...daySettings,
+        ...handed,
         slots: moodAligned.slots,
         notes:
           daySettings.notes?.trim() ||
@@ -340,6 +332,8 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
           lookPackNotes(nextPack) ||
           daySettings.notes,
       });
+      // Story takes the clothing photo and shoes as before.
+      void handOffOutfitPicks(input.toolSettings, { kitId: dayKit, day: false });
       const dayHref = lookPackDayHref({
         ...nextPack,
         characterId,
@@ -350,26 +344,27 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
       void import('@/lib/local-observability').then(({ noteKeepTryOnMetric }) => {
         noteKeepTryOnMetric();
       });
-      const kitCount = keeperWardrobes.length || 1;
+      const keptOwn = handed.outfitHandoffKept?.slotIds.length ?? 0;
       const sharedPlate =
         keptNow && tryOn.dressPlateKey ? ' Day and Story start from this dressed plate.' : '';
       input.setSaveStatus(
-        (kitCount > 1
-          ? `Kept ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} · ${kitCount} keeper kits mapped to Day slots.`
-          : `Kept ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} as a Cast keeper · Day slots seeded.`) +
+        `Kept ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} as a Cast keeper · Day wears it in every slot` +
+          (keptOwn > 0
+            ? ` (${keptOwn} slot${keptOwn === 1 ? ' keeps its' : 's keep their'} own outfit).`
+            : '.') +
           sharedPlate
       );
       input.setError(null);
       return dayHref;
     },
     [
-      compareTryOns,
       input.character?.activeLookId,
       input.setContinueDayHref,
       input.setError,
       input.setSaveStatus,
       input.shared.activeCharacterId,
       input.shared.activeLookId,
+      input.shared.lockedWardrobeId,
       input.toolSettings,
       input.updateShared,
     ]

@@ -41,10 +41,13 @@ import {
   stampAssembledFilm,
 } from '@/lib/character-film-assemble';
 import { filmDownloadFilename } from '@/lib/character-film';
+import { dayAfterOutfitHandoff } from '@/lib/day-outfit-scope';
 import {
+  activeLook,
   applyCharacterRecord,
   applyCharacterRecordFresh,
   castLoraSessionIds,
+  looksOf,
   getCharacter,
   getCharactersSnapshot,
   getServerCharactersSnapshot,
@@ -93,7 +96,6 @@ import {
   normalizeDaySlots,
   promoteDayStillsToSoftPassChildren,
   rerollDaySlotScene,
-  seedDaySlotsWardrobe,
   upsertDaySlotStill,
   dayStillShownImage,
   restorePreviousDayTake,
@@ -539,47 +541,57 @@ export function useDayPlannerToolOrchestrationCore() {
       activeCharacterId: shared.activeCharacterId,
     });
 
-    if (characterId) {
-      const record = getCharacter(characterId);
-      if (record) {
-        try {
-          // Not the "fresh" apply: opening the page re-binds the active Cast, and the fresh one
-          // dropped its face lock, lock strength and locked kit on every visit. A switch to
-          // another Cast clears those anyway (applyCharacterRecord).
-          updateShared(applyCharacterRecord(record));
-        } catch (err) {
-          scheduleAfterCommit(() =>
-            setError(err instanceof Error ? err.message : 'Could not apply that character.')
-          );
-        }
+    const record = characterId ? getCharacter(characterId) : undefined;
+    if (record) {
+      try {
+        // Not the "fresh" apply: opening the page re-binds the active Cast, and the fresh one
+        // dropped its face lock, lock strength and locked kit on every visit. A switch to
+        // another Cast clears those anyway (applyCharacterRecord).
+        updateShared(applyCharacterRecord(record));
+      } catch (err) {
+        scheduleAfterCommit(() =>
+          setError(err instanceof Error ? err.message : 'Could not apply that character.')
+        );
       }
     }
-    if (wardrobeId) {
-      updateShared({ lockedWardrobeId: wardrobeId });
-      updateToolSettings({
-        slots: seedDaySlotsWardrobe(toolSettings.slots, wardrobeId, { force: true }),
-      });
+    // Outfit's Use on Day / Keep: the kit is the whole Day's (the session's outfit lock). Slots
+    // follow it — an earlier Day-wide kit stamped on them goes, a slot's own look or kit picked
+    // by hand stays and the Look & clothing row says so (day-outfit-scope.ts). The kit used to
+    // be forced onto every slot, over the slots' own picks, while their own looks still won.
+    const pack = fromLook ? loadLookPack() : null;
+    const dayKit = wardrobeId || realKitId(pack?.wardrobeId) || undefined;
+    const handOff = (slots: DaySlot[] | undefined) =>
+      dayAfterOutfitHandoff(
+        { ...toolSettings, slots },
+        {
+          kitId: dayKit ?? shared.lockedWardrobeId,
+          activeLookId: record ? activeLook(record).id : undefined,
+          lookIds: record ? looksOf(record).map(look => look.id) : undefined,
+          at: Date.now(),
+        }
+      );
+    if (dayKit) {
+      updateShared({ lockedWardrobeId: dayKit });
+    }
+    if (wardrobeId && !pack) {
+      const handed = handOff(normalizeDaySlots(toolSettings.slots));
+      updateToolSettings({ slots: handed.slots, outfitHandoffKept: handed.outfitHandoffKept });
     }
     if (fromLook) {
       // Keep the session pack for Roleplay handoff; Roleplay clears on apply.
-      const pack = loadLookPack();
       if (pack) {
-        if (pack.wardrobeId?.trim() && !wardrobeId) {
-          updateShared({ lockedWardrobeId: pack.wardrobeId.trim() });
-        }
-        const packWardrobe = pack.wardrobeId?.trim() || wardrobeId;
-        const nextSlots = applyLookPackToDaySlots(
-          seedDaySlotsWardrobe(toolSettings.slots, packWardrobe, { force: Boolean(packWardrobe) }),
-          pack
+        const handed = handOff(
+          applyLookPackToDaySlots(normalizeDaySlots(toolSettings.slots), pack, { wardrobe: false })
         );
         const notes = lookPackNotes(pack);
-        const moodAligned = ensureDaySlotsMatchMood(nextSlots, {
+        const moodAligned = ensureDaySlotsMatchMood(handed.slots, {
           dayMood: toolSettings.dayMood,
           intimateMix: toolSettings.intimateMix,
           allowCompanions: toolSettings.allowCompanions === true,
         });
         updateToolSettings({
           slots: moodAligned.slots,
+          outfitHandoffKept: handed.outfitHandoffKept,
           notes: notes || toolSettings.notes,
         });
         scheduleAfterCommit(() =>

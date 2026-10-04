@@ -7,7 +7,7 @@ import { ChipButton } from '@/components/ui/Field';
 import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
 import ClothingPicker from '@/components/wardrobe/ClothingPicker';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
-import { clothingSummaryLine } from '@/lib/clothing-summary';
+import { clothingSummaryLine, clothingSummaryThumbs } from '@/lib/clothing-summary';
 import type { FittingKitPreview } from '@/lib/fitting-kit-previews';
 import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
 import type { FittingSwipeKit } from '@/lib/fitting-room';
@@ -144,6 +144,13 @@ export default function FittingWardrobeKitSection({
     footwear: footwear.value,
     emptyLabel: 'No kit yet — pick one, or use your own photo',
   });
+  const thumbs = clothingSummaryThumbs({
+    kitLabel: lockedWardrobeLabel || lockedWardrobeId,
+    kitThumbUrl: lockedWardrobeId?.trim() ? resolveKitThumb(lockedWardrobeId.trim()).url : null,
+    photoUrl: customGarmentImageUrl,
+    footwear: footwear.value,
+    footwearImageUrl: footwear.imageUrl,
+  });
   const previewCount =
     completedPreviewCount > 0 || inFlightPreviewCount > 0
       ? `${completedPreviewCount} preview${completedPreviewCount === 1 ? '' : 's'}${
@@ -155,6 +162,7 @@ export default function FittingWardrobeKitSection({
     <ClothingSummaryRow
       label={compact ? 'Clothing' : 'Now wearing'}
       summary={summary}
+      thumbs={thumbs}
       disabled={busy}
       testId="fitting-clothing"
       onOpen={() => setOpen(true)}

@@ -10,6 +10,10 @@ export function useFittingRoomToolOrchestration() {
   const core = useFittingRoomToolOrchestrationCore();
   const part2 = useFittingRoomToolOrchestrationPart2(core);
   const part3 = useFittingRoomToolOrchestrationPart3({ ...core, ...part2 });
-  useOutfitHandoff(core.mounted, core.toolSettings);
+  useOutfitHandoff(core.mounted, core.toolSettings, {
+    characterId: core.shared.activeCharacterId,
+    kitId: core.shared.lockedWardrobeId,
+    lookId: core.activeLookId,
+  });
   return { ...core, ...part2, ...part3 };
 }
