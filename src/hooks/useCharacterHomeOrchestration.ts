@@ -26,6 +26,7 @@ import {
   filterComfyGalleryEntries,
   galleryEntryPrimaryMediaKind,
   getGalleryCache,
+  initGalleryStore,
   type ComfyGalleryEntry,
 } from '@/lib/comfyui-gallery';
 import { unstampForeignCharacterGalleryEntries } from '@/lib/gallery-character-stamp';
@@ -215,8 +216,20 @@ export function useCharacterHomeOrchestration(characterId: string) {
     };
   }, [characterId]);
 
+  // This page reads the gallery from memory (getGalleryCache), so it must load it: nothing else
+  // here did, and the media list stayed empty ("Nothing stamped yet") until an unrelated save
+  // happened to load it — never without server storage. The clean-up waits for the load too, so
+  // it edits the real gallery rather than an empty cache.
   useEffect(() => {
-    unstampForeignCharacterGalleryEntries();
+    let cancelled = false;
+    void initGalleryStore().then(() => {
+      if (!cancelled) {
+        unstampForeignCharacterGalleryEntries();
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const looks = character ? looksOf(character) : [];
