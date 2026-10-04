@@ -15,6 +15,8 @@
  *   "seeds": [1111, 2222],
  *   "cases": [{
  *     "name": "walk",
+ *     "seeds": [123],
+ *     "reference": "other-plate.png",                          // optional: this case's own face reference                                          // optional: this case's own seeds (e.g. the still's)
  *     "graph": "/var/lib/comfyui/output/Castcut_00311_.png",  // output PNG (embedded prompt) or API-format .json
  *     "variants": {
  *       "square":   { "latent": [1328, 1328] },
@@ -264,12 +266,18 @@ const jobs = [];
 for (const testCase of spec.cases) {
   const graph = await loadGraph(testCase.graph);
   for (const [variantName, variant] of Object.entries(testCase.variants)) {
-    for (const seed of seeds) {
+    for (const seed of testCase.seeds?.length ? testCase.seeds : seeds) {
       const prefix = `play-ab/${runId}/${testCase.name}_${variantName}_${seed}`;
       const { prompt_id: promptId } = await comfy('/prompt', {
         prompt: applyVariant(graph, variant, seed, prefix),
       });
-      jobs.push({ case: testCase.name, variant: variantName, seed, promptId });
+      jobs.push({
+        case: testCase.name,
+        variant: variantName,
+        seed,
+        promptId,
+        reference: testCase.reference ?? spec.reference,
+      });
     }
   }
 }
@@ -290,10 +298,10 @@ for (const [index, job] of jobs.entries()) {
   writeFileSync(local, buffer);
   job.file = local;
   job.buffer = buffer;
-  if (spec.reference) {
+  if (job.reference) {
     const inputName = `${uploadPrefix}${runId}-${basename(local)}`;
     await uploadInput(buffer, inputName);
-    job.faceDistance = await faceDistance(spec.reference, inputName);
+    job.faceDistance = await faceDistance(job.reference, inputName);
   }
   console.log(
     `[${index + 1}/${jobs.length}] ${job.case} ${job.variant} s${job.seed}` +
@@ -329,7 +337,7 @@ for (const name of variantNames) {
 
 const rows = [];
 for (const testCase of spec.cases) {
-  for (const seed of seeds) {
+  for (const seed of testCase.seeds?.length ? testCase.seeds : seeds) {
     rows.push(
       jobs
         .filter(job => job.case === testCase.name && job.seed === seed)
