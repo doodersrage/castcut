@@ -148,8 +148,15 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
 
 ## Story
 
-- [ ] **Edit a scene / start over / pose preview** — edit a scene's text and rewrite its still;
-  start over keeping or replacing the bible; scene cards show their pose.
+- [ ] **Scene card ⋯ and sheet** — each reel card has one ⋯ (Edit scene, Pose…, Open full size,
+  Queue / Animate / Play another, Copy prompt, Open in ComfyUI); the take arrows stay on the
+  frame. ⋯ → *Edit scene* opens the scene sheet; a scene whose still is rendering has it
+  disabled. Phone: a bottom sheet.
+- [ ] **Edit a scene / start over / pose preview** — in the sheet, edit a scene's text and save
+  (the sheet closes, the card offers *Write and queue again*) and rewrite its still; start over
+  keeping or replacing the bible; ⋯ → *Pose…* shows the scene's pose.
+- [ ] **Outfit for stills row** — one row (kit or photo · shoes); *Choose…* opens the Clothing
+  sheet; the pick shows on the row and in the status line.
 - [ ] **Solo / people** — People → Solo draws one person; a person named in a scene is drawn.
 - [ ] **Man as the lead** — wording and built-in scenes use he / his.
 

@@ -2,23 +2,25 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import ShotCardMenu, { SHOT_CARD_MENU_ITEM_CLASS } from '@/components/ui/ShotCardMenu';
 import { continueClipActionLabel } from '@/lib/video-clip-mode';
 import { loadEngineSettings } from '@/lib/engine-settings';
 import {
   canRetryRoleplayClip,
+  canRetryRoleplayStill,
   lastCompletedRoleplayStillUrl,
   roleplayClipTakes,
   roleplayStillTakeIndex,
   roleplayStillTakes,
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
+import { looksLikeMotionUrl } from '@/lib/roleplay-film';
 import PoseMissPanel from '@/components/pose/PoseMissPanel';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
 import { ADULT_GATE_WITHHELD_MESSAGE } from '@/lib/adult-appearance-gate';
 import OpenInComfyButton from '@/components/OpenInComfyButton';
-import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
+import StoryBeatSheet from '@/components/roleplay/sections/StoryBeatSheet';
 import { useStoryBeatEditActions } from '@/components/roleplay/StoryBeatEditContext';
-import StoryBeatTextEditor from '@/components/roleplay/StoryBeatTextEditor';
 import {
   storyBeatAwaitsRewrite,
   storyBeatKey,
@@ -57,6 +59,12 @@ type Props = {
   ) => void;
 };
 
+/**
+ * One scene in the reel: its frame (tap for full size; prev / next takes), title, text, the
+ * check lines, and one ⋯ menu for everything else (Edit scene, Pose…, Open full size, Queue
+ * still, Animate, Play another still / clip, Extend, Copy prompt, Open in ComfyUI). Editing the
+ * text or the pose opens the scene's side sheet.
+ */
 export function RoleplayStoryBeatCard({
   beat,
   index,
@@ -76,13 +84,12 @@ export function RoleplayStoryBeatCard({
   const takes = roleplayStillTakes(beat);
   const withheld = takes[roleplayStillTakeIndex(beat)]?.adultHold === 'withheld';
   const edit = useStoryBeatEditActions();
-  const [editing, setEditing] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const rewriting = edit?.rewritingKey === storyBeatKey(beat);
   // The job in flight was sent with the text as it was — it cannot change underneath it.
   const textLocked = storyBeatTextLocked(beat) || rewriting;
   const awaitsRewrite = storyBeatAwaitsRewrite(beat);
   const hasStill = takes.some(take => take.imageUrl?.trim() || take.promptId?.trim());
-  const canEdit = Boolean(edit) && !editing;
   const poseMatch = storyPoseMatchLabel(beat, DEFAULT_MIN_POSE_MATCH);
   const faceMatch = storyFaceMatchLabel(beat, {
     miss: STORY_MIN_FACE_MATCH,
@@ -126,45 +133,147 @@ export function RoleplayStoryBeatCard({
   );
   const canAnimate = canAnimateStill || canAnimateT2v;
   const canExtend = Boolean(onExtend && beat.clipStatus === 'completed' && beat.clipUrl?.trim());
-  const canRetryClipAction = Boolean(
-    onRetryClip && canRetryRoleplayClip(beat) && !beatMotionUrl(beat)
-  );
+  // The frame used to carry these as overlay buttons; they live in the menu now.
+  const motionClip = Boolean(beatMotionUrl(beat) && looksLikeMotionUrl(beatMotionUrl(beat) ?? ''));
+  const canRetryStillAction = Boolean(!motionClip && onRetry && canRetryRoleplayStill(beat));
+  const canRetryClipAction = Boolean(onRetryClip && canRetryRoleplayClip(beat));
   // The shown take's exact graph can go to ComfyUI's editor once it has rendered.
   const comfyPromptId =
     beat.stillStatus === 'completed' && beat.promptId?.trim() ? beat.promptId.trim() : '';
+  const openSheet = () => setSheetOpen(true);
 
   return (
     <li key={`${beat.id}-${beat.at}`}>
-      <article className="space-y-2">
-        <RoleplayStillFrame
-          beat={beat}
-          liveUrl={liveUrl}
-          onOpen={canOpen ? onOpen : undefined}
-          onRetry={onRetry ? () => onRetry(beat) : undefined}
-          onRetryClip={onRetryClip ? () => onRetryClip(beat) : undefined}
-          onSelectTake={onSelectTake ? nextIndex => onSelectTake(beat, nextIndex) : undefined}
-          onSelectClipTake={
-            onSelectClipTake ? nextIndex => onSelectClipTake(beat, nextIndex) : undefined
-          }
-        />
+      <article className="space-y-2" data-testid="story-beat-card">
+        <div className="relative">
+          <RoleplayStillFrame
+            beat={beat}
+            liveUrl={liveUrl}
+            onOpen={canOpen ? onOpen : undefined}
+            onSelectTake={onSelectTake ? nextIndex => onSelectTake(beat, nextIndex) : undefined}
+            onSelectClipTake={
+              onSelectClipTake ? nextIndex => onSelectClipTake(beat, nextIndex) : undefined
+            }
+          />
+          <ShotCardMenu
+            label={beat.title}
+            testId="story-beat-menu"
+            className="absolute right-1.5 top-1.5 z-20"
+          >
+            {edit ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy || textLocked}
+                title={
+                  textLocked
+                    ? 'This scene is being written or queued — edit it once that is done.'
+                    : undefined
+                }
+                data-testid="story-beat-edit"
+                onClick={openSheet}
+              >
+                Edit scene
+              </button>
+            ) : null}
+            {onPoseChange ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                data-testid="story-beat-pose-open"
+                onClick={openSheet}
+              >
+                Pose…
+              </button>
+            ) : null}
+            {canOpen && onOpen ? (
+              <button type="button" className={SHOT_CARD_MENU_ITEM_CLASS} onClick={onOpen}>
+                Open full size
+              </button>
+            ) : null}
+            {canQueue ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy}
+                onClick={() => onQueue?.(beat)}
+              >
+                Queue still
+              </button>
+            ) : null}
+            {canAnimate ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy}
+                onClick={() => onAnimate?.(beat)}
+              >
+                {canAnimateStill ? 'Animate still' : 'Text to video'}
+              </button>
+            ) : null}
+            {canRetryStillAction ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy}
+                title="Play another still with a new seed"
+                data-testid="story-beat-retry"
+                onClick={() => onRetry?.(beat)}
+              >
+                Play another still
+              </button>
+            ) : null}
+            {canRetryClipAction ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy}
+                title="Play another clip with a new seed"
+                data-testid="story-beat-retry-clip"
+                onClick={() => onRetryClip?.(beat)}
+              >
+                Play another clip
+              </button>
+            ) : null}
+            {canExtend ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy}
+                onClick={() => onExtend?.(beat)}
+              >
+                {continueClipActionLabel({
+                  parentUrl: beat.clipUrl,
+                  engine: loadEngineSettings().engine,
+                })}
+              </button>
+            ) : null}
+            {canCopy ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy}
+                onClick={() => onCopy?.(beat)}
+              >
+                Copy prompt
+              </button>
+            ) : null}
+            {comfyPromptId ? (
+              <OpenInComfyButton
+                promptId={comfyPromptId}
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                testId="story-beat-open-in-comfy"
+              />
+            ) : null}
+          </ShotCardMenu>
+        </div>
         <div className="space-y-1">
-          {editing && edit ? (
-            <StoryBeatTextEditor
-              beat={beat}
-              disabled={busy || textLocked}
-              onSave={text => edit.saveBeatText(beat, text)}
-              onCancel={() => setEditing(false)}
-            />
-          ) : (
-            <>
-              <p className="text-sm font-medium text-[var(--text-primary)]">
-                <span className="type-caption mr-2 text-[var(--text-muted)]">{index + 1}.</span>
-                {beat.title}
-              </p>
-              <p className="type-caption text-[var(--text-muted)]">{beat.blurb}</p>
-            </>
-          )}
-          {edit && awaitsRewrite && !editing ? (
+          <p className="text-sm font-medium text-[var(--text-primary)]">
+            <span className="type-caption mr-2 text-[var(--text-muted)]">{index + 1}.</span>
+            {beat.title}
+          </p>
+          <p className="type-caption text-[var(--text-muted)]">{beat.blurb}</p>
+          {edit && awaitsRewrite ? (
             <div
               className="space-y-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2"
               data-testid="story-beat-rewrite"
@@ -237,103 +346,20 @@ export function RoleplayStoryBeatCard({
             </p>
           ) : null}
           <StillPromptCheckNote check={beat.promptCheck} testId="story-beat-prompt-check" />
-          {onPoseChange ? (
-            <StoryBeatPosePreview
-              beat={beat}
-              index={index}
-              busy={busy}
-              onPoseChange={onPoseChange}
-            />
-          ) : null}
-          {beat.poseGuideUrl ? (
-            <details
-              className="type-caption text-[var(--text-muted)]"
-              data-testid="story-pose-guide"
-            >
-              <summary className="cursor-pointer">Pose guide</summary>
-              {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI proxy URL */}
-              <img
-                src={beat.poseGuideUrl}
-                alt={`${beat.title} pose guide`}
-                className="mt-1 max-h-40 w-auto rounded border border-[var(--border-subtle)]"
-                loading="lazy"
-              />
-            </details>
-          ) : null}
         </div>
-        {canQueue ||
-        canCopy ||
-        canAnimate ||
-        canExtend ||
-        canRetryClipAction ||
-        canEdit ||
-        comfyPromptId ? (
-          <div className="flex flex-wrap gap-2">
-            {canQueue ? (
-              <Button size="sm" variant="secondary" disabled={busy} onClick={() => onQueue?.(beat)}>
-                Queue still
-              </Button>
-            ) : null}
-            {canAnimate ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => onAnimate?.(beat)}
-              >
-                {canAnimateStill ? 'Animate still' : 'Text to video'}
-              </Button>
-            ) : null}
-            {canRetryClipAction ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => onRetryClip?.(beat)}
-              >
-                Play another clip
-              </Button>
-            ) : null}
-            {canExtend ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => onExtend?.(beat)}
-              >
-                {continueClipActionLabel({
-                  parentUrl: beat.clipUrl,
-                  engine: loadEngineSettings().engine,
-                })}
-              </Button>
-            ) : null}
-            {canCopy ? (
-              <Button size="sm" variant="ghost" disabled={busy} onClick={() => onCopy?.(beat)}>
-                Copy prompt
-              </Button>
-            ) : null}
-            {canEdit ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy || textLocked}
-                title={
-                  textLocked
-                    ? 'This scene is being written or queued — edit it once that is done.'
-                    : undefined
-                }
-                data-testid="story-beat-edit"
-                onClick={() => setEditing(true)}
-              >
-                Edit scene
-              </Button>
-            ) : null}
-            {comfyPromptId ? (
-              <OpenInComfyButton promptId={comfyPromptId} testId="story-beat-open-in-comfy" />
-            ) : null}
-          </div>
-        ) : null}
       </article>
+      {sheetOpen ? (
+        <StoryBeatSheet
+          open
+          onClose={() => setSheetOpen(false)}
+          beat={beat}
+          index={index}
+          busy={busy}
+          edit={edit}
+          textLocked={textLocked}
+          onPoseChange={onPoseChange}
+        />
+      ) : null}
     </li>
   );
 }

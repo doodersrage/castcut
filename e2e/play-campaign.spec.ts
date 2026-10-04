@@ -4,6 +4,7 @@ import { seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { closeDaySheets, openDayAdvanced, openDaySetup, openDaySlotSheet } from './helpers/day';
 import { gotoStable } from './helpers/navigation';
 import { closeOutfitSheets, openOutfitAdvanced, openOutfitClothing } from './helpers/outfit';
+import { closeStorySheets, openStoryBeatSheet } from './helpers/story';
 import { seedGalleryFixture, seedGalleryPlayFixtures } from './helpers/gallery';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
@@ -878,25 +879,27 @@ test('story mid-flow: edit a scene in the reel, then write its still again', asy
   await gotoStable(page, '/story?character=e2e-story-edit');
   await dismissBlockingOverlays(page);
   await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
+  // Edit scene sits in each card's ⋯ menu and opens the scene's side sheet.
   const editButtons = page.getByTestId('story-beat-edit');
   await expect(editButtons).toHaveCount(2);
   // A scene whose still is rendering cannot be edited underneath its job.
   await expect(editButtons.nth(1)).toBeDisabled();
   // Nothing to write again until the text changes.
   await expect(page.getByTestId('story-beat-rewrite')).toHaveCount(0);
-  await editButtons.first().click();
+  await openStoryBeatSheet(page, 0);
   const editor = page.getByTestId('story-beat-editor');
   await expect(editor.getByTestId('story-beat-edit-title')).toHaveValue('The letter');
   await expect(editor.getByTestId('story-beat-edit-text')).toHaveValue('A letter under the door.');
   // Too short to be a scene: no save.
   await editor.getByTestId('story-beat-edit-text').fill('no');
   await expect(editor.getByTestId('story-beat-edit-save')).toBeDisabled();
-  // Cancel leaves the scene as it was.
+  // Cancel closes the sheet and leaves the scene as it was.
   await editor.getByTestId('story-beat-edit-cancel').click();
   await expect(editor).toHaveCount(0);
+  await expect(page.getByTestId('story-beat-sheet')).toHaveCount(0);
   await expect(page.getByText('A letter under the door.').first()).toBeVisible();
 
-  await editButtons.first().click();
+  await openStoryBeatSheet(page, 0);
   await editor.getByTestId('story-beat-edit-title').fill('The note');
   await editor
     .getByTestId('story-beat-edit-text')
@@ -905,13 +908,15 @@ test('story mid-flow: edit a scene in the reel, then write its still again', asy
   await expect(editor).toHaveCount(0);
   await expect(page.getByText('She sits on the stairs and reads the letter twice.').first()).toBeVisible();
   await expect(page.getByText('A letter under the door.')).toHaveCount(0);
-  // The pose is read from the new text.
-  const firstPose = page.getByTestId('story-beat-pose').first();
+  // The pose is read from the new text (Pose… in the menu opens the same sheet).
+  await openStoryBeatSheet(page, 0, 'pose');
+  const firstPose = page.getByTestId('story-beat-sheet').getByTestId('story-beat-pose');
   await firstPose.locator('summary').click();
   await expect(firstPose.getByTestId('story-beat-pose-preview')).toHaveAttribute(
     'data-pose',
     /sit|perch/
   );
+  await closeStorySheets(page);
   // The still is offered again; asking for it sends the new text and only the story before it.
   const again = page.getByTestId('story-beat-rewrite');
   await expect(again).toContainText('Scene text changed');
@@ -1127,7 +1132,8 @@ test('phone story: edit a scene in the reel, then write its still again', async 
   // The scene whose still is rendering cannot be edited (as on desk).
   await expect(editButtons.nth(1)).toBeDisabled();
   await expect(page.getByTestId('story-beat-rewrite')).toHaveCount(0);
-  await editButtons.first().click();
+  // The same ⋯ menu and scene sheet as desk (a bottom sheet on the phone).
+  await openStoryBeatSheet(page, 0);
   const editor = page.getByTestId('story-beat-editor');
   await expect(editor.getByTestId('story-beat-edit-text')).toHaveValue('A letter under the door.');
   await editor.getByTestId('story-beat-edit-title').fill('The note');

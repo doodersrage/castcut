@@ -262,7 +262,7 @@ export default function RoleplayStoryReel({
           <FilmWatchPlayer compact shots={watchPlaylist} />
         </div>
       ) : null}
-      <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="story-reel">
         {story.map((beat, index) => {
           const clipLive =
             beat.clipPromptId && (beat.clipStatus === 'queued' || beat.clipStatus === 'running')

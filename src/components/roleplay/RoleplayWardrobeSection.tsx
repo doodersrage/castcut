@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import ClothingPicker from '@/components/wardrobe/ClothingPicker';
-import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
-import { CollapsibleSection } from '@/components/ui/ToolPageShell';
+import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
+import { clothingSummaryLine } from '@/lib/clothing-summary';
 import { fittingSwipeNeighbor } from '@/lib/fitting-room';
 import {
   buildWardrobeKitPickerDeck,
@@ -26,6 +26,11 @@ type RoleplayWardrobeSectionProps = {
   wardrobe: ReturnType<typeof useRoleplayWardrobe>;
 };
 
+/**
+ * Story's outfit for stills: one row saying what is worn (kit or your photo, shoes) with
+ * Choose…, which opens the same Clothing picker as Day and Outfit as its own sheet. Desk and
+ * phone Story render this same row.
+ */
 export default function RoleplayWardrobeSection({
   busy,
   toolSettings,
@@ -50,33 +55,41 @@ export default function RoleplayWardrobeSection({
     removeSavedCustomGarment,
     selectWardrobe,
   } = wardrobe;
+  const [open, setOpen] = useState(false);
 
   const wardrobeKitDeck = useMemo(
     () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, selectedWardrobeId),
     [filteredWardrobeOptions, selectedWardrobeId]
   );
+  const summary = clothingSummaryLine({
+    kitLabel: selectedWardrobeId
+      ? (wardrobeKitDeck.find(kit => kit.id === selectedWardrobeId)?.label ?? selectedWardrobeId)
+      : '',
+    hasPhoto: hasCustomGarment,
+    footwear: toolSettings.footwear,
+    emptyLabel: 'No kit or photo yet — the bible’s look dresses her',
+  });
 
   return (
-    <div data-testid="story-wardrobe">
-      <CollapsibleSection
+    <div
+      className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3"
+      data-testid="story-wardrobe"
+    >
+      <ClothingSummaryRow
+        label="Outfit for stills"
+        summary={summary}
+        disabled={busy}
+        testId="story-clothing"
+        className="py-2"
+        onOpen={() => setOpen(true)}
+      />
+      <ClothingSheet
+        open={open}
+        onClose={() => setOpen(false)}
         title="Outfit for stills"
-        summary={
-          hasCustomGarment
-            ? 'Your clothing photo'
-            : selectedWardrobeId
-              ? formatWardrobeKitLabel(
-                  wardrobeKitDeck.find(kit => kit.id === selectedWardrobeId)?.label ??
-                    selectedWardrobeId
-                )
-              : 'Kit or clothing photo'
-        }
-        defaultOpen={hasCustomGarment || Boolean(selectedWardrobeId)}
-        persistKey="roleplay-wardrobe"
+        description="Photo stills use this as Image 2 so beat outfits land on the Cast plate."
       >
-        <p className="type-caption text-[var(--text-muted)]">
-          Photo stills use this as Image 2 so beat outfits land on the Cast plate.
-        </p>
-        <div className="mt-3">
+        {open ? (
           <ClothingPicker
             accent={ACCENT}
             busy={busy}
@@ -126,8 +139,8 @@ export default function RoleplayWardrobeSection({
             }}
             onError={onError}
           />
-        </div>
-      </CollapsibleSection>
+        ) : null}
+      </ClothingSheet>
     </div>
   );
 }
