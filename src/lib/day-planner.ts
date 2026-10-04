@@ -404,6 +404,11 @@ export type DaySlotStill = {
   adultHold?: 'checking' | 'withheld';
   /** Queued as an adult still: the gate checks it, and no live preview is shown while it renders. */
   adultGated?: boolean;
+  /**
+   * "Pick the best engine per pose": this take rendered on another engine than the picked one,
+   * and why ("Rendered on Edit 2511 — it holds this pose better"; pose-engine-report.ts).
+   */
+  engineNote?: string;
 };
 
 export const DEFAULT_DAY_SLOTS: DaySlot[] = [
@@ -4232,6 +4237,7 @@ export function normalizeDaySlotStills(
         ? { adultHold: still.adultHold }
         : {}),
       ...(still.adultGated === true ? { adultGated: true } : {}),
+      ...(readText(still.engineNote, 160) ? { engineNote: readText(still.engineNote, 160) } : {}),
     });
   }
   const order = slots?.length

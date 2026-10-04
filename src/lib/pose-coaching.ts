@@ -115,6 +115,35 @@ export function poseLayoutCue(layout: string | null | undefined): string | null 
 }
 
 /**
+ * Sport layouts whose cue goes right after the sport brief's opening ACTION sentence on Rapid AIO
+ * (the brief carries no cue of its own). Pose report card sweep 2026-10-03, Nora: a reverse punch
+ * came out as a high kick 3 of 3; with "Pose: <cue>." after the ACTION sentence it was a punch
+ * 2/2 on the same graphs and 2/2 again through the app (new seeds). Tried and left out: the
+ * forehand cue (racket overhead 3/3 before; 2/2 on the replay but 1/2 through the app) and the
+ * pull-up cue (she only hung under the bar, 0/2).
+ */
+export const SPORT_ACTION_CUE_LAYOUTS: ReadonlySet<string> = new Set(['sport_box']);
+
+/**
+ * Only an ACTION that is the cue's own move: the same layout is drawn for a clinch, shadowboxing
+ * or a slipped punch, and "one arm extended in a punch" would contradict those.
+ */
+const SPORT_ACTION_CUE_MOVES: Record<string, RegExp> = {
+  sport_box: /\b(?:punch(?:es|ing)?|jab|cross|hook|uppercut|one-two)\b/i,
+};
+
+/** "ACTION: driving a reverse punch …. Pose: boxing: fists up …." — once, sport briefs only. */
+export function withSportActionPoseCue(prompt: string, layout: string | null | undefined): string {
+  const key = layout?.trim() ?? '';
+  const cue = SPORT_ACTION_CUE_LAYOUTS.has(key) ? poseLayoutCue(key) : null;
+  if (!cue || /\bPose: /.test(prompt)) return prompt;
+  const action = /\bACTION: [^\n]*?\.(?=\s|$)/.exec(prompt);
+  if (!action || !SPORT_ACTION_CUE_MOVES[key]?.test(action[0])) return prompt;
+  if (/\bslipping a punch\b/i.test(action[0])) return prompt;
+  return prompt.replace(action[0], `${action[0]} Pose: ${cue}.`);
+}
+
+/**
  * A short recipe with the layout's cue in it: "… Moment: photographing brunch. Pose: both hands
  * hold a camera up to one eye, elbows raised. Place: …". The recipes state the beat but not the
  * gesture, and the gesture was what went missing: the camera lay on the table, hair-touching

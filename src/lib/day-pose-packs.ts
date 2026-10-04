@@ -349,7 +349,8 @@ export type PosePackApplyResult = {
  * Pose every slot from the pack, in order and cycling. `slotPeople` is each slot's headcount
  * (the pose plan's): a slot only takes an entry with the same number of people, so a solo pack
  * never forces one figure onto a duo beat. Entries whose layout is in `avoidLayouts` (poor
- * pose-match record) are skipped unless that would leave none.
+ * pose-match record on this setup, or weak on the engine per the pose report card —
+ * pose-engine-report.ts) are skipped unless that would leave none.
  */
 export function applyPosePackToSlots(
   slots: readonly DaySlot[],

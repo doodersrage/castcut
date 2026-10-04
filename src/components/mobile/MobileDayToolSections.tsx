@@ -134,6 +134,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     bestOfTwoHardPoses,
     setBestOfTwoHardPoses,
     bestOfTwoStatus,
+    bestEnginePerPose,
+    setBestEnginePerPose,
     posePriority,
     setPosePriority,
     identityBoost,
@@ -634,6 +636,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
           bestOfTwoHardPoses={bestOfTwoHardPoses}
           onBestOfTwoHardPosesChange={setBestOfTwoHardPoses}
           bestOfTwoStatus={bestOfTwoStatus}
+          bestEnginePerPose={bestEnginePerPose}
+          onBestEnginePerPoseChange={setBestEnginePerPose}
           dayMood={dayMood}
           onDayMoodChange={setDayMood}
           partnerId={partnerCharacterId}

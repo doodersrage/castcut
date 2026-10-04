@@ -837,6 +837,7 @@ function decideStill(
     poseLook: undefined,
     kleinFace: false,
     qualityNudge: undefined,
+    sportActionCue: poseProfileForModel(stillModel).sportActionCue,
   });
   // Play / Simple mode and the recipes skip the lint round-trip (actions.finalizePrompt).
   const finalized = finishDayStillPrompt(assembled.prompt, {

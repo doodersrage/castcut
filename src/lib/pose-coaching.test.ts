@@ -21,6 +21,8 @@ import {
   poseLayoutCueLine,
   poseLimbFixNudge,
   withRecipePoseCue,
+  SPORT_ACTION_CUE_LAYOUTS,
+  withSportActionPoseCue,
 } from './pose-coaching';
 import { POSE_IMPORT_GROUPS, POSE_IMPORT_LAYOUTS } from './pose-import-layouts';
 import { poseLayoutLabel } from './pose-layout-labels';
@@ -325,5 +327,35 @@ describe('two-person layouts on a one-person still', () => {
     assert.match(poseLayoutCueLine('dance'), /the two people face each other/);
     assert.doesNotMatch(poseLayoutCueLine('dance', 1), /two people/);
     assert.equal(poseLayoutCueLine('hug', 1), '');
+  });
+});
+
+describe('sport ACTION pose cue (Rapid sport briefs)', () => {
+  const brief = (action: string) =>
+    `Carry out this change on Image 1. SCENE: she is in the dojo. ACTION: ${action}.\nUse Image 1 for facial identity.`;
+
+  it('adds the cue right after a punch ACTION sentence, once', () => {
+    const punched = withSportActionPoseCue(
+      brief('driving a reverse punch with hips squared and rear heel planted'),
+      'sport_box'
+    );
+    assert.match(
+      punched,
+      /rear heel planted\. Pose: boxing: fists up guarding the chin, one arm extended in a punch, knees bent\.\nUse Image 1/
+    );
+    assert.equal(withSportActionPoseCue(punched, 'sport_box'), punched);
+  });
+
+  it('leaves other moves on the same layouts and other layouts alone', () => {
+    for (const [action, layout] of [
+      ['uncoiling into a forehand with racket head lagging', 'sport_forehand'],
+      ['clinching briefly then resetting with gloves on the opponent', 'sport_box'],
+      ['slipping a punch with the head off the center line', 'sport_box'],
+      ['pulling her chin over the bar at the top of a pull-up', 'sport_pullup'],
+    ] as const) {
+      assert.equal(withSportActionPoseCue(brief(action), layout), brief(action), action);
+    }
+    assert.ok(SPORT_ACTION_CUE_LAYOUTS.has('sport_box'));
+    assert.equal(withSportActionPoseCue('no action line here', 'sport_box'), 'no action line here');
   });
 });

@@ -6,14 +6,14 @@
 
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
+  dayPoseGuideFallbackIndex,
+  resolveSceneGuidePlan,
   SCENE_POSE_BODY_IDS,
   SCENE_POSE_LAYOUT_IDS,
   type PoseGuideBase,
   type PoseGuideBuildOptions,
-  dayPoseGuideFallbackIndex,
   parseIntimateLayout,
   reconcileWrittenPose,
-  resolveSceneGuidePlan,
   sceneTextStatesPose,
   type ScenePoseSpec,
   type SocialLayout,
@@ -211,4 +211,28 @@ export function plannedDaySlotPoseKey(plan: DaySlotPosePlan, slotId: DaySlot['id
     ...plan.options,
     openPose: true,
   }).openPose.poseKey;
+}
+
+/**
+ * The layout a slot's guide draws (`walk`, `lie_side`, `sport_squat`; a plain posture like `sit`
+ * when no layout applies) and its headcount — what the pose report card is keyed by. Null when
+ * the guide is a photo pose or the slot's default stance (no beat).
+ */
+export function daySlotPoseLayout(input: Parameters<typeof planDaySlotPose>[0]): {
+  layout: string | null;
+  headcount: number;
+} {
+  const plan = planDaySlotPose(input);
+  if (input.slot.posePhoto?.people.length || !plan.sceneText?.trim()) {
+    return { layout: null, headcount: plan.headcount };
+  }
+  const { intent } = resolveSceneGuidePlan(
+    plan.sceneText,
+    dayPoseGuideFallbackIndex(input.slot.id as DaySlot['id']),
+    { ...plan.options, openPose: false }
+  );
+  return {
+    layout: intent.intimate || intent.social || intent.base || null,
+    headcount: plan.headcount,
+  };
 }

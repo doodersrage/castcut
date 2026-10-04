@@ -1168,6 +1168,12 @@ export type DayToolCache = {
    */
   bestOfTwoHardPoses?: boolean;
   /**
+   * Opt-in: a one-person clothed still whose pose is clearly weak on the picked engine (pose
+   * report card, src/lib/data/pose-engine-report.json) and solid on another installed engine
+   * renders on that engine, this still only; the card says so (pose-engine-report.ts).
+   */
+  bestEnginePerPose?: boolean;
+  /**
    * Default on. Loosens the identity lock and raises denoise when a beat needs a body the
    * standing plate cannot give, so Edit-2511 stops copying Image 1's stance. Turn off if faces
    * drift more than the posing is worth.

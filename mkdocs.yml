@@ -91,6 +91,7 @@ nav:
   - Using the app:
       - Features: features.md
       - Troubleshooting: troubleshooting.md
+      - Pose report card: pose-report-card.md
       - Castcut nodes: castcut-nodes.md
       - Workflow takeover: workflow-takeover.md
       - HTTP API: http-api.md

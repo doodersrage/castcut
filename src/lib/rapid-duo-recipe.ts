@@ -984,6 +984,14 @@ function vacationPlacement(beat: string): string | null {
     case 'REACHING':
       return 'She stands reaching up with one arm high, the other arm out.';
     case 'RECLINING':
+      // "RECLINING on the hotel bed on her side, head propped on one hand": "lies back … hips and
+      // back on it" contradicted the beat and Rapid drew her on her front, feet up, 2/2; saying
+      // the side got her on her side, head propped, 2/2 (pose report card 2026-10-03, Nora).
+      if (/\bon\s+her\s+side\b/.test(b)) {
+        return `She lies on her side on the ${lounge ?? 'lounge'}${
+          /\bpropped\b/.test(b) ? ', head propped on one hand' : ''
+        }, legs along it.`;
+      }
       return `She lies back on the ${lounge ?? 'lounge'}, hips and back on it, one knee raised.`;
     case 'SEATED':
     case 'PERCHED':

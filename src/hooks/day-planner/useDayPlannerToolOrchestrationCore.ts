@@ -137,8 +137,10 @@ import { buildDayPoseGuide } from '@/lib/day-pose-guide';
 import { customPoseWords } from '@/lib/pose-describe';
 import { bestOfTwoAsOneJob } from '@/lib/day-best-of-two';
 import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut-nodes';
-import { planDaySlotPose, plannedDaySlotPoseKey } from '@/lib/day-slot-pose';
+import { daySlotPoseLayout, planDaySlotPose, plannedDaySlotPoseKey } from '@/lib/day-slot-pose';
 import { notePoseTakeQueued } from '@/lib/pose-outcome-stats';
+import { pickPoseEngine } from '@/lib/pose/pose-engine-report';
+import { blendedPoseEngineReport } from '@/lib/pose/pose-engine-report-blended';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
   type FilmCutOptionsValue,
@@ -844,12 +846,21 @@ export function useDayPlannerToolOrchestrationCore() {
       // something has asked ComfyUI for it; in a fresh session it was missing and the hand-off
       // silently did not happen, so ask for it here when the picked engine has one.
       const handOffProfile = poseProfileForModel(shared.model);
+      const bestEnginePerPose =
+        toolSettings.bestEnginePerPose === true && resolveSlotLook(queueTarget).hasPlate;
       const handOffInventory =
-        handOffProfile.adultEngine || handOffProfile.clothedDuoEngine
+        handOffProfile.adultEngine || handOffProfile.clothedDuoEngine || bestEnginePerPose
           ? (readCachedComfyObjectInfoModels() ??
             (await fetchComfyObjectInfoModelsCached().catch(() => null)))
           : null;
-      const stillModel = resolveDayStillModel(shared.model, {
+      const installed = (modelId: string) =>
+        installedComfyModels(COMFY_IMAGE_MODELS, handOffInventory, shared.modelCheckpointMap)?.has(
+          modelId
+        ) === true;
+      const playedMood = normalizeDayMood(
+        isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
+      );
+      const routedStillModel = resolveDayStillModel(shared.model, {
         adultNude: adultNudeStill,
         // Qwen-Image 2.1 hands clothed two-person stills to Rapid (it fuses the pair).
         clothedDuo:
@@ -859,29 +870,46 @@ export function useDayPlannerToolOrchestrationCore() {
           !(isDayAdultMood(toolSettings.dayMood) && intimateEnabled) &&
           planDaySlotPose({
             slot: queueTarget,
-            dayMood: normalizeDayMood(
-              isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
-                ? 'everyday'
-                : toolSettings.dayMood
-            ),
+            dayMood: playedMood,
             intimateMix: toolSettings.intimateMix,
             allowCompanions: toolSettings.allowCompanions === true,
             model: shared.model,
           }).headcount >= 2,
-        installed: modelId =>
-          installedComfyModels(
-            COMFY_IMAGE_MODELS,
-            handOffInventory,
-            shared.modelCheckpointMap
-          )?.has(modelId) === true,
+        installed,
       });
+      // "Pick the best engine per pose" (opt-in): a one-person clothed still whose pose the
+      // routed engine keeps missing on the pose report card renders on an installed engine that
+      // holds it — this still only, like the hand-offs above (pose-engine-report.ts).
+      let poseEngineSwap: ReturnType<typeof pickPoseEngine> = null;
+      if (bestEnginePerPose) {
+        const { layout, headcount } = daySlotPoseLayout({
+          slot: queueTarget,
+          dayMood: playedMood,
+          intimateMix: toolSettings.intimateMix,
+          allowCompanions: toolSettings.allowCompanions === true,
+          model: routedStillModel,
+          weakLayouts: weakPoseLayouts(),
+        });
+        poseEngineSwap = pickPoseEngine({
+          enabled: true,
+          model: routedStillModel,
+          layout,
+          mood: playedMood,
+          headcount,
+          adult: adultNudeStill || (isDayAdultMood(toolSettings.dayMood) && intimateEnabled),
+          installed,
+          // The sweep's card, with this player's own keeps and redos folded in.
+          report: blendedPoseEngineReport(),
+        });
+      }
+      const stillModel = poseEngineSwap?.model ?? routedStillModel;
       // As queueSlot sends it: with a plate, the Edit-capable (and adult nude: NSFW) variant.
       const queueModel = resolveSlotLook(queueTarget).hasPlate
         ? resolveAdultNudePlateQueueModel(stillModel, {
             adultNude: isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) && omitGarment,
           })
         : stillModel;
-      return { omitGarment, stillModel, queueModel };
+      return { omitGarment, stillModel, queueModel, poseEngineSwap };
     },
     [
       intimateEnabled,
@@ -889,6 +917,7 @@ export function useDayPlannerToolOrchestrationCore() {
       shared.model,
       shared.modelCheckpointMap,
       toolSettings.allowCompanions,
+      toolSettings.bestEnginePerPose,
       toolSettings.dayMood,
       toolSettings.intimateMix,
     ]
@@ -1032,7 +1061,8 @@ export function useDayPlannerToolOrchestrationCore() {
           }
         }
         const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
-        const { omitGarment, stillModel } = await resolveSlotStillModel(queueTarget);
+        const { omitGarment, stillModel, poseEngineSwap } =
+          await resolveSlotStillModel(queueTarget);
         const replaceKeepOutfit = dayMoodReplacesKeepOutfit(toolSettings.dayMood);
         // Dress plate: dress her once (the picked clothing and shoes on the Cast plate), then
         // start this still from that plate — no clothing image, the outfit is on Image 1.
@@ -1704,6 +1734,7 @@ export function useDayPlannerToolOrchestrationCore() {
           poseLook: queueTarget.poseLook,
           kleinFace: Boolean(kleinFaceFilename),
           qualityNudge,
+          sportActionCue: poseProfileForModel(stillModel).sportActionCue,
         });
         if (assembled.cued && poseExpectation) {
           poseExpectation.cued = true;
@@ -2060,6 +2091,7 @@ export function useDayPlannerToolOrchestrationCore() {
           bestOfTwoJob: castcutPoseGuide ? true : undefined,
           adultHold: undefined,
           adultGated: adultSafeguards ? true : undefined,
+          engineNote: poseEngineSwap?.reason,
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
@@ -2240,6 +2272,8 @@ export function useDayPlannerToolOrchestrationCore() {
     setRedoPoseMisses: (next: boolean) => updateToolSettings({ redoPoseMisses: next }),
     bestOfTwoHardPoses: toolSettings.bestOfTwoHardPoses === true,
     setBestOfTwoHardPoses: (next: boolean) => updateToolSettings({ bestOfTwoHardPoses: next }),
+    bestEnginePerPose: toolSettings.bestEnginePerPose === true,
+    setBestEnginePerPose: (next: boolean) => updateToolSettings({ bestEnginePerPose: next }),
     hideStickyCutCoach: toolSettings.hideStickyCutCoach === true,
     setHideStickyCutCoach: (next: boolean) => updateToolSettings({ hideStickyCutCoach: next }),
     // A theme (Date night, Cosplay…) stays as its own id; it renders as Everyday.

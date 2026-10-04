@@ -799,3 +799,19 @@ describe('Rapid duo recipe: surface wording', () => {
     assert.equal(parseIntimateLayout('sitting on his face on the bed'), 'facesit');
   });
 });
+
+describe('Vacation recipe: reclining on her side', () => {
+  it('says the side, not "lies back", when the beat has her on her side', () => {
+    const side = buildRapidVacationRecipe({
+      beat: 'RECLINING on the hotel bed on her side, head propped on one hand — room-service tray',
+      outfitImage: 'second',
+    })!;
+    assert.match(side, /She lies on her side on the bed, head propped on one hand, legs along it\./);
+    assert.doesNotMatch(side, /lies back/);
+    const back = buildRapidVacationRecipe({
+      beat: 'RECLINING on a pool lounger with sunglasses on — afternoon sun',
+      outfitImage: 'second',
+    })!;
+    assert.match(back, /She lies back on the (?:pool lounge|lounger), hips and back on it/);
+  });
+});

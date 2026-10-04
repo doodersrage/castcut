@@ -66,6 +66,9 @@ export type DayMoodStripProps = {
   onBestOfTwoHardPosesChange?: (next: boolean) => void;
   /** Latest best-of-two line (checking / second take / kept). */
   bestOfTwoStatus?: string | null;
+  /** Opt-in: a pose the picked engine keeps missing renders on an engine that holds it. */
+  bestEnginePerPose?: boolean;
+  onBestEnginePerPoseChange?: (next: boolean) => void;
   dayMood?: DayMoodSetting;
   onDayMoodChange?: (next: DayMoodSetting) => void;
   intimateMix?: DayIntimateMix;
@@ -117,6 +120,8 @@ export default function DayMoodStrip({
   bestOfTwoHardPoses = false,
   onBestOfTwoHardPosesChange,
   bestOfTwoStatus = null,
+  bestEnginePerPose = false,
+  onBestEnginePerPoseChange,
   dayMood = 'everyday',
   onDayMoodChange,
   intimateMix = 'mixed',
@@ -457,6 +462,17 @@ export default function DayMoodStrip({
               onChange={onBestOfTwoHardPosesChange}
             >
               Best of two for hard poses
+            </SwitchButton>
+          ) : null}
+          {onBestEnginePerPoseChange ? (
+            <SwitchButton
+              checked={bestEnginePerPose}
+              disabled={busy}
+              data-testid="day-best-engine-per-pose"
+              title="One-person stills whose pose your engine keeps missing on the pose report card (right at most half the time) render on another installed engine that got it right every time — that still only. The card says when it happens."
+              onChange={onBestEnginePerPoseChange}
+            >
+              Pick the best engine per pose
             </SwitchButton>
           ) : null}
         </div>

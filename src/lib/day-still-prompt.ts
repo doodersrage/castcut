@@ -47,7 +47,12 @@ import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
 import { footwearIsBarefoot, withFootwearLine } from '@/lib/footwear';
 import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
 import { KLEIN_FACE_REFERENCE_LINE } from '@/lib/klein-face-reference';
-import { poseLayoutCueLine, poseLookLine, withRecipePoseCue } from '@/lib/pose-coaching';
+import {
+  poseLayoutCueLine,
+  poseLookLine,
+  withRecipePoseCue,
+  withSportActionPoseCue,
+} from '@/lib/pose-coaching';
 import { customPoseFirstLine, withCustomPoseSentence } from '@/lib/pose-describe';
 import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { RAPID_DUO_RECIPE_MARK, isRapidDuoRecipePrompt } from '@/lib/rapid-duo-recipe-mark';
@@ -93,6 +98,11 @@ export type DayStillPromptFacts = {
   kleinFace: boolean;
   /** The quality gate's fix for a reroll, once. */
   qualityNudge?: string;
+  /**
+   * The engine wants the layout's cue after the sport ACTION sentence (pose-model-profile:
+   * sportActionCue) — the long sport brief has none of its own.
+   */
+  sportActionCue?: boolean;
 };
 
 export type AssembledDayStillPrompt = {
@@ -188,7 +198,9 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
   const posedBase = !customPose
     ? recipeCue
       ? withRecipePoseCue(basePrompt, drawnLayout, facts.pose?.poseKey)
-      : basePrompt
+      : facts.sportActionCue && !recipe && figures === 1
+        ? withSportActionPoseCue(basePrompt, drawnLayout)
+        : basePrompt
     : recipe
       ? withCustomPoseSentence(basePrompt, customPose)
       : basePrompt;

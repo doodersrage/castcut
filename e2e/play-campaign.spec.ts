@@ -3676,3 +3676,75 @@ test('a Day slot can be made in another of the Cast’s looks, and keeps it', as
   });
   expect(activeLookId).toBe('e2e-day-look-a');
 });
+
+test('pick the best engine per pose: the switch saves and a moved still says why', async ({
+  page,
+}) => {
+  const stillPng =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-best-engine' },
+    characters: {
+      version: 1,
+      characters: [
+        { id: 'e2e-best-engine', name: 'Best Engine', version: 1, updatedAt: Date.now(), descriptor: 'a woman' },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        activeSlotId: 'morning',
+        stillsCharacterId: 'e2e-best-engine',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'living room', sceneHints: 'lying on her side on the sofa' },
+          { id: 'afternoon', label: 'Afternoon', location: 'café', sceneHints: 'coffee' },
+          { id: 'evening', label: 'Evening', location: 'market', sceneHints: 'apples' },
+          { id: 'night', label: 'Night', location: 'home', sceneHints: 'cooking' },
+        ],
+        stills: [
+          {
+            slotId: 'morning',
+            status: 'completed',
+            promptId: 'e2e-moved-still',
+            imageUrl: stillPng,
+            engineNote: 'Rendered on Rapid AIO — it holds this pose better',
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('day-slot-engine-note-morning').first()).toHaveText(
+    'Rendered on Rapid AIO — it holds this pose better',
+    { timeout: 30_000 }
+  );
+  const toggle = page.getByTestId('day-best-engine-per-pose').first();
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  // Saved to Day's tool settings in IndexedDB (a reload would re-run this test's seed script,
+  // so read the stored copy instead).
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            new Promise<boolean>(resolve => {
+              const request = indexedDB.open('comfy-prompt-studio-v1');
+              request.onerror = () => resolve(false);
+              request.onsuccess = () => {
+                const get = request.result
+                  .transaction('kv')
+                  .objectStore('kv')
+                  .get('comfy-prompt-tool-settings-tools-v1');
+                get.onsuccess = () =>
+                  resolve(get.result?.value?.tools?.day?.bestEnginePerPose === true);
+                get.onerror = () => resolve(false);
+              };
+            })
+        ),
+      { timeout: 15_000 }
+    )
+    .toBe(true);
+});

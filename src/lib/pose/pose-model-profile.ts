@@ -134,6 +134,12 @@ export type PoseModelProfile = {
    * sentence alone hold the pose and the clothes. Kept as a switch for engines that need it.
    */
   wideLyingSolo: boolean;
+  /**
+   * One-person sport briefs get the layout's cue after the ACTION sentence for the layouts in
+   * SPORT_ACTION_CUE_LAYOUTS (pose-coaching.ts) — Rapid AIO kicked for a punch without it (pose
+   * report card 2026-10-03).
+   */
+  sportActionCue: boolean;
 };
 
 const NONE: ReadonlySet<string> = new Set();
@@ -153,6 +159,7 @@ const BASE: PoseModelProfile = {
   poseControlNetGuessable: true,
   mapDelivery: { solo: 'vision', duoClothed: 'vision', duoNude: 'vision' },
   wideLyingSolo: false,
+  sportActionCue: false,
 };
 
 export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
@@ -162,6 +169,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     family: 'rapid-aio',
     outlineGrayGuide: true,
     rapidGraph: true,
+    sportActionCue: true,
     compactEverydayRecipe: true,
     sameSexLayouts: true,
     seatedOralFallback: true,

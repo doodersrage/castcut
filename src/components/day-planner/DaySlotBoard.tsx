@@ -515,6 +515,14 @@ export default function DaySlotBoard({
                   {ADULT_GATE_WITHHELD_MESSAGE}
                 </p>
               ) : null}
+              {still?.engineNote ? (
+                <p
+                  className={`type-caption text-[var(--text-muted)] ${compact ? 'px-2.5 pb-1' : 'px-3 pb-1'}`}
+                  data-testid={`day-slot-engine-note-${slot.id}`}
+                >
+                  {still.engineNote}
+                </p>
+              ) : null}
               {/* Outside the select button: the note opens on its own tap. */}
               <StillPromptCheckNote
                 check={still?.promptCheck}

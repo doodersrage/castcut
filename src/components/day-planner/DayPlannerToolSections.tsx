@@ -148,6 +148,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     bestOfTwoHardPoses,
     setBestOfTwoHardPoses,
     bestOfTwoStatus,
+    bestEnginePerPose,
+    setBestEnginePerPose,
     posePriority,
     setPosePriority,
     identityBoost,
@@ -666,6 +668,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             bestOfTwoHardPoses={bestOfTwoHardPoses}
             onBestOfTwoHardPosesChange={setBestOfTwoHardPoses}
             bestOfTwoStatus={bestOfTwoStatus}
+            bestEnginePerPose={bestEnginePerPose}
+            onBestEnginePerPoseChange={setBestEnginePerPose}
             dayMood={dayMood}
             onDayMoodChange={setDayMood}
             partnerId={partnerCharacterId}
