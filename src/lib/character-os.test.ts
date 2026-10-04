@@ -289,6 +289,29 @@ describe('character-os', () => {
     assert.ok(merged.some(entry => entry.id === 'char-rp-rp-kai-2'));
   });
 
+  it('does not import a Cast session again beside its older "char-rp-cast-" copy', () => {
+    const copy = {
+      ...characterFromBundle(bundle, 'char-rp-cast-char-rin'),
+      updatedAt: 10,
+    };
+    const session = {
+      id: 'cast-char-rin',
+      createdAt: 1,
+      updatedAt: 9,
+      title: 'Rin',
+      beatCount: 1,
+      snapshot: {
+        characterName: 'Rin',
+        bio: { name: 'Rin', look: 'black bob', personality: 'dry wit' },
+      },
+    } as RoleplayLibrarySession;
+    const merged = mergeMigratedCharacters({ existing: [copy], roleplaySessions: [session] });
+    assert.deepEqual(
+      merged.map(entry => entry.id),
+      ['char-rp-cast-char-rin']
+    );
+  });
+
   it('imports a later roleplay session when the roster already has someone', () => {
     const existing = [characterFromBundle(bundle, 'char-rin')];
     const session = {

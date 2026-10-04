@@ -785,6 +785,12 @@ export function mergeMigratedCharacters(input: {
     if (!converted || merged.has(converted.id)) {
       continue;
     }
+    // A Cast already owns this session: session "cast-<id>" is owned by Cast "<id>" or by the
+    // "char-rp-cast-<id>" copy an older version made. Importing it again as "<id>" beside that
+    // copy put a second Cast with the same name in the roster on every fresh browser.
+    if ([...merged.keys()].some(id => roleplaySessionIdForCast(id) === session.id)) {
+      continue;
+    }
     const clash = nameOwner(converted.name);
     if (clash && !clash.id.startsWith('char-rp-')) {
       continue;
