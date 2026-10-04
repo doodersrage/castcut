@@ -22,17 +22,18 @@ export type LlmRequestOptions = {
   llmApiKey?: string;
 };
 
-export function parseLlmRequestOptions(
-  body?: {
-    llmTemperature?: number;
-    allowTemplateFallback?: boolean;
-    llmModel?: string;
-    llmVisionModel?: string;
-    llmEnabled?: boolean;
-    llmProvider?: string;
-    llmApiKey?: string;
-  } | null
-): LlmRequestOptions {
+/** The session LLM fields a request body may carry (sharedLlmRequestBody on the client). */
+export type LlmRequestBody = {
+  llmTemperature?: number;
+  allowTemplateFallback?: boolean;
+  llmModel?: string;
+  llmVisionModel?: string;
+  llmEnabled?: boolean;
+  llmProvider?: string;
+  llmApiKey?: string;
+};
+
+export function parseLlmRequestOptions(body?: LlmRequestBody | null): LlmRequestOptions {
   const temperature =
     typeof body?.llmTemperature === 'number' && body.llmTemperature >= 0 && body.llmTemperature <= 2
       ? body.llmTemperature

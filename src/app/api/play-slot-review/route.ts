@@ -52,9 +52,12 @@ export async function POST(request: Request) {
     return apiJson(report);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Slot review failed.';
-    const status = /required|must be|too large|not set|needs a vision|unknown/i.test(message)
-      ? 400
-      : 500;
+    const status =
+      /required|must be|too large|not set|needs a (hosted )?vision|no vision model|vision model under|unknown/i.test(
+        message
+      )
+        ? 400
+        : 500;
     return apiError(message, status);
   }
 }

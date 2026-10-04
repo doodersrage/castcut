@@ -1,5 +1,6 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { reviewGalleryImage } from '@/lib/gallery-vision-review';
+import { reviewGalleryImage, VisionModelUnavailableError } from '@/lib/gallery-vision-review';
+import { parseLlmRequestOptions, type LlmRequestBody } from '@/lib/llm-request-options';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -17,12 +18,9 @@ function formatVisionReviewError(error: unknown): string {
 }
 
 export async function POST(request: Request) {
-  let body: { imageDataUrl?: string; prompt?: string };
+  let body: { imageDataUrl?: string; prompt?: string; optional?: boolean } & LlmRequestBody;
   try {
-    body = (await request.json()) as {
-      imageDataUrl?: string;
-      prompt?: string;
-    };
+    body = (await request.json()) as typeof body;
   } catch {
     return apiError('Invalid JSON body.', 400);
   }
@@ -33,9 +31,14 @@ export async function POST(request: Request) {
     const review = await reviewGalleryImage({
       imageDataUrl: body.imageDataUrl,
       prompt: body.prompt,
+      llm: parseLlmRequestOptions(body),
     });
     return apiJson(review);
   } catch (error) {
+    if (error instanceof VisionModelUnavailableError) {
+      // Auto-tagging asks after every still: no vision model is a skip, not an error.
+      return body.optional ? apiJson({ unavailable: error.message }) : apiError(error.message, 400);
+    }
     const message = formatVisionReviewError(error);
     console.error('[gallery/vision-review]', message);
     return apiError(message, 500);

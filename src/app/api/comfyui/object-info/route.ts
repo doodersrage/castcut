@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   try {
     const payload = await fetchComfyObjectInfoPayload(runtime, { forceRefresh });
     if (!payload) {
-      return apiError('ComfyUI object_info returned no data.', 502);
+      return apiJson(comfyOfflineBody('ComfyUI object_info returned no data.'));
     }
     return apiJson({
       ok: true,
@@ -26,9 +26,20 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'ComfyUI object_info check failed.';
-    const status = /not allowed|Invalid URL|URL is required|allowlist/i.test(message) ? 400 : 502;
-    return apiError(message, status);
+    if (/not allowed|Invalid URL|URL is required|allowlist/i.test(message)) {
+      return apiError(message, 400);
+    }
+    return apiJson(comfyOfflineBody(message));
   }
+}
+
+/**
+ * ComfyUI down is a state every page polls for, not a failed request: a 502 here put a console
+ * error on every page load of an install whose ComfyUI is off. Callers read "no `models`" as
+ * offline, as they did a non-OK answer.
+ */
+function comfyOfflineBody(error: string) {
+  return { ok: false, offline: true, error };
 }
 
 export async function POST() {

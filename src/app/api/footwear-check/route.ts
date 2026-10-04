@@ -43,6 +43,11 @@ export async function POST(request: Request) {
     return apiJson(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Shoe check failed.';
+    if (/needs a vision/i.test(message)) {
+      // No vision model: the check is skipped (the try-on keeps its unchecked rule), not failed —
+      // a 400 here was a console error on every try-on of a fresh install.
+      return apiJson({ verdict: null, unavailable: message });
+    }
     const status = /required|must be|too large|needs a vision|unreadable/i.test(message)
       ? 400
       : 500;

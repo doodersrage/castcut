@@ -59,6 +59,13 @@ export default function TaskRequirementsCard({
   const comfyUrl = () => loadComfyUiSettings().apiUrl?.trim() || '';
 
   const load = useCallback(async (forceRefresh = false) => {
+    const info = await fetchComfyObjectInfoCached({ comfyUrl: comfyUrl() }).catch(() => null);
+    if (!info) {
+      // ComfyUI can't be asked: every file read as missing ("This Day needs … qwen-image-edit,
+      // vae …" on a first run with ComfyUI off). The offline toast says what is wrong instead.
+      setRows(null);
+      return;
+    }
     try {
       const params = new URLSearchParams();
       if (comfyUrl()) params.set('comfyUrl', comfyUrl());
@@ -79,8 +86,7 @@ export default function TaskRequirementsCard({
     } catch {
       // ComfyUI / the app API unreachable — the card stays hidden.
     }
-    const info = await fetchComfyObjectInfoCached({ comfyUrl: comfyUrl() }).catch(() => null);
-    setNodeTypes(info?.nodeTypes ?? null);
+    setNodeTypes(info.nodeTypes ?? null);
     // A model whose mapped checkpoint / UNet is installed needs nothing (see runnableModelsFromMap).
     const nextRunnable = runnableModelsFromMap(loadSettingsCache().shared.modelCheckpointMap, [
       ...(info?.models.checkpoints ?? []),

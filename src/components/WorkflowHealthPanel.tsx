@@ -220,7 +220,13 @@ export default function WorkflowHealthPanel({
         }
         const data = (await response.json()) as {
           models?: ComfyUiModelLists;
+          offline?: boolean;
         };
+        if (data.offline) {
+          setLoaderIssues([]);
+          setLoaderStatus('ComfyUI offline — loader map filenames not verified.');
+          return;
+        }
         if (!data.models) {
           setLoaderIssues([]);
           setComfyModels(null);

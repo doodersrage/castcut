@@ -12,6 +12,12 @@ type VisionCompletionArgs = {
 let visionImpl: (args: VisionCompletionArgs) => Promise<string> = async () => '';
 const visionCompletion = mock.fn((args: VisionCompletionArgs) => visionImpl(args));
 mock.module('./llm-client', { namedExports: { visionCompletion } });
+// These tests are about parsing replies: the LLM is on (gallery-vision-unavailable covers off).
+process.env.LLM_ENABLED = 'true';
+// The vision model is resolved like the other still checks (session / env / found on the server).
+mock.module('./vision-model-auto', {
+  namedExports: { resolveVisionModel: async () => 'test-vision-model' },
+});
 
 afterEach(() => {
   visionImpl = async () => '';

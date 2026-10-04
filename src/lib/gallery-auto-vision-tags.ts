@@ -7,6 +7,26 @@ import {
 } from './comfyui-gallery';
 import { loadComfyUiSettings } from './comfyui-settings';
 import { galleryUploadPromptLooksGeneric } from './gallery-local-import';
+import { sharedLlmRequestBody } from './llm-request-options';
+import { loadSettingsCache } from './settings-cache';
+
+/**
+ * Why tagging is off for this page (no vision model), or null. Every landed still asked again and
+ * the route answered 500 each time — a console error per still on a fresh install.
+ */
+let visionUnavailable: string | null = null;
+
+/** Tests only. */
+export function resetGalleryAutoTagStateForTests(): void {
+  visionUnavailable = null;
+}
+
+/** The route's answer when no vision model is set up: `{ unavailable }` (asked with `optional`). */
+export function galleryVisionUnavailableReason(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const reason = (data as { unavailable?: unknown }).unavailable;
+  return typeof reason === 'string' && reason.trim() ? reason : null;
+}
 
 type VisionReviewResult = {
   suggestedRating: 1 | 2 | 3 | 4 | 5;
@@ -27,9 +47,10 @@ export async function autoTagGalleryEntry(entry: ComfyGalleryEntry): Promise<voi
   if (entry.visionTags?.length || entry.status !== 'completed') {
     return;
   }
-  if (loadComfyUiSettings().autoVisionTags === false) {
+  if (loadComfyUiSettings().autoVisionTags === false || visionUnavailable) {
     return;
   }
+  const llm = sharedLlmRequestBody(loadSettingsCache().shared);
 
   // Prefer thumbnails to cut bandwidth/CPU vs full-resolution outputs.
   const imageUrl = galleryEntryThumbUrls(entry)[0];
@@ -50,10 +71,12 @@ export async function autoTagGalleryEntry(entry: ComfyGalleryEntry): Promise<voi
       const captionResponse = await fetch('/api/gallery/caption', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUrl: dataUrl }),
+        body: JSON.stringify({ imageDataUrl: dataUrl, optional: true, ...llm }),
       });
       if (captionResponse.ok) {
         const captioned = (await captionResponse.json()) as { caption?: string };
+        visionUnavailable = galleryVisionUnavailableReason(captioned);
+        if (visionUnavailable) return;
         const caption = captioned.caption?.trim();
         if (caption) {
           prompt = caption;
@@ -68,13 +91,17 @@ export async function autoTagGalleryEntry(entry: ComfyGalleryEntry): Promise<voi
       body: JSON.stringify({
         imageDataUrl: dataUrl,
         prompt,
+        optional: true,
+        ...llm,
       }),
     });
     if (!reviewResponse.ok) {
       return;
     }
-    const review = (await reviewResponse.json()) as VisionReviewResult;
-    if (review.tags.length > 0) {
+    const review = (await reviewResponse.json()) as Partial<VisionReviewResult>;
+    visionUnavailable = galleryVisionUnavailableReason(review);
+    if (visionUnavailable) return;
+    if (Array.isArray(review.tags) && review.tags.length > 0) {
       updateComfyGalleryEntryById(entry.id, { visionTags: review.tags });
     }
   } catch {
