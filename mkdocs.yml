@@ -95,6 +95,7 @@ nav:
       - Workflow takeover: workflow-takeover.md
       - HTTP API: http-api.md
       - Data catalogs: data-catalogs.md
+      - Pose reference credits: pose-reference-credits.md
   - Contributors:
       - Architecture: architecture.md
       - Releases: releasing.md

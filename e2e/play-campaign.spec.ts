@@ -1619,7 +1619,10 @@ test('day slot editor previews the pose and lets you change it', async ({ page }
   await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Waving');
   await expect(preview).toContainText('Picked');
   await page.getByTestId('day-slot-pose-preview-another').click();
-  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Waving');
+  // Try another walks the real reference poses (variant 1 = the first), still Waving.
+  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText(
+    /^Waving · real pose 1 of \d+$/
+  );
   await page.getByTestId('day-slot-pose-preview-camera').selectOption('low');
   await expect(page.getByTestId('day-slot-pose-preview-camera')).toHaveValue('low');
   await expect(page.getByTestId('day-slot-pose-preview-photo')).toContainText('From a photo');
@@ -1635,7 +1638,10 @@ test('day slot editor previews the pose and lets you change it', async ({ page }
   const photoStatus = page.getByTestId('day-slot-pose-preview-photo-status');
   await expect(photoStatus).toHaveAttribute('data-error', 'true', { timeout: 20_000 });
   await expect(photoStatus).toHaveAttribute('role', 'alert');
-  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Waving');
+  // The failed read leaves the pose as it was (the real pose Try another picked).
+  await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText(
+    /^Waving · real pose 1 of \d+$/
+  );
   await expect(page.getByTestId('day-slot-pose-preview-photo-thumb')).toHaveCount(0);
   await page.getByTestId('day-slot-pose-preview-look').selectOption('down');
   await expect(page.getByTestId('day-slot-pose-preview-look')).toHaveValue('down');

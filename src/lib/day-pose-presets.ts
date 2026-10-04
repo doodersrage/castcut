@@ -12,6 +12,7 @@ import {
   type SocialLayout,
 } from '@/lib/day-pose-guide';
 import type { PoseLibraryEntry } from '@/lib/pose-library';
+import type { PoseReference } from '@/lib/pose-references';
 import { poseLayoutCue } from '@/lib/pose-coaching';
 import {
   POSE_PICKER_GROUPS,
@@ -21,8 +22,15 @@ import {
 
 const BODY_IDS: ReadonlySet<string> = new Set(SCENE_POSE_BODY_IDS);
 
-/** One Day pose as a single-figure pose, or null when it draws no usable figure. */
-export function dayPoseAsPhotoPose(id: string, library?: PoseLibraryEntry[]): PhotoPose | null {
+/**
+ * One Day pose as a single-figure pose, or null when it draws no usable figure. `variant` N ≥ 1
+ * draws the pose's real-world reference N when it has one (pose-references.ts; loaded ones).
+ */
+export function dayPoseAsPhotoPose(
+  id: string,
+  library?: PoseLibraryEntry[],
+  pick: { variant?: number; references?: readonly PoseReference[] } = {}
+): PhotoPose | null {
   const key = id.trim();
   if (!key) return null;
   const pose = BODY_IDS.has(key) ? { body: key as PoseGuideBase } : { layout: key as SocialLayout };
@@ -31,6 +39,8 @@ export function dayPoseAsPhotoPose(id: string, library?: PoseLibraryEntry[]): Ph
     pose,
     openPose: true,
     ...(library ? { library } : {}),
+    ...(pick.variant ? { variant: pick.variant } : {}),
+    ...(pick.references ? { references: pick.references } : {}),
   });
   const body = openPose.keypoints[0];
   if (!body || openPose.keypoints.length !== 1) return null;

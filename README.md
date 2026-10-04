@@ -197,4 +197,4 @@ left for someone to dig out of the branch history.
 
 ## License
 
-[MIT](./LICENSE) © 2026 Robert McDowell. Third-party model weights you download (e.g. via Hugging Face) remain under their own licenses.
+[MIT](./LICENSE) © 2026 Robert McDowell. Third-party model weights you download (e.g. via Hugging Face) remain under their own licenses. Day and Story's real-world reference poses are skeletons read from openly licensed photos (CC0, public domain, CC BY, CC BY-SA) — see [the photo credits](docs/pose-reference-credits.md); the harvester is in [scripts/pose-refs](scripts/pose-refs/README.md).

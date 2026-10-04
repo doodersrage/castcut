@@ -57,6 +57,15 @@ import {
   type NormalizedBody,
   type PoseLibraryEntry,
 } from '@/lib/pose-library';
+import { bodyCentreX, mirrorBodies } from '@/lib/pose-starters';
+import {
+  loadedPoseReferences,
+  loadPoseReferences,
+  poseReferenceAsLibraryEntry,
+  poseReferenceForVariant,
+  poseReferencesFor,
+  type PoseReference,
+} from '@/lib/pose-references';
 
 type Point = { x: number; y: number };
 
@@ -5977,6 +5986,8 @@ export type PoseGuideBuild = {
   keypoints: NormalizedBody[];
   /** Library entry id when the guide reused a harvested pose. */
   libraryEntryId?: string;
+  /** Real-world reference pose drawn (a variant of a named pose, see pose-references.ts). */
+  referenceId?: string;
   /** Layout drawn as its plain posture because Edit kept missing it. */
   routedAround?: SocialLayout;
 };
@@ -5992,6 +6003,11 @@ export type PoseGuideBuildOptions = SceneStickOptions & {
   aspect?: { width: number; height: number } | null;
   /** Harvested poses to draw from (see `pose-library.ts`). */
   library?: PoseLibraryEntry[];
+  /**
+   * Real-world reference poses (pose-references.ts); variant N ≥ 1 of a pose draws reference N.
+   * Defaults to the references loaded so far.
+   */
+  references?: readonly PoseReference[];
   /** A pose read from the player's own photo — drawn exactly (OpenPose styles only). */
   photoPose?: PhotoPose | null;
   /** Camera the player picked; `front` drops any inferred angle. Unset = inferred. */
@@ -6150,6 +6166,9 @@ export function planOpenPoseGuide(input: {
   library?: PoseLibraryEntry[];
   variant?: number;
   photoPose?: PhotoPose | null;
+  references?: readonly PoseReference[];
+  /** Two people: the side the lead stands on (a reference pose is mirrored to match). */
+  leadSide?: 'left' | 'right';
 }): {
   canvas: { width: number; height: number };
   people: OpenPosePerson[];
@@ -6158,6 +6177,7 @@ export function planOpenPoseGuide(input: {
   keypoints: NormalizedBody[];
   poseKey: string;
   libraryEntryId?: string;
+  referenceId?: string;
 } {
   const size = poseGuideCanvasSize(input.aspect);
   const photo = input.photoPose?.people.length ? input.photoPose : null;
@@ -6169,6 +6189,9 @@ export function planOpenPoseGuide(input: {
         base: input.intent.base,
         people: input.figures.length,
       });
+  const reference = photo
+    ? null
+    : poseReferenceForIntent(input.intent, input.figures.length, input.variant, input.references);
   const entry: PoseLibraryEntry | null = photo
     ? {
         id: 'photo',
@@ -6178,7 +6201,12 @@ export function planOpenPoseGuide(input: {
         score: 1,
         createdAt: 0,
       }
-    : pickPoseLibraryEntry(input.library ?? [], poseKey, input.intent.seed, input.variant ?? 0);
+    : reference
+      ? poseReferenceAsLibraryEntry(
+          { ...reference, people: referencePeopleForLead(reference.people, input.leadSide) },
+          poseKey
+        )
+      : pickPoseLibraryEntry(input.library ?? [], poseKey, input.intent.seed, input.variant ?? 0);
   let people: OpenPosePerson[];
   if (entry) {
     people = placeLibraryPeople(entry, size.width, size.height);
@@ -6203,8 +6231,36 @@ export function planOpenPoseGuide(input: {
     camera: resolvePoseCameraAngle(input.figures[0]),
     keypoints: normalizePeople(people, size.width, size.height),
     poseKey,
-    ...(entry && !photo ? { libraryEntryId: entry.id } : {}),
+    ...(reference ? { referenceId: reference.id } : {}),
+    ...(entry && !photo && !reference ? { libraryEntryId: entry.id } : {}),
   };
+}
+
+/** A two-person reference mirrored when its lead stands on the other side from the one picked. */
+function referencePeopleForLead(
+  people: NormalizedBody[],
+  leadSide: 'left' | 'right' | undefined
+): NormalizedBody[] {
+  if (!leadSide || people.length < 2) return people;
+  const [leadX, partnerX] = people.slice(0, 2).map(bodyCentreX);
+  if (leadX == null || partnerX == null) return people;
+  return (leadSide === 'left') === leadX < partnerX ? people : mirrorBodies(people);
+}
+
+/**
+ * The real-world reference a guide draws for this variant, or null for the hand-drawn figure:
+ * named everyday / sport / duo layouts and plain postures (never a sex layout), the same
+ * headcount, and only on the posture the reference was harvested for.
+ */
+export function poseReferenceForIntent(
+  intent: Pick<PoseGuideIntent, 'intimate' | 'social' | 'base'>,
+  people: number,
+  variant: number | null | undefined,
+  references: readonly PoseReference[] = loadedPoseReferences()
+): PoseReference | null {
+  if (intent.intimate || !variant) return null;
+  const pose = intent.social ?? intent.base;
+  return poseReferenceForVariant(poseReferencesFor(references, pose, people, intent.base), variant);
 }
 
 /**
@@ -6239,7 +6295,8 @@ export function resolveSceneGuidePlan(
     });
     const libraryHasIt = Boolean(
       options.openPose !== false &&
-      pickPoseLibraryEntry(options.library ?? [], key, intent.seed, options.variant ?? 0)
+      (pickPoseLibraryEntry(options.library ?? [], key, intent.seed, options.variant ?? 0) ||
+        poseReferenceForIntent(intent, figures.length, options.variant, options.references))
     );
     if (!libraryHasIt) {
       routedAround = intent.social;
@@ -6258,6 +6315,8 @@ export function resolveSceneGuidePlan(
     library: options?.openPose === false ? [] : options?.library,
     variant: options?.variant,
     photoPose: photo,
+    references: options?.openPose === false ? [] : options?.references,
+    leadSide: options?.leadSide,
   });
   return {
     intent,
@@ -6278,6 +6337,11 @@ async function buildSceneGuide(
   filenamePrefix: string,
   options?: PoseGuideBuildOptions
 ): Promise<PoseGuideBuild> {
+  // The real-world references load on demand; have them before planning so a variant that draws
+  // one draws it on the first queue too.
+  if (style === 'openpose' && !options?.references) {
+    await loadPoseReferences();
+  }
   const resolved = resolveSceneGuidePlan(sceneText, fallbackIndex, {
     ...options,
     hands: poseGuideStyleDrawsHands(stylePreference),
@@ -6291,9 +6355,11 @@ async function buildSceneGuide(
         drawOpenPosePeople(ctx, plan.people, plan.canvas.width, plan.canvas.height);
         return options?.photoPose?.people.length
           ? photoPoseGuideLabel(intent.label, plan.people.length)
-          : plan.libraryEntryId
-            ? `${intent.label}-lib`
-            : intent.label;
+          : plan.referenceId
+            ? `${intent.label}-ref`
+            : plan.libraryEntryId
+              ? `${intent.label}-lib`
+              : intent.label;
       },
       filenamePrefix,
       plan.canvas
@@ -6310,6 +6376,7 @@ async function buildSceneGuide(
       canvas: plan.canvas,
       keypoints: plan.keypoints,
       ...(plan.libraryEntryId ? { libraryEntryId: plan.libraryEntryId } : {}),
+      ...(plan.referenceId ? { referenceId: plan.referenceId } : {}),
       ...(routedAround ? { routedAround } : {}),
     };
   }

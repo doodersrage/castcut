@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -17,7 +18,9 @@ import {
   posePartOfJoint,
 } from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
-import { dayPoseAsPhotoPose, soloDayPoseGroups } from '@/lib/day-pose-presets';
+import { dayPoseAsPhotoPose, dayPoseWords, soloDayPoseGroups } from '@/lib/day-pose-presets';
+import { usePoseReferences } from '@/hooks/usePoseReferences';
+import { poseReferenceCreditLine, type PoseReference } from '@/lib/pose-references';
 import { poseLayoutLabel } from '@/lib/pose-layout-labels';
 import ModalPortal from '@/components/ui/ModalPortal';
 import type { PhotoPose } from '@/lib/day-pose-guide';
@@ -409,6 +412,7 @@ export default function PoseJointEditor({
   }, []);
   const [limbSide, setLimbSide] = useState<LimbSide>('both');
   const [posePickerOpen, setPosePickerOpen] = useState(false);
+  const [referencePickerOpen, setReferencePickerOpen] = useState(false);
   // A quick arm / leg position on the figure being posed. Flat (picture-plane) positions, so a
   // turned figure goes back to its drawn depth, as Mirror does.
   const applyLimbs = (change: (body: NormalizedBody) => NormalizedBody) => {
@@ -546,6 +550,27 @@ export default function PoseJointEditor({
     setPreset(
       picked.words ? { words: picked.words, keys: [JSON.stringify(latest.current[0])] } : null
     );
+    setSavedNote(null);
+  };
+  // A real-world reference pose (read from a photo). A two-person one brings its partner when
+  // the still can draw two; otherwise only the lead is taken.
+  const startFromReference = (reference: PoseReference) => {
+    const widen = reference.aspect / safeAspect;
+    const fitted = reference.people.map(body =>
+      body.map(point =>
+        point
+          ? { x: Math.min(0.99, Math.max(0.01, 0.5 + (point.x - 0.5) * widen)), y: point.y }
+          : null
+      )
+    );
+    checkpoint();
+    setDepths([]);
+    if (fitted.length > 1 && allowTwo && !soloStill) {
+      update(() => fitted);
+    } else {
+      update(previous => replaceLead(previous, fitted[0]!));
+    }
+    setPreset({ words: dayPoseWords(reference.pose), keys: [JSON.stringify(latest.current[0])] });
     setSavedNote(null);
   };
   // Start from a base figure — keeps the partner when there is one.
@@ -1221,6 +1246,20 @@ export default function PoseJointEditor({
                   >
                     {posePickerOpen ? 'Hide poses' : 'More poses…'}
                   </Button>
+                  {/* Day's poses as read from real photos (openly licensed, credited). */}
+                  <Button
+                    size="sm"
+                    variant={referencePickerOpen ? 'primary' : 'secondary'}
+                    className="whitespace-nowrap"
+                    aria-expanded={referencePickerOpen}
+                    data-testid={`${testIdPrefix}-real-poses`}
+                    onClick={() => {
+                      setReferencePickerOpen(open => !open);
+                      setPosePickerOpen(false);
+                    }}
+                  >
+                    {referencePickerOpen ? 'Hide real poses' : 'Real poses…'}
+                  </Button>
                 </div>
                 {posePickerOpen ? (
                   <DayPosePicker
@@ -1228,6 +1267,16 @@ export default function PoseJointEditor({
                     onPick={id => {
                       startFromDayPose(id);
                       setPosePickerOpen(false);
+                    }}
+                  />
+                ) : null}
+                {referencePickerOpen ? (
+                  <ReferencePosePicker
+                    testIdPrefix={testIdPrefix}
+                    twoPeople={allowTwo}
+                    onPick={reference => {
+                      startFromReference(reference);
+                      setReferencePickerOpen(false);
                     }}
                   />
                 ) : null}
@@ -1957,6 +2006,85 @@ function PoseTopView({
         </marker>
       </defs>
     </svg>
+  );
+}
+
+/**
+ * Real-world reference poses (pose-references.ts) as small figures, grouped by Day pose in Day's
+ * order. Each tile's tooltip credits the photo it was read from.
+ */
+function ReferencePosePicker({
+  testIdPrefix,
+  twoPeople,
+  onPick,
+}: {
+  testIdPrefix: string;
+  twoPeople: boolean;
+  onPick: (reference: PoseReference) => void;
+}) {
+  const references = usePoseReferences();
+  const groups = useMemo(() => {
+    const order = new Map(
+      [...soloDayPoseGroups().flatMap(group => group.ids), 'hug', 'dance', 'fight'].map(
+        (id, index) => [id, index]
+      )
+    );
+    const byPose = new Map<string, PoseReference[]>();
+    for (const reference of references) {
+      if (reference.people.length > 1 && !twoPeople) continue;
+      byPose.set(reference.pose, [...(byPose.get(reference.pose) ?? []), reference]);
+    }
+    return [...byPose.entries()].sort(
+      ([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999) || a.localeCompare(b)
+    );
+  }, [references, twoPeople]);
+  return (
+    <div
+      className="max-h-72 space-y-2 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+      data-testid={`${testIdPrefix}-real-pose-grid`}
+    >
+      {groups.length === 0 ? (
+        <p className="type-caption text-[var(--text-muted)]">Loading real poses…</p>
+      ) : null}
+      {groups.map(([pose, list]) => (
+        <div key={pose} className="space-y-1">
+          <p className="type-caption text-[var(--text-muted)]">{poseLayoutLabel(pose)}</p>
+          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
+            {list.map(reference => (
+              <button
+                key={reference.id}
+                type="button"
+                title={`${poseLayoutLabel(pose)} — ${poseReferenceCreditLine(reference)}`}
+                aria-label={`${poseLayoutLabel(pose)}, real pose ${reference.variant}`}
+                data-testid={`${testIdPrefix}-real-pose-${reference.id}`}
+                onClick={() => onPick(reference)}
+                className="flex flex-col items-center gap-0.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)] p-1 text-center transition hover:border-[var(--accent)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              >
+                <svg
+                  viewBox={`0 0 ${reference.aspect} 1`}
+                  aria-hidden
+                  className="h-16 w-full rounded bg-white"
+                >
+                  {reference.people.map((body, index) => (
+                    <PoseFigureShape
+                      key={index}
+                      body={body}
+                      aspect={reference.aspect}
+                      color={POSE_FIGURE_COLORS[index % POSE_FIGURE_COLORS.length]!}
+                      weight={0.02}
+                      parts
+                    />
+                  ))}
+                </svg>
+                <span className="text-[10px] leading-tight text-[var(--text-secondary)]">
+                  {reference.variant}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

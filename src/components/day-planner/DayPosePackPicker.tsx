@@ -5,6 +5,7 @@ import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
 import { SelectInput, SwitchButton, TextInput } from '@/components/ui/Field';
 import { usePoseOutcomeStats } from '@/hooks/usePoseOutcomeStats';
+import { usePoseReferences } from '@/hooks/usePoseReferences';
 import { useWeakPoseLayouts } from '@/hooks/useWeakPoseLayouts';
 import { isDayAdultMood, type DaySlot } from '@/lib/day-planner';
 import { dayPoseAsPhotoPose } from '@/lib/day-pose-presets';
@@ -72,6 +73,8 @@ export default function DayPosePackPicker({
     () => new Set([...metricsWeak, ...learnedWeakPoseLayouts(model, outcomes)]),
     [metricsWeak, model, outcomes]
   );
+  // A pack pose with a variant previews that variant's real-world reference once they load.
+  const references = usePoseReferences();
   const [fillBeats, setFillBeats] = useState(true);
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
@@ -85,14 +88,18 @@ export default function DayPosePackPicker({
   const figures = useMemo(
     () =>
       (active?.entries ?? []).map((entry, index) => {
-        const pose = entry.photo ?? (entry.layout ? dayPoseAsPhotoPose(entry.layout) : null);
+        const pose =
+          entry.photo ??
+          (entry.layout
+            ? dayPoseAsPhotoPose(entry.layout, undefined, { variant: entry.variant, references })
+            : null);
         return {
           key: `${index}-${entry.layout ?? 'photo'}`,
           label: entry.layout ? poseLayoutLabel(entry.layout) : 'Your pose',
           pose,
         };
       }),
-    [active]
+    [active, references]
   );
 
   const apply = (pack: PosePack) => {

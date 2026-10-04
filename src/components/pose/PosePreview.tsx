@@ -7,6 +7,7 @@ import MyPosesStrip from '@/components/pose/MyPosesStrip';
 import { Button } from '@/components/ui/Button';
 import { SelectInput } from '@/components/ui/Field';
 import { usePoseLibrary } from '@/hooks/usePoseLibrary';
+import { usePoseReferences } from '@/hooks/usePoseReferences';
 import {
   POSE_CAMERA_CHOICES,
   POSE_LOOK_CHOICES,
@@ -18,6 +19,7 @@ import {
 } from '@/lib/day-pose-guide';
 import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose-layout-labels';
 import { fitPhotoPoseToHeadcount } from '@/lib/photo-pose-fit';
+import { poseReferenceCreditLine, poseReferencesFor } from '@/lib/pose-references';
 
 // A modal used now and then: its own chunk, shared by every page, instead of a copy in each
 // tool page's bundle.
@@ -91,6 +93,7 @@ export default function PosePreview({
   onChange: (patch: PosePicks) => void;
 }) {
   const library = usePoseLibrary();
+  const references = usePoseReferences();
   const [photoStatus, setPhotoStatus] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -111,10 +114,11 @@ export default function PosePreview({
       resolveSceneGuidePlan(sceneText, fallbackIndex, {
         ...options,
         library,
+        references,
         avoidLayouts: picks.poseLayout ? undefined : weakLayouts,
         openPose: true,
       }),
-    [fallbackIndex, library, options, picks.poseLayout, sceneText, weakLayouts]
+    [fallbackIndex, library, options, picks.poseLayout, references, sceneText, weakLayouts]
   );
 
   const { intent, routedAround, openPose } = plan;
@@ -130,6 +134,7 @@ export default function PosePreview({
         ...options,
         ...extra,
         library,
+        references,
         openPose: true,
       }).openPose.keypoints;
     const bodies =
@@ -138,15 +143,37 @@ export default function PosePreview({
         : openPose.keypoints;
     const duo = bodies.length < 2 ? plannedWith({ photoPose: undefined, forcePeople: 2 }) : [];
     return { bodies, duoSeed: duo.length === 2 ? duo : undefined };
-  }, [editing, fallbackIndex, library, openPose.keypoints, options, picks.posePhoto, sceneText]);
+  }, [
+    editing,
+    fallbackIndex,
+    library,
+    openPose.keypoints,
+    options,
+    picks.posePhoto,
+    references,
+    sceneText,
+  ]);
   const drawnId = intent.intimate ?? intent.social ?? intent.base;
+  // Real-world references for this pose: "Try another" walks through them, then the drawing.
+  const poseReferences = intent.intimate
+    ? []
+    : poseReferencesFor(references, drawnId, openPose.keypoints.length, intent.base);
+  const reference = openPose.referenceId
+    ? (poseReferences.find(ref => ref.id === openPose.referenceId) ?? null)
+    : null;
   const fromPhoto = Boolean(picks.posePhoto);
   const edited = picks.posePhoto?.source === 'edited';
   const name = fromPhoto
     ? edited
       ? 'Your edit'
       : 'Your photo'
-    : `${poseLayoutLabel(drawnId)}${openPose.libraryEntryId ? ' · real pose' : ''}`;
+    : `${poseLayoutLabel(drawnId)}${
+        reference
+          ? ` · real pose ${reference.variant} of ${poseReferences.length}`
+          : openPose.libraryEntryId
+            ? ' · real pose'
+            : ''
+      }`;
   const people = openPose.keypoints.length;
   const busy = disabled || photoBusy;
 
@@ -248,6 +275,24 @@ export default function PosePreview({
           </span>
           {people > 1 ? ` · ${people} people` : ''}
         </p>
+        {reference ? (
+          <p
+            className="type-caption text-[var(--text-muted)]"
+            data-testid={`${testIdPrefix}-reference-credit`}
+          >
+            Pose from{' '}
+            <a
+              href={reference.credit.source}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+              title={reference.credit.title}
+            >
+              a photo
+            </a>{' '}
+            · {poseReferenceCreditLine(reference).replace(/^Photo: /, '')}
+          </p>
+        ) : null}
         {routedAround ? (
           <p
             className="type-caption text-[var(--text-muted)]"
@@ -289,7 +334,11 @@ export default function PosePreview({
               variant="ghost"
               disabled={busy}
               data-testid={`${testIdPrefix}-another`}
-              title="Redraw the guide as a different variant of this pose"
+              title={
+                poseReferences.length
+                  ? `Next variant of this pose: ${poseReferences.length} real poses from photos, then the drawing`
+                  : 'Redraw the guide as a different variant of this pose'
+              }
               onClick={() => onChange({ poseVariant: ((picks.poseVariant ?? 0) % 99) + 1 })}
             >
               Try another
