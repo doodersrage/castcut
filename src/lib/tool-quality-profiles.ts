@@ -25,6 +25,7 @@ export const TOOL_QUEUE_QUALITY_OPTIONS: ToolQueueQualityOption[] = [
   { id: 'pet', label: 'Pet' },
   { id: 'fantasy', label: 'Fantasy' },
   { id: 'roleplay', label: 'Story' },
+  { id: 'fitting', label: 'Outfit' },
   { id: 'day', label: 'Day' },
   { id: 'background', label: 'Background' },
   { id: 'recipe', label: 'Prompt recipes' },
@@ -54,6 +55,8 @@ export const SUGGESTED_TOOL_QUEUE_QUALITY_PROFILES: ToolQueueQualityProfiles = {
   pet: 'final',
   fantasy: 'final',
   roleplay: 'final',
+  // Outfit's Quality preset defaults to Balanced, a Good render (outfit-quality-preset.ts).
+  fitting: 'final',
   // Day's Quality preset defaults to Balanced, which renders at Best (day-quality-preset.ts).
   day: 'max',
   background: 'final',

@@ -2,60 +2,36 @@
 
 import OutfitPoseShoesNote from '@/components/fitting/OutfitPoseShoesNote';
 import PlateStanceNudge from '@/components/character/PlateStanceNudge';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useCallback, useMemo, useState } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button } from '@/components/ui/Button';
-import { FieldError, FieldLabel, TextArea } from '@/components/ui/Field';
+import { FieldError, TextArea } from '@/components/ui/Field';
 import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
 import { fittingNotesCachePatch } from '@/lib/look-pack';
-import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
-import ClothingPicker from '@/components/wardrobe/ClothingPicker';
 import TaskRequirementsCard from '@/components/TaskRequirementsCard';
 import OutfitPoseSection from '@/components/fitting/OutfitPoseSection';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
-import {
-  buildFittingCompareLightboxState,
-  fittingSessionStatusLine,
-  resolveFittingOutfitPhase,
-} from '@/lib/fitting-room';
-import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
+import { fittingSessionStatusLine, resolveFittingOutfitPhase } from '@/lib/fitting-room';
 import { galleryPickPath } from '@/lib/gallery-handoff';
 import { toMobileStudioHref, withCharacterQuery } from '@/lib/mobile-studio';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
 import OutfitPlayPhaseStrip from '@/components/fitting/OutfitPlayPhaseStrip';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
-import FittingAutoReviewToggle from '@/components/fitting/FittingAutoReviewToggle';
-import FittingFrontBackToggle from '@/components/fitting/FittingFrontBackToggle';
-import { TryOnReviewLine } from '@/components/fitting/FittingCompareSection';
+import FittingCompareSection from '@/components/fitting/FittingCompareSection';
+import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
+import OutfitQualityControls from '@/components/fitting/OutfitQualityControls';
 import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnReview';
-import { suggestTryOnToKeep } from '@/lib/fitting-tryon-review';
-import type { ImageLightboxSlideChrome } from '@/components/ui/ImageLightbox';
-import {
-  countWardrobeOptionsForFilter,
-  normalizeWardrobeCategoryFilter,
-  wardrobeCategoryFilterOptions,
-} from '@/lib/wardrobe-catalog-ui';
-import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
-import { resolveWardrobeKitThumbUrl } from '@/lib/wardrobe-garment-thumbs';
-
-const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
-  ssr: false,
-  loading: () => null,
-});
+import { useOutfitQualityPreset } from '@/hooks/fitting-room/useOutfitQualityPreset';
 
 type ViewModel = ReturnType<typeof useFittingRoomToolOrchestration>;
 
 export default function MobileFittingToolSections(vm: ViewModel) {
-  useWardrobeGarmentThumbManifestGeneration();
   const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance({ mobile: true });
-  const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const {
     shared,
     toolSettings,
@@ -79,6 +55,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     setReferencePreviewUrl,
     setIsolateStatus,
     kitPreviews,
+    autoKitPreviews,
     hasReference,
     character,
     wardrobeReady,
@@ -87,8 +64,12 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     swipeDeck,
     deckSelectionId,
     activeLookId,
+    previewModel,
+    previewModelLabel,
+    selectedModel,
     completedPreviewCount,
     inFlightPreviewCount,
+    fillKitPreviews,
     busy,
     compareTryOns,
     previewStatus,
@@ -122,7 +103,13 @@ export default function MobileFittingToolSections(vm: ViewModel) {
   const mobileContinueDay = continueDayHref ? toMobileStudioHref(continueDayHref) : null;
   const mobileDayHref = toMobileStudioHref(dayPlannerHref);
   const plateUrl = referencePreviewUrl || toolSettings.referenceImageUrl?.trim() || '';
-  const autoReviewTryOns = toolSettings.autoReviewTryOns === true;
+  const quality = useOutfitQualityPreset({
+    shared,
+    updateShared,
+    toolSettings,
+    updateToolSettings,
+  });
+  const autoReviewTryOns = quality.settings.autoReview;
   const tryOnReview = useFittingTryOnReview({
     enabled: true,
     fullChecks: autoReviewTryOns,
@@ -133,29 +120,6 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     customPose: toolSettings.tryOnPose,
     shared,
   });
-  const suggestedTryOnId = suggestTryOnToKeep(
-    compareTryOns.flatMap(tryOn =>
-      tryOnReview.reviews[tryOn.promptId]
-        ? [{ promptId: tryOn.promptId, review: tryOnReview.reviews[tryOn.promptId]! }]
-        : []
-    )
-  );
-  const openCompareLightbox = useCallback(
-    (promptId: string, options?: { back?: boolean }) => {
-      const next = buildFittingCompareLightboxState(compareTryOns, promptId, options);
-      if (!next) {
-        return;
-      }
-      setLightbox({
-        images: next.images,
-        titles: next.titles,
-        originalImages: next.images,
-        index: next.index,
-        title: next.title,
-      });
-    },
-    [compareTryOns]
-  );
 
   const outfitPhase = resolveFittingOutfitPhase({
     hasPlate: hasReference,
@@ -170,53 +134,6 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     ),
     byoLabel: toolSettings.customGarmentDescription,
   });
-
-  const activeLightboxTryOn = useMemo(() => {
-    if (!lightbox || compareTryOns.length === 0) {
-      return null;
-    }
-    const url = lightbox.images[lightbox.index];
-    return (
-      compareTryOns.find(tryOn => tryOn.imageUrl === url) ||
-      // A back view's slide: Keep / Pass / ↻ act on its try-on (Keep uses the front).
-      compareTryOns.find(tryOn => tryOn.backImageUrl === url) ||
-      compareTryOns[lightbox.index] ||
-      null
-    );
-  }, [compareTryOns, lightbox]);
-
-  const compareSlideChrome = useMemo((): ImageLightboxSlideChrome | null => {
-    if (!activeLightboxTryOn) {
-      return null;
-    }
-    return {
-      showKeep: true,
-      showPass: true,
-      showRequeue: true,
-      showSeedVariation: false,
-      showImprove: false,
-      showCompose: false,
-      showInpaint: false,
-      showUseStack: false,
-      showUsePromptStack: false,
-      showUseFace: false,
-      onKeep: () => {
-        const href = keepTryOn(activeLightboxTryOn);
-        setLightbox(null);
-        if (href) {
-          softAdvanceHref(href, 'Day');
-        }
-      },
-      onPass: () => {
-        dismissTryOn(activeLightboxTryOn);
-        setLightbox(null);
-      },
-      onRequeue: () => {
-        void requeueTryOn(activeLightboxTryOn);
-        setLightbox(null);
-      },
-    };
-  }, [activeLightboxTryOn, dismissTryOn, keepTryOn, requeueTryOn, softAdvanceHref]);
 
   return (
     <div className="space-y-4" data-testid="mobile-fitting">
@@ -430,229 +347,89 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         footwear={toolSettings.footwear}
       />
 
-      {/* Same Clothing picker as Day and Story: a catalog kit or your own photo, Browse. */}
-      <div data-testid="mobile-fitting-clothing">
-        <ClothingPicker
-          accent="rose"
-          busy={busy}
-          testIdPrefix="fitting"
-          emptyKitLabel="No kit picked yet — choose one to try on, or use your own photo."
-          clearKitLabel="Clear kit"
-          garment={{
-            uploading: garmentUploading,
-            scanStatus: garmentScanStatus,
-            imageUrl: toolSettings.customGarmentImageUrl,
-            imageFilename: toolSettings.customGarmentImageFilename,
-            description: toolSettings.customGarmentDescription,
-            onApply: applyCustomGarment,
-            onClear: clearCustomGarment,
-            onRescan: rescanCustomGarment,
-            onSave: saveCurrentCustomGarment,
-            onApplySaved: applySavedCustomGarment,
-            onRemoveSaved: removeSavedCustomGarment,
-            onDescriptionChange: value => updateToolSettings({ customGarmentDescription: value }),
-          }}
-          footwear={{
-            value: toolSettings.footwear,
-            imageUrl: toolSettings.footwearImageUrl,
-            imageFilename: toolSettings.footwearImageFilename,
-            onChange: patch => updateToolSettings(patch),
-            onApplyPhoto: applyFootwearPhoto,
-          }}
-          kits={swipeDeck}
-          kitsReady={wardrobeReady}
-          selectedKitId={deckSelectionId}
-          kitSize="sm"
-          kitPickerTestId="mobile-fitting-thumbs"
-          onSelectKit={selectKit}
-          onSwipeKit={delta => swipeKit(delta)}
-          onClearKit={clearKit}
-          resolveKitThumb={kit => {
-            const preview = activeLookId
-              ? getFittingKitPreview(kitPreviews, kit.id, activeLookId)
-              : undefined;
-            const personUrl =
-              preview?.status === 'completed' ? preview.imageUrl?.trim() || null : null;
-            const pending = preview?.status === 'queued' || preview?.status === 'running';
-            return {
-              url: resolveWardrobeKitThumbUrl({ wardrobeId: kit.id, personPreviewUrl: personUrl }),
-              pending: Boolean(pending && !personUrl),
-            };
-          }}
-          category={{
-            value: wardrobeCategoryFilter,
-            options: wardrobeCategoryFilterOptions().map(option => ({
-              value: option.value,
-              label: wardrobeReady
-                ? `${option.label} (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
-                : option.label,
-            })),
-            onChange: value =>
-              updateToolSettings({
-                wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(value),
-              }),
-          }}
-          onError={setError}
-        />
-        {previewStatus || completedPreviewCount > 0 || inFlightPreviewCount > 0 ? (
-          <p className="mt-2 type-caption text-[var(--text-muted)]">
-            {previewStatus ||
-              `${completedPreviewCount} preview${completedPreviewCount === 1 ? '' : 's'}${
-                inFlightPreviewCount > 0 ? ` · ${inFlightPreviewCount} rendering` : ''
-              }`}
-          </p>
-        ) : null}
-      </div>
-
-      <label className="block space-y-2">
-        <FieldLabel>Notes for the try-on (optional)</FieldLabel>
-        <TextArea
-          data-testid="mobile-fitting-notes"
-          rows={2}
-          value={toolSettings.notes ?? ''}
-          placeholder="e.g. slightly oversized blazer, sleeves pushed up"
-          onChange={event =>
-            updateToolSettings(fittingNotesCachePatch(event.target.value, shared.activeCharacterId))
-          }
-        />
-      </label>
-
-      <p className="type-caption text-[var(--text-muted)]" data-testid="fitting-preview-vs-queue">
-        Small previews show when ready. Queue a try-on for the full-quality picture you Keep for
-        Day.
-      </p>
-
-      <FittingAutoReviewToggle
-        enabled={autoReviewTryOns}
-        checksOff={tryOnReview.checksOff}
-        onChange={next => updateToolSettings({ autoReviewTryOns: next })}
-      />
-      <FittingFrontBackToggle
-        enabled={toolSettings.tryOnFrontBack !== false}
-        onChange={next => updateToolSettings({ tryOnFrontBack: next })}
-      />
-
-      {compareTryOns.length > 0 ? (
-        <div className="space-y-2" data-testid="mobile-fitting-compare">
-          <p className="type-caption text-[var(--text-muted)]">
-            Compare try-ons · tap for full size · Keep / Pass / requeue
-          </p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {compareTryOns.map(tryOn => (
-              <figure
-                key={tryOn.promptId}
-                data-testid="fitting-compare-card"
-                data-review={tryOnReview.reviews[tryOn.promptId]?.status ?? 'none'}
-                className={`${tryOn.backImageUrl ? 'w-[15rem]' : 'w-[9rem]'} shrink-0 rounded-2xl border bg-[var(--bg-muted)]/40 p-2 ${
-                  suggestedTryOnId === tryOn.promptId
-                    ? 'border-[var(--accent-border)] ring-2 ring-[var(--accent-ring)]'
-                    : tryOnReview.reviews[tryOn.promptId]?.status === 'warn'
-                      ? 'border-[var(--tint-warning-border)]'
-                      : 'border-[var(--border-subtle)]'
-                }`}
-              >
-                {tryOn.imageUrl ? (
-                  <div className={tryOn.backImageUrl ? 'mb-2 grid grid-cols-2 gap-1' : 'mb-2'}>
-                    <button
-                      type="button"
-                      className="block w-full cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-                      aria-label={`View ${tryOn.wardrobeLabel || 'try-on'} larger`}
-                      data-testid="fitting-compare-front"
-                      onClick={() => openCompareLightbox(tryOn.promptId)}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={tryOn.imageUrl}
-                        alt={tryOn.wardrobeLabel || 'Try-on'}
-                        className="h-32 w-full rounded-xl object-cover"
-                      />
-                    </button>
-                    {tryOn.backImageUrl ? (
-                      <button
-                        type="button"
-                        className="block w-full cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-                        aria-label={`View the back of ${tryOn.wardrobeLabel || 'try-on'} larger`}
-                        data-testid="fitting-compare-back"
-                        onClick={() => openCompareLightbox(tryOn.promptId, { back: true })}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={tryOn.backImageUrl}
-                          alt={`${tryOn.wardrobeLabel || 'Try-on'} — back`}
-                          className="h-32 w-full rounded-xl object-cover"
-                        />
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
-                <figcaption className="type-caption truncate text-[var(--text-muted)]">
-                  {tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on'}
-                </figcaption>
-                <TryOnReviewLine
-                  review={tryOnReview.reviews[tryOn.promptId]}
-                  reviewing={tryOnReview.reviewingId === tryOn.promptId}
-                  suggested={suggestedTryOnId === tryOn.promptId}
-                />
-                <div className="mt-2 grid grid-cols-3 gap-1">
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    disabled={busy}
-                    data-testid="fitting-keep"
-                    onClick={() => {
-                      const href = keepTryOn(tryOn);
-                      if (href) {
-                        softAdvanceHref(href, 'Day');
-                      }
-                    }}
-                    className="justify-center"
-                  >
-                    Keep
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={busy}
-                    title="Dismiss this try-on"
-                    data-testid="fitting-pass-try-on"
-                    onClick={() => dismissTryOn(tryOn)}
-                    className="justify-center"
-                  >
-                    Pass
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={busy}
-                    title="Queue this kit again"
-                    data-testid="fitting-requeue-try-on"
-                    onClick={() => void requeueTryOn(tryOn)}
-                    className="justify-center"
-                  >
-                    ↻
-                  </Button>
-                </div>
-              </figure>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      <ImageLightbox
-        state={lightbox}
-        onClose={() => setLightbox(null)}
-        slideChrome={compareSlideChrome}
-        onIndexChange={index =>
-          setLightbox(previous =>
-            previous
-              ? {
-                  ...previous,
-                  index,
-                  title: previous.titles?.[index] ?? previous.title,
-                }
-              : previous
-          )
+      {/* The same Clothing row and sheet as desk Outfit (and Day / Story's picker). */}
+      <FittingWardrobeKitSection
+        compact
+        kitPickerTestId="mobile-fitting-thumbs"
+        busy={busy}
+        wardrobeReady={wardrobeReady}
+        wardrobeCategoryFilter={wardrobeCategoryFilter}
+        wardrobeOptions={wardrobeOptions}
+        swipeDeck={swipeDeck}
+        deckSelectionId={deckSelectionId}
+        activeLookId={activeLookId}
+        kitPreviews={kitPreviews}
+        autoKitPreviews={autoKitPreviews}
+        hasReference={hasReference}
+        isolateSubject={isolateSubject}
+        referenceIsolated={toolSettings.referenceIsolated === true}
+        previewModel={previewModel}
+        previewModelLabel={previewModelLabel}
+        selectedModelLabel={selectedModel?.label}
+        sharedModel={shared.model}
+        lockedWardrobeId={shared.lockedWardrobeId}
+        lockedWardrobeLabel={lockedWardrobeLabel}
+        completedPreviewCount={completedPreviewCount}
+        inFlightPreviewCount={inFlightPreviewCount}
+        previewStatus={previewStatus}
+        customGarmentImageUrl={toolSettings.customGarmentImageUrl}
+        customGarmentImageFilename={toolSettings.customGarmentImageFilename}
+        customGarmentDescription={toolSettings.customGarmentDescription}
+        garmentUploading={garmentUploading}
+        garmentScanStatus={garmentScanStatus}
+        onCategoryFilterChange={filter => updateToolSettings({ wardrobeCategoryFilter: filter })}
+        onSwipeKit={swipeKit}
+        onSelectKit={selectKit}
+        onClearKit={clearKit}
+        onToggleAutoKitPreviews={() => updateToolSettings({ autoKitPreviews: !autoKitPreviews })}
+        onFillKitPreviews={() => void fillKitPreviews()}
+        onApplyCustomGarment={applyCustomGarment}
+        onClearCustomGarment={clearCustomGarment}
+        onRescanCustomGarment={rescanCustomGarment}
+        onSaveCustomGarment={saveCurrentCustomGarment}
+        onApplySavedCustomGarment={applySavedCustomGarment}
+        onRemoveSavedCustomGarment={removeSavedCustomGarment}
+        onCustomGarmentDescriptionChange={value =>
+          updateToolSettings({ customGarmentDescription: value })
         }
+        footwear={{
+          value: toolSettings.footwear,
+          imageUrl: toolSettings.footwearImageUrl,
+          imageFilename: toolSettings.footwearImageFilename,
+          onChange: patch => updateToolSettings(patch),
+          onApplyPhoto: applyFootwearPhoto,
+        }}
+        onError={setError}
+      />
+
+      <OutfitQualityControls
+        busy={busy}
+        preset={quality.preset}
+        onPresetChange={quality.setPreset}
+        summary={quality.summary}
+        renderQuality={quality.renderQuality}
+        onRenderQualityChange={quality.setRenderQuality}
+        autoReview={autoReviewTryOns}
+        onAutoReviewChange={next => updateToolSettings({ autoReviewTryOns: next })}
+        checksOff={tryOnReview.checksOff}
+        frontBack={quality.settings.frontBack}
+        onFrontBackChange={next => updateToolSettings({ tryOnFrontBack: next })}
+        notes={toolSettings.notes ?? ''}
+        onNotesChange={value =>
+          updateToolSettings(fittingNotesCachePatch(value, shared.activeCharacterId))
+        }
+      />
+
+      <FittingCompareSection
+        compact
+        compareTryOns={compareTryOns}
+        busy={busy}
+        onKeepTryOn={keepTryOn}
+        onSoftAdvance={href => softAdvanceHref(href, 'Day')}
+        onDismissTryOn={dismissTryOn}
+        onRequeueTryOn={tryOn => void requeueTryOn(tryOn)}
+        reviews={tryOnReview.reviews}
+        reviewingId={tryOnReview.reviewingId}
       />
 
       <div className="grid gap-2">

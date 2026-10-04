@@ -32,7 +32,17 @@ const CONTROL_SELECTOR =
 const SECTIONS = [
   '[data-testid="day-slot-sheet"]',
   '[data-testid="day-setup-sheet"]',
+  '[data-testid="story-beat-sheet"]',
   '[data-testid="clothing-sheet"]',
+  '[data-testid="fitting-advanced-drawer"]',
+  '[data-testid="fitting-quality-bar"]',
+  '[data-testid="fitting-kit-strip"]',
+  '[data-testid="fitting-compare"]',
+  '[data-testid="mobile-fitting-compare"]',
+  '[data-testid="mobile-fitting-clothing"]',
+  '[data-testid="story-wardrobe"]',
+  '[data-testid="story-beat-picker"]',
+  '[data-testid="story-reel"]',
   '[data-testid="day-cut-coach"]',
   '[data-testid="day-first-cut-celebrate"]',
   '[data-testid="day-plan-bar"]',
@@ -88,7 +98,9 @@ function parseArgs(argv) {
     else if (arg === '--axe') options.axe = true;
     else if (arg === '--tabwalk') options.tabwalk = true;
     else if (arg.includes('=')) {
-      const [name, rest] = arg.split('=');
+      // Split on the first '=' only: the path may carry a query (`/fitting?character=…`).
+      const name = arg.slice(0, arg.indexOf('='));
+      const rest = arg.slice(arg.indexOf('=') + 1);
       const [path, ...flags] = rest.split('@');
       options.shots.push({
         name,

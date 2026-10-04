@@ -5,9 +5,10 @@ import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
 import FittingCompareSection from '@/components/fitting/FittingCompareSection';
 import FittingActionRow from '@/components/fitting/FittingActionRow';
-import FittingAutoReviewToggle from '@/components/fitting/FittingAutoReviewToggle';
-import FittingFrontBackToggle from '@/components/fitting/FittingFrontBackToggle';
+import OutfitQualityControls from '@/components/fitting/OutfitQualityControls';
 import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnReview';
+import { useOutfitQualityPreset } from '@/hooks/fitting-room/useOutfitQualityPreset';
+import { outfitQualityPresetLabel } from '@/lib/outfit-quality-preset';
 import FittingPlateSection from '@/components/fitting/FittingPlateSection';
 import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
 import TaskRequirementsCard from '@/components/TaskRequirementsCard';
@@ -74,14 +75,8 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     wardrobeReady,
     wardrobeCategoryFilter,
     wardrobeOptions,
-    wardrobeKitCount,
-    filteredWardrobeOptions,
-    wardrobeGroups,
     swipeDeck,
-    activeSwipeKit,
     deckSelectionId,
-    deckSelectionIndex,
-    activeThumbRef,
     activeLookId,
     previewModel,
     previewModelLabel,
@@ -121,7 +116,13 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     setIsolateStatus,
   } = vm;
   const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance();
-  const autoReviewTryOns = toolSettings.autoReviewTryOns === true;
+  const quality = useOutfitQualityPreset({
+    shared,
+    updateShared,
+    toolSettings,
+    updateToolSettings,
+  });
+  const autoReviewTryOns = quality.settings.autoReview;
   const tryOnReview = useFittingTryOnReview({
     enabled: true,
     fullChecks: autoReviewTryOns,
@@ -162,6 +163,10 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
       recommendFromText={output}
       toolId={TOOL_ID}
+      qualitySetBy={{
+        label: outfitQualityPresetLabel(quality.preset),
+        hint: 'Change it in the Quality row under Clothing; Good / Best by hand under Advanced.',
+      }}
       preferEditModels
       onSharedSettingsChange={updateShared}
       variant="roleplay"
@@ -269,18 +274,11 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
 
       <FittingWardrobeKitSection
         busy={busy}
-        leanChrome={leanChrome}
         wardrobeReady={wardrobeReady}
         wardrobeCategoryFilter={wardrobeCategoryFilter}
         wardrobeOptions={wardrobeOptions}
-        wardrobeKitCount={wardrobeKitCount}
-        filteredWardrobeOptions={filteredWardrobeOptions}
-        wardrobeGroups={wardrobeGroups}
         swipeDeck={swipeDeck}
-        activeSwipeKit={activeSwipeKit}
         deckSelectionId={deckSelectionId}
-        deckSelectionIndex={deckSelectionIndex}
-        activeThumbRef={activeThumbRef}
         activeLookId={activeLookId}
         kitPreviews={kitPreviews}
         autoKitPreviews={autoKitPreviews}
@@ -292,7 +290,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         selectedModelLabel={selectedModel?.label}
         sharedModel={shared.model}
         lockedWardrobeId={shared.lockedWardrobeId}
-        notes={toolSettings.notes ?? ''}
+        lockedWardrobeLabel={lockedWardrobeLabel}
         completedPreviewCount={completedPreviewCount}
         inFlightPreviewCount={inFlightPreviewCount}
         previewStatus={previewStatus}
@@ -307,9 +305,6 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onClearKit={clearKit}
         onToggleAutoKitPreviews={() => updateToolSettings({ autoKitPreviews: !autoKitPreviews })}
         onFillKitPreviews={() => void fillKitPreviews()}
-        onNotesChange={value =>
-          updateToolSettings(fittingNotesCachePatch(value, shared.activeCharacterId))
-        }
         onApplyCustomGarment={applyCustomGarment}
         onClearCustomGarment={clearCustomGarment}
         onRescanCustomGarment={rescanCustomGarment}
@@ -327,6 +322,24 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
           onApplyPhoto: applyFootwearPhoto,
         }}
         onError={message => setError(message)}
+      />
+
+      <OutfitQualityControls
+        busy={busy}
+        preset={quality.preset}
+        onPresetChange={quality.setPreset}
+        summary={quality.summary}
+        renderQuality={quality.renderQuality}
+        onRenderQualityChange={quality.setRenderQuality}
+        autoReview={autoReviewTryOns}
+        onAutoReviewChange={next => updateToolSettings({ autoReviewTryOns: next })}
+        checksOff={tryOnReview.checksOff}
+        frontBack={quality.settings.frontBack}
+        onFrontBackChange={next => updateToolSettings({ tryOnFrontBack: next })}
+        notes={toolSettings.notes ?? ''}
+        onNotesChange={value =>
+          updateToolSettings(fittingNotesCachePatch(value, shared.activeCharacterId))
+        }
       />
 
       <FittingCompareSection
@@ -356,15 +369,6 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onQueueTryOnAndSwipe={() => void queueTryOnAndSwipe()}
         onSaveKitToCast={saveKitToCast}
         onGoRoleplay={goRoleplay}
-      />
-      <FittingAutoReviewToggle
-        enabled={autoReviewTryOns}
-        checksOff={tryOnReview.checksOff}
-        onChange={next => updateToolSettings({ autoReviewTryOns: next })}
-      />
-      <FittingFrontBackToggle
-        enabled={toolSettings.tryOnFrontBack !== false}
-        onChange={next => updateToolSettings({ tryOnFrontBack: next })}
       />
       {saveStatus ? <p className="type-caption text-[var(--text-muted)]">{saveStatus}</p> : null}
       {error ? <FieldError>{error}</FieldError> : null}

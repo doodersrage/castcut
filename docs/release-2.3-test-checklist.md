@@ -60,8 +60,17 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
 
 ## Outfit
 
+- [ ] **Clothing row and sheet** — Outfit opens with one *Clothing* row (kit or photo · shoes);
+  *Choose…* opens the Clothing sheet (kit deck, My photo, Footwear, Draft previews). Pick a kit
+  and shoes, Escape: the row names both. Phone: same row, a bottom sheet.
+- [ ] **Quality preset** — *Balanced* is picked on a fresh Outfit and the line reads *Good render
+  · Front and back*; the Engine panel says *Set by Quality: Balanced*. *Best* turns Auto-review
+  on and Good → Best under Advanced; flip one switch under Advanced: the preset reads *Custom*;
+  pick a preset again: the switches follow. An old Outfit keeps its switches.
+- [ ] **Compare card ⋯** — a finished try-on's card has *Keep* and a ⋯ (Open full size, Pass,
+  Requeue · new seed); tapping the picture opens the lightbox with Keep / Pass / Requeue.
 - [ ] **Front and back** — every try-on is followed by a back view beside it on its card (switch
-  under the try-on button). Checked live on Edit 2511 and Rapid; checked on 2.1 by replay.
+  under Quality → Advanced). Checked live on Edit 2511 and Rapid; checked on 2.1 by replay.
 - [ ] **Shoes are worn** — pick shoes (words or a photo); try-on shows them on her feet, framed
   head to feet, not set beside her.
 - [ ] **Shoe pass** — Edit 2511 + a custom pose + shoes: after the try-on, "Putting the shoes

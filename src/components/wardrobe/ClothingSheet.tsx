@@ -45,16 +45,19 @@ export function ClothingSummaryRow({
   disabled = false,
   testId = 'clothing-row',
   label = 'Clothing',
+  className = 'border-t border-[var(--border-subtle)] py-2',
 }: {
   summary: string;
   onOpen: () => void;
   disabled?: boolean;
   testId?: string;
   label?: string;
+  /** The row's spacing and border — a divider line in a sheet (default), or none in a card. */
+  className?: string;
 }) {
   return (
     <div
-      className="flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] py-2"
+      className={`flex items-center justify-between gap-3 ${className}`.trim()}
       data-testid={testId}
     >
       <div className="min-w-0">

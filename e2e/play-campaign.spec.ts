@@ -3,6 +3,7 @@ import { ensureAuthenticated } from './helpers/auth';
 import { seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { closeDaySheets, openDayAdvanced, openDaySetup, openDaySlotSheet } from './helpers/day';
 import { gotoStable } from './helpers/navigation';
+import { closeOutfitSheets, openOutfitAdvanced, openOutfitClothing } from './helpers/outfit';
 import { seedGalleryFixture, seedGalleryPlayFixtures } from './helpers/gallery';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
@@ -76,18 +77,48 @@ test('outfit first run: Cast card, one plate message, grouped kit controls', asy
   await expect(empty).toContainText(/No plate yet/i);
   await expect(page.getByTestId('fitting-plate')).not.toContainText(/cleared/i);
 
-  // The same Clothing picker as Day / Story: a clothing-type filter on kits, uploads under My photo.
+  // The same Clothing picker as Day / Story, opened as a sheet from the Clothing row: a
+  // clothing-type filter on kits, uploads under My photo.
+  await expect(page.getByTestId('fitting-clothing-summary')).toContainText(/No kit yet/i);
+  await openOutfitClothing(page);
   const clothing = page.getByTestId('fitting-clothing-picker');
   await expect(clothing.getByRole('combobox', { name: 'Clothing type' })).toBeVisible();
   await clothing.getByRole('tab', { name: 'My photo' }).click();
   await expect(clothing.getByLabel('Upload clothing photo to extract a packshot')).toBeAttached();
   await expect(clothing.getByLabel('Upload a ready clothing packshot')).toBeAttached();
+  await closeOutfitSheets(page);
   await expect(page.getByTestId('fitting-skip-kit')).toBeDisabled();
 
+  // Quality: Balanced (Good render, front and back) until a switch under Advanced is changed.
+  await expect(page.getByTestId('fitting-quality-preset-balanced')).toHaveAttribute(
+    'aria-checked',
+    'true'
+  );
+  await expect(page.getByTestId('fitting-quality-summary')).toHaveText(
+    'Good render · Front and back'
+  );
+  await openOutfitAdvanced(page);
   const review = page.getByTestId('fitting-auto-review-switch');
   await expect(review).toHaveAttribute('aria-checked', 'false');
   await review.click();
   await expect(review).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('fitting-quality-preset-custom')).toBeVisible();
+  // Best = Best render + front and back + Auto-review; picking it rewrites the switches.
+  await page.getByTestId('fitting-quality-preset-best').click();
+  await expect(page.getByTestId('fitting-quality-summary')).toHaveText(
+    'Best render · Front and back · Auto-review try-ons'
+  );
+  await expect(page.getByTestId('fitting-render-quality-best')).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await expect(page.getByTestId('engine-quality-set-by')).toContainText('Best');
+  await page.getByTestId('fitting-quality-preset-fast').click();
+  await expect(review).toHaveAttribute('aria-checked', 'false');
+  await expect(page.getByTestId('fitting-front-back-switch')).toHaveAttribute(
+    'aria-checked',
+    'false'
+  );
 });
 
 test('day partner: picked from tiles — someone new, the same stranger, or a Cast member', async ({
@@ -140,6 +171,12 @@ test('outfit footwear: saved shoes are kept, re-picked and removed', async ({ pa
   });
   await gotoStable(page, '/fitting');
   await dismissBlockingOverlays(page);
+  // The shoes show on the Clothing row before the sheet is opened.
+  await expect(page.getByTestId('fitting-clothing-summary')).toContainText(
+    'brown suede desert boots',
+    { timeout: 30_000 }
+  );
+  await openOutfitClothing(page);
   const footwear = page.getByTestId('fitting-footwear');
   await expect(footwear).toBeVisible({ timeout: 30_000 });
   // A shoe photo opens on "My shoes" with Save for later, like a clothing photo.
@@ -219,7 +256,14 @@ test('outfit front and back: a try-on card shows its front and its back view', a
     backPng
   );
   await expect(card.getByRole('button', { name: 'View the back of Red dress larger' })).toBeVisible();
-  // The switch is on by default.
+  // Keep is the card's one button; Pass and Requeue sit in its ⋯ menu.
+  await expect(card.getByTestId('fitting-keep')).toBeVisible();
+  await card.getByTestId('fitting-compare-menu-trigger').click();
+  await expect(card.getByTestId('fitting-pass-try-on')).toBeVisible();
+  await expect(card.getByTestId('fitting-requeue-try-on')).toBeVisible();
+  await page.keyboard.press('Escape');
+  // The switch is on by default (under Advanced).
+  await openOutfitAdvanced(page);
   await expect(page.getByTestId('fitting-front-back-switch')).toHaveAttribute(
     'aria-checked',
     'true'
@@ -233,6 +277,7 @@ test('outfit footwear: Browse shows every pair, searchable, and wears the pick',
   });
   await gotoStable(page, '/fitting');
   await dismissBlockingOverlays(page);
+  await openOutfitClothing(page);
   await expect(page.getByTestId('fitting-footwear')).toBeVisible({ timeout: 30_000 });
   await page.getByTestId('fitting-footwear-browse').click();
   const browser = page.getByTestId('wardrobe-kit-browser');
@@ -255,6 +300,7 @@ test('outfit footwear: a kit, barefoot, own words, own photo', async ({ page }) 
   });
   await gotoStable(page, '/fitting');
   await dismissBlockingOverlays(page);
+  await openOutfitClothing(page);
   const footwear = page.getByTestId('fitting-footwear');
   await expect(footwear).toBeVisible({ timeout: 30_000 });
   const hint = page.getByTestId('fitting-footwear-hint');
@@ -287,6 +333,10 @@ test('outfit footwear: a kit, barefoot, own words, own photo', async ({ page }) 
   await footwear.getByRole('tab', { name: 'Kits' }).click();
   await page.getByTestId('fitting-footwear-auto').click();
   await expect(hint).toContainText('Auto');
+  // The row behind the sheet says what is worn.
+  await page.getByTestId('fitting-footwear-barefoot').click();
+  await closeOutfitSheets(page);
+  await expect(page.getByTestId('fitting-clothing-summary')).toContainText('barefoot');
 });
 
 test('outfit custom pose: drag editor, start figures, save to My poses', async ({ page }) => {
@@ -1432,9 +1482,10 @@ test('look pack from=look applies notes into Fitting', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /^Outfit$/i })).toBeVisible({
     timeout: 30_000,
   });
+  await openOutfitAdvanced(page);
   const notes = page.getByTestId('fitting-notes');
   if (await notes.count()) {
-    await expect(notes).toContainText(/golden hour|cozy morning|sunlit kitchen/i);
+    await expect(notes).toHaveValue(/golden hour|cozy morning|sunlit kitchen/i);
   }
 });
 
