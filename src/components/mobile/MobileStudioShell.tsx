@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import BrandMark from '@/components/BrandMark';
 import ReportBugLink from '@/components/ReportBugLink';
 import PlayContinueChip from '@/components/PlayContinueChip';
@@ -18,6 +18,7 @@ import {
   type MobileStudioTabId,
 } from '@/lib/mobile-studio';
 import { resolvePlayLoopNavHref } from '@/lib/play-campaign';
+import { followCurrentPlayLoopHref } from '@/lib/play-loop-nav-click';
 import {
   hasCompletedFirstFilm,
   loadPlayMetrics,
@@ -36,6 +37,7 @@ function deskBridgeHref(): string {
 export default function MobileStudioShell({ children }: { children: ReactNode }) {
   const dockRef = useBottomDockRef<HTMLElement>();
   const pathname = usePathname() ?? '/m';
+  const router = useRouter();
   const tab = mobileStudioTabFromPath(pathname);
   const accent = accentForPath(pathname);
   const auth = useAuth();
@@ -132,6 +134,9 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
                 <li key={entry.id} className="min-w-[3.25rem] flex-1">
                   <Link
                     href={href}
+                    onClick={event =>
+                      followCurrentPlayLoopHref(event, href, entry.href, next => router.push(next))
+                    }
                     data-active={active ? 'true' : 'false'}
                     data-testid={`mobile-tab-${entry.id}`}
                     className={[
@@ -174,6 +179,11 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
                     <Link
                       key={entry.id}
                       href={href}
+                      onClick={event =>
+                        followCurrentPlayLoopHref(event, href, entry.href, next =>
+                          router.push(next)
+                        )
+                      }
                       data-testid={`mobile-tab-${entry.id}`}
                       className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                     >
