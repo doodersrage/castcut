@@ -403,6 +403,8 @@ export type PoseMissView = {
   /** Still lead, moved and scaled onto the guide (neck and hips lined up), 0–1 of the guide. */
   still: NormalizedBody;
   misses: PoseLimbMiss[];
+  /** The beat's gesture the still dropped ("holding the cup"), when the gesture check missed. */
+  gesture?: string;
 };
 
 function torsoAnchors(body: NormalizedBody, aspect: number): { neck: Pt; hips: Pt } | null {
@@ -459,6 +461,8 @@ export function buildPoseMissView(input: {
   stillAspect: number;
   /** A posture miss in words (`posturePairWords` in pose-score.ts) — leads the misses. */
   posture?: { guide: string; still: string } | null;
+  /** The gesture the still dropped (`gestureCheck.missed` in pose-score.ts). */
+  gesture?: string | null;
 }): PoseMissView | null {
   const guide = input.guide[0];
   const still = input.still[0];
@@ -487,7 +491,15 @@ export function buildPoseMissView(input: {
           ...limbMisses.filter(miss => miss.part !== 'body'),
         ]
       : limbMisses,
+    ...(input.gesture ? { gesture: input.gesture } : {}),
   };
+}
+
+/** The miss view's gesture from a pose match (`gestureCheck`), or null on no gesture miss. */
+export function gestureMissWords(
+  result: { gestureCheck?: { miss: boolean; missed: string | null } } | null | undefined
+): string | null {
+  return result?.gestureCheck?.miss ? result.gestureCheck.missed : null;
 }
 
 /** Requeue nudge naming the limbs to fix ("left arm raised, not down"). */

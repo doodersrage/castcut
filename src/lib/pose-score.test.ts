@@ -318,7 +318,7 @@ describe('pose detect server helpers', () => {
     assert.equal(parseComfyViewRef('/gallery/a.png'), null);
   });
 
-  it('fills detector widgets from object_info and pins body-only detection', () => {
+  it('fills detector widgets from object_info and pins body + hand detection', () => {
     const inputs = buildDetectorInputs(
       {
         input: {
@@ -336,12 +336,62 @@ describe('pose detect server helpers', () => {
     );
     assert.deepEqual(inputs, {
       image: ['1', 0],
-      detect_hand: 'disable',
+      detect_hand: 'enable',
       detect_body: 'enable',
       detect_face: 'disable',
       resolution: 512,
       bbox_detector: 'yolox_l.onnx',
     });
+  });
+
+  it('sends the detection flags when DWPose lists them as optional inputs (current pack)', () => {
+    const inputs = buildDetectorInputs(
+      {
+        input: {
+          required: { image: ['IMAGE'] },
+          optional: {
+            detect_hand: [['enable', 'disable'], { default: 'enable' }],
+            detect_body: [['enable', 'disable'], { default: 'enable' }],
+            detect_face: ['COMBO', { options: ['enable', 'disable'], default: 'enable' }],
+            resolution: ['INT', { default: 512 }],
+          },
+        },
+      },
+      ['1', 0]
+    );
+    // Optional widgets not overridden stay unset (the node's own defaults apply).
+    assert.deepEqual(inputs, {
+      image: ['1', 0],
+      detect_hand: 'enable',
+      detect_body: 'enable',
+      detect_face: 'disable',
+    });
+  });
+
+  it('reads DWPose hand keypoints per person, aligned with the bodies', () => {
+    const body = Array.from({ length: 18 }, (_, i) => [100 + i, 200 + i, 1]).flat();
+    const hand = Array.from({ length: 21 }, (_, i) => [300 + i, 400, 1]).flat();
+    const parsed = parseOpenPoseJson({
+      canvas_width: 1000,
+      canvas_height: 1000,
+      people: [
+        { pose_keypoints_2d: Array(54).fill(0), hand_left_keypoints_2d: hand },
+        { pose_keypoints_2d: body, hand_left_keypoints_2d: hand, hand_right_keypoints_2d: null },
+      ],
+    });
+    assert.ok(parsed);
+    assert.equal(parsed.people.length, 1);
+    assert.equal(parsed.hands?.length, 1);
+    assert.equal(parsed.hands?.[0]?.left?.length, 21);
+    assert.equal(parsed.hands?.[0]?.right, null);
+    assert.deepEqual(parsed.hands?.[0]?.left?.[0], { x: 0.3, y: 0.4 });
+    // Body-only reads carry no hands at all.
+    const bodyOnly = parseOpenPoseJson({
+      canvas_width: 1000,
+      canvas_height: 1000,
+      people: [{ pose_keypoints_2d: body }],
+    });
+    assert.equal(bodyOnly?.hands, undefined);
   });
 });
 

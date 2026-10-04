@@ -31,10 +31,17 @@ export default function PoseMissPanel({
         <p className="text-[var(--text-secondary)]">
           Last still missed the pose ({Math.round(view.score * 100)}% match).
         </p>
+        {view.gesture ? (
+          <p className="text-[var(--text-secondary)]" data-testid={`${testId}-gesture`}>
+            Missed: {view.gesture}.
+          </p>
+        ) : null}
         <p data-testid={`${testId}-limbs`}>
           {detail
             ? `Off: ${detail}.`
-            : 'Close on each limb — the miss is in placement or headcount.'}
+            : view.gesture
+              ? 'Close on each limb — the gesture or prop is what is missing.'
+              : 'Close on each limb — the miss is in placement or headcount.'}
         </p>
         <p>
           <span className="mr-2 inline-block h-0 w-4 border-t-2 border-dashed border-[var(--text-muted)] align-middle" />

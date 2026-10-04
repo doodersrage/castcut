@@ -24,7 +24,11 @@ export { parseComfyViewRef };
 /** Preferred first: DWPose is far more reliable on rendered bodies than the old OpenPose net. */
 const DETECTOR_NODES = ['DWPreprocessor', 'OpenposePreprocessor'] as const;
 
-/** Fill every required widget from object_info defaults, then pin body-only detection. */
+/**
+ * Fill every required widget from object_info defaults, then pin body + hands (the gesture check
+ * reads the hands, `pose-gesture.ts`) and no face. The flags are optional inputs on DWPose: they
+ * must be sent, or the node runs on its Python defaults.
+ */
 export function buildDetectorInputs(
   info: ComfyNodeInfo,
   imageLink: [string, number]
@@ -32,7 +36,7 @@ export function buildDetectorInputs(
   return fillComfyNodeInputs(
     info,
     { image: imageLink },
-    { detect_body: 'enable', detect_hand: 'disable', detect_face: 'disable' }
+    { detect_body: 'enable', detect_hand: 'enable', detect_face: 'disable' }
   );
 }
 

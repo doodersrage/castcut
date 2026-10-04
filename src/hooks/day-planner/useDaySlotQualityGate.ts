@@ -43,7 +43,14 @@ import {
 import { buildFaceComparePair } from '@/lib/play-face-compare';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
-import { buildPoseMissView, poseLimbFixNudge, type PoseMissView } from '@/lib/pose-coaching';
+import {
+  buildPoseMissView,
+  gestureMissWords,
+  poseLimbFixNudge,
+  type PoseMissView,
+} from '@/lib/pose-coaching';
+import { applyGestureVerdict, gestureFixNudge } from '@/lib/pose-gesture';
+import { checkStillGesture } from '@/lib/pose-gesture-vision-client';
 import { betterTakeIndex, type TakeScores } from '@/lib/take-scoring';
 import { STILL_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face-match';
 
@@ -77,6 +84,7 @@ export function useDaySlotQualityGate(
   const { autoReviewStills, busy, mounted, queueSlot, rerollNudgeRef, shared, slots, stills } = ctx;
   const { poseGuideExpectRef, poseVariantRef } = ctx;
   const { plate, toolSettings, wardrobeLabelFor, stillsRef, updateToolSettings } = ctx;
+  const { leadNoun } = ctx;
 
   const [qualityStatus, setQualityStatus] = useState<string | null>(null);
   const [qualityLedger, setQualityLedger] = useState<SlotQualityLedger>({});
@@ -208,6 +216,23 @@ export function useDaySlotQualityGate(
                 const vision = await askStillPosture({ imageUrl, shared }).catch(() => null);
                 poseMatch = applyVisionPosture(poseMatch, vision);
               }
+              // Right posture, but did the beat's gesture land (the cup at the mouth, the phone
+              // up)? One vision call, only for beats with a visible action.
+              if (poseMatch.score >= DEFAULT_MIN_POSE_MATCH) {
+                setQualityStatus(`Checking ${target.label} gesture…`);
+                const gesture = await checkStillGesture({
+                  imageUrl,
+                  beat: expectation.beat ?? target.sceneHints,
+                  poseKey: expectation.poseKey,
+                  lead: leadNoun,
+                  guide: expectation.keypoints,
+                  guideAspect: expectation.aspect,
+                  detected: detected.pose,
+                  match: poseMatch,
+                  shared,
+                });
+                poseMatch = applyGestureVerdict(poseMatch, gesture);
+              }
               detectedPeople = detected.pose.people;
               const { width, height } = detected.pose.canvas;
               detectedAspect = width > 0 && height > 0 ? width / height : expectation.aspect;
@@ -298,9 +323,17 @@ export function useDaySlotQualityGate(
                 still: ordered,
                 stillAspect: detectedAspect,
                 posture: posturePairWords(poseMatch),
+                gesture: gestureMissWords(poseMatch),
               })
             : null;
-          poseLimbNudge = missView ? poseLimbFixNudge(missView.misses) : '';
+          poseLimbNudge = [
+            missView ? poseLimbFixNudge(missView.misses) : '',
+            decision.poseMiss
+              ? gestureFixNudge(gestureMissWords(poseMatch), expectation.poseKey, leadNoun)
+              : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
           currentMissView = missView ?? undefined;
           setPoseMissViews(previous => {
             if (!missView && !previous[target.id]) return previous;
@@ -444,6 +477,7 @@ export function useDaySlotQualityGate(
     autoReviewStills,
     busy,
     faceFinish,
+    leadNoun,
     mounted,
     plate,
     poseGuideExpectRef,

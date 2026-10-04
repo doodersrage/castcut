@@ -265,9 +265,10 @@ describe('Play checks against a fake ComfyUI + vision LLM', () => {
     assert.equal(result.pose.people.length, 1);
     const graph = full.recorded.graphs.at(-1)!;
     const detector = Object.values(graph).find(node => node.class_type === 'DWPreprocessor')!;
-    // Body only — hands and face off, as buildDetectorInputs pins.
+    // Body and hands (the gesture check), face off — as buildDetectorInputs pins.
     assert.equal(detector.inputs.detect_body, 'enable');
-    assert.equal(detector.inputs.detect_hand, 'disable');
+    assert.equal(detector.inputs.detect_hand, 'enable');
+    assert.equal(detector.inputs.detect_face, 'disable');
     const check = checkLookPlate({ people: result.pose.people, width: 1024, height: 1024 });
     assert.equal(check.status, 'good');
     assert.equal(check.facePx, 200);

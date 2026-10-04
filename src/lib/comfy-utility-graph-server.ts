@@ -16,7 +16,10 @@ import { parseTextChunks } from '@/lib/png-metadata';
 type NodeInputSpec = [unknown, Record<string, unknown>?];
 
 export type ComfyNodeInfo = {
-  input?: { required?: Record<string, NodeInputSpec> };
+  input?: {
+    required?: Record<string, NodeInputSpec>;
+    optional?: Record<string, NodeInputSpec>;
+  };
   output?: string[];
 };
 
@@ -73,9 +76,20 @@ export async function resolveComfyNode(
   return null;
 }
 
+/** A combo widget's options: `[[…options]]` (older ComfyUI) or `["COMBO", { options }]`. */
+function comboOptions(spec: NodeInputSpec | undefined): unknown[] | null {
+  const [type, config] = spec ?? [];
+  if (Array.isArray(type)) return type;
+  const options = (config as { options?: unknown } | undefined)?.options;
+  return type === 'COMBO' && Array.isArray(options) ? options : null;
+}
+
 /**
  * Fill every required input: links for the named sockets, declared defaults (or the first
- * option) for widgets, then any overrides whose widget actually exists on this node version.
+ * option) for widgets, then any overrides whose widget actually exists on this node version —
+ * required or optional. Optional widgets left alone are not sent (the node's own defaults
+ * apply); an override on one is: DWPose's detect_body / detect_hand / detect_face are optional,
+ * and dropping them ran the detector on its Python defaults (hands and face on).
  */
 export function fillComfyNodeInputs(
   info: ComfyNodeInfo,
@@ -94,12 +108,12 @@ export function fillComfyNodeInputs(
     }
   }
   for (const [name, value] of Object.entries(overrides)) {
-    if (name in inputs) {
-      const [type] = info.input?.required?.[name] ?? [];
-      // Only pick an option the node actually offers.
-      if (!Array.isArray(type) || type.includes(value)) {
-        inputs[name] = value;
-      }
+    const spec = info.input?.required?.[name] ?? info.input?.optional?.[name];
+    if (!spec) continue;
+    const options = comboOptions(spec);
+    // Only pick an option the node actually offers.
+    if (!options || options.includes(value)) {
+      inputs[name] = value;
     }
   }
   return inputs;

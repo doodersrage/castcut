@@ -15,8 +15,10 @@ import {
   bestOfTwoPickPatch,
   bestOfTwoTakeId,
   isDayHardPose,
-  scoreTakePose,
 } from '@/lib/day-best-of-two';
+import { applyGestureVerdict } from '@/lib/pose-gesture';
+import { checkStillGesture } from '@/lib/pose-gesture-vision-client';
+import { DEFAULT_MIN_POSE_MATCH, scorePoseMatch } from '@/lib/pose-score';
 import { fetchCastcutBestOfTwoReport } from '@/lib/castcut-report-client';
 import { dayStillShownImage, dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day-planner';
 import { detectStillPose } from '@/lib/pose-detect-client';
@@ -42,6 +44,7 @@ export function useDayBestOfTwo(
 ) {
   const { autoReviewStills, bestOfTwoHardPoses, busy, mounted, queueBlockReason, queueSlot } = ctx;
   const { poseGuideExpectRef, slots, stills, stillsRef, updateToolSettings } = ctx;
+  const { leadNoun, shared } = ctx;
   const characterId = ctx.shared.activeCharacterId;
   const active = bestOfTwoHardPoses && !autoReviewStills;
 
@@ -176,11 +179,28 @@ export function useDayBestOfTwo(
           setStatus(`Best of two off: ${detected.reason}`);
           return;
         }
-        const score = scoreTakePose({
+        // A take that keeps the posture but drops the beat's gesture scores in the miss band, so
+        // the pair prefers the take that passes the gesture check.
+        const match = scorePoseMatch({
           guide: expectation.keypoints,
           guideAspect: expectation.aspect,
           detected: detected.pose,
         });
+        const gesture =
+          match.score >= DEFAULT_MIN_POSE_MATCH
+            ? await checkStillGesture({
+                imageUrl: still.imageUrl!,
+                beat: expectation.beat ?? target.sceneHints,
+                poseKey: expectation.poseKey,
+                lead: leadNoun,
+                guide: expectation.keypoints,
+                guideAspect: expectation.aspect,
+                detected: detected.pose,
+                match,
+                shared,
+              })
+            : null;
+        const score = applyGestureVerdict(match, gesture).score;
         recordGalleryPlayChecks(still.promptId, { pose: score });
         // The still may have moved on while DWPose ran (a requeue, a pick by hand).
         const current = stillsRef.current.find(entry => entry.slotId === target.id);
@@ -238,10 +258,12 @@ export function useDayBestOfTwo(
     busy,
     characterId,
     faceFinish,
+    leadNoun,
     mounted,
     poseGuideExpectRef,
     queueBlockReason,
     queueSlot,
+    shared,
     slots,
     stills,
     stillsRef,

@@ -13,6 +13,7 @@
  * as `jointScore` for comparison.
  */
 
+import type { GestureVerdict } from '@/lib/pose-gesture';
 import type { NormalizedBody } from '@/lib/pose-library';
 import { scoreLimbAngles, type LimbDelta, type LimbPart } from '@/lib/pose-limb-score';
 import {
@@ -34,6 +35,17 @@ export type DetectedPose = {
   canvas: { width: number; height: number };
   /** Detected people, normalized 0–1 of the still. */
   people: NormalizedBody[];
+  /**
+   * Per person (same order as `people`): hand keypoints, when the detector read hands. Points
+   * may lie outside 0–1 (a hand guessed off the frame) — the gesture check drops those.
+   */
+  hands?: DetectedHands[];
+};
+
+/** One person's hand keypoints, 0–1 of the still; null for a hand not found. */
+export type DetectedHands = {
+  left: Array<{ x: number; y: number }> | null;
+  right: Array<{ x: number; y: number }> | null;
 };
 
 /** Body joints compared: nose, neck, shoulders, elbows, wrists, hips, knees, ankles. */
@@ -121,7 +133,11 @@ export function parseOpenPoseJson(raw: unknown): DetectedPose | null {
     return null;
   }
   const frame = value as {
-    people?: Array<{ pose_keypoints_2d?: unknown }>;
+    people?: Array<{
+      pose_keypoints_2d?: unknown;
+      hand_left_keypoints_2d?: unknown;
+      hand_right_keypoints_2d?: unknown;
+    }>;
     canvas_width?: number;
     canvas_height?: number;
   };
@@ -140,10 +156,43 @@ export function parseOpenPoseJson(raw: unknown): DetectedPose | null {
   if (!normalized && !(width > 0 && height > 0)) {
     return null;
   }
-  const people = rows
-    .map(row => parseBody(row.pose_keypoints_2d, width, height, normalized))
-    .filter((body): body is NormalizedBody => Boolean(body));
-  return { canvas: { width, height }, people };
+  const parsed = rows
+    .map(row => ({
+      body: parseBody(row.pose_keypoints_2d, width, height, normalized),
+      hands: {
+        left: parseHand(row.hand_left_keypoints_2d, width, height, normalized),
+        right: parseHand(row.hand_right_keypoints_2d, width, height, normalized),
+      },
+    }))
+    .filter((entry): entry is { body: NormalizedBody; hands: DetectedHands } =>
+      Boolean(entry.body)
+    );
+  const people = parsed.map(entry => entry.body);
+  // Hands only when the detector ran with hand detection (aligned with `people`).
+  const anyHands = parsed.some(entry => entry.hands.left || entry.hands.right);
+  return anyHands
+    ? { canvas: { width, height }, people, hands: parsed.map(entry => entry.hands) }
+    : { canvas: { width, height }, people };
+}
+
+/** One hand's confident keypoints (21 in DWPose), normalized; null when none were found. */
+function parseHand(
+  raw: unknown,
+  width: number,
+  height: number,
+  normalized: boolean
+): Array<{ x: number; y: number }> | null {
+  if (!Array.isArray(raw) || raw.length < 3) return null;
+  const points: Array<{ x: number; y: number }> = [];
+  for (let i = 0; i + 2 < raw.length; i += 3) {
+    const x = Number(raw[i]);
+    const y = Number(raw[i + 1]);
+    const c = Number(raw[i + 2]);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || c <= 0 || (x === 0 && y === 0)) continue;
+    if (!normalized && !(width > 0 && height > 0)) return null;
+    points.push(normalized ? { x, y } : { x: x / width, y: y / height });
+  }
+  return points.length > 0 ? points : null;
 }
 
 /**
@@ -277,6 +326,11 @@ export type PoseMatchResult = {
    * reliable miss (see `GESTURE_MISS_COUNT`).
    */
   gestureMiss: boolean;
+  /**
+   * The beat's gesture (hands vs the guide + the vision model's action questions), when it was
+   * checked (`applyGestureVerdict` in `pose-gesture.ts`). A miss also puts `score` in the miss band.
+   */
+  gestureCheck?: GestureVerdict;
   /** The lead's segments that point clearly elsewhere than the guide's, worst first. */
   offLimbs: LimbPart[];
   /** The lead's per-segment direction differences. */
@@ -468,7 +522,9 @@ export const JOINT_DISTANCE_MIN_POSE_MATCH = 0.6;
  * 15 wrong stills whose posture was wrong (sat / knelt / stood instead), the check catches 5; the
  * other 24 wrong ones kept the posture and missed a gesture (an arm left down for cook, drink,
  * point, selfie) — no 2D-skeleton cut separated those from right stills' natural variation, so
- * they're left to the vision review. Raise recall here only with new labelled data.
+ * they're left to the gesture check (`pose-gesture.ts`: the beat's action asked of the vision
+ * model, 93% of gesture misses caught at 4% false alarms). Raise recall here only with new
+ * labelled data.
  */
 export const LIMB_ANGLE_MIN_POSE_MATCH = 0.5;
 export const DEFAULT_MIN_POSE_MATCH =
@@ -518,6 +574,10 @@ export function describePoseMatch(result: PoseMatchResult): string {
   const posture = result.postureMiss ? posturePairWords(result) : null;
   if (posture) {
     return `pose match ${pct}% · ${posture.still}, guide ${posture.guide}${heads}`;
+  }
+  const missed = result.gestureCheck?.miss ? result.gestureCheck.missed : null;
+  if (missed) {
+    return `pose match ${pct}% · missed: ${missed}${heads}`;
   }
   return `pose match ${pct}%${heads}`;
 }

@@ -1552,6 +1552,7 @@ export function useDayPlannerToolOrchestrationCore() {
               aspect: poseBuild.canvas.width / poseBuild.canvas.height,
               style: poseBuild.stylePreference,
               poseKey: poseBuild.poseKey,
+              beat: queueTarget.sceneHints,
             };
             const uploaded = await resolveQueueInputImage({
               file: poseFile,
@@ -2360,6 +2361,8 @@ export type DayPoseGuideExpectation = {
   poseKey: string;
   /** The prompt also spelled the pose out in words (logged separately in Play metrics). */
   cued?: boolean;
+  /** The slot's beat as queued — the gesture check's questions come from it (pose-gesture.ts). */
+  beat?: string;
 };
 
 /** Image 1 sizes by URL — the plate rarely changes within a Day, so probe once. */

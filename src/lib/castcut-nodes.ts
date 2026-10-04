@@ -174,7 +174,8 @@ export function applyCastcutBestOfTwo(
     inputs: { samples: latent, amount: CASTCUT_BEST_OF_TWO_TAKES },
   };
   sampler.inputs!.latent_image = [id.batch, 0];
-  // Body only, as the app's own pose check reads stills (pose-detect-server.ts).
+  // Body only: CastcutPoseScore compares body joints. The gesture check (hands + vision,
+  // pose-gesture.ts) runs in the app, so the one-job pair is picked on the body alone.
   next[id.detect] = {
     class_type: 'DWPreprocessor',
     inputs: { image: still, detect_body: 'enable', detect_hand: 'disable', detect_face: 'disable' },

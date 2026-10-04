@@ -12,7 +12,14 @@ import {
   type PoseRedoLedger,
 } from '@/lib/day-pose-redo';
 import { detectStillPose } from '@/lib/pose-detect-client';
-import { buildPoseMissView, poseLimbFixNudge, type PoseMissView } from '@/lib/pose-coaching';
+import {
+  buildPoseMissView,
+  gestureMissWords,
+  poseLimbFixNudge,
+  type PoseMissView,
+} from '@/lib/pose-coaching';
+import { applyGestureVerdict, gestureFixNudge } from '@/lib/pose-gesture';
+import { checkStillGesture } from '@/lib/pose-gesture-vision-client';
 import {
   DEFAULT_MIN_POSE_MATCH,
   POSE_MISMATCH_NUDGE,
@@ -25,7 +32,9 @@ import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
  * Day "Redo pose misses once" (opt-in, Auto-review off): when a still lands, read its pose back
  * (DWPose) against the slot's guide and, on a miss, queue the slot once more with the pose spelled
  * out — the nudge Auto-review's pose reroll uses (POSE_MISMATCH_NUDGE plus the limbs that were
- * off; it also turns on the pose cue line). One redo per take (day-pose-redo.ts), only while the
+ * off; it also turns on the pose cue line). A still that holds the posture but drops the beat's
+ * gesture (pose-gesture.ts: hands + one vision question) is a miss too, redone with a GESTURE
+ * line naming what it dropped. One redo per take (day-pose-redo.ts), only while the
  * Day queue is idle, and never on a still Face finish is about to replace.
  */
 export function useDayPoseMissRedo(
@@ -38,6 +47,7 @@ export function useDayPoseMissRedo(
   const { autoReviewStills, busy, mounted, queueBlockReason, queueSlot, redoPoseMisses } = ctx;
   const { bestOfTwoHardPoses } = ctx;
   const { poseGuideExpectRef, rerollNudgeRef, slots, stills } = ctx;
+  const { leadNoun, shared } = ctx;
   const active = redoPoseMisses && !autoReviewStills;
 
   const [ledger, setLedger] = useState<PoseRedoLedger>({});
@@ -136,11 +146,28 @@ export function useDayPoseMissRedo(
           setStatus(`Pose check off: ${detected.reason}`);
           return;
         }
-        const match = scorePoseMatch({
+        let match = scorePoseMatch({
           guide: expectation.keypoints,
           guideAspect: expectation.aspect,
           detected: detected.pose,
         });
+        // Posture right: check the beat's gesture too (one vision call, action beats only).
+        if (match.score >= DEFAULT_MIN_POSE_MATCH) {
+          setStatus(`Checking ${target.label} gesture…`);
+          const gesture = await checkStillGesture({
+            imageUrl,
+            beat: expectation.beat ?? target.sceneHints,
+            poseKey: expectation.poseKey,
+            lead: leadNoun,
+            guide: expectation.keypoints,
+            guideAspect: expectation.aspect,
+            detected: detected.pose,
+            match,
+            shared,
+          });
+          match = applyGestureVerdict(match, gesture);
+        }
+        const gestureMissed = gestureMissWords(match);
         const decision = poseRedoDecision({
           enabled: redoPoseMisses,
           autoReview: autoReviewStills,
@@ -163,6 +190,7 @@ export function useDayPoseMissRedo(
                 still: match.assignment.map(index => detected.pose.people[index]),
                 stillAspect: width > 0 && height > 0 ? width / height : expectation.aspect,
                 posture: posturePairWords(match),
+                gesture: gestureMissed,
               })
             : null;
         setMissViews(previous => {
@@ -176,20 +204,26 @@ export function useDayPoseMissRedo(
           setStatus(
             !missView
               ? `${target.label} pose matched (${pct}%).`
-              : `${target.label} missed the pose again (${pct}%) — redone once already; retry it or pick another pose.`
+              : `${target.label} missed the pose again (${pct}%${gestureMissed ? `, missed: ${gestureMissed}` : ''}) — redone once already; retry it or pick another pose.`
           );
           return;
         }
-        // The same nudge Auto-review's pose reroll sends — it spells the pose out in words.
+        // The same nudge Auto-review's pose reroll sends — it spells the pose out in words — plus
+        // the gesture it dropped, with the layout's cue.
         rerollNudgeRef.current[target.id] = [
           POSE_MISMATCH_NUDGE,
           missView ? poseLimbFixNudge(missView.misses) : '',
+          gestureFixNudge(gestureMissed, expectation.poseKey, leadNoun),
         ]
           .filter(Boolean)
           .join(' ');
         ledgerRef.current = { ...ledgerRef.current, [target.id]: { missedTake: take } };
         setLedger(ledgerRef.current);
-        setStatus(`Redoing ${target.label} for the pose (${pct}% match).`);
+        setStatus(
+          gestureMissed
+            ? `Redoing ${target.label} for the gesture (missed: ${gestureMissed}).`
+            : `Redoing ${target.label} for the pose (${pct}% match).`
+        );
         await queueSlot(target);
       } catch (error) {
         setStatus(
@@ -207,11 +241,13 @@ export function useDayPoseMissRedo(
     redoPoseMisses,
     busy,
     faceFinish,
+    leadNoun,
     mounted,
     poseGuideExpectRef,
     queueBlockReason,
     queueSlot,
     rerollNudgeRef,
+    shared,
     slots,
     stills,
     tick,
