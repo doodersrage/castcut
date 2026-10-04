@@ -88,7 +88,7 @@ const FACE_ANALYSIS: ComfyManagerPackSpec = {
 export const CASTCUT_PACK: ComfyManagerPackSpec = {
   name: 'castcut',
   title: 'Castcut checks',
-  files: ['https://github.com/doodersrage/castcut'],
+  files: ['https://github.com/doodersrage/castcut-nodes'],
   install_type: 'git-clone',
   gitUrlOnly: true,
   description:

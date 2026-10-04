@@ -14,7 +14,7 @@ export const CASTCUT_NODES_FILE_ROUTE = '/api/castcut-nodes/file';
 /** Comfy Registry id (comfyui-nodes/castcut/pyproject.toml `name`) — once it is published. */
 export const CASTCUT_NODES_REGISTRY_ID = 'castcut-nodes';
 /** Git install today: the whole Castcut repo (its root __init__.py loads only the pack). */
-export const CASTCUT_NODES_GIT_URL = 'https://github.com/doodersrage/castcut';
+export const CASTCUT_NODES_GIT_URL = 'https://github.com/doodersrage/castcut-nodes';
 export const CASTCUT_NODES_DOCS_URL =
   'https://github.com/doodersrage/castcut/blob/main/docs/castcut-nodes.md';
 

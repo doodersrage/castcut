@@ -47,11 +47,10 @@ setup. See [docs/castcut-nodes.md](https://github.com/doodersrage/castcut/blob/m
 1. **ComfyUI-Manager by name** (once the pack is in the Comfy Registry): Manager → Custom Nodes
    Manager → search *Castcut nodes* → Install; or `comfy node install castcut-nodes`.
 
-2. **ComfyUI-Manager → Install via Git URL**: `https://github.com/doodersrage/castcut`. Manager
+2. **ComfyUI-Manager → Install via Git URL**: `https://github.com/doodersrage/castcut-nodes`. Manager
    3.41+ allows Git-URL installs only with `allow_git_url_install = true` under `[default]` in
-   `ComfyUI/user/__manager/config.ini` and ComfyUI listening on 127.0.0.1. This clones the whole
-   Castcut repo; its root `__init__.py` loads only this pack. (A standalone repo of just this
-   folder can be made with `scripts/castcut-nodes-release.sh`.)
+   `ComfyUI/user/__manager/config.ini` and ComfyUI listening on 127.0.0.1. The repository holds
+   just this pack.
 
 3. **Copy the file** (smallest; works when the ComfyUI service user can't read your home folder):
 

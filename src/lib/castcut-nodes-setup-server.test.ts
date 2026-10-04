@@ -87,7 +87,7 @@ describe('installCastcutNodesWithManager', () => {
     assert.equal(result.code, 'git_url_disabled');
     assert.match(result.message, /\/opt\/comfyui\/user\/__manager\/config\.ini/);
     const post = calls.find(call => call.method === 'POST');
-    assert.deepEqual(JSON.parse(post?.body ?? '{}'), { url: 'https://github.com/doodersrage/castcut' });
+    assert.deepEqual(JSON.parse(post?.body ?? '{}'), { url: 'https://github.com/doodersrage/castcut-nodes' });
   });
 
   it('published in the registry: queue/install by id', async () => {

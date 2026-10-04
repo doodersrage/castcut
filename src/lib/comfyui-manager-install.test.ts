@@ -60,7 +60,7 @@ describe("managerInstallTargetForPack", () => {
     );
     assert.deepEqual(managerInstallTargetForPack(CASTCUT_PACK), {
       kind: "git-url",
-      url: "https://github.com/doodersrage/castcut",
+      url: "https://github.com/doodersrage/castcut-nodes",
     });
   });
 });

@@ -13,9 +13,9 @@ dependencies = ["numpy", "pillow"]
 classifiers = ["Operating System :: OS Independent"]
 
 [project.urls]
-Repository = "https://github.com/doodersrage/castcut"
+Repository = "https://github.com/doodersrage/castcut-nodes"
 Documentation = "https://github.com/doodersrage/castcut/blob/main/docs/castcut-nodes.md"
-"Bug Tracker" = "https://github.com/doodersrage/castcut/issues"
+"Bug Tracker" = "https://github.com/doodersrage/castcut-nodes/issues"
 
 [tool.comfy]
 # Placeholder: the Comfy Registry publisher id you create at https://registry.comfy.org.

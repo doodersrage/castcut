@@ -34,7 +34,7 @@ pack is missing.
 ### When ComfyUI-Manager says no
 
 Until the pack is in the Comfy Registry, the Manager installs it from its Git URL
-(`https://github.com/doodersrage/castcut`). Recent ComfyUI-Manager versions (3.41 and later) only
+(`https://github.com/doodersrage/castcut-nodes`). Recent ComfyUI-Manager versions (3.41 and later) only
 install from a Git URL when **both** of these are true:
 
 - `allow_git_url_install = true` under `[default]` in the Manager's `config.ini` — on current
@@ -70,7 +70,7 @@ when the app has sign-in or `PROMPT_API_TOKEN` on, add
 **Windows portable**: put `castcut_nodes.py` in `ComfyUI_windows_portable\ComfyUI\custom_nodes\`.
 No `python_embeded` packages are needed.
 
-**ComfyUI-Manager → Install via Git URL**: `https://github.com/doodersrage/castcut` (see the
+**ComfyUI-Manager → Install via Git URL**: `https://github.com/doodersrage/castcut-nodes` (see the
 settings above). It clones the whole Castcut repository; its root `__init__.py` loads only the
 node pack.
 
