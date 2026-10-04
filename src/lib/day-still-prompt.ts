@@ -58,6 +58,11 @@ import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { RAPID_DUO_RECIPE_MARK, isRapidDuoRecipePrompt } from '@/lib/rapid-duo-recipe-mark';
 import { applyAdultAgeSafeguards, type AgePerson } from '@/lib/adult-age-safeguard';
 import { dayMoodNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
+import {
+  dayMoodMustStayClothed,
+  softenBareSkinWords,
+  withStrongCoverageLine,
+} from '@/lib/clothed-coverage';
 
 export type DayStillPromptFacts = {
   /** The slot's brief or recipe (buildDaySlotPrompt). */
@@ -300,12 +305,23 @@ export function finishDayStillPrompt(
     partnerDescriptor?: string;
     /** Who is on the still, for the age sentence (dayStillAgeFacts). */
     ages?: DayStillAgeFacts;
+    /**
+     * The one requeue after the adult check saw bare skin on a clothed-mood still: the strong
+     * coverage line leads the prompt (clothed-coverage.ts). Clothed moods only.
+     */
+    coverage?: boolean;
   }
 ): string {
   const swapped = finishDayStillWording(drafted, input);
   const ages = input.ages;
-  if (!ages || !dayMoodNeedsAdultSafeguards(ages.playedMood)) return swapped;
-  return applyAdultAgeSafeguards(swapped, {
+  // The coverage line alone left the report card's leaking stills nude (10 of 10 on replay); the
+  // bare-skin words in the beat are what undress her, so the requeue changes those too.
+  const covered =
+    input.coverage && dayMoodMustStayClothed(ages?.playedMood)
+      ? withStrongCoverageLine(softenBareSkinWords(swapped))
+      : swapped;
+  if (!ages || !dayMoodNeedsAdultSafeguards(ages.playedMood)) return covered;
+  return applyAdultAgeSafeguards(covered, {
     lead: ages.lead,
     partner: ages.partner,
     people: ages.people,

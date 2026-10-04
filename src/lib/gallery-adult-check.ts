@@ -21,8 +21,15 @@ export type GalleryAdultCheck = {
   state: GalleryAdultCheckState;
   /** This take used the stronger age sentence (the one requeue after a withheld take). */
   strong?: boolean;
+  /**
+   * This take used the strong coverage line (the one requeue after the gate saw bare skin on a
+   * clothed-mood still — clothed-coverage.ts).
+   */
+  covered?: boolean;
   /** Why it was withheld / passed, in a few words. */
   reason?: string;
+  /** What a withheld take failed on: the age read, or bare skin on a clothed-mood still. */
+  cause?: 'age' | 'bare';
   at: number;
 };
 
@@ -79,6 +86,13 @@ export function inheritedAdultCheck(
   const state = parent?.adultCheck?.state;
   if (state === 'withheld')
     return { state: 'withheld', reason: 'derived from a withheld still', at: now };
-  if (state === 'pending') return { state: 'pending', strong: parent?.adultCheck?.strong, at: now };
+  if (state === 'pending') {
+    return {
+      state: 'pending',
+      strong: parent?.adultCheck?.strong,
+      ...(parent?.adultCheck?.covered ? { covered: true } : {}),
+      at: now,
+    };
+  }
   return undefined;
 }

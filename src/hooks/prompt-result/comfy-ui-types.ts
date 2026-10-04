@@ -89,9 +89,10 @@ export type SendComfyUiOptions = {
   /**
    * An adult still for the adult-appearance gate: the gallery entry is registered `pending`
    * (hidden everywhere, no result preview) until the gate passes it. `strong`: this take uses
-   * the stronger age sentence (the one requeue after a withheld take).
+   * the stronger age sentence (the one requeue after a withheld take). `covered`: it uses the
+   * strong coverage line (the one requeue after bare skin on a clothed-mood still).
    */
-  adultGate?: { strong?: boolean };
+  adultGate?: { strong?: boolean; covered?: boolean };
 };
 
 export type TrackComfyUiJobInput = {

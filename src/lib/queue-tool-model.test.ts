@@ -15,6 +15,7 @@ import {
   resolveRapidAioEditModel,
   resolveDayAdultPlateQueueModel,
   resolveAdultNudePlateQueueModel,
+  resolveDayStillModel,
   resolveTxt2iCounterpartForGenerate,
   stripEditInstructionLead,
   toolIgnoresSystemWorkflowSnap,
@@ -356,6 +357,21 @@ describe("queue-tool-model", () => {
     assert.equal(
       resolveAdultNudePlateQueueModel("qwen-rapid-aio-edit-nsfw", { adultNude: false }),
       "qwen-rapid-aio-edit",
+    );
+    // A clothed Suggestive still (adultNude false) renders on the SFW Rapid checkpoint; the
+    // NSFW merge is only for nude beats. Qwen-Image 2.1 keeps its own id (its graph base is
+    // mapped at queue time and the renderer swaps in the plain 2.1 model — no NSFW stack).
+    assert.equal(
+      resolveAdultNudePlateQueueModel("qwen-image-2.1-edit-pruna-8", { adultNude: false }),
+      "qwen-image-2.1-edit-pruna-8",
+    );
+    assert.equal(
+      resolveDayStillModel("qwen-image-2.1-edit-pruna-8", { adultNude: false, installed: () => true }),
+      "qwen-image-2.1-edit-pruna-8",
+    );
+    assert.equal(
+      resolveDayStillModel("qwen-image-edit-2511-lightning-8", { adultNude: false, installed: () => true }),
+      "qwen-image-edit-2511-lightning-8",
     );
     assert.equal(
       resolveAdultNudePlateQueueModel("qwen-rapid-aio-nsfw", { adultNude: false }),

@@ -227,6 +227,7 @@ export async function postQueueSinglePrompt(input: {
             adultCheck: {
               state: 'pending' as const,
               ...(options.adultGate.strong ? { strong: true } : {}),
+              ...(options.adultGate.covered ? { covered: true } : {}),
               at: Date.now(),
             },
           }

@@ -381,6 +381,8 @@ describe('Rapid suggestive recipe', () => {
     const rapid = suggestivePrompt(beat, 'qwen-rapid-aio-edit-nsfw');
     assert.ok(isRapidDuoRecipePrompt(rapid));
     assert.doesNotMatch(rapid, /CLOTHING LOCK|catalog wardrobe kit/);
+    // Suggestive stays clothed: the coverage line sits between the clothes and the Moment.
+    assert.match(rapid, /She wears [^.]+\. Her clothes stay on, covering her chest and hips\. Moment:/);
     assert.match(rapid, /second image \(pose map\)/);
     // Edit 2511 shares the recipe (pose-model-profile: compactClothedRecipes); others keep the brief.
     assert.match(suggestivePrompt(beat, 'qwen-image-edit-2511'), /Suggestive photo: One woman alone, clothed\./);

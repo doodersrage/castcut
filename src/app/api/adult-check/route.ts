@@ -26,6 +26,8 @@ export async function POST(request: Request) {
       llmEnabled?: boolean;
       llmProvider?: string;
       llmApiKey?: string;
+      /** A clothed-mood still (Day Suggestive): also ask the bare-skin question. */
+      clothed?: boolean;
     };
     if (!body.image?.trim()) {
       return apiError('Image data is required.', 400);
@@ -36,6 +38,7 @@ export async function POST(request: Request) {
     const result = await askAdultAppearanceVision({
       imageDataUrl: normalizeImageDataUrl(body.image.trim(), body.mimeType),
       llm: parseLlmRequestOptions(body),
+      clothed: body.clothed === true,
     });
     return apiJson({ available: result.available, reply: result.reply, model: result.model });
   } catch (error) {

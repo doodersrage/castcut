@@ -5,7 +5,10 @@ import { Button } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
 import MotionMedia from '@/components/ui/MotionMedia';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
-import { ADULT_GATE_WITHHELD_MESSAGE } from '@/lib/adult-appearance-gate';
+import {
+  ADULT_GATE_WITHHELD_MESSAGE,
+  CLOTHED_GATE_WITHHELD_MESSAGE,
+} from '@/lib/adult-appearance-gate';
 import OpenInComfyButton from '@/components/OpenInComfyButton';
 import {
   daySlotBoardCaption,
@@ -512,7 +515,9 @@ export default function DaySlotBoard({
                   role="status"
                   data-testid={`day-slot-withheld-${slot.id}`}
                 >
-                  {ADULT_GATE_WITHHELD_MESSAGE}
+                  {still.adultHoldCause === 'bare'
+                    ? CLOTHED_GATE_WITHHELD_MESSAGE
+                    : ADULT_GATE_WITHHELD_MESSAGE}
                 </p>
               ) : null}
               {still?.engineNote ? (

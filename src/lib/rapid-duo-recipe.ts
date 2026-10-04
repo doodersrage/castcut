@@ -18,6 +18,7 @@ import {
   type IntimateLayout,
   type SoloMasturbationPoseKind,
 } from './day-pose-guide';
+import { SUGGESTIVE_COVERAGE_LINE } from './clothed-coverage';
 import { stripNegatedClauses } from './negated-clauses';
 import {
   isFloorSurface,
@@ -915,6 +916,8 @@ export function buildRapidSuggestiveRecipe(input: {
     'One woman alone, clothed.',
     suggestivePlacement(beat),
     clothes,
+    // Suggestive stays clothed; said in the positive (CFG 1), see clothed-coverage.ts.
+    SUGGESTIVE_COVERAGE_LINE,
     `Moment: ${beat}.`,
     recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),
     descriptorLine(input.descriptor),

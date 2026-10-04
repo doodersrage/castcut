@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   ADULT_GATE_WITHHELD_MESSAGE,
+  CLOTHED_GATE_WITHHELD_MESSAGE,
   adultGateVisionPrompt,
   dayMoodNeedsAdultSafeguards,
   decideAdultGate,
@@ -14,7 +15,63 @@ describe('adult-appearance gate', () => {
     const prompt = adultGateVisionPrompt();
     assert.match(prompt, /do all people shown clearly look like adults over 21\?/);
     assert.match(prompt, /strict JSON only/);
-    assert.match(prompt, /"answer":"yes or no","confidence":0-100/);
+    assert.match(prompt, /"answer":"yes or no","confidence":0-100\}/);
+    // The bare-skin question is only for moods that must stay clothed.
+    assert.doesNotMatch(prompt, /bare/);
+  });
+
+  it('on a clothed-mood still the same question also asks about bare skin', () => {
+    const prompt = adultGateVisionPrompt({ clothed: true });
+    assert.match(prompt, /do all people shown clearly look like adults over 21\?/);
+    assert.match(prompt, /chest \(nipples\), genitals or buttocks bare/);
+    assert.match(prompt, /lingerie, a bra.*count as covered/);
+    assert.match(prompt, /"confidence":0-100,"bare":"yes or no"\}/);
+    assert.deepEqual(
+      parseAdultGateReply('{"people":1,"youngest_apparent_age":30,"answer":"yes","confidence":90,"bare":"Yes"}'),
+      { answer: 'yes', confidence: 90, youngestAge: 30, people: 1, bare: 'yes' }
+    );
+    assert.equal(parseAdultGateReply('{"answer":"yes","confidence":90,"bare":"no"}')?.bare, 'no');
+    assert.equal(parseAdultGateReply('{"answer":"yes","confidence":90,"bare":"maybe"}')?.bare, 'unsure');
+    assert.equal(parseAdultGateReply('{"answer":"yes","confidence":90}')?.bare, undefined);
+  });
+
+  it('treats bare skin on a clothed-mood still like a pose miss: requeue once, then withhold', () => {
+    const bare = { answer: 'yes' as const, confidence: 95, youngestAge: 30, bare: 'yes' as const };
+    const first = decideAdultGate({ visionAvailable: true, reply: bare, strongTake: false, clothed: true });
+    assert.equal(first.verdict, 'requeue');
+    assert.equal(first.cause, 'bare');
+    assert.match(first.reason, /bare chest, genitals or buttocks/);
+    const second = decideAdultGate({
+      visionAvailable: true,
+      reply: bare,
+      strongTake: false,
+      clothed: true,
+      coveredTake: true,
+    });
+    assert.equal(second.verdict, 'withhold');
+    assert.equal(second.cause, 'bare');
+    // A nude mood ignores the field; a covered or unsure answer passes; the age read comes first.
+    assert.equal(decideAdultGate({ visionAvailable: true, reply: bare, strongTake: false }).verdict, 'pass');
+    assert.equal(
+      decideAdultGate({ visionAvailable: true, reply: { ...bare, bare: 'no' }, strongTake: false, clothed: true }).verdict,
+      'pass'
+    );
+    assert.equal(
+      decideAdultGate({ visionAvailable: true, reply: { ...bare, bare: 'unsure' }, strongTake: false, clothed: true }).verdict,
+      'pass'
+    );
+    const young = decideAdultGate({
+      visionAvailable: true,
+      reply: { ...bare, youngestAge: 16 },
+      strongTake: false,
+      clothed: true,
+    });
+    assert.equal(young.verdict, 'requeue');
+    assert.equal(young.cause, 'age');
+    assert.equal(
+      CLOTHED_GATE_WITHHELD_MESSAGE,
+      'Withheld: the picture showed bare skin a Suggestive still must not — try a different seed or beat'
+    );
   });
 
   it('reads the reply, also with prose or fences around it', () => {

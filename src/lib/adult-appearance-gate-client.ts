@@ -31,13 +31,22 @@ export async function checkStillAdultAppearance(input: {
   imageUrl: string;
   /** This take already used the stronger age sentence. */
   strongTake: boolean;
+  /** The still must stay clothed (Day Suggestive): the bare-skin question is asked too. */
+  clothed?: boolean;
+  /** This take already used the strong coverage line. */
+  coveredTake?: boolean;
   shared?: VisionShared;
 }): Promise<AdultGateDecision & { reply: AdultGateReply | null }> {
+  const decide = (visionAvailable: boolean, reply: AdultGateReply | null) =>
+    decideAdultGate({
+      visionAvailable,
+      reply,
+      strongTake: input.strongTake,
+      clothed: input.clothed === true,
+      coveredTake: input.coveredTake === true,
+    });
   if (input.shared?.sessionLlmEnabled === false) {
-    return {
-      ...decideAdultGate({ visionAvailable: false, reply: null, strongTake: input.strongTake }),
-      reply: null,
-    };
+    return { ...decide(false, null), reply: null };
   }
   let available = true;
   let reply: AdultGateReply | null = null;
@@ -55,6 +64,7 @@ export async function checkStillAdultAppearance(input: {
       body: JSON.stringify({
         image,
         mimeType,
+        ...(input.clothed ? { clothed: true } : {}),
         ...(input.shared ? sharedLlmRequestBody(input.shared) : {}),
       }),
     });
@@ -70,8 +80,5 @@ export async function checkStillAdultAppearance(input: {
   } catch {
     reply = null;
   }
-  return {
-    ...decideAdultGate({ visionAvailable: available, reply, strongTake: input.strongTake }),
-    reply,
-  };
+  return { ...decide(available, reply), reply };
 }

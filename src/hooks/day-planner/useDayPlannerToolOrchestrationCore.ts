@@ -690,6 +690,7 @@ export function useDayPlannerToolOrchestrationCore() {
           imageUrl: galleryEntryPrimaryViewUrl(entry),
           isClip: isGalleryClipEntry(entry) || clipWanted.has(entry.promptId),
           adultCheck: entry.adultCheck?.state,
+          adultCheckCause: entry.adultCheck?.cause,
         }));
       const merged = mergeDaySlotStills(baseStills, gallery);
       if (promoted.changed || merged.changed) {
@@ -941,6 +942,11 @@ export function useDayPlannerToolOrchestrationCore() {
          * strongly (adult-age-safeguard.ts), and a second withheld take stops there.
          */
         strongAgeLine?: boolean;
+        /**
+         * The gate saw bare skin on a clothed-mood (Suggestive) still: this one leads with the
+         * strong coverage line (clothed-coverage.ts), and a second such take is withheld.
+         */
+        coverageLine?: boolean;
       }
     ) => {
       const manageBusy = options?.manageBusy !== false;
@@ -1767,6 +1773,7 @@ export function useDayPlannerToolOrchestrationCore() {
             figures: poseExpectation?.keypoints.length,
             strong: options?.strongAgeLine === true,
           }),
+          coverage: options?.coverageLine === true,
         });
         // An adult beat played with Intimate off still reads as adult content: gate it too.
         const adultSafeguards =
@@ -2041,7 +2048,14 @@ export function useDayPlannerToolOrchestrationCore() {
           ...(options?.qualityProfile && !leanChrome
             ? { qualityProfile: options.qualityProfile }
             : {}),
-          ...(adultSafeguards ? { adultGate: { strong: options?.strongAgeLine === true } } : {}),
+          ...(adultSafeguards
+            ? {
+                adultGate: {
+                  strong: options?.strongAgeLine === true,
+                  covered: options?.coverageLine === true,
+                },
+              }
+            : {}),
         });
         // Pose × engine stats: the take, and whether it redoes the slot's last one.
         if (typeof promptId === 'string') {

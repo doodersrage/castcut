@@ -402,6 +402,8 @@ export type DaySlotStill = {
    * (no image, ever — the card says so).
    */
   adultHold?: 'checking' | 'withheld';
+  /** What a withheld take failed on: the age read, or bare skin on a Suggestive still. */
+  adultHoldCause?: 'age' | 'bare';
   /** Queued as an adult still: the gate checks it, and no live preview is shown while it renders. */
   adultGated?: boolean;
   /**
@@ -1545,13 +1547,13 @@ export const DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = 
     'lounging late in bed in an oversized shirt and panties — lying on her side propped on one elbow, bare legs tangled in the sheet, sleepy half-smile over one shoulder, clothes stay on',
     'perched on the kitchen counter in a silk slip eating fruit — ankles crossed, one strap slipping, leaning back on both hands, charged look, clothes stay on',
     'kneeling upright on the bed buttoning a shirt over lingerie — back arched, shirt half open, glancing up through her lashes, never square-on to the lens',
-    'leaning in the bathroom doorway in a towel wrap and lingerie, hip against the frame, one hand in wet hair, looking back over a shoulder',
+    'leaning in the bathroom doorway in a short robe over lingerie, hip against the frame, one hand in wet hair, looking back over a shoulder',
   ],
   afternoon: [
     'reclining on a daybed in a sundress during a lazy siesta — lying back, one knee raised, hem riding up, eyes half-lidded, clothes stay on',
     'sitting on the floor against the bed in lingerie under an open robe — knees up, head tipped back on the mattress, warm golden light',
     'leaning on a sunlit window frame in a slip dress, back arched, one strap off the shoulder, looking back over a shoulder',
-    'perched on the arm of a reading chair in a short robe, legs crossed high, leaning forward with charged eye contact, never a stiff standing catalog pose',
+    'perched on the arm of a reading chair in a short robe over a slip, legs crossed high, leaning forward with charged eye contact, never a stiff standing catalog pose',
   ],
   evening: [
     'kicking off heels on the bed after dinner — lying back across the mattress in a cocktail dress, one knee raised, arms overhead, clothes stay on',
@@ -1561,7 +1563,7 @@ export const DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = 
   ],
   night: [
     'lying on her stomach across the bed in a silk camisole and shorts, ankles crossed in the air, chin on her hands, phone glow on her face, clothes stay on',
-    'leaning on the dark windowsill at 3 a.m. in an oversized shirt, one knee on the sill, city glow on bare legs, looking back over a shoulder',
+    'leaning on the dark windowsill at 3 a.m. in an oversized shirt and sleep shorts, one knee on the sill, city glow on her legs, looking back over a shoulder',
     'sitting cross-legged on the rumpled bed in lingerie hugging a pillow, hair messy, sleepy charged look, clothes stay on',
     'stretching in the doorway in a thin sleep slip — one arm overhead against the frame, hip cocked, bare legs, eyes half-lidded',
   ],
@@ -1683,7 +1685,7 @@ function suggestiveBeatPresets(slotId: DaySlotId | string): string[] {
 export const DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS: Record<DayPart, string[]> = {
   morning: [
     'slow-dancing barefoot in the kitchen with her partner, both in sleepwear — his hands on her waist, her arms around his neck, foreheads touching',
-    "sitting sideways on her partner's lap on the couch in a silk robe — his arm around her waist, her legs draped over his, about to kiss",
+    "sitting sideways on her partner's lap on the couch in a silk robe over a slip — his arm around her waist, her legs draped over his, about to kiss",
     'lying face to face on the rumpled bed with her partner, both in sleepwear — his hand on her hip, noses almost touching, morning light',
     'perched on the kitchen counter in an oversized shirt with her partner standing between her knees — her arms around his neck, mid-kiss, both clothed',
     'her partner zipping up her dress in the bedroom — he stands close at her back, she tips her head toward him with a slow smile, both dressed',
@@ -1768,17 +1770,21 @@ function everydaySettingPresets(slotId: DaySlotId | string): string[] {
 /** Suggestive beats — clothed heat / innuendo (no named sex). */
 export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = {
   morning: [
-    'stretching in thin sleepwear by the window — one arm overhead, hip cocked, fabric catching light on bare thighs, looking back over a shoulder',
-    'pouring coffee barefoot in a silk robe loosely tied — leaning on the counter, cleavage and skin, charged quiet, not facing the lens square-on',
+    // Suggestive stays clothed: a robe has something named under it, nothing "falls open" or is
+    // "loosely tied", and no "bare thighs" / "cleavage and skin" — the pose report card
+    // (2026-10-03) drew a bare bottom (Qwen-Image 2.1, 2/2) and a bare breast (Rapid and Edit
+    // 2511, 1/2 each) from exactly those words.
+    'stretching in a camisole and sleep shorts by the window — one arm overhead, hip cocked, looking back over a shoulder, clothes stay on',
+    'pouring coffee barefoot in a silk robe over a camisole, belted at the waist — leaning on the counter, a hint of neckline, charged quiet, not facing the lens square-on',
     'leaning on the sill in lingerie under an open shirt, soft morning glow, looking back over a shoulder with weight on one hip',
     'looking back over one shoulder while dressing, lingerie straps and unfinished buttons, one knee on the bed edge, charged pause',
     'kneeling upright on the rumpled bed in a sleep shirt and panties — back arched, hands in hair, morning light, clothes stay on',
-    'sitting on the windowsill in a short robe, one foot planted on the sill, robe falling open over lingerie, eyes half-lidded not a standing fashion plate',
+    'sitting on the windowsill in a short robe over a bra and panties, one foot planted on the sill, eyes half-lidded, not a standing fashion plate',
   ],
   afternoon: [
     'adjusting a low neckline in a shop window reflection — body angled three-quarter to the glass, slow smile, never square to camera',
     'reclining on a sunlit couch, short hem riding up, one leg hooked over the backrest, warm look over one shoulder',
-    'leaning on a balcony railing with a breeze lifting a short hem — hips back, bare legs, looking back flirtatiously',
+    'leaning on a balcony railing with a breeze lifting a short hem — hips back, looking back flirtatiously, clothes stay on',
     'biting a lip while checking a flirtatious text — weight on one hip, dress strap slipping, hand on the doorframe',
     'perched on a couch arm in a short dress, legs crossed high, leaning forward with charged eye contact, never a stiff standing catalog pose',
     'twisting to zip a dress in a mirror — torso twisted, back arched, both hands on the zipper behind her back, looking over a shoulder, lingerie straps visible, afternoon light — never square-on facing the lens',
@@ -4236,6 +4242,10 @@ export function normalizeDaySlotStills(
       ...(still.adultHold === 'checking' || still.adultHold === 'withheld'
         ? { adultHold: still.adultHold }
         : {}),
+      ...(still.adultHold === 'withheld' &&
+      (still.adultHoldCause === 'age' || still.adultHoldCause === 'bare')
+        ? { adultHoldCause: still.adultHoldCause }
+        : {}),
       ...(still.adultGated === true ? { adultGated: true } : {}),
       ...(readText(still.engineNote, 160) ? { engineNote: readText(still.engineNote, 160) } : {}),
     });
@@ -4276,6 +4286,8 @@ export type DayGalleryEntry = {
   isClip?: boolean;
   /** The adult-appearance gate's mark (gallery-adult-check.ts). */
   adultCheck?: 'pending' | 'passed' | 'unchecked' | 'withheld';
+  /** Why a withheld take was withheld (the card's message). */
+  adultCheckCause?: 'age' | 'bare';
 };
 
 /** Merge gallery poll results into day slot stills by promptId (stills + clips). */
@@ -4312,8 +4324,10 @@ export function mergeDaySlotStills(
             : galleryStatus === 'completed'
               ? 'running'
               : galleryStatus;
+        const holdCause = hold === 'withheld' ? match!.adultCheckCause : undefined;
         if (
           still.adultHold !== hold ||
+          still.adultHoldCause !== holdCause ||
           still.status !== status ||
           still.imageUrl ||
           still.finishedUrl
@@ -4322,6 +4336,7 @@ export function mergeDaySlotStills(
           updated = {
             ...updated,
             adultHold: hold,
+            adultHoldCause: holdCause,
             status,
             imageUrl: undefined,
             finishedUrl: undefined,
@@ -4329,9 +4344,9 @@ export function mergeDaySlotStills(
           };
         }
       } else if (match && !match.isClip) {
-        if (updated.adultHold) {
+        if (updated.adultHold || updated.adultHoldCause) {
           changed = true;
-          updated = { ...updated, adultHold: undefined };
+          updated = { ...updated, adultHold: undefined, adultHoldCause: undefined };
         }
         const finished = still.finishedFor === stillId ? still.finishedUrl?.trim() || '' : '';
         const galleryImage = finished || match.imageUrl?.trim() || '';
