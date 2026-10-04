@@ -64,7 +64,12 @@ export default function SettingsIpAdapterPanel({
         <input
           id="settings-ipadapter-image"
           value={sharedSettings.ipAdapterImageFilename ?? ''}
-          onChange={event => updateSharedSettings({ ipAdapterImageFilename: event.target.value })}
+          onChange={event =>
+            updateSharedSettings({
+              ipAdapterImageFilename: event.target.value,
+              ipAdapterSource: 'own',
+            })
+          }
           placeholder="already-uploaded-file.png (or upload below)"
           disabled={!sharedMounted}
           className={`ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body ${accentFocusClass(ACCENT)}`}
@@ -86,7 +91,10 @@ export default function SettingsIpAdapterPanel({
                 setIpAdapterUploadStatus(null);
                 void uploadComfyInputImage({ file, model: sharedSettings.model })
                   .then(uploaded => {
-                    updateSharedSettings({ ipAdapterImageFilename: uploaded.name });
+                    updateSharedSettings({
+                      ipAdapterImageFilename: uploaded.name,
+                      ipAdapterSource: 'own',
+                    });
                     setIpAdapterUploadStatus(`Uploaded as ${uploaded.name}.`);
                   })
                   .catch(err => {
@@ -170,6 +178,7 @@ export default function SettingsIpAdapterPanel({
       ipAdapterImageFilenames: [],
       ipAdapterImageUrl: '',
       ipAdapterComfyUrl: '',
+      ipAdapterSource: undefined,
     });
 
   // Same fields as the Engine's Identity lock (More → Identity lock) — show the lock, keep the

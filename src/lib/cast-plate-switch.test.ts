@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { resetBrowserStorageCache } from './browser-storage';
-import { addBlankCastLook, removeCastPlate, switchCastPlate } from './cast-plate-switch';
+import {
+  addBlankCastLook,
+  followCastPlateInSessions,
+  removeCastPlate,
+  switchCastPlate,
+} from './cast-plate-switch';
 import {
   castLookDisplayName,
   castLookPortraitTile,
@@ -13,6 +18,7 @@ import {
 import {
   activeLook,
   applyCharacterRecordFresh,
+  characterWithLook,
   getCharacter,
   looksOf,
   setLookKeptOutfit,
@@ -20,7 +26,11 @@ import {
 } from './character-os';
 import { dayDressPlateRequestKey } from './day-dress-plate';
 import { resolveFittingPlateFromCharacter } from './fitting-room';
-import { assignOutfitPlateToCastAndFitting } from './look-outfit-plate';
+import {
+  assignOutfitPlateToCastAndFitting,
+  castFaceQueueParamsBase,
+  syncSharedIdentityToCast,
+} from './look-outfit-plate';
 import { keptLookOutfitFromTryOn } from './outfit-handoff';
 import {
   DEFAULT_DAY_TOOL_CACHE,
@@ -29,6 +39,7 @@ import {
   loadSettingsCache,
   loadToolSettings,
   saveSettingsCache,
+  saveSharedSettings,
   saveToolSettings,
 } from './settings-cache';
 
@@ -395,5 +406,70 @@ describe('several look plates per Cast', () => {
       castLookOutfitLabel('outfit-denim-jacket', { customGarmentImageFilename: 'x.png' }),
       'denim jacket'
     );
+  });
+
+  it('the face lock follows the look when it came from the look; an own face stays', () => {
+    installMemoryWindow();
+    const { lookA, lookB } = seedTwoPlates('char-lock');
+    const shared = () => loadSettingsCache().shared;
+    // Settings from before the source was recorded: the lock shows plate B's face.
+    saveSharedSettings({
+      ...shared(),
+      ipAdapterImageFilename: 'plate-b.png',
+      ipAdapterImageUrl: '/plates/b.png',
+      ipAdapterSource: undefined,
+    });
+    let cast = switchCastPlate('char-lock', lookA)!;
+    saveSharedSettings({ ...shared(), ...applyCharacterRecordFresh(cast) });
+    assert.equal(shared().ipAdapterImageFilename, 'plate-a.png');
+    assert.equal(shared().ipAdapterSource, 'look');
+    // A Day slot made in look B still queues with B's face.
+    const slotFace = castFaceQueueParamsBase(characterWithLook(cast, lookB), 0.6);
+    assert.equal(slotFace?.ipAdapterImageFilename, 'plate-b.png');
+
+    // The player's own face: kept on a look switch, on the queue sync, and on every still.
+    saveSharedSettings({
+      ...shared(),
+      ipAdapterImageFilename: 'holiday.png',
+      ipAdapterImageFilenames: ['holiday.png'],
+      ipAdapterImageUrl: '/media/holiday.png',
+      ipAdapterSource: 'own',
+    });
+    cast = switchCastPlate('char-lock', lookB)!;
+    saveSharedSettings({ ...shared(), ...applyCharacterRecordFresh(cast) });
+    syncSharedIdentityToCast(getCharacter('char-lock')!);
+    assert.equal(shared().ipAdapterImageFilename, 'holiday.png');
+    assert.equal(shared().ipAdapterSource, 'own');
+    assert.equal(
+      castFaceQueueParamsBase(getCharacter('char-lock'), 0.6)?.ipAdapterImageFilename,
+      'holiday.png'
+    );
+    // A slot in the other look too: the own face is the player's pick for every still.
+    assert.equal(
+      castFaceQueueParamsBase(characterWithLook(getCharacter('char-lock')!, lookA), 0.6)
+        ?.ipAdapterImageFilename,
+      'holiday.png'
+    );
+  });
+
+  it('a replaced plate moves a lock from the look to the new picture', () => {
+    installMemoryWindow();
+    seedTwoPlates('char-replace');
+    const before = getCharacter('char-replace')!;
+    const previous = resolveFittingPlateFromCharacter(before);
+    saveSharedSettings({
+      ...loadSettingsCache().shared,
+      ...applyCharacterRecordFresh(before),
+    });
+    assert.equal(loadSettingsCache().shared.ipAdapterImageFilename, 'plate-b.png');
+    const next = assignOutfitPlateToCastAndFitting({
+      characterId: 'char-replace',
+      imageUrl: '/plates/c.png',
+      filename: 'plate-c.png',
+      isolated: true,
+      syncFace: true,
+    })!;
+    followCastPlateInSessions('char-replace', previous, next, { fitting: false });
+    assert.equal(loadSettingsCache().shared.ipAdapterImageFilename, 'plate-c.png');
   });
 });

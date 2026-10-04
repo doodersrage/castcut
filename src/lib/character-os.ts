@@ -19,6 +19,12 @@ import {
   buildCharacterIdentityBundle,
 } from './character-identity-bundle';
 import { normalizeComposeIdentityKind } from './compose-identity-lock';
+import {
+  identityLockForLook,
+  identityLockSource,
+  lockOnLookFace,
+  lookFace,
+} from './identity-lock-look';
 import type { RoleplayLibrarySession } from './roleplay-library';
 import type { RoleplayBio, RoleplayContentId, RoleplayPlayAs, RoleplayTone } from './roleplay';
 import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from './settings-cache';
@@ -628,6 +634,7 @@ export function applyCharacterRecord(character: CharacterRecord): Partial<Shared
         ipAdapterComfyUrl: undefined,
         ipAdapterStrength: undefined,
         ipAdapterModelFilename: undefined,
+        ipAdapterSource: undefined,
         identityKind: undefined,
         activeLookId: undefined,
         lockedWardrobeId: undefined,
@@ -636,20 +643,37 @@ export function applyCharacterRecord(character: CharacterRecord): Partial<Shared
         alwaysIncludeClothing: undefined,
       }
     : {};
+  const { ipAdapterImageFilename: _bundleFace, ...bundleRest } = bundlePatch;
+  void _bundleFace;
   const applied = omitUndefinedSettings({
-    ...bundlePatch,
+    ...bundleRest,
     activeCharacterId: normalized.id,
     activeLookId: normalized.activeLookId,
-    ipAdapterImageFilenames: normalized.ipAdapter?.imageFilenames,
-    ipAdapterImageUrl: normalized.ipAdapter?.imageUrl,
-    ipAdapterComfyUrl: normalized.ipAdapter?.comfyUrl,
     identityKind: normalized.ipAdapter?.kind
       ? normalizeComposeIdentityKind(normalized.ipAdapter.kind)
       : undefined,
     ...(loraIds ? { sessionActiveLoraIds: loraIds } : {}),
     ...byModelPatch,
   });
-  return { ...clearPrevious, ...applied };
+  // The face lock follows the active look (identity-lock-look.ts): a lock from the look moves to
+  // this look's face; the player's own face stays. Another Cast starts on her look's face.
+  const look = activeLook(normalized);
+  const lockPatch =
+    previous === normalized.id
+      ? identityLockForLook({ lock: shared, looks: looksOf(normalized), look })
+      : switching || lookFace(look)?.filename
+        ? lockOnLookFace(look)
+        : {};
+  return { ...clearPrevious, ...applied, ...lockPatch };
+}
+
+/** Whether the session's face lock is the player's own face for this (already active) Cast. */
+function keepsOwnIdentityLock(character: CharacterRecord): boolean {
+  const shared = loadSettingsCache().shared;
+  return (
+    shared.activeCharacterId?.trim() === character.id &&
+    identityLockSource(shared, looksOf(character)) === 'own'
+  );
 }
 
 /**
@@ -659,17 +683,24 @@ export function applyCharacterRecord(character: CharacterRecord): Partial<Shared
  * Use when creating a blank Cast so the previous character's look does not stick.
  */
 export function applyCharacterRecordFresh(character: CharacterRecord): Partial<SharedToolSettings> {
+  // The same Cast with the player's own face locked (a look switch): that face stays.
+  const ownLock = keepsOwnIdentityLock(normalizeCharacterRecord(character));
   const applied = applyCharacterRecord(character);
   return {
     activeLookId: undefined,
     activeCharacterDescriptor: undefined,
-    ipAdapterImageFilename: undefined,
-    ipAdapterImageFilenames: undefined,
-    ipAdapterImageUrl: undefined,
-    ipAdapterComfyUrl: undefined,
-    ipAdapterStrength: undefined,
-    ipAdapterModelFilename: undefined,
-    identityKind: undefined,
+    ...(ownLock
+      ? {}
+      : {
+          ipAdapterImageFilename: undefined,
+          ipAdapterImageFilenames: undefined,
+          ipAdapterImageUrl: undefined,
+          ipAdapterComfyUrl: undefined,
+          ipAdapterSource: undefined,
+          ipAdapterStrength: undefined,
+          ipAdapterModelFilename: undefined,
+          identityKind: undefined,
+        }),
     lockedWardrobeId: undefined,
     lockedLocation: undefined,
     lockedVariationSeed: undefined,

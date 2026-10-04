@@ -167,6 +167,7 @@ export function useStudioToolOrchestrationCore() {
         alwaysIncludeClothing: patch.alwaysIncludeClothing,
         activeCharacterDescriptor: patch.activeCharacterDescriptor,
         ipAdapterImageFilename: patch.ipAdapterImageFilename,
+        ipAdapterSource: undefined,
         ipAdapterStrength: patch.ipAdapterStrength,
         ipAdapterModelFilename: patch.ipAdapterModelFilename,
       });

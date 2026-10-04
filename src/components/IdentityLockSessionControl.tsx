@@ -1,6 +1,13 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
+import {
+  activeLook,
+  getCharactersSnapshot,
+  getServerCharactersSnapshot,
+  looksOf,
+  subscribeCharacters,
+} from '@/lib/character-os';
 import {
   DEFAULT_COMPOSE_IDENTITY_KIND,
   DEFAULT_COMPOSE_IDENTITY_LOCK_STRENGTH,
@@ -10,6 +17,12 @@ import {
 } from '@/lib/compose-identity-lock';
 import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
 import { persistIdentityImage } from '@/lib/gallery-media-client';
+import {
+  identityLockLookStatus,
+  lockOnLookFace,
+  lookLockLabel,
+  type IdentityLockSource,
+} from '@/lib/identity-lock-look';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 
 const IDENTITY_KINDS: Array<{ id: ComposeIdentityKind; label: string }> = [
@@ -26,6 +39,8 @@ export default function IdentityLockSessionControl({
   strength,
   identityKind,
   cloud,
+  activeCharacterId,
+  source,
   onChange,
 }: {
   model?: string;
@@ -34,8 +49,31 @@ export default function IdentityLockSessionControl({
   strength?: number;
   identityKind?: ComposeIdentityKind;
   cloud?: boolean;
+  /** The active Cast: the lock follows her look unless it is the player's own face. */
+  activeCharacterId?: string;
+  source?: IdentityLockSource;
   onChange: (patch: Partial<SharedToolSettings>) => void;
 }) {
+  const characters = useSyncExternalStore(
+    subscribeCharacters,
+    getCharactersSnapshot,
+    getServerCharactersSnapshot
+  );
+  const cast = activeCharacterId?.trim()
+    ? characters.find(entry => entry.id === activeCharacterId.trim())
+    : undefined;
+  const castLook = cast ? activeLook(cast) : undefined;
+  const lookStatus = cast
+    ? identityLockLookStatus({
+        lock: {
+          ipAdapterImageFilename: filename,
+          ipAdapterImageUrl: imageUrl,
+          ipAdapterSource: source,
+        },
+        looks: looksOf(cast),
+        activeLook: castLook,
+      })
+    : null;
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -55,6 +93,7 @@ export default function IdentityLockSessionControl({
       ipAdapterImageFilenames: [],
       ipAdapterImageUrl: '',
       ipAdapterComfyUrl: '',
+      ipAdapterSource: undefined,
     });
     setStatus(null);
     if (fileRef.current) {
@@ -95,6 +134,35 @@ export default function IdentityLockSessionControl({
           </span>
         </span>
       </label>
+      {locked && lookStatus?.kind === 'look' ? (
+        <p className="pl-7 text-xs text-[var(--text-secondary)]" data-testid="identity-lock-from">
+          Face: {lookLockLabel(lookStatus.lookName)}
+        </p>
+      ) : null}
+      {locked && lookStatus?.kind === 'own' ? (
+        <p
+          className="flex flex-wrap items-center gap-2 pl-7 text-xs text-[var(--text-secondary)]"
+          data-testid="identity-lock-from"
+        >
+          <span>Your own face</span>
+          {lookStatus.canUseLook && castLook ? (
+            <>
+              <span aria-hidden="true">—</span>
+              <button
+                type="button"
+                onClick={() => {
+                  persist(lockOnLookFace(castLook));
+                  setStatus(null);
+                }}
+                className="rounded-lg border border-[var(--border-subtle)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                title={`Lock the face of ${lookLockLabel(lookStatus.lookName ?? '')} instead`}
+              >
+                Use this look&rsquo;s
+              </button>
+            </>
+          ) : null}
+        </p>
+      ) : null}
       <input
         ref={fileRef}
         type="file"
@@ -117,6 +185,8 @@ export default function IdentityLockSessionControl({
                 ipAdapterImageFilenames: [uploaded.name],
                 ipAdapterImageUrl: durableUrl || previewUrl,
                 ipAdapterComfyUrl: uploaded.comfyUrl,
+                // The player's own face: it stays when the Cast's look changes.
+                ipAdapterSource: 'own',
                 ipAdapterStrength: weight,
                 identityKind: kind,
               });

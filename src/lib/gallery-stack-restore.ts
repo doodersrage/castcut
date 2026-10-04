@@ -217,6 +217,8 @@ export function applyGalleryStackToShared<T extends SharedToolSettings>(
       ...next,
       ipAdapterImageFilename: identityFilename,
       ipAdapterImageFilenames: stack.length > 0 ? stack : [identityFilename],
+      // Restored, not picked: from the look when it shows one (identity-lock-look.ts).
+      ipAdapterSource: undefined,
       ipAdapterStrength:
         entry.queueParams?.ipAdapterStrength != null
           ? normalizeComposeIdentityLockStrength(entry.queueParams.ipAdapterStrength)

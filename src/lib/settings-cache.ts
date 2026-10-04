@@ -682,6 +682,12 @@ export type SharedToolSettings = {
   /** Comfy host that holds ipAdapterImageFilename (pin queue when identity is on). */
   ipAdapterComfyUrl?: string;
   /**
+   * Where the lock picture comes from (identity-lock-look.ts): 'look' — the active look's face,
+   * moved to the new look's on a look switch; 'own' — the player's own face, kept. Unset (older
+   * settings): a lock showing one of the Cast's looks counts as 'look', anything else as 'own'.
+   */
+  ipAdapterSource?: import('./identity-lock-look').IdentityLockSource;
+  /**
    * Current-model LoRA picks mirrored for queue/recipes. Prefer
    * sessionActiveLoraIdsByModel for per-model persistence.
    */

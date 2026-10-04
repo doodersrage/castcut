@@ -372,6 +372,8 @@ export function applySessionRecipeShared<T extends SessionRecipeShared>(
       ipAdapterImageFilenames: snap.ipAdapterImageFilenames?.length
         ? snap.ipAdapterImageFilenames
         : [snap.ipAdapterImageFilename],
+      // Restored, not picked: from the look when it shows one (identity-lock-look.ts).
+      ipAdapterSource: undefined,
       ...(snap.ipAdapterComfyUrl ? { ipAdapterComfyUrl: snap.ipAdapterComfyUrl } : {}),
       ...(snap.ipAdapterStrength != null ? { ipAdapterStrength: snap.ipAdapterStrength } : {}),
       ...(snap.identityKind ? { identityKind: snap.identityKind } : {}),

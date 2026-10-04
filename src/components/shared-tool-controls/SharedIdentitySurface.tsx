@@ -63,6 +63,8 @@ export default function SharedIdentitySurface({
             imageUrl={shared.ipAdapterImageUrl}
             strength={shared.ipAdapterStrength}
             identityKind={shared.identityKind}
+            activeCharacterId={shared.activeCharacterId}
+            source={shared.ipAdapterSource}
             onChange={applyIdentityPatch}
           />
         </CollapsibleSection>
@@ -86,6 +88,8 @@ export default function SharedIdentitySurface({
             imageUrl={shared.ipAdapterImageUrl}
             strength={shared.ipAdapterStrength}
             identityKind={shared.identityKind}
+            activeCharacterId={shared.activeCharacterId}
+            source={shared.ipAdapterSource}
             cloud
             onChange={applyIdentityPatch}
           />

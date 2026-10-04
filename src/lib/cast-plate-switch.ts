@@ -32,8 +32,10 @@ import {
   DEFAULT_ROLEPLAY_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
+  saveSharedSettings,
   saveToolSettings,
 } from '@/lib/settings-cache';
+import { identityLockForLook, identityLockPatchChanges } from '@/lib/identity-lock-look';
 
 function samePlatePicture(
   session: { referenceImageUrl?: string; referenceImageFilename?: string },
@@ -54,7 +56,8 @@ function samePlatePicture(
  * After the Cast's plate changed (another plate picked, added or removed): Outfit's session plate
  * follows, as on an upload, and Story's From-photo follows when it was the previous plate (a
  * photo picked in Story stays). Day and the dressed plates read the Cast plate itself; dressed
- * plates are keyed by the plate's filename, so each plate keeps its own.
+ * plates are keyed by the plate's filename, so each plate keeps its own. The Engine's face lock
+ * moves to the new plate's face when it was the look's (identity-lock-look.ts).
  */
 export function followCastPlateInSessions(
   characterId: string,
@@ -62,9 +65,23 @@ export function followCastPlateInSessions(
   next: CharacterRecord,
   options?: { fitting?: boolean }
 ): void {
-  const activeId = loadSettingsCache().shared.activeCharacterId?.trim();
+  const shared = loadSettingsCache().shared;
+  const activeId = shared.activeCharacterId?.trim();
   if (activeId && activeId !== characterId) {
     return;
+  }
+  if (activeId) {
+    // The face lock follows the look's plate when it came from the look (the previous plate
+    // counts: a replaced plate is no longer on the Cast); the player's own face stays.
+    const lockPatch = identityLockForLook({
+      lock: shared,
+      looks: looksOf(next),
+      look: activeLook(next),
+      alsoLook: [previous],
+    });
+    if (identityLockPatchChanges(shared, lockPatch)) {
+      saveSharedSettings({ ...shared, ...lockPatch }, { notify: true });
+    }
   }
   const plate = resolveFittingPlateFromCharacter(next);
   if (options?.fitting !== false) {

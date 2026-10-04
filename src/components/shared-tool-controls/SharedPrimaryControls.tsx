@@ -233,6 +233,7 @@ export default function SharedPrimaryControls({
                 ipAdapterImageFilenames: [] as string[],
                 ipAdapterImageUrl: '',
                 ipAdapterComfyUrl: '',
+                ipAdapterSource: undefined,
               };
               if (onSharedSettingsChange) {
                 onSharedSettingsChange(patch);

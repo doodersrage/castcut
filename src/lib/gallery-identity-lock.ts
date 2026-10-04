@@ -76,6 +76,8 @@ export async function applyGalleryFaceToSession(
         ipAdapterImageFilenames: [filename],
         ipAdapterImageUrl: durableUrl || viewUrl,
         ipAdapterComfyUrl: uploaded.comfyUrl,
+        // A face picked by the player: it stays when the Cast's look changes.
+        ipAdapterSource: 'own',
         ipAdapterStrength: normalizeComposeIdentityLockStrength(
           shared.ipAdapterStrength ?? DEFAULT_COMPOSE_IDENTITY_LOCK_STRENGTH
         ),

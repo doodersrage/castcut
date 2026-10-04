@@ -110,6 +110,7 @@ export function useSharedToolGenerationRecipes(
       ipAdapterImageFilename: next.ipAdapterImageFilename,
       ipAdapterImageFilenames: next.ipAdapterImageFilenames,
       ipAdapterComfyUrl: next.ipAdapterComfyUrl,
+      ipAdapterSource: next.ipAdapterSource,
       ipAdapterStrength: next.ipAdapterStrength,
       identityKind: next.identityKind,
       toolQueueQualityProfiles: next.toolQueueQualityProfiles,

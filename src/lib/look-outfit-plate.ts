@@ -4,10 +4,12 @@ import {
   castLoraSessionIds,
   createLookId,
   getCharacter,
+  looksOf,
   upsertCharacter,
   withNewPlateLook,
   type CharacterRecord,
 } from '@/lib/character-os';
+import { ownIdentityLockFilename } from '@/lib/identity-lock-look';
 import { sanitizeCharacterAppearanceDescriptor } from '@/lib/character-appearance';
 import { followCastPlateInSessions } from '@/lib/cast-plate-switch';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
@@ -339,7 +341,23 @@ export function resolveCastFaceForPlate(character: CharacterRecord | null | unde
 }
 
 /**
- * Job-pinned IP-Adapter params from the Cast look/face lock.
+ * The player's own face lock (Engine → Identity lock), when this Cast is the active one and the
+ * lock is not from a look (identity-lock-look.ts). It goes on the Cast's stills in every look.
+ */
+function ownIdentityLockForCast(character: CharacterRecord | null | undefined): string | undefined {
+  if (!character || typeof window === 'undefined') {
+    return undefined;
+  }
+  const shared = loadSettingsCache().shared;
+  if (shared.activeCharacterId?.trim() !== character.id) {
+    return undefined;
+  }
+  return ownIdentityLockFilename(shared, looksOf(character));
+}
+
+/**
+ * Job-pinned IP-Adapter params from the Cast look/face lock (the player's own face when the lock
+ * is theirs; else the look's — a Day slot in another look gets that look's face).
  * Use as `queueParamsBase` so Day/Outfit queues keep identity even when session shared is stale.
  */
 export function castFaceQueueParamsBase(
@@ -352,7 +370,8 @@ export function castFaceQueueParamsBase(
       ipAdapterStrength?: number;
     }
   | undefined {
-  const filename = resolveCastFaceForPlate(character)?.filename?.trim();
+  const filename =
+    ownIdentityLockForCast(character) || resolveCastFaceForPlate(character)?.filename?.trim();
   if (!filename) {
     return undefined;
   }

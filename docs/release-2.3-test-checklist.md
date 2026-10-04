@@ -16,6 +16,13 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
   removed. Checked live (desk + phone).
 - [ ] **A plate per look** — on a new look, *Replace* the plate with another photo; the other
   looks keep their own pictures. Checked live.
+- [ ] **The face lock follows the look** — with two looks, open an Engine panel → *Identity
+  lock*: it reads *Face: Studio look* (the active look's plate face). Switch to the other look on
+  the Cast page, in the Cast picker, on Day's *Look & clothing* or by replacing the plate: the
+  lock picture and the line change to that look. Now upload your own face there (or *Lock this
+  face* on a gallery still) and switch looks again: it stays and reads *Your own face — Use this
+  look's*; that button puts the look's face back. A Day slot in another look still renders with
+  that look's face (when the lock is from the look).
 - [ ] **Switching looks while Outfit is open** — open Outfit, change the look in the Cast picker's
   Look row: Outfit's plate changes without a reload. Checked live.
 - [ ] **Uploading a plate stays on the Cast page** — no jump to Outfit; the status line says to
