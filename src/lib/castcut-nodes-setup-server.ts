@@ -94,7 +94,7 @@ export type CastcutNodesInstallResult =
   | { ok: false; code: ManagerInstallErrorCode | 'no_manager'; message: string };
 
 /**
- * Install the pack with ComfyUI-Manager: by registry id once it is published there, by Git URL
+ * Install the pack with ComfyUI-Manager: by registry id when the Manager lists it, by Git URL
  * until then. ComfyUI must restart afterwards to load it.
  */
 export async function installCastcutNodesWithManager(

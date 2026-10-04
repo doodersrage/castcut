@@ -11,9 +11,9 @@ export const CASTCUT_NODES_BUNDLED_VERSION = '1.1.0';
 export const CASTCUT_NODES_FILE_NAME = 'castcut_nodes.py';
 /** The app serves its bundled copy here (src/app/api/castcut-nodes/file/route.ts). */
 export const CASTCUT_NODES_FILE_ROUTE = '/api/castcut-nodes/file';
-/** Comfy Registry id (comfyui-nodes/castcut/pyproject.toml `name`) — once it is published. */
+/** Comfy Registry id (comfyui-nodes/castcut/pyproject.toml `name`; published by doodersrage). */
 export const CASTCUT_NODES_REGISTRY_ID = 'castcut-nodes';
-/** Git install today: the whole Castcut repo (its root __init__.py loads only the pack). */
+/** Git install: the standalone pack repository. */
 export const CASTCUT_NODES_GIT_URL = 'https://github.com/doodersrage/castcut-nodes';
 export const CASTCUT_NODES_DOCS_URL =
   'https://github.com/doodersrage/castcut/blob/main/docs/castcut-nodes.md';
@@ -338,14 +338,14 @@ export function buildCastcutInstallCommands(input: {
     label: 'Clone with git',
     shell: windows ? 'powershell' : 'bash',
     command: `${layout.needsSudo ? 'sudo ' : ''}git clone ${CASTCUT_NODES_GIT_URL} "${joinPath(customNodes, 'castcut', windows)}"`,
-    note: 'Clones the whole Castcut repository; its root __init__.py loads only the node pack. Update later with git pull. Use this or the file copy, not both.',
+    note: 'Clones the node pack repository. Update later with git pull. Use this or the file copy, not both.',
   });
   commands.push({
     id: 'comfy-cli',
     label: 'comfy-cli',
     shell: windows ? 'powershell' : 'bash',
     command: `comfy node install ${CASTCUT_NODES_REGISTRY_ID}`,
-    note: `Works once ${CASTCUT_NODES_REGISTRY_ID} is published to the Comfy Registry; until then use the file copy.`,
+    note: `Installs ${CASTCUT_NODES_REGISTRY_ID} from the Comfy Registry.`,
   });
   const containerDir =
     layout.container && layout.customNodesDir ? layout.customNodesDir : '/app/custom_nodes';
