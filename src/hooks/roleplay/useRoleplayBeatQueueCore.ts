@@ -65,6 +65,10 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import type { RoleplayBeatOutput } from '@/lib/roleplay-film';
+import { withStoryAdultAges } from '@/lib/story-adult-ages';
+import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
+import { storyRatingNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
+import type { CharacterAgeBand } from '@/lib/character-appearance';
 import { roleplaySceneWritePlan, storyHasBeat } from '@/lib/roleplay-story-write';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { dispatchWebhook } from '@/lib/webhook-settings';
@@ -132,20 +136,45 @@ function leadIsMan(): boolean {
   });
 }
 
+/** The story lead's age for the adult age sentence: the Cast's picked age, else its look. */
+function storyLeadAge(): { leadAgeBand?: CharacterAgeBand; leadDescriptor?: string } {
+  const cache = loadSettingsCache();
+  const castId = cache.shared.activeCharacterId?.trim();
+  const cast = castId ? getCharacter(castId) : null;
+  return {
+    leadAgeBand: cast?.traits?.ageBand,
+    leadDescriptor: cast?.descriptor || cache.tools.roleplay?.bio?.look || undefined,
+  };
+}
+
 /**
  * Text contradictions in a still's prompt (still-prompt-audit): what can be repaired without
  * guessing is repaired, the rest raises a notice. Never a block — returns the prompt to queue
- * and the record the beat card shows (undefined when the prompt was clean).
+ * and the record the beat card shows (undefined when the prompt was clean). On an adult-rated
+ * story the adult safeguards go on last (story-adult-ages.ts): everyone's age, no youth words.
  */
 function checkedStoryPrompt(
   prompt: string,
   label: string | undefined,
   people?: number,
-  manLead = false
+  manLead = false,
+  adult?: { content: RoleplayContentId; strong?: boolean }
 ): { prompt: string; promptCheck: StillPromptCheck | undefined } {
-  const checked = repairStillPrompt(manLead ? storyPromptForManLead(prompt) : prompt, {
+  const repaired = repairStillPrompt(manLead ? storyPromptForManLead(prompt) : prompt, {
     people: people || undefined,
   });
+  const checked = adult
+    ? {
+        ...repaired,
+        prompt: withStoryAdultAges(repaired.prompt, {
+          content: adult.content,
+          manLead,
+          people,
+          strong: adult.strong,
+          ...storyLeadAge(),
+        }),
+      }
+    : repaired;
   if (checked.remaining.length > 0) {
     console.warn('Story prompt check:', label, checked.remaining, checked.prompt);
     pushSystemTrayMessage({
@@ -202,6 +231,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
   } = options;
   // Clean / PG-13 / Suggestive: "leans against a brick wall" must not become a wall-sex duo.
   const adult = isRoleplayAdultContent(content);
+  // Suggestive and the adult ratings: photo stills wait for the adult-appearance gate.
+  const adultGated = playAs === 'photo' && storyRatingNeedsAdultSafeguards(content);
   const hasOutfitImage = Boolean(
     toolSettings.wardrobeId ||
     shared.lockedWardrobeId ||
@@ -845,7 +876,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(prompt) : prompt),
           beat.title,
           poseGuide?.prompt.headcount,
-          leadIsMan()
+          leadIsMan(),
+          { content }
         );
         const promptId = await actions.sendComfyUi(
           kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
@@ -868,6 +900,10 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
                     ...nudeFaceIdentityParams(nudeFace),
                   },
                 }
+              : {}),
+            // Held until the adult-appearance gate passes it (useStoryAdultGate).
+            ...(adultGated || (playAs === 'photo' && isAdultContentPrompt(sentPrompt))
+              ? { adultGate: {} }
               : {}),
           }
         );
@@ -905,6 +941,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     [
       actions,
       adult,
+      adultGated,
+      content,
       dressForRating,
       resolveNudeFaceForBeat,
       resolveKleinFaceReferenceForBeat,
@@ -925,7 +963,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
   );
 
   const queueBeat = useCallback(
-    async (beat: RoleplayStoryBeat, options?: { retry?: boolean }) => {
+    async (
+      beat: RoleplayStoryBeat,
+      options?: {
+        retry?: boolean;
+        /** The adult-appearance gate withheld the last take: say the ages more strongly. */
+        strongAgeLine?: boolean;
+      }
+    ) => {
       const prompt = beat.prompt?.trim();
       if (!prompt) {
         return;
@@ -1044,7 +1089,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           rapidRecipe ?? (fromDressPlate ? storyDressPlatePrompt(queuePrompt) : queuePrompt),
           latest.title,
           poseGuide?.prompt.headcount,
-          leadIsMan()
+          leadIsMan(),
+          { content, strong: options?.strongAgeLine === true }
         );
         const sentPrompt = checked.prompt;
         promptCheck = checked.promptCheck;
@@ -1074,6 +1120,10 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
                   derivedKind: 'variation' as const,
                   parentGalleryEntryId: parentEntry?.id,
                 }
+              : {}),
+            // Held until the adult-appearance gate passes it (useStoryAdultGate).
+            ...(adultGated || (playAs === 'photo' && isAdultContentPrompt(sentPrompt))
+              ? { adultGate: { strong: options?.strongAgeLine === true } }
               : {}),
           }
         );
@@ -1108,6 +1158,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     [
       actions,
       adult,
+      adultGated,
+      content,
+      playAs,
       dressForRating,
       resolveNudeFaceForBeat,
       resolveKleinFaceReferenceForBeat,

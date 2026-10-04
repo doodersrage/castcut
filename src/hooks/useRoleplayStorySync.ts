@@ -42,6 +42,7 @@ export function useRoleplayStorySync(
           promptId: entry.promptId,
           status: entry.status,
           imageUrl: galleryEntryPrimaryViewUrl(entry),
+          adultCheck: entry.adultCheck?.state,
         }));
       const merged = mergeRoleplayStoryStills(current, stills);
       if (merged.changed) {

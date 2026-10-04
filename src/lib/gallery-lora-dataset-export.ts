@@ -1,4 +1,5 @@
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import { withoutHiddenGalleryEntries } from './gallery-adult-check';
 import { buildComfyViewPath, type ComfyOutputImage } from './comfyui-outputs';
 import { buildZipBlob, type ZipFileEntry } from './gallery-zip-export';
 import { isAssembledFilmEntry } from './character-film';
@@ -43,7 +44,7 @@ export function selectLoraDatasetEntries(
       ? entries.filter(entry => selectedIdSet.has(entry.id))
       : entries.filter(entry => entry.favorite === true || (entry.reviewRating ?? 0) >= minRating);
 
-  return candidates.filter(
+  return withoutHiddenGalleryEntries(candidates).filter(
     entry =>
       entry.status === 'completed' && entry.images.length > 0 && Boolean(entry.prompt?.trim())
   );

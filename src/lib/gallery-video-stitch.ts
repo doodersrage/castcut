@@ -9,11 +9,12 @@ import {
   type ComfyGalleryEntry,
 } from './comfyui-gallery';
 import { filmMediaLooksVideo, type FilmMediaRef, type FilmPlaylistShot } from './character-film';
+import { isGalleryEntryHidden } from './gallery-adult-check';
 
 export const MIN_GALLERY_STITCH_CLIPS = 2;
 
 export function isGalleryStitchableVideo(entry: FilmMediaRef): boolean {
-  if (entry.status !== 'completed') {
+  if (entry.status !== 'completed' || isGalleryEntryHidden(entry)) {
     return false;
   }
   const url = entry.viewUrl?.trim() || entry.sourceImageUrl?.trim() || '';
@@ -31,6 +32,7 @@ export function galleryEntryToStitchMedia(entry: ComfyGalleryEntry): FilmMediaRe
     tool: entry.tool,
     queuedAt: entry.queuedAt,
     completedAt: entry.completedAt,
+    adultCheck: entry.adultCheck,
     prompt: entry.prompt,
     viewUrl: galleryEntryPrimaryViewUrl(entry),
     sourceImageUrl: entry.sourceImageUrl,

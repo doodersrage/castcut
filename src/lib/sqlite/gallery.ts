@@ -1,5 +1,6 @@
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { decodeJson, encodeJson, getStudioDb, withStudioTransaction } from './studio-db';
+import { isGalleryEntryHidden } from '@/lib/gallery-adult-check';
 
 /** Soft cap on gallery rows returned through the blob `/api/storage` API. */
 export const MAX_SERVER_GALLERY_READ = 20_000;
@@ -37,7 +38,13 @@ export function upsertGalleryEntries(owner: string, data: unknown): void {
         (owner, id, prompt_id, queued_at, completed_at, json, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     );
+    const drop = db.prepare(`DELETE FROM gallery_entries WHERE owner = ? AND id = ?`);
     for (const entry of entries) {
+      // Held or withheld by the adult-appearance gate: the server keeps no copy.
+      if (isGalleryEntryHidden(entry)) {
+        drop.run(owner, entry.id);
+        continue;
+      }
       stmt.run(
         owner,
         entry.id,
@@ -67,7 +74,7 @@ export function readGalleryEntries(owner: string): ComfyGalleryEntry[] {
     }
     try {
       const parsed = decodeJson<ComfyGalleryEntry>(row.json);
-      if (parsed?.id) {
+      if (parsed?.id && !isGalleryEntryHidden(parsed)) {
         entries.push(parsed);
       }
     } catch {

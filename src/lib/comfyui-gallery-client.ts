@@ -12,7 +12,7 @@ import { formatComfyUiJobStatusLine, type ComfyUiJobTrackerState } from './comfy
 import { notifyComfyJobComplete } from './comfyui-notifications';
 import { resolveComfyUiRuntime } from './comfyui-runtime';
 import { loadComfyUiSettings } from './comfyui-settings';
-import { clearComfyLivePreviewUrl } from './comfyui-live-preview-store';
+import { clearComfyLivePreviewUrl, suppressComfyLivePreview } from './comfyui-live-preview-store';
 import { getEngineAdapter, getEngineAdapterById } from './engine';
 import { isCloudEngine } from './engine/capabilities';
 import type { EngineProgressSubscription } from './engine';
@@ -20,6 +20,7 @@ import { dispatchWebhook } from './webhook-settings';
 import { noteScheduledBatchJobComplete } from './scheduled-batch-tracker';
 import { noteJobCompletionEmail } from './job-completion-email';
 import { autoTagGalleryEntry } from './gallery-auto-vision-tags';
+import { inheritedAdultCheck, isGalleryEntryHidden } from './gallery-adult-check';
 import { backfillHistoryGalleryLink } from './prompt-lineage';
 import { mapWithConcurrency } from './concurrency';
 import {
@@ -89,6 +90,8 @@ export type RegisterComfyGalleryJobInput = {
   /** Inference engine for this job (defaults to active adapter). */
   engineId?: ComfyGalleryEntry['engineId'];
   clientId?: string;
+  /** Held by the adult-appearance gate from the start (gallery-adult-check.ts). */
+  adultCheck?: ComfyGalleryEntry['adultCheck'];
 };
 
 export type PollComfyGalleryJobOptions = {
@@ -196,6 +199,32 @@ export function inheritGallerySessionFields(
   };
 }
 
+/**
+ * Best-effort: pull every output in this job (image or video, any engine) into durable storage
+ * so the gallery still has it once the source engine cleans up its own output history. Also run
+ * when the adult-appearance gate passes a held still (it is not copied while held).
+ */
+export async function persistCompletedGalleryMedia(entry: ComfyGalleryEntry): Promise<void> {
+  const { persistGalleryMedia } = await import('./gallery-media-client');
+  const result = await persistGalleryMedia(entry);
+  if (!result) {
+    return;
+  }
+  const patch: Partial<ComfyGalleryEntry> = {
+    durableThumbPaths: result.thumbPaths,
+    durableOriginalPaths: result.originalPaths,
+  };
+  // Legacy single-value fields always mirror index 0 — several single-image call sites
+  // (uploads, film assembly, requeue-from) still read these directly instead of the arrays.
+  if (result.thumbPaths[0]) {
+    patch.durableThumbPath = result.thumbPaths[0];
+  }
+  if (result.originalPaths[0]) {
+    patch.durableOriginalPath = result.originalPaths[0];
+  }
+  updateComfyGalleryEntryById(entry.id, patch);
+}
+
 export function registerComfyGalleryJob(input: RegisterComfyGalleryJobInput): ComfyGalleryEntry {
   const imageUrls = buildGalleryImageUrlsFromQueueParams({
     comfyUrl: input.comfyUrl,
@@ -215,6 +244,14 @@ export function registerComfyGalleryJob(input: RegisterComfyGalleryJobInput): Co
       });
     });
   }
+  // Held by the adult-appearance gate: asked for, or derived from a held / withheld still.
+  const parentId = input.parentGalleryEntryId?.trim();
+  const adultCheck =
+    input.adultCheck ??
+    inheritedAdultCheck(
+      parentId ? loadComfyGallery().find(galleryEntry => galleryEntry.id === parentId) : undefined,
+      input.derivedKind
+    );
   const entry = addComfyGalleryEntry({
     promptId: input.promptId,
     prompt: input.prompt,
@@ -246,7 +283,12 @@ export function registerComfyGalleryJob(input: RegisterComfyGalleryJobInput): Co
     clientId: input.clientId,
     status: 'pending',
     statusMessage: 'Queued',
+    ...(adultCheck ? { adultCheck } : {}),
   });
+  if (isGalleryEntryHidden(entry)) {
+    // Held by the adult-appearance gate: no live frames while it renders either.
+    suppressComfyLivePreview(entry.promptId);
+  }
   backfillHistoryGalleryLink(entry);
   return entry;
 }
@@ -730,45 +772,29 @@ function applyComfyJobStatus(
       // Comfy on the default Comfy host (entry.comfyUrl is the Diffusers URL).
       void freeComfyUiMemory(entry.engineId === 'diffusers' ? undefined : entry.comfyUrl);
     }
-    void autoTagGalleryEntry(entry);
+    // A still the adult-appearance gate holds (or withheld) is not tagged, copied to durable
+    // storage or announced; the gate's pass copies it (persistPassedGalleryMedia).
+    const held = isGalleryEntryHidden(entry);
+    if (!held) void autoTagGalleryEntry(entry);
     // Best-effort: pull every output in this job (image or video, any engine)
     // into durable storage — including every frame of a multi-image batch,
     // not just the first — so the gallery still has it once the source
     // engine cleans up its own output history. See gallery-media-client.ts.
-    void import('./gallery-media-client').then(({ persistGalleryMedia }) => {
-      void persistGalleryMedia(entry).then(result => {
-        if (!result) {
-          return;
-        }
-        const patch: Partial<ComfyGalleryEntry> = {
-          durableThumbPaths: result.thumbPaths,
-          durableOriginalPaths: result.originalPaths,
-        };
-        // Legacy single-value fields always mirror index 0 — several
-        // single-image call sites (uploads, film assembly, requeue-from)
-        // still read these directly instead of the arrays above.
-        if (result.thumbPaths[0]) {
-          patch.durableThumbPath = result.thumbPaths[0];
-        }
-        if (result.originalPaths[0]) {
-          patch.durableOriginalPath = result.originalPaths[0];
-        }
-        updateComfyGalleryEntryById(entry.id, patch);
-      });
-    });
+    if (!held) void persistCompletedGalleryMedia(entry);
     noteScheduledBatchJobComplete(entry.tool);
-    void dispatchWebhook({
-      event: 'comfyui.job.completed',
-      promptId,
-      prompt: entry.prompt,
-      negativePrompt: entry.negativePrompt,
-      model: entry.model,
-      tool: entry.tool,
-      status: entry.status,
-      imageCount: entry.images.length,
-      queueParams: entry.queueParams,
-      completedAt: entry.completedAt ?? Date.now(),
-    });
+    if (!held)
+      void dispatchWebhook({
+        event: 'comfyui.job.completed',
+        promptId,
+        prompt: entry.prompt,
+        negativePrompt: entry.negativePrompt,
+        model: entry.model,
+        tool: entry.tool,
+        status: entry.status,
+        imageCount: entry.images.length,
+        queueParams: entry.queueParams,
+        completedAt: entry.completedAt ?? Date.now(),
+      });
 
     // Simple-mode first completed render (success metric beyond queue accept).
     void import('./workspace-mode').then(({ isLeanWorkspaceMode, loadWorkspaceMode }) => {

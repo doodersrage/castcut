@@ -192,7 +192,8 @@ const SUBJECTS_WOMEN = [
   'a short stocky woman in her thirties with a buzzed undercut, round face, and bright hazel eyes',
   'a tall thin woman in her forties with a long aquiline nose, pale skin, and a severe center-part bun',
   'a Black woman in her fifties with close-cropped silver hair, bold cheekbones, and a calm heavy-lidded gaze',
-  'a Latina teenager with a soft baby face, braces, dark wavy bangs, and a constellation of acne scars healing on her cheeks',
+  // Identity seeds become Cast people, who can be used on adult stills: adults only.
+  'a Latina woman in her late twenties with a round face, dark wavy bangs, and faint acne scars on her cheeks',
   'a white woman in her sixties with a soft jowl line, short steel-gray hair, and watery blue eyes',
   'a South Asian woman in her early twenties with a long braid, a small bindi, almond eyes, and a pointed chin',
   'a Polynesian woman in her thirties with sun-darkened skin, full cheeks, thick black hair in a low bun, and warm brown eyes',
@@ -201,7 +202,7 @@ const SUBJECTS_WOMEN = [
 
 const SUBJECTS_MEN = [
   'an elderly white man with a creased face, silver stubble, a bulbous nose, and work-worn hands',
-  'a teenage East Asian man with messy hair, freckles across the nose, and a shy half-smile showing slightly uneven teeth',
+  'an East Asian man in his late twenties with messy hair, freckles across the nose, and a shy half-smile showing slightly uneven teeth',
   'a muscular Polynesian man with traditional arm tattoos, a broad flat nose, and sun-darkened skin',
   'a stocky Mediterranean man with olive skin, a thick beard, a square jaw, and deep-set brown eyes',
   'a heavyset middle-aged Black man with a bald head, warm expression, and soft folds at the neck',
@@ -218,7 +219,7 @@ const SUBJECTS_MEN = [
   'a thin elderly East Asian man with sparse white hair, deep wrinkles, and a small neat mustache',
   'a short compact white man in his twenties with a ginger beard, pale lashes, and a snub nose',
   'a tall lanky Black man in his forties with a salt-and-pepper goatee, narrow shoulders, and deep-set eyes',
-  'a Mediterranean teenager with olive skin, a soft mustache just starting, and oversized ears',
+  'a Mediterranean man in his late twenties with olive skin, a thin mustache, and oversized ears',
   'a wheelchair-using man in his thirties with buzzed hair, sharp features, and a vintage bomber jacket',
   'a heavyset middle-aged man with a bald head, warm expression, and paint-stained apron',
   'a monk with a shaved head, deep brown robes, and ink-stained fingers',

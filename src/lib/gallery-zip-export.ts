@@ -2,6 +2,7 @@ import { buildGallerySidecar } from './comfyui-gallery-export';
 import { galleryEntryDownloadUrls, type ComfyGalleryEntry } from './comfyui-gallery';
 import { mapWithConcurrency } from './concurrency';
 import { buildZipBlob, type ZipFileEntry } from './gallery-zip-core';
+import { withoutHiddenGalleryEntries } from './gallery-adult-check';
 
 export type { ZipFileEntry } from './gallery-zip-core';
 export { buildZipBlob } from './gallery-zip-core';
@@ -13,6 +14,8 @@ export async function downloadGalleryZipBundle(
   entries: ComfyGalleryEntry[],
   options?: { filename?: string }
 ): Promise<{ entryCount: number; imageCount: number }> {
+  // Held or withheld by the adult-appearance gate: never exported.
+  entries = withoutHiddenGalleryEntries(entries);
   // Per-entry sidecar.json is synchronous; only the /view image fetch is
   // async, so mapWithConcurrency parallelizes just that instead of
   // serializing every entry's fetch behind the last one (was a plain

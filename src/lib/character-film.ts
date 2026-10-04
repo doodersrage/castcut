@@ -4,6 +4,7 @@
  */
 
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import { isGalleryEntryHidden } from './gallery-adult-check';
 import { lastCompletedRoleplayStillUrl, type RoleplayStoryBeat } from './roleplay';
 import { isVideoLikeEntry, looksLikeMotionUrl } from './roleplay-film';
 
@@ -39,7 +40,7 @@ export type FilmShotKind = 'clip' | 'still';
 
 export type FilmMediaRef = Pick<
   ComfyGalleryEntry,
-  'id' | 'status' | 'derivedKind' | 'tool' | 'queuedAt' | 'completedAt'
+  'id' | 'status' | 'derivedKind' | 'tool' | 'queuedAt' | 'completedAt' | 'adultCheck'
 > & {
   prompt?: string;
   mediaKind?: string;
@@ -97,14 +98,20 @@ export function filmMediaLooksVideo(entry: FilmMediaRef): boolean {
 }
 
 export function isFilmSourceClip(entry: FilmMediaRef): boolean {
-  if (entry.status !== 'completed' || isAssembledFilmEntry(entry)) {
+  // Held or withheld by the adult-appearance gate: never in a film.
+  if (entry.status !== 'completed' || isAssembledFilmEntry(entry) || isGalleryEntryHidden(entry)) {
     return false;
   }
   return filmMediaLooksVideo(entry);
 }
 
 export function isFilmSourceStill(entry: FilmMediaRef): boolean {
-  if (entry.status !== 'completed' || isAssembledFilmEntry(entry) || isFilmSourceClip(entry)) {
+  if (
+    entry.status !== 'completed' ||
+    isAssembledFilmEntry(entry) ||
+    isFilmSourceClip(entry) ||
+    isGalleryEntryHidden(entry)
+  ) {
     return false;
   }
   return Boolean(entry.viewUrl?.trim() || entry.sourceImageUrl?.trim() || entry.images?.[0]);
@@ -258,7 +265,7 @@ export function resolveFilmPlaylist(
       continue;
     }
     const entry = byId.get(item.entryId);
-    if (!entry) {
+    if (!entry || isGalleryEntryHidden(entry)) {
       continue;
     }
     const url = entry.viewUrl?.trim() || entry.sourceImageUrl?.trim() || '';

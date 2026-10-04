@@ -1,6 +1,8 @@
 import type { StorageNamespace } from './storage-namespaces';
 import { SYNC_STORAGE_NAMESPACES } from './storage-namespaces';
 import { noteSyncPull, noteSyncPush } from './sync-status';
+import { galleryEntriesForSync } from './gallery-adult-check';
+import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 
 /**
  * What this tab last pulled from or pushed to the server, per namespace. Every save schedules a
@@ -56,10 +58,22 @@ export function resetServerStorageFingerprints(): void {
   serverFingerprints.clear();
 }
 
+/**
+ * What a push sends: gallery entries held or withheld by the adult-appearance gate go as bare
+ * stubs (the server deletes its copy), never with their prompt or images.
+ */
+function syncPayload<T>(namespace: StorageNamespace, data: T): T {
+  if (namespace === 'comfy-gallery' && Array.isArray(data)) {
+    return galleryEntriesForSync(data as unknown as ComfyGalleryEntry[]) as unknown as T;
+  }
+  return data;
+}
+
 export async function syncNamespaceToServer<T>(
   namespace: StorageNamespace,
-  data: T
+  rawData: T
 ): Promise<boolean> {
+  const data = syncPayload(namespace, rawData);
   const fingerprint = storageFingerprint(namespace, data);
   if (serverFingerprints.get(namespace) === fingerprint) {
     noteSyncPush(namespace, true);

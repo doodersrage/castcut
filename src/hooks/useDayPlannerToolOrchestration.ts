@@ -10,6 +10,7 @@ import { useDayPoseMissRedo } from '@/hooks/day-planner/useDayPoseMissRedo';
 import { useDayBestOfTwo } from '@/hooks/day-planner/useDayBestOfTwo';
 import { useDayClipQualityCheck } from '@/hooks/day-planner/useDayClipQualityCheck';
 import { useDayEndPose } from '@/hooks/day-planner/useDayEndPose';
+import { useDayAdultGate } from '@/hooks/day-planner/useDayAdultGate';
 import { applyCharacterRecordFresh } from '@/lib/character-os';
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
@@ -38,6 +39,8 @@ export function useDayPlannerToolOrchestration() {
     () => ({ holdsStill: holdsStillForFaceFinish, tick: faceFinishTick }),
     [faceFinishTick, holdsStillForFaceFinish]
   );
+  // Always on (not an Auto-review switch): adult stills are held until they read as adults.
+  const adultGate = useDayAdultGate(core);
   const quality = useDaySlotQualityGate(core, faceFinishHold);
   const poseRedo = useDayPoseMissRedo(core, faceFinishHold);
   const bestOfTwo = useDayBestOfTwo(core, faceFinishHold);
@@ -204,6 +207,7 @@ export function useDayPlannerToolOrchestration() {
     poseRedoMarks: { ...poseRedo.poseRedoMarks, ...bestOfTwo.bestOfTwoMarks },
     bestOfTwoStatus: bestOfTwo.bestOfTwoStatus,
     faceFinishStatus: faceFinish.faceFinishStatus,
+    adultGateStatus: adultGate.adultGateStatus,
     ...clips,
     ...endPose,
     ...season,

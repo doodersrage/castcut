@@ -99,6 +99,7 @@ export function usePromptResultComfyUiPreviewTracker(config: PromptResultActions
         sessionEmbeddingTokens: loadSettingsCache().shared.sessionEmbeddingTokens,
         projectId: loadActiveProjectId(),
         engineId,
+        adultCheck: input.adultCheck,
       });
 
       if (input.historyId) {
@@ -150,7 +151,8 @@ export function usePromptResultComfyUiPreviewTracker(config: PromptResultActions
 
         if (entry.status === 'completed') {
           const preview = galleryEntryPrimaryViewUrl(entry);
-          if (showPreview && preview) {
+          // A still the adult-appearance gate holds is never previewed here.
+          if (showPreview && preview && !input.adultCheck) {
             setComfyUiPreviewUrl(preview);
           }
         }

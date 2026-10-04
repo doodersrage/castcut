@@ -3,6 +3,7 @@ import { galleryEntryDownloadUrls, type ComfyGalleryEntry } from './comfyui-gall
 import { buildComfyViewPath } from './comfyui-outputs';
 import { getGalleryEntryById } from './gallery-db-store';
 import { stripGalleryWorkflowJsonForExport } from './gallery-workflow-hygiene';
+import { isGalleryEntryHidden, withoutHiddenGalleryEntries } from './gallery-adult-check';
 
 export { readSidecarOutputImage, sidecarOutputViewUrl } from './prompt-sidecar';
 
@@ -102,7 +103,8 @@ export async function downloadGalleryImage(
   imageIndex = 0
 ): Promise<void> {
   const image = entry.images[imageIndex];
-  if (!image) {
+  // Held or withheld by the adult-appearance gate: never exported.
+  if (!image || isGalleryEntryHidden(entry)) {
     return;
   }
 
@@ -118,7 +120,8 @@ export async function downloadGalleryImage(
   URL.revokeObjectURL(url);
 }
 
-export function downloadGallerySidecarBundle(entries: ComfyGalleryEntry[]): void {
+export function downloadGallerySidecarBundle(allEntries: ComfyGalleryEntry[]): void {
+  const entries = withoutHiddenGalleryEntries(allEntries);
   if (entries.length === 0) {
     return;
   }
@@ -147,7 +150,7 @@ export async function downloadGalleryImagesSequential(
 ): Promise<number> {
   let downloaded = 0;
 
-  for (const entry of entries) {
+  for (const entry of withoutHiddenGalleryEntries(entries)) {
     if (entry.status !== 'completed' || entry.images.length === 0) {
       continue;
     }

@@ -56,6 +56,7 @@ import {
 } from './wildcard-settings';
 import { buildClothingNegativePack } from './clothing-quality';
 import { appendEmbeddingTokens, modelSupportsTextualInversion } from './textual-inversion';
+import { ensureAdultAgeSafeguards } from './adult-age-safeguard';
 
 /** Distilled Lightning (CFG 1) softens with long auto-negatives — keep only short explicit ones. */
 const LIGHTNING_MAX_EXPLICIT_NEGATIVE_CHARS = 160;
@@ -386,7 +387,19 @@ function steeringForCfg1DistilledStillImage(input: {
   };
 }
 
-export function applyQueuePromptSteering(input: {
+/** The engine reads a negative prompt (CFG > 1) — not a distilled CFG-1 stack. */
+function modelReadsNegativePrompt(model: ComfyImageModel | string): boolean {
+  return (
+    modelUsesNegativePrompt(model as ComfyImageModel) &&
+    !isLightningModelId(model) &&
+    !isWanLightningModel(model) &&
+    !isWanRapidAioModel(model) &&
+    !isQwenRapidAioModel(model) &&
+    !isBooguTurboModel(model)
+  );
+}
+
+export function applyQueuePromptSteering(rawInput: {
   positive: string;
   negative?: string;
   model: ComfyImageModel | string;
@@ -395,6 +408,18 @@ export function applyQueuePromptSteering(input: {
   tool?: string;
   turboEditStrength?: TurboEditStrength;
 }): { positive: string; negative?: string } {
+  // Adult content safeguards on every path (adult-age-safeguard.ts): an adult / sexual / nude
+  // prompt never goes out with youth-coded words or without an age sentence (Day and Story put
+  // the people's own ages in; anything else gets the generic one). Where the engine reads a
+  // negative (CFG > 1), youth terms join it — Rapid / Lightning at CFG 1 ignore negatives.
+  const safeguarded = ensureAdultAgeSafeguards({
+    positive: rawInput.positive,
+    negative: rawInput.negative,
+    usesNegative: modelReadsNegativePrompt(rawInput.model),
+  });
+  const input = safeguarded.applied
+    ? { ...rawInput, positive: safeguarded.positive, negative: safeguarded.negative }
+    : rawInput;
   // A product shot with nobody in it (shoe / clothing packshot extract): none of the packs
   // apply — they are about skin, anatomy and identity, and skin wording brought the feet back
   // into the shoes. The prompt goes out as written.

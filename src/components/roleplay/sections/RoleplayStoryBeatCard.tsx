@@ -14,6 +14,7 @@ import {
 } from '@/lib/roleplay';
 import PoseMissPanel from '@/components/pose/PoseMissPanel';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
+import { ADULT_GATE_WITHHELD_MESSAGE } from '@/lib/adult-appearance-gate';
 import OpenInComfyButton from '@/components/OpenInComfyButton';
 import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
 import { useStoryBeatEditActions } from '@/components/roleplay/StoryBeatEditContext';
@@ -73,6 +74,7 @@ export function RoleplayStoryBeatCard({
   onPoseChange,
 }: Props) {
   const takes = roleplayStillTakes(beat);
+  const withheld = takes[roleplayStillTakeIndex(beat)]?.adultHold === 'withheld';
   const edit = useStoryBeatEditActions();
   const [editing, setEditing] = useState(false);
   const rewriting = edit?.rewritingKey === storyBeatKey(beat);
@@ -223,6 +225,15 @@ export function RoleplayStoryBeatCard({
               data-testid="story-face-match"
             >
               {faceMatch.text}
+            </p>
+          ) : null}
+          {withheld ? (
+            <p
+              className="type-caption text-[var(--tint-danger-text)]"
+              role="status"
+              data-testid="story-beat-withheld"
+            >
+              {ADULT_GATE_WITHHELD_MESSAGE}
             </p>
           ) : null}
           <StillPromptCheckNote check={beat.promptCheck} testId="story-beat-prompt-check" />

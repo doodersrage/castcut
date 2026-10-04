@@ -50,6 +50,8 @@ import { KLEIN_FACE_REFERENCE_LINE } from '@/lib/klein-face-reference';
 import { poseLayoutCueLine, poseLookLine, withRecipePoseCue } from '@/lib/pose-coaching';
 import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { RAPID_DUO_RECIPE_MARK, isRapidDuoRecipePrompt } from '@/lib/rapid-duo-recipe-mark';
+import { applyAdultAgeSafeguards, type AgePerson } from '@/lib/adult-age-safeguard';
+import { dayMoodNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
 
 export type DayStillPromptFacts = {
   /** The slot's brief or recipe (buildDaySlotPrompt). */
@@ -208,9 +210,53 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
   return { prompt, cued: Boolean(cueLine), swapLead, recipe: isRapidDuoRecipePrompt(prompt) };
 }
 
+/** Who is on a Day still, for the age sentence (adult-age-safeguard.ts). */
+export type DayStillAgeFacts = {
+  /** The mood the still plays as (dayPlayedMood): Suggestive, Intimate and Raunchy get it. */
+  playedMood: string | null | undefined;
+  lead: AgePerson;
+  /** The second person (a Cast partner, an invented one, or a companion), if any. */
+  partner?: AgePerson | null;
+  /** People the still shows (the pose map's figures, else 1 / 2 with a partner). */
+  people: number;
+  /** The stronger wording — the one requeue after the adult-appearance gate withheld a take. */
+  strong?: boolean;
+};
+
+/** The people on a Day still as the age sentence names them. */
+export function dayStillAgeFacts(input: {
+  playedMood: string | null | undefined;
+  leadNoun: DayPartnerNoun;
+  lead?: { ageBand?: AgePerson['ageBand']; descriptor?: string | null } | null;
+  partner?: DayPartner | null;
+  figures?: number | null;
+  strong?: boolean;
+}): DayStillAgeFacts {
+  const people = input.figures || (input.partner ? 2 : 1);
+  return {
+    playedMood: input.playedMood,
+    lead: {
+      noun: input.leadNoun,
+      ageBand: input.lead?.ageBand ?? null,
+      descriptor: input.lead?.descriptor ?? null,
+    },
+    partner:
+      people >= 2
+        ? {
+            noun: input.partner?.noun ?? (input.leadNoun === 'man' ? 'woman' : 'man'),
+            ageBand: input.partner?.ageBand ?? null,
+            descriptor: input.partner?.descriptor ?? null,
+          }
+        : null,
+    people,
+    ...(input.strong ? { strong: true } : {}),
+  };
+}
+
 /**
- * The last steps on the drafted text (after the optional lint round-trip): adult reinforcement
- * and the man-lead swap.
+ * The last steps on the drafted text (after the optional lint round-trip): adult reinforcement,
+ * the man-lead swap, and on Suggestive / Intimate / Raunchy stills the adult safeguards — youth
+ * words out and the age sentence in (after the pose sentence on a recipe).
  */
 export function finishDayStillPrompt(
   drafted: string,
@@ -222,7 +268,24 @@ export function finishDayStillPrompt(
     leadDescriptor?: string;
     /** The partner's own description (a Cast partner) — already right, never swapped. */
     partnerDescriptor?: string;
+    /** Who is on the still, for the age sentence (dayStillAgeFacts). */
+    ages?: DayStillAgeFacts;
   }
+): string {
+  const swapped = finishDayStillWording(drafted, input);
+  const ages = input.ages;
+  if (!ages || !dayMoodNeedsAdultSafeguards(ages.playedMood)) return swapped;
+  return applyAdultAgeSafeguards(swapped, {
+    lead: ages.lead,
+    partner: ages.partner,
+    people: ages.people,
+    strong: ages.strong,
+  });
+}
+
+function finishDayStillWording(
+  drafted: string,
+  input: Parameters<typeof finishDayStillPrompt>[1]
 ): string {
   // Adult moods only — reinforceIntimateStillPrompt false-positives on Suggestive / Vacation
   // ("hands on" zipper, "sex contact" bans) and injects nude/duo locks that fight CLOTHING LOCK

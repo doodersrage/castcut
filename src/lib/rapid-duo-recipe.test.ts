@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { adultAgeLine, withAdultAgeLine } from './adult-age-safeguard';
 import { describe, it } from 'node:test';
 import {
   buildDaySlotPrompt,
@@ -76,17 +77,26 @@ describe('Rapid duo recipe', () => {
   });
 
   it('survives reinforce and Rapid queue steering unchanged', () => {
-    const recipe = duoPrompt('bent over the bathroom sink mid-sex with a partner behind', 'qwen-rapid-aio-edit-nsfw');
-    assert.equal(reinforceIntimateStillPrompt(recipe), recipe);
-    const { positive } = applyQueuePromptSteering({
-      positive: recipe,
-      model: 'qwen-rapid-aio-edit-nsfw',
-      realismMode: 'off' as never,
-      anatomyMode: 'off' as never,
-      tool: 'day',
-    });
+    const bare = duoPrompt('bent over the bathroom sink mid-sex with a partner behind', 'qwen-rapid-aio-edit-nsfw');
+    assert.equal(reinforceIntimateStillPrompt(bare), bare);
+    // As Day queues it: with the people's age sentence after the pose (finishDayStillPrompt).
+    const recipe = withAdultAgeLine(
+      bare,
+      adultAgeLine({ lead: { noun: 'woman' }, partner: { noun: 'man' }, people: 2 })
+    );
+    const steer = (positive: string) =>
+      applyQueuePromptSteering({
+        positive,
+        model: 'qwen-rapid-aio-edit-nsfw',
+        realismMode: 'off' as never,
+        anatomyMode: 'off' as never,
+        tool: 'day',
+      }).positive;
+    const positive = steer(recipe);
     assert.ok(positive.startsWith(recipe));
     assert.ok(positive.length < recipe.length + 200);
+    // A recipe that reaches the queue with no age sentence gets the generic one.
+    assert.match(steer(bare), /Everyone in the picture is an adult in their thirties/);
   });
 
   it('reads who gives oral and which furniture the beat names', () => {

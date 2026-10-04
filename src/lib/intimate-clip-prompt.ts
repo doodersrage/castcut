@@ -1,5 +1,6 @@
 import { parseIntimateLayout, type IntimateLayout } from './day-pose-guide';
 import { twoMenBeat, twoWomenBeat } from './rapid-duo-recipe';
+import { adultAgeLine, neutralizeYouthWords } from './adult-age-safeguard';
 
 /**
  * Animate prompt for an Intimate / Raunchy Day still (WAN I2V). The LLM clip writer asked for
@@ -11,20 +12,35 @@ import { twoMenBeat, twoWomenBeat } from './rapid-duo-recipe';
 export function buildIntimateClipPrompt(
   beat: string,
   durationSec = 4,
-  options?: { twoWomen?: boolean; twoMen?: boolean }
+  options?: {
+    twoWomen?: boolean;
+    twoMen?: boolean;
+    /**
+     * The still's own age sentence (adult-age-safeguard.ts: adultAgeLineIn) — the clip names
+     * the same ages. Without one, the mature default for the layout.
+     */
+    ageLine?: string | null;
+  }
 ): string {
   const twoWomen = options?.twoWomen === true;
   const twoMen = !twoWomen && options?.twoMen === true;
   const act = stripLaughter(
-    stripInterruption(twoWomen ? twoWomenBeat(beat) : twoMen ? twoMenBeat(beat) : beat)
+    stripInterruption(
+      neutralizeYouthWords(twoWomen ? twoWomenBeat(beat) : twoMen ? twoMenBeat(beat) : beat)
+    )
   )
     .replace(/\bmid-doggy(?:[- ]?style)?\b/gi, 'mid-sex from behind')
     .replace(/\bdoggy(?:[- ]?style)?\b/gi, 'from behind');
   const layout = parseIntimateLayout(beat);
   const solo = layout === 'solo';
+  const ageLine =
+    options?.ageLine?.trim() ||
+    adultAgeLine({ lead: { noun: twoMen ? 'man' : 'woman' }, people: solo ? 1 : 2 });
   return [
     `${durationSec}s clip, one continuous shot.`,
     `Scene: ${act}.`,
+    // Every person's adult age, right after the scene (WAN runs at CFG 1: the positive says it).
+    ageLine,
     `Motion: ${twoWomen ? twoWomenMotion(layout) : twoMen ? twoMenMotion(layout) : layoutMotion(layout)}`,
     solo
       ? 'Her body keeps the exact pose and position of the first frame the whole time — she does not turn around, stand up, or leave the frame.'

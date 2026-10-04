@@ -11,6 +11,7 @@ import {
   initGalleryStore,
   isGalleryStoreReady,
   loadComfyGallery,
+  loadVisibleComfyGallery,
   removeComfyGalleryEntries,
   removeComfyGalleryEntry,
   setComfyGalleryFavorites,
@@ -69,7 +70,8 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
 
   const refresh = useCallback(() => {
     startTransition(() => {
-      setEntries(loadComfyGallery());
+      // Stills the adult-appearance gate holds or withheld are never listed.
+      setEntries(loadVisibleComfyGallery());
     });
   }, []);
 

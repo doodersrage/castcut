@@ -86,6 +86,12 @@ export type SendComfyUiOptions = {
   sessionActiveLoraIds?: string[];
   /** Job-pinned LoRA strength tweaks for this queue only. */
   sessionLoraStrengthOverrides?: import('@/lib/lora-stack').SessionLoraStrengthOverrides;
+  /**
+   * An adult still for the adult-appearance gate: the gallery entry is registered `pending`
+   * (hidden everywhere, no result preview) until the gate passes it. `strong`: this take uses
+   * the stronger age sentence (the one requeue after a withheld take).
+   */
+  adultGate?: { strong?: boolean };
 };
 
 export type TrackComfyUiJobInput = {
@@ -110,6 +116,8 @@ export type TrackComfyUiJobInput = {
   sessionActiveLoraIds?: string[];
   sessionLoraStrengthOverrides?: import('@/lib/lora-stack').SessionLoraStrengthOverrides;
   engineId?: import('@/lib/engine/types').EngineId;
+  /** Registered held by the adult-appearance gate (SendComfyUiOptions.adultGate). */
+  adultCheck?: import('@/lib/gallery-adult-check').GalleryAdultCheck;
 };
 
 export type ComfyUiTrackerApi = {

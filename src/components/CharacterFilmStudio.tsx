@@ -55,6 +55,7 @@ function toMediaRef(entry: ComfyGalleryEntry): FilmMediaRef {
     tool: entry.tool,
     queuedAt: entry.queuedAt,
     completedAt: entry.completedAt,
+    adultCheck: entry.adultCheck,
     prompt: entry.prompt,
     mediaKind: galleryEntryPrimaryMediaKind(entry),
     viewUrl: galleryEntryPrimaryViewUrl(entry),

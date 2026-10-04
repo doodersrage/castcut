@@ -396,6 +396,14 @@ export type DaySlotStill = {
   bestOfTwoJob?: boolean;
   /** End pose: the picture this slot's clip lands on (day-end-pose.ts). */
   endPose?: DayEndPose;
+  /**
+   * The adult-appearance gate holds this take (adult-appearance-gate.ts): `checking` while the
+   * vision model is asked (no image is shown), `withheld` when it did not read as clearly adult
+   * (no image, ever — the card says so).
+   */
+  adultHold?: 'checking' | 'withheld';
+  /** Queued as an adult still: the gate checks it, and no live preview is shown while it renders. */
+  adultGated?: boolean;
 };
 
 export const DEFAULT_DAY_SLOTS: DaySlot[] = [
@@ -556,6 +564,8 @@ export function daySlotClipProgressLabel(
 
 /** Combined board caption: still state + optional clip line. */
 export function daySlotBoardCaption(still: DaySlotStill | undefined): string {
+  if (still?.adultHold === 'withheld') return 'Withheld';
+  if (still?.adultHold === 'checking') return 'Checking…';
   const stillLabel = daySlotProgressLabel(daySlotProgressState(still));
   const clipLabel = daySlotClipProgressLabel(daySlotClipProgressState(still));
   if (!clipLabel) {
@@ -4218,6 +4228,10 @@ export function normalizeDaySlotStills(
       ...withEndPose(still.endPose),
       ...readBestOfTwo(still.bestOfTwo),
       ...(still.bestOfTwoJob === true ? { bestOfTwoJob: true } : {}),
+      ...(still.adultHold === 'checking' || still.adultHold === 'withheld'
+        ? { adultHold: still.adultHold }
+        : {}),
+      ...(still.adultGated === true ? { adultGated: true } : {}),
     });
   }
   const order = slots?.length
@@ -4254,6 +4268,8 @@ export type DayGalleryEntry = {
   status?: string;
   imageUrl?: string | null;
   isClip?: boolean;
+  /** The adult-appearance gate's mark (gallery-adult-check.ts). */
+  adultCheck?: 'pending' | 'passed' | 'unchecked' | 'withheld';
 };
 
 /** Merge gallery poll results into day slot stills by promptId (stills + clips). */
@@ -4270,7 +4286,47 @@ export function mergeDaySlotStills(
     const stillId = still.promptId?.trim();
     if (stillId) {
       const match = byPromptId.get(stillId);
-      if (match && !match.isClip) {
+      const held =
+        match &&
+        !match.isClip &&
+        (match.adultCheck === 'pending' || match.adultCheck === 'withheld');
+      if (held) {
+        // Held by the adult-appearance gate: never an image on the board. A finished render
+        // being checked reads as in flight ("Checking…"); a withheld one as failed.
+        const galleryStatus = stillStatusFromGallery(match!.status);
+        const hold: DaySlotStill['adultHold'] =
+          match!.adultCheck === 'withheld'
+            ? 'withheld'
+            : galleryStatus === 'completed'
+              ? 'checking'
+              : undefined;
+        const status: DaySlotStill['status'] =
+          hold === 'withheld' || galleryStatus === 'error'
+            ? 'error'
+            : galleryStatus === 'completed'
+              ? 'running'
+              : galleryStatus;
+        if (
+          still.adultHold !== hold ||
+          still.status !== status ||
+          still.imageUrl ||
+          still.finishedUrl
+        ) {
+          changed = true;
+          updated = {
+            ...updated,
+            adultHold: hold,
+            status,
+            imageUrl: undefined,
+            finishedUrl: undefined,
+            finishedFor: undefined,
+          };
+        }
+      } else if (match && !match.isClip) {
+        if (updated.adultHold) {
+          changed = true;
+          updated = { ...updated, adultHold: undefined };
+        }
         const finished = still.finishedFor === stillId ? still.finishedUrl?.trim() || '' : '';
         const galleryImage = finished || match.imageUrl?.trim() || '';
         const galleryStatus = stillStatusFromGallery(match.status);

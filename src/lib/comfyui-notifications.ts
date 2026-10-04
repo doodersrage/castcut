@@ -1,5 +1,6 @@
 import type { ComfyGalleryEntry } from './comfyui-gallery';
 import { galleryEntryPrimaryViewUrl } from './comfyui-gallery';
+import { isGalleryEntryHidden } from './gallery-adult-check';
 
 export function isComfyNotificationSupported(): boolean {
   return typeof window !== 'undefined' && 'Notification' in window;
@@ -28,7 +29,8 @@ export function notifyComfyJobComplete(entry: ComfyGalleryEntry): void {
     return;
   }
 
-  const preview = galleryEntryPrimaryViewUrl(entry);
+  // A still the adult-appearance gate holds or withheld never shows as the icon.
+  const preview = isGalleryEntryHidden(entry) ? null : galleryEntryPrimaryViewUrl(entry);
   const body = entry.prompt.length > 140 ? `${entry.prompt.slice(0, 140)}…` : entry.prompt;
 
   try {

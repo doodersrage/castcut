@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { loadVisibleComfyGallery } from '@/lib/comfyui-gallery';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { computeGalleryStats, type GalleryStats } from '@/lib/gallery-stats';
@@ -21,7 +21,7 @@ export default function GalleryGlanceCard() {
   const [stats, setStats] = useState<GalleryStats | null>(null);
 
   useEffect(() => {
-    const refresh = () => setStats(computeGalleryStats(loadComfyGallery()));
+    const refresh = () => setStats(computeGalleryStats(loadVisibleComfyGallery()));
     refresh();
     window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, refresh);
     return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, refresh);

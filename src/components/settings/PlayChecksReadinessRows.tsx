@@ -9,6 +9,7 @@ const ROWS: Array<{ key: keyof Omit<PlayChecksReadiness, 'comfyReachable'>; labe
   { key: 'face', label: 'Face check (Auto-review)' },
   { key: 'cutTitles', label: 'Cut titles (server)' },
   { key: 'review', label: 'Still review (vision model)' },
+  { key: 'adultGate', label: 'Adult check (not an Auto-review switch)' },
 ];
 
 function Row({

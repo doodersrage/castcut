@@ -93,6 +93,11 @@ export type RoleplayStillTake = {
   promptId?: string;
   imageUrl?: string;
   stillStatus?: RoleplayStillStatus;
+  /**
+   * The adult-appearance gate holds this take (adult-appearance-gate.ts): `checking` while the
+   * vision model is asked, `withheld` when it did not read as clearly adult — no image either way.
+   */
+  adultHold?: 'checking' | 'withheld';
   /** Pose / face checks of this take, so switching takes shows (and ranks by) its scores. */
   poseMatch?: StoryPoseMatch;
   faceMatch?: StoryFaceMatch;

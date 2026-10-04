@@ -89,6 +89,12 @@ export type ComfyGalleryEntry = {
    * and whether each counted as a miss.
    */
   playChecks?: GalleryPlayChecks;
+  /**
+   * Adult-appearance gate on an adult Day / Story still (adult-appearance-gate.ts). While
+   * `pending` or `withheld` the entry is hidden everywhere: Gallery, films, exports and sync
+   * (gallery-adult-check.ts).
+   */
+  adultCheck?: import('./gallery-adult-check').GalleryAdultCheck;
   /** Cached aesthetic score (0–100) from heuristic or vision. */
   aestheticScore?: number;
   /** How aestheticScore was produced. */

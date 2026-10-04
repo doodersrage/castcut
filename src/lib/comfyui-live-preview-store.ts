@@ -6,6 +6,16 @@ export const COMFY_LIVE_PREVIEW_UPDATED_EVENT = 'comfyui-live-preview-updated';
 const previews = new Map<string, string>();
 /** clientId → promptId (so gallery cards can resolve either key) */
 const clientToPrompt = new Map<string, string>();
+/** Prompt ids never previewed live (adult stills held by the adult-appearance gate). */
+const suppressed = new Set<string>();
+
+/** Never show live frames of this job (an adult still waits for the adult-appearance gate). */
+export function suppressComfyLivePreview(promptId: string): void {
+  const id = promptId.trim();
+  if (!id) return;
+  suppressed.add(id);
+  if (previews.has(id)) setComfyLivePreviewUrl(id, null);
+}
 
 function revokeLater(url: string): void {
   // Defer revoke so React can swap <img src> before the blob disappears.
@@ -33,6 +43,10 @@ export function setComfyLivePreviewUrl(
 ): void {
   const id = promptId.trim();
   if (!id) {
+    return;
+  }
+  if (url && suppressed.has(id)) {
+    revokeLater(url);
     return;
   }
 

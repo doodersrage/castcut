@@ -98,8 +98,8 @@ export function useCommandPaletteOpenState(open: boolean) {
       setLastLook(latestGenerateLookRecipe());
     });
     void import('@/lib/gallery-stack-restore').then(async ({ pickKeeperStackEntry }) => {
-      const { loadComfyGallery } = await import('@/lib/comfyui-gallery');
-      const gallery = loadComfyGallery();
+      const { loadVisibleComfyGallery } = await import('@/lib/comfyui-gallery');
+      const gallery = loadVisibleComfyGallery();
       setKeeperStack(pickKeeperStackEntry(gallery));
       setRecentGallery(
         gallery

@@ -15,6 +15,7 @@ import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-s
 import { cropPortraitFaceRegionFromBlob } from '@/lib/portrait-face-crop';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { pickCompanionLook } from '@/lib/day-clothed-lead';
+import { neutralizeYouthWords } from '@/lib/adult-age-safeguard';
 
 export type DayPartnerStandIn = {
   noun: 'man' | 'woman';
@@ -31,8 +32,20 @@ type SendComfyUi = (
   options?: SendComfyUiOptions
 ) => Promise<string | undefined | void>;
 
+/**
+ * The stand-in's look. Its face plays the partner on adult duo stills too, so it is never
+ * younger than the thirties (the composed looks run from the early twenties) and carries no
+ * youth-coded words (adult-age-safeguard.ts).
+ */
 export function pickDayPartnerStandInLook(noun: 'man' | 'woman'): string {
-  return pickCompanionLook(noun);
+  return matureStandInLook(pickCompanionLook(noun));
+}
+
+export function matureStandInLook(look: string): string {
+  return neutralizeYouthWords(look).replace(
+    /\bin (her|his|their) (?:early |late |mid-)?twenties\b/gi,
+    (_match, who: string) => `in ${who} thirties`
+  );
 }
 
 export function buildDayPartnerStandInPrompt(look: string): string {

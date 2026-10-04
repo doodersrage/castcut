@@ -54,6 +54,11 @@ import { loadSettingsCache } from './settings-cache';
 import { celebrateSystemTray } from './system-tray-celebrate';
 import { galleryCardCaption } from './gallery-card-caption';
 import { notePoseTakeOutcome } from './pose-outcome-stats';
+import {
+  isGalleryEntryHidden,
+  withoutHiddenGalleryEntries,
+  type GalleryAdultCheck,
+} from './gallery-adult-check';
 
 export type { ComfyGalleryEntry, GalleryPlayChecks } from './comfyui-gallery-entry';
 export type { ComfyGalleryJobStatus } from './comfyui-gallery-types';
@@ -287,6 +292,14 @@ export function loadComfyGallery(): ComfyGalleryEntry[] {
   return readLegacyLocalStorageGallery();
 }
 
+/**
+ * The gallery as it may be shown: entries the adult-appearance gate holds (pending) or withheld
+ * are left out (gallery-adult-check.ts).
+ */
+export function loadVisibleComfyGallery(): ComfyGalleryEntry[] {
+  return withoutHiddenGalleryEntries(loadComfyGallery());
+}
+
 export async function loadComfyGalleryAsync(): Promise<ComfyGalleryEntry[]> {
   await initGalleryStore();
   return loadComfyGallery();
@@ -434,6 +447,11 @@ export function filterComfyGalleryEntries(
   let filtered: ComfyGalleryEntry[] = [];
   let idx = 0;
   for (const entry of entries) {
+    // Held or withheld by the adult-appearance gate: never listed.
+    if (isGalleryEntryHidden(entry)) {
+      idx += 1;
+      continue;
+    }
     // Early-exit on string match before doing any other checks when non-semantic search.
     if (needsHaystackMatch && haystacks![idx].toLowerCase().indexOf(needleLower) === -1) {
       idx += 1;
@@ -983,6 +1001,41 @@ export function recordGalleryPlayChecks(
     notePoseTakeOutcome(id, checks.poseMiss ? 'pose-miss' : 'pose-pass');
   }
   return changed;
+}
+
+/**
+ * Set the adult-appearance gate's mark on a still (matched by ComfyUI prompt id). A withheld
+ * entry loses its durable copies' paths; the next sync push makes the server delete its row.
+ */
+export function setGalleryAdultCheck(
+  promptId: string | null | undefined,
+  check: Omit<GalleryAdultCheck, 'at'>
+): boolean {
+  const id = promptId?.trim();
+  if (!id) return false;
+  let changed = false;
+  const next = loadComfyGallery().map(entry => {
+    if (entry.promptId !== id) return entry;
+    changed = true;
+    const updated: ComfyGalleryEntry = {
+      ...entry,
+      adultCheck: { ...check, at: Date.now() },
+    };
+    if (check.state === 'withheld') {
+      delete updated.durableThumbPath;
+      delete updated.durableOriginalPath;
+      delete updated.durableThumbPaths;
+      delete updated.durableOriginalPaths;
+      delete updated.favorite;
+    }
+    return updated;
+  });
+  if (!changed) return false;
+  saveComfyGallery(next);
+  void import('./gallery-server-sync').then(({ pushGallerySnapshotToServer }) => {
+    void pushGallerySnapshotToServer();
+  });
+  return true;
 }
 
 export function setGalleryReviewNote(id: string, reviewNote?: string): void {

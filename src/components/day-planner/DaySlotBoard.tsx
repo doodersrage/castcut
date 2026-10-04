@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
 import MotionMedia from '@/components/ui/MotionMedia';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
+import { ADULT_GATE_WITHHELD_MESSAGE } from '@/lib/adult-appearance-gate';
 import OpenInComfyButton from '@/components/OpenInComfyButton';
 import {
   daySlotBoardCaption,
@@ -168,8 +169,11 @@ export default function DaySlotBoard({
         const clipState = daySlotClipProgressState(still);
         const stillPromptId = still?.promptId?.trim() || '';
         const clipPromptId = still?.clipPromptId?.trim() || '';
+        // An adult still is never previewed live: it waits for the adult-appearance gate.
         const stillLive =
-          stillPromptId && state === 'queued' ? liveByPrompt[stillPromptId]?.trim() || '' : '';
+          stillPromptId && state === 'queued' && !still?.adultGated
+            ? liveByPrompt[stillPromptId]?.trim() || ''
+            : '';
         const clipLive =
           clipPromptId && clipState === 'queued' ? liveByPrompt[clipPromptId]?.trim() || '' : '';
         const doneThumb = state === 'done' ? still?.imageUrl?.trim() || '' : '';
@@ -502,6 +506,15 @@ export default function DaySlotBoard({
                   </p>
                 ) : null}
               </button>
+              {still?.adultHold === 'withheld' ? (
+                <p
+                  className={`type-caption text-[var(--tint-danger-text)] ${compact ? 'px-2.5 pb-2' : 'px-3 pb-2.5'}`}
+                  role="status"
+                  data-testid={`day-slot-withheld-${slot.id}`}
+                >
+                  {ADULT_GATE_WITHHELD_MESSAGE}
+                </p>
+              ) : null}
               {/* Outside the select button: the note opens on its own tap. */}
               <StillPromptCheckNote
                 check={still?.promptCheck}

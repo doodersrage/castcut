@@ -19,6 +19,11 @@ export type PlayChecksReadiness = {
   cutTitles: PlayCheckReadiness;
   /** Vision model for still review (Auto-review, Look tile roles); absent on older probes. */
   review?: PlayCheckReadiness;
+  /**
+   * The adult-appearance gate on adult Day / Story stills (adult-appearance-gate.ts). Always on;
+   * with no vision model, adult stills are shown unchecked (the age wording still applies).
+   */
+  adultGate?: PlayCheckReadiness;
 };
 
 export const DWPOSE_PACK = {
@@ -65,8 +70,21 @@ export function buildPlayChecksReadiness(input: {
             ready: false,
             detail: 'no vision model on the LLM server — pull one (e.g. qwen2.5vl or gemma3)',
           };
+  const adultGate: PlayCheckReadiness | undefined = !vision
+    ? undefined
+    : review?.ready
+      ? {
+          ready: true,
+          detail: `always on — every adult still is checked with ${vision.model} before it is shown`,
+        }
+      : {
+          ready: false,
+          detail:
+            'no vision model — adult stills are shown unchecked; the adult age wording still applies',
+        };
   return {
     ...(review ? { review } : {}),
+    ...(adultGate ? { adultGate } : {}),
     comfyReachable: input.comfyReachable,
     pose: input.poseNode
       ? { ready: true, detail: input.poseNode }

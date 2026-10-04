@@ -141,6 +141,17 @@ Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 
 ---
 
+## Adult content safeguards {#adult-content-safeguards}
+
+Adult stills and clips (Day **Suggestive / Intimate / Raunchy**, Story **Suggestive / Sultry / Explicit / Raunchy**, and anything else whose prompt is sexual or nude) only ever show adults. Two safeguards apply; neither can be switched off.
+
+- **Age wording, always.** Every person on an adult still is given an explicit, mature age in the prompt itself — one short sentence such as *"Both are adults — the woman in her late twenties, the man in his forties — with mature adult faces and bodies."* It uses the Cast's **Age** trait when one is set (an *Early 20s* Cast is still said as *late twenties*; nothing younger is ever written) and *in their thirties* for partners, companions and anyone without one. On the compact Rapid recipes it sits right after the pose sentence, on the long briefs as the second line; WAN / LTX clips made from an adult still repeat the still's own sentence. Youth-coded words are taken out of adult text before it is queued — from beats, the Story bible and your own words: *girl / boy* become *woman / man*, ages under 25 and *early twenties* become the late twenties, *petite*, *tiny*, *young*, *baby face*, *teen*, school and classroom themes are neutralised (ordinary words like *girlfriend* or *old-school* are left alone). Rapid AIO and the Lightning engines run at CFG 1, where the negative prompt has no effect, so the age has to be in the positive wording; on engines that do read a negative (CFG > 1), *child, minor, teen, teenager, childlike, young-looking, schoolgirl, schoolboy, petite youthful body, baby face* are added to it as well.
+- **Adult check on the finished still.** When an adult Day or Story still lands, the vision model is asked one strict-JSON question — *do all people shown clearly look like adults over 21?* — before the still is shown anywhere. While it is asked the card says **Checking…** and no image (nor any live preview) is shown. A *no*, an unsure answer or a low-confidence *yes* withholds the still: it is hidden from the card and marked withheld in the Gallery, so it never appears in the Gallery, films, exports or sync (the server keeps no copy). The slot or scene is then queued once more with a stronger age sentence; if that take is withheld too, nothing more is queued and the card says *"Withheld: the picture did not read as clearly adult — try a different seed or beat"*. The check is independent of **Auto-review** and the other Play-check switches. It uses the vision model from **Settings → LLM** (or `LLM_VISION_MODEL`, or one found on the LLM server); **Settings → Play checks** shows whether it is active. With no vision model configured, adult stills are shown unchecked — the age wording still applies.
+
+On 111 clothed adult Day stills the question raised one false alarm (under 1%).
+
+---
+
 ## Dashboard metrics {#dashboard-metrics}
 
 The **Play film loop** card on `/dashboard` shows:

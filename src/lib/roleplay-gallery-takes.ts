@@ -17,6 +17,8 @@ export type RoleplayGalleryStill = {
   promptId: string;
   status: 'pending' | 'running' | 'completed' | 'error';
   imageUrl?: string | null;
+  /** The adult-appearance gate's mark (gallery-adult-check.ts). */
+  adultCheck?: 'pending' | 'passed' | 'unchecked' | 'withheld';
 };
 
 function stillStatusFromGallery(
@@ -476,13 +478,37 @@ export function mergeRoleplayStoryStills(
       if (!match) {
         return take;
       }
+      // Held by the adult-appearance gate: never an image on the card. A finished render being
+      // checked reads as in flight; a withheld one as failed.
+      if (match.adultCheck === 'pending' || match.adultCheck === 'withheld') {
+        const galleryStatus = stillStatusFromGallery(match.status);
+        const adultHold: RoleplayStillTake['adultHold'] =
+          match.adultCheck === 'withheld'
+            ? 'withheld'
+            : galleryStatus === 'completed'
+              ? 'checking'
+              : undefined;
+        const heldStatus: RoleplayStillStatus =
+          adultHold === 'withheld' || galleryStatus === 'error'
+            ? 'error'
+            : galleryStatus === 'completed'
+              ? 'running'
+              : galleryStatus;
+        if (!take.imageUrl && take.stillStatus === heldStatus && take.adultHold === adultHold) {
+          return take;
+        }
+        takeChanged = true;
+        const { imageUrl: _hidden, adultHold: _was, ...rest } = take;
+        return { ...rest, stillStatus: heldStatus, ...(adultHold ? { adultHold } : {}) };
+      }
       const imageUrl = match.imageUrl?.trim() || take.imageUrl;
       const stillStatus = stillStatusFromGallery(match.status);
-      if (take.imageUrl === imageUrl && take.stillStatus === stillStatus) {
+      if (take.imageUrl === imageUrl && take.stillStatus === stillStatus && !take.adultHold) {
         return take;
       }
       takeChanged = true;
-      return { ...take, imageUrl, stillStatus };
+      const { adultHold: _released, ...released } = take;
+      return { ...released, imageUrl, stillStatus };
     });
     const clipTakes = roleplayClipTakes(beat);
     let clipTakeChanged = false;

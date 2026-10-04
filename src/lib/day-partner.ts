@@ -8,6 +8,7 @@
  */
 
 import { inferSubjectGenderFromHints } from '@/lib/distinct-people';
+import type { CharacterAgeBand } from '@/lib/character-appearance';
 
 export type DayPartnerNoun = 'man' | 'woman' | 'person';
 
@@ -15,6 +16,8 @@ export type DayPartner = {
   name: string;
   noun: DayPartnerNoun;
   descriptor?: string;
+  /** The Cast's picked age (character traits) — the adult age sentence says it. */
+  ageBand?: CharacterAgeBand;
   /** No Cast face — a new man / woman each still. */
   invented?: boolean;
 };
@@ -43,7 +46,15 @@ export function dayPartnerNoun(input: {
 }
 
 export function toDayPartner(
-  character: { name?: string; descriptor?: string; hints?: string } | null | undefined
+  character:
+    | {
+        name?: string;
+        descriptor?: string;
+        hints?: string;
+        traits?: { sex?: string; ageBand?: CharacterAgeBand } | null;
+      }
+    | null
+    | undefined
 ): DayPartner | null {
   if (!character?.name?.trim()) {
     return null;
@@ -53,6 +64,7 @@ export function toDayPartner(
     name: character.name.trim(),
     noun: dayPartnerNoun(character),
     ...(descriptor ? { descriptor: descriptor.slice(0, 220) } : {}),
+    ...(character.traits?.ageBand ? { ageBand: character.traits.ageBand } : {}),
   };
 }
 

@@ -73,9 +73,12 @@ import {
   assembleDayStillPrompt,
   buildDaySlotPromptForStill,
   dayPlayedMood,
+  dayStillAgeFacts,
   finishDayStillPrompt,
   queuedDayStillPrompt,
 } from './day-still-prompt';
+import { hasAdultAgeLine, youthWordsIn } from './adult-age-safeguard';
+import { dayMoodNeedsAdultSafeguards } from './adult-appearance-gate';
 import { DAY_THEMES } from './day-themes';
 import {
   dayVacationBeatPresetsForSlot,
@@ -491,6 +494,8 @@ type Still = {
   imageCount: number;
   swapLead: boolean;
   recipe: boolean;
+  /** The mood the still plays as (an adult mood with Intimate off plays as Everyday). */
+  playedMood: string;
   prompt: string;
 };
 
@@ -840,6 +845,13 @@ function decideStill(
     swapLead: assembled.swapLead,
     leadDescriptor: LEADS[lead].descriptor,
     partnerDescriptor: slotPartner?.descriptor,
+    ages: dayStillAgeFacts({
+      playedMood,
+      leadNoun: lead,
+      lead: { descriptor: LEADS[lead].descriptor },
+      partner: slotPartner,
+      figures: pose?.figures,
+    }),
   });
   // extraFilenames: [1] the partner's face, else the clothing image; [2] the pose map.
   const second = partnerFace || garmentAttached;
@@ -880,6 +892,7 @@ function decideStill(
     imageCount: queued.imageCount,
     swapLead: assembled.swapLead,
     recipe: assembled.recipe,
+    playedMood,
     prompt: queued.prompt,
   };
 }
@@ -971,6 +984,7 @@ const FOOTWEAR = 'footwear line';
 const OUTFIT_SOURCE = OUTFIT_SOURCE_NAME;
 const MAN_LEAD = 'man lead wording';
 const NO_POSE_MAP = 'no pose map';
+const AGE_LINE = 'adult age line';
 
 const count = (text: string, pattern: RegExp) => (text.match(pattern) ?? []).length;
 
@@ -1069,6 +1083,25 @@ for (const still of STILLS) {
     fail(FOOTWEAR, still, 'a two-person shoe line does not say whose shoes they are');
   }
 
+  // I7 — every Suggestive / Intimate / Raunchy still names everyone's adult age, once, and
+  // carries no youth-coded words (adult-age-safeguard.ts). Rapid runs at CFG 1: the negative
+  // prompt cannot carry it.
+  if (dayMoodNeedsAdultSafeguards(still.playedMood)) {
+    if (!hasAdultAgeLine(prompt)) {
+      fail(AGE_LINE, still, 'an adult-mood still with no age sentence');
+    } else if (count(prompt, /\b(?:Both are|She is|He is|They are|Everyone in the picture is) (?:clearly )?(?:an )?adults?\b/g) !== 1) {
+      fail(AGE_LINE, still, 'more than one age sentence');
+    }
+    const youth = youthWordsIn(prompt);
+    if (youth.length > 0) fail(AGE_LINE, still, `youth-coded words left: ${youth.join(', ')}`);
+    // On a recipe the age sentence follows the pose sentence — never ahead of it.
+    if (still.recipe && /^(?:Explicit (?:sex|solo) photo|Suggestive photo):\s*(?:Both are|She is|He is)\b/m.test(prompt)) {
+      fail(AGE_LINE, still, 'the age sentence comes before the pose sentence');
+    }
+  } else if (hasAdultAgeLine(prompt)) {
+    fail(AGE_LINE, still, `a ${still.playedMood} still carries the adult age sentence`);
+  }
+
   // I6 — with no pose map attached, the prompt does not refer to a pose image.
   if (still.third === 'none') {
     const refers = /\b(?:pose map|pose guide|OpenPose|skeleton|stick[- ]figure|wireframe)\b/i.exec(
@@ -1149,6 +1182,8 @@ describe('Day finished prompt sweep', () => {
   it('takes the outfit from the image that carries it', () => assertHolds(OUTFIT_SOURCE));
   it('leaves no "she" in a one-person still of a man lead', () => assertHolds(MAN_LEAD));
   it('does not refer to a pose image that is not attached', () => assertHolds(NO_POSE_MAP));
+  it('names every adult-mood still\'s ages once, after the pose sentence', () =>
+    assertHolds(AGE_LINE));
 
   it('builds byte-identical prompts for slots with no look of their own (or the active one)', () => {
     assert.ok(lookChecked > 100, `only ${lookChecked} look checks ran`);

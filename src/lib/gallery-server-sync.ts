@@ -6,6 +6,7 @@ import { capGalleryEntriesForLocalStorage } from './gallery-cap';
 import { loadCharacters } from './character-os';
 import { collectGalleryProtectedEntryIds } from './gallery-protected-ids';
 import { MAX_GALLERY_ENTRIES } from './comfyui-gallery-storage-meta';
+import { isGalleryEntryHidden } from './gallery-adult-check';
 import {
   filterOutDeletedGalleryEntries,
   loadGalleryDeletedIds,
@@ -18,6 +19,7 @@ const DELETED_IDS_NAMESPACE = 'gallery-deleted-ids' as const;
 
 type MergeableGalleryEntry = Pick<ComfyGalleryEntry, 'id' | 'queuedAt' | 'completedAt'> & {
   status?: ComfyGalleryEntry['status'];
+  adultCheck?: ComfyGalleryEntry['adultCheck'];
 };
 
 function entryTimestamp(entry: MergeableGalleryEntry): number {
@@ -57,6 +59,10 @@ export function mergeGalleryWithServer<
     if (!localEntry) {
       byId.set(serverEntry.id, serverEntry);
       addedFromServer += 1;
+      continue;
+    }
+    // Held or withheld here by the adult-appearance gate: a server copy never un-hides it.
+    if (isGalleryEntryHidden(localEntry)) {
       continue;
     }
     if (

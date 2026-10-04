@@ -7,9 +7,12 @@ import {
   assembleDayStillPrompt,
   buildDaySlotPromptForStill,
   dayBeatIsTyped,
+  dayStillAgeFacts,
   finishDayStillPrompt,
   queuedDayStillPrompt,
 } from '@/lib/day-still-prompt';
+import { dayMoodNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
+import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
 import {
   repairStillPrompt,
   stillPromptCheckRecord,
@@ -683,6 +686,7 @@ export function useDayPlannerToolOrchestrationCore() {
           status: entry.status,
           imageUrl: galleryEntryPrimaryViewUrl(entry),
           isClip: isGalleryClipEntry(entry) || clipWanted.has(entry.promptId),
+          adultCheck: entry.adultCheck?.state,
         }));
       const merged = mergeDaySlotStills(baseStills, gallery);
       if (promoted.changed || merged.changed) {
@@ -902,6 +906,11 @@ export function useDayPlannerToolOrchestrationCore() {
          * other take of the pair (day-best-of-two.ts).
          */
         keepTake?: DaySlotStill['previousTake'];
+        /**
+         * The adult-appearance gate withheld the last take: this one says the ages more
+         * strongly (adult-age-safeguard.ts), and a second withheld take stops there.
+         */
+        strongAgeLine?: boolean;
       }
     ) => {
       const manageBusy = options?.manageBusy !== false;
@@ -1692,13 +1701,26 @@ export function useDayPlannerToolOrchestrationCore() {
             ? 'everyday'
             : toolSettings.dayMood
         );
+        // Suggestive / Intimate / Raunchy: every person gets an explicit adult age, and the
+        // still waits for the adult-appearance gate before it is shown anywhere.
         const finalized = finishDayStillPrompt(drafted, {
           adultMood: isDayAdultMood(dayMoodForPrompt),
           adult: adultStill,
           swapLead: assembled.swapLead,
           leadDescriptor,
           partnerDescriptor: slotPartner?.descriptor,
+          ages: dayStillAgeFacts({
+            playedMood: dayMoodForPrompt,
+            leadNoun,
+            lead: { ageBand: lookCharacter?.traits?.ageBand, descriptor: leadDescriptor },
+            partner: slotPartner,
+            figures: poseExpectation?.keypoints.length,
+            strong: options?.strongAgeLine === true,
+          }),
         });
+        // An adult beat played with Intimate off still reads as adult content: gate it too.
+        const adultSafeguards =
+          dayMoodNeedsAdultSafeguards(dayMoodForPrompt) || isAdultContentPrompt(finalized);
         setOutput(finalized);
         rememberDraftFields({
           toolKey: TOOL_ID,
@@ -1924,6 +1946,8 @@ export function useDayPlannerToolOrchestrationCore() {
         };
         if (
           poseExpectation &&
+          // The one-job pair returns two takes at once; the adult-appearance gate checks one.
+          !adultSafeguards &&
           bestOfTwoAsOneJob({ ...pairRule, packInstalled: true }) &&
           castcutBestOfTwoAvailable(await fetchComfyObjectInfoNodeTypesCached().catch(() => null))
         ) {
@@ -1967,6 +1991,7 @@ export function useDayPlannerToolOrchestrationCore() {
           ...(options?.qualityProfile && !leanChrome
             ? { qualityProfile: options.qualityProfile }
             : {}),
+          ...(adultSafeguards ? { adultGate: { strong: options?.strongAgeLine === true } } : {}),
         });
         // Pose × engine stats: the take, and whether it redoes the slot's last one.
         if (typeof promptId === 'string') {
@@ -2014,6 +2039,8 @@ export function useDayPlannerToolOrchestrationCore() {
           previousTake,
           bestOfTwo: undefined,
           bestOfTwoJob: castcutPoseGuide ? true : undefined,
+          adultHold: undefined,
+          adultGated: adultSafeguards ? true : undefined,
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));

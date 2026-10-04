@@ -10,6 +10,7 @@ import {
   galleryEntryHeroPreviewUrl,
   initGalleryStore,
   loadComfyGallery,
+  loadVisibleComfyGallery,
 } from '@/lib/comfyui-gallery';
 import { loadScheduledBatchConfig } from '@/lib/scheduled-batch';
 import { loadActiveProjectId, loadPromptProjects } from '@/lib/prompt-projects';
@@ -92,7 +93,7 @@ export default function HomeDashboard() {
 
   useEffect(() => {
     const refresh = () => {
-      setGallery(loadComfyGallery());
+      setGallery(loadVisibleComfyGallery());
       setScheduled(loadScheduledBatchConfig());
       setActiveProjectId(loadActiveProjectId());
       setProjects(loadPromptProjects());

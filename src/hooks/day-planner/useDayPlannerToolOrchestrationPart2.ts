@@ -66,6 +66,7 @@ import {
   isDayAdultMood,
 } from '@/lib/day-planner';
 import { buildIntimateClipPrompt } from '@/lib/intimate-clip-prompt';
+import { adultAgeLineIn } from '@/lib/adult-age-safeguard';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,
@@ -382,6 +383,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           prompt = buildIntimateClipPrompt(slot.sceneHints?.trim() || subject, 4, {
             twoWomen,
             twoMen,
+            // The still's own age sentence, so the clip names the same ages.
+            ageLine: adultAgeLineIn(stillPrompt),
           });
           // A man lead alone (the duo motions already put him right): swap the solo clip.
           if (manLead && !stillPrompt.includes(RAPID_DUO_RECIPE_MARK)) {

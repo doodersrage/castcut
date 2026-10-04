@@ -222,6 +222,15 @@ export async function postQueueSinglePrompt(input: {
         options?.sessionActiveLoraIds ?? resolveSharedEffectiveSessionLoraIds(queueModel),
       sessionLoraStrengthOverrides: resolveSharedEffectiveSessionLoraStrengthOverrides(queueModel),
       engineId: actualEngineId,
+      ...(options?.adultGate
+        ? {
+            adultCheck: {
+              state: 'pending' as const,
+              ...(options.adultGate.strong ? { strong: true } : {}),
+              at: Date.now(),
+            },
+          }
+        : {}),
     };
     trackComfyUiJob(trackInput);
     queued.releaseLiveSocket();

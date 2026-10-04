@@ -1,5 +1,6 @@
 'use client';
 
+import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/adult-age-safeguard';
 import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
 import { clipEngineForShot } from '@/lib/ltx25-renderer';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
@@ -215,6 +216,12 @@ export function useRoleplayBeatQueuePart2(
         }
       } catch {
         /* use beat prompt */
+      }
+      // A clip from an adult still names the same ages as the still (adult-age-safeguard.ts);
+      // the queue adds the generic sentence to any other adult clip.
+      const stillAgeLine = adultAgeLineIn(parentEntry?.prompt);
+      if (stillAgeLine) {
+        prompt = withAdultAgeLine(neutralizeYouthWords(prompt), stillAgeLine);
       }
 
       const queueClipMode = retry
