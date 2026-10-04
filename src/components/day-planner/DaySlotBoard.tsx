@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState, useSyncExternalStore, type MouseEvent } from 'react';
-import { Button } from '@/components/ui/Button';
-import UiIcon from '@/components/ui/UiIcon';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import MotionMedia from '@/components/ui/MotionMedia';
+import ShotCardMenu, { SHOT_CARD_MENU_ITEM_CLASS } from '@/components/ui/ShotCardMenu';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
 import {
   ADULT_GATE_WITHHELD_MESSAGE,
@@ -23,7 +22,6 @@ import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui-live-preview-store';
-import { ROLEPLAY_OVERLAY_BTN_CLASS } from '@/components/roleplay/roleplay-story-helpers';
 import { slotQualityBadge, type SlotQualityLedger } from '@/lib/play-slot-quality';
 import { clipCheckLabel, type ClipCheck } from '@/lib/clip-quality';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
@@ -39,10 +37,15 @@ export type DaySlotBoardProps = {
   queueBlocked?: boolean;
   compact?: boolean;
   onSelectSlot: (slotId: DaySlotId) => void;
+  /** Open the slot's sheet (Edit on the card, ⋯ → Edit slot, a tap on an unrendered slot). */
+  onEditSlot: (slotId: DaySlotId) => void;
+  /** A finished still opens full size (the lightbox) on tap. */
   onOpenStill?: (slotId: DaySlotId) => void;
   onRetrySlot?: (slot: DaySlot) => void;
   onAnimateSlot?: (slot: DaySlot) => void;
   onRerollSlot?: (slot: DaySlot) => void;
+  /** Queue this slot only (an unrendered slot's ⋯ menu). */
+  onQueueSlot?: (slot: DaySlot) => void;
   /** Quality-gate outcomes per slot — drives the review badge on each card. */
   qualityLedger?: SlotQualityLedger;
   /** "Redo pose misses once" marks by slot id ("Redone for the pose"). */
@@ -58,19 +61,10 @@ function subscribeGallery(onChange: () => void): () => void {
   return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, onChange);
 }
 
-/** Open (and scroll to) the slot editor — it's a collapsible below the board. */
-function revealDaySlotEditor(): void {
-  if (typeof document === 'undefined') return;
-  const section = document.querySelector('[data-testid="day-slots"]')?.closest('details');
-  if (!section) return;
-  section.open = true;
-  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
 /**
- * Morning → night board: primary way to pick which Day slot you are editing.
- * Completed thumbs stay tappable for a larger view via View / second select.
- * Done frames get Story-style requeue (top-right) and left/right still paging.
+ * Morning → night board. A card is the still (or its clip, playing in place), the slot's name
+ * and beat, its state and check notes, and one ⋯ menu. Tapping a finished still opens it full
+ * size; tapping the name, Edit, or a slot with nothing rendered yet opens the slot sheet.
  * In-flight Comfy stills show the live render preview in that time-of-day card.
  */
 export default function DaySlotBoard({
@@ -81,10 +75,12 @@ export default function DaySlotBoard({
   queueBlocked = false,
   compact = false,
   onSelectSlot,
+  onEditSlot,
   onOpenStill,
   onRetrySlot,
   onAnimateSlot,
   onRerollSlot,
+  onQueueSlot,
   qualityLedger,
   poseRedoMarks,
   clipChecks,
@@ -99,17 +95,6 @@ export default function DaySlotBoard({
     [stills]
   );
   const [liveByPrompt, setLiveByPrompt] = useState<Record<string, string | null>>({});
-
-  const completedSlotIds = useMemo(
-    () =>
-      slots
-        .filter(slot => {
-          const still = stills.find(entry => entry.slotId === slot.id);
-          return daySlotProgressState(still) === 'done' && Boolean(still?.imageUrl?.trim());
-        })
-        .map(slot => slot.id),
-    [slots, stills]
-  );
 
   useEffect(() => {
     const refresh = () => {
@@ -143,10 +128,10 @@ export default function DaySlotBoard({
     return map;
   }, [gallery, stills]);
 
-  const stop = (event: MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
+  const pad = compact ? 'px-2.5' : 'px-3';
+  const mediaClass = compact
+    ? 'aspect-video w-full object-cover'
+    : 'aspect-[4/3] w-full object-cover';
 
   return (
     <ol
@@ -154,7 +139,7 @@ export default function DaySlotBoard({
         compact
           ? 'grid grid-cols-2 gap-2'
           : // Phones: a swipe row (a card plus a peek of the next) instead of a ~1,200 px
-            // column that pushed Setting & Beat off the screen. Grid from sm up.
+            // column that pushed the plan off the screen. Grid from sm up.
             `max-sm:-mx-1 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:overflow-x-auto max-sm:px-1 max-sm:pb-1 max-sm:[&>li]:w-[78%] max-sm:[&>li]:shrink-0 max-sm:[&>li]:snap-start ${
               slots.length === 2
                 ? 'gap-2 sm:grid sm:grid-cols-2'
@@ -196,27 +181,118 @@ export default function DaySlotBoard({
         });
         const label = job ? baseCaption.replace('Queueing…', job.label) : baseCaption;
         const selected = activeSlotId === slot.id;
+        const openable = Boolean(doneThumb) && Boolean(onOpenStill);
         const canAnimate =
           state === 'done' && clipState === 'idle' && Boolean(onAnimateSlot) && !queueBlocked;
-        const openable = Boolean(doneThumb);
-        const completedIndex = openable ? completedSlotIds.indexOf(slot.id) : -1;
-        const canPage = openable && Boolean(onOpenStill) && completedSlotIds.length > 1;
-        const prevCompletedId =
-          canPage && completedIndex > 0 ? completedSlotIds[completedIndex - 1] : null;
-        const nextCompletedId =
-          canPage && completedIndex >= 0 && completedIndex < completedSlotIds.length - 1
-            ? completedSlotIds[completedIndex + 1]
-            : null;
-        const canRequeue = openable && Boolean(onRetrySlot) && !queueBlocked && state === 'done';
+        const canRequeue =
+          Boolean(doneThumb) && Boolean(onRetrySlot) && !queueBlocked && state === 'done';
+        const canQueue = state === 'idle' && Boolean(onQueueSlot) && !queueBlocked;
         const reviewBadge = qualityLedger ? slotQualityBadge(qualityLedger, slot.id) : null;
         const poseRedoMark = poseRedoMarks?.[slot.id];
         const clipCheck = clipChecks?.[slot.id];
         const clipNote = clipCheckLabel(clipCheck);
-
-        const openAdjacent = (adjacentId: DaySlotId) => {
-          onSelectSlot(adjacentId);
-          onOpenStill?.(adjacentId);
+        const edit = () => {
+          onSelectSlot(slot.id);
+          onEditSlot(slot.id);
         };
+
+        const menu = (
+          <ShotCardMenu label={slot.label} testId={`day-progress-menu-${slot.id}`}>
+            <button
+              type="button"
+              className={SHOT_CARD_MENU_ITEM_CLASS}
+              data-testid={`day-progress-menu-edit-${slot.id}`}
+              onClick={edit}
+            >
+              Edit slot
+            </button>
+            {openable ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                data-testid={`day-progress-open-${slot.id}`}
+                onClick={() => {
+                  onSelectSlot(slot.id);
+                  onOpenStill?.(slot.id);
+                }}
+              >
+                Open full size
+              </button>
+            ) : null}
+            {canRequeue ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy}
+                data-testid={`day-progress-requeue-${slot.id}`}
+                onClick={() => {
+                  onSelectSlot(slot.id);
+                  onRetrySlot?.(slot);
+                }}
+              >
+                Requeue · new seed
+              </button>
+            ) : null}
+            {state === 'failed' && onRetrySlot ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy || queueBlocked}
+                data-testid={`day-progress-retry-${slot.id}`}
+                onClick={() => onRetrySlot(slot)}
+              >
+                Retry {slot.label}
+              </button>
+            ) : null}
+            {canQueue ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy}
+                data-testid={`day-progress-queue-${slot.id}`}
+                onClick={() => {
+                  onSelectSlot(slot.id);
+                  onQueueSlot?.(slot);
+                }}
+              >
+                Queue this slot only
+              </button>
+            ) : null}
+            {canAnimate ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy}
+                data-testid={`day-progress-animate-${slot.id}`}
+                onClick={() => onAnimateSlot?.(slot)}
+              >
+                Animate
+              </button>
+            ) : null}
+            {onRerollSlot && state === 'idle' ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy}
+                aria-label={`Reroll ${slot.label} plan`}
+                data-testid={`day-progress-reroll-${slot.id}`}
+                onClick={() => {
+                  onSelectSlot(slot.id);
+                  onRerollSlot(slot);
+                }}
+              >
+                Reroll plan
+              </button>
+            ) : null}
+            {doneThumb && stillPromptId ? (
+              <OpenInComfyButton
+                promptId={stillPromptId}
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                testId={`day-progress-comfy-${slot.id}`}
+              />
+            ) : null}
+          </ShotCardMenu>
+        );
 
         return (
           <li key={slot.id} className="min-w-0">
@@ -228,7 +304,7 @@ export default function DaySlotBoard({
               data-selected={selected ? 'true' : 'false'}
               data-plan-empty={planEmpty ? 'true' : 'false'}
               className={[
-                'overflow-hidden rounded-[var(--radius-md)] border transition-[box-shadow,border-color,transform]',
+                'relative rounded-[var(--radius-md)] border transition-[box-shadow,border-color,transform]',
                 selected
                   ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] shadow-[var(--shadow-card)] ring-2 ring-[var(--accent-ring)]'
                   : state === 'done'
@@ -243,16 +319,12 @@ export default function DaySlotBoard({
               ].join(' ')}
             >
               {thumb ? (
-                <div className="relative">
+                <div className="relative overflow-hidden rounded-t-[var(--radius-md)]">
                   {doneClip ? (
                     <MotionMedia
                       src={doneClip}
                       alt={slot.label}
-                      className={
-                        compact
-                          ? 'aspect-video w-full object-cover'
-                          : 'aspect-[4/3] w-full object-cover'
-                      }
+                      className={mediaClass}
                       autoPlay
                       loop
                       muted
@@ -270,9 +342,7 @@ export default function DaySlotBoard({
                           : undefined
                       }
                       className={[
-                        compact
-                          ? 'aspect-video w-full object-cover'
-                          : 'aspect-[4/3] w-full object-cover',
+                        mediaClass,
                         showStillLive || (showClipLive && !doneThumb) ? 'opacity-80' : '',
                       ]
                         .filter(Boolean)
@@ -295,85 +365,29 @@ export default function DaySlotBoard({
                   ) : null}
                   <button
                     type="button"
-                    className="absolute inset-0 z-10 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]"
+                    className={`absolute inset-0 z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)] ${openable ? 'cursor-zoom-in' : ''}`}
                     aria-pressed={selected}
                     aria-label={
                       openable
                         ? `Open ${slot.label} full size`
-                        : selected
-                          ? `${slot.label}, selected — ${planLabel || label}`
-                          : `Select ${slot.label} — ${planLabel || label}`
+                        : `Edit ${slot.label} — ${planLabel || label}`
                     }
                     data-testid={`day-slot-select-${slot.id}`}
                     onClick={() => {
-                      if (openable && onOpenStill) {
+                      if (openable) {
                         onSelectSlot(slot.id);
-                        onOpenStill(slot.id);
+                        onOpenStill?.(slot.id);
                         return;
                       }
-                      onSelectSlot(slot.id);
+                      edit();
                     }}
                   />
-                  {canPage ? (
-                    <>
-                      <button
-                        type="button"
-                        className={`${ROLEPLAY_OVERLAY_BTN_CLASS} absolute left-1.5 top-1/2 z-20 -translate-y-1/2`}
-                        aria-label="Previous Day still"
-                        data-testid={`day-progress-prev-${slot.id}`}
-                        disabled={!prevCompletedId}
-                        onClick={event => {
-                          stop(event);
-                          if (prevCompletedId) {
-                            openAdjacent(prevCompletedId);
-                          }
-                        }}
-                      >
-                        <UiIcon name="chevronLeft" size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className={`${ROLEPLAY_OVERLAY_BTN_CLASS} absolute right-1.5 top-1/2 z-20 -translate-y-1/2`}
-                        aria-label="Next Day still"
-                        data-testid={`day-progress-next-${slot.id}`}
-                        disabled={!nextCompletedId}
-                        onClick={event => {
-                          stop(event);
-                          if (nextCompletedId) {
-                            openAdjacent(nextCompletedId);
-                          }
-                        }}
-                      >
-                        <UiIcon name="chevronRight" size={14} />
-                      </button>
-                      <p className="pointer-events-none absolute left-1.5 top-1.5 z-20 rounded-full bg-[var(--bg-base)]/75 px-2 py-0.5 type-caption text-[var(--text-secondary)] backdrop-blur-sm">
-                        {completedIndex + 1} / {completedSlotIds.length}
-                      </p>
-                    </>
-                  ) : null}
-                  {canRequeue ? (
-                    <button
-                      type="button"
-                      className={`${ROLEPLAY_OVERLAY_BTN_CLASS} absolute right-1.5 top-1.5 z-20`}
-                      aria-label={`Requeue ${slot.label}`}
-                      title="Requeue this still"
-                      data-testid={`day-progress-requeue-${slot.id}`}
-                      disabled={busy}
-                      onClick={event => {
-                        stop(event);
-                        onSelectSlot(slot.id);
-                        onRetrySlot?.(slot);
-                      }}
-                    >
-                      <UiIcon name="retry" size={14} />
-                    </button>
-                  ) : null}
                 </div>
               ) : (
                 <button
                   type="button"
                   className={[
-                    'flex w-full items-center justify-center bg-[var(--bg-muted)]/40 text-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]',
+                    'flex w-full items-center justify-center rounded-t-[var(--radius-md)] bg-[var(--bg-muted)]/40 text-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]',
                     // Nothing rendered yet: a short strip, not a full-size empty frame.
                     state === 'idle' ? 'h-12' : compact ? 'aspect-video' : 'aspect-[4/3]',
                   ].join(' ')}
@@ -381,17 +395,10 @@ export default function DaySlotBoard({
                   aria-label={
                     state === 'idle' && planEmpty
                       ? `Add a beat for ${slot.label}`
-                      : selected
-                        ? `${slot.label}, selected — ${planLabel || label}`
-                        : `Select ${slot.label} — ${planLabel || label}`
+                      : `Edit ${slot.label} — ${planLabel || label}`
                   }
                   data-testid={`day-slot-select-${slot.id}`}
-                  onClick={() => {
-                    onSelectSlot(slot.id);
-                    if (state === 'idle' && planEmpty) {
-                      revealDaySlotEditor();
-                    }
-                  }}
+                  onClick={edit}
                 >
                   {state === 'idle' && planEmpty ? (
                     <span
@@ -405,21 +412,27 @@ export default function DaySlotBoard({
                   )}
                 </button>
               )}
+              {/* The one menu, over the picture's top-right corner. */}
+              <div className="absolute right-1.5 top-1.5 z-20">{menu}</div>
               <button
                 type="button"
                 className={[
-                  'block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]',
+                  'block w-full rounded-b-[var(--radius-md)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]',
                   compact ? 'px-2.5 py-2' : 'px-3 py-2.5',
                 ].join(' ')}
                 aria-pressed={selected}
-                onClick={() => onSelectSlot(slot.id)}
+                aria-label={`Edit ${slot.label}`}
+                data-testid={`day-progress-edit-${slot.id}`}
+                onClick={edit}
               >
                 <div className="flex items-baseline justify-between gap-2">
-                  <p className="type-heading min-w-0 text-sm leading-snug sm:text-base">
+                  <p className="type-heading min-w-0 truncate text-sm leading-snug sm:text-base">
                     {slot.label}
                   </p>
-                  {/* Screen-reader only: the accent border already marks the slot being edited,
-                      and "EDITING" was clipped in the four-across desktop board. */}
+                  <span className="type-caption shrink-0 text-[var(--accent-text)]" aria-hidden>
+                    Edit
+                  </span>
+                  {/* Screen-reader only: the accent border already marks the slot being edited. */}
                   {selected ? <span className="sr-only">Editing</span> : null}
                 </div>
                 <p className="type-caption text-[var(--text-muted)]">{label}</p>
@@ -511,7 +524,7 @@ export default function DaySlotBoard({
               </button>
               {still?.adultHold === 'withheld' ? (
                 <p
-                  className={`type-caption text-[var(--tint-danger-text)] ${compact ? 'px-2.5 pb-2' : 'px-3 pb-2.5'}`}
+                  className={`type-caption text-[var(--tint-danger-text)] ${pad} pb-2.5`}
                   role="status"
                   data-testid={`day-slot-withheld-${slot.id}`}
                 >
@@ -522,86 +535,18 @@ export default function DaySlotBoard({
               ) : null}
               {still?.engineNote ? (
                 <p
-                  className={`type-caption text-[var(--text-muted)] ${compact ? 'px-2.5 pb-1' : 'px-3 pb-1'}`}
+                  className={`type-caption text-[var(--text-muted)] ${pad} pb-1`}
                   data-testid={`day-slot-engine-note-${slot.id}`}
                 >
                   {still.engineNote}
                 </p>
               ) : null}
-              {/* Outside the select button: the note opens on its own tap. */}
+              {/* Outside the edit button: the note opens on its own tap. */}
               <StillPromptCheckNote
                 check={still?.promptCheck}
                 testId={`day-slot-prompt-check-${slot.id}`}
-                className={compact ? 'px-2.5 pb-2' : 'px-3 pb-2.5'}
+                className={`${pad} pb-2.5`}
               />
-              {onRerollSlot && state === 'idle' ? (
-                <div className={compact ? 'px-2.5 pb-2' : 'px-3 pb-2.5'}>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-full justify-center whitespace-nowrap"
-                    disabled={busy}
-                    aria-label={`Reroll ${slot.label} plan`}
-                    data-testid={`day-progress-reroll-${slot.id}`}
-                    onClick={() => {
-                      onSelectSlot(slot.id);
-                      onRerollSlot(slot);
-                    }}
-                  >
-                    Reroll
-                  </Button>
-                </div>
-              ) : null}
-              {openable && onOpenStill ? (
-                <div className={compact ? 'px-2.5 pb-2' : 'px-3 pb-2.5'}>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-full justify-center"
-                    data-testid={`day-progress-open-${slot.id}`}
-                    onClick={() => onOpenStill(slot.id)}
-                  >
-                    View larger
-                  </Button>
-                </div>
-              ) : null}
-              {openable && stillPromptId && !compact ? (
-                <div className="px-3 pb-2.5">
-                  <OpenInComfyButton
-                    promptId={stillPromptId}
-                    className="w-full justify-center"
-                    testId={`day-progress-comfy-${slot.id}`}
-                  />
-                </div>
-              ) : null}
-              {canAnimate ? (
-                <div className={compact ? 'px-2.5 pb-2' : 'px-3 pb-2.5'}>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="w-full justify-center"
-                    disabled={busy}
-                    data-testid={`day-progress-animate-${slot.id}`}
-                    onClick={() => onAnimateSlot?.(slot)}
-                  >
-                    Animate
-                  </Button>
-                </div>
-              ) : null}
-              {state === 'failed' && onRetrySlot ? (
-                <div className={compact ? 'px-2.5 pb-2' : 'px-3 pb-2.5'}>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="w-full justify-center"
-                    disabled={busy || queueBlocked}
-                    data-testid={`day-progress-retry-${slot.id}`}
-                    onClick={() => onRetrySlot(slot)}
-                  >
-                    Retry {slot.label}
-                  </Button>
-                </div>
-              ) : null}
             </div>
           </li>
         );

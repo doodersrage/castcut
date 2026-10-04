@@ -1,42 +1,45 @@
 'use client';
 
-import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
 import DayEndPoseControl from '@/components/day-planner/DayEndPoseControl';
-import DaySlotLookPicker from '@/components/day-planner/DaySlotLookPicker';
 import PlateStanceNudge from '@/components/character/PlateStanceNudge';
-import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
-import { typedDayBeatPatch } from '@/lib/day-planner';
 import { continueDayAsStoryHref } from '@/lib/day-story-seed';
 import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
-import DayPosePackPicker from '@/components/day-planner/DayPosePackPicker';
-import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
 import CharacterOsPicker from '@/components/CharacterOsPicker';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import TaskRequirementsCard from '@/components/TaskRequirementsCard';
-import DayMoodStrip from '@/components/day-planner/DayMoodStrip';
+import DayAdvancedDrawer, {
+  DayQualityStatusLines,
+} from '@/components/day-planner/DayAdvancedDrawer';
+import DayPartnerRow from '@/components/day-planner/DayPartnerRow';
+import DayPlanBar, { DayMoodHints } from '@/components/day-planner/DayPlanBar';
 import DayRemixMenu from '@/components/day-planner/DayRemixMenu';
 import DaySeriesPanel from '@/components/day-planner/DaySeriesPanel';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
+import DaySetupChip from '@/components/day-planner/DaySetupChip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
+import DaySlotSheet from '@/components/day-planner/DaySlotSheet';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
 import UploadButton from '@/components/ui/UploadButton';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import SharedToolControls from '@/components/SharedToolControls';
+import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
-import { ChipButton, FieldError, FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
+import { ChipButton, FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
+import SideSheet from '@/components/ui/SideSheet';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import ClothingPicker from '@/components/wardrobe/ClothingPicker';
 import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
+import { useDayQualityPreset } from '@/hooks/day-planner/useDayQualityPreset';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import {
   buildDayProgressLightboxState,
@@ -44,8 +47,8 @@ import {
   type DaySlotId,
   isDayAdultMood,
 } from '@/lib/day-planner';
+import { dayQualityPresetLabel } from '@/lib/day-quality-preset';
 import { fittingSwipeNeighbor } from '@/lib/fitting-room';
-import { ROLEPLAY_SETTING_PRESETS } from '@/lib/roleplay';
 import {
   resolveFilmFailurePlaybook,
   resolveQueueFailureGuideLabel,
@@ -85,6 +88,10 @@ function subscribePlayMetrics(onStoreChange: () => void) {
 
 type ViewModel = ReturnType<typeof useDayPlannerToolOrchestration>;
 
+/**
+ * Phone Day — the same sections as desk (plan bar, Advanced drawer, slot board, slot sheet,
+ * Setup sheet) in a single column, with the phone's own cut card, reel and Engine fold.
+ */
 export default function MobileDayToolSections(vm: ViewModel) {
   useWardrobeGarmentThumbManifestGeneration();
   const {
@@ -122,7 +129,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
     platePreviewUrl,
     setIsolateSubject,
     allowCompanions,
-    setAllowCompanions,
     dayLength,
     setDayLength,
     autoReviewStills,
@@ -171,7 +177,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setPeople,
     intimateEnabled,
     intimateMix,
-    setIntimateMix,
     suggestDayScenes,
     rerollActiveSlotScene,
     queueBlockReason,
@@ -228,11 +233,15 @@ export default function MobileDayToolSections(vm: ViewModel) {
 
   const hasCustomGarment = Boolean(toolSettings.customGarmentImageUrl?.trim());
   const [sampleWatch, setSampleWatch] = useState(false);
-  const [jumpInMode, setJumpInMode] = useState(false);
   const [progressLightbox, setProgressLightbox] = useState<ImageLightboxState | null>(null);
   const [progressLightboxSlotIds, setProgressLightboxSlotIds] = useState<DaySlotId[]>([]);
+  const [slotSheetOpen, setSlotSheetOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const advancedId = useId();
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance({ mobile: true });
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
+  const quality = useDayQualityPreset({ shared, updateShared, toolSettings, updateToolSettings });
   const wardrobeKitDeck = useMemo(
     () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, activeSlot.wardrobeId),
     [activeSlot.wardrobeId, filteredWardrobeOptions]
@@ -253,18 +262,15 @@ export default function MobileDayToolSections(vm: ViewModel) {
     slotTotal,
     kitLabel: wardrobeLabelFor(activeSlot.wardrobeId),
   });
-  const collapseEditors =
-    leanChrome && (jumpInMode || busy || assemblingFilm || completedShotCount > 0);
-  const showCutCoach =
-    completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm && !hideStickyCutCoach;
   const cutCoachEligible = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
+  const showCutCoach = cutCoachEligible && !hideStickyCutCoach;
   const queueBlocked = Boolean(queueBlockReason);
-  const showAnimateCoach =
+  const canAnimateAll =
     completedShotCount > 0 &&
     completedClipCount < completedShotCount &&
     !firstCutCelebrate &&
     !assemblingFilm;
-  // End pose beside Animate — only when this ComfyUI can pin a last frame on the clip engine.
+  // End pose in the slot sheet — only when this ComfyUI can pin a last frame on the clip engine.
   const endPoseControl = endPoseSupportedFor(activeSlot.id) ? (
     <DayEndPoseControl
       key={activeSlot.id}
@@ -282,8 +288,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
   ) : null;
   const showDemoEscape = completedShotCount === 0;
   const showSampleEscape = watchPlaylist.length === 0;
-  const setupDefaultOpen = !character || !hasPlate;
-  const editDefaultOpen = true;
   const playbookHref =
     filmGuideHref ?? (error ? resolveFilmFailurePlaybook(error).href : undefined);
   const firstFilmDone = useSyncExternalStore(
@@ -299,13 +303,24 @@ export default function MobileDayToolSections(vm: ViewModel) {
     campaignCompleted: firstCutCelebrate || firstFilmDone,
     slotCount: slots.length,
   });
-  const showFinalPass = leanChrome;
   const galleryFilmHref = character
     ? toMobileStudioHref(`/gallery?character=${encodeURIComponent(character.id)}&derivedKind=film`)
     : toMobileStudioHref('/gallery');
   const watchCastHref = character
     ? toMobileStudioHref(`/characters/${encodeURIComponent(character.id)}?media=films`)
     : toMobileStudioHref('/characters');
+  const clothingSummary = hasCustomGarment
+    ? 'Your clothing photo'
+    : formatWardrobeKitLabel(wardrobeLabelFor(activeSlot.wardrobeId) || '') ||
+      'Outfit kit for this slot';
+
+  const openSlotSheet = useCallback(
+    (slotId: DaySlotId) => {
+      setActiveSlotId(slotId);
+      setSlotSheetOpen(true);
+    },
+    [setActiveSlotId]
+  );
 
   const openProgressLightbox = useCallback(
     (slotId: string) => {
@@ -360,17 +375,73 @@ export default function MobileDayToolSections(vm: ViewModel) {
         return;
       }
       const params = new URLSearchParams(window.location.search);
-      setJumpInMode(
-        params.get('starter') === '1' ||
-          params.get('remix') === '1' ||
-          params.get('autocut') === '1' ||
-          params.get('autoqueue') === '1'
-      );
+      if (params.get('edit') === '1') {
+        setSlotSheetOpen(true);
+      }
     });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const clothingPicker = () => (
+    <div data-testid="day-clothing">
+      <ClothingPicker
+        accent="teal"
+        busy={busy}
+        testIdPrefix="day"
+        garment={{
+          uploading: garmentUploading,
+          scanStatus: garmentScanStatus,
+          imageUrl: toolSettings.customGarmentImageUrl,
+          imageFilename: toolSettings.customGarmentImageFilename,
+          description: toolSettings.customGarmentDescription,
+          onApply: applyCustomGarment,
+          onClear: clearCustomGarment,
+          onRescan: rescanCustomGarment,
+          onSave: saveCurrentCustomGarment,
+          onApplySaved: applySavedCustomGarment,
+          onRemoveSaved: removeSavedCustomGarment,
+          onDescriptionChange: value => updateToolSettings({ customGarmentDescription: value }),
+        }}
+        footwear={{
+          value: toolSettings.footwear,
+          imageUrl: toolSettings.footwearImageUrl,
+          imageFilename: toolSettings.footwearImageFilename,
+          onChange: patch => updateToolSettings(patch),
+          onApplyPhoto: applyFootwearPhoto,
+        }}
+        kits={wardrobeKitDeck}
+        kitsReady={wardrobeReady}
+        selectedKitId={activeSlot.wardrobeId}
+        kitSize="sm"
+        kitPickerTestId="mobile-day-wardrobe-kit-picker"
+        onSelectKit={wardrobeId => selectSlotWardrobe(activeSlot.id, wardrobeId)}
+        onSwipeKit={delta => {
+          const next = fittingSwipeNeighbor(wardrobeKitDeck, activeSlot.wardrobeId, delta);
+          if (next) {
+            selectSlotWardrobe(activeSlot.id, next.id);
+          }
+        }}
+        onClearKit={() => selectSlotWardrobe(activeSlot.id, undefined)}
+        resolveKitThumb={kit => ({ url: resolveWardrobeGarmentThumbUrl(kit.id) })}
+        category={{
+          value: wardrobeCategoryFilter,
+          options: wardrobeCategoryFilterOptions().map(option => ({
+            value: option.value,
+            label: wardrobeReady
+              ? `${option.label} (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
+              : option.label,
+          })),
+          onChange: value =>
+            updateToolSettings({
+              wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(value),
+            }),
+        }}
+        onError={message => setError(message)}
+      />
+    </div>
+  );
 
   return (
     <div className="space-y-4" data-testid="mobile-day">
@@ -379,9 +450,17 @@ export default function MobileDayToolSections(vm: ViewModel) {
         onResolve={action => void resolveCutProblems(action)}
       />
       <div className="space-y-1">
-        <h1 className="type-display text-2xl tracking-tight">Day</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="type-display text-2xl tracking-tight">Day</h1>
+          <DaySetupChip
+            character={character}
+            hasPlate={hasPlate}
+            className="max-w-[60%] text-xs"
+            onClick={() => setSetupOpen(true)}
+          />
+        </div>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-          Tap a time of day → Queue day → Cut film.
+          Plan the day → Queue day → Cut film. Tap a card to open that time of day.
         </p>
       </div>
 
@@ -405,6 +484,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             hasPlate={hasPlate}
             characterId={character?.id}
             mobile
+            onOpenSetup={() => setSetupOpen(true)}
           />
           <DayStatusStrip
             statusLine={dayStatusLine}
@@ -583,29 +663,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         </div>
       ) : null}
 
-      <div className="space-y-2">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="type-caption text-[var(--text-muted)]">Day</p>
-          <p className="type-caption text-[var(--accent-text)]">Editing {activeSlot.label}</p>
-        </div>
-        <DaySlotBoard
-          slots={slots}
-          stills={stills}
-          activeSlotId={activeSlotId}
-          busy={busy}
-          queueBlocked={queueBlocked}
-          compact
-          onSelectSlot={setActiveSlotId}
-          onOpenStill={openProgressLightbox}
-          onRetrySlot={slot => void queueSlot(slot)}
-          onAnimateSlot={slot => void animateSlot(slot)}
-          onRerollSlot={slot => {
-            rerollActiveSlotScene({ slotId: slot.id });
-          }}
-          qualityLedger={qualityLedger}
-          poseRedoMarks={poseRedoMarks}
-          clipChecks={clipChecks}
-        />
+      <div className="space-y-2" data-testid="day-slot-board">
         <TaskRequirementsCard
           task="This Day"
           testId="day-task-requirements"
@@ -616,30 +674,34 @@ export default function MobileDayToolSections(vm: ViewModel) {
             autoReview: autoReviewStills,
           }}
         />
-        <DayMoodStrip
+        <DayPlanBar
           busy={busy}
-          allowCompanions={allowCompanions}
-          onAllowCompanionsChange={setAllowCompanions}
-          posePriority={posePriority}
-          onPosePriorityChange={setPosePriority}
-          identityBoost={identityBoost}
-          onIdentityBoostChange={setIdentityBoost}
-          faceFinish={faceFinish}
-          onFaceFinishChange={setFaceFinish}
-          faceFinishStatus={faceFinishStatus}
-          autoReviewStills={autoReviewStills}
-          onAutoReviewStillsChange={setAutoReviewStills}
-          qualityStatus={qualityStatus}
-          redoPoseMisses={redoPoseMisses}
-          onRedoPoseMissesChange={setRedoPoseMisses}
-          poseRedoStatus={poseRedoStatus}
-          bestOfTwoHardPoses={bestOfTwoHardPoses}
-          onBestOfTwoHardPosesChange={setBestOfTwoHardPoses}
-          bestOfTwoStatus={bestOfTwoStatus}
-          bestEnginePerPose={bestEnginePerPose}
-          onBestEnginePerPoseChange={setBestEnginePerPose}
+          dayLength={dayLength}
+          onDayLengthChange={setDayLength}
           dayMood={dayMood}
           onDayMoodChange={setDayMood}
+          intimateEnabled={intimateEnabled}
+          people={people}
+          onPeopleChange={setPeople}
+          leadNoun={leadNoun}
+          dayWeather={dayWeather}
+          onDayWeatherChange={setDayWeather}
+          qualityPreset={quality.preset}
+          onQualityPresetChange={quality.setPreset}
+          qualitySummary={quality.summary}
+          advancedOpen={advancedOpen}
+          onAdvancedToggle={() => setAdvancedOpen(open => !open)}
+          advancedId={advancedId}
+        />
+        <DayMoodHints
+          dayMood={dayMood}
+          intimateMix={intimateMix}
+          intimateEnabled={intimateEnabled}
+        />
+        <DayPartnerRow
+          busy={busy}
+          dayMood={dayMood}
+          people={people}
           partnerId={partnerCharacterId}
           partnerOptions={partnerOptions}
           onPartnerChange={setPartnerCharacterId}
@@ -647,82 +709,89 @@ export default function MobileDayToolSections(vm: ViewModel) {
           leadNoun={leadNoun}
           partnerStandInUrl={partnerStandInUrl}
           onNewPartnerStandIn={newPartnerStandIn}
-          dayWeather={dayWeather}
-          onDayWeatherChange={setDayWeather}
-          people={people}
-          onPeopleChange={setPeople}
-          intimateMix={intimateMix}
-          onIntimateMixChange={setIntimateMix}
-          intimateEnabled={intimateEnabled}
-          dayLength={dayLength}
-          onDayLengthChange={setDayLength}
         />
-        <DayPosePackPicker
+        <DayQualityStatusLines
+          faceFinish={faceFinish}
+          autoReviewStills={autoReviewStills}
+          redoPoseMisses={redoPoseMisses}
+          bestOfTwoHardPoses={bestOfTwoHardPoses}
+          faceFinishStatus={faceFinishStatus}
+          qualityStatus={qualityStatus}
+          poseRedoStatus={poseRedoStatus}
+          bestOfTwoStatus={bestOfTwoStatus}
+        />
+        {advancedOpen ? (
+          <DayAdvancedDrawer
+            id={advancedId}
+            busy={busy}
+            renderQuality={quality.renderQuality}
+            onRenderQualityChange={quality.setRenderQuality}
+            posePriority={posePriority}
+            onPosePriorityChange={setPosePriority}
+            identityBoost={identityBoost}
+            onIdentityBoostChange={setIdentityBoost}
+            faceFinish={faceFinish}
+            onFaceFinishChange={setFaceFinish}
+            autoReviewStills={autoReviewStills}
+            onAutoReviewStillsChange={setAutoReviewStills}
+            redoPoseMisses={redoPoseMisses}
+            onRedoPoseMissesChange={setRedoPoseMisses}
+            bestOfTwoHardPoses={bestOfTwoHardPoses}
+            onBestOfTwoHardPosesChange={setBestOfTwoHardPoses}
+            bestEnginePerPose={bestEnginePerPose}
+            onBestEnginePerPoseChange={setBestEnginePerPose}
+            slots={slots}
+            dayMood={dayMood}
+            intimateEnabled={intimateEnabled}
+            intimateMix={intimateMix}
+            allowCompanions={allowCompanions}
+            model={shared.model}
+            onSlotsChange={next => updateToolSettings({ slots: next })}
+            notes={toolSettings.notes ?? ''}
+            onNotesChange={next => updateToolSettings({ notes: next })}
+          />
+        ) : null}
+        <DaySlotBoard
           slots={slots}
-          dayMood={dayMood}
-          intimateEnabled={intimateEnabled}
-          intimateMix={intimateMix}
-          allowCompanions={allowCompanions}
-          model={shared.model}
+          stills={stills}
+          activeSlotId={activeSlotId}
           busy={busy}
-          onSlotsChange={next => updateToolSettings({ slots: next })}
-        />
-        <div className="grid gap-2" data-testid="day-active-plan">
-          <label className="block space-y-1.5 text-sm">
-            <FieldLabel>Setting · {activeSlot.label}</FieldLabel>
-            <TextArea
-              rows={2}
-              data-testid="day-slot-location"
-              value={activeSlot.location ?? ''}
-              placeholder="e.g. sunlit café, rainy commute"
-              onChange={event => updateSlot(activeSlot.id, { location: event.target.value })}
-            />
-          </label>
-          <label className="block space-y-1.5 text-sm">
-            <FieldLabel>
-              Beat · {activeSlot.label}
-              <DayBeatOwnership slot={activeSlot} updateSlot={updateSlot} />
-            </FieldLabel>
-            <TextArea
-              rows={2}
-              data-testid="day-slot-beat"
-              value={activeSlot.sceneHints ?? ''}
-              placeholder="What happens in this part of the day?"
-              onChange={event =>
-                updateSlot(activeSlot.id, typedDayBeatPatch(activeSlot, event.target.value))
-              }
-            />
-          </label>
-        </div>
-        <DaySlotLookPicker
-          character={character}
-          slot={activeSlot}
-          disabled={busy}
-          updateSlot={updateSlot}
-        />
-        <DaySameSeedRedo
-          slot={activeSlot}
-          still={stills.find(entry => entry.slotId === activeSlot.id)}
-          busy={busy}
-          blocked={queueBlocked}
-          onRedo={() => void redoSlotSameSeed(activeSlot.id)}
-          onKeepOld={() => keepPreviousTake(activeSlot.id)}
-          onKeepNew={() => dropPreviousTake(activeSlot.id)}
-        />
-        <DaySlotPosePreview
-          slot={activeSlot}
-          dayMood={dayMood}
-          intimateEnabled={intimateEnabled}
-          intimateMix={intimateMix}
-          allowCompanions={allowCompanions}
-          model={shared.model}
-          busy={busy}
+          queueBlocked={queueBlocked}
           compact
-          poseMiss={poseMissViews[activeSlot.id]}
-          plateUrl={platePreviewUrl || plate?.imageUrl}
-          updateSlot={updateSlot}
+          onSelectSlot={setActiveSlotId}
+          onEditSlot={openSlotSheet}
+          onOpenStill={openProgressLightbox}
+          onRetrySlot={slot => void queueSlot(slot)}
+          onAnimateSlot={slot => void animateSlot(slot)}
+          onQueueSlot={slot => void queueSlot(slot)}
+          onRerollSlot={slot => {
+            rerollActiveSlotScene({ slotId: slot.id });
+          }}
+          qualityLedger={qualityLedger}
+          poseRedoMarks={poseRedoMarks}
+          clipChecks={clipChecks}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">
+          <PrimaryButton
+            disabled={busy || queueBlocked}
+            loading={busy}
+            data-testid="day-queue-all"
+            onClick={() => void queueAll()}
+            className="w-full justify-center"
+          >
+            {completedShotCount > 0 ? 'Queue the rest' : 'Queue day'}
+          </PrimaryButton>
+          {canAnimateAll ? (
+            <Button
+              variant={dayPhase === 'animate' ? 'primary' : 'secondary'}
+              disabled={busy}
+              data-testid="day-animate-all"
+              onClick={() => void animateAllClips()}
+              className="w-full justify-center"
+            >
+              Animate all
+            </Button>
+          ) : null}
           <Button
             variant="secondary"
             disabled={busy}
@@ -732,26 +801,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
           >
             Suggest day
           </Button>
-          <PrimaryButton
-            disabled={busy || queueBlocked}
-            loading={busy}
-            data-testid="day-queue-all"
-            onClick={() => void queueAll()}
-            className="w-full justify-center"
-          >
-            {leanChrome && !firstFilmDone && !firstCutCelebrate ? 'Queue day · draft' : 'Queue day'}
-          </PrimaryButton>
-          {showFinalPass ? (
-            <Button
-              variant="secondary"
-              disabled={busy || queueBlocked}
-              data-testid="day-queue-final"
-              onClick={() => void queueAll({ qualityProfile: 'final' })}
-              className="w-full justify-center"
-            >
-              Final pass
-            </Button>
-          ) : null}
           {flaggedRetryCount > 0 ? (
             <Button
               variant="secondary"
@@ -763,15 +812,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
               Retry {flaggedRetryCount} flagged
             </Button>
           ) : null}
-          <Button
-            variant="ghost"
-            disabled={busy || queueBlocked}
-            data-testid="day-slot-queue"
-            onClick={() => void queueSlot(activeSlot)}
-            className="w-full justify-center"
-          >
-            Queue {activeSlot.label.toLowerCase()} only
-          </Button>
           {showDemoEscape ? (
             <Button
               variant="ghost"
@@ -790,13 +830,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
             data-testid="day-queue-block-reason"
           >
             {queueBlockReason}
-          </p>
-        ) : null}
-        {leanChrome ? (
-          <p className="type-caption text-[var(--text-muted)]" data-testid="day-draft-hint">
-            {firstFilmDone || firstCutCelebrate
-              ? 'Queue day uses final quality after your first cut.'
-              : 'First film queues as draft — or tap Final pass.'}
           </p>
         ) : null}
       </div>
@@ -872,61 +905,70 @@ export default function MobileDayToolSections(vm: ViewModel) {
           </div>
         ) : null}
         {filmStatus && !firstCutCelebrate ? (
-          <CollapsibleSection
-            title="After cut"
-            summary="Save, share, remix, Cast."
-            defaultOpen={false}
-            persistKey="mobile-day-after-cut"
-          >
-            <div className="grid gap-2">
-              {filmNeedsCast ? (
-                <Button
-                  variant="secondary"
-                  disabled={busy || assemblingFilm}
-                  onClick={saveFilmToCast}
-                  className="w-full justify-center"
-                  data-testid="day-save-film-cast"
+          <div className="grid gap-2" data-testid="day-after-cut">
+            {filmNeedsCast ? (
+              <Button
+                variant="primary"
+                disabled={busy || assemblingFilm}
+                onClick={saveFilmToCast}
+                className="w-full justify-center"
+                data-testid="day-save-film-cast"
+              >
+                Save film to Cast
+              </Button>
+            ) : null}
+            {character && !assemblingFilm ? (
+              <>
+                <Link
+                  href={toMobileStudioHref(
+                    `/characters/${encodeURIComponent(character.id)}?media=films`
+                  )}
+                  className={`${filmNeedsCast ? 'ui-btn-secondary' : 'ui-btn-primary'} w-full justify-center text-center text-sm`}
+                  data-testid="day-open-cast-film"
                 >
-                  Save film to Cast
-                </Button>
-              ) : null}
-              {character && !assemblingFilm ? (
-                <>
-                  <Button
-                    variant="secondary"
-                    className="w-full justify-center"
+                  Watch on Cast
+                </Link>
+                <DayRemixMenu
+                  stacked
+                  testIdPrefix="day-remix"
+                  onNewOutfit={remixNewOutfitDay}
+                  onTheme={remixThemeDay}
+                />
+                <ActionMenu
+                  label="After cut"
+                  align="left"
+                  testId="day-after-cut-menu"
+                  summaryClassName="ui-btn-ghost w-full justify-center text-sm"
+                >
+                  <button
+                    type="button"
+                    className={ACTION_MENU_ITEM_CLASS}
                     data-testid="day-share-cut"
                     onClick={() => void shareLastCut()}
                   >
                     Share cut
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="w-full justify-center"
+                  </button>
+                  <button
+                    type="button"
+                    className={ACTION_MENU_ITEM_CLASS}
+                    disabled={posterBusy}
+                    data-testid="day-poster"
+                    onClick={() => void saveFilmPoster()}
+                  >
+                    {posterBusy ? 'Saving poster…' : 'Save poster'}
+                  </button>
+                  <button
+                    type="button"
+                    className={ACTION_MENU_ITEM_CLASS}
                     data-testid="day-remix-day"
                     onClick={remixSameLookDay}
                   >
                     Same look, new Day
-                  </Button>
-                  <DayRemixMenu
-                    stacked
-                    testIdPrefix="day-remix"
-                    onNewOutfit={remixNewOutfitDay}
-                    onTheme={remixThemeDay}
-                  />
-                  <Link
-                    href={toMobileStudioHref(
-                      `/characters/${encodeURIComponent(character.id)}?media=films`
-                    )}
-                    className="ui-btn-primary w-full justify-center text-center text-sm"
-                    data-testid="day-open-cast-film"
-                  >
-                    Watch on Cast
-                  </Link>
-                </>
-              ) : null}
-            </div>
-          </CollapsibleSection>
+                  </button>
+                </ActionMenu>
+              </>
+            ) : null}
+          </div>
         ) : null}
         {filmStatus ? <p className="type-caption text-[var(--text-muted)]">{filmStatus}</p> : null}
         <DaySeriesPanel
@@ -938,277 +980,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onNewSeason={startNewSeason}
         />
       </div>
-      {showAnimateCoach ? (
-        <div className="space-y-2" data-testid="day-animate">
-          <p className="type-caption text-[var(--text-muted)]">
-            Next · Animate → Cut — stills ready; clips preferred for a motion reel.
-          </p>
-          <PrimaryButton
-            disabled={busy}
-            data-testid="day-animate-all"
-            onClick={() => void animateAllClips()}
-            className="w-full justify-center"
-          >
-            Animate all ready stills
-          </PrimaryButton>
-          <Button
-            variant="secondary"
-            disabled={busy}
-            data-testid="day-animate-active"
-            onClick={() => void animateSlot(activeSlot)}
-            className="w-full justify-center"
-          >
-            Animate {activeSlot.label.toLowerCase()}
-          </Button>
-          {/* The Cut card at the top already owns Cut; only offer it here when that is hidden. */}
-          {!showCutCoach ? (
-            <Button
-              variant="ghost"
-              disabled={busy || assemblingFilm}
-              data-testid="day-animate-cut"
-              onClick={() => void cutDayFilm()}
-              className="w-full justify-center"
-            >
-              Skip to Cut film
-            </Button>
-          ) : null}
-          {endPoseControl}
-        </div>
-      ) : completedShotCount > 0 && !firstCutCelebrate ? (
-        <div className="space-y-2" data-testid="day-animate">
-          <p className="type-caption text-[var(--text-muted)]">
-            Motion — re-animate or Cut when clips are ready.
-          </p>
-          <Button
-            variant="secondary"
-            disabled={busy}
-            onClick={() => void animateSlot(activeSlot)}
-            className="w-full justify-center"
-          >
-            Animate {activeSlot.label.toLowerCase()}
-          </Button>
-          <Button
-            variant="ghost"
-            disabled={busy}
-            onClick={() => void animateAllClips()}
-            className="w-full justify-center"
-          >
-            Animate all ready stills
-          </Button>
-          {endPoseControl}
-        </div>
-      ) : null}
-
-      <CollapsibleSection
-        title={`Edit · ${activeSlot.label}`}
-        summary="Presets, clothing, and notes for this time of day."
-        defaultOpen={editDefaultOpen && !collapseEditors}
-        persistKey="mobile-day-slots-lean"
-      >
-        <div className="space-y-2" data-testid="day-slots">
-          <CollapsibleSection
-            title="Setting presets"
-            summary="Insert a canned location into Setting above."
-            defaultOpen={false}
-            persistKey="mobile-day-setting-presets"
-          >
-            <SelectInput
-              value=""
-              disabled={busy}
-              data-testid="day-setting-preset"
-              aria-label="Setting preset"
-              onChange={event => {
-                const preset = ROLEPLAY_SETTING_PRESETS.find(
-                  entry => entry.id === event.target.value
-                );
-                if (preset) {
-                  updateSlot(activeSlot.id, { location: preset.setting });
-                }
-              }}
-            >
-              <option value="">Insert preset…</option>
-              {ROLEPLAY_SETTING_PRESETS.map(preset => (
-                <option key={preset.id} value={preset.id}>
-                  {preset.label}
-                </option>
-              ))}
-            </SelectInput>
-          </CollapsibleSection>
-
-          <CollapsibleSection
-            title="Clothing"
-            summary={
-              hasCustomGarment
-                ? 'Your clothing photo'
-                : formatWardrobeKitLabel(wardrobeLabelFor(activeSlot.wardrobeId) || '') ||
-                  'Outfit kit for this slot'
-            }
-            defaultOpen={false}
-            persistKey="mobile-day-clothing"
-          >
-            <div data-testid="day-clothing">
-              <ClothingPicker
-                accent="teal"
-                busy={busy}
-                testIdPrefix="day"
-                garment={{
-                  uploading: garmentUploading,
-                  scanStatus: garmentScanStatus,
-                  imageUrl: toolSettings.customGarmentImageUrl,
-                  imageFilename: toolSettings.customGarmentImageFilename,
-                  description: toolSettings.customGarmentDescription,
-                  onApply: applyCustomGarment,
-                  onClear: clearCustomGarment,
-                  onRescan: rescanCustomGarment,
-                  onSave: saveCurrentCustomGarment,
-                  onApplySaved: applySavedCustomGarment,
-                  onRemoveSaved: removeSavedCustomGarment,
-                  onDescriptionChange: value =>
-                    updateToolSettings({ customGarmentDescription: value }),
-                }}
-                footwear={{
-                  value: toolSettings.footwear,
-                  imageUrl: toolSettings.footwearImageUrl,
-                  imageFilename: toolSettings.footwearImageFilename,
-                  onChange: patch => updateToolSettings(patch),
-                  onApplyPhoto: applyFootwearPhoto,
-                }}
-                kits={wardrobeKitDeck}
-                kitsReady={wardrobeReady}
-                selectedKitId={activeSlot.wardrobeId}
-                kitSize="sm"
-                kitPickerTestId="mobile-day-wardrobe-kit-picker"
-                onSelectKit={wardrobeId => selectSlotWardrobe(activeSlot.id, wardrobeId)}
-                onSwipeKit={delta => {
-                  const next = fittingSwipeNeighbor(wardrobeKitDeck, activeSlot.wardrobeId, delta);
-                  if (next) {
-                    selectSlotWardrobe(activeSlot.id, next.id);
-                  }
-                }}
-                onClearKit={() => selectSlotWardrobe(activeSlot.id, undefined)}
-                resolveKitThumb={kit => ({ url: resolveWardrobeGarmentThumbUrl(kit.id) })}
-                category={{
-                  value: wardrobeCategoryFilter,
-                  options: wardrobeCategoryFilterOptions().map(option => ({
-                    value: option.value,
-                    label: wardrobeReady
-                      ? `${option.label} (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
-                      : option.label,
-                  })),
-                  onChange: value =>
-                    updateToolSettings({
-                      wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(value),
-                    }),
-                }}
-                onError={message => setError(message)}
-              />
-            </div>
-          </CollapsibleSection>
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection
-        title="Setup"
-        summary={
-          hasPlate ? `${character?.name?.trim() || 'Cast'} · plate ready` : 'Character and plate.'
-        }
-        defaultOpen={setupDefaultOpen}
-        persistKey="mobile-day-setup-lean"
-        className="day-character-section"
-      >
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
-          <div data-testid="day-character">
-            <CharacterOsPicker
-              shared={shared}
-              hints={character?.hints}
-              onApply={patch => {
-                try {
-                  updateShared(patch);
-                } catch (err) {
-                  setError(err instanceof Error ? err.message : 'Could not apply that character.');
-                }
-              }}
-            />
-          </div>
-          <p className="type-caption mt-2 text-[var(--text-muted)]">
-            {hasPlate
-              ? isolateSubject && isolatePending
-                ? 'Isolating plate on white…'
-                : 'Plate ready.'
-              : 'No plate — upload one (it becomes the Cast look plate) or Keep in Outfit.'}
-          </p>
-          {!hasPlate && character ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              <UploadButton
-                label={plateUploading ? 'Uploading…' : 'Upload plate'}
-                variant="primary"
-                disabled={busy || plateUploading}
-                ariaLabel="Upload a look plate for this Cast"
-                testId="day-plate-upload"
-                onFile={file => void uploadCastPlate(file)}
-              />
-            </div>
-          ) : null}
-          {plateUploadError ? (
-            <p className="type-caption mt-1 text-[var(--danger-text)]">{plateUploadError}</p>
-          ) : null}
-          {hasPlate ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              <ChipButton
-                active={isolateSubject}
-                disabled={busy || isolateBusy || !hasPlate}
-                data-testid="day-plate-isolate"
-                onClick={() => setIsolateSubject(!isolateSubject)}
-              >
-                Isolate on white
-              </ChipButton>
-              {isolateStatus ? (
-                <p
-                  className="type-caption mt-2 w-full text-[var(--text-muted)]"
-                  data-testid="day-plate-isolate-status"
-                >
-                  {isolateStatus}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-          {platePreviewUrl || plate?.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={platePreviewUrl || plate?.imageUrl}
-              alt="Day plate"
-              className="mt-3 max-h-48 w-full rounded-xl border border-[var(--border-subtle)] object-contain"
-              data-testid="mobile-day-plate-preview"
-              data-source={plate?.source}
-              data-isolated={plate?.isolated === true ? 'true' : 'false'}
-            />
-          ) : null}
-          {hasPlate ? (
-            <PlateStanceNudge
-              characterId={shared.activeCharacterId}
-              lookId={activeSlot.lookId}
-              className="mt-2"
-            />
-          ) : null}
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection
-        title="Advanced"
-        summary="Day-wide notes."
-        defaultOpen={false}
-        persistKey="mobile-day-advanced"
-      >
-        <label className="block space-y-1.5 text-sm">
-          <FieldLabel>Day notes</FieldLabel>
-          <TextArea
-            rows={2}
-            value={toolSettings.notes ?? ''}
-            placeholder="Optional notes for every slot"
-            onChange={event => updateToolSettings({ notes: event.target.value })}
-          />
-        </label>
-      </CollapsibleSection>
 
       <CollapsibleSection
         title="Engine"
@@ -1228,6 +999,10 @@ export default function MobileDayToolSections(vm: ViewModel) {
             onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
             recommendFromText=""
             toolId="day"
+            qualitySetBy={{
+              label: dayQualityPresetLabel(quality.preset),
+              hint: 'Change it in the plan bar above the board; Good / Best by hand under Advanced.',
+            }}
             preferEditModels={hasPlate}
             onSharedSettingsChange={updateShared}
             variant="roleplay"
@@ -1351,6 +1126,115 @@ export default function MobileDayToolSections(vm: ViewModel) {
           </div>
         </div>
       ) : null}
+      <DaySlotSheet
+        open={slotSheetOpen}
+        onClose={() => setSlotSheetOpen(false)}
+        slot={activeSlot}
+        slots={slots}
+        stills={stills}
+        onSelectSlot={setActiveSlotId}
+        character={character}
+        busy={busy}
+        queueBlocked={queueBlocked}
+        dayMood={dayMood}
+        intimateEnabled={intimateEnabled}
+        intimateMix={intimateMix}
+        allowCompanions={allowCompanions}
+        model={shared.model}
+        poseMiss={poseMissViews[activeSlot.id]}
+        plateUrl={platePreviewUrl || plate?.imageUrl}
+        updateSlot={updateSlot}
+        clothingSummary={clothingSummary}
+        renderClothingPicker={clothingPicker}
+        onRedoSameSeed={() => void redoSlotSameSeed(activeSlot.id)}
+        onKeepOldTake={() => keepPreviousTake(activeSlot.id)}
+        onKeepNewTake={() => dropPreviousTake(activeSlot.id)}
+        endPose={endPoseControl}
+        onQueueSlot={() => void queueSlot(activeSlot)}
+        onAnimateSlot={() => void animateSlot(activeSlot)}
+        compact
+      />
+      <SideSheet
+        open={setupOpen}
+        onClose={() => setSetupOpen(false)}
+        title="Setup"
+        description={
+          hasPlate ? `${character?.name?.trim() || 'Cast'} · plate ready` : 'Character and plate.'
+        }
+        testId="day-setup-sheet"
+      >
+        <div className="day-character-section space-y-3">
+          <div data-testid="day-character">
+            <CharacterOsPicker
+              shared={shared}
+              hints={character?.hints}
+              onApply={patch => {
+                try {
+                  updateShared(patch);
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Could not apply that character.');
+                }
+              }}
+            />
+          </div>
+          <p className="type-caption text-[var(--text-muted)]">
+            {hasPlate
+              ? isolateSubject && isolatePending
+                ? 'Isolating plate on white…'
+                : 'Plate ready.'
+              : 'No plate — upload one (it becomes the Cast look plate) or Keep in Outfit.'}
+          </p>
+          {!hasPlate && character ? (
+            <div className="flex flex-wrap gap-2">
+              <UploadButton
+                label={plateUploading ? 'Uploading…' : 'Upload plate'}
+                variant="primary"
+                disabled={busy || plateUploading}
+                ariaLabel="Upload a look plate for this Cast"
+                testId="day-plate-upload"
+                onFile={file => void uploadCastPlate(file)}
+              />
+            </div>
+          ) : null}
+          {plateUploadError ? (
+            <p className="type-caption text-[var(--danger-text)]">{plateUploadError}</p>
+          ) : null}
+          {hasPlate ? (
+            <div className="flex flex-wrap gap-2">
+              <ChipButton
+                active={isolateSubject}
+                disabled={busy || isolateBusy || !hasPlate}
+                data-testid="day-plate-isolate"
+                onClick={() => setIsolateSubject(!isolateSubject)}
+              >
+                Isolate on white
+              </ChipButton>
+              {isolateStatus ? (
+                <p
+                  className="type-caption w-full text-[var(--text-muted)]"
+                  data-testid="day-plate-isolate-status"
+                >
+                  {isolateStatus}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          {platePreviewUrl || plate?.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={platePreviewUrl || plate?.imageUrl}
+              alt="Day plate"
+              className="max-h-48 w-full rounded-xl border border-[var(--border-subtle)] object-contain"
+              data-testid="mobile-day-plate-preview"
+              data-source={plate?.source}
+              data-isolated={plate?.isolated === true ? 'true' : 'false'}
+            />
+          ) : null}
+          {hasPlate ? (
+            <PlateStanceNudge characterId={shared.activeCharacterId} lookId={activeSlot.lookId} />
+          ) : null}
+        </div>
+      </SideSheet>
       <ImageLightbox
         state={progressLightbox}
         onClose={() => {

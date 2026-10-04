@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
 import { seedSettingsCacheOnNextLoad } from './helpers/idb';
+import { closeDaySheets, openDayAdvanced, openDaySetup, openDaySlotSheet } from './helpers/day';
 import { gotoStable } from './helpers/navigation';
 import { seedGalleryFixture, seedGalleryPlayFixtures } from './helpers/gallery';
 import { dismissBlockingOverlays } from './helpers/overlays';
@@ -470,9 +471,15 @@ test('day planner happy path chrome loads', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /^Day$/i, level: 1 })).toBeVisible({
     timeout: 30_000,
   });
+  await expect(page.getByTestId('day-plan-bar')).toBeVisible();
+  // Setup is a chip that opens a sheet; the slot editor is a sheet opened from a card.
+  await openDaySetup(page);
   await expect(page.getByTestId('day-character')).toBeVisible();
+  await closeDaySheets(page);
+  await openDaySlotSheet(page, 'morning');
   await expect(page.getByTestId('day-slots')).toBeVisible();
   await expect(page.getByTestId('day-slot-queue')).toBeVisible();
+  await closeDaySheets(page);
   await expect(page.getByTestId('day-reel')).toBeVisible();
   await expect(
     page.getByTestId('day-reel').getByRole('button', { name: /Cut film/i })
@@ -492,8 +499,11 @@ test('day without a Cast leads with the get-started card', async ({ page }) => {
   await expect(page.getByTestId('day-get-started-starter')).toBeVisible();
   await page.getByTestId('day-get-started-setup').click();
   await expect(page.getByTestId('day-character')).toBeVisible();
+  await closeDaySheets(page);
 
-  // Options read as switches, mood as a pick-one group.
+  // Quality is one preset; the check switches read as switches under Advanced.
+  await expect(page.getByRole('radiogroup', { name: 'Quality' })).toBeVisible();
+  await openDayAdvanced(page);
   await expect(page.getByRole('switch', { name: /Pose over plate/i })).toHaveAttribute(
     'aria-checked',
     'true'
@@ -503,7 +513,7 @@ test('day without a Cast leads with the get-started card', async ({ page }) => {
   const mixed = people.getByRole('radio', { name: 'Mixed' });
   await mixed.click();
   await expect(mixed).toHaveAttribute('aria-checked', 'true');
-  await expect(page.getByRole('radiogroup', { name: 'Day mood' })).toBeVisible();
+  await expect(page.getByTestId('day-mood')).toBeVisible();
   // Nothing planned yet: slot cards offer "Add a beat".
   await expect(page.locator('[data-testid^="day-slot-add-beat-"]').first()).toBeVisible();
 });
@@ -552,7 +562,9 @@ test('day mid-flow: one Cut, folded cut options, honest render status', async ({
   // A running still says so instead of "Queueing…".
   await expect(page.getByTestId('day-progress-evening')).toContainText(/Rendering/);
   // Setup can upload a plate (it becomes the Cast look plate).
+  await openDaySetup(page);
   await expect(page.getByTestId('day-plate-upload')).toBeAttached();
+  await closeDaySheets(page);
 });
 
 test("day end pose: pick another still as the clip's last frame, warn on framing, clear", async ({
@@ -612,6 +624,8 @@ test("day end pose: pick another still as the clip's last frame, warn on framing
   const lightbox = page.getByTestId('image-lightbox');
   if (await lightbox.isVisible().catch(() => false)) await page.keyboard.press('Escape');
   await expect(lightbox).toHaveCount(0);
+  // End pose lives in the slot sheet.
+  await openDaySlotSheet(page, 'morning');
   const endPose = page.getByTestId('day-end-pose');
   await expect(endPose).toBeVisible({ timeout: 30_000 });
   await expect(endPose).toContainText(/End pose · Morning/);
@@ -1610,6 +1624,7 @@ test('day slot editor previews the pose and lets you change it', async ({ page }
   });
   await gotoStable(page, '/day?character=e2e-day-pose');
   await dismissBlockingOverlays(page);
+  await openDaySlotSheet(page, 'morning');
   const preview = page.getByTestId('day-slot-pose-preview');
   await expect(preview).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Cooking');
@@ -1722,6 +1737,8 @@ test('day pose pack poses every slot, fills only empty beats, saves and clears',
   });
   await gotoStable(page, '/day?character=e2e-day-pack');
   await dismissBlockingOverlays(page);
+  // The pose pack sits in the Advanced drawer under the plan bar.
+  await openDayAdvanced(page);
   const picker = page.getByTestId('day-pose-pack');
   await expect(picker).toBeVisible({ timeout: 30_000 });
   await page.getByTestId('day-pose-pack-select').selectOption('fitness');
@@ -1730,14 +1747,15 @@ test('day pose pack poses every slot, fills only empty beats, saves and clears',
   await expect(page.getByTestId('day-pose-pack-status')).toContainText('3 empty beats filled');
   await expect(page.getByTestId('day-pose-pack-figure').first()).toBeVisible();
   // Morning (the open slot) takes the pack's first pose and its beat.
-  await page.getByTestId('day-slot-select-morning').first().click();
+  await openDaySlotSheet(page, 'morning');
   await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Yoga warrior');
   await expect(page.getByTestId('day-slot-beat')).toHaveValue(/warrior two/);
   // The typed beat is untouched; its pose still comes from the pack.
-  await page.getByTestId('day-slot-select-afternoon').first().click();
+  await openDaySlotSheet(page, 'afternoon');
   await expect(page.getByTestId('day-slot-beat')).toHaveValue('my own beat on the roof');
   await expect(page.getByTestId('day-slot-location')).toHaveValue('my rooftop');
   await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText('Squat');
+  await closeDaySheets(page);
   // Save as my own pack: it shows under My packs and is the active pack.
   await page.getByTestId('day-pose-pack-save').click();
   await page.getByTestId('day-pose-pack-name').fill('Gym day');
@@ -1749,8 +1767,9 @@ test('day pose pack poses every slot, fills only empty beats, saves and clears',
   // Clear: every slot back to the beat; the pack's beats go, the typed one stays.
   await page.getByTestId('day-pose-pack-clear').click();
   await expect(picker).toHaveAttribute('data-active-pack', '');
+  await openDaySlotSheet(page, 'afternoon');
   await expect(page.getByTestId('day-slot-beat')).toHaveValue('my own beat on the roof');
-  await page.getByTestId('day-slot-select-morning').first().click();
+  await openDaySlotSheet(page, 'morning');
   await expect(page.getByTestId('day-slot-beat')).toHaveValue('');
   await expect(page.getByTestId('day-slot-pose-preview')).toContainText('From the beat');
 });
@@ -2133,7 +2152,7 @@ test('mobile film funnel routes Moodboard → Fitting → Day', async ({ page })
   await gotoStable(page, '/m/day');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('mobile-day')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('day-slots')).toBeVisible();
+  await expect(page.getByTestId('day-plan-bar')).toBeVisible();
   await expect(page.getByTestId('mobile-day-cut')).toBeVisible();
 });
 
@@ -2461,6 +2480,7 @@ test('a Day beat you type is marked as yours and can go back to Day\'s', async (
   });
   await gotoStable(page, '/day');
   await dismissBlockingOverlays(page);
+  await openDaySlotSheet(page, 'morning');
   const beat = page.getByTestId('day-slot-beat').first();
   await expect(beat).toBeVisible({ timeout: 30_000 });
   const dayBeat = await beat.inputValue();
@@ -2766,12 +2786,8 @@ test('Day notes a seated look plate and links to Prepare plate; dismissed per pl
   });
   await gotoStable(page, '/day?character=e2e-day-seated');
   await dismissBlockingOverlays(page);
-  // The note lives with the plate, in Setup (folded once a plate is ready).
-  const setup = page.locator('details.day-character-section').first();
-  await expect(setup).toBeAttached({ timeout: 30_000 });
-  if ((await setup.getAttribute('open')) === null) {
-    await setup.locator('summary').first().click();
-  }
+  // The note lives with the plate, in the Setup sheet behind the status chip.
+  await openDaySetup(page);
   const note = page.getByTestId('plate-stance-nudge');
   await expect(note).toBeVisible({ timeout: 30_000 });
   await expect(note).toHaveAttribute('data-reason', 'seated');
@@ -2786,9 +2802,7 @@ test('Day notes a seated look plate and links to Prepare plate; dismissed per pl
   await expect(page.getByTestId('plate-stance-nudge')).toHaveCount(0);
   await page.reload();
   await dismissBlockingOverlays(page);
-  await expect(page.locator('details.day-character-section').first()).toBeAttached({
-    timeout: 30_000,
-  });
+  await openDaySetup(page);
   await expect(page.getByTestId('plate-stance-nudge')).toHaveCount(0);
 });
 
@@ -2830,6 +2844,7 @@ test('a Cast file imports as a new Cast with its Day plan', async ({ page }) => 
   // Picking the imported Cast on Day brings its plan back.
   await page.getByTestId('character-home-day').click();
   await page.waitForURL(/\/day/);
+  await openDaySlotSheet(page, 'morning');
   await expect(page.getByTestId('day-slot-beat').first()).toHaveValue('watching the boats', {
     timeout: 30_000,
   });
@@ -2873,8 +2888,10 @@ test('a same-seed redo shows old and new takes and can keep the old one', async 
   await gotoStable(page, '/day');
   await dismissBlockingOverlays(page);
   // Select Morning (a finished card opens its still full size too — close that).
+  // A finished card opens its still full size; the takes live in the slot sheet.
   await page.getByTestId('day-slot-select-morning').click();
   await page.keyboard.press('Escape');
+  await openDaySlotSheet(page, 'morning');
   const compare = page.getByTestId('day-same-seed-compare');
   await expect(compare).toBeVisible({ timeout: 30_000 });
   await expect(compare.getByRole('img', { name: /old take/ })).toHaveAttribute('src', oldPng);
@@ -2930,8 +2947,10 @@ test('a best-of-two pair shows the kept take and can switch to the other one', a
   });
   await gotoStable(page, '/day');
   await dismissBlockingOverlays(page);
+  // A finished card opens its still full size; the takes live in the slot sheet.
   await page.getByTestId('day-slot-select-morning').click();
   await page.keyboard.press('Escape');
+  await openDaySlotSheet(page, 'morning');
   const compare = page.getByTestId('day-same-seed-compare');
   await expect(compare).toBeVisible({ timeout: 30_000 });
   await expect(compare).toContainText('best of two');
@@ -3629,7 +3648,7 @@ test('a Day slot can be made in another of the Cast’s looks, and keeps it', as
   });
   await gotoStable(page, '/day?character=e2e-day-looks');
   await dismissBlockingOverlays(page);
-  await page.getByTestId('day-slot-select-morning').first().click();
+  await openDaySlotSheet(page, 'morning');
   const morningLooks = () => page.getByRole('radiogroup', { name: 'Look for Morning' });
   await expect(morningLooks()).toBeVisible({ timeout: 30_000 });
   // "Active look" first (the default), then each look by its plate.
@@ -3645,15 +3664,16 @@ test('a Day slot can be made in another of the Cast’s looks, and keeps it', as
   await expect(followActive).toHaveAttribute('aria-checked', 'false');
 
   // Another slot still follows the active look; back on Morning, Beach is still picked.
-  await page.getByTestId('day-slot-select-afternoon').first().click();
+  await openDaySlotSheet(page, 'afternoon');
   await expect(
     page.getByRole('radiogroup', { name: 'Look for Afternoon' }).getByTestId('day-slot-look-none')
   ).toHaveAttribute('aria-checked', 'true');
-  await page.getByTestId('day-slot-select-morning').first().click();
+  await openDaySlotSheet(page, 'morning');
   await expect(morningLooks().getByTestId('day-slot-look-e2e-day-look-b')).toHaveAttribute(
     'aria-checked',
     'true'
   );
+  await closeDaySheets(page);
 
   // Saved with Day's slots: leave Day in-app (a page load would re-apply this test's seed) and
   // come back. The Cast's active look is unchanged.
@@ -3661,7 +3681,7 @@ test('a Day slot can be made in another of the Cast’s looks, and keeps it', as
   await page.waitForURL(/\/story/);
   await page.getByRole('link', { name: 'Day', exact: true }).first().click();
   await page.waitForURL(/\/day/);
-  await page.getByTestId('day-slot-select-morning').first().click();
+  await openDaySlotSheet(page, 'morning');
   await expect(morningLooks().getByTestId('day-slot-look-e2e-day-look-b')).toHaveAttribute(
     'aria-checked',
     'true',
@@ -3719,10 +3739,18 @@ test('pick the best engine per pose: the switch saves and a moved still says why
     'Rendered on Rapid AIO — it holds this pose better',
     { timeout: 30_000 }
   );
+  // The switch sits in the Advanced drawer; the Balanced preset (the default) has it on.
+  await openDayAdvanced(page);
+  await expect(page.getByTestId('day-quality-preset-balanced')).toHaveAttribute(
+    'aria-checked',
+    'true'
+  );
   const toggle = page.getByTestId('day-best-engine-per-pose').first();
-  await expect(toggle).toHaveAttribute('aria-checked', 'false');
-  await toggle.click();
   await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  // Off by hand: the preset reads as Custom until a preset is picked again.
+  await expect(page.getByTestId('day-quality-preset-custom')).toBeVisible();
   // Saved to Day's tool settings in IndexedDB (a reload would re-run this test's seed script,
   // so read the stored copy instead).
   await expect
@@ -3739,7 +3767,7 @@ test('pick the best engine per pose: the switch saves and a moved still says why
                   .objectStore('kv')
                   .get('comfy-prompt-tool-settings-tools-v1');
                 get.onsuccess = () =>
-                  resolve(get.result?.value?.tools?.day?.bestEnginePerPose === true);
+                  resolve(get.result?.value?.tools?.day?.bestEnginePerPose === false);
                 get.onerror = () => resolve(false);
               };
             })

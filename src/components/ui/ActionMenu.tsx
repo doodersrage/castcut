@@ -12,12 +12,18 @@ export default function ActionMenu({
   align = 'right',
   testId,
   summaryClassName = 'ui-btn-ghost ui-btn-sm type-caption',
+  summaryAriaLabel,
+  caret = true,
 }: {
   label: ReactNode;
   children: ReactNode;
   align?: 'left' | 'right';
   testId?: string;
   summaryClassName?: string;
+  /** Accessible name for an icon-only trigger (a ⋯ button). */
+  summaryAriaLabel?: string;
+  /** The "▾" after the label; off for icon triggers. */
+  caret?: boolean;
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -65,8 +71,11 @@ export default function ActionMenu({
     >
       <summary
         className={`${summaryClassName} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+        aria-label={summaryAriaLabel}
+        data-testid={testId ? `${testId}-trigger` : undefined}
       >
-        {label} ▾
+        {label}
+        {caret ? ' ▾' : null}
       </summary>
       <div
         ref={panelRef}

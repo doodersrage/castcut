@@ -5,18 +5,6 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { startStarterPlayFilm } from '@/lib/play-starter';
 import { toMobileStudioHref } from '@/lib/mobile-studio';
 
-/**
- * Open (and scroll to) the Day Setup section — it sits at the bottom of the page, far from the
- * "pick a Cast" blocker, and is often collapsed.
- */
-export function revealDaySetup(): void {
-  if (typeof document === 'undefined') return;
-  const section = document.querySelector<HTMLDetailsElement>('details.day-character-section');
-  if (!section) return;
-  section.open = true;
-  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
 /** Scroll to Outfit's Character section and focus its picker. */
 function revealOutfitCharacter(): void {
   if (typeof document === 'undefined') return;
@@ -39,12 +27,15 @@ export default function PlayGetStartedCard({
   hasPlate,
   characterId,
   mobile = false,
+  onOpenSetup,
 }: {
   tool?: 'day' | 'outfit';
   hasCharacter: boolean;
   hasPlate: boolean;
   characterId?: string | null;
   mobile?: boolean;
+  /** Day: opens the Setup sheet (Cast lead and plate). */
+  onOpenSetup?: () => void;
 }) {
   const router = useRouter();
   if (hasCharacter && (hasPlate || tool === 'outfit')) {
@@ -107,7 +98,7 @@ export default function PlayGetStartedCard({
         <Button
           size="sm"
           variant="secondary"
-          onClick={tool === 'day' ? revealDaySetup : revealOutfitCharacter}
+          onClick={tool === 'day' ? onOpenSetup : revealOutfitCharacter}
           data-testid={`${testId}-setup`}
         >
           {hasCharacter ? 'Pick a plate in Setup' : 'Choose a character'}
