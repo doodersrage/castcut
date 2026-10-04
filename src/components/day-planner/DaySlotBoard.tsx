@@ -425,8 +425,9 @@ export default function DaySlotBoard({
                 data-testid={`day-progress-edit-${slot.id}`}
                 onClick={edit}
               >
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="type-heading min-w-0 truncate text-sm leading-snug sm:text-base">
+                {/* Wraps "Edit" under a long time of day on narrow cards instead of touching it. */}
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+                  <p className="type-heading min-w-0 max-w-full truncate text-sm leading-snug sm:text-base">
                     {slot.label}
                   </p>
                   <span className="type-caption shrink-0 text-[var(--accent-text)]" aria-hidden>
