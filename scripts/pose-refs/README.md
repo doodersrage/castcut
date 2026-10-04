@@ -2,12 +2,24 @@
 
 Builds Castcut's real-world reference poses: for each of Day's named poses (the *Change pose*
 list — postures, everyday, two-person and sport layouts; pose packs use the same ids) it finds
-openly licensed photos of a person in that pose, reads the skeleton with DWPose, and keeps 3–5
-good, different ones. The app draws them as variants of the pose (variant 0 stays the hand-drawn
-figure; *Try another* walks through the real ones) and lists them under *Real poses…* in the pose
-editor. See `src/lib/pose-references.ts`.
+people in that pose in three open sources and keeps 3–5 good, different skeletons:
 
-**Only skeletons ship** (`src/lib/data/pose-references.json`, with each photo's credit). The
+- **Photos** (`harvest.py`): openly licensed photos from Wikimedia Commons and Openverse, the
+  skeleton read with DWPose.
+- **CMU motion capture** (`mocap.py`): clips from the CMU Graphics Lab Motion Capture Database,
+  frames matching the pose by joint geometry, projected through a perspective camera from a few
+  views (joints hidden behind the body marked low confidence, as a detector reads them). Fills
+  the floor, lying and bending poses photos could not (DWPose merged overlapping people) and
+  real two-person captures (a salsa, a high five).
+- **COCO keypoints** (`coco.py`): the COCO 2017 person keypoint annotations (17 labelled joints
+  → the app's body), gated by the picture's captions naming the pose; the photographs are never
+  downloaded.
+
+The app draws them as variants of the pose (variant 0 stays the hand-drawn figure; *Try another*
+walks through the real ones) and lists them under *Real poses…* in the pose editor. See
+`src/lib/pose-references.ts` (`source` says where each came from).
+
+**Only skeletons ship** (`src/lib/data/pose-references.json`, with each item's credit). The
 cropped photos stay in the local cache below as the harvest's record — never committed, never in
 the app: the Edit 2511 A/B (2026-10) found a cropped photo as the pose image did no better than
 the OpenPose figure (6/8 each; the model takes the pose mostly from the words). A reference only
@@ -16,10 +28,21 @@ changes the skeleton; the pose's words stay the app's own for that pose id.
 ## Rerun
 
 ```sh
-python3 scripts/pose-refs/harvest.py                  # every pose (a few hours; resumable)
+python3 scripts/pose-refs/harvest.py                  # photos, every pose (a few hours; resumable)
 python3 scripts/pose-refs/harvest.py --pose wave --pose hug   # just these
-python3 scripts/pose-refs/build.py                    # rewrite outputs from the manifest
+python3 scripts/pose-refs/mocap.py --pose kneel       # CMU mocap (clips fetched on demand)
+python3 scripts/pose-refs/coco.py --pose sit_floor    # COCO keypoints (needs the annotations zip)
+python3 scripts/pose-refs/build.py                    # rewrite outputs from the three manifests
 ```
+
+`build.py` fills each pose up to five references: photos first, then mocap, then COCO, numbering
+the variants on. `mocap.py` and `coco.py` run every candidate through the photo harvest's own
+checks (`checks.py`: full body, headcount, posture class, limb angles against the drawing,
+near-duplicates), with per-pose tighter rules of their own (`postures`, `min_drawn`) since no
+vision model looks at them, and a hand-curated `EXCLUDE` list each. Their contact sheets are
+`<cache>/sheets/cmu-sheet.jpg` and `coco-sheet.jpg` (skeletons only). The COCO annotations go
+under `<cache>/coco/annotations/` (`annotations_trainval2017.zip`, person keypoints and
+captions, unzipped); CMU clips are fetched politely (one request a second) into `<cache>/cmu/`.
 
 Needs Python 3 with `opencv-python` (5.x; its DNN module runs the ONNX models) and `numpy`,
 Node with the repo's `node_modules` (the harvester runs `bridge.mts` with `tsx`), the DWPose ONNX

@@ -12,6 +12,9 @@ import {
   normalizePoseReference,
   parsePoseReferences,
   POSE_REFERENCE_LICENCES,
+  POSE_REFERENCE_SOURCES,
+  poseReferenceCreditLine,
+  poseReferenceCreditText,
   poseReferenceForVariant,
   poseReferencesFor,
   type PoseReference,
@@ -57,6 +60,7 @@ function ref(pose: string, variant: number, extra: Partial<PoseReference> = {}):
     id: `${pose}-${variant}`,
     pose,
     base: 'stand',
+    source: 'photo',
     variant,
     aspect: 0.6,
     people: [body(0, true)],
@@ -81,10 +85,37 @@ describe('pose reference data file', () => {
         (POSE_REFERENCE_LICENCES as readonly string[]).includes(reference.credit.licence),
         reference.id
       );
+      assert.ok(
+        (POSE_REFERENCE_SOURCES as readonly string[]).includes(reference.source),
+        reference.id
+      );
       assert.ok(reference.credit.creator && reference.credit.title, reference.id);
-      assert.match(reference.credit.source, /^https:\/\//, reference.id);
-      assert.match(reference.credit.licenceUrl, /^https?:\/\/creativecommons\.org\//, reference.id);
+      if (reference.source === 'cmu-mocap') {
+        // The mocap database's own terms, on its own (http-only) site.
+        assert.equal(reference.credit.licence, 'cmu', reference.id);
+        assert.match(reference.credit.source, /^http:\/\/mocap\.cs\.cmu\.edu\//, reference.id);
+        assert.match(reference.credit.licenceUrl, /^http:\/\/mocap\.cs\.cmu\.edu\//, reference.id);
+      } else {
+        assert.notEqual(reference.credit.licence, 'cmu', reference.id);
+        assert.match(reference.credit.source, /^https:\/\//, reference.id);
+        assert.match(
+          reference.credit.licenceUrl,
+          /^https?:\/\/creativecommons\.org\//,
+          reference.id
+        );
+      }
+      if (reference.source === 'coco') {
+        assert.equal(reference.credit.licence, 'by', reference.id);
+        assert.match(reference.credit.source, /^https:\/\/cocodataset\.org\//, reference.id);
+      }
       for (const person of reference.people) assert.equal(person.length, 18, reference.id);
+    }
+  });
+
+  it('names every source it ships from in the data file', () => {
+    const sources = new Set(references.map(reference => reference.source));
+    for (const source of sources) {
+      assert.ok((POSE_REFERENCE_SOURCES as readonly string[]).includes(source), source);
     }
   });
 
@@ -146,6 +177,44 @@ describe('pose reference validation', () => {
     for (const patch of [{ creator: '' }, { title: ' ' }, { source: 'not a url' }, { licenceUrl: '' }]) {
       assert.equal(normalizePoseReference({ ...good, credit: { ...good.credit, ...patch } }), null);
     }
+  });
+
+  it('reads the source, a photo unless said, and ties the CMU terms to mocap entries', () => {
+    const { source: _source, ...unsaid } = good;
+    assert.equal(normalizePoseReference(unsaid)?.source, 'photo');
+    assert.equal(normalizePoseReference({ ...good, source: 'scan' }), null);
+    const mocap = {
+      ...good,
+      source: 'cmu-mocap',
+      credit: {
+        title: 'CMU mocap subject 23 trial 03, frame 318',
+        creator: 'CMU Graphics Lab Motion Capture Database',
+        licence: 'cmu',
+        licenceUrl: 'http://mocap.cs.cmu.edu/faqs.php',
+        source: 'http://mocap.cs.cmu.edu/search.php?subjectnumber=23&motion=%25',
+      },
+    };
+    const parsed = normalizePoseReference(mocap);
+    assert.equal(parsed?.source, 'cmu-mocap');
+    assert.equal(parsed?.credit.licence, 'cmu');
+    assert.equal(normalizePoseReference({ ...mocap, source: 'coco' }), null, 'CMU terms on a COCO entry');
+    assert.equal(
+      normalizePoseReference({ ...good, source: 'cmu-mocap' }),
+      null,
+      'a mocap entry under a CC licence'
+    );
+    assert.equal(
+      poseReferenceCreditLine(parsed!),
+      'Mocap: CMU Graphics Lab Motion Capture Database (CMU mocap terms)'
+    );
+    assert.equal(poseReferenceCreditLine(good), 'Photo: Someone (CC BY 2.0)');
+    assert.equal(poseReferenceCreditText(good), 'Someone (CC BY 2.0)');
+    const coco = normalizePoseReference({
+      ...good,
+      source: 'coco',
+      credit: { ...good.credit, licenceVersion: '4.0', creator: 'COCO Consortium' },
+    });
+    assert.equal(poseReferenceCreditLine(coco!), 'Keypoints: COCO Consortium (CC BY 4.0)');
   });
 
   it('rejects a skeleton that is not a whole body', () => {

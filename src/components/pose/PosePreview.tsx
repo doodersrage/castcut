@@ -19,7 +19,11 @@ import {
 } from '@/lib/day-pose-guide';
 import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose-layout-labels';
 import { fitPhotoPoseToHeadcount } from '@/lib/photo-pose-fit';
-import { poseReferenceCreditLine, poseReferencesFor } from '@/lib/pose-references';
+import {
+  POSE_REFERENCE_SOURCE_WORDS,
+  poseReferenceCreditText,
+  poseReferencesFor,
+} from '@/lib/pose-references';
 
 // A modal used now and then: its own chunk, shared by every page, instead of a copy in each
 // tool page's bundle.
@@ -288,9 +292,9 @@ export default function PosePreview({
               className="underline"
               title={reference.credit.title}
             >
-              a photo
+              {POSE_REFERENCE_SOURCE_WORDS[reference.source]}
             </a>{' '}
-            · {poseReferenceCreditLine(reference).replace(/^Photo: /, '')}
+            · {poseReferenceCreditText(reference)}
           </p>
         ) : null}
         {routedAround ? (

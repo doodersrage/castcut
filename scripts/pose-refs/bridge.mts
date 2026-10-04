@@ -13,6 +13,14 @@
  *   {"cmd":"limbs","guide":body,"detected":body,"aspects":{guide,detected}}
  *                                                              → {score, gestureMiss, off} | null
  *   {"cmd":"prominent","people":[body…],"width":w,"height":h} → people clearly in the picture
+ *   {"cmd":"project","skeletons":[{joints,headTop,headBase}…],"view":{azimuthDeg,elevationDeg}}
+ *                                                              → {people, confidence, aspect} | null
+ *                                                                 (pose-reference-sources: a 3D
+ *                                                                 mocap skeleton through a camera)
+ *   {"cmd":"coco","keypoints":[x,y,v × 17],"frame":{x,y,width,height}}
+ *                                                              → {body, confidence} | null
+ *   {"cmd":"describe","body":body,"aspect":a}                  → the pose in words (pose-describe)
+ *   {"cmd":"batch","requests":[request…]}                      → [{ok, result | error}…]
  */
 
 import { createInterface } from 'node:readline';
@@ -22,7 +30,14 @@ import { resolveSceneGuidePlan, type SocialLayout } from '@/lib/day-pose-guide';
 import { dayPoseWords } from '@/lib/day-pose-presets';
 import { BUILT_IN_POSE_PACKS } from '@/lib/day-pose-packs';
 import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose-layout-labels';
+import { describePoseFigure } from '@/lib/pose-describe';
 import { scoreLimbAngles } from '@/lib/pose-limb-score';
+import {
+  cocoKeypointsToBody,
+  projectSkeletons,
+  type CameraView,
+  type Skeleton3D,
+} from '@/lib/pose-reference-sources';
 import { countProminentPeople } from '@/lib/pose-score';
 import type { NormalizedBody } from '@/lib/pose-library';
 
@@ -118,6 +133,25 @@ function handle(request: Record<string, unknown>): unknown {
       return countProminentPeople({
         canvas: { width: Number(request.width) || 1, height: Number(request.height) || 1 },
         people: request.people as NormalizedBody[],
+      });
+    case 'project':
+      return projectSkeletons(request.skeletons as Skeleton3D[], request.view as CameraView);
+    case 'coco':
+      return cocoKeypointsToBody(
+        request.keypoints as number[],
+        request.frame as { x: number; y: number; width: number; height: number }
+      );
+    case 'describe':
+      return describePoseFigure(request.body as NormalizedBody, {
+        aspect: Number(request.aspect) || undefined,
+      }).text;
+    case 'batch':
+      return (request.requests as Array<Record<string, unknown>>).map(inner => {
+        try {
+          return { ok: true, result: handle(inner) };
+        } catch (error) {
+          return { ok: false, error: error instanceof Error ? error.message : String(error) };
+        }
       });
     default:
       throw new Error(`unknown cmd ${String(request.cmd)}`);
