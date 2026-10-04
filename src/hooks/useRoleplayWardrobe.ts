@@ -129,6 +129,8 @@ export function useRoleplayWardrobe({
     shared,
     lookId: character?.activeLookId,
     currentFootwear: toolSettings.footwear,
+    currentImageUrl: toolSettings.footwearImageUrl,
+    currentImageFilename: toolSettings.footwearImageFilename,
     sendComfyUi: (prompt, _a, _b, options) =>
       actions.sendComfyUi(prompt, undefined, undefined, options),
     onPatch: updateToolSettings,

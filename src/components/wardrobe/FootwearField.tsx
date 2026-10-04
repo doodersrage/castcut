@@ -292,6 +292,27 @@ export default function FootwearField({
               >
                 {alreadySaved ? 'Saved' : 'Save for later'}
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy}
+                title="Read the shoe photo again"
+                data-testid={`${testIdPrefix}-footwear-rescan`}
+                onClick={() => {
+                  setPhotoBusy(true);
+                  setPhotoStatus('Reading the shoe photo again…');
+                  void onApplyPhoto({ rescan: true }, setPhotoStatus)
+                    .catch(err => {
+                      onError?.(err instanceof Error ? err.message : 'Vision scan failed.');
+                    })
+                    .finally(() => {
+                      setPhotoBusy(false);
+                      setPhotoStatus(null);
+                    });
+                }}
+              >
+                Rescan
+              </Button>
             </div>
           ) : null}
           <div className="grid gap-2 sm:grid-cols-2">

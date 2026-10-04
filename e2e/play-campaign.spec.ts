@@ -191,19 +191,30 @@ test('outfit footwear: saved shoes are kept, re-picked and removed', async ({ pa
   const tile = saved.getByRole('button', { name: 'brown suede desert boots (selected)' });
   await expect(tile).toBeVisible();
 
+  // Rescan reads the shoe photo again (like clothing's Rescan) and updates the words — on the
+  // outfit and on the saved copy.
+  await page.route('**/api/vision-scan', route =>
+    route.fulfill({ json: { prompt: 'black leather ankle boots' } })
+  );
+  await footwear.getByTestId('fitting-footwear-rescan').click();
+  await expect(
+    saved.getByRole('button', { name: 'black leather ankle boots (selected)' })
+  ).toBeVisible({ timeout: 15_000 });
+  await page.unroute('**/api/vision-scan');
+
   // Remove the photo from the outfit: the saved copy stays and puts it back with its words.
   await footwear.getByRole('button', { name: 'Remove shoe photo' }).click();
   const hint = page.getByTestId('fitting-footwear-hint');
   await expect(hint).toContainText('Auto');
   await footwear.getByRole('tab', { name: 'My shoes' }).click();
-  await saved.getByRole('button', { name: 'brown suede desert boots', exact: true }).click();
-  await expect(hint).toHaveText('Worn on every clothed still: brown suede desert boots.');
+  await saved.getByRole('button', { name: 'black leather ankle boots', exact: true }).click();
+  await expect(hint).toHaveText('Worn on every clothed still: black leather ankle boots.');
   await expect(save).toHaveText('Saved');
 
   // The pair being worn shows its tick; take it off, then it can be removed from the list.
   await footwear.getByRole('button', { name: 'Remove shoe photo' }).click();
   await footwear.getByRole('tab', { name: 'My shoes' }).click();
-  await saved.getByRole('button', { name: 'Remove brown suede desert boots' }).click();
+  await saved.getByRole('button', { name: 'Remove black leather ankle boots' }).click();
   await expect(saved).toHaveCount(0);
 });
 
