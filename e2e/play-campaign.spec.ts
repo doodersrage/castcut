@@ -3460,6 +3460,8 @@ test('play persistence triad is visible on Film hub', async ({ page }) => {
 });
 
 test('play habit nudge appears after a day-old cut', async ({ page }) => {
+  // Play metrics sync: another test's newer cut on the shared e2e server would replace this one.
+  await isolateServerStorage(page);
   const dayAgo = Date.now() - 1000 * 60 * 60 * 25;
   await page.addInitScript(
     ({ cutAt }) => {
