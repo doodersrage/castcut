@@ -32,7 +32,9 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
   **measured** only when ComfyUI has **ComfyUI_FaceAnalysis** (InsightFace): solo stills are
   scored against the plate and rerolled below the face-match bar; without the pack the
   vision reviewer's identity pair stays a warning. The pose check likewise needs
-  **comfyui_controlnet_aux** (DWPose). Both bars (60% pose, 30% face) are starting values.
+  **comfyui_controlnet_aux** (DWPose). Both bars (50% pose, 30% face) are starting values.
+  The gesture / posture questions, the adult check and the shoe check need a vision model and
+  are skipped without one (adult stills are then shown unchecked).
 - **Save poster** is a center-crop of one existing still (optionally with the film title
   over it) — there is no separate poster render or frame grabbed from a motion clip.
   **Cut titles and captions** need an ffmpeg with drawtext and a font (Docker ships

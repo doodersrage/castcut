@@ -33,9 +33,10 @@ pack is missing.
 
 ### When ComfyUI-Manager says no
 
-Until the pack is in the Comfy Registry, the Manager installs it from its Git URL
-(`https://github.com/doodersrage/castcut-nodes`). Recent ComfyUI-Manager versions (3.41 and later) only
-install from a Git URL when **both** of these are true:
+The pack is on the Comfy Registry as `castcut-nodes` (publisher `doodersrage`), so a Manager that
+reads the Registry installs it by name. A Manager that installs it from its Git URL instead
+(`https://github.com/doodersrage/castcut-nodes`) — recent versions, 3.41 and later — only does so
+when **both** of these are true:
 
 - `allow_git_url_install = true` under `[default]` in the Manager's `config.ini` — on current
   ComfyUI that is `ComfyUI/user/__manager/config.ini` (older ComfyUI:
@@ -74,8 +75,8 @@ No `python_embeded` packages are needed.
 settings above). It clones the whole Castcut repository; its root `__init__.py` loads only the
 node pack.
 
-**Comfy Registry** (once published): ComfyUI-Manager → search *Castcut nodes*, or
-`comfy node install castcut-nodes`.
+**Comfy Registry**: ComfyUI-Manager → search *Castcut nodes*, or `comfy node install castcut-nodes`
+(published as version 1.1.0).
 
 **Docker**: copy the file into the container's `custom_nodes` (or onto the volume mounted
 there) and restart the container.
@@ -97,8 +98,9 @@ load and the later one wins.
 
 The pack's source, tests and Comfy Registry metadata (`pyproject.toml`) live in
 [`comfyui-nodes/castcut`](https://github.com/doodersrage/castcut/tree/main/comfyui-nodes/castcut).
-`scripts/castcut-nodes-release.sh <dir>` copies it into a standalone folder ready to become its
-own repository and be published (`comfy node publish`). When a node changes, bump
+`scripts/castcut-nodes-release.sh <dir>` copies it into the standalone repository
+([doodersrage/castcut-nodes](https://github.com/doodersrage/castcut-nodes)) that is published to the
+Registry (`comfy node publish`). When a node changes, bump
 `CASTCUT_VERSION` in `castcut_nodes.py`, `version` in `pyproject.toml` and
 `CASTCUT_NODES_BUNDLED_VERSION` in `src/lib/castcut-nodes-setup.ts` together — the Python and
 TypeScript tests check they agree.

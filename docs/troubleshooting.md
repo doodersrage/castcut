@@ -90,10 +90,11 @@ and each Story beat card has a **Pose guide** drawer showing the guide its lates
 
 **Settings → ComfyUI → Heal & ready** shows a **Play checks** list — pose check (DWPose), face
 check (FaceAnalysis) and Cut titles (server ffmpeg + font) — with the pack to install for any
-that are off and a **Re-check** button. Day shows the same summary under the chips while
-Auto-review is on. After installing a pack, restart ComfyUI, Re-check, then reload Day / Story.
+that are off and a **Re-check** button. Day shows the same summary under the plan bar while
+Auto-review (or another pose check) is on. After installing a pack, restart ComfyUI, Re-check, then reload Day / Story.
 
-With **Auto-review stills** on and the **comfyui_controlnet_aux** node pack installed in ComfyUI
+With a pose check on — **Auto-review stills**, **Redo pose misses once** (on with the Balanced
+preset) or **Best of two** — and the **comfyui_controlnet_aux** node pack installed in ComfyUI
 (it provides `DWPreprocessor`), Day reads the body pose back out of every finished still and
 compares it with the guide it was sent: `pose match 82%` in the review line. The check compares
 the direction each limb points and the body's posture (standing, sitting, kneeling, crouching,
@@ -101,9 +102,10 @@ lying, bending), so a smaller or differently framed figure still matches; a stil
 posture than its guide (sitting where the guide lies down) reads `pose match 20% · sitting,
 guide lying on the back` and is under the 50% gate — the slot is requeued with a "match the
 Image 3 skeleton" fix. When the keypoints can't tell (a seat reclined on cushions, legs out of
-frame), the vision model is asked what the person is doing. A missed hand gesture with the right
-posture (an arm left down where the guide points) usually still passes — the vision review
-catches the missing prop or action instead. If the pack is missing, the review
+frame), the vision model is asked one yes / no question from the guide's posture. A missed hand
+gesture with the right posture (an arm left down where the guide points) is caught by the gesture
+questions the beat is turned into ("Is she holding a mug?") — in the same vision call; the miss
+panel then says *Missed: holding the mug*. Both need a vision model. If the pack is missing, the review
 line says `Pose check off: DWPose not installed…` and everything else keeps working.
 
 Each score is also logged per guide style, and **Film loop → Pose match by guide** shows the
@@ -115,7 +117,7 @@ on the beat card; under 50% it suggests **Retry**, which draws a reseeded / mirr
 You can also seed the library yourself: **Settings → Prompt quality → Import pose as … from
 photo** reads the pose from any picture and files it under the layout you pick.
 
-Two starting values are uncalibrated: the 60% gate, and the 80% bar at which a kept still's
+Two starting values are only roughly calibrated: the 50% gate, and the 80% bar at which a kept still's
 detected pose is saved to the **pose library** (Settings → Prompt quality shows the count and
 can clear it). Library poses are real rendered bodies; later guides for the same layout
 sometimes draw one instead of the hand-placed mannequin, and every other reroll does.
@@ -149,7 +151,7 @@ leaning, walking), Day now drops the identity lock to 0.22 and raises denoise �
 Vacation and Suggestive already used. Standing gestures (waving, sipping, pockets) are left
 alone, since they cost identity for nothing.
 
-The **Pose over plate** switch under the slot board turns this off. Do that if faces drift more
+The **Pose over plate** switch (plan bar → **Advanced ▾**; it is not part of the Quality preset) turns this off. Do that if faces drift more
 than the posing is worth; the trade is real, which is why it is a chip and not a constant.
 
 ### A posture beat still renders standing

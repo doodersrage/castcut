@@ -51,7 +51,7 @@ Use **Optimize & save copy** in the workflow library to persist auto-bound place
 
 Loader precision: queue injection detects **fp8 vs bf16** from existing workflow loaders and resolves `{{UNET}}`/`{{CHECKPOINT}}` to the matching tier (defaults to bf16 when unknown).
 
-- Sidebar chips on each tool page override the global default for that session.
+- Sidebar chips on each tool page override the global default for that session. Day and Outfit have no chips: their **Quality** preset (Fast / Balanced / Best) sets the render quality, and the Engine panel reads *Set by Quality: Balanced* there (override under Advanced). Story keeps the Engine's Good / Best.
 - **Settings → Per-tool queue quality** sets persistent overrides (Generate, Variations, Refine, etc.).
 - Gallery entries store the profile used at queue time; **Upscale (Final/Max)**, **New variation (Final/Max)**, and sidecar import restore or override it. Derived entries record lineage (`upscaled from prior`, etc.).
 

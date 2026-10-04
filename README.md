@@ -16,7 +16,7 @@ Powered by ComfyUI · FLUX · Qwen · WAN · Hunyuan · LTX · and more — mode
 
 1. **Pick or create a character** on Play (Cast)
 2. **Set the look** — Look → Outfit
-3. **Generate the stills** — Day slots (draft-fast on Play)
+3. **Generate the stills** — Day slots (one Quality preset: Fast / Balanced / Best)
 4. **Animate** — I2V clips when you want motion
 5. **Cut film** — server ffmpeg or browser fallback
 6. **Save to Cast** — watch, keep, cut another
@@ -70,7 +70,7 @@ reachable LLM. Actually queuing a render needs a real backend — pick up at ste
 1. Set `COMFYUI_API_URL`, `LLM_MODEL`, and ideally `LLM_VISION_MODEL` in `.env.local`.
 2. Use **Heal & ready** on first launch (Welcome dialog or Settings → Overview).
    Optional: install the [Castcut nodes](docs/castcut-nodes.md) in ComfyUI (Settings → ComfyUI →
-   **Castcut nodes**) so Best of two and cut-outs run in one job.
+   **Castcut nodes**, or `castcut-nodes` on the Comfy Registry) so Best of two and cut-outs run in one job.
 3. Choose **Character / Scene·Film / Image / Surprise** on first run, or open **Film** (`/play`).
 
 **10-minute film loop:** Heal & ready → **Play** → create character → Look extract → Outfit Keep → Day stills/clips → **Cut film** → Save to Cast. Walkthrough: [Play guide](docs/play-guide.md) · [Operator guide — 10-minute loop](docs/operator.md#10-minute-loop).
@@ -197,4 +197,4 @@ left for someone to dig out of the branch history.
 
 ## License
 
-[MIT](./LICENSE) © 2026 Robert McDowell. Third-party model weights you download (e.g. via Hugging Face) remain under their own licenses. Day and Story's real-world reference poses are skeletons read from openly licensed photos (CC0, public domain, CC BY, CC BY-SA) — see [the photo credits](docs/pose-reference-credits.md); the harvester is in [scripts/pose-refs](scripts/pose-refs/README.md).
+[MIT](./LICENSE) © 2026 Robert McDowell. Third-party model weights you download (e.g. via Hugging Face) remain under their own licenses. Day and Story's real-world reference poses are skeletons only — read from openly licensed photos (CC0, public domain, CC BY, CC BY-SA), projected from the CMU Graphics Lab Motion Capture Database, or mapped from the COCO 2017 person keypoint annotations; no photo ships with the app. See [the pose reference credits](docs/pose-reference-credits.md); the harvesters are in [scripts/pose-refs](scripts/pose-refs/README.md).
