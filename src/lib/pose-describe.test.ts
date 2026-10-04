@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { assembleDayStillPrompt } from './day-still-prompt';
 import {
@@ -183,5 +185,29 @@ describe('custom pose in words', () => {
     // No custom pose: nothing added.
     const plain = assembleDayStillPrompt({ ...base, customPose: null, slotPrompt: 'Long brief.' });
     assert.doesNotMatch(plain.prompt, /POSE FIRST/);
+  });
+});
+
+describe('deep squat vs cross-legged sit (reference skeletons)', () => {
+  const refs = (
+    JSON.parse(
+      readFileSync(join(process.cwd(), 'src/lib/data/pose-references.json'), 'utf8')
+    ) as { references: { id: string; aspect: number; people: NormalizedBody[] }[] }
+  ).references;
+  const words = (id: string) => {
+    const ref = refs.find(entry => entry.id === id)!;
+    return describePoseFigure(ref.people[0]!, { aspect: ref.aspect }).text;
+  };
+
+  it('reads a front-on deep squat (knees above the hips) as a squat, not cross-legged', () => {
+    for (const id of ['crouch-1', 'crouch-2', 'crouch-3', 'crouch-4', 'crouch-5']) {
+      assert.match(words(id), /^in a deep squat, knees apart, feet flat on the floor/, id);
+    }
+  });
+
+  it('reads a low cross-legged floor sit as cross-legged, not crouching', () => {
+    for (const id of ['sit_floor-1', 'sit_floor-2', 'sit_floor-3', 'sit_floor-4', 'sit_floor-5']) {
+      assert.match(words(id), /^sitting cross-legged on the floor/, id);
+    }
   });
 });

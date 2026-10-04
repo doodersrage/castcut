@@ -163,7 +163,22 @@ export function describePoseFigure(
     const bothOnGround = legs.every(leg => leg.ankle.y > ground - unit * 0.2);
     const angles = legs.map(leg => jointAngle(leg.hip, leg.knee, leg.ankle));
     const spread = Math.abs(right.ankle.x - left.ankle.x);
-    if (hipHeight < unit * 0.45 && kneesOut && anklesIn && bothOnGround) {
+    // Knees above the hips with the shins dropping to the floor is a deep squat, not a
+    // cross-legged sit — seen front-on both have low hips, knees out and feet in (CMU crouch
+    // references: knees 0.18–0.34 of a torso above the hips; COCO cross-legged sits: level or
+    // below).
+    const kneeLift = (hip.y - (right.knee.y + left.knee.y) / 2) / unit;
+    const shinsDrop = legs.every(leg => leg.ankle.y - leg.knee.y > unit * 0.2);
+    if (
+      hipHeight < unit * 0.45 &&
+      kneesOut &&
+      anklesIn &&
+      bothOnGround &&
+      kneeLift > 0.1 &&
+      shinsDrop
+    ) {
+      stance = `in a deep squat, knees apart, feet flat on the floor`;
+    } else if (hipHeight < unit * 0.45 && kneesOut && anklesIn && bothOnGround) {
       stance = `sitting cross-legged on the floor`;
     } else if (
       bothOnGround &&
@@ -453,6 +468,15 @@ export function describePoseFigure(
     const anklesCrossed =
       Math.sign(right.ankle.x - left.ankle.x) === -hipsOrder &&
       Math.abs(right.ankle.x - left.ankle.x) > unit * 0.04;
+    // Low with the ankles crossed and the knees no higher than the hips is a cross-legged sit;
+    // the stance reader calls it "crouching low" (COCO floor sits, 4 of 5).
+    if (
+      anklesCrossed &&
+      /^crouching low/.test(stance) &&
+      (right.knee.y + left.knee.y) / 2 >= hip.y - unit * 0.1
+    ) {
+      stance = stance.replace(/^crouching low/, 'sitting cross-legged on the floor');
+    }
     if (anklesCrossed && !/cross-legged/.test(stance)) {
       facts.push({
         text: /^standing/.test(stance) ? 'one foot crossed over the other' : 'legs crossed',
