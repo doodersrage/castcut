@@ -77,9 +77,32 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
 
 ## Day
 
-- [ ] **A look per slot** — with two or more looks, a slot's editor shows look tiles; pick one:
+- [ ] **Board first** — Day opens on the plan bar (Stills · Mood · People · Weather · Quality ·
+  Advanced) and the slot cards; no Setting / Beat form, Edit, Setup or Advanced sections under
+  the board. Phone (`/m/day`) is the same, one column.
+- [ ] **Quality preset** — plan bar → Quality: Balanced is picked on a fresh Day and the line
+  under the bar reads *Best render · Face finish · Redo pose misses once · Pick the best engine
+  per pose*. Fast → *Good render*; Best adds Auto-review, Best of two, Face boost. Engine panel
+  reads *Set by Quality: Balanced* (no Good / Best chips). Advanced ▾ → flip one switch: the
+  preset reads *Custom*; pick Balanced again: the switch goes back. An old Day with all switches
+  off and Good reads *Fast*. Reload after a preset change: it stuck (one write per store).
+- [ ] **Slot sheet** — tap a card's name / Edit: the sheet opens on the right (bottom on a phone)
+  with Setting, Beat, pose, look tiles, Clothing row, Setting presets, End pose (finished slot),
+  Queue / Animate this slot. Tab stays inside; Escape and the backdrop close it; focus returns
+  to the card. ‹ › walk the slots. *Choose…* on Clothing opens the picker as a second sheet;
+  Escape closes only that one. Tapping a finished still opens it full size, as before.
+- [ ] **Card ⋯ menu** — a finished card: Edit slot, Open full size, Requeue · new seed, Animate,
+  Open in ComfyUI; an unrendered card: Edit slot, Queue this slot only, Reroll plan. No prev /
+  next / requeue overlays on the card (prev / next are in the lightbox).
+- [ ] **One primary per phase** — Queue day → Animate all (once stills land) → Cut (banner) →
+  Save film to Cast. *Final pass* and *Queue <slot> only* under the board are gone (the slot's
+  Queue is in its sheet).
+- [ ] **Setup chip** — *Nora · plate ready* beside the title opens the Setup sheet (Cast tiles,
+  plate, Isolate on white, seated-plate note); the get-started card's *Choose a character* /
+  *Pick a plate in Setup* opens it too.
+- [ ] **A look per slot** — with two or more looks, a slot's sheet shows look tiles; pick one:
   that still uses its plate and outfit; other slots keep the active look.
-- [ ] **Pose packs** — Day plan area → *Pose pack* (Fitness, Dance, Portrait, Lounging, Street
+- [ ] **Pose packs** — Advanced ▾ → *Pose pack* (Fitness, Dance, Portrait, Lounging, Street
   style, Beach): every slot gets a pose; empty beats get matching words; *Save as pack* keeps
   your own. Watch Fitness (warrior, plank, deadlift) and Lounging (lying on the front).
 - [ ] **From a photo** — a slot's pose → *From a photo…*: any photo's pose is used (two people on
@@ -87,8 +110,8 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
 - [ ] **Two-person pose editor** — a duo slot's pose → edit: *Add partner* / *Mirrored partner*,
   Lead / Partner tabs, *Swap sides*; the still follows who is left and right. A solo slot uses
   the lead only.
-- [ ] **Redo pose misses once** — switch next to Auto-review (works with Auto-review off): a still
-  that missed its pose is redone once and marked *Redone for the pose*.
+- [ ] **Redo pose misses once** — on with Balanced (Advanced ▾ shows the switch; works with
+  Auto-review off): a still that missed its pose is redone once and marked *Redone for the pose*.
 - [ ] **Seated oral** — an intimate oral beat on a couch / bed edge: she sits on the edge, he
   kneels between her knees (your afternoon still's seed now comes out right; 6/7 seeds vs 4/7).
 - [ ] **Solo intimate scenes on Mixed** — Intimate, People → Mixed: solo scenes come out alone,
@@ -103,12 +126,13 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
 - [ ] **Partner shoes** — a Day with a Cast partner: each wears their own shoes. Checked live.
 - [ ] **Continue as a story** — from Day's reel, Story opens primed with the Day's setting
   ("…, later that night") and outfit. Checked live.
-- [ ] **End pose for a clip** — select a finished slot; under *Animate*, pick another still (or
-  type a pose and *Re-pose this still*): the clip moves into that picture. Another slot's still
+- [ ] **End pose for a clip** — open a finished slot's sheet (Edit); at the bottom, pick another
+  still (or type a pose and *Re-pose this still*): the clip moves into that picture. Another slot's still
   warns that a different camera framing makes the clip cut. Rendered by the app's graphs on WAN
   (smooth) and LTX-2.5 (gets there, messier middle); not yet clicked through in the app.
-- [ ] **Best of two for hard poses** — switch next to Auto-review: a lying / kneeling / floor
-  still gets a second take; the closer pose is kept and the other shown beside it.
+- [ ] **Best of two for hard poses** — on with the Best preset (or Advanced ▾): a lying /
+  kneeling / floor still gets a second take; the closer pose is kept and the other shown beside
+  it (in the slot sheet's takes).
 - [ ] **Pose check** — Auto-review / Redo pose misses now flag a still for the wrong posture
   (sitting instead of lying), not for small differences; far fewer needless rerolls. Gesture
   misses (a selfie with the arm down) are left to Auto-review's vision check.
