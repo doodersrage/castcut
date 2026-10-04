@@ -31,6 +31,11 @@ export type SharedToolControlsProps = {
   /** When set, enables a per-tool queue quality override below the global profile. */
   toolId?: string;
   /**
+   * The tool's own Quality preset owns Good / Best (Day): the Engine shows "Set by Quality:
+   * <label>" in place of the chips, and the manual override lives with that preset.
+   */
+  qualitySetBy?: { label: string; hint?: string };
+  /**
    * Roleplay From photo: limit the picker to edit / img2img checkpoints.
    * T2I models overbake a reference still.
    */

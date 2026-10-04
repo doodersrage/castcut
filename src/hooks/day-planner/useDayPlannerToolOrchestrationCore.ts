@@ -231,13 +231,7 @@ import {
 } from '@/lib/play-campaign';
 import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/look-outfit-plate';
 import { resolveDaySlotLook } from '@/lib/day-slot-look';
-import {
-  cuePoseLayouts,
-  hasCompletedFirstFilm,
-  loadPlayMetrics,
-  poseLayoutFromKey,
-  weakPoseLayouts,
-} from '@/lib/play-metrics';
+import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play-metrics';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
@@ -1858,14 +1852,6 @@ export function useDayPlannerToolOrchestrationCore() {
                   : {}),
               }
             : undefined;
-        const leanQuality: 'draft' | 'final' =
-          options?.qualityProfile === 'final' || options?.qualityProfile === 'max'
-            ? 'final'
-            : options?.qualityProfile === 'draft'
-              ? 'draft'
-              : hasCompletedFirstFilm(loadPlayMetrics())
-                ? 'final'
-                : 'draft';
         // 2.0: pin Cast face onto Day stills the same way Outfit plates already do —
         // don't rely on whatever leftover session IP-Adapter shared happens to hold.
         // The active look's: a slot made in another look must not switch the session to it (its
@@ -2044,10 +2030,9 @@ export function useDayPlannerToolOrchestrationCore() {
               }
             : {}),
           ...(castLoras ? { sessionActiveLoraIds: castLoras } : {}),
-          ...(leanChrome ? { qualityProfile: leanQuality } : {}),
-          ...(options?.qualityProfile && !leanChrome
-            ? { qualityProfile: options.qualityProfile }
-            : {}),
+          // Render quality comes from Day's Quality preset (the tool's queue profile); an explicit
+          // per-queue profile still wins.
+          ...(options?.qualityProfile ? { qualityProfile: options.qualityProfile } : {}),
           ...(adultSafeguards
             ? {
                 adultGate: {

@@ -1640,6 +1640,11 @@ export const DEFAULT_DAY_TOOL_CACHE: DayToolCache = {
   dayMood: 'everyday',
   intimateMix: 'mixed',
   hideStickyCutCoach: false,
+  // Quality preset "Balanced" (day-quality-preset.ts): with Day's Best queue profile
+  // (SUGGESTED_TOOL_QUEUE_QUALITY_PROFILES). A switch the player set keeps its value.
+  faceFinish: true,
+  redoPoseMisses: true,
+  bestEnginePerPose: true,
 };
 
 export const DEFAULT_MOODBOARD_TOOL_CACHE: MoodboardToolCache = {

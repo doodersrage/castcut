@@ -50,6 +50,7 @@ export default function SharedToolControls({
   recommendFromText,
   wildcardPreviewText,
   toolId,
+  qualitySetBy,
   preferEditModels = false,
   onSharedSettingsChange,
   variant = 'default',
@@ -212,6 +213,7 @@ export default function SharedToolControls({
         onQualityApplyAll={otherToolsDiffer ? handleQualityApplyAll : undefined}
         qualityCaption={qualityCaption}
         allowCustomQuality={!systemPathActive}
+        qualitySetBy={qualitySetBy}
         cloudEngine={cloudEngine}
         resolutionOrientation={resolutionOrientation}
         resolutionSizeTier={resolutionSizeTier}

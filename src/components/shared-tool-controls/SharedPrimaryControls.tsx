@@ -50,6 +50,8 @@ export type SharedPrimaryControlsProps = {
   onQualityApplyAll?: () => void;
   qualityCaption: string | null;
   allowCustomQuality: boolean;
+  /** The tool's Quality preset owns this choice — show it, don't offer the chips. */
+  qualitySetBy?: { label: string; hint?: string };
   cloudEngine: boolean;
   resolutionOrientation: ResolutionOrientation;
   resolutionSizeTier: ResolutionSizeTier;
@@ -73,6 +75,7 @@ export default function SharedPrimaryControls({
   onQualityApplyAll,
   qualityCaption,
   allowCustomQuality,
+  qualitySetBy,
   cloudEngine,
   resolutionOrientation,
   resolutionSizeTier,
@@ -90,7 +93,19 @@ export default function SharedPrimaryControls({
           <FieldLabel hint="How long the render takes and how much polish it gets.">
             Quality
           </FieldLabel>
-          <div className="flex flex-wrap gap-2">
+          {qualitySetBy ? (
+            <p
+              className="type-caption text-[var(--text-secondary)]"
+              data-testid="engine-quality-set-by"
+            >
+              Set by Quality:{' '}
+              <span className="font-medium text-[var(--text-primary)]">{qualitySetBy.label}</span>
+              {qualitySetBy.hint ? (
+                <span className="block text-[var(--text-muted)]">{qualitySetBy.hint}</span>
+              ) : null}
+            </p>
+          ) : null}
+          <div className={qualitySetBy ? 'hidden' : 'flex flex-wrap gap-2'}>
             {ENGINE_QUALITY_OPTIONS.filter(
               option =>
                 option.id !== 'followSettings' ||
@@ -113,7 +128,7 @@ export default function SharedPrimaryControls({
           {qualityCaption ? (
             <p className="text-xs leading-relaxed text-[var(--text-muted)]">{qualityCaption}</p>
           ) : null}
-          {onQualityApplyAll ? (
+          {onQualityApplyAll && !qualitySetBy ? (
             <button
               type="button"
               className="ui-text-link type-caption"
