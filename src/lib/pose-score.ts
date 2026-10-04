@@ -285,7 +285,7 @@ export type PosturePair = {
   mismatch: boolean;
   /**
    * The guide's posture is clear but the still's read is a guess in another group: worth the
-   * optional vision question ({@link applyVisionPosture} in `pose-posture-vision.ts`).
+   * vision model's posture question (`pose-posture-question.ts`).
    */
   unsure: boolean;
 };
@@ -318,7 +318,10 @@ export type PoseMatchResult = {
   posture: PosturePair[];
   /** Some guide person's matched body is in another posture: a miss whatever the angles say. */
   postureMiss: boolean;
-  /** No miss called, but a posture read is unsure: the optional vision check can settle it. */
+  /**
+   * No miss called, but a posture read is unsure in another group. The vision posture question
+   * (`pose-posture-question.ts`) is asked whenever the lead's still read is unsure.
+   */
   postureUnsure: boolean;
   /**
    * Some guide person's matched body holds three or more of the guide's defining segments far
@@ -499,8 +502,9 @@ export const JOINT_DISTANCE_MIN_POSE_MATCH = 0.6;
 /**
  * Limb-angle gate. The limb-angle check decides by verdict, not by a cut on the angle score:
  * a still misses when its posture differs from the guide's (sitting where the guide lies down,
- * standing where it kneels) — confident keypoint reads, or the vision model confirming an
- * unsure one — or when nobody was found. The score carries that verdict across the gate: a hit
+ * standing where it kneels) — confident keypoint reads, or the vision model saying "no" to the
+ * guide's posture when the still's read is unsure (`pose-posture-question.ts`) — or when nobody
+ * was found. The score carries that verdict across the gate: a hit
  * maps the limb score into [gate, 1], a miss into [0, gate × 0.8], so every consumer comparing a
  * stored score with the gate (Day review, redo, Story, Outfit review, the Gallery badge,
  * best-take restore) keeps working, and a closer still scores higher on its side. A body found

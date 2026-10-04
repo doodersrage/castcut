@@ -18,8 +18,8 @@ import {
   poseLimbFixNudge,
   type PoseMissView,
 } from '@/lib/pose-coaching';
-import { applyGestureVerdict, gestureFixNudge } from '@/lib/pose-gesture';
-import { checkStillGesture } from '@/lib/pose-gesture-vision-client';
+import { gestureFixNudge } from '@/lib/pose-gesture';
+import { checkStillPoseVision } from '@/lib/pose-gesture-vision-client';
 import {
   DEFAULT_MIN_POSE_MATCH,
   POSE_MISMATCH_NUDGE,
@@ -151,10 +151,10 @@ export function useDayPoseMissRedo(
           guideAspect: expectation.aspect,
           detected: detected.pose,
         });
-        // Posture right: check the beat's gesture too (one vision call, action beats only).
+        // Posture unread or the beat has an action: one vision call checks both.
         if (match.score >= DEFAULT_MIN_POSE_MATCH) {
           setStatus(`Checking ${target.label} gesture…`);
-          const gesture = await checkStillGesture({
+          ({ match } = await checkStillPoseVision({
             imageUrl,
             beat: expectation.beat ?? target.sceneHints,
             poseKey: expectation.poseKey,
@@ -164,8 +164,7 @@ export function useDayPoseMissRedo(
             detected: detected.pose,
             match,
             shared,
-          });
-          match = applyGestureVerdict(match, gesture);
+          }));
         }
         const gestureMissed = gestureMissWords(match);
         const decision = poseRedoDecision({

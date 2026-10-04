@@ -1,6 +1,6 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { parseLlmRequestOptions } from '@/lib/llm-request-options';
-import { MAX_GESTURE_QUESTIONS, type GestureQuestion } from '@/lib/pose-gesture';
+import { MAX_STILL_VISION_QUESTIONS, type GestureQuestion } from '@/lib/pose-gesture';
 import { askGestureVision } from '@/lib/pose-gesture-vision-server';
 import { normalizeImageDataUrl } from '@/lib/specialized/image-prompt-generator';
 
@@ -24,10 +24,12 @@ function readQuestions(raw: unknown): GestureQuestion[] {
       };
       return clean.id && clean.text ? [clean] : [];
     })
-    .slice(0, MAX_GESTURE_QUESTIONS);
+    .slice(0, MAX_STILL_VISION_QUESTIONS);
 }
 
-/** The gesture check's action questions: `{ answers: GestureAnswer[] | null }`. */
+/**
+ * The pose check's yes/no questions (the beat's actions, the posture): `{ answers: GestureAnswer[] | null }`.
+ */
 export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as {

@@ -26,8 +26,6 @@ import {
   scorePoseMatch,
   type PoseMatchResult,
 } from '@/lib/pose-score';
-import { applyVisionPosture, wantsVisionPosture } from '@/lib/pose-posture-vision';
-import { askStillPosture } from '@/lib/pose-posture-vision-client';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import {
   decideSlotQuality,
@@ -49,8 +47,8 @@ import {
   poseLimbFixNudge,
   type PoseMissView,
 } from '@/lib/pose-coaching';
-import { applyGestureVerdict, gestureFixNudge } from '@/lib/pose-gesture';
-import { checkStillGesture } from '@/lib/pose-gesture-vision-client';
+import { gestureFixNudge } from '@/lib/pose-gesture';
+import { checkStillPoseVision } from '@/lib/pose-gesture-vision-client';
 import { betterTakeIndex, type TakeScores } from '@/lib/take-scoring';
 import { STILL_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face-match';
 
@@ -210,17 +208,11 @@ export function useDaySlotQualityGate(
                 guideAspect: expectation.aspect,
                 detected: detected.pose,
               });
-              // Keypoints can't tell this posture (a reclined seat vs lying, legs hidden): ask
-              // the vision model. Never blocks the check — any failure keeps the keypoint read.
-              if (wantsVisionPosture(poseMatch)) {
-                const vision = await askStillPosture({ imageUrl, shared }).catch(() => null);
-                poseMatch = applyVisionPosture(poseMatch, vision);
-              }
-              // Right posture, but did the beat's gesture land (the cup at the mouth, the phone
-              // up)? One vision call, only for beats with a visible action.
+              // Keypoints can't read the posture against a clear guide, or the beat has a
+              // visible action (the cup at the mouth, the phone up): one vision call asks both.
               if (poseMatch.score >= DEFAULT_MIN_POSE_MATCH) {
                 setQualityStatus(`Checking ${target.label} gesture…`);
-                const gesture = await checkStillGesture({
+                ({ match: poseMatch } = await checkStillPoseVision({
                   imageUrl,
                   beat: expectation.beat ?? target.sceneHints,
                   poseKey: expectation.poseKey,
@@ -230,8 +222,7 @@ export function useDaySlotQualityGate(
                   detected: detected.pose,
                   match: poseMatch,
                   shared,
-                });
-                poseMatch = applyGestureVerdict(poseMatch, gesture);
+                }));
               }
               detectedPeople = detected.pose.people;
               const { width, height } = detected.pose.canvas;

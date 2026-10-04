@@ -237,6 +237,12 @@ const GESTURE_SPECS: readonly GestureSpec[] = [
 export const MAX_GESTURE_QUESTIONS = 2;
 
 /**
+ * Questions in one still's vision call: the beat's gesture questions plus the pose check's
+ * posture question (`pose-posture-question.ts`).
+ */
+export const MAX_STILL_VISION_QUESTIONS = MAX_GESTURE_QUESTIONS + 1;
+
+/**
  * The yes/no checks for a still's beat: actions the beat states, in order of how specific they
  * are (a selfie before a phone, a camera before a phone), at most {@link MAX_GESTURE_QUESTIONS}.
  * A drink counts only when it's in hand ("mug in hand", "sipping", "clinking glasses" — not

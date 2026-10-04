@@ -16,8 +16,7 @@ import {
   bestOfTwoTakeId,
   isDayHardPose,
 } from '@/lib/day-best-of-two';
-import { applyGestureVerdict } from '@/lib/pose-gesture';
-import { checkStillGesture } from '@/lib/pose-gesture-vision-client';
+import { checkStillPoseVision } from '@/lib/pose-gesture-vision-client';
 import { DEFAULT_MIN_POSE_MATCH, scorePoseMatch } from '@/lib/pose-score';
 import { fetchCastcutBestOfTwoReport } from '@/lib/castcut-report-client';
 import { dayStillShownImage, dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day-planner';
@@ -179,28 +178,25 @@ export function useDayBestOfTwo(
           setStatus(`Best of two off: ${detected.reason}`);
           return;
         }
-        // A take that keeps the posture but drops the beat's gesture scores in the miss band, so
-        // the pair prefers the take that passes the gesture check.
-        const match = scorePoseMatch({
+        // A take that keeps the posture but drops the beat's gesture (or whose unread posture the
+        // vision model says is wrong) scores in the miss band, so the pair prefers the other.
+        const scored = scorePoseMatch({
           guide: expectation.keypoints,
           guideAspect: expectation.aspect,
           detected: detected.pose,
         });
-        const gesture =
-          match.score >= DEFAULT_MIN_POSE_MATCH
-            ? await checkStillGesture({
-                imageUrl: still.imageUrl!,
-                beat: expectation.beat ?? target.sceneHints,
-                poseKey: expectation.poseKey,
-                lead: leadNoun,
-                guide: expectation.keypoints,
-                guideAspect: expectation.aspect,
-                detected: detected.pose,
-                match,
-                shared,
-              })
-            : null;
-        const score = applyGestureVerdict(match, gesture).score;
+        const { match } = await checkStillPoseVision({
+          imageUrl: still.imageUrl!,
+          beat: expectation.beat ?? target.sceneHints,
+          poseKey: expectation.poseKey,
+          lead: leadNoun,
+          guide: expectation.keypoints,
+          guideAspect: expectation.aspect,
+          detected: detected.pose,
+          match: scored,
+          shared,
+        });
+        const score = match.score;
         recordGalleryPlayChecks(still.promptId, { pose: score });
         // The still may have moved on while DWPose ran (a requeue, a pick by hand).
         const current = stillsRef.current.find(entry => entry.slotId === target.id);

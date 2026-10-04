@@ -7,22 +7,22 @@ import {
 } from './llm-request-options';
 import {
   gestureVisionPrompt,
-  MAX_GESTURE_QUESTIONS,
+  MAX_STILL_VISION_QUESTIONS,
   parseGestureAnswers,
   type GestureAnswer,
   type GestureQuestion,
 } from './pose-gesture';
 
 /**
- * Server: ask the vision model the gesture check's yes/no questions about a still, all in one
- * call. Null when no vision model is set up or the reply can't be read.
+ * Server: ask the vision model the pose check's yes/no questions about a still (the beat's
+ * gesture questions and the posture question), all in one call. Null when no vision model is set up or the reply can't be read.
  */
 export async function askGestureVision(options: {
   imageDataUrl: string;
   questions: GestureQuestion[];
   llm?: LlmRequestOptions;
 }): Promise<GestureAnswer[] | null> {
-  const questions = options.questions.slice(0, MAX_GESTURE_QUESTIONS);
+  const questions = options.questions.slice(0, MAX_STILL_VISION_QUESTIONS);
   if (questions.length === 0) return null;
   if (!resolveRequestLlmEnabled(options.llm)) return null;
   const model = await resolveVisionModel(options.llm);

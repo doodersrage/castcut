@@ -8,7 +8,7 @@
  * (`plate-stance.ts`: hips against knees and ankles, the torso's tilt) with the lying, bending,
  * all-fours and upside-down cases and a confidence: a body near a class boundary, or one whose
  * torso points at the camera, is `confident: false`, and the check never calls a miss on it
- * (the optional vision question in `pose-posture-vision.ts` can settle it).
+ * (the vision model's yes/no in `pose-posture-question.ts` settles it).
  */
 
 import type { NormalizedBody } from '@/lib/pose-library';

@@ -9,6 +9,7 @@ import {
 } from '@/lib/roleplay';
 import { nextStoryPoseCheck } from '@/lib/roleplay-pose-check';
 import { detectStillPose } from '@/lib/pose-detect-client';
+import { checkStillPoseVision } from '@/lib/pose-gesture-vision-client';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
 import {
@@ -24,6 +25,7 @@ import { buildPoseMissView } from '@/lib/pose-coaching';
 import { recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { loadSettingsCache } from '@/lib/settings-cache';
 
 /**
  * Story pose check: when a still that was queued with an Image 3 guide lands, read its pose
@@ -65,10 +67,22 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
           setPoseCheckOff(detected.reason);
           return;
         }
-        const match = scorePoseMatch({
+        // Posture unreadable from the keypoints against a clear guide (a standing still before a
+        // kneeling guide often reads unsure): the vision model's yes/no settles it.
+        const { match } = await checkStillPoseVision({
+          imageUrl: shownUrl,
+          lead: 'person',
           guide: expect.keypoints,
           guideAspect: expect.aspect,
           detected: detected.pose,
+          match: scorePoseMatch({
+            guide: expect.keypoints,
+            guideAspect: expect.aspect,
+            detected: detected.pose,
+          }),
+          gesture: false,
+          // Read at check time: the effect doesn't rerun on every settings change.
+          shared: loadSettingsCache().shared,
         });
         const miss = match.score < DEFAULT_MIN_POSE_MATCH;
         recordPoseMatchScore(expect.style, match.score, miss, poseLayoutFromKey(expect.poseKey), {
