@@ -110,7 +110,22 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
   plate, Isolate on white, seated-plate note); the get-started card's *Choose a character* /
   *Pick a plate in Setup* opens it too.
 - [ ] **A look per slot** — with two or more looks, a slot's sheet shows look tiles; pick one:
-  that still uses its plate and outfit; other slots keep the active look.
+  that still uses its plate and outfit; other slots keep the Day's look.
+- [ ] **One look & clothing for the whole Day** — under the plan bar the *Look & clothing* row
+  shows the Day's look (plate), kit / photo and shoes with pictures, readable without opening
+  anything (phone too); a long line is cut with the full text on hover. *Choose…* opens look
+  tiles + the Clothing picker for every slot (a kit picked there is the Day's, not one slot's).
+  Give two slots their own look / kit: the row reads *2 slots differ · Use for every slot*;
+  tap it: both follow the Day again (one write; reload — it stuck). A slot that differs says
+  *Different from the Day · Use the Day's* in its sheet; that resets only that slot.
+- [ ] **Outfit hand-off beats old slot picks** — on a Day with slot kits from an older Keep and
+  one slot's kit picked by hand: in Outfit Keep a try-on (or pick another kit / shoes / look),
+  open Day: the old stamped kits are gone (those slots wear the new outfit); the hand-picked
+  slot keeps its own and Day says *1 slot keeps its own outfit · Use the new one everywhere*;
+  tapping it (or ✕) clears the notice. *Use on Day* from Outfit does the same.
+- [ ] **Clothing summary beside Choose…** — Day's row, a slot sheet's Clothing row, Outfit's
+  Clothing row and Story's *Outfit for stills* show kit packshot / photo / shoe picture and
+  short names ("Boxy chocolate habit · black pumps") next to the button.
 - [ ] **Pose packs** — Advanced ▾ → *Pose pack* (Fitness, Dance, Portrait, Lounging, Street
   style, Beach): every slot gets a pose; empty beats get matching words; *Save as pack* keeps
   your own. Watch Fitness (warrior, plank, deadlift) and Lounging (lying on the front).
