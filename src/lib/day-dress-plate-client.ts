@@ -15,7 +15,18 @@ import {
 } from '@/lib/day-dress-plate';
 import { findDressPlate, loadDressPlates, saveDressPlate } from '@/lib/dress-plate-store';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
-import { footwearIsBarefoot, footwearPromptLine } from '@/lib/footwear';
+import { footwearIsBarefoot, footwearPromptLine, normalizeFootwear } from '@/lib/footwear';
+import {
+  buildFeetPassPrompt,
+  footwearCheckApplies,
+  footwearNeedsFeetPass,
+  resolveFeetPassModel,
+} from '@/lib/footwear-check';
+import {
+  cachedInstalledModelCheck,
+  checkStillFootwear,
+  type FootwearCheckShared,
+} from '@/lib/footwear-check-client';
 import { buildFootwearReferenceImage, hasFootwearImage } from '@/lib/footwear-image';
 import { loadImageBlobFromUrls } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
@@ -41,6 +52,17 @@ export type DayDressPlateDeps = {
   onRender?: (info: { change: DayDressPlateChange | null }) => void;
   /** Waits for the queued job (tests replace it; defaults to the gallery poller). */
   waitForPromptIds?: typeof waitForGalleryPromptIds;
+  /**
+   * LLM settings for the shoe check (footwear-check.ts). With shoes picked, the plate's feet are
+   * looked at and, when the shoes are missing or wrong, one feet pass puts them on. Absent: no
+   * check, the plate is used as it came.
+   */
+  visionShared?: FootwearCheckShared;
+  /** Called when a feet pass starts on the plate (a second short render). */
+  onShoePass?: () => void;
+  /** Tests replace the vision check and the installed-engine lookup. */
+  checkFootwear?: typeof checkStillFootwear;
+  installed?: ((modelId: string) => boolean) | null;
 };
 
 /** The store key of a plate request (day-dress-plate.ts); the who-is-it fields do not count. */
@@ -64,6 +86,8 @@ const RECHECK_WAIT_MS = 6_000;
 /** After a failed render, later stills skip the plate for this long. */
 const FAILURE_COOLDOWN_MS = 5 * 60_000;
 const failedAt = new Map<string, number>();
+/** A stored plate whose shoe check could not run (no vision model): not asked again for a while. */
+const shoeCheckSkippedAt = new Map<string, number>();
 
 async function inputFileExists(filename: string): Promise<boolean> {
   const url = comfyInputViewUrl(filename);
@@ -74,6 +98,105 @@ async function inputFileExists(filename: string): Promise<boolean> {
   } catch {
     // Offline or blocked: let the queue find out rather than re-render on a guess.
     return true;
+  }
+}
+
+/** Shoes picked for the plate (words or a picture) — not barefoot, not left to the outfit. */
+function plateWantsShoes(request: DayDressPlateRequest): boolean {
+  return (
+    !footwearIsBarefoot(request.footwear) &&
+    footwearCheckApplies({
+      footwear: normalizeFootwear(request.footwear),
+      hasShoeImage: Boolean(request.footwearImage && hasFootwearImage(request.footwearImage)),
+    })
+  );
+}
+
+const FEET_PASS_WAIT_MS = 6 * 60_000;
+
+/**
+ * Look at the plate's feet; when the shoes are missing or wrong (barefoot, flats for heels, the
+ * pair set down beside her), one feet pass on Edit 2511 puts them on — Image 1 the plate, Image 2
+ * the shoe picture alone. Returns the image to keep (the pass's, or the plate as it was) and
+ * whether the check ran. Never throws: a failed check or pass keeps the plate.
+ */
+async function fixDressPlateFeet(
+  request: DayDressPlateRequest,
+  deps: DayDressPlateDeps,
+  imageUrl: string
+): Promise<{ imageUrl: string; checked: boolean; passed: boolean }> {
+  const kept = { imageUrl, checked: false, passed: false };
+  if (!plateWantsShoes(request) || (!deps.visionShared && !deps.checkFootwear)) return kept;
+  const shoeWords = normalizeFootwear(request.footwear);
+  const verdict = await (deps.checkFootwear ?? checkStillFootwear)({
+    imageUrl,
+    shoeWords,
+    shared: deps.visionShared,
+  });
+  if (!verdict) return kept;
+  if (!footwearNeedsFeetPass(verdict, false)) return { ...kept, checked: true };
+  const passModel = resolveFeetPassModel(
+    request.model,
+    deps.installed !== undefined ? deps.installed : cachedInstalledModelCheck()
+  );
+  if (!passModel) return { ...kept, checked: true };
+  try {
+    deps.onShoePass?.();
+    const blob = await loadImageBlobFromUrls([imageUrl]);
+    const name = `day-dress-plate-feet-${Date.now()}.png`;
+    const staged = await resolveQueueInputImage({
+      file: new File([blob], name, { type: blob.type || 'image/png', lastModified: Date.now() }),
+      filename: name,
+      model: passModel,
+    });
+    const stagedName = staged?.filename?.trim();
+    if (!stagedName) throw new Error('the plate could not be staged');
+    let shoeImage: string | null = null;
+    if (request.footwearImage && hasFootwearImage(request.footwearImage)) {
+      try {
+        const alone = await buildFootwearReferenceImage({
+          garment: null,
+          footwear: request.footwearImage,
+          model: passModel,
+        });
+        shoeImage = alone?.filename ?? null;
+      } catch (error) {
+        console.warn('Dress plate shoe pass: the shoe picture could not be attached:', error);
+      }
+    }
+    const promptId = await deps.sendComfyUi(
+      buildFeetPassPrompt({
+        shoeWords,
+        imagePlacement: shoeImage ? 'alone' : null,
+        subject: request.subject,
+      }),
+      undefined,
+      undefined,
+      {
+        inputImageFilename: stagedName,
+        ...(shoeImage ? { inputImageFilenames: ['', shoeImage] } : {}),
+        queueTool: 'image-prompt',
+        queueModel: passModel,
+        castPlateReference: true,
+        identityLock: true,
+        // "Change nothing else": the strong opener says wardrobe may change.
+        turboEditStrength: 'balanced',
+        queueHints: '',
+        characterId: request.characterId,
+        lookId: request.lookId,
+      }
+    );
+    const id = typeof promptId === 'string' ? promptId.trim() : '';
+    if (!id) throw new Error('the shoe pass was not queued');
+    const wait = deps.waitForPromptIds ?? waitForGalleryPromptIds;
+    const [entry] = await wait([id], { timeoutMs: FEET_PASS_WAIT_MS, pollMs: 2_500 });
+    const passUrl =
+      entry?.status === 'completed' ? galleryEntryPrimaryViewUrl(entry)?.trim() : undefined;
+    if (!passUrl) throw new Error('the shoe pass did not finish');
+    return { imageUrl: passUrl, checked: true, passed: true };
+  } catch (error) {
+    console.warn('Dress plate shoe pass skipped:', error);
+    return { ...kept, checked: true };
   }
 }
 
@@ -173,7 +296,8 @@ async function finishDressPlateJob(
     failedAt.set(key, Date.now());
     throw new Error('The dress plate did not render.');
   }
-  const blob = await loadImageBlobFromUrls([resultUrl]);
+  const feet = await fixDressPlateFeet(request, deps, resultUrl);
+  const blob = await loadImageBlobFromUrls([feet.imageUrl]);
   const name = `day-dress-plate-${Date.now()}.png`;
   const uploaded = await resolveQueueInputImage({
     file: new File([blob], name, { type: blob.type || 'image/png', lastModified: Date.now() }),
@@ -187,7 +311,53 @@ async function finishDressPlateJob(
   }
   failedAt.delete(key);
   verified.add(`${key}::${filename}`);
-  return { key, filename, imageUrl: comfyInputViewUrl(filename) ?? resultUrl, at: Date.now() };
+  return {
+    key,
+    filename,
+    imageUrl: comfyInputViewUrl(filename) ?? feet.imageUrl,
+    at: Date.now(),
+    ...(feet.checked ? { shoesChecked: true } : {}),
+  };
+}
+
+/**
+ * A stored plate made before the shoe check (or while it could not run): check it once, and
+ * when the feet pass fixes it, store the fixed plate under the same key.
+ */
+async function recheckStoredPlateFeet(
+  request: DayDressPlateRequest,
+  deps: DayDressPlateDeps,
+  cached: DayDressPlateEntry
+): Promise<DayDressPlateEntry> {
+  const url = cached.imageUrl?.trim() || comfyInputViewUrl(cached.filename);
+  if (!url) return cached;
+  const feet = await fixDressPlateFeet(request, deps, url);
+  if (!feet.checked) {
+    shoeCheckSkippedAt.set(cached.key, Date.now());
+    return cached;
+  }
+  if (!feet.passed) return { ...cached, shoesChecked: true };
+  try {
+    const blob = await loadImageBlobFromUrls([feet.imageUrl]);
+    const name = `day-dress-plate-${Date.now()}.png`;
+    const uploaded = await resolveQueueInputImage({
+      file: new File([blob], name, { type: blob.type || 'image/png', lastModified: Date.now() }),
+      filename: name,
+      model: request.model,
+    });
+    const filename = uploaded?.filename?.trim();
+    if (!filename) return { ...cached, shoesChecked: true };
+    verified.add(`${cached.key}::${filename}`);
+    return {
+      key: cached.key,
+      filename,
+      imageUrl: comfyInputViewUrl(filename) ?? feet.imageUrl,
+      at: Date.now(),
+      shoesChecked: true,
+    };
+  } catch {
+    return { ...cached, shoesChecked: true };
+  }
 }
 
 /**
@@ -205,7 +375,24 @@ export async function ensureDayDressPlate(
     const mark = `${key}::${cached.filename}`;
     if (verified.has(mark) || (await inputFileExists(cached.filename))) {
       verified.add(mark);
-      return { entry: cached, fresh: false };
+      if (
+        cached.shoesChecked ||
+        !plateWantsShoes(request) ||
+        Date.now() - (shoeCheckSkippedAt.get(key) ?? 0) < FAILURE_COOLDOWN_MS ||
+        (!deps.visionShared && !deps.checkFootwear)
+      ) {
+        return { entry: cached, fresh: false };
+      }
+      const checking = inFlight.get(key);
+      if (checking) return { entry: await checking, fresh: false };
+      const job = recheckStoredPlateFeet(request, deps, cached)
+        .then(entry => {
+          saveDressPlate(entry);
+          return entry;
+        })
+        .finally(() => inFlight.delete(key));
+      inFlight.set(key, job);
+      return { entry: await job, fresh: false };
     }
   }
   const running = inFlight.get(key);

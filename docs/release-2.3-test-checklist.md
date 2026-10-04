@@ -80,8 +80,14 @@ Tip: most checks need a Cast with a picture. Use one of yours, or start a fresh 
   under Quality → Advanced). Checked live on Edit 2511 and Rapid; checked on 2.1 by replay.
 - [ ] **Shoes are worn** — pick shoes (words or a photo); try-on shows them on her feet, framed
   head to feet, not set beside her.
-- [ ] **Shoe pass** — Edit 2511 + a custom pose + shoes: after the try-on, "Putting the shoes
-  on…" runs once and the card switches to the shod picture. Checked live.
+- [ ] **Shoe check and pass** — any engine, shoes picked (try heels): after the try-on lands the
+  status says "Checking her shoes…"; if she came out barefoot / in flats / with the pair beside
+  her it says "Shoe check: … — putting the shoes on…", one pass runs on Edit 2511 and the card
+  switches to the shod picture, framed head to feet as before. Shoes already right: no pass.
+  Never a second pass; a still-wrong result is said in the tray. Checked by replay (9/9).
+- [ ] **Dress plate shoes** — Day or Story with clothing + heels picked: a plate that comes out
+  barefoot gets "The dress plate came out without the picked shoes — putting them on…" and the
+  stills start from the shod plate. An older stored plate is checked once on first use.
 - [ ] **Keep saves to the look** — Keep a try-on: the active look's tile shows that outfit;
   switching looks and back restores it in Outfit / Day / Story. *New look* copies the outfit.
 - [ ] **Seated-plate note** — with a seated look plate, Outfit's plate (and Day → Setup) show

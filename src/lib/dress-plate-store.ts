@@ -37,6 +37,7 @@ function normalize(items: unknown): DayDressPlateEntry[] {
         ? { imageUrl: entry.imageUrl.trim() }
         : {}),
       at: typeof entry.at === 'number' && Number.isFinite(entry.at) ? entry.at : Date.now(),
+      ...(entry.shoesChecked === true ? { shoesChecked: true } : {}),
     });
   }
   return out;

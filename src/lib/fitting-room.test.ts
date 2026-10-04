@@ -9,8 +9,10 @@ import {
   buildFittingOutfitPrompt,
   buildFittingSwipeDeck,
   dismissFittingCompareTryOn,
+  fittingFeetPassPlan,
   fittingNeedsFeetPass,
   fittingNextChainStep,
+  fittingStepAfterShoeCheck,
   fittingQueueBlockReason,
   fittingSessionStatusLine,
   fittingSwipeIndex,
@@ -427,25 +429,26 @@ describe('Outfit feet pass', () => {
     );
   });
 
-  it('names the shoes under the clothing in Image 2 and keeps everything else', () => {
+  it('keeps the whole picture, names the shoes and their heel, and keeps everything else', () => {
     assert.equal(
       buildFittingFeetPassPrompt({
         shoeWords: 'red strappy heels.',
-        imagePlacement: 'combined',
+        imagePlacement: 'alone',
         subject: 'she',
       }),
-      'Edit Image 1: put the shoes shown at the bottom of Image 2 — red strappy heels — on her bare feet, worn on both feet. Change nothing else: the same person, face, outfit, pose, framing, light and background as Image 1, pixel for pixel away from the feet.'
+      'Edit Image 1: the same full picture — her whole body head to feet, the same framing, size and position as Image 1 — with only her footwear changed: she now wears the shoes shown in Image 2 — red strappy heels — one on each foot, in place of whatever is on her feet. High heels: her heels lifted on the tall thin heels, each heel post under the heel of her foot. Keep each strap thin and continuous, both shoes the same. No other shoes anywhere in the picture. Change nothing else: the same person, face, outfit, pose, framing, light and background as Image 1, pixel for pixel away from the feet.'
     );
   });
 
-  it('shoes alone in Image 2, words alone, and a man lead', () => {
+  it('shoes under the clothing, words alone, and a man lead', () => {
     assert.match(
-      buildFittingFeetPassPrompt({ shoeWords: '', imagePlacement: 'alone', subject: 'she' }),
-      /^Edit Image 1: put the shoes shown in Image 2 on her bare feet/
+      buildFittingFeetPassPrompt({ shoeWords: '', imagePlacement: 'combined', subject: 'she' }),
+      /she now wears the shoes shown at the bottom of Image 2 one on each foot/
     );
     const words = buildFittingFeetPassPrompt({ shoeWords: 'white sneakers', subject: 'he' });
-    assert.match(words, /^Edit Image 1: put white sneakers on his bare feet/);
-    assert.doesNotMatch(words, /Image 2/);
+    assert.match(words, /his whole body head to feet/);
+    assert.match(words, /he now wears white sneakers one on each foot, in place of whatever is on his feet\. Both shoes the same\./);
+    assert.doesNotMatch(words, /Image 2|High heels|strap/);
   });
 
   it('replaces the try-on card in place with the pass result', () => {
@@ -500,6 +503,50 @@ describe('Outfit front and back', () => {
     assert.equal(fittingNextChainStep({ ...base, replacesPromptId: 'a' }), null);
     // The back view ends the chain (it keeps its subject for the status line).
     assert.equal(fittingNextChainStep({ ...base, backOfPromptId: 'a', backView }), null);
+  });
+
+  it('fittingStepAfterShoeCheck: the pass only when the check asks, else on to the back view', () => {
+    const base = { promptId: 'p', wardrobeId: 'kit', feetPass: { shoeWords: 'red heels', subject: 'she' as const } };
+    const backView = { subject: 'she' as const };
+    assert.equal(fittingStepAfterShoeCheck({ ...base, backView }, true), 'feet-pass');
+    assert.equal(fittingStepAfterShoeCheck({ ...base, backView }, false), 'back-view');
+    assert.equal(fittingStepAfterShoeCheck(base, false), null);
+  });
+
+  it('fittingFeetPassPlan: every engine with real shoes; unchecked pass only for a posed 2511', () => {
+    const EDIT_2511 = 'qwen-image-edit-2511-lightning-4';
+    const installed = (id: string) => id === 'qwen-image-edit-2511-lightning-8';
+    assert.deepEqual(
+      fittingFeetPassPlan({ model: EDIT_2511, hasCustomPose: true, footwear: 'red heels' }),
+      { model: EDIT_2511, whenUnchecked: true }
+    );
+    assert.deepEqual(
+      fittingFeetPassPlan({ model: EDIT_2511, hasCustomPose: false, footwear: 'red heels' }),
+      { model: EDIT_2511, whenUnchecked: false }
+    );
+    // A Rapid AIO or Qwen-Image 2.1 try-on: the shoes go on with Edit 2511 when it is installed.
+    assert.deepEqual(
+      fittingFeetPassPlan({
+        model: 'qwen-image-edit-rapid-aio',
+        hasCustomPose: true,
+        footwear: 'red heels',
+        installed,
+      }),
+      { model: 'qwen-image-edit-2511-lightning-8', whenUnchecked: false }
+    );
+    assert.equal(
+      fittingFeetPassPlan({ model: 'qwen-image-2.1', hasCustomPose: false, footwear: 'red heels' }),
+      null
+    );
+    // A shoe picture alone counts; barefoot and auto never do.
+    assert.ok(
+      fittingFeetPassPlan({ model: EDIT_2511, hasCustomPose: false, footwear: '', hasShoeImage: true })
+    );
+    assert.equal(
+      fittingFeetPassPlan({ model: EDIT_2511, hasCustomPose: true, footwear: 'barefoot', hasShoeImage: true }),
+      null
+    );
+    assert.equal(fittingFeetPassPlan({ model: EDIT_2511, hasCustomPose: true, footwear: '' }), null);
   });
 
   it('shouldFollowFittingPending never follows a job that already landed', () => {

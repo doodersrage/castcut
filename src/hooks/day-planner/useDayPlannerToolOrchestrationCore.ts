@@ -194,7 +194,11 @@ import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
 import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import { IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import { dayDressPlateStatus, type DayDressPlateEntry } from '@/lib/day-dress-plate';
+import {
+  DRESS_PLATE_SHOE_PASS_STATUS,
+  dayDressPlateStatus,
+  type DayDressPlateEntry,
+} from '@/lib/day-dress-plate';
 import { loadDressPlates, removeDressPlate, subscribeDressPlates } from '@/lib/dress-plate-store';
 import { dayDressPlateRequestKey, ensureDayDressPlate } from '@/lib/day-dress-plate-client';
 import {
@@ -1148,6 +1152,12 @@ export function useDayPlannerToolOrchestrationCore() {
               },
               {
                 sendComfyUi: actions.sendComfyUi,
+                // Shoes picked: the plate's feet are checked and fixed once (footwear-check.ts).
+                visionShared: shared,
+                onShoePass: () => {
+                  setDressPlateStatus({ text: DRESS_PLATE_SHOE_PASS_STATUS, busy: true });
+                  pushSystemTrayMessage({ text: DRESS_PLATE_SHOE_PASS_STATUS, tone: 'info' });
+                },
                 onRender: ({ change }) => {
                   const text = dayDressPlateStatus({
                     name: lookCharacter?.name,

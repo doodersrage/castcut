@@ -253,6 +253,10 @@ export function buildDayDressPlatePrompt(input: {
   );
 }
 
+/** Said while the feet pass puts the picked shoes on a plate that came out without them. */
+export const DRESS_PLATE_SHOE_PASS_STATUS =
+  'The dress plate came out without the picked shoes — putting them on (one short pass)…';
+
 /** What the status line and the tray notice say while the plate renders. */
 export function dayDressPlateStatus(input: {
   name?: string | null;

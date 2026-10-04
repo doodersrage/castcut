@@ -2,6 +2,9 @@ import type { CharacterLook, CharacterRecord } from '@/lib/character-os';
 import { activeLook } from '@/lib/character-os';
 import { buildSinglePersonUserDirective } from '@/lib/single-person';
 import type { RoleplayToolCache } from '@/lib/settings-cache';
+import { buildFeetPassPrompt, resolveFeetPassModel } from '@/lib/footwear-check';
+
+export { buildFeetPassPrompt as buildFittingFeetPassPrompt, resolveFeetPassModel };
 
 export type FittingCompareTryOn = {
   promptId: string;
@@ -26,8 +29,9 @@ export type FittingCompareTryOn = {
 };
 
 /**
- * The try-on in flight (saved with Outfit's settings so a reload picks it up). A posed try-on on
- * Edit 2511 carries what its feet pass needs; the feet pass itself names the card it replaces.
+ * The try-on in flight (saved with Outfit's settings so a reload picks it up). A try-on with shoes
+ * picked carries what its shoe check and feet pass need; the feet pass itself names the card it
+ * replaces.
  */
 export type FittingPendingTryOn = FittingCompareTryOn & {
   feetPass?: {
@@ -36,10 +40,24 @@ export type FittingPendingTryOn = FittingCompareTryOn & {
     imagePlacement?: 'combined' | 'alone';
     /** The try-on's own Image 2 (the shoes, or the clothing with the shoes under it). */
     shoeImageFilename?: string;
+    /**
+     * The picked shoe picture itself (a kit's or your own photo): the pass sends it alone as
+     * Image 2, large, instead of the try-on's clothing-and-shoes picture.
+     */
+    shoePicture?: { imageUrl?: string; imageFilename?: string };
     subject: 'she' | 'he';
+    /** The engine the pass runs on (Edit 2511, whatever the try-on used); absent: the try-on's. */
+    model?: string;
+    /**
+     * Run the pass when the shoe check cannot (no vision model): only where the shoes are known
+     * to go missing (a custom pose on Edit 2511). Absent (a try-on saved before the check) = true.
+     */
+    whenUnchecked?: boolean;
   };
   /** This job is the feet pass for the Compare card with this prompt id. */
   replacesPromptId?: string;
+  /** The feet pass's shoes, so its result is checked once more (said, never passed again). */
+  verifyShoes?: string;
   /**
    * Front and back was on when the try-on was queued: once the front is final (after the feet
    * pass, when there is one) a back view is rendered from it.
@@ -65,6 +83,18 @@ export function shouldFollowFittingPending(
   const id = saved?.promptId?.trim();
   if (!id || following) return false;
   return !handledPromptIds.has(id);
+}
+
+/**
+ * After the shoe check of a landed try-on: the feet pass, or straight on to the back view (or the
+ * end). `needsPass` is footwearNeedsFeetPass's answer.
+ */
+export function fittingStepAfterShoeCheck(
+  landed: FittingPendingTryOn,
+  needsPass: boolean
+): FittingChainStep {
+  if (needsPass) return 'feet-pass';
+  return landed.backView ? 'back-view' : null;
 }
 
 export function fittingNextChainStep(landed: FittingPendingTryOn): FittingChainStep {
@@ -698,6 +728,30 @@ export function withFittingCustomPose(prompt: string): string {
 const FITTING_BAREFOOT_RE = /^(?:barefoot|bare feet|no shoes|none|nothing)$/i;
 
 /**
+ * The shoe check and feet pass for a try-on (any engine) with real shoes picked — not barefoot,
+ * not left to the outfit — or null when there is nothing to check or no engine to pass on.
+ * `whenUnchecked`: run the pass even without a vision check (a posed Edit 2511 try-on, 0 of 12
+ * shoes with the pose map).
+ */
+export function fittingFeetPassPlan(input: {
+  model?: string | null;
+  hasCustomPose: boolean;
+  footwear?: string | null;
+  hasShoeImage?: boolean;
+  installed?: ((modelId: string) => boolean) | null;
+}): { model: string; whenUnchecked: boolean } | null {
+  const words = (input.footwear ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[.;,\s]+$/, '');
+  if (FITTING_BAREFOOT_RE.test(words)) return null;
+  if (!words && input.hasShoeImage !== true) return null;
+  const model = resolveFeetPassModel(input.model, input.installed);
+  if (!model) return null;
+  return { model, whenUnchecked: fittingNeedsFeetPass(input) };
+}
+
+/**
  * Edit 2511 paints a custom pose's figure barefoot: picked shoes came back 0 of 12 with the pose
  * map. A second, short edit of the finished try-on (no pose map) put them on 4 of 4 — needed only
  * there, and only for real shoes (not barefoot or left to the model). Shoes pictured with no words
@@ -717,35 +771,6 @@ export function fittingNeedsFeetPass(input: {
     .replace(/[.;,\s]+$/, '');
   if (FITTING_BAREFOOT_RE.test(words)) return false;
   return Boolean(words) || input.hasShoeImage === true;
-}
-
-/**
- * The feet pass: Image 1 is the finished try-on, Image 2 the shoe picture when there is one (the
- * shoes alone, or under the clothing), no pose map. Everything away from the feet stays. Live
- * (heels, "strapped on both feet", "dress"): 4 of 4; "worn" and "outfit" so trainers and trousers
- * read right too.
- */
-export function buildFittingFeetPassPrompt(input: {
-  shoeWords?: string | null;
-  imagePlacement?: 'combined' | 'alone' | null;
-  subject?: 'she' | 'he';
-}): string {
-  const words = (input.shoeWords ?? '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/[.;,\s]+$/, '');
-  const possessive = input.subject === 'he' ? 'his' : 'her';
-  const shown =
-    input.imagePlacement === 'combined'
-      ? 'the shoes shown at the bottom of Image 2'
-      : input.imagePlacement === 'alone'
-        ? 'the shoes shown in Image 2'
-        : '';
-  const shoes = shown ? (words ? `${shown} — ${words} —` : shown) : words || 'the shoes';
-  return [
-    `Edit Image 1: put ${shoes} on ${possessive} bare feet, worn on both feet.`,
-    `Change nothing else: the same person, face, outfit, pose, framing, light and background as Image 1, pixel for pixel away from the feet.`,
-  ].join(' ');
 }
 
 /**

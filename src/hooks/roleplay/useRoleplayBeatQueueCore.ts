@@ -19,6 +19,7 @@ import {
   normalizeFootwear,
 } from '@/lib/footwear';
 import {
+  DRESS_PLATE_SHOE_PASS_STATUS,
   dayDressPlateStatus,
   DRESS_PLATE_OUTFIT_LINE,
   storyDressPlateApplies,
@@ -564,6 +565,12 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           },
           {
             sendComfyUi: actions.sendComfyUi,
+            // Shoes picked: the plate's feet are checked and fixed once (footwear-check.ts).
+            visionShared: shared,
+            onShoePass: () => {
+              setDressPlateActivity({ text: DRESS_PLATE_SHOE_PASS_STATUS, busy: true });
+              pushSystemTrayMessage({ text: DRESS_PLATE_SHOE_PASS_STATUS, tone: 'info' });
+            },
             onRender: ({ change }) => {
               const text = dayDressPlateStatus({
                 name: leadName,

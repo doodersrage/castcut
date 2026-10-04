@@ -30,8 +30,9 @@ import {
   buildFittingOutfitPrompt,
   clipFittingGarmentLabel,
   FITTING_COMPARE_LIMIT,
-  fittingNeedsFeetPass,
+  fittingFeetPassPlan,
   fittingNextChainStep,
+  fittingStepAfterShoeCheck,
   pushFittingCompareTryOn,
   replaceFittingCompareTryOnImage,
   setFittingCompareTryOnBackImage,
@@ -42,6 +43,8 @@ import {
   type FittingSwipeKit,
 } from '@/lib/fitting-room';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
+import { footwearCheckNote, footwearNeedsFeetPass } from '@/lib/footwear-check';
+import { cachedInstalledModelCheck, checkStillFootwear } from '@/lib/footwear-check-client';
 import { loadImageBlobFromUrls } from '@/lib/isolate-subject';
 import {
   buildFittingGarmentReferenceExtras,
@@ -67,9 +70,11 @@ import { withCastIdentityQueueFields } from '@/lib/look-outfit-plate';
 import type { FittingToolCache, SharedToolSettings } from '@/lib/settings-cache';
 import type { WorkflowParamValues } from '@/lib/comfyui-config';
 import type { CharacterRecord } from '@/lib/character-os';
+import type { ComfyImageModel } from '@/lib/comfy-models/client';
 
 const TOOL_ID = 'fitting' as const;
 
+const SHOE_CHECK_STATUS = 'Checking her shoes…';
 const FEET_PASS_STATUS = 'Putting the shoes on…';
 const FEET_PASS_FAILED_STATUS =
   'The shoe pass did not work — the try-on is kept as it came (the feet may be bare).';
@@ -78,6 +83,32 @@ const backViewStatus = (subject: 'she' | 'he' | undefined) =>
 const BACK_VIEW_FAILED_STATUS = 'The back view did not work — the try-on is kept, front only.';
 
 type PromptResultActions = ReturnType<typeof usePromptResultActions>;
+
+/**
+ * Image 2 of the feet pass: the picked shoe picture on its own (large — under the clothing it is a
+ * small strip), else the try-on's own Image 2, else none (words alone).
+ */
+async function feetPassShoeImage(
+  feetPass: NonNullable<FittingPendingTryOn['feetPass']>,
+  model: string
+): Promise<{ filename: string; placement: 'combined' | 'alone' } | null> {
+  if (feetPass.shoePicture && hasFootwearImage(feetPass.shoePicture)) {
+    try {
+      const alone = await buildFootwearReferenceImage({
+        garment: null,
+        footwear: feetPass.shoePicture,
+        model,
+      });
+      if (alone?.filename) return { filename: alone.filename, placement: 'alone' };
+    } catch (error) {
+      console.warn('Shoe pass: the shoe picture could not be staged alone:', error);
+    }
+  }
+  const own = feetPass.shoeImageFilename?.trim();
+  return own && feetPass.imagePlacement
+    ? { filename: own, placement: feetPass.imagePlacement }
+    : null;
+}
 
 /** Image 1 plate, Image 2 garment (or empty), Image 3 the custom pose guide. */
 function withPoseGuideSlot(filenames: string[], poseGuide: string | undefined): string[] {
@@ -433,26 +464,39 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           lookId: input.shared.activeLookId ?? input.character?.activeLookId,
         });
         if (typeof promptId === 'string' && promptId.trim()) {
-          // Edit 2511 draws the pose map's figure barefoot: a second edit puts the shoes on.
-          const feetPass =
-            poseGuideFilename &&
-            fittingNeedsFeetPass({
-              model: input.shared.model,
-              hasCustomPose: true,
-              footwear: input.toolSettings.footwear,
-              hasShoeImage: Boolean(footwearImage),
-            })
-              ? {
-                  shoeWords: normalizeFootwear(input.toolSettings.footwear),
-                  ...(footwearImage && garmentExtras?.inputImageFilenames?.[1]
-                    ? {
-                        imagePlacement: footwearImage,
-                        shoeImageFilename: garmentExtras.inputImageFilenames[1],
-                      }
-                    : {}),
-                  subject: posePronoun,
-                }
-              : null;
+          // Shoes picked: once the try-on lands, a vision check looks at her feet and a short
+          // second edit (on Edit 2511) puts the shoes on when they are missing or wrong. A posed
+          // 2511 try-on gets that pass even unchecked (the pose map's figure is drawn barefoot).
+          const hasShoePicture = hasFootwearImage(footwearRef);
+          const feetPlan = fittingFeetPassPlan({
+            model: input.shared.model,
+            hasCustomPose: Boolean(poseGuideFilename),
+            footwear: input.toolSettings.footwear,
+            hasShoeImage: Boolean(footwearImage) || hasShoePicture,
+            installed: cachedInstalledModelCheck(input.shared.modelCheckpointMap),
+          });
+          const feetPass = feetPlan
+            ? {
+                shoeWords: normalizeFootwear(input.toolSettings.footwear),
+                ...(footwearImage && garmentExtras?.inputImageFilenames?.[1]
+                  ? {
+                      imagePlacement: footwearImage,
+                      shoeImageFilename: garmentExtras.inputImageFilenames[1],
+                    }
+                  : {}),
+                ...(hasShoePicture
+                  ? {
+                      shoePicture: {
+                        imageUrl: footwearRef.imageUrl?.trim() || undefined,
+                        imageFilename: footwearRef.imageFilename?.trim() || undefined,
+                      },
+                    }
+                  : {}),
+                subject: posePronoun,
+                model: feetPlan.model,
+                whenUnchecked: feetPlan.whenUnchecked,
+              }
+            : null;
           const pending: FittingPendingTryOn = {
             promptId: promptId.trim(),
             wardrobeId: hasCustomGarment ? 'custom-garment' : wardrobeIdForQueue?.trim() || '',
@@ -540,6 +584,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
       input.toolSettings.customGarmentImageFilename,
       input.toolSettings.customGarmentImageUrl,
       input.toolSettings.referenceIsolated,
+      input.shared.modelCheckpointMap,
     ]
   );
 
@@ -556,11 +601,46 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
       landedJob: FittingPendingTryOn,
       landed: { imageUrl: string; galleryEntryId: string }
     ): Promise<void> => {
-      const feetPass = step === 'feet-pass' ? landedJob.feetPass : undefined;
-      const backView = step === 'back-view' ? landedJob.backView : undefined;
+      let activeStep: 'feet-pass' | 'back-view' = step;
+      let checkNote: string | null = null;
+      if (step === 'feet-pass' && landedJob.feetPass) {
+        // Look at her feet first: the pass runs only when the shoes are missing or wrong (or,
+        // with no vision model, where they are known to go missing).
+        input.setSaveStatus(SHOE_CHECK_STATUS);
+        const verdict = await checkStillFootwear({
+          imageUrl: landed.imageUrl,
+          shoeWords: landedJob.feetPass.shoeWords,
+          shared: input.shared,
+        });
+        if (pendingTryOnRef.current) {
+          // Another try-on was queued meanwhile; follow that one.
+          input.setSaveStatus(null);
+          return;
+        }
+        const next = fittingStepAfterShoeCheck(
+          landedJob,
+          footwearNeedsFeetPass(verdict, landedJob.feetPass.whenUnchecked !== false)
+        );
+        if (!next) {
+          input.setSaveStatus(null);
+          return;
+        }
+        activeStep = next;
+        if (verdict && !verdict.ok) checkNote = footwearCheckNote(verdict);
+      }
+      const feetPass = activeStep === 'feet-pass' ? landedJob.feetPass : undefined;
+      const backView = activeStep === 'back-view' ? landedJob.backView : undefined;
       if (!feetPass && !backView) return;
       const failedStatus = feetPass ? FEET_PASS_FAILED_STATUS : BACK_VIEW_FAILED_STATUS;
-      input.setSaveStatus(feetPass ? FEET_PASS_STATUS : backViewStatus(backView?.subject));
+      input.setSaveStatus(
+        feetPass
+          ? checkNote
+            ? `Shoe check: ${checkNote} — putting the shoes on…`
+            : FEET_PASS_STATUS
+          : backViewStatus(backView?.subject)
+      );
+      // The pass runs on Edit 2511 even after a Rapid AIO or Qwen-Image 2.1 try-on.
+      const passModel = feetPass?.model?.trim() || input.shared.model;
       try {
         const blob = await loadImageBlobFromUrls([landed.imageUrl]);
         const name = `outfit-${feetPass ? 'feet-pass' : 'back-view'}-${Date.now()}.png`;
@@ -570,7 +650,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
             lastModified: Date.now(),
           }),
           filename: name,
-          model: input.shared.model,
+          model: passModel,
         });
         const filename = uploaded?.filename?.trim();
         if (!filename) {
@@ -578,11 +658,12 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
             `The try-on could not be staged for the ${feetPass ? 'shoe pass' : 'back view'}.`
           );
         }
-        const shoeImage = feetPass?.shoeImageFilename?.trim();
+        const shoe = feetPass ? await feetPassShoeImage(feetPass, passModel) : null;
+        const shoeImage = shoe?.filename;
         const prompt = feetPass
           ? buildFittingFeetPassPrompt({
               shoeWords: feetPass.shoeWords,
-              imagePlacement: shoeImage ? feetPass.imagePlacement : null,
+              imagePlacement: shoe?.placement ?? null,
               subject: feetPass.subject,
             })
           : buildFittingBackViewPrompt({ subject: backView?.subject });
@@ -605,6 +686,9 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           turboEditStrength: 'balanced' as const,
           ...withCastIdentityQueueFields(input.character, input.shared.ipAdapterStrength ?? 0.75),
           ...(shoeImage ? { inputImageFilenames: ['', shoeImage] } : {}),
+          ...(feetPass && passModel !== input.shared.model
+            ? { queueModel: passModel as ComfyImageModel }
+            : {}),
           // A short edit: Outfit's tool notes (clothing swaps) would fight "change nothing else".
           queueHints: '',
           parentGalleryEntryId: landed.galleryEntryId,
@@ -625,7 +709,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           wardrobeLabel: landedJob.wardrobeLabel,
           // The landed job's card: a try-on's id, or its feet pass's (which took the card).
           ...(feetPass
-            ? { replacesPromptId: landedJob.promptId }
+            ? { replacesPromptId: landedJob.promptId, verifyShoes: feetPass.shoeWords }
             : { backOfPromptId: landedJob.promptId }),
           // The feet pass hands the back view on; the back view keeps its subject for the status.
           ...(landedJob.backView ? { backView: landedJob.backView } : {}),
@@ -644,8 +728,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
       input.shared.activeCharacterId,
       input.shared.activeLookId,
       input.shared.identityKind,
-      input.shared.ipAdapterStrength,
-      input.shared.model,
+      input.shared,
       input.updateToolSettings,
     ]
   );
@@ -654,6 +737,11 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
   useEffect(() => {
     queueChainPassRef.current = queueChainPass;
   }, [queueChainPass]);
+  // The shoe re-check after a pass reads the current LLM settings through this.
+  const sharedRef = useRef(input.shared);
+  useEffect(() => {
+    sharedRef.current = input.shared;
+  }, [input.shared]);
 
   useEffect(() => {
     const syncGallery = () => {
@@ -698,6 +786,23 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                 })
               );
               input.setSaveStatus(null);
+              const shoes = pending.verifyShoes;
+              if (shoes !== undefined) {
+                // Checked once more and said — never a second pass.
+                void checkStillFootwear({
+                  imageUrl,
+                  shoeWords: shoes,
+                  shared: sharedRef.current,
+                }).then(verdict => {
+                  if (verdict && !verdict.ok) {
+                    pushSystemTrayMessage({
+                      text: `Shoe pass done, but ${footwearCheckNote(verdict)} — try the outfit again or use a clearer shoe photo.`,
+                      tone: 'warning',
+                      ttlMs: 20_000,
+                    });
+                  }
+                });
+              }
             } else {
               setCompareTryOns(current =>
                 pushFittingCompareTryOn(current, {

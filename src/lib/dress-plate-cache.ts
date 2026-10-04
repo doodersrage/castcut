@@ -10,6 +10,11 @@ export type DayDressPlateEntry = {
   filename: string;
   imageUrl?: string;
   at: number;
+  /**
+   * The shoe check has looked at this plate (and the feet pass fixed it when it could). A plate
+   * with shoes picked and no mark is checked once when next used.
+   */
+  shoesChecked?: boolean;
 };
 
 /** Shared by Day, Story and Outfit; outfit arcs use two kits a day — keep a dozen. */
