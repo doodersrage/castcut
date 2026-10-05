@@ -113,6 +113,11 @@ export type RoleplayClipTake = {
 
 export type RoleplayStoryBeat = RoleplayScene & {
   at: number;
+  /**
+   * The Cast whose Story this scene belongs to (stamped on write, see story-session-guard.ts).
+   * A scene stamped for another Cast is never saved into this Cast's session.
+   */
+  castId?: string;
   prompt?: string;
   promptId?: string;
   imageUrl?: string;

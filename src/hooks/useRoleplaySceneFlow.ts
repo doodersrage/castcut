@@ -53,6 +53,11 @@ type UseRoleplaySceneFlowOptions = {
   scenesState?: [RoleplayScene[], Dispatch<SetStateAction<RoleplayScene[]>>];
   /** What picking a card says when a From photo story has no photo (desk wording by default). */
   referenceMissingMessage?: string;
+  /**
+   * The session Story is on now (useStorySessionGuard). Cards rolled for a lead who is no
+   * longer the one playing are not shown — picking one put her scene into the new lead's story.
+   */
+  sessionRef?: MutableRefObject<string | undefined>;
 };
 
 export function useRoleplaySceneFlow({
@@ -69,6 +74,7 @@ export function useRoleplaySceneFlow({
   setError,
   scenesState,
   referenceMissingMessage = 'Upload a photo or pick a gallery still first.',
+  sessionRef,
 }: UseRoleplaySceneFlowOptions) {
   const ownScenes = useState<RoleplayScene[]>([]);
   const [scenes, setScenes] = scenesState ?? ownScenes;
@@ -97,6 +103,7 @@ export function useRoleplaySceneFlow({
     setError(null);
     try {
       const rejectedScenes = rememberRejectedScenes(scenes);
+      const rolledFor = sessionRef?.current;
       const response = await fetch('/api/roleplay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -109,13 +116,17 @@ export function useRoleplaySceneFlow({
       if (!response.ok) {
         throw new Error(data.error ?? 'Could not roll scenes.');
       }
+      // Another lead is playing now: these cards were written for the one before.
+      if (sessionRef && sessionRef.current !== rolledFor) {
+        return;
+      }
       setScenes(Array.isArray(data.scenes) ? data.scenes : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not roll scenes.');
     } finally {
       setScenesLoading(false);
     }
-  }, [bio, rememberRejectedScenes, requestBody, scenes, setError, setScenes, storyRef]);
+  }, [bio, rememberRejectedScenes, requestBody, scenes, sessionRef, setError, setScenes, storyRef]);
 
   const playScene = useCallback(
     async (scene: RoleplayScene) => {
@@ -175,6 +186,9 @@ export function useRoleplaySceneFlow({
           }),
         });
         const nextPayload = (await nextScenes.json()) as RoleplayApiPayload;
+        if (!storyHasBeat(storyRef.current, beat)) {
+          return;
+        }
         if (nextScenes.ok && Array.isArray(nextPayload.scenes)) {
           setScenes(nextPayload.scenes);
         }

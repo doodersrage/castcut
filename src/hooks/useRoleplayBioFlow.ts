@@ -53,6 +53,11 @@ type UseRoleplayBioFlowOptions = {
   referenceMissingMessage?: string;
   /** Phone Story plays From photo only: a story it opens is a From photo story. */
   photoOnly?: boolean;
+  /**
+   * The session Story is on now (useStorySessionGuard). A bible written for a lead who is no
+   * longer the one playing is not started — it would open in the new lead's session.
+   */
+  sessionRef?: MutableRefObject<string | undefined>;
 };
 
 export function useRoleplayBioFlow({
@@ -69,6 +74,7 @@ export function useRoleplayBioFlow({
   setOwnBibleOpen,
   referenceMissingMessage = 'Upload a photo or pick a gallery still first.',
   photoOnly = false,
+  sessionRef,
 }: UseRoleplayBioFlowOptions) {
   const [bioLoading, setBioLoading] = useState(false);
 
@@ -176,6 +182,7 @@ export function useRoleplayBioFlow({
       }
       setBioLoading(true);
       setError(null);
+      const writtenFor = sessionRef?.current;
       try {
         const response = await fetch('/api/roleplay', {
           method: 'POST',
@@ -187,6 +194,10 @@ export function useRoleplayBioFlow({
         const data = (await response.json()) as RoleplayApiPayload;
         if (!response.ok || !data.bio) {
           throw new Error(data.error ?? 'Could not write a bio.');
+        }
+        if (sessionRef && sessionRef.current !== writtenFor) {
+          // The Cast changed while it was written: this bible is the previous lead's.
+          return;
         }
         await beginStoryFromBio(data.bio);
       } catch (err) {
@@ -201,6 +212,7 @@ export function useRoleplayBioFlow({
       playAsResolved,
       referenceMissingMessage,
       requestBody,
+      sessionRef,
       setError,
     ]
   );

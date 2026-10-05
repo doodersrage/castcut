@@ -9,6 +9,7 @@
 import type { ParkedDay } from './day-cast-park';
 import type { CharacterRecord } from './character-os';
 import type { RoleplayLibrarySession } from './roleplay-library';
+import { restampStoryCast } from './story-session-guard';
 import type { DayToolCache } from './settings-cache';
 
 export const CAST_FILE_KIND = 'castcut-cast';
@@ -154,7 +155,14 @@ export function placeImportedCast(
       ...story,
       id: sessionId,
       updatedAt: now,
-      snapshot: { ...story.snapshot, activeSessionId: sessionId },
+      snapshot: {
+        ...story.snapshot,
+        activeSessionId: sessionId,
+        // Its scenes are stamped with the Cast id they were played under.
+        ...(wanted && story.snapshot.story
+          ? { story: restampStoryCast(story.snapshot.story, wanted, id) }
+          : {}),
+      },
     };
   });
   return { character, stories, renamed };

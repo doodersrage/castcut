@@ -39,6 +39,7 @@ import {
   type RoleplayStoryBeat,
 } from './roleplay';
 import { normalizeStillPromptCheck } from './still-prompt-audit';
+import { guardStoryForSession } from './story-session-guard';
 export const ROLEPLAY_LIBRARY_KEY = 'comfy-prompt-roleplay-library-v1';
 export const ROLEPLAY_LIBRARY_UPDATED_EVENT = 'roleplay-library-updated';
 export const MAX_ROLEPLAY_LIBRARY_SESSIONS = 24;
@@ -192,6 +193,10 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
   if (promptCheck) {
     beat.promptCheck = promptCheck;
   }
+  const castId = readString(record.castId, 120);
+  if (castId) {
+    beat.castId = castId;
+  }
   return beat;
 }
 
@@ -296,11 +301,18 @@ export function normalizeRoleplayLibrarySession(value: unknown): RoleplayLibrary
     return null;
   }
   const record = value as Record<string, unknown>;
-  const snapshot = normalizeRoleplayLibrarySnapshot(record.snapshot ?? record);
-  if (!snapshot || !roleplaySessionHasProgress(snapshot)) {
+  const normalized = normalizeRoleplayLibrarySnapshot(record.snapshot ?? record);
+  if (!normalized) {
     return null;
   }
   const id = readString(record.id, 80) || `roleplay-${crypto.randomUUID()}`;
+  // A Cast's session never holds another Cast's scenes (story-session-guard.ts).
+  const guarded = guardStoryForSession(normalized.story, id);
+  const snapshot =
+    guarded.story === normalized.story ? normalized : { ...normalized, story: guarded.story };
+  if (!roleplaySessionHasProgress(snapshot)) {
+    return null;
+  }
   const createdAt =
     typeof record.createdAt === 'number' && Number.isFinite(record.createdAt)
       ? record.createdAt

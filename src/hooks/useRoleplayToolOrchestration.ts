@@ -17,6 +17,7 @@ import { useRoleplaySessionActions } from '@/hooks/useRoleplaySessionActions';
 import { useRoleplayRequestBody } from '@/hooks/useRoleplayRequestBody';
 import { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
 import { useStoryBeatEdit } from '@/hooks/roleplay/useStoryBeatEdit';
+import { useStorySessionGuard } from '@/hooks/roleplay/useStorySessionGuard';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { getCharacter } from '@/lib/character-os';
 import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
@@ -35,10 +36,13 @@ import { useNsfwGeneratorStatus } from '@/hooks/useNsfwGeneratorEnabled';
 const TOOL_ID = 'roleplay';
 
 export function useRoleplayToolOrchestration() {
-  const { mounted, shared, toolSettings, updateShared, updateToolSettings } = useCachedSettings(
-    'roleplay',
-    DEFAULT_ROLEPLAY_TOOL_CACHE
-  );
+  const {
+    mounted,
+    shared,
+    toolSettings,
+    updateShared,
+    updateToolSettings: updateToolSettingsUnguarded,
+  } = useCachedSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
   useEngineWarmUp({ mounted, model: shared.model });
   const [error, setError] = useState<string | null>(null);
   const [ownBibleOpen, setOwnBibleOpen] = useState(false);
@@ -63,6 +67,17 @@ export function useRoleplayToolOrchestration() {
   useEffect(() => {
     storyRef.current = toolSettings.story ?? [];
   }, [toolSettings.story]);
+  // Scene cards live here (not in the scene flow) so a Cast switch can drop the old lead's.
+  const scenesState = useState<RoleplayScene[]>([]);
+  const setScenesState = scenesState[1];
+  const clearScenes = useCallback(() => setScenesState([]), [setScenesState]);
+  // One Cast's scenes never land in another Cast's session (story-session-guard.ts).
+  const { updateToolSettings, sessionRef } = useStorySessionGuard({
+    activeSessionId: toolSettings.activeSessionId,
+    storyRef,
+    updateToolSettings: updateToolSettingsUnguarded,
+    onSessionChange: clearScenes,
+  });
 
   const film = useRoleplayFilmActions({
     toolSettings,
@@ -188,6 +203,8 @@ export function useRoleplayToolOrchestration() {
     playAsResolved,
     hasReferenceImage: reference.hasReferenceImage,
     setError,
+    scenesState,
+    sessionRef,
   });
 
   useEffect(() => {
@@ -206,6 +223,7 @@ export function useRoleplayToolOrchestration() {
     setError,
     setScenes: sceneFlow.setScenes,
     setOwnBibleOpen,
+    sessionRef,
   });
 
   const session = useRoleplaySessionActions({

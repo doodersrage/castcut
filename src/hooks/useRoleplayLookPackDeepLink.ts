@@ -23,6 +23,7 @@ import {
   withRoleplayCacheFromCastCharacter,
 } from '@/lib/roleplay-library';
 import { resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
+import { castIdForStorySession, storyHasOtherCastBeats } from '@/lib/story-session-guard';
 import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_ROLEPLAY_TOOL_CACHE,
@@ -73,11 +74,16 @@ function bindStoryToCast(
   const castNames = [record.name, record.characterName, record.bio?.name]
     .map(name => name?.trim().toLowerCase())
     .filter(Boolean);
+  // A reel tied to another Cast's session, or holding scenes stamped for another Cast, is that
+  // Cast's whatever its bible says (a missing or shared name used to let it through).
+  const liveCastId = castIdForStorySession(liveStory.activeSessionId);
   const liveIsAnotherLead =
-    Boolean(liveStory.activeSessionId?.trim()) &&
-    liveStory.activeSessionId !== expectedSession &&
-    Boolean(liveName) &&
-    !castNames.includes(liveName);
+    (Boolean(liveCastId) && liveCastId !== characterId) ||
+    storyHasOtherCastBeats(liveStory.story, characterId) ||
+    (Boolean(liveStory.activeSessionId?.trim()) &&
+      liveStory.activeSessionId !== expectedSession &&
+      Boolean(liveName) &&
+      !castNames.includes(liveName));
   if (liveIsAnotherLead) {
     persistRoleplayLibraryFromCache(liveStory);
   }

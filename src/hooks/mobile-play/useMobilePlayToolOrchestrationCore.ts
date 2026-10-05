@@ -11,6 +11,7 @@ import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRoleplayFilmActions } from '@/hooks/useRoleplayFilmActions';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
+import { useStorySessionGuard } from '@/hooks/roleplay/useStorySessionGuard';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useRoleplayBeatQueue } from '@/hooks/useRoleplayBeatQueue';
 import { useRoleplayBioFlow } from '@/hooks/useRoleplayBioFlow';
@@ -68,13 +69,29 @@ function loadActivePlate(): CharacterPlate | null {
 }
 
 export function useMobilePlayToolOrchestrationCore() {
-  const { mounted, shared, toolSettings, updateShared, updateToolSettings } = useCachedSettings(
-    'roleplay',
-    DEFAULT_ROLEPLAY_TOOL_CACHE
-  );
+  const {
+    mounted,
+    shared,
+    toolSettings,
+    updateShared,
+    updateToolSettings: updateToolSettingsUnguarded,
+  } = useCachedSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
   const [plates, setPlates] = useState<CharacterPlate[]>([]);
   const [activePlate, setActivePlate] = useState<CharacterPlate | null>(null);
   const [scenes, setScenes] = useState<RoleplayScene[]>([]);
+  const story = toolSettings.story ?? EMPTY_STORY;
+  const storyRef = useRef(story);
+  useEffect(() => {
+    storyRef.current = story;
+  }, [story]);
+  // One Cast's scenes never land in another Cast's session (as desk Story).
+  const clearScenes = useCallback(() => setScenes([]), []);
+  const { updateToolSettings, sessionRef } = useStorySessionGuard({
+    activeSessionId: toolSettings.activeSessionId,
+    storyRef,
+    updateToolSettings: updateToolSettingsUnguarded,
+    onSessionChange: clearScenes,
+  });
   const [error, setError] = useState<string | null>(null);
   const [isolating, setIsolating] = useState(false);
   const [ownBibleOpen, setOwnBibleOpen] = useState(false);
@@ -98,14 +115,9 @@ export function useMobilePlayToolOrchestrationCore() {
   const playAs = normalizeRoleplayPlayAs(toolSettings.playAs);
   const isolateSubject = normalizeRoleplayIsolateSubject(toolSettings.isolateSubject);
   const bio = toolSettings.bio;
-  const story = toolSettings.story ?? EMPTY_STORY;
   const storyProgress = formatRoleplayStoryProgress(story);
   const autoQueue = toolSettings.autoQueue === true;
   const beatOutput = normalizeRoleplayBeatOutput(toolSettings.beatOutput);
-  const storyRef = useRef(story);
-  useEffect(() => {
-    storyRef.current = story;
-  }, [story]);
   const {
     assemblingFilm,
     filmStatus,
@@ -392,6 +404,7 @@ export function useMobilePlayToolOrchestrationCore() {
     setScenes,
     setOwnBibleOpen,
     referenceMissingMessage: 'Capture a plate first.',
+    sessionRef,
   });
   const { bioLoading, writeBio, applyOwnBible } = bioFlow;
 
@@ -418,6 +431,7 @@ export function useMobilePlayToolOrchestrationCore() {
     bio,
     story,
     storyRef,
+    sessionRef,
     storyProgress,
     autoQueue,
     beatOutput,

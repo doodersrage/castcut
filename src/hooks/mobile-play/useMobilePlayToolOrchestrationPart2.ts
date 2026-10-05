@@ -21,6 +21,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     setError,
     bio,
     storyRef,
+    sessionRef,
     story,
     beatQueue,
     requestBody,
@@ -55,6 +56,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     setError,
     scenesState: [scenes, setScenes],
     referenceMissingMessage: 'Capture a plate first.',
+    sessionRef,
   });
   const { rollScenes, playScene, scenesLoading, playingId } = sceneFlow;
 
