@@ -27,7 +27,11 @@ import {
   storyBeatTextLocked,
 } from '@/hooks/roleplay/story-beat-edit';
 import { RoleplayStillFrame } from '@/components/roleplay/sections/RoleplayStillFrame';
-import { storyFaceMatchLabel, storyPoseMatchLabel } from '@/lib/roleplay-pose-check';
+import {
+  storyFaceMatchLabel,
+  storyPoseMatchLabel,
+  storyRealismLabel,
+} from '@/lib/roleplay-pose-check';
 import { STORY_MIN_FACE_MATCH, STORY_FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
 import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
 import {
@@ -95,6 +99,7 @@ export function RoleplayStoryBeatCard({
     miss: STORY_MIN_FACE_MATCH,
     warn: STORY_FACE_MATCH_WARN_BELOW,
   });
+  const realismMiss = storyRealismLabel(beat);
   const clipTakes = roleplayClipTakes(beat);
   const hasClipAttempt = clipTakes.some(
     take =>
@@ -334,6 +339,14 @@ export function RoleplayStoryBeatCard({
               data-testid="story-face-match"
             >
               {faceMatch.text}
+            </p>
+          ) : null}
+          {realismMiss ? (
+            <p
+              className="type-caption text-[var(--tint-warning-text,var(--text-muted))]"
+              data-testid="story-realism-miss"
+            >
+              {realismMiss.text}
             </p>
           ) : null}
           {withheld ? (

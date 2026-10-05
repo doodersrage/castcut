@@ -118,3 +118,72 @@ describe('llmErrorDetail', () => {
     assert.equal(llmErrorDetail('Bad Gateway'), 'Bad Gateway');
   });
 });
+
+describe('transient LLM failures', () => {
+  async function withFetch(
+    replies: () => Response,
+    run: () => Promise<void>
+  ): Promise<void> {
+    const originalFetch = globalThis.fetch;
+    const originalBase = process.env.LLM_API_BASE_URL;
+    process.env.LLM_API_BASE_URL = 'http://127.0.0.1:1234/v1';
+    globalThis.fetch = (async () => replies()) as typeof fetch;
+    try {
+      await run();
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (originalBase === undefined) delete process.env.LLM_API_BASE_URL;
+      else process.env.LLM_API_BASE_URL = originalBase;
+    }
+  }
+
+  it('treats a busy server and llama.cpp decode failures as transient, not bad requests', async () => {
+    const { isTransientLlmFailure } = await import('./llm-client');
+    assert.equal(isTransientLlmFailure(400, '{"error":"failed to decode, ret = 1"}'), true);
+    assert.equal(isTransientLlmFailure(503, 'Service Unavailable'), true);
+    assert.equal(isTransientLlmFailure(429, 'busy'), true);
+    assert.equal(isTransientLlmFailure(400, '{"error":"model not found"}'), false);
+    assert.equal(isTransientLlmFailure(401, 'unauthorized'), false);
+  });
+
+  it('chatCompletion tries a transient failure once more before giving up', async () => {
+    const { chatCompletion } = await import('./llm-client');
+    let calls = 0;
+    await withFetch(
+      () =>
+        calls++ === 0
+          ? new Response('{"error":"failed to decode, ret = 1"}', { status: 400 })
+          : new Response(JSON.stringify({ choices: [{ message: { content: 'four scenes' } }] }), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            }),
+      async () => {
+        const text = await chatCompletion({
+          messages: [{ role: 'user', content: 'hi' }],
+          maxTokens: 10,
+          model: 'test-model',
+        });
+        assert.equal(text, 'four scenes');
+        assert.equal(calls, 2);
+      }
+    );
+  });
+
+  it('does not retry a request the server rejected', async () => {
+    const { chatCompletion } = await import('./llm-client');
+    let calls = 0;
+    await withFetch(
+      () => {
+        calls += 1;
+        return new Response('{"error":"model not found"}', { status: 400 });
+      },
+      async () => {
+        await assert.rejects(
+          chatCompletion({ messages: [{ role: 'user', content: 'hi' }], maxTokens: 10, model: 'm' }),
+          /model not found/
+        );
+        assert.equal(calls, 1);
+      }
+    );
+  });
+});

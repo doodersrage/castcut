@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { DEFAULT_MIN_FACE_MATCH, FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
-import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
-import { storyFlaggedBeats } from '@/lib/roleplay-pose-check';
+import { STORY_CHECK_THRESHOLDS, storyFlaggedBeats } from '@/lib/roleplay-pose-check';
 
 /**
  * "Retry N flagged": redo every beat whose still failed or missed its pose / face check, in reel
@@ -23,11 +21,7 @@ export default function StoryRetryFlagged({
   onRetry: (beat: RoleplayStoryBeat) => Promise<unknown>;
 }) {
   const [running, setRunning] = useState(false);
-  const flagged = storyFlaggedBeats(story, {
-    minPose: DEFAULT_MIN_POSE_MATCH,
-    minFace: DEFAULT_MIN_FACE_MATCH,
-    warnFace: FACE_MATCH_WARN_BELOW,
-  });
+  const flagged = storyFlaggedBeats(story, STORY_CHECK_THRESHOLDS);
   if (flagged.length === 0) {
     return null;
   }

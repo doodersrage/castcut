@@ -105,6 +105,20 @@ function ollamaNativeBaseUrl(baseUrl: string): string {
  * "Engine … returned 400: {\\"error\\":{\\"message\\":\\"Failed to load image…\\"}}"}`), which
  * otherwise reached the UI as triple-escaped JSON. Falls back to the trimmed body.
  */
+/** Pause before the one retry of a transient failure. */
+export const LLM_TRANSIENT_RETRY_MS = 1500;
+
+/**
+ * A failure worth one more try: the server was busy or out of room for a moment, not a bad
+ * request. LM Studio (llama.cpp) answers "400 failed to decode" when its KV cache is full of other
+ * requests — on a shared local server that sent 4 of 9 Story scene rolls (2026-10-05) to the
+ * generic built-in cards, which a second try writes properly.
+ */
+export function isTransientLlmFailure(status: number, body: string): boolean {
+  if (status === 429 || status >= 500) return true;
+  return status === 400 && /failed to decode|kv cache|no slot|slot unavailable/i.test(body);
+}
+
 export function llmErrorDetail(body: string): string {
   let text = body.trim();
   for (let depth = 0; depth < 4; depth += 1) {
@@ -677,15 +691,25 @@ async function openAiCompatibleChatCompletion(options: {
     throw error;
   }
 
-  const response = await fetch(`${options.baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: buildAuthHeaders(options.apiKey, options.baseUrl),
-    body: requestBody,
-  });
-
+  const post = () =>
+    fetch(`${options.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: buildAuthHeaders(options.apiKey, options.baseUrl),
+      body: requestBody,
+    });
+  let response = await post();
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(`LLM request failed (${response.status}): ${llmErrorDetail(detail)}`);
+    if (!isTransientLlmFailure(response.status, detail)) {
+      throw new Error(`LLM request failed (${response.status}): ${llmErrorDetail(detail)}`);
+    }
+    // One more go after a short pause: a busy local server drops a request now and then.
+    await new Promise(resolve => setTimeout(resolve, LLM_TRANSIENT_RETRY_MS));
+    response = await post();
+    if (!response.ok) {
+      const again = await response.text();
+      throw new Error(`LLM request failed (${response.status}): ${llmErrorDetail(again)}`);
+    }
   }
 
   const data = (await parseJsonResponseBody(response)) as {

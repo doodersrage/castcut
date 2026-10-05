@@ -1,6 +1,69 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { nextStoryPoseCheck, storyFlaggedBeats } from './roleplay-pose-check';
+import {
+  nextStoryPoseCheck,
+  STORY_CHECK_THRESHOLDS,
+  storyFlaggedBeats,
+  storyPoseMatchLabel,
+  storyRealismLabel,
+} from './roleplay-pose-check';
+
+describe('storyPoseMatchLabel', () => {
+  it('an extra person in the still is a miss even when the angles match (a clone of the lead)', () => {
+    const beat = {
+      id: 'b',
+      at: 1,
+      imageUrl: '/img/b.png',
+      poseMatch: {
+        imageUrl: '/img/b.png',
+        score: 0.94,
+        expectedPeople: 1,
+        detectedPeople: 3,
+        extraPeople: 2,
+      },
+    };
+    const label = storyPoseMatchLabel(beat, 0.6);
+    assert.equal(label?.miss, true);
+    assert.match(label!.text, /3 people in frame, expected 1/);
+    assert.equal(storyFlaggedBeats([{ ...beat, stillStatus: 'completed' }], {
+      minPose: 0.6,
+      minFace: 0.3,
+      warnFace: 0.45,
+    }).length, 1);
+    // Background people too small to count (no extraPeople) stay a pass.
+    const crowd = { ...beat, poseMatch: { ...beat.poseMatch, extraPeople: undefined } };
+    assert.equal(storyPoseMatchLabel(crowd, 0.6)?.miss, false);
+  });
+});
+
+describe('storyRealismLabel', () => {
+  it('flags the shown still when it looked computer-made, and only that still', () => {
+    const beat = {
+      id: 'r',
+      at: 1,
+      stillStatus: 'completed',
+      imageUrl: '/img/r.png',
+      realism: { imageUrl: '/img/r.png', rating: 4 },
+    };
+    assert.match(storyRealismLabel(beat)!.text, /computer-made \(4\/10\)/);
+    assert.equal(storyFlaggedBeats([beat], STORY_CHECK_THRESHOLDS).length, 1);
+    assert.equal(storyRealismLabel({ ...beat, realism: { imageUrl: '/img/r.png', rating: 7 } }), null);
+    // A rating of an older take does not apply to the shown one.
+    assert.equal(storyRealismLabel({ ...beat, imageUrl: '/img/new.png' }), null);
+  });
+
+  it('Story bars: a face the card passes is not flagged by Retry flagged or the cut', () => {
+    const beat = {
+      id: 'f',
+      at: 1,
+      stillStatus: 'completed',
+      imageUrl: '/img/f.png',
+      faceMatch: { imageUrl: '/img/f.png', similarity: 0.28 },
+    };
+    assert.equal(storyFlaggedBeats([beat], STORY_CHECK_THRESHOLDS).length, 0);
+  });
+});
+
 describe('storyFlaggedBeats', () => {
   const thresholds = { minPose: 0.6, minFace: 0.3, warnFace: 0.45 };
   const done = (id: string, extra: Record<string, unknown> = {}) => ({

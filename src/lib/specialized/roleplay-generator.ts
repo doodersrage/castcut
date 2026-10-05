@@ -7,7 +7,7 @@ import {
   resolveRequestTemplateFallback,
 } from '../llm-request-options';
 import { stripPromptArtifacts } from '../prompt-cleanup';
-import { storyLeadIsMan, storySceneForManLead } from '../story-lead-gender';
+import { storyLeadIsMan, storyScenesForManLead } from '../story-lead-gender';
 import { repairStoryScene } from '../story-scene-check';
 import {
   photographableStoryPrompt,
@@ -27,6 +27,7 @@ import {
   formatRoleplayBio,
   formatRoleplaySettingCue,
   formatRoleplayContinuityCue,
+  storyLastOutfitPhrase,
   formatRoleplayStoryDigest,
   formatRoleplayPoseVarietyCue,
   recentRoleplayPoseKeys,
@@ -202,19 +203,36 @@ function templatePromptFallback(
   content: RoleplayContentId,
   allowGore: boolean,
   setting?: string,
-  hasReferenceImage?: boolean
+  hasReferenceImage?: boolean,
+  /**
+   * The clothes the latest still named ('' = none named), kept when the writer is unavailable;
+   * undefined when an outfit was picked.
+   */
+  outfit?: string
 ): string {
   const gore = allowGore ? ', blood and viscera as readable detail' : '';
   const place = setting?.trim() ?? '';
+  // There is no "beat outfit" without the writer: keep the last still's clothes (a fallback still
+  // put her in a sequinned dress mid-story, live 2026-10-05), or say plain everyday clothes.
+  // A picked outfit (kit, clothing photo, dressed plate) keeps the old phrase, which the
+  // dressed-plate rewording turns into "keep the exact outfit" (day-dress-plate.ts).
+  const clothes =
+    outfit === undefined
+      ? 'replace the reference clothing with the beat outfit'
+      : outfit.trim()
+        ? `she wears ${outfit.trim()}`
+        : 'she wears everyday clothes that suit the scene';
   const lead =
     hasReferenceImage && place
-      ? `Replace the scene with ${place}. Replace the reference clothing with the beat outfit. `
+      ? `Replace the scene with ${place}. ${clothes.charAt(0).toUpperCase()}${clothes.slice(1)}. `
       : place
         ? `in ${place}, `
         : hasReferenceImage
-          ? 'new environment not from the reference photo, replace the reference clothing with the beat outfit, '
+          ? `new environment not from the reference photo, ${clothes}, `
           : '';
-  const core = `${lookLock}, ${blurb}`;
+  // The reference carries face and hair: a restated look overrides it on Rapid (as the writer's
+  // own prompt drops it).
+  const core = hasReferenceImage ? blurb : `${lookLock}, ${blurb}`;
   if (content === 'explicit') {
     return `${lead}${core}, explicit sex, nude bodies, anatomical detail, intimate lighting${gore}, readable scene`;
   }
@@ -228,11 +246,11 @@ function templatePromptFallback(
     return `${lead}${core}, charged lighting, teasing pose${gore}, readable scene`;
   }
   if (content === 'clean') {
-    return `${lead}${core}, all-ages storybook lighting, fully clothed, expressive pose${gore}`;
+    return `${lead}${core}, soft natural light, fully clothed, expressive pose${gore}`;
   }
   return allowGore
     ? `${lead}${core}, ${tone} horror lighting, blood and viscera as readable detail, expressive pose`
-    : `${lead}${core}, ${tone} storybook lighting, expressive pose, readable scene`;
+    : `${lead}${core}, ${tone} natural light, expressive pose, readable scene`;
 }
 
 function adultStillGuard(content: RoleplayContentId): string {
@@ -480,7 +498,13 @@ export async function generateRoleplayScenes(
     options.intimateMix
   );
   // The built-in scenes are written for a woman.
-  const fallback = roleplayLeadIsMan(bio, options) ? builtIn.map(storySceneForManLead) : builtIn;
+  // What they quote (the earlier beats, the custom Part) is already right and stays as it is.
+  const fallback = roleplayLeadIsMan(bio, options)
+    ? storyScenesForManLead(builtIn, [
+        ...(options.story ?? []).flatMap(beat => [beat.blurb, beat.title]),
+        options.customPersona,
+      ])
+    : builtIn;
   const settingCue = formatRoleplaySettingCue({
     setting,
     hasReferenceImage,
@@ -730,7 +754,10 @@ ${
           content,
           allowGore,
           setting,
-          hasReferenceImage
+          hasReferenceImage,
+          options.wardrobeLabel || options.garmentDescription || options.hasGarmentReference
+            ? undefined
+            : storyLastOutfitPhrase(options.story)
         )
       ),
     preProcessPrompt: prompt => {

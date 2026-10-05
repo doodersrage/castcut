@@ -1,6 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { storyLeadIsMan, storyPromptForManLead, storySceneForManLead } from './story-lead-gender';
+import {
+  storyLeadIsMan,
+  storyPromptForManLead,
+  storySceneForManLead,
+  storyScenesForManLead,
+} from './story-lead-gender';
 
 describe('a man as the Story lead', () => {
   it('is read from the Cast record first, then the bible', () => {
@@ -34,5 +39,23 @@ describe('a man as the Story lead', () => {
       'He sits on the stairs with his chin in his hands; a friend waves at him.'
     );
     assert.equal(scene.title, 'The letter');
+  });
+
+  it('keeps the earlier beat a built-in card quotes, cut short or whole, as it was written', () => {
+    const last =
+      'Tomas sprints across a weathered rooftop at golden hour, tossing his lopsided hat into the air as he stretches.';
+    const [card, other] = storyScenesForManLead(
+      [
+        {
+          title: 'Next room',
+          blurb: `Tomas leaves "Rooftop Run Prep" for an adjoining space, still carrying the problem: Tomas sprints across a weathered rooftop at golden hour, tossing his lopsided hat into`,
+        },
+        { title: 'Wardrobe change', blurb: 'Tomas changes her clothes; she keeps the trouble.' },
+      ],
+      [last, 'Rooftop Run Prep', 'a weekend lighthouse keeper training for his first marathon']
+    );
+    assert.match(card!.blurb, /tossing his lopsided hat into$/);
+    assert.doesNotMatch(card!.blurb, /\bher\b/);
+    assert.equal(other!.blurb, 'Tomas changes his clothes; he keeps the trouble.');
   });
 });

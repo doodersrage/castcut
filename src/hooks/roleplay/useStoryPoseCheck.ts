@@ -7,7 +7,7 @@ import {
   patchRoleplayStoryBeat,
   withRoleplayTakeChecks,
 } from '@/lib/roleplay';
-import { nextStoryPoseCheck } from '@/lib/roleplay-pose-check';
+import { nextStoryPoseCheck, storyPoseMatchMissed } from '@/lib/roleplay-pose-check';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
@@ -73,8 +73,11 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
         }
         // Posture unreadable from the keypoints against a clear guide (a standing still before a
         // kneeling guide often reads unsure): the vision model's yes/no settles it.
-        const { checkStillPoseVision } = await import('@/lib/pose-gesture-vision-client');
-        const { match } = await checkStillPoseVision({
+        const { checkStillPoseVision, checkStillRealism } =
+          await import('@/lib/pose-gesture-vision-client');
+        // The realism question rides along (its own model call): Story stills were computer-made
+        // far more often than Day's (story-photographable.ts), and nothing on the card said so.
+        const vision = await checkStillPoseVision({
           imageUrl: shownUrl,
           lead: 'person',
           guide: expect.keypoints,
@@ -86,10 +89,16 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
             detected: detected.pose,
           }),
           gesture: false,
+          realism: true,
           // Read at check time: the effect doesn't rerun on every settings change.
           shared: loadSettingsCache().shared,
         });
-        const miss = match.score < DEFAULT_MIN_POSE_MATCH;
+        const { match } = vision;
+        // A pose miss skips the vision call; ask the realism rating on its own then.
+        const realismVerdict =
+          vision.realism ??
+          (await checkStillRealism({ imageUrl: shownUrl, shared: loadSettingsCache().shared }));
+        const miss = storyPoseMatchMissed(match, DEFAULT_MIN_POSE_MATCH);
         recordPoseMatchScore(expect.style, match.score, miss, poseLayoutFromKey(expect.poseKey), {
           cued: expect.cued === true,
         });
@@ -167,9 +176,11 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
             score: match.score,
             expectedPeople: match.expectedPeople,
             detectedPeople: match.detectedPeople,
+            ...(match.extraPeople > 0 ? { extraPeople: match.extraPeople } : {}),
             ...(missView ? { missView } : {}),
           },
           ...(faceMatch ? { faceMatch } : {}),
+          ...(realismVerdict ? { realism: { imageUrl, rating: realismVerdict.rating } } : {}),
         };
         // Keep the scores on the take too, then show a clearly better earlier take (fewer
         // misses, or a much closer pose) unless the player picked this one.

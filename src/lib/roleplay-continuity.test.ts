@@ -33,5 +33,31 @@ describe('Story continuity', () => {
     // Rewriting beat b's own still must not use b as its own reference.
     assert.match(formatRoleplayContinuityCue(story, { id: 'b' }), /rooftop at dusk/);
     assert.equal(formatRoleplayContinuityCue([], null), '');
+    // The previous still named the coat: no extra outfit line.
+    assert.doesNotMatch(cue, /Outfit so far/);
+  });
+
+  it('names the last outfit an earlier still described when the previous one named none', () => {
+    const story: RoleplayStoryBeat[] = [
+      {
+        id: 'a',
+        title: 'Book swap',
+        blurb: 'x',
+        at: 1,
+        stillBrief: 'Nora in a wool cardigan over a floral dress swaps an atlas in a sunlit nook',
+      },
+      {
+        id: 'b',
+        title: 'Opposite play',
+        blurb: 'y',
+        at: 2,
+        stillBrief: 'Nora tries the opposite tactic and it immediately complicates',
+      },
+      { id: 'c', title: 'Night shift', blurb: 'z', at: 3 },
+    ];
+    const cue = formatRoleplayContinuityCue(story, { id: 'c', title: 'Night shift' });
+    assert.match(cue, /Previous still \(continuity\): Nora tries the opposite tactic/);
+    assert.match(cue, /Outfit so far \(from an earlier still — keep it\): Nora in a wool cardigan/);
+    assert.match(cue, /never the previous one again/);
   });
 });

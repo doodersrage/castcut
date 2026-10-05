@@ -6,9 +6,13 @@ import {
   type CutShotProblem,
   type KeyedShot,
 } from '@/lib/film-cut-plan';
-import { storyFaceMatchLabel, storyPoseMatchLabel } from '@/lib/roleplay-pose-check';
-import { DEFAULT_MIN_FACE_MATCH, FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
-import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
+import {
+  STORY_CHECK_THRESHOLDS,
+  storyFaceMatchLabel,
+  storyPoseMatchLabel,
+  storyRealismLabel,
+} from '@/lib/roleplay-pose-check';
+import { REALISM_MISS_REASON } from '@/lib/still-realism';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
   type FilmCutOptionsValue,
@@ -93,13 +97,16 @@ export function useRoleplayFilmActions(input: {
         const problems = cutShotProblems(shots, shot => {
           const beat = byKey.get(shot.key);
           if (!beat) return null;
-          const pose = storyPoseMatchLabel(beat, DEFAULT_MIN_POSE_MATCH);
+          const pose = storyPoseMatchLabel(beat, STORY_CHECK_THRESHOLDS.minPose);
           const face = storyFaceMatchLabel(beat, {
-            miss: DEFAULT_MIN_FACE_MATCH,
-            warn: FACE_MATCH_WARN_BELOW,
+            miss: STORY_CHECK_THRESHOLDS.minFace,
+            warn: STORY_CHECK_THRESHOLDS.warnFace,
           });
           return {
-            flagged: beat.stillStatus === 'error' ? ['the still failed'] : [],
+            flagged: [
+              ...(beat.stillStatus === 'error' ? ['the still failed'] : []),
+              ...(storyRealismLabel(beat) ? [REALISM_MISS_REASON] : []),
+            ],
             ...(pose?.miss ? { poseMiss: true, pose: beat.poseMatch?.score } : {}),
             ...(face?.miss ? { faceMiss: true, face: beat.faceMatch?.similarity } : {}),
           };

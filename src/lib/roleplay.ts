@@ -41,6 +41,7 @@ import type {
   StoryFaceMatch,
   StoryPoseGuideExpect,
   StoryPoseMatch,
+  StoryRealismCheck,
 } from '@/lib/roleplay-pose-check';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import {
@@ -101,6 +102,7 @@ export type RoleplayStillTake = {
   /** Pose / face checks of this take, so switching takes shows (and ranks by) its scores. */
   poseMatch?: StoryPoseMatch;
   faceMatch?: StoryFaceMatch;
+  realism?: StoryRealismCheck;
 };
 
 export type RoleplayClipTake = {
@@ -149,6 +151,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
   poseLook?: PoseLookChoice;
   /** Face-recognition match of the shown (solo) still against the reference photo. */
   faceMatch?: StoryFaceMatch;
+  /** How real the shown still looks (the realism question, 0–10). */
+  realism?: StoryRealismCheck;
   /**
    * What the still showed (outfit, place, light), from the scene writer's own description —
    * fed to the next still so a Story doesn't jump wardrobe or location between beats.
@@ -221,10 +225,29 @@ export function formatRoleplayContinuityCue(
   if (!previous?.stillBrief) {
     return '';
   }
+  // The previous still may say nothing about clothes (a fallback prompt, a close-up): then the
+  // writer invented a new outfit (a floral dress → sequins → a blazer in three beats, live
+  // 2026-10-05). Name the last outfit any earlier still described.
+  const outfitSource = storyPromptNamesClothes(previous.stillBrief)
+    ? null
+    : [...(story ?? [])]
+        .reverse()
+        .find(
+          beat =>
+            beat !== previous &&
+            beat.stillBrief?.trim() &&
+            !(current?.id && beat.id === current.id) &&
+            storyPromptNamesClothes(beat.stillBrief)
+        );
   return [
     `Previous still (continuity): ${previous.stillBrief.trim()}`,
-    'Keep the same outfit, hairstyle, location and lighting as the previous still unless this beat clearly changes them (a new place, a wardrobe change, a time jump, or undressing) — then change only what the beat changes.',
-  ].join('\n');
+    outfitSource?.stillBrief
+      ? `Outfit so far (from an earlier still — keep it): ${outfitSource.stillBrief.trim()}`
+      : '',
+    'Keep the same outfit, hairstyle, location and lighting as the previous still unless this beat clearly changes them (a new place, a wardrobe change, a time jump, or undressing) — then change only what the beat changes. Continuity is the look, not the action: write this beat’s own action and pose, never the previous one again.',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 export const MAX_ROLEPLAY_STILL_TAKES = 8;
@@ -1157,8 +1180,34 @@ export function storyStillPromptSource(input: {
   return llm;
 }
 
+// "blazer", "waistcoat" and "dress" were missing: a still that named them still got "a top, a
+// jacket, jeans or a skirt" added, and Rapid mixed the two outfits (live 2026-10-05).
 const EVERYDAY_WARDROBE_CUE =
-  /\b(gown|nightgown|sweater|jumper|hoodie|jacket|coat|cardigan|tank\s+top|crop\s+top|camisole|apron|overalls|uniform|suit|sundress|jumpsuit|romper|leggings|sweatpants|dressed)\b/i;
+  /\b(gown|nightgown|dress|sweater|jumper|hoodie|sweatshirt|jacket|blazer|coat|raincoat|trench|parka|cardigan|waistcoat|vest|shirt|t-shirt|tee|blouse|tank\s+top|crop\s+top|camisole|apron|overalls|coveralls|scrubs|uniform|suit|tuxedo|tracksuit|sundress|jumpsuit|romper|robe|kimono|leggings|sweatpants|jeans|trousers|slacks|chinos|shorts|skirt|dressed)\b/i;
+
+/** Whether a still prompt says what the lead wears. */
+export function storyPromptNamesClothes(prompt: string): boolean {
+  return EVERYDAY_WARDROBE_CUE.test(prompt) || intimateTextMentionsWardrobe(prompt);
+}
+
+/**
+ * The clothes the latest still described, as its own words ("warm wool cardigan over a faded
+ * floral dress"): the clauses of the newest still brief that name clothing. Empty when no still
+ * named any.
+ */
+export function storyLastOutfitPhrase(story: RoleplayStoryBeat[] | undefined): string {
+  for (const beat of [...(story ?? [])].reverse()) {
+    const brief = beat.stillBrief?.trim();
+    if (!brief || !EVERYDAY_WARDROBE_CUE.test(brief)) continue;
+    const clauses = brief
+      .split(/\s*(?:[,;.]|—|–|\bas\b|\bwhile\b)\s*/)
+      .map(clause => clause.trim())
+      .filter(clause => clause && EVERYDAY_WARDROBE_CUE.test(clause));
+    const phrase = clauses.join(', ').slice(0, 160).trim();
+    if (phrase) return phrase;
+  }
+  return '';
+}
 
 /**
  * Clean / PG-13 / Suggestive still with no outfit image: when the writer named no clothes,
@@ -2437,8 +2486,33 @@ function uniqueRoleplayTitle(title: string, used: Set<string>): string {
   return stem;
 }
 
-export function continueRoleplayScenes(
+/** A beat played from one of the built-in fork cards ("Hours later", "Opposite play next"). */
+function isBuiltInForkBeat(beat: RoleplayStoryBeat): boolean {
+  const title = beat.title.trim().toLowerCase();
+  return [...ROLEPLAY_CONTINUATION_FORKS, ...ROLEPLAY_ENDING_FORKS].some(fork => {
+    const prefix = fork.titlePrefix.toLowerCase();
+    return title === prefix || title.startsWith(`${prefix} `);
+  });
+}
+
+/**
+ * The beat a built-in card refers back to: the last one with a story of its own. A card built on
+ * another built-in card read "the opposite tactic of hours later" (live, 2026-10-05: three fallback
+ * rolls in a row stacked on each other).
+ */
+function roleplayForkAnchor(
   last: RoleplayStoryBeat,
+  story?: RoleplayStoryBeat[]
+): RoleplayStoryBeat {
+  if (!isBuiltInForkBeat(last)) return last;
+  const own = [...(story ?? [])]
+    .reverse()
+    .find(beat => beat.title?.trim() && !isBuiltInForkBeat(beat));
+  return own ?? last;
+}
+
+export function continueRoleplayScenes(
+  lastPicked: RoleplayStoryBeat,
   story?: RoleplayStoryBeat[],
   characterName?: string,
   avoid?: Array<{ title: string; blurb?: string }>,
@@ -2446,6 +2520,7 @@ export function continueRoleplayScenes(
   /** People setting (solo / duo / mixed) — adult ratings only. */
   mix?: string | null
 ): RoleplayScene[] {
+  const last = roleplayForkAnchor(lastPicked, story);
   const name = characterName?.trim() || 'You';
   const used = usedRoleplaySceneTitles([...(story ?? []), ...(avoid ?? [])]);
   const forks = roleplayForksForContent(content, 'continue', mix);
@@ -2624,22 +2699,32 @@ export function templateRoleplayScenes(
     ).slice(0, 4);
   }
   const archetype = getRoleplayArchetype(personaId);
-  // A custom Part names itself; otherwise the Cast's name (never an archetype it didn't pick).
-  const doorSubject =
-    personaId === CUSTOM_ROLEPLAY_PERSONA_ID && customPersona?.trim()
+  // The Cast's name; a custom Part names the lead only when there is no name (never an archetype
+  // it didn't pick). Each card names the lead: "you" read as nobody in particular in the still,
+  // and the Part's own words ("a lighthouse keeper training for his first marathon") made a long,
+  // lower-case subject.
+  const subject =
+    characterName?.trim() ||
+    (personaId === CUSTOM_ROLEPLAY_PERSONA_ID && customPersona?.trim()
       ? customPersona.trim()
-      : characterName?.trim() || 'Someone';
+      : 'Someone');
   const rows = archetype?.templateScenes ?? [
     {
       title: 'A door appears',
-      blurb: `${doorSubject} finds a door that was not there yesterday.`,
+      blurb: `${subject} finds a door that was not there yesterday.`,
     },
-    { title: 'Wrong weather', blurb: 'The sky is doing a bit. You decide to match its energy.' },
+    {
+      title: 'Wrong weather',
+      blurb: `The weather turns on ${subject} mid-errand, and she leans into it, coat flapping.`,
+    },
     {
       title: 'Side quest, unsolicited',
-      blurb: 'A stranger hands you a quest and also a sandwich.',
+      blurb: `A stranger hands ${subject} a hand-drawn map and also a sandwich.`,
     },
-    { title: 'Quiet victory pose', blurb: 'Nothing happened, so you pose like it did.' },
+    {
+      title: 'Quiet victory pose',
+      blurb: `Nothing happened, so ${subject} throws both arms up in a victory pose anyway.`,
+    },
   ];
   return filterFreshRoleplayScenes(
     rows.map((row, index) => ({

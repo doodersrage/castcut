@@ -9,7 +9,7 @@ import { countPoseGuidePeople } from './day-pose-guide';
 
 /** Words that are always a person. */
 const PERSON_NOUNS =
-  '(?:man|woman|men|women|guy|girl|boy|stranger|friend|brother|sister|mother|father|mom|dad|partner|lover|boyfriend|girlfriend|husband|wife|neighbou?r|child|kid|companion|colleague|co-?worker|boss|grand(?:mother|father|ma|pa)|aunt|uncle|cousin|son|daughter|figure)';
+  '(?:man|woman|men|women|person|guy|girl|boy|stranger|visitor|newcomer|passer-?by|friend|brother|sister|mother|father|mom|dad|partner|lover|boyfriend|girlfriend|husband|wife|neighbou?r|child|kid|companion|colleague|co-?worker|boss|grand(?:mother|father|ma|pa)|aunt|uncle|cousin|son|daughter|figure)';
 
 /**
  * Jobs and roles, which also name places and things ("outside the florist", "the passenger
@@ -22,6 +22,18 @@ const ROLE_NOUNS =
 /** A role followed by what the person does: "who …" or a present-tense verb. */
 const ROLE_ACTING_RE = new RegExp(
   `\\b(?:a|an|the|her|his|their|another|one|some)\\s+(?:[a-z’'-]+\\s+){0,2}${ROLE_NOUNS}\\s+(?:who\\b|(?!is\\b|was\\b|has\\b)[a-z]+(?:s|es)\\b)`,
+  'i'
+);
+
+/**
+ * A role placed beside the lead, ending its phrase or doing something: "slips past a startled
+ * security guard, leaving…", "toward a guard still clutching his radio". Not "outside the
+ * florist" or "the passenger seat": only the prepositions that put a person next to her, and the
+ * role must end the phrase or go on with an -ing verb. Live 2026-10-05, the guard was missed, the
+ * guide drew one body and the still drew the lead twice beside him.
+ */
+const ROLE_PLACED_RE = new RegExp(
+  `\\b(?:past|beside|alongside|next to|behind|toward|towards|facing|near|with)\\s+(?:a|an|the|her|his|their|another|one|some)\\s+(?:[a-z’'-]+\\s+){0,2}${ROLE_NOUNS}(?:\\s*(?:[,.;:!?—–]|$)|\\s+(?:still\\s+)?[a-z]+ing\\b)`,
   'i'
 );
 
@@ -51,7 +63,9 @@ export function storySceneNamesSecondPerson(text: string | null | undefined): bo
   if (!scene || ALONE_RE.test(scene)) return false;
   if (countPoseGuidePeople(scene, { sexVocabulary: false }) >= 2) return false;
   const present = scene.replace(ABSENT_PERSON_RE, ' ');
-  return SECOND_PERSON_RE.test(present) || ROLE_ACTING_RE.test(present);
+  return (
+    SECOND_PERSON_RE.test(present) || ROLE_ACTING_RE.test(present) || ROLE_PLACED_RE.test(present)
+  );
 }
 
 /**

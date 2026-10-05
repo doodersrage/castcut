@@ -1247,3 +1247,39 @@ describe('adult template scenes follow the People setting', () => {
     assert.deepEqual(sfw, templateRoleplayScenes('raccoon-pirate', undefined, [], 'Crisp', [], 'pg13'));
   });
 });
+
+describe('built-in fallback cards', () => {
+  it('refer back to the last beat with a story of its own, not to another built-in card', () => {
+    const story: RoleplayStoryBeat[] = [
+      {
+        id: 'b1',
+        title: 'Midnight Mischief in the Hallway',
+        blurb: 'Nora slips past a sleeping guard with a trail of hourglasses.',
+        at: 1,
+      },
+      { id: 'b2', title: 'Hours later', blurb: 'Later the same day, Nora is somewhere else.', at: 2 },
+    ];
+    const next = continueRoleplayScenes(story[1]!, story, 'Nora');
+    assert.ok(next.length > 0);
+    for (const scene of next) {
+      assert.doesNotMatch(scene.blurb, /hours later/i);
+    }
+    assert.ok(next.some(scene => /midnight mischief in the hallway/i.test(scene.blurb)));
+  });
+
+  it('name the lead on the opening cards instead of "you" or the Part text', () => {
+    const scenes = templateRoleplayScenes(
+      'custom',
+      'a weekend lighthouse keeper training for his first marathon',
+      [],
+      'Tomas',
+      [],
+      'clean'
+    );
+    assert.ok(scenes.length >= 3);
+    for (const scene of scenes) {
+      assert.doesNotMatch(scene.blurb, /\byou\b|lighthouse keeper/i);
+      assert.match(scene.blurb, /Tomas/);
+    }
+  });
+});

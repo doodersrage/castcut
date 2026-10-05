@@ -206,3 +206,40 @@ describe('Story writer reads the Cast lead Sex trait', () => {
     assert.match(prompts.at(-1)!, /write "he" and "his" for Mara/);
   });
 });
+
+describe('Story still without the writer', () => {
+  const story = [
+    {
+      id: 'b1',
+      title: 'Book swap',
+      blurb: 'Nora swaps an atlas',
+      at: 1,
+      stillBrief:
+        'Nora balances a stack of books on her hip — warm wool cardigan over a faded floral dress, sunlit nook',
+    },
+  ];
+  const base = {
+    model: 'qwen-rapid-aio-edit',
+    detail: 'balanced',
+    content: 'clean',
+    hasReferenceImage: true,
+    isolatedSubject: true,
+    bio: { name: 'Nora', look: 'a woman with blue eyes and a slim build', personality: 'kind' },
+    situation: { title: 'Opposite play', blurb: 'Nora tries the opposite tactic.' },
+    llm: { llmEnabled: false, allowTemplateFallback: true },
+    story,
+  };
+
+  it('keeps the last still’s clothes and leaves the look to the reference', async () => {
+    const { generateRoleplayPrompt } = await import('./roleplay-generator');
+    const result = await generateRoleplayPrompt(base as never);
+    assert.match(result.prompt, /she wears warm wool cardigan over a faded floral dress/);
+    assert.doesNotMatch(result.prompt, /beat outfit|blue eyes|storybook/);
+  });
+
+  it('a picked outfit keeps the phrase the dressed plate rewords', async () => {
+    const { generateRoleplayPrompt } = await import('./roleplay-generator');
+    const result = await generateRoleplayPrompt({ ...base, wardrobeLabel: 'Denim kit' } as never);
+    assert.match(result.prompt, /replace the reference clothing with the beat outfit/);
+  });
+});

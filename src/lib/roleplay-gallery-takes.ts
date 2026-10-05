@@ -12,6 +12,7 @@ import {
   MAX_ROLEPLAY_CLIP_TAKES,
 } from './roleplay';
 import { betterTakeIndex, type TakeThresholds } from './take-scoring';
+import { REALISM_COMPUTER_MADE_AT_OR_BELOW } from './still-realism';
 
 export type RoleplayGalleryStill = {
   promptId: string;
@@ -37,7 +38,7 @@ function takeHasStill(take: RoleplayStillTake): boolean {
 function activeFieldsFromTake(
   take: RoleplayStillTake | undefined
 ): Pick<RoleplayStoryBeat, 'promptId' | 'imageUrl' | 'stillStatus'> &
-  Partial<Pick<RoleplayStoryBeat, 'poseMatch' | 'faceMatch'>> {
+  Partial<Pick<RoleplayStoryBeat, 'poseMatch' | 'faceMatch' | 'realism'>> {
   return {
     promptId: take?.promptId,
     imageUrl: take?.imageUrl,
@@ -45,6 +46,7 @@ function activeFieldsFromTake(
     // The take's own checks (labels match on imageUrl, so an older score never shows wrongly).
     ...(take?.poseMatch ? { poseMatch: take.poseMatch } : {}),
     ...(take?.faceMatch ? { faceMatch: take.faceMatch } : {}),
+    ...(take?.realism ? { realism: take.realism } : {}),
   };
 }
 
@@ -250,7 +252,16 @@ export function autoPickRoleplayStillTakePatch(
     return null;
   }
   const best = betterTakeIndex(
-    takes.map(take => ({ pose: take.poseMatch?.score, face: take.faceMatch?.similarity })),
+    takes.map(take => ({
+      // An extra person (a clone of the lead, a stranger) or a computer-made look is a miss
+      // whatever the angles scored.
+      pose:
+        (take.poseMatch?.extraPeople ?? 0) > 0 ||
+        (take.realism && take.realism.rating <= REALISM_COMPUTER_MADE_AT_OR_BELOW)
+          ? 0
+          : take.poseMatch?.score,
+      face: take.faceMatch?.similarity,
+    })),
     roleplayStillTakeIndex(beat),
     thresholds
   );
@@ -264,7 +275,7 @@ export function autoPickRoleplayStillTakePatch(
 export function withRoleplayTakeChecks(
   beat: RoleplayStoryBeat,
   imageUrl: string,
-  checks: Pick<RoleplayStillTake, 'poseMatch' | 'faceMatch'>
+  checks: Pick<RoleplayStillTake, 'poseMatch' | 'faceMatch' | 'realism'>
 ): RoleplayStillTake[] {
   return roleplayStillTakes(beat).map(take =>
     take.imageUrl?.trim() === imageUrl ? { ...take, ...checks } : take

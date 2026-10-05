@@ -9,6 +9,11 @@ describe('Story scene people', () => {
       'Gloovi steps onto the train as a man in a velvet vest offers her a seat.',
       'Rook leans against a bookshelf while a barista hands him a pastry.',
       'sitting across a café table from her friend, both laughing over coffee',
+      // The built-in "Uninvited guest" card: its still came out alone (live 2026-10-05).
+      'A new person walks in on Tomas after rooftop run prep and changes the power dynamic.',
+      // A role beside her, ending its phrase or going on with an -ing verb (live 2026-10-05).
+      'Nora slips past a startled security guard, leaving behind a trail of glittering hourglasses.',
+      'she nudges a glittering shard toward a startled security guard still clutching his walkie-talkie',
     ]) {
       assert.equal(storySceneNamesSecondPerson(text), true, text);
     }
@@ -26,6 +31,8 @@ describe('Story scene people', () => {
       'SEATED in a convertible passenger seat with the map open',
       'SEATED at a market stool trying on sunglasses from a vendor tray',
       'hands on hips outside the florist, a bunch of flowers tucked under one arm',
+      'she sits behind the driver seat with the map open',
+      'standing near the baker counter with a paper bag',
       undefined as unknown as string,
     ]) {
       assert.equal(storySceneNamesSecondPerson(text), false, text);
