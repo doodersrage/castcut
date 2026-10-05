@@ -7,6 +7,7 @@ import {
   dayPlateIsolatePending,
   dayPlateSourceKey,
   isClothingOnlyDayGarment,
+  isCastPlateFilename,
   isDayVacationLightningIdentityVlModel,
   isQwenEdit2511PoseStickyModel,
   resolveDayGarmentReinforce,
@@ -318,6 +319,40 @@ describe('resolveDayQueueIdentityPlate', () => {
       ],
     };
     assert.equal(dayNudeNeedsAutoFaceCrop(character), false);
+  });
+
+  it('a face lock that is an old Cast plate is not a face: nude stills crop the body plate', () => {
+    // User's install 2026-10-05: the look's plate changed (a Day still) but its lock kept the
+    // base-layer plate, and sex scenes took that underwear plate whole as Image 1.
+    const character: CharacterRecord = {
+      id: 'char-1',
+      name: 'Rin',
+      version: 1,
+      updatedAt: 1,
+      activeLookId: 'look-1',
+      looks: [
+        {
+          id: 'look-1',
+          name: 'Main',
+          createdAt: 1,
+          reference: { originalFilename: 'Castcut_02241_.png' },
+          ipAdapter: { imageFilename: 'cast-plate-base-1790591703449.png' },
+        },
+      ],
+    };
+    assert.equal(isCastPlateFilename('cast-plate-base-1790591703449.png'), true);
+    assert.equal(
+      isCastPlateFilename('/api/comfyui/view?filename=cast-plate-prepared-1.png&type=input'),
+      true
+    );
+    assert.equal(isCastPlateFilename('day-nude-face-1.png'), false);
+    assert.equal(dayNudeNeedsAutoFaceCrop(character), true);
+    const queue = resolveDayQueueIdentityPlate({
+      character,
+      displayPlate: null,
+      preferFaceOnlyPlate: true,
+    });
+    assert.notEqual(queue?.filename, 'cast-plate-base-1790591703449.png');
   });
 });
 

@@ -165,6 +165,13 @@ export function resolveDayFaceOnlyPlate(
   if (castFaceDuplicatesBodyPlate(character)) {
     return null;
   }
+  // A face lock that is itself a Cast plate (`cast-plate-…`: a whole body in the base-layer
+  // underwear) is not a face picture. A look whose plate changed kept its old plate as the lock,
+  // and nude stills took that underwear plate whole as Image 1 — beige bra and briefs in sex
+  // scenes (user report 2026-10-05). The queue face-crops the body plate instead.
+  if (isCastPlateFilename(face.filename) || isCastPlateFilename(face.imageUrl)) {
+    return null;
+  }
   return {
     filename: face.filename?.trim() || undefined,
     imageUrl: face.imageUrl?.trim() || undefined,
@@ -172,6 +179,19 @@ export function resolveDayFaceOnlyPlate(
     isolateSubject: false,
     source: 'cast',
   };
+}
+
+/** A Cast plate upload (`cast-plate-…`, `cast-plate-prepared-…`, `cast-plate-base-…`): a whole body. */
+export function isCastPlateFilename(value: string | null | undefined): boolean {
+  const text = value?.trim();
+  if (!text) return false;
+  let name = text;
+  try {
+    name = new URL(text, 'http://x').searchParams.get('filename') ?? text;
+  } catch {
+    // not a URL
+  }
+  return /(?:^|\/)cast-plate-[^/]*$/i.test(name);
 }
 
 /**
