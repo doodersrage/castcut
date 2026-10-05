@@ -105,14 +105,17 @@ function ollamaNativeBaseUrl(baseUrl: string): string {
  * "Engine … returned 400: {\\"error\\":{\\"message\\":\\"Failed to load image…\\"}}"}`), which
  * otherwise reached the UI as triple-escaped JSON. Falls back to the trimmed body.
  */
-/** Pause before the one retry of a transient failure. */
-export const LLM_TRANSIENT_RETRY_MS = 1500;
+/**
+ * Pauses before each retry of a transient failure. One retry after 1.5 s still failed now and
+ * then while ComfyUI rendered on the same GPU (live 2026-10-05, 1 of 8 Story rolls).
+ */
+export const LLM_TRANSIENT_RETRY_MS: readonly number[] = [1500, 5000];
 
 /**
- * A failure worth one more try: the server was busy or out of room for a moment, not a bad
+ * A failure worth another try: the server was busy or out of room for a moment, not a bad
  * request. LM Studio (llama.cpp) answers "400 failed to decode" when its KV cache is full of other
- * requests — on a shared local server that sent 4 of 9 Story scene rolls (2026-10-05) to the
- * generic built-in cards, which a second try writes properly.
+ * requests — on a shared local server that sent Story scene rolls (2026-10-05) to the generic
+ * built-in cards, which a later try writes properly.
  */
 export function isTransientLlmFailure(status: number, body: string): boolean {
   if (status === 429 || status >= 500) return true;
@@ -698,18 +701,15 @@ async function openAiCompatibleChatCompletion(options: {
       body: requestBody,
     });
   let response = await post();
-  if (!response.ok) {
+  // A busy local server drops a request now and then: try again after growing pauses.
+  for (let attempt = 0; !response.ok; attempt += 1) {
     const detail = await response.text();
-    if (!isTransientLlmFailure(response.status, detail)) {
+    const pause = LLM_TRANSIENT_RETRY_MS[attempt];
+    if (pause === undefined || !isTransientLlmFailure(response.status, detail)) {
       throw new Error(`LLM request failed (${response.status}): ${llmErrorDetail(detail)}`);
     }
-    // One more go after a short pause: a busy local server drops a request now and then.
-    await new Promise(resolve => setTimeout(resolve, LLM_TRANSIENT_RETRY_MS));
+    await new Promise(resolve => setTimeout(resolve, pause));
     response = await post();
-    if (!response.ok) {
-      const again = await response.text();
-      throw new Error(`LLM request failed (${response.status}): ${llmErrorDetail(again)}`);
-    }
   }
 
   const data = (await parseJsonResponseBody(response)) as {
