@@ -42,9 +42,11 @@ describe('buildIntimateClipPrompt', () => {
     assert.match(motion('afterglow in tangled sheets'), /no thrusting/);
     assert.doesNotMatch(motion('half-undressed, skin and erotic heat'), /rhythmic motion of the hips/);
     assert.match(motion('lifted up while fucking'), /legs stay wrapped/);
-    // Scissors: seated, leaning back on their hands (the recipe), not lying on their sides.
-    assert.match(motion('scissoring on the floor'), /legs cross; both stay sitting/);
-    assert.doesNotMatch(motion('scissoring on the floor'), /on their sides/);
+    // Scissors renders as missionary (Rapid can't draw it): the clip animates that, and the
+    // Scene line no longer asks for scissoring.
+    assert.equal(motion('scissoring on the floor'), motion('missionary on the floor'));
+    assert.doesNotMatch(buildIntimateClipPrompt('scissoring on the floor'), /scissor/i);
+    assert.match(motion('scissoring on the bed', { twoWomen: true }), /lying side by side/);
     // Two women: their recipes draw a hand, not hips from behind.
     for (const beat of ['spooning in bed', 'lying face-down on the bed mid-sex', 'against the wall from behind']) {
       assert.match(motion(beat, { twoWomen: true }), /hand moves slowly between her thighs|hand between her thighs/, beat);

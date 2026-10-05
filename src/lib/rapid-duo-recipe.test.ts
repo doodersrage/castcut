@@ -841,3 +841,24 @@ describe('Vacation recipe: reclining on her side', () => {
     assert.match(back, /She lies back on the (?:pool lounge|lounger), hips and back on it/);
   });
 });
+
+describe('scissors fallback', () => {
+  it('renders scissors as the missionary pose and drops the word from the Moment (two men kneel)', () => {
+    const beat = 'scissoring on the bed, legs interlocked — both adults fully visible';
+    const couple = buildRapidDuoRecipe({ beat }) ?? '';
+    assert.match(couple, /missionary position|lies face up/);
+    assert.doesNotMatch(couple, /scissor/i);
+    const women =
+      buildRapidDuoRecipe({ beat, partner: { partner: { noun: 'woman' } as never, image: 'third' } }) ?? '';
+    assert.match(women, /side by side/);
+    assert.doesNotMatch(women, /scissor/i);
+    const men =
+      buildRapidDuoRecipe({
+        beat,
+        lead: 'man',
+        partner: { partner: { noun: 'man' } as never, image: 'third' },
+      }) ?? '';
+    assert.match(men, /kneel/);
+  });
+});
+

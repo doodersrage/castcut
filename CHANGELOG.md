@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Scissors renders as the missionary pose**, like 69 and face-sit render as seated oral: Rapid can't draw scissoring (stills kept coming out odd). Couples get the missionary recipe (8/8), two women their side-by-side version (4/4), two men keep their kneeling recipe; the map and the clip follow, and "scissoring" is dropped from the still's and clip's words.
 - **Five more adult pose maps match their words:** lap (he sits, she straddles facing him), wall (face to face with a knee raised — or from behind, hands braced, when the beat or a window says so), standing (she leans forward braced, partner behind), kneeling (face to face) and all fours on the bed (hands and knees, partner kneeling behind).
 - **Intimate clips animate the pose the still shows.** Face-sit and 69 stills are drawn as seated oral, so their clips now animate oral (and the scene line no longer asks for a 69); scissors stays seated; a wall still is face to face unless the beat or a window says from behind; two women keep the hand motion their stills draw; two men's scissors stays kneeling.
 - **Scissors pose map matches its words.** The recipe seats them ("sit facing each other, each leaning back on their hands, legs scissored together") but the map drew two lying bodies pulled hip to hip; it now draws both sitting, leaning back on straight arms, knees interlocked.

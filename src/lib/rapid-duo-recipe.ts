@@ -37,6 +37,10 @@ import {
   RAPID_VACATION_RECIPE_MARK,
 } from './rapid-duo-recipe-mark';
 
+/** Scissoring words in a beat — the still renders the missionary pose instead (Rapid can't draw it). */
+export const RAPID_SCISSORS_FALLBACK_RE =
+  /\bscissor(?:ing|ed|s)?(?:\s+(?:position|pose|style))?\b/gi;
+
 const WEARABLE_RE =
   /\b(?:hoodie|jacket|coat|blazer|dress|gown|robe|cloak|cape|shirt|t-shirt|blouse|top|tank|sweater|cardigan|bikini|swimsuit|lingerie|bra|panties|underwear|straps?|skirt|shorts|pants|trousers|jeans|leggings|stockings|socks|sleeves?(?!\s+tattoo)|boots?|shoes|heels|sneakers|hat|beanie|hood|gloves?|scarf|belt|harness|armou?r|mask|goggles|glasses|sunglasses|jewel(?:le)?ry|necklace|earrings?|bracelets?|rings?|piercings?|backpack|bag|drones?|gadgets?|headphones|outfit|costume|uniform|garments?|clothes|clothing)\b/i;
 
@@ -508,11 +512,15 @@ export function buildRapidDuoRecipe(input: {
   const partnerNoun = input.partner?.partner.noun ?? (leadMan ? 'woman' : 'man');
   const twoWomen = !leadMan && partnerNoun === 'woman';
   const twoMen = leadMan && partnerNoun === 'man';
+  // Rapid cannot draw scissoring (seated or lying, it came back odd — user report 2026-10-05):
+  // like 69 / face-sit → seated oral, scissors renders as the close missionary pose, which lands
+  // (8/8 couple, 4/4 two women side by side). Two men keep their kneeling recipe.
+  const drawn: IntimateLayout = layout === 'scissors' && !twoMen ? 'missionary' : layout;
   const body = twoWomen
-    ? placementTwoWomen(layout, beat, surface)
+    ? placementTwoWomen(drawn, beat, surface)
     : twoMen
-      ? placementTwoMen(layout, beat, surface)
-      : placement(layout, beat, surface);
+      ? placementTwoMen(drawn, beat, surface)
+      : placement(drawn, beat, surface);
   if (!body) {
     return null;
   }
@@ -541,7 +549,8 @@ export function buildRapidDuoRecipe(input: {
       .replace(
         layout === 'sixty_nine' || layout === 'facesit' ? RAPID_ORAL_FALLBACK_RE : /$^/,
         'oral sex'
-      )}.`,
+      )
+      .replace(layout === 'scissors' ? RAPID_SCISSORS_FALLBACK_RE : /$^/, 'making love')}.`,
     room,
     input.nude === false
       ? twoMen

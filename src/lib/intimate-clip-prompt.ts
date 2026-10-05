@@ -35,7 +35,9 @@ export function buildIntimateClipPrompt(
     .replace(
       /\b(?:sixty-?nine|69|face-?sit(?:ting)?(?:\s+a\s+partner)?|sitting\s+on\s+(?:his|her|their)\s+face)\b/gi,
       'oral sex'
-    );
+    )
+    // Scissors stills render as missionary (two men: kneeling) — don't ask the clip for scissoring.
+    .replace(/\bscissor(?:ing|ed|s)?(?:\s+(?:position|pose|style))?\b/gi, 'making love');
   const layout = parseIntimateLayout(beat);
   const solo = layout === 'solo';
   const ageLine =
@@ -121,7 +123,8 @@ function twoWomenMotion(layout: IntimateLayout | null, beat: string): string {
       // Face-sit and 69 are drawn as seated oral (Rapid cannot draw either).
       return 'slow, steady motion of the head at the hips; the other body stays still.';
     case 'scissors':
-      return 'their hips grind slowly together where their legs cross; both stay sitting, leaning back on their hands.';
+      // Rendered as their missionary recipe: side by side, her hand between her thighs.
+      return "her girlfriend's hand moves slowly between her thighs; both stay lying side by side.";
     case 'lift':
       return 'her girlfriend holds her up and moves her hips slowly; her legs stay wrapped around her.';
     case 'afterglow':
@@ -200,7 +203,8 @@ function layoutMotion(layout: IntimateLayout | null, beat = ''): string {
       // Drawn as seated oral (Rapid cannot draw a 69 or face-sitting): animate what is there.
       return 'slow, steady motion of the head at the hips; the other body stays still.';
     case 'scissors':
-      return 'their hips grind slowly together where their legs cross; both stay sitting, leaning back on their hands.';
+      // Rendered as missionary (rapid-duo-recipe.ts: Rapid can't draw scissoring).
+      return layoutMotion('missionary', beat);
     case 'lift':
       return 'he holds her up and thrusts slowly; her legs stay wrapped around his waist.';
     case 'kneeling':

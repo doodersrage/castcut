@@ -3583,52 +3583,6 @@ function allFoursFigures(): StickSkeleton[] {
   return [lead, rear];
 }
 
-/**
- * Scissors as the recipe says it: side view, both sitting on the bed facing each other, each
- * leaning back on straight arms planted behind, hips close, legs interlocked — each one's near
- * knee raised over the other's thigh, the far leg along the bed beneath.
- */
-function seatedScissorFigures(): StickSkeleton[] {
-  const left: StickSkeleton = {
-    facing: 'right',
-    head: point(0.25, 0.28),
-    neck: point(0.29, 0.36),
-    pelvis: point(0.4, 0.62),
-    lShoulder: point(0.27, 0.38),
-    rShoulder: point(0.32, 0.39),
-    lElbow: point(0.22, 0.5),
-    rElbow: point(0.26, 0.51),
-    lWrist: point(0.18, 0.63),
-    rWrist: point(0.21, 0.64),
-    lHip: point(0.38, 0.62),
-    rHip: point(0.42, 0.63),
-    // Near leg up and over the partner's thigh; far leg flat along the bed beneath theirs.
-    lKnee: point(0.52, 0.47),
-    rKnee: point(0.58, 0.67),
-    lAnkle: point(0.62, 0.62),
-    rAnkle: point(0.76, 0.7),
-  };
-  const right: StickSkeleton = {
-    facing: 'left',
-    head: point(0.75, 0.29),
-    neck: point(0.71, 0.37),
-    pelvis: point(0.6, 0.62),
-    lShoulder: point(0.68, 0.39),
-    rShoulder: point(0.73, 0.38),
-    lElbow: point(0.74, 0.51),
-    rElbow: point(0.78, 0.5),
-    lWrist: point(0.79, 0.64),
-    rWrist: point(0.82, 0.63),
-    lHip: point(0.58, 0.63),
-    rHip: point(0.62, 0.62),
-    lKnee: point(0.47, 0.51),
-    rKnee: point(0.42, 0.68),
-    lAnkle: point(0.38, 0.64),
-    rAnkle: point(0.24, 0.71),
-  };
-  return [left, right];
-}
-
 function seatedOralFigures(): StickSkeleton[] {
   const receiver: StickSkeleton = {
     facing: 'left',
@@ -4030,9 +3984,9 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   }
 
   if (layout === 'scissors') {
-    // The recipe seats them: "sit on the bed facing each other, each leaning back on their hands,
-    // their legs scissored together". The old map drew two lying bodies, so words and map fought.
-    return pairOrTrio(seatedScissorFigures());
+    // Rapid can't draw scissoring, so the recipe renders scissors as missionary
+    // (rapid-duo-recipe.ts) — draw that, so words and map agree.
+    return synthesizeIntimateStickFigures({ ...intent, intimate: 'missionary' });
   }
 
   if (layout === 'sixty_nine') {
