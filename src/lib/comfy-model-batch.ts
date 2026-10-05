@@ -166,6 +166,25 @@ export function frontQueueSubmissionOrder<T>(
   return [...runOrder].reverse();
 }
 
+/**
+ * Queue number base for the app's quick checks (DWPose, face distance): far below any `front`
+ * job (ComfyUI gives those `-counter`, a few thousand at most).
+ */
+const CHECK_QUEUE_BASE = -4e12;
+
+/**
+ * ComfyUI queue `number` for a quick check (a few seconds of work: DWPose, a face probe). ComfyUI
+ * runs the lowest number first and a `front` job gets `-counter`, so the NEWEST front job runs
+ * first — a check queued as `front` waited behind every render or Face finish queued after it
+ * (34–124 s on a Balanced Day). This number puts the check right after the job that is running
+ * now, ahead of every front job, and checks among themselves keep their order (it grows with
+ * time). Only for graphs that load no diffusion model — the wait it saves is never more than a
+ * few seconds of anyone else's.
+ */
+export function checkQueueNumber(now: number = Date.now()): number {
+  return CHECK_QUEUE_BASE + Math.max(0, Math.floor(now));
+}
+
 /** The app's own job still waiting in ComfyUI (not running yet). */
 export type AppPendingJob = { promptId: string; modelKey?: string | null };
 

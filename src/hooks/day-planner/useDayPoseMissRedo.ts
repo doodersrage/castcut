@@ -41,12 +41,22 @@ import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
  * or computer-made is redone once too, on a new seed ("Redone — looked computer-made"; a real-photo
  * line in the prompt changed nothing in replays, so none is added).
  * A still with no guide is rated alone (its only vision call).
+ *
+ * With `checks` (Balanced: Face finish waits for this check) the check runs on the take as it
+ * lands, not after Face finish, and reports each take it keeps (`onSettled`) — no redo is coming
+ * for it, so Face finish may start.
  */
 export function useDayPoseMissRedo(
   ctx: DayPlannerToolOrchestrationCore,
   faceFinish?: {
     holdsStill: (still: { imageUrl?: string; promptId?: string }) => boolean;
     tick: number;
+  },
+  checks?: {
+    /** This take's checks are done and it stays (no redo queued for it). */
+    onSettled: (slotId: string, take: string) => void;
+    /** The pose check can't run this session — nothing to wait for. */
+    onChecksOff: () => void;
   }
 ) {
   const { autoReviewStills, busy, mounted, queueBlockReason, queueSlot, redoPoseMisses } = ctx;
@@ -75,6 +85,8 @@ export function useDayPoseMissRedo(
   const checkedRef = useRef<Record<string, string>>({});
   const baselinedRef = useRef(false);
   const runningRef = useRef(false);
+  /** The take being checked right now. */
+  const inFlightRef = useRef<string | null>(null);
   /** Set once DWPose reports it is not installed — no pose checks this session. */
   const poseCheckOffRef = useRef<string | null>(null);
 
@@ -115,6 +127,24 @@ export function useDayPoseMissRedo(
     }
   }, [active, stills]);
 
+  // Takes this check will never look at (landed while it was off, or before Day mounted) are
+  // settled for Face finish at once; a take being checked or redone is not.
+  useEffect(() => {
+    if (!checks) return;
+    for (const still of stills) {
+      if (still.status !== 'completed' || !still.imageUrl) continue;
+      const take = poseRedoTakeId(still);
+      if (
+        take &&
+        checkedRef.current[still.slotId] === take &&
+        inFlightRef.current !== take &&
+        ledgerRef.current[still.slotId]?.missedTake !== take
+      ) {
+        checks.onSettled(still.slotId, take);
+      }
+    }
+  }, [checks, stills]);
+
   useEffect(() => {
     if (!active || !mounted || busy || queueBlockReason || runningRef.current) return;
     if (!baselinedRef.current || poseCheckOffRef.current) return;
@@ -134,9 +164,13 @@ export function useDayPoseMissRedo(
     const expectation = poseGuideExpectRef.current[target.id];
     // A hard pose with Best of two on is paired instead (useDayBestOfTwo) — never both.
     if (expectation && bestOfTwoHardPoses && isDayHardPose(expectation.poseKey)) {
+      checks?.onSettled(target.id, take);
       setTick(value => value + 1);
       return;
     }
+    /** Set when this take was queued again — then it never settles (it is replaced). */
+    let redone = false;
+    inFlightRef.current = take;
     const imageUrl = still.imageUrl;
     const checkUrl = comfyViewUrlForStill(still, loadComfyGallery()) ?? imageUrl;
     runningRef.current = true;
@@ -147,6 +181,7 @@ export function useDayPoseMissRedo(
       ledgerRef.current = { ...ledgerRef.current, [target.id]: { missedTake: take, reason } };
       setLedger(ledgerRef.current);
       setStatus(message);
+      redone = true;
       await queueSlot(target);
     };
 
@@ -180,6 +215,8 @@ export function useDayPoseMissRedo(
             `${target.label} check skipped (${error instanceof Error ? error.message : 'error'}).`
           );
         } finally {
+          if (!redone) checks?.onSettled(target.id, take);
+          inFlightRef.current = null;
           runningRef.current = false;
           setTick(value => value + 1);
         }
@@ -193,6 +230,7 @@ export function useDayPoseMissRedo(
         const detected = await detectStillPose(checkUrl);
         if (!detected.available) {
           poseCheckOffRef.current = detected.reason;
+          checks?.onChecksOff();
           setStatus(`Pose check off: ${detected.reason}`);
           return;
         }
@@ -291,6 +329,8 @@ export function useDayPoseMissRedo(
           `${target.label} pose check skipped (${error instanceof Error ? error.message : 'error'}).`
         );
       } finally {
+        if (!redone) checks?.onSettled(target.id, take);
+        inFlightRef.current = null;
         runningRef.current = false;
         setTick(value => value + 1);
       }
@@ -301,6 +341,7 @@ export function useDayPoseMissRedo(
     bestOfTwoHardPoses,
     redoPoseMisses,
     busy,
+    checks,
     faceFinish,
     leadNoun,
     mounted,

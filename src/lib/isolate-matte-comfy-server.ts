@@ -109,6 +109,7 @@ export async function comfyCastcutCutout(input: {
     {
       baseUrl,
       label: 'isolate-cutout',
+      priority: 'check',
       timeoutMs: input.timeoutMs ?? 60_000,
       prompt: buildCastcutCutoutGraph({ imageName, modelInput, modelName, fill: input.fill }),
       read: entry => {
@@ -178,7 +179,8 @@ export async function comfySubjectMask(input: {
   const run = await runComfyUtilityGraph<ComfyImageRef>({
     baseUrl,
     label: 'isolate-matte',
-    // Jumps the queue but still waits out a render in progress; past this, MODNet takes over.
+    priority: 'check',
+    // Runs right after the job in progress (ahead of queued renders); past this, MODNet takes over.
     timeoutMs: input.timeoutMs ?? 60_000,
     prompt: buildComfyMatteGraph({ imageName, modelInput, modelName }),
     read: entry => {

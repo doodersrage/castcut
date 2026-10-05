@@ -176,5 +176,115 @@ describe('Face finish on a two-person still', () => {
       assert.equal(graph[ids.x]!.class_type, 'PreviewAny');
     }
   });
-});
 
+  it('skips the pass when her face is already close, before anything heavy is queued', async () => {
+    const { decideFaceFinish } = await import('./face-finish');
+    const solo = (distance: number | null) => [
+      { x: 400, distance },
+      { x: 400, distance },
+    ];
+    // One person: the largest face decides.
+    assert.deepEqual(decideFaceFinish({ probe: solo(0.3), people: 1, skipWithin: 0.4 }), {
+      finish: false,
+      reason: 'close',
+      distance: 0.3,
+    });
+    assert.deepEqual(decideFaceFinish({ probe: solo(0.4), people: 1, skipWithin: 0.4 }), {
+      finish: false,
+      reason: 'close',
+      distance: 0.4,
+    });
+    assert.deepEqual(decideFaceFinish({ probe: solo(0.62), people: 1, skipWithin: 0.4 }), {
+      finish: true,
+      lead: null,
+      distance: 0.62,
+    });
+    // No face read (failed probe, or InsightFace's "no face" 100): still finish - the detailer's
+    // own detector may find the face.
+    for (const probe of [null, solo(null), solo(100)]) {
+      assert.equal(decideFaceFinish({ probe, people: 1, skipWithin: 0.4 }).finish, true);
+    }
+  });
+
+  it('two people: finishes only a lead it can tell apart, and only when she is not close', async () => {
+    const { decideFaceFinish } = await import('./face-finish');
+    const pair = (lead: number) => [
+      { x: 120, distance: lead },
+      { x: 540, distance: 0.9 },
+    ];
+    assert.deepEqual(decideFaceFinish({ probe: pair(0.62), people: 2, skipWithin: 0.4 }), {
+      finish: true,
+      lead: { side: 'leftmost', distance: 0.62 },
+      distance: 0.62,
+    });
+    assert.deepEqual(decideFaceFinish({ probe: pair(0.35), people: 2, skipWithin: 0.4 }), {
+      finish: false,
+      reason: 'close',
+      distance: 0.35,
+    });
+    // Can't tell who is who: left alone, whatever the distance.
+    const twins = [
+      { x: 120, distance: 0.7 },
+      { x: 540, distance: 0.72 },
+    ];
+    assert.deepEqual(decideFaceFinish({ probe: twins, people: 2, skipWithin: 0.4 }), {
+      finish: false,
+      reason: 'no-lead',
+      distance: null,
+    });
+    assert.equal(decideFaceFinish({ probe: null, people: 2, skipWithin: 0.4 }).finish, false);
+    // One face that is plausibly hers: the largest face is finished.
+    const sole = [
+      { x: 300, distance: 0.6 },
+      { x: 300, distance: 0.6 },
+    ];
+    assert.deepEqual(decideFaceFinish({ probe: sole, people: 2, skipWithin: 0.4 }), {
+      finish: true,
+      lead: { side: 'largest', distance: 0.6 },
+      distance: 0.6,
+    });
+    // The run never re-decides closeness (skipWithin -1).
+    assert.equal(decideFaceFinish({ probe: pair(0.1), people: 2, skipWithin: -1 }).finish, true);
+  });
+
+  it('leaves the still when the Cast face crop itself shows no face', async () => {
+    const { decideFaceFinish } = await import('./face-finish');
+    for (const people of [1, 2]) {
+      assert.deepEqual(
+        decideFaceFinish({ probe: null, people, skipWithin: 0.35, referenceHasFace: false }),
+        { finish: false, reason: 'no-reference', distance: null }
+      );
+    }
+    // Unknown (no probe ran) is not "no face": one person still finishes.
+    assert.equal(decideFaceFinish({ probe: null, people: 1, skipWithin: 0.35 }).finish, true);
+  });
+
+  it('keeps a finished face only when it came out closer to hers', async () => {
+    const { faceFinishKeeps } = await import('./face-finish');
+    assert.equal(faceFinishKeeps(0.62, 0.5), true);
+    assert.equal(faceFinishKeeps(0.62, 0.62), false);
+    assert.equal(faceFinishKeeps(0.3, 0.41), false);
+    // The face was lost in the pass (no face, InsightFace's 100): the original stays.
+    assert.equal(faceFinishKeeps(0.62, null), false);
+    assert.equal(faceFinishKeeps(0.62, 100), false);
+    // Not probed before: kept, as before this guard.
+    assert.equal(faceFinishKeeps(null, 0.9), true);
+  });
+
+  it('reads a probe handed back by the browser, and nothing else', async () => {
+    const { parseLeadFaceProbe } = await import('./face-finish');
+    assert.deepEqual(
+      parseLeadFaceProbe([
+        { x: 1, distance: 0.5 },
+        { x: 'a', distance: null },
+      ]),
+      [
+        { x: 1, distance: 0.5 },
+        { x: null, distance: null },
+      ]
+    );
+    for (const bad of [null, 'x', [], [1], [{}, {}, {}], { x: 1 }]) {
+      assert.equal(parseLeadFaceProbe(bad), null);
+    }
+  });
+});

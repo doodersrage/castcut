@@ -8,6 +8,7 @@
  */
 
 import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
+import { checkQueueNumber } from '@/lib/comfy-model-batch';
 import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
 import { deleteComfyUiHistoryItems } from '@/lib/comfyui-status';
@@ -27,8 +28,20 @@ export type ComfyImageRef = { filename: string; subfolder: string; type: string 
 
 export type ComfyHistoryEntry = {
   outputs?: Record<string, Record<string, unknown[] | undefined>>;
-  status?: { status_str?: string; completed?: boolean };
+  status?: {
+    status_str?: string;
+    completed?: boolean;
+    /** `[event, data]` pairs; an `execution_error` carries the node's exception message. */
+    messages?: Array<[string, { exception_message?: unknown } | undefined]>;
+  };
 };
+
+/** The exception message of a failed run, if ComfyUI recorded one. */
+export function comfyRunErrorMessage(entry: ComfyHistoryEntry): string {
+  const error = entry.status?.messages?.find(message => message?.[0] === 'execution_error');
+  const text = error?.[1]?.exception_message;
+  return typeof text === 'string' ? text.trim().slice(0, 200) : '';
+}
 
 const nodeCache = new Map<string, { node: string; info: ComfyNodeInfo; at: number } | null>();
 const NODE_CACHE_MS = 5 * 60 * 1000;
@@ -186,13 +199,23 @@ export async function runComfyUtilityGraph<T>(input: {
   label: string;
   read: (entry: ComfyHistoryEntry) => T | undefined;
   timeoutMs?: number;
+  /**
+   * `check`: a few seconds of work that loads no diffusion model (DWPose, a face probe) — it
+   * runs right after the current job, ahead of every front job (checkQueueNumber). Default
+   * `front`: ahead of pending renders, like the app's singles.
+   */
+  priority?: 'check' | 'front';
 }): Promise<{ result: T } | { result: undefined; completed: true }> {
   const { baseUrl, label } = input;
   const queued = await fetch(`${baseUrl}/prompt`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     // Jump pending renders: a check is a few seconds of work and should not wait for them.
-    body: JSON.stringify({ prompt: input.prompt, client_id: `castcut-${label}`, front: true }),
+    body: JSON.stringify({
+      prompt: input.prompt,
+      client_id: `castcut-${label}`,
+      ...(input.priority === 'check' ? { number: checkQueueNumber() } : { front: true }),
+    }),
     signal: AbortSignal.timeout(15000),
   });
   if (!queued.ok) {
@@ -215,7 +238,10 @@ export async function runComfyUtilityGraph<T>(input: {
       const entry = payload[promptId];
       if (!entry) continue;
       if (entry.status?.status_str === 'error') {
-        throw new Error(`${label} failed in ComfyUI — check the ComfyUI log.`);
+        const detail = comfyRunErrorMessage(entry);
+        throw new Error(
+          `${label} failed in ComfyUI — ${detail ? `${detail} (` : ''}check the ComfyUI log${detail ? ')' : ''}.`
+        );
       }
       const result = input.read(entry);
       if (result !== undefined) {

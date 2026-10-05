@@ -12,7 +12,8 @@ import {
 } from '@/lib/day-planner';
 import { resolveDayVacationFaceBreakPlate } from '@/lib/day-vacation-face-crop';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
-import { planStillFaceFinishModel, runStillFaceFinish } from '@/lib/face-finish-client';
+import { planStillFaceFinish, runStillFaceFinish } from '@/lib/face-finish-client';
+import { faceFinishAwaitsChecks, type DayChecksGate } from '@/lib/day-finish-order';
 import { waitForModelTurn } from '@/lib/comfy-model-turn';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
@@ -23,6 +24,11 @@ import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
  * (see face-finish.ts) and swap the finished image into the slot. One person in frame only —
  * the pass would give a partner her face. Runs one still at a time while the Day queue is idle,
  * and never overwrites a slot that was requeued or changed while the pass ran.
+ *
+ * Cheap work first: with `checksGate` (Balanced) a take waits until its pose check has settled
+ * (a take the check redoes is never finished), and every pass starts with a face probe — a face
+ * already close to the Cast face is left as it is (decideFaceFinish), before the pass is held
+ * for its model's turn or queued.
  */
 function stillKey(still: { imageUrl?: string; promptId?: string }): string {
   return still.promptId?.trim() || still.imageUrl?.trim() || '';
@@ -37,7 +43,10 @@ const FINISHER_LABEL = {
   rapid: 'Rapid AIO',
 } as const;
 
-export function useDayFaceFinish(ctx: DayPlannerToolOrchestrationCore) {
+export function useDayFaceFinish(
+  ctx: DayPlannerToolOrchestrationCore,
+  checksGate?: DayChecksGate | null
+) {
   const { busy, character, mounted, plate, shared, slots, stills, stillsRef } = ctx;
   const { poseGuideExpectRef, toolSettings, updateToolSettings } = ctx;
   const enabled = toolSettings.faceFinish === true;
@@ -88,7 +97,8 @@ export function useDayFaceFinish(ctx: DayPlannerToolOrchestrationCore) {
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
         !dayStillIsFaceFinished(still) &&
-        !handledRef.current.has(stillKey(still))
+        !handledRef.current.has(stillKey(still)) &&
+        !faceFinishAwaitsChecks(checksGate, slot.id, stillKey(still))
       );
     });
     const targetStill = target ? stills.find(entry => entry.slotId === target.id) : undefined;
@@ -133,10 +143,29 @@ export function useDayFaceFinish(ctx: DayPlannerToolOrchestrationCore) {
           );
           return;
         }
+        // Probe the faces first (a few seconds): a face already close to hers is left alone.
+        setStatus(`Face finish: checking ${target.label}'s face…`);
+        const plan = await planStillFaceFinish(comfyStillUrl, {
+          faceUrl,
+          ...(people === 2 ? { people } : {}),
+        });
+        if (plan.decision && !plan.decision.finish) {
+          const distance = plan.decision.distance;
+          setStatus(
+            plan.decision.reason === 'close'
+              ? `Face finish skipped on ${target.label} — her face is already close${
+                  distance !== null ? ` (distance ${distance.toFixed(2)})` : ''
+                }.`
+              : plan.decision.reason === 'no-reference'
+                ? `Face finish skipped on ${target.label} — the Cast face crop shows no face (try a plate where she faces the camera upright).`
+                : `Face finish skipped on ${target.label} — could not tell which face is the lead — the still is unchanged.`
+          );
+          return;
+        }
         // Model-aware queue: the pass jumps to the front of ComfyUI's queue, so on another model
         // it would run between this Day's waiting stills — a switch there and one back. Hold it
         // until the app's stills on the current model have run (capped so it is not held long).
-        const finishModel = await planStillFaceFinishModel(comfyStillUrl);
+        const finishModel = plan.modelKey;
         if (finishModel) {
           await waitForModelTurn({
             modelKey: finishModel,
@@ -153,6 +182,7 @@ export function useDayFaceFinish(ctx: DayPlannerToolOrchestrationCore) {
           imageUrl: comfyStillUrl,
           faceUrl,
           ...(people === 2 ? { people } : {}),
+          ...(plan.decision ? { probe: plan.probe ?? null } : {}),
         });
         if (!result.available) {
           setStatus(`Face finish skipped on ${target.label} — ${result.reason}`);
@@ -186,6 +216,7 @@ export function useDayFaceFinish(ctx: DayPlannerToolOrchestrationCore) {
   }, [
     busy,
     character,
+    checksGate,
     enabled,
     mounted,
     plate,

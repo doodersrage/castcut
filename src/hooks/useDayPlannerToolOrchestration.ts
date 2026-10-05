@@ -13,6 +13,12 @@ import { useDayEndPose } from '@/hooks/day-planner/useDayEndPose';
 import { useDayAdultGate } from '@/hooks/day-planner/useDayAdultGate';
 import { useDayOutfitScope } from '@/hooks/day-planner/useDayOutfitScope';
 import { applyCharacterRecordFresh } from '@/lib/character-os';
+import {
+  dayChecksRunBeforeFaceFinish,
+  settleDayTake,
+  type DayChecksGate,
+  type DaySettledTakes,
+} from '@/lib/day-finish-order';
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
@@ -34,7 +40,28 @@ import {
 export function useDayPlannerToolOrchestration() {
   const core = useDayPlannerToolOrchestrationCore();
   const part2 = useDayPlannerToolOrchestrationPart2(core);
-  const faceFinish = useDayFaceFinish(core);
+  // Balanced: the pose check runs on each take as it lands and Face finish waits for it — a
+  // take the check redoes is never face-finished (day-finish-order.ts).
+  const checksFirst = dayChecksRunBeforeFaceFinish({
+    faceFinish: core.toolSettings.faceFinish === true,
+    redoPoseMisses: core.redoPoseMisses,
+    autoReviewStills: core.autoReviewStills,
+  });
+  const [settledTakes, setSettledTakes] = useState<DaySettledTakes>({});
+  const [checksOff, setChecksOff] = useState(false);
+  const checksGate = useMemo<DayChecksGate | null>(
+    () => (checksFirst ? { settledTakes, checksOff } : null),
+    [checksFirst, checksOff, settledTakes]
+  );
+  const poseChecks = useMemo(
+    () => ({
+      onSettled: (slotId: string, take: string) =>
+        setSettledTakes(previous => settleDayTake(previous, slotId, take)),
+      onChecksOff: () => setChecksOff(true),
+    }),
+    []
+  );
+  const faceFinish = useDayFaceFinish(core, checksGate);
   const { holdsStillForFaceFinish, faceFinishTick } = faceFinish;
   const faceFinishHold = useMemo(
     () => ({ holdsStill: holdsStillForFaceFinish, tick: faceFinishTick }),
@@ -43,7 +70,11 @@ export function useDayPlannerToolOrchestration() {
   // Always on (not an Auto-review switch): adult stills are held until they read as adults.
   const adultGate = useDayAdultGate(core);
   const quality = useDaySlotQualityGate(core, faceFinishHold);
-  const poseRedo = useDayPoseMissRedo(core, faceFinishHold);
+  const poseRedo = useDayPoseMissRedo(
+    core,
+    checksFirst ? undefined : faceFinishHold,
+    checksFirst ? poseChecks : undefined
+  );
   const bestOfTwo = useDayBestOfTwo(core, faceFinishHold);
   const { poseMissViews: reviewPoseMissViews } = quality;
   const { poseRedoMissViews } = poseRedo;

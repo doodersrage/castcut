@@ -18,13 +18,16 @@ import {
   buildLeadFaceProbeGraph,
   FACE_FINISH_SAVE_NODE,
   LEAD_FACE_PROBE_NODES,
+  decideFaceFinish,
+  faceFinishKeeps,
+  FACE_FINISH_SKIP_DISTANCE,
   leadFaceDistance,
-  pickLeadFace,
   readStillCheckpoint,
   resolveFaceFinisher,
-  soleFaceIsLead,
   type FaceFinisher,
+  type FaceFinishProbeDecision,
   type LeadFaceProbe,
+  type LeadFaceSide,
 } from '@/lib/face-finish';
 import { normalizeModelKey } from '@/lib/comfy-model-batch';
 
@@ -32,12 +35,18 @@ export type FaceFinishResult =
   | { available: true; image: ComfyImageRef; finisher: FaceFinisher['kind'] }
   | { available: false; reason: string };
 
-/** Distance and x of the two largest faces in a staged image, against the Cast face crop. */
+/** The probe could not read a face in the Cast face crop itself (FaceEmbedDistance says so). */
+const NO_REFERENCE_FACE = 'no-reference-face' as const;
+
+/**
+ * Distance and x of the two largest faces in a staged image, against the Cast face crop. Null
+ * when no face was read; `no-reference-face` when the crop itself shows no face.
+ */
 async function probeLeadFace(
   baseUrl: string,
   stillName: string,
   faceName: string
-): Promise<LeadFaceProbe | null> {
+): Promise<LeadFaceProbe | null | typeof NO_REFERENCE_FACE> {
   const number = (entry: ComfyHistoryEntry, node: string): number | null => {
     const raw = (entry.outputs?.[node] as { text?: unknown[] } | undefined)?.text?.[0];
     try {
@@ -52,6 +61,7 @@ async function probeLeadFace(
     const run = await runComfyUtilityGraph({
       baseUrl,
       label: 'face-finish-probe',
+      priority: 'check',
       timeoutMs: 60_000,
       prompt: buildLeadFaceProbeGraph({ stillName, faceName }),
       read: entry =>
@@ -61,7 +71,12 @@ async function probeLeadFace(
         })),
     });
     return run.result ?? null;
-  } catch {
+  } catch (error) {
+    // The crop shows no face (a crop of hair off a lying plate): the pass would be conditioned
+    // on no face at all.
+    if (error instanceof Error && /no face detected in reference/i.test(error.message)) {
+      return NO_REFERENCE_FACE;
+    }
     // No face found, or the probe failed: treated as "cannot tell who is who".
     return null;
   }
@@ -107,26 +122,67 @@ async function resolveFinisherForStill(
   return { finisher };
 }
 
+/** The FaceAnalysis nodes the lead-face probe needs. */
+async function probeNodesInstalled(baseUrl: string): Promise<boolean> {
+  const nodes = await Promise.all(
+    ['FaceBoundingBox', 'FaceEmbedDistance', 'FaceAnalysisModels'].map(name =>
+      resolveComfyNode(baseUrl, [name])
+    )
+  );
+  return nodes.every(Boolean);
+}
+
 /**
  * Which finisher (and main model) a still would get, without running the pass — Day holds the
- * pass back while the app's stills on another model still wait (comfy-model-batch.ts).
+ * pass back while the app's stills on another model still wait (comfy-model-batch.ts). Given the
+ * Cast face crop it also probes the faces first (a check-priority job, a few seconds) and says
+ * whether the pass is worth running at all (decideFaceFinish).
  */
 export async function planFaceFinishInComfy(input: {
   imageUrl: string;
   comfyUrl?: string;
+  faceUrl?: string;
+  people?: number;
 }): Promise<
-  | { available: true; finisher: FaceFinisher['kind']; modelKey: string | null }
+  | {
+      available: true;
+      finisher: FaceFinisher['kind'];
+      modelKey: string | null;
+      /** The lead-face probe (null: no face read); absent when no probe ran. */
+      probe?: LeadFaceProbe | null;
+      decision?: FaceFinishProbeDecision;
+    }
   | { available: false; reason: string }
 > {
   const stillRef = parseComfyViewRef(input.imageUrl);
   if (!stillRef) return { available: false, reason: 'Still is not a ComfyUI image.' };
-  const resolved = await resolveFinisherForStill(comfyBaseUrl(input.comfyUrl), stillRef);
+  const baseUrl = comfyBaseUrl(input.comfyUrl);
+  const resolved = await resolveFinisherForStill(baseUrl, stillRef);
   if ('reason' in resolved) return { available: false, reason: resolved.reason };
   const { finisher } = resolved;
+  const modelKey =
+    normalizeModelKey('unet' in finisher ? finisher.unet : finisher.checkpoint) || null;
+  const faceRef = input.faceUrl ? parseComfyViewRef(input.faceUrl) : null;
+  if (!faceRef || !(await probeNodesInstalled(baseUrl))) {
+    return { available: true, finisher: finisher.kind, modelKey };
+  }
+  const [stillName, faceName] = await Promise.all([
+    stageComfyImageAsInput(baseUrl, stillRef, 'face-finish'),
+    stageComfyImageAsInput(baseUrl, faceRef, 'face-finish-ref'),
+  ]);
+  const probed = await probeLeadFace(baseUrl, stillName, faceName);
+  const probe = probed === NO_REFERENCE_FACE ? null : probed;
   return {
     available: true,
     finisher: finisher.kind,
-    modelKey: normalizeModelKey('unet' in finisher ? finisher.unet : finisher.checkpoint) || null,
+    modelKey,
+    probe,
+    decision: decideFaceFinish({
+      probe,
+      people: input.people ?? 1,
+      skipWithin: FACE_FINISH_SKIP_DISTANCE,
+      referenceHasFace: probed !== NO_REFERENCE_FACE,
+    }),
   };
 }
 
@@ -138,6 +194,8 @@ export async function runFaceFinishInComfy(input: {
   timeoutMs?: number;
   /** People in the still. Two: only the lead's face is finished, and only kept when closer. */
   people?: number;
+  /** The lead-face probe the plan already took on this still (two people: not probed again). */
+  probe?: LeadFaceProbe | null;
 }): Promise<FaceFinishResult> {
   const stillRef = parseComfyViewRef(input.imageUrl);
   const faceRef = parseComfyViewRef(input.faceUrl);
@@ -156,7 +214,7 @@ export async function runFaceFinishInComfy(input: {
   ]);
   // Two people: find which face is hers, finish only that one, and keep it only if it is closer.
   const duo = (input.people ?? 1) >= 2;
-  let lead: ReturnType<typeof pickLeadFace> = null;
+  let lead: { side: LeadFaceSide; distance: number } | null = null;
   if (duo) {
     const nodes = await Promise.all(
       [
@@ -175,14 +233,15 @@ export async function runFaceFinishInComfy(input: {
           'Face finish on a two-person still needs the ComfyUI FaceAnalysis nodes and Impact Pack.',
       };
     }
-    const probe = await probeLeadFace(baseUrl, stillName, faceName);
-    lead = probe ? pickLeadFace(probe) : null;
+    // The plan's probe when Day sent it — the same still is not probed twice.
+    const probed =
+      input.probe !== undefined ? input.probe : await probeLeadFace(baseUrl, stillName, faceName);
+    const probe = probed === NO_REFERENCE_FACE ? null : probed;
     // One visible face that is plausibly hers: still the one-face pass (the largest detected
     // face), never the all-faces detailer — its own detector may find a partner this probe
-    // missed, and would give them her face.
-    if (!lead && probe && soleFaceIsLead(probe)) {
-      lead = { side: 'largest', distance: probe[0]?.distance ?? 100 };
-    }
+    // missed, and would give them her face. Never skipped for closeness here (the plan does).
+    const decision = decideFaceFinish({ probe, people: 2, skipWithin: -1 });
+    lead = decision.finish ? decision.lead : null;
     if (!lead) {
       return {
         available: false,
@@ -211,7 +270,15 @@ export async function runFaceFinishInComfy(input: {
   if (!run.result) {
     return { available: false, reason: 'Face finish produced no image.' };
   }
-  if (lead) {
+  // Her face's distance before the pass: the lead's on two people; on one person the plan's probe
+  // (one person was always finished blind before — 18 of 61 of the user's solo passes came out
+  // further from her face, 7 of 10 that started under 0.35).
+  const before = lead
+    ? lead.distance
+    : input.probe
+      ? decideFaceFinish({ probe: input.probe, people: 1, skipWithin: -1 }).distance
+      : null;
+  if (before !== null) {
     const finished: ComfyImageRef = {
       filename: run.result.filename,
       subfolder: run.result.subfolder ?? '',
@@ -222,8 +289,11 @@ export async function runFaceFinishInComfy(input: {
       await stageComfyImageAsInput(baseUrl, finished, 'face-finish-check'),
       faceName
     );
-    const closest = (after ? leadFaceDistance(after, lead.side) : null) ?? 100;
-    if (!(closest < lead.distance)) {
+    const closest =
+      after && after !== NO_REFERENCE_FACE
+        ? leadFaceDistance(after, lead?.side ?? 'largest')
+        : null;
+    if (!faceFinishKeeps(before, closest)) {
       return {
         available: false,
         reason: 'the pass did not bring her face closer — the original still is kept.',

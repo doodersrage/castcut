@@ -68,6 +68,7 @@ export async function detectPoseInComfyStill(input: {
   const run = await runComfyUtilityGraph({
     baseUrl,
     label: 'pose-check',
+    priority: 'check',
     timeoutMs: input.timeoutMs,
     prompt: {
       '1': { class_type: 'LoadImage', inputs: { image: imageName } },
@@ -121,6 +122,7 @@ export async function detectPeopleInComfyStill(input: {
   const run = await runComfyUtilityGraph({
     baseUrl,
     label: 'pose-people',
+    priority: 'check',
     timeoutMs: input.timeoutMs,
     prompt: buildPersonReadGraph({
       imageName,

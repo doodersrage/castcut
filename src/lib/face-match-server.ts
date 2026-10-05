@@ -89,6 +89,7 @@ export async function measureFaceMatchInComfy(input: {
   const run = await runComfyUtilityGraph({
     baseUrl,
     label: 'face-check',
+    priority: 'check',
     timeoutMs: input.timeoutMs,
     prompt: {
       '1': { class_type: 'LoadImage', inputs: { image: referenceName } },

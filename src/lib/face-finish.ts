@@ -22,6 +22,16 @@ export const FACE_FINISH_DENOISE = 0.35;
  */
 export const FACE_FINISH_DUO_DENOISE = 0.5;
 
+/**
+ * A face already this close to the Cast face crop (InsightFace cosine distance, lead-face probe)
+ * is left as it is: the pass costs 40–80 s on a Day and does not help there. Scored on 97 of the
+ * user's past passes (2026-10-05, before / after against their own face crop): on one person,
+ * the 10 that started under 0.35 came out further 7 times (mean 0.16 → 0.21); above 0.5 the pass
+ * helped (0.83 → 0.78). Two people: 2 under 0.35, both a little closer (the lead pass is kept
+ * only when closer anyway).
+ */
+export const FACE_FINISH_SKIP_DISTANCE = 0.35;
+
 /** The lead must be this much closer to the Cast face than the other person to be told apart. */
 export const LEAD_FACE_MARGIN = 0.05;
 
@@ -328,6 +338,81 @@ export function leadFaceDistance(probe: LeadFaceProbe, side: LeadFaceSide): numb
   }
   const ordered = [...faces].sort((a, b) => a.x - b.x);
   return (side === 'leftmost' ? ordered[0] : ordered[ordered.length - 1])!.distance;
+}
+
+/** A lead-face probe sent back by the browser: null when it isn't one (then probed again). */
+export function parseLeadFaceProbe(value: unknown): LeadFaceProbe | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 2) return null;
+  const finite = (raw: unknown) => (typeof raw === 'number' && Number.isFinite(raw) ? raw : null);
+  const faces: LeadFaceProbe = [];
+  for (const face of value) {
+    if (!face || typeof face !== 'object') return null;
+    const { x, distance } = face as { x?: unknown; distance?: unknown };
+    faces.push({ x: finite(x), distance: finite(distance) });
+  }
+  return faces;
+}
+
+/** What Face finish does with a still, decided from its face probe before anything is queued. */
+export type FaceFinishProbeDecision =
+  | {
+      finish: true;
+      /** Two people: the face to finish. Null on a one-person still (the largest face). */
+      lead: { side: LeadFaceSide; distance: number } | null;
+      /** Her face's distance before the pass, when the probe read it. */
+      distance: number | null;
+    }
+  | { finish: false; reason: 'close' | 'no-lead' | 'no-reference'; distance: number | null };
+
+/**
+ * Finish or leave the still, from the lead-face probe (taken before the pass, so a skip costs a
+ * few seconds instead of a 40–80 s pass): a face already within `skipWithin` of the Cast face is
+ * left as it is; on two people, a still whose lead can't be told apart is left too (the pass
+ * could give the partner her face). A failed probe on one person still finishes — the detailer's
+ * own detector may find a face InsightFace missed.
+ */
+export function decideFaceFinish(input: {
+  probe: LeadFaceProbe | null;
+  people: number;
+  skipWithin: number;
+  /**
+   * False when the probe found no face in the Cast face crop itself (a top-of-plate crop of a
+   * lying plate is hair only): the pass would paint "the same woman as image 1" from no face —
+   * on the demo Cast it moved 3 of 4 faces further from her (0.76 → 0.85). Left alone.
+   */
+  referenceHasFace?: boolean;
+}): FaceFinishProbeDecision {
+  const { probe, skipWithin } = input;
+  if (input.referenceHasFace === false) {
+    return { finish: false, reason: 'no-reference', distance: null };
+  }
+  const duo = input.people >= 2;
+  let lead: { side: LeadFaceSide; distance: number } | null = null;
+  let distance: number | null = null;
+  if (duo) {
+    lead = probe ? pickLeadFace(probe) : null;
+    if (!lead && probe && soleFaceIsLead(probe)) {
+      lead = { side: 'largest', distance: probe[0]?.distance ?? 100 };
+    }
+    if (!lead) return { finish: false, reason: 'no-lead', distance: null };
+    distance = lead.distance;
+  } else {
+    const first = probe?.[0]?.distance;
+    distance = typeof first === 'number' && Number.isFinite(first) && first < 50 ? first : null;
+  }
+  if (distance !== null && distance <= skipWithin) {
+    return { finish: false, reason: 'close', distance };
+  }
+  return { finish: true, lead, distance };
+}
+
+/**
+ * Keep the finished still? Only when her face came out closer to the Cast face than before.
+ * No distance before (not probed): kept, as before. No face found after: the original stays.
+ */
+export function faceFinishKeeps(before: number | null, after: number | null): boolean {
+  if (before === null) return true;
+  return after !== null && Number.isFinite(after) && after < 50 && after < before;
 }
 
 export function buildFaceFinishGraph(input: {

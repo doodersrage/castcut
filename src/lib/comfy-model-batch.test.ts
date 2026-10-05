@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  checkQueueNumber,
   countModelSwitches,
   decideModelTurn,
   frontQueueSubmissionOrder,
@@ -192,3 +193,15 @@ describe('decideModelTurn', () => {
     );
   });
 });
+
+describe('checkQueueNumber', () => {
+  it('runs a quick check ahead of every front job, in the order checks were sent', () => {
+    const now = 1_791_170_000_000;
+    // ComfyUI gives a front job -counter (thousands at most); the lowest number runs first.
+    assert.ok(checkQueueNumber(now) < -1e9);
+    assert.ok(checkQueueNumber(now) < checkQueueNumber(now + 1));
+    assert.ok(checkQueueNumber(now + 3_600_000) < -1e9);
+    assert.ok(Number.isFinite(checkQueueNumber()));
+  });
+});
+

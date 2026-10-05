@@ -1,29 +1,60 @@
 'use client';
 
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import {
+  parseLeadFaceProbe,
+  type FaceFinishProbeDecision,
+  type LeadFaceProbe,
+} from '@/lib/face-finish';
 
 export type FaceFinishClientResult =
   | { available: true; imageUrl: string; finisher: 'qwen-edit' | 'klein-distilled' | 'rapid' }
   | { available: false; reason: string };
 
+export type FaceFinishClientPlan = {
+  /** Main model the pass would load, or null when unknown. */
+  modelKey: string | null;
+  /** The faces probed before the pass (handed back to the run); undefined when none ran. */
+  probe?: LeadFaceProbe | null;
+  /** Finish or leave the still (from the probe); undefined when no probe ran. */
+  decision?: FaceFinishProbeDecision;
+};
+
 /**
- * Browser: the main model the Face finish pass on this still would load (nothing is queued), or
- * null when unknown — for holding the pass while the app's stills on another model still wait.
+ * Browser: what the Face finish pass on this still would do, before anything heavy is queued —
+ * the main model it would load (for holding it while the app's stills on another model still
+ * wait) and, given the Cast face crop, the face probe and whether the face is already close
+ * enough to leave. Never rejects: unknown = an empty plan.
  */
-export async function planStillFaceFinishModel(imageUrl: string): Promise<string | null> {
+export async function planStillFaceFinish(
+  imageUrl: string,
+  options?: { faceUrl?: string; people?: number }
+): Promise<FaceFinishClientPlan> {
   try {
     const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
     const response = await fetch('/api/face-finish', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({ imageUrl, plan: true, ...(comfyUrl ? { comfyUrl } : {}) }),
+      body: JSON.stringify({
+        imageUrl,
+        plan: true,
+        ...(options?.faceUrl ? { faceUrl: options.faceUrl } : {}),
+        ...(options?.people ? { people: options.people } : {}),
+        ...(comfyUrl ? { comfyUrl } : {}),
+      }),
     });
-    if (!response.ok) return null;
-    const data = (await response.json().catch(() => ({}))) as { modelKey?: unknown };
-    return typeof data.modelKey === 'string' && data.modelKey ? data.modelKey : null;
+    if (!response.ok) return { modelKey: null };
+    const data = (await response.json().catch(() => ({}))) as {
+      modelKey?: unknown;
+      probe?: unknown;
+      decision?: FaceFinishProbeDecision;
+    };
+    const modelKey = typeof data.modelKey === 'string' && data.modelKey ? data.modelKey : null;
+    if (!data.decision || typeof data.decision.finish !== 'boolean') return { modelKey };
+    return { modelKey, probe: parseLeadFaceProbe(data.probe), decision: data.decision };
   } catch {
-    return null;
+    return { modelKey: null };
   }
 }
 
@@ -33,6 +64,8 @@ export async function runStillFaceFinish(input: {
   faceUrl: string;
   /** People in the still (2 = finish only the lead's face). */
   people?: number;
+  /** The plan's face probe — the pass doesn't probe the still again. */
+  probe?: LeadFaceProbe | null;
 }): Promise<FaceFinishClientResult> {
   const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
   const response = await fetch('/api/face-finish', {
