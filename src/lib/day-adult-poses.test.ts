@@ -328,4 +328,24 @@ describe('off-bed duo beats', () => {
     assert.equal(intimateBeatIsOffBed('doggy on the bed, knees on the sheets by the wall'), false);
     assert.equal(intimateBeatIsOffBed('on her back mid-sex, never against the wall'), false);
   });
+
+  it('seats scissors as the words say: both sitting, leaning back on their hands, hips close', () => {
+    const { figures } = synthesizeSceneStickFigures(
+      'scissoring on the bed in the lamp glow, legs interlocked with a partner — both adults fully visible',
+      0,
+      { forcePeople: 2 }
+    );
+    const [a, b] = figures;
+    assert.ok(a && b);
+    for (const fig of [a, b]) {
+      // Seated: hips well below the head and level with the bed, not a lying body.
+      assert.ok(fig.pelvis.y - fig.head.y > 0.25, 'upright enough to be sitting');
+      // Leaning back on hands: wrists behind the hips, down at the bed.
+      const behind = fig === a ? fig.lWrist.x < fig.pelvis.x : fig.lWrist.x > fig.pelvis.x;
+      assert.ok(behind && fig.lWrist.y > fig.pelvis.y - 0.02, 'hands planted behind');
+    }
+    assert.ok(Math.abs(a.pelvis.x - b.pelvis.x) < 0.3, 'hips close');
+    assert.ok(Math.abs(a.pelvis.y - b.pelvis.y) < 0.05, 'hips level');
+  });
 });
+

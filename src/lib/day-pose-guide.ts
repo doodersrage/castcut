@@ -3435,6 +3435,52 @@ function wallPressStandingFigures(): StickSkeleton[] {
  * kneel-up map under the recipe's "sits on the edge of the couch" read as two standing figures,
  * and Rapid laid the man upside down on his back under her (live 2026-10-03).
  */
+/**
+ * Scissors as the recipe says it: side view, both sitting on the bed facing each other, each
+ * leaning back on straight arms planted behind, hips close, legs interlocked — each one's near
+ * knee raised over the other's thigh, the far leg along the bed beneath.
+ */
+function seatedScissorFigures(): StickSkeleton[] {
+  const left: StickSkeleton = {
+    facing: 'right',
+    head: point(0.25, 0.28),
+    neck: point(0.29, 0.36),
+    pelvis: point(0.4, 0.62),
+    lShoulder: point(0.27, 0.38),
+    rShoulder: point(0.32, 0.39),
+    lElbow: point(0.22, 0.5),
+    rElbow: point(0.26, 0.51),
+    lWrist: point(0.18, 0.63),
+    rWrist: point(0.21, 0.64),
+    lHip: point(0.38, 0.62),
+    rHip: point(0.42, 0.63),
+    // Near leg up and over the partner's thigh; far leg flat along the bed beneath theirs.
+    lKnee: point(0.52, 0.47),
+    rKnee: point(0.58, 0.67),
+    lAnkle: point(0.62, 0.62),
+    rAnkle: point(0.76, 0.7),
+  };
+  const right: StickSkeleton = {
+    facing: 'left',
+    head: point(0.75, 0.29),
+    neck: point(0.71, 0.37),
+    pelvis: point(0.6, 0.62),
+    lShoulder: point(0.68, 0.39),
+    rShoulder: point(0.73, 0.38),
+    lElbow: point(0.74, 0.51),
+    rElbow: point(0.78, 0.5),
+    lWrist: point(0.79, 0.64),
+    rWrist: point(0.82, 0.63),
+    lHip: point(0.58, 0.63),
+    rHip: point(0.62, 0.62),
+    lKnee: point(0.47, 0.51),
+    rKnee: point(0.42, 0.68),
+    lAnkle: point(0.38, 0.64),
+    rAnkle: point(0.24, 0.71),
+  };
+  return [left, right];
+}
+
 function seatedOralFigures(): StickSkeleton[] {
   const receiver: StickSkeleton = {
     facing: 'left',
@@ -3699,19 +3745,6 @@ function synthesizeSoloMasturbationFigure(
   return plantSoloSelfTouchHands(body);
 }
 
-/** Dedicated intimate solo/duo/trio layouts — wireframe silhouettes only. */
-/** Thighs toward `dir`, one up and one down, shins continuing so the legs can cross. */
-function crossScissorLegs(fig: StickSkeleton, dir: 1 | -1): void {
-  const px = fig.pelvis.x;
-  const py = fig.pelvis.y;
-  fig.lHip = point(px, py - 0.045);
-  fig.rHip = point(px, py + 0.045);
-  fig.lKnee = point(px + 0.12 * dir, py - 0.13);
-  fig.rKnee = point(px + 0.12 * dir, py + 0.13);
-  fig.lAnkle = point(px + 0.24 * dir, py - 0.2);
-  fig.rAnkle = point(px + 0.24 * dir, py + 0.22);
-}
-
 /**
  * Rider kneels astride the partner's head with a real torso. Dropping a kneel's
  * pelvis onto its own neck made every limb many times the torso.
@@ -3891,15 +3924,9 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   }
 
   if (layout === 'scissors') {
-    // Hips adjacent, legs crossing between them. Overwriting only the ankles
-    // dropped them onto the knees (a shin of length zero).
-    const left = lyingFigure(seed, { cx: 0.36, cy: 0.42, facing: 1, salt: 40 });
-    let right = lyingFigure(seed, { cx: 0.68, cy: 0.56, facing: -1, salt: 90 });
-    crossScissorLegs(left, 1);
-    crossScissorLegs(right, -1);
-    // Crotch to crotch, just far enough that the separator leaves the legs crossed.
-    right = nestPelvis(right, left, 0.12, 0.16);
-    return pairOrTrio([left, right]);
+    // The recipe seats them: "sit on the bed facing each other, each leaning back on their hands,
+    // their legs scissored together". The old map drew two lying bodies, so words and map fought.
+    return pairOrTrio(seatedScissorFigures());
   }
 
   if (layout === 'sixty_nine') {
