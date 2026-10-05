@@ -47,7 +47,7 @@ function comfyViewUrl(filename: string, type: 'input' | 'output', comfyUrl?: str
   return `/api/comfyui/view?${params.toString()}`;
 }
 
-/** Fetch candidates for a photo that is already in Roleplay (cache, identity lock, or Comfy input). */
+/** Fetch candidates for an already-uploaded photo: its URL, then its ComfyUI file (identity lock only when no file is named). */
 export function collectIsolateSourceUrls(input: {
   imageUrl?: string;
   filename?: string;
@@ -62,11 +62,15 @@ export function collectIsolateSourceUrls(input: {
     urls.push(trimmed);
   };
   push(input.imageUrl);
-  push(IDENTITY_MEDIA_URL);
   const filename = input.filename?.trim();
   if (filename) {
     push(comfyViewUrl(filename, 'input', input.comfyUrl));
     push(comfyViewUrl(filename, 'output', input.comfyUrl));
+  } else {
+    // Roleplay's lead photo with only a (possibly revoked) blob URL: the stored identity photo.
+    // Never ahead of a named file — every filename-only caller (a Day partner's plate, a Cast
+    // face crop) got the identity-lock picture instead of its own file (user report 2026-10-05).
+    push(IDENTITY_MEDIA_URL);
   }
   return urls;
 }

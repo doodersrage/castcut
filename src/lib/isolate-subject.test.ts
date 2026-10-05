@@ -78,7 +78,7 @@ describe('isolate-subject', () => {
     assert.equal(normalizeIsolateSubject(0), false);
   });
 
-  it('collects identity and Comfy view URLs for an already-uploaded photo', () => {
+  it('collects the URL and Comfy view URLs for an already-uploaded photo — never the identity lock', () => {
     const urls = collectIsolateSourceUrls({
       imageUrl: 'blob:http://localhost/1',
       filename: 'sam.png',
@@ -86,9 +86,18 @@ describe('isolate-subject', () => {
     });
     assert.deepEqual(urls, [
       'blob:http://localhost/1',
-      '/api/gallery/media/identity',
       '/api/comfyui/view?filename=sam.png&subfolder=&type=input&comfyUrl=http%3A%2F%2F127.0.0.1%3A8188',
       '/api/comfyui/view?filename=sam.png&subfolder=&type=output&comfyUrl=http%3A%2F%2F127.0.0.1%3A8188',
+    ]);
+    // A Day partner's plate by filename alone loads that file, not the identity-lock picture.
+    assert.deepEqual(collectIsolateSourceUrls({ filename: 'cast-plate-prepared-1.png' }), [
+      '/api/comfyui/view?filename=cast-plate-prepared-1.png&subfolder=&type=input',
+      '/api/comfyui/view?filename=cast-plate-prepared-1.png&subfolder=&type=output',
+    ]);
+    // No file named (Roleplay's lead photo behind a blob URL): the stored identity photo.
+    assert.deepEqual(collectIsolateSourceUrls({ imageUrl: 'blob:http://localhost/2' }), [
+      'blob:http://localhost/2',
+      '/api/gallery/media/identity',
     ]);
   });
 
