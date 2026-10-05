@@ -170,6 +170,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     keepPreviousTake,
     dropPreviousTake,
     pickTwoTake,
+    looksWrongSlot,
     plateUploading,
     plateUploadError,
     hideStickyCutCoach,
@@ -868,6 +869,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             poseRedoMarks={poseRedoMarks}
             clipChecks={clipChecks}
             onPickTwoTake={pickTwoTake}
+            onLooksWrong={slot => void looksWrongSlot(slot.id)}
           />
           {/* One primary per phase: Queue day → Animate all → Cut (the banner) → Save. */}
           <ToolActionRow className="mt-3">

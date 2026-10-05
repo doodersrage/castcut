@@ -272,3 +272,33 @@ describe('Day slot hint', () => {
     assert.equal(hint?.better, 'qwen-edit-2511');
   });
 });
+
+describe('looks wrong', () => {
+  it('counts as bad for the layout × engine, and the redo it triggers does not move it', () => {
+    let stats = queued(emptyPoseOutcomeStats(), 'w1', 'missionary:2');
+    stats = withPoseTakeOutcome(stats, 'w1', 'looks-wrong', { device: 'a' });
+    assert.deepEqual(poseOutcomeCounts(stats, 'missionary', 'rapid-aio'), { good: 0, bad: 1 });
+    // The redo replaces the take: still one bad, still counted as looks wrong.
+    stats = queued(stats, 'w2', 'missionary:2', RAPID, 'w1');
+    assert.deepEqual(poseOutcomeCounts(stats, 'missionary', 'rapid-aio'), { good: 0, bad: 1 });
+    assert.equal(stats.takes?.w1?.o, 'looks-wrong');
+    // A keeper later (the player changed their mind) still outranks it.
+    stats = withPoseTakeOutcome(stats, 'w1', 'keeper', { device: 'a' });
+    assert.deepEqual(poseOutcomeCounts(stats, 'missionary', 'rapid-aio'), { good: 1, bad: 0 });
+  });
+
+  it('feeds the learned weak layouts and the Day hint', () => {
+    const stats = judged(emptyPoseOutcomeStats(), 3, 'looks-wrong', 'straddle:2');
+    assert.ok(learnedWeakPoseLayouts(RAPID, stats).has('straddle'));
+    const hint = poseEngineHint({ poseKey: 'straddle:2', model: RAPID, stats });
+    assert.equal(hint?.engine, 'rapid-aio');
+    // Another engine's takes are untouched.
+    assert.equal(learnedWeakPoseLayouts(EDIT, stats).has('straddle'), false);
+  });
+
+  it('survives normalization as an outcome', () => {
+    const stats = judged(emptyPoseOutcomeStats(), 1, 'looks-wrong', 'spoon:2');
+    const id = Object.keys(stats.takes ?? {})[0]!;
+    assert.equal(normalizePoseOutcomeStats(stats).takes?.[id]?.o, 'looks-wrong');
+  });
+});

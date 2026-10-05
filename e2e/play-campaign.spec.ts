@@ -3182,6 +3182,129 @@ test('two takes for intimate stills: the switch, both takes on the card, pick on
   );
 });
 
+/**
+ * Stub ComfyUI for a Day queue: every queued job gets the next prompt id, uploads are accepted,
+ * pictures come back as a 1×1 PNG and object_info is unavailable (plain graphs). Returns the
+ * queued job bodies.
+ */
+async function stubComfyQueue(page: Page, ids: string[]) {
+  const queued: Array<Record<string, unknown>> = [];
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64'
+  );
+  // The context, not the page: some fetches (an upload's image read) come from a worker.
+  await page.context().route(/\/api\/comfyui(?:\/|\?|$)/, async route => {
+    const request = route.request();
+    let path = request.url();
+    try {
+      path = new URL(request.url()).pathname.replace(/\/$/, '');
+    } catch {
+      // keep the raw url
+    }
+    if (request.method() === 'POST' && path === '/api/comfyui') {
+      const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
+      queued.push(body);
+      const promptId = ids[queued.length - 1] ?? `e2e-job-${queued.length}`;
+      await route.fulfill({
+        json: { ok: true, promptId, comfyUrl: 'http://127.0.0.1:8188' },
+      });
+      return;
+    }
+    if (path === '/api/comfyui/upload') {
+      await route.fulfill({ json: { name: `e2e-upload-${Date.now()}.png`, subfolder: '', type: 'input' } });
+      return;
+    }
+    if (path.startsWith('/api/comfyui/view')) {
+      await route.fulfill({ status: 200, contentType: 'image/png', body: png });
+      return;
+    }
+    if (path === '/api/comfyui/preview') {
+      await route.fulfill({
+        json: {
+          ok: true,
+          workflowSource: 'minimal',
+          replacements: { positive: 1, negative: 0, params: {} },
+          workflowJson: JSON.stringify({
+            '1': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: 'model.safetensors' } },
+          }),
+        },
+      });
+      return;
+    }
+    if (path.startsWith('/api/comfyui/object-info')) {
+      await route.fulfill({ status: 502, json: { error: 'e2e: no ComfyUI' } });
+      return;
+    }
+    await route.continue();
+  });
+  return queued;
+}
+
+test('Looks wrong on a Day card redoes the slot on a new seed and notes why', async ({ page }) => {
+  const stillPng =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  const queued = await stubComfyQueue(page, ['e2e-looks-wrong-redo']);
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-looks-wrong' },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-looks-wrong',
+          name: 'Looks Wrong',
+          version: 1,
+          updatedAt: Date.now(),
+          descriptor: 'a woman',
+          traits: { sex: 'woman' },
+          ipAdapter: { imageFilename: 'e2e-looks-wrong.png', imageUrl: '/icon.svg' },
+        },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        activeSlotId: 'morning',
+        stillsCharacterId: 'e2e-looks-wrong',
+        isolateSubject: false,
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'making coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reading' },
+          { id: 'evening', label: 'Evening', location: 'market', sceneHints: 'apples' },
+          { id: 'night', label: 'Night', location: 'home', sceneHints: 'cooking' },
+        ],
+        stills: [
+          {
+            slotId: 'morning',
+            status: 'completed',
+            promptId: 'e2e-looked-wrong-take',
+            imageUrl: stillPng,
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  const card = page.getByTestId('day-progress-morning');
+  await expect(card).toHaveAttribute('data-state', 'done', { timeout: 30_000 });
+  await expect(page.getByTestId('day-progress-redone-morning')).toHaveCount(0);
+
+  await page.getByTestId('day-progress-menu-morning').click();
+  const looksWrong = page.getByTestId('day-progress-looks-wrong-morning');
+  await expect(looksWrong).toBeVisible();
+  await looksWrong.click();
+
+  // The slot is queued again (a plain new-seed take: one job, no seed pinned on it).
+  await expect.poll(() => queued.length, { timeout: 30_000 }).toBe(1);
+  // The card notes why, and now waits for the redo.
+  await expect(page.getByTestId('day-progress-redone-morning')).toHaveText(
+    'Redone — looked wrong',
+    { timeout: 30_000 }
+  );
+  await expect(card).toHaveAttribute('data-state', 'queued');
+});
+
 test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async ({ page }) => {
   const tinyPng =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

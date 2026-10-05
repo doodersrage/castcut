@@ -29,6 +29,7 @@ import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { daySlotJobProgress, type DaySlotJobEntry } from '@/lib/day-slot-progress';
 import { getGalleryCache } from '@/lib/gallery-db-store';
 import { dayTwoTakesPending, dayTwoTakesReady } from '@/lib/day-two-takes';
+import { dayLooksWrongMark } from '@/lib/day-looks-wrong';
 import { DayTwoTakesPick } from '@/components/day-planner/DaySameSeedRedo';
 
 export type DaySlotBoardProps = {
@@ -56,6 +57,8 @@ export type DaySlotBoardProps = {
   clipChecks?: Record<string, ClipCheck>;
   /** Two takes (intimate stills): the player keeps the first or the second. */
   onPickTwoTake?: (slotId: DaySlotId, keep: 'first' | 'second') => void;
+  /** ⋯ → Looks wrong: a bad outcome for the pose, and the slot again on a new seed. */
+  onLooksWrong?: (slot: DaySlot) => void;
 };
 
 const NO_GALLERY: ComfyGalleryEntry[] = [];
@@ -89,6 +92,7 @@ export default function DaySlotBoard({
   poseRedoMarks,
   clipChecks,
   onPickTwoTake,
+  onLooksWrong,
 }: DaySlotBoardProps) {
   const promptKey = useMemo(
     () =>
@@ -194,6 +198,7 @@ export default function DaySlotBoard({
         const canQueue = state === 'idle' && Boolean(onQueueSlot) && !queueBlocked;
         const reviewBadge = qualityLedger ? slotQualityBadge(qualityLedger, slot.id) : null;
         const poseRedoMark = poseRedoMarks?.[slot.id];
+        const looksWrongMark = dayLooksWrongMark(still);
         const clipCheck = clipChecks?.[slot.id];
         const clipNote = clipCheckLabel(clipCheck);
         const edit = () => {
@@ -239,6 +244,21 @@ export default function DaySlotBoard({
                 }}
               >
                 Requeue · new seed
+              </button>
+            ) : null}
+            {canRequeue && onLooksWrong ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy}
+                title="Merged bodies, a mixed-up pose, something off: redo this slot on a new seed, and remember that this pose went wrong on this engine."
+                data-testid={`day-progress-looks-wrong-${slot.id}`}
+                onClick={() => {
+                  onSelectSlot(slot.id);
+                  onLooksWrong(slot);
+                }}
+              >
+                Looks wrong · redo
               </button>
             ) : null}
             {state === 'failed' && onRetrySlot ? (
@@ -506,6 +526,14 @@ export default function DaySlotBoard({
                     data-testid={`day-progress-pose-redo-${slot.id}`}
                   >
                     {poseRedoMark}
+                  </p>
+                ) : null}
+                {looksWrongMark ? (
+                  <p
+                    className="type-overline mt-1 text-[var(--text-muted)]"
+                    data-testid={`day-progress-redone-${slot.id}`}
+                  >
+                    {looksWrongMark}
                   </p>
                 ) : null}
                 {clipNote ? (

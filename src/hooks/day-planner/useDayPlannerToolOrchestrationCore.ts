@@ -967,6 +967,11 @@ export function useDayPlannerToolOrchestrationCore() {
          */
         keepTake?: DaySlotStill['previousTake'];
         /**
+         * The player said the last take looked wrong (⋯ → Looks wrong): a new seed (never a
+         * remembered one), and the card notes why it was redone.
+         */
+        looksWrong?: boolean;
+        /**
          * The adult-appearance gate withheld the last take: this one says the ages more
          * strongly (adult-age-safeguard.ts), and a second withheld take stops there.
          */
@@ -2171,6 +2176,7 @@ export function useDayPlannerToolOrchestrationCore() {
           bestOfTwo: undefined,
           bestOfTwoJob: castcutPoseGuide ? true : undefined,
           twoTakes: secondPromptId ? { promptId: secondPromptId, status: 'queued' } : undefined,
+          redoReason: options?.looksWrong && promptId ? 'looks-wrong' : undefined,
           adultHold: undefined,
           adultGated: adultSafeguards ? true : undefined,
           engineNote: poseEngineSwap?.reason,

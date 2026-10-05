@@ -8,7 +8,8 @@
  * - good: marked a keeper in the Gallery (favorite / 4★+), chosen in a pair ("Keep the old take",
  *   the closer Best-of-two take), passed the pose check;
  * - bad: redone with the same pose on the same engine (Requeue, same-seed redo, Redo pose,
- *   Auto-review reroll), lost a pair, deleted from the Gallery, missed the pose check.
+ *   Auto-review reroll), lost a pair, deleted from the Gallery, missed the pose check, or
+ *   marked "Looks wrong" on its Day card (the player's own verdict, as strong as a delete).
  *
  * A take counts once: a stronger signal replaces a weaker one (a keeper outranks a pose miss),
  * so a take that missed the check and was then starred moves from bad to good.
@@ -43,7 +44,7 @@ export const POSE_OUTCOME_ENGINE_LABELS: Record<PoseOutcomeEngine, string> = {
 };
 
 export type PoseOutcome =
-  'keeper' | 'kept' | 'pose-pass' | 'pose-miss' | 'redone' | 'replaced' | 'deleted';
+  'keeper' | 'kept' | 'pose-pass' | 'pose-miss' | 'redone' | 'replaced' | 'deleted' | 'looks-wrong';
 
 const OUTCOME_GOOD: Record<PoseOutcome, boolean> = {
   keeper: true,
@@ -53,6 +54,7 @@ const OUTCOME_GOOD: Record<PoseOutcome, boolean> = {
   redone: false,
   replaced: false,
   deleted: false,
+  'looks-wrong': false,
 };
 
 /** A take's counted outcome is replaced only by one at least this strong. */
@@ -63,6 +65,7 @@ const OUTCOME_RANK: Record<PoseOutcome, number> = {
   kept: 3,
   replaced: 3,
   deleted: 4,
+  'looks-wrong': 4,
   keeper: 5,
 };
 

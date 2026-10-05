@@ -22,7 +22,8 @@ import {
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import { notePoseTakePair } from '@/lib/pose-outcome-stats';
+import { notePoseTakeOutcomes, notePoseTakePair } from '@/lib/pose-outcome-stats';
+import { dayLooksWrongAvailable, dayLooksWrongTakeIds } from '@/lib/day-looks-wrong';
 import { dayTwoTakesMark, dayTwoTakesPickPatch, dayTwoTakesSwapPatch } from '@/lib/day-two-takes';
 import {
   dayStillsCachePatch,
@@ -240,6 +241,19 @@ export function useDayPlannerToolOrchestration() {
     [activeCharacterId, stillsRef, updateToolSettings]
   );
 
+  // Looks wrong: the player's verdict on a landed still — a bad outcome for its pose × engine,
+  // then the slot again on a new seed (day-looks-wrong.ts).
+  const looksWrongSlot = useCallback(
+    async (slotId: DaySlotId) => {
+      const slot = slots.find(entry => entry.id === slotId);
+      const shown = stillsRef.current.find(entry => entry.slotId === slotId);
+      if (!slot || !dayLooksWrongAvailable(shown)) return;
+      notePoseTakeOutcomes(dayLooksWrongTakeIds(shown), 'looks-wrong');
+      await queueSlot(slot, { looksWrong: true });
+    },
+    [queueSlot, slots, stillsRef]
+  );
+
   // Two takes: the player tapped the one to keep; the other stays as the alternate.
   const pickTwoTake = useCallback(
     (slotId: DaySlotId, keep: 'first' | 'second') => {
@@ -292,5 +306,6 @@ export function useDayPlannerToolOrchestration() {
     keepPreviousTake,
     dropPreviousTake,
     pickTwoTake,
+    looksWrongSlot,
   };
 }

@@ -18,6 +18,9 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
   shows it; the slot sheet shows the other beside it and *Use the other take* swaps them (and back).
   ComfyUI's queue holds each slot's two jobs one after the other. With the switch off nothing
   changes; Everyday / Suggestive Days never show the switch.
+- [ ] **Looks wrong** — on any finished Day card, ⋯ → *Looks wrong · redo*: the slot queues again on a
+  new seed and the card says *Redone — looked wrong*. Do it three times on one intimate layout on
+  one engine: the slot sheet's pose hint says that pose usually needs a second try there.
 
 ---
 

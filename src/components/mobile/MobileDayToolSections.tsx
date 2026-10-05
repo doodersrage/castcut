@@ -161,6 +161,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     keepPreviousTake,
     dropPreviousTake,
     pickTwoTake,
+    looksWrongSlot,
     plateUploading,
     plateUploadError,
     hideStickyCutCoach,
@@ -814,6 +815,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           poseRedoMarks={poseRedoMarks}
           clipChecks={clipChecks}
           onPickTwoTake={pickTwoTake}
+          onLooksWrong={slot => void looksWrongSlot(slot.id)}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton

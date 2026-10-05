@@ -408,6 +408,8 @@ export type DaySlotStill = {
    * with a new seed. While it is set the player has not picked yet; both side by side on the card.
    */
   twoTakes?: DayTwoTake;
+  /** Why this take was queued again: the player said the last one looked wrong (⋯ → Looks wrong). */
+  redoReason?: 'looks-wrong';
   /** Best of two for hard poses: both takes landed and this one read closer to the guide. */
   bestOfTwo?: { keptScore: number; otherScore: number };
   /**
@@ -4288,6 +4290,7 @@ export function normalizeDaySlotStills(
       ...withEndPose(still.endPose),
       ...readBestOfTwo(still.bestOfTwo),
       ...readTwoTakes(still.twoTakes),
+      ...(still.redoReason === 'looks-wrong' ? { redoReason: 'looks-wrong' as const } : {}),
       ...(still.bestOfTwoJob === true ? { bestOfTwoJob: true } : {}),
       ...(still.adultHold === 'checking' || still.adultHold === 'withheld'
         ? { adultHold: still.adultHold }
