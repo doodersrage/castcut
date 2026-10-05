@@ -151,4 +151,24 @@ describe("withLlmSlot", () => {
     );
     assert.equal(ran, false);
   });
+
+  it("waits for a slot to free up when asked to, then runs", async () => {
+    const releaseA = acquireLlmSlot();
+    acquireLlmSlot();
+    setTimeout(releaseA, 300);
+    let ran = false;
+    await withLlmSlot(
+      async () => {
+        ran = true;
+      },
+      { waitMs: 5000 },
+    );
+    assert.equal(ran, true);
+  });
+
+  it("still fails busy once the wait runs out", async () => {
+    acquireLlmSlot();
+    acquireLlmSlot();
+    await assert.rejects(withLlmSlot(async () => undefined, { waitMs: 300 }), LlmBusyError);
+  });
 });

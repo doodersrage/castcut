@@ -349,6 +349,9 @@ function clarifyRoleplaySceneBlurbs(scenes: RoleplayScene[], adult: boolean): Ro
   }));
 }
 
+/** How long Story's writers wait for a busy LLM before using the built-in text. */
+const ROLEPLAY_LLM_SLOT_WAIT_MS = 90_000;
+
 async function llmJson(options: {
   system: string;
   user: string;
@@ -369,12 +372,19 @@ async function llmJson(options: {
       temperature: options.temperature,
       model: resolveRequestLlmModel(options.llm),
       endpoint: resolveRequestLlmEndpoint(options.llm),
+      // A busy slot (the last still's checks, the still writer) is not a reason for the
+      // built-in cards: wait for it.
+      waitForSlotMs: ROLEPLAY_LLM_SLOT_WAIT_MS,
     });
     return stripPromptArtifacts(content).trim() || content.trim();
   } catch (error) {
     if (!resolveRequestTemplateFallback(options.llm)) {
       throw error;
     }
+    console.warn(
+      '[roleplay] LLM failed, using the built-in text:',
+      error instanceof Error ? error.message : error
+    );
     return null;
   }
 }
@@ -745,6 +755,7 @@ ${
     llmEnabled: options.llm?.llmEnabled,
     llmProvider: options.llm?.llmProvider,
     llmApiKey: options.llm?.llmApiKey,
+    waitForSlotMs: ROLEPLAY_LLM_SLOT_WAIT_MS,
     templateFallback: () =>
       adultStill(
         templatePromptFallback(

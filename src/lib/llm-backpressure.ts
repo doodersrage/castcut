@@ -57,8 +57,30 @@ export function acquireLlmSlot(): () => void {
   };
 }
 
-export async function withLlmSlot<T>(fn: () => Promise<T>): Promise<T> {
-  const release = acquireLlmSlot();
+/** How often a waiting caller looks for a free slot. */
+const SLOT_POLL_MS = 250;
+
+/**
+ * Reserves a slot, waiting up to `maxWaitMs` for one to free up before throwing
+ * `LlmBusyError`. For work that has no useful answer without the model — Story's scene and still
+ * writers fell back to their built-in cards whenever a still's checks held both slots
+ * (2026-10-05: several rolls in a row on a two-slot server).
+ */
+export async function acquireLlmSlotWaiting(maxWaitMs: number): Promise<() => void> {
+  const deadline = Date.now() + Math.max(0, maxWaitMs);
+  for (;;) {
+    if (!isLlmBusy() || Date.now() >= deadline) {
+      return acquireLlmSlot();
+    }
+    await new Promise(resolve => setTimeout(resolve, SLOT_POLL_MS));
+  }
+}
+
+export async function withLlmSlot<T>(
+  fn: () => Promise<T>,
+  options?: { waitMs?: number }
+): Promise<T> {
+  const release = options?.waitMs ? await acquireLlmSlotWaiting(options.waitMs) : acquireLlmSlot();
   try {
     return await fn();
   } finally {

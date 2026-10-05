@@ -973,8 +973,12 @@ export async function chatCompletion(options: {
   extraBody?: Record<string, unknown>;
   usageContext?: LlmUsageContext;
   endpoint?: LlmEndpointOverride;
+  /** Wait up to this long for a free slot instead of failing busy at once (background work). */
+  waitForSlotMs?: number;
 }): Promise<string> {
-  return withLlmSlot(() => chatCompletionUnthrottled(options));
+  return withLlmSlot(() => chatCompletionUnthrottled(options), {
+    waitMs: options.waitForSlotMs,
+  });
 }
 
 async function chatCompletionUnthrottled(options: {

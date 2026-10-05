@@ -56,6 +56,8 @@ export async function runSpecializedPrompt(options: {
   toolInstructions: string;
   userMessage: string;
   templateFallback: () => string | Promise<string>;
+  /** Wait this long for a busy LLM slot before the template fallback (default: fail at once). */
+  waitForSlotMs?: number;
   /**
    * Context for sanitize/pad/sparse-expand. Must be user hints only — never
    * rolled location/wardrobe ingredient seeds (those leak into the optimized prompt).
@@ -113,6 +115,7 @@ Output ONLY the raw prompt text. No quotes around the whole prompt, labels, mark
           llmProvider: options.llmProvider,
           llmApiKey: options.llmApiKey,
         }),
+        ...(options.waitForSlotMs ? { waitForSlotMs: options.waitForSlotMs } : {}),
       });
 
       const rawPrompt = stripPromptArtifacts(content).trim() || content.trim();
