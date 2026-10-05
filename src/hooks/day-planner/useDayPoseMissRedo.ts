@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
 import { isDayHardPose } from '@/lib/day-best-of-two';
 import {
   notePoseRedoTake,
@@ -162,8 +163,14 @@ export function useDayPoseMissRedo(
     const take = poseRedoTakeId(still);
     checkedRef.current[target.id] = take;
     const expectation = poseGuideExpectRef.current[target.id];
-    // A hard pose with Best of two on is paired instead (useDayBestOfTwo) — never both.
-    if (expectation && bestOfTwoHardPoses && isDayHardPose(expectation.poseKey)) {
+    // Two-person intimate stills are never redone automatically: those engines take the pose
+    // from the words, and the checks can't judge them (DWPose merges the two bodies on ~40%;
+    // the best defect check caught 28% at 19% false alarms) — a redrawn guide only raised the
+    // false "missed the pose" redos. The player's "Looks wrong" / Two takes handle them.
+    const stillPrompt =
+      loadComfyGallery().find(entry => entry.promptId === still.promptId)?.prompt ?? '';
+    const intimateDuo = isIntimateDuoStillPrompt(stillPrompt);
+    if (intimateDuo || (expectation && bestOfTwoHardPoses && isDayHardPose(expectation.poseKey))) {
       checks?.onSettled(target.id, take);
       setTick(value => value + 1);
       return;

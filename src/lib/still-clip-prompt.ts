@@ -1,3 +1,5 @@
+import { isAdultContentPrompt } from './adult-age-safeguard';
+import { RAPID_DUO_RECIPE_MARK } from './rapid-duo-recipe-mark';
 import { stripStillPromptForClip } from './clip-prompt-from-still';
 
 const TWO_PEOPLE_STILL_RE =
@@ -6,6 +8,19 @@ const TWO_PEOPLE_STILL_RE =
 /** People in a Day still, read from its own prompt (a companion / partner beat = 2). */
 export function stillPromptPeople(stillPrompt: string | null | undefined): 1 | 2 {
   return TWO_PEOPLE_STILL_RE.test(String(stillPrompt ?? '')) ? 2 : 1;
+}
+
+/**
+ * A two-person intimate still (the Rapid duo recipe, or adult wording with two people). The pose
+ * checks can't judge these — DWPose merges the two bodies on ~40%, and the best defect check
+ * caught 28% at 19% false alarms — so Day never redoes them automatically for the pose.
+ */
+export function isIntimateDuoStillPrompt(stillPrompt: string | null | undefined): boolean {
+  const text = String(stillPrompt ?? '');
+  return (
+    text.includes(RAPID_DUO_RECIPE_MARK) ||
+    (isAdultContentPrompt(text) && stillPromptPeople(text) === 2)
+  );
 }
 
 /**

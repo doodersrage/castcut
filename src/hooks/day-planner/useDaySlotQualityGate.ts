@@ -40,6 +40,7 @@ import {
 } from '@/lib/play-slot-quality';
 import { buildFaceComparePair } from '@/lib/play-face-compare';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
 import {
   buildPoseMissView,
@@ -202,7 +203,12 @@ export function useDaySlotQualityGate(
         let poseNote = '';
         let detectedPeople: NormalizedBody[] = [];
         let detectedAspect = 1;
-        if (expectation && !poseCheckOffRef.current) {
+        // Two-person intimate stills: no pose check (see useDayPoseMissRedo — it can't judge them
+        // and only caused false rerolls); the face and vision review still run.
+        const stillPrompt =
+          loadComfyGallery().find(entry => entry.promptId === targetStill.promptId)?.prompt ?? '';
+        const intimateDuo = isIntimateDuoStillPrompt(stillPrompt);
+        if (expectation && !poseCheckOffRef.current && !intimateDuo) {
           setQualityStatus(`Checking ${target.label} pose…`);
           try {
             const detected = await detectStillPose(checkUrl);

@@ -1,7 +1,13 @@
+import { RAPID_DUO_RECIPE_MARK } from './rapid-duo-recipe-mark';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import {
+   describe, it } from 'node:test';
 
-import { buildStillClipPrompt, stillPromptPeople } from './still-clip-prompt';
+import {
+  buildStillClipPrompt,
+  isIntimateDuoStillPrompt,
+  stillPromptPeople,
+} from './still-clip-prompt';
 
 describe('still clip prompt (clothed Day animate)', () => {
   it('animates the beat with a locked camera and the first frame kept', () => {
@@ -48,5 +54,18 @@ describe('still clip prompt (clothed Day animate)', () => {
     assert.equal(stillPromptPeople('Match their two bodies to the third image (pose map).'), 2);
     assert.equal(stillPromptPeople('Day photo: One woman alone. She kneels on the floor.'), 1);
     assert.equal(stillPromptPeople(undefined), 1);
+  });
+});
+
+describe('isIntimateDuoStillPrompt', () => {
+  it('is the Rapid duo recipe, or adult wording with two people — not clothed or solo stills', () => {
+    assert.equal(isIntimateDuoStillPrompt(`${RAPID_DUO_RECIPE_MARK} Side view, missionary.`), true);
+    assert.equal(
+      isIntimateDuoStillPrompt('Explicit sex photo: both nude, the man and the woman on the bed.'),
+      true
+    );
+    assert.equal(isIntimateDuoStillPrompt('Day photo: she walks her dog in the park.'), false);
+    assert.equal(isIntimateDuoStillPrompt('Explicit solo photo: one woman alone, nude on the bed.'), false);
+    assert.equal(isIntimateDuoStillPrompt(''), false);
   });
 });
