@@ -5,7 +5,12 @@ import DayPosePackPicker from '@/components/day-planner/DayPosePackPicker';
 import { ChipButton, FieldLabel, SwitchButton, TextArea } from '@/components/ui/Field';
 import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
 import type { DayRenderQuality } from '@/lib/day-quality-preset';
-import type { DayIntimateMix, DayMoodSetting, DaySlot } from '@/lib/day-planner';
+import {
+  isDayAdultMood,
+  type DayIntimateMix,
+  type DayMoodSetting,
+  type DaySlot,
+} from '@/lib/day-planner';
 import { summarizePlayChecks } from '@/lib/play-checks-readiness';
 
 export type DayQualitySwitches = {
@@ -100,6 +105,12 @@ export type DayAdvancedDrawerProps = DayQualitySwitches & {
   onSlotsChange: (next: DaySlot[]) => void;
   notes: string;
   onNotesChange: (next: string) => void;
+  /**
+   * Two takes for intimate stills (day-two-takes.ts) — shown only on an Intimate / Raunchy Day;
+   * separate from the Quality preset and off by default.
+   */
+  twoTakesIntimate?: boolean;
+  onTwoTakesIntimateChange?: (next: boolean) => void;
   className?: string;
 };
 
@@ -136,8 +147,11 @@ export default function DayAdvancedDrawer({
   onSlotsChange,
   notes,
   onNotesChange,
+  twoTakesIntimate = false,
+  onTwoTakesIntimateChange,
   className = '',
 }: DayAdvancedDrawerProps) {
+  const intimateDay = intimateEnabled && isDayAdultMood(dayMood);
   // What Auto-review can measure on this setup (DWPose / FaceAnalysis installed in ComfyUI).
   const checksOn = autoReviewStills || redoPoseMisses || bestOfTwoHardPoses;
   const { readiness } = usePlayChecksReadiness(undefined, { enabled: checksOn });
@@ -259,6 +273,32 @@ export default function DayAdvancedDrawer({
           </SwitchButton>
         </div>
       </div>
+      {intimateDay && onTwoTakesIntimateChange ? (
+        <div
+          className="flex flex-wrap items-start gap-x-2 gap-y-1"
+          role="group"
+          aria-label="Intimate stills"
+          data-testid="day-two-takes-row"
+        >
+          <span className={`${label} pt-1.5`}>Intimate</span>
+          <div className="min-w-0 flex-1 space-y-1">
+            <SwitchButton
+              checked={twoTakesIntimate}
+              disabled={busy}
+              data-testid="day-two-takes-intimate"
+              title="Each Intimate / Raunchy still is queued twice back to back — the same words, two seeds. When both land the card shows them side by side: keep the one that looks right, the other stays beside it. Not part of the Quality preset."
+              onChange={onTwoTakesIntimateChange}
+            >
+              Two takes, you pick
+            </SwitchButton>
+            {twoTakesIntimate ? (
+              <p className="type-caption text-[var(--text-muted)]" data-testid="day-two-takes-hint">
+                Two renders per intimate still. Best of two and pose redos leave these to you.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       {!posePriority ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-pose-priority-hint">
           Pose over plate is off — stills will follow the plate&rsquo;s stance more closely.

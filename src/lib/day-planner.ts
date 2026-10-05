@@ -99,6 +99,7 @@ import {
   type DayTheme,
 } from '@/lib/day-themes';
 import type { DayPartner, DayPartnerNoun } from '@/lib/day-partner';
+import { settleDayTwoTakes, twoTakeFromGallery } from '@/lib/day-two-takes';
 
 export { DAY_PARTS, dayPartOf, isLateDaySlot, type DayPart };
 
@@ -362,6 +363,15 @@ export type DaySlotStillStatus = 'queued' | 'running' | 'completed' | 'error';
 
 export type DaySlotClipStatus = 'queued' | 'running' | 'completed' | 'error';
 
+/** The second of an intimate still's two takes (day-two-takes.ts), tracked like the still. */
+export type DayTwoTake = {
+  promptId: string;
+  imageUrl?: string;
+  status?: DaySlotStillStatus;
+  /** The adult-appearance gate holds it (see DaySlotStill.adultHold). */
+  adultHold?: 'checking' | 'withheld';
+};
+
 /** Per-slot still tracked for the day-in-the-life reel / Cut film. */
 export type DaySlotStill = {
   slotId: DaySlotId;
@@ -384,14 +394,20 @@ export type DaySlotStill = {
   /**
    * The take this one replaced when it was redone with the same seed — shown beside it, and
    * "Keep the old take" puts it back. `kind: 'best-of-two'`: the other take of a hard-pose pair
-   * (day-best-of-two.ts), with its pose score.
+   * (day-best-of-two.ts), with its pose score. `kind: 'two-takes'`: the take the player did not
+   * pick of an intimate still's two takes (day-two-takes.ts) — "Use the other take" swaps them.
    */
   previousTake?: {
     imageUrl: string;
     promptId?: string;
-    kind?: 'best-of-two';
+    kind?: 'best-of-two' | 'two-takes';
     poseScore?: number;
   };
+  /**
+   * Two takes (intimate stills, day-two-takes.ts): the second take, queued right after this one
+   * with a new seed. While it is set the player has not picked yet; both side by side on the card.
+   */
+  twoTakes?: DayTwoTake;
   /** Best of two for hard poses: both takes landed and this one read closer to the guide. */
   bestOfTwo?: { keptScore: number; otherScore: number };
   /**
@@ -4192,9 +4208,27 @@ function readScore(value: unknown): number | null {
 function readPairTake(
   take: DaySlotStill['previousTake']
 ): Pick<NonNullable<DaySlotStill['previousTake']>, 'kind' | 'poseScore'> {
+  if (take?.kind === 'two-takes') return { kind: 'two-takes' };
   if (take?.kind !== 'best-of-two') return {};
   const poseScore = readScore(take.poseScore);
   return { kind: 'best-of-two', ...(poseScore != null ? { poseScore } : {}) };
+}
+
+/** Two takes: the second take, when it has a prompt id. */
+function readTwoTakes(value: DaySlotStill['twoTakes']): Pick<DaySlotStill, 'twoTakes'> {
+  const promptId = readText(value?.promptId, 160);
+  if (!promptId) return {};
+  const imageUrl = readText(value?.imageUrl, 2048);
+  const status = readStillStatus(value?.status);
+  const hold = value?.adultHold;
+  return {
+    twoTakes: {
+      promptId,
+      ...(imageUrl ? { imageUrl } : {}),
+      ...(status ? { status } : {}),
+      ...(hold === 'checking' || hold === 'withheld' ? { adultHold: hold } : {}),
+    },
+  };
 }
 
 function readBestOfTwo(value: DaySlotStill['bestOfTwo']): Pick<DaySlotStill, 'bestOfTwo'> {
@@ -4253,6 +4287,7 @@ export function normalizeDaySlotStills(
         : {}),
       ...withEndPose(still.endPose),
       ...readBestOfTwo(still.bestOfTwo),
+      ...readTwoTakes(still.twoTakes),
       ...(still.bestOfTwoJob === true ? { bestOfTwoJob: true } : {}),
       ...(still.adultHold === 'checking' || still.adultHold === 'withheld'
         ? { adultHold: still.adultHold }
@@ -4398,6 +4433,20 @@ export function mergeDaySlotStills(
           updated = { ...updated, clipUrl, clipStatus };
         }
       }
+    }
+    // Two takes: the second take lands (or fails) on its own entry; a failed take leaves the other.
+    const second = updated.twoTakes;
+    if (second?.promptId) {
+      const next = twoTakeFromGallery(second, byPromptId.get(second.promptId.trim()));
+      if (next !== second) {
+        changed = true;
+        updated = { ...updated, twoTakes: next };
+      }
+    }
+    const settled = settleDayTwoTakes(updated);
+    if (settled !== updated) {
+      changed = true;
+      updated = settled;
     }
     return updated;
   });
@@ -4673,5 +4722,6 @@ export function restorePreviousDayTake(
     previousTake: undefined,
     bestOfTwo: undefined,
     bestOfTwoJob: undefined,
+    twoTakes: undefined,
   });
 }

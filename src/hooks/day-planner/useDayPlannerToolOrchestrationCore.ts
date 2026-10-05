@@ -139,6 +139,7 @@ import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/li
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
 import { customPoseWords } from '@/lib/pose-describe';
 import { bestOfTwoAsOneJob } from '@/lib/day-best-of-two';
+import { dayTwoTakesApplies } from '@/lib/day-two-takes';
 import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut-nodes';
 import { daySlotPoseLayout, planDaySlotPose, plannedDaySlotPoseKey } from '@/lib/day-slot-pose';
 import { notePoseTakeQueued } from '@/lib/pose-outcome-stats';
@@ -700,7 +701,9 @@ export function useDayPlannerToolOrchestrationCore() {
       );
       const baseStills = promoted.changed ? promoted.stills : current;
       const wanted = new Set(
-        baseStills.map(still => still.promptId?.trim()).filter(Boolean) as string[]
+        baseStills
+          .flatMap(still => [still.promptId?.trim(), still.twoTakes?.promptId?.trim()])
+          .filter(Boolean) as string[]
       );
       const clipWanted = new Set(
         baseStills.map(still => still.clipPromptId?.trim()).filter(Boolean) as string[]
@@ -2018,12 +2021,20 @@ export function useDayPlannerToolOrchestrationCore() {
         } else if (options?.keepTake?.imageUrl) {
           previousTake = options.keepTake;
         }
+        // Two takes (intimate stills): the same prompt queued twice back to back, two seeds; the
+        // player picks one when both land (day-two-takes.ts). Never paired by pose score.
+        const twoTakes = dayTwoTakesApplies({
+          enabled: toolSettings.twoTakesIntimate === true,
+          intimateStill: isDayAdultMood(toolSettings.dayMood) && intimateEnabled,
+          sameSeed: Boolean(sameSeed),
+          keepsATake: Boolean(previousTake),
+        });
         // Best of two for hard poses in ONE job when the Castcut node pack is installed: both
         // takes render as a batch, the pose check runs in the job and the closer take is saved
         // (castcut-nodes.ts). Without the pack the second take is queued after the first lands.
         let castcutPoseGuide: string | undefined;
         const pairRule = {
-          enabled: toolSettings.bestOfTwoHardPoses === true,
+          enabled: toolSettings.bestOfTwoHardPoses === true && !twoTakes,
           autoReview: toolSettings.autoReviewStills === true,
           poseKey: poseExpectation?.poseKey,
           keepsATake: Boolean(sameSeed || previousTake),
@@ -2037,9 +2048,8 @@ export function useDayPlannerToolOrchestrationCore() {
         ) {
           castcutPoseGuide = castcutGuideJson(poseExpectation.keypoints, poseExpectation.aspect);
         }
-        const promptId = await actions.sendComfyUi(queuedPrompt, undefined, undefined, {
+        const sendOptions: NonNullable<Parameters<typeof actions.sendComfyUi>[3]> = {
           ...(queueOptions ?? {}),
-          ...(sameSeed ? { seed: sameSeed } : {}),
           ...(lookHasPlate
             ? {
                 queueTool: 'image-prompt',
@@ -2082,7 +2092,29 @@ export function useDayPlannerToolOrchestrationCore() {
                 },
               }
             : {}),
+        };
+        const promptId = await actions.sendComfyUi(queuedPrompt, undefined, undefined, {
+          ...sendOptions,
+          ...(sameSeed ? { seed: sameSeed } : {}),
         });
+        // Two takes: the second right behind the first (same engine, so the model-aware queue
+        // keeps them together), on a new seed. If it can't be queued the first stands alone.
+        let secondPromptId: string | undefined;
+        if (twoTakes && typeof promptId === 'string') {
+          try {
+            const second = await actions.sendComfyUi(
+              queuedPrompt,
+              undefined,
+              undefined,
+              sendOptions
+            );
+            if (typeof second === 'string' && second.trim() && second !== promptId) {
+              secondPromptId = second.trim();
+            }
+          } catch (secondError) {
+            console.warn('Day: the second take was not queued:', queueTarget.label, secondError);
+          }
+        }
         // Pose × engine stats: the take, and whether it redoes the slot's last one.
         if (typeof promptId === 'string') {
           const lastTake = stillsRef.current.find(entry => entry.slotId === queueTarget.id);
@@ -2115,6 +2147,15 @@ export function useDayPlannerToolOrchestrationCore() {
             replaces:
               !options?.keepTake && lastTake?.status === 'completed' ? lastTake.promptId : null,
           });
+          // The second of two takes is the other half of a pick, not a redo.
+          if (secondPromptId) {
+            notePoseTakeQueued({
+              takeId: secondPromptId,
+              poseKey: trackedPoseKey,
+              model: stillModel,
+              surface: 'day',
+            });
+          }
         }
         const nextStills = upsertDaySlotStill(stillsRef.current, {
           slotId: queueTarget.id,
@@ -2129,6 +2170,7 @@ export function useDayPlannerToolOrchestrationCore() {
           previousTake,
           bestOfTwo: undefined,
           bestOfTwoJob: castcutPoseGuide ? true : undefined,
+          twoTakes: secondPromptId ? { promptId: secondPromptId, status: 'queued' } : undefined,
           adultHold: undefined,
           adultGated: adultSafeguards ? true : undefined,
           engineNote: poseEngineSwap?.reason,
@@ -2141,6 +2183,7 @@ export function useDayPlannerToolOrchestrationCore() {
           slotId: slot.id,
           status: 'error',
           promptCheck: undefined,
+          twoTakes: undefined,
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
@@ -2172,6 +2215,7 @@ export function useDayPlannerToolOrchestrationCore() {
       toolSettings.intimateMix,
       toolSettings.partnerCharacterId,
       toolSettings.posePriority,
+      toolSettings.twoTakesIntimate,
       intimateEnabled,
       shared.model,
       updateShared,
@@ -2312,6 +2356,8 @@ export function useDayPlannerToolOrchestrationCore() {
     setRedoPoseMisses: (next: boolean) => updateToolSettings({ redoPoseMisses: next }),
     bestOfTwoHardPoses: toolSettings.bestOfTwoHardPoses === true,
     setBestOfTwoHardPoses: (next: boolean) => updateToolSettings({ bestOfTwoHardPoses: next }),
+    twoTakesIntimate: toolSettings.twoTakesIntimate === true,
+    setTwoTakesIntimate: (next: boolean) => updateToolSettings({ twoTakesIntimate: next }),
     bestEnginePerPose: toolSettings.bestEnginePerPose === true,
     setBestEnginePerPose: (next: boolean) => updateToolSettings({ bestEnginePerPose: next }),
     hideStickyCutCoach: toolSettings.hideStickyCutCoach === true,

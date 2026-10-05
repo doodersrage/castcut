@@ -19,6 +19,7 @@ import { waitForModelTurn } from '@/lib/comfy-model-turn';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { dayTwoTakesPending } from '@/lib/day-two-takes';
 
 /**
  * Opt-in Day "Face finish": when a still lands, re-render its face against the Cast face crop
@@ -98,6 +99,8 @@ export function useDayFaceFinish(
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
         !dayStillIsFaceFinished(still) &&
+        // Two takes: finish the one the player keeps, once picked.
+        !dayTwoTakesPending(still) &&
         !handledRef.current.has(stillKey(still)) &&
         !faceFinishAwaitsChecks(checksGate, slot.id, stillKey(still))
       );

@@ -23,6 +23,7 @@ import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { notePoseTakePair } from '@/lib/pose-outcome-stats';
+import { dayTwoTakesMark, dayTwoTakesPickPatch, dayTwoTakesSwapPatch } from '@/lib/day-two-takes';
 import {
   dayStillsCachePatch,
   dayWatchPlaylist,
@@ -206,6 +207,15 @@ export function useDayPlannerToolOrchestration() {
   const keepPreviousTake = useCallback(
     (slotId: DaySlotId) => {
       const shown = stillsRef.current.find(entry => entry.slotId === slotId);
+      // Two takes: "Use the other take" swaps them — the shown one stays as the alternate.
+      const swap = dayTwoTakesSwapPatch(shown);
+      if (swap) {
+        notePoseTakePair(swap.keptId, swap.otherId);
+        const next = upsertDaySlotStill(stillsRef.current, swap.patch);
+        stillsRef.current = next;
+        updateToolSettings(dayStillsCachePatch(next, activeCharacterId));
+        return;
+      }
       // The player picked the old take over the new one (pose × engine stats).
       if (shown?.previousTake) notePoseTakePair(shown.previousTake.promptId, shown.promptId);
       const next = restorePreviousDayTake(stillsRef.current, slotId);
@@ -230,6 +240,25 @@ export function useDayPlannerToolOrchestration() {
     [activeCharacterId, stillsRef, updateToolSettings]
   );
 
+  // Two takes: the player tapped the one to keep; the other stays as the alternate.
+  const pickTwoTake = useCallback(
+    (slotId: DaySlotId, keep: 'first' | 'second') => {
+      const shown = stillsRef.current.find(entry => entry.slotId === slotId);
+      const pick = dayTwoTakesPickPatch(shown, keep);
+      if (!pick) return;
+      notePoseTakePair(pick.keptId, pick.otherId);
+      const next = upsertDaySlotStill(stillsRef.current, pick.patch);
+      stillsRef.current = next;
+      updateToolSettings(dayStillsCachePatch(next, activeCharacterId));
+    },
+    [activeCharacterId, stillsRef, updateToolSettings]
+  );
+  const twoTakesMarks: Record<string, string> = {};
+  for (const still of core.stills) {
+    const mark = dayTwoTakesMark(still);
+    if (mark) twoTakesMarks[still.slotId] = mark;
+  }
+
   return {
     ...core,
     ...part2,
@@ -242,6 +271,7 @@ export function useDayPlannerToolOrchestration() {
       ...poseRedo.poseRedoMarks,
       ...bestOfTwo.bestOfTwoMarks,
       ...quality.realismMarks,
+      ...twoTakesMarks,
     },
     bestOfTwoStatus: bestOfTwo.bestOfTwoStatus,
     faceFinishStatus: faceFinish.faceFinishStatus,
@@ -261,5 +291,6 @@ export function useDayPlannerToolOrchestration() {
     redoSlotSameSeed,
     keepPreviousTake,
     dropPreviousTake,
+    pickTwoTake,
   };
 }

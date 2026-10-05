@@ -139,6 +139,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     poseRedoMarks,
     bestOfTwoHardPoses,
     setBestOfTwoHardPoses,
+    twoTakesIntimate,
+    setTwoTakesIntimate,
     bestOfTwoStatus,
     bestEnginePerPose,
     setBestEnginePerPose,
@@ -158,6 +160,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     redoSlotSameSeed,
     keepPreviousTake,
     dropPreviousTake,
+    pickTwoTake,
     plateUploading,
     plateUploadError,
     hideStickyCutCoach,
@@ -776,6 +779,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
             onRedoPoseMissesChange={setRedoPoseMisses}
             bestOfTwoHardPoses={bestOfTwoHardPoses}
             onBestOfTwoHardPosesChange={setBestOfTwoHardPoses}
+            twoTakesIntimate={twoTakesIntimate}
+            onTwoTakesIntimateChange={setTwoTakesIntimate}
             bestEnginePerPose={bestEnginePerPose}
             onBestEnginePerPoseChange={setBestEnginePerPose}
             slots={slots}
@@ -808,6 +813,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           qualityLedger={qualityLedger}
           poseRedoMarks={poseRedoMarks}
           clipChecks={clipChecks}
+          onPickTwoTake={pickTwoTake}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton
@@ -1190,6 +1196,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         onRedoSameSeed={() => void redoSlotSameSeed(activeSlot.id)}
         onKeepOldTake={() => keepPreviousTake(activeSlot.id)}
         onKeepNewTake={() => dropPreviousTake(activeSlot.id)}
+        onPickTwoTake={keep => pickTwoTake(activeSlot.id, keep)}
         endPose={endPoseControl}
         onQueueSlot={() => void queueSlot(activeSlot)}
         onAnimateSlot={() => void animateSlot(activeSlot)}

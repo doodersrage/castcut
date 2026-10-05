@@ -3034,6 +3034,154 @@ test('a best-of-two pair shows the kept take and can switch to the other one', a
   await expect(page.getByTestId('day-same-seed-redo')).toBeVisible();
 });
 
+/** Report Intimate as switched on (PROMPT_NSFW_GENERATOR_ENABLED) in the health answer. */
+async function reportIntimateOn(page: Page) {
+  await page.route('**/api/health', async route => {
+    const response = await route.fetch().catch(() => null);
+    const body = (response ? await response.json().catch(() => ({})) : {}) as Record<
+      string,
+      unknown
+    >;
+    await route.fulfill({
+      json: {
+        ...body,
+        serverEnv: {
+          groups: [
+            {
+              fields: [{ key: 'PROMPT_NSFW_GENERATOR_ENABLED', value: 'true' }],
+            },
+          ],
+        },
+      },
+    });
+  });
+}
+
+/** Two finished stub jobs in the gallery (both takes), their images served by a stub view. */
+async function seedTwoTakeJobs(page: Page, characterId: string) {
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64'
+  );
+  await page.route('**/api/comfyui/view**', route =>
+    route.fulfill({ status: 200, contentType: 'image/png', body: png })
+  );
+  await page.addInitScript(owner => {
+    const now = Date.now();
+    const job = (promptId: string, filename: string) => ({
+      id: `g-${promptId}`,
+      promptId,
+      prompt: 'two takes',
+      model: 'qwen-image-2512',
+      tool: 'day',
+      queuedAt: now,
+      completedAt: now,
+      status: 'completed',
+      characterId: owner,
+      comfyUrl: 'http://127.0.0.1:8188',
+      images: [{ filename, subfolder: '', type: 'output' }],
+    });
+    window.localStorage.setItem(
+      'comfyui-gallery-v1',
+      JSON.stringify([job('e2e-take-a', 'e2e-take-a.png'), job('e2e-take-b', 'e2e-take-b.png')])
+    );
+  }, characterId);
+}
+
+test('two takes for intimate stills: the switch, both takes on the card, pick one, swap back', async ({
+  page,
+}) => {
+  await reportIntimateOn(page);
+  await seedTwoTakeJobs(page, 'e2e-two-takes');
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-two-takes' },
+    characters: {
+      version: 1,
+      characters: [
+        { id: 'e2e-two-takes', name: 'Two Takes', version: 1, updatedAt: Date.now(), descriptor: 'a woman' },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        activeSlotId: 'morning',
+        stillsCharacterId: 'e2e-two-takes',
+        dayMood: 'intimate',
+        intimateMix: 'duo',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'bedroom', sceneHints: 'in bed together' },
+          { id: 'afternoon', label: 'Afternoon', location: 'shower', sceneHints: 'together' },
+          { id: 'evening', label: 'Evening', location: 'sofa', sceneHints: 'together' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'together' },
+        ],
+        // Both takes were queued (stub jobs) and have landed in the gallery.
+        stills: [
+          {
+            slotId: 'morning',
+            promptId: 'e2e-take-a',
+            status: 'queued',
+            twoTakes: { promptId: 'e2e-take-b', status: 'queued' },
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+
+  // The switch: under Advanced on an Intimate Day, off by default, outside the Quality preset.
+  await openDayAdvanced(page);
+  const toggle = page.getByTestId('day-two-takes-intimate').first();
+  await expect(toggle).toHaveAttribute('aria-checked', 'false', { timeout: 30_000 });
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('day-two-takes-hint').first()).toBeVisible();
+  await expect(page.getByTestId('day-quality-preset-custom')).toHaveCount(0);
+
+  // Both takes landed: side by side on the card, a Keep under each.
+  const pair = page.getByTestId('day-two-takes-morning');
+  await expect(pair).toHaveAttribute('data-ready', 'true', { timeout: 30_000 });
+  await expect(pair.getByTestId('day-two-takes-morning-first-image')).toHaveAttribute(
+    'src',
+    /e2e-take-a\.png/
+  );
+  await expect(pair.getByTestId('day-two-takes-morning-second-image')).toHaveAttribute(
+    'src',
+    /e2e-take-b\.png/
+  );
+  await expect(page.getByTestId('day-progress-pose-redo-morning')).toHaveText(
+    'Two takes — tap the one to keep'
+  );
+
+  // Keep the second: it becomes the still; the first is kept as the other take.
+  await pair.getByTestId('day-two-takes-morning-keep-second').click();
+  await expect(pair).toHaveCount(0);
+  await expect(page.getByTestId('day-progress-pose-redo-morning')).toHaveText(
+    'Two takes · your pick (the other is kept)'
+  );
+  await openDaySlotSheet(page, 'morning');
+  const picked = page.getByTestId('day-two-takes-picked');
+  await expect(picked).toBeVisible();
+  await expect(picked.getByRole('img', { name: /kept take/ })).toHaveAttribute(
+    'src',
+    /e2e-take-b\.png/
+  );
+  await expect(picked.getByRole('img', { name: /other take/ })).toHaveAttribute(
+    'src',
+    /e2e-take-a\.png/
+  );
+  // Reversible: swap to the other take, and the picked one stays as the alternate.
+  await picked.getByTestId('day-two-takes-swap').click();
+  await expect(picked.getByRole('img', { name: /kept take/ })).toHaveAttribute(
+    'src',
+    /e2e-take-a\.png/
+  );
+  await expect(picked.getByRole('img', { name: /other take/ })).toHaveAttribute(
+    'src',
+    /e2e-take-b\.png/
+  );
+});
+
 test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async ({ page }) => {
   const tinyPng =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

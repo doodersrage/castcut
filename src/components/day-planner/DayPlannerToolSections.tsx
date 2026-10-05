@@ -148,6 +148,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     poseRedoMarks,
     bestOfTwoHardPoses,
     setBestOfTwoHardPoses,
+    twoTakesIntimate,
+    setTwoTakesIntimate,
     bestOfTwoStatus,
     bestEnginePerPose,
     setBestEnginePerPose,
@@ -167,6 +169,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     redoSlotSameSeed,
     keepPreviousTake,
     dropPreviousTake,
+    pickTwoTake,
     plateUploading,
     plateUploadError,
     hideStickyCutCoach,
@@ -831,6 +834,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               onRedoPoseMissesChange={setRedoPoseMisses}
               bestOfTwoHardPoses={bestOfTwoHardPoses}
               onBestOfTwoHardPosesChange={setBestOfTwoHardPoses}
+              twoTakesIntimate={twoTakesIntimate}
+              onTwoTakesIntimateChange={setTwoTakesIntimate}
               bestEnginePerPose={bestEnginePerPose}
               onBestEnginePerPoseChange={setBestEnginePerPose}
               slots={slots}
@@ -862,6 +867,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             qualityLedger={qualityLedger}
             poseRedoMarks={poseRedoMarks}
             clipChecks={clipChecks}
+            onPickTwoTake={pickTwoTake}
           />
           {/* One primary per phase: Queue day → Animate all → Cut (the banner) → Save. */}
           <ToolActionRow className="mt-3">
@@ -1274,6 +1280,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         onRedoSameSeed={() => void redoSlotSameSeed(activeSlot.id)}
         onKeepOldTake={() => keepPreviousTake(activeSlot.id)}
         onKeepNewTake={() => dropPreviousTake(activeSlot.id)}
+        onPickTwoTake={keep => pickTwoTake(activeSlot.id, keep)}
         endPose={endPoseControl}
         onQueueSlot={() => void queueSlot(activeSlot)}
         onAnimateSlot={() => void animateSlot(activeSlot)}

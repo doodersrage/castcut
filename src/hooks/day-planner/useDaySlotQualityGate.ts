@@ -42,6 +42,7 @@ import { buildFaceComparePair } from '@/lib/play-face-compare';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day-two-takes';
 import {
   buildPoseMissView,
   gestureMissWords,
@@ -159,7 +160,10 @@ export function useDaySlotQualityGate(
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
         reviewedRef.current[slot.id] !== still.imageUrl &&
-        !faceFinish?.holdsStill(still)
+        !faceFinish?.holdsStill(still) &&
+        // Two takes: the player picks (and has judged the pick) — no automatic reroll.
+        !dayTwoTakesPending(still) &&
+        !dayTwoTakesJudged(still)
       );
     });
     const targetStill = target ? stills.find(entry => entry.slotId === target.id) : undefined;

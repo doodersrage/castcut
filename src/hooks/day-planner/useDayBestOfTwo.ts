@@ -16,6 +16,7 @@ import {
   bestOfTwoTakeId,
   isDayHardPose,
 } from '@/lib/day-best-of-two';
+import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day-two-takes';
 import { DEFAULT_MIN_POSE_MATCH, scorePoseMatch } from '@/lib/pose-score';
 import { realismRankedScore } from '@/lib/still-realism';
 import { fetchCastcutBestOfTwoReport } from '@/lib/castcut-report-client';
@@ -116,7 +117,10 @@ export function useDayBestOfTwo(
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
         checkedRef.current[slot.id] !== bestOfTwoTakeId(still) &&
-        !faceFinish?.holdsStill(still)
+        !faceFinish?.holdsStill(still) &&
+        // Two takes: the player picks — never paired by pose score.
+        !dayTwoTakesPending(still) &&
+        !dayTwoTakesJudged(still)
       );
     });
     const still = target ? stills.find(entry => entry.slotId === target.id) : undefined;

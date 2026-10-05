@@ -55,6 +55,8 @@ export type DaySlotSheetProps = {
   onRedoSameSeed: () => void;
   onKeepOldTake: () => void;
   onKeepNewTake: () => void;
+  /** Two takes (intimate stills): keep the first or the second. */
+  onPickTwoTake?: (keep: 'first' | 'second') => void;
   /** End pose control for a finished slot, when the clip engine can pin a last frame. */
   endPose?: ReactNode;
   onQueueSlot: () => void;
@@ -94,6 +96,7 @@ export default function DaySlotSheet({
   onRedoSameSeed,
   onKeepOldTake,
   onKeepNewTake,
+  onPickTwoTake,
   endPose,
   onQueueSlot,
   onAnimateSlot,
@@ -294,6 +297,7 @@ export default function DaySlotSheet({
           onRedo={onRedoSameSeed}
           onKeepOld={onKeepOldTake}
           onKeepNew={onKeepNewTake}
+          onPickTwoTake={onPickTwoTake}
         />
         {endPose}
       </div>

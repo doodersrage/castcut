@@ -5,6 +5,7 @@ import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDay
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
 import { isDayHardPose } from '@/lib/day-best-of-two';
+import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day-two-takes';
 import {
   notePoseRedoTake,
   poseRedoDecision,
@@ -155,7 +156,9 @@ export function useDayPoseMissRedo(
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
         checkedRef.current[slot.id] !== poseRedoTakeId(still) &&
-        !faceFinish?.holdsStill(still)
+        !faceFinish?.holdsStill(still) &&
+        // Two takes still to pick from: the player judges them.
+        !dayTwoTakesPending(still)
       );
     });
     const still = target ? stills.find(entry => entry.slotId === target.id) : undefined;
@@ -166,11 +169,16 @@ export function useDayPoseMissRedo(
     // Two-person intimate stills are never redone automatically: those engines take the pose
     // from the words, and the checks can't judge them (DWPose merges the two bodies on ~40%;
     // the best defect check caught 28% at 19% false alarms) — a redrawn guide only raised the
-    // false "missed the pose" redos. The player's "Looks wrong" / Two takes handle them.
+    // false "missed the pose" redos. The player's "Looks wrong" / Two takes handle them. A hard
+    // pose with Best of two on is paired instead (useDayBestOfTwo) — never both. A pick from two
+    // takes was judged by the player: nothing to redo.
     const stillPrompt =
       loadComfyGallery().find(entry => entry.promptId === still.promptId)?.prompt ?? '';
-    const intimateDuo = isIntimateDuoStillPrompt(stillPrompt);
-    if (intimateDuo || (expectation && bestOfTwoHardPoses && isDayHardPose(expectation.poseKey))) {
+    if (
+      isIntimateDuoStillPrompt(stillPrompt) ||
+      dayTwoTakesJudged(still) ||
+      (expectation && bestOfTwoHardPoses && isDayHardPose(expectation.poseKey))
+    ) {
       checks?.onSettled(target.id, take);
       setTick(value => value + 1);
       return;

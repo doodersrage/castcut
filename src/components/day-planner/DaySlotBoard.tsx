@@ -28,6 +28,8 @@ import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-met
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { daySlotJobProgress, type DaySlotJobEntry } from '@/lib/day-slot-progress';
 import { getGalleryCache } from '@/lib/gallery-db-store';
+import { dayTwoTakesPending, dayTwoTakesReady } from '@/lib/day-two-takes';
+import { DayTwoTakesPick } from '@/components/day-planner/DaySameSeedRedo';
 
 export type DaySlotBoardProps = {
   slots: DaySlot[];
@@ -52,6 +54,8 @@ export type DaySlotBoardProps = {
   poseRedoMarks?: Record<string, string>;
   /** Animate clip checks by slot id (Auto-review). */
   clipChecks?: Record<string, ClipCheck>;
+  /** Two takes (intimate stills): the player keeps the first or the second. */
+  onPickTwoTake?: (slotId: DaySlotId, keep: 'first' | 'second') => void;
 };
 
 const NO_GALLERY: ComfyGalleryEntry[] = [];
@@ -84,6 +88,7 @@ export default function DaySlotBoard({
   qualityLedger,
   poseRedoMarks,
   clipChecks,
+  onPickTwoTake,
 }: DaySlotBoardProps) {
   const promptKey = useMemo(
     () =>
@@ -195,6 +200,9 @@ export default function DaySlotBoard({
           onSelectSlot(slot.id);
           onEditSlot(slot.id);
         };
+        // Two takes landed: both side by side, the player keeps one (day-two-takes.ts).
+        const twoTakesPick =
+          still && onPickTwoTake && dayTwoTakesPending(still) && dayTwoTakesReady(still);
 
         const menu = (
           <ShotCardMenu label={slot.label} testId={`day-progress-menu-${slot.id}`}>
@@ -318,7 +326,20 @@ export default function DaySlotBoard({
                           : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)]',
               ].join(' ')}
             >
-              {thumb ? (
+              {twoTakesPick && still ? (
+                <div className="px-1.5 pb-1.5 pt-10">
+                  <DayTwoTakesPick
+                    slot={slot}
+                    still={still}
+                    compact
+                    testId={`day-two-takes-${slot.id}`}
+                    onPick={keep => {
+                      onSelectSlot(slot.id);
+                      onPickTwoTake?.(slot.id, keep);
+                    }}
+                  />
+                </div>
+              ) : thumb ? (
                 <div className="relative overflow-hidden rounded-t-[var(--radius-md)]">
                   {doneClip ? (
                     <MotionMedia

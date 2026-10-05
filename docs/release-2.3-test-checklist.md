@@ -9,6 +9,18 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
 
 ---
 
+## 2.3.1 — needs your check
+
+### Day
+
+- [ ] **Two takes, you pick** — Intimate Day → Advanced → *Two takes, you pick* on, Queue day: each
+  card shows two takes side by side once both land, *Keep this one* under each. Keep one: the card
+  shows it; the slot sheet shows the other beside it and *Use the other take* swaps them (and back).
+  ComfyUI's queue holds each slot's two jobs one after the other. With the switch off nothing
+  changes; Everyday / Suggestive Days never show the switch.
+
+---
+
 ## Needs your check
 
 ### Cast page

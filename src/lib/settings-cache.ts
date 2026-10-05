@@ -1183,6 +1183,12 @@ export type DayToolCache = {
    */
   bestOfTwoHardPoses?: boolean;
   /**
+   * Opt-in, off by default (not part of the Quality preset): each Intimate / Raunchy still is
+   * queued twice back to back (same prompt, two seeds) and the player picks one; the other stays
+   * as the alternate take (day-two-takes.ts). Such stills are never paired by pose score.
+   */
+  twoTakesIntimate?: boolean;
+  /**
    * Opt-in: a one-person clothed still whose pose is clearly weak on the picked engine (pose
    * report card, src/lib/data/pose-engine-report.json) and solid on another installed engine
    * renders on that engine, this still only; the card says so (pose-engine-report.ts).

@@ -44,14 +44,18 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
 
   useEffect(() => {
     if (!mounted || runningRef.current) return;
-    const target = stills.find(
-      still =>
-        still.adultHold === 'checking' &&
-        Boolean(still.promptId?.trim()) &&
-        !decidedRef.current.has(still.promptId!.trim())
-    );
-    if (!target?.promptId) return;
-    const promptId = target.promptId.trim();
+    // Each take is checked: the still, and the second of two takes (day-two-takes.ts).
+    const candidates = stills.flatMap(still => [
+      ...(still.adultHold === 'checking' && still.promptId?.trim()
+        ? [{ slotId: still.slotId, promptId: still.promptId.trim(), second: false }]
+        : []),
+      ...(still.twoTakes?.adultHold === 'checking' && still.twoTakes.promptId.trim()
+        ? [{ slotId: still.slotId, promptId: still.twoTakes.promptId.trim(), second: true }]
+        : []),
+    ]);
+    const target = candidates.find(candidate => !decidedRef.current.has(candidate.promptId));
+    if (!target) return;
+    const promptId = target.promptId;
     const entry = loadComfyGallery().find(galleryEntry => galleryEntry.promptId === promptId);
     const imageUrl = entry ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
     if (!entry || entry.status !== 'completed' || !imageUrl) return;
@@ -93,6 +97,16 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
           ...takeMarks,
         });
         console.warn('Adult check withheld a Day still:', label, decision.reason);
+        // One of two takes withheld while the other is still in play: that one stands alone
+        // (or is picked) — no requeue, no second message.
+        const still = stills.find(entry => entry.slotId === target.slotId);
+        const otherTakeInPlay = target.second
+          ? Boolean(still && still.status !== 'error')
+          : Boolean(still?.twoTakes && still.twoTakes.status !== 'error');
+        if (otherTakeInPlay) {
+          setAdultGateStatus(null);
+          return;
+        }
         if (decision.verdict === 'requeue') {
           requeueRef.current.set(target.slotId, cause);
           pushSystemTrayMessage({
