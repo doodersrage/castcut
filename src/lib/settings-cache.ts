@@ -70,6 +70,8 @@ import {
 } from './lora-train-job';
 import { loadOnboardingState } from './onboarding-store';
 import { scheduleAfterCommit } from './schedule-after-commit';
+import { dropDeadToolSettingsFields } from './dead-settings';
+import { pruneStoredDeadCollapsibleIds } from './collapsible-persist';
 
 export const SETTINGS_CACHE_KEY = 'comfy-prompt-tool-settings-v1';
 export const SETTINGS_CACHE_UPDATED_EVENT = 'settings-cache-updated';
@@ -1276,10 +1278,8 @@ export type NegativeToolCache = {
 
 export type StudioToolCache = {
   compareModelB?: string;
-  compareVisualSeed?: string;
   templateId?: string;
   templateSlots?: Record<string, string>;
-  catalogTab?: 'clothing' | 'locations';
   locationBlocklist?: string[];
   savedIdentityBundles?: import('./character-identity-bundle').CharacterIdentityBundle[];
 };
@@ -1694,7 +1694,6 @@ export const DEFAULT_STUDIO_TOOL_CACHE: StudioToolCache = {
   compareModelB: 'flux-2-klein',
   templateId: 'duo-sport-race',
   templateSlots: {},
-  catalogTab: 'clothing',
   locationBlocklist: [],
 };
 
@@ -1718,11 +1717,14 @@ export function migrateLegacyToolSettings(tools: ToolSettingsCache): {
   tools: ToolSettingsCache;
   changed: boolean;
 } {
-  const legacy = tools as LegacyToolSettingsCache;
+  // Fields no code reads any more (see dead-settings): dropped on load, and the load saves the
+  // cleaned copy once. Every other tool and field is kept exactly as stored.
+  const live = dropDeadToolSettingsFields(tools);
+  const legacy = live.tools as LegacyToolSettingsCache;
   const { randomScene, duo, compose, ...rest } = legacy;
 
   if (!randomScene && !duo && !compose) {
-    return { tools, changed: false };
+    return { tools: live.tools, changed: live.dropped.length > 0 };
   }
 
   let changed = false;
@@ -2002,6 +2004,8 @@ if (typeof window !== 'undefined') {
   void whenBrowserStorageReady().then(() => {
     invalidateSettingsCache();
     notifySettingsCacheUpdated();
+    // One-time: drop removed sections' fold states (a background write — never pushed by itself).
+    pruneStoredDeadCollapsibleIds();
   });
 }
 
@@ -2011,7 +2015,13 @@ export function saveSettingsCache(cache: SettingsCache, options?: SaveSettingsOp
   }
   settingsSaveGeneration += 1;
   const shouldNotify = options?.notify !== false;
-  const stamped: SettingsCache = { ...cache, updatedAt: Date.now() };
+  // Dead fields never get stored again — a save of a pulled server copy (fresh profile) would
+  // otherwise keep them, since the load right after it returns this save without migrating.
+  const stamped: SettingsCache = {
+    ...cache,
+    tools: cache.tools ? dropDeadToolSettingsFields(cache.tools).tools : cache.tools,
+    updatedAt: Date.now(),
+  };
   applySystemWorkflowsSidecar(stamped.shared);
   // Before any async storage: a navigation right after this save must still reach the server.
   // Read the cache at flush time, never this snapshot — a fresh profile's first save predates

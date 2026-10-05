@@ -3,6 +3,7 @@
  * Synced to PROMPT_DATA_DIR as the `studio-extras` namespace.
  */
 import { loadPoseLibrary, mergePoseLibraries, replacePoseLibrary } from './pose-library';
+import { pruneDeadCollapsibleIds } from './dead-settings';
 import {
   applyServerPoseOutcomeStats,
   loadPoseOutcomeStats,
@@ -281,7 +282,10 @@ export function collectStudioExtras(): StudioExtrasPayload {
     workspaceModeChosen: hasChosenWorkspaceMode(),
     navExpandedGroups: loadExpandedNavGroups() ?? [],
     recentDestinations: loadRecentDestinations(),
-    collapsibleOpen: readBrowserValue<Record<string, boolean>>(COLLAPSIBLE_KEY) ?? {},
+    // Fold states of removed sections never go back to the server (see dead-settings).
+    collapsibleOpen: pruneDeadCollapsibleIds(
+      readBrowserValue<Record<string, boolean>>(COLLAPSIBLE_KEY) ?? {}
+    ).map,
     toolContextMemory: loadToolContextMemory(),
     lastToolDraft: loadLastToolDraft(),
     lastFailedQueue: loadLastFailedQueue(),
@@ -472,7 +476,8 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
       writeBrowserValue(RECENT_DESTINATIONS_KEY, payload.recentDestinations);
     }
     if (payload.collapsibleOpen) {
-      writeBrowserValue(COLLAPSIBLE_KEY, payload.collapsibleOpen);
+      // A copy from an older device may still carry removed sections' fold states.
+      writeBrowserValue(COLLAPSIBLE_KEY, pruneDeadCollapsibleIds(payload.collapsibleOpen).map);
     }
     if (payload.toolContextMemory) {
       saveToolContextMemory(payload.toolContextMemory);

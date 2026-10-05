@@ -197,6 +197,72 @@ describe('settings persistence sidecars', () => {
     });
   });
 
+  it('a load drops dead tool fields once and keeps every live setting', async () => {
+    await withMockLocalStorage(async () => {
+      resetBrowserStorageCache();
+      const shared = {
+        ...loadSettingsCache().shared,
+        modelCheckpointMap: { 'my-model': 'my-model.safetensors' },
+        sessionActiveLoraIdsByModel: { 'flux-2-klein-9b': ['klein-a'] },
+      };
+      saveSettingsCache({
+        shared,
+        tools: {
+          day: { dayMood: 'everyday', dressPlates: [{ key: 'kit:1' }] },
+          studio: { templateId: 'duo-sport-race', catalogTab: 'locations', compareVisualSeed: '7' },
+          roleplay: { extraHints: 'keep me' },
+        } as never,
+        installedPlugins: [],
+      });
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      resetBrowserStorageCache();
+      const loaded = loadSettingsCache();
+      assert.equal('dressPlates' in (loaded.tools.day ?? {}), false);
+      assert.equal('catalogTab' in (loaded.tools.studio ?? {}), false);
+      assert.equal('compareVisualSeed' in (loaded.tools.studio ?? {}), false);
+      assert.equal(loaded.tools.day?.dayMood, 'everyday');
+      assert.equal(loaded.tools.studio?.templateId, 'duo-sport-race');
+      assert.equal(loaded.tools.roleplay?.extraHints, 'keep me');
+      // The migration save that follows the load stores the cleaned copy, maps and all.
+      await new Promise(resolve => setTimeout(resolve, 0));
+      const stored = JSON.stringify([...Array(window.localStorage.length).keys()].map(index => {
+        const key = window.localStorage.key(index)!;
+        return [key, window.localStorage.getItem(key)];
+      }));
+      assert.doesNotMatch(stored, /dressPlates|catalogTab|compareVisualSeed/);
+
+      resetBrowserStorageCache();
+      const reloaded = loadSettingsCache();
+      assert.equal(reloaded.shared.modelCheckpointMap?.['my-model'], 'my-model.safetensors');
+      assert.deepEqual(reloaded.shared.sessionActiveLoraIdsByModel?.['flux-2-klein-9b'], [
+        'klein-a',
+      ]);
+      assert.equal(reloaded.tools.day?.dayMood, 'everyday');
+      assert.equal(reloaded.tools.roleplay?.extraHints, 'keep me');
+    });
+  });
+
+  it('saving a pulled copy with dead tool fields stores it without them', async () => {
+    await withMockLocalStorage(async () => {
+      resetBrowserStorageCache();
+      // A fresh profile saves the server's settings as pulled; the load right after returns
+      // that save without migrating, so the save itself must drop the dead fields.
+      saveSettingsCache({
+        shared: loadSettingsCache().shared,
+        tools: {
+          day: { dayMood: 'everyday', dressPlates: [{ key: 'kit:1' }] },
+          roleplay: { extraHints: 'keep me' },
+        } as never,
+        installedPlugins: [],
+      });
+      const memo = loadSettingsCache();
+      assert.equal('dressPlates' in (memo.tools.day ?? {}), false);
+      assert.equal(memo.tools.day?.dayMood, 'everyday');
+      assert.equal(memo.tools.roleplay?.extraHints, 'keep me');
+    });
+  });
+
   it('persists session LoRAs via sidecar', async () => {
     await withMockLocalStorage(async () => {
       resetBrowserStorageCache();
