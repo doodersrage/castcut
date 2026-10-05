@@ -62,21 +62,23 @@ const base = {
 };
 
 describe('pose report card: picking the engine per pose', () => {
-  it('moves a pose that is weak here and solid elsewhere, to the closer face on a tie', () => {
+  it('moves a pose that is weak here and solid elsewhere — never onto Qwen-Image 2.1', () => {
+    // 2.1 has the closer face on lie_side, but a hand-off never lands there (distorted stills,
+    // user report 2026-10-05): Rapid holds it too.
     const swap = pickPoseEngine({
       ...base,
       model: 'qwen-image-edit-2511-lightning-8',
       layout: 'lie_side',
     });
-    assert.equal(swap?.engine, 'qwen-image-2.1');
-    assert.equal(swap?.model, 'qwen-image-2.1-edit-pruna-8');
+    assert.equal(swap?.engine, 'rapid-aio');
+    assert.equal(swap?.model, 'qwen-rapid-aio-edit');
     assert.equal(swap?.from, 'qwen-edit-2511');
-    assert.equal(swap?.reason, 'Rendered on Qwen-Image 2.1 — it holds this pose better');
+    assert.equal(swap?.reason, 'Rendered on Rapid AIO — it holds this pose better');
   });
 
   it('reads a pose key (`layout:people`) like its layout', () => {
     const swap = pickPoseEngine({ ...base, model: 'qwen-image-edit-2511', layout: 'lie_side:1' });
-    assert.equal(swap?.engine, 'qwen-image-2.1');
+    assert.equal(swap?.engine, 'rapid-aio');
   });
 
   it('keeps the engine when the pose holds there, or nowhere holds it', () => {
@@ -116,8 +118,9 @@ describe('pose report card: picking the engine per pose', () => {
         model: 'qwen-image-edit-2511-lightning-8',
         layout: 'lie_side',
         installed: id => id === 'qwen-image-2.1-edit',
-      })?.model,
-      'qwen-image-2.1-edit'
+      }),
+      null,
+      'only Qwen-Image 2.1 installed: keep the engine'
     );
     assert.equal(
       pickPoseEngine({

@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Fix: "Pick the best engine per pose" no longer moves stills onto Qwen-Image 2.1.** Its "solid" scores rest on 2–3 sweep stills, so a few of your redos on Rapid were enough to send a still there — a Late Night still came back distorted with "it holds this pose better". Hand-offs now go only between Rapid AIO and Edit 2511; picking Qwen-Image 2.1 as the Day engine is unchanged.
 - **Bald is a hair colour choice** on the Cast's Appearance: it says "a bald head" in every picture's description, and greys out hair length and style (Hair length → Bald / shaved still gives a shaved head).
 - **Scissors renders as the missionary pose**, like 69 and face-sit render as seated oral: Rapid can't draw scissoring (stills kept coming out odd). Couples get the missionary recipe (8/8), two women their side-by-side version (4/4), two men keep their kneeling recipe; the map and the clip follow, and "scissoring" is dropped from the still's and clip's words.
 - **Five more adult pose maps match their words:** lap (he sits, she straddles facing him), wall (face to face with a knee raised — or from behind, hands braced, when the beat or a window says so), standing (she leans forward braced, partner behind), kneeling (face to face) and all fours on the bed (hands and knees, partner kneeling behind).

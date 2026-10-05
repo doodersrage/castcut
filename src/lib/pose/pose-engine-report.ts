@@ -174,13 +174,13 @@ export function pickPoseEngine(input: {
   const here = scoreOf(row, from);
   if (!here || here.rate > POSE_WEAK_MAX_RATE) return null;
   let best: { engine: PoseReportEngine; model: string; score: PoseEngineScore } | null = null;
-  const suggestive = normalizeDayMood(input.mood) === 'suggestive';
   for (const engine of POSE_REPORT_ENGINES) {
     if (engine === from) continue;
-    // Qwen-Image 2.1 drew Suggestive stills partly nude in the sweep (bare chest or bottom on 4 of
-    // 22, against 1 of 22 on Rapid and on Edit 2511 — it queues on the NSFW Rapid graph): never
-    // move a Suggestive still onto it.
-    if (suggestive && engine === 'qwen-image-2.1') continue;
+    // Never move a still onto Qwen-Image 2.1 the player didn't pick: its "solid" rows rest on 2–3
+    // sweep stills, so a few redos on Rapid sent a Late Night still there and it came back
+    // distorted (user report 2026-10-05); it also drew Suggestive stills partly nude (4 of 22 vs
+    // 1 of 22 — it queues on the NSFW Rapid graph). Picked as the Day engine, it stays.
+    if (engine === 'qwen-image-2.1') continue;
     const score = scoreOf(row, engine);
     if (!score || score.rate < POSE_SOLID_MIN_RATE) continue;
     const model = POSE_REPORT_ENGINE_MODELS[engine].find(id => input.installed(id));
