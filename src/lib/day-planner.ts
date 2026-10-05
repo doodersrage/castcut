@@ -2586,6 +2586,15 @@ export function daySlotMatchesAdultMix(input: {
     if (heat.includes(beat)) {
       return true;
     }
+    // Any part of the day: a solo Suggestive beat moved into another slot still fits. The
+    // clothed rewrite (2.3) took "lingerie" / "robe loosely" out of beats like the windowsill
+    // sit, so the cue words below no longer vouched for them and Queue rerolled the slot.
+    if (
+      Object.values(DAY_SLOT_SUGGESTIVE_BEAT_PRESETS).flat().includes(beat) ||
+      Object.values(DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS).flat().includes(beat)
+    ) {
+      return true;
+    }
     // Any part of the day: a couple beat typed or moved into another slot still fits.
     if (Object.values(DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS).flat().includes(beat)) {
       return input.allowCompanions === true;

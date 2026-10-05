@@ -4,6 +4,7 @@ import {
   DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS,
   DAY_SLOT_SUGGESTIVE_BEAT_PRESETS,
   DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS,
+  daySlotMatchesAdultMix,
 } from './day-planner';
 import { stripNegatedClauses } from './negated-clauses';
 import { suggestiveBeatClothes } from './rapid-duo-recipe';
@@ -64,6 +65,34 @@ describe('Suggestive beats stay clothed', () => {
     assert.equal(
       suggestiveBeatClothes('leaning in the bathroom doorway in a short robe over lingerie, hip against the frame'),
       'a short robe over lingerie'
+    );
+  });
+
+  it('a solo beat moved to any slot still fits the mood (Queue does not reroll it)', () => {
+    // 2.3 regression sweep: the rewritten windowsill sit lost "lingerie", so outside the morning
+    // pool the cue words no longer vouched for it and Queue swapped the slot for another beat.
+    const solo = allSuggestiveBeats().filter(({ pool }) => !pool.startsWith('couple'));
+    const rerolled: string[] = [];
+    for (const { pool, beat } of solo) {
+      for (const id of ['morning', 'afternoon-2', 'evening', 'night-2'] as const) {
+        const fits = daySlotMatchesAdultMix({
+          slot: { id, label: id, location: 'boutique hotel room with soft lamp light', sceneHints: beat },
+          dayMood: 'suggestive',
+          intimateMix: 'solo',
+          allowCompanions: false,
+        });
+        if (!fits) rerolled.push(`${pool} in ${id}: ${beat}`);
+      }
+    }
+    assert.deepEqual(rerolled, []);
+  });
+
+  it('a couple beat still needs companions on, in any slot', () => {
+    const beat = DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS.morning[0]!;
+    const slot = { id: 'night' as const, label: 'Night', location: 'boutique hotel room', sceneHints: beat };
+    assert.equal(
+      daySlotMatchesAdultMix({ slot, dayMood: 'suggestive', intimateMix: 'solo', allowCompanions: false }),
+      false
     );
   });
 });
