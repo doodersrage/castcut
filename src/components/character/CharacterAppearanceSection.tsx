@@ -108,33 +108,44 @@ export default function CharacterAppearanceSection({
         </p>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-3" data-testid="cast-appearance-traits">
-        {FIELDS.map(field => (
-          <label key={field.key} className="block space-y-1.5">
-            <FieldLabel htmlFor={`cast-trait-${field.key}`}>{field.label}</FieldLabel>
-            <SelectInput
-              id={`cast-trait-${field.key}`}
-              data-testid={`cast-trait-${field.key}`}
-              value={draft[field.key] ?? ''}
-              onChange={event => {
-                setStatus(null);
-                const value = event.target.value;
-                setDraft(previous => {
-                  const next = { ...previous } as Record<string, string | undefined>;
-                  if (value) next[field.key] = value;
-                  else delete next[field.key];
-                  return next as CharacterTraits;
-                });
-              }}
-            >
-              <option value="">{hasPicture ? 'Not set — the picture decides' : 'Not set'}</option>
-              {field.options.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </SelectInput>
-          </label>
-        ))}
+        {FIELDS.map(field => {
+          // Bald (hair colour) means no hair: length and style don't apply.
+          const noHair =
+            draft.hairColor === 'bald' && (field.key === 'hairLength' || field.key === 'hairStyle');
+          return (
+            <label key={field.key} className="block space-y-1.5">
+              <FieldLabel htmlFor={`cast-trait-${field.key}`}>{field.label}</FieldLabel>
+              <SelectInput
+                id={`cast-trait-${field.key}`}
+                data-testid={`cast-trait-${field.key}`}
+                value={noHair ? '' : (draft[field.key] ?? '')}
+                disabled={noHair}
+                title={noHair ? 'Bald — no hair length or style' : undefined}
+                onChange={event => {
+                  setStatus(null);
+                  const value = event.target.value;
+                  setDraft(previous => {
+                    const next = { ...previous } as Record<string, string | undefined>;
+                    if (value) next[field.key] = value;
+                    else delete next[field.key];
+                    if (field.key === 'hairColor' && value === 'bald') {
+                      delete next.hairLength;
+                      delete next.hairStyle;
+                    }
+                    return next as CharacterTraits;
+                  });
+                }}
+              >
+                <option value="">{hasPicture ? 'Not set — the picture decides' : 'Not set'}</option>
+                {field.options.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </SelectInput>
+            </label>
+          );
+        })}
       </div>
       {!draft.sex ? (
         <p className="mt-2 type-caption text-[var(--text-muted)]">

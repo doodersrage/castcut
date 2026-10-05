@@ -188,6 +188,8 @@ describe('hair traits', () => {
     );
     assert.equal(hairPhrase({ hairColor: 'black', hairStyle: 'braids' }), 'black hair in braids');
     assert.equal(hairPhrase({ hairLength: 'bald', hairColor: 'red' }), 'a shaved head');
+    assert.equal(hairPhrase({ hairColor: 'bald', hairLength: 'long', hairStyle: 'curly' }), 'a bald head');
+    assert.deepEqual(normalizeCharacterTraits({ hairColor: 'bald' }), { hairColor: 'bald' });
     assert.equal(hairPhrase({ sex: 'woman' }), '');
     assert.deepEqual(normalizeCharacterTraits({ hairColor: 'teal', hairStyle: 'bun' }), {
       hairStyle: 'bun',

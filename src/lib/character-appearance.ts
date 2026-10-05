@@ -732,7 +732,8 @@ export type CharacterHairColor =
   | 'blonde'
   | 'platinum-blonde'
   | 'grey'
-  | 'white';
+  | 'white'
+  | 'bald';
 export type CharacterHairLength =
   'bald' | 'buzzed' | 'short' | 'chin-length' | 'shoulder-length' | 'long' | 'very-long';
 export type CharacterHairStyle =
@@ -761,6 +762,7 @@ export const CHARACTER_HAIR_COLOR_OPTIONS: CharacterAppearanceOption<CharacterHa
   { value: 'platinum-blonde', label: 'Platinum blonde' },
   { value: 'grey', label: 'Grey' },
   { value: 'white', label: 'White' },
+  { value: 'bald', label: 'Bald (no hair)' },
 ];
 export const CHARACTER_HAIR_LENGTH_OPTIONS: CharacterAppearanceOption<CharacterHairLength>[] = [
   { value: 'bald', label: 'Bald / shaved' },
@@ -786,7 +788,7 @@ export const CHARACTER_HAIR_STYLE_OPTIONS: CharacterAppearanceOption<CharacterHa
   { value: 'slicked-back', label: 'Slicked back' },
 ];
 
-const HAIR_COLOR_WORDS: Record<CharacterHairColor, string> = {
+const HAIR_COLOR_WORDS: Record<Exclude<CharacterHairColor, 'bald'>, string> = {
   black: 'black',
   'dark-brown': 'dark brown',
   brown: 'brown',
@@ -829,6 +831,8 @@ const HAIR_WORN: Partial<Record<CharacterHairStyle, string>> = {
 export function hairPhrase(traits: CharacterTraits | undefined): string {
   if (!traits) return '';
   const { hairColor, hairLength, hairStyle } = traits;
+  // Bald as the colour: no hair at all, whatever length or style was left picked.
+  if (hairColor === 'bald') return 'a bald head';
   if (hairLength === 'bald') return 'a shaved head';
   if (!hairColor && !hairLength && !hairStyle) return '';
   const words = [
