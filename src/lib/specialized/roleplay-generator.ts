@@ -10,6 +10,13 @@ import { stripPromptArtifacts } from '../prompt-cleanup';
 import { storyLeadIsMan, storySceneForManLead } from '../story-lead-gender';
 import { repairStoryScene } from '../story-scene-check';
 import {
+  photographableStoryPrompt,
+  STORY_PHOTOGRAPHABLE_RULE,
+  storyPhotographableLine,
+  storySetupIsFantastical,
+  type StorySetup,
+} from '../story-photographable';
+import {
   clarifyIntimateImageLanguage,
   reinforceIntimateStillPrompt,
 } from '../intimate-prompt-clarify';
@@ -82,6 +89,17 @@ export type RoleplaySharedOptions = SharedGenerationOptions & {
   /** The Cast lead's physical descriptor ("a tall man, 30s"), read when no Sex is picked. */
   leadDescriptor?: string;
 };
+
+/** What decides whether the story's stills may show effects (fantasy / sci-fi setups only). */
+function storySetup(options: RoleplaySharedOptions, bio?: RoleplayBio): StorySetup {
+  return {
+    personaId: options.personaId,
+    customPersona: options.customPersona,
+    bio: bio ?? options.bio,
+    setting: options.setting ?? options.lockedLocation,
+    extraHints: options.extraHints,
+  };
+}
 
 /** Whether the Story lead is a man: the Cast's Sex and descriptor first, then the bible's look. */
 function roleplayLeadIsMan(bio: { look?: string }, options: RoleplaySharedOptions): boolean {
@@ -401,7 +419,8 @@ Return ONLY JSON: {"name":"","look":"","personality":"","catchphrase":""}
         : 'one visual sentence (species/body, clothes, colors, distinctive props).'
     }${adultLookHint(content)}${everydayLookHint(content)}
 - personality: who they are, in two or three short sentences of close third person — temperament, what they care about, habits and quirks, how they talk and treat people (e.g. "Dry-witted and fiercely loyal. Hates being rushed, apologises to furniture. Talks to strangers like old friends."). A character sketch, not a scene: no setting, no weather, nothing they are doing right now, no "she walks…" or "when the rain…".
-- ${contentLine(content, allowGore)}`,
+- ${contentLine(content, allowGore)}
+${storyPhotographableLine(storySetup(options))}`,
     user: [
       `Play as: ${persona}`,
       characterName ? `Character name (required): ${characterName}` : '',
@@ -514,6 +533,7 @@ ${
 }
 - Each beat should make a distinct still image of THIS character.
 ${leadPronounLine(bio, roleplayLeadIsMan(bio, options))}
+${storyPhotographableLine(storySetup(options, bio))}
 - ${sceneGuard(content, allowGore)}`,
       user: [
         formatRoleplayBio(bio),
@@ -639,6 +659,9 @@ export async function generateRoleplayPrompt(
   // Rapid Edit keeps ~420 chars: a restated look and a rambling second take pushed the beat's pose
   // out of the trimmed prompt (live 2026-09-27: "leans against a brick wall" was the dropped line).
   const { maxChars } = getDetailLimits(options.detail, options.model);
+  // Effects only where the story's own setup is fantasy or sci-fi (story-photographable.ts).
+  const setup = storySetup(options, bio);
+  const photographable = !storySetupIsFantastical(setup);
   const identityLine = hasReferenceImage
     ? `- Face, hair and body come from the reference image — do not describe them again. Use the name ${bio.name} once.`
     : `- The SAME character must appear (face, hair, body): ${lookLock}`;
@@ -674,7 +697,7 @@ ${
   situation.kind === 'ending'
     ? '- This is the LAST still of the story. Resolve or fade out. Do not stage a cliffhanger that needs another frame.\n'
     : ''
-}- ${styleLine} No camera brand names, no quality-tag soup, no comic-book lettering.`,
+}${photographable ? `${STORY_PHOTOGRAPHABLE_RULE}\n` : ''}- ${styleLine} No camera brand names, no quality-tag soup, no comic-book lettering.`,
     userMessage: [
       formatRoleplayBio(bio),
       formatRoleplayStoryDigest(options.story),
@@ -711,7 +734,9 @@ ${
         )
       ),
     preProcessPrompt: prompt => {
-      const take = keepFirstStoryTake(prompt, bio.name);
+      const first = keepFirstStoryTake(prompt, bio.name);
+      // Floating cups and glowing roots render as CGI on Rapid; drop what no camera could take.
+      const take = photographable ? photographableStoryPrompt(first) : first;
       // The reference carries face and hair; a restated (often wrong) look overrides it on Rapid.
       return hasReferenceImage ? stripRestatedStoryLook(take) : take;
     },

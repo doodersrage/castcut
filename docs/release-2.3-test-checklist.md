@@ -138,6 +138,9 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
 - [ ] **Man as the lead** — a male Cast (Sex trait) whose bible never says "man": scenes and lines
   use he / his.
 - [ ] **Story pose from a photo** — a scene's pose → *From a photo…*.
+- [ ] **Photographable stills** — a Story with your own Part (not fantasy): no floating props,
+  drones, glowing roots or steam shapes in the scene cards or stills; *Copy prompt* shows none.
+  A witch / starship / built-in Part story still gets its effects.
 - [ ] **Clip prompt** — a Story / Play clip's prompt (Copy prompt) has no "Image 3 skeleton" or
   "Keep Image 1 face" lines.
 
