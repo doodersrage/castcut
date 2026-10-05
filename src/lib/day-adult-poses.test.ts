@@ -11,7 +11,7 @@ import {
   isDayIntimateSoloBeat,
   isDayRaunchySoloBeat,
 } from './day-planner';
-import { parseIntimateLayout, synthesizeSceneStickFigures } from './day-pose-guide';
+import { parseIntimateLayout, synthesizeSceneStickFigures, type StickSkeleton } from './day-pose-guide';
 
 const ALL = [
   ...Object.values(DAY_SLOT_INTIMATE_BEAT_PRESETS).flat(),
@@ -67,6 +67,86 @@ describe('adult Day poses', () => {
       forcePeople: 2,
     });
     assert.ok(swapped.figures[0]!.pelvis.y > swapped.figures[1]!.pelvis.y);
+  });
+});
+
+describe('adult pose skeletons stay one body', () => {
+  const aspect = 512 / 768;
+  const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.hypot((a.x - b.x) * aspect, a.y - b.y);
+
+  function assertConnected(fig: StickSkeleton, label: string) {
+    const torso = dist(fig.neck, fig.pelvis);
+    assert.ok(torso > 0.08, `${label} torso ${torso.toFixed(3)}`);
+    const shoulder = {
+      x: (fig.lShoulder.x + fig.rShoulder.x) / 2,
+      y: (fig.lShoulder.y + fig.rShoulder.y) / 2,
+    };
+    const hips = { x: (fig.lHip.x + fig.rHip.x) / 2, y: (fig.lHip.y + fig.rHip.y) / 2 };
+    assert.ok(dist(fig.neck, shoulder) < torso * 0.75, `${label} neck detached`);
+    assert.ok(dist(fig.pelvis, hips) < torso * 0.55, `${label} pelvis detached`);
+    for (const [name, a, b] of [
+      ['head', fig.head, fig.neck],
+      ['l-upper', fig.lShoulder, fig.lElbow],
+      ['r-upper', fig.rShoulder, fig.rElbow],
+      ['l-fore', fig.lElbow, fig.lWrist],
+      ['r-fore', fig.rElbow, fig.rWrist],
+      ['l-thigh', fig.lHip, fig.lKnee],
+      ['r-thigh', fig.rHip, fig.rKnee],
+      ['l-shin', fig.lKnee, fig.lAnkle],
+      ['r-shin', fig.rKnee, fig.rAnkle],
+    ] as const) {
+      const len = dist(a, b);
+      assert.ok(len > 0.035, `${label} ${name} collapsed (${len.toFixed(3)})`);
+      assert.ok(len < torso * 2.3, `${label} ${name} ${(len / torso).toFixed(2)}× torso`);
+    }
+  }
+
+  it('draws face-sit, sixty-nine, scissors, lap and mating press as whole bodies', () => {
+    const beats = [
+      'sitting on his face on the bed — face-sitting a partner, both adults fully visible',
+      'sixty-nine on the bed — both adults fully visible',
+      'scissoring on the bed in the lamp glow, legs interlocked with a partner — both adults fully visible',
+      'sitting on his lap facing him mid-sex — both adults fully visible',
+      'mating press on the couch with a partner — both adults fully visible',
+    ];
+    for (const beat of beats) {
+      for (const variant of [0, 1]) {
+        const { figures } = synthesizeSceneStickFigures(beat, variant, {
+          forcePeople: 2,
+          variant,
+        });
+        assert.equal(figures.length, 2, beat);
+        figures.forEach((fig, index) => assertConnected(fig, `${beat} v${variant} p${index}`));
+      }
+    }
+  });
+
+  it('puts each sixty-nine head at the other hips, not at the feet', () => {
+    const { figures } = synthesizeSceneStickFigures('sixty-nine on the bed — both adults fully visible', 0, {
+      forcePeople: 2,
+    });
+    const [a, b] = figures;
+    assert.ok(a && b);
+    const feet = (fig: typeof a) => ({
+      x: (fig.lAnkle.x + fig.rAnkle.x) / 2,
+      y: (fig.lAnkle.y + fig.rAnkle.y) / 2,
+    });
+    assert.ok(dist(a.head, b.pelvis) < dist(a.head, feet(b)), 'lead head nearer the partner hips than the feet');
+    assert.ok(dist(b.head, a.pelvis) < dist(b.head, feet(a)), 'partner head nearer the lead hips than the feet');
+  });
+
+  it('keeps the face-sit rider upright over the partner face', () => {
+    const { figures } = synthesizeSceneStickFigures(
+      'sitting on his face on the bed — face-sitting a partner, both adults fully visible',
+      0,
+      { forcePeople: 2 }
+    );
+    const [rider, under] = figures;
+    assert.ok(rider && under);
+    assert.ok(rider.neck.y < rider.pelvis.y - 0.12, 'rider torso has height');
+    assert.ok(under.head.y > rider.pelvis.y, 'partner face is below the rider hips');
+    assert.ok(dist(under.head, rider.pelvis) < dist(under.head, rider.head));
   });
 });
 
