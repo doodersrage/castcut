@@ -6,6 +6,7 @@ import {
   isDayAdultMood,
   normalizeDayIntimateMix,
   normalizeDayMood,
+  dayStillIsFaceFinished,
   dayStillsCachePatch,
   upsertDaySlotStill,
 } from '@/lib/day-planner';
@@ -86,6 +87,7 @@ export function useDayFaceFinish(ctx: DayPlannerToolOrchestrationCore) {
       return (
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
+        !dayStillIsFaceFinished(still) &&
         !handledRef.current.has(stillKey(still))
       );
     });

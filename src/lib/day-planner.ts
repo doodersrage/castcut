@@ -4623,6 +4623,18 @@ export function restoreDayBeatPatch(
   return { sceneHints: slot.sceneHintsDay, sceneHintsTyped: undefined, sceneHintsDay: undefined };
 }
 
+/**
+ * This take already carries its face finish. Face finish skips it: its baseline only covers
+ * stills present when Day mounted, and on a fresh browser (or another device) the stills arrive
+ * with the server pull after that — every finished still was finished again on each open, one
+ * Edit 2511 render apiece.
+ */
+export function dayStillIsFaceFinished(still: DaySlotStill | null | undefined): boolean {
+  return Boolean(
+    still?.finishedUrl?.trim() && still.finishedFor && still.finishedFor === still.promptId
+  );
+}
+
 /** The image a still shows: its face finish when that belongs to this take, else the take. */
 export function dayStillShownImage(still: DaySlotStill | null | undefined): string {
   if (!still) return '';
