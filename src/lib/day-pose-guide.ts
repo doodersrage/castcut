@@ -3365,76 +3365,224 @@ function cabinetDrawerFigures(): StickSkeleton[] {
 }
 
 /**
- * Standing wall sex: lead's back to the left wall, partner behind (same facing),
- * both full height with feet on the floor — never a face-to-face floor kneel.
- * Head at collarbone height + throat/core hands so Edit doesn't invent a mouth kiss.
- */
-function wallPressStandingFigures(): StickSkeleton[] {
-  // Pressed to the left wall bar — not center-cab facing camera with a front rail.
-  // Both face the wall (image left): OpenPose shows two profiles, not a face-to-face pair.
-  const against: StickSkeleton = {
-    facing: 'left',
-    head: point(0.22, 0.1),
-    neck: point(0.22, 0.18),
-    pelvis: point(0.24, 0.5),
-    lShoulder: point(0.14, 0.22),
-    rShoulder: point(0.3, 0.22),
-    // Palms on the wall ahead/left — not a forward handrail grip.
-    lElbow: point(0.1, 0.3),
-    rElbow: point(0.12, 0.34),
-    lWrist: point(0.06, 0.28),
-    rWrist: point(0.08, 0.36),
-    lHip: point(0.21, 0.5),
-    rHip: point(0.27, 0.5),
-    lKnee: point(0.22, 0.7),
-    rKnee: point(0.28, 0.7),
-    lAnkle: point(0.22, 0.92),
-    rAnkle: point(0.28, 0.92),
-  };
-  const press: StickSkeleton = {
-    facing: 'left',
-    // Head clearly visible over her shoulder in camera (not buried / reflection-only).
-    head: point(0.38, 0.16),
-    neck: point(0.38, 0.26),
-    pelvis: point(0.38, 0.5),
-    lShoulder: point(0.3, 0.3),
-    rShoulder: point(0.46, 0.28),
-    lElbow: point(0.26, 0.48),
-    rElbow: point(0.26, 0.26),
-    // Placeholders — overwritten after separateIntimateFigures.
-    lWrist: point(0.25, 0.62),
-    rWrist: point(0.23, 0.12),
-    lHip: point(0.35, 0.5),
-    rHip: point(0.41, 0.5),
-    lKnee: point(0.36, 0.7),
-    rKnee: point(0.42, 0.7),
-    lAnkle: point(0.36, 0.92),
-    rAnkle: point(0.42, 0.92),
-  };
-  // Whole body, hips against hers. Pushing only the pelvis left his knees behind.
-  const lead = against;
-  const partner = nestPelvis(press, against, INTIMATE_HIP_GAP, 0);
-  // One contact wrist only (ghost-hand risk).
-  partner.rWrist = point(lead.neck.x + 0.02, lead.neck.y + 0.01);
-  partner.lWrist = point(partner.lHip.x - 0.04, partner.lHip.y + 0.02);
-  partner.rElbow = point(
-    (partner.rShoulder.x + partner.rWrist.x) / 2,
-    (partner.rShoulder.y + partner.rWrist.y) / 2
-  );
-  partner.lElbow = point(
-    (partner.lShoulder.x + partner.lWrist.x) / 2,
-    (partner.lShoulder.y + partner.lWrist.y) / 2
-  );
-  return [lead, partner];
-}
-
-/**
  * Seated oral, three-quarter side view: the receiver sits on an edge (hips at seat height, thighs
  * forward and spread, shins down, torso leaning back on straight arms); the giver kneels on the
  * floor between her knees, facing her, head at her pelvis, hands on her thighs. The upright
  * kneel-up map under the recipe's "sits on the edge of the couch" read as two standing figures,
  * and Rapid laid the man upside down on his back under her (live 2026-10-03).
  */
+/**
+ * Lap as the recipe says it: he sits, she straddles his lap facing him, knees on the seat either
+ * side of his hips, arms around his neck; side view. (The old map stood both upright.)
+ */
+function lapSeatedFigures(): StickSkeleton[] {
+  const lead: StickSkeleton = {
+    facing: 'left',
+    head: point(0.5, 0.22),
+    neck: point(0.52, 0.3),
+    pelvis: point(0.52, 0.56),
+    lShoulder: point(0.49, 0.32),
+    rShoulder: point(0.55, 0.31),
+    lElbow: point(0.44, 0.38),
+    rElbow: point(0.47, 0.41),
+    lWrist: point(0.4, 0.33),
+    rWrist: point(0.42, 0.37),
+    lHip: point(0.5, 0.56),
+    rHip: point(0.54, 0.57),
+    lKnee: point(0.4, 0.64),
+    rKnee: point(0.42, 0.66),
+    lAnkle: point(0.28, 0.7),
+    rAnkle: point(0.3, 0.72),
+  };
+  const seat: StickSkeleton = {
+    facing: 'right',
+    head: point(0.4, 0.26),
+    neck: point(0.4, 0.34),
+    pelvis: point(0.42, 0.6),
+    lShoulder: point(0.37, 0.36),
+    rShoulder: point(0.43, 0.35),
+    lElbow: point(0.47, 0.46),
+    rElbow: point(0.49, 0.5),
+    lWrist: point(0.53, 0.5),
+    rWrist: point(0.55, 0.55),
+    lHip: point(0.4, 0.6),
+    rHip: point(0.44, 0.61),
+    lKnee: point(0.58, 0.62),
+    rKnee: point(0.6, 0.6),
+    lAnkle: point(0.6, 0.88),
+    rAnkle: point(0.62, 0.88),
+  };
+  return [lead, seat];
+}
+
+/** Wall, face to face: her back to the wall, one foot down, the other knee raised to his hip. */
+function wallFaceToFaceFigures(): StickSkeleton[] {
+  const lead: StickSkeleton = {
+    facing: 'right',
+    head: point(0.36, 0.22),
+    neck: point(0.36, 0.3),
+    pelvis: point(0.38, 0.56),
+    lShoulder: point(0.33, 0.32),
+    rShoulder: point(0.39, 0.31),
+    lElbow: point(0.44, 0.32),
+    rElbow: point(0.46, 0.3),
+    lWrist: point(0.49, 0.28),
+    rWrist: point(0.51, 0.26),
+    lHip: point(0.36, 0.56),
+    rHip: point(0.4, 0.57),
+    lKnee: point(0.52, 0.52),
+    rKnee: point(0.38, 0.74),
+    lAnkle: point(0.5, 0.7),
+    rAnkle: point(0.38, 0.92),
+  };
+  const partner: StickSkeleton = {
+    facing: 'left',
+    head: point(0.49, 0.21),
+    neck: point(0.5, 0.3),
+    pelvis: point(0.5, 0.56),
+    lShoulder: point(0.47, 0.32),
+    rShoulder: point(0.53, 0.31),
+    lElbow: point(0.44, 0.42),
+    rElbow: point(0.56, 0.44),
+    lWrist: point(0.4, 0.52),
+    rWrist: point(0.52, 0.53),
+    lHip: point(0.48, 0.56),
+    rHip: point(0.52, 0.57),
+    lKnee: point(0.52, 0.74),
+    rKnee: point(0.56, 0.74),
+    lAnkle: point(0.53, 0.92),
+    rAnkle: point(0.58, 0.92),
+  };
+  return [lead, partner];
+}
+
+/**
+ * From behind, standing: she leans forward, hands braced on the wall in front, hips back; the
+ * partner stands close behind her, hands on her hips (wall from behind / glass, and standing).
+ */
+function standingFromBehindFigures(): StickSkeleton[] {
+  const lead: StickSkeleton = {
+    facing: 'left',
+    head: point(0.31, 0.23),
+    neck: point(0.34, 0.3),
+    pelvis: point(0.42, 0.56),
+    lShoulder: point(0.32, 0.32),
+    rShoulder: point(0.37, 0.32),
+    lElbow: point(0.27, 0.31),
+    rElbow: point(0.28, 0.34),
+    lWrist: point(0.22, 0.3),
+    rWrist: point(0.22, 0.34),
+    lHip: point(0.4, 0.56),
+    rHip: point(0.44, 0.57),
+    lKnee: point(0.42, 0.74),
+    rKnee: point(0.45, 0.74),
+    lAnkle: point(0.41, 0.92),
+    rAnkle: point(0.46, 0.92),
+  };
+  const partner: StickSkeleton = {
+    facing: 'left',
+    head: point(0.5, 0.22),
+    neck: point(0.52, 0.3),
+    pelvis: point(0.56, 0.56),
+    lShoulder: point(0.5, 0.32),
+    rShoulder: point(0.55, 0.31),
+    lElbow: point(0.47, 0.44),
+    rElbow: point(0.5, 0.45),
+    lWrist: point(0.44, 0.54),
+    rWrist: point(0.45, 0.56),
+    lHip: point(0.54, 0.56),
+    rHip: point(0.58, 0.57),
+    lKnee: point(0.56, 0.74),
+    rKnee: point(0.59, 0.74),
+    lAnkle: point(0.57, 0.92),
+    rAnkle: point(0.61, 0.92),
+  };
+  return [lead, partner];
+}
+
+/** Kneeling face to face: both kneel upright, side view, chests close, arms around each other. */
+function kneelingFaceToFaceFigures(): StickSkeleton[] {
+  const lead: StickSkeleton = {
+    facing: 'right',
+    head: point(0.44, 0.24),
+    neck: point(0.43, 0.32),
+    pelvis: point(0.42, 0.58),
+    lShoulder: point(0.41, 0.34),
+    rShoulder: point(0.46, 0.33),
+    lElbow: point(0.5, 0.38),
+    rElbow: point(0.52, 0.36),
+    lWrist: point(0.56, 0.36),
+    rWrist: point(0.57, 0.33),
+    lHip: point(0.4, 0.58),
+    rHip: point(0.44, 0.59),
+    lKnee: point(0.44, 0.74),
+    rKnee: point(0.46, 0.75),
+    lAnkle: point(0.3, 0.76),
+    rAnkle: point(0.32, 0.77),
+  };
+  const partner: StickSkeleton = {
+    facing: 'left',
+    head: point(0.56, 0.24),
+    neck: point(0.57, 0.32),
+    pelvis: point(0.58, 0.58),
+    lShoulder: point(0.54, 0.33),
+    rShoulder: point(0.59, 0.34),
+    lElbow: point(0.48, 0.38),
+    rElbow: point(0.5, 0.4),
+    lWrist: point(0.44, 0.4),
+    rWrist: point(0.45, 0.43),
+    lHip: point(0.56, 0.59),
+    rHip: point(0.6, 0.58),
+    lKnee: point(0.54, 0.75),
+    rKnee: point(0.56, 0.74),
+    lAnkle: point(0.68, 0.77),
+    rAnkle: point(0.7, 0.76),
+  };
+  return [lead, partner];
+}
+
+/** On all fours on the bed: her hands and knees down, back level; he kneels upright behind. */
+function allFoursFigures(): StickSkeleton[] {
+  const lead: StickSkeleton = {
+    // facing left by inference (pose-guide-openpose infers profile from the level back)
+
+    head: point(0.22, 0.46),
+    neck: point(0.28, 0.5),
+    pelvis: point(0.5, 0.52),
+    lShoulder: point(0.27, 0.51),
+    rShoulder: point(0.3, 0.5),
+    lElbow: point(0.27, 0.62),
+    rElbow: point(0.3, 0.61),
+    lWrist: point(0.27, 0.72),
+    rWrist: point(0.3, 0.72),
+    lHip: point(0.48, 0.52),
+    rHip: point(0.52, 0.53),
+    lKnee: point(0.52, 0.72),
+    rKnee: point(0.55, 0.73),
+    lAnkle: point(0.66, 0.74),
+    rAnkle: point(0.68, 0.75),
+  };
+  const rear: StickSkeleton = {
+    facing: 'left',
+    head: point(0.71, 0.2),
+    neck: point(0.7, 0.28),
+    pelvis: point(0.7, 0.54),
+    lShoulder: point(0.67, 0.3),
+    rShoulder: point(0.73, 0.29),
+    lElbow: point(0.62, 0.42),
+    rElbow: point(0.66, 0.44),
+    lWrist: point(0.53, 0.52),
+    rWrist: point(0.55, 0.54),
+    lHip: point(0.68, 0.54),
+    rHip: point(0.72, 0.55),
+    lKnee: point(0.72, 0.74),
+    rKnee: point(0.75, 0.75),
+    lAnkle: point(0.86, 0.76),
+    rAnkle: point(0.88, 0.77),
+  };
+  return [lead, rear];
+}
+
 /**
  * Scissors as the recipe says it: side view, both sitting on the bed facing each other, each
  * leaning back on straight arms planted behind, hips close, legs interlocked — each one's near
@@ -3772,48 +3920,6 @@ function facesitFigures(seed: number): StickSkeleton[] {
   return [rider, bottom];
 }
 
-/**
- * Two seated bodies. The Cast's hips sit just above the chair's lap and forward of it —
- * stacking her pelvis on his chest put his face at her crotch.
- */
-function lapFigures(): StickSkeleton[] {
-  const seat: StickSkeleton = {
-    head: point(0.32, 0.14),
-    neck: point(0.36, 0.22),
-    pelvis: point(0.42, 0.52),
-    lShoulder: point(0.28, 0.26),
-    rShoulder: point(0.44, 0.24),
-    lElbow: point(0.24, 0.38),
-    rElbow: point(0.56, 0.36),
-    lWrist: point(0.34, 0.48),
-    rWrist: point(0.6, 0.48),
-    lHip: point(0.38, 0.52),
-    rHip: point(0.46, 0.52),
-    lKnee: point(0.3, 0.7),
-    rKnee: point(0.56, 0.7),
-    lAnkle: point(0.28, 0.88),
-    rAnkle: point(0.58, 0.88),
-  };
-  const lap: StickSkeleton = {
-    head: point(0.64, 0.1),
-    neck: point(0.62, 0.18),
-    pelvis: point(0.62, 0.46),
-    lShoulder: point(0.54, 0.22),
-    rShoulder: point(0.7, 0.22),
-    lElbow: point(0.46, 0.28),
-    rElbow: point(0.66, 0.32),
-    lWrist: point(0.38, 0.24),
-    rWrist: point(0.58, 0.4),
-    lHip: point(0.58, 0.46),
-    rHip: point(0.66, 0.46),
-    lKnee: point(0.5, 0.62),
-    rKnee: point(0.76, 0.62),
-    lAnkle: point(0.48, 0.78),
-    rAnkle: point(0.78, 0.78),
-  };
-  return [lap, seat];
-}
-
 export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSkeleton[] {
   const layout = intent.intimate ?? 'generic';
   const seed = intent.seed;
@@ -3967,30 +4073,8 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
         })
       );
     }
-    // Kneeling behind, hips at her hip height. The old rear knelt a body-width away
-    // with his pelvis down by his own ankles.
-    const bent = bentForwardFigure(seed, 0.3, 50);
-    const px = bent.pelvis.x + INTIMATE_HIP_GAP;
-    const py = bent.pelvis.y;
-    const rear: StickSkeleton = {
-      facing: 'left',
-      head: point(px + 0.02, py - 0.36),
-      neck: point(px, py - 0.28),
-      pelvis: point(px, py),
-      lShoulder: point(px - 0.07, py - 0.24),
-      rShoulder: point(px + 0.08, py - 0.22),
-      lElbow: point(px - 0.12, py - 0.12),
-      rElbow: point(px - 0.02, py - 0.08),
-      lWrist: point(bent.pelvis.x + 0.02, py),
-      rWrist: point(px + 0.04, py + 0.08),
-      lHip: point(px - 0.04, py),
-      rHip: point(px + 0.04, py),
-      lKnee: point(px - 0.06, 0.78),
-      rKnee: point(px + 0.08, 0.8),
-      lAnkle: point(px - 0.08, 0.92),
-      rAnkle: point(px + 0.1, 0.92),
-    };
-    return pairOrTrio([bent, rear]);
+    // On all fours (the recipe's bed / rug rear entry): the old map stood her bent over.
+    return pairOrTrio(allFoursFigures());
   }
 
   if (layout === 'facesit') {
@@ -4080,34 +4164,26 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   }
 
   if (layout === 'kneeling') {
-    const left = uprightFigure(seed, {
-      cx: 0.4,
-      base: 'kneel',
-      salt: 1,
-      arms: 'hold',
-      lean: 0.2,
-    });
-    const right = uprightFigure(seed, {
-      cx: 0.58,
-      base: 'kneel',
-      salt: 2,
-      arms: 'hold',
-      lean: -0.2,
-    });
-    return pairOrTrio([left, right]);
+    // The recipe kneels them face to face; the old map stood them side by side facing the camera.
+    return pairOrTrio(kneelingFaceToFaceFigures());
   }
 
   if (layout === 'lap') {
     // Lead (Image 1) is the one on the lap — "sitting on his lap" is the Cast's pose.
     // Built as two whole seated bodies. Moving only the lap pelvis and the seat knees
     // left a stub torso, a thigh of length zero, and a head pulled off the neck.
-    return pairOrTrio(lapFigures());
+    return pairOrTrio(lapSeatedFigures());
   }
 
   if (layout === 'wall') {
     // Hard-coded full-height standing wall press — uprightFigure reads too soft/crouched
     // and face-close heads were getting interpreted as a floor kneel kiss.
-    return pairOrTrio(wallPressStandingFigures());
+    const scene = intent.sceneText || '';
+    return pairOrTrio(
+      /\b(?:partner\s+behind|from\s+behind|window|glass)\b/i.test(scene)
+        ? standingFromBehindFigures()
+        : wallFaceToFaceFigures()
+    );
   }
 
   if (layout === 'lift') {
@@ -4153,21 +4229,8 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   }
 
   if (layout === 'standing') {
-    const left = uprightFigure(seed, {
-      cx: 0.4,
-      base: 'stand',
-      salt: 1,
-      arms: 'hold',
-      lean: 0.2,
-    });
-    const right = uprightFigure(seed, {
-      cx: 0.58,
-      base: 'stand',
-      salt: 2,
-      arms: 'hold',
-      lean: -0.2,
-    });
-    return pairOrTrio([left, right]);
+    // The recipe: she leans forward, hands braced, hips back; the partner close behind her.
+    return pairOrTrio(standingFromBehindFigures());
   }
 
   if (layout === 'undress') {

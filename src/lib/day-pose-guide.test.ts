@@ -18,6 +18,8 @@ import {
   synthesizeStickSkeleton,
 } from './day-pose-guide';
 
+type StickSkeletonLike = ReturnType<typeof synthesizeIntimateStickFigures>[number];
+
 describe('day-pose-guide', () => {
   it('dayPoseGuideSize is portrait for Edit encode', () => {
     const size = dayPoseGuideSize();
@@ -575,22 +577,18 @@ describe('day-pose-guide', () => {
     assert.equal(wall.intimate, 'wall');
     const wallFigs = synthesizeIntimateStickFigures(wall);
     assert.equal(wallFigs.length, 2);
-    // Full standing height — ankles near the floor, not a kneel.
-    assert.ok(wallFigs[0]!.lAnkle.y > 0.85 && wallFigs[1]!.lAnkle.y > 0.85);
-    assert.ok(wallFigs[0]!.head.y < 0.2);
-    // Partner head sits lower toward collarbone, not face-aligned for a kiss.
-    assert.ok(wallFigs[1]!.head.y > wallFigs[0]!.head.y + 0.05);
-    assert.ok(wallFigs[1]!.head.y < 0.3);
-    // Lead hands on the glass ahead — not raised beside her head (kiss/hug bait).
-    assert.ok(wallFigs[0]!.lWrist.y > wallFigs[0]!.head.y + 0.15);
-    assert.ok(wallFigs[0]!.rWrist.y > wallFigs[0]!.head.y + 0.15);
-    // Partner stays to the right / behind the lead (not face-to-face collapse).
-    assert.ok(wallFigs[1]!.pelvis.x - wallFigs[0]!.pelvis.x > 0.1);
-    // Lead stays against the left wall (not center-cab / handrail composition).
-    assert.ok(wallFigs[0]!.pelvis.x < 0.35);
-    // Partner: one contact wrist near lead neck (throat); other stays on own hip (ghost-hand risk).
-    assert.ok(Math.abs(wallFigs[1]!.rWrist.y - wallFigs[0]!.neck.y) < 0.08);
-    assert.ok(Math.abs(wallFigs[1]!.lWrist.x - wallFigs[1]!.lHip.x) < 0.08);
+    // Face to face, as the recipe: her back to the wall, one foot planted, the other knee raised
+    // to his hip; he stands chest to chest. Both at full standing height.
+    const [lead, partner] = wallFigs as [StickSkeletonLike, StickSkeletonLike];
+    assert.ok(lead.rAnkle.y > 0.85 && partner.lAnkle.y > 0.85 && partner.rAnkle.y > 0.85);
+    assert.ok(lead.lKnee.y < lead.pelvis.y + 0.02, 'one knee raised to hip height');
+    assert.ok(Math.abs(lead.pelvis.x - partner.pelvis.x) < 0.16, 'chest to chest');
+    // From behind (or glass): she faces the wall with her hands braced ahead of her head line.
+    const behind = synthesizeIntimateStickFigures(
+      parsePoseGuideIntent('Pinned against the wall from behind mid-fuck.', 0)
+    );
+    assert.ok(behind[0]!.lWrist.x < behind[0]!.head.x, 'hands braced on the wall ahead');
+    assert.ok(behind[1]!.pelvis.x > behind[0]!.pelvis.x, 'partner behind her');
 
     const solo = parsePoseGuideIntent('Alone masturbating, erotic climax.', 0);
     assert.equal(solo.intimate, 'solo');
