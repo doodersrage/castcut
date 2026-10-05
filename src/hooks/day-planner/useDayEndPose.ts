@@ -23,6 +23,8 @@ import {
 import { clipEngineForShot } from '@/lib/ltx25-renderer';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
+import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
+import { stillPromptPeople } from '@/lib/still-clip-prompt';
 import { DEFAULT_VIDEO_TOOL_CACHE, loadToolSettings } from '@/lib/settings-cache';
 
 /**
@@ -41,9 +43,15 @@ export function resolveDayClipEngine(input: {
     toolModel: loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).model,
     sharedModel: input.sharedModel,
   });
+  const stillPrompt = parentEntry?.prompt ?? '';
   return clipEngineForShot(picked, {
-    adultDuo:
-      isDayAdultMood(input.dayMood) && (parentEntry?.prompt ?? '').includes(RAPID_DUO_RECIPE_MARK),
+    adultDuo: isDayAdultMood(input.dayMood) && stillPrompt.includes(RAPID_DUO_RECIPE_MARK),
+    clothedSolo:
+      !isDayAdultMood(input.dayMood) &&
+      stillPromptPeople(stillPrompt) === 1 &&
+      !isAdultContentPrompt(stillPrompt),
+    keepLtxForClothedSolo:
+      loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo === true,
   });
 }
 

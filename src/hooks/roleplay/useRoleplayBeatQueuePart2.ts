@@ -3,6 +3,8 @@
 import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/adult-age-safeguard';
 import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
 import { clipEngineForShot } from '@/lib/ltx25-renderer';
+import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
+import { stillPromptPeople } from '@/lib/still-clip-prompt';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
 import { useCallback, useEffect, useRef } from 'react';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
@@ -242,6 +244,11 @@ export function useRoleplayBeatQueuePart2(
               adultDuo: [latest.prompt, parentEntry?.prompt].some(text =>
                 (text ?? '').includes(RAPID_DUO_RECIPE_MARK)
               ),
+              clothedSolo: [latest.prompt, parentEntry?.prompt].every(
+                text => stillPromptPeople(text) === 1 && !isAdultContentPrompt(text)
+              ),
+              keepLtxForClothedSolo:
+                loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo === true,
             })
           : clipEngineForShot(videoModel, { adultDuo: true });
 

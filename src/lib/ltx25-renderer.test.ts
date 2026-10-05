@@ -161,6 +161,17 @@ describe('LTX-2.5 clip renderer', () => {
   it('two-person adult clips stay on WAN', () => {
     assert.equal(clipEngineForShot('ltx-video-2.5', { adultDuo: true }), 'wan-video');
     assert.equal(clipEngineForShot('ltx-video-2.5', { adultDuo: false }), 'ltx-video-2.5');
+    // Clothed one-person clips keep the face on WAN unless the player keeps LTX for them.
+    assert.equal(clipEngineForShot('ltx-video-2.5', { adultDuo: false, clothedSolo: true }), 'wan-video');
+    assert.equal(
+      clipEngineForShot('ltx-video-2.5', {
+        adultDuo: false,
+        clothedSolo: true,
+        keepLtxForClothedSolo: true,
+      }),
+      'ltx-video-2.5'
+    );
+    assert.equal(clipEngineForShot('wan-video', { adultDuo: false, clothedSolo: true }), 'wan-video');
     assert.equal(clipEngineForShot('wan-video-rapid-aio', { adultDuo: true }), 'wan-video-rapid-aio');
   });
 });

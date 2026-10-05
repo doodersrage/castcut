@@ -912,6 +912,11 @@ export type VideoToolCache = {
   parentVideoUrl?: string;
   /** Frame count / length fed to {{VIDEO_FRAMES}} at queue time. */
   frames?: number;
+  /**
+   * Keep LTX-2.5 for clothed one-person clips (faster; the face drifts). Off: those clips render
+   * on WAN even with LTX-2.5 picked (clipEngineForShot).
+   */
+  ltxClothedSolo?: boolean;
   /** Output frame rate fed to {{VIDEO_FPS}} at queue time. */
   fps?: number;
   hintSource?: import('./scene-hint-source').SceneHintSource;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { EngineHealthNote } from '@/components/EngineHealth';
 import { isLtx25Model } from '@/lib/ltx25-renderer';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
@@ -8,6 +8,7 @@ import {
   DEFAULT_VIDEO_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
+  saveToolSettings,
 } from '@/lib/settings-cache';
 
 const subscribe = () => () => {};
@@ -32,6 +33,9 @@ export default function ClipEngineNote({
   twoPersonAdultPossible: boolean;
 }) {
   const model = useSyncExternalStore(subscribe, pickedVideoModel, () => '');
+  const [keepLtx, setKeepLtx] = useState(
+    () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo === true
+  );
   // Says so here, before Animate fails, when this ComfyUI can't run the clip engine.
   const health = (
     <EngineHealthNote model={model} hideReady className="mt-2" testId="clip-engine-health" />
@@ -40,10 +44,30 @@ export default function ClipEngineNote({
   return (
     <>
       <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="clip-engine-note">
-        {twoPersonAdultPossible
-          ? 'Clips: LTX-2.5 (fast) for solo and clothed stills; two-person adult stills render on WAN, about 3× slower.'
-          : 'Clips render on LTX-2.5 (fast).'}
+        {keepLtx
+          ? twoPersonAdultPossible
+            ? 'Clips: LTX-2.5 (fast); two-person adult stills render on WAN, about 3× slower.'
+            : 'Clips render on LTX-2.5 (fast).'
+          : twoPersonAdultPossible
+            ? 'Clips: clothed one-person and two-person adult stills render on WAN (holds the face, about 3× slower); the rest on LTX-2.5.'
+            : 'Clips: clothed one-person stills render on WAN (holds the face, about 3× slower); the rest on LTX-2.5.'}
       </p>
+      <label className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]">
+        <input
+          type="checkbox"
+          checked={keepLtx}
+          data-testid="clip-engine-ltx-clothed-solo"
+          onChange={event => {
+            const next = event.target.checked;
+            setKeepLtx(next);
+            saveToolSettings('video', {
+              ...loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE),
+              ltxClothedSolo: next,
+            });
+          }}
+        />
+        Use LTX-2.5 for clothed one-person clips too (faster; the face drifts)
+      </label>
       {health}
     </>
   );

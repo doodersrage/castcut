@@ -41,10 +41,18 @@ export function isLtx25Model(model: string | null | undefined): boolean {
 
 /**
  * The engine a clip actually queues on. LTX-2.5 lost the from-behind duo in the A/B (partner
- * left the act), so two-person adult clips keep WAN; everything else rides the picked engine.
+ * left the act), so two-person adult clips keep WAN. Clothed one-person clips go to WAN too:
+ * LTX-2.5 lost the face (mean match 0.33 vs WAN's 0.58 over 8 Day stills, clip sweep
+ * 2026-10-05) — unless the player keeps LTX for them (Video `ltxClothedSolo`, for speed).
  */
-export function clipEngineForShot(videoModel: string, shot: { adultDuo: boolean }): string {
-  return isLtx25Model(videoModel) && shot.adultDuo ? DEFAULT_VIDEO_MODEL : videoModel;
+export function clipEngineForShot(
+  videoModel: string,
+  shot: { adultDuo: boolean; clothedSolo?: boolean; keepLtxForClothedSolo?: boolean }
+): string {
+  if (!isLtx25Model(videoModel)) return videoModel;
+  if (shot.adultDuo) return DEFAULT_VIDEO_MODEL;
+  if (shot.clothedSolo && !shot.keepLtxForClothedSolo) return DEFAULT_VIDEO_MODEL;
+  return videoModel;
 }
 
 /** LTX lengths are 8k+1 frames; keep the WAN clip's duration at 24 fps. */
