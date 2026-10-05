@@ -11,15 +11,20 @@ test.describe('Settings automation', () => {
     await gotoStable(page, '/settings?tab=automation');
     await expect(page.getByRole('heading', { name: 'Automation hub' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Scheduled batch' })).toBeVisible();
-    await expect(page.getByLabel('Enable browser scheduled batch')).toBeVisible();
-    await expect(page.getByLabel(/Best-of-N ranking/i)).toBeVisible();
-    await expect(page.getByText(/Vision-rank queued outputs/i)).toBeVisible();
+    // getByLabel also matches hidden elements: while the page streams, React can hold a hidden
+    // copy of the tab (the <div hidden id="S:0"> segment) next to the one on screen, and a
+    // strict locator then sees two checkboxes. Only the visible ones count.
+    await expect(
+      page.getByLabel('Enable browser scheduled batch').filter({ visible: true })
+    ).toBeVisible();
+    await expect(page.getByLabel(/Best-of-N ranking/i).filter({ visible: true })).toBeVisible();
+    await expect(page.getByText(/Vision-rank queued outputs/i).filter({ visible: true })).toBeVisible();
   });
 
   test('webhook settings section is reachable', async ({ page }) => {
     await gotoStable(page, '/settings?tab=automation');
     await expect(page.getByRole('heading', { name: 'Webhooks' })).toBeVisible();
-    await expect(page.getByLabel('Enable webhooks')).toBeVisible();
+    await expect(page.getByLabel('Enable webhooks').filter({ visible: true })).toBeVisible();
   });
 
   test('vision-rank checkbox toggles when best-of-N is set', async ({ page }) => {
