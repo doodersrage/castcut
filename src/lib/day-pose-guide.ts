@@ -2869,6 +2869,12 @@ function legsRaisedBottom(seed: number, salt: number): StickSkeleton {
   return base;
 }
 
+/**
+ * Closest two pelvises may sit before separateIntimateFigures starts sliding
+ * the second one off its own legs. Hip-contact poses aim here and stop.
+ */
+const INTIMATE_HIP_GAP = 0.2;
+
 /** Move every joint together so a pose stays one connected body. */
 function translateStick(fig: StickSkeleton, dx: number, dy: number): StickSkeleton {
   const s = (p: Point) => point(p.x + dx, p.y + dy);
@@ -2890,6 +2896,20 @@ function translateStick(fig: StickSkeleton, dx: number, dy: number): StickSkelet
     lAnkle: s(fig.lAnkle),
     rAnkle: s(fig.rAnkle),
   };
+}
+
+/** Slide a whole body so its pelvis lands `dx`/`dy` from the partner's pelvis. */
+function nestPelvis(
+  actor: StickSkeleton,
+  target: StickSkeleton,
+  dx: number,
+  dy: number
+): StickSkeleton {
+  return translateStick(
+    actor,
+    target.pelvis.x + dx - actor.pelvis.x,
+    target.pelvis.y + dy - actor.pelvis.y
+  );
 }
 
 function riderOnPelvis(
@@ -3187,7 +3207,8 @@ function chaiseLowerFigures(): StickSkeleton[] {
     lAnkle: point(0.52, 0.84),
     rAnkle: point(0.64, 0.82),
   };
-  return separateIntimateFigures([lifted, carrier]);
+  // Hips at his waist. Separating in here and again in pairOrTrio walked his pelvis off his legs.
+  return [lifted, nestPelvis(carrier, lifted, -INTIMATE_HIP_GAP, 0)];
 }
 
 /**
@@ -3232,7 +3253,7 @@ function chairBentFigures(): StickSkeleton[] {
     lAnkle: point(0.56, 0.92),
     rAnkle: point(0.62, 0.92),
   };
-  return separateIntimateFigures([bent, rear]);
+  return [bent, nestPelvis(rear, bent, INTIMATE_HIP_GAP, 0)];
 }
 
 /**
@@ -3278,14 +3299,21 @@ function deskBentFigures(options?: { throatGrab?: boolean }): StickSkeleton[] {
     lAnkle: point(0.56, 0.92),
     rAnkle: point(0.62, 0.92),
   };
+  const placed = nestPelvis(rear, bent, INTIMATE_HIP_GAP, 0);
   if (options?.throatGrab) {
-    // Upper hand toward lead neck/throat; lower toward pelvis/crotch (wall-press pattern).
-    rear.lElbow = point(0.42, 0.32);
-    rear.lWrist = point(0.32, 0.34);
-    rear.rElbow = point(0.5, 0.42);
-    rear.rWrist = point(0.42, 0.5);
+    // Upper hand on her throat, lower on her hip — pinned after the body moves.
+    placed.lWrist = point(bent.neck.x + 0.02, bent.neck.y);
+    placed.rWrist = point(bent.pelvis.x, bent.pelvis.y + 0.02);
+    placed.lElbow = point(
+      (placed.lShoulder.x + placed.lWrist.x) / 2,
+      (placed.lShoulder.y + placed.lWrist.y) / 2
+    );
+    placed.rElbow = point(
+      (placed.rShoulder.x + placed.rWrist.x) / 2,
+      (placed.rShoulder.y + placed.rWrist.y) / 2
+    );
   }
-  return separateIntimateFigures([bent, rear]);
+  return [bent, placed];
 }
 
 /**
@@ -3333,7 +3361,7 @@ function cabinetDrawerFigures(): StickSkeleton[] {
     lAnkle: point(0.56, 0.92),
     rAnkle: point(0.64, 0.92),
   };
-  return separateIntimateFigures([slumped, rear]);
+  return [slumped, nestPelvis(rear, slumped, INTIMATE_HIP_GAP, 0)];
 }
 
 /**
@@ -3383,11 +3411,10 @@ function wallPressStandingFigures(): StickSkeleton[] {
     lAnkle: point(0.36, 0.92),
     rAnkle: point(0.42, 0.92),
   };
-  const [lead, partner] = separateIntimateFigures([against, press]) as [
-    StickSkeleton,
-    StickSkeleton,
-  ];
-  // Re-pin contact after torso separation — one contact wrist only (ghost-hand risk).
+  // Whole body, hips against hers. Pushing only the pelvis left his knees behind.
+  const lead = against;
+  const partner = nestPelvis(press, against, INTIMATE_HIP_GAP, 0);
+  // One contact wrist only (ghost-hand risk).
   partner.rWrist = point(lead.neck.x + 0.02, lead.neck.y + 0.01);
   partner.lWrist = point(partner.lHip.x - 0.04, partner.lHip.y + 0.02);
   partner.rElbow = point(
@@ -3712,41 +3739,44 @@ function facesitFigures(seed: number): StickSkeleton[] {
   return [rider, bottom];
 }
 
-/** Two seated bodies: the Cast on the lap, the partner in the chair, both with real thighs. */
+/**
+ * Two seated bodies. The Cast's hips sit just above the chair's lap and forward of it —
+ * stacking her pelvis on his chest put his face at her crotch.
+ */
 function lapFigures(): StickSkeleton[] {
-  const lap: StickSkeleton = {
-    head: point(0.56, 0.08),
-    neck: point(0.55, 0.16),
-    pelvis: point(0.52, 0.38),
-    lShoulder: point(0.46, 0.2),
-    rShoulder: point(0.62, 0.2),
-    lElbow: point(0.34, 0.24),
-    rElbow: point(0.54, 0.26),
-    lWrist: point(0.4, 0.34),
-    rWrist: point(0.46, 0.36),
-    lHip: point(0.48, 0.38),
-    rHip: point(0.56, 0.38),
-    lKnee: point(0.4, 0.52),
-    rKnee: point(0.64, 0.52),
-    lAnkle: point(0.38, 0.7),
-    rAnkle: point(0.66, 0.7),
-  };
   const seat: StickSkeleton = {
-    head: point(0.4, 0.28),
-    neck: point(0.42, 0.36),
-    pelvis: point(0.46, 0.58),
-    lShoulder: point(0.34, 0.4),
-    rShoulder: point(0.52, 0.4),
-    lElbow: point(0.3, 0.5),
-    rElbow: point(0.64, 0.44),
-    lWrist: point(0.44, 0.52),
-    rWrist: point(0.56, 0.52),
-    lHip: point(0.42, 0.58),
-    rHip: point(0.5, 0.58),
+    head: point(0.32, 0.14),
+    neck: point(0.36, 0.22),
+    pelvis: point(0.42, 0.52),
+    lShoulder: point(0.28, 0.26),
+    rShoulder: point(0.44, 0.24),
+    lElbow: point(0.24, 0.38),
+    rElbow: point(0.56, 0.36),
+    lWrist: point(0.34, 0.48),
+    rWrist: point(0.6, 0.48),
+    lHip: point(0.38, 0.52),
+    rHip: point(0.46, 0.52),
     lKnee: point(0.3, 0.7),
-    rKnee: point(0.62, 0.7),
+    rKnee: point(0.56, 0.7),
     lAnkle: point(0.28, 0.88),
-    rAnkle: point(0.64, 0.88),
+    rAnkle: point(0.58, 0.88),
+  };
+  const lap: StickSkeleton = {
+    head: point(0.64, 0.1),
+    neck: point(0.62, 0.18),
+    pelvis: point(0.62, 0.46),
+    lShoulder: point(0.54, 0.22),
+    rShoulder: point(0.7, 0.22),
+    lElbow: point(0.46, 0.28),
+    rElbow: point(0.66, 0.32),
+    lWrist: point(0.38, 0.24),
+    rWrist: point(0.58, 0.4),
+    lHip: point(0.58, 0.46),
+    rHip: point(0.66, 0.46),
+    lKnee: point(0.5, 0.62),
+    rKnee: point(0.76, 0.62),
+    lAnkle: point(0.48, 0.78),
+    rAnkle: point(0.78, 0.78),
   };
   return [lap, seat];
 }
@@ -3769,9 +3799,11 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   }
 
   if (layout === 'missionary') {
-    // Offset heads left/right + vertical stack so Qwen doesn't read one body.
+    // Hips stacked, a small step apart so the two bodies stay readable.
+    // The old centers were shifted along the bed, so his hips sat on her thighs.
     const bottom = lyingFigure(seed, { cx: 0.46, cy: 0.58, facing: 1, salt: 40 });
-    let top = lyingFigure(seed, { cx: 0.58, cy: 0.4, facing: 1, salt: 80 });
+    let top = lyingFigure(seed, { cx: 0.46, cy: 0.36, facing: 1, salt: 80 });
+    top = nestPelvis(top, bottom, 0.03, -INTIMATE_HIP_GAP);
     top = plantHandsOnPartner(top, bottom, { toward: 'hips' });
     return pairOrTrio([bottom, top]);
   }
@@ -3781,11 +3813,8 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
     let top = lyingFigure(seed, { cx: 0.5, cy: 0.4, facing: 1, salt: 80 });
     // Hips meet; head stays toward her shoulders. Fixed knees on the old
     // lying figure crossed her torso instead of falling between her thighs.
-    top = translateStick(
-      top,
-      bottom.pelvis.x - 0.02 - top.pelvis.x,
-      bottom.pelvis.y - 0.26 - top.pelvis.y
-    );
+    // As close as the separator allows. 0.26 left his hips up at her knees.
+    top = nestPelvis(top, bottom, -0.02, -INTIMATE_HIP_GAP);
     top.lHip = point(top.pelvis.x - 0.03, top.pelvis.y);
     top.rHip = point(top.pelvis.x + 0.03, top.pelvis.y);
     top.lKnee = point(top.pelvis.x - 0.04, top.pelvis.y + 0.16);
@@ -3844,7 +3873,9 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
     const bottom = lyingFigure(seed, { cx: 0.42, cy: 0.58, facing: 1, salt: 40 });
     bottom.head = point(0.24, 0.54);
     bottom.neck = point(0.32, 0.56);
-    const top = lyingFigure(seed, { cx: 0.6, cy: 0.42, facing: 1, salt: 90 });
+    let top = lyingFigure(seed, { cx: 0.42, cy: 0.36, facing: 1, salt: 90 });
+    // Along her back, hips over hips. The old top was shifted toward her knees.
+    top = nestPelvis(top, bottom, 0.02, -INTIMATE_HIP_GAP);
     // Face-down, seen from above: back-of-head keypoints, not two faces up at the camera.
     bottom.facing = 'back';
     top.facing = 'back';
@@ -3852,18 +3883,22 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
   }
 
   if (layout === 'spoon') {
-    const back = lyingFigure(seed, { cx: 0.38, cy: 0.48, facing: 1, salt: 40 });
-    const front = lyingFigure(seed, { cx: 0.58, cy: 0.54, facing: 1, salt: 90 });
+    // Parallel, hips in line. Shifting the front body toward the feet put their face on the back hips.
+    const back = lyingFigure(seed, { cx: 0.42, cy: 0.4, facing: 1, salt: 40 });
+    let front = lyingFigure(seed, { cx: 0.42, cy: 0.62, facing: 1, salt: 90 });
+    front = nestPelvis(front, back, 0.02, INTIMATE_HIP_GAP);
     return pairOrTrio([back, front]);
   }
 
   if (layout === 'scissors') {
     // Hips adjacent, legs crossing between them. Overwriting only the ankles
     // dropped them onto the knees (a shin of length zero).
-    const left = lyingFigure(seed, { cx: 0.34, cy: 0.4, facing: 1, salt: 40 });
-    const right = lyingFigure(seed, { cx: 0.7, cy: 0.6, facing: -1, salt: 90 });
+    const left = lyingFigure(seed, { cx: 0.36, cy: 0.42, facing: 1, salt: 40 });
+    let right = lyingFigure(seed, { cx: 0.68, cy: 0.56, facing: -1, salt: 90 });
     crossScissorLegs(left, 1);
     crossScissorLegs(right, -1);
+    // Crotch to crotch, just far enough that the separator leaves the legs crossed.
+    right = nestPelvis(right, left, 0.12, 0.16);
     return pairOrTrio([left, right]);
   }
 
@@ -3905,21 +3940,29 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
         })
       );
     }
-    // Wider gap + kneeling rear partner so Edit doesn't invent standing extra limbs.
-    const bent = bentForwardFigure(seed, 0.28, 50);
-    let rear = uprightFigure(seed, {
-      cx: 0.76,
-      base: 'kneel',
-      salt: 2,
-      arms: 'hold',
-      lean: -0.12,
-    });
-    // Reach toward hips without collapsing pelvis centers (merge risk).
-    rear = plantHandsOnPartner(rear, bent, { toward: 'hips' });
-    rear.facing = 'left';
-    // Keep rear head higher in frame so Edit doesn't crop the partner.
-    rear.head = point(rear.head.x, Math.min(rear.head.y, 0.22));
-    rear.neck = point(rear.neck.x, Math.min(rear.neck.y, 0.3));
+    // Kneeling behind, hips at her hip height. The old rear knelt a body-width away
+    // with his pelvis down by his own ankles.
+    const bent = bentForwardFigure(seed, 0.3, 50);
+    const px = bent.pelvis.x + INTIMATE_HIP_GAP;
+    const py = bent.pelvis.y;
+    const rear: StickSkeleton = {
+      facing: 'left',
+      head: point(px + 0.02, py - 0.36),
+      neck: point(px, py - 0.28),
+      pelvis: point(px, py),
+      lShoulder: point(px - 0.07, py - 0.24),
+      rShoulder: point(px + 0.08, py - 0.22),
+      lElbow: point(px - 0.12, py - 0.12),
+      rElbow: point(px - 0.02, py - 0.08),
+      lWrist: point(bent.pelvis.x + 0.02, py),
+      rWrist: point(px + 0.04, py + 0.08),
+      lHip: point(px - 0.04, py),
+      rHip: point(px + 0.04, py),
+      lKnee: point(px - 0.06, 0.78),
+      rKnee: point(px + 0.08, 0.8),
+      lAnkle: point(px - 0.08, 0.92),
+      rAnkle: point(px + 0.1, 0.92),
+    };
     return pairOrTrio([bent, rear]);
   }
 
@@ -3971,13 +4014,22 @@ export function synthesizeIntimateStickFigures(intent: PoseGuideIntent): StickSk
       arms: 'forward',
       lean: 0.4,
     });
-    giver.head = point(onBench ? 0.5 : 0.48, onBench ? 0.42 : 0.5);
-    giver.neck = point(onBench ? 0.48 : 0.46, onBench ? 0.48 : 0.56);
-    // The upright kneel's shoulders stayed up when the head dropped to the pelvis,
-    // so the neck hung below the shoulder line.
-    giver.lShoulder = point(giver.neck.x - 0.08, giver.neck.y + 0.04);
-    giver.rShoulder = point(giver.neck.x + 0.06, giver.neck.y + 0.02);
-    giver.pelvis = point(0.34, onBench ? 0.72 : 0.7);
+    // Mouth on the receiver's pelvis. A fixed head height landed on the stomach,
+    // and the separator then pushed it toward the face.
+    const mouth = point(receiver.pelvis.x - 0.06, receiver.pelvis.y + 0.02);
+    giver.head = mouth;
+    giver.pelvis = point(mouth.x - 0.26, Math.min(mouth.y + 0.14, 0.74));
+    const along = (t: number) =>
+      point(
+        giver.pelvis.x + (mouth.x - giver.pelvis.x) * t,
+        giver.pelvis.y + (mouth.y - giver.pelvis.y) * t
+      );
+    // Neck near the mouth so the torso is the body. Shoulders sit back on that torso —
+    // at the neck they landed on the hands, which are on her thighs.
+    giver.neck = along(0.72);
+    const shoulder = along(0.48);
+    giver.lShoulder = point(shoulder.x - 0.08, shoulder.y + 0.06);
+    giver.rShoulder = point(shoulder.x + 0.06, shoulder.y - 0.02);
     giver.lHip = point(giver.pelvis.x - 0.04, giver.pelvis.y);
     giver.rHip = point(giver.pelvis.x + 0.04, giver.pelvis.y);
     giver.lKnee = point(giver.lHip.x - 0.02, giver.lHip.y + 0.12);

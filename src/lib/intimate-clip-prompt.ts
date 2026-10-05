@@ -88,12 +88,27 @@ function twoWomenMotion(layout: IntimateLayout | null): string {
     case 'mating_press':
       return 'her girlfriend moves her hips slowly and steadily against her; she stays on her back.';
     case 'bent':
+      return 'her girlfriend moves slowly from behind in a small, steady rhythm; she stays bent in place.';
     case 'prone':
+      return 'her girlfriend moves slowly from behind in a small, steady rhythm; she stays face-down.';
     case 'standing':
+      return 'her girlfriend moves her hips slowly against her in a small, steady rhythm; both stay standing.';
     case 'wall':
-      return 'her girlfriend moves slowly from behind in a small, steady rhythm; she stays in place.';
+      return 'her girlfriend moves slowly from behind in a small, steady rhythm; she stays standing against the wall.';
     case 'spoon':
-      return "slow, small movements of her girlfriend's hand between her thighs while both lie on their sides.";
+      return 'slow, small hip movements from behind while both lie on their sides.';
+    case 'facesit':
+      return "she rocks her hips slowly on her girlfriend's face; her girlfriend's head stays still.";
+    case 'sixty_nine':
+      return 'both heads move slowly and steadily; neither of them sits up or turns.';
+    case 'scissors':
+      return 'their hips grind slowly together where their legs cross; both stay on their sides.';
+    case 'lift':
+      return 'her girlfriend holds her up and moves her hips slowly; her legs stay wrapped around her.';
+    case 'afterglow':
+      return 'they lie still and breathe slowly, a hand resting on skin — no thrusting, nobody sits up.';
+    case 'undress':
+      return 'hands move slowly over clothes and skin — nobody turns away.';
     default:
       return layoutMotion(layout);
   }
@@ -110,15 +125,29 @@ function twoMenMotion(layout: IntimateLayout | null): string {
     case 'mating_press':
       return 'his boyfriend thrusts slowly and steadily; he stays on his back.';
     case 'bent':
+      return 'his boyfriend thrusts slowly from behind in a small, steady rhythm; he stays bent in place.';
     case 'prone':
+      return 'his boyfriend thrusts slowly from behind in a small, steady rhythm; he stays face-down.';
     case 'standing':
+      return 'his boyfriend moves his hips slowly against him in a small, steady rhythm; both stay standing.';
     case 'wall':
+      return 'his boyfriend thrusts slowly from behind in a small, steady rhythm; he stays standing against the wall.';
     case 'spoon':
-      return 'his boyfriend thrusts slowly from behind in a small, steady rhythm; he stays in place.';
+      return 'his boyfriend thrusts slowly from behind while both lie on their sides.';
     case 'oral':
+      return 'slow, steady motion of the head at the hips; the other body stays still.';
     case 'sixty_nine':
+      return 'both heads move slowly and steadily; neither of them sits up or turns.';
     case 'facesit':
-      return 'slow, steady oral motion of the head; the other body stays still.';
+      return "he rocks his hips slowly on his boyfriend's face; his boyfriend's head stays still.";
+    case 'scissors':
+      return 'their hips grind slowly together where their legs cross; both stay on their sides.';
+    case 'lift':
+      return 'his boyfriend holds him up and thrusts slowly; his legs stay wrapped around him.';
+    case 'afterglow':
+      return 'they lie still and breathe slowly, a hand resting on skin — no thrusting, nobody sits up.';
+    case 'undress':
+      return 'hands move slowly over clothes and skin — nobody turns away.';
     default:
       return 'slow, small, steady rhythmic motion of the hips; bodies stay in place.';
   }
@@ -134,23 +163,33 @@ function layoutMotion(layout: IntimateLayout | null): string {
     case 'mating_press':
       return 'he thrusts slowly and steadily into her; she stays on her back under him.';
     case 'bent':
-    case 'prone':
-    case 'standing':
-    case 'wall':
       return 'he thrusts slowly from behind in a small, steady rhythm, hands on her hips; she stays bent in place.';
+    case 'prone':
+      return 'he thrusts slowly from behind in a small, steady rhythm; she stays face-down under him.';
+    case 'standing':
+      return 'he moves his hips slowly against her in a small, steady rhythm; both stay standing, feet on the floor.';
+    case 'wall':
+      return 'he thrusts slowly from behind in a small, steady rhythm; she stays standing against the wall, feet on the floor.';
     case 'spoon':
       return 'slow, small hip thrusts from behind while both lie on their sides.';
     case 'oral':
+      return 'slow, steady motion of the head at the hips; the other body stays still.';
     case 'sixty_nine':
+      return "both heads move slowly and steadily at each other's hips; neither body sits up or turns.";
     case 'facesit':
-      return 'slow, steady oral motion of the head; the other body stays still.';
+      return 'she rocks her hips slowly on his face in a small, steady rhythm; his head stays still.';
+    case 'scissors':
+      return 'their hips grind slowly together where the legs cross; both stay lying on their sides.';
+    case 'lift':
+      return 'he holds her up and thrusts slowly; her legs stay wrapped around his waist.';
+    case 'kneeling':
+      return 'both stay on their knees and move their hips slowly together in a small rhythm.';
+    case 'afterglow':
+      return 'they lie still and breathe slowly, a hand resting on skin — no thrusting, nobody sits up.';
+    case 'undress':
+      return 'hands move slowly over clothes and skin, fabric shifting — nobody turns away.';
     case 'solo':
       return 'her fingers move slowly and steadily between her thighs; her body stays in place.';
-    case 'kneeling':
-    case 'scissors':
-    case 'lift':
-    case 'afterglow':
-    case 'undress':
     case 'generic':
     default:
       return 'slow, small, steady rhythmic motion of the hips; bodies stay in place.';

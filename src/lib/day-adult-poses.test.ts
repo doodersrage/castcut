@@ -136,6 +136,80 @@ describe('adult pose skeletons stay one body', () => {
     assert.ok(dist(b.head, a.pelvis) < dist(b.head, feet(a)), 'partner head nearer the lead hips than the feet');
   });
 
+  it('stacks hips on hips, and puts a mouth on the hips when the pose is oral', () => {
+    const raw = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+      Math.hypot(a.x - b.x, a.y - b.y);
+    const duo = (beat: string) => {
+      const { figures } = synthesizeSceneStickFigures(beat, 0, { forcePeople: 2 });
+      const [a, b] = figures;
+      assert.ok(a && b, beat);
+      return [a, b] as const;
+    };
+
+    for (const beat of [
+      'missionary on the bed with a partner',
+      'mating press on the couch with a partner',
+      'lying face-down on the bed mid-sex with a partner stretched along her back',
+      'spooning sex in bed with a partner behind',
+    ]) {
+      const [a, b] = duo(beat);
+      const gap = raw(a.pelvis, b.pelvis);
+      assert.ok(Math.abs(a.pelvis.x - b.pelvis.x) <= 0.06, `${beat} hips slipped along the body`);
+      assert.ok(gap >= 0.18 && gap <= 0.24, `${beat} hip gap ${gap.toFixed(3)}`);
+      assert.ok(gap < raw(a.head, b.pelvis), `${beat} a head is closer to the hips than the hips are`);
+      assert.ok(gap < raw(b.head, a.pelvis), `${beat} a head is closer to the hips than the hips are`);
+    }
+
+    for (const beat of [
+      'on hands and knees on the bed mid-sex with a partner behind',
+      'bent over the kitchen counter mid-sex with a partner behind',
+    ]) {
+      const [front, rear] = duo(beat);
+      assert.ok(Math.abs(rear.pelvis.y - front.pelvis.y) < 0.05, `${beat} rear hips off her hip line`);
+      const gap = raw(front.pelvis, rear.pelvis);
+      assert.ok(gap >= 0.18 && gap <= 0.24, `${beat} hip gap ${gap.toFixed(3)}`);
+    }
+
+    const [lap, seat] = duo('sitting on his lap facing him mid-sex');
+    assert.ok(lap.pelvis.y < seat.pelvis.y);
+    assert.ok(Math.abs(lap.pelvis.y - seat.pelvis.y) < 0.12, 'sitting on the chest');
+    assert.ok(
+      raw(lap.pelvis, seat.pelvis) < raw(lap.pelvis, seat.head),
+      'lap hips nearer the face than the lap'
+    );
+
+    for (const beat of [
+      'she kneels on the kitchen floor giving her partner oral sex',
+      'a distinct adult partner kneeling for oral sex — head between thighs, nude bodies',
+    ]) {
+      const oral = duo(beat);
+      const giver =
+        raw(oral[0].head, oral[1].pelvis) < raw(oral[1].head, oral[0].pelvis) ? oral[0] : oral[1];
+      const receiver = giver === oral[0] ? oral[1] : oral[0];
+      assert.ok(raw(giver.head, receiver.pelvis) < 0.12, `${beat} mouth off the pelvis`);
+      assert.ok(
+        raw(giver.head, receiver.pelvis) < raw(giver.head, receiver.head),
+        `${beat} mouth closer to the face than the pelvis`
+      );
+      assert.ok(
+        dist(giver.neck, giver.pelvis) > dist(giver.head, giver.neck),
+        `${beat} neck longer than the torso`
+      );
+      for (const [name, a, b] of [
+        ['upper arm', giver.lShoulder, giver.lElbow],
+        ['forearm', giver.lElbow, giver.lWrist],
+        ['upper arm', giver.rShoulder, giver.rElbow],
+        ['forearm', giver.rElbow, giver.rWrist],
+      ] as const) {
+        assert.ok(dist(a, b) > 0.04, `${beat} ${name} collapsed`);
+      }
+    }
+
+    const [against, press] = duo('against the bedroom wall mid-sex');
+    assert.ok(Math.abs(against.pelvis.y - press.pelvis.y) < 0.04, 'wall hips at different heights');
+    assert.ok(raw(against.pelvis, press.pelvis) <= 0.22, 'wall hips apart');
+  });
+
   it('keeps the face-sit rider upright over the partner face', () => {
     const { figures } = synthesizeSceneStickFigures(
       'sitting on his face on the bed — face-sitting a partner, both adults fully visible',
