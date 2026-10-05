@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { detectPoseInComfyStill } from '@/lib/pose-detect-server';
+import { detectPeopleInComfyStill, detectPoseInComfyStill } from '@/lib/pose-detect-server';
 
 export const runtime = 'nodejs';
 
@@ -10,9 +10,10 @@ export async function GET() {
 /**
  * Detect the body pose in a finished ComfyUI still (DWPose). Returns `available: false` with a
  * reason when the detector node pack is missing, so the Day pose check can switch itself off.
+ * `perPerson: true` reads each person on their own (two-person stills, pose-person-reads.ts).
  */
 export async function POST(request: Request) {
-  let body: { imageUrl?: string; comfyUrl?: string } = {};
+  let body: { imageUrl?: string; comfyUrl?: string; perPerson?: boolean } = {};
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -23,7 +24,8 @@ export async function POST(request: Request) {
     return apiError('imageUrl is required.', 400);
   }
   try {
-    const result = await detectPoseInComfyStill({ imageUrl, comfyUrl: body.comfyUrl });
+    const detect = body.perPerson === true ? detectPeopleInComfyStill : detectPoseInComfyStill;
+    const result = await detect({ imageUrl, comfyUrl: body.comfyUrl });
     return apiJson(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Pose detection failed.';

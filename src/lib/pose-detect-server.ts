@@ -16,6 +16,13 @@ import {
   stageComfyImageAsInput,
   type ComfyNodeInfo,
 } from '@/lib/comfy-utility-graph-server';
+import {
+  buildPersonReadGraph,
+  mergePersonReadReplies,
+  PERSON_READ_COUNT,
+  PERSON_READ_NODES,
+  personReadNodeId,
+} from '@/lib/pose-person-reads';
 import { parseOpenPoseJson, type PoseDetectResult } from '@/lib/pose-score';
 
 export type { PoseDetectResult };
@@ -78,6 +85,59 @@ export async function detectPoseInComfyStill(input: {
   const pose = parseOpenPoseJson(run.result);
   if (!pose) {
     throw new Error('DWPose returned keypoints in an unknown format.');
+  }
+  return { available: true, pose };
+}
+
+/**
+ * Two-person stills: each person read on their own (person masks, the body alone on grey,
+ * DWPose — pose-person-reads.ts), so a couple in contact comes back as two bodies instead of
+ * one merged one. `available: false` when DWPose or the Impact Pack segmentation nodes are
+ * missing.
+ */
+export async function detectPeopleInComfyStill(input: {
+  imageUrl: string;
+  comfyUrl?: string;
+  timeoutMs?: number;
+}): Promise<PoseDetectResult> {
+  const ref = parseComfyViewRef(input.imageUrl);
+  if (!ref) {
+    return { available: false, reason: 'Still is not a ComfyUI image.' };
+  }
+  const baseUrl = comfyBaseUrl(input.comfyUrl);
+  const detector = await resolveComfyNode(baseUrl, DETECTOR_NODES);
+  if (!detector) {
+    return {
+      available: false,
+      reason: 'DWPose not installed in ComfyUI (comfyui_controlnet_aux).',
+    };
+  }
+  for (const node of PERSON_READ_NODES) {
+    if (!(await resolveComfyNode(baseUrl, [node]))) {
+      return { available: false, reason: `${node} not installed in ComfyUI (Impact Pack).` };
+    }
+  }
+  const imageName = await stageComfyImageAsInput(baseUrl, ref, 'pose-people');
+  const run = await runComfyUtilityGraph({
+    baseUrl,
+    label: 'pose-people',
+    timeoutMs: input.timeoutMs,
+    prompt: buildPersonReadGraph({
+      imageName,
+      detectorNode: detector.node,
+      detectorInputs: image => buildDetectorInputs(detector.info, image),
+    }),
+    read: entry =>
+      entry.status?.completed
+        ? Array.from(
+            { length: PERSON_READ_COUNT },
+            (_, index) => entry.outputs?.[personReadNodeId(index)]?.openpose_json?.[0]
+          )
+        : undefined,
+  });
+  const pose = run.result ? mergePersonReadReplies(run.result) : null;
+  if (!pose) {
+    return { available: false, reason: 'The per-person read returned no keypoints.' };
   }
   return { available: true, pose };
 }

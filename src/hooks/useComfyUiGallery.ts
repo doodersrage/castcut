@@ -46,12 +46,18 @@ import { notePoseTakeOutcomes, type PoseOutcome } from '@/lib/pose-outcome-stats
 function notePoseOutcomeForEntries(ids: readonly string[], outcome: PoseOutcome): void {
   if (ids.length === 0) return;
   const wanted = new Set(ids);
+  const entries = loadComfyGallery().filter(entry => wanted.has(entry.id));
   notePoseTakeOutcomes(
-    loadComfyGallery()
-      .filter(entry => wanted.has(entry.id))
-      .map(entry => entry.promptId),
+    entries.map(entry => entry.promptId),
     outcome
   );
+  // A kept intimate two-person still teaches the pose library its layout (local only). Loaded
+  // on demand: it pulls in the pose guide planner.
+  if (outcome === 'keeper') {
+    void import('@/lib/pose-kept-intimate-client')
+      .then(({ learnKeptIntimatePoses }) => learnKeptIntimatePoses(entries))
+      .catch(() => {});
+  }
 }
 
 /** Guards the opportunistic server-gallery merge to run once per page session. */

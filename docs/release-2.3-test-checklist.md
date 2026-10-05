@@ -127,6 +127,9 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
 - [ ] **Each Cast keeps its own Day** — switch Cast and back: the Day and its stills return.
 - [ ] **Suggestive stays clothed** — a Suggestive Day on any engine: lingerie / robe, never bare. A
   bare take says *Checking…* then is withheld and requeued once.
+- [ ] **Kept intimate pose learned** — star (favorite) a kneeling or cowgirl Intimate still in the
+  Gallery: Settings → pose library count goes up by one (a lying couple the segmenter reads as one
+  body adds nothing); a later Day still of that layout sometimes draws it.
 - [ ] **Adult check** — Intimate Day: the card says *Checking…* with no preview until the vision
   model answers; Settings → Play checks says the check is on (or that no vision model is set).
 
