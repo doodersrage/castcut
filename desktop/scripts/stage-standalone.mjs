@@ -1,4 +1,4 @@
-import { cp, mkdir, rm, stat } from 'node:fs/promises';
+import { cp, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -90,6 +90,27 @@ async function vendorOnnxRuntimeNativeLibs() {
   }
 }
 
+async function dropMuslNativePackages() {
+  // The desktop app runs on glibc Linux, macOS and Windows — never musl (Alpine). Next's
+  // standalone trace can copy sharp's musl build (@img/sharp-linuxmusl-*, @img/sharp-libvips-
+  // linuxmusl-*), and linuxdeploy then fails the AppImage: "Could not find dependency:
+  // libc.musl-x86_64.so.1" (v2.3.1 release, 2026-10-05).
+  const imgDir = path.join(dest, 'node_modules', '@img');
+  let entries = [];
+  try {
+    entries = await readdir(imgDir);
+  } catch {
+    return;
+  }
+  const musl = entries.filter(name => name.includes('linuxmusl'));
+  for (const name of musl) {
+    await rm(path.join(imgDir, name), { recursive: true, force: true });
+  }
+  if (musl.length > 0) {
+    console.log(`Dropped ${musl.length} musl-only native package(s): ${musl.join(', ')}`);
+  }
+}
+
 async function main() {
   const standalone = path.join(repoRoot, '.next', 'standalone');
   const staticDir = path.join(repoRoot, '.next', 'static');
@@ -103,6 +124,7 @@ async function main() {
   await cp(staticDir, path.join(dest, '.next', 'static'), { recursive: true });
   await cp(publicDir, path.join(dest, 'public'), { recursive: true });
   await vendorOnnxRuntimeNativeLibs();
+  await dropMuslNativePackages();
   console.log(`Staged standalone server at ${path.relative(repoRoot, dest)}`);
 }
 

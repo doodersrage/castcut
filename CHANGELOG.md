@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Desktop: the Linux AppImage builds again.** v2.3.1's AppImage failed to bundle (sharp's musl/Alpine build was traced into the desktop server and linuxdeploy can't resolve musl libc); staging now drops `@img/*linuxmusl*`. The 2.3.1 `.deb`, `.dmg`, `.exe` and Docker image were unaffected.
 - **Fix an area: the takes show up, and you can see where they changed.** In the development server (React's double mount) the dialog thought it was closed as soon as it opened, so pressing Fix cancelled both takes — the button spun and nothing came back, though the take ComfyUI had started still rendered. (The release build was not affected.) The results now also lighten the painted area on the original and each take, with a switch to hide it.
 - **Fix: beige bra and briefs back in sex scenes.** A look whose plate had changed kept its old base-layer plate (`cast-plate-…`, a whole body in beige underwear) as its face lock, and nude Day / Story stills used that "face" whole as Image 1. A face lock that is a Cast plate no longer counts as a face picture: nude stills crop the face from the look's plate, as without a lock.
 
