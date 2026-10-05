@@ -97,6 +97,11 @@ function edgeOf(surface: string | null, fallback: string): string {
   return `the edge of the ${seat}`;
 }
 
+/** Where a lying head rests: a cushion on a couch, else a pillow. */
+function headRest(surface: string | null): string {
+  return /\b(?:couch|sofa|settee|loveseat)\b/i.test(surface ?? '') ? 'a cushion' : 'the pillow';
+}
+
 function placement(layout: IntimateLayout, beat: string, surface: string | null): string | null {
   const on = (fallback: string) => `the ${surface ?? fallback}`;
   switch (layout) {
@@ -107,13 +112,22 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // Keep "Side view": without it the camera went overhead and upside down, and his body
       // vanished, 6/6 on the user's Raunchy night still (bed-collapse gag); with it, side-on and
       // on top 3/3 with the gag intact (2026-10-01).
-      return `Side view, missionary position, both faces in frame. The woman lies face up on ${on('bed')}; the man is on top of her: he lies face down over her body, supporting himself on his elbows; she wraps her legs around his waist; his penis inside her; their faces close.`;
+      // "Both faces in frame" alone laid him head to head with her, his body running the other
+      // way (an upside-down kiss) — the user's missionary stills 0/3 right on replay. Placing
+      // both heads at the same end and his legs behind him: 4/4 (live A/B 2026-10-04).
+      return `Side view, missionary position, both faces in frame. The woman lies face up along ${on('bed')}, her head on ${headRest(surface)} at one end; the man lies face down on top of her, his head beside her head at the same end, his chest over her chest, his hips between her thighs and his legs stretched out behind him; he props himself on his elbows; she wraps her legs around his waist; his penis inside her; their faces close.`;
     case 'mating_press':
       // "Side view" first: without a camera anchor 1/3 flipped overhead and upside down (user's
       // Raunchy still); with it, side-on 3/3 (2026-10-01).
-      return `Side view, both faces in frame. The woman lies on her back on ${on('bed')} with her knees pulled up toward her shoulders; the man kneels over her between her legs, leaning his weight onto the backs of her thighs, his penis inside her.`;
+      // Her legs placed (calves on his shoulders) and her head on the pillow: the user's mating
+      // press still replayed 0/4 (no legs up, two head to head), placed 2/4 (live A/B 2026-10-04).
+      return `Side view, both faces in frame. The woman lies on her back along ${on('bed')}, her head on ${headRest(surface)}, her knees pulled up toward her shoulders and her calves resting on his shoulders; the man kneels upright between her legs, facing her, leaning forward over her with his hands on ${on('bed')} beside her shoulders, his penis inside her.`;
     case 'straddle':
-      return `Wide shot, both faces in frame. The man lies flat on his back on ${on('bed')}; the woman kneels astride his hips with her knees on either side of him, sitting down on his penis and riding him, her hands on his chest, looking down at him.`;
+      // "Wide shot" with no camera side shot from his head: his face upside down at the bottom
+      // and her squatting over his chest, 4/4 on the user's cowgirl still. "Side view" alone put
+      // her kneeling beside him (2/4); each knee placed, one on the far side of his body: 4/4
+      // astride (live A/B 2026-10-04). A mocap-composed straddle map changed nothing.
+      return `Side view, wide shot, both faces in frame. The man lies flat on his back along ${on('bed')}, his head on ${headRest(surface)} and his legs stretched out straight; the woman sits upright on top of him, straddling his hips: her near knee on ${on('bed')} beside his hip, her other knee on the far side of his body, her thighs over his hips and her bottom resting on his pelvis, his penis inside her, riding him; her hands on his chest, looking down at his face.`;
     case 'reverse_straddle':
       return `Reverse cowgirl, camera in front of the woman. The woman is closest to the camera, facing the lens, sitting on the lap of the man who sits back on ${on('couch')} behind her; her back rests against his chest, legs spread, riding his penis; his face is behind her shoulder and his hands on her hips.`;
     case 'bent':
@@ -146,6 +160,10 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
     case 'lift':
       return `Wide shot, both faces in frame. The man stands holding the woman up by her thighs, facing each other chest to chest; her legs are wrapped around his waist and her arms around his neck, her face beside his, his penis inside her.`;
     case 'oral':
+      // He goes down on her: "Full-body view, both faces in frame" laid him on his back on the
+      // floor under her with his face upside down, to show it (the user's stills; replay 3/4
+      // wrong). A side view with his face in profile, kneeling upright: 4/4 (live A/B 2026-10-04),
+      // the wording that kept two women whole (placementTwoWomen).
       return sheGivesOral(beat)
         ? isFloorSurface(surface)
           ? `Full-body view, both faces in frame. The man stands; the woman kneels on ${on('floor')} in front of him with his penis in her mouth, holding it at the base, looking up at him.`
@@ -153,11 +171,11 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
         : !/\bkneel/i.test(beat)
           ? // "She lies on her back … he lies between her thighs" disagreed with the kneel-up map;
             // seated on the edge, words and map agree (oralReceiverSeated). Live A/B: see CHANGELOG.
-            `Full-body view, both faces in frame. The woman sits on ${edgeOf(oralSeat(beat, surface), 'bed')}, leaning back on her hands with her thighs spread; the man kneels on the floor between her thighs with his mouth on her vulva, licking her, his hands on her thighs.`
+            `Side view, exactly two people. The woman sits on ${edgeOf(oralSeat(beat, surface), 'bed')}, feet on the floor, leaning back on her hands with her thighs spread; the man kneels upright on the floor between her knees, his back straight, his face in profile pressed to her vulva, licking her, his hands on her thighs. She looks down at him.`
           : // At a bed/couch she sits on its edge (the oral map draws that seated pose too —
             // oralReceiverSeated, rapid-oral-pose.ts); else she stands.
             ORAL_SEAT_RE.test(beat)
-            ? `Full-body view, both faces in frame. The woman sits on ${edgeOf(surface, 'bed')}, leaning back on her hands with her thighs spread; the man kneels on the floor between her thighs with his mouth on her vulva, licking her, his hands on her thighs.`
+            ? `Side view, exactly two people. The woman sits on ${edgeOf(surface, 'bed')}, feet on the floor, leaning back on her hands with her thighs spread; the man kneels upright on the floor between her knees, his back straight, his face in profile pressed to her vulva, licking her, his hands on her thighs. She looks down at him.`
             : // Placing each of her legs: "one leg lifted over his shoulder" often left the lifted
               // leg reading as a third limb behind him; with each leg placed both bodies came out
               // whole with two clear legs, 8/8 seeds (live 2026-09-29).
@@ -167,7 +185,7 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // Rapid cannot draw a 69, and on v23 face-sitting came back as a kiss or cowgirl too
       // (live 2026-09-28: 0/8 across wordings, with and without the guide). The seated oral
       // pose lands every time, so the oral beat stays readable (guide: day-slot-pose.ts).
-      return `Full-body view, both faces in frame. The woman sits on the edge of the ${/\b(?:couch|sofa|living[- ]room)\b/i.test(beat) ? 'couch' : 'bed'}, leaning back on her hands with her thighs spread; the man kneels on the floor between her thighs with his mouth on her vulva, licking her, his hands on her thighs.`;
+      return `Side view, exactly two people. The woman sits on the edge of the ${/\b(?:couch|sofa|living[- ]room)\b/i.test(beat) ? 'couch' : 'bed'}, feet on the floor, leaning back on her hands with her thighs spread; the man kneels upright on the floor between her knees, his back straight, his face in profile pressed to her vulva, licking her, his hands on her thighs. She looks down at him.`;
     case 'kneeling':
       return `Both kneel upright on ${on('bed')} facing each other, bodies pressed together mid-sex, her arms around his neck and his hands on her hips; both faces in frame.`;
     case 'lap':
@@ -431,6 +449,26 @@ export function calmSexLaughter(beat: string): string {
     .replace(/\b(?:laughing|laughs?)\b/gi, 'amused, lips closed');
 }
 
+/** Two-person sex layouts a recipe can place (a map's layout outranks the beat's words). */
+const DRAWN_DUO_LAYOUTS: ReadonlySet<IntimateLayout> = new Set<IntimateLayout>([
+  'missionary',
+  'mating_press',
+  'straddle',
+  'reverse_straddle',
+  'bent',
+  'prone',
+  'spoon',
+  'scissors',
+  'standing',
+  'wall',
+  'lift',
+  'oral',
+  'sixty_nine',
+  'facesit',
+  'kneeling',
+  'lap',
+]);
+
 export function buildRapidDuoRecipe(input: {
   beat: string | null | undefined;
   /** Planner indoor setting — used as the room only when the beat names no place. */
@@ -448,12 +486,19 @@ export function buildRapidDuoRecipe(input: {
   partner?: { partner: DayPartner; image: RecipeImage } | null;
   /** The Cast lead (default a woman). A man lead takes the man's place, or two-men layouts. */
   lead?: DayPartnerNoun;
+  /**
+   * The sex layout the pose map draws, when it is known and differs from the beat's words (Story:
+   * the writer's structured pose draws the map, the blurb is prose). Words and map then agree.
+   */
+  layout?: IntimateLayout | null;
 }): string | null {
   const beat = input.beat?.trim();
   if (!beat) {
     return null;
   }
-  const layout = parseIntimateLayout(beat);
+  const layout =
+    (input.layout && DRAWN_DUO_LAYOUTS.has(input.layout) ? input.layout : null) ??
+    parseIntimateLayout(beat);
   if (!layout) {
     return null;
   }
@@ -548,6 +593,13 @@ export function buildStoryRapidDuoRecipe(input: {
   omitGarment: boolean;
   hasGarmentImage: boolean;
   hasPoseGuide: boolean;
+  /**
+   * The layout the beat's pose map draws (its pose key's first part). The writer's structured
+   * pose draws the map while the blurb is prose: "standing with her back against a filing cabinet
+   * … a slow reverse straddle" drew a standing map under a lying-straddle recipe, and the stills
+   * came out as three poses at once.
+   */
+  guideLayout?: string | null;
 }): string | null {
   if (!isQwenRapidAioModel(input.model ?? undefined)) {
     return null;
@@ -563,6 +615,7 @@ export function buildStoryRapidDuoRecipe(input: {
     outfitImage,
     // The encoder packs images in order — no packshot means the guide is the second image.
     poseGuide: input.hasPoseGuide ? (outfitImage ? 'third' : 'second') : false,
+    layout: input.hasPoseGuide ? (input.guideLayout as IntimateLayout | null | undefined) : null,
   });
 }
 

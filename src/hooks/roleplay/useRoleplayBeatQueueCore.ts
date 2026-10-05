@@ -388,7 +388,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       beat: RoleplayStoryBeat,
       stillOpts: ReturnType<typeof buildRoleplayQueueStillOptions>,
       extra?: string,
-      clothed?: { people?: number; fromDressedPlate: boolean }
+      clothed?: { people?: number; fromDressedPlate: boolean },
+      /** The pose map's layout (its pose key), so the recipe places the bodies the map draws. */
+      guideLayout?: string | null
     ) => {
       const hasGarmentImage = Boolean(
         stillOpts?.inputImageFilenames?.[1]?.trim() || stillOpts?.inputImageUrls?.[1]
@@ -419,6 +421,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         omitGarment: storyBeatOmitsGarmentPackshot(beat),
         hasGarmentImage,
         hasPoseGuide,
+        guideLayout,
       });
       return recipe && extra?.trim() ? `${recipe} ${extra.trim()}` : recipe;
     },
@@ -892,7 +895,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           {
             people: poseGuide?.prompt.headcount,
             fromDressedPlate: fromDressPlate,
-          }
+          },
+          poseLayoutFromKey(poseGuide?.expect.poseKey)
         );
         const charOpts = roleplayCharacterQueueFields(
           { bio: nextBio, story: currentStory },
@@ -1106,7 +1110,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           {
             people: poseGuide?.prompt.headcount,
             fromDressedPlate: Boolean(dressPlate) && dressAsPlate && !nudeFace,
-          }
+          },
+          poseLayoutFromKey(poseGuide?.expect.poseKey)
         );
         const charOpts = roleplayCharacterQueueFields(
           undefined,

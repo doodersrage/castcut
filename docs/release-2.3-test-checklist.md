@@ -54,6 +54,12 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
 
 ### Day
 
+- [ ] **Intimate layouts** — Intimate Day on Rapid with missionary, cowgirl, oral (he kneels) and
+  mating press beats: heads at one end, her astride him seen from the side, him kneeling in
+  profile, her calves on his shoulders; no upside-down faces.
+- [ ] **Kept intimate pose learned** — star (favorite) a kneeling or cowgirl Intimate still in the
+  Gallery: Settings → pose library count goes up by one (a lying couple read as one body adds
+  nothing); a later Day still of that layout sometimes draws it.
 - [ ] **Looked computer-made** — with a vision model set up and Redo pose misses once (or
   Auto-review) on, a still that reads drawn or CGI is redone once on a new seed and marked
   *Redone — looked computer-made*; an ordinary still is not. With Best of two, a computer-made
@@ -126,6 +132,8 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
 
 ### Story
 
+- [ ] **Story sex scene follows its pose** — an explicit Story scene on Rapid whose text mixes poses
+  ("standing … reverse straddle"): the still is the pose on the scene's figure, not a mix.
 - [ ] **Scene card ⋯ and sheet** — each reel card has one ⋯ (Edit scene, Pose…, Open full size,
   Queue / Animate / Play another, Copy prompt, Open in ComfyUI); take arrows stay on the frame.
   *Edit scene* opens the sheet; a rendering scene has it disabled. Phone: a bottom sheet.

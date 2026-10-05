@@ -326,6 +326,13 @@ describe('day-pose-guide', () => {
     assert.equal(parseIntimateLayout('Mating press, legs over shoulders.'), 'mating_press');
     assert.equal(parseIntimateLayout('Cowgirl, riding him hard.'), 'straddle');
     assert.equal(parseIntimateLayout('Reverse cowgirl facing away.'), 'reverse_straddle');
+    // The stems take endings: these all fell through to the straddle layout.
+    assert.equal(
+      parseIntimateLayout('pulls you forward into a slow, grinding reverse straddle'),
+      'reverse_straddle'
+    );
+    assert.equal(parseIntimateLayout('reverse straddling him on the couch'), 'reverse_straddle');
+    assert.equal(parseIntimateLayout('facing away riding him'), 'reverse_straddle');
     assert.equal(parseIntimateLayout('Bent over the desk from behind.'), 'bent');
     assert.equal(
       parseIntimateLayout(

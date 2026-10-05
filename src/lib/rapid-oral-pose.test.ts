@@ -118,7 +118,7 @@ describe('seated oral pose map', () => {
     });
     assert.ok(beats.length >= 8, `${beats.length} oral beats`);
     for (const beat of beats) {
-      const recipeSeated = /sits on the edge of [^;]+; the (?:wo)?man kneels on the floor between/.test(
+      const recipeSeated = /sits on the edge of [^;]+; the (?:wo)?man kneels (?:upright )?on the floor between/.test(
         buildRapidDuoRecipe({ beat }) ?? ''
       );
       const { plan, resolved } = guideFor(beat);

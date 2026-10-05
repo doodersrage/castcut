@@ -786,10 +786,12 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
     return 'mating_press';
   }
   if (
-    /\b(reverse\s+cowgirl|reverse\s+straddl|facing\s+away\s+(?:while\s+)?(?:rid|straddl|mount)|back\s+to\s+(?:them|him|her)\s+(?:while\s+)?rid)\b/i.test(
+    /\b(reverse\s+cowgirl|reverse\s+straddl\w*|facing\s+away\s+(?:while\s+)?(?:rid|straddl|mount)\w*|back\s+to\s+(?:them|him|her)\s+(?:while\s+)?rid\w*)\b/i.test(
       haystack
     )
   ) {
+    // The stems take their endings ("reverse straddle", "facing away riding"): a bare stem before
+    // the closing \b never matched, and every Story "reverse straddle" drew the straddle layout.
     return 'reverse_straddle';
   }
   // Solo / masturbation BEFORE missionary — "alone on her back touching herself"

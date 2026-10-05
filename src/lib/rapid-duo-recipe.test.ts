@@ -107,11 +107,11 @@ describe('Rapid duo recipe', () => {
     );
     assert.match(
       buildRapidDuoRecipe({ beat: 'going down on her at the edge of the bed in morning light, partner kneeling between her thighs' })!,
-      /sits on the edge of the bed, leaning back/
+      /sits on the edge of the bed, feet on the floor, leaning back/
     );
     assert.match(
       buildRapidDuoRecipe({ beat: 'going down on her in the late-morning sheets, partner between her thighs' })!,
-      /sits on the edge of the bed, leaning back.*the man kneels on the floor between her thighs/
+      /sits on the edge of the bed, feet on the floor, leaning back.*the man kneels upright on the floor between her knees, his back straight, his face in profile/
     );
     // No kneel and a rug: she sits on the couch edge, not on "the edge of the rug".
     assert.match(
@@ -154,7 +154,7 @@ describe('Rapid duo recipe', () => {
     const recipe = buildRapidDuoRecipe({
       beat: 'sixty-nine on the living-room rug with a partner when the pizza arrives',
     })!;
-    assert.match(recipe, /sits on the edge of the couch.* mouth on her vulva/);
+    assert.match(recipe, /sits on the edge of the couch.* pressed to her vulva/);
     assert.doesNotMatch(recipe, /sixty-nine|astride his face/);
   });
 
@@ -190,6 +190,30 @@ describe('Rapid duo recipe', () => {
         hasPoseGuide: false,
       }),
       null
+    );
+  });
+
+  it("Story: places the bodies the pose map draws, not the blurb's other layout", async () => {
+    const { buildStoryRapidDuoRecipe } = await import('./rapid-duo-recipe');
+    const blurb =
+      'She’s standing with her back against a filing cabinet, heels planted wide as she pulls you forward into a slow, grinding reverse straddle — hands gripping your hips';
+    const input = {
+      model: 'qwen-rapid-aio-edit-nsfw',
+      blurb,
+      omitGarment: true,
+      hasGarmentImage: false,
+      hasPoseGuide: true,
+    };
+    // The writer's pose drew a standing map: the recipe stands them too.
+    const standing = buildStoryRapidDuoRecipe({ ...input, guideLayout: 'standing' })!;
+    assert.match(standing, /^Explicit sex photo: Both stand\./);
+    assert.doesNotMatch(standing, /lies flat on his back|astride/);
+    // A map that isn't a sex layout (or no map) leaves the blurb's own read.
+    const own = buildStoryRapidDuoRecipe({ ...input, guideLayout: 'stand' })!;
+    assert.match(own, /Reverse cowgirl/);
+    assert.equal(
+      buildStoryRapidDuoRecipe({ ...input, hasPoseGuide: false, guideLayout: 'standing' }),
+      buildStoryRapidDuoRecipe({ ...input, hasPoseGuide: false })
     );
   });
 });
