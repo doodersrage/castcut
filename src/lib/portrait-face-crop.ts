@@ -64,6 +64,38 @@ export function computePortraitFaceCropRect(
   };
 }
 
+/** A face found on the plate (InsightFace box, source pixels). */
+export type FaceBox = { x: number; y: number; width: number; height: number };
+
+/** Padded square around a detected face: head, hair and a little neck (see cropFaceBox). */
+export const FACE_BOX_CROP_SCALE = 2.2;
+
+/**
+ * Square crop centred on a detected face, `scale` × its longer side, nudged up a little so the
+ * hair is in (the box runs brow to chin). Shifted, never cut, to stay inside the image; shrunk
+ * only when the image is smaller than the square. Works for any plate orientation: a plate where
+ * she lies down puts her face low in the frame, where the top-centre window finds only hair.
+ */
+export function computeFaceBoxCropRect(
+  width: number,
+  height: number,
+  face: FaceBox,
+  options?: { scale?: number; liftRatio?: number }
+): PortraitFaceCropRect {
+  const w = Math.max(1, Math.floor(width));
+  const h = Math.max(1, Math.floor(height));
+  const scale = clamp(options?.scale ?? FACE_BOX_CROP_SCALE, 1, 4);
+  const lift = clamp(options?.liftRatio ?? 0.12, 0, 0.5);
+  const faceW = Math.max(1, face.width);
+  const faceH = Math.max(1, face.height);
+  const side = Math.min(w, h, Math.max(64, Math.round(Math.max(faceW, faceH) * scale)));
+  const centerX = face.x + faceW / 2;
+  const centerY = face.y + faceH / 2 - faceH * lift;
+  const x = Math.round(Math.min(Math.max(0, centerX - side / 2), w - side));
+  const y = Math.round(Math.min(Math.max(0, centerY - side / 2), h - side));
+  return { x, y, width: side, height: side };
+}
+
 /**
  * Scale W×H up so area ≥ minPixels (8-aligned). No-op when already large enough.
  */
@@ -95,6 +127,35 @@ export async function cropPortraitFaceRegionFromBlob(
   filename = 'cast-face-crop.png',
   options?: PortraitFaceCropOptions
 ): Promise<File> {
+  return cropBlobRegion(
+    blob,
+    filename,
+    (width, height) => computePortraitFaceCropRect(width, height, options),
+    options?.minPixels
+  );
+}
+
+/** Browser: crop a blob to a padded square around a detected face (computeFaceBoxCropRect). */
+export async function cropFaceBoxFromBlob(
+  blob: Blob,
+  filename: string,
+  face: FaceBox,
+  options?: { scale?: number; minPixels?: number }
+): Promise<File> {
+  return cropBlobRegion(
+    blob,
+    filename,
+    (width, height) => computeFaceBoxCropRect(width, height, face, options),
+    options?.minPixels
+  );
+}
+
+async function cropBlobRegion(
+  blob: Blob,
+  filename: string,
+  pickRect: (width: number, height: number) => PortraitFaceCropRect,
+  minPixelsOption: number | undefined
+): Promise<File> {
   if (typeof createImageBitmap !== 'function') {
     throw new Error('Face crop needs createImageBitmap in this browser.');
   }
@@ -103,9 +164,9 @@ export async function cropPortraitFaceRegionFromBlob(
     if (bitmap.width < 32 || bitmap.height < 32) {
       throw new Error('Source image is too small to crop a face region.');
     }
-    const rect = computePortraitFaceCropRect(bitmap.width, bitmap.height, options);
+    const rect = pickRect(bitmap.width, bitmap.height);
     const minPixels =
-      options?.minPixels === undefined ? PORTRAIT_FACE_CROP_MIN_PIXELS : options.minPixels;
+      minPixelsOption === undefined ? PORTRAIT_FACE_CROP_MIN_PIXELS : minPixelsOption;
     const outSize = computeMinPixelUpscaleSize(rect.width, rect.height, minPixels);
     const canvas = document.createElement('canvas');
     canvas.width = outSize.width;

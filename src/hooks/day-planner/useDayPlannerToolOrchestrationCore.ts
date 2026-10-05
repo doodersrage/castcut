@@ -47,6 +47,7 @@ import {
   applyCharacterRecord,
   applyCharacterRecordFresh,
   castLoraSessionIds,
+  characterHomeHref,
   looksOf,
   getCharacter,
   getCharactersSnapshot,
@@ -213,6 +214,21 @@ import {
 } from '@/lib/day-still-plan';
 import type { DayPlate } from '@/lib/day-plate';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
+import { NO_FACE_ON_PLATE_MESSAGE } from '@/lib/face-locate';
+
+/**
+ * The face crop fell back to the top of the plate: no face was found on it (lying down, turned
+ * away). Said once per queue (the tray replaces the same notice), with the Cast home where
+ * Prepare plate lives.
+ */
+function warnNoFaceOnPlate(character: { id: string } | null | undefined): void {
+  pushSystemTrayMessage({
+    text: NO_FACE_ON_PLATE_MESSAGE,
+    tone: 'warning',
+    ttlMs: 30_000,
+    ...(character?.id ? { href: characterHomeHref(character.id) } : {}),
+  });
+}
 import {
   loadWardrobeGarmentThumbManifest,
   resolveWardrobeGarmentThumbQueueUrl,
@@ -1257,6 +1273,7 @@ export function useDayPlannerToolOrchestrationCore() {
             identityPlate = nudeIdentity.plate;
             nudeFaceAutoCropped = nudeIdentity.autoCropped;
           }
+          if (nudeIdentity.noFaceFound) warnNoFaceOnPlate(lookCharacter);
         } else if (identityRoute === 'heat-full-plate' || identityRoute === 'face-break') {
           // Upright MID-STRIDE / WAVING / DANCING: full Keep as Image 1 freezes stand.
           // On Edit-2511, sit/lounge freezes the same way — face-break every clothed-heat beat.
@@ -1284,6 +1301,7 @@ export function useDayPlannerToolOrchestrationCore() {
               model: stillModel,
               comfyUrl,
             });
+            if (faceBreak.noFaceFound) warnNoFaceOnPlate(lookCharacter);
             if (faceBreak.facePlate) {
               identityPlate = faceBreak.facePlate;
               vacationFaceBreak = true;

@@ -8,7 +8,7 @@ import {
   type DayPlate,
 } from '@/lib/day-plate';
 import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
-import { cropPortraitFaceRegionFromBlob } from '@/lib/portrait-face-crop';
+import { cropCastFaceFromBlob } from '@/lib/cast-face-crop';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 
 /**
@@ -21,7 +21,7 @@ export async function resolveDayNudeIdentityPlateWithFaceCrop(input: {
   character: CharacterRecord | null | undefined;
   model?: string | null;
   comfyUrl?: string | null;
-}): Promise<{ plate: DayPlate | null; autoCropped: boolean }> {
+}): Promise<{ plate: DayPlate | null; autoCropped: boolean; noFaceFound?: boolean }> {
   const face = resolveDayFaceOnlyPlate(input.character);
   if (face) {
     return { plate: face, autoCropped: false };
@@ -41,12 +41,17 @@ export async function resolveDayNudeIdentityPlateWithFaceCrop(input: {
     });
     const blob = await loadImageBlobFromUrls(urls);
     const stamp = Date.now();
-    const file = await cropPortraitFaceRegionFromBlob(blob, `day-nude-face-${stamp}.png`, {
-      // Tight window — Cast underwear plates put bra straps just below the head.
-      heightRatio: 0.24,
-      aspect: 0.9,
-      topInsetRatio: 0.012,
-    });
+    const { file, face } = await cropCastFaceFromBlob(
+      blob,
+      `day-nude-face-${stamp}.png`,
+      {
+        // Fallback window — Cast underwear plates put bra straps just below the head.
+        heightRatio: 0.24,
+        aspect: 0.9,
+        topInsetRatio: 0.012,
+      },
+      { comfyUrl }
+    );
     const uploaded = await resolveQueueInputImage({
       file,
       filename: file.name,
@@ -66,6 +71,7 @@ export async function resolveDayNudeIdentityPlateWithFaceCrop(input: {
         source: 'cast',
       },
       autoCropped: true,
+      ...(face === 'missing' ? { noFaceFound: true } : {}),
     };
   } catch {
     return { plate: body, autoCropped: false };

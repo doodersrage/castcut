@@ -11,6 +11,7 @@ import {
   upsertDaySlotStill,
 } from '@/lib/day-planner';
 import { resolveDayVacationFaceBreakPlate } from '@/lib/day-vacation-face-crop';
+import { NO_FACE_ON_PLATE_MESSAGE } from '@/lib/face-locate';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import { planStillFaceFinish, runStillFaceFinish } from '@/lib/face-finish-client';
 import { faceFinishAwaitsChecks, type DayChecksGate } from '@/lib/day-finish-order';
@@ -131,6 +132,11 @@ export function useDayFaceFinish(
           model: shared.model,
           comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
         });
+        if (face.noFaceFound) {
+          // The crop is the top of the plate — conditioning the pass on it moved faces away.
+          setStatus(`Face finish skipped on ${target.label} — ${NO_FACE_ON_PLATE_MESSAGE}`);
+          return;
+        }
         const faceUrl = comfyInputViewUrl(face.facePlate?.filename);
         if (!faceUrl) {
           setStatus(`Face finish skipped on ${target.label} — no Cast face crop.`);

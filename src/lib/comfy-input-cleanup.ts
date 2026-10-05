@@ -34,6 +34,7 @@ export const APP_INPUT_PREFIXES = [
   'day-vacation-keep',
   'face-check',
   'face-finish',
+  'face-locate',
   'fitting-garment',
   'fitting-ref',
   'footwear',

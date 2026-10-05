@@ -4,7 +4,7 @@ import type { CharacterRecord } from '@/lib/character-os';
 import { resolveDayCastPlate } from '@/lib/day-plate';
 import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day-nude-face-crop';
 import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
-import { cropPortraitFaceRegionFromBlob } from '@/lib/portrait-face-crop';
+import { cropCastFaceFromBlob } from '@/lib/cast-face-crop';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 
 /**
@@ -51,12 +51,17 @@ export async function resolveStoryNudeFaceFilename(input: {
         comfyUrl: input.comfyUrl?.trim() || undefined,
       });
       const blob = await loadImageBlobFromUrls(urls);
-      const file = await cropPortraitFaceRegionFromBlob(blob, `story-nude-face-${Date.now()}.png`, {
-        // Same tight window as Day — underwear plates put bra straps just below the head.
-        heightRatio: 0.24,
-        aspect: 0.9,
-        topInsetRatio: 0.012,
-      });
+      const { file } = await cropCastFaceFromBlob(
+        blob,
+        `story-nude-face-${Date.now()}.png`,
+        {
+          // Fallback window, as Day — underwear plates put bra straps just below the head.
+          heightRatio: 0.24,
+          aspect: 0.9,
+          topInsetRatio: 0.012,
+        },
+        { comfyUrl: input.comfyUrl }
+      );
       const uploaded = await resolveQueueInputImage({
         file,
         filename: file.name,

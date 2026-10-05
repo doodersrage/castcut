@@ -10,7 +10,7 @@ import {
   ISOLATE_FILL_NEUTRAL,
   loadImageBlobFromUrls,
 } from '@/lib/isolate-subject';
-import { cropPortraitFaceRegionFromBlob } from '@/lib/portrait-face-crop';
+import { cropCastFaceFromBlob } from '@/lib/cast-face-crop';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 
 type FaceBreakResult = {
@@ -19,6 +19,12 @@ type FaceBreakResult = {
   outfitVlPlate: DayPlate | null;
   bodyPlate: DayPlate | null;
   autoCropped: boolean;
+  /**
+   * The face detector ran and found no face on the plate, so the crop is the top of the plate
+   * (often only hair on a plate where she lies down). Day says so (NO_FACE_ON_PLATE_MESSAGE)
+   * and Face finish is not conditioned on it.
+   */
+  noFaceFound?: boolean;
 };
 
 /**
@@ -63,7 +69,7 @@ function faceBreakCacheKey(input: {
     body?.imageUrl ?? '',
     body?.originalFilename ?? '',
     body?.originalUrl ?? '',
-    'face-v3-white-cutout',
+    'face-v4-located',
   ].join('\0');
 }
 
@@ -301,6 +307,7 @@ export async function resolveDayVacationFaceBreakPlate(input: {
     const castFace = resolveDayFaceOnlyPlate(input.character);
     let facePlate: DayPlate | null = null;
     let autoCropped = false;
+    let noFaceFound = false;
 
     if (castFace?.filename || castFace?.imageUrl) {
       const castUrls = collectIsolateSourceUrls({
@@ -311,7 +318,7 @@ export async function resolveDayVacationFaceBreakPlate(input: {
       if (castUrls.length > 0) {
         try {
           const castBlob = await loadImageBlobFromUrls(castUrls);
-          const castFaceFile = await cropPortraitFaceRegionFromBlob(
+          const castCrop = await cropCastFaceFromBlob(
             castBlob,
             // Prefix must match day-vacation-face* so Lightning skips ReferenceLatent
             // (same VL-only path as Keep auto-crops — cast-face* used to pin RL).
@@ -320,10 +327,12 @@ export async function resolveDayVacationFaceBreakPlate(input: {
               heightRatio: 0.42,
               aspect: 0.88,
               topInsetRatio: 0.01,
-            }
+            },
+            { comfyUrl }
           );
+          noFaceFound = castCrop.face === 'missing';
           facePlate = await uploadFaceCropFile({
-            file: await isolateFaceCropOnWhite(castFaceFile),
+            file: await isolateFaceCropOnWhite(castCrop.file),
             model: input.model,
             comfyUrl,
             source: 'cast',
@@ -341,17 +350,19 @@ export async function resolveDayVacationFaceBreakPlate(input: {
         comfyUrl,
       });
       const blob = await loadImageBlobFromUrls(urls);
-      const faceFile = await cropPortraitFaceRegionFromBlob(
+      const bodyFace = await cropCastFaceFromBlob(
         blob,
         `day-vacation-face-${stamp}.png`,
         {
           heightRatio: 0.3,
           aspect: 0.85,
           topInsetRatio: 0.01,
-        }
+        },
+        { comfyUrl }
       );
+      noFaceFound = bodyFace.face === 'missing';
       facePlate = await uploadFaceCropFile({
-        file: await isolateFaceCropOnWhite(faceFile),
+        file: await isolateFaceCropOnWhite(bodyFace.file),
         model: input.model,
         comfyUrl,
         source: body.source,
@@ -366,6 +377,7 @@ export async function resolveDayVacationFaceBreakPlate(input: {
           outfitVlPlate: null,
           bodyPlate: body,
           autoCropped: autoCropped || facePlate.source === 'cast',
+          ...(noFaceFound ? { noFaceFound: true } : {}),
         };
     faceBreakCache = { key: cacheKey, result };
     return result;
