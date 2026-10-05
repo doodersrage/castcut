@@ -74,6 +74,8 @@ import {
   buildDaySlotPromptForStill,
   dayPlayedMood,
   dayStillAgeFacts,
+  dayStillSceneRedraw,
+  dayStillSceneSlot,
   finishDayStillPrompt,
   queuedDayStillPrompt,
 } from './day-still-prompt';
@@ -544,12 +546,18 @@ function posePlanFor(beat: Beat, playedMood: string, setup: Setup, model: string
 const CUE_LAYOUTS = cuePoseLayouts();
 
 function decideStill(
-  beat: Beat,
+  drawn: Beat,
   setup: Setup,
   engine: Engine,
   lead: LeadNoun,
   shoesPicked: boolean
 ): Still {
+  // The hook fits the beat's furniture to the Setting before anything else (dayStillSceneSlot).
+  const sceneHints = dayStillSceneSlot(
+    { sceneHints: drawn.beat, location: drawn.location },
+    { dayMood: drawn.mood, intimateEnabled: setup.intimate }
+  ).sceneHints;
+  const beat: Beat = sceneHints && sceneHints !== drawn.beat ? { ...drawn, beat: sceneHints } : drawn;
   const toolMood = beat.mood;
   const intimateMix: DayIntimateMix = setup.companions ? 'mixed' : 'solo';
   // An adult mood with Intimate off plays as Everyday.
@@ -901,10 +909,27 @@ function decideStill(
 // ── The sweep ────────────────────────────────────────────────────────────────────────────
 
 const BEATS = collectBeats();
+const REDRAWN = new Set<string>();
+function sceneRedrawn(beat: Beat, setup: Setup): boolean {
+  const context = { dayMood: beat.mood, intimateEnabled: setup.intimate };
+  const fitted = dayStillSceneSlot({ sceneHints: beat.beat, location: beat.location }, context);
+  return Boolean(
+    dayStillSceneRedraw(fitted, {
+      ...context,
+      pairedScenes: beat.mood !== beat.kind || beat.kind === 'vacation' || beat.kind === 'sport',
+    })
+  );
+}
 const STILLS: Still[] = [];
 for (const setup of SETUPS) {
   for (const beat of BEATS) {
     if (!setup.beats(beat)) continue;
+    // A drawn beat its Setting cannot host even fitted is drawn again at queue time: it never
+    // goes out as it is (dayStillSceneRedraw).
+    if (sceneRedrawn(beat, setup)) {
+      REDRAWN.add(`${beat.mood} · ${beat.beat} · ${beat.location}`);
+      continue;
+    }
     for (const engine of ENGINES) {
       for (const lead of ['woman', 'man'] as const) {
         for (const shoesPicked of [false, true]) {
@@ -996,6 +1021,8 @@ for (const still of STILLS) {
   for (const issue of auditStillPrompt(prompt, {
     people: still.figures || undefined,
     imageCount: still.imageCount,
+    // As the hook passes it: clothed stills are checked against their Setting.
+    setting: still.adultStill ? null : still.beat.location,
   })) {
     fail(AUDIT, still, `${issue.code}: ${issue.message} ("${issue.evidence}")`);
   }

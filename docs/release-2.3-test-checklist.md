@@ -25,6 +25,14 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
   Intimate Day with that layout on the same engine: Gallery → the new still's details show the kept
   still's seed; the next still of that layout uses another kept seed or a fresh one. *Looks wrong*
   on it rolls a fresh seed. On a second browser after sync, the same seed comes back.
+- [ ] **Pose fits the place** — Everyday Day, type the Setting *busy plaza with a fountain and café
+  umbrellas* and the Beat *lying on her side on the sofa, head propped on one hand, reading*, Queue:
+  she sits on the fountain's edge reading — no sofa or bed on the plaza (Gallery → details: the
+  prompt says *sitting on the fountain's edge*; the card still shows your beat). Setting *leafy
+  city park lawn*: she lies on the grass. A Day-drawn *cooking at the stove* beat on a street slot is
+  drawn again at Queue (the card's beat changes); a typed one stays and the tray says *Prompt check:
+  … furniture the setting does not have*. Shuffle a few Everyday / Suggestive Days: no bed, sofa or
+  rug beats on street, café or plaza slots.
 
 ---
 

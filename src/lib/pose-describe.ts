@@ -29,6 +29,7 @@ import type { NormalizedBody } from '@/lib/pose-library';
 import { readHeadDirection } from '@/lib/pose-limb-presets';
 import { classifyPosture } from '@/lib/pose-posture';
 import { bodyCentreX, readPoseStance } from '@/lib/pose-starters';
+import { withSceneGround } from '@/lib/scene-surface';
 
 type Pt = { x: number; y: number };
 
@@ -113,7 +114,8 @@ export function describePoseFigure(
             .replace(/ on the floor\b/g, '')
             .replace(/\bflat on the floor\b/g, 'flat')
             .replace(/ to the floor\b/g, ' down')
-        : text;
+        : // Outdoors the floor is the ground ("sitting cross-legged on the grass").
+          withSceneGround(text, options.sceneText);
     return {
       stance,
       view,

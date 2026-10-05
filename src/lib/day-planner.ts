@@ -52,6 +52,7 @@ import {
   type RenderRealismMode,
 } from '@/lib/render-realism';
 import { buildSinglePersonUserDirective } from '@/lib/single-person';
+import { beatFitsSetting, fitBeatToSetting, surfaceWordsForSetting } from '@/lib/scene-surface';
 import {
   daySportBeatPresetsForSlot,
   daySportSettingPresetsForSlot,
@@ -921,13 +922,24 @@ export const DAY_REFERENCE_WHITE_VOID_FILL =
 export const DAY_EVERYDAY_POSE_STICKY_UNLOCK =
   'Image 1 is a standing try-on plate — discard that standing catalog stance completely: the body pose comes from the beat (and Image 3 when attached), never from Image 1; never freeze square-on with both feet planted and arms hanging at the sides. One woman only — never paint a second person, mannequin, or lingerie ghost from Image 1 beside her.';
 
-/** Beat-class stance so everyday sit/walk/lie cannot collapse to the Keep stand. */
-export function everydayStanceDirective(poseClass: string | null | undefined): string {
+/**
+ * Beat-class stance so everyday sit/walk/lie cannot collapse to the Keep stand. With the Setting,
+ * the seats and beds it lists are only ones that place has ("ON the bed/couch/floor" on a park
+ * lawn is "on the grass").
+ */
+export function everydayStanceDirective(
+  poseClass: string | null | undefined,
+  setting?: string | null
+): string {
   switch ((poseClass ?? '').toUpperCase()) {
-    case 'SEATED':
-      return 'SEATED = hips ON a chair/bench/stool/couch with knees bent — never standing square-on beside the seat';
-    case 'LYING':
-      return 'LYING = body stretched ON the bed/couch/floor, hips and back down — never standing beside it';
+    case 'SEATED': {
+      const seats = surfaceWordsForSetting(['chair', 'bench', 'stool', 'couch'], 'sit', setting);
+      return `SEATED = hips ${seats} with knees bent — never standing square-on beside the seat`;
+    }
+    case 'LYING': {
+      const beds = surfaceWordsForSetting(['bed', 'couch', 'floor'], 'lie', setting);
+      return `LYING = body stretched ${beds}, hips and back down — never standing beside it`;
+    }
     case 'WALKING':
       return 'WALKING = full-body mid-stride, one foot clearly ahead, opposite arm swing — never both feet planted parallel';
     case 'LEANING':
@@ -955,16 +967,22 @@ export function everydayStanceDirective(poseClass: string | null | undefined): s
  * Everyday face-break: the stance as the first line of the lead. Rapid follows the first
  * paragraph; with only the generic face-crop lead, crouch and kneel beats stood up.
  */
-export function dayEverydayFaceBreakStanceLead(beat: string | null | undefined): string | null {
+export function dayEverydayFaceBreakStanceLead(
+  beat: string | null | undefined,
+  setting?: string | null
+): string | null {
   const cls = dayEverydayPoseClass(beat);
   return ['SEATED', 'LYING', 'CROUCH', 'KNEEL', 'LEANING', 'CLIMB', 'FOOT_UP'].includes(cls)
-    ? `${everydayStanceDirective(cls)}.`
+    ? `${everydayStanceDirective(cls, setting)}.`
     : null;
 }
 
-export function buildDayEverydayKeepPoseUnlock(beat: string | null | undefined): string {
+export function buildDayEverydayKeepPoseUnlock(
+  beat: string | null | undefined,
+  setting?: string | null
+): string {
   const cls = dayEverydayPoseClass(beat);
-  const stance = everydayStanceDirective(cls);
+  const stance = everydayStanceDirective(cls, setting);
   return (
     `Edit Image 1. IDENTITY CRITICAL: keep the SAME woman as Image 1 — same face, bone structure, eyes, nose, mouth, and exact hair color and length. ` +
     `Keep the worn outfit from Image 1. Image 1 is a standing try-on plate — discard that stance. ${stance}. ` +
@@ -1246,15 +1264,23 @@ export function pickDayPresetFromSalt(pool: readonly string[], salt: string): st
   return pool[hashStringSeed(salt) % pool.length]!;
 }
 
-/** Pose baseline for a slot — rotates with Setting/Beat so Queue day varies stance. */
+/**
+ * Pose baseline for a slot — rotates with Setting/Beat so Queue day varies stance. With
+ * `fitSetting`, only baselines that place can host ("sitting in a diner booth" is not one for a
+ * living room), their furniture fitted to it.
+ */
 export function resolveDaySlotPoseBaseline(
-  slot: Pick<DaySlot, 'id' | 'location' | 'sceneHints'>
+  slot: Pick<DaySlot, 'id' | 'location' | 'sceneHints'>,
+  fitSetting?: string | null
 ): string {
-  const pool = DAY_SLOT_POSE_PRESETS[dayPartOf(slot.id)] ?? [
+  const all = DAY_SLOT_POSE_PRESETS[dayPartOf(slot.id)] ?? [
     DEFAULT_DAY_SLOT_POSES[dayPartOf(slot.id)],
   ];
+  const fitting = fitSetting ? all.filter(pose => beatFitsSetting(pose, fitSetting)) : all;
+  const pool = fitting.length > 0 ? fitting : all;
   const salt = `${slot.id}|${slot.location?.trim() ?? ''}|${slot.sceneHints?.trim() ?? ''}`;
-  return pickDayPresetFromSalt(pool, salt) || DEFAULT_DAY_SLOT_POSES[dayPartOf(slot.id)];
+  const pose = pickDayPresetFromSalt(pool, salt) || DEFAULT_DAY_SLOT_POSES[dayPartOf(slot.id)];
+  return fitSetting ? fitBeatToSetting(pose, fitSetting) : pose;
 }
 
 /** Camera cue tied to the same salt as pose baseline. */
@@ -2478,9 +2504,17 @@ export function diversifyDaySlotScenes(
       }
     }
 
+    // Clothed moods: the beat and the Setting are drawn apart, so each is drawn from those that
+    // fit the other — a sofa beat on a busy plaza painted the sofa there (Castcut_02403).
+    const keptBeat = fillBeats && (!sceneHints || forceBeats) ? '' : sceneHints;
+    const hostsBeat = (pool: string[]) => {
+      if (isDayAdultMood(dayMood) || !keptBeat) return pool;
+      const fitting = pool.filter(setting => beatFitsSetting(keptBeat, setting));
+      return fitting.length > 0 ? fitting : pool;
+    };
     if (!location || forceLocations) {
       const picked = pickUnusedPreset(
-        settingPoolForDayMood(slot.id, dayMood, intimateMix),
+        hostsBeat(settingPoolForDayMood(slot.id, dayMood, intimateMix)),
         usedLocations,
         random
       );
@@ -2494,13 +2528,14 @@ export function diversifyDaySlotScenes(
     }
 
     if (fillBeats && (!sceneHints || forceBeats)) {
-      const { primary, fallback } = pickDayBeatPools(
-        slot.id,
-        dayMood,
-        intimateMix,
-        allowCompanions,
-        random
-      );
+      const pools = pickDayBeatPools(slot.id, dayMood, intimateMix, allowCompanions, random);
+      const fitsPlace = (pool: string[]) => {
+        if (isDayAdultMood(dayMood) || !location) return pool;
+        const fitting = pool.filter(beat => beatFitsSetting(beat, location));
+        return fitting.length > 0 ? fitting : pool;
+      };
+      const primary = fitsPlace(pools.primary);
+      const fallback = fitsPlace(pools.fallback);
       // Spread poses across the Day: everyday by posture class, heat moods by the layout the
       // pose guide draws — text-only dedupe let four different beats all be "bent over".
       const classify = isDayHeatMood(dayMood) ? heatClass : dayEverydayPoseClass;
@@ -3262,10 +3297,14 @@ export function buildDaySlotPrompt(input: {
   const notes = input.notes?.trim();
   const garmentDescription = input.garmentDescription?.trim();
   const timeOfDay = slot.label.toLowerCase();
-  const defaultPose = resolveDaySlotPoseBaseline(slot);
+  const dayMood = normalizeDayMood(input.dayMood);
+  // Clothed moods: a baseline the Setting can host (adult beats own their rooms).
+  const defaultPose = resolveDaySlotPoseBaseline(
+    slot,
+    isDayAdultMood(dayMood) ? null : rawSetting || null
+  );
   const cameraCue = resolveDaySlotCameraCue(slot);
   const allowCompanions = input.allowCompanions === true;
-  const dayMood = normalizeDayMood(input.dayMood);
   const intimateMix = normalizeDayIntimateMix(input.intimateMix);
   // Intimate/Raunchy: never feed pier/beach/boardwalk nouns into the positive SETTING.
   const setting = isDayAdultMood(dayMood)
@@ -3350,7 +3389,7 @@ export function buildDaySlotPrompt(input: {
           ? `POSE FIRST: mandatory athletic body pose and sport action from the beat only (SETTING is venue/lighting only — do not invent café walks, grocery bags, soft pin-ups, or polite fashion-portrait stances from the scene): ${hints}`
           : dayMood === 'vacation'
             ? `POSE FIRST: ${vacationStanceDirective(vacationPoseClassFromBeat(hints))} Beat (SETTING is venue/lighting only — do not invent office, grocery, bookstore, hands-and-knees, or stiff square-on catalog stances from the scene): ${hints}`
-            : `POSE FIRST: ${everydayStanceDirective(dayEverydayPoseClass(hints))} Beat (SETTING is backdrop/lighting only — do not invent a different stance from the scene): ${hints}${
+            : `POSE FIRST: ${everydayStanceDirective(dayEverydayPoseClass(hints), setting)} Beat (SETTING is backdrop/lighting only — do not invent a different stance from the scene): ${hints}${
                 // A beat with its own stance must not carry the slot baseline: Rapid AIO renders
                 // "mid-stride" as the baseline's "sitting in a diner booth".
                 dayEverydayPoseClass(hints) === 'STILL'
@@ -3541,7 +3580,7 @@ export function buildDaySlotPrompt(input: {
   // an Edit-2511 model copies unless told not to.
   const everydayPoseStickyLock =
     !isDayHeatMood(dayMood) && input.hasPlate && isDayPoseStickyEditModel(input.model)
-      ? buildDayEverydayKeepPoseUnlock(hints)
+      ? buildDayEverydayKeepPoseUnlock(hints, setting)
       : null;
   const poseAntiLeak = kleinClothedDuo
     ? null
@@ -3893,7 +3932,9 @@ export function buildDaySlotPrompt(input: {
           )
         : null;
       const everydayStanceLead =
-        faceBreakLeads && dayMood === 'everyday' ? dayEverydayFaceBreakStanceLead(hints) : null;
+        faceBreakLeads && dayMood === 'everyday'
+          ? dayEverydayFaceBreakStanceLead(hints, setting)
+          : null;
       const clothedFaceBreakPreamble = faceBreakLeads
         ? [everydayStanceLead, faceBreakLeads.preamble].filter(Boolean).join('\n')
         : null;
@@ -4036,7 +4077,9 @@ export function buildDaySlotPrompt(input: {
         )
       : null;
     const castEverydayStanceLead =
-      castFaceBreakLeads && dayMood === 'everyday' ? dayEverydayFaceBreakStanceLead(hints) : null;
+      castFaceBreakLeads && dayMood === 'everyday'
+        ? dayEverydayFaceBreakStanceLead(hints, setting)
+        : null;
     // Catalog kit on the undressed Cast plate (no Image 2): named only at the end of the brief,
     // Rapid kept the plate's underwear 13/16 and never wore the kit; stated first, the exact kit
     // 16/16 with poses held (live 2026-09-29, same seeds).

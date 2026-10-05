@@ -8,6 +8,8 @@
  * tests that walk the planner's beats.
  */
 
+import { sceneSurfaceConflicts } from './scene-surface';
+
 export type StillPromptIssueCode =
   | 'solo-mentions-two'
   | 'duo-says-alone'
@@ -17,7 +19,8 @@ export type StillPromptIssueCode =
   | 'repeated-line'
   | 'outfit-two-sources'
   | 'template-leftover'
-  | 'empty-slot';
+  | 'empty-slot'
+  | 'scene-surface-mismatch';
 
 export type StillPromptIssue = {
   code: StillPromptIssueCode;
@@ -32,6 +35,13 @@ export type StillPromptContext = {
   people?: number;
   /** Images attached to the job (Image 1..N). Unknown: the image rule is skipped. */
   imageCount?: number;
+  /**
+   * The still's Setting, for the furniture check (a sofa named on a plaza, lying down on a
+   * street). Day passes it on clothed stills; without it (adult stills, whose beats own their
+   * rooms; Story, whose writer names its own places) the check is skipped. A corpus run can read
+   * it back from the prompt with {@link settingInStillPrompt}.
+   */
+  setting?: string | null;
 };
 
 const SOLO_DECLARED_RE =
@@ -52,6 +62,22 @@ const KEEP_PLATE_SHOES_RE =
 // "swimming pool", "swimming costume" and "wading pool" are places and things, not swimming.
 const WATER_SCENE_RE =
   /\b(?:swims\b|swimming\b(?! (?:pool|costume|trunks|suit|cap|goggles|lesson))|float(?:s|ing)? on (?:her|his) back\b|underwater\b(?! lights?)|wading\b(?! pool)|treading water\b)/i;
+
+/** The Setting as the prompt states it (Day briefs and recipes, Story). */
+const SETTING_IN_PROMPT_RES: readonly RegExp[] = [
+  /\bSCENE: (?:she|he|they) (?:is|are) in (?:the |a |an )?([^\n]+?) — show that place/,
+  /\bSETTING \([^)]*\): ([^\n]+?) — put them/,
+  /\bPlace: ([^\n]+?)\.(?= |$)/m,
+  /\bRoom: ([^\n]+?)\.(?= |$)/m,
+];
+
+export function settingInStillPrompt(prompt: string): string | null {
+  for (const re of SETTING_IN_PROMPT_RES) {
+    const found = re.exec(prompt)?.[1]?.trim();
+    if (found) return found;
+  }
+  return null;
+}
 
 const ORDINALS: Record<string, number> = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 };
 
@@ -161,6 +187,21 @@ export function auditStillPrompt(
       'The outfit is said to come from two different images.',
       [...outfitSources].join(' and ')
     );
+  }
+
+  // Furniture the Setting does not have, or lying down where nobody lies (scene-surface.ts).
+  const setting = context.setting?.trim();
+  if (setting) {
+    const clash = sceneSurfaceConflicts(text, setting)[0];
+    if (clash) {
+      add(
+        'scene-surface-mismatch',
+        clash.kind === 'posture'
+          ? 'The pose lies down in a place with nowhere to lie — it may paint a bed or sofa there.'
+          : 'The pose names furniture the setting does not have — it may paint it there.',
+        clash.evidence
+      );
+    }
   }
 
   const leftover = /\{\{[^}]{1,40}\}\}|\[object Object\]|\bundefined\b|\bNaN\b/.exec(text)?.[0];

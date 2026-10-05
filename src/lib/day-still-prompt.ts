@@ -41,6 +41,8 @@ import {
   type DayPlate,
 } from '@/lib/day-plate';
 import { dayStillLiesDown } from '@/lib/day-still-plan';
+import { resolveRoleplaySetting } from '@/lib/roleplay';
+import { fitBeatToSetting, sceneSurfaceConflicts, withSceneGround } from '@/lib/scene-surface';
 import { withDayWeather } from '@/lib/day-weather';
 import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
 import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
@@ -191,7 +193,9 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
     recipe && figures >= 2 && !facts.adult && !facts.customPose?.trim()
       ? dayDuoPoseWords(drawnLayout, dayDuoNames(facts, basePrompt, swapLead), facts.beat)
       : null;
-  const poseCueLine = duoWords ? '' : cueLine;
+  // A layout cue's "on the floor" is the Setting's ground outdoors (sit_floor on a rooftop deck).
+  const poseCueLine =
+    duoWords || !cueLine ? '' : facts.adult ? cueLine : withSceneGround(cueLine, facts.setting);
   // Clothed stills: Rapid follows the opening lines, and the brief's opening only names her —
   // duo beats lost the partner (4/10) and outdoor beats went barefoot. Live A/B (2026-09-30,
   // same seeds): a TWO PEOPLE opening line kept the partner 10/10; a footwear line put shoes on
@@ -214,7 +218,10 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
   const customPose = facts.customPose?.trim() || '';
   const posedBase = !customPose
     ? recipeCue
-      ? withRecipePoseCue(basePrompt, drawnLayout, facts.pose?.poseKey)
+      ? groundedPoseSentence(
+          withRecipePoseCue(basePrompt, drawnLayout, facts.pose?.poseKey),
+          facts.adult ? null : facts.setting
+        )
       : facts.sportActionCue && !recipe && figures === 1
         ? withSportActionPoseCue(basePrompt, drawnLayout)
         : duoWords
@@ -262,6 +269,14 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
     swapLead,
     recipe: isRapidDuoRecipePrompt(prompt),
   };
+}
+
+/** The recipe's "Pose: …" sentence with its floor said as the Setting's ground (withSceneGround). */
+function groundedPoseSentence(prompt: string, setting: string | null | undefined): string {
+  if (!setting?.trim()) return prompt;
+  return prompt.replace(/\bPose: [^\n]*?\.(?= |$)/m, sentence =>
+    withSceneGround(sentence, setting)
+  );
 }
 
 /**
@@ -482,6 +497,68 @@ export type DayStillSlotState = {
 /** The mood a still plays as. */
 export function dayPlayedMood(dayMood: string | null | undefined, intimateEnabled: boolean) {
   return normalizeDayMood(isDayAdultMood(dayMood) && !intimateEnabled ? 'everyday' : dayMood);
+}
+
+/**
+ * The slot as one still is made from it: on a clothed still, the beat's furniture fitted to the
+ * Setting (scene-surface.ts). Everyday and Suggestive draw the beat and the Setting separately,
+ * and a beat names its own furniture — "lying on her side on the sofa" went out with a busy plaza
+ * and painted a sofa onto it (Castcut_02403). A lying beat where there is nowhere to lie becomes
+ * a sit there. Adult moods keep their beats (their settings are indoor rooms already). The slot
+ * itself is not changed; a typed beat stays typed.
+ */
+export function dayStillSceneSlot<
+  T extends { location?: string; sceneHints?: string; sceneHintsTyped?: string },
+>(
+  slot: T,
+  context: { dayMood: string | null | undefined; intimateEnabled: boolean; lockedLocation?: string }
+): T {
+  const hints = slot.sceneHints;
+  if (!hints?.trim() || isDayAdultMood(dayPlayedMood(context.dayMood, context.intimateEnabled))) {
+    return slot;
+  }
+  const fitted = fitBeatToSetting(
+    hints,
+    resolveRoleplaySetting(slot.location, context.lockedLocation)
+  );
+  if (fitted === hints) return slot;
+  return {
+    ...slot,
+    sceneHints: fitted,
+    ...(slot.sceneHintsTyped && slot.sceneHintsTyped === hints ? { sceneHintsTyped: fitted } : {}),
+  };
+}
+
+/**
+ * A beat the Day drew (not one the player typed) that its Setting still cannot host after
+ * {@link dayStillSceneSlot} — cooking at the stove on a street: the queue draws the slot a new
+ * scene instead. Returns the slot patch that clears what is to be drawn again (Vacation, Sport and
+ * the themes draw beat and venue as a pair; Everyday and Suggestive keep the Setting and draw a
+ * beat that fits it), or null when the beat can stay.
+ */
+export function dayStillSceneRedraw(
+  slot: { location?: string; sceneHints?: string; sceneHintsTyped?: string },
+  context: {
+    dayMood: string | null | undefined;
+    intimateEnabled: boolean;
+    lockedLocation?: string;
+    /** The Day draws beat and venue together (Vacation, Sport, a theme). */
+    pairedScenes: boolean;
+  }
+): { sceneHints: undefined; sceneHintsTyped: undefined; location?: undefined } | null {
+  const hints = slot.sceneHints?.trim();
+  if (
+    !hints ||
+    dayBeatIsTyped(slot) ||
+    isDayAdultMood(dayPlayedMood(context.dayMood, context.intimateEnabled))
+  ) {
+    return null;
+  }
+  const setting = resolveRoleplaySetting(slot.location, context.lockedLocation);
+  if (sceneSurfaceConflicts(hints, setting).length === 0) return null;
+  return context.pairedScenes && !context.lockedLocation?.trim()
+    ? { sceneHints: undefined, sceneHintsTyped: undefined, location: undefined }
+    : { sceneHints: undefined, sceneHintsTyped: undefined };
 }
 
 /**

@@ -23,6 +23,7 @@ import {
   type PoseLookChoice,
 } from '@/lib/day-pose-guide';
 import { POSE_PICKER_GROUPS } from '@/lib/pose-layout-labels';
+import { beatFitsSetting, settingHostsLying, textLiesDown } from '@/lib/scene-surface';
 
 /** One pose in a pack: a named Day pose (layout / posture) or a skeleton (photo / edit). */
 export type PosePackEntry = {
@@ -380,7 +381,17 @@ export function applyPosePackToSlots(
     }
     const n = used.get(people) ?? 0;
     used.set(people, n + 1);
-    const entry = fits[n % fits.length]!;
+    // The next pose in order that the slot's place can host: no lying pose on a street, no sofa
+    // beat written into a plaza slot (scene-surface.ts). None fits: the pack's order stands.
+    const fillsBeat = Boolean(options?.fillBeats && !slot.sceneHints?.trim());
+    const hosts = (entry: PosePackEntry) =>
+      posePackEntryFitsSetting(
+        entry,
+        slot.location?.trim() || (fillsBeat ? entry.setting : undefined),
+        fillsBeat
+      );
+    const entry =
+      fits.map((_, k) => fits[(n + k) % fits.length]!).find(hosts) ?? fits[n % fits.length]!;
     posed += 1;
     const patched: DaySlot = { ...slot, ...entryPosePatch(entry, Math.floor(n / fits.length)) };
     if (options?.fillBeats && entry.beat && !slot.sceneHints?.trim()) {
@@ -394,6 +405,21 @@ export function applyPosePackToSlots(
     return patched;
   });
   return { slots: next, posed, beatsFilled, skipped };
+}
+
+/**
+ * The pack pose fits this place: a lying layout only where there is somewhere to lie, and the
+ * beat it would write only with furniture the place has.
+ */
+export function posePackEntryFitsSetting(
+  entry: PosePackEntry,
+  setting: string | null | undefined,
+  writesBeat: boolean
+): boolean {
+  if (!setting?.trim()) return true;
+  const lying = /^(?:lie|lounge)/.test(entry.layout ?? '') || textLiesDown(entry.beat);
+  if (lying && !settingHostsLying(setting)) return false;
+  return !writesBeat || !entry.beat || beatFitsSetting(entry.beat, setting);
 }
 
 const BUILT_IN_BEATS: ReadonlySet<string> = new Set(

@@ -20,6 +20,7 @@ import {
 } from './day-pose-guide';
 import { SUGGESTIVE_COVERAGE_LINE } from './clothed-coverage';
 import { stripNegatedClauses } from './negated-clauses';
+import { poseSurfaces, sceneSurfaces, sceneVenue, surfaceFitsVenue } from './scene-surface';
 import {
   isFloorSurface,
   ORAL_SEAT_RE,
@@ -831,7 +832,13 @@ const LOOK_BACK_RE = /\b(?:looking\s+back|over\s+(?:her|a|one)\s+shoulder)\b/i;
 /** Where a clothed Suggestive beat puts her body — stand, lean, sit, kneel, lie — said once. */
 function suggestivePlacement(beat: string): string {
   const b = beat.toLowerCase();
-  const surface = rapidDuoSurface(beat);
+  // The beat's own furniture or ground (a bath mat, a blanket) before the bed fallback.
+  const surface =
+    rapidDuoSurface(beat) ??
+    poseSurfaces(beat)[0]
+      ?.phrase.replace(/^\w+\s+(?:the|a|an|her|his|their)\s+/i, '')
+      .toLowerCase() ??
+    null;
   const lookBack = LOOK_BACK_RE.test(beat) ? ', looking back over her shoulder at the camera' : '';
   const lean = /\bdoor(?:way|frame|\s+jamb|\s+frame)?\b|\bjamb\b/.test(b)
     ? 'the doorframe'
@@ -1287,15 +1294,35 @@ function lyingPlacement(beat: string): string | null {
 }
 
 /** A plain-words stance for an everyday beat ("sitting on a park bench …"), when it names one. */
-function everydayPlacement(beat: string): string | null {
+function everydayPlacement(beat: string, setting?: string | null): string | null {
   const b = beat.toLowerCase();
   const seat = rapidDuoSurface(beat);
   const lying = lyingPlacement(beat);
   if (lying) return lying;
-  if (/\bkneel(?:s|ing)?\b/.test(b)) return 'She kneels on the floor.';
+  if (/\bkneel(?:s|ing)?\b/.test(b)) {
+    // "on the floor" outdoors read as a room (a kneel on the park lawn, the pavement).
+    const venue = sceneVenue(setting);
+    const kneel = venue && !surfaceFitsVenue('floor', venue) ? sceneSurfaces(setting)?.kneel : null;
+    return `She kneels ${kneel ?? 'on the floor'}.`;
+  }
   if (/\b(?:crouch|squat)(?:es|s|ing|ting)?\b/.test(b)) return 'She crouches low, knees bent deep.';
   if (/\b(?:sitting|sits|seated|perched)\b/.test(b)) {
-    return `She sits${seat && !/\b(?:door|window|wall|floor)$/.test(seat) ? ` on the ${seat}` : ''}, knees bent.`;
+    // "sitting at the counter": on a stool at it, not up on top of it.
+    const atIt =
+      seat &&
+      /\b(?:table|desk|counter)$/.test(seat) &&
+      new RegExp(String.raw`\bat\s+(?:the|a|an)\s+${seat}\b`, 'i').test(beat);
+    if (atIt)
+      return `She sits on a ${/counter$/.test(seat) ? 'stool' : 'chair'} at the ${seat}, knees bent.`;
+    if (seat && !/\b(?:door|window|wall|floor)$/.test(seat))
+      return `She sits on the ${seat}, knees bent.`;
+    // A seat the furniture list does not name ("on the fountain's edge", "on a low step" — the
+    // Setting's own seat, scene-surface.ts): said as the beat says it.
+    const own =
+      /\b(?:sitting|sits|seated|perched)\s+(?:cross-legged\s+)?((?:on|in)\s+(?:the|a|an)\s+[\w’'-]+(?:\s+[\w’'-]+){0,2}?)(?=\s+(?:with|eating|reading|taking|after|under|at|to|in|and)\b|[,.;—]|$)/i.exec(
+        beat
+      )?.[1];
+    return `She sits${own && !/\b(?:door|window|wall|floor)$/i.test(own) ? ` ${own}` : ''}, knees bent.`;
   }
   if (/\b(?:walking|walks|strolling|mid-stride|striding)\b/.test(b)) {
     return 'She walks mid-step, one foot ahead of the other, full body in frame.';
@@ -1356,7 +1383,7 @@ export function buildCompactDayRecipe(input: {
   return [
     DAY_CLOTHED_RECIPE_MARK,
     sportKit ? 'One woman alone, mid-action, playing sport.' : 'One woman alone.',
-    vacationPlacement(beat) ?? everydayPlacement(beat),
+    vacationPlacement(beat) ?? everydayPlacement(beat, input.setting),
     clothes,
     `Moment: ${moment}.`,
     input.setting?.trim() ? `Place: ${input.setting.trim()}.` : null,

@@ -8,6 +8,8 @@ import {
   buildDaySlotPromptForStill,
   dayBeatIsTyped,
   dayStillAgeFacts,
+  dayStillSceneRedraw,
+  dayStillSceneSlot,
   finishDayStillPrompt,
   queuedDayStillPrompt,
 } from '@/lib/day-still-prompt';
@@ -75,7 +77,7 @@ import {
 } from '@/lib/comfyui-gallery';
 import { resolveAdultNudePlateQueueModel, resolveDayStillModel } from '@/lib/queue-tool-model';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
-import { STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP } from '@/lib/roleplay';
+import { STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP, resolveRoleplaySetting } from '@/lib/roleplay';
 import {
   buildDaySlotMotionSubject,
   dayBeatOmitsGarmentPackshot,
@@ -1023,6 +1025,40 @@ export function useDayPlannerToolOrchestrationCore() {
             updateToolSettings({ slots: diversified.slots });
             queueTarget =
               diversified.slots.find(entry => entry.id === queueTarget.id) ?? queueTarget;
+          }
+        }
+        // The beat's furniture fitted to the Setting for this still (a sofa beat on a plaza sits
+        // on the fountain's edge); the slot keeps the beat as it is. A drawn beat the place still
+        // cannot host (cooking at the stove on a street) is drawn again, like a blank one.
+        const sceneContext = {
+          dayMood: toolSettings.dayMood,
+          intimateEnabled,
+          lockedLocation: shared.lockedLocation,
+        };
+        queueTarget = dayStillSceneSlot(queueTarget, sceneContext);
+        const redraw = dayStillSceneRedraw(queueTarget, {
+          ...sceneContext,
+          pairedScenes:
+            Boolean(dayThemeOf(toolSettings.dayMood)) ||
+            normalizeDayMood(toolSettings.dayMood) === 'vacation' ||
+            normalizeDayMood(toolSettings.dayMood) === 'sport',
+        });
+        if (redraw) {
+          const redrawn = diversifyDaySlotScenes(
+            workingSlots.map(entry =>
+              entry.id === queueTarget.id ? { ...entry, ...redraw } : entry
+            ),
+            {
+              allowCompanions: toolSettings.allowCompanions === true,
+              dayMood: toolSettings.dayMood,
+              intimateMix: toolSettings.intimateMix,
+            }
+          );
+          const next = redrawn.slots.find(entry => entry.id === queueTarget.id);
+          if (next?.sceneHints?.trim()) {
+            workingSlots = redrawn.slots;
+            updateToolSettings({ slots: redrawn.slots });
+            queueTarget = dayStillSceneSlot(next, sceneContext);
           }
         }
         // The look this still is made in (day-slot-look.ts): the slot's own look, else the active
@@ -1992,6 +2028,10 @@ export function useDayPlannerToolOrchestrationCore() {
             1 +
             [1, 2, 3].filter(index => Boolean(extraFilenames[index]?.trim() || extraUrls[index]))
               .length,
+          // Clothed stills: the pose's furniture must fit the Setting. Adult beats own their rooms.
+          setting: adultStill
+            ? null
+            : resolveRoleplaySetting(queueTarget.location, shared.lockedLocation) || undefined,
         });
         const queuedPrompt = checked.prompt;
         if (checked.repaired.length > 0) {
@@ -2251,6 +2291,7 @@ export function useDayPlannerToolOrchestrationCore() {
       toolSettings.posePriority,
       toolSettings.twoTakesIntimate,
       intimateEnabled,
+      shared.lockedLocation,
       shared.model,
       updateShared,
       updateToolSettings,
