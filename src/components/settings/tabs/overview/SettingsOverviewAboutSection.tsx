@@ -15,7 +15,8 @@ export function SettingsOverviewAboutSection() {
           data-testid="settings-pose-reference-credits"
         >
           Day and Story&rsquo;s real poses are skeletons read from openly licensed photos (CC0,
-          public domain, CC BY and CC BY-SA) — no photo ships with Castcut.{' '}
+          public domain, CC BY and CC BY-SA), motion capture and keypoint annotations — no photo
+          ships with Castcut. A few two-person poses no source had are Castcut&rsquo;s own drawings.{' '}
           <a
             href={POSE_REFERENCE_CREDITS_URL}
             target="_blank"

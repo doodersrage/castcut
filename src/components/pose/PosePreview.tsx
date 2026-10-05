@@ -173,7 +173,7 @@ export default function PosePreview({
       : 'Your photo'
     : `${poseLayoutLabel(drawnId)}${
         reference
-          ? ` · real pose ${reference.variant} of ${poseReferences.length}`
+          ? ` · ${reference.source === 'drawn' ? 'drawn' : 'real'} pose ${poseReferences.indexOf(reference) + 1} of ${poseReferences.length}`
           : openPose.libraryEntryId
             ? ' · real pose'
             : ''
@@ -340,7 +340,7 @@ export default function PosePreview({
               data-testid={`${testIdPrefix}-another`}
               title={
                 poseReferences.length
-                  ? `Next variant of this pose: ${poseReferences.length} real poses from photos, then the drawing`
+                  ? `Next variant of this pose: ${poseReferences.length} reference poses (photos, motion capture or drawings), then the drawing`
                   : 'Redraw the guide as a different variant of this pose'
               }
               onClick={() => onChange({ poseVariant: ((picks.poseVariant ?? 0) % 99) + 1 })}

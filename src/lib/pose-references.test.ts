@@ -8,6 +8,7 @@ import { planDaySlotPose } from './day-slot-pose';
 import { POSE_PICKER_GROUPS } from './pose-layout-labels';
 import type { NormalizedBody } from './pose-library';
 import { duoRelation } from './pose-reference-duo';
+import { classifyPosture, postureGroupsAgree } from './pose-posture';
 import { bodyCentreX } from './pose-starters';
 import {
   normalizePoseReference,
@@ -96,6 +97,16 @@ describe('pose reference data file', () => {
         assert.equal(reference.credit.licence, 'cmu', reference.id);
         assert.match(reference.credit.source, /^http:\/\/mocap\.cs\.cmu\.edu\//, reference.id);
         assert.match(reference.credit.licenceUrl, /^http:\/\/mocap\.cs\.cmu\.edu\//, reference.id);
+      } else if (reference.source === 'drawn') {
+        // Castcut's own drawings: its MIT licence, credited to it, linking the script that drew them.
+        assert.equal(reference.credit.licence, 'mit', reference.id);
+        assert.equal(reference.credit.creator, 'Castcut, hand-drawn', reference.id);
+        assert.match(
+          reference.credit.source,
+          /^https:\/\/github\.com\/doodersrage\/castcut\/blob\/main\/scripts\/pose-refs\/drawn\.py$/,
+          reference.id
+        );
+        assert.match(reference.credit.licenceUrl, /\/LICENSE$/, reference.id);
       } else {
         assert.notEqual(reference.credit.licence, 'cmu', reference.id);
         assert.match(reference.credit.source, /^https:\/\//, reference.id);
@@ -148,8 +159,83 @@ describe('pose reference data file', () => {
         ? { body: reference.pose as never }
         : { layout: reference.pose as SocialLayout };
       const plan = resolveSceneGuidePlan(undefined, 0, { forcePeople: people, pose, references });
+      if (reference.source === 'drawn' && reference.base !== plan.intent.base) {
+        // A drawing may show the pose on another posture the app draws it on when asked (a
+        // standing head on a shoulder): there the guide must pick it up.
+        const asked = resolveSceneGuidePlan(undefined, 0, {
+          forcePeople: people,
+          pose: { ...pose, body: reference.base as never },
+          references,
+        });
+        assert.equal(asked.intent.base, reference.base, reference.id);
+        continue;
+      }
       assert.equal(reference.base, plan.intent.base, reference.id);
     }
+  });
+
+  it('draws the two-person poses no open source had, front and three-quarter', () => {
+    const drawn = references.filter(reference => reference.source === 'drawn');
+    for (const pose of ['piggyback', 'toast', 'head_shoulder']) {
+      const mine = drawn.filter(reference => reference.pose === pose);
+      assert.ok(mine.length >= 2, pose);
+      for (const reference of mine) assert.equal(reference.people.length, 2, reference.id);
+    }
+    // Head on a shoulder: seated (the app's default) and standing.
+    assert.deepEqual(
+      [...new Set(drawn.filter(r => r.pose === 'head_shoulder').map(r => r.base))].sort(),
+      ['sit', 'stand']
+    );
+  });
+
+  it('reads each drawn body in the posture class of the app’s own figure (the pose check)', () => {
+    for (const reference of references.filter(r => r.source === 'drawn')) {
+      const figure = resolveSceneGuidePlan(undefined, 0, {
+        forcePeople: 2,
+        pose: { layout: reference.pose as SocialLayout, body: reference.base as never },
+        openPose: true,
+      }).openPose;
+      const figureAspect = figure.canvas.width / figure.canvas.height;
+      reference.people.forEach((person, index) => {
+        const read = classifyPosture(person, reference.aspect);
+        const drawn = classifyPosture(figure.keypoints[index]!, figureAspect);
+        assert.ok(
+          postureGroupsAgree(read.group, drawn.group),
+          `${reference.id} person ${index}: ${read.posture} vs the figure's ${drawn.posture}`
+        );
+      });
+    }
+  });
+
+  it('puts the drawn references in the guide as variants on their own posture, drafts left out', () => {
+    for (const [pose, body] of [
+      ['piggyback', 'stand'],
+      ['toast', 'stand'],
+      ['head_shoulder', 'sit'],
+      ['head_shoulder', 'stand'],
+    ] as const) {
+      const listed = poseReferencesFor(references, pose, 2, body);
+      const drawn = references.filter(
+        r => r.source === 'drawn' && r.pose === pose && r.base === body && !r.draft
+      );
+      assert.deepEqual(
+        listed.map(r => r.id),
+        drawn.map(r => r.id),
+        `${pose} ${body}`
+      );
+      listed.forEach((reference, index) => {
+        const plan = resolveSceneGuidePlan(undefined, 0, {
+          forcePeople: 2,
+          pose: { layout: pose, body },
+          variant: index + 1,
+          openPose: true,
+          references,
+        }).openPose;
+        assert.equal(plan.referenceId, reference.id);
+      });
+    }
+    // The toasts read as a toast on the sanity render: all three are in the walk.
+    assert.equal(poseReferencesFor(references, 'toast', 2, 'stand').length, 3);
   });
 
   it('shows two people in the contact their pose is about (a hug, a toast, sparring…)', () => {
@@ -226,6 +312,28 @@ describe('pose reference validation', () => {
     assert.equal(poseReferenceCreditLine(coco!), 'Keypoints: COCO Consortium (CC BY 4.0)');
   });
 
+  it('ties Castcut’s MIT licence to its hand-drawn entries, and reads a draft', () => {
+    const drawn = {
+      ...good,
+      source: 'drawn',
+      credit: {
+        title: 'Piggyback, front view',
+        creator: 'Castcut, hand-drawn',
+        licence: 'mit',
+        licenceUrl: 'https://github.com/doodersrage/castcut/blob/main/LICENSE',
+        source: 'https://github.com/doodersrage/castcut/blob/main/scripts/pose-refs/drawn.py',
+      },
+    };
+    const parsed = normalizePoseReference(drawn);
+    assert.equal(parsed?.source, 'drawn');
+    assert.equal(parsed?.draft, undefined);
+    assert.equal(poseReferenceCreditLine(parsed!), 'Drawn: Castcut, hand-drawn (MIT)');
+    assert.equal(normalizePoseReference({ ...drawn, source: 'photo' }), null, 'MIT on a photo');
+    assert.equal(normalizePoseReference({ ...good, source: 'drawn' }), null, 'a drawing under CC');
+    assert.equal(normalizePoseReference({ ...drawn, draft: true })?.draft, true);
+    assert.equal(normalizePoseReference({ ...drawn, draft: 'yes' })?.draft, undefined);
+  });
+
   it('rejects a skeleton that is not a whole body', () => {
     const cut = body().map((point, index) => (index === 10 || index === 13 ? null : point));
     assert.equal(normalizePoseReference({ ...good, people: [cut] }), null);
@@ -266,6 +374,14 @@ describe('pose reference variants', () => {
     assert.equal(poseReferencesFor(mixed, 'wave', 1, 'sit').length, 0);
     assert.equal(poseReferencesFor(mixed, 'hug', 2).length, 1);
     assert.equal(poseReferencesFor(mixed, '', 1).length, 0);
+  });
+
+  it('leaves drafts out of the variant walk', () => {
+    const withDraft = [ref('wave', 1), ref('wave', 2, { draft: true }), ref('wave', 3)];
+    assert.deepEqual(
+      poseReferencesFor(withDraft, 'wave', 1).map(reference => reference.id),
+      ['wave-1', 'wave-3']
+    );
   });
 });
 

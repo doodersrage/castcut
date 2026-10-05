@@ -8,6 +8,8 @@
  *
  * Requests:
  *   {"cmd":"poses"}                                            → every Day pose to harvest
+ *   {"cmd":"drawn","id":pose,"people":n,"body":posture?}       → the app's figure for a pose on
+ *                                                                 a posture (`poses` entry shape)
  *   {"cmd":"classify","people":[body…],"width":w,"height":h}   → posture read of each body
  *   {"cmd":"agree","a":group,"b":group}                        → the two groups count as one
  *   {"cmd":"limbs","guide":body,"detected":body,"aspects":{guide,detected}}
@@ -63,8 +65,10 @@ const classifier = (await import(pathToFileURL(classifierPath).href)) as Classif
 
 const BODY_IDS = new Set(POSE_PICKER_GROUPS.find(group => group.label === 'Postures')?.ids ?? []);
 
-function handDrawn(id: string, people: number) {
-  const pose = BODY_IDS.has(id) ? { body: id as never } : { layout: id as SocialLayout };
+function handDrawn(id: string, people: number, body?: string) {
+  const pose = BODY_IDS.has(id)
+    ? { body: id as never }
+    : { layout: id as SocialLayout, ...(body ? { body: body as never } : {}) };
   const plan = resolveSceneGuidePlan(undefined, 0, { forcePeople: people, pose, openPose: true });
   const { width, height } = plan.openPose.canvas;
   return {
@@ -77,6 +81,26 @@ function handDrawn(id: string, people: number) {
   };
 }
 
+/** One pose as `poses()` lists it, optionally drawn on another posture (a standing head-on-shoulder). */
+function poseEntry(id: string, people: number, body?: string, group = '') {
+  const drawn = handDrawn(id, people, body);
+  return {
+    id,
+    group,
+    label: poseLayoutLabel(id),
+    // The words the app already uses for this pose — the vision check asks about them too.
+    words: dayPoseWords(id),
+    people,
+    aspect: drawn.aspect,
+    base: drawn.base,
+    social: drawn.social,
+    bodies: drawn.bodies,
+    postures: drawn.bodies.map(figure =>
+      classifier.classifyPosture({ people: [figure], width: drawn.width, height: drawn.height })
+    ),
+  };
+}
+
 function poses() {
   const packs = new Map<string, string[]>();
   for (const pack of BUILT_IN_POSE_PACKS) {
@@ -86,26 +110,10 @@ function poses() {
     }
   }
   return POSE_PICKER_GROUPS.flatMap(group =>
-    group.ids.map(id => {
-      const people = group.label === 'Two people' ? 2 : 1;
-      const drawn = handDrawn(id, people);
-      return {
-        id,
-        group: group.label,
-        label: poseLayoutLabel(id),
-        // The words the app already uses for this pose — the vision check asks about them too.
-        words: dayPoseWords(id),
-        people,
-        aspect: drawn.aspect,
-        base: drawn.base,
-        social: drawn.social,
-        bodies: drawn.bodies,
-        postures: drawn.bodies.map(body =>
-          classifier.classifyPosture({ people: [body], width: drawn.width, height: drawn.height })
-        ),
-        packs: packs.get(id) ?? [],
-      };
-    })
+    group.ids.map(id => ({
+      ...poseEntry(id, group.label === 'Two people' ? 2 : 1, undefined, group.label),
+      packs: packs.get(id) ?? [],
+    }))
   );
 }
 
@@ -113,6 +121,12 @@ function handle(request: Record<string, unknown>): unknown {
   switch (request.cmd) {
     case 'poses':
       return poses();
+    case 'drawn':
+      return poseEntry(
+        String(request.id),
+        Number(request.people) || 1,
+        typeof request.body === 'string' ? request.body : undefined
+      );
     case 'classify': {
       const people = request.people as NormalizedBody[];
       const width = Number(request.width) || 1;

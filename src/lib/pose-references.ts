@@ -2,7 +2,10 @@
  * Real-world reference poses: skeletons of people in Day's named poses, harvested by
  * `scripts/pose-refs/` into `public/pose-references.json` with their credit — read (DWPose) from
  * openly licensed photos, projected from CMU motion-capture clips, or mapped from COCO keypoint
- * annotations (`source`). No photo ships — only the joints.
+ * annotations (`source`). No photo ships — only the joints. The few poses no open source had
+ * (piggyback, toast, head on a shoulder) are Castcut's own hand-drawn 3D figures (`drawn`,
+ * `scripts/pose-refs/drawn.py`), checked by the same gate; one whose sanity render did not read
+ * as the pose is marked `draft`.
  *
  * They are variants of a pose: variant 0 is always the hand-drawn figure (nothing changes for a
  * pose that has no references), and "Try another" (or a pose pack's next lap, or the pose check's
@@ -19,9 +22,10 @@ import type { NormalizedBody, PoseLibraryEntry } from '@/lib/pose-library';
 
 /**
  * Licences a reference may come from: no NonCommercial, no NoDerivatives. `cmu` is the CMU
- * Graphics Lab Motion Capture Database's own terms (free for all uses, credit requested).
+ * Graphics Lab Motion Capture Database's own terms (free for all uses, credit requested); `mit`
+ * is Castcut's own licence, for its hand-drawn figures.
  */
-export const POSE_REFERENCE_LICENCES = ['cc0', 'pdm', 'by', 'by-sa', 'cmu'] as const;
+export const POSE_REFERENCE_LICENCES = ['cc0', 'pdm', 'by', 'by-sa', 'cmu', 'mit'] as const;
 export type PoseReferenceLicence = (typeof POSE_REFERENCE_LICENCES)[number];
 
 const LICENCE_NAMES: Record<PoseReferenceLicence, string> = {
@@ -30,23 +34,26 @@ const LICENCE_NAMES: Record<PoseReferenceLicence, string> = {
   by: 'CC BY',
   'by-sa': 'CC BY-SA',
   cmu: 'CMU mocap terms',
+  mit: 'MIT',
 };
 
 /** Where a reference skeleton was read from. */
-export const POSE_REFERENCE_SOURCES = ['photo', 'cmu-mocap', 'coco'] as const;
+export const POSE_REFERENCE_SOURCES = ['photo', 'cmu-mocap', 'coco', 'drawn'] as const;
 export type PoseReferenceSource = (typeof POSE_REFERENCE_SOURCES)[number];
 
-/** "a photo", "a motion-capture clip", "a COCO annotation": what the credit links to. */
+/** "a photo", "a motion-capture clip", "a COCO annotation", "a hand-drawn figure": what the credit links to. */
 export const POSE_REFERENCE_SOURCE_WORDS: Record<PoseReferenceSource, string> = {
   photo: 'a photo',
   'cmu-mocap': 'a motion-capture clip',
   coco: 'a COCO keypoint annotation',
+  drawn: 'a hand-drawn figure',
 };
 
 const CREDIT_PREFIX: Record<PoseReferenceSource, string> = {
   photo: 'Photo',
   'cmu-mocap': 'Mocap',
   coco: 'Keypoints',
+  drawn: 'Drawn',
 };
 
 export type PoseReferenceCredit = {
@@ -77,6 +84,11 @@ export type PoseReference = {
   /** COCO-18 bodies, 0–1 of the crop, lead first. */
   people: NormalizedBody[];
   credit: PoseReferenceCredit;
+  /**
+   * A hand-drawn figure whose sanity render did not read as the pose: listed in the pose
+   * editor's real poses, but "Try another" skips it.
+   */
+  draft?: boolean;
 };
 
 /** Where the full credits list lives (also linked from Settings → About). */
@@ -140,8 +152,10 @@ export function normalizePoseReference(raw: unknown): PoseReference | null {
   };
   if (
     !LICENCE_SET.has(licence) ||
-    // The CMU terms are the mocap database's own; everything else is a Creative Commons deed.
+    // The CMU terms are the mocap database's own, MIT is Castcut's (its drawings); everything
+    // else is a Creative Commons deed.
     (licence === 'cmu') !== (source === 'cmu-mocap') ||
+    (licence === 'mit') !== (source === 'drawn') ||
     !credit.title ||
     !credit.creator ||
     !isHttpUrl(credit.licenceUrl) ||
@@ -158,6 +172,7 @@ export function normalizePoseReference(raw: unknown): PoseReference | null {
     aspect,
     people: people as NormalizedBody[],
     credit,
+    ...(record.draft === true ? { draft: true } : {}),
   };
 }
 
@@ -171,7 +186,7 @@ export function parsePoseReferences(raw: unknown): PoseReference[] {
     .sort((a, b) => a.pose.localeCompare(b.pose) || a.variant - b.variant);
 }
 
-/** The references for one pose and headcount, variant order. */
+/** The references for one pose and headcount, variant order (drafts left out). */
 export function poseReferencesFor(
   references: readonly PoseReference[],
   pose: string | null | undefined,
@@ -181,7 +196,11 @@ export function poseReferencesFor(
   const id = pose?.trim();
   if (!id) return [];
   return references.filter(
-    ref => ref.pose === id && ref.people.length === people && (base == null || ref.base === base)
+    ref =>
+      ref.pose === id &&
+      !ref.draft &&
+      ref.people.length === people &&
+      (base == null || ref.base === base)
   );
 }
 

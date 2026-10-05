@@ -84,7 +84,11 @@ class Checker:
         self.bridge = bridge
         self.pose = pose
         # poses.py's rules for the pose, tightened by the source's own (`postures`, `min_drawn`).
-        tighter = {k: v for k, v in (overrides or {}).items() if k in ("postures", "min_drawn", "loose", "core_body")}
+        # `keep_order`: the source knows who is the lead (a drawing), so the pair is not reordered.
+        tighter = {
+            k: v for k, v in (overrides or {}).items()
+            if k in ("postures", "min_drawn", "loose", "core_body", "keep_order")
+        }
         self.spec = {**POSES.get(pose["id"], {}), **tighter}
         # Everything kept for this pose so far: shipped photos and this run's keeps.
         self.kept = [
@@ -127,7 +131,8 @@ class Checker:
         prominent = self.bridge.call(cmd="prominent", people=bodies, width=width, height=height)
         if prominent != wanted:
             return f"people:{prominent}-in-crop", None
-        bodies = self.order_lead_first(bodies, aspect)
+        if not self.spec.get("keep_order"):
+            bodies = self.order_lead_first(bodies, aspect)
         reads = self.bridge.call(cmd="classify", people=bodies, width=width, height=height)
         for i, read in enumerate(reads):
             allowed = self.allowed_groups(i)

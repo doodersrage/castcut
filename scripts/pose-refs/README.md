@@ -17,6 +17,14 @@ people in that pose in three open sources and keeps 3–5 good, different skelet
 - **COCO keypoints** (`coco.py`): the COCO 2017 person keypoint annotations (17 labelled joints
   → the app's body), gated by the picture's captions naming the pose; the photographs are never
   downloaded.
+- **Hand-drawn** (`drawn.py`): the two-person poses none of the above had — piggyback, toast,
+  head on a shoulder (seated and standing) — posed by hand as two 3D figures with the app's
+  figure proportions (IK keeps limb lengths and bends joints the human way; a contact check
+  keeps the bodies from passing through each other), seen through the mocap camera from a front
+  and a three-quarter view and run through the same checks (`keep_order`: a drawing knows who
+  the lead is). Credit "Castcut, hand-drawn", Castcut's MIT licence; a scene whose sanity render
+  did not read as the pose is shipped as a `draft` ("Try another" skips it). Contact sheet:
+  `<cache>/sheets/drawn-sheet.jpg`.
 
 The app draws them as variants of the pose (variant 0 stays the hand-drawn figure; *Try another*
 walks through the real ones) and lists them under *Real poses…* in the pose editor. See
@@ -35,11 +43,12 @@ python3 scripts/pose-refs/harvest.py                  # photos, every pose (a fe
 python3 scripts/pose-refs/harvest.py --pose wave --pose hug   # just these
 python3 scripts/pose-refs/mocap.py --pose kneel       # CMU mocap (clips fetched on demand)
 python3 scripts/pose-refs/coco.py --pose sit_floor    # COCO keypoints (needs the annotations zip)
-python3 scripts/pose-refs/build.py                    # rewrite outputs from the three manifests
+python3 scripts/pose-refs/drawn.py                    # the hand-drawn duos (then runs build.py)
+python3 scripts/pose-refs/build.py                    # rewrite outputs from the four manifests
 ```
 
-`build.py` fills each pose up to five references: photos first, then mocap, then COCO, numbering
-the variants on. `mocap.py` and `coco.py` run every candidate through the photo harvest's own
+`build.py` fills each pose up to five references: photos first, then mocap, then COCO, then the
+drawings, numbering the variants on. `mocap.py` and `coco.py` run every candidate through the photo harvest's own
 checks (`checks.py`: full body, headcount, posture class, limb angles against the drawing,
 near-duplicates), with per-pose tighter rules of their own (`postures`, `min_drawn`) since no
 vision model looks at them, and a hand-curated `EXCLUDE` list each. Their contact sheets are
@@ -108,7 +117,8 @@ rerun after changing a threshold is quick and asks the services nothing twice.
 
 ## Licence policy
 
-Kept: **CC0**, **Public Domain Mark / public domain**, **CC BY** and **CC BY-SA** (any version).
+Kept: **CC0**, **Public Domain Mark / public domain**, **CC BY** and **CC BY-SA** (any version),
+and Castcut's own drawings (**MIT**, the repo's licence).
 Motion capture: the CMU database (free for all uses, credit requested). The ACCAD Open Motion
 Project (Ohio State, CC BY 3.0, credit "ACCAD/The Ohio State University") would be allowed, but
 its martial-arts files are single-performer C3D marker data with no skeleton; CMU's boxing clips

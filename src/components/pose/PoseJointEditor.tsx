@@ -2061,7 +2061,7 @@ function ReferencePosePicker({
               <button
                 key={reference.id}
                 type="button"
-                title={`${poseLayoutLabel(pose)} — ${poseReferenceCreditLine(reference)}`}
+                title={`${poseLayoutLabel(pose)}${reference.draft ? ' (draft)' : ''} — ${poseReferenceCreditLine(reference)}`}
                 aria-label={`${poseLayoutLabel(pose)}, real pose ${reference.variant}`}
                 data-testid={`${testIdPrefix}-real-pose-${reference.id}`}
                 onClick={() => onPick(reference)}
