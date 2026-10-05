@@ -55,12 +55,17 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
     if (!beat || !expect || !shownUrl) {
       return;
     }
-    // The checks run in ComfyUI: durable gallery copies map back to the output.
-    const imageUrl = comfyViewUrlForStill(beat, loadComfyGallery()) ?? shownUrl;
+    // The checks run in ComfyUI: durable gallery copies map back to the output. Everything kept
+    // on the beat (skip list, poseMatch, takes) is keyed by the shown URL, which is what
+    // nextStoryPoseCheck compares — keyed by the ComfyUI URL, a gallery-stored still never
+    // counted as checked and the check re-ran forever (thousands of /api/pose-detect calls a
+    // minute on a failing check, a DWPose job per pass on a working one).
+    const checkUrl = comfyViewUrlForStill(beat, loadComfyGallery()) ?? shownUrl;
+    const imageUrl = shownUrl;
     runningRef.current = true;
     void (async () => {
       try {
-        const detected = await detectStillPose(imageUrl);
+        const detected = await detectStillPose(checkUrl);
         if (!detected.available) {
           offRef.current = detected.reason;
           setPoseCheckOff(detected.reason);
@@ -126,7 +131,10 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
             : null;
         if (faceReference) {
           try {
-            const measured = await measureStillFaceMatch({ referenceUrl: faceReference, imageUrl });
+            const measured = await measureStillFaceMatch({
+              referenceUrl: faceReference,
+              imageUrl: checkUrl,
+            });
             if (measured?.available) {
               faceMatch = { imageUrl, similarity: measured.similarity };
               recordFaceMatchScore(

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { storyFlaggedBeats } from './roleplay-pose-check';
+import { nextStoryPoseCheck, storyFlaggedBeats } from './roleplay-pose-check';
 describe('storyFlaggedBeats', () => {
   const thresholds = { minPose: 0.6, minFace: 0.3, warnFace: 0.45 };
   const done = (id: string, extra: Record<string, unknown> = {}) => ({
@@ -31,5 +31,36 @@ describe('storyFlaggedBeats', () => {
       storyFlaggedBeats(story, thresholds).map(beat => beat.id),
       ['pose', 'face', 'failed']
     );
+  });
+});
+
+describe('nextStoryPoseCheck keys', () => {
+  // A gallery-stored still is shown from /api/gallery/media but checked in ComfyUI through its
+  // /api/comfyui/view URL. The hook must record the shown URL, or the beat is picked forever.
+  const expect = { promptId: 'p1', keypoints: [], aspect: 0.75, style: 'openpose', poseKey: 'stand' };
+  const beat = (extra: Record<string, unknown> = {}) => ({
+    id: 'b1',
+    at: 1,
+    promptId: 'p1',
+    stillStatus: 'completed',
+    imageUrl: '/api/gallery/media/abc/original',
+    poseGuideExpect: expect as never,
+    ...extra,
+  });
+  const comfyUrl = '/api/comfyui/view?filename=Castcut_00001_.png&type=output';
+
+  it('a check recorded under the shown URL is done', () => {
+    const checked = beat({ poseMatch: { imageUrl: '/api/gallery/media/abc/original', score: 0.8, expectedPeople: 1, detectedPeople: 1 } });
+    assert.equal(nextStoryPoseCheck([checked]), null);
+  });
+
+  it('a check recorded under the ComfyUI URL is not (the old loop)', () => {
+    const checked = beat({ poseMatch: { imageUrl: comfyUrl, score: 0.8, expectedPeople: 1, detectedPeople: 1 } });
+    assert.equal(nextStoryPoseCheck([checked])?.id, 'b1');
+  });
+
+  it('a failed check skipped under the shown URL is not retried', () => {
+    assert.equal(nextStoryPoseCheck([beat()], new Set(['/api/gallery/media/abc/original'])), null);
+    assert.equal(nextStoryPoseCheck([beat()], new Set([comfyUrl]))?.id, 'b1');
   });
 });
