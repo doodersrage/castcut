@@ -30,7 +30,12 @@ export function buildIntimateClipPrompt(
     )
   )
     .replace(/\bmid-doggy(?:[- ]?style)?\b/gi, 'mid-sex from behind')
-    .replace(/\bdoggy(?:[- ]?style)?\b/gi, 'from behind');
+    .replace(/\bdoggy(?:[- ]?style)?\b/gi, 'from behind')
+    // Face-sit and 69 are drawn as seated oral — a Scene line naming them pulls the clip off it.
+    .replace(
+      /\b(?:sixty-?nine|69|face-?sit(?:ting)?(?:\s+a\s+partner)?|sitting\s+on\s+(?:his|her|their)\s+face)\b/gi,
+      'oral sex'
+    );
   const layout = parseIntimateLayout(beat);
   const solo = layout === 'solo';
   const ageLine =
@@ -41,7 +46,7 @@ export function buildIntimateClipPrompt(
     `Scene: ${act}.`,
     // Every person's adult age, right after the scene (WAN runs at CFG 1: the positive says it).
     ageLine,
-    `Motion: ${twoWomen ? twoWomenMotion(layout) : twoMen ? twoMenMotion(layout) : layoutMotion(layout)}`,
+    `Motion: ${twoWomen ? twoWomenMotion(layout, beat) : twoMen ? twoMenMotion(layout, beat) : layoutMotion(layout, beat)}`,
     solo
       ? 'Her body keeps the exact pose and position of the first frame the whole time — she does not turn around, stand up, or leave the frame.'
       : 'Both bodies keep the exact pose and position of the first frame the whole time — nobody turns around, stands up, slides away, or leaves the frame.',
@@ -77,8 +82,19 @@ function stripLaughter(text: string): string {
     .trim();
 }
 
-/** Two women (Day Partner): same steady motions, the partner named instead of "he". */
-function twoWomenMotion(layout: IntimateLayout | null): string {
+/**
+ * The wall still is from behind only when the beat says so or the wall is glass (the recipe's own
+ * rule, rapid-duo-recipe.ts); otherwise she stands with her back to the wall, face to face.
+ */
+function wallFromBehind(beat: string): boolean {
+  return /\b(?:partner\s+behind|from\s+behind|window|glass)\b/i.test(beat);
+}
+
+/**
+ * Two women (Day Partner): the motion the still shows. Their recipes draw a hand between the
+ * thighs (no strap-on) for spoon, prone, standing and wall, and seated oral for face-sit / 69.
+ */
+function twoWomenMotion(layout: IntimateLayout | null, beat: string): string {
   switch (layout) {
     case 'straddle':
     case 'reverse_straddle':
@@ -88,21 +104,24 @@ function twoWomenMotion(layout: IntimateLayout | null): string {
     case 'mating_press':
       return 'her girlfriend moves her hips slowly and steadily against her; she stays on her back.';
     case 'bent':
-      return 'her girlfriend moves slowly from behind in a small, steady rhythm; she stays bent in place.';
+      return "her girlfriend's hand moves slowly between her thighs from behind; she stays bent in place.";
     case 'prone':
-      return 'her girlfriend moves slowly from behind in a small, steady rhythm; she stays face-down.';
+      return "her girlfriend's hand moves slowly between her thighs from behind; she stays face-down.";
     case 'standing':
-      return 'her girlfriend moves her hips slowly against her in a small, steady rhythm; both stay standing.';
+      return "her girlfriend's hand moves slowly between her thighs from behind; both stay standing side by side.";
     case 'wall':
-      return 'her girlfriend moves slowly from behind in a small, steady rhythm; she stays standing against the wall.';
+      return wallFromBehind(beat)
+        ? "her girlfriend's hand moves slowly between her thighs from behind; she stays standing against the wall."
+        : "her girlfriend's hand moves slowly between her thighs; both stay standing chest to chest, her back against the wall.";
     case 'spoon':
-      return 'slow, small hip movements from behind while both lie on their sides.';
+      return "slow, small movements of her girlfriend's hand between her thighs while both lie on their sides.";
+    case 'oral':
     case 'facesit':
-      return "she rocks her hips slowly on her girlfriend's face; her girlfriend's head stays still.";
     case 'sixty_nine':
-      return 'both heads move slowly and steadily; neither of them sits up or turns.';
+      // Face-sit and 69 are drawn as seated oral (Rapid cannot draw either).
+      return 'slow, steady motion of the head at the hips; the other body stays still.';
     case 'scissors':
-      return 'their hips grind slowly together where their legs cross; both stay on their sides.';
+      return 'their hips grind slowly together where their legs cross; both stay sitting, leaning back on their hands.';
     case 'lift':
       return 'her girlfriend holds her up and moves her hips slowly; her legs stay wrapped around her.';
     case 'afterglow':
@@ -110,12 +129,12 @@ function twoWomenMotion(layout: IntimateLayout | null): string {
     case 'undress':
       return 'hands move slowly over clothes and skin — nobody turns away.';
     default:
-      return layoutMotion(layout);
+      return layoutMotion(layout, beat);
   }
 }
 
-/** Two men (Day Partner / a man lead): the partner is "his boyfriend". */
-function twoMenMotion(layout: IntimateLayout | null): string {
+/** Two men: the motion the still shows (their wall and scissors recipes differ from a couple's). */
+function twoMenMotion(layout: IntimateLayout | null, beat: string): string {
   switch (layout) {
     case 'straddle':
     case 'reverse_straddle':
@@ -125,23 +144,22 @@ function twoMenMotion(layout: IntimateLayout | null): string {
     case 'mating_press':
       return 'his boyfriend thrusts slowly and steadily; he stays on his back.';
     case 'bent':
-      return 'his boyfriend thrusts slowly from behind in a small, steady rhythm; he stays bent in place.';
+    case 'standing':
+    case 'wall':
+      // Their standing / wall recipes both stand him bent forward, braced, partner behind.
+      return 'his boyfriend thrusts slowly from behind in a small, steady rhythm; he stays bent forward, braced in place.';
     case 'prone':
       return 'his boyfriend thrusts slowly from behind in a small, steady rhythm; he stays face-down.';
-    case 'standing':
-      return 'his boyfriend moves his hips slowly against him in a small, steady rhythm; both stay standing.';
-    case 'wall':
-      return 'his boyfriend thrusts slowly from behind in a small, steady rhythm; he stays standing against the wall.';
     case 'spoon':
       return 'his boyfriend thrusts slowly from behind while both lie on their sides.';
     case 'oral':
-      return 'slow, steady motion of the head at the hips; the other body stays still.';
-    case 'sixty_nine':
-      return 'both heads move slowly and steadily; neither of them sits up or turns.';
     case 'facesit':
-      return "he rocks his hips slowly on his boyfriend's face; his boyfriend's head stays still.";
+    case 'sixty_nine':
+      return 'slow, steady motion of the head at the hips; the other body stays still.';
     case 'scissors':
-      return 'their hips grind slowly together where their legs cross; both stay on their sides.';
+    case 'kneeling':
+      // Their scissors recipe kneels them face to face, stroking each other.
+      return 'both stay kneeling upright face to face, chests together, hands moving slowly.';
     case 'lift':
       return 'his boyfriend holds him up and thrusts slowly; his legs stay wrapped around him.';
     case 'afterglow':
@@ -149,11 +167,12 @@ function twoMenMotion(layout: IntimateLayout | null): string {
     case 'undress':
       return 'hands move slowly over clothes and skin — nobody turns away.';
     default:
+      void beat;
       return 'slow, small, steady rhythmic motion of the hips; bodies stay in place.';
   }
 }
 
-function layoutMotion(layout: IntimateLayout | null): string {
+function layoutMotion(layout: IntimateLayout | null, beat = ''): string {
   switch (layout) {
     case 'straddle':
     case 'reverse_straddle':
@@ -169,17 +188,19 @@ function layoutMotion(layout: IntimateLayout | null): string {
     case 'standing':
       return 'he moves his hips slowly against her in a small, steady rhythm; both stay standing, feet on the floor.';
     case 'wall':
-      return 'he thrusts slowly from behind in a small, steady rhythm; she stays standing against the wall, feet on the floor.';
+      return wallFromBehind(beat)
+        ? 'he thrusts slowly from behind in a small, steady rhythm; she stays standing facing the wall, feet on the floor.'
+        : 'he moves his hips slowly against her in a small, steady rhythm; both stay standing chest to chest, her back against the wall, her raised knee at his hip.';
     case 'spoon':
       return 'slow, small hip thrusts from behind while both lie on their sides.';
     case 'oral':
       return 'slow, steady motion of the head at the hips; the other body stays still.';
     case 'sixty_nine':
-      return "both heads move slowly and steadily at each other's hips; neither body sits up or turns.";
     case 'facesit':
-      return 'she rocks her hips slowly on his face in a small, steady rhythm; his head stays still.';
+      // Drawn as seated oral (Rapid cannot draw a 69 or face-sitting): animate what is there.
+      return 'slow, steady motion of the head at the hips; the other body stays still.';
     case 'scissors':
-      return 'their hips grind slowly together where the legs cross; both stay lying on their sides.';
+      return 'their hips grind slowly together where their legs cross; both stay sitting, leaning back on their hands.';
     case 'lift':
       return 'he holds her up and thrusts slowly; her legs stay wrapped around his waist.';
     case 'kneeling':

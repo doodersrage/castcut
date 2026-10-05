@@ -23,18 +23,34 @@ describe('buildIntimateClipPrompt', () => {
     assert.match(prompt, /rocks her hips/);
   });
 
-  it('gives standing, wall, face-sit, sixty-nine and afterglow their own motion', () => {
-    const motion = (beat: string) => buildIntimateClipPrompt(beat).split('Motion: ')[1] ?? '';
+  it('animates the pose the still draws (rapid-duo-recipe.ts), not a different one', () => {
+    const motion = (beat: string, options?: Parameters<typeof buildIntimateClipPrompt>[2]) =>
+      buildIntimateClipPrompt(beat, 4, options).split('Motion: ')[1] ?? '';
     assert.match(motion('standing sex in the shower'), /both stay standing/);
     assert.doesNotMatch(motion('standing sex in the shower'), /bent/);
-    assert.match(motion('fucking against the wall'), /standing against the wall/);
-    assert.doesNotMatch(motion('fucking against the wall'), /bent/);
-    assert.match(motion('facesitting in the loft'), /on his face/);
-    assert.match(motion('sixty-nine on the bed'), /both heads move/);
+    // Wall: face to face with her back to the wall, unless the beat or a window says from behind.
+    assert.match(motion('fucking against the wall'), /chest to chest, her back against the wall/);
+    assert.doesNotMatch(motion('fucking against the wall'), /from behind|bent/);
+    assert.match(motion('against the wall from behind'), /from behind.*facing the wall/);
+    assert.match(motion('fucking against the hotel window'), /from behind/);
+    // Face-sit and 69 are drawn as seated oral: the clip animates oral, and the Scene line
+    // doesn't ask for a 69 or face-sitting.
+    for (const beat of ['facesitting in the loft', 'sixty-nine on the bed']) {
+      assert.match(motion(beat), /motion of the head at the hips/, beat);
+      assert.doesNotMatch(buildIntimateClipPrompt(beat), /sixty-nine|facesit/i, beat);
+    }
     assert.match(motion('afterglow in tangled sheets'), /no thrusting/);
     assert.doesNotMatch(motion('half-undressed, skin and erotic heat'), /rhythmic motion of the hips/);
     assert.match(motion('lifted up while fucking'), /legs stay wrapped/);
-    assert.match(motion('scissoring on the floor'), /legs cross/);
+    // Scissors: seated, leaning back on their hands (the recipe), not lying on their sides.
+    assert.match(motion('scissoring on the floor'), /legs cross; both stay sitting/);
+    assert.doesNotMatch(motion('scissoring on the floor'), /on their sides/);
+    // Two women: their recipes draw a hand, not hips from behind.
+    for (const beat of ['spooning in bed', 'lying face-down on the bed mid-sex', 'against the wall from behind']) {
+      assert.match(motion(beat, { twoWomen: true }), /hand moves slowly between her thighs|hand between her thighs/, beat);
+    }
+    // Two men: scissors kneels them face to face (their recipe).
+    assert.match(motion('scissoring on the bed', { twoMen: true }), /kneeling upright face to face/);
   });
 
   it('speaks about one body for solo beats', () => {
