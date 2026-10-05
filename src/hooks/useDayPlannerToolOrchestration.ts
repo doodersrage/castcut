@@ -304,6 +304,7 @@ export function useDayPlannerToolOrchestration() {
         comfyUrl,
         graphUrl: takeUrl,
         workflowJson: parent?.workflowJson ?? null,
+        galleryEntryId: parent?.id ?? null,
         title: slot?.label,
         adult:
           still.adultGated || parent?.adultCheck

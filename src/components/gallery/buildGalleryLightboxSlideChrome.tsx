@@ -124,6 +124,7 @@ export function buildGalleryLightboxSlideChrome({
           displayUrl: resolvedLightbox.images[resolvedLightbox.index] || fixComfyUrl,
           comfyUrl: fixComfyUrl,
           workflowJson: entry.workflowJson ?? null,
+          galleryEntryId: entry.id,
           adult: entry.adultCheck ? { clothed: false } : null,
           onUse: async result => {
             await recordFixAreaInGallery(entry, result);

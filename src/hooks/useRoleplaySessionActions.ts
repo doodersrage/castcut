@@ -90,6 +90,7 @@ export function useRoleplaySessionActions({
         comfyUrl,
         graphUrl: takeUrl,
         workflowJson: parent?.workflowJson ?? null,
+        galleryEntryId: parent?.id ?? null,
         title: latest.title,
         adult:
           storyRatingNeedsAdultSafeguards(content) || parent?.adultCheck

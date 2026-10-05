@@ -131,6 +131,7 @@ export default function FittingCompareSection({
               displayUrl: front,
               comfyUrl,
               workflowJson: parent?.workflowJson ?? null,
+              galleryEntryId: parent?.id ?? null,
               title: activeTryOn.wardrobeLabel || activeTryOn.wardrobeId,
               adult: parent?.adultCheck ? { clothed: false } : null,
               onUse: async result => {

@@ -13,6 +13,11 @@ export type FixAreaTarget = {
   graphUrl?: string | null;
   /** The queued workflow JSON (gallery entry), used when ComfyUI kept no graph in the PNG. */
   workflowJson?: string | null;
+  /**
+   * The still's gallery entry: its stored workflow is read at Fix time (the Gallery's list view
+   * leaves `workflowJson` out of its entries).
+   */
+  galleryEntryId?: string | null;
   title?: string;
   /** An adult still: candidates pass the adult-appearance gate before they are shown. */
   adult?: { clothed?: boolean } | null;
@@ -50,7 +55,7 @@ function comfyUrlSetting(): string | undefined {
 
 /** Queue the candidates; rejects with the reason when the still can't be fixed. */
 export async function queueFixArea(input: {
-  target: Pick<FixAreaTarget, 'comfyUrl' | 'graphUrl' | 'workflowJson'>;
+  target: Pick<FixAreaTarget, 'comfyUrl' | 'graphUrl' | 'workflowJson' | 'galleryEntryId'>;
   mask: string;
   text: string;
 }): Promise<FixAreaJob[]> {
@@ -58,9 +63,14 @@ export async function queueFixArea(input: {
     throw new Error("This picture's ComfyUI output isn't available, so it can't be fixed here.");
   }
   let workflow: unknown;
-  if (input.target.workflowJson) {
+  let workflowJson = input.target.workflowJson ?? null;
+  if (!workflowJson && input.target.galleryEntryId) {
+    const { getGalleryEntryById } = await import('@/lib/gallery-db-store');
+    workflowJson = getGalleryEntryById(input.target.galleryEntryId)?.workflowJson ?? null;
+  }
+  if (workflowJson) {
     try {
-      workflow = JSON.parse(input.target.workflowJson) as unknown;
+      workflow = JSON.parse(workflowJson) as unknown;
     } catch {
       workflow = undefined;
     }

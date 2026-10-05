@@ -103,7 +103,15 @@ export async function queueFixAreaInComfy(input: {
   let graph: unknown = graphRef ? await readComfyImageGraph(baseUrl, graphRef) : null;
   if (!graph) graph = await readComfyImageGraph(baseUrl, stillRef);
   if (!graph && input.workflow && typeof input.workflow === 'object') {
-    const wrapped = (input.workflow as { prompt?: unknown }).prompt;
+    // The API graph itself, or wrapped as { prompt } (an object or ComfyUI's PNG text).
+    let wrapped = (input.workflow as { prompt?: unknown }).prompt;
+    if (typeof wrapped === 'string') {
+      try {
+        wrapped = JSON.parse(wrapped) as unknown;
+      } catch {
+        wrapped = undefined;
+      }
+    }
     graph = wrapped && typeof wrapped === 'object' ? wrapped : input.workflow;
   }
   if (!graph) {

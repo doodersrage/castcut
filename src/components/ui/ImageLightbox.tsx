@@ -259,8 +259,20 @@ export default function ImageLightbox({
     setCurrentImageLoaded,
   });
 
+  // Kept outside the shell (and above the early return): a gallery refresh that briefly empties
+  // the lightbox state must not remount the dialog and lose the painted strokes.
+  const fixDialog = fixTarget ? (
+    <FixAreaDialog target={fixTarget} onClose={() => setFixTarget(null)} />
+  ) : null;
+
   if (!mounted || !open || !currentUrl || !state) {
-    return null;
+    // Same shape as the full render below, so the dialog keeps its place in the tree.
+    return (
+      <>
+        {fixDialog}
+        {null}
+      </>
+    );
   }
 
   const { enter: enterClass, exit: exitClass } = resolveTransitionClasses(
@@ -389,28 +401,24 @@ export default function ImageLightbox({
   );
 
   return (
-    <ImageLightboxShell
-      isFullscreen={isFullscreen}
-      containerRef={containerRef}
-      transitionMs={transitionMs}
-      ariaLabel={state.title ?? (isFullscreen ? 'Fullscreen slideshow' : 'Image preview')}
-      onClose={onClose}
-      helpOpen={helpOpen}
-      onHelpClose={() => setHelpOpen(false)}
-      overline={overline}
-      currentTitle={currentTitle}
-      displayIndex={displayIndex}
-      titleAnimating={titleAnimating}
-      stage={stage}
-      sideNav={sideNav}
-      bottomChrome={
-        <>
-          <ImageLightboxBottomChrome compact={isFullscreen} {...bottomChromeProps} />
-          {fixTarget ? (
-            <FixAreaDialog target={fixTarget} onClose={() => setFixTarget(null)} />
-          ) : null}
-        </>
-      }
-    />
+    <>
+      {fixDialog}
+      <ImageLightboxShell
+        isFullscreen={isFullscreen}
+        containerRef={containerRef}
+        transitionMs={transitionMs}
+        ariaLabel={state.title ?? (isFullscreen ? 'Fullscreen slideshow' : 'Image preview')}
+        onClose={onClose}
+        helpOpen={helpOpen}
+        onHelpClose={() => setHelpOpen(false)}
+        overline={overline}
+        currentTitle={currentTitle}
+        displayIndex={displayIndex}
+        titleAnimating={titleAnimating}
+        stage={stage}
+        sideNav={sideNav}
+        bottomChrome={<ImageLightboxBottomChrome compact={isFullscreen} {...bottomChromeProps} />}
+      />
+    </>
   );
 }
