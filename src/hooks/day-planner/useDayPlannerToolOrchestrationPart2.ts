@@ -3,7 +3,7 @@
 import { swapDayForCast } from '@/lib/day-cast-park';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { resolveDayClipEngine } from '@/hooks/day-planner/useDayEndPose';
-import { activeDayEndPose, dayEndPoseSupported, withDayEndPoseMotion } from '@/lib/day-end-pose';
+import { activeDayEndPose, dayEndPoseSupported } from '@/lib/day-end-pose';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
 import { resolveQueueInputImageFilename } from '@/lib/queue-input-image';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
@@ -65,6 +65,7 @@ import {
   isDayAdultMood,
 } from '@/lib/day-planner';
 import { buildIntimateClipPrompt } from '@/lib/intimate-clip-prompt';
+import { buildStillClipPrompt, stillPromptPeople } from '@/lib/still-clip-prompt';
 import { adultAgeLineIn } from '@/lib/adult-age-safeguard';
 import {
   countWardrobeOptionsForFilter,
@@ -390,27 +391,21 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             prompt = swapDayPromptGender(prompt, { solo: true });
           }
         } else {
-          try {
-            const response = await fetch('/api/video-prompt', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                subject: slot.label,
-                motion: withDayEndPoseMotion(
-                  slot.sceneHints?.trim() || subject,
-                  endImageFilename ? endPose : undefined
-                ),
-                model: videoModel,
-                durationSec: 4,
-              }),
-            });
-            const data = (await response.json()) as { prompt?: string };
-            if (data.prompt?.trim()) {
-              prompt = data.prompt.trim();
+          // Clothed clips: the LLM writer never saw the still — it orbited / dollied the camera
+          // and restaged the scene. The fixed template animates the beat on the first frame.
+          // Built from the unswapped beat, then swapped once for a man lead (the swap goes both
+          // ways, so swapping `subject` again would undo it).
+          const clip = buildStillClipPrompt(
+            slot.sceneHints?.trim() || buildDaySlotMotionSubject(slot, character?.name),
+            {
+              durationSec: 4,
+              people: stillPromptPeople(parentEntry?.prompt),
+              ...(endImageFilename && endPose?.poseWords
+                ? { endPoseWords: endPose.poseWords }
+                : {}),
             }
-          } catch {
-            /* use subject */
-          }
+          );
+          prompt = manLead ? swapDayPromptGender(clip) : clip;
         }
         // 2.0: keep Cast face + pinned LoRAs on Animate — I2V init still is Image 1.
         if (character) {

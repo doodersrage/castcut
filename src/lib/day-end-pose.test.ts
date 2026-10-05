@@ -50,10 +50,11 @@ const sha = (value: unknown) => createHash('sha256').update(JSON.stringify(value
 describe('Day end pose', () => {
   it('leaves the plain clip graph byte-identical when no end pose is set', () => {
     // Hashes of the graphs the queue built before end poses existed (2026-10-03). Only update
-    // them when the plain clip graph is meant to change.
+    // them when the plain clip graph is meant to change. WAN changed 2026-10-04: its canvas is
+    // sized from the still (wan-clip-canvas.ts).
     assert.equal(
       sha(buildClipGraph('wan-video')),
-      'eb81f1329e00111ecc6b659ac3a94e36d57e7b9789f23d903b2506d37d7c5124'
+      '6cd29076c5195c6304349f988e971d6c367c7dd23580d8627239d6380f58114b'
     );
     assert.equal(
       sha(buildClipGraph('ltx-video-2.5')),

@@ -3,6 +3,7 @@ import {
   LTX25_END_GUIDE_NODES,
   LTX25_REQUIRED_NODE,
 } from './ltx25-renderer';
+import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from './wan-clip-canvas';
 import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
 import { isQwenLightningModel, patchModelSamplingInWorkflow } from './model-sampling-patch';
 import { ensureFluxGuidanceInWorkflow } from './flux-guidance-patch';
@@ -1842,6 +1843,7 @@ export function injectPromptsWithFallbacks(
     }
   }
 
+  let onLtx25 = false;
   if (options?.videoRenderer === 'ltx-2.5') {
     // Older ComfyUI has no LTX-2 nodes — keep the WAN graph rather than queue a broken one.
     const nodeTypes = options.availableNodeTypes ? new Set(options.availableNodeTypes) : null;
@@ -1857,6 +1859,19 @@ export function injectPromptsWithFallbacks(
       });
       if (converted.converted) {
         injected = { ...injected, workflow: converted.workflow };
+        onLtx25 = true;
+      }
+    }
+  }
+
+  // WAN image-to-video center-crops the still to the canvas — a portrait still on the square
+  // Video canvas lost heads and feet. Take the still's aspect at the same pixel budget.
+  if (!onLtx25) {
+    const nodeTypes = options?.availableNodeTypes ? new Set(options.availableNodeTypes) : null;
+    if (!nodeTypes || WAN_CLIP_CANVAS_NODES.every(type => nodeTypes.has(type))) {
+      const sized = sizeWanClipFromStill(injected.workflow);
+      if (sized.applied) {
+        injected = { ...injected, workflow: sized.workflow };
       }
     }
   }
