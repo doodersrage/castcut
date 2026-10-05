@@ -425,6 +425,10 @@ CONTACTS: dict[str, frozenset[str]] = {
 # came out as a front carry (her in front of him, his hands under her thighs; the app's own
 # drawing does the same, so the words and the engine decide it, not the map); head on a shoulder
 # came out as a side-by-side cuddle, heads tilted together, her head not down on his shoulder.
+# 2026-10-05: with the Day recipe's body-by-body words (pose-coaching.ts dayDuoPoseWords) head on
+# a shoulder read right 4/4 on Edit 2511 and 4/4 on Rapid AIO over the seated drawing, and the
+# side-view piggyback 2/4 (was 0/4) on Edit 2511 — those five are no longer drafts; the front and
+# three-quarter piggybacks contradict the words' "seen from the side" and stay drafts.
 DRAWN: list[dict] = [
     {"pose": "piggyback", "build": lambda: piggyback("a"), "view": 0, "draft": True, "label": "front view",
      "title": "Piggyback, front view: rider's arms crossed over the carrier's chest, legs round the waist"},
@@ -432,7 +436,7 @@ DRAWN: list[dict] = [
      "title": "Piggyback, three-quarter view from the carrier's left"},
     {"pose": "piggyback", "build": lambda: piggyback("c"), "view": -40, "draft": True, "label": "three-quarter view",
      "title": "Piggyback, three-quarter view from the carrier's right, one arm over the shoulder and one under"},
-    {"pose": "piggyback", "build": lambda: piggyback("a"), "view": -80, "draft": True, "label": "side view",
+    {"pose": "piggyback", "build": lambda: piggyback("a"), "view": -80, "label": "side view",
      "title": "Piggyback, side view: the rider up on the carrier's back, legs round the waist"},
     {"pose": "toast", "build": lambda: toast("square"), "view": -90, "label": "side-on pair",
      "title": "Toast, facing each other side-on to the camera, glasses meeting between them"},
@@ -440,13 +444,13 @@ DRAWN: list[dict] = [
      "title": "Toast, front view: both turned toward the camera and leaning in, glasses meeting in the middle"},
     {"pose": "toast", "build": lambda: toast("square-b"), "view": -30, "label": "three-quarter view",
      "title": "Toast, three-quarter view over the partner's shoulder, a hand on the hip"},
-    {"pose": "head_shoulder", "body": "sit", "build": lambda: head_shoulder("sit"), "view": -14, "draft": True, "label": "seated, front view", "hidden": [(1, 4)],
+    {"pose": "head_shoulder", "body": "sit", "build": lambda: head_shoulder("sit"), "view": -14, "label": "seated, front view", "hidden": [(1, 4)],
      "title": "Head on a shoulder, seated on a bench, front view"},
-    {"pose": "head_shoulder", "body": "sit", "build": lambda: head_shoulder("sit"), "view": 20, "draft": True, "label": "seated, three-quarter view", "hidden": [(1, 4)],
+    {"pose": "head_shoulder", "body": "sit", "build": lambda: head_shoulder("sit"), "view": 20, "label": "seated, three-quarter view", "hidden": [(1, 4)],
      "title": "Head on a shoulder, seated on a bench, three-quarter view"},
-    {"pose": "head_shoulder", "body": "stand", "build": lambda: head_shoulder("stand"), "view": -22, "draft": True, "label": "standing, front view", "hidden": [(1, 4)],
+    {"pose": "head_shoulder", "body": "stand", "build": lambda: head_shoulder("stand"), "view": -22, "label": "standing, front view", "hidden": [(1, 4)],
      "title": "Head on a shoulder, standing side by side, front view"},
-    {"pose": "head_shoulder", "body": "stand", "build": lambda: head_shoulder("stand-b"), "view": -50, "draft": True, "label": "standing, three-quarter view", "hidden": [(1, 4)],
+    {"pose": "head_shoulder", "body": "stand", "build": lambda: head_shoulder("stand-b"), "view": -50, "label": "standing, three-quarter view", "hidden": [(1, 4)],
      "title": "Head on a shoulder, standing side by side, three-quarter view, both her hands on him"},
 ]
 

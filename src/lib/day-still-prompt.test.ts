@@ -7,6 +7,8 @@ import {
   type DayStillPromptFacts,
 } from './day-still-prompt';
 import { auditStillPrompt } from './still-prompt-audit';
+import { buildCompactDayDuoRecipe, buildRapidSuggestiveDuoRecipe } from './rapid-duo-recipe';
+import { dayDuoPoseWords } from './pose-coaching';
 
 const RECIPE =
   'Edit Image 1: Day photo: One woman alone. She dances. She wears the outfit from the second image. Moment: dancing under club lights. Place: nightclub dance floor. Keep her face from the first image. Match her body to the third image (pose map).';
@@ -147,3 +149,99 @@ describe('a beat the player typed for a man lead', () => {
     assert.doesNotMatch(finished, /she fixes|her bike/);
   });
 });
+
+  describe('piggyback and head on a shoulder are placed body by body (live A/B 2026-10-05)', () => {
+    const PIGGYBACK = "piggyback ride on a friend's back across the park, both laughing";
+    const HEAD = "resting her head on her partner's shoulder on a bench by the river at night";
+    const duo = (beat: string, layout: string, over: Partial<DayStillPromptFacts> = {}) =>
+      facts({
+        slotPrompt: buildRapidSuggestiveDuoRecipe({ beat, poseGuide: 'third' })!,
+        beat,
+        dayMood: 'suggestive',
+        pose: { layout, poseKey: `${layout}:2`, figures: 2 },
+        cueLayouts: new Set([layout]),
+        ...over,
+      });
+
+    it('the couple recipe gets a Pose: sentence after the Moment, and no generic cue line', () => {
+      const { prompt, cued } = assembleDayStillPrompt(duo(PIGGYBACK, 'piggyback'));
+      assert.equal(cued, true);
+      assert.match(
+        prompt,
+        /Moment: piggyback ride on a friend's back across the park, both laughing\. Pose: piggyback ride: she rides up on his back, her arms around his shoulders from behind and her legs wrapped around his waist; he stands leaning forward, his hands holding her thighs at his hips; both faces toward the camera, seen from the side\./
+      );
+      assert.doesNotMatch(prompt, /POSE DETAIL|one person carries the other/);
+    });
+
+    it('head on a shoulder: her head down on his, his head straight; standing beats stand', () => {
+      const seated = assembleDayStillPrompt(duo(HEAD, 'head_shoulder')).prompt;
+      assert.match(
+        seated,
+        /Pose: side by side, she leans her head down onto his shoulder, her cheek resting on his shoulder, eyes closed; he sits upright, head straight, his arm around her\./
+      );
+      const standing = assembleDayStillPrompt(
+        duo('standing at the rail, her head on his shoulder', 'head_shoulder')
+      ).prompt;
+      assert.match(standing, /he stands upright/);
+    });
+
+    it('the long brief keeps its usual cue (the words changed nothing on Rapid’s brief)', () => {
+      const brief = (cueLayouts: Set<string>) =>
+        assembleDayStillPrompt(
+          duo(PIGGYBACK, 'piggyback', {
+            slotPrompt: `Edit instruction for a Day still: ${PIGGYBACK}.`,
+            cueLayouts,
+          })
+        );
+      assert.doesNotMatch(brief(new Set()).prompt, /POSE DETAIL|rides up on/);
+      assert.match(
+        brief(new Set(['piggyback'])).prompt,
+        /^POSE DETAIL \(as Image 3 shows\): one person carries the other on their back/m
+      );
+    });
+
+    it('a same-sex partner keeps the name the prompt uses', () => {
+      const partner = { name: 'Ana', noun: 'woman' as const };
+      const slotPrompt = buildCompactDayDuoRecipe({
+        beat: PIGGYBACK,
+        poseGuide: 'third',
+        partner: { partner, image: 'second' },
+      })!;
+      const { prompt } = assembleDayStillPrompt(
+        duo(PIGGYBACK, 'piggyback', { slotPrompt, partner, dayMood: 'everyday' })
+      );
+      assert.match(
+        prompt,
+        /she rides up on her friend’s back, .*; her friend stands leaning forward, hands holding her thighs at the hips;/
+      );
+    });
+
+    it('a couple recipe written for a man lead names him first', () => {
+      const slotPrompt = buildRapidSuggestiveDuoRecipe({
+        beat: HEAD,
+        poseGuide: 'third',
+        lead: 'man',
+      })!;
+      const { prompt, swapLead } = assembleDayStillPrompt(
+        duo(HEAD, 'head_shoulder', { slotPrompt, leadNoun: 'man' })
+      );
+      assert.equal(swapLead, false);
+      assert.match(prompt, /Pose: side by side, he leans his head down onto her shoulder/);
+    });
+
+    it('other layouts, one-person stills, adult stills and custom poses are left alone', () => {
+      assert.equal(dayDuoPoseWords('hug', { lead: 'she', partner: 'he' }), null);
+      const solo = assembleDayStillPrompt(
+        duo(PIGGYBACK, 'piggyback', { pose: { layout: 'piggyback', figures: 1 } })
+      ).prompt;
+      assert.doesNotMatch(solo, /rides up on/);
+      assert.doesNotMatch(
+        assembleDayStillPrompt(duo(PIGGYBACK, 'piggyback', { adult: true })).prompt,
+        /rides up on/
+      );
+      assert.doesNotMatch(
+        assembleDayStillPrompt(duo(PIGGYBACK, 'piggyback', { customPose: 'standing' })).prompt,
+        /rides up on/
+      );
+    });
+  });

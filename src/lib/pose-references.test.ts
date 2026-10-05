@@ -236,6 +236,14 @@ describe('pose reference data file', () => {
     }
     // The toasts read as a toast on the sanity render: all three are in the walk.
     assert.equal(poseReferencesFor(references, 'toast', 2, 'stand').length, 3);
+    // With the Day recipe's body-by-body words (2026-10-05): every head on a shoulder and the
+    // side-view piggyback; the front / three-quarter piggybacks contradict "seen from the side".
+    assert.deepEqual(
+      poseReferencesFor(references, 'piggyback', 2, 'stand').map(r => r.id),
+      ['piggyback-4']
+    );
+    assert.equal(poseReferencesFor(references, 'head_shoulder', 2, 'sit').length, 2);
+    assert.equal(poseReferencesFor(references, 'head_shoulder', 2, 'stand').length, 2);
   });
 
   it('shows two people in the contact their pose is about (a hug, a toast, sparring…)', () => {

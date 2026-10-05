@@ -230,6 +230,70 @@ export function poseLayoutCueLine(
   return cue ? `POSE DETAIL (as Image 3 shows): ${cue}.` : '';
 }
 
+/** How a two-person Day still names its people, in the prompt's own voice. */
+export type DuoPoseNames = {
+  /** The lead: 'she' (the usual voice) or 'he' (a couple recipe written for a man lead). */
+  lead: 'she' | 'he';
+  /**
+   * The other person: 'he' / 'she' for a mixed pair, or a name the prompt already uses for a
+   * same-sex partner ("her friend", "her girlfriend").
+   */
+  partner: string;
+};
+
+/**
+ * Two-person social layouts placed body by body for a Day still. On Edit 2511 and Rapid the pose
+ * comes from the words, not the map: with the generic cue ("one person carries the other on their
+ * back") a piggyback was a front carry in her arms 4/4, and with "one person's head resting on the
+ * other's shoulder" both heads tilted together (or his on hers) 4/4. Live A/B 2026-10-05 on a
+ * clothed Day duo graph, same seeds, same drawn map, Edit 2511: piggyback 0/4 → 2/4 (one more a
+ * shoulder ride), head on a shoulder 0/4 → 4/4; Rapid AIO's couple recipe, head on a shoulder
+ * 1/4 → 4/4 (his head stays straight). Used in the recipes only: on Rapid's long two-person
+ * brief the same words as the cue line changed nothing.
+ */
+export function dayDuoPoseWords(
+  layout: string | null | undefined,
+  names: DuoPoseNames,
+  /** The beat, for standing vs seated head-on-shoulder wording. */
+  beat?: string | null
+): string | null {
+  const key = layout?.trim() ?? '';
+  const she = names.lead;
+  const her = she === 'he' ? 'his' : 'her';
+  const herObject = she === 'he' ? 'him' : 'her';
+  const pronoun = names.partner === 'he' || names.partner === 'she';
+  const other = names.partner;
+  const others = pronoun ? (other === 'he' ? 'his' : 'her') : `${other}’s`;
+  // A pronoun partner keeps the tested wording ("his hands … at his hips"); a named one says it
+  // once ("her friend stands … hands holding her thighs at the hips").
+  const otherOwn = pronoun ? `${others} ` : '';
+  if (key === 'piggyback') {
+    return (
+      `piggyback ride: ${she} rides up on ${others} back, ${her} arms around ${others} shoulders ` +
+      `from behind and ${her} legs wrapped around ${others} waist; ${other} stands leaning ` +
+      `forward, ${otherOwn}hands holding ${her} thighs at ${pronoun ? `${others} ` : 'the '}hips; ` +
+      'both faces toward the camera, seen from the side'
+    );
+  }
+  if (key === 'head_shoulder') {
+    const posture = /\b(?:stand\w*|walk\w*)\b/i.test(beat ?? '') ? 'stands' : 'sits';
+    return (
+      `side by side, ${she} leans ${her} head down onto ${others} shoulder, ${her} cheek ` +
+      `resting on ${others} shoulder, eyes closed; ${other} ${posture} upright, head straight, ` +
+      `${pronoun ? others : 'an'} arm around ${herObject}`
+    );
+  }
+  return null;
+}
+
+/** "… Moment: piggyback ride …. Pose: <words>. …" — right after the recipe's Moment sentence. */
+export function withDuoRecipePoseSentence(prompt: string, words: string): string {
+  if (/\bPose: /.test(prompt)) return prompt;
+  const moment = /\bMoment: [^\n]*?\.(?=\s|$)/.exec(prompt);
+  if (!moment) return prompt;
+  return prompt.replace(moment[0], `${moment[0]} Pose: ${words}.`);
+}
+
 /**
  * Plain postures Rapid Edit keeps getting wrong from the stick figure alone — spelled out on every
  * still, not learned from pose scores (DWPose can't tell a kneel from a crouch reliably).

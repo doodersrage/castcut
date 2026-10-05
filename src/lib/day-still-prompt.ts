@@ -48,10 +48,13 @@ import { footwearIsBarefoot, withFootwearLine } from '@/lib/footwear';
 import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
 import { KLEIN_FACE_REFERENCE_LINE } from '@/lib/klein-face-reference';
 import {
+  dayDuoPoseWords,
   poseLayoutCueLine,
   poseLookLine,
+  withDuoRecipePoseSentence,
   withRecipePoseCue,
   withSportActionPoseCue,
+  type DuoPoseNames,
 } from '@/lib/pose-coaching';
 import { customPoseFirstLine, withCustomPoseSentence } from '@/lib/pose-describe';
 import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
@@ -180,6 +183,15 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
   // The whole finished prompt is swapped later; the partner line names the partner's own gender,
   // so it goes in pre-swapped (the swap turns it back).
   const forLead = (text: string) => (swapLead && text ? swapDayPromptGender(text) : text);
+  // Piggyback / head on a shoulder: placed body by body in a clothed two-person recipe, after the
+  // Moment — the map alone, or the generic cue, drew a front carry and two tilted heads
+  // (dayDuoPoseWords). Not on the long brief: on Rapid's two-person brief the same words as the
+  // cue line changed nothing (piggyback 3/4 both, head on a shoulder 0/4 both; live 2026-10-05).
+  const duoWords =
+    recipe && figures >= 2 && !facts.adult && !facts.customPose?.trim()
+      ? dayDuoPoseWords(drawnLayout, dayDuoNames(facts, basePrompt, swapLead), facts.beat)
+      : null;
+  const poseCueLine = duoWords ? '' : cueLine;
   // Clothed stills: Rapid follows the opening lines, and the brief's opening only names her —
   // duo beats lost the partner (4/10) and outdoor beats went barefoot. Live A/B (2026-09-30,
   // same seeds): a TWO PEOPLE opening line kept the partner 10/10; a footwear line put shoes on
@@ -205,7 +217,9 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
       ? withRecipePoseCue(basePrompt, drawnLayout, facts.pose?.poseKey)
       : facts.sportActionCue && !recipe && figures === 1
         ? withSportActionPoseCue(basePrompt, drawnLayout)
-        : basePrompt
+        : duoWords
+          ? withDuoRecipePoseSentence(basePrompt, duoWords)
+          : basePrompt
     : recipe
       ? withCustomPoseSentence(basePrompt, customPose)
       : basePrompt;
@@ -235,14 +249,46 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
         : /face from the second image|own face\./.test(basePrompt)
           ? ''
           : forLead(dayPartnerRecipeLine(facts.partner, 'second', undefined, facts.leadNoun)),
-    cueLine,
+    poseCueLine,
     lookLine,
     facts.kleinFace ? KLEIN_FACE_REFERENCE_LINE : '',
     qualityNudge ? `QUALITY FIX: ${qualityNudge}` : '',
   ]
     .filter(Boolean)
     .join('\n');
-  return { prompt, cued: Boolean(cueLine), swapLead, recipe: isRapidDuoRecipePrompt(prompt) };
+  return {
+    prompt,
+    cued: Boolean(poseCueLine || duoWords),
+    swapLead,
+    recipe: isRapidDuoRecipePrompt(prompt),
+  };
+}
+
+/**
+ * How the prompt names the two people, in its own voice: the long brief and the swapped prompts
+ * are written for a woman lead; the couple recipes for a man lead are his already. A same-sex
+ * partner keeps the name the prompt gave them ("her friend", "her girlfriend").
+ */
+export function dayDuoNames(
+  facts: Pick<DayStillPromptFacts, 'leadNoun' | 'partner'>,
+  prompt: string,
+  swapLead: boolean
+): DuoPoseNames {
+  const leadMan = facts.leadNoun === 'man';
+  const voiceLeadMan = leadMan && !swapLead;
+  const partnerNoun = facts.partner?.noun ?? (leadMan ? 'woman' : 'man');
+  const flip = (noun: DayPartnerNoun): DayPartnerNoun =>
+    noun === 'man' ? 'woman' : noun === 'woman' ? 'man' : noun;
+  const voicePartner = swapLead ? flip(partnerNoun) : partnerNoun;
+  const lead = voiceLeadMan ? 'he' : 'she';
+  const leadPossessive = voiceLeadMan ? 'his' : 'her';
+  if (voicePartner === (voiceLeadMan ? 'man' : 'woman') || voicePartner === 'person') {
+    const named = new RegExp(
+      `\\b${leadPossessive} (?:girlfriend|boyfriend|friend|partner)\\b`
+    ).exec(prompt);
+    return { lead, partner: named?.[0] ?? `${leadPossessive} friend` };
+  }
+  return { lead, partner: voicePartner === 'man' ? 'he' : 'she' };
 }
 
 /** Who is on a Day still, for the age sentence (adult-age-safeguard.ts). */
