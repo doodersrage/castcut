@@ -154,6 +154,7 @@ export function parseGalleryUrlState(params: URLSearchParams): GalleryUrlState {
     derivedKind === 'variation' ||
     derivedKind === 'moire-clean' ||
     derivedKind === 'face-detail' ||
+    derivedKind === 'fix-area' ||
     derivedKind === 'controlnet' ||
     derivedKind === 'i2v' ||
     derivedKind === 't2v' ||

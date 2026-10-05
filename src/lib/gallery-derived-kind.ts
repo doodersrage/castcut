@@ -7,6 +7,7 @@ export const GALLERY_DERIVED_KIND_FILTERS = [
   'variation',
   'moire-clean',
   'face-detail',
+  'fix-area',
   'controlnet',
   'i2v',
   't2v',
@@ -32,6 +33,8 @@ export function galleryDerivedKindLabel(
       return 'moiré-cleaned from prior';
     case 'face-detail':
       return 'face-detailed from prior';
+    case 'fix-area':
+      return 'area fixed from prior';
     case 'controlnet':
       return 'ControlNet from prior';
     case 'i2v':
@@ -61,6 +64,8 @@ export function galleryDerivedKindChipLabel(kind: GalleryDerivedKindFilter): str
       return 'Moiré';
     case 'face-detail':
       return 'Face detail';
+    case 'fix-area':
+      return 'Fixed area';
     case 'controlnet':
       return 'ControlNet';
     case 'i2v':

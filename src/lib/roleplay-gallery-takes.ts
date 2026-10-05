@@ -224,6 +224,36 @@ export function beginRoleplayStillRetryPatch(beat: RoleplayStoryBeat): Partial<R
   };
 }
 
+/**
+ * "Fix an area" used on a beat (fix-area.ts): the fixed picture joins the beat's takes and is
+ * shown, pinned; the picture it was made from stays a take, so the take picker undoes it.
+ */
+export function addRoleplayFixedTakePatch(
+  beat: RoleplayStoryBeat,
+  fixed: { promptId: string; imageUrl: string }
+): Partial<RoleplayStoryBeat> {
+  const previous = roleplayStillTakes(beat).filter(take =>
+    Boolean(take.promptId?.trim() || take.imageUrl?.trim())
+  );
+  const take: RoleplayStillTake = {
+    promptId: fixed.promptId,
+    imageUrl: fixed.imageUrl,
+    stillStatus: 'completed',
+  };
+  const nextTakes = [...previous.slice(-(MAX_ROLEPLAY_STILL_TAKES - 1)), take];
+  return {
+    stillTakes: nextTakes,
+    stillTakeIndex: nextTakes.length - 1,
+    ...activeFieldsFromTake(take),
+    // Its checks were of the old picture.
+    poseMatch: undefined,
+    faceMatch: undefined,
+    realism: undefined,
+    stillTakePinned: true,
+    stillTakeAutoPicked: false,
+  };
+}
+
 /** The player tapped a take: show it and never switch away from it automatically. */
 export function pinRoleplayStillTakePatch(
   beat: RoleplayStoryBeat,

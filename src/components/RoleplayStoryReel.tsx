@@ -23,6 +23,12 @@ import { beatPreviewUrl } from '@/components/roleplay/roleplay-story-helpers';
 import { EmptyState } from '@/components/ui/ViewState';
 import { ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
+import type { FixAreaTarget } from '@/lib/fix-area-client';
+
+const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
+  ssr: false,
+  loading: () => null,
+});
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
   ssr: false,
@@ -45,6 +51,7 @@ export default function RoleplayStoryReel({
   onPoseChange,
   onRollScenes,
   castBibleHref,
+  fixAreaFor,
 }: {
   story: RoleplayStoryBeat[];
   busy?: boolean;
@@ -68,12 +75,15 @@ export default function RoleplayStoryReel({
   onRollScenes?: () => void;
   /** Cast home — bible rewrite/edit/clear live there. */
   castBibleHref?: string;
+  /** Fix an area (fix-area.ts): the dialog target for a beat's shown still, null when none. */
+  fixAreaFor?: (beat: RoleplayStoryBeat) => FixAreaTarget | null;
 }) {
   const promptIds = useMemo(() => roleplayStoryPromptIds(story), [story]);
   const promptKey = promptIds.join('|');
   const [liveUrls, setLiveUrls] = useState<Record<string, string | null>>({});
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const [lightboxBeatIds, setLightboxBeatIds] = useState<string[]>([]);
+  const [fixTarget, setFixTarget] = useState<FixAreaTarget | null>(null);
 
   useEffect(() => {
     const refresh = () => {
@@ -145,7 +155,19 @@ export default function RoleplayStoryReel({
     if (!activeBeat && !activeSlide?.prompt) {
       return null;
     }
+    const fix = activeBeat && fixAreaFor ? fixAreaFor(activeBeat) : null;
     return {
+      fixArea: fix
+        ? {
+            ...fix,
+            // The slides were built from the old picture: close the lightbox once swapped.
+            onUse: async result => {
+              await fix.onUse(result);
+              setLightbox(null);
+              setLightboxBeatIds([]);
+            },
+          }
+        : null,
       meta: activeSlide?.prompt
         ? { tool: 'roleplay', prompt: activeSlide.prompt }
         : activeBeat?.prompt
@@ -172,7 +194,7 @@ export default function RoleplayStoryReel({
             }
           : undefined,
     };
-  }, [activeBeat, activeSlide, onCopy, onRetry]);
+  }, [activeBeat, activeSlide, fixAreaFor, onCopy, onRetry]);
 
   if (story.length === 0) {
     return (
@@ -254,6 +276,7 @@ export default function RoleplayStoryReel({
         }}
         slideChrome={slideChrome}
       />
+      {fixTarget ? <FixAreaDialog target={fixTarget} onClose={() => setFixTarget(null)} /> : null}
       {watchPlaylist.length > 0 ? (
         <div className="space-y-2">
           <p className="type-caption text-[var(--text-muted)]">
@@ -286,6 +309,7 @@ export default function RoleplayStoryReel({
               onSelectTake={onSelectTake}
               onSelectClipTake={onSelectClipTake}
               onPoseChange={onPoseChange}
+              onFixArea={fixAreaFor ? entry => setFixTarget(fixAreaFor(entry)) : undefined}
             />
           );
         })}

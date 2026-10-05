@@ -173,6 +173,7 @@ export function useFittingRoomToolOrchestrationPart3(
     swipeKit,
     skipKit,
     dismissTryOn,
+    applyFixedTryOn,
     requeueTryOn,
     saveKitToCast,
   } = ctx;
@@ -259,6 +260,7 @@ export function useFittingRoomToolOrchestrationPart3(
     queueBlocked,
     queueBlockReason,
     dismissTryOn,
+    applyFixedTryOn,
     requeueTryOn,
   };
 }

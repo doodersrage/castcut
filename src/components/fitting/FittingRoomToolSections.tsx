@@ -111,6 +111,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     queueBlocked,
     queueBlockReason,
     dismissTryOn,
+    applyFixedTryOn,
     requeueTryOn,
     leanChrome,
     setIsolateStatus,
@@ -348,6 +349,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         onKeepTryOn={keepTryOn}
         onSoftAdvance={href => softAdvanceHref(href, 'Day')}
         onDismissTryOn={dismissTryOn}
+        onUseFixedTryOn={applyFixedTryOn}
         onRequeueTryOn={tryOn => void requeueTryOn(tryOn)}
         reviews={tryOnReview.reviews}
         reviewingId={tryOnReview.reviewingId}

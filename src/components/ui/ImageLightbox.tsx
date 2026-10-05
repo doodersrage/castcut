@@ -1,6 +1,8 @@
 'use client';
 
-import { useCallback, type PointerEvent as ReactPointerEvent } from 'react';
+import dynamic from 'next/dynamic';
+import { useCallback, useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import type { FixAreaTarget } from '@/lib/fix-area-client';
 import ImageLightboxBottomChrome from '@/components/ui/image-lightbox/ImageLightboxBottomChrome';
 import ImageLightboxImageStage from '@/components/ui/image-lightbox/ImageLightboxImageStage';
 import ImageLightboxShell from '@/components/ui/image-lightbox/ImageLightboxShell';
@@ -15,6 +17,11 @@ import type {
   ImageLightboxSlideshowOptions,
   ImageLightboxState,
 } from '@/components/ui/image-lightbox/types';
+
+const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
+  ssr: false,
+  loading: () => null,
+});
 
 export type {
   ImageLightboxState,
@@ -41,8 +48,18 @@ export default function ImageLightbox({
   onIndexChange,
   onDownloadImage,
   slideshow,
-  slideChrome = null,
+  slideChrome: slideChromeProp = null,
 }: ImageLightboxProps) {
+  // "Fix an area": the dialog opens over the lightbox for the still shown when it was asked for.
+  const [fixTarget, setFixTarget] = useState<FixAreaTarget | null>(null);
+  const fixArea = slideChromeProp?.fixArea ?? null;
+  const slideChrome = useMemo(
+    () =>
+      slideChromeProp && fixArea
+        ? { ...slideChromeProp, onFixArea: () => setFixTarget(fixArea) }
+        : slideChromeProp,
+    [fixArea, slideChromeProp]
+  );
   const presentation = useImageLightboxPresentation({
     state,
     slideshow,
@@ -205,7 +222,8 @@ export default function ImageLightbox({
   });
 
   useImageLightboxKeyboard({
-    open,
+    // The fix dialog has its own keys (Escape closes it, not the lightbox).
+    open: open && !fixTarget,
     index,
     imagesLength: images.length,
     onClose,
@@ -385,7 +403,14 @@ export default function ImageLightbox({
       titleAnimating={titleAnimating}
       stage={stage}
       sideNav={sideNav}
-      bottomChrome={<ImageLightboxBottomChrome compact={isFullscreen} {...bottomChromeProps} />}
+      bottomChrome={
+        <>
+          <ImageLightboxBottomChrome compact={isFullscreen} {...bottomChromeProps} />
+          {fixTarget ? (
+            <FixAreaDialog target={fixTarget} onClose={() => setFixTarget(null)} />
+          ) : null}
+        </>
+      }
     />
   );
 }

@@ -54,6 +54,8 @@ type Props = {
   onExtend?: (beat: RoleplayStoryBeat) => void;
   onSelectTake?: (beat: RoleplayStoryBeat, index: number) => void;
   onSelectClipTake?: (beat: RoleplayStoryBeat, index: number) => void;
+  /** ⋯ → Fix an area…: paint over what's wrong in the shown still (fix-area.ts). */
+  onFixArea?: (beat: RoleplayStoryBeat) => void;
   onPoseChange?: (
     beat: RoleplayStoryBeat,
     patch: Pick<
@@ -83,6 +85,7 @@ export function RoleplayStoryBeatCard({
   onExtend,
   onSelectTake,
   onSelectClipTake,
+  onFixArea,
   onPoseChange,
 }: Props) {
   const takes = roleplayStillTakes(beat);
@@ -194,6 +197,21 @@ export function RoleplayStoryBeatCard({
             {canOpen && onOpen ? (
               <button type="button" className={SHOT_CARD_MENU_ITEM_CLASS} onClick={onOpen}>
                 Open full size
+              </button>
+            ) : null}
+            {onFixArea &&
+            !withheld &&
+            beat.stillStatus === 'completed' &&
+            beat.imageUrl?.trim() &&
+            !looksLikeMotionUrl(beat.imageUrl) ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                title="Paint over a wrong hand, a stray object or a glitch and redraw only that area."
+                data-testid="story-beat-fix-area"
+                onClick={() => onFixArea(beat)}
+              >
+                Fix an area…
               </button>
             ) : null}
             {canQueue ? (

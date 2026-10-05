@@ -142,6 +142,17 @@ export default function ImageLightboxSlideChromeBar({
           {slideChrome.favorite ? '★ Fav' : '☆ Fav'}
         </Button>
       ) : null}
+      {slideChrome?.onFixArea && isStillLightboxKind(currentMediaKind) ? (
+        <Button
+          variant={compact ? 'ghost' : 'secondary'}
+          className={chromeBtn(compact)}
+          onClick={() => slideChrome.onFixArea?.()}
+          title="Paint over what looks wrong and redraw only that area"
+          data-testid="lightbox-fix-area"
+        >
+          Fix an area
+        </Button>
+      ) : null}
       {slideChrome?.meta || slideChrome?.onNoteChange ? (
         <Button
           variant={compact ? 'ghost' : 'secondary'}

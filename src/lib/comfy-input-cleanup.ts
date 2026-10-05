@@ -37,6 +37,7 @@ export const APP_INPUT_PREFIXES = [
   'face-locate',
   'fitting-garment',
   'fitting-ref',
+  'fix-area',
   'footwear',
   'gallery-face',
   'inpaint-source',

@@ -7,6 +7,9 @@ import type { ImageLightboxState, ImageLightboxSlideChrome } from '@/components/
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { buildFittingCompareLightboxState, type FittingCompareTryOn } from '@/lib/fitting-room';
 import { suggestTryOnToKeep, type TryOnReview } from '@/lib/fitting-tryon-review';
+import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
+import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
 
 export { TryOnReviewLine } from '@/components/fitting/TryOnReviewLine';
 
@@ -22,6 +25,11 @@ export type FittingCompareSectionProps = {
   onSoftAdvance?: (href: string) => void;
   /** Remove this try-on from compare without advancing the kit deck. */
   onDismissTryOn: (tryOn: FittingCompareTryOn) => void;
+  /** Fix an area (fix-area.ts) used on a try-on: the fixed picture replaces its card. */
+  onUseFixedTryOn?: (
+    tryOn: FittingCompareTryOn,
+    fixed: { promptId: string; imageUrl: string; galleryEntryId?: string }
+  ) => void;
   /** Requeue this kit / BYO from the card or lightbox. */
   onRequeueTryOn: (tryOn: FittingCompareTryOn) => void;
   /** Auto-review results by promptId (face match + outfit read). */
@@ -43,6 +51,7 @@ export default function FittingCompareSection({
   onSoftAdvance,
   onDismissTryOn,
   onRequeueTryOn,
+  onUseFixedTryOn,
   reviews = {},
   reviewingId = null,
   compact = false,
@@ -103,7 +112,38 @@ export default function FittingCompareSection({
     if (!activeTryOn) {
       return null;
     }
+    const shownUrl = lightbox?.images[lightbox.index];
+    // Fix an area on the front picture (a back view's slide is its own render, not fixed here).
+    const front = shownUrl && shownUrl === activeTryOn.imageUrl ? shownUrl : null;
+    const gallery = front && onUseFixedTryOn ? loadComfyGallery() : [];
+    const comfyUrl = front
+      ? isComfyViewUrl(front)
+        ? front
+        : comfyViewUrlForStill({ promptId: activeTryOn.promptId }, gallery)
+      : null;
+    const parent = comfyUrl
+      ? findGalleryEntryForStill(gallery, { promptId: activeTryOn.promptId, comfyUrl })
+      : null;
     return {
+      fixArea:
+        front && onUseFixedTryOn
+          ? {
+              displayUrl: front,
+              comfyUrl,
+              workflowJson: parent?.workflowJson ?? null,
+              title: activeTryOn.wardrobeLabel || activeTryOn.wardrobeId,
+              adult: parent?.adultCheck ? { clothed: false } : null,
+              onUse: async result => {
+                const entry = await recordFixAreaInGallery(parent, result);
+                onUseFixedTryOn(activeTryOn, {
+                  promptId: result.promptId,
+                  imageUrl: result.imageUrl,
+                  ...(entry ? { galleryEntryId: entry.id } : {}),
+                });
+                setLightbox(null);
+              },
+            }
+          : null,
       showKeep: true,
       showPass: true,
       showRequeue: true,
@@ -127,7 +167,7 @@ export default function FittingCompareSection({
         setLightbox(null);
       },
     };
-  }, [activeTryOn, keep, onDismissTryOn, onRequeueTryOn]);
+  }, [activeTryOn, keep, lightbox, onDismissTryOn, onRequeueTryOn, onUseFixedTryOn]);
 
   if (compareTryOns.length === 0) {
     return null;

@@ -23,6 +23,7 @@ import {
 } from '@/lib/gallery-stack-restore';
 import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery-identity-lock';
 import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery-tool-href';
+import { galleryEntryComfyStillUrl, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
 import {
   galleryEntryLightboxUrls,
   galleryEntryPrimaryMediaKind,
@@ -115,7 +116,21 @@ export function buildGalleryLightboxSlideChrome({
         }
       : null;
 
+  const fixComfyUrl = isVideo ? null : galleryEntryComfyStillUrl(entry, resolved.imageIndex);
+
   return {
+    fixArea: fixComfyUrl
+      ? {
+          displayUrl: resolvedLightbox.images[resolvedLightbox.index] || fixComfyUrl,
+          comfyUrl: fixComfyUrl,
+          workflowJson: entry.workflowJson ?? null,
+          adult: entry.adultCheck ? { clothed: false } : null,
+          onUse: async result => {
+            await recordFixAreaInGallery(entry, result);
+            setRequeueStatus('Fixed area added to the Gallery — the original stays beside it.');
+          },
+        }
+      : null,
     rating: entry.reviewRating ?? null,
     favorite: Boolean(entry.favorite),
     onRate: rating => handleReviewRating(entry, rating),

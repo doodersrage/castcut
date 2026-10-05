@@ -34,6 +34,7 @@ import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
+import type { FixAreaTarget } from '@/lib/fix-area-client';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 import SideSheet from '@/components/ui/SideSheet';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
@@ -72,6 +73,11 @@ import {
 } from '@/lib/play-metrics';
 import { deriveDayPhase } from '@/lib/play-step-machine';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+
+const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
+  ssr: false,
+  loading: () => null,
+});
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
   ssr: false,
@@ -162,6 +168,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     dropPreviousTake,
     pickTwoTake,
     looksWrongSlot,
+    fixAreaTargetForSlot,
     plateUploading,
     plateUploadError,
     hideStickyCutCoach,
@@ -247,6 +254,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
   const hasCustomGarment = Boolean(toolSettings.customGarmentImageUrl?.trim());
   const [sampleWatch, setSampleWatch] = useState(false);
   const [progressLightbox, setProgressLightbox] = useState<ImageLightboxState | null>(null);
+  const [fixAreaTarget, setFixAreaTarget] = useState<FixAreaTarget | null>(null);
   const [progressLightboxSlotIds, setProgressLightboxSlotIds] = useState<DaySlotId[]>([]);
   const [slotSheetOpen, setSlotSheetOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
@@ -368,6 +376,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     if (!slot) {
       return null;
     }
+    const fixTarget = fixAreaTargetForSlot(slot.id);
     return {
       showRequeue: true,
       showSeedVariation: false,
@@ -380,8 +389,19 @@ export default function MobileDayToolSections(vm: ViewModel) {
       onRequeue: () => {
         void queueSlot(slot);
       },
+      fixArea: fixTarget
+        ? {
+            ...fixTarget,
+            // The lightbox's slides were built from the old picture: close it once swapped.
+            onUse: async result => {
+              await fixTarget.onUse(result);
+              setProgressLightbox(null);
+              setProgressLightboxSlotIds([]);
+            },
+          }
+        : null,
     };
-  }, [progressLightbox, progressLightboxSlotIds, queueSlot, slots]);
+  }, [fixAreaTargetForSlot, progressLightbox, progressLightboxSlotIds, queueSlot, slots, stills]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -816,6 +836,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           clipChecks={clipChecks}
           onPickTwoTake={pickTwoTake}
           onLooksWrong={slot => void looksWrongSlot(slot.id)}
+          onFixArea={slot => setFixAreaTarget(fixAreaTargetForSlot(slot.id))}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton
@@ -1308,6 +1329,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
         }}
         slideChrome={progressLightboxSlideChrome}
       />
+      {fixAreaTarget ? (
+        <FixAreaDialog target={fixAreaTarget} onClose={() => setFixAreaTarget(null)} />
+      ) : null}
     </div>
   );
 }

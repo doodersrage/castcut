@@ -22,12 +22,18 @@ import {
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import type { FixAreaTarget } from '@/lib/fix-area-client';
+import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
+import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
 import { notePoseTakeOutcomes, notePoseTakePair } from '@/lib/pose-outcome-stats';
 import { dayLooksWrongAvailable, dayLooksWrongTakeIds } from '@/lib/day-looks-wrong';
 import { dayTwoTakesMark, dayTwoTakesPickPatch, dayTwoTakesSwapPatch } from '@/lib/day-two-takes';
 import {
+  dayStillFixAreaPatch,
+  dayStillShownImage,
   dayStillsCachePatch,
   dayWatchPlaylist,
+  normalizeDayMood,
   restorePreviousDayTake,
   upsertDaySlotStill,
   type DaySlotId,
@@ -217,8 +223,11 @@ export function useDayPlannerToolOrchestration() {
         updateToolSettings(dayStillsCachePatch(next, activeCharacterId));
         return;
       }
-      // The player picked the old take over the new one (pose × engine stats).
-      if (shown?.previousTake) notePoseTakePair(shown.previousTake.promptId, shown.promptId);
+      // The player picked the old take over the new one (pose × engine stats). An undone fix is
+      // the same take, not a pair.
+      if (shown?.previousTake && shown.previousTake.kind !== 'fix-area') {
+        notePoseTakePair(shown.previousTake.promptId, shown.promptId);
+      }
       const next = restorePreviousDayTake(stillsRef.current, slotId);
       stillsRef.current = next;
       updateToolSettings(dayStillsCachePatch(next, activeCharacterId));
@@ -229,7 +238,9 @@ export function useDayPlannerToolOrchestration() {
     (slotId: DaySlotId) => {
       const shown = stillsRef.current.find(entry => entry.slotId === slotId);
       // The player kept the shown take and let the other go.
-      if (shown?.previousTake) notePoseTakePair(shown.promptId, shown.previousTake.promptId);
+      if (shown?.previousTake && shown.previousTake.kind !== 'fix-area') {
+        notePoseTakePair(shown.promptId, shown.previousTake.promptId);
+      }
       const next = upsertDaySlotStill(stillsRef.current, {
         slotId,
         previousTake: undefined,
@@ -273,7 +284,49 @@ export function useDayPlannerToolOrchestration() {
     if (mark) twoTakesMarks[still.slotId] = mark;
   }
 
+  // Fix an area (fix-area.ts) on a slot's still: the target for the brush dialog, and "Use this".
+  const dayMoodSetting = core.toolSettings.dayMood;
+  const fixAreaTargetForSlot = useCallback(
+    (slotId: DaySlotId): FixAreaTarget | null => {
+      const still = stillsRef.current.find(entry => entry.slotId === slotId);
+      const shown = dayStillShownImage(still);
+      if (!still || still.status !== 'completed' || !shown || still.adultHold) return null;
+      const gallery = loadComfyGallery();
+      const slot = slots.find(entry => entry.id === slotId);
+      const takeUrl = comfyViewUrlForStill({ promptId: still.promptId }, gallery);
+      const comfyUrl = isComfyViewUrl(shown) ? shown : takeUrl;
+      const parent = findGalleryEntryForStill(gallery, {
+        promptId: still.promptId,
+        comfyUrl: takeUrl,
+      });
+      return {
+        displayUrl: shown,
+        comfyUrl,
+        graphUrl: takeUrl,
+        workflowJson: parent?.workflowJson ?? null,
+        title: slot?.label,
+        adult:
+          still.adultGated || parent?.adultCheck
+            ? { clothed: normalizeDayMood(dayMoodSetting) === 'suggestive' }
+            : null,
+        onUse: async result => {
+          const current = stillsRef.current.find(entry => entry.slotId === slotId);
+          const patch = dayStillFixAreaPatch(current, result.imageUrl);
+          if (!current || current.promptId !== still.promptId || !patch) {
+            throw new Error('The slot changed while the fix rendered — nothing was replaced.');
+          }
+          void recordFixAreaInGallery(parent, result);
+          const next = upsertDaySlotStill(stillsRef.current, patch);
+          stillsRef.current = next;
+          updateToolSettings(dayStillsCachePatch(next, activeCharacterId));
+        },
+      };
+    },
+    [activeCharacterId, dayMoodSetting, slots, stillsRef, updateToolSettings]
+  );
+
   return {
+    fixAreaTargetForSlot,
     ...core,
     ...part2,
     ...quality,

@@ -59,6 +59,8 @@ export type DaySlotBoardProps = {
   onPickTwoTake?: (slotId: DaySlotId, keep: 'first' | 'second') => void;
   /** ⋯ → Looks wrong: a bad outcome for the pose, and the slot again on a new seed. */
   onLooksWrong?: (slot: DaySlot) => void;
+  /** ⋯ → Fix an area…: paint over what's wrong in the finished still (fix-area.ts). */
+  onFixArea?: (slot: DaySlot) => void;
 };
 
 const NO_GALLERY: ComfyGalleryEntry[] = [];
@@ -93,6 +95,7 @@ export default function DaySlotBoard({
   clipChecks,
   onPickTwoTake,
   onLooksWrong,
+  onFixArea,
 }: DaySlotBoardProps) {
   const promptKey = useMemo(
     () =>
@@ -244,6 +247,20 @@ export default function DaySlotBoard({
                 }}
               >
                 Requeue · new seed
+              </button>
+            ) : null}
+            {Boolean(doneThumb) && state === 'done' && onFixArea && !still?.adultHold ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                title="Paint over a wrong hand, a stray object or a glitch and redraw only that area."
+                data-testid={`day-progress-fix-area-${slot.id}`}
+                onClick={() => {
+                  onSelectSlot(slot.id);
+                  onFixArea(slot);
+                }}
+              >
+                Fix an area…
               </button>
             ) : null}
             {canRequeue && onLooksWrong ? (

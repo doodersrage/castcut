@@ -766,6 +766,32 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     [setCompareTryOns]
   );
 
+  /**
+   * Fix an area (fix-area.ts) used on a try-on: the fixed picture takes its card (Keep and the
+   * review use it); the original stays in the Gallery as the fix's parent.
+   */
+  const applyFixedTryOn = useCallback(
+    (
+      tryOn: { promptId: string },
+      fixed: { promptId: string; imageUrl: string; galleryEntryId?: string }
+    ) => {
+      setCompareTryOns(current =>
+        current.map(item =>
+          item.promptId === tryOn.promptId
+            ? {
+                ...item,
+                promptId: fixed.promptId,
+                imageUrl: fixed.imageUrl,
+                galleryEntryId: fixed.galleryEntryId,
+              }
+            : item
+        )
+      );
+      setSaveStatus('Fixed area applied — the original stays in the Gallery.');
+    },
+    [setCompareTryOns]
+  );
+
   /** Requeue the same kit (or current BYO) from a compare card / lightbox. */
   const requeueTryOn = useCallback(
     async (tryOn: { promptId: string; wardrobeId: string }) => {
@@ -838,6 +864,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     swipeKit,
     skipKit,
     dismissTryOn,
+    applyFixedTryOn,
     requeueTryOn,
     saveKitToCast,
   };

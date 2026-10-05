@@ -28,6 +28,7 @@ const CHARACTER_DERIVED_KINDS = new Set<NonNullable<ComfyGalleryEntry['derivedKi
   'variation',
   'moire-clean',
   'face-detail',
+  'fix-area',
   'controlnet',
   'i2v',
   't2v',

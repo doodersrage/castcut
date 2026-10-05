@@ -83,6 +83,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
     queueBlocked,
     queueBlockReason,
     dismissTryOn,
+    applyFixedTryOn,
     requeueTryOn,
     dayPlannerHref,
     garmentUploading,
@@ -427,6 +428,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         onKeepTryOn={keepTryOn}
         onSoftAdvance={href => softAdvanceHref(href, 'Day')}
         onDismissTryOn={dismissTryOn}
+        onUseFixedTryOn={applyFixedTryOn}
         onRequeueTryOn={tryOn => void requeueTryOn(tryOn)}
         reviews={tryOnReview.reviews}
         reviewingId={tryOnReview.reviewingId}

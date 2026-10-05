@@ -33,6 +33,8 @@ export type ComfyGalleryEntry = {
     | 'variation'
     | 'moire-clean'
     | 'face-detail'
+    /** Fix an area (fix-area.ts): the painted area redrawn, the rest pixel-identical. */
+    | 'fix-area'
     | 'controlnet'
     | 'i2v'
     | 't2v'

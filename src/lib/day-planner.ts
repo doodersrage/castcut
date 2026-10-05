@@ -397,11 +397,13 @@ export type DaySlotStill = {
    * "Keep the old take" puts it back. `kind: 'best-of-two'`: the other take of a hard-pose pair
    * (day-best-of-two.ts), with its pose score. `kind: 'two-takes'`: the take the player did not
    * pick of an intimate still's two takes (day-two-takes.ts) — "Use the other take" swaps them.
+   * `kind: 'fix-area'`: the picture before "Fix an area" (fix-area.ts) — "Undo the fix" puts it
+   * back.
    */
   previousTake?: {
     imageUrl: string;
     promptId?: string;
-    kind?: 'best-of-two' | 'two-takes';
+    kind?: 'best-of-two' | 'two-takes' | 'fix-area';
     poseScore?: number;
   };
   /**
@@ -4254,6 +4256,7 @@ function readPairTake(
   take: DaySlotStill['previousTake']
 ): Pick<NonNullable<DaySlotStill['previousTake']>, 'kind' | 'poseScore'> {
   if (take?.kind === 'two-takes') return { kind: 'two-takes' };
+  if (take?.kind === 'fix-area') return { kind: 'fix-area' };
   if (take?.kind !== 'best-of-two') return {};
   const poseScore = readScore(take.poseScore);
   return { kind: 'best-of-two', ...(poseScore != null ? { poseScore } : {}) };
@@ -4747,6 +4750,33 @@ export function dayStillShownImage(still: DaySlotStill | null | undefined): stri
   return still.imageUrl?.trim() || '';
 }
 
+/**
+ * "Fix an area" used on a slot: the fixed picture is shown (as the take's finish, so the gallery
+ * poll keeps it), and the picture it was made from stays as the previous take — "Undo the fix"
+ * puts it back. Null when the slot has no finished still.
+ */
+export function dayStillFixAreaPatch(
+  still: DaySlotStill | null | undefined,
+  fixedUrl: string
+): DaySlotStill | null {
+  if (!still || still.status !== 'completed' || !fixedUrl.trim()) return null;
+  const shown = dayStillShownImage(still);
+  if (!shown) return null;
+  return {
+    slotId: still.slotId,
+    imageUrl: fixedUrl,
+    status: 'completed',
+    finishedUrl: fixedUrl,
+    finishedFor: still.promptId,
+    // The clip was made from the old picture.
+    clipPromptId: undefined,
+    clipUrl: undefined,
+    clipStatus: undefined,
+    previousTake: { imageUrl: shown, promptId: still.promptId, kind: 'fix-area' },
+    bestOfTwo: undefined,
+  };
+}
+
 /** Put the take a same-seed redo replaced back. */
 export function restorePreviousDayTake(
   stills: DaySlotStill[] | null | undefined,
@@ -4755,13 +4785,16 @@ export function restorePreviousDayTake(
   const still = normalizeDaySlotStills(stills).find(entry => entry.slotId === slotId);
   const previous = still?.previousTake;
   if (!previous) return normalizeDaySlotStills(stills);
+  // Undoing a fix: the picture before it was this same take (maybe face-finished) — kept as the
+  // take's finish so the gallery poll does not swap the raw render back in.
+  const fix = previous.kind === 'fix-area' && Boolean(previous.promptId);
   return upsertDaySlotStill(stills, {
     slotId,
     promptId: previous.promptId,
     imageUrl: previous.imageUrl,
     status: 'completed',
-    finishedUrl: undefined,
-    finishedFor: undefined,
+    finishedUrl: fix ? previous.imageUrl : undefined,
+    finishedFor: fix ? previous.promptId : undefined,
     clipPromptId: undefined,
     clipUrl: undefined,
     clipStatus: undefined,

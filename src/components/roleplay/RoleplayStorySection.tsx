@@ -50,6 +50,8 @@ export type RoleplayStorySectionProps = {
   ) => void;
   onSelectClipTake: (beat: RoleplayStoryBeat, index: number) => void;
   onCopy: (beat: RoleplayStoryBeat) => void;
+  /** Fix an area (fix-area.ts) on a beat's shown still. */
+  fixAreaFor?: (beat: RoleplayStoryBeat) => import('@/lib/fix-area-client').FixAreaTarget | null;
   /** Edit a scene's text on its card, then write and queue its still again. */
   beatEdit?: StoryBeatEditActions;
   onRollScenes?: () => void;
@@ -92,6 +94,7 @@ export default function RoleplayStorySection({
   onPoseChange,
   onSelectClipTake,
   onCopy,
+  fixAreaFor,
   beatEdit,
   onRollScenes,
   castBibleHref,
@@ -228,6 +231,7 @@ export default function RoleplayStorySection({
           onSelectClipTake={onSelectClipTake}
           onCopy={onCopy}
           onRollScenes={onRollScenes}
+          fixAreaFor={fixAreaFor}
         />
       </StoryBeatEditProvider>
     </ToolSection>

@@ -171,6 +171,48 @@ export function DaySameSeedRedo({
       </div>
     );
   }
+  if (previous?.kind === 'fix-area') {
+    return (
+      <div
+        className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] p-3"
+        data-testid="day-fix-area-compare"
+      >
+        <p className="type-caption text-[var(--text-muted)]">
+          {slot.label}, fixed area: before and after — only the painted area changed.
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {[
+            { label: 'Before the fix', url: previous.imageUrl },
+            { label: 'Fixed', url: current },
+          ].map(take => (
+            <figure key={take.label} className="min-w-0">
+              <div className="aspect-[3/4] overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-muted)]">
+                {take.url ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- gallery still preview
+                  <img
+                    src={take.url}
+                    alt={`${slot.label} — ${take.label.toLowerCase()}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : null}
+              </div>
+              <figcaption className="type-caption mt-1 text-[var(--text-muted)]">
+                {take.label}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button size="sm" variant="primary" data-testid="day-fix-area-keep" onClick={onKeepNew}>
+            Keep the fix
+          </Button>
+          <Button size="sm" variant="secondary" data-testid="day-fix-area-undo" onClick={onKeepOld}>
+            Undo the fix
+          </Button>
+        </div>
+      </div>
+    );
+  }
   if (previous) {
     const waiting = state !== 'done' || !current;
     const pair = previous.kind === 'best-of-two';

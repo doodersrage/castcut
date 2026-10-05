@@ -94,6 +94,7 @@ export function galleryEntryIsPrimaryPlayStill(
     kind === 'upscale' ||
     kind === 'moire-clean' ||
     kind === 'face-detail' ||
+    kind === 'fix-area' ||
     kind === 'i2v'
   ) {
     return false;
