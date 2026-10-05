@@ -69,6 +69,33 @@ async function gateCandidate(
   } as { pass: boolean; reason: string; verdict?: 'passed' | 'unchecked' };
 }
 
+/** A picture with the painted area lightened over it (the mask's white strokes, screen-blended). */
+function WithArea({
+  maskUrl,
+  show,
+  children,
+}: {
+  maskUrl: string | null;
+  show: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      {children}
+      {show && maskUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={maskUrl}
+          alt=""
+          aria-hidden
+          data-testid="fix-area-area-overlay"
+          className="pointer-events-none absolute inset-0 h-full w-full rounded-md object-contain opacity-40 mix-blend-screen"
+        />
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * "Fix an area": paint over what's wrong in a finished still, say what should be there (or
  * not), and get two candidates rendered on the still's own engine — only the painted area
@@ -90,6 +117,9 @@ export default function FixAreaDialog({
   const [error, setError] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [using, setUsing] = useState<string | null>(null);
+  // The painted area, shown over the original and each take so a small fix can be found.
+  const [maskUrl, setMaskUrl] = useState<string | null>(null);
+  const [showArea, setShowArea] = useState(true);
   const candidatesRef = useRef<Candidate[]>([]);
   const closedRef = useRef(false);
 
@@ -113,6 +143,10 @@ export default function FixAreaDialog({
 
   // Focus: into the dialog on open, back where it was on close.
   useEffect(() => {
+    // Open again: React's dev double-mount runs the cleanup below once before this, and a
+    // closed flag left set cancelled both takes the moment Fix queued them (user report
+    // 2026-10-05: the button spun, then nothing — one take rendered unseen on ComfyUI).
+    closedRef.current = false;
     const previous = document.activeElement as HTMLElement | null;
     const first = dialogRef.current?.querySelector<HTMLElement>('[data-autofocus]');
     first?.focus();
@@ -221,6 +255,7 @@ export default function FixAreaDialog({
         cancelFixAreaJobs(jobs.map(job => job.promptId));
         return;
       }
+      setMaskUrl(mask);
       const next = jobs.map(job => ({ ...job, state: { status: 'queued' } as CandidateState }));
       candidatesRef.current = next;
       setCandidates(next);
@@ -359,12 +394,14 @@ export default function FixAreaDialog({
               >
                 <li className="flex flex-col gap-2" data-testid="fix-area-original">
                   <span className="type-label text-sm font-medium">Original</span>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={target.displayUrl}
-                    alt="Original"
-                    className="w-full rounded-md border border-[var(--border-subtle)] object-contain"
-                  />
+                  <WithArea maskUrl={maskUrl} show={showArea}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={target.displayUrl}
+                      alt="Original"
+                      className="w-full rounded-md border border-[var(--border-subtle)] object-contain"
+                    />
+                  </WithArea>
                   <Button
                     size="sm"
                     variant="secondary"
@@ -385,12 +422,14 @@ export default function FixAreaDialog({
                     <span className="type-label text-sm font-medium">Take {index + 1}</span>
                     {candidate.state.status === 'ready' ? (
                       <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={comfyImageViewUrl(candidate.state.image)}
-                          alt={`Fixed take ${index + 1}`}
-                          className="w-full rounded-md border border-[var(--border-subtle)] object-contain"
-                        />
+                        <WithArea maskUrl={maskUrl} show={showArea}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={comfyImageViewUrl(candidate.state.image)}
+                            alt={`Fixed take ${index + 1}`}
+                            className="w-full rounded-md border border-[var(--border-subtle)] object-contain"
+                          />
+                        </WithArea>
                         <Button
                           size="sm"
                           variant="primary"
@@ -420,7 +459,16 @@ export default function FixAreaDialog({
                   </li>
                 ))}
               </ul>
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <label className="type-caption mr-auto flex items-center gap-2 text-[var(--text-muted)]">
+                  <input
+                    type="checkbox"
+                    checked={showArea}
+                    onChange={event => setShowArea(event.target.checked)}
+                    data-testid="fix-area-show-area"
+                  />
+                  Show the painted area (open a take full size to look closely)
+                </label>
                 <Button variant="ghost" onClick={paintAgain} disabled={using !== null}>
                   Paint again
                 </Button>
