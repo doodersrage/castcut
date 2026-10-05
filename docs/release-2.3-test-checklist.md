@@ -34,6 +34,21 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
   … furniture the setting does not have*. Shuffle a few Everyday / Suggestive Days: no bed, sofa or
   rug beats on street, café or plaza slots.
 
+### Fix an area
+
+- [ ] **Fix an area** — open any finished still in the Gallery lightbox → *Fix an area*. Paint over a
+  small defect (a stray hand, a wrong object; *Erase* and the size slider work, also by touch on the
+  phone), optionally type what should be there, *Fix*: two takes appear beside the original within a
+  minute or two (ComfyUI shows two `castcut-fix-area` jobs). Toggle between them in an image viewer:
+  only the painted area changed. *Use this*: a *Fixed area* entry appears under the original in the
+  Gallery (the original stays). *Keep original* closes it with nothing added.
+- [ ] **On Day / Story / Outfit** — Day card ⋯ → *Fix an area…*, *Use this*: the card shows the fix;
+  the slot sheet shows *Before the fix* / *Fixed* and *Undo the fix* puts the old picture back. Story
+  beat ⋯ → *Fix an area…*: the fix is the shown take, the take arrows go back to the original. Outfit:
+  lightbox → *Fix an area* on a try-on: the card shows the fixed picture and *Keep* uses it.
+- [ ] **Adult still** — on an Intimate Day still, *Fix an area*: each take says *Checking it reads as
+  adult…* before it shows (with no vision model it shows unchecked).
+
 ---
 
 ## Needs your check

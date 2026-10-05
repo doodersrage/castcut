@@ -136,9 +136,19 @@ export default function FixAreaDialog({
 
   const setCandidateState = useCallback((promptId: string, state: CandidateState) => {
     setCandidates(previous =>
-      previous.map(entry => (entry.promptId === promptId ? { ...entry, state } : entry))
+      previous.map(entry =>
+        entry.promptId !== promptId ||
+        // A landed take never goes back (a late poll can't undo it).
+        (entry.state.status !== 'queued' && entry.state.status !== 'running')
+          ? entry
+          : { ...entry, state }
+      )
     );
   }, []);
+  /** Jobs with a status request in flight: one at a time per job (the server drops a landed
+   * job's history once read, so a second overlapping poll would find it gone). */
+  const inFlightRef = useRef<Set<string>>(new Set());
+  const missesRef = useRef<Map<string, number>>(new Map());
 
   // Poll each candidate until it lands (then the adult gate, when the still is adult).
   useEffect(() => {
@@ -146,44 +156,52 @@ export default function FixAreaDialog({
     const timer = window.setInterval(() => {
       for (const candidate of candidatesRef.current) {
         if (candidate.state.status !== 'queued' && candidate.state.status !== 'running') continue;
-        void pollFixAreaJob(candidate.promptId).then(async poll => {
-          if (closedRef.current) return;
-          if (poll.status === 'pending' || poll.status === 'running') {
-            if (poll.status === 'running') {
-              setCandidateState(candidate.promptId, { status: 'running' });
+        if (inFlightRef.current.has(candidate.promptId)) continue;
+        inFlightRef.current.add(candidate.promptId);
+        void pollFixAreaJob(candidate.promptId)
+          .finally(() => inFlightRef.current.delete(candidate.promptId))
+          .then(async poll => {
+            if (closedRef.current) return;
+            if (poll.status === 'pending' || poll.status === 'running') {
+              if (poll.status === 'running') {
+                setCandidateState(candidate.promptId, { status: 'running' });
+              }
+              return;
             }
-            return;
-          }
-          if (poll.status === 'error') {
-            setCandidateState(candidate.promptId, { status: 'failed', message: poll.message });
-            return;
-          }
-          if (poll.status === 'missing') {
-            setCandidateState(candidate.promptId, {
-              status: 'failed',
-              message: 'The job left the ComfyUI queue without a picture.',
-            });
-            return;
-          }
-          if (!target.adult) {
-            setCandidateState(candidate.promptId, { status: 'ready', image: poll.image });
-            return;
-          }
-          setCandidateState(candidate.promptId, { status: 'checking', image: poll.image });
-          const verdict = await gateCandidate(comfyImageViewUrl(poll.image), target.adult).catch(
-            (): { pass: boolean; reason: string; verdict?: 'passed' | 'unchecked' } => ({
-              pass: false,
-              reason: 'the check failed',
-            })
-          );
-          if (closedRef.current) return;
-          setCandidateState(
-            candidate.promptId,
-            verdict.pass
-              ? { status: 'ready', image: poll.image, adultCheck: verdict.verdict ?? 'passed' }
-              : { status: 'withheld', reason: verdict.reason }
-          );
-        });
+            if (poll.status === 'error') {
+              setCandidateState(candidate.promptId, { status: 'failed', message: poll.message });
+              return;
+            }
+            if (poll.status === 'missing') {
+              // Three reads in a row, so a job between the queue and its history isn't lost.
+              const misses = (missesRef.current.get(candidate.promptId) ?? 0) + 1;
+              missesRef.current.set(candidate.promptId, misses);
+              if (misses < 3) return;
+              setCandidateState(candidate.promptId, {
+                status: 'failed',
+                message: 'The job left the ComfyUI queue without a picture.',
+              });
+              return;
+            }
+            if (!target.adult) {
+              setCandidateState(candidate.promptId, { status: 'ready', image: poll.image });
+              return;
+            }
+            setCandidateState(candidate.promptId, { status: 'checking', image: poll.image });
+            const verdict = await gateCandidate(comfyImageViewUrl(poll.image), target.adult).catch(
+              (): { pass: boolean; reason: string; verdict?: 'passed' | 'unchecked' } => ({
+                pass: false,
+                reason: 'the check failed',
+              })
+            );
+            if (closedRef.current) return;
+            setCandidateState(
+              candidate.promptId,
+              verdict.pass
+                ? { status: 'ready', image: poll.image, adultCheck: verdict.verdict ?? 'passed' }
+                : { status: 'withheld', reason: verdict.reason }
+            );
+          });
       }
     }, POLL_MS);
     return () => window.clearInterval(timer);

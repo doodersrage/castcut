@@ -112,11 +112,16 @@ export type FixAreaPoll =
 export async function pollFixAreaJob(promptId: string): Promise<FixAreaPoll> {
   const comfyUrl = comfyUrlSetting();
   const params = new URLSearchParams({ promptId, ...(comfyUrl ? { comfyUrl } : {}) });
-  const response = await fetch(`/api/fix-area?${params.toString()}`, {
-    credentials: 'same-origin',
-  });
-  if (!response.ok) return { status: 'pending' };
-  return (await response.json()) as FixAreaPoll;
+  try {
+    const response = await fetch(`/api/fix-area?${params.toString()}`, {
+      credentials: 'same-origin',
+    });
+    // A failed status read is not a verdict: ask again on the next tick.
+    if (!response.ok) return { status: 'pending' };
+    return (await response.json()) as FixAreaPoll;
+  } catch {
+    return { status: 'pending' };
+  }
 }
 
 /** Drop candidates that have not started (never interrupts a running one). */
