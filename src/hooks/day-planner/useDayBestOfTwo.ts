@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
 import { notePoseTakePair } from '@/lib/pose-outcome-stats';
 import {
   bestOfTwoDecision,
@@ -169,7 +170,15 @@ export function useDayBestOfTwo(
     // Nothing to decide without a hard-pose guide, or with a same-seed compare open (it reads
     // the guide anyway for a pair's second take, queued with the same guide).
     const pending = bestOfTwoPending(still);
-    if (!expectation || (!pending && (!isDayHardPose(expectation.poseKey) || still.previousTake))) {
+    // Two-person intimate stills never start a pose-scored pair: the pose check can't judge them
+    // (isIntimateDuoStillPrompt) — Two takes lets the player pick instead.
+    const intimateDuo = isIntimateDuoStillPrompt(
+      loadComfyGallery().find(entry => entry.promptId === still.promptId)?.prompt
+    );
+    if (
+      !expectation ||
+      (!pending && (!isDayHardPose(expectation.poseKey) || still.previousTake || intimateDuo))
+    ) {
       setTick(value => value + 1);
       return;
     }
