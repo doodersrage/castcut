@@ -397,7 +397,14 @@ export function sceneSurfaces(setting: string | null | undefined): SceneSurfaces
     else if (named(/\bwall\b/)) sit = 'on the harbour wall';
     else if (named(/\b(?:deck|boat|cruise|ferry)\b/)) sit = 'on the deck';
   }
-  return { ...base, sit, lie };
+  // Inside a car or carriage there is no platform underfoot.
+  const kneel =
+    venue === 'transit' &&
+    named(/\b(?:car|carriage|cabin|coach|bus|tram|train)\b/) &&
+    !named(/\b(?:platform|stop|station)\b/)
+      ? 'on one knee on the floor of the carriage'
+      : base.kneel;
+  return { ...base, sit, lie, kneel };
 }
 
 // ── Surfaces a pose sentence names ────────────────────────────────────────────────────────

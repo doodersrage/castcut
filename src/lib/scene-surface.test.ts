@@ -312,3 +312,11 @@ describe('auditStillPrompt: scene-surface-mismatch', () => {
     assert.deepEqual(auditStillPrompt(fitted, { setting: PLAZA }), []);
   });
 });
+
+describe('transit kneel', () => {
+  it('kneels on the carriage floor inside a car, on the platform at a station', () => {
+    assert.match(sceneSurfaces('subway car at rush hour')!.kneel, /floor of the carriage/);
+    assert.match(sceneSurfaces('train carriage window seat')!.kneel, /floor of the carriage/);
+    assert.match(sceneSurfaces('subway platform late at night')!.kneel, /platform/);
+  });
+});
