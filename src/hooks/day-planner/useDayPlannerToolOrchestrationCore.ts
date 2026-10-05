@@ -142,7 +142,7 @@ import { bestOfTwoAsOneJob } from '@/lib/day-best-of-two';
 import { dayTwoTakesApplies } from '@/lib/day-two-takes';
 import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut-nodes';
 import { daySlotPoseLayout, planDaySlotPose, plannedDaySlotPoseKey } from '@/lib/day-slot-pose';
-import { notePoseTakeQueued } from '@/lib/pose-outcome-stats';
+import { notePoseTakeQueued, takeKeptSeed } from '@/lib/pose-outcome-stats';
 import { pickPoseEngine } from '@/lib/pose/pose-engine-report';
 import { blendedPoseEngineReport } from '@/lib/pose/pose-engine-report-blended';
 import {
@@ -2098,9 +2098,54 @@ export function useDayPlannerToolOrchestrationCore() {
               }
             : {}),
         };
+        // The pose this take counts under (pose × engine stats, kept seeds).
+        let trackedPoseKey = poseExpectation?.poseKey;
+        if (!trackedPoseKey && lookHasPlate) {
+          try {
+            trackedPoseKey = plannedDaySlotPoseKey(
+              planDaySlotPose({
+                slot: queueTarget,
+                dayMood:
+                  isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+                    ? 'everyday'
+                    : toolSettings.dayMood,
+                intimateMix: toolSettings.intimateMix,
+                allowCompanions: toolSettings.allowCompanions === true,
+                model: stillModel,
+              }),
+              queueTarget.id
+            );
+          } catch {
+            trackedPoseKey = undefined;
+          }
+        }
+        const intimateStill = isDayAdultMood(toolSettings.dayMood) && intimateEnabled;
+        const lastTake = stillsRef.current.find(entry => entry.slotId === queueTarget.id);
+        const gallerySeed = (takeId: string | null | undefined) => {
+          const id = takeId?.trim();
+          if (!id) return null;
+          const seed = loadComfyGallery().find(entry => entry.promptId === id)?.queueParams?.seed;
+          return seed != null ? seed.toString() : null;
+        };
+        // Kept seeds: an intimate still of a layout the player has kept before starts from one of
+        // those seeds (in turn, then a random roll). Never for a Looks wrong redo (a new seed is
+        // the point), a same-seed redo or a pair's second take; never the seed being replaced.
+        const keptSeed =
+          intimateStill && !sameSeed && !previousTake
+            ? takeKeptSeed({
+                poseKey: trackedPoseKey,
+                model: stillModel,
+                fresh: options?.looksWrong === true,
+                exclude: [
+                  gallerySeed(lastTake?.promptId),
+                  gallerySeed(lastTake?.twoTakes?.promptId),
+                ],
+              })
+            : null;
+        const firstSeed = sameSeed ?? keptSeed ?? undefined;
         const promptId = await actions.sendComfyUi(queuedPrompt, undefined, undefined, {
           ...sendOptions,
-          ...(sameSeed ? { seed: sameSeed } : {}),
+          ...(firstSeed ? { seed: firstSeed } : {}),
         });
         // Two takes: the second right behind the first (same engine, so the model-aware queue
         // keeps them together), on a new seed. If it can't be queued the first stands alone.
@@ -2122,27 +2167,6 @@ export function useDayPlannerToolOrchestrationCore() {
         }
         // Pose × engine stats: the take, and whether it redoes the slot's last one.
         if (typeof promptId === 'string') {
-          const lastTake = stillsRef.current.find(entry => entry.slotId === queueTarget.id);
-          let trackedPoseKey = poseExpectation?.poseKey;
-          if (!trackedPoseKey && lookHasPlate) {
-            try {
-              trackedPoseKey = plannedDaySlotPoseKey(
-                planDaySlotPose({
-                  slot: queueTarget,
-                  dayMood:
-                    isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
-                      ? 'everyday'
-                      : toolSettings.dayMood,
-                  intimateMix: toolSettings.intimateMix,
-                  allowCompanions: toolSettings.allowCompanions === true,
-                  model: stillModel,
-                }),
-                queueTarget.id
-              );
-            } catch {
-              trackedPoseKey = undefined;
-            }
-          }
           notePoseTakeQueued({
             takeId: promptId,
             poseKey: trackedPoseKey,
@@ -2151,6 +2175,8 @@ export function useDayPlannerToolOrchestrationCore() {
             // A pair's second take leaves the first to the pair's pick.
             replaces:
               !options?.keepTake && lastTake?.status === 'completed' ? lastTake.promptId : null,
+            seed: firstSeed ?? gallerySeed(promptId),
+            intimate: intimateStill,
           });
           // The second of two takes is the other half of a pick, not a redo.
           if (secondPromptId) {
@@ -2159,6 +2185,8 @@ export function useDayPlannerToolOrchestrationCore() {
               poseKey: trackedPoseKey,
               model: stillModel,
               surface: 'day',
+              seed: gallerySeed(secondPromptId),
+              intimate: intimateStill,
             });
           }
         }

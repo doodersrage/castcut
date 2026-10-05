@@ -21,6 +21,10 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
 - [ ] **Looks wrong** — on any finished Day card, ⋯ → *Looks wrong · redo*: the slot queues again on a
   new seed and the card says *Redone — looked wrong*. Do it three times on one intimate layout on
   one engine: the slot sheet's pose hint says that pose usually needs a second try there.
+- [ ] **Kept seeds** — star an Intimate Day still (or pick one of two takes), then queue a new
+  Intimate Day with that layout on the same engine: Gallery → the new still's details show the kept
+  still's seed; the next still of that layout uses another kept seed or a fresh one. *Looks wrong*
+  on it rolls a fresh seed. On a second browser after sync, the same seed comes back.
 
 ---
 

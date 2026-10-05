@@ -80,6 +80,10 @@ export type PoseTake = {
   /** The outcome this take is counted as (none yet). */
   o?: PoseOutcome;
   at: number;
+  /** The seed it rendered with (kept seeds). */
+  sd?: string;
+  /** An intimate (Intimate / Raunchy) Day still — its seed is remembered when kept. */
+  i?: 1;
 };
 
 /** Signed good / bad counts per `layout|engine` (signed: a re-judged take moves a count). */
@@ -89,6 +93,11 @@ export type PoseOutcomeBucket = {
   /** Events applied — the higher copy of a bucket wins a merge. */
   seq: number;
   cells: PoseOutcomeCells;
+  /**
+   * Kept seeds: the seeds of intimate stills the player kept, per `layout|engine`, newest first
+   * (at most {@link KEPT_SEEDS_MAX}). In the device bucket so they sync and merge like the counts.
+   */
+  seeds?: Record<string, string[]>;
 };
 
 export type PoseOutcomeStats = {
@@ -97,9 +106,13 @@ export type PoseOutcomeStats = {
   devices: Record<string, PoseOutcomeBucket>;
   /** This device's recent takes by prompt id (never synced). */
   takes?: Record<string, PoseTake>;
+  /** Kept-seed rotation per `layout|engine`: how many stills have asked (never synced). */
+  seedTurns?: Record<string, number>;
 };
 
 export const POSE_TAKES_MAX = 160;
+/** Kept seeds remembered per layout × engine, per device. */
+export const KEPT_SEEDS_MAX = 6;
 const DEVICES_MAX = 12;
 const CELLS_MAX = 600;
 
@@ -146,6 +159,41 @@ function normalizeCells(raw: unknown): PoseOutcomeCells {
   return cells;
 }
 
+/** A seed as the queue writes it (a non-negative integer, as text), else null. */
+export function normalizeSeed(value: unknown): string | null {
+  const text =
+    typeof value === 'number' && Number.isFinite(value)
+      ? Math.trunc(value).toString()
+      : typeof value === 'string'
+        ? value.trim()
+        : '';
+  return /^\d{1,20}$/.test(text) ? text : null;
+}
+
+function normalizeSeeds(raw: unknown): Record<string, string[]> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const seeds: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>).slice(0, CELLS_MAX)) {
+    const [layout, engine] = key.split('|');
+    if (!layout || !engine || !ENGINES.has(engine) || !Array.isArray(value)) continue;
+    const list = [
+      ...new Set(value.map(normalizeSeed).filter((seed): seed is string => Boolean(seed))),
+    ].slice(0, KEPT_SEEDS_MAX);
+    if (list.length) seeds[key] = list;
+  }
+  return Object.keys(seeds).length ? seeds : undefined;
+}
+
+function normalizeSeedTurns(raw: unknown): Record<string, number> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const turns: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>).slice(0, CELLS_MAX)) {
+    const turn = finiteInt(value);
+    if (key.includes('|') && turn > 0) turns[key] = turn;
+  }
+  return Object.keys(turns).length ? turns : undefined;
+}
+
 function normalizeTakes(raw: unknown): Record<string, PoseTake> | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   const takes: Record<string, PoseTake> = {};
@@ -166,6 +214,8 @@ function normalizeTakes(raw: unknown): Record<string, PoseTake> | undefined {
       s: take.s === 'story' ? 'story' : 'day',
       ...(take.o && take.o in OUTCOME_RANK ? { o: take.o } : {}),
       at: finiteInt(take.at),
+      ...(normalizeSeed(take.sd) ? { sd: normalizeSeed(take.sd)! } : {}),
+      ...(take.i === 1 ? { i: 1 as const } : {}),
     };
   }
   return Object.keys(takes).length ? capTakes(takes) : undefined;
@@ -184,14 +234,22 @@ export function normalizePoseOutcomeStats(raw: unknown): PoseOutcomeStats {
   if (value.devices && typeof value.devices === 'object') {
     for (const [id, bucket] of Object.entries(value.devices).slice(0, DEVICES_MAX * 2)) {
       if (!id.trim() || !bucket || typeof bucket !== 'object') continue;
+      const seeds = normalizeSeeds((bucket as PoseOutcomeBucket).seeds);
       devices[id] = {
         seq: Math.max(0, finiteInt((bucket as PoseOutcomeBucket).seq)),
         cells: normalizeCells((bucket as PoseOutcomeBucket).cells),
+        ...(seeds ? { seeds } : {}),
       };
     }
   }
   const takes = normalizeTakes(value.takes);
-  return { version: 1, devices: capDevices(devices), ...(takes ? { takes } : {}) };
+  const seedTurns = normalizeSeedTurns(value.seedTurns);
+  return {
+    version: 1,
+    devices: capDevices(devices),
+    ...(takes ? { takes } : {}),
+    ...(seedTurns ? { seedTurns } : {}),
+  };
 }
 
 function capDevices(devices: Record<string, PoseOutcomeBucket>): Record<string, PoseOutcomeBucket> {
@@ -223,7 +281,7 @@ export function mergePoseOutcomeStats(
   return changed ? { ...local, devices: capDevices(devices) } : local;
 }
 
-/** The copy that goes to the server: counts only, no take list. */
+/** The copy that goes to the server: counts and kept seeds, no take list or rotation. */
 export function poseOutcomeStatsForSync(stats: PoseOutcomeStats): PoseOutcomeStats {
   return { version: 1, devices: stats.devices };
 }
@@ -243,7 +301,36 @@ function bump(
   else cells[cell] = next;
   return {
     ...stats,
-    devices: { ...stats.devices, [device]: { seq: bucket.seq + 1, cells } },
+    devices: { ...stats.devices, [device]: { ...bucket, seq: bucket.seq + 1, cells } },
+  };
+}
+
+/** This device's kept seeds for a cell, changed (one event: the bucket's seq moves). */
+function withDeviceSeeds(
+  stats: PoseOutcomeStats,
+  device: string,
+  cell: string,
+  change: (seeds: string[]) => string[]
+): PoseOutcomeStats {
+  const bucket = stats.devices[device] ?? { seq: 0, cells: {} };
+  const current = bucket.seeds?.[cell] ?? [];
+  const next = change(current).slice(0, KEPT_SEEDS_MAX);
+  if (next.length === current.length && next.every((seed, index) => seed === current[index])) {
+    return stats;
+  }
+  const seeds = { ...bucket.seeds };
+  if (next.length) seeds[cell] = next;
+  else delete seeds[cell];
+  return {
+    ...stats,
+    devices: {
+      ...stats.devices,
+      [device]: {
+        seq: bucket.seq + 1,
+        cells: bucket.cells,
+        ...(Object.keys(seeds).length ? { seeds } : {}),
+      },
+    },
   };
 }
 
@@ -269,6 +356,19 @@ export function withPoseTakeOutcome(
   }
   const good = OUTCOME_GOOD[outcome];
   next = bump(next, options.device, cell, good ? 1 : 0, good ? 0 : 1);
+  // Kept seeds: a kept intimate still's seed is remembered for its layout × engine; a take on a
+  // remembered seed that the player throws out (looks wrong, deleted) forgets it again.
+  const seed = take.sd ? normalizeSeed(take.sd) : null;
+  if (seed && take.i === 1 && (outcome === 'keeper' || outcome === 'kept')) {
+    next = withDeviceSeeds(next, options.device, cell, seeds => [
+      seed,
+      ...seeds.filter(entry => entry !== seed),
+    ]);
+  } else if (seed && (outcome === 'looks-wrong' || outcome === 'deleted')) {
+    next = withDeviceSeeds(next, options.device, cell, seeds =>
+      seeds.filter(entry => entry !== seed)
+    );
+  }
   return {
     ...next,
     takes: { ...next.takes, [id]: { ...take, o: outcome, at: options.at ?? take.at } },
@@ -289,6 +389,10 @@ export function withPoseTakeQueued(
     surface: 'day' | 'story';
     /** The take this one replaces on the slot / beat (unset for a pair's second take). */
     replaces?: string | null;
+    /** The seed it rendered with (kept seeds). */
+    seed?: string | number | null;
+    /** An intimate Day still: its seed is remembered when kept. */
+    intimate?: boolean;
     device: string;
     at?: number;
   }
@@ -300,7 +404,17 @@ export function withPoseTakeQueued(
   const at = input.at ?? Date.now();
   let next: PoseOutcomeStats = {
     ...stats,
-    takes: capTakes({ ...stats.takes, [id]: { k: layout, e: engine, s: input.surface, at } }),
+    takes: capTakes({
+      ...stats.takes,
+      [id]: {
+        k: layout,
+        e: engine,
+        s: input.surface,
+        at,
+        ...(normalizeSeed(input.seed) ? { sd: normalizeSeed(input.seed)! } : {}),
+        ...(input.intimate ? { i: 1 as const } : {}),
+      },
+    }),
   };
   const previous = input.replaces?.trim();
   const old = previous && previous !== id ? next.takes?.[previous] : undefined;
@@ -327,6 +441,88 @@ export function poseOutcomeCounts(
     }
   }
   return { good: Math.max(0, good), bad: Math.max(0, bad) };
+}
+
+// ── Kept seeds ────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The kept seeds for a pose on an engine: this device's first (newest first), then the other
+ * devices' (by device id), each seed once.
+ */
+export function rememberedPoseSeeds(
+  stats: PoseOutcomeStats,
+  layout: string,
+  engine: PoseOutcomeEngine,
+  device?: string
+): string[] {
+  const cell = poseOutcomeCellKey(layout, engine);
+  const ids = Object.keys(stats.devices).sort((a, b) =>
+    a === device ? -1 : b === device ? 1 : a.localeCompare(b)
+  );
+  const seeds: string[] = [];
+  for (const id of ids) {
+    for (const seed of stats.devices[id]?.seeds?.[cell] ?? []) {
+      if (!seeds.includes(seed)) seeds.push(seed);
+    }
+  }
+  return seeds;
+}
+
+/**
+ * Which seed the next still of a pose uses: the kept seeds in turn, then one random roll (so new
+ * keepers can turn up), then round again. `fresh` (a Looks wrong redo, a pair's second take)
+ * always rolls a new seed; `exclude` skips seeds that must not repeat (the take being replaced).
+ * `seed: null` = a random seed. `turn` is the rotation to store for next time.
+ */
+export function chooseKeptSeed(input: {
+  remembered: readonly string[];
+  turn: number;
+  fresh?: boolean;
+  exclude?: readonly (string | null | undefined)[];
+}): { seed: string | null; turn: number } {
+  const turn = Math.max(0, Math.trunc(input.turn) || 0);
+  const count = input.remembered.length;
+  if (input.fresh || count === 0) return { seed: null, turn };
+  const exclude = new Set(input.exclude?.map(normalizeSeed).filter(Boolean));
+  const cycle = count + 1;
+  for (let step = 0; step < cycle; step += 1) {
+    const index = (turn + step) % cycle;
+    // The random slot of the round.
+    if (index === count) return { seed: null, turn: turn + step + 1 };
+    const seed = input.remembered[index]!;
+    if (!exclude.has(seed)) return { seed, turn: turn + step + 1 };
+  }
+  return { seed: null, turn: turn + 1 };
+}
+
+/** The pure step of {@link takeKeptSeed}: the seed to use and the stats with the turn moved. */
+export function withKeptSeedChoice(
+  stats: PoseOutcomeStats,
+  input: {
+    poseKey: string | null | undefined;
+    model: string | null | undefined;
+    fresh?: boolean;
+    exclude?: readonly (string | null | undefined)[];
+    device?: string;
+  }
+): { seed: string | null; stats: PoseOutcomeStats } {
+  const layout = poseOutcomeLayout(input.poseKey);
+  const engine = poseOutcomeEngine(input.model);
+  if (!layout || !engine) return { seed: null, stats };
+  const cell = poseOutcomeCellKey(layout, engine);
+  const remembered = rememberedPoseSeeds(stats, layout, engine, input.device);
+  const before = stats.seedTurns?.[cell] ?? 0;
+  const choice = chooseKeptSeed({
+    remembered,
+    turn: before,
+    fresh: input.fresh,
+    exclude: input.exclude,
+  });
+  if (choice.turn === before) return { seed: choice.seed, stats };
+  return {
+    seed: choice.seed,
+    stats: { ...stats, seedTurns: { ...stats.seedTurns, [cell]: choice.turn } },
+  };
 }
 
 // ── Report card prior ─────────────────────────────────────────────────────────────────────────
@@ -570,9 +766,31 @@ export function notePoseTakeQueued(input: {
   model: string | null | undefined;
   surface: 'day' | 'story';
   replaces?: string | null;
+  seed?: string | number | null;
+  intimate?: boolean;
 }): void {
   if (!input.takeId?.trim() || !poseOutcomeLayout(input.poseKey)) return;
   update((stats, device) => withPoseTakeQueued(stats, { ...input, device }));
+}
+
+/**
+ * Browser: the seed for an intimate Day still of this pose on this engine — a kept seed in turn,
+ * or null for a random one (see chooseKeptSeed). Moves the local rotation.
+ */
+export function takeKeptSeed(input: {
+  poseKey: string | null | undefined;
+  model: string | null | undefined;
+  fresh?: boolean;
+  exclude?: readonly (string | null | undefined)[];
+}): string | null {
+  if (typeof window === 'undefined' || input.fresh) return null;
+  let seed: string | null = null;
+  update((stats, device) => {
+    const choice = withKeptSeedChoice(stats, { ...input, device });
+    seed = choice.seed;
+    return choice.stats;
+  });
+  return seed;
 }
 
 /** Browser: a signal about a take (by ComfyUI prompt id). */
