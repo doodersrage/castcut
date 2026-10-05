@@ -85,6 +85,26 @@ describe("comfyui-manager-install-client", async () => {
       assert.match(result.message, /Still missing: NodeB\./);
     });
 
+    it("does not restart a busy ComfyUI: says to restart once its queue is empty", async () => {
+      const stub = installFetchStub(url =>
+        url.includes("/api/comfyui/restart")
+          ? {
+              ok: false,
+              json: async () => ({
+                error: "ComfyUI has 2 jobs running or waiting — restart it when its queue is empty.",
+                busy: true,
+              }),
+            }
+          : { ok: true, json: async () => ({ installed: ["NodeA"], unresolved: [], restartNeeded: true }) }
+      );
+      const result = await requestComfyManagerInstall({ nodeTypes: ["NodeA"] });
+      stub.restore();
+      assert.equal(result.ok, true);
+      assert.equal(result.restartRequested, false);
+      assert.match(result.message, /Installed NodeA\./);
+      assert.match(result.message, /restart it when its queue is empty/);
+    });
+
     it("points at installing ComfyUI-Manager when the server reports it is missing", async () => {
       const stub = installFetchStub(() => ({
         ok: false,

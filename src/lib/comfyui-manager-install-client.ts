@@ -68,6 +68,25 @@ export async function requestComfyManagerInstall(input: {
     return emptyInstall();
   }
 
+  // Installing node packs ends in a ComfyUI restart, which stops renders for everyone using it:
+  // ask first (the restart itself is also refused while ComfyUI's queue has jobs).
+  if (
+    input.restart !== false &&
+    typeof window !== 'undefined' &&
+    typeof window.confirm === 'function' &&
+    !window.confirm(
+      `Install ${nodeTypes.join(', ')} with ComfyUI-Manager? ComfyUI restarts afterwards (only once its queue is empty), which stops any render in progress.`
+    )
+  ) {
+    return {
+      ok: false,
+      installed: [],
+      unresolved: nodeTypes,
+      restartRequested: false,
+      message: 'Install cancelled.',
+    };
+  }
+
   try {
     const response = await fetch('/api/comfyui/manager/install', {
       method: 'POST',
@@ -100,10 +119,14 @@ export async function requestComfyManagerInstall(input: {
 
     let restartRequested = false;
     let hostReady = true;
+    let restartBusy = '';
     if (input.restart !== false && data?.restartNeeded && installed.length > 0) {
       const { restartComfyUi } = await import('./comfyui-queue-control');
       const restart = await restartComfyUi(input.comfyUrl);
       restartRequested = restart.ok;
+      if (!restart.ok && /queue is empty/i.test(restart.error ?? '')) {
+        restartBusy = `${restart.error} (Settings → ComfyUI → Restart).`;
+      }
       if (restart.ok) {
         const { waitForComfyUiHostAfterRestart } = await import('./comfyui-host-ready');
         const ready = await waitForComfyUiHostAfterRestart(input.comfyUrl);
@@ -121,6 +144,7 @@ export async function requestComfyManagerInstall(input: {
           ? 'ComfyUI is back after restart.'
           : 'ComfyUI restart requested; host did not answer in time.'
         : '',
+      restartBusy,
       unresolved.length > 0 ? `Still missing: ${unresolved.join(', ')}.` : '',
     ].filter(Boolean);
     return {
