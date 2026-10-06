@@ -110,7 +110,7 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
     ],
     settings: [
       'a dojo floor with tatami mats and soft side light',
-      'an empty training hall with dust motes in sunbeams',
+      'an empty training hall with warm sunbeams across the floor',
       'a sparring ring with taped boundary lines',
     ],
     foreignTokens: ['cyclist', 'javelin', 'basketball', 'soccer cleats', 'golf swing', 'ski slope'],
@@ -159,7 +159,7 @@ const SPORT_ACTION_BUNDLES: Record<AthleticSport, SportActionBundle> = {
     rewriteDefault: 'dynoing to a hold on the overhang',
     poses: [
       'dynoing to a hold on an overhang with hips driving upward',
-      'heel hooking on a steep boulder with chalk dust in the air',
+      'heel hooking on a steep boulder with chalked hands',
       'reaching for a crimp on a competition wall',
       'campus boarding with locked-off elbows and swinging hips',
       'mantling over a boulder lip with chest pressed to the rock',
@@ -565,7 +565,7 @@ const CYCLING_DISCIPLINE_OVERLAYS: Record<CyclingDiscipline, CyclingDisciplineOv
       'climbing a steep gravel pitch out of the saddle with the rear wheel biting for traction',
     ],
     settings: [
-      'a remote fire road climb through pine forest with dust hanging in the air',
+      'a remote fire road climb through pine forest on a dry dusty trail',
       'a wide gravel descent across open prairie with golden-hour side light',
       'a muddy doubletrack sector after rain with tire tracks in wet earth',
       'a crushed-stone rail-trail with long shadows and scattered scrub',
