@@ -17,6 +17,7 @@ import {
   sceneTextStatesPose,
   type ScenePoseSpec,
   type SocialLayout,
+  textLeadPosture,
 } from '@/lib/day-pose-guide';
 import { RAPID_ORAL_FALLBACK_RE } from '@/lib/rapid-duo-recipe';
 import { SEATED_ORAL_GUIDE_TEXT } from '@/lib/rapid-oral-pose';
@@ -235,4 +236,82 @@ export function daySlotPoseLayout(input: Parameters<typeof planDaySlotPose>[0]):
     layout: intent.intimate || intent.social || intent.base || null,
     headcount: plan.headcount,
   };
+}
+
+const LYING_LAYOUTS: ReadonlySet<string> = new Set(['lie_side', 'lie_front', 'lounge_elbows']);
+const SEATED_LAYOUTS: ReadonlySet<string> = new Set(['sit_floor', 'perch_edge', 'sport_cycle']);
+
+/** The body posture a drawing reads as: its layout's when it lies or sits, else its base's. */
+function drawnPosture(intent: { base: PoseGuideBase; social?: SocialLayout | null }) {
+  if (intent.social && LYING_LAYOUTS.has(intent.social)) return 'lie';
+  if (intent.social && SEATED_LAYOUTS.has(intent.social)) return 'sit';
+  const base = intent.base;
+  if (base === 'sit') return 'sit';
+  if (base === 'lie') return 'lie';
+  if (base === 'kneel' || base === 'crouch') return 'kneel';
+  return 'stand';
+}
+
+/** Words that state a lie or a kneel for someone in the frame ("he lies on his back"). */
+const LIE_OR_KNEEL_WORDS_RE =
+  /\b(?:kneel(?:s|ing)?|knelt|lies|lying|lie\s+(?:back|down)|reclin(?:es|ing))\b/i;
+
+/**
+ * Vacation / Suggestive draw clothed stills upright: a kneel or a lie becomes a seated pair and a
+ * hug a lean (parsePoseGuideIntent, clothedUprightOnly — a kneeling figure pulled clothed stills
+ * toward sex layouts). Beats written lying, kneeling, on a lap or carried then got a drawing that
+ * says something else: "lying face to face on the bed" went out as a standing hands-on-hips pair,
+ * "he kneels in front of her, kisses her knee" as two people sitting. Edit 2511 followed the
+ * drawing over the words (live 2026-10-06: with the drawing left out, the kneel was right 3/3).
+ *
+ * True when the clothed drawing contradicts the beat — the rule rewrote the stance the words
+ * read as, or the lead's stated posture differs from the drawn one — so Day sends no drawing and
+ * the words carry the pose. A pose the player picked is always drawn.
+ */
+export function dayClothedGuideContradictsBeat(
+  input: Parameters<typeof planDaySlotPose>[0]
+): boolean {
+  const plan = planDaySlotPose(input);
+  const beat = input.slot.sceneHints?.trim() || '';
+  if (
+    !plan.options.clothedUprightOnly ||
+    !beat ||
+    !plan.sceneText?.trim() ||
+    input.slot.poseLayout ||
+    input.slot.posePhoto?.people.length
+  ) {
+    return false;
+  }
+  const fallback = dayPoseGuideFallbackIndex(input.slot.id as DaySlot['id']);
+  const drawn = resolveSceneGuidePlan(plan.sceneText, fallback, {
+    ...plan.options,
+    openPose: false,
+  }).intent;
+  const unrestricted = resolveSceneGuidePlan(plan.sceneText, fallback, {
+    ...plan.options,
+    clothedUprightOnly: false,
+    allowIntimate: false,
+    openPose: false,
+  }).intent;
+  // A dance is upright whatever else the words say ("her cheek on his chest, his hand low on
+  // her back" reads as lying on her back).
+  if (drawn.social === 'dance') return false;
+  const drawnAs = drawnPosture(drawn);
+  const readAs = drawnPosture(unrestricted);
+  // (a) The rule rewrote a kneel or a lie the words state — for the lead or the partner ("her
+  // partner kneeling in front of her" drew two people sitting).
+  if (
+    (readAs === 'kneel' || readAs === 'lie') &&
+    readAs !== drawnAs &&
+    LIE_OR_KNEEL_WORDS_RE.test(beat)
+  ) {
+    return true;
+  }
+  // A hug or a lap became a lean pair.
+  if (unrestricted.social === 'hug' && drawn.social !== 'hug') return true;
+  // (b) The lead lies or kneels and the drawing doesn't ("lying face to face … his hand on her
+  // hip" drew a standing hands-on-hips pair). Only those two: the word reader also calls "on a
+  // pier bench" standing, and the rule only ever suppresses a lie or a kneel.
+  const lead = textLeadPosture(beat);
+  return (lead === 'lie' || lead === 'kneel') && lead !== drawnAs;
 }

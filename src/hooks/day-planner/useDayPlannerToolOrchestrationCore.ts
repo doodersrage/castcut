@@ -150,7 +150,12 @@ import { customPoseWords } from '@/lib/pose-describe';
 import { bestOfTwoAsOneJob } from '@/lib/day-best-of-two';
 import { dayTwoTakesApplies } from '@/lib/day-two-takes';
 import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut-nodes';
-import { daySlotPoseLayout, planDaySlotPose, plannedDaySlotPoseKey } from '@/lib/day-slot-pose';
+import {
+  dayClothedGuideContradictsBeat,
+  daySlotPoseLayout,
+  planDaySlotPose,
+  plannedDaySlotPoseKey,
+} from '@/lib/day-slot-pose';
 import { notePoseTakeQueued, takeKeptSeed } from '@/lib/pose-outcome-stats';
 import { pickPoseEngine } from '@/lib/pose/pose-engine-report';
 import { blendedPoseEngineReport } from '@/lib/pose/pose-engine-report-blended';
@@ -1632,6 +1637,24 @@ export function useDayPlannerToolOrchestrationCore() {
           beat: queueTarget.sceneHints,
         });
         if (kleinSpoonRecipe) {
+          skipPoseGuideImage = true;
+        }
+        // Vacation / Suggestive draw clothed stills upright; when that drawing contradicts the
+        // beat (a lie or a kneel drawn as a seated or standing pair) the words carry the pose.
+        if (
+          !skipPoseGuideImage &&
+          dayClothedGuideContradictsBeat({
+            slot: queueTarget,
+            dayMood: normalizeDayMood(
+              isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
+                ? 'everyday'
+                : toolSettings.dayMood
+            ),
+            intimateMix: toolSettings.intimateMix,
+            allowCompanions: toolSettings.allowCompanions === true,
+            model: stillModel,
+          })
+        ) {
           skipPoseGuideImage = true;
         }
         // Clothing options for this still's brief / recipe (the pose map's are added below).

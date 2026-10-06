@@ -67,7 +67,7 @@ import {
 } from './day-planner';
 import { dayPoseGuideFallbackIndex, resolveSceneGuidePlan } from './day-pose-guide';
 import { resolveDaySlotLook, type DaySlotOutfit } from './day-slot-look';
-import { planDaySlotPose } from './day-slot-pose';
+import { dayClothedGuideContradictsBeat, planDaySlotPose } from './day-slot-pose';
 import { daySportBeatPresetsForSlot, daySportSettingPresetsForSlot } from './day-sport';
 import {
   assembleDayStillPrompt,
@@ -638,8 +638,15 @@ function decideStill(
   let identitySource: 'cast' | 'keeper' =
     replaceKeepOutfit || omitGarment ? 'cast' : slotPlateSource;
 
-  // OpenPose is the default guide style: the Lightning identity path keeps the pose map.
-  const skipPoseGuideImage = false;
+  // OpenPose is the default guide style: the Lightning identity path keeps the pose map. A
+  // clothed drawing that contradicts the beat stays out (dayClothedGuideContradictsBeat).
+  const skipPoseGuideImage = dayClothedGuideContradictsBeat({
+    slot: { id: beat.slotId, sceneHints: beat.beat, location: beat.location },
+    dayMood: playedMood,
+    intimateMix: setup.companions ? 'mixed' : 'solo',
+    allowCompanions: setup.companions,
+    model: stillModel,
+  });
   // Lightning keeps the full plate as Image 1; the others crop the face (the crop exists).
   const vacationFaceBreak =
     dayStillIdentityRoute({
