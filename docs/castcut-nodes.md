@@ -15,7 +15,7 @@ Mask Repair and Report.
 ## Install from Castcut (easiest)
 
 Open **Settings → ComfyUI → Castcut nodes**. The card says whether this ComfyUI has the pack and
-which version (*Missing*, *Installed v1.2.0*, *Outdated*), and offers one way to install it:
+which version (*Missing*, *Installed v1.3.0*, *Outdated*), and offers one way to install it:
 
 - **ComfyUI-Manager is installed** → **Install with ComfyUI-Manager**. When it is done,
   **Restart ComfyUI…** restarts ComfyUI through the Manager. It asks first, because a restart stops
@@ -82,9 +82,9 @@ node pack.
 there) and restart the container.
 
 Check it worked: `http://<comfyui>:8188/object_info/CastcutPoseScore` returns the node, and the
-card shows *Installed v1.2.0*. With 1.2.0, `http://<comfyui>:8188/castcut/info` answers too.
+card shows *Installed v1.3.0*. With 1.2.0, `http://<comfyui>:8188/castcut/info` answers too.
 
-## Routes (1.2.0)
+## Routes (1.2.0 and 1.3.0)
 
 Besides the nodes, the pack adds a few HTTP routes to ComfyUI, so some checks no longer go
 through the render queue:
@@ -99,6 +99,16 @@ through the render queue:
 - **`object_info` only when something changed.** The app asks for a fingerprint of the node list
   and model files and refetches the ~8 MB `object_info` only when it moved.
 
+- **1.3.0: pose checks and the Face finish probe too.** The pose read behind Auto-review and the
+  pose checks runs DWPose on the CPU inside ComfyUI (~0.3 s a still, the same keypoints as the
+  node), and Face finish's "which face is hers" probe runs with the face checks.
+- **1.3.0: delete unused uploads.** Settings → ComfyUI → Input folder offers *Delete N files*
+  after a scan. It asks first, scans again, deletes only what that scan offers, and the pack
+  keeps anything younger than a day or named by a queued job. Without 1.3.0 you get the command
+  as before.
+- **1.3.0: health.** One call for the queue, free GPU memory and what the pack can check; the
+  Castcut nodes card uses it instead of reading the whole queue.
+
 Without 1.2.0 (or when a route fails) everything works as before, through queued graphs. The
 queue position of a waiting still now comes from ComfyUI's jobs list rather than the whole
 queue, on any ComfyUI that has it (pack or not).
@@ -106,7 +116,7 @@ queue, on any ComfyUI that has it (pack or not).
 ## Updating
 
 The card compares the installed version (each node's description ends with
-`[castcut-nodes 1.2.0]`) with the version this app ships. *Outdated* means a newer one came with
+`[castcut-nodes 1.3.0]`) with the version this app ships. *Outdated* means a newer one came with
 the app: install again the same way — copying the file over the old one, `git pull` in a clone, or
 the Manager. A copy from before version 1.1.0 shows as *Installed (an older version)*.
 

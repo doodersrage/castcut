@@ -8,16 +8,23 @@ import {
   findUnreferencedAppInputs,
   INPUT_CLEANUP_MIN_AGE_MS,
   isAppMadeInputName,
+  namesAllowedToDelete,
   parseComfyInputListing,
   type ComfyInputFolderReport,
   type InputFileInfo,
 } from './comfy-input-cleanup';
+import {
+  castcutInputDelete,
+  castcutRoutes,
+  type CastcutInputDeleteResult,
+} from './castcut-routes-server';
 import { forgetKnownComfyInputs } from './comfy-input-upload-server';
 import { isServerStorageEnabled } from './server-storage';
 
 /**
- * Settings → ComfyUI → Input folder: a read-only report of the app-made files in ComfyUI's input
- * folder that nothing references. It never deletes — the player gets a command to run.
+ * Settings → ComfyUI → Input folder: a report of the app-made files in ComfyUI's input folder
+ * that nothing references, and a command to remove them. With the Castcut pack (1.3.0+) the
+ * player can have them deleted instead, after confirming (deleteUnreferencedComfyInputs).
  */
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -182,5 +189,47 @@ export async function buildComfyInputFolderReport(input: {
       serverStorage,
       comfyQueue,
     },
+    canDelete: Boolean((await castcutRoutes(baseUrl, fetchImpl))?.routes.includes('input-delete')),
   };
+}
+
+export type ComfyInputDeleteOutcome = CastcutInputDeleteResult & {
+  /** Asked for but not in this scan's removable list, so not sent to ComfyUI. */
+  refused: number;
+};
+
+/**
+ * Delete files the player confirmed, through the Castcut pack (ComfyUI's folder belongs to the
+ * ComfyUI user, and ComfyUI has no delete API). The folder is scanned again first and only names
+ * that scan still offers as removable go; the pack then refuses anything younger than the scan's
+ * minimum age or named by a queued job.
+ */
+export async function deleteUnreferencedComfyInputs(input: {
+  baseUrl: string;
+  browserReferences: readonly string[];
+  names: readonly string[];
+  now?: number;
+  fetchImpl?: FetchLike;
+}): Promise<ComfyInputDeleteOutcome> {
+  const baseUrl = input.baseUrl.replace(/\/+$/, '');
+  const fetchImpl = input.fetchImpl ?? fetch;
+  const report = await buildComfyInputFolderReport({
+    baseUrl,
+    browserReferences: input.browserReferences,
+    now: input.now,
+    fetchImpl,
+  });
+  if (!report.canDelete) {
+    throw new Error('The Castcut nodes on this ComfyUI cannot delete inputs (update to 1.3.0).');
+  }
+  const names = namesAllowedToDelete(report, input.names);
+  const result = names.length
+    ? await castcutInputDelete(
+        baseUrl,
+        { names, minAgeSeconds: Math.round(INPUT_CLEANUP_MIN_AGE_MS / 1000) },
+        fetchImpl
+      )
+    : { deleted: [], freedBytes: 0, skipped: [] };
+  forgetKnownComfyInputs(baseUrl);
+  return { ...result, refused: new Set(input.names).size - names.length };
 }

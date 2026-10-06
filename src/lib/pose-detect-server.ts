@@ -7,6 +7,7 @@
  * callers can quietly skip the check.
  */
 
+import { castcutCanAnalyze, castcutPoseJson, castcutRoutes } from '@/lib/castcut-routes-server';
 import {
   comfyBaseUrl,
   fillComfyNodeInputs,
@@ -57,6 +58,17 @@ export async function detectPoseInComfyStill(input: {
     return { available: false, reason: 'Still is not a ComfyUI image.' };
   }
   const baseUrl = comfyBaseUrl(input.comfyUrl);
+  // The Castcut pack reads the pose on the CPU inside ComfyUI, without waiting for the render in
+  // progress or staging the still; the same DWPose models and settings as the graph below.
+  if (castcutCanAnalyze(await castcutRoutes(baseUrl), 'pose')) {
+    try {
+      const text = await castcutPoseJson(baseUrl, { image: ref, timeoutMs: input.timeoutMs });
+      const pose = text ? parseOpenPoseJson(text) : null;
+      if (pose) return { available: true, pose };
+    } catch (error) {
+      console.warn('Castcut pose read failed; queueing the DWPose graph instead:', error);
+    }
+  }
   const detector = await resolveComfyNode(baseUrl, DETECTOR_NODES);
   if (!detector) {
     return {

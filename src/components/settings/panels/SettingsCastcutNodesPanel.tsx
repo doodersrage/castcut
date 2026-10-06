@@ -12,6 +12,7 @@ import {
   buildCastcutInstallCommands,
   castcutRestartGate,
   chooseCastcutNodesAction,
+  describeCastcutHealth,
   describeCastcutNodesStatus,
   type CastcutInstallCommand,
   type CastcutNodesStatus,
@@ -26,6 +27,11 @@ type Report = {
   queue: { running: number; pending: number } | null;
   system: ComfyUiSystemInfo | null;
   needsAuth?: boolean;
+  health?: {
+    faceAnalysis: boolean;
+    dwpose: boolean;
+    vram?: { freeBytes: number; totalBytes: number };
+  } | null;
 };
 
 type Phase =
@@ -117,6 +123,7 @@ export default function SettingsCastcutNodesPanel({
   }, [check]);
 
   const status = report?.status ?? null;
+  const healthLine = describeCastcutHealth(report?.health ?? null);
   const managerPresent = Boolean(report?.manager);
   const action = chooseCastcutNodesAction({
     status,
@@ -302,6 +309,14 @@ export default function SettingsCastcutNodesPanel({
         ) : report && !report.reachable ? (
           <p className="text-sm text-[var(--text-secondary)]">
             ComfyUI did not answer — check the connection above, then Check again.
+          </p>
+        ) : null}
+        {status && healthLine ? (
+          <p
+            className="type-caption text-[var(--text-muted)]"
+            data-testid="castcut-nodes-health-line"
+          >
+            {healthLine}
           </p>
         ) : null}
         {error ? (

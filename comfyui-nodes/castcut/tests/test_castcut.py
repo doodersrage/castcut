@@ -427,5 +427,82 @@ class RouteHelperTests(unittest.TestCase):
                 castcut.analyze_request(bad, fake)
 
 
+class RouteHelperTests13(unittest.TestCase):
+    """1.3.0: face probe, input delete, health (castcut_nodes.py, "HTTP routes")."""
+
+    def test_probe_faces_follows_face_bounding_box_indexes(self):
+        rgb = np.zeros((100, 200, 3), dtype=np.uint8)
+        big = {"bbox": [100, 10, 140, 50]}
+        small = {"bbox": [10, 10, 30, 30]}
+        seen = []
+
+        def embed(crop):
+            seen.append(crop.shape[:2])
+            return np.array([1.0, 0.0]) if crop.shape[1] > 50 else np.array([0.0, 1.0])
+
+        faces = castcut.probe_faces(rgb, [small, big], embed, np.array([1.0, 0.0]))
+        # Largest first, padded by 30% of the box: 100 - 12 = 88; 10 - 6 = 4.
+        self.assertEqual([f["x"] for f in faces], [88, 4])
+        self.assertEqual(faces[0]["distance"], 0.0)
+        self.assertAlmostEqual(faces[1]["distance"], 1.0)
+        self.assertEqual(seen[0], (62, 64))  # top clamps to 0: 0..62
+        # One face answers both indexes; none is an empty probe.
+        self.assertEqual(len({f["x"] for f in castcut.probe_faces(rgb, [big], embed, [1, 0])}), 1)
+        self.assertEqual(castcut.probe_faces(rgb, [], embed, [1, 0]), [])
+
+    def test_plan_input_delete_keeps_new_queued_and_strange_names(self):
+        import time  # noqa: PLC0415
+
+        with tempfile.TemporaryDirectory() as root:
+            now = time.time()
+            for name, age in [("old-a.png", 10), ("old-b.png", 10), ("queued.png", 10), ("new.png", 0.5)]:
+                path = os.path.join(root, name)
+                with open(path, "wb") as handle:
+                    handle.write(b"x")
+                os.utime(path, (now - age * 86_400, now - age * 86_400))
+            delete, skipped = castcut.plan_input_delete(
+                ["old-a.png", "old-a.png", "queued.png", "new.png", "gone.png", "../x.png", "old-b.png"],
+                root,
+                json.dumps({"1": {"inputs": {"image": "queued.png"}}}),
+                now,
+                0,  # asked for no minimum: the one-day floor still holds
+            )
+            self.assertEqual(sorted(os.path.basename(p) for p in delete), ["old-a.png", "old-b.png"])
+            self.assertEqual(
+                {s["name"]: s["reason"] for s in skipped},
+                {
+                    "queued.png": "in-queue",
+                    "new.png": "too-new",
+                    "gone.png": "missing",
+                    "../x.png": "invalid-name",
+                },
+            )
+
+    def test_health_and_info_without_comfyui(self):
+        health = castcut.health_payload({"running": 0, "pending": 2})
+        self.assertEqual(health["queue"], {"running": 0, "pending": 2})
+        self.assertFalse(health["dwpose"])
+        info = castcut.info_payload()
+        self.assertIn("input-delete", info["routes"])
+        self.assertEqual(info["analyze"]["ops"], list(castcut.ANALYZE_OPS))
+
+    def test_pose_op_without_dwpose_says_so(self):
+        class NoPose:
+            def available(self):
+                return False
+
+        import io  # noqa: PLC0415
+
+        from PIL import Image  # noqa: PLC0415
+
+        buffer = io.BytesIO()
+        Image.new("RGB", (4, 4)).save(buffer, "PNG")
+        image = {"data": base64.b64encode(buffer.getvalue()).decode()}
+        self.assertEqual(
+            castcut.analyze_request({"op": "pose", "image": image}, None, NoPose()),
+            {"op": "pose", "error": "no-dwpose"},
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

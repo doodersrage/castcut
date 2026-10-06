@@ -7,7 +7,7 @@
 import { CASTCUT_NODE_TYPES } from './castcut-nodes';
 
 /** The pack this app ships (comfyui-nodes/castcut/castcut_nodes.py `CASTCUT_VERSION`). */
-export const CASTCUT_NODES_BUNDLED_VERSION = '1.2.0';
+export const CASTCUT_NODES_BUNDLED_VERSION = '1.3.0';
 export const CASTCUT_NODES_FILE_NAME = 'castcut_nodes.py';
 /** The app serves its bundled copy here (src/app/api/castcut-nodes/file/route.ts). */
 export const CASTCUT_NODES_FILE_ROUTE = '/api/castcut-nodes/file';
@@ -22,7 +22,30 @@ export const CASTCUT_NODES_DOCS_URL =
 export const CASTCUT_NODES_BENEFITS = [
   'Best of two for hard poses runs as one job: both takes share one model load, the pose check runs inside ComfyUI, the closer take is kept.',
   'Cut-outs (Isolate on white, plates) repair the matte and composite in the same job — no mask round trip.',
+  'Face and pose checks answer straight away on the CPU instead of waiting for the render in progress (1.2.0+; pose and the Face finish probe 1.3.0+).',
+  'Settings → ComfyUI → Input folder can delete unused uploads after you confirm, instead of handing you a command (1.3.0+).',
 ] as const;
+
+/** One line for the card: which checks skip the render queue on this ComfyUI. */
+export function describeCastcutHealth(
+  health: {
+    faceAnalysis: boolean;
+    dwpose: boolean;
+    vram?: { freeBytes: number; totalBytes: number };
+  } | null
+): string | null {
+  if (!health) return null;
+  const checks = [
+    health.faceAnalysis ? 'face checks' : null,
+    health.dwpose ? 'pose checks' : null,
+  ].filter(Boolean);
+  const vram = health.vram
+    ? ` · GPU memory free: ${(health.vram.freeBytes / 1024 ** 3).toFixed(1)} of ${(health.vram.totalBytes / 1024 ** 3).toFixed(0)} GB`
+    : '';
+  return checks.length
+    ? `Without the queue: ${checks.join(' and ')}${vram}.`
+    : `No checks without the queue (ComfyUI_FaceAnalysis and comfyui_controlnet_aux are missing)${vram}.`;
+}
 
 export const CASTCUT_NODES_WITHOUT =
   'Without them everything still works: Best of two queues two jobs one after the other and the checks run as separate ComfyUI calls.';

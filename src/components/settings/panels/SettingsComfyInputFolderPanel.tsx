@@ -12,8 +12,9 @@ export type SettingsComfyInputFolderPanelProps = {
 };
 
 /**
- * Report only. ComfyUI has no API to delete inputs and its folder belongs to the ComfyUI user,
- * so the app lists what it made that nothing uses and hands over a command — it never runs it.
+ * ComfyUI has no API to delete inputs and its folder belongs to the ComfyUI user, so the app lists
+ * what it made that nothing uses and hands over a command. With the Castcut nodes (1.3.0+) it can
+ * delete them instead — only after you confirm, and only what a fresh scan still offers.
  */
 export default function SettingsComfyInputFolderPanel({
   comfyUrl,
@@ -22,6 +23,7 @@ export default function SettingsComfyInputFolderPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<ComfyInputFolderReport | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function scan() {
     setBusy(true);
@@ -47,6 +49,55 @@ export default function SettingsComfyInputFolderPanel({
     }
   }
 
+  async function deleteRemovable() {
+    if (!report?.canDelete || report.removable.length === 0) return;
+    const count = report.removable.length;
+    const ok = window.confirm(
+      `Delete ${count.toLocaleString()} unused files (${formatBytes(report.removableBytes)}) from ComfyUI's input folder?` +
+        (report.sources.serverStorage
+          ? ''
+          : "\n\nServer storage is off, so only this browser's data was checked — another browser using this ComfyUI may still need some of them.") +
+        '\n\nThe folder is scanned again first; files in use since, or newer than ' +
+        `${report.minAgeDays} days, are kept. This cannot be undone.`
+    );
+    if (!ok) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const { collectBrowserInputReferences } = await import('@/lib/comfy-input-references-client');
+      const references = await collectBrowserInputReferences();
+      const response = await fetch('/api/comfyui/input-folder/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          references,
+          names: report.removable.map(file => file.name),
+          ...(comfyUrl?.trim() ? { comfyUrl } : {}),
+        }),
+      });
+      const data = (await response.json()) as {
+        deleted?: string[];
+        freedBytes?: number;
+        skipped?: unknown[];
+        refused?: number;
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data.error ?? `Delete failed (HTTP ${response.status}).`);
+      }
+      const kept = (data.skipped?.length ?? 0) + (data.refused ?? 0);
+      setStatus(
+        `Deleted ${(data.deleted?.length ?? 0).toLocaleString()} files (${formatBytes(data.freedBytes ?? 0)})` +
+          (kept > 0 ? `; ${kept.toLocaleString()} kept (in use, too new or gone).` : '.')
+      );
+      await scan();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Delete failed.');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function copyCommand() {
     if (!report?.command) return;
     try {
@@ -68,8 +119,9 @@ export default function SettingsComfyInputFolderPanel({
         <p className="text-sm text-[var(--text-secondary)]">
           Plates, cut-outs, face crops and pose maps the app sent to ComfyUI stay in its input
           folder. Scan lists the ones no gallery entry, Cast look, Day or Story, or queued job
-          names, older than a week. ComfyUI cannot delete inputs, so you get a command to review and
-          run yourself — the app never deletes anything there.
+          names, older than a week. ComfyUI cannot delete inputs on its own: with the Castcut nodes
+          (1.3.0 or newer) you can delete them here after confirming; otherwise you get a command to
+          review and run yourself.
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" onClick={() => void scan()} disabled={busy}>
@@ -136,6 +188,18 @@ export default function SettingsComfyInputFolderPanel({
                   onFocus={event => event.currentTarget.select()}
                 />
                 <div className="flex flex-wrap gap-2">
+                  {report.canDelete ? (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => void deleteRemovable()}
+                      disabled={deleting || busy}
+                    >
+                      {deleting
+                        ? 'Deleting…'
+                        : `Delete ${report.removable.length.toLocaleString()} files`}
+                    </Button>
+                  ) : null}
                   <Button variant="secondary" size="sm" onClick={() => void copyCommand()}>
                     Copy command
                   </Button>

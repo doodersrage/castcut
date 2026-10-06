@@ -3,6 +3,7 @@
  * finished image as a ComfyUI view ref.
  */
 
+import { castcutCanAnalyze, castcutFaceProbe, castcutRoutes } from '@/lib/castcut-routes-server';
 import {
   comfyBaseUrl,
   parseComfyViewRef,
@@ -38,6 +39,16 @@ export type FaceFinishResult =
 /** The probe could not read a face in the Cast face crop itself (FaceEmbedDistance says so). */
 const NO_REFERENCE_FACE = 'no-reference-face' as const;
 
+/** A staged input name ("sub/name.png" or "name.png") as a ComfyUI ref. */
+function inputRef(name: string): ComfyImageRef {
+  const slash = name.lastIndexOf('/');
+  return {
+    filename: slash >= 0 ? name.slice(slash + 1) : name,
+    subfolder: slash >= 0 ? name.slice(0, slash) : '',
+    type: 'input',
+  };
+}
+
 /**
  * Distance and x of the two largest faces in a staged image, against the Cast face crop. Null
  * when no face was read; `no-reference-face` when the crop itself shows no face.
@@ -47,6 +58,21 @@ async function probeLeadFace(
   stillName: string,
   faceName: string
 ): Promise<LeadFaceProbe | null | typeof NO_REFERENCE_FACE> {
+  // The Castcut pack answers the same probe without waiting for the render in progress.
+  if (castcutCanAnalyze(await castcutRoutes(baseUrl), 'face-probe')) {
+    try {
+      const faces = await castcutFaceProbe(baseUrl, {
+        image: inputRef(stillName),
+        reference: inputRef(faceName),
+        paddingPercent: 0.3,
+        count: LEAD_FACE_PROBE_NODES.length,
+      });
+      if (faces === null) return NO_REFERENCE_FACE;
+      return faces.length ? faces.map(face => ({ x: face.x, distance: face.distance })) : null;
+    } catch (error) {
+      console.warn('Castcut face probe failed; queueing the probe graph instead:', error);
+    }
+  }
   const number = (entry: ComfyHistoryEntry, node: string): number | null => {
     const raw = (entry.outputs?.[node] as { text?: unknown[] } | undefined)?.text?.[0];
     try {

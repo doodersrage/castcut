@@ -10,6 +10,7 @@
 
 import {
   castcutFaceBoxes,
+  castcutCanAnalyze,
   castcutRoutes,
   type CastcutFaceBoxTurn,
 } from '@/lib/castcut-routes-server';
@@ -82,7 +83,7 @@ async function locateFaceDirect(
   input: { bytes?: Uint8Array; imageUrl?: string; width: number; height: number }
 ): Promise<FaceLocateResult | null> {
   const routes = await castcutRoutes(baseUrl);
-  if (!routes?.routes.includes('analyze') || !routes.faceAnalysis) return null;
+  if (!castcutCanAnalyze(routes, 'face-boxes')) return null;
   const ref = !input.bytes && input.imageUrl ? parseComfyViewRef(input.imageUrl) : null;
   if (!input.bytes && !ref) return null;
   let turns: CastcutFaceBoxTurn[];

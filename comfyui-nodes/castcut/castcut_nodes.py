@@ -32,7 +32,7 @@ try:  # numpy ships with ComfyUI; the pose functions below don't need it.
 except ImportError:  # pragma: no cover - only without numpy
     np = None
 
-CASTCUT_VERSION = "1.2.0"
+CASTCUT_VERSION = "1.3.0"
 
 # Every node's object_info `description` ends with this marker, so the app can tell which version
 # is installed without running anything (src/lib/castcut-nodes-setup.ts parses it). Keep the
@@ -1525,9 +1525,14 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 #   POST /castcut/analyze             -> face-distance / face-boxes (InsightFace buffalo_l)
 #   POST /castcut/stage               -> copy an output into input/ under a content name
 #   GET  /castcut/object-info-fingerprint -> changes when nodes or model files change
+#   POST /castcut/input-delete        -> remove named, old, unqueued files from input/ (1.3.0)
+#   GET  /castcut/health              -> queue, VRAM, loaded models, analyzers (1.3.0)
 
 ROUTE_PREFIX = "/castcut"
-ROUTES = ("info", "analyze", "stage", "object-info-fingerprint")
+ROUTES = ("info", "analyze", "stage", "object-info-fingerprint", "input-delete", "health")
+ANALYZE_OPS = ("face-distance", "face-boxes", "face-probe", "pose")
+# An input file younger than this is never deleted, whatever the request says.
+INPUT_DELETE_MIN_AGE_SECONDS = 86_400
 VIEW_TYPES = ("input", "output", "temp")
 ROTATIONS = {"none": 0, "90 degrees": 1, "180 degrees": 2, "270 degrees": 3}
 
@@ -1701,7 +1706,7 @@ def _load_rgb(ref):
     return np.array(image)
 
 
-def analyze_request(body, analyzer):
+def analyze_request(body, analyzer, pose_analyzer=None):
     """The work behind POST /castcut/analyze (no aiohttp, for tests)."""
     op = body.get("op")
     provider = body.get("provider") or "CPU"
@@ -1727,6 +1732,30 @@ def analyze_request(body, analyzer):
             if boxes and body.get("stopAtFirst", True):
                 break
         return {"op": op, "results": results}
+    if op == "face-probe":
+        reference = analyzer.embedding(_load_rgb(body.get("reference")), provider)
+        if reference is None:
+            return {"op": op, "error": "no-face-in-reference"}
+        rgb = _load_rgb(body.get("image"))
+        faces = probe_faces(
+            rgb,
+            analyzer.faces(rgb, provider),
+            lambda crop: analyzer.embedding(crop, provider),
+            reference,
+            padding_percent=float(body.get("paddingPercent", 0.3)),
+            count=int(body.get("count", 2)),
+        )
+        return {"op": op, "metric": "cosine", "faces": faces}
+    if op == "pose":
+        if pose_analyzer is None or not pose_analyzer.available():
+            return {"op": op, "error": "no-dwpose"}
+        text = pose_analyzer.openpose_json(
+            _load_rgb(body.get("image")),
+            hands=body.get("hands", True) is not False,
+            body=body.get("body", True) is not False,
+            face=body.get("face", False) is True,
+        )
+        return {"op": op, "openpose_json": text}
     raise ValueError(f"Unknown op: {op}")
 
 
@@ -1766,12 +1795,229 @@ def fingerprint_request():
     return {"fingerprint": object_info_fingerprint(nodes.NODE_CLASS_MAPPINGS.keys(), lists)}
 
 
+def probe_faces(rgb, faces, embed, reference, padding_percent=0.3, count=2):
+    """
+    The Face finish probe graph (face-finish.ts buildLeadFaceProbeGraph): FaceBoundingBox with
+    `padding_percent` at index 0..count-1, each crop compared with the reference by
+    FaceEmbedDistance. As FaceBoundingBox does, one face answers every index and an index past the
+    last face answers the last. `x` is the padded box's left edge. [] when there is no face.
+    """
+    from PIL import Image  # noqa: PLC0415
+
+    ordered = faces_largest_first(faces)
+    if not ordered:
+        return []
+    image = Image.fromarray(rgb)
+    out = []
+    for index in range(count):
+        face = ordered[0 if len(ordered) == 1 else min(index, len(ordered) - 1)]
+        x1, y1, x2, y2 = face["bbox"]
+        width, height = x2 - x1, y2 - y1
+        left = int(max(0, x1 - int(width * padding_percent)))
+        top = int(max(0, y1 - int(height * padding_percent)))
+        right = int(min(image.width, x2 + int(width * padding_percent)))
+        bottom = int(min(image.height, y2 + int(height * padding_percent)))
+        crop = np.array(image.crop((left, top, right, bottom)))
+        out.append({"x": left, "distance": cosine_face_distance(reference, embed(crop))})
+    return out
+
+
+class PoseAnalyzer:
+    """
+    comfyui_controlnet_aux's DWPose, built once with CPU onnxruntime sessions so a pose read does
+    not take GPU memory from a render in progress. Same models and defaults as the app's
+    pose-check graph (DWPreprocessor with its Python defaults: yolox_l.onnx,
+    dw-ll_ucoco_384.onnx, resolution 512).
+    """
+
+    def __init__(self):
+        import threading  # noqa: PLC0415
+
+        self._model = None
+        self._lock = threading.Lock()
+
+    @staticmethod
+    def _wrapper():
+        import sys  # noqa: PLC0415
+
+        try:
+            import nodes  # noqa: PLC0415 - ComfyUI only
+        except Exception:  # noqa: BLE001
+            return None
+        node = nodes.NODE_CLASS_MAPPINGS.get("DWPreprocessor")
+        module = sys.modules.get(getattr(node, "__module__", "")) if node else None
+        needed = ("DwposeDetector", "common_annotator_call", "DWPOSE_MODEL_NAME")
+        return module if module and all(hasattr(module, name) for name in needed) else None
+
+    def available(self):
+        return self._wrapper() is not None
+
+    def _detector(self, wrapper):
+        if self._model is None:
+            import sys  # noqa: PLC0415
+
+            import torch  # noqa: PLC0415
+
+            detector = wrapper.DwposeDetector
+            wholebody = sys.modules.get(f"{detector.__module__}.wholebody")
+            original = getattr(wholebody, "get_ort_providers", None)
+            if wholebody is not None and original is not None:
+                # Only while this copy's sessions are made; the queue's DWPose is untouched.
+                wholebody.get_ort_providers = lambda: ["CPUExecutionProvider"]
+            try:
+                self._model = detector.from_pretrained(
+                    wrapper.DWPOSE_MODEL_NAME,
+                    wrapper.DWPOSE_MODEL_NAME,
+                    det_filename="yolox_l.onnx",
+                    pose_filename="dw-ll_ucoco_384.onnx",
+                    torchscript_device=torch.device("cpu"),
+                )
+            finally:
+                if wholebody is not None and original is not None:
+                    wholebody.get_ort_providers = original
+        return self._model
+
+    def openpose_json(self, rgb, hands=True, body=True, face=False, resolution=512):
+        import torch  # noqa: PLC0415
+
+        wrapper = self._wrapper()
+        if wrapper is None:
+            raise RuntimeError("DWPose (comfyui_controlnet_aux) is not installed.")
+        with self._lock:
+            model = self._detector(wrapper)
+            # LoadImage's float pixels, then the node's own call (no progress bar sent).
+            tensor = torch.from_numpy(rgb.astype(np.float32) / 255.0)[None]
+            dicts = []
+
+            def run(image, **kwargs):
+                pose_image, openpose = model(image, **kwargs)
+                dicts.append(openpose)
+                return pose_image
+
+            wrapper.common_annotator_call(
+                run,
+                tensor,
+                show_pbar=False,
+                include_hand=hands,
+                include_face=face,
+                include_body=body,
+                image_and_json=True,
+                resolution=resolution,
+                xinsr_stick_scaling=False,
+            )
+        return json.dumps(dicts, indent=4)
+
+
+def plan_input_delete(names, input_dir, queue_text, now, min_age_seconds):
+    """
+    Which of `names` may go: plain names in the input folder's top level, at least
+    `min_age_seconds` old (never under a day), not named by a running or pending job.
+    Returns (paths to delete, skipped [{name, reason}]).
+    """
+    min_age = max(INPUT_DELETE_MIN_AGE_SECONDS, int(min_age_seconds or 0))
+    delete, skipped, seen = [], [], set()
+    for raw in names:
+        name = str(raw or "").strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        try:
+            path = safe_ref_path(input_dir, name)
+        except ValueError:
+            skipped.append({"name": name, "reason": "invalid-name"})
+            continue
+        if name in queue_text:
+            skipped.append({"name": name, "reason": "in-queue"})
+            continue
+        if not os.path.isfile(path):
+            skipped.append({"name": name, "reason": "missing"})
+            continue
+        if now - os.path.getmtime(path) < min_age:
+            skipped.append({"name": name, "reason": "too-new"})
+            continue
+        delete.append(path)
+    return delete, skipped
+
+
+def input_delete_request(body, queue_text):
+    import time  # noqa: PLC0415
+
+    import folder_paths  # noqa: PLC0415 - ComfyUI only
+
+    names = body.get("names")
+    if not isinstance(names, list) or len(names) > 50_000:
+        raise ValueError("names must be a list (at most 50,000).")
+    paths, skipped = plan_input_delete(
+        names,
+        folder_paths.get_input_directory(),
+        queue_text,
+        time.time(),
+        body.get("minAgeSeconds"),
+    )
+    deleted, freed = [], 0
+    for path in paths:
+        try:
+            size = os.path.getsize(path)
+            os.remove(path)
+        except OSError as error:
+            skipped.append({"name": os.path.basename(path), "reason": f"error: {error.strerror}"})
+            continue
+        deleted.append(os.path.basename(path))
+        freed += size
+    return {"deleted": deleted, "freedBytes": freed, "skipped": skipped}
+
+
+def health_payload(queue_counts):
+    payload = {
+        "version": CASTCUT_VERSION,
+        "queue": queue_counts,
+        "faceAnalysis": FaceAnalyzer.available(),
+        "dwpose": PoseAnalyzer().available(),
+        "analyzersLoaded": {
+            "face": bool(_ANALYZER and _ANALYZER._models),
+            "pose": bool(_POSE_ANALYZER and _POSE_ANALYZER._model is not None),
+        },
+    }
+    try:
+        import torch  # noqa: PLC0415
+
+        if torch.cuda.is_available():
+            free, total = torch.cuda.mem_get_info()
+            payload["vram"] = {"freeBytes": int(free), "totalBytes": int(total)}
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        import comfy.model_management as mm  # noqa: PLC0415 - ComfyUI only
+
+        payload["loadedModels"] = [
+            type(getattr(getattr(loaded, "model", None), "model", None)).__name__
+            for loaded in list(getattr(mm, "current_loaded_models", []))
+        ]
+    except Exception:  # noqa: BLE001
+        pass
+    return payload
+
+
+_POSE_ANALYZER = None
+
+
+def _pose_analyzer():
+    global _POSE_ANALYZER  # noqa: PLW0603 - one DWPose copy per ComfyUI process
+    if _POSE_ANALYZER is None:
+        _POSE_ANALYZER = PoseAnalyzer()
+    return _POSE_ANALYZER
+
+
 def info_payload():
     return {
         "name": "castcut-nodes",
         "version": CASTCUT_VERSION,
         "routes": list(ROUTES),
-        "analyze": {"faceAnalysis": FaceAnalyzer.available(), "ops": ["face-distance", "face-boxes"]},
+        "analyze": {
+            "faceAnalysis": FaceAnalyzer.available(),
+            "dwpose": PoseAnalyzer().available(),
+            "ops": list(ANALYZE_OPS),
+        },
     }
 
 
@@ -1812,7 +2058,7 @@ def register_routes():
         body = await read_json(request)
         if body is None:
             return web.json_response({"error": "JSON body required."}, status=400)
-        return await run(analyze_request, body, _analyzer())
+        return await run(analyze_request, body, _analyzer(), _pose_analyzer())
 
     @routes.post(f"{ROUTE_PREFIX}/stage")
     async def castcut_stage(request):
@@ -1824,6 +2070,25 @@ def register_routes():
     @routes.get(f"{ROUTE_PREFIX}/object-info-fingerprint")
     async def castcut_fingerprint(_request):
         return await run(fingerprint_request)
+
+    def queue_state():
+        running, pending = PromptServer.instance.prompt_queue.get_current_queue()
+        return running, pending
+
+    @routes.post(f"{ROUTE_PREFIX}/input-delete")
+    async def castcut_input_delete(request):
+        body = await read_json(request)
+        if body is None:
+            return web.json_response({"error": "JSON body required."}, status=400)
+        running, pending = queue_state()
+        # Names in a running or pending job's graph are never deleted.
+        queue_text = json.dumps([item[2] for item in running + pending if len(item) > 2])
+        return await run(input_delete_request, body, queue_text)
+
+    @routes.get(f"{ROUTE_PREFIX}/health")
+    async def castcut_health(_request):
+        running, pending = queue_state()
+        return await run(health_payload, {"running": len(running), "pending": len(pending)})
 
     return True
 

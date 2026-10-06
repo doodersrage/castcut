@@ -7,7 +7,11 @@
  * pack versions that renamed widgets still work; a missing pack reports `available: false`.
  */
 
-import { castcutFaceDistances, castcutRoutes } from '@/lib/castcut-routes-server';
+import {
+  castcutCanAnalyze,
+  castcutFaceDistances,
+  castcutRoutes,
+} from '@/lib/castcut-routes-server';
 import {
   comfyBaseUrl,
   fillComfyNodeInputs,
@@ -59,7 +63,7 @@ async function measureFaceMatchDirect(
   timeoutMs?: number
 ): Promise<FaceMatchResult | null> {
   const routes = await castcutRoutes(baseUrl);
-  if (!routes?.routes.includes('analyze') || !routes.faceAnalysis) return null;
+  if (!castcutCanAnalyze(routes, 'face-distance')) return null;
   let distances: number[] | null;
   try {
     distances = await castcutFaceDistances(baseUrl, {

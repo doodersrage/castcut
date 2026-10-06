@@ -1,14 +1,21 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 import {
+  castcutCanAnalyze,
   castcutFaceBoxes,
   castcutFaceDistances,
+  castcutFaceProbe,
+  castcutHealth,
+  castcutInputDelete,
   castcutObjectInfoFingerprint,
+  castcutPoseJson,
   castcutRoutes,
   castcutStageAsInput,
   forgetCastcutRoutes,
   parseCastcutRoutesInfo,
 } from './castcut-routes-server';
+import { namesAllowedToDelete } from './comfy-input-cleanup';
+import { describeCastcutHealth } from './castcut-nodes-setup';
 import { queueContextFromJobList } from './comfyui-status';
 import { measureFaceMatchInComfy } from './face-match-server';
 
@@ -49,6 +56,8 @@ describe('Castcut node pack routes', () => {
       version: '1.2.0',
       routes: INFO.routes,
       faceAnalysis: true,
+      dwpose: false,
+      ops: ['face-distance', 'face-boxes'],
     });
     assert.equal(parseCastcutRoutesInfo({ version: 1 }), null);
     assert.equal(parseCastcutRoutesInfo('nope'), null);
@@ -222,5 +231,116 @@ describe('face match through the pack route', () => {
     // The fake ComfyUI has no FaceAnalysis nodes either: the graph path says so.
     assert.equal(result.available, false);
     assert.ok(calls.some(call => call.url.includes('/object_info/')));
+  });
+});
+
+describe('Castcut nodes 1.3.0 routes', () => {
+  const INFO_13 = {
+    ...INFO,
+    version: '1.3.0',
+    routes: [...INFO.routes, 'input-delete', 'health'],
+    analyze: {
+      faceAnalysis: true,
+      dwpose: false,
+      ops: ['face-distance', 'face-boxes', 'face-probe', 'pose'],
+    },
+  };
+
+  it('knows which ops this pack answers, and what each needs', () => {
+    const info = parseCastcutRoutesInfo(INFO_13);
+    assert.equal(castcutCanAnalyze(info, 'face-probe'), true);
+    // DWPose missing on this ComfyUI: no pose op, whatever the list says.
+    assert.equal(castcutCanAnalyze(info, 'pose'), false);
+    assert.equal(castcutCanAnalyze(parseCastcutRoutesInfo({ ...INFO_13, analyze: { ...INFO_13.analyze, dwpose: true } }), 'pose'), true);
+    // A 1.2.0 pack (no ops list) answers the two face ops only.
+    const older = parseCastcutRoutesInfo(INFO);
+    assert.equal(castcutCanAnalyze(older, 'face-distance'), true);
+    assert.equal(castcutCanAnalyze(older, 'face-probe'), false);
+    assert.equal(castcutCanAnalyze(null, 'face-distance'), false);
+  });
+
+  it('face probe and pose: the bodies the graphs stood for, and their "none" answers', async () => {
+    const { impl, calls } = fakeFetch({
+      '/castcut/analyze': body => {
+        const op = (body as { op: string }).op;
+        if (op === 'face-probe') return [200, { faces: [{ x: 4, distance: 0.3 }, { x: 90, distance: 0.8 }] }];
+        return [200, { op: 'pose', error: 'no-dwpose' }];
+      },
+    });
+    const still = { filename: 'day-still-1.png', subfolder: '', type: 'input' };
+    const face = { filename: 'cast-face-crop-1.png', subfolder: '', type: 'input' };
+    assert.deepEqual(await castcutFaceProbe(BASE, { image: still, reference: face }, impl), [
+      { x: 4, distance: 0.3 },
+      { x: 90, distance: 0.8 },
+    ]);
+    assert.deepEqual(calls[0]!.body, {
+      op: 'face-probe',
+      provider: 'CPU',
+      image: still,
+      reference: face,
+      paddingPercent: 0.3,
+      count: 2,
+    });
+    assert.equal(await castcutPoseJson(BASE, { image: still }, impl), null);
+    assert.deepEqual(calls[1]!.body, { op: 'pose', image: still, hands: true, body: true, face: false });
+  });
+
+  it('input delete passes the names and the minimum age; health needs its route', async () => {
+    const { impl, calls } = fakeFetch({
+      '/castcut/info': () => [200, INFO_13],
+      '/castcut/input-delete': () => [200, { deleted: ['pose-check-a.png'], freedBytes: 10, skipped: [{ name: 'b.png', reason: 'in-queue' }] }],
+      '/castcut/health': () => [200, { version: '1.3.0', queue: { running: 1, pending: 2 }, faceAnalysis: true, dwpose: true }],
+    });
+    const result = await castcutInputDelete(BASE, { names: ['pose-check-a.png', 'b.png'], minAgeSeconds: 604800 }, impl);
+    assert.deepEqual(result.deleted, ['pose-check-a.png']);
+    assert.deepEqual(calls[0]!.body, { names: ['pose-check-a.png', 'b.png'], minAgeSeconds: 604800 });
+    assert.deepEqual((await castcutHealth(BASE, impl))?.queue, { running: 1, pending: 2 });
+    forgetCastcutRoutes();
+    const older = fakeFetch({ '/castcut/info': () => [200, INFO] });
+    assert.equal(await castcutHealth(BASE, older.impl), null);
+  });
+});
+
+describe('input folder delete allow-list', () => {
+  const report = {
+    removable: [
+      { name: 'pose-check-aaaa.png' },
+      { name: 'face-check-0123456789abcdef.png' },
+    ],
+    sources: { browser: 1, serverStorage: true, comfyQueue: true },
+  };
+
+  it('deletes only what the fresh scan offers', () => {
+    assert.deepEqual(
+      namesAllowedToDelete(report, [
+        'pose-check-aaaa.png',
+        'pose-check-aaaa.png',
+        'cast-plate-mine.png',
+        '../etc/passwd',
+        'face-check-0123456789abcdef.png',
+      ]),
+      ['pose-check-aaaa.png', 'face-check-0123456789abcdef.png']
+    );
+  });
+
+  it('nothing when the queue could not be read', () => {
+    assert.deepEqual(
+      namesAllowedToDelete({ ...report, sources: { ...report.sources, comfyQueue: false } }, [
+        'pose-check-aaaa.png',
+      ]),
+      []
+    );
+  });
+
+  it('the card says which checks skip the queue', () => {
+    assert.equal(describeCastcutHealth(null), null);
+    assert.equal(
+      describeCastcutHealth({
+        faceAnalysis: true,
+        dwpose: true,
+        vram: { freeBytes: 4 * 1024 ** 3, totalBytes: 24 * 1024 ** 3 },
+      }),
+      'Without the queue: face checks and pose checks · GPU memory free: 4.0 of 24 GB.'
+    );
   });
 });

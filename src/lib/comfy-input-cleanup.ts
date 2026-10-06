@@ -159,7 +159,24 @@ export type ComfyInputFolderReport = {
   byCategory: Array<{ category: string; count: number; bytes: number }>;
   command: string;
   sources: { browser: number; serverStorage: boolean; comfyQueue: boolean };
+  /** The Castcut pack (1.3.0+) can delete them from inside ComfyUI, after you confirm. */
+  canDelete?: boolean;
 };
+
+/**
+ * The names a delete may touch: only what this scan itself offers as removable. A request that
+ * names anything else (a typo, a stale list, a file in use since) has those names dropped here.
+ */
+export function namesAllowedToDelete(
+  report: Pick<ComfyInputFolderReport, 'removable' | 'sources'>,
+  requested: readonly string[]
+): string[] {
+  if (!report.sources.comfyQueue) return [];
+  const removable = new Set(report.removable.map(file => file.name));
+  return [...new Set(requested.map(name => name.trim()))].filter(
+    name => removable.has(name) && PLAIN_NAME_RE.test(name) && isAppMadeInputName(name)
+  );
+}
 
 /** Split the input folder into what is safe to remove and what stays. */
 export function findUnreferencedAppInputs(input: {

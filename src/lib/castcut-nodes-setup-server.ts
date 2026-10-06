@@ -3,6 +3,7 @@
  * ComfyUI-Manager. Read-only GETs except the install itself.
  */
 
+import { castcutHealth, type CastcutHealth } from './castcut-routes-server';
 import { CASTCUT_NODE_TYPES } from './castcut-nodes';
 import {
   CASTCUT_NODES_GIT_URL,
@@ -33,6 +34,8 @@ export type CastcutNodesReport = {
   /** ComfyUI's own render queue (restart waits for it). */
   queue: { running: number; pending: number } | null;
   system: ComfyUiSystemInfo | null;
+  /** The pack's /castcut/health (1.3.0+): what it can check without the queue. */
+  health?: CastcutHealth | null;
 };
 
 async function getJson(
@@ -63,6 +66,8 @@ export async function readCastcutNodesReport(
   fetchImpl: FetchLike = fetch
 ): Promise<CastcutNodesReport> {
   const origin = baseUrl.replace(/\/+$/, '');
+  // The pack's health answers the queue counts in a few bytes; /queue carries every pending graph.
+  const health = await castcutHealth(origin, fetchImpl).catch(() => null);
   const [nodeAnswers, stats, queue, manager] = await Promise.all([
     Promise.all(
       CASTCUT_NODE_TYPES.map(async type => {
@@ -72,7 +77,7 @@ export async function readCastcutNodesReport(
       })
     ),
     getJson(`${origin}/system_stats`, fetchImpl),
-    getJson(`${origin}/queue`, fetchImpl),
+    health ? Promise.resolve({ ok: false, data: null }) : getJson(`${origin}/queue`, fetchImpl),
     detectComfyManager(origin, fetchImpl).catch(() => null),
   ]);
   const reachable = nodeAnswers.some(answer => answer.ok);
@@ -84,8 +89,9 @@ export async function readCastcutNodesReport(
         )
       : null,
     manager: manager ? { version: manager.version, api: manager.api } : null,
-    queue: queue.ok ? countComfyQueue(queue.data) : null,
+    queue: health ? health.queue : queue.ok ? countComfyQueue(queue.data) : null,
     system: stats.ok ? parseComfyUiSystemStats(stats.data) : null,
+    health,
   };
 }
 

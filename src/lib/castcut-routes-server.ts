@@ -16,6 +16,10 @@ export type CastcutRoutesInfo = {
   version: string;
   routes: string[];
   faceAnalysis: boolean;
+  /** DWPose (comfyui_controlnet_aux) is installed, for the `pose` op (1.3.0+). */
+  dwpose: boolean;
+  /** `analyze` ops this pack answers ("face-distance", "face-boxes", "face-probe", "pose"). */
+  ops: string[];
 };
 
 const INFO_TTL_MS = 5 * 60 * 1000;
@@ -23,7 +27,7 @@ const INFO_TTL_MS = 5 * 60 * 1000;
 const MISSING_TTL_MS = 60 * 1000;
 const infoCache = new Map<string, { at: number; info: CastcutRoutesInfo | null }>();
 
-type FetchLike = typeof fetch;
+type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 function hostKey(baseUrl: string): string {
   return baseUrl.trim().replace(/\/+$/, '');
@@ -44,6 +48,11 @@ export function parseCastcutRoutesInfo(payload: unknown): CastcutRoutesInfo | nu
     version: body.version,
     routes: body.routes.filter((route): route is string => typeof route === 'string'),
     faceAnalysis: analyze.faceAnalysis === true,
+    dwpose: analyze.dwpose === true,
+    ops: Array.isArray(analyze.ops)
+      ? analyze.ops.filter((op): op is string => typeof op === 'string')
+      : // 1.2.0 listed the two face ops it had.
+        ['face-distance', 'face-boxes'],
   };
 }
 
@@ -202,6 +211,127 @@ export async function castcutObjectInfoFingerprint(
     if (!response.ok) return null;
     const body = (await response.json()) as { fingerprint?: unknown };
     return typeof body.fingerprint === 'string' && body.fingerprint ? body.fingerprint : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The pack answers this `analyze` op (and what it needs is installed). */
+export function castcutCanAnalyze(info: CastcutRoutesInfo | null, op: string): boolean {
+  if (!info?.routes.includes('analyze') || !info.ops.includes(op)) return false;
+  return op === 'pose' ? info.dwpose : info.faceAnalysis;
+}
+
+export type CastcutProbedFace = { x: number; distance: number };
+
+/**
+ * The Face finish probe (face-finish.ts buildLeadFaceProbeGraph) in one call: the `count` largest
+ * faces, each cropped with `paddingPercent` and compared with the reference. [] when the still
+ * shows no face; null when the reference shows none.
+ */
+export async function castcutFaceProbe(
+  baseUrl: string,
+  input: {
+    image: CastcutImageSource;
+    reference: CastcutImageSource;
+    paddingPercent?: number;
+    count?: number;
+    timeoutMs?: number;
+  },
+  fetchImpl: FetchLike = fetch
+): Promise<CastcutProbedFace[] | null> {
+  const result = await postJson<{ faces?: unknown; error?: string }>(
+    `${hostKey(baseUrl)}/castcut/analyze`,
+    {
+      op: 'face-probe',
+      provider: 'CPU',
+      image: sourceBody(input.image),
+      reference: sourceBody(input.reference),
+      paddingPercent: input.paddingPercent ?? 0.3,
+      count: input.count ?? 2,
+    },
+    input.timeoutMs ?? 30_000,
+    fetchImpl
+  );
+  if (result.error === 'no-face-in-reference') return null;
+  if (!Array.isArray(result.faces)) throw new Error('Castcut analyze returned no faces.');
+  return result.faces as CastcutProbedFace[];
+}
+
+/**
+ * DWPose's `openpose_json` for one picture (body + hands, no face, as the pose-check graph asks),
+ * read on the CPU inside ComfyUI. Null when DWPose is not installed.
+ */
+export async function castcutPoseJson(
+  baseUrl: string,
+  input: { image: CastcutImageSource; timeoutMs?: number },
+  fetchImpl: FetchLike = fetch
+): Promise<string | null> {
+  const result = await postJson<{ openpose_json?: unknown; error?: string }>(
+    `${hostKey(baseUrl)}/castcut/analyze`,
+    { op: 'pose', image: sourceBody(input.image), hands: true, body: true, face: false },
+    input.timeoutMs ?? 60_000,
+    fetchImpl
+  );
+  if (result.error === 'no-dwpose') return null;
+  if (typeof result.openpose_json !== 'string') throw new Error('Castcut pose returned no JSON.');
+  return result.openpose_json;
+}
+
+export type CastcutInputDeleteResult = {
+  deleted: string[];
+  freedBytes: number;
+  skipped: Array<{ name: string; reason: string }>;
+};
+
+/**
+ * Remove these files from ComfyUI's input folder. The pack deletes only plain names in the
+ * folder's top level, at least `minAgeSeconds` old (never under a day), that no running or
+ * pending job names. The caller decides which names; this only asks.
+ */
+export async function castcutInputDelete(
+  baseUrl: string,
+  input: { names: readonly string[]; minAgeSeconds: number },
+  fetchImpl: FetchLike = fetch
+): Promise<CastcutInputDeleteResult> {
+  const result = await postJson<Partial<CastcutInputDeleteResult>>(
+    `${hostKey(baseUrl)}/castcut/input-delete`,
+    { names: input.names, minAgeSeconds: input.minAgeSeconds },
+    120_000,
+    fetchImpl
+  );
+  return {
+    deleted: Array.isArray(result.deleted) ? result.deleted.filter(n => typeof n === 'string') : [],
+    freedBytes: typeof result.freedBytes === 'number' ? result.freedBytes : 0,
+    skipped: Array.isArray(result.skipped) ? result.skipped : [],
+  };
+}
+
+export type CastcutHealth = {
+  version: string;
+  queue: { running: number; pending: number };
+  faceAnalysis: boolean;
+  dwpose: boolean;
+  analyzersLoaded?: { face: boolean; pose: boolean };
+  vram?: { freeBytes: number; totalBytes: number };
+  loadedModels?: string[];
+};
+
+/** One call for what ComfyUI is doing: queue, free VRAM, loaded models, the pack's analyzers. */
+export async function castcutHealth(
+  baseUrl: string,
+  fetchImpl: FetchLike = fetch
+): Promise<CastcutHealth | null> {
+  const info = await castcutRoutes(baseUrl, fetchImpl);
+  if (!info?.routes.includes('health')) return null;
+  try {
+    const response = await fetchImpl(`${hostKey(baseUrl)}/castcut/health`, {
+      signal: AbortSignal.timeout(5000),
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    const body = (await response.json()) as CastcutHealth;
+    return typeof body?.version === 'string' ? body : null;
   } catch {
     return null;
   }
