@@ -120,7 +120,6 @@
 | [Play film guide](play-guide.md) | Look → Cut → Cast walkthrough, metrics, share/resume |
 | [Configuration & deployment](configuration.md) | `.env.local`, LLM, auth, security, production checklist, Docker |
 | [Desktop app](desktop.md) | Tauri installers (macOS / Windows / Linux) |
-| [ComfyUI custom nodes (GitHub)](https://github.com/doodersrage/castcut/blob/main/comfyui/comfyui_image_prompt_tools/README.md) | Install `PromptTools*` nodes into ComfyUI |
 
 ### Using the app
 

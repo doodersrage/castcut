@@ -192,9 +192,6 @@ Jump to: [Prompt generation](#prompt-generation) · [Scene tools](#scene-tools) 
 - **Multi-ComfyUI pool** — `COMFYUI_POOL` plus Settings extras; load-balance skips busy hosts; OOM / dead-host retry fails over; optional sticky preferred host for gallery stills
 - **Second-GPU snippet** — after Test (or allowlist miss), copy `COMFYUI_POOL` / `COMFYUI_ALLOWED_HOSTS` into `.env.local`; probe never fetches an unallowlisted host
 - **Queue artifacts** — optional `COMFYUI_QUEUE_EXPORT_DIR` or Settings overlay writes JSON sidecars after queue
-- **ComfyUI job status node** — `PromptToolsJobStatus` polls `/api/comfyui/status`
-- **ComfyUI Topics Batch node** — `PromptToolsTopicsBatch` calls `/api/topics/batch`
-- **ComfyUI avoided tokens** — optional `avoided_tokens` input on generator nodes passes motif avoidance to the API
 - **Negative A/B** — same-seed ComfyUI queue with/without negative for SD-family models
 - **Same-seed shootout** — queue one prompt across models with identical seed (Settings → Advanced)
 - **Auto-improve loop** — optional auto-mutate or seed-experiment on high ratings / favorites

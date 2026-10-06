@@ -169,7 +169,6 @@ Legacy URLs `/duo` and `/random-scene` redirect to Character and Generate.
 ## ComfyUI integration
 
 - **Workflow takeover** at queue time — [docs/workflow-takeover.md](docs/workflow-takeover.md)
-- **Custom nodes** — [comfyui/comfyui_image_prompt_tools/README.md](comfyui/comfyui_image_prompt_tools/README.md)
 - **Castcut nodes** (optional checks inside the job) — [docs/castcut-nodes.md](docs/castcut-nodes.md)
 - **HTTP API** — [docs/http-api.md](docs/http-api.md) (live catalog: `GET /api`; health, probe, invite, SMTP)
 - **Architecture** — [docs/architecture.md](docs/architecture.md)

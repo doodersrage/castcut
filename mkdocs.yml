@@ -104,7 +104,6 @@ nav:
       - Performance & scripts: performance/guide.md
   - External:
       - Main README (GitHub): https://github.com/doodersrage/castcut/blob/main/README.md
-      - ComfyUI nodes: https://github.com/doodersrage/castcut/blob/main/comfyui/comfyui_image_prompt_tools/README.md
       - Diffusers engine: https://github.com/doodersrage/castcut/blob/main/services/diffusers-engine/README.md
 
 extra:
