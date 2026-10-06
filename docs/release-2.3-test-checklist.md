@@ -32,6 +32,19 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
 - [ ] **Speed** — a Day of four stills with the same Cast: only the first still pauses for the check
   (dev tools → Network: one `/api/reference-check` per picture, later ones under a second or none).
 
+### Day
+
+- [ ] **Two takes, likelier first** — Intimate Day → Advanced → *Two takes, you pick* on, Queue day.
+  When a slot's two takes have both landed, the status line under the plan bar says *Counting
+  Morning's two takes…* then *Morning: take 2 first — the other counted more oddities. You pick.*
+  (or *both takes counted alike — you pick*). On the card the take with fewer counted faces /
+  hands / limbs oddities is on the left with a note under it (*Take 2: Shown first — the other
+  take counted one face. A hint only: you pick.*); the *Take 1* / *Take 2* labels and *Keep this
+  one* stay with their takes, so keeping the right-hand one keeps that take. Nothing is redone.
+  ComfyUI's queue shows one short `castcut-duo-count` job per take. Without the Impact Pack (or
+  its `bbox/face_yolov8m.pt` / `bbox/hand_yolov8s.pt`), the status line says *Two takes order
+  off: …* once and the takes keep their order.
+
 ---
 
 ## 2.3.1 — needs your check

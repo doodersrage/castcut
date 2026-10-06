@@ -766,6 +766,86 @@ async function seedStoryMidFlow(
   });
 }
 
+test('day two takes: the take that counted fewer oddities is shown first, the pick stays yours', async ({
+  page,
+}) => {
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: 'e2e-day-duo', name: 'Day Duo', version: 1, updatedAt: Date.now() }],
+        removedIds: [],
+      })
+    );
+  });
+  // The count check (duo-still-check.ts), stubbed: take 1 counts one face, take 2 two.
+  const counted: string[] = [];
+  await page.route('**/api/duo-still-check', async route => {
+    const body = route.request().postDataJSON() as { imageUrl?: string };
+    counted.push(body.imageUrl ?? '');
+    const first = counted.length === 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        available: true,
+        counts: { faces: first ? 1 : 2, hands: 4, people: 2, wrists: 4, ankles: 4 },
+      }),
+    });
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-day-duo' },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-day-duo',
+        dayMood: 'intimate',
+        twoTakesIntimate: true,
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'bedroom', sceneHints: 'wakes up' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
+        ],
+        stills: [
+          {
+            slotId: 'morning',
+            status: 'completed',
+            imageUrl: `${thumb}?take=1`,
+            promptId: 'e2e-t1',
+            twoTakes: { promptId: 'e2e-t2', status: 'completed', imageUrl: `${thumb}?take=2` },
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/day?character=e2e-day-duo');
+  await dismissBlockingOverlays(page);
+  const pick = page.getByTestId('day-two-takes-morning');
+  await expect(pick).toBeVisible({ timeout: 30_000 });
+  await expect(pick).toHaveAttribute('data-ready', 'true');
+  // Both takes were counted, then Take 2 (fewer oddities) moved to the front with its note.
+  const likelier = pick.getByTestId('day-two-takes-morning-likelier');
+  await expect(likelier).toBeVisible({ timeout: 30_000 });
+  await expect(likelier).toHaveAttribute('data-take', 'second');
+  await expect(likelier).toContainText(/Take 2: Shown first — the other take counted one face/);
+  await expect(likelier).toContainText(/you pick/);
+  expect(counted).toHaveLength(2);
+  const images = pick.locator('img');
+  await expect(images.first()).toHaveAttribute('src', /take=2/);
+  await expect(images.nth(1)).toHaveAttribute('src', /take=1/);
+  await expect(page.getByTestId('day-two-takes-order-status')).toContainText(
+    /Morning: take 2 first — the other counted more oddities\. You pick\./
+  );
+  // The pick buttons stay with their takes: "Keep this one" under Take 1 keeps the first.
+  await pick.getByTestId('day-two-takes-morning-keep-first').click();
+  await expect(pick).toHaveCount(0);
+  await openDaySlotSheet(page, 'morning');
+  await expect(page.getByTestId('day-two-takes-picked')).toBeVisible({ timeout: 30_000 });
+  // Counted once per pair: nothing ran again after the pick.
+  expect(counted).toHaveLength(2);
+  await closeDaySheets(page);
+});
+
 test('story mid-flow: Roll leads, settings fold, no default Part', async ({ page }) => {
   await seedStoryMidFlow(page, 'e2e-story-mid');
   await gotoStable(page, '/story?character=e2e-story-mid');

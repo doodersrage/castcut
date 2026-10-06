@@ -148,6 +148,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     twoTakesIntimate,
     setTwoTakesIntimate,
     bestOfTwoStatus,
+    twoTakesOrderStatus,
     bestEnginePerPose,
     setBestEnginePerPose,
     posePriority,
@@ -783,6 +784,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
           qualityStatus={qualityStatus}
           poseRedoStatus={poseRedoStatus}
           bestOfTwoStatus={bestOfTwoStatus}
+          twoTakesIntimate={twoTakesIntimate}
+          twoTakesOrderStatus={twoTakesOrderStatus}
         />
         {advancedOpen ? (
           <DayAdvancedDrawer

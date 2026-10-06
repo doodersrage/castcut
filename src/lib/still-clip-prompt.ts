@@ -13,7 +13,8 @@ export function stillPromptPeople(stillPrompt: string | null | undefined): 1 | 2
 /**
  * A two-person intimate still (the Rapid duo recipe, or adult wording with two people). The pose
  * checks can't judge these — DWPose merges the two bodies on ~40%, and the best defect check
- * caught 28% at 19% false alarms — so Day never redoes them automatically for the pose.
+ * caught 28% at 19% false alarms (counts that need no body separation did no better:
+ * duo-still-check.ts) — so Day never redoes them automatically for the pose.
  */
 export function isIntimateDuoStillPrompt(stillPrompt: string | null | undefined): boolean {
   const text = String(stillPrompt ?? '');

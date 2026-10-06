@@ -7,12 +7,13 @@ import {
   type DaySlot,
   type DaySlotStill,
 } from '@/lib/day-planner';
-import { dayTwoTakesImages, dayTwoTakesPending, dayTwoTakesReady } from '@/lib/day-two-takes';
+import { dayTwoTakesOrdered, dayTwoTakesPending, dayTwoTakesReady } from '@/lib/day-two-takes';
 
 /**
  * Two takes of an intimate still side by side (day-two-takes.ts): a "Keep this one" under each
  * once both have landed; a take still rendering shows an empty frame. Used on the slot card and
- * in the slot sheet.
+ * in the slot sheet. The take that counted fewer oddities (faces, hands, limbs —
+ * duo-still-check.ts) is shown first with a note; the labels stay with their takes.
  */
 export function DayTwoTakesPick({
   slot,
@@ -28,11 +29,7 @@ export function DayTwoTakesPick({
   compact?: boolean;
 }) {
   const ready = dayTwoTakesReady(still);
-  const images = dayTwoTakesImages(still);
-  const takes = [
-    { keep: 'first' as const, label: 'Take 1', url: images.first },
-    { keep: 'second' as const, label: 'Take 2', url: images.second },
-  ];
+  const takes = dayTwoTakesOrdered(still);
   return (
     <div
       className={
@@ -65,16 +62,27 @@ export function DayTwoTakesPick({
               ) : null}
             </div>
             {ready ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                className="mt-1 w-full"
-                aria-label={`Keep ${slot.label} ${take.label.toLowerCase()}`}
-                data-testid={`${testId}-keep-${take.keep}`}
-                onClick={() => onPick(take.keep)}
-              >
-                Keep this one
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-1 w-full"
+                  aria-label={`Keep ${slot.label} ${take.label.toLowerCase()}`}
+                  data-testid={`${testId}-keep-${take.keep}`}
+                  onClick={() => onPick(take.keep)}
+                >
+                  Keep this one
+                </Button>
+                {take.likelier && take.note ? (
+                  <figcaption
+                    className="type-caption mt-1 text-[var(--text-muted)]"
+                    data-testid={`${testId}-likelier`}
+                    data-take={take.keep}
+                  >
+                    {take.label}: {take.note}
+                  </figcaption>
+                ) : null}
+              </>
             ) : (
               <figcaption className="type-caption mt-1 text-[var(--text-muted)]">
                 {take.url ? take.label : `${take.label} rendering…`}

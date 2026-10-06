@@ -44,6 +44,10 @@ export type DayQualityStatusProps = {
   poseRedoStatus?: string | null;
   /** Latest best-of-two line (checking / second take / kept). */
   bestOfTwoStatus?: string | null;
+  /** Two takes, you pick (intimate stills): the count that orders the two takes on the card. */
+  twoTakesIntimate?: boolean;
+  /** Latest two-takes count line (counting / which take is first / off). */
+  twoTakesOrderStatus?: string | null;
 };
 
 /**
@@ -59,6 +63,8 @@ export function DayQualityStatusLines({
   qualityStatus = null,
   poseRedoStatus = null,
   bestOfTwoStatus = null,
+  twoTakesIntimate = false,
+  twoTakesOrderStatus = null,
 }: DayQualityStatusProps) {
   const lines: Array<{ id: string; text: string; live?: boolean }> = [];
   if (faceFinish && faceFinishStatus) {
@@ -72,6 +78,9 @@ export function DayQualityStatusLines({
   }
   if (bestOfTwoHardPoses && !autoReviewStills && bestOfTwoStatus) {
     lines.push({ id: 'day-best-of-two-status', text: bestOfTwoStatus, live: true });
+  }
+  if (twoTakesIntimate && twoTakesOrderStatus) {
+    lines.push({ id: 'day-two-takes-order-status', text: twoTakesOrderStatus, live: true });
   }
   if (lines.length === 0) return null;
   return (
@@ -293,7 +302,8 @@ export default function DayAdvancedDrawer({
             </SwitchButton>
             {twoTakesIntimate ? (
               <p className="type-caption text-[var(--text-muted)]" data-testid="day-two-takes-hint">
-                Two renders per intimate still. Best of two and pose redos leave these to you.
+                Two renders per intimate still. Best of two and pose redos leave these to you; the
+                take that counted fewer oddities (faces, hands, limbs) is shown first, as a hint.
               </p>
             ) : null}
           </div>

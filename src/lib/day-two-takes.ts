@@ -84,6 +84,66 @@ export function dayTwoTakesReady(still: StillForPick | null | undefined): boolea
   );
 }
 
+/** One take on the card, in display order (dayTwoTakesOrdered). */
+export type DayTwoTakeCard = {
+  keep: 'first' | 'second';
+  label: 'Take 1' | 'Take 2';
+  url: string;
+  /** This take counted fewer oddities than the other (duo-still-check.ts) — shown first. */
+  likelier: boolean;
+  note?: string;
+};
+
+/**
+ * The takes as the card shows them: the still (Take 1) then the other (Take 2), unless the
+ * counts put Take 2 first. Labels and `keep` stay with their takes, so a pick means the same
+ * whichever is shown first.
+ */
+export function dayTwoTakesOrdered(still: StillForPick | null | undefined): DayTwoTakeCard[] {
+  const images = dayTwoTakesImages(still);
+  const likelier = still?.twoTakes?.likelier;
+  const note = still?.twoTakes?.likelierNote;
+  const takes: DayTwoTakeCard[] = [
+    { keep: 'first', label: 'Take 1', url: images.first, likelier: likelier === 'first' },
+    { keep: 'second', label: 'Take 2', url: images.second, likelier: likelier === 'second' },
+  ];
+  for (const take of takes) {
+    if (take.likelier && note) take.note = note;
+  }
+  return likelier === 'second' ? [takes[1]!, takes[0]!] : takes;
+}
+
+/** Both takes landed and were not counted yet (the ordering runs once per pair). */
+export function dayTwoTakesNeedsOrder(still: StillForPick | null | undefined): boolean {
+  return Boolean(still && dayTwoTakesReady(still) && !still.twoTakes?.likelierChecked);
+}
+
+/**
+ * Both takes counted: remember which to show first (none on a tie). The same object when the
+ * pair has moved on (a pick, a requeue) since the counts were asked for.
+ */
+export function dayTwoTakesOrderPatch(
+  still: StillForPick | null | undefined,
+  pairId: string,
+  likelier: { pick: 'first' | 'second'; note: string } | null
+): DaySlotStill | null {
+  if (!still?.twoTakes || dayTwoTakesPairId(still) !== pairId) return null;
+  return {
+    slotId: still.slotId,
+    twoTakes: {
+      ...still.twoTakes,
+      likelierChecked: true,
+      ...(likelier ? { likelier: likelier.pick, likelierNote: likelier.note } : {}),
+    },
+  };
+}
+
+/** The pair a still shows: its take and the second take (empty without a second). */
+export function dayTwoTakesPairId(still: StillForPick | null | undefined): string {
+  const second = still?.twoTakes?.promptId?.trim();
+  return second ? `${still?.promptId?.trim() ?? ''}|${second}` : '';
+}
+
 /** The two pictures to show side by side (first = the still, second = the other take). */
 export function dayTwoTakesImages(still: StillForPick | null | undefined): {
   first: string;

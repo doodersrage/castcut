@@ -5,6 +5,10 @@ import {
   dayTwoTakesImages,
   dayTwoTakesJudged,
   dayTwoTakesMark,
+  dayTwoTakesNeedsOrder,
+  dayTwoTakesOrderPatch,
+  dayTwoTakesOrdered,
+  dayTwoTakesPairId,
   dayTwoTakesPending,
   dayTwoTakesPickPatch,
   dayTwoTakesReady,
@@ -300,5 +304,94 @@ describe('two takes through the Day still store', () => {
     assert.equal(still.imageUrl, '/b.png');
     assert.equal(still.status, 'completed');
     assert.equal(still.twoTakes, undefined);
+  });
+});
+
+describe('two takes order (duo-still-check counts)', () => {
+  const note = 'Shown first — the other take counted one face.';
+
+  it('shows Take 1 then Take 2 until the counts say otherwise; labels stay with their takes', () => {
+    const plain = dayTwoTakesOrdered(ready);
+    assert.deepEqual(
+      plain.map(take => [take.keep, take.label, take.url, take.likelier]),
+      [
+        ['first', 'Take 1', '/a.png', false],
+        ['second', 'Take 2', '/b.png', false],
+      ]
+    );
+    const secondFirst = dayTwoTakesOrdered({
+      ...ready,
+      twoTakes: { ...ready.twoTakes!, likelierChecked: true, likelier: 'second', likelierNote: note },
+    });
+    assert.deepEqual(
+      secondFirst.map(take => [take.keep, take.label, take.likelier, take.note]),
+      [
+        ['second', 'Take 2', true, note],
+        ['first', 'Take 1', false, undefined],
+      ]
+    );
+    const firstFirst = dayTwoTakesOrdered({
+      ...ready,
+      twoTakes: { ...ready.twoTakes!, likelierChecked: true, likelier: 'first', likelierNote: 'n' },
+    });
+    assert.deepEqual(
+      firstFirst.map(take => take.keep),
+      ['first', 'second']
+    );
+    assert.equal(firstFirst[0]!.note, 'n');
+  });
+
+  it('needs an order once both takes landed, and only once per pair', () => {
+    assert.equal(dayTwoTakesNeedsOrder(pending), false);
+    assert.equal(dayTwoTakesNeedsOrder(ready), true);
+    assert.equal(
+      dayTwoTakesNeedsOrder({ ...ready, twoTakes: { ...ready.twoTakes!, likelierChecked: true } }),
+      false
+    );
+    assert.equal(dayTwoTakesNeedsOrder({ ...ready, adultHold: 'checking' }), false);
+    assert.equal(dayTwoTakesPairId(ready), 'p-a|p-b');
+    assert.equal(dayTwoTakesPairId({ ...ready, twoTakes: undefined }), '');
+  });
+
+  it('remembers the likelier take for the pair it counted, and nothing for a tie', () => {
+    const patch = dayTwoTakesOrderPatch(ready, 'p-a|p-b', { pick: 'second', note: 'why' });
+    assert.deepEqual(patch, {
+      slotId: 'morning',
+      twoTakes: {
+        promptId: 'p-b',
+        imageUrl: '/b.png',
+        status: 'completed',
+        likelierChecked: true,
+        likelier: 'second',
+        likelierNote: 'why',
+      },
+    });
+    const tie = dayTwoTakesOrderPatch(ready, 'p-a|p-b', null);
+    assert.deepEqual(tie?.twoTakes, { ...ready.twoTakes, likelierChecked: true });
+    // The pair moved on (a requeue) while the counts ran: no patch.
+    assert.equal(dayTwoTakesOrderPatch(ready, 'p-a|p-z', { pick: 'first', note: 'n' }), null);
+    assert.equal(dayTwoTakesOrderPatch({ ...ready, twoTakes: undefined }, 'p-a|p-b', null), null);
+  });
+
+  it('keeps the order fields through the stills normalizer and a gallery poll', () => {
+    const ordered: DaySlotStill = {
+      ...ready,
+      twoTakes: { ...ready.twoTakes!, likelierChecked: true, likelier: 'second', likelierNote: 'why' },
+    };
+    const normalized = normalizeDaySlotStills([ordered])[0]!;
+    assert.deepEqual(normalized.twoTakes, ordered.twoTakes);
+    const junk = normalizeDaySlotStills([
+      { ...ready, twoTakes: { ...ready.twoTakes!, likelier: 'third' as 'first' } },
+    ])[0]!;
+    assert.equal(junk.twoTakes?.likelier, undefined);
+    // A poll that finds both takes unchanged keeps the same take object (and its order).
+    const polled = mergeDaySlotStills(
+      [ordered],
+      [
+        { promptId: 'p-a', status: 'completed', imageUrl: '/a.png' },
+        { promptId: 'p-b', status: 'completed', imageUrl: '/b.png' },
+      ]
+    );
+    assert.equal(polled.stills[0]!.twoTakes?.likelier, 'second');
   });
 });

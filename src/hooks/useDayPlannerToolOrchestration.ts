@@ -8,6 +8,7 @@ import { useDaySlotQualityGate } from '@/hooks/day-planner/useDaySlotQualityGate
 import { useDayFaceFinish } from '@/hooks/day-planner/useDayFaceFinish';
 import { useDayPoseMissRedo } from '@/hooks/day-planner/useDayPoseMissRedo';
 import { useDayBestOfTwo } from '@/hooks/day-planner/useDayBestOfTwo';
+import { useDayTwoTakesOrder } from '@/hooks/day-planner/useDayTwoTakesOrder';
 import { useDayClipQualityCheck } from '@/hooks/day-planner/useDayClipQualityCheck';
 import { useDayEndPose } from '@/hooks/day-planner/useDayEndPose';
 import { useDayAdultGate } from '@/hooks/day-planner/useDayAdultGate';
@@ -84,6 +85,8 @@ export function useDayPlannerToolOrchestration() {
     checksFirst ? poseChecks : undefined
   );
   const bestOfTwo = useDayBestOfTwo(core, faceFinishHold);
+  // Two takes: the take that counted fewer oddities goes first on the card (no redo).
+  const twoTakesOrder = useDayTwoTakesOrder(core);
   const { poseMissViews: reviewPoseMissViews } = quality;
   const { poseRedoMissViews } = poseRedo;
   // Auto-review's pose misses, else the pose-redo check's (only one of the two runs).
@@ -342,6 +345,7 @@ export function useDayPlannerToolOrchestration() {
       ...twoTakesMarks,
     },
     bestOfTwoStatus: bestOfTwo.bestOfTwoStatus,
+    twoTakesOrderStatus: twoTakesOrder.twoTakesOrderStatus,
     faceFinishStatus: faceFinish.faceFinishStatus,
     adultGateStatus: adultGate.adultGateStatus,
     ...clips,

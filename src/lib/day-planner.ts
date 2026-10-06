@@ -371,6 +371,14 @@ export type DayTwoTake = {
   status?: DaySlotStillStatus;
   /** The adult-appearance gate holds it (see DaySlotStill.adultHold). */
   adultHold?: 'checking' | 'withheld';
+  /**
+   * Both takes were counted (duo-still-check.ts: faces, hands, bodies, limbs). `likelier` is
+   * the take with fewer counted oddities, shown first on the card with `likelierNote`; unset on
+   * a tie. `likelierChecked` stops the count running twice.
+   */
+  likelierChecked?: boolean;
+  likelier?: 'first' | 'second';
+  likelierNote?: string;
 };
 
 /** Per-slot still tracked for the day-in-the-life reel / Cut film. */
@@ -4275,12 +4283,17 @@ function readTwoTakes(value: DaySlotStill['twoTakes']): Pick<DaySlotStill, 'twoT
   const imageUrl = readText(value?.imageUrl, 2048);
   const status = readStillStatus(value?.status);
   const hold = value?.adultHold;
+  const likelier = value?.likelier;
+  const likelierNote = readText(value?.likelierNote, 240);
   return {
     twoTakes: {
       promptId,
       ...(imageUrl ? { imageUrl } : {}),
       ...(status ? { status } : {}),
       ...(hold === 'checking' || hold === 'withheld' ? { adultHold: hold } : {}),
+      ...(value?.likelierChecked === true ? { likelierChecked: true } : {}),
+      ...(likelier === 'first' || likelier === 'second' ? { likelier } : {}),
+      ...(likelierNote ? { likelierNote } : {}),
     },
   };
 }

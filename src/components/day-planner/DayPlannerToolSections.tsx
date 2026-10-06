@@ -157,6 +157,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     twoTakesIntimate,
     setTwoTakesIntimate,
     bestOfTwoStatus,
+    twoTakesOrderStatus,
     bestEnginePerPose,
     setBestEnginePerPose,
     posePriority,
@@ -836,6 +837,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               qualityStatus={qualityStatus}
               poseRedoStatus={poseRedoStatus}
               bestOfTwoStatus={bestOfTwoStatus}
+              twoTakesIntimate={twoTakesIntimate}
+              twoTakesOrderStatus={twoTakesOrderStatus}
             />
           </div>
           {advancedOpen ? (
