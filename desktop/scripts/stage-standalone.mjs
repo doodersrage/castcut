@@ -95,19 +95,29 @@ async function dropMuslNativePackages() {
   // standalone trace can copy sharp's musl build (@img/sharp-linuxmusl-*, @img/sharp-libvips-
   // linuxmusl-*), and linuxdeploy then fails the AppImage: "Could not find dependency:
   // libc.musl-x86_64.so.1" (v2.3.1 release, 2026-10-05).
-  const imgDir = path.join(dest, 'node_modules', '@img');
-  let entries = [];
-  try {
-    entries = await readdir(imgDir);
-  } catch {
-    return;
-  }
-  const musl = entries.filter(name => name.includes('linuxmusl'));
-  for (const name of musl) {
-    await rm(path.join(imgDir, name), { recursive: true, force: true });
-  }
-  if (musl.length > 0) {
-    console.log(`Dropped ${musl.length} musl-only native package(s): ${musl.join(', ')}`);
+  // Every copy, nested ones included (next/node_modules/@img/sharp-linuxmusl-x64 on v2.3.2).
+  const dropped = [];
+  const walk = async dir => {
+    let entries = [];
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const full = path.join(dir, entry.name);
+      if (path.basename(dir) === '@img' && entry.name.includes('linuxmusl')) {
+        await rm(full, { recursive: true, force: true });
+        dropped.push(path.relative(dest, full));
+      } else if (entry.name === 'node_modules' || entry.name.startsWith('@') || dir.endsWith('node_modules')) {
+        await walk(full);
+      }
+    }
+  };
+  await walk(path.join(dest, 'node_modules'));
+  if (dropped.length > 0) {
+    console.log(`Dropped ${dropped.length} musl-only native package(s): ${dropped.join(', ')}`);
   }
 }
 
