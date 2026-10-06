@@ -93,6 +93,21 @@ check (FaceAnalysis) and Cut titles (server ffmpeg + font) — with the pack to 
 that are off and a **Re-check** button. Day shows the same summary under the plan bar while
 Auto-review (or another pose check) is on. After installing a pack, restart ComfyUI, Re-check, then reload Day / Story.
 
+- **"ComfyUI_FaceAnalysis is installed but does not load"** — the pack is there (ComfyUI-Manager
+  lists it) but its nodes never appeared: its InsightFace Python package is missing. The row shows
+  the `pip install insightface onnxruntime` command for the Python ComfyUI runs on (portable
+  Windows: `python_embeded\python.exe`), with what else it may need (a C++ compiler, or a prebuilt
+  wheel on Windows). Run it, restart ComfyUI, Re-check.
+- **"comfyui_controlnet_aux is installed but its nodes did not load"** — the ComfyUI log names the
+  error (usually a missing Python package).
+- **Prepare checks** runs the face and pose checks once on a sample picture. InsightFace and DWPose
+  download their models on first use (several hundred MB); this does it during setup instead of
+  in the first check of a Day, and proves both checks work.
+- **No vision model in LM Studio** — when the LLM server is LM Studio, the still-review row offers
+  **Download NSFWVision Qwen3-VL 8B** (what the checks were tuned on; reads adult stills) or
+  **Qwen3-VL 8B Instruct** (general; may refuse adult stills), ~6 GB each at Q4_K_M with the vision
+  projector, with progress. LM Studio loads it on the first check.
+
 With a pose check on — **Auto-review stills**, **Redo pose misses once** (on with the Balanced
 preset) or **Best of two** — and the **comfyui_controlnet_aux** node pack installed in ComfyUI
 (it provides `DWPreprocessor`), Day reads the body pose back out of every finished still and

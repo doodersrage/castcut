@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import CastcutNodesHint from '@/components/CastcutNodesHint';
+import VisionModelDownload from '@/components/settings/VisionModelDownload';
 import type { PlayCheckReadiness, PlayChecksReadiness } from '@/lib/play-checks-readiness';
 
 const ROWS: Array<{ key: keyof Omit<PlayChecksReadiness, 'comfyReachable'>; label: string }> = [
@@ -18,9 +19,12 @@ function Row({
   installing,
   busy,
   onInstall,
+  onRecheck,
 }: {
   label: string;
   check: PlayCheckReadiness;
+  /** Re-run the readiness probe (after a download). */
+  onRecheck?: () => void;
   installing?: boolean;
   /** Another install is running. */
   busy?: boolean;
@@ -61,8 +65,37 @@ function Row({
               : ' in ComfyUI, restart it, then reload Day / Story'}
           </>
         ) : null}
+        {check.command ? <CommandLine command={check.command} note={check.note} /> : null}
+        {check.offerVisionDownload && onRecheck ? <VisionModelDownload onDone={onRecheck} /> : null}
       </span>
     </li>
+  );
+}
+
+/** A command to run on the ComfyUI machine, with a copy button. */
+function CommandLine({ command, note }: { command: string; note?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <span className="mt-1 block space-y-1" data-testid="play-checks-command">
+      <span className="flex items-center gap-2">
+        <code className="break-all rounded bg-[var(--bg-muted)]/60 px-1.5 py-0.5 font-mono text-[11px] text-[var(--text-primary)]">
+          {command}
+        </code>
+        <button
+          type="button"
+          className="ui-text-link shrink-0"
+          onClick={() => {
+            void navigator.clipboard
+              ?.writeText(command)
+              .then(() => setCopied(true))
+              .catch(() => setCopied(false));
+          }}
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </span>
+      {note ? <span className="block text-[var(--text-muted)]">{note}</span> : null}
+    </span>
   );
 }
 
@@ -78,6 +111,39 @@ export default function PlayChecksReadinessRows({
 }) {
   const [installing, setInstalling] = useState<'pose' | 'face' | null>(null);
   const [installNote, setInstallNote] = useState<string | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const [prepareNote, setPrepareNote] = useState<string | null>(null);
+  /**
+   * Run the face and pose checks once on a sample picture: what they download on first use
+   * (InsightFace, DWPose models) comes down now, not during the first check of a Day.
+   */
+  const prepare = async () => {
+    if (preparing) return;
+    setPreparing(true);
+    setPrepareNote(
+      'Running the checks once on a sample picture — the first time can download several hundred MB…'
+    );
+    try {
+      const { loadComfyUiSettings } = await import('@/lib/comfyui-settings');
+      const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+      const response = await fetch('/api/play-checks/prepare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(comfyUrl ? { comfyUrl } : {}),
+      });
+      const data = (await response.json()) as { summary?: string; error?: string };
+      setPrepareNote(
+        response.ok
+          ? (data.summary ?? 'Done.')
+          : (data.error ?? `Failed (HTTP ${response.status}).`)
+      );
+    } catch (error) {
+      setPrepareNote(error instanceof Error ? error.message : 'Preparing the checks failed.');
+    } finally {
+      setPreparing(false);
+      onRecheck();
+    }
+  };
   const install = async (key: 'pose' | 'face') => {
     if (installing) return;
     setInstalling(key);
@@ -116,6 +182,18 @@ export default function PlayChecksReadinessRows({
         >
           {checking ? 'Checking…' : 'Re-check'}
         </button>
+        {readiness?.comfyReachable && (readiness.pose.ready || readiness.face.ready) ? (
+          <button
+            type="button"
+            className="ui-text-link text-xs"
+            onClick={() => void prepare()}
+            disabled={preparing || checking}
+            title="Run the face and pose checks once now, so their models download during setup"
+            data-testid="play-checks-prepare"
+          >
+            {preparing ? 'Preparing…' : 'Prepare checks'}
+          </button>
+        ) : null}
       </div>
       {readiness ? (
         <ul className="grid gap-1.5 sm:grid-cols-2">
@@ -130,6 +208,7 @@ export default function PlayChecksReadinessRows({
                 check={check}
                 installing={installing === row.key}
                 busy={installing !== null}
+                onRecheck={onRecheck}
                 onInstall={
                   installable && !check.ready && check.install
                     ? () => void install(row.key as 'pose' | 'face')
@@ -148,6 +227,11 @@ export default function PlayChecksReadinessRows({
         <CastcutNodesHint testId="play-checks-castcut-hint">
           Castcut nodes are not on this ComfyUI: Best of two and cut-outs take extra jobs.
         </CastcutNodesHint>
+      ) : null}
+      {prepareNote ? (
+        <p className="type-caption text-[var(--text-muted)]" data-testid="play-checks-prepare-note">
+          {prepareNote}
+        </p>
       ) : null}
       {installNote ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="play-checks-install-note">

@@ -44,7 +44,12 @@ export async function resolveVisionModel(llm?: LlmRequestOptions): Promise<strin
   );
 }
 
+/** Forget the detected vision model (a model was just downloaded; also used by tests). */
+export function clearVisionModelCache(): void {
+  cache.clear();
+}
+
 /** Tests only. */
 export function clearVisionModelCacheForTests(): void {
-  cache.clear();
+  clearVisionModelCache();
 }

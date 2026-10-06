@@ -9,6 +9,12 @@ export type PlayCheckReadiness = {
   detail: string;
   /** What to install when not ready. */
   install?: { name: string; url: string };
+  /** A command to run on the ComfyUI machine (the pack is there but does not load). */
+  command?: string;
+  /** One more line about the command (where to run it, what else it may need). */
+  note?: string;
+  /** LM Studio can download a vision model from here (vision-model-download-server.ts). */
+  offerVisionDownload?: boolean;
 };
 
 export type PlayChecksReadiness = {
@@ -36,6 +42,32 @@ export const FACE_ANALYSIS_PACK = {
   url: 'https://github.com/cubiq/ComfyUI_FaceAnalysis',
 };
 
+/**
+ * ComfyUI_FaceAnalysis refuses to load without InsightFace (or dlib): installed through the
+ * Manager, the pack is there but its nodes never show up. The fix is the Python package, in the
+ * Python ComfyUI runs on.
+ */
+export function insightFaceInstallCommand(
+  system?: {
+    os?: string | null;
+    embeddedPython?: boolean;
+  } | null
+): { command: string; note: string } {
+  const windows = /^nt$|win/i.test(system?.os ?? '');
+  if (system?.embeddedPython) {
+    return {
+      command: 'python_embeded\\python.exe -m pip install insightface onnxruntime',
+      note: 'Run it in the ComfyUI_windows_portable folder, then restart ComfyUI. If insightface fails to build, install the prebuilt insightface wheel for your Python version (see the ComfyUI_FaceAnalysis README).',
+    };
+  }
+  return {
+    command: 'python -m pip install insightface onnxruntime',
+    note: windows
+      ? "Run it with the Python ComfyUI uses (its venv's python.exe), then restart ComfyUI. insightface needs the Visual C++ Build Tools, or a prebuilt wheel for your Python version (see the ComfyUI_FaceAnalysis README)."
+      : 'Run it with the Python ComfyUI uses (e.g. ComfyUI/venv/bin/python), then restart ComfyUI. insightface builds from source on some systems and then needs a C++ compiler and the Python headers (build-essential / python3-dev).',
+  };
+}
+
 /** Build readiness from which nodes ComfyUI reported and what ffmpeg can do. */
 export function buildPlayChecksReadiness(input: {
   comfyReachable: boolean;
@@ -43,7 +75,17 @@ export function buildPlayChecksReadiness(input: {
   faceNodes: { models: boolean; distance: boolean; previewAny: boolean };
   ffmpeg: { available: boolean; drawtext: boolean; font: boolean };
   /** Which vision model still review will use, and where it came from. */
-  vision?: { llmEnabled: boolean; model?: string; source?: 'session' | 'env' | 'detected' };
+  vision?: {
+    llmEnabled: boolean;
+    model?: string;
+    source?: 'session' | 'env' | 'detected';
+    /** The LLM server is LM Studio, which can download a vision model for the player. */
+    lmStudio?: boolean;
+  };
+  /** Packs ComfyUI-Manager lists as installed and enabled (null: no Manager to ask). */
+  installedPacks?: { faceAnalysis: boolean; controlnetAux: boolean } | null;
+  /** ComfyUI's /system_stats: which Python to name in a command. */
+  system?: { os?: string | null; embeddedPython?: boolean } | null;
 }): PlayChecksReadiness {
   const { faceNodes, ffmpeg } = input;
   const faceMissing = [
@@ -66,10 +108,16 @@ export function buildPlayChecksReadiness(input: {
                   ? `${vision.model} (Settings → LLM)`
                   : `${vision.model} (LLM_VISION_MODEL)`,
           }
-        : {
-            ready: false,
-            detail: 'no vision model on the LLM server — pull one (e.g. qwen2.5vl or gemma3)',
-          };
+        : vision.lmStudio
+          ? {
+              ready: false,
+              detail: 'no vision model in LM Studio — download one below',
+              offerVisionDownload: true,
+            }
+          : {
+              ready: false,
+              detail: 'no vision model on the LLM server — pull one (e.g. qwen2.5vl or gemma3)',
+            };
   const adultGate: PlayCheckReadiness | undefined = !vision
     ? undefined
     : review?.ready
@@ -88,24 +136,37 @@ export function buildPlayChecksReadiness(input: {
     comfyReachable: input.comfyReachable,
     pose: input.poseNode
       ? { ready: true, detail: input.poseNode }
-      : {
-          ready: false,
-          detail: input.comfyReachable ? 'DWPose not installed' : 'ComfyUI unreachable',
-          ...(input.comfyReachable ? { install: DWPOSE_PACK } : {}),
-        },
+      : input.comfyReachable && input.installedPacks?.controlnetAux
+        ? {
+            ready: false,
+            detail:
+              'comfyui_controlnet_aux is installed but its nodes did not load — the ComfyUI log names the error (usually a missing Python package); fix it and restart ComfyUI',
+          }
+        : {
+            ready: false,
+            detail: input.comfyReachable ? 'DWPose not installed' : 'ComfyUI unreachable',
+            ...(input.comfyReachable ? { install: DWPOSE_PACK } : {}),
+          },
     face: faceReady
       ? { ready: true, detail: 'FaceAnalysis (InsightFace)' }
-      : {
-          ready: false,
-          detail: !input.comfyReachable
-            ? 'ComfyUI unreachable'
-            : faceMissing.length > 0
-              ? `missing ${faceMissing.join(', ')}`
-              : 'needs a newer ComfyUI (PreviewAny node)',
-          ...(input.comfyReachable && faceMissing.length > 0
-            ? { install: FACE_ANALYSIS_PACK }
-            : {}),
-        },
+      : input.comfyReachable && faceMissing.length > 0 && input.installedPacks?.faceAnalysis
+        ? {
+            ready: false,
+            detail:
+              'ComfyUI_FaceAnalysis is installed but does not load — its InsightFace Python package is missing',
+            ...insightFaceInstallCommand(input.system),
+          }
+        : {
+            ready: false,
+            detail: !input.comfyReachable
+              ? 'ComfyUI unreachable'
+              : faceMissing.length > 0
+                ? `missing ${faceMissing.join(', ')}`
+                : 'needs a newer ComfyUI (PreviewAny node)',
+            ...(input.comfyReachable && faceMissing.length > 0
+              ? { install: FACE_ANALYSIS_PACK }
+              : {}),
+          },
     cutTitles: !ffmpeg.available
       ? { ready: false, detail: 'no server ffmpeg — browser Cut draws titles instead' }
       : !ffmpeg.drawtext
