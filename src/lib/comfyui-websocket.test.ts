@@ -524,6 +524,55 @@ describe("comfyui-websocket", async () => {
       stub.restore();
       win.restore();
     });
+
+    it("gives a slot to the job ComfyUI is running, even one queued after the first three", async () => {
+      // ComfyUI runs by queue number, not in the order a Day queued: the 5th still can run while
+      // the first three hold every stream (user report, 2026-10-06: no progress, no preview).
+      const { MAX_LIVE_STREAMS, noteComfyLiveJobState } = await import("./comfyui-websocket");
+      const win = installWindowStub();
+      const stub = installFetchStub(
+        (_url, init) =>
+          new Promise<Response>((_resolve, reject) => {
+            init.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+          })
+      );
+      const subs = Array.from({ length: MAX_LIVE_STREAMS + 2 }, (_, index) =>
+        subscribeComfyUiWebSocket({ clientId: `hot-${index}`, onProgress: () => {} })
+      );
+      assert.equal(stub.calls.length, MAX_LIVE_STREAMS);
+      noteComfyLiveJobState("hot-0", "pending", 3);
+      noteComfyLiveJobState("hot-1", "pending", 4);
+      noteComfyLiveJobState("hot-2", "pending", 2);
+
+      // hot-4 starts running: hot-1 (furthest back) gives up its stream, hot-4 gets one.
+      noteComfyLiveJobState("hot-4", "running");
+      await flushMicrotasks();
+      await flushMicrotasks();
+      assert.equal(stub.calls.length, MAX_LIVE_STREAMS + 1);
+      assert.equal(stub.calls.at(-1)?.url, "/api/comfyui/live?clientId=hot-4");
+      assert.equal(stub.calls[1]?.init.signal?.aborted, true);
+
+      // The next job in line also gets one; a running or next-in-line stream is never taken.
+      noteComfyLiveJobState("hot-3", "pending", 1);
+      await flushMicrotasks();
+      await flushMicrotasks();
+      assert.equal(stub.calls.at(-1)?.url, "/api/comfyui/live?clientId=hot-3");
+      noteComfyLiveJobState("hot-1", "running");
+      await flushMicrotasks();
+      await flushMicrotasks();
+      assert.equal(stub.calls.at(-1)?.url, "/api/comfyui/live?clientId=hot-1");
+      const urls = stub.calls.map(call => call.url);
+      // hot-4 (running) and hot-3 (next) kept theirs.
+      const open = stub.calls.filter(call => !call.init.signal?.aborted).map(call => call.url);
+      assert.ok(open.includes("/api/comfyui/live?clientId=hot-4"), urls.join(" "));
+      assert.ok(open.includes("/api/comfyui/live?clientId=hot-3"), urls.join(" "));
+      assert.ok(open.length <= MAX_LIVE_STREAMS);
+
+      for (const sub of subs) sub.close();
+      await flushMicrotasks();
+      stub.restore();
+      win.restore();
+    });
   });
 
   describe("openComfyPreviewSocketBeforeQueue", () => {

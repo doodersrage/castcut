@@ -1,3 +1,4 @@
+import { noteComfyLiveJobState } from '@/lib/comfyui-websocket';
 import type { ComfyHistoryImportItem } from './comfyui-status';
 import {
   addComfyGalleryEntry,
@@ -931,12 +932,13 @@ export async function pollComfyGalleryJob(
   };
 
   // Prefer explicit option, then gallery entry — must match /prompt client_id.
+  const liveClientId =
+    options?.clientId?.trim() ||
+    loadComfyGallery()
+      .find(entry => entry.promptId === promptId)
+      ?.clientId?.trim();
   if (settings.useWebSocketProgress !== false && comfyUrl) {
-    const clientId =
-      options?.clientId?.trim() ||
-      loadComfyGallery()
-        .find(entry => entry.promptId === promptId)
-        ?.clientId?.trim();
+    const clientId = liveClientId;
     wsSubscription = engine.subscribeProgress({
       // Live bridge resolves Comfy server-side; pass entry URL only as a hint.
       engineUrl: comfyUrl,
@@ -1027,6 +1029,8 @@ export async function pollComfyGalleryJob(
         if (!engineStatus) {
           continue;
         }
+        // Live-stream slots go to the jobs about to show progress (comfyui-websocket.ts).
+        noteComfyLiveJobState(liveClientId, engineStatus.status, engineStatus.queuePosition);
 
         const status = {
           status: engineStatus.status,

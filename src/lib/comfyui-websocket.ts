@@ -55,6 +55,12 @@ type SharedLiveSession = {
   errorListeners: Set<(message: string) => void>;
   /** True once its /api/comfyui/live fetch has started. */
   streaming: boolean;
+  /** Where its job is in ComfyUI (from the poller's status checks). */
+  jobState: 'unknown' | 'pending' | 'running';
+  /** 1 = next to run; null when unknown or running. */
+  queuePosition: number | null;
+  /** Its stream is being closed to free the slot for a job that runs sooner. */
+  evicting: boolean;
 };
 
 /** One browser→app live stream per clientId (server shares the Comfy WS). */
@@ -70,14 +76,78 @@ export const MAX_LIVE_STREAMS = 3;
 let openStreams = 0;
 const waitingSessions: SharedLiveSession[] = [];
 
+/**
+ * A job about to show progress: running, or next in ComfyUI's queue. ComfyUI runs jobs by queue
+ * number, not in the order they were queued (model-aware ordering, checks at the front), so the
+ * first jobs a Day queued can run last — and with streams handed out in queueing order, the job
+ * on screen had none: no progress, no preview (user report, 2026-10-06).
+ */
+function isHot(session: SharedLiveSession): boolean {
+  return session.jobState === 'running' || session.queuePosition === 1;
+}
+
+/** Sooner-running first: running, then by queue position, unknown last. */
+function runOrder(a: SharedLiveSession, b: SharedLiveSession): number {
+  const rank = (s: SharedLiveSession) =>
+    s.jobState === 'running' ? 0 : (s.queuePosition ?? Number.POSITIVE_INFINITY);
+  return rank(a) - rank(b);
+}
+
+function sortWaiting(): void {
+  waitingSessions.sort(runOrder);
+}
+
 function releaseStream(): void {
   openStreams = Math.max(0, openStreams - 1);
+  sortWaiting();
   while (openStreams < MAX_LIVE_STREAMS && waitingSessions.length > 0) {
     const next = waitingSessions.shift()!;
     if (sharedSessions.get(next.clientId) === next && !next.abort.signal.aborted) {
       startLiveStream(next);
     }
   }
+}
+
+/**
+ * A waiting session whose job is about to run takes a slot: a free one, or one held by a job
+ * further back in ComfyUI's queue (that job sends nothing until it runs; it waits for a slot
+ * again and gets one when its turn comes).
+ */
+function promoteIfHot(session: SharedLiveSession): void {
+  if (session.streaming || !isHot(session) || !waitingSessions.includes(session)) return;
+  sortWaiting();
+  if (openStreams < MAX_LIVE_STREAMS) {
+    waitingSessions.splice(waitingSessions.indexOf(session), 1);
+    startLiveStream(session);
+    return;
+  }
+  const victim = [...sharedSessions.values()]
+    .filter(other => other.streaming && !other.evicting && !isHot(other))
+    .sort(runOrder)
+    .at(-1);
+  if (!victim) return;
+  victim.evicting = true;
+  // Its stream's `finally` frees the slot; the sorted waiting list hands it to `session`.
+  victim.abort.abort();
+}
+
+/**
+ * Tell the live streams where a job is in ComfyUI (the gallery poller calls this on each status
+ * check), so the slots go to the jobs about to show progress.
+ */
+export function noteComfyLiveJobState(
+  clientId: string | null | undefined,
+  state: string | null | undefined,
+  queuePosition?: number | null
+): void {
+  const session = clientId ? sharedSessions.get(clientId.trim()) : undefined;
+  if (!session) return;
+  session.jobState = state === 'running' ? 'running' : state === 'pending' ? 'pending' : 'unknown';
+  session.queuePosition =
+    session.jobState === 'pending' && typeof queuePosition === 'number' && queuePosition > 0
+      ? queuePosition
+      : null;
+  promoteIfHot(session);
 }
 
 export function createComfyUiClientId(): string {
@@ -258,6 +328,9 @@ function ensureSharedLiveSession(input: {
     listeners: new Set(),
     errorListeners: new Set(),
     streaming: false,
+    jobState: 'unknown',
+    queuePosition: null,
+    evicting: false,
   };
 
   sharedSessions.set(clientId, shared);
@@ -304,7 +377,7 @@ function startLiveStream(shared: SharedLiveSession): void {
       await readNdjsonStream(shared, response);
     })
     .catch((error: unknown) => {
-      if (abort.signal.aborted) {
+      if (abort.signal.aborted || shared.evicting) {
         shared.resolveReady();
         return;
       }
@@ -316,6 +389,16 @@ function startLiveStream(shared: SharedLiveSession): void {
       shared.resolveReady();
     })
     .finally(() => {
+      if (shared.evicting && sharedSessions.get(clientId) === shared) {
+        // Gave its slot to a job that runs sooner: wait for one again with a fresh controller.
+        shared.evicting = false;
+        shared.streaming = false;
+        shared.abort = new AbortController();
+        waitingSessions.push(shared);
+        releaseStream();
+        return;
+      }
+      shared.evicting = false;
       if (sharedSessions.get(clientId) === shared) {
         sharedSessions.delete(clientId);
       }
