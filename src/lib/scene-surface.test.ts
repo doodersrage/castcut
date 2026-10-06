@@ -119,6 +119,33 @@ describe('fitBeatToSetting', () => {
     assert.ok(sceneSurfaceConflicts(reach, STREET).length > 0);
   });
 
+  it('the edge of the bed and a rooftop ledge are furniture too (user stills, 2026-10-06)', () => {
+    // A yoga studio drew a bed; a kitchen sat her on the open fridge door.
+    assert.equal(
+      fitBeatToSetting(
+        'sitting on the edge of the bed lacing boots, elbows on knees',
+        'yoga studio with mats rolled and east-facing windows'
+      ),
+      'sitting on the studio floor lacing boots, elbows on knees'
+    );
+    assert.equal(
+      beatFitsSetting(
+        'sitting on the rooftop ledge with a friend sharing earbuds, city lights behind',
+        'kitchen lit only by the open fridge'
+      ),
+      false
+    );
+    // Ledges where there are ledges, and a window ledge is a sill.
+    for (const [beat, setting] of [
+      ['sitting on the rooftop ledge, city lights behind', 'rooftop terrace at night with city lights'],
+      ['jumping mid-air off the pool ledge', 'bright resort pool with white cabanas'],
+      ['sitting on the window ledge with a coffee', 'cozy bedroom with morning light'],
+      ['sitting on the edge of the bed lacing boots', 'hotel room with a city view'],
+    ] as const) {
+      assert.equal(beatFitsSetting(beat, setting), true, beat);
+    }
+  });
+
   it('leaves a beat that fits, and a Setting of no known kind, as they are', () => {
     assert.equal(fitBeatToSetting('sitting on a park bench reading a book', PARK), 'sitting on a park bench reading a book');
     assert.equal(fitBeatToSetting(SOFA_READ, 'convention stage with bright lights'), SOFA_READ);

@@ -429,7 +429,8 @@ export type SurfaceKind =
   | 'curb'
   | 'bathtub'
   | 'booth'
-  | 'windowsill';
+  | 'windowsill'
+  | 'ledge';
 
 const ALL_INDOOR: readonly SceneVenue[] = [
   'bedroom',
@@ -522,15 +523,29 @@ const SURFACE_VENUES: Record<SurfaceKind, readonly SceneVenue[]> = {
   bathtub: ['bathroom', 'hotel', 'spa'],
   booth: ['cafe', 'restaurant', 'bar'],
   windowsill: [...ALL_INDOOR, 'balcony'],
+  // An outdoor edge to sit on ("the rooftop ledge", "the pool ledge"); a window ledge is a sill.
+  ledge: [
+    'rooftop',
+    'balcony',
+    'plaza',
+    'street',
+    'market',
+    'park',
+    'trail',
+    'beach',
+    'pool',
+    'water',
+  ],
 };
 
 /**
  * One piece of furniture or ground after a preposition: "on the sofa", "across the hotel bed",
- * "on the living-room floor", "in an armchair", "on a picnic blanket". Up to two describing words
- * before the noun. `dance floor`, `gym floor` and `forest floor` are places, not furniture.
+ * "on the living-room floor", "in an armchair", "on a picnic blanket", "on the edge of the bed".
+ * Up to two describing words before the noun. `dance floor`, `gym floor` and `forest floor` are
+ * places, not furniture.
  */
 const SURFACE_PHRASE_RE =
-  /\b(?:on|onto|across|in|into|along|over|off|at)\s+(?:the|a|an|her|his|their)\s+((?:(?!(?:at|on|in|of|the|a|an|to|by|with|and|or)\b)[\w’'-]+\s+){0,2}?)(bed(?:\s+edge)?|mattress|sheets|covers|duvet|sofa|couch|loveseat|armchair|rug|carpet|floor|grass|lawn|sand|beach\s+towel|picnic\s+blanket|blanket|(?:yoga\s+|bath\s+)?mat|lounger|sun\s*lounger|chaise|bench|counter\s+stool|counter(?:top)?|desk|kitchen\s+table|bar\s+stool|stool|curb|kerb|bath\s*tub|tub|booth|windowsill|window\s+sill|sill)\b(?![\s-]+(?:stool|chair|seat|cushion|lamp|rung|lights?)\b)/gi;
+  /\b(?:on|onto|across|in|into|along|over|off|at)\s+(?:the|a|an|her|his|their)\s+(?:(?:edge|end|foot|side|corner)\s+of\s+(?:the|a|an|her|his|their)\s+)?((?:(?!(?:at|on|in|of|the|a|an|to|by|with|and|or)\b)[\w’'-]+\s+){0,2}?)(bed(?:\s+edge)?|mattress|sheets|covers|duvet|sofa|couch|loveseat|armchair|rug|carpet|floor|grass|lawn|sand|beach\s+towel|picnic\s+blanket|blanket|(?:yoga\s+|bath\s+)?mat|lounger|sun\s*lounger|chaise|bench|counter\s+stool|counter(?:top)?|desk|kitchen\s+table|bar\s+stool|stool|curb|kerb|bath\s*tub|tub|booth|windowsill|window\s+sill|sill|ledge)\b(?![\s-]+(?:stool|chair|seat|cushion|lamp|rung|lights?)\b)/gi;
 
 function surfaceKind(noun: string, describing: string): SurfaceKind | null {
   const n = noun.toLowerCase().replace(/\s+/g, ' ');
@@ -558,6 +573,7 @@ function surfaceKind(noun: string, describing: string): SurfaceKind | null {
   if (/^(?:bath ?tub|tub)$/.test(n)) return /\bhot\b/.test(d) ? null : 'bathtub';
   if (n === 'booth') return /\b(?:photo|listening|ticket)\b/.test(d) ? null : 'booth';
   if (/^(?:windowsill|window sill|sill)$/.test(n)) return 'windowsill';
+  if (n === 'ledge') return /\bwindow\b/.test(d) ? 'windowsill' : 'ledge';
   return null;
 }
 
