@@ -25,6 +25,8 @@ export type DayPartnerRowProps = {
   /** "Same stranger all day": the invented partner's face, and a reset. */
   partnerStandInUrl?: string;
   onNewPartnerStandIn?: () => void;
+  /** The face picture actually sent for the Cast partner on the last two-person still. */
+  partnerSentFaceUrl?: string;
 };
 
 /**
@@ -42,6 +44,7 @@ export default function DayPartnerRow({
   leadNoun = 'woman',
   partnerStandInUrl,
   onNewPartnerStandIn,
+  partnerSentFaceUrl,
 }: DayPartnerRowProps) {
   if (people === 'solo') return null;
   const mood = normalizeDayMood(dayMood);
@@ -72,10 +75,25 @@ export default function DayPartnerRow({
           value={partner ? partner.id : ''}
           options={partnerOptions}
           standInUrl={partnerStandInUrl}
+          sentFaceUrl={partner && !partner.invented ? partnerSentFaceUrl : undefined}
           disabled={busy}
           onChange={onPartnerChange}
         />
       </div>
+      {partner && !partner.invented && partnerSentFaceUrl ? (
+        <div className="flex items-center gap-2" data-testid="day-partner-sent-face">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={partnerSentFaceUrl}
+            alt={`${partner.name}'s face as sent`}
+            className="h-12 w-12 rounded-full border border-[var(--border-subtle)] object-cover"
+          />
+          <span className="type-caption text-[var(--text-muted)]">
+            The face picture sent for {partner.name} on the last two-person still — what the engine
+            was given.
+          </span>
+        </div>
+      ) : null}
       {partner ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-partner-hint">
           {partner.invented

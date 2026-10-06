@@ -172,6 +172,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
   stillWriteInterrupted?: boolean;
   /** What the queue-time prompt check fixed / found on the latest still (still-prompt-audit). */
   promptCheck?: StillPromptCheck;
+  /** A reference picture of the latest still was not what its slot expects (reference-check.ts). */
+  referenceNote?: string;
 };
 
 const STILL_BRIEF_MAX = 360;

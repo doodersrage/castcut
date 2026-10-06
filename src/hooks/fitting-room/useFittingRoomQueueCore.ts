@@ -46,6 +46,7 @@ import { comfyInputViewUrl } from '@/lib/face-match-client';
 import { footwearCheckNote, footwearNeedsFeetPass } from '@/lib/footwear-check';
 import { cachedInstalledModelCheck, checkStillFootwear } from '@/lib/footwear-check-client';
 import { loadImageBlobFromUrls } from '@/lib/isolate-subject';
+import { checkStillReferences } from '@/lib/reference-check-client';
 import {
   buildFittingGarmentReferenceExtras,
   loadWardrobeGarmentThumbManifest,
@@ -337,6 +338,17 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
             // The shoes still go out in words.
             console.warn('Outfit footwear image could not be attached:', footwearError);
           }
+        }
+        // The clothing image must be clothing, not a face crop or a Cast plate (reference-check.ts).
+        // Said in the tray and logged; the try-on still goes out with it.
+        const clothingNote = await checkStillReferences({
+          clothing: garmentExtras?.inputImageFilenames?.[1]?.trim()
+            ? { filename: garmentExtras.inputImageFilenames[1] }
+            : null,
+        });
+        if (clothingNote) {
+          console.warn('Outfit reference check:', clothingNote);
+          pushSystemTrayMessage({ text: clothingNote, tone: 'warning', ttlMs: 20_000 });
         }
         // Pose → Custom: the joint editor's skeleton rides as Image 3 (VL-only, like Day's guide).
         const customPose = input.toolSettings.tryOnPose;

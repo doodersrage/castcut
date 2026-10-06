@@ -9,6 +9,31 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
 
 ---
 
+## 2.4 — needs your check
+
+### Reference checks
+
+- [ ] **Health panel** — Settings → ComfyUI → Workflow library → *Reference pictures* (ComfyUI on,
+  FaceAnalysis pack installed): your active Cast's *plate* and *face lock* read **OK** within a few
+  seconds (the first check loads InsightFace, ~8 s); with a Day partner picked, their plate and face
+  lock show too. Point a look's face lock at a whole-body picture (Engine → Identity lock → upload a
+  full-body photo): the line says *… is a whole-body picture, not a face crop — check Cast → <name>*.
+  With ComfyUI off every line says *Not checked — …*, never a mismatch.
+- [ ] **Day partner** — Duo Everyday Day with a Cast partner, Queue one still: the partner tile and
+  the line under it show the face picture that was sent (a head crop of the partner). Give the
+  partner a face lock that is not a face (a landscape photo) and Queue again: the card says
+  *<name>'s face picture doesn't show a face — check Cast → <name>. This still invents the partner
+  instead.* and the still shows a stranger; nothing hangs. Fix the lock: the note is gone on the next
+  still.
+- [ ] **Nude stills** — Intimate Day (or an adult Story beat) on a look whose face lock is a
+  `cast-plate-…` file (or any whole-body picture): the card says the face was cropped from the look's
+  plate instead; Gallery → details → the queued graph's Image 1 is a `day-nude-face-…` /
+  `story-nude-face-…` crop, not the plate. The still is nude (no beige underwear).
+- [ ] **Speed** — a Day of four stills with the same Cast: only the first still pauses for the check
+  (dev tools → Network: one `/api/reference-check` per picture, later ones under a second or none).
+
+---
+
 ## 2.3.1 — needs your check
 
 ### Day

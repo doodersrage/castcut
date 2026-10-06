@@ -608,6 +608,15 @@ export default function DaySlotBoard({
                   {still.engineNote}
                 </p>
               ) : null}
+              {still?.referenceNote ? (
+                <p
+                  className={`type-caption text-[var(--tint-warning-text,var(--text-muted))] ${pad} pb-1`}
+                  role="status"
+                  data-testid={`day-slot-reference-note-${slot.id}`}
+                >
+                  {still.referenceNote}
+                </p>
+              ) : null}
               {/* Outside the edit button: the note opens on its own tap. */}
               <StillPromptCheckNote
                 check={still?.promptCheck}

@@ -437,6 +437,12 @@ export type DaySlotStill = {
    * and why ("Rendered on Edit 2511 — it holds this pose better"; pose-engine-report.ts).
    */
   engineNote?: string;
+  /**
+   * The queue-time reference check (reference-check.ts) found a picture that is not what its
+   * slot expects — "Nora's face picture doesn't show a face — check Cast → Nora." — and what the
+   * still did about it (the partner invented, the face cropped from the plate).
+   */
+  referenceNote?: string;
 };
 
 export const DEFAULT_DAY_SLOTS: DaySlot[] = [
@@ -4347,6 +4353,9 @@ export function normalizeDaySlotStills(
         : {}),
       ...(still.adultGated === true ? { adultGated: true } : {}),
       ...(readText(still.engineNote, 160) ? { engineNote: readText(still.engineNote, 160) } : {}),
+      ...(readText(still.referenceNote, 600)
+        ? { referenceNote: readText(still.referenceNote, 600) }
+        : {}),
     });
   }
   const order = slots?.length

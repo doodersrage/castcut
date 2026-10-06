@@ -126,13 +126,15 @@ export async function locateFaceInComfy(input: {
       if (error instanceof Error && /no face|failed in ComfyUI/i.test(error.message)) continue;
       throw error;
     }
-    const found = largestFaceBox(parseFaceBoxLists(texts));
+    const boxes = parseFaceBoxLists(texts);
+    const found = largestFaceBox(boxes);
     if (!found) continue;
     return {
       available: true,
       face: mapRotatedFaceBox(found, rotation, input.width, input.height),
       rotation,
+      faces: boxes.length,
     };
   }
-  return { available: true, face: null };
+  return { available: true, face: null, faces: 0 };
 }

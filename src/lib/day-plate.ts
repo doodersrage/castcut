@@ -6,6 +6,7 @@ import {
 } from '@/lib/comfyui-gallery';
 import { resolveFittingPlateFromCharacter, type FittingPlate } from '@/lib/fitting-room';
 import { resolveCastFaceForPlate } from '@/lib/look-outfit-plate';
+import { isCastPlateReferenceName } from '@/lib/reference-check';
 
 export type DayPlateSource = 'keeper' | 'cast';
 
@@ -181,18 +182,12 @@ export function resolveDayFaceOnlyPlate(
   };
 }
 
-/** A Cast plate upload (`cast-plate-…`, `cast-plate-prepared-…`, `cast-plate-base-…`): a whole body. */
-export function isCastPlateFilename(value: string | null | undefined): boolean {
-  const text = value?.trim();
-  if (!text) return false;
-  let name = text;
-  try {
-    name = new URL(text, 'http://x').searchParams.get('filename') ?? text;
-  } catch {
-    // not a URL
-  }
-  return /(?:^|\/)cast-plate-[^/]*$/i.test(name);
-}
+/**
+ * A Cast plate upload (`cast-plate-…`, `cast-plate-prepared-…`, `cast-plate-base-…`): a whole
+ * body. The one implementation lives with the reference checks (reference-check.ts), which must
+ * stay free of this module's imports.
+ */
+export const isCastPlateFilename = isCastPlateReferenceName;
 
 /**
  * True when Cast IP/face lock points at the same asset as the Cast body plate.

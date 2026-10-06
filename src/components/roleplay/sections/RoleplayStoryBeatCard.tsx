@@ -376,6 +376,15 @@ export function RoleplayStoryBeatCard({
               {ADULT_GATE_WITHHELD_MESSAGE}
             </p>
           ) : null}
+          {beat.referenceNote ? (
+            <p
+              className="type-caption text-[var(--tint-warning-text,var(--text-muted))]"
+              role="status"
+              data-testid="story-beat-reference-note"
+            >
+              {beat.referenceNote}
+            </p>
+          ) : null}
           <StillPromptCheckNote check={beat.promptCheck} testId="story-beat-prompt-check" />
         </div>
       </article>

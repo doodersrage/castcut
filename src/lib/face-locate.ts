@@ -12,8 +12,9 @@ export const FACE_LOCATE_ROTATIONS = ['none', '90 degrees', '270 degrees'] as co
 export type FaceLocateRotation = (typeof FACE_LOCATE_ROTATIONS)[number];
 
 export type FaceLocateResult =
-  | { available: true; face: FaceBox; rotation?: FaceLocateRotation }
-  | { available: true; face: null }
+  /** `faces`: how many the detector found on the turn that found the largest (reference checks). */
+  | { available: true; face: FaceBox; rotation?: FaceLocateRotation; faces?: number }
+  | { available: true; face: null; faces?: 0 }
   | { available: false; reason: string };
 
 /** Shown when a plate's face crop had to fall back to the top of the plate. */

@@ -1219,6 +1219,11 @@ export type DayToolCache = {
   partnerCharacterId?: string;
   /** "Same stranger all day": the invented partner's rendered face (see day-partner-stand-in). */
   partnerStandIn?: import('./day-partner-stand-in').DayPartnerStandIn;
+  /**
+   * The face picture actually sent as the Cast partner on the last two-person still (the
+   * uploaded crop), so the partner tile shows what the engine saw.
+   */
+  partnerSentFace?: { partnerId: string; filename: string; url: string };
   /** Weather / season on every setting (unset: whatever the setting says). */
   dayWeather?: import('./day-weather').DayWeather;
   /** Solo / duo / mixed beat filter when dayMood is intimate or raunchy. */

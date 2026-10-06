@@ -24,6 +24,7 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { queueTestWorkflowFile, workflowNeedsQueueTest } from '@/lib/workflow-health-queue-test';
 import { resolveOptimizeModelForWorkflowFile } from '@/lib/workflow-optimize-model';
 import type { WorkflowHealthIssue } from '@/lib/workflow-health-audit';
+import ReferenceHealthSection from '@/components/ReferenceHealthSection';
 
 type WorkflowHealthPanelProps = {
   refreshKey?: number;
@@ -422,6 +423,7 @@ export default function WorkflowHealthPanel({
           JSON so queue hash-skip stays warm.
         </p>
       )}
+      <ReferenceHealthSection refreshKey={refreshKey} />
     </div>
   );
 }

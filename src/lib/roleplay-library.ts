@@ -193,6 +193,10 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
   if (promptCheck) {
     beat.promptCheck = promptCheck;
   }
+  const referenceNote = readString(record.referenceNote, 600);
+  if (referenceNote) {
+    beat.referenceNote = referenceNote;
+  }
   const castId = readString(record.castId, 120);
   if (castId) {
     beat.castId = castId;

@@ -19,6 +19,7 @@ export default function DayPartnerPicker({
   value,
   options,
   standInUrl,
+  sentFaceUrl,
   disabled,
   onChange,
 }: {
@@ -27,6 +28,8 @@ export default function DayPartnerPicker({
   options: DayPartnerOption[];
   /** The invented partner's face, once the first two-person still has made it. */
   standInUrl?: string;
+  /** The face picture actually sent for the picked Cast partner (after the first duo still). */
+  sentFaceUrl?: string;
   disabled?: boolean;
   onChange: (next: string) => void;
 }) {
@@ -55,8 +58,12 @@ export default function DayPartnerPicker({
         ...options.map(option => ({
           id: option.id,
           label: option.name,
-          title: `${option.name} — from your Cast`,
-          thumb: option.thumb,
+          title:
+            value === option.id && sentFaceUrl
+              ? `${option.name} — the face sent on the last two-person still`
+              : `${option.name} — from your Cast`,
+          // Once a duo still went out, the tile shows the face the engine was given.
+          thumb: (value === option.id ? sentFaceUrl : undefined) || option.thumb,
         })),
       ]}
     />

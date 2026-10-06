@@ -28,6 +28,7 @@ import {
 } from '@/lib/day-dress-plate';
 import { setDressPlateActivity } from '@/lib/dress-plate-status';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
+import { checkStillReferences } from '@/lib/reference-check-client';
 import { getCachedClothingLabel, humanizeClothingId } from '@/lib/clothing-catalog-client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
@@ -887,6 +888,16 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           kleinFace,
           nudeFace ? null : dressPlate
         );
+        // A face-crop Image 1 must be a face, the clothing image clothing (reference-check.ts);
+        // a miss is said on the beat card. Cached per picture, so a Story checks each one once.
+        const referenceNote = await checkStillReferences({
+          face: nudeFace ? { filename: nudeFace } : null,
+          clothing: stillOpts?.inputImageFilenames?.[1]?.trim()
+            ? { filename: stillOpts.inputImageFilenames[1] }
+            : null,
+          subject: nextBio.name,
+          comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+        });
         const fromDressPlate = Boolean(dressPlate) && dressAsPlate && !nudeFace;
         const rapidRecipe = storyRapidDuoRecipeFor(
           beat,
@@ -952,6 +963,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           ...stillPatch,
           ...roleplayStillQueueResultPatch({ ...beat, prompt }, promptId),
           promptCheck,
+          referenceNote,
           ...(poseGuide?.imageUrl ? { poseGuideUrl: poseGuide.imageUrl } : {}),
           ...(poseGuide?.expect && promptId
             ? { poseGuideExpect: { ...poseGuide.expect, promptId } }
@@ -1030,6 +1042,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         : undefined;
       let promptId: string | undefined;
       let promptCheck: StillPromptCheck | undefined;
+      let referenceNote: string | undefined;
       let poseGuideUrl: string | undefined;
       let poseGuideExpectBase: Omit<StoryPoseGuideExpect, 'promptId'> | undefined;
       try {
@@ -1097,6 +1110,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           kleinFace,
           nudeFace ? null : dressPlate
         );
+        referenceNote = await checkStillReferences({
+          face: nudeFace ? { filename: nudeFace } : null,
+          clothing: stillOpts?.inputImageFilenames?.[1]?.trim()
+            ? { filename: stillOpts.inputImageFilenames[1] }
+            : null,
+          subject: toolSettings.bio?.name,
+          comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+        });
         const rapidRecipe = storyRapidDuoRecipeFor(
           latest,
           stillOpts,
@@ -1185,6 +1206,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         story: patchRoleplayStoryBeat(storyRef.current, latest, {
           ...roleplayStillQueueResultPatch(after, promptId),
           promptCheck,
+          referenceNote,
           ...(poseGuideUrl ? { poseGuideUrl } : {}),
           ...(poseGuideExpectBase && promptId
             ? { poseGuideExpect: { ...poseGuideExpectBase, promptId } }
