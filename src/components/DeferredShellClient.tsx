@@ -21,6 +21,12 @@ const GalleryPwaRegister = dynamic(() => import('@/components/GalleryPwaRegister
   ssr: false,
 });
 
+// "Fix an area" takes that render after their dialog closed: the chip / toast and the reopened
+// results live here, on every page.
+const FixAreaTray = dynamic(() => import('@/components/fix-area/FixAreaTray'), {
+  ssr: false,
+  loading: () => null,
+});
 const SystemTray = dynamic(() => import('@/components/SystemTray'), {
   ssr: false,
 });
@@ -114,6 +120,7 @@ export default function DeferredShellClient() {
       {batchEnabled || shellReady ? <ScheduledBatchRunner /> : null}
       <SystemTrayCelebrateOverlay />
       {toastReady || shellReady ? <SystemTray /> : null}
+      {toastReady || shellReady ? <FixAreaTray /> : null}
       {shellReady ? (
         <>
           <KeyboardShortcuts />

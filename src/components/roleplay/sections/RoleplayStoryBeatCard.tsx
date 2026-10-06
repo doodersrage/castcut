@@ -27,6 +27,7 @@ import {
   storyBeatTextLocked,
 } from '@/hooks/roleplay/story-beat-edit';
 import { RoleplayStillFrame } from '@/components/roleplay/sections/RoleplayStillFrame';
+import FixAreaSessionChip from '@/components/fix-area/FixAreaSessionChip';
 import {
   storyFaceMatchLabel,
   storyPoseMatchLabel,
@@ -294,6 +295,13 @@ export function RoleplayStoryBeatCard({
           <p className="text-sm font-medium text-[var(--text-primary)]">
             <span className="type-caption mr-2 text-[var(--text-muted)]">{index + 1}.</span>
             {beat.title}
+            {beat.stillStatus === 'completed' ? (
+              <FixAreaSessionChip
+                url={beat.imageUrl}
+                className="ml-2 align-middle"
+                testId="story-fix-area-chip"
+              />
+            ) : null}
           </p>
           <p className="type-caption text-[var(--text-muted)]">{beat.blurb}</p>
           {edit && awaitsRewrite ? (

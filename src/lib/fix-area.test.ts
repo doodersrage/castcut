@@ -2,10 +2,19 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   buildFixAreaGraph,
+  faceFixBox,
+  findFixAreaIdentityImages,
   FIX_AREA_DEFAULT_TEXT,
+  FIX_AREA_FACE_DENOISE,
+  FIX_AREA_FACE_REFERENCE,
+  FIX_AREA_FACE_TEXT,
+  resolveFixAreaRun,
   FIX_AREA_OUTPUT_PREFIX,
+  FIX_AREA_ZOOM_MIN,
   fixAreaPromptLine,
   fixAreaSeeds,
+  fixAreaZoomWindow,
+  maskBoundsFraction,
   normalizeFixAreaDenoise,
   normalizeFixAreaText,
   readFixAreaStillPrompt,
@@ -167,9 +176,86 @@ describe('fix-area graph', () => {
     assert.equal(buildFixAreaGraph(faceFinish, { ...names, seed: 1, denoise: 1, reference: 'grey' }), null);
   });
 
+  it('Fix the face: the Cast face is Image 2 of the positive encoder, with the identity line', () => {
+    const built = buildFixAreaGraph(rapid, { ...names, seed: 5, denoise: 1, reference: 'grey', mode: 'face', faceName: 'day-face.png' });
+    assert.ok(built);
+    assert.equal(built.identity, true);
+    assert.deepEqual(built.graph['4']!.inputs.image1, ['fa_fill', 0]);
+    assert.deepEqual(built.graph['4']!.inputs.image2, ['fa_face', 0]);
+    assert.equal('image2' in built.graph['5']!.inputs, false, 'the negative encoder reads no face');
+    assert.deepEqual(built.graph.fa_face!.inputs, { image: 'day-face.png' });
+    assert.match(String(built.graph['4']!.inputs.prompt), new RegExp(`Fix only the marked area: ${FIX_AREA_FACE_TEXT}\\. The face is the same person as the face reference Image 2`));
+    // Qwen-Image 2.1 names its pictures <imageN>.
+    const q = buildFixAreaGraph(qwen21, { ...names, seed: 5, denoise: 1, reference: 'grey', mode: 'face', faceName: 'face.png', text: 'her face' });
+    assert.ok(q);
+    assert.equal(q.identity, true);
+    assert.deepEqual(q.graph['923']!.inputs['images.image_2'], ['fa_face', 0]);
+    assert.match(String(q.graph['923']!.inputs.prompt), /Fix only the marked area: her face\. The face is the same person as the face reference <image2>/);
+    // A text-to-image still has no image channel: no face node, the plain line.
+    const t = buildFixAreaGraph(sdxl, { ...names, seed: 5, denoise: 1, reference: 'grey', mode: 'face', faceName: 'face.png' });
+    assert.ok(t);
+    assert.equal(t.identity, false);
+    assert.equal(t.graph.fa_face, undefined);
+    assert.match(String(t.graph['2']!.inputs.text), new RegExp(`Fix only the marked area: ${FIX_AREA_FACE_TEXT}\\. The flat grey`));
+    // Mode area never adds the face even when a name is given.
+    const a = buildFixAreaGraph(rapid, { ...names, seed: 5, denoise: 1, reference: 'grey', mode: 'area', faceName: 'day-face.png' });
+    assert.equal(a?.identity, false);
+    assert.equal('image2' in a!.graph['4']!.inputs, false);
+  });
+
+  it('finds the identity pictures a still was made with', () => {
+    assert.deepEqual(findFixAreaIdentityImages(rapid), { face: 'day-face.png', plate: 'day-dress-plate.png' });
+    const plateOnly = { ...rapid, '900': { class_type: 'LoadImage', inputs: { image: 'tomas-cutout.png' } } };
+    assert.deepEqual(findFixAreaIdentityImages(plateOnly), { face: null, plate: 'tomas-cutout.png' });
+    const guidesOnly = { ...rapid, '900': { class_type: 'LoadImage', inputs: { image: 'day-pose-guide-face-x.png' } }, '903': { class_type: 'LoadImage', inputs: { image: 'day-partner-vl-1.png' } } };
+    assert.deepEqual(findFixAreaIdentityImages(guidesOnly), { face: null, plate: null });
+    assert.deepEqual(findFixAreaIdentityImages(sdxl), { face: null, plate: null });
+  });
+
+  it('face box, mask bounds and the zoom window', () => {
+    const box = faceFixBox({ x: 400, y: 200, width: 100, height: 120 }, { width: 1000, height: 1000 });
+    assert.ok(Math.abs(box.width - 0.15) < 1e-9 && Math.abs(box.height - 0.21) < 1e-9);
+    assert.ok(box.x < 0.4 && box.x + box.width > 0.5, 'wider than the face');
+    assert.ok(box.y < 0.2, 'lifted toward the hair');
+    const clamped = faceFixBox({ x: 0, y: 0, width: 100, height: 100 }, { width: 120, height: 120 });
+    assert.equal(clamped.x, 0);
+    assert.equal(clamped.y, 0);
+    assert.ok(clamped.x + clamped.width <= 1 && clamped.y + clamped.height <= 1);
+
+    const mask = new Uint8Array(10 * 10);
+    mask[3 * 10 + 4] = 255;
+    mask[6 * 10 + 7] = 200;
+    assert.deepEqual(maskBoundsFraction(mask, { width: 10, height: 10 }), { x: 0.4, y: 0.3, width: 0.4, height: 0.4 });
+    assert.equal(maskBoundsFraction(new Uint8Array(100), { width: 10, height: 10 }), null);
+    // RGBA data, red channel.
+    const rgba = new Uint8Array(4 * 4);
+    rgba.set([255, 255, 255, 255], 2 * 4);
+    assert.deepEqual(maskBoundsFraction(rgba, { width: 2, height: 2 }, 4), { x: 0, y: 0.5, width: 0.5, height: 0.5 });
+
+    const zoom = fixAreaZoomWindow({ x: 0.4, y: 0.3, width: 0.1, height: 0.1 }, 0.75)!;
+    assert.ok(zoom.width >= FIX_AREA_ZOOM_MIN / 0.75 - 1e-9 && zoom.height >= FIX_AREA_ZOOM_MIN - 1e-9, 'never smaller than the minimum window');
+    assert.ok(zoom.x <= 0.4 && zoom.x + zoom.width >= 0.5 && zoom.y <= 0.3 && zoom.y + zoom.height >= 0.4, 'contains the box');
+    assert.ok(zoom.x >= 0 && zoom.y >= 0 && zoom.x + zoom.width <= 1 + 1e-9 && zoom.y + zoom.height <= 1 + 1e-9, 'inside the picture');
+    const corner = fixAreaZoomWindow({ x: 0.95, y: 0.95, width: 0.05, height: 0.05 }, 1)!;
+    assert.ok(corner.x + corner.width <= 1 + 1e-9 && corner.y + corner.height <= 1 + 1e-9);
+    assert.ok(corner.x + corner.width >= 1 - 1e-9, 'kept inside by sliding, not cut');
+    assert.equal(fixAreaZoomWindow(null, 1), null);
+    const whole = fixAreaZoomWindow({ x: 0, y: 0, width: 1, height: 1 }, 0.75)!;
+    assert.ok(Math.abs(whole.width - 1) < 1e-9 && Math.abs(whole.height - 1) < 1e-9);
+  });
+
   it('reads the still prompt', () => {
     assert.equal(readFixAreaStillPrompt(rapid), 'Edit Image 1: a woman at a café table.');
     assert.equal(readFixAreaStillPrompt(qwen21), 'Edit <image1>: a walk.');
+  });
+
+  it('an area runs grey at full denoise, a face the still at half; a harness may pick either', () => {
+    assert.deepEqual(resolveFixAreaRun({ mode: 'area' }), { reference: 'grey', denoise: 1 });
+    assert.deepEqual(resolveFixAreaRun({ mode: 'area', reference: 'grey', denoise: 0.75 }), { reference: 'grey', denoise: 1 });
+    assert.deepEqual(resolveFixAreaRun({ mode: 'face' }), { reference: FIX_AREA_FACE_REFERENCE, denoise: FIX_AREA_FACE_DENOISE });
+    assert.deepEqual(resolveFixAreaRun({ mode: 'face', reference: 'grey' }), { reference: 'grey', denoise: 1 });
+    assert.deepEqual(resolveFixAreaRun({ mode: 'area', reference: 'still', denoise: '0.4' }), { reference: 'still', denoise: 0.4 });
+    assert.deepEqual(resolveFixAreaRun({ mode: 'area', reference: 'still' }), { reference: 'still', denoise: 1 });
   });
 
   it('normalizes the text, denoise, sigmas and seeds', () => {

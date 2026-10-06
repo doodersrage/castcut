@@ -415,6 +415,12 @@ export type DaySlotStill = {
     poseScore?: number;
   };
   /**
+   * Fix an area, more than once on one slot: the pictures before each earlier fix, oldest
+   * first (the one before the latest fix is `previousTake`). "Undo the fix" walks back through
+   * them; "Keep the fix" lets them go. The Gallery keeps every version regardless.
+   */
+  fixHistory?: Array<{ imageUrl: string; promptId?: string }>;
+  /**
    * Two takes (intimate stills, day-two-takes.ts): the second take, queued right after this one
    * with a new seed. While it is set the player has not picked yet; both side by side on the card.
    */
@@ -4317,6 +4323,23 @@ function withPromptCheck(value: unknown): Pick<DaySlotStill, 'promptCheck'> {
   return promptCheck ? { promptCheck } : {};
 }
 
+/** Deepest "Undo the fix" stack kept per slot. */
+export const DAY_FIX_HISTORY_MAX = 8;
+
+/** The pictures before earlier fixes (fix-area.ts), when there are any. */
+function readFixHistory(value: unknown): Pick<DaySlotStill, 'fixHistory'> {
+  if (!Array.isArray(value)) return {};
+  const history: NonNullable<DaySlotStill['fixHistory']> = [];
+  for (const entry of value) {
+    const record = entry as { imageUrl?: unknown; promptId?: unknown } | null;
+    const imageUrl = readText(record?.imageUrl, 2048);
+    if (!imageUrl) continue;
+    const promptId = readText(record?.promptId, 160);
+    history.push({ imageUrl, ...(promptId ? { promptId } : {}) });
+  }
+  return history.length > 0 ? { fixHistory: history.slice(-DAY_FIX_HISTORY_MAX) } : {};
+}
+
 /** Only a usable end pose is kept — no `endPose: undefined` key on every still. */
 function withEndPose(value: unknown): Pick<DaySlotStill, 'endPose'> {
   const endPose = normalizeDayEndPose(value);
@@ -4352,6 +4375,7 @@ export function normalizeDaySlotStills(
             },
           }
         : {}),
+      ...readFixHistory(still.fixHistory),
       ...withEndPose(still.endPose),
       ...readBestOfTwo(still.bestOfTwo),
       ...readTwoTakes(still.twoTakes),
@@ -4784,6 +4808,19 @@ export function dayStillFixAreaPatch(
   if (!still || still.status !== 'completed' || !fixedUrl.trim()) return null;
   const shown = dayStillShownImage(still);
   if (!shown) return null;
+  // A fix on a fix: the picture before the earlier fix joins the undo stack.
+  const earlier = still.previousTake?.kind === 'fix-area' ? still.previousTake : null;
+  const history = [
+    ...(still.fixHistory ?? []),
+    ...(earlier
+      ? [
+          {
+            imageUrl: earlier.imageUrl,
+            ...(earlier.promptId ? { promptId: earlier.promptId } : {}),
+          },
+        ]
+      : []),
+  ].slice(-DAY_FIX_HISTORY_MAX);
   return {
     slotId: still.slotId,
     imageUrl: fixedUrl,
@@ -4795,8 +4832,15 @@ export function dayStillFixAreaPatch(
     clipUrl: undefined,
     clipStatus: undefined,
     previousTake: { imageUrl: shown, promptId: still.promptId, kind: 'fix-area' },
+    fixHistory: history.length > 0 ? history : undefined,
     bestOfTwo: undefined,
   };
+}
+
+/** How many more "Undo the fix" steps a slot has after this one (its earlier fixes). */
+export function dayFixUndoDepth(still: DaySlotStill | null | undefined): number {
+  if (still?.previousTake?.kind !== 'fix-area') return 0;
+  return 1 + (still.fixHistory?.length ?? 0);
 }
 
 /** Put the take a same-seed redo replaced back. */
@@ -4808,8 +4852,11 @@ export function restorePreviousDayTake(
   const previous = still?.previousTake;
   if (!previous) return normalizeDaySlotStills(stills);
   // Undoing a fix: the picture before it was this same take (maybe face-finished) — kept as the
-  // take's finish so the gallery poll does not swap the raw render back in.
+  // take's finish so the gallery poll does not swap the raw render back in. An earlier fix's
+  // picture, when there is one, becomes the next "Undo the fix".
   const fix = previous.kind === 'fix-area' && Boolean(previous.promptId);
+  const history = fix ? [...(still?.fixHistory ?? [])] : [];
+  const older = history.pop();
   return upsertDaySlotStill(stills, {
     slotId,
     promptId: previous.promptId,
@@ -4820,7 +4867,14 @@ export function restorePreviousDayTake(
     clipPromptId: undefined,
     clipUrl: undefined,
     clipStatus: undefined,
-    previousTake: undefined,
+    previousTake: older
+      ? {
+          imageUrl: older.imageUrl,
+          promptId: older.promptId ?? previous.promptId,
+          kind: 'fix-area',
+        }
+      : undefined,
+    fixHistory: older && history.length > 0 ? history : undefined,
     bestOfTwo: undefined,
     bestOfTwoJob: undefined,
     twoTakes: undefined,

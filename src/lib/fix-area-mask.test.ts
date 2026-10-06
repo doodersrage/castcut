@@ -8,10 +8,13 @@ import {
   diffOutsideMask,
   dilateMask,
   featherMask,
+  featherMaskGuided,
   fillMaskedGrey,
   fixAreaFeatherRadius,
+  FIX_AREA_DEFAULT_FEATHER,
   FIX_AREA_HARD_MARGIN,
   hardMask,
+  luminanceOf,
   maskArea,
 } from './fix-area-mask';
 
@@ -80,6 +83,54 @@ describe('fix-area mask math', () => {
     const masks = buildFixAreaMasks(dot(64, 64, 10, 10), { width: 64, height: 64 });
     assert.equal(masks.area, 1);
     assert.equal(masks.radius, 4);
+    assert.equal(masks.feather, FIX_AREA_DEFAULT_FEATHER);
+  });
+
+  it('narrow: half the ramp, the same hard mask; guided needs the pixels', () => {
+    const size = { width: 60, height: 40 };
+    const painted = new Uint8Array(60 * 40);
+    for (let y = 15; y <= 25; y += 1) for (let x = 20; x <= 40; x += 1) painted[y * 60 + x] = 255;
+    const wide = buildFixAreaMasks(painted, size, { feather: 'wide' });
+    const narrow = buildFixAreaMasks(painted, size, { feather: 'narrow' });
+    assert.equal(wide.radius, narrow.radius);
+    assert.deepEqual([...narrow.hard], [...wide.hard]);
+    const row = 20 * 60;
+    const r = wide.radius;
+    // Wide reaches 2r past the paint, narrow about r (half radius, rounded).
+    assert.ok(wide.soft[row + 40 + 2 * r]! > 0);
+    assert.equal(wide.soft[row + 40 + 2 * r + 1], 0);
+    const half = Math.max(1, Math.round(r / 2));
+    assert.ok(narrow.soft[row + 40 + 2 * half]! > 0);
+    assert.equal(narrow.soft[row + 40 + 2 * half + 1], 0);
+    for (let i = 0; i < painted.length; i += 1) if (painted[i]) assert.equal(narrow.soft[i], 255);
+    // Without the still's pixels the guided feather falls back to the wide ramp.
+    const fallback = buildFixAreaMasks(painted, size, { feather: 'guided' });
+    assert.equal(fallback.feather, 'wide');
+    assert.deepEqual([...fallback.soft], [...wide.soft]);
+  });
+
+  it('guided: a flat picture keeps the plain ramp; an edge in the ramp snaps it', () => {
+    const size = { width: 41, height: 9 };
+    const painted = new Uint8Array(41 * 9);
+    for (let y = 0; y < 9; y += 1) for (let x = 0; x <= 10; x += 1) painted[y * 41 + x] = 255;
+    const r = 4;
+    const flat = new Uint8Array(41 * 9 * 3).fill(90);
+    assert.deepEqual(
+      [...featherMaskGuided(painted, size, r, flat, 3)],
+      [...featherMask(painted, size, r)]
+    );
+    // A hard vertical edge at x = 15 (inside the ramp 11..18): the ramp is pushed to the edge.
+    const edged = new Uint8Array(41 * 9 * 3);
+    for (let y = 0; y < 9; y += 1)
+      for (let x = 0; x < 41; x += 1) edged.set([x < 15 ? 20 : 220, x < 15 ? 20 : 220, x < 15 ? 20 : 220], (y * 41 + x) * 3);
+    const plain = featherMask(painted, size, r);
+    const guided = featherMaskGuided(painted, size, r, edged, 3);
+    const row = 4 * 41;
+    assert.ok(guided[row + 14]! > plain[row + 14]!, 'the dark side of the edge takes the sample');
+    assert.ok(guided[row + 15]! < plain[row + 15]!, 'the bright side keeps the original');
+    assert.equal(guided[row + 5], 255);
+    assert.equal(guided[row + 30], 0);
+    assert.equal(luminanceOf(Uint8Array.from([255, 255, 255, 0, 0, 0]), 3)[0], 255);
   });
 
   it('composite: m = 0 keeps the destination byte for byte, m = 255 takes the source', () => {

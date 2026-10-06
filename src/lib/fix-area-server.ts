@@ -17,12 +17,15 @@ import {
 import {
   buildFixAreaGraph,
   FIX_AREA_CANDIDATES,
+  findFixAreaIdentityImages,
   fixAreaSeeds,
-  normalizeFixAreaDenoise,
-  normalizeFixAreaReference,
+  resolveFixAreaRun,
+  type FixAreaMode,
   type FixAreaReference,
 } from '@/lib/fix-area';
-import { buildFixAreaMasks, fillMaskedGrey } from '@/lib/fix-area-mask';
+import { buildFixAreaMasks, fillMaskedGrey, type FixAreaFeather } from '@/lib/fix-area-mask';
+import { locateFaceInComfy } from '@/lib/face-locate-server';
+import { computeFaceBoxCropRect } from '@/lib/portrait-face-crop';
 
 /** ComfyUI client id of fix jobs (the queue shows them as the app's). */
 export const FIX_AREA_CLIENT_ID = 'castcut-fix-area';
@@ -38,8 +41,99 @@ export type FixAreaQueueResult =
       denoise: number;
       /** Painted share of the picture (0–1). */
       coverage: number;
+      /** Fix the face: the Cast face went in as the identity reference. */
+      identity: boolean;
+      /** Why not, when it did not (no face picture in the graph, an engine that reads no images). */
+      identityNote?: string;
     }
   | { available: false; reason: string };
+
+function normalizeFeather(value: unknown): FixAreaFeather | undefined {
+  return value === 'narrow' || value === 'guided' || value === 'wide' ? value : undefined;
+}
+
+/**
+ * Fix the face: the Cast face crop as a ComfyUI input name — the caller's face picture, else
+ * the face crop the still's own graph used, else a face cut (InsightFace box, padded square)
+ * from the plate the graph used. Null with a note when there is none.
+ */
+export async function resolveFaceReference(input: {
+  baseUrl: string;
+  graph: unknown;
+  faceUrl?: string;
+}): Promise<{ name: string | null; note?: string }> {
+  if (input.faceUrl) {
+    const ref = parseComfyViewRef(input.faceUrl);
+    if (ref) return { name: await stageComfyImageAsInput(input.baseUrl, ref, 'fix-area-face') };
+  }
+  const found = findFixAreaIdentityImages(input.graph);
+  if (!found.face && !found.plate) {
+    return { name: null, note: 'The still was made without a Cast picture.' };
+  }
+  const inputRef = (name: string): ComfyImageRef => {
+    const slash = name.lastIndexOf('/');
+    return {
+      filename: slash >= 0 ? name.slice(slash + 1) : name,
+      subfolder: slash >= 0 ? name.slice(0, slash) : '',
+      type: 'input',
+    };
+  };
+  const readInput = async (name: string) => {
+    try {
+      return await sharp(Buffer.from(await fetchComfyBytes(input.baseUrl, inputRef(name))))
+        .removeAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+    } catch {
+      return null;
+    }
+  };
+  const locate = (name: string, size: { width: number; height: number }) =>
+    locateFaceInComfy({
+      imageUrl: `/api/comfyui/view?${new URLSearchParams({ ...inputRef(name) }).toString()}`,
+      width: size.width,
+      height: size.height,
+      comfyUrl: input.baseUrl,
+    }).catch(() => null);
+  // The face crop the still used — when it shows a face (a lying plate's old top-window crop
+  // held only hair).
+  if (found.face) {
+    const crop = await readInput(found.face);
+    if (crop) {
+      const located = await locate(found.face, crop.info);
+      if (located?.available && located.face) return { name: found.face };
+      if (!located?.available) return { name: found.face };
+    }
+  }
+  if (!found.plate) {
+    return {
+      name: null,
+      note: "The still's face picture shows no face (an older top-of-plate crop).",
+    };
+  }
+  // A whole plate: cut the face out of it (the padded square the Cast face crop uses).
+  const plate = await readInput(found.plate);
+  if (!plate) return { name: null, note: 'The Cast plate the still used is no longer in ComfyUI.' };
+  const located = await locate(found.plate, plate.info);
+  if (!located?.available || !located.face) {
+    return { name: null, note: 'No face was found on the Cast plate the still used.' };
+  }
+  const rect = computeFaceBoxCropRect(plate.info.width, plate.info.height, located.face);
+  const crop = await sharp(Buffer.from(plate.data), {
+    raw: { width: plate.info.width, height: plate.info.height, channels: 3 },
+  })
+    .extract({ left: rect.x, top: rect.y, width: rect.width, height: rect.height })
+    .png()
+    .toBuffer();
+  const staged = await uploadComfyInputContent({
+    baseUrl: input.baseUrl,
+    bytes: new Uint8Array(crop),
+    filename: 'fix-area-face.png',
+    mimeType: 'image/png',
+    timeoutMs: 30000,
+  });
+  return { name: staged.subfolder ? `${staged.subfolder}/${staged.name}` : staged.name };
+}
 
 async function fetchComfyBytes(baseUrl: string, ref: ComfyImageRef): Promise<Uint8Array> {
   const params = new URLSearchParams({
@@ -91,6 +185,12 @@ export async function queueFixAreaInComfy(input: {
   comfyUrl?: string;
   /** ComfyUI client id (harnesses tag their jobs). */
   clientId?: string;
+  /** `face`: Fix the face — the Cast face crop goes in as the identity reference. */
+  mode?: unknown;
+  /** Fix the face: a ComfyUI view URL of the face picture to use (else found from the graph). */
+  faceUrl?: string;
+  /** The soft ramp's shape (the A/B harness; the default is what ships). */
+  feather?: unknown;
 }): Promise<FixAreaQueueResult> {
   const stillRef = parseComfyViewRef(input.imageUrl);
   if (!stillRef) return { available: false, reason: 'This picture is not a ComfyUI image.' };
@@ -132,15 +232,28 @@ export async function queueFixAreaInComfy(input: {
     .greyscale()
     .raw()
     .toBuffer();
-  const masks = buildFixAreaMasks(new Uint8Array(painted), { width, height });
+  const stillPixels = new Uint8Array(still.data);
+  const masks = buildFixAreaMasks(
+    new Uint8Array(painted),
+    { width, height },
+    { feather: normalizeFeather(input.feather), pixels: stillPixels, channels: 3 }
+  );
   if (masks.area < MIN_PAINTED_PIXELS) {
     return { available: false, reason: 'Paint the area to fix first.' };
   }
-  const reference = normalizeFixAreaReference(input.reference);
-  // A grey patch is only repainted at full denoise: at 0.75 the distilled engines left it grey
-  // (4 of 4 in the live A/B).
-  const denoise = reference === 'grey' ? 1 : normalizeFixAreaDenoise(input.denoise);
-  const fill = fillMaskedGrey(new Uint8Array(still.data), masks.hard, 3);
+  const mode: FixAreaMode = input.mode === 'face' ? 'face' : 'area';
+  // An area: the grey fill at full denoise. The face: the still itself at half denoise (a grey
+  // redraw lost the Cast — see FIX_AREA_FACE_REFERENCE). Harnesses may pick either.
+  const { reference, denoise } = resolveFixAreaRun({
+    mode,
+    reference: input.reference,
+    denoise: input.denoise,
+  });
+  const fill = fillMaskedGrey(stillPixels, masks.hard, 3);
+  const face =
+    mode === 'face'
+      ? await resolveFaceReference({ baseUrl, graph, faceUrl: input.faceUrl })
+      : { name: null };
 
   const upload = async (bytes: Uint8Array, filename: string) => {
     const staged = await uploadComfyInputContent({
@@ -165,6 +278,7 @@ export async function queueFixAreaInComfy(input: {
       ? input.seeds.filter(seed => Number.isFinite(seed)).map(seed => Math.floor(seed) >>> 0)
       : fixAreaSeeds(count);
   const jobs: Array<{ promptId: string; seed: number }> = [];
+  let identity = false;
   for (const seed of seeds) {
     const built = buildFixAreaGraph(graph, {
       stillName,
@@ -175,7 +289,10 @@ export async function queueFixAreaInComfy(input: {
       denoise,
       reference,
       text: input.text,
+      mode,
+      faceName: face.name,
     });
+    identity = Boolean(built?.identity);
     if (!built) {
       return {
         available: false,
@@ -202,12 +319,21 @@ export async function queueFixAreaInComfy(input: {
     if (!promptId) throw new Error('Fix queue returned no prompt id.');
     jobs.push({ promptId, seed });
   }
+  const identityNote =
+    mode !== 'face'
+      ? undefined
+      : identity
+        ? undefined
+        : (face.note ??
+          "This still's engine reads no reference pictures, so the face is redrawn from the prompt alone.");
   return {
     available: true,
     jobs,
     reference,
     denoise,
     coverage: masks.area / (width * height),
+    identity,
+    ...(identityNote ? { identityNote } : {}),
   };
 }
 

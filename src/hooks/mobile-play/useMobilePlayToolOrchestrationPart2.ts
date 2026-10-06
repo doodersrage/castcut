@@ -9,6 +9,8 @@ import {
 } from '@/lib/roleplay';
 import { useRoleplaySceneFlow } from '@/hooks/useRoleplaySceneFlow';
 import { lastRoleplayMotionSource } from '@/lib/roleplay-film';
+import type { FixAreaTarget } from '@/lib/fix-area-client';
+import { buildStoryFixAreaTarget } from '@/lib/roleplay-fix-area';
 import type { MobilePlayToolOrchestrationCore } from '@/hooks/mobile-play/useMobilePlayToolOrchestrationCore';
 import { useStoryBeatEdit } from '@/hooks/roleplay/useStoryBeatEdit';
 
@@ -30,7 +32,15 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     hasReferenceImage,
     referenceImageUrl,
     activePlate,
+    content,
   } = ctx;
+
+  // Fix an area (fix-area.ts) on a beat's shown still — the phone reel's ⋯ → Fix an area….
+  const fixAreaTargetForBeat = useCallback(
+    (beat: RoleplayStoryBeat): FixAreaTarget | null =>
+      buildStoryFixAreaTarget({ beat, storyRef, content, updateToolSettings }),
+    [content, storyRef, updateToolSettings]
+  );
 
   const rejectedScenesMemory = useMemo(
     () => toolSettings.rejectedScenes ?? [],
@@ -174,6 +184,7 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     queueBeat,
     beatEdit,
     selectStillTake,
+    fixAreaTargetForBeat,
     setBeatPose,
     selectClipTake,
     animateBeat,

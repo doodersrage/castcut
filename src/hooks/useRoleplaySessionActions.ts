@@ -16,12 +16,8 @@ import {
   type RoleplayTone,
 } from '@/lib/roleplay';
 import { downloadRoleplayStoryBundle } from '@/lib/roleplay-export';
-import { addRoleplayFixedTakePatch } from '@/lib/roleplay-gallery-takes';
-import { storyRatingNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
-import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
-import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
+import { buildStoryFixAreaTarget } from '@/lib/roleplay-fix-area';
 import type { RoleplayScene } from '@/lib/roleplay';
 import type { RoleplayToolCache } from '@/lib/settings-cache';
 
@@ -71,52 +67,10 @@ export function useRoleplaySessionActions({
     [storyRef, updateToolSettings]
   );
 
-  // Fix an area (fix-area.ts) on a beat's shown still.
+  // Fix an area (fix-area.ts) on a beat's shown still (shared with the phone Story).
   const fixAreaTargetForBeat = useCallback(
-    (beat: RoleplayStoryBeat): FixAreaTarget | null => {
-      const latest =
-        storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at) ?? beat;
-      const shown = latest.stillStatus === 'completed' ? latest.imageUrl?.trim() : '';
-      if (!shown) return null;
-      const gallery = loadComfyGallery();
-      const takeUrl = comfyViewUrlForStill({ promptId: latest.promptId }, gallery);
-      const comfyUrl = isComfyViewUrl(shown) ? shown : takeUrl;
-      const parent = findGalleryEntryForStill(gallery, {
-        promptId: latest.promptId,
-        comfyUrl,
-      });
-      return {
-        displayUrl: shown,
-        comfyUrl,
-        graphUrl: takeUrl,
-        workflowJson: parent?.workflowJson ?? null,
-        galleryEntryId: parent?.id ?? null,
-        title: latest.title,
-        adult:
-          storyRatingNeedsAdultSafeguards(content) || parent?.adultCheck
-            ? { clothed: false }
-            : null,
-        onUse: async result => {
-          const current =
-            storyRef.current.find(entry => entry.id === latest.id && entry.at === latest.at) ??
-            null;
-          if (!current || current.promptId !== latest.promptId) {
-            throw new Error('The beat changed while the fix rendered — nothing was replaced.');
-          }
-          void recordFixAreaInGallery(parent, result);
-          updateToolSettings({
-            story: patchRoleplayStoryBeat(
-              storyRef.current,
-              current,
-              addRoleplayFixedTakePatch(current, {
-                promptId: result.promptId,
-                imageUrl: result.imageUrl,
-              })
-            ),
-          });
-        },
-      };
-    },
+    (beat: RoleplayStoryBeat): FixAreaTarget | null =>
+      buildStoryFixAreaTarget({ beat, storyRef, content, updateToolSettings }),
     [content, storyRef, updateToolSettings]
   );
 

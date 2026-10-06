@@ -45,7 +45,35 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
   its `bbox/face_yolov8m.pt` / `bbox/hand_yolov8s.pt`), the status line says *Two takes order
   off: …* once and the takes keep their order.
 
----
+### Fix an area
+
+- [ ] **Takes always arrive (dev server too)** — on your `npm run dev` server, Gallery lightbox →
+  *Fix an area*, paint, *Fix*: both takes appear in the dialog as they land (the caption counts
+  seconds past 5 s). Nothing in ComfyUI's queue is cancelled by opening the dialog. On a release
+  build the same.
+- [ ] **Close while rendering** — press *Fix*, then *Close* (or Escape) before the takes land: the
+  lightbox button row shows *Fixing… 0 of 2*, and the Day card / Story card of that still shows the
+  same chip. When both land the chip turns *Fix ready — compare* and a toast says so (*Compare*
+  on the toast works too). The chip opens the results with both takes; *Use this* swaps the fix
+  in as before and the chip goes. *Keep original* discards (no chip). Closing the results after
+  both takes have landed also discards (nothing lingers).
+- [ ] **Zoom to the area and the wipe** — in the results, *Zoom to the area* crops the original and
+  both takes to the painted box plus a margin at one scale (the painted-area switch still works);
+  under the grid a *Before / After* wipe shows the original against take 1 — drag the handle (or
+  arrow keys on it); click a take to put it in the wipe.
+- [ ] **Fix the face** — on a still of your Cast, lightbox → *Fix an area* → *Fix the face* (no
+  painting): the face is found, painted and two takes render with the Cast's face as the
+  reference where the engine reads pictures. The note under the results says which. Compare the
+  takes' faces to the original in the wipe. On a two-person still the largest face is the one
+  fixed. (Round-two numbers: see the CHANGELOG — on Rapid AIO and Edit 2511 a redrawn face at
+  full denoise moved away from the Cast; the still-based pass is what ships.)
+- [ ] **Day: undo more than once** — fix a Day still, then *Fix an area* again on the fixed still:
+  the slot sheet's *Undo the fix* reads *(1 more)*; pressing it puts the first fix back, pressing
+  it again the original render. *Keep the fix* clears the stack. The Gallery keeps every version.
+- [ ] **Phone Story** — on the phone Story page, a finished beat's ⋯ menu has *Fix an area…*; it
+  works like the desk one (the fix becomes the shown take).
+- [ ] **Narrower blend** — a fix across two materials (knit over skin) shows a shorter soft band than
+  in 2.3.1; still no visible seam at 2× around any fix.
 
 ## 2.3.1 — needs your check
 

@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import {
+  dayFixUndoDepth,
   dayStillShownImage,
   daySlotProgressState,
   type DaySlot,
@@ -214,8 +215,20 @@ export function DaySameSeedRedo({
           <Button size="sm" variant="primary" data-testid="day-fix-area-keep" onClick={onKeepNew}>
             Keep the fix
           </Button>
-          <Button size="sm" variant="secondary" data-testid="day-fix-area-undo" onClick={onKeepOld}>
+          <Button
+            size="sm"
+            variant="secondary"
+            data-testid="day-fix-area-undo"
+            data-depth={dayFixUndoDepth(still)}
+            title={
+              dayFixUndoDepth(still) > 1
+                ? 'Each press puts back the picture before the last fix; the Gallery keeps every version.'
+                : undefined
+            }
+            onClick={onKeepOld}
+          >
             Undo the fix
+            {dayFixUndoDepth(still) > 1 ? ` (${dayFixUndoDepth(still) - 1} more)` : ''}
           </Button>
         </div>
       </div>

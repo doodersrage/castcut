@@ -14,6 +14,7 @@ import {
   daySlotClipProgressState,
   daySlotPlanLabel,
   daySlotProgressState,
+  dayStillShownImage,
   type DaySlot,
   type DaySlotId,
   type DaySlotStill,
@@ -31,6 +32,7 @@ import { getGalleryCache } from '@/lib/gallery-db-store';
 import { dayTwoTakesPending, dayTwoTakesReady } from '@/lib/day-two-takes';
 import { dayLooksWrongMark } from '@/lib/day-looks-wrong';
 import { DayTwoTakesPick } from '@/components/day-planner/DaySameSeedRedo';
+import FixAreaSessionChip from '@/components/fix-area/FixAreaSessionChip';
 
 export type DaySlotBoardProps = {
   slots: DaySlot[];
@@ -420,6 +422,14 @@ export default function DaySlotBoard({
                     <span className="type-overline pointer-events-none absolute bottom-1.5 left-1.5 z-10 rounded-[var(--radius-sm)] bg-[var(--bg-elevated)]/85 px-1.5 py-0.5 text-[var(--accent-text)]">
                       Live
                     </span>
+                  ) : null}
+                  {doneThumb ? (
+                    // A Fix of this still rendering out of sight, or landed and not yet compared.
+                    <FixAreaSessionChip
+                      url={dayStillShownImage(still) || doneThumb}
+                      className="absolute bottom-1.5 left-1.5 z-20"
+                      testId={`day-fix-area-chip-${slot.id}`}
+                    />
                   ) : null}
                   <button
                     type="button"

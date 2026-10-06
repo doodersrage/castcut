@@ -12,6 +12,7 @@ import {
   type Ref,
 } from 'react';
 import { Button } from '@/components/ui/Button';
+import { maskBoundsFraction, type FixAreaBox } from '@/lib/fix-area';
 import {
   createOffscreenCanvas,
   fitMaskEditorDimensions,
@@ -21,10 +22,23 @@ import {
   type MaskPoint,
 } from '@/lib/inpaint-mask-canvas';
 
+export type FixAreaBrushExport = {
+  /** The painted mask (white = fix, black = keep) as a PNG data URL. */
+  dataUrl: string;
+  /** The painted pixels' box, as fractions of the picture. */
+  box: FixAreaBox | null;
+  /** The picture's width / height. */
+  aspect: number;
+};
+
 export type FixAreaBrushHandle = {
-  /** The painted mask (white = fix, black = keep) as a PNG data URL, or null when empty. */
-  exportMask: () => string | null;
+  /** The painted mask, or null when empty. */
+  exportMask: () => FixAreaBrushExport | null;
   clear: () => void;
+  /** Paint a filled ellipse inside a box given as fractions of the picture (Fix the face). */
+  paintBox: (box: FixAreaBox) => void;
+  /** Put an exported mask back (a resumed Fix's Paint again starts from its strokes). */
+  importMask: (dataUrl: string) => Promise<void>;
 };
 
 /** On-screen brush diameters (CSS px). */
@@ -103,6 +117,65 @@ export default function FixAreaBrushCanvas({
     publish();
   }, [publish, redraw]);
 
+  const paintBox = useCallback(
+    (box: FixAreaBox) => {
+      const mask = maskRef.current;
+      const overlay = overlayRef.current;
+      if (!mask || !overlay) return;
+      const maskCtx = mask.getContext('2d');
+      const overlayCtx = overlay.getContext('2d');
+      if (!maskCtx || !overlayCtx) return;
+      const cx = (box.x + box.width / 2) * mask.width;
+      const cy = (box.y + box.height / 2) * mask.height;
+      const rx = Math.max(1, (box.width / 2) * mask.width);
+      const ry = Math.max(1, (box.height / 2) * mask.height);
+      for (const [ctx, color] of [
+        [maskCtx, '#ffffff'],
+        [overlayCtx, OVERLAY],
+      ] as const) {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      redraw();
+      publish();
+    },
+    [publish, redraw]
+  );
+
+  const importMask = useCallback(
+    async (dataUrl: string) => {
+      const mask = maskRef.current;
+      const overlay = overlayRef.current;
+      if (!mask || !overlay) return;
+      const image = await loadImageElement(dataUrl);
+      const maskCtx = mask.getContext('2d');
+      const overlayCtx = overlay.getContext('2d');
+      if (!maskCtx || !overlayCtx) return;
+      maskCtx.globalCompositeOperation = 'lighten';
+      maskCtx.drawImage(image, 0, 0, mask.width, mask.height);
+      maskCtx.globalCompositeOperation = 'source-over';
+      // The overlay tint where the mask is white: tint through the mask's luminance.
+      const tint = createOffscreenCanvas(overlay.width, overlay.height);
+      const tintCtx = tint.getContext('2d');
+      if (tintCtx) {
+        tintCtx.drawImage(image, 0, 0, overlay.width, overlay.height);
+        tintCtx.globalCompositeOperation = 'multiply';
+        tintCtx.fillStyle = OVERLAY;
+        tintCtx.fillRect(0, 0, overlay.width, overlay.height);
+        tintCtx.globalCompositeOperation = 'destination-in';
+        tintCtx.drawImage(image, 0, 0, overlay.width, overlay.height);
+        overlayCtx.globalCompositeOperation = 'source-over';
+        overlayCtx.drawImage(tint, 0, 0);
+      }
+      redraw();
+      publish();
+    },
+    [publish, redraw]
+  );
+
   useImperativeHandle(
     ref,
     () => ({
@@ -110,11 +183,18 @@ export default function FixAreaBrushCanvas({
         const mask = maskRef.current;
         const ctx = mask?.getContext('2d', { willReadFrequently: true });
         if (!mask || !ctx || !maskCanvasHasContent(ctx, mask.width, mask.height)) return null;
-        return mask.toDataURL('image/png');
+        const data = ctx.getImageData(0, 0, mask.width, mask.height).data;
+        return {
+          dataUrl: mask.toDataURL('image/png'),
+          box: maskBoundsFraction(data, { width: mask.width, height: mask.height }, 4),
+          aspect: mask.width / mask.height,
+        };
       },
       clear,
+      paintBox,
+      importMask,
     }),
-    [clear]
+    [clear, importMask, paintBox]
   );
 
   useLayoutEffect(() => {

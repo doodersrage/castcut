@@ -247,6 +247,8 @@ export function useDayPlannerToolOrchestration() {
       const next = upsertDaySlotStill(stillsRef.current, {
         slotId,
         previousTake: undefined,
+        // Keep the fix: the earlier fixes' pictures go too (the Gallery keeps every version).
+        fixHistory: undefined,
         bestOfTwo: undefined,
       });
       stillsRef.current = next;

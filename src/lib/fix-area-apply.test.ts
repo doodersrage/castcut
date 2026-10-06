@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
-import { dayStillFixAreaPatch, restorePreviousDayTake, type DaySlotStill } from './day-planner';
+import {
+  dayFixUndoDepth,
+  dayStillFixAreaPatch,
+  normalizeDaySlotStills,
+  restorePreviousDayTake,
+  type DaySlotStill,
+} from './day-planner';
 import {
   fixAreaGalleryEntryInput,
   findGalleryEntryForStill,
@@ -98,6 +104,49 @@ describe('fix-area apply', () => {
     assert.equal(restored.finishedUrl, '/face-finished.png');
     assert.equal(restored.finishedFor, 'p1');
     assert.equal(restored.previousTake, undefined);
+    assert.equal(restored.fixHistory, undefined);
+  });
+
+  it('Day: a fix on a fix stacks, and Undo the fix walks back one picture at a time', () => {
+    const still: DaySlotStill = {
+      slotId: 'morning',
+      promptId: 'p1',
+      imageUrl: '/raw.png',
+      status: 'completed',
+    };
+    assert.equal(dayFixUndoDepth(still), 0);
+    const once = { ...still, ...dayStillFixAreaPatch(still, '/fix-1.png')! };
+    assert.equal(dayFixUndoDepth(once), 1);
+    assert.equal(once.fixHistory, undefined);
+    const twice = { ...once, ...dayStillFixAreaPatch(once, '/fix-2.png')! };
+    assert.equal(twice.imageUrl, '/fix-2.png');
+    assert.deepEqual(twice.previousTake, { imageUrl: '/fix-1.png', promptId: 'p1', kind: 'fix-area' });
+    assert.deepEqual(twice.fixHistory, [{ imageUrl: '/raw.png', promptId: 'p1' }]);
+    const thrice = { ...twice, ...dayStillFixAreaPatch(twice, '/fix-3.png')! };
+    assert.equal(dayFixUndoDepth(thrice), 3);
+    assert.deepEqual(thrice.fixHistory, [
+      { imageUrl: '/raw.png', promptId: 'p1' },
+      { imageUrl: '/fix-1.png', promptId: 'p1' },
+    ]);
+    // The stack survives the slot store's normalisation.
+    const stored = normalizeDaySlotStills([thrice])[0]!;
+    assert.deepEqual(stored.fixHistory, thrice.fixHistory);
+    // Undo: fix-3 → fix-2 (fix-1 is now the previous take), → fix-1, → raw, then nothing.
+    const back1 = restorePreviousDayTake([thrice], 'morning')[0]!;
+    assert.equal(back1.imageUrl, '/fix-2.png');
+    assert.equal(back1.finishedUrl, '/fix-2.png');
+    assert.deepEqual(back1.previousTake, { imageUrl: '/fix-1.png', promptId: 'p1', kind: 'fix-area' });
+    assert.deepEqual(back1.fixHistory, [{ imageUrl: '/raw.png', promptId: 'p1' }]);
+    assert.equal(dayFixUndoDepth(back1), 2);
+    const back2 = restorePreviousDayTake([back1], 'morning')[0]!;
+    assert.equal(back2.imageUrl, '/fix-1.png');
+    assert.deepEqual(back2.previousTake, { imageUrl: '/raw.png', promptId: 'p1', kind: 'fix-area' });
+    assert.equal(back2.fixHistory, undefined);
+    const back3 = restorePreviousDayTake([back2], 'morning')[0]!;
+    assert.equal(back3.imageUrl, '/raw.png');
+    assert.equal(back3.previousTake, undefined);
+    assert.equal(dayFixUndoDepth(back3), 0);
+    assert.equal(restorePreviousDayTake([back3], 'morning')[0]!.imageUrl, '/raw.png');
   });
 
   it('Story: the fix joins the takes, pinned; the original stays a take', () => {

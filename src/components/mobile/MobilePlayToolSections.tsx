@@ -110,6 +110,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
     beatEdit,
     writeBio,
     selectStillTake,
+    fixAreaTargetForBeat,
     setBeatPose,
     selectClipTake,
     animateBeat,
@@ -619,6 +620,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
           onPoseChange={setBeatPose}
           onSelectClipTake={selectClipTake}
           onRollScenes={() => void rollScenes()}
+          fixAreaFor={fixAreaTargetForBeat}
         />
       </StoryBeatEditProvider>
 

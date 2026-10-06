@@ -1,10 +1,11 @@
 /**
  * "Fix an area" mask math (pure — the server runs it on decoded pixels, the tests on tiny ones).
  *
- * The player paints the area to fix. From that painted mask P:
- * - the SOFT mask is P grown by the feather radius r and box-blurred by r: 255 everywhere on P,
- *   a ramp over the next 2r pixels, 0 beyond — the composite takes the new pixels on P, blends
- *   across the ramp and keeps the original, byte for byte, everywhere else;
+ * The player paints the area to fix. From that painted mask P, with the feather radius r:
+ * - the SOFT mask is P grown by a ramp radius and box-blurred by it: 255 everywhere on P, a ramp
+ *   over the next pixels, 0 beyond — the composite takes the new pixels on P, blends across the
+ *   ramp and keeps the original, byte for byte, everywhere else. The shipped ramp radius is r/2
+ *   (`narrow`, a ramp of about r pixels); `wide` is r (a 2r ramp);
  * - the HARD mask (the sampler's noise mask, and the grey fill) is P grown by 2r plus a margin,
  *   so the regenerated area covers the whole ramp and its edge (where a latent noise mask leaves
  *   a faint 1-px seam — the limb-repair study, 2026-10-03) lies outside the composite.
@@ -136,23 +137,114 @@ export function hardMask(painted: Uint8Array, size: MaskSize, radius: number): U
   return dilateMask(painted, size, 2 * Math.max(1, Math.round(radius)) + FIX_AREA_HARD_MARGIN);
 }
 
+/**
+ * How the soft ramp is shaped. `wide`: the 2r ramp above. `narrow`: a ramp of half the radius
+ * (the hard mask keeps the full growth, so the sample still covers it). `guided`: the wide ramp
+ * snapped to the original picture's edges — where the ramp crosses a material boundary (knit
+ * over skin) the blend ends on that edge instead of mixing the two textures (fix-area A/B,
+ * round 2).
+ */
+export type FixAreaFeather = 'wide' | 'narrow' | 'guided';
+
+/** Luminance gradient (0–255 per pixel step) above which a ramp pixel sits on an edge. */
+export const FIX_AREA_GUIDED_EDGE = 24;
+
+/** Per-pixel luminance of interleaved 8-bit pixels (RGB or RGBA; 1 channel = itself). */
+export function luminanceOf(pixels: Uint8Array, channels: number): Float32Array {
+  const count = Math.floor(pixels.length / channels);
+  const out = new Float32Array(count);
+  if (channels < 3) {
+    for (let index = 0; index < count; index += 1) out[index] = pixels[index * channels]!;
+    return out;
+  }
+  for (let index = 0; index < count; index += 1) {
+    const base = index * channels;
+    out[index] = 0.299 * pixels[base]! + 0.587 * pixels[base + 1]! + 0.114 * pixels[base + 2]!;
+  }
+  return out;
+}
+
+/**
+ * The soft mask with its ramp pushed to the original's edges: a ramp pixel whose neighbourhood
+ * has a strong luminance gradient is snapped toward whichever side it is already nearer (0 keeps
+ * the original pixel, 255 takes the sample), by the edge's strength. Flat areas keep the plain
+ * ramp; the painted area stays 255 and everything past the ramp stays 0.
+ */
+export function featherMaskGuided(
+  painted: Uint8Array,
+  size: MaskSize,
+  radius: number,
+  pixels: Uint8Array,
+  channels: number,
+  edge = FIX_AREA_GUIDED_EDGE
+): Uint8Array {
+  const { width, height } = size;
+  const soft = featherMask(painted, size, radius);
+  const lum = luminanceOf(pixels, channels);
+  const out = Uint8Array.from(soft);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = y * width + x;
+      const value = soft[index]!;
+      if (value === 0 || value === 255 || painted[index]) continue;
+      const left = lum[index - (x > 0 ? 1 : 0)]!;
+      const right = lum[index + (x < width - 1 ? 1 : 0)]!;
+      const up = lum[index - (y > 0 ? width : 0)]!;
+      const down = lum[index + (y < height - 1 ? width : 0)]!;
+      const gradient = Math.max(Math.abs(right - left), Math.abs(down - up)) / 2;
+      const strength = Math.min(1, gradient / edge);
+      if (strength <= 0) continue;
+      out[index] = Math.round(
+        value < 128 ? value * (1 - strength) : 255 - (255 - value) * (1 - strength)
+      );
+    }
+  }
+  return out;
+}
+
 export type FixAreaMasks = {
   soft: Uint8Array;
   hard: Uint8Array;
   radius: number;
   /** Painted pixels before growing. */
   area: number;
+  feather: FixAreaFeather;
 };
 
-/** Both masks for a painted mask at the still's own size. */
-export function buildFixAreaMasks(painted: Uint8Array, size: MaskSize): FixAreaMasks {
+/**
+ * The feather that ships: narrow (round 2 A/B on the first round's four stills, raw samples
+ * composited offline through each ramp — pixels outside the hard mask identical for all three;
+ * narrow made fewer new edges on 3 of 4 and kept more of the original texture in the band on 4
+ * of 4, no seam at 4–5×; guided snapped single pixels and speckled two of four).
+ */
+export const FIX_AREA_DEFAULT_FEATHER: FixAreaFeather = 'narrow';
+
+/**
+ * Both masks for a painted mask at the still's own size. `pixels` (the still) is needed for the
+ * guided feather; without it the wide ramp is used.
+ */
+export function buildFixAreaMasks(
+  painted: Uint8Array,
+  size: MaskSize,
+  options?: { feather?: FixAreaFeather; pixels?: Uint8Array; channels?: number }
+): FixAreaMasks {
   const binary = binarizeMask(painted);
   const radius = fixAreaFeatherRadius(size);
+  const wanted = options?.feather ?? FIX_AREA_DEFAULT_FEATHER;
+  const feather: FixAreaFeather =
+    wanted === 'guided' && !(options?.pixels && options.channels) ? 'wide' : wanted;
+  const soft =
+    feather === 'guided'
+      ? featherMaskGuided(binary, size, radius, options!.pixels!, options!.channels!)
+      : feather === 'narrow'
+        ? featherMask(binary, size, Math.max(1, Math.round(radius / 2)))
+        : featherMask(binary, size, radius);
   return {
-    soft: featherMask(binary, size, radius),
+    soft,
     hard: hardMask(binary, size, radius),
     radius,
     area: maskArea(binary),
+    feather,
   };
 }
 

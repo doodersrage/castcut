@@ -1,110 +1,151 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModalPortal from '@/components/ui/ModalPortal';
 import { Button } from '@/components/ui/Button';
 import FixAreaBrushCanvas, {
   type FixAreaBrushHandle,
 } from '@/components/fix-area/FixAreaBrushCanvas';
 import {
-  cancelFixAreaJobs,
   comfyImageViewUrl,
-  pollFixAreaJob,
+  locateFaceInStill,
   queueFixArea,
-  type FixAreaJob,
   type FixAreaTarget,
 } from '@/lib/fix-area-client';
-import { FIX_AREA_DEFAULT_TEXT, FIX_AREA_TEXT_MAX } from '@/lib/fix-area';
-import type { ComfyOutputImage } from '@/lib/comfyui-outputs';
+import {
+  faceFixBox,
+  FIX_AREA_DEFAULT_TEXT,
+  FIX_AREA_TEXT_MAX,
+  fixAreaZoomWindow,
+  type FixAreaBox,
+  type FixAreaMode,
+} from '@/lib/fix-area';
+import {
+  fixAreaCandidateCaption,
+  fixAreaSessionProgress,
+  type FixAreaCandidate,
+} from '@/lib/fix-area-session';
+import { fixAreaSessionStore, useFixAreaSession } from '@/lib/fix-area-session-store';
 
-type CandidateState =
-  | { status: 'queued' | 'running' }
-  | { status: 'checking'; image: ComfyOutputImage }
-  | { status: 'ready'; image: ComfyOutputImage; adultCheck?: 'passed' | 'unchecked' }
-  | { status: 'withheld'; reason: string; image?: ComfyOutputImage }
-  | { status: 'failed'; message: string };
-
-type Candidate = FixAreaJob & { state: CandidateState };
-
-const POLL_MS = 1500;
-/** The adult check asks the vision model; a busy LM Studio left takes on "Checking…" forever. */
-const GATE_TIMEOUT_MS = 60_000;
-
-function candidateCaption(state: CandidateState, seconds: number): string {
-  const elapsed = seconds >= 5 ? ` (${seconds}s)` : '';
-  switch (state.status) {
-    case 'queued':
-      return `Waiting in the ComfyUI queue…${elapsed}`;
-    case 'running':
-      return `Rendering…${elapsed}`;
-    case 'checking':
-      return `Checking it reads as adult…${elapsed}`;
-    case 'withheld':
-      return `Withheld: it did not read as clearly adult (${state.reason}).`;
-    case 'failed':
-      return state.message;
-    default:
-      return '';
-  }
-}
-
-async function gateCandidate(
-  imageUrl: string,
-  adult: NonNullable<FixAreaTarget['adult']>
-): Promise<{ pass: boolean; reason: string; verdict?: 'passed' | 'unchecked' }> {
-  const [{ checkStillAdultAppearance }, { loadSettingsCache }] = await Promise.all([
-    import('@/lib/adult-appearance-gate-client'),
-    import('@/lib/settings-cache'),
-  ]);
-  let timer: number | undefined;
-  const timedOut = new Promise<null>(resolve => {
-    timer = window.setTimeout(() => resolve(null), GATE_TIMEOUT_MS);
-  });
-  const decision = await Promise.race([
-    checkStillAdultAppearance({
-      imageUrl,
-      // A fix is not requeued: anything but a pass is withheld.
-      strongTake: true,
-      clothed: adult.clothed === true,
-      coveredTake: true,
-      shared: loadSettingsCache().shared,
-    }),
-    timedOut,
-  ]).finally(() => window.clearTimeout(timer));
-  if (!decision) {
-    return { pass: false, reason: 'the check took too long — is LM Studio busy?' };
-  }
-  const pass = decision.verdict === 'pass' || decision.verdict === 'unchecked';
-  return {
-    pass,
-    reason: decision.reason,
-    ...(pass ? { verdict: decision.verdict === 'pass' ? 'passed' : 'unchecked' } : {}),
-  } as { pass: boolean; reason: string; verdict?: 'passed' | 'unchecked' };
-}
-
-/** A picture with the painted area lightened over it (the mask's white strokes, screen-blended). */
-function WithArea({
+/**
+ * One picture in the results: the whole still, or — zoomed to the area — the same window of it
+ * as every other picture, at one scale. The painted area can be lightened over it.
+ */
+function Picture({
+  src,
+  alt,
+  window: zoom,
   maskUrl,
-  show,
-  children,
+  showArea,
 }: {
+  src: string;
+  alt: string;
+  window: FixAreaBox | null;
   maskUrl: string | null;
-  show: boolean;
-  children: React.ReactNode;
+  showArea: boolean;
 }) {
+  const layerStyle = zoom
+    ? {
+        left: `${(-zoom.x / zoom.width) * 100}%`,
+        top: `${(-zoom.y / zoom.height) * 100}%`,
+        width: `${100 / zoom.width}%`,
+        height: `${100 / zoom.height}%`,
+      }
+    : { left: 0, top: 0, width: '100%', height: '100%' };
   return (
-    <div className="relative">
-      {children}
-      {show && maskUrl ? (
+    <div className="absolute" style={layerStyle} data-testid="fix-area-picture">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} className="absolute inset-0 h-full w-full object-fill" />
+      {showArea && maskUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={maskUrl}
           alt=""
           aria-hidden
           data-testid="fix-area-area-overlay"
-          className="pointer-events-none absolute inset-0 h-full w-full rounded-md object-contain opacity-40 mix-blend-screen"
+          className="pointer-events-none absolute inset-0 h-full w-full object-fill opacity-40 mix-blend-screen"
         />
       ) : null}
+    </div>
+  );
+}
+
+/** The frame a Picture sits in: the still's shape, or the zoom window's. */
+function Frame({
+  window: zoom,
+  aspect,
+  className = '',
+  children,
+}: {
+  window: FixAreaBox | null;
+  aspect: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const ratio = zoom ? (zoom.width * aspect) / zoom.height : aspect;
+  return (
+    <div
+      className={`relative w-full overflow-hidden rounded-md border border-[var(--border-subtle)] bg-black/40 ${className}`}
+      style={{ aspectRatio: `${ratio}` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Before / after wipe of the original and one take: drag the handle across. */
+function Wipe({
+  before,
+  after,
+  window: zoom,
+  aspect,
+  maskUrl,
+  showArea,
+  label,
+}: {
+  before: string;
+  after: string;
+  window: FixAreaBox | null;
+  aspect: number;
+  maskUrl: string | null;
+  showArea: boolean;
+  label: string;
+}) {
+  const [position, setPosition] = useState(50);
+  return (
+    <div className="flex flex-col gap-1" data-testid="fix-area-wipe">
+      <Frame window={zoom} aspect={aspect}>
+        <Picture src={before} alt="Original" window={zoom} maskUrl={maskUrl} showArea={showArea} />
+        <div
+          className="absolute inset-0"
+          style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+          data-testid="fix-area-wipe-after"
+        >
+          <Picture src={after} alt={label} window={zoom} maskUrl={maskUrl} showArea={showArea} />
+        </div>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 w-0.5 bg-white/90 shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"
+          style={{ left: `calc(${position}% - 1px)` }}
+        />
+        <span className="type-overline pointer-events-none absolute left-1.5 top-1.5 rounded-[var(--radius-sm)] bg-black/60 px-1.5 py-0.5 text-white">
+          Before
+        </span>
+        <span className="type-overline pointer-events-none absolute right-1.5 top-1.5 rounded-[var(--radius-sm)] bg-black/60 px-1.5 py-0.5 text-white">
+          After · {label}
+        </span>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={position}
+          onChange={event => setPosition(Number(event.target.value))}
+          aria-label={`Before / after wipe, ${label}`}
+          aria-valuetext={`${position}% after`}
+          className="absolute inset-x-2 bottom-2 h-6 w-[calc(100%-1rem)] cursor-ew-resize appearance-none bg-transparent"
+          data-testid="fix-area-wipe-slider"
+        />
+      </Frame>
     </div>
   );
 }
@@ -112,61 +153,96 @@ function WithArea({
 /**
  * "Fix an area": paint over what's wrong in a finished still, say what should be there (or
  * not), and get two candidates rendered on the still's own engine — only the painted area
- * changes. Pick one ("Use this") or keep the original.
+ * changes. Pick one ("Use this") or keep the original. The takes are tracked by the session
+ * store (fix-area-session.ts): closing the dialog while they render keeps them, a chip on the
+ * source card says so, and "Fix ready — compare" reopens the results here (`sessionId`).
  */
 export default function FixAreaDialog({
   target,
   onClose,
+  sessionId: resumeId = null,
 }: {
   target: FixAreaTarget;
   onClose: () => void;
+  /** A tracked Fix to show the results of (the tray's "Compare"). */
+  sessionId?: string | null;
 }) {
   const brushRef = useRef<FixAreaBrushHandle>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(false);
   const [hasMask, setHasMask] = useState(false);
   const [text, setText] = useState('');
-  const [phase, setPhase] = useState<'paint' | 'results'>('paint');
-  const [submitting, setSubmitting] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(resumeId);
+  const [phase, setPhase] = useState<'paint' | 'results'>(resumeId ? 'results' : 'paint');
+  const [submitting, setSubmitting] = useState<FixAreaMode | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [using, setUsing] = useState<string | null>(null);
-  // The painted area, shown over the original and each take so a small fix can be found.
-  const [maskUrl, setMaskUrl] = useState<string | null>(null);
   const [showArea, setShowArea] = useState(true);
-  const candidatesRef = useRef<Candidate[]>([]);
-  const [startedAt, setStartedAt] = useState(0);
-  const [now, setNow] = useState(0);
-  const closedRef = useRef(false);
-
-  useEffect(() => {
-    candidatesRef.current = candidates;
-  }, [candidates]);
-
-  const unfinishedIds = useCallback(
-    () =>
-      candidatesRef.current
-        .filter(entry => entry.state.status === 'queued' || entry.state.status === 'running')
-        .map(entry => entry.promptId),
-    []
+  const [zoom, setZoom] = useState(false);
+  const [compareId, setCompareId] = useState<string | null>(null);
+  const [identityNote, setIdentityNote] = useState<string | null>(null);
+  const session = useFixAreaSession(sessionId);
+  const candidates = session?.candidates ?? [];
+  const maskUrl = session?.maskUrl ?? null;
+  const aspect = session?.aspect ?? 3 / 4;
+  const zoomWindow = useMemo(
+    () => (zoom ? fixAreaZoomWindow(session?.maskBox, aspect) : null),
+    [aspect, session?.maskBox, zoom]
   );
+  const progress = session ? fixAreaSessionProgress(session) : null;
+  // A seconds counter on unfinished takes, so a long wait reads as waiting, not stuck.
+  const [now, setNow] = useState(() => Date.now());
+  const counting = Boolean(progress && !progress.settled);
+  useEffect(() => {
+    if (!counting) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [counting]);
+  const seconds = session ? Math.max(0, Math.round((now - session.createdAt) / 1000)) : 0;
+
+  // Mounted for this instance. React's dev double mount runs the cleanup once before the
+  // effect again: every flag here ends in its mounted value, and nothing below cancels a take
+  // on cleanup — a take queued by a dialog that went away is tracked by the session store and
+  // offered back ("Fix ready — compare"), never dropped (user report 2026-10-05).
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // The session knows a dialog shows it (the chip and the tray stay quiet meanwhile).
+  useEffect(() => {
+    if (!sessionId) return;
+    const store = fixAreaSessionStore();
+    store.setOpen(sessionId, true);
+    return () => store.setOpen(sessionId, false);
+  }, [sessionId]);
+
+  // The wipe shows the take the player picked, else the first that has landed.
+  const compared =
+    candidates.find(c => c.promptId === compareId && c.state.status === 'ready') ??
+    candidates.find(c => c.state.status === 'ready');
+  const comparedImage = compared?.state.status === 'ready' ? compared.state.image : null;
+  const comparedIndex = compared ? candidates.indexOf(compared) : -1;
 
   const close = useCallback(() => {
-    closedRef.current = true;
-    cancelFixAreaJobs(unfinishedIds());
+    // Seen to the end: nothing to keep tracking. Still rendering: the store keeps the takes.
+    if (sessionId && progress?.settled) fixAreaSessionStore().discard(sessionId);
     onClose();
-  }, [onClose, unfinishedIds]);
+  }, [onClose, progress?.settled, sessionId]);
+
+  const discardAndClose = useCallback(() => {
+    if (sessionId) fixAreaSessionStore().discard(sessionId);
+    onClose();
+  }, [onClose, sessionId]);
 
   // Focus: into the dialog on open, back where it was on close.
   useEffect(() => {
-    // Open again: React's dev double-mount runs the cleanup below once before this, and a
-    // closed flag left set cancelled both takes the moment Fix queued them (user report
-    // 2026-10-05: the button spun, then nothing — one take rendered unseen on ComfyUI).
-    closedRef.current = false;
     const previous = document.activeElement as HTMLElement | null;
     const first = dialogRef.current?.querySelector<HTMLElement>('[data-autofocus]');
     first?.focus();
     return () => {
-      closedRef.current = true;
       previous?.focus?.();
     };
   }, []);
@@ -183,150 +259,68 @@ export default function FixAreaDialog({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [close]);
 
-  const setCandidateState = useCallback((promptId: string, state: CandidateState) => {
-    setCandidates(previous =>
-      previous.map(entry =>
-        entry.promptId !== promptId ||
-        // A landed take never goes back (a late poll can't undo it).
-        (entry.state.status !== 'queued' && entry.state.status !== 'running')
-          ? entry
-          : { ...entry, state }
-      )
-    );
-  }, []);
-  /** Jobs with a status request in flight: one at a time per job (the server drops a landed
-   * job's history once read, so a second overlapping poll would find it gone). */
-  const inFlightRef = useRef<Set<string>>(new Set());
-  const missesRef = useRef<Map<string, number>>(new Map());
-
-  // A seconds counter on unfinished takes, so a long wait reads as waiting, not stuck.
-  useEffect(() => {
-    if (phase !== 'results') return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [phase]);
-  const seconds = startedAt ? Math.max(0, Math.round((now - startedAt) / 1000)) : 0;
-
-  const recheck = useCallback(
-    async (candidate: Candidate) => {
-      if (candidate.state.status !== 'withheld' || !candidate.state.image || !target.adult) return;
-      const image = candidate.state.image;
-      setCandidates(previous =>
-        previous.map(entry =>
-          entry.promptId === candidate.promptId
-            ? { ...entry, state: { status: 'checking', image } }
-            : entry
-        )
-      );
-      const verdict = await gateCandidate(comfyImageViewUrl(image), target.adult).catch(() => ({
-        pass: false,
-        reason: 'the check failed',
-        verdict: undefined,
-      }));
-      if (closedRef.current) return;
-      setCandidates(previous =>
-        previous.map(entry =>
-          entry.promptId === candidate.promptId
-            ? {
-                ...entry,
-                state: verdict.pass
-                  ? { status: 'ready', image, adultCheck: verdict.verdict ?? 'passed' }
-                  : { status: 'withheld', reason: verdict.reason, image },
-              }
-            : entry
-        )
-      );
-    },
-    [target.adult]
-  );
-
-  // Poll each candidate until it lands (then the adult gate, when the still is adult).
-  useEffect(() => {
-    if (phase !== 'results') return;
-    const timer = window.setInterval(() => {
-      for (const candidate of candidatesRef.current) {
-        if (candidate.state.status !== 'queued' && candidate.state.status !== 'running') continue;
-        if (inFlightRef.current.has(candidate.promptId)) continue;
-        inFlightRef.current.add(candidate.promptId);
-        void pollFixAreaJob(candidate.promptId)
-          .finally(() => inFlightRef.current.delete(candidate.promptId))
-          .then(async poll => {
-            if (closedRef.current) return;
-            if (poll.status === 'pending' || poll.status === 'running') {
-              if (poll.status === 'running') {
-                setCandidateState(candidate.promptId, { status: 'running' });
-              }
-              return;
-            }
-            if (poll.status === 'error') {
-              setCandidateState(candidate.promptId, { status: 'failed', message: poll.message });
-              return;
-            }
-            if (poll.status === 'missing') {
-              // Three reads in a row, so a job between the queue and its history isn't lost.
-              const misses = (missesRef.current.get(candidate.promptId) ?? 0) + 1;
-              missesRef.current.set(candidate.promptId, misses);
-              if (misses < 3) return;
-              setCandidateState(candidate.promptId, {
-                status: 'failed',
-                message: 'The job left the ComfyUI queue without a picture.',
-              });
-              return;
-            }
-            if (!target.adult) {
-              setCandidateState(candidate.promptId, { status: 'ready', image: poll.image });
-              return;
-            }
-            setCandidateState(candidate.promptId, { status: 'checking', image: poll.image });
-            const verdict = await gateCandidate(comfyImageViewUrl(poll.image), target.adult).catch(
-              (): { pass: boolean; reason: string; verdict?: 'passed' | 'unchecked' } => ({
-                pass: false,
-                reason: 'the check failed',
-              })
-            );
-            if (closedRef.current) return;
-            setCandidateState(
-              candidate.promptId,
-              verdict.pass
-                ? { status: 'ready', image: poll.image, adultCheck: verdict.verdict ?? 'passed' }
-                : { status: 'withheld', reason: verdict.reason, image: poll.image }
-            );
-          });
-      }
-    }, POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [phase, setCandidateState, target.adult]);
-
-  const submit = useCallback(async () => {
-    const mask = brushRef.current?.exportMask();
-    if (!mask) {
-      setError('Paint over the area to fix first.');
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
-      const jobs = await queueFixArea({ target, mask, text });
-      if (closedRef.current) {
-        cancelFixAreaJobs(jobs.map(job => job.promptId));
+  const submit = useCallback(
+    async (mode: FixAreaMode) => {
+      const exported = brushRef.current?.exportMask();
+      if (!exported) {
+        setError('Paint over the area to fix first.');
         return;
       }
-      setMaskUrl(mask);
-      setStartedAt(Date.now());
-      setNow(Date.now());
-      const next = jobs.map(job => ({ ...job, state: { status: 'queued' } as CandidateState }));
-      candidatesRef.current = next;
-      setCandidates(next);
-      setPhase('results');
+      setSubmitting(mode);
+      setError(null);
+      try {
+        const queued = await queueFixArea({ target, mask: exported.dataUrl, text, mode });
+        // Tracked from here on, whether or not this dialog is still on screen.
+        const started = fixAreaSessionStore().start({
+          target,
+          maskUrl: exported.dataUrl,
+          maskBox: exported.box,
+          aspect: exported.aspect,
+          text,
+          mode,
+          identity: queued.identity,
+          jobs: queued.jobs,
+          open: mountedRef.current,
+        });
+        if (!mountedRef.current) return;
+        setIdentityNote(queued.identityNote ?? null);
+        setSessionId(started.id);
+        setCompareId(null);
+        setPhase('results');
+      } catch (err) {
+        if (mountedRef.current) {
+          setError(err instanceof Error ? err.message : 'Fix an area failed.');
+        }
+      } finally {
+        if (mountedRef.current) setSubmitting(null);
+      }
+    },
+    [target, text]
+  );
+
+  // Fix the face: paint the detected face box and run the fix with the Cast face as reference.
+  const fixFace = useCallback(async () => {
+    setSubmitting('face');
+    setError(null);
+    try {
+      const located = await locateFaceInStill(target.displayUrl);
+      if (!located.face) {
+        setError(located.reason ?? 'No face was found in this picture.');
+        setSubmitting(null);
+        return;
+      }
+      brushRef.current?.clear();
+      brushRef.current?.paintBox(faceFixBox(located.face, { width: 1, height: 1 }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fix an area failed.');
-    } finally {
-      setSubmitting(false);
+      setError(err instanceof Error ? err.message : 'Finding the face failed.');
+      setSubmitting(null);
+      return;
     }
-  }, [target, text]);
+    await submit('face');
+  }, [submit, target.displayUrl]);
 
   const pickCandidate = useCallback(
-    async (candidate: Candidate) => {
+    async (candidate: FixAreaCandidate) => {
       if (candidate.state.status !== 'ready') return;
       setUsing(candidate.promptId);
       try {
@@ -336,23 +330,27 @@ export default function FixAreaDialog({
           promptId: candidate.promptId,
           seed: candidate.seed,
           originalUrl: target.comfyUrl ?? target.displayUrl,
-          text: text.trim(),
+          text: (session ? session.text : text).trim(),
           ...(candidate.state.adultCheck ? { adultCheck: candidate.state.adultCheck } : {}),
         });
-        close();
+        discardAndClose();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not use that candidate.');
         setUsing(null);
       }
     },
-    [close, target, text]
+    [discardAndClose, session, target, text]
   );
 
   const paintAgain = useCallback(() => {
-    cancelFixAreaJobs(unfinishedIds());
-    setCandidates([]);
+    const strokes = session?.maskUrl ?? null;
+    if (sessionId) fixAreaSessionStore().discard(sessionId);
+    setSessionId(null);
+    setCompareId(null);
     setPhase('paint');
-  }, [unfinishedIds]);
+    // A resumed Fix has no strokes on the canvas yet: start from the ones it was made with.
+    if (strokes && !hasMask) void brushRef.current?.importMask(strokes);
+  }, [hasMask, session?.maskUrl, sessionId]);
 
   const unavailable = !target.comfyUrl;
 
@@ -361,6 +359,7 @@ export default function FixAreaDialog({
       <div
         className="fixed inset-0 z-[140] flex items-center justify-center p-2 sm:p-4"
         data-testid="fix-area-dialog"
+        data-phase={phase}
       >
         <button
           type="button"
@@ -379,12 +378,14 @@ export default function FixAreaDialog({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 id="fix-area-title" className="type-title text-base font-semibold">
-                Fix an area
+                {session?.mode === 'face' ? 'Fix the face' : 'Fix an area'}
               </h2>
               <p className="type-caption text-[var(--text-muted)]">
                 {phase === 'paint'
                   ? 'Paint over what looks wrong — only that area is redrawn, on the same engine.'
-                  : 'Two takes of the painted area. Everything outside it is unchanged.'}
+                  : progress && !progress.settled
+                    ? 'Two takes of the painted area are rendering. Close this and keep working — the card says when they land.'
+                    : 'Two takes of the painted area. Everything outside it is unchanged.'}
                 {target.title ? ` · ${target.title}` : ''}
               </p>
             </div>
@@ -425,18 +426,29 @@ export default function FixAreaDialog({
               <div className="flex flex-wrap items-center justify-end gap-2">
                 {!hasMask ? (
                   <span className="type-caption mr-auto text-[var(--text-muted)]">
-                    Paint over the area to fix.
+                    Paint over the area to fix, or fix the face in one click.
                   </span>
                 ) : null}
                 <Button variant="ghost" onClick={close}>
                   Cancel
                 </Button>
                 <Button
+                  variant="secondary"
+                  disabled={submitting !== null || unavailable}
+                  loading={submitting === 'face'}
+                  loadingLabel="Finding the face"
+                  title="Finds the face, paints over it and redraws it with the Cast's face as the reference."
+                  onClick={() => void fixFace()}
+                  data-testid="fix-area-fix-face"
+                >
+                  Fix the face
+                </Button>
+                <Button
                   variant="primary"
-                  disabled={!hasMask || submitting || unavailable}
-                  loading={submitting}
+                  disabled={!hasMask || submitting !== null || unavailable}
+                  loading={submitting === 'area'}
                   loadingLabel="Queueing"
-                  onClick={() => void submit()}
+                  onClick={() => void submit('area')}
                   data-testid="fix-area-submit"
                 >
                   Fix
@@ -452,18 +464,19 @@ export default function FixAreaDialog({
               >
                 <li className="flex flex-col gap-2" data-testid="fix-area-original">
                   <span className="type-label text-sm font-medium">Original</span>
-                  <WithArea maskUrl={maskUrl} show={showArea}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                  <Frame window={zoomWindow} aspect={aspect}>
+                    <Picture
                       src={target.displayUrl}
                       alt="Original"
-                      className="w-full rounded-md border border-[var(--border-subtle)] object-contain"
+                      window={zoomWindow}
+                      maskUrl={maskUrl}
+                      showArea={showArea}
                     />
-                  </WithArea>
+                  </Frame>
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={close}
+                    onClick={discardAndClose}
                     disabled={using !== null}
                     data-testid="fix-area-keep-original"
                   >
@@ -477,17 +490,38 @@ export default function FixAreaDialog({
                     data-testid={`fix-area-candidate-${index}`}
                     data-status={candidate.state.status}
                   >
-                    <span className="type-label text-sm font-medium">Take {index + 1}</span>
+                    <span className="type-label text-sm font-medium">
+                      Take {index + 1}
+                      {compared?.promptId === candidate.promptId ? (
+                        <span className="type-caption ml-2 text-[var(--accent-text)]">
+                          in the wipe
+                        </span>
+                      ) : null}
+                    </span>
                     {candidate.state.status === 'ready' ? (
                       <>
-                        <WithArea maskUrl={maskUrl} show={showArea}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={comfyImageViewUrl(candidate.state.image)}
-                            alt={`Fixed take ${index + 1}`}
-                            className="w-full rounded-md border border-[var(--border-subtle)] object-contain"
-                          />
-                        </WithArea>
+                        <button
+                          type="button"
+                          className={`block w-full rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                            compared?.promptId === candidate.promptId
+                              ? 'ring-2 ring-[var(--accent-ring)]'
+                              : ''
+                          }`}
+                          aria-pressed={compared?.promptId === candidate.promptId}
+                          aria-label={`Compare take ${index + 1} in the before / after wipe`}
+                          onClick={() => setCompareId(candidate.promptId)}
+                          data-testid={`fix-area-compare-${index}`}
+                        >
+                          <Frame window={zoomWindow} aspect={aspect}>
+                            <Picture
+                              src={comfyImageViewUrl(candidate.state.image)}
+                              alt={`Fixed take ${index + 1}`}
+                              window={zoomWindow}
+                              maskUrl={maskUrl}
+                              showArea={showArea}
+                            />
+                          </Frame>
+                        </button>
                         <Button
                           size="sm"
                           variant="primary"
@@ -510,13 +544,17 @@ export default function FixAreaDialog({
                           <span className="ui-spinner" aria-hidden />
                         ) : null}
                         <span className="type-caption text-[var(--text-muted)]">
-                          {candidateCaption(candidate.state, seconds)}
+                          {fixAreaCandidateCaption(candidate.state, seconds)}
                         </span>
-                        {candidate.state.status === 'withheld' && candidate.state.image ? (
+                        {candidate.state.status === 'withheld' &&
+                        candidate.state.image &&
+                        sessionId ? (
                           <Button
                             size="sm"
                             variant="secondary"
-                            onClick={() => void recheck(candidate)}
+                            onClick={() =>
+                              void fixAreaSessionStore().recheck(sessionId, candidate.promptId)
+                            }
                             data-testid={`fix-area-recheck-${index}`}
                           >
                             Check again
@@ -527,17 +565,55 @@ export default function FixAreaDialog({
                   </li>
                 ))}
               </ul>
+              {comparedImage && comparedIndex >= 0 ? (
+                <Wipe
+                  before={target.displayUrl}
+                  after={comfyImageViewUrl(comparedImage)}
+                  window={zoomWindow}
+                  aspect={aspect}
+                  maskUrl={maskUrl}
+                  showArea={showArea}
+                  label={`Take ${comparedIndex + 1}`}
+                />
+              ) : null}
+              {session?.mode === 'face' ? (
+                <p
+                  className="type-caption text-[var(--text-muted)]"
+                  data-testid="fix-area-identity-note"
+                >
+                  {session.identity
+                    ? "Drawn with the Cast's face as the reference (the face picture this still was made with)."
+                    : `No face reference: ${identityNote ?? 'the face is redrawn from the prompt alone.'}`}
+                </p>
+              ) : null}
               <div className="flex flex-wrap items-center justify-end gap-2">
-                <label className="type-caption mr-auto flex items-center gap-2 text-[var(--text-muted)]">
-                  <input
-                    type="checkbox"
-                    checked={showArea}
-                    onChange={event => setShowArea(event.target.checked)}
-                    data-testid="fix-area-show-area"
-                  />
-                  Show the painted area (open a take full size to look closely)
-                </label>
-                <Button variant="ghost" onClick={paintAgain} disabled={using !== null}>
+                <div className="mr-auto flex flex-wrap items-center gap-3">
+                  <label className="type-caption flex items-center gap-2 text-[var(--text-muted)]">
+                    <input
+                      type="checkbox"
+                      checked={showArea}
+                      onChange={event => setShowArea(event.target.checked)}
+                      data-testid="fix-area-show-area"
+                    />
+                    Show the painted area
+                  </label>
+                  <label className="type-caption flex items-center gap-2 text-[var(--text-muted)]">
+                    <input
+                      type="checkbox"
+                      checked={zoom}
+                      disabled={!session?.maskBox}
+                      onChange={event => setZoom(event.target.checked)}
+                      data-testid="fix-area-zoom"
+                    />
+                    Zoom to the area
+                  </label>
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={paintAgain}
+                  disabled={using !== null}
+                  data-testid="fix-area-paint-again"
+                >
                   Paint again
                 </Button>
               </div>

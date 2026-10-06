@@ -38,6 +38,9 @@ export async function POST(request: Request) {
     comfyUrl?: string;
     clientId?: string;
     cancel?: unknown;
+    mode?: unknown;
+    faceUrl?: unknown;
+    feather?: unknown;
   } = {};
   try {
     body = (await request.json()) as typeof body;
@@ -73,6 +76,10 @@ export async function POST(request: Request) {
         candidates: typeof body.candidates === 'number' ? body.candidates : undefined,
         comfyUrl,
         clientId: typeof body.clientId === 'string' ? body.clientId : undefined,
+        mode: body.mode,
+        faceUrl:
+          typeof body.faceUrl === 'string' && body.faceUrl.trim() ? body.faceUrl.trim() : undefined,
+        feather: body.feather,
       })
     );
   } catch (error) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
+import FixAreaSessionChip from '@/components/fix-area/FixAreaSessionChip';
 import { chromeBtn } from '@/components/ui/image-lightbox/chromeBtn';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 import { isStillLightboxKind, type ComfyOutputMediaKind } from '@/lib/comfyui-outputs';
@@ -143,15 +144,21 @@ export default function ImageLightboxSlideChromeBar({
         </Button>
       ) : null}
       {slideChrome?.onFixArea && isStillLightboxKind(currentMediaKind) ? (
-        <Button
-          variant={compact ? 'ghost' : 'secondary'}
-          className={chromeBtn(compact)}
-          onClick={() => slideChrome.onFixArea?.()}
-          title="Paint over what looks wrong and redraw only that area"
-          data-testid="lightbox-fix-area"
-        >
-          Fix an area
-        </Button>
+        <>
+          <Button
+            variant={compact ? 'ghost' : 'secondary'}
+            className={chromeBtn(compact)}
+            onClick={() => slideChrome.onFixArea?.()}
+            title="Paint over what looks wrong and redraw only that area"
+            data-testid="lightbox-fix-area"
+          >
+            Fix an area
+          </Button>
+          <FixAreaSessionChip
+            url={slideChrome.fixArea?.displayUrl ?? null}
+            testId="lightbox-fix-area-chip"
+          />
+        </>
       ) : null}
       {slideChrome?.meta || slideChrome?.onNoteChange ? (
         <Button
