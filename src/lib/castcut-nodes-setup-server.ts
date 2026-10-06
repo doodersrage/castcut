@@ -3,7 +3,7 @@
  * ComfyUI-Manager. Read-only GETs except the install itself.
  */
 
-import { castcutHealth, type CastcutHealth } from './castcut-routes-server';
+import { castcutFallbackCounts, castcutHealth, type CastcutHealth } from './castcut-routes-server';
 import { CASTCUT_NODE_TYPES } from './castcut-nodes';
 import {
   CASTCUT_NODES_GIT_URL,
@@ -36,6 +36,8 @@ export type CastcutNodesReport = {
   system: ComfyUiSystemInfo | null;
   /** The pack's /castcut/health (1.3.0+): what it can check without the queue. */
   health?: CastcutHealth | null;
+  /** Checks this app process sent to the queue because a pack route failed, by kind. */
+  appFallbacks?: Record<string, number>;
 };
 
 async function getJson(
@@ -92,6 +94,7 @@ export async function readCastcutNodesReport(
     queue: health ? health.queue : queue.ok ? countComfyQueue(queue.data) : null,
     system: stats.ok ? parseComfyUiSystemStats(stats.data) : null,
     health,
+    appFallbacks: castcutFallbackCounts(),
   };
 }
 

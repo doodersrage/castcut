@@ -7,7 +7,7 @@
 import { CASTCUT_NODE_TYPES } from './castcut-nodes';
 
 /** The pack this app ships (comfyui-nodes/castcut/castcut_nodes.py `CASTCUT_VERSION`). */
-export const CASTCUT_NODES_BUNDLED_VERSION = '1.3.0';
+export const CASTCUT_NODES_BUNDLED_VERSION = '1.4.0';
 export const CASTCUT_NODES_FILE_NAME = 'castcut_nodes.py';
 /** The app serves its bundled copy here (src/app/api/castcut-nodes/file/route.ts). */
 export const CASTCUT_NODES_FILE_ROUTE = '/api/castcut-nodes/file';
@@ -381,4 +381,50 @@ export function buildCastcutInstallCommands(input: {
     recommended: layout.container,
   });
   return commands;
+}
+
+const USAGE_LABELS: Record<string, string> = {
+  'analyze:face-distance': 'face match',
+  'analyze:face-boxes': 'face finding',
+  'analyze:face-probe': 'Face finish probe',
+  'analyze:pose': 'pose',
+  'analyze:person-poses': 'two-person pose',
+  stage: 'still copies',
+  'png-text': 'graph reads',
+  'input-delete': 'input clean-ups',
+};
+
+/**
+ * What the pack answered since ComfyUI started, and how often this app had to fall back to the
+ * queue — the check that the routes are really used during a Day. Null before 1.3.0's usage.
+ */
+export function describeCastcutUsage(
+  usage:
+    | {
+        routes: Record<string, { served: number; errors: number; avgMs: number }>;
+      }
+    | null
+    | undefined,
+  appFallbacks: Record<string, number> | null | undefined
+): string | null {
+  if (!usage) return null;
+  const rows = Object.entries(usage.routes).filter(([, row]) => row.served + row.errors > 0);
+  const served = rows.reduce((sum, [, row]) => sum + row.served, 0);
+  const errors = rows.reduce((sum, [, row]) => sum + row.errors, 0);
+  const fellBack = Object.values(appFallbacks ?? {}).reduce((sum, count) => sum + count, 0);
+  const parts = rows
+    .filter(([, row]) => row.served > 0)
+    .sort((a, b) => b[1].served - a[1].served)
+    .map(
+      ([key, row]) => `${USAGE_LABELS[key] ?? key} ${row.served} (~${Math.round(row.avgMs)} ms)`
+    );
+  const head =
+    served > 0
+      ? `Since ComfyUI started: ${served} answered without the queue — ${parts.join(', ')}`
+      : 'Since ComfyUI started: nothing asked of the pack yet';
+  const tail = [
+    errors > 0 ? `${errors} failed` : '',
+    fellBack > 0 ? `this app fell back to the queue ${fellBack} times` : '',
+  ].filter(Boolean);
+  return `${head}${tail.length ? `; ${tail.join('; ')}` : ''}.`;
 }

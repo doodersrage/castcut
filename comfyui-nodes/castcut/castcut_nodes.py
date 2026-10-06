@@ -32,7 +32,7 @@ try:  # numpy ships with ComfyUI; the pose functions below don't need it.
 except ImportError:  # pragma: no cover - only without numpy
     np = None
 
-CASTCUT_VERSION = "1.3.0"
+CASTCUT_VERSION = "1.4.0"
 
 # Every node's object_info `description` ends with this marker, so the app can tell which version
 # is installed without running anything (src/lib/castcut-nodes-setup.ts parses it). Keep the
@@ -1526,11 +1526,20 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 #   POST /castcut/stage               -> copy an output into input/ under a content name
 #   GET  /castcut/object-info-fingerprint -> changes when nodes or model files change
 #   POST /castcut/input-delete        -> remove named, old, unqueued files from input/ (1.3.0)
-#   GET  /castcut/health              -> queue, VRAM, loaded models, analyzers (1.3.0)
+#   GET  /castcut/health              -> queue, VRAM, loaded models, analyzers, usage (1.3.0)
+#   GET  /castcut/png-text            -> a PNG's text chunks (the saved graph), not its pixels (1.4.0)
 
 ROUTE_PREFIX = "/castcut"
-ROUTES = ("info", "analyze", "stage", "object-info-fingerprint", "input-delete", "health")
-ANALYZE_OPS = ("face-distance", "face-boxes", "face-probe", "pose")
+ROUTES = (
+    "info",
+    "analyze",
+    "stage",
+    "object-info-fingerprint",
+    "input-delete",
+    "health",
+    "png-text",
+)
+ANALYZE_OPS = ("face-distance", "face-boxes", "face-probe", "pose", "person-poses")
 # An input file younger than this is never deleted, whatever the request says.
 INPUT_DELETE_MIN_AGE_SECONDS = 86_400
 VIEW_TYPES = ("input", "output", "temp")
@@ -1706,7 +1715,7 @@ def _load_rgb(ref):
     return np.array(image)
 
 
-def analyze_request(body, analyzer, pose_analyzer=None):
+def analyze_request(body, analyzer, pose_analyzer=None, person_reader=None):
     """The work behind POST /castcut/analyze (no aiohttp, for tests)."""
     op = body.get("op")
     provider = body.get("provider") or "CPU"
@@ -1756,6 +1765,24 @@ def analyze_request(body, analyzer, pose_analyzer=None):
             face=body.get("face", False) is True,
         )
         return {"op": op, "openpose_json": text}
+    if op == "person-poses":
+        if (
+            pose_analyzer is None
+            or not pose_analyzer.available()
+            or person_reader is None
+            or not person_reader.available()
+        ):
+            return {"op": op, "error": "no-person-read"}
+        model_name = str(body.get("model") or "segm/person_yolov8m-seg.pt")
+        if "/" in model_name.strip("/").split("/", 1)[-1] or ".." in model_name:
+            raise ValueError("Invalid model name.")
+        texts = person_reader.poses(
+            _load_rgb(body.get("image")),
+            pose_analyzer,
+            model_name,
+            count=max(1, min(4, int(body.get("count", 2)))),
+        )
+        return {"op": op, "openpose_json": texts}
     raise ValueError(f"Unknown op: {op}")
 
 
@@ -1880,13 +1907,18 @@ class PoseAnalyzer:
     def openpose_json(self, rgb, hands=True, body=True, face=False, resolution=512):
         import torch  # noqa: PLC0415
 
+        # LoadImage's float pixels.
+        tensor = torch.from_numpy(rgb.astype(np.float32) / 255.0)[None]
+        return self.openpose_json_tensor(tensor, hands, body, face, resolution)
+
+    def openpose_json_tensor(self, tensor, hands=True, body=True, face=False, resolution=512):
+        """The DWPreprocessor node's `openpose_json` for an IMAGE tensor (B×H×W×C floats)."""
         wrapper = self._wrapper()
         if wrapper is None:
             raise RuntimeError("DWPose (comfyui_controlnet_aux) is not installed.")
         with self._lock:
             model = self._detector(wrapper)
-            # LoadImage's float pixels, then the node's own call (no progress bar sent).
-            tensor = torch.from_numpy(rgb.astype(np.float32) / 255.0)[None]
+            # The node's own call (no progress bar sent).
             dicts = []
 
             def run(image, **kwargs):
@@ -1906,6 +1938,141 @@ class PoseAnalyzer:
                 xinsr_stick_scaling=False,
             )
         return json.dumps(dicts, indent=4)
+
+
+class PersonReader:
+    """
+    The app's two-person pose read (pose-person-reads.ts buildPersonReadGraph) in-process: the
+    Impact Pack's person segmentation (YOLO pinned to the CPU), each of the largest people alone
+    on grey, DWPose (PoseAnalyzer, CPU) on each. The graph's own node functions, so its masks;
+    only the device differs.
+    """
+
+    def __init__(self):
+        import threading  # noqa: PLC0415
+
+        self._detectors = {}
+        self._lock = threading.Lock()
+
+    @staticmethod
+    def available():
+        try:
+            import nodes  # noqa: PLC0415 - ComfyUI only
+        except Exception:  # noqa: BLE001
+            return False
+        needed = (
+            "UltralyticsDetectorProvider",
+            "SegmDetectorSEGS",
+            "ImpactSEGSOrderedFilter",
+            "SegsToCombinedMask",
+        )
+        return all(name in nodes.NODE_CLASS_MAPPINGS for name in needed)
+
+    def _segm_detector(self, model_name):
+        if model_name not in self._detectors:
+            import nodes  # noqa: PLC0415 - ComfyUI only
+
+            provider = nodes.NODE_CLASS_MAPPINGS["UltralyticsDetectorProvider"]()
+            _, segm = provider.doit(model_name)
+            real = getattr(segm, "bbox_model", None)
+            if real is None:
+                raise RuntimeError(f"{model_name} is not a segmentation model.")
+
+            class CpuYolo:
+                """The YOLO model, always asked to run on the CPU."""
+
+                def __call__(self, *args, **kwargs):
+                    kwargs["device"] = "cpu"
+                    return real(*args, **kwargs)
+
+                def __getattr__(self, name):
+                    return getattr(real, name)
+
+            segm.bbox_model = CpuYolo()
+            self._detectors[model_name] = segm
+        return self._detectors[model_name]
+
+    def poses(self, rgb, pose_analyzer, model_name, count=2, threshold=0.35, dilation=6,
+              crop_factor=1, drop_size=40, grey=0x808080):
+        import torch  # noqa: PLC0415
+
+        import node_helpers  # noqa: PLC0415 - ComfyUI only
+        import nodes  # noqa: PLC0415 - ComfyUI only
+        from comfy_extras.nodes_mask import composite  # noqa: PLC0415 - ComfyUI only
+
+        mappings = nodes.NODE_CLASS_MAPPINGS
+        image = torch.from_numpy(rgb.astype(np.float32) / 255.0)[None]
+        with self._lock:
+            segm = self._segm_detector(model_name)
+            segs = mappings["SegmDetectorSEGS"]().doit(
+                segm, image, threshold, dilation, crop_factor, drop_size, "all"
+            )[0]
+            height, width = image.shape[1], image.shape[2]
+            backdrop = nodes.EmptyImage().generate(width, height, 1, grey)[0]
+            alone_images = []
+            for index in range(count):
+                taken = mappings["ImpactSEGSOrderedFilter"]().doit(segs, "area(=w*h)", True, index, 1)[0]
+                mask = mappings["SegsToCombinedMask"]().doit(taken)[0]
+                # ImageCompositeMasked.execute, x = y = 0, no resize.
+                destination, source = node_helpers.image_alpha_fix(backdrop, image)
+                destination = destination.clone().movedim(-1, 1)
+                alone = composite(destination, source.movedim(-1, 1), 0, 0, mask, 1, False).movedim(1, -1)
+                alone_images.append(alone)
+        return [pose_analyzer.openpose_json_tensor(alone) for alone in alone_images]
+
+
+_PERSON_READER = None
+
+
+def _person_reader():
+    global _PERSON_READER  # noqa: PLW0603 - one detector per ComfyUI process
+    if _PERSON_READER is None:
+        _PERSON_READER = PersonReader()
+    return _PERSON_READER
+
+
+# What the routes answered since ComfyUI started, for /castcut/health: {key: {served, errors, ms}}.
+USAGE = {}
+_STARTED = None
+
+
+def record_usage(key, ok, elapsed_ms):
+    """Count one route call (an analyze op, or a route name)."""
+    entry = USAGE.setdefault(key, {"served": 0, "errors": 0, "ms": 0.0})
+    if ok:
+        entry["served"] += 1
+    else:
+        entry["errors"] += 1
+    entry["ms"] += float(elapsed_ms)
+
+
+def usage_payload():
+    return {
+        "since": _STARTED,
+        "routes": {
+            key: {
+                "served": value["served"],
+                "errors": value["errors"],
+                "avgMs": round(value["ms"] / max(1, value["served"] + value["errors"]), 1),
+            }
+            for key, value in sorted(USAGE.items())
+        },
+    }
+
+
+def png_text(path):
+    """A PNG's text chunks (ComfyUI's `prompt` / `workflow`) without decoding its pixels."""
+    from PIL import Image  # noqa: PLC0415
+
+    with Image.open(path) as image:
+        info = dict(getattr(image, "text", None) or image.info)
+    return {key: value for key, value in info.items() if isinstance(value, str)}
+
+
+def png_text_request(query):
+    chunks = png_text(_ref_path(query))
+    wanted = [name for name in (query.get("keys") or "prompt").split(",") if name]
+    return {name: chunks.get(name) for name in wanted}
 
 
 def plan_input_delete(names, input_dir, queue_text, now, min_age_seconds):
@@ -1973,6 +2140,8 @@ def health_payload(queue_counts):
         "queue": queue_counts,
         "faceAnalysis": FaceAnalyzer.available(),
         "dwpose": PoseAnalyzer().available(),
+        "personRead": PersonReader.available(),
+        "usage": usage_payload(),
         "analyzersLoaded": {
             "face": bool(_ANALYZER and _ANALYZER._models),
             "pose": bool(_POSE_ANALYZER and _POSE_ANALYZER._model is not None),
@@ -2016,6 +2185,7 @@ def info_payload():
         "analyze": {
             "faceAnalysis": FaceAnalyzer.available(),
             "dwpose": PoseAnalyzer().available(),
+            "personRead": PersonReader.available(),
             "ops": list(ANALYZE_OPS),
         },
     }
@@ -2031,16 +2201,24 @@ def register_routes():
     except Exception:  # noqa: BLE001 - not running inside ComfyUI
         return False
 
-    async def run(work, *args):
+    async def run(work, *args, usage_key=None):
         import asyncio  # noqa: PLC0415
+        import time  # noqa: PLC0415
 
         loop = asyncio.get_running_loop()
+        started = time.perf_counter()
+        ok = False
         try:
-            return web.json_response(await loop.run_in_executor(None, work, *args))
+            result = await loop.run_in_executor(None, work, *args)
+            ok = not (isinstance(result, dict) and result.get("error"))
+            return web.json_response(result)
         except (ValueError, FileNotFoundError) as error:
             return web.json_response({"error": str(error)}, status=400)
         except Exception as error:  # noqa: BLE001 - report, don't crash the server
             return web.json_response({"error": f"{type(error).__name__}: {error}"}, status=500)
+        finally:
+            if usage_key:
+                record_usage(usage_key, ok, (time.perf_counter() - started) * 1000)
 
     async def read_json(request):
         try:
@@ -2058,14 +2236,22 @@ def register_routes():
         body = await read_json(request)
         if body is None:
             return web.json_response({"error": "JSON body required."}, status=400)
-        return await run(analyze_request, body, _analyzer(), _pose_analyzer())
+        op = str(body.get("op") or "")
+        return await run(
+            analyze_request,
+            body,
+            _analyzer(),
+            _pose_analyzer(),
+            _person_reader(),
+            usage_key=f"analyze:{op}" if op in ANALYZE_OPS else "analyze:unknown",
+        )
 
     @routes.post(f"{ROUTE_PREFIX}/stage")
     async def castcut_stage(request):
         body = await read_json(request)
         if body is None:
             return web.json_response({"error": "JSON body required."}, status=400)
-        return await run(stage_request, body)
+        return await run(stage_request, body, usage_key="stage")
 
     @routes.get(f"{ROUTE_PREFIX}/object-info-fingerprint")
     async def castcut_fingerprint(_request):
@@ -2083,13 +2269,21 @@ def register_routes():
         running, pending = queue_state()
         # Names in a running or pending job's graph are never deleted.
         queue_text = json.dumps([item[2] for item in running + pending if len(item) > 2])
-        return await run(input_delete_request, body, queue_text)
+        return await run(input_delete_request, body, queue_text, usage_key="input-delete")
+
+    @routes.get(f"{ROUTE_PREFIX}/png-text")
+    async def castcut_png_text(request):
+        return await run(png_text_request, dict(request.query), usage_key="png-text")
 
     @routes.get(f"{ROUTE_PREFIX}/health")
     async def castcut_health(_request):
         running, pending = queue_state()
         return await run(health_payload, {"running": len(running), "pending": len(pending)})
 
+    global _STARTED  # noqa: PLW0603
+    import time  # noqa: PLC0415
+
+    _STARTED = int(time.time() * 1000)
     return True
 
 

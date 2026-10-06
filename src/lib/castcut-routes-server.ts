@@ -18,6 +18,8 @@ export type CastcutRoutesInfo = {
   faceAnalysis: boolean;
   /** DWPose (comfyui_controlnet_aux) is installed, for the `pose` op (1.3.0+). */
   dwpose: boolean;
+  /** The Impact Pack's person segmentation is installed too, for `person-poses` (1.4.0+). */
+  personRead: boolean;
   /** `analyze` ops this pack answers ("face-distance", "face-boxes", "face-probe", "pose"). */
   ops: string[];
 };
@@ -49,6 +51,7 @@ export function parseCastcutRoutesInfo(payload: unknown): CastcutRoutesInfo | nu
     routes: body.routes.filter((route): route is string => typeof route === 'string'),
     faceAnalysis: analyze.faceAnalysis === true,
     dwpose: analyze.dwpose === true,
+    personRead: analyze.personRead === true,
     ops: Array.isArray(analyze.ops)
       ? analyze.ops.filter((op): op is string => typeof op === 'string')
       : // 1.2.0 listed the two face ops it had.
@@ -219,7 +222,28 @@ export async function castcutObjectInfoFingerprint(
 /** The pack answers this `analyze` op (and what it needs is installed). */
 export function castcutCanAnalyze(info: CastcutRoutesInfo | null, op: string): boolean {
   if (!info?.routes.includes('analyze') || !info.ops.includes(op)) return false;
-  return op === 'pose' ? info.dwpose : info.faceAnalysis;
+  if (op === 'pose') return info.dwpose;
+  if (op === 'person-poses') return info.dwpose && info.personRead;
+  return info.faceAnalysis;
+}
+
+/**
+ * Checks this app process sent to queued graphs because a pack route was missing or failed, by
+ * kind — the other half of the pack's own counts (`/castcut/health` → usage).
+ */
+const fallbacks = new Map<string, number>();
+
+export function recordCastcutFallback(kind: string): void {
+  fallbacks.set(kind, (fallbacks.get(kind) ?? 0) + 1);
+}
+
+export function castcutFallbackCounts(): Record<string, number> {
+  return Object.fromEntries([...fallbacks.entries()].sort(([a], [b]) => a.localeCompare(b)));
+}
+
+/** Tests. */
+export function resetCastcutFallbackCounts(): void {
+  fallbacks.clear();
 }
 
 export type CastcutProbedFace = { x: number; distance: number };
@@ -307,11 +331,19 @@ export async function castcutInputDelete(
   };
 }
 
+export type CastcutUsage = {
+  /** When the pack's routes were registered (ComfyUI start), ms since epoch. */
+  since: number | null;
+  routes: Record<string, { served: number; errors: number; avgMs: number }>;
+};
+
 export type CastcutHealth = {
   version: string;
   queue: { running: number; pending: number };
   faceAnalysis: boolean;
   dwpose: boolean;
+  personRead?: boolean;
+  usage?: CastcutUsage;
   analyzersLoaded?: { face: boolean; pose: boolean };
   vram?: { freeBytes: number; totalBytes: number };
   loadedModels?: string[];
@@ -334,5 +366,62 @@ export async function castcutHealth(
     return typeof body?.version === 'string' ? body : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * The two-person pose read (pose-person-reads.ts buildPersonReadGraph) in one call: the Impact
+ * Pack's person masks with YOLO on the CPU, each of the `count` largest people alone on grey,
+ * DWPose on each — the graph's own node functions. One `openpose_json` per person read; null when
+ * the packs it needs are missing.
+ */
+export async function castcutPersonPoses(
+  baseUrl: string,
+  input: { image: CastcutImageSource; model: string; count: number; timeoutMs?: number },
+  fetchImpl: FetchLike = fetch
+): Promise<string[] | null> {
+  const result = await postJson<{ openpose_json?: unknown; error?: string }>(
+    `${hostKey(baseUrl)}/castcut/analyze`,
+    { op: 'person-poses', image: sourceBody(input.image), model: input.model, count: input.count },
+    input.timeoutMs ?? 90_000,
+    fetchImpl
+  );
+  if (result.error === 'no-person-read') return null;
+  if (!Array.isArray(result.openpose_json)) {
+    throw new Error('Castcut person read returned no JSON.');
+  }
+  return result.openpose_json.map(text => (typeof text === 'string' ? text : ''));
+}
+
+/**
+ * A ComfyUI PNG's `prompt` text chunk (the API graph it was made with) without downloading the
+ * picture. Undefined without the route (the caller downloads it); null when the PNG has none.
+ */
+export async function castcutPngPrompt(
+  baseUrl: string,
+  ref: ComfyImageRef,
+  fetchImpl: FetchLike = fetch
+): Promise<string | null | undefined> {
+  const info = await castcutRoutes(baseUrl, fetchImpl);
+  if (!info?.routes.includes('png-text')) return undefined;
+  const params = new URLSearchParams({
+    filename: ref.filename,
+    subfolder: ref.subfolder ?? '',
+    type: ref.type,
+    keys: 'prompt',
+  });
+  try {
+    const response = await fetchImpl(`${hostKey(baseUrl)}/castcut/png-text?${params}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) {
+      recordCastcutFallback('png-text');
+      return undefined;
+    }
+    const body = (await response.json()) as { prompt?: unknown };
+    return typeof body.prompt === 'string' ? body.prompt : null;
+  } catch {
+    recordCastcutFallback('png-text');
+    return undefined;
   }
 }

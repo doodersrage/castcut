@@ -11,6 +11,7 @@ import {
   castcutCanAnalyze,
   castcutFaceDistances,
   castcutRoutes,
+  recordCastcutFallback,
 } from '@/lib/castcut-routes-server';
 import {
   comfyBaseUrl,
@@ -73,6 +74,7 @@ async function measureFaceMatchDirect(
     });
   } catch (error) {
     console.warn('Castcut face check failed; queueing the face graph instead:', error);
+    recordCastcutFallback('face-distance');
     return null;
   }
   if (distances === null) {

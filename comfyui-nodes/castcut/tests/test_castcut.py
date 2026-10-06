@@ -504,5 +504,58 @@ class RouteHelperTests13(unittest.TestCase):
         )
 
 
+class RouteHelperTests14(unittest.TestCase):
+    """1.4.0: usage counts, png text, person poses' guards."""
+
+    def setUp(self):
+        castcut.USAGE.clear()
+
+    def test_usage_counts_served_errors_and_average(self):
+        castcut.record_usage("analyze:pose", True, 300)
+        castcut.record_usage("analyze:pose", True, 500)
+        castcut.record_usage("analyze:pose", False, 100)
+        castcut.record_usage("stage", True, 4)
+        routes = castcut.usage_payload()["routes"]
+        self.assertEqual(routes["analyze:pose"], {"served": 2, "errors": 1, "avgMs": 300.0})
+        self.assertEqual(list(routes), ["analyze:pose", "stage"])
+
+    def test_png_text_reads_chunks_not_pixels(self):
+        from PIL import Image  # noqa: PLC0415
+        from PIL.PngImagePlugin import PngInfo  # noqa: PLC0415
+
+        with tempfile.TemporaryDirectory() as root:
+            meta = PngInfo()
+            meta.add_text("prompt", json.dumps({"1": {"class_type": "KSampler"}}))
+            meta.add_text("workflow", "{}")
+            path = os.path.join(root, "still.png")
+            Image.new("RGB", (8, 8)).save(path, pnginfo=meta)
+            chunks = castcut.png_text(path)
+            self.assertEqual(json.loads(chunks["prompt"])["1"]["class_type"], "KSampler")
+            self.assertEqual(chunks["workflow"], "{}")
+            bare = os.path.join(root, "bare.png")
+            Image.new("RGB", (8, 8)).save(bare)
+            self.assertEqual(castcut.png_text(bare), {})
+
+    def test_person_poses_needs_its_packs_and_a_plain_model_name(self):
+        class Yes:
+            def available(self):
+                return True
+
+        class No:
+            def available(self):
+                return False
+
+        image = {"filename": "x.png", "type": "output"}
+        self.assertEqual(
+            castcut.analyze_request({"op": "person-poses", "image": image}, None, Yes(), No()),
+            {"op": "person-poses", "error": "no-person-read"},
+        )
+        for bad in ["segm/../../etc/x.pt", "segm/a/b.pt"]:
+            with self.assertRaises(ValueError, msg=bad):
+                castcut.analyze_request(
+                    {"op": "person-poses", "image": image, "model": bad}, None, Yes(), Yes()
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

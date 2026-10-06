@@ -8,7 +8,12 @@
  */
 
 import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
-import { castcutRoutes, castcutStageAsInput } from '@/lib/castcut-routes-server';
+import {
+  castcutPngPrompt,
+  castcutRoutes,
+  castcutStageAsInput,
+  recordCastcutFallback,
+} from '@/lib/castcut-routes-server';
 import { checkQueueNumber } from '@/lib/comfy-model-batch';
 import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
@@ -164,6 +169,7 @@ export async function stageComfyImageAsInput(
       return await castcutStageAsInput(baseUrl, ref, prefix);
     } catch (error) {
       console.warn('Castcut stage failed; staging through /view instead:', error);
+      recordCastcutFallback('stage');
     }
   }
   const params = new URLSearchParams({
@@ -271,18 +277,22 @@ export async function readComfyImageGraph(
   baseUrl: string,
   ref: ComfyImageRef
 ): Promise<Record<string, unknown> | null> {
-  const params = new URLSearchParams({
-    filename: ref.filename,
-    subfolder: ref.subfolder,
-    type: ref.type,
-  });
-  const response = await fetch(`${baseUrl}/view?${params.toString()}`, {
-    signal: AbortSignal.timeout(20000),
-  });
-  if (!response.ok) return null;
-  const chunks = parseTextChunks(await response.arrayBuffer());
+  // With the Castcut pack only the text chunk comes back, not the ~1.5 MB picture.
+  let text = await castcutPngPrompt(baseUrl, ref);
+  if (text === undefined) {
+    const params = new URLSearchParams({
+      filename: ref.filename,
+      subfolder: ref.subfolder,
+      type: ref.type,
+    });
+    const response = await fetch(`${baseUrl}/view?${params.toString()}`, {
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) return null;
+    text = parseTextChunks(await response.arrayBuffer()).prompt ?? null;
+  }
   try {
-    const graph = chunks.prompt ? (JSON.parse(chunks.prompt) as unknown) : null;
+    const graph = text ? (JSON.parse(text) as unknown) : null;
     return graph && typeof graph === 'object' ? (graph as Record<string, unknown>) : null;
   } catch {
     return null;

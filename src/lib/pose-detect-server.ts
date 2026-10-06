@@ -7,7 +7,13 @@
  * callers can quietly skip the check.
  */
 
-import { castcutCanAnalyze, castcutPoseJson, castcutRoutes } from '@/lib/castcut-routes-server';
+import {
+  castcutCanAnalyze,
+  castcutPersonPoses,
+  castcutPoseJson,
+  castcutRoutes,
+  recordCastcutFallback,
+} from '@/lib/castcut-routes-server';
 import {
   comfyBaseUrl,
   fillComfyNodeInputs,
@@ -22,6 +28,7 @@ import {
   mergePersonReadReplies,
   PERSON_READ_COUNT,
   PERSON_READ_NODES,
+  PERSON_SEGMENT_MODEL,
   personReadNodeId,
 } from '@/lib/pose-person-reads';
 import { parseOpenPoseJson, type PoseDetectResult } from '@/lib/pose-score';
@@ -67,6 +74,7 @@ export async function detectPoseInComfyStill(input: {
       if (pose) return { available: true, pose };
     } catch (error) {
       console.warn('Castcut pose read failed; queueing the DWPose graph instead:', error);
+      recordCastcutFallback('pose');
     }
   }
   const detector = await resolveComfyNode(baseUrl, DETECTOR_NODES);
@@ -118,6 +126,23 @@ export async function detectPeopleInComfyStill(input: {
     return { available: false, reason: 'Still is not a ComfyUI image.' };
   }
   const baseUrl = comfyBaseUrl(input.comfyUrl);
+  // The Castcut pack runs the same person read in-process (YOLO and DWPose on the CPU), without
+  // waiting for the render in progress or staging the still.
+  if (castcutCanAnalyze(await castcutRoutes(baseUrl), 'person-poses')) {
+    try {
+      const replies = await castcutPersonPoses(baseUrl, {
+        image: ref,
+        model: PERSON_SEGMENT_MODEL,
+        count: PERSON_READ_COUNT,
+        timeoutMs: input.timeoutMs,
+      });
+      const pose = replies ? mergePersonReadReplies(replies) : null;
+      if (pose) return { available: true, pose };
+    } catch (error) {
+      console.warn('Castcut person read failed; queueing the person-read graph instead:', error);
+      recordCastcutFallback('person-poses');
+    }
+  }
   const detector = await resolveComfyNode(baseUrl, DETECTOR_NODES);
   if (!detector) {
     return {

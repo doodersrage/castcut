@@ -3,7 +3,12 @@
  * finished image as a ComfyUI view ref.
  */
 
-import { castcutCanAnalyze, castcutFaceProbe, castcutRoutes } from '@/lib/castcut-routes-server';
+import {
+  castcutCanAnalyze,
+  castcutFaceProbe,
+  castcutRoutes,
+  recordCastcutFallback,
+} from '@/lib/castcut-routes-server';
 import {
   comfyBaseUrl,
   parseComfyViewRef,
@@ -71,6 +76,7 @@ async function probeLeadFace(
       return faces.length ? faces.map(face => ({ x: face.x, distance: face.distance })) : null;
     } catch (error) {
       console.warn('Castcut face probe failed; queueing the probe graph instead:', error);
+      recordCastcutFallback('face-probe');
     }
   }
   const number = (entry: ComfyHistoryEntry, node: string): number | null => {

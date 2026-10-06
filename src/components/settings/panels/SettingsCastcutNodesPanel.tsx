@@ -14,6 +14,7 @@ import {
   chooseCastcutNodesAction,
   describeCastcutHealth,
   describeCastcutNodesStatus,
+  describeCastcutUsage,
   type CastcutInstallCommand,
   type CastcutNodesStatus,
   type ComfyUiSystemInfo,
@@ -31,7 +32,9 @@ type Report = {
     faceAnalysis: boolean;
     dwpose: boolean;
     vram?: { freeBytes: number; totalBytes: number };
+    usage?: { routes: Record<string, { served: number; errors: number; avgMs: number }> };
   } | null;
+  appFallbacks?: Record<string, number>;
 };
 
 type Phase =
@@ -124,6 +127,7 @@ export default function SettingsCastcutNodesPanel({
 
   const status = report?.status ?? null;
   const healthLine = describeCastcutHealth(report?.health ?? null);
+  const usageLine = describeCastcutUsage(report?.health?.usage, report?.appFallbacks);
   const managerPresent = Boolean(report?.manager);
   const action = chooseCastcutNodesAction({
     status,
@@ -317,6 +321,14 @@ export default function SettingsCastcutNodesPanel({
             data-testid="castcut-nodes-health-line"
           >
             {healthLine}
+          </p>
+        ) : null}
+        {status && usageLine ? (
+          <p
+            className="type-caption text-[var(--text-muted)]"
+            data-testid="castcut-nodes-usage-line"
+          >
+            {usageLine}
           </p>
         ) : null}
         {error ? (

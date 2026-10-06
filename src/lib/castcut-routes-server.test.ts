@@ -7,15 +7,19 @@ import {
   castcutFaceProbe,
   castcutHealth,
   castcutInputDelete,
+  castcutFallbackCounts,
   castcutObjectInfoFingerprint,
+  castcutPersonPoses,
+  castcutPngPrompt,
   castcutPoseJson,
   castcutRoutes,
   castcutStageAsInput,
   forgetCastcutRoutes,
   parseCastcutRoutesInfo,
+  resetCastcutFallbackCounts,
 } from './castcut-routes-server';
 import { namesAllowedToDelete } from './comfy-input-cleanup';
-import { describeCastcutHealth } from './castcut-nodes-setup';
+import { describeCastcutHealth, describeCastcutUsage } from './castcut-nodes-setup';
 import { queueContextFromJobList } from './comfyui-status';
 import { measureFaceMatchInComfy } from './face-match-server';
 
@@ -57,6 +61,7 @@ describe('Castcut node pack routes', () => {
       routes: INFO.routes,
       faceAnalysis: true,
       dwpose: false,
+      personRead: false,
       ops: ['face-distance', 'face-boxes'],
     });
     assert.equal(parseCastcutRoutesInfo({ version: 1 }), null);
@@ -341,6 +346,80 @@ describe('input folder delete allow-list', () => {
         vram: { freeBytes: 4 * 1024 ** 3, totalBytes: 24 * 1024 ** 3 },
       }),
       'Without the queue: face checks and pose checks · GPU memory free: 4.0 of 24 GB.'
+    );
+  });
+});
+
+describe('Castcut nodes 1.4.0', () => {
+  afterEach(() => resetCastcutFallbackCounts());
+
+  it('person poses: one JSON per person read; "none" when the packs are missing', async () => {
+    const { impl, calls } = fakeFetch({
+      '/castcut/analyze': body =>
+        (body as { model: string }).model === 'missing'
+          ? [200, { op: 'person-poses', error: 'no-person-read' }]
+          : [200, { op: 'person-poses', openpose_json: ['[{"people":[]}]', '[{"people":[]}]'] }],
+    });
+    const image = { filename: 'Castcut_1.png', subfolder: '', type: 'output' };
+    assert.equal(
+      (await castcutPersonPoses(BASE, { image, model: 'segm/person_yolov8m-seg.pt', count: 2 }, impl))?.length,
+      2
+    );
+    assert.deepEqual(calls[0]!.body, {
+      op: 'person-poses',
+      image,
+      model: 'segm/person_yolov8m-seg.pt',
+      count: 2,
+    });
+    assert.equal(await castcutPersonPoses(BASE, { image, model: 'missing', count: 2 }, impl), null);
+  });
+
+  it('png text: the prompt chunk, undefined without the route, and a failure is counted', async () => {
+    const ref = { filename: 'Castcut_1.png', subfolder: '', type: 'output' };
+    const withRoute = fakeFetch({
+      '/castcut/info': () => [200, { ...INFO, routes: [...INFO.routes, 'png-text'] }],
+      '/castcut/png-text': () => [200, { prompt: '{"1":{}}' }],
+    });
+    assert.equal(await castcutPngPrompt(BASE, ref, withRoute.impl), '{"1":{}}');
+    assert.match(withRoute.calls[1]!.url, /keys=prompt/);
+    forgetCastcutRoutes();
+    const older = fakeFetch({ '/castcut/info': () => [200, INFO] });
+    assert.equal(await castcutPngPrompt(BASE, ref, older.impl), undefined);
+    forgetCastcutRoutes();
+    const failing = fakeFetch({
+      '/castcut/info': () => [200, { ...INFO, routes: [...INFO.routes, 'png-text'] }],
+      '/castcut/png-text': () => [500, { error: 'boom' }],
+    });
+    assert.equal(await castcutPngPrompt(BASE, ref, failing.impl), undefined);
+    assert.deepEqual(castcutFallbackCounts(), { 'png-text': 1 });
+  });
+
+  it('person-poses needs DWPose and the person read', () => {
+    const info = parseCastcutRoutesInfo({
+      ...INFO,
+      analyze: { faceAnalysis: true, dwpose: true, personRead: false, ops: ['person-poses'] },
+    });
+    assert.equal(castcutCanAnalyze(info, 'person-poses'), false);
+    assert.equal(castcutCanAnalyze({ ...info!, personRead: true }, 'person-poses'), true);
+  });
+
+  it('the card line says what was answered and what fell back', () => {
+    assert.equal(describeCastcutUsage(null, {}), null);
+    assert.equal(
+      describeCastcutUsage({ routes: {} }, {}),
+      'Since ComfyUI started: nothing asked of the pack yet.'
+    );
+    assert.equal(
+      describeCastcutUsage(
+        {
+          routes: {
+            'analyze:pose': { served: 12, errors: 0, avgMs: 412.4 },
+            'analyze:face-distance': { served: 30, errors: 1, avgMs: 520 },
+          },
+        },
+        { pose: 2 }
+      ),
+      'Since ComfyUI started: 42 answered without the queue — face match 30 (~520 ms), pose 12 (~412 ms); 1 failed; this app fell back to the queue 2 times.'
     );
   });
 });

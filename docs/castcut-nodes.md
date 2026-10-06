@@ -15,7 +15,7 @@ Mask Repair and Report.
 ## Install from Castcut (easiest)
 
 Open **Settings → ComfyUI → Castcut nodes**. The card says whether this ComfyUI has the pack and
-which version (*Missing*, *Installed v1.3.0*, *Outdated*), and offers one way to install it:
+which version (*Missing*, *Installed v1.4.0*, *Outdated*), and offers one way to install it:
 
 - **ComfyUI-Manager is installed** → **Install with ComfyUI-Manager**. When it is done,
   **Restart ComfyUI…** restarts ComfyUI through the Manager. It asks first, because a restart stops
@@ -82,9 +82,9 @@ node pack.
 there) and restart the container.
 
 Check it worked: `http://<comfyui>:8188/object_info/CastcutPoseScore` returns the node, and the
-card shows *Installed v1.3.0*. With 1.2.0, `http://<comfyui>:8188/castcut/info` answers too.
+card shows *Installed v1.4.0*. With 1.2.0, `http://<comfyui>:8188/castcut/info` answers too.
 
-## Routes (1.2.0 and 1.3.0)
+## Routes (1.2.0 – 1.4.0)
 
 Besides the nodes, the pack adds a few HTTP routes to ComfyUI, so some checks no longer go
 through the render queue:
@@ -109,6 +109,15 @@ through the render queue:
 - **1.3.0: health.** One call for the queue, free GPU memory and what the pack can check; the
   Castcut nodes card uses it instead of reading the whole queue.
 
+- **1.4.0: two-person pose reads too.** The read that keeps a couple in contact as two bodies
+  (person masks, each person alone, DWPose) runs in-process with the Impact Pack's own nodes and
+  YOLO on the CPU, instead of a queued graph.
+- **1.4.0: graphs without the picture.** Fix area, Face finish and the LoRA check read the
+  graph a still was made with from its PNG; the pack sends only that text, not the ~1.5 MB file.
+- **1.4.0: is it being used?** The Castcut nodes card shows what the pack answered since ComfyUI
+  started (per check, with the average time) and how often the app had to fall back to the
+  queue — run a Day and look there.
+
 Without 1.2.0 (or when a route fails) everything works as before, through queued graphs. The
 queue position of a waiting still now comes from ComfyUI's jobs list rather than the whole
 queue, on any ComfyUI that has it (pack or not).
@@ -116,7 +125,7 @@ queue, on any ComfyUI that has it (pack or not).
 ## Updating
 
 The card compares the installed version (each node's description ends with
-`[castcut-nodes 1.3.0]`) with the version this app ships. *Outdated* means a newer one came with
+`[castcut-nodes 1.4.0]`) with the version this app ships. *Outdated* means a newer one came with
 the app: install again the same way — copying the file over the old one, `git pull` in a clone, or
 the Manager. A copy from before version 1.1.0 shows as *Installed (an older version)*.
 

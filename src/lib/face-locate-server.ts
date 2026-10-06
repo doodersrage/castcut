@@ -13,6 +13,7 @@ import {
   castcutCanAnalyze,
   castcutRoutes,
   type CastcutFaceBoxTurn,
+  recordCastcutFallback,
 } from '@/lib/castcut-routes-server';
 import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
 import {
@@ -94,6 +95,7 @@ async function locateFaceDirect(
     });
   } catch (error) {
     console.warn('Castcut face locate failed; queueing the face graphs instead:', error);
+    recordCastcutFallback('face-boxes');
     return null;
   }
   for (const turn of turns) {
