@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Button, ButtonLink } from '@/components/ui/Button';
+import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
   dismissPlayHabitNudge,
@@ -18,11 +19,19 @@ export default function PlayHabitNudgeBanner() {
   const [nudge, setNudge] = useState<PlayHabitNudge | null>(null);
 
   useEffect(() => {
-    const refresh = () => setNudge(resolvePlayHabitNudge());
+    let live = true;
+    const refresh = () => {
+      if (live) setNudge(resolvePlayHabitNudge());
+    };
     scheduleAfterCommit(refresh);
+    // The metrics live in IndexedDB: on a cold load the first read can come before they are
+    // hydrated, and nothing else re-read them until the window was focused — the nudge was
+    // missed on about one load in six.
+    void whenBrowserStorageReady().then(refresh);
     window.addEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
     window.addEventListener('focus', refresh);
     return () => {
+      live = false;
       window.removeEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
       window.removeEventListener('focus', refresh);
     };

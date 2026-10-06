@@ -11,6 +11,7 @@ import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
 import { useBottomDockRef } from '@/hooks/useBottomDockRef';
 import { featureForPath } from '@/lib/auth/features';
+import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import {
   MOBILE_STUDIO_PRIMARY_TAB_IDS,
   MOBILE_STUDIO_TABS,
@@ -47,6 +48,8 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
   useEffect(() => {
     const refresh = () => setFirstFilmDone(hasCompletedFirstFilm(loadPlayMetrics()));
     scheduleAfterCommit(refresh);
+    // Read again once IndexedDB has hydrated: a cold load could read before the metrics were.
+    void whenBrowserStorageReady().then(refresh);
     window.addEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);

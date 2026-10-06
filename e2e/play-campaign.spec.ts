@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
-import { seedSettingsCacheOnNextLoad } from './helpers/idb';
+import { putAppKv, seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { closeDaySheets, openDayAdvanced, openDaySetup, openDaySlotSheet } from './helpers/day';
 import { gotoStable } from './helpers/navigation';
 import { closeOutfitSheets, openOutfitAdvanced, openOutfitClothing } from './helpers/outfit';
@@ -354,6 +354,10 @@ test('outfit footwear: a kit, barefoot, own words, own photo', async ({ page }) 
 test('outfit custom pose: drag editor, start figures, save to My poses', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: '' },
+    // A try-on plate, so the editor can show it behind the figure.
+    tools: {
+      fitting: { referenceImageUrl: '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp' },
+    },
     characters: { version: 1, characters: [], removedIds: [] },
   });
   await gotoStable(page, '/fitting');
@@ -449,16 +453,47 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
   const noseAfter = await page.getByTestId('outfit-pose-joint-0-0').getAttribute('cx');
   expect(Number(noseAfter)).toBeGreaterThan(Number(noseBefore));
   await expect(page.getByTestId('outfit-pose-head-left')).toHaveAttribute('aria-pressed', 'true');
-  // The head is not part of the pose in words.
-  await expect(page.getByTestId('outfit-pose-words')).toContainText('standing');
+  // The head reaches the words, and so the prompt.
+  await expect(page.getByTestId('outfit-pose-words')).toContainText(
+    'standing, head turned to her left'
+  );
+  // A three-quarter turn: short of the profile, both eyes drawn, and its own words.
+  await page.getByTestId('outfit-pose-head-three-quarter-right').click();
+  await expect(page.getByTestId('outfit-pose-head-three-quarter-right')).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await expect(page.getByTestId('outfit-pose-head-left')).toHaveAttribute('aria-pressed', 'false');
+  const noseQuarter = Number(await page.getByTestId('outfit-pose-joint-0-0').getAttribute('cx'));
+  expect(noseQuarter).toBeLessThan(Number(noseBefore));
+  expect(noseQuarter).toBeGreaterThan(Number(noseBefore) - (Number(noseAfter) - Number(noseBefore)));
+  await expect(page.getByTestId('outfit-pose-words')).toContainText(
+    'head turned three-quarters to her right'
+  );
+  await page.getByTestId('outfit-pose-head-straight').click();
+  await expect(page.getByTestId('outfit-pose-words')).not.toContainText('head turned');
+  await page.getByTestId('outfit-pose-head-left').click();
   // The starting pose stays behind the figure as a dashed ghost, until it is switched off.
   await expect(page.getByTestId('outfit-pose-start-ghost')).toHaveCount(1);
   await page.getByTestId('outfit-pose-show-start').uncheck();
   await expect(page.getByTestId('outfit-pose-start-ghost')).toHaveCount(0);
   await page.getByTestId('outfit-pose-show-start').check();
   await expect(page.getByTestId('outfit-pose-start-ghost')).toHaveCount(1);
-  await page.getByTestId('outfit-pose-undo').click();
+  // Reset goes back to the pose the editor opened with: the ghost has nothing to show.
+  await page.getByTestId('outfit-pose-reset').click();
   await expect(page.getByTestId('outfit-pose-start-ghost')).toHaveCount(0);
+  await expect(page.getByTestId('outfit-pose-words')).not.toContainText('head turned');
+
+  // Her picture behind the figure: faint by default, a slider sets how strongly it shows.
+  const backdrop = page.getByTestId('outfit-pose-backdrop');
+  await expect(backdrop).toHaveAttribute('opacity', '0.3');
+  await page.getByTestId('outfit-pose-backdrop-opacity').fill('60');
+  await expect(backdrop).toHaveAttribute('opacity', '0.6');
+  await page.getByTestId('outfit-pose-show-backdrop').uncheck();
+  await expect(backdrop).toHaveCount(0);
+  await expect(page.getByTestId('outfit-pose-backdrop-opacity')).toHaveCount(0);
+  await page.getByTestId('outfit-pose-show-backdrop').check();
+  await expect(backdrop).toHaveAttribute('opacity', '0.6');
 
   await page.getByTestId('outfit-pose-starter-sit').click();
   await expect(page.getByTestId('outfit-pose-words')).toContainText('seated');
@@ -480,6 +515,14 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
   await page.getByTestId('outfit-pose-day-pose').click();
   await page.getByTestId('outfit-pose-day-pose-hands_hips').click();
   await expect(page.getByTestId('outfit-pose-words')).toContainText('hands on hips: both hands on');
+  // A Head chip keeps the named pose's words and adds the head to them.
+  await page.getByTestId('outfit-pose-head-three-quarter-left').click();
+  await expect(page.getByTestId('outfit-pose-words')).toContainText(
+    /hands on hips: both hands on .*, head turned three-quarters to her left/
+  );
+  await page.getByTestId('outfit-pose-head-straight').click();
+  await expect(page.getByTestId('outfit-pose-words')).not.toContainText('head turned');
+  await page.getByTestId('outfit-pose-head-three-quarter-left').click();
 
   await page.getByTestId('outfit-pose-save-to-my-poses').click();
   await page.getByTestId('outfit-pose-save-name').fill('Chair lean');
@@ -491,7 +534,9 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
   await page.getByTestId('outfit-pose-editor-save').click();
   await expect(page.getByTestId('outfit-pose-custom')).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByTestId('outfit-pose-figure')).toBeVisible();
-  await expect(page.getByTestId('outfit-pose-day-words')).toContainText('hands on hips');
+  await expect(page.getByTestId('outfit-pose-day-words')).toContainText(
+    /hands on hips.*, head turned three-quarters to her left/
+  );
   await expect(page.getByTestId('outfit-my-poses')).toContainText('Chair lean');
 
   await page.getByTestId('outfit-pose-plate').click();
@@ -499,19 +544,13 @@ test('outfit custom pose: drag editor, start figures, save to My poses', async (
 });
 
 test('forgetting a Cast lead asks first', async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem(
-      'comfy-prompt-characters-v1',
-      JSON.stringify({
-        version: 1,
-        characters: [{ id: 'e2e-forget', name: 'Keep Me', version: 1, updatedAt: Date.now() }],
-        removedIds: [],
-      })
-    );
-    window.localStorage.setItem(
-      'comfy-prompt-tool-settings-v1',
-      JSON.stringify({ shared: { activeCharacterId: 'e2e-forget' }, tools: {} })
-    );
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-forget' },
+    characters: {
+      version: 1,
+      characters: [{ id: 'e2e-forget', name: 'Keep Me', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
   });
   await gotoStable(page, '/fitting?character=e2e-forget');
   await dismissBlockingOverlays(page);
@@ -2179,33 +2218,24 @@ test('copy share link button copies portable hash url', async ({ page, context }
 });
 
 test('fitting continue-in-day appears after Keep seeds day', async ({ page }) => {
-  await page.addInitScript(() => {
-    const characterId = 'e2e-keep-char';
-    const lookId = 'look-1';
-    window.localStorage.setItem(
-      'comfy-prompt-characters-v1',
-      JSON.stringify({
-        version: 1,
-        characters: [
-          {
-            id: characterId,
-            name: 'E2E Keep',
-            version: 1,
-            updatedAt: Date.now(),
-            activeLookId: lookId,
-            looks: [{ id: lookId, name: 'Main', createdAt: Date.now() }],
-          },
-        ],
-        removedIds: [],
-      })
-    );
-    window.localStorage.setItem(
-      'comfy-prompt-tool-settings-v1',
-      JSON.stringify({
-        shared: { activeCharacterId: characterId, activeLookId: lookId },
-        tools: {},
-      })
-    );
+  const characterId = 'e2e-keep-char';
+  const lookId = 'look-1';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: characterId, activeLookId: lookId },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: characterId,
+          name: 'E2E Keep',
+          version: 1,
+          updatedAt: Date.now(),
+          activeLookId: lookId,
+          looks: [{ id: lookId, name: 'Main', createdAt: Date.now() }],
+        },
+      ],
+      removedIds: [],
+    },
   });
   await gotoStable(page, '/fitting?character=e2e-keep-char');
   await dismissBlockingOverlays(page);
@@ -2379,29 +2409,13 @@ test('cast films tab and continue roleplay work for Play characters', async ({ p
 });
 
 test('day cut film chrome and save-to-cast testids are wired', async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem(
-      'comfy-prompt-characters-v1',
-      JSON.stringify({
-        version: 1,
-        characters: [
-          {
-            id: 'e2e-day-cast',
-            name: 'Day Cast',
-            version: 1,
-            updatedAt: Date.now(),
-          },
-        ],
-        removedIds: [],
-      })
-    );
-    window.localStorage.setItem(
-      'comfy-prompt-tool-settings-v1',
-      JSON.stringify({
-        shared: { activeCharacterId: 'e2e-day-cast' },
-        tools: {},
-      })
-    );
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-day-cast' },
+    characters: {
+      version: 1,
+      characters: [{ id: 'e2e-day-cast', name: 'Day Cast', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
   });
   await gotoStable(page, '/day?character=e2e-day-cast');
   await dismissBlockingOverlays(page);
@@ -2412,30 +2426,23 @@ test('day cut film chrome and save-to-cast testids are wired', async ({ page }) 
 });
 
 test('plan a day bumps campaign stepIndex for resume', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-step-char' },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-step-char',
+          name: 'Step Char',
+          version: 1,
+          updatedAt: Date.now(),
+          descriptor: 'step look',
+        },
+      ],
+      removedIds: [],
+    },
+  });
   await page.addInitScript(() => {
-    window.localStorage.setItem(
-      'comfy-prompt-characters-v1',
-      JSON.stringify({
-        version: 1,
-        characters: [
-          {
-            id: 'e2e-step-char',
-            name: 'Step Char',
-            version: 1,
-            updatedAt: Date.now(),
-            descriptor: 'step look',
-          },
-        ],
-        removedIds: [],
-      })
-    );
-    window.localStorage.setItem(
-      'comfy-prompt-tool-settings-v1',
-      JSON.stringify({
-        shared: { activeCharacterId: 'e2e-step-char' },
-        tools: {},
-      })
-    );
     window.sessionStorage.setItem(
       'play-campaign-v1',
       JSON.stringify({
@@ -3907,54 +3914,14 @@ test('play habit nudge appears after a day-old cut', async ({ page }) => {
   // Play metrics sync: another test's newer cut on the shared e2e server would replace this one.
   await isolateServerStorage(page);
   const dayAgo = Date.now() - 1000 * 60 * 60 * 25;
-  await page.addInitScript(
-    ({ cutAt }) => {
-      try {
-        localStorage.setItem('comfy-workspace-mode-v1', 'play');
-        localStorage.setItem('comfy-workspace-mode-chosen-v1', '1');
-      } catch {
-        // ignore
-      }
-      // Metrics / campaign are IDB-authoritative — localStorage alone is overwritten on hydrate.
-      const kv: Record<string, unknown> = {
-        'comfy-play-metrics-v1': {
-          version: 1,
-          firstFilmCutAt: cutAt,
-          lastFilmCutAt: cutAt,
-        },
-        'play-campaign-v1': {
-          version: 1,
-          characterId: 'e2e-habit',
-          stepIndex: 3,
-          completedAt: cutAt,
-          updatedAt: cutAt,
-        },
-      };
-      return new Promise<void>((resolve, reject) => {
-        const request = indexedDB.open('comfy-prompt-studio-v1');
-        request.onerror = () => reject(request.error ?? new Error('idb open failed'));
-        request.onsuccess = () => {
-          const db = request.result;
-          if (!db.objectStoreNames.contains('kv')) {
-            db.close();
-            resolve();
-            return;
-          }
-          const tx = db.transaction('kv', 'readwrite');
-          const store = tx.objectStore('kv');
-          for (const [key, value] of Object.entries(kv)) {
-            store.put({ key, value });
-          }
-          tx.oncomplete = () => {
-            db.close();
-            resolve();
-          };
-          tx.onerror = () => reject(tx.error ?? new Error('idb kv put failed'));
-        };
-      });
-    },
-    { cutAt: dayAgo }
-  );
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('comfy-workspace-mode-v1', 'play');
+      localStorage.setItem('comfy-workspace-mode-chosen-v1', '1');
+    } catch {
+      // ignore
+    }
+  });
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: 'e2e-habit' },
     characters: {
@@ -3969,6 +3936,24 @@ test('play habit nudge appears after a day-old cut', async ({ page }) => {
         },
       ],
       removedIds: [],
+    },
+  });
+  // Metrics / campaign are IDB-authoritative — localStorage alone is overwritten on hydrate.
+  // Written now, from the static page the seed above left us on, so the rows are committed
+  // before the app boots: an init script's own IndexedDB write is asynchronous and lost the
+  // race with the app's hydrate (no nudge, 1 in ~3 full runs under load).
+  await putAppKv(page, {
+    'comfy-play-metrics-v1': {
+      version: 1,
+      firstFilmCutAt: dayAgo,
+      lastFilmCutAt: dayAgo,
+    },
+    'play-campaign-v1': {
+      version: 1,
+      characterId: 'e2e-habit',
+      stepIndex: 3,
+      completedAt: dayAgo,
+      updatedAt: dayAgo,
     },
   });
   await gotoStable(page, '/play');

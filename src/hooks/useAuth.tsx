@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -55,6 +56,29 @@ export type AuthContextValue = AuthState & {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const SESSION_RETRY_DELAYS_MS = [400, 1200, 3000];
+/** A rate-limited request says when to come back (Retry-After); wait that long, up to this. */
+const SESSION_RETRY_AFTER_CAP_MS = 10_000;
+/**
+ * With every quick retry failed, the session is asked for again in the background, so a page
+ * that loaded while the server was rate-limiting (several tabs or devices behind one address)
+ * gets its navigation without a reload once the limiter's window has passed.
+ */
+const SESSION_BACKGROUND_RETRY_MS = 15_000;
+const SESSION_BACKGROUND_RETRIES = 8;
+
+/** How long to wait before the next try: the server's Retry-After on a 429, else the schedule. */
+export function sessionRetryDelayMs(
+  attempt: number,
+  response: { status: number; retryAfter: string | null } | null
+): number | null {
+  const scheduled = SESSION_RETRY_DELAYS_MS[attempt];
+  if (scheduled == null) return null;
+  const after = Number(response?.retryAfter);
+  if (response?.status === 429 && Number.isFinite(after) && after > 0) {
+    return Math.max(scheduled, Math.min(after * 1000, SESSION_RETRY_AFTER_CAP_MS));
+  }
+  return scheduled;
+}
 
 /**
  * The session request, tried again when it fails. One dropped or rate-limited request at page
@@ -64,6 +88,7 @@ const SESSION_RETRY_DELAYS_MS = [400, 1200, 3000];
 async function fetchSessionWithRetry(): Promise<Response> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= SESSION_RETRY_DELAYS_MS.length; attempt++) {
+    let failed: { status: number; retryAfter: string | null } | null = null;
     try {
       const response = await fetch('/api/auth/session', { cache: 'no-store' });
       // 429 (rate limit) and 5xx are worth another try; their body is an error, and read as
@@ -71,11 +96,12 @@ async function fetchSessionWithRetry(): Promise<Response> {
       if (response.ok || (response.status < 500 && response.status !== 429)) {
         return response;
       }
+      failed = { status: response.status, retryAfter: response.headers.get('Retry-After') };
       lastError = new Error(`session ${response.status}`);
     } catch (error) {
       lastError = error;
     }
-    const delay = SESSION_RETRY_DELAYS_MS[attempt];
+    const delay = sessionRetryDelayMs(attempt, failed);
     if (delay == null) break;
     await new Promise(resolve => setTimeout(resolve, delay));
   }
@@ -84,10 +110,21 @@ async function fetchSessionWithRetry(): Promise<Response> {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(INITIAL);
+  // Whether a session has ever been read, and the background retry while none has.
+  const loaded = useRef(false);
+  const backgroundRetry = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backgroundRetries = useRef(0);
+  // The timer calls whatever refresh is current (it is declared below).
+  const refreshRef = useRef<() => Promise<void>>(async () => {});
 
   const refresh = useCallback(async () => {
+    if (backgroundRetry.current) {
+      clearTimeout(backgroundRetry.current);
+      backgroundRetry.current = null;
+    }
     try {
       const response = await fetchSessionWithRetry();
+      loaded.current = true;
       const data = (await response.json()) as AuthSessionResponse & {
         defaultAdminUsername?: string;
         impersonating?: boolean;
@@ -116,13 +153,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // A session that was already loaded stays as it was: a failed refresh is not a logout.
       setState(previous => (previous.loading ? { ...INITIAL, loading: false } : previous));
+      // Never loaded: keep asking, slowly, so the navigation fills in once the server answers.
+      if (!loaded.current && backgroundRetries.current < SESSION_BACKGROUND_RETRIES) {
+        backgroundRetries.current += 1;
+        backgroundRetry.current = setTimeout(() => {
+          backgroundRetry.current = null;
+          void refreshRef.current();
+        }, SESSION_BACKGROUND_RETRY_MS);
+      }
     }
   }, []);
+
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
 
   useEffect(() => {
     scheduleAfterCommit(() => {
       void refresh();
     });
+    return () => {
+      if (backgroundRetry.current) clearTimeout(backgroundRetry.current);
+    };
   }, [refresh]);
 
   const logout = useCallback(async () => {

@@ -1,16 +1,45 @@
 import type { Page } from '@playwright/test';
 
-/** Write app KV rows into Dexie so IDB-authoritative keys survive hydrate. */
+/**
+ * Write app KV rows into Dexie so IDB-authoritative keys survive hydrate.
+ *
+ * Opened at the app's own schema (src/lib/app-db.ts: Dexie version 1 = IndexedDB version 10,
+ * `galleryEntries` and `kv`) and the stores created when they are missing. Opening without a
+ * version and skipping a missing `kv` store silently dropped the seed whenever the app page
+ * before had not finished creating the database — under a parallel run that was most of the
+ * time (the habit nudge seed, 8 of 12 repeats).
+ */
 export async function putAppKv(page: Page, entries: Record<string, unknown>): Promise<void> {
   await page.evaluate(async pairs => {
     await new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open('comfy-prompt-studio-v1');
+      const request = indexedDB.open('comfy-prompt-studio-v1', 10);
       request.onerror = () => reject(request.error ?? new Error('idb open failed'));
+      request.onblocked = () => reject(new Error('idb open blocked by another connection'));
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('galleryEntries')) {
+          const gallery = db.createObjectStore('galleryEntries', { keyPath: 'id' });
+          for (const index of [
+            'queuedAt',
+            'status',
+            'favorite',
+            'tool',
+            'projectId',
+            'completedAt',
+            'reviewRating',
+          ]) {
+            gallery.createIndex(index, index);
+          }
+        }
+        if (!db.objectStoreNames.contains('kv')) {
+          db.createObjectStore('kv', { keyPath: 'key' });
+        }
+      };
       request.onsuccess = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains('kv')) {
           db.close();
-          resolve();
+          reject(new Error('idb kv store missing after open'));
           return;
         }
         const tx = db.transaction('kv', 'readwrite');

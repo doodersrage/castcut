@@ -111,9 +111,13 @@ test('command palette finds a setting and deep-links to it', async ({ page }) =>
     .toBeTruthy();
   // Deep settings only show once you type.
   await expect(dialog.getByText('Settings · Lock the pose with ControlNet')).toHaveCount(0);
-  await page.keyboard.type('pose controlnet');
+  // Into the search box itself: typing blind right after the dialog opened could land before its
+  // autofocus and lose the first letters (1 failure in 11 full runs).
+  const search = dialog.getByPlaceholder(/Jump to/);
+  await search.fill('pose controlnet');
+  await expect(search).toHaveValue('pose controlnet');
   const hit = dialog.getByText('Settings · Lock the pose with ControlNet');
-  await expect(hit).toBeVisible();
+  await expect(hit).toBeVisible({ timeout: 10_000 });
   await hit.click();
   await expect(page).toHaveURL(/focus=settings-pose-controlnet/, { timeout: 20_000 });
   await expect(page.getByTestId('settings-pose-controlnet')).toBeVisible({ timeout: 20_000 });
