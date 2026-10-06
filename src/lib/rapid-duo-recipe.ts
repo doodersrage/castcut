@@ -693,7 +693,10 @@ function soloPlacement(
   }
   switch (kind) {
     case 'on_back':
-      return `She lies on her back on ${on('bed')}, head on the pillow, knees bent and thighs spread wide.`;
+      // Say what the Image 3 guide draws (day-pose-guide.ts on_back: one thigh folded toward the
+      // chest, the other knee out). "Knees bent and thighs spread wide" drew both legs spread
+      // plus the guide's raised leg — a third leg on 5/5 renders of one beat, 0/4 with this line.
+      return `She lies on her back on ${on('bed')}, head on the pillow, one knee drawn up toward her chest and the other leg bent out to the side — two legs only.`;
     case 'side_lying':
       return `She lies on her side on ${on('bed')}, bottom leg straight and top knee raised high, facing the camera.`;
     case 'prone':
