@@ -3694,11 +3694,16 @@ export function buildDaySlotPrompt(input: {
     // Rapid, a clothed two-person still with a Cast partner's face: the compact couple recipe.
     // Replayed live (two seeds), the brief drew a stranger or a third person instead of the
     // partner; the couple recipe drew the lead and the partner, faces right, both times.
+    // A couple beat ("with her partner": Vacation, Date night, Lazy Sunday) takes it with no
+    // partner face too (People: Duo, no partner picked). Live, Rapid v23, 2026-10-06, same seeds:
+    // the ~4–6k brief left the man shirtless 6/18 and posed both to camera; the recipe kept him
+    // dressed 18/18 and did the beat (head on his shoulder 4/4 vs 0/4). Friend beats stay on the
+    // brief: with no partner the recipe makes the friend "a man … affectionate" (10/10).
     const rapidPartnerDuo =
       rapidAio &&
       !isDayAdultMood(dayMood) &&
       poseHeadcount >= 2 &&
-      partnerImage &&
+      (partnerImage || dayMood === 'vacation' || /\bpartner\b/i.test(hints ?? '')) &&
       !suggestiveCouple;
     if (
       (rapidAio ? moodRecipe || rapidEveryday || rapidPartnerDuo : compactClothed) &&

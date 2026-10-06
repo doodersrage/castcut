@@ -592,6 +592,37 @@ describe('day-planner', () => {
     assert.doesNotMatch(companions, /Magenta|cyan\/orange|thick Image 3 outline/i);
   });
 
+  it('Rapid couple beat with no partner face: the short couple recipe; friend beats keep the brief', () => {
+    const build = (dayMood: string, sceneHints: string) =>
+      buildDaySlotPrompt({
+        slot: { ...DEFAULT_DAY_SLOTS[2]!, location: 'rooftop bar at golden hour', sceneHints },
+        hasPlate: true,
+        plateSource: 'cast',
+        garmentReinforce: true,
+        garmentDescription: 'a red satin slip dress',
+        poseGuide: true,
+        poseGuideStyle: 'openpose',
+        poseLeadPosition: 'left',
+        allowCompanions: true,
+        model: 'qwen-rapid-aio-edit',
+        dayMood,
+      });
+    const couple = [
+      build(
+        'vacation',
+        'standing with her partner at a rooftop bar rail, clinking cocktail glasses with her partner at sunset'
+      ),
+      build('everyday', 'seated across a candlelit table from her partner, clinking wine glasses'),
+    ];
+    for (const prompt of couple) {
+      assert.match(prompt, /^Day photo: A woman and a man together/);
+      assert.match(prompt, /the man has his own face/);
+      assert.ok(prompt.length < 1500, `${prompt.length} chars`);
+    }
+    // A friend is not a date: with no partner the recipe would make them "a man … affectionate".
+    assert.ok(build('everyday', 'clinking glasses with a friend at the wine bar').length > 3000);
+  });
+
   it('resolveDaySlotPoseBaseline rotates with setting/beat', () => {
     const a = resolveDaySlotPoseBaseline({
       id: 'morning',
