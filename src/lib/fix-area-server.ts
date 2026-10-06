@@ -14,7 +14,6 @@ import {
   type ComfyHistoryEntry,
   type ComfyImageRef,
 } from '@/lib/comfy-utility-graph-server';
-import { deleteComfyUiHistoryItems } from '@/lib/comfyui-status';
 import {
   buildFixAreaGraph,
   FIX_AREA_CANDIDATES,
@@ -219,7 +218,7 @@ export type FixAreaJobStatus =
   /** Not in history nor the queue (cancelled, or ComfyUI restarted). */
   | { status: 'missing' };
 
-/** Where one fix job is. A finished job's history entry is removed once read. */
+/** Where one fix job is. */
 export async function readFixAreaJob(input: {
   promptId: string;
   comfyUrl?: string;
@@ -243,7 +242,8 @@ export async function readFixAreaJob(input: {
       for (const output of Object.values(entry.outputs ?? {})) {
         const image = (output as { images?: ComfyImageRef[] }).images?.[0];
         if (image?.filename) {
-          void deleteComfyUiHistoryItems(baseUrl, [promptId]);
+          // Keep the history entry: a lost status reply after deleting it left a rendered take
+          // "missing" forever (user report 2026-10-05: both takes rendered, neither shown).
           return {
             status: 'done',
             image: {

@@ -21,21 +21,24 @@ type CandidateState =
   | { status: 'queued' | 'running' }
   | { status: 'checking'; image: ComfyOutputImage }
   | { status: 'ready'; image: ComfyOutputImage; adultCheck?: 'passed' | 'unchecked' }
-  | { status: 'withheld'; reason: string }
+  | { status: 'withheld'; reason: string; image?: ComfyOutputImage }
   | { status: 'failed'; message: string };
 
 type Candidate = FixAreaJob & { state: CandidateState };
 
 const POLL_MS = 1500;
+/** The adult check asks the vision model; a busy LM Studio left takes on "Checking…" forever. */
+const GATE_TIMEOUT_MS = 60_000;
 
-function candidateCaption(state: CandidateState): string {
+function candidateCaption(state: CandidateState, seconds: number): string {
+  const elapsed = seconds >= 5 ? ` (${seconds}s)` : '';
   switch (state.status) {
     case 'queued':
-      return 'Waiting in the ComfyUI queue…';
+      return `Waiting in the ComfyUI queue…${elapsed}`;
     case 'running':
-      return 'Rendering…';
+      return `Rendering…${elapsed}`;
     case 'checking':
-      return 'Checking it reads as adult…';
+      return `Checking it reads as adult…${elapsed}`;
     case 'withheld':
       return `Withheld: it did not read as clearly adult (${state.reason}).`;
     case 'failed':
@@ -53,14 +56,24 @@ async function gateCandidate(
     import('@/lib/adult-appearance-gate-client'),
     import('@/lib/settings-cache'),
   ]);
-  const decision = await checkStillAdultAppearance({
-    imageUrl,
-    // A fix is not requeued: anything but a pass is withheld.
-    strongTake: true,
-    clothed: adult.clothed === true,
-    coveredTake: true,
-    shared: loadSettingsCache().shared,
+  let timer: number | undefined;
+  const timedOut = new Promise<null>(resolve => {
+    timer = window.setTimeout(() => resolve(null), GATE_TIMEOUT_MS);
   });
+  const decision = await Promise.race([
+    checkStillAdultAppearance({
+      imageUrl,
+      // A fix is not requeued: anything but a pass is withheld.
+      strongTake: true,
+      clothed: adult.clothed === true,
+      coveredTake: true,
+      shared: loadSettingsCache().shared,
+    }),
+    timedOut,
+  ]).finally(() => window.clearTimeout(timer));
+  if (!decision) {
+    return { pass: false, reason: 'the check took too long — is LM Studio busy?' };
+  }
   const pass = decision.verdict === 'pass' || decision.verdict === 'unchecked';
   return {
     pass,
@@ -121,6 +134,8 @@ export default function FixAreaDialog({
   const [maskUrl, setMaskUrl] = useState<string | null>(null);
   const [showArea, setShowArea] = useState(true);
   const candidatesRef = useRef<Candidate[]>([]);
+  const [startedAt, setStartedAt] = useState(0);
+  const [now, setNow] = useState(0);
   const closedRef = useRef(false);
 
   useEffect(() => {
@@ -184,6 +199,47 @@ export default function FixAreaDialog({
   const inFlightRef = useRef<Set<string>>(new Set());
   const missesRef = useRef<Map<string, number>>(new Map());
 
+  // A seconds counter on unfinished takes, so a long wait reads as waiting, not stuck.
+  useEffect(() => {
+    if (phase !== 'results') return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [phase]);
+  const seconds = startedAt ? Math.max(0, Math.round((now - startedAt) / 1000)) : 0;
+
+  const recheck = useCallback(
+    async (candidate: Candidate) => {
+      if (candidate.state.status !== 'withheld' || !candidate.state.image || !target.adult) return;
+      const image = candidate.state.image;
+      setCandidates(previous =>
+        previous.map(entry =>
+          entry.promptId === candidate.promptId
+            ? { ...entry, state: { status: 'checking', image } }
+            : entry
+        )
+      );
+      const verdict = await gateCandidate(comfyImageViewUrl(image), target.adult).catch(() => ({
+        pass: false,
+        reason: 'the check failed',
+        verdict: undefined,
+      }));
+      if (closedRef.current) return;
+      setCandidates(previous =>
+        previous.map(entry =>
+          entry.promptId === candidate.promptId
+            ? {
+                ...entry,
+                state: verdict.pass
+                  ? { status: 'ready', image, adultCheck: verdict.verdict ?? 'passed' }
+                  : { status: 'withheld', reason: verdict.reason, image },
+              }
+            : entry
+        )
+      );
+    },
+    [target.adult]
+  );
+
   // Poll each candidate until it lands (then the adult gate, when the still is adult).
   useEffect(() => {
     if (phase !== 'results') return;
@@ -233,7 +289,7 @@ export default function FixAreaDialog({
               candidate.promptId,
               verdict.pass
                 ? { status: 'ready', image: poll.image, adultCheck: verdict.verdict ?? 'passed' }
-                : { status: 'withheld', reason: verdict.reason }
+                : { status: 'withheld', reason: verdict.reason, image: poll.image }
             );
           });
       }
@@ -256,6 +312,8 @@ export default function FixAreaDialog({
         return;
       }
       setMaskUrl(mask);
+      setStartedAt(Date.now());
+      setNow(Date.now());
       const next = jobs.map(job => ({ ...job, state: { status: 'queued' } as CandidateState }));
       candidatesRef.current = next;
       setCandidates(next);
@@ -452,8 +510,18 @@ export default function FixAreaDialog({
                           <span className="ui-spinner" aria-hidden />
                         ) : null}
                         <span className="type-caption text-[var(--text-muted)]">
-                          {candidateCaption(candidate.state)}
+                          {candidateCaption(candidate.state, seconds)}
                         </span>
+                        {candidate.state.status === 'withheld' && candidate.state.image ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => void recheck(candidate)}
+                            data-testid={`fix-area-recheck-${index}`}
+                          >
+                            Check again
+                          </Button>
+                        ) : null}
                       </div>
                     )}
                   </li>
