@@ -715,6 +715,28 @@ describe('Day couple recipe for friends', () => {
     assert.doesNotMatch(recipe ?? '', /boyfriend/);
     assert.match(recipe ?? '', /his friend/);
   });
+
+  it('is a Day photo, never the Suggestive couple: a friend is not a date', async () => {
+    const { buildCompactDayDuoRecipe } = await import('./rapid-duo-recipe');
+    // The user's Edit 2511 still: "clinking glasses with a friend at the wine bar" went out as
+    // "Suggestive photo: A woman and a man together, both fully clothed, affectionate."
+    for (const partner of [
+      undefined,
+      { partner: { name: 'Theo', noun: 'man' as const, descriptor: 'a bald man' }, image: 'second' as const },
+    ]) {
+      const recipe = buildCompactDayDuoRecipe({
+        beat: 'clinking glasses with a friend at the wine bar',
+        setting: 'wine bar with candlelit tables',
+        poseGuide: 'third',
+        lead: 'woman',
+        ...(partner ? { partner } : {}),
+      } as never);
+      assert.match(recipe ?? '', /^Day photo: /);
+      assert.doesNotMatch(recipe ?? '', /Suggestive photo|affectionate/);
+      assert.match(recipe ?? '', /both fully clothed, both fully in frame\./);
+      assert.match(recipe ?? '', /Moment: clinking glasses with a friend at the wine bar/);
+    }
+  });
 });
 
 describe('Day recipe: lying beats', () => {
