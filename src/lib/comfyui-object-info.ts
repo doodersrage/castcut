@@ -1,3 +1,4 @@
+import { castcutObjectInfoFingerprint } from './castcut-routes-server';
 import { getComfyUiBaseUrl } from './comfyui-client';
 import { readComboOptionList } from './comfyui-combo';
 import type { ComfyUiRuntimeConfig } from './comfyui-config';
@@ -160,6 +161,8 @@ type ServerObjectInfoCacheEntry = {
   fetchedAt: number;
   baseUrl: string;
   payload: ComfyObjectInfoPayload;
+  /** The Castcut pack's fingerprint when it was fetched (castcut-routes-server.ts), if any. */
+  fingerprint?: string | null;
 };
 
 /** Process-local cache for server queue / API routes (client has its own cache). */
@@ -195,12 +198,22 @@ export async function fetchComfyObjectInfoPayload(
   options?: { forceRefresh?: boolean }
 ): Promise<ComfyObjectInfoPayload | null> {
   const baseUrl = getComfyUiBaseUrl(runtime).replace(/\/+$/, '');
+  // With the Castcut pack, an expired cache is kept while ComfyUI's nodes and model files are
+  // unchanged: object_info is ~8 MB and was fetched again every five minutes.
   if (!options?.forceRefresh) {
     const cached = serverObjectInfoCache.get(baseUrl);
     if (cached && Date.now() - cached.fetchedAt <= SERVER_OBJECT_INFO_TTL_MS) {
       return cloneObjectInfoPayload(cached.payload);
     }
+    if (cached?.fingerprint) {
+      const fingerprint = await castcutObjectInfoFingerprint(baseUrl).catch(() => null);
+      if (fingerprint === cached.fingerprint) {
+        cached.fetchedAt = Date.now();
+        return cloneObjectInfoPayload(cached.payload);
+      }
+    }
   }
+  const fingerprintPromise = castcutObjectInfoFingerprint(baseUrl).catch(() => null);
 
   let response: Response;
   const liveLorasPromise = fetchComfyModelFilenames('loras', runtime);
@@ -247,6 +260,7 @@ export async function fetchComfyObjectInfoPayload(
     fetchedAt: Date.now(),
     baseUrl,
     payload,
+    fingerprint: await fingerprintPromise,
   });
   return cloneObjectInfoPayload(payload);
 }

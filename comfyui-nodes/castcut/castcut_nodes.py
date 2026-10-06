@@ -32,7 +32,7 @@ try:  # numpy ships with ComfyUI; the pose functions below don't need it.
 except ImportError:  # pragma: no cover - only without numpy
     np = None
 
-CASTCUT_VERSION = "1.1.0"
+CASTCUT_VERSION = "1.2.0"
 
 # Every node's object_info `description` ends with this marker, so the app can tell which version
 # is installed without running anything (src/lib/castcut-nodes-setup.ts parses it). Keep the
@@ -1510,3 +1510,322 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CastcutMaskRepair": "Castcut Mask Repair",
     "CastcutReport": "Castcut Report",
 }
+
+
+# --------------------------------------------------------------------------------------------
+# HTTP routes: checks that do not need the render queue
+# --------------------------------------------------------------------------------------------
+#
+# A face check is a few seconds of work, but queued as a graph it waits for the render in
+# progress (45-95 s on Edit 2511). These routes answer directly, from files already in ComfyUI's
+# folders, so nothing is downloaded and uploaded again. The app asks GET /castcut/info first and
+# falls back to queued graphs when a route is missing.
+#
+#   GET  /castcut/info                -> version, routes, what the analyzer can do
+#   POST /castcut/analyze             -> face-distance / face-boxes (InsightFace buffalo_l)
+#   POST /castcut/stage               -> copy an output into input/ under a content name
+#   GET  /castcut/object-info-fingerprint -> changes when nodes or model files change
+
+ROUTE_PREFIX = "/castcut"
+ROUTES = ("info", "analyze", "stage", "object-info-fingerprint")
+VIEW_TYPES = ("input", "output", "temp")
+ROTATIONS = {"none": 0, "90 degrees": 1, "180 degrees": 2, "270 degrees": 3}
+
+
+def safe_ref_path(base_dir, filename, subfolder=""):
+    """`base_dir/subfolder/filename`, or ValueError when it would leave base_dir."""
+    name = str(filename or "").strip()
+    if not name or "\x00" in name or "/" in name or "\\" in name or name in (".", ".."):
+        raise ValueError("Invalid filename.")
+    sub = str(subfolder or "").strip().strip("/")
+    if "\x00" in sub or "\\" in sub:
+        raise ValueError("Invalid subfolder.")
+    root = os.path.realpath(base_dir)
+    path = os.path.realpath(os.path.join(root, sub, name))
+    if os.path.commonpath([root, path]) != root:
+        raise ValueError("Path leaves the folder.")
+    return path
+
+
+def rotation_turns(rotation):
+    """Quarter turns for ComfyUI's ImageRotate names ("none", "90 degrees", …)."""
+    if rotation not in ROTATIONS:
+        raise ValueError(f"Unknown rotation: {rotation}")
+    return ROTATIONS[rotation]
+
+
+def rotate_like_comfy(array, rotation):
+    """ImageRotate's `torch.rot90(image, k, dims=[2, 1])` on one H×W×C image."""
+    turns = rotation_turns(rotation)
+    return array if turns == 0 else np.ascontiguousarray(np.rot90(array, turns, axes=(1, 0)))
+
+
+def content_input_name(prefix, extension, sha256_hex):
+    """The app's contentAddressedInputName: `<prefix>-<16 hex><ext>` (prefix already cleaned)."""
+    digest = str(sha256_hex or "").lower()[:16]
+    if len(digest) != 16 or any(c not in "0123456789abcdef" for c in digest):
+        raise ValueError("Content hash must be hex.")
+    stem = str(prefix or "").strip() or "upload"
+    if "/" in stem or "\\" in stem or "\x00" in stem:
+        raise ValueError("Invalid prefix.")
+    ext = str(extension or ".png").lower()
+    if not ext.startswith(".") or not ext[1:].isalnum() or len(ext) > 6:
+        raise ValueError("Invalid extension.")
+    return f"{stem}-{digest}{ext}"
+
+
+def cosine_face_distance(reference, embedding):
+    """FaceEmbedDistance's cosine distance (ComfyUI_FaceAnalysis); 100.0 = no face."""
+    if embedding is None:
+        return 100.0
+    ref = np.asarray(reference, dtype=np.float64)
+    emb = np.asarray(embedding, dtype=np.float64)
+    if np.array_equal(ref, emb):
+        return 0.0
+    return float(1 - np.dot(ref, emb) / (np.linalg.norm(ref) * np.linalg.norm(emb)))
+
+
+def faces_largest_first(faces):
+    """InsightFace results, largest box first (ComfyUI_FaceAnalysis' get_face order)."""
+    return sorted(
+        faces,
+        key=lambda f: (f["bbox"][2] - f["bbox"][0]) * (f["bbox"][3] - f["bbox"][1]),
+        reverse=True,
+    )
+
+
+def face_boxes(faces, width, height):
+    """FaceBoundingBox's x / y / width / height (padding 0) for each face, largest first."""
+    boxes = []
+    for face in faces_largest_first(faces):
+        x1, y1, x2, y2 = face["bbox"]
+        left, top = int(max(0, x1)), int(max(0, y1))
+        right, bottom = int(min(width, x2)), int(min(height, y2))
+        boxes.append({"x": left, "y": top, "width": right - left, "height": bottom - top})
+    return boxes
+
+
+def object_info_fingerprint(node_names, file_lists):
+    """A short hash of the node list and the model file lists (the input folder left out)."""
+    import hashlib  # noqa: PLC0415
+
+    digest = hashlib.sha256()
+    for name in sorted(node_names):
+        digest.update(name.encode("utf-8", "replace") + b"\n")
+    for folder in sorted(file_lists):
+        digest.update(b"\0" + folder.encode("utf-8", "replace") + b"\n")
+        for item in sorted(file_lists[folder]):
+            digest.update(str(item).encode("utf-8", "replace") + b"\n")
+    return digest.hexdigest()[:32]
+
+
+class FaceAnalyzer:
+    """InsightFace buffalo_l, loaded once per provider, as ComfyUI_FaceAnalysis loads it."""
+
+    def __init__(self):
+        import threading  # noqa: PLC0415
+
+        self._models = {}
+        self._lock = threading.Lock()
+
+    @staticmethod
+    def available():
+        try:
+            import insightface.app  # noqa: F401, PLC0415
+        except Exception:  # noqa: BLE001 - any import failure means "not here"
+            return False
+        return True
+
+    def _model(self, provider):
+        if provider not in self._models:
+            import folder_paths  # noqa: PLC0415 - ComfyUI only
+            from insightface.app import FaceAnalysis  # noqa: PLC0415
+
+            root = os.path.join(folder_paths.models_dir, "insightface")
+            model = FaceAnalysis(
+                name="buffalo_l", root=root, providers=[f"{provider}ExecutionProvider"]
+            )
+            model.prepare(ctx_id=0, det_size=(640, 640))
+            self._models[provider] = model
+        return self._models[provider]
+
+    def faces(self, rgb, provider="CPU"):
+        """get_face: detector sizes 640 down to 320 until a face shows; [] when none."""
+        with self._lock:
+            model = self._model(provider)
+            for size in range(640, 256, -64):
+                model.det_model.input_size = (size, size)
+                found = model.get(rgb)
+                if len(found) > 0:
+                    return faces_largest_first(found)
+        return []
+
+    def embedding(self, rgb, provider="CPU"):
+        found = self.faces(rgb, provider)
+        return found[0].normed_embedding if found else None
+
+
+_ANALYZER = None
+
+
+def _analyzer():
+    global _ANALYZER  # noqa: PLW0603 - one loaded model per ComfyUI process
+    if _ANALYZER is None:
+        _ANALYZER = FaceAnalyzer()
+    return _ANALYZER
+
+
+def _ref_path(ref):
+    import folder_paths  # noqa: PLC0415 - ComfyUI only
+
+    kind = str((ref or {}).get("type") or "output")
+    if kind not in VIEW_TYPES:
+        raise ValueError("Invalid type.")
+    return safe_ref_path(
+        folder_paths.get_directory_by_type(kind), ref.get("filename"), ref.get("subfolder") or ""
+    )
+
+
+def _load_rgb(ref):
+    """LoadImage's pixels (EXIF turned, RGB) from a ref or base64 `data`, as uint8 H×W×3."""
+    import base64  # noqa: PLC0415
+    import io  # noqa: PLC0415
+
+    from PIL import Image, ImageOps  # noqa: PLC0415
+
+    if isinstance(ref, dict) and ref.get("data"):
+        image = Image.open(io.BytesIO(base64.b64decode(ref["data"])))
+    else:
+        image = Image.open(_ref_path(ref))
+    image = ImageOps.exif_transpose(image).convert("RGB")
+    return np.array(image)
+
+
+def analyze_request(body, analyzer):
+    """The work behind POST /castcut/analyze (no aiohttp, for tests)."""
+    op = body.get("op")
+    provider = body.get("provider") or "CPU"
+    if provider not in ("CPU", "CUDA"):
+        raise ValueError("provider must be CPU or CUDA.")
+    if op == "face-distance":
+        reference = analyzer.embedding(_load_rgb(body.get("reference")), provider)
+        if reference is None:
+            return {"op": op, "error": "no-face-in-reference"}
+        distances = [
+            cosine_face_distance(reference, analyzer.embedding(_load_rgb(ref), provider))
+            for ref in body.get("images") or []
+        ]
+        return {"op": op, "metric": "cosine", "distances": distances}
+    if op == "face-boxes":
+        rgb = _load_rgb(body.get("image"))
+        results = []
+        for rotation in body.get("rotations") or ["none"]:
+            turned = rotate_like_comfy(rgb, rotation)
+            height, width = turned.shape[:2]
+            boxes = face_boxes(analyzer.faces(turned, provider), width, height)
+            results.append({"rotation": rotation, "boxes": boxes})
+            if boxes and body.get("stopAtFirst", True):
+                break
+        return {"op": op, "results": results}
+    raise ValueError(f"Unknown op: {op}")
+
+
+def stage_request(body):
+    """The work behind POST /castcut/stage: copy a ComfyUI file into input/ under its content name."""
+    import hashlib  # noqa: PLC0415
+    import shutil  # noqa: PLC0415
+
+    import folder_paths  # noqa: PLC0415 - ComfyUI only
+
+    source = _ref_path(body)
+    with open(source, "rb") as handle:
+        digest = hashlib.sha256(handle.read()).hexdigest()
+    name = content_input_name(body.get("prefix"), body.get("extension"), digest)
+    input_dir = folder_paths.get_input_directory()
+    target = safe_ref_path(input_dir, name)
+    reused = os.path.exists(target) and os.path.getsize(target) == os.path.getsize(source)
+    if not reused:
+        temp = f"{target}.part"
+        shutil.copyfile(source, temp)
+        os.replace(temp, target)
+    return {"name": name, "subfolder": "", "type": "input", "reused": reused}
+
+
+def fingerprint_request():
+    import folder_paths  # noqa: PLC0415 - ComfyUI only
+    import nodes  # noqa: PLC0415 - ComfyUI only
+
+    lists = {}
+    for folder in folder_paths.folder_names_and_paths:
+        if folder in ("custom_nodes", "configs"):
+            continue
+        try:
+            lists[folder] = folder_paths.get_filename_list(folder)
+        except Exception:  # noqa: BLE001 - a folder type this ComfyUI can't list
+            continue
+    return {"fingerprint": object_info_fingerprint(nodes.NODE_CLASS_MAPPINGS.keys(), lists)}
+
+
+def info_payload():
+    return {
+        "name": "castcut-nodes",
+        "version": CASTCUT_VERSION,
+        "routes": list(ROUTES),
+        "analyze": {"faceAnalysis": FaceAnalyzer.available(), "ops": ["face-distance", "face-boxes"]},
+    }
+
+
+def register_routes():
+    """Add the routes to ComfyUI's server; False outside ComfyUI (tests, a plain import)."""
+    try:
+        from aiohttp import web  # noqa: PLC0415
+        from server import PromptServer  # noqa: PLC0415 - ComfyUI only
+
+        routes = PromptServer.instance.routes
+    except Exception:  # noqa: BLE001 - not running inside ComfyUI
+        return False
+
+    async def run(work, *args):
+        import asyncio  # noqa: PLC0415
+
+        loop = asyncio.get_running_loop()
+        try:
+            return web.json_response(await loop.run_in_executor(None, work, *args))
+        except (ValueError, FileNotFoundError) as error:
+            return web.json_response({"error": str(error)}, status=400)
+        except Exception as error:  # noqa: BLE001 - report, don't crash the server
+            return web.json_response({"error": f"{type(error).__name__}: {error}"}, status=500)
+
+    async def read_json(request):
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001
+            return None
+        return body if isinstance(body, dict) else None
+
+    @routes.get(f"{ROUTE_PREFIX}/info")
+    async def castcut_info(_request):
+        return web.json_response(info_payload())
+
+    @routes.post(f"{ROUTE_PREFIX}/analyze")
+    async def castcut_analyze(request):
+        body = await read_json(request)
+        if body is None:
+            return web.json_response({"error": "JSON body required."}, status=400)
+        return await run(analyze_request, body, _analyzer())
+
+    @routes.post(f"{ROUTE_PREFIX}/stage")
+    async def castcut_stage(request):
+        body = await read_json(request)
+        if body is None:
+            return web.json_response({"error": "JSON body required."}, status=400)
+        return await run(stage_request, body)
+
+    @routes.get(f"{ROUTE_PREFIX}/object-info-fingerprint")
+    async def castcut_fingerprint(_request):
+        return await run(fingerprint_request)
+
+    return True
+
+
+ROUTES_REGISTERED = register_routes()

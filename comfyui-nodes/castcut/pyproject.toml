@@ -4,7 +4,7 @@
 [project]
 name = "castcut-nodes"
 description = "Castcut's post-render checks inside the ComfyUI job: pose score (DWPose limb angles + posture), best-of-two pick, face distance, matte repair and a report the Castcut app reads from /history."
-version = "1.1.0"
+version = "1.2.0"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.9"

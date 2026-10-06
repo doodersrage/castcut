@@ -55,10 +55,46 @@ type QueueContext = {
   pendingPosition: number | null;
 };
 
+type ComfyJobListItem = { id?: unknown; status?: unknown; priority?: unknown };
+
+/**
+ * Where a job is, from the jobs list (id, status, priority — about 1 KB for a Day queue). `/queue`
+ * carries every pending job's whole graph (35 KB with five stills queued) and was fetched for
+ * every pending job's status poll. ComfyUI runs the lowest priority (queue number) first.
+ * Undefined when there is no jobs API (older ComfyUI): the caller reads `/queue`.
+ */
+export function queueContextFromJobList(
+  promptId: string,
+  payload: unknown
+): QueueContext | null | undefined {
+  const jobs = (payload as { jobs?: unknown } | null)?.jobs;
+  if (!Array.isArray(jobs)) return undefined;
+  const items = jobs as ComfyJobListItem[];
+  if (items.some(job => job.id === promptId && job.status === 'in_progress')) {
+    return { isRunning: true, pendingPosition: null };
+  }
+  const pending = items
+    .filter(job => job.status === 'pending' && typeof job.priority === 'number')
+    .sort((left, right) => (left.priority as number) - (right.priority as number));
+  const index = pending.findIndex(job => job.id === promptId);
+  return index >= 0 ? { isRunning: false, pendingPosition: index + 1 } : null;
+}
+
 async function resolveQueueContext(
   promptId: string,
   comfyUrl: string
 ): Promise<QueueContext | null> {
+  try {
+    const jobs = await fetch(`${comfyUrl}/api/jobs?status=pending,in_progress`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (jobs.ok) {
+      const context = queueContextFromJobList(promptId, await jobs.json().catch(() => null));
+      if (context !== undefined) return context;
+    }
+  } catch {
+    // Older ComfyUI: read the queue below.
+  }
   try {
     const response = await fetch(`${comfyUrl}/queue`, {
       signal: AbortSignal.timeout(5000),

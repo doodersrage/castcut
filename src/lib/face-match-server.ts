@@ -7,6 +7,7 @@
  * pack versions that renamed widgets still work; a missing pack reports `available: false`.
  */
 
+import { castcutFaceDistances, castcutRoutes } from '@/lib/castcut-routes-server';
 import {
   comfyBaseUrl,
   fillComfyNodeInputs,
@@ -14,6 +15,7 @@ import {
   resolveComfyNode,
   runComfyUtilityGraph,
   stageComfyImageAsInput,
+  type ComfyImageRef,
   type ComfyNodeInfo,
 } from '@/lib/comfy-utility-graph-server';
 import {
@@ -46,6 +48,44 @@ function firstInputName(info: ComfyNodeInfo): string | null {
   return Object.keys(info.input?.required ?? {})[0] ?? null;
 }
 
+/**
+ * The Castcut pack's /castcut/analyze route: the same distance as the graph below, without
+ * waiting for the render in progress. Null when the route is missing or fails (the graph runs).
+ */
+async function measureFaceMatchDirect(
+  baseUrl: string,
+  reference: ComfyImageRef,
+  image: ComfyImageRef,
+  timeoutMs?: number
+): Promise<FaceMatchResult | null> {
+  const routes = await castcutRoutes(baseUrl);
+  if (!routes?.routes.includes('analyze') || !routes.faceAnalysis) return null;
+  let distances: number[] | null;
+  try {
+    distances = await castcutFaceDistances(baseUrl, {
+      reference,
+      images: [image],
+      timeoutMs,
+    });
+  } catch (error) {
+    console.warn('Castcut face check failed; queueing the face graph instead:', error);
+    return null;
+  }
+  if (distances === null) {
+    // As FaceEmbedDistance raises it.
+    throw new Error('Face check failed in ComfyUI — No face detected in reference image.');
+  }
+  const value = distances[0];
+  if (value === undefined) return null;
+  if (isNoFaceDistance(value)) throw new FaceMatchNoFaceError();
+  return {
+    available: true,
+    distance: value,
+    metric: 'cosine',
+    similarity: faceSimilarityFromDistance(value, 'cosine'),
+  };
+}
+
 export async function measureFaceMatchInComfy(input: {
   referenceUrl: string;
   imageUrl: string;
@@ -58,6 +98,8 @@ export async function measureFaceMatchInComfy(input: {
     return { available: false, reason: 'Reference or still is not a ComfyUI image.' };
   }
   const baseUrl = comfyBaseUrl(input.comfyUrl);
+  const direct = await measureFaceMatchDirect(baseUrl, referenceRef, imageRef, input.timeoutMs);
+  if (direct) return direct;
   const [models, distance, preview] = await Promise.all([
     resolveComfyNode(baseUrl, ['FaceAnalysisModels']),
     resolveComfyNode(baseUrl, ['FaceEmbedDistance']),

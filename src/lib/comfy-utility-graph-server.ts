@@ -8,6 +8,7 @@
  */
 
 import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
+import { castcutRoutes, castcutStageAsInput } from '@/lib/castcut-routes-server';
 import { checkQueueNumber } from '@/lib/comfy-model-batch';
 import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
@@ -156,6 +157,14 @@ export async function stageComfyImageAsInput(
 ): Promise<string> {
   if (ref.type === 'input') {
     return ref.subfolder ? `${ref.subfolder}/${ref.filename}` : ref.filename;
+  }
+  // With the Castcut pack's routes ComfyUI copies the file itself, under the same content name.
+  if ((await castcutRoutes(baseUrl))?.routes.includes('stage')) {
+    try {
+      return await castcutStageAsInput(baseUrl, ref, prefix);
+    } catch (error) {
+      console.warn('Castcut stage failed; staging through /view instead:', error);
+    }
   }
   const params = new URLSearchParams({
     filename: ref.filename,

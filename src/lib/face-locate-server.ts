@@ -8,6 +8,11 @@
  * turned a quarter each way, and the box is mapped back.
  */
 
+import {
+  castcutFaceBoxes,
+  castcutRoutes,
+  type CastcutFaceBoxTurn,
+} from '@/lib/castcut-routes-server';
 import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
 import {
   comfyBaseUrl,
@@ -68,6 +73,45 @@ function readBoxTexts(entry: ComfyHistoryEntry): unknown[][] | undefined {
 }
 
 /**
+ * The Castcut pack's /castcut/analyze route: the same boxes and turns as the graphs below, read
+ * from the plate where it is and without waiting for the render in progress. Null when the route
+ * is missing or fails (the graphs run).
+ */
+async function locateFaceDirect(
+  baseUrl: string,
+  input: { bytes?: Uint8Array; imageUrl?: string; width: number; height: number }
+): Promise<FaceLocateResult | null> {
+  const routes = await castcutRoutes(baseUrl);
+  if (!routes?.routes.includes('analyze') || !routes.faceAnalysis) return null;
+  const ref = !input.bytes && input.imageUrl ? parseComfyViewRef(input.imageUrl) : null;
+  if (!input.bytes && !ref) return null;
+  let turns: CastcutFaceBoxTurn[];
+  try {
+    turns = await castcutFaceBoxes(baseUrl, {
+      image: input.bytes ? { data: Buffer.from(input.bytes).toString('base64') } : ref!,
+      rotations: FACE_LOCATE_ROTATIONS,
+    });
+  } catch (error) {
+    console.warn('Castcut face locate failed; queueing the face graphs instead:', error);
+    return null;
+  }
+  for (const turn of turns) {
+    const rotation = FACE_LOCATE_ROTATIONS.find(name => name === turn.rotation);
+    if (!rotation) continue;
+    const boxes = (turn.boxes ?? []).filter(box => box.width > 0 && box.height > 0);
+    const found = largestFaceBox(boxes);
+    if (!found) continue;
+    return {
+      available: true,
+      face: mapRotatedFaceBox(found, rotation, input.width, input.height),
+      rotation,
+      faces: boxes.length,
+    };
+  }
+  return { available: true, face: null, faces: 0 };
+}
+
+/**
  * Stage the plate bytes (named by content, so the same plate is staged once) and find its face.
  * `available: false` when ComfyUI or the FaceAnalysis pack is missing — the caller keeps its old
  * crop without flagging the plate.
@@ -81,6 +125,8 @@ export async function locateFaceInComfy(input: {
   comfyUrl?: string;
 }): Promise<FaceLocateResult> {
   const baseUrl = comfyBaseUrl(input.comfyUrl);
+  const direct = await locateFaceDirect(baseUrl, input);
+  if (direct) return direct;
   const [models, box, preview, rotate] = await Promise.all([
     resolveComfyNode(baseUrl, ['FaceAnalysisModels']),
     resolveComfyNode(baseUrl, ['FaceBoundingBox']),

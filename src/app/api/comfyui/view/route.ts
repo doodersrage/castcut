@@ -248,8 +248,49 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * Does ComfyUI have the file? Status and size only — checking a dressed plate was still there
+ * used to download the whole picture (a GET) just to read the status.
+ */
+export async function HEAD(request: Request) {
+  const { searchParams } = new URL(request.url);
+  let filename: string;
+  let subfolder: string;
+  let type: 'output' | 'input' | 'temp';
+  let comfyUrl: string;
+  try {
+    filename = sanitizeComfyViewFilename(searchParams.get('filename') ?? '');
+    subfolder = sanitizeComfyViewSubfolder(searchParams.get('subfolder') ?? '');
+    type = normalizeComfyViewType(searchParams.get('type')?.trim() || 'output');
+    comfyUrl = getComfyUiBaseUrl(
+      stripEmptyComfyUiRuntime({ apiUrl: searchParams.get('comfyUrl') ?? undefined })
+    );
+  } catch {
+    return new NextResponse(null, { status: 400 });
+  }
+  const viewUrl = new URL(`${comfyUrl}/view`);
+  viewUrl.searchParams.set('filename', filename);
+  viewUrl.searchParams.set('subfolder', subfolder);
+  viewUrl.searchParams.set('type', type);
+  try {
+    const response = await fetch(viewUrl.toString(), {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(5000),
+      redirect: 'manual',
+    });
+    const headers = new Headers({ 'Cache-Control': 'no-store' });
+    for (const name of ['content-length', 'content-type']) {
+      const value = response.headers.get(name);
+      if (value) headers.set(name, value);
+    }
+    return new NextResponse(null, { status: response.ok ? 200 : response.status, headers });
+  } catch {
+    return new NextResponse(null, { status: 502 });
+  }
+}
+
 export async function POST() {
-  return apiMethodNotAllowed(['GET'], '/api/comfyui/view');
+  return apiMethodNotAllowed(['GET', 'HEAD'], '/api/comfyui/view');
 }
 
 export function OPTIONS() {
@@ -257,7 +298,7 @@ export function OPTIONS() {
     status: 204,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });

@@ -94,7 +94,8 @@ async function inputFileExists(filename: string): Promise<boolean> {
   const url = comfyInputViewUrl(filename);
   if (!url) return false;
   try {
-    const response = await fetch(url, { method: 'GET', credentials: 'same-origin' });
+    // HEAD: the status is all that is needed, not the picture.
+    const response = await fetch(url, { method: 'HEAD', credentials: 'same-origin' });
     return response.ok;
   } catch {
     // Offline or blocked: let the queue find out rather than re-render on a guess.

@@ -26,6 +26,22 @@ always did.
 | `CastcutMaskRepair` | image, mask, fill `#rrggbb`, regrow edges, optional LoadImage mask | composite, repaired mask, report JSON |
 | `CastcutReport` | report JSON, optional alternate image | UI output `castcut` (read from `/history`), alternate saved to output |
 
+## Routes (1.2.0)
+
+The pack also adds HTTP routes to ComfyUI's server (`castcut_nodes.py`, "HTTP routes"). The app
+asks `GET /castcut/info` and falls back to queued graphs when a route is missing or fails.
+
+| Route | Does |
+| --- | --- |
+| `GET /castcut/info` | version, routes, whether InsightFace is importable |
+| `POST /castcut/analyze` | `face-distance` (reference + images → cosine distances, 100 = no face) and `face-boxes` (image + ImageRotate turns → boxes, stops at the first turn with a face); images are `{filename, subfolder, type}` read in place, or `{data: <base64>}`; `provider` `CPU` (default) or `CUDA` |
+| `POST /castcut/stage` | copy an output/temp file into `input/` as `<prefix>-<sha256[:16]><ext>`, the app's upload name for the same bytes |
+| `GET /castcut/object-info-fingerprint` | a hash of the node list and the model file lists (not the input folder) |
+
+The analyzer is InsightFace buffalo_l loaded once per provider, with ComfyUI_FaceAnalysis'
+detection (sizes 640 → 320 until a face shows, largest first) and FaceEmbedDistance's cosine.
+Paths are resolved inside ComfyUI's input / output / temp folders only.
+
 `CastcutPoseScore` and `CastcutMaskRepair` are ports of `src/lib/pose-score.ts`,
 `pose-limb-score.ts`, `pose-posture.ts` and `src/lib/isolate-mask.ts`. They stay in step through
 shared test vectors (`tests/vectors/*.json`) that both test suites read.
@@ -71,7 +87,7 @@ setup. See [docs/castcut-nodes.md](https://github.com/doodersrage/castcut/blob/m
    ```
 
 Check `http://127.0.0.1:8188/object_info/CastcutPoseScore` returns the node; its `description`
-ends with `[castcut-nodes 1.1.0]`, which is how the app reads the installed version. To update,
+ends with `[castcut-nodes 1.2.0]`, which is how the app reads the installed version. To update,
 copy / pull / update again and restart. Install it one way only — a `castcut_nodes.py` file and a
 `castcut` folder side by side both load.
 
