@@ -51,13 +51,20 @@ import {
   applyArmPreset,
   applyHeadDirection,
   applyLegPreset,
+  headTurnSide,
+  isThreeQuarterHead,
   legsAreStanding,
   matchLimb,
   readHeadDirection,
   type HeadDirection,
   type LimbSide,
 } from '@/lib/pose-limb-presets';
-import { describePhotoPose } from '@/lib/pose-describe';
+import {
+  describePhotoPose,
+  headDirectionWords,
+  withHeadWords,
+  withoutHeadWords,
+} from '@/lib/pose-describe';
 import {
   addPartner,
   mirrorBodies,
@@ -229,6 +236,9 @@ type Drag =
  */
 const SHOW_BACKDROP_KEY = 'comfy-pose-editor-backdrop-v1';
 const SHOW_START_KEY = 'comfy-pose-editor-start-ghost-v1';
+const BACKDROP_OPACITY_KEY = 'comfy-pose-editor-backdrop-opacity-v1';
+/** How strongly their picture shows through: faint by default, never solid (the figure must read). */
+const BACKDROP_OPACITY = { min: 0.1, max: 0.9, step: 0.05, initial: 0.3 } as const;
 
 /** On unless switched off; private windows and blocked storage read as on. */
 function readShown(key: string): boolean {
@@ -246,6 +256,37 @@ function rememberShown(key: string, shown: boolean) {
     // Not remembered: the toggle still works for this session.
   }
 }
+
+function readBackdropOpacity(): number {
+  try {
+    const value = Number(window.localStorage.getItem(BACKDROP_OPACITY_KEY));
+    return value >= BACKDROP_OPACITY.min && value <= BACKDROP_OPACITY.max
+      ? value
+      : BACKDROP_OPACITY.initial;
+  } catch {
+    return BACKDROP_OPACITY.initial;
+  }
+}
+
+function rememberBackdropOpacity(value: number) {
+  try {
+    window.localStorage.setItem(BACKDROP_OPACITY_KEY, String(value));
+  } catch {
+    // Not remembered: the slider still works for this session.
+  }
+}
+
+/** The face points (nose, eyes, ears): the Head chips move only these. */
+const FACE_JOINTS = new Set([0, 14, 15, 16, 17]);
+
+/**
+ * A figure's pose without its face, and its face alone: a Day pose keeps its own words while the
+ * body is as picked, and a Head chip only adds to them.
+ */
+const poseKey = (body: NormalizedBody) =>
+  JSON.stringify(body.map((point, joint) => (FACE_JOINTS.has(joint) ? null : point)));
+const faceKey = (body: NormalizedBody) =>
+  JSON.stringify(body.map((point, joint) => (FACE_JOINTS.has(joint) ? point : null)));
 
 /**
  * Where the person stands in their picture (fractions of the picture) and its shape. Measured on
@@ -368,6 +409,7 @@ export default function PoseJointEditor({
   };
   const [showStart, setShowStart] = useState(() => readShown(SHOW_START_KEY));
   const [showBackdrop, setShowBackdrop] = useState(() => readShown(SHOW_BACKDROP_KEY));
+  const [backdropOpacity, setBackdropOpacity] = useState(readBackdropOpacity);
   // A picture that will not load (a plate deleted from ComfyUI) takes its toggle with it.
   const [failedBackdrop, setFailedBackdrop] = useState<string | null>(null);
   const backdrop =
@@ -480,10 +522,14 @@ export default function PoseJointEditor({
     }
     update(previous => previous.map((body, index) => (index === 0 ? fit.body : body)));
     // A Day pose fitted is still that pose: keep its words (and after Undo, too).
-    const leadKey = JSON.stringify(lead);
+    const leadKey = poseKey(lead);
     setPreset(previous =>
       previous?.keys.includes(leadKey)
-        ? { ...previous, keys: [...previous.keys, JSON.stringify(fit.body)] }
+        ? {
+            ...previous,
+            keys: [...previous.keys, poseKey(fit.body)],
+            faces: [...previous.faces, faceKey(fit.body)],
+          }
         : previous
     );
     setSavedNote(null);
@@ -523,16 +569,19 @@ export default function PoseJointEditor({
     history.current.push({ bodies: latest.current, depths: [...depths.current] });
     restore(next);
   }, [restore]);
-  // A Day pose keeps its own name and cue as the prompt words for as long as the lead figure is
-  // exactly as picked (or as picked and then fitted to the picture, which only scales and moves
-  // it); any drag, bend or turn goes back to reading the joints.
-  const [preset, setPreset] = useState<{ words: string; keys: string[] } | null>(() =>
-    initialWords?.trim() && initial[0]
-      ? { words: initialWords.trim(), keys: [JSON.stringify(initial[0])] }
-      : null
+  // A Day pose keeps its own name and cue as the prompt words for as long as the lead figure's
+  // body is exactly as picked (or as picked and then fitted to the picture, which only scales
+  // and moves it); any drag, bend or turn goes back to reading the joints. The Head chips move
+  // only the face, so a turned head is added to the words instead ("…, head turned to her left").
+  type Preset = { words: string; keys: string[]; faces: string[] };
+  const presetOf = (words: string, lead: NormalizedBody): Preset => ({
+    words: withoutHeadWords(words.trim()),
+    keys: [poseKey(lead)],
+    faces: [faceKey(lead)],
+  });
+  const [preset, setPreset] = useState<Preset | null>(() =>
+    initialWords?.trim() && initial[0] ? presetOf(initialWords, initial[0]) : null
   );
-  const presetWords =
-    preset && bodies[0] && preset.keys.includes(JSON.stringify(bodies[0])) ? preset.words : null;
   const startFromDayPose = (id: string) => {
     const picked = dayPoseAsPhotoPose(id);
     const figure = picked?.people[0];
@@ -547,9 +596,7 @@ export default function PoseJointEditor({
     checkpoint();
     setDepths([]);
     update(previous => replaceLead(previous, lead));
-    setPreset(
-      picked.words ? { words: picked.words, keys: [JSON.stringify(latest.current[0])] } : null
-    );
+    setPreset(picked.words ? presetOf(picked.words, latest.current[0]!) : null);
     setSavedNote(null);
   };
   // A real-world reference pose (read from a photo). A two-person one brings its partner when
@@ -570,7 +617,7 @@ export default function PoseJointEditor({
     } else {
       update(previous => replaceLead(previous, fitted[0]!));
     }
-    setPreset({ words: dayPoseWords(reference.pose), keys: [JSON.stringify(latest.current[0])] });
+    setPreset(presetOf(dayPoseWords(reference.pose), latest.current[0]!));
     setSavedNote(null);
   };
   // Start from a base figure — keeps the partner when there is one.
@@ -598,6 +645,20 @@ export default function PoseJointEditor({
   const head = posedBody
     ? readHeadDirection(posedBody, safeAspect)
     : { direction: null, sideOn: false };
+  // The lead's named-pose words, with the head the chips gave it (the body as picked, the face
+  // as the chips left it); null once the body itself has been posed by hand.
+  const presetWords = (() => {
+    const lead = bodies[0];
+    if (!preset || !lead || !preset.keys.includes(poseKey(lead))) return null;
+    if (preset.faces.includes(faceKey(lead))) return preset.words;
+    // Facing the camera her right shoulder is on the picture's left; from behind, its right.
+    const [rightShoulder, leftShoulder] = [lead[2], lead[5]];
+    const facingCamera = !rightShoulder || !leftShoulder || rightShoulder.x <= leftShoulder.x;
+    return withHeadWords(
+      preset.words,
+      headDirectionWords(readHeadDirection(lead, safeAspect).direction, possessive, facingCamera)
+    );
+  })();
 
   const requestClose = (source: 'escape' | 'backdrop' = 'backdrop') => {
     if (confirmClose) {
@@ -937,7 +998,7 @@ export default function PoseJointEditor({
                   width={safeAspect}
                   height={1}
                   preserveAspectRatio="xMidYMid meet"
-                  opacity={0.3}
+                  opacity={backdropOpacity}
                   style={{ pointerEvents: 'none' }}
                   aria-hidden
                   data-testid={`${testIdPrefix}-backdrop`}
@@ -1357,9 +1418,14 @@ export default function PoseJointEditor({
                 >
                   <span className="type-caption w-9 shrink-0 text-[var(--text-muted)]">Head</span>
                   {HEAD_DIRECTIONS.map(option => {
-                    const sideways = option.id === 'left' || option.id === 'right';
-                    const unavailable = sideways && head.sideOn;
+                    const turn = headTurnSide(option.id);
+                    const unavailable = turn != null && head.sideOn;
                     const active = head.direction === option.id;
+                    const turnName = turn
+                      ? isThreeQuarterHead(option.id)
+                        ? `three-quarters to their ${turn}`
+                        : `to their ${turn}`
+                      : null;
                     return (
                       <Button
                         key={option.id}
@@ -1367,15 +1433,17 @@ export default function PoseJointEditor({
                         variant={active ? 'accent-outline' : 'secondary'}
                         className="whitespace-nowrap"
                         aria-pressed={active}
-                        aria-label={sideways ? `Their ${option.id}` : undefined}
+                        aria-label={turnName ? `Head turned ${turnName}` : undefined}
                         data-testid={`${testIdPrefix}-head-${option.id}`}
                         disabled={unavailable}
                         title={
                           unavailable
                             ? 'For a figure facing you or away — seen from the side, turn the whole figure'
-                            : sideways
-                              ? `Turn the head to their ${option.id}`
-                              : undefined
+                            : turnName
+                              ? `Turn the head ${turnName}`
+                              : option.id === 'straight'
+                                ? 'Face the camera (or straight ahead, seen from the side)'
+                                : undefined
                         }
                         onClick={() => turnHead(option.id)}
                       >
@@ -1544,11 +1612,13 @@ export default function PoseJointEditor({
                   size="sm"
                   variant="ghost"
                   data-testid={`${testIdPrefix}-reset`}
+                  title="Back to the pose the editor opened with (undo-able)"
                   onClick={() => {
                     checkpoint();
                     setDepths([]);
                     setRotatePerson(0);
                     update(() => initial.map(body => body.map(p => (p ? { ...p } : null))));
+                    setSavedNote(null);
                   }}
                 >
                   Reset
@@ -1574,6 +1644,27 @@ export default function PoseJointEditor({
                       }}
                     />
                     Show {possessive} picture
+                  </label>
+                ) : null}
+                {backdrop && showBackdrop ? (
+                  <label className="inline-flex min-h-8 items-center gap-1.5">
+                    <span className="type-caption text-[var(--text-muted)]">Strength</span>
+                    <input
+                      type="range"
+                      min={Math.round(BACKDROP_OPACITY.min * 100)}
+                      max={Math.round(BACKDROP_OPACITY.max * 100)}
+                      step={Math.round(BACKDROP_OPACITY.step * 100)}
+                      value={Math.round(backdropOpacity * 100)}
+                      aria-label="How strongly the picture shows through"
+                      aria-valuetext={`${Math.round(backdropOpacity * 100)}%`}
+                      className="w-24 accent-[var(--accent)]"
+                      data-testid={`${testIdPrefix}-backdrop-opacity`}
+                      onChange={event => {
+                        const next = Number(event.target.value) / 100;
+                        setBackdropOpacity(next);
+                        rememberBackdropOpacity(next);
+                      }}
+                    />
                   </label>
                 ) : null}
                 {backdrop && showBackdrop ? (

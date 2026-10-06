@@ -44,6 +44,27 @@ Most checks need a Cast with a picture. Use one of yours, or *Characters → New
   ComfyUI's queue shows one short `castcut-duo-count` job per take. Without the Impact Pack (or
   its `bbox/face_yolov8m.pt` / `bbox/hand_yolov8s.pt`), the status line says *Two takes order
   off: …* once and the takes keep their order.
+### Pose editor
+
+- [ ] **Her picture behind the figure** — Outfit (with a plate) or a Day slot → *Edit joints*: with *Show
+  her picture* on, a *Strength* slider sits beside it; drag it (or use the arrow keys on it) and the
+  plate fades in and out behind the figure, fitted whole into the canvas. Close and reopen the
+  editor: the slider is where you left it. Untick *Show her picture*: picture and slider go.
+- [ ] **Three-quarter head** — *Head* row: tap *¾ left*: the nose moves to the picture's right by
+  about half as much as *Left*, both eyes stay drawn, one ear; the chip lights. *Right* then *¾ right*
+  then *Front*: each lights in turn and *Front* draws the full face again. Start from *Sit* (seen
+  from the side): the four turn chips are greyed, *Front / Up / Down* work.
+- [ ] **The head reaches the prompt** — on the standing starter tap *¾ left*: *This pose reads as*
+  reads *standing, head turned three-quarters to her left, face angled toward the right of the
+  picture, eyes off the camera*. *More poses… → Wave* then *¾ right*: the words keep *waving: one arm
+  raised high…* and go on *, head turned three-quarters to her right, face angled toward the left
+  of the picture, …*; tap *Up*: that becomes *, chin up* (said once). *Use this pose*, Queue:
+  Gallery → details → the prompt's *Pose:* sentence carries the head words. On Edit 2511 *Left* /
+  *Right* turn the still's head (4/4 live); *¾ left* / *¾ right* did not in 2 tries there (known
+  limit); Rapid AIO and Qwen-Image 2.1 are yours to try.
+- [ ] **Ghost and Reset** — drag a hand: a dashed grey copy of the opening pose stays behind the
+  figure (*Show where it started* hides it); *Reset* puts the figure back and the ghost goes; Ctrl+Z
+  undoes the Reset. On the phone: the same by touch.
 
 ### Fix an area
 

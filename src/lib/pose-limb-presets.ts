@@ -315,14 +315,32 @@ export function legsAreStanding(body: NormalizedBody, aspect: number): boolean {
 
 // ── Head direction ───────────────────────────────────────────────────────────────────────
 
+/**
+ * The head chips, left to right as the head turns: full profile, three-quarter, front, and the
+ * two nods. `straight` is "Front" on a figure facing the camera (and "ahead" seen from the side).
+ */
 export const HEAD_DIRECTIONS = [
-  { id: 'straight', label: 'Straight' },
   { id: 'left', label: 'Left' },
+  { id: 'three-quarter-left', label: '¾ left' },
+  { id: 'straight', label: 'Front' },
+  { id: 'three-quarter-right', label: '¾ right' },
   { id: 'right', label: 'Right' },
   { id: 'up', label: 'Up' },
   { id: 'down', label: 'Down' },
 ] as const;
 export type HeadDirection = (typeof HEAD_DIRECTIONS)[number]['id'];
+
+/** Which way a sideways head direction turns, in their own frame; null for the nods and front. */
+export function headTurnSide(direction: HeadDirection): 'left' | 'right' | null {
+  if (direction === 'left' || direction === 'three-quarter-left') return 'left';
+  if (direction === 'right' || direction === 'three-quarter-right') return 'right';
+  return null;
+}
+
+/** A head turned part-way (both eyes still show, the near ear is hidden). */
+export function isThreeQuarterHead(direction: HeadDirection | null): boolean {
+  return direction === 'three-quarter-left' || direction === 'three-quarter-right';
+}
 
 /** COCO-18 face points: nose, their right / left eye, their right / left ear. */
 const NOSE = 0;
@@ -347,6 +365,17 @@ const FACE_RISE: Record<'straight' | 'up' | 'down', readonly [number, number]> =
 const PROFILE_NOSE = 0.85;
 const PROFILE_EAR = 0.28;
 const PROFILE_EYE = [0.5, 0.28] as const;
+/**
+ * A three-quarter head: a face-on head turned 45° about the neck (nose and eyes in front, ears
+ * level with the centre), seen from the camera. The nose comes 0.6 of a radius toward the turn;
+ * the camera now sees one cheek, whose eye sits near the middle of the head and whose ear swings
+ * into view on the other side of the nose, while the far eye is carried to the edge of the face
+ * and the far ear goes behind the head. [toward, rise].
+ */
+const QUARTER_NOSE = 0.6;
+const QUARTER_NEAR_EYE = [0.12, 0.32] as const;
+const QUARTER_FAR_EYE = [0.72, 0.32] as const;
+const QUARTER_EAR = 0.6;
 /** How far a head seen from the side tips for Up / Down. */
 const PROFILE_NOD = rad(35);
 /**
@@ -372,6 +401,8 @@ type HeadFrame = {
   nose: XY | null;
   eyes: XY[];
   ears: number;
+  /** Read as a three-quarter head (one ear, both eyes), which places the centre differently. */
+  quarter: boolean;
 };
 
 const scaled = (v: XY, by: number): XY => ({ x: v.x * by, y: v.y * by });
@@ -403,8 +434,11 @@ function readHeadFrame(body: NormalizedBody, a: number): HeadFrame | null {
   const stacked =
     pair != null &&
     pair.radius < (MIN_HEAD / 2) * Math.hypot(pair.middle.x - neck.x, pair.middle.y - neck.y);
+  const eyes = [at(R_EYE), at(L_EYE)].filter(Boolean) as XY[];
   let centre: XY | null;
   let measured = 0;
+  // One ear with both eyes showing: a three-quarter head, the ear across from the nose.
+  let quarter = false;
   if (pair && !stacked) {
     centre = pair.middle;
     measured = pair.radius;
@@ -420,7 +454,12 @@ function readHeadFrame(body: NormalizedBody, a: number): HeadFrame | null {
       (reach != null &&
         stem != null &&
         Math.abs(reach.x * stem.y - reach.y * stem.x) > Math.abs(dot(reach, stem)));
-    if (ear && reach && length > 1e-6 && sideways) {
+    if (ear && reach && length > 1e-6 && sideways && !pair && eyes.length === 2) {
+      // A three-quarter head: the centre is halfway from the one ear to the nose.
+      quarter = true;
+      measured = length / (QUARTER_NOSE + QUARTER_EAR);
+      centre = { x: ear.x + reach.x / 2, y: ear.y + reach.y / 2 };
+    } else if (ear && reach && length > 1e-6 && sideways) {
       // A profile: the one ear sits behind the centre, on the line back from the nose.
       measured = length / (PROFILE_NOSE + PROFILE_EAR);
       const back = scaled(reach, (PROFILE_EAR * measured) / length);
@@ -460,8 +499,9 @@ function readHeadFrame(body: NormalizedBody, a: number): HeadFrame | null {
     sideOn: narrow,
     facing,
     nose,
-    eyes: [at(R_EYE), at(L_EYE)].filter(Boolean) as XY[],
+    eyes,
     ears: [rightEar, leftEar].filter(Boolean).length,
+    quarter,
   };
 }
 
@@ -471,11 +511,12 @@ function readHeadFrame(body: NormalizedBody, a: number): HeadFrame | null {
  *
  * Left / Right are theirs, as in the rest of the editor. They draw a profile the way the guide
  * does (nose, one eye, one ear — the far eye and ear are null, "not visible"): a pose map says
- * "turned" by the missing far side, not by a nose a few pixels off centre. Up / Down keep the
- * ears and move the nose against the eye line.
+ * "turned" by the missing far side, not by a nose a few pixels off centre. ¾ left / ¾ right turn
+ * the head half-way: both eyes show, the nose is off the middle and only the ear on the seen
+ * cheek is drawn. Up / Down keep the ears and move the nose against the eye line.
  *
- * A body seen from the side already shows its head in profile, so Straight / Up / Down keep the
- * profile; Left / Right would face the camera or the back of the head, which a flat skeleton
+ * A body seen from the side already shows its head in profile, so Front / Up / Down keep the
+ * profile; the turns would face the camera or the back of the head, which a flat skeleton
  * cannot tell apart — those leave the figure as it is (see `readHeadDirection().sideOn`).
  */
 export function applyHeadDirection(
@@ -489,34 +530,48 @@ export function applyHeadDirection(
   if (!frame) return next;
   while (next.length <= L_EAR) next.push(null);
   const { centre, radius, up, left, facing } = frame;
-  const sideways = direction === 'left' || direction === 'right';
-  if (frame.sideOn && sideways) return next;
+  const turn = headTurnSide(direction);
+  if (frame.sideOn && turn) return next;
   const place = (index: number, along: XY, alongAmount: number, rise: XY, riseAmount: number) => {
     const x = centre.x + (along.x * alongAmount + rise.x * riseAmount) * radius;
     const y = centre.y + (along.y * alongAmount + rise.y * riseAmount) * radius;
     next[index] = { x: clamp(x / a), y: clamp(y) };
   };
+  // Facing the picture's right shows their right side (the guide's rule, any head tilt):
+  // [the eye and ear the camera sees, the eye and ear on the far side].
+  const sideShown = (toward: XY) =>
+    up.x * toward.y - up.y * toward.x > 0
+      ? ([R_EYE, R_EAR, L_EYE, L_EAR] as const)
+      : ([L_EYE, L_EAR, R_EYE, R_EAR] as const);
   const profile = (toward: XY, nod: number) => {
     const [cos, sin] = [Math.cos(nod), Math.sin(nod)];
     const forward = { x: toward.x * cos + up.x * sin, y: toward.y * cos + up.y * sin };
     const crown = { x: up.x * cos - toward.x * sin, y: up.y * cos - toward.y * sin };
-    // Facing the picture's right shows their right side (the guide's rule, any head tilt).
-    const rightSide = up.x * toward.y - up.y * toward.x > 0;
-    const [eye, ear, farEye, farEar] = rightSide
-      ? [R_EYE, R_EAR, L_EYE, L_EAR]
-      : [L_EYE, L_EAR, R_EYE, R_EAR];
+    const [eye, ear, farEye, farEar] = sideShown(toward);
     place(NOSE, forward, PROFILE_NOSE, crown, 0);
     place(eye, forward, PROFILE_EYE[0], crown, PROFILE_EYE[1]);
     place(ear, forward, -PROFILE_EAR, crown, 0);
     next[farEye] = null;
     next[farEar] = null;
   };
-  if (sideways) {
-    profile(direction === 'left' ? left : scaled(left, -1), 0);
+  // Part-way round: both eyes still show, the far ear does not.
+  const threeQuarter = (toward: XY) => {
+    const [nearEye, ear, farEye, farEar] = sideShown(toward);
+    place(NOSE, toward, QUARTER_NOSE, up, 0);
+    place(nearEye, toward, QUARTER_NEAR_EYE[0], up, QUARTER_NEAR_EYE[1]);
+    place(farEye, toward, QUARTER_FAR_EYE[0], up, QUARTER_FAR_EYE[1]);
+    place(ear, toward, -QUARTER_EAR, up, 0);
+    next[farEar] = null;
+  };
+  if (turn) {
+    const toward = turn === 'left' ? left : scaled(left, -1);
+    if (isThreeQuarterHead(direction)) threeQuarter(toward);
+    else profile(toward, 0);
   } else if (facing) {
     profile(facing, direction === 'up' ? PROFILE_NOD : direction === 'down' ? -PROFILE_NOD : 0);
   } else {
-    const [noseRise, eyeRise] = FACE_RISE[direction];
+    const [noseRise, eyeRise] =
+      FACE_RISE[direction === 'up' || direction === 'down' ? direction : 'straight'];
     place(NOSE, left, 0, up, noseRise);
     place(R_EYE, left, -EYE_OUT, up, eyeRise);
     place(L_EYE, left, EYE_OUT, up, eyeRise);
@@ -537,7 +592,7 @@ export function readHeadDirection(
 ): { direction: HeadDirection | null; sideOn: boolean } {
   const frame = readHeadFrame(body, aspect > 0 ? aspect : 1);
   if (!frame?.nose) return { direction: null, sideOn: Boolean(frame?.sideOn) };
-  const { centre, radius, up, left, sideOn, facing, nose, eyes, ears } = frame;
+  const { centre, radius, up, left, sideOn, facing, nose, eyes, ears, quarter } = frame;
   const offset = scaled(minus(nose, centre), 1 / radius);
   if (facing) {
     const nod = Math.atan2(dot(offset, up), dot(offset, facing));
@@ -546,6 +601,15 @@ export function readHeadDirection(
   }
   const sideways = dot(offset, left);
   const rise = dot(offset, up);
+  if (quarter) {
+    // One ear, both eyes, the nose well off the middle: a three-quarter head (a photo's face
+    // read the same way lights the chip too).
+    const turned = Math.abs(sideways) > QUARTER_NOSE / 2;
+    return {
+      direction: turned ? (sideways > 0 ? 'three-quarter-left' : 'three-quarter-right') : null,
+      sideOn,
+    };
+  }
   if (ears === 1) {
     const turned = Math.abs(sideways) > PROFILE_NOSE / 2;
     return { direction: turned ? (sideways > 0 ? 'left' : 'right') : null, sideOn };

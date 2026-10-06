@@ -9,8 +9,12 @@ import {
   customPoseWords,
   describePhotoPose,
   describePoseFigure,
+  headDirectionWords,
   withCustomPoseSentence,
+  withHeadWords,
+  withoutHeadWords,
 } from './pose-describe';
+import { applyHeadDirection, readHeadDirection } from './pose-limb-presets';
 import { mirrorBodies, poseStarterBody } from './pose-starters';
 import type { NormalizedBody } from './pose-library';
 
@@ -209,5 +213,68 @@ describe('deep squat vs cross-legged sit (reference skeletons)', () => {
     for (const id of ['sit_floor-1', 'sit_floor-2', 'sit_floor-3', 'sit_floor-4', 'sit_floor-5']) {
       assert.match(words(id), /^sitting cross-legged on the floor/, id);
     }
+  });
+});
+
+describe('head chips in words', () => {
+  const ASPECT = 2 / 3;
+  const stand = () => poseStarterBody('stand');
+  const read = (body: NormalizedBody) => describePoseFigure(body, { aspect: ASPECT }).text;
+
+  const LEFT = 'head turned to her left, face in profile toward the right of the picture, looking away from the camera';
+  const QUARTER_LEFT =
+    'head turned three-quarters to her left, face angled toward the right of the picture, eyes off the camera';
+
+  it('says where the head turns, three-quarter turns too, and nothing for a front face', () => {
+    assert.equal(read(stand()), 'standing');
+    assert.equal(read(applyHeadDirection(stand(), 'left', ASPECT)), `standing, ${LEFT}`);
+    assert.equal(
+      read(applyHeadDirection(stand(), 'three-quarter-right', ASPECT)),
+      'standing, head turned three-quarters to her right, face angled toward the left of the picture, eyes off the camera'
+    );
+    assert.equal(read(applyHeadDirection(stand(), 'up', ASPECT)), 'standing, chin up');
+    assert.equal(read(applyHeadDirection(stand(), 'down', ASPECT)), 'standing, head bowed');
+    assert.equal(
+      describePoseFigure(applyHeadDirection(stand(), 'three-quarter-left', ASPECT), {
+        aspect: ASPECT,
+        possessive: 'his',
+      }).text,
+      `standing, ${QUARTER_LEFT.replace(/\bher\b/g, 'his')}`
+    );
+    // Seen from behind, her left is the picture's left.
+    assert.equal(
+      headDirectionWords('left', 'her', false),
+      'head turned to her left, face in profile toward the left of the picture, looking away from the camera'
+    );
+    // The head outranks the hands when the words run short.
+    assert.match(
+      describePoseFigure(applyHeadDirection(stand(), 'left', ASPECT), { aspect: ASPECT, maxWords: 22 })
+        .text,
+      /head turned to her left/
+    );
+  });
+
+  it('reaches the still through a custom pose, with a named pose kept in front', () => {
+    const turned = applyHeadDirection(stand(), 'three-quarter-left', ASPECT);
+    assert.equal(
+      customPoseWords({ photo: { aspect: ASPECT, people: [turned], source: 'edited' } }),
+      `standing, ${QUARTER_LEFT}`
+    );
+    const named = withHeadWords(
+      'waving: one arm raised high',
+      headDirectionWords(readHeadDirection(turned, ASPECT).direction)
+    );
+    assert.equal(named, `waving: one arm raised high, ${QUARTER_LEFT}`);
+    // Said once, whichever chip came before; a front face takes it off again.
+    assert.equal(
+      withHeadWords(named, headDirectionWords('right')),
+      'waving: one arm raised high, head turned to her right, face in profile toward the left of the picture, looking away from the camera'
+    );
+    assert.equal(withHeadWords(named, headDirectionWords('straight')), 'waving: one arm raised high');
+    assert.equal(withoutHeadWords('standing, chin up'), 'standing');
+    assert.equal(
+      customPoseWords({ photo: { aspect: ASPECT, people: [turned], source: 'edited', words: named } }),
+      named
+    );
   });
 });

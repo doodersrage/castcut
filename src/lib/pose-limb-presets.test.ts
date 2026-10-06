@@ -123,9 +123,11 @@ describe('head direction', () => {
       return point && other ? span(point, other) < within : !point === !other;
     });
   // Front and tipped faces: ear to ear. A profile: nose to the one ear, 1.13 of a head radius
-  // where ear to ear is 1.7.
+  // where ear to ear is 1.7; a three-quarter head (one ear, both eyes): 1.2.
   const headSize = (body: ReturnType<typeof stand>) =>
-    body[16] && body[17] ? span(body[16], body[17]) : (span(body[0]!, (body[16] ?? body[17])!) * 1.7) / 1.13;
+    body[16] && body[17]
+      ? span(body[16], body[17])
+      : (span(body[0]!, (body[16] ?? body[17])!) * 1.7) / (body[14] && body[15] ? 1.2 : 1.13);
 
   it('moves only the face: the neck and the rest of the body stay', () => {
     for (const starter of ['stand', 'walk', 'sit', 'kneel', 'lie'] as const) {
@@ -166,6 +168,40 @@ describe('head direction', () => {
     }
   });
 
+  it('three-quarter turns go half-way: both eyes show, only the seen cheek has an ear', () => {
+    const before = stand();
+    const left = applyHeadDirection(before, 'three-quarter-left', ASPECT);
+    const full = applyHeadDirection(before, 'left', ASPECT);
+    // The nose moves toward the picture's right, but not as far as the profile's.
+    assert.ok(left[0]!.x > before[0]!.x + 0.01, 'nose toward the picture right');
+    assert.ok(left[0]!.x < full[0]!.x, 'short of a full profile');
+    assert.ok(left[14] && left[15], 'both eyes still show');
+    // Turning to their left shows their right cheek: its ear, on the picture's left of the nose.
+    assert.ok(left[16] && !left[17], 'their right ear shows, their left is behind the head');
+    assert.ok(left[16]!.x < left[0]!.x, 'the ear across from the nose');
+    // The near eye sits by the middle of the head, the far one is carried to the face's edge.
+    assert.ok(left[14]!.x < left[15]!.x && left[15]!.x > left[0]!.x);
+    assert.equal(readHeadDirection(left, ASPECT).direction, 'three-quarter-left');
+    const right = applyHeadDirection(before, 'three-quarter-right', ASPECT);
+    assert.equal(readHeadDirection(right, ASPECT).direction, 'three-quarter-right');
+    assert.ok(right[17] && !right[16]);
+    // The standing starter is symmetric, so right is left in a mirror.
+    for (const [mine, theirs] of [
+      [0, 0],
+      [15, 14],
+      [14, 15],
+      [17, 16],
+    ] as const) {
+      assert.ok(Math.abs(right[mine]!.x - (1 - left[theirs]!.x)) < 1e-9);
+      assert.ok(Math.abs(right[mine]!.y - left[theirs]!.y) < 1e-9);
+    }
+    // Every other chip still lights as itself after a three-quarter turn.
+    for (const { id } of HEAD_DIRECTIONS) {
+      assert.equal(readHeadDirection(applyHeadDirection(left, id, ASPECT), ASPECT).direction, id);
+    }
+    assert.ok(close(applyHeadDirection(left, 'straight', ASPECT), before, 0.001), 'back to front');
+  });
+
   it('seen from behind, their left is the picture left', () => {
     // Shoulders swapped across the picture without renaming: a back view.
     const back = stand().map(point => (point ? { x: 1 - point.x, y: point.y } : null));
@@ -190,7 +226,10 @@ describe('head direction', () => {
     const before = stand();
     const size = headSize(before);
     let body = before;
-    for (const id of ['left', 'left', 'up', 'right', 'down', 'right', 'left', 'straight', 'down', 'up']) {
+    for (const id of [
+      'left', 'left', 'up', 'three-quarter-right', 'right', 'down', 'three-quarter-left',
+      'three-quarter-left', 'right', 'left', 'straight', 'three-quarter-right', 'down', 'up',
+    ]) {
       body = applyHeadDirection(body, id as (typeof HEAD_DIRECTIONS)[number]['id'], ASPECT);
       assert.ok(Math.abs(headSize(body) - size) < 1e-9, `${id} changed the head size`);
       assert.equal(readHeadDirection(body, ASPECT).direction, id);

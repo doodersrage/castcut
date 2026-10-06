@@ -26,7 +26,12 @@
 
 import type { PhotoPose } from '@/lib/day-pose-guide';
 import type { NormalizedBody } from '@/lib/pose-library';
-import { readHeadDirection } from '@/lib/pose-limb-presets';
+import {
+  headTurnSide,
+  isThreeQuarterHead,
+  readHeadDirection,
+  type HeadDirection,
+} from '@/lib/pose-limb-presets';
 import { classifyPosture } from '@/lib/pose-posture';
 import { bodyCentreX, readPoseStance } from '@/lib/pose-starters';
 import { withSceneGround } from '@/lib/scene-surface';
@@ -502,16 +507,10 @@ export function describePoseFigure(
     }
   }
   // The head: tipped or turned, when the body faces the camera (a back or side view says it).
-  if (!view && !lying && head.direction && head.direction !== 'straight') {
-    facts.push({
-      text:
-        head.direction === 'up'
-          ? 'chin up'
-          : head.direction === 'down'
-            ? 'head bowed'
-            : `head turned to ${readAs} ${head.direction}`,
-      weight: 4,
-    });
+  // Weighted above the hands: a turned head is the one thing the engines drop first.
+  const headFact = !view && !lying ? headDirectionWords(head.direction, readAs) : null;
+  if (headFact) {
+    facts.push({ text: headFact, weight: 6.5 });
   } else if (!view && !lying) {
     const [re, le] = [at(14), at(15)];
     if (re && le) {
@@ -540,6 +539,48 @@ export function describePoseFigure(
     view,
     facts.filter(fact => kept.has(fact)).map(fact => fact.text)
   );
+}
+
+/**
+ * The head as the editor's Head chips set it, in words; null for a front-facing head or one that
+ * matches no chip. Sides are hers, with the picture's side and where the face points said too:
+ * on Edit 2511 (Day's clothed engine, face-locked to Image 1) "head turned to her left" alone
+ * left her facing the camera 4/4, while "head turned to her left, face in profile toward the
+ * right of the picture, looking away from the camera" turned it (2026-10-06, wave beat, 2 seeds).
+ * `facingCamera` false (a back view) puts her left on the picture's left.
+ */
+export function headDirectionWords(
+  direction: HeadDirection | null,
+  possessive: 'her' | 'his' | 'their' = 'her',
+  facingCamera = true
+): string | null {
+  if (!direction || direction === 'straight') return null;
+  if (direction === 'up') return 'chin up';
+  if (direction === 'down') return 'head bowed';
+  const side = headTurnSide(direction);
+  if (!side) return null;
+  const picture = (side === 'left') === facingCamera ? 'right' : 'left';
+  return isThreeQuarterHead(direction)
+    ? `head turned three-quarters to ${possessive} ${side}, face angled toward the ${picture} of the picture, eyes off the camera`
+    : `head turned to ${possessive} ${side}, face in profile toward the ${picture} of the picture, looking away from the camera`;
+}
+
+/** A pose line ending in one of `headDirectionWords`, so a chip's words are said only once. */
+const HEAD_WORDS_TAIL_RE =
+  /,\s*(?:chin up|head bowed|head turned (?:three-quarters )?to (?:her|his|their) (?:left|right)(?:, face (?:in profile|angled) toward the (?:left|right) of the picture, (?:looking away from|eyes off) the camera)?)\s*$/;
+
+/** The pose words without the head cue a Head chip added (`withHeadWords`). */
+export function withoutHeadWords(words: string): string {
+  return words.replace(HEAD_WORDS_TAIL_RE, '');
+}
+
+/**
+ * A named pose's own words with the head the chips set ("waving: one arm raised high, head
+ * turned to her left"): the name keeps its A/B'd cue and the head still reaches the prompt.
+ */
+export function withHeadWords(words: string, head: string | null): string {
+  const base = withoutHeadWords(words.trim());
+  return head ? `${base}, ${head}` : base;
 }
 
 /** COCO-18 joints that say where a named limb is, her right first: wrist / knee / … per noun. */
