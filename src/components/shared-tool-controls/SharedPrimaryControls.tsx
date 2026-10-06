@@ -49,6 +49,8 @@ export type SharedPrimaryControlsProps = {
   /** Set when the choice differs from other tools — applies it everywhere. */
   onQualityApplyAll?: () => void;
   qualityCaption: string | null;
+  /** Where the quality comes from: this tool's own choice, or Settings (describeToolQualitySource). */
+  qualitySource?: string | null;
   allowCustomQuality: boolean;
   /** The tool's Quality preset owns this choice — show it, don't offer the chips. */
   qualitySetBy?: { label: string; hint?: string };
@@ -74,6 +76,7 @@ export default function SharedPrimaryControls({
   onEngineQualityChange,
   onQualityApplyAll,
   qualityCaption,
+  qualitySource,
   allowCustomQuality,
   qualitySetBy,
   cloudEngine,
@@ -125,6 +128,14 @@ export default function SharedPrimaryControls({
               </ChipButton>
             ))}
           </div>
+          {qualitySource && !qualitySetBy ? (
+            <p
+              className="text-xs leading-relaxed text-[var(--text-secondary)]"
+              data-testid="engine-quality-source"
+            >
+              {qualitySource}
+            </p>
+          ) : null}
           {qualityCaption ? (
             <p className="text-xs leading-relaxed text-[var(--text-muted)]">{qualityCaption}</p>
           ) : null}

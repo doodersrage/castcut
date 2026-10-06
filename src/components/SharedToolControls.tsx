@@ -14,7 +14,7 @@ import {
   notifySettingsCacheUpdated,
   saveSharedSettings,
 } from '@/lib/settings-cache';
-import { qualityForEveryToolPatch } from '@/lib/tool-quality-profiles';
+import { describeToolQualitySource, qualityForEveryToolPatch } from '@/lib/tool-quality-profiles';
 import SharedLoraEmbeddingsBlock from '@/components/shared-tool-controls/SharedLoraEmbeddingsBlock';
 import { accentRingClass } from '@/lib/tool-theme';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
@@ -172,6 +172,14 @@ export default function SharedToolControls({
     onSharedSettingsChange?.(patch);
     notifySettingsCacheUpdated();
   };
+  const qualitySource = cloudEngine
+    ? null
+    : describeToolQualitySource({
+        tool: toolId,
+        toolProfiles: shared.toolQueueQualityProfiles,
+        global: queueQualityProfile,
+        model: shared.model,
+      });
   const qualityCaption = cloudEngine
     ? null
     : formatQueueQualityProfileHint(effectiveQualityProfile, samplerPreset, resolutionSizeTier, {
@@ -212,6 +220,7 @@ export default function SharedToolControls({
         onEngineQualityChange={handleEngineQualityChange}
         onQualityApplyAll={otherToolsDiffer ? handleQualityApplyAll : undefined}
         qualityCaption={qualityCaption}
+        qualitySource={qualitySource}
         allowCustomQuality={!systemPathActive}
         qualitySetBy={qualitySetBy}
         cloudEngine={cloudEngine}

@@ -103,3 +103,58 @@ export function qualityForEveryToolPatch(
     toolQueueQualityProfiles: Object.fromEntries([...keys].map(key => [key, profile])),
   };
 }
+
+/** The quality chip names (Engine panel, Settings → Prompt quality); Fast runs as Good. */
+export function qualityChipLabel(profile: QueueQualityProfile | undefined): string {
+  if (profile === 'max') return 'Best';
+  if (profile === 'followSettings' || !profile) return 'Custom';
+  return 'Good';
+}
+
+/**
+ * Where a tool's queue quality comes from, for one line under its Engine chips. Quality layers —
+ * the tool's own choice beats the global one, and Fast runs as Good whenever a model is set
+ * (resolveQueueQualityProfile) — so the chips alone didn't say which setting was in charge.
+ */
+export function describeToolQualitySource(input: {
+  tool?: string;
+  toolProfiles?: ToolQueueQualityProfiles;
+  global?: QueueQualityProfile;
+  model?: string | null;
+}): string {
+  const tool = input.tool?.trim();
+  const own = tool ? input.toolProfiles?.[tool] : undefined;
+  const profile = own ?? input.global;
+  const parts = [
+    own
+      ? `Set for ${toolQueueQualityLabel(tool!)} — other tools keep their own.`
+      : tool
+        ? `From Settings → Prompt quality (no choice saved for ${toolQueueQualityLabel(tool)}).`
+        : 'From Settings → Prompt quality.',
+  ];
+  if (profile === 'draft' && input.model?.trim()) {
+    parts.push('Fast runs as Good whenever a model is selected.');
+  }
+  if (profile === 'followSettings' || profile === undefined) {
+    parts.push('Custom uses the sampler and size defaults in Settings.');
+  }
+  return parts.join(' ');
+}
+
+/**
+ * Each tool's quality grouped by chip ("Good: Generate, Story · Best: Day"), for Settings when
+ * tools differ — instead of only saying that they do. Tools without an entry use the global one.
+ */
+export function summarizeToolQualities(
+  toolProfiles: ToolQueueQualityProfiles | undefined,
+  global: QueueQualityProfile | undefined
+): Array<{ chip: string; tools: string[] }> {
+  const groups = new Map<string, string[]>();
+  for (const { id, label } of TOOL_QUEUE_QUALITY_OPTIONS) {
+    const chip = qualityChipLabel(toolProfiles?.[id] ?? global);
+    groups.set(chip, [...(groups.get(chip) ?? []), label]);
+  }
+  return ['Good', 'Best', 'Custom']
+    .filter(chip => groups.has(chip))
+    .map(chip => ({ chip, tools: groups.get(chip)! }));
+}

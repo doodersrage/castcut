@@ -29,7 +29,7 @@ import {
   normalizeQueueQualityProfile,
   type QueueQualityProfile,
 } from '@/lib/queue-quality-profile';
-import { qualityForEveryToolPatch } from '@/lib/tool-quality-profiles';
+import { qualityForEveryToolPatch, summarizeToolQualities } from '@/lib/tool-quality-profiles';
 import {
   normalizeStoredPoseGuideStyle,
   type PoseGuideStylePreference,
@@ -239,6 +239,22 @@ export default function SettingsPromptQualityPanel({
               ? 'Tools use different qualities (set per tool in its Engine) — pick one to use it everywhere.'
               : 'Each tool’s Engine can still pick its own.'}
           </p>
+          {toolsQuality === null ? (
+            <ul
+              className="type-caption space-y-0.5 text-[var(--text-secondary)]"
+              data-testid="settings-tool-qualities"
+            >
+              {summarizeToolQualities(
+                sharedSettings.toolQueueQualityProfiles,
+                sharedSettings.queueQualityProfile
+              ).map(group => (
+                <li key={group.chip}>
+                  <span className="font-medium text-[var(--text-primary)]">{group.chip}:</span>{' '}
+                  {group.tools.join(', ')}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
 
         <div className="space-y-2">
