@@ -18,6 +18,7 @@ import { comfyInputViewUrl } from '@/lib/face-match-client';
 import { footwearIsBarefoot, footwearPromptLine, normalizeFootwear } from '@/lib/footwear';
 import {
   buildFeetPassPrompt,
+  FOOTWEAR_CHECK_VERSION,
   footwearCheckApplies,
   footwearNeedsFeetPass,
   resolveFeetPassModel,
@@ -316,7 +317,7 @@ async function finishDressPlateJob(
     filename,
     imageUrl: comfyInputViewUrl(filename) ?? feet.imageUrl,
     at: Date.now(),
-    ...(feet.checked ? { shoesChecked: true } : {}),
+    ...(feet.checked ? { shoesChecked: FOOTWEAR_CHECK_VERSION } : {}),
   };
 }
 
@@ -336,7 +337,7 @@ async function recheckStoredPlateFeet(
     shoeCheckSkippedAt.set(cached.key, Date.now());
     return cached;
   }
-  if (!feet.passed) return { ...cached, shoesChecked: true };
+  if (!feet.passed) return { ...cached, shoesChecked: FOOTWEAR_CHECK_VERSION };
   try {
     const blob = await loadImageBlobFromUrls([feet.imageUrl]);
     const name = `day-dress-plate-${Date.now()}.png`;
@@ -346,17 +347,17 @@ async function recheckStoredPlateFeet(
       model: request.model,
     });
     const filename = uploaded?.filename?.trim();
-    if (!filename) return { ...cached, shoesChecked: true };
+    if (!filename) return { ...cached, shoesChecked: FOOTWEAR_CHECK_VERSION };
     verified.add(`${cached.key}::${filename}`);
     return {
       key: cached.key,
       filename,
       imageUrl: comfyInputViewUrl(filename) ?? feet.imageUrl,
       at: Date.now(),
-      shoesChecked: true,
+      shoesChecked: FOOTWEAR_CHECK_VERSION,
     };
   } catch {
-    return { ...cached, shoesChecked: true };
+    return { ...cached, shoesChecked: FOOTWEAR_CHECK_VERSION };
   }
 }
 
@@ -376,7 +377,7 @@ export async function ensureDayDressPlate(
     if (verified.has(mark) || (await inputFileExists(cached.filename))) {
       verified.add(mark);
       if (
-        cached.shoesChecked ||
+        (cached.shoesChecked ?? 0) >= FOOTWEAR_CHECK_VERSION ||
         !plateWantsShoes(request) ||
         Date.now() - (shoeCheckSkippedAt.get(key) ?? 0) < FAILURE_COOLDOWN_MS ||
         (!deps.visionShared && !deps.checkFootwear)

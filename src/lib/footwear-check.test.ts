@@ -127,6 +127,24 @@ describe('footwearCheckVerdict', () => {
     assert.equal(footwearCheckVerdict(reading({ feetVisible: false }), HEELS).reason, 'feet-hidden');
   });
 
+  it('picked wedges: flat sandals or plain heels fail, a wedge or platform passes', () => {
+    const wedges = 'light blue cork wedge sandals with ankle straps';
+    // The dressed plate behind the user's duo stills (live 2026-10-06).
+    assert.equal(
+      footwearCheckVerdict(reading({ heel: 'flat', kind: 'black strappy flat sandals' }), wedges)
+        .reason,
+      'wrong-heel'
+    );
+    assert.equal(
+      footwearCheckVerdict(reading({ kind: 'blue strappy high-heel sandals' }), wedges).reason,
+      'wrong-kind'
+    );
+    assert.equal(footwearCheckVerdict(reading({ kind: 'blue cork platform sandals' }), wedges).ok, true);
+    assert.equal(footwearCheckVerdict(reading({ kind: 'turquoise wedge sandals' }), wedges).ok, true);
+    // Platform sneakers stay flat.
+    assert.equal(footwearExpectedHeel('white platform sneakers'), 'flat');
+  });
+
   it('a shoe picture with no words only checks that both feet wear shoes', () => {
     assert.equal(footwearCheckVerdict(reading({ heel: 'flat', kind: 'sandals' }), '').ok, true);
   });

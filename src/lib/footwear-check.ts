@@ -13,6 +13,12 @@
 
 const BAREFOOT_RE = /^(?:barefoot|bare feet|no shoes|none|nothing)$/i;
 
+/**
+ * Bumped when the verdict rules change, so dressed plates passed by older rules are looked at
+ * once more (2: wedges and platforms).
+ */
+export const FOOTWEAR_CHECK_VERSION = 2;
+
 /** Asked about the lower part of the still (her legs and feet), never told which shoes to expect. */
 export const FOOTWEAR_CHECK_PROMPT = [
   'Look closely at her feet in this photo (the lower part of a full-length picture).',
@@ -112,8 +118,26 @@ export function footwearExpectedHeel(words: string): Exclude<FootwearHeel, 'none
     return 'flat';
   }
   if (/\b(?:kitten[- ]heels?|low[- ]heel(?:ed|s)?)\b/.test(text)) return 'low';
-  if (/\b(?:stilettos?|high[- ]heel(?:ed|s)?|heels|heeled|pumps?)\b/.test(text)) return 'high';
+  // Wedges and platforms read as "high" (26 of 27 right wedge stills, live 2026-10-06); left
+  // open, a plate in black flat sandals passed for light blue cork wedges.
+  if (
+    /\b(?:stilettos?|high[- ]heel(?:ed|s)?|heels|heeled|pumps?|wedges?|platforms?)\b/.test(text)
+  ) {
+    return 'high';
+  }
   return null;
+}
+
+const WEDGE_RE = /\b(?:wedges?|platforms?)\b/;
+const WEDGE_SEEN_RE = /\b(?:wedges?|platforms?|cork|espadrilles?)\b/;
+
+/**
+ * Picked wedges or platforms are only right when the model sees that sole: on Day duo stills the
+ * wrong pair came back as "blue strappy high-heel sandals" 16 of 17 times (only 1 of 17 named a
+ * wedge or platform), the right one as wedge / platform / cork 25 of 27.
+ */
+function wedgeMissing(shoeWords: string, seen: string): boolean {
+  return WEDGE_RE.test(shoeWords.toLowerCase()) && !WEDGE_SEEN_RE.test(seen.toLowerCase());
 }
 
 /** Shoe families that never pass for one another (sneakers are not sandals, boots not pumps). */
@@ -148,6 +172,7 @@ export function footwearCheckVerdict(
   const got = families(reading.kind);
   const shared = [...want].some(name => got.has(name));
   if ((want.size > 0 || got.size > 0) && !shared) return fail('wrong-kind');
+  if (wedgeMissing(shoeWords, reading.kind)) return fail('wrong-kind');
   if (reading.deformed) return fail('deformed');
   return { ok: true, reason: null, seen };
 }
@@ -252,9 +277,11 @@ export function buildFeetPassPrompt(input: {
   const shoes = shown ? (words ? `${shown} — ${words} —` : shown) : words || 'the shoes';
   const heel = footwearExpectedHeel(words);
   const shape = [
-    heel === 'high'
-      ? `High heels: ${possessive} heels lifted on the tall thin heels, each heel post under the heel of ${possessive} foot.`
-      : '',
+    WEDGE_RE.test(words.toLowerCase())
+      ? `Wedges: ${possessive} heels lifted on the thick solid wedge soles, each sole solid from heel to toe under ${possessive} foot.`
+      : heel === 'high'
+        ? `High heels: ${possessive} heels lifted on the tall thin heels, each heel post under the heel of ${possessive} foot.`
+        : '',
     /\b(?:strap|straps|strappy|sandals?)\b/i.test(words)
       ? 'Keep each strap thin and continuous, both shoes the same.'
       : 'Both shoes the same.',

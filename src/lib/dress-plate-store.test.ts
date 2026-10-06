@@ -56,6 +56,15 @@ describe('shared dressed-plate store', () => {
     resetBrowserStorageCache();
   });
 
+  it('a plate marked checked before versions counts as version 1, so newer rules look again', () => {
+    replaceDressPlates([
+      { key: 'old', filename: 'old.png', at: 1, shoesChecked: true as unknown as number },
+      { key: 'new', filename: 'new.png', at: 2, shoesChecked: 2 },
+    ]);
+    assert.equal(findDressPlate('old')?.shoesChecked, 1);
+    assert.equal(findDressPlate('new')?.shoesChecked, 2);
+  });
+
   it('one plate per selection, found by any tool, removable', () => {
     saveDressPlate({ key: 'a', filename: 'one.png', at: 1 });
     saveDressPlate({ key: 'b', filename: 'two.png', imageUrl: '/view?two', at: 2 });

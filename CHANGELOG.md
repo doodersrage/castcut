@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Picked shoes on two-person stills.** On Edit 2511 a duo still takes its shoes only from the dressed plate (Image 2 is the partner's face), so a plate in the wrong shoes put every duo still in them: picked light blue cork wedges came out as black flat sandals in 16 of 17 duo stills while solo stills, which also get the shoe picture, were right 26 of 27. The shoe check had read the plate correctly ("black strappy flat sandals") but wedges and platforms set no heel, so flats passed. Wedges and platforms now expect a raised heel and must be seen as wedge / platform / cork / espadrille; the feet pass describes solid wedge soles, not a heel post. Stored plates carry the version of the check that passed them, so plates passed by the old rules are checked once more on next use. Live: the feet pass on the user's plate gave wedges 4/4; eight of the user's duo stills replayed at their seeds with the fixed plate wore the wedges 7/8 (0/8 before), partner's own shoes kept 8/8.
 - **Desktop: the AppImage, really.** v2.3.2 still failed: Next carries its own nested copy of sharp (`next/node_modules/@img/sharp-linuxmusl-x64`), which the 2.3.1 fix didn't reach. Staging now drops every musl-only `@img` package at any depth.
 
 ## [v2.3.2] - 2026-10-06
