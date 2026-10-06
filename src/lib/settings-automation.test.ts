@@ -3,7 +3,6 @@ import { describe, it } from 'node:test';
 import type { ComfyUiModelLists } from './comfyui-object-info';
 import { comfyInventoryFingerprint, fillLoaderMapsFromInventory } from './comfy-inventory-auto-sync';
 import { buildPlayChecksReadiness } from './play-checks-readiness';
-import { isPoseCapableControlNet, resolvePoseControlNetFilename } from './pose-guide-controlnet';
 import { DEFAULT_SHARED_SETTINGS } from './settings-cache';
 import { COMFYUI_SETTINGS_SECTIONS } from './settings-comfyui-nav';
 import {
@@ -74,61 +73,6 @@ describe('vision model auto-pick', () => {
   });
 });
 
-describe('pose ControlNet pick', () => {
-  it('knows which ControlNets read pose maps', () => {
-    for (const name of [
-      'control_v11p_sd15_openpose.pth',
-      'Qwen-Image-InstantX-ControlNet-Union.safetensors',
-      'controlnet-union-sdxl-promax.safetensors',
-      'flux-dev-controlnet-pose.safetensors',
-    ]) {
-      assert.ok(isPoseCapableControlNet(name), name);
-    }
-    for (const name of ['control_v11p_sd15_canny.pth', 'depth-anything.safetensors', 'posterize.pth']) {
-      assert.ok(!isPoseCapableControlNet(name), name);
-    }
-  });
-
-  it('uses a per-model map, else a pose ControlNet from ComfyUI, never a canny default', () => {
-    assert.deepEqual(
-      resolvePoseControlNetFilename({
-        model: 'm',
-        controlNetMap: { m: 'mine.safetensors', default: 'canny.pth' },
-        inventory: ['openpose.pth'],
-      }),
-      { filename: 'mine.safetensors', source: 'map' }
-    );
-    assert.deepEqual(
-      resolvePoseControlNetFilename({
-        model: 'm',
-        controlNetMap: { default: 'control_canny.pth' },
-        inventory: ['control_canny.pth', 'control_v11p_sd15_openpose.pth'],
-      }),
-      { filename: 'control_v11p_sd15_openpose.pth', source: 'inventory' }
-    );
-    assert.deepEqual(
-      resolvePoseControlNetFilename({
-        model: 'qwen',
-        inventory: ['a_openpose.pth', 'Qwen-Image-InstantX-ControlNet-Union.safetensors'],
-      }),
-      { filename: 'Qwen-Image-InstantX-ControlNet-Union.safetensors', source: 'inventory' },
-      'Qwen Union first'
-    );
-    assert.equal(
-      resolvePoseControlNetFilename({
-        model: 'm',
-        controlNetMap: { default: 'control_canny.pth' },
-        inventory: ['control_canny.pth'],
-      }),
-      undefined
-    );
-    assert.deepEqual(
-      resolvePoseControlNetFilename({ model: 'm', controlNetMap: { default: 'my-openpose.pth' } }),
-      { filename: 'my-openpose.pth', source: 'map' }
-    );
-  });
-});
-
 describe('map new ComfyUI models automatically', () => {
   const models = (extra: Partial<ComfyUiModelLists> = {}): ComfyUiModelLists => ({
     checkpoints: [],
@@ -181,13 +125,13 @@ describe('Settings search', () => {
 
   it('finds a setting by any of its words and deep-links to the control', () => {
     const find = (query: string) => entries.filter(entry => matchesSettingsQuery(entry, query));
-    assert.equal(find('pose controlnet')[0]?.id, 'pose-controlnet');
+    assert.equal(find('pose guide')[0]?.id, 'pose-guide-style');
     assert.ok(find('vision').some(entry => entry.id === 'vision-model'));
     assert.ok(find('ollama').some(entry => entry.id === 'text-model'));
     assert.deepEqual(find('   '), []);
     assert.equal(
-      settingsSearchHref(entries.find(entry => entry.id === 'pose-controlnet')!),
-      '/settings?tab=comfyui&section=prompt-quality&focus=settings-pose-controlnet'
+      settingsSearchHref(entries.find(entry => entry.id === 'pose-guide-style')!),
+      '/settings?tab=comfyui&section=prompt-quality&focus=settings-pose-guide'
     );
     assert.equal(settingsSearchHref({ tab: 'overview' }), '/settings');
   });
@@ -202,8 +146,8 @@ describe('changed from defaults', () => {
   it('lists what changed with both values, and resets it', () => {
     const shared = {
       ...DEFAULT_SHARED_SETTINGS,
-      poseGuideControlNet: true,
-      poseGuideStyle: 'legacy' as const,
+      expandWildcards: false,
+      poseGuideStyle: 'openpose-hands' as const,
       // Not a preference: never listed.
       activeCharacterId: 'cast-1',
       sessionLlmApiKey: 'secret',
@@ -211,10 +155,10 @@ describe('changed from defaults', () => {
     const changed = changedSettings(shared, DEFAULT_SHARED_SETTINGS);
     assert.deepEqual(
       changed.map(entry => entry.key),
-      ['poseGuideStyle', 'poseGuideControlNet']
+      ['poseGuideStyle', 'expandWildcards']
     );
-    assert.equal(changed[1]?.value, 'On');
-    assert.equal(changed[1]?.defaultValue, 'Off');
+    assert.equal(changed[1]?.value, 'Off');
+    assert.equal(changed[1]?.defaultValue, 'On');
     const patch = resetSettingsPatch(
       changed.map(entry => entry.key),
       DEFAULT_SHARED_SETTINGS

@@ -65,8 +65,6 @@ export type PoseModelProfile = {
    * the line).
    */
   dressWhenNoOutfit: boolean;
-  /** A pose ControlNet may be guessed from ComfyUI's list (Klein: only a mapped one). */
-  poseControlNetGuessable: boolean;
   /**
    * Where the pose map goes. 'vision' = seen by the text encoder only (Rapid AIO / Edit 2511
    * VL-only guides); 'reference' = a full reference image; 'none' = left out, pose from the words.
@@ -156,7 +154,6 @@ const BASE: PoseModelProfile = {
   avoidedLayouts: NONE,
   namePartnerOutfit: false,
   dressWhenNoOutfit: false,
-  poseControlNetGuessable: true,
   mapDelivery: { solo: 'vision', duoClothed: 'vision', duoNude: 'vision' },
   wideLyingSolo: false,
   sportActionCue: false,
@@ -207,7 +204,6 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     avoidedLayouts: new Set(['hug']),
     plainPostureBase: 'stand',
     namePartnerOutfit: true,
-    poseControlNetGuessable: false,
   },
 };
 

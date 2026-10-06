@@ -60,33 +60,43 @@ describe('settings persistence sidecars', () => {
     await withMockLocalStorage(() => resetBrowserStorageCache());
   });
 
-  it('persists useSystemWorkflows via sidecar and reloads after cache reset', async () => {
+  it('persists a system-workflows choice via sidecar and reloads after cache reset', async () => {
     await withMockLocalStorage(async () => {
       resetBrowserStorageCache();
+      // On is the default; turning it off is the explicit choice the sidecar must keep.
       const shared = {
         ...loadSettingsCache().shared,
-        useSystemWorkflows: true,
+        useSystemWorkflows: false,
       };
       await saveSharedSettingsNow(shared);
-      assert.equal(window.localStorage.getItem(SYSTEM_WORKFLOWS_PREF_KEY), '1');
+      assert.equal(window.localStorage.getItem(SYSTEM_WORKFLOWS_PREF_KEY), '0');
 
       resetBrowserStorageCache();
       const reloaded = loadSettingsCache().shared;
-      assert.equal(reloaded.useSystemWorkflows, true);
+      assert.equal(reloaded.useSystemWorkflows, false);
     });
   });
 
-  it('a fresh profile saving defaults before the server pull does not turn system workflows off', async () => {
+  it('a fresh profile saving defaults before the server pull does not pin the default', async () => {
     await withMockLocalStorage(async () => {
       resetBrowserStorageCache();
       // Plugin manifest / migration save on a fresh profile — defaults, before the server pull.
       saveSettingsCache(loadSettingsCache());
       assert.equal(window.localStorage.getItem(SYSTEM_WORKFLOWS_PREF_KEY), null);
-      // The server pull merges the stored "on" and saves it — the sidecar must not undo that.
+      // The server pull merges a stored "off" (the player turned it off) and saves it — a sidecar
+      // written from the fresh defaults must not turn it back on.
       const pulled = loadSettingsCache();
-      saveSettingsCache({ ...pulled, shared: { ...pulled.shared, useSystemWorkflows: true } });
+      saveSettingsCache({ ...pulled, shared: { ...pulled.shared, useSystemWorkflows: false } });
+      assert.equal(loadSettingsCache().shared.useSystemWorkflows, false);
+      assert.equal(window.localStorage.getItem(SYSTEM_WORKFLOWS_PREF_KEY), '0');
+    });
+  });
+
+  it('a fresh profile starts with system workflows on', async () => {
+    await withMockLocalStorage(async () => {
+      resetBrowserStorageCache();
       assert.equal(loadSettingsCache().shared.useSystemWorkflows, true);
-      assert.equal(window.localStorage.getItem(SYSTEM_WORKFLOWS_PREF_KEY), '1');
+      assert.equal(loadSettingsCache().shared.queueQualityProfile, 'final');
     });
   });
 

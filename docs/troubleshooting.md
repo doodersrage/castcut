@@ -64,8 +64,8 @@ See [configuration — production checklist](configuration.md#production-checkli
 ## Posing looks wrong (stance ignored, wireframe bleed) {#pose-guide}
 
 Day and Story stills get their stance from an **Image 3 pose guide** — an OpenPose keypoint map
-(or, with **Settings → Prompt quality → Pose guide style → Legacy capsules**, the older colored
-mannequin) drawn on a canvas in your browser, uploaded to ComfyUI, and attached as the third
+(optionally with hand keypoints: **Settings → Prompt quality → Pose guide style**) drawn on a
+canvas in your browser, uploaded to ComfyUI, and attached as the third
 image. Open **Show pose guides** under the status line to see exactly what each slot sent. With
 more than one person, the prompt names the Cast lead by position ("the lower (underneath)
 skeleton") because OpenPose colors mark limbs, not people. When that guide does not

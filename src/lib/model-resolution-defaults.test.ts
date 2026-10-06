@@ -391,7 +391,8 @@ describe("model resolution defaults", () => {
     });
     assert.equal(params.width, 832);
     assert.equal(params.height, 1216);
-    assert.equal(params.steps, 30);
+    // A fresh install queues at the "final" (Good) quality, as Heal & ready set it before.
+    assert.equal(params.steps, 36);
   });
 
   it("queues Klein Distilled Compose/Refine at native portrait for 2:3 figures", () => {

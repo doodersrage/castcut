@@ -20,7 +20,7 @@ import { DEFAULT_RENDER_REALISM_MODE, normalizeRenderRealismMode } from './rende
 import type { RenderRealismMode } from './render-realism';
 import {
   DEFAULT_POSE_GUIDE_STYLE,
-  normalizePoseGuideStylePreference,
+  normalizeStoredPoseGuideStyle,
   type PoseGuideStylePreference,
 } from './pose-guide-prompt';
 import { DEFAULT_VARIATION_SETTINGS } from './variation-settings';
@@ -241,12 +241,13 @@ function persistCriticalSharedPrefs(shared: SharedToolSettings): void {
     return;
   }
   // A fresh profile saves defaults (plugin manifest, migrations) before the server pull. Writing
-  // the sidecar from those made it '0', and every later save re-applies the sidecar — so the
-  // pulled "on" was flipped off and pushed back, and every Rapid still queued an empty graph
-  // ("Prompt has no outputs"). Until the server copy arrives, only an existing sidecar (or the
-  // toggle, which writes it directly) may be turned off; turning it on is always safe.
+  // the sidecar from those pinned the default, and every later save re-applies the sidecar — so
+  // the pulled value was flipped back and pushed (when the default was off, every Rapid still
+  // queued an empty graph: "Prompt has no outputs"). Until the server copy arrives, only a
+  // non-default value (an explicit choice), an existing sidecar, or the toggle (which writes it
+  // directly) may set it.
   if (
-    shared.useSystemWorkflows === true ||
+    shared.useSystemWorkflows !== DEFAULT_SHARED_SETTINGS.useSystemWorkflows ||
     isSettingsSyncedWithServer() ||
     readBrowserString(SYSTEM_WORKFLOWS_PREF_KEY) != null
   ) {
@@ -579,13 +580,8 @@ export type SharedToolSettings = {
   modelResolutionSizeTier?: ResolutionSizeTier;
   /** Auto-adjust positive/negative prompts for realistic renders on queue. */
   renderRealismMode?: RenderRealismMode;
-  /** Day / Story Image 3 pose-guide art: OpenPose keypoints (default) or legacy capsules. */
+  /** Day / Story Image 3 pose-guide art: OpenPose keypoints (default) or OpenPose + hands. */
   poseGuideStyle?: PoseGuideStylePreference;
-  /**
-   * Also send OpenPose Image 3 guides through a mapped ControlNet (off by default). Never for
-   * the legacy filled mannequin, which ghosts into the still.
-   */
-  poseGuideControlNet?: boolean;
   /** Auto-adjust prompts to reduce mutations and extra limbs on queue. */
   anatomyGuardMode?: AnatomyGuardMode;
   /** When true (default), patch EmptyLatentImage and loader nodes directly at queue time. */
@@ -1405,7 +1401,6 @@ export const DEFAULT_SHARED_SETTINGS: SharedToolSettings = {
   modelResolutionSizeTier: DEFAULT_RESOLUTION_SIZE_TIER,
   renderRealismMode: DEFAULT_RENDER_REALISM_MODE,
   poseGuideStyle: DEFAULT_POSE_GUIDE_STYLE,
-  poseGuideControlNet: false,
   anatomyGuardMode: DEFAULT_ANATOMY_GUARD_MODE,
   directWorkflowPatching: true,
   syncWorkflowLoadersToModel: false,
@@ -1417,7 +1412,8 @@ export const DEFAULT_SHARED_SETTINGS: SharedToolSettings = {
   compactDraftSaves: true,
   neuralUpscaleTileSize: 512,
   useLibraryUpscaleWorkflow: false,
-  queueQualityProfile: 'followSettings',
+  // With system workflows on (the default), as enableSystemWorkflowsAndHeal sets it.
+  queueQualityProfile: 'final',
   sessionQueueMode: 'off',
   holdMaxUntilIdle: false,
   vramGuardEnabled: true,
@@ -1439,7 +1435,8 @@ export const DEFAULT_SHARED_SETTINGS: SharedToolSettings = {
   autoSelectWorkflowForModel: true,
   autoSelectLorasForModel: true,
   limitModelsToAvailableWorkflows: true,
-  useSystemWorkflows: false,
+  // What Heal & ready and the first-queue setup turn on anyway; a fresh install starts there.
+  useSystemWorkflows: true,
   systemWorkflowsLimitPicker: true,
   showAllModelsOverride: false,
   ipAdapterStrength: 0.6,
@@ -1847,8 +1844,7 @@ export function loadSettingsCache(): SettingsCache {
     shared.renderRealismMode = normalizeRenderRealismMode(
       shared.renderRealismMode ?? DEFAULT_SHARED_SETTINGS.renderRealismMode
     );
-    shared.poseGuideStyle = normalizePoseGuideStylePreference(shared.poseGuideStyle);
-    shared.poseGuideControlNet = shared.poseGuideControlNet === true;
+    shared.poseGuideStyle = normalizeStoredPoseGuideStyle(shared.poseGuideStyle);
     shared.anatomyGuardMode = normalizeAnatomyGuardMode(
       shared.anatomyGuardMode ?? DEFAULT_ANATOMY_GUARD_MODE
     );

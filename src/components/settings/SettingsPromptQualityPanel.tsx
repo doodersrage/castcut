@@ -8,7 +8,6 @@ import { ChipButton } from '@/components/ui/Field';
 import { clearPoseLibrary, poseLibraryCount, subscribePoseLibrary } from '@/lib/pose-library';
 import { POSE_IMPORT_GROUPS, POSE_IMPORT_LAYOUTS } from '@/lib/pose-import-layouts';
 import { poseLayoutLabel } from '@/lib/pose-layout-labels';
-import PoseControlNetStatus from '@/components/settings/PoseControlNetStatus';
 import VramAutoThresholdNote from '@/components/settings/VramAutoThresholdNote';
 import GpuMatchCard from '@/components/settings/GpuMatchCard';
 import KleinEnhancerStatus, {
@@ -32,7 +31,7 @@ import {
 } from '@/lib/queue-quality-profile';
 import { qualityForEveryToolPatch } from '@/lib/tool-quality-profiles';
 import {
-  normalizePoseGuideStylePreference,
+  normalizeStoredPoseGuideStyle,
   type PoseGuideStylePreference,
 } from '@/lib/pose-guide-prompt';
 
@@ -52,12 +51,6 @@ const POSE_GUIDE_STYLE_OPTIONS: Array<{
     label: 'OpenPose + hands',
     description:
       'OpenPose body map plus 21-point hand keypoints, for self-touch, grips and hands on a partner. Experimental — compare against plain OpenPose in the Film loop pose-match stat.',
-  },
-  {
-    id: 'legacy',
-    label: 'Legacy capsules',
-    description:
-      'Older colored capsule (or gray outline on Rapid AIO / Edit-2511) mannequins with long anti-leak prompts. Use to compare against OpenPose. FLUX.2 Klein always gets OpenPose — it paints mannequins into the photo.',
   },
 ];
 
@@ -189,7 +182,7 @@ export default function SettingsPromptQualityPanel({
   freeVramGb,
   totalVramGb,
 }: SettingsPromptQualityPanelProps) {
-  const poseGuideStyle = normalizePoseGuideStylePreference(sharedSettings.poseGuideStyle);
+  const poseGuideStyle = normalizeStoredPoseGuideStyle(sharedSettings.poseGuideStyle);
   const vramEnabled = sharedSettings.vramGuardEnabled !== false;
   const minFreeGb = sharedSettings.vramGuardMinFreeGb ?? 6;
   const freeVramAfterMax = sharedSettings.freeVramAfterMax === true;
@@ -266,6 +259,10 @@ export default function SettingsPromptQualityPanel({
           <p className="type-caption text-[var(--text-muted)]" data-testid="sampler-preset-effect">
             {samplerPresetEffect(toolsQuality)}
           </p>
+          <p className="type-caption text-[var(--text-muted)]" data-testid="sampler-preset-scope">
+            Day and Story pick their own canvas size and steps for each engine — the sampler preset
+            and size defaults here apply to the Prompt tool, Outfit and batch queues.
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -295,9 +292,7 @@ export default function SettingsPromptQualityPanel({
         <div className="scroll-mt-28 space-y-2" id="settings-pose-guide">
           <p className="text-sm font-medium text-[var(--text-primary)]">Pose guide style</p>
           <div className="flex flex-wrap gap-1.5">
-            {POSE_GUIDE_STYLE_OPTIONS.filter(
-              option => option.id !== 'legacy' || poseGuideStyle === 'legacy'
-            ).map(option => (
+            {POSE_GUIDE_STYLE_OPTIONS.map(option => (
               <ChipButton
                 key={option.id}
                 active={poseGuideStyle === option.id}
@@ -311,50 +306,7 @@ export default function SettingsPromptQualityPanel({
           </div>
           <p className="type-caption text-[var(--text-muted)]">
             {POSE_GUIDE_STYLE_OPTIONS.find(option => option.id === poseGuideStyle)?.description}
-            {poseGuideStyle !== 'legacy' ? (
-              <>
-                {' '}
-                <button
-                  type="button"
-                  className="ui-text-link"
-                  disabled={!sharedMounted}
-                  data-testid="settings-pose-legacy-compare"
-                  onClick={() => updateSharedSettings({ poseGuideStyle: 'legacy' })}
-                >
-                  Compare with legacy capsules
-                </button>
-              </>
-            ) : null}
           </p>
-          <label className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
-            <input
-              type="checkbox"
-              className="mt-1 h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-base)] accent-[var(--accent)]"
-              checked={sharedSettings.poseGuideControlNet === true}
-              disabled={!sharedMounted || poseGuideStyle === 'legacy'}
-              data-testid="settings-pose-controlnet"
-              onChange={event =>
-                updateSharedSettings({ poseGuideControlNet: event.target.checked })
-              }
-            />
-            <span>
-              <span className="block font-medium text-[var(--text-primary)]">
-                Also lock the pose with ControlNet
-              </span>
-              <span className="type-caption mt-0.5 block text-[var(--text-muted)]">
-                Sends the OpenPose guide through a pose ControlNet at a soft 0.35, on top of Image 3
-                — stricter limbs; try it if stills keep ignoring the guide. Uses the ControlNet
-                mapped for the model, or finds an OpenPose / Union one in ComfyUI. OpenPose styles
-                only, never the legacy mannequin.
-              </span>
-              {sharedMounted && poseGuideStyle !== 'legacy' ? (
-                <PoseControlNetStatus
-                  model={sharedSettings.model}
-                  controlNetMap={sharedSettings.modelControlNetMap}
-                />
-              ) : null}
-            </span>
-          </label>
           <PoseLibraryControl />
         </div>
         <AnatomyGuardHints
@@ -368,6 +320,7 @@ export default function SettingsPromptQualityPanel({
             className="mt-1 h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-base)] accent-[var(--accent)]"
             checked={sharedSettings.kleinEnhancerEnabled !== false}
             disabled={!sharedMounted}
+            data-testid="settings-klein-enhancer"
             onChange={event => updateSharedSettings({ kleinEnhancerEnabled: event.target.checked })}
           />
           <span>

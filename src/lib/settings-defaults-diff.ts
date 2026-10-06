@@ -39,7 +39,6 @@ export const PREFERENCE_KEYS: ReadonlyArray<{
   { key: 'seedLlmWithIngredients', label: 'Seed the LLM with ingredients', area: LLM },
   { key: 'renderRealismMode', label: 'Render realism', area: PROMPT },
   { key: 'poseGuideStyle', label: 'Pose guide style', area: PROMPT },
-  { key: 'poseGuideControlNet', label: 'Pose ControlNet lock', area: PROMPT },
   { key: 'anatomyGuardMode', label: 'Anatomy guard', area: PROMPT },
   { key: 'kleinEnhancerEnabled', label: 'Klein Enhancer', area: PROMPT },
   { key: 'kleinEnhancerTextEnabled', label: 'Klein text enhancer', area: PROMPT },

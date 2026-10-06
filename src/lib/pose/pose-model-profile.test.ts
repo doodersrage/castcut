@@ -18,7 +18,6 @@ describe('pose model profiles', () => {
     assert.equal(poseProfileForModel('qwen-image-edit-2511').poseStickyClothed, true);
     assert.equal(poseProfileForModel('qwen-image-edit-2511').rapidGraph, false);
     assert.deepEqual([...poseProfileForModel('flux-2-klein-9b').avoidedLayouts], ['hug']);
-    assert.equal(poseProfileForModel('flux-2-klein-9b').poseControlNetGuessable, false);
   });
 
   it('Qwen-Image 2.1 rides the Rapid graph with its own map rules', () => {

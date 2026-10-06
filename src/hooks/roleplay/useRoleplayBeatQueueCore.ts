@@ -86,8 +86,6 @@ import {
   KLEIN_FACE_REFERENCE_LINE,
   shouldAppendKleinFaceReference,
 } from '@/lib/klein-face-reference';
-import { loadPoseGuideControlNetEnabled } from '@/lib/pose-guide-controlnet';
-import { fetchComfyObjectInfoModelsCached } from '@/lib/comfyui-object-info-cache';
 import { mergePickedPose } from '@/lib/day-slot-pose';
 import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play-metrics';
 import { notePoseTakeQueued } from '@/lib/pose-outcome-stats';
@@ -703,10 +701,6 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           ),
         });
         const poseFile = poseBuild.file;
-        // The pose lock reads ComfyUI's ControlNet list from the object_info cache — fill it.
-        if (loadPoseGuideControlNetEnabled()) {
-          await fetchComfyObjectInfoModelsCached().catch(() => null);
-        }
         const uploaded = await resolveQueueInputImage({
           file: poseFile,
           filename: poseFile.name,

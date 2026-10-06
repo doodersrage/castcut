@@ -110,17 +110,17 @@ test('command palette finds a setting and deep-links to it', async ({ page }) =>
     )
     .toBeTruthy();
   // Deep settings only show once you type.
-  await expect(dialog.getByText('Settings · Lock the pose with ControlNet')).toHaveCount(0);
+  await expect(dialog.getByText('Settings · Pose guide style')).toHaveCount(0);
   // Into the search box itself: typing blind right after the dialog opened could land before its
   // autofocus and lose the first letters (1 failure in 11 full runs).
   const search = dialog.getByPlaceholder(/Jump to/);
-  await search.fill('pose controlnet');
-  await expect(search).toHaveValue('pose controlnet');
-  const hit = dialog.getByText('Settings · Lock the pose with ControlNet');
+  await search.fill('pose guide');
+  await expect(search).toHaveValue('pose guide');
+  const hit = dialog.getByText('Settings · Pose guide style');
   await expect(hit).toBeVisible({ timeout: 10_000 });
   await hit.click();
-  await expect(page).toHaveURL(/focus=settings-pose-controlnet/, { timeout: 20_000 });
-  await expect(page.getByTestId('settings-pose-controlnet')).toBeVisible({ timeout: 20_000 });
+  await expect(page).toHaveURL(/focus=settings-pose-guide/, { timeout: 20_000 });
+  await expect(page.locator('#settings-pose-guide')).toBeVisible({ timeout: 20_000 });
 });
 
 test('settings looks for ComfyUI at the usual addresses when it is not answering', async ({
@@ -150,11 +150,11 @@ test('settings shows what changed from defaults and resets it', async ({ page })
   const panel = page.locator('#settings-changed-defaults');
   await expect(panel).toBeVisible({ timeout: 20_000 });
   // Change one preference in the prompt-quality section, then see it listed and reset it.
-  await gotoStable(page, '/settings?tab=comfyui&section=prompt-quality&focus=settings-pose-controlnet');
-  const toggle = page.getByTestId('settings-pose-controlnet');
+  await gotoStable(page, '/settings?tab=comfyui&section=prompt-quality&focus=settings-klein-enhancer');
+  const toggle = page.getByTestId('settings-klein-enhancer');
   await expect(toggle).toBeVisible({ timeout: 20_000 });
-  if (!(await toggle.isChecked())) {
-    await toggle.check();
+  if (await toggle.isChecked()) {
+    await toggle.uncheck();
   }
   // Switch tabs in the page (settings save on a short debounce — a reload could race it).
   await page
@@ -162,9 +162,9 @@ test('settings shows what changed from defaults and resets it', async ({ page })
     .getByRole('button', { name: /^Data/ })
     .first()
     .click();
-  const row = page.getByTestId('changed-setting-poseGuideControlNet');
-  await expect(row).toContainText('Pose ControlNet lock', { timeout: 20_000 });
-  await page.getByTestId('changed-setting-reset-poseGuideControlNet').click();
+  const row = page.getByTestId('changed-setting-kleinEnhancerEnabled');
+  await expect(row).toContainText('Klein Enhancer', { timeout: 20_000 });
+  await page.getByTestId('changed-setting-reset-kleinEnhancerEnabled').click();
   await expect(row).toHaveCount(0);
 });
 

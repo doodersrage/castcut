@@ -40,6 +40,17 @@ export function poseGuideStyleForModel(
 }
 
 /** Both OpenPose variants share the keypoint cue; only legacy uses capsule/outline art. */
+/**
+ * The stored Settings choice. The legacy capsule mannequin is no longer offered (OpenPose is
+ * what Day and Story use, and the user found the legacy guide worse): a stored 'legacy' choice
+ * reads as the default. Drawn guides keep their own style — use
+ * normalizePoseGuideStylePreference for those.
+ */
+export function normalizeStoredPoseGuideStyle(value: unknown): PoseGuideStylePreference {
+  const style = normalizePoseGuideStylePreference(value);
+  return style === 'legacy' ? DEFAULT_POSE_GUIDE_STYLE : style;
+}
+
 export function isOpenPoseStyle(value: unknown): boolean {
   return normalizePoseGuideStylePreference(value) !== 'legacy';
 }

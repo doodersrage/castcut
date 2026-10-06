@@ -197,10 +197,6 @@ import {
   summarizePoseGuideOutcomes,
   type PoseGuideOutcome,
 } from '@/lib/pose-guide-status';
-import {
-  loadPoseGuideControlNetEnabled,
-  resolvePoseGuideControlNetExtras,
-} from '@/lib/pose-guide-controlnet';
 import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
 import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
 import { IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
@@ -1969,16 +1965,6 @@ export function useDayPlannerToolOrchestrationCore() {
         const hasExtras =
           extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
           extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
-        // The pose lock reads ComfyUI's ControlNet list from the object_info cache — fill it.
-        if (poseGuideFilename && loadPoseGuideControlNetEnabled()) {
-          await fetchComfyObjectInfoModelsCached().catch(() => null);
-        }
-        const poseControlNet = resolvePoseGuideControlNetExtras({
-          poseGuideFilename,
-          poseGuideUrl,
-          model: stillModel,
-          style: poseGuideFilename ? poseGuideDrawnStyle : null,
-        });
         const queueImagePlate = omitGarment ? identityPlate : (identityPlate ?? slotQueuePlate);
         // Image 1 meant as a face crop, and the clothing image, checked against their roles
         // (cached per picture: the same crop goes out with every still of the Day).
@@ -2003,12 +1989,6 @@ export function useDayPlannerToolOrchestrationCore() {
                         ? { inputImageFilenames: extraFilenames }
                         : {}),
                     }
-                  : {}),
-                ...(poseControlNet?.controlImageFilename
-                  ? { controlImageFilename: poseControlNet.controlImageFilename }
-                  : {}),
-                ...(poseControlNet?.controlImageUrl
-                  ? { controlImageUrl: poseControlNet.controlImageUrl }
                   : {}),
               }
             : undefined;
@@ -2190,10 +2170,9 @@ export function useDayPlannerToolOrchestrationCore() {
             : {}),
           characterId: shared.activeCharacterId,
           lookId: slotLook.lookId ?? shared.activeLookId ?? character?.activeLookId,
-          ...(faceQueueParams || poseControlNet || poseUnlockDenoise != null || castcutPoseGuide
+          ...(faceQueueParams || poseUnlockDenoise != null || castcutPoseGuide
             ? {
                 queueParamsBase: {
-                  ...poseControlNet?.queueParamsBase,
                   ...faceQueueParams,
                   ...(poseUnlockDenoise != null ? { denoise: poseUnlockDenoise } : {}),
                   ...(castcutPoseGuide ? { castcutPoseGuide } : {}),

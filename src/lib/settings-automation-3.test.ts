@@ -33,9 +33,9 @@ describe('match settings to the GPU', () => {
 
   it('only changes settings still at their defaults', () => {
     const suggestion = gpuSettingsSuggestion(24 * GB)!;
+    // A fresh install already has the "final" quality the match would pick: only the size moves.
     assert.deepEqual(gpuSettingsPatch({ ...DEFAULT_SHARED_SETTINGS }, DEFAULT_SHARED_SETTINGS, suggestion), {
       modelResolutionSizeTier: 'max',
-      queueQualityProfile: 'final',
     });
     assert.deepEqual(
       gpuSettingsPatch(
@@ -60,10 +60,9 @@ describe('match settings to the GPU', () => {
     const suggestion = gpuSettingsSuggestion(24 * GB)!;
     const fresh = { ...DEFAULT_SHARED_SETTINGS };
     assert.deepEqual(gpuAutoMatchPlan(fresh, DEFAULT_SHARED_SETTINGS, suggestion), {
-      patch: { modelResolutionSizeTier: 'max', queueQualityProfile: 'final', gpuMatchAutoGb: 24 },
+      patch: { modelResolutionSizeTier: 'max', gpuMatchAutoGb: 24 },
       previous: {
         modelResolutionSizeTier: DEFAULT_SHARED_SETTINGS.modelResolutionSizeTier,
-        queueQualityProfile: DEFAULT_SHARED_SETTINGS.queueQualityProfile,
       },
     });
     assert.equal(

@@ -8,6 +8,7 @@ import {
 } from './render-realism';
 import {
   DEFAULT_POSE_GUIDE_STYLE,
+  normalizeStoredPoseGuideStyle,
   poseGuideStyleForModel,
   type PoseGuideStylePreference,
 } from './pose-guide-prompt';
@@ -28,5 +29,8 @@ export function loadPoseGuideStylePreference(model?: string | null): PoseGuideSt
   if (typeof window === 'undefined') {
     return DEFAULT_POSE_GUIDE_STYLE;
   }
-  return poseGuideStyleForModel(loadSettingsCache().shared.poseGuideStyle, model);
+  return poseGuideStyleForModel(
+    normalizeStoredPoseGuideStyle(loadSettingsCache().shared.poseGuideStyle),
+    model
+  );
 }

@@ -23,20 +23,11 @@ const FIELD_ENTRIES: SettingsSearchEntry[] = [
   {
     id: 'pose-guide-style',
     label: 'Pose guide style',
-    subtitle: 'Prompt quality · OpenPose keypoints, OpenPose + hands, or legacy mannequin',
+    subtitle: 'Prompt quality · OpenPose keypoints, or OpenPose + hands',
     keywords: 'image 3 openpose mannequin skeleton day story',
     tab: 'comfyui',
     section: 'prompt-quality',
     focus: 'settings-pose-guide',
-  },
-  {
-    id: 'pose-controlnet',
-    label: 'Lock the pose with ControlNet',
-    subtitle: 'Prompt quality · send OpenPose guides through a pose ControlNet',
-    keywords: 'controlnet openpose union pose lock strict limbs',
-    tab: 'comfyui',
-    section: 'prompt-quality',
-    focus: 'settings-pose-controlnet',
   },
   {
     id: 'pose-library',
