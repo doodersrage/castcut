@@ -1,6 +1,6 @@
 # Castcut 2.3.2 — release notes
 
-A patch on 2.3.1: **Fix an area** that never loses a take and shows you what changed, **reference checks** so a wrong picture is never sent without a word, the beige underwear back out of sex scenes, and the Linux AppImage back.
+A patch on 2.3.1: **Fix an area** that never loses a take and shows you what changed, **reference checks** so a wrong picture is never sent without a word, the beige underwear back out of sex scenes. (The Linux AppImage is still missing — use the `.deb`.)
 
 > ## Things to know
 >
@@ -26,7 +26,7 @@ A patch on 2.3.1: **Fix an area** that never loses a take and shows you what cha
 - **Two takes**: the take with fewer counted oddities is shown first, with a note — a hint, you still pick.
 - **Pose editor**: a strength slider for the picture behind the figure, ¾ left / ¾ right head chips, and the head direction now reaches the prompt (profile turns work on Edit 2511; ¾ turns draw but don't move the head there yet).
 - **Cold loads**: the Play reminder and the phone shell re-read saved data once storage is ready; a rate-limited sign-in retries by itself.
-- **Desktop**: the Linux AppImage builds again (2.3.1 shipped without it).
+- **Desktop**: the AppImage still failed to bundle in this release (a second, nested copy of the same library); fixed for the next one — use the `.deb`.
 
 ## Upgrading
 - Nothing to do.
