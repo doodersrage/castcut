@@ -8,7 +8,8 @@
 # Afterwards (your call):
 #   cd <target-dir> && git init && git add -A && git commit -m "castcut-nodes <version>"
 #   git remote add origin <your new repo> && git push -u origin main
-#   comfy node publish        # needs PublisherId in pyproject.toml and a registry API key
+#   git tag v<version> && git push origin v<version>   # .github/workflows/publish.yml publishes
+#   (or by hand: comfy node publish — needs PublisherId in pyproject.toml and a registry API key)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -77,6 +78,7 @@ echo "castcut-nodes $VERSION is in $TARGET"
 echo "Next (none of this is done for you):"
 echo "  1. Set PublisherId in $TARGET/pyproject.toml (https://registry.comfy.org) and fix the URLs."
 echo "  2. cd $TARGET && git init && git add -A && git commit -m 'castcut-nodes $VERSION'"
-echo "  3. Push it to a new repository, then: comfy node publish"
+echo "  3. Push it, then tag v$VERSION and push the tag: .github/workflows/publish.yml publishes"
+echo "     it to the Comfy Registry (secret REGISTRY_ACCESS_TOKEN), or run: comfy node publish"
 echo "  4. Point CASTCUT_NODES_GIT_URL (src/lib/castcut-nodes-setup.ts) and CASTCUT_PACK"
 echo "     (src/lib/comfyui-custom-node-registry.ts) at the new repository."
