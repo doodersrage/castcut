@@ -232,7 +232,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
             }
             const pack = lookPackFromPreset(preset, character?.id);
             saveLookPack(pack);
-            setLookStatus(`Loaded ${preset.label} — Extract look or Continue to Outfit.`);
+            setLookStatus(`Loaded ${preset.label} — Extract look or Continue to Day.`);
           }}
           onUseToday={preset => {
             const tilesNext = tilesFromLookPreset(preset);
@@ -482,10 +482,27 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         >
           {extracting ? 'Extracting…' : 'Extract look'}
         </Button>
+        {/* Look → Day: Day dresses the Cast itself; Outfit is an optional try-on first. */}
         <Button
           size="sm"
           variant="secondary"
           disabled={busy || extracting}
+          data-testid="moodboard-continue-day"
+          onClick={() => {
+            void sendLookToDay().then(href => {
+              if (href) {
+                softAdvanceHref(href, 'Day');
+              }
+            });
+          }}
+        >
+          Continue to Day
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={busy || extracting}
+          data-testid="moodboard-try-outfit"
           onClick={() => {
             void sendLookToFitting().then(href => {
               if (!href) {
@@ -495,7 +512,7 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
             });
           }}
         >
-          Continue to Outfit
+          Try clothes on first
         </Button>
         {character && !softAdvance ? (
           <ButtonLink

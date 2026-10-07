@@ -99,8 +99,9 @@ describe('play-step-machine', () => {
         savedAt: 1,
       },
     });
-    assert.equal(progress.resumeStepId, 'fitting');
-    assert.equal(progress.effectiveStepIndex, 2);
+    // Outfit is optional: a look goes straight to Day.
+    assert.equal(progress.resumeStepId, 'day');
+    assert.equal(progress.effectiveStepIndex, 3);
   });
 
   it('derives Day micro-phases from stills and clips', () => {
@@ -140,7 +141,7 @@ describe('play-step-machine', () => {
     );
   });
 
-  it('resume action prefers Outfit when look pack exists on Look step', () => {
+  it('resume action goes to Day when look pack exists on Look step', () => {
     const resume = resumePlayAction({
       campaign: { characterId: 'c1', stepIndex: 1 },
       lookPack: {
@@ -154,8 +155,8 @@ describe('play-step-machine', () => {
       completedStills: 0,
       completedClips: 0,
     });
-    assert.equal(resume.label, 'Continue to Outfit');
-    assert.match(resume.href, /fitting/);
+    assert.equal(resume.label, 'Continue to Day');
+    assert.match(resume.href, /\/day\?.*wardrobe=kit-a/);
   });
 
   it('resume action surfaces Animate when stills beat clips', () => {

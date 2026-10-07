@@ -84,7 +84,12 @@ export function playCampaignProgressLabel(
   }
   const step = PLAY_CAMPAIGN_STEPS[state.stepIndex];
   const coreCount = PLAY_CORE_STEP_IDS.length;
-  const displayIndex = Math.min(state.stepIndex + 1, coreCount);
+  // Counted among the core steps; an optional one (Outfit, Story) is named, not numbered.
+  const coreIndex = step ? PLAY_CORE_STEP_IDS.indexOf(step.id) : -1;
+  if (step && coreIndex < 0) {
+    return `Film · ${step.label} (optional)`;
+  }
+  const displayIndex = Math.min((coreIndex < 0 ? state.stepIndex : coreIndex) + 1, coreCount);
   return `Film · ${displayIndex} of ${coreCount}${step ? ` · ${step.label}` : ''}`;
 }
 

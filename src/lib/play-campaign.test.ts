@@ -188,11 +188,12 @@ describe('playEffectiveProgressLabel', () => {
       './play-campaign'
     );
     const campaign = { version: 1 as const, characterId: 'c1', stepIndex: 2, updatedAt: 1 };
-    assert.equal(playCampaignProgressLabel(campaign), 'Film · 3 of 4 · Outfit');
+    // Outfit is optional (Day dresses the Cast): named, not numbered.
+    assert.equal(playCampaignProgressLabel(campaign), 'Film · Outfit (optional)');
     // A kept try-on means Outfit is done — the strip shows Day, and so must the header.
     assert.equal(
       playEffectiveProgressLabel({ campaign, funnel: { keepTryOn: 1 } }),
-      'Film · 4 of 4 · Day'
+      'Film · 3 of 3 · Day'
     );
     assert.equal(playEffectiveProgressLabel({ campaign: null, funnel: { keepTryOn: 1 } }), 'Film · start');
   });

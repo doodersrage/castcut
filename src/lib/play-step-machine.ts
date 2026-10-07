@@ -82,13 +82,16 @@ export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
     id: 'moodboard',
     label: 'Look',
     description: 'Add refs and extract a look (or use a saved one).',
-    next: 'fitting',
+    // Straight to Day: Day dresses the Cast itself (its Clothing row, day-dress-plate.ts).
+    next: 'day',
     href: ({ characterId }) => `/moodboard?character=${encodeURIComponent(characterId)}`,
   },
   {
     id: 'fitting',
     label: 'Outfit',
-    description: 'Try wardrobe kits and Keep one for the day.',
+    description:
+      'Optional — try clothes on and Keep one before the Day (Day can dress your Cast too).',
+    optional: true,
     next: 'day',
     href: ({ characterId, pack }) =>
       pack ? lookPackFittingHref(pack) : `/fitting?character=${encodeURIComponent(characterId)}`,
@@ -112,12 +115,7 @@ export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
 ];
 
 /** Core film steps shown before the first cut (Roleplay stays optional / unlocked later). */
-export const PLAY_CORE_STEP_IDS: PlayCampaignStepId[] = [
-  'character',
-  'moodboard',
-  'fitting',
-  'day',
-];
+export const PLAY_CORE_STEP_IDS: PlayCampaignStepId[] = ['character', 'moodboard', 'day'];
 
 export const PLAY_DAY_PHASES: Array<{
   id: PlayDayPhaseId;
@@ -454,9 +452,9 @@ export function derivePlayProgress(artifacts: PlayArtifacts = {}): DerivedPlayPr
     Boolean(pack) &&
     (!campaignCharacterId || !packCharacterId || campaignCharacterId === packCharacterId);
 
-  // Look pack present → Moodboard done → resume Outfit (index 2).
-  if (packMatchesCampaign && effectiveStepIndex < STEP_INDEX.fitting) {
-    effectiveStepIndex = STEP_INDEX.fitting;
+  // Look pack present → Look done → resume Day (Outfit is optional: Day dresses the Cast).
+  if (packMatchesCampaign && effectiveStepIndex < STEP_INDEX.day) {
+    effectiveStepIndex = STEP_INDEX.day;
   }
   // Keep try-on or Day stills → Day (index 3).
   if ((funnel.keepTryOn ?? 0) > 0 || completedStills > 0) {

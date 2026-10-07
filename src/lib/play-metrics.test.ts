@@ -235,7 +235,8 @@ describe('play-metrics', () => {
         savedAt: 1,
       },
     });
-    assert.equal(extractedLookStall?.stepId, 'fitting');
+    // A look goes straight to Day (Outfit is optional), so the stall is the Day's cut.
+    assert.equal(extractedLookStall?.stepId, 'cut');
   });
 
   it('resolves funnel step hrefs with optional character id and look pack', () => {
@@ -274,7 +275,7 @@ describe('play-metrics', () => {
     assert.match(resume.href, /wardrobe=kit-a/);
   });
 
-  it('resume CTA advances to Outfit when look pack exists but campaign is still on Look', () => {
+  it('resume CTA advances to Day when look pack exists but campaign is still on Look', () => {
     const resume = resolveNextPlayAction({
       campaign: { characterId: 'c1', stepIndex: 1 },
       lookPack: {
@@ -286,8 +287,8 @@ describe('play-metrics', () => {
         savedAt: 1,
       },
     });
-    assert.equal(resume.label, 'Continue to Outfit');
-    assert.match(resume.href, /fitting/);
+    assert.equal(resume.label, 'Continue to Day');
+    assert.match(resume.href, /\/day\?.*wardrobe=kit-a/);
   });
 
   it('aligns stall CTA href with stall step (not bare next-action fallback)', () => {

@@ -175,7 +175,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
             }
             const pack = lookPackFromPreset(preset, character?.id);
             saveLookPack(pack);
-            setLookStatus(`Loaded ${preset.label} — Extract look or Continue to Outfit.`);
+            setLookStatus(`Loaded ${preset.label} — Extract look or Continue to Day.`);
           }}
           onUseToday={preset => {
             const tilesNext = tilesFromLookPreset(preset);
@@ -422,11 +422,20 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
         <Button
           variant="secondary"
           disabled={busy || extracting}
+          onClick={() => void handoff('day')}
+          className="w-full justify-center"
+          data-testid="mobile-moodboard-to-day"
+        >
+          Continue to Day
+        </Button>
+        <Button
+          variant="ghost"
+          disabled={busy || extracting}
           onClick={() => void handoff('fitting')}
           className="w-full justify-center"
           data-testid="mobile-moodboard-to-fitting"
         >
-          Continue to Outfit
+          Try clothes on first
         </Button>
         {character && !softAdvance ? (
           <Link

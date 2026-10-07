@@ -1541,7 +1541,9 @@ test('moodboard look extract controls load', async ({ page }) => {
   await expect(page.getByTestId('moodboard-character')).toBeVisible();
   await expect(page.getByTestId('moodboard-tiles')).toBeVisible();
   await expect(page.getByTestId('moodboard-extract-look')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Continue to Outfit/i })).toBeVisible();
+  // Look → Day, with Outfit an optional try-on first.
+  await expect(page.getByTestId('moodboard-continue-day')).toBeVisible();
+  await expect(page.getByTestId('moodboard-try-outfit')).toBeVisible();
 });
 
 test('look pack deep link stages Fitting from=look handoff', async ({ page }) => {
@@ -2320,6 +2322,7 @@ test('mobile film funnel routes Moodboard → Fitting → Day', async ({ page })
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('mobile-moodboard')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('mobile-moodboard-extract')).toBeVisible();
+  await expect(page.getByTestId('mobile-moodboard-to-day')).toBeVisible();
   await expect(page.getByTestId('mobile-moodboard-to-fitting')).toBeVisible();
 
   await gotoStable(page, '/m/fitting');
