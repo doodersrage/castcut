@@ -59,3 +59,23 @@ describe('walking hand in hand (Edit 2511)', () => {
     assert.doesNotMatch(buildCompactDayDuoRecipe({ beat, poseGuide: 'third' }) ?? '', /mid-stride/);
   });
 });
+
+describe('adult spooning on Rapid', () => {
+  it('skips the flat spoon drawing on Rapid adult stills only', async () => {
+    const { rapidSpoonSkipsPoseGuide } = await import('./rapid-duo-recipe');
+    const beat = 'spooning sex in bed as the light fades';
+    assert.equal(rapidSpoonSkipsPoseGuide({ model: 'qwen-rapid-aio-edit-nsfw', adultMood: true, beat }), true);
+    assert.equal(rapidSpoonSkipsPoseGuide({ model: 'qwen-rapid-aio-edit-nsfw', adultMood: false, beat }), false);
+    assert.equal(rapidSpoonSkipsPoseGuide({ model: 'flux-2-klein-9b', adultMood: true, beat }), false);
+    assert.equal(
+      rapidSpoonSkipsPoseGuide({ model: 'qwen-rapid-aio-edit-nsfw', adultMood: true, beat: 'missionary on the couch' }),
+      false
+    );
+  });
+  it('the recipe names no pose map when none is attached', async () => {
+    const { buildRapidDuoRecipe } = await import('./rapid-duo-recipe');
+    const recipe = buildRapidDuoRecipe({ beat: 'spooning sex in bed as the light fades' }) ?? '';
+    assert.match(recipe, /Spooning, seen from the front/);
+    assert.doesNotMatch(recipe, /pose map/);
+  });
+});

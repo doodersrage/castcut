@@ -1267,6 +1267,24 @@ export function buildRapidVacationRecipe(input: {
     .replace(/\.\./g, '.');
 }
 
+/**
+ * Adult spooning on Rapid: the spoon map draws both bodies flat with legs out, while the recipe
+ * (the wording that turned her toward the camera) lifts her top leg — the two fought, and legs
+ * tangled or a leg stood up from nowhere. Replay of 03054 (3 seeds): with the map 1/3 tangled;
+ * without it 3/3 clean, leg lifted (live 2026-10-07). Klein spoon already runs without one.
+ */
+export function rapidSpoonSkipsPoseGuide(input: {
+  model: string | null | undefined;
+  adultMood: boolean;
+  beat: string | null | undefined;
+}): boolean {
+  return (
+    input.adultMood &&
+    /rapid/i.test(input.model ?? '') &&
+    parseIntimateLayout(input.beat ?? '') === 'spoon'
+  );
+}
+
 const WALKING_RE = /\b(?:walk(?:s|ing)?|stroll(?:s|ing)?|wander(?:s|ing)?)\b/i;
 const HAND_IN_HAND_RE =
   /\b(?:hand[- ]in[- ]hand|hold(?:s|ing)?\s+hands|fingers\s+(?:laced|interlaced|linked)|hands\s+(?:linked|joined))\b/i;

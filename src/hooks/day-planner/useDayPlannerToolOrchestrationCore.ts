@@ -34,7 +34,7 @@ import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise';
-import { dayWalkingDuoSkipsPoseGuide } from '@/lib/rapid-duo-recipe';
+import { dayWalkingDuoSkipsPoseGuide, rapidSpoonSkipsPoseGuide } from '@/lib/rapid-duo-recipe';
 import { normalizeDayThread } from '@/lib/day-thread';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
@@ -1716,6 +1716,18 @@ export function useDayPlannerToolOrchestrationCore() {
           skipPoseGuideImage = true;
         }
         let walkingDuoNoGuide = false;
+        let spoonNoGuide = false;
+        if (
+          !skipPoseGuideImage &&
+          rapidSpoonSkipsPoseGuide({
+            model: stillModel,
+            adultMood: isDayAdultMood(toolSettings.dayMood) && intimateEnabled,
+            beat: queueTarget.sceneHints,
+          })
+        ) {
+          skipPoseGuideImage = true;
+          spoonNoGuide = true;
+        }
         // Walking hand in hand on Edit 2511: the standing hold-hands map froze the walk.
         if (
           !skipPoseGuideImage &&
@@ -1865,9 +1877,11 @@ export function useDayPlannerToolOrchestrationCore() {
                       state: 'skipped' as const,
                       reason: kleinSpoonRecipe
                         ? 'FLUX.2 Klein spoon reads the overlapping guide as a third person (stance from text)'
-                        : walkingDuoNoGuide
-                          ? 'A walk in step: the standing hold-hands drawing froze it (stride from text)'
-                          : 'Lightning identity path keeps Image 1 whole (stance from text)',
+                        : spoonNoGuide
+                          ? 'Spooning: the flat spoon drawing tangled the lifted leg (pose from text)'
+                          : walkingDuoNoGuide
+                            ? 'A walk in step: the standing hold-hands drawing froze it (stride from text)'
+                            : 'Lightning identity path keeps Image 1 whole (stance from text)',
                     }
                   : {
                       state: 'failed' as const,
