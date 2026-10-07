@@ -218,7 +218,7 @@ import {
   type DayDressPlateEntry,
 } from '@/lib/day-dress-plate';
 import { loadDressPlates, removeDressPlate, subscribeDressPlates } from '@/lib/dress-plate-store';
-import { dayDressPlateRequestKey } from '@/lib/day-dress-plate';
+import { dayDressPlateRequestKey, dayKeepOutfitStale } from '@/lib/day-dress-plate';
 import {
   DAY_OUTFIT_LINE_RE,
   dayStillClothingReinforce,
@@ -1224,8 +1224,23 @@ export function useDayPlannerToolOrchestrationCore() {
           outfit.customGarmentImageUrl?.trim() || outfit.customGarmentImageFilename?.trim()
         );
         const pickedShoes = normalizeFootwear(outfit.footwear);
+        // A Keep kept in another outfit than the one picked now: dress the Cast plate instead.
+        const keepLook = lookCharacter
+          ? (looksOf(lookCharacter).find(look => look.id === slotLook.lookId) ??
+            activeLook(lookCharacter))
+          : null;
+        const keepStale =
+          lookPlate?.source === 'keeper' &&
+          dayKeepOutfitStale(keepLook?.keptOutfit, {
+            customGarmentImageUrl: outfit.customGarmentImageUrl,
+            customGarmentImageFilename: outfit.customGarmentImageFilename,
+            kitId:
+              (queueTarget.wardrobeAuto !== true ? queueTarget.wardrobeId : undefined) ||
+              outfit.lockedWardrobeId,
+            footwear: pickedShoes,
+          });
         const castPlate =
-          lookPlate?.source === 'cast'
+          lookPlate?.source === 'cast' || keepStale
             ? resolveDayQueueIdentityPlate({
                 character: lookCharacter,
                 displayPlate: lookPlate,
@@ -1240,7 +1255,7 @@ export function useDayPlannerToolOrchestrationCore() {
             model: stillModel,
             dayMood: toolSettings.dayMood,
             intimateEnabled,
-            plateSource: lookPlate?.source,
+            plateSource: keepStale ? 'cast' : lookPlate?.source,
             customGarmentPicked,
             kitPicked:
               Boolean(queueTarget.wardrobeId?.trim() && queueTarget.wardrobeAuto !== true) ||
@@ -1340,7 +1355,7 @@ export function useDayPlannerToolOrchestrationCore() {
         let identityPlate = resolveDayQueueIdentityPlate({
           character: lookCharacter,
           displayPlate: slotPlate,
-          preferCastPlate: replaceKeepOutfit || omitGarment,
+          preferCastPlate: replaceKeepOutfit || omitGarment || keepStale,
           preferFaceOnlyPlate: omitGarment,
         });
         let nudeFaceAutoCropped = false;

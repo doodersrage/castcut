@@ -13,6 +13,7 @@
 import { buildFittingOutfitPrompt } from '@/lib/fitting-room';
 import { isDayAdultMood, normalizeDayMood } from '@/lib/day-planner';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
+import type { CharacterLookOutfit } from '@/lib/character-os';
 
 export {
   DAY_DRESS_PLATE_CACHE_LIMIT,
@@ -45,6 +46,46 @@ export function dayDressPlateApplies(input: {
   if (input.omitGarment || input.replaceOutfit) return false;
   if (input.plateSource !== 'cast') return false;
   return input.clothingPicked || input.footwearPicked;
+}
+
+const sameText = (a?: string | null, b?: string | null) =>
+  (a ?? '').trim().toLowerCase() === (b ?? '').trim().toLowerCase();
+
+/**
+ * The look's Keep (a kept Outfit try-on) shows the outfit it was kept in. When the outfit picked
+ * now is a different clothing photo, kit or pair of shoes, the Keep is stale: used as Image 1 it
+ * put the old outfit beside the new outfit's words, and stills mixed the two (green top over the
+ * kept denim shorts, 2026-10-07). Nothing picked → the Keep is the outfit.
+ */
+export function dayKeepOutfitStale(
+  kept:
+    | Pick<
+        CharacterLookOutfit,
+        'wardrobeId' | 'customGarmentImageUrl' | 'customGarmentImageFilename' | 'footwear'
+      >
+    | null
+    | undefined,
+  now: {
+    customGarmentImageUrl?: string | null;
+    customGarmentImageFilename?: string | null;
+    /** A kit the player picked (or locked) — not one Day picked for itself. */
+    kitId?: string | null;
+    /** Normalised footwear ('' on auto). */
+    footwear?: string | null;
+  }
+): boolean {
+  const photoUrl = now.customGarmentImageUrl?.trim();
+  const photoFile = now.customGarmentImageFilename?.trim();
+  if (photoUrl || photoFile) {
+    const samePhoto =
+      (photoFile && sameText(photoFile, kept?.customGarmentImageFilename)) ||
+      (photoUrl && sameText(photoUrl, kept?.customGarmentImageUrl));
+    if (!samePhoto) return true;
+  } else if (now.kitId?.trim()) {
+    if (!sameText(now.kitId, kept?.wardrobeId)) return true;
+  }
+  const shoes = now.footwear?.trim();
+  return Boolean(shoes) && !sameText(shoes, kept?.footwear);
 }
 
 /**
