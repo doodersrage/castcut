@@ -561,7 +561,8 @@ export function buildRapidDuoRecipe(input: {
         'oral sex'
       )
       .replace(layout === 'scissors' ? RAPID_SCISSORS_FALLBACK_RE : /$^/, 'making love')
-      .replace(input.nude === false ? /$^/ : WORN_CLOTHES_CLAUSE_RE, '')}.`,
+      .replace(input.nude === false ? /$^/ : WORN_CLOTHES_CLAUSE_RE, '')
+      .replace(MEAL_TIME_RE, '')}.`,
     room,
     input.nude === false
       ? twoMen
@@ -769,6 +770,11 @@ function soloHands(beat: string, toy: boolean, kind?: SoloMasturbationPoseKind):
     // person's hand reaching in (live 2026-09-28, 3/4). Anchor both arms to her own body (4/4).
     return 'Her top arm reaches down across her own belly to her vulva, her fingers between her thighs; her bottom arm is folded under her head.';
   }
+  if (kind === 'standing' || kind === 'lean') {
+    // Standing, a hand "between her thighs" floated off her body and Rapid filled the gap with a
+    // penis (2/3 replays of 03074); cupping the vulva, 0/3 (2026-10-07).
+    return 'One hand cups her bare vulva between her thighs, her fingers parting her labia; the other hand rests on her breast.';
+  }
   return 'One hand is between her thighs with her fingers on her vulva; the other hand rests on her breast.';
 }
 
@@ -836,7 +842,12 @@ export function buildRapidSoloRecipe(input: {
   const placement = soloPlacement(kind, beat, surface);
   // The on-her-back line already says where each leg is (as the guide draws them); "knees apart"
   // left in the Moment gave her a third leg 2/3 (and 0/3 without it, live 2026-10-07).
-  const moment = /two legs only/.test(placement) ? beat.replace(SOLO_LEG_SPREAD_RE, '') : beat;
+  const legsSet = /two legs only/.test(placement) ? beat.replace(SOLO_LEG_SPREAD_RE, '') : beat;
+  // Nude: clothes the beat still names ("in lingerie") drew underwear 2/3 beside "completely nude"
+  // (0/3 without, 03069). The clothes-half-off route keeps them.
+  const moment = (
+    input.clothedOutfit === undefined ? legsSet.replace(SOLO_WORN_CLOTHES_RE, '') : legsSet
+  ).replace(MEAL_TIME_RE, '');
   return [
     RAPID_SOLO_RECIPE_MARK,
     'One woman alone, masturbating.',
@@ -951,6 +962,16 @@ export function suggestiveDuoPlacement(beat: string): string | null {
   }
   return null;
 }
+
+/** "in lingerie", "in her underwear", "in a silk robe" — what a nude solo beat says she wears. */
+const SOLO_WORN_CLOTHES_RE =
+  /\s+in\s+(?:her\s+|a\s+|an\s+)?(?:[\w-]+\s+)?(?:lingerie|underwear|panties|bra|robe|nightie|nightgown|slip|teddy|bodysuit|stockings)\b/gi;
+
+/**
+ * "after dinner" / "after lunch": Rapid laid plates of food in the foreground of sex stills (2/3
+ * replays of 03073, 0/3 without). The room and light lines already carry the time of day.
+ */
+const MEAL_TIME_RE = /\s+after\s+(?:dinner|lunch|brunch|breakfast)\b/gi;
 
 /** Leg-spread words in a beat ("knees apart", "thighs spread wide", "knees flopped open"). */
 const SOLO_LEG_SPREAD_RE =

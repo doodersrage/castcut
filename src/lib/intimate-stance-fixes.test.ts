@@ -96,3 +96,25 @@ describe('clothes on an Intimate mixed Day', () => {
     );
   });
 });
+
+describe('round 4 (2026-10-07)', () => {
+  it('a nude solo Moment drops what she wears and meal times; the clothed route keeps them', () => {
+    const beat = 'solo masturbation lying across the bed in lingerie after dinner, one hand between her thighs — alone';
+    assert.match(solo(beat), /Moment: solo masturbation lying across the bed, one hand between her thighs/);
+    const clothed = buildRapidSoloRecipe({ beat, clothedOutfit: 'a black slip' } as never) ?? '';
+    assert.match(clothed, /in lingerie/);
+  });
+
+  it('a nude duo Moment drops "after dinner"', () => {
+    const recipe = buildRapidDuoRecipe({ beat: 'she kneels between his legs going down on him after dinner — oral with a partner' }) ?? '';
+    assert.match(recipe, /Moment: she kneels between his legs going down on him —/);
+  });
+
+  it('standing solo: the hand cups her vulva', () => {
+    assert.match(
+      solo('solo masturbation standing against the hotel wall at dusk, one knee bent, hand between her thighs'),
+      /One hand cups her bare vulva between her thighs/
+    );
+    assert.doesNotMatch(solo('solo masturbation lying in late-morning sheets, hand between her thighs'), /cups her bare vulva/);
+  });
+});
