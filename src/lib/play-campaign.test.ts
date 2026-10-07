@@ -193,7 +193,7 @@ describe('playEffectiveProgressLabel', () => {
     // A kept try-on means Outfit is done — the strip shows Day, and so must the header.
     assert.equal(
       playEffectiveProgressLabel({ campaign, funnel: { keepTryOn: 1 } }),
-      'Film · 3 of 3 · Day'
+      'Film · 2 of 2 · Day'
     );
     assert.equal(playEffectiveProgressLabel({ campaign: null, funnel: { keepTryOn: 1 } }), 'Film · start');
   });

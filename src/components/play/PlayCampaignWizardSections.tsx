@@ -132,10 +132,10 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
               <Button
                 size="sm"
                 variant="ghost"
-                data-testid="play-campaign-start-moodboard"
-                onClick={() => props.goToStep('moodboard', props.activeLookPack)}
+                data-testid="play-campaign-start-day"
+                onClick={() => props.goToStep('day', props.activeLookPack)}
               >
-                Restart at Look
+                Restart at Day
               </Button>
             </div>
             <details className="mt-3">

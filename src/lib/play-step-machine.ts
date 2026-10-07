@@ -75,13 +75,16 @@ export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
     id: 'character',
     label: 'Cast',
     description: 'Create or pick the lead for this film.',
-    next: 'moodboard',
+    // Straight to Day: Look and Outfit are optional (Day plans the scenes and dresses the Cast).
+    next: 'day',
     href: ({ characterId }) => `/characters/${encodeURIComponent(characterId)}`,
   },
   {
     id: 'moodboard',
     label: 'Look',
-    description: 'Add refs and extract a look (or use a saved one).',
+    description:
+      'Optional — add reference pictures and extract a look (its clothing carries to Day).',
+    optional: true,
     // Straight to Day: Day dresses the Cast itself (its Clothing row, day-dress-plate.ts).
     next: 'day',
     href: ({ characterId }) => `/moodboard?character=${encodeURIComponent(characterId)}`,
@@ -115,7 +118,7 @@ export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
 ];
 
 /** Core film steps shown before the first cut (Roleplay stays optional / unlocked later). */
-export const PLAY_CORE_STEP_IDS: PlayCampaignStepId[] = ['character', 'moodboard', 'day'];
+export const PLAY_CORE_STEP_IDS: PlayCampaignStepId[] = ['character', 'day'];
 
 export const PLAY_DAY_PHASES: Array<{
   id: PlayDayPhaseId;
@@ -467,7 +470,14 @@ export function derivePlayProgress(artifacts: PlayArtifacts = {}): DerivedPlayPr
   effectiveStepIndex = Math.min(effectiveStepIndex, PLAY_CAMPAIGN_STEPS.length - 1);
 
   let resumeStepId =
-    PLAY_CAMPAIGN_STEPS[effectiveStepIndex]?.id ?? (characterId ? 'moodboard' : 'character');
+    PLAY_CAMPAIGN_STEPS[effectiveStepIndex]?.id ?? (characterId ? 'day' : 'character');
+
+  // Look is optional: a film past Cast resumes at Day unless the player opened Look themselves
+  // (the saved step only reaches Look when they did — and then Day is still the next step).
+  if (resumeStepId === 'moodboard' && characterId) {
+    resumeStepId = 'day';
+    effectiveStepIndex = STEP_INDEX.day;
+  }
 
   // Before first film, never resume on optional Story — steer to Day.
   if (resumeStepId === 'roleplay' && storyLocked) {

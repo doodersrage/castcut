@@ -39,10 +39,11 @@ type KioskTab = {
 
 const PLAY_KIOSK_TABS: KioskTab[] = [
   { href: '/play', label: 'Film', primary: true },
-  { href: '/moodboard', label: 'Look', primary: true },
-  { href: '/fitting', label: 'Outfit', primary: true },
   { href: '/day', label: 'Day', primary: true },
+  { href: '/fitting', label: 'Outfit', primary: true },
   { href: '/story', label: 'Story', requiresFirstFilm: true, primary: true },
+  // Optional and rarely needed now that Day plans the scenes: in More, not the dock.
+  { href: '/moodboard', label: 'Look' },
   { href: '/characters', label: 'Cast' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/queue', label: 'Queue' },

@@ -79,7 +79,7 @@ describe('look-pack', () => {
     assert.equal(normalizeLookPack({ version: 2, source: 'moodboard' }), null);
   });
 
-  it('applyLookPackToDaySlots seeds location and beats', () => {
+  it('applyLookPackToDaySlots carries the clothing only — slots keep their own beats and places', () => {
     const pack = buildLookPackFromMoodboard({
       wardrobeId: 'kit-linen',
       instruction: 'cozy morning energy',
@@ -89,9 +89,12 @@ describe('look-pack', () => {
       ],
     });
     const slots = applyLookPackToDaySlots(DEFAULT_DAY_SLOTS, pack);
-    assert.equal(slots[0]?.location, 'sunlit kitchen');
-    assert.match(slots[0]?.sceneHints ?? '', /cozy morning/);
+    // The look's text used to replace every beat and Setting: a Day of one sentence, one place.
+    assert.equal(slots[0]?.location, DEFAULT_DAY_SLOTS[0]?.location);
+    assert.equal(slots[0]?.sceneHints, DEFAULT_DAY_SLOTS[0]?.sceneHints);
     assert.equal(slots[0]?.wardrobeId, 'kit-linen');
+    // The Day's own outfit (wardrobe: false): nothing changes on the slots.
+    assert.deepEqual(applyLookPackToDaySlots(DEFAULT_DAY_SLOTS, pack, { wardrobe: false }), DEFAULT_DAY_SLOTS);
   });
 
   it('lookPackRoleplayHref and roleplay settings mapping', () => {
@@ -162,9 +165,8 @@ describe('look-pack', () => {
     });
 
     const slots = applyLookPackToDaySlots(DEFAULT_DAY_SLOTS, pack);
-    assert.equal(slots[0]?.location, 'sunlit kitchen');
     assert.equal(slots[0]?.wardrobeId, 'kit-linen');
-    assert.match(slots[0]?.sceneHints ?? '', /cozy morning/);
+    assert.equal(slots[0]?.sceneHints, DEFAULT_DAY_SLOTS[0]?.sceneHints);
 
     const roleplay = applyLookPackToRoleplaySettings(pack);
     assert.equal(roleplay.tool.setting, 'sunlit kitchen');

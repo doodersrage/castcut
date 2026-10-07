@@ -143,10 +143,10 @@ export default function PlayCampaignActionsSection({
               <Button
                 size="sm"
                 variant={resumeStep ? 'secondary' : 'primary'}
-                data-testid="play-campaign-start-moodboard"
-                onClick={() => goToStep('moodboard', activeLookPack)}
+                data-testid="play-campaign-start-day"
+                onClick={() => goToStep('day', activeLookPack)}
               >
-                {resumeStep ? 'Restart at Look' : 'Start at Look'}
+                {resumeStep ? 'Restart at Day' : 'Start at Day'}
               </Button>
             ) : null}
           </>

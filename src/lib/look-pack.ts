@@ -642,23 +642,11 @@ export function applyLookPackToDaySlots(
     wardrobe?: boolean;
   }
 ): DaySlot[] {
-  const location = pack.locationNotes?.trim();
-  const beatParts = [
-    pack.moodNotes,
-    pack.lightingNotes,
-    pack.paletteNotes,
-    pack.styleNotes,
-    pack.instruction,
-  ]
-    .map(part => part?.trim())
-    .filter(Boolean);
-  const beat = beatParts.join(' · ').slice(0, 320) || undefined;
+  // Only the clothing carries over. The look's mood / lighting / palette text used to replace
+  // every slot's beat and its location notes every Setting — a Day of one sentence in one place
+  // (Everyday / Suggestive / Vacation keep their beats; adult moods re-picked theirs). The notes
+  // stay with Day's notes.
   const wardrobeId = options?.wardrobe === false ? undefined : pack.wardrobeId?.trim();
-
-  return slots.map(slot => ({
-    ...slot,
-    location: location || slot.location,
-    sceneHints: beat || slot.sceneHints,
-    wardrobeId: wardrobeId || slot.wardrobeId?.trim() || undefined,
-  }));
+  if (!wardrobeId) return slots;
+  return slots.map(slot => ({ ...slot, wardrobeId }));
 }

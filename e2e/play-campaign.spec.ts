@@ -42,14 +42,15 @@ test('play campaign wizard loads with steps and share controls', async ({ page }
   await expect(page.getByTestId('play-campaign-steps')).toBeVisible();
   await expect(page.getByTestId('play-campaign-step-moodboard')).toBeVisible();
   await expect(page.getByTestId('play-campaign-step-fitting')).toBeVisible();
-  // Outfit is optional (Day dresses the Cast); Day is the third required step.
+  // Look and Outfit are optional (Day plans and dresses the Cast); Day is the second step.
+  await expect(page.getByTestId('play-campaign-step-moodboard')).toContainText('Optional');
   await expect(page.getByTestId('play-campaign-step-fitting')).toContainText('Optional');
   await expect(page.getByTestId('play-campaign-step-day')).toBeVisible();
-  await expect(page.getByTestId('play-campaign-step-day')).toContainText('Step 3');
+  await expect(page.getByTestId('play-campaign-step-day')).toContainText('Step 2');
   await expect(page.getByTestId('play-campaign-step-roleplay')).toBeVisible();
   await expect(page.getByTestId('play-campaign-step-roleplay-locked')).toBeVisible();
-  // No Cast yet — the disabled "Start at Look" stays hidden until one exists.
-  await expect(page.getByTestId('play-campaign-start-moodboard')).toHaveCount(0);
+  // No Cast yet — the disabled "Start at Day" stays hidden until one exists.
+  await expect(page.getByTestId('play-campaign-start-day')).toHaveCount(0);
 });
 
 test('fitting room happy path chrome loads', async ({ page }) => {
@@ -1600,7 +1601,7 @@ test('play campaign continue CTA appears when campaign state exists', async ({ p
   await gotoStable(page, '/play?character=e2e-resume-char');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('play-campaign-continue')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('play-campaign-start-moodboard')).toContainText(/Restart/i);
+  await expect(page.getByTestId('play-campaign-start-day')).toContainText(/Restart at Day/i);
 });
 
 
