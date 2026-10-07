@@ -141,9 +141,9 @@ export default function FittingActionRow({
                 variant="ghost"
                 disabled
                 data-testid="fitting-continue-story-locked"
-                title="Cut your first Day film first"
+                title="Finish a Day first — every still rendered"
               >
-                Story · after first film
+                Story · after a full Day
               </Button>
             )}
             {character ? (

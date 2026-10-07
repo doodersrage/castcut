@@ -41,6 +41,7 @@ export type PlayMetricsLike = {
   firstPlayCampaignAt?: number;
   firstFilmCutAt?: number;
   lastFilmCutAt?: number;
+  firstFullDayAt?: number;
 };
 
 export type PlayCampaignStepId = 'character' | 'moodboard' | 'fitting' | 'day' | 'roleplay';
@@ -277,11 +278,13 @@ export function playFirstFilmDone(
   return (funnel?.firstFilmCut ?? 0) > 0;
 }
 
+/** Story opens after the first cut film, or once a whole Day of stills has rendered. */
 export function isPlayStoryLocked(
   metrics?: PlayMetricsLike | null,
   funnel?: PlayFunnelLike | null
 ): boolean {
-  return !playFirstFilmDone(metrics, funnel);
+  const fullDay = typeof metrics?.firstFullDayAt === 'number' && metrics.firstFullDayAt > 0;
+  return !playFirstFilmDone(metrics, funnel) && !fullDay;
 }
 
 function stagePack(characterId: string, pack?: LookPack | null): LookPack | null {
@@ -439,7 +442,7 @@ export function derivePlayProgress(artifacts: PlayArtifacts = {}): DerivedPlayPr
     campaign?.characterId?.trim() || artifacts.lookPack?.characterId?.trim() || '';
   const pack = stagePack(characterId, artifacts.lookPack ?? null);
   const firstFilmDone = playFirstFilmDone(artifacts.metrics, funnel);
-  const storyLocked = !firstFilmDone;
+  const storyLocked = isPlayStoryLocked(artifacts.metrics, funnel);
   const completedStills = readCompletedStills(artifacts);
   const completedClips = readCompletedClips(artifacts);
 
@@ -523,7 +526,7 @@ export function canEnterPlayStep(
   if (stepId === 'roleplay' && progress.storyLocked) {
     return {
       ok: false,
-      reason: 'Cut your first Day film before opening Story.',
+      reason: 'Finish a Day — every still rendered — before opening Story.',
     };
   }
   // Story can open without a Cast lead after unlock; other desks need a character.

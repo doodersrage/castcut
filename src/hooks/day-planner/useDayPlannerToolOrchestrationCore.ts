@@ -279,6 +279,7 @@ import {
   cuePoseLayouts,
   PLAY_METRICS_UPDATED_EVENT,
   poseLayoutFromKey,
+  recordFirstFullDay,
   recordPlayerSlotRender,
   rerollBeatKey,
   rerollProneLayouts,
@@ -366,6 +367,16 @@ export function useDayPlannerToolOrchestrationCore() {
   );
   stillsRef.current = stills;
   const watchPlaylist = useMemo(() => dayWatchPlaylist(stills, slots), [slots, stills]);
+  // Every slot has its still: Story opens (play-metrics firstFullDayAt) — no cut needed.
+  const fullDay =
+    slots.length > 0 &&
+    slots.every(slot => {
+      const still = stills.find(entry => entry.slotId === slot.id);
+      return still?.status === 'completed' && Boolean(dayStillShownImage(still));
+    });
+  useEffect(() => {
+    if (fullDay) recordFirstFullDay();
+  }, [fullDay]);
   const activeSlot = slots.find(slot => slot.id === activeSlotId) ?? slots[0]!;
 
   // When a still finishes, jump the editor to the next time-of-day that still needs work.

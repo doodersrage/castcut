@@ -29,6 +29,8 @@ export type PlayMetrics = {
   firstPlayCampaignAt?: number;
   /** First successful Cut film (Day or Roleplay). */
   firstFilmCutAt?: number;
+  /** First Day with every slot's still rendered — Story opens from then, no cut needed. */
+  firstFullDayAt?: number;
   /** Most recent successful Cut film — drives the 24h habit nudge. */
   lastFilmCutAt?: number;
   /** Recent Cut timestamps (newest last, capped) — drives films-per-week. */
@@ -245,6 +247,7 @@ function normalizePlayMetrics(value: unknown): PlayMetrics {
       typeof raw.firstPlayCampaignAt === 'number' ? raw.firstPlayCampaignAt : undefined,
     firstFilmCutAt: typeof raw.firstFilmCutAt === 'number' ? raw.firstFilmCutAt : undefined,
     lastFilmCutAt: typeof raw.lastFilmCutAt === 'number' ? raw.lastFilmCutAt : undefined,
+    firstFullDayAt: typeof raw.firstFullDayAt === 'number' ? raw.firstFullDayAt : undefined,
     filmCutHistory: normalizeFilmCutHistory(raw.filmCutHistory),
     slotReviews: normalizeSlotReviews(raw.slotReviews),
     poseMatch: normalizePoseMatch(raw.poseMatch),
@@ -297,6 +300,14 @@ export function recordFirstFilmCut(at = Date.now()): boolean {
     filmCutHistory: [...(current.filmCutHistory ?? []), at].slice(-PLAY_FILM_CUT_HISTORY_LIMIT),
   });
   return isFirst;
+}
+
+/** Records the first Day whose stills all rendered (Story opens). True the first time. */
+export function recordFirstFullDay(at = Date.now()): boolean {
+  const current = loadPlayMetrics();
+  if (current.firstFullDayAt) return false;
+  savePlayMetrics({ ...current, firstFullDayAt: at });
+  return true;
 }
 
 /** Records one Day quality-gate outcome (keep / reroll / flag). */

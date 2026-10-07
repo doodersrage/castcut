@@ -70,7 +70,7 @@ export default function PlayCampaignStepsSection({
                   <p className="type-caption text-[var(--text-muted)]">
                     {storyLocked
                       ? (gate.reason ??
-                        'Cut your first Day film first — Story stays optional after that.')
+                        'Finish a Day first (every still rendered) — Story stays optional after that.')
                       : step.description}
                   </p>
                 </div>

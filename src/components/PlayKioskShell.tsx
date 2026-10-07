@@ -1,5 +1,7 @@
 'use client';
 
+import { isPlayStoryLocked } from '@/lib/play-step-machine';
+
 import { loadLocalObservability } from '@/lib/local-observability';
 import { loadLookPack } from '@/lib/look-pack';
 import { playEffectiveProgressLabel } from '@/lib/play-campaign';
@@ -23,11 +25,7 @@ import {
   playCampaignProgressLabel,
   PLAY_CAMPAIGN_UPDATED_EVENT,
 } from '@/lib/play-campaign';
-import {
-  hasCompletedFirstFilm,
-  loadPlayMetrics,
-  PLAY_METRICS_UPDATED_EVENT,
-} from '@/lib/play-metrics';
+import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play-metrics';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 type KioskTab = {
@@ -80,7 +78,8 @@ export default function PlayKioskShell() {
     const refresh = () => {
       const metrics = loadPlayMetrics();
       const campaign = loadPlayCampaignState();
-      setFirstFilmDone(hasCompletedFirstFilm(metrics));
+      // Story's tab: after the first cut, or once a whole Day of stills has rendered.
+      setFirstFilmDone(!isPlayStoryLocked(metrics, loadLocalObservability()));
       setProgressLabel(
         playEffectiveProgressLabel({
           metrics,

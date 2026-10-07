@@ -1,5 +1,7 @@
 'use client';
 
+import { isPlayStoryLocked } from '@/lib/play-step-machine';
+
 import Link from 'next/link';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -20,11 +22,7 @@ import {
 } from '@/lib/mobile-studio';
 import { resolvePlayLoopNavHref } from '@/lib/play-campaign';
 import { followCurrentPlayLoopHref } from '@/lib/play-loop-nav-click';
-import {
-  hasCompletedFirstFilm,
-  loadPlayMetrics,
-  PLAY_METRICS_UPDATED_EVENT,
-} from '@/lib/play-metrics';
+import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play-metrics';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { accentForPath } from '@/lib/tool-theme';
@@ -46,7 +44,8 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
   const [firstFilmDone, setFirstFilmDone] = useState(false);
 
   useEffect(() => {
-    const refresh = () => setFirstFilmDone(hasCompletedFirstFilm(loadPlayMetrics()));
+    // Story's tab: after the first cut, or once a whole Day of stills has rendered.
+    const refresh = () => setFirstFilmDone(!isPlayStoryLocked(loadPlayMetrics()));
     scheduleAfterCommit(refresh);
     // Read again once IndexedDB has hydrated: a cold load could read before the metrics were.
     void whenBrowserStorageReady().then(refresh);

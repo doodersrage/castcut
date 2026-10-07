@@ -733,7 +733,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       campaign: character ? { characterId: character.id, stepIndex: 3 } : null,
     });
     if (!gate.ok) {
-      setError(gate.reason ?? 'Cut your first Day film before opening Story.');
+      setError(gate.reason ?? 'Finish a Day — every still rendered — before opening Story.');
       return;
     }
     if (character) {
