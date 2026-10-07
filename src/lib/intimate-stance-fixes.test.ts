@@ -24,6 +24,16 @@ describe('intimate stance fixes', () => {
     );
   });
 
+  it('on her back, the Moment drops leg-spread words the stance line already settles', () => {
+    const recipe = solo(
+      'solo masturbation lying in the dark with the covers kicked off, knees apart, hand between her thighs — alone'
+    );
+    assert.match(recipe, /Moment: solo masturbation lying in the dark with the covers kicked off, hand between her thighs/);
+    assert.match(recipe, /two legs only/);
+    // Other stances keep the words.
+    assert.match(solo('solo masturbation sitting on the windowsill, knees apart, hand between her thighs'), /knees apart/);
+  });
+
   it('a nude duo beat drops the clothes it names; accessories stay', () => {
     const moment = (beat: string) => (buildRapidDuoRecipe({ beat }) ?? '').match(/Moment: [^.]*\./)?.[0] ?? '';
     assert.equal(

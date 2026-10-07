@@ -833,13 +833,17 @@ export function buildRapidSoloRecipe(input: {
     /\b(?:looking\s+(?:back|up)|over\s+(?:her|a)\s+shoulder|head\s+tipped\s+back|eyes|biting)\b/i.test(
       beat
     );
+  const placement = soloPlacement(kind, beat, surface);
+  // The on-her-back line already says where each leg is (as the guide draws them); "knees apart"
+  // left in the Moment gave her a third leg 2/3 (and 0/3 without it, live 2026-10-07).
+  const moment = /two legs only/.test(placement) ? beat.replace(SOLO_LEG_SPREAD_RE, '') : beat;
   return [
     RAPID_SOLO_RECIPE_MARK,
     'One woman alone, masturbating.',
-    soloPlacement(kind, beat, surface),
+    placement,
     soloHands(beat, input.toy === true, kind),
     ownGaze ? null : 'Eyes half-closed, looking down at her body.',
-    `Moment: ${calmSexLaughter(beat)}.`,
+    `Moment: ${calmSexLaughter(moment)}.`,
     recipeRoom(beat, surface, input.setting, input.timeOfDay),
     input.clothedOutfit !== undefined
       ? `She wears ${withArticle(input.clothedOutfit) ?? 'her outfit'}, pulled down off her breasts and pushed up around her waist — bare breasts with nipples visible and bare vulva.`
@@ -947,6 +951,10 @@ export function suggestiveDuoPlacement(beat: string): string | null {
   }
   return null;
 }
+
+/** Leg-spread words in a beat ("knees apart", "thighs spread wide", "knees flopped open"). */
+const SOLO_LEG_SPREAD_RE =
+  /,?\s*(?:with\s+)?(?:her\s+)?(?:knees|legs|thighs)\s+(?:flopped\s+|falling\s+|wide\s+)?(?:apart|spread(?:\s+wide)?|open(?:\s+wide)?|parted|wide(?:\s+open)?)\b/gi;
 
 /** Same test as the on_back guide's legsHigh (day-pose-guide.ts synthesizeSoloMasturbationFigure). */
 const SOLO_LEGS_HIGH_RE = /\bankles?\s+near|knees\s+pulled\s+up|shoulders\b/i;
