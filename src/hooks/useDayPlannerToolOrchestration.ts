@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { useDayPlannerToolOrchestrationPart2 } from '@/hooks/day-planner/useDayPlannerToolOrchestrationPart2';
 import { useDaySeries } from '@/hooks/day-planner/useDaySeries';
@@ -20,7 +20,8 @@ import {
   type DayChecksGate,
   type DaySettledTakes,
 } from '@/lib/day-finish-order';
-import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
+import { applyCastLookPlateFromSource, ensureOutfitPlateAfterLook } from '@/lib/look-outfit-plate';
+import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
@@ -160,6 +161,47 @@ export function useDayPlannerToolOrchestration() {
     },
     [characterId, sharedModel, updateShared]
   );
+
+  // A Cast with no plate (created without a photo, now that Look is optional): render one from
+  // their description — the same full-body plate Look used to queue (look-outfit-plate.ts). The
+  // app-wide watcher (PendingCastPlateWatcher) attaches it to the Cast when it lands.
+  const [makePlateStatus, setMakePlateStatus] = useState<string | null>(null);
+  const { actions } = core;
+  const makeCastPlate = useCallback(async () => {
+    if (!characterId) {
+      setMakePlateStatus('Pick a Cast character first.');
+      return;
+    }
+    setMakePlateStatus('Rendering a plate from the description…');
+    try {
+      const result = await ensureOutfitPlateAfterLook({
+        characterId,
+        tiles: [],
+        sendComfyUi: actions.sendComfyUi,
+      });
+      setMakePlateStatus(
+        result === 'queued'
+          ? 'Rendering a plate from the description — it becomes the Cast plate when it lands.'
+          : result === 'ready'
+            ? 'Plate ready.'
+            : result === 'failed'
+              ? 'Could not queue a plate — check ComfyUI, then try again.'
+              : null
+      );
+    } catch {
+      setMakePlateStatus('Could not queue a plate — check ComfyUI, then try again.');
+    }
+  }, [actions.sendComfyUi, characterId]);
+
+  // From "Create & continue" with no photo: make the plate once on arrival.
+  const makePlateOnArrival = useRef(false);
+  useEffect(() => {
+    if (makePlateOnArrival.current || !characterId || core.hasPlate) return;
+    if (typeof window === 'undefined') return;
+    if (new URLSearchParams(window.location.search).get('makePlate') !== '1') return;
+    makePlateOnArrival.current = true;
+    scheduleAfterCommit(() => void makeCastPlate());
+  }, [characterId, core.hasPlate, makeCastPlate]);
 
   // Pre-cut check: stills Auto-review flagged, or that missed their pose / face, get a look
   // before they end up in the film.
@@ -362,6 +404,8 @@ export function useDayPlannerToolOrchestration() {
     plateUploading,
     plateUploadError,
     uploadCastPlate,
+    makeCastPlate,
+    makePlateStatus,
     redoSlotSameSeed,
     keepPreviousTake,
     dropPreviousTake,

@@ -147,7 +147,8 @@ export default function PlayCampaignCharacterSection({
           <div className="space-y-2" data-testid="play-campaign-create-from-photo">
             <FieldLabel htmlFor="play-campaign-create-photo">From photo (optional)</FieldLabel>
             <p className="type-caption text-[var(--text-muted)]">
-              Sets the Cast look plate so Outfit, Day, and Story share the same identity.
+              Sets the Cast look plate so Outfit, Day, and Story share the same identity. Without
+              one, Day renders a plate from the description.
             </p>
             <input
               id="play-campaign-create-photo"
@@ -185,7 +186,7 @@ export default function PlayCampaignCharacterSection({
               disabled={creating}
               onClick={() => void submitCreate(true)}
             >
-              Create & continue to Look
+              Create & continue to Day
             </Button>
             <Button
               size="sm"

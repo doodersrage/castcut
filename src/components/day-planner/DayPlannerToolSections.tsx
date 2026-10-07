@@ -181,6 +181,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     fixAreaTargetForSlot,
     plateUploading,
     plateUploadError,
+    makeCastPlate,
+    makePlateStatus,
     hideStickyCutCoach,
     setHideStickyCutCoach,
     dayMood,
@@ -1349,6 +1351,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             isolatePending={isolatePending}
             onIsolateSubjectChange={setIsolateSubject}
             onUploadPlate={file => void uploadCastPlate(file)}
+            onMakePlate={() => void makeCastPlate()}
+            makePlateStatus={makePlateStatus}
             uploading={plateUploading}
             uploadError={plateUploadError}
           />

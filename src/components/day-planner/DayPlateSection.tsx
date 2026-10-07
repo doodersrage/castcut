@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonLink } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { DayPlate } from '@/lib/day-plate';
@@ -24,6 +24,9 @@ export type DayPlateSectionProps = {
   onIsolateSubjectChange?: (next: boolean) => void;
   /** Upload a photo as the Cast's look plate (shared with Outfit and Story). */
   onUploadPlate?: (file: File) => void;
+  /** Render a plate from the Cast's description (no photo needed). */
+  onMakePlate?: () => void;
+  makePlateStatus?: string | null;
   uploading?: boolean;
   uploadError?: string | null;
 };
@@ -41,6 +44,8 @@ export default function DayPlateSection({
   isolatePending = false,
   onIsolateSubjectChange,
   onUploadPlate,
+  onMakePlate,
+  makePlateStatus,
   uploading = false,
   uploadError = null,
 }: DayPlateSectionProps) {
@@ -89,8 +94,8 @@ export default function DayPlateSection({
         />
       ) : (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-plate-empty">
-          No plate yet — upload a clear photo of this character (it becomes their Cast look plate),
-          pick one from Gallery, or Keep a try-on in Outfit.
+          No plate yet — make one from the character&apos;s description, upload a clear photo (it
+          becomes their Cast look plate), or pick one from Gallery.
         </p>
       )}
       {previewUrl ? (
@@ -114,6 +119,14 @@ export default function DayPlateSection({
       {sourceLabel ? (
         <p className="type-caption mt-2 text-[var(--text-muted)]">{sourceLabel}</p>
       ) : null}
+      {makePlateStatus ? (
+        <p
+          className="type-caption mt-2 text-[var(--text-muted)]"
+          data-testid="day-plate-make-status"
+        >
+          {makePlateStatus}
+        </p>
+      ) : null}
       {uploadError ? (
         <p
           className="type-caption mt-2 text-[var(--danger-text)]"
@@ -124,11 +137,22 @@ export default function DayPlateSection({
       ) : null}
       {!previewUrl || onUploadPlate ? (
         <div className="mt-3 flex flex-wrap gap-2">
+          {onMakePlate && characterId && !previewUrl ? (
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={busy || uploading}
+              data-testid="day-plate-make"
+              onClick={onMakePlate}
+            >
+              Make a plate from the description
+            </Button>
+          ) : null}
           {onUploadPlate && characterId ? (
             <>
               <UploadButton
                 label={uploading ? 'Uploading…' : previewUrl ? 'Replace plate' : 'Upload plate'}
-                variant={previewUrl ? 'secondary' : 'primary'}
+                variant="secondary"
                 disabled={busy || uploading}
                 ariaLabel="Upload a look plate for this Cast"
                 testId="day-plate-upload"

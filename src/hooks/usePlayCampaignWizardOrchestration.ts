@@ -413,8 +413,11 @@ export function usePlayCampaignWizardOrchestration({
         ...patch,
       });
       updateShared(patch);
-      const moodboardIndex = PLAY_CAMPAIGN_STEPS.findIndex(entry => entry.id === 'moodboard');
+      // A film is Cast → Day now (Look is optional): continue to Day. Without a photo there is no
+      // plate yet — Day renders one from the description on arrival (makePlate=1).
+      const dayIndex = PLAY_CAMPAIGN_STEPS.findIndex(entry => entry.id === 'day');
       const continueToMoodboard = input.continueToMoodboard === true;
+      const moodboardIndex = dayIndex;
       savePlayCampaignState({
         version: 1,
         characterId: saved.id,
@@ -429,13 +432,20 @@ export function usePlayCampaignWizardOrchestration({
             noteCampaignMaxStepMetric(moodboardIndex >= 0 ? moodboardIndex : 0);
           }
         );
-        setStepOverride('moodboard');
-        setStatus(`Created "${saved.name}" — opening Look.`);
-        pushPlay(`/moodboard?character=${encodeURIComponent(saved.id)}`);
+        setStepOverride('day');
+        const needsPlate = !input.referenceFile;
+        setStatus(
+          needsPlate
+            ? `Created "${saved.name}" — opening Day and rendering a plate from the description.`
+            : `Created "${saved.name}" — opening Day.`
+        );
+        pushPlay(
+          `/day?character=${encodeURIComponent(saved.id)}${needsPlate ? '&makePlate=1' : ''}`
+        );
         return;
       }
       setStepOverride('character');
-      setStatus(`Created "${saved.name}". Continue to Look when ready.`);
+      setStatus(`Created "${saved.name}". Continue to Day when ready.`);
       replacePlay(`/play?character=${encodeURIComponent(saved.id)}`);
     },
     [pushPlay, replacePlay, updateShared]
