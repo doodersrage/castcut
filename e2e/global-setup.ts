@@ -11,6 +11,17 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
   const baseURL = config.projects[0]?.use?.baseURL ?? 'http://127.0.0.1:47832';
   const browser = await chromium.launch();
   const context = await browser.newContext({ baseURL });
+  // Studio before the first load: "/" sends Film (the fresh-install default) to Play, and the
+  // redirect raced the storage write below ("Execution context was destroyed").
+  await context.addCookies([{ name: 'comfy-workspace-mode-v1', value: 'studio', url: baseURL }]);
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem('comfy-workspace-mode-v1', 'studio');
+      localStorage.setItem('comfy-workspace-mode-chosen-v1', '1');
+    } catch {
+      // ignore quota / private mode
+    }
+  });
   const page = await context.newPage();
 
   await page.goto('/');
@@ -32,6 +43,7 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
   }
 
   // Prevent the deferred first-run welcome dialog from blocking gallery/clicks.
+  await page.waitForLoadState('load');
   await page.evaluate(() => {
     try {
       localStorage.setItem('comfy-workspace-mode-v1', 'studio');
