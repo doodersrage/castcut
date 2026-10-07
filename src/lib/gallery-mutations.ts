@@ -15,6 +15,33 @@ import { guardQueueQualityForVram } from './vram-queue-guard';
 import { maybeHoldMaxGenerateJobs } from './held-max-queue';
 import { prepareQueuePrompts } from './queue-prompt-prep';
 import { readClothingIdsFromMetadata } from './recent-clothing';
+import { compactClothingScript } from './clothing-quality';
+
+type WardrobeMutationClause = { clause: string; summary?: string; wardrobeId?: string | null };
+
+async function fetchWardrobeMutationClause(
+  prompt: string,
+  value: string | undefined,
+  options: { hints?: string; recentClothing?: readonly string[] }
+): Promise<WardrobeMutationClause> {
+  const response = await fetch('/api/catalog/wardrobe-mutation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      prompt,
+      value,
+      hints: options.hints,
+      recentClothing: options.recentClothing,
+    }),
+  });
+  const data = (await response.json().catch(() => null)) as
+    (WardrobeMutationClause & { error?: string }) | null;
+  if (!response.ok || !data?.clause) {
+    throw new Error(data?.error ?? 'Could not pick an outfit for this variant.');
+  }
+  return data;
+}
 
 export type MutationKind = 'variation' | 'location' | 'wardrobe' | 'wildness';
 
@@ -56,23 +83,24 @@ export async function buildMutatedPromptDetails(
         summary: value?.trim() || undefined,
       };
     case 'wardrobe': {
-      // Dynamically imported: clothing-mutations.ts pulls in the full wardrobe
-      // catalog (clothing-catalog.ts -> clothing-catalog-batches.ts), which is
-      // ~17k generated entries / several MB. gallery-mutations.ts is 'use client'
-      // and part of the always-loaded gallery panel bundle, so a static import
-      // here would ship that whole catalog to every gallery visit even though
-      // this branch only runs when someone explicitly requests a wardrobe
-      // mutation. Load it on demand instead.
-      const { buildCatalogAwareWardrobeMutationClause } = await import('./clothing-mutations');
-      const built = buildCatalogAwareWardrobeMutationClause(prompt, value, {
-        hints: options?.hints,
-        recentClothing: options?.recentClothing,
-      });
+      // Picked on the server: clothing-mutations.ts pulls in the full wardrobe catalog (~500 KB
+      // gzipped of generated entries), which as a lazy client import was the largest chunk in the
+      // app for this one rarely used branch.
+      // A named outfit needs no catalog; only a random catalog pick goes to the server.
+      const built = value?.trim()
+        ? {
+            clause: `Change outfit to ${compactClothingScript(value.trim())} while keeping pose and scene.`,
+            summary: value.trim(),
+          }
+        : await fetchWardrobeMutationClause(prompt, value, {
+            hints: options?.hints,
+            recentClothing: options?.recentClothing,
+          });
       return {
         kind,
         prompt: `${prompt}. ${built.clause}`,
         summary: built.summary,
-        wardrobeId: built.wardrobeId,
+        wardrobeId: 'wardrobeId' in built ? built.wardrobeId : undefined,
       };
     }
     case 'wildness':

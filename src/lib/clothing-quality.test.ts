@@ -85,10 +85,10 @@ describe("clothing quality", () => {
   });
 
   it("mutates wardrobe prompts with catalog outfits by default", async () => {
-    const mutated = await buildMutatedPrompt(
-      "A woman standing in a neon alley",
-      "wardrobe",
-    );
+    // The catalog pick runs on the server (/api/catalog/wardrobe-mutation) — same function.
+    const { buildCatalogAwareWardrobeMutationClause } = await import("./clothing-mutations");
+    const prompt = "A woman standing in a neon alley";
+    const mutated = `${prompt}. ${buildCatalogAwareWardrobeMutationClause(prompt).clause}`;
     assert.match(mutated, /Change outfit to|Refresh wardrobe/i);
     assert.doesNotMatch(
       mutated,
