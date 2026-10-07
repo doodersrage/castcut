@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Day stills render about 1.8× faster on Edit 2511** when ComfyUI has the fp8 files: `qwen_image_edit_2511_fp8mixed` (Comfy-Org) and the `qwen_2.5_vl_7b_fp8_scaled` text encoder. The bf16 model and encoder (57 GB together) don't fit a 24 GB card and were swapped in and out on every still. On a 4090 the same stills went from 45.8 s to 25.9 s (22.4 s with LM Studio's model unloaded), with the same outfits, faces and skin. Without those files nothing changes.
 - **Story opens once a Day's stills are done.** It used to stay locked until you cut your first film. Now it opens as soon as every slot of a Day has its still, cut or not — the Story tab appears on the Play and phone menus, and *Continue as a story* / *Open with today's Day* carry the Day into it.
 - **Open in ComfyUI opens the still's graph on the canvas.** It used to save the graph and open ComfyUI on whatever it last showed, leaving you to find the file in the Workflows sidebar. With Castcut nodes 1.5.0 installed as a folder (Registry, git or Manager; restart ComfyUI once), the link now loads the graph directly. Otherwise it still saves to `workflows/Castcut/` and says what to install. Opened from another device, a `127.0.0.1` ComfyUI link now uses the host you reached Castcut on.
 ## [v2.3.4] - 2026-10-07

@@ -108,7 +108,11 @@ import {
   type ModelVaeMap,
 } from './model-checkpoint-map';
 import { maybeRewriteRapidAioWorkflowLoaders } from './workflow-rapid-aio-checkpoint';
-import { resolveLoaderPrecisionTier, type LoaderPrecisionTier } from './model-loader-precision';
+import {
+  resolveLoaderPrecisionTier,
+  preferInstalledFp8ForEdit2511,
+  type LoaderPrecisionTier,
+} from './model-loader-precision';
 import {
   DEFAULT_RESOLUTION_ORIENTATION,
   DEFAULT_RESOLUTION_SIZE_TIER,
@@ -1609,6 +1613,12 @@ export function injectPromptsWithFallbacks(
     params: input.params,
     loaders,
     syncLoadersToModel: isLightning ? false : options?.syncWorkflowLoadersToModel,
+  });
+
+  // Edit 2511 Lightning: the fp8 UNET + text encoder when installed (they fit a 24 GB card).
+  nextWorkflow = preferInstalledFp8ForEdit2511(nextWorkflow, options?.model, {
+    availableUnets: options?.availableUnets,
+    availableClips: options?.availableClips,
   });
 
   nextWorkflow = prepareBooguTurboWorkflowForQueue(nextWorkflow, options?.model);

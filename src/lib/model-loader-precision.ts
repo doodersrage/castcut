@@ -170,3 +170,68 @@ export function resolveLoaderPrecisionTier(input: {
 
   return defaultLoaderPrecisionTier();
 }
+
+/** fp8 Edit 2511 UNETs, preferred first (Comfy-Org now ships `fp8mixed`). */
+export const EDIT_2511_FP8_UNETS = [
+  'qwen_image_edit_2511_fp8mixed.safetensors',
+  'qwen_image_edit_2511_fp8_e4m3fn.safetensors',
+] as const;
+export const QWEN_VL_FP8_CLIP = 'qwen_2.5_vl_7b_fp8_scaled.safetensors';
+
+function inventoryName(
+  inventory: readonly string[] | null | undefined,
+  wanted: string
+): string | undefined {
+  const lower = wanted.toLowerCase();
+  return inventory?.find(name => {
+    const base = name.split(/[\\/]/).pop()?.toLowerCase();
+    return base === lower;
+  });
+}
+
+/**
+ * Edit 2511 Lightning on fp8 when ComfyUI has the files. bf16 (40.9 GB UNET + 16.6 GB text
+ * encoder) does not fit a 24 GB card, so both were swapped in and out on every still: fp8 UNET +
+ * fp8 text encoder ran the same stills in 25.9 s vs 45.8 s (4090, 2026-10-07), same dresses,
+ * faces and skin, face distance 0.49 vs 0.53. Unknown inventory → the graph is left as it is.
+ */
+export function preferInstalledFp8ForEdit2511(
+  workflow: Record<string, unknown>,
+  model: string | null | undefined,
+  inventory: {
+    availableUnets?: readonly string[] | null;
+    availableClips?: readonly string[] | null;
+  }
+): Record<string, unknown> {
+  if (!/^qwen-image-edit-2511-lightning-/i.test(String(model ?? '').trim())) return workflow;
+  const unet = EDIT_2511_FP8_UNETS.map(name => inventoryName(inventory.availableUnets, name)).find(
+    Boolean
+  );
+  if (!unet) return workflow;
+  const clip = inventoryName(inventory.availableClips, QWEN_VL_FP8_CLIP);
+  const next = structuredClone(workflow) as Record<
+    string,
+    { class_type?: string; inputs?: Record<string, unknown> }
+  >;
+  for (const node of Object.values(next)) {
+    const inputs = node?.inputs;
+    if (!inputs) continue;
+    if (
+      node.class_type === 'UNETLoader' &&
+      typeof inputs.unet_name === 'string' &&
+      qwenUnetFamilyFromFilename(inputs.unet_name) === 'edit-2511' &&
+      precisionHintFromFilename(inputs.unet_name) !== 'fp8'
+    ) {
+      inputs.unet_name = unet;
+    }
+    if (
+      clip &&
+      (node.class_type === 'CLIPLoader' || node.class_type === 'DualCLIPLoader') &&
+      typeof inputs.clip_name === 'string' &&
+      /^qwen_2\.5_vl_7b(?:_bf16)?\.safetensors$/i.test(inputs.clip_name.split(/[\\/]/).pop() ?? '')
+    ) {
+      inputs.clip_name = clip;
+    }
+  }
+  return next;
+}
