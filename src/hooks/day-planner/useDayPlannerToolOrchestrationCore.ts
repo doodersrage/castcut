@@ -53,6 +53,7 @@ import {
   applyCharacterRecord,
   applyCharacterRecordFresh,
   castLoraSessionIds,
+  characterFromPartnerStandIn,
   characterHomeHref,
   looksOf,
   getCharacter,
@@ -2713,6 +2714,26 @@ export function useDayPlannerToolOrchestrationCore() {
     newPartnerStandIn: () => {
       partnerStandInRef.current = null;
       updateToolSettings({ partnerStandIn: undefined });
+    },
+    // The invented partner, kept as a Cast member: same face on later Days, and pickable as a
+    // lead. Day switches its partner to the new Cast.
+    keepPartnerAsCast: (name?: string): string | null => {
+      const standIn = toolSettings.partnerStandIn;
+      if (!standIn?.filename?.trim()) return null;
+      const record = characterFromPartnerStandIn({
+        look: standIn.look,
+        filename: standIn.filename,
+        imageUrl: standIn.imageUrl,
+        name,
+      });
+      upsertCharacter(record);
+      partnerStandInRef.current = null;
+      updateToolSettings({
+        partnerCharacterId: record.id,
+        partnerStandIn: undefined,
+        partnerSentFace: undefined,
+      });
+      return record.id;
     },
     // People (Solo / Mixed / Duo) — one control for every mood. Clothed moods: Solo = no
     // companion, Mixed = some stills with a friend / partner, Duo = every still. Adult moods: the

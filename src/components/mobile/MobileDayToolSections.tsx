@@ -185,6 +185,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     partnerStandInUrl,
     partnerSentFaceUrl,
     newPartnerStandIn,
+    keepPartnerAsCast,
     dayWeather,
     setDayWeather,
     people,
@@ -780,6 +781,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           partnerStandInUrl={partnerStandInUrl}
           partnerSentFaceUrl={partnerSentFaceUrl}
           onNewPartnerStandIn={newPartnerStandIn}
+          onKeepPartnerAsCast={keepPartnerAsCast}
         />
         <DayQualityStatusLines
           faceFinish={faceFinish}

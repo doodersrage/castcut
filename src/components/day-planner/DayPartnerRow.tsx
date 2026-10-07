@@ -25,6 +25,8 @@ export type DayPartnerRowProps = {
   /** "Same stranger all day": the invented partner's face, and a reset. */
   partnerStandInUrl?: string;
   onNewPartnerStandIn?: () => void;
+  /** Keep today's invented partner as a Cast member (returns the new Cast id). */
+  onKeepPartnerAsCast?: () => string | null;
   /** The face picture actually sent for the Cast partner on the last two-person still. */
   partnerSentFaceUrl?: string;
 };
@@ -44,6 +46,7 @@ export default function DayPartnerRow({
   leadNoun = 'woman',
   partnerStandInUrl,
   onNewPartnerStandIn,
+  onKeepPartnerAsCast,
   partnerSentFaceUrl,
 }: DayPartnerRowProps) {
   if (people === 'solo') return null;
@@ -135,6 +138,20 @@ export default function DayPartnerRow({
               onClick={onNewPartnerStandIn}
             >
               New face
+            </Button>
+          ) : null}
+          {partnerStandInUrl && onKeepPartnerAsCast ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              data-testid="day-partner-keep-cast"
+              title="Make this partner a Cast member: the same face on later Days, and they can lead their own"
+              onClick={() => {
+                onKeepPartnerAsCast();
+              }}
+            >
+              Keep as Cast
             </Button>
           ) : null}
         </div>

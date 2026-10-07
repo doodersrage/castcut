@@ -548,6 +548,34 @@ export function characterFromShared(
   };
 }
 
+/**
+ * Day's invented partner, kept: the stranger's face (the stand-in portrait, a head crop) and look
+ * become a Cast, so the same partner can come back on later Days — or lead their own. Their face
+ * is the plate; Day's "Make a plate from the description" gives them a body plate if they lead.
+ */
+export function characterFromPartnerStandIn(input: {
+  look: string;
+  filename: string;
+  imageUrl?: string;
+  name?: string;
+  now?: number;
+}): CharacterRecord {
+  const now = input.now ?? Date.now();
+  const name = input.name?.trim() || 'Day partner';
+  const filename = input.filename.trim();
+  const imageUrl = input.imageUrl?.trim() || undefined;
+  return {
+    id: newCharacterId(),
+    name,
+    version: 1,
+    updatedAt: now,
+    descriptor: input.look.trim().slice(0, 400) || undefined,
+    characterName: name,
+    reference: { originalFilename: filename, originalUrl: imageUrl },
+    ipAdapter: { imageFilename: filename, imageUrl },
+  };
+}
+
 export type CreateBlankCharacterOptions = {
   personaId?: string;
   customPersona?: string;

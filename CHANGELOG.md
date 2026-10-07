@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Keep a Day partner as Cast.** The invented partner keeps one face from Day to Day (and through Tomorrow); **Keep as Cast** beside that face now makes them a Cast member — their face and look become the Cast, Day switches its partner to them, and they can lead a Day of their own (Setup → *Make a plate from the description* gives them a body plate).
 - **Seasons on the Cast page.** Every cut Day is an episode of the Cast's season; the Cast's Film tab (where *Watch on Cast* lands) now shows each season's episodes in order — the still it opened on, the places it went, its theme and date — with a count of places visited. Episodes cut from now on carry the poster and places.
 - **Face-down sex stays face-down.** "Lying face-down … with a partner along her back" came out with her on her back in 2 of 3 replays (the side-on pose drawing can't show which way she faces); naming her back and buttocks up and her breasts in the sheets fixed it, 3 of 3.
 - **Lap and spooning stills fixed** (3 of 3 each, from 0 of 3): sitting on his lap facing him is now drawn from the side with both faces in profile — front-on she turned to the camera and he vanished under her; spooning draws her top knee forward instead of a leg pointing straight at the ceiling.

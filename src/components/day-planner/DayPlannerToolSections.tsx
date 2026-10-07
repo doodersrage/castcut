@@ -196,6 +196,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     partnerStandInUrl,
     partnerSentFaceUrl,
     newPartnerStandIn,
+    keepPartnerAsCast,
     dayWeather,
     setDayWeather,
     people,
@@ -832,6 +833,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               partnerStandInUrl={partnerStandInUrl}
               partnerSentFaceUrl={partnerSentFaceUrl}
               onNewPartnerStandIn={newPartnerStandIn}
+              onKeepPartnerAsCast={keepPartnerAsCast}
             />
             <DayQualityStatusLines
               faceFinish={faceFinish}
