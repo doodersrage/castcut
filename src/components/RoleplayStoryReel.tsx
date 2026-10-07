@@ -21,7 +21,7 @@ import {
 import { RoleplayStoryBeatCard } from '@/components/roleplay/sections/RoleplayStoryBeatCard';
 import { beatPreviewUrl } from '@/components/roleplay/roleplay-story-helpers';
 import { EmptyState } from '@/components/ui/ViewState';
-import { ButtonLink } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
 
@@ -37,6 +37,7 @@ const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
 
 export default function RoleplayStoryReel({
   story,
+  dayOpening = null,
   busy = false,
   bioPresent = false,
   scenesLoading = false,
@@ -54,6 +55,8 @@ export default function RoleplayStoryReel({
   fixAreaFor,
 }: {
   story: RoleplayStoryBeat[];
+  /** Day → Story: open the empty reel with the Cast's Day stills (useDayStoryOpening). */
+  dayOpening?: { count: number; use: () => void } | null;
   busy?: boolean;
   bioPresent?: boolean;
   scenesLoading?: boolean;
@@ -222,6 +225,31 @@ export default function RoleplayStoryReel({
               : undefined
           }
         />
+        {dayOpening ? (
+          <div
+            className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3"
+            data-testid="roleplay-day-opening"
+          >
+            <p className="type-caption text-[var(--text-muted)]">
+              Start from today’s Day: its {dayOpening.count}{' '}
+              {dayOpening.count === 1
+                ? 'still becomes the first scene'
+                : 'stills become the first scenes'}
+              , and the next scene picks up from there.
+            </p>
+            <ToolActionRow className="mt-2">
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={busy}
+                data-testid="roleplay-day-opening-use"
+                onClick={dayOpening.use}
+              >
+                Open with today’s Day ({dayOpening.count})
+              </Button>
+            </ToolActionRow>
+          </div>
+        ) : null}
         {!bioPresent && castBibleHref ? (
           <ToolActionRow>
             <ButtonLink

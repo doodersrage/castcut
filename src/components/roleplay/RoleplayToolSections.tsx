@@ -10,6 +10,7 @@ import RoleplayBeatOutputSection from '@/components/roleplay/RoleplayBeatOutputS
 import RoleplayCastSection from '@/components/roleplay/RoleplayCastSection';
 import { RoleplayCastToneSettingSection } from '@/components/roleplay/sections/RoleplayCastToneSettingSection';
 import RoleplayStorySection from '@/components/roleplay/RoleplayStorySection';
+import { useDayStoryOpening } from '@/hooks/useDayStoryOpening';
 import RoleplayWardrobeSection from '@/components/roleplay/RoleplayWardrobeSection';
 import StoryPlayPhaseStrip from '@/components/roleplay/StoryPlayPhaseStrip';
 import StoryStatusStrip from '@/components/roleplay/StoryStatusStrip';
@@ -93,6 +94,11 @@ export default function RoleplayToolSections({
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance();
   const activeCharacterId = shared.activeCharacterId?.trim() || '';
+  const dayOpening = useDayStoryOpening({
+    story,
+    castId: activeCharacterId,
+    updateToolSettings,
+  });
   const castCharacter = useMemo(
     () => (activeCharacterId ? getCharacter(activeCharacterId) : undefined),
     [activeCharacterId]
@@ -452,6 +458,7 @@ export default function RoleplayToolSections({
             onCopy={beat => void session.copyBeatPrompt(beat)}
             beatEdit={beatEdit}
             onRollScenes={() => void sceneFlow.rollScenes()}
+            dayOpening={dayOpening}
           />
         </>
       )}

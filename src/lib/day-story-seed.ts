@@ -7,7 +7,7 @@
 
 import { realKitId } from './outfit-handoff';
 import type { DaySlot, DaySlotStill } from './day-planner';
-import type { RoleplayContentId, RoleplayTone } from './roleplay';
+import type { RoleplayContentId, RoleplayStoryBeat, RoleplayTone } from './roleplay';
 import type { DayToolCache, RoleplayToolCache } from './settings-cache';
 
 /** One Cast's Day: the live Day when it owns it, else the Day parked under it. */
@@ -163,6 +163,75 @@ export function storySeedFromDay(input: {
     }
   }
   return seed;
+}
+
+/** The picture a Day slot shows: its finish when that belongs to the shown take, else the take. */
+function dayShownImage(still: DaySlotStill): string {
+  const finished = still.finishedUrl?.trim();
+  if (finished && still.finishedFor && still.finishedFor === still.promptId) return finished;
+  return still.imageUrl?.trim() || '';
+}
+
+const PART_TITLES: Record<string, string> = {
+  morning: 'Morning',
+  afternoon: 'Afternoon',
+  evening: 'Evening',
+  night: 'Night',
+};
+
+/** "morning-2" → "Late morning"; "evening" → "Evening". */
+function dayPartTitle(slotId: string): string {
+  const [part, extra] = slotId.split('-');
+  const title = PART_TITLES[part ?? ''] ?? 'Earlier';
+  return extra ? `Late ${title.toLowerCase()}` : title;
+}
+
+/** Day's own beat words that are instructions to the renderer, not story ("— Cast alone"). */
+function storyBlurbFromBeat(beat: string): string {
+  return beat
+    .replace(
+      /\s*[—–-]\s*(?:Cast alone|never invent a partner|one adult only|empty sheets|alone|both adults fully visible|two adults mid-contact|two heads in frame)[^—–]*$/i,
+      ''
+    )
+    .replace(/\bCast\b/g, 'she')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * The Day as the story's opening scenes: each slot with a finished still (in Day order) becomes
+ * a scene with that still, so the story picks up from what happened and its scene writer (which
+ * reads the story so far) continues from there. Stills the adult check held are left out.
+ */
+export function storyScenesFromDay(input: {
+  day: DayToolCache | null | undefined;
+  characterId: string;
+  activeCharacterId?: string | null;
+  now?: number;
+}): RoleplayStoryBeat[] {
+  const plan = castDayPlan(input.day, input.characterId, input.activeCharacterId);
+  if (!plan) return [];
+  const now = input.now ?? Date.now();
+  const stills = new Map((plan.stills ?? []).map(still => [still.slotId, still]));
+  const scenes: RoleplayStoryBeat[] = [];
+  for (const slot of plan.slots ?? []) {
+    const still = stills.get(slot.id);
+    if (!still || still.status !== 'completed' || still.adultHold) continue;
+    const imageUrl = dayShownImage(still);
+    const blurb = storyBlurbFromBeat(slot.sceneHints ?? '');
+    if (!imageUrl || !blurb) continue;
+    scenes.push({
+      id: `day-${slot.id}-${now}`,
+      title: dayPartTitle(slot.id),
+      blurb: blurb.slice(0, 400),
+      at: now + scenes.length,
+      castId: input.characterId,
+      ...(still.promptId ? { promptId: still.promptId } : {}),
+      imageUrl,
+      stillStatus: 'completed',
+    });
+  }
+  return scenes;
 }
 
 /** Day → Story link: the Cast, plus `from=day` so Story seeds itself from that Cast's Day. */

@@ -27,6 +27,7 @@ import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useMobilePlayToolOrchestration } from '@/hooks/useMobilePlayToolOrchestration';
+import { useDayStoryOpening } from '@/hooks/useDayStoryOpening';
 import { DAY_INTIMATE_MIX_OPTIONS, normalizeDayIntimateMix } from '@/lib/day-planner';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import { deriveStoryPhase } from '@/lib/play-step-machine';
@@ -138,6 +139,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
   // The active Cast lead (as desktop Story does). filmCharacterId is only set once a film is
   // cut, so gating on it alone told every phone player "Story needs a Cast lead" until then.
   const activeCastId = shared.activeCharacterId?.trim() || '';
+  const dayOpening = useDayStoryOpening({ story, castId: activeCastId, updateToolSettings });
   // Follow the Cast list: it can load a moment after this page, and read once the page stayed
   // on "No Cast lead" with Roll disabled until something else re-rendered it.
   const castRoster = useSyncExternalStore(
@@ -620,6 +622,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
           onPoseChange={setBeatPose}
           onSelectClipTake={selectClipTake}
           onRollScenes={() => void rollScenes()}
+          dayOpening={dayOpening}
           fixAreaFor={fixAreaTargetForBeat}
         />
       </StoryBeatEditProvider>

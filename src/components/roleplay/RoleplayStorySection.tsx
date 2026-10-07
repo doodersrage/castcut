@@ -55,6 +55,7 @@ export type RoleplayStorySectionProps = {
   /** Edit a scene's text on its card, then write and queue its still again. */
   beatEdit?: StoryBeatEditActions;
   onRollScenes?: () => void;
+  dayOpening?: { count: number; use: () => void } | null;
   /** Cast home where bible rewrite/edit/clear live. */
   castBibleHref?: string;
   filmCutOptions?: import('@/components/FilmCutOptionsControls').FilmCutOptionsValue;
@@ -97,6 +98,7 @@ export default function RoleplayStorySection({
   fixAreaFor,
   beatEdit,
   onRollScenes,
+  dayOpening,
   castBibleHref,
   filmCutOptions,
   onFilmCutOptionsChange,
@@ -231,6 +233,7 @@ export default function RoleplayStorySection({
           onSelectClipTake={onSelectClipTake}
           onCopy={onCopy}
           onRollScenes={onRollScenes}
+          dayOpening={dayOpening}
           fixAreaFor={fixAreaFor}
         />
       </StoryBeatEditProvider>
