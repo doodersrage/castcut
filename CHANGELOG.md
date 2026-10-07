@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Fewer skin specks on Edit 2511 stills.** The freckle-like dark dots on legs and arms dropped by 21% on everyday poses and 43% on hard ones (arms overhead, sitting on the floor, lying, bending, leaning) with the `euler_ancestral` sampler on Edit 2511 Lightning 8. Poses held in 15 of 16 replays and the Cast's likeness was even or closer. Fewer specks, not none.
+- **Two women on a lap, two men on the floor.** Two women's lap sex now puts one on top of the other (3 of 3 replays; before, they sat side by side in the chair). Two men's oral on the floor is a side view with the receiver standing against the wall: contact in 3 of 3, and the words match what Rapid draws.
 - **Film mode starts at Play.** In Film (the play loop: Cast, Look, Outfit, Day, Story, Gallery, the default for a new install), opening the app's front page now goes to Play instead of the Generate tool. *All tools* in Film's menu is now a real switch: it moves the workspace to Studio, with every tool, and opens it. Change back any time from Profile → Workspace. Settings already show only the essentials until *All settings…*.
 
 ## [v2.3.3] - 2026-10-07

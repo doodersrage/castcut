@@ -107,4 +107,21 @@ describe('same-sex duo wording', () => {
     assert.match(oral ?? '', /exactly two women/);
     assert.doesNotMatch(oral ?? '', /the woman kneels on the floor between her girlfriend's thighs/);
   });
+
+  it("two women's lap is one on top of the other; two men's floor oral is a side view", () => {
+    const NORA = { name: 'Nora', noun: 'woman', descriptor: 'a woman with brown hair' } as DayPartner;
+    const lap = buildRapidDuoRecipe({
+      beat: sameSexPartnerBeat('sitting on his lap facing him in the armchair mid-sex'),
+      lead: 'woman',
+      partner: { partner: NORA, image: 'second' },
+    });
+    assert.match(lap ?? '', /the woman sits on top of her, astride her girlfriend's lap/);
+    assert.match(lap ?? '', /Two separate bodies/);
+    const floor = buildRapidDuoRecipe({
+      beat: sameSexPartnerBeat('she kneels on the bedroom floor in front of him going down on him'),
+      lead: 'man',
+      partner: { partner: SAM, image: 'second' },
+    });
+    assert.match(floor ?? '', /Side view, exactly two men\. The man stands, his back against the wall/);
+  });
 });

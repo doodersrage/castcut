@@ -110,7 +110,8 @@ describe("model sampler defaults", () => {
       {
         steps: 8,
         cfg: 1,
-        samplerName: "euler",
+        // Fewer skin specks with poses held (Day replays 2026-10-06).
+        samplerName: "euler_ancestral",
         scheduler: "simple",
       },
     );

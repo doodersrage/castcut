@@ -389,9 +389,14 @@ const MODEL_SAMPLER_PRESETS: ModelSamplerPresetMap = {
     steps: 4,
     ...QWEN_LIGHTNING_SAMPLER,
   }),
+  // euler_ancestral, not euler: the freckle-like dark specks on legs and arms dropped 21% on easy
+  // poses and 43% on hard ones (Day replays, 2026-10-06: arms overhead, floor sit, lying, bend,
+  // lean), poses held 15/16 and likeness was even to closer. An older sweep had euler_a lose
+  // guide poses; the hard-pose round did not repeat it.
   'qwen-image-edit-2511-lightning-8': fixedSamplerPresets({
     steps: 8,
     ...QWEN_LIGHTNING_SAMPLER,
+    samplerName: 'euler_ancestral',
   }),
   'qwen-image-2.1-edit': {
     base: { steps: 20, cfg: 1, samplerName: 'euler', scheduler: 'simple' },

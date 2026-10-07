@@ -267,7 +267,9 @@ function placementTwoWomen(
     case 'kneeling':
       return `Both kneel upright on ${on('bed')} facing each other, bodies pressed together, kissing, each with a hand between the other's thighs; both faces in frame.`;
     case 'lap':
-      return `${cap(gf)} sits on ${on('chair')}; the woman sits on her girlfriend's lap facing her, straddling her with her knees on either side of her hips, arms around her neck; ${gf}'s hand between her thighs, fingering her.`;
+      // "Sits on her girlfriend's lap facing her" sat them side by side (0/3); naming one on top of
+      // the other and two separate bodies put one on the other's lap 3/3 (Rapid, 2026-10-06).
+      return `${cap(gf)} sits back in ${on('chair')}; the woman sits on top of her, astride her girlfriend's lap facing her, her knees on the seat on either side of her girlfriend's hips, chest to chest, arms around her neck; ${gf}'s hand between her thighs, fingering her. Two separate bodies, both faces in frame.`;
     default:
       return null;
   }
@@ -355,8 +357,11 @@ function placementTwoMen(
       // drew no contact (0/3, live 2026-10-06); the side view did (3/3). Rapid put the first
       // image's face on the receiver in all 9 side-view renders, even with the lead named as
       // the one kneeling and each face tied to its image, so the words say what it draws.
-      return sheGivesOral(beat) && isFloorSurface(surface)
-        ? `Full-body view, both faces in frame. ${cap(bf)} stands; the man kneels on ${on('floor')} in front of him with his boyfriend's penis in his mouth, looking up at him.`
+      // On the floor the receiver stands against the wall, same side view: contact 3/3, the
+      // boyfriend kneeling as drawn (the old full-body line had him kneel while the text said the
+      // lead did).
+      return isFloorSurface(surface)
+        ? `Side view, exactly two men. The man stands, his back against the wall; ${bf} kneels on ${on('floor')} in front of him, his face in profile at the man's hips with the man's penis in his mouth, holding it at the base. The man looks down at him.`
         : `Side view, exactly two men. The man sits on ${edgeOf(surface, 'bed')}, leaning back on his hands with his knees apart; ${bf} kneels on the floor between his knees, his face in profile at the man's lap with the man's penis in his mouth, holding it at the base. The man looks down at him.`;
     default:
       return null;
