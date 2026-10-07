@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Film mode starts at Play.** In Film (the play loop: Cast, Look, Outfit, Day, Story, Gallery, the default for a new install), opening the app's front page now goes to Play instead of the Generate tool. *All tools* in Film's menu is now a real switch: it moves the workspace to Studio, with every tool, and opens it. Change back any time from Profile → Workspace. Settings already show only the essentials until *All settings…*.
+
 ## [v2.3.3] - 2026-10-07
 
 - **Two men on Day, checked live for the first time.** Four problems in the text sent to ComfyUI, all fixed. (1) A man lead's couple stills opened with "SCENE: she is in … around her": the scene and outfit lines in front of the couple recipe now speak of him. (2) "In a silk robe over a slip" stayed on a man: the menswear swap now covers a slip, a camisole and panties (the verbs "slip off" and "slips into" are left alone). (3) "Sitting on his lap facing him… mid-sex" lost its compact recipe for two men and for two women. The same-sex rewording makes it "her partner's lap", which the layout reader didn't recognise. (4) Two men's oral drew no contact (0 of 3): it is now a side view with his boyfriend kneeling, and contact landed in 3 of 3. Rapid puts the lead on the receiving end however the beat reads (9 of 9), so the words say that. Two women keep their roles, which tested clean; changing them made renders worse. The two-men lap is now seated ("his boyfriend sits on the armchair"), not laid on its back. Live (Rapid, Edit 2511): two distinct men with their own faces in every render, clothed and adult.

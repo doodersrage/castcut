@@ -14,7 +14,7 @@ import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
 import { useBottomDockRef } from '@/hooks/useBottomDockRef';
 import { featureForPath } from '@/lib/auth/features';
 import { APP_NAV_PROFILE_LINK, APP_NAV_SETTINGS_LINK } from '@/lib/app-nav-catalog';
-import { ROLEPLAY_FOCUS_ESCAPE_HREF } from '@/lib/workspace-mode';
+import { ROLEPLAY_FOCUS_ESCAPE_HREF, saveWorkspaceMode } from '@/lib/workspace-mode';
 import { galleryNavHref } from '@/lib/gallery-session-state';
 import { accentForPath } from '@/lib/tool-theme';
 import {
@@ -208,7 +208,12 @@ export default function PlayKioskShell() {
                   href={ROLEPLAY_FOCUS_ESCAPE_HREF}
                   role="menuitem"
                   className="block border-t border-[var(--border-subtle)] px-3 py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-                  onClick={() => setMoreOpen(false)}
+                  data-testid="film-all-tools"
+                  onClick={() => {
+                    // A real switch: Film sends "/" back to Play, so leaving it means Studio.
+                    saveWorkspaceMode('studio');
+                    setMoreOpen(false);
+                  }}
                 >
                   All tools
                 </Link>

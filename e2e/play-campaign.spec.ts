@@ -3718,6 +3718,31 @@ test('cast film tab offers Cut episode: the Day, then the Story, as one film', a
   await expect(summary).toContainText('1 from the Day, 2 from the Story');
 });
 
+test('Film mode opens at Play; All tools switches to Studio', async ({ page, baseURL }) => {
+  // The server reads the mode from this cookie: "/" sends Film to Play.
+  await page.context().addCookies([
+    { name: 'comfy-workspace-mode-v1', value: 'play', url: baseURL ?? 'http://localhost:3000' },
+  ]);
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('comfy-workspace-mode-v1', 'play');
+      localStorage.setItem('comfy-workspace-mode-chosen-v1', '1');
+    } catch {
+      // ignore
+    }
+  });
+  await gotoStable(page, '/');
+  await expect(page).toHaveURL(/\/play(?:[?#].*)?$/, { timeout: 30_000 });
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('play-kiosk-more').click();
+  await page.getByTestId('film-all-tools').click();
+  await expect(page).toHaveURL(/\/(?:[?#].*)?$/, { timeout: 30_000 });
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('comfy-workspace-mode-v1')))
+    .toMatch(/studio/);
+  await expect(page.locator('html')).toHaveAttribute('data-workspace', 'studio');
+});
+
 test('play campaign empty cast offers create character CTA', async ({ page }) => {
   await page.addInitScript(() => {
     try {

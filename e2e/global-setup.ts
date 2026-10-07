@@ -36,6 +36,8 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
     try {
       localStorage.setItem('comfy-workspace-mode-v1', 'studio');
       localStorage.setItem('comfy-workspace-mode-chosen-v1', '1');
+      // The server reads the mode from this cookie ("/" sends Film to Play).
+      document.cookie = 'comfy-workspace-mode-v1=studio; Path=/; Max-Age=31536000; SameSite=Lax';
     } catch {
       // ignore quota / private mode
     }
