@@ -18,7 +18,7 @@ A patch on 2.3.2. Live progress and previews are back for the still that is rend
 - **No third leg** on solo stills lying back: the stance words now describe what the pose drawing shows.
 - **Suggestive pose drawings no longer contradict the beat.** When the clothed drawing would turn a lie or a kneel into a seated or standing pair, Day sends no drawing and the words set the pose. A pose you pick yourself is always drawn.
 - **Lying face to face stays lying** (both lying in 3 of 3 renders, about 1 of 3 before).
-- **Two men, checked live.** The scene line speaks of him, menswear covers a slip, a camisole and panties, the lap and oral beats read right, and the lap is seated. Two women's lap beat gets its compact recipe again.
+- **Two men, checked live.** The scene line speaks of him, menswear covers a slip, a camisole and panties, the lap beat gets its compact recipe and is seated, and oral is a side view with real contact (Rapid draws the lead receiving). Two women's lap beat gets its compact recipe again.
 - **Picked shoes on two-person stills**, a beat's own furniture in the right place, no white dot spray on sport stills, and friend beats that open as a Day photo, not a date.
 
 ### Settings

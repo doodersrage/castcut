@@ -30,13 +30,15 @@ describe('same-sex duo wording', () => {
     assert.equal(sheGivesOral('he kneels and goes down on her on the bed edge'), false);
   });
 
-  it('two men: the lead kneels for oral, and a lap is seated', () => {
+  it('two men: oral is a side view with contact, and a lap is seated', () => {
     const oral = buildRapidDuoRecipe({
       beat: sameSexPartnerBeat('she kneels between his legs going down on him after dinner'),
       lead: 'man',
       partner: { partner: SAM, image: 'second' },
     });
-    assert.match(oral ?? '', /his boyfriend sits on the edge of the bed; the man kneels/i);
+    // Side view with contact; Rapid draws the lead receiving whatever the beat says.
+    assert.match(oral ?? '', /Side view, exactly two men\. The man sits on the edge of the bed/);
+    assert.match(oral ?? '', /his boyfriend kneels on the floor between his knees, his face in profile/);
     const lap = buildRapidDuoRecipe({
       beat: sameSexPartnerBeat('sitting on his lap facing him in the armchair mid-sex'),
       lead: 'man',

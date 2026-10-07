@@ -351,11 +351,13 @@ function placementTwoMen(
     case 'oral':
     case 'sixty_nine':
     case 'facesit':
-      return sheGivesOral(beat)
-        ? isFloorSurface(surface)
-          ? `Full-body view, both faces in frame. ${cap(bf)} stands; the man kneels on ${on('floor')} in front of him with his boyfriend's penis in his mouth, looking up at him.`
-          : `Full-body view, both faces in frame. ${cap(bf)} sits on ${edgeOf(surface, 'bed')}; the man kneels on the floor between his boyfriend's knees with his boyfriend's penis in his mouth, looking up at him.`
-        : `Full-body view, both faces in frame. The man sits on ${edgeOf(surface, 'bed')}, leaning back on his hands; ${bf} kneels on the floor between his knees with the man's penis in his mouth.`;
+      // Seated: a side view with his boyfriend kneeling. "Full-body view, both faces in frame"
+      // drew no contact (0/3, live 2026-10-06); the side view did (3/3). Rapid put the first
+      // image's face on the receiver in all 9 side-view renders, even with the lead named as
+      // the one kneeling and each face tied to its image, so the words say what it draws.
+      return sheGivesOral(beat) && isFloorSurface(surface)
+        ? `Full-body view, both faces in frame. ${cap(bf)} stands; the man kneels on ${on('floor')} in front of him with his boyfriend's penis in his mouth, looking up at him.`
+        : `Side view, exactly two men. The man sits on ${edgeOf(surface, 'bed')}, leaning back on his hands with his knees apart; ${bf} kneels on the floor between his knees, his face in profile at the man's lap with the man's penis in his mouth, holding it at the base. The man looks down at him.`;
     default:
       return null;
   }
