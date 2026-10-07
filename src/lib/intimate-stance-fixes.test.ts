@@ -74,8 +74,9 @@ describe('adult spooning on Rapid', () => {
     const rapid = { model: 'qwen-rapid-aio-edit-nsfw', adultMood: true };
     assert.equal(rapidAdultSkipsPoseGuide({ ...rapid, beat: 'lying face-down on the sheets mid-sex with a partner stretched along her back' }), true);
     assert.equal(rapidAdultSkipsPoseGuide({ ...rapid, beat: 'against the bedroom wall mid-sex with a partner' }), true);
-    // Same-sex wall pairs keep the map (only man–woman was tested without it).
-    assert.equal(rapidAdultSkipsPoseGuide({ ...rapid, beat: 'against the bedroom wall mid-sex with a partner', sameSex: true }), false);
+    // Two women keep the wall map (in contact with it); two men drop it like a man and a woman.
+    assert.equal(rapidAdultSkipsPoseGuide({ ...rapid, beat: 'against the bedroom wall mid-sex with a partner', pairing: 'two-women' }), false);
+    assert.equal(rapidAdultSkipsPoseGuide({ ...rapid, beat: 'against the bedroom wall mid-sex with a partner', pairing: 'two-men' }), true);
   });
   it('the recipe names no pose map when none is attached', async () => {
     const { buildRapidDuoRecipe } = await import('./rapid-duo-recipe');

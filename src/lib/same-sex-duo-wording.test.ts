@@ -108,14 +108,15 @@ describe('same-sex duo wording', () => {
     assert.doesNotMatch(oral ?? '', /the woman kneels on the floor between her girlfriend's thighs/);
   });
 
-  it("two women's lap is one on top of the other; two men's floor oral is a side view", () => {
+  it("two women's lap is a side view, one on the other's lap; two men's floor oral is a side view", () => {
     const NORA = { name: 'Nora', noun: 'woman', descriptor: 'a woman with brown hair' } as DayPartner;
     const lap = buildRapidDuoRecipe({
       beat: sameSexPartnerBeat('sitting on his lap facing him in the armchair mid-sex'),
       lead: 'woman',
       partner: { partner: NORA, image: 'second' },
     });
-    assert.match(lap ?? '', /the woman sits on top of her, astride her girlfriend's lap/);
+    assert.match(lap ?? '', /Side view of the armchair\. Her girlfriend sits in it/);
+    assert.match(lap ?? '', /the woman sits on her lap facing her, chest to chest/);
     assert.match(lap ?? '', /Two separate bodies/);
     const floor = buildRapidDuoRecipe({
       beat: sameSexPartnerBeat('she kneels on the bedroom floor in front of him going down on him'),

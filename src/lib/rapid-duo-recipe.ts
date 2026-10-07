@@ -276,7 +276,9 @@ function placementTwoWomen(
     case 'lap':
       // "Sits on her girlfriend's lap facing her" sat them side by side (0/3); naming one on top of
       // the other and two separate bodies put one on the other's lap 3/3 (Rapid, 2026-10-06).
-      return `${cap(gf)} sits back in ${on('chair')}; the woman sits on top of her, astride her girlfriend's lap facing her, her knees on the seat on either side of her girlfriend's hips, chest to chest, arms around her neck; ${gf}'s hand between her thighs, fingering her. Two separate bodies, both faces in frame.`;
+      // Front-on she turned to the camera with her girlfriend behind her (2/2, 2026-10-07); a side
+      // view with both faces in profile, as for a man, sat them face to face 3/3.
+      return `Side view of ${on('chair')}. ${cap(gf)} sits in it, her face in profile; the woman sits on her lap facing her, chest to chest, straddling her with her knees on either side of her girlfriend's hips, arms around her neck — her face in profile too, kissing; ${gf}'s hand between her thighs, fingering her. Two separate bodies, both faces in frame.`;
     default:
       return null;
   }
@@ -347,7 +349,10 @@ function placementTwoMen(
     case 'wall':
       return layout === 'bent' && isFloorSurface(surface)
         ? `The man is on all fours on ${on('floor')}, hips raised; ${bf} kneels close behind him holding his hips, penetrating him from behind. He looks back over his shoulder.`
-        : `The man stands bent forward with his hands braced on ${on(layout === 'bent' ? 'bed edge' : 'wall')}, hips pushed back; ${bf} stands close behind him holding his hips, penetrating him from behind. He looks back over his shoulder.`;
+        : layout === 'wall'
+          ? // Side view without the map (rapidAdultSkipsPoseGuide): front-on they posed apart.
+            `Side view, both bodies in profile. The man stands facing ${on('wall')}, his palms flat on it and his hips pushed back toward ${bf}; ${bf} stands directly behind him, his chest against the man's back and his hips against his buttocks, penetrating him from behind, his hands on his hips; the man turns his head to look back at him. No gap between their bodies.`
+          : `The man stands bent forward with his hands braced on ${on('bed edge')}, hips pushed back; ${bf} stands close behind him holding his hips, penetrating him from behind. He looks back over his shoulder.`;
     case 'prone':
       return `The man lies flat on his stomach on ${on('bed')}, face turned to the side on the pillow; ${bf} lies on top of his back, propped up on his arms, penetrating him from behind.`;
     case 'spoon':
@@ -1301,20 +1306,22 @@ export function buildRapidVacationRecipe(input: {
  * - spoon — the flat map with the lifted-leg wording tangled legs (03054: 1/3 → 0/3).
  * - prone — the side-view map can't say face-down; with it she came face-up 3/4, without 0/4.
  * - wall — the map draws two people standing straight side by side, and they posed beside each
- *   other (8 of 12 sweep beats, both seeds); no map + side-view wording, in contact 4/4. Tested
- *   man–woman only, so same-sex pairs keep the map.
+ *   other (8 of 12 sweep beats, both seeds); no map + side-view wording, in contact 4/4; two men
+ *   the same (2/2). Two women in contact 2/2 with the map, so they keep it.
  * Klein spoon already runs without one.
  */
 export function rapidAdultSkipsPoseGuide(input: {
   model: string | null | undefined;
   adultMood: boolean;
   beat: string | null | undefined;
-  /** The lead and partner are the same sex. */
-  sameSex?: boolean;
+  /** Same-sex pairs: two women kept the wall map (in contact 2/2 with it); two men posed apart. */
+  pairing?: 'two-women' | 'two-men' | null;
 }): boolean {
   if (!input.adultMood || !/rapid/i.test(input.model ?? '')) return false;
   const layout = parseIntimateLayout(input.beat ?? '');
-  return layout === 'spoon' || layout === 'prone' || (layout === 'wall' && !input.sameSex);
+  return (
+    layout === 'spoon' || layout === 'prone' || (layout === 'wall' && input.pairing !== 'two-women')
+  );
 }
 
 const WALKING_RE = /\b(?:walk(?:s|ing)?|stroll(?:s|ing)?|wander(?:s|ing)?)\b/i;

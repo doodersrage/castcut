@@ -1759,7 +1759,12 @@ export function useDayPlannerToolOrchestrationCore() {
             model: stillModel,
             adultMood: isDayAdultMood(toolSettings.dayMood) && intimateEnabled,
             beat: queueTarget.sceneHints,
-            sameSex: Boolean(slotPartner && slotPartner.noun === leadNoun),
+            pairing:
+              slotPartner && slotPartner.noun === leadNoun
+                ? leadNoun === 'man'
+                  ? 'two-men'
+                  : 'two-women'
+                : null,
           })
         ) {
           skipPoseGuideImage = true;
