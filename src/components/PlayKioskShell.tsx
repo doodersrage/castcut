@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation';
 import BrandMark from '@/components/BrandMark';
 import ConnectionHealthChip from '@/components/ConnectionHealthChip';
 import ReportBugLink from '@/components/ReportBugLink';
+import { dockGridColsClass } from '@/lib/play-dock-cols';
 import PlayContinueChip from '@/components/PlayContinueChip';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
 import { useBottomDockRef } from '@/hooks/useBottomDockRef';
@@ -64,17 +65,6 @@ function tabIsActive(href: string, pathname: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function gridColsClass(count: number): string {
-  if (count <= 4) {
-    return 'grid-cols-4';
-  }
-  if (count === 5) {
-    return 'grid-cols-5';
-  }
-  // Six on a phone (five tabs + More); the More cell is hidden from sm up.
-  return 'grid-cols-6 sm:grid-cols-5';
-}
-
 export default function PlayKioskShell() {
   const dockRef = useBottomDockRef<HTMLElement>();
   const pathname = usePathname() ?? '/play';
@@ -127,7 +117,7 @@ export default function PlayKioskShell() {
   const moreTabs = useMemo(() => visibleTabs.filter(entry => !entry.primary), [visibleTabs]);
   const settingsVisible = canAccessNavFeature(allowed, 'settings');
   // More sits in the same row on phones — counted, or it wrapped onto a second row.
-  const colClass = gridColsClass(primaryTabs.length + (moreTabs.length > 0 ? 1 : 0));
+  const colClass = dockGridColsClass(primaryTabs.length, moreTabs.length > 0);
   const moreActive = moreTabs.some(entry => tabIsActive(entry.href, pathname));
 
   return (
