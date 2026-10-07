@@ -17,6 +17,7 @@ import {
   listComfyEditorWorkflows,
   readComfyEditorWorkflow,
   saveComfyEditorWorkflow,
+  stageCastcutEditorTemplate,
 } from '@/lib/comfy-editor-workflows-server';
 
 export const runtime = 'nodejs';
@@ -114,9 +115,14 @@ export async function POST(request: Request) {
   const saved = await saveComfyEditorWorkflow(baseUrl, file, workflow);
   if (!saved.ok) return apiError(saved.error, 502);
   const missingNodeTypes = apiPromptClassTypes(prompt).filter(type => !defs[type]);
+  // Castcut nodes 1.5.0+ (installed as a folder) stage it as a template too, which the editor
+  // opens from the URL — straight onto the canvas instead of via the Workflows sidebar.
+  const staged = await stageCastcutEditorTemplate(baseUrl, file.replace(/\.json$/i, ''), workflow);
   return apiJson({
     ok: true,
     comfyUrl: baseUrl,
+    ...(staged.openUrl ? { openUrl: staged.openUrl } : {}),
+    ...(staged.reason ? { directOpen: staged.reason } : {}),
     file,
     path: saved.path,
     nodes: workflow.nodes.length,

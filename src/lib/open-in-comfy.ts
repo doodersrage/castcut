@@ -63,6 +63,33 @@ export async function resolveQueuedGraph(
   }
 }
 
+/** Why the graph could not open on the canvas by itself, and what would make it. */
+const OPEN_DIRECT_HINT: Record<'no-pack' | 'single-file' | 'restart', string> = {
+  'no-pack':
+    ' To open it straight onto the canvas, install Castcut nodes 1.5.0+ (Settings → ComfyUI → Castcut nodes).',
+  'single-file':
+    ' To open it straight onto the canvas, install Castcut nodes as a folder (Comfy Registry or git), not the single file.',
+  restart: ' Restart ComfyUI once and it will open straight onto the canvas.',
+};
+
+/**
+ * The ComfyUI link as this browser can reach it: a loopback address is the server's own view,
+ * so from another device it becomes the host this page was loaded from.
+ */
+export function browserComfyUrl(url: string, pageHost?: string): string {
+  try {
+    const parsed = new URL(url);
+    const host = pageHost ?? (typeof window !== 'undefined' ? window.location.hostname : '');
+    const loopback = /^(?:127\.0\.0\.1|localhost|\[::1\])$/i;
+    if (host && loopback.test(parsed.hostname) && !loopback.test(host)) {
+      parsed.hostname = host;
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 export async function saveGraphForComfyEditor(input: {
   prompt: ComfyApiPrompt;
   comfyUrl?: string;
@@ -80,6 +107,8 @@ export async function saveGraphForComfyEditor(input: {
     const data = (await response.json().catch(() => null)) as {
       file?: string;
       comfyUrl?: string;
+      openUrl?: string;
+      directOpen?: 'no-pack' | 'single-file' | 'restart';
       missingNodeTypes?: string[];
       error?: string;
     } | null;
@@ -90,13 +119,17 @@ export async function saveGraphForComfyEditor(input: {
       };
     }
     const missing = data.missingNodeTypes ?? [];
+    const missingNote =
+      missing.length > 0 ? ` This ComfyUI is missing: ${missing.join(', ')}.` : '';
     return {
       ok: true,
       file: `Castcut/${data.file}`,
-      comfyUrl: data.comfyUrl,
-      message:
-        `Saved Castcut/${data.file} — open it from ComfyUI's Workflows sidebar.` +
-        (missing.length > 0 ? ` This ComfyUI is missing: ${missing.join(', ')}.` : ''),
+      comfyUrl: data.openUrl || data.comfyUrl,
+      message: data.openUrl
+        ? `Opened in ComfyUI (also saved as Castcut/${data.file}).${missingNote}`
+        : `Saved Castcut/${data.file} — open it from ComfyUI's Workflows sidebar.${
+            OPEN_DIRECT_HINT[data.directOpen ?? 'no-pack']
+          }${missingNote}`,
     };
   } catch (error) {
     return {
@@ -156,11 +189,12 @@ async function openInComfyWithTab(
     promptId: entry.promptId || undefined,
   });
   if (!result.ok || !result.comfyUrl) return fail(result.message);
+  const target = browserComfyUrl(result.comfyUrl);
   if (tab) {
     tab.opener = null;
-    tab.location.href = result.comfyUrl;
+    tab.location.href = target;
   } else {
-    window.open(result.comfyUrl, '_blank', 'noopener');
+    window.open(target, '_blank', 'noopener');
   }
   return result;
 }

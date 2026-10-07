@@ -84,7 +84,7 @@ there) and restart the container.
 Check it worked: `http://<comfyui>:8188/object_info/CastcutPoseScore` returns the node, and the
 card shows *Installed v1.4.0*. With 1.2.0, `http://<comfyui>:8188/castcut/info` answers too.
 
-## Routes (1.2.0 – 1.4.0)
+## Routes (1.2.0 – 1.5.0)
 
 Besides the nodes, the pack adds a few HTTP routes to ComfyUI, so some checks no longer go
 through the render queue:
@@ -117,6 +117,13 @@ through the render queue:
 - **1.4.0: is it being used?** The Castcut nodes card shows what the pack answered since ComfyUI
   started (per check, with the average time) and how often the app had to fall back to the
   queue — run a Day and look there.
+
+- **1.5.0: Open in ComfyUI opens the graph.** The still's graph is staged in the pack's
+  `example_workflows/` folder, which ComfyUI serves as templates, and the link opens it straight
+  onto the canvas (`?template=…&source=…`) instead of leaving you to find it in the Workflows
+  sidebar. Needs the pack installed **as a folder** (Comfy Registry, git or ComfyUI-Manager — not
+  the single `castcut_nodes.py` file) and one ComfyUI restart after installing, so ComfyUI
+  registers the folder. The copy under `workflows/Castcut/` is still saved either way.
 
 Without 1.2.0 (or when a route fails) everything works as before, through queued graphs. The
 queue position of a waiting still now comes from ComfyUI's jobs list rather than the whole

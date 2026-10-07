@@ -184,3 +184,39 @@ export async function readComfyEditorWorkflow(
     };
   }
 }
+
+/**
+ * Ask the Castcut node pack (1.5.0+, folder install) to stage the workflow as a template, and
+ * build the editor URL that opens it. `reason` says why there is no URL: the pack is missing or
+ * older (`no-pack`), a single-file install (`single-file`), or the folder is new since ComfyUI
+ * started (`restart`). Never throws.
+ */
+export async function stageCastcutEditorTemplate(
+  baseUrl: string,
+  name: string,
+  workflow: unknown
+): Promise<{ openUrl?: string; reason?: 'no-pack' | 'single-file' | 'restart' }> {
+  try {
+    const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/castcut/editor-workflow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, workflow }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) return { reason: 'no-pack' };
+    const data = (await response.json()) as {
+      source?: string | null;
+      template?: string;
+      reason?: string;
+    };
+    if (data.source && data.template) {
+      const url = new URL(`${baseUrl.replace(/\/+$/, '')}/`);
+      url.searchParams.set('template', data.template);
+      url.searchParams.set('source', data.source);
+      return { openUrl: url.toString() };
+    }
+    return { reason: data.reason === 'restart' ? 'restart' : 'single-file' };
+  } catch {
+    return { reason: 'no-pack' };
+  }
+}

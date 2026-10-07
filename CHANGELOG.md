@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Open in ComfyUI opens the still's graph on the canvas.** It used to save the graph and open ComfyUI on whatever it last showed, leaving you to find the file in the Workflows sidebar. With Castcut nodes 1.5.0 installed as a folder (Registry, git or Manager; restart ComfyUI once), the link now loads the graph directly. Otherwise it still saves to `workflows/Castcut/` and says what to install. Opened from another device, a `127.0.0.1` ComfyUI link now uses the host you reached Castcut on.
 ## [v2.3.4] - 2026-10-07
 
 - **Changing the outfit re-dresses the plate.** When a look's plate was a kept Outfit try-on (a Keep), Day kept starting every Everyday still from it even after you picked a different outfit — the old outfit in the picture, the new one in the words, and stills that mixed the two (a new top over the kept shorts). A Keep in a different clothing photo, kit or shoes than the one picked now is no longer used: Day dresses the Cast's own plate in the new outfit, once, and starts the stills from that.
