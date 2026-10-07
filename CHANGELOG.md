@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Day from an idea.** On an Everyday or Vacation Day (and its themes), type one line — *a rainy Saturday that ends at a gallery opening* — and **Write the day**: the LLM writes a beat and a place for every slot, morning to night, so the stills follow one thread. Each beat must open with a stance Day can pose; anything adult, in the bath, or with extra people on a solo Day is dropped and that slot keeps its beat.
 - **Your take picks are saved with the gallery.** Keeping one of Two takes, or tapping Looks wrong, now marks those stills in the synced gallery, not just this browser — the labelled set needed to build a reliable check for two-person intimate stills.
 - **Four intimate stills fixed** (each 3 of 3 in replays, where the old wording failed 3 of 3): face-down on the laundry pile no longer comes out face-up and upside down; *ankles near her shoulders* raises both legs as the pose guide draws (the one-knee line from the third-leg fix twisted her); the couch beat's TV remote stays on the floor instead of between her legs; and a nude two-person still drops clothes its beat names (*cocktail dress around her waist*, *dress pushed up*) instead of drawing underwear at the waist.
 - **Re-rolls are remembered across reloads.** Each take records the beat it was rendered for, so rendering it again after a reload still counts as a re-roll.

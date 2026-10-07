@@ -32,6 +32,8 @@ import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
+import { sharedLlmRequestBody } from '@/lib/llm-request-options';
+import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
@@ -2463,6 +2465,21 @@ export function useDayPlannerToolOrchestrationCore() {
     updateToolSettings,
   ]);
 
+  // Day from an idea: the LLM writes one beat + room per slot from the player's premise.
+  const writeDayFromIdea = useCallback(
+    async (premise: string): Promise<number> => {
+      const beats = await requestDayPremiseBeats({
+        premise,
+        slotIds: slots.map(slot => slot.id),
+        companions: toolSettings.allowCompanions === true,
+        llmBody: sharedLlmRequestBody(shared),
+      });
+      updateToolSettings({ slots: applyDayPremiseBeats(slots, beats) });
+      return beats.length;
+    },
+    [shared, slots, toolSettings.allowCompanions, updateToolSettings]
+  );
+
   const rerollActiveSlotScene = useCallback(
     (options?: {
       slotId?: import('@/lib/day-planner').DaySlotId;
@@ -2711,6 +2728,7 @@ export function useDayPlannerToolOrchestrationCore() {
       });
     },
     suggestDayScenes,
+    writeDayFromIdea,
     rerollActiveSlotScene,
     queueBlockReason,
     poseGuideLine: summarizePoseGuideOutcomes(poseGuideOutcomes),

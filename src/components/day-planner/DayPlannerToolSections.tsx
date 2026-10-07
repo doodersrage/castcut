@@ -9,6 +9,7 @@ import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { Button, ButtonLink } from '@/components/ui/Button';
+import DayIdeaRow from '@/components/day-planner/DayIdeaRow';
 import { FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
@@ -202,6 +203,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     intimateEnabled,
     intimateMix,
     suggestDayScenes,
+    writeDayFromIdea,
     rerollActiveSlotScene,
     queueBlockReason,
     poseGuideLine,
@@ -898,6 +900,13 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onPickTwoTake={pickTwoTake}
             onLooksWrong={slot => void looksWrongSlot(slot.id)}
             onFixArea={slot => setFixAreaTarget(fixAreaTargetForSlot(slot.id))}
+          />
+          <DayIdeaRow
+            className="mt-3"
+            dayMood={dayMood}
+            busy={busy}
+            slotCount={slots.length}
+            onWrite={writeDayFromIdea}
           />
           {/* One primary per phase: Queue day → Animate all → Cut (the banner) → Save. */}
           <ToolActionRow className="mt-3">

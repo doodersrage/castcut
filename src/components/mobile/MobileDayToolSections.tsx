@@ -32,6 +32,7 @@ import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import SharedToolControls from '@/components/SharedToolControls';
 import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
+import DayIdeaRow from '@/components/day-planner/DayIdeaRow';
 import { ChipButton, FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
@@ -191,6 +192,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     intimateEnabled,
     intimateMix,
     suggestDayScenes,
+    writeDayFromIdea,
     rerollActiveSlotScene,
     queueBlockReason,
     poseGuideLine,
@@ -842,6 +844,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onPickTwoTake={pickTwoTake}
           onLooksWrong={slot => void looksWrongSlot(slot.id)}
           onFixArea={slot => setFixAreaTarget(fixAreaTargetForSlot(slot.id))}
+        />
+        <DayIdeaRow
+          dayMood={dayMood}
+          busy={busy}
+          slotCount={slots.length}
+          onWrite={writeDayFromIdea}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton
