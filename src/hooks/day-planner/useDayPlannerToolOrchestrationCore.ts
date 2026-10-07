@@ -116,6 +116,7 @@ import {
   DAY_ADULT_SOLO_NUDE_IDENTITY_LOCK_CAP,
   type DaySlot,
   type DaySlotId,
+  setDayAvoidedBeatsSource,
 } from '@/lib/day-planner';
 import {
   castFaceDuplicatesBodyPlate,
@@ -147,7 +148,7 @@ import {
 import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day-vacation';
 import { buildDayPoseGuide } from '@/lib/day-pose-guide';
 import { customPoseWords } from '@/lib/pose-describe';
-import { bestOfTwoAsOneJob } from '@/lib/day-best-of-two';
+import { bestOfTwoAsOneJob, setLearnedHardLayoutsSource } from '@/lib/day-best-of-two';
 import { dayTwoTakesApplies } from '@/lib/day-two-takes';
 import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut-nodes';
 import {
@@ -264,7 +265,16 @@ import {
 } from '@/lib/play-campaign';
 import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/look-outfit-plate';
 import { resolveDaySlotLook } from '@/lib/day-slot-look';
-import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play-metrics';
+import {
+  chronicRerollBeats,
+  cuePoseLayouts,
+  PLAY_METRICS_UPDATED_EVENT,
+  poseLayoutFromKey,
+  recordPlayerSlotRender,
+  rerollBeatKey,
+  rerollProneLayouts,
+  weakPoseLayouts,
+} from '@/lib/play-metrics';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
@@ -963,6 +973,21 @@ export function useDayPlannerToolOrchestrationCore() {
     ]
   );
 
+  // The beat each slot last rendered for the player (re-roll record, play-metrics).
+  const lastPlayerBeatRef = useRef<Record<string, string>>({});
+  useEffect(() => {
+    let avoided = chronicRerollBeats();
+    let hard = rerollProneLayouts();
+    const refresh = () => {
+      avoided = chronicRerollBeats();
+      hard = rerollProneLayouts();
+    };
+    setDayAvoidedBeatsSource(() => avoided);
+    setLearnedHardLayoutsSource(() => hard);
+    window.addEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
+    return () => window.removeEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
+  }, []);
+
   const queueSlot = useCallback(
     async (
       slot: DaySlot,
@@ -991,9 +1016,33 @@ export function useDayPlannerToolOrchestrationCore() {
          * strong coverage line (clothed-coverage.ts), and a second such take is withheld.
          */
         coverageLine?: boolean;
+        /** Queued by the player (board, slot sheet, retry) — counted in the re-roll record. */
+        byPlayer?: boolean;
       }
     ) => {
       const manageBusy = options?.manageBusy !== false;
+      if (options?.byPlayer) {
+        // The same beat again on this slot is a re-roll (play-metrics): layouts kept re-rolled
+        // get best of two, beats kept re-rolled are skipped by Suggest day.
+        const beatKey = rerollBeatKey(slot.sceneHints);
+        const rerolled = Boolean(beatKey) && lastPlayerBeatRef.current[slot.id] === beatKey;
+        lastPlayerBeatRef.current[slot.id] = beatKey;
+        try {
+          recordPlayerSlotRender({
+            layout: daySlotPoseLayout({
+              slot,
+              dayMood: normalizeDayMood(toolSettings.dayMood),
+              intimateMix: toolSettings.intimateMix,
+              allowCompanions: toolSettings.allowCompanions === true,
+              model: shared.model,
+            }).layout,
+            beat: slot.sceneHints,
+            rerolled,
+          });
+        } catch {
+          // A record that can't be written never blocks the render.
+        }
+      }
       if (manageBusy) {
         setBusy(true);
       }

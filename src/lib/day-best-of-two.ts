@@ -52,10 +52,23 @@ export const DAY_HARD_POSE_LAYOUTS: ReadonlySet<string> = new Set([
   'afterglow',
 ]);
 
+const NO_LAYOUTS: ReadonlySet<string> = new Set();
+let learnedHardLayoutsSource: () => ReadonlySet<string> = () => NO_LAYOUTS;
+
+/**
+ * Layouts the player keeps re-rolling (play-metrics rerollProneLayouts) count as hard poses too.
+ * Set by the Day hook — this module stays free of browser storage.
+ */
+export function setLearnedHardLayoutsSource(source: () => ReadonlySet<string>): void {
+  learnedHardLayoutsSource = source;
+}
+
 /** Is this guide's pose (its pose key, `layout:people`, or a bare layout) a hard one? */
 export function isDayHardPose(poseKey: string | null | undefined): boolean {
   const layout = poseKey?.split(':')[0]?.trim();
-  return Boolean(layout && DAY_HARD_POSE_LAYOUTS.has(layout));
+  return Boolean(
+    layout && (DAY_HARD_POSE_LAYOUTS.has(layout) || learnedHardLayoutsSource().has(layout))
+  );
 }
 
 /**

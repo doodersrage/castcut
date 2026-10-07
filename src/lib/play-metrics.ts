@@ -52,6 +52,13 @@ export type PlayMetrics = {
   poseMatchByLayout?: Record<string, PoseMatchStats>;
   /** Same, for stills whose prompt also spelled the pose out in words (see `pose-coaching`). */
   poseMatchByLayoutCued?: Record<string, PoseMatchStats>;
+  /**
+   * The player's own renders of a Day slot, and how many were a re-roll (the same beat again).
+   * Per layout (best of two for layouts kept re-rolled) and per beat (Suggest day skips beats
+   * that keep being re-rolled). Auto-review and the other automatic redos are not counted.
+   */
+  rerollsByLayout?: Record<string, SlotRerollStats>;
+  rerollsByBeat?: Record<string, SlotRerollStats>;
   /** Accumulated time spent in each film phase. */
   phaseTimings?: PlayPhaseTimings;
   /** Phase the user is currently in, and when they entered it. */
@@ -59,6 +66,8 @@ export type PlayMetrics = {
 };
 
 /** Phases we time — Cast and Story are excluded (Cast is instant, Story is optional). */
+export type SlotRerollStats = { renders: number; rerolls: number };
+
 export const PLAY_TIMED_PHASES = ['moodboard', 'fitting', 'day'] as const;
 
 export type PlayPhaseId = (typeof PLAY_TIMED_PHASES)[number];
@@ -204,6 +213,27 @@ function normalizeFilmCutHistory(value: unknown): number[] | undefined {
   return stamps.length > 0 ? stamps : undefined;
 }
 
+/** Beats kept in the re-roll record (the most rendered win when it overflows). */
+const REROLL_BEAT_MAX = 300;
+
+function normalizeRerolls(
+  value: unknown,
+  max: number
+): Record<string, SlotRerollStats> | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .map(([key, stats]) => {
+      const raw = stats as Partial<SlotRerollStats> | null;
+      const renders = Math.max(0, Math.floor(Number(raw?.renders) || 0));
+      const rerolls = Math.min(renders, Math.max(0, Math.floor(Number(raw?.rerolls) || 0)));
+      return [key, { renders, rerolls }] as const;
+    })
+    .filter(([key, stats]) => key.trim() && stats.renders > 0)
+    .sort((a, b) => b[1].renders - a[1].renders)
+    .slice(0, max);
+  return entries.length ? Object.fromEntries(entries) : undefined;
+}
+
 function normalizePlayMetrics(value: unknown): PlayMetrics {
   if (!value || typeof value !== 'object') {
     return { version: 1 };
@@ -222,6 +252,8 @@ function normalizePlayMetrics(value: unknown): PlayMetrics {
     // Same stats shape keyed by layout name (there are ~100 layouts).
     poseMatchByLayout: normalizeFaceMatch(raw.poseMatchByLayout, POSE_LAYOUT_MAX),
     poseMatchByLayoutCued: normalizeFaceMatch(raw.poseMatchByLayoutCued, POSE_LAYOUT_MAX),
+    rerollsByLayout: normalizeRerolls(raw.rerollsByLayout, POSE_LAYOUT_MAX),
+    rerollsByBeat: normalizeRerolls(raw.rerollsByBeat, REROLL_BEAT_MAX),
     phaseTimings: normalizePhaseTimings(raw.phaseTimings),
     phaseOpen: normalizePhaseOpen(raw.phaseOpen),
   };
@@ -658,4 +690,73 @@ export function resolvePlayFunnelStall(input: {
   completedClips?: number;
 }): PlayFunnelStall | null {
   return resolvePlayStall(input);
+}
+
+/** A beat as the re-roll record keys it. */
+export function rerollBeatKey(beat: string | null | undefined): string {
+  return (beat ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * One render of a Day slot the player asked for: `rerolled` when it is the same beat again.
+ * Recorded per layout and per beat.
+ */
+export function recordPlayerSlotRender(input: {
+  layout: string | null | undefined;
+  beat: string | null | undefined;
+  rerolled: boolean;
+}): void {
+  const layout = input.layout?.trim() || '';
+  const beat = rerollBeatKey(input.beat);
+  if (!layout && !beat) return;
+  const current = loadPlayMetrics();
+  const bump = (record: Record<string, SlotRerollStats> | undefined, key: string) => {
+    if (!key) return record;
+    const stats = record?.[key] ?? { renders: 0, rerolls: 0 };
+    return {
+      ...(record ?? {}),
+      [key]: { renders: stats.renders + 1, rerolls: stats.rerolls + (input.rerolled ? 1 : 0) },
+    };
+  };
+  savePlayMetrics({
+    ...current,
+    rerollsByLayout: bump(current.rerollsByLayout, layout),
+    rerollsByBeat: bump(current.rerollsByBeat, beat),
+  });
+}
+
+/** Renders before a layout's re-roll rate counts, and the rate that makes it a hard pose. */
+export const REROLL_LAYOUT_MIN_RENDERS = 8;
+export const REROLL_LAYOUT_MIN_RATE = 0.5;
+/** A beat re-rolled this many times, at least this often per render, is skipped by Suggest day. */
+export const REROLL_BEAT_MIN_REROLLS = 3;
+export const REROLL_BEAT_MIN_RATE = 0.6;
+
+/**
+ * Layouts the player keeps re-rolling (half their renders or more, over 8+): Day treats them as
+ * hard poses, so Best of two gives them a second take (day-best-of-two.ts).
+ */
+export function rerollProneLayouts(metrics: PlayMetrics = loadPlayMetrics()): Set<string> {
+  return new Set(
+    Object.entries(metrics.rerollsByLayout ?? {})
+      .filter(
+        ([, stats]) =>
+          stats.renders >= REROLL_LAYOUT_MIN_RENDERS &&
+          stats.rerolls / stats.renders >= REROLL_LAYOUT_MIN_RATE
+      )
+      .map(([layout]) => layout)
+  );
+}
+
+/** Beats the player has re-rolled 3+ times at 60%+ of their renders (rerollBeatKey form). */
+export function chronicRerollBeats(metrics: PlayMetrics = loadPlayMetrics()): Set<string> {
+  return new Set(
+    Object.entries(metrics.rerollsByBeat ?? {})
+      .filter(
+        ([, stats]) =>
+          stats.rerolls >= REROLL_BEAT_MIN_REROLLS &&
+          stats.rerolls / stats.renders >= REROLL_BEAT_MIN_RATE
+      )
+      .map(([beat]) => beat)
+  );
 }

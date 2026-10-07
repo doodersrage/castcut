@@ -399,7 +399,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       showUsePromptStack: false,
       showUseFace: false,
       onRequeue: () => {
-        void queueSlot(slot);
+        void queueSlot(slot, { byPlayer: true });
       },
       fixArea: fixTarget
         ? {
@@ -884,9 +884,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onSelectSlot={setActiveSlotId}
             onEditSlot={openSlotSheet}
             onOpenStill={openProgressLightbox}
-            onRetrySlot={slot => void queueSlot(slot)}
+            onRetrySlot={slot => void queueSlot(slot, { byPlayer: true })}
             onAnimateSlot={slot => void animateSlot(slot)}
-            onQueueSlot={slot => void queueSlot(slot)}
+            onQueueSlot={slot => void queueSlot(slot, { byPlayer: true })}
             onRerollSlot={slot => {
               rerollActiveSlotScene({ slotId: slot.id });
             }}
@@ -1278,7 +1278,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             selectedComfyNode={selectedModel?.comfyNode ?? 'model'}
             hints={toolSettings.notes}
             queueLabel="Queue slot"
-            onSendComfyUi={() => void queueSlot(activeSlot)}
+            onSendComfyUi={() => void queueSlot(activeSlot, { byPlayer: true })}
           />
         ) : null}
       </ToolLayout>
@@ -1310,7 +1310,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         onKeepNewTake={() => dropPreviousTake(activeSlot.id)}
         onPickTwoTake={keep => pickTwoTake(activeSlot.id, keep)}
         endPose={endPoseControl}
-        onQueueSlot={() => void queueSlot(activeSlot)}
+        onQueueSlot={() => void queueSlot(activeSlot, { byPlayer: true })}
         onAnimateSlot={() => void animateSlot(activeSlot)}
       />
       <SideSheet

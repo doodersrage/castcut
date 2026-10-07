@@ -295,6 +295,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           await queueSlot(slot, {
             manageBusy: false,
             qualityProfile: options?.qualityProfile,
+            byPlayer: true,
           });
         }
       } finally {

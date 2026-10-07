@@ -2133,6 +2133,25 @@ export function dayHeatPoseClass(
   return dayEverydayPoseClass(beat);
 }
 
+const NO_BEATS: ReadonlySet<string> = new Set();
+let avoidedBeatsSource: () => ReadonlySet<string> = () => NO_BEATS;
+
+/**
+ * Beats the player keeps re-rolling (play-metrics chronicRerollBeats, lowercased with single
+ * spaces): Suggest day and every slot pick skip them while the pool has others. Set by the Day
+ * hook — this module stays free of browser storage.
+ */
+export function setDayAvoidedBeatsSource(source: () => ReadonlySet<string>): void {
+  avoidedBeatsSource = source;
+}
+
+function withoutAvoidedBeats(pool: string[]): string[] {
+  const avoided = avoidedBeatsSource();
+  if (avoided.size === 0) return pool;
+  const kept = pool.filter(entry => !avoided.has(entry.trim().toLowerCase().replace(/\s+/g, ' ')));
+  return kept.length > 0 ? kept : pool;
+}
+
 function pickUnusedBeatWithFreshPose(
   pool: string[],
   usedBeats: Set<string>,
@@ -2144,8 +2163,9 @@ function pickUnusedBeatWithFreshPose(
   /** Return nothing rather than repeat a layout (so the caller can try another pool). */
   strictLayouts = false
 ): string | undefined {
-  const unused = pool.filter(entry => !usedBeats.has(entry.trim().toLowerCase()));
-  const pickFrom = unused.length > 0 ? unused : pool;
+  const usable = withoutAvoidedBeats(pool);
+  const unused = usable.filter(entry => !usedBeats.has(entry.trim().toLowerCase()));
+  const pickFrom = unused.length > 0 ? unused : usable;
   const fresh = pickFrom.filter(entry => !usedPoseClasses.has(classify(entry)));
   const freshClass = fresh.length > 0 ? fresh : pickFrom;
   // Same posture class is sometimes unavoidable; the same drawn gesture twice rarely is.
