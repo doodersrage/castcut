@@ -288,3 +288,23 @@ describe('Face finish on a two-person still', () => {
     }
   });
 });
+
+describe('face finish skin and speed (2026-10-07)', () => {
+  it('prefers the fp8 Edit 2511 UNET and text encoder when installed', async () => {
+    const { resolveFaceFinisher } = await import('./face-finish');
+    const f = resolveFaceFinisher({
+      unets: ['qwen_image_edit_2511_bf16.safetensors', 'qwen_image_edit_2511_fp8mixed.safetensors'],
+      loras: ['Qwen-Image-Edit-2511-Lightning-8steps-V1.0-bf16.safetensors'],
+      clips: ['qwen_2.5_vl_7b.safetensors', 'qwen_2.5_vl_7b_fp8_scaled.safetensors'],
+      vaes: ['qwen_image_vae.safetensors'],
+    });
+    assert.equal(f?.kind, 'qwen-edit');
+    assert.equal(f && 'unet' in f ? f.unet : '', 'qwen_image_edit_2511_fp8mixed.safetensors');
+    assert.equal(f && 'clip' in f ? f.clip : '', 'qwen_2.5_vl_7b_fp8_scaled.safetensors');
+  });
+  it('asks for clear skin, not "natural skin texture"', async () => {
+    const { FACE_FINISH_PROMPT } = await import('./face-finish');
+    assert.match(FACE_FINISH_PROMPT, /clear, even skin/);
+    assert.doesNotMatch(FACE_FINISH_PROMPT, /natural skin texture/);
+  });
+});

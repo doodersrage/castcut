@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Face finish no longer roughens her skin.** The face pass asked for "natural skin texture, sharp natural detail" with the `euler` sampler, and often added freckles, red spots and an older, blotchy look. It now asks for clear, even skin and samples with `euler_ancestral`: clean on 4 of 4 replays of your stills, with likeness slightly closer. It also runs on the fp8 Edit 2511 files when installed, like Day stills, with the same faces.
 ## [v2.3.5] - 2026-10-07
 
 - **Smaller app bundle.** The gallery's "change the outfit" variant loaded the whole wardrobe catalog (~500 KB gzipped, the app's largest chunk) into the browser to pick one outfit. The pick now runs on the server (`/api/catalog/wardrobe-mutation`); a named outfit needs no catalog at all. Client JS went from 3.37 MB to 2.88 MB gzipped.

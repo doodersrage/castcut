@@ -38,8 +38,11 @@ export const LEAD_FACE_MARGIN = 0.05;
 /** Which detected face is hers: by side, or the largest when only one face was probed. */
 export type LeadFaceSide = 'leftmost' | 'rightmost' | 'largest';
 
+// "natural skin texture, sharp natural detail" + plain euler added freckles, red spots and an
+// older, blotchy skin (the user's Day stills, 2026-10-07). This wording with euler_ancestral: clean
+// skin on 4/4 replays, likeness 0.392 vs 0.411 (face distance to the plate, lower is closer).
 export const FACE_FINISH_PROMPT =
-  'Photorealistic close-up of the same woman as image 1: her exact face, eyes, nose, lips and hairline, natural skin texture, sharp natural detail.';
+  'Photorealistic close-up of the same woman as image 1: her exact face, eyes, nose, lips and hairline, clear, even skin with a soft natural finish — no freckles, spots or blemishes that are not in image 1.';
 
 /** Klein reads the face crop as a ReferenceLatent, not a numbered image. */
 export const FACE_FINISH_KLEIN_PROMPT =
@@ -83,13 +86,24 @@ export function resolveFaceFinisher(
   inventory: FaceFinishInventory,
   stillCheckpoint?: string | null
 ): FaceFinisher | null {
-  const qwenUnet = pick(inventory.unets, /qwen[-_]?image[-_]?edit[-_]?2511/i);
+  // fp8 first: the bf16 UNET + text encoder (57 GB) swap through a 24 GB card every pass; fp8
+  // gave the same faces (0.391 vs 0.392) — see preferInstalledFp8ForEdit2511.
+  const qwenUnet = pick(
+    inventory.unets,
+    /qwen[-_]?image[-_]?edit[-_]?2511.*fp8mixed/i,
+    /qwen[-_]?image[-_]?edit[-_]?2511.*fp8/i,
+    /qwen[-_]?image[-_]?edit[-_]?2511/i
+  );
   const qwenLora = pick(
     inventory.loras,
     /edit[-_]?2511[-_]?lightning[-_]?8/i,
     /edit[-_]?2511[-_]?lightning/i
   );
-  const qwenClip = pick(inventory.clips, /qwen[-_]?2\.5[-_]?vl[-_]?7b/i);
+  const qwenClip = pick(
+    inventory.clips,
+    /qwen[-_]?2\.5[-_]?vl[-_]?7b.*fp8/i,
+    /qwen[-_]?2\.5[-_]?vl[-_]?7b/i
+  );
   const qwenVae = pick(inventory.vaes, /qwen[-_]?image[-_]?vae/i);
   if (qwenUnet && qwenLora && qwenClip && qwenVae) {
     return {
@@ -506,7 +520,7 @@ export function buildFaceFinishGraph(input: {
       positive: ['20', 0],
       negative: ['21', 0],
       steps: f.kind === 'qwen-edit' ? 8 : 6,
-      sampler: f.kind === 'qwen-edit' ? 'euler' : 'euler_ancestral',
+      sampler: 'euler_ancestral',
       seed,
     });
   }
