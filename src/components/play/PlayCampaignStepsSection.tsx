@@ -10,7 +10,8 @@ type PlayCampaignStepsSectionProps = Pick<
   ReturnType<typeof usePlayCampaignWizardOrchestration>,
   'activeStep' | 'characterId' | 'activeLookPack' | 'setStepOverride' | 'goToStep' | 'pushPlay'
 > & {
-  firstFilmDone?: boolean;
+  /** Story is open: a film was cut or a whole Day has rendered (isPlayStoryLocked). */
+  storyOpen?: boolean;
 };
 
 export default function PlayCampaignStepsSection({
@@ -20,7 +21,7 @@ export default function PlayCampaignStepsSection({
   setStepOverride,
   goToStep,
   pushPlay,
-  firstFilmDone = false,
+  storyOpen = false,
 }: PlayCampaignStepsSectionProps) {
   const steps = PLAY_CAMPAIGN_STEPS;
 
@@ -35,7 +36,7 @@ export default function PlayCampaignStepsSection({
           const isActive = step.id === activeStep;
           const isOptional = Boolean(step.optional);
           const gate = canEnterPlayStep(step.id, {
-            metrics: firstFilmDone ? { version: 1, firstFilmCutAt: 1 } : { version: 1 },
+            metrics: storyOpen ? { version: 1, firstFullDayAt: 1 } : { version: 1 },
             campaign: characterId ? { characterId, stepIndex: 0 } : null,
             lookPack: activeLookPack,
           });
@@ -63,7 +64,7 @@ export default function PlayCampaignStepsSection({
                     {step.label}
                     {isStory ? (
                       <span className="type-caption ml-2 font-normal text-[var(--text-muted)]">
-                        {firstFilmDone ? 'unlocked' : 'after first film'}
+                        {storyOpen ? 'unlocked' : 'after a full Day'}
                       </span>
                     ) : null}
                   </p>

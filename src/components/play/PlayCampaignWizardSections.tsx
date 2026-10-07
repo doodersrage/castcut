@@ -1,5 +1,7 @@
 'use client';
 
+import { isPlayStoryLocked } from '@/lib/play-step-machine';
+
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
@@ -31,6 +33,12 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
   const firstFilmDone = useSyncExternalStore(
     subscribeNever,
     () => hasCompletedFirstFilm(loadPlayMetrics()),
+    () => false
+  );
+  // Story's step: open after the first cut or a whole Day of stills.
+  const storyOpen = useSyncExternalStore(
+    subscribeNever,
+    () => !isPlayStoryLocked(loadPlayMetrics()),
     () => false
   );
   const midFilm = Boolean(props.resumeStep && props.characterId && !props.campaignComplete);
@@ -68,7 +76,7 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
       setStepOverride={props.setStepOverride}
       goToStep={props.goToStep}
       pushPlay={props.pushPlay}
-      firstFilmDone={firstFilmDone}
+      storyOpen={storyOpen}
     />
   );
 

@@ -4538,3 +4538,80 @@ test('Cast page shows the season: episodes in order with their places', async ({
   await expect(episodes.nth(1)).toContainText('Date night');
   await expect(episodes.nth(1)).toContainText('park · gallery');
 });
+
+test('Keep as Cast turns the invented Day partner into a Cast member', async ({ page }) => {
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-keep-lead' },
+    characters: {
+      version: 1,
+      characters: [{ id: 'e2e-keep-lead', name: 'Keep Lead', version: 1, updatedAt: Date.now(), descriptor: 'a woman' }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-keep-lead',
+        dayMood: 'everyday',
+        allowCompanions: true,
+        intimateMix: 'mixed',
+        partnerCharacterId: 'new:man',
+        partnerStandIn: {
+          noun: 'man',
+          look: 'a man in his thirties with short dark hair',
+          filename: 'day-partner-vl-e2e.png',
+          imageUrl: thumb,
+        },
+      },
+    },
+  });
+  await gotoStable(page, '/day?character=e2e-keep-lead');
+  await dismissBlockingOverlays(page);
+  const keep = page.getByTestId('day-partner-keep-cast').first();
+  await expect(keep).toBeVisible({ timeout: 30_000 });
+  await keep.click();
+  await expect(page.getByTestId('day-partner-keep-cast')).toHaveCount(0);
+  await expect(page.getByTestId('day-partner').first()).toContainText('Day partner', { timeout: 15_000 });
+});
+
+test('Story opens once a whole Day has rendered, before any cut', async ({ page }) => {
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-full-day' },
+    characters: {
+      version: 1,
+      characters: [{ id: 'e2e-full-day', name: 'Full Day', version: 1, updatedAt: Date.now(), descriptor: 'a woman' }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-full-day',
+        dayMood: 'everyday',
+        slots: [
+          { id: 'morning', label: 'Morning', sceneHints: 'pours coffee' },
+          { id: 'afternoon', label: 'Afternoon', sceneHints: 'reads on a bench' },
+          { id: 'evening', label: 'Evening', sceneHints: 'laughs with a drink' },
+          { id: 'night', label: 'Night', sceneHints: 'reads in bed' },
+        ],
+        stills: ['morning', 'afternoon', 'evening', 'night'].map((slotId, index) => ({
+          slotId,
+          status: 'completed',
+          imageUrl: thumb,
+          promptId: `e2e-full-${index}`,
+        })),
+      },
+    },
+  });
+  await gotoStable(page, '/play');
+  await dismissBlockingOverlays(page);
+  // Before Day has seen the finished stills, Story is still locked.
+  await expect(page.getByTestId('play-campaign-step-roleplay-locked').first()).toBeVisible({
+    timeout: 30_000,
+  });
+  await gotoStable(page, '/day?character=e2e-full-day');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('day-progress-morning').first()).toBeVisible({ timeout: 30_000 });
+  await gotoStable(page, '/play');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('play-campaign-step-roleplay')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('play-campaign-step-roleplay-locked')).toHaveCount(0);
+});
