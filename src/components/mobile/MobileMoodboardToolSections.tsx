@@ -424,7 +424,7 @@ export default function MobileMoodboardToolSections(vm: ViewModel) {
           disabled={busy || extracting}
           onClick={() => void handoff('day')}
           className="w-full justify-center"
-          data-testid="mobile-moodboard-to-day"
+          data-testid="mobile-moodboard-continue-day"
         >
           Continue to Day
         </Button>

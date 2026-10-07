@@ -39,7 +39,10 @@ export default function PlayCampaignStepsSection({
             campaign: characterId ? { characterId, stepIndex: 0 } : null,
             lookPack: activeLookPack,
           });
-          const storyLocked = isOptional && !gate.ok;
+          // Story is the step that unlocks after the first film; Outfit is optional but open.
+          const isStory = step.id === 'roleplay';
+          const storyLocked = isStory && !gate.ok;
+          const coreNumber = steps.filter((entry, at) => at <= index && !entry.optional).length;
           const openDisabled = (!characterId && step.id !== 'character') || !gate.ok;
           return (
             <li
@@ -54,11 +57,11 @@ export default function PlayCampaignStepsSection({
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="type-overline mb-1 text-[var(--text-muted)]">
-                    {isOptional ? 'Optional' : `Step ${index + 1}`}
+                    {isOptional ? 'Optional' : `Step ${coreNumber}`}
                   </p>
                   <p className="type-heading">
                     {step.label}
-                    {isOptional ? (
+                    {isStory ? (
                       <span className="type-caption ml-2 font-normal text-[var(--text-muted)]">
                         {firstFilmDone ? 'unlocked' : 'after first film'}
                       </span>
