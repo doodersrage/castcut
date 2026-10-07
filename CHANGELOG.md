@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.3.4] - 2026-10-07
+
 - **Changing the outfit re-dresses the plate.** When a look's plate was a kept Outfit try-on (a Keep), Day kept starting every Everyday still from it even after you picked a different outfit — the old outfit in the picture, the new one in the words, and stills that mixed the two (a new top over the kept shorts). A Keep in a different clothing photo, kit or shoes than the one picked now is no longer used: Day dresses the Cast's own plate in the new outfit, once, and starts the stills from that.
 - **Keep a Day partner as Cast.** The invented partner keeps one face from Day to Day (and through Tomorrow); **Keep as Cast** beside that face now makes them a Cast member — their face and look become the Cast, Day switches its partner to them, and they can lead a Day of their own (Setup → *Make a plate from the description* gives them a body plate).
 - **Seasons on the Cast page.** Every cut Day is an episode of the Cast's season; the Cast's Film tab (where *Watch on Cast* lands) now shows each season's episodes in order — the still it opened on, the places it went, its theme and date — with a count of places visited. Episodes cut from now on carry the poster and places.
