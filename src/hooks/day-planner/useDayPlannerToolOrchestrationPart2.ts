@@ -58,6 +58,7 @@ import {
 import {
   buildDaySlotMotionSubject,
   buildDaySlotPrompt,
+  dayStillShownImage,
   dayStillsBelongToCharacter,
   dayStillsCachePatch,
   dayWatchPlaylist,
@@ -576,6 +577,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             filename: result.filename,
             galleryEntryId: result.entryId,
             theme: dayThemeRef.current,
+            // For the season page: what this episode looked like and where it went.
+            posterUrl:
+              slots
+                .map(slot =>
+                  dayStillShownImage(stillsRef.current.find(still => still.slotId === slot.id))
+                )
+                .find(url => url && !url.startsWith('data:')) || undefined,
+            places: slots.map(slot => slot.location?.trim() ?? '').filter(Boolean),
+            beats: slots.map(slot => slot.sceneHints?.trim() ?? '').filter(Boolean),
           });
           setFilmNeedsCast(false);
           setFilmStatus(

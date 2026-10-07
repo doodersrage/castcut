@@ -4497,3 +4497,44 @@ test('Story opens with the Cast’s Day when its reel is empty', async ({ page }
   await expect(reel).toContainText('laughs with a drink');
   await expect(page.getByTestId('roleplay-day-opening')).toHaveCount(0);
 });
+
+test('Cast page shows the season: episodes in order with their places', async ({ page }) => {
+  const now = Date.now();
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-season' },
+    characters: {
+      version: 1,
+      characters: [{ id: 'e2e-season', name: 'Season Lead', version: 1, updatedAt: now }],
+      removedIds: [],
+    },
+  });
+  await putAppKv(page, {
+    'play-series-v1': {
+      version: 1,
+      series: [
+        {
+          id: 's1',
+          characterId: 'e2e-season',
+          title: 'Season Lead · Season 1',
+          createdAt: now - 2000,
+          updatedAt: now,
+          episodes: [
+            { id: 'e1', cutAt: now - 2000, filename: 'd1.webm', places: ['kitchen', 'park'] },
+            { id: 'e2', cutAt: now - 1000, filename: 'd2.webm', places: ['park', 'gallery'], theme: 'Date night' },
+          ],
+        },
+      ],
+    },
+  });
+  await gotoStable(page, '/characters/e2e-season?media=films');
+  await dismissBlockingOverlays(page);
+  const seasons = page.getByTestId('cast-seasons');
+  await expect(seasons).toBeVisible({ timeout: 30_000 });
+  await expect(seasons).toContainText('Season Lead · Season 1');
+  await expect(seasons).toContainText('2 episodes · 3 places');
+  const episodes = seasons.getByTestId('cast-season-episode');
+  await expect(episodes).toHaveCount(2);
+  await expect(episodes.nth(1)).toContainText('Episode 2');
+  await expect(episodes.nth(1)).toContainText('Date night');
+  await expect(episodes.nth(1)).toContainText('park · gallery');
+});

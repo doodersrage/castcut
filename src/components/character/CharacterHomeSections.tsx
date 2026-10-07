@@ -14,6 +14,7 @@ import CharacterBibleSection from '@/components/character/CharacterBibleSection'
 import CharacterHomeActionRow from '@/components/character/CharacterHomeActionRow';
 import CharacterLookPacksSection from '@/components/character/CharacterLookPacksSection';
 import CharacterLookPlateSection from '@/components/character/CharacterLookPlateSection';
+import CastSeasonsSection from '@/components/character/CastSeasonsSection';
 import CharacterMediaSection from '@/components/character/CharacterMediaSection';
 import CharacterPersonaSection from '@/components/character/CharacterPersonaSection';
 import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrchestration';
@@ -139,6 +140,7 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
             filmCut={character.filmCut}
             entries={props.entries}
           />
+          <CastSeasonsSection characterId={character.id} />
           <CharacterMediaSection
             character={character}
             mediaTab={props.mediaTab}

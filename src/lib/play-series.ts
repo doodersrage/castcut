@@ -21,6 +21,12 @@ export type PlaySeriesEpisode = {
   galleryEntryId?: string;
   /** Theme label when the Day was a themed remix. */
   theme?: string;
+  /** The Day's first finished still, for the season page. */
+  posterUrl?: string;
+  /** The Day's places in slot order (deduped) — "places visited" on the season page. */
+  places?: string[];
+  /** The Day's beats in slot order, short. */
+  beats?: string[];
 };
 
 export type PlaySeries = {
@@ -60,7 +66,19 @@ function normalizeEpisode(value: unknown): PlaySeriesEpisode | null {
     filename,
     galleryEntryId: text(raw.galleryEntryId, 80) || undefined,
     theme: text(raw.theme, 60) || undefined,
+    posterUrl: text(raw.posterUrl, 2048) || undefined,
+    places: textList(raw.places, 8, 120),
+    beats: textList(raw.beats, 8, 160),
   };
+}
+
+function textList(value: unknown, max: number, length: number): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const list = value
+    .map(item => text(item, length))
+    .filter(Boolean)
+    .slice(0, max);
+  return list.length > 0 ? list : undefined;
 }
 
 function normalizeSeries(value: unknown): PlaySeries | null {
@@ -145,6 +163,9 @@ export type AddEpisodeInput = {
   filename: string;
   galleryEntryId?: string;
   theme?: string;
+  posterUrl?: string;
+  places?: string[];
+  beats?: string[];
   now: number;
   /** Injected for tests; defaults to crypto.randomUUID(). */
   newId?: () => string;
@@ -192,6 +213,13 @@ export function addSeriesEpisode(
     filename: input.filename.trim(),
     galleryEntryId: entryId,
     theme: input.theme?.trim() || undefined,
+    posterUrl: input.posterUrl?.trim() || undefined,
+    places: textList(
+      [...new Set((input.places ?? []).map(place => place.trim()).filter(Boolean))],
+      8,
+      120
+    ),
+    beats: textList(input.beats, 8, 160),
   };
   const next: PlaySeries = {
     ...series,
@@ -324,4 +352,16 @@ export function dayPosterSubtitle(characterId: string | undefined): string {
     return 'A day in the life';
   }
   return currentSeasonLabel(loadPlaySeriesStore(), characterId);
+}
+
+/** Distinct places across a season's episodes, in first-visit order. */
+export function seasonPlaces(series: PlaySeries): string[] {
+  const seen = new Map<string, string>();
+  for (const episode of series.episodes) {
+    for (const place of episode.places ?? []) {
+      const key = place.toLowerCase();
+      if (!seen.has(key)) seen.set(key, place);
+    }
+  }
+  return [...seen.values()];
 }

@@ -268,3 +268,24 @@ describe('play series', () => {
     });
   });
 });
+
+describe('season page fields', () => {
+  it('an episode keeps its poster, places (deduped) and beats; a season lists places once', async () => {
+    const { addSeriesEpisode, normalizePlaySeriesStore, seasonPlaces } = await import('./play-series');
+    let ids = 0;
+    const newId = () => `id-${(ids += 1)}`;
+    const first = addSeriesEpisode({ version: 1, series: [] }, {
+      characterId: 'c', characterName: 'Nora', filename: 'd1.webm', now: 1, newId,
+      posterUrl: '/a.png', places: ['kitchen', 'park', 'kitchen', ' '], beats: ['pours coffee'],
+    });
+    assert.equal(first.episode.posterUrl, '/a.png');
+    assert.deepEqual(first.episode.places, ['kitchen', 'park']);
+    const second = addSeriesEpisode(first.store, {
+      characterId: 'c', filename: 'd2.webm', now: 2, newId, places: ['Park', 'gallery'],
+    });
+    assert.deepEqual(seasonPlaces(second.series), ['kitchen', 'park', 'gallery']);
+    // Survives a round trip through storage normalisation.
+    const restored = normalizePlaySeriesStore(JSON.parse(JSON.stringify(second.store)));
+    assert.deepEqual(restored.series[0]?.episodes[0]?.beats, ['pours coffee']);
+  });
+});
