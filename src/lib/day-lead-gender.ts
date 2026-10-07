@@ -129,18 +129,28 @@ export function restoreText(swapped: string, original: string): string {
  * "dressed" / "dressed up" are left alone.
  */
 export function masculineClothes(text: string): string {
-  return text
-    .replace(
-      /\b(?:a |an )?(?:short |little |long |evening |cocktail |summer |slip |wrap |party )?(?:sun)?dress(?:es)?\b(?!ed)/gi,
-      'a shirt and trousers'
-    )
-    .replace(/\b(?:a )?(?:nightgown|nightie|negligee)\b/gi, 'a sleep shirt')
-    .replace(/\blingerie\b/gi, 'boxer briefs')
-    .replace(/\bbras?\b/gi, 'undershirt')
-    .replace(/\b(?:a )?(?:mini)?skirts?\b/gi, 'shorts')
-    .replace(/\bbikinis?\b/gi, 'swim trunks')
-    .replace(/\b(?:high )?heels\b/gi, 'shoes')
-    .replace(/\ba a shirt\b/gi, 'a shirt');
+  return (
+    text
+      .replace(
+        /\b(?:a |an )?(?:short |little |long |evening |cocktail |summer |slip |wrap |party )?(?:sun)?dress(?:es)?\b(?!ed)/gi,
+        'a shirt and trousers'
+      )
+      .replace(/\b(?:a )?(?:nightgown|nightie|negligee)\b/gi, 'a sleep shirt')
+      .replace(/\blingerie\b/gi, 'boxer briefs')
+      // "in a silk robe over a slip" put a man in a slip (two men, 2026-10-06). The noun only — an
+      // article or a fabric before it; "the strap slip off", "slips into bed" stay verbs.
+      .replace(
+        /\b(?:(?:an?|her) (?:(?:silk|satin|lace) )?|(?:silk|satin|lace) )slip\b(?![-\w])/gi,
+        'an undershirt'
+      )
+      .replace(/\b(?:an? |her )?(?:(?:silk|satin|lace) )?(?:camisoles?|cami)\b/gi, 'an undershirt')
+      .replace(/\bpanties\b/gi, 'boxer briefs')
+      .replace(/\bbras?\b/gi, 'undershirt')
+      .replace(/\b(?:a )?(?:mini)?skirts?\b/gi, 'shorts')
+      .replace(/\bbikinis?\b/gi, 'swim trunks')
+      .replace(/\b(?:high )?heels\b/gi, 'shoes')
+      .replace(/\ba a shirt\b/gi, 'a shirt')
+  );
 }
 
 /** "her" → "his" before a noun ("her toes"), "him" as the object ("kissing her."). */

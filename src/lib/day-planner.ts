@@ -101,6 +101,7 @@ import {
 } from '@/lib/day-themes';
 import type { DayPartner, DayPartnerNoun } from '@/lib/day-partner';
 import { settleDayTwoTakes, twoTakeFromGallery } from '@/lib/day-two-takes';
+import { swapDayPromptGender } from '@/lib/day-lead-gender';
 
 export { DAY_PARTS, dayPartOf, isLateDaySlot, type DayPart };
 
@@ -3789,11 +3790,18 @@ export function buildDaySlotPrompt(input: {
         // the brief's standing portraits scored 0.48).
         const identityLead =
           rapidEveryday && faceOnlyIdentity ? RAPID_FACE_CROP_IDENTITY_LEAD : null;
+        // The couple recipes are written for a man lead already and skip the final swap
+        // (assembleDayStillPrompt), so the lines put in front of them speak of him too —
+        // "SCENE: she is in the hotel suite" opened two-men stills.
+        const coupleForHim =
+          input.leadNoun === 'man' && (suggestiveCouple || compactDuo || rapidPartnerDuo);
+        const leadVoice = (line: string | null) =>
+          line && coupleForHim ? swapDayPromptGender(line) : line;
         // Scene first, as the brief does (the confirmed 4/4 run had it), then the outfit.
         return [
           identityLead,
-          daySceneLeadLine(setting?.replace(/^(?:an?|the)\s+/i, '')),
-          outfitLead,
+          leadVoice(daySceneLeadLine(setting?.replace(/^(?:an?|the)\s+/i, ''))),
+          leadVoice(outfitLead),
           recipe,
         ]
           .filter(Boolean)

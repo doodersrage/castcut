@@ -34,10 +34,19 @@ export function isFloorSurface(surface: string | null): boolean {
   return Boolean(surface && /\b(?:floor|rug|carpet|ground|tiles?|mat)\b/i.test(surface));
 }
 
-/** She gives ("she goes down on him", "giving her partner oral") vs he gives ("going down on her"). */
-export function sheGivesOral(beat: string): boolean {
+/**
+ * She gives ("she goes down on him", "giving her partner oral") vs he gives ("going down on her").
+ * Same-sex beats arrive reworded ("between her partner's legs going down on her partner",
+ * sameSexPartnerBeat): before, two men's oral swapped who knelt. Two women keep the old reading
+ * (`sameSexWording: false`): with the lead kneeling the renders still had the girlfriend kneel
+ * (2/2) and added a third woman once, where the old roles were clean 8/8 (2026-10-01/06).
+ */
+export function sheGivesOral(beat: string, options?: { sameSexWording?: boolean }): boolean {
+  if (options?.sameSexWording === false) {
+    return sheGivesOralAsWritten(beat);
+  }
   return (
-    /\b(?:she|her)\s+(?:goes|going|went)\s+down\s+on\s+(?:him|her\s+partner|a\s+partner)\b|\bgiving\s+(?:him|her\s+partner|a\s+partner)\s+(?:oral|head|a\s+blow)|\bbetween\s+his\s+(?:legs|knees|thighs)\b|\b(?:blow\s*job|fellatio|sucking\s+(?:him|his))\b/i.test(
+    /\b(?:she|her)\s+(?:goes|going|went)\s+down\s+on\s+(?:him|her\s+partner|a\s+partner)\b|\b(?:goes|going|went)\s+down\s+on\s+(?:him|her\s+partner)\b|\bgiving\s+(?:him|her\s+partner|a\s+partner)\s+(?:oral|head|a\s+blow)|\bbetween\s+(?:his|her\s+partner's)\s+(?:legs|knees|thighs)\b|\b(?:blow\s*job|fellatio|sucking\s+(?:him|his))\b/i.test(
       beat
     ) &&
     !/\b(?:down\s+on\s+her\b(?!\s+partner)|between\s+her\s+thighs|mouth\s+on\s+her\b|cunnilingus)/i.test(
@@ -86,4 +95,16 @@ export function oralReceiverSeated(text: string | null | undefined): boolean {
   // He goes down on her with no kneel named: she sits on the edge (it used to be "she lies on
   // her back … he lies between her thighs" under the kneel-up map).
   return !/\bkneel/i.test(beat) || ORAL_SEAT_RE.test(beat);
+}
+
+/** sheGivesOral before same-sex beats were read ("her partner's legs" not counted). */
+function sheGivesOralAsWritten(beat: string): boolean {
+  return (
+    /\b(?:she|her)\s+(?:goes|going|went)\s+down\s+on\s+(?:him|her\s+partner|a\s+partner)\b|\bgiving\s+(?:him|her\s+partner|a\s+partner)\s+(?:oral|head|a\s+blow)|\bbetween\s+his\s+(?:legs|knees|thighs)\b|\b(?:blow\s*job|fellatio|sucking\s+(?:him|his))\b/i.test(
+      beat
+    ) &&
+    !/\b(?:down\s+on\s+her\b(?!\s+partner)|between\s+her\s+thighs|mouth\s+on\s+her\b|cunnilingus)/i.test(
+      beat
+    )
+  );
 }

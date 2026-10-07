@@ -248,7 +248,7 @@ function placementTwoWomen(
     case 'oral':
     case 'sixty_nine':
     case 'facesit':
-      return sheGivesOral(beat)
+      return sheGivesOral(beat, { sameSexWording: false })
         ? isFloorSurface(surface)
           ? // Standing, two women knelt face to face and kissed (6/6); seating the receiver on a
             // chair gave the oral geometry 3/3 (live A/B 2026-10-01).
@@ -326,8 +326,11 @@ function placementTwoMen(
     case 'mating_press':
       return `Side view, both faces in frame. The man lies on his back on ${on('bed')} with his knees raised and legs around ${bf}; ${bf} kneels between his thighs, leaning over him on his arms, his penis inside the man; their faces close, looking at each other.`;
     case 'straddle':
-    case 'lap':
       return `Wide shot, both faces in frame. ${cap(bf)} lies on his back on ${on('bed')}; the man kneels astride his boyfriend's hips, knees on either side, sitting down on his boyfriend's penis and riding him, hands on his boyfriend's chest.`;
+    case 'lap':
+      // Seated, as the couple's lap is: shared with the straddle it laid his boyfriend on his
+      // back "on the armchair".
+      return `${cap(bf)} sits on ${on('chair')}; the man sits on his boyfriend's lap facing him, straddling him with his knees on either side of his hips, riding his boyfriend's penis, arms around his neck.`;
     case 'reverse_straddle':
       return `Camera in front of the man. The man is closest to the camera, facing the lens, sitting on the lap of ${bf}, who sits back on ${on('couch')} behind him, riding his boyfriend's penis; ${bf}'s hands on his hips and face behind his shoulder.`;
     case 'bent':
@@ -913,6 +916,22 @@ function suggestivePlacement(beat: string): string {
     return `She stands leaning on ${lean}, weight on one hip${lookBack}.`;
   }
   return `She stands with her weight on one hip${lookBack}.`;
+}
+
+/**
+ * A lying couple's stance, said before the beat. The duo recipe had none, so "lying face to face
+ * on the rumpled bed" went out as the beat alone and came back seated (Edit 2511, with or without
+ * a pose drawing): both lying 1/3 → 3/3 with this sentence (2026-10-06). "He lies on his back;
+ * she lies on top of him" was tried for the on-top beat and changed nothing, so it isn't said.
+ * Null for every other beat — those render as written.
+ */
+export function suggestiveDuoPlacement(beat: string): string | null {
+  const b = beat.toLowerCase();
+  const surface = rapidDuoSurface(beat) ?? (/\bcouch\b/.test(b) ? 'couch' : 'bed');
+  if (/\bface\s+to\s+face\b/.test(b) && /\b(?:lying|lie|lies|in\s+bed)\b/.test(b)) {
+    return `Both lie on their sides on the ${surface}, facing each other, heads on the pillows.`;
+  }
+  return null;
 }
 
 const CLOTHES_RE =
@@ -1506,6 +1525,7 @@ export function buildRapidSuggestiveDuoRecipe(input: {
   return [
     RAPID_SUGGESTIVE_RECIPE_MARK,
     `A ${lead} and ${other} together, both fully clothed, affectionate.`,
+    suggestiveDuoPlacement(beat),
     `Moment: ${beat}.`,
     `${leadPronoun} wears ${withArticle(leadWears)}; ${otherWears} ${partnerClothes(beat, partnerNoun)}.`,
     recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),

@@ -880,14 +880,14 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
     return 'lift';
   }
   if (
-    /\b(oral|blow\s*job|blowjob|go(?:es|ing)\s+down|cunnilingus|fellatio|between\s+(?:their|her|his)\s+legs|on\s+(?:their|her|his)\s+knees\s+(?:for|in\s+front)|kneeling\s+(?:for|in\s+front|before)|tongue\s+(?:on|at|laps?|lapping|lick(?:s|ing)?)|laps?\s+at|lick(?:s|ing)?\s+(?:her|his|their)\s+(?:inner\s+)?(?:thigh|cock|penis|dick|clit)|fingers?\s+(?:on|around|curl(?:s|ing)?\s+(?:around|into))\s+(?:her|his|their)\s+clit|curl(?:s|ing)?\s+around\s+(?:her|his|their)\s+clit)\b/i.test(
+    /\b(oral|blow\s*job|blowjob|go(?:es|ing)\s+down|cunnilingus|fellatio|between\s+(?:their|her|his)(?:\s+(?:partner|boyfriend|girlfriend|lover|husband|wife)'s)?\s+legs|on\s+(?:their|her|his)\s+knees\s+(?:for|in\s+front)|kneeling\s+(?:for|in\s+front|before)|tongue\s+(?:on|at|laps?|lapping|lick(?:s|ing)?)|laps?\s+at|lick(?:s|ing)?\s+(?:her|his|their)\s+(?:inner\s+)?(?:thigh|cock|penis|dick|clit)|fingers?\s+(?:on|around|curl(?:s|ing)?\s+(?:around|into))\s+(?:her|his|their)\s+clit|curl(?:s|ing)?\s+around\s+(?:her|his|their)\s+clit)\b/i.test(
       haystack
     )
   ) {
     return 'oral';
   }
   if (
-    /\b(lap\s+sit|on\s+(?:their|her|his)\s+lap|sitting\s+on\s+(?:a\s+)?(?:lap|partner)|lotus\s+position|face[- ]to[- ]face\s+sit)\b/i.test(
+    /\b(lap\s+sit|on\s+(?:their|her|his)(?:\s+(?:partner|boyfriend|girlfriend|lover|husband|wife)'s)?\s+lap|sitting\s+on\s+(?:a\s+)?(?:lap|partner)|lotus\s+position|face[- ]to[- ]face\s+sit)\b/i.test(
       haystack
     )
   ) {
