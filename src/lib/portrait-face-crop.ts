@@ -140,7 +140,7 @@ export async function cropFaceBoxFromBlob(
   blob: Blob,
   filename: string,
   face: FaceBox,
-  options?: { scale?: number; minPixels?: number }
+  options?: { scale?: number; liftRatio?: number; minPixels?: number }
 ): Promise<File> {
   return cropBlobRegion(
     blob,

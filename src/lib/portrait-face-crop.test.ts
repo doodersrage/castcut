@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  computeFaceBoxCropRect,
   computeMinPixelUpscaleSize,
   computePortraitFaceCropRect,
   PORTRAIT_FACE_CROP_MIN_PIXELS,
@@ -43,5 +44,17 @@ describe('computeMinPixelUpscaleSize', () => {
 
   it('leaves already-large images alone', () => {
     assert.deepEqual(computeMinPixelUpscaleSize(1328, 1328), { width: 1328, height: 1328 });
+  });
+});
+
+describe('nude face crop framing', () => {
+  it('keeps the top edge and cuts 20% off the bottom (no tank-top straps)', async () => {
+    const { DAY_NUDE_FACE_BOX } = await import('./day-nude-face-crop');
+    const face = { x: 400, y: 200, width: 200, height: 260 };
+    const base = computeFaceBoxCropRect(1048, 1500, face);
+    const nude = computeFaceBoxCropRect(1048, 1500, face, DAY_NUDE_FACE_BOX);
+    assert.equal(nude.y, base.y);
+    assert.ok(Math.abs(nude.height / base.height - 0.8) < 0.01);
+    assert.ok(nude.y + nude.height < base.y + base.height);
   });
 });

@@ -91,7 +91,11 @@ export async function cropCastFaceFromBlob(
   blob: Blob,
   filename: string,
   fallback: PortraitFaceCropOptions,
-  options?: { comfyUrl?: string | null }
+  options?: {
+    comfyUrl?: string | null;
+    /** Framing around a found face (computeFaceBoxCropRect); default 2.2× face, lift 0.12. */
+    faceBox?: { scale?: number; liftRatio?: number };
+  }
 ): Promise<{ file: File; face: CastFaceCropOutcome }> {
   const located = await locateFaceOnPlateBlob(blob, options);
   if (located?.available && located.face) {
@@ -100,6 +104,7 @@ export async function cropCastFaceFromBlob(
       // it does not say which way is up. The crop keeps the plate's own orientation.
       const file = await cropFaceBoxFromBlob(blob, filename, located.face, {
         ...(fallback.minPixels !== undefined ? { minPixels: fallback.minPixels } : {}),
+        ...(options?.faceBox ?? {}),
       });
       return { file, face: 'found' };
     } catch {

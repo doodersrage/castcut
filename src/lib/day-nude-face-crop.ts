@@ -23,6 +23,9 @@ import { checkReferenceImage } from '@/lib/reference-check-client';
  * in sex scenes (f651d571) — is left out and the face is cropped from the look's plate instead;
  * `faceLockRejected` carries the message for the card. A check that could not run keeps the lock.
  */
+/** 80% of the default crop (2.2× the face), with the same top edge. */
+export const DAY_NUDE_FACE_BOX = { scale: 1.76, liftRatio: 0.34 } as const;
+
 export async function resolveDayNudeIdentityPlateWithFaceCrop(input: {
   character: CharacterRecord | null | undefined;
   model?: string | null;
@@ -73,7 +76,10 @@ export async function resolveDayNudeIdentityPlateWithFaceCrop(input: {
         aspect: 0.9,
         topInsetRatio: 0.012,
       },
-      { comfyUrl }
+      // Tighter and higher than the default face crop: its bottom edge reached the shoulders,
+      // and a plate's tank-top straps put a white top on 5 of 6 nude stills (Rapid replays,
+      // 2026-10-06); cut just under the collarbones, 6 of 6 were nude.
+      { comfyUrl, faceBox: DAY_NUDE_FACE_BOX }
     );
     const uploaded = await resolveQueueInputImage({
       file,
