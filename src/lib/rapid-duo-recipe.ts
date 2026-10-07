@@ -147,9 +147,11 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
     case 'prone':
       return `The woman lies flat on her stomach on ${on('bed')}, face turned to the side on the pillow; the man lies on top of her back, propped up on his arms, penetrating her from behind.`;
     case 'spoon':
+      // "Lifts her top leg … his hand holding it up" put the leg straight up at the ceiling 3/3
+      // (03082); the knee drawn forward stayed natural 3/3, the act still in view (2026-10-07).
       // "Both lie on their sides" put her on her back with him beside her head (live
       // 2026-09-28, most seeds on v23); placing each body in turn gave 6/6 real spooning.
-      return `Spooning, seen from the front. The woman lies on her side on ${on('bed')}, turned toward the camera, her head on her lower arm and her hip up; the man lies on his side right behind her, his chest pressed against her back and his face just behind her shoulder; he penetrates her from behind as she lifts her top leg, bent at the knee, his hand holding it up under her thigh. Both faces in frame.`;
+      return `Spooning, seen from the front. The woman lies on her side on ${on('bed')}, turned toward the camera, her head on her lower arm and her hip up; the man lies on his side right behind her, his chest pressed against her back and his face just behind her shoulder; he penetrates her from behind; her top knee is drawn forward and up toward her chest, her foot resting on the bed in front of her, his hand on her hip. Both faces in frame.`;
     case 'scissors':
       return `The woman and the man sit on ${on('bed')} facing each other, each leaning back on their hands, their legs scissored together so their hips press together mid-sex; both faces in frame.`;
     case 'wall':
@@ -194,7 +196,9 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
     case 'kneeling':
       return `Both kneel upright on ${on('bed')} facing each other, bodies pressed together mid-sex, her arms around his neck and his hands on her hips; both faces in frame.`;
     case 'lap':
-      return `The man sits on ${on('chair')}; the woman sits on his lap facing him, straddling him with her knees on either side of his hips, riding his penis, her arms around his neck.`;
+      // Front-on, Rapid turned her to the camera and buried him under her 3/3 (03085); side view
+      // with both faces in profile kept them chest to chest 3/3 (2026-10-07).
+      return `Side view of ${on('chair')}. The man sits in it, his face in profile; the woman sits on his lap facing him, chest to chest, straddling him with her knees on either side of his hips, riding his penis, her arms around his neck — her face in profile too, his whole body visible under her.`;
     default:
       return null;
   }
