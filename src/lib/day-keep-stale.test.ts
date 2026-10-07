@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dayKeepOutfitStale } from './day-dress-plate';
+import { dayIdentityPrefersCastPlate, dayKeepOutfitStale } from './day-dress-plate';
 
 const kept = {
   customGarmentImageFilename: 'garment-blue-tank.png',
@@ -30,5 +30,18 @@ describe('a Keep kept in another outfit is stale', () => {
 
   it('a Keep with no record of its outfit is stale once something is picked', () => {
     assert.equal(dayKeepOutfitStale(undefined, { kitId: 'kit-a' }), true);
+  });
+});
+
+describe('Image 1 with a stale Keep', () => {
+  const base = { replaceOutfit: false, omitGarment: false, keepStale: true };
+  it('starts from the dressed plate when there is one', () => {
+    assert.equal(dayIdentityPrefersCastPlate({ ...base, dressed: true }), false);
+  });
+  it('falls back to the Cast plate (not the stale Keep) when dressing did not happen', () => {
+    assert.equal(dayIdentityPrefersCastPlate({ ...base, dressed: false }), true);
+  });
+  it('nude and outfit-replacing stills still take the Cast plate', () => {
+    assert.equal(dayIdentityPrefersCastPlate({ ...base, keepStale: false, omitGarment: true, dressed: true }), true);
   });
 });

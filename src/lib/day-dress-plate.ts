@@ -89,6 +89,22 @@ export function dayKeepOutfitStale(
 }
 
 /**
+ * Whether Image 1 skips the look's plate for the Cast's own. A stale Keep falls back to the Cast
+ * plate only when there is no dressed plate: preferring it over the dressed one put her in the
+ * undressed plate (underwear) and every still improvised the outfit and shoes from the words — a
+ * different burgundy dress and pair of wedges each time (2026-10-07).
+ */
+export function dayIdentityPrefersCastPlate(input: {
+  replaceOutfit: boolean;
+  omitGarment: boolean;
+  keepStale: boolean;
+  /** This still starts from a dressed plate. */
+  dressed: boolean;
+}): boolean {
+  return input.replaceOutfit || input.omitGarment || (input.keepStale && !input.dressed);
+}
+
+/**
  * Story's version of the rule: clothed (not an adult-rated) photo stories with a plate and
  * clothing or shoes picked, on an engine with a dress plate, for a beat that keeps its clothes.
  */

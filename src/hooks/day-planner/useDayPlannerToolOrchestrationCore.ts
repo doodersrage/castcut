@@ -218,7 +218,11 @@ import {
   type DayDressPlateEntry,
 } from '@/lib/day-dress-plate';
 import { loadDressPlates, removeDressPlate, subscribeDressPlates } from '@/lib/dress-plate-store';
-import { dayDressPlateRequestKey, dayKeepOutfitStale } from '@/lib/day-dress-plate';
+import {
+  dayDressPlateRequestKey,
+  dayIdentityPrefersCastPlate,
+  dayKeepOutfitStale,
+} from '@/lib/day-dress-plate';
 import {
   DAY_OUTFIT_LINE_RE,
   dayStillClothingReinforce,
@@ -1355,7 +1359,12 @@ export function useDayPlannerToolOrchestrationCore() {
         let identityPlate = resolveDayQueueIdentityPlate({
           character: lookCharacter,
           displayPlate: slotPlate,
-          preferCastPlate: replaceKeepOutfit || omitGarment || keepStale,
+          preferCastPlate: dayIdentityPrefersCastPlate({
+            replaceOutfit: replaceKeepOutfit,
+            omitGarment,
+            keepStale,
+            dressed: Boolean(dressPlate),
+          }),
           preferFaceOnlyPlate: omitGarment,
         });
         let nudeFaceAutoCropped = false;
