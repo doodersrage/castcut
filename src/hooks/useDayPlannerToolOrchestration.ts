@@ -23,7 +23,7 @@ import {
 import { applyCastLookPlateFromSource, ensureOutfitPlateAfterLook } from '@/lib/look-outfit-plate';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { loadComfyGallery, recordGalleryPlayerVerdict } from '@/lib/comfyui-gallery';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
 import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
 import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
@@ -307,6 +307,7 @@ export function useDayPlannerToolOrchestration() {
       const shown = stillsRef.current.find(entry => entry.slotId === slotId);
       if (!slot || !dayLooksWrongAvailable(shown)) return;
       notePoseTakeOutcomes(dayLooksWrongTakeIds(shown), 'looks-wrong');
+      recordGalleryPlayerVerdict(dayLooksWrongTakeIds(shown), 'looks-wrong');
       await queueSlot(slot, { looksWrong: true });
     },
     [queueSlot, slots, stillsRef]
@@ -319,6 +320,8 @@ export function useDayPlannerToolOrchestration() {
       const pick = dayTwoTakesPickPatch(shown, keep);
       if (!pick) return;
       notePoseTakePair(pick.keptId, pick.otherId);
+      recordGalleryPlayerVerdict([pick.keptId], 'kept');
+      recordGalleryPlayerVerdict([pick.otherId], 'passed-over');
       const next = upsertDaySlotStill(stillsRef.current, pick.patch);
       stillsRef.current = next;
       updateToolSettings(dayStillsCachePatch(next, activeCharacterId));

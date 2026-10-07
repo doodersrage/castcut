@@ -18,7 +18,11 @@ import { isCloudEngine } from './engine/capabilities';
 import { filterBySemanticQuery } from './semantic-search';
 import { orderGalleryBySimilarity, orderGalleryByVisualSimilarity } from './gallery-similarity';
 import { clusterGalleryDuplicates, duplicateEntryIds } from './gallery-duplicate-clusters';
-import type { ComfyGalleryEntry, GalleryPlayChecks } from './comfyui-gallery-entry';
+import type {
+  ComfyGalleryEntry,
+  GalleryPlayChecks,
+  GalleryPlayerVerdict,
+} from './comfyui-gallery-entry';
 import type { ComfyGalleryJobStatus } from './comfyui-gallery-types';
 import { durableGalleryOriginalUrl, durableGalleryThumbUrl } from './gallery-media-client';
 import {
@@ -151,6 +155,7 @@ export function galleryEntryRenderKey(entry: ComfyGalleryEntry): string {
     entry.customGroup ?? '',
     entry.projectId ?? '',
     `${entry.playChecks?.pose ?? ''}:${entry.playChecks?.face ?? ''}`,
+    entry.playerVerdict?.verdict ?? '',
   ];
 
   // For in-flight entries, include progress info to prevent unnecessary re-renders
@@ -1001,6 +1006,37 @@ export function recordGalleryPlayChecks(
     notePoseTakeOutcome(id, checks.poseMiss ? 'pose-miss' : 'pose-pass');
   }
   return changed;
+}
+
+/** Entries with the verdict set on the matching takes (by ComfyUI prompt id); null when none match. */
+export function withGalleryPlayerVerdict(
+  entries: ComfyGalleryEntry[],
+  takeIds: ReadonlyArray<string | null | undefined>,
+  verdict: GalleryPlayerVerdict['verdict'],
+  at = Date.now()
+): ComfyGalleryEntry[] | null {
+  const ids = new Set(takeIds.map(id => id?.trim()).filter((id): id is string => Boolean(id)));
+  if (ids.size === 0) return null;
+  let changed = false;
+  const next = entries.map(entry => {
+    if (!ids.has(entry.promptId)) return entry;
+    changed = true;
+    return { ...entry, playerVerdict: { verdict, at } };
+  });
+  return changed ? next : null;
+}
+
+/**
+ * Store the player's verdict on Day takes (Two takes kept / passed over, Looks wrong). The latest
+ * verdict wins.
+ */
+export function recordGalleryPlayerVerdict(
+  takeIds: ReadonlyArray<string | null | undefined>,
+  verdict: GalleryPlayerVerdict['verdict']
+): boolean {
+  const next = withGalleryPlayerVerdict(loadComfyGallery(), takeIds, verdict);
+  if (next) saveComfyGallery(next);
+  return Boolean(next);
 }
 
 /**

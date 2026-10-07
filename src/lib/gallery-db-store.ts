@@ -57,6 +57,7 @@ function galleryEntryFingerprint(entry: ComfyGalleryEntry): string {
     entry.characterId ?? '',
     entry.lookId ?? '',
     `${entry.playChecks?.pose ?? ''}:${entry.playChecks?.face ?? ''}`,
+    entry.playerVerdict?.verdict ?? '',
     workflowSig,
   ].join('|');
 }

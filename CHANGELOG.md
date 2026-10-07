@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Your take picks are saved with the gallery.** Keeping one of Two takes, or tapping Looks wrong, now marks those stills in the synced gallery, not just this browser — the labelled set needed to build a reliable check for two-person intimate stills.
 - **Four intimate stills fixed** (each 3 of 3 in replays, where the old wording failed 3 of 3): face-down on the laundry pile no longer comes out face-up and upside down; *ankles near her shoulders* raises both legs as the pose guide draws (the one-knee line from the third-leg fix twisted her); the couch beat's TV remote stays on the floor instead of between her legs; and a nude two-person still drops clothes its beat names (*cocktail dress around her waist*, *dress pushed up*) instead of drawing underwear at the waist.
 - **Re-rolls are remembered across reloads.** Each take records the beat it was rendered for, so rendering it again after a reload still counts as a re-roll.
 - **A Cast plate without Look.** A new Cast made without a photo used to get its first plate when you extracted a look. Now *Create & continue to Day* opens Day and renders the plate from the character's description on arrival. Day's Setup has *Make a plate from the description* for any Cast without one. A plate rendered from the description also attaches to the Cast wherever you are. Before, it only attached when Outfit was opened, so a look taken straight to Day left the Cast without a plate.

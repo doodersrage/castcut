@@ -10,6 +10,11 @@ export type GalleryPlayChecks = {
   at: number;
 };
 
+export type GalleryPlayerVerdict = {
+  verdict: 'kept' | 'passed-over' | 'looks-wrong';
+  at: number;
+};
+
 export type ComfyGalleryEntry = {
   id: string;
   promptId: string;
@@ -91,6 +96,12 @@ export type ComfyGalleryEntry = {
    * and whether each counted as a miss.
    */
   playChecks?: GalleryPlayChecks;
+  /**
+   * The player's own verdict on this take (Day): kept from a Two-takes pair, passed over for the
+   * other take, or Looks wrong. Synced with the gallery, so it is the labelled set for judging
+   * two-person stills later (the counts alone never reached a usable check).
+   */
+  playerVerdict?: GalleryPlayerVerdict;
   /**
    * Adult-appearance gate on an adult Day / Story still (adult-appearance-gate.ts). While
    * `pending` or `withheld` the entry is hidden everywhere: Gallery, films, exports and sync
