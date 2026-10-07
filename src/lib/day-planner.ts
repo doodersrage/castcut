@@ -401,6 +401,8 @@ export type DaySlotStill = {
   finishedFor?: string;
   /** What the queue-time prompt check fixed / found on this take (still-prompt-audit). */
   promptCheck?: StillPromptCheck;
+  /** The beat this take was rendered for (rerollBeatKey form) — a re-render of it is a re-roll. */
+  beatKey?: string;
   /**
    * The take this one replaced when it was redone with the same seed — shown beside it, and
    * "Keep the old take" puts it back. `kind: 'best-of-two'`: the other take of a hard-pose pair
@@ -1957,7 +1959,7 @@ export const DAY_SLOT_RAUNCHY_BEAT_PRESETS: Record<DayPart, string[]> = {
   afternoon: [
     'solo on the couch naked with one ankle on the backrest — thighs wide, both hands between her thighs rubbing her clit hard, lamp-only comedy, Cast alone fully nude, eyes not at the lens',
     'alone pressed to the hallway wall fully nude one leg hiked — both hands buried between her thighs fingering, laughing mid-act, clothes in a pile, Cast alone',
-    'solo reclining naked on the couch knees flopped open — remote slips, both hands between her thighs spreading and fingering, Cast alone, head tipped',
+    'solo reclining naked on the couch knees flopped open — the TV remote fallen on the floor, both hands between her thighs spreading and fingering, Cast alone, head tipped',
     'alone on all fours naked on the bed looking back over a shoulder — hips high, both hands reaching under between her thighs fingering her vulva hard, afternoon light, one adult only, fully nude',
     'alone on all fours naked looking back — one hand bracing the sheets, other hand pushing a realistic penis-shaped silicone dildo with the tip of the penis deep into her vaginal opening from behind, shaft entering her vagina, afternoon light, Cast alone fully nude, never invent a man or second adult',
     'partner mid-sex against the hallway wall after an accidental flash — roommate and Cast both fully visible, slapstick contact, never Cast alone',
@@ -4399,6 +4401,7 @@ export function normalizeDaySlotStills(
       finishedUrl: readText(still.finishedUrl, 2048) || undefined,
       finishedFor: readText(still.finishedFor, 160) || undefined,
       ...withPromptCheck(still.promptCheck),
+      ...(readText(still.beatKey, 400) ? { beatKey: readText(still.beatKey, 400) } : {}),
       ...(readText(still.previousTake?.imageUrl, 2048)
         ? {
             previousTake: {

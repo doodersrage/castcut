@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 import { isDayHardPose, setLearnedHardLayoutsSource } from './day-best-of-two';
-import { DEFAULT_DAY_SLOTS, diversifyDaySlotScenes, setDayAvoidedBeatsSource } from './day-planner';
+import {
+  DEFAULT_DAY_SLOTS,
+  diversifyDaySlotScenes,
+  normalizeDaySlotStills,
+  setDayAvoidedBeatsSource,
+  upsertDaySlotStill,
+} from './day-planner';
 import { chronicRerollBeats, rerollBeatKey, rerollProneLayouts, type PlayMetrics } from './play-metrics';
 
 const NONE = () => new Set<string>();
@@ -57,5 +63,12 @@ describe('learning from re-rolls', () => {
     setDayAvoidedBeatsSource(() => new Set([rerollBeatKey(common)]));
     const after = Array.from({ length: 20 }, (_, i) => pick(i + 1)).flat();
     assert.ok(!after.includes(common), `still picked: ${common}`);
+  });
+
+  it("a take keeps the beat it was rendered for, through a reload and its landing update", () => {
+    const queued = upsertDaySlotStill([], { slotId: 'morning', promptId: 'p1', status: 'queued', beatKey: 'kissing in a doorway' });
+    const reloaded = normalizeDaySlotStills(JSON.parse(JSON.stringify(queued)));
+    const landed = upsertDaySlotStill(reloaded, { slotId: 'morning', status: 'completed', imageUrl: '/x.png' });
+    assert.equal(landed[0]?.beatKey, 'kissing in a doorway');
   });
 });

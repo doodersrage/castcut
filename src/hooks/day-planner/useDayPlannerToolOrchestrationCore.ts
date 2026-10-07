@@ -1025,7 +1025,12 @@ export function useDayPlannerToolOrchestrationCore() {
         // The same beat again on this slot is a re-roll (play-metrics): layouts kept re-rolled
         // get best of two, beats kept re-rolled are skipped by Suggest day.
         const beatKey = rerollBeatKey(slot.sceneHints);
-        const rerolled = Boolean(beatKey) && lastPlayerBeatRef.current[slot.id] === beatKey;
+        // The slot's last take records its beat (survives a reload); this session's ref covers a
+        // take still being queued.
+        const lastBeat =
+          lastPlayerBeatRef.current[slot.id] ??
+          stillsRef.current.find(still => still.slotId === slot.id)?.beatKey;
+        const rerolled = Boolean(beatKey) && lastBeat === beatKey;
         lastPlayerBeatRef.current[slot.id] = beatKey;
         try {
           recordPlayerSlotRender({
@@ -2366,6 +2371,7 @@ export function useDayPlannerToolOrchestrationCore() {
           clipStatus: undefined,
           // Shown on the slot card ("Prompt check: fixed 1"); a clean prompt clears the last one.
           promptCheck: stillPromptCheckRecord(checked),
+          beatKey: rerollBeatKey(queueTarget.sceneHints) || undefined,
           previousTake,
           bestOfTwo: undefined,
           bestOfTwoJob: castcutPoseGuide ? true : undefined,

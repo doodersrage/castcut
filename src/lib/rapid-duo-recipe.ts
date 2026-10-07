@@ -560,7 +560,8 @@ export function buildRapidDuoRecipe(input: {
         layout === 'sixty_nine' || layout === 'facesit' ? RAPID_ORAL_FALLBACK_RE : /$^/,
         'oral sex'
       )
-      .replace(layout === 'scissors' ? RAPID_SCISSORS_FALLBACK_RE : /$^/, 'making love')}.`,
+      .replace(layout === 'scissors' ? RAPID_SCISSORS_FALLBACK_RE : /$^/, 'making love')
+      .replace(input.nude === false ? /$^/ : WORN_CLOTHES_CLAUSE_RE, '')}.`,
     room,
     input.nude === false
       ? twoMen
@@ -687,7 +688,9 @@ function soloPlacement(
     return 'She sits in a bathtub full of bubbles, leaning back, one knee hooked over the rim, facing the camera.';
   }
   if (/\blaundry\b/i.test(beat)) {
-    return 'She lies face-down on a pile of clean laundry and towels on the floor, hips pressed into it, face turned toward the camera.';
+    // Back-up wording, as the prone recipe: "face-down … face turned toward the camera" came out
+    // face-up and upside down 3/3; naming back and buttocks up, 3/3 on her stomach (2026-10-07).
+    return 'She lies flat on her stomach on a pile of clean laundry and towels on the floor, seen from the side: her bare back and buttocks up, her breasts pressed into the towels, her hips grinding down into them, her head turned toward the camera.';
   }
   if (/\bfridge\b/i.test(beat)) {
     return 'She stands at the open fridge in its light, one foot up on the crisper drawer, facing the camera.';
@@ -706,7 +709,11 @@ function soloPlacement(
       // Say what the Image 3 guide draws (day-pose-guide.ts on_back: one thigh folded toward the
       // chest, the other knee out). "Knees bent and thighs spread wide" drew both legs spread
       // plus the guide's raised leg — a third leg on 5/5 renders of one beat, 0/4 with this line.
-      return `She lies on her back on ${on('bed')}, head on the pillow, one knee drawn up toward her chest and the other leg bent out to the side — two legs only.`;
+      // "Ankles near her shoulders" / "knees pulled up": the guide raises both legs (legsHigh in
+      // day-pose-guide.ts) — the one-knee line twisted her (live 2026-10-07); this, 3/3 clean.
+      return SOLO_LEGS_HIGH_RE.test(beat)
+        ? `She lies on her back on ${on('bed')}, head on the pillow, both knees pulled up toward her chest, feet in the air — two legs only.`
+        : `She lies on her back on ${on('bed')}, head on the pillow, one knee drawn up toward her chest and the other leg bent out to the side — two legs only.`;
     case 'side_lying':
       return `She lies on her side on ${on('bed')}, bottom leg straight and top knee raised high, facing the camera.`;
     case 'prone':
@@ -940,6 +947,17 @@ export function suggestiveDuoPlacement(beat: string): string | null {
   }
   return null;
 }
+
+/** Same test as the on_back guide's legsHigh (day-pose-guide.ts synthesizeSoloMasturbationFigure). */
+const SOLO_LEGS_HIGH_RE = /\bankles?\s+near|knees\s+pulled\s+up|shoulders\b/i;
+
+/**
+ * Clothes a nude duo beat still names ("cocktail dress around her waist", "dress pushed up"). The
+ * recipe says "completely nude"; with both, Rapid drew underwear or a skirt at the waist 3/3,
+ * and 0/3 with the clause gone (2026-10-07).
+ */
+const WORN_CLOTHES_CLAUSE_RE =
+  /,?\s*(?:her\s+|his\s+)?(?:[\w-]+\s+)?(?:dress|skirt|shirt|top|robe|slip|lingerie|panties|underwear)\s+(?:pushed|hiked|bunched|rucked|pulled)?\s*(?:up\s+)?(?:around\s+(?:her|his)\s+(?:waist|hips|ankles)|pushed\s+up|hiked\s+up|half[- ]off)\b/gi;
 
 const CLOTHES_RE =
   /\bin\s+(?!his\b)((?:(?:a|an|her)\s+)?(?:(?!\bin\b)[^,;—.])*?\b(?:sleepwear|robe|lingerie|shirt|dress|slip|camisole|shorts|panties|wear|sundress|towel wrap)\b(?:(?!\bin\b)[^,;—.])*?)(?=\s+(?:by|on|at|during|after|eating|pouring|facing|hugging|removing|with)\b|[,;—.]|$)/i;
