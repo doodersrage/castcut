@@ -34,6 +34,7 @@ import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise';
+import { dayWalkingDuoSkipsPoseGuide } from '@/lib/rapid-duo-recipe';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
@@ -1713,6 +1714,16 @@ export function useDayPlannerToolOrchestrationCore() {
         ) {
           skipPoseGuideImage = true;
         }
+        let walkingDuoNoGuide = false;
+        // Walking hand in hand on Edit 2511: the standing hold-hands map froze the walk.
+        if (
+          !skipPoseGuideImage &&
+          !(isDayAdultMood(toolSettings.dayMood) && intimateEnabled) &&
+          dayWalkingDuoSkipsPoseGuide(stillModel, queueTarget.sceneHints)
+        ) {
+          skipPoseGuideImage = true;
+          walkingDuoNoGuide = true;
+        }
         // Clothing options for this still's brief / recipe (the pose map's are added below).
         const slotPromptOptions = {
           faceOnlyIdentity,
@@ -1853,7 +1864,9 @@ export function useDayPlannerToolOrchestrationCore() {
                       state: 'skipped' as const,
                       reason: kleinSpoonRecipe
                         ? 'FLUX.2 Klein spoon reads the overlapping guide as a third person (stance from text)'
-                        : 'Lightning identity path keeps Image 1 whole (stance from text)',
+                        : walkingDuoNoGuide
+                          ? 'A walk in step: the standing hold-hands drawing froze it (stride from text)'
+                          : 'Lightning identity path keeps Image 1 whole (stance from text)',
                     }
                   : {
                       state: 'failed' as const,

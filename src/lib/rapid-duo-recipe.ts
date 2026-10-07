@@ -1259,6 +1259,33 @@ export function buildRapidVacationRecipe(input: {
     .replace(/\.\./g, '.');
 }
 
+const WALKING_RE = /\b(?:walk(?:s|ing)?|stroll(?:s|ing)?|wander(?:s|ing)?)\b/i;
+const HAND_IN_HAND_RE =
+  /\b(?:hand[- ]in[- ]hand|hold(?:s|ing)?\s+hands|fingers\s+(?:laced|interlaced|linked)|hands\s+(?:linked|joined))\b/i;
+
+/**
+ * Walking hand in hand on Edit 2511: the hold_hands pose map draws two people standing still, and
+ * "match their bodies to the pose map" froze every walk into a posed side-by-side portrait (0/3).
+ * Without the map and with a side-on stride line, 3/3 walked mid-stride (live 2026-10-07).
+ */
+export function dayWalkingHandInHandBeat(beat: string | null | undefined): boolean {
+  const text = beat ?? '';
+  return WALKING_RE.test(text) && HAND_IN_HAND_RE.test(text);
+}
+
+export function dayWalkingDuoSkipsPoseGuide(
+  model: string | null | undefined,
+  beat: string | null | undefined
+): boolean {
+  return (
+    /\b(?:qwen-image-edit-2511|qwen_image_edit_2511)/i.test(model ?? '') &&
+    dayWalkingHandInHandBeat(beat)
+  );
+}
+
+const WALKING_DUO_LINE =
+  'They walk past the camera, seen from the side in three-quarter view, both mid-stride — one foot lifted off the ground, arms swinging, looking at each other and laughing. Candid photo caught in motion.';
+
 /**
  * Compact two-person recipe for clothed Everyday / Vacation / Sport / themed Day stills (Qwen
  * Edit 2511): the Suggestive couple recipe's shape without the "affectionate" framing, under the
@@ -1290,13 +1317,17 @@ export function buildCompactDayDuoRecipe(
         ? ` Place: ${input.setting.trim().replace(/[.\s]+$/, '')}. Photorealistic photograph`
         : ' Photorealistic photograph'
     );
+  const moving =
+    dayWalkingHandInHandBeat(input.beat) && !input.poseGuide
+      ? day.replace(/(Moment: [^.]*\.)/, `$1 ${WALKING_DUO_LINE}`)
+      : day;
   return friends
-    ? day
+    ? moving
         .replace(/\b(boy|girl)friend\b/g, 'friend')
         // A beat typed for a man lead ("from his friend") comes through the two-men rewrite
         // as "his friend's friend".
         .replace(/\b(his|her) friend's friend\b/g, '$1 friend')
-    : day;
+    : moving;
 }
 
 /**

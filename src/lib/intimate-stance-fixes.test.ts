@@ -34,3 +34,18 @@ describe('intimate stance fixes', () => {
     assert.match(moment('oral sex on the bed after a night out, heels still on'), /heels still on/);
   });
 });
+
+describe('walking hand in hand (Edit 2511)', () => {
+  const beat = 'walking hand in hand with her partner to the restaurant, both dressed up';
+  it('skips the standing hold-hands map on 2511 only', async () => {
+    const { dayWalkingDuoSkipsPoseGuide } = await import('./rapid-duo-recipe');
+    assert.equal(dayWalkingDuoSkipsPoseGuide('qwen-image-edit-2511-lightning-8', beat), true);
+    assert.equal(dayWalkingDuoSkipsPoseGuide('qwen-rapid-aio-edit-nsfw', beat), false);
+    assert.equal(dayWalkingDuoSkipsPoseGuide('qwen-image-edit-2511-lightning-8', 'standing hand in hand at the altar'), false);
+  });
+  it('adds the stride line only when no map is attached', async () => {
+    const { buildCompactDayDuoRecipe } = await import('./rapid-duo-recipe');
+    assert.match(buildCompactDayDuoRecipe({ beat }) ?? '', /both mid-stride — one foot lifted/);
+    assert.doesNotMatch(buildCompactDayDuoRecipe({ beat, poseGuide: 'third' }) ?? '', /mid-stride/);
+  });
+});
