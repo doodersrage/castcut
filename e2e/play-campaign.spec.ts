@@ -4367,3 +4367,133 @@ test('pick the best engine per pose: the switch saves and a moved still says why
     )
     .toBe(true);
 });
+
+// ── The loop past a cut: Day from an idea, Tomorrow, Story opening with the Day ──────────────
+
+const LOOP_PNG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+const LOOP_BEATS = [
+  { slotId: 'morning', beat: 'sitting on the ferry with a coffee, watching the river', setting: 'river ferry deck' },
+  { slotId: 'afternoon', beat: 'walking through the flower market holding tulips', setting: 'covered market hall' },
+  { slotId: 'evening', beat: 'leaning on the bridge rail at sunset, smiling', setting: 'old stone bridge' },
+  { slotId: 'night', beat: 'sitting on the windowsill with a book', setting: 'lamp-lit attic room' },
+];
+
+async function stubDayPremise(page: Page): Promise<{ bodies: Array<Record<string, unknown>> }> {
+  const bodies: Array<Record<string, unknown>> = [];
+  await page.route('**/api/day-premise', async route => {
+    bodies.push(JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>);
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ beats: LOOP_BEATS }) });
+  });
+  // No ComfyUI: queueing fails fast instead of waiting on a real server.
+  await page.route('**/api/comfyui', route =>
+    route.request().method() === 'POST' ? route.fulfill({ status: 503, body: '{}' }) : route.continue()
+  );
+  return { bodies };
+}
+
+test('Day from an idea writes every slot from one line', async ({ page }) => {
+  await stubDayPremise(page);
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-idea-cast' },
+    characters: {
+      version: 1,
+      characters: [{ id: 'e2e-idea-cast', name: 'Idea Cast', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: { day: { stillsCharacterId: 'e2e-idea-cast', dayMood: 'everyday' } },
+  });
+  await gotoStable(page, '/day?character=e2e-idea-cast');
+  await dismissBlockingOverlays(page);
+  const input = page.getByTestId('day-idea-input').first();
+  await expect(input).toBeVisible({ timeout: 30_000 });
+  await input.fill('a slow Sunday in Lisbon');
+  await page.getByTestId('day-idea-write').first().click();
+  await expect(page.getByTestId('day-idea-note').first()).toContainText('Every slot', { timeout: 20_000 });
+  await expect(page.getByTestId('day-progress-scene-morning').first()).toContainText('ferry');
+  await expect(page.getByTestId('day-progress-scene-night').first()).toContainText('windowsill');
+});
+
+test('Tomorrow after a cut: next day follows on, stills cleared', async ({ page }) => {
+  const { bodies } = await stubDayPremise(page);
+  await installFakeMediaRecorder(page);
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-tomorrow' },
+    characters: {
+      version: 1,
+      characters: [{ id: 'e2e-tomorrow', name: 'Tomorrow Cast', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-tomorrow',
+        dayMood: 'everyday',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee by the window' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads on a bench' },
+          { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs with a drink' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
+        ],
+        stills: [{ slotId: 'morning', status: 'completed', imageUrl: LOOP_PNG }],
+      },
+    },
+  });
+  page.on('download', download => void download.cancel().catch(() => undefined));
+  await gotoStable(page, '/day?character=e2e-tomorrow');
+  await dismissBlockingOverlays(page);
+  const cut = page.getByTestId('day-cut-coach-cut');
+  await expect(cut).toBeEnabled({ timeout: 30_000 });
+  await cut.click();
+  const tomorrow = page.getByTestId('day-first-cut-tomorrow').first();
+  await expect(tomorrow).toBeVisible({ timeout: 45_000 });
+  await tomorrow.click();
+  // Today's beats went to the writer as yesterday; its beats are on the board.
+  await expect(page.getByTestId('day-progress-scene-morning').first()).toContainText('ferry', {
+    timeout: 20_000,
+  });
+  expect(bodies.at(-1)?.previousBeats).toEqual(
+    expect.arrayContaining(['morning: pours coffee by the window'])
+  );
+  await expect(page.getByTestId('day-first-cut-celebrate')).toHaveCount(0);
+});
+
+test('Story opens with the Cast’s Day when its reel is empty', async ({ page }) => {
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-day-story' },
+    characters: {
+      version: 1,
+      characters: [{ id: 'e2e-day-story', name: 'Day Story', version: 1, updatedAt: Date.now(), descriptor: 'a woman' }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-day-story',
+        dayMood: 'everyday',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee by the window' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads on a bench' },
+          { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs with a drink' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'e2e-ds-m' },
+          { slotId: 'evening', status: 'completed', imageUrl: thumb, promptId: 'e2e-ds-e' },
+        ],
+      },
+      roleplay: { story: [] },
+    },
+  });
+  await gotoStable(page, '/story?character=e2e-day-story&from=day');
+  await dismissBlockingOverlays(page);
+  const offer = page.getByTestId('roleplay-day-opening').first();
+  await expect(offer).toBeVisible({ timeout: 30_000 });
+  await expect(offer).toContainText('2 stills');
+  await page.getByTestId('roleplay-day-opening-use').first().click();
+  const reel = page.getByTestId('story-reel').first();
+  await expect(reel).toBeVisible({ timeout: 20_000 });
+  await expect(reel).toContainText('pours coffee by the window');
+  await expect(reel).toContainText('laughs with a drink');
+  await expect(page.getByTestId('roleplay-day-opening')).toHaveCount(0);
+});
