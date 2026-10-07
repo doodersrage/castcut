@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Face-down sex stays face-down.** "Lying face-down … with a partner along her back" came out with her on her back in 2 of 3 replays (the side-on pose drawing can't show which way she faces); naming her back and buttocks up and her breasts in the sheets fixed it, 3 of 3.
 - **Lap and spooning stills fixed** (3 of 3 each, from 0 of 3): sitting on his lap facing him is now drawn from the side with both faces in profile — front-on she turned to the camera and he vanished under her; spooning draws her top knee forward instead of a leg pointing straight at the ceiling.
 - **Story can open with your Day.** When a Cast's story is empty and their Day has finished stills, Story offers **Open with today's Day**: each still becomes an opening scene (in Day order, with its picture), the Day's tone, rating, place and outfit come along, and the next scene the writer rolls picks up from what happened. It is a choice on the empty reel, so a story in progress is never replaced.
 - **Three more intimate fixes** (each from 2 of 3 bad replays to 0 of 3): a nude solo beat that says *in lingerie* no longer leaves underwear on; *after dinner* no longer lays plates of food across sex stills; and standing solo stills no longer sometimes give her a penis — the hand now cups her vulva instead of floating between her thighs.

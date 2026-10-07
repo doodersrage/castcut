@@ -145,7 +145,9 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // Story's standing guide is two upright bodies side by side — say how they join.
       return `Both stand. The woman leans forward with her hands braced on ${on('wall')}, hips pushed back; the man stands close behind her holding her hips, penetrating her from behind; she looks back over her shoulder.`;
     case 'prone':
-      return `The woman lies flat on her stomach on ${on('bed')}, face turned to the side on the pillow; the man lies on top of her back, propped up on his arms, penetrating her from behind.`;
+      // The side-view map can't say which way she faces: face-up 2/3 (03092). Back and buttocks
+      // up, breasts in the sheets (as the solo prone line) → face-down 3/3 (2026-10-07).
+      return `The woman lies flat on her stomach on ${on('bed')}, seen from the side: her bare back and buttocks up, her breasts pressed into the sheets, her face turned toward the camera on the pillow; the man lies on top of her back, his chest over her back, propped up on his arms, penetrating her from behind.`;
     case 'spoon':
       // "Lifts her top leg … his hand holding it up" put the leg straight up at the ceiling 3/3
       // (03082); the knee drawn forward stayed natural 3/3, the act still in view (2026-10-07).
