@@ -766,11 +766,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           </div>
         ) : null}
 
-        <ToolSection
-          title="Day"
-          description="Plan the day on one line, then Queue. Tap a card to open that time of day."
-          data-testid="day-slot-board"
-        >
+        {/* No heading: the page title already says Day. */}
+        <ToolSection data-testid="day-slot-board">
           {/* The few files this Day needs, one Download all (hidden when installed). */}
           <TaskRequirementsCard
             task="This Day"
