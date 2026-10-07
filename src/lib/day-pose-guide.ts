@@ -797,7 +797,7 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
   // Solo / masturbation BEFORE missionary — "alone on her back touching herself"
   // used to match "on her back" and paint a duo Image 3 wireframe.
   if (
-    /\b(masturbat(?:e|es|ing|ion)?|self[- ]pleasur|self[- ]touch|toy\s+play|vibrator|dildo|magic\s*wand)\b/i.test(
+    /\b(masturbat(?:e|es|ing|ion)?|self[- ]pleasur\w*|self[- ]touch|toy\s+play|vibrator|dildo|magic\s*wand)\b/i.test(
       haystack
     )
   ) {
@@ -805,7 +805,7 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
   }
   if (
     /\b(solo|alone)\b/i.test(haystack) &&
-    /\b(touch(?:ing)?\s+(?:themselves|herself|himself)|hands?\s+on\s+(?:her|his|their)\s+own|finger(?:ing)?|rub(?:bing)?\s+(?:herself|himself|themselves)|between\s+(?:her|his|their)\s+thighs|sex|sexual|naked|nude|erotic|intimate|climax|orgasm|pleasure|bare\s+skin|self[- ]pleasur|masturbat)\b/i.test(
+    /\b(touch(?:ing)?\s+(?:themselves|herself|himself)|hands?\s+on\s+(?:her|his|their)\s+own|finger(?:ing)?|rub(?:bing)?\s+(?:herself|himself|themselves)|between\s+(?:her|his|their)\s+thighs|sex|sexual|naked|nude|erotic|intimate|climax|orgasm|pleasure|bare\s+skin|self[- ]pleasur\w*|masturbat\w*)\b/i.test(
       haystack
     )
   ) {
@@ -816,7 +816,7 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
       haystack
     ) ||
     (/\bon\s+(?:their|her|his)\s+back\b/i.test(haystack) &&
-      !/\b(solo|alone|masturbat|self[- ]pleasur|touch(?:ing)?\s+(?:herself|himself|themselves))\b/i.test(
+      !/\b(solo|alone|masturbat\w*|self[- ]pleasur\w*|touch(?:ing)?\s+(?:herself|himself|themselves))\b/i.test(
         haystack
       ) &&
       /\b(partner|missionary|sex|fuck|mid-sex|lover|thrust)\b/i.test(haystack))
@@ -898,7 +898,7 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
     /\b(sex|fuck|lover|naked|nude|intimate|climax|orgasm|thrust|grind|clit|thigh|barefoot|bent)\b/i.test(
       haystack
     ) &&
-    !/\b(solo|alone|masturbat|self[- ]pleasur|touch(?:ing)?\s+(?:herself|himself|themselves))\b/i.test(
+    !/\b(solo|alone|masturbat\w*|self[- ]pleasur\w*|touch(?:ing)?\s+(?:herself|himself|themselves))\b/i.test(
       haystack
     )
   ) {
@@ -933,7 +933,7 @@ export function parseIntimateLayout(text: string | null | undefined): IntimateLa
   }
   // Residual solo cues (after duo layouts) — keep for blurbs that skip earlier masturbation words.
   if (
-    /\b(masturbat(?:e|es|ing|ion)?|self[- ]pleasur|self[- ]touch|toy\s+play|vibrator|dildo|magic\s*wand)\b/i.test(
+    /\b(masturbat(?:e|es|ing|ion)?|self[- ]pleasur\w*|self[- ]touch|toy\s+play|vibrator|dildo|magic\s*wand)\b/i.test(
       haystack
     )
   ) {
@@ -2235,7 +2235,7 @@ export function parsePoseGuideIntent(
     lean = (jitterA - 0.5) * 0.25;
     matched = true;
   } else if (
-    !/\b(masturbat|fingering|finger(?:s|ed)?\s+(?:herself|himself|themselves|in|inside|on)|between\s+her\s+thighs|vulva|clit)\b/i.test(
+    !/\b(masturbat\w*|fingering|finger(?:s|ed)?\s+(?:herself|himself|themselves|in|inside|on)|between\s+her\s+thighs|vulva|clit)\b/i.test(
       haystack
     ) &&
     /\b(reach(?:ing|es|ed)?|grab(?:bing|s|bed)?|pour(?:ing|s|ed)?|wave(?:s|ing|d)?|point(?:ing|s|ed)?|gesture(?:s|ing)?|raise(?:s|d|ing)?|arms?\s+(?:up|out|raised)|lift(?:ing|s|ed)?|toss(?:ing|es)?|throw(?:ing|s)?|offer(?:ing|s)?)\b/i.test(

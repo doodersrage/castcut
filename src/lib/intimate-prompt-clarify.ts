@@ -499,7 +499,7 @@ export function isLegacyAdultMetaBlurb(text: string | null | undefined): boolean
 }
 
 const INTIMATE_ACT_CUE =
-  /\b(doggy(?:[- ]style)?|doggystyle|rear-entry|from\s+behind|hands\s+and\s+knees|partner\s+behind|camera\s+from\s+behind|thrust(?:s|ing)?|oral\s+sex|cunnilingus|fellatio|blowjob|sixty[- ]?nine|facesit|facesitting|licking|tongue|clit|kneeling|barefoot|mid-thrust|penetration|fingering|missionary|mating\s+press|cowgirl|straddl|spoon(?:ing)?|prone|lap\s+sit|standing\s+sex|grab(?:s|bing)?|grip(?:s|ping)?|clutch(?:es|ing)?|hands?\s+on|pin(?:s|ned|ning)?|hold(?:s|ing)?\s+(?:her|him|their|his|hips|waist)|masturbat(?:e|es|ing|ion)?|self[- ]pleasur|touch(?:ing)?\s+(?:herself|himself|themselves))\b/i;
+  /\b(doggy(?:[- ]style)?|doggystyle|rear-entry|from\s+behind|hands\s+and\s+knees|partner\s+behind|camera\s+from\s+behind|thrust(?:s|ing)?|oral\s+sex|cunnilingus|fellatio|blowjob|sixty[- ]?nine|facesit|facesitting|licking|tongue|clit|kneeling|barefoot|mid-thrust|penetration|fingering|missionary|mating\s+press|cowgirl|straddl|spoon(?:ing)?|prone|lap\s+sit|standing\s+sex|grab(?:s|bing)?|grip(?:s|ping)?|clutch(?:es|ing)?|hands?\s+on|pin(?:s|ned|ning)?|hold(?:s|ing)?\s+(?:her|him|their|his|hips|waist)|masturbat(?:e|es|ing|ion)?|self[- ]pleasur\w*|touch(?:ing)?\s+(?:herself|himself|themselves))\b/i;
 
 const INTIMATE_WARDROBE_CUE =
   /\b(lingerie|bra|panties|underwear|stockings|garter|corset|dress|skirt|shirt|blouse|outfit|clothes|clothing|wardrobe|wearing|half[- ]dressed|unzip|garment|bodysuit|teddy|chemise|robe|boots|heels|pajama|pyjama|pajamas|pyjamas|silk\s+bottoms|bottoms|pants|trousers|shorts|jeans|tee|t-shirt)\b/i;
@@ -1239,7 +1239,7 @@ export function reinforceIntimateStillPrompt(
   // Fingers-only beats ban toys in negatives; dildo beats name the toy in positives.
   if (
     !compactRecipe &&
-    /\b(MOOD:\s*(?:raunchy|intimate)|mid-sex|oral\s+sex|PARTNERS:|SOLO SUBJECT|masturbat|self[- ]pleasur|finger(?:ing)?|dildo)\b/i.test(
+    /\b(MOOD:\s*(?:raunchy|intimate)|mid-sex|oral\s+sex|PARTNERS:|SOLO SUBJECT|masturbat\w*|self[- ]pleasur\w*|finger(?:ing)?|dildo)\b/i.test(
       next
     ) &&
     !/\b(notebook|clipboard|spreadsheet|ledger|open book|reading a book|journal|planner)\b/i.test(
@@ -1286,7 +1286,7 @@ export function reinforceIntimateStillPrompt(
   // Intimate / Raunchy Solo: stop soft lingerie pin-up / anatomy morph / camera-stare collapse.
   if (
     !compactRecipe &&
-    /\b(MOOD:\s*(?:intimate|raunchy)\s+solo|SOLO SUBJECT \(mandatory\)|solo masturbat|solo finger|alone .{0,40}touching|SOLO ACT:)\b/i.test(
+    /\b(MOOD:\s*(?:intimate|raunchy)\s+solo|SOLO SUBJECT \(mandatory\)|solo masturbat\w*|solo finger|alone .{0,40}touching|SOLO ACT:)\b/i.test(
       next
     ) &&
     !/\b(PARTNERS:|exactly TWO adults|two-adult framing)\b/i.test(next)

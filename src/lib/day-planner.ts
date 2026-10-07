@@ -246,7 +246,7 @@ export function normalizeDayIntimateMix(value: unknown): DayIntimateMix {
 }
 
 const DAY_INTIMATE_SOLO_BEAT_RE =
-  /\b(solo|alone|masturbat|self[- ]pleasur|self[- ]touch|touch(?:ing)?\s+(?:herself|himself|themselves)|finger(?:ing)?\s+(?:herself|himself|themselves)|hands on her own|hands on his own)\b/i;
+  /\b(solo|alone|masturbat\w*|self[- ]pleasur\w*|self[- ]touch|touch(?:ing)?\s+(?:herself|himself|themselves)|finger(?:ing)?\s+(?:herself|himself|themselves)|hands on her own|hands on his own)\b/i;
 
 /** True when an intimate beat preset is solo / one-adult only. */
 export function isDayIntimateSoloBeat(text: string): boolean {
@@ -267,7 +267,7 @@ export function intimateBeatsForMix(slotId: DaySlotId, mix: DayIntimateMix): str
 }
 
 const DAY_RAUNCHY_SELF_TOUCH_RE =
-  /\b(masturbat|self[- ]touch|self[- ]pleasur|finger(?:ing)?|hand on her vulva|rides? her own hand|grinding(?:\s+on\s+her\s+own)?|between her thighs|both hands between|fingers?\s+(?:inside|on|rubbing)|clit|dildo|vibrator|sex\s*toy|toy\s+play)\b/i;
+  /\b(masturbat\w*|self[- ]touch|self[- ]pleasur\w*|finger(?:ing)?|hand on her vulva|rides? her own hand|grinding(?:\s+on\s+her\s+own)?|between her thighs|both hands between|fingers?\s+(?:inside|on|rubbing)|clit|dildo|vibrator|sex\s*toy|toy\s+play)\b/i;
 
 /** Solo adult beat that explicitly calls for a held sex toy (dildo / vibrator). */
 const DAY_SOLO_SEX_TOY_RE =
@@ -2792,7 +2792,7 @@ export function daySlotMatchesAdultMix(input: {
  * (leftover Intimate/Raunchy plans + NSFW Edit invent doggy duo from these).
  */
 export const DAY_CLOTHED_MOOD_SEX_LEAK_RE =
-  /\b(mid-sex|mid-thrust|doggy|missionary|cowgirl|oral\s+sex|from\s+behind|partner\s+behind|man\s+behind|second\s+adult|fully\s+nude|masturbat|fingering|self[- ]touch|bent\s+over.{0,40}(?:sex|doggy|partner)|pressed\s+against.{0,40}mid-sex)\b/i;
+  /\b(mid-sex|mid-thrust|doggy|missionary|cowgirl|oral\s+sex|from\s+behind|partner\s+behind|man\s+behind|second\s+adult|fully\s+nude|masturbat\w*|fingering|self[- ]touch|bent\s+over.{0,40}(?:sex|doggy|partner)|pressed\s+against.{0,40}mid-sex)\b/i;
 
 /** Clothed-heat cues — custom Suggestive beats that still read as suggestive. */
 const DAY_SUGGESTIVE_BEAT_CUE_RE =
@@ -2941,7 +2941,7 @@ export function dayBeatOmitsGarmentPackshot(input: {
     /\b(wardrobe\s+malfunction|nip\s*slip|skirt\s+flip|accidental\s+flash|flashing)\b/i.test(
       haystack
     ) &&
-    !/\b(mid-sex|mid-thrust|doggy|missionary|cowgirl|straddl|oral\s+sex|from\s+behind|masturbat|finger(?:ing)?|self[- ]touch|hand between her thighs|rides? her own hand|grinding on her own|fingers?\s+(?:inside|on|rubbing)|clit)\b/i.test(
+    !/\b(mid-sex|mid-thrust|doggy|missionary|cowgirl|straddl|oral\s+sex|from\s+behind|masturbat\w*|finger(?:ing)?|self[- ]touch|hand between her thighs|rides? her own hand|grinding on her own|fingers?\s+(?:inside|on|rubbing)|clit)\b/i.test(
       haystack
     )
   ) {
@@ -2966,7 +2966,7 @@ export function dayBeatOmitsGarmentPackshot(input: {
   if (!haystack.trim()) {
     return false;
   }
-  return /\b(mid-sex|mid-thrust|mid-climax|doggy|missionary|cowgirl|straddl|oral\s+sex|from\s+behind|bent\s+over.{0,48}(?:sex|doggy|partner)|pressed\s+against.{0,40}mid-sex|partner|masturbat|self[- ]pleasur|touch(?:ing)?\s+(?:herself|himself|themselves)|alone\s+on|solo\s+kneeling|hands?\s+on\s+(?:her|his|their)\s+own|finger(?:ing)?|fingers?\s+(?:inside|on|rubbing)|clit)\b/i.test(
+  return /\b(mid-sex|mid-thrust|mid-climax|doggy|missionary|cowgirl|straddl|oral\s+sex|from\s+behind|bent\s+over.{0,48}(?:sex|doggy|partner)|pressed\s+against.{0,40}mid-sex|partner|masturbat\w*|self[- ]pleasur\w*|touch(?:ing)?\s+(?:herself|himself|themselves)|alone\s+on|solo\s+kneeling|hands?\s+on\s+(?:her|his|their)\s+own|finger(?:ing)?|fingers?\s+(?:inside|on|rubbing)|clit)\b/i.test(
     haystack
   );
 }

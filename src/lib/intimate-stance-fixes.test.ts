@@ -79,3 +79,20 @@ describe('adult spooning on Rapid', () => {
     assert.doesNotMatch(recipe, /pose map/);
   });
 });
+
+describe('clothes on an Intimate mixed Day', () => {
+  it('a solo masturbation beat drops the outfit on every adult mix', async () => {
+    const { dayBeatOmitsGarmentPackshot } = await import('./day-planner');
+    // "masturbat\b" never matched "masturbation": on a mixed Day this beat kept the outfit and
+    // came out fully dressed (03068, 2026-10-07).
+    const blurb =
+      'solo masturbation lying across the bed in lingerie after dinner, one hand between her thighs — Cast alone';
+    for (const intimateMix of ['solo', 'duo', 'mixed'] as const) {
+      assert.equal(dayBeatOmitsGarmentPackshot({ blurb, dayMood: 'intimate', intimateMix }), true, intimateMix);
+    }
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({ blurb: 'self-pleasure on the couch at dusk', dayMood: 'intimate', intimateMix: 'mixed' }),
+      true
+    );
+  });
+});

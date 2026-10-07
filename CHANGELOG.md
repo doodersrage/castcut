@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Clothes no longer leak into solo stills on Intimate mixed Days.** The check that a beat is masturbation only matched the bare stem, never *masturbation* or *masturbating*, so on a mixed (solo + partner) Intimate Day those beats kept the outfit and could come out fully dressed. Fixed in the nude/clothed decision and the other solo-or-partner checks that shared the pattern.
 - **Spooning stills untangled.** On Rapid the flat spooning pose drawing fought the words that lift her top leg — legs tangled, or a leg stood up from nowhere. Adult spooning now renders from the words alone: 3 of 3 clean in replays of a tangled still.
 - **Another third leg fixed.** Solo stills lying on her back already say where each leg goes (as the pose drawing has them); a beat that also said *knees apart* drew a third leg in 2 of 3 replays. Those leg words now drop out of the moment line when the stance sets the legs (0 of 3).
 - **Tomorrow →** after a cut: the next episode of the Cast's season, written to follow on from the Day you just made — same Cast, mood and people, new places, and one beat that picks up something from yesterday (it also keeps following your *Day from an idea* line). Kits Day picked by itself change; an outfit you chose stays. Adult moods, or with the LLM off, get a fresh Day that never repeats yesterday's beats. The thread follows each Cast when you switch.

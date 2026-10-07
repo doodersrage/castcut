@@ -595,7 +595,7 @@ export function applyQueuePromptSteering(rawInput: {
     // Adult Day/Story: empty-bed positives + prop bans in negatives (saying "planner"
     // in the long positive tends to summon lined notebooks on CFG-1 stacks).
     const adultHeat =
-      /\b(MOOD:\s*(?:intimate|raunchy)|POSE FIRST: mandatory body pose and sex|masturbat|self[- ]touch|mid-sex|PARTNERS:|SOLO ACT:|FULLY NUDE|fingering|oral sex|missionary|doggy)\b/i.test(
+      /\b(MOOD:\s*(?:intimate|raunchy)|POSE FIRST: mandatory body pose and sex|masturbat\w*|self[- ]touch|mid-sex|PARTNERS:|SOLO ACT:|FULLY NUDE|fingering|oral sex|missionary|doggy)\b/i.test(
         steeredPositive
       );
     const clothedHeat = applyDayClothedHeatSteering({
