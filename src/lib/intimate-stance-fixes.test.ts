@@ -62,15 +62,20 @@ describe('walking hand in hand (Edit 2511)', () => {
 
 describe('adult spooning on Rapid', () => {
   it('skips the flat spoon drawing on Rapid adult stills only', async () => {
-    const { rapidSpoonSkipsPoseGuide } = await import('./rapid-duo-recipe');
+    const { rapidAdultSkipsPoseGuide } = await import('./rapid-duo-recipe');
     const beat = 'spooning sex in bed as the light fades';
-    assert.equal(rapidSpoonSkipsPoseGuide({ model: 'qwen-rapid-aio-edit-nsfw', adultMood: true, beat }), true);
-    assert.equal(rapidSpoonSkipsPoseGuide({ model: 'qwen-rapid-aio-edit-nsfw', adultMood: false, beat }), false);
-    assert.equal(rapidSpoonSkipsPoseGuide({ model: 'flux-2-klein-9b', adultMood: true, beat }), false);
+    assert.equal(rapidAdultSkipsPoseGuide({ model: 'qwen-rapid-aio-edit-nsfw', adultMood: true, beat }), true);
+    assert.equal(rapidAdultSkipsPoseGuide({ model: 'qwen-rapid-aio-edit-nsfw', adultMood: false, beat }), false);
+    assert.equal(rapidAdultSkipsPoseGuide({ model: 'flux-2-klein-9b', adultMood: true, beat }), false);
     assert.equal(
-      rapidSpoonSkipsPoseGuide({ model: 'qwen-rapid-aio-edit-nsfw', adultMood: true, beat: 'missionary on the couch' }),
+      rapidAdultSkipsPoseGuide({ model: 'qwen-rapid-aio-edit-nsfw', adultMood: true, beat: 'missionary on the couch' }),
       false
     );
+    const rapid = { model: 'qwen-rapid-aio-edit-nsfw', adultMood: true };
+    assert.equal(rapidAdultSkipsPoseGuide({ ...rapid, beat: 'lying face-down on the sheets mid-sex with a partner stretched along her back' }), true);
+    assert.equal(rapidAdultSkipsPoseGuide({ ...rapid, beat: 'against the bedroom wall mid-sex with a partner' }), true);
+    // Same-sex wall pairs keep the map (only man–woman was tested without it).
+    assert.equal(rapidAdultSkipsPoseGuide({ ...rapid, beat: 'against the bedroom wall mid-sex with a partner', sameSex: true }), false);
   });
   it('the recipe names no pose map when none is attached', async () => {
     const { buildRapidDuoRecipe } = await import('./rapid-duo-recipe');

@@ -70,7 +70,7 @@ describe('Rapid duo recipe', () => {
     const beat = 'against the bedroom wall mid-sex, night city glow';
     const rapid = duoPrompt(beat, 'qwen-rapid-aio-edit-nsfw');
     assert.ok(isRapidDuoRecipePrompt(rapid));
-    assert.match(rapid, /back pressed flat against the bedroom wall/);
+    assert.match(rapid, /leans her back against the bedroom wall/);
     assert.doesNotMatch(rapid, /DUO ACT:|POSE LOCK:|HEADCOUNT/);
     // Edit 2511 shares the adult recipes (pose-model-profile: compactDayRecipes); others don't.
     assert.ok(isRapidDuoRecipePrompt(duoPrompt(beat, 'qwen-image-edit-2511')));
@@ -629,10 +629,10 @@ describe('calmSexLaughter', () => {
 describe('wall layout on glass', () => {
   it('a window wall turns to face the glass from behind; a plain wall stays face to face', () => {
     const glass = String(buildRapidDuoRecipe({ beat: 'pressed against a hotel window wall mid-sex at dusk', poseGuide: true }));
-    assert.match(glass, /stands facing the hotel window with her palms flat against it/);
-    assert.doesNotMatch(glass, /back pressed flat against/);
+    assert.match(glass, /stands facing the hotel window, her palms flat on it/);
+    assert.doesNotMatch(glass, /leans her back against/);
     const wall = String(buildRapidDuoRecipe({ beat: 'pressed against the hallway wall mid-sex', poseGuide: true }));
-    assert.match(wall, /back pressed flat against the hallway wall/);
+    assert.match(wall, /leans her back against the hallway wall/);
   });
 });
 

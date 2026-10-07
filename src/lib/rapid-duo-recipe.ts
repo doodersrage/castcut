@@ -161,11 +161,12 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // reflection clone 3/3; facing the glass from behind (as the wall map draws it) was clean
       // 3/3 (live A/B on the user's hotel-window still, 2026-10-01).
       return /\b(?:partner\s+behind|from\s+behind)\b/i.test(beat) || isGlassSurface(surface)
-        ? `The woman stands facing ${on('wall')} with her palms flat against it and her hips pushed back; the man stands pressed against her back, penetrating her from behind; she looks back over her shoulder at him. Both standing on the floor.`
+        ? // Side view, no map (rapidAdultSkipsPoseGuide): front-on they posed side by side.
+          `Side view, both bodies in profile. The woman stands facing ${on('wall')}, her palms flat on it and her hips pushed back toward him; the man stands directly behind her, his chest against her back and his hips against her buttocks, penetrating her from behind, his hands on her hips; she turns her head to look back at him. No gap between their bodies.`
         : // "one leg lifted and hooked around his hip" drew the lifted foot sticking out behind
           // his back — a third leg on most seeds. Placing each leg: two clear legs 8/8, joined,
           // facing each other 6/8. Putting his hand on the wall stood him apart (live 2026-09-29).
-          `The woman stands with her back pressed flat against ${on('wall')}. Her right foot is flat on the floor; her left knee is raised to his hip and his right hand holds that leg under the knee. The man stands pressed chest to chest against her, his hips between her thighs, his penis inside her.`;
+          `Side view, both bodies in profile, facing each other. The woman leans her back against ${on('wall')}; the man stands chest to chest against her, his hips between her thighs, penetrating her; her left leg is hooked around his hip and his hand holds it under the knee; their faces close, both in profile. No gap between their bodies.`;
     case 'lift':
       return `Wide shot, both faces in frame. The man stands holding the woman up by her thighs, facing each other chest to chest; her legs are wrapped around his waist and her arms around his neck, her face beside his, his penis inside her.`;
     case 'oral':
@@ -1295,21 +1296,25 @@ export function buildRapidVacationRecipe(input: {
 }
 
 /**
- * Adult spooning on Rapid: the spoon map draws both bodies flat with legs out, while the recipe
- * (the wording that turned her toward the camera) lifts her top leg — the two fought, and legs
- * tangled or a leg stood up from nowhere. Replay of 03054 (3 seeds): with the map 1/3 tangled;
- * without it 3/3 clean, leg lifted (live 2026-10-07). Klein spoon already runs without one.
+ * Adult layouts on Rapid whose pose map fights the words, so the still is made from the words
+ * alone (live replays):
+ * - spoon — the flat map with the lifted-leg wording tangled legs (03054: 1/3 → 0/3).
+ * - prone — the side-view map can't say face-down; with it she came face-up 3/4, without 0/4.
+ * - wall — the map draws two people standing straight side by side, and they posed beside each
+ *   other (8 of 12 sweep beats, both seeds); no map + side-view wording, in contact 4/4. Tested
+ *   man–woman only, so same-sex pairs keep the map.
+ * Klein spoon already runs without one.
  */
-export function rapidSpoonSkipsPoseGuide(input: {
+export function rapidAdultSkipsPoseGuide(input: {
   model: string | null | undefined;
   adultMood: boolean;
   beat: string | null | undefined;
+  /** The lead and partner are the same sex. */
+  sameSex?: boolean;
 }): boolean {
-  return (
-    input.adultMood &&
-    /rapid/i.test(input.model ?? '') &&
-    parseIntimateLayout(input.beat ?? '') === 'spoon'
-  );
+  if (!input.adultMood || !/rapid/i.test(input.model ?? '')) return false;
+  const layout = parseIntimateLayout(input.beat ?? '');
+  return layout === 'spoon' || layout === 'prone' || (layout === 'wall' && !input.sameSex);
 }
 
 const WALKING_RE = /\b(?:walk(?:s|ing)?|stroll(?:s|ing)?|wander(?:s|ing)?)\b/i;

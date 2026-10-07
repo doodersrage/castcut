@@ -34,7 +34,7 @@ import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise';
-import { dayWalkingDuoSkipsPoseGuide, rapidSpoonSkipsPoseGuide } from '@/lib/rapid-duo-recipe';
+import { dayWalkingDuoSkipsPoseGuide, rapidAdultSkipsPoseGuide } from '@/lib/rapid-duo-recipe';
 import { normalizeDayThread } from '@/lib/day-thread';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
@@ -1755,10 +1755,11 @@ export function useDayPlannerToolOrchestrationCore() {
         let spoonNoGuide = false;
         if (
           !skipPoseGuideImage &&
-          rapidSpoonSkipsPoseGuide({
+          rapidAdultSkipsPoseGuide({
             model: stillModel,
             adultMood: isDayAdultMood(toolSettings.dayMood) && intimateEnabled,
             beat: queueTarget.sceneHints,
+            sameSex: Boolean(slotPartner && slotPartner.noun === leadNoun),
           })
         ) {
           skipPoseGuideImage = true;
@@ -1914,7 +1915,7 @@ export function useDayPlannerToolOrchestrationCore() {
                       reason: kleinSpoonRecipe
                         ? 'FLUX.2 Klein spoon reads the overlapping guide as a third person (stance from text)'
                         : spoonNoGuide
-                          ? 'Spooning: the flat spoon drawing tangled the lifted leg (pose from text)'
+                          ? 'Spooning, face-down or against a wall: the drawing fought the words (pose from text)'
                           : walkingDuoNoGuide
                             ? 'A walk in step: the standing hold-hands drawing froze it (stride from text)'
                             : 'Lightning identity path keeps Image 1 whole (stance from text)',
