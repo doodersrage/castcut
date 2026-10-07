@@ -5,6 +5,9 @@ import { SelectInput } from '@/components/ui/Field';
 import { DAY_THEMES } from '@/lib/play-remix';
 
 export type DayRemixMenuProps = {
+  /** The next episode, written to follow on from this Day (day-thread.ts). */
+  onTomorrow?: () => void;
+  tomorrowBusy?: boolean;
   onNewOutfit: () => void;
   onTheme: (themeId: string) => void;
   /** Full-width stacked layout for the phone Day tool. */
@@ -19,6 +22,8 @@ export type DayRemixMenuProps = {
  * re-run the same look with a themed Setting + Beat set.
  */
 export default function DayRemixMenu({
+  onTomorrow,
+  tomorrowBusy = false,
   onNewOutfit,
   onTheme,
   stacked = false,
@@ -27,6 +32,19 @@ export default function DayRemixMenu({
 }: DayRemixMenuProps) {
   return (
     <>
+      {onTomorrow ? (
+        <Button
+          size={stacked ? undefined : 'sm'}
+          variant="primary"
+          className={stacked ? 'w-full justify-center' : undefined}
+          disabled={disabled || tomorrowBusy}
+          data-testid={`${testIdPrefix}-tomorrow`}
+          title="The next episode: same Cast and mood, a new day that follows on from this one"
+          onClick={onTomorrow}
+        >
+          {tomorrowBusy ? 'Writing tomorrow…' : 'Tomorrow →'}
+        </Button>
+      ) : null}
       <Button
         size={stacked ? undefined : 'sm'}
         variant="secondary"

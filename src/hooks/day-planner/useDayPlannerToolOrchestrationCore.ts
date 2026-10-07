@@ -35,6 +35,7 @@ import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise';
 import { dayWalkingDuoSkipsPoseGuide } from '@/lib/rapid-duo-recipe';
+import { normalizeDayThread } from '@/lib/day-thread';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
@@ -2487,10 +2488,17 @@ export function useDayPlannerToolOrchestrationCore() {
         companions: toolSettings.allowCompanions === true,
         llmBody: sharedLlmRequestBody(shared),
       });
-      updateToolSettings({ slots: applyDayPremiseBeats(slots, beats) });
+      updateToolSettings({
+        slots: applyDayPremiseBeats(slots, beats),
+        // Tomorrow keeps following the idea.
+        dayThread: normalizeDayThread({
+          ...normalizeDayThread(toolSettings.dayThread),
+          premise: premise.trim(),
+        }),
+      });
       return beats.length;
     },
-    [shared, slots, toolSettings.allowCompanions, updateToolSettings]
+    [shared, slots, toolSettings.allowCompanions, toolSettings.dayThread, updateToolSettings]
   );
 
   const rerollActiveSlotScene = useCallback(

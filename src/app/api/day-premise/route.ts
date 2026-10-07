@@ -14,6 +14,7 @@ export async function POST(request: Request) {
       premise?: string;
       slotIds?: unknown;
       companions?: boolean;
+      previousBeats?: unknown;
       llmTemperature?: number;
       allowTemplateFallback?: boolean;
       llmModel?: string;
@@ -31,6 +32,12 @@ export async function POST(request: Request) {
       premise: typeof body.premise === 'string' ? body.premise : '',
       slotIds,
       companions: body.companions === true,
+      previousBeats: Array.isArray(body.previousBeats)
+        ? body.previousBeats
+            .filter((beat): beat is string => typeof beat === 'string')
+            .map(beat => beat.slice(0, 260))
+            .slice(0, 8)
+        : undefined,
       llm: parseLlmRequestOptions(body),
     });
     return apiJson({ beats });

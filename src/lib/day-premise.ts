@@ -32,7 +32,7 @@ const STANCE_LEAD_RE =
 const IN_WATER_RE =
   /\b(?:in|into)\s+(?:the\s+|a\s+|her\s+)?(?:bath|bathtub|tub|hot tub|shower|jacuzzi)\b|\b(?:bathing|showering|soaking)\b/i;
 const SECOND_PERSON_RE =
-  /\b(partner|boyfriend|girlfriend|husband|wife|friend|friends|date|together|with (?:him|her|them)|both|couple)\b/i;
+  /\b(partner|boyfriend|girlfriend|husband|wife|friend|friends|date|together|with (?:him|her|them)|both|couple|guests?|neighbou?rs?|strangers?|crowd)\b/i;
 
 export type DayPremiseBeat = { slotId: string; beat: string; setting: string };
 
@@ -40,8 +40,14 @@ export function buildDayPremiseMessages(input: {
   premise: string;
   slotIds: string[];
   companions: boolean;
+  /** Tomorrow: yesterday's beats ("morning: …"), so today follows on from them. */
+  previousBeats?: string[];
 }): ChatMessage[] {
   const premise = input.premise.trim().slice(0, DAY_PREMISE_MAX_LENGTH);
+  const yesterday = (input.previousBeats ?? [])
+    .map(beat => beat.replace(/\s+/g, ' ').trim().slice(0, BEAT_MAX))
+    .filter(Boolean)
+    .slice(0, 8);
   const slots = input.slotIds.map(id => `"${id}" (${dayPartOf(id)})`).join(', ');
   const people = input.companions
     ? 'Some beats may include her partner or a friend; say so plainly ("with her partner").'
@@ -71,7 +77,16 @@ export function buildDayPremiseMessages(input: {
       content:
         '[{"slot":"morning","beat":"sitting cross-legged on the bed with a mug in both hands, looking out of the window","setting":"sunny bedroom with rumpled white sheets"},{"slot":"evening","beat":"standing at the set table raising a glass of wine, smiling at the guests off camera","setting":"candlelit dining room with a long table"}]',
     },
-    { role: 'user', content: `Premise: ${premise}\nSlots: ${slots}` },
+    {
+      role: 'user',
+      content: yesterday.length
+        ? [
+            `Yesterday she was: ${yesterday.join('; ')}.`,
+            `Today is the next day${premise ? ` — ${premise}` : ''}. Continue her story: one beat follows on from something yesterday, and today's places are new, not yesterday's.`,
+            `Slots: ${slots}`,
+          ].join('\n')
+        : `Premise: ${premise}\nSlots: ${slots}`,
+    },
   ];
 }
 
@@ -149,6 +164,7 @@ export async function requestDayPremiseBeats(input: {
   premise: string;
   slotIds: string[];
   companions: boolean;
+  previousBeats?: string[];
   llmBody?: Record<string, unknown>;
 }): Promise<DayPremiseBeat[]> {
   const response = await fetch('/api/day-premise', {
@@ -159,6 +175,7 @@ export async function requestDayPremiseBeats(input: {
       premise: input.premise,
       slotIds: input.slotIds,
       companions: input.companions,
+      previousBeats: input.previousBeats,
       ...input.llmBody,
     }),
   });

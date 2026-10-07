@@ -246,6 +246,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     remixSameLookDay,
     remixThemeDay,
     remixNewOutfitDay,
+    startTomorrow,
+    writingTomorrow,
     filmCutOptions,
     setFilmCutOptions,
     garmentUploading,
@@ -672,6 +674,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               {character ? (
                 <DayRemixMenu
                   testIdPrefix="day-first-cut"
+                  onTomorrow={() => void startTomorrow()}
+                  tomorrowBusy={writingTomorrow}
                   onNewOutfit={remixNewOutfitDay}
                   onTheme={remixThemeDay}
                 />
@@ -1095,6 +1099,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               {character && !assemblingFilm ? (
                 <DayRemixMenu
                   testIdPrefix="day-remix"
+                  onTomorrow={() => void startTomorrow()}
+                  tomorrowBusy={writingTomorrow}
                   onNewOutfit={remixNewOutfitDay}
                   onTheme={remixThemeDay}
                 />

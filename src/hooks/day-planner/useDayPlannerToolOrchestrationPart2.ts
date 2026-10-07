@@ -2,6 +2,13 @@
 
 import { swapDayForCast } from '@/lib/day-cast-park';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
+import { nextDayThread, planTomorrowSlots } from '@/lib/day-thread';
+import {
+  dayPremiseAvailable,
+  requestDayPremiseBeats,
+  type DayPremiseBeat,
+} from '@/lib/day-premise';
+import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import { resolveDayClipEngine } from '@/hooks/day-planner/useDayEndPose';
 import { activeDayEndPose, dayEndPoseSupported } from '@/lib/day-end-pose';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
@@ -796,6 +803,80 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     [character?.id, setError, setFilmStatus, stillsRef, updateToolSettings]
   );
 
+  // Tomorrow: the next episode of this Cast's season, written to follow on from this Day.
+  const [writingTomorrow, setWritingTomorrow] = useState(false);
+  const castId = character?.id;
+  const castName = character?.name ?? '';
+  const startTomorrow = useCallback(async () => {
+    if (!castId) {
+      setError('Pick a Cast character before starting a new Day.');
+      return;
+    }
+    if (writingTomorrow) return;
+    const thread = nextDayThread(toolSettings.dayThread, slots);
+    const yesterday = thread?.yesterday ?? [];
+    let beats: DayPremiseBeat[] | null = null;
+    setWritingTomorrow(true);
+    if (dayPremiseAvailable(toolSettings.dayMood) && yesterday.length > 0) {
+      setFilmStatus('Tomorrow — writing the next day…');
+      try {
+        beats = await requestDayPremiseBeats({
+          premise: thread?.premise ?? '',
+          slotIds: slots.map(slot => slot.id),
+          companions: toolSettings.allowCompanions === true,
+          previousBeats: yesterday,
+          llmBody: sharedLlmRequestBody(shared),
+        });
+      } catch {
+        // LLM off or no usable beats: Day's own fresh picks below.
+        beats = null;
+      }
+    }
+    const nextSlots = planTomorrowSlots(slots, {
+      beats,
+      yesterday,
+      dayMood: toolSettings.dayMood,
+      intimateMix: toolSettings.intimateMix,
+      allowCompanions: toolSettings.allowCompanions === true,
+    });
+    const episode = nextDayFilmTitleCard(loadPlaySeriesStore(), castId, castName).subtitle;
+    stillsRef.current = [];
+    updateToolSettings({
+      slots: nextSlots,
+      dayThread: thread,
+      ...dayStillsCachePatch([], undefined),
+    });
+    setWritingTomorrow(false);
+    setFirstCutCelebrate(false);
+    setError(null);
+    setFilmStatus(
+      `${episode} — ${beats ? 'the next day, following on' : 'a fresh day'}; queueing stills…`
+    );
+    autoCutRef.current = false;
+    pendingAutoCutRef.current = false;
+    starterAutoQueueRef.current = false;
+    // Next macrotask, so queueAll sees the new slots (as Same look, new Day).
+    setTimeout(() => {
+      void queueAllRef.current().finally(() => {
+        pendingAutoCutRef.current = true;
+      });
+    }, 0);
+  }, [
+    castId,
+    castName,
+    setError,
+    setFilmStatus,
+    shared,
+    slots,
+    stillsRef,
+    toolSettings.allowCompanions,
+    toolSettings.dayMood,
+    toolSettings.dayThread,
+    toolSettings.intimateMix,
+    updateToolSettings,
+    writingTomorrow,
+  ]);
+
   const remixSameLookDay = useCallback(() => {
     runRemixDay({}, 'Same look · new Day — queueing fresh stills…');
   }, [runRemixDay]);
@@ -816,7 +897,6 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   );
 
   /** Same Day plan (Settings + Beats), new Outfit: clear stills and kits, then pick on Outfit. */
-  const castId = character?.id;
   const remixNewOutfitDay = useCallback(() => {
     if (!castId) {
       setError('Pick a Cast character before starting a new Day.');
@@ -1209,6 +1289,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     goRoleplay,
     seedDemoStills,
     firstCutCelebrate,
+    startTomorrow,
+    writingTomorrow,
     completedShotCount,
     fittingWardrobe,
     filmCutOptions,

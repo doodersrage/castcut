@@ -9,7 +9,14 @@ import type { DayToolCache } from './settings-cache';
 /** The part of Day that belongs to one Cast. */
 export type ParkedDay = Pick<
   DayToolCache,
-  'slots' | 'dayLength' | 'stills' | 'dayMood' | 'dayWeather' | 'intimateMix' | 'allowCompanions'
+  | 'slots'
+  | 'dayLength'
+  | 'stills'
+  | 'dayMood'
+  | 'dayWeather'
+  | 'intimateMix'
+  | 'allowCompanions'
+  | 'dayThread'
 > & { at: number };
 
 /** At most this many Casts keep a parked Day (oldest dropped). */
@@ -23,6 +30,7 @@ const PARKED_FIELDS = [
   'dayWeather',
   'intimateMix',
   'allowCompanions',
+  'dayThread',
 ] as const;
 
 /**

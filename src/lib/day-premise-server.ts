@@ -17,10 +17,12 @@ export async function writeDayPremiseBeats(options: {
   premise: string;
   slotIds: string[];
   companions: boolean;
+  previousBeats?: string[];
   llm?: LlmRequestOptions;
 }): Promise<DayPremiseBeat[]> {
   const premise = options.premise.trim().slice(0, DAY_PREMISE_MAX_LENGTH);
-  if (!premise) throw new Error('Write the idea for the day first.');
+  const previousBeats = options.previousBeats?.filter(beat => beat.trim()) ?? [];
+  if (!premise && previousBeats.length === 0) throw new Error('Write the idea for the day first.');
   if (options.slotIds.length === 0) throw new Error('This Day has no slots.');
   if (!resolveRequestLlmEnabled(options.llm)) {
     throw new Error('Day from an idea needs the LLM. Turn it on under Settings → LLM.');
@@ -30,6 +32,7 @@ export async function writeDayPremiseBeats(options: {
       premise,
       slotIds: options.slotIds,
       companions: options.companions,
+      previousBeats,
     }),
     maxTokens: 120 + 90 * options.slotIds.length,
     temperature: 0.7,

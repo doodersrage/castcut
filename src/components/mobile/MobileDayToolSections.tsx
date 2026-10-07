@@ -231,6 +231,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     remixSameLookDay,
     remixThemeDay,
     remixNewOutfitDay,
+    startTomorrow,
+    writingTomorrow,
     seedDemoStills,
     leanChrome,
     goRoleplay,
@@ -637,6 +639,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
               <DayRemixMenu
                 stacked
                 testIdPrefix="day-first-cut"
+                onTomorrow={() => void startTomorrow()}
+                tomorrowBusy={writingTomorrow}
                 onNewOutfit={remixNewOutfitDay}
                 onTheme={remixThemeDay}
               />
@@ -1011,6 +1015,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
                 <DayRemixMenu
                   stacked
                   testIdPrefix="day-remix"
+                  onTomorrow={() => void startTomorrow()}
+                  tomorrowBusy={writingTomorrow}
                   onNewOutfit={remixNewOutfitDay}
                   onTheme={remixThemeDay}
                 />
