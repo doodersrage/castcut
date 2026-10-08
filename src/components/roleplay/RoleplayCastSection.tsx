@@ -84,7 +84,7 @@ export default function RoleplayCastSection(props: RoleplayCastSectionProps) {
   const body = (
     <>
       <p className="text-sm text-[var(--text-muted)]">
-        Story continues this Cast lead
+        Story continues {displayName || 'this Cast lead'}
         {part ? ` · Part: ${part}` : ''}. Bible, Part, and look plate live on Cast — edit them
         there, then continue beats here.
       </p>
