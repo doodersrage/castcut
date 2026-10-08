@@ -20,6 +20,7 @@ import { parseIntimateLayout } from './day-pose-guide';
 import { reinforceIntimateStillPrompt } from './intimate-prompt-clarify';
 import { applyQueuePromptSteering } from './queue-prompt-prep';
 import {
+  rapidAdultSkipsPoseGuide,
   beatLiesDown,
   buildCompactDayRecipe,
   buildRapidDuoRecipe,
@@ -865,11 +866,19 @@ describe('Vacation recipe: reclining on her side', () => {
 });
 
 describe('scissors fallback', () => {
-  it('renders scissors as the missionary pose and drops the word from the Moment (two men kneel)', () => {
+  it('a couple scissors leg by leg with no map; two women keep side by side; two men kneel', () => {
     const beat = 'scissoring on the bed, legs interlocked — both adults fully visible';
     const couple = buildRapidDuoRecipe({ beat }) ?? '';
-    assert.match(couple, /missionary position|lies face up/);
-    assert.doesNotMatch(couple, /scissor/i);
+    assert.match(couple, /Side view, exactly two people\. The woman and the man sit facing each other/);
+    assert.match(couple, /Her right leg lies over his left thigh and her left leg passes under his right thigh/);
+    assert.equal(
+      rapidAdultSkipsPoseGuide({ model: 'qwen-rapid-aio-edit', adultMood: true, beat }),
+      true
+    );
+    assert.equal(
+      rapidAdultSkipsPoseGuide({ model: 'qwen-rapid-aio-edit', adultMood: true, beat, pairing: 'two-women' }),
+      false
+    );
     const women =
       buildRapidDuoRecipe({ beat, partner: { partner: { noun: 'woman' } as never, image: 'third' } }) ?? '';
     assert.match(women, /side by side/);

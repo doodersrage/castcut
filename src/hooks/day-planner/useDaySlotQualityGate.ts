@@ -23,6 +23,7 @@ import {
   POSE_LIBRARY_MIN_SCORE,
   POSE_MISMATCH_NUDGE,
   posturePairWords,
+  guidePostureContradictsWords,
   scorePoseMatch,
   type PoseMatchResult,
 } from '@/lib/pose-score';
@@ -249,6 +250,15 @@ export function useDaySlotQualityGate(
             }
           } catch (error) {
             poseNote = `pose check skipped (${error instanceof Error ? error.message : 'error'})`;
+          }
+          // The map's posture against the scene's own words (a standing map, "she sits"): the
+          // words drew the still, so the map cannot judge it.
+          if (
+            poseMatch &&
+            guidePostureContradictsWords(poseMatch, expectation.beat ?? target.sceneHints)
+          ) {
+            poseNote = 'pose not judged — the pose drawing disagrees with the scene words';
+            poseMatch = null;
           }
         }
         // Face check (ComfyUI FaceAnalysis): solo stills only — with a companion in frame the

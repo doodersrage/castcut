@@ -589,3 +589,34 @@ export function describePoseMatch(result: PoseMatchResult): string {
 /** Prompt nudge for a still that ignored its guide. */
 export const POSE_MISMATCH_NUDGE =
   'Match the Image 3 skeleton exactly — torso angle, both arms and both legs; do not keep the Image 1 standing pose.';
+
+const WORD_POSTURES: ReadonlyArray<
+  [RegExp, 'standing' | 'sitting' | 'kneeling' | 'lying' | 'all-fours']
+> = [
+  [/\bon (?:all fours|her hands and knees|his hands and knees)\b/i, 'all-fours'],
+  [/\b(?:lies|lying|lie down|lay|on (?:her|his) (?:back|stomach|side))\b/i, 'lying'],
+  [/\b(?:kneels|kneeling|on (?:her|his) knees)\b/i, 'kneeling'],
+  [/\b(?:sits|sitting|seated|perche[sd]|perching|straddl\w*)\b/i, 'sitting'],
+  [/\b(?:stands|standing)\b/i, 'standing'],
+];
+
+function postureGroup(posture: string): string {
+  return posture.startsWith('lying') ? 'lying' : posture;
+}
+
+/**
+ * The pose map's lead posture contradicts the posture the scene's own words give (a standing
+ * guide for "she sits on the edge of the sink"). The words win the render, so a "pose miss"
+ * against that map is the map's fault: a redo nudged "Fix the pose: body standing" onto a
+ * sitting beat (2026-10-08). Null words or no stated posture: no contradiction.
+ */
+export function guidePostureContradictsWords(
+  match: Pick<PoseMatchResult, 'posture'> | null | undefined,
+  words: string | null | undefined
+): boolean {
+  const guide = match?.posture?.[0]?.guide?.posture;
+  if (!guide || !words) return false;
+  const stated = WORD_POSTURES.find(([re]) => re.test(words))?.[1];
+  if (!stated) return false;
+  return postureGroup(guide) !== stated;
+}

@@ -1892,7 +1892,7 @@ export const DAY_SLOT_INTIMATE_BEAT_PRESETS: Record<DayPart, string[]> = {
     'missionary on the rumpled bed with morning light through blinds',
     'pressed against the bathroom wall mid-sex, steam in the air',
     'bent over the bathroom sink mid-sex with a partner behind',
-    'solo masturbation straddling a bathroom sink edge, fogged mirror, back arched, one hand between her thighs — Cast alone',
+    'solo masturbation straddling a bathroom sink edge, back arched, one hand between her thighs — Cast alone',
     'alone on her back in rumpled morning sheets, knees pulled up and spread, both hands between her thighs, head tipped back — never invent a partner',
     'solo kneeling upright on the bed masturbating at sunrise — hand on her vulva, chest forward, head tipped back eyes half-lidded not at the lens — one adult only fully nude',
     'alone standing in the shower masturbating under the spray, one foot on the ledge, fogged glass — Cast alone',

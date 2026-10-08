@@ -27,6 +27,7 @@ import {
   POSE_MISMATCH_NUDGE,
   posturePairWords,
   scorePoseMatch,
+  guidePostureContradictsWords,
 } from '@/lib/pose-score';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
 
@@ -272,6 +273,14 @@ export function useDayPoseMissRedo(
             realism: true,
             shared,
           }));
+        }
+        // A pose map that contradicts the scene's own posture cannot judge the still (the words
+        // drew it): no pose redo against it.
+        if (guidePostureContradictsWords(match, expectation.beat ?? target.sceneHints)) {
+          setStatus(
+            `${target.label}: pose not judged — the pose drawing disagrees with the scene.`
+          );
+          return;
         }
         const gestureMissed = gestureMissWords(match);
         const decision = poseRedoDecision({

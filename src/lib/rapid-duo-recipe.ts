@@ -155,7 +155,10 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // 2026-09-28, most seeds on v23); placing each body in turn gave 6/6 real spooning.
       return `Spooning, seen from the front. The woman lies on her side on ${on('bed')}, turned toward the camera, her head on her lower arm and her hip up; the man lies on his side right behind her, his chest pressed against her back and his face just behind her shoulder; he penetrates her from behind; her top knee is drawn forward and up toward her chest, her foot resting on the bed in front of her, his hand on her hip. Both faces in frame.`;
     case 'scissors':
-      return `The woman and the man sit on ${on('bed')} facing each other, each leaning back on their hands, their legs scissored together so their hips press together mid-sex; both faces in frame.`;
+      // Drawn as missionary since 2026-10-05 (the seated wording + the scissors map merged legs
+      // and once added a third person). Without the map, each leg placed: real scissoring 5-6/6
+      // across a couch and a bed, three seeds each (2026-10-08).
+      return `Side view, exactly two people. The woman and the man sit facing each other on ${on('bed')}, each leaning back on straight arms with hands flat behind them. Her right leg lies over his left thigh and her left leg passes under his right thigh, so their hips meet in the middle; each body has exactly two legs. Both faces in profile.`;
     case 'wall':
       // Glass: back-to-the-window face-to-face put her perched on the sill, twisted, with a
       // reflection clone 3/3; facing the glass from behind (as the wall map draws it) was clean
@@ -537,7 +540,10 @@ export function buildRapidDuoRecipe(input: {
   // Rapid cannot draw scissoring (seated or lying, it came back odd — user report 2026-10-05):
   // like 69 / face-sit → seated oral, scissors renders as the close missionary pose, which lands
   // (8/8 couple, 4/4 two women side by side). Two men keep their kneeling recipe.
-  const drawn: IntimateLayout = layout === 'scissors' && !twoMen ? 'missionary' : layout;
+  // Scissoring is drawn as itself again for a couple (2026-10-08): the leg-by-leg wording without
+  // the pose map (rapidAdultSkipsPoseGuide) gave real scissoring. Two women keep the side-by-side
+  // missionary that tested clean (not re-tested); two men keep their kneeling recipe.
+  const drawn: IntimateLayout = layout === 'scissors' && twoWomen ? 'missionary' : layout;
   const body = twoWomen
     ? placementTwoWomen(drawn, beat, surface)
     : twoMen
@@ -572,7 +578,7 @@ export function buildRapidDuoRecipe(input: {
         layout === 'sixty_nine' || layout === 'facesit' ? RAPID_ORAL_FALLBACK_RE : /$^/,
         'oral sex'
       )
-      .replace(layout === 'scissors' ? RAPID_SCISSORS_FALLBACK_RE : /$^/, 'making love')
+      .replace(layout === 'scissors' && twoWomen ? RAPID_SCISSORS_FALLBACK_RE : /$^/, 'making love')
       .replace(input.nude === false ? /$^/ : WORN_CLOTHES_CLAUSE_RE, '')
       .replace(MEAL_TIME_RE, '')}.`,
     room,
@@ -750,7 +756,9 @@ function soloPlacement(
       return /\bkitchen\b/i.test(beat) && /\bsink\b/i.test(beat)
         ? 'She leans back against the kitchen counter beside the sink, hips at its edge, thighs apart, facing the camera.'
         : /\bsink\b/i.test(beat)
-          ? 'She sits on the edge of the bathroom sink, leaning back against the mirror, thighs apart, facing the camera.'
+          ? // "Leaning back against the mirror" drew her reflection as a second figure 3/3; a plain
+            // wall said outright gave 0/3 (live 2026-10-08).
+            'She sits on the edge of the bathroom sink, leaning back on both hands on the counter, thighs apart, facing the camera. The wall behind her is plain white tile with no mirror; she is the only figure in the picture.'
           : `She leans back against ${on('counter')}, hips at its edge, thighs apart, facing the camera.`;
     case 'seated':
     default:
@@ -1320,7 +1328,11 @@ export function rapidAdultSkipsPoseGuide(input: {
   if (!input.adultMood || !/rapid/i.test(input.model ?? '')) return false;
   const layout = parseIntimateLayout(input.beat ?? '');
   return (
-    layout === 'spoon' || layout === 'prone' || (layout === 'wall' && input.pairing !== 'two-women')
+    layout === 'spoon' ||
+    layout === 'prone' ||
+    (layout === 'wall' && input.pairing !== 'two-women') ||
+    // The scissors map is a missionary drawing; the words place each leg (2026-10-08).
+    (layout === 'scissors' && !input.pairing)
   );
 }
 
