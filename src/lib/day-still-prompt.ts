@@ -108,12 +108,55 @@ export type DayStillPromptFacts = {
   kleinFace: boolean;
   /** The quality gate's fix for a reroll, once. */
   qualityNudge?: string;
+  /** A camera angle for this slot (dayStillCamera) — Day's stills were all eye level. */
+  camera?: DayStillCamera | null;
   /**
    * The engine wants the layout's cue after the sport ACTION sentence (pose-model-profile:
    * sportActionCue) — the long sport brief has none of its own.
    */
   sportActionCue?: boolean;
 };
+
+export type DayStillCamera = 'low' | 'high' | 'wide';
+
+const DAY_STILL_CAMERA_LINES: Record<DayStillCamera, string> = {
+  wide: 'Camera: a wide shot from a few metres away — her whole body small in the frame, with much more of the place around her.',
+  low: 'Camera: a low angle from about knee height, looking slightly up at her — her whole body in frame.',
+  high: 'Camera: a slightly high angle from above eye level, looking down at her — her whole body in frame.',
+};
+
+const DAY_SLOT_ORDER = [
+  'morning',
+  'morning-2',
+  'afternoon',
+  'afternoon-2',
+  'evening',
+  'evening-2',
+  'night',
+  'night-2',
+];
+const CAMERA_CYCLE: Array<DayStillCamera | null> = [null, 'low', 'high', 'wide'];
+
+/**
+ * A camera for a clothed one-person Day still on Edit 2511, by slot, so a Day is not every shot
+ * at eye level (a re-take keeps its slot's camera). Edit 2511 followed all three (wide, low,
+ * high) on four Everyday stills with the pose, outfit and shoes kept, whole body in frame for
+ * the pose and shoe checks (2026-10-08). Duos, Sport, the adult moods and other engines: none.
+ */
+export function dayStillCamera(input: {
+  slotId: string | null | undefined;
+  model: string | null | undefined;
+  dayMood: string | null | undefined;
+  adult: boolean;
+  people: number;
+}): DayStillCamera | null {
+  if (input.adult || input.people !== 1) return null;
+  if (!/qwen-image-edit-2511|qwen_image_edit_2511/i.test(input.model ?? '')) return null;
+  if ((input.dayMood ?? '').toLowerCase() === 'sport') return null;
+  const index = DAY_SLOT_ORDER.indexOf((input.slotId ?? '').trim());
+  if (index < 0) return null;
+  return CAMERA_CYCLE[index % CAMERA_CYCLE.length] ?? null;
+}
 
 export type AssembledDayStillPrompt = {
   prompt: string;
@@ -237,7 +280,9 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
       line => !(facts.footwear && /^She wears shoes that suit/.test(line))
     ),
     withFootwearLine(
-      posedBase,
+      facts.camera && recipe && !facts.adult && figures === 1
+        ? posedBase.replace(/(Day photo: [^\n]*?\.)/, `$1 ${DAY_STILL_CAMERA_LINES[facts.camera]}`)
+        : posedBase,
       // Shoes on auto: the recipe prompts named none and the Cast plate is barefoot, so she went
       // barefoot outdoors — name a pair that suits the outfit and the place (dayAutoFootwear).
       facts.footwear ||

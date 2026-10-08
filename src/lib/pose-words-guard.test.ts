@@ -15,3 +15,18 @@ describe('a pose map that contradicts the scene words cannot judge the still', (
     assert.equal(guidePostureContradictsWords(null, sink), false);
   });
 });
+
+describe('Day camera variety', () => {
+  it('rotates eye level, low, high, wide by slot for clothed solo stills on Edit 2511 only', async () => {
+    const { dayStillCamera } = await import('./day-still-prompt');
+    const base = { model: 'qwen-image-edit-2511-lightning-8', dayMood: 'everyday', adult: false, people: 1 };
+    assert.deepEqual(
+      ['morning', 'morning-2', 'afternoon', 'afternoon-2'].map(slotId => dayStillCamera({ ...base, slotId })),
+      [null, 'low', 'high', 'wide']
+    );
+    assert.equal(dayStillCamera({ ...base, slotId: 'morning-2', people: 2 }), null);
+    assert.equal(dayStillCamera({ ...base, slotId: 'morning-2', adult: true }), null);
+    assert.equal(dayStillCamera({ ...base, slotId: 'morning-2', dayMood: 'sport' }), null);
+    assert.equal(dayStillCamera({ ...base, slotId: 'morning-2', model: 'qwen-rapid-aio-edit' }), null);
+  });
+});

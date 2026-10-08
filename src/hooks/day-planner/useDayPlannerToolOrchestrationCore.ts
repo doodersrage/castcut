@@ -5,6 +5,7 @@ import { useEngineWarmUp } from '@/hooks/useEngineWarmUp';
 import {
   type DayStillSlotOptions,
   assembleDayStillPrompt,
+  dayStillCamera,
   buildDaySlotPromptForStill,
   dayBeatIsTyped,
   dayStillAgeFacts,
@@ -1960,6 +1961,13 @@ export function useDayPlannerToolOrchestrationCore() {
         // runs), from the decisions made above.
         const assembled = assembleDayStillPrompt({
           slotPrompt,
+          camera: dayStillCamera({
+            slotId: queueTarget.id,
+            model: stillModel,
+            dayMood: toolSettings.dayMood,
+            adult: adultStill,
+            people: slotPartner ? 2 : 1,
+          }),
           beat: queueTarget.sceneHints,
           beatTyped: dayBeatIsTyped(queueTarget),
           setting: queueTarget.location,

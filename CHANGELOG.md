@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Day's camera moves.** Every Day still was the same shot — full body, eye level. Clothed one-person stills on Edit 2511 now rotate by time slot through eye level, a low angle, a slightly high angle and a wide shot with more of the place, whole body always in frame (a re-take keeps its slot's camera). Edit 2511 followed all three on four of your Everyday stills with the pose, outfit and shoes kept. Duos, Sport and the adult moods are unchanged.
 - **Walking hand in hand holds hands.** The stride line said "arms swinging", which fought the hold: hands were joined in about 4 of 8 takes. It now says their near hands are joined, fingers interlaced: 8 of 8 (four hand-in-hand beats, two seeds).
 - **Shoes on auto follow the beat.** "Lacing boots" got white sneakers from this morning's automatic pick; a beat that names boots, heels, sandals, sneakers or loafers now gets that kind. "Walking home" no longer counts as a bare-feet place ("at home" still does).
 - **Scissoring is scissoring again.** Since Oct 5 a scissoring beat rendered as missionary (the seated wording and its pose drawing merged legs and once added a third person). Without the drawing and with each leg placed in words, a couple scissors for real: 5–6 of 6 across a couch and a bed, three seeds each. Two women keep the side-by-side pose that tested clean; two men keep kneeling.
